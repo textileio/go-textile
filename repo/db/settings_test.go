@@ -3,7 +3,7 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
-	"github.com/textileio/mill-go/repo"
+	"github.com/textileio/textile-go/repo"
 	"sync"
 	"testing"
 )
@@ -15,7 +15,7 @@ func init() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
 	initDatabaseTables(conn, "")
 	sdb = NewConfigurationStore(conn, new(sync.Mutex))
-	v := "/mill-go:0.1/"
+	v := "/textile-go:0.1/"
 	settings = repo.SettingsData{
 		Version: &v,
 	}
@@ -38,7 +38,7 @@ func TestSettingsPut(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if *set.Version!= "/mill-go:0.1/" {
+	if *set.Version!= "/textile-go:0.1/" {
 		t.Error("Settings put failed to put correct value")
 	}
 }
@@ -72,7 +72,7 @@ func TestSettingsGet(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if *set.Version != "/mill-go:0.1/" {
+	if *set.Version != "/textile-go:0.1/" {
 		t.Error("Settings put failed to put correct value")
 	}
 }
@@ -82,7 +82,7 @@ func TestSettingsUpdate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	l := "/mill-go:0.2/"
+	l := "/textile-go:0.2/"
 	setUpdt := repo.SettingsData{
 		Version: &l,
 	}
@@ -94,7 +94,7 @@ func TestSettingsUpdate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if *set.Version != "/mill-go:0.2/" {
+	if *set.Version != "/textile-go:0.2/" {
 		t.Error("Settings update failed to put correct value")
 	}
 }

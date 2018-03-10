@@ -1,6 +1,6 @@
 package ipfs
 
-import "github.com/ipfs/go-ipfs/commands"
+import "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
 
 func ConnectedPeers(ctx commands.Context) ([]string, error) {
 	args := []string{"swarm", "peers"}

@@ -5,7 +5,7 @@ import (
 	"path"
 	"sync"
 
-	"github.com/textileio/mill-go/repo"
+	"github.com/textileio/textile-go/repo"
 	_ "github.com/mutecomm/go-sqlcipher"
 	"github.com/op/go-logging"
 	"time"

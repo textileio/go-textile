@@ -2,32 +2,32 @@ package core
 
 import (
 	"errors"
-	routing "gx/ipfs/QmPR2JzfKd9poHx9XBhzoFeBBC31ZM3W5iUPKJZWyaoZZm/go-libp2p-routing"
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
-	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
+	peer "gx/ipfs/QmQnuSxgSFubscHgkgSeayLxKmVcmNhFUaZw4gHtV3tJ15/go-libp2p-peer"
+	libp2p "gx/ipfs/Qmb9aAJwV1mDc5iPNtVuzVvsNiKA6kkDpZspMUgVfXPVc8/go-libp2p-crypto"
 	"path"
 	"time"
 
-	"github.com/textileio/mill-go/ipfs"
-	"github.com/textileio/mill-go/namesys"
-	"github.com/textileio/mill-go/net"
-	"github.com/textileio/mill-go/repo"
-	"github.com/ipfs/go-ipfs/commands"
-	"github.com/ipfs/go-ipfs/core"
 	"github.com/op/go-logging"
+	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/namesys"
+	"github.com/textileio/textile-go/net"
+	"github.com/textileio/textile-go/repo"
 	"golang.org/x/net/context"
-	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
+	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
 	"sync"
 )
 
 var (
 	VERSION   = "0.0.1"
-	USERAGENT = "/mill-go:" + VERSION + "/"
+	USERAGENT = "/textile-go:" + VERSION + "/"
 )
 
 const (
-	CachePrefix       = "IPNSPERSISENTCACHE_"
-	KeyCachePrefix    = "IPNSPUBKEYCACHE_"
+	CachePrefix    = "IPNSPERSISENTCACHE_"
+	KeyCachePrefix = "IPNSPUBKEYCACHE_"
 )
 
 var log = logging.MustGetLogger("core")

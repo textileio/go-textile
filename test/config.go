@@ -5,7 +5,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/textileio/mill-go/repo"
+	"github.com/textileio/textile-go/repo"
 	"io/ioutil"
 )
 

@@ -1,6 +1,6 @@
 package ipfs
 
-import "github.com/ipfs/go-ipfs/commands"
+import "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
 
 /* Recursively un-pin a directory given its hash.
    This will allow it to be garbage collected. */

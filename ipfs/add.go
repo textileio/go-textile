@@ -2,8 +2,8 @@ package ipfs
 
 import (
 	"errors"
-	"github.com/ipfs/go-ipfs/commands"
-	"github.com/ipfs/go-ipfs/core/coreunix"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreunix"
 	"io"
 	"io/ioutil"
 	"math/rand"

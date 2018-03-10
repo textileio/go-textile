@@ -3,7 +3,7 @@ package dao
 import (
 	"log"
 
-	. "github.com/textileio/mill-go/central/models"
+	. "github.com/textileio/textile-go/central/models"
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )

@@ -1,8 +1,8 @@
 package ipfs
 
 import (
-	"github.com/ipfs/go-ipfs/commands"
-	"github.com/ipfs/go-ipfs/path"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/path"
 	"io"
 	"time"
 )

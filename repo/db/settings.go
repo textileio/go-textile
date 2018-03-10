@@ -6,7 +6,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/textileio/mill-go/repo"
+	"github.com/textileio/textile-go/repo"
 )
 
 var SettingsNotSetError error = errors.New("Settings not set")

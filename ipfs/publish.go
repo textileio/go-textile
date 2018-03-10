@@ -3,8 +3,8 @@ package ipfs
 import (
 	"errors"
 
-	"github.com/ipfs/go-ipfs/commands"
-	coreCmds "github.com/ipfs/go-ipfs/core/commands"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
+	coreCmds "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/commands"
 )
 
 var pubErr = errors.New(`Name publish failed`)

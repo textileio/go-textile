@@ -7,13 +7,13 @@ import (
 	"os"
 	"path"
 
-	"github.com/textileio/mill-go/ipfs"
-	"github.com/textileio/mill-go/util"
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/namesys"
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/op/go-logging"
+	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/util"
 	"github.com/tyler-smith/go-bip39"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/namesys"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo"
 	"time"
 )
 

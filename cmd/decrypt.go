@@ -9,10 +9,10 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/textileio/mill-go/repo"
-	"github.com/textileio/mill-go/repo/db"
-	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
+	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/repo/db"
 	"golang.org/x/crypto/ssh/terminal"
+	lockfile "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo/lock"
 )
 
 type DecryptDatabase struct {
