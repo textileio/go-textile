@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	ipfslogging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	manet "gx/ipfs/QmX3U3YXCQ6UYBxq2LVWF8dARS1hPUTEYLrSx654Qyxyw6/go-multiaddr-net"
-	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+	ipfslogging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
+	manet "gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
+	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	"net"
 	"os"
@@ -15,48 +15,49 @@ import (
 	"sort"
 
 	"crypto/rand"
-	"github.com/textileio/mill-go/api"
+	"github.com/textileio/textile-go/api"
 
-	"github.com/textileio/mill-go/core"
-	"github.com/textileio/mill-go/ipfs"
-	"github.com/textileio/mill-go/repo"
-	"github.com/textileio/mill-go/repo/db"
 	"github.com/fatih/color"
-	"github.com/ipfs/go-ipfs/commands"
-	ipfscore "github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/corehttp"
-	"github.com/ipfs/go-ipfs/namesys"
-	namepb "github.com/ipfs/go-ipfs/namesys/pb"
-	ipath "github.com/ipfs/go-ipfs/path"
-	ipfsrepo "github.com/ipfs/go-ipfs/repo"
-	"github.com/ipfs/go-ipfs/repo/config"
+	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/repo/db"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
+	ipfscore "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/corehttp"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/namesys"
+	namepb "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/namesys/pb"
+	ipath "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/path"
+	ipfsrepo "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/config"
 	"io/ioutil"
 	"net/http"
 	"strings"
 
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
-	"github.com/ipfs/go-ipfs/thirdparty/ds-help"
+	"github.com/btcsuite/btcutil/base58"
 	"github.com/natefinch/lumberjack"
 	"github.com/op/go-logging"
 	"golang.org/x/crypto/ssh/terminal"
-	routing "gx/ipfs/QmPR2JzfKd9poHx9XBhzoFeBBC31ZM3W5iUPKJZWyaoZZm/go-libp2p-routing"
-	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
-	metrics "gx/ipfs/QmQbh3Rb7KM37As3vkHYnEFnzkVXNCP8EYGtHz6g2fXk14/go-libp2p-metrics"
-	"gx/ipfs/QmQq9YzmdFdWNTDdArueGyD7L5yyiRQigrRHJnTGkxcEjT/go-libp2p-interface-pnet"
-	p2pbhost "gx/ipfs/QmRQ76P5dgvxTujhfPsCRAG83rC15jgb1G9bKLuomuC6dQ/go-libp2p/p2p/host/basic"
-	dht "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht"
-	dhtutil "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht/util"
-	oniontp "gx/ipfs/QmVYZ6jGE4uogWAZK2w8PrKWDEKMvYaQWTSXWCbYJLEuKs/go-onion-transport"
+	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
+	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
+	metrics "gx/ipfs/QmdeBtQGXjSt7cb97nx9JyLHHv5va2LyEAue7Q5tDFzpLy/go-libp2p-metrics"
+	"gx/ipfs/QmZPrWxuM8GHr4cGKbyF5CCT11sFUP9hgqpeUHALvx2nUr/go-libp2p-interface-pnet"
+	p2pbhost "gx/ipfs/QmNh1kGFFdsPu79KNSaL4NUKUPb4Eiz4KHdMtFY6664RDp/go-libp2p/p2p/host/basic"
+	//dht "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht"
+	//dhtutil "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht/util"
+	//oniontp "gx/ipfs/QmVYZ6jGE4uogWAZK2w8PrKWDEKMvYaQWTSXWCbYJLEuKs/go-onion-transport"
 	swarm "gx/ipfs/QmWpJ4y2vxJ6GZpPfQbpVpQxAYS3UeR6AKNbAHxw7wN3qw/go-libp2p-swarm"
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	peer "gx/ipfs/QmQnuSxgSFubscHgkgSeayLxKmVcmNhFUaZw4gHtV3tJ15/go-libp2p-peer"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo"
+	lockfile "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo/lock"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/thirdparty/ds-help"
 	smux "gx/ipfs/QmY9JXR3FupnYAYJWK9aMr9bCpqWKcToQ1tz8DVGTrHpHw/go-stream-muxer"
 	p2phost "gx/ipfs/QmaSxYRuMq4pkpBBG2CYaRrPx2z7NmMVEs34b9g61biQA6/go-libp2p-host"
 	recpb "gx/ipfs/QmbxkgUceEcuSZ4ZdBA3x74VUDSSYjHYmmeEqkjxbtZ6Jg/go-libp2p-record/pb"
 	"io"
 	"syscall"
 	"time"
-	"github.com/btcsuite/btcutil/base58"
+	"gx/ipfs/QmdQTPWduSeyveSxeCAte33M592isSW5Z979g81aJphrgn/go-ipfs-ds-help"
 )
 
 var stdoutLogFormat = logging.MustStringFormatter(
@@ -72,16 +73,16 @@ var (
 )
 
 type Start struct {
-	Password             string   `short:"p" long:"password" description:"the encryption password if the database is encrypted"`
-	Testnet              bool     `short:"t" long:"testnet" description:"use the test network"`
-	Regtest              bool     `short:"r" long:"regtest" description:"run in regression test mode"`
-	LogLevel             string   `short:"l" long:"loglevel" description:"set the logging level [debug, info, notice, warning, error, critical]" defaut:"debug"`
-	NoLogFiles           bool     `short:"f" long:"nologfiles" description:"save logs on disk"`
-	AllowIP              []string `short:"a" long:"allowip" description:"only allow API connections from these IPs"`
-	DataDir              string   `short:"d" long:"datadir" description:"specify the data directory to be used"`
-	AuthCookie           string   `short:"c" long:"authcookie" description:"turn on API authentication and use this specific cookie"`
-	UserAgent            string   `short:"u" long:"useragent" description:"add a custom user-agent field"`
-	Verbose              bool     `short:"v" long:"verbose" description:"print openbazaar logs to stdout"`
+	Password   string   `short:"p" long:"password" description:"the encryption password if the database is encrypted"`
+	Testnet    bool     `short:"t" long:"testnet" description:"use the test network"`
+	Regtest    bool     `short:"r" long:"regtest" description:"run in regression test mode"`
+	LogLevel   string   `short:"l" long:"loglevel" description:"set the logging level [debug, info, notice, warning, error, critical]" defaut:"debug"`
+	NoLogFiles bool     `short:"f" long:"nologfiles" description:"save logs on disk"`
+	AllowIP    []string `short:"a" long:"allowip" description:"only allow API connections from these IPs"`
+	DataDir    string   `short:"d" long:"datadir" description:"specify the data directory to be used"`
+	AuthCookie string   `short:"c" long:"authcookie" description:"turn on API authentication and use this specific cookie"`
+	UserAgent  string   `short:"u" long:"useragent" description:"add a custom user-agent field"`
+	Verbose    bool     `short:"v" long:"verbose" description:"print openbazaar logs to stdout"`
 }
 
 func (x *Start) Execute(args []string) error {
@@ -687,18 +688,18 @@ func (x *Start) Execute(args []string) error {
 
 	// OpenBazaar node setup
 	core.Node = &core.TextileNode{
-		Context:              ctx,
-		IpfsNode:             nd,
-		RootHash:             ipath.Path(e.Value).String(),
-		RepoPath:             repoPath,
-		Datastore:            sqliteDB,
+		Context:   ctx,
+		IpfsNode:  nd,
+		RootHash:  ipath.Path(e.Value).String(),
+		RepoPath:  repoPath,
+		Datastore: sqliteDB,
 		//Wallet:               cryptoWallet,
 		//NameSystem:           ns,
 		//ExchangeRates:        exchangeRates,
 		//PushNodes:            pushNodes,
 		//AcceptStoreRequests:  dataSharing.AcceptStoreRequests,
 		//TorDialer:            torDialer,
-		UserAgent:            core.USERAGENT,
+		UserAgent: core.USERAGENT,
 		//BanManager:           bm,
 		IPNSBackupAPI:        cfg.Ipns.BackUpAPI,
 		TestnetEnable:        x.Testnet,

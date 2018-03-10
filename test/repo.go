@@ -5,8 +5,8 @@ import (
 	"path"
 	"time"
 
-	"github.com/textileio/mill-go/repo"
-	"github.com/textileio/mill-go/repo/db"
+	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/repo/db"
 )
 
 // Repository represents a test (temporary/volitile) repository

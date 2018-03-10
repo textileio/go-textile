@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/textileio/mill-go/core"
-	"github.com/textileio/mill-go/repo"
-	"github.com/ipfs/go-ipfs/core/corehttp"
 	"github.com/op/go-logging"
+	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/repo"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/corehttp"
 )
 
 var log = logging.MustGetLogger("api")

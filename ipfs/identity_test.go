@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"github.com/tyler-smith/go-bip39"
-	"gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"gx/ipfs/Qmb9aAJwV1mDc5iPNtVuzVvsNiKA6kkDpZspMUgVfXPVc8/go-libp2p-crypto"
 	"testing"
 )
 

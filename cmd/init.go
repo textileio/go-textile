@@ -4,7 +4,7 @@ import (
 	"bufio"
 	//"errors"
 	"fmt"
-	"github.com/textileio/mill-go/repo"
+	"github.com/textileio/textile-go/repo"
 	"github.com/op/go-logging"
 	"os"
 	"strings"

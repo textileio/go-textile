@@ -2,9 +2,9 @@ package ipfs
 
 import (
 	"context"
-	"github.com/ipfs/go-ipfs/commands"
-	"github.com/ipfs/go-ipfs/merkledag"
 	"gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/merkledag"
 	"sync"
 	"time"
 )

@@ -3,10 +3,10 @@ package ipfs
 import (
 	"context"
 
-	cmds "github.com/ipfs/go-ipfs/commands"
-	cli "github.com/ipfs/go-ipfs/commands/cli"
-	commands "github.com/ipfs/go-ipfs/core/commands"
 	"github.com/op/go-logging"
+	cmds "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
+	cli "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands/cli"
+	commands "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/commands"
 	"time"
 )
 

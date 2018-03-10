@@ -2,11 +2,11 @@ package test
 
 import (
 	// "github.com/ipfs/go-ipfs/thirdparty/testutil"
-	"github.com/textileio/mill-go/core"
-	"github.com/textileio/mill-go/ipfs"
+	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/ipfs"
 	"github.com/tyler-smith/go-bip39"
-	"gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
-	"gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"gx/ipfs/QmQnuSxgSFubscHgkgSeayLxKmVcmNhFUaZw4gHtV3tJ15/go-libp2p-peer"
+	"gx/ipfs/Qmb9aAJwV1mDc5iPNtVuzVvsNiKA6kkDpZspMUgVfXPVc8/go-libp2p-crypto"
 )
 
 // NewNode creates a new *core.OpenBazaarNode prepared for testing

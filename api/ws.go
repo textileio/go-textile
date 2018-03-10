@@ -4,10 +4,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/textileio/mill-go/core"
-	"github.com/textileio/mill-go/repo"
 	"github.com/gorilla/websocket"
-	"github.com/ipfs/go-ipfs/commands"
+	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/repo"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
 	"net/http"
 	"strings"
 )

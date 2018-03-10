@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	//obnet "github.com/textileio/mill-go/net"
-	"github.com/textileio/mill-go/repo"
-	"github.com/textileio/mill-go/repo/db"
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	//obnet "github.com/textileio/textile-go/net"
+	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/repo/db"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo"
 	"os"
 )
 

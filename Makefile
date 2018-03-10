@@ -11,10 +11,10 @@ linux_binary:
 	./build.sh linux/amd64
 
 ios_framework:
-	CGO_CFLAGS_ALLOW='-fmodules|-fblocks' gomobile bind -target=ios/arm64 github.com/textileio/mill-go/mobile
+	CGO_CFLAGS_ALLOW='-fmodules|-fblocks' gomobile bind -target=ios/arm64 github.com/textileio/textile-go/mobile
 
 android_framework:
-	gomobile bind -target=android/arm64 github.com/textileio/mill-go/mobile
+	gomobile bind -target=android/arm64 github.com/textileio/textile-go/mobile
 
 ##
 ## Protobuf compilation

@@ -5,40 +5,42 @@ import (
 	"os"
 	"path/filepath"
 
-	manet "gx/ipfs/QmX3U3YXCQ6UYBxq2LVWF8dARS1hPUTEYLrSx654Qyxyw6/go-multiaddr-net"
-	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+	manet "gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
+	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 
-	"github.com/textileio/mill-go/api"
-	"github.com/textileio/mill-go/repo"
-	"github.com/ipfs/go-ipfs/core/corehttp"
+	"github.com/textileio/textile-go/api"
+	"github.com/textileio/textile-go/repo"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/corehttp"
 
 	"errors"
 	"fmt"
-	routing "gx/ipfs/QmPR2JzfKd9poHx9XBhzoFeBBC31ZM3W5iUPKJZWyaoZZm/go-libp2p-routing"
-	dht "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht"
-	dhtutil "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht/util"
+	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
+	//dht "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht"
+	//dhtutil "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht/util"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	p2phost "gx/ipfs/QmaSxYRuMq4pkpBBG2CYaRrPx2z7NmMVEs34b9g61biQA6/go-libp2p-host"
-	recpb "gx/ipfs/QmbxkgUceEcuSZ4ZdBA3x74VUDSSYjHYmmeEqkjxbtZ6Jg/go-libp2p-record/pb"
+	//p2phost "gx/ipfs/QmaSxYRuMq4pkpBBG2CYaRrPx2z7NmMVEs34b9g61biQA6/go-libp2p-host"
+	//recpb "gx/ipfs/QmbxkgUceEcuSZ4ZdBA3x74VUDSSYjHYmmeEqkjxbtZ6Jg/go-libp2p-record/pb"
 	"io/ioutil"
 	"net/http"
 	"path"
 	"time"
 
-	"github.com/textileio/mill-go/core"
-	"github.com/textileio/mill-go/ipfs"
-	"github.com/textileio/mill-go/repo/db"
-    "github.com/ipfs/go-ipfs/commands"
-	ipfscore "github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/namesys"
-	namepb "github.com/ipfs/go-ipfs/namesys/pb"
-	ipath "github.com/ipfs/go-ipfs/path"
-	ipfsrepo "github.com/ipfs/go-ipfs/repo"
-	ipfsconfig "github.com/ipfs/go-ipfs/repo/config"
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
-	"github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	"github.com/op/go-logging"
+	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/repo/db"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
+	ipfscore "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/namesys"
+	namepb "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/namesys/pb"
+	ipath "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/path"
+	ipfsrepo "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo"
+	ipfsconfig "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/config"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo"
+	lockfile "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo/lock"
+	//"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/thirdparty/ds-help"
+	"gx/ipfs/QmdQTPWduSeyveSxeCAte33M592isSW5Z979g81aJphrgn/go-ipfs-ds-help"
+	"gx/ipfs/QmVSep2WwKcXxMonPASsAJ3nZVjfVMKgMcaSigxKnUWpJv/go-libp2p-kad-dht"
 )
 
 type Node struct {
@@ -51,11 +53,11 @@ type Node struct {
 type Mobile struct{}
 
 type Start struct {
-	Password             string   `short:"p" long:"password" description:"the encryption password if the database is encrypted"`
-	LogLevel             string   `short:"l" long:"loglevel" description:"set the logging level [debug, info, notice, warning, error, critical]" defaut:"debug"`
-	NoLogFiles           bool     `short:"f" long:"nologfiles" description:"save logs on disk"`
-	DataDir              string   `short:"d" long:"datadir" description:"specify the data directory to be used"`
-	Verbose              bool     `short:"v" long:"verbose" description:"print openbazaar logs to stdout"`
+	Password   string `short:"p" long:"password" description:"the encryption password if the database is encrypted"`
+	LogLevel   string `short:"l" long:"loglevel" description:"set the logging level [debug, info, notice, warning, error, critical]" defaut:"debug"`
+	NoLogFiles bool   `short:"f" long:"nologfiles" description:"save logs on disk"`
+	DataDir    string `short:"d" long:"datadir" description:"specify the data directory to be used"`
+	Verbose    bool   `short:"v" long:"verbose" description:"print openbazaar logs to stdout"`
 }
 
 func (x *Start) Execute(args []string) error {
@@ -85,7 +87,7 @@ func NewTextile(repoPath string, password string, mnemonic string, testnet bool)
 
 	nodeconfig := NodeConfig{
 		RepoPath: repoPath,
-		Testnet: testnet,
+		Testnet:  testnet,
 	}
 
 	var m Mobile
@@ -177,13 +179,13 @@ func (m *Mobile) NewNode(config NodeConfig, password string, mnemonic string) (*
 	}
 
 	// Set IPNS query size
-	querySize := cfg.Ipns.QuerySize
-	if querySize <= 20 && querySize > 0 {
-		dhtutil.QuerySize = int(querySize)
-	} else {
-		dhtutil.QuerySize = 16
-	}
-	namesys.UsePersistentCache = cfg.Ipns.UsePersistentCache
+	//querySize := cfg.Ipns.QuerySize
+	//if querySize <= 20 && querySize > 0 {
+	//	dhtutil.QuerySize = int(querySize)
+	//} else {
+	//	dhtutil.QuerySize = 16
+	//}
+	//namesys.UsePersistentCache = cfg.Ipns.UsePersistentCache
 
 	// Wallet
 	//mn, err := sqliteDB.Config().GetMnemonic()
@@ -256,8 +258,8 @@ func (m *Mobile) NewNode(config NodeConfig, password string, mnemonic string) (*
 
 	// OpenBazaar node setup
 	core.Node = &core.TextileNode{
-		RepoPath:      config.RepoPath,
-		Datastore:     sqliteDB,
+		RepoPath:  config.RepoPath,
+		Datastore: sqliteDB,
 		//Wallet:        wallet,
 		//NameSystem:    ns,
 		//ExchangeRates: exchangeRates,
@@ -306,20 +308,20 @@ func (n *Node) Start() error {
 	n.node.IpfsNode = nd
 
 	// Get current directory root hash
-	fmt.Println("Getting IPNS keys")
-	_, ipnskey := namesys.IpnsKeysForID(nd.Identity)
-	ival, hasherr := nd.Repo.Datastore().Get(dshelp.NewKeyFromBinary([]byte(ipnskey)))
-	if hasherr != nil {
-		return hasherr
-	}
-	val := ival.([]byte)
-	dhtrec := new(recpb.Record)
-	proto.Unmarshal(val, dhtrec)
-	e := new(namepb.IpnsEntry)
-	proto.Unmarshal(dhtrec.GetValue(), e)
-	n.node.RootHash = ipath.Path(e.Value).String()
-
-	fmt.Println("Reading config file...")
+	//fmt.Println("Getting IPNS keys")
+	//_, ipnskey := namesys.IpnsKeysForID(nd.Identity)
+	//ival, hasherr := nd.Repo.Datastore().Get(dshelp.NewKeyFromBinary([]byte(ipnskey)))
+	//if hasherr != nil {
+	//	return hasherr
+	//}
+	//val := ival.([]byte)
+	//dhtrec := new(recpb.Record)
+	//proto.Unmarshal(val, dhtrec)
+	//e := new(namepb.IpnsEntry)
+	//proto.Unmarshal(dhtrec.GetValue(), e)
+	//n.node.RootHash = ipath.Path(e.Value).String()
+	//
+	//fmt.Println("Reading config file...")
 	//configFile, err := ioutil.ReadFile(path.Join(n.node.RepoPath, "config"))
 	//if err != nil {
 	//	return err
@@ -334,24 +336,24 @@ func (n *Node) Start() error {
 
 	// Start gateway
 	// Create authentication cookie
-	var authCookie http.Cookie
-	authCookie.Name = "OpenBazaar_Auth_Cookie"
-
-	if n.config.AuthenticationToken != "" {
-		authCookie.Value = n.config.AuthenticationToken
-		n.apiConfig.Authenticated = true
-	}
-	fmt.Println("Starting HTTP Gateway...")
-	gateway, err := newHTTPGateway(core.Node, authCookie, *n.apiConfig)
-	if err != nil {
-		return err
-	}
+	//var authCookie http.Cookie
+	//authCookie.Name = "OpenBazaar_Auth_Cookie"
+	//
+	//if n.config.AuthenticationToken != "" {
+	//	authCookie.Value = n.config.AuthenticationToken
+	//	n.apiConfig.Authenticated = true
+	//}
+	//fmt.Println("Starting HTTP Gateway...")
+	//gateway, err := newHTTPGateway(core.Node, authCookie, *n.apiConfig)
+	//if err != nil {
+	//	return err
+	//}
 	//err = gateway.Serve()
 	//if err != nil {
 	//	return err
 	//}
-	go gateway.Serve()
-	fmt.Println("Gateway serving...")
+	//go gateway.Serve()
+	//fmt.Println("Gateway serving...")
 
 	//go func() {
 	//	<-dht.DefaultBootstrapConfig.DoneChan
@@ -466,11 +468,11 @@ func newHTTPGateway(node *core.TextileNode, authCookie http.Cookie, config repo.
 	return api.NewGateway(node, authCookie, gwLis.NetListener(), config, logger, opts...)
 }
 
-var DHTClientOption ipfscore.RoutingOption = constructClientDHTRouting
-
-func constructClientDHTRouting(ctx context.Context, host p2phost.Host, dstore ipfsrepo.Datastore) (routing.IpfsRouting, error) {
-	dhtRouting := dht.NewDHTClient(ctx, host, dstore)
-	dhtRouting.Validator[ipfscore.IpnsValidatorTag] = namesys.IpnsRecordValidator
-	dhtRouting.Selector[ipfscore.IpnsValidatorTag] = namesys.IpnsSelectorFunc
-	return dhtRouting, nil
-}
+//var DHTClientOption ipfscore.RoutingOption = constructClientDHTRouting
+//
+//func constructClientDHTRouting(ctx context.Context, host p2phost.Host, dstore ipfsrepo.Datastore) (routing.IpfsRouting, error) {
+//	dhtRouting := dht.NewDHTClient(ctx, host, dstore)
+//	dhtRouting.Validator[ipfscore.IpnsValidatorTag] = namesys.IpnsRecordValidator
+//	dhtRouting.Selector[ipfscore.IpnsValidatorTag] = namesys.IpnsSelectorFunc
+//	return dhtRouting, nil
+//}
