@@ -20,10 +20,4 @@ type NodeConfig struct {
 
 	// Use testnet
 	Testnet bool
-
-	// Add a custom user-agent
-	UserAgent string
-
-	// Add a trusted peer for the wallet
-	WalletTrustedPeer string
 }

@@ -1,59 +1,55 @@
-# Binaries for programs and plugins
-*.exe
-*.dll
-*.so
-*.dylib
-
-# Test binary, build with `go test -c`
-*.test
-
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 .glide/
 
-# JetBrains
-# Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio and Webstorm
-# Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
+# Test artifacts
 
-# User-specific stuff:
-.idea/**/workspace.xml
-.idea/**/tasks.xml
-.idea/dictionaries
+repo/testdata/
 
-# Sensitive or high-churn files:
-.idea/**/dataSources/
-.idea/**/dataSources.ids
-.idea/**/dataSources.xml
-.idea/**/dataSources.local.xml
-.idea/**/sqlDataSources.xml
-.idea/**/dynamic.xml
-.idea/**/uiDesigner.xml
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+*.so
+*.pyc
+*.dylib
+*.dll
 
-# Gradle:
-.idea/**/gradle.xml
-.idea/**/libraries
+# Folders
+_obj
+_test
+__pycache__
 
-# CMake
-cmake-build-debug/
+# Architecture specific extensions/prefixes
+*.[568vq]
+[568vq].out
 
-# Mongo Explorer plugin:
-.idea/**/mongoSettings.xml
+*.cgo1.go
+*.cgo2.c
+_cgo_defun.c
+_cgo_gotypes.go
+_cgo_export.*
 
-## File-based project format:
-*.iws
+_testmain.go
 
-## Plugin-specific files:
+*.exe
+*.test
+*.prof
+.idea/
+*.iml
+.gx/
+dist
+.ipfs
 
-# IntelliJ
-out/
+# Development environment files
+.ackrc
+.tags*
+*.sw?
 
-# mpeltonen/sbt-idea plugin
-.idea_modules/
+# macOS
+.DS_Store
 
-# JIRA plugin
-atlassian-ide-plugin.xml
-
-# Cursive Clojure plugin
-.idea/replstate.xml
+# Mobile
+*.aar
+*.jar
