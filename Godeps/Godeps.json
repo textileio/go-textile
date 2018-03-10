@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/OpenBazaar/openbazaar-go",
+	"ImportPath": "github.com/textileio/mill-go",
 	"GoVersion": "go1.9",
 	"GodepVersion": "v79",
 	"Deps": [
@@ -1762,16 +1762,6 @@
 		{
 			"ImportPath": "gx/ipfs/QmfVj3x4D6Jkq9SEoi5n2NmoUomLwoeiwnYz2KQa15wRw6/base32",
 			"Rev": "b8a4059b144b9889b8b62f6458d1662015eec388"
-		},
-		{
-			"ImportPath": "github.com/OpenBazaar/openbazaar-go/bitcoin",
-			"Comment": "v0.10.0-4-g80b09c0c",
-			"Rev": "80b09c0c211ac622b2e8ca76491ce4c75b553f79"
-		},
-		{
-			"ImportPath": "github.com/OpenBazaar/openbazaar-go/vendor/github.com/OpenBazaar/wallet-interface",
-			"Comment": "v0.10.0-4-g80b09c0c",
-			"Rev": "80b09c0c211ac622b2e8ca76491ce4c75b553f79"
 		},
 		{
 			"ImportPath": "github.com/OpenBazaar/openbazaar-go/vendor/github.com/btcsuite/btcd/btcec",

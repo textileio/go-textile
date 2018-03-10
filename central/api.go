@@ -7,9 +7,9 @@ import (
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/gin-gonic/gin"
-	. "gitlab.com/textileio/mill-go/api/config"
-	. "gitlab.com/textileio/mill-go/api/dao"
-	. "gitlab.com/textileio/mill-go/api/models"
+	. "github.com/textileio/mill-go/central/config"
+	. "github.com/textileio/mill-go/central/dao"
+	. "github.com/textileio/mill-go/central/models"
 )
 
 var config = Config{}
