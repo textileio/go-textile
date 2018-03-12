@@ -1,4 +1,4 @@
-package main
+package mobile
 
 import (
 	"context"
@@ -21,12 +21,8 @@ import (
 
 	"gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	"errors"
 )
-
-func main()  {
-	textile := NewTextile("/Users/sander/go/src/github.com/textileio/textile-go/.ipfs")
-	textile.Start()
-}
 
 type Node struct {
 	node       *tcore.TextileNode
@@ -52,9 +48,7 @@ func NewTextile(repoPath string) *Node {
 
 func (m *Mobile) NewNode(config MobileConfig) (*Node, error) {
 
-	//repoLockFile := filepath.Join(config.RepoPath, lockfile.LockFile)
-	//os.Remove(repoLockFile)
-
+	// raise file descriptor limit
 	if err := utilmain.ManageFdLimit(); err != nil {
 		fmt.Errorf("setting file descriptor limit: %s", err)
 	}
@@ -74,6 +68,15 @@ func (m *Mobile) NewNode(config MobileConfig) (*Node, error) {
 		return nil, err
 	}
 
+	// tweak default (textile) config for mobile
+	cfg, err := repo.Config()
+	if err != nil {
+		return nil, err
+	}
+	cfg.Swarm.DisableNatPortMap = true
+	cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip4/0.0.0.0/tcp/9005/ws")
+	cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip6/::/tcp/9005/ws")
+
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
 		Repo:      repo,
@@ -91,6 +94,10 @@ func (m *Mobile) NewNode(config MobileConfig) (*Node, error) {
 	// Textile node setup
 	tcore.Node = &tcore.TextileNode{
 		RepoPath: config.RepoPath,
+	}
+
+	if len(cfg.Addresses.Gateway) <= 0 {
+		return nil, errors.New("no gateway addresses configured")
 	}
 
 	return &Node{config: config, node: tcore.Node, ipfsConfig: ncfg}, nil
