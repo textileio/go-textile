@@ -10,14 +10,8 @@ var stdoutLogFormat = logging.MustStringFormatter(
 
 var logger logging.Backend
 
-type NodeConfig struct {
+type MobileConfig struct {
 
 	// Path for the node's data directory
 	RepoPath string
-
-	// An API authentication. Authentication is turned on if not "".
-	AuthenticationToken string
-
-	// Use testnet
-	Testnet bool
 }

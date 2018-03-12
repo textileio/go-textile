@@ -1,941 +1,322 @@
-package cmd
+package main
 
 import (
-	"context"
 	"errors"
+	_ "expvar"
 	"fmt"
-	ipfslogging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
-	manet "gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	"net"
-	"os"
-	"path"
-	"path/filepath"
-	"sort"
-
-	"crypto/rand"
-	"github.com/textileio/textile-go/api"
-
-	"github.com/fatih/color"
-	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/repo/db"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
-	ipfscore "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/corehttp"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/namesys"
-	namepb "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/namesys/pb"
-	ipath "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/path"
-	ipfsrepo "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/config"
-	"io/ioutil"
 	"net/http"
-	"strings"
+	_ "net/http/pprof"
+	"os"
+	"sort"
+	"sync"
 
-	"github.com/btcsuite/btcutil/base58"
-	"github.com/natefinch/lumberjack"
-	"github.com/op/go-logging"
-	"golang.org/x/crypto/ssh/terminal"
-	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
-	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
-	metrics "gx/ipfs/QmdeBtQGXjSt7cb97nx9JyLHHv5va2LyEAue7Q5tDFzpLy/go-libp2p-metrics"
-	"gx/ipfs/QmZPrWxuM8GHr4cGKbyF5CCT11sFUP9hgqpeUHALvx2nUr/go-libp2p-interface-pnet"
-	p2pbhost "gx/ipfs/QmNh1kGFFdsPu79KNSaL4NUKUPb4Eiz4KHdMtFY6664RDp/go-libp2p/p2p/host/basic"
-	//dht "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht"
-	//dhtutil "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht/util"
-	//oniontp "gx/ipfs/QmVYZ6jGE4uogWAZK2w8PrKWDEKMvYaQWTSXWCbYJLEuKs/go-onion-transport"
-	swarm "gx/ipfs/QmWpJ4y2vxJ6GZpPfQbpVpQxAYS3UeR6AKNbAHxw7wN3qw/go-libp2p-swarm"
-	peer "gx/ipfs/QmQnuSxgSFubscHgkgSeayLxKmVcmNhFUaZw4gHtV3tJ15/go-libp2p-peer"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo"
-	lockfile "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo/lock"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/thirdparty/ds-help"
-	smux "gx/ipfs/QmY9JXR3FupnYAYJWK9aMr9bCpqWKcToQ1tz8DVGTrHpHw/go-stream-muxer"
-	p2phost "gx/ipfs/QmaSxYRuMq4pkpBBG2CYaRrPx2z7NmMVEs34b9g61biQA6/go-libp2p-host"
-	recpb "gx/ipfs/QmbxkgUceEcuSZ4ZdBA3x74VUDSSYjHYmmeEqkjxbtZ6Jg/go-libp2p-record/pb"
-	"io"
-	"syscall"
-	"time"
-	"gx/ipfs/QmdQTPWduSeyveSxeCAte33M592isSW5Z979g81aJphrgn/go-ipfs-ds-help"
+	utilmain "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/cmd/ipfs/util"
+	oldcmds "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
+	commands "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/commands"
+	corehttp "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/corehttp"
+	corerepo "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/corerepo"
+	nodeMount "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/fuse/node"
+	fsrepo "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo"
+	migrate "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo/migrations"
+
+	"gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
+	iconn "gx/ipfs/QmToCvh5eJtoDheMggre7b2zeFCJ6tAyB82YVs457cqoUE/go-libp2p-interface-conn"
+	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	cmds "gx/ipfs/QmabLouZTZwhfALuBcssPvkzhbYGMb4394huT7HY4LQ6d3/go-ipfs-cmds"
+	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
 
-var stdoutLogFormat = logging.MustStringFormatter(
-	`%{color:reset}%{color}%{time:15:04:05.000} [%{shortfunc}] [%{level}] %{message}`,
+const (
+	repoDirKwd                = "dir"
+	adjustFDLimitKwd          = "manage-fdlimit"
+	enableGCKwd               = "enable-gc"
+	ipfsMountKwd              = "mount-ipfs"
+	ipnsMountKwd              = "mount-ipns"
+	migrateKwd                = "migrate"
+	mountKwd                  = "mount"
+	offlineKwd                = "offline"
+	routingOptionKwd          = "routing"
+	routingOptionSupernodeKwd = "supernode"
+	routingOptionDHTClientKwd = "dhtclient"
+	routingOptionDHTKwd       = "dht"
+	routingOptionNoneKwd      = "none"
+	unencryptTransportKwd     = "disable-transport-encryption"
+	unrestrictedApiAccessKwd  = "unrestricted-api"
+	writableKwd               = "writable"
+	enableFloodSubKwd         = "enable-pubsub-experiment"
+	enableIPNSPubSubKwd       = "enable-namesys-pubsub"
+	enableMultiplexKwd        = "enable-mplex-experiment"
+	// apiAddrKwd    = "address-api"
+	// swarmAddrKwd  = "address-swarm"
 )
 
-var fileLogFormat = logging.MustStringFormatter(
-	`%{time:15:04:05.000} [%{shortfunc}] [%{level}] %{message}`,
-)
+var startCmd = &cmds.Command{
+	Helptext: cmdkit.HelpText{
+		Tagline: "Run a network-connected Textile node.",
+		ShortDescription: `
+'textile daemon' runs a persistent textile daemon.
+`,
+		LongDescription: `
+The daemon will start listening on ports on the network, which are
+documented in (and can be modified through) 'textile config Addresses'.
 
-var (
-	ErrNoGateways = errors.New("No gateway addresses configured")
-)
+Shutdown
 
-type Start struct {
-	Password   string   `short:"p" long:"password" description:"the encryption password if the database is encrypted"`
-	Testnet    bool     `short:"t" long:"testnet" description:"use the test network"`
-	Regtest    bool     `short:"r" long:"regtest" description:"run in regression test mode"`
-	LogLevel   string   `short:"l" long:"loglevel" description:"set the logging level [debug, info, notice, warning, error, critical]" defaut:"debug"`
-	NoLogFiles bool     `short:"f" long:"nologfiles" description:"save logs on disk"`
-	AllowIP    []string `short:"a" long:"allowip" description:"only allow API connections from these IPs"`
-	DataDir    string   `short:"d" long:"datadir" description:"specify the data directory to be used"`
-	AuthCookie string   `short:"c" long:"authcookie" description:"turn on API authentication and use this specific cookie"`
-	UserAgent  string   `short:"u" long:"useragent" description:"add a custom user-agent field"`
-	Verbose    bool     `short:"v" long:"verbose" description:"print openbazaar logs to stdout"`
+To shutdown the daemon, send a SIGINT signal to it (e.g. by pressing 'Ctrl-C')
+or send a SIGTERM signal to it (e.g. with 'kill'). It may take a while for the
+daemon to shutdown gracefully, but it can be killed forcibly by sending a
+second signal.
+`,
+	},
+
+	Options: []cmdkit.Option{
+		cmdkit.StringOption(repoDirKwd, "Repo directory.").WithDefault("~/.ipfs"),
+		cmdkit.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault("dht"),
+		cmdkit.BoolOption(mountKwd, "Mounts IPFS to the filesystem"),
+		cmdkit.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
+		cmdkit.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount). Defaults to config setting."),
+		cmdkit.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount). Defaults to config setting."),
+		cmdkit.BoolOption(unrestrictedApiAccessKwd, "Allow API access to unlisted hashes"),
+		cmdkit.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)"),
+		cmdkit.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
+		cmdkit.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").WithDefault(true),
+		cmdkit.BoolOption(offlineKwd, "Run offline. Do not connect to the rest of the network but provide local API."),
+		cmdkit.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
+		cmdkit.BoolOption(enableFloodSubKwd, "Instantiate the ipfs daemon with the experimental pubsub feature enabled.").WithDefault(true),
+		cmdkit.BoolOption(enableIPNSPubSubKwd, "Enable IPNS record distribution through pubsub; enables pubsub.").WithDefault(true),
+		cmdkit.BoolOption(enableMultiplexKwd, "Add the experimental 'go-multiplex' stream muxer to libp2p on construction.").WithDefault(true),
+
+		// TODO: add way to override addresses. tricky part: updating the config if also --init.
+		// cmdkit.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
+		// cmdkit.StringOption(swarmAddrKwd, "Address for the swarm socket (overrides config)"),
+	},
+	Subcommands: map[string]*cmds.Command{},
+	Run:         daemonFunc,
 }
 
-func (x *Start) Execute(args []string) error {
-	printSplashScreen(x.Verbose)
-
-	if x.Testnet && x.Regtest {
-		return errors.New("Invalid combination of testnet and regtest modes")
+// defaultMux tells mux to serve path using the default muxer. This is
+// mostly useful to hook up things that register in the default muxer,
+// and don't provide a convenient http.Handler entry point, such as
+// expvar and http/pprof.
+func defaultMux(path string) corehttp.ServeOption {
+	return func(node *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
+		mux.Handle(path, http.DefaultServeMux)
+		return mux, nil
 	}
+}
 
-	isTestnet := false
-	if x.Testnet || x.Regtest {
-		isTestnet = true
-	}
+func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) {
+	// let the user know we're going.
+	fmt.Printf("Initializing daemon...\n")
 
-	// Set repo path
-	repoPath, err := repo.GetRepoPath(isTestnet)
-	if err != nil {
-		return err
-	}
-	if x.DataDir != "" {
-		repoPath = x.DataDir
-	}
-
-	repoLockFile := filepath.Join(repoPath, lockfile.LockFile)
-	os.Remove(repoLockFile)
-
-	sqliteDB, err := InitializeRepo(repoPath, x.Password, "", isTestnet, time.Now())
-	if err != nil && err != repo.ErrRepoExists {
-		return err
-	}
-
-	// Logging
-	w := &lumberjack.Logger{
-		Filename:   path.Join(repoPath, "logs", "ob.log"),
-		MaxSize:    10, // Megabytes
-		MaxBackups: 3,
-		MaxAge:     30, // Days
-	}
-	var backendStdoutFormatter logging.Backend
-	if x.Verbose {
-		backendStdout := logging.NewLogBackend(os.Stdout, "", 0)
-		backendStdoutFormatter = logging.NewBackendFormatter(backendStdout, stdoutLogFormat)
-		logging.SetBackend(backendStdoutFormatter)
-	}
-
-	if !x.NoLogFiles {
-		backendFile := logging.NewLogBackend(w, "", 0)
-		backendFileFormatter := logging.NewBackendFormatter(backendFile, fileLogFormat)
-		if x.Verbose {
-			logging.SetBackend(backendFileFormatter, backendStdoutFormatter)
-		} else {
-			logging.SetBackend(backendFileFormatter)
+	managefd, _ := req.Options[adjustFDLimitKwd].(bool)
+	if managefd {
+		if err := utilmain.ManageFdLimit(); err != nil {
+			log.Errorf("setting file descriptor limit: %s", err)
 		}
-		ipfslogging.LdJSONFormatter()
-		w2 := &lumberjack.Logger{
-			Filename:   path.Join(repoPath, "logs", "ipfs.log"),
-			MaxSize:    10, // Megabytes
-			MaxBackups: 3,
-			MaxAge:     30, // Days
-		}
-		ipfslogging.Output(w2)()
 	}
 
-	var level logging.Level
-	switch strings.ToLower(x.LogLevel) {
-	case "debug":
-		level = logging.DEBUG
-	case "info":
-		level = logging.INFO
-	case "notice":
-		level = logging.NOTICE
-	case "warning":
-		level = logging.WARNING
-	case "error":
-		level = logging.ERROR
-	case "critical":
-		level = logging.CRITICAL
+	cctx := env.(*oldcmds.Context)
+
+	go func() {
+		<-req.Context.Done()
+		fmt.Println("Received interrupt signal, shutting down...")
+		fmt.Println("(Hit ctrl-c again to force-shutdown the daemon.)")
+	}()
+
+	// check transport encryption flag.
+	unencrypted, _ := req.Options[unencryptTransportKwd].(bool)
+	if unencrypted {
+		log.Warningf(`Running with --%s: All connections are UNENCRYPTED.
+		You will not be able to connect to regular encrypted networks.`, unencryptTransportKwd)
+		iconn.EncryptConnections = false
+	}
+
+	// we may be running in an uninitialized state.
+	repoDir, _ := req.Options[repoDirKwd].(string)
+	if !fsrepo.IsInitialized(repoDir) {
+		err := initWithDefaults(os.Stdout, repoDir)
+		if err != nil {
+			re.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+	}
+
+	// acquire the repo lock _before_ constructing a node. we need to make
+	// sure we are permitted to access the resources (datastore, etc.)
+	repo, err := fsrepo.Open(repoDir)
+	switch err {
 	default:
-		level = logging.DEBUG
-	}
-	logging.SetLevel(level, "")
+		re.SetError(err, cmdkit.ErrNormal)
+		return
+	case fsrepo.ErrNeedMigration:
+		domigrate, found := req.Options[migrateKwd].(bool)
+		fmt.Println("Found outdated fs-repo, migrations need to be run.")
 
-	err = core.CheckAndSetUlimit()
-	if err != nil {
-		return err
-	}
-
-	// If the database cannot be decrypted, exit
-	if sqliteDB.Config().IsEncrypted() {
-		sqliteDB.Close()
-		fmt.Print("Database is encrypted, enter your password: ")
-		bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
-		fmt.Println("")
-		pw := string(bytePassword)
-		sqliteDB, err = InitializeRepo(repoPath, pw, "", isTestnet, time.Now())
-		if err != nil && err != repo.ErrRepoExists {
-			return err
+		if !found {
+			domigrate = YesNoPrompt("Run migrations now? [y/N]")
 		}
-		if sqliteDB.Config().IsEncrypted() {
-			log.Error("Invalid password")
-			os.Exit(3)
+
+		if !domigrate {
+			fmt.Println("Not running migrations of fs-repo now.")
+			fmt.Println("Please get fs-repo-migrations from https://dist.ipfs.io")
+			re.SetError(fmt.Errorf("fs-repo requires migration"), cmdkit.ErrNormal)
+			return
 		}
-	}
 
-	// Get creation date. Ignore the error and use a default timestamp.
-	//creationDate, _ := sqliteDB.Config().GetCreationDate()
-
-	// Create user-agent file
-	userAgentBytes := []byte(core.USERAGENT + x.UserAgent)
-	ioutil.WriteFile(path.Join(repoPath, "root", "user_agent"), userAgentBytes, os.ModePerm)
-
-	// Load config
-	configFile, err := ioutil.ReadFile(path.Join(repoPath, "config"))
-	if err != nil {
-		return err
-	}
-
-	apiConfig, err := repo.GetAPIConfig(configFile)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-	//resolverConfig, err := repo.GetResolverConfig(configFile)
-	//if err != nil {
-	//	log.Error(err)
-	//	return err
-	//}
-
-	// IPFS node setup
-	r, err := fsrepo.Open(repoPath)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-	cctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	cfg, err := r.Config()
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-
-	identityKey, err := sqliteDB.Config().GetIdentityKey()
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-	identity, err := ipfs.IdentityFromKey(identityKey)
-	if err != nil {
-		return err
-	}
-	cfg.Identity = identity
-
-	// Setup testnet
-	if x.Testnet || x.Regtest {
-		testnetBootstrapAddrs, err := repo.GetTestnetBootstrapAddrs(configFile)
+		err = migrate.RunMigration(fsrepo.RepoVersion)
 		if err != nil {
-			log.Error(err)
-			return err
+			fmt.Println("The migrations of fs-repo failed:")
+			fmt.Printf("  %s\n", err)
+			fmt.Println("If you think this is a bug, please file an issue and include this whole log output.")
+			fmt.Println("  https://github.com/ipfs/fs-repo-migrations")
+			re.SetError(err, cmdkit.ErrNormal)
+			return
 		}
-		cfg.Bootstrap = testnetBootstrapAddrs
-		//dht.ProtocolDHT = "/openbazaar/kad/testnet/1.0.0"
-		//bitswap.ProtocolBitswap = "/openbazaar/bitswap/testnet/1.1.0"
-		//service.ProtocolOpenBazaar = "/openbazaar/app/testnet/1.0.0"
-	}
 
-	//onionAddr, err := obnet.MaybeCreateHiddenServiceKey(repoPath)
-	//if err != nil {
-	//	log.Error(err)
-	//	return err
-	//}
-	//onionAddrString := "/onion/" + onionAddr + ":4003"
-	//if x.Tor {
-	//	cfg.Addresses.Swarm = []string{}
-	//	cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, onionAddrString)
-	//} else if x.DualStack {
-	//	cfg.Addresses.Swarm = []string{}
-	//	cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, onionAddrString)
-	//	cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip4/0.0.0.0/tcp/4001")
-	//	cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip6/::/tcp/4001")
-	//	cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip6/::/tcp/9005/ws")
-	//	cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip4/0.0.0.0/tcp/9005/ws")
-	//}
-	// Iterate over our address and process them as needed
-	var onionTransport *oniontp.OnionTransport
-	//var torDialer proxy.Dialer
-	var usingTor, usingClearnet bool
-	//var controlPort int
-	usingClearnet = true
-	//for i, addr := range cfg.Addresses.Swarm {
-	//	m, err := ma.NewMultiaddr(addr)
-	//	if err != nil {
-	//		log.Error(err)
-	//		return err
-	//	}
-	//	p := m.Protocols()
-	//	// If we are using UTP and the stun option has been select, run stun and replace the port in the address
-	//	if x.STUN && p[0].Name == "ip4" && p[1].Name == "udp" && p[2].Name == "utp" {
-	//		usingClearnet = true
-	//		port, serr := obnet.Stun()
-	//		if serr != nil {
-	//			log.Error(serr)
-	//			return err
-	//		}
-	//		cfg.Addresses.Swarm = append(cfg.Addresses.Swarm[:i], cfg.Addresses.Swarm[i+1:]...)
-	//		cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip4/0.0.0.0/udp/"+strconv.Itoa(port)+"/utp")
-	//		break
-	//	} else if p[0].Name == "onion" {
-	//		usingTor = true
-	//		addrutil.SupportedTransportStrings = append(addrutil.SupportedTransportStrings, "/onion")
-	//		t, err := ma.ProtocolsWithString("/onion")
-	//		if err != nil {
-	//			log.Error(err)
-	//			return err
-	//		}
-	//		addrutil.SupportedTransportProtocols = append(addrutil.SupportedTransportProtocols, t)
-	//		if err != nil {
-	//			log.Error(err)
-	//			return err
-	//		}
-	//	} else {
-	//		usingClearnet = true
-	//	}
-	//}
-	// Create Tor transport
-	//if usingTor {
-	//	torControl := torConfig.TorControl
-	//	if torControl == "" {
-	//		controlPort, err = obnet.GetTorControlPort()
-	//		if err != nil {
-	//			log.Error(err)
-	//			return err
-	//		}
-	//		torControl = "127.0.0.1:" + strconv.Itoa(controlPort)
-	//	}
-	//	torPw := torConfig.Password
-	//	if x.TorPassword != "" {
-	//		torPw = x.TorPassword
-	//	}
-	//	auth := &proxy.Auth{Password: torPw}
-	//	onionTransport, err = oniontp.NewOnionTransport("tcp4", torControl, auth, repoPath, (usingTor && usingClearnet))
-	//	if err != nil {
-	//		log.Error(err)
-	//		return err
-	//	}
-	//}
-	// If we're only using Tor set the proxy dialer and dns resolver
-	dnsResolver := namesys.NewDNSResolver()
-	//if usingTor && !usingClearnet {
-	//	log.Notice("Using Tor exclusively")
-	//	torDialer, err = onionTransport.TorDialer()
-	//	if err != nil {
-	//		log.Error(err)
-	//		return err
-	//	}
-	//	// TODO: maybe create a tor resolver impl later
-	//	dnsResolver = nil
-	//}
-
-	// Custom host option used if Tor is enabled
-	defaultHostOption := func(ctx context.Context, id peer.ID, ps pstore.Peerstore, bwr metrics.Reporter, fs []*net.IPNet, tpt smux.Transport, protec ipnet.Protector, opts *ipfscore.ConstructPeerHostOpts) (p2phost.Host, error) {
-		// no addresses to begin with. we'll start later.
-		swrm, err := swarm.NewSwarmWithProtector(ctx, nil, id, ps, protec, tpt, bwr)
+		repo, err = fsrepo.Open(repoDir)
 		if err != nil {
-			return nil, err
+			re.SetError(err, cmdkit.ErrNormal)
+			return
 		}
-
-		network := (*swarm.Network)(swrm)
-		network.Swarm().AddTransport(onionTransport)
-
-		for _, f := range fs {
-			network.Swarm().Filters.AddDialFilter(f)
-		}
-
-		var host *p2pbhost.BasicHost
-		if usingTor && !usingClearnet {
-			host = p2pbhost.New(network)
-		} else {
-			hostOpts := []interface{}{bwr}
-			if !opts.DisableNatPortMap {
-				hostOpts = append(hostOpts, p2pbhost.NATPortMap)
-			}
-			host = p2pbhost.New(network, hostOpts...)
-		}
-		return host, nil
+	case nil:
+		break
 	}
 
-	ncfg := &ipfscore.BuildCfg{
-		Repo:   r,
-		Online: true,
+	cfg, err := cctx.GetConfig()
+	if err != nil {
+		re.SetError(err, cmdkit.ErrNormal)
+		return
+	}
+
+	offline, _ := req.Options[offlineKwd].(bool)
+	ipnsps, _ := req.Options[enableIPNSPubSubKwd].(bool)
+	pubsub, _ := req.Options[enableFloodSubKwd].(bool)
+	mplex, _ := req.Options[enableMultiplexKwd].(bool)
+
+	// Start assembling node config
+	ncfg := &core.BuildCfg{
+		Repo:      repo,
+		Permanent: true, // It is temporary way to signify that node is permanent
+		Online:    !offline,
 		ExtraOpts: map[string]bool{
-			"mplex": true,
+			"pubsub": pubsub,
+			"ipnsps": ipnsps,
+			"mplex":  mplex,
 		},
-		DNSResolver: dnsResolver,
-		Routing:     DHTOption,
+		//TODO(Kubuxu): refactor Online vs Offline by adding Permanent vs Ephemeral
 	}
 
-	if onionTransport != nil {
-		ncfg.Host = defaultHostOption
+	routingOption, _ := req.Options[routingOptionKwd].(string)
+	switch routingOption {
+	case routingOptionSupernodeKwd:
+		re.SetError(errors.New("supernode routing was never fully implemented and has been removed"), cmdkit.ErrNormal)
+		return
+	case routingOptionDHTClientKwd:
+		ncfg.Routing = core.DHTClientOption
+	case routingOptionDHTKwd:
+		ncfg.Routing = core.DHTOption
+	case routingOptionNoneKwd:
+		ncfg.Routing = core.NilRouterOption
+	default:
+		re.SetError(fmt.Errorf("unrecognized routing option: %s", routingOption), cmdkit.ErrNormal)
+		return
 	}
-	nd, err := ipfscore.NewNode(cctx, ncfg)
+
+	node, err := core.NewNode(req.Context, ncfg)
 	if err != nil {
-		log.Error(err)
-		return err
+		log.Error("error from node construction: ", err)
+		re.SetError(err, cmdkit.ErrNormal)
+		return
+	}
+	node.SetLocal(false)
+
+	if node.PNetFingerprint != nil {
+		fmt.Println("Swarm is limited to private network of peers with the swarm key")
+		fmt.Printf("Swarm key fingerprint: %x\n", node.PNetFingerprint)
 	}
 
-	ctx := commands.Context{}
-	ctx.Online = true
-	ctx.ConfigRoot = repoPath
-	ctx.LoadConfig = func(path string) (*config.Config, error) {
-		return fsrepo.ConfigAt(repoPath)
-	}
-	ctx.ConstructNode = func() (*ipfscore.IpfsNode, error) {
-		return nd, nil
-	}
+	printSwarmAddrs(node)
 
-	// Set IPNS query size
-	querySize := cfg.Ipns.QuerySize
-	if querySize <= 20 && querySize > 0 {
-		dhtutil.QuerySize = int(querySize)
-	} else {
-		dhtutil.QuerySize = 16
-	}
-	namesys.UsePersistentCache = cfg.Ipns.UsePersistentCache
+	defer func() {
+		// We wait for the node to close first, as the node has children
+		// that it will wait for before closing, such as the API server.
+		node.Close()
 
-	log.Info("Peer ID: ", nd.Identity.Pretty())
-	printSwarmAddrs(nd)
+		select {
+		case <-req.Context.Done():
+			log.Info("Gracefully shut down daemon")
+		default:
+		}
+	}()
 
-	// Get current directory root hash
-	_, ipnskey := namesys.IpnsKeysForID(nd.Identity)
-	ival, hasherr := nd.Repo.Datastore().Get(dshelp.NewKeyFromBinary([]byte(ipnskey)))
-	if hasherr != nil {
-		log.Error(hasherr)
-		return hasherr
-	}
-	val := ival.([]byte)
-	dhtrec := new(recpb.Record)
-	proto.Unmarshal(val, dhtrec)
-	e := new(namepb.IpnsEntry)
-	proto.Unmarshal(dhtrec.GetValue(), e)
-
-	// Wallet
-	// Exchange rates
-	//var exchangeRates bitcoin.ExchangeRates
-	//if !x.DisableExchangeRates {
-	//	exchangeRates = exchange.NewBitcoinPriceFetcher(torDialer)
-	//}
-
-	//mn, err := sqliteDB.Config().GetMnemonic()
-	//if err != nil {
-	//	log.Error(err)
-	//	return err
-	//}
-	//var params chaincfg.Params
-	//if x.Testnet {
-	//	params = chaincfg.TestNet3Params
-	//} else if x.Regtest {
-	//	params = chaincfg.RegressionNetParams
-	//} else {
-	//	params = chaincfg.MainNetParams
-	//}
-	//if x.Regtest && (strings.ToLower(walletCfg.Type) == "spvwallet" || strings.ToLower(walletCfg.Type) == "bitcoincash") && walletCfg.TrustedPeer == "" {
-	//	return errors.New("Trusted peer must be set if using regtest with the spvwallet")
-	//}
-
-	// Wallet setup
-	//if x.BitcoinCash {
-	//	walletCfg.Type = "bitcoincash"
-	//} else if x.ZCash != "" {
-	//	walletCfg.Type = "zcashd"
-	//	walletCfg.Binary = x.ZCash
-	//}
-	//var exchangeRates bitcoin.ExchangeRates
-	//if !x.DisableExchangeRates {
-	//	exchangeRates = exchange.NewBitcoinPriceFetcher(torDialer)
-	//}
-	//var w3 io.Writer
-	//if x.NoLogFiles {
-	//	w3 = &DummyWriter{}
-	//} else {
-	//	w3 = &lumberjack.Logger{
-	//		Filename:   path.Join(repoPath, "logs", "bitcoin.log"),
-	//		MaxSize:    10, // Megabytes
-	//		MaxBackups: 3,
-	//		MaxAge:     30, // Days
-	//	}
-	//}
-	//bitcoinFile := logging.NewLogBackend(w3, "", 0)
-	//bitcoinFileFormatter := logging.NewBackendFormatter(bitcoinFile, fileLogFormat)
-	//ml := logging.MultiLogger(bitcoinFileFormatter)
-	//
-	//var resyncManager *resync.ResyncManager
-	//var cryptoWallet wallet.Wallet
-	//var walletTypeStr string
-	//switch strings.ToLower(walletCfg.Type) {
-	//case "spvwallet":
-	//	walletTypeStr = "bitcoin spv"
-	//	var tp net.Addr
-	//	if walletCfg.TrustedPeer != "" {
-	//		tp, err = net.ResolveTCPAddr("tcp", walletCfg.TrustedPeer)
-	//		if err != nil {
-	//			log.Error(err)
-	//			return err
-	//		}
-	//	}
-	//	feeApi, err := url.Parse(walletCfg.FeeAPI)
-	//	if err != nil {
-	//		log.Error(err)
-	//		return err
-	//	}
-	//	spvwalletConfig := &spvwallet.Config{
-	//		Mnemonic:     mn,
-	//		Params:       &params,
-	//		MaxFee:       uint64(walletCfg.MaxFee),
-	//		LowFee:       uint64(walletCfg.LowFeeDefault),
-	//		MediumFee:    uint64(walletCfg.MediumFeeDefault),
-	//		HighFee:      uint64(walletCfg.HighFeeDefault),
-	//		FeeAPI:       *feeApi,
-	//		RepoPath:     repoPath,
-	//		CreationDate: creationDate,
-	//		DB:           sqliteDB,
-	//		UserAgent:    "OpenBazaar",
-	//		TrustedPeer:  tp,
-	//		Proxy:        torDialer,
-	//		Logger:       ml,
-	//	}
-	//	cryptoWallet, err = spvwallet.NewSPVWallet(spvwalletConfig)
-	//	if err != nil {
-	//		log.Error(err)
-	//		return err
-	//	}
-	//	resyncManager = resync.NewResyncManager(sqliteDB.Sales(), cryptoWallet)
-	//case "bitcoincash":
-	//	walletTypeStr = "bitcoin cash spv"
-	//	var tp net.Addr
-	//	if walletCfg.TrustedPeer != "" {
-	//		tp, err = net.ResolveTCPAddr("tcp", walletCfg.TrustedPeer)
-	//		if err != nil {
-	//			log.Error(err)
-	//			return err
-	//		}
-	//	}
-	//	feeApi, err := url.Parse(walletCfg.FeeAPI)
-	//	if err != nil {
-	//		log.Error(err)
-	//		return err
-	//	}
-	//	exchangeRates = cashrates.NewBitcoinCashPriceFetcher(torDialer)
-	//	spvwalletConfig := &bitcoincash.Config{
-	//		Mnemonic:             mn,
-	//		Params:               &params,
-	//		MaxFee:               uint64(walletCfg.MaxFee),
-	//		LowFee:               uint64(walletCfg.LowFeeDefault),
-	//		MediumFee:            uint64(walletCfg.MediumFeeDefault),
-	//		HighFee:              uint64(walletCfg.HighFeeDefault),
-	//		FeeAPI:               *feeApi,
-	//		RepoPath:             repoPath,
-	//		CreationDate:         creationDate,
-	//		DB:                   sqliteDB,
-	//		UserAgent:            "OpenBazaar",
-	//		TrustedPeer:          tp,
-	//		Proxy:                torDialer,
-	//		Logger:               ml,
-	//		ExchangeRateProvider: exchangeRates,
-	//	}
-	//	cryptoWallet, err = bitcoincash.NewSPVWallet(spvwalletConfig)
-	//	if err != nil {
-	//		log.Error(err)
-	//		return err
-	//	}
-	//	resyncManager = resync.NewResyncManager(sqliteDB.Sales(), cryptoWallet)
-	//case "bitcoind":
-	//	walletTypeStr = "bitcoind"
-	//	if walletCfg.Binary == "" {
-	//		return errors.New("The path to the bitcoind binary must be specified in the config file when using bitcoind")
-	//	}
-	//	usetor := false
-	//	if usingTor && !usingClearnet {
-	//		usetor = true
-	//	}
-	//	cryptoWallet, err = bitcoind.NewBitcoindWallet(mn, &params, repoPath, walletCfg.TrustedPeer, walletCfg.Binary, usetor, controlPort)
-	//	if err != nil {
-	//		return err
-	//	}
-	//case "zcashd":
-	//	walletTypeStr = "zcashd"
-	//	if walletCfg.Binary == "" {
-	//		return errors.New("The path to the zcashd binary must be specified in the config file when using zcashd")
-	//	}
-	//	usetor := false
-	//	if usingTor && !usingClearnet {
-	//		usetor = true
-	//	}
-	//	cryptoWallet, err = zcashd.NewZcashdWallet(mn, &params, repoPath, walletCfg.TrustedPeer, walletCfg.Binary, usetor, controlPort)
-	//	if err != nil {
-	//		return err
-	//	}
-	//	if !x.DisableExchangeRates {
-	//		exchangeRates = zcashd.NewZcashPriceFetcher(torDialer)
-	//	}
-	//	resyncManager = resync.NewResyncManager(sqliteDB.Sales(), cryptoWallet)
-	//default:
-	//	log.Fatal("Unknown wallet type")
-	//}
-
-	// Push nodes
-	//var pushNodes []peer.ID
-	//for _, pnd := range dataSharing.PushTo {
-	//	p, err := peer.IDB58Decode(pnd)
-	//	if err != nil {
-	//		log.Error("Invalid peerID in DataSharing config")
-	//		return err
-	//	}
-	//	pushNodes = append(pushNodes, p)
-	//}
-
-	// Authenticated gateway
-	//gatewayMaddr, err := ma.NewMultiaddr(cfg.Addresses.Gateway)
-	//if err != nil {
-	//	log.Error(err)
-	//	return err
-	//}
-	//addr, err := gatewayMaddr.ValueForProtocol(ma.P_IP4)
-	//if err != nil {
-	//	log.Error(err)
-	//	return err
-	//}
-	// Override config file preference if this is Mainnet, open internet and API enabled
-	//if addr != "127.0.0.1" && cryptoWallet.Params().Name == chaincfg.MainNetParams.Name && apiConfig.Enabled {
-	//	apiConfig.Authenticated = true
-	//}
-	for _, ip := range x.AllowIP {
-		apiConfig.AllowedIPs = append(apiConfig.AllowedIPs, ip)
+	cctx.ConstructNode = func() (*core.IpfsNode, error) {
+		return node, nil
 	}
 
-	// Create authentication cookie
-	var authCookie http.Cookie
-	authCookie.Name = "OpenBazaar_Auth_Cookie"
+	// construct api endpoint - every time
+	apiErrc, err := serveHTTPApi(req, cctx)
+	if err != nil {
+		re.SetError(err, cmdkit.ErrNormal)
+		return
+	}
 
-	if x.AuthCookie != "" {
-		authCookie.Value = x.AuthCookie
-		apiConfig.Authenticated = true
-	} else {
-		cookiePrefix := authCookie.Name + "="
-		cookiePath := path.Join(repoPath, ".cookie")
-		cookie, err := ioutil.ReadFile(cookiePath)
-		if err != nil {
-			authBytes := make([]byte, 32)
-			rand.Read(authBytes)
-			authCookie.Value = base58.Encode(authBytes)
-			f, err := os.Create(cookiePath)
-			if err != nil {
-				log.Error(err)
-				return err
-			}
-			cookie := cookiePrefix + authCookie.Value
-			_, werr := f.Write([]byte(cookie))
-			if werr != nil {
-				log.Error(werr)
-				return werr
-			}
-			f.Close()
-		} else {
-			if string(cookie)[:len(cookiePrefix)] != cookiePrefix {
-				return errors.New("Invalid authentication cookie. Delete it to generate a new one.")
-			}
-			split := strings.SplitAfter(string(cookie), cookiePrefix)
-			authCookie.Value = split[1]
+	// construct fuse mountpoints - if the user provided the --mount flag
+	mount, _ := req.Options[mountKwd].(bool)
+	if mount && offline {
+		re.SetError(errors.New("mount is not currently supported in offline mode"),
+			cmdkit.ErrClient)
+		return
+	}
+	if mount {
+		if err := mountFuse(req, cctx); err != nil {
+			re.SetError(err, cmdkit.ErrNormal)
+			return
 		}
 	}
 
-	// Set up the ban manager
-	//settings, err := sqliteDB.Settings().Get()
-	//if err != nil && err != db.SettingsNotSetError {
-	//	log.Error(err)
-	//	return err
-	//}
-	//var blockedNodes []peer.ID
-	//if settings.BlockedNodes != nil {
-	//	for _, pid := range *settings.BlockedNodes {
-	//		id, err := peer.IDB58Decode(pid)
-	//		if err != nil {
-	//			continue
-	//		}
-	//		blockedNodes = append(blockedNodes, id)
-	//	}
-	//}
-	//bm := obnet.NewBanManager(blockedNodes)
-	//
-	//// Create namesys resolvers
-	//resolvers := []obns.Resolver{
-	//	bstk.NewBlockStackClient(resolverConfig.Id, torDialer),
-	//}
-	//if !(usingTor && !usingClearnet) {
-	//	resolvers = append(resolvers, obns.NewDNSResolver())
-	//}
-	//ns, err := obns.NewNameSystem(resolvers)
-	//if err != nil {
-	//	log.Error(err)
-	//	return err
-	//}
-
-	// OpenBazaar node setup
-	core.Node = &core.TextileNode{
-		Context:   ctx,
-		IpfsNode:  nd,
-		RootHash:  ipath.Path(e.Value).String(),
-		RepoPath:  repoPath,
-		Datastore: sqliteDB,
-		//Wallet:               cryptoWallet,
-		//NameSystem:           ns,
-		//ExchangeRates:        exchangeRates,
-		//PushNodes:            pushNodes,
-		//AcceptStoreRequests:  dataSharing.AcceptStoreRequests,
-		//TorDialer:            torDialer,
-		UserAgent: core.USERAGENT,
-		//BanManager:           bm,
-		IPNSBackupAPI:        cfg.Ipns.BackUpAPI,
-		TestnetEnable:        x.Testnet,
-		RegressionTestEnable: x.Regtest,
-	}
-	core.PublishLock.Lock()
-
-	// Offline messaging storage
-	//var storage sto.OfflineMessagingStorage
-	//if x.Storage == "self-hosted" || x.Storage == "" {
-	//	storage = selfhosted.NewSelfHostedStorage(repoPath, ctx, pushNodes, core.Node.SendStore)
-	//} else if x.Storage == "dropbox" {
-	//	if usingTor && !usingClearnet {
-	//		log.Error("Dropbox can not be used with Tor")
-	//		return errors.New("Dropbox can not be used with Tor")
-	//	}
-	//
-	//	if dropboxToken == "" {
-	//		err = errors.New("Dropbox token not set in config file")
-	//		log.Error(err)
-	//		return err
-	//	}
-	//	storage, err = dropbox.NewDropBoxStorage(dropboxToken)
-	//	if err != nil {
-	//		log.Error(err)
-	//		return err
-	//	}
-	//} else {
-	//	err = errors.New("Invalid storage option")
-	//	log.Error(err)
-	//	return err
-	//}
-	//core.Node.MessageStorage = storage
-
-	if len(cfg.Addresses.Gateway) <= 0 {
-		return ErrNoGateways
-	}
-	if (apiConfig.SSL && apiConfig.SSLCert == "") || (apiConfig.SSL && apiConfig.SSLKey == "") {
-		return errors.New("SSL cert and key files must be set when SSL is enabled")
-	}
-
-	gateway, err := newHTTPGateway(core.Node, authCookie, *apiConfig, x.NoLogFiles)
+	// repo blockstore GC - if --enable-gc flag is present
+	gcErrc, err := maybeRunGC(req, node)
 	if err != nil {
-		log.Error(err)
-		return err
+		re.SetError(err, cmdkit.ErrNormal)
+		return
 	}
 
-	if cfg.Addresses.API != "" {
-		if _, err := serveHTTPApi(&core.Node.Context); err != nil {
+	// construct http gateway - if it is set in the config
+	var gwErrc <-chan error
+	if len(cfg.Addresses.Gateway) > 0 {
+		var err error
+		gwErrc, err = serveHTTPGateway(req, cctx)
+		if err != nil {
+			re.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+	}
+
+	fmt.Printf("Daemon is ready\n")
+	// collect long-running errors and block for shutdown
+	// TODO(cryptix): our fuse currently doesnt follow this pattern for graceful shutdown
+	for err := range merge(apiErrc, gwErrc, gcErrc) {
+		if err != nil {
 			log.Error(err)
-			return err
+			re.SetError(err, cmdkit.ErrNormal)
 		}
 	}
-
-	//go func() {
-	//	<-dht.DefaultBootstrapConfig.DoneChan
-	//	core.Node.Service = service.New(core.Node, ctx, sqliteDB)
-	//	mrCfg := ret.MRConfig{
-	//		Db:        sqliteDB,
-	//		Ctx:       ctx,
-	//		IPFSNode:  nd,
-	//		BanManger: bm,
-	//		Service:   core.Node.Service,
-	//		PrefixLen: 14,
-	//		PushNodes: core.Node.PushNodes,
-	//		Dialer:    torDialer,
-	//		SendAck:   core.Node.SendOfflineAck,
-	//		SendError: core.Node.SendError,
-	//	}
-	//	MR := ret.NewMessageRetriever(mrCfg)
-	//	go MR.Run()
-	//	core.Node.MessageRetriever = MR
-	//	PR := rep.NewPointerRepublisher(nd, sqliteDB, core.Node.PushNodes, core.Node.IsModerator)
-	//	go PR.Run()
-	//	core.Node.PointerRepublisher = PR
-	//	if !x.DisableWallet {
-	//		// If the wallet doesn't allow resyncing from a specific height to scan for unpaid orders, wait for all messages to process before continuing.
-	//		if resyncManager == nil {
-	//			MR.Wait()
-	//		}
-	//		TL := lis.NewTransactionListener(core.Node.Datastore, core.Node.Broadcast, core.Node.Wallet)
-	//		WL := lis.NewWalletListener(core.Node.Datastore, core.Node.Broadcast)
-	//		cryptoWallet.AddTransactionListener(TL.OnTransactionReceived)
-	//		cryptoWallet.AddTransactionListener(WL.OnTransactionReceived)
-	//		log.Infof("Starting %s wallet\n", walletTypeStr)
-	//		su := bitcoin.NewStatusUpdater(cryptoWallet, core.Node.Broadcast, nd.Context())
-	//		go su.Start()
-	//		go cryptoWallet.Start()
-	//		if resyncManager != nil {
-	//			go resyncManager.Start()
-	//			go func() {
-	//				MR.Wait()
-	//				resyncManager.CheckUnfunded()
-	//			}()
-	//		}
-	//	}
-	//	core.PublishLock.Unlock()
-	//	core.Node.UpdateFollow()
-	//	if !core.InitalPublishComplete {
-	//		core.Node.SeedNode()
-	//	}
-	//	core.Node.SetUpRepublisher(republishInterval)
-	//}()
-
-	// Start gateway
-	err = gateway.Serve()
-	if err != nil {
-		log.Error(err)
-	}
-
-	return nil
-}
-
-// Prints the addresses of the host
-func printSwarmAddrs(node *ipfscore.IpfsNode) {
-	var addrs []string
-	for _, addr := range node.PeerHost.Addrs() {
-		addrs = append(addrs, addr.String())
-	}
-	sort.Sort(sort.StringSlice(addrs))
-
-	for _, addr := range addrs {
-		log.Infof("Swarm listening on %s\n", addr)
-	}
-}
-
-type DummyWriter struct{}
-
-func (d *DummyWriter) Write(p []byte) (n int, err error) {
-	return 0, nil
-}
-
-type DummyListener struct {
-	addr net.Addr
-}
-
-func (d *DummyListener) Addr() net.Addr {
-	return d.addr
-}
-
-func (d *DummyListener) Accept() (net.Conn, error) {
-	conn, _ := net.FileConn(nil)
-	return conn, nil
-}
-
-func (d *DummyListener) Close() error {
-	return nil
-}
-
-// Collects options, creates listener, prints status message and starts serving requests
-func newHTTPGateway(node *core.TextileNode, authCookie http.Cookie, config repo.APIConfig, noLogFiles bool) (*api.Gateway, error) {
-	// Get API configuration
-	cfg, err := node.Context.GetConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	// Create a network listener
-	gatewayMaddr, err := ma.NewMultiaddr(cfg.Addresses.Gateway)
-	if err != nil {
-		return nil, fmt.Errorf("newHTTPGateway: invalid gateway address: %q (err: %s)", cfg.Addresses.Gateway, err)
-	}
-	var gwLis manet.Listener
-	if config.SSL {
-		netAddr, err := manet.ToNetAddr(gatewayMaddr)
-		if err != nil {
-			return nil, err
-		}
-		gwLis, err = manet.WrapNetListener(&DummyListener{netAddr})
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		gwLis, err = manet.Listen(gatewayMaddr)
-		if err != nil {
-			return nil, fmt.Errorf("newHTTPGateway: manet.Listen(%s) failed: %s", gatewayMaddr, err)
-		}
-	}
-
-	// We might have listened to /tcp/0 - let's see what we are listing on
-	gatewayMaddr = gwLis.Multiaddr()
-	log.Infof("Gateway/API server listening on %s\n", gatewayMaddr)
-
-	// Setup an options slice
-	var opts = []corehttp.ServeOption{
-		corehttp.MetricsCollectionOption("gateway"),
-		corehttp.CommandsROOption(node.Context),
-		corehttp.VersionOption(),
-		corehttp.IPNSHostnameOption(),
-		corehttp.GatewayOption(cfg.Gateway.Writable, "/ipfs", "/ipns"),
-	}
-
-	if len(cfg.Gateway.RootRedirect) > 0 {
-		opts = append(opts, corehttp.RedirectOption("", cfg.Gateway.RootRedirect))
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("newHTTPGateway: ConstructNode() failed: %s", err)
-	}
-
-	// Create and return an API gateway
-	var w4 io.Writer
-	if noLogFiles {
-		w4 = &DummyWriter{}
-	} else {
-		w4 = &lumberjack.Logger{
-			Filename:   path.Join(node.RepoPath, "logs", "api.log"),
-			MaxSize:    10, // Megabytes
-			MaxBackups: 3,
-			MaxAge:     30, // Days
-		}
-	}
-	apiFile := logging.NewLogBackend(w4, "", 0)
-	apiFileFormatter := logging.NewBackendFormatter(apiFile, fileLogFormat)
-	ml := logging.MultiLogger(apiFileFormatter)
-
-	return api.NewGateway(node, authCookie, gwLis.NetListener(), config, ml, opts...)
-}
-
-var DHTOption ipfscore.RoutingOption = constructDHTRouting
-
-func constructDHTRouting(ctx context.Context, host p2phost.Host, dstore ipfsrepo.Datastore) (routing.IpfsRouting, error) {
-	dhtRouting := dht.NewDHT(ctx, host, dstore)
-	dhtRouting.Validator[ipfscore.IpnsValidatorTag] = namesys.IpnsRecordValidator
-	dhtRouting.Selector[ipfscore.IpnsValidatorTag] = namesys.IpnsSelectorFunc
-	return dhtRouting, nil
 }
 
 // serveHTTPApi collects options, creates listener, prints status message and starts serving requests
-func serveHTTPApi(cctx *commands.Context) (<-chan error, error) {
+func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error) {
 	cfg, err := cctx.GetConfig()
 	if err != nil {
 		return nil, fmt.Errorf("serveHTTPApi: GetConfig() failed: %s", err)
 	}
 
-	apiAddr := cfg.Addresses.API
+	apiAddr, _ := req.Options[commands.ApiOption].(string)
+	if apiAddr == "" {
+		apiAddr = cfg.Addresses.API
+	}
 	apiMaddr, err := ma.NewMultiaddr(apiAddr)
 	if err != nil {
 		return nil, fmt.Errorf("serveHTTPApi: invalid API address: %q (err: %s)", apiAddr, err)
@@ -953,7 +334,7 @@ func serveHTTPApi(cctx *commands.Context) (<-chan error, error) {
 	// because this would open up the api to scripting vulnerabilities.
 	// only the webui objects are allowed.
 	// if you know what you're doing, go ahead and pass --unrestricted-api.
-	unrestricted := false
+	unrestricted, _ := req.Options[unrestrictedApiAccessKwd].(bool)
 	gatewayOpt := corehttp.GatewayOption(false, corehttp.WebUIPaths...)
 	if unrestricted {
 		gatewayOpt = corehttp.GatewayOption(true, "/ipfs", "/ipns")
@@ -961,10 +342,13 @@ func serveHTTPApi(cctx *commands.Context) (<-chan error, error) {
 
 	var opts = []corehttp.ServeOption{
 		corehttp.MetricsCollectionOption("api"),
+		corehttp.CheckVersionOption(),
 		corehttp.CommandsOption(*cctx),
 		corehttp.WebUIOption,
 		gatewayOpt,
 		corehttp.VersionOption(),
+		defaultMux("/debug/vars"),
+		defaultMux("/debug/pprof/"),
 		corehttp.MetricsScrapingOption("/debug/metrics/prometheus"),
 		corehttp.LogOption(),
 	}
@@ -990,41 +374,183 @@ func serveHTTPApi(cctx *commands.Context) (<-chan error, error) {
 	return errc, nil
 }
 
-func InitializeRepo(dataDir, password, mnemonic string, testnet bool, creationDate time.Time) (*db.SQLiteDatastore, error) {
-	// Database
-	sqliteDB, err := db.Create(dataDir, password, testnet)
-	if err != nil {
-		return sqliteDB, err
+// printSwarmAddrs prints the addresses of the host
+func printSwarmAddrs(node *core.IpfsNode) {
+	if !node.OnlineMode() {
+		fmt.Println("Swarm not listening, running in offline mode.")
+		return
 	}
 
-	// Initialize the IPFS repo if it does not already exist
-	err = repo.DoInit(dataDir, 4096, testnet, password, mnemonic, creationDate, sqliteDB.Config().Init)
+	var lisAddrs []string
+	ifaceAddrs, err := node.PeerHost.Network().InterfaceListenAddresses()
 	if err != nil {
-		return sqliteDB, err
+		log.Errorf("failed to read listening addresses: %s", err)
 	}
-	return sqliteDB, nil
+	for _, addr := range ifaceAddrs {
+		lisAddrs = append(lisAddrs, addr.String())
+	}
+	sort.Sort(sort.StringSlice(lisAddrs))
+	for _, addr := range lisAddrs {
+		fmt.Printf("Swarm listening on %s\n", addr)
+	}
+
+	var addrs []string
+	for _, addr := range node.PeerHost.Addrs() {
+		addrs = append(addrs, addr.String())
+	}
+	sort.Sort(sort.StringSlice(addrs))
+	for _, addr := range addrs {
+		fmt.Printf("Swarm announcing %s\n", addr)
+	}
+
 }
 
-func printSplashScreen(verbose bool) {
-	blue := color.New(color.FgBlue)
-	white := color.New(color.FgWhite)
-	white.Printf("________             ")
-	blue.Println("         __________")
-	white.Printf(`\_____  \ ______   ____   ____`)
-	blue.Println(`\______   \_____  _____________  _____ _______`)
-	white.Printf(` /   |   \\____ \_/ __ \ /    \`)
-	blue.Println(`|    |  _/\__  \ \___   /\__  \ \__  \\_  __ \ `)
-	white.Printf(`/    |    \  |_> >  ___/|   |  \    `)
-	blue.Println(`|   \ / __ \_/    /  / __ \_/ __ \|  | \/`)
-	white.Printf(`\_______  /   __/ \___  >___|  /`)
-	blue.Println(`______  /(____  /_____ \(____  (____  /__|`)
-	white.Printf(`        \/|__|        \/     \/  `)
-	blue.Println(`     \/      \/      \/     \/     \/`)
-	blue.DisableColor()
-	white.DisableColor()
-	fmt.Println("")
-	fmt.Println("OpenBazaar Server v" + core.VERSION)
-	if !verbose {
-		fmt.Println("[Press Ctrl+C to exit]")
+// serveHTTPGateway collects options, creates listener, prints status message and starts serving requests
+func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error) {
+	cfg, err := cctx.GetConfig()
+	if err != nil {
+		return nil, fmt.Errorf("serveHTTPGateway: GetConfig() failed: %s", err)
 	}
+
+	gatewayMaddr, err := ma.NewMultiaddr(cfg.Addresses.Gateway)
+	if err != nil {
+		return nil, fmt.Errorf("serveHTTPGateway: invalid gateway address: %q (err: %s)", cfg.Addresses.Gateway, err)
+	}
+
+	writable, writableOptionFound := req.Options[writableKwd].(bool)
+	if !writableOptionFound {
+		writable = cfg.Gateway.Writable
+	}
+
+	gwLis, err := manet.Listen(gatewayMaddr)
+	if err != nil {
+		return nil, fmt.Errorf("serveHTTPGateway: manet.Listen(%s) failed: %s", gatewayMaddr, err)
+	}
+	// we might have listened to /tcp/0 - lets see what we are listing on
+	gatewayMaddr = gwLis.Multiaddr()
+
+	if writable {
+		fmt.Printf("Gateway (writable) server listening on %s\n", gatewayMaddr)
+	} else {
+		fmt.Printf("Gateway (readonly) server listening on %s\n", gatewayMaddr)
+	}
+
+	var opts = []corehttp.ServeOption{
+		corehttp.MetricsCollectionOption("gateway"),
+		corehttp.CheckVersionOption(),
+		corehttp.CommandsROOption(*cctx),
+		corehttp.VersionOption(),
+		corehttp.IPNSHostnameOption(),
+		corehttp.GatewayOption(writable, "/ipfs", "/ipns"),
+	}
+
+	if len(cfg.Gateway.RootRedirect) > 0 {
+		opts = append(opts, corehttp.RedirectOption("", cfg.Gateway.RootRedirect))
+	}
+
+	node, err := cctx.ConstructNode()
+	if err != nil {
+		return nil, fmt.Errorf("serveHTTPGateway: ConstructNode() failed: %s", err)
+	}
+
+	errc := make(chan error)
+	go func() {
+		errc <- corehttp.Serve(node, gwLis.NetListener(), opts...)
+		close(errc)
+	}()
+	return errc, nil
+}
+
+//collects options and opens the fuse mountpoint
+func mountFuse(req *cmds.Request, cctx *oldcmds.Context) error {
+	cfg, err := cctx.GetConfig()
+	if err != nil {
+		return fmt.Errorf("mountFuse: GetConfig() failed: %s", err)
+	}
+
+	fsdir, found := req.Options[ipfsMountKwd].(string)
+	if !found {
+		fsdir = cfg.Mounts.IPFS
+	}
+
+	nsdir, found := req.Options[ipnsMountKwd].(string)
+	if !found {
+		nsdir = cfg.Mounts.IPNS
+	}
+
+	node, err := cctx.ConstructNode()
+	if err != nil {
+		return fmt.Errorf("mountFuse: ConstructNode() failed: %s", err)
+	}
+
+	err = nodeMount.Mount(node, fsdir, nsdir)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("IPFS mounted at: %s\n", fsdir)
+	fmt.Printf("IPNS mounted at: %s\n", nsdir)
+	return nil
+}
+
+func maybeRunGC(req *cmds.Request, node *core.IpfsNode) (<-chan error, error) {
+	enableGC, _ := req.Options[enableGCKwd].(bool)
+	if !enableGC {
+		return nil, nil
+	}
+
+	errc := make(chan error)
+	go func() {
+		errc <- corerepo.PeriodicGC(req.Context, node)
+		close(errc)
+	}()
+	return errc, nil
+}
+
+// merge does fan-in of multiple read-only error channels
+// taken from http://blog.golang.org/pipelines
+func merge(cs ...<-chan error) <-chan error {
+	var wg sync.WaitGroup
+	out := make(chan error)
+
+	// Start an output goroutine for each input channel in cs.  output
+	// copies values from c to out until c is closed, then calls wg.Done.
+	output := func(c <-chan error) {
+		for n := range c {
+			out <- n
+		}
+		wg.Done()
+	}
+	for _, c := range cs {
+		if c != nil {
+			wg.Add(1)
+			go output(c)
+		}
+	}
+
+	// Start a goroutine to close out once all the output goroutines are
+	// done.  This must start after the wg.Add call.
+	go func() {
+		wg.Wait()
+		close(out)
+	}()
+	return out
+}
+
+func YesNoPrompt(prompt string) bool {
+	var s string
+	for i := 0; i < 3; i++ {
+		fmt.Printf("%s ", prompt)
+		fmt.Scanf("%s", &s)
+		switch s {
+		case "y", "Y":
+			return true
+		case "n", "N":
+			return false
+		case "":
+			return false
+		}
+		fmt.Println("Please press either 'y' or 'n'")
+	}
+
+	return false
 }

@@ -2,23 +2,23 @@ package core
 
 import (
 	"bytes"
-	"encoding/hex"
-	"encoding/json"
+	//"encoding/hex"
+	//"encoding/json"
 	"fmt"
-	"github.com/textileio/textile-go/ipfs"
-	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
-	"gx/ipfs/QmQnuSxgSFubscHgkgSeayLxKmVcmNhFUaZw4gHtV3tJ15/go-libp2p-peer"
-	ipnspb "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/namesys/pb"
+	//"github.com/textileio/textile-go/ipfs"
+	//ds "gx/ipfs/QmPpegoMqhAEqjncrzArm7KVWAkCm78rqL2DPuNjhPrshg/go-datastore"
+	//"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	//ipnspb "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/namesys/pb"
 	npb "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/namesys/pb"
-	ipfspath "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/path"
-	ipnspath "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/path"
-	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	"gx/ipfs/Qmb9aAJwV1mDc5iPNtVuzVvsNiKA6kkDpZspMUgVfXPVc8/go-libp2p-crypto"
-	"io/ioutil"
-	"net"
-	"net/http"
-	"strings"
-	"time"
+	//ipfspath "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/path"
+	//ipnspath "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/path"
+	//proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	//"gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	//"io/ioutil"
+	//"net"
+	//"net/http"
+	//"strings"
+	//"time"
 )
 
 /*
@@ -27,99 +27,99 @@ as a last ditch effort if it fails to find the record in the DHT. The API endpoi
 We need to take care to observe the Tor preference.
 */
 
-func (n *TextileNode) IPNSResolveThenCat(ipnsPath ipfspath.Path, timeout time.Duration) ([]byte, error) {
-	var ret []byte
-	hash, err := n.IPNSResolve(ipnsPath.Segments()[0], timeout)
-	if err != nil {
-		return ret, err
-	}
-	p := make([]string, len(ipnsPath.Segments()))
-	p[0] = hash
-	for i := 0; i < len(ipnsPath.Segments())-1; i++ {
-		p[i+1] = ipnsPath.Segments()[i+1]
-	}
-	b, err := ipfs.Cat(n.Context, ipfspath.Join(p), timeout)
-	if err != nil {
-		return ret, err
-	}
-	return b, nil
-}
+//func (n *TextileNode) IPNSResolveThenCat(ipnsPath ipfspath.Path, timeout time.Duration) ([]byte, error) {
+//	var ret []byte
+//	hash, err := n.IPNSResolve(ipnsPath.Segments()[0], timeout)
+//	if err != nil {
+//		return ret, err
+//	}
+//	p := make([]string, len(ipnsPath.Segments()))
+//	p[0] = hash
+//	for i := 0; i < len(ipnsPath.Segments())-1; i++ {
+//		p[i+1] = ipnsPath.Segments()[i+1]
+//	}
+//	b, err := ipfs.Cat(n.Context, ipfspath.Join(p), timeout)
+//	if err != nil {
+//		return ret, err
+//	}
+//	return b, nil
+//}
 
-func (n *TextileNode) IPNSResolve(peerId string, timeout time.Duration) (string, error) {
-	val, err := ipfs.Resolve(n.Context, peerId, timeout)
-	if err != nil && n.IPNSBackupAPI != "" {
-		dial := net.Dial
-		tbTransport := &http.Transport{Dial: dial}
-		client := &http.Client{Transport: tbTransport, Timeout: time.Second * 5}
-		resp, err := client.Get(n.IPNSBackupAPI + peerId)
-		if err != nil {
-			return "", err
-		}
-
-		b, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return "", err
-		}
-
-		type KeyAndRecord struct {
-			Pubkey           string `json:"pubkey"`
-			SerializedRecord string `json:"serializedRecord"`
-		}
-
-		rec := new(KeyAndRecord)
-
-		err = json.Unmarshal(b, rec)
-		if err != nil {
-			log.Error(err)
-			return "", err
-		}
-
-		entry := new(ipnspb.IpnsEntry)
-		entryBytes, err := hex.DecodeString(rec.SerializedRecord)
-		if err != nil {
-			return "", err
-		}
-		err = proto.Unmarshal(entryBytes, entry)
-		if err != nil {
-			return "", err
-		}
-
-		pubkeyBytes, err := hex.DecodeString(rec.Pubkey)
-		if err != nil {
-			return "", err
-		}
-
-		pubkey, err := crypto.UnmarshalPublicKey(pubkeyBytes)
-		if err != nil {
-			return "", err
-		}
-
-		// check sig with pk
-		if ok, err := pubkey.Verify(ipnsEntryDataForSig(entry), entry.GetSignature()); err != nil || !ok {
-			return "", fmt.Errorf("Invalid value. Not signed by PrivateKey corresponding to %v", pubkey)
-		}
-		id, err := peer.IDB58Decode(peerId)
-		if err != nil {
-			return "", err
-		}
-		if !id.MatchesPublicKey(pubkey) {
-			return "", fmt.Errorf("Invalid key. Does not hash to %s", peerId)
-		}
-
-		go func() {
-			n.IpfsNode.Repo.Datastore().Put(ds.NewKey(CachePrefix+peerId), val)
-			n.IpfsNode.Repo.Datastore().Put(ds.NewKey(KeyCachePrefix+peerId), pubkeyBytes)
-		}()
-
-		p, err := ipnspath.ParsePath(string(entry.GetValue()))
-		if err != nil {
-			return "", err
-		}
-		val = strings.TrimPrefix(p.String(), "/ipfs/")
-		err = nil
-	}
-	return val, err
-}
+//func (n *TextileNode) IPNSResolve(peerId string, timeout time.Duration) (string, error) {
+//	val, err := ipfs.Resolve(n.Context, peerId, timeout)
+//	if err != nil && n.IPNSBackupAPI != "" {
+//		dial := net.Dial
+//		tbTransport := &http.Transport{Dial: dial}
+//		client := &http.Client{Transport: tbTransport, Timeout: time.Second * 5}
+//		resp, err := client.Get(n.IPNSBackupAPI + peerId)
+//		if err != nil {
+//			return "", err
+//		}
+//
+//		b, err := ioutil.ReadAll(resp.Body)
+//		if err != nil {
+//			return "", err
+//		}
+//
+//		type KeyAndRecord struct {
+//			Pubkey           string `json:"pubkey"`
+//			SerializedRecord string `json:"serializedRecord"`
+//		}
+//
+//		rec := new(KeyAndRecord)
+//
+//		err = json.Unmarshal(b, rec)
+//		if err != nil {
+//			log.Error(err)
+//			return "", err
+//		}
+//
+//		entry := new(ipnspb.IpnsEntry)
+//		entryBytes, err := hex.DecodeString(rec.SerializedRecord)
+//		if err != nil {
+//			return "", err
+//		}
+//		err = proto.Unmarshal(entryBytes, entry)
+//		if err != nil {
+//			return "", err
+//		}
+//
+//		pubkeyBytes, err := hex.DecodeString(rec.Pubkey)
+//		if err != nil {
+//			return "", err
+//		}
+//
+//		pubkey, err := crypto.UnmarshalPublicKey(pubkeyBytes)
+//		if err != nil {
+//			return "", err
+//		}
+//
+//		// check sig with pk
+//		if ok, err := pubkey.Verify(ipnsEntryDataForSig(entry), entry.GetSignature()); err != nil || !ok {
+//			return "", fmt.Errorf("Invalid value. Not signed by PrivateKey corresponding to %v", pubkey)
+//		}
+//		id, err := peer.IDB58Decode(peerId)
+//		if err != nil {
+//			return "", err
+//		}
+//		if !id.MatchesPublicKey(pubkey) {
+//			return "", fmt.Errorf("Invalid key. Does not hash to %s", peerId)
+//		}
+//
+//		go func() {
+//			n.IpfsNode.Repo.Datastore().Put(ds.NewKey(CachePrefix+peerId), val)
+//			n.IpfsNode.Repo.Datastore().Put(ds.NewKey(KeyCachePrefix+peerId), pubkeyBytes)
+//		}()
+//
+//		p, err := ipnspath.ParsePath(string(entry.GetValue()))
+//		if err != nil {
+//			return "", err
+//		}
+//		val = strings.TrimPrefix(p.String(), "/ipfs/")
+//		err = nil
+//	}
+//	return val, err
+//}
 
 func ipnsEntryDataForSig(e *npb.IpnsEntry) []byte {
 	return bytes.Join([][]byte{

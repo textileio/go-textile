@@ -4,15 +4,15 @@ import (
 	"encoding/base64"
 	"image"
 	_ "image/gif"
-	"image/jpeg"
+	//"image/jpeg"
 	_ "image/png"
 	"net"
-	"os"
+	//"os"
 	"path"
 	"strings"
 
-	"github.com/nfnt/resize"
-	"github.com/textileio/textile-go/ipfs"
+	//"github.com/nfnt/resize"
+	//"github.com/textileio/textile-go/ipfs"
 	"golang.org/x/net/context"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreunix"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/unixfs/io"
@@ -22,21 +22,21 @@ import (
 	"time"
 )
 
-func (n *TextileNode) addImage(img image.Image, imgPath string) (string, error) {
-	out, err := os.Create(imgPath)
-	if err != nil {
-		return "", err
-	}
-	jpeg.Encode(out, img, nil)
-	out.Close()
-	return ipfs.AddFile(n.Context, imgPath)
-}
+//func (n *TextileNode) addImage(img image.Image, imgPath string) (string, error) {
+//	out, err := os.Create(imgPath)
+//	if err != nil {
+//		return "", err
+//	}
+//	jpeg.Encode(out, img, nil)
+//	out.Close()
+//	return ipfs.AddFile(n.Context, imgPath)
+//}
 
-func (n *TextileNode) addResizedImage(img image.Image, imgCfg *image.Config, w, h uint, imgPath string) (string, error) {
-	width, height := getImageAttributes(w, h, uint(imgCfg.Width), uint(imgCfg.Height))
-	newImg := resize.Resize(width, height, img, resize.Lanczos3)
-	return n.addImage(newImg, imgPath)
-}
+//func (n *TextileNode) addResizedImage(img image.Image, imgCfg *image.Config, w, h uint, imgPath string) (string, error) {
+//	width, height := getImageAttributes(w, h, uint(imgCfg.Width), uint(imgCfg.Height))
+//	newImg := resize.Resize(width, height, img, resize.Lanczos3)
+//	return n.addImage(newImg, imgPath)
+//}
 
 func decodeImageData(base64ImageData string) (image.Image, *image.Config, error) {
 	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(base64ImageData))
