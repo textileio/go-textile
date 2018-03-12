@@ -40,10 +40,10 @@ func CheckAndSetUlimit() error {
 	}
 
 	if !setting {
-		log.Debug("Did not change ulimit")
+		//log.Debug("Did not change ulimit")
 		return nil
 	}
 
-	log.Debug("Successfully raised file descriptor limit to", fileDescriptorLimit)
+	//log.Debug("Successfully raised file descriptor limit to", fileDescriptorLimit)
 	return nil
 }
