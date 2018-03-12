@@ -113,6 +113,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	// let the user know we're going.
 	fmt.Printf("Initializing daemon...\n")
 
+	// raise file descriptor limit
 	managefd, _ := req.Options[adjustFDLimitKwd].(bool)
 	if managefd {
 		if err := utilmain.ManageFdLimit(); err != nil {
