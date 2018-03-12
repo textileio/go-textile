@@ -1,4 +1,4 @@
-package mobile
+package main
 
 import (
 	"context"
@@ -9,18 +9,24 @@ import (
 	"path/filepath"
 
 	tcore "github.com/textileio/textile-go/core"
+	trepo "github.com/textileio/textile-go/repo"
 
-	utilmain "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/corehttp"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/config"
 	lockfile "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo/lock"
+	utilmain "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/cmd/ipfs/util"
 
 	"gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 )
+
+func main()  {
+	textile := NewTextile("/Users/sander/go/src/github.com/textileio/textile-go/.ipfs")
+	textile.Start()
+}
 
 type Node struct {
 	node       *tcore.TextileNode
@@ -46,13 +52,16 @@ func NewTextile(repoPath string) *Node {
 
 func (m *Mobile) NewNode(config MobileConfig) (*Node, error) {
 
+	//repoLockFile := filepath.Join(config.RepoPath, lockfile.LockFile)
+	//os.Remove(repoLockFile)
+
 	if err := utilmain.ManageFdLimit(); err != nil {
-		return nil, err
+		fmt.Errorf("setting file descriptor limit: %s", err)
 	}
 
 	// we may be running in an uninitialized state.
 	if !fsrepo.IsInitialized(config.RepoPath) {
-		err := initWithDefaults(os.Stdout, config.RepoPath)
+		err := trepo.InitWithDefaults(os.Stdout, config.RepoPath)
 		if err != nil {
 			return nil, err
 		}
@@ -75,7 +84,7 @@ func (m *Mobile) NewNode(config MobileConfig) (*Node, error) {
 			"ipnsps": true,
 			"mplex":  true,
 		},
-		Routing: core.DHTOption,
+		Routing: core.DHTClientOption,
 		//TODO(Kubuxu): refactor Online vs Offline by adding Permanent vs Ephemeral
 	}
 
