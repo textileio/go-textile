@@ -9,9 +9,12 @@ class ViewController: UIViewController {
     super.viewDidLoad()
     let paths = NSSearchPathForDirectoriesInDomains(.libraryDirectory, .userDomainMask, true)
     let dataDir = paths[0]
-    node = MobileNewTextile(dataDir)
-    if let node = node {
-      try! node.start()
+
+    DispatchQueue.global().async {
+      self.node = MobileNewTextile(dataDir)
+      if let node = self.node {
+        try! node.start()
+      }
     }
   }
 
