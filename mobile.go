@@ -10,7 +10,7 @@ var opts struct {
 	RepoDir string `short:"d" long:"dir" description:"Rep directory" required:"true"`
 }
 
-func main()  {
+func main() {
 	_, err := flags.Parse(&opts)
 	if err != nil {
 		os.Exit(1)
