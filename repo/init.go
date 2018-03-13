@@ -16,24 +16,12 @@ import (
 	nconfig "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/config"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreapi"
-	namesys "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/namesys"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/namesys"
 )
 
 const (
 	NBitsForKeypairDefault = 2048
 )
-
-type Photo map[string]string
-
-type WalletData struct {
-	Photos []Photo `json:"photos"`
-}
-
-type Wallet struct {
-	Created time.Time `json:"created"`
-	Updated time.Time `json:"updated"`
-	Data WalletData `json:"data"`
-}
 
 var errRepoExists = errors.New(`textile configuration file already exists!
 Reinitializing would overwrite your keys.
