@@ -5,12 +5,8 @@ import (
 	"errors"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ps "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
-	util "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	"time"
-
-	google_protobuf "github.com/golang/protobuf/ptypes/timestamp"
 )
 
 // Hash with SHA-256 and encode as a multihash
@@ -51,10 +47,4 @@ func ExtractIDFromPointer(pi ps.PeerInfo) (string, error) {
 		return "", err
 	}
 	return val, nil
-}
-
-// FormatRFC3339PB returns the given `google_protobuf.Timestamp` as a RFC3339
-// formatted string
-func FormatRFC3339PB(ts google_protobuf.Timestamp) string {
-	return util.FormatRFC3339(time.Unix(ts.Seconds, int64(ts.Nanos)).UTC())
 }

@@ -104,7 +104,7 @@ func (m *Mobile) NewNode(config MobileConfig) (*Node, error) {
 }
 
 func (n *Node) Start() error {
-	fmt.Println("Initializing daemon...")
+	fmt.Println("Initializing node...")
 	fmt.Println("Repo directory: ", n.config.RepoPath)
 
 	cctx, cancel := context.WithCancel(context.Background())
@@ -135,7 +135,7 @@ func (n *Node) Start() error {
 
 		select {
 		case <-cctx.Done():
-			fmt.Println("Gracefully shut down daemon")
+			fmt.Println("Gracefully shut down node")
 		default:
 		}
 	}()
@@ -144,20 +144,20 @@ func (n *Node) Start() error {
 	n.node.IpfsNode = nd
 
 	// construct http gateway - if it is set in the config
-	var gwErrc <-chan error
-	gwErrc, err = serveHTTPGateway(&ctx)
-	if err != nil {
-		fmt.Println(err)
-	}
+	//var gwErrc <-chan error
+	//gwErrc, err = serveHTTPGateway(&ctx)
+	//if err != nil {
+	//	fmt.Println(err)
+	//}
 
-	fmt.Printf("Daemon is ready\n")
+	fmt.Printf("Node is ready\n")
 	// collect long-running errors and block for shutdown
-	// TODO(cryptix): our fuse currently doesnt follow this pattern for graceful shutdown
-	for err := range merge(gwErrc) {
-		if err != nil {
-			fmt.Println(err)
-		}
-	}
+	//// TODO(cryptix): our fuse currently doesnt follow this pattern for graceful shutdown
+	//for err := range merge(gwErrc) {
+	//	if err != nil {
+	//		fmt.Println(err)
+	//	}
+	//}
 
 	return nil
 }
