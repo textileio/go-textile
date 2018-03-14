@@ -1,0 +1,175 @@
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * 
+ * @format
+ */
+
+'use strict';var _extends = Object.assign || function (target) {for (var i = 1; i < arguments.length; i++) {var source = arguments[i];for (var key in source) {if (Object.prototype.hasOwnProperty.call(source, key)) {target[key] = source[key];}}}return target;};
+
+const fs = require('fs');
+const isAbsolutePath = require('absolute-path');
+const path = require('path');
+
+
+
+
+
+
+
+
+class Package {
+
+
+
+
+
+
+  constructor(_ref) {let file = _ref.file;
+    this.path = path.resolve(file);
+    this.root = path.dirname(this.path);
+    this.type = 'Package';
+    this._content = null;
+  }
+
+  /**
+     * The `browser` field and replacement behavior is specified in
+     * https://github.com/defunctzombie/package-browser-field-spec.
+     */
+  getMain() {
+    const json = this.read();
+    var replacements = getReplacements(json);
+    if (typeof replacements === 'string') {
+      return path.join(this.root, replacements);
+    }
+
+    let main = json.main || 'index';
+
+    if (replacements && typeof replacements === 'object') {
+      const variants = [main];
+      if (main.slice(0, 2) === './') {
+        variants.push(main.slice(2));
+      } else {
+        variants.push('./' + main);
+      }
+
+      for (const variant of variants) {
+        const winner =
+        replacements[variant] ||
+        replacements[variant + '.js'] ||
+        replacements[variant + '.json'] ||
+        replacements[variant.replace(/(\.js|\.json)$/, '')];
+
+        if (winner) {
+          main = winner;
+          break;
+        }
+      }
+    }
+
+    /* $FlowFixMe: `getReplacements` doesn't validate the return value. */
+    return path.join(this.root, main);
+  }
+
+  isHaste() {
+    return !!this.read().name;
+  }
+
+  getName() {
+    return this.read().name;
+  }
+
+  invalidate() {
+    this._content = null;
+  }
+
+  redirectRequire(name) {
+    const json = this.read();
+    const replacements = getReplacements(json);
+
+    if (!replacements || typeof replacements !== 'object') {
+      return name;
+    }
+
+    if (!isAbsolutePath(name)) {
+      const replacement = replacements[name];
+      // support exclude with "someDependency": false
+      return replacement === false ?
+      false :
+      /* $FlowFixMe: type of replacements is not being validated */
+      replacement || name;
+    }
+
+    let relPath = './' + path.relative(this.root, name);
+    if (path.sep !== '/') {
+      relPath = relPath.replace(new RegExp('\\' + path.sep, 'g'), '/');
+    }
+
+    let redirect = replacements[relPath];
+
+    // false is a valid value
+    if (redirect == null) {
+      redirect = replacements[relPath + '.js'];
+      if (redirect == null) {
+        redirect = replacements[relPath + '.json'];
+      }
+    }
+
+    // support exclude with "./someFile": false
+    if (redirect === false) {
+      return false;
+    }
+
+    if (redirect) {
+      return path.join(
+      this.root,
+      /* $FlowFixMe: `getReplacements` doesn't validate the return value. */
+      redirect);
+
+    }
+
+    return name;
+  }
+
+  read() {
+    if (this._content == null) {
+      this._content = JSON.parse(fs.readFileSync(this.path, 'utf8'));
+    }
+    return this._content;
+  }}
+
+
+function getReplacements(pkg) {
+  let rn = pkg['react-native'];
+  let browser = pkg.browser;
+  if (rn == null) {
+    return browser;
+  }
+
+  if (browser == null) {
+    return rn;
+  }
+
+  if (typeof rn === 'string') {
+    /* $FlowFixMe: It is likely unsafe to assume all packages would
+                                * contain a "main" */
+    rn = { [pkg.main]: rn };
+  }
+
+  if (typeof browser === 'string') {
+    /* $FlowFixMe: It is likely unsafe to assume all packages would
+                                     * contain a "main" */
+    browser = { [pkg.main]: browser };
+  }
+
+  // merge with "browser" as default,
+  // "react-native" as override
+  return _extends({}, browser, rn);
+}
+
+module.exports = Package;

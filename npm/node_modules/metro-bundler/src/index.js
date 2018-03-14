@@ -1,0 +1,208 @@
+/**
+ * Copyright (c) 2015-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * 
+ * @format
+ */
+
+'use strict';var _extends = Object.assign || function (target) {for (var i = 1; i < arguments.length; i++) {var source = arguments[i];for (var key in source) {if (Object.prototype.hasOwnProperty.call(source, key)) {target[key] = source[key];}}}return target;};
+
+const Config = require('./Config');
+const Logger = require('./Logger');
+const TransformCaching = require('./lib/TransformCaching');
+
+const blacklist = require('./blacklist');
+const debug = require('debug');
+const invariant = require('fbjs/lib/invariant');var _require =
+
+require('./Bundler/source-map');const fromRawMappings = _require.fromRawMappings,compactMapping = _require.compactMapping;
+
+
+
+
+
+exports.createBlacklist = blacklist;
+exports.sourceMaps = { fromRawMappings, compactMapping };
+exports.createServer = createServer;
+exports.Config = Config;
+exports.Logger = Logger;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exports.TransformCaching = TransformCaching;
+
+/**
+                                              * This is a public API, so we don't trust the value and purposefully downgrade
+                                              * it as `mixed`. Because it understands `invariant`, Flow ensure that we
+                                              * refine these values completely.
+                                              */
+function assertPublicBundleOptions(bo) {
+  invariant(
+  typeof bo === 'object' && bo != null,
+  'bundle options must be an object');
+
+  invariant(
+  bo.dev === undefined || typeof bo.dev === 'boolean',
+  'bundle options field `dev` must be a boolean');const
+
+  entryFile = bo.entryFile;
+  invariant(
+  typeof entryFile === 'string',
+  'bundle options must contain a string field `entryFile`');
+
+  invariant(
+  bo.generateSourceMaps === undefined ||
+  typeof bo.generateSourceMaps === 'boolean',
+  'bundle options field `generateSourceMaps` must be a boolean');
+
+  invariant(
+  bo.inlineSourceMap === undefined || typeof bo.inlineSourceMap === 'boolean',
+  'bundle options field `inlineSourceMap` must be a boolean');
+
+  invariant(
+  bo.minify === undefined || typeof bo.minify === 'boolean',
+  'bundle options field `minify` must be a boolean');
+
+  invariant(
+  bo.platform === undefined || typeof bo.platform === 'string',
+  'bundle options field `platform` must be a string');
+
+  invariant(
+  bo.runModule === undefined || typeof bo.runModule === 'boolean',
+  'bundle options field `runModule` must be a boolean');
+
+  invariant(
+  bo.sourceMapUrl === undefined || typeof bo.sourceMapUrl === 'string',
+  'bundle options field `sourceMapUrl` must be a boolean');
+
+  return _extends({ entryFile }, bo);
+}
+
+exports.buildBundle = function (
+options,
+bundleOptions)
+{
+  var server = createNonPersistentServer(options);
+  const ServerClass = require('./Server');
+  return server.
+  buildBundle(_extends({},
+  ServerClass.DEFAULT_BUNDLE_OPTIONS,
+  assertPublicBundleOptions(bundleOptions))).
+
+  then(p => {
+    server.end();
+    return p;
+  });
+};
+
+exports.getOrderedDependencyPaths = function (
+options,
+depOptions)
+
+
+
+
+
+
+{
+  var server = createNonPersistentServer(options);
+  return server.getOrderedDependencyPaths(depOptions).then(function (paths) {
+    server.end();
+    return paths;
+  });
+};
+
+function enableDebug() {
+  // Metro Bundler logs debug messages using the 'debug' npm package, and uses
+  // the following prefix throughout.
+  // To enable debugging, we need to set our pattern or append it to any
+  // existing pre-configured pattern to avoid disabling logging for
+  // other packages
+  var debugPattern = 'Metro:*';
+  var existingPattern = debug.load();
+  if (existingPattern) {
+    debugPattern += ',' + existingPattern;
+  }
+  debug.enable(debugPattern);
+}
+
+function createServer(options) {
+  // the debug module is configured globally, we need to enable debugging
+  // *before* requiring any packages that use `debug` for logging
+  if (options.verbose) {
+    enableDebug();
+  }
+
+  // Some callsites may not be Flowified yet.
+  invariant(
+  options.assetRegistryPath != null,
+  'createServer() requires assetRegistryPath');
+
+
+  const ServerClass = require('./Server');
+  return new ServerClass(toServerOptions(options));
+}
+
+function createNonPersistentServer(options) {
+  return createServer(options);
+}
+
+function toServerOptions(options) {
+  return {
+    assetExts: options.assetExts,
+    assetRegistryPath: options.assetRegistryPath,
+    blacklistRE: options.blacklistRE,
+    cacheVersion: options.cacheVersion,
+    enableBabelRCLookup: options.enableBabelRCLookup,
+    extraNodeModules: options.extraNodeModules,
+    getPolyfills: options.getPolyfills,
+    getTransformOptions: options.getTransformOptions,
+    globalTransformCache: options.globalTransformCache,
+    hasteImpl: options.hasteImpl,
+    maxWorkers: options.maxWorkers,
+    moduleFormat: options.moduleFormat,
+    platforms: options.platforms,
+    polyfillModuleNames: options.polyfillModuleNames,
+    postProcessModules: options.postProcessModules,
+    postMinifyProcess: options.postMinifyProcess,
+    postProcessBundleSourcemap: options.postProcessBundleSourcemap,
+    projectRoots: options.projectRoots,
+    providesModuleNodeModules: options.providesModuleNodeModules,
+    reporter: options.reporter,
+    resetCache: options.resetCache,
+    runBeforeMainModule: options.runBeforeMainModule,
+    silent: options.silent,
+    sourceExts: options.sourceExts,
+    transformCache: options.transformCache || TransformCaching.useTempDir(),
+    transformModulePath: options.transformModulePath,
+    useDeltaBundler: options.useDeltaBundler,
+    watch:
+    typeof options.watch === 'boolean' ?
+    options.watch :
+    !!options.nonPersistent,
+    workerPath: options.workerPath };
+
+}

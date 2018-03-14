@@ -1,0 +1,39 @@
+{
+  "name": "textile-ipfs-rn",
+  "version": "0.1.0",
+  "description": "Textile IPFS API for react-native",
+  "main": "FS.common.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "flow": "flow; test $? -eq 0 -o $? -eq 2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:itinance/react-native-fs.git"
+  },
+  "keywords": [
+    "react-component",
+    "react-native",
+    "ios",
+    "android",
+    "ipfs",
+    "textile"
+  ],
+  "author": "Aaron Sutula <aaron@textile.io>",
+  "license": "MIT",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "flow-bin": "0.28.0",
+    "react": "^16.2.0",
+    "react-native": "^0.51.0",
+    "prop-types": "15.6.0",
+    "create-react-class": "^15.6.2"
+  },
+  "peerDependencies": {
+    "react": "^16.2.0",
+    "react-native": "^0.51.0",
+    "prop-types": "15.6.0",
+    "create-react-class": "^15.6.2"
+  }
+}
