@@ -18,10 +18,13 @@ class ViewController: UIViewController {
     }
   }
 
-  // TODO: Where / when to call node.close()?
-
   override func didReceiveMemoryWarning() {
     super.didReceiveMemoryWarning()
+    DispatchQueue.global().async {
+      if let node = self.node {
+        try! node.stop()
+      }
+    }
   }
 
 }

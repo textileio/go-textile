@@ -38,6 +38,7 @@ _testmain.go
 *.prof
 .idea/
 *.iml
+.gx/
 dist
 .ipfs
 
