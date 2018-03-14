@@ -144,20 +144,20 @@ func (n *Node) Start() error {
 	n.node.IpfsNode = nd
 
 	// construct http gateway - if it is set in the config
-	//var gwErrc <-chan error
-	//gwErrc, err = serveHTTPGateway(&ctx)
-	//if err != nil {
-	//	fmt.Println(err)
-	//}
+	var gwErrc <-chan error
+	gwErrc, err = serveHTTPGateway(&ctx)
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	fmt.Printf("Node is ready\n")
 	// collect long-running errors and block for shutdown
-	//// TODO(cryptix): our fuse currently doesnt follow this pattern for graceful shutdown
-	//for err := range merge(gwErrc) {
-	//	if err != nil {
-	//		fmt.Println(err)
-	//	}
-	//}
+	// TODO(cryptix): our fuse currently doesnt follow this pattern for graceful shutdown
+	for err := range merge(gwErrc) {
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
 
 	return nil
 }

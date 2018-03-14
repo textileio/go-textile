@@ -13,6 +13,10 @@ import (
 	native "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/config"
 )
 
+var textileBootstrapAddresses = []string{
+	"/ip4/35.169.206.101/tcp/4001/ipfs/QmcyGAcu5udjiuhputM2CSRo4irCrihbZ2xn8MwQ44vnWp",
+}
+
 func Init(out io.Writer, nBitsForKeypair int) (*native.Config, error) {
 	identity, err := identityConfig(out, nBitsForKeypair)
 	if err != nil {
@@ -22,6 +26,15 @@ func Init(out io.Writer, nBitsForKeypair int) (*native.Config, error) {
 	bootstrapPeers, err := native.DefaultBootstrapPeers()
 	if err != nil {
 		return nil, err
+	}
+
+	// add our own bootstrap peer
+	for _, addr := range textileBootstrapAddresses {
+		p, err := native.ParseBootstrapPeer(addr)
+		bootstrapPeers = append(bootstrapPeers, p)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	datastore := DefaultDatastoreConfig()
