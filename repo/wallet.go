@@ -3,7 +3,11 @@ package repo
 import (
 	"time"
 	"bytes"
+	"image/jpeg"
+	"fmt"
 	"encoding/json"
+
+	"github.com/textileio/textile-go/repo/images"
 
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreapi"
@@ -57,74 +61,44 @@ func NewWallet(node *core.IpfsNode) error {
 	return nil
 }
 
-func (w *Wallet) publish(path iface.Path, node *core.IpfsNode) error {
+func (w *Wallet) PinPhoto(base64ImageData string, node *core.IpfsNode) error {
+	// decode image
+	im, cfg, err := images.DecodeImageData(base64ImageData)
+	if err != nil {
+		return err
+	}
+	imb := new(bytes.Buffer)
+	if err = jpeg.Encode(imb, im, &jpeg.Options{ Quality: 100 }); err != nil {
+		return err
+	}
+
+	// create thumbnail
+	th := images.ResizeImage(im, cfg, 80, 80)
+	thb := new(bytes.Buffer)
+	if err = jpeg.Encode(thb, th, nil); err != nil {
+		return err
+	}
+
+	// add files to ipfs
 	api := coreapi.NewCoreAPI(node)
-	_, err := api.Name().Publish(node.Context(), path)
-	return err
-}
-
-/*
-package repo
-
-import (
-	"time"
-	"context"
-	"encoding/json"
-
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreapi"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreapi/interface"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/pin"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/path"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/namesys"
-	dag "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/merkledag"
-	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-)
-
-type Photo map[string]string
-
-type WalletData struct {
-	Photos []Photo `json:"photos"`
-}
-
-type Wallet struct {
-	Created time.Time `json:"created"`
-	Updated time.Time `json:"updated"`
-	Data WalletData `json:"data"`
-	LastHash string `json:"last_hash"`
-}
-
-func NewWallet(ctx context.Context, pub namesys.Publisher, pins pin.Pinner, key ci.PrivKey) error {
-
-	// create an empty wallet
-	wallet := &Wallet{
-		Created: time.Now(),
-		Updated: time.Now(),
-		Data: WalletData{
-			Photos: make([]Photo, 0),
-		},
+	imp, err := api.Unixfs().Add(node.Context(), bytes.NewReader(imb.Bytes()))
+	if err != nil {
+		return err
 	}
-
-	wb, err := json.Marshal(wallet)
+	thp, err := api.Unixfs().Add(node.Context(), bytes.NewReader(thb.Bytes()))
 	if err != nil {
 		return err
 	}
 
-	// create a dag node from the empty wallet data
-	wn := dag.NodeWithData(wb)
+	fmt.Println(imp.Cid().String())
+	fmt.Println(thp.Cid().String())
 
-	// pin it
-	err = pins.Pin(ctx, wn, true)
-	if err != nil {
-		return err
-	}
+	// done automatically?
+	//if err := api.Pin().Add(node.Context(), p); err != nil {
+	//	return err
+	//}
 
-	err = pins.Flush()
-	if err != nil {
-		return err
-	}
-
-	return pub.Publish(ctx, key, path.FromCid(wn.Cid()))
+	return nil
 }
 
 func (w *Wallet) publish(path iface.Path, node *core.IpfsNode) error {
@@ -133,4 +107,6 @@ func (w *Wallet) publish(path iface.Path, node *core.IpfsNode) error {
 	return err
 }
 
- */
+func (w *Wallet) String() string {
+	return "TODO"
+}

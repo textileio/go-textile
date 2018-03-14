@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"strings"
 
 	"github.com/textileio/textile-go/repo"
 
@@ -22,18 +21,8 @@ var initCmd = &cmds.Command{
 Initializes textile configuration files and generates a new keypair.
 `,
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.FileArg("default-config", false, false, "Initialize with the given configuration.").EnableStdin(),
-	},
 	Options: []cmdkit.Option{
 		cmdkit.StringOption("dir", "d", "Repo directory.").WithDefault("~/.ipfs"),
-		cmdkit.IntOption("bits", "b", "Number of bits to use in the generated RSA private key.").WithDefault(repo.NBitsForKeypairDefault),
-		cmdkit.StringOption("profile", "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
-
-		// TODO need to decide whether to expose the override as a file or a
-		// directory. That is: should we allow the user to also specify the
-		// name of the file?
-		// TODO cmdkit.StringOption("event-logs", "l", "Location for machine-readable event logs."),
 	},
 	PreRun: func(req cmds.Request) error {
 		daemonLocked, err := fsrepo.LockedByOtherProcess(req.InvocContext().ConfigRoot)
@@ -66,12 +55,6 @@ Initializes textile configuration files and generates a new keypair.
 			return
 		}
 
-		nBitsForKeypair, _, err := req.Option("b").Int()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
 		var conf *nconfig.Config
 
 		f := req.Files()
@@ -89,18 +72,7 @@ Initializes textile configuration files and generates a new keypair.
 			}
 		}
 
-		profile, _, err := req.Option("profile").String()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		var profiles []string
-		if profile != "" {
-			profiles = strings.Split(profile, ",")
-		}
-
-		if err := repo.DoInit(os.Stdout, repoDir, nBitsForKeypair, profiles, conf); err != nil {
+		if err := repo.DoInit(os.Stdout, repoDir, conf); err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}

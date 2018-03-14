@@ -16,18 +16,14 @@ import (
 )
 
 const (
-	NBitsForKeypairDefault = 2048
+	NBitsForKeypair = 2048
 )
 
-var errRepoExists = errors.New(`textile configuration file already exists!
+var errRepoExists = errors.New(`ipfs configuration file already exists!
 Reinitializing would overwrite your keys.
 `)
 
-func InitWithDefaults(out io.Writer, repoRoot string) error {
-	return DoInit(out, repoRoot, NBitsForKeypairDefault, nil, nil)
-}
-
-func DoInit(out io.Writer, repoRoot string, nBitsForKeypair int, confProfiles []string, conf *nconfig.Config) error {
+func DoInit(out io.Writer, repoRoot string, conf *nconfig.Config) error {
 	if _, err := fmt.Fprintf(out, "initializing Textile node at %s\n", repoRoot); err != nil {
 		return err
 	}
@@ -42,19 +38,8 @@ func DoInit(out io.Writer, repoRoot string, nBitsForKeypair int, confProfiles []
 
 	if conf == nil {
 		var err error
-		conf, err = config.Init(out, nBitsForKeypair)
+		conf, err = config.Init(out, NBitsForKeypair)
 		if err != nil {
-			return err
-		}
-	}
-
-	for _, profile := range confProfiles {
-		transformer, ok := nconfig.Profiles[profile]
-		if !ok {
-			return fmt.Errorf("invalid configuration profile: %s", profile)
-		}
-
-		if err := transformer(conf); err != nil {
 			return err
 		}
 	}
