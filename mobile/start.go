@@ -83,8 +83,8 @@ func (m *Mobile) NewNode(config MobileConfig) (*Node, error) {
 		Permanent: true, // It is temporary way to signify that node is permanent
 		Online:    true,
 		ExtraOpts: map[string]bool{
-			"pubsub": false,
-			"ipnsps": false,
+			"pubsub": true,
+			"ipnsps": true,
 			"mplex":  true,
 		},
 		Routing: core.DHTClientOption,
