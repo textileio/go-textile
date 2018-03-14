@@ -1,4 +1,4 @@
-package core
+package images
 
 import (
 	_ "image/gif"
@@ -8,7 +8,7 @@ import (
 
 func TestImageFormats(t *testing.T) {
 	for _, image := range []string{jpgImageB64, gifImageB64, pngImageB64} {
-		_, cfg, err := decodeImageData(image)
+		_, cfg, err := DecodeImageData(image)
 		if err != nil {
 			t.Error(err)
 		}

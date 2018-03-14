@@ -3,14 +3,14 @@ package main
 import (
 	"fmt"
 
-	commands "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/commands"
+	"github.com/textileio/textile-go/core/commands"
 
 	lgc "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands/legacy"
-	cmds "gx/ipfs/QmabLouZTZwhfALuBcssPvkzhbYGMb4394huT7HY4LQ6d3/go-ipfs-cmds"
+	"gx/ipfs/QmabLouZTZwhfALuBcssPvkzhbYGMb4394huT7HY4LQ6d3/go-ipfs-cmds"
 )
 
 // This is the CLI root, used for executing commands accessible to CLI clients.
-// Some subcommands (like 'textile daemon' or 'textile init') are only accessible here,
+// Some subcommands (like 'textile start' or 'textile init') are only accessible here,
 // and can't be called through the HTTP API.
 var Root = &cmds.Command{
 	Options:  commands.Root.Options,
@@ -23,7 +23,7 @@ var commandsClientCmd = commands.CommandsCmd(Root)
 // Commands in localCommands should always be run locally (even if daemon is running).
 // They can override subcommands in commands.Root by defining a subcommand with the same name.
 var localCommands = map[string]*cmds.Command{
-	"start":   startCmd,
+	"start":    startCmd,
 	"init":     lgc.NewCommand(initCmd),
 	"commands": commandsClientCmd,
 }
@@ -94,8 +94,5 @@ var cmdDetailsMap = map[string]cmdDetails{
 	"daemon":      {doesNotUseConfigAsInput: true, cannotRunOnDaemon: true},
 	"commands":    {doesNotUseRepo: true},
 	"version":     {doesNotUseConfigAsInput: true, doesNotUseRepo: true}, // must be permitted to run before init
-	"log":         {cannotRunOnClient: true},
-	"diag/cmds":   {cannotRunOnClient: true},
-	"repo/fsck":   {cannotRunOnDaemon: true},
-	"config/edit": {cannotRunOnDaemon: true, doesNotUseRepo: true},
+	"wallet":      {cannotRunOnClient: true},
 }
