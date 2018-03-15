@@ -18,10 +18,6 @@ import (
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
 
-const (
-	repoDirKwd = "dir"
-)
-
 var startCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Run a network-connected Textile node.",
@@ -41,9 +37,7 @@ second signal.
 `,
 	},
 
-	Options: []cmdkit.Option{
-		cmdkit.StringOption(repoDirKwd, "Repo directory.").WithDefault("~/.ipfs"),
-	},
+	Options: []cmdkit.Option{},
 	Subcommands: map[string]*cmds.Command{},
 	Run:         daemonFunc,
 }
@@ -66,9 +60,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	}()
 
 	// we may be running in an uninitialized state.
-	repoDir, _ := req.Options[repoDirKwd].(string)
-	if !fsrepo.IsInitialized(repoDir) {
-		err := trepo.DoInit(os.Stdout, repoDir, nil)
+	if !fsrepo.IsInitialized(cctx.ConfigRoot) {
+		err := trepo.DoInit(os.Stdout, cctx.ConfigRoot, nil)
 		if err != nil {
 			re.SetError(err, cmdkit.ErrNormal)
 			return
@@ -77,7 +70,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
-	repo, err := fsrepo.Open(repoDir)
+	repo, err := fsrepo.Open(cctx.ConfigRoot)
 	if err != nil {
 		re.SetError(err, cmdkit.ErrNormal)
 		return

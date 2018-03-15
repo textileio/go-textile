@@ -11,10 +11,6 @@ import (
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 )
 
-const (
-	repoDirKwd = "dir"
-)
-
 var WalletCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Interact with the wallet.",
@@ -23,9 +19,7 @@ var WalletCmd = &cmds.Command{
 `,
 	},
 
-	Options: []cmdkit.Option{
-		cmdkit.StringOption(repoDirKwd, "Repo directory.").WithDefault("~/.ipfs"),
-	},
+	Options: []cmdkit.Option{},
 	Subcommands: map[string]*cmds.Command{
 		"cat": walletCatCmd,
 		"add": walletAddPhotoCmd,
