@@ -91,8 +91,7 @@ func (d *cmdDetails) usesRepo() bool          { return !d.doesNotUseRepo }
 // command or return an error to the user.
 var cmdDetailsMap = map[string]cmdDetails{
 	"init":        {doesNotUseConfigAsInput: true, cannotRunOnDaemon: true, doesNotUseRepo: true},
-	"daemon":      {doesNotUseConfigAsInput: true, cannotRunOnDaemon: true},
+	"start":      {doesNotUseConfigAsInput: true, cannotRunOnDaemon: true},
 	"commands":    {doesNotUseRepo: true},
 	"version":     {doesNotUseConfigAsInput: true, doesNotUseRepo: true}, // must be permitted to run before init
-	"wallet":      {cannotRunOnClient: true},
 }

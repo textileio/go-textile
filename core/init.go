@@ -6,12 +6,21 @@ import (
 	"net/http"
 	"sort"
 	"sync"
+	"strconv"
+	"strings"
+	"os"
+
+	corecommands "github.com/textileio/textile-go/core/commands"
 
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/corehttp"
+	oldcmds "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/config"
+
 	"gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	oldcmds "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
+	"gx/ipfs/QmabLouZTZwhfALuBcssPvkzhbYGMb4394huT7HY4LQ6d3/go-ipfs-cmds"
+	cmdsHttp "gx/ipfs/QmabLouZTZwhfALuBcssPvkzhbYGMb4394huT7HY4LQ6d3/go-ipfs-cmds/http"
 )
 
 // defaultMux tells mux to serve path using the default muxer. This is
@@ -82,7 +91,7 @@ func ServeHTTPApi(cctx *oldcmds.Context) (<-chan error, error) {
 	var opts = []corehttp.ServeOption{
 		corehttp.MetricsCollectionOption("api"),
 		corehttp.CheckVersionOption(),
-		corehttp.CommandsOption(*cctx),
+		commandsOption(*cctx, corecommands.Root),
 		corehttp.WebUIOption,
 		gatewayOpt,
 		corehttp.VersionOption(),
@@ -188,4 +197,106 @@ func Merge(cs ...<-chan error) <-chan error {
 		close(out)
 	}()
 	return out
+}
+
+/*
+TODO: Ugh, def don't want to be copying all this stuff, decide if we care to use the
+TODO: local api or not...
+ */
+
+const originEnvKey = "API_ORIGIN"
+var defaultLocalhostOrigins = []string{
+	"http://127.0.0.1:<port>",
+	"https://127.0.0.1:<port>",
+	"http://localhost:<port>",
+	"https://localhost:<port>",
+}
+
+func commandsOption(cctx oldcmds.Context, command *cmds.Command) corehttp.ServeOption {
+	return func(n *core.IpfsNode, l net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
+
+		cfg := cmdsHttp.NewServerConfig()
+		cfg.SetAllowedMethods("GET", "POST", "PUT")
+		cfg.APIPath = corehttp.APIPath
+		rcfg, err := n.Repo.Config()
+		if err != nil {
+			return nil, err
+		}
+
+		addHeadersFromConfig(cfg, rcfg)
+		addCORSFromEnv(cfg)
+		addCORSDefaults(cfg)
+		patchCORSVars(cfg, l.Addr())
+
+		cmdHandler := cmdsHttp.NewHandler(&cctx, command, cfg)
+		mux.Handle(corehttp.APIPath+"/", cmdHandler)
+		return mux, nil
+	}
+}
+
+func addCORSFromEnv(c *cmdsHttp.ServerConfig) {
+	origin := os.Getenv(originEnvKey)
+	if origin != "" {
+		c.AppendAllowedOrigins(origin)
+	}
+}
+
+func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
+
+	if acao := nc.API.HTTPHeaders[cmdsHttp.ACAOrigin]; acao != nil {
+		c.SetAllowedOrigins(acao...)
+	}
+	if acam := nc.API.HTTPHeaders[cmdsHttp.ACAMethods]; acam != nil {
+		c.SetAllowedMethods(acam...)
+	}
+	if acac := nc.API.HTTPHeaders[cmdsHttp.ACACredentials]; acac != nil {
+		for _, v := range acac {
+			c.SetAllowCredentials(strings.ToLower(v) == "true")
+		}
+	}
+
+	c.Headers = make(map[string][]string, len(nc.API.HTTPHeaders))
+
+	// Copy these because the config is shared and this function is called
+	// in multiple places concurrently. Updating these in-place *is* racy.
+	for h, v := range nc.API.HTTPHeaders {
+		c.Headers[h] = v
+	}
+	c.Headers["Server"] = []string{"go-ipfs/" + config.CurrentVersionNumber}
+}
+
+func addCORSDefaults(c *cmdsHttp.ServerConfig) {
+	// by default use localhost origins
+	if len(c.AllowedOrigins()) == 0 {
+		c.SetAllowedOrigins(defaultLocalhostOrigins...)
+	}
+
+	// by default, use GET, PUT, POST
+	if len(c.AllowedMethods()) == 0 {
+		c.SetAllowedMethods("GET", "POST", "PUT")
+	}
+}
+
+func patchCORSVars(c *cmdsHttp.ServerConfig, addr net.Addr) {
+
+	// we have to grab the port from an addr, which may be an ip6 addr.
+	// TODO: this should take multiaddrs and derive port from there.
+	port := ""
+	if tcpaddr, ok := addr.(*net.TCPAddr); ok {
+		port = strconv.Itoa(tcpaddr.Port)
+	} else if udpaddr, ok := addr.(*net.UDPAddr); ok {
+		port = strconv.Itoa(udpaddr.Port)
+	}
+
+	// we're listening on tcp/udp with ports. ("udp!?" you say? yeah... it happens...)
+	oldOrigins := c.AllowedOrigins()
+	newOrigins := make([]string, len(oldOrigins))
+	for i, o := range oldOrigins {
+		// TODO: allow replacing <host>. tricky, ip4 and ip6 and hostnames...
+		if port != "" {
+			o = strings.Replace(o, "<port>", port, -1)
+		}
+		newOrigins[i] = o
+	}
+	c.SetAllowedOrigins(newOrigins...)
 }

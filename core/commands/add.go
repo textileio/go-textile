@@ -2,6 +2,8 @@ package commands
 
 import (
 	"strconv"
+	"os"
+	"fmt"
 
 	"github.com/textileio/textile-go/repo"
 
@@ -9,8 +11,7 @@ import (
 	"gx/ipfs/QmabLouZTZwhfALuBcssPvkzhbYGMb4394huT7HY4LQ6d3/go-ipfs-cmds"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreunix"
-	"fmt"
-	"os"
+	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
 )
 
 var walletAddPhotoCmd = &cmds.Command{
@@ -25,25 +26,13 @@ Adds contents of a photo <path> to the wallet on ipfs.
 		cmdkit.FileArg("path", true, true, "The path to the photo to be added to wallet.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
-		//repoDir, _ := req.Options[repoDirKwd].(string)
-		//
-		//r, err := fsrepo.Open(repoDir)
-		//if err != nil { // NB: repo is owned by the node
-		//	res.SetError(err, cmdkit.ErrNormal)
-		//	return
-		//}
-		//
-		//n, err := core.NewNode(req.Context, &core.BuildCfg{Repo: r})
-		//if err != nil {
-		//	res.SetError(err, cmdkit.ErrNormal)
-		//	return
-		//}
-		//defer n.Close()
 		n, err := commands.GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
+
+		outChan := make(chan interface{}, 8)
 
 		// TODO: handle directories
 		// this check doesn't seem to work as it will always say directory
@@ -51,31 +40,114 @@ Adds contents of a photo <path> to the wallet on ipfs.
 		//	res.SetError(errors.New("directories not yet supported"), cmdkit.ErrNormal)
 		//}
 
-		// just get the first file
-		file, err := req.Files.NextFile()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+		addAllAndPin := func(f files.File) error {
+			// just get the first file
+			file, err := f.NextFile()
+			if err != nil {
+				return err
+			}
+			dir, err := repo.PinPhoto(file, file.FileName(), n)
+			if err != nil {
+				return err
+			}
+			size, err := dir.Size()
+			if err != nil {
+				return err
+			}
+			outChan <- &coreunix.AddedObject{
+				Hash: dir.Cid().Hash().B58String(),
+				Name: file.FileName(),
+				Size: strconv.FormatUint(size, 10),
+			}
+			return nil
 		}
 
-		dir, err := repo.PinPhoto(file, file.FileName(), n)
+		errCh := make(chan error)
+		go func() {
+			var err error
+			defer func() { errCh <- err }()
+			defer close(outChan)
+			err = addAllAndPin(req.Files)
+		}()
+
+		defer res.Close()
+
+		err = res.Emit(outChan)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			log.Error(err)
 			return
 		}
-
-		size, err := dir.Size()
+		err = <-errCh
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
-			return
 		}
-		obj := &coreunix.AddedObject{
-			Hash: dir.Cid().Hash().B58String(),
-			Name: file.FileName(),
-			Size: strconv.FormatUint(size, 10),
-		}
+	},
+	PostRun: cmds.PostRunMap{
+		cmds.CLI: func(req *cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
+			reNext, res := cmds.NewChanResponsePair(req)
+			outChan := make(chan interface{})
 
-		fmt.Fprintf(os.Stdout, "added %s %s\n", obj.Hash, obj.Name)
+			progress := func(wait chan struct{}) {
+				defer close(wait)
+
+				lastHash := ""
+
+			LOOP:
+				for {
+					select {
+					case out, ok := <-outChan:
+						if !ok {
+							fmt.Fprintln(os.Stdout, lastHash)
+							break LOOP
+						}
+						output := out.(*coreunix.AddedObject)
+						if len(output.Hash) > 0 {
+							lastHash = output.Hash
+							fmt.Fprintf(os.Stdout, "added %s %s and thumb\n", output.Hash, output.Name)
+							return
+						} else {
+							continue
+						}
+					case <-req.Context.Done():
+						// don't set or print error here, that happens in the goroutine below
+						return
+					}
+				}
+			}
+
+			go func() {
+				// defer order important! First close outChan, then wait for output to finish, then close re
+				defer re.Close()
+
+				if e := res.Error(); e != nil {
+					defer close(outChan)
+					re.SetError(e.Message, e.Code)
+					return
+				}
+
+				wait := make(chan struct{})
+				go progress(wait)
+
+				defer func() { <-wait }()
+				defer close(outChan)
+
+				for {
+					v, err := res.Next()
+					if !cmds.HandleError(err, res, re) {
+						break
+					}
+
+					select {
+					case outChan <- v:
+					case <-req.Context.Done():
+						re.SetError(req.Context.Err(), cmdkit.ErrNormal)
+						return
+					}
+				}
+			}()
+
+			return reNext
+		},
 	},
 	Type: coreunix.AddedObject{},
 }
