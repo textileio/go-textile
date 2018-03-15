@@ -14,5 +14,5 @@ Pod::Spec.new do |s|
   s.source_files = 'ios/TextileIPFS/*.{h,m}'
   s.preserve_paths  = "**/*.js, **/*.framework"
   s.platform     = :ios, "8.0"
-  s.vendored_frameworks = 'Mobile.framework'
+  s.ios.vendored_frameworks = 'Mobile.framework'
 end
