@@ -10,9 +10,9 @@ Pod::Spec.new do |s|
   s.homepage     = 'http://www.textile.io'
   s.authors      = { "Aaron Sutula" => "aaron@textile.io" }
   #s.source       = { :git => "https://github.com/textileio/textile-go.git", :tag => 'v#{version}'}
-  s.source       = { :git => "https://github.com/textileio/textile-go.git"}
+  s.source       = { :git => "https://github.com/textileio/textile-go.git", :branch => 'aaron/rn-npm-module'}
   s.source_files = 'ios/TextileIPFS/*.{h,m}'
+  s.preserve_paths  = "**/*.js"
   s.platform     = :ios, "8.0"
-  s.dependency 'RSKImageCropper'
-  s.dependency 'QBImagePickerController'
+  s.vendored_frameworks = '../Mobile.framework'
 end
