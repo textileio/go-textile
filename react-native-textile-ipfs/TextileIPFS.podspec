@@ -12,7 +12,7 @@ Pod::Spec.new do |s|
   #s.source       = { :git => "https://github.com/textileio/textile-go.git", :tag => 'v#{version}'}
   s.source       = { :git => "https://github.com/textileio/textile-go.git", :branch => 'aaron/rn-npm-module'}
   s.source_files = 'ios/TextileIPFS/*.{h,m}'
-  s.preserve_paths  = "**/*.js"
+  s.preserve_paths  = "**/*.js, **/*.framework"
   s.platform     = :ios, "8.0"
   s.vendored_frameworks = 'Mobile.framework'
 end
