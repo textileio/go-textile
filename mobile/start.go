@@ -41,6 +41,12 @@ func NewTextile(repoPath string) *Node {
 
 func (m *Mobile) NewNode(config MobileConfig) (*Node, error) {
 
+	// shutdown is not clean here yet, so we have to hackily remove
+	// the lockfile that should have been removed on shutdown
+	// before we start up again
+	repoLockFile := filepath.Join(config.RepoPath, lockfile.LockFile)
+	os.Remove(repoLockFile)
+
 	// raise file descriptor limit
 	if err := utilmain.ManageFdLimit(); err != nil {
 		fmt.Errorf("setting file descriptor limit: %s", err)
