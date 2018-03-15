@@ -14,7 +14,10 @@ import (
 )
 
 var textileBootstrapAddresses = []string{
+	// cluster elastic ip
 	"/ip4/35.169.206.101/tcp/4001/ipfs/QmcyGAcu5udjiuhputM2CSRo4irCrihbZ2xn8MwQ44vnWp",
+	// testing
+	"/ip4/54.162.250.92/tcp/4001/ipfs/QmSEyGvHv1FBSN2zJZ2wktGHacVAqXi7eiiQksM53uDyqE",
 }
 
 func Init(out io.Writer, nBitsForKeypair int) (*native.Config, error) {

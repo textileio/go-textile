@@ -1,17 +1,26 @@
 package repo
 
 import (
+	"io"
 	"time"
 	"bytes"
 	"image/jpeg"
-	"fmt"
+	_ "image/png" // register other possible image types for decoding
+	_ "image/gif"
 	"encoding/json"
+	"image"
+	"io/ioutil"
 
-	"github.com/textileio/textile-go/repo/images"
+	"github.com/disintegration/imaging"
 
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreapi"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreapi/interface"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreunix"
+	uio "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/unixfs/io"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+
+	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
 
 type Photo map[string]string
@@ -25,6 +34,10 @@ type Wallet struct {
 	Updated time.Time `json:"updated"`
 	Data WalletData `json:"data"`
 	LastHash string `json:"last_hash"`
+}
+
+func (w *Wallet) String() string {
+	return "TODO"
 }
 
 func NewWallet(node *core.IpfsNode) error {
@@ -53,7 +66,7 @@ func NewWallet(node *core.IpfsNode) error {
 		return err
 	}
 
-	err = wallet.publish(p, node)
+	err = publish(p, node)
 	if err != nil {
 		return err
 	}
@@ -61,52 +74,80 @@ func NewWallet(node *core.IpfsNode) error {
 	return nil
 }
 
-func (w *Wallet) PinPhoto(base64ImageData string, node *core.IpfsNode) error {
-	// decode image
-	im, cfg, err := images.DecodeImageData(base64ImageData)
-	if err != nil {
-		return err
-	}
-	imb := new(bytes.Buffer)
-	if err = jpeg.Encode(imb, im, &jpeg.Options{ Quality: 100 }); err != nil {
-		return err
-	}
-
+// PinPhoto takes an io reader pointing to an image file, created a thumbnail, and adds
+// both to a new directory, then finally pins that directory.
+// TODO: need to "index" this in the sql db wallet
+func PinPhoto(reader io.Reader, fname string, nd *core.IpfsNode) (ipld.Node, error) {
 	// create thumbnail
-	th := images.ResizeImage(im, cfg, 80, 80)
+	// FIXME: dunno if there's a better way to do this without consuming the fill stream
+	// FIXME: into memory... as in, can we split the reader stream or something
+	b, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	r := bytes.NewReader(b)
+	th, _, err := image.Decode(r)
+	if err != nil {
+		return nil, err
+	}
+	th = imaging.Thumbnail(th, 100, 100, imaging.CatmullRom)
 	thb := new(bytes.Buffer)
 	if err = jpeg.Encode(thb, th, nil); err != nil {
-		return err
+		return nil, err
 	}
 
-	// add files to ipfs
-	api := coreapi.NewCoreAPI(node)
-	imp, err := api.Unixfs().Add(node.Context(), bytes.NewReader(imb.Bytes()))
+	// rewind source reader for add
+	r.Seek(0, 0)
+
+	// top level directory
+	dirb := uio.NewDirectory(nd.DAG)
+
+	// add the images
+	addFileToDirectory(dirb, r, fname, nd)
+	addFileToDirectory(dirb, bytes.NewBuffer(thb.Bytes()), "thumb.jpg", nd)
+
+	// pin the whole thing
+	dir, err := dirb.GetNode()
 	if err != nil {
-		return err
-	}
-	thp, err := api.Unixfs().Add(node.Context(), bytes.NewReader(thb.Bytes()))
-	if err != nil {
-		return err
+		return nil, err
 	}
 
-	fmt.Println(imp.Cid().String())
-	fmt.Println(thp.Cid().String())
+	if err := nd.Pinning.Pin(nd.Context(), dir, true); err != nil {
+		return nil, err
+	}
 
-	// done automatically?
-	//if err := api.Pin().Add(node.Context(), p); err != nil {
-	//	return err
-	//}
+	if err := nd.Pinning.Flush(); err != nil {
+		return nil, err
+	}
 
-	return nil
+	return dir, nil
 }
 
-func (w *Wallet) publish(path iface.Path, node *core.IpfsNode) error {
+func publish(path iface.Path, node *core.IpfsNode) error {
 	api := coreapi.NewCoreAPI(node)
 	_, err := api.Name().Publish(node.Context(), path)
 	return err
 }
 
-func (w *Wallet) String() string {
-	return "TODO"
+func addFileToDirectory(dirb *uio.Directory, r io.Reader, fname string, nd *core.IpfsNode) error {
+	s, err := coreunix.Add(nd, r)
+	if err != nil {
+		return err
+	}
+
+	c, err := cid.Decode(s)
+	if err != nil {
+		return err
+	}
+
+	node, err := nd.DAG.Get(nd.Context(), c)
+	if err != nil {
+		return err
+	}
+
+	if err := dirb.AddChild(nd.Context(), fname, node); err != nil {
+		return err
+	}
+
+	return nil
 }
