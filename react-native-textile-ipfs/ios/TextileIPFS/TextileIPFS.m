@@ -1,6 +1,7 @@
 //  Created by react-native-create-bridge
 
 #import "TextileIPFS.h"
+#import <Mobile/Mobile.h>
 
 // import RCTBridge
 #if __has_include(<React/RCTBridge.h>)
