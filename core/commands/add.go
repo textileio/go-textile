@@ -5,8 +5,7 @@ import (
 
 	"github.com/textileio/textile-go/repo"
 
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/commands"
 	"gx/ipfs/QmabLouZTZwhfALuBcssPvkzhbYGMb4394huT7HY4LQ6d3/go-ipfs-cmds"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreunix"
@@ -26,15 +25,21 @@ Adds contents of a photo <path> to the wallet on ipfs.
 		cmdkit.FileArg("path", true, true, "The path to the photo to be added to wallet.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
-		repoDir, _ := req.Options[repoDirKwd].(string)
-
-		r, err := fsrepo.Open(repoDir)
-		if err != nil { // NB: repo is owned by the node
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		n, err := core.NewNode(req.Context, &core.BuildCfg{Repo: r})
+		//repoDir, _ := req.Options[repoDirKwd].(string)
+		//
+		//r, err := fsrepo.Open(repoDir)
+		//if err != nil { // NB: repo is owned by the node
+		//	res.SetError(err, cmdkit.ErrNormal)
+		//	return
+		//}
+		//
+		//n, err := core.NewNode(req.Context, &core.BuildCfg{Repo: r})
+		//if err != nil {
+		//	res.SetError(err, cmdkit.ErrNormal)
+		//	return
+		//}
+		//defer n.Close()
+		n, err := commands.GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return

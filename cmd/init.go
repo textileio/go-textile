@@ -21,9 +21,6 @@ var initCmd = &cmds.Command{
 Initializes textile configuration files and generates a new keypair.
 `,
 	},
-	Options: []cmdkit.Option{
-		cmdkit.StringOption("dir", "d", "Repo directory.").WithDefault("~/.ipfs"),
-	},
 	PreRun: func(req cmds.Request) error {
 		daemonLocked, err := fsrepo.LockedByOtherProcess(req.InvocContext().ConfigRoot)
 		if err != nil {
@@ -40,13 +37,6 @@ Initializes textile configuration files and generates a new keypair.
 		return nil
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-
-		repoDir, _, err := req.Option("r").String()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
 		// needs to be called at least once
 		res.SetOutput(nil)
 
@@ -72,7 +62,7 @@ Initializes textile configuration files and generates a new keypair.
 			}
 		}
 
-		if err := repo.DoInit(os.Stdout, repoDir, conf); err != nil {
+		if err := repo.DoInit(os.Stdout, req.InvocContext().ConfigRoot, conf); err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
