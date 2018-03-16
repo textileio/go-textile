@@ -43,6 +43,7 @@
 
 - (instancetype)initWithRef:(id)ref;
 - (instancetype)init;
+- (NSString*)pinPhoto:(NSString*)path error:(NSError**)error;
 - (BOOL)start:(NSError**)error;
 - (BOOL)stop:(NSError**)error;
 @end
