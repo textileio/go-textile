@@ -15,6 +15,7 @@ import (
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/config"
 	lockfile "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo/lock"
 	utilmain "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/cmd/ipfs/util"
+	//"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/corehttp"
 )
 
 type Node struct {
@@ -46,6 +47,8 @@ func (m *Mobile) NewNode(config MobileConfig) (*Node, error) {
 	// before we start up again
 	repoLockFile := filepath.Join(config.RepoPath, lockfile.LockFile)
 	os.Remove(repoLockFile)
+	dsLockFile := filepath.Join(config.RepoPath, "datastore", "LOCK")
+	os.Remove(dsLockFile)
 
 	// raise file descriptor limit
 	if err := utilmain.ManageFdLimit(); err != nil {
@@ -124,31 +127,18 @@ func (n *Node) Start() error {
 		return nd, nil
 	}
 
-	defer func() {
-		// We wait for the node to close first, as the node has children
-		// that it will wait for before closing, such as the API server.
-		nd.Close()
-
-		select {
-		case <-cctx.Done():
-			fmt.Println("Gracefully shut down node")
-		default:
-		}
-	}()
-
 	n.node.Context = ctx
 	n.node.IpfsNode = nd
 
-	// construct http gateway - if it is set in the config
-	var gwErrc <-chan error
-	gwErrc, err = tcore.ServeHTTPGateway(&ctx)
-	if err != nil {
-		fmt.Println(err)
-	}
+	errc := make(chan error)
+	go func() {
+		_, err := ctx.ConstructNode()
+		errc <- err
+		close(errc)
+	}()
 
 	fmt.Printf("Node is ready\n")
-	// collect long-running errors and block for shutdown
-	for err := range tcore.Merge(gwErrc) {
+	for err := range tcore.Merge(errc) {
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -160,6 +150,26 @@ func (n *Node) Start() error {
 func (n *Node) Stop() error {
 	repoLockFile := filepath.Join(tcore.Node.RepoPath, lockfile.LockFile)
 	os.Remove(repoLockFile)
+	dsLockFile := filepath.Join(tcore.Node.RepoPath, "datastore", "LOCK")
+	os.Remove(dsLockFile)
 	tcore.Node.IpfsNode.Close()
 	return nil
+}
+
+func (n *Node) PinPhoto(path string) (string, error) {
+	// read file from disk
+	r, err := os.Open(path)
+	if err != nil {
+	 	return "", err
+	}
+	defer r.Close()
+
+	fname := filepath.Base(path)
+
+	// pin
+	ldn, err := trepo.PinPhoto(r, fname, n.node.IpfsNode)
+	if err != nil {
+		return "", err
+	}
+	return ldn.Cid().Hash().B58String(), nil
 }
