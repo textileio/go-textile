@@ -14,6 +14,7 @@ import (
 	"github.com/disintegration/imaging"
 
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/commands"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreapi"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreapi/interface"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreunix"
@@ -21,6 +22,8 @@ import (
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	"net/http"
+	"github.com/textileio/textile-go/net"
 )
 
 type Photo map[string]string
@@ -77,7 +80,7 @@ func NewWallet(node *core.IpfsNode) error {
 // PinPhoto takes an io reader pointing to an image file, created a thumbnail, and adds
 // both to a new directory, then finally pins that directory.
 // TODO: need to "index" this in the sql db wallet
-func PinPhoto(reader io.Reader, fname string, nd *core.IpfsNode) (ipld.Node, error) {
+func PinPhoto(reader io.Reader, fname string, nd *core.IpfsNode, apiHost string) (ipld.Node, error) {
 	// create thumbnail
 	// FIXME: dunno if there's a better way to do this without consuming the fill stream
 	// FIXME: into memory... as in, can we split the reader stream or something
@@ -118,6 +121,17 @@ func PinPhoto(reader io.Reader, fname string, nd *core.IpfsNode) (ipld.Node, err
 
 	if err := nd.Pinning.Flush(); err != nil {
 		return nil, err
+	}
+
+	// pin it to server
+	if apiHost != "" {
+		res := &commands.AddPinOutput{}
+		client := &http.Client{Timeout: 10 * time.Second}
+		args := dir.Cid().Hash().B58String() + "&recursive=true"
+		err = net.GetJson(client, apiHost+"/api/v0/pin/add?arg="+args, res)
+		if err != nil {
+			return dir, err
+		}
 	}
 
 	return dir, nil

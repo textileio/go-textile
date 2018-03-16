@@ -46,7 +46,7 @@ Adds contents of a photo <path> to the wallet on ipfs.
 			if err != nil {
 				return err
 			}
-			dir, err := repo.PinPhoto(file, file.FileName(), n)
+			dir, err := repo.PinPhoto(file, file.FileName(), n, "")
 			if err != nil {
 				return err
 			}

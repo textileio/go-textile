@@ -14,4 +14,7 @@ type MobileConfig struct {
 
 	// Path for the node's data directory
 	RepoPath string
+
+	// API host for service pins
+	ApiHost string
 }

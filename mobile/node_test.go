@@ -9,7 +9,7 @@ import (
 var textile *Node
 
 func TestNewTextile(t *testing.T) {
-	textile = NewTextile("testdata/.ipfs")
+	textile = NewTextile("testdata/.ipfs", "http://54.162.250.92:5001")
 }
 
 func TestNode_Start(t *testing.T) {
@@ -23,6 +23,7 @@ func TestNode_PinPhoto(t *testing.T) {
 	hash, err := textile.PinPhoto("testdata/test.jpg")
 	if err != nil {
 		t.Errorf("pin photo on mobile node failed: %s", err)
+		return
 	}
 	if hash != "QmNnKzbJzAX8mUu1uuvyGzxe7p3z75D6UvUmS8LD5tc5ek" {
 		t.Errorf("pin photo on mobile node bad hash: %s", err)

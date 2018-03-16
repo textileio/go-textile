@@ -15,7 +15,6 @@ import (
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/config"
 	lockfile "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo/lock"
 	utilmain "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/cmd/ipfs/util"
-	//"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/corehttp"
 )
 
 type Node struct {
@@ -26,10 +25,10 @@ type Node struct {
 }
 type Mobile struct{}
 
-func NewTextile(repoPath string) *Node {
-
+func NewTextile(repoPath string, apiHost string) *Node {
 	nodeconfig := MobileConfig{
 		RepoPath: repoPath,
+		ApiHost:  apiHost,
 	}
 
 	var m Mobile
@@ -167,7 +166,7 @@ func (n *Node) PinPhoto(path string) (string, error) {
 	fname := filepath.Base(path)
 
 	// pin
-	ldn, err := trepo.PinPhoto(r, fname, n.node.IpfsNode)
+	ldn, err := trepo.PinPhoto(r, fname, n.node.IpfsNode, n.config.ApiHost)
 	if err != nil {
 		return "", err
 	}
