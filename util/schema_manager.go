@@ -12,10 +12,9 @@ import (
 	"github.com/mitchellh/go-homedir"
 )
 
-type openbazaarSchemaManager struct {
+type textileSchemaManager struct {
 	os              string
 	dataPath        string
-	testModeEnabled bool
 }
 
 // SchemaContext are the parameters which the SchemaManager derive its source of
@@ -23,7 +22,6 @@ type openbazaarSchemaManager struct {
 // assumed during runtime.
 type SchemaContext struct {
 	DataPath        string
-	TestModeEnabled bool
 	OS              string
 }
 
@@ -31,8 +29,8 @@ type SchemaContext struct {
 // application data can be stored and returns a string representing the location
 // where OpenBazaar prefers to store its schema on the filesystem relative to that
 // path. If the path cannot be transformed, an error will be returned
-func OpenbazaarPathTransform(basePath string, testModeEnabled bool) (path string, err error) {
-	path, err = homedir.Expand(filepath.Join(basePath, directoryName(testModeEnabled)))
+func TextilePathTransform(basePath string) (path string, err error) {
+	path, err = homedir.Expand(filepath.Join(basePath, directoryName()))
 	if err == nil {
 		path = filepath.Clean(path)
 	}
@@ -44,29 +42,28 @@ func OpenbazaarPathTransform(basePath string, testModeEnabled bool) (path string
 // part of this operation.
 func GenerateTempPath() string {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	return filepath.Join(os.TempDir(), fmt.Sprintf("ob_tempdir_%d", r.Intn(999)))
+	return filepath.Join(os.TempDir(), fmt.Sprintf("tt_tempdir_%d", r.Intn(999)))
 }
 
 // NewSchemaManager returns a service that handles the data storage directory
 // required during runtime. This service also ensures no errors can be produced
 // at runtime after initial creation. An error may be produced if the SchemaManager
 // is unable to verify the availability of the data storage directory.
-func NewSchemaManager() (*openbazaarSchemaManager, error) {
-	transformedPath, err := OpenbazaarPathTransform(defaultDataPath(), false)
+func NewSchemaManager() (*textileSchemaManager, error) {
+	transformedPath, err := TextilePathTransform(defaultDataPath())
 	if err != nil {
 		return nil, err
 	}
 	return NewCustomSchemaManager(SchemaContext{
 		DataPath:        transformedPath,
-		TestModeEnabled: false,
 		OS:              runtime.GOOS,
 	})
 }
 
 // NewCustomSchemaManger allows a custom SchemaContext to be provided to change
-func NewCustomSchemaManager(ctx SchemaContext) (*openbazaarSchemaManager, error) {
+func NewCustomSchemaManager(ctx SchemaContext) (*textileSchemaManager, error) {
 	if len(ctx.DataPath) == 0 {
-		path, err := OpenbazaarPathTransform(defaultDataPath(), ctx.TestModeEnabled)
+		path, err := TextilePathTransform(defaultDataPath())
 		if err != nil {
 			return nil, err
 		}
@@ -76,10 +73,9 @@ func NewCustomSchemaManager(ctx SchemaContext) (*openbazaarSchemaManager, error)
 		ctx.OS = runtime.GOOS
 	}
 
-	return &openbazaarSchemaManager{
-		dataPath:        ctx.DataPath,
-		testModeEnabled: ctx.TestModeEnabled,
-		os:              ctx.OS,
+	return &textileSchemaManager{
+		dataPath: ctx.DataPath,
+		os:       ctx.OS,
 	}, nil
 }
 
@@ -90,33 +86,27 @@ func defaultDataPath() (path string) {
 	return "~"
 }
 
-func directoryName(isTestnet bool) (directoryName string) {
+func directoryName() (directoryName string) {
 	if runtime.GOOS == "linux" {
-		directoryName = ".openbazaar2.0"
+		directoryName = ".textile"
 	} else {
-		directoryName = "OpenBazaar2.0"
+		directoryName = "Textile"
 	}
 
-	if isTestnet {
-		directoryName += "-testnet"
-	}
 	return
 }
 
 // DataPath returns the expected location of the data storage directory
-func (m *openbazaarSchemaManager) DataPath() string { return m.dataPath }
+func (m *textileSchemaManager) DataPath() string { return m.dataPath }
 
 // DatastorePath returns the expected location of the datastore file
-func (m *openbazaarSchemaManager) DatastorePath() string {
-	if m.testModeEnabled {
-		return m.DataPathJoin("datastore", "testnet.db")
-	}
+func (m *textileSchemaManager) DatastorePath() string {
 	return m.DataPathJoin("datastore", "mainnet.db")
 }
 
 // DataPathJoin is a helper function which joins the pathArgs to the service's
 // dataPath and returns the result
-func (m *openbazaarSchemaManager) DataPathJoin(pathArgs ...string) string {
+func (m *textileSchemaManager) DataPathJoin(pathArgs ...string) string {
 	allPathArgs := append([]string{m.dataPath}, pathArgs...)
 	return filepath.Join(allPathArgs...)
 }
@@ -124,46 +114,19 @@ func (m *openbazaarSchemaManager) DataPathJoin(pathArgs ...string) string {
 // VerifySchemaVersion will ensure that the schema is currently
 // the same as the expectedVersion otherwise returning an error. If the
 // schema is exactly the same, nil will be returned.
-func (m *openbazaarSchemaManager) VerifySchemaVersion(expectedVersion string) error {
+func (m *textileSchemaManager) VerifySchemaVersion(expectedVersion string) error {
 	schemaVersion, err := ioutil.ReadFile(m.DataPathJoin("repover"))
 	if err != nil {
-		return fmt.Errorf("Accessing schema version: %s", err.Error())
+		return fmt.Errorf("accessing schema version: %s", err.Error())
 	}
 	if string(schemaVersion) != expectedVersion {
-		return fmt.Errorf("Schema does not match expected version %s", expectedVersion)
+		return fmt.Errorf("schema does not match expected version %s", expectedVersion)
 	}
 	return nil
 }
 
-func (m *openbazaarSchemaManager) BuildSchemaDirectories() error {
+func (m *textileSchemaManager) BuildSchemaDirectories() error {
 	if err := os.MkdirAll(m.DataPathJoin("datastore"), os.ModePerm); err != nil {
-		return err
-	}
-	if err := os.MkdirAll(m.DataPathJoin("root"), os.ModePerm); err != nil {
-		return err
-	}
-	if err := os.MkdirAll(m.DataPathJoin("root", "images"), os.ModePerm); err != nil {
-		return err
-	}
-	if err := os.MkdirAll(m.DataPathJoin("root", "images", "tiny"), os.ModePerm); err != nil {
-		return err
-	}
-	if err := os.MkdirAll(m.DataPathJoin("root", "images", "small"), os.ModePerm); err != nil {
-		return err
-	}
-	if err := os.MkdirAll(m.DataPathJoin("root", "images", "medium"), os.ModePerm); err != nil {
-		return err
-	}
-	if err := os.MkdirAll(m.DataPathJoin("root", "images", "large"), os.ModePerm); err != nil {
-		return err
-	}
-	if err := os.MkdirAll(m.DataPathJoin("root", "images", "original"), os.ModePerm); err != nil {
-		return err
-	}
-	if err := os.MkdirAll(m.DataPathJoin("root", "channel"), os.ModePerm); err != nil {
-		return err
-	}
-	if err := os.MkdirAll(m.DataPathJoin("root", "files"), os.ModePerm); err != nil {
 		return err
 	}
 	if err := os.MkdirAll(m.DataPathJoin("logs"), os.ModePerm); err != nil {
@@ -172,6 +135,6 @@ func (m *openbazaarSchemaManager) BuildSchemaDirectories() error {
 	return nil
 }
 
-func (m *openbazaarSchemaManager) DestroySchemaDirectories() {
+func (m *textileSchemaManager) DestroySchemaDirectories() {
 	os.RemoveAll(m.dataPath)
 }

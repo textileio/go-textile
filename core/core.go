@@ -3,6 +3,7 @@ package core
 import (
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
 	oldcmds "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
+	"github.com/textileio/textile-go/repo"
 )
 
 var (
@@ -20,4 +21,7 @@ type TextileNode struct {
 
 	// The path to the openbazaar repo in the file system
 	RepoPath string
+
+	// Database for storing node specific data
+	Datastore repo.Datastore
 }

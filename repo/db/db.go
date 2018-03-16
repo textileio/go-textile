@@ -100,8 +100,8 @@ func (d *SQLiteDatastore) Copy(dbPath string, password string) error {
 	return nil
 }
 
-func (s *SQLiteDatastore) InitTables(password string) error {
-	return initDatabaseTables(s.db, password)
+func (d *SQLiteDatastore) InitTables(password string) error {
+	return initDatabaseTables(d.db, password)
 }
 
 func initDatabaseTables(db *sql.DB, password string) error {

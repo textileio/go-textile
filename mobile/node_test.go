@@ -9,7 +9,7 @@ import (
 var textile *Node
 
 func TestNewTextile(t *testing.T) {
-	textile = NewTextile("testdata/.ipfs", "http://54.162.250.92:5001")
+	textile = NewTextile("testdata/.ipfs", "")
 }
 
 func TestNode_Start(t *testing.T) {

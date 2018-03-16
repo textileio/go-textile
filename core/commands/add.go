@@ -5,7 +5,7 @@ import (
 	"os"
 	"fmt"
 
-	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/repo/wallet"
 
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/commands"
 	"gx/ipfs/QmabLouZTZwhfALuBcssPvkzhbYGMb4394huT7HY4LQ6d3/go-ipfs-cmds"
@@ -46,7 +46,7 @@ Adds contents of a photo <path> to the wallet on ipfs.
 			if err != nil {
 				return err
 			}
-			dir, err := repo.PinPhoto(file, file.FileName(), n, "")
+			dir, err := wallet.PinPhoto(file, file.FileName(), n, "")
 			if err != nil {
 				return err
 			}

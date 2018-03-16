@@ -1,4 +1,4 @@
-package repo
+package wallet
 
 import (
 	"io"
@@ -29,29 +29,24 @@ import (
 type Photo map[string]string
 
 type WalletData struct {
-	Photos []Photo `json:"photos"`
-}
-
-type Wallet struct {
 	Created time.Time `json:"created"`
 	Updated time.Time `json:"updated"`
-	Data WalletData `json:"data"`
+	Photos []Photo `json:"photos"`
 	LastHash string `json:"last_hash"`
 }
 
-func (w *Wallet) String() string {
+func (w *WalletData) String() string {
 	return "TODO"
 }
 
-func NewWallet(node *core.IpfsNode) error {
+// TODO: Put this in the sql db, not ipfs
+func NewWalletData(node *core.IpfsNode) error {
 	api := coreapi.NewCoreAPI(node)
 
-	wallet := &Wallet{
+	wallet := &WalletData{
 		Created: time.Now(),
 		Updated: time.Now(),
-		Data: WalletData{
-			Photos: make([]Photo, 0),
-		},
+		Photos: make([]Photo, 0),
 	}
 
 	wb, err := json.Marshal(wallet)
