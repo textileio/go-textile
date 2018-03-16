@@ -11,7 +11,7 @@ class ViewController: UIViewController {
     let dataDir = paths[0]
 
     DispatchQueue.global().async {
-      self.node = MobileNewTextile(dataDir)
+      self.node = MobileNewTextile(dataDir, "http://pinner.com")
       if let node = self.node {
         try! node.start()
       }
