@@ -35,6 +35,11 @@
  */
 - (NSString*)repoPath;
 - (void)setRepoPath:(NSString*)v;
+/**
+ * API host for service pins
+ */
+- (NSString*)apiHost;
+- (void)setApiHost:(NSString*)v;
 @end
 
 @interface MobileNode : NSObject <goSeqRefInterface> {
@@ -48,6 +53,6 @@
 - (BOOL)stop:(NSError**)error;
 @end
 
-FOUNDATION_EXPORT MobileNode* MobileNewTextile(NSString* repoPath);
+FOUNDATION_EXPORT MobileNode* MobileNewTextile(NSString* repoPath, NSString* apiHost);
 
 #endif
