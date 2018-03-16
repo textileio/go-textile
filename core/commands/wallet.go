@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/repo/wallet"
 
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/commands/e"
 	"gx/ipfs/QmabLouZTZwhfALuBcssPvkzhbYGMb4394huT7HY4LQ6d3/go-ipfs-cmds"
@@ -34,15 +34,15 @@ var walletCatCmd = &cmds.Command{
 `,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
-		err := cmds.EmitOnce(res, &repo.Wallet{})
+		err := cmds.EmitOnce(res, &wallet.WalletData{})
 		if err != nil {
 			log.Error(err)
 		}
 	},
-	Type: repo.Wallet{},
+	Type: wallet.WalletData{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			bs, ok := v.(*repo.Wallet)
+			bs, ok := v.(*wallet.WalletData)
 			if !ok {
 				return e.TypeErr(bs, v)
 			}

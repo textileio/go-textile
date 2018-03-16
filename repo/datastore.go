@@ -3,6 +3,7 @@ package repo
 import (
 	"database/sql"
 	"time"
+	"github.com/textileio/textile-go/repo/wallet"
 )
 
 type Datastore interface {
@@ -51,4 +52,9 @@ type ConfigurationStore interface {
 
 	// Delete all settings data
 	Delete() error
+}
+
+type KeyStore interface {
+	Queryable
+	wallet.Keys
 }

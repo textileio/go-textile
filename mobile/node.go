@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	tcore "github.com/textileio/textile-go/core"
 	trepo "github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/repo/wallet"
+	"github.com/textileio/textile-go/repo/db"
 
 	oldcmds "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
@@ -54,12 +57,16 @@ func (m *Mobile) NewNode(config MobileConfig) (*Node, error) {
 		fmt.Errorf("setting file descriptor limit: %s", err)
 	}
 
+	// get database handle for wallet indexes
+	sqliteDB, err := db.Create(config.RepoPath, "")
+	if err != nil {
+		return nil, err
+	}
+
 	// we may be running in an uninitialized state.
-	if !fsrepo.IsInitialized(config.RepoPath) {
-		err := trepo.DoInit(os.Stdout, config.RepoPath, nil)
-		if err != nil {
-			return nil, err
-		}
+	err = trepo.DoInit(os.Stdout, config.RepoPath, time.Now(), sqliteDB.Config().Init)
+	if err != nil && err != trepo.ErrRepoExists {
+		return nil, err
 	}
 
 	// acquire the repo lock _before_ constructing a node. we need to make
@@ -93,7 +100,8 @@ func (m *Mobile) NewNode(config MobileConfig) (*Node, error) {
 
 	// Textile node setup
 	tcore.Node = &tcore.TextileNode{
-		RepoPath: config.RepoPath,
+		RepoPath:  config.RepoPath,
+		Datastore: sqliteDB,
 	}
 
 	return &Node{config: config, node: tcore.Node, ipfsConfig: ncfg}, nil
@@ -166,7 +174,7 @@ func (n *Node) PinPhoto(path string) (string, error) {
 	fname := filepath.Base(path)
 
 	// pin
-	ldn, err := trepo.PinPhoto(r, fname, n.node.IpfsNode, n.config.ApiHost)
+	ldn, err := wallet.PinPhoto(r, fname, n.node.IpfsNode, n.config.ApiHost)
 	if err != nil {
 		return "", err
 	}

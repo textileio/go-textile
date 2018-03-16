@@ -26,7 +26,7 @@ func NewRepository() (*Repository, error) {
 
 	// Create database
 	var err error
-	r.DB, err = db.Create(r.Path, "", true)
+	r.DB, err = db.Create(r.Path, "")
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (r *Repository) Reset() error {
 	}
 
 	// Rebuild any necessary structure
-	err = repo.DoInit(r.Path, 4096, true, "", r.Password, time.Now(), r.DB.Config().Init)
+	err = repo.DoInit(os.Stdout, r.Path, time.Now(), r.DB.Config().Init)
 	if err != nil && err != repo.ErrRepoExists {
 		return err
 	}
