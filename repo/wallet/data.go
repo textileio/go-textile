@@ -104,12 +104,8 @@ func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode
 	tb := bytes.NewReader(t)
 	tb.Seek(0, 0)
 
-	// safe the thumb by the right extension
-	thext := filepath.Ext(fname)
-	thname := "thumb." + thext
-
 	// add the thumbnail
-	addFileToDirectory(dirb, tb, thname, nd)
+	addFileToDirectory(dirb, tb, "thumb.jpg", nd)
 
 	// pin the whole thing
 	dir, err := dirb.GetNode()
