@@ -3,12 +3,12 @@ package repo
 import (
 	"database/sql"
 	"time"
-	"github.com/textileio/textile-go/repo/wallet"
 )
 
 type Datastore interface {
 	Config() Config
 	Settings() ConfigurationStore
+	Photos() PhotoStore
 	Ping() error
 	Close()
 }
@@ -54,7 +54,15 @@ type ConfigurationStore interface {
 	Delete() error
 }
 
-type KeyStore interface {
+type PhotoStore interface {
 	Queryable
-	wallet.Keys
+
+	// Put a new photo to the database
+	Put(cid string, timestamp time.Time) error
+
+	// A list of photos
+	GetPhotos(offsetId string, limit int) []PhotoSet
+
+	// Delete a photos
+	DeletePhoto(cid string) error
 }

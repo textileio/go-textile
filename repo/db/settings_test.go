@@ -3,9 +3,10 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
-	"github.com/textileio/textile-go/repo"
 	"sync"
 	"testing"
+
+	"github.com/textileio/textile-go/repo"
 )
 
 var sdb repo.ConfigurationStore
