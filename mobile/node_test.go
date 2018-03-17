@@ -4,9 +4,11 @@ import (
 	"testing"
 
 	. "github.com/textileio/textile-go/mobile"
+	"encoding/json"
 )
 
 var textile *Node
+var hash string
 
 func TestNewTextile(t *testing.T) {
 	textile = NewTextile("testdata/.ipfs", "")
@@ -25,7 +27,7 @@ func TestNode_PinPhoto(t *testing.T) {
 		t.Errorf("pin photo failed: %s", err)
 		return
 	}
-	if hash != "QmQzKq4hy8mTiiZGVfsW3PT95qbczCj2j5GWfZJV7hH2eu" {
+	if len(hash) == 0 {
 		t.Errorf("pin photo got bad hash: %s", hash)
 	}
 }
@@ -36,8 +38,22 @@ func TestNode_GetPhotos(t *testing.T) {
 		t.Errorf("get photos failed: %s", err)
 		return
 	}
-	if res != "[QmQzKq4hy8mTiiZGVfsW3PT95qbczCj2j5GWfZJV7hH2eu]" {
+	list := PhotoList{}
+	json.Unmarshal([]byte(res), &list)
+	if len(list.Hashes) == 0 {
 		t.Errorf("get photos bad result")
+	}
+	hash = list.Hashes[0]
+}
+
+func TestNode_GetPhotoBase64String(t *testing.T) {
+	res, err := textile.GetPhotoBase64String(hash + "/thumb.jpg")
+	if err != nil {
+		t.Errorf("get photo base64 string failed: %s", err)
+		return
+	}
+	if len(res) == 0 {
+		t.Errorf("get photo base64 string bad result")
 	}
 }
 
