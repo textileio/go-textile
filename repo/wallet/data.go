@@ -4,14 +4,14 @@ import (
 	"io"
 	"time"
 	"bytes"
-	"image/jpeg"
+	_ "image/jpeg"
 	_ "image/png" // register other possible image types for decoding
 	_ "image/gif"
 	"encoding/json"
-	"image"
+	_ "image"
 	"io/ioutil"
 
-	"github.com/disintegration/imaging"
+	_ "github.com/disintegration/imaging"
 
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/commands"
@@ -24,6 +24,7 @@ import (
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"net/http"
 	"github.com/textileio/textile-go/net"
+	"path/filepath"
 )
 
 type Photo map[string]string
@@ -75,7 +76,7 @@ func NewWalletData(node *core.IpfsNode) error {
 // PinPhoto takes an io reader pointing to an image file, created a thumbnail, and adds
 // both to a new directory, then finally pins that directory.
 // TODO: need to "index" this in the sql db wallet
-func PinPhoto(reader io.Reader, fname string, nd *core.IpfsNode, apiHost string) (ipld.Node, error) {
+func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode, apiHost string) (ipld.Node, error) {
 	// create thumbnail
 	// FIXME: dunno if there's a better way to do this without consuming the fill stream
 	// FIXME: into memory... as in, can we split the reader stream or something
@@ -84,15 +85,6 @@ func PinPhoto(reader io.Reader, fname string, nd *core.IpfsNode, apiHost string)
 		return nil, err
 	}
 	r := bytes.NewReader(b)
-	th, _, err := image.Decode(r)
-	if err != nil {
-		return nil, err
-	}
-	th = imaging.Thumbnail(th, 100, 100, imaging.CatmullRom)
-	thb := new(bytes.Buffer)
-	if err = jpeg.Encode(thb, th, nil); err != nil {
-		return nil, err
-	}
 
 	// rewind source reader for add
 	r.Seek(0, 0)
@@ -100,9 +92,24 @@ func PinPhoto(reader io.Reader, fname string, nd *core.IpfsNode, apiHost string)
 	// top level directory
 	dirb := uio.NewDirectory(nd.DAG)
 
-	// add the images
+	// add the image
 	addFileToDirectory(dirb, r, fname, nd)
-	addFileToDirectory(dirb, bytes.NewBuffer(thb.Bytes()), "thumb.jpg", nd)
+
+
+	t, err := ioutil.ReadAll(thumb)
+	if err != nil {
+		return nil, err
+	}
+
+	tb := bytes.NewReader(t)
+	tb.Seek(0, 0)
+
+	// safe the thumb by the right extension
+	thext := filepath.Ext(fname)
+	thname := "thumb." + thext
+
+	// add the thumbnail
+	addFileToDirectory(dirb, tb, thname, nd)
 
 	// pin the whole thing
 	dir, err := dirb.GetNode()

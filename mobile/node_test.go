@@ -13,6 +13,7 @@ func TestNewTextile(t *testing.T) {
 }
 
 func TestNode_Start(t *testing.T) {
+	textile = NewTextile("testdata/.ipfs", "")
 	err := textile.Start()
 	if err != nil {
 		t.Errorf("start mobile node failed: %s", err)
@@ -20,13 +21,21 @@ func TestNode_Start(t *testing.T) {
 }
 
 func TestNode_PinPhoto(t *testing.T) {
-	hash, err := textile.PinPhoto("testdata/test.jpg")
+	textile = NewTextile("testdata/.ipfs", "")
+
+	errStart := textile.Start()
+	if errStart != nil {
+		t.Errorf("start mobile node failed: %s", errStart)
+	}
+
+	hash, err := textile.PinPhoto("testdata/test.jpg", "testdata/thumb.jpg")
 	if err != nil {
 		t.Errorf("pin photo on mobile node failed: %s", err)
 		return
 	}
-	if hash != "QmNnKzbJzAX8mUu1uuvyGzxe7p3z75D6UvUmS8LD5tc5ek" {
-		t.Errorf("pin photo on mobile node bad hash: %s", err)
+
+	if hash != "QmXK1noVgYCFfAWDPFGRJyMeLSXYUw4K82HNsvmyhxWHH1" {
+		t.Errorf("pin photo on mobile node bad hash: %s", hash)
 	}
 }
 
