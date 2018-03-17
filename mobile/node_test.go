@@ -22,11 +22,22 @@ func TestNode_Start(t *testing.T) {
 func TestNode_PinPhoto(t *testing.T) {
 	hash, err := textile.PinPhoto("testdata/test.jpg")
 	if err != nil {
-		t.Errorf("pin photo on mobile node failed: %s", err)
+		t.Errorf("pin photo failed: %s", err)
 		return
 	}
-	if hash != "QmNnKzbJzAX8mUu1uuvyGzxe7p3z75D6UvUmS8LD5tc5ek" {
-		t.Errorf("pin photo on mobile node bad hash: %s", err)
+	if hash != "QmQzKq4hy8mTiiZGVfsW3PT95qbczCj2j5GWfZJV7hH2eu" {
+		t.Errorf("pin photo got bad hash: %s", hash)
+	}
+}
+
+func TestNode_GetPhotos(t *testing.T) {
+	res, err := textile.GetPhotos("", -1)
+	if err != nil {
+		t.Errorf("get photos failed: %s", err)
+		return
+	}
+	if res != "[QmQzKq4hy8mTiiZGVfsW3PT95qbczCj2j5GWfZJV7hH2eu]" {
+		t.Errorf("get photos bad result")
 	}
 }
 

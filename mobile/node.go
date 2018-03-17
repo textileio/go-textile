@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	//"encoding/json"
 
 	tcore "github.com/textileio/textile-go/core"
 	trepo "github.com/textileio/textile-go/repo"
@@ -178,5 +179,32 @@ func (n *Node) PinPhoto(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return ldn.Cid().Hash().B58String(), nil
+	hash := ldn.Cid().Hash().B58String()
+
+	// index
+	n.node.Datastore.Photos().Put(hash, time.Now())
+
+	return hash, nil
+}
+
+func (n *Node) GetPhotos(offsetId string, limit int) (string, error) {
+	// query for available hashes
+	hashes := n.node.Datastore.Photos().GetPhotos(offsetId, limit)
+
+	// return json list of hashes
+	//res := make([]string, len(hashes))
+	var res string
+	for i := range hashes {
+		if i == 0 {
+			res += hashes[i].Cid
+		} else {
+			res += "," + hashes[i].Cid
+		}
+	}
+	//jsonb, err := json.Marshal(res)
+	//if err != nil {
+	//	return "", err
+	//}
+
+	return "[" + res + "]", nil
 }

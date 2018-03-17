@@ -9,7 +9,7 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
-var SettingsNotSetError error = errors.New("Settings not set")
+var SettingsNotSetError error = errors.New("settings not set")
 
 type SettingsDB struct {
 	modelStore
@@ -69,7 +69,7 @@ func (s *SettingsDB) Get() (repo.SettingsData, error) {
 func (s *SettingsDB) Update(settings repo.SettingsData) error {
 	current, err := s.Get()
 	if err != nil {
-		return errors.New("Not Found")
+		return errors.New("not found")
 	}
 	if settings.Version == nil {
 		settings.Version = current.Version
