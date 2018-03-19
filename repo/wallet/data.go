@@ -5,8 +5,13 @@ import (
 	"time"
 	"bytes"
 	"encoding/json"
+	"net/http"
+	"path/filepath"
+	"strings"
 
 	_ "github.com/disintegration/imaging"
+
+	"github.com/textileio/textile-go/net"
 
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/commands"
@@ -17,20 +22,23 @@ import (
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	"net/http"
-	"github.com/textileio/textile-go/net"
 )
 
-type Photo map[string]string
+type PhotoData struct {
+	Name string `json:"name"`
+	Ext string `json:"extension"`
+	Location []float64 `json:"location"`
+	Timestamp time.Time `json:"timestamp"`
+}
 
-type WalletData struct {
+type Data struct {
 	Created time.Time `json:"created"`
 	Updated time.Time `json:"updated"`
-	Photos []Photo `json:"photos"`
+	Photos []string `json:"photos"`
 	LastHash string `json:"last_hash"`
 }
 
-func (w *WalletData) String() string {
+func (w *Data) String() string {
 	return "TODO"
 }
 
@@ -38,10 +46,10 @@ func (w *WalletData) String() string {
 func NewWalletData(node *core.IpfsNode) error {
 	api := coreapi.NewCoreAPI(node)
 
-	wallet := &WalletData{
+	wallet := &Data{
 		Created: time.Now(),
 		Updated: time.Now(),
-		Photos: make([]Photo, 0),
+		Photos: make([]string, 0),
 	}
 
 	wb, err := json.Marshal(wallet)
@@ -67,11 +75,27 @@ func NewWalletData(node *core.IpfsNode) error {
 	return nil
 }
 
-// PinPhoto takes an io reader pointing to an image file, created a thumbnail, and adds
+// PinPhoto takes an io reader pointing to an image file, creates a thumbnail, and adds
 // both to a new directory, then finally pins that directory.
-// TODO: need to "index" this in the sql db wallet
+/* TODO: add an json object to this directory for the photo's metadata
+   TODO: add the metadata to the photos table (add some more columns)
+   TODO: remove file extensions from file name below
+{
+	name: sunset
+	ext: png, etc.
+	location: [lat, lon]
+	timestamp: iso8601
+}
+NOTE: timestamp above would be time taken, whereas timestamp in sql index will be time added,
+	maybe we add both to both places?
+NOTE: thinking that name and ext should be here so that we can just call the links to the files
+	in the directory "photo" and "thumb", thereby removing user private data from link names,
+	then on retrieval, we can rename to the original name + ext.
+	this also has the benefit of not having to add the filename to the sql db, since we
+	will always know its link address: "/photo"
+*/
 func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode, apiHost string) (ipld.Node, error) {
-	// top level directory
+
 	dirb := uio.NewDirectory(nd.DAG)
 
 	// add the image
@@ -79,6 +103,20 @@ func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode
 
 	// add the thumbnail
 	addFileToDirectory(dirb, thumb, "thumb.jpg", nd)
+
+	// create metadata object
+	ext := filepath.Ext(fname)
+	md := &PhotoData{
+		Name: strings.TrimSuffix(fname, ext),
+		Ext: ext,
+		Location: make([]float64, 0),
+		Timestamp: time.Now(),
+	}
+	wbb, err := json.Marshal(md)
+	if err != nil {
+		return nil, err
+	}
+	addFileToDirectory(dirb, bytes.NewReader(wbb), "meta", nd)
 
 	// pin the whole thing
 	dir, err := dirb.GetNode()
