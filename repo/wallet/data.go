@@ -98,14 +98,15 @@ func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode
 
 	dirb := uio.NewDirectory(nd.DAG)
 
-	// add the image
-	addFileToDirectory(dirb, reader, fname, nd)
+	// add the image, maintaining the extension type
+	ext := filepath.Ext(fname)
+	sname := "photo." + ext
+	addFileToDirectory(dirb, reader, sname, nd)
 
 	// add the thumbnail
 	addFileToDirectory(dirb, thumb, "thumb.jpg", nd)
 
 	// create metadata object
-	ext := filepath.Ext(fname)
 	md := &PhotoData{
 		Name: strings.TrimSuffix(fname, ext),
 		Ext: ext,
