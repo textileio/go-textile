@@ -1,6 +1,7 @@
 package images
 
 import (
+	_ "image/jpeg"
 	_ "image/gif"
 	_ "image/png"
 	"testing"
