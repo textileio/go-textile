@@ -178,7 +178,6 @@ func (n *Node) PinPhoto(path string, thumb string) (string, error) {
 	defer t.Close()
 
 	fname := filepath.Base(path)
-	//tname := filepath.Base(thumb)
 
 	// pin
 	ldn, err := wallet.PinPhoto(r, fname, t, n.node.IpfsNode, n.config.ApiHost)
