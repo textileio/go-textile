@@ -12,6 +12,8 @@ import (
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreunix"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
+	_ "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/thirdparty/dir"
+	_ "path/filepath"
 )
 
 var walletAddPhotoCmd = &cmds.Command{
@@ -40,13 +42,21 @@ Adds contents of a photo <path> to the wallet on ipfs.
 		//	res.SetError(errors.New("directories not yet supported"), cmdkit.ErrNormal)
 		//}
 
+		// Current hack was just to expect Full res folllowed by Thumb in list
+
 		addAllAndPin := func(f files.File) error {
 			// just get the first file
 			file, err := f.NextFile()
 			if err != nil {
 				return err
 			}
-			dir, err := wallet.PinPhoto(file, file.FileName(), n, "")
+			// just get the first thumb
+			thumb, err := f.NextFile()
+			if err != nil {
+				return err
+			}
+
+			dir, err := wallet.PinPhoto(file, file.FileName(), thumb, n, "")
 			if err != nil {
 				return err
 			}
