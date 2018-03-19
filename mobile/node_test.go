@@ -22,11 +22,6 @@ func TestNode_Start(t *testing.T) {
 }
 
 func TestNode_PinPhoto(t *testing.T) {
-	errStart := textile.Start()
-	if errStart != nil {
-		t.Errorf("start mobile node failed: %s", errStart)
-	}
-
 	hash, err := textile.PinPhoto("testdata/test.jpg", "testdata/thumb.jpg")
 	if err != nil {
 		t.Errorf("pin photo failed: %s", err)
