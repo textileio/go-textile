@@ -4,12 +4,7 @@ import (
 	"io"
 	"time"
 	"bytes"
-	_ "image/jpeg"
-	_ "image/png" // register other possible image types for decoding
-	_ "image/gif"
 	"encoding/json"
-	_ "image"
-	"io/ioutil"
 
 	_ "github.com/disintegration/imaging"
 
@@ -24,7 +19,6 @@ import (
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"net/http"
 	"github.com/textileio/textile-go/net"
-	"path/filepath"
 )
 
 type Photo map[string]string
@@ -77,35 +71,14 @@ func NewWalletData(node *core.IpfsNode) error {
 // both to a new directory, then finally pins that directory.
 // TODO: need to "index" this in the sql db wallet
 func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode, apiHost string) (ipld.Node, error) {
-	// create thumbnail
-	// FIXME: dunno if there's a better way to do this without consuming the fill stream
-	// FIXME: into memory... as in, can we split the reader stream or something
-	b, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-	r := bytes.NewReader(b)
-
-	// rewind source reader for add
-	r.Seek(0, 0)
-
 	// top level directory
 	dirb := uio.NewDirectory(nd.DAG)
 
 	// add the image
-	addFileToDirectory(dirb, r, fname, nd)
-
-
-	t, err := ioutil.ReadAll(thumb)
-	if err != nil {
-		return nil, err
-	}
-
-	tb := bytes.NewReader(t)
-	tb.Seek(0, 0)
+	addFileToDirectory(dirb, reader, fname, nd)
 
 	// add the thumbnail
-	addFileToDirectory(dirb, tb, "thumb.jpg", nd)
+	addFileToDirectory(dirb, thumb, "thumb.jpg", nd)
 
 	// pin the whole thing
 	dir, err := dirb.GetNode()

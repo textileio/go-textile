@@ -34,7 +34,7 @@ func TestNode_PinPhoto(t *testing.T) {
 		return
 	}
 
-	if hash != "QmXK1noVgYCFfAWDPFGRJyMeLSXYUw4K82HNsvmyhxWHH1" {
+	if hash != "QmRWVgQo527iPMLmK6YK1zAHXSa8xdAf6i2migRyQxMtxP" {
 		t.Errorf("pin photo on mobile node bad hash: %s", hash)
 	}
 }
