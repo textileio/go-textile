@@ -4,17 +4,12 @@ import (
 	"io"
 	"time"
 	"bytes"
-	"image/jpeg"
-	_ "image/png" // register other possible image types for decoding
-	_ "image/gif"
 	"encoding/json"
-	"image"
-	"io/ioutil"
 	"net/http"
 	"path/filepath"
 	"strings"
 
-	"github.com/disintegration/imaging"
+	_ "github.com/disintegration/imaging"
 
 	"github.com/textileio/textile-go/net"
 
@@ -99,37 +94,19 @@ NOTE: thinking that name and ext should be here so that we can just call the lin
 	this also has the benefit of not having to add the filename to the sql db, since we
 	will always know its link address: "/photo"
 */
-func PinPhoto(reader io.Reader, fname string, nd *core.IpfsNode, apiHost string) (ipld.Node, error) {
-	// create thumbnail
-	// FIXME: dunno if there's a better way to do this without consuming the full stream
-	// FIXME: into memory... as in, can we split the reader stream or something
-	b, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-	r := bytes.NewReader(b)
-	th, _, err := image.Decode(r)
-	if err != nil {
-		return nil, err
-	}
-	th = imaging.Thumbnail(th, 100, 100, imaging.CatmullRom)
-	thb := new(bytes.Buffer)
-	if err = jpeg.Encode(thb, th, nil); err != nil {
-		return nil, err
-	}
+func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode, apiHost string) (ipld.Node, error) {
 
-	// top level directory
 	dirb := uio.NewDirectory(nd.DAG)
 
-	// add thumbnail
-	addFileToDirectory(dirb, bytes.NewBuffer(thb.Bytes()), "thumb.jpg", nd)
+	// add the image, maintaining the extension type
+	ext := filepath.Ext(fname)
+	sname := "photo." + ext
+	addFileToDirectory(dirb, reader, sname, nd)
 
-	// rewind source and add raw image
-	r.Seek(0, 0)
-	addFileToDirectory(dirb, r, "photo.jpg", nd)
+	// add the thumbnail
+	addFileToDirectory(dirb, thumb, "thumb.jpg", nd)
 
 	// create metadata object
-	ext := filepath.Ext(fname)
 	md := &PhotoData{
 		Name: strings.TrimSuffix(fname, ext),
 		Ext: ext,

@@ -171,7 +171,7 @@ func (n *Node) Stop() error {
 	return nil
 }
 
-func (n *Node) PinPhoto(path string) (string, error) {
+func (n *Node) PinPhoto(path string, thumb string) (string, error) {
 	// read file from disk
 	r, err := os.Open(path)
 	if err != nil {
@@ -179,10 +179,16 @@ func (n *Node) PinPhoto(path string) (string, error) {
 	}
 	defer r.Close()
 
+	t, err := os.Open(thumb)
+	if err != nil {
+		return "", err
+	}
+	defer t.Close()
+
 	fname := filepath.Base(path)
 
 	// pin
-	ldn, err := wallet.PinPhoto(r, fname, n.node.IpfsNode, n.config.ApiHost)
+	ldn, err := wallet.PinPhoto(r, fname, t, n.node.IpfsNode, n.config.ApiHost)
 	if err != nil {
 		return "", err
 	}
