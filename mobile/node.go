@@ -6,12 +6,16 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	"encoding/json"
+	"encoding/base64"
+	"io/ioutil"
 
 	tcore "github.com/textileio/textile-go/core"
 	trepo "github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/wallet"
 	"github.com/textileio/textile-go/repo/db"
 
+	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreapi"
 	oldcmds "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo"
@@ -27,6 +31,10 @@ type Node struct {
 	ipfsConfig *core.BuildCfg
 }
 type Mobile struct{}
+
+type PhotoList struct {
+	Hashes []string `json:"hashes"`
+}
 
 func NewTextile(repoPath string, apiHost string) *Node {
 	nodeconfig := MobileConfig{
@@ -178,5 +186,56 @@ func (n *Node) PinPhoto(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return ldn.Cid().Hash().B58String(), nil
+	hash := ldn.Cid().Hash().B58String()
+
+	// index
+	n.node.Datastore.Photos().Put(hash, time.Now())
+
+	return hash, nil
+}
+
+func (n *Node) GetPhotos(offsetId string, limit int) (string, error) {
+	// query for available hashes
+	list := n.node.Datastore.Photos().GetPhotos(offsetId, limit)
+
+	// return json list of hashes
+	res := &PhotoList{
+		Hashes: make([]string, len(list)),
+	}
+	for i := range list {
+		res.Hashes[i] = list[i].Cid
+	}
+
+	// convert to json
+	jsonb, err := json.Marshal(res)
+	if err != nil {
+		return "", err
+	}
+
+	return string(jsonb), nil
+}
+
+// pass in Qm../thumb, or Qm../photo for full image
+func (n *Node) GetPhotoBase64String(path string) (string, error) {
+	// convert string to a ipfs path
+	ipath, err := coreapi.ParsePath(path)
+	if err != nil {
+		return "", nil
+	}
+
+	api := coreapi.NewCoreAPI(n.node.IpfsNode)
+	r, err := api.Unixfs().Cat(n.node.IpfsNode.Context(), ipath)
+	if err != nil {
+		return "", nil
+	}
+	defer r.Close()
+
+	// read bytes and convert to base64 string
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return "", err
+	}
+	bs64 := base64.StdEncoding.EncodeToString(b)
+
+	return bs64, nil
 }
