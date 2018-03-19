@@ -34,15 +34,15 @@ var walletCatCmd = &cmds.Command{
 `,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
-		err := cmds.EmitOnce(res, &wallet.WalletData{})
+		err := cmds.EmitOnce(res, &wallet.Data{})
 		if err != nil {
 			log.Error(err)
 		}
 	},
-	Type: wallet.WalletData{},
+	Type: wallet.Data{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			bs, ok := v.(*wallet.WalletData)
+			bs, ok := v.(*wallet.Data)
 			if !ok {
 				return e.TypeErr(bs, v)
 			}

@@ -4,11 +4,12 @@ import (
 	"database/sql"
 	"path"
 	"sync"
+	"time"
 
-	"github.com/textileio/textile-go/repo"
 	_ "github.com/mutecomm/go-sqlcipher"
 	"github.com/op/go-logging"
-	"time"
+
+	"github.com/textileio/textile-go/repo"
 )
 
 var log = logging.MustGetLogger("db")
@@ -16,6 +17,7 @@ var log = logging.MustGetLogger("db")
 type SQLiteDatastore struct {
 	config          repo.Config
 	settings        repo.ConfigurationStore
+	photos          repo.PhotoStore
 	db              *sql.DB
 	lock            *sync.Mutex
 }
@@ -39,6 +41,7 @@ func Create(repoPath, password string) (*SQLiteDatastore, error) {
 			path: dbPath,
 		},
 		settings: NewConfigurationStore(conn, l),
+		photos:   NewPhotoStore(conn, l),
 		db:       conn,
 		lock:     l,
 	}
@@ -60,6 +63,10 @@ func (d *SQLiteDatastore) Config() repo.Config {
 
 func (d *SQLiteDatastore) Settings() repo.ConfigurationStore {
 	return d.settings
+}
+
+func (d *SQLiteDatastore) Photos() repo.PhotoStore {
+	return d.photos
 }
 
 func (d *SQLiteDatastore) Copy(dbPath string, password string) error {
@@ -112,6 +119,8 @@ func initDatabaseTables(db *sql.DB, password string) error {
 	sqlStmt += `
 	PRAGMA user_version = 0;
 	create table config (key text primary key not null, value blob);
+	create table photos (cid text primary key not null, timestamp integer);
+	create index index_photos on photos (timestamp);
 	`
 	_, err := db.Exec(sqlStmt)
 	if err != nil {
