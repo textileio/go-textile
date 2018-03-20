@@ -8,6 +8,6 @@
 #define __Mobile_FRAMEWORK_H__
 
 #include "Mobile.objc.h"
-#include "universe.objc.h"
+#include "Universe.objc.h"
 
 #endif
