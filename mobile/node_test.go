@@ -15,7 +15,6 @@ func TestNewTextile(t *testing.T) {
 }
 
 func TestNode_Start(t *testing.T) {
-	textile = NewTextile("testdata/.ipfs", "")
 	err := textile.Start()
 	if err != nil {
 		t.Errorf("start mobile node failed: %s", err)
@@ -23,13 +22,6 @@ func TestNode_Start(t *testing.T) {
 }
 
 func TestNode_PinPhoto(t *testing.T) {
-	textile = NewTextile("testdata/.ipfs", "")
-
-	errStart := textile.Start()
-	if errStart != nil {
-		t.Errorf("start mobile node failed: %s", errStart)
-	}
-
 	hash, err := textile.PinPhoto("testdata/test.jpg", "testdata/thumb.jpg")
 	if err != nil {
 		t.Errorf("pin photo failed: %s", err)
