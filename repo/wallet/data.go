@@ -100,7 +100,7 @@ func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode
 
 	// add the image, maintaining the extension type
 	ext := filepath.Ext(fname)
-	sname := "photo." + ext
+	sname := "photo" + ext
 	addFileToDirectory(dirb, reader, sname, nd)
 
 	// add the thumbnail
