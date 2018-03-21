@@ -22,6 +22,8 @@ import (
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/config"
 	lockfile "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo/lock"
 	utilmain "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/cmd/ipfs/util"
+	"strings"
+	"net/url"
 )
 
 type Node struct {
@@ -185,7 +187,19 @@ func (n *Node) PinPhoto(path string, thumb string) (string, error) {
 	}
 	defer t.Close()
 
-	fname := filepath.Base(path)
+	var fname string
+	if strings.Contains(path, "assets-library://asset/asset.JPG") &&
+		strings.Contains(path, "id=")  &&
+		strings.Contains(path, "ext=") {
+		m, err := url.Parse(path)
+		if err != nil {
+			return "", err
+		}
+		n := m.Query()
+		fname = n.Get("id") + "." + n.Get("ext")
+	} else {
+		fname = filepath.Base(path)
+	}
 
 	// pin
 	ldn, err := wallet.PinPhoto(r, fname, t, n.node.IpfsNode, n.config.ApiHost)
