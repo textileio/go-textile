@@ -17,7 +17,7 @@ func NewPhotoStore(db *sql.DB, lock *sync.Mutex) repo.PhotoStore {
 	return &PhotoDB{modelStore{db, lock}}
 }
 
-func (c *PhotoDB) Put(cid string, timestamp time.Time) error {
+func (c *PhotoDB) Put(cid string, thumb string, timestamp time.Time) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -25,7 +25,7 @@ func (c *PhotoDB) Put(cid string, timestamp time.Time) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into photos(cid, timestamp) values(?,?)`
+	stm := `insert into photos(cid, thumb, timestamp) values(?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		return err
@@ -34,6 +34,7 @@ func (c *PhotoDB) Put(cid string, timestamp time.Time) error {
 	defer stmt.Close()
 	_, err = stmt.Exec(
 		cid,
+		thumb,
 		int(timestamp.Unix()),
 	)
 	if err != nil {
@@ -51,9 +52,9 @@ func (c *PhotoDB) GetPhotos(offsetId string, limit int) []repo.PhotoSet {
 
 	var stm string
 	if offsetId != "" {
-		stm = "select cid, timestamp from photos where timestamp<(select timestamp from photos where cid='" + offsetId + "') order by timestamp desc limit " + strconv.Itoa(limit) + " ;"
+		stm = "select cid, thumb, timestamp from photos where timestamp<(select timestamp from photos where cid='" + offsetId + "') order by timestamp desc limit " + strconv.Itoa(limit) + " ;"
 	} else {
-		stm = "select cid, timestamp from photos order by timestamp desc limit " + strconv.Itoa(limit) + ";"
+		stm = "select cid, thumb, timestamp from photos order by timestamp desc limit " + strconv.Itoa(limit) + ";"
 	}
 	rows, err := c.db.Query(stm)
 	if err != nil {
@@ -62,13 +63,15 @@ func (c *PhotoDB) GetPhotos(offsetId string, limit int) []repo.PhotoSet {
 	}
 	for rows.Next() {
 		var cid string
+		var thumb string
 		var timestampInt int
-		if err := rows.Scan(&cid, &timestampInt); err != nil {
+		if err := rows.Scan(&cid, &thumb, &timestampInt); err != nil {
 			continue
 		}
 		timestamp := time.Unix(int64(timestampInt), 0)
 		photo := repo.PhotoSet{
 			Cid:       cid,
+			Thumb:     thumb,
 			Timestamp: timestamp,
 		}
 		ret = append(ret, photo)

@@ -34,6 +34,7 @@ type Mobile struct{}
 
 type PhotoList struct {
 	Hashes []string `json:"hashes"`
+	Thumbs []string `json:"thumbs"`
 }
 
 func NewTextile(repoPath string, apiHost string) *Node {
@@ -194,8 +195,15 @@ func (n *Node) PinPhoto(path string, thumb string) (string, error) {
 	}
 	hash := ldn.Cid().Hash().B58String()
 
+	//byt, err := ioutil.ReadAll(t)
+	//if err != nil {
+	//	return "", err
+	//}
+	//bs64 := base64.StdEncoding.EncodeToString(byt)
+	bs64 := "HELLO IMAGE"
+
 	// index
-	n.node.Datastore.Photos().Put(hash, time.Now())
+	n.node.Datastore.Photos().Put(hash, bs64, time.Now())
 
 	return hash, nil
 }
@@ -207,9 +215,11 @@ func (n *Node) GetPhotos(offsetId string, limit int) (string, error) {
 	// return json list of hashes
 	res := &PhotoList{
 		Hashes: make([]string, len(list)),
+		Thumbs: make([]string, len(list)),
 	}
 	for i := range list {
 		res.Hashes[i] = list[i].Cid
+		res.Thumbs[i] = list[i].Thumb
 	}
 
 	// convert to json
