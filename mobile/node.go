@@ -195,12 +195,11 @@ func (n *Node) PinPhoto(path string, thumb string) (string, error) {
 	}
 	hash := ldn.Cid().Hash().B58String()
 
-	//byt, err := ioutil.ReadAll(t)
-	//if err != nil {
-	//	return "", err
-	//}
-	//bs64 := base64.StdEncoding.EncodeToString(byt)
-	bs64 := "HELLO IMAGE"
+	byt, err := ioutil.ReadAll(t)
+	if err != nil {
+		return "", err
+	}
+	bs64 := base64.StdEncoding.EncodeToString(byt)
 
 	// index
 	n.node.Datastore.Photos().Put(hash, bs64, time.Now())
