@@ -11,10 +11,7 @@ import (
 
 	_ "github.com/disintegration/imaging"
 
-	"github.com/textileio/textile-go/net"
-
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/commands"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreapi"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreapi/interface"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreunix"
@@ -22,6 +19,9 @@ import (
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	"mime/multipart"
+	"log"
+	"fmt"
 )
 
 type PhotoData struct {
@@ -36,6 +36,13 @@ type Data struct {
 	Updated time.Time `json:"updated"`
 	Photos []string `json:"photos"`
 	LastHash string `json:"last_hash"`
+}
+
+type Hashed struct {
+	Name string `json:"Name"`
+	Hash string `json:"Hash"`
+	Bytes int64 `json:"Bytes,omitempty"`
+	Size string `json:"Size,omitempty"`
 }
 
 func (w *Data) String() string {
@@ -117,7 +124,8 @@ func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode
 	if err != nil {
 		return nil, err
 	}
-	addFileToDirectory(dirb, bytes.NewReader(wbb), "meta", nd)
+	meta := bytes.NewReader(wbb)
+	addFileToDirectory(dirb, meta, "meta", nd)
 
 	// pin the whole thing
 	dir, err := dirb.GetNode()
@@ -135,17 +143,82 @@ func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode
 
 	// pin it to server
 	if apiHost != "" {
-		res := &commands.AddPinOutput{}
-		client := &http.Client{Timeout: 10 * time.Second}
-		args := dir.Cid().Hash().B58String() + "&recursive=true"
-		err = net.GetJson(client, apiHost+"/api/v0/pin/add?arg="+args, res)
-		if err != nil {
-			return dir, err
-		}
+		statusCode, hashes := remotePin(reader, thumb, meta, apiHost)
+		fmt.Println(statusCode)
+		fmt.Println(hashes)
 	}
 
 	return dir, nil
 }
+
+func remotePin(reader io.Reader, thumb io.Reader, meta io.Reader, apiHost string) (int, []Hashed) {
+		// Prepare form to submit to IPFS API.
+		var b bytes.Buffer
+		w := multipart.NewWriter(&b)
+
+		fw1, err := w.CreateFormFile("file", "photo.jpg")
+		if err != nil {
+			log.Fatal(err)
+		}
+		if _, err = io.Copy(fw1, reader); err != nil {
+			log.Fatal(err)
+		}
+
+		fw2, err := w.CreateFormFile("file", "thumb.jpg")
+		if err != nil {
+			log.Fatal(err)
+		}
+		if _, err = io.Copy(fw2, thumb); err != nil {
+			log.Fatal(err)
+		}
+
+		fw3, err := w.CreateFormFile("file", "meta")
+		if err != nil {
+			log.Fatal(err)
+		}
+		if _, err = io.Copy(fw3, meta); err != nil {
+			log.Fatal(err)
+		}
+
+		// Don't forget to close multipart writer.
+		// If not closed, request will be missing terminating boundary.
+		w.Close()
+
+		// Now that we have form, submit it to handler.
+		req, err := http.NewRequest("POST", apiHost+"/api/v0/add?wrap-with-directory=true", &b)
+		if err != nil {
+			log.Fatal(err)
+		}
+		// Don't forget to set the content type, this will contain the boundary.
+		req.Header.Set("Content-Type", w.FormDataContentType())
+
+		// Submit the request
+		client := &http.Client{}
+		res, err := client.Do(req)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer res.Body.Close()
+
+		// Check the response
+		if res.StatusCode != http.StatusOK {
+			err = fmt.Errorf("bad status: %s", res.Status)
+		} else {
+			body := &bytes.Buffer{}
+			_, err := body.ReadFrom(res.Body)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(res.StatusCode)
+			fmt.Println(body)
+		}
+		hashes := []Hashed{}
+		err = json.NewDecoder(res.Body).Decode(hashes)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return res.StatusCode, hashes
+	}
 
 func publish(path iface.Path, node *core.IpfsNode) error {
 	api := coreapi.NewCoreAPI(node)
