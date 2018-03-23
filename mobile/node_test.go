@@ -5,13 +5,14 @@ import (
 
 	. "github.com/textileio/textile-go/mobile"
 	"encoding/json"
+	"fmt"
 )
 
 var textile *Node
 var hash string
 
 func TestNewTextile(t *testing.T) {
-	textile = NewTextile("testdata/.ipfs", "")
+	textile = NewTextile("testdata/.ipfs", "https://ipfs.textile.io")
 }
 
 func TestNode_Start(t *testing.T) {
@@ -23,6 +24,7 @@ func TestNode_Start(t *testing.T) {
 
 func TestNode_PinPhoto(t *testing.T) {
 	hash, err := textile.PinPhoto("testdata/test.jpg", "testdata/thumb.jpg")
+	fmt.Println(hash)
 	if err != nil {
 		t.Errorf("pin photo failed: %s", err)
 		return

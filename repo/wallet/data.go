@@ -22,6 +22,8 @@ import (
 	"mime/multipart"
 	"log"
 	"fmt"
+	"bufio"
+	"io/ioutil"
 )
 
 type PhotoData struct {
@@ -108,10 +110,22 @@ func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode
 	// add the image, maintaining the extension type
 	ext := filepath.Ext(fname)
 	sname := "photo" + ext
-	addFileToDirectory(dirb, reader, sname, nd)
+	b, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	// wrap the bytes in a ReadSeeker
+	r := bytes.NewReader(b)
+	addFileToDirectory(dirb, r, sname, nd)
 
 	// add the thumbnail
-	addFileToDirectory(dirb, thumb, "thumb.jpg", nd)
+	b, err = ioutil.ReadAll(thumb)
+	if err != nil {
+		return nil, err
+	}
+	// wrap the bytes in a ReadSeeker
+	t := bytes.NewReader(b)
+	addFileToDirectory(dirb, t, "thumb.jpg", nd)
 
 	// create metadata object
 	md := &PhotoData{
@@ -143,7 +157,10 @@ func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode
 
 	// pin it to server
 	if apiHost != "" {
-		statusCode, hashes := remotePin(reader, thumb, meta, apiHost)
+		r.Seek(0, 0)
+		t.Seek(0, 0)
+		meta.Seek(0, 0)
+		statusCode, hashes := remotePin(r, thumb, meta, apiHost)
 		fmt.Println(statusCode)
 		fmt.Println(hashes)
 	}
@@ -185,7 +202,7 @@ func remotePin(reader io.Reader, thumb io.Reader, meta io.Reader, apiHost string
 		w.Close()
 
 		// Now that we have form, submit it to handler.
-		req, err := http.NewRequest("POST", apiHost+"/api/v0/add?wrap-with-directory=true", &b)
+		req, err := http.NewRequest("POST", apiHost+"/api/v0/add?wrap-with-directory=true&recursive=true", &b)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -200,22 +217,28 @@ func remotePin(reader io.Reader, thumb io.Reader, meta io.Reader, apiHost string
 		}
 		defer res.Body.Close()
 
+		var hashes []Hashed
 		// Check the response
 		if res.StatusCode != http.StatusOK {
 			err = fmt.Errorf("bad status: %s", res.Status)
 		} else {
-			body := &bytes.Buffer{}
+			var body bytes.Buffer
 			_, err := body.ReadFrom(res.Body)
 			if err != nil {
 				log.Fatal(err)
 			}
-			fmt.Println(res.StatusCode)
-			fmt.Println(body)
-		}
-		hashes := []Hashed{}
-		err = json.NewDecoder(res.Body).Decode(hashes)
-		if err != nil {
-			log.Fatal(err)
+			scanner := bufio.NewScanner(&body)
+			for scanner.Scan() {
+				h := Hashed{}
+				err = json.Unmarshal(scanner.Bytes(), &h)
+				if err != nil {
+					log.Fatal(err)
+				}
+				hashes = append(hashes, h)
+			}
+			if err := scanner.Err(); err != nil {
+				log.Fatal(err)
+			}
 		}
 		return res.StatusCode, hashes
 	}
