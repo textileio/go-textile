@@ -21,6 +21,10 @@ _obj
 _test
 __pycache__
 
+# Desktop build outputs
+desktop/output
+desktop/bind*.go
+
 # Architecture specific extensions/prefixes
 *.[568vq]
 [568vq].out

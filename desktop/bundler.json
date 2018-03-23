@@ -1,0 +1,6 @@
+{
+  "app_name": "Textile",
+  "icon_path_darwin": "resources/icon.icns",
+  "icon_path_linux": "resources/icon.png",
+  "output_path": "output"
+}

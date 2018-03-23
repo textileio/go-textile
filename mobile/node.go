@@ -245,3 +245,11 @@ func (n *Node) GetPhotoBase64String(path string) (string, error) {
 
 	return bs64, nil
 }
+
+
+func (n *Node) GetPeerId() (string) {
+	// query for available hashes
+	id := n.node.IpfsNode.Identity.Pretty()
+
+	return id
+}
