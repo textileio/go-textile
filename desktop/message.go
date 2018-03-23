@@ -2,14 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
-	"os"
-	"os/user"
-	"path/filepath"
-	"sort"
-	"strconv"
 
-	"github.com/asticode/go-astichartjs"
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
 )
