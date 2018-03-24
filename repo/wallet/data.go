@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"errors"
 
 	_ "github.com/disintegration/imaging"
 
@@ -160,11 +161,15 @@ func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode
 		r.Seek(0, 0)
 		t.Seek(0, 0)
 		meta.Seek(0, 0)
-		statusCode, hashes := remotePin(r, thumb, meta, apiHost)
-		fmt.Println(statusCode)
-		fmt.Println(hashes)
+		statusCode, hashes := remotePin(r, t, meta, apiHost)
+		if statusCode != 200 {
+			return dir, errors.New(fmt.Sprint("HTTP error (", statusCode, ") during remote add"))
+		}
+		// TODO: Ensure that top-level hash is always the last element?
+		if dir.Cid().Hash().B58String() != hashes[len(hashes)-1].Hash {
+			return dir, errors.New("remote and local hash mismatch")
+		}
 	}
-
 	return dir, nil
 }
 
