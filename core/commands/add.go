@@ -16,6 +16,7 @@ import (
 	_ "path/filepath"
 )
 
+// TODO: Add --remote flag to determine if the photo should also be added to the remote API
 var walletAddPhotoCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Add a photo to the wallet on ipfs.",
@@ -56,7 +57,7 @@ Adds contents of a photo <path> to the wallet on ipfs.
 				return err
 			}
 
-			dir, err := wallet.PinPhoto(file, file.FileName(), thumb, n, "")
+			dir, err := wallet.PinPhotoLocal(file, file.FileName(), thumb, n)
 			if err != nil {
 				return err
 			}
