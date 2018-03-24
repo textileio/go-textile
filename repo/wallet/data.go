@@ -19,9 +19,10 @@ import (
 
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"mime/multipart"
-	"log"
 	"fmt"
 	"bufio"
+	"io/ioutil"
+	"gx/ipfs/QmVmDhyTTUcQXFD1rRQ64fGLMSAoaQvNH3hwuaCFAPq2hy/errors"
 )
 
 type PhotoData struct {
@@ -101,17 +102,27 @@ NOTE: thinking that name and ext should be here so that we can just call the lin
 	this also has the benefit of not having to add the filename to the sql db, since we
 	will always know its link address: "/photo"
 */
-func PinPhotoLocal(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode) (ipld.Node, error) {
-
+func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode, apiHost string) (ipld.Node, error) {
 	dirb := uio.NewDirectory(nd.DAG)
-
 	// add the image, maintaining the extension type
 	ext := filepath.Ext(fname)
 	sname := "photo" + ext
 
-	addFileToDirectory(dirb, reader, sname, nd)
+	// capture all bytes from image file
+	read, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	// wrap the bytes in a ReadSeeker
+	r := bytes.NewReader(read)
+	addFileToDirectory(dirb, r, sname, nd)
 
-	addFileToDirectory(dirb, thumb, "thumb.jpg", nd)
+	read, err = ioutil.ReadAll(thumb)
+	if err != nil {
+		return nil, err
+	}
+	t := bytes.NewReader(read)
+	addFileToDirectory(dirb, t, "thumb.jpg", nd)
 
 	// create metadata object
 	md := &PhotoData{
@@ -153,96 +164,84 @@ func PinPhotoLocal(reader io.Reader, fname string, thumb io.Reader, nd *core.Ipf
 		return nil, err
 	}
 
-	return dir, nil
-}
+	if apiHost != "" {
+		var b bytes.Buffer
+		w := multipart.NewWriter(&b)
 
-func PinPhotoRemote(reader io.Reader, fname string, thumb io.Reader, apiHost string) ([]Hashed, error) {
-	// Prepare form to submit to IPFS API.
-	var b bytes.Buffer
-	w := multipart.NewWriter(&b)
-
-	fw1, err := w.CreateFormFile("file", "photo.jpg")
-	if err != nil {
-		log.Fatal(err)
-	}
-	if _, err = io.Copy(fw1, reader); err != nil {
-		log.Fatal(err)
-	}
-
-	fw2, err := w.CreateFormFile("file", "thumb.jpg")
-	if err != nil {
-		log.Fatal(err)
-	}
-	if _, err = io.Copy(fw2, thumb); err != nil {
-		log.Fatal(err)
-	}
-
-	// create metadata object
-	ext := filepath.Ext(fname)
-	md := &PhotoData{
-		Name: strings.TrimSuffix(fname, ext),
-		Ext: ext,
-		Location: make([]float64, 0),
-		Timestamp: time.Now(),
-	}
-	wbb, err := json.Marshal(md)
-	if err != nil {
-		return nil, err
-	}
-	meta := bytes.NewReader(wbb)
-
-	fw3, err := w.CreateFormFile("file", "meta")
-	if err != nil {
-		log.Fatal(err)
-	}
-	if _, err = io.Copy(fw3, meta); err != nil {
-		log.Fatal(err)
-	}
-
-	// Don't forget to close multipart writer.
-	// If not closed, request will be missing terminating boundary.
-	w.Close()
-
-	// Now that we have form, submit it to handler.
-	req, err := http.NewRequest("POST", apiHost+"/api/v0/add?wrap-with-directory=true&recursive=true", &b)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// Don't forget to set the content type, this will contain the boundary.
-	req.Header.Set("Content-Type", w.FormDataContentType())
-
-	// Submit the request
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer res.Body.Close()
-
-	var hashes []Hashed
-	// Check the response
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("bad status: %s", res.Status)
-	} else {
-		var body bytes.Buffer
-		_, err := body.ReadFrom(res.Body)
+		fw1, err := w.CreateFormFile("file", "photo.jpg")
 		if err != nil {
 			return nil, err
 		}
-		scanner := bufio.NewScanner(&body)
-		for scanner.Scan() {
-			h := Hashed{}
-			err = json.Unmarshal(scanner.Bytes(), &h)
+		r.Seek(0, 0)
+		if _, err = io.Copy(fw1, r); err != nil {
+			return nil, err
+		}
+
+		fw2, err := w.CreateFormFile("file", "thumb.jpg")
+		if err != nil {
+			return nil, err
+		}
+		t.Seek(0, 0)
+		if _, err = io.Copy(fw2, t); err != nil {
+			return nil, err
+		}
+
+		fw3, err := w.CreateFormFile("file", "meta")
+		if err != nil {
+			return nil, err
+		}
+		meta.Seek(0, 0)
+		if _, err = io.Copy(fw3, meta); err != nil {
+			return nil, err
+		}
+		// Don't forget to close multipart writer.
+		// If not closed, request will be missing terminating boundary.
+		w.Close()
+
+		// Now that we have form, submit it to handler.
+		req, err := http.NewRequest("POST", apiHost+"/api/v0/add?wrap-with-directory=true&recursive=true", &b)
+		if err != nil {
+			return nil, err
+		}
+		// Don't forget to set the content type, this will contain the boundary.
+		req.Header.Set("Content-Type", w.FormDataContentType())
+
+		// Submit the request
+		client := &http.Client{}
+		res, err := client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		defer res.Body.Close()
+
+		var hashes []Hashed
+		// Check the response
+		if res.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("bad status: %s", res.Status)
+		} else {
+			var body bytes.Buffer
+			_, err := body.ReadFrom(res.Body)
 			if err != nil {
 				return nil, err
 			}
-			hashes = append(hashes, h)
+			scanner := bufio.NewScanner(&body)
+			for scanner.Scan() {
+				h := Hashed{}
+				err = json.Unmarshal(scanner.Bytes(), &h)
+				if err != nil {
+					return nil, err
+				}
+				hashes = append(hashes, h)
+			}
+			if err := scanner.Err(); err != nil {
+				return nil, err
+			}
 		}
-		if err := scanner.Err(); err != nil {
-			return nil, err
+		if dir.Cid().Hash().B58String() != hashes[len(hashes)-1].Hash {
+			return nil, errors.New("mismatch between local and remote CIDs")
 		}
 	}
-	return hashes, nil
+	return dir, nil
 }
 
 func publish(path iface.Path, node *core.IpfsNode) error {

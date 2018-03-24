@@ -21,19 +21,8 @@ func TestNode_Start(t *testing.T) {
 	}
 }
 
-func TestNode_AddPhotoLocal(t *testing.T) {
-	hash, err := textile.AddPhotoLocal("testdata/test.jpg", "testdata/thumb.jpg")
-	if err != nil {
-		t.Errorf("pin photo failed: %s", err)
-		return
-	}
-	if len(hash) == 0 {
-		t.Errorf("add photo got empty hash: %s", hash)
-	}
-}
-
-func TestNode_AddPhotoRemote(t *testing.T) {
-	hashes, err := textile.AddPhotoRemote("testdata/test.jpg", "testdata/thumb.jpg")
+func TestNode_AddPhoto(t *testing.T) {
+	hashes, err := textile.AddPhoto("testdata/test.jpg", "testdata/thumb.jpg")
 	if err != nil {
 		t.Errorf("pin photo failed: %s", err)
 		return

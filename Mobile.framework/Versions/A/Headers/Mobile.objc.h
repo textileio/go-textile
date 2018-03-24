@@ -43,9 +43,11 @@
 
 - (instancetype)initWithRef:(id)ref;
 - (instancetype)init;
+- (NSString*)addPhotoLocal:(NSString*)path thumb:(NSString*)thumb error:(NSError**)error;
+// skipped method Node.AddPhotoRemote with unsupported parameter or return types
+
 - (NSString*)getPhotoBase64String:(NSString*)path error:(NSError**)error;
 - (NSString*)getPhotos:(NSString*)offsetId limit:(long)limit error:(NSError**)error;
-- (NSString*)pinPhoto:(NSString*)path thumb:(NSString*)thumb error:(NSError**)error;
 - (BOOL)start:(NSError**)error;
 - (BOOL)stop:(NSError**)error;
 @end
