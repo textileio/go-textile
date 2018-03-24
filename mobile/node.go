@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"encoding/base64"
 	"io/ioutil"
-
 	tcore "github.com/textileio/textile-go/core"
 	trepo "github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/wallet"
@@ -171,7 +170,29 @@ func (n *Node) Stop() error {
 	return nil
 }
 
-func (n *Node) PinPhoto(path string, thumb string) (string, error) {
+func (n *Node) AddPhotoRemote(path string, thumb string) ([]wallet.Hashed, error) {
+	// read file from disk
+	r, err := os.Open(path)
+	if err != nil {
+		return []wallet.Hashed{}, err
+	}
+	defer r.Close()
+
+	t, err := os.Open(thumb)
+	if err != nil {
+		return []wallet.Hashed{}, err
+	}
+	defer t.Close()
+
+	hashes, err := wallet.PinPhotoRemote(r, filepath.Base(path), t, n.config.ApiHost)
+	if err != nil {
+		return nil, err
+	}
+
+	return hashes, nil
+}
+
+func (n *Node) AddPhotoLocal(path string, thumb string) (string, error) {
 	// read file from disk
 	r, err := os.Open(path)
 	if err != nil {
@@ -188,7 +209,7 @@ func (n *Node) PinPhoto(path string, thumb string) (string, error) {
 	fname := filepath.Base(path)
 
 	// pin
-	ldn, err := wallet.PinPhoto(r, fname, t, n.node.IpfsNode, n.config.ApiHost)
+	ldn, err := wallet.PinPhotoLocal(r, fname, t, n.node.IpfsNode)
 	if err != nil {
 		return "", err
 	}
