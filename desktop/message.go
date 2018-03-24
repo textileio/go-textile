@@ -17,7 +17,7 @@ func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload inter
 			payload = err.Error()
 			return
 		}
-
+		textile.PubMessage("I'm ALIVE!")
 		payload = "connected: " + textile.GetPeerId()
 
 	case "ipfs.getPath":

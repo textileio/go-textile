@@ -21,6 +21,7 @@ func TestNode_Start(t *testing.T) {
 	}
 }
 
+
 func TestNode_PinPhoto(t *testing.T) {
 	hash, err := textile.PinPhoto("testdata/test.jpg", "testdata/thumb.jpg")
 	if err != nil {
@@ -55,6 +56,10 @@ func TestNode_GetPhotoBase64String(t *testing.T) {
 	if len(res) == 0 {
 		t.Errorf("get photo base64 string bad result")
 	}
+}
+
+func TestNode_PubMessage(t *testing.T) {
+	textile.PubMessage("HELLOWWWWWMEOOW")
 }
 
 func TestNode_Stop(t *testing.T) {

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"encoding/base64"
 	"io/ioutil"
+	"sync"
 
 	tcore "github.com/textileio/textile-go/core"
 	trepo "github.com/textileio/textile-go/repo"
@@ -22,6 +23,10 @@ import (
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/config"
 	lockfile "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo/lock"
 	utilmain "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/cmd/ipfs/util"
+	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
+	ma "github.com/multiformats/go-multiaddr"
+	//ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 )
 
 type Node struct {
@@ -246,10 +251,21 @@ func (n *Node) GetPhotoBase64String(path string) (string, error) {
 	return bs64, nil
 }
 
+// Todo: Partial method
+func (n *Node) PubMessage(message string) (error) {
 
-func (n *Node) GetPeerId() (string) {
-	// query for available hashes
-	id := n.node.IpfsNode.Identity.Pretty()
+	exp := []byte(message)
 
-	return id
+	sub, err := n.node.IpfsNode.Floodsub.Subscribe("TexNMHCfd9FmFb6nhh6BrQg7f9qS6oGCPTKs7aZbt3VGFA4")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Subscribed %v", sub.Topic())
+
+	err = n.node.IpfsNode.Floodsub.Publish("TexNMHCfd9FmFb6nhh6BrQg7f9qS6oGCPTKs7aZbt3VGFA4", exp)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("no error")
+	return nil
 }
