@@ -170,29 +170,7 @@ func (n *Node) Stop() error {
 	return nil
 }
 
-func (n *Node) AddPhotoRemote(path string, thumb string) ([]wallet.Hashed, error) {
-	// read file from disk
-	r, err := os.Open(path)
-	if err != nil {
-		return []wallet.Hashed{}, err
-	}
-	defer r.Close()
-
-	t, err := os.Open(thumb)
-	if err != nil {
-		return []wallet.Hashed{}, err
-	}
-	defer t.Close()
-
-	hashes, err := wallet.PinPhotoRemote(r, filepath.Base(path), t, n.config.ApiHost)
-	if err != nil {
-		return nil, err
-	}
-
-	return hashes, nil
-}
-
-func (n *Node) AddPhotoLocal(path string, thumb string) (string, error) {
+func (n *Node) AddPhoto(path string, thumb string) (string, error) {
 	// read file from disk
 	r, err := os.Open(path)
 	if err != nil {
@@ -209,10 +187,11 @@ func (n *Node) AddPhotoLocal(path string, thumb string) (string, error) {
 	fname := filepath.Base(path)
 
 	// pin
-	ldn, err := wallet.PinPhotoLocal(r, fname, t, n.node.IpfsNode)
+	ldn, err := wallet.PinPhoto(r, fname, t, n.node.IpfsNode, n.config.ApiHost)
 	if err != nil {
 		return "", err
 	}
+	// top-level hash for whole added/pinned 'directory'
 	hash := ldn.Cid().Hash().B58String()
 
 	// index
