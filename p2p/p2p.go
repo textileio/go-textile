@@ -4,23 +4,9 @@ import (
 	"bufio"
 	"context"
 	"crypto/rand"
-	"flag"
 	"fmt"
-	"io"
 	"log"
-	mrand "math/rand"
 	"os"
-
-	//"github.com/libp2p/go-libp2p-crypto"
-	//"github.com/libp2p/go-libp2p-host"
-	//"github.com/libp2p/go-libp2p-net"
-	//"github.com/libp2p/go-libp2p-peer"
-	//"github.com/libp2p/go-libp2p-peerstore"
-	//"github.com/libp2p/go-libp2p-swarm"
-	//"github.com/libp2p/go-libp2p/p2p/host/basic"
-	//"github.com/multiformats/go-multiaddr"
-	//"gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
-	//"gx/ipfs/QmNh1kGFFdsPu79KNSaL4NUKUPb4Eiz4KHdMtFY6664RDp/go-libp2p/p2p/host/basic"
 	"gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
 	"gx/ipfs/QmNh1kGFFdsPu79KNSaL4NUKUPb4Eiz4KHdMtFY6664RDp/go-libp2p/p2p/host/basic"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
@@ -128,7 +114,7 @@ func main(sourcePort int, dest string, debug bool) {
 	nodeID, _ := peer.IDFromPublicKey(pubKey)
 
 	// 0.0.0.0 will listen on any interface device
-	sourceMultiAddr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", *sourcePort))
+	sourceMultiAddr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", sourcePort))
 
 	// Adding self to the peerstore.
 	ps := peerstore.NewPeerstore()
@@ -154,7 +140,7 @@ func main(sourcePort int, dest string, debug bool) {
 		// Only applicable on the receiving side.
 		host.SetStreamHandler("/chat/1.0.0", handleStream)
 
-		fmt.Printf("Run './chat -d /ip4/127.0.0.1/tcp/%d/ipfs/%s' on another console.\n You can replace 127.0.0.1 with public IP as well.\n", *sourcePort, host.ID().Pretty())
+		fmt.Printf("Run './chat -d /ip4/127.0.0.1/tcp/%d/ipfs/%s' on another console.\n You can replace 127.0.0.1 with public IP as well.\n", sourcePort, host.ID().Pretty())
 		fmt.Printf("\nWaiting for incoming connection\n\n")
 		// Hang forever
 		<-make(chan struct{})
@@ -163,7 +149,7 @@ func main(sourcePort int, dest string, debug bool) {
 
 		// Add destination peer multiaddress in the peerstore.
 		// This will be used during connection and stream creation by libp2p.
-		peerID := addAddrToPeerstore(host, *dest)
+		peerID := addAddrToPeerstore(host, dest)
 
 		fmt.Println("This node's multiaddress: ")
 		// IP will be 0.0.0.0 (listen on any interface) and port will be 0 (choose one for me).
