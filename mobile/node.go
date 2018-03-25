@@ -254,31 +254,20 @@ func (n *Node) GetPhotoBase64String(path string) (string, error) {
 
 
 
-func (n *Node) SendMessage(dest string) (error) {
+func (n *Node) SendMessage(dest string) {
 
 	// Add destination peer multiaddress in the peerstore.
 	// This will be used during connection and stream creation by libp2p.
 	peerID := addAddrToPeerstore(n.node.IpfsNode.PeerHost, dest)
-	peerInfo, err := n.node.IpfsNode.Routing.FindPeer(context.Background(), peerID)
-
-	if err != nil {
-		panic(err)
-	}
-
-	n.node.IpfsNode.PeerHost.Connect(context.Background(), peerInfo)
-
-	fmt.Println("This node's multiaddress: ")
-	// IP will be 0.0.0.0 (listen on any interface) and port will be 0 (choose one for me).
-	// Although this node will not listen for any connection. It will just initiate a connect with
-	// one of its peer and use that stream to communicate.
-	//fmt.Printf("%s/ipfs/%s\n", sourceMultiAddr, host.ID().Pretty())
-
 	// Start a stream with peer with peer Id: 'peerId'.
 	// Multiaddress of the destination peer is fetched from the peerstore using 'peerId'.
-	s, err := n.node.IpfsNode.PeerHost.NewStream(context.Background(), peerID, "/chat/1.0.0")
+	ctx, cancel := context.WithTimeout(context.Background(), 500 * time.Millisecond)
+	s, err := n.node.IpfsNode.PeerHost.NewStream(ctx, peerID, "/chat/1.0.0")
+	defer cancel()
 
 	if err != nil {
-		panic(err)
+		fmt.Print(err)
+		//panic(err)
 	}
 
 	// Create a buffered stream so that read and writes are non blocking.
@@ -294,9 +283,11 @@ func (n *Node) SendMessage(dest string) (error) {
 
 // TODO: Need to actually pass messages back to RN
 func (n *Node) ListenMessage() {
+	fmt.Print(n.node.IpfsNode.PeerHost.Network().ListenAddresses())
 	// Set a function as stream handler.
 	// This function  is called when a peer initiate a connection and starts a stream with this peer.
 	// Only applicable on the receiving side.
+
 	n.node.IpfsNode.PeerHost.SetStreamHandler("/chat/1.0.0", handleStream)
 	// Hang forever
 	<-make(chan struct{})
@@ -305,19 +296,37 @@ func (n *Node) ListenMessage() {
 
 // Todo: Partial method
 func (n *Node) PubMessage(message string) (error) {
+	fmt.Printf(message)
+	fmt.Printf("Self %v", n.node.IpfsNode.Identity.Pretty())
 
-	exp := []byte(message)
+	err := n.node.IpfsNode.Floodsub.Publish("TexNMHCfd9FmFb6nhh6BrQg7f9qS6oGCPTKs7aZbt3VGFA4", []byte(message))
 
-	sub, err := n.node.IpfsNode.Floodsub.Subscribe("TexNMHCfd9FmFb6nhh6BrQg7f9qS6oGCPTKs7aZbt3VGFA4")
 	if err != nil {
-		return err
+		panic(err)
 	}
-	fmt.Printf("Subscribed %v", sub.Topic())
 
-	err = n.node.IpfsNode.Floodsub.Publish("TexNMHCfd9FmFb6nhh6BrQg7f9qS6oGCPTKs7aZbt3VGFA4", exp)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("no error")
+	<-make(chan struct{})
+	//_, err := n.node.IpfsNode.Routing.FindPeer(context.Background(), "/p2p-circuit/ipfs/QmXs1s7JUFUR3SPGg922aERE5qPKRJUK4cQDUW9SLAoF1B")
+	//
+	//if err != nil {
+	//	panic(err)
+	//}
+
+
+	//fmt.Printf("Success %v", peerInfo.ID.Pretty())
+	////n.node.IpfsNode.PeerHost.Connect(context.Background(), peerInfo)
+	//
+	////sub, err := n.node.IpfsNode.Floodsub.Subscribe("TexNMHCfd9FmFb6nhh6BrQg7f9qS6oGCPTKs7aZbt3VGFA4")
+	////if err != nil {
+	////	return err
+	////}
+	////fmt.Printf("Subscribed %v", sub.Topic())
+	//
+	//err2 := n.node.IpfsNode.Floodsub.Publish("TexNMHCfd9FmFb6nhh6BrQg7f9qS6oGCPTKs7aZbt3VGFA4", []byte(message))
+	//if err2 != nil {
+	//	panic(err2)
+	//	return err2
+	//}
+	//fmt.Printf("no error")
 	return nil
 }

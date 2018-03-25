@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"log"
-	"os"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	"gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
@@ -12,6 +11,11 @@ import (
 	"gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 )
 
+func getMultiAddr(peerid string) (multiaddr.Multiaddr, error) {
+	peerAddr, err := multiaddr.NewMultiaddr(
+		fmt.Sprintf("/ipfs/%s", peerid))
+	return peerAddr, err
+}
 /*
 * addAddrToPeerstore parses a peer multiaddress and adds
 * it to the given host's peerstore, so it knows how to
@@ -48,7 +52,7 @@ func addAddrToPeerstore(h host.Host, addr string) peer.ID {
 }
 
 func handleStream(s net.Stream) {
-	log.Println("Got a new stream!")
+	fmt.Print("Got a new stream!")
 
 	// Create a buffer stream for non blocking read and write.
 	rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
@@ -75,20 +79,20 @@ func readData(rw *bufio.ReadWriter) {
 }
 
 func writeData(rw *bufio.ReadWriter) {
-	stdReader := bufio.NewReader(os.Stdin)
+	//stdReader := bufio.NewReader(os.Stdin)
 
-	for {
+	//for {
 		fmt.Print("> ")
-		sendData, err := stdReader.ReadString('\n')
+		sendData := "HELLLLLO" //stdReader.ReadString('\n')
 
-		if err != nil {
-			panic(err)
-		}
+		//if err != nil {
+		//	panic(err)
+		//}
 		fmt.Printf("SENDING")
 		fmt.Printf(sendData)
 		rw.WriteString(fmt.Sprintf("%s\n", sendData))
 		rw.Flush()
-	}
+	//}
 }
 
 // TODO: This should be broken down, converted to use ipfs info, and moved to mobile/node.go
