@@ -14,7 +14,7 @@ import (
 	trepo "github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/wallet"
 	"github.com/textileio/textile-go/repo/db"
-
+	peerinfo "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreapi"
 	oldcmds "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
@@ -24,7 +24,7 @@ import (
 	utilmain "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/cmd/ipfs/util"
 	//pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	//ma "github.com/multiformats/go-multiaddr"
-	//ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	//"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"bufio"
 )
@@ -265,7 +265,25 @@ func (n *Node) SendMessage(dest string) (error) {
 		panic(err)
 	}
 
-	n.node.IpfsNode.PeerHost.Connect(context.Background(), peerInfo)
+	addr, err := ma.NewMultiaddr("/ip4/71.19.148.55/tcp/4001")
+	if err != nil {
+		panic(err)
+	}
+
+	random := peerinfo.PeerInfo{
+		ID:"QmcbJ2dMo7egCcsqrs7MMh6yWfWQWyQ4AKto7oE9Mv71aE",
+		Addrs: []ma.Multiaddr{addr},
+	}
+
+	err = n.node.IpfsNode.PeerHost.Connect(context.Background(), random)
+	if err != nil {
+		panic(err)
+	}
+
+	err = n.node.IpfsNode.PeerHost.Connect(context.Background(), peerInfo)
+	if err != nil {
+		panic(err)
+	}
 
 	fmt.Println("This node's multiaddress: ")
 	// IP will be 0.0.0.0 (listen on any interface) and port will be 0 (choose one for me).
