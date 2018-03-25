@@ -259,6 +259,13 @@ func (n *Node) SendMessage(dest string) (error) {
 	// Add destination peer multiaddress in the peerstore.
 	// This will be used during connection and stream creation by libp2p.
 	peerID := addAddrToPeerstore(n.node.IpfsNode.PeerHost, dest)
+	peerInfo, err := n.node.IpfsNode.Routing.FindPeer(context.Background(), peerID)
+
+	if err != nil {
+		panic(err)
+	}
+
+	n.node.IpfsNode.PeerHost.Connect(context.Background(), peerInfo)
 
 	fmt.Println("This node's multiaddress: ")
 	// IP will be 0.0.0.0 (listen on any interface) and port will be 0 (choose one for me).

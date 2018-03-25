@@ -73,7 +73,7 @@ func TestNode_Send_P2P_Message(t *testing.T) {
 	if err != nil {
 		t.Errorf("start mobile node failed: %s", err)
 	}
-	textile.SendMessage("/ip4/127.0.0.1/tcp/3001/ipfs/QmcxsSTeHBEfaWBb2QKe5UZWK8ezWJkxJfmcb5rQV374M6")
+	textile.SendMessage("/p2p-circuit/ipfs/QmaisH6zWhseNTioqBqUJJpbV5AbCDCi91j9K4JGDEpCJY")
 }
 
 func TestNode_PubMessage(t *testing.T) {
