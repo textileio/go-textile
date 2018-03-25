@@ -21,6 +21,7 @@ func TestNode_Start(t *testing.T) {
 	}
 }
 
+
 func TestNode_PinPhoto(t *testing.T) {
 	hash, err := textile.PinPhoto("testdata/test.jpg", "testdata/thumb.jpg")
 	if err != nil {
@@ -55,6 +56,34 @@ func TestNode_GetPhotoBase64String(t *testing.T) {
 	if len(res) == 0 {
 		t.Errorf("get photo base64 string bad result")
 	}
+}
+
+func TestNode_Await_P2P_Message(t *testing.T) {
+	textile = NewTextile("testdata/.ipfs", "")
+	err := textile.Start()
+	if err != nil {
+		t.Errorf("start mobile node failed: %s", err)
+	}
+	textile.ListenMessage()
+}
+
+func TestNode_Send_P2P_Message(t *testing.T) {
+	textile = NewTextile("testdata/.ipfs2", "")
+	err := textile.Start()
+	if err != nil {
+		t.Errorf("start mobile node failed: %s", err)
+	}
+	// This works for local chat app...
+	textile.SendMessage("/ip4/127.0.0.1/tcp/3001/ipfs/QmcxsSTeHBEfaWBb2QKe5UZWK8ezWJkxJfmcb5rQV374M6")
+}
+
+func TestNode_PubMessage(t *testing.T) {
+	textile = NewTextile("testdata/.ipfs", "")
+	err := textile.Start()
+	if err != nil {
+		t.Errorf("start mobile node failed: %s", err)
+	}
+	textile.PubMessage("HELLOWWWWWMEOOW")
 }
 
 func TestNode_Stop(t *testing.T) {
