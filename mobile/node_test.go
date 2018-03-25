@@ -68,7 +68,7 @@ func TestNode_Await_P2P_Message(t *testing.T) {
 }
 
 func TestNode_Send_P2P_Message(t *testing.T) {
-	textile = NewTextile("testdata/.ipfs", "")
+	textile = NewTextile("testdata/.ipfs2", "")
 	err := textile.Start()
 	if err != nil {
 		t.Errorf("start mobile node failed: %s", err)

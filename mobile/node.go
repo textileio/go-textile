@@ -14,7 +14,6 @@ import (
 	trepo "github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/wallet"
 	"github.com/textileio/textile-go/repo/db"
-
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreapi"
 	oldcmds "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
@@ -22,10 +21,6 @@ import (
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/config"
 	lockfile "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo/lock"
 	utilmain "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/cmd/ipfs/util"
-	//pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
-	//ma "github.com/multiformats/go-multiaddr"
-	//ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	//"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"bufio"
 )
 
@@ -259,6 +254,7 @@ func (n *Node) SendMessage(dest string) {
 	// Add destination peer multiaddress in the peerstore.
 	// This will be used during connection and stream creation by libp2p.
 	peerID := addAddrToPeerstore(n.node.IpfsNode.PeerHost, dest)
+
 	// Start a stream with peer with peer Id: 'peerId'.
 	// Multiaddress of the destination peer is fetched from the peerstore using 'peerId'.
 	ctx, cancel := context.WithTimeout(context.Background(), 500 * time.Millisecond)
