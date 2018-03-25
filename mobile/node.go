@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"encoding/base64"
 	"io/ioutil"
-	"sync"
 
 	tcore "github.com/textileio/textile-go/core"
 	trepo "github.com/textileio/textile-go/repo"
@@ -23,10 +22,11 @@ import (
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/config"
 	lockfile "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo/lock"
 	utilmain "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/cmd/ipfs/util"
-	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
-	ma "github.com/multiformats/go-multiaddr"
+	//pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
+	//ma "github.com/multiformats/go-multiaddr"
 	//ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	//"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	"bufio"
 )
 
 type Node struct {
@@ -250,6 +250,51 @@ func (n *Node) GetPhotoBase64String(path string) (string, error) {
 
 	return bs64, nil
 }
+
+
+
+
+func (n *Node) SendMessage(dest string) (error) {
+
+	// Add destination peer multiaddress in the peerstore.
+	// This will be used during connection and stream creation by libp2p.
+	peerID := addAddrToPeerstore(n.node.IpfsNode.PeerHost, dest)
+
+	fmt.Println("This node's multiaddress: ")
+	// IP will be 0.0.0.0 (listen on any interface) and port will be 0 (choose one for me).
+	// Although this node will not listen for any connection. It will just initiate a connect with
+	// one of its peer and use that stream to communicate.
+	//fmt.Printf("%s/ipfs/%s\n", sourceMultiAddr, host.ID().Pretty())
+
+	// Start a stream with peer with peer Id: 'peerId'.
+	// Multiaddress of the destination peer is fetched from the peerstore using 'peerId'.
+	s, err := n.node.IpfsNode.PeerHost.NewStream(context.Background(), peerID, "/chat/1.0.0")
+
+	if err != nil {
+		panic(err)
+	}
+
+	// Create a buffered stream so that read and writes are non blocking.
+	rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
+
+	// Create a thread to read and write data.
+	go writeData(rw)
+	go readData(rw)
+
+	// Hang forever.
+	select {}
+}
+
+// TODO: Need to actually pass messages back to RN
+func (n *Node) ListenMessage() {
+	// Set a function as stream handler.
+	// This function  is called when a peer initiate a connection and starts a stream with this peer.
+	// Only applicable on the receiving side.
+	n.node.IpfsNode.PeerHost.SetStreamHandler("/chat/1.0.0", handleStream)
+	// Hang forever
+	<-make(chan struct{})
+}
+
 
 // Todo: Partial method
 func (n *Node) PubMessage(message string) (error) {
