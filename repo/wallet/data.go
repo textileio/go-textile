@@ -8,13 +8,9 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
-
 	_ "github.com/disintegration/imaging"
 
-	"github.com/textileio/textile-go/net"
-
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/commands"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreapi"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreapi/interface"
 	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreunix"
@@ -22,6 +18,11 @@ import (
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	"mime/multipart"
+	"fmt"
+	"bufio"
+	"io/ioutil"
+	"gx/ipfs/QmVmDhyTTUcQXFD1rRQ64fGLMSAoaQvNH3hwuaCFAPq2hy/errors"
 )
 
 type PhotoData struct {
@@ -36,6 +37,13 @@ type Data struct {
 	Updated time.Time `json:"updated"`
 	Photos []string `json:"photos"`
 	LastHash string `json:"last_hash"`
+}
+
+type Hashed struct {
+	Name string `json:"Name"`
+	Hash string `json:"Hash"`
+	Bytes int64 `json:"Bytes,omitempty"`
+	Size string `json:"Size,omitempty"`
 }
 
 func (w *Data) String() string {
@@ -75,10 +83,10 @@ func NewWalletData(node *core.IpfsNode) error {
 	return nil
 }
 
-// PinPhoto takes an io reader pointing to an image file, creates a thumbnail, and adds
-// both to a new directory, then finally pins that directory.
-/* TODO: add an json object to this directory for the photo's metadata
-   TODO: add the metadata to the photos table (add some more columns)
+// PinPhoto takes an io reader pointing to an image file, and one pointing to a thumbnail, and adds
+// both to a new directory, then finally adds and pins that directory.
+// TODO: Should we _always_ only pin thumbnail and metadata? Currently, raw image file is not pinned (but it is added)
+/* TODO: add the metadata to the photos table (add some more columns)
    TODO: remove file extensions from file name below
 {
 	name: sunset
@@ -95,16 +103,26 @@ NOTE: thinking that name and ext should be here so that we can just call the lin
 	will always know its link address: "/photo"
 */
 func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode, apiHost string) (ipld.Node, error) {
-
 	dirb := uio.NewDirectory(nd.DAG)
-
 	// add the image, maintaining the extension type
 	ext := filepath.Ext(fname)
 	sname := "photo" + ext
-	addFileToDirectory(dirb, reader, sname, nd)
 
-	// add the thumbnail
-	addFileToDirectory(dirb, thumb, "thumb.jpg", nd)
+	// capture all bytes from image file
+	read, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	// wrap the bytes in a ReadSeeker
+	r := bytes.NewReader(read)
+	addFileToDirectory(dirb, r, sname, nd)
+
+	read, err = ioutil.ReadAll(thumb)
+	if err != nil {
+		return nil, err
+	}
+	t := bytes.NewReader(read)
+	addFileToDirectory(dirb, t, "thumb.jpg", nd)
 
 	// create metadata object
 	md := &PhotoData{
@@ -117,7 +135,8 @@ func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode
 	if err != nil {
 		return nil, err
 	}
-	addFileToDirectory(dirb, bytes.NewReader(wbb), "meta", nd)
+	meta := bytes.NewReader(wbb)
+	addFileToDirectory(dirb, meta, "meta", nd)
 
 	// pin the whole thing
 	dir, err := dirb.GetNode()
@@ -125,25 +144,103 @@ func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode
 		return nil, err
 	}
 
-	if err := nd.Pinning.Pin(nd.Context(), dir, true); err != nil {
+	// Only pin the top-level structure (recursive: false)
+	if err := nd.Pinning.Pin(nd.Context(), dir, false); err != nil {
 		return nil, err
+	}
+	// _Now_ pin thumbnail and metadata
+	for _, item := range dir.Links() {
+		if item.Name == "meta" || item.Name == "thumb.jpg" {
+			tnode, err := item.GetNode(nd.Context(), nd.DAG)
+			if err != nil {
+				// TODO: Is it ok to just continue? Is it isn't the end of the world if we _don't_ pin?
+				continue
+			}
+			nd.Pinning.Pin(nd.Context(), tnode, false)
+		}
 	}
 
 	if err := nd.Pinning.Flush(); err != nil {
 		return nil, err
 	}
 
-	// pin it to server
 	if apiHost != "" {
-		res := &commands.AddPinOutput{}
-		client := &http.Client{Timeout: 10 * time.Second}
-		args := dir.Cid().Hash().B58String() + "&recursive=true"
-		err = net.GetJson(client, apiHost+"/api/v0/pin/add?arg="+args, res)
+		var b bytes.Buffer
+		w := multipart.NewWriter(&b)
+
+		fw1, err := w.CreateFormFile("file", "photo.jpg")
 		if err != nil {
-			return dir, err
+			return nil, err
+		}
+		r.Seek(0, 0)
+		if _, err = io.Copy(fw1, r); err != nil {
+			return nil, err
+		}
+
+		fw2, err := w.CreateFormFile("file", "thumb.jpg")
+		if err != nil {
+			return nil, err
+		}
+		t.Seek(0, 0)
+		if _, err = io.Copy(fw2, t); err != nil {
+			return nil, err
+		}
+
+		fw3, err := w.CreateFormFile("file", "meta")
+		if err != nil {
+			return nil, err
+		}
+		meta.Seek(0, 0)
+		if _, err = io.Copy(fw3, meta); err != nil {
+			return nil, err
+		}
+		// Don't forget to close multipart writer.
+		// If not closed, request will be missing terminating boundary.
+		w.Close()
+
+		// Now that we have form, submit it to handler.
+		req, err := http.NewRequest("POST", apiHost+"/api/v0/add?wrap-with-directory=true&recursive=true", &b)
+		if err != nil {
+			return nil, err
+		}
+		// Don't forget to set the content type, this will contain the boundary.
+		req.Header.Set("Content-Type", w.FormDataContentType())
+
+		// Submit the request
+		client := &http.Client{}
+		res, err := client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		defer res.Body.Close()
+
+		var hashes []Hashed
+		// Check the response
+		if res.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("bad status: %s", res.Status)
+		} else {
+			var body bytes.Buffer
+			_, err := body.ReadFrom(res.Body)
+			if err != nil {
+				return nil, err
+			}
+			scanner := bufio.NewScanner(&body)
+			for scanner.Scan() {
+				h := Hashed{}
+				err = json.Unmarshal(scanner.Bytes(), &h)
+				if err != nil {
+					return nil, err
+				}
+				hashes = append(hashes, h)
+			}
+			if err := scanner.Err(); err != nil {
+				return nil, err
+			}
+		}
+		if dir.Cid().Hash().B58String() != hashes[len(hashes)-1].Hash {
+			return nil, errors.New("mismatch between local and remote CIDs")
 		}
 	}
-
 	return dir, nil
 }
 
