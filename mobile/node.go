@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"encoding/base64"
 	"io/ioutil"
-
 	tcore "github.com/textileio/textile-go/core"
 	trepo "github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/wallet"
@@ -171,7 +170,7 @@ func (n *Node) Stop() error {
 	return nil
 }
 
-func (n *Node) PinPhoto(path string, thumb string) (string, error) {
+func (n *Node) AddPhoto(path string, thumb string) (string, error) {
 	// read file from disk
 	r, err := os.Open(path)
 	if err != nil {
@@ -192,6 +191,7 @@ func (n *Node) PinPhoto(path string, thumb string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	// top-level hash for whole added/pinned 'directory'
 	hash := ldn.Cid().Hash().B58String()
 
 	// index

@@ -11,7 +11,7 @@ var textile *Node
 var hash string
 
 func TestNewTextile(t *testing.T) {
-	textile = NewTextile("testdata/.ipfs", "")
+	textile = NewTextile("testdata/.ipfs", "https://ipfs.textile.io")
 }
 
 func TestNode_Start(t *testing.T) {
@@ -21,14 +21,14 @@ func TestNode_Start(t *testing.T) {
 	}
 }
 
-func TestNode_PinPhoto(t *testing.T) {
-	hash, err := textile.PinPhoto("testdata/test.jpg", "testdata/thumb.jpg")
+func TestNode_AddPhoto(t *testing.T) {
+	hashes, err := textile.AddPhoto("testdata/test.jpg", "testdata/thumb.jpg")
 	if err != nil {
 		t.Errorf("pin photo failed: %s", err)
 		return
 	}
-	if len(hash) == 0 {
-		t.Errorf("pin photo got bad hash: %s", hash)
+	if len(hashes) < 4 {
+		t.Errorf("add photo got bad hash array: %s", hash)
 	}
 }
 
