@@ -237,7 +237,14 @@ func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode
 				return nil, err
 			}
 		}
-		if dir.Cid().Hash().B58String() != hashes[len(hashes)-1].Hash {
+		found := false
+		for _, hash := range hashes {
+			if dir.Cid().Hash().B58String() == hash.Hash {
+				found = true
+				break
+			}
+		}
+		if !found {
 			return nil, errors.New("mismatch between local and remote CIDs")
 		}
 	}
