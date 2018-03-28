@@ -122,6 +122,13 @@ func (n *Node) Start() error {
 	n.cancel = cancel
 
 	ctx := oldcmds.Context{}
+
+	// TODO: we may need a check to ensure it is running
+	if n.node.IpfsNode != nil {
+		return nil
+	}
+	//fmt.Print(n.node.IpfsNode.OnlineMode())
+	//fmt.Print(n.node.IpfsNode.LocalMode())
 	nd, err := core.NewNode(cctx, n.ipfsConfig)
 	if err != nil {
 		return err
