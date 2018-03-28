@@ -31,14 +31,8 @@
 
 - (instancetype)initWithRef:(id)ref;
 - (instancetype)init;
-/**
- * Path for the node's data directory
- */
 - (NSString*)repoPath;
 - (void)setRepoPath:(NSString*)v;
-/**
- * API host for service pins
- */
 - (NSString*)apiHost;
 - (void)setApiHost:(NSString*)v;
 @end
@@ -50,9 +44,6 @@
 - (instancetype)initWithRef:(id)ref;
 - (instancetype)init;
 - (NSString*)addPhoto:(NSString*)path thumb:(NSString*)thumb error:(NSError**)error;
-/**
- * pass in Qm../thumb, or Qm../photo for full image
- */
 - (NSString*)getPhotoBase64String:(NSString*)path error:(NSError**)error;
 - (NSString*)getPhotos:(NSString*)offsetId limit:(long)limit error:(NSError**)error;
 - (BOOL)start:(NSError**)error;
