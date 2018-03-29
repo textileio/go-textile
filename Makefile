@@ -14,7 +14,7 @@ ios_framework:
 	CGO_CFLAGS_ALLOW='-fmodules|-fblocks' gomobile bind -target=ios/arm64 github.com/textileio/textile-go/mobile
 
 android_framework:
-	gomobile bind -target=android/arm64 github.com/textileio/textile-go/mobile
+	gomobile bind -target=android -o textilego.aar github.com/textileio/textile-go/mobile
 
 ##
 ## Protobuf compilation
