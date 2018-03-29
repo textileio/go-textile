@@ -58,7 +58,7 @@ type PhotoStore interface {
 	Queryable
 
 	// Put a new photo to the database
-	Put(cid string, timestamp time.Time) error
+	Put(cid string, thumb string, timestamp time.Time) error
 
 	// A list of photos
 	GetPhotos(offsetId string, limit int) []PhotoSet

@@ -49,6 +49,7 @@ func TestNode_GetPhotos(t *testing.T) {
 	json.Unmarshal([]byte(res), &list)
 	if len(list.Hashes) == 0 {
 		t.Errorf("get photos bad result")
+		return
 	}
 	hash = list.Hashes[0]
 }
