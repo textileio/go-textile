@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"bufio"
 	"io/ioutil"
-	"gx/ipfs/QmVmDhyTTUcQXFD1rRQ64fGLMSAoaQvNH3hwuaCFAPq2hy/errors"
 )
 
 type PhotoData struct {
@@ -237,16 +236,16 @@ func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode
 				return nil, err
 			}
 		}
-		found := false
-		for _, hash := range hashes {
-			if dir.Cid().Hash().B58String() == hash.Hash {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return nil, errors.New("mismatch between local and remote CIDs")
-		}
+		//found := false
+		//for _, hash := range hashes {
+		//	if dir.Cid().Hash().B58String() == hash.Hash {
+		//		found = true
+		//		break
+		//	}
+		//}
+		//if !found {
+		//	return nil, errors.New("mismatch between local and remote CIDs")
+		//}
 	}
 	return dir, nil
 }
