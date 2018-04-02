@@ -28,8 +28,19 @@ func TestNode_StartAgain(t *testing.T) {
 	}
 }
 
-func TestNode_AddPhoto(t *testing.T) {
-	hashes, err := textile.AddPhoto("testdata/test.jpg", "testdata/thumb.jpg")
+func TestNode_LocalAddPhoto(t *testing.T) {
+	hashes, err := textile.LocalAddPhoto("testdata/test.jpg", "testdata/thumb.jpg")
+	if err != nil {
+		t.Errorf("pin photo failed: %s", err)
+		return
+	}
+	if len(hashes) < 1 {
+		t.Errorf("add photo got bad hash array: %s", hash)
+	}
+}
+
+func TestNode_RemoteAddPhoto(t *testing.T) {
+	hashes, err := textile.RemoteAddPhoto("testdata/test.jpg", "testdata/thumb.jpg")
 	if err != nil {
 		t.Errorf("pin photo failed: %s", err)
 		return

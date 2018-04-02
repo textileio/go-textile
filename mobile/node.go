@@ -177,7 +177,7 @@ func (n *Node) Stop() error {
 	return nil
 }
 
-func (n *Node) AddPhoto(path string, thumb string) (string, error) {
+func (n *Node) LocalAddPhoto(path string, thumb string) (string, error) {
 	// read file from disk
 	r, err := os.Open(path)
 	if err != nil {
@@ -203,6 +203,36 @@ func (n *Node) AddPhoto(path string, thumb string) (string, error) {
 
 	// index
 	n.node.Datastore.Photos().Put(hash, time.Now())
+
+	return hash, nil
+}
+
+func (n *Node) RemoteAddPhoto(path string, thumb string) (string, error) {
+	// read file from disk
+	r, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer r.Close()
+
+	t, err := os.Open(thumb)
+	if err != nil {
+		return "", err
+	}
+	defer t.Close()
+
+	fname := filepath.Base(path)
+
+	// pin
+	hashes, err := wallet.RemoteAddPhoto(r, fname, t, n.config.ApiHost)
+	if err != nil {
+		return "", err
+	}
+	// top-level hash for whole added/pinned 'directory'
+	hash := hashes[len(hashes)-1].Hash  // I _think_ the last one is always the top-level hash?
+
+	// index
+	//n.node.Datastore.Photos().Put(hash, time.Now())
 
 	return hash, nil
 }
