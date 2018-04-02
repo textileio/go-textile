@@ -139,7 +139,9 @@ func RemoteAddPhoto(reader io.Reader, fname string, thumb io.Reader, apiHost str
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
 	// Submit the request
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: time.Second * 15,
+	}
 	res, err := client.Do(req)
 	if err != nil {
 		return nil, err
