@@ -229,7 +229,7 @@ func (n *Node) RemoteAddPhoto(path string, thumb string) (string, error) {
 		return "", err
 	}
 	// top-level hash for whole added/pinned 'directory'
-	hash := hashes[len(hashes)-1].Hash
+	hash := hashes[len(hashes)-1].Hash  // I _think_ the last one is always the top-level hash?
 
 	// index
 	//n.node.Datastore.Photos().Put(hash, time.Now())
