@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"bufio"
 	"io/ioutil"
+	"time"
 )
 
 type PhotoData struct {
@@ -206,7 +207,9 @@ func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode
 		req.Header.Set("Content-Type", w.FormDataContentType())
 
 		// Submit the request
-		client := &http.Client{}
+		client := &http.Client{
+			Timeout: time.Second * 15,
+		}
 		res, err := client.Do(req)
 		if err != nil {
 			return nil, err
