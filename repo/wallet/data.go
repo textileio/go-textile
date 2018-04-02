@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"bufio"
 	"io/ioutil"
-	"time"
 )
 
 type PhotoData struct {
