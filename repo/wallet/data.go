@@ -21,7 +21,6 @@ import (
 	"mime/multipart"
 	"fmt"
 	"bufio"
-	"io/ioutil"
 )
 
 type PhotoData struct {
@@ -82,6 +81,108 @@ func NewWalletData(node *core.IpfsNode) error {
 	return nil
 }
 
+func RemoteAddPhoto(reader io.Reader, fname string, thumb io.Reader, apiHost string) ([]Hashed, error) {
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+
+	fw1, err := w.CreateFormFile("file", "photo.jpg")
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err = io.Copy(fw1, reader); err != nil {
+		return nil, err
+	}
+
+	fw2, err := w.CreateFormFile("file", "thumb.jpg")
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err = io.Copy(fw2, thumb); err != nil {
+		return nil, err
+	}
+
+	fw3, err := w.CreateFormFile("file", "meta")
+	if err != nil {
+		return nil, err
+	}
+
+	ext := filepath.Ext(fname)
+
+	// create metadata object
+	md := &PhotoData{
+		Name: strings.TrimSuffix(fname, ext),
+		Ext: ext,
+		Location: make([]float64, 0),
+		Timestamp: time.Now(),
+	}
+	wbb, err := json.Marshal(md)
+	if err != nil {
+		return nil, err
+	}
+	meta := bytes.NewReader(wbb)
+
+	if _, err = io.Copy(fw3, meta); err != nil {
+		return nil, err
+	}
+	// Don't forget to close multipart writer.
+	// If not closed, request will be missing terminating boundary.
+	w.Close()
+
+	// Now that we have form, submit it to handler.
+	req, err := http.NewRequest("POST", apiHost+"/api/v0/add?wrap-with-directory=true&recursive=true", &b)
+	if err != nil {
+		return nil, err
+	}
+	// Don't forget to set the content type, this will contain the boundary.
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	// Submit the request
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	var hashes []Hashed
+	// Check the response
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("bad status: %s", res.Status)
+	} else {
+		var body bytes.Buffer
+		_, err := body.ReadFrom(res.Body)
+		if err != nil {
+			return nil, err
+		}
+		scanner := bufio.NewScanner(&body)
+		for scanner.Scan() {
+			h := Hashed{}
+			err = json.Unmarshal(scanner.Bytes(), &h)
+			if err != nil {
+				return nil, err
+			}
+			hashes = append(hashes, h)
+		}
+		if err := scanner.Err(); err != nil {
+			return nil, err
+		}
+	}
+	//found := false
+	//for _, hash := range hashes {
+	//	if dir.Cid().Hash().B58String() == hash.Hash {
+	//		found = true
+	//		break
+	//	}
+	//}
+	//if !found {
+	//	return nil, errors.New("mismatch between local and remote CIDs")
+	//}
+
+	return hashes, err
+}
+
 // PinPhoto takes an io reader pointing to an image file, and one pointing to a thumbnail, and adds
 // both to a new directory, then finally adds and pins that directory.
 // TODO: Should we _always_ only pin thumbnail and metadata? Currently, raw image file is not pinned (but it is added)
@@ -107,21 +208,21 @@ func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode
 	ext := filepath.Ext(fname)
 	sname := "photo" + ext
 
-	// capture all bytes from image file
-	read, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-	// wrap the bytes in a ReadSeeker
-	r := bytes.NewReader(read)
-	addFileToDirectory(dirb, r, sname, nd)
+	//// capture all bytes from image file
+	//read, err := ioutil.ReadAll(reader)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//// wrap the bytes in a ReadSeeker
+	//r := bytes.NewReader(read)
+	addFileToDirectory(dirb, reader, sname, nd)
 
-	read, err = ioutil.ReadAll(thumb)
-	if err != nil {
-		return nil, err
-	}
-	t := bytes.NewReader(read)
-	addFileToDirectory(dirb, t, "thumb.jpg", nd)
+	//read, err = ioutil.ReadAll(thumb)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//t := bytes.NewReader(read)
+	addFileToDirectory(dirb, thumb, "thumb.jpg", nd)
 
 	// create metadata object
 	md := &PhotoData{
@@ -163,90 +264,6 @@ func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode
 		return nil, err
 	}
 
-	if apiHost != "" {
-		var b bytes.Buffer
-		w := multipart.NewWriter(&b)
-
-		fw1, err := w.CreateFormFile("file", "photo.jpg")
-		if err != nil {
-			return nil, err
-		}
-		r.Seek(0, 0)
-		if _, err = io.Copy(fw1, r); err != nil {
-			return nil, err
-		}
-
-		fw2, err := w.CreateFormFile("file", "thumb.jpg")
-		if err != nil {
-			return nil, err
-		}
-		t.Seek(0, 0)
-		if _, err = io.Copy(fw2, t); err != nil {
-			return nil, err
-		}
-
-		fw3, err := w.CreateFormFile("file", "meta")
-		if err != nil {
-			return nil, err
-		}
-		meta.Seek(0, 0)
-		if _, err = io.Copy(fw3, meta); err != nil {
-			return nil, err
-		}
-		// Don't forget to close multipart writer.
-		// If not closed, request will be missing terminating boundary.
-		w.Close()
-
-		// Now that we have form, submit it to handler.
-		req, err := http.NewRequest("POST", apiHost+"/api/v0/add?wrap-with-directory=true&recursive=true", &b)
-		if err != nil {
-			return nil, err
-		}
-		// Don't forget to set the content type, this will contain the boundary.
-		req.Header.Set("Content-Type", w.FormDataContentType())
-
-		// Submit the request
-		client := &http.Client{}
-		res, err := client.Do(req)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-
-		var hashes []Hashed
-		// Check the response
-		if res.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("bad status: %s", res.Status)
-		} else {
-			var body bytes.Buffer
-			_, err := body.ReadFrom(res.Body)
-			if err != nil {
-				return nil, err
-			}
-			scanner := bufio.NewScanner(&body)
-			for scanner.Scan() {
-				h := Hashed{}
-				err = json.Unmarshal(scanner.Bytes(), &h)
-				if err != nil {
-					return nil, err
-				}
-				hashes = append(hashes, h)
-			}
-			if err := scanner.Err(); err != nil {
-				return nil, err
-			}
-		}
-		//found := false
-		//for _, hash := range hashes {
-		//	if dir.Cid().Hash().B58String() == hash.Hash {
-		//		found = true
-		//		break
-		//	}
-		//}
-		//if !found {
-		//	return nil, errors.New("mismatch between local and remote CIDs")
-		//}
-	}
 	return dir, nil
 }
 
