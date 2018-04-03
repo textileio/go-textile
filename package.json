@@ -8,15 +8,16 @@
   },
   "gxDependencies": [
     {
-      "hash": "QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR",
+      "hash": "QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn",
       "name": "go-ipfs",
-      "version": "0.4.14-rc1"
+      "version": "0.4.14"
     }
   ],
   "gxVersion": "0.12.1",
   "language": "go",
   "license": "MIT",
-  "name": "textile-io",
+  "name": "textile-go",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
-  "version": "0.0.0"
+  "version": "0.0.1"
 }
+

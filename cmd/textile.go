@@ -5,8 +5,8 @@ import (
 
 	"github.com/textileio/textile-go/core/commands"
 
-	lgc "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands/legacy"
-	"gx/ipfs/QmabLouZTZwhfALuBcssPvkzhbYGMb4394huT7HY4LQ6d3/go-ipfs-cmds"
+	lgc "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/commands/legacy"
+	"gx/ipfs/QmfAkMSt9Fwzk48QDJecPcwCUjnf2uG7MLnmCGTp4C6ouL/go-ipfs-cmds"
 )
 
 // This is the CLI root, used for executing commands accessible to CLI clients.
@@ -90,8 +90,8 @@ func (d *cmdDetails) usesRepo() bool          { return !d.doesNotUseRepo }
 // properties so that other code can make decisions about whether to invoke a
 // command or return an error to the user.
 var cmdDetailsMap = map[string]cmdDetails{
-	"init":        {doesNotUseConfigAsInput: true, cannotRunOnDaemon: true, doesNotUseRepo: true},
-	"start":      {doesNotUseConfigAsInput: true, cannotRunOnDaemon: true},
-	"commands":    {doesNotUseRepo: true},
-	"version":     {doesNotUseConfigAsInput: true, doesNotUseRepo: true}, // must be permitted to run before init
+	"init":     {doesNotUseConfigAsInput: true, cannotRunOnDaemon: true, doesNotUseRepo: true},
+	"start":    {doesNotUseConfigAsInput: true, cannotRunOnDaemon: true},
+	"commands": {doesNotUseRepo: true},
+	"version":  {doesNotUseConfigAsInput: true, doesNotUseRepo: true}, // must be permitted to run before init
 }

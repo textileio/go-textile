@@ -1,16 +1,10 @@
 package selfhosted
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	"os"
-	"path"
+	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/commands"
 
-	"github.com/textileio/textile-go/ipfs"
+	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
 )
 
 type SelfHostedStorage struct {
@@ -29,33 +23,33 @@ func NewSelfHostedStorage(repoPath string, context commands.Context, pushNodes [
 	}
 }
 
-func (s *SelfHostedStorage) Store(peerID peer.ID, ciphertext []byte) (ma.Multiaddr, error) {
-	b := sha256.Sum256(ciphertext)
-	hash := hex.EncodeToString(b[:])
-	filePath := path.Join(s.repoPath, "outbox", hash)
-	f, err := os.Create(filePath)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	_, ferr := f.Write(ciphertext)
-	if ferr != nil {
-		return nil, ferr
-	}
-	addr, err := ipfs.AddFile(s.context, filePath)
-	if err != nil {
-		return nil, err
-	}
-	id, err := cid.Decode(addr)
-	if err != nil {
-		return nil, err
-	}
-	for _, peer := range s.pushNodes {
-		go s.store(peer.Pretty(), []cid.Cid{*id})
-	}
-	maAddr, err := ma.NewMultiaddr("/ipfs/" + addr + "/")
-	if err != nil {
-		return nil, err
-	}
-	return maAddr, nil
-}
+//func (s *SelfHostedStorage) Store(peerID peer.ID, ciphertext []byte) (ma.Multiaddr, error) {
+//	b := sha256.Sum256(ciphertext)
+//	hash := hex.EncodeToString(b[:])
+//	filePath := path.Join(s.repoPath, "outbox", hash)
+//	f, err := os.Create(filePath)
+//	if err != nil {
+//		return nil, err
+//	}
+//	defer f.Close()
+//	_, ferr := f.Write(ciphertext)
+//	if ferr != nil {
+//		return nil, ferr
+//	}
+//	addr, err := ipfs.AddFile(s.context, filePath)
+//	if err != nil {
+//		return nil, err
+//	}
+//	id, err := cid.Decode(addr)
+//	if err != nil {
+//		return nil, err
+//	}
+//	for _, peer := range s.pushNodes {
+//		go s.store(peer.Pretty(), []cid.Cid{*id})
+//	}
+//	maAddr, err := ma.NewMultiaddr("/ipfs/" + addr + "/")
+//	if err != nil {
+//		return nil, err
+//	}
+//	return maAddr, nil
+//}
