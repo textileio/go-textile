@@ -205,8 +205,18 @@ func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode
 		// Don't forget to set the content type, this will contain the boundary.
 		req.Header.Set("Content-Type", w.FormDataContentType())
 
+		// For control over keep-alives and timeouts, we create a Transport object
+		tr := &http.Transport{
+			MaxIdleConns: 10,
+			IdleConnTimeout: time.Second * 5,
+			ResponseHeaderTimeout: time.Second * 10,
+		}
+
 		// Submit the request
-		client := &http.Client{}
+		client := &http.Client{
+			Transport: tr,
+			Timeout: time.Second * 15,
+		}
 		res, err := client.Do(req)
 		if err != nil {
 			return nil, err
