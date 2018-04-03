@@ -1,48 +1,48 @@
 package wallet
 
 import (
-	"io"
-	"time"
 	"bytes"
 	"encoding/json"
+	_ "github.com/disintegration/imaging"
+	"io"
 	"net/http"
 	"path/filepath"
 	"strings"
-	_ "github.com/disintegration/imaging"
-
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreapi"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreapi/interface"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreunix"
-	uio "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/unixfs/io"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
-
-	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	"mime/multipart"
-	"fmt"
+	"time"
 	"bufio"
+	"fmt"
 	"io/ioutil"
+	"mime/multipart"
+
+	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
+	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/coreapi"
+	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/coreapi/interface"
+	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/coreunix"
+	uio "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/unixfs/io"
+
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
 
 type PhotoData struct {
-	Name string `json:"name"`
-	Ext string `json:"extension"`
-	Location []float64 `json:"location"`
+	Name      string    `json:"name"`
+	Ext       string    `json:"extension"`
+	Location  []float64 `json:"location"`
 	Timestamp time.Time `json:"timestamp"`
 }
 
 type Data struct {
-	Created time.Time `json:"created"`
-	Updated time.Time `json:"updated"`
-	Photos []string `json:"photos"`
-	LastHash string `json:"last_hash"`
+	Created  time.Time `json:"created"`
+	Updated  time.Time `json:"updated"`
+	Photos   []string  `json:"photos"`
+	LastHash string    `json:"last_hash"`
 }
 
 type Hashed struct {
-	Name string `json:"Name"`
-	Hash string `json:"Hash"`
-	Bytes int64 `json:"Bytes,omitempty"`
-	Size string `json:"Size,omitempty"`
+	Name  string `json:"Name"`
+	Hash  string `json:"Hash"`
+	Bytes int64  `json:"Bytes,omitempty"`
+	Size  string `json:"Size,omitempty"`
 }
 
 func (w *Data) String() string {
@@ -56,7 +56,7 @@ func NewWalletData(node *core.IpfsNode) error {
 	wallet := &Data{
 		Created: time.Now(),
 		Updated: time.Now(),
-		Photos: make([]string, 0),
+		Photos:  make([]string, 0),
 	}
 
 	wb, err := json.Marshal(wallet)
@@ -125,9 +125,9 @@ func PinPhoto(reader io.Reader, fname string, thumb io.Reader, nd *core.IpfsNode
 
 	// create metadata object
 	md := &PhotoData{
-		Name: strings.TrimSuffix(fname, ext),
-		Ext: ext,
-		Location: make([]float64, 0),
+		Name:      strings.TrimSuffix(fname, ext),
+		Ext:       ext,
+		Location:  make([]float64, 0),
 		Timestamp: time.Now(),
 	}
 	wbb, err := json.Marshal(md)

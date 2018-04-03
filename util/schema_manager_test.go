@@ -12,9 +12,6 @@ func TestNewSchemaManagerSetsReasonableDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if subject.testModeEnabled != false {
-		t.Error("Expected test mode to be disabled by default")
-	}
 	if subject.os != runtime.GOOS {
 		t.Error("Expected default OS to be set via runtime.GOOS constant")
 	}
@@ -22,13 +19,9 @@ func TestNewSchemaManagerSetsReasonableDefaults(t *testing.T) {
 	expectedDataPath := "/foobarbaz"
 	subject, err = NewCustomSchemaManager(SchemaContext{
 		DataPath:        expectedDataPath,
-		TestModeEnabled: true,
 	})
 	if err != nil {
 		t.Fatal(err)
-	}
-	if subject.testModeEnabled != true {
-		t.Error("Expected test mode to be enabled")
 	}
 	if strings.HasPrefix(subject.DataPath(), expectedDataPath) != true {
 		t.Errorf("Expected DataPath to start with %s", expectedDataPath)
@@ -39,7 +32,6 @@ func TestNewSchemaManagerServiceDatastorePath(t *testing.T) {
 	dataPath := "/root"
 	subject, err := NewCustomSchemaManager(SchemaContext{
 		DataPath:        dataPath,
-		TestModeEnabled: false,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -55,7 +47,6 @@ func TestNewSchemaManagerServiceDatastorePath(t *testing.T) {
 
 	subject, err = NewCustomSchemaManager(SchemaContext{
 		DataPath:        dataPath,
-		TestModeEnabled: true,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -74,7 +65,7 @@ func TestVerifySchemaVersion(t *testing.T) {
 	var (
 		expectedVersion = "123"
 	)
-	paths, err := NewCustomSchemaManager(SchemaContext{TestModeEnabled: true})
+	paths, err := NewCustomSchemaManager(SchemaContext{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +100,6 @@ func TestVerifySchemaVersion(t *testing.T) {
 func TestBuildSchemaDirectories(t *testing.T) {
 	paths, err := NewCustomSchemaManager(SchemaContext{
 		DataPath:        GenerateTempPath(),
-		TestModeEnabled: true,
 	})
 	err = paths.BuildSchemaDirectories()
 	if err != nil {
