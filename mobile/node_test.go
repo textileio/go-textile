@@ -16,7 +16,6 @@ func TestNewTextile(t *testing.T) {
 
 func TestNode_Start(t *testing.T) {
 	err := textile.Start()
-	err = textile.Start()
 	if err != nil {
 		t.Errorf("start mobile node failed: %s", err)
 	}
