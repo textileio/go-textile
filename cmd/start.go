@@ -6,16 +6,17 @@ import (
 	_ "net/http/pprof"
 	"os"
 
-	trepo "github.com/textileio/textile-go/repo"
 	tcore "github.com/textileio/textile-go/core"
+	trepo "github.com/textileio/textile-go/repo"
 
-	utilmain "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/cmd/ipfs/util"
-	oldcmds "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo"
+	utilmain "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/cmd/ipfs/util"
+	oldcmds "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/commands"
+	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
+	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo"
 
-	"gx/ipfs/QmabLouZTZwhfALuBcssPvkzhbYGMb4394huT7HY4LQ6d3/go-ipfs-cmds"
+	"gx/ipfs/QmfAkMSt9Fwzk48QDJecPcwCUjnf2uG7MLnmCGTp4C6ouL/go-ipfs-cmds"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
+	"time"
 )
 
 var startCmd = &cmds.Command{
@@ -37,7 +38,7 @@ second signal.
 `,
 	},
 
-	Options: []cmdkit.Option{},
+	Options:     []cmdkit.Option{},
 	Subcommands: map[string]*cmds.Command{},
 	Run:         daemonFunc,
 }
@@ -61,7 +62,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	// we may be running in an uninitialized state.
 	if !fsrepo.IsInitialized(cctx.ConfigRoot) {
-		err := trepo.DoInit(os.Stdout, cctx.ConfigRoot, nil)
+		err := trepo.DoInit(os.Stdout, cctx.ConfigRoot, time.Now(), nil)
 		if err != nil {
 			re.SetError(err, cmdkit.ErrNormal)
 			return
