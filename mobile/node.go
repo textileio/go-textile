@@ -85,13 +85,16 @@ func (m *Mobile) NewNode(config MobileConfig) (*Node, error) {
 	}
 
 	// tweak default (textile) config for mobile
+	// some of the below are taken from the not-yet-released "lowpower" profile preset
 	cfg, err := repo.Config()
 	if err != nil {
 		return nil, err
 	}
+	cfg.Reprovider.Interval = "0"
+	cfg.Swarm.ConnMgr.LowWater = 20
+	cfg.Swarm.ConnMgr.HighWater = 40
+	cfg.Swarm.ConnMgr.GracePeriod = time.Minute.String()
 	cfg.Swarm.DisableNatPortMap = true
-	cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip4/0.0.0.0/tcp/9005/ws")
-	cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip6/::/tcp/9005/ws")
 
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
@@ -100,7 +103,7 @@ func (m *Mobile) NewNode(config MobileConfig) (*Node, error) {
 		Online:    true,
 		ExtraOpts: map[string]bool{
 			"pubsub": true,
-			"ipnsps": true,
+			"ipnsps": false,
 			"mplex":  true,
 		},
 		Routing: core.DHTClientOption,
@@ -116,9 +119,6 @@ func (m *Mobile) NewNode(config MobileConfig) (*Node, error) {
 }
 
 func (n *Node) Start() error {
-	fmt.Println("Starting node...")
-	fmt.Println("Repo directory: ", n.config.RepoPath)
-
 	cctx, cancel := context.WithCancel(context.Background())
 	n.cancel = cancel
 
@@ -128,8 +128,10 @@ func (n *Node) Start() error {
 	if n.node.IpfsNode != nil {
 		return nil
 	}
-	//fmt.Print(n.node.IpfsNode.OnlineMode())
-	//fmt.Print(n.node.IpfsNode.LocalMode())
+
+	fmt.Println("Starting node...")
+	fmt.Println("Repo directory: ", n.config.RepoPath)
+
 	nd, err := core.NewNode(cctx, n.ipfsConfig)
 	if err != nil {
 		return err
