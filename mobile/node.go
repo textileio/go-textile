@@ -2,25 +2,26 @@ package mobile
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
-	"encoding/json"
-	"encoding/base64"
-	"io/ioutil"
+
 	tcore "github.com/textileio/textile-go/core"
 	trepo "github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/repo/wallet"
 	"github.com/textileio/textile-go/repo/db"
+	"github.com/textileio/textile-go/repo/wallet"
 
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core/coreapi"
-	oldcmds "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/commands"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/core"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo"
-	"gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/config"
-	lockfile "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/repo/fsrepo/lock"
-	utilmain "gx/ipfs/QmXporsyf5xMvffd2eiTDoq85dNpYUynGJhfabzDjwP8uR/go-ipfs/cmd/ipfs/util"
+	utilmain "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/cmd/ipfs/util"
+	oldcmds "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/commands"
+	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
+	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/coreapi"
+	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/config"
+	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo"
+	lockfile "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo/lock"
 )
 
 type Node struct {
@@ -84,13 +85,16 @@ func (m *Mobile) NewNode(config MobileConfig) (*Node, error) {
 	}
 
 	// tweak default (textile) config for mobile
+	// some of the below are taken from the not-yet-released "lowpower" profile preset
 	cfg, err := repo.Config()
 	if err != nil {
 		return nil, err
 	}
+	cfg.Reprovider.Interval = "0"
+	cfg.Swarm.ConnMgr.LowWater = 20
+	cfg.Swarm.ConnMgr.HighWater = 40
+	cfg.Swarm.ConnMgr.GracePeriod = time.Minute.String()
 	cfg.Swarm.DisableNatPortMap = true
-	cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip4/0.0.0.0/tcp/9005/ws")
-	cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip6/::/tcp/9005/ws")
 
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
@@ -99,7 +103,7 @@ func (m *Mobile) NewNode(config MobileConfig) (*Node, error) {
 		Online:    true,
 		ExtraOpts: map[string]bool{
 			"pubsub": true,
-			"ipnsps": true,
+			"ipnsps": false,
 			"mplex":  true,
 		},
 		Routing: core.DHTClientOption,
@@ -115,9 +119,6 @@ func (m *Mobile) NewNode(config MobileConfig) (*Node, error) {
 }
 
 func (n *Node) Start() error {
-	fmt.Println("Starting node...")
-	fmt.Println("Repo directory: ", n.config.RepoPath)
-
 	cctx, cancel := context.WithCancel(context.Background())
 	n.cancel = cancel
 
@@ -127,8 +128,10 @@ func (n *Node) Start() error {
 	if n.node.IpfsNode != nil {
 		return nil
 	}
-	//fmt.Print(n.node.IpfsNode.OnlineMode())
-	//fmt.Print(n.node.IpfsNode.LocalMode())
+
+	fmt.Println("Starting node...")
+	fmt.Println("Repo directory: ", n.config.RepoPath)
+
 	nd, err := core.NewNode(cctx, n.ipfsConfig)
 	if err != nil {
 		return err
@@ -181,7 +184,7 @@ func (n *Node) AddPhoto(path string, thumb string) (string, error) {
 	// read file from disk
 	r, err := os.Open(path)
 	if err != nil {
-	 	return "", err
+		return "", err
 	}
 	defer r.Close()
 
