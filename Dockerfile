@@ -35,3 +35,4 @@ RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
 # install gx
 RUN go get -u github.com/whyrusleeping/gx
+RUN go get -u github.com/whyrusleeping/gx-go
