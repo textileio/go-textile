@@ -39,7 +39,7 @@ func TestSettingsPut(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if *set.Version!= "/textile-go:0.1/" {
+	if *set.Version != "/textile-go:0.1/" {
 		t.Error("Settings put failed to put correct value")
 	}
 }

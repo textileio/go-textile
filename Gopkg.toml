@@ -1,0 +1,51 @@
+[[constraint]]
+  name = "github.com/BurntSushi/toml"
+  version = "0.3.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/btcsuite/btcd"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/btcsuite/btcutil"
+
+[[constraint]]
+  name = "github.com/disintegration/imaging"
+  version = "1.4.1"
+
+[[constraint]]
+  name = "github.com/gin-gonic/gin"
+  version = "1.2.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/globalsign/mgo"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/mitchellh/go-homedir"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/mutecomm/go-sqlcipher"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/nfnt/resize"
+
+[[constraint]]
+  name = "github.com/op/go-logging"
+  version = "1.0.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/tyler-smith/go-bip39"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/crypto"
+
+[prune]
+  go-tests = true
+  unused-packages = true
