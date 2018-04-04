@@ -30,6 +30,7 @@ IPFS package manager:
 
 ```
 go get -u github.com/whyrusleeping/gx
+go get -u github.com/whyrusleeping/gx-go
 ```
 
 #### Install `node`
