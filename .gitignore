@@ -53,3 +53,4 @@ dist
 # Mobile
 *.aar
 *.jar
+*.framework

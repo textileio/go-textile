@@ -12,7 +12,7 @@
     "url": "https://github.com/textileio/textile-go"
   },
   "scripts": {
-    "setup": "yarn install",
+    "setup": "yarn install && dep ensure && gx install --local",
     "build": "make build && make ios_framework && make android_framework",
     "clean": "rm -rf vendor/* && rm -rf dist && rm Mobile.framework",
     "precommit": "npm test",
