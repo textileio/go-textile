@@ -13,7 +13,4 @@ android_framework:
 clean_build:
 	rm -rf dist && rm -f Mobile.framework
 
-clean_docker:
-	docker rmi -f $(DOCKER_SERVER_IMAGE_NAME) $(DOCKER_DUMMY_IMAGE_NAME) || true
-
-clean: clean_build clean_docker
+clean: clean_build

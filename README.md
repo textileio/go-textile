@@ -14,11 +14,11 @@ Until [Textile Photos](https://www.textile.photos) is ready for public release, 
 go get github.com/textileio/textile-go
 ```
 
-You'll need a few different tools here to get setup.
+You'll need a few different tools here to get setup...
 
 #### Install `dep`
 
-Golang package manager...
+Golang package manager:
 
 ```
 brew install dep
@@ -26,7 +26,7 @@ brew install dep
 
 #### Install `gx`
 
-IPFS package manager...
+IPFS package manager:
 
 ```
 go get -u github.com/whyrusleeping/gx
@@ -34,7 +34,7 @@ go get -u github.com/whyrusleeping/gx
 
 #### Install `node`
 
-NodeJS is used for git hooks and some build tooling...
+NodeJS is used for git hooks and some build tooling:
 
 ```
 brew install node
@@ -42,7 +42,7 @@ brew install node
 
 #### Install dependencies
 
-Download deps managed by `gx` and `dep`...
+Finally, download deps managed by `gx` and `dep`:
 
 ```
 npm run setup
@@ -50,13 +50,13 @@ npm run setup
 
 ## Building
 
-Build the cli based daemon...
+Build the cli based daemon:
 
 ```
 make build
 ```
 
-Build the iOS Framework...
+Build the iOS Framework:
 
 ```
 make ios_framework
