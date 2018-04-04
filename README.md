@@ -10,15 +10,57 @@ Until [Textile Photos](https://www.textile.photos) is ready for public release, 
 
 ## Contributing
 
-You'll need a few different tools here to get setup:
+```
+go get github.com/textileio/textile-go
+```
+
+You'll need a few different tools here to get setup.
 
 #### Install `dep`
 
-```
+Golang package manager...
 
 ```
+brew install dep
+```
 
-go get
+#### Install `gx`
+
+IPFS package manager...
+
+```
+go get -u github.com/whyrusleeping/gx
+```
+
+#### Install `node`
+
+NodeJS is used for git hooks and some build tooling...
+
+```
+brew install node
+```
+
+#### Install dependencies
+
+Download deps managed by `gx` and `dep`...
+
+```
+npm run setup
+```
+
+## Building
+
+Build the cli based daemon...
+
+```
+make build
+```
+
+Build the iOS Framework...
+
+```
+make ios_framework
+``` 
 
 ## Acknowledgments
 
