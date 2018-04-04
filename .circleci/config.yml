@@ -3,7 +3,7 @@ jobs:
   build:
     docker:
       - image: textile/circleci:1.10
-    working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
+    working_directory: /go/src/github.com/textileio/textile-go
     steps:
       - checkout
       - run: npm run setup
