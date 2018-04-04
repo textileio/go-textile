@@ -1,9 +1,9 @@
 package net
 
 import (
-	"testing"
 	"crypto/rsa"
 	"encoding/hex"
+	"testing"
 
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )

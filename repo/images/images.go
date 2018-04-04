@@ -2,11 +2,11 @@ package images
 
 import (
 	"encoding/base64"
+	"github.com/nfnt/resize"
 	"image"
 	_ "image/gif"
 	_ "image/png"
 	"strings"
-	"github.com/nfnt/resize"
 )
 
 func DecodeImageData(base64ImageData string) (image.Image, *image.Config, error) {
@@ -23,7 +23,7 @@ func DecodeImageData(base64ImageData string) (image.Image, *image.Config, error)
 	return img, &imgCfg, err
 }
 
-func ResizeImage(img image.Image, imgCfg *image.Config, w, h uint) (image.Image) {
+func ResizeImage(img image.Image, imgCfg *image.Config, w, h uint) image.Image {
 	width, height := getImageAttributes(w, h, uint(imgCfg.Width), uint(imgCfg.Height))
 	return resize.Resize(width, height, img, resize.Lanczos3)
 }

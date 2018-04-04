@@ -57,7 +57,7 @@ func (c *PhotoDB) GetPhotos(offsetId string, limit int) []repo.PhotoSet {
 	}
 	rows, err := c.db.Query(stm)
 	if err != nil {
-		log.Error(err)
+		log.Error("", err)
 		return ret
 	}
 	for rows.Next() {

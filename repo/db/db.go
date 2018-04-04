@@ -15,11 +15,11 @@ import (
 var log = logging.MustGetLogger("db")
 
 type SQLiteDatastore struct {
-	config          repo.Config
-	settings        repo.ConfigurationStore
-	photos          repo.PhotoStore
-	db              *sql.DB
-	lock            *sync.Mutex
+	config   repo.Config
+	settings repo.ConfigurationStore
+	photos   repo.PhotoStore
+	db       *sql.DB
+	lock     *sync.Mutex
 }
 
 func Create(repoPath, password string) (*SQLiteDatastore, error) {
@@ -76,7 +76,7 @@ func (d *SQLiteDatastore) Copy(dbPath string, password string) error {
 	stmt := "select name from sqlite_master where type='table'"
 	rows, err := d.db.Query(stmt)
 	if err != nil {
-		log.Error(err)
+		log.Error("", err)
 		return err
 	}
 	var tables []string

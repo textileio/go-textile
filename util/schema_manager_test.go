@@ -18,7 +18,7 @@ func TestNewSchemaManagerSetsReasonableDefaults(t *testing.T) {
 
 	expectedDataPath := "/foobarbaz"
 	subject, err = NewCustomSchemaManager(SchemaContext{
-		DataPath:        expectedDataPath,
+		DataPath: expectedDataPath,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -31,7 +31,7 @@ func TestNewSchemaManagerSetsReasonableDefaults(t *testing.T) {
 func TestNewSchemaManagerServiceDatastorePath(t *testing.T) {
 	dataPath := "/root"
 	subject, err := NewCustomSchemaManager(SchemaContext{
-		DataPath:        dataPath,
+		DataPath: dataPath,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -40,21 +40,6 @@ func TestNewSchemaManagerServiceDatastorePath(t *testing.T) {
 	actualPath := subject.DatastorePath()
 	if actualPath != expectedDatastorePath {
 		t.Errorf("Datastore path for test disabled was incorrect\n\tExpected: %s\n\tActual: %s",
-			expectedDatastorePath,
-			actualPath,
-		)
-	}
-
-	subject, err = NewCustomSchemaManager(SchemaContext{
-		DataPath:        dataPath,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	expectedDatastorePath = "/root/datastore/testnet.db"
-	actualPath = subject.DatastorePath()
-	if actualPath != expectedDatastorePath {
-		t.Errorf("Datastore path for test enabled was incorrect\n\tExpected: %s\n\tActual: %s",
 			expectedDatastorePath,
 			actualPath,
 		)
@@ -99,7 +84,7 @@ func TestVerifySchemaVersion(t *testing.T) {
 
 func TestBuildSchemaDirectories(t *testing.T) {
 	paths, err := NewCustomSchemaManager(SchemaContext{
-		DataPath:        GenerateTempPath(),
+		DataPath: GenerateTempPath(),
 	})
 	err = paths.BuildSchemaDirectories()
 	if err != nil {
@@ -107,14 +92,6 @@ func TestBuildSchemaDirectories(t *testing.T) {
 	}
 	defer paths.DestroySchemaDirectories()
 
-	checkDirectoryCreation(t, paths.DataPathJoin("root"))
-	checkDirectoryCreation(t, paths.DataPathJoin("root", "files"))
-	checkDirectoryCreation(t, paths.DataPathJoin("root", "images"))
-	checkDirectoryCreation(t, paths.DataPathJoin("root", "images", "tiny"))
-	checkDirectoryCreation(t, paths.DataPathJoin("root", "images", "small"))
-	checkDirectoryCreation(t, paths.DataPathJoin("root", "images", "medium"))
-	checkDirectoryCreation(t, paths.DataPathJoin("root", "images", "large"))
-	checkDirectoryCreation(t, paths.DataPathJoin("root", "images", "original"))
 	checkDirectoryCreation(t, paths.DataPathJoin("logs"))
 	checkDirectoryCreation(t, paths.DataPathJoin("datastore"))
 }

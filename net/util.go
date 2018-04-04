@@ -1,8 +1,8 @@
 package net
 
 import (
-	"net/http"
 	"encoding/json"
+	"net/http"
 )
 
 func GetJson(client *http.Client, url string, target interface{}) error {
@@ -14,5 +14,3 @@ func GetJson(client *http.Client, url string, target interface{}) error {
 
 	return json.NewDecoder(r.Body).Decode(target)
 }
-
-
