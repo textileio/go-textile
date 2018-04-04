@@ -11,7 +11,7 @@ var textile *Node
 var hash string
 
 func TestNewTextile(t *testing.T) {
-	textile = NewTextile("testdata/.ipfs", "https://ipfs.textile.io")
+	textile = NewTextile("testdata/.ipfs", "")
 }
 
 func TestNode_Start(t *testing.T) {
