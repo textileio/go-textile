@@ -2,7 +2,7 @@
 
 Textile's REST API and daemon
 
-[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/textileio/textile-go)](https://goreportcard.com/report/github.com/textileio/textile-go) [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
+[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/textileio/textile-go)](https://goreportcard.com/report/github.com/textileio/textile-go) [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/) [![CircleCI](https://circleci.com/gh/textileio/textile-go/tree/master.svg?style=shield)](https://circleci.com/gh/textileio/textile-go/tree/master)
 
 This repository contains Textile's API and daemon used to create a cross platform cli and mobile frameworks. The ```textile-go``` library is primarily used in the [Textile Photos](https://www.textile.photos) mobile application. 
 
@@ -48,6 +48,16 @@ Finally, download deps managed by `gx` and `dep`:
 ```
 npm run setup
 ```
+
+#### Commitizen
+
+The easiest way to write a valid commit message is to use the `npm` script:
+
+```
+npm run cm
+```
+
+This will start the interactive commit prompt. 
 
 ## Building
 
