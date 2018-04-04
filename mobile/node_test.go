@@ -3,8 +3,8 @@ package mobile_test
 import (
 	"testing"
 
-	. "github.com/textileio/textile-go/mobile"
 	"encoding/json"
+	. "github.com/textileio/textile-go/mobile"
 )
 
 var textile *Node
