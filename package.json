@@ -23,7 +23,8 @@
     "release": "npm version patch",
     "test": "go test ./... -coverprofile coverage.out",
     "coverage": "go tool cover -html=coverage.out",
-    "format": "go fmt ./..."
+    "format": "go fmt ./...",
+    "lint": "golint `go list ./... | grep -v /vendor/`"
   },
   "config": {
     "commitizen": {
