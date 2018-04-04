@@ -15,11 +15,11 @@ import (
 var log = logging.MustGetLogger("db")
 
 type SQLiteDatastore struct {
-	config          repo.Config
-	settings        repo.ConfigurationStore
-	photos          repo.PhotoStore
-	db              *sql.DB
-	lock            *sync.Mutex
+	config   repo.Config
+	settings repo.ConfigurationStore
+	photos   repo.PhotoStore
+	db       *sql.DB
+	lock     *sync.Mutex
 }
 
 func Create(repoPath, password string) (*SQLiteDatastore, error) {

@@ -13,16 +13,16 @@ import (
 )
 
 type textileSchemaManager struct {
-	os              string
-	dataPath        string
+	os       string
+	dataPath string
 }
 
 // SchemaContext are the parameters which the SchemaManager derive its source of
 // truth. When their zero values are provided, a reasonable default will be
 // assumed during runtime.
 type SchemaContext struct {
-	DataPath        string
-	OS              string
+	DataPath string
+	OS       string
 }
 
 // DefaultPathTransform accepts a string path representing the location where
@@ -55,8 +55,8 @@ func NewSchemaManager() (*textileSchemaManager, error) {
 		return nil, err
 	}
 	return NewCustomSchemaManager(SchemaContext{
-		DataPath:        transformedPath,
-		OS:              runtime.GOOS,
+		DataPath: transformedPath,
+		OS:       runtime.GOOS,
 	})
 }
 

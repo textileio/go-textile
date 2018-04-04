@@ -17,12 +17,13 @@
     "clean": "rm -rf node_modules && rm -rf vendor && rm -rf dist && rm -f Mobile.framework && rm -f coverage.out",
     "cm": "git-cz",
     "commitmsg": "commitlint -e $GIT_PARAMS",
-    "precommit": "npm test",
+    "precommit": "npm test && npm run format",
     "preversion": "npm run precommit",
     "postversion": "git push --follow-tags",
     "release": "npm version patch",
     "test": "go test ./... -coverprofile coverage.out",
-    "coverage": "go tool cover -html=coverage.out"
+    "coverage": "go tool cover -html=coverage.out",
+    "format": "go fmt ./..."
   },
   "config": {
     "commitizen": {
