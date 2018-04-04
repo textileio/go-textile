@@ -26,14 +26,14 @@
   },
   "config": {
     "commitizen": {
-      "path": "@commitlint/prompt"
+      "path": "cz-conventional-changelog"
     }
   },
   "devDependencies": {
     "@commitlint/cli": "^6.1.3",
     "@commitlint/config-conventional": "^6.1.3",
-    "@commitlint/prompt-cli": "^6.1.3",
     "commitizen": "^2.9.6",
+    "cz-conventional-changelog": "2.1.0",
     "husky": "^0.14.3"
   },
   "language": "go",
