@@ -4,8 +4,9 @@ import (
 	"log"
 
 	. "github.com/textileio/textile-go/central/models"
-	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 )
 
 type DAO struct {
