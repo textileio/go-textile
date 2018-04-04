@@ -1,8 +1,32 @@
 {
-  "author": "textileio",
+  "name": "textile-go",
+  "description": "Textile's REST API and daemon",
+  "version": "0.0.1",
+  "author": "textile.io",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/textileio/textile-go"
+  },
   "bugs": {
     "url": "https://github.com/textileio/textile-go"
   },
+  "scripts": {
+    "setup": "yarn install",
+    "build": "make build && make ios_framework && make android_framework",
+    "clean": "rm -rf vendor/* && rm -rf dist && rm Mobile.framework",
+    "precommit": "npm test",
+    "preversion": "npm run precommit",
+    "postversion": "git push --follow-tags",
+    "release": "npm version patch",
+    "test": "go test ./... -coverprofile coverage.out",
+    "coverage": "go tool cover -html=coverage.out"
+  },
+  "devDependencies": {
+    "husky": "^0.14.3"
+  },
+  "language": "go",
+  "gxVersion": "0.12.1",
   "gx": {
     "dvcsimport": "github.com/textileio/textile-go"
   },
@@ -13,11 +37,5 @@
       "version": "0.4.14"
     }
   ],
-  "gxVersion": "0.12.1",
-  "language": "go",
-  "license": "MIT",
-  "name": "textile-go",
-  "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
-  "version": "0.0.1"
+  "releaseCmd": "git commit -a -m \"gx publish $VERSION\""
 }
-
