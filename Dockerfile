@@ -29,3 +29,9 @@ ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 
 # install yarn
 RUN npm install -g yarn
+
+# install dep
+RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+
+# install gx
+RUN go get -u github.com/whyrusleeping/gx
