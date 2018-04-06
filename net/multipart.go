@@ -4,20 +4,17 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 )
 
 var nl = "\r\n"
 
 type MultipartRequest struct {
-	Created     time.Time `json:"created"`
-	Boundary    string    `json:"boundary"`
-	PayloadPath string    `json:"payload_path"`
+	Boundary    string
+	PayloadPath string
 }
 
 func (m *MultipartRequest) Init(dir string, boundary string) {
 	m.Boundary = boundary
-	m.Created = time.Now()
 	m.PayloadPath = filepath.Join(dir, boundary)
 }
 
