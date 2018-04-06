@@ -1,10 +1,10 @@
 package mobile_test
 
 import (
-	"testing"
-
 	"encoding/json"
 	. "github.com/textileio/textile-go/mobile"
+	"os"
+	"testing"
 )
 
 var textile *Node
@@ -20,6 +20,7 @@ func TestNode_Start(t *testing.T) {
 		t.Errorf("start mobile node failed: %s", err)
 	}
 }
+
 func TestNode_StartAgain(t *testing.T) {
 	err := textile.Start()
 	if err != nil {
@@ -28,14 +29,19 @@ func TestNode_StartAgain(t *testing.T) {
 }
 
 func TestNode_AddPhoto(t *testing.T) {
-	hashes, err := textile.AddPhoto("testdata/test.jpg", "testdata/thumb.jpg")
+	mr, err := textile.AddPhoto("testdata/photo.jpg", "testdata/thumb.jpg")
 	if err != nil {
-		t.Errorf("pin photo failed: %s", err)
+		t.Errorf("add photo failed: %s", err)
 		return
 	}
-	if len(hashes) < 4 {
-		t.Errorf("add photo got bad hash array: %s", hash)
+	if len(mr.Boundary) == 0 {
+		t.Errorf("add photo got bad hash")
 	}
+	err = os.Remove("testdata/" + mr.Boundary)
+	if err != nil {
+		t.Errorf("error unlinking test multipart file: %s", err)
+	}
+
 }
 
 func TestNode_GetPhotos(t *testing.T) {
@@ -53,7 +59,7 @@ func TestNode_GetPhotos(t *testing.T) {
 }
 
 func TestNode_GetPhotoBase64String(t *testing.T) {
-	res, err := textile.GetPhotoBase64String(hash + "/thumb.jpg")
+	res, err := textile.GetPhotoBase64String(hash + "/thumb")
 	if err != nil {
 		t.Errorf("get photo base64 string failed: %s", err)
 		return
