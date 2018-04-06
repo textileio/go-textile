@@ -210,7 +210,7 @@ func (n *Node) AddPhoto(path string, thumb string) (*net.MultipartRequest, error
 	}
 
 	// index
-	n.node.Datastore.Photos().Put(mr.Boundary, mr.Created)
+	n.node.Datastore.Photos().Put(mr.Boundary, time.Now())
 
 	return mr, nil
 }
