@@ -11,6 +11,7 @@ import (
 	"time"
 
 	tcore "github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/net"
 	trepo "github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/repo/wallet"
@@ -22,6 +23,8 @@ import (
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/config"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo"
 	lockfile "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo/lock"
+
+	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 type Node struct {
@@ -180,34 +183,36 @@ func (n *Node) Stop() error {
 	return nil
 }
 
-func (n *Node) AddPhoto(path string, thumb string) (string, error) {
+func (n *Node) AddPhoto(path string, thumb string) (*net.MultipartRequest, error) {
 	// read file from disk
-	r, err := os.Open(path)
+	p, err := os.Open(path)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	defer r.Close()
+	defer p.Close()
 
 	t, err := os.Open(thumb)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer t.Close()
 
-	fname := filepath.Base(path)
-
-	// pin
-	ldn, err := wallet.PinPhoto(r, fname, t, n.node.IpfsNode, n.config.ApiHost)
+	// unmarshal private key
+	sk, err := n.unmarshalPrivateKey()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	// top-level hash for whole added/pinned 'directory'
-	hash := ldn.Cid().Hash().B58String()
+
+	// add it
+	mr, err := wallet.AddPhoto(n.node.IpfsNode, sk, p, t)
+	if err != nil {
+		return nil, err
+	}
 
 	// index
-	n.node.Datastore.Photos().Put(hash, time.Now())
+	n.node.Datastore.Photos().Put(mr.Boundary, time.Now())
 
-	return hash, nil
+	return mr, nil
 }
 
 func (n *Node) GetPhotos(offsetId string, limit int) (string, error) {
@@ -247,11 +252,31 @@ func (n *Node) GetPhotoBase64String(path string) (string, error) {
 	defer r.Close()
 
 	// read bytes and convert to base64 string
-	b, err := ioutil.ReadAll(r)
+	cb, err := ioutil.ReadAll(r)
 	if err != nil {
 		return "", err
 	}
+
+	// unmarshal private key
+	sk, err := n.unmarshalPrivateKey()
+	if err != nil {
+		return "", err
+	}
+	b, err := net.Decrypt(sk, cb)
+	if err != nil {
+		return "", err
+	}
+
+	// do the encoding
 	bs64 := base64.StdEncoding.EncodeToString(b)
 
 	return bs64, nil
+}
+
+func (n *Node) unmarshalPrivateKey() (libp2p.PrivKey, error) {
+	kb, err := n.node.Datastore.Config().GetIdentityKey()
+	if err != nil {
+		return nil, err
+	}
+	return libp2p.UnmarshalPrivateKey(kb)
 }

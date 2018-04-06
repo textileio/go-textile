@@ -12,7 +12,7 @@
     "url": "https://github.com/textileio/textile-go"
   },
   "scripts": {
-    "setup": "yarn install && dep ensure && gx install --local",
+    "setup": "yarn install && dep ensure && gx install",
     "clean": "rm -rf node_modules && rm -rf vendor && rm -f coverage.out",
     "cm": "git-cz",
     "commitmsg": "commitlint -e $GIT_PARAMS",
