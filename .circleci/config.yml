@@ -6,6 +6,5 @@ jobs:
     working_directory: /go/src/github.com/textileio/textile-go
     steps:
       - checkout
-      - run: yarn install
       - run: dep ensure
       - run: npm test
