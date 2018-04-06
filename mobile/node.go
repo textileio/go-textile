@@ -252,10 +252,22 @@ func (n *Node) GetPhotoBase64String(path string) (string, error) {
 	defer r.Close()
 
 	// read bytes and convert to base64 string
-	b, err := ioutil.ReadAll(r)
+	cb, err := ioutil.ReadAll(r)
 	if err != nil {
 		return "", err
 	}
+
+	// unmarshal private key
+	sk, err := n.unmarshalPrivateKey()
+	if err != nil {
+		return "", err
+	}
+	b, err := net.Decrypt(sk, cb)
+	if err != nil {
+		return "", err
+	}
+
+	// do the encoding
 	bs64 := base64.StdEncoding.EncodeToString(b)
 
 	return bs64, nil

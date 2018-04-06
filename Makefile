@@ -14,3 +14,6 @@ clean_build:
 	rm -rf dist && rm -f Mobile.framework
 
 clean: clean_build
+
+docker_build:
+	docker build -t circleci:1.10 .
