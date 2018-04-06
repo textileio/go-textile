@@ -3,15 +3,16 @@ package commands
 import (
 	"fmt"
 	"os"
-	"strconv"
+	//"strconv"
 
-	"github.com/textileio/textile-go/repo/wallet"
+	//"github.com/textileio/textile-go/repo/wallet"
 
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/commands"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/coreunix"
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
-	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
+	//"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
 	"gx/ipfs/QmfAkMSt9Fwzk48QDJecPcwCUjnf2uG7MLnmCGTp4C6ouL/go-ipfs-cmds"
+	//"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/thirdparty/dir"
 )
 
 // TODO: Add --remote flag to determine if the photo should also be added to the remote API
@@ -27,7 +28,7 @@ Adds contents of a photo <path> to the wallet on ipfs.
 		cmdkit.FileArg("path", true, true, "The path to the photo to be added to wallet.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
-		n, err := commands.GetNode(env)
+		_, err := commands.GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -43,40 +44,40 @@ Adds contents of a photo <path> to the wallet on ipfs.
 
 		// Current hack was just to expect Full res folllowed by Thumb in list
 
-		addAllAndPin := func(f files.File) error {
-			// just get the first file
-			file, err := f.NextFile()
-			if err != nil {
-				return err
-			}
-			// just get the first thumb
-			thumb, err := f.NextFile()
-			if err != nil {
-				return err
-			}
-
-			dir, err := wallet.PinPhoto(file, file.FileName(), thumb, n, "")
-			if err != nil {
-				return err
-			}
-			size, err := dir.Size()
-			if err != nil {
-				return err
-			}
-			outChan <- &coreunix.AddedObject{
-				Hash: dir.Cid().Hash().B58String(),
-				Name: file.FileName(),
-				Size: strconv.FormatUint(size, 10),
-			}
-			return nil
-		}
+		//addAllAndPin := func(f files.File) error {
+		//	// just get the first file
+		//	file, err := f.NextFile()
+		//	if err != nil {
+		//		return err
+		//	}
+		//	// just get the first thumb
+		//	thumb, err := f.NextFile()
+		//	if err != nil {
+		//		return err
+		//	}
+		//
+		//	dir, err := wallet.AddPhoto(n, file, thumb)
+		//	if err != nil {
+		//		return err
+		//	}
+		//	size, err := dir.Size()
+		//	if err != nil {
+		//		return err
+		//	}
+		//	outChan <- &coreunix.AddedObject{
+		//		Hash: dir.Cid().Hash().B58String(),
+		//		Name: file.FileName(),
+		//		Size: strconv.FormatUint(size, 10),
+		//	}
+		//	return nil
+		//}
 
 		errCh := make(chan error)
 		go func() {
 			var err error
 			defer func() { errCh <- err }()
 			defer close(outChan)
-			err = addAllAndPin(req.Files)
+			//err = addAllAndPin(req.Files)
 		}()
 
 		defer res.Close()
