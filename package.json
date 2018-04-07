@@ -15,6 +15,8 @@
     "setup": "yarn install && dep ensure && gx install",
     "clean": "rm -rf node_modules && rm -rf vendor && rm -f coverage.out",
     "cm": "git-cz",
+    "commitmsg": "commitlint -e $GIT_PARAMS",
+    "precommit": "npm test && npm run format",
     "test": "go test ./... -coverprofile coverage.out",
     "coverage": "go tool cover -html=coverage.out",
     "format": "go fmt ./...",

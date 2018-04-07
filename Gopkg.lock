@@ -9,6 +9,64 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/akavel/rsrc"
+  packages = [
+    "binutil",
+    "coff",
+    "ico",
+    "internal",
+    "rsrc"
+  ]
+  revision = "f6a15ece2cfd2560077c556499f19340ddc768e9"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/asticode/go-astilectron"
+  packages = ["."]
+  revision = "54cd22b5f74ba6e485e67a718f7b77fef0a66dfc"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/asticode/go-astilectron-bootstrap"
+  packages = ["."]
+  revision = "28f1c12633989b557777382c68c8fbc66bbe8f3b"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/asticode/go-astilectron-bundler"
+  packages = ["."]
+  revision = "674ec164b3e3c7a66bb1b46f3b109c879599862c"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/asticode/go-astilog"
+  packages = ["."]
+  revision = "48409865148a0f397641b786ff35158bba19c48f"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/asticode/go-astitools"
+  packages = [
+    "context",
+    "exec",
+    "http",
+    "io",
+    "os",
+    "ptr",
+    "regexp",
+    "url",
+    "zip"
+  ]
+  revision = "4d3fb4529089c869a728b52948dfdd8b773b5492"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/asticode/go-bindata"
+  packages = ["."]
+  revision = "a0ff2567cfb70903282db057e799fd826784d41d"
+
+[[projects]]
+  branch = "master"
   name = "github.com/btcsuite/btcd"
   packages = [
     "btcec",
@@ -64,6 +122,18 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "github.com/julienschmidt/httprouter"
+  packages = ["."]
+  revision = "8c199fb6259ffc1af525cc3ad52ee60ba8359669"
+  version = "v1.1"
+
+[[projects]]
+  name = "github.com/mattn/go-colorable"
+  packages = ["."]
+  revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
+  version = "v0.0.9"
+
+[[projects]]
   name = "github.com/mattn/go-isatty"
   packages = ["."]
   revision = "0360b2af4f38e8d38c7fce2a9f4e702702d73a39"
@@ -94,6 +164,28 @@
   version = "v1"
 
 [[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
+
+[[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
+  version = "v1.0.5"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/skip2/go-qrcode"
+  packages = [
+    ".",
+    "bitset",
+    "reedsolomon"
+  ]
+  revision = "cf5f9fa2f0d847edb8e038db7ed975e239095e1a"
+
+[[projects]]
   branch = "master"
   name = "github.com/tyler-smith/go-bip39"
   packages = ["."]
@@ -116,7 +208,8 @@
     "pbkdf2",
     "poly1305",
     "ripemd160",
-    "salsa20/salsa"
+    "salsa20/salsa",
+    "ssh/terminal"
   ]
   revision = "b2aa35443fbc700ab74c586ae79b81c171851023"
 
@@ -129,7 +222,10 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix"]
+  packages = [
+    "unix",
+    "windows"
+  ]
   revision = "378d26f46672a356c46195c28f61bdb4c0a781dd"
 
 [[projects]]
@@ -147,6 +243,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0b36bbc53d9175692c95dee63382e7a849442200fac09f1de4575ed69ef4a897"
+  inputs-digest = "cbd015f0119592573186a50cd5b5d5ba7aa0772ed0e9e4c51c6715bbc815714f"
   solver-name = "gps-cdcl"
   solver-version = 1
