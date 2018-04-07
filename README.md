@@ -73,6 +73,27 @@ Build the iOS Framework:
 make ios_framework
 ``` 
 
+### Desktop client
+
+```
+go get -u github.com/asticode/go-astitools
+go get -u github.com/asticode/go-astilectron-bundler/...
+go get -u github.com/asticode/go-astilectron-bootstrap/...
+```
+
+```
+cd desktop/
+astilectron-bundler -v
+```
+
+you can now open the desktop build, stored in `desktop/output/darwin-amd64` (for mac). or run it in dev mode
+
+```
+cd desktop/
+go run *.go
+```
+
+
 ## Acknowledgments
 
 Thanks to @cpacia, @drwasho and the rest of the OpenBazaar contributors for their work on [openbazaar-go](https://github.com/OpenBazaar/openbazaar-go). 
