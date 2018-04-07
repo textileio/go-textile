@@ -97,7 +97,7 @@ func (m *Mobile) NewNode(config MobileConfig) (*Node, error) {
 	cfg.Swarm.ConnMgr.LowWater = 20
 	cfg.Swarm.ConnMgr.HighWater = 40
 	cfg.Swarm.ConnMgr.GracePeriod = time.Minute.String()
-	cfg.Swarm.DisableNatPortMap = true
+	//cfg.Swarm.DisableNatPortMap = true
 
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
@@ -176,11 +176,14 @@ func (n *Node) Start() error {
 
 func (n *Node) Stop() error {
 	repoLockFile := filepath.Join(tcore.Node.RepoPath, lockfile.LockFile)
-	os.Remove(repoLockFile)
+	if err := os.Remove(repoLockFile); err != nil {
+		return err
+	}
 	dsLockFile := filepath.Join(tcore.Node.RepoPath, "datastore", "LOCK")
-	os.Remove(dsLockFile)
-	tcore.Node.IpfsNode.Close()
-	return nil
+	if err := os.Remove(dsLockFile); err != nil {
+		return err
+	}
+	return tcore.Node.IpfsNode.Close()
 }
 
 func (n *Node) AddPhoto(path string, thumb string) (*net.MultipartRequest, error) {
