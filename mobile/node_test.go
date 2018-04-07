@@ -5,7 +5,6 @@ import (
 	. "github.com/textileio/textile-go/mobile"
 	"os"
 	"testing"
-	"fmt"
 	"strings"
 )
 
@@ -80,7 +79,6 @@ func TestRecoveryPhrase(t *testing.T) {
 	if len(list) != 24 {
 		t.Errorf("got bad mnemonic length: %s", len(list))
 	}
-	fmt.Print(mnemonic)
 }
 
 func TestNode_Stop(t *testing.T) {
