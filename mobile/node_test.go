@@ -5,6 +5,8 @@ import (
 	. "github.com/textileio/textile-go/mobile"
 	"os"
 	"testing"
+	"fmt"
+	"strings"
 )
 
 var textile *Node
@@ -67,6 +69,18 @@ func TestNode_GetPhotoBase64String(t *testing.T) {
 	if len(res) == 0 {
 		t.Errorf("get photo base64 string bad result")
 	}
+}
+
+func TestRecoveryPhrase(t *testing.T) {
+	mnemonic, err := textile.GetRecoveryPhrase()
+	if err != nil {
+		t.Errorf("failed to create new recoveryphrase: %s", err)
+	}
+	list := strings.Split(mnemonic, " ")
+	if len(list) != 24 {
+		t.Errorf("got bad mnemonic length: %s", len(list))
+	}
+	fmt.Print(mnemonic)
 }
 
 func TestNode_Stop(t *testing.T) {
