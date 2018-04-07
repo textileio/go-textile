@@ -273,6 +273,16 @@ func (n *Node) GetPhotoBase64String(path string) (string, error) {
 	return bs64, nil
 }
 
+// provides the user's recovery phrase for their private key
+func (n *Node) GetRecoveryPhrase() (string, error) {
+	mnemonic, err := n.node.Datastore.Config().GetMnemonic()
+	if err != nil {
+		return "", err
+	}
+
+	return mnemonic, nil
+}
+
 func (n *Node) unmarshalPrivateKey() (libp2p.PrivKey, error) {
 	kb, err := n.node.Datastore.Config().GetIdentityKey()
 	if err != nil {
