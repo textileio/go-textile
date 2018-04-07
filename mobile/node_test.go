@@ -77,7 +77,7 @@ func TestRecoveryPhrase(t *testing.T) {
 	}
 	list := strings.Split(mnemonic, " ")
 	if len(list) != 24 {
-		t.Errorf("got bad mnemonic length: %d", len(list))
+		t.Errorf("got bad mnemonic length: %c", len(list))
 	}
 }
 
