@@ -20,7 +20,9 @@ let index = {
             return
           }
           let qrCode = document.querySelector('.peerQRCode');
-          qrCode.setAttribute('src', "data:image/png;base64, " + message.payload + "")
+          qrCode.setAttribute('src', "data:image/png;base64, " + message.payload.png + "")
+          let pairCode = document.querySelector('.pairCode');
+          pairCode.innerText = message.payload.code
           let modal = document.querySelector('.modal');
           modal.classList.toggle('modal-open');
         })
