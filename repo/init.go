@@ -24,7 +24,7 @@ var ErrRepoExists = errors.New(`ipfs configuration file already exists!
 Reinitializing would overwrite your keys.
 `)
 
-func DoInit(out io.Writer, repoRoot string, dbInit func(string) error) error {
+func DoInit(out io.Writer, repoRoot string, isMobile bool, dbInit func(string) error) error {
 	if err := checkWriteable(repoRoot); err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func DoInit(out io.Writer, repoRoot string, dbInit func(string) error) error {
 		return err
 	}
 
-	conf, err := config.Init(out, NBitsForKeypair)
+	conf, err := config.Init(out, NBitsForKeypair, isMobile)
 	if err != nil {
 		return err
 	}

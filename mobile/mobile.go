@@ -4,27 +4,23 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/net"
 )
 
 type Wrapper struct {
-	node   *tcore.TextileNode
-	cancel context.CancelFunc
+	RepoPath string
+	Cancel   context.CancelFunc
+	node     *tcore.TextileNode
 }
-type Mobile struct{}
 
-func NewTextile(repoPath string) *Wrapper {
+func NewNode(repoPath string) (*Wrapper, error) {
 	var m Mobile
-	node, err := m.NewNode(repoPath)
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
-	return node
+	return m.NewNode(repoPath)
 }
+
+type Mobile struct{}
 
 // Create a gomobile compatible wrapper around TextileNode
 func (m *Mobile) NewNode(repoPath string) (*Wrapper, error) {
@@ -33,7 +29,7 @@ func (m *Mobile) NewNode(repoPath string) (*Wrapper, error) {
 		return nil, err
 	}
 
-	return &Wrapper{node: node, cancel: node.Cancel}, nil
+	return &Wrapper{RepoPath: repoPath, Cancel: node.Cancel, node: node}, nil
 }
 
 func (w *Wrapper) Start() error {

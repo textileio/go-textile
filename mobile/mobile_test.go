@@ -14,31 +14,35 @@ var wrapper *Wrapper
 var hash string
 
 func TestNewTextile(t *testing.T) {
-	wrapper = NewTextile("testdata/.ipfs")
+	var err error
+	wrapper, err = NewNode("testdata/.ipfs")
+	if err != nil {
+		t.Errorf("create mobile node failed: %s", err)
+	}
 }
 
-func TestMobile_Start(t *testing.T) {
+func TestWrapper_Start(t *testing.T) {
 	err := wrapper.Start()
 	if err != nil {
 		t.Errorf("start mobile node failed: %s", err)
 	}
 }
 
-func TestMobile_StartAgain(t *testing.T) {
+func TestWrapper_StartAgain(t *testing.T) {
 	err := wrapper.Start()
 	if err != nil {
 		t.Errorf("attempt to start a running node failed: %s", err)
 	}
 }
 
-func TestMobile_ConfigureDatastore(t *testing.T) {
+func TestWrapper_ConfigureDatastore(t *testing.T) {
 	err := wrapper.ConfigureDatastore("")
 	if err != nil {
 		t.Errorf("configure datastore on mobile node failed: %s", err)
 	}
 }
 
-func TestMobile_AddPhoto(t *testing.T) {
+func TestWrapper_AddPhoto(t *testing.T) {
 	mr, err := wrapper.AddPhoto("testdata/photo.jpg", "testdata/thumb.jpg")
 	if err != nil {
 		t.Errorf("add photo failed: %s", err)
@@ -53,7 +57,7 @@ func TestMobile_AddPhoto(t *testing.T) {
 	}
 }
 
-func TestMobile_GetPhotos(t *testing.T) {
+func TestWrapper_GetPhotos(t *testing.T) {
 	res, err := wrapper.GetPhotos("", -1)
 	if err != nil {
 		t.Errorf("get photos failed: %s", err)
@@ -67,7 +71,7 @@ func TestMobile_GetPhotos(t *testing.T) {
 	hash = list.Hashes[0]
 }
 
-func TestMobile_GetPhotoBase64String(t *testing.T) {
+func TestWrapper_GetFileBase64(t *testing.T) {
 	res, err := wrapper.GetFileBase64(hash + "/thumb")
 	if err != nil {
 		t.Errorf("get photo base64 string failed: %s", err)
@@ -78,7 +82,7 @@ func TestMobile_GetPhotoBase64String(t *testing.T) {
 	}
 }
 
-func TestMobile_GetRecoveryPhrase(t *testing.T) {
+func TestWrapper_GetRecoveryPhrase(t *testing.T) {
 	mnemonic, err := wrapper.GetRecoveryPhrase()
 	if err != nil {
 		t.Errorf("failed to create a new recovery phrase: %s", err)
@@ -89,9 +93,13 @@ func TestMobile_GetRecoveryPhrase(t *testing.T) {
 	}
 }
 
-func TestMobile_Stop(t *testing.T) {
+func TestWrapper_Stop(t *testing.T) {
 	err := wrapper.Stop()
 	if err != nil {
 		t.Errorf("stop mobile node failed: %s", err)
 	}
+}
+
+func Test_Teardown(t *testing.T) {
+	os.RemoveAll(wrapper.RepoPath)
 }

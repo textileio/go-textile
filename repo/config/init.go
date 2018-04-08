@@ -23,7 +23,7 @@ var textileBootstrapAddresses = []string{
 	"/ip6/2600:1f18:6061:9403:b15e:b223:3c2e:1ee9/tcp/4001/ipfs/QmTUvaGZqEu7qJw6DuTyhTgiZmZwdp7qN4FD4FFV3TGhjM",
 }
 
-func Init(out io.Writer, nBitsForKeypair int) (*native.Config, error) {
+func Init(out io.Writer, nBitsForKeypair int, isMobile bool) (*native.Config, error) {
 	identity, err := identityConfig(out, nBitsForKeypair)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,20 @@ func Init(out io.Writer, nBitsForKeypair int) (*native.Config, error) {
 		}
 	}
 
-	datastore := DefaultDatastoreConfig()
+	datastore := defaultDatastoreConfig()
+
+	reproviderInterval := "12h"
+	swarmConnMgrLowWater := DefaultConnMgrLowWater
+	swarmConnMgrHighWater := DefaultConnMgrHighWater
+	swarmConnMgrGracePeriod := DefaultConnMgrGracePeriod.String()
+
+	// some of the below are taken from the not-yet-released "lowpower" profile preset
+	if isMobile {
+		reproviderInterval = "0"
+		swarmConnMgrLowWater = 20
+		swarmConnMgrHighWater = 40
+		swarmConnMgrGracePeriod = time.Minute.String()
+	}
 
 	conf := &native.Config{
 		API: native.API{
@@ -54,15 +67,17 @@ func Init(out io.Writer, nBitsForKeypair int) (*native.Config, error) {
 
 		// setup the node's default addresses.
 		// NOTE: two swarm listen addrs, one tcp, one utp.
-		Addresses: addressesConfig(),
+		Addresses: addressesConfig(isMobile),
 
 		Datastore: datastore,
 		Bootstrap: native.BootstrapPeerStrings(bootstrapPeers),
 		Identity:  identity,
-		Discovery: native.Discovery{native.MDNS{
-			Enabled:  true,
-			Interval: 10,
-		}},
+		Discovery: native.Discovery{
+			MDNS: native.MDNS{
+				Enabled:  true,
+				Interval: 10,
+			},
+		},
 
 		// setup the node mount points.
 		Mounts: native.Mounts{
@@ -85,14 +100,14 @@ func Init(out io.Writer, nBitsForKeypair int) (*native.Config, error) {
 			},
 		},
 		Reprovider: native.Reprovider{
-			Interval: "12h",
+			Interval: reproviderInterval,
 			Strategy: "all",
 		},
 		Swarm: native.SwarmConfig{
 			ConnMgr: native.ConnMgr{
-				LowWater:    DefaultConnMgrLowWater,
-				HighWater:   DefaultConnMgrHighWater,
-				GracePeriod: DefaultConnMgrGracePeriod.String(),
+				LowWater:    swarmConnMgrLowWater,
+				HighWater:   swarmConnMgrHighWater,
+				GracePeriod: swarmConnMgrGracePeriod,
 				Type:        "basic",
 			},
 		},
@@ -118,22 +133,31 @@ const DefaultConnMgrLowWater = 600
 // grace period
 const DefaultConnMgrGracePeriod = time.Second * 20
 
-func addressesConfig() native.Addresses {
+func addressesConfig(isMobile bool) native.Addresses {
+	swarmPort := "4002"
+	apiPost := "5002"
+	gatewayPort := "8081"
+	if isMobile {
+		swarmPort = "4003"
+		apiPost = "5003"
+		gatewayPort = "8082"
+	}
+
 	return native.Addresses{
 		Swarm: []string{
-			"/ip4/0.0.0.0/tcp/4001",
+			fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", swarmPort),
 			// "/ip4/0.0.0.0/udp/4002/utp", // disabled for now.
-			"/ip6/::/tcp/4001",
+			fmt.Sprintf("/ip6/::/tcp/%s", swarmPort),
 		},
 		Announce:   []string{},
 		NoAnnounce: []string{},
-		API:        "/ip4/127.0.0.1/tcp/5001",
-		Gateway:    "/ip4/0.0.0.0/tcp/8080",
+		API:        fmt.Sprintf("/ip4/127.0.0.1/tcp/%s", apiPost),
+		Gateway:    fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", gatewayPort),
 	}
 }
 
 // DefaultDatastoreConfig is an internal function exported to aid in testing.
-func DefaultDatastoreConfig() native.Datastore {
+func defaultDatastoreConfig() native.Datastore {
 	return native.Datastore{
 		StorageMax:         "10GB",
 		StorageGCWatermark: 90, // 90%
