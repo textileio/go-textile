@@ -1,0 +1,33 @@
+{
+  "name": "react-native-textile-ipfs",
+  "version": "0.1.0",
+  "description": "Textile IFPS access for react-native",
+  "main": "TextileIPFSNativeModule.js",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:textileio/textile-go.git"
+  },
+  "keywords": [
+    "react-component",
+    "react-native",
+    "ios",
+    "android",
+    "ipfs",
+    "textile"
+  ],
+  "author": "Aaron Sutula <aaron@textile.io>",
+  "license": "MIT",
+  "dependencies": {
+    "react": "^16.3.0-alpha.1",
+    "react-native": "0.54.2"
+  },
+  "devDependencies": {
+    "babel-jest": "22.4.1",
+    "babel-preset-react-native": "4.0.0",
+    "jest": "22.4.2",
+    "react-test-renderer": "^16.3.0-alpha.1"
+  },
+  "jest": {
+    "preset": "react-native"
+  }
+}
