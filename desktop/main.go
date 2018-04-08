@@ -6,7 +6,7 @@ import (
 	"github.com/asticode/go-astilectron-bootstrap"
 	"github.com/asticode/go-astilog"
 	"github.com/pkg/errors"
-	textilego "github.com/textileio/textile-go/mobile"
+	"github.com/textileio/textile-go/mobile"
 )
 
 // Constants
@@ -20,7 +20,7 @@ var (
 	w       *astilectron.Window
 )
 
-var textile *textilego.Node
+var textile *mobile.Wrapper
 
 func main() {
 	// Init
@@ -28,7 +28,7 @@ func main() {
 	flag.Parse()
 	astilog.FlagInit()
 
-	textile = textilego.NewTextile("output/.ipfs", "https://ipfs.textile.io")
+	textile = mobile.NewTextile("output/.ipfs")
 
 	err := textile.Start()
 	if err != nil {

@@ -2,14 +2,16 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/asticode/go-astilectron"
-	"github.com/asticode/go-astilectron-bootstrap"
-	qrcode "github.com/skip2/go-qrcode"
-	"github.com/asticode/go-astilog"
 	"encoding/base64"
 	"fmt"
 	"math/rand"
+
+	"github.com/asticode/go-astilectron"
+	"github.com/asticode/go-astilectron-bootstrap"
+	"github.com/skip2/go-qrcode"
+	"github.com/asticode/go-astilog"
 )
+
 // Init exploration
 type IpfsResponse struct {
 	path string `json:"path"`
@@ -49,7 +51,7 @@ func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload inter
 			return err.Error(), err
 		}
 
-		photoBase, _ := textile.GetPhotoBase64String(path)
+		photoBase, _ := textile.GetFileBase64(path)
 		if err != nil {
 			return err.Error(), err
 		} else {

@@ -21,9 +21,11 @@ type Queryable interface {
 }
 
 type Config interface {
-	/* Initialize the database with the node's mnemonic seed and
-	   identity key. This will be called during repo init. */
-	Init(mnemonic string, identityKey []byte, password string, creationDate time.Time) error
+	// Create the database and tables
+	Init(password string) error
+
+	// Configure the database with the node's mnemonic seed and identity key.
+	Configure(mnemonic string, identityKey []byte, creationDate time.Time) error
 
 	// Return the mnemonic string
 	GetMnemonic() (string, error)

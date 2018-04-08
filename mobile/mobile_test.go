@@ -2,35 +2,44 @@ package mobile_test
 
 import (
 	"encoding/json"
-	. "github.com/textileio/textile-go/mobile"
 	"os"
-	"testing"
 	"strings"
+	"testing"
+
+	"github.com/textileio/textile-go/core"
+	. "github.com/textileio/textile-go/mobile"
 )
 
-var textile *Node
+var wrapper *Wrapper
 var hash string
 
 func TestNewTextile(t *testing.T) {
-	textile = NewTextile("testdata/.ipfs", "")
+	wrapper = NewTextile("testdata/.ipfs")
 }
 
-func TestNode_Start(t *testing.T) {
-	err := textile.Start()
+func TestMobile_Start(t *testing.T) {
+	err := wrapper.Start()
 	if err != nil {
 		t.Errorf("start mobile node failed: %s", err)
 	}
 }
 
-func TestNode_StartAgain(t *testing.T) {
-	err := textile.Start()
+func TestMobile_StartAgain(t *testing.T) {
+	err := wrapper.Start()
 	if err != nil {
 		t.Errorf("attempt to start a running node failed: %s", err)
 	}
 }
 
-func TestNode_AddPhoto(t *testing.T) {
-	mr, err := textile.AddPhoto("testdata/photo.jpg", "testdata/thumb.jpg")
+func TestMobile_ConfigureDatastore(t *testing.T) {
+	err := wrapper.ConfigureDatastore("")
+	if err != nil {
+		t.Errorf("configure datastore on mobile node failed: %s", err)
+	}
+}
+
+func TestMobile_AddPhoto(t *testing.T) {
+	mr, err := wrapper.AddPhoto("testdata/photo.jpg", "testdata/thumb.jpg")
 	if err != nil {
 		t.Errorf("add photo failed: %s", err)
 		return
@@ -42,16 +51,15 @@ func TestNode_AddPhoto(t *testing.T) {
 	if err != nil {
 		t.Errorf("error unlinking test multipart file: %s", err)
 	}
-
 }
 
-func TestNode_GetPhotos(t *testing.T) {
-	res, err := textile.GetPhotos("", -1)
+func TestMobile_GetPhotos(t *testing.T) {
+	res, err := wrapper.GetPhotos("", -1)
 	if err != nil {
 		t.Errorf("get photos failed: %s", err)
 		return
 	}
-	list := PhotoList{}
+	list := core.PhotoList{}
 	json.Unmarshal([]byte(res), &list)
 	if len(list.Hashes) == 0 {
 		t.Errorf("get photos bad result")
@@ -59,8 +67,8 @@ func TestNode_GetPhotos(t *testing.T) {
 	hash = list.Hashes[0]
 }
 
-func TestNode_GetPhotoBase64String(t *testing.T) {
-	res, err := textile.GetPhotoBase64String(hash + "/thumb")
+func TestMobile_GetPhotoBase64String(t *testing.T) {
+	res, err := wrapper.GetFileBase64(hash + "/thumb")
 	if err != nil {
 		t.Errorf("get photo base64 string failed: %s", err)
 		return
@@ -70,10 +78,10 @@ func TestNode_GetPhotoBase64String(t *testing.T) {
 	}
 }
 
-func TestRecoveryPhrase(t *testing.T) {
-	mnemonic, err := textile.GetRecoveryPhrase()
+func TestMobile_GetRecoveryPhrase(t *testing.T) {
+	mnemonic, err := wrapper.GetRecoveryPhrase()
 	if err != nil {
-		t.Errorf("failed to create new recoveryphrase: %s", err)
+		t.Errorf("failed to create a new recovery phrase: %s", err)
 	}
 	list := strings.Split(mnemonic, " ")
 	if len(list) != 24 {
@@ -81,8 +89,8 @@ func TestRecoveryPhrase(t *testing.T) {
 	}
 }
 
-func TestNode_Stop(t *testing.T) {
-	err := textile.Stop()
+func TestMobile_Stop(t *testing.T) {
+	err := wrapper.Stop()
 	if err != nil {
 		t.Errorf("stop mobile node failed: %s", err)
 	}

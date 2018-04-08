@@ -12,7 +12,6 @@ import (
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo"
 
 	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
-	"time"
 )
 
 var initCmd = &cmds.Command{
@@ -63,7 +62,7 @@ Initializes textile configuration files and generates a new keypair.
 			}
 		}
 
-		if err := repo.DoInit(os.Stdout, req.InvocContext().ConfigRoot, time.Now(), nil); err != nil {
+		if err := repo.DoInit(os.Stdout, req.InvocContext().ConfigRoot, nil); err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}

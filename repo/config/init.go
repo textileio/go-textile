@@ -16,7 +16,9 @@ import (
 var textileBootstrapAddresses = []string{
 	// cluster elastic ip, node 4
 	"/ip4/35.169.206.101/tcp/4001/ipfs/QmP4S3UhmuEcGCHBGyG4zQVducj81YeNnvkCxUnZJrUopp",
+	"/ip6/2600:1f18:6061:9403:8a36:fc7f:45be:2610/tcp/4001/ipfs/QmP4S3UhmuEcGCHBGyG4zQVducj81YeNnvkCxUnZJrUopp",
 
+	// relay node 5
 	"/ip4/34.201.54.67/tcp/4001/ipfs/QmTUvaGZqEu7qJw6DuTyhTgiZmZwdp7qN4FD4FFV3TGhjM",
 	"/ip6/2600:1f18:6061:9403:b15e:b223:3c2e:1ee9/tcp/4001/ipfs/QmTUvaGZqEu7qJw6DuTyhTgiZmZwdp7qN4FD4FFV3TGhjM",
 }

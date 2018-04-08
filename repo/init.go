@@ -1,30 +1,19 @@
 package repo
 
 import (
-	"bytes"
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path"
-	"time"
-
-	"github.com/tyler-smith/go-bip39"
 
 	"github.com/textileio/textile-go/repo/config"
-	"github.com/textileio/textile-go/repo/wallet"
 	"github.com/textileio/textile-go/util"
 
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
-	nconfig "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/config"
+	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/namesys"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo"
-
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 const (
@@ -35,12 +24,16 @@ var ErrRepoExists = errors.New(`ipfs configuration file already exists!
 Reinitializing would overwrite your keys.
 `)
 
-func DoInit(out io.Writer, repoRoot string, creationDate time.Time, dbInit func(string, []byte, string, time.Time) error) error {
-	if _, err := fmt.Fprintf(out, "initializing textile ipfs node at %s\n", repoRoot); err != nil {
+func DoInit(out io.Writer, repoRoot string, dbInit func(string) error) error {
+	if err := checkWriteable(repoRoot); err != nil {
 		return err
 	}
 
-	if err := checkWriteable(repoRoot); err != nil {
+	if fsrepo.IsInitialized(repoRoot) {
+		return ErrRepoExists
+	}
+
+	if _, err := fmt.Fprintf(out, "initializing textile ipfs node at %s\n", repoRoot); err != nil {
 		return err
 	}
 
@@ -51,41 +44,20 @@ func DoInit(out io.Writer, repoRoot string, creationDate time.Time, dbInit func(
 		return err
 	}
 
-	if fsrepo.IsInitialized(repoRoot) {
-		return ErrRepoExists
-	}
-
 	conf, err := config.Init(out, NBitsForKeypair)
 	if err != nil {
 		return err
 	}
 
-	fmt.Fprint(out, "generating Ed25519 keypair...")
-	mnemonic, err := createMnemonic(bip39.NewEntropy, bip39.NewMnemonic)
-	if err != nil {
-		return err
-	}
-	seed := bip39.NewSeed(mnemonic, "")
-	identityKey, err := identityKeyFromSeed(seed, NBitsForKeypair)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("Done\n")
-
-	//identity, err := identityFromKey(identityKey)
-	//if err != nil {
-	//	return err
-	//}
-
 	if err := fsrepo.Init(repoRoot, conf); err != nil {
 		return err
 	}
 
-	if err := dbInit(mnemonic, identityKey, "", creationDate); err != nil {
+	if err := dbInit(""); err != nil {
 		return err
 	}
 
-	return initializeIpnsKeyspace(out, repoRoot)
+	return initializeIpnsKeyspace(repoRoot)
 }
 
 func checkWriteable(dir string) error {
@@ -116,7 +88,7 @@ func checkWriteable(dir string) error {
 	return err
 }
 
-func initializeIpnsKeyspace(out io.Writer, repoRoot string) error {
+func initializeIpnsKeyspace(repoRoot string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -136,58 +108,5 @@ func initializeIpnsKeyspace(out io.Writer, repoRoot string) error {
 		return err
 	}
 
-	// setup our wallet
-	err = wallet.NewWalletData(nd)
-	if err != nil {
-		return fmt.Errorf("init: create empty wallet data failed: %s", err)
-	}
-
-	return nil
-}
-
-func createMnemonic(newEntropy func(int) ([]byte, error), newMnemonic func([]byte) (string, error)) (string, error) {
-	entropy, err := newEntropy(256)
-	if err != nil {
-		return "", err
-	}
-	mnemonic, err := newMnemonic(entropy)
-	if err != nil {
-		return "", err
-	}
-	return mnemonic, nil
-}
-
-func identityFromKey(privkey []byte) (nconfig.Identity, error) {
-	ident := nconfig.Identity{}
-	sk, err := libp2p.UnmarshalPrivateKey(privkey)
-	if err != nil {
-		return ident, err
-	}
-	skbytes, err := sk.Bytes()
-	if err != nil {
-		return ident, err
-	}
-	ident.PrivKey = base64.StdEncoding.EncodeToString(skbytes)
-
-	id, err := peer.IDFromPublicKey(sk.GetPublic())
-	if err != nil {
-		return ident, err
-	}
-	ident.PeerID = id.Pretty()
-	return ident, nil
-}
-
-func identityKeyFromSeed(seed []byte, bits int) ([]byte, error) {
-	hm := hmac.New(sha256.New, []byte("scythian horde"))
-	hm.Write(seed)
-	reader := bytes.NewReader(hm.Sum(nil))
-	sk, _, err := libp2p.GenerateKeyPairWithReader(libp2p.Ed25519, bits, reader)
-	if err != nil {
-		return nil, err
-	}
-	encodedKey, err := sk.Bytes()
-	if err != nil {
-		return nil, err
-	}
-	return encodedKey, nil
+	return namesys.InitializeKeyspace(ctx, nd.Namesys, nd.Pinning, nd.PrivateKey)
 }
