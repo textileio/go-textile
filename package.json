@@ -17,7 +17,7 @@
     "cm": "git-cz",
     "commitmsg": "commitlint -e $GIT_PARAMS",
     "precommit": "npm test && npm run format",
-    "test": "go test ./... -coverprofile coverage.out",
+    "test": "go test `go list ./... | grep -v github.com/textileio/textile-go/desktop` -coverprofile coverage.out",
     "coverage": "go tool cover -html=coverage.out",
     "format": "go fmt ./...",
     "lint": "golint `go list ./... | grep -v /vendor/`"
