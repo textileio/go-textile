@@ -135,17 +135,20 @@ type ConfigDB struct {
 	path string
 }
 
-func (c *ConfigDB) Init(mnemonic string, identityKey []byte, password string, creationDate time.Time) error {
+func (c *ConfigDB) Init(password string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	if err := initDatabaseTables(c.db, password); err != nil {
-		return err
-	}
+	return initDatabaseTables(c.db, password)
+}
+
+func (c *ConfigDB) Configure(mnemonic string, identityKey []byte, creationDate time.Time) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
 	if err != nil {
 		return err
 	}
-	stmt, err := tx.Prepare("insert into config(key, value) values(?,?)")
+	stmt, err := tx.Prepare("insert or replace into config(key, value) values(?,?)")
 	if err != nil {
 		return err
 	}

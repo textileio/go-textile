@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"time"
 
 	tcore "github.com/textileio/textile-go/core"
 	trepo "github.com/textileio/textile-go/repo"
@@ -72,7 +71,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	// we may be running in an uninitialized state.
 	if !fsrepo.IsInitialized(cctx.ConfigRoot) {
-		err := trepo.DoInit(os.Stdout, cctx.ConfigRoot, time.Now(), nil)
+		err := trepo.DoInit(os.Stdout, cctx.ConfigRoot, nil)
 		if err != nil {
 			re.SetError(err, cmdkit.ErrNormal)
 			return

@@ -3,7 +3,6 @@ package test
 import (
 	"os"
 	"path"
-	"time"
 
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
@@ -64,7 +63,7 @@ func (r *Repository) Reset() error {
 	}
 
 	// Rebuild any necessary structure
-	err = repo.DoInit(os.Stdout, r.Path, time.Now(), r.DB.Config().Init)
+	err = repo.DoInit(os.Stdout, r.Path, r.DB.Config().Init)
 	if err != nil && err != repo.ErrRepoExists {
 		return err
 	}
