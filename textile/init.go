@@ -62,7 +62,7 @@ Initializes textile configuration files and generates a new keypair.
 			}
 		}
 
-		if err := repo.DoInit(os.Stdout, req.InvocContext().ConfigRoot, nil); err != nil {
+		if err := repo.DoInit(os.Stdout, req.InvocContext().ConfigRoot, false, nil); err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}

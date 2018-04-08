@@ -15,7 +15,7 @@ import (
 // Init exploration
 type IpfsResponse struct {
 	path string `json:"path"`
-	data string `json:"data"`
+	data []byte `json:"data"`
 }
 type QRCodeResponse struct {
 	png string `json:"png"`
@@ -51,15 +51,12 @@ func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload inter
 			return err.Error(), err
 		}
 
-		photoBase, _ := textile.GetFileBase64(path)
+		file, err := textile.GetFile(path)
 		if err != nil {
 			return err.Error(), err
-		} else {
-			return IpfsResponse {
-				path: path,
-				data: photoBase,
-			}, nil
 		}
+		return IpfsResponse{path: path, data: file}, nil
 	}
+
 	return
 }

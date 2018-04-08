@@ -4,6 +4,9 @@ build:
 linux_binary:
 	$(MAKE) -C ./textile linux_binary
 
+build_desktop:
+	$(MAKE) -C ./desktop build
+
 ios_framework:
 	CGO_CFLAGS_ALLOW='-fmodules|-fblocks' gomobile bind -target=ios/arm64 github.com/textileio/textile-go/mobile github.com/textileio/textile-go/net
 

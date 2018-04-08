@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	tcore "github.com/textileio/textile-go/core"
+	//tcore "github.com/textileio/textile-go/core"
 	trepo "github.com/textileio/textile-go/repo"
 
 	utilmain "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/cmd/ipfs/util"
@@ -71,7 +71,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	// we may be running in an uninitialized state.
 	if !fsrepo.IsInitialized(cctx.ConfigRoot) {
-		err := trepo.DoInit(os.Stdout, cctx.ConfigRoot, nil)
+		err := trepo.DoInit(os.Stdout, cctx.ConfigRoot, false, nil)
 		if err != nil {
 			re.SetError(err, cmdkit.ErrNormal)
 			return
@@ -86,11 +86,11 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		return
 	}
 
-	cfg, err := cctx.GetConfig()
-	if err != nil {
-		re.SetError(err, cmdkit.ErrNormal)
-		return
-	}
+	//cfg, err := cctx.GetConfig()
+	//if err != nil {
+	//	re.SetError(err, cmdkit.ErrNormal)
+	//	return
+	//}
 
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
@@ -125,31 +125,31 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	node.SetLocal(false)
 
-	if err := tcore.PrintSwarmAddrs(node); err != nil {
-		log.Errorf("failed to read listening addresses: %s", err)
-	}
+	//if err := tcore.PrintSwarmAddrs(node); err != nil {
+	//	log.Errorf("failed to read listening addresses: %s", err)
+	//}
 
 	cctx.ConstructNode = func() (*core.IpfsNode, error) {
 		return node, nil
 	}
 
 	// construct api endpoint - every time
-	apiErrc, err := tcore.ServeHTTPApi(cctx)
-	if err != nil {
-		re.SetError(err, cmdkit.ErrNormal)
-		return
-	}
+	//apiErrc, err := tcore.ServeHTTPApi(cctx)
+	//if err != nil {
+	//	re.SetError(err, cmdkit.ErrNormal)
+	//	return
+	//}
 
 	// construct http gateway - if it is set in the config
-	var gwErrc <-chan error
-	if len(cfg.Addresses.Gateway) > 0 {
-		var err error
-		gwErrc, err = tcore.ServeHTTPGateway(cctx)
-		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-	}
+	//var gwErrc <-chan error
+	//if len(cfg.Addresses.Gateway) > 0 {
+	//	var err error
+	//	gwErrc, err = tcore.ServeHTTPGateway(cctx)
+	//	if err != nil {
+	//		re.SetError(err, cmdkit.ErrNormal)
+	//		return
+	//	}
+	//}
 
 	// tmp setup subscription for testing
 	go func() {
@@ -179,10 +179,10 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	fmt.Printf("Daemon is ready\n")
 	// collect long-running errors and block for shutdown
-	for err := range tcore.Merge(apiErrc, gwErrc) {
-		if err != nil {
-			log.Error(err)
-			re.SetError(err, cmdkit.ErrNormal)
-		}
-	}
+	//for err := range tcore.Merge(apiErrc, gwErrc) {
+	//	if err != nil {
+	//		log.Error(err)
+	//		re.SetError(err, cmdkit.ErrNormal)
+	//	}
+	//}
 }

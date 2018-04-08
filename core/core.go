@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/op/go-logging"
+	"github.com/pkg/errors"
 	"github.com/tyler-smith/go-bip39"
 
 	"github.com/textileio/textile-go/net"
@@ -88,7 +89,7 @@ func NewNode(repoPath string, isMobile bool) (*TextileNode, error) {
 	}
 
 	// we may be running in an uninitialized state.
-	err = trepo.DoInit(os.Stdout, repoPath, sqliteDB.Config().Init)
+	err = trepo.DoInit(os.Stdout, repoPath, isMobile, sqliteDB.Config().Init)
 	if err != nil && err != trepo.ErrRepoExists {
 		return nil, err
 	}
@@ -102,18 +103,8 @@ func NewNode(repoPath string, isMobile bool) (*TextileNode, error) {
 
 	var routingOption core.RoutingOption
 	if isMobile {
-		// some of the below are taken from the not-yet-released "lowpower" profile preset
-		cfg, err := repo.Config()
-		if err != nil {
-			return nil, err
-		}
-		cfg.Reprovider.Interval = "0"
-		cfg.Swarm.ConnMgr.LowWater = 20
-		cfg.Swarm.ConnMgr.HighWater = 40
-		cfg.Swarm.ConnMgr.GracePeriod = time.Minute.String()
 		// TODO: Determine best value for this setting on mobile
 		// cfg.Swarm.DisableNatPortMap = true
-
 		routingOption = core.DHTClientOption
 	} else {
 		routingOption = core.DHTOption
@@ -126,7 +117,7 @@ func NewNode(repoPath string, isMobile bool) (*TextileNode, error) {
 		Online:    true,
 		ExtraOpts: map[string]bool{
 			"pubsub": true,
-			"ipnsps": false,
+			"ipnsps": true,
 			"mplex":  true,
 		},
 		Routing: routingOption,
@@ -136,21 +127,23 @@ func NewNode(repoPath string, isMobile bool) (*TextileNode, error) {
 }
 
 func (t *TextileNode) ConfigureDatastore(mnemonic string) error {
+	fmt.Println("configuring textile datastore...")
 	if mnemonic == "" {
 		var err error
 		mnemonic, err = createMnemonic(bip39.NewEntropy, bip39.NewMnemonic)
 		if err != nil {
 			return err
 		}
-		fmt.Println("Generating Ed25519 keypair...")
+		fmt.Printf("generating %v-bit Ed25519 keypair...", trepo.NBitsForKeypair)
 	} else {
-		fmt.Println("Regenerating Ed25519 keypair from mnemonic phrase...")
+		fmt.Println("regenerating Ed25519 keypair from mnemonic phrase...")
 	}
 	seed := bip39.NewSeed(mnemonic, "")
 	identityKey, err := identityKeyFromSeed(seed, trepo.NBitsForKeypair)
 	if err != nil {
 		return err
 	}
+	fmt.Print("done\n")
 
 	return t.Datastore.Config().Configure(mnemonic, identityKey, time.Now())
 }
@@ -165,8 +158,7 @@ func (t *TextileNode) Start() error {
 		return nil
 	}
 
-	fmt.Println("Starting node...")
-	fmt.Println("Repo directory: ", t.RepoPath)
+	fmt.Println("starting node...")
 
 	nd, err := core.NewNode(cctx, t.ipfsConfig)
 	if err != nil {
@@ -174,7 +166,7 @@ func (t *TextileNode) Start() error {
 	}
 	nd.SetLocal(false)
 
-	if err := PrintSwarmAddrs(nd); err != nil {
+	if err := printSwarmAddrs(nd); err != nil {
 		fmt.Errorf("failed to read listening addresses: %s", err)
 	}
 
@@ -190,20 +182,39 @@ func (t *TextileNode) Start() error {
 	t.Context = ctx
 	t.IpfsNode = nd
 
-	errc := make(chan error)
-	go func() {
-		_, err := ctx.ConstructNode()
-		errc <- err
-		close(errc)
-	}()
-
-	fmt.Printf("Node is ready\n")
-	for err := range Merge(errc) {
-		if err != nil {
-			fmt.Println(err)
-		}
+	if t.isMobile {
+		fmt.Println("mobile node is ready")
+	} else {
+		fmt.Println("desktop node is ready")
 	}
 
+	return nil
+}
+
+func (t *TextileNode) StartServices() error {
+	if t.isMobile {
+		return errors.New("services not available on mobile")
+	}
+
+	// repo blockstore GC
+	gcErrc, err := runGC(t.IpfsNode.Context(), t.IpfsNode)
+	if err != nil {
+		return err
+	}
+
+	// construct http gateway - if it is set in the config
+	var gwErrc <-chan error
+	gwErrc, err = serveHTTPGateway(&t.Context)
+	if err != nil {
+		return err
+	}
+
+	// merge error channels
+	for err := range merge(gwErrc, gcErrc) {
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
