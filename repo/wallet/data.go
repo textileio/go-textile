@@ -40,7 +40,35 @@ func (w *Data) String() string {
 	return "TODO"
 }
 
-// TODO: Put this in the sql db, not ipfs
+//func InitializeWalletData(ctx context.Context, pub Publisher, pins pin.Pinner, key ci.PrivKey) error {
+//	wallet := &Data{
+//		Created: time.Now(),
+//		Updated: time.Now(),
+//		Photos:  make([]string, 0),
+//	}
+//
+//	wb, err := json.Marshal(wallet)
+//	if err != nil {
+//		return err
+//	}
+//
+//	pins.
+//
+//	// pin recursively because this might already be pinned
+//	// and doing a direct pin would throw an error in that case
+//	err := pins.Pin(ctx, emptyDir, true)
+//	if err != nil {
+//		return err
+//	}
+//
+//	err = pins.Flush()
+//	if err != nil {
+//		return err
+//	}
+//
+//	return pub.Publish(ctx, key, path.FromCid(emptyDir.Cid()))
+//}
+
 func NewWalletData(node *core.IpfsNode) error {
 	api := coreapi.NewCoreAPI(node)
 
@@ -55,12 +83,11 @@ func NewWalletData(node *core.IpfsNode) error {
 		return err
 	}
 
+	// add and pin it
 	p, err := api.Unixfs().Add(node.Context(), bytes.NewReader(wb))
 	if err != nil {
 		return err
 	}
-
-	// done automatically?
 	if err := api.Pin().Add(node.Context(), p); err != nil {
 		return err
 	}

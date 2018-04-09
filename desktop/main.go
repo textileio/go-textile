@@ -6,21 +6,16 @@ import (
 	"github.com/asticode/go-astilectron-bootstrap"
 	"github.com/asticode/go-astilog"
 	"github.com/pkg/errors"
-	textilego "github.com/textileio/textile-go/mobile"
+	"github.com/textileio/textile-go/core"
 )
 
-// Constants
-const htmlAbout = `Welcome on <b>Textile</b> demo!<br>
-This is using the bootstrap and the bundler.`
-
-// Vars
 var (
 	BuiltAt string
 	debug   = flag.Bool("d", false, "enables the debug mode")
 	w       *astilectron.Window
 )
 
-var textile *textilego.Node
+var textile *core.TextileNode
 
 func main() {
 	// Init
@@ -28,12 +23,24 @@ func main() {
 	flag.Parse()
 	astilog.FlagInit()
 
-	textile = textilego.NewTextile("output/.ipfs", "https://ipfs.textile.io")
+	// Create a desktop textile node
+	// TODO: on darwin, I think repo should live in Application Support
+	var err error
+	textile, err = core.NewNode("output/.ipfs", false)
 
-	err := textile.Start()
+	// Bring the node online
+	err = textile.Start()
 	if err != nil {
 		astilog.Errorf("start mobile node failed: %s", err)
 	}
+
+	// Start garbage collection and gateway services
+	// NOTE: on desktop, gateway runs on 8081
+	var errc = make(chan error)
+	go func() {
+		errc <- textile.StartServices()
+		close(errc)
+	}()
 
 	// Run bootstrap
 	astilog.Debugf("Running app built at %s", BuiltAt)
@@ -57,5 +64,4 @@ func main() {
 	}); err != nil {
 		astilog.Fatal(errors.Wrap(err, "running bootstrap failed"))
 	}
-
 }

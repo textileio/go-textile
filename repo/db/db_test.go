@@ -19,7 +19,8 @@ func TestMain(m *testing.M) {
 func setup() {
 	os.MkdirAll(path.Join("./", "datastore"), os.ModePerm)
 	testDB, _ = Create("", "LetMeIn")
-	testDB.config.Init("Mnemonic Passphrase", []byte("Private Key"), "LetMeIn", time.Now())
+	testDB.config.Init("LetMeIn")
+	testDB.config.Configure("Mnemonic Passphrase", []byte("Private Key"), time.Now())
 }
 
 func teardown() {
@@ -32,7 +33,7 @@ func TestCreate(t *testing.T) {
 	}
 }
 
-func TestInit(t *testing.T) {
+func TestConfig(t *testing.T) {
 	mn, err := testDB.config.GetMnemonic()
 	if err != nil {
 		t.Error(err)
