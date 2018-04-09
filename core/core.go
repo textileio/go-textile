@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -127,7 +128,7 @@ func NewNode(repoPath string, isMobile bool) (*TextileNode, error) {
 	return &TextileNode{RepoPath: repoPath, Datastore: sqliteDB, ipfsConfig: ncfg, isMobile: isMobile}, nil
 }
 
-func (t *TextileNode) ConfigureDatastore(mnemonic string) error {
+func (t *TextileNode) ConfigureDatastore(mnemonic string, pairedID string) error {
 	fmt.Println("configuring textile datastore...")
 	if mnemonic == "" {
 		var err error
@@ -146,7 +147,7 @@ func (t *TextileNode) ConfigureDatastore(mnemonic string) error {
 	}
 	fmt.Print("done\n")
 
-	return t.Datastore.Config().Configure(mnemonic, identityKey, time.Now())
+	return t.Datastore.Config().Configure(mnemonic, identityKey, pairedID, time.Now())
 }
 
 func (t *TextileNode) Start() error {
@@ -268,7 +269,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 	}
 
 	// publish
-	err = t.IpfsNode.Floodsub.Publish("textile", []byte(mr.Boundary))
+	err = t.IpfsNode.Floodsub.Publish(t.IpfsNode.Identity.Pretty(), []byte(mr.Boundary))
 	if err != nil {
 		return nil, err
 	}
@@ -325,16 +326,13 @@ func (t *TextileNode) GetFile(path string) ([]byte, error) {
 	return b, err
 }
 
-func (t *TextileNode) StartSync(peerId string) error {
-	sub, err := t.IpfsNode.Floodsub.Subscribe(peerId)
+func (t *TextileNode) StartPairing() error {
+	id := t.IpfsNode.Identity.Pretty()
+	sub, err := t.IpfsNode.Floodsub.Subscribe(id)
 	if err != nil {
 		return err
 	}
 	defer sub.Cancel()
-
-	fmt.Printf("subscribed to topic: %s\n", peerId)
-
-	api := coreapi.NewCoreAPI(t.IpfsNode)
 
 	for {
 		select {
@@ -346,7 +344,41 @@ func (t *TextileNode) StartSync(peerId string) error {
 				return err
 			}
 
-			from := msg.GetFrom().String()
+			from := msg.GetFrom().Pretty()
+			phrase := string(msg.GetData())
+
+			fmt.Printf("got pairing request from: %s -> \"%s\"\n", from, phrase)
+
+			// setup datastore with phrase and close sub
+			return t.ConfigureDatastore(phrase, from)
+
+		case <-t.IpfsNode.Context().Done():
+			return nil
+		}
+	}
+}
+
+func (t *TextileNode) StartSync(peerId string) error {
+	sub, err := t.IpfsNode.Floodsub.Subscribe(peerId)
+	if err != nil {
+		return err
+	}
+	defer sub.Cancel()
+
+	fmt.Printf("subscribed to topic: %s\n", peerId)
+
+	api := coreapi.NewCoreAPI(t.IpfsNode)
+	for {
+		select {
+		default:
+			msg, err := sub.Next(t.IpfsNode.Context())
+			if err == io.EOF || err == context.Canceled {
+				return nil
+			} else if err != nil {
+				return err
+			}
+
+			from := msg.GetFrom().Pretty()
 			hash := string(msg.GetData())
 
 			fmt.Printf("got message from: %s -> \"%s\"\n", from, hash)
@@ -373,8 +405,12 @@ func (t *TextileNode) StartSync(peerId string) error {
 	}
 }
 
-func (t *TextileNode) GetPeerPublicKey() ([]byte, error) {
-	return t.IpfsNode.Identity.ExtractPublicKey().Bytes()
+func (t *TextileNode) GetPeerPublicKeyString() (string, error) {
+	pkb, err := t.IpfsNode.Identity.ExtractPublicKey().Bytes()
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(pkb), nil
 }
 
 func (t *TextileNode) unmarshalPrivateKey() (libp2p.PrivKey, error) {

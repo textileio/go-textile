@@ -34,7 +34,7 @@ func TestTextileNode_StartServices(t *testing.T) {
 }
 
 func TestTextileNode_ConfigureDatastore(t *testing.T) {
-	err := node.ConfigureDatastore("")
+	err := node.ConfigureDatastore("", "")
 	if err != nil {
 		t.Errorf("configure datastore failed: %s", err)
 	}

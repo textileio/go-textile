@@ -41,7 +41,7 @@ func (w *Wrapper) Start() error {
 }
 
 func (w *Wrapper) ConfigureDatastore(mnemonic string) error {
-	return w.node.ConfigureDatastore(mnemonic)
+	return w.node.ConfigureDatastore(mnemonic, "")
 }
 
 func (w *Wrapper) IsDatastoreConfigured() (bool, error) {
