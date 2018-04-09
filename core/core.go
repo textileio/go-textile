@@ -262,10 +262,16 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 	}
 
 	// index
-	t.Datastore.Photos().Put(mr.Boundary, time.Now())
+	err = t.Datastore.Photos().Put(mr.Boundary, time.Now())
+	if err != nil {
+		return nil, err
+	}
 
 	// publish
-	t.IpfsNode.Floodsub.Publish("textile", []byte(mr.Boundary))
+	err = t.IpfsNode.Floodsub.Publish("textile", []byte(mr.Boundary))
+	if err != nil {
+		return nil, err
+	}
 
 	return mr, nil
 }
@@ -367,24 +373,8 @@ func (t *TextileNode) StartSync(peerId string) error {
 	}
 }
 
-func (t *TextileNode) GetPublicKey() ([]byte, error) {
-	pubKey, err := t.unmarshalPublicKey()
-	if err != nil {
-		return nil, err
-	}
-	pubKeyBytes, err := libp2p.MarshalPublicKey(pubKey)
-	if err != nil {
-		return nil, err
-	}
-	return pubKeyBytes, nil
-}
-
-func (t *TextileNode) unmarshalPublicKey() (libp2p.PubKey, error) {
-	kb, err := t.Datastore.Config().GetIdentityKey()
-	if err != nil {
-		return nil, err
-	}
-	return libp2p.UnmarshalPublicKey(kb)
+func (t *TextileNode) GetPeerPublicKey() ([]byte, error) {
+	return t.IpfsNode.Identity.ExtractPublicKey().Bytes()
 }
 
 func (t *TextileNode) unmarshalPrivateKey() (libp2p.PrivKey, error) {
