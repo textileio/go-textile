@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
+	"fmt"
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/net"
 )
@@ -41,16 +42,17 @@ func (w *Wrapper) ConfigureDatastore(mnemonic string) error {
 	return w.node.ConfigureDatastore(mnemonic)
 }
 
-func (w *Wrapper) IsDatastoreConfigured() (bool, error) {
+func (w *Wrapper) IsDatastoreConfigured() bool {
 	_, err := w.GetRecoveryPhrase()
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return false, nil
+			return false
 		} else {
-			return false, err
+			fmt.Printf("error checking if datastore is configured: %s", err)
+			return false
 		}
 	}
-	return true, nil
+	return true
 }
 
 func (w *Wrapper) Stop() error {
