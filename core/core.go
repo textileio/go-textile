@@ -315,12 +315,32 @@ func (t *TextileNode) GetFile(path string) ([]byte, error) {
 	return b, err
 }
 
+func (t *TextileNode) GetPublicKey() ([]byte, error) {
+	pubKey, err := t.unmarshalPublicKey()
+	if err != nil {
+		return nil, err
+	}
+	pubKeyBytes, err := libp2p.MarshalPublicKey(pubKey)
+	if err != nil {
+		return nil, err
+	}
+	return pubKeyBytes, nil
+}
+
 func (t *TextileNode) unmarshalPrivateKey() (libp2p.PrivKey, error) {
 	kb, err := t.Datastore.Config().GetIdentityKey()
 	if err != nil {
 		return nil, err
 	}
 	return libp2p.UnmarshalPrivateKey(kb)
+}
+
+func (t *TextileNode) unmarshalPublicKey() (libp2p.PubKey, error) {
+	kb, err := t.Datastore.Config().GetIdentityKey()
+	if err != nil {
+		return nil, err
+	}
+	return libp2p.UnmarshalPublicKey(kb)
 }
 
 func createMnemonic(newEntropy func(int) ([]byte, error), newMnemonic func([]byte) (string, error)) (string, error) {
