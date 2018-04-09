@@ -6,6 +6,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -263,6 +264,9 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 	// index
 	t.Datastore.Photos().Put(mr.Boundary, time.Now())
 
+	// publish
+	t.IpfsNode.Floodsub.Publish("textile", []byte(mr.Boundary))
+
 	return mr, nil
 }
 
@@ -283,7 +287,7 @@ func (t *TextileNode) GetPhotos(offsetId string, limit int) *PhotoList {
 
 // pass in Qm../thumb, or Qm../photo for full image
 func (t *TextileNode) GetFile(path string) ([]byte, error) {
-	// convert string to a ipfs path
+	// convert string to an ipfs path
 	ipath, err := coreapi.ParsePath(path)
 	if err != nil {
 		return nil, err
@@ -315,6 +319,54 @@ func (t *TextileNode) GetFile(path string) ([]byte, error) {
 	return b, err
 }
 
+func (t *TextileNode) StartSync(peerId string) error {
+	sub, err := t.IpfsNode.Floodsub.Subscribe(peerId)
+	if err != nil {
+		return err
+	}
+	defer sub.Cancel()
+
+	fmt.Printf("subscribed to topic: %s\n", peerId)
+
+	api := coreapi.NewCoreAPI(t.IpfsNode)
+
+	for {
+		select {
+		default:
+			msg, err := sub.Next(t.IpfsNode.Context())
+			if err == io.EOF || err == context.Canceled {
+				return nil
+			} else if err != nil {
+				return err
+			}
+
+			from := msg.GetFrom().String()
+			hash := string(msg.GetData())
+
+			fmt.Printf("got message from: %s -> \"%s\"\n", from, hash)
+
+			// convert string to an ipfs path
+			ipath, err := coreapi.ParsePath(hash)
+			if err != nil {
+				// TODO: log err, don't cancel sub
+				return err
+			}
+
+			// pin it
+			err = api.Pin().Add(t.IpfsNode.Context(), ipath, api.Pin().WithRecursive(true))
+			if err != nil {
+				return err
+			}
+
+			// index
+			t.Datastore.Photos().Put(hash, time.Now())
+
+		case <-t.IpfsNode.Context().Done():
+			return nil
+		}
+	}
+}
+
 func (t *TextileNode) GetPublicKey() ([]byte, error) {
 	pubKey, err := t.unmarshalPublicKey()
 	if err != nil {
@@ -327,20 +379,20 @@ func (t *TextileNode) GetPublicKey() ([]byte, error) {
 	return pubKeyBytes, nil
 }
 
-func (t *TextileNode) unmarshalPrivateKey() (libp2p.PrivKey, error) {
-	kb, err := t.Datastore.Config().GetIdentityKey()
-	if err != nil {
-		return nil, err
-	}
-	return libp2p.UnmarshalPrivateKey(kb)
-}
-
 func (t *TextileNode) unmarshalPublicKey() (libp2p.PubKey, error) {
 	kb, err := t.Datastore.Config().GetIdentityKey()
 	if err != nil {
 		return nil, err
 	}
 	return libp2p.UnmarshalPublicKey(kb)
+}
+
+func (t *TextileNode) unmarshalPrivateKey() (libp2p.PrivKey, error) {
+	kb, err := t.Datastore.Config().GetIdentityKey()
+	if err != nil {
+		return nil, err
+	}
+	return libp2p.UnmarshalPrivateKey(kb)
 }
 
 func createMnemonic(newEntropy func(int) ([]byte, error), newMnemonic func([]byte) (string, error)) (string, error) {

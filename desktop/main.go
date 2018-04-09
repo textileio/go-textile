@@ -33,6 +33,10 @@ func main() {
 	if err != nil {
 		astilog.Errorf("start mobile node failed: %s", err)
 	}
+	err = textile.ConfigureDatastore("")
+	if err != nil {
+		astilog.Errorf("configure datastore failed: %s", err)
+	}
 
 	// Start garbage collection and gateway services
 	// NOTE: on desktop, gateway runs on 8081
@@ -40,6 +44,12 @@ func main() {
 	go func() {
 		errc <- textile.StartServices()
 		close(errc)
+	}()
+
+	var errc2 = make(chan error)
+	go func() {
+		errc2 <- textile.StartSync("textile")
+		close(errc2)
 	}()
 
 	// Run bootstrap
