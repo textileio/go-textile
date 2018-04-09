@@ -180,7 +180,7 @@ func (c *ConfigDB) GetMnemonic() (string, error) {
 	var mnemonic string
 	err = stmt.QueryRow("mnemonic").Scan(&mnemonic)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	return mnemonic, nil
 }

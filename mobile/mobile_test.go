@@ -35,10 +35,30 @@ func TestWrapper_StartAgain(t *testing.T) {
 	}
 }
 
+func TestWrapper_IsDatastoreConfigured(t *testing.T) {
+	conf, err := wrapper.IsDatastoreConfigured()
+	if err != nil {
+		t.Errorf("failed to check if datastore is configured: %s", err)
+	}
+	if conf {
+		t.Error("check if datastore is configured bad result")
+	}
+}
+
 func TestWrapper_ConfigureDatastore(t *testing.T) {
 	err := wrapper.ConfigureDatastore("")
 	if err != nil {
 		t.Errorf("configure datastore on mobile node failed: %s", err)
+	}
+}
+
+func TestWrapper_IsDatastoreConfigured2(t *testing.T) {
+	conf, err := wrapper.IsDatastoreConfigured()
+	if err != nil {
+		t.Errorf("failed to check if datastore is configured (2): %s", err)
+	}
+	if !conf {
+		t.Error("check if datastore is configured (2) bad result")
 	}
 }
 
