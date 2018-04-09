@@ -20,7 +20,7 @@ func setup() {
 	os.MkdirAll(path.Join("./", "datastore"), os.ModePerm)
 	testDB, _ = Create("", "LetMeIn")
 	testDB.config.Init("LetMeIn")
-	testDB.config.Configure("Mnemonic Passphrase", []byte("Private Key"), time.Now())
+	testDB.config.Configure("Mnemonic Passphrase", []byte("Private Key"), "", time.Now())
 }
 
 func teardown() {
