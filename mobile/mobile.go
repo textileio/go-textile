@@ -2,6 +2,7 @@ package mobile
 
 import (
 	"context"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 
@@ -38,6 +39,18 @@ func (w *Wrapper) Start() error {
 
 func (w *Wrapper) ConfigureDatastore(mnemonic string) error {
 	return w.node.ConfigureDatastore(mnemonic)
+}
+
+func (w *Wrapper) IsDatastoreConfigured() (bool, error) {
+	_, err := w.GetRecoveryPhrase()
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		} else {
+			return false, err
+		}
+	}
+	return true, nil
 }
 
 func (w *Wrapper) Stop() error {
