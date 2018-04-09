@@ -1,4 +1,4 @@
-// cmd/ipfs implements the primary CLI binary for textile
+// cmd/textile implements the primary CLI binary for textile
 package main
 
 import (

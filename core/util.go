@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	oldcmds "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/commands"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/corehttp"
+	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/corerepo"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/config"
 
 	"gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
@@ -35,9 +37,9 @@ func defaultMux(path string) corehttp.ServeOption {
 }
 
 // PrintSwarmAddrs prints the addresses of the host
-func PrintSwarmAddrs(node *core.IpfsNode) error {
+func printSwarmAddrs(node *core.IpfsNode) error {
 	if !node.OnlineMode() {
-		fmt.Println("Swarm not listening, running in offline mode.")
+		fmt.Println("swarm not listening, running in offline mode")
 		return nil
 	}
 
@@ -51,7 +53,7 @@ func PrintSwarmAddrs(node *core.IpfsNode) error {
 	}
 	sort.Sort(sort.StringSlice(lisAddrs))
 	for _, addr := range lisAddrs {
-		fmt.Printf("Swarm listening on %s\n", addr)
+		fmt.Printf("swarm listening on %s\n", addr)
 	}
 
 	var addrs []string
@@ -60,14 +62,14 @@ func PrintSwarmAddrs(node *core.IpfsNode) error {
 	}
 	sort.Sort(sort.StringSlice(addrs))
 	for _, addr := range addrs {
-		fmt.Printf("Swarm announcing %s\n", addr)
+		fmt.Printf("swarm announcing %s\n", addr)
 	}
 
 	return nil
 }
 
 // ServeHTTPApi collects options, creates listener, prints status message and starts serving requests
-func ServeHTTPApi(cctx *oldcmds.Context) (<-chan error, error) {
+func serveHTTPApi(cctx *oldcmds.Context) (<-chan error, error) {
 	cfg, err := cctx.GetConfig()
 	if err != nil {
 		return nil, fmt.Errorf("ServeHTTPApi: GetConfig() failed: %s", err)
@@ -122,8 +124,8 @@ func ServeHTTPApi(cctx *oldcmds.Context) (<-chan error, error) {
 	return errc, nil
 }
 
-// ServeHTTPGateway collects options, creates listener, prints status message and starts serving requests
-func ServeHTTPGateway(cctx *oldcmds.Context) (<-chan error, error) {
+// serveHTTPGateway collects options, creates listener, prints status message and starts serving requests
+func serveHTTPGateway(cctx *oldcmds.Context) (<-chan error, error) {
 	cfg, err := cctx.GetConfig()
 	if err != nil {
 		return nil, fmt.Errorf("ServeHTTPGateway: GetConfig() failed: %s", err)
@@ -141,7 +143,7 @@ func ServeHTTPGateway(cctx *oldcmds.Context) (<-chan error, error) {
 	// we might have listened to /tcp/0 - lets see what we are listing on
 	gatewayMaddr = gwLis.Multiaddr()
 
-	fmt.Printf("Gateway (readonly) server listening on %s\n", gatewayMaddr)
+	fmt.Printf("gateway (readonly) server listening on %s\n", gatewayMaddr)
 
 	var opts = []corehttp.ServeOption{
 		corehttp.MetricsCollectionOption("gateway"),
@@ -171,7 +173,7 @@ func ServeHTTPGateway(cctx *oldcmds.Context) (<-chan error, error) {
 
 // merge does fan-in of multiple read-only error channels
 // taken from http://blog.golang.org/pipelines
-func Merge(cs ...<-chan error) <-chan error {
+func merge(cs ...<-chan error) <-chan error {
 	var wg sync.WaitGroup
 	out := make(chan error)
 
@@ -197,6 +199,15 @@ func Merge(cs ...<-chan error) <-chan error {
 		close(out)
 	}()
 	return out
+}
+
+func runGC(ctx context.Context, node *core.IpfsNode) (<-chan error, error) {
+	errc := make(chan error)
+	go func() {
+		errc <- corerepo.PeriodicGC(ctx, node)
+		close(errc)
+	}()
+	return errc, nil
 }
 
 /*
