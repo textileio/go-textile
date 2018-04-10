@@ -53,9 +53,9 @@ func main() {
 
 	// tmp: if paired id is present, start listening
 	pid, err := textile.Datastore.Config().GetPairedID()
-	if err != nil {
-		astilog.Errorf("get paired id failed: %s", err)
-	}
+	//if err != nil {
+	//	astilog.Errorf("get paired id failed: %s", err)
+	//}
 	if pid != "" {
 		var errc3 = make(chan error)
 		go func() {

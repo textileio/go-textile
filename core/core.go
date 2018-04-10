@@ -258,7 +258,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 	}
 
 	// add it
-	mr, err := wallet.AddPhoto(t.IpfsNode, sk, p, th)
+	mr, err := wallet.AddPhoto(t.IpfsNode, sk.GetPublic(), p, th)
 	if err != nil {
 		return nil, err
 	}
@@ -295,21 +295,8 @@ func (t *TextileNode) GetPhotos(offsetId string, limit int) *PhotoList {
 
 // pass in Qm../thumb, or Qm../photo for full image
 func (t *TextileNode) GetFile(path string) ([]byte, error) {
-	// convert string to an ipfs path
-	ipath, err := coreapi.ParsePath(path)
-	if err != nil {
-		return nil, err
-	}
-
-	api := coreapi.NewCoreAPI(t.IpfsNode)
-	r, err := api.Unixfs().Cat(t.IpfsNode.Context(), ipath)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-
-	// read bytes and convert to base64 string
-	cb, err := ioutil.ReadAll(r)
+	// get bytes
+	cb, err := t.getDataAtPath(path)
 	if err != nil {
 		return nil, err
 	}
@@ -347,12 +334,8 @@ func (t *TextileNode) StartPairing() error {
 			from := msg.GetFrom().Pretty()
 			fmt.Printf("got pairing request from: %s\n", from)
 
-			// load config and get private key
-			cfg, err := t.Context.GetConfig()
-			if err != nil {
-				return err
-			}
-			sk, err := loadPrivateKey(&cfg.Identity, t.IpfsNode.Identity)
+			// get private peer key and decrypt the phrase
+			sk, err := t.unmarshalPrivatePeerKey()
 			if err != nil {
 				return err
 			}
@@ -405,13 +388,16 @@ func (t *TextileNode) StartSync(peerId string) error {
 			}
 
 			// pin it
+			fmt.Printf("pinning %s recursively...", hash)
 			err = api.Pin().Add(t.IpfsNode.Context(), ipath, api.Pin().WithRecursive(true))
 			if err != nil {
 				return err
 			}
+			fmt.Printf("done\n")
 
 			// index
 			t.Datastore.Photos().Put(hash, time.Now())
+			fmt.Printf("indexed %s\n", hash)
 
 		case <-t.IpfsNode.Context().Done():
 			return nil
@@ -419,12 +405,61 @@ func (t *TextileNode) StartSync(peerId string) error {
 	}
 }
 
-func (t *TextileNode) GetPeerPublicKeyString() (string, error) {
-	pkb, err := t.IpfsNode.Identity.ExtractPublicKey().Bytes()
+func (t *TextileNode) GetPublicPeerKeyString() (string, error) {
+	sk, err := t.unmarshalPrivatePeerKey()
 	if err != nil {
 		return "", err
 	}
+	pkb, err := sk.GetPublic().Bytes()
+	if err != nil {
+		return "", err
+	}
+
 	return base64.StdEncoding.EncodeToString(pkb), nil
+}
+
+func (t *TextileNode) getDataAtPath(path string) ([]byte, error) {
+	// convert string to an ipfs path
+	ipath, err := coreapi.ParsePath(path)
+	if err != nil {
+		return nil, err
+	}
+
+	api := coreapi.NewCoreAPI(t.IpfsNode)
+	r, err := api.Unixfs().Cat(t.IpfsNode.Context(), ipath)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	// read bytes
+	return ioutil.ReadAll(r)
+}
+
+func (t *TextileNode) unmarshalPrivatePeerKey() (libp2p.PrivKey, error) {
+	cfg, err := t.Context.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	skb, err := base64.StdEncoding.DecodeString(cfg.Identity.PrivKey)
+	if err != nil {
+		return nil, err
+	}
+	sk, err := libp2p.UnmarshalPrivateKey(skb)
+	if err != nil {
+		return nil, err
+	}
+
+	// check
+	id2, err := peer.IDFromPrivateKey(sk)
+	if err != nil {
+		return nil, err
+	}
+	if id2 != t.IpfsNode.Identity {
+		return nil, fmt.Errorf("private key in config does not match id: %s != %s", t.IpfsNode.Identity, id2)
+	}
+
+	return sk, nil
 }
 
 func (t *TextileNode) unmarshalPrivateKey() (libp2p.PrivKey, error) {
@@ -460,22 +495,4 @@ func identityKeyFromSeed(seed []byte, bits int) ([]byte, error) {
 		return nil, err
 	}
 	return encodedKey, nil
-}
-
-func loadPrivateKey(cfg *config.Identity, id peer.ID) (libp2p.PrivKey, error) {
-	sk, err := cfg.DecodePrivateKey("passphrase todo!")
-	if err != nil {
-		return nil, err
-	}
-
-	id2, err := peer.IDFromPrivateKey(sk)
-	if err != nil {
-		return nil, err
-	}
-
-	if id2 != id {
-		return nil, fmt.Errorf("private key in config does not match id: %s != %s", id, id2)
-	}
-
-	return sk, nil
 }
