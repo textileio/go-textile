@@ -1,6 +1,7 @@
 package mobile_test
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"os"
 	"strings"
@@ -8,6 +9,8 @@ import (
 
 	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
+
+	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 var wrapper *Wrapper
@@ -104,6 +107,23 @@ func TestWrapper_GetRecoveryPhrase(t *testing.T) {
 	list := strings.Split(mnemonic, " ")
 	if len(list) != 24 {
 		t.Errorf("got bad mnemonic length: %c", len(list))
+	}
+}
+
+func TestWrapper_Pair(t *testing.T) {
+	_, pk, err := libp2p.GenerateKeyPair(libp2p.RSA, 4096)
+	if err != nil {
+		t.Errorf("create rsa keypair failed: %s", err)
+	}
+	pb, err := pk.Bytes()
+	if err != nil {
+		t.Errorf("get rsa keypair bytes: %s", err)
+	}
+	ps := base64.StdEncoding.EncodeToString(pb)
+
+	_, err = wrapper.PairDesktop(ps)
+	if err != nil {
+		t.Errorf("pair desktop failed: %s", err)
 	}
 }
 
