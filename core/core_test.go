@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"fmt"
 	. "github.com/textileio/textile-go/core"
 )
 
@@ -72,6 +73,15 @@ func TestTextileNode_GetFile(t *testing.T) {
 	if len(res) == 0 {
 		t.Errorf("get photo bad result")
 	}
+}
+
+func TestTextileNode_GetPublicPeerKeyString(t *testing.T) {
+	pk, err := node.GetPublicPeerKeyString()
+	if err != nil {
+		t.Errorf("get peer public key as base 64 string failed: %s", err)
+		return
+	}
+	fmt.Printf(pk)
 }
 
 func TestTextileNode_Stop(t *testing.T) {
