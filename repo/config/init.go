@@ -136,11 +136,11 @@ const DefaultConnMgrGracePeriod = time.Second * 20
 func addressesConfig(isMobile bool) native.Addresses {
 	swarmPort := "4002"
 	apiPost := "5002"
-	gatewayPort := "8081"
+	gatewayPort := "8182"
 	if isMobile {
 		swarmPort = "4003"
 		apiPost = "5003"
-		gatewayPort = "8082"
+		gatewayPort = "8183"
 	}
 
 	return native.Addresses{
