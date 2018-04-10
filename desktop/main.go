@@ -42,6 +42,28 @@ func main() {
 		close(errc)
 	}()
 
+	// tmp: sub to own peer id for pairing setup
+	// this should really only happen when you click "pair"
+	// and then be closed
+	var errc2 = make(chan error)
+	go func() {
+		errc2 <- textile.StartPairing()
+		close(errc2)
+	}()
+
+	// tmp: if paired id is present, start listening
+	pid, err := textile.Datastore.Config().GetPairedID()
+	if err != nil {
+		astilog.Errorf("get paired id failed: %s", err)
+	}
+	if pid != "" {
+		var errc3 = make(chan error)
+		go func() {
+			errc3 <- textile.StartSync(pid)
+			close(errc3)
+		}()
+	}
+
 	// Run bootstrap
 	astilog.Debugf("Running app built at %s", BuiltAt)
 	if err := bootstrap.Run(bootstrap.Options{

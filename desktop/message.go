@@ -30,17 +30,16 @@ func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload inter
 		// create a random confirmation code
 		code := fmt.Sprintf("%04d", rand.Int63n(1e4))
 
-		pubKey, err := textile.GetPublicKey()
+		pk, err := textile.GetPeerPublicKeyString()
 		if err != nil {
 			astilog.Errorf("public key generation failed: %s", err)
 			return nil, err
 		}
-		pubKeyS := string(base64.StdEncoding.EncodeToString(pubKey))
 
 		var png []byte
 		// I've registered this URL so that apple will do an App Link from any url like it directly into our
 		// app. Just need to do a PR in the app to receive it
-		png, err = qrcode.Encode(fmt.Sprintf("https://www.textile.io/clients?code=%s&key=%s", code, pubKeyS), qrcode.Medium, 256)
+		png, err = qrcode.Encode(fmt.Sprintf("https://www.textile.io/clients?code=%s&key=%s", code, pk), qrcode.Medium, 256)
 		if err != nil {
 			astilog.Errorf("qr generation failed: %s", err)
 			return nil, err
@@ -48,8 +47,8 @@ func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload inter
 		res := map[string]interface{}{
 			"png":  string(base64.StdEncoding.EncodeToString(png)),
 			"code": code,
-			"url":  fmt.Sprintf("https://www.textile.io/clients?code=%s&key=%s", code, pubKeyS),
-			"key":  pubKeyS,
+			"url":  fmt.Sprintf("https://www.textile.io/clients?code=%s&key=%s", code, pk),
+			"key":  pk,
 		}
 		return res, nil
 

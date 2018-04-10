@@ -82,8 +82,7 @@ go get -u github.com/asticode/go-astilectron-bootstrap/...
 ```
 
 ```
-cd desktop/
-astilectron-bundler -v
+make build_desktop
 ```
 
 you can now open the desktop build, stored in `desktop/output/darwin-amd64` (for mac). or run it in dev mode
