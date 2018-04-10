@@ -30,7 +30,7 @@ func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload inter
 		// create a random confirmation code
 		code := fmt.Sprintf("%04d", rand.Int63n(1e4))
 
-		pk, err := textile.GetPeerPublicKeyString()
+		pk, err := textile.GetPublicPeerKeyString()
 		if err != nil {
 			astilog.Errorf("public key generation failed: %s", err)
 			return nil, err
@@ -45,7 +45,7 @@ func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload inter
 			return nil, err
 		}
 		res := map[string]interface{}{
-			"png":  string(base64.StdEncoding.EncodeToString(png)),
+			"png":  base64.StdEncoding.EncodeToString(png),
 			"code": code,
 			"url":  fmt.Sprintf("https://www.textile.io/clients?code=%s&key=%s", code, pk),
 			"key":  pk,

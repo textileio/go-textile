@@ -97,10 +97,7 @@ func NewWalletData(node *core.IpfsNode) error {
 
 // AddPhoto takes an image file, and optionally a thumbnail file, and adds
 // both to a new directory, then finally adds and pins that directory.
-func AddPhoto(n *core.IpfsNode, sk libp2p.PrivKey, p *os.File, t *os.File) (*net.MultipartRequest, error) {
-	// grab the private key for encryption
-	pk := sk.GetPublic()
-
+func AddPhoto(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File) (*net.MultipartRequest, error) {
 	// path info
 	path := p.Name()
 	ext := strings.ToLower(filepath.Ext(path))
