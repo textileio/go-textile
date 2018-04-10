@@ -30,6 +30,7 @@ import (
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo"
 	lockfile "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo/lock"
 
+	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
@@ -343,14 +344,27 @@ func (t *TextileNode) StartPairing() error {
 			} else if err != nil {
 				return err
 			}
-
 			from := msg.GetFrom().Pretty()
-			phrase := string(msg.GetData())
+			fmt.Printf("got pairing request from: %s\n", from)
 
-			fmt.Printf("got pairing request from: %s -> \"%s\"\n", from, phrase)
+			// load config and get private key
+			cfg, err := t.Context.GetConfig()
+			if err != nil {
+				return err
+			}
+			sk, err := loadPrivateKey(&cfg.Identity, t.IpfsNode.Identity)
+			if err != nil {
+				return err
+			}
+			p, err := net.Decrypt(sk, msg.GetData())
+			if err != nil {
+				return err
+			}
+			ps := string(p)
+			fmt.Printf("decrypted mnemonic phrase as: %s\n", ps)
 
 			// setup datastore with phrase and close sub
-			return t.ConfigureDatastore(phrase, from)
+			return t.ConfigureDatastore(ps, from)
 
 		case <-t.IpfsNode.Context().Done():
 			return nil
@@ -446,4 +460,22 @@ func identityKeyFromSeed(seed []byte, bits int) ([]byte, error) {
 		return nil, err
 	}
 	return encodedKey, nil
+}
+
+func loadPrivateKey(cfg *config.Identity, id peer.ID) (libp2p.PrivKey, error) {
+	sk, err := cfg.DecodePrivateKey("passphrase todo!")
+	if err != nil {
+		return nil, err
+	}
+
+	id2, err := peer.IDFromPrivateKey(sk)
+	if err != nil {
+		return nil, err
+	}
+
+	if id2 != id {
+		return nil, fmt.Errorf("private key in config does not match id: %s != %s", id, id2)
+	}
+
+	return sk, nil
 }
