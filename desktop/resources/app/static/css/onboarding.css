@@ -1,0 +1,20 @@
+.onboarding {
+    margin-top: 50px;
+    position: absolute;
+    width: 100vw;
+    height: 100vh;
+    background: white;
+}
+.onboarding .screen .container {
+    /*display: inline-block;*/
+    /*float: none;*/
+    /*margin-left: 0;*/
+    vertical-align: middle;
+}
+.onboarding .screen .container .qr-code {
+    max-width: 250px;
+    max-height: 250px;
+}
+.wait {
+    color: #aaa;
+}
