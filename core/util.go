@@ -171,6 +171,35 @@ func serveHTTPGateway(cctx *oldcmds.Context) (<-chan error, error) {
 	return errc, nil
 }
 
+func serveHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		b, err := node.GetFile(r.URL.Path)
+		if err != nil {
+			fmt.Printf("error decrypting path %s: %s", r.URL.Path, err)
+			w.WriteHeader(400)
+			return
+		}
+		w.Write(b)
+	})
+
+	errc := make(chan error)
+	go func() {
+		errc <- http.ListenAndServe(":9192", nil)
+		close(errc)
+	}()
+
+	return errc, nil
+}
+
+func runGC(ctx context.Context, node *core.IpfsNode) (<-chan error, error) {
+	errc := make(chan error)
+	go func() {
+		errc <- corerepo.PeriodicGC(ctx, node)
+		close(errc)
+	}()
+	return errc, nil
+}
+
 // merge does fan-in of multiple read-only error channels
 // taken from http://blog.golang.org/pipelines
 func merge(cs ...<-chan error) <-chan error {
@@ -199,15 +228,6 @@ func merge(cs ...<-chan error) <-chan error {
 		close(out)
 	}()
 	return out
-}
-
-func runGC(ctx context.Context, node *core.IpfsNode) (<-chan error, error) {
-	errc := make(chan error)
-	go func() {
-		errc <- corerepo.PeriodicGC(ctx, node)
-		close(errc)
-	}()
-	return errc, nil
 }
 
 /*
