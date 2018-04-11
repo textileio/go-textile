@@ -53,26 +53,26 @@ let textile = {
           When textile-go has finished all the startup processes, this fires
            */
           this.gateway = message.gateway;
-          console.log(gateway);
-          let item = $('#hidden-gallery-item-template').html();
-          $('.gallery').append(item);
           initPhotoSwipeFromDOM('.gallery');
         case "sync.new":
           /*
           When textile-go receives a new photo from the mobile device, this should fire...
            */
           console.log(message)
-          let newItem = $('#hidden-gallery-item-template').html();
-          $(newItem).find('a').attr('href', this.gateway + "/ipfs/" + message.hash + "/photo")
-          $(newItem).find('img').attr('href', this.gateway + "/ipfs/" + message.hash + "/thumb")
-          $(newItem).find('figcaption').text(message.timestamp)
-        // <figure itemprop="associatedMedia" itemscope itemtype="http://schema.org/ImageObject">
-        //     <a href="https://farm2.staticflickr.com/1043/5186867718_06b2e9e551_b.jpg" itemprop="contentUrl" data-size="964x1024">
-        //     <img src="https://gateway.ipfs.io/ipfs/QmR8mGCutBWDPBc9zdpPZPoRYRAJS7BMZhJtqHeFtJp2ma/thumb.jpg"  itemprop="thumbnail" alt="Image description"/>
-        //     </a>
-        //     <figcaption itemprop="caption description">Image caption  1</figcaption>
-        // </figure>
-          $('.gallery').append(newItem);
+          let image = $('<img src="https://gateway.ipfs.io/ipfs/QmR8mGCutBWDPBc9zdpPZPoRYRAJS7BMZhJtqHeFtJp2ma/thumb.jpg"  itemprop="thumbnail" alt="Image description"/>');
+          image.attr('src', this.gateway + "/ipfs/" + message.hash + "/thumb")
+            console.log(this.gateway + "/ipfs/" + message.hash + "/thumb")
+          let link = $('<a href="https://farm2.staticflickr.com/1043/5186867718_06b2e9e551_b.jpg" itemprop="contentUrl" data-size="964x1024"></a>')
+          link.attr('href', this.gateway + "/ipfs/" + message.hash + "/photo")
+          let caption = $('<figcaption itemprop="caption description">Image caption  1</figcaption>')
+          caption.text(message.timestamp)
+          let figure = $('<figure itemprop="associatedMedia" itemscope itemtype="http://schema.org/ImageObject"></figure>')
+          link.append(image)
+          figure.append(link)
+          figure.append(caption)
+
+          $('.gallery').append(figure);
+          // need to rewrite this, shouldn't do it this way, just trying to get to a working state
           initPhotoSwipeFromDOM('.gallery');
           break;
         case "onboard.complete":
