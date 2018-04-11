@@ -2,140 +2,233 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="static/css/base.css"/>
     <link rel="stylesheet" href="static/lib/astiloader/astiloader.css">
     <link rel="stylesheet" href="static/lib/astimodaler/astimodaler.css">
     <link rel="stylesheet" href="static/lib/astinotifier/astinotifier.css">
     <link rel="stylesheet" href="static/lib/font-awesome-4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="static/lib/skeleton/skeleton.css">
+    <link rel="stylesheet" href="static/lib/photoswipe/photoswipe.css"/>
+    <link rel="stylesheet" href="static/lib/photoswipe/default-skin/default-skin.css"/>
+    <link rel="stylesheet" href="static/css/onboarding.css"/>
+    <link rel="stylesheet" href="static/css/textile.css"/>
 </head>
 <body>
+<script id="hidden-gallery-item-template" type="text/x-custom-template">
+    <figure itemprop="associatedMedia" itemscope itemtype="http://schema.org/ImageObject">
+        <a href="https://farm2.staticflickr.com/1043/5186867718_06b2e9e551_b.jpg" itemprop="contentUrl" data-size="964x1024">
+            <img src="https://gateway.ipfs.io/ipfs/QmR8mGCutBWDPBc9zdpPZPoRYRAJS7BMZhJtqHeFtJp2ma/thumb.jpg"  itemprop="thumbnail" alt="Image description"/>
+        </a>
+        <figcaption itemprop="caption description">Image caption  1</figcaption>
+    </figure>
+</script>
 
-<div class="modal">
-    <div class="modal-inner">
-        <div class="modal-content">
-            <div class="modal-close-icon">
-                <a href="javascript:void(0)" class="close-modal"><i class="fa fa-times" aria-hidden="true"></i></a>
+<div class="section onboarding hidden">
+    <div class="screen hidden">
+        <div class="container">
+            <div class="row">
+                <div class="twelve columns">
+                    <h1>Welcome to Textile Photos</h1>
+                </div>
             </div>
-            <div class="modal-content-inner">
-                <h4>Point your camera here</h4>
-                <p>To setup automatic photo sync with this device.</p>
-                <h5>Confirmation Code: <b class="pairCode"></b></h5>
-                <img class="peerQRCode" src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAMAAABrrFhUAAAABlBMVEX///8AAABVwtN+AAACg0lEQVR42uzbQW7rMAwE0Pb+l+4BAhgzYtgE9pvVR77qOG9DUJR+RERERERERERERERERETkN871X71+njz/9ZnzdwMAAAAAAC1AuyaHSV7zFWzybgAAAAAA4Azgurhdr0lWti/bvhsAAAAAAPgswHxN+70AAAAAAOBTAEljlK8BAAAAAACfBZgg5VRtqfyyPUEAAAAAuCFAPoL+/39/2fkAAAAAALgVwATsbKh+9rSvCQAAAADcCmByrLU9QptsfeUlGgAAAAAAbJS1fIiRo+bNTf5uC90gAAAAADwOIB9otNca2mKYPO1NwxAAAAAAAFA/+F0r2zLYtlkAAAAAAOAMoC2M72q8kiHJ2ggFAAAAAAD85l/Srtm+TrF2YwQAAAAAHgSQtywTkrNWKf9fAAAAAAAwZ2jH4O3VtxZ1ofQBAAAAAICiiUkOKyU/96zFaYEBAAAAAMDPQpPUHpJKmqE5PAAAAAAA2Lt33F6nSErlhORfWiIAAAAAeChA8rX5dtdZ23TdHi2XQQAAAAB4HMBZ29GWx/noY60YAgAAAACAw5+Yb5u1pW/yCQAAAAAAaAHOfnQC0JbBs2ELAAAAAACYA0zG4GeNUY63vA8IAAAAAACKUUk79J5/S7JJBgAAAAAAtjPZlJocfZoc1AUAAAAAABsl6LoonR2Myq9ovHVLDAAAAAAeDXA2PJlsU7XPyY/cAgAAAACAM4CzoXd7SCpfs3w/BAAAAAAAHAJsjFBavI+WQQAAAAB4NEC7WdVudK21PgAAAAAAYLQldl0A25Yob3HWGAAAAAAAQDEeb9uRvW2wD50PAAAAAIBbAYiIiIiIiIiIiIiIiIiI3CR/AQAA//+m0E8tfA5nuwAAAABJRU5ErkJggg==" />
+            <div class="row">
+                <div class="twelve columns">
+                    <p>We need to walk through just a couple steps to get you setup. Let's get started...</>
+                </div>
             </div>
-            <hr class="modal-buttons-seperator">
-            <div class="modal-buttons">
-                <button class="button close-modal">Cancel</button>
+            <div class="row">
+                <div class="twelve columns">
+                    <button class="next">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="screen hidden">
+        <div class="container">
+            <div class="row">
+                <div class="twelve columns">
+                    <h1>Pairing with your mobile device.</h1>
+                </div>
+            </div>
+            <div class="row">
+                <div class="twelve columns">
+                    <p>Have your mobile phone nearby. Be sure you have the Textile Photos app installed on your phone.</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="twelve columns">
+                    <button class="next">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="screen hidden">
+        <div class="container">
+            <div class="row">
+                <div class="twelve columns">
+                    <h1>Pairing with your mobile device.</h1>
+                </div>
+            </div>
+            <div class="row">
+                <div class="twelve columns">
+                    <p>Now, use your mobile phone's camera to scan the QR code below. While pointing your phone's camera at the QR code, you should be prompted to open Textile Photos. Follow the instructions on your device.</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="twelve columns">
+                    <img class="qr-code" src="" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="twelve columns">
+                    <h5>Confirmation code <span class="confirmation-code">1234</span>.</h5>
+                </div>
+            </div>
+            <div class="row">
+                <div class="twelve columns">
+                    <button class="wait">wait...</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="screen hidden">
+        <div class="container">
+            <div class="row">
+                <div class="twelve columns">
+                    <h1>Success!</h1>
+                </div>
+            </div>
+            <div class="row">
+                <div class="twelve columns">
+                    <p>You've now successfully paired with your mobile device. Now, any photos you take or add in Textile Photos will be automatically synced to this computer.</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="twelve columns">
+                    <h5>To begin, you must now close this window and restart the Textile Photos desktop app. </h5>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="section header">
-    <div class="container">
-        <div class="row">
-            <div class="one-half column value">
-                We can add a menu here
-            </div>
+<div class="section gallery"  itemscope itemtype="http://schema.org/ImageGallery">
+    <figure itemprop="associatedMedia" itemscope itemtype="http://schema.org/ImageObject">
+        <a href="https://farm2.staticflickr.com/1043/5186867718_06b2e9e551_b.jpg" itemprop="contentUrl" data-size="964x1024">
+            <img src="https://gateway.ipfs.io/ipfs/QmR8mGCutBWDPBc9zdpPZPoRYRAJS7BMZhJtqHeFtJp2ma/thumb.jpg"  itemprop="thumbnail" alt="Image description"/>
+        </a>
+        <figcaption itemprop="caption description">Image caption  1</figcaption>
+    </figure>
+</div>
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe.
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides.
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
         </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
     </div>
+
 </div>
 
-<div class="container">
-    <div class="row gallery" id="gallery">
-        <div class="two columns entry">
-            <div class="row thumb"><img class="u-max-full-width" src="https://gateway.ipfs.io/ipfs/QmR8mGCutBWDPBc9zdpPZPoRYRAJS7BMZhJtqHeFtJp2ma/thumb.jpg" />
-            </div>
-            <div class="row label u-max-full-width">Yesterday</div>
-        </div>
-        <div class="two columns entry">
-            <div class="row thumb"><img class="u-max-full-width" src="https://gateway.ipfs.io/ipfs/QmR8mGCutBWDPBc9zdpPZPoRYRAJS7BMZhJtqHeFtJp2ma/thumb.jpg" />
-            </div>
-            <div class="row label u-max-full-width">Yesterday</div>
-        </div>
-        <div class="two columns entry">
-            <div class="row thumb"><img class="u-max-full-width" src="https://gateway.ipfs.io/ipfs/QmR8mGCutBWDPBc9zdpPZPoRYRAJS7BMZhJtqHeFtJp2ma/thumb.jpg" />
-            </div>
-            <div class="row label u-max-full-width">Yesterday</div>
-        </div>
-        <div class="two columns entry">
-            <div class="row thumb"><img class="u-max-full-width" src="https://gateway.ipfs.io/ipfs/QmR8mGCutBWDPBc9zdpPZPoRYRAJS7BMZhJtqHeFtJp2ma/thumb.jpg" />
-            </div>
-            <div class="row label u-max-full-width">Yesterday</div>
-        </div>
-        <div class="two columns entry">
-            <div class="row thumb"><img class="u-max-full-width" src="https://gateway.ipfs.io/ipfs/QmR8mGCutBWDPBc9zdpPZPoRYRAJS7BMZhJtqHeFtJp2ma/thumb.jpg" />
-            </div>
-            <div class="row label u-max-full-width">Yesterday</div>
-        </div>
-        <div class="two columns entry">
-            <div class="row thumb"><img class="u-max-full-width" src="https://gateway.ipfs.io/ipfs/QmR8mGCutBWDPBc9zdpPZPoRYRAJS7BMZhJtqHeFtJp2ma/thumb.jpg" />
-            </div>
-            <div class="row label u-max-full-width">Yesterday</div>
-        </div>
-        <div class="two columns entry">
-            <div class="row thumb"><img class="u-max-full-width" src="https://gateway.ipfs.io/ipfs/QmR8mGCutBWDPBc9zdpPZPoRYRAJS7BMZhJtqHeFtJp2ma/thumb.jpg" />
-            </div>
-            <div class="row label u-max-full-width">Yesterday</div>
-        </div>
-        <div class="two columns entry">
-            <div class="row thumb"><img class="u-max-full-width" src="https://gateway.ipfs.io/ipfs/QmR8mGCutBWDPBc9zdpPZPoRYRAJS7BMZhJtqHeFtJp2ma/thumb.jpg" />
-            </div>
-            <div class="row label u-max-full-width">Yesterday</div>
-        </div>
-        <div class="two columns entry">
-            <div class="row thumb"><img class="u-max-full-width" src="https://gateway.ipfs.io/ipfs/QmR8mGCutBWDPBc9zdpPZPoRYRAJS7BMZhJtqHeFtJp2ma/thumb.jpg" />
-            </div>
-            <div class="row label u-max-full-width">Yesterday</div>
-        </div>
-        <div class="two columns entry">
-            <div class="row thumb"><img class="u-max-full-width" src="https://gateway.ipfs.io/ipfs/QmR8mGCutBWDPBc9zdpPZPoRYRAJS7BMZhJtqHeFtJp2ma/thumb.jpg" />
-            </div>
-            <div class="row label u-max-full-width">Yesterday</div>
-        </div>
-        <div class="two columns entry">
-            <div class="row thumb"><img class="u-max-full-width" src="https://gateway.ipfs.io/ipfs/QmR8mGCutBWDPBc9zdpPZPoRYRAJS7BMZhJtqHeFtJp2ma/thumb.jpg" />
-            </div>
-            <div class="row label u-max-full-width">Yesterday</div>
-        </div>
-        <div class="two columns entry">
-            <div class="row thumb"><img class="u-max-full-width" src="https://gateway.ipfs.io/ipfs/QmR8mGCutBWDPBc9zdpPZPoRYRAJS7BMZhJtqHeFtJp2ma/thumb.jpg" />
-            </div>
-            <div class="row label u-max-full-width">Yesterday</div>
-        </div>
-        <div class="two columns entry">
-            <div class="row thumb"><img class="u-max-full-width" src="https://gateway.ipfs.io/ipfs/QmR8mGCutBWDPBc9zdpPZPoRYRAJS7BMZhJtqHeFtJp2ma/thumb.jpg" />
-            </div>
-            <div class="row label u-max-full-width">Yesterday</div>
-        </div>
-    </div>
-</div>
-
-<div class="container">
-    <div class="row">
-        <div class="twelve columns">
-            <code id="log" class="log u-max-full-width">
-            </code>
-        </div>
-    </div>
-</div>
-
-<div class="footer">
+<div class="section footer ">
     <!-- Page Footer Layout
          –––––––––––––––––––––––––––––––––––––––––––––––––– -->
     <div class="container">
         <footer class="twelve columns">
-            <button id="pairNewDevice">Pair Device</button>
         </footer>
     </div> <!-- end footer div.container -->
 </div> <!-- end footer div.table-block -->
 
-    <script src="static/js/index.js"></script>
+    <script src="static/lib/jquery/jquery-3.3.1.min.js" onload="window.$ = window.jQuery = module.exports;"></script>
+
+    <script src="static/lib/photoswipe/photoswipe.min.js"></script>
+    <script src="static/lib/photoswipe/photoswipe-ui-default.min.js"></script>
+    <script src="static/js/textile.onboarding.js"></script>
+    <script src="static/js/textile.js"></script>
     <script src="static/lib/astiloader/astiloader.js"></script>
     <script src="static/lib/astimodaler/astimodaler.js"></script>
     <script src="static/lib/astinotifier/astinotifier.js"></script>
     <script type="text/javascript">
-        index.init();
+        $(document).ready(function() {
+          textile.init();
+
+          // let state = 1;
+          // switch (state){
+          //   case 0:
+          //     //finish onboarding
+          //     $('.onboarding').removeClass('hidden');
+          //     $('.onboarding').find('.screen').first().removeClass('hidden');
+          //     $('.onboarding').find('.screen').first().find('.next').click(nextScreen)
+          //     break;
+          //   default:
+          //     // $('.onboarding').remove();
+          //     initPhotoSwipeFromDOM('.gallery');
+          //     break;
+          // }
+          console.log("gold")
+          // $('.section').hide()
+          // $('body').find('.'+state).show()
+        })
     </script>
 </body>
 </html>

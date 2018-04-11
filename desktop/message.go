@@ -25,8 +25,7 @@ type QRCodeResponse struct {
 // handleMessages handles messages
 func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload interface{}, err error) {
 	switch m.Name {
-	case "peer.qr":
-
+	case "pairing.start":
 		// create a random confirmation code
 		code := fmt.Sprintf("%04d", rand.Int63n(1e4))
 

@@ -2,6 +2,9 @@
 desktop/output/
 desktop/bind*.go
 desktop/vendor_astilectron_bundler/*
+desktop/app/node_modules/*
+
+node_modules/*
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
