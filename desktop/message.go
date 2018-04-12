@@ -2,67 +2,64 @@ package main
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"math/rand"
 
+	"encoding/json"
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
 	"github.com/asticode/go-astilog"
 	"github.com/skip2/go-qrcode"
 )
 
-// Init exploration
-type IpfsResponse struct {
-	path string `json:"path"`
-	data []byte `json:"data"`
-}
-type QRCodeResponse struct {
-	png  string `json:"png"`
-	code string `json:"code"`
-}
-
 // handleMessages handles messages
-func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload interface{}, err error) {
+func handleMessages(iw *astilectron.Window, m bootstrap.MessageIn) (payload interface{}, err error) {
 	switch m.Name {
-	case "pairing.start":
+	case "pair.start":
+		astilog.Info("PAIRING STARTED")
+		astilog.Info("GENERATING QR CODE")
+
 		// create a random confirmation code
 		code := fmt.Sprintf("%04d", rand.Int63n(1e4))
 
+		// get our own rsa public key
 		pk, err := textile.GetPublicPeerKeyString()
 		if err != nil {
 			astilog.Errorf("public key generation failed: %s", err)
 			return nil, err
 		}
 
-		var png []byte
-		// I've registered this URL so that apple will do an App Link from any url like it directly into our
-		// app. Just need to do a PR in the app to receive it
-		png, err = qrcode.Encode(fmt.Sprintf("https://www.textile.io/clients?code=%s&key=%s", code, pk), qrcode.Medium, 256)
+		// create a qr code
+		url := fmt.Sprintf("https://www.textile.io/clients?code=%s&key=%s", code, pk)
+		png, err := qrcode.Encode(url, qrcode.Medium, 256)
 		if err != nil {
 			astilog.Errorf("qr generation failed: %s", err)
 			return nil, err
 		}
-		res := map[string]interface{}{
+
+		// pass the qr code and info back to app
+		return map[string]interface{}{
 			"png":  base64.StdEncoding.EncodeToString(png),
 			"code": code,
-			"url":  fmt.Sprintf("https://www.textile.io/clients?code=%s&key=%s", code, pk),
+			"url":  url,
 			"key":  pk,
-		}
-		return res, nil
+		}, nil
 
-	case "ipfs.getPath":
-		// Unmarshal payload
-		var path string
-		if err = json.Unmarshal(m.Payload, &path); err != nil {
-			return err.Error(), err
+	case "sync.start":
+		astilog.Info("GOT START SYNC MESSAGE")
+
+		// get peer id
+		var pairedID string
+		if err = json.Unmarshal(m.Payload, &pairedID); err != nil {
+			astilog.Errorf("error unmarshalling sync.start payload: %s", err)
+			return nil, err
 		}
 
-		file, err := textile.GetFile(path)
-		if err != nil {
-			return err.Error(), err
-		}
-		return IpfsResponse{path: path, data: file}, nil
+		// finally, start syncing
+		go startSyncing(iw, pairedID)
+
+		// return empty response
+		return map[string]interface{}{}, nil
 	}
 
 	return
