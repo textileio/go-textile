@@ -1,5 +1,5 @@
 * {
-  box-sizing:  border-box;
+    box-sizing:  border-box;
 }
 
 .hidden {
@@ -7,130 +7,50 @@
 }
 
 html, body {
-  background-color: #fff;
-  color: #333;
-  height: 100%;
-  margin: 0;
-  width: 100%;
-}
-.header {
-  font-family: Verdana, Geneva, sans-serif;
-  padding: 10px;
-}
-.gallery {
-  padding: 50px;
-  width: 100%;
-  float: left;
-}
-.gallery img {
-  width: 100%;
-  height: auto;
-}
-.gallery figure {
-  display: block;
-  float: left;
-  margin: 0 5px 5px 0;
-  width: 150px;
-}
-.gallery figcaption {
-  display: none;
+    background-color: #fff;
+    color: #333;
+    height: 100%;
+    margin: 0;
+    width: 100%;
+    overflow-x: hidden;
 }
 
-.footer {
-  display: block;
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: white;
-  height: 100px;
-  width: 100%;
+.onboarding {
+    margin-top: 50px;
+    position: absolute;
+    width: 100vw;
+    height: 100vh;
+    background: white;
 }
 
-/*
-Onboarding - require user to pair before using
- */
-.modal {
-  position: fixed;
-  left: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.65);
-  visibility: hidden;
-  backface-visibility: hidden;
-  opacity: 0;
-  transition: opacity .15s ease-in-out;
-  text-align: center;
+.onboarding .screen .container {
+    vertical-align: middle;
 }
 
-/*
-Model style concept from https://codepen.io/paulmcclean/pen/YGXWQY
-*/
-
-.modal {
-  position: fixed;
-  left: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.65);
-  visibility: hidden;
-  backface-visibility: hidden;
-  opacity: 0;
-  transition: opacity .15s ease-in-out;
-  text-align: center;
-}
-.modal.modal-open {
-  visibility: visible;
-  backface-visibility: visible;
-  opacity: 1;
-  z-index: 1;
-}
-.modal .modal-inner {
-  position: relative;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-.modal .modal-inner .modal-content {
-  background-color: white;
-  max-width: 35em;
-  padding: 1em 1.5em;
-  position: relative;
-  margin: 2em;
-  box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.35);
-  max-width: 400px;
-}
-.modal .modal-inner .modal-content .modal-close-icon {
-  position: absolute;
-  right: 1.5em;
-}
-.modal .modal-inner .modal-content .modal-content-inner {
-  padding-right: 2em;
-}
-.modal .modal-inner .modal-content .modal-content-inner h1, .modal .modal-inner .modal-content .modal-content-inner h2, .modal .modal-inner .modal-content .modal-content-inner h3, .modal .modal-inner .modal-content .modal-content-inner h4, .modal .modal-inner .modal-content .modal-content-inner h5, .modal .modal-inner .modal-content .modal-content-inner h6 {
-  margin-bottom: 0.25em;
-}
-.modal .modal-inner .modal-content .modal-content-inner p {
-  margin-bottom: 1em;
-}
-.modal .modal-inner .modal-content .modal-buttons-seperator {
-  margin: 1.5em 0;
-  margin-top: 0;
-}
-.modal .modal-inner .modal-content .modal-buttons {
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-end;
-  align-items: center;
-}
-.modal .modal-inner .modal-content .modal-buttons button {
-  margin-left: 1em;
-}
-.modal .modal-inner .modal-content .modal-buttons button:first-child {
-  margin-left: 0;
+.onboarding .screen .container .qr-code {
+    max-width: 250px;
+    max-height: 250px;
 }
 
+.wait {
+    color: #aaa;
+}
+
+.grid {}
+
+.grid-item {
+    float: left;
+    width: 224px;
+    height: 224px;
+    font-size: 0;
+}
+
+.grid-item--width2 { width: 400px; }
+.grid-item--height2 { height: 400px; }
+
+.grid-item img,
+.grid-item--width2 img,
+.grid-item--height2 img{
+    max-width: 100%;
+    max-height: 100%;
+}
