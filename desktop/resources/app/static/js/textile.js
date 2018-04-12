@@ -98,8 +98,12 @@ function showGallery(html) {
     }
   })
 
-  // layout Isotope after each image loads
+  // layout after each image loads
   $grid.imagesLoaded().progress(function() {
     $grid.isotope('layout')
   })
+
+  // reveal items
+  let $items = $grid.find('.grid-item')
+  $grid.addClass('is-showing-items').isotope('revealItemElements', $items)
 }

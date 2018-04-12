@@ -36,21 +36,30 @@ html, body {
     color: #aaa;
 }
 
-.grid {}
+.grid:after {
+    content: '';
+    display: block;
+    clear: both;
+}
 
 .grid-item {
     float: left;
     width: 224px;
     height: 224px;
     font-size: 0;
+    opacity: 0;
 }
 
-.grid-item--width2 { width: 400px; }
-.grid-item--height2 { height: 400px; }
+.is-showing-items .grid-item {
+    opacity: 1; /* reveal when ready */
+}
 
 .grid-item img,
 .grid-item--width2 img,
-.grid-item--height2 img{
+.grid-item--height2 img {
     max-width: 100%;
     max-height: 100%;
 }
+
+.grid-item--width2 { width: 448px; }
+.grid-item--height2 { height: 448px; }
