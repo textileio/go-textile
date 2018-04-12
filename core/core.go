@@ -139,7 +139,7 @@ func (t *TextileNode) ConfigureDatastore(mnemonic string, pairedID string) error
 		}
 		fmt.Printf("generating %v-bit Ed25519 keypair...", trepo.NBitsForKeypair)
 	} else {
-		fmt.Println("regenerating Ed25519 keypair from mnemonic phrase...")
+		fmt.Printf("regenerating Ed25519 keypair from mnemonic phrase...")
 	}
 	seed := bip39.NewSeed(mnemonic, "")
 	identityKey, err := identityKeyFromSeed(seed, trepo.NBitsForKeypair)
@@ -321,12 +321,14 @@ func (t *TextileNode) GetFile(path string) ([]byte, error) {
 	return b, err
 }
 
-func (t *TextileNode) StartPairing() error {
+func (t *TextileNode) StartPairing(idc chan string, errc chan error) {
 	id := t.IpfsNode.Identity.Pretty()
 	sub, err := t.IpfsNode.Floodsub.Subscribe(id)
 	if err != nil {
-		return err
+		errc <- err
+		return
 	}
+	fmt.Printf("subscribed to own peer id: %s\n", id)
 	defer sub.Cancel()
 
 	for {
@@ -334,9 +336,11 @@ func (t *TextileNode) StartPairing() error {
 		default:
 			msg, err := sub.Next(t.IpfsNode.Context())
 			if err == io.EOF || err == context.Canceled {
-				return nil
+				idc <- ""
+				return
 			} else if err != nil {
-				return err
+				errc <- err
+				return
 			}
 			from := msg.GetFrom().Pretty()
 			fmt.Printf("got pairing request from: %s\n", from)
@@ -344,32 +348,39 @@ func (t *TextileNode) StartPairing() error {
 			// get private peer key and decrypt the phrase
 			sk, err := t.unmarshalPrivatePeerKey()
 			if err != nil {
-				return err
+				errc <- err
+				return
 			}
 			p, err := net.Decrypt(sk, msg.GetData())
 			if err != nil {
-				return err
+				errc <- err
+				return
 			}
 			ps := string(p)
 			fmt.Printf("decrypted mnemonic phrase as: %s\n", ps)
 
 			// setup datastore with phrase and close sub
-			return t.ConfigureDatastore(ps, from)
+			err = t.ConfigureDatastore(ps, from)
+			if err != nil {
+				errc <- err
+			}
+			idc <- from
+			return
 
 		case <-t.IpfsNode.Context().Done():
-			return nil
+			idc <- ""
+			return
 		}
 	}
 }
 
-func (t *TextileNode) StartSync(peerId string) error {
-	sub, err := t.IpfsNode.Floodsub.Subscribe(peerId)
+func (t *TextileNode) StartSync(pairedID string, datac chan string) error {
+	sub, err := t.IpfsNode.Floodsub.Subscribe(pairedID)
 	if err != nil {
 		return err
 	}
+	fmt.Printf("subscribed to mobile peer id: %s\n", pairedID)
 	defer sub.Cancel()
-
-	fmt.Printf("subscribed to topic: %s\n", peerId)
 
 	api := coreapi.NewCoreAPI(t.IpfsNode)
 	for {
@@ -405,6 +416,9 @@ func (t *TextileNode) StartSync(peerId string) error {
 			// index
 			t.Datastore.Photos().Put(hash, time.Now())
 			fmt.Printf("indexed %s\n", hash)
+
+			// inform listeners
+			datac <- hash
 
 		case <-t.IpfsNode.Context().Done():
 			return nil

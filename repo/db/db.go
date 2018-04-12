@@ -216,7 +216,11 @@ func (c *ConfigDB) GetPairedID() (string, error) {
 	var id string
 	err = stmt.QueryRow("pairedID").Scan(&id)
 	if err != nil {
-		return "", err
+		if err == sql.ErrNoRows {
+			return "", nil
+		} else {
+			return "", err
+		}
 	}
 	return id, nil
 }
