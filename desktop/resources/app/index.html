@@ -7,23 +7,13 @@
     <link rel="stylesheet" href="static/lib/astinotifier/astinotifier.css">
     <link rel="stylesheet" href="static/lib/font-awesome-4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="static/lib/skeleton/skeleton.css">
-    <link rel="stylesheet" href="static/lib/photoswipe/photoswipe.css"/>
-    <link rel="stylesheet" href="static/lib/photoswipe/default-skin/default-skin.css"/>
-    <link rel="stylesheet" href="static/css/onboarding.css"/>
     <link rel="stylesheet" href="static/css/textile.css"/>
 </head>
 <body>
-<script id="hidden-gallery-item-template" type="text/x-custom-template">
-    <figure itemprop="associatedMedia" itemscope itemtype="http://schema.org/ImageObject">
-        <a href="https://farm2.staticflickr.com/1043/5186867718_06b2e9e551_b.jpg" itemprop="contentUrl" data-size="964x1024">
-            <img src="https://gateway.ipfs.io/ipfs/QmR8mGCutBWDPBc9zdpPZPoRYRAJS7BMZhJtqHeFtJp2ma/thumb.jpg"  itemprop="thumbnail" alt="Image description"/>
-        </a>
-        <figcaption itemprop="caption description">Image caption  1</figcaption>
-    </figure>
-</script>
 
 <div class="section onboarding hidden">
-    <div class="screen hidden">
+
+    <div id="ob1" class="screen hidden">
         <div class="container">
             <div class="row">
                 <div class="twelve columns">
@@ -32,18 +22,18 @@
             </div>
             <div class="row">
                 <div class="twelve columns">
-                    <p>We need to walk through just a couple steps to get you setup. Let's get started...</>
+                    <p>We need to walk through just a couple steps to get you setup. Let's get started...</p>
                 </div>
             </div>
             <div class="row">
                 <div class="twelve columns">
-                    <button class="next">Next</button>
+                    <button class="next" onClick="showOnboarding(2)">Next</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="screen hidden">
+    <div id="ob2" class="screen hidden">
         <div class="container">
             <div class="row">
                 <div class="twelve columns">
@@ -57,14 +47,13 @@
             </div>
             <div class="row">
                 <div class="twelve columns">
-                    <button class="next">Next</button>
+                    <button class="next" onClick="showOnboarding(3)">Next</button>
                 </div>
             </div>
         </div>
     </div>
 
-
-    <div class="screen hidden">
+    <div id="ob3" class="screen hidden">
         <div class="container">
             <div class="row">
                 <div class="twelve columns">
@@ -88,14 +77,13 @@
             </div>
             <div class="row">
                 <div class="twelve columns">
-                    <button class="wait">wait...</button>
+                    <button class="wait">Waiting...</button>
                 </div>
             </div>
         </div>
     </div>
 
-
-    <div class="screen hidden">
+    <div id="ob4" class="screen hidden">
         <div class="container">
             <div class="row">
                 <div class="twelve columns">
@@ -107,128 +95,35 @@
                     <p>You've now successfully paired with your mobile device. Now, any photos you take or add in Textile Photos will be automatically synced to this computer.</p>
                 </div>
             </div>
-            <div class="row">
-                <div class="twelve columns">
-                    <h5>To begin, you must now close this window and restart the Textile Photos desktop app. </h5>
-                </div>
-            </div>
         </div>
     </div>
 </div>
 
-<div class="section gallery"  itemscope itemtype="http://schema.org/ImageGallery">
-    <figure itemprop="associatedMedia" itemscope itemtype="http://schema.org/ImageObject">
-        <a href="https://farm2.staticflickr.com/1043/5186867718_06b2e9e551_b.jpg" itemprop="contentUrl" data-size="964x1024">
-            <img src="https://gateway.ipfs.io/ipfs/QmR8mGCutBWDPBc9zdpPZPoRYRAJS7BMZhJtqHeFtJp2ma/thumb.jpg"  itemprop="thumbnail" alt="Image description"/>
-        </a>
-        <figcaption itemprop="caption description">Image caption  1</figcaption>
-    </figure>
-</div>
-<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
-
-    <!-- Background of PhotoSwipe.
-         It's a separate element as animating opacity is faster than rgba(). -->
-    <div class="pswp__bg"></div>
-
-    <!-- Slides wrapper with overflow:hidden. -->
-    <div class="pswp__scroll-wrap">
-
-        <!-- Container that holds slides.
-            PhotoSwipe keeps only 3 of them in the DOM to save memory.
-            Don't modify these 3 pswp__item elements, data is added later on. -->
-        <div class="pswp__container">
-            <div class="pswp__item"></div>
-            <div class="pswp__item"></div>
-            <div class="pswp__item"></div>
-        </div>
-
-        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
-        <div class="pswp__ui pswp__ui--hidden">
-
-            <div class="pswp__top-bar">
-
-                <!--  Controls are self-explanatory. Order can be changed. -->
-
-                <div class="pswp__counter"></div>
-
-                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
-
-                <button class="pswp__button pswp__button--share" title="Share"></button>
-
-                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
-
-                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
-
-                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
-                <!-- element will get class pswp__preloader--active when preloader is running -->
-                <div class="pswp__preloader">
-                    <div class="pswp__preloader__icn">
-                        <div class="pswp__preloader__cut">
-                            <div class="pswp__preloader__donut"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
-                <div class="pswp__share-tooltip"></div>
-            </div>
-
-            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
-            </button>
-
-            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
-            </button>
-
-            <div class="pswp__caption">
-                <div class="pswp__caption__center"></div>
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
+<div class="section grid hidden"></div>
 
 <div class="section footer ">
-    <!-- Page Footer Layout
-         –––––––––––––––––––––––––––––––––––––––––––––––––– -->
     <div class="container">
         <footer class="twelve columns">
         </footer>
-    </div> <!-- end footer div.container -->
-</div> <!-- end footer div.table-block -->
+    </div>
+</div>
 
-    <script src="static/lib/jquery/jquery-3.3.1.min.js" onload="window.$ = window.jQuery = module.exports;"></script>
+<script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+<script src="static/lib/astiloader/astiloader.js"></script>
+<script src="static/lib/astimodaler/astimodaler.js"></script>
+<script src="static/lib/astinotifier/astinotifier.js"></script>
+<script src="static/lib/jquery/jquery-3.3.1.min.js"></script>
+<script src="static/lib/isotope/isotope.pkgd.min.js"></script>
+<script src="static/lib/isotope/cells-by-row.js"></script>
+<script src="static/lib/isotope/imagesloaded.pkgd.min.js"></script>
+<script src="static/js/textile.js"></script>
+<script type="text/javascript">
+    $(document).ready(function() {
+      textile.init();
+    })
+</script>
+<script>if (window.module) module = window.module;</script>
 
-    <script src="static/lib/photoswipe/photoswipe.min.js"></script>
-    <script src="static/lib/photoswipe/photoswipe-ui-default.min.js"></script>
-    <script src="static/js/textile.onboarding.js"></script>
-    <script src="static/js/textile.js"></script>
-    <script src="static/lib/astiloader/astiloader.js"></script>
-    <script src="static/lib/astimodaler/astimodaler.js"></script>
-    <script src="static/lib/astinotifier/astinotifier.js"></script>
-    <script type="text/javascript">
-        $(document).ready(function() {
-          textile.init();
-
-          // let state = 1;
-          // switch (state){
-          //   case 0:
-          //     //finish onboarding
-          //     $('.onboarding').removeClass('hidden');
-          //     $('.onboarding').find('.screen').first().removeClass('hidden');
-          //     $('.onboarding').find('.screen').first().find('.next').click(nextScreen)
-          //     break;
-          //   default:
-          //     // $('.onboarding').remove();
-          //     initPhotoSwipeFromDOM('.gallery');
-          //     break;
-          // }
-          console.log("gold")
-          // $('.section').hide()
-          // $('body').find('.'+state).show()
-        })
-    </script>
 </body>
 </html>
+
