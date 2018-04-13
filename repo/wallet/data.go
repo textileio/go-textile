@@ -101,7 +101,7 @@ func AddPhoto(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File) (*net.
 	// path info
 	path := p.Name()
 	ext := strings.ToLower(filepath.Ext(path))
-	dname := filepath.Dir(path)
+	dname := filepath.Dir(t.Name())
 
 	// create a metadata file
 	// TODO: get exif data from photo

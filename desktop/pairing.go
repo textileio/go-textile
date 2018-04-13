@@ -34,7 +34,9 @@ func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Me
 		go func() {
 			var idc = make(chan string)
 			var errc = make(chan error)
-			go textile.StartPairing(idc, errc)
+			go func() {
+				errc <- textile.StartPairing(idc)
+			}()
 			select {
 			case id := <-idc:
 				if id == "" {
@@ -68,7 +70,6 @@ func startSyncing(iw *astilectron.Window, pairedID string) {
 	var datac = make(chan string)
 	go func() {
 		errc <- textile.StartSync(pairedID, datac)
-		close(errc)
 	}()
 
 	for {

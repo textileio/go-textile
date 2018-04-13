@@ -50,8 +50,11 @@ let textile = {
 
         // new photo from paired peer
         case "sync.data":
-          let url = [gateway, "ipfs", message.hash, "thumb"].join("/")
-          let $item = $('<div class="grid-item"><img src="' + url + '" /></div>');
+          let ph = [gateway, "ipfs", message.hash, "photo"].join("/")
+          let th = [gateway, "ipfs", message.hash, "thumb"].join("/")
+          let md = [gateway, "ipfs", message.hash, "meta"].join("/")
+          let img = '<img src="' + th + '" />'
+          let $item = $('<div class="grid-item" data-url="' + ph + '" data-meta="' + md + '">' + img + '</div>')
           $(".grid").isotope('insert', $item)
           break
 
