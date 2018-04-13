@@ -103,6 +103,7 @@ func TestWrapper_GetRecoveryPhrase(t *testing.T) {
 	mnemonic, err := wrapper.GetRecoveryPhrase()
 	if err != nil {
 		t.Errorf("failed to create a new recovery phrase: %s", err)
+		return
 	}
 	list := strings.Split(mnemonic, " ")
 	if len(list) != 24 {
@@ -110,7 +111,14 @@ func TestWrapper_GetRecoveryPhrase(t *testing.T) {
 	}
 }
 
-func TestWrapper_Pair(t *testing.T) {
+func TestWrapper_GetPeerID(t *testing.T) {
+	_, err := wrapper.GetPeerID()
+	if err != nil {
+		t.Errorf("get peer id failed: %s", err)
+	}
+}
+
+func TestWrapper_PairDesktop(t *testing.T) {
 	_, pk, err := libp2p.GenerateKeyPair(libp2p.RSA, 4096)
 	if err != nil {
 		t.Errorf("create rsa keypair failed: %s", err)
