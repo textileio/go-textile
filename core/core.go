@@ -26,10 +26,12 @@ import (
 	oldcmds "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/commands"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/coreapi"
+	//ipath "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/path"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/config"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo"
 	lockfile "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo/lock"
 
+	"database/sql"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
@@ -41,6 +43,8 @@ var stdoutLogFormat = logging.MustStringFormatter(
 )
 
 var logger logging.Backend
+
+var Node *TextileNode
 
 type TextileNode struct {
 	// Context for issuing IPFS commands
@@ -70,12 +74,6 @@ type PhotoList struct {
 }
 
 func NewNode(repoPath string, isMobile bool) (*TextileNode, error) {
-
-	// raise file descriptor limit
-	if err := utilmain.ManageFdLimit(); err != nil {
-		fmt.Errorf("setting file descriptor limit: %s", err)
-	}
-
 	// shutdown is not clean here yet, so we have to hackily remove
 	// the lockfile that should have been removed on shutdown
 	// before we start up again
@@ -151,7 +149,25 @@ func (t *TextileNode) ConfigureDatastore(mnemonic string, pairedID string) error
 	return t.Datastore.Config().Configure(mnemonic, identityKey, pairedID, time.Now())
 }
 
+func (t *TextileNode) IsDatastoreConfigured() bool {
+	_, err := t.Datastore.Config().GetMnemonic()
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false
+		} else {
+			fmt.Printf("error checking if datastore is configured: %s", err)
+			return false
+		}
+	}
+	return true
+}
+
 func (t *TextileNode) Start() error {
+	// raise file descriptor limit
+	if err := utilmain.ManageFdLimit(); err != nil {
+		fmt.Errorf("setting file descriptor limit: %s", err)
+	}
+
 	cctx, cancel := context.WithCancel(context.Background())
 	t.Cancel = cancel
 
@@ -235,6 +251,7 @@ func (t *TextileNode) Stop() error {
 	if err := os.Remove(repoLockFile); err != nil {
 		return err
 	}
+	t.Datastore.Close()
 	dsLockFile := filepath.Join(t.RepoPath, "datastore", "LOCK")
 	if err := os.Remove(dsLockFile); err != nil {
 		return err
@@ -284,6 +301,13 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 		return nil, err
 	}
 
+	// update latest
+	//ip, err := coreapi.ParsePath(mr.Boundary)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//t.IpfsNode.Namesys.Publish(t.IpfsNode.Context(), sk, ipath.FromCid(ip.Cid()))
+
 	return mr, nil
 }
 
@@ -323,12 +347,11 @@ func (t *TextileNode) GetFile(path string) ([]byte, error) {
 	return b, err
 }
 
-func (t *TextileNode) StartPairing(idc chan string, errc chan error) {
+func (t *TextileNode) StartPairing(idc chan string) error {
 	id := t.IpfsNode.Identity.Pretty()
 	sub, err := t.IpfsNode.Floodsub.Subscribe(id)
 	if err != nil {
-		errc <- err
-		return
+		return err
 	}
 	fmt.Printf("subscribed to own peer id: %s\n", id)
 	defer sub.Cancel()
@@ -339,10 +362,9 @@ func (t *TextileNode) StartPairing(idc chan string, errc chan error) {
 			msg, err := sub.Next(t.IpfsNode.Context())
 			if err == io.EOF || err == context.Canceled {
 				idc <- ""
-				return
+				return nil
 			} else if err != nil {
-				errc <- err
-				return
+				return err
 			}
 			from := msg.GetFrom().Pretty()
 			fmt.Printf("got pairing request from: %s\n", from)
@@ -350,13 +372,11 @@ func (t *TextileNode) StartPairing(idc chan string, errc chan error) {
 			// get private peer key and decrypt the phrase
 			sk, err := t.unmarshalPrivatePeerKey()
 			if err != nil {
-				errc <- err
-				return
+				return err
 			}
 			p, err := net.Decrypt(sk, msg.GetData())
 			if err != nil {
-				errc <- err
-				return
+				return err
 			}
 			ps := string(p)
 			fmt.Printf("decrypted mnemonic phrase as: %s\n", ps)
@@ -364,14 +384,14 @@ func (t *TextileNode) StartPairing(idc chan string, errc chan error) {
 			// setup datastore with phrase and close sub
 			err = t.ConfigureDatastore(ps, from)
 			if err != nil {
-				errc <- err
+				return err
 			}
 			idc <- from
-			return
+			return nil
 
 		case <-t.IpfsNode.Context().Done():
 			idc <- ""
-			return
+			return nil
 		}
 	}
 }
@@ -401,7 +421,7 @@ func (t *TextileNode) StartSync(pairedID string, datac chan string) error {
 			fmt.Printf("got message from: %s -> \"%s\"\n", from, hash)
 
 			// convert string to an ipfs path
-			ipath, err := coreapi.ParsePath(hash)
+			ip, err := coreapi.ParsePath(hash)
 			if err != nil {
 				// TODO: log err, don't cancel sub
 				return err
@@ -409,7 +429,7 @@ func (t *TextileNode) StartSync(pairedID string, datac chan string) error {
 
 			// pin it
 			fmt.Printf("pinning %s recursively...", hash)
-			err = api.Pin().Add(t.IpfsNode.Context(), ipath, api.Pin().WithRecursive(true))
+			err = api.Pin().Add(t.IpfsNode.Context(), ip, api.Pin().WithRecursive(true))
 			if err != nil {
 				return err
 			}
@@ -443,13 +463,13 @@ func (t *TextileNode) GetPublicPeerKeyString() (string, error) {
 
 func (t *TextileNode) getDataAtPath(path string) ([]byte, error) {
 	// convert string to an ipfs path
-	ipath, err := coreapi.ParsePath(path)
+	ip, err := coreapi.ParsePath(path)
 	if err != nil {
 		return nil, err
 	}
 
 	api := coreapi.NewCoreAPI(t.IpfsNode)
-	r, err := api.Unixfs().Cat(t.IpfsNode.Context(), ipath)
+	r, err := api.Unixfs().Cat(t.IpfsNode.Context(), ip)
 	if err != nil {
 		return nil, err
 	}

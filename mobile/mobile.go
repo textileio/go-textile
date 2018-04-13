@@ -2,11 +2,9 @@ package mobile
 
 import (
 	"context"
-	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/net"
@@ -59,16 +57,7 @@ func (w *Wrapper) ConfigureDatastore(mnemonic string) error {
 }
 
 func (w *Wrapper) IsDatastoreConfigured() bool {
-	_, err := w.GetRecoveryPhrase()
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return false
-		} else {
-			fmt.Printf("error checking if datastore is configured: %s", err)
-			return false
-		}
-	}
-	return true
+	return w.node.IsDatastoreConfigured()
 }
 
 func (w *Wrapper) Stop() error {
