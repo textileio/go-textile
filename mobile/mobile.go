@@ -10,6 +10,7 @@ import (
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/net"
 
+	"github.com/pkg/errors"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
@@ -89,6 +90,13 @@ func (w *Wrapper) GetFileBase64(path string) (string, error) {
 // provides the user's recovery phrase for their private key
 func (w *Wrapper) GetRecoveryPhrase() (string, error) {
 	return w.node.Datastore.Config().GetMnemonic()
+}
+
+func (w *Wrapper) GetPeerID() (string, error) {
+	if w.node.IpfsNode == nil {
+		return "", errors.New("node not started")
+	}
+	return w.node.IpfsNode.Identity.Pretty(), nil
 }
 
 func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
