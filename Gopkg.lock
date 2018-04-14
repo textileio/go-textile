@@ -88,6 +88,30 @@
   revision = "501929d3d046174c3d39f0ea54ece471aa17238c"
 
 [[projects]]
+  name = "github.com/chzyer/readline"
+  packages = ["."]
+  revision = "62c6fe6193755f722b8b8788aa7357be55a50ff1"
+  version = "v1.4"
+
+[[projects]]
+  name = "github.com/disintegration/imaging"
+  packages = ["."]
+  revision = "fd34ef7671b12cdf1b024d98c6b327b2770d32c4"
+  version = "v1.4.1"
+
+[[projects]]
+  name = "github.com/fatih/color"
+  packages = ["."]
+  revision = "507f6050b8568533fb3f5504de8e5205fa62a114"
+  version = "v1.6.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/flynn-archive/go-shlex"
+  packages = ["."]
+  revision = "3f9db97f856818214da2e1057f8ad84803971cff"
+
+[[projects]]
   branch = "master"
   name = "github.com/gin-contrib/sse"
   packages = ["."]
@@ -120,6 +144,12 @@
   packages = ["proto"]
   revision = "925541529c1fa6821df4e44ce2723319eb2be768"
   version = "v1.0.0"
+
+[[projects]]
+  name = "github.com/jessevdk/go-flags"
+  packages = ["."]
+  revision = "c6ca198ec95c841fdb89fc0de7496fed11ab854e"
+  version = "v1.4.0"
 
 [[projects]]
   name = "github.com/julienschmidt/httprouter"
@@ -170,6 +200,12 @@
   version = "v0.8.0"
 
 [[projects]]
+  name = "github.com/segmentio/ksuid"
+  packages = ["."]
+  revision = "112f929a3020abfcd06b77c963ec919130796a35"
+  version = "1.0.1"
+
+[[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
@@ -215,6 +251,16 @@
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/image"
+  packages = [
+    "bmp",
+    "tiff",
+    "tiff/lzw"
+  ]
+  revision = "f315e440302883054d0c2bd85486878cb4f8572c"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
   revision = "b68f30494add4df6bd8ef5e82803f308e7f7c59c"
@@ -227,6 +273,12 @@
     "windows"
   ]
   revision = "378d26f46672a356c46195c28f61bdb4c0a781dd"
+
+[[projects]]
+  branch = "v2"
+  name = "gopkg.in/abiosoft/ishell.v2"
+  packages = ["."]
+  revision = "42a9bbfa0017d7243b50b8f542076ef3d5e7da6c"
 
 [[projects]]
   name = "gopkg.in/go-playground/validator.v8"
@@ -243,6 +295,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cbd015f0119592573186a50cd5b5d5ba7aa0772ed0e9e4c51c6715bbc815714f"
+  inputs-digest = "28b296e75c969cd4f2050a12ef2cbb91ddf06d6c9b9242f877e1bb63960c4e7e"
   solver-name = "gps-cdcl"
   solver-version = 1

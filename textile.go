@@ -90,7 +90,11 @@ func main() {
 			}
 		},
 	})
-
+	shell.AddCmd(&ishell.Cmd{
+		Name: "id",
+		Help: "show node ids",
+		Func: cmd.GetIds,
+	})
 	{
 		photosCmd := &ishell.Cmd{
 			Name:     "photos",
@@ -102,7 +106,6 @@ func main() {
 			Help: "add a new photo",
 			Func: cmd.AddPhoto,
 		})
-
 		shell.AddCmd(photosCmd)
 	}
 
