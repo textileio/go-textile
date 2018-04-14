@@ -26,7 +26,7 @@ import (
 	oldcmds "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/commands"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/coreapi"
-	//ipath "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/path"
+	ipath "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/path"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/config"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo"
 	lockfile "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo/lock"
@@ -278,7 +278,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 	defer th.Close()
 
 	// unmarshal private key
-	sk, err := t.unmarshalPrivateKey()
+	sk, err := t.UnmarshalPrivateKey()
 	if err != nil {
 		return nil, err
 	}
@@ -302,11 +302,11 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 	}
 
 	// update latest
-	//ip, err := coreapi.ParsePath(mr.Boundary)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//t.IpfsNode.Namesys.Publish(t.IpfsNode.Context(), sk, ipath.FromCid(ip.Cid()))
+	ip, err := coreapi.ParsePath(mr.Boundary)
+	if err != nil {
+		return nil, err
+	}
+	t.IpfsNode.Namesys.Publish(t.IpfsNode.Context(), sk, ipath.FromString(ip.String()))
 
 	return mr, nil
 }
@@ -335,7 +335,7 @@ func (t *TextileNode) GetFile(path string) ([]byte, error) {
 	}
 
 	// unmarshal private key
-	sk, err := t.unmarshalPrivateKey()
+	sk, err := t.UnmarshalPrivateKey()
 	if err != nil {
 		return nil, err
 	}
@@ -370,7 +370,7 @@ func (t *TextileNode) StartPairing(idc chan string) error {
 			fmt.Printf("got pairing request from: %s\n", from)
 
 			// get private peer key and decrypt the phrase
-			sk, err := t.unmarshalPrivatePeerKey()
+			sk, err := t.UnmarshalPrivatePeerKey()
 			if err != nil {
 				return err
 			}
@@ -449,7 +449,7 @@ func (t *TextileNode) StartSync(pairedID string, datac chan string) error {
 }
 
 func (t *TextileNode) GetPublicPeerKeyString() (string, error) {
-	sk, err := t.unmarshalPrivatePeerKey()
+	sk, err := t.UnmarshalPrivatePeerKey()
 	if err != nil {
 		return "", err
 	}
@@ -461,25 +461,7 @@ func (t *TextileNode) GetPublicPeerKeyString() (string, error) {
 	return base64.StdEncoding.EncodeToString(pkb), nil
 }
 
-func (t *TextileNode) getDataAtPath(path string) ([]byte, error) {
-	// convert string to an ipfs path
-	ip, err := coreapi.ParsePath(path)
-	if err != nil {
-		return nil, err
-	}
-
-	api := coreapi.NewCoreAPI(t.IpfsNode)
-	r, err := api.Unixfs().Cat(t.IpfsNode.Context(), ip)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-
-	// read bytes
-	return ioutil.ReadAll(r)
-}
-
-func (t *TextileNode) unmarshalPrivatePeerKey() (libp2p.PrivKey, error) {
+func (t *TextileNode) UnmarshalPrivatePeerKey() (libp2p.PrivKey, error) {
 	cfg, err := t.Context.GetConfig()
 	if err != nil {
 		return nil, err
@@ -505,12 +487,30 @@ func (t *TextileNode) unmarshalPrivatePeerKey() (libp2p.PrivKey, error) {
 	return sk, nil
 }
 
-func (t *TextileNode) unmarshalPrivateKey() (libp2p.PrivKey, error) {
+func (t *TextileNode) UnmarshalPrivateKey() (libp2p.PrivKey, error) {
 	kb, err := t.Datastore.Config().GetIdentityKey()
 	if err != nil {
 		return nil, err
 	}
 	return libp2p.UnmarshalPrivateKey(kb)
+}
+
+func (t *TextileNode) getDataAtPath(path string) ([]byte, error) {
+	// convert string to an ipfs path
+	ip, err := coreapi.ParsePath(path)
+	if err != nil {
+		return nil, err
+	}
+
+	api := coreapi.NewCoreAPI(t.IpfsNode)
+	r, err := api.Unixfs().Cat(t.IpfsNode.Context(), ip)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	// read bytes
+	return ioutil.ReadAll(r)
 }
 
 func createMnemonic(newEntropy func(int) ([]byte, error), newMnemonic func([]byte) (string, error)) (string, error) {
