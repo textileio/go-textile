@@ -59,8 +59,11 @@ func TestWrapper_IsDatastoreConfigured2(t *testing.T) {
 	}
 }
 
-func TestWrapper_StartServices(t *testing.T) {
-	go wrapper.StartServices()
+func TestWrapper_StartGateway(t *testing.T) {
+	err := wrapper.StartGateway()
+	if err != nil {
+		t.Errorf("start mobile gateway failed: %s", err)
+	}
 }
 
 func TestWrapper_AddPhoto(t *testing.T) {

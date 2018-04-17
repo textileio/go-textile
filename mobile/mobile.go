@@ -5,12 +5,13 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
-
 	"fmt"
+
+	"github.com/pkg/errors"
+
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/net"
 
-	"github.com/pkg/errors"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
@@ -42,20 +43,11 @@ func (w *Wrapper) Start() error {
 	return w.node.Start()
 }
 
-func (w *Wrapper) StartServices() {
-	var errc = make(chan error)
-	go func() {
-		errc <- w.node.StartServices()
-		close(errc)
-	}()
-
-	for {
-		select {
-		case err := <-errc:
-			fmt.Printf("mobile gateway error: %s", err)
-			return
-		}
+func (w *Wrapper) StartGateway() error {
+	if _, err := tcore.ServeHTTPGatewayProxy(w.node); err != nil {
+		return err
 	}
+	return nil
 }
 
 func (w *Wrapper) ConfigureDatastore(mnemonic string) error {

@@ -171,7 +171,7 @@ func serveHTTPGateway(cctx *oldcmds.Context) (<-chan error, error) {
 	return errc, nil
 }
 
-func serveHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
+func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		b, err := node.GetFile(r.URL.Path)
 		if err != nil {
@@ -182,15 +182,16 @@ func serveHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 		w.Write(b)
 	})
 
+	port := "9192"
+	if node.isMobile {
+		port = "9193"
+	}
 	errc := make(chan error)
 	go func() {
-		addr := ":9192"
-		if node.isMobile {
-			addr = ":9193"
-		}
-		errc <- http.ListenAndServe(addr, nil)
+		errc <- http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 		close(errc)
 	}()
+	fmt.Printf("decrypting gateway (readonly) server listening on /ip4/127.0.0.1/tcp/%s\n", port)
 
 	return errc, nil
 }
