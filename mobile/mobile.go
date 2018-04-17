@@ -5,9 +5,8 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
-
-	"github.com/pkg/errors"
 
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/net"
@@ -18,9 +17,9 @@ import (
 
 type Wrapper struct {
 	RepoPath       string
-	gatewayRunning bool
 	Cancel         context.CancelFunc
 	node           *tcore.TextileNode
+	gatewayRunning bool
 }
 
 func NewNode(repoPath string) (*Wrapper, error) {
