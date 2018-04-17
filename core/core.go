@@ -6,6 +6,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -194,23 +195,23 @@ func (t *TextileNode) Start() error {
 }
 
 func (t *TextileNode) StartServices() error {
+	if t.isMobile {
+		return errors.New("services not available on mobile")
+	}
+
 	// repo blockstore GC
 	var gcErrc <-chan error
 	var err error
-	if !t.isMobile {
-		gcErrc, err = runGC(t.IpfsNode.Context(), t.IpfsNode)
-		if err != nil {
-			return err
-		}
+	gcErrc, err = runGC(t.IpfsNode.Context(), t.IpfsNode)
+	if err != nil {
+		return err
 	}
 
 	// construct http gateway
 	var gwErrc <-chan error
-	if !t.isMobile {
-		gwErrc, err = serveHTTPGateway(&t.Context)
-		if err != nil {
-			return err
-		}
+	gwErrc, err = serveHTTPGateway(&t.Context)
+	if err != nil {
+		return err
 	}
 
 	// construct decrypting http gateway proxy
