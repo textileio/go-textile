@@ -26,12 +26,12 @@ import (
 	oldcmds "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/commands"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/coreapi"
-	ipath "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/path"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/config"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo"
 	lockfile "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo/lock"
 
 	"database/sql"
+	"encoding/json"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
@@ -283,14 +283,21 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 		return nil, err
 	}
 
+	// get last photo
+	var lc string
+	recent := t.Datastore.Photos().GetPhotos("", 1)
+	if len(recent) > 0 {
+		lc = recent[0].Cid
+	}
+
 	// add it
-	mr, err := wallet.AddPhoto(t.IpfsNode, sk.GetPublic(), p, th)
+	mr, md, err := wallet.AddPhoto(t.IpfsNode, sk.GetPublic(), p, th, lc)
 	if err != nil {
 		return nil, err
 	}
 
 	// index
-	err = t.Datastore.Photos().Put(mr.Boundary, time.Now())
+	err = t.Datastore.Photos().Put(mr.Boundary, lc, md)
 	if err != nil {
 		return nil, err
 	}
@@ -301,12 +308,12 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 		return nil, err
 	}
 
-	// update latest
-	ip, err := coreapi.ParsePath(mr.Boundary)
-	if err != nil {
-		return nil, err
-	}
-	t.IpfsNode.Namesys.Publish(t.IpfsNode.Context(), sk, ipath.FromString(ip.String()))
+	//// update latest
+	//ip, err := coreapi.ParsePath(mr.Boundary)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//t.IpfsNode.Namesys.Publish(t.IpfsNode.Context(), sk, ipath.FromString(ip.String()))
 
 	return mr, nil
 }
@@ -345,6 +352,30 @@ func (t *TextileNode) GetFile(path string) ([]byte, error) {
 	}
 
 	return b, err
+}
+
+func (t *TextileNode) GetMetaData(hash string) (*wallet.PhotoData, error) {
+	b, err := t.GetFile(fmt.Sprintf("%s/meta", hash))
+	if err != nil {
+		return nil, err
+	}
+
+	var data *wallet.PhotoData
+	err = json.Unmarshal(b, &data)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func (t *TextileNode) GetLastHash(hash string) (string, error) {
+	b, err := t.GetFile(fmt.Sprintf("%s/last", hash))
+	if err != nil {
+		return "", err
+	}
+
+	return string(b), nil
 }
 
 func (t *TextileNode) StartPairing(idc chan string) error {
@@ -435,9 +466,20 @@ func (t *TextileNode) StartSync(pairedID string, datac chan string) error {
 			}
 			fmt.Printf("done\n")
 
+			// TODO: make this recursive
+			// unpack data set
+			md, err := t.getMetaData(hash)
+			if err != nil {
+				return err
+			}
+
 			// index
-			t.Datastore.Photos().Put(hash, time.Now())
+			err = t.Datastore.Photos().Put(hash, meta.LastCid, md)
+			if err != nil {
+				return err
+			}
 			fmt.Printf("indexed %s\n", hash)
+			// TODO: end
 
 			// inform listeners
 			datac <- hash
@@ -509,7 +551,6 @@ func (t *TextileNode) getDataAtPath(path string) ([]byte, error) {
 	}
 	defer r.Close()
 
-	// read bytes
 	return ioutil.ReadAll(r)
 }
 

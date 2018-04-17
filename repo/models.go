@@ -1,12 +1,16 @@
 package repo
 
-import "time"
+import (
+	"github.com/textileio/textile-go/repo/wallet"
+	"time"
+)
 
 type SettingsData struct {
 	Version *string `json:"version"`
 }
 
 type PhotoSet struct {
-	Cid       string    `json:"cid"`
-	Timestamp time.Time `json:"timestamp"`
+	Cid      string           `json:"cid"`
+	LastCid  string           `json:"last_cid"`
+	MetaData wallet.PhotoData `json:"metadata"`
 }

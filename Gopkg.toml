@@ -49,3 +49,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/asticode/go-astilectron"
+
+[[override]]
+  branch = "master"
+  name = "github.com/chzyer/readline"
