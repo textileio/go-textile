@@ -59,6 +59,10 @@ func TestWrapper_IsDatastoreConfigured2(t *testing.T) {
 	}
 }
 
+func TestWrapper_StartServices(t *testing.T) {
+	go wrapper.StartServices()
+}
+
 func TestWrapper_AddPhoto(t *testing.T) {
 	mr, err := wrapper.AddPhoto("testdata/photo.jpg", "testdata/thumb.jpg")
 	if err != nil {

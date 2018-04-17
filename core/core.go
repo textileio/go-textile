@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/op/go-logging"
-	"github.com/pkg/errors"
 	"github.com/tyler-smith/go-bip39"
 
 	"github.com/textileio/textile-go/net"
@@ -195,21 +194,23 @@ func (t *TextileNode) Start() error {
 }
 
 func (t *TextileNode) StartServices() error {
-	if t.isMobile {
-		return errors.New("services not available on mobile")
-	}
-
 	// repo blockstore GC
-	gcErrc, err := runGC(t.IpfsNode.Context(), t.IpfsNode)
-	if err != nil {
-		return err
+	var gcErrc <-chan error
+	var err error
+	if !t.isMobile {
+		gcErrc, err = runGC(t.IpfsNode.Context(), t.IpfsNode)
+		if err != nil {
+			return err
+		}
 	}
 
-	// construct http gateway - if it is set in the config
+	// construct http gateway
 	var gwErrc <-chan error
-	gwErrc, err = serveHTTPGateway(&t.Context)
-	if err != nil {
-		return err
+	if !t.isMobile {
+		gwErrc, err = serveHTTPGateway(&t.Context)
+		if err != nil {
+			return err
+		}
 	}
 
 	// construct decrypting http gateway proxy

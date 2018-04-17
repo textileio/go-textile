@@ -184,7 +184,11 @@ func serveHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 
 	errc := make(chan error)
 	go func() {
-		errc <- http.ListenAndServe(":9192", nil)
+		addr := ":9192"
+		if node.isMobile {
+			addr = ":9193"
+		}
+		errc <- http.ListenAndServe(addr, nil)
 		close(errc)
 	}()
 

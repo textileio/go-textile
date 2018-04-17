@@ -42,6 +42,22 @@ func (w *Wrapper) Start() error {
 	return w.node.Start()
 }
 
+func (w *Wrapper) StartServices() {
+	var errc = make(chan error)
+	go func() {
+		errc <- w.node.StartServices()
+		close(errc)
+	}()
+
+	for {
+		select {
+		case err := <-errc:
+			fmt.Printf("mobile gateway error: %s", err)
+			return
+		}
+	}
+}
+
 func (w *Wrapper) ConfigureDatastore(mnemonic string) error {
 	return w.node.ConfigureDatastore(mnemonic, "")
 }
