@@ -17,9 +17,10 @@ import (
 )
 
 type Wrapper struct {
-	RepoPath string
-	Cancel   context.CancelFunc
-	node     *tcore.TextileNode
+	RepoPath       string
+	gatewayRunning bool
+	Cancel         context.CancelFunc
+	node           *tcore.TextileNode
 }
 
 func NewNode(repoPath string) (*Wrapper, error) {
@@ -44,9 +45,13 @@ func (w *Wrapper) Start() error {
 }
 
 func (w *Wrapper) StartGateway() error {
+	if w.gatewayRunning {
+		return nil
+	}
 	if _, err := tcore.ServeHTTPGatewayProxy(w.node); err != nil {
 		return err
 	}
+	w.gatewayRunning = true
 	return nil
 }
 
