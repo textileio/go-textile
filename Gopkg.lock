@@ -88,10 +88,10 @@
   revision = "501929d3d046174c3d39f0ea54ece471aa17238c"
 
 [[projects]]
+  branch = "master"
   name = "github.com/chzyer/readline"
   packages = ["."]
-  revision = "62c6fe6193755f722b8b8788aa7357be55a50ff1"
-  version = "v1.4"
+  revision = "f6d7a1f6fbf35bbf9beb80dc63c56a29dcfb759f"
 
 [[projects]]
   name = "github.com/disintegration/imaging"
@@ -295,6 +295,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "28b296e75c969cd4f2050a12ef2cbb91ddf06d6c9b9242f877e1bb63960c4e7e"
+  inputs-digest = "b986d53443b3f1f3c597659339efa5ab9f1c780a1411755d44626fa189d23bf3"
   solver-name = "gps-cdcl"
   solver-version = 1

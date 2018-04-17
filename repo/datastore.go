@@ -2,6 +2,7 @@ package repo
 
 import (
 	"database/sql"
+	"github.com/textileio/textile-go/repo/wallet"
 	"time"
 )
 
@@ -63,7 +64,7 @@ type PhotoStore interface {
 	Queryable
 
 	// Put a new photo to the database
-	Put(cid string, timestamp time.Time) error
+	Put(cid string, lastCid string, md *wallet.PhotoData) error
 
 	// A list of photos
 	GetPhotos(offsetId string, limit int) []PhotoSet

@@ -119,8 +119,8 @@ func initDatabaseTables(db *sql.DB, password string) error {
 	sqlStmt += `
 	PRAGMA user_version = 0;
 	create table config (key text primary key not null, value blob);
-	create table photos (cid text primary key not null, timestamp integer);
-	create index index_photos on photos (timestamp);
+	create table photos (cid text primary key not null, lastCid text, name text, ext text, created integer, added integer, latitude real, longitude real);
+    create index index_added on photos (added);
 	`
 	_, err := db.Exec(sqlStmt)
 	if err != nil {
