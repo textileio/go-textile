@@ -6,6 +6,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,7 +15,6 @@ import (
 	"time"
 
 	"github.com/op/go-logging"
-	"github.com/pkg/errors"
 	"github.com/tyler-smith/go-bip39"
 
 	"github.com/textileio/textile-go/net"
@@ -200,12 +200,14 @@ func (t *TextileNode) StartServices() error {
 	}
 
 	// repo blockstore GC
-	gcErrc, err := runGC(t.IpfsNode.Context(), t.IpfsNode)
+	var gcErrc <-chan error
+	var err error
+	gcErrc, err = runGC(t.IpfsNode.Context(), t.IpfsNode)
 	if err != nil {
 		return err
 	}
 
-	// construct http gateway - if it is set in the config
+	// construct http gateway
 	var gwErrc <-chan error
 	gwErrc, err = serveHTTPGateway(&t.Context)
 	if err != nil {
@@ -214,7 +216,7 @@ func (t *TextileNode) StartServices() error {
 
 	// construct decrypting http gateway proxy
 	var gwpErrc <-chan error
-	gwpErrc, err = serveHTTPGatewayProxy(t)
+	gwpErrc, err = ServeHTTPGatewayProxy(t)
 	if err != nil {
 		return err
 	}

@@ -5,20 +5,21 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
-
+	"errors"
 	"fmt"
+
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/net"
 
-	"github.com/pkg/errors"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 type Wrapper struct {
-	RepoPath string
-	Cancel   context.CancelFunc
-	node     *tcore.TextileNode
+	RepoPath       string
+	Cancel         context.CancelFunc
+	node           *tcore.TextileNode
+	gatewayRunning bool
 }
 
 func NewNode(repoPath string) (*Wrapper, error) {
@@ -40,6 +41,17 @@ func (m *Mobile) NewNode(repoPath string) (*Wrapper, error) {
 
 func (w *Wrapper) Start() error {
 	return w.node.Start()
+}
+
+func (w *Wrapper) StartGateway() error {
+	if w.gatewayRunning {
+		return nil
+	}
+	if _, err := tcore.ServeHTTPGatewayProxy(w.node); err != nil {
+		return err
+	}
+	w.gatewayRunning = true
+	return nil
 }
 
 func (w *Wrapper) ConfigureDatastore(mnemonic string) error {
