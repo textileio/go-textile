@@ -215,7 +215,7 @@ func (t *TextileNode) StartServices() error {
 
 	// construct decrypting http gateway proxy
 	var gwpErrc <-chan error
-	gwpErrc, err = serveHTTPGatewayProxy(t)
+	gwpErrc, err = ServeHTTPGatewayProxy(t)
 	if err != nil {
 		return err
 	}
