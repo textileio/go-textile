@@ -66,6 +66,13 @@ func TestWrapper_StartGateway(t *testing.T) {
 	}
 }
 
+func TestWrapper_StartGatewayAgain(t *testing.T) {
+	err := wrapper.StartGateway()
+	if err != nil {
+		t.Errorf("start mobile gateway failed: %s", err)
+	}
+}
+
 func TestWrapper_AddPhoto(t *testing.T) {
 	mr, err := wrapper.AddPhoto("testdata/photo.jpg", "testdata/thumb.jpg")
 	if err != nil {
