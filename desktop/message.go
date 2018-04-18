@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/rand"
 
-	"encoding/json"
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
 	"github.com/asticode/go-astilog"
@@ -48,15 +47,8 @@ func handleMessages(iw *astilectron.Window, m bootstrap.MessageIn) (payload inte
 	case "sync.start":
 		astilog.Info("GOT START SYNC MESSAGE")
 
-		// get peer id
-		var pairedID string
-		if err = json.Unmarshal(m.Payload, &pairedID); err != nil {
-			astilog.Errorf("error unmarshalling sync.start payload: %s", err)
-			return nil, err
-		}
-
 		// finally, start syncing
-		go startSyncing(iw, pairedID)
+		go startSyncing(iw)
 
 		// return empty response
 		return map[string]interface{}{}, nil

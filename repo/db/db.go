@@ -141,7 +141,7 @@ func (c *ConfigDB) Init(password string) error {
 	return initDatabaseTables(c.db, password)
 }
 
-func (c *ConfigDB) Configure(mnemonic string, identityKey []byte, pairedID string, creationDate time.Time) error {
+func (c *ConfigDB) Configure(mnemonic string, identityKey []byte, creationDate time.Time) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -162,13 +162,6 @@ func (c *ConfigDB) Configure(mnemonic string, identityKey []byte, pairedID strin
 	if err != nil {
 		tx.Rollback()
 		return err
-	}
-	if pairedID != "" {
-		_, err = stmt.Exec("pairedID", pairedID)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
 	}
 	_, err = stmt.Exec("creationDate", creationDate.Format(time.RFC3339))
 	if err != nil {
@@ -206,23 +199,6 @@ func (c *ConfigDB) GetIdentityKey() ([]byte, error) {
 		return nil, err
 	}
 	return identityKey, nil
-}
-
-func (c *ConfigDB) GetPairedID() (string, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	stmt, err := c.db.Prepare("select value from config where key=?")
-	defer stmt.Close()
-	var id string
-	err = stmt.QueryRow("pairedID").Scan(&id)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return "", nil
-		} else {
-			return "", err
-		}
-	}
-	return id, nil
 }
 
 func (c *ConfigDB) GetCreationDate() (time.Time, error) {

@@ -26,7 +26,7 @@ func AddPhoto(c *ishell.Context) {
 		return
 	}
 	if !core.Node.IsDatastoreConfigured() {
-		c.Err(errors.New("datastore not initialized, please run textile init"))
+		c.Err(errors.New("datastore not initialized, please run 'textile init'"))
 		return
 	}
 
