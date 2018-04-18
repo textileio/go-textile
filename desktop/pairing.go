@@ -34,7 +34,9 @@ func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Me
 		go func() {
 			var idc = make(chan string)
 			var errc = make(chan error)
-			go textile.StartPairing(idc, errc)
+			go func() {
+				errc <- textile.StartPairing(idc)
+				}()
 			select {
 			case id := <-idc:
 				if id == "" {
@@ -68,7 +70,6 @@ func startSyncing(iw *astilectron.Window, pairedID string) {
 	var datac = make(chan string)
 	go func() {
 		errc <- textile.StartSync(pairedID, datac)
-		close(errc)
 	}()
 
 	for {
@@ -90,7 +91,7 @@ func getPhotosHTML() string {
 		th := fmt.Sprintf("http://localhost:9192/ipfs/%s/thumb", photo.Cid)
 		md := fmt.Sprintf("http://localhost:9192/ipfs/%s/meta", photo.Cid)
 		img := fmt.Sprintf("<img src=\"%s\" />", th)
-		html += fmt.Sprintf("<div class=\"grid-item\" data-url=\"%s\" data-meta=\"%s\">%s</div>", ph, md, img)
+		html += fmt.Sprintf("<div id=\"%s\" class=\"grid-item\" ondragstart=\"imageDragStart(event);\" draggable=\"true\" data-url=\"%s\" data-meta=\"%s\">%s</div>", photo.Cid, ph, md, img)
 	}
 	return html
 }

@@ -321,12 +321,11 @@ func (t *TextileNode) GetFile(path string) ([]byte, error) {
 	return b, err
 }
 
-func (t *TextileNode) StartPairing(idc chan string, errc chan error) {
+func (t *TextileNode) StartPairing(idc chan string) error {
 	id := t.IpfsNode.Identity.Pretty()
 	sub, err := t.IpfsNode.Floodsub.Subscribe(id)
 	if err != nil {
-		errc <- err
-		return
+		return err
 	}
 	fmt.Printf("subscribed to own peer id: %s\n", id)
 	defer sub.Cancel()
@@ -337,10 +336,9 @@ func (t *TextileNode) StartPairing(idc chan string, errc chan error) {
 			msg, err := sub.Next(t.IpfsNode.Context())
 			if err == io.EOF || err == context.Canceled {
 				idc <- ""
-				return
+				return nil
 			} else if err != nil {
-				errc <- err
-				return
+				return err
 			}
 			from := msg.GetFrom().Pretty()
 			fmt.Printf("got pairing request from: %s\n", from)
@@ -348,13 +346,11 @@ func (t *TextileNode) StartPairing(idc chan string, errc chan error) {
 			// get private peer key and decrypt the phrase
 			sk, err := t.unmarshalPrivatePeerKey()
 			if err != nil {
-				errc <- err
-				return
+				return err
 			}
 			p, err := net.Decrypt(sk, msg.GetData())
 			if err != nil {
-				errc <- err
-				return
+				return err
 			}
 			ps := string(p)
 			fmt.Printf("decrypted mnemonic phrase as: %s\n", ps)
@@ -362,14 +358,14 @@ func (t *TextileNode) StartPairing(idc chan string, errc chan error) {
 			// setup datastore with phrase and close sub
 			err = t.ConfigureDatastore(ps, from)
 			if err != nil {
-				errc <- err
+				return err
 			}
 			idc <- from
-			return
+			return nil
 
 		case <-t.IpfsNode.Context().Done():
 			idc <- ""
-			return
+			return nil
 		}
 	}
 }
