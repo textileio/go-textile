@@ -2,7 +2,6 @@ package repo
 
 import (
 	"github.com/textileio/textile-go/repo/wallet"
-	"time"
 )
 
 type SettingsData struct {

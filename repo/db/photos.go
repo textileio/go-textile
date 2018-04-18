@@ -26,7 +26,7 @@ func (c *PhotoDB) Put(cid string, lastCid string, md *wallet.PhotoData) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into photos(cid, lastCid, name, ext, created, added, latitude, longitude) values(?,?)`
+	stm := `insert into photos(cid, lastCid, name, ext, created, added, latitude, longitude) values(?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		return err

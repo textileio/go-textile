@@ -27,6 +27,11 @@ func GetIds(c *ishell.Context) {
 		c.Err(err)
 		return
 	}
+	mn, err := core.Node.Datastore.Config().GetMnemonic()
+	if err != nil {
+		c.Err(err)
+		return
+	}
 
 	// peer id
 	psk, err := core.Node.UnmarshalPrivatePeerKey()
@@ -41,8 +46,10 @@ func GetIds(c *ishell.Context) {
 	}
 
 	// show user their id's
-	blue := color.New(color.FgBlue).SprintFunc()
 	magenta := color.New(color.FgMagenta).SprintFunc()
-	c.Println(blue("wallet id: " + wid.Pretty()))
+	blue := color.New(color.FgBlue).SprintFunc()
+	green := color.New(color.FgGreen).SprintFunc()
 	c.Println(magenta("peer id: " + pid.Pretty()))
+	c.Println(blue("wallet id: " + wid.Pretty()))
+	c.Println(green("wallet secret: " + mn))
 }

@@ -17,8 +17,6 @@ import (
 	"github.com/textileio/textile-go/core"
 )
 
-var log = logging.MustGetLogger("main")
-
 type Opts struct {
 	Version bool   `short:"v" long:"version" description:"print the version number and exit"`
 	DataDir string `short:"d" long:"datadir" description:"specify the data directory to be used"`
@@ -27,9 +25,11 @@ type Opts struct {
 var Options Opts
 var parser = flags.NewParser(&Options, flags.Default)
 
+var shell *ishell.Shell
+
 func main() {
 	// create a new shell
-	shell := ishell.New()
+	shell = ishell.New()
 
 	// handle version flag
 	if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-v") {
@@ -83,11 +83,33 @@ func main() {
 		Name: "init",
 		Help: "initialize a new datastore",
 		Func: func(c *ishell.Context) {
-			err := core.Node.ConfigureDatastore("", "")
+			c.ShowPrompt(false)
+			defer c.ShowPrompt(true)
+
+			// get existing mnemonic
+			c.Print("mnemonic phrase (optional): ")
+			mnemonic := c.ReadLine()
+
+			// configure
+			err := core.Node.ConfigureDatastore(mnemonic)
 			if err != nil {
 				c.Err(fmt.Errorf("configure node datastore failed: %s", err))
 				return
 			}
+
+			// start services
+			if !core.Node.ServicesUp {
+				go startServices()
+
+				// leave old wallet room
+				// TODO: need a diff way to determine if we prev. had a room subscription
+				// TODO: this is ugly relying on ServiceUp
+				core.Node.LeaveRoom()
+				<-core.Node.LeftRoomCh
+			}
+
+			// join new room
+			go core.Node.JoinRoom()
 		},
 	})
 	shell.AddCmd(&ishell.Cmd{
@@ -111,35 +133,45 @@ func main() {
 
 	// create a desktop textile node
 	// TODO: darwin should use App. Support dir, not home dir
-	node, err := core.NewNode(dataDir, false)
+	node, err := core.NewNode(dataDir, false, logging.DEBUG)
 	if err != nil {
 		shell.Println(fmt.Errorf("create desktop node failed: %s", err))
 		return
 	}
 	core.Node = node
 	if err = core.Node.Start(); err != nil {
-		shell.Println(fmt.Errorf("create desktop node failed: %s", err))
+		shell.Println(fmt.Errorf("start desktop node failed: %s", err))
 		return
 	}
 
-	// Start garbage collection and gateway services
-	// NOTE: on desktop, gateway runs on 8182, decrypting file gateway on 9192
-	var servErrc = make(chan error)
-	go func() {
-		servErrc <- core.Node.StartServices()
-		close(servErrc)
-	}()
-	go func() {
-		for {
-			select {
-			case err := <-servErrc:
-				shell.Println(fmt.Errorf("server error: %s", err))
-			}
-		}
-	}()
+	// if datastore is configured, start services
+	if core.Node.IsDatastoreConfigured() {
+		go startServices()
+		go core.Node.JoinRoom()
+	}
 
 	// run shell
 	shell.Run()
+}
+
+// Start garbage collection and gateway services
+// NOTE: on desktop, gateway runs on 8182, decrypting file gateway on 9192
+// TODO: make this cancelable
+func startServices() {
+	errc, err := core.Node.StartServices()
+	if err != nil {
+		shell.Println(fmt.Errorf("start service error: %s", err))
+		return
+	}
+
+	for {
+		select {
+		case err := <-errc:
+			if err != nil {
+				shell.Println(fmt.Errorf("service error: %s", err))
+			}
+		}
+	}
 }
 
 func printSplashScreen(shell *ishell.Shell) {
@@ -156,5 +188,5 @@ _/  |_  ____ ___  ____/  |_|__|  |   ____
 	shell.Println(blue(banner))
 	shell.Println("")
 	shell.Println("textile server v" + core.VERSION)
-	shell.Println("")
+	shell.Println("type `help` for available commands")
 }

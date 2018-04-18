@@ -42,10 +42,18 @@ func main() {
 
 	// Start garbage collection and gateway services
 	// NOTE: on desktop, gateway runs on 8182, decrypting file gateway on 9192
-	var servErrc = make(chan error)
+	errc, err := textile.StartServices()
+	if err != nil {
+		astilog.Errorf("start service error: %s", err)
+		return
+	}
 	go func() {
-		servErrc <- textile.StartServices()
-		close(servErrc)
+		for {
+			select {
+			case err := <-errc:
+				astilog.Errorf("service error: %s", err)
+			}
+		}
 	}()
 
 	// Run bootstrap

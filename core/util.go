@@ -14,12 +14,14 @@ import (
 
 	"gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	"strconv"
+	"strings"
 )
 
 // PrintSwarmAddrs prints the addresses of the host
 func printSwarmAddrs(node *core.IpfsNode) error {
 	if !node.OnlineMode() {
-		fmt.Println("swarm not listening, running in offline mode")
+		log.Info("swarm not listening, running in offline mode")
 		return nil
 	}
 
@@ -33,7 +35,7 @@ func printSwarmAddrs(node *core.IpfsNode) error {
 	}
 	sort.Sort(sort.StringSlice(lisAddrs))
 	for _, addr := range lisAddrs {
-		fmt.Printf("swarm listening on %s\n", addr)
+		log.Infof("swarm listening on %s\n", addr)
 	}
 
 	var addrs []string
@@ -42,7 +44,7 @@ func printSwarmAddrs(node *core.IpfsNode) error {
 	}
 	sort.Sort(sort.StringSlice(addrs))
 	for _, addr := range addrs {
-		fmt.Printf("swarm announcing %s\n", addr)
+		log.Infof("swarm announcing %s\n", addr)
 	}
 
 	return nil
@@ -67,8 +69,6 @@ func serveHTTPGateway(cctx *oldcmds.Context) (<-chan error, error) {
 	// we might have listened to /tcp/0 - lets see what we are listing on
 	gatewayMaddr = gwLis.Multiaddr()
 
-	fmt.Printf("gateway (readonly) server listening on %s\n", gatewayMaddr)
-
 	var opts = []corehttp.ServeOption{
 		corehttp.MetricsCollectionOption("gateway"),
 		corehttp.CheckVersionOption(),
@@ -92,6 +92,8 @@ func serveHTTPGateway(cctx *oldcmds.Context) (<-chan error, error) {
 		errc <- corehttp.Serve(node, gwLis.NetListener(), opts...)
 		close(errc)
 	}()
+	log.Infof("gateway (readonly) server listening on %s\n", gatewayMaddr)
+
 	return errc, nil
 }
 
@@ -99,23 +101,33 @@ func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		b, err := node.GetFile(r.URL.Path)
 		if err != nil {
-			fmt.Printf("error decrypting path %s: %s", r.URL.Path, err)
+			log.Errorf("error decrypting path %s: %s", r.URL.Path, err)
 			w.WriteHeader(400)
 			return
 		}
 		w.Write(b)
 	})
 
-	port := "9192"
-	if node.isMobile {
-		port = "9193"
+	// get config and set proxy address to raw gateway address plus one,
+	// so a gateway on 8182 means the proxy will run on 9182
+	cfg, err := node.Context.GetConfig()
+	if err != nil {
+		return nil, fmt.Errorf("ServeHTTPGatewayProxy: GetConfig() failed: %s", err)
 	}
+	tmp := strings.Split(cfg.Addresses.Gateway, "/")
+	gaddrs := tmp[len(tmp)-1]
+	gaddr, err := strconv.ParseInt(gaddrs, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("ServeHTTPGatewayProxy: get address failed: %s", err)
+	}
+	addr := gaddr + 1000
+
 	errc := make(chan error)
 	go func() {
-		errc <- http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
+		errc <- http.ListenAndServe(fmt.Sprintf(":%v", addr), nil)
 		close(errc)
 	}()
-	fmt.Printf("decrypting gateway (readonly) server listening on /ip4/127.0.0.1/tcp/%s\n", port)
+	log.Infof("decrypting gateway (readonly) server listening at http://127.0.0.1:%v\n", addr)
 
 	return errc, nil
 }
@@ -126,6 +138,8 @@ func runGC(ctx context.Context, node *core.IpfsNode) (<-chan error, error) {
 		errc <- corerepo.PeriodicGC(ctx, node)
 		close(errc)
 	}()
+	log.Info("auto garbage collection started")
+
 	return errc, nil
 }
 

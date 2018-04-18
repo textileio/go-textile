@@ -11,17 +11,17 @@ func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Me
 	astilog.Info("TEXTILE STARTED")
 
 	// check for an existing paired mobile id
-	pairedID, err := textile.Datastore.Config().GetPairedID()
+	room, err := textile.GetRoomID()
 	if err != nil {
 		return err
 	}
-	if pairedID != "" {
+	if room != nil {
 		// if we have one, start syncing
-		astilog.Info("FOUND MOBILE PEER ID")
+		astilog.Info("FOUND ROOM ID")
 
 		// tell app what peer id we're gonna sync with
 		sendData(iw, "sync.ready", map[string]interface{}{
-			"pairedID": pairedID,
+			"pairedID": room.Pretty(),
 			"html":     getPhotosHTML(),
 		})
 
@@ -62,15 +62,16 @@ func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Me
 	return nil
 }
 
-func startSyncing(iw *astilectron.Window, pairedID string) {
+func startSyncing(iw *astilectron.Window) error {
 	astilog.Info("STARTING SYNC")
 
 	// start subscription
-	var errc = make(chan error)
-	var datac = make(chan string)
-	go func() {
-		errc <- textile.StartSync(pairedID, datac)
-	}()
+	// TODO: expose cancel somehow
+	cancel := make(chan struct{})
+	datac, errc, err := textile.JoinRoom(cancel)
+	if err != nil {
+		return err
+	}
 
 	for {
 		select {

@@ -26,7 +26,7 @@ type Config interface {
 	Init(password string) error
 
 	// Configure the database with the node's mnemonic seed and identity key.
-	Configure(mnemonic string, identityKey []byte, pairedID string, creationDate time.Time) error
+	Configure(mnemonic string, identityKey []byte, creationDate time.Time) error
 
 	// Return the mnemonic string
 	GetMnemonic() (string, error)
@@ -36,9 +36,6 @@ type Config interface {
 
 	// Returns the date the seed was created
 	GetCreationDate() (time.Time, error)
-
-	// Returns the peer id of a paired source client
-	GetPairedID() (string, error)
 
 	// Returns true if the database has failed to decrypt properly ex) wrong pw
 	IsEncrypted() bool
