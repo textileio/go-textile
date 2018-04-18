@@ -10,6 +10,15 @@
     <link rel="stylesheet" href="static/lib/photoswipe/photoswipe.css">
     <link rel="stylesheet" href="static/lib/photoswipe/default-skin/default-skin.css">
     <link rel="stylesheet" href="static/css/textile.css"/>
+    <script>
+        function imageDragStart(ev) {
+            const parent = ev.target.parentNode;
+            const div = document.getElementById(parent.id);
+            const url = div.getAttribute("data-url");
+            console.log(url);
+            ev.dataTransfer.setData("DownloadURL", 'image/jpeg:fullres.jpeg:' + url);
+        }
+    </script>
 </head>
 <body>
 
