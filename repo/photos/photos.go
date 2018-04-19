@@ -1,4 +1,4 @@
-package wallet
+package photos
 
 import (
 	"bytes"
@@ -17,13 +17,12 @@ import (
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/coreunix"
 	uio "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/unixfs/io"
 
-	"fmt"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-type PhotoData struct {
+type Metadata struct {
 	Name      string    `json:"name"`
 	Ext       string    `json:"extension"`
 	Created   time.Time `json:"created"`
@@ -32,15 +31,17 @@ type PhotoData struct {
 	Longitude float64   `json:"longitude"`
 }
 
-// AddPhoto takes an image file, and optionally a thumbnail file, and adds
+// Add takes an image file, and optionally a thumbnail file, and adds
 // both to a new directory, then finally adds and pins that directory.
-func AddPhoto(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string) (*net.MultipartRequest, *PhotoData, error) {
+func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string) (*net.MultipartRequest, *Metadata, error) {
 	// path info
 	path := p.Name()
 	ext := strings.ToLower(filepath.Ext(path))
 	dname := filepath.Dir(t.Name())
 
 	// try to extract exif data
+	// TODO: get image size info
+	// TODO: break this up into one method with multi sub-methods for testing
 	var tm time.Time
 	var lat, lon float64 = -1, -1
 	x, err := exif.Decode(p)
@@ -49,19 +50,17 @@ func AddPhoto(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc str
 		tmTmp, err := x.DateTime()
 		if err == nil {
 			tm = tmTmp
-			fmt.Printf("taken at : %s\n", tm)
 		}
 
 		// coords taken
 		latTmp, lonTmp, err := x.LatLong()
 		if err == nil {
 			lat, lon = latTmp, lonTmp
-			fmt.Printf("lat: %s, lon: %s\n", lat, lon)
 		}
 	}
 
 	// create a metadata file
-	md := &PhotoData{
+	md := &Metadata{
 		Name:      strings.TrimSuffix(filepath.Base(path), ext),
 		Ext:       ext,
 		Created:   tm,
@@ -78,6 +77,7 @@ func AddPhoto(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc str
 		return nil, nil, err
 	}
 
+	// encrypt the last hash
 	clcb, err := net.Encrypt(pk, []byte(lc))
 	if err != nil {
 		return nil, nil, err
