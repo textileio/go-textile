@@ -96,6 +96,48 @@ func (c *PhotoDB) GetPhotos(offsetId string, limit int) []repo.PhotoSet {
 	return ret
 }
 
+func (c *PhotoDB) GetPhoto(cid string) *repo.PhotoSet {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	var ret []repo.PhotoSet
+
+	stm := "select * from photos where cid='" + cid + "' limit 1;"
+	rows, err := c.db.Query(stm)
+	if err != nil {
+		log.Errorf("error in db query: %s", err)
+		return nil
+	}
+	for rows.Next() {
+		var cid, lastCid, name, ext string
+		var createdInt, addedInt int
+		var latitude, longitude float64
+		if err := rows.Scan(&cid, &lastCid, &name, &ext, &createdInt, &addedInt, &latitude, &longitude); err != nil {
+			log.Errorf("error in db scan: %s", err)
+			continue
+		}
+		created := time.Unix(int64(createdInt), 0)
+		added := time.Unix(int64(addedInt), 0)
+		photo := repo.PhotoSet{
+			Cid:     cid,
+			LastCid: lastCid,
+			MetaData: photos.Metadata{
+				Name:      name,
+				Ext:       ext,
+				Created:   created,
+				Added:     added,
+				Latitude:  latitude,
+				Longitude: longitude,
+			},
+		}
+		ret = append(ret, photo)
+	}
+
+	if len(ret) == 0 {
+		return nil
+	}
+	return &ret[0]
+}
+
 func (c *PhotoDB) DeletePhoto(cid string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()

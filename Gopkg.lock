@@ -182,12 +182,6 @@
   revision = "f799951b4ab269c2ce24913961af2cb5d681cc43"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/nfnt/resize"
-  packages = ["."]
-  revision = "83c6a9932646f83e3267f353373d47347b6036b2"
-
-[[projects]]
   name = "github.com/op/go-logging"
   packages = ["."]
   revision = "b2cb9fa56473e98db8caba80237377e83fe44db5"
@@ -198,6 +192,15 @@
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
+
+[[projects]]
+  branch = "go1"
+  name = "github.com/rwcarlsen/goexif"
+  packages = [
+    "exif",
+    "tiff"
+  ]
+  revision = "fb35d3c3290d09f3524b684b5d42d0063c227158"
 
 [[projects]]
   name = "github.com/segmentio/ksuid"
@@ -287,6 +290,12 @@
   version = "v8.18.2"
 
 [[projects]]
+  name = "gopkg.in/natefinch/lumberjack.v2"
+  packages = ["."]
+  revision = "a96e63847dc3c67d17befa69c303767e2f84e54f"
+  version = "v2.1"
+
+[[projects]]
   name = "gopkg.in/yaml.v2"
   packages = ["."]
   revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
@@ -295,6 +304,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b986d53443b3f1f3c597659339efa5ab9f1c780a1411755d44626fa189d23bf3"
+  inputs-digest = "1ce0680761520b49864bf0cacf5d60878edcb471b819a80eb1ea34fdafa14776"
   solver-name = "gps-cdcl"
   solver-version = 1
