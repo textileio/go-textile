@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path"
+
+	"github.com/op/go-logging"
 
 	"github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/util"
@@ -20,11 +21,13 @@ const (
 	NBitsForKeypair = 4096
 )
 
+var log = logging.MustGetLogger("repo")
+
 var ErrRepoExists = errors.New(`ipfs configuration file already exists!
 Reinitializing would overwrite your keys.
 `)
 
-func DoInit(out io.Writer, repoRoot string, isMobile bool, dbInit func(string) error) error {
+func DoInit(repoRoot string, isMobile bool, dbInit func(string) error) error {
 	if err := checkWriteable(repoRoot); err != nil {
 		return err
 	}
@@ -32,10 +35,7 @@ func DoInit(out io.Writer, repoRoot string, isMobile bool, dbInit func(string) e
 	if fsrepo.IsInitialized(repoRoot) {
 		return ErrRepoExists
 	}
-
-	if _, err := fmt.Fprintf(out, "initializing textile ipfs node at %s\n", repoRoot); err != nil {
-		return err
-	}
+	log.Infof("initializing textile ipfs node at %s", repoRoot)
 
 	paths, err := util.NewCustomSchemaManager(util.SchemaContext{
 		DataPath: repoRoot,
@@ -44,7 +44,7 @@ func DoInit(out io.Writer, repoRoot string, isMobile bool, dbInit func(string) e
 		return err
 	}
 
-	conf, err := config.Init(out, NBitsForKeypair, isMobile)
+	conf, err := config.Init(NBitsForKeypair, isMobile)
 	if err != nil {
 		return err
 	}

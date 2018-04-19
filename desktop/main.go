@@ -6,7 +6,9 @@ import (
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
 	"github.com/asticode/go-astilog"
+	"github.com/op/go-logging"
 	"github.com/pkg/errors"
+
 	"github.com/textileio/textile-go/core"
 )
 
@@ -25,9 +27,9 @@ func main() {
 	astilog.FlagInit()
 
 	// Create a desktop textile node
-	// TODO: on darwin, I think repo should live in Application Support
+	// TODO: on darwin, repo should live in Application Support
 	var err error
-	textile, err = core.NewNode("output/.ipfs", false)
+	textile, err = core.NewNode("output/.ipfs", false, logging.DEBUG)
 	if err != nil {
 		astilog.Errorf("create desktop node failed: %s", err)
 		return
@@ -41,7 +43,8 @@ func main() {
 	}
 
 	// Start garbage collection and gateway services
-	// NOTE: on desktop, gateway runs on 8182, decrypting file gateway on 9192
+	// NOTE: on desktop, gateway runs on 8182, decrypting file gateway on 9182
+	// TODO: don't start services if datastore is not configured
 	errc, err := textile.StartServices()
 	if err != nil {
 		astilog.Errorf("start service error: %s", err)
@@ -51,7 +54,9 @@ func main() {
 		for {
 			select {
 			case err := <-errc:
-				astilog.Errorf("service error: %s", err)
+				if err != nil {
+					astilog.Errorf("service error: %s", err)
+				}
 			}
 		}
 	}()

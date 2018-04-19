@@ -4,14 +4,17 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io"
 	"time"
+
+	"github.com/op/go-logging"
 
 	native "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/config"
 
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
+
+var log = logging.MustGetLogger("config")
 
 var textileBootstrapAddresses = []string{
 	// cluster elastic ip, node 4
@@ -23,8 +26,8 @@ var textileBootstrapAddresses = []string{
 	"/ip6/2600:1f18:6061:9403:b15e:b223:3c2e:1ee9/tcp/4001/ipfs/QmTUvaGZqEu7qJw6DuTyhTgiZmZwdp7qN4FD4FFV3TGhjM",
 }
 
-func Init(out io.Writer, nBitsForKeypair int, isMobile bool) (*native.Config, error) {
-	identity, err := identityConfig(out, nBitsForKeypair)
+func Init(nBitsForKeypair int, isMobile bool) (*native.Config, error) {
+	identity, err := identityConfig(nBitsForKeypair)
 	if err != nil {
 		return nil, err
 	}
@@ -94,9 +97,9 @@ func Init(out io.Writer, nBitsForKeypair int, isMobile bool) (*native.Config, er
 			Writable:     false,
 			PathPrefixes: []string{},
 			HTTPHeaders: map[string][]string{
-				"Access-Control-Allow-Origin":  []string{"*"},
-				"Access-Control-Allow-Methods": []string{"GET"},
-				"Access-Control-Allow-Headers": []string{"X-Requested-With", "Range"},
+				"Access-Control-Allow-Origin":  {"*"},
+				"Access-Control-Allow-Methods": {"GET"},
+				"Access-Control-Allow-Headers": {"X-Requested-With", "Range"},
 			},
 		},
 		Reprovider: native.Reprovider{
@@ -193,19 +196,18 @@ func defaultDatastoreConfig() native.Datastore {
 }
 
 // identityConfig initializes a new identity.
-func identityConfig(out io.Writer, nbits int) (native.Identity, error) {
+func identityConfig(nbits int) (native.Identity, error) {
 	// TODO guard higher up
 	ident := native.Identity{}
 	if nbits < 1024 {
 		return ident, errors.New("bitsize less than 1024 is considered unsafe")
 	}
 
-	fmt.Fprintf(out, "generating %v-bit RSA keypair...", nbits)
+	log.Infof("generating %v-bit RSA keypair...", nbits)
 	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
 	if err != nil {
 		return ident, err
 	}
-	fmt.Fprint(out, "done\n")
 
 	// currently storing key unencrypted. in the future we need to encrypt it.
 	// TODO(security)
@@ -220,6 +222,6 @@ func identityConfig(out io.Writer, nbits int) (native.Identity, error) {
 		return ident, err
 	}
 	ident.PeerID = id.Pretty()
-	fmt.Fprintf(out, "peer identity: %s\n", ident.PeerID)
+	log.Infof("new peer identity: %s\n", ident.PeerID)
 	return ident, nil
 }

@@ -109,7 +109,7 @@ func main() {
 			}
 
 			// join new room
-			go core.Node.JoinRoom()
+			go core.Node.JoinRoom(make(chan string))
 		},
 	})
 	shell.AddCmd(&ishell.Cmd{
@@ -147,7 +147,7 @@ func main() {
 	// if datastore is configured, start services
 	if core.Node.IsDatastoreConfigured() {
 		go startServices()
-		go core.Node.JoinRoom()
+		go core.Node.JoinRoom(make(chan string))
 	}
 
 	// run shell
@@ -156,7 +156,6 @@ func main() {
 
 // Start garbage collection and gateway services
 // NOTE: on desktop, gateway runs on 8182, decrypting file gateway on 9192
-// TODO: make this cancelable
 func startServices() {
 	errc, err := core.Node.StartServices()
 	if err != nil {

@@ -48,7 +48,7 @@ func handleMessages(iw *astilectron.Window, m bootstrap.MessageIn) (payload inte
 		astilog.Info("GOT START SYNC MESSAGE")
 
 		// finally, start syncing
-		go startSyncing(iw)
+		go joinRoom(iw)
 
 		// return empty response
 		return map[string]interface{}{}, nil
