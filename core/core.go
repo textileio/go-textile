@@ -22,7 +22,7 @@ import (
 	"github.com/textileio/textile-go/net"
 	trepo "github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
-	"github.com/textileio/textile-go/repo/wallet"
+	"github.com/textileio/textile-go/repo/photos"
 
 	utilmain "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/commands"
@@ -126,6 +126,7 @@ func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNo
 	// sure we are permitted to access the resources (datastore, etc.)
 	repo, err := fsrepo.Open(repoPath)
 	if err != nil {
+		log.Errorf("error opening repo: %s", err)
 		return nil, err
 	}
 
@@ -182,7 +183,6 @@ func (t *TextileNode) ConfigureDatastore(mnemonic string) error {
 		log.Errorf("error creating identity from seed: %s", err)
 		return err
 	}
-	log.Info("done")
 
 	return t.Datastore.Config().Configure(mnemonic, identityKey, time.Now())
 }
@@ -216,7 +216,6 @@ func (t *TextileNode) Start() error {
 	}
 
 	log.Info("starting node...")
-
 	nd, err := core.NewNode(cctx, t.ipfsConfig)
 	if err != nil {
 		return err
@@ -258,6 +257,7 @@ func (t *TextileNode) StartServices() (<-chan error, error) {
 	var err error
 	gcErrc, err = runGC(t.IpfsNode.Context(), t.IpfsNode)
 	if err != nil {
+		log.Errorf("error starting gc: %s", err)
 		return nil, err
 	}
 
@@ -265,6 +265,7 @@ func (t *TextileNode) StartServices() (<-chan error, error) {
 	var gwErrc <-chan error
 	gwErrc, err = serveHTTPGateway(&t.Context)
 	if err != nil {
+		log.Errorf("error starting gateway: %s", err)
 		return nil, err
 	}
 
@@ -272,6 +273,7 @@ func (t *TextileNode) StartServices() (<-chan error, error) {
 	var gwpErrc <-chan error
 	gwpErrc, err = ServeHTTPGatewayProxy(t)
 	if err != nil {
+		log.Errorf("error starting decrypting gateway: %s", err)
 		return nil, err
 	}
 	t.ServicesUp = true
@@ -283,14 +285,17 @@ func (t *TextileNode) StartServices() (<-chan error, error) {
 func (t *TextileNode) Stop() error {
 	repoLockFile := filepath.Join(t.RepoPath, lockfile.LockFile)
 	if err := os.Remove(repoLockFile); err != nil {
+		log.Errorf("error removing lock: %s", err)
 		return err
 	}
 	t.Datastore.Close()
 	dsLockFile := filepath.Join(t.RepoPath, "datastore", "LOCK")
 	if err := os.Remove(dsLockFile); err != nil {
+		log.Errorf("error removing ds lock: %s", err)
 		return err
 	}
 	if err := t.IpfsNode.Close(); err != nil {
+		log.Errorf("error closing ipfs node: %s", err)
 		return err
 	}
 	t.IpfsNode = nil
@@ -300,7 +305,6 @@ func (t *TextileNode) Stop() error {
 func (t *TextileNode) JoinRoom() {
 	rid, err := t.GetRoomID()
 	if err != nil {
-		log.Errorf("error getting room id: %s", err)
 		return
 	}
 
@@ -356,19 +360,6 @@ func (t *TextileNode) LeaveRoom() {
 	t.leaveRoomCh <- struct{}{}
 }
 
-func (t *TextileNode) GetPublicPeerKeyString() (string, error) {
-	sk, err := t.UnmarshalPrivatePeerKey()
-	if err != nil {
-		return "", err
-	}
-	pkb, err := sk.GetPublic().Bytes()
-	if err != nil {
-		return "", err
-	}
-
-	return base64.StdEncoding.EncodeToString(pkb), nil
-}
-
 func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest, error) {
 	// read file from disk
 	p, err := os.Open(path)
@@ -400,7 +391,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 	}
 
 	// add it
-	mr, md, err := wallet.AddPhoto(t.IpfsNode, sk.GetPublic(), p, th, lc)
+	mr, md, err := photos.Add(t.IpfsNode, sk.GetPublic(), p, th, lc)
 	if err != nil {
 		log.Errorf("error adding photo: %s", err)
 		return nil, err
@@ -455,7 +446,6 @@ func (t *TextileNode) GetFile(path string) ([]byte, error) {
 	// unmarshal private key
 	sk, err := t.UnmarshalPrivateKey()
 	if err != nil {
-		log.Errorf("error unmarshaling priv key: %s", err)
 		return nil, err
 	}
 	b, err := net.Decrypt(sk, cb)
@@ -467,14 +457,14 @@ func (t *TextileNode) GetFile(path string) ([]byte, error) {
 	return b, err
 }
 
-func (t *TextileNode) GetMetaData(hash string) (*wallet.PhotoData, error) {
+func (t *TextileNode) GetMetaData(hash string) (*photos.Metadata, error) {
 	b, err := t.GetFile(fmt.Sprintf("%s/meta", hash))
 	if err != nil {
 		log.Errorf("error getting meta file: %s", err)
 		return nil, err
 	}
 
-	var data *wallet.PhotoData
+	var data *photos.Metadata
 	err = json.Unmarshal(b, &data)
 	if err != nil {
 		log.Errorf("error unmarshaling meta file: %s", err)
@@ -494,6 +484,7 @@ func (t *TextileNode) GetLastHash(hash string) (string, error) {
 	return string(b), nil
 }
 
+// TODO: update this to new flow
 func (t *TextileNode) StartPairing(idc chan string) error {
 	id := t.IpfsNode.Identity.Pretty()
 	sub, err := t.IpfsNode.Floodsub.Subscribe(id)
@@ -519,10 +510,12 @@ func (t *TextileNode) StartPairing(idc chan string) error {
 			// get private peer key and decrypt the phrase
 			sk, err := t.UnmarshalPrivatePeerKey()
 			if err != nil {
+				log.Errorf("error unmarshaling priv peer key: %s", err)
 				return err
 			}
 			p, err := net.Decrypt(sk, msg.GetData())
 			if err != nil {
+				log.Errorf("error decrypting msg data: %s", err)
 				return err
 			}
 			ps := string(p)
@@ -572,6 +565,7 @@ func (t *TextileNode) UnmarshalPrivatePeerKey() (libp2p.PrivKey, error) {
 func (t *TextileNode) UnmarshalPrivateKey() (libp2p.PrivKey, error) {
 	kb, err := t.Datastore.Config().GetIdentityKey()
 	if err != nil {
+		log.Errorf("error unmarshaling priv key: %s", err)
 		return nil, err
 	}
 	return libp2p.UnmarshalPrivateKey(kb)
@@ -584,9 +578,25 @@ func (t *TextileNode) GetRoomID() (*peer.ID, error) {
 	}
 	id, err := peer.IDFromPrivateKey(sk)
 	if err != nil {
+		log.Errorf("error getting id from priv key: %s", err)
 		return nil, err
 	}
 	return &id, nil
+}
+
+func (t *TextileNode) GetPublicPeerKeyString() (string, error) {
+	sk, err := t.UnmarshalPrivatePeerKey()
+	if err != nil {
+		log.Errorf("error unmarshaling priv peer key: %s", err)
+		return "", err
+	}
+	pkb, err := sk.GetPublic().Bytes()
+	if err != nil {
+		log.Errorf("error getting pub key bytes: %s", err)
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(pkb), nil
 }
 
 func (t *TextileNode) getDataAtPath(path string) ([]byte, error) {
@@ -610,7 +620,7 @@ func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message) error {
 	// unpack message
 	from := msg.GetFrom().Pretty()
 	hash := string(msg.GetData())
-	log.Infof("handling update from: %s -> \"%s\"\n", from, hash)
+	log.Infof("handling update from: %s -> \"%s\"", from, hash)
 
 	// convert string to an ipfs path
 	ip, err := coreapi.ParsePath(hash)
@@ -625,7 +635,6 @@ func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message) error {
 	if err != nil {
 		return err
 	}
-	log.Info("done")
 
 	// TODO: make this recursive
 	// unpack data set
@@ -644,7 +653,6 @@ func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message) error {
 	if err != nil {
 		return err
 	}
-	log.Infof("done\n")
 	// TODO: end
 
 	return nil
