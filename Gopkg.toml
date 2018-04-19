@@ -31,10 +31,6 @@
   name = "github.com/mutecomm/go-sqlcipher"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/nfnt/resize"
-
-[[constraint]]
   name = "github.com/op/go-logging"
   version = "1.0.0"
 

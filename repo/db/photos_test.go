@@ -40,6 +40,22 @@ func TestPhotoDB_Put(t *testing.T) {
 	}
 }
 
+func TestPhotoDB_GetPhoto(t *testing.T) {
+	setupDB()
+	md := &photos.Metadata{
+		Added: time.Now(),
+	}
+	err := phdb.Put("Qmabc", "", md)
+	if err != nil {
+		t.Error(err)
+	}
+	p := phdb.GetPhoto("Qmabc")
+	if p == nil {
+		t.Error("could not get photo")
+		return
+	}
+}
+
 func TestPhotoDB_GetPhotos(t *testing.T) {
 	setupDB()
 	md := &photos.Metadata{

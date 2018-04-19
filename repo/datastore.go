@@ -65,6 +65,9 @@ type PhotoStore interface {
 	Put(cid string, lastCid string, md *photos.Metadata) error
 
 	// A list of photos
+	GetPhoto(cid string) *PhotoSet
+
+	// A list of photos
 	GetPhotos(offsetId string, limit int) []PhotoSet
 
 	// Delete a photos

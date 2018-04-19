@@ -28,6 +28,7 @@ import (
 	oldcmds "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/commands"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/coreapi"
+	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/coreapi/interface"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/config"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo"
 	lockfile "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo/lock"
@@ -623,7 +624,20 @@ func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message) error {
 	// unpack message
 	from := msg.GetFrom().Pretty()
 	hash := string(msg.GetData())
-	log.Infof("handling update from: %s -> \"%s\"", from, hash)
+	api := coreapi.NewCoreAPI(t.IpfsNode)
+	log.Infof("got update from: %s", from)
+
+	// recurse back in time starting at this hash
+	err := t.handleHash(hash, api)
+	if err != nil {
+		log.Errorf("error handling hash: %s", err)
+	}
+
+	return nil
+}
+
+func (t *TextileNode) handleHash(hash string, api iface.CoreAPI) error {
+	log.Infof("handling update: %s...", hash)
 
 	// convert string to an ipfs path
 	ip, err := coreapi.ParsePath(hash)
@@ -631,34 +645,40 @@ func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message) error {
 		return err
 	}
 
+	// check if we aleady have this hash
+	set := t.Datastore.Photos().GetPhoto(hash)
+	if set != nil {
+		log.Infof("%s exists, aborting update", hash)
+		return nil
+	}
+
 	// pin it
-	api := coreapi.NewCoreAPI(t.IpfsNode)
 	log.Infof("pinning %s recursively...", hash)
 	err = api.Pin().Add(t.IpfsNode.Context(), ip, api.Pin().WithRecursive(true))
 	if err != nil {
 		return err
 	}
 
-	// TODO: make this recursive
 	// unpack data set
-	log.Infof("indexing %s...", hash)
+	log.Infof("unpacking %s...", hash)
 	md, err := t.GetMetaData(hash)
 	if err != nil {
 		return err
 	}
-	lc, err := t.GetLastHash(hash)
+	last, err := t.GetLastHash(hash)
 	if err != nil {
 		return err
 	}
 
 	// index
-	err = t.Datastore.Photos().Put(hash, lc, md)
+	log.Infof("indexing %s...", hash)
+	err = t.Datastore.Photos().Put(hash, last, md)
 	if err != nil {
 		return err
 	}
-	// TODO: end
 
-	return nil
+	// check last hash
+	return t.handleHash(last, api)
 }
 
 func createMnemonic(newEntropy func(int) ([]byte, error), newMnemonic func([]byte) (string, error)) (string, error) {
