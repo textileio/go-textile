@@ -76,7 +76,7 @@ func (d *SQLiteDatastore) Copy(dbPath string, password string) error {
 	stmt := "select name from sqlite_master where type='table'"
 	rows, err := d.db.Query(stmt)
 	if err != nil {
-		log.Error("", err)
+		log.Errorf("error in copy: %s", err)
 		return err
 	}
 	var tables []string

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/repo/wallet"
+	"github.com/textileio/textile-go/repo/photos"
 )
 
 type PhotoDB struct {
@@ -18,7 +18,7 @@ func NewPhotoStore(db *sql.DB, lock *sync.Mutex) repo.PhotoStore {
 	return &PhotoDB{modelStore{db, lock}}
 }
 
-func (c *PhotoDB) Put(cid string, lastCid string, md *wallet.PhotoData) error {
+func (c *PhotoDB) Put(cid string, lastCid string, md *photos.Metadata) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -64,11 +64,11 @@ func (c *PhotoDB) GetPhotos(offsetId string, limit int) []repo.PhotoSet {
 	}
 	rows, err := c.db.Query(stm)
 	if err != nil {
-		log.Error("", err)
+		log.Errorf("error in db query: %s", err)
 		return ret
 	}
 	for rows.Next() {
-		var cid, name, ext, lastCid string
+		var cid, lastCid, name, ext string
 		var createdInt, addedInt int
 		var latitude, longitude float64
 		if err := rows.Scan(&cid, &lastCid, &name, &ext, &createdInt, &addedInt, &latitude, &longitude); err != nil {
@@ -79,7 +79,7 @@ func (c *PhotoDB) GetPhotos(offsetId string, limit int) []repo.PhotoSet {
 		photo := repo.PhotoSet{
 			Cid:     cid,
 			LastCid: lastCid,
-			MetaData: wallet.PhotoData{
+			MetaData: photos.Metadata{
 				Name:      name,
 				Ext:       ext,
 				Created:   created,
