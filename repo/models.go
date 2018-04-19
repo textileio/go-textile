@@ -9,7 +9,7 @@ type SettingsData struct {
 }
 
 type PhotoSet struct {
-	Cid      string           `json:"cid"`
-	LastCid  string           `json:"last_cid"`
-	MetaData photos.Metadata  `json:"metadata"`
+	Cid      string          `json:"cid"`
+	LastCid  string          `json:"last_cid"`
+	MetaData photos.Metadata `json:"metadata"`
 }

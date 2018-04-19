@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/op/go-logging"
+
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/net"
 
@@ -29,7 +31,7 @@ type Mobile struct{}
 
 // Create a gomobile compatible wrapper around TextileNode
 func (m *Mobile) NewNode(repoPath string) (*Wrapper, error) {
-	node, err := tcore.NewNode(repoPath, true)
+	node, err := tcore.NewNode(repoPath, true, logging.DEBUG)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +55,7 @@ func (w *Wrapper) StartGateway() error {
 }
 
 func (w *Wrapper) ConfigureDatastore(mnemonic string) error {
-	return w.node.ConfigureDatastore(mnemonic, "")
+	return w.node.ConfigureDatastore(mnemonic)
 }
 
 func (w *Wrapper) IsDatastoreConfigured() bool {

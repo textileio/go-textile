@@ -10,51 +10,37 @@ import (
 func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
 	astilog.Info("TEXTILE STARTED")
 
-	// check for an existing paired mobile id
-	room, err := textile.GetRoomID()
-	if err != nil {
-		return err
-	}
-	if room != nil {
-		// if we have one, start syncing
-		astilog.Info("FOUND ROOM ID")
+	// check if we're configured yet
+	if textile.IsDatastoreConfigured() {
+		// can join room
+		astilog.Info("ALREADY CONFIGURED")
 
-		// tell app what peer id we're gonna sync with
+		// tell app we're ready and send initial html
 		sendData(iw, "sync.ready", map[string]interface{}{
-			"pairedID": room.Pretty(),
-			"html":     getPhotosHTML(),
+			"html": getPhotosHTML(),
 		})
 
 	} else {
 		// otherwise, start onboaring
-		astilog.Info("NO MOBILE PEER ID FOUND")
+		astilog.Info("NOT CONFIGURED")
 		astilog.Info("STARTING PAIRING")
 
-		// sub to own peer id for pairing setup
 		go func() {
-			var idc = make(chan string)
-			var errc = make(chan error)
-			go func() {
-				errc <- textile.StartPairing(idc)
-			}()
-			select {
-			case id := <-idc:
-				if id == "" {
-					astilog.Errorf("failed to parse new paired id: %s", err)
-					return
-				}
+			// sub to own peer id for pairing setup and wait
+			textile.WaitForRoom()
 
-				// let the app know we're done pairing
-				sendMessage(iw, "onboard.complete")
-
-				// and that we're ready to go
-				sendData(iw, "sync.ready", map[string]interface{}{
-					"pairedID": id,
-					"html":     getPhotosHTML(),
-				})
-			case err := <-errc:
-				astilog.Errorf("error while pairing: %s", err)
+			if !textile.IsDatastoreConfigured() {
+				astilog.Error("failed to join room")
+				return
 			}
+
+			// let the app know we're done pairing
+			sendMessage(iw, "onboard.complete")
+
+			// and that we're ready to go
+			sendData(iw, "sync.ready", map[string]interface{}{
+				"html": getPhotosHTML(),
+			})
 		}()
 		sendMessage(iw, "onboard.start")
 	}
@@ -62,25 +48,20 @@ func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Me
 	return nil
 }
 
-func startSyncing(iw *astilectron.Window) error {
+func joinRoom(iw *astilectron.Window) error {
 	astilog.Info("STARTING SYNC")
 
-	// start subscription
-	// TODO: expose cancel somehow
-	cancel := make(chan struct{})
-	datac, errc, err := textile.JoinRoom(cancel)
-	if err != nil {
-		return err
-	}
-
+	datac := make(chan string)
+	go textile.JoinRoom(datac)
 	for {
 		select {
-		case hash := <-datac:
+		case hash, ok := <-datac:
 			sendData(iw, "sync.data", map[string]interface{}{
 				"hash": hash,
 			})
-		case err := <-errc:
-			astilog.Errorf("error while syncing: %s", err)
+			if !ok {
+				return nil
+			}
 		}
 	}
 }

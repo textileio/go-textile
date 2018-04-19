@@ -1,11 +1,11 @@
 package core_test
 
 import (
+	"fmt"
+	"github.com/op/go-logging"
+	. "github.com/textileio/textile-go/core"
 	"os"
 	"testing"
-
-	"fmt"
-	. "github.com/textileio/textile-go/core"
 )
 
 var node *TextileNode
@@ -13,7 +13,7 @@ var hash string
 
 func TestNewNode(t *testing.T) {
 	var err error
-	node, err = NewNode("testdata/.ipfs", false)
+	node, err = NewNode("testdata/.ipfs", false, logging.DEBUG)
 	if err != nil {
 		t.Errorf("create node failed: %s", err)
 	}
@@ -27,15 +27,14 @@ func TestTextileNode_Start(t *testing.T) {
 }
 
 func TestTextileNode_StartServices(t *testing.T) {
-	var errc = make(chan error)
-	go func() {
-		errc <- node.StartServices()
-		close(errc)
-	}()
+	_, err := node.StartServices()
+	if err != nil {
+		t.Errorf("start services failed: %s", err)
+	}
 }
 
 func TestTextileNode_ConfigureDatastore(t *testing.T) {
-	err := node.ConfigureDatastore("", "")
+	err := node.ConfigureDatastore("")
 	if err != nil {
 		t.Errorf("configure datastore failed: %s", err)
 	}

@@ -29,6 +29,7 @@ func (c *PhotoDB) Put(cid string, lastCid string, md *photos.Metadata) error {
 	stm := `insert into photos(cid, lastCid, name, ext, created, added, latitude, longitude) values(?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
+		log.Errorf("error in tx prepare: %s", err)
 		return err
 	}
 
@@ -45,6 +46,7 @@ func (c *PhotoDB) Put(cid string, lastCid string, md *photos.Metadata) error {
 	)
 	if err != nil {
 		tx.Rollback()
+		log.Errorf("error in db exec: %s", err)
 		return err
 	}
 	tx.Commit()
@@ -72,6 +74,7 @@ func (c *PhotoDB) GetPhotos(offsetId string, limit int) []repo.PhotoSet {
 		var createdInt, addedInt int
 		var latitude, longitude float64
 		if err := rows.Scan(&cid, &lastCid, &name, &ext, &createdInt, &addedInt, &latitude, &longitude); err != nil {
+			log.Errorf("error in db scan: %s", err)
 			continue
 		}
 		created := time.Unix(int64(createdInt), 0)

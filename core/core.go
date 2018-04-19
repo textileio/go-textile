@@ -95,18 +95,6 @@ func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNo
 	dsLockFile := filepath.Join(repoPath, "datastore", "LOCK")
 	os.Remove(dsLockFile)
 
-	// get database handle for wallet indexes
-	sqliteDB, err := db.Create(repoPath, "")
-	if err != nil {
-		return nil, err
-	}
-
-	// we may be running in an uninitialized state.
-	err = trepo.DoInit(os.Stdout, repoPath, isMobile, sqliteDB.Config().Init)
-	if err != nil && err != trepo.ErrRepoExists {
-		return nil, err
-	}
-
 	// log handling
 	w := &lumberjack.Logger{
 		Filename:   path.Join(repoPath, "logs", "textile.log"),
@@ -118,6 +106,18 @@ func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNo
 	backendFileFormatter := logging.NewBackendFormatter(backendFile, fileLogFormat)
 	logging.SetBackend(backendFileFormatter)
 	logging.SetLevel(logLevel, "")
+
+	// get database handle for wallet indexes
+	sqliteDB, err := db.Create(repoPath, "")
+	if err != nil {
+		return nil, err
+	}
+
+	// we may be running in an uninitialized state.
+	err = trepo.DoInit(repoPath, isMobile, sqliteDB.Config().Init)
+	if err != nil && err != trepo.ErrRepoExists {
+		return nil, err
+	}
 
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
@@ -299,12 +299,13 @@ func (t *TextileNode) Stop() error {
 	return nil
 }
 
-func (t *TextileNode) JoinRoom() {
+func (t *TextileNode) JoinRoom(datac chan string) {
 	rid, err := t.GetRoomID()
 	if err != nil {
 		return
 	}
 
+	// create the subscription
 	sub, err := t.IpfsNode.Floodsub.Subscribe(rid.Pretty())
 	if err != nil {
 		log.Errorf("error creating subscription: %s", err)
@@ -323,6 +324,7 @@ func (t *TextileNode) JoinRoom() {
 		log.Infof("left room: %s\n", sub.Topic())
 	}
 
+	defer close(datac)
 	go func() {
 		for {
 			// unload new message
@@ -337,10 +339,14 @@ func (t *TextileNode) JoinRoom() {
 			// handle the update
 			if err = t.handleRoomUpdate(msg); err != nil {
 				log.Errorf("error handling room update: %s", err)
+				continue
 			}
+
+			datac <- string(msg.GetData())
 		}
 	}()
 
+	// block so we can shutdown with the leave room signal
 	for {
 		select {
 		case <-t.leaveRoomCh:
@@ -355,6 +361,58 @@ func (t *TextileNode) JoinRoom() {
 
 func (t *TextileNode) LeaveRoom() {
 	t.leaveRoomCh <- struct{}{}
+}
+
+func (t *TextileNode) WaitForRoom() {
+	// we're in a lonesome state here, we can just sub to our own
+	// peer id and hope somebody sends us a priv key to join a room with
+	id := t.IpfsNode.Identity.Pretty()
+	sub, err := t.IpfsNode.Floodsub.Subscribe(id)
+	if err != nil {
+		log.Errorf("error creating subscription: %s", err)
+		return
+	}
+	log.Infof("waiting for room at own peer id: %s\n", id)
+
+	defer sub.Cancel()
+	go func() {
+		for {
+			msg, err := sub.Next(t.IpfsNode.Context())
+			if err == io.EOF || err == context.Canceled {
+				return
+			} else if err != nil {
+				log.Infof(err.Error())
+				return
+			}
+			from := msg.GetFrom().Pretty()
+			log.Infof("got pairing request from: %s\n", from)
+
+			// get private peer key and decrypt the phrase
+			sk, err := t.UnmarshalPrivatePeerKey()
+			if err != nil {
+				log.Errorf("error unmarshaling priv peer key: %s", err)
+				return
+			}
+			p, err := net.Decrypt(sk, msg.GetData())
+			if err != nil {
+				log.Errorf("error decrypting msg data: %s", err)
+				return
+			}
+			ps := string(p)
+			log.Infof("decrypted mnemonic phrase as: %s\n", ps)
+
+			// setup datastore with phrase and close sub
+			_ = t.ConfigureDatastore(ps)
+			return
+		}
+	}()
+
+	for {
+		select {
+		case <-t.IpfsNode.Context().Done():
+			return
+		}
+	}
 }
 
 func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest, error) {
@@ -479,58 +537,6 @@ func (t *TextileNode) GetLastHash(hash string) (string, error) {
 	}
 
 	return string(b), nil
-}
-
-// TODO: update this to new flow
-func (t *TextileNode) StartPairing(idc chan string) error {
-	id := t.IpfsNode.Identity.Pretty()
-	sub, err := t.IpfsNode.Floodsub.Subscribe(id)
-	if err != nil {
-		return err
-	}
-	log.Infof("subscribed to own peer id: %s\n", id)
-	defer sub.Cancel()
-
-	for {
-		select {
-		default:
-			msg, err := sub.Next(t.IpfsNode.Context())
-			if err == io.EOF || err == context.Canceled {
-				idc <- ""
-				return nil
-			} else if err != nil {
-				return err
-			}
-			from := msg.GetFrom().Pretty()
-			log.Infof("got pairing request from: %s\n", from)
-
-			// get private peer key and decrypt the phrase
-			sk, err := t.UnmarshalPrivatePeerKey()
-			if err != nil {
-				log.Errorf("error unmarshaling priv peer key: %s", err)
-				return err
-			}
-			p, err := net.Decrypt(sk, msg.GetData())
-			if err != nil {
-				log.Errorf("error decrypting msg data: %s", err)
-				return err
-			}
-			ps := string(p)
-			log.Infof("decrypted mnemonic phrase as: %s\n", ps)
-
-			// setup datastore with phrase and close sub
-			err = t.ConfigureDatastore(ps)
-			if err != nil {
-				return err
-			}
-			idc <- from
-			return nil
-
-		case <-t.IpfsNode.Context().Done():
-			idc <- ""
-			return nil
-		}
-	}
 }
 
 func (t *TextileNode) UnmarshalPrivatePeerKey() (libp2p.PrivKey, error) {
