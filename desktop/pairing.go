@@ -10,6 +10,12 @@ import (
 func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
 	astilog.Info("TEXTILE STARTED")
 
+	astilog.Info("SENDING COOKIE INFO")
+	sendData(iw, "login.cookie", map[string]interface{}{
+		"name": "SeesionId",
+		"value": textile.Password,
+	})
+
 	// check for an existing paired mobile id
 	pairedID, err := textile.Datastore.Config().GetPairedID()
 	if err != nil {
@@ -86,9 +92,9 @@ func startSyncing(iw *astilectron.Window, pairedID string) {
 func getPhotosHTML() string {
 	var html string
 	for _, photo := range textile.Datastore.Photos().GetPhotos("", -1) {
-		ph := fmt.Sprintf("http://localhost:9192/ipfs/%s/photo", photo.Cid)
-		th := fmt.Sprintf("http://localhost:9192/ipfs/%s/thumb", photo.Cid)
-		md := fmt.Sprintf("http://localhost:9192/ipfs/%s/meta", photo.Cid)
+		ph := fmt.Sprintf("https://localhost:9192/ipfs/%s/photo", photo.Cid)
+		th := fmt.Sprintf("https://localhost:9192/ipfs/%s/thumb", photo.Cid)
+		md := fmt.Sprintf("https://localhost:9192/ipfs/%s/meta", photo.Cid)
 		img := fmt.Sprintf("<img src=\"%s\" />", th)
 		html += fmt.Sprintf("<div class=\"grid-item\" data-url=\"%s\" data-meta=\"%s\">%s</div>", ph, md, img)
 	}

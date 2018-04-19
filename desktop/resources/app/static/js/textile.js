@@ -1,11 +1,21 @@
-const gateway = "http://localhost:9192"
+const gateway = "https://localhost:9192";
+const remote = require('electron').remote;
+const app = remote.app;
+app.commandLine.appendSwitch('ignore-certificate-errors', 'true');
+const ses = remote.session.defaultSession;
+// SSL/TSL: this is the self signed certificate support
+app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
+    event.preventDefault();
+    callback(true);
+});
 
 let textile = {
 
   init: function() {
-    asticode.loader.init()
-    asticode.modaler.init()
-    asticode.notifier.init()
+    console.log('init')
+    asticode.loader.init();
+    asticode.modaler.init();
+    asticode.notifier.init();
 
     document.addEventListener('astilectron-ready', function() {
       textile.listen()
@@ -13,23 +23,25 @@ let textile = {
   },
 
   pair: function () {
-    console.debug("SENDING MESSAGE:", "pair.start")
+    console.log('pair')
+    console.debug("SENDING MESSAGE:", "pair.start");
     astilectron.sendMessage({name: "pair.start", payload: ""}, function (message) {
       if (message.name === "error") {
-        asticode.notifier.error("Error")
+        asticode.notifier.error("Error");
         return
       }
 
       // populate qr code
-      console.debug("GOT QR CODE:", message)
-      let qrCode = document.querySelector('.qr-code')
-      qrCode.setAttribute('src', "data:image/png;base64," + message.payload.png + "")
-      let pairCode = document.querySelector('.confirmation-code')
+      console.debug("GOT QR CODE:", message);
+      let qrCode = document.querySelector('.qr-code');
+      qrCode.setAttribute('src', "data:image/png;base64," + message.payload.png + "");
+      let pairCode = document.querySelector('.confirmation-code');
       pairCode.innerText = message.payload.code
     })
   },
 
   start: function (pairedID) {
+    console.log("start")
     astilectron.sendMessage({name: "sync.start", payload: pairedID}, function (message) {
       if (message.name === "error") {
         asticode.notifier.error("Error")
@@ -38,37 +50,54 @@ let textile = {
   },
 
   listen: function() {
+    console.log("listen");
     astilectron.onMessage(function(message) {
-      console.debug("MESSAGE:", message)
       switch (message.name) {
+
+        case "login.cookie":
+          // Setup cookie session for this client
+          var expiration = new Date();
+          var hour = expiration.getHours();
+          hour = hour + 6;
+          expiration.setHours(hour);
+          ses.cookies.set({
+              url: gateway,
+              name: message.name,
+              value: message.value,
+              expirationDate: expiration.getTime(),
+              session: true
+          }, function (error) {
+              console.log(error);
+          });
+          break;
 
         // node and services are ready
         case "sync.ready":
-          showGallery(message.html)
-          textile.start(message.pairedID)
-          break
+          showGallery(message.html);
+          textile.start(message.pairedID);
+          break;
 
         // new photo from paired peer
         case "sync.data":
-          let url = [gateway, "ipfs", message.hash, "thumb"].join("/")
+          let url = [gateway, "ipfs", message.hash, "thumb"].join("/");
           let $item = $('<div class="grid-item"><img src="' + url + '" /></div>');
-          $(".grid").isotope('insert', $item)
-          break
+          $(".grid").isotope('insert', $item);
+          break;
 
         // start walkthrough
         case "onboard.start":
-          showOnboarding(1)
-          textile.pair()
-          break
+          showOnboarding(1);
+          textile.pair();
+          break;
 
         // done onboarding, we should now have a paired peer
         case "onboard.complete":
-          hideOnboarding()
+          hideOnboarding();
           break
       }
     })
   },
-}
+};
 
 function showOnboarding(screen) {
   let ob = $(".onboarding")
