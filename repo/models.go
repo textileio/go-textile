@@ -1,7 +1,7 @@
 package repo
 
 import (
-	"github.com/textileio/textile-go/repo/wallet"
+	"github.com/textileio/textile-go/repo/photos"
 )
 
 type SettingsData struct {
@@ -11,5 +11,5 @@ type SettingsData struct {
 type PhotoSet struct {
 	Cid      string           `json:"cid"`
 	LastCid  string           `json:"last_cid"`
-	MetaData wallet.PhotoData `json:"metadata"`
+	MetaData photos.Metadata  `json:"metadata"`
 }

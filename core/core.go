@@ -119,9 +119,6 @@ func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNo
 	logging.SetBackend(backendFileFormatter)
 	logging.SetLevel(logLevel, "")
 
-	// add core logger
-	log.SetBackend(logging.AddModuleLevel(backendFileFormatter))
-
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
 	repo, err := fsrepo.Open(repoPath)
