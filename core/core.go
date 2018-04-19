@@ -32,6 +32,7 @@ import (
 
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"math/rand"
 )
 
 var VERSION = "0.0.1"
@@ -63,6 +64,9 @@ type TextileNode struct {
 
 	// Whether or not we're running on a mobile device
 	isMobile bool
+
+	// The local password used to authenticate http gateway requests (username is TextileNode)
+	Password string
 }
 
 type PhotoList struct {
@@ -126,7 +130,22 @@ func NewNode(repoPath string, isMobile bool) (*TextileNode, error) {
 		Routing: routingOption,
 	}
 
-	return &TextileNode{RepoPath: repoPath, Datastore: sqliteDB, ipfsConfig: ncfg, isMobile: isMobile}, nil
+	// Create random password to use for local gateway http basic auth
+	// See https://stackoverflow.com/a/31832326
+	// TODO: Explore more secure ways to implement this
+	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	b := make([]byte, 16)
+	for i := range b {
+		b[i] = letterBytes[rand.Int63() % int64(len(letterBytes))]
+	}
+
+	return &TextileNode{
+		RepoPath: repoPath,
+		Datastore: sqliteDB,
+		ipfsConfig: ncfg,
+		isMobile: isMobile,
+		Password: string(b),
+	}, nil
 }
 
 func (t *TextileNode) ConfigureDatastore(mnemonic string, pairedID string) error {
