@@ -136,15 +136,15 @@ func NewNode(repoPath string, isMobile bool) (*TextileNode, error) {
 	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	b := make([]byte, 16)
 	for i := range b {
-		b[i] = letterBytes[rand.Int63() % int64(len(letterBytes))]
+		b[i] = letterBytes[rand.Int63()%int64(len(letterBytes))]
 	}
 
 	return &TextileNode{
-		RepoPath: repoPath,
-		Datastore: sqliteDB,
+		RepoPath:   repoPath,
+		Datastore:  sqliteDB,
 		ipfsConfig: ncfg,
-		isMobile: isMobile,
-		Password: string(b),
+		isMobile:   isMobile,
+		Password:   string(b),
 	}, nil
 }
 
