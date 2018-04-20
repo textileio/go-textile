@@ -307,12 +307,13 @@ func (t *TextileNode) JoinRoom(datac chan string) {
 	}
 
 	// create the subscription
-	sub, err := t.IpfsNode.Floodsub.Subscribe(rid.Pretty())
+	rids := rid.Pretty()
+	sub, err := t.IpfsNode.Floodsub.Subscribe(rids)
 	if err != nil {
 		log.Errorf("error creating subscription: %s", err)
 		return
 	}
-	log.Infof("joined room: %s\n", rid.Pretty())
+	log.Infof("joined room: %s\n", rids)
 
 	leave := func() {
 		sub.Cancel()
@@ -331,6 +332,7 @@ func (t *TextileNode) JoinRoom(datac chan string) {
 			// unload new message
 			msg, err := sub.Next(t.IpfsNode.Context())
 			if err == io.EOF || err == context.Canceled {
+				log.Debugf("room subscription ended with error: %s", err)
 				return
 			} else if err != nil {
 				log.Infof(err.Error())
@@ -343,7 +345,11 @@ func (t *TextileNode) JoinRoom(datac chan string) {
 				continue
 			}
 
-			datac <- string(msg.GetData())
+			// don't block on the send since nobody might be listening
+			select {
+			case datac <- string(msg.GetData()):
+			default:
+			}
 		}
 	}()
 
@@ -367,19 +373,20 @@ func (t *TextileNode) LeaveRoom() {
 func (t *TextileNode) WaitForRoom() {
 	// we're in a lonesome state here, we can just sub to our own
 	// peer id and hope somebody sends us a priv key to join a room with
-	id := t.IpfsNode.Identity.Pretty()
-	sub, err := t.IpfsNode.Floodsub.Subscribe(id)
+	rid := t.IpfsNode.Identity.Pretty()
+	sub, err := t.IpfsNode.Floodsub.Subscribe(rid)
 	if err != nil {
 		log.Errorf("error creating subscription: %s", err)
 		return
 	}
-	log.Infof("waiting for room at own peer id: %s\n", id)
+	log.Infof("waiting for room at own peer id: %s\n", rid)
 
 	defer sub.Cancel()
 	go func() {
 		for {
 			msg, err := sub.Next(t.IpfsNode.Context())
 			if err == io.EOF || err == context.Canceled {
+				log.Debugf("wait subscription ended with error: %s", err)
 				return
 			} else if err != nil {
 				log.Infof(err.Error())
@@ -417,6 +424,8 @@ func (t *TextileNode) WaitForRoom() {
 }
 
 func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest, error) {
+	log.Infof("adding photo: %s", path)
+
 	// read file from disk
 	p, err := os.Open(path)
 	if err != nil {
@@ -444,6 +453,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 	recent := t.Datastore.Photos().GetPhotos("", 1)
 	if len(recent) > 0 {
 		lc = recent[0].Cid
+		log.Infof("found last hash: %s", lc)
 	}
 
 	// add it
@@ -454,19 +464,24 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 	}
 
 	// index
+	log.Infof("indexing %s...", mr.Boundary)
 	err = t.Datastore.Photos().Put(mr.Boundary, lc, md)
 	if err != nil {
 		log.Errorf("error indexing photo: %s", err)
 		return nil, err
 	}
 
-	// publish
-	tp, err := peer.IDFromPrivateKey(sk)
+	// get room topic
+	tpid, err := peer.IDFromPrivateKey(sk)
 	if err != nil {
 		log.Errorf("error getting id from priv key: %s", err)
 		return nil, err
 	}
-	err = t.IpfsNode.Floodsub.Publish(tp.Pretty(), []byte(mr.Boundary))
+
+	// publish
+	tp := tpid.Pretty()
+	log.Infof("publishing update to %s...", tp)
+	err = t.IpfsNode.Floodsub.Publish(tp, []byte(mr.Boundary))
 	if err != nil {
 		log.Errorf("error publishing photo update: %s", err)
 		return nil, err
@@ -631,12 +646,17 @@ func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message) error {
 	err := t.handleHash(hash, api)
 	if err != nil {
 		log.Errorf("error handling hash: %s", err)
+		return err
 	}
 
 	return nil
 }
 
 func (t *TextileNode) handleHash(hash string, api iface.CoreAPI) error {
+	if hash == "" {
+		log.Infof("found genesis update, aborting")
+		return nil
+	}
 	log.Infof("handling update: %s...", hash)
 
 	// convert string to an ipfs path
@@ -648,7 +668,7 @@ func (t *TextileNode) handleHash(hash string, api iface.CoreAPI) error {
 	// check if we aleady have this hash
 	set := t.Datastore.Photos().GetPhoto(hash)
 	if set != nil {
-		log.Infof("%s exists, aborting update", hash)
+		log.Infof("update %s exists, aborting", hash)
 		return nil
 	}
 

@@ -121,7 +121,7 @@ func main() {
 		photosCmd := &ishell.Cmd{
 			Name:     "photos",
 			Help:     "manage wallet photos",
-			LongHelp: `Manage your textile wallet photos.`,
+			LongHelp: "Manage your textile wallet photos.",
 		}
 		photosCmd.AddCmd(&ishell.Cmd{
 			Name: "add",
@@ -129,6 +129,19 @@ func main() {
 			Func: cmd.AddPhoto,
 		})
 		shell.AddCmd(photosCmd)
+	}
+	{
+		roomsCmd := &ishell.Cmd{
+			Name:     "rooms",
+			Help:     "inspect room subscriptions",
+			LongHelp: "Inspect room subscription.",
+		}
+		roomsCmd.AddCmd(&ishell.Cmd{
+			Name: "ls",
+			Help: "list active rooms",
+			Func: cmd.ListRooms,
+		})
+		shell.AddCmd(roomsCmd)
 	}
 
 	// create a desktop textile node
