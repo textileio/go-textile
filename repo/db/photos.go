@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/repo/photos"
 )
 
 type PhotoDB struct {
@@ -17,7 +18,7 @@ func NewPhotoStore(db *sql.DB, lock *sync.Mutex) repo.PhotoStore {
 	return &PhotoDB{modelStore{db, lock}}
 }
 
-func (c *PhotoDB) Put(cid string, timestamp time.Time) error {
+func (c *PhotoDB) Put(cid string, lastCid string, md *photos.Metadata) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -25,19 +26,27 @@ func (c *PhotoDB) Put(cid string, timestamp time.Time) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into photos(cid, timestamp) values(?,?)`
+	stm := `insert into photos(cid, lastCid, name, ext, created, added, latitude, longitude) values(?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
+		log.Errorf("error in tx prepare: %s", err)
 		return err
 	}
 
 	defer stmt.Close()
 	_, err = stmt.Exec(
 		cid,
-		int(timestamp.Unix()),
+		lastCid,
+		md.Name,
+		md.Ext,
+		int(md.Created.Unix()),
+		int(md.Added.Unix()),
+		md.Latitude,
+		md.Longitude,
 	)
 	if err != nil {
 		tx.Rollback()
+		log.Errorf("error in db exec: %s", err)
 		return err
 	}
 	tx.Commit()
@@ -51,29 +60,82 @@ func (c *PhotoDB) GetPhotos(offsetId string, limit int) []repo.PhotoSet {
 
 	var stm string
 	if offsetId != "" {
-		stm = "select cid, timestamp from photos where timestamp<(select timestamp from photos where cid='" + offsetId + "') order by timestamp desc limit " + strconv.Itoa(limit) + " ;"
+		stm = "select * from photos where added<(select added from photos where cid='" + offsetId + "') order by added desc limit " + strconv.Itoa(limit) + " ;"
 	} else {
-		stm = "select cid, timestamp from photos order by timestamp desc limit " + strconv.Itoa(limit) + ";"
+		stm = "select * from photos order by added desc limit " + strconv.Itoa(limit) + ";"
 	}
 	rows, err := c.db.Query(stm)
 	if err != nil {
-		log.Error("", err)
+		log.Errorf("error in db query: %s", err)
 		return ret
 	}
 	for rows.Next() {
-		var cid string
-		var timestampInt int
-		if err := rows.Scan(&cid, &timestampInt); err != nil {
+		var cid, lastCid, name, ext string
+		var createdInt, addedInt int
+		var latitude, longitude float64
+		if err := rows.Scan(&cid, &lastCid, &name, &ext, &createdInt, &addedInt, &latitude, &longitude); err != nil {
+			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		timestamp := time.Unix(int64(timestampInt), 0)
+		created := time.Unix(int64(createdInt), 0)
+		added := time.Unix(int64(addedInt), 0)
 		photo := repo.PhotoSet{
-			Cid:       cid,
-			Timestamp: timestamp,
+			Cid:     cid,
+			LastCid: lastCid,
+			MetaData: photos.Metadata{
+				Name:      name,
+				Ext:       ext,
+				Created:   created,
+				Added:     added,
+				Latitude:  latitude,
+				Longitude: longitude,
+			},
 		}
 		ret = append(ret, photo)
 	}
 	return ret
+}
+
+func (c *PhotoDB) GetPhoto(cid string) *repo.PhotoSet {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	var ret []repo.PhotoSet
+
+	stm := "select * from photos where cid='" + cid + "' limit 1;"
+	rows, err := c.db.Query(stm)
+	if err != nil {
+		log.Errorf("error in db query: %s", err)
+		return nil
+	}
+	for rows.Next() {
+		var cid, lastCid, name, ext string
+		var createdInt, addedInt int
+		var latitude, longitude float64
+		if err := rows.Scan(&cid, &lastCid, &name, &ext, &createdInt, &addedInt, &latitude, &longitude); err != nil {
+			log.Errorf("error in db scan: %s", err)
+			continue
+		}
+		created := time.Unix(int64(createdInt), 0)
+		added := time.Unix(int64(addedInt), 0)
+		photo := repo.PhotoSet{
+			Cid:     cid,
+			LastCid: lastCid,
+			MetaData: photos.Metadata{
+				Name:      name,
+				Ext:       ext,
+				Created:   created,
+				Added:     added,
+				Latitude:  latitude,
+				Longitude: longitude,
+			},
+		}
+		ret = append(ret, photo)
+	}
+
+	if len(ret) == 0 {
+		return nil
+	}
+	return &ret[0]
 }
 
 func (c *PhotoDB) DeletePhoto(cid string) error {

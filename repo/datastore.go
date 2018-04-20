@@ -3,6 +3,8 @@ package repo
 import (
 	"database/sql"
 	"time"
+
+	"github.com/textileio/textile-go/repo/photos"
 )
 
 type Datastore interface {
@@ -25,7 +27,7 @@ type Config interface {
 	Init(password string) error
 
 	// Configure the database with the node's mnemonic seed and identity key.
-	Configure(mnemonic string, identityKey []byte, pairedID string, creationDate time.Time) error
+	Configure(mnemonic string, identityKey []byte, creationDate time.Time) error
 
 	// Return the mnemonic string
 	GetMnemonic() (string, error)
@@ -35,9 +37,6 @@ type Config interface {
 
 	// Returns the date the seed was created
 	GetCreationDate() (time.Time, error)
-
-	// Returns the peer id of a paired source client
-	GetPairedID() (string, error)
 
 	// Returns true if the database has failed to decrypt properly ex) wrong pw
 	IsEncrypted() bool
@@ -63,7 +62,10 @@ type PhotoStore interface {
 	Queryable
 
 	// Put a new photo to the database
-	Put(cid string, timestamp time.Time) error
+	Put(cid string, lastCid string, md *photos.Metadata) error
+
+	// A list of photos
+	GetPhoto(cid string) *PhotoSet
 
 	// A list of photos
 	GetPhotos(offsetId string, limit int) []PhotoSet

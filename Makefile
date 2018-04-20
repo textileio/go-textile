@@ -1,8 +1,8 @@
 build:
-	$(MAKE) -C ./textile build
+	./build.sh
 
 linux_binary:
-	$(MAKE) -C ./textile linux_binary
+	./build.sh linux/amd64
 
 build_desktop:
 	$(MAKE) -C ./desktop build
