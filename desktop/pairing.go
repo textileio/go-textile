@@ -7,6 +7,8 @@ import (
 	"github.com/asticode/go-astilog"
 )
 
+var gateway = "http://localhost:9182"
+
 func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
 	astilog.Info("TEXTILE STARTED")
 
@@ -69,9 +71,9 @@ func joinRoom(iw *astilectron.Window) error {
 func getPhotosHTML() string {
 	var html string
 	for _, photo := range textile.Datastore.Photos().GetPhotos("", -1) {
-		ph := fmt.Sprintf("http://localhost:9192/ipfs/%s/photo", photo.Cid)
-		th := fmt.Sprintf("http://localhost:9192/ipfs/%s/thumb", photo.Cid)
-		md := fmt.Sprintf("http://localhost:9192/ipfs/%s/meta", photo.Cid)
+		ph := fmt.Sprintf("%s/ipfs/%s/photo", gateway, photo.Cid)
+		th := fmt.Sprintf("%s/ipfs/%s/thumb", gateway, photo.Cid)
+		md := fmt.Sprintf("%s/ipfs/%s/meta", gateway, photo.Cid)
 		img := fmt.Sprintf("<img src=\"%s\" />", th)
 		html += fmt.Sprintf("<div class=\"grid-item\" data-url=\"%s\" data-meta=\"%s\">%s</div>", ph, md, img)
 	}

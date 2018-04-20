@@ -1,4 +1,4 @@
-const gateway = "http://localhost:9192"
+const gateway = "http://localhost:9182"
 
 let textile = {
 
@@ -96,8 +96,8 @@ function showGallery(html) {
     layoutMode: 'cellsByRow',
     itemSelector: '.grid-item',
     cellsByRow: {
-      columnWidth: 256,
-      rowHeight: 256
+      columnWidth: 248,
+      rowHeight: 248
     }
   })
 
