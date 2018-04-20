@@ -201,7 +201,7 @@ func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 	err := Check("cert.pem", "key.pem")
 	// If they are not available, generate new ones.
 	if err != nil {
-		err = Generate("cert.pem", "key.pem", "localhost")
+		err = Generate("cert.pem", "key.pem", "localhost:9192")
 		if err != nil {
 			fmt.Printf("Error: Couldn't create https certs.")
 			return errc, nil
