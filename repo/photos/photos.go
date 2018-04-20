@@ -1,4 +1,4 @@
-package wallet
+package photos
 
 import (
 	"bytes"
@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rwcarlsen/goexif/exif"
 	"github.com/textileio/textile-go/net"
 
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
-	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/coreapi"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/coreunix"
 	uio "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/unixfs/io"
 
@@ -22,102 +22,65 @@ import (
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-type PhotoData struct {
+type Metadata struct {
 	Name      string    `json:"name"`
 	Ext       string    `json:"extension"`
-	Location  []float64 `json:"location"`
-	Timestamp time.Time `json:"timestamp"`
+	Created   time.Time `json:"created"`
+	Added     time.Time `json:"added"`
+	Latitude  float64   `json:"latitude"`
+	Longitude float64   `json:"longitude"`
 }
 
-type Data struct {
-	Created  time.Time `json:"created"`
-	Updated  time.Time `json:"updated"`
-	Photos   []string  `json:"photos"`
-	LastHash string    `json:"last_hash"`
-}
-
-func (w *Data) String() string {
-	return "TODO"
-}
-
-//func InitializeWalletData(ctx context.Context, pub Publisher, pins pin.Pinner, key ci.PrivKey) error {
-//	wallet := &Data{
-//		Created: time.Now(),
-//		Updated: time.Now(),
-//		Photos:  make([]string, 0),
-//	}
-//
-//	wb, err := json.Marshal(wallet)
-//	if err != nil {
-//		return err
-//	}
-//
-//	pins.
-//
-//	// pin recursively because this might already be pinned
-//	// and doing a direct pin would throw an error in that case
-//	err := pins.Pin(ctx, emptyDir, true)
-//	if err != nil {
-//		return err
-//	}
-//
-//	err = pins.Flush()
-//	if err != nil {
-//		return err
-//	}
-//
-//	return pub.Publish(ctx, key, path.FromCid(emptyDir.Cid()))
-//}
-
-func NewWalletData(node *core.IpfsNode) error {
-	api := coreapi.NewCoreAPI(node)
-
-	wallet := &Data{
-		Created: time.Now(),
-		Updated: time.Now(),
-		Photos:  make([]string, 0),
-	}
-
-	wb, err := json.Marshal(wallet)
-	if err != nil {
-		return err
-	}
-
-	// add and pin it
-	p, err := api.Unixfs().Add(node.Context(), bytes.NewReader(wb))
-	if err != nil {
-		return err
-	}
-	if err := api.Pin().Add(node.Context(), p); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// AddPhoto takes an image file, and optionally a thumbnail file, and adds
+// Add takes an image file, and optionally a thumbnail file, and adds
 // both to a new directory, then finally adds and pins that directory.
-func AddPhoto(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File) (*net.MultipartRequest, error) {
+func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string) (*net.MultipartRequest, *Metadata, error) {
 	// path info
 	path := p.Name()
 	ext := strings.ToLower(filepath.Ext(path))
-	dname := filepath.Dir(path)
+	dname := filepath.Dir(t.Name())
+
+	// try to extract exif data
+	// TODO: get image size info
+	// TODO: break this up into one method with multi sub-methods for testing
+	var tm time.Time
+	var lat, lon float64 = -1, -1
+	x, err := exif.Decode(p)
+	if err == nil {
+		// time taken
+		tmTmp, err := x.DateTime()
+		if err == nil {
+			tm = tmTmp
+		}
+
+		// coords taken
+		latTmp, lonTmp, err := x.LatLong()
+		if err == nil {
+			lat, lon = latTmp, lonTmp
+		}
+	}
 
 	// create a metadata file
-	// TODO: get exif data from photo
-	md := &PhotoData{
+	md := &Metadata{
 		Name:      strings.TrimSuffix(filepath.Base(path), ext),
 		Ext:       ext,
-		Location:  make([]float64, 0),
-		Timestamp: time.Now(),
+		Created:   tm,
+		Added:     time.Now(),
+		Latitude:  lat,
+		Longitude: lon,
 	}
 	mdb, err := json.Marshal(md)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	cmdb, err := net.Encrypt(pk, mdb)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+
+	// encrypt the last hash
+	clcb, err := net.Encrypt(pk, []byte(lc))
+	if err != nil {
+		return nil, nil, err
 	}
 
 	// create an empty virtual directory
@@ -126,36 +89,42 @@ func AddPhoto(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File) (*net.
 	// add the image
 	pb, err := getEncryptedReaderBytes(p, pk)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	err = addFileToDirectory(n, dirb, pb, "photo")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// add the thumbnail
 	tb, err := getEncryptedReaderBytes(t, pk)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	err = addFileToDirectory(n, dirb, tb, "thumb")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// add the metadata file
 	err = addFileToDirectory(n, dirb, cmdb, "meta")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+
+	// add last update's cid
+	err = addFileToDirectory(n, dirb, clcb, "last")
+	if err != nil {
+		return nil, nil, err
 	}
 
 	// pin it
 	dir, err := dirb.GetNode()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if err := pinPhoto(n, dir); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// create and init a new multipart request
@@ -164,21 +133,24 @@ func AddPhoto(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File) (*net.
 
 	// add files
 	if err := mr.AddFile(pb, "photo"); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if err := mr.AddFile(tb, "thumb"); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if err := mr.AddFile(cmdb, "meta"); err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	if err := mr.AddFile(clcb, "last"); err != nil {
+		return nil, nil, err
 	}
 
 	// finish request
 	if err := mr.Finish(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return mr, nil
+	return mr, md, nil
 }
 
 func getEncryptedReaderBytes(r io.Reader, pk libp2p.PubKey) ([]byte, error) {

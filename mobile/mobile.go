@@ -2,11 +2,11 @@ package mobile
 
 import (
 	"context"
-	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
+
+	"github.com/op/go-logging"
 
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/net"
@@ -31,7 +31,7 @@ type Mobile struct{}
 
 // Create a gomobile compatible wrapper around TextileNode
 func (m *Mobile) NewNode(repoPath string) (*Wrapper, error) {
-	node, err := tcore.NewNode(repoPath, true)
+	node, err := tcore.NewNode(repoPath, true, logging.DEBUG)
 	if err != nil {
 		return nil, err
 	}
@@ -55,20 +55,11 @@ func (w *Wrapper) StartGateway() error {
 }
 
 func (w *Wrapper) ConfigureDatastore(mnemonic string) error {
-	return w.node.ConfigureDatastore(mnemonic, "")
+	return w.node.ConfigureDatastore(mnemonic)
 }
 
 func (w *Wrapper) IsDatastoreConfigured() bool {
-	_, err := w.GetRecoveryPhrase()
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return false
-		} else {
-			fmt.Printf("error checking if datastore is configured: %s", err)
-			return false
-		}
-	}
-	return true
+	return w.node.IsDatastoreConfigured()
 }
 
 func (w *Wrapper) Stop() error {

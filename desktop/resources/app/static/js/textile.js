@@ -1,4 +1,4 @@
-const gateway = "http://localhost:9192"
+const gateway = "http://localhost:9182"
 
 let textile = {
 
@@ -29,8 +29,8 @@ let textile = {
     })
   },
 
-  start: function (pairedID) {
-    astilectron.sendMessage({name: "sync.start", payload: pairedID}, function (message) {
+  start: function () {
+    astilectron.sendMessage({name: "sync.start", payload: ""}, function (message) {
       if (message.name === "error") {
         asticode.notifier.error("Error")
       }
@@ -45,13 +45,16 @@ let textile = {
         // node and services are ready
         case "sync.ready":
           showGallery(message.html)
-          textile.start(message.pairedID)
+          textile.start()
           break
 
-        // new photo from paired peer
+        // new photo from room
         case "sync.data":
-          let url = [gateway, "ipfs", message.hash, "thumb"].join("/")
-          let $item = $('<div class="grid-item"><img src="' + url + '" /></div>');
+          let ph = [gateway, "ipfs", message.hash, "photo"].join("/")
+          let th = [gateway, "ipfs", message.hash, "thumb"].join("/")
+          let md = [gateway, "ipfs", message.hash, "meta"].join("/")
+          let img = '<img src="' + th + '" />'
+          let $item = $('<div class="grid-item" data-url="' + ph + '" data-meta="' + md + '">' + img + '</div>')
           $(".grid").isotope('insert', $item)
           break
 
@@ -61,7 +64,7 @@ let textile = {
           textile.pair()
           break
 
-        // done onboarding, we should now have a paired peer
+        // done onboarding, we should now have a room subscription
         case "onboard.complete":
           hideOnboarding()
           break
@@ -93,8 +96,8 @@ function showGallery(html) {
     layoutMode: 'cellsByRow',
     itemSelector: '.grid-item',
     cellsByRow: {
-      columnWidth: 256,
-      rowHeight: 256
+      columnWidth: 248,
+      rowHeight: 248
     }
   })
 
