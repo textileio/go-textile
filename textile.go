@@ -51,7 +51,7 @@ func main() {
 			shell.Println(errors.New("could not determine home directory"))
 			return
 		}
-		dataDir = filepath.Join(hd, ".ipfs")
+		dataDir = filepath.Join(hd, ".textile")
 	}
 
 	// parse flags
@@ -100,11 +100,11 @@ func main() {
 			// start services
 			if !core.Node.ServicesUp {
 				go startServices()
+			}
 
-				// leave old wallet room
-				// TODO: need a diff way to determine if we prev. had a room subscription
-				// TODO: this is ugly relying on ServiceUp
-				core.Node.LeaveRoom()
+			// leave old wallet room
+			leaving := core.Node.LeaveRoom()
+			if leaving {
 				<-core.Node.LeftRoomCh
 			}
 
@@ -199,6 +199,6 @@ _/  |_  ____ ___  ____/  |_|__|  |   ____
 `
 	shell.Println(blue(banner))
 	shell.Println("")
-	shell.Println("textile server v" + core.VERSION)
+	shell.Println("textile node v" + core.VERSION)
 	shell.Println("type `help` for available commands")
 }
