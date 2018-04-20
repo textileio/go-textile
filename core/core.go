@@ -366,8 +366,13 @@ func (t *TextileNode) JoinRoom(datac chan string) {
 	}
 }
 
-func (t *TextileNode) LeaveRoom() {
-	t.leaveRoomCh <- struct{}{}
+func (t *TextileNode) LeaveRoom() bool {
+	select {
+	case t.leaveRoomCh <- struct{}{}:
+		return true
+	default:
+		return false
+	}
 }
 
 func (t *TextileNode) WaitForRoom() {
