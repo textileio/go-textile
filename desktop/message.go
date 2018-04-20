@@ -65,7 +65,7 @@ func handleMessages(iw *astilectron.Window, m bootstrap.MessageIn) (payload inte
 		astilog.Info("GOT LOGIN REQUEST MESSAGE")
 		// TODO: Make this more secure with salt, SAH hashing, and additional randomness?
 		return map[string]interface{}{
-			"name": "SessionId",
+			"name":  "SessionId",
 			"value": textile.Password,
 		}, nil
 	}
