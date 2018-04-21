@@ -18,7 +18,7 @@ func NewPhotoStore(db *sql.DB, lock *sync.Mutex) repo.PhotoStore {
 	return &PhotoDB{modelStore{db, lock}}
 }
 
-func (c *PhotoDB) Put(cid string, lastCid string, md *photos.Metadata, source bool) error {
+func (c *PhotoDB) Put(cid string, lastCid string, md *photos.Metadata, local bool) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -26,16 +26,16 @@ func (c *PhotoDB) Put(cid string, lastCid string, md *photos.Metadata, source bo
 	if err != nil {
 		return err
 	}
-	stm := `insert into photos(cid, lastCid, name, ext, created, added, latitude, longitude, source) values(?,?,?,?,?,?,?,?,?)`
+	stm := `insert into photos(cid, lastCid, name, ext, created, added, latitude, longitude, local) values(?,?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
 		return err
 	}
 
-	sourceInt := 0
-	if source {
-		sourceInt = 1
+	localInt := 0
+	if local {
+		localInt = 1
 	}
 
 	defer stmt.Close()
@@ -48,7 +48,7 @@ func (c *PhotoDB) Put(cid string, lastCid string, md *photos.Metadata, source bo
 		int(md.Added.Unix()),
 		md.Latitude,
 		md.Longitude,
-		sourceInt,
+		localInt,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -87,16 +87,16 @@ func (c *PhotoDB) GetPhotos(offsetId string, limit int, query string) []repo.Pho
 		var cid, lastCid, name, ext string
 		var createdInt, addedInt int
 		var latitude, longitude float64
-		var sourceInt int
-		if err := rows.Scan(&cid, &lastCid, &name, &ext, &createdInt, &addedInt, &latitude, &longitude, &sourceInt); err != nil {
+		var localInt int
+		if err := rows.Scan(&cid, &lastCid, &name, &ext, &createdInt, &addedInt, &latitude, &longitude, &localInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
 		created := time.Unix(int64(createdInt), 0)
 		added := time.Unix(int64(addedInt), 0)
-		source := false
-		if sourceInt == 1 {
-			source = true
+		local := false
+		if localInt == 1 {
+			local = true
 		}
 		photo := repo.PhotoSet{
 			Cid:     cid,
@@ -109,7 +109,7 @@ func (c *PhotoDB) GetPhotos(offsetId string, limit int, query string) []repo.Pho
 				Latitude:  latitude,
 				Longitude: longitude,
 			},
-			IsSource: source,
+			IsSource: local,
 		}
 		ret = append(ret, photo)
 	}
@@ -131,16 +131,16 @@ func (c *PhotoDB) GetPhoto(cid string) *repo.PhotoSet {
 		var cid, lastCid, name, ext string
 		var createdInt, addedInt int
 		var latitude, longitude float64
-		var sourceInt int
-		if err := rows.Scan(&cid, &lastCid, &name, &ext, &createdInt, &addedInt, &latitude, &longitude, &sourceInt); err != nil {
+		var localInt int
+		if err := rows.Scan(&cid, &lastCid, &name, &ext, &createdInt, &addedInt, &latitude, &longitude, &localInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
 		created := time.Unix(int64(createdInt), 0)
 		added := time.Unix(int64(addedInt), 0)
-		source := false
-		if sourceInt == 1 {
-			source = true
+		local := false
+		if localInt == 1 {
+			local = true
 		}
 		photo := repo.PhotoSet{
 			Cid:     cid,
@@ -153,7 +153,7 @@ func (c *PhotoDB) GetPhoto(cid string) *repo.PhotoSet {
 				Latitude:  latitude,
 				Longitude: longitude,
 			},
-			IsSource: source,
+			IsSource: local,
 		}
 		ret = append(ret, photo)
 	}

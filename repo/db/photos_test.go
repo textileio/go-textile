@@ -91,7 +91,7 @@ func TestPhotoDB_GetPhotos(t *testing.T) {
 		return
 	}
 
-	filtered := phdb.GetPhotos("", -1, "source=1")
+	filtered := phdb.GetPhotos("", -1, "local=1")
 	if len(filtered) != 1 {
 		t.Error("returned incorrect number of photos")
 		return
