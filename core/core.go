@@ -357,8 +357,8 @@ func (t *TextileNode) JoinRoom(datac chan string) {
 	defer ticker.Stop()
 	go func() {
 		for range ticker.C {
-			// find latest source update
-			recent := t.Datastore.Photos().GetPhotos("", 1, "source=1")
+			// find latest local update
+			recent := t.Datastore.Photos().GetPhotos("", 1, "local=1")
 			if len(recent) == 0 {
 				continue
 			}
@@ -472,9 +472,9 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 		return nil, err
 	}
 
-	// get last photo update which has source true
+	// get last photo update which has local true
 	var lc string
-	recent := t.Datastore.Photos().GetPhotos("", 1, "source=1")
+	recent := t.Datastore.Photos().GetPhotos("", 1, "local=1")
 	if len(recent) > 0 {
 		lc = recent[0].Cid
 		log.Infof("found last hash: %s", lc)
