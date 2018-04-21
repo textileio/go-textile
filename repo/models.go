@@ -12,5 +12,5 @@ type PhotoSet struct {
 	Cid      string          `json:"cid"`
 	LastCid  string          `json:"last_cid"`
 	MetaData photos.Metadata `json:"metadata"`
-	IsSource bool            `json:"is_source"`
+	IsLocal  bool            `json:"is_local"`
 }
