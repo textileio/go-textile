@@ -109,7 +109,7 @@ func (c *PhotoDB) GetPhotos(offsetId string, limit int, query string) []repo.Pho
 				Latitude:  latitude,
 				Longitude: longitude,
 			},
-			IsSource: local,
+			IsLocal: local,
 		}
 		ret = append(ret, photo)
 	}
@@ -153,7 +153,7 @@ func (c *PhotoDB) GetPhoto(cid string) *repo.PhotoSet {
 				Latitude:  latitude,
 				Longitude: longitude,
 			},
-			IsSource: local,
+			IsLocal: local,
 		}
 		ret = append(ret, photo)
 	}
