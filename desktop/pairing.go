@@ -70,7 +70,7 @@ func joinRoom(iw *astilectron.Window) error {
 
 func getPhotosHTML() string {
 	var html string
-	for _, photo := range textile.Datastore.Photos().GetPhotos("", -1) {
+	for _, photo := range textile.Datastore.Photos().GetPhotos("", -1, "") {
 		ph := fmt.Sprintf("%s/ipfs/%s/photo", gateway, photo.Cid)
 		th := fmt.Sprintf("%s/ipfs/%s/thumb", gateway, photo.Cid)
 		md := fmt.Sprintf("%s/ipfs/%s/meta", gateway, photo.Cid)
