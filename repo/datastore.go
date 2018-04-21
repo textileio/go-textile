@@ -62,13 +62,15 @@ type PhotoStore interface {
 	Queryable
 
 	// Put a new photo to the database
-	Put(cid string, lastCid string, md *photos.Metadata) error
+	// "source" indicated whether or not this photo was created by
+	// this peer or not
+	Put(cid string, lastCid string, md *photos.Metadata, source bool) error
 
 	// A list of photos
 	GetPhoto(cid string) *PhotoSet
 
 	// A list of photos
-	GetPhotos(offsetId string, limit int) []PhotoSet
+	GetPhotos(offsetId string, limit int, query string) []PhotoSet
 
 	// Delete a photos
 	DeletePhoto(cid string) error
