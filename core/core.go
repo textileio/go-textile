@@ -45,10 +45,10 @@ const VERSION = "0.0.1"
 var fileLogFormat = logging.MustStringFormatter(
 	`%{time:15:04:05.000} [%{shortfunc}] [%{level}] %{message}`,
 )
-
 var log = logging.MustGetLogger("core")
 
 var Node *TextileNode
+var roomRepublishInterval = time.Minute * 5
 
 type TextileNode struct {
 	// Context for issuing IPFS commands
@@ -353,6 +353,25 @@ func (t *TextileNode) JoinRoom(datac chan string) {
 		}
 	}()
 
+	ticker := time.NewTicker(roomRepublishInterval)
+	defer ticker.Stop()
+	go func() {
+		for range ticker.C {
+			// find latest source update
+			recent := t.Datastore.Photos().GetPhotos("", 1, "source=1")
+			if len(recent) == 0 {
+				continue
+			}
+			lc := recent[0].Cid
+
+			log.Infof("re-publishing %s to %s...", lc, rids)
+			err = t.IpfsNode.Floodsub.Publish(rids, []byte(lc))
+			if err != nil {
+				log.Errorf("error re-publishing update: %s", err)
+			}
+		}
+	}()
+
 	// block so we can shutdown with the leave room signal
 	for {
 		select {
@@ -453,9 +472,9 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 		return nil, err
 	}
 
-	// get last photo
+	// get last photo update which has source true
 	var lc string
-	recent := t.Datastore.Photos().GetPhotos("", 1)
+	recent := t.Datastore.Photos().GetPhotos("", 1, "source=1")
 	if len(recent) > 0 {
 		lc = recent[0].Cid
 		log.Infof("found last hash: %s", lc)
@@ -470,7 +489,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 
 	// index
 	log.Infof("indexing %s...", mr.Boundary)
-	err = t.Datastore.Photos().Put(mr.Boundary, lc, md)
+	err = t.Datastore.Photos().Put(mr.Boundary, lc, md, true)
 	if err != nil {
 		log.Errorf("error indexing photo: %s", err)
 		return nil, err
@@ -497,7 +516,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 
 func (t *TextileNode) GetPhotos(offsetId string, limit int) *PhotoList {
 	// query for available hashes
-	list := t.Datastore.Photos().GetPhotos(offsetId, limit)
+	list := t.Datastore.Photos().GetPhotos(offsetId, limit, "")
 
 	// return json list of hashes
 	res := &PhotoList{
@@ -697,7 +716,7 @@ func (t *TextileNode) handleHash(hash string, api iface.CoreAPI) error {
 
 	// index
 	log.Infof("indexing %s...", hash)
-	err = t.Datastore.Photos().Put(hash, last, md)
+	err = t.Datastore.Photos().Put(hash, last, md, false)
 	if err != nil {
 		return err
 	}
