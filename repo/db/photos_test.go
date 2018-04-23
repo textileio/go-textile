@@ -24,7 +24,7 @@ func setupDB() {
 
 func TestPhotoDB_Put(t *testing.T) {
 	md := &photos.Metadata{}
-	err := phdb.Put("Qmabc123", "", md)
+	err := phdb.Put("Qmabc123", "", md, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -45,7 +45,7 @@ func TestPhotoDB_GetPhoto(t *testing.T) {
 	md := &photos.Metadata{
 		Added: time.Now(),
 	}
-	err := phdb.Put("Qmabc", "", md)
+	err := phdb.Put("Qmabc", "", md, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -61,7 +61,7 @@ func TestPhotoDB_GetPhotos(t *testing.T) {
 	md := &photos.Metadata{
 		Added: time.Now(),
 	}
-	err := phdb.Put("Qm123", "", md)
+	err := phdb.Put("Qm123", "", md, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -69,24 +69,30 @@ func TestPhotoDB_GetPhotos(t *testing.T) {
 	md2 := &photos.Metadata{
 		Added: time.Now(),
 	}
-	err = phdb.Put("Qm456", "Qm123", md2)
+	err = phdb.Put("Qm456", "Qm123", md2, false)
 	if err != nil {
 		t.Error(err)
 	}
-	ps := phdb.GetPhotos("", -1)
+	ps := phdb.GetPhotos("", -1, "")
 	if len(ps) != 2 {
 		t.Error("returned incorrect number of photos")
 		return
 	}
 
-	limited := phdb.GetPhotos("", 1)
+	limited := phdb.GetPhotos("", 1, "")
 	if len(limited) != 1 {
 		t.Error("returned incorrect number of photos")
 		return
 	}
 
-	offset := phdb.GetPhotos(limited[0].Cid, -1)
+	offset := phdb.GetPhotos(limited[0].Cid, -1, "")
 	if len(offset) != 1 {
+		t.Error("returned incorrect number of photos")
+		return
+	}
+
+	filtered := phdb.GetPhotos("", -1, "local=1")
+	if len(filtered) != 1 {
 		t.Error("returned incorrect number of photos")
 		return
 	}
@@ -95,11 +101,11 @@ func TestPhotoDB_GetPhotos(t *testing.T) {
 func TestPhotoDB_DeletePhoto(t *testing.T) {
 	setupDB()
 	md := &photos.Metadata{}
-	err := phdb.Put("Qm789", "", md)
+	err := phdb.Put("Qm789", "", md, true)
 	if err != nil {
 		t.Error(err)
 	}
-	ps := phdb.GetPhotos("", -1)
+	ps := phdb.GetPhotos("", -1, "")
 	if len(ps) == 0 {
 		t.Error("Returned incorrect number of photos")
 		return

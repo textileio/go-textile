@@ -45,10 +45,10 @@ const VERSION = "0.0.1"
 var fileLogFormat = logging.MustStringFormatter(
 	`%{time:15:04:05.000} [%{shortfunc}] [%{level}] %{message}`,
 )
-
 var log = logging.MustGetLogger("core")
 
 var Node *TextileNode
+var roomRepublishInterval = time.Minute * 5
 
 type TextileNode struct {
 	// Context for issuing IPFS commands
@@ -242,6 +242,9 @@ func (t *TextileNode) Start() error {
 		log.Info("desktop node is ready")
 	}
 
+	// every 5 min, send latest update to current room
+	go t.startRepublishing()
+
 	return nil
 }
 
@@ -386,7 +389,7 @@ func (t *TextileNode) WaitForRoom() {
 	}
 	log.Infof("waiting for room at own peer id: %s\n", rid)
 
-	defer sub.Cancel()
+	cancelCh := make(chan struct{})
 	go func() {
 		for {
 			msg, err := sub.Next(t.IpfsNode.Context())
@@ -416,12 +419,17 @@ func (t *TextileNode) WaitForRoom() {
 
 			// setup datastore with phrase and close sub
 			_ = t.ConfigureDatastore(ps)
-			return
+
+			// we're done
+			close(cancelCh)
 		}
 	}()
 
 	for {
 		select {
+		case <-cancelCh:
+			sub.Cancel()
+			return
 		case <-t.IpfsNode.Context().Done():
 			return
 		}
@@ -453,9 +461,9 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 		return nil, err
 	}
 
-	// get last photo
+	// get last photo update which has local true
 	var lc string
-	recent := t.Datastore.Photos().GetPhotos("", 1)
+	recent := t.Datastore.Photos().GetPhotos("", 1, "local=1")
 	if len(recent) > 0 {
 		lc = recent[0].Cid
 		log.Infof("found last hash: %s", lc)
@@ -470,7 +478,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 
 	// index
 	log.Infof("indexing %s...", mr.Boundary)
-	err = t.Datastore.Photos().Put(mr.Boundary, lc, md)
+	err = t.Datastore.Photos().Put(mr.Boundary, lc, md, true)
 	if err != nil {
 		log.Errorf("error indexing photo: %s", err)
 		return nil, err
@@ -497,7 +505,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 
 func (t *TextileNode) GetPhotos(offsetId string, limit int) *PhotoList {
 	// query for available hashes
-	list := t.Datastore.Photos().GetPhotos(offsetId, limit)
+	list := t.Datastore.Photos().GetPhotos(offsetId, limit, "")
 
 	// return json list of hashes
 	res := &PhotoList{
@@ -623,6 +631,46 @@ func (t *TextileNode) GetPublicPeerKeyString() (string, error) {
 	return base64.StdEncoding.EncodeToString(pkb), nil
 }
 
+func (t *TextileNode) startRepublishing() {
+	// get the room id from priv key
+	rid, err := t.GetRoomID()
+	if err != nil {
+		return
+	}
+	roomID := rid.Pretty()
+
+	// create an un-ending ticker
+	ticker := time.NewTicker(roomRepublishInterval)
+	defer ticker.Stop()
+	go func() {
+		for range ticker.C {
+			t.republishLatestUpdate(roomID)
+		}
+	}()
+
+	// we can stop when the node stops
+	for {
+		select {
+		case <-t.IpfsNode.Context().Done():
+			return
+		}
+	}
+}
+
+func (t *TextileNode) republishLatestUpdate(rid string) {
+	// find latest local update
+	recent := t.Datastore.Photos().GetPhotos("", 1, "local=1")
+	if len(recent) == 0 {
+		return
+	}
+	latest := recent[0].Cid
+
+	log.Infof("re-publishing %s to %s...", latest, rid)
+	if err := t.IpfsNode.Floodsub.Publish(rid, []byte(latest)); err != nil {
+		log.Errorf("error re-publishing update: %s", err)
+	}
+}
+
 func (t *TextileNode) getDataAtPath(path string) ([]byte, error) {
 	// convert string to an ipfs path
 	ip, err := coreapi.ParsePath(path)
@@ -697,7 +745,7 @@ func (t *TextileNode) handleHash(hash string, api iface.CoreAPI) error {
 
 	// index
 	log.Infof("indexing %s...", hash)
-	err = t.Datastore.Photos().Put(hash, last, md)
+	err = t.Datastore.Photos().Put(hash, last, md, false)
 	if err != nil {
 		return err
 	}
