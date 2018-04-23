@@ -1,0 +1,143 @@
+@font-face {
+    font-family: 'biotifblack';
+    src: url('degarism_studio_-_biotif-black-webfont.woff2') format('woff2'),
+         url('degarism_studio_-_biotif-black-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'biotifblack_italic';
+    src: url('degarism_studio_-_biotif-blackitalic-webfont.woff2') format('woff2'),
+         url('degarism_studio_-_biotif-blackitalic-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'biotifbold';
+    src: url('degarism_studio_-_biotif-bold-webfont.woff2') format('woff2'),
+         url('degarism_studio_-_biotif-bold-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'biotifbold_italic';
+    src: url('degarism_studio_-_biotif-bolditalic-webfont.woff2') format('woff2'),
+         url('degarism_studio_-_biotif-bolditalic-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'biotifbook';
+    src: url('degarism_studio_-_biotif-book-webfont.woff2') format('woff2'),
+         url('degarism_studio_-_biotif-book-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'biotifbook_italic';
+    src: url('degarism_studio_-_biotif-bookitalic-webfont.woff2') format('woff2'),
+         url('degarism_studio_-_biotif-bookitalic-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'biotifextrabold';
+    src: url('degarism_studio_-_biotif-extrabold-webfont.woff2') format('woff2'),
+         url('degarism_studio_-_biotif-extrabold-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'biotifextrabold_italic';
+    src: url('degarism_studio_-_biotif-extrabolditalic-webfont.woff2') format('woff2'),
+         url('degarism_studio_-_biotif-extrabolditalic-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'biotiflight';
+    src: url('degarism_studio_-_biotif-light-webfont.woff2') format('woff2'),
+         url('degarism_studio_-_biotif-light-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'biotiflight_italic';
+    src: url('degarism_studio_-_biotif-lightitalic-webfont.woff2') format('woff2'),
+         url('degarism_studio_-_biotif-lightitalic-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'biotifmedium';
+    src: url('degarism_studio_-_biotif-medium-webfont.woff2') format('woff2'),
+         url('degarism_studio_-_biotif-medium-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'biotifmedium_italic';
+    src: url('degarism_studio_-_biotif-mediumitalic-webfont.woff2') format('woff2'),
+         url('degarism_studio_-_biotif-mediumitalic-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'biotifregular';
+    src: url('degarism_studio_-_biotif-regular-webfont.woff2') format('woff2'),
+    url('degarism_studio_-_biotif-regular-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'biotifregular_italic';
+    src: url('degarism_studio_-_biotif-regularitalic-webfont.woff2') format('woff2'),
+    url('degarism_studio_-_biotif-regularitalic-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'biotifsemi_bold';
+    src: url('degarism_studio_-_biotif-semibold-webfont.woff2') format('woff2'),
+    url('degarism_studio_-_biotif-semibold-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'biotifsemi_bold_italic';
+    src: url('degarism_studio_-_biotif-semibolditalic-webfont.woff2') format('woff2'),
+    url('degarism_studio_-_biotif-semibolditalic-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
