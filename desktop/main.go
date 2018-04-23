@@ -56,6 +56,8 @@ func main() {
 			AppName:            AppName,
 			AppIconDarwinPath:  "resources/icon.icns",
 			AppIconDefaultPath: "resources/icon.png",
+			// TODO: Revisit: slightly dangerous because this will ignore _all_ certificate errors
+			ElectronSwitches: []string{"ignore-certificate-errors","true"},
 		},
 
 		Debug:          *debug,

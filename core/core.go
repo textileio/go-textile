@@ -33,6 +33,8 @@ import (
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"math/rand"
+	"strings"
+	"strconv"
 )
 
 var VERSION = "0.0.1"
@@ -263,6 +265,22 @@ func (t *TextileNode) Stop() error {
 	}
 	t.IpfsNode = nil
 	return nil
+}
+
+func (t *TextileNode) GatewayPort(decrypting bool) (int64, error) {
+	// Get config and set proxy address to raw gateway address plus one thousand,
+	// so a gateway on 8182 means the proxy will run on 9182
+	cfg, err := t.Context.GetConfig()
+	if err != nil {
+		return -1, fmt.Errorf("ServeHTTPGatewayProxy: GetConfig() failed: %s", err)
+	}
+	tmp := strings.Split(cfg.Addresses.Gateway, "/")
+	gaddrs := tmp[len(tmp)-1]
+	gaddr, err := strconv.ParseInt(gaddrs, 10, 64)
+	if err != nil {
+		return -1, fmt.Errorf("ServeHTTPGatewayProxy: get address failed: %s", err)
+	}
+	return gaddr + 1000, nil
 }
 
 func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest, error) {

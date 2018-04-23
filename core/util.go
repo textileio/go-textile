@@ -173,13 +173,6 @@ func serveHTTPGateway(cctx *oldcmds.Context) (<-chan error, error) {
 
 func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		//cookie, err := r.Cookie("SessionId")
-		//fmt.Printf("Cookie: %s\n", cookie.Value)
-		//if err != nil || cookie.Value != node.Password {
-		//	w.WriteHeader(401)
-		//	return
-		//}
-
 		b, err := node.GetFile(r.URL.Path)
 		if err != nil {
 			fmt.Printf("error decrypting path %s: %s", r.URL.Path, err)
@@ -201,7 +194,7 @@ func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 	err := Check("cert.pem", "key.pem")
 	// If they are not available, generate new ones.
 	if err != nil {
-		err = Generate("cert.pem", "key.pem", "localhost:9192")
+		err = Generate("cert.pem", "key.pem", "localhost" + portString)
 		if err != nil {
 			fmt.Printf("Error: Couldn't create https certs.")
 			return errc, nil
@@ -213,8 +206,10 @@ func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 		errc <- http.ListenAndServeTLS(portString, "cert.pem", "key.pem", nil)
 		close(errc)
 	}()
+
+	// NOTE: No need to actually do this, but keeping commented out for testing
 	// Start the HTTP server and redirect all incoming connections to HTTPS
-	go http.ListenAndServe(":9193", http.HandlerFunc(redirectToHttps))
+	//go http.ListenAndServe(":9193", http.HandlerFunc(redirectToHttps))
 
 	fmt.Printf("decrypting gateway (readonly) server listening on /ip4/127.0.0.1/tcp/%s\n", port)
 	fmt.Printf("username: \"TextileNode\", password: \"%s\"\n", node.Password)
@@ -222,10 +217,10 @@ func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 	return errc, nil
 }
 
-func redirectToHttps(w http.ResponseWriter, r *http.Request) {
-	// Redirect the incoming HTTP request.
-	http.Redirect(w, r, "https://localhost:9192"+r.RequestURI, http.StatusMovedPermanently)
-}
+//func redirectToHttps(w http.ResponseWriter, r *http.Request) {
+//	// Redirect the incoming HTTP request.
+//	http.Redirect(w, r, "https://localhost:9192"+r.RequestURI, http.StatusMovedPermanently)
+//}
 
 func runGC(ctx context.Context, node *core.IpfsNode) (<-chan error, error) {
 	errc := make(chan error)
