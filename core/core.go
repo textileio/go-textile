@@ -242,6 +242,9 @@ func (t *TextileNode) Start() error {
 		log.Info("desktop node is ready")
 	}
 
+	// every 5 min, send latest update to current room
+	go t.startRepublishing()
+
 	return nil
 }
 
@@ -349,25 +352,6 @@ func (t *TextileNode) JoinRoom(datac chan string) {
 			select {
 			case datac <- string(msg.GetData()):
 			default:
-			}
-		}
-	}()
-
-	ticker := time.NewTicker(roomRepublishInterval)
-	defer ticker.Stop()
-	go func() {
-		for range ticker.C {
-			// find latest local update
-			recent := t.Datastore.Photos().GetPhotos("", 1, "local=1")
-			if len(recent) == 0 {
-				continue
-			}
-			lc := recent[0].Cid
-
-			log.Infof("re-publishing %s to %s...", lc, rids)
-			err = t.IpfsNode.Floodsub.Publish(rids, []byte(lc))
-			if err != nil {
-				log.Errorf("error re-publishing update: %s", err)
 			}
 		}
 	}()
@@ -645,6 +629,46 @@ func (t *TextileNode) GetPublicPeerKeyString() (string, error) {
 	}
 
 	return base64.StdEncoding.EncodeToString(pkb), nil
+}
+
+func (t *TextileNode) startRepublishing() {
+	// get the room id from priv key
+	rid, err := t.GetRoomID()
+	if err != nil {
+		return
+	}
+	roomID := rid.Pretty()
+
+	// create an un-ending ticker
+	ticker := time.NewTicker(roomRepublishInterval)
+	defer ticker.Stop()
+	go func() {
+		for range ticker.C {
+			t.republishLatestUpdate(roomID)
+		}
+	}()
+
+	// we can stop when the node stops
+	for {
+		select {
+		case <-t.IpfsNode.Context().Done():
+			return
+		}
+	}
+}
+
+func (t *TextileNode) republishLatestUpdate(rid string) {
+	// find latest local update
+	recent := t.Datastore.Photos().GetPhotos("", 1, "local=1")
+	if len(recent) == 0 {
+		return
+	}
+	latest := recent[0].Cid
+
+	log.Infof("re-publishing %s to %s...", latest, rid)
+	if err := t.IpfsNode.Floodsub.Publish(rid, []byte(latest)); err != nil {
+		log.Errorf("error re-publishing update: %s", err)
+	}
 }
 
 func (t *TextileNode) getDataAtPath(path string) ([]byte, error) {
