@@ -456,7 +456,8 @@ func (t *TextileNode) GatewayPort() (int64, error) {
 	if err != nil {
 		return -1, fmt.Errorf("ServeHTTPGatewayProxy: get address failed: %s", err)
 	}
-	return gaddr + 1000, nil
+	port := gaddr + 1000
+	return port, nil
 }
 
 func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest, error) {
