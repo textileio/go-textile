@@ -343,15 +343,8 @@ func (t *TextileNode) JoinRoom(datac chan string) {
 			}
 
 			// handle the update
-			if err = t.handleRoomUpdate(msg); err != nil {
+			if err = t.handleRoomUpdate(msg, datac); err != nil {
 				log.Errorf("error handling room update: %s", err)
-				continue
-			}
-
-			// don't block on the send since nobody might be listening
-			select {
-			case datac <- string(msg.GetData()):
-			default:
 			}
 		}
 	}()
@@ -688,7 +681,7 @@ func (t *TextileNode) getDataAtPath(path string) ([]byte, error) {
 	return ioutil.ReadAll(r)
 }
 
-func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message) error {
+func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message, datac chan string) error {
 	// unpack message
 	from := msg.GetFrom().Pretty()
 	hash := string(msg.GetData())
@@ -696,7 +689,7 @@ func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message) error {
 	log.Infof("got update from: %s", from)
 
 	// recurse back in time starting at this hash
-	err := t.handleHash(hash, api)
+	err := t.handleHash(hash, api, datac)
 	if err != nil {
 		log.Errorf("error handling hash: %s", err)
 		return err
@@ -705,7 +698,7 @@ func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message) error {
 	return nil
 }
 
-func (t *TextileNode) handleHash(hash string, api iface.CoreAPI) error {
+func (t *TextileNode) handleHash(hash string, api iface.CoreAPI, datac chan string) error {
 	if hash == "" {
 		log.Infof("found genesis update, aborting")
 		return nil
@@ -750,8 +743,14 @@ func (t *TextileNode) handleHash(hash string, api iface.CoreAPI) error {
 		return err
 	}
 
+	// don't block on the send since nobody might be listening
+	select {
+	case datac <- hash:
+	default:
+	}
+
 	// check last hash
-	return t.handleHash(last, api)
+	return t.handleHash(last, api, datac)
 }
 
 func createMnemonic(newEntropy func(int) ([]byte, error), newMnemonic func([]byte) (string, error)) (string, error) {
