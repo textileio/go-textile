@@ -18,7 +18,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"log"
 	"math/big"
 	"net"
 	"os"
@@ -89,7 +88,7 @@ func Generate(certPath string, keyPath string, host string) error {
 		os.Exit(1)
 	}
 	if err != nil {
-		log.Printf("failed to generate private key: %s", err)
+		fmt.Printf("failed to generate private key: %s", err)
 		return err
 	}
 
@@ -109,7 +108,7 @@ func Generate(certPath string, keyPath string, host string) error {
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
-		log.Printf("failed to generate serial number: %s", err)
+		fmt.Printf("failed to generate serial number: %s", err)
 		return err
 	}
 
@@ -142,26 +141,26 @@ func Generate(certPath string, keyPath string, host string) error {
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, publicKey(priv), priv)
 	if err != nil {
-		log.Printf("Failed to create certificate: %s", err)
+		fmt.Printf("Failed to create certificate: %s", err)
 		return err
 	}
 
 	certOut, err := os.Create(certPath)
 	if err != nil {
-		log.Printf("failed to open "+certPath+" for writing: %s", err)
+		fmt.Printf("failed to open "+certPath+" for writing: %s", err)
 		return err
 	}
 	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
 	certOut.Close()
-	log.Print("written cert.pem\n")
+	fmt.Print("written cert.pem\n")
 
 	keyOut, err := os.OpenFile(keyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		log.Print("failed to open "+keyPath+" for writing:", err)
+		fmt.Print("failed to open "+keyPath+" for writing:", err)
 		return err
 	}
 	pem.Encode(keyOut, pemBlockForKey(priv))
 	keyOut.Close()
-	log.Print("written key.pem\n")
+	fmt.Print("written key.pem\n")
 	return nil
 }

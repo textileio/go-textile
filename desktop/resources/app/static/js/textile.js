@@ -1,4 +1,4 @@
-const gateway = "https://localhost:9192";
+const gateway = "https://localhost:9182";
 const session = require('electron').remote.session.defaultSession;
 
 let textile = {
@@ -31,9 +31,9 @@ let textile = {
     })
   },
 
-  start: function (pairedID) {
-    /** @namespace astilectron.sendMessage **/
-    astilectron.sendMessage({name: "sync.start", payload: pairedID}, function (message) {
+  start: function () {
+/** @namespace astilectron.sendMessage **/
+    astilectron.sendMessage({name: "sync.start", payload: ""}, function (message) {
       if (message.name === "error") {
         asticode.notifier.error("Error")
       }
@@ -65,17 +65,19 @@ let textile = {
 
         // node and services are ready
         case "sync.ready":
-          showGallery(message.html);
-          /** @namespace message.pairedID **/
-          textile.start(message.pairedID);
-          break;
+          showGallery(message.html)
+          textile.start()
+          break
 
-        // new photo from paired peer
+        // new photo from room
         case "sync.data":
-          let url = [gateway, "ipfs", message.hash, "thumb"].join("/");
-          let $item = $('<div class="grid-item"><img src="' + url + '" /></div>');
-          $(".grid").isotope('insert', $item);
-          break;
+          let ph = [gateway, "ipfs", message.hash, "photo"].join("/")
+          let th = [gateway, "ipfs", message.hash, "thumb"].join("/")
+          let md = [gateway, "ipfs", message.hash, "meta"].join("/")
+          let img = '<img src="' + th + '" />'
+          let $item = $('<div class="grid-item" data-url="' + ph + '" data-meta="' + md + '">' + img + '</div>')
+          $(".grid").isotope('insert', $item)
+          break
 
         // start walk-through
         case "onboard.start":
@@ -83,7 +85,7 @@ let textile = {
           textile.pair();
           break;
 
-        // done on-boarding, we should now have a paired peer
+        // done onboarding, we should now have a room subscription
         case "onboard.complete":
           hideOnboarding();
           break
@@ -116,8 +118,8 @@ function showGallery(html) {
     layoutMode: 'cellsByRow',
     itemSelector: '.grid-item',
     cellsByRow: {
-      columnWidth: 256,
-      rowHeight: 256
+      columnWidth: 248,
+      rowHeight: 248
     }
   });
 
