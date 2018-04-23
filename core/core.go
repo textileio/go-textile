@@ -405,7 +405,7 @@ func (t *TextileNode) WaitForRoom() {
 	}
 	log.Infof("waiting for room at own peer id: %s\n", rid)
 
-	defer sub.Cancel()
+	cancelCh := make(chan struct{})
 	go func() {
 		for {
 			msg, err := sub.Next(t.IpfsNode.Context())
@@ -435,12 +435,17 @@ func (t *TextileNode) WaitForRoom() {
 
 			// setup datastore with phrase and close sub
 			_ = t.ConfigureDatastore(ps)
-			return
+
+			// we're done
+			close(cancelCh)
 		}
 	}()
 
 	for {
 		select {
+		case <-cancelCh:
+			sub.Cancel()
+			return
 		case <-t.IpfsNode.Context().Done():
 			return
 		}
