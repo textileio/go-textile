@@ -62,13 +62,13 @@ type PhotoStore interface {
 	Queryable
 
 	// Put a new photo to the database
-	Put(cid string, lastCid string, md *photos.Metadata) error
+	Put(cid string, lastCid string, md *photos.Metadata, local bool) error
 
 	// A list of photos
 	GetPhoto(cid string) *PhotoSet
 
 	// A list of photos
-	GetPhotos(offsetId string, limit int) []PhotoSet
+	GetPhotos(offsetId string, limit int, query string) []PhotoSet
 
 	// Delete a photos
 	DeletePhoto(cid string) error
