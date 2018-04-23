@@ -112,7 +112,11 @@ func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 	if err != nil {
 		return errc, err
 	}
-	portString := fmt.Sprintf(":%s", string(port))
+
+	port = 9192
+
+	portString := fmt.Sprintf(":%d", port)
+	fmt.Println(portString)
 
 	// Check if the cert files are available.
 	err = Check("cert.pem", "key.pem")
@@ -135,14 +139,14 @@ func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 	// Start the HTTP server and redirect all incoming connections to HTTPS
 	//go http.ListenAndServe(":9193", http.HandlerFunc(redirectToHttps))
 
-	fmt.Printf("decrypting gateway (readonly) server listening on /ip4/127.0.0.1/tcp/%s\n", string(port))
+	fmt.Printf("decrypting gateway (readonly) server listening on /ip4/127.0.0.1/tcp/%d\n", port)
 
 	return errc, nil
 }
 
 //func redirectToHttps(w http.ResponseWriter, r *http.Request) {
 //	// Redirect the incoming HTTP request.
-//	http.Redirect(w, r, "https://localhost:9192"+r.RequestURI, http.StatusMovedPermanently)
+//	http.Redirect(w, r, "https://localhost:9183"+r.RequestURI, http.StatusMovedPermanently)
 //}
 
 func runGC(ctx context.Context, node *core.IpfsNode) (<-chan error, error) {
