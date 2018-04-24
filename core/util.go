@@ -12,6 +12,7 @@ import (
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/corehttp"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/corerepo"
 
+	"github.com/textileio/textile-go/ssl"
 	"gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 )
@@ -117,10 +118,10 @@ func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 	fmt.Println(portString)
 
 	// Check if the cert files are available.
-	err = Check("cert.pem", "key.pem")
+	err = ssl.Check("cert.pem", "key.pem")
 	// If they are not available, generate new ones.
 	if err != nil {
-		err = Generate("cert.pem", "key.pem", "localhost"+portString)
+		err = ssl.Generate("cert.pem", "key.pem", "localhost"+portString)
 		if err != nil {
 			fmt.Printf("Error: Couldn't create https certs.")
 			return errc, nil
