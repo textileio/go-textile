@@ -115,7 +115,6 @@ func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 	}
 
 	portString := fmt.Sprintf(":%d", port)
-	fmt.Println(portString)
 
 	// Check if the cert files are available.
 	err = ssl.Check("cert.pem", "key.pem")
@@ -123,7 +122,7 @@ func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 	if err != nil {
 		err = ssl.Generate("cert.pem", "key.pem", "localhost"+portString)
 		if err != nil {
-			fmt.Printf("Error: Couldn't create https certs.")
+			log.Errorf("Error: Couldn't create https certs.")
 			return errc, nil
 		}
 	}
@@ -138,7 +137,7 @@ func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 	// Start the HTTP server and redirect all incoming connections to HTTPS
 	//go http.ListenAndServe(":9193", http.HandlerFunc(redirectToHttps))
 
-	fmt.Printf("decrypting gateway (readonly) server listening on /ip4/127.0.0.1/tcp/%d\n", port)
+	log.Infof("decrypting gateway (readonly) server listening on /ip4/127.0.0.1/tcp/%d\n", port)
 
 	return errc, nil
 }

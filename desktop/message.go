@@ -58,7 +58,7 @@ func handleMessages(iw *astilectron.Window, m bootstrap.MessageIn) (payload inte
 		// TODO: Make this more secure with salt, SAH hashing, and additional randomness?
 		return map[string]interface{}{
 			"name":  "SessionId",
-			"value": textile.Password,
+			"value": textile.GatewayPassword,
 		}, nil
 	}
 
