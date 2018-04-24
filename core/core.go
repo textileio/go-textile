@@ -35,9 +35,12 @@ import (
 
 	"database/sql"
 	"encoding/json"
+	"github.com/segmentio/ksuid"
 	"gx/ipfs/QmSFihvoND3eDaAYRCeLgLPt62yCPgMZs1NSZmKFEtJQQw/go-libp2p-floodsub"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"strconv"
+	"strings"
 )
 
 const VERSION = "0.0.1"
@@ -80,6 +83,9 @@ type TextileNode struct {
 
 	// Signal we left the room
 	LeftRoomCh chan struct{}
+
+	// The local password used to authenticate http gateway requests (username is TextileNode)
+	GatewayPassword string
 }
 
 type PhotoList struct {
@@ -151,14 +157,15 @@ func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNo
 		Routing: routingOption,
 	}
 
-	// finally, construct our node
+	// Finally, construct our node
 	return &TextileNode{
-		RepoPath:    repoPath,
-		Datastore:   sqliteDB,
-		ipfsConfig:  ncfg,
-		isMobile:    isMobile,
-		leaveRoomCh: make(chan struct{}),
-		LeftRoomCh:  make(chan struct{}),
+		RepoPath:        repoPath,
+		Datastore:       sqliteDB,
+		ipfsConfig:      ncfg,
+		isMobile:        isMobile,
+		leaveRoomCh:     make(chan struct{}),
+		LeftRoomCh:      make(chan struct{}),
+		GatewayPassword: ksuid.New().String(),
 	}, nil
 }
 
@@ -427,6 +434,25 @@ func (t *TextileNode) WaitForRoom() {
 			return
 		}
 	}
+}
+
+func (t *TextileNode) GatewayPort() (int, error) {
+	// Get config and set proxy address to raw gateway address plus one thousand,
+	// so a gateway on 8182 means the proxy will run on 9182
+	cfg, err := t.Context.GetConfig()
+	if err != nil {
+		log.Errorf("get gateway port failed: %s", err)
+		return -1, err
+	}
+	tmp := strings.Split(cfg.Addresses.Gateway, "/")
+	gaddrs := tmp[len(tmp)-1]
+	gaddr, err := strconv.ParseInt(gaddrs, 10, 64)
+	if err != nil {
+		log.Errorf("get address failed: %s", err)
+		return -1, err
+	}
+	port := gaddr + 1000
+	return int(port), nil
 }
 
 func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest, error) {

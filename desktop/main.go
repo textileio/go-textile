@@ -69,7 +69,10 @@ func main() {
 			AppName:            AppName,
 			AppIconDarwinPath:  "resources/icon.icns",
 			AppIconDefaultPath: "resources/icon.png",
+			// TODO: Revisit: slightly dangerous because this will ignore _all_ certificate errors
+			ElectronSwitches: []string{"ignore-certificate-errors", "true"},
 		},
+
 		Debug:          *debug,
 		Homepage:       "index.html",
 		MessageHandler: handleMessages,
@@ -78,8 +81,8 @@ func main() {
 		WindowOptions: &astilectron.WindowOptions{
 			BackgroundColor: astilectron.PtrStr("#333333"),
 			Center:          astilectron.PtrBool(true),
-			Height:          astilectron.PtrInt(800),
-			Width:           astilectron.PtrInt(1280),
+			Height:          astilectron.PtrInt(633),
+			Width:           astilectron.PtrInt(1024),
 		},
 	}); err != nil {
 		astilog.Fatal(errors.Wrap(err, "running bootstrap failed"))
