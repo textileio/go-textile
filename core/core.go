@@ -443,7 +443,7 @@ func (t *TextileNode) WaitForRoom() {
 	}
 }
 
-func (t *TextileNode) GatewayPort() (int64, error) {
+func (t *TextileNode) GatewayPort() (int, error) {
 	// Get config and set proxy address to raw gateway address plus one thousand,
 	// so a gateway on 8182 means the proxy will run on 9182
 	cfg, err := t.Context.GetConfig()
@@ -457,7 +457,7 @@ func (t *TextileNode) GatewayPort() (int64, error) {
 		return -1, fmt.Errorf("ServeHTTPGatewayProxy: get address failed: %s", err)
 	}
 	port := gaddr + 1000
-	return port, nil
+	return int(port), nil
 }
 
 func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest, error) {

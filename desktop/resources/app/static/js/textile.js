@@ -1,12 +1,12 @@
-const gateway = "https://localhost:9182";
-const session = require('electron').remote.session.defaultSession;
+const gateway = "https://localhost:9182"
+const session = require('electron').remote.session.defaultSession
 
 let textile = {
 
   init: function() {
-    asticode.loader.init();
-    asticode.modaler.init();
-    asticode.notifier.init();
+    asticode.loader.init()
+    asticode.modaler.init()
+    asticode.notifier.init()
 
     document.addEventListener('astilectron-ready', function() {
       textile.listen()
@@ -14,19 +14,19 @@ let textile = {
   },
 
   pair: function () {
-    console.debug("SENDING MESSAGE:", "pair.start");
+    console.debug("SENDING MESSAGE:", "pair.start")
     /** @namespace astilectron.sendMessage **/
     astilectron.sendMessage({name: "pair.start", payload: ""}, function (message) {
       if (message.name === "error") {
-        asticode.notifier.error("Error");
+        asticode.notifier.error("Error")
         return
       }
 
       // populate qr code
-      console.debug("GOT QR CODE:", message);
-      let qrCode = document.querySelector('.qr-code');
-      qrCode.setAttribute('src', "data:image/png;base64," + message.payload.png + "");
-      let pairCode = document.querySelector('.confirmation-code');
+      console.debug("GOT QR CODE:", message)
+      let qrCode = document.querySelector('.qr-code')
+      qrCode.setAttribute('src', "data:image/png;base64," + message.payload.png + "")
+      let pairCode = document.querySelector('.confirmation-code')
       pairCode.innerText = message.payload.code
     })
   },
@@ -47,10 +47,10 @@ let textile = {
 
         case "login.cookie":
           // Setup cookie session for this client
-          let expiration = new Date();
-          let hour = expiration.getHours();
-          hour = hour + 6;
-          expiration.setHours(hour);
+          let expiration = new Date()
+          let hour = expiration.getHours()
+          hour = hour + 6
+          expiration.setHours(hour)
           /** @namespace ses.cookies **/
           session.cookies.set({
               url: gateway,
@@ -59,9 +59,9 @@ let textile = {
               expirationDate: expiration.getTime(),
               session: true
           }, function (error) {
-              // console.log(error);
-          });
-          break;
+              // console.log(error)
+          })
+          break
 
         // node and services are ready
         case "sync.ready":
@@ -81,26 +81,26 @@ let textile = {
 
         // start walk-through
         case "onboard.start":
-          showOnboarding(1);
-          textile.pair();
-          break;
+          showOnboarding(1)
+          textile.pair()
+          break
 
         // done onboarding, we should now have a room subscription
         case "onboard.complete":
-          hideOnboarding();
+          hideOnboarding()
           break
       }
     })
   },
-};
+}
 
 function showOnboarding(screen) {
   /** @namespace $ **/
-  let ob = $(".onboarding");
+  let ob = $(".onboarding")
   if (ob.hasClass("hidden")) {
     ob.removeClass("hidden")
   }
-  $(".onboarding .screen").addClass("hidden");
+  $(".onboarding .screen").addClass("hidden")
   $("#ob" + screen).removeClass("hidden")
 }
 
@@ -109,9 +109,9 @@ function hideOnboarding() {
 }
 
 function showGallery(html) {
-  let grid = $(".grid");
-  grid.removeClass("hidden");
-  grid.html(html);
+  let grid = $(".grid")
+  grid.removeClass("hidden")
+  grid.html(html)
 
   // init Isotope
   let $grid = grid.isotope({
@@ -121,14 +121,14 @@ function showGallery(html) {
       columnWidth: 248,
       rowHeight: 248
     }
-  });
+  })
 
   // layout after each image loads
   $grid.imagesLoaded().progress(function() {
     $grid.isotope('layout')
-  });
+  })
 
   // reveal items
-  let $items = $grid.find('.grid-item');
+  let $items = $grid.find('.grid-item')
   $grid.addClass('is-showing-items').isotope('revealItemElements', $items)
 }

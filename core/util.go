@@ -113,8 +113,6 @@ func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 		return errc, err
 	}
 
-	port = 9192
-
 	portString := fmt.Sprintf(":%d", port)
 	fmt.Println(portString)
 
