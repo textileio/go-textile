@@ -34,7 +34,7 @@ var (
 	ecdsaCurve = ""
 )
 
-var log = logging.MustGetLogger("core")
+var log = logging.MustGetLogger("ssl")
 
 func publicKey(priv interface{}) interface{} {
 	switch k := priv.(type) {
