@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="static/lib/photoswipe/photoswipe.css">
     <link rel="stylesheet" href="static/lib/photoswipe/default-skin/default-skin.css">
     <link rel="stylesheet" href="static/css/textile.css"/>
+    <link href="static/font/style.css" rel="stylesheet" type="text/css">
     <script>
         function imageDragStart(ev) {
             const parent = ev.target.parentNode;
@@ -22,90 +23,60 @@
 </head>
 <body>
 
-<div class="section onboarding hidden">
+<div id="left"></div>
+<div id="logo">
+    <img src="./static/img/logo-01.svg" width="301" height="116" />
+</div>
 
+<div class="section onboarding hidden">
     <div id="ob1" class="screen hidden">
         <div class="container">
+            <h1>Welcome to Textile Photos!</h1>
+            <h2>
+                We need to walk through just a couple steps to get you setup. Let's get started...
+            </h2>
             <div class="row">
-                <div class="twelve columns">
-                    <h1>Welcome to Textile Photos</h1>
-                </div>
-            </div>
-            <div class="row">
-                <div class="twelve columns">
-                    <p>We need to walk through just a couple steps to get you setup. Let's get started...</p>
-                </div>
-            </div>
-            <div class="row">
-                <div class="twelve columns">
-                    <button class="next" onClick="showOnboarding(2)">Next</button>
-                </div>
+                <button class="next" onClick="showOnboarding(2)">Next</button>
             </div>
         </div>
     </div>
 
     <div id="ob2" class="screen hidden">
         <div class="container">
+            <h1>Pairing with your mobile device.</h1>
+            <h2>
+                Have your mobile phone nearby. Be sure you have the Textile Photos app installed on your phone.
+            </h2>
             <div class="row">
-                <div class="twelve columns">
-                    <h1>Pairing with your mobile device.</h1>
-                </div>
-            </div>
-            <div class="row">
-                <div class="twelve columns">
-                    <p>Have your mobile phone nearby. Be sure you have the Textile Photos app installed on your phone.</p>
-                </div>
-            </div>
-            <div class="row">
-                <div class="twelve columns">
-                    <button class="next" onClick="showOnboarding(3)">Next</button>
-                </div>
+                <button class="next" onClick="showOnboarding(3)">Next</button>
             </div>
         </div>
     </div>
 
     <div id="ob3" class="screen hidden">
         <div class="container">
+            <h1>Pairing with your mobile device.</h1>
+            <h2>
+                Now, use your mobile phone's camera to scan the QR code below. While pointing your phone's camera at the QR code, you should be prompted to open Textile Photos. Follow the instructions on your device.
+            </h2>
             <div class="row">
-                <div class="twelve columns">
-                    <h1>Pairing with your mobile device.</h1>
-                </div>
+                <img class="qr-code" src="" />
             </div>
             <div class="row">
-                <div class="twelve columns">
-                    <p>Now, use your mobile phone's camera to scan the QR code below. While pointing your phone's camera at the QR code, you should be prompted to open Textile Photos. Follow the instructions on your device.</p>
-                </div>
+                <h5>Confirmation code <span class="confirmation-code">1234</span>.</h5>
             </div>
             <div class="row">
-                <div class="twelve columns">
-                    <img class="qr-code" src="" />
-                </div>
-            </div>
-            <div class="row">
-                <div class="twelve columns">
-                    <h5>Confirmation code <span class="confirmation-code">1234</span>.</h5>
-                </div>
-            </div>
-            <div class="row">
-                <div class="twelve columns">
-                    <button class="wait">Waiting...</button>
-                </div>
+                <button class="wait">Waiting...</button>
             </div>
         </div>
     </div>
 
     <div id="ob4" class="screen hidden">
         <div class="container">
-            <div class="row">
-                <div class="twelve columns">
-                    <h1>Success!</h1>
-                </div>
-            </div>
-            <div class="row">
-                <div class="twelve columns">
-                    <p>You've now successfully paired with your mobile device. Now, any photos you take or add in Textile Photos will be automatically synced to this computer.</p>
-                </div>
-            </div>
+            <h1>Success!</h1>
+            <h2>
+                You've now successfully paired with your mobile device. Now, any photos you take or add in Textile Photos will be automatically synced to this computer.
+            </h2>
         </div>
     </div>
 </div>

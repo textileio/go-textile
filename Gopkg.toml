@@ -31,10 +31,6 @@
   name = "github.com/mutecomm/go-sqlcipher"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/nfnt/resize"
-
-[[constraint]]
   name = "github.com/op/go-logging"
   version = "1.0.0"
 
@@ -49,3 +45,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/asticode/go-astilectron"
+
+[[override]]
+  branch = "master"
+  name = "github.com/chzyer/readline"

@@ -89,6 +89,30 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/chzyer/readline"
+  packages = ["."]
+  revision = "f6d7a1f6fbf35bbf9beb80dc63c56a29dcfb759f"
+
+[[projects]]
+  name = "github.com/disintegration/imaging"
+  packages = ["."]
+  revision = "fd34ef7671b12cdf1b024d98c6b327b2770d32c4"
+  version = "v1.4.1"
+
+[[projects]]
+  name = "github.com/fatih/color"
+  packages = ["."]
+  revision = "507f6050b8568533fb3f5504de8e5205fa62a114"
+  version = "v1.6.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/flynn-archive/go-shlex"
+  packages = ["."]
+  revision = "3f9db97f856818214da2e1057f8ad84803971cff"
+
+[[projects]]
+  branch = "master"
   name = "github.com/gin-contrib/sse"
   packages = ["."]
   revision = "22d885f9ecc78bf4ee5d72b937e4bbcdc58e8cae"
@@ -122,6 +146,12 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "github.com/jessevdk/go-flags"
+  packages = ["."]
+  revision = "c6ca198ec95c841fdb89fc0de7496fed11ab854e"
+  version = "v1.4.0"
+
+[[projects]]
   name = "github.com/julienschmidt/httprouter"
   packages = ["."]
   revision = "8c199fb6259ffc1af525cc3ad52ee60ba8359669"
@@ -152,12 +182,6 @@
   revision = "f799951b4ab269c2ce24913961af2cb5d681cc43"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/nfnt/resize"
-  packages = ["."]
-  revision = "83c6a9932646f83e3267f353373d47347b6036b2"
-
-[[projects]]
   name = "github.com/op/go-logging"
   packages = ["."]
   revision = "b2cb9fa56473e98db8caba80237377e83fe44db5"
@@ -168,6 +192,21 @@
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
+
+[[projects]]
+  branch = "go1"
+  name = "github.com/rwcarlsen/goexif"
+  packages = [
+    "exif",
+    "tiff"
+  ]
+  revision = "fb35d3c3290d09f3524b684b5d42d0063c227158"
+
+[[projects]]
+  name = "github.com/segmentio/ksuid"
+  packages = ["."]
+  revision = "112f929a3020abfcd06b77c963ec919130796a35"
+  version = "1.0.1"
 
 [[projects]]
   name = "github.com/sirupsen/logrus"
@@ -215,6 +254,16 @@
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/image"
+  packages = [
+    "bmp",
+    "tiff",
+    "tiff/lzw"
+  ]
+  revision = "f315e440302883054d0c2bd85486878cb4f8572c"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
   revision = "b68f30494add4df6bd8ef5e82803f308e7f7c59c"
@@ -229,10 +278,22 @@
   revision = "378d26f46672a356c46195c28f61bdb4c0a781dd"
 
 [[projects]]
+  branch = "v2"
+  name = "gopkg.in/abiosoft/ishell.v2"
+  packages = ["."]
+  revision = "42a9bbfa0017d7243b50b8f542076ef3d5e7da6c"
+
+[[projects]]
   name = "gopkg.in/go-playground/validator.v8"
   packages = ["."]
   revision = "5f1438d3fca68893a817e4a66806cea46a9e4ebf"
   version = "v8.18.2"
+
+[[projects]]
+  name = "gopkg.in/natefinch/lumberjack.v2"
+  packages = ["."]
+  revision = "a96e63847dc3c67d17befa69c303767e2f84e54f"
+  version = "v2.1"
 
 [[projects]]
   name = "gopkg.in/yaml.v2"
@@ -243,6 +304,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cbd015f0119592573186a50cd5b5d5ba7aa0772ed0e9e4c51c6715bbc815714f"
+  inputs-digest = "1ce0680761520b49864bf0cacf5d60878edcb471b819a80eb1ea34fdafa14776"
   solver-name = "gps-cdcl"
   solver-version = 1
