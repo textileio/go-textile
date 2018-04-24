@@ -55,7 +55,7 @@ let textile = {
           let md = [gateway, "ipfs", message.hash, "meta"].join("/")
           let img = '<img src="' + th + '" />'
           let $item = $('<div class="grid-item" data-url="' + ph + '" data-meta="' + md + '">' + img + '</div>')
-          $(".grid").isotope('insert', $item)
+          $(".grid").isotope('prepended', $item)
           break
 
         // start walkthrough
