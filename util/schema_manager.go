@@ -132,6 +132,9 @@ func (m *textileSchemaManager) BuildSchemaDirectories() error {
 	if err := os.MkdirAll(m.DataPathJoin("logs"), os.ModePerm); err != nil {
 		return err
 	}
+	if err := os.MkdirAll(m.DataPathJoin("tmp"), os.ModePerm); err != nil {
+		return err
+	}
 	return nil
 }
 
