@@ -81,7 +81,7 @@ func getPhotosHTML() string {
 		th := fmt.Sprintf("%s/ipfs/%s/thumb", gateway, photo.Cid)
 		md := fmt.Sprintf("%s/ipfs/%s/meta", gateway, photo.Cid)
 		img := fmt.Sprintf("<img src=\"%s\" />", th)
-		html += fmt.Sprintf("<div class=\"grid-item\" data-url=\"%s\" data-meta=\"%s\">%s</div>", ph, md, img)
+		html += fmt.Sprintf("<div id=\"%s\" class=\"grid-item\" ondragstart=\"imageDragStart(event);\" draggable=\"true\" data-url=\"%s\" data-meta=\"%s\">%s</div>", photo.Cid, ph, md, img)
 	}
 	return html
 }

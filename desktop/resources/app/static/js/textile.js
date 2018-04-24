@@ -75,7 +75,7 @@ let textile = {
           let th = [gateway, "ipfs", message.hash, "thumb"].join("/")
           let md = [gateway, "ipfs", message.hash, "meta"].join("/")
           let img = '<img src="' + th + '" />'
-          let $item = $('<div class="grid-item" data-url="' + ph + '" data-meta="' + md + '">' + img + '</div>')
+          let $item = $('<div id="' + message.hash + '" class="grid-item" ondragstart="imageDragStart(event);" draggable="true" class="grid-item" data-url="' + ph + '" data-meta="' + md + '">' + img + '</div>')
           $(".grid").isotope('prepended', $item)
           break
 
