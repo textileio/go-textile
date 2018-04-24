@@ -1,4 +1,5 @@
-const gateway = "http://localhost:9182"
+const gateway = "https://localhost:9182"
+const session = require('electron').remote.session.defaultSession
 
 let textile = {
 
@@ -14,6 +15,7 @@ let textile = {
 
   pair: function () {
     console.debug("SENDING MESSAGE:", "pair.start")
+    /** @namespace astilectron.sendMessage **/
     astilectron.sendMessage({name: "pair.start", payload: ""}, function (message) {
       if (message.name === "error") {
         asticode.notifier.error("Error")
@@ -30,6 +32,7 @@ let textile = {
   },
 
   start: function () {
+/** @namespace astilectron.sendMessage **/
     astilectron.sendMessage({name: "sync.start", payload: ""}, function (message) {
       if (message.name === "error") {
         asticode.notifier.error("Error")
@@ -38,9 +41,27 @@ let textile = {
   },
 
   listen: function() {
+    /** @namespace astilectron.onMessage **/
     astilectron.onMessage(function(message) {
-      console.debug("MESSAGE:", message)
       switch (message.name) {
+
+        case "login.cookie":
+          // Setup cookie session for this client
+          let expiration = new Date()
+          let hour = expiration.getHours()
+          hour = hour + 6
+          expiration.setHours(hour)
+          /** @namespace ses.cookies **/
+          session.cookies.set({
+              url: gateway,
+              name: message.name,
+              value: message.value,
+              expirationDate: expiration.getTime(),
+              session: true
+          }, function (error) {
+              // console.log(error)
+          })
+          break
 
         // node and services are ready
         case "sync.ready":
@@ -58,7 +79,7 @@ let textile = {
           $(".grid").isotope('prepended', $item)
           break
 
-        // start walkthrough
+        // start walk-through
         case "onboard.start":
           showOnboarding(1)
           textile.pair()
@@ -74,6 +95,7 @@ let textile = {
 }
 
 function showOnboarding(screen) {
+  /** @namespace $ **/
   let ob = $(".onboarding")
   if (ob.hasClass("hidden")) {
     ob.removeClass("hidden")

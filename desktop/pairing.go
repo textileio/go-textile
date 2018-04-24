@@ -7,10 +7,16 @@ import (
 	"github.com/asticode/go-astilog"
 )
 
-var gateway = "http://localhost:9182"
+var gateway = "https://localhost:9182"
 
 func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
 	astilog.Info("TEXTILE STARTED")
+
+	astilog.Info("SENDING COOKIE INFO")
+	sendData(iw, "login.cookie", map[string]interface{}{
+		"name":  "SeesionId",
+		"value": textile.GatewayPassword,
+	})
 
 	// check if we're configured yet
 	if textile.IsDatastoreConfigured() {

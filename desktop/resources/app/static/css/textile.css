@@ -31,10 +31,6 @@
     margin-left: 150px;
 }
 
-.section {
-    padding-top: 75px;
-}
-
 html, body {
     font-family: 'biotifregular', Arial, sans-serif;
     color: #2935FF;
@@ -96,6 +92,10 @@ h2 span {
     position: absolute;
     width: 100vw;
     height: 100vh;
+}
+
+.onboarding .screen {
+    margin-top: 120px;
 }
 
 .onboarding .screen .container {

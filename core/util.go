@@ -12,10 +12,9 @@ import (
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/corehttp"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/corerepo"
 
+	"github.com/textileio/textile-go/ssl"
 	"gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	"strconv"
-	"strings"
 )
 
 // PrintSwarmAddrs prints the addresses of the host
@@ -108,29 +107,45 @@ func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 		w.Write(b)
 	})
 
-	// get config and set proxy address to raw gateway address plus one,
-	// so a gateway on 8182 means the proxy will run on 9182
-	cfg, err := node.Context.GetConfig()
-	if err != nil {
-		return nil, fmt.Errorf("ServeHTTPGatewayProxy: GetConfig() failed: %s", err)
-	}
-	tmp := strings.Split(cfg.Addresses.Gateway, "/")
-	gaddrs := tmp[len(tmp)-1]
-	gaddr, err := strconv.ParseInt(gaddrs, 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("ServeHTTPGatewayProxy: get address failed: %s", err)
-	}
-	addr := gaddr + 1000
-
 	errc := make(chan error)
+
+	port, err := node.GatewayPort()
+	if err != nil {
+		return errc, err
+	}
+
+	portString := fmt.Sprintf(":%d", port)
+
+	// Check if the cert files are available.
+	err = ssl.Check("cert.pem", "key.pem")
+	// If they are not available, generate new ones.
+	if err != nil {
+		err = ssl.Generate("cert.pem", "key.pem", "localhost"+portString)
+		if err != nil {
+			log.Errorf("Error: Couldn't create https certs.")
+			return errc, nil
+		}
+	}
+
+	// Start the HTTPS server in a goroutine
 	go func() {
-		errc <- http.ListenAndServe(fmt.Sprintf(":%v", addr), nil)
+		errc <- http.ListenAndServeTLS(portString, "cert.pem", "key.pem", nil)
 		close(errc)
 	}()
-	log.Infof("decrypting gateway (readonly) server listening at http://127.0.0.1:%v\n", addr)
+
+	// NOTE: No need to actually do this, but keeping commented out for testing
+	// Start the HTTP server and redirect all incoming connections to HTTPS
+	//go http.ListenAndServe(":9193", http.HandlerFunc(redirectToHttps))
+
+	log.Infof("decrypting gateway (readonly) server listening on /ip4/127.0.0.1/tcp/%d\n", port)
 
 	return errc, nil
 }
+
+//func redirectToHttps(w http.ResponseWriter, r *http.Request) {
+//	// Redirect the incoming HTTP request.
+//	http.Redirect(w, r, "https://localhost:9183"+r.RequestURI, http.StatusMovedPermanently)
+//}
 
 func runGC(ctx context.Context, node *core.IpfsNode) (<-chan error, error) {
 	errc := make(chan error)
