@@ -1,7 +1,6 @@
 package core_test
 
 import (
-	"fmt"
 	"github.com/op/go-logging"
 	. "github.com/textileio/textile-go/core"
 	"os"
@@ -12,6 +11,7 @@ var node *TextileNode
 var hash string
 
 func TestNewNode(t *testing.T) {
+	os.RemoveAll("testdata/.ipfs")
 	var err error
 	node, err = NewNode("testdata/.ipfs", false, logging.DEBUG)
 	if err != nil {
@@ -33,15 +33,16 @@ func TestTextileNode_StartServices(t *testing.T) {
 	}
 }
 
-func TestTextileNode_ConfigureDatastore(t *testing.T) {
-	err := node.ConfigureDatastore("")
+func TestTextileNode_CreateAlbum(t *testing.T) {
+	err := node.CreateAlbum("", "test")
 	if err != nil {
-		t.Errorf("configure datastore failed: %s", err)
+		t.Errorf("create album failed: %s", err)
+		return
 	}
 }
 
 func TestTextileNode_AddPhoto(t *testing.T) {
-	mr, err := node.AddPhoto("testdata/photo.jpg", "testdata/thumb.jpg")
+	mr, err := node.AddPhoto("testdata/photo.jpg", "testdata/thumb.jpg", "default")
 	if err != nil {
 		t.Errorf("add photo failed: %s", err)
 		return
@@ -56,7 +57,7 @@ func TestTextileNode_AddPhoto(t *testing.T) {
 }
 
 func TestTextileNode_GetPhotos(t *testing.T) {
-	list := node.GetPhotos("", -1)
+	list := node.GetPhotos("", -1, "default")
 	if len(list.Hashes) == 0 {
 		t.Errorf("get photos bad result")
 	}
@@ -75,12 +76,11 @@ func TestTextileNode_GetFile(t *testing.T) {
 }
 
 func TestTextileNode_GetPublicPeerKeyString(t *testing.T) {
-	pk, err := node.GetPublicPeerKeyString()
+	_, err := node.GetPublicPeerKeyString()
 	if err != nil {
 		t.Errorf("get peer public key as base 64 string failed: %s", err)
 		return
 	}
-	fmt.Printf(pk)
 }
 
 func TestTextileNode_Stop(t *testing.T) {

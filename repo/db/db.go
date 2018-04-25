@@ -18,6 +18,7 @@ type SQLiteDatastore struct {
 	config   repo.Config
 	settings repo.ConfigurationStore
 	photos   repo.PhotoStore
+	albums   repo.AlbumStore
 	db       *sql.DB
 	lock     *sync.Mutex
 }
@@ -42,6 +43,7 @@ func Create(repoPath, password string) (*SQLiteDatastore, error) {
 		},
 		settings: NewConfigurationStore(conn, l),
 		photos:   NewPhotoStore(conn, l),
+		albums:   NewAlbumStore(conn, l),
 		db:       conn,
 		lock:     l,
 	}
@@ -67,6 +69,10 @@ func (d *SQLiteDatastore) Settings() repo.ConfigurationStore {
 
 func (d *SQLiteDatastore) Photos() repo.PhotoStore {
 	return d.photos
+}
+
+func (d *SQLiteDatastore) Albums() repo.AlbumStore {
+	return d.albums
 }
 
 func (d *SQLiteDatastore) Copy(dbPath string, password string) error {
@@ -119,8 +125,11 @@ func initDatabaseTables(db *sql.DB, password string) error {
 	sqlStmt += `
 	PRAGMA user_version = 0;
 	create table config (key text primary key not null, value blob);
-	create table photos (cid text primary key not null, lastCid text, name text, ext text, created integer, added integer, latitude real, longitude real, local integer);
-    create index index_added on photos (added);
+	create table photos (cid text primary key not null, lastCid text, album text not null, name text not null, ext text not null, created integer, added integer not null, latitude real, longitude real, local integer not null);
+    create index index_album_added on photos (album, added);
+	create index index_album_local on photos (album, local);
+    create table albums (id text primary key not null, key blob not null, mnemonic text not null, name text not null);
+    create unique index index_name on albums (name);
 	`
 	_, err := db.Exec(sqlStmt)
 	if err != nil {
@@ -141,7 +150,7 @@ func (c *ConfigDB) Init(password string) error {
 	return initDatabaseTables(c.db, password)
 }
 
-func (c *ConfigDB) Configure(mnemonic string, identityKey []byte, creationDate time.Time) error {
+func (c *ConfigDB) Configure(creationDate time.Time) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -153,16 +162,6 @@ func (c *ConfigDB) Configure(mnemonic string, identityKey []byte, creationDate t
 		return err
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec("mnemonic", mnemonic)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	_, err = stmt.Exec("identityKey", identityKey)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
 	_, err = stmt.Exec("creationDate", creationDate.Format(time.RFC3339))
 	if err != nil {
 		tx.Rollback()
@@ -170,35 +169,6 @@ func (c *ConfigDB) Configure(mnemonic string, identityKey []byte, creationDate t
 	}
 	tx.Commit()
 	return nil
-}
-
-func (c *ConfigDB) GetMnemonic() (string, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	stmt, err := c.db.Prepare("select value from config where key=?")
-	defer stmt.Close()
-	var mnemonic string
-	err = stmt.QueryRow("mnemonic").Scan(&mnemonic)
-	if err != nil {
-		return "", err
-	}
-	return mnemonic, nil
-}
-
-func (c *ConfigDB) GetIdentityKey() ([]byte, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	stmt, err := c.db.Prepare("select value from config where key=?")
-	if err != nil {
-		return nil, err
-	}
-	defer stmt.Close()
-	var identityKey []byte
-	err = stmt.QueryRow("identityKey").Scan(&identityKey)
-	if err != nil {
-		return nil, err
-	}
-	return identityKey, nil
 }
 
 func (c *ConfigDB) GetCreationDate() (time.Time, error) {

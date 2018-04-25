@@ -25,10 +25,6 @@ func AddPhoto(c *ishell.Context) {
 		c.Err(errors.New("missing photo path"))
 		return
 	}
-	if !core.Node.IsDatastoreConfigured() {
-		c.Err(errors.New("datastore not initialized, please run 'textile init'"))
-		return
-	}
 
 	// try to get path with home dir tilda
 	pp, err := homedir.Expand(c.Args[0])
@@ -56,16 +52,21 @@ func AddPhoto(c *ishell.Context) {
 		c.Err(err)
 		return
 	}
-
 	tp := filepath.Join(core.Node.RepoPath, "tmp", ksuid.New().String()+".jpg")
 	if err = ioutil.WriteFile(tp, thb.Bytes(), 0644); err != nil {
 		c.Err(err)
 		return
 	}
 
+	// parse album
+	album := "default"
+	if len(c.Args) > 1 {
+		album = c.Args[1]
+	}
+
 	// do the add
 	f.Seek(0, 0)
-	mr, err := core.Node.AddPhoto(pp, tp)
+	mr, err := core.Node.AddPhoto(pp, tp, album)
 	if err != nil {
 		c.Err(err)
 		return

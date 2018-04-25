@@ -80,39 +80,6 @@ func main() {
 
 	// add commands
 	shell.AddCmd(&ishell.Cmd{
-		Name: "init",
-		Help: "initialize a new datastore",
-		Func: func(c *ishell.Context) {
-			c.ShowPrompt(false)
-			defer c.ShowPrompt(true)
-
-			// get existing mnemonic
-			c.Print("mnemonic phrase (optional): ")
-			mnemonic := c.ReadLine()
-
-			// configure
-			err := core.Node.ConfigureDatastore(mnemonic)
-			if err != nil {
-				c.Err(fmt.Errorf("configure node datastore failed: %s", err))
-				return
-			}
-
-			// start services
-			if !core.Node.ServicesUp {
-				go startServices()
-			}
-
-			// leave old wallet room
-			leaving := core.Node.LeaveRoom()
-			if leaving {
-				<-core.Node.LeftRoomCh
-			}
-
-			// join new room
-			go core.Node.JoinRoom(make(chan string))
-		},
-	})
-	shell.AddCmd(&ishell.Cmd{
 		Name: "id",
 		Help: "show node ids",
 		Func: cmd.GetIds,
@@ -131,17 +98,37 @@ func main() {
 		shell.AddCmd(photosCmd)
 	}
 	{
-		roomsCmd := &ishell.Cmd{
-			Name:     "rooms",
-			Help:     "inspect room subscriptions",
-			LongHelp: "Inspect room subscription.",
+		albumsCmd := &ishell.Cmd{
+			Name:     "albums",
+			Help:     "inspect photo albums",
+			LongHelp: "Inspect photo albums.",
 		}
-		roomsCmd.AddCmd(&ishell.Cmd{
+		albumsCmd.AddCmd(&ishell.Cmd{
 			Name: "ls",
-			Help: "list active rooms",
-			Func: cmd.ListRooms,
+			Help: "list photo albums",
+			Func: cmd.ListAlbums,
 		})
-		shell.AddCmd(roomsCmd)
+		albumsCmd.AddCmd(&ishell.Cmd{
+			Name: "mnemonic",
+			Help: "show album's mnemonic phrase",
+			Func: cmd.AlbumMnemonic,
+		})
+		albumsCmd.AddCmd(&ishell.Cmd{
+			Name: "create",
+			Help: "create a new album",
+			Func: cmd.CreateAlbum,
+		})
+		albumsCmd.AddCmd(&ishell.Cmd{
+			Name: "enable",
+			Help: "enable an album",
+			Func: cmd.EnableAlbum,
+		})
+		albumsCmd.AddCmd(&ishell.Cmd{
+			Name: "disable",
+			Help: "disable an album",
+			Func: cmd.DisableAlbum,
+		})
+		shell.AddCmd(albumsCmd)
 	}
 
 	// create a desktop textile node
@@ -157,10 +144,13 @@ func main() {
 		return
 	}
 
-	// if datastore is configured, start services
-	if core.Node.IsDatastoreConfigured() {
-		go startServices()
-		go core.Node.JoinRoom(make(chan string))
+	// start node http servers and garbage collection
+	go startServices()
+
+	// join existing rooms
+	albums := core.Node.Datastore.Albums().GetAlbums("")
+	for _, a := range albums {
+		go core.Node.JoinRoom(a.Id, make(chan string))
 	}
 
 	// run shell

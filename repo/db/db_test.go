@@ -20,7 +20,7 @@ func setup() {
 	os.MkdirAll(path.Join("./", "datastore"), os.ModePerm)
 	testDB, _ = Create("", "LetMeIn")
 	testDB.config.Init("LetMeIn")
-	testDB.config.Configure("Mnemonic Passphrase", []byte("Private Key"), time.Now())
+	testDB.config.Configure(time.Now())
 }
 
 func teardown() {
@@ -34,22 +34,9 @@ func TestCreate(t *testing.T) {
 }
 
 func TestConfig(t *testing.T) {
-	mn, err := testDB.config.GetMnemonic()
+	_, err := testDB.config.GetCreationDate()
 	if err != nil {
 		t.Error(err)
-	}
-	if mn != "Mnemonic Passphrase" {
-		t.Error("Config returned wrong mnemonic")
-	}
-	pk, err := testDB.config.GetIdentityKey()
-	if err != nil {
-		t.Error(err)
-	}
-	testKey := []byte("Private Key")
-	for i := range pk {
-		if pk[i] != testKey[i] {
-			t.Error("Config returned wrong identity key")
-		}
 	}
 }
 

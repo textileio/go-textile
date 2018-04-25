@@ -13,18 +13,23 @@ import (
 var phdb repo.PhotoStore
 
 func init() {
-	setupDB()
+	setupPhotoDB()
 }
 
-func setupDB() {
+func setupPhotoDB() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
 	initDatabaseTables(conn, "")
 	phdb = NewPhotoStore(conn, new(sync.Mutex))
 }
 
 func TestPhotoDB_Put(t *testing.T) {
-	md := &photos.Metadata{}
-	err := phdb.Put("Qmabc123", "", md, false)
+	err := phdb.Put(&repo.PhotoSet{
+		Cid:      "Qmabc123",
+		LastCid:  "",
+		AlbumID:  "Qm",
+		MetaData: photos.Metadata{},
+		IsLocal:  false,
+	})
 	if err != nil {
 		t.Error(err)
 	}
@@ -41,11 +46,16 @@ func TestPhotoDB_Put(t *testing.T) {
 }
 
 func TestPhotoDB_GetPhoto(t *testing.T) {
-	setupDB()
-	md := &photos.Metadata{
-		Added: time.Now(),
-	}
-	err := phdb.Put("Qmabc", "", md, true)
+	setupPhotoDB()
+	err := phdb.Put(&repo.PhotoSet{
+		Cid:     "Qmabc",
+		LastCid: "",
+		AlbumID: "Qm",
+		MetaData: photos.Metadata{
+			Added: time.Now(),
+		},
+		IsLocal: true,
+	})
 	if err != nil {
 		t.Error(err)
 	}
@@ -57,19 +67,29 @@ func TestPhotoDB_GetPhoto(t *testing.T) {
 }
 
 func TestPhotoDB_GetPhotos(t *testing.T) {
-	setupDB()
-	md := &photos.Metadata{
-		Added: time.Now(),
-	}
-	err := phdb.Put("Qm123", "", md, true)
+	setupPhotoDB()
+	err := phdb.Put(&repo.PhotoSet{
+		Cid:     "Qm123",
+		LastCid: "",
+		AlbumID: "Qm",
+		MetaData: photos.Metadata{
+			Added: time.Now(),
+		},
+		IsLocal: true,
+	})
 	if err != nil {
 		t.Error(err)
 	}
 	time.Sleep(time.Second * 1)
-	md2 := &photos.Metadata{
-		Added: time.Now(),
-	}
-	err = phdb.Put("Qm456", "Qm123", md2, false)
+	err = phdb.Put(&repo.PhotoSet{
+		Cid:     "Qm456",
+		LastCid: "Qm123",
+		AlbumID: "Qm",
+		MetaData: photos.Metadata{
+			Added: time.Now(),
+		},
+		IsLocal: false,
+	})
 	if err != nil {
 		t.Error(err)
 	}
@@ -99,15 +119,20 @@ func TestPhotoDB_GetPhotos(t *testing.T) {
 }
 
 func TestPhotoDB_DeletePhoto(t *testing.T) {
-	setupDB()
-	md := &photos.Metadata{}
-	err := phdb.Put("Qm789", "", md, true)
+	setupPhotoDB()
+	err := phdb.Put(&repo.PhotoSet{
+		Cid:      "Qm789",
+		LastCid:  "",
+		AlbumID:  "Qm",
+		MetaData: photos.Metadata{},
+		IsLocal:  true,
+	})
 	if err != nil {
 		t.Error(err)
 	}
 	ps := phdb.GetPhotos("", -1, "")
 	if len(ps) == 0 {
-		t.Error("Returned incorrect number of photos")
+		t.Error("returned incorrect number of photos")
 		return
 	}
 	err = phdb.DeletePhoto(ps[0].Cid)
