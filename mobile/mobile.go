@@ -15,6 +15,8 @@ import (
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
+var log = logging.MustGetLogger("mobile")
+
 type Wrapper struct {
 	RepoPath       string
 	Cancel         context.CancelFunc
@@ -90,6 +92,7 @@ func (w *Wrapper) GetPeerID() (string, error) {
 }
 
 func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
+	log.Info("pairing with desktop...")
 	pkb, err := base64.StdEncoding.DecodeString(pkb64)
 	if err != nil {
 		return "", err
@@ -105,7 +108,9 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 	// we invite the desktop to _read and write_ to our default album
 	da := w.node.Datastore.Albums().GetAlbumByName("default")
 	if da == nil {
-		return "", errors.New("default album not found")
+		err = errors.New("default album not found")
+		log.Error(err.Error())
+		return "", err
 	}
 	// encypt with the desktop's pub key
 	cph, err := net.Encrypt(pk, []byte(da.Mnemonic))
@@ -125,6 +130,7 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	log.Infof("published key phrase to desktop: %s", topic)
 
 	return topic, nil
 }
