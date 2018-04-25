@@ -11,10 +11,10 @@
 # This script does not handle file names that contain spaces.
 
 gofiles=$(git diff --cached --name-only --diff-filter=ACM | grep '\.go$')
-[ -z "$gofiles" ] && npm run test && exit 0
+[ -z "$gofiles" ] && exit 0
 
 unformatted=$(gofmt -l $gofiles)
-[ -z "$unformatted" ] && npm run test && exit 0
+[ -z "$unformatted" ] && exit 0
 
 # Some files are not gofmt'd. Print message and fail.
 
