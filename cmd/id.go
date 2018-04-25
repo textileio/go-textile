@@ -23,5 +23,5 @@ func ShowId(c *ishell.Context) {
 
 	// show user their id
 	red := color.New(color.FgRed).SprintFunc()
-	c.Println(red("peer id: " + pid.Pretty()))
+	c.Println(red(pid.Pretty()))
 }
