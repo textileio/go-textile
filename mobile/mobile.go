@@ -140,3 +140,11 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 
 	return topic, nil
 }
+
+func (w *Wrapper) ConfigureDatastore(mnemonic string) error {
+	return nil
+}
+
+func (w *Wrapper) IsDatastoreConfigured() bool {
+	return true
+}
