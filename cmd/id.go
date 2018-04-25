@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"errors"
-
 	"github.com/fatih/color"
 	"gopkg.in/abiosoft/ishell.v2"
 
@@ -10,29 +8,7 @@ import (
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
-func GetIds(c *ishell.Context) {
-	if !core.Node.IsDatastoreConfigured() {
-		c.Err(errors.New("datastore not initialized, please run textile init"))
-		return
-	}
-
-	// textile wallet id
-	wsk, err := core.Node.UnmarshalPrivateKey()
-	if err != nil {
-		c.Err(err)
-		return
-	}
-	wid, err := peer.IDFromPrivateKey(wsk)
-	if err != nil {
-		c.Err(err)
-		return
-	}
-	mn, err := core.Node.Datastore.Config().GetMnemonic()
-	if err != nil {
-		c.Err(err)
-		return
-	}
-
+func ShowId(c *ishell.Context) {
 	// peer id
 	psk, err := core.Node.UnmarshalPrivatePeerKey()
 	if err != nil {
@@ -45,11 +21,7 @@ func GetIds(c *ishell.Context) {
 		return
 	}
 
-	// show user their id's
-	magenta := color.New(color.FgMagenta).SprintFunc()
-	blue := color.New(color.FgBlue).SprintFunc()
-	green := color.New(color.FgGreen).SprintFunc()
-	c.Println(magenta("peer id: " + pid.Pretty()))
-	c.Println(blue("wallet id: " + wid.Pretty()))
-	c.Println(green("wallet secret: " + mn))
+	// show user their id
+	red := color.New(color.FgRed).SprintFunc()
+	c.Println(red("peer id: " + pid.Pretty()))
 }

@@ -3,14 +3,13 @@ package repo
 import (
 	"database/sql"
 	"time"
-
-	"github.com/textileio/textile-go/repo/photos"
 )
 
 type Datastore interface {
 	Config() Config
 	Settings() ConfigurationStore
 	Photos() PhotoStore
+	Albums() AlbumStore
 	Ping() error
 	Close()
 }
@@ -26,14 +25,8 @@ type Config interface {
 	// Create the database and tables
 	Init(password string) error
 
-	// Configure the database with the node's mnemonic seed and identity key.
-	Configure(mnemonic string, identityKey []byte, creationDate time.Time) error
-
-	// Return the mnemonic string
-	GetMnemonic() (string, error)
-
-	// Return the identity key
-	GetIdentityKey() ([]byte, error)
+	// Configure the database
+	Configure(creationDate time.Time) error
 
 	// Returns the date the seed was created
 	GetCreationDate() (time.Time, error)
@@ -62,14 +55,33 @@ type PhotoStore interface {
 	Queryable
 
 	// Put a new photo to the database
-	Put(cid string, lastCid string, md *photos.Metadata, local bool) error
+	Put(set *PhotoSet) error
 
-	// A list of photos
+	// Get a single photo set
 	GetPhoto(cid string) *PhotoSet
 
 	// A list of photos
 	GetPhotos(offsetId string, limit int, query string) []PhotoSet
 
-	// Delete a photos
+	// Delete a photo
 	DeletePhoto(cid string) error
+}
+
+type AlbumStore interface {
+	Queryable
+
+	// Put a new album to the database
+	Put(album *PhotoAlbum) error
+
+	// Get a single album
+	GetAlbum(id string) *PhotoAlbum
+
+	// Get a single album by name
+	GetAlbumByName(name string) *PhotoAlbum
+
+	// A list of albums
+	GetAlbums(query string) []PhotoAlbum
+
+	// Delete an album
+	DeleteAlbum(id string) error
 }

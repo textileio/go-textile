@@ -6,6 +6,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,9 +14,12 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/op/go-logging"
+	"github.com/segmentio/ksuid"
 	"github.com/tyler-smith/go-bip39"
 	"gopkg.in/natefinch/lumberjack.v2"
 
@@ -33,14 +37,9 @@ import (
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo"
 	lockfile "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo/lock"
 
-	"database/sql"
-	"encoding/json"
-	"github.com/segmentio/ksuid"
 	"gx/ipfs/QmSFihvoND3eDaAYRCeLgLPt62yCPgMZs1NSZmKFEtJQQw/go-libp2p-floodsub"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	"strconv"
-	"strings"
 )
 
 const VERSION = "0.0.1"
@@ -78,14 +77,14 @@ type TextileNode struct {
 	// Whether or not we're running on a mobile device
 	isMobile bool
 
-	// Signal we're leaving the room
-	leaveRoomCh chan struct{}
-
-	// Signal we left the room
-	LeftRoomCh chan struct{}
+	// Signals for leaving rooms
+	leaveRoomChs map[string]chan struct{}
 
 	// The local password used to authenticate http gateway requests (username is TextileNode)
 	GatewayPassword string
+
+	// Signals for when we've left rooms
+	LeftRoomChs map[string]chan struct{}
 }
 
 type PhotoList struct {
@@ -157,52 +156,30 @@ func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNo
 		Routing: routingOption,
 	}
 
-	// Finally, construct our node
-	return &TextileNode{
+	// finally, construct our node
+	node := &TextileNode{
 		RepoPath:        repoPath,
 		Datastore:       sqliteDB,
 		ipfsConfig:      ncfg,
 		isMobile:        isMobile,
-		leaveRoomCh:     make(chan struct{}),
-		LeftRoomCh:      make(chan struct{}),
+		leaveRoomChs:    make(map[string]chan struct{}),
+		LeftRoomChs:     make(map[string]chan struct{}),
 		GatewayPassword: ksuid.New().String(),
-	}, nil
-}
-
-func (t *TextileNode) ConfigureDatastore(mnemonic string) error {
-	log.Info("configuring textile datastore...")
-	if mnemonic == "" {
-		var err error
-		mnemonic, err = createMnemonic(bip39.NewEntropy, bip39.NewMnemonic)
-		if err != nil {
-			log.Errorf("error creating mnemonic: %s", err)
-			return err
-		}
-		log.Infof("generating %v-bit Ed25519 keypair...", trepo.NBitsForKeypair)
-	} else {
-		log.Infof("regenerating Ed25519 keypair from mnemonic phrase...")
 	}
-	seed := bip39.NewSeed(mnemonic, "")
-	identityKey, err := identityKeyFromSeed(seed, trepo.NBitsForKeypair)
+
+	// create default album
+	err = node.CreateAlbum("", "default")
 	if err != nil {
-		log.Errorf("error creating identity from seed: %s", err)
-		return err
+		log.Infof("default album already exists")
 	}
 
-	return t.Datastore.Config().Configure(mnemonic, identityKey, time.Now())
-}
-
-func (t *TextileNode) IsDatastoreConfigured() bool {
-	_, err := t.Datastore.Config().GetMnemonic()
+	// TODO: remove this post beta
+	err = node.CreateAlbum("avoid lunch soccer wool stock evil nature nest erase enough leaf blood twenty fence soldier brave forum loyal recycle minor small pencil addict pact", "beta")
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return false
-		} else {
-			log.Errorf("error checking if datastore is configured: %s", err)
-			return false
-		}
+		log.Infof("beta album already exists")
 	}
-	return true
+
+	return node, nil
 }
 
 func (t *TextileNode) Start() error {
@@ -249,7 +226,7 @@ func (t *TextileNode) Start() error {
 		log.Info("desktop node is ready")
 	}
 
-	// every 5 min, send latest update to current room
+	// every 5 min, send out latest room updates
 	go t.startRepublishing()
 
 	return nil
@@ -310,29 +287,24 @@ func (t *TextileNode) Stop() error {
 	return nil
 }
 
-func (t *TextileNode) JoinRoom(datac chan string) {
-	rid, err := t.GetRoomID()
-	if err != nil {
-		return
-	}
-
+func (t *TextileNode) JoinRoom(id string, datac chan string) {
 	// create the subscription
-	rids := rid.Pretty()
-	sub, err := t.IpfsNode.Floodsub.Subscribe(rids)
+	sub, err := t.IpfsNode.Floodsub.Subscribe(id)
 	if err != nil {
 		log.Errorf("error creating subscription: %s", err)
 		return
 	}
-	log.Infof("joined room: %s\n", rids)
+	log.Infof("joined room: %s\n", id)
+
+	t.leaveRoomChs[id] = make(chan struct{})
+	t.LeftRoomChs[id] = make(chan struct{})
 
 	leave := func() {
 		sub.Cancel()
-		// not all listeners may be interested in this signal
-		// so we do it non-blocking
-		select {
-		case t.LeftRoomCh <- struct{}{}:
-		default:
-		}
+		close(t.LeftRoomChs[id])
+
+		delete(t.leaveRoomChs, id)
+		delete(t.LeftRoomChs, id)
 		log.Infof("left room: %s\n", sub.Topic())
 	}
 
@@ -350,7 +322,7 @@ func (t *TextileNode) JoinRoom(datac chan string) {
 			}
 
 			// handle the update
-			if err = t.handleRoomUpdate(msg, datac); err != nil {
+			if err = t.handleRoomUpdate(msg, id, datac); err != nil {
 				log.Errorf("error handling room update: %s", err)
 			}
 		}
@@ -359,7 +331,7 @@ func (t *TextileNode) JoinRoom(datac chan string) {
 	// block so we can shutdown with the leave room signal
 	for {
 		select {
-		case <-t.leaveRoomCh:
+		case <-t.leaveRoomChs[id]:
 			leave()
 			return
 		case <-t.IpfsNode.Context().Done():
@@ -369,13 +341,11 @@ func (t *TextileNode) JoinRoom(datac chan string) {
 	}
 }
 
-func (t *TextileNode) LeaveRoom() bool {
-	select {
-	case t.leaveRoomCh <- struct{}{}:
-		return true
-	default:
-		return false
+func (t *TextileNode) LeaveRoom(id string) {
+	if t.leaveRoomChs[id] == nil {
+		return
 	}
+	close(t.leaveRoomChs[id])
 }
 
 func (t *TextileNode) WaitForRoom() {
@@ -417,8 +387,10 @@ func (t *TextileNode) WaitForRoom() {
 			ps := string(p)
 			log.Infof("decrypted mnemonic phrase as: %s\n", ps)
 
-			// setup datastore with phrase and close sub
-			_ = t.ConfigureDatastore(ps)
+			// create a new album for the room
+			// TODO: let user name this or take phone's name, e.g., bob's iphone
+			// TODO: or auto name it, cause this means only one pairing can happen
+			t.CreateAlbum(ps, "mobile")
 
 			// we're done
 			close(cancelCh)
@@ -455,8 +427,55 @@ func (t *TextileNode) GatewayPort() (int, error) {
 	return int(port), nil
 }
 
-func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest, error) {
-	log.Infof("adding photo: %s", path)
+func (t *TextileNode) CreateAlbum(mnemonic string, name string) error {
+	// use phrase if provided
+	log.Infof("creating a new album: %s", name)
+	if mnemonic == "" {
+		var err error
+		mnemonic, err = createMnemonic(bip39.NewEntropy, bip39.NewMnemonic)
+		if err != nil {
+			log.Errorf("error creating mnemonic: %s", err)
+			return err
+		}
+		log.Infof("generating %v-bit Ed25519 keypair for: %s", trepo.NBitsForKeypair, name)
+	} else {
+		log.Infof("regenerating Ed25519 keypair from mnemonic phrase for: %s", name)
+	}
+
+	// create the bip39 seed from the phrase
+	seed := bip39.NewSeed(mnemonic, "")
+	kb, err := identityKeyFromSeed(seed, trepo.NBitsForKeypair)
+	if err != nil {
+		log.Errorf("error creating identity from seed: %s", err)
+		return err
+	}
+
+	// convert to a libp2p crypto private key
+	sk, err := libp2p.UnmarshalPrivateKey(kb)
+	if err != nil {
+		log.Errorf("error unmarshaling private key: %s", err)
+		return err
+	}
+
+	// we need the resultant peer id to use as the album's id
+	id, err := peer.IDFromPrivateKey(sk)
+	if err != nil {
+		log.Errorf("error getting id from priv key: %s", err)
+		return err
+	}
+
+	// finally, create the album
+	album := &trepo.PhotoAlbum{
+		Id:       id.Pretty(),
+		Key:      sk,
+		Mnemonic: mnemonic,
+		Name:     name,
+	}
+	return t.Datastore.Albums().Put(album)
+}
+
+func (t *TextileNode) AddPhoto(path string, thumb string, album string) (*net.MultipartRequest, error) {
+	log.Infof("adding photo %s to %s", path, album)
 
 	// read file from disk
 	p, err := os.Open(path)
@@ -473,23 +492,24 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 	}
 	defer th.Close()
 
-	// unmarshal private key
-	sk, err := t.UnmarshalPrivateKey()
-	if err != nil {
-		log.Errorf("error unmarshaling priv key: %s", err)
+	// get album private key
+	a := t.Datastore.Albums().GetAlbumByName(album)
+	if a == nil {
+		err = errors.New(fmt.Sprintf("could not find album: %s", album))
+		log.Error(err.Error())
 		return nil, err
 	}
 
 	// get last photo update which has local true
 	var lc string
-	recent := t.Datastore.Photos().GetPhotos("", 1, "local=1")
+	recent := t.Datastore.Photos().GetPhotos("", 1, "album='"+a.Id+"' and local=1")
 	if len(recent) > 0 {
 		lc = recent[0].Cid
 		log.Infof("found last hash: %s", lc)
 	}
 
 	// add it
-	mr, md, err := photos.Add(t.IpfsNode, sk.GetPublic(), p, th, lc)
+	mr, md, err := photos.Add(t.IpfsNode, a.Key.GetPublic(), p, th, lc)
 	if err != nil {
 		log.Errorf("error adding photo: %s", err)
 		return nil, err
@@ -497,23 +517,22 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 
 	// index
 	log.Infof("indexing %s...", mr.Boundary)
-	err = t.Datastore.Photos().Put(mr.Boundary, lc, md, true)
+	set := &trepo.PhotoSet{
+		Cid:      mr.Boundary,
+		LastCid:  lc,
+		AlbumID:  a.Id,
+		MetaData: *md,
+		IsLocal:  true,
+	}
+	err = t.Datastore.Photos().Put(set)
 	if err != nil {
 		log.Errorf("error indexing photo: %s", err)
 		return nil, err
 	}
 
-	// get room topic
-	tpid, err := peer.IDFromPrivateKey(sk)
-	if err != nil {
-		log.Errorf("error getting id from priv key: %s", err)
-		return nil, err
-	}
-
 	// publish
-	tp := tpid.Pretty()
-	log.Infof("publishing update to %s...", tp)
-	err = t.IpfsNode.Floodsub.Publish(tp, []byte(mr.Boundary))
+	log.Infof("publishing update to %s...", a.Id)
+	err = t.IpfsNode.Floodsub.Publish(a.Id, []byte(mr.Boundary))
 	if err != nil {
 		log.Errorf("error publishing photo update: %s", err)
 		return nil, err
@@ -522,9 +541,13 @@ func (t *TextileNode) AddPhoto(path string, thumb string) (*net.MultipartRequest
 	return mr, nil
 }
 
-func (t *TextileNode) GetPhotos(offsetId string, limit int) *PhotoList {
+func (t *TextileNode) GetPhotos(offsetId string, limit int, album string) *PhotoList {
 	// query for available hashes
-	list := t.Datastore.Photos().GetPhotos(offsetId, limit, "")
+	a := t.Datastore.Albums().GetAlbumByName(album)
+	if a == nil {
+		return &PhotoList{Hashes: make([]string, 0)}
+	}
+	list := t.Datastore.Photos().GetPhotos(offsetId, limit, "album='"+a.Id+"'")
 
 	// return json list of hashes
 	res := &PhotoList{
@@ -538,6 +561,7 @@ func (t *TextileNode) GetPhotos(offsetId string, limit int) *PhotoList {
 }
 
 // pass in Qm../thumb, or Qm../photo for full image
+// TODO: break the decryption part out of this method
 func (t *TextileNode) GetFile(path string) ([]byte, error) {
 	// get bytes
 	cb, err := t.getDataAtPath(path)
@@ -546,12 +570,24 @@ func (t *TextileNode) GetFile(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	// unmarshal private key
-	sk, err := t.UnmarshalPrivateKey()
-	if err != nil {
-		return nil, err
+	// look up key for decryption
+	tmp := strings.Split(path, "/")
+	if len(tmp) == 0 {
+		return nil, errors.New(fmt.Sprintf("bad path: %s", path))
 	}
-	b, err := net.Decrypt(sk, cb)
+	cid := tmp[0]
+
+	ph := t.Datastore.Photos().GetPhoto(cid)
+	if ph == nil {
+		return nil, errors.New("photo not found")
+	}
+	a := t.Datastore.Albums().GetAlbum(ph.AlbumID)
+	if ph == nil {
+		return nil, errors.New(fmt.Sprintf("could not find album: %s", ph.AlbumID))
+	}
+
+	// finally, decrypt
+	b, err := net.Decrypt(a.Key, cb)
 	if err != nil {
 		log.Errorf("error decrypting file: %s", err)
 		return nil, err
@@ -613,28 +649,6 @@ func (t *TextileNode) UnmarshalPrivatePeerKey() (libp2p.PrivKey, error) {
 	return sk, nil
 }
 
-func (t *TextileNode) UnmarshalPrivateKey() (libp2p.PrivKey, error) {
-	kb, err := t.Datastore.Config().GetIdentityKey()
-	if err != nil {
-		log.Errorf("error unmarshaling priv key: %s", err)
-		return nil, err
-	}
-	return libp2p.UnmarshalPrivateKey(kb)
-}
-
-func (t *TextileNode) GetRoomID() (*peer.ID, error) {
-	sk, err := t.UnmarshalPrivateKey()
-	if err != nil {
-		return nil, err
-	}
-	id, err := peer.IDFromPrivateKey(sk)
-	if err != nil {
-		log.Errorf("error getting id from priv key: %s", err)
-		return nil, err
-	}
-	return &id, nil
-}
-
 func (t *TextileNode) GetPublicPeerKeyString() (string, error) {
 	sk, err := t.UnmarshalPrivatePeerKey()
 	if err != nil {
@@ -651,19 +665,15 @@ func (t *TextileNode) GetPublicPeerKeyString() (string, error) {
 }
 
 func (t *TextileNode) startRepublishing() {
-	// get the room id from priv key
-	rid, err := t.GetRoomID()
-	if err != nil {
-		return
-	}
-	roomID := rid.Pretty()
+	// do it once right away
+	t.republishLatestUpdates()
 
-	// create an un-ending ticker
+	// create a never-ending ticker
 	ticker := time.NewTicker(roomRepublishInterval)
 	defer ticker.Stop()
 	go func() {
 		for range ticker.C {
-			t.republishLatestUpdate(roomID)
+			t.republishLatestUpdates()
 		}
 	}()
 
@@ -676,17 +686,22 @@ func (t *TextileNode) startRepublishing() {
 	}
 }
 
-func (t *TextileNode) republishLatestUpdate(rid string) {
-	// find latest local update
-	recent := t.Datastore.Photos().GetPhotos("", 1, "local=1")
-	if len(recent) == 0 {
-		return
-	}
-	latest := recent[0].Cid
+func (t *TextileNode) republishLatestUpdates() {
+	// do this for each album
+	albums := t.Datastore.Albums().GetAlbums("")
+	for _, a := range albums {
+		// find latest local update
+		recent := t.Datastore.Photos().GetPhotos("", 1, "album='"+a.Id+"' and local=1")
+		if len(recent) == 0 {
+			return
+		}
+		latest := recent[0].Cid
 
-	log.Infof("re-publishing %s to %s...", latest, rid)
-	if err := t.IpfsNode.Floodsub.Publish(rid, []byte(latest)); err != nil {
-		log.Errorf("error re-publishing update: %s", err)
+		// publish it
+		log.Infof("re-publishing %s to %s...", latest, a.Id)
+		if err := t.IpfsNode.Floodsub.Publish(a.Id, []byte(latest)); err != nil {
+			log.Errorf("error re-publishing update: %s", err)
+		}
 	}
 }
 
@@ -707,15 +722,15 @@ func (t *TextileNode) getDataAtPath(path string) ([]byte, error) {
 	return ioutil.ReadAll(r)
 }
 
-func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message, datac chan string) error {
+func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message, aid string, datac chan string) error {
 	// unpack message
 	from := msg.GetFrom().Pretty()
 	hash := string(msg.GetData())
 	api := coreapi.NewCoreAPI(t.IpfsNode)
-	log.Infof("got update from: %s", from)
+	log.Infof("got update from %s in room %s", from, aid)
 
 	// recurse back in time starting at this hash
-	err := t.handleHash(hash, api, datac)
+	err := t.handleHash(hash, aid, api, datac)
 	if err != nil {
 		log.Errorf("error handling hash: %s", err)
 		return err
@@ -724,7 +739,7 @@ func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message, datac chan string)
 	return nil
 }
 
-func (t *TextileNode) handleHash(hash string, api iface.CoreAPI, datac chan string) error {
+func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, datac chan string) error {
 	if hash == "" {
 		log.Infof("found genesis update, aborting")
 		return nil
@@ -738,6 +753,7 @@ func (t *TextileNode) handleHash(hash string, api iface.CoreAPI, datac chan stri
 	}
 
 	// check if we aleady have this hash
+	// TODO: handle same photo in diff album
 	set := t.Datastore.Photos().GetPhoto(hash)
 	if set != nil {
 		log.Infof("update %s exists, aborting", hash)
@@ -764,7 +780,14 @@ func (t *TextileNode) handleHash(hash string, api iface.CoreAPI, datac chan stri
 
 	// index
 	log.Infof("indexing %s...", hash)
-	err = t.Datastore.Photos().Put(hash, last, md, false)
+	set = &trepo.PhotoSet{
+		Cid:      hash,
+		LastCid:  last,
+		AlbumID:  aid,
+		MetaData: *md,
+		IsLocal:  false,
+	}
+	err = t.Datastore.Photos().Put(set)
 	if err != nil {
 		return err
 	}
@@ -776,7 +799,7 @@ func (t *TextileNode) handleHash(hash string, api iface.CoreAPI, datac chan stri
 	}
 
 	// check last hash
-	return t.handleHash(last, api, datac)
+	return t.handleHash(last, aid, api, datac)
 }
 
 func createMnemonic(newEntropy func(int) ([]byte, error), newMnemonic func([]byte) (string, error)) (string, error) {
