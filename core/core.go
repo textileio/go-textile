@@ -1,10 +1,7 @@
 package core
 
 import (
-	"bytes"
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -38,8 +35,10 @@ import (
 	lockfile "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo/lock"
 
 	"gx/ipfs/QmSFihvoND3eDaAYRCeLgLPt62yCPgMZs1NSZmKFEtJQQw/go-libp2p-floodsub"
+	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
 
 const VERSION = "0.0.1"
@@ -50,7 +49,9 @@ var fileLogFormat = logging.MustStringFormatter(
 var log = logging.MustGetLogger("core")
 
 var Node *TextileNode
-var roomRepublishInterval = time.Minute * 5
+
+const roomRepublishInterval = time.Minute * 5
+const kPingTimeout = 10 * time.Second
 
 type TextileNode struct {
 	// Context for issuing IPFS commands
@@ -288,6 +289,9 @@ func (t *TextileNode) Stop() error {
 }
 
 func (t *TextileNode) JoinRoom(id string, datac chan string) {
+	// attempt to connect to room peers
+	connectCancel := t.ConnectToRoomPeers(id)
+
 	// create the subscription
 	sub, err := t.IpfsNode.Floodsub.Subscribe(id)
 	if err != nil {
@@ -300,6 +304,7 @@ func (t *TextileNode) JoinRoom(id string, datac chan string) {
 	t.LeftRoomChs[id] = make(chan struct{})
 
 	leave := func() {
+		connectCancel()
 		sub.Cancel()
 		close(t.LeftRoomChs[id])
 
@@ -406,6 +411,20 @@ func (t *TextileNode) WaitForRoom() {
 			return
 		}
 	}
+}
+
+func (t *TextileNode) ConnectToRoomPeers(topic string) context.CancelFunc {
+	blk := blocks.NewBlock([]byte("floodsub:" + topic))
+	err := t.IpfsNode.Blocks.AddBlock(blk)
+	if err != nil {
+		log.Error("pubsub discovery: ", err)
+		return nil
+	}
+
+	ctx, cancel := context.WithCancel(t.IpfsNode.Context())
+	go connectToPubSubPeers(ctx, t.IpfsNode, blk.Cid())
+
+	return cancel
 }
 
 func (t *TextileNode) GatewayPort() (int, error) {
@@ -561,8 +580,8 @@ func (t *TextileNode) GetPhotos(offsetId string, limit int, album string) *Photo
 }
 
 // pass in Qm../thumb, or Qm../photo for full image
-// TODO: break the decryption part out of this method
-func (t *TextileNode) GetFile(path string) ([]byte, error) {
+// album is looked up if not present
+func (t *TextileNode) GetFile(path string, album *trepo.PhotoAlbum) ([]byte, error) {
 	// get bytes
 	cb, err := t.getDataAtPath(path)
 	if err != nil {
@@ -570,24 +589,27 @@ func (t *TextileNode) GetFile(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	// look up key for decryption
+	// parse root hash of path
 	tmp := strings.Split(path, "/")
 	if len(tmp) == 0 {
 		return nil, errors.New(fmt.Sprintf("bad path: %s", path))
 	}
-	cid := tmp[0]
+	ci := tmp[0]
 
-	ph := t.Datastore.Photos().GetPhoto(cid)
-	if ph == nil {
-		return nil, errors.New("photo not found")
-	}
-	a := t.Datastore.Albums().GetAlbum(ph.AlbumID)
-	if ph == nil {
-		return nil, errors.New(fmt.Sprintf("could not find album: %s", ph.AlbumID))
+	// look up key for decryption
+	if album == nil {
+		ph := t.Datastore.Photos().GetPhoto(ci)
+		if ph == nil {
+			return nil, errors.New(fmt.Sprintf("photo %s not found", ci))
+		}
+		album = t.Datastore.Albums().GetAlbum(ph.AlbumID)
+		if album == nil {
+			return nil, errors.New(fmt.Sprintf("could not find album: %s", ph.AlbumID))
+		}
 	}
 
 	// finally, decrypt
-	b, err := net.Decrypt(a.Key, cb)
+	b, err := net.Decrypt(album.Key, cb)
 	if err != nil {
 		log.Errorf("error decrypting file: %s", err)
 		return nil, err
@@ -596,27 +618,27 @@ func (t *TextileNode) GetFile(path string) ([]byte, error) {
 	return b, err
 }
 
-func (t *TextileNode) GetMetaData(hash string) (*photos.Metadata, error) {
-	b, err := t.GetFile(fmt.Sprintf("%s/meta", hash))
+func (t *TextileNode) GetMetaData(hash string, album *trepo.PhotoAlbum) (*photos.Metadata, error) {
+	b, err := t.GetFile(fmt.Sprintf("%s/meta", hash), album)
 	if err != nil {
-		log.Errorf("error getting meta file: %s", err)
+		log.Errorf("error getting meta file with hash: %s: %s", hash, err)
 		return nil, err
 	}
 
 	var data *photos.Metadata
 	err = json.Unmarshal(b, &data)
 	if err != nil {
-		log.Errorf("error unmarshaling meta file: %s", err)
+		log.Errorf("error unmarshaling meta file with hash: %s: %s", hash, err)
 		return nil, err
 	}
 
 	return data, nil
 }
 
-func (t *TextileNode) GetLastHash(hash string) (string, error) {
-	b, err := t.GetFile(fmt.Sprintf("%s/last", hash))
+func (t *TextileNode) GetLastHash(hash string, album *trepo.PhotoAlbum) (string, error) {
+	b, err := t.GetFile(fmt.Sprintf("%s/last", hash), album)
 	if err != nil {
-		log.Errorf("error getting last hash file: %s", err)
+		log.Errorf("error getting last hash file with hash: %s: %s", hash, err)
 		return "", err
 	}
 
@@ -662,6 +684,63 @@ func (t *TextileNode) GetPublicPeerKeyString() (string, error) {
 	}
 
 	return base64.StdEncoding.EncodeToString(pkb), nil
+}
+
+func (t *TextileNode) PingPeer(addrs string, num int, out chan string) error {
+	addr, pid, err := parsePeerParam(addrs)
+	if addr != nil {
+		t.IpfsNode.Peerstore.AddAddr(pid, addr, pstore.TempAddrTTL) // temporary
+	}
+
+	if len(t.IpfsNode.Peerstore.Addrs(pid)) == 0 {
+		// Make sure we can find the node in question
+		log.Infof("looking up peer: %s", pid.Pretty())
+
+		ctx, cancel := context.WithTimeout(t.IpfsNode.Context(), kPingTimeout)
+		defer cancel()
+		p, err := t.IpfsNode.Routing.FindPeer(ctx, pid)
+		if err != nil {
+			err = fmt.Errorf("peer lookup error: %s", err)
+			log.Errorf(err.Error())
+			return err
+		}
+		t.IpfsNode.Peerstore.AddAddrs(p.ID, p.Addrs, pstore.TempAddrTTL)
+	}
+
+	ctx, cancel := context.WithTimeout(t.IpfsNode.Context(), kPingTimeout*time.Duration(num))
+	defer cancel()
+	pings, err := t.IpfsNode.Ping.Ping(ctx, pid)
+	if err != nil {
+		log.Errorf("error pinging peer %s: %s", pid.Pretty(), err)
+		return err
+	}
+
+	var done bool
+	var total time.Duration
+	for i := 0; i < num && !done; i++ {
+		select {
+		case <-ctx.Done():
+			done = true
+			close(out)
+			break
+		case t, ok := <-pings:
+			if !ok {
+				done = true
+				close(out)
+				break
+			}
+			total += t
+			msg := fmt.Sprintf("ping %s completed after %f seconds", pid.Pretty(), t.Seconds())
+			select {
+			case out <- msg:
+			default:
+			}
+			log.Infof(msg)
+			time.Sleep(time.Second)
+		}
+	}
+
+	return nil
 }
 
 func (t *TextileNode) startRepublishing() {
@@ -740,6 +819,15 @@ func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message, aid string, datac 
 }
 
 func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, datac chan string) error {
+	// look up the album
+	a := t.Datastore.Albums().GetAlbum(aid)
+	if a == nil {
+		err := errors.New(fmt.Sprintf("could not find album with id: %s", aid))
+		log.Error(err.Error())
+		return err
+	}
+
+	// first update?
 	if hash == "" {
 		log.Infof("found genesis update, aborting")
 		return nil
@@ -769,11 +857,11 @@ func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, dat
 
 	// unpack data set
 	log.Infof("unpacking %s...", hash)
-	md, err := t.GetMetaData(hash)
+	md, err := t.GetMetaData(hash, a)
 	if err != nil {
 		return err
 	}
-	last, err := t.GetLastHash(hash)
+	last, err := t.GetLastHash(hash, a)
 	if err != nil {
 		return err
 	}
@@ -800,31 +888,4 @@ func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, dat
 
 	// check last hash
 	return t.handleHash(last, aid, api, datac)
-}
-
-func createMnemonic(newEntropy func(int) ([]byte, error), newMnemonic func([]byte) (string, error)) (string, error) {
-	entropy, err := newEntropy(256)
-	if err != nil {
-		return "", err
-	}
-	mnemonic, err := newMnemonic(entropy)
-	if err != nil {
-		return "", err
-	}
-	return mnemonic, nil
-}
-
-func identityKeyFromSeed(seed []byte, bits int) ([]byte, error) {
-	hm := hmac.New(sha256.New, []byte("scythian horde"))
-	hm.Write(seed)
-	reader := bytes.NewReader(hm.Sum(nil))
-	sk, _, err := libp2p.GenerateKeyPairWithReader(libp2p.Ed25519, bits, reader)
-	if err != nil {
-		return nil, err
-	}
-	encodedKey, err := sk.Bytes()
-	if err != nil {
-		return nil, err
-	}
-	return encodedKey, nil
 }

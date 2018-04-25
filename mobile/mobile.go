@@ -77,7 +77,7 @@ func (w *Wrapper) GetPhotos(offsetId string, limit int) (string, error) {
 }
 
 func (w *Wrapper) GetFileBase64(path string) (string, error) {
-	b, err := w.node.GetFile(path)
+	b, err := w.node.GetFile(path, nil)
 	if err != nil {
 		return "error", err
 	}
@@ -132,5 +132,19 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 	}
 	log.Infof("published key phrase to desktop: %s", topic)
 
+	// try a ping
+	err = w.node.PingPeer(topic, 1, make(chan string))
+	if err != nil {
+		log.Errorf("ping %s failed: %s", topic, err)
+	}
+
 	return topic, nil
+}
+
+func (w *Wrapper) ConfigureDatastore(mnemonic string) error {
+	return nil
+}
+
+func (w *Wrapper) IsDatastoreConfigured() bool {
+	return true
 }
