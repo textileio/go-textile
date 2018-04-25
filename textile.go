@@ -81,57 +81,57 @@ func main() {
 	// add commands
 	shell.AddCmd(&ishell.Cmd{
 		Name: "id",
-		Help: "show node ids",
-		Func: cmd.GetIds,
+		Help: "show peer id",
+		Func: cmd.ShowId,
 	})
 	{
-		photosCmd := &ishell.Cmd{
-			Name:     "photos",
-			Help:     "manage wallet photos",
-			LongHelp: "Manage your textile wallet photos.",
+		photoCmd := &ishell.Cmd{
+			Name:     "photo",
+			Help:     "manage photos",
+			LongHelp: "Add, list, and get info about photos.",
 		}
-		photosCmd.AddCmd(&ishell.Cmd{
+		photoCmd.AddCmd(&ishell.Cmd{
 			Name: "add",
-			Help: "add a new photo",
+			Help: "add a new photo (default thread is \"#default\")",
 			Func: cmd.AddPhoto,
 		})
-		photosCmd.AddCmd(&ishell.Cmd{
+		photoCmd.AddCmd(&ishell.Cmd{
 			Name: "ls",
-			Help: "list photos from an album",
+			Help: "list photos from a thread (defaults to \"#default\")",
 			Func: cmd.ListPhotos,
 		})
-		shell.AddCmd(photosCmd)
+		shell.AddCmd(photoCmd)
 	}
 	{
 		albumsCmd := &ishell.Cmd{
-			Name:     "albums",
-			Help:     "inspect photo albums",
-			LongHelp: "Inspect photo albums.",
+			Name:     "thread",
+			Help:     "manage photo threads",
+			LongHelp: "Add, list, enable, disable, and get info about photo threads.",
 		}
 		albumsCmd.AddCmd(&ishell.Cmd{
-			Name: "ls",
-			Help: "list photo albums",
-			Func: cmd.ListAlbums,
-		})
-		albumsCmd.AddCmd(&ishell.Cmd{
-			Name: "mnemonic",
-			Help: "show album's mnemonic phrase",
-			Func: cmd.AlbumMnemonic,
-		})
-		albumsCmd.AddCmd(&ishell.Cmd{
-			Name: "create",
-			Help: "create a new album",
+			Name: "add",
+			Help: "add a new thread",
 			Func: cmd.CreateAlbum,
 		})
 		albumsCmd.AddCmd(&ishell.Cmd{
+			Name: "ls",
+			Help: "list threads",
+			Func: cmd.ListAlbums,
+		})
+		albumsCmd.AddCmd(&ishell.Cmd{
 			Name: "enable",
-			Help: "enable an album",
+			Help: "enable a thread",
 			Func: cmd.EnableAlbum,
 		})
 		albumsCmd.AddCmd(&ishell.Cmd{
 			Name: "disable",
-			Help: "disable an album",
+			Help: "disable a thread",
 			Func: cmd.DisableAlbum,
+		})
+		albumsCmd.AddCmd(&ishell.Cmd{
+			Name: "mnemonic",
+			Help: "show mnemonic phrase",
+			Func: cmd.AlbumMnemonic,
 		})
 		shell.AddCmd(albumsCmd)
 	}

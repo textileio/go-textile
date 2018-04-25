@@ -85,7 +85,7 @@ func AddPhoto(c *ishell.Context) {
 
 	// show user root cid
 	cyan := color.New(color.FgCyan).SprintFunc()
-	c.Println(cyan("added " + mr.Boundary + " to album " + album))
+	c.Println(cyan("added " + mr.Boundary + " to thread " + album))
 }
 
 func ListPhotos(c *ishell.Context) {
@@ -96,13 +96,13 @@ func ListPhotos(c *ishell.Context) {
 
 	a := core.Node.Datastore.Albums().GetAlbumByName(album)
 	if a == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find album: %s", album)))
+		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", album)))
 		return
 	}
 
 	sets := core.Node.Datastore.Photos().GetPhotos("", -1, "album='"+a.Id+"'")
 	if len(sets) == 0 {
-		c.Println(fmt.Sprintf("no photos found in album: %s", album))
+		c.Println(fmt.Sprintf("no photos found in thread: %s", album))
 	} else {
 		c.Println(fmt.Sprintf("found %v photos in: %s", len(sets), album))
 	}
