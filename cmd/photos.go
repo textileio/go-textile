@@ -3,12 +3,14 @@ package cmd
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"image"
 	_ "image/gif"
 	"image/jpeg"
 	_ "image/png"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/disintegration/imaging"
 	"github.com/fatih/color"
@@ -17,7 +19,6 @@ import (
 	"gopkg.in/abiosoft/ishell.v2"
 
 	"github.com/textileio/textile-go/core"
-	"path/filepath"
 )
 
 func AddPhoto(c *ishell.Context) {
@@ -84,5 +85,30 @@ func AddPhoto(c *ishell.Context) {
 
 	// show user root cid
 	cyan := color.New(color.FgCyan).SprintFunc()
-	c.Println(cyan("added " + mr.Boundary))
+	c.Println(cyan("added " + mr.Boundary + " to album " + album))
+}
+
+func ListPhotos(c *ishell.Context) {
+	album := "default"
+	if len(c.Args) > 0 {
+		album = c.Args[0]
+	}
+
+	a := core.Node.Datastore.Albums().GetAlbumByName(album)
+	if a == nil {
+		c.Err(errors.New(fmt.Sprintf("could not find album: %s", album)))
+		return
+	}
+
+	sets := core.Node.Datastore.Photos().GetPhotos("", -1, "album='"+a.Id+"'")
+	if len(sets) == 0 {
+		c.Println(fmt.Sprintf("no photos found in album: %s", album))
+	} else {
+		c.Println(fmt.Sprintf("found %v photos in: %s", len(sets), album))
+	}
+
+	magenta := color.New(color.FgHiMagenta).SprintFunc()
+	for _, s := range sets {
+		c.Println(magenta(fmt.Sprintf("cid: %s, name: %s%s", s.Cid, s.MetaData.Name, s.MetaData.Ext)))
+	}
 }

@@ -61,3 +61,6 @@ dist
 *.aar
 *.jar
 *.framework
+
+# keys
+*.pem

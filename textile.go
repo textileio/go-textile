@@ -95,6 +95,11 @@ func main() {
 			Help: "add a new photo",
 			Func: cmd.AddPhoto,
 		})
+		photosCmd.AddCmd(&ishell.Cmd{
+			Name: "ls",
+			Help: "list photos from an album",
+			Func: cmd.ListPhotos,
+		})
 		shell.AddCmd(photosCmd)
 	}
 	{

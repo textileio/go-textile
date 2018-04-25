@@ -10,9 +10,14 @@ import (
 )
 
 func ListAlbums(c *ishell.Context) {
-	// cross check pubsub rooms and albums
 	rooms := core.Node.IpfsNode.Floodsub.GetTopics()
 	albums := core.Node.Datastore.Albums().GetAlbums("")
+
+	if len(albums) == 0 {
+		c.Println("no albums found")
+	} else {
+		c.Println(fmt.Sprintf("found %v albums", len(albums)))
+	}
 
 	yellow := color.New(color.FgYellow).SprintFunc()
 	for _, a := range albums {
@@ -38,11 +43,19 @@ func CreateAlbum(c *ishell.Context) {
 
 	if err := core.Node.CreateAlbum(mnemonic, name); err != nil {
 		c.Err(err)
+		return
 	}
 
+	a := core.Node.Datastore.Albums().GetAlbumByName(name)
+	if a == nil {
+		c.Err(errors.New(fmt.Sprintf("could not find album: %s", name)))
+		return
+	}
+
+	go core.Node.JoinRoom(a.Id, make(chan string))
+
 	cyan := color.New(color.FgCyan).SprintFunc()
-	c.Println(cyan(fmt.Sprintf("created album %s", name)))
-	c.Printf("enable it with `albums enable %s`\n", name)
+	c.Println(cyan(fmt.Sprintf("created %s", name)))
 }
 
 func EnableAlbum(c *ishell.Context) {
@@ -59,13 +72,13 @@ func EnableAlbum(c *ishell.Context) {
 	}
 
 	if core.Node.LeftRoomChs[a.Id] != nil {
-		c.Printf("album already enabled: %s\n", a.Id)
+		c.Printf("already enabled: %s\n", a.Id)
 		return
 	}
 
 	go core.Node.JoinRoom(a.Id, make(chan string))
 
-	c.Printf("ok, album is now enabled: %s\n", a.Id)
+	c.Printf("ok, now enabled: %s\n", a.Id)
 }
 
 func DisableAlbum(c *ishell.Context) {
@@ -82,14 +95,14 @@ func DisableAlbum(c *ishell.Context) {
 	}
 
 	if core.Node.LeftRoomChs[a.Id] == nil {
-		c.Printf("album already disabled: %s\n", a.Id)
+		c.Printf("already disabled: %s\n", a.Id)
 		return
 	}
 
 	core.Node.LeaveRoom(a.Id)
 	<-core.Node.LeftRoomChs[a.Id]
 
-	c.Printf("ok, album is now disabled: %s\n", a.Id)
+	c.Printf("ok, now disabled: %s\n", a.Id)
 }
 
 func AlbumMnemonic(c *ishell.Context) {

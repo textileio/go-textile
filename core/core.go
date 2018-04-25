@@ -14,14 +14,14 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"time"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/op/go-logging"
+	"github.com/segmentio/ksuid"
 	"github.com/tyler-smith/go-bip39"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"github.com/segmentio/ksuid"
 
 	"github.com/textileio/textile-go/net"
 	trepo "github.com/textileio/textile-go/repo"
@@ -158,12 +158,12 @@ func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNo
 
 	// finally, construct our node
 	node := &TextileNode{
-		RepoPath:     repoPath,
-		Datastore:    sqliteDB,
-		ipfsConfig:   ncfg,
-		isMobile:     isMobile,
-		leaveRoomChs: make(map[string]chan struct{}),
-		LeftRoomChs:  make(map[string]chan struct{}),
+		RepoPath:        repoPath,
+		Datastore:       sqliteDB,
+		ipfsConfig:      ncfg,
+		isMobile:        isMobile,
+		leaveRoomChs:    make(map[string]chan struct{}),
+		LeftRoomChs:     make(map[string]chan struct{}),
 		GatewayPassword: ksuid.New().String(),
 	}
 
