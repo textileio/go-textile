@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"sort"
 
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
@@ -120,4 +121,66 @@ func AlbumMnemonic(c *ishell.Context) {
 
 	green := color.New(color.FgGreen).SprintFunc()
 	c.Println(green(a.Mnemonic))
+}
+
+func RepublishAlbum(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing thread name"))
+		return
+	}
+	name := c.Args[0]
+
+	a := core.Node.Datastore.Albums().GetAlbumByName(name)
+	if a == nil {
+		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
+		return
+	}
+
+	recent := core.Node.Datastore.Photos().GetPhotos("", 1, "album='"+a.Id+"' and local=1")
+	if len(recent) == 0 {
+		c.Println(fmt.Sprintf("no updates to publish in: %s", name))
+		return
+	}
+	latest := recent[0].Cid
+
+	// publish it
+	if err := core.Node.IpfsNode.Floodsub.Publish(a.Id, []byte(latest)); err != nil {
+		c.Err(fmt.Errorf("error re-publishing update: %s", err))
+		return
+	}
+
+	blue := color.New(color.FgHiBlue).SprintFunc()
+	c.Println(blue(fmt.Sprintf("published %s to %s", latest, a.Id)))
+}
+
+func ListAlbumPeers(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing thread name"))
+		return
+	}
+	name := c.Args[0]
+
+	a := core.Node.Datastore.Albums().GetAlbumByName(name)
+	if a == nil {
+		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
+		return
+	}
+
+	peers := core.Node.IpfsNode.Floodsub.ListPeers(a.Id)
+	var list []string
+	for _, peer := range peers {
+		list = append(list, peer.Pretty())
+	}
+	sort.Strings(list)
+
+	if len(list) == 0 {
+		c.Println(fmt.Sprintf("no peers found in: %s", name))
+	} else {
+		c.Println(fmt.Sprintf("found %v peers in: %s", len(list), name))
+	}
+
+	yellow := color.New(color.FgHiYellow).SprintFunc()
+	for _, peer := range list {
+		c.Println(yellow(peer))
+	}
 }

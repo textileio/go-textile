@@ -65,7 +65,7 @@ func TestTextileNode_GetPhotos(t *testing.T) {
 }
 
 func TestTextileNode_GetFile(t *testing.T) {
-	res, err := node.GetFile(hash + "/thumb")
+	res, err := node.GetFile(hash+"/thumb", nil)
 	if err != nil {
 		t.Errorf("get photo failed: %s", err)
 		return
