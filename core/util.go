@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -129,7 +130,11 @@ func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 	err = ssl.Check("cert.pem", "key.pem")
 	// If they are not available, generate new ones.
 	if err != nil {
-		err = ssl.Generate("cert.pem", "key.pem", "localhost"+portString)
+		err = ssl.Generate(
+			filepath.Join(node.RepoPath, "cert.pem"),
+			filepath.Join(node.RepoPath, "key.pem"),
+			"localhost"+portString,
+		)
 		if err != nil {
 			log.Errorf("Error: Couldn't create https certs.")
 			return errc, nil
