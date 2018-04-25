@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/textileio/textile-go/core"
@@ -17,6 +16,7 @@ var wrapper *Wrapper
 var hash string
 
 func TestNewTextile(t *testing.T) {
+	os.RemoveAll("testdata/.ipfs")
 	var err error
 	wrapper, err = NewNode("testdata/.ipfs")
 	if err != nil {
@@ -35,27 +35,6 @@ func TestWrapper_StartAgain(t *testing.T) {
 	err := wrapper.Start()
 	if err != nil {
 		t.Errorf("attempt to start a running node failed: %s", err)
-	}
-}
-
-func TestWrapper_IsDatastoreConfigured(t *testing.T) {
-	conf := wrapper.IsDatastoreConfigured()
-	if conf {
-		t.Error("check if datastore is configured bad result")
-	}
-}
-
-func TestWrapper_ConfigureDatastore(t *testing.T) {
-	err := wrapper.ConfigureDatastore("")
-	if err != nil {
-		t.Errorf("configure datastore on mobile node failed: %s", err)
-	}
-}
-
-func TestWrapper_IsDatastoreConfigured2(t *testing.T) {
-	conf := wrapper.IsDatastoreConfigured()
-	if !conf {
-		t.Error("check if datastore is configured (2) bad result")
 	}
 }
 
@@ -110,18 +89,6 @@ func TestWrapper_GetFileBase64(t *testing.T) {
 	}
 	if len(res) == 0 {
 		t.Errorf("get photo base64 string bad result")
-	}
-}
-
-func TestWrapper_GetRecoveryPhrase(t *testing.T) {
-	mnemonic, err := wrapper.GetRecoveryPhrase()
-	if err != nil {
-		t.Errorf("failed to create a new recovery phrase: %s", err)
-		return
-	}
-	list := strings.Split(mnemonic, " ")
-	if len(list) != 24 {
-		t.Errorf("got bad mnemonic length: %c", len(list))
 	}
 }
 

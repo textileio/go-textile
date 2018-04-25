@@ -54,24 +54,16 @@ func (w *Wrapper) StartGateway() error {
 	return nil
 }
 
-func (w *Wrapper) ConfigureDatastore(mnemonic string) error {
-	return w.node.ConfigureDatastore(mnemonic)
-}
-
-func (w *Wrapper) IsDatastoreConfigured() bool {
-	return w.node.IsDatastoreConfigured()
-}
-
 func (w *Wrapper) Stop() error {
 	return w.node.Stop()
 }
 
 func (w *Wrapper) AddPhoto(path string, thumb string) (*net.MultipartRequest, error) {
-	return w.node.AddPhoto(path, thumb)
+	return w.node.AddPhoto(path, thumb, "default")
 }
 
 func (w *Wrapper) GetPhotos(offsetId string, limit int) (string, error) {
-	list := w.node.GetPhotos(offsetId, limit)
+	list := w.node.GetPhotos(offsetId, limit, "default")
 
 	// gomobile does not allow slices. so, convert to json
 	jsonb, err := json.Marshal(list)
@@ -88,11 +80,6 @@ func (w *Wrapper) GetFileBase64(path string) (string, error) {
 		return "error", err
 	}
 	return base64.StdEncoding.EncodeToString(b), nil
-}
-
-// provides the user's recovery phrase for their private key
-func (w *Wrapper) GetRecoveryPhrase() (string, error) {
-	return w.node.Datastore.Config().GetMnemonic()
 }
 
 func (w *Wrapper) GetPeerID() (string, error) {
@@ -115,12 +102,13 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 
 	// the phrase will be used by the desktop client to create
 	// the private key needed to decrypt photos
-	ph, err := w.GetRecoveryPhrase()
-	if err != nil {
-		return "", err
+	// we invite the desktop to _read and write_ to our default album
+	da := w.node.Datastore.Albums().GetAlbumByName("default")
+	if da == nil {
+		return "", errors.New("default album not found")
 	}
 	// encypt with the desktop's pub key
-	cph, err := net.Encrypt(pk, []byte(ph))
+	cph, err := net.Encrypt(pk, []byte(da.Mnemonic))
 	if err != nil {
 		return "", err
 	}
