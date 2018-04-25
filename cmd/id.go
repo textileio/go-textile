@@ -8,7 +8,7 @@ import (
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
-func GetIds(c *ishell.Context) {
+func ShowId(c *ishell.Context) {
 	// peer id
 	psk, err := core.Node.UnmarshalPrivatePeerKey()
 	if err != nil {

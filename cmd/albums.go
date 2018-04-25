@@ -14,9 +14,9 @@ func ListAlbums(c *ishell.Context) {
 	albums := core.Node.Datastore.Albums().GetAlbums("")
 
 	if len(albums) == 0 {
-		c.Println("no albums found")
+		c.Println("no threads found")
 	} else {
-		c.Println(fmt.Sprintf("found %v albums", len(albums)))
+		c.Println(fmt.Sprintf("found %v threads", len(albums)))
 	}
 
 	yellow := color.New(color.FgYellow).SprintFunc()
@@ -33,7 +33,7 @@ func ListAlbums(c *ishell.Context) {
 
 func CreateAlbum(c *ishell.Context) {
 	if len(c.Args) == 0 {
-		c.Err(errors.New("missing album name"))
+		c.Err(errors.New("missing thread name"))
 		return
 	}
 	name := c.Args[0]
@@ -48,26 +48,26 @@ func CreateAlbum(c *ishell.Context) {
 
 	a := core.Node.Datastore.Albums().GetAlbumByName(name)
 	if a == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find album: %s", name)))
+		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
 		return
 	}
 
 	go core.Node.JoinRoom(a.Id, make(chan string))
 
 	cyan := color.New(color.FgCyan).SprintFunc()
-	c.Println(cyan(fmt.Sprintf("created %s", name)))
+	c.Println(cyan(fmt.Sprintf("created thread #%s", name)))
 }
 
 func EnableAlbum(c *ishell.Context) {
 	if len(c.Args) == 0 {
-		c.Err(errors.New("missing album name"))
+		c.Err(errors.New("missing thread name"))
 		return
 	}
 	name := c.Args[0]
 
 	a := core.Node.Datastore.Albums().GetAlbumByName(name)
 	if a == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find album: %s", name)))
+		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
 		return
 	}
 
@@ -83,14 +83,14 @@ func EnableAlbum(c *ishell.Context) {
 
 func DisableAlbum(c *ishell.Context) {
 	if len(c.Args) == 0 {
-		c.Err(errors.New("missing album name"))
+		c.Err(errors.New("missing thread name"))
 		return
 	}
 	name := c.Args[0]
 
 	a := core.Node.Datastore.Albums().GetAlbumByName(name)
 	if a == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find album: %s", name)))
+		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
 		return
 	}
 
@@ -107,14 +107,14 @@ func DisableAlbum(c *ishell.Context) {
 
 func AlbumMnemonic(c *ishell.Context) {
 	if len(c.Args) == 0 {
-		c.Err(errors.New("missing album name"))
+		c.Err(errors.New("missing thread name"))
 		return
 	}
 	name := c.Args[0]
 
 	a := core.Node.Datastore.Albums().GetAlbumByName(name)
 	if a == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find album: %s", name)))
+		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
 		return
 	}
 
