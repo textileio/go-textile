@@ -19,9 +19,10 @@ func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Me
 	})
 
 	// check if we're configured yet
-	if textile.IsDatastoreConfigured() {
+	a := textile.Datastore.Albums().GetAlbumByName("mobile")
+	if a != nil {
 		// can join room
-		astilog.Info("ALREADY CONFIGURED")
+		astilog.Info("FOUND MOBILE ALBUM")
 
 		// tell app we're ready and send initial html
 		sendData(iw, "sync.ready", map[string]interface{}{
@@ -30,15 +31,16 @@ func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Me
 
 	} else {
 		// otherwise, start onboaring
-		astilog.Info("NOT CONFIGURED")
+		astilog.Info("COULD NOT FIND MOBILE ALBUM")
 		astilog.Info("STARTING PAIRING")
 
 		go func() {
 			// sub to own peer id for pairing setup and wait
 			textile.WaitForRoom()
 
-			if !textile.IsDatastoreConfigured() {
-				astilog.Error("failed to join room")
+			a := textile.Datastore.Albums().GetAlbumByName("mobile")
+			if a == nil {
+				astilog.Error("failed to create mobile album")
 				return
 			}
 
@@ -60,7 +62,7 @@ func joinRoom(iw *astilectron.Window) error {
 	astilog.Info("STARTING SYNC")
 
 	datac := make(chan string)
-	go textile.JoinRoom(datac)
+	go textile.JoinRoom("mobile", datac)
 	for {
 		select {
 		case hash, ok := <-datac:

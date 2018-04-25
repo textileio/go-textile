@@ -21,12 +21,11 @@ var (
 var textile *core.TextileNode
 
 func main() {
-	// Init
 	AppName := "Textile"
 	flag.Parse()
 	astilog.FlagInit()
 
-	// Create a desktop textile node
+	// create a desktop textile node
 	// TODO: on darwin, repo should live in Application Support
 	var err error
 	textile, err = core.NewNode("output/.ipfs", false, logging.DEBUG)
@@ -35,16 +34,15 @@ func main() {
 		return
 	}
 
-	// Bring the node online
+	// bring the node online
 	err = textile.Start()
 	if err != nil {
 		astilog.Errorf("start desktop node failed: %s", err)
 		return
 	}
 
-	// Start garbage collection and gateway services
+	// start garbage collection and gateway services
 	// NOTE: on desktop, gateway runs on 8182, decrypting file gateway on 9182
-	// TODO: don't start services if datastore is not configured
 	errc, err := textile.StartServices()
 	if err != nil {
 		astilog.Errorf("start service error: %s", err)
@@ -61,7 +59,7 @@ func main() {
 		}
 	}()
 
-	// Run bootstrap
+	// run bootstrap
 	astilog.Debugf("Running app built at %s", BuiltAt)
 	if err := bootstrap.Run(bootstrap.Options{
 		Asset: Asset,

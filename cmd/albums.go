@@ -32,9 +32,17 @@ func CreateAlbum(c *ishell.Context) {
 		return
 	}
 	name := c.Args[0]
-	if err := core.Node.CreateAlbum("", name); err != nil {
+
+	c.Print("key pair mnemonic phrase (optional): ")
+	mnemonic := c.ReadLine()
+
+	if err := core.Node.CreateAlbum(mnemonic, name); err != nil {
 		c.Err(err)
 	}
+
+	cyan := color.New(color.FgCyan).SprintFunc()
+	c.Println(cyan(fmt.Sprintf("created album %s", name)))
+	c.Printf("enable it with `albums enable %s`\n", name)
 }
 
 func EnableAlbum(c *ishell.Context) {
