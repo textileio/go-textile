@@ -102,7 +102,7 @@ func ListPhotos(c *ishell.Context) {
 
 	sets := core.Node.Datastore.Photos().GetPhotos("", -1, "album='"+a.Id+"'")
 	if len(sets) == 0 {
-		c.Println(fmt.Sprintf("no photos found in thread: %s", album))
+		c.Println(fmt.Sprintf("no photos found in: %s", album))
 	} else {
 		c.Println(fmt.Sprintf("found %v photos in: %s", len(sets), album))
 	}

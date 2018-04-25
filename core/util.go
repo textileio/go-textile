@@ -1,11 +1,17 @@
 package core
 
 import (
+	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
+	"time"
 
 	oldcmds "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/commands"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
@@ -15,6 +21,10 @@ import (
 	"github.com/textileio/textile-go/ssl"
 	"gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
+	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
 
 // PrintSwarmAddrs prints the addresses of the host
@@ -98,7 +108,7 @@ func serveHTTPGateway(cctx *oldcmds.Context) (<-chan error, error) {
 
 func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		b, err := node.GetFile(r.URL.Path)
+		b, err := node.GetFile(r.URL.Path, nil)
 		if err != nil {
 			log.Errorf("error decrypting path %s: %s", r.URL.Path, err)
 			w.WriteHeader(400)
@@ -120,7 +130,11 @@ func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 	err = ssl.Check("cert.pem", "key.pem")
 	// If they are not available, generate new ones.
 	if err != nil {
-		err = ssl.Generate("cert.pem", "key.pem", "localhost"+portString)
+		err = ssl.Generate(
+			filepath.Join(node.RepoPath, "cert.pem"),
+			filepath.Join(node.RepoPath, "key.pem"),
+			"localhost"+portString,
+		)
 		if err != nil {
 			log.Errorf("Error: Couldn't create https certs.")
 			return errc, nil
@@ -147,6 +161,9 @@ func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 //	http.Redirect(w, r, "https://localhost:9183"+r.RequestURI, http.StatusMovedPermanently)
 //}
 
+// start auto-garbage collection process
+// TODO: investigate where this is gonna get datadir from
+// TODO: it may use the env var IPFS_PATH, which we don't want
 func runGC(ctx context.Context, node *core.IpfsNode) (<-chan error, error) {
 	errc := make(chan error)
 	go func() {
@@ -156,6 +173,91 @@ func runGC(ctx context.Context, node *core.IpfsNode) (<-chan error, error) {
 	log.Info("auto garbage collection started")
 
 	return errc, nil
+}
+
+func createMnemonic(newEntropy func(int) ([]byte, error), newMnemonic func([]byte) (string, error)) (string, error) {
+	entropy, err := newEntropy(256)
+	if err != nil {
+		return "", err
+	}
+	mnemonic, err := newMnemonic(entropy)
+	if err != nil {
+		return "", err
+	}
+	return mnemonic, nil
+}
+
+func identityKeyFromSeed(seed []byte, bits int) ([]byte, error) {
+	hm := hmac.New(sha256.New, []byte("scythian horde"))
+	hm.Write(seed)
+	reader := bytes.NewReader(hm.Sum(nil))
+	sk, _, err := libp2p.GenerateKeyPairWithReader(libp2p.Ed25519, bits, reader)
+	if err != nil {
+		return nil, err
+	}
+	encodedKey, err := sk.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	return encodedKey, nil
+}
+
+func connectToPubSubPeers(ctx context.Context, n *core.IpfsNode, cid *cid.Cid) {
+	provs := n.Routing.FindProvidersAsync(ctx, cid, 10)
+	wg := &sync.WaitGroup{}
+	for p := range provs {
+		wg.Add(1)
+		go func(pi pstore.PeerInfo) {
+			defer wg.Done()
+			ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+			defer cancel()
+			err := n.PeerHost.Connect(ctx, pi)
+			if err != nil {
+				log.Errorf("pubsub discover: %s", err)
+				return
+			}
+			log.Infof("connected to pubsub peer: %s", pi.ID.Pretty())
+		}(p)
+	}
+
+	wg.Wait()
+}
+
+func parsePeerParam(text string) (ma.Multiaddr, peer.ID, error) {
+	// to be replaced with just multiaddr parsing, once ptp is a multiaddr protocol
+	idx := strings.LastIndex(text, "/")
+	if idx == -1 {
+		pid, err := peer.IDB58Decode(text)
+		if err != nil {
+			return nil, "", err
+		}
+
+		return nil, pid, nil
+	}
+
+	addrS := text[:idx]
+	peeridS := text[idx+1:]
+
+	var maddr ma.Multiaddr
+	var pid peer.ID
+
+	// make sure addrS parses as a multiaddr.
+	if len(addrS) > 0 {
+		var err error
+		maddr, err = ma.NewMultiaddr(addrS)
+		if err != nil {
+			return nil, "", err
+		}
+	}
+
+	// make sure idS parses as a peer.ID
+	var err error
+	pid, err = peer.IDB58Decode(peeridS)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return maddr, pid, nil
 }
 
 // merge does fan-in of multiple read-only error channels

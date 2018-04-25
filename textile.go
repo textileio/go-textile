@@ -84,6 +84,16 @@ func main() {
 		Help: "show peer id",
 		Func: cmd.ShowId,
 	})
+	shell.AddCmd(&ishell.Cmd{
+		Name: "ping",
+		Help: "ping a peer (same as `ipfs ping`)",
+		Func: cmd.SwarmPing,
+	})
+	shell.AddCmd(&ishell.Cmd{
+		Name: "connect",
+		Help: "connect to a peer (same as `ipfs swarm connect`)",
+		Func: cmd.SwarmConnect,
+	})
 	{
 		photoCmd := &ishell.Cmd{
 			Name:     "photo",
@@ -132,6 +142,16 @@ func main() {
 			Name: "mnemonic",
 			Help: "show mnemonic phrase",
 			Func: cmd.AlbumMnemonic,
+		})
+		albumsCmd.AddCmd(&ishell.Cmd{
+			Name: "publish",
+			Help: "publish latest update",
+			Func: cmd.RepublishAlbum,
+		})
+		albumsCmd.AddCmd(&ishell.Cmd{
+			Name: "peers",
+			Help: "list peers",
+			Func: cmd.ListAlbumPeers,
 		})
 		shell.AddCmd(albumsCmd)
 	}

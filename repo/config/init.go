@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/op/go-logging"
+	"github.com/phayes/freeport"
 
 	native "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/config"
 
@@ -137,25 +138,29 @@ const DefaultConnMgrLowWater = 600
 const DefaultConnMgrGracePeriod = time.Second * 20
 
 func addressesConfig(isMobile bool) native.Addresses {
-	swarmPort := "4002"
-	apiPost := "5002"
-	gatewayPort := "8182"
-	if isMobile {
-		swarmPort = "4003"
-		apiPost = "5003"
-		gatewayPort = "8183"
+	swarmPort := 4001
+	gatewayPort := 8080
+	if !isMobile {
+		var err error
+		swarmPort, err = freeport.GetFreePort()
+		if err != nil {
+			log.Errorf("find free swarm port failed: %s", err)
+		}
+		gatewayPort, err = freeport.GetFreePort()
+		if err != nil {
+			log.Errorf("find free gateway port failed: %s", err)
+		}
 	}
 
 	return native.Addresses{
 		Swarm: []string{
-			fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", swarmPort),
+			fmt.Sprintf("/ip4/0.0.0.0/tcp/%v", swarmPort),
 			// "/ip4/0.0.0.0/udp/4002/utp", // disabled for now.
-			fmt.Sprintf("/ip6/::/tcp/%s", swarmPort),
+			fmt.Sprintf("/ip6/::/tcp/%v", swarmPort),
 		},
 		Announce:   []string{},
 		NoAnnounce: []string{},
-		API:        fmt.Sprintf("/ip4/127.0.0.1/tcp/%s", apiPost),
-		Gateway:    fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", gatewayPort),
+		Gateway:    fmt.Sprintf("/ip4/127.0.0.1/tcp/%v", gatewayPort),
 	}
 }
 
