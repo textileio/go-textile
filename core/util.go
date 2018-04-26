@@ -117,41 +117,36 @@ func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 		w.Write(b)
 	})
 
-	errc := make(chan error)
-
 	port, err := node.GatewayPort()
 	if err != nil {
-		return errc, err
+		return nil, err
 	}
-
 	portString := fmt.Sprintf(":%d", port)
 
 	// Check if the cert files are available.
-	err = ssl.Check("cert.pem", "key.pem")
+	certPath := filepath.Join(node.RepoPath, "cert.pem")
+	keyPath := filepath.Join(node.RepoPath, "key.pem")
+	err = ssl.Check(certPath, keyPath)
 	// If they are not available, generate new ones.
 	if err != nil {
-		err = ssl.Generate(
-			filepath.Join(node.RepoPath, "cert.pem"),
-			filepath.Join(node.RepoPath, "key.pem"),
-			"localhost"+portString,
-		)
+		err = ssl.Generate(certPath, keyPath, "localhost"+portString)
 		if err != nil {
-			log.Errorf("Error: Couldn't create https certs.")
-			return errc, nil
+			log.Errorf("failed to create https certs: %s", err)
+			return nil, err
 		}
 	}
 
 	// Start the HTTPS server in a goroutine
+	errc := make(chan error)
 	go func() {
 		errc <- http.ListenAndServeTLS(portString, "cert.pem", "key.pem", nil)
 		close(errc)
 	}()
+	log.Infof("decrypting gateway (readonly) server listening on /ip4/127.0.0.1/tcp/%d\n", port)
 
 	// NOTE: No need to actually do this, but keeping commented out for testing
 	// Start the HTTP server and redirect all incoming connections to HTTPS
 	//go http.ListenAndServe(":9193", http.HandlerFunc(redirectToHttps))
-
-	log.Infof("decrypting gateway (readonly) server listening on /ip4/127.0.0.1/tcp/%d\n", port)
 
 	return errc, nil
 }
