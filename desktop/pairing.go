@@ -7,20 +7,23 @@ import (
 	"github.com/asticode/go-astilog"
 )
 
-var gateway = "https://localhost:9182"
+var albumID string
 
 func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
 	astilog.Info("TEXTILE STARTED")
 
 	astilog.Info("SENDING COOKIE INFO")
 	sendData(iw, "login.cookie", map[string]interface{}{
-		"name":  "SeesionId",
-		"value": textile.GatewayPassword,
+		"name":    "SeesionId",
+		"value":   textile.GatewayPassword,
+		"gateway": gateway,
 	})
 
 	// check if we're configured yet
 	a := textile.Datastore.Albums().GetAlbumByName("mobile")
 	if a != nil {
+		albumID = a.Id
+
 		// can join room
 		astilog.Info("FOUND MOBILE ALBUM")
 
@@ -43,6 +46,7 @@ func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Me
 				astilog.Error("failed to create mobile album")
 				return
 			}
+			albumID = a.Id
 
 			// let the app know we're done pairing
 			sendMessage(iw, "onboard.complete")
@@ -62,12 +66,13 @@ func joinRoom(iw *astilectron.Window) error {
 	astilog.Info("STARTING SYNC")
 
 	datac := make(chan string)
-	go textile.JoinRoom("mobile", datac)
+	go textile.JoinRoom(albumID, datac)
 	for {
 		select {
 		case hash, ok := <-datac:
 			sendData(iw, "sync.data", map[string]interface{}{
-				"hash": hash,
+				"hash":    hash,
+				"gateway": gateway,
 			})
 			if !ok {
 				return nil

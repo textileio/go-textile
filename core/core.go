@@ -589,12 +589,18 @@ func (t *TextileNode) GetFile(path string, album *trepo.PhotoAlbum) ([]byte, err
 		return nil, err
 	}
 
+	ip, err := coreapi.ParsePath(path)
+	if err != nil {
+		return nil, err
+	}
+
 	// parse root hash of path
-	tmp := strings.Split(path, "/")
-	if len(tmp) == 0 {
+	var ci string
+	tmp := strings.Split(ip.String(), "/")
+	if len(tmp) < 3 {
 		return nil, errors.New(fmt.Sprintf("bad path: %s", path))
 	}
-	ci := tmp[0]
+	ci = tmp[2]
 
 	// look up key for decryption
 	if album == nil {
@@ -619,7 +625,7 @@ func (t *TextileNode) GetFile(path string, album *trepo.PhotoAlbum) ([]byte, err
 }
 
 func (t *TextileNode) GetMetaData(hash string, album *trepo.PhotoAlbum) (*photos.Metadata, error) {
-	b, err := t.GetFile(fmt.Sprintf("%s/meta", hash), album)
+	b, err := t.GetFile(fmt.Sprintf("/ipfs/%s/meta", hash), album)
 	if err != nil {
 		log.Errorf("error getting meta file with hash: %s: %s", hash, err)
 		return nil, err
@@ -636,7 +642,7 @@ func (t *TextileNode) GetMetaData(hash string, album *trepo.PhotoAlbum) (*photos
 }
 
 func (t *TextileNode) GetLastHash(hash string, album *trepo.PhotoAlbum) (string, error) {
-	b, err := t.GetFile(fmt.Sprintf("%s/last", hash), album)
+	b, err := t.GetFile(fmt.Sprintf("/ipfs/%s/last", hash), album)
 	if err != nil {
 		log.Errorf("error getting last hash file with hash: %s: %s", hash, err)
 		return "", err
