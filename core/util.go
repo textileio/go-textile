@@ -139,7 +139,7 @@ func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 	// Start the HTTPS server in a goroutine
 	errc := make(chan error)
 	go func() {
-		errc <- http.ListenAndServeTLS(portString, "cert.pem", "key.pem", nil)
+		errc <- http.ListenAndServeTLS(portString, certPath, keyPath, nil)
 		close(errc)
 	}()
 	log.Infof("decrypting gateway (readonly) server listening on /ip4/127.0.0.1/tcp/%d\n", port)
