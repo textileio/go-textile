@@ -70,12 +70,12 @@ func (w *Wrapper) Stop() error {
 	return w.node.Stop()
 }
 
-func (w *Wrapper) AddPhoto(path string, thumb string) (*net.MultipartRequest, error) {
-	return w.node.AddPhoto(path, thumb, "default")
+func (w *Wrapper) AddPhoto(path string, thumb string, thread string) (*net.MultipartRequest, error) {
+	return w.node.AddPhoto(path, thumb, thread)
 }
 
-func (w *Wrapper) GetPhotos(offsetId string, limit int) (string, error) {
-	list := w.node.GetPhotos(offsetId, limit, "default")
+func (w *Wrapper) GetPhotos(offsetId string, limit int, thread string) (string, error) {
+	list := w.node.GetPhotos(offsetId, limit, thread)
 
 	// gomobile does not allow slices. so, convert to json
 	jsonb, err := json.Marshal(list)
