@@ -1,4 +1,3 @@
-const gateway = "https://localhost:9182"
 const session = require('electron').remote.session.defaultSession
 
 let textile = {
@@ -43,6 +42,8 @@ let textile = {
   listen: function() {
     /** @namespace astilectron.onMessage **/
     astilectron.onMessage(function(message) {
+      console.debug("GOT MESSAGE:", message)
+
       switch (message.name) {
 
         case "login.cookie":
@@ -53,13 +54,13 @@ let textile = {
           expiration.setHours(hour)
           /** @namespace ses.cookies **/
           session.cookies.set({
-              url: gateway,
+              url: message.gateway,
               name: message.name,
               value: message.value,
               expirationDate: expiration.getTime(),
               session: true
-          }, function (error) {
-              // console.log(error)
+          }, function (err) {
+              console.error(err)
           })
           break
 
@@ -71,12 +72,12 @@ let textile = {
 
         // new photo from room
         case "sync.data":
-          let ph = [gateway, "ipfs", message.hash, "photo"].join("/")
-          let th = [gateway, "ipfs", message.hash, "thumb"].join("/")
-          let md = [gateway, "ipfs", message.hash, "meta"].join("/")
+          let ph = [message.gateway, "ipfs", message.hash, "photo"].join("/")
+          let th = [message.gateway, "ipfs", message.hash, "thumb"].join("/")
+          let md = [message.gateway, "ipfs", message.hash, "meta"].join("/")
           let img = '<img src="' + th + '" />'
           let $item = $('<div id="' + message.hash + '" class="grid-item" ondragstart="imageDragStart(event);" draggable="true" class="grid-item" data-url="' + ph + '" data-meta="' + md + '">' + img + '</div>')
-          $(".grid").isotope('prepended', $item)
+          $(".grid").isotope('insert', $item)
           break
 
         // start walk-through
