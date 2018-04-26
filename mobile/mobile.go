@@ -42,7 +42,17 @@ func (m *Mobile) NewNode(repoPath string) (*Wrapper, error) {
 }
 
 func (w *Wrapper) Start() error {
-	return w.node.Start()
+	if err := w.node.Start(); err != nil {
+		return err
+	}
+
+	// join existing rooms
+	albums := w.node.Datastore.Albums().GetAlbums("")
+	for _, a := range albums {
+		go w.node.JoinRoom(a.Id, make(chan string))
+	}
+
+	return nil
 }
 
 func (w *Wrapper) StartGateway() error {
@@ -139,12 +149,4 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 	}
 
 	return topic, nil
-}
-
-func (w *Wrapper) ConfigureDatastore(mnemonic string) error {
-	return nil
-}
-
-func (w *Wrapper) IsDatastoreConfigured() bool {
-	return true
 }

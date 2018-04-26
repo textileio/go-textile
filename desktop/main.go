@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
@@ -19,6 +20,7 @@ var (
 )
 
 var textile *core.TextileNode
+var gateway string
 
 func main() {
 	AppName := "Textile"
@@ -40,6 +42,14 @@ func main() {
 		astilog.Errorf("start desktop node failed: %s", err)
 		return
 	}
+
+	// save off the gateway address
+	gatewayPort, err := textile.GatewayPort()
+	if err != nil {
+		astilog.Errorf("get gateway port failed: %s", err)
+		return
+	}
+	gateway = fmt.Sprintf("https://localhost:%d", gatewayPort)
 
 	// start garbage collection and gateway services
 	// NOTE: on desktop, gateway runs on 8182, decrypting file gateway on 9182

@@ -85,6 +85,11 @@ func main() {
 		Func: cmd.ShowId,
 	})
 	shell.AddCmd(&ishell.Cmd{
+		Name: "peers",
+		Help: "show connected peers (same as `ipfs swarm peers`)",
+		Func: cmd.SwarmPeers,
+	})
+	shell.AddCmd(&ishell.Cmd{
 		Name: "ping",
 		Help: "ping a peer (same as `ipfs ping`)",
 		Func: cmd.SwarmPing,
