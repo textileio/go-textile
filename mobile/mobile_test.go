@@ -53,7 +53,7 @@ func TestWrapper_StartGatewayAgain(t *testing.T) {
 }
 
 func TestWrapper_AddPhoto(t *testing.T) {
-	mr, err := wrapper.AddPhoto("testdata/photo.jpg", "testdata/thumb.jpg")
+	mr, err := wrapper.AddPhoto("testdata/photo.jpg", "testdata/thumb.jpg", "default")
 	if err != nil {
 		t.Errorf("add photo failed: %s", err)
 		return
@@ -68,7 +68,7 @@ func TestWrapper_AddPhoto(t *testing.T) {
 }
 
 func TestWrapper_GetPhotos(t *testing.T) {
-	res, err := wrapper.GetPhotos("", -1)
+	res, err := wrapper.GetPhotos("", -1, "default")
 	if err != nil {
 		t.Errorf("get photos failed: %s", err)
 		return
@@ -79,6 +79,19 @@ func TestWrapper_GetPhotos(t *testing.T) {
 		t.Errorf("get photos bad result")
 	}
 	hash = list.Hashes[0]
+}
+
+func TestWrapper_GetPhotosEmptyChannel(t *testing.T) {
+	res, err := wrapper.GetPhotos("", -1, "empty")
+	if err != nil {
+		t.Errorf("get photos failed: %s", err)
+		return
+	}
+	list := core.PhotoList{}
+	json.Unmarshal([]byte(res), &list)
+	if len(list.Hashes) != 0 {
+		t.Errorf("get photos bad result")
+	}
 }
 
 func TestWrapper_GetFileBase64(t *testing.T) {
