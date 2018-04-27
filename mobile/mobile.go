@@ -42,17 +42,7 @@ func (m *Mobile) NewNode(repoPath string) (*Wrapper, error) {
 }
 
 func (w *Wrapper) Start() error {
-	if err := w.node.Start(); err != nil {
-		return err
-	}
-
-	// join existing rooms
-	albums := w.node.Datastore.Albums().GetAlbums("")
-	for _, a := range albums {
-		go w.node.JoinRoom(a.Id, make(chan string))
-	}
-
-	return nil
+	return w.node.Start()
 }
 
 func (w *Wrapper) StartGateway() error {
@@ -72,6 +62,10 @@ func (w *Wrapper) Stop() error {
 
 func (w *Wrapper) AddPhoto(path string, thumb string, thread string) (*net.MultipartRequest, error) {
 	return w.node.AddPhoto(path, thumb, thread)
+}
+
+func (w *Wrapper) SharePhoto(hash string, thread string) (*net.MultipartRequest, error) {
+	return w.node.SharePhoto(hash, thread)
 }
 
 func (w *Wrapper) GetPhotos(offsetId string, limit int, thread string) (string, error) {

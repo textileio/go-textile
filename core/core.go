@@ -169,15 +169,23 @@ func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNo
 	}
 
 	// create default album
-	err = node.CreateAlbum("", "default")
-	if err != nil {
-		log.Infof("default album already exists")
+	da := node.Datastore.Albums().GetAlbumByName("default")
+	if da == nil {
+		err = node.CreateAlbum("", "default")
+		if err != nil {
+			log.Errorf("error creating default album: %s", err)
+			return nil, err
+		}
 	}
 
 	// TODO: remove this post beta
-	err = node.CreateAlbum("avoid lunch soccer wool stock evil nature nest erase enough leaf blood twenty fence soldier brave forum loyal recycle minor small pencil addict pact", "beta")
-	if err != nil {
-		log.Infof("beta album already exists")
+	ba := node.Datastore.Albums().GetAlbumByName("beta")
+	if ba == nil {
+		err = node.CreateAlbum("avoid lunch soccer wool stock evil nature nest erase enough leaf blood twenty fence soldier brave forum loyal recycle minor small pencil addict pact", "beta")
+		if err != nil {
+			log.Errorf("error creating beta album: %s", err)
+			return nil, err
+		}
 	}
 
 	return node, nil
@@ -560,6 +568,64 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string) (*net.Mu
 	return mr, nil
 }
 
+func (t *TextileNode) SharePhoto(hash string, album string) (*net.MultipartRequest, error) {
+	log.Infof("sharing photo %s to %s...", hash, album)
+
+	// get the photo
+	set, a, err := t.LoadPhotoAndAlbum(hash)
+	if err != nil {
+		log.Error(err.Error())
+		return nil, err
+	}
+
+	// get dest album
+	na := t.Datastore.Albums().GetAlbumByName(album)
+	if na == nil {
+		return nil, errors.New(fmt.Sprintf("could not find album: %s", album))
+	}
+
+	// check if album is diff
+	if a.Id == na.Id {
+		return nil, errors.New(fmt.Sprintf("photo already in album: %s", album))
+	}
+
+	// get photo data
+	pb, err := t.GetFile(fmt.Sprintf("%s/photo", hash), a)
+	if err != nil {
+		return nil, err
+	}
+	tb, err := t.GetFile(fmt.Sprintf("%s/thumb", hash), a)
+	if err != nil {
+		return nil, err
+	}
+
+	// temp write to disk
+	ppath := filepath.Join(t.RepoPath, "tmp", set.MetaData.Name+set.MetaData.Ext)
+	tpath := filepath.Join(t.RepoPath, "tmp", "thumb_"+set.MetaData.Name+set.MetaData.Ext)
+	err = ioutil.WriteFile(ppath, pb, 0644)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err := os.Remove(ppath)
+		if err != nil {
+			log.Errorf("error cleaning up shared photo path: %s", ppath)
+		}
+	}()
+	err = ioutil.WriteFile(tpath, tb, 0644)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err = os.Remove(tpath)
+		if err != nil {
+			log.Errorf("error cleaning up shared thumb path: %s", tpath)
+		}
+	}()
+
+	return t.AddPhoto(ppath, tpath, album)
+}
+
 func (t *TextileNode) GetPhotos(offsetId string, limit int, album string) *PhotoList {
 	// query for available hashes
 	a := t.Datastore.Albums().GetAlbumByName(album)
@@ -589,28 +655,28 @@ func (t *TextileNode) GetFile(path string, album *trepo.PhotoAlbum) ([]byte, err
 		return nil, err
 	}
 
+	// normalize path
 	ip, err := coreapi.ParsePath(path)
 	if err != nil {
+		log.Errorf("error parsing path: %s", err)
 		return nil, err
 	}
 
 	// parse root hash of path
-	var ci string
 	tmp := strings.Split(ip.String(), "/")
 	if len(tmp) < 3 {
-		return nil, errors.New(fmt.Sprintf("bad path: %s", path))
+		err := errors.New(fmt.Sprintf("bad path: %s", path))
+		log.Error(err.Error())
+		return nil, err
 	}
-	ci = tmp[2]
+	ci := tmp[2]
 
 	// look up key for decryption
 	if album == nil {
-		ph := t.Datastore.Photos().GetPhoto(ci)
-		if ph == nil {
-			return nil, errors.New(fmt.Sprintf("photo %s not found", ci))
-		}
-		album = t.Datastore.Albums().GetAlbum(ph.AlbumID)
-		if album == nil {
-			return nil, errors.New(fmt.Sprintf("could not find album: %s", ph.AlbumID))
+		_, album, err = t.LoadPhotoAndAlbum(ci)
+		if err != nil {
+			log.Error(err.Error())
+			return nil, err
 		}
 	}
 
@@ -625,12 +691,11 @@ func (t *TextileNode) GetFile(path string, album *trepo.PhotoAlbum) ([]byte, err
 }
 
 func (t *TextileNode) GetMetaData(hash string, album *trepo.PhotoAlbum) (*photos.Metadata, error) {
-	b, err := t.GetFile(fmt.Sprintf("/ipfs/%s/meta", hash), album)
+	b, err := t.GetFile(fmt.Sprintf("%s/meta", hash), album)
 	if err != nil {
 		log.Errorf("error getting meta file with hash: %s: %s", hash, err)
 		return nil, err
 	}
-
 	var data *photos.Metadata
 	err = json.Unmarshal(b, &data)
 	if err != nil {
@@ -642,13 +707,25 @@ func (t *TextileNode) GetMetaData(hash string, album *trepo.PhotoAlbum) (*photos
 }
 
 func (t *TextileNode) GetLastHash(hash string, album *trepo.PhotoAlbum) (string, error) {
-	b, err := t.GetFile(fmt.Sprintf("/ipfs/%s/last", hash), album)
+	b, err := t.GetFile(fmt.Sprintf("%s/last", hash), album)
 	if err != nil {
 		log.Errorf("error getting last hash file with hash: %s: %s", hash, err)
 		return "", err
 	}
 
 	return string(b), nil
+}
+
+func (t *TextileNode) LoadPhotoAndAlbum(hash string) (*trepo.PhotoSet, *trepo.PhotoAlbum, error) {
+	ph := t.Datastore.Photos().GetPhoto(hash)
+	if ph == nil {
+		return nil, nil, errors.New(fmt.Sprintf("photo %s not found", hash))
+	}
+	album := t.Datastore.Albums().GetAlbum(ph.AlbumID)
+	if album == nil {
+		return nil, nil, errors.New(fmt.Sprintf("could not find album: %s", ph.AlbumID))
+	}
+	return ph, album, nil
 }
 
 func (t *TextileNode) UnmarshalPrivatePeerKey() (libp2p.PrivKey, error) {
