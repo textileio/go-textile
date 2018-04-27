@@ -87,6 +87,7 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string) 
 	dirb := uio.NewDirectory(n.DAG)
 
 	// add the image
+	p.Seek(0, 0)
 	pb, err := getEncryptedReaderBytes(p, pk)
 	if err != nil {
 		return nil, nil, err

@@ -53,7 +53,7 @@ func TestWrapper_StartGatewayAgain(t *testing.T) {
 }
 
 func TestWrapper_AddPhoto(t *testing.T) {
-	mr, err := wrapper.AddPhoto("testdata/photo.jpg", "testdata/thumb.jpg", "default")
+	mr, err := wrapper.AddPhoto("testdata/image.jpg", "testdata/thumb.jpg", "default")
 	if err != nil {
 		t.Errorf("add photo failed: %s", err)
 		return
@@ -61,9 +61,21 @@ func TestWrapper_AddPhoto(t *testing.T) {
 	if len(mr.Boundary) == 0 {
 		t.Errorf("add photo got bad hash")
 	}
+	hash = mr.Boundary
 	err = os.Remove("testdata/" + mr.Boundary)
 	if err != nil {
 		t.Errorf("error unlinking test multipart file: %s", err)
+	}
+}
+
+func TestWrapper_SharePhoto(t *testing.T) {
+	mr, err := wrapper.SharePhoto(hash, "beta")
+	if err != nil {
+		t.Errorf("share photo failed: %s", err)
+		return
+	}
+	if len(mr.Boundary) == 0 {
+		t.Errorf("share photo got bad hash")
 	}
 }
 
@@ -78,7 +90,6 @@ func TestWrapper_GetPhotos(t *testing.T) {
 	if len(list.Hashes) == 0 {
 		t.Errorf("get photos bad result")
 	}
-	hash = list.Hashes[0]
 }
 
 func TestWrapper_GetPhotosEmptyChannel(t *testing.T) {
