@@ -111,6 +111,16 @@ func main() {
 			Func: cmd.AddPhoto,
 		})
 		photoCmd.AddCmd(&ishell.Cmd{
+			Name: "share",
+			Help: "share a photo to a different thread",
+			Func: cmd.SharePhoto,
+		})
+		photoCmd.AddCmd(&ishell.Cmd{
+			Name: "get",
+			Help: "save a photo to a local file",
+			Func: cmd.GetPhoto,
+		})
+		photoCmd.AddCmd(&ishell.Cmd{
 			Name: "ls",
 			Help: "list photos from a thread (defaults to \"#default\")",
 			Func: cmd.ListPhotos,
