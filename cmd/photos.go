@@ -88,6 +88,28 @@ func AddPhoto(c *ishell.Context) {
 	c.Println(cyan("added " + mr.Boundary + " to thread " + album))
 }
 
+func SharePhoto(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing photo cid"))
+		return
+	}
+	if len(c.Args) == 1 {
+		c.Err(errors.New("missing destination thread name"))
+		return
+	}
+	cid := c.Args[0]
+	dest := c.Args[1]
+
+	mr, err := core.Node.SharePhoto(cid, dest)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	green := color.New(color.FgHiGreen).SprintFunc()
+	c.Println(green("shared " + cid + " to thread " + dest + " (new cid: " + mr.Boundary + ")"))
+}
+
 func ListPhotos(c *ishell.Context) {
 	album := "default"
 	if len(c.Args) > 0 {
@@ -111,4 +133,43 @@ func ListPhotos(c *ishell.Context) {
 	for _, s := range sets {
 		c.Println(magenta(fmt.Sprintf("cid: %s, name: %s%s", s.Cid, s.MetaData.Name, s.MetaData.Ext)))
 	}
+}
+
+func GetPhoto(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing photo cid"))
+		return
+	}
+	if len(c.Args) == 1 {
+		c.Err(errors.New("missing out directory"))
+		return
+	}
+	hash := c.Args[0]
+
+	// try to get path with home dir tilda
+	dest, err := homedir.Expand(c.Args[1])
+	if err != nil {
+		dest = c.Args[1]
+	}
+
+	set, a, err := core.Node.LoadPhotoAndAlbum(hash)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	pb, err := core.Node.GetFile(fmt.Sprintf("%s/photo", hash), a)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	path := filepath.Join(dest, set.MetaData.Name+set.MetaData.Ext)
+	if err := ioutil.WriteFile(path, pb, 0644); err != nil {
+		c.Err(err)
+		return
+	}
+
+	blue := color.New(color.FgHiBlue).SprintFunc()
+	c.Println(blue("wrote " + hash + " to " + path))
 }
