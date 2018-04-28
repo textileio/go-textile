@@ -2,12 +2,6 @@
 
 
 [[projects]]
-  name = "github.com/BurntSushi/toml"
-  packages = ["."]
-  revision = "b26d9c308763d68093482582cea63d69be07a0f0"
-  version = "v0.3.0"
-
-[[projects]]
   branch = "master"
   name = "github.com/akavel/rsrc"
   packages = [
@@ -94,6 +88,15 @@
   revision = "f6d7a1f6fbf35bbf9beb80dc63c56a29dcfb759f"
 
 [[projects]]
+  name = "github.com/dgrijalva/jwt-go"
+  packages = [
+    ".",
+    "request"
+  ]
+  revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
+  version = "v3.2.0"
+
+[[projects]]
   name = "github.com/disintegration/imaging"
   packages = ["."]
   revision = "fd34ef7671b12cdf1b024d98c6b327b2770d32c4"
@@ -152,6 +155,12 @@
   version = "v1.4.0"
 
 [[projects]]
+  name = "github.com/joho/godotenv"
+  packages = ["."]
+  revision = "a79fa1e548e2c689c241d10173efd51e5d689d5b"
+  version = "v1.2.0"
+
+[[projects]]
   name = "github.com/julienschmidt/httprouter"
   packages = ["."]
   revision = "8c199fb6259ffc1af525cc3ad52ee60ba8359669"
@@ -180,6 +189,22 @@
   name = "github.com/mutecomm/go-sqlcipher"
   packages = ["."]
   revision = "f799951b4ab269c2ce24913961af2cb5d681cc43"
+
+[[projects]]
+  name = "github.com/nbutton23/zxcvbn-go"
+  packages = [
+    ".",
+    "adjacency",
+    "data",
+    "entropy",
+    "frequency",
+    "match",
+    "matching",
+    "scoring",
+    "utils/math"
+  ]
+  revision = "eafdab6b0663b4b528c35975c8b0e78be6e25261"
+  version = "v0.1"
 
 [[projects]]
   name = "github.com/op/go-logging"
@@ -246,6 +271,8 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = [
+    "bcrypt",
+    "blowfish",
     "curve25519",
     "hkdf",
     "nacl/box",
@@ -310,6 +337,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e050fe2271a48f0e823dbba6c960e252f79015eef7c2098a670723c8708049a5"
+  inputs-digest = "5a6075af21a3a9721cd059c9101809ae5ae83639f848ac32833aed8563307b36"
   solver-name = "gps-cdcl"
   solver-version = 1
