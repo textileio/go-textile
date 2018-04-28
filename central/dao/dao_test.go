@@ -1,14 +1,14 @@
 package dao_test
 
 import (
-	"testing"
-	"time"
 	"fmt"
 	"os"
+	"testing"
+	"time"
 
 	"github.com/globalsign/mgo/bson"
-	"github.com/segmentio/ksuid"
 	"github.com/joho/godotenv"
+	"github.com/segmentio/ksuid"
 
 	"github.com/textileio/textile-go/central/dao"
 	"github.com/textileio/textile-go/central/models"
@@ -16,21 +16,20 @@ import (
 
 var d = dao.DAO{}
 
-var reg = &models.Registration{
-	Identity: &models.Identity{
-		Type: models.EmailAddress,
-		Value: fmt.Sprintf("%s@textile.io", ksuid.New().String()),
-		Verified: false,
-	},
-}
 var now = time.Now()
 var user = models.User{
-	ID:         bson.NewObjectId(),
-	Username:   ksuid.New().String(),
-	Password:   ksuid.New().String(),
-	Created:    now,
-	LastSeen:   now,
-	Identities: []models.Identity{*reg.Identity},
+	ID:       bson.NewObjectId(),
+	Username: ksuid.New().String(),
+	Password: ksuid.New().String(),
+	Created:  now,
+	LastSeen: now,
+	Identities: []models.Identity{
+		{
+			Type:     models.EmailAddress,
+			Value:    fmt.Sprintf("%s@textile.io", ksuid.New().String()),
+			Verified: false,
+		},
+	},
 }
 
 func TestDao_Connect(t *testing.T) {
@@ -40,13 +39,50 @@ func TestDao_Connect(t *testing.T) {
 	}
 
 	d.Hostname = os.Getenv("HOSTNAME")
-	d.DatabaseName = os.Getenv("DATABASENAME")
+	d.DatabaseName = os.Getenv("DATABASE")
 	d.Connect()
+}
+
+func TestDao_Index(t *testing.T) {
+	d.Index()
 }
 
 func TestDAO_Insert(t *testing.T) {
 	if err := d.InsertUser(user); err != nil {
 		t.Errorf("insert user failed: %s", err)
+		return
+	}
+}
+
+func TestDAO_InsertAgain(t *testing.T) {
+	var user2 = models.User{
+		ID:       bson.NewObjectId(),
+		Username: user.Username,
+		Password: ksuid.New().String(),
+		Created:  now,
+		LastSeen: now,
+		Identities: []models.Identity{
+			{
+				Type:     models.EmailAddress,
+				Value:    fmt.Sprintf("%s@textile.io", ksuid.New().String()),
+				Verified: false,
+			},
+		},
+	}
+	if err := d.InsertUser(user2); err == nil {
+		t.Error("username should be unique")
+		return
+	}
+	var user3 = models.User{
+		ID:         bson.NewObjectId(),
+		Username:   ksuid.New().String(),
+		Password:   ksuid.New().String(),
+		Created:    now,
+		LastSeen:   now,
+		Identities: user.Identities,
+	}
+	if err := d.InsertUser(user3); err == nil {
+		t.Error("identity should be unique")
 		return
 	}
 }
@@ -65,7 +101,15 @@ func TestDAO_FindById(t *testing.T) {
 func TestDAO_FindByUsername(t *testing.T) {
 	_, err := d.FindUserByUsername(user.Username)
 	if err != nil {
-		t.Errorf("find user by usernamem failed: %s", err)
+		t.Errorf("find user by username failed: %s", err)
+		return
+	}
+}
+
+func TestDAO_FindByIdentity(t *testing.T) {
+	_, err := d.FindUserByIdentity(user.Identities[0])
+	if err != nil {
+		t.Errorf("find user by identity failed: %s", err)
 		return
 	}
 }

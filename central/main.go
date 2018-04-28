@@ -1,15 +1,15 @@
 package main
 
 import (
-	"os"
 	"fmt"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 
-	"github.com/textileio/textile-go/central/dao"
-	"github.com/textileio/textile-go/central/controllers"
 	"github.com/textileio/textile-go/central/auth"
+	"github.com/textileio/textile-go/central/controllers"
+	"github.com/textileio/textile-go/central/dao"
 )
 
 // Establish a connection to DB
@@ -21,8 +21,8 @@ func init() {
 
 	// initialize a dao
 	dao.Dao = &dao.DAO{
-		Hostname: os.Getenv("HOSTNAME"),
-		DatabaseName: os.Getenv("DATABASENAME"),
+		Hostname:     os.Getenv("HOSTNAME"),
+		DatabaseName: os.Getenv("DATABASE"),
 	}
 	dao.Dao.Connect()
 }

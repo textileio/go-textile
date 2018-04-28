@@ -1,15 +1,15 @@
 package controllers
 
 import (
-	"testing"
-	"fmt"
-	"os"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
+	"testing"
 
-	"github.com/segmentio/ksuid"
 	"github.com/joho/godotenv"
+	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/central/models"
 )
 
@@ -20,7 +20,7 @@ var registration = map[string]interface{}{
 	"username": ksuid.New().String(),
 	"password": ksuid.New().String(),
 	"identity": map[string]string{
-		"type": "email_address",
+		"type":  "email_address",
 		"value": fmt.Sprintf("%s@textile.io", ksuid.New().String()),
 	},
 }

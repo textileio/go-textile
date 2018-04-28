@@ -10,9 +10,10 @@ import (
 )
 
 type DAO struct {
-	Hostname   string
+	Hostname     string
 	DatabaseName string
 }
+
 var Dao *DAO
 
 var db *mgo.Database
@@ -20,6 +21,34 @@ var db *mgo.Database
 const (
 	userCollection = "users"
 )
+
+var indexes = map[string][]mgo.Index{
+	userCollection: {
+		{
+			Key:        []string{"username"},
+			Unique:     true,
+			DropDups:   true,
+			Background: true,
+		},
+		{
+			Key:        []string{"identities.value", "identities.type"},
+			Unique:     true,
+			DropDups:   true,
+			Background: true,
+			Sparse:     true,
+		},
+	},
+}
+
+func (m *DAO) Index() {
+	for cn, list := range indexes {
+		for _, index := range list {
+			if err := db.C(cn).EnsureIndex(index); err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+}
 
 // Establish a connection to database
 func (m *DAO) Connect() {
@@ -41,6 +70,15 @@ func (m *DAO) FindUserById(id string) (models.User, error) {
 func (m *DAO) FindUserByUsername(un string) (models.User, error) {
 	var user models.User
 	err := db.C(userCollection).Find(bson.M{"username": un}).One(&user)
+	return user, err
+}
+
+// Find a user by email
+func (m *DAO) FindUserByIdentity(id models.Identity) (models.User, error) {
+	var user models.User
+	err := db.C(userCollection).Find(bson.M{
+		"identities": bson.M{"$elemMatch": bson.M{"type": id.Type, "value": id.Value}},
+	}).One(&user)
 	return user, err
 }
 

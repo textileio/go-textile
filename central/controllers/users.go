@@ -1,18 +1,18 @@
 package controllers
 
 import (
-	"time"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
-	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/textileio/textile-go/central/models"
-	"github.com/textileio/textile-go/central/dao"
 	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/central/dao"
+	"github.com/textileio/textile-go/central/models"
 )
 
 func SignUp(c *gin.Context) {
@@ -49,7 +49,7 @@ func SignUp(c *gin.Context) {
 	token := jwt.New(jwt.GetSigningMethod("HS256"))
 	token.Claims = jwt.MapClaims{
 		"Id":  ksuid.New().String(),
-		"exp": time.Now().Add(time.Hour*24*7).Unix(),
+		"exp": time.Now().Add(time.Hour * 24 * 7).Unix(),
 	}
 	signed, err := token.SignedString([]byte(os.Getenv("TOKEN_SECRET")))
 	if err != nil {
@@ -88,7 +88,7 @@ func SignIn(c *gin.Context) {
 	token := jwt.New(jwt.GetSigningMethod("HS256"))
 	token.Claims = jwt.MapClaims{
 		"Id":  ksuid.New().String(),
-		"exp": time.Now().Add(time.Hour*24*7).Unix(),
+		"exp": time.Now().Add(time.Hour * 24 * 7).Unix(),
 	}
 	signed, err := token.SignedString([]byte(os.Getenv("TOKEN_SECRET")))
 	if err != nil {
