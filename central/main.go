@@ -25,6 +25,7 @@ func init() {
 		DatabaseName: os.Getenv("DATABASE"),
 	}
 	dao.Dao.Connect()
+	dao.Dao.Index()
 }
 
 // Define HTTP request routes
