@@ -15,8 +15,8 @@ type User struct {
 }
 
 type Registration struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Username string    `json:"username" binding:"required"`
+	Password string    `json:"password" binding:"required"`
 	Identity *Identity `json:"identity" binding:"required"`
 }
 
@@ -33,7 +33,7 @@ const (
 )
 
 type Identity struct {
-	Type  IdentityType `bson:"type" json:"type" binding:"required"`
-	Value string       `bson:"value" json:"value" binding:"required"`
-	Verified bool      `bson:"verified" json:"verified"`
+	Type     IdentityType `bson:"type" json:"type" binding:"required"`
+	Value    string       `bson:"value" json:"value" binding:"required"`
+	Verified bool         `bson:"verified" json:"verified"`
 }

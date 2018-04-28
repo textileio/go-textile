@@ -1,13 +1,13 @@
 package models
 
 import (
+	"encoding/json"
 	"io"
 	"io/ioutil"
-	"encoding/json"
 )
 
 type Response struct {
-	Status     int `json:"status"`
+	Status     int    `json:"status"`
 	ResourceID string `json:"resource_id"`
 	Token      string `json:"token"`
 	Error      string `json:"error"`
