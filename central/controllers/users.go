@@ -2,16 +2,23 @@ package controllers
 
 import (
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
+	"github.com/nbutton23/zxcvbn-go"
 	"golang.org/x/crypto/bcrypt"
 
+	"fmt"
 	"github.com/textileio/textile-go/central/auth"
 	"github.com/textileio/textile-go/central/dao"
 	"github.com/textileio/textile-go/central/models"
 )
+
+var usernameRx = regexp.MustCompile(`^[a-zA-Z0-9_][a-zA-Z0-9._]+[a-zA-Z0-9_]$`)
+var emailRx = regexp.MustCompile(`^[^@^\s]+@[^@^\s]+$`)
+var numbersOnlyRx = regexp.MustCompile(`[^+^0-9]+`)
 
 func SignUp(c *gin.Context) {
 	var reg models.Registration
@@ -20,7 +27,50 @@ func SignUp(c *gin.Context) {
 		return
 	}
 
-	// TODO: check password strength
+	// test username
+	// username validation based on twitter:
+	// - only contain letters, number, period, or underscore
+	// - must not start or end with period
+	// - max 30 characters (twitter is 15, instagram is 30)
+	valid := usernameRx.Match([]byte(reg.Username))
+	if !valid || len(reg.Username) > 30 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid username"})
+		return
+	}
+
+	// test email address
+	if reg.Identity.Type == models.EmailAddress {
+		// not trying to be too strict here, just:
+		// - make sure there's at least one "@"
+		valid = emailRx.Match([]byte(reg.Identity.Value))
+		if !valid {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email address"})
+			return
+		}
+	}
+
+	// clean phone number
+	if reg.Identity.Type == models.PhoneNumber {
+		// no way gonna try and validate phone numbers, just:
+		// - remove everything but numbers and "+"
+		// - make sure its not zero-length
+		cleaned := numbersOnlyRx.ReplaceAllString(reg.Identity.Value, "")
+		if len(cleaned) == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid phone number"})
+			return
+		}
+		reg.Identity.Value = cleaned
+	}
+
+	// check password strength
+	match := zxcvbn.PasswordStrength(reg.Password, []string{reg.Identity.Value})
+	if match.Score < 3 {
+		msg := fmt.Sprintf("weak password - crackable in %s", match.CrackTimeDisplay)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	// hash password
 	password, err := hashAndSalt(reg.Password)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
