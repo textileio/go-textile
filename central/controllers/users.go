@@ -2,15 +2,13 @@ package controllers
 
 import (
 	"net/http"
-	"os"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/central/auth"
 	"github.com/textileio/textile-go/central/dao"
 	"github.com/textileio/textile-go/central/models"
 )
@@ -45,22 +43,17 @@ func SignUp(c *gin.Context) {
 		return
 	}
 
-	// create a token
-	token := jwt.New(jwt.GetSigningMethod("HS256"))
-	token.Claims = jwt.MapClaims{
-		"Id":  ksuid.New().String(),
-		"exp": time.Now().Add(time.Hour * 24 * 7).Unix(),
-	}
-	signed, err := token.SignedString([]byte(os.Getenv("TOKEN_SECRET")))
+	// get a session
+	session, err := auth.NewSession(user.ID.Hex())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	// ship it
 	c.JSON(http.StatusCreated, models.Response{
-		Status:     http.StatusCreated,
-		ResourceID: user.ID.Hex(),
-		Token:      signed,
+		Status:  http.StatusCreated,
+		Session: session,
 	})
 }
 
@@ -80,26 +73,21 @@ func SignIn(c *gin.Context) {
 
 	// check password
 	if !checkPassword(user.Password, creds.Password) {
-		c.JSON(http.StatusForbidden, gin.H{})
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
 
-	// create a token
-	token := jwt.New(jwt.GetSigningMethod("HS256"))
-	token.Claims = jwt.MapClaims{
-		"Id":  ksuid.New().String(),
-		"exp": time.Now().Add(time.Hour * 24 * 7).Unix(),
-	}
-	signed, err := token.SignedString([]byte(os.Getenv("TOKEN_SECRET")))
+	// get a session
+	session, err := auth.NewSession(user.ID.Hex())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	// ship it
 	c.JSON(http.StatusOK, models.Response{
-		Status:     http.StatusOK,
-		ResourceID: user.ID.Hex(),
-		Token:      signed,
+		Status:  http.StatusOK,
+		Session: session,
 	})
 }
 

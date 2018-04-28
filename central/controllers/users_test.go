@@ -47,8 +47,8 @@ func TestUsers_SignUp(t *testing.T) {
 		t.Errorf("got bad status: %d", stat)
 		return
 	}
-	if res.Token == "" {
-		t.Error("got bad token")
+	if res.Session == nil {
+		t.Error("got bad session")
 		return
 	}
 }
@@ -63,8 +63,8 @@ func TestUsers_SignIn(t *testing.T) {
 		t.Errorf("got bad status: %d", stat)
 		return
 	}
-	if res.Token == "" {
-		t.Error("got bad token")
+	if res.Session == nil {
+		t.Error("got bad session")
 		return
 	}
 	credentials["password"] = "doh!"
