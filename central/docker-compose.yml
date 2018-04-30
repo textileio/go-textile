@@ -1,0 +1,16 @@
+version: '3.6'
+services:
+  api:
+    container_name: 'api'
+    build: './'
+    ports:
+      - '8080:8080'
+    volumes:
+      - './:/go/src/app'
+    depends_on:
+      - 'mongo'
+  mongo:
+    image: 'mongo:latest'
+    container_name: 'mongo'
+    ports:
+      - '27100:27017'
