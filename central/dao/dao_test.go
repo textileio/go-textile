@@ -38,8 +38,8 @@ func TestDao_Connect(t *testing.T) {
 		panic(err)
 	}
 
-	d.Hostname = os.Getenv("HOSTNAME")
-	d.DatabaseName = os.Getenv("DATABASE")
+	d.Hosts = os.Getenv("DB_HOSTS")
+	d.Name = os.Getenv("DB_NAME")
 	d.Connect()
 }
 
