@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -16,13 +18,23 @@ import (
 func init() {
 	err := godotenv.Load()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
+	}
+
+	// parse db tls setting
+	var tls bool
+	tls, err = strconv.ParseBool(os.Getenv("DB_TLS"))
+	if err != nil {
+		tls = false
 	}
 
 	// initialize a dao
 	dao.Dao = &dao.DAO{
-		Hostname:     os.Getenv("HOSTNAME"),
-		DatabaseName: os.Getenv("DATABASE"),
+		Hosts:    os.Getenv("DB_HOSTS"),
+		User:     os.Getenv("DB_USER"),
+		Password: os.Getenv("DB_PASSWORD"),
+		Name:     os.Getenv("DB_NAME"),
+		TLS:      tls,
 	}
 	dao.Dao.Connect()
 	dao.Dao.Index()

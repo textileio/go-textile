@@ -1,7 +1,10 @@
 package dao
 
 import (
+	"crypto/tls"
+	"fmt"
 	"log"
+	"net"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -10,8 +13,11 @@ import (
 )
 
 type DAO struct {
-	Hostname     string
-	DatabaseName string
+	Hosts    string
+	Name     string
+	User     string
+	Password string
+	TLS      bool
 }
 
 var Dao *DAO
@@ -52,11 +58,32 @@ func (m *DAO) Index() {
 
 // Establish a connection to database
 func (m *DAO) Connect() {
-	session, err := mgo.Dial(m.Hostname)
+	creds := fmt.Sprintf("%s:%s@", m.User, m.Password)
+	if len(creds) == 2 {
+		creds = ""
+	}
+	uri := fmt.Sprintf("mongodb://%s%s/%s", creds, m.Hosts, m.Name)
+	dialInfo, err := mgo.ParseURL(uri)
 	if err != nil {
 		log.Fatal(err)
 	}
-	db = session.DB(m.DatabaseName)
+	if m.TLS {
+		dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
+			tlsConfig := &tls.Config{
+				InsecureSkipVerify: true,
+			}
+			conn, err := tls.Dial("tcp", addr.String(), tlsConfig)
+			if err != nil {
+				log.Fatal(err)
+			}
+			return conn, err
+		}
+	}
+	session, err := mgo.DialWithInfo(dialInfo)
+	if err != nil {
+		log.Fatal(err)
+	}
+	db = session.DB(m.Name)
 }
 
 // Find a user by id
