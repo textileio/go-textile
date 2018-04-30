@@ -43,6 +43,10 @@ func init() {
 // Define HTTP request routes
 func main() {
 	router := gin.Default()
+	router.GET("/", controllers.Info)
+	router.GET("/health", controllers.Health)
+
+	// api routes
 	v1 := router.Group("/api/v1")
 	v1.Use(middleware.Auth(os.Getenv("TOKEN_SECRET")))
 	{
