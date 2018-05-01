@@ -5,6 +5,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
+
+	zxcvbn "github.com/nbutton23/zxcvbn-go"
 
 	"github.com/op/go-logging"
 
@@ -143,4 +146,70 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 	}
 
 	return topic, nil
+}
+
+// TODO: doesn't use a cleaned version of the phone number, if pn is supplied
+func (w *Wrapper) CheckPassword(password string, identity string) (bool, error) {
+	match := zxcvbn.PasswordStrength(password, []string{identity})
+	if match.Score < 3 {
+		return false, errors.New(fmt.Sprintf("weak password - crackable in %s", match.CrackTimeDisplay))
+	}
+	return true, nil
+}
+
+func (w *Wrapper) SignUp(username string, password string, identity string, identityType string) (int, *models.Response, error) {
+	if identityType === "" {
+		identityType = "email_address"
+	}
+	reg := map[string]interface{}{
+		"username": username,
+		"password": password,
+		"identity": map[string]string{
+			"type": identityType,
+			"value": identity,
+		},
+	}
+
+	url := fmt.Sprintf("%s/api/v1/users", apiURL)
+	payload, err := json.Marshal(reg)
+	if err != nil {
+		return 0, nil, err
+	}
+	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(payload))
+	req.Header.Set("Content-Type", "application/json")
+	res, err := client.Do(req)
+	if err != nil {
+		return 0, nil, err
+	}
+	defer res.Body.Close()
+	resp := &models.Response{}
+	if err := resp.Read(res.Body); err != nil {
+		return res.StatusCode, nil, err
+	}
+	return res.StatusCode, resp, nil
+}
+
+func (w *Wrapper) SignIn(username string, password string) (int, *models.Response, error) {
+	creds = map[string]interface{}{
+		"username": username,
+		"password": password,
+	}
+
+	url := fmt.Sprintf("%s/api/v1/users", apiURL)
+	payload, err := json.Marshal(creds)
+	if err != nil {
+		return 0, nil, err
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+	req.Header.Set("Content-Type", "application/json")
+	res, err := client.Do(req)
+	if err != nil {
+		return 0, nil, err
+	}
+	defer res.Body.Close()
+	resp := &models.Response{}
+	if err := resp.Read(res.Body); err != nil {
+		return res.StatusCode, nil, err
+	}
+	return res.StatusCode, resp, nil
 }

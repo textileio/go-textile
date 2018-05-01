@@ -140,6 +140,17 @@ func TestWrapper_PairDesktop(t *testing.T) {
 	}
 }
 
+func TestWrapper_CheckPassword(t *testing.T) {
+	_, err := wrapper.CheckPassword("ABDC", "contact@textile.io")
+	if err == nil {
+		t.Errorf("password strength test failed to detect weak password")
+	}
+	_, err = wrapper.CheckPassword("29@p}dN6}?Uie4TG/7", "contact@textile.io")
+	if err != nil {
+		t.Errorf("password strength test failed to accept strong password")
+	}
+}
+
 func TestWrapper_Stop(t *testing.T) {
 	err := wrapper.Stop()
 	if err != nil {
