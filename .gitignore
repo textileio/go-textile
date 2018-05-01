@@ -64,3 +64,6 @@ dist
 
 # keys
 *.pem
+
+# Swarm
+docker-compose.yml

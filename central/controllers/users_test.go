@@ -8,7 +8,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/joho/godotenv"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/central/models"
 )
@@ -30,11 +29,7 @@ var credentials = map[string]interface{}{
 }
 
 func TestUsers_Setup(t *testing.T) {
-	err := godotenv.Load()
-	if err != nil {
-		panic(err)
-	}
-	apiURL = fmt.Sprintf("http://%s:%s", os.Getenv("HOSTNAME"), os.Getenv("PORT"))
+	apiURL = fmt.Sprintf("http://%s", os.Getenv("HOST"))
 }
 
 func TestUsers_SignUp(t *testing.T) {

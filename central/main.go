@@ -2,12 +2,9 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 
 	"github.com/textileio/textile-go/central/controllers"
 	"github.com/textileio/textile-go/central/dao"
@@ -16,25 +13,12 @@ import (
 
 // Establish a connection to DB
 func init() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// parse db tls setting
-	var tls bool
-	tls, err = strconv.ParseBool(os.Getenv("DB_TLS"))
-	if err != nil {
-		tls = false
-	}
-
-	// initialize a dao
 	dao.Dao = &dao.DAO{
 		Hosts:    os.Getenv("DB_HOSTS"),
 		User:     os.Getenv("DB_USER"),
 		Password: os.Getenv("DB_PASSWORD"),
 		Name:     os.Getenv("DB_NAME"),
-		TLS:      tls,
+		TLS:      os.Getenv("DB_TLS") == "yes",
 	}
 	dao.Dao.Connect()
 	dao.Dao.Index()
@@ -53,5 +37,5 @@ func main() {
 		v1.PUT("/users", controllers.SignUp)
 		v1.POST("/users", controllers.SignIn)
 	}
-	router.Run(fmt.Sprintf(":%s", os.Getenv("PORT")))
+	router.Run(fmt.Sprintf("%s", os.Getenv("BIND")))
 }
