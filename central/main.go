@@ -36,6 +36,8 @@ func main() {
 	{
 		v1.PUT("/users", controllers.SignUp)
 		v1.POST("/users", controllers.SignIn)
+		v1.POST("/referrals", controllers.CreateReferral)
+		v1.GET("/referrals", controllers.ListReferrals)
 	}
 	router.Run(fmt.Sprintf("%s", os.Getenv("BIND")))
 }

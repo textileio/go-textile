@@ -17,11 +17,12 @@ jobs:
             sleep 5
             go test `go list ./... | grep -v github.com/textileio/textile-go/desktop` -coverprofile coverage.out
           environment:
-            HOST: 0.0.0.0:8000
             VERSION: 0.0.1
             BIND: 0.0.0.0:8000
+            HOST: 0.0.0.0:8000
             TOKEN_SECRET: swarmmmmmmmm
             DB_HOSTS: 0.0.0.0:27017
             DB_NAME: textile_db
+            REF_KEY: woohoo!
       - run: go get -u github.com/asticode/go-astilectron-bundler/...
       - run: make build_desktop
