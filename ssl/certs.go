@@ -148,7 +148,7 @@ func Generate(certPath string, keyPath string, host string) error {
 		return err
 	}
 
-	certOut, err := os.Create(certPath)
+	certOut, err := os.OpenFile(certPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		log.Errorf("failed to open "+certPath+" for writing: %s", err)
 		return err
@@ -157,7 +157,7 @@ func Generate(certPath string, keyPath string, host string) error {
 	certOut.Close()
 	log.Infof("saved a new cert.pem to: %s\n", certPath)
 
-	keyOut, err := os.OpenFile(keyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	keyOut, err := os.OpenFile(keyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		log.Errorf("failed to open "+keyPath+" for writing:", err)
 		return err
