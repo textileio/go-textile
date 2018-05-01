@@ -3,10 +3,25 @@ jobs:
   build:
     docker:
       - image: textile/circleci:1.10
+      - image: mongo:3.4.10
     working_directory: /go/src/github.com/textileio/textile-go
     steps:
       - checkout
       - run: dep ensure
-      - run: npm test
+      - run: cd central && dep ensure
+      - run: cd central && go install -v ./...
+      - run:
+          name: run central api
+          command: |
+            central &
+            sleep 5
+            go test `go list ./... | grep -v github.com/textileio/textile-go/desktop` -coverprofile coverage.out
+          environment:
+            HOST: 0.0.0.0:8000
+            VERSION: 0.0.1
+            BIND: 0.0.0.0:8000
+            TOKEN_SECRET: swarmmmmmmmm
+            DB_HOSTS: 0.0.0.0:27017
+            DB_NAME: textile_db
       - run: go get -u github.com/asticode/go-astilectron-bundler/...
       - run: make build_desktop

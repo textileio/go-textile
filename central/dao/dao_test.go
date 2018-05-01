@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/globalsign/mgo/bson"
-	"github.com/joho/godotenv"
 	"github.com/segmentio/ksuid"
 
 	"github.com/textileio/textile-go/central/dao"
@@ -33,11 +32,6 @@ var user = models.User{
 }
 
 func TestDao_Connect(t *testing.T) {
-	err := godotenv.Load()
-	if err != nil {
-		panic(err)
-	}
-
 	d.Hosts = os.Getenv("DB_HOSTS")
 	d.Name = os.Getenv("DB_NAME")
 	d.Connect()
