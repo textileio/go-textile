@@ -4,4 +4,6 @@ import (
 	"testing"
 )
 
-func TestImageFormats(t *testing.T) {}
+func TestPhotos_Add(t *testing.T) {
+	// TODO
+}
