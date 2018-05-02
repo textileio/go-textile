@@ -25,7 +25,8 @@ var Dao *DAO
 var db *mgo.Database
 
 const (
-	userCollection = "users"
+	userCollection     = "users"
+	referralCollection = "referrals"
 )
 
 var indexes = map[string][]mgo.Index{
@@ -42,6 +43,18 @@ var indexes = map[string][]mgo.Index{
 			DropDups:   true,
 			Background: true,
 			Sparse:     true,
+		},
+	},
+	referralCollection: {
+		{
+			Key:        []string{"code"},
+			Unique:     true,
+			DropDups:   true,
+			Background: true,
+		},
+		{
+			Key:        []string{"user_id"},
+			Background: true,
 		},
 	},
 }
@@ -86,6 +99,42 @@ func (m *DAO) Connect() {
 	db = session.DB(m.Name)
 }
 
+// REFERRALS
+
+// Find a referral by code
+func (m *DAO) FindReferralByCode(code string) (models.Referral, error) {
+	var ref models.Referral
+	err := db.C(referralCollection).Find(bson.M{"code": code}).One(&ref)
+	return ref, err
+}
+
+// List referrals
+func (m *DAO) ListUnusedReferrals() ([]models.Referral, error) {
+	var refs []models.Referral
+	err := db.C(referralCollection).Find(bson.M{"used": bson.M{"$eq": nil}}).All(&refs)
+	return refs, err
+}
+
+// Insert a new referral
+func (m *DAO) InsertReferral(ref models.Referral) error {
+	err := db.C(referralCollection).Insert(&ref)
+	return err
+}
+
+// Delete an existing referral
+func (m *DAO) DeleteReferral(ref models.Referral) error {
+	err := db.C(referralCollection).Remove(&ref)
+	return err
+}
+
+// Update an existing referral
+func (m *DAO) UpdateReferral(ref models.Referral) error {
+	err := db.C(referralCollection).UpdateId(ref.ID, &ref)
+	return err
+}
+
+// USERS
+
 // Find a user by id
 func (m *DAO) FindUserById(id string) (models.User, error) {
 	var user models.User
@@ -109,7 +158,7 @@ func (m *DAO) FindUserByIdentity(id models.Identity) (models.User, error) {
 	return user, err
 }
 
-// Insert a user into database
+// Insert a new user
 func (m *DAO) InsertUser(user models.User) error {
 	err := db.C(userCollection).Insert(&user)
 	return err
