@@ -27,6 +27,13 @@ func SignUp(c *gin.Context) {
 		return
 	}
 
+	// lookup the referral code
+	ref, err := dao.Dao.FindReferralByCode(reg.Referral)
+	if err != nil || ref.UserID != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "invalid or used referral code"})
+		return
+	}
+
 	// test username
 	// username validation based on twitter:
 	// - only contain letters, number, period, or underscore
@@ -96,6 +103,14 @@ func SignUp(c *gin.Context) {
 	// get a session
 	session, err := auth.NewSession(user.ID.Hex())
 	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// lastly, mark the code as used
+	ref.UserID = &user.ID
+	ref.Used = &user.Created
+	if err := dao.Dao.UpdateReferral(ref); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
