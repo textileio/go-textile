@@ -160,7 +160,7 @@ func (w *Wrapper) CheckPassword(password string, identity string) (bool, error) 
 	return true, nil
 }
 
-func (w *Wrapper) SignUpWithEmail(username string, password string, email string) (int, *models.Response, error) {
+func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) (int, *models.Response, error) {
 	apiURL := ""
 
 	reg := models.Registration{
@@ -170,6 +170,7 @@ func (w *Wrapper) SignUpWithEmail(username string, password string, email string
 			Type:  models.EmailAddress,
 			Value: email,
 		},
+		Referral: referral,
 	}
 
 	url := fmt.Sprintf("%s/api/v1/users", apiURL)
