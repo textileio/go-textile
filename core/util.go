@@ -257,7 +257,7 @@ func parsePeerParam(text string) (ma.Multiaddr, peer.ID, error) {
 
 // merge does fan-in of multiple read-only error channels
 // taken from http://blog.golang.org/pipelines
-func merge(cs ...<-chan error) <-chan error {
+func mergeErrors(cs ...<-chan error) <-chan error {
 	var wg sync.WaitGroup
 	out := make(chan error)
 
