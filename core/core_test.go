@@ -28,6 +28,13 @@ func TestTextileNode_Start(t *testing.T) {
 	}
 }
 
+func TestTextileNode_StartAgain(t *testing.T) {
+	err := node.Start()
+	if err != ErrNodeRunning {
+		t.Errorf("start node again reported wrong error: %s", err)
+	}
+}
+
 func TestTextileNode_StartServices(t *testing.T) {
 	_, err := node.StartServices()
 	if err != nil {
