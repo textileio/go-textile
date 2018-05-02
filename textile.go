@@ -33,7 +33,7 @@ func main() {
 
 	// handle version flag
 	if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-v") {
-		shell.Println(core.VERSION)
+		shell.Println(core.Version)
 		return
 	}
 
@@ -232,6 +232,6 @@ _/  |_  ____ ___  ____/  |_|__|  |   ____
 `
 	shell.Println(blue(banner))
 	shell.Println("")
-	shell.Println("textile node v" + core.VERSION)
+	shell.Println("textile node v" + core.Version)
 	shell.Println("type `help` for available commands")
 }

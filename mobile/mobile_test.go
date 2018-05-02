@@ -6,8 +6,11 @@ import (
 	"os"
 	"testing"
 
+	"github.com/segmentio/ksuid"
+
 	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
+	"github.com/textileio/textile-go/test"
 
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
@@ -15,10 +18,14 @@ import (
 var wrapper *Wrapper
 var hash string
 
+var cusername = ksuid.New().String()
+var cpassword = ksuid.New().String()
+var cemail = ksuid.New().String() + "@textile.io"
+
 func TestNewTextile(t *testing.T) {
 	os.RemoveAll("testdata/.ipfs")
 	var err error
-	wrapper, err = NewNode("testdata/.ipfs")
+	wrapper, err = NewNode("testdata/.ipfs", test.CentralApiURL)
 	if err != nil {
 		t.Errorf("create mobile node failed: %s", err)
 	}
@@ -35,6 +42,50 @@ func TestWrapper_StartAgain(t *testing.T) {
 	err := wrapper.Start()
 	if err != nil {
 		t.Errorf("attempt to start a running node failed: %s", err)
+	}
+}
+
+func TestWrapper_SignUpWithEmail(t *testing.T) {
+	_, ref, err := test.CreateReferral(test.RefKey, 1)
+	if err != nil {
+		t.Errorf("create referral for signup failed: %s", err)
+		return
+	}
+	if len(ref.RefCodes) == 0 {
+		t.Error("create referral for signup got no codes")
+		return
+	}
+	err = wrapper.SignUpWithEmail(cusername, cpassword, cemail, ref.RefCodes[0])
+	if err != nil {
+		t.Errorf("signup failed: %s", err)
+		return
+	}
+}
+
+func TestWrapper_SignIn(t *testing.T) {
+	err := wrapper.SignIn(cusername, cpassword)
+	if err != nil {
+		t.Errorf("signin failed: %s", err)
+		return
+	}
+}
+
+func TestWrapper_GetUsername(t *testing.T) {
+	un, err := wrapper.GetUsername()
+	if err != nil {
+		t.Errorf("get username failed: %s", err)
+		return
+	}
+	if un != cusername {
+		t.Errorf("got bad username: %s", un)
+	}
+}
+
+func TestWrapper_GetAccessToken(t *testing.T) {
+	_, err := wrapper.GetAccessToken()
+	if err != nil {
+		t.Errorf("get access token failed: %s", err)
+		return
 	}
 }
 

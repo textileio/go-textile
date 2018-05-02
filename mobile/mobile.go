@@ -11,6 +11,7 @@ import (
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/net"
 
+	"github.com/textileio/textile-go/central/models"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
@@ -24,16 +25,16 @@ type Wrapper struct {
 	gatewayRunning bool
 }
 
-func NewNode(repoPath string) (*Wrapper, error) {
+func NewNode(repoPath string, centralApiURL string) (*Wrapper, error) {
 	var m Mobile
-	return m.NewNode(repoPath)
+	return m.NewNode(repoPath, centralApiURL)
 }
 
 type Mobile struct{}
 
 // Create a gomobile compatible wrapper around TextileNode
-func (m *Mobile) NewNode(repoPath string) (*Wrapper, error) {
-	node, err := tcore.NewNode(repoPath, true, logging.DEBUG)
+func (m *Mobile) NewNode(repoPath string, centralApiURL string) (*Wrapper, error) {
+	node, err := tcore.NewNode(repoPath, centralApiURL, true, logging.DEBUG)
 	if err != nil {
 		return nil, err
 	}
@@ -148,32 +149,44 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 	return topic, nil
 }
 
-func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) (string, error) {
-	res, err := w.node.SignUpWithEmail(username, password, email, referral)
-	if err != nil {
-		log.Errorf("signup error: %s", err)
-		return "", err
+func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) error {
+	// build registration
+	reg := &models.Registration{
+		Username: username,
+		Password: password,
+		Identity: &models.Identity{
+			Type:  models.EmailAddress,
+			Value: email,
+		},
+		Referral: referral,
 	}
-	jsonb, err := json.Marshal(res)
-	if err != nil {
-		log.Errorf("signup data conversion failed: %s", err)
-		return "", err
-	}
-	return string(jsonb), nil
+
+	// signup
+	return w.node.SignUp(reg)
 }
 
-func (w *Wrapper) SignIn(username string, password string) (string, error) {
-	res, err := w.node.SignIn(username, password)
+func (w *Wrapper) SignIn(username string, password string) error {
+	// build creds
+	creds := &models.Credentials{
+		Username: username,
+		Password: password,
+	}
+
+	// signin
+	return w.node.SignIn(creds)
+}
+
+func (w *Wrapper) GetUsername() (string, error) {
+	return w.node.Datastore.Config().GetUsername()
+}
+
+func (w *Wrapper) GetAccessToken() (string, error) {
+	at, _, err := w.node.Datastore.Config().GetTokens()
 	if err != nil {
-		log.Errorf("signin failed: %s", err)
 		return "", err
 	}
-	jsonb, err := json.Marshal(res)
-	if err != nil {
-		log.Errorf("signin data conversion failed: %s", err)
-		return "", err
-	}
-	return string(jsonb), nil
+
+	return at, nil
 }
 
 func (w *Wrapper) GatewayPassword() string {

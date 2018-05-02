@@ -15,6 +15,7 @@ import (
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/namesys"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo"
+	"time"
 )
 
 const (
@@ -27,7 +28,7 @@ var ErrRepoExists = errors.New(`ipfs configuration file already exists!
 Reinitializing would overwrite your keys.
 `)
 
-func DoInit(repoRoot string, isMobile bool, dbInit func(string) error) error {
+func DoInit(repoRoot string, isMobile bool, dbInit func(string) error, dbConfigure func(time.Time) error) error {
 	if err := checkWriteable(repoRoot); err != nil {
 		return err
 	}
@@ -54,6 +55,10 @@ func DoInit(repoRoot string, isMobile bool, dbInit func(string) error) error {
 	}
 
 	if err := dbInit(""); err != nil {
+		return err
+	}
+
+	if err := dbConfigure(time.Now()); err != nil {
 		return err
 	}
 
