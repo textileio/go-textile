@@ -8,7 +8,6 @@ import (
 
 	"github.com/op/go-logging"
 
-	"github.com/textileio/textile-go/central/models"
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/net"
 
@@ -146,10 +145,30 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 	return topic, nil
 }
 
-func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) (*models.Response, error) {
-	return w.node.SignUpWithEmail(username, password, email, referral)
+func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) ([]byte, error) {
+	res, err := w.node.SignUpWithEmail(username, password, email, referral)
+	if err != nil {
+		log.Errorf("signup error: %s", err)
+		return nil, err
+	}
+	jsn, err := json.Marshal(res)
+	if err != nil {
+		log.Errorf("signup data conversion failed: %s", err)
+		return nil, err
+	}
+	return jsn, nil
 }
 
-func (w *Wrapper) SignIn(username string, password string) (*models.Response, error) {
-	return w.node.SignIn(username, password)
+func (w *Wrapper) SignIn(username string, password string) ([]byte, error) {
+	res, err := w.node.SignIn(username, password)
+	if err != nil {
+		log.Errorf("signin failed: %s", err)
+		return nil, err
+	}
+	jsn, err := json.Marshal(res)
+	if err != nil {
+		log.Errorf("signin data conversion failed: %s", err)
+		return nil, err
+	}
+	return jsn, nil
 }
