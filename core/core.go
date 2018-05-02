@@ -172,7 +172,8 @@ func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNo
 		Routing: routingOption,
 	}
 
-	// create default servers (no handling until start)
+	// create default servers (no handling until start, uses default addrs)
+	// TODO: can we figure out addrs here and now?
 	gatewayProxy := &http.Server{Addr: ":9999"}
 
 	// finally, construct our node
@@ -210,6 +211,7 @@ func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNo
 	return node, nil
 }
 
+// Start the node
 func (t *TextileNode) Start() error {
 	// raise file descriptor limit
 	if err := utilmain.ManageFdLimit(); err != nil {
@@ -232,7 +234,7 @@ func (t *TextileNode) Start() error {
 	}
 	nd.SetLocal(false)
 
-	if err := printSwarmAddrs(nd); err != nil {
+	if err = printSwarmAddrs(nd); err != nil {
 		log.Errorf("failed to read listening addresses: %s", err)
 	}
 
@@ -247,6 +249,25 @@ func (t *TextileNode) Start() error {
 
 	t.Context = ctx
 	t.IpfsNode = nd
+
+	// construct decrypting http gateway proxy
+	var gwpErrc <-chan error
+	gwpErrc, err = ServeHTTPGatewayProxy(t)
+	if err != nil {
+		log.Errorf("error starting decrypting gateway: %s", err)
+		return err
+	}
+
+	go func() {
+		for {
+			select {
+			case err := <-gwpErrc:
+				if err != nil {
+					log.Errorf("service error: %s", err)
+				}
+			}
+		}
+	}()
 
 	if t.isMobile {
 		log.Info("mobile node is ready")
@@ -263,6 +284,7 @@ func (t *TextileNode) Start() error {
 	return nil
 }
 
+// StartServices starts garbage cleanup and gateway services
 func (t *TextileNode) StartServices() (<-chan error, error) {
 	if t.isMobile {
 		return nil, errors.New("services not available on mobile")
@@ -285,19 +307,13 @@ func (t *TextileNode) StartServices() (<-chan error, error) {
 		return nil, err
 	}
 
-	// construct decrypting http gateway proxy
-	var gwpErrc <-chan error
-	gwpErrc, err = ServeHTTPGatewayProxy(t)
-	if err != nil {
-		log.Errorf("error starting decrypting gateway: %s", err)
-		return nil, err
-	}
 	t.ServicesUp = true
 
 	// merge error channels
-	return mergeErrors(gwErrc, gcErrc, gwpErrc), nil
+	return mergeErrors(gwErrc, gcErrc), nil
 }
 
+// Stop the node
 func (t *TextileNode) Stop() error {
 	repoLockFile := filepath.Join(t.RepoPath, lockfile.LockFile)
 	if err := os.Remove(repoLockFile); err != nil {
@@ -322,6 +338,7 @@ func (t *TextileNode) Stop() error {
 	return nil
 }
 
+// JoinRoom with a given id
 func (t *TextileNode) JoinRoom(id string, datac chan string) {
 	// create the subscription
 	sub, err := t.IpfsNode.Floodsub.Subscribe(id)
@@ -376,6 +393,7 @@ func (t *TextileNode) JoinRoom(id string, datac chan string) {
 	}
 }
 
+// LeaveRoom with a given id
 func (t *TextileNode) LeaveRoom(id string) {
 	if t.leaveRoomChs[id] == nil {
 		return
@@ -383,6 +401,7 @@ func (t *TextileNode) LeaveRoom(id string) {
 	close(t.leaveRoomChs[id])
 }
 
+// WaitForRoom to join
 func (t *TextileNode) WaitForRoom() {
 	// we're in a lonesome state here, we can just sub to our own
 	// peer id and hope somebody sends us a priv key to join a room with
@@ -443,6 +462,7 @@ func (t *TextileNode) WaitForRoom() {
 	}
 }
 
+// ConnectToRoomPeers on a given topic
 func (t *TextileNode) ConnectToRoomPeers(topic string) context.CancelFunc {
 	blk := blocks.NewBlock([]byte("floodsub:" + topic))
 	err := t.IpfsNode.Blocks.AddBlock(blk)
@@ -457,6 +477,7 @@ func (t *TextileNode) ConnectToRoomPeers(topic string) context.CancelFunc {
 	return cancel
 }
 
+// GatewayPort requests the active gateway port
 func (t *TextileNode) GatewayPort() (int, error) {
 	// Get config and set proxy address to raw gateway address plus one thousand,
 	// so a gateway on 8182 means the proxy will run on 9182
@@ -476,6 +497,7 @@ func (t *TextileNode) GatewayPort() (int, error) {
 	return int(port), nil
 }
 
+// CreateAlbum creates an album with a given name and mnemonic words
 func (t *TextileNode) CreateAlbum(mnemonic string, name string) error {
 	// use phrase if provided
 	log.Infof("creating a new album: %s", name)
