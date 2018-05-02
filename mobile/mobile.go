@@ -1,16 +1,19 @@
 package mobile
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 
 	zxcvbn "github.com/nbutton23/zxcvbn-go"
 
 	"github.com/op/go-logging"
 
+	"github.com/textileio/textile-go/central/models"
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/net"
 
@@ -157,16 +160,15 @@ func (w *Wrapper) CheckPassword(password string, identity string) (bool, error) 
 	return true, nil
 }
 
-func (w *Wrapper) SignUp(username string, password string, identity string, identityType string) (int, *models.Response, error) {
-	if identityType === "" {
-		identityType = "email_address"
-	}
-	reg := map[string]interface{}{
-		"username": username,
-		"password": password,
-		"identity": map[string]string{
-			"type": identityType,
-			"value": identity,
+func (w *Wrapper) SignUpWithEmail(username string, password string, email string) (int, *models.Response, error) {
+	apiURL := ""
+
+	reg := models.Registration{
+		Username: username,
+		Password: password,
+		Identity: &models.Identity{
+			Type:  models.EmailAddress,
+			Value: email,
 		},
 	}
 
@@ -175,6 +177,9 @@ func (w *Wrapper) SignUp(username string, password string, identity string, iden
 	if err != nil {
 		return 0, nil, err
 	}
+
+	client := &http.Client{}
+
 	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json")
 	res, err := client.Do(req)
@@ -190,9 +195,11 @@ func (w *Wrapper) SignUp(username string, password string, identity string, iden
 }
 
 func (w *Wrapper) SignIn(username string, password string) (int, *models.Response, error) {
-	creds = map[string]interface{}{
-		"username": username,
-		"password": password,
+	apiURL := ""
+
+	creds := models.Credentials{
+		Username: username,
+		Password: password,
 	}
 
 	url := fmt.Sprintf("%s/api/v1/users", apiURL)
@@ -200,6 +207,9 @@ func (w *Wrapper) SignIn(username string, password string) (int, *models.Respons
 	if err != nil {
 		return 0, nil, err
 	}
+
+	client := &http.Client{}
+
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json")
 	res, err := client.Do(req)
