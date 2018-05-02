@@ -18,7 +18,7 @@ type Session struct {
 type Response struct {
 	Status  int      `json:"status,omitempty"`
 	Session *Session `json:"session,omitempty"`
-	Error   string   `json:"error,omitempty"`
+	Error   *string  `json:"error,omitempty"`
 }
 
 func (r *Response) Read(body io.ReadCloser) error {
