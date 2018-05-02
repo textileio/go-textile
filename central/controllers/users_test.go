@@ -1,4 +1,4 @@
-package controllers
+package controllers_test
 
 import (
 	"bytes"
@@ -12,9 +12,7 @@ import (
 	"github.com/textileio/textile-go/central/models"
 )
 
-var client = &http.Client{}
-
-var apiURL string
+var refCode string
 var registration = map[string]interface{}{
 	"username": ksuid.New().String(),
 	"password": ksuid.New().String(),
@@ -22,6 +20,7 @@ var registration = map[string]interface{}{
 		"type":  "email_address",
 		"value": fmt.Sprintf("%s@textile.io", ksuid.New().String()),
 	},
+	"ref_code": "canihaz?",
 }
 var credentials = map[string]interface{}{
 	"username": registration["username"],
@@ -30,20 +29,52 @@ var credentials = map[string]interface{}{
 
 func TestUsers_Setup(t *testing.T) {
 	apiURL = fmt.Sprintf("http://%s", os.Getenv("HOST"))
+
+	// create a referral for the test
+	_, ref, err := createReferral(refKey, 1)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(ref.RefCodes) > 0 {
+		refCode = ref.RefCodes[0]
+	} else {
+		t.Error("got bad ref codes")
+	}
 }
 
 func TestUsers_SignUp(t *testing.T) {
-	stat, res, err := signUp(registration)
+	stat, _, err := signUp(registration)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if stat != 201 {
+	if stat != 404 {
+		t.Errorf("bad status from sign up with bad ref code: %d", stat)
+		return
+	}
+
+	registration["ref_code"] = refCode
+	stat2, res2, err := signUp(registration)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if stat2 != 201 {
 		t.Errorf("got bad status: %d", stat)
 		return
 	}
-	if res.Session == nil {
+	if res2.Session == nil {
 		t.Error("got bad session")
+		return
+	}
+
+	stat3, _, err := signUp(registration)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if stat3 != 404 {
+		t.Errorf("bad status from sign up with already used ref code: %d", stat)
 		return
 	}
 }
