@@ -18,6 +18,7 @@ type Registration struct {
 	Username string    `json:"username" binding:"required"`
 	Password string    `json:"password" binding:"required"`
 	Identity *Identity `json:"identity" binding:"required"`
+	Referral string    `json:"ref_code" binding:"required"`
 }
 
 type Credentials struct {
@@ -36,4 +37,12 @@ type Identity struct {
 	Type     IdentityType `bson:"type" json:"type" binding:"required"`
 	Value    string       `bson:"value" json:"value" binding:"required"`
 	Verified bool         `bson:"verified" json:"verified"`
+}
+
+type Referral struct {
+	ID      bson.ObjectId  `bson:"_id" json:"id"`
+	Code    string         `bson:"code" json:"code"`
+	Created time.Time      `bson:"created" json:"created"`
+	Used    *time.Time     `bson:"used" json:"used"`
+	UserID  *bson.ObjectId `bson:"user_id" json:"user_id"`
 }
