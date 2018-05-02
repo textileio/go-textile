@@ -8,6 +8,7 @@ import (
 
 	"github.com/op/go-logging"
 
+	"github.com/textileio/textile-go/central/models"
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/net"
 
@@ -143,4 +144,12 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 	}
 
 	return topic, nil
+}
+
+func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) (*models.Response, error) {
+	return w.node.SignUpWithEmail(username, password, email, referral)
+}
+
+func (w *Wrapper) SignIn(username string, password string) (*models.Response, error) {
+	return w.node.SignIn(username, password)
 }
