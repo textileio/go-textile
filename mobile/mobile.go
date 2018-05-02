@@ -43,6 +43,9 @@ func (m *Mobile) NewNode(repoPath string) (*Wrapper, error) {
 
 func (w *Wrapper) Start() error {
 	if err := w.node.Start(); err != nil {
+		if err == tcore.ErrNodeRunning {
+			return nil
+		}
 		return err
 	}
 
