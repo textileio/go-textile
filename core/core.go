@@ -56,7 +56,8 @@ var log = logging.MustGetLogger("core")
 
 var Node *TextileNode
 
-const roomRepublishInterval = time.Minute * 5
+const roomRepublishInterval = time.Minute
+const pingRelayInterval = time.Second * 30
 const kPingTimeout = 10 * time.Second
 
 type TextileNode struct {
@@ -241,8 +242,11 @@ func (t *TextileNode) Start() error {
 		log.Info("desktop node is ready")
 	}
 
-	// every 5 min, send out latest room updates
+	// every min, send out latest room updates
 	go t.startRepublishing()
+
+	// every 30s, ping the relay
+	go t.startPingingRelay()
 
 	return nil
 }
@@ -279,7 +283,7 @@ func (t *TextileNode) StartServices() (<-chan error, error) {
 	t.ServicesUp = true
 
 	// merge error channels
-	return merge(gwErrc, gcErrc, gwpErrc), nil
+	return mergeErrors(gwErrc, gcErrc, gwpErrc), nil
 }
 
 func (t *TextileNode) Stop() error {
@@ -303,9 +307,6 @@ func (t *TextileNode) Stop() error {
 }
 
 func (t *TextileNode) JoinRoom(id string, datac chan string) {
-	// attempt to connect to room peers
-	connectCancel := t.ConnectToRoomPeers(id)
-
 	// create the subscription
 	sub, err := t.IpfsNode.Floodsub.Subscribe(id)
 	if err != nil {
@@ -318,7 +319,6 @@ func (t *TextileNode) JoinRoom(id string, datac chan string) {
 	t.LeftRoomChs[id] = make(chan struct{})
 
 	leave := func() {
-		connectCancel()
 		sub.Cancel()
 		close(t.LeftRoomChs[id])
 
@@ -926,6 +926,36 @@ func (t *TextileNode) republishLatestUpdates() {
 		log.Infof("re-publishing %s to %s...", latest, a.Id)
 		if err := t.IpfsNode.Floodsub.Publish(a.Id, []byte(latest)); err != nil {
 			log.Errorf("error re-publishing update: %s", err)
+		}
+	}
+}
+
+func (t *TextileNode) startPingingRelay() {
+	relay := "QmTUvaGZqEu7qJw6DuTyhTgiZmZwdp7qN4FD4FFV3TGhjM"
+
+	// do it once right away
+	err := t.PingPeer(relay, 1, make(chan string))
+	if err != nil {
+		log.Errorf("ping relay failed: %s", err)
+	}
+
+	// create a never-ending ticker
+	ticker := time.NewTicker(pingRelayInterval)
+	defer ticker.Stop()
+	go func() {
+		for range ticker.C {
+			err := t.PingPeer(relay, 1, make(chan string))
+			if err != nil {
+				log.Errorf("ping relay failed: %s", err)
+			}
+		}
+	}()
+
+	// we can stop when the node stops
+	for {
+		select {
+		case <-t.IpfsNode.Context().Done():
+			return
 		}
 	}
 }
