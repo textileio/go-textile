@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -8,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -20,6 +22,7 @@ import (
 	"github.com/tyler-smith/go-bip39"
 	"gopkg.in/natefinch/lumberjack.v2"
 
+	models "github.com/textileio/textile-go/central/models"
 	"github.com/textileio/textile-go/net"
 	trepo "github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
@@ -42,6 +45,9 @@ import (
 )
 
 const VERSION = "0.0.1"
+const apiURL = "https://api.textile.io/"
+
+var client = &http.Client{}
 
 var fileLogFormat = logging.MustStringFormatter(
 	`%{time:15:04:05.000} [%{shortfunc}] [%{level}] %{message}`,
@@ -824,6 +830,63 @@ func (t *TextileNode) PingPeer(addrs string, num int, out chan string) error {
 	}
 
 	return nil
+}
+
+func (t *TextileNode) SignIn(username string, password string) (*models.Response, error) {
+	creds := models.Credentials{
+		Username: username,
+		Password: password,
+	}
+
+	url := fmt.Sprintf("%s/api/v1/users", apiURL)
+	payload, err := json.Marshal(creds)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+	req.Header.Set("Content-Type", "application/json")
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	resp := &models.Response{}
+	if err := resp.Read(res.Body); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (t *TextileNode) SignUpWithEmail(username string, password string, email string, referral string) (*models.Response, error) {
+	reg := models.Registration{
+		Username: username,
+		Password: password,
+		Identity: &models.Identity{
+			Type:  models.EmailAddress,
+			Value: email,
+		},
+		Referral: referral,
+	}
+
+	url := fmt.Sprintf("%s/api/v1/users", apiURL)
+	payload, err := json.Marshal(reg)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(payload))
+	req.Header.Set("Content-Type", "application/json")
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	resp := &models.Response{}
+	if err := resp.Read(res.Body); err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func (t *TextileNode) startRepublishing() {
