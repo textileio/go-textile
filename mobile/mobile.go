@@ -56,17 +56,6 @@ func (w *Wrapper) Start() error {
 	return nil
 }
 
-func (w *Wrapper) StartGateway() error {
-	if w.gatewayRunning {
-		return nil
-	}
-	if _, err := tcore.ServeHTTPGatewayProxy(w.node); err != nil {
-		return err
-	}
-	w.gatewayRunning = true
-	return nil
-}
-
 func (w *Wrapper) Stop() error {
 	return w.node.Stop()
 }
