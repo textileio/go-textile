@@ -51,6 +51,22 @@ type ConfigurationStore interface {
 	Delete() error
 }
 
+type UserStore interface {
+	Queryable
+
+	// Put settings to the database, overriding all fields
+	Put(user UserData) error
+
+	// Update all non-nil fields
+	Update(user UserData) error
+
+	// Return the settings object
+	Get() (UserData, error)
+
+	// Delete all settings data
+	Delete() error
+}
+
 type PhotoStore interface {
 	Queryable
 

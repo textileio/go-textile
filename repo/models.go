@@ -10,6 +10,12 @@ type SettingsData struct {
 	Version *string `json:"version"`
 }
 
+type UserData struct {
+	UserName      *string `json:"user_name"`
+	IdentityValue *string `json:"identity_value"`
+	IdentityType  *string `json:"identity_type"`
+}
+
 type PhotoSet struct {
 	Cid      string          `json:"cid"`
 	LastCid  string          `json:"last_cid"`
