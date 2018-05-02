@@ -43,7 +43,18 @@ func (m *Mobile) NewNode(repoPath string) (*Wrapper, error) {
 }
 
 func (w *Wrapper) Start() error {
-	return w.node.Start()
+	if err := w.node.Start(); err != nil {
+		return err
+	}
+
+	// join existing rooms
+	albums := w.node.Datastore.Albums().GetAlbums("")
+	datacs := make([]chan string, len(albums))
+	for i, a := range albums {
+		go w.node.JoinRoom(a.Id, datacs[i])
+	}
+
+	return nil
 }
 
 func (w *Wrapper) StartGateway() error {
