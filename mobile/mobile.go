@@ -156,30 +156,30 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 	return topic, nil
 }
 
-func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) ([]byte, error) {
+func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) (string, error) {
 	res, err := w.node.SignUpWithEmail(username, password, email, referral)
 	if err != nil {
 		log.Errorf("signup error: %s", err)
-		return nil, err
+		return "", err
 	}
-	jsn, err := json.Marshal(res)
+	jsonb, err := json.Marshal(res)
 	if err != nil {
 		log.Errorf("signup data conversion failed: %s", err)
-		return nil, err
+		return "", err
 	}
-	return jsn, nil
+	return string(jsonb), nil
 }
 
-func (w *Wrapper) SignIn(username string, password string) ([]byte, error) {
+func (w *Wrapper) SignIn(username string, password string) (string, error) {
 	res, err := w.node.SignIn(username, password)
 	if err != nil {
 		log.Errorf("signin failed: %s", err)
-		return nil, err
+		return "", err
 	}
-	jsn, err := json.Marshal(res)
+	jsonb, err := json.Marshal(res)
 	if err != nil {
 		log.Errorf("signin data conversion failed: %s", err)
-		return nil, err
+		return "", err
 	}
-	return jsn, nil
+	return string(jsonb), nil
 }
