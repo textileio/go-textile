@@ -45,7 +45,7 @@ import (
 )
 
 const VERSION = "0.0.1"
-const apiURL = "https://api.textile.io/"
+const apiURL = "https://api.textile.io"
 
 var client = &http.Client{}
 
