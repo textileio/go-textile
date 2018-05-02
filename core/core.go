@@ -298,19 +298,8 @@ func (t *TextileNode) StartServices() (<-chan error, error) {
 		log.Errorf("error starting gc: %s", err)
 		return nil, err
 	}
-
-	// construct http gateway
-	var gwErrc <-chan error
-	gwErrc, err = serveHTTPGateway(&t.Context)
-	if err != nil {
-		log.Errorf("error starting gateway: %s", err)
-		return nil, err
-	}
-
 	t.ServicesUp = true
-
-	// merge error channels
-	return mergeErrors(gwErrc, gcErrc), nil
+	return gcErrc, nil
 }
 
 // Stop the node
