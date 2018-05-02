@@ -88,17 +88,25 @@ type TextileNode struct {
 	// Signals for leaving rooms
 	leaveRoomChs map[string]chan struct{}
 
-	// The local password used to authenticate http gateway requests (username is TextileNode)
-	GatewayPassword string
-
 	// Signals for when we've left rooms
 	LeftRoomChs map[string]chan struct{}
+
+	// The local raw gateway server
+	// Gateway http.Server
+
+	// The local decrypting gateway server
+	GatewayProxy *http.Server
+
+	// The local password used to authenticate secure GatewayProxy requests
+	GatewayPassword string
 }
 
+// PhotoList is a JSON-type structure that contains a list of photo hashes
 type PhotoList struct {
 	Hashes []string `json:"hashes"`
 }
 
+// NewNode creates a new TextileNode
 func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNode, error) {
 	// shutdown is not clean here yet, so we have to hackily remove
 	// the lockfile that should have been removed on shutdown
@@ -164,6 +172,9 @@ func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNo
 		Routing: routingOption,
 	}
 
+	// create default servers (no handling until start)
+	gatewayProxy := &http.Server{Addr: ":9999"}
+
 	// finally, construct our node
 	node := &TextileNode{
 		RepoPath:        repoPath,
@@ -172,6 +183,7 @@ func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNo
 		isMobile:        isMobile,
 		leaveRoomChs:    make(map[string]chan struct{}),
 		LeftRoomChs:     make(map[string]chan struct{}),
+		GatewayProxy:    gatewayProxy,
 		GatewayPassword: ksuid.New().String(),
 	}
 
@@ -296,6 +308,10 @@ func (t *TextileNode) Stop() error {
 	dsLockFile := filepath.Join(t.RepoPath, "datastore", "LOCK")
 	if err := os.Remove(dsLockFile); err != nil {
 		log.Errorf("error removing ds lock: %s", err)
+		return err
+	}
+	if err := t.GatewayProxy.Shutdown(nil); err != nil {
+		log.Errorf("error shutting down gateway proxy server: %s", err)
 		return err
 	}
 	if err := t.IpfsNode.Close(); err != nil {

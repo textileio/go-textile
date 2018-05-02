@@ -18,13 +18,14 @@ import (
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/corehttp"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/corerepo"
 
-	"github.com/textileio/textile-go/ssl"
 	"gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+
+	"github.com/textileio/textile-go/ssl"
 )
 
 // PrintSwarmAddrs prints the addresses of the host
@@ -106,6 +107,7 @@ func serveHTTPGateway(cctx *oldcmds.Context) (<-chan error, error) {
 	return errc, nil
 }
 
+// ServeHTTPGatewayProxy starts the secure HTTP gatway proxy server
 func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		b, err := node.GetFile(r.URL.Path, nil)
@@ -122,6 +124,8 @@ func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 		return nil, err
 	}
 	portString := fmt.Sprintf(":%d", port)
+	// Update address/port
+	node.GatewayProxy.Addr = portString
 
 	// Check if the cert files are available.
 	certPath := filepath.Join(node.RepoPath, "cert.pem")
@@ -139,7 +143,7 @@ func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
 	// Start the HTTPS server in a goroutine
 	errc := make(chan error)
 	go func() {
-		errc <- http.ListenAndServeTLS(portString, certPath, keyPath, nil)
+		errc <- node.GatewayProxy.ListenAndServeTLS(certPath, keyPath)
 		close(errc)
 	}()
 	log.Infof("decrypting gateway (readonly) server listening on /ip4/127.0.0.1/tcp/%d\n", port)
