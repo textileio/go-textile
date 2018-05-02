@@ -1,15 +1,10 @@
 package mobile
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"net/http"
-
-	zxcvbn "github.com/nbutton23/zxcvbn-go"
 
 	"github.com/op/go-logging"
 
@@ -151,76 +146,10 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 	return topic, nil
 }
 
-// TODO: doesn't use a cleaned version of the phone number, if pn is supplied
-func (w *Wrapper) CheckPassword(password string, identity string) (bool, error) {
-	match := zxcvbn.PasswordStrength(password, []string{identity})
-	if match.Score < 3 {
-		return false, errors.New(fmt.Sprintf("weak password - crackable in %s", match.CrackTimeDisplay))
-	}
-	return true, nil
+func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) (*models.Response, error) {
+	return w.node.SignUpWithEmail(username, password, email, referral)
 }
 
-func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) (int, *models.Response, error) {
-	apiURL := ""
-
-	reg := models.Registration{
-		Username: username,
-		Password: password,
-		Identity: &models.Identity{
-			Type:  models.EmailAddress,
-			Value: email,
-		},
-		Referral: referral,
-	}
-
-	url := fmt.Sprintf("%s/api/v1/users", apiURL)
-	payload, err := json.Marshal(reg)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	client := &http.Client{}
-
-	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(payload))
-	req.Header.Set("Content-Type", "application/json")
-	res, err := client.Do(req)
-	if err != nil {
-		return 0, nil, err
-	}
-	defer res.Body.Close()
-	resp := &models.Response{}
-	if err := resp.Read(res.Body); err != nil {
-		return res.StatusCode, nil, err
-	}
-	return res.StatusCode, resp, nil
-}
-
-func (w *Wrapper) SignIn(username string, password string) (int, *models.Response, error) {
-	apiURL := ""
-
-	creds := models.Credentials{
-		Username: username,
-		Password: password,
-	}
-
-	url := fmt.Sprintf("%s/api/v1/users", apiURL)
-	payload, err := json.Marshal(creds)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	client := &http.Client{}
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
-	req.Header.Set("Content-Type", "application/json")
-	res, err := client.Do(req)
-	if err != nil {
-		return 0, nil, err
-	}
-	defer res.Body.Close()
-	resp := &models.Response{}
-	if err := resp.Read(res.Body); err != nil {
-		return res.StatusCode, nil, err
-	}
-	return res.StatusCode, resp, nil
+func (w *Wrapper) SignIn(username string, password string) (*models.Response, error) {
+	return w.node.SignIn(username, password)
 }
