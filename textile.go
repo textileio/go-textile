@@ -179,12 +179,13 @@ func main() {
 		return
 	}
 	core.Node = node
+	// start node and https gateway server
 	if err = core.Node.Start(); err != nil {
 		shell.Println(fmt.Errorf("start desktop node failed: %s", err))
 		return
 	}
 
-	// start node http servers and garbage collection
+	// start garbage collection
 	go startServices()
 
 	// join existing rooms
@@ -197,14 +198,16 @@ func main() {
 	shell.Run()
 }
 
-// Start garbage collection and gateway services
-// NOTE: on desktop, gateway runs on 8182, decrypting file gateway on 9192
+// Start garbage collection
 func startServices() {
 	errc, err := core.Node.StartServices()
 	if err != nil {
 		shell.Println(fmt.Errorf("start service error: %s", err))
 		return
 	}
+
+	// TODO: if we want the 'raw' gateway server when running from cmd line
+	// TODO: that can be added here directly (would need to export method)
 
 	for {
 		select {

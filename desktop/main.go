@@ -36,7 +36,7 @@ func main() {
 		return
 	}
 
-	// bring the node online
+	// bring the node online and startup the gateway
 	err = textile.Start()
 	if err != nil {
 		astilog.Errorf("start desktop node failed: %s", err)
@@ -52,7 +52,6 @@ func main() {
 	gateway = fmt.Sprintf("https://localhost:%d", gatewayPort)
 
 	// start garbage collection and gateway services
-	// NOTE: on desktop, gateway runs on 8182, decrypting file gateway on 9182
 	errc, err := textile.StartServices()
 	if err != nil {
 		astilog.Errorf("start service error: %s", err)
