@@ -27,13 +27,59 @@ func teardown() {
 	os.RemoveAll(path.Join("./", "datastore"))
 }
 
-func TestCreate(t *testing.T) {
+func TestConfigDB_Create(t *testing.T) {
 	if _, err := os.Stat(path.Join("./", "datastore", "mainnet.db")); os.IsNotExist(err) {
 		t.Error("Failed to create database file")
 	}
 }
 
-func TestConfig(t *testing.T) {
+func TestConfigDB_SignIn(t *testing.T) {
+	err := testDB.config.SignIn("woohoo!", "...", "...")
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestConfigDB_GetUsername(t *testing.T) {
+	un, err := testDB.config.GetUsername()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if un != "woohoo!" {
+		t.Error("got bad username")
+	}
+}
+
+func TestConfigDB_GetTokens(t *testing.T) {
+	at, rt, err := testDB.config.GetTokens()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if at != "..." {
+		t.Error("got bad access token")
+		return
+	}
+	if rt != "..." {
+		t.Error("got bad refresh token")
+		return
+	}
+}
+
+func TestConfigDB_SignOut(t *testing.T) {
+	err := testDB.config.SignOut()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	_, err = testDB.config.GetUsername()
+	if err == nil {
+		t.Error("signed out but username still present")
+	}
+}
+
+func TestConfigDB_GetCreationDate(t *testing.T) {
 	_, err := testDB.config.GetCreationDate()
 	if err != nil {
 		t.Error(err)
@@ -49,7 +95,7 @@ func TestInterface(t *testing.T) {
 	}
 }
 
-func TestEncryptedDb(t *testing.T) {
+func TestConfigDB_IsEncrypted(t *testing.T) {
 	encrypted := testDB.Config().IsEncrypted()
 	if encrypted {
 		t.Error("IsEncrypted returned incorrectly")

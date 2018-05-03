@@ -10,11 +10,12 @@ import (
 	"github.com/op/go-logging"
 
 	"github.com/textileio/textile-go/repo/config"
-	"github.com/textileio/textile-go/util"
+	"github.com/textileio/textile-go/repo/schema"
 
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/namesys"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo"
+	"time"
 )
 
 const (
@@ -27,7 +28,7 @@ var ErrRepoExists = errors.New(`ipfs configuration file already exists!
 Reinitializing would overwrite your keys.
 `)
 
-func DoInit(repoRoot string, isMobile bool, dbInit func(string) error) error {
+func DoInit(repoRoot string, isMobile bool, dbInit func(string) error, dbConfigure func(time.Time) error) error {
 	if err := checkWriteable(repoRoot); err != nil {
 		return err
 	}
@@ -37,7 +38,7 @@ func DoInit(repoRoot string, isMobile bool, dbInit func(string) error) error {
 	}
 	log.Infof("initializing textile ipfs node at %s", repoRoot)
 
-	paths, err := util.NewCustomSchemaManager(util.SchemaContext{
+	paths, err := schema.NewCustomSchemaManager(schema.SchemaContext{
 		DataPath: repoRoot,
 	})
 	if err := paths.BuildSchemaDirectories(); err != nil {
@@ -54,6 +55,10 @@ func DoInit(repoRoot string, isMobile bool, dbInit func(string) error) error {
 	}
 
 	if err := dbInit(""); err != nil {
+		return err
+	}
+
+	if err := dbConfigure(time.Now()); err != nil {
 		return err
 	}
 

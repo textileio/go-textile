@@ -7,15 +7,14 @@ jobs:
     working_directory: /go/src/github.com/textileio/textile-go
     steps:
       - checkout
-      - run: dep ensure
-      - run: cd central && dep ensure
+      - run: dep ensure && cd central && dep ensure
       - run: cd central && go install -v ./...
       - run:
-          name: run central api
+          name: run central and test all
           command: |
             central &
             sleep 5
-            go test `go list ./... | grep -v github.com/textileio/textile-go/desktop` -coverprofile coverage.out
+            ./test_compile.sh
           environment:
             VERSION: 0.0.1
             BIND: 0.0.0.0:8000
