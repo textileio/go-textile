@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
-	"net/http"
 
 	"github.com/op/go-logging"
 	"github.com/segmentio/ksuid"
@@ -686,8 +686,15 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string) (*net.Mu
 		log.Infof("found last hash: %s", lc)
 	}
 
+	// get username
+	un, err := t.Datastore.Config().GetUsername()
+	if err != nil {
+		log.Errorf("username not found (not signed in)")
+		un = ""
+	}
+
 	// add it
-	mr, md, err := photos.Add(t.IpfsNode, a.Key.GetPublic(), p, th, lc)
+	mr, md, err := photos.Add(t.IpfsNode, a.Key.GetPublic(), p, th, lc, un)
 	if err != nil {
 		log.Errorf("error adding photo: %s", err)
 		return nil, err

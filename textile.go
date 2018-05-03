@@ -121,6 +121,11 @@ func main() {
 			Func: cmd.GetPhoto,
 		})
 		photoCmd.AddCmd(&ishell.Cmd{
+			Name: "meta",
+			Help: "cat photo metadata",
+			Func: cmd.CatPhotoMetadata,
+		})
+		photoCmd.AddCmd(&ishell.Cmd{
 			Name: "ls",
 			Help: "list photos from a thread (defaults to \"#default\")",
 			Func: cmd.ListPhotos,
