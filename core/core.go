@@ -181,7 +181,9 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 
 	// create default servers (no handling until start, uses default addrs)
 	// TODO: can we figure out addrs here and now?
-	gatewayProxy := &http.Server{Addr: ":9999"}
+	gatewayProxy := &http.Server{
+		Addr: ":9999",
+	}
 
 	// clean central api url
 	if centralApiURL[len(centralApiURL)-1:] == "/" {
@@ -265,7 +267,7 @@ func (t *TextileNode) Start() error {
 
 	// construct decrypting http gateway
 	var gwpErrc <-chan error
-	gwpErrc, err = startGateway(t)
+	gwpErrc, err = t.startGateway()
 	if err != nil {
 		log.Errorf("error starting decrypting gateway: %s", err)
 		return err
@@ -960,8 +962,12 @@ func (t *TextileNode) PingPeer(addrs string, num int, out chan string) error {
 	return nil
 }
 
-// startGateway starts the secure HTTP gatway server
-func startGateway(t *TextileNode) (<-chan error, error) {
+func (t *TextileNode) registerGatewayHandler() {
+	defer func() {
+		if recover() != nil {
+			log.Error("gateway handler already registered")
+		}
+	}()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		b, err := t.GetFile(r.URL.Path, nil)
 		if err != nil {
@@ -971,7 +977,14 @@ func startGateway(t *TextileNode) (<-chan error, error) {
 		}
 		w.Write(b)
 	})
+}
 
+// startGateway starts the secure HTTP gatway server
+func (t *TextileNode) startGateway() (<-chan error, error) {
+	// try to register our handler
+	t.registerGatewayHandler()
+
+	// Determine port
 	port, err := t.GatewayPort()
 	if err != nil {
 		return nil, err
