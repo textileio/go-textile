@@ -87,8 +87,8 @@ func (c *AlbumDB) GetAlbums(query string) []repo.PhotoAlbum {
 func (c *AlbumDB) DeleteAlbum(id string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	c.db.Exec("delete from albums where id=?", id)
-	return nil
+	_, err := c.db.Exec("delete from albums where id=?", id)
+	return err
 }
 
 func (c *AlbumDB) handleQuery(stm string) []repo.PhotoAlbum {

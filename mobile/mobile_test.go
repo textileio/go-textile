@@ -6,8 +6,11 @@ import (
 	"os"
 	"testing"
 
+	"github.com/segmentio/ksuid"
+
 	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
+	util "github.com/textileio/textile-go/util/testing"
 
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
@@ -15,10 +18,14 @@ import (
 var wrapper *Wrapper
 var hash string
 
+var cusername = ksuid.New().String()
+var cpassword = ksuid.New().String()
+var cemail = ksuid.New().String() + "@textile.io"
+
 func TestNewTextile(t *testing.T) {
 	os.RemoveAll("testdata/.ipfs")
 	var err error
-	wrapper, err = NewNode("testdata/.ipfs")
+	wrapper, err = NewNode("testdata/.ipfs", util.CentralApiURL)
 	if err != nil {
 		t.Errorf("create mobile node failed: %s", err)
 	}
@@ -35,6 +42,65 @@ func TestWrapper_StartAgain(t *testing.T) {
 	err := wrapper.Start()
 	if err != nil {
 		t.Errorf("attempt to start a running node failed: %s", err)
+	}
+}
+
+func TestWrapper_SignUpWithEmail(t *testing.T) {
+	_, ref, err := util.CreateReferral(util.RefKey, 1)
+	if err != nil {
+		t.Errorf("create referral for signup failed: %s", err)
+		return
+	}
+	if len(ref.RefCodes) == 0 {
+		t.Error("create referral for signup got no codes")
+		return
+	}
+	err = wrapper.SignUpWithEmail(cusername, cpassword, cemail, ref.RefCodes[0])
+	if err != nil {
+		t.Errorf("signup failed: %s", err)
+		return
+	}
+}
+
+func TestWrapper_SignIn(t *testing.T) {
+	err := wrapper.SignIn(cusername, cpassword)
+	if err != nil {
+		t.Errorf("signin failed: %s", err)
+		return
+	}
+}
+
+func TestWrapper_IsSignedIn(t *testing.T) {
+	if !wrapper.IsSignedIn() {
+		t.Errorf("is signed in check failed should be true")
+		return
+	}
+}
+
+func TestWrapper_GetUsername(t *testing.T) {
+	un, err := wrapper.GetUsername()
+	if err != nil {
+		t.Errorf("get username failed: %s", err)
+		return
+	}
+	if un != cusername {
+		t.Errorf("got bad username: %s", un)
+	}
+}
+
+func TestWrapper_GetAccessToken(t *testing.T) {
+	_, err := wrapper.GetAccessToken()
+	if err != nil {
+		t.Errorf("get access token failed: %s", err)
+		return
+	}
+}
+
+func TestWrapper_GetGatewayPassword(t *testing.T) {
+	pwd := wrapper.GetGatewayPassword()
+	if pwd == "" {
+		t.Errorf("got bad gateway password: %s", pwd)
+		return
 	}
 }
 
@@ -126,10 +192,32 @@ func TestWrapper_PairDesktop(t *testing.T) {
 	}
 }
 
+func TestWrapper_SignOut(t *testing.T) {
+	err := wrapper.SignOut()
+	if err != nil {
+		t.Errorf("signout failed: %s", err)
+		return
+	}
+}
+
+func TestWrapper_IsSignedInAgain(t *testing.T) {
+	if wrapper.IsSignedIn() {
+		t.Errorf("is signed in check failed should be false")
+		return
+	}
+}
+
 func TestWrapper_Stop(t *testing.T) {
 	err := wrapper.Stop()
 	if err != nil {
 		t.Errorf("stop mobile node failed: %s", err)
+	}
+}
+
+func TestWrapper_StopAgain(t *testing.T) {
+	err := wrapper.Stop()
+	if err != nil {
+		t.Errorf("stop mobile node again should not return error: %s", err)
 	}
 }
 

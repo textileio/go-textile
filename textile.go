@@ -33,7 +33,7 @@ func main() {
 
 	// handle version flag
 	if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-v") {
-		shell.Println(core.VERSION)
+		shell.Println(core.Version)
 		return
 	}
 
@@ -67,7 +67,7 @@ func main() {
 			return
 		}
 		shell.Println("interrupted")
-		shell.Printf("textile server shutting down...")
+		shell.Printf("textile node shutting down...")
 		if core.Node.IpfsNode != nil {
 			core.Node.Stop()
 		}
@@ -119,6 +119,11 @@ func main() {
 			Name: "get",
 			Help: "save a photo to a local file",
 			Func: cmd.GetPhoto,
+		})
+		photoCmd.AddCmd(&ishell.Cmd{
+			Name: "meta",
+			Help: "cat photo metadata",
+			Func: cmd.CatPhotoMetadata,
 		})
 		photoCmd.AddCmd(&ishell.Cmd{
 			Name: "ls",
@@ -173,7 +178,8 @@ func main() {
 
 	// create a desktop textile node
 	// TODO: darwin should use App. Support dir, not home dir
-	node, err := core.NewNode(dataDir, false, logging.DEBUG)
+	// TODO: make api url configuratable via an option flag
+	node, err := core.NewNode(dataDir, "https://api.textile.io", false, logging.DEBUG)
 	if err != nil {
 		shell.Println(fmt.Errorf("create desktop node failed: %s", err))
 		return
@@ -186,7 +192,8 @@ func main() {
 	}
 
 	// start garbage collection
-	go startServices()
+	// TODO: see method todo before enabling
+	//go startGarbageCollection()
 
 	// join existing rooms
 	albums := core.Node.Datastore.Albums().GetAlbums("")
@@ -199,21 +206,21 @@ func main() {
 }
 
 // Start garbage collection
-func startServices() {
-	errc, err := core.Node.StartServices()
+func startGarbageCollection() {
+	errc, err := core.Node.StartGarbageCollection()
 	if err != nil {
-		shell.Println(fmt.Errorf("start service error: %s", err))
+		shell.Println(fmt.Errorf("auto gc error: %s", err))
 		return
 	}
-
-	// TODO: if we want the 'raw' gateway server when running from cmd line
-	// TODO: that can be added here directly (would need to export method)
-
 	for {
 		select {
-		case err := <-errc:
+		case err, ok := <-errc:
 			if err != nil {
-				shell.Println(fmt.Errorf("service error: %s", err))
+				shell.Println(fmt.Errorf("auto gc error: %s", err))
+			}
+			if !ok {
+				shell.Println("auto gc stopped")
+				return
 			}
 		}
 	}
@@ -232,6 +239,6 @@ _/  |_  ____ ___  ____/  |_|__|  |   ____
 `
 	shell.Println(blue(banner))
 	shell.Println("")
-	shell.Println("textile node v" + core.VERSION)
+	shell.Println("textile node v" + core.Version)
 	shell.Println("type `help` for available commands")
 }

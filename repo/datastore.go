@@ -26,7 +26,19 @@ type Config interface {
 	Init(password string) error
 
 	// Configure the database
-	Configure(creationDate time.Time) error
+	Configure(created time.Time) error
+
+	// Saves username, access token, and refresh token
+	SignIn(username string, at string, rt string) error
+
+	// Deletes username and jwt
+	SignOut() error
+
+	// Get username
+	GetUsername() (string, error)
+
+	// Retrieve JSON web tokens
+	GetTokens() (at string, rt string, err error)
 
 	// Returns the date the seed was created
 	GetCreationDate() (time.Time, error)

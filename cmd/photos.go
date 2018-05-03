@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"image"
@@ -19,6 +20,7 @@ import (
 	"gopkg.in/abiosoft/ishell.v2"
 
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/repo/photos"
 )
 
 func AddPhoto(c *ishell.Context) {
@@ -172,4 +174,31 @@ func GetPhoto(c *ishell.Context) {
 
 	blue := color.New(color.FgHiBlue).SprintFunc()
 	c.Println(blue("wrote " + hash + " to " + path))
+}
+
+func CatPhotoMetadata(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing photo cid"))
+		return
+	}
+	hash := c.Args[0]
+
+	b, err := core.Node.GetFile(fmt.Sprintf("%s/meta", hash), nil)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+	var md photos.Metadata
+	if err := json.Unmarshal(b, &md); err != nil {
+		c.Err(err)
+		return
+	}
+	jb, err := json.MarshalIndent(md, "", "    ")
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	black := color.New(color.FgHiBlack).SprintFunc()
+	c.Println(black(string(jb)))
 }
