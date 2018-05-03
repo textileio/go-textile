@@ -60,6 +60,8 @@ const roomRepublishInterval = time.Minute
 const pingRelayInterval = time.Second * 30
 const kPingTimeout = 10 * time.Second
 
+var ErrNodeRunning = errors.New("node is already running")
+
 type TextileNode struct {
 	// Context for issuing IPFS commands
 	Context oldcmds.Context
@@ -213,21 +215,18 @@ func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNo
 
 // Start the node
 func (t *TextileNode) Start() error {
+	if t.IpfsNode != nil {
+		return ErrNodeRunning
+	}
+
 	// raise file descriptor limit
 	if err := utilmain.ManageFdLimit(); err != nil {
 		log.Errorf("setting file descriptor limit: %s", err)
 	}
 
+	log.Info("starting node...")
 	cctx, cancel := context.WithCancel(context.Background())
 	t.Cancel = cancel
-
-	ctx := oldcmds.Context{}
-
-	if t.IpfsNode != nil {
-		return nil
-	}
-
-	log.Info("starting node...")
 	nd, err := core.NewNode(cctx, t.ipfsConfig)
 	if err != nil {
 		return err
@@ -238,6 +237,7 @@ func (t *TextileNode) Start() error {
 		log.Errorf("failed to read listening addresses: %s", err)
 	}
 
+	ctx := oldcmds.Context{}
 	ctx.Online = true
 	ctx.ConfigRoot = t.RepoPath
 	ctx.LoadConfig = func(path string) (*config.Config, error) {
@@ -246,7 +246,6 @@ func (t *TextileNode) Start() error {
 	ctx.ConstructNode = func() (*core.IpfsNode, error) {
 		return nd, nil
 	}
-
 	t.Context = ctx
 	t.IpfsNode = nd
 
