@@ -53,21 +53,26 @@ func main() {
 	gateway = fmt.Sprintf("https://localhost:%d", gatewayPort)
 
 	// start garbage collection and gateway services
-	errc, err := textile.StartServices()
-	if err != nil {
-		astilog.Errorf("start service error: %s", err)
-		return
-	}
-	go func() {
-		for {
-			select {
-			case err := <-errc:
-				if err != nil {
-					astilog.Errorf("service error: %s", err)
-				}
-			}
-		}
-	}()
+	// TODO: see method todo before enabling
+	//errc, err := textile.StartGarbageCollection()
+	//if err != nil {
+	//	astilog.Errorf("auto gc error: %s", err)
+	//	return
+	//}
+	//go func() {
+	//	for {
+	//		select {
+	//		case err, ok := <-errc:
+	//			if err != nil {
+	//				astilog.Errorf("auto gc error: %s", err)
+	//			}
+	//			if !ok {
+	//				astilog.Info("auto gc stopped")
+	//				return
+	//			}
+	//		}
+	//	}
+	//}()
 
 	// run bootstrap
 	astilog.Debugf("Running app built at %s", BuiltAt)
