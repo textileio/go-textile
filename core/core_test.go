@@ -49,8 +49,8 @@ func TestTextileNode_StartAgain(t *testing.T) {
 	}
 }
 
-func TestTextileNode_StartServices(t *testing.T) {
-	_, err := node.StartServices()
+func TestTextileNode_StartGarbageCollection(t *testing.T) {
+	_, err := node.StartGarbageCollection()
 	if err != nil {
 		t.Errorf("start services failed: %s", err)
 	}
