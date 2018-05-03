@@ -1,7 +1,6 @@
 package core
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -22,7 +21,8 @@ import (
 	"github.com/tyler-smith/go-bip39"
 	"gopkg.in/natefinch/lumberjack.v2"
 
-	models "github.com/textileio/textile-go/central/models"
+	cmodels "github.com/textileio/textile-go/central/models"
+	"github.com/textileio/textile-go/core/central"
 	"github.com/textileio/textile-go/net"
 	trepo "github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
@@ -45,11 +45,9 @@ import (
 	"gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
 
-// VERSION is the current version string
-const VERSION = "0.0.1"
-const apiURL = "https://api.textile.io"
-
-var client = &http.Client{}
+const (
+	Version = "0.0.1"
+)
 
 var fileLogFormat = logging.MustStringFormatter(
 	`%{time:15:04:05.000} [%{shortfunc}] [%{level}] %{message}`,
@@ -85,8 +83,20 @@ type TextileNode struct {
 	// Function to call for shutdown
 	Cancel context.CancelFunc
 
-	// Indicated if gc and gateways are up
-	ServicesUp bool
+	// The local raw gateway server
+	// Gateway http.Server
+
+	// The local decrypting gateway server
+	GatewayProxy *http.Server
+
+	// The local password used to authenticate http gateway requests (username is TextileNode)
+	GatewayPassword string
+
+	// Signals for when we've left rooms
+	LeftRoomChs map[string]chan struct{}
+
+	// Signals for leaving rooms
+	leaveRoomChs map[string]chan struct{}
 
 	// IPFS configuration used to instantiate new ipfs nodes
 	ipfsConfig *core.BuildCfg
@@ -94,20 +104,8 @@ type TextileNode struct {
 	// Whether or not we're running on a mobile device
 	isMobile bool
 
-	// Signals for leaving rooms
-	leaveRoomChs map[string]chan struct{}
-
-	// Signals for when we've left rooms
-	LeftRoomChs map[string]chan struct{}
-
-	// The local raw gateway server
-	// Gateway http.Server
-
-	// The local decrypting gateway server
-	GatewayProxy *http.Server
-
-	// The local password used to authenticate secure GatewayProxy requests
-	GatewayPassword string
+	// API URL of the central backup / recovery / pinning user service
+	centralUserAPI string
 }
 
 // PhotoList is a JSON-type structure that contains a list of photo hashes
@@ -116,7 +114,7 @@ type PhotoList struct {
 }
 
 // NewNode creates a new TextileNode
-func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNode, error) {
+func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logging.Level) (*TextileNode, error) {
 	// shutdown is not clean here yet, so we have to hackily remove
 	// the lockfile that should have been removed on shutdown
 	// before we start up again
@@ -145,7 +143,7 @@ func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNo
 	}
 
 	// we may be running in an uninitialized state.
-	err = trepo.DoInit(repoPath, isMobile, sqliteDB.Config().Init)
+	err = trepo.DoInit(repoPath, isMobile, sqliteDB.Config().Init, sqliteDB.Config().Configure)
 	if err != nil && err != trepo.ErrRepoExists {
 		return nil, err
 	}
@@ -185,16 +183,22 @@ func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNo
 	// TODO: can we figure out addrs here and now?
 	gatewayProxy := &http.Server{Addr: ":9999"}
 
+	// clean central api url
+	if centralApiURL[len(centralApiURL)-1:] == "/" {
+		centralApiURL = centralApiURL[0 : len(centralApiURL)-1]
+	}
+
 	// finally, construct our node
 	node := &TextileNode{
 		RepoPath:        repoPath,
 		Datastore:       sqliteDB,
-		ipfsConfig:      ncfg,
-		isMobile:        isMobile,
-		leaveRoomChs:    make(map[string]chan struct{}),
-		LeftRoomChs:     make(map[string]chan struct{}),
 		GatewayProxy:    gatewayProxy,
 		GatewayPassword: ksuid.New().String(),
+		LeftRoomChs:     make(map[string]chan struct{}),
+		leaveRoomChs:    make(map[string]chan struct{}),
+		ipfsConfig:      ncfg,
+		isMobile:        isMobile,
+		centralUserAPI:  fmt.Sprintf("%s/api/v1/users", centralApiURL),
 	}
 
 	// create default album
@@ -220,60 +224,6 @@ func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNo
 	return node, nil
 }
 
-// ServeHTTPGatewayProxy starts the secure HTTP gatway proxy server
-func startGatewayProxy(t *TextileNode) (<-chan error, error) {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("SessionId")
-		if err != nil || cookie.Value != t.GatewayPassword {
-			w.WriteHeader(401)
-			return
-		}
-		log.Infof("valid cookie: %s\n", cookie.Value)
-		b, err := t.GetFile(r.URL.Path, nil)
-		if err != nil {
-			log.Errorf("error decrypting path %s: %s", r.URL.Path, err)
-			w.WriteHeader(400)
-			return
-		}
-		w.Write(b)
-	})
-
-	port, err := t.GatewayPort()
-	if err != nil {
-		return nil, err
-	}
-	portString := fmt.Sprintf(":%d", port)
-	// Update address/port
-	t.GatewayProxy.Addr = portString
-
-	// Check if the cert files are available.
-	certPath := filepath.Join(t.RepoPath, "cert.pem")
-	keyPath := filepath.Join(t.RepoPath, "key.pem")
-	err = ssl.Check(certPath, keyPath)
-	// If they are not available, generate new ones.
-	if err != nil {
-		err = ssl.Generate(certPath, keyPath, "localhost"+portString)
-		if err != nil {
-			log.Errorf("failed to create https certs: %s", err)
-			return nil, err
-		}
-	}
-
-	// Start the HTTPS server in a goroutine
-	errc := make(chan error)
-	go func() {
-		errc <- t.GatewayProxy.ListenAndServeTLS(certPath, keyPath)
-		close(errc)
-	}()
-	log.Infof("decrypting gateway (readonly) server listening on /ip4/127.0.0.1/tcp/%d\n", port)
-
-	// NOTE: No need to actually do this, but keeping commented out for testing
-	// Start the HTTP server and redirect all incoming connections to HTTPS
-	//go http.ListenAndServe(":9193", http.HandlerFunc(redirectToHttps))
-
-	return errc, nil
-}
-
 // Start the node
 func (t *TextileNode) Start() error {
 	if t.IpfsNode != nil {
@@ -285,6 +235,7 @@ func (t *TextileNode) Start() error {
 		log.Errorf("setting file descriptor limit: %s", err)
 	}
 
+	// start the ipfs node
 	log.Info("starting node...")
 	cctx, cancel := context.WithCancel(context.Background())
 	t.Cancel = cancel
@@ -294,10 +245,12 @@ func (t *TextileNode) Start() error {
 	}
 	nd.SetLocal(false)
 
+	// print swarm addresses
 	if err = printSwarmAddrs(nd); err != nil {
 		log.Errorf("failed to read listening addresses: %s", err)
 	}
 
+	// build the node
 	ctx := oldcmds.Context{}
 	ctx.Online = true
 	ctx.ConfigRoot = t.RepoPath
@@ -310,34 +263,27 @@ func (t *TextileNode) Start() error {
 	t.Context = ctx
 	t.IpfsNode = nd
 
-	// construct decrypting http gateway proxy
+	// construct decrypting http gateway
 	var gwpErrc <-chan error
-	gwpErrc, err = startGatewayProxy(t)
+	gwpErrc, err = startGateway(t)
 	if err != nil {
 		log.Errorf("error starting decrypting gateway: %s", err)
 		return err
 	}
-
 	go func() {
 		for {
 			select {
 			case err, ok := <-gwpErrc:
-				if err != nil {
-					log.Errorf("service error: %s", err)
+				if err != nil && err.Error() != "http: Server closed" {
+					log.Errorf("gateway error: %s", err)
 				}
 				if !ok {
-					log.Info("gateway proxy shutdown")
-					return // bail out of the infinite loop, letting the goroutine end
+					log.Info("decrypting gateway was shutdown")
+					return
 				}
 			}
 		}
 	}()
-
-	if t.isMobile {
-		log.Info("mobile node is ready")
-	} else {
-		log.Info("desktop node is ready")
-	}
 
 	// every min, send out latest room updates
 	go t.startRepublishing()
@@ -345,11 +291,17 @@ func (t *TextileNode) Start() error {
 	// every 30s, ping the relay
 	go t.startPingingRelay()
 
+	if t.isMobile {
+		log.Info("mobile node is ready")
+	} else {
+		log.Info("desktop node is ready")
+	}
 	return nil
 }
 
-// StartServices starts garbage cleanup and gateway services
-func (t *TextileNode) StartServices() (<-chan error, error) {
+// StartGarbageCollection starts auto garbage cleanup
+// TODO: verify this is finding the correct repo, might be using IPFS_PATH
+func (t *TextileNode) StartGarbageCollection() (<-chan error, error) {
 	if t.isMobile {
 		return nil, errors.New("services not available on mobile")
 	}
@@ -362,7 +314,7 @@ func (t *TextileNode) StartServices() (<-chan error, error) {
 		log.Errorf("error starting gc: %s", err)
 		return nil, err
 	}
-	t.ServicesUp = true
+
 	return gcErrc, nil
 }
 
@@ -371,27 +323,91 @@ func (t *TextileNode) Stop() error {
 	if t.IpfsNode == nil {
 		return ErrNodeNotRunning
 	}
+	log.Info("stopping node...")
 
-	repoLockFile := filepath.Join(t.RepoPath, lockfile.LockFile)
-	if err := os.Remove(repoLockFile); err != nil {
-		log.Errorf("error removing lock: %s", err)
+	// shutdown the gateway
+	cgCtx, cancelCGW := context.WithCancel(context.Background())
+	if err := t.GatewayProxy.Shutdown(cgCtx); err != nil {
+		log.Errorf("error shutting down gateway: %s", err)
 		return err
 	}
+
+	// close ipfs node command context
+	t.Context.Close()
+
+	// cancel textile node background context
+	t.Cancel()
+
+	// close the ipfs node
+	if err := t.IpfsNode.Close(); err != nil {
+		log.Errorf("error closing ipfs node: %s", err)
+		return err
+	}
+
+	// force the gateway closed if it's not already closed
+	cancelCGW()
+
+	// close db connection
 	t.Datastore.Close()
 	dsLockFile := filepath.Join(t.RepoPath, "datastore", "LOCK")
 	if err := os.Remove(dsLockFile); err != nil {
 		log.Errorf("error removing ds lock: %s", err)
 		return err
 	}
-	if err := t.GatewayProxy.Shutdown(nil); err != nil {
-		log.Errorf("error shutting down gateway proxy server: %s", err)
-		return err
-	}
-	if err := t.IpfsNode.Close(); err != nil {
-		log.Errorf("error closing ipfs node: %s", err)
-		return err
-	}
+
 	t.IpfsNode = nil
+	return nil
+}
+
+// SignUp requests a new username and token from the central api and saves them locally
+func (t *TextileNode) SignUp(reg *cmodels.Registration) error {
+	// remote signup
+	res, err := central.SignUp(reg, t.centralUserAPI)
+	if err != nil {
+		log.Errorf("signup error: %s", err)
+		return err
+	}
+	if res.Error != nil {
+		log.Errorf("signup error from central: %s", err)
+		return errors.New(*res.Error)
+	}
+
+	// local signin
+	if err := t.Datastore.Config().SignIn(reg.Username, res.Session.AccessToken, res.Session.RefreshToken); err != nil {
+		log.Errorf("local signin error: %s", err)
+		return err
+	}
+	return nil
+}
+
+// SignIn requests a token with a username from the central api and saves them locally
+func (t *TextileNode) SignIn(creds *cmodels.Credentials) error {
+	// remote signin
+	res, err := central.SignIn(creds, t.centralUserAPI)
+	if err != nil {
+		log.Errorf("signin error: %s", err)
+		return err
+	}
+	if res.Error != nil {
+		log.Errorf("signin error from central: %s", err)
+		return errors.New(*res.Error)
+	}
+
+	// local signin
+	if err := t.Datastore.Config().SignIn(creds.Username, res.Session.AccessToken, res.Session.RefreshToken); err != nil {
+		log.Errorf("local signin error: %s", err)
+		return err
+	}
+	return nil
+}
+
+// SignOut deletes the locally saved user info (username and tokens)
+func (t *TextileNode) SignOut() error {
+	// remote is stateless, so we just ditch the local token
+	if err := t.Datastore.Config().SignOut(); err != nil {
+		log.Errorf("local signout error: %s", err)
+		return err
+	}
 	return nil
 }
 
@@ -408,8 +424,9 @@ func (t *TextileNode) JoinRoom(id string, datac chan string) {
 	t.leaveRoomChs[id] = make(chan struct{})
 	t.LeftRoomChs[id] = make(chan struct{})
 
+	ctx, cancel := context.WithCancel(context.Background())
 	leave := func() {
-		sub.Cancel()
+		cancel()
 		close(t.LeftRoomChs[id])
 
 		delete(t.leaveRoomChs, id)
@@ -417,13 +434,20 @@ func (t *TextileNode) JoinRoom(id string, datac chan string) {
 		log.Infof("left room: %s\n", sub.Topic())
 	}
 
-	defer close(datac)
+	defer func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Errorf("room data channel already closed")
+			}
+		}()
+		close(datac)
+	}()
 	go func() {
 		for {
 			// unload new message
-			msg, err := sub.Next(t.IpfsNode.Context())
+			msg, err := sub.Next(ctx)
 			if err == io.EOF || err == context.Canceled {
-				log.Debugf("room subscription ended with error: %s", err)
+				log.Debugf("room subscription ended: %s", err)
 				return
 			} else if err != nil {
 				log.Infof(err.Error())
@@ -470,12 +494,13 @@ func (t *TextileNode) WaitForRoom() {
 	}
 	log.Infof("waiting for room at own peer id: %s\n", rid)
 
+	ctx, cancel := context.WithCancel(context.Background())
 	cancelCh := make(chan struct{})
 	go func() {
 		for {
-			msg, err := sub.Next(t.IpfsNode.Context())
+			msg, err := sub.Next(ctx)
 			if err == io.EOF || err == context.Canceled {
-				log.Debugf("wait subscription ended with error: %s", err)
+				log.Debugf("wait subscription ended: %s", err)
 				return
 			} else if err != nil {
 				log.Infof(err.Error())
@@ -511,9 +536,10 @@ func (t *TextileNode) WaitForRoom() {
 	for {
 		select {
 		case <-cancelCh:
-			sub.Cancel()
+			cancel()
 			return
 		case <-t.IpfsNode.Context().Done():
+			cancel()
 			return
 		}
 	}
@@ -536,8 +562,8 @@ func (t *TextileNode) ConnectToRoomPeers(topic string) context.CancelFunc {
 
 // GatewayPort requests the active gateway port
 func (t *TextileNode) GatewayPort() (int, error) {
-	// Get config and set proxy address to raw gateway address plus one thousand,
-	// so a gateway on 8182 means the proxy will run on 9182
+	// Get config and set address to raw gateway address plus one thousand,
+	// so a raw gateway on 8182 means this will run on 9182
 	cfg, err := t.Context.GetConfig()
 	if err != nil {
 		log.Errorf("get gateway port failed: %s", err)
@@ -636,8 +662,15 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string) (*net.Mu
 		log.Infof("found last hash: %s", lc)
 	}
 
+	// get username
+	un, err := t.Datastore.Config().GetUsername()
+	if err != nil {
+		log.Errorf("username not found (not signed in)")
+		un = ""
+	}
+
 	// add it
-	mr, md, err := photos.Add(t.IpfsNode, a.Key.GetPublic(), p, th, lc)
+	mr, md, err := photos.Add(t.IpfsNode, a.Key.GetPublic(), p, th, lc, un)
 	if err != nil {
 		log.Errorf("error adding photo: %s", err)
 		return nil, err
@@ -927,61 +960,58 @@ func (t *TextileNode) PingPeer(addrs string, num int, out chan string) error {
 	return nil
 }
 
-func (t *TextileNode) SignIn(username string, password string) (*models.Response, error) {
-	creds := models.Credentials{
-		Username: username,
-		Password: password,
-	}
+// startGateway starts the secure HTTP gatway server
+func startGateway(t *TextileNode) (<-chan error, error) {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("SessionId")
+		if err != nil || cookie.Value != t.GatewayPassword {
+			w.WriteHeader(401)
+			return
+		}
+		log.Infof("valid cookie: %s\n", cookie.Value)
+		b, err := t.GetFile(r.URL.Path, nil)
+		if err != nil {
+			log.Errorf("error decrypting path %s: %s", r.URL.Path, err)
+			w.WriteHeader(400)
+			return
+		}
+		w.Write(b)
+	})
 
-	url := fmt.Sprintf("%s/api/v1/users", apiURL)
-	payload, err := json.Marshal(creds)
+	port, err := t.GatewayPort()
 	if err != nil {
 		return nil, err
 	}
+	portString := fmt.Sprintf(":%d", port)
+	// Update address/port
+	t.GatewayProxy.Addr = portString
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
-	req.Header.Set("Content-Type", "application/json")
-	res, err := client.Do(req)
+	// Check if the cert files are available.
+	certPath := filepath.Join(t.RepoPath, "cert.pem")
+	keyPath := filepath.Join(t.RepoPath, "key.pem")
+	err = ssl.Check(certPath, keyPath)
+	// If they are not available, generate new ones.
 	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-	resp := &models.Response{}
-	if err := resp.Read(res.Body); err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
-func (t *TextileNode) SignUpWithEmail(username string, password string, email string, referral string) (*models.Response, error) {
-	reg := models.Registration{
-		Username: username,
-		Password: password,
-		Identity: &models.Identity{
-			Type:  models.EmailAddress,
-			Value: email,
-		},
-		Referral: referral,
+		err = ssl.Generate(certPath, keyPath, "localhost"+portString)
+		if err != nil {
+			log.Errorf("failed to create https certs: %s", err)
+			return nil, err
+		}
 	}
 
-	url := fmt.Sprintf("%s/api/v1/users", apiURL)
-	payload, err := json.Marshal(reg)
-	if err != nil {
-		return nil, err
-	}
+	// Start the HTTPS server in a goroutine
+	errc := make(chan error)
+	go func() {
+		errc <- t.GatewayProxy.ListenAndServeTLS(certPath, keyPath)
+		close(errc)
+	}()
+	log.Infof("decrypting gateway (readonly) server listening on /ip4/127.0.0.1/tcp/%d\n", port)
 
-	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(payload))
-	req.Header.Set("Content-Type", "application/json")
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-	resp := &models.Response{}
-	if err := resp.Read(res.Body); err != nil {
-		return nil, err
-	}
-	return resp, nil
+	// NOTE: No need to actually do this, but keeping commented out for testing
+	// Start the HTTP server and redirect all incoming connections to HTTPS
+	//go http.ListenAndServe(":9193", http.HandlerFunc(redirectToHttps))
+
+	return errc, nil
 }
 
 func (t *TextileNode) startRepublishing() {
@@ -990,7 +1020,14 @@ func (t *TextileNode) startRepublishing() {
 
 	// create a never-ending ticker
 	ticker := time.NewTicker(roomRepublishInterval)
-	defer ticker.Stop()
+	defer func() {
+		ticker.Stop()
+		defer func() {
+			if recover() != nil {
+				log.Error("republishing ticker already stopped")
+			}
+		}()
+	}()
 	go func() {
 		for range ticker.C {
 			t.republishLatestUpdates()
@@ -1001,6 +1038,7 @@ func (t *TextileNode) startRepublishing() {
 	for {
 		select {
 		case <-t.IpfsNode.Context().Done():
+			log.Info("republishing stopped")
 			return
 		}
 	}
@@ -1036,7 +1074,14 @@ func (t *TextileNode) startPingingRelay() {
 
 	// create a never-ending ticker
 	ticker := time.NewTicker(pingRelayInterval)
-	defer ticker.Stop()
+	defer func() {
+		ticker.Stop()
+		defer func() {
+			if recover() != nil {
+				log.Error("ping relay ticker already stopped")
+			}
+		}()
+	}()
 	go func() {
 		for range ticker.C {
 			err := t.PingPeer(relay, 1, make(chan string))
@@ -1050,6 +1095,7 @@ func (t *TextileNode) startPingingRelay() {
 	for {
 		select {
 		case <-t.IpfsNode.Context().Done():
+			log.Info("pinging relay stopped")
 			return
 		}
 	}
@@ -1082,7 +1128,6 @@ func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message, aid string, datac 
 	// recurse back in time starting at this hash
 	err := t.handleHash(hash, aid, api, datac)
 	if err != nil {
-		log.Errorf("error handling hash: %s", err)
 		return err
 	}
 
@@ -1094,7 +1139,6 @@ func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, dat
 	a := t.Datastore.Albums().GetAlbum(aid)
 	if a == nil {
 		err := errors.New(fmt.Sprintf("could not find album with id: %s", aid))
-		log.Error(err.Error())
 		return err
 	}
 
@@ -1112,7 +1156,6 @@ func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, dat
 	}
 
 	// check if we aleady have this hash
-	// TODO: handle same photo in diff album
 	set := t.Datastore.Photos().GetPhoto(hash)
 	if set != nil {
 		log.Infof("update %s exists, aborting", hash)

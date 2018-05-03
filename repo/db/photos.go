@@ -93,8 +93,8 @@ func (c *PhotoDB) GetPhoto(cid string) *repo.PhotoSet {
 func (c *PhotoDB) DeletePhoto(cid string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	c.db.Exec("delete from photos where cid=?", cid)
-	return nil
+	_, err := c.db.Exec("delete from photos where cid=?", cid)
+	return err
 }
 
 func (c *PhotoDB) handleQuery(stm string) []repo.PhotoSet {

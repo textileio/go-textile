@@ -23,17 +23,22 @@ import (
 )
 
 type Metadata struct {
-	Name      string    `json:"name"`
-	Ext       string    `json:"extension"`
-	Created   time.Time `json:"created"`
-	Added     time.Time `json:"added"`
-	Latitude  float64   `json:"latitude"`
-	Longitude float64   `json:"longitude"`
+	// photo data
+	Name      string    `json:"name,omitempty"`
+	Ext       string    `json:"extension,omitempty"`
+	Created   time.Time `json:"created,omitempty"`
+	Added     time.Time `json:"added,omitempty"`
+	Latitude  float64   `json:"latitude,omitempty"`
+	Longitude float64   `json:"longitude,omitempty"`
+
+	// user data
+	Username string `json:"username,omitempty"`
+	PeerID   string `json:"peer_id,omitempty"`
 }
 
 // Add takes an image file, and optionally a thumbnail file, and adds
 // both to a new directory, then finally adds and pins that directory.
-func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string) (*net.MultipartRequest, *Metadata, error) {
+func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, un string) (*net.MultipartRequest, *Metadata, error) {
 	// path info
 	path := p.Name()
 	ext := strings.ToLower(filepath.Ext(path))
@@ -61,12 +66,16 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string) 
 
 	// create a metadata file
 	md := &Metadata{
-		Name:      strings.TrimSuffix(filepath.Base(path), ext),
-		Ext:       ext,
-		Created:   tm,
-		Added:     time.Now(),
-		Latitude:  lat,
-		Longitude: lon,
+		Name:     strings.TrimSuffix(filepath.Base(path), ext),
+		Ext:      ext,
+		Created:  tm,
+		Username: un,
+		Added:    time.Now(),
+		PeerID:   n.Identity.Pretty(),
+	}
+	if lat != -1 && lon != -1 {
+		md.Latitude = lat
+		md.Longitude = lon
 	}
 	mdb, err := json.Marshal(md)
 	if err != nil {

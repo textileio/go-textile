@@ -1,21 +1,35 @@
 package core_test
 
 import (
-	"github.com/op/go-logging"
 	"os"
 	"testing"
-
-	. "github.com/textileio/textile-go/core"
 	"time"
+
+	"github.com/op/go-logging"
+	"github.com/segmentio/ksuid"
+
+	cmodels "github.com/textileio/textile-go/central/models"
+	. "github.com/textileio/textile-go/core"
+	util "github.com/textileio/textile-go/util/testing"
 )
 
 var node *TextileNode
 var hash string
 
+var centralReg = &cmodels.Registration{
+	Username: ksuid.New().String(),
+	Password: ksuid.New().String(),
+	Identity: &cmodels.Identity{
+		Type:  cmodels.EmailAddress,
+		Value: ksuid.New().String() + "@textile.io",
+	},
+	Referral: "",
+}
+
 func TestNewNode(t *testing.T) {
 	os.RemoveAll("testdata/.ipfs")
 	var err error
-	node, err = NewNode("testdata/.ipfs", false, logging.DEBUG)
+	node, err = NewNode("testdata/.ipfs", util.CentralApiURL, false, logging.DEBUG)
 	if err != nil {
 		t.Errorf("create node failed: %s", err)
 	}
@@ -35,10 +49,41 @@ func TestTextileNode_StartAgain(t *testing.T) {
 	}
 }
 
-func TestTextileNode_StartServices(t *testing.T) {
-	_, err := node.StartServices()
+func TestTextileNode_StartGarbageCollection(t *testing.T) {
+	_, err := node.StartGarbageCollection()
 	if err != nil {
 		t.Errorf("start services failed: %s", err)
+	}
+}
+
+func TestTextileNode_SignUp(t *testing.T) {
+	_, ref, err := util.CreateReferral(util.RefKey, 1)
+	if err != nil {
+		t.Errorf("create referral for signup failed: %s", err)
+		return
+	}
+	if len(ref.RefCodes) == 0 {
+		t.Error("create referral for signup got no codes")
+		return
+	}
+	centralReg.Referral = ref.RefCodes[0]
+
+	err = node.SignUp(centralReg)
+	if err != nil {
+		t.Errorf("signup failed: %s", err)
+		return
+	}
+}
+
+func TestTextileNode_SignIn(t *testing.T) {
+	creds := &cmodels.Credentials{
+		Username: centralReg.Username,
+		Password: centralReg.Password,
+	}
+	err := node.SignIn(creds)
+	if err != nil {
+		t.Errorf("signin failed: %s", err)
+		return
 	}
 }
 
@@ -165,6 +210,14 @@ func TestTextileNode_GetPublicPeerKeyString(t *testing.T) {
 
 func TestTextileNode_PingPeer(t *testing.T) {
 	// TODO
+}
+
+func TestTextileNode_SignOut(t *testing.T) {
+	err := node.SignOut()
+	if err != nil {
+		t.Errorf("signout failed: %s", err)
+		return
+	}
 }
 
 func TestTextileNode_Stop(t *testing.T) {
