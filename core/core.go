@@ -45,6 +45,7 @@ import (
 	"gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
 
+// VERSION is the current version string
 const VERSION = "0.0.1"
 const apiURL = "https://api.textile.io"
 
@@ -61,7 +62,11 @@ const roomRepublishInterval = time.Minute
 const pingRelayInterval = time.Second * 30
 const pingTimeout = 10 * time.Second
 
+// ErrNodeRunning is an error for when node start is called on a running node
 var ErrNodeRunning = errors.New("node is already running")
+
+// ErrNodeNotRunning is an error for  when node stop is called on a nil node
+var ErrNodeNotRunning = errors.New("node is not running")
 
 // TextileNode is the main node interface for textile functionality
 type TextileNode struct {
@@ -357,6 +362,10 @@ func (t *TextileNode) StartServices() (<-chan error, error) {
 
 // Stop the node
 func (t *TextileNode) Stop() error {
+	if t.IpfsNode == nil {
+		return ErrNodeNotRunning
+	}
+
 	repoLockFile := filepath.Join(t.RepoPath, lockfile.LockFile)
 	if err := os.Remove(repoLockFile); err != nil {
 		log.Errorf("error removing lock: %s", err)
