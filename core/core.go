@@ -275,10 +275,6 @@ func startGatewayProxy(t *TextileNode) (<-chan error, error) {
 }
 
 // Start the node
-<<<<<<< Updated upstream
-=======
->>>>>>> Stashed changes
->>>>>>> Stashed changes
 func (t *TextileNode) Start() error {
 	if t.IpfsNode != nil {
 		return ErrNodeRunning
