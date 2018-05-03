@@ -2,3 +2,7 @@
 dist
 docs
 node_modules
+*.aar
+*.jar
+*.framework
+desktop

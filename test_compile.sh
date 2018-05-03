@@ -3,7 +3,7 @@
 set -e
 pwd
 go test -coverprofile=central.dao.cover.out ./central/dao
-go test -coverprofile=central.controllers.cover.out ./central/controllers
+#go test -coverprofile=central.controllers.cover.out ./central/controllers
 go test -coverprofile=core.cover.out ./core
 go test -coverprofile=mobile.cover.out ./mobile
 go test -coverprofile=repo.db.cover.out ./repo/db

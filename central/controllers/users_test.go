@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/test"
+	util "github.com/textileio/textile-go/internal/testing"
 )
 
 var refCode string
@@ -25,7 +25,7 @@ var credentials = map[string]interface{}{
 
 func TestUsers_Setup(t *testing.T) {
 	// create a referral for the test
-	_, ref, err := test.CreateReferral(test.RefKey, 1)
+	_, ref, err := util.CreateReferral(util.RefKey, 1)
 	if err != nil {
 		t.Error(err)
 	}
@@ -37,7 +37,7 @@ func TestUsers_Setup(t *testing.T) {
 }
 
 func TestUsers_SignUp(t *testing.T) {
-	stat, _, err := test.SignUp(registration)
+	stat, _, err := util.SignUp(registration)
 	if err != nil {
 		t.Error(err)
 		return
@@ -48,7 +48,7 @@ func TestUsers_SignUp(t *testing.T) {
 	}
 
 	registration["ref_code"] = refCode
-	stat2, res2, err := test.SignUp(registration)
+	stat2, res2, err := util.SignUp(registration)
 	if err != nil {
 		t.Error(err)
 		return
@@ -62,7 +62,7 @@ func TestUsers_SignUp(t *testing.T) {
 		return
 	}
 
-	stat3, _, err := test.SignUp(registration)
+	stat3, _, err := util.SignUp(registration)
 	if err != nil {
 		t.Error(err)
 		return
@@ -74,7 +74,7 @@ func TestUsers_SignUp(t *testing.T) {
 }
 
 func TestUsers_SignIn(t *testing.T) {
-	stat, res, err := test.SignIn(credentials)
+	stat, res, err := util.SignIn(credentials)
 	if err != nil {
 		t.Error(err)
 		return
@@ -88,7 +88,7 @@ func TestUsers_SignIn(t *testing.T) {
 		return
 	}
 	credentials["password"] = "doh!"
-	stat1, _, err := test.SignIn(credentials)
+	stat1, _, err := util.SignIn(credentials)
 	if err != nil {
 		t.Error(err)
 		return
@@ -98,7 +98,7 @@ func TestUsers_SignIn(t *testing.T) {
 		return
 	}
 	credentials["username"] = "bart"
-	stat2, _, err := test.SignIn(credentials)
+	stat2, _, err := util.SignIn(credentials)
 	if err != nil {
 		t.Error(err)
 		return
