@@ -214,6 +214,13 @@ func TestWrapper_Stop(t *testing.T) {
 	}
 }
 
+func TestWrapper_StopAgain(t *testing.T) {
+	err := wrapper.Stop()
+	if err != nil {
+		t.Errorf("stop mobile node again should not return error: %s", err)
+	}
+}
+
 func Test_Teardown(t *testing.T) {
 	os.RemoveAll(wrapper.RepoPath)
 }
