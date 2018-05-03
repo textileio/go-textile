@@ -1,0 +1,4 @@
+.circleci
+dist
+docs
+node_modules
