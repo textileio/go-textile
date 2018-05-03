@@ -225,10 +225,10 @@ func startGatewayProxy(t *TextileNode) (<-chan error, error) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("SessionId")
 		if err != nil || cookie.Value != t.GatewayPassword {
-			log.Infof("valid Cookie: %s\n", cookie.Value)
 			w.WriteHeader(401)
 			return
 		}
+		log.Infof("valid cookie: %s\n", cookie.Value)
 		b, err := t.GetFile(r.URL.Path, nil)
 		if err != nil {
 			log.Errorf("error decrypting path %s: %s", r.URL.Path, err)
