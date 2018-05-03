@@ -186,3 +186,7 @@ func (w *Wrapper) SignIn(username string, password string) (string, error) {
 	}
 	return string(jsonb), nil
 }
+
+func (w *Wrapper) GatewayPassword() string {
+	return w.node.GatewayPassword
+}
