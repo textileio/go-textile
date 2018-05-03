@@ -1,4 +1,4 @@
-package test
+package testing
 
 import (
 	"os"
@@ -63,7 +63,7 @@ func (r *Repository) Reset() error {
 	}
 
 	// Rebuild any necessary structure
-	err = repo.DoInit(r.Path, false, r.DB.Config().Init)
+	err = repo.DoInit(r.Path, false, r.DB.Config().Init, r.DB.Config().Configure)
 	if err != nil && err != repo.ErrRepoExists {
 		return err
 	}

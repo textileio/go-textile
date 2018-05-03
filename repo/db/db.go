@@ -150,7 +150,7 @@ func (c *ConfigDB) Init(password string) error {
 	return initDatabaseTables(c.db, password)
 }
 
-func (c *ConfigDB) Configure(creationDate time.Time) error {
+func (c *ConfigDB) Configure(created time.Time) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -162,13 +162,93 @@ func (c *ConfigDB) Configure(creationDate time.Time) error {
 		return err
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec("creationDate", creationDate.Format(time.RFC3339))
+	_, err = stmt.Exec("created", created.Format(time.RFC3339))
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 	tx.Commit()
 	return nil
+}
+
+func (c *ConfigDB) SignIn(un string, at string, rt string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	tx, err := c.db.Begin()
+	if err != nil {
+		return err
+	}
+	stmt, err := tx.Prepare("insert or replace into config(key, value) values(?,?)")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec("username", un)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	_, err = stmt.Exec("access", at)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	_, err = stmt.Exec("refresh", rt)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+	return nil
+}
+
+func (c *ConfigDB) SignOut() error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	stmt, err := c.db.Prepare("delete from config where key=?")
+	defer stmt.Close()
+	_, err = stmt.Exec("username")
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec("access")
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec("refresh")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *ConfigDB) GetUsername() (string, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	stmt, err := c.db.Prepare("select value from config where key=?")
+	defer stmt.Close()
+	var un string
+	err = stmt.QueryRow("username").Scan(&un)
+	if err != nil {
+		return "", err
+	}
+	return un, nil
+}
+
+func (c *ConfigDB) GetTokens() (at string, rt string, err error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	stmt, err := c.db.Prepare("select value from config where key=?")
+	defer stmt.Close()
+	err = stmt.QueryRow("access").Scan(&at)
+	if err != nil {
+		return "", "", err
+	}
+	err = stmt.QueryRow("refresh").Scan(&rt)
+	if err != nil {
+		return "", "", err
+	}
+	return at, rt, nil
 }
 
 func (c *ConfigDB) GetCreationDate() (time.Time, error) {
@@ -180,12 +260,12 @@ func (c *ConfigDB) GetCreationDate() (time.Time, error) {
 		return t, err
 	}
 	defer stmt.Close()
-	var creationDate []byte
-	err = stmt.QueryRow("creationDate").Scan(&creationDate)
+	var created []byte
+	err = stmt.QueryRow("created").Scan(&created)
 	if err != nil {
 		return t, err
 	}
-	return time.Parse(time.RFC3339, string(creationDate))
+	return time.Parse(time.RFC3339, string(created))
 }
 
 func (c *ConfigDB) IsEncrypted() bool {

@@ -1,7 +1,6 @@
 package core
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -22,7 +21,8 @@ import (
 	"github.com/tyler-smith/go-bip39"
 	"gopkg.in/natefinch/lumberjack.v2"
 
-	models "github.com/textileio/textile-go/central/models"
+	cmodels "github.com/textileio/textile-go/central/models"
+	"github.com/textileio/textile-go/core/central"
 	"github.com/textileio/textile-go/net"
 	trepo "github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
@@ -45,11 +45,9 @@ import (
 	"gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
 
-// VERSION is the current version string
-const VERSION = "0.0.1"
-const apiURL = "https://api.textile.io"
-
-var client = &http.Client{}
+const (
+	Version = "0.0.1"
+)
 
 var fileLogFormat = logging.MustStringFormatter(
 	`%{time:15:04:05.000} [%{shortfunc}] [%{level}] %{message}`,
@@ -85,8 +83,20 @@ type TextileNode struct {
 	// Function to call for shutdown
 	Cancel context.CancelFunc
 
-	// Indicated if gc and gateways are up
-	ServicesUp bool
+	// The local raw gateway server
+	// Gateway http.Server
+
+	// The local decrypting gateway server
+	GatewayProxy *http.Server
+
+	// The local password used to authenticate http gateway requests (username is TextileNode)
+	GatewayPassword string
+
+	// Signals for when we've left rooms
+	LeftRoomChs map[string]chan struct{}
+
+	// Signals for leaving rooms
+	leaveRoomChs map[string]chan struct{}
 
 	// IPFS configuration used to instantiate new ipfs nodes
 	ipfsConfig *core.BuildCfg
@@ -94,20 +104,8 @@ type TextileNode struct {
 	// Whether or not we're running on a mobile device
 	isMobile bool
 
-	// Signals for leaving rooms
-	leaveRoomChs map[string]chan struct{}
-
-	// Signals for when we've left rooms
-	LeftRoomChs map[string]chan struct{}
-
-	// The local raw gateway server
-	// Gateway http.Server
-
-	// The local decrypting gateway server
-	GatewayProxy *http.Server
-
-	// The local password used to authenticate secure GatewayProxy requests
-	GatewayPassword string
+	// API URL of the central backup / recovery / pinning user service
+	centralUserAPI string
 }
 
 // PhotoList is a JSON-type structure that contains a list of photo hashes
@@ -116,7 +114,7 @@ type PhotoList struct {
 }
 
 // NewNode creates a new TextileNode
-func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNode, error) {
+func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logging.Level) (*TextileNode, error) {
 	// shutdown is not clean here yet, so we have to hackily remove
 	// the lockfile that should have been removed on shutdown
 	// before we start up again
@@ -145,7 +143,7 @@ func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNo
 	}
 
 	// we may be running in an uninitialized state.
-	err = trepo.DoInit(repoPath, isMobile, sqliteDB.Config().Init)
+	err = trepo.DoInit(repoPath, isMobile, sqliteDB.Config().Init, sqliteDB.Config().Configure)
 	if err != nil && err != trepo.ErrRepoExists {
 		return nil, err
 	}
@@ -185,16 +183,22 @@ func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNo
 	// TODO: can we figure out addrs here and now?
 	gatewayProxy := &http.Server{Addr: ":9999"}
 
+	// clean central api url
+	if centralApiURL[len(centralApiURL)-1:] == "/" {
+		centralApiURL = centralApiURL[0 : len(centralApiURL)-1]
+	}
+
 	// finally, construct our node
 	node := &TextileNode{
 		RepoPath:        repoPath,
 		Datastore:       sqliteDB,
-		ipfsConfig:      ncfg,
-		isMobile:        isMobile,
-		leaveRoomChs:    make(map[string]chan struct{}),
-		LeftRoomChs:     make(map[string]chan struct{}),
 		GatewayProxy:    gatewayProxy,
 		GatewayPassword: ksuid.New().String(),
+		LeftRoomChs:     make(map[string]chan struct{}),
+		leaveRoomChs:    make(map[string]chan struct{}),
+		ipfsConfig:      ncfg,
+		isMobile:        isMobile,
+		centralUserAPI:  fmt.Sprintf("%s/api/v1/users", centralApiURL),
 	}
 
 	// create default album
@@ -356,7 +360,7 @@ func (t *TextileNode) StartServices() (<-chan error, error) {
 		log.Errorf("error starting gc: %s", err)
 		return nil, err
 	}
-	t.ServicesUp = true
+
 	return gcErrc, nil
 }
 
@@ -386,6 +390,58 @@ func (t *TextileNode) Stop() error {
 		return err
 	}
 	t.IpfsNode = nil
+	return nil
+}
+
+// SignUp requests a new username and token from the central api and saves them locally
+func (t *TextileNode) SignUp(reg *cmodels.Registration) error {
+	// remote signup
+	res, err := central.SignUp(reg, t.centralUserAPI)
+	if err != nil {
+		log.Errorf("signup error: %s", err)
+		return err
+	}
+	if res.Error != nil {
+		log.Errorf("signup error from central: %s", err)
+		return errors.New(*res.Error)
+	}
+
+	// local signin
+	if err := t.Datastore.Config().SignIn(reg.Username, res.Session.AccessToken, res.Session.RefreshToken); err != nil {
+		log.Errorf("local signin error: %s", err)
+		return err
+	}
+	return nil
+}
+
+// SignIn requests a token with a username from the central api and saves them locally
+func (t *TextileNode) SignIn(creds *cmodels.Credentials) error {
+	// remote signin
+	res, err := central.SignIn(creds, t.centralUserAPI)
+	if err != nil {
+		log.Errorf("signin error: %s", err)
+		return err
+	}
+	if res.Error != nil {
+		log.Errorf("signin error from central: %s", err)
+		return errors.New(*res.Error)
+	}
+
+	// local signin
+	if err := t.Datastore.Config().SignIn(creds.Username, res.Session.AccessToken, res.Session.RefreshToken); err != nil {
+		log.Errorf("local signin error: %s", err)
+		return err
+	}
+	return nil
+}
+
+// SignOut deletes the locally saved user info (username and tokens)
+func (t *TextileNode) SignOut() error {
+	// remote is stateless, so we just ditch the local token
+	if err := t.Datastore.Config().SignOut(); err != nil {
+		log.Errorf("local signout error: %s", err)
+		return err
+	}
 	return nil
 }
 
@@ -630,8 +686,15 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string) (*net.Mu
 		log.Infof("found last hash: %s", lc)
 	}
 
+	// get username
+	un, err := t.Datastore.Config().GetUsername()
+	if err != nil {
+		log.Errorf("username not found (not signed in)")
+		un = ""
+	}
+
 	// add it
-	mr, md, err := photos.Add(t.IpfsNode, a.Key.GetPublic(), p, th, lc)
+	mr, md, err := photos.Add(t.IpfsNode, a.Key.GetPublic(), p, th, lc, un)
 	if err != nil {
 		log.Errorf("error adding photo: %s", err)
 		return nil, err
@@ -921,63 +984,6 @@ func (t *TextileNode) PingPeer(addrs string, num int, out chan string) error {
 	return nil
 }
 
-func (t *TextileNode) SignIn(username string, password string) (*models.Response, error) {
-	creds := models.Credentials{
-		Username: username,
-		Password: password,
-	}
-
-	url := fmt.Sprintf("%s/api/v1/users", apiURL)
-	payload, err := json.Marshal(creds)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
-	req.Header.Set("Content-Type", "application/json")
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-	resp := &models.Response{}
-	if err := resp.Read(res.Body); err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
-func (t *TextileNode) SignUpWithEmail(username string, password string, email string, referral string) (*models.Response, error) {
-	reg := models.Registration{
-		Username: username,
-		Password: password,
-		Identity: &models.Identity{
-			Type:  models.EmailAddress,
-			Value: email,
-		},
-		Referral: referral,
-	}
-
-	url := fmt.Sprintf("%s/api/v1/users", apiURL)
-	payload, err := json.Marshal(reg)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(payload))
-	req.Header.Set("Content-Type", "application/json")
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-	resp := &models.Response{}
-	if err := resp.Read(res.Body); err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
 func (t *TextileNode) startRepublishing() {
 	// do it once right away
 	t.republishLatestUpdates()
@@ -1076,7 +1082,6 @@ func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message, aid string, datac 
 	// recurse back in time starting at this hash
 	err := t.handleHash(hash, aid, api, datac)
 	if err != nil {
-		log.Errorf("error handling hash: %s", err)
 		return err
 	}
 
@@ -1088,7 +1093,6 @@ func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, dat
 	a := t.Datastore.Albums().GetAlbum(aid)
 	if a == nil {
 		err := errors.New(fmt.Sprintf("could not find album with id: %s", aid))
-		log.Error(err.Error())
 		return err
 	}
 
@@ -1106,7 +1110,6 @@ func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, dat
 	}
 
 	// check if we aleady have this hash
-	// TODO: handle same photo in diff album
 	set := t.Datastore.Photos().GetPhoto(hash)
 	if set != nil {
 		log.Infof("update %s exists, aborting", hash)

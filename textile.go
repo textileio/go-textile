@@ -33,7 +33,7 @@ func main() {
 
 	// handle version flag
 	if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-v") {
-		shell.Println(core.VERSION)
+		shell.Println(core.Version)
 		return
 	}
 
@@ -121,6 +121,11 @@ func main() {
 			Func: cmd.GetPhoto,
 		})
 		photoCmd.AddCmd(&ishell.Cmd{
+			Name: "meta",
+			Help: "cat photo metadata",
+			Func: cmd.CatPhotoMetadata,
+		})
+		photoCmd.AddCmd(&ishell.Cmd{
 			Name: "ls",
 			Help: "list photos from a thread (defaults to \"#default\")",
 			Func: cmd.ListPhotos,
@@ -173,7 +178,8 @@ func main() {
 
 	// create a desktop textile node
 	// TODO: darwin should use App. Support dir, not home dir
-	node, err := core.NewNode(dataDir, false, logging.DEBUG)
+	// TODO: make api url configuratable via an option flag
+	node, err := core.NewNode(dataDir, "https://api.textile.io", false, logging.DEBUG)
 	if err != nil {
 		shell.Println(fmt.Errorf("create desktop node failed: %s", err))
 		return
@@ -232,6 +238,6 @@ _/  |_  ____ ___  ____/  |_|__|  |   ____
 `
 	shell.Println(blue(banner))
 	shell.Println("")
-	shell.Println("textile node v" + core.VERSION)
+	shell.Println("textile node v" + core.Version)
 	shell.Println("type `help` for available commands")
 }

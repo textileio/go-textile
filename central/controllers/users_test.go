@@ -1,15 +1,11 @@
 package controllers_test
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"os"
 	"testing"
 
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/central/models"
+	util "github.com/textileio/textile-go/util/testing"
 )
 
 var refCode string
@@ -28,10 +24,8 @@ var credentials = map[string]interface{}{
 }
 
 func TestUsers_Setup(t *testing.T) {
-	apiURL = fmt.Sprintf("http://%s", os.Getenv("HOST"))
-
 	// create a referral for the test
-	_, ref, err := createReferral(refKey, 1)
+	_, ref, err := util.CreateReferral(util.RefKey, 1)
 	if err != nil {
 		t.Error(err)
 	}
@@ -43,7 +37,7 @@ func TestUsers_Setup(t *testing.T) {
 }
 
 func TestUsers_SignUp(t *testing.T) {
-	stat, _, err := signUp(registration)
+	stat, _, err := util.SignUp(registration)
 	if err != nil {
 		t.Error(err)
 		return
@@ -54,7 +48,7 @@ func TestUsers_SignUp(t *testing.T) {
 	}
 
 	registration["ref_code"] = refCode
-	stat2, res2, err := signUp(registration)
+	stat2, res2, err := util.SignUp(registration)
 	if err != nil {
 		t.Error(err)
 		return
@@ -68,7 +62,7 @@ func TestUsers_SignUp(t *testing.T) {
 		return
 	}
 
-	stat3, _, err := signUp(registration)
+	stat3, _, err := util.SignUp(registration)
 	if err != nil {
 		t.Error(err)
 		return
@@ -80,7 +74,7 @@ func TestUsers_SignUp(t *testing.T) {
 }
 
 func TestUsers_SignIn(t *testing.T) {
-	stat, res, err := signIn(credentials)
+	stat, res, err := util.SignIn(credentials)
 	if err != nil {
 		t.Error(err)
 		return
@@ -94,7 +88,7 @@ func TestUsers_SignIn(t *testing.T) {
 		return
 	}
 	credentials["password"] = "doh!"
-	stat1, _, err := signIn(credentials)
+	stat1, _, err := util.SignIn(credentials)
 	if err != nil {
 		t.Error(err)
 		return
@@ -104,7 +98,7 @@ func TestUsers_SignIn(t *testing.T) {
 		return
 	}
 	credentials["username"] = "bart"
-	stat2, _, err := signIn(credentials)
+	stat2, _, err := util.SignIn(credentials)
 	if err != nil {
 		t.Error(err)
 		return
@@ -113,44 +107,4 @@ func TestUsers_SignIn(t *testing.T) {
 		t.Errorf("got bad status: %d", stat2)
 		return
 	}
-}
-
-func signUp(reg interface{}) (int, *models.Response, error) {
-	url := fmt.Sprintf("%s/api/v1/users", apiURL)
-	payload, err := json.Marshal(reg)
-	if err != nil {
-		return 0, nil, err
-	}
-	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(payload))
-	req.Header.Set("Content-Type", "application/json")
-	res, err := client.Do(req)
-	if err != nil {
-		return 0, nil, err
-	}
-	defer res.Body.Close()
-	resp := &models.Response{}
-	if err := resp.Read(res.Body); err != nil {
-		return res.StatusCode, nil, err
-	}
-	return res.StatusCode, resp, nil
-}
-
-func signIn(creds interface{}) (int, *models.Response, error) {
-	url := fmt.Sprintf("%s/api/v1/users", apiURL)
-	payload, err := json.Marshal(creds)
-	if err != nil {
-		return 0, nil, err
-	}
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
-	req.Header.Set("Content-Type", "application/json")
-	res, err := client.Do(req)
-	if err != nil {
-		return 0, nil, err
-	}
-	defer res.Body.Close()
-	resp := &models.Response{}
-	if err := resp.Read(res.Body); err != nil {
-		return res.StatusCode, nil, err
-	}
-	return res.StatusCode, resp, nil
 }
