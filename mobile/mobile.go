@@ -95,21 +95,25 @@ func (w *Wrapper) SignOut() error {
 	return w.node.SignOut()
 }
 
-func (w *Wrapper) GetUsername() (*string, error) {
-	un, err := w.node.Datastore.Config().GetUsername()
-	if err != nil {
-		return nil, err
-	}
-	return &un, nil
+func (w *Wrapper) IsSignedIn() bool {
+	_, err := w.node.Datastore.Config().GetUsername()
+	return err == nil
 }
 
-func (w *Wrapper) GetAccessToken() (*string, error) {
+func (w *Wrapper) GetUsername() (string, error) {
+	un, err := w.node.Datastore.Config().GetUsername()
+	if err != nil {
+		return "", err
+	}
+	return un, nil
+}
+
+func (w *Wrapper) GetAccessToken() (string, error) {
 	at, _, err := w.node.Datastore.Config().GetTokens()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-
-	return &at, nil
+	return at, nil
 }
 
 func (w *Wrapper) GetGatewayPassword() string {

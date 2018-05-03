@@ -10,7 +10,7 @@ import (
 
 	cmodels "github.com/textileio/textile-go/central/models"
 	. "github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/test"
+	util "github.com/textileio/textile-go/internal/testing"
 )
 
 var node *TextileNode
@@ -29,7 +29,7 @@ var centralReg = &cmodels.Registration{
 func TestNewNode(t *testing.T) {
 	os.RemoveAll("testdata/.ipfs")
 	var err error
-	node, err = NewNode("testdata/.ipfs", test.CentralApiURL, false, logging.DEBUG)
+	node, err = NewNode("testdata/.ipfs", util.CentralApiURL, false, logging.DEBUG)
 	if err != nil {
 		t.Errorf("create node failed: %s", err)
 	}
@@ -57,7 +57,7 @@ func TestTextileNode_StartServices(t *testing.T) {
 }
 
 func TestTextileNode_SignUp(t *testing.T) {
-	_, ref, err := test.CreateReferral(test.RefKey, 1)
+	_, ref, err := util.CreateReferral(util.RefKey, 1)
 	if err != nil {
 		t.Errorf("create referral for signup failed: %s", err)
 		return
