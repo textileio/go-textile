@@ -212,6 +212,14 @@ func TestTextileNode_PingPeer(t *testing.T) {
 	// TODO
 }
 
+func TestTextileNode_SignOut(t *testing.T) {
+	err := node.SignOut()
+	if err != nil {
+		t.Errorf("signout failed: %s", err)
+		return
+	}
+}
+
 func TestTextileNode_Stop(t *testing.T) {
 	err := node.Stop()
 	if err != nil {

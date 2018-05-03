@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"net/http"
 
 	"github.com/op/go-logging"
 	"github.com/segmentio/ksuid"
@@ -42,7 +43,6 @@ import (
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
-	"net/http"
 )
 
 const (
@@ -430,6 +430,16 @@ func (t *TextileNode) SignIn(creds *cmodels.Credentials) error {
 	// local signin
 	if err := t.Datastore.Config().SignIn(creds.Username, res.Session.AccessToken, res.Session.RefreshToken); err != nil {
 		log.Errorf("local signin error: %s", err)
+		return err
+	}
+	return nil
+}
+
+// SignOut deletes the locally saved user info (username and tokens)
+func (t *TextileNode) SignOut() error {
+	// remote is stateless, so we just ditch the local token
+	if err := t.Datastore.Config().SignOut(); err != nil {
+		log.Errorf("local signout error: %s", err)
 		return err
 	}
 	return nil
