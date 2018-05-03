@@ -61,7 +61,10 @@ func (w *Wrapper) Start() error {
 }
 
 func (w *Wrapper) Stop() error {
-	return w.node.Stop()
+	if err := w.node.Stop(); err != nil && err != tcore.ErrNodeNotRunning {
+		return err
+	}
+	return nil
 }
 
 func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) error {
