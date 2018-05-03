@@ -7,11 +7,10 @@ jobs:
     working_directory: /go/src/github.com/textileio/textile-go
     steps:
       - checkout
-      - run: dep ensure
-      - run: cd central && dep ensure
+      - run: dep ensure && cd central && dep ensure
       - run: cd central && go install -v ./...
       - run:
-          name: run central api
+          name: run central and test all
           command: |
             central &
             sleep 5

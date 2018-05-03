@@ -9,8 +9,8 @@ import (
 	"github.com/segmentio/ksuid"
 
 	"github.com/textileio/textile-go/core"
-	util "github.com/textileio/textile-go/internal/testing"
 	. "github.com/textileio/textile-go/mobile"
+	util "github.com/textileio/textile-go/util/testing"
 
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )

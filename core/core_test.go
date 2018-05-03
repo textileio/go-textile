@@ -10,7 +10,7 @@ import (
 
 	cmodels "github.com/textileio/textile-go/central/models"
 	. "github.com/textileio/textile-go/core"
-	util "github.com/textileio/textile-go/internal/testing"
+	util "github.com/textileio/textile-go/util/testing"
 )
 
 var node *TextileNode
