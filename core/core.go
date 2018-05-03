@@ -969,6 +969,12 @@ func (t *TextileNode) registerGatewayHandler() {
 		}
 	}()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("SessionId")
+		if err != nil || cookie.Value != t.GatewayPassword {
+			w.WriteHeader(401)
+			return
+		}
+		log.Infof("valid cookie: %s\n", cookie.Value)
 		b, err := t.GetFile(r.URL.Path, nil)
 		if err != nil {
 			log.Errorf("error decrypting path %s: %s", r.URL.Path, err)
