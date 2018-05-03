@@ -434,7 +434,14 @@ func (t *TextileNode) JoinRoom(id string, datac chan string) {
 		log.Infof("left room: %s\n", sub.Topic())
 	}
 
-	defer close(datac)
+	defer func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Errorf("room data channel already closed")
+			}
+		}()
+		close(datac)
+	}()
 	go func() {
 		for {
 			// unload new message
@@ -1007,7 +1014,14 @@ func (t *TextileNode) startRepublishing() {
 
 	// create a never-ending ticker
 	ticker := time.NewTicker(roomRepublishInterval)
-	defer ticker.Stop()
+	defer func() {
+		ticker.Stop()
+		defer func() {
+			if recover() != nil {
+				log.Error("republishing ticker already stopped")
+			}
+		}()
+	}()
 	go func() {
 		for range ticker.C {
 			t.republishLatestUpdates()
@@ -1054,7 +1068,14 @@ func (t *TextileNode) startPingingRelay() {
 
 	// create a never-ending ticker
 	ticker := time.NewTicker(pingRelayInterval)
-	defer ticker.Stop()
+	defer func() {
+		ticker.Stop()
+		defer func() {
+			if recover() != nil {
+				log.Error("ping relay ticker already stopped")
+			}
+		}()
+	}()
 	go func() {
 		for range ticker.C {
 			err := t.PingPeer(relay, 1, make(chan string))
