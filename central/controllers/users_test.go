@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/segmentio/ksuid"
-	util "github.com/textileio/textile-go/internal/testing"
+	util "github.com/textileio/textile-go/util/testing"
 )
 
 var refCode string

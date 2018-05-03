@@ -10,7 +10,7 @@ import (
 	"github.com/op/go-logging"
 
 	"github.com/textileio/textile-go/repo/config"
-	"github.com/textileio/textile-go/util"
+	"github.com/textileio/textile-go/repo/schema"
 
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/namesys"
@@ -38,7 +38,7 @@ func DoInit(repoRoot string, isMobile bool, dbInit func(string) error, dbConfigu
 	}
 	log.Infof("initializing textile ipfs node at %s", repoRoot)
 
-	paths, err := util.NewCustomSchemaManager(util.SchemaContext{
+	paths, err := schema.NewCustomSchemaManager(schema.SchemaContext{
 		DataPath: repoRoot,
 	})
 	if err := paths.BuildSchemaDirectories(); err != nil {
