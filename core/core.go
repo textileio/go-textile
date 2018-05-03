@@ -224,54 +224,6 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 	return node, nil
 }
 
-// ServeHTTPGatewayProxy starts the secure HTTP gatway proxy server
-func startGatewayProxy(t *TextileNode) (<-chan error, error) {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		b, err := t.GetFile(r.URL.Path, nil)
-		if err != nil {
-			log.Errorf("error decrypting path %s: %s", r.URL.Path, err)
-			w.WriteHeader(400)
-			return
-		}
-		w.Write(b)
-	})
-
-	port, err := t.GatewayPort()
-	if err != nil {
-		return nil, err
-	}
-	portString := fmt.Sprintf(":%d", port)
-	// Update address/port
-	t.GatewayProxy.Addr = portString
-
-	// Check if the cert files are available.
-	certPath := filepath.Join(t.RepoPath, "cert.pem")
-	keyPath := filepath.Join(t.RepoPath, "key.pem")
-	err = ssl.Check(certPath, keyPath)
-	// If they are not available, generate new ones.
-	if err != nil {
-		err = ssl.Generate(certPath, keyPath, "localhost"+portString)
-		if err != nil {
-			log.Errorf("failed to create https certs: %s", err)
-			return nil, err
-		}
-	}
-
-	// Start the HTTPS server in a goroutine
-	errc := make(chan error)
-	go func() {
-		errc <- t.GatewayProxy.ListenAndServeTLS(certPath, keyPath)
-		close(errc)
-	}()
-	log.Infof("decrypting gateway (readonly) server listening on /ip4/127.0.0.1/tcp/%d\n", port)
-
-	// NOTE: No need to actually do this, but keeping commented out for testing
-	// Start the HTTP server and redirect all incoming connections to HTTPS
-	//go http.ListenAndServe(":9193", http.HandlerFunc(redirectToHttps))
-
-	return errc, nil
-}
-
 // Start the node
 func (t *TextileNode) Start() error {
 	if t.IpfsNode != nil {
@@ -283,6 +235,7 @@ func (t *TextileNode) Start() error {
 		log.Errorf("setting file descriptor limit: %s", err)
 	}
 
+	// start the ipfs node
 	log.Info("starting node...")
 	cctx, cancel := context.WithCancel(context.Background())
 	t.Cancel = cancel
@@ -292,10 +245,12 @@ func (t *TextileNode) Start() error {
 	}
 	nd.SetLocal(false)
 
+	// print swarm addresses
 	if err = printSwarmAddrs(nd); err != nil {
 		log.Errorf("failed to read listening addresses: %s", err)
 	}
 
+	// build the node
 	ctx := oldcmds.Context{}
 	ctx.Online = true
 	ctx.ConfigRoot = t.RepoPath
@@ -308,34 +263,27 @@ func (t *TextileNode) Start() error {
 	t.Context = ctx
 	t.IpfsNode = nd
 
-	// construct decrypting http gateway proxy
+	// construct decrypting http gateway
 	var gwpErrc <-chan error
-	gwpErrc, err = startGatewayProxy(t)
+	gwpErrc, err = startGateway(t)
 	if err != nil {
 		log.Errorf("error starting decrypting gateway: %s", err)
 		return err
 	}
-
 	go func() {
 		for {
 			select {
 			case err, ok := <-gwpErrc:
-				if err != nil {
-					log.Errorf("service error: %s", err)
+				if err != nil && err.Error() != "http: Server closed" {
+					log.Errorf("gateway error: %s", err)
 				}
 				if !ok {
-					log.Info("gateway proxy shutdown")
-					return // bail out of the infinite loop, letting the goroutine end
+					log.Info("decrypting gateway was shutdown")
+					return
 				}
 			}
 		}
 	}()
-
-	if t.isMobile {
-		log.Info("mobile node is ready")
-	} else {
-		log.Info("desktop node is ready")
-	}
 
 	// every min, send out latest room updates
 	go t.startRepublishing()
@@ -343,11 +291,17 @@ func (t *TextileNode) Start() error {
 	// every 30s, ping the relay
 	go t.startPingingRelay()
 
+	if t.isMobile {
+		log.Info("mobile node is ready")
+	} else {
+		log.Info("desktop node is ready")
+	}
 	return nil
 }
 
-// StartServices starts garbage cleanup and gateway services
-func (t *TextileNode) StartServices() (<-chan error, error) {
+// StartGarbageCollection starts auto garbage cleanup
+// TODO: verify this is finding the correct repo, might be using IPFS_PATH
+func (t *TextileNode) StartGarbageCollection() (<-chan error, error) {
 	if t.isMobile {
 		return nil, errors.New("services not available on mobile")
 	}
@@ -369,26 +323,38 @@ func (t *TextileNode) Stop() error {
 	if t.IpfsNode == nil {
 		return ErrNodeNotRunning
 	}
+	log.Info("stopping node...")
 
-	repoLockFile := filepath.Join(t.RepoPath, lockfile.LockFile)
-	if err := os.Remove(repoLockFile); err != nil {
-		log.Errorf("error removing lock: %s", err)
+	// shutdown the gateway
+	cgCtx, cancelCGW := context.WithCancel(context.Background())
+	if err := t.GatewayProxy.Shutdown(cgCtx); err != nil {
+		log.Errorf("error shutting down gateway: %s", err)
 		return err
 	}
+
+	// close ipfs node command context
+	t.Context.Close()
+
+	// cancel textile node background context
+	t.Cancel()
+
+	// close the ipfs node
+	if err := t.IpfsNode.Close(); err != nil {
+		log.Errorf("error closing ipfs node: %s", err)
+		return err
+	}
+
+	// force the gateway closed if it's not already closed
+	cancelCGW()
+
+	// close db connection
 	t.Datastore.Close()
 	dsLockFile := filepath.Join(t.RepoPath, "datastore", "LOCK")
 	if err := os.Remove(dsLockFile); err != nil {
 		log.Errorf("error removing ds lock: %s", err)
 		return err
 	}
-	if err := t.GatewayProxy.Shutdown(nil); err != nil {
-		log.Errorf("error shutting down gateway proxy server: %s", err)
-		return err
-	}
-	if err := t.IpfsNode.Close(); err != nil {
-		log.Errorf("error closing ipfs node: %s", err)
-		return err
-	}
+
 	t.IpfsNode = nil
 	return nil
 }
@@ -458,8 +424,9 @@ func (t *TextileNode) JoinRoom(id string, datac chan string) {
 	t.leaveRoomChs[id] = make(chan struct{})
 	t.LeftRoomChs[id] = make(chan struct{})
 
+	ctx, cancel := context.WithCancel(context.Background())
 	leave := func() {
-		sub.Cancel()
+		cancel()
 		close(t.LeftRoomChs[id])
 
 		delete(t.leaveRoomChs, id)
@@ -467,13 +434,20 @@ func (t *TextileNode) JoinRoom(id string, datac chan string) {
 		log.Infof("left room: %s\n", sub.Topic())
 	}
 
-	defer close(datac)
+	defer func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Errorf("room data channel already closed")
+			}
+		}()
+		close(datac)
+	}()
 	go func() {
 		for {
 			// unload new message
-			msg, err := sub.Next(t.IpfsNode.Context())
+			msg, err := sub.Next(ctx)
 			if err == io.EOF || err == context.Canceled {
-				log.Debugf("room subscription ended with error: %s", err)
+				log.Debugf("room subscription ended: %s", err)
 				return
 			} else if err != nil {
 				log.Infof(err.Error())
@@ -520,12 +494,13 @@ func (t *TextileNode) WaitForRoom() {
 	}
 	log.Infof("waiting for room at own peer id: %s\n", rid)
 
+	ctx, cancel := context.WithCancel(context.Background())
 	cancelCh := make(chan struct{})
 	go func() {
 		for {
-			msg, err := sub.Next(t.IpfsNode.Context())
+			msg, err := sub.Next(ctx)
 			if err == io.EOF || err == context.Canceled {
-				log.Debugf("wait subscription ended with error: %s", err)
+				log.Debugf("wait subscription ended: %s", err)
 				return
 			} else if err != nil {
 				log.Infof(err.Error())
@@ -561,9 +536,10 @@ func (t *TextileNode) WaitForRoom() {
 	for {
 		select {
 		case <-cancelCh:
-			sub.Cancel()
+			cancel()
 			return
 		case <-t.IpfsNode.Context().Done():
+			cancel()
 			return
 		}
 	}
@@ -586,8 +562,8 @@ func (t *TextileNode) ConnectToRoomPeers(topic string) context.CancelFunc {
 
 // GatewayPort requests the active gateway port
 func (t *TextileNode) GatewayPort() (int, error) {
-	// Get config and set proxy address to raw gateway address plus one thousand,
-	// so a gateway on 8182 means the proxy will run on 9182
+	// Get config and set address to raw gateway address plus one thousand,
+	// so a raw gateway on 8182 means this will run on 9182
 	cfg, err := t.Context.GetConfig()
 	if err != nil {
 		log.Errorf("get gateway port failed: %s", err)
@@ -984,13 +960,68 @@ func (t *TextileNode) PingPeer(addrs string, num int, out chan string) error {
 	return nil
 }
 
+// startGateway starts the secure HTTP gatway server
+func startGateway(t *TextileNode) (<-chan error, error) {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		b, err := t.GetFile(r.URL.Path, nil)
+		if err != nil {
+			log.Errorf("error decrypting path %s: %s", r.URL.Path, err)
+			w.WriteHeader(400)
+			return
+		}
+		w.Write(b)
+	})
+
+	port, err := t.GatewayPort()
+	if err != nil {
+		return nil, err
+	}
+	portString := fmt.Sprintf(":%d", port)
+	// Update address/port
+	t.GatewayProxy.Addr = portString
+
+	// Check if the cert files are available.
+	certPath := filepath.Join(t.RepoPath, "cert.pem")
+	keyPath := filepath.Join(t.RepoPath, "key.pem")
+	err = ssl.Check(certPath, keyPath)
+	// If they are not available, generate new ones.
+	if err != nil {
+		err = ssl.Generate(certPath, keyPath, "localhost"+portString)
+		if err != nil {
+			log.Errorf("failed to create https certs: %s", err)
+			return nil, err
+		}
+	}
+
+	// Start the HTTPS server in a goroutine
+	errc := make(chan error)
+	go func() {
+		errc <- t.GatewayProxy.ListenAndServeTLS(certPath, keyPath)
+		close(errc)
+	}()
+	log.Infof("decrypting gateway (readonly) server listening on /ip4/127.0.0.1/tcp/%d\n", port)
+
+	// NOTE: No need to actually do this, but keeping commented out for testing
+	// Start the HTTP server and redirect all incoming connections to HTTPS
+	//go http.ListenAndServe(":9193", http.HandlerFunc(redirectToHttps))
+
+	return errc, nil
+}
+
 func (t *TextileNode) startRepublishing() {
 	// do it once right away
 	t.republishLatestUpdates()
 
 	// create a never-ending ticker
 	ticker := time.NewTicker(roomRepublishInterval)
-	defer ticker.Stop()
+	defer func() {
+		ticker.Stop()
+		defer func() {
+			if recover() != nil {
+				log.Error("republishing ticker already stopped")
+			}
+		}()
+	}()
 	go func() {
 		for range ticker.C {
 			t.republishLatestUpdates()
@@ -1001,6 +1032,7 @@ func (t *TextileNode) startRepublishing() {
 	for {
 		select {
 		case <-t.IpfsNode.Context().Done():
+			log.Info("republishing stopped")
 			return
 		}
 	}
@@ -1036,7 +1068,14 @@ func (t *TextileNode) startPingingRelay() {
 
 	// create a never-ending ticker
 	ticker := time.NewTicker(pingRelayInterval)
-	defer ticker.Stop()
+	defer func() {
+		ticker.Stop()
+		defer func() {
+			if recover() != nil {
+				log.Error("ping relay ticker already stopped")
+			}
+		}()
+	}()
 	go func() {
 		for range ticker.C {
 			err := t.PingPeer(relay, 1, make(chan string))
@@ -1050,6 +1089,7 @@ func (t *TextileNode) startPingingRelay() {
 	for {
 		select {
 		case <-t.IpfsNode.Context().Done():
+			log.Info("pinging relay stopped")
 			return
 		}
 	}

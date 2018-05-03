@@ -67,7 +67,7 @@ func main() {
 			return
 		}
 		shell.Println("interrupted")
-		shell.Printf("textile server shutting down...")
+		shell.Printf("textile node shutting down...")
 		if core.Node.IpfsNode != nil {
 			core.Node.Stop()
 		}
@@ -192,7 +192,8 @@ func main() {
 	}
 
 	// start garbage collection
-	go startServices()
+	// TODO: see method todo before enabling
+	//go startGarbageCollection()
 
 	// join existing rooms
 	albums := core.Node.Datastore.Albums().GetAlbums("")
@@ -205,21 +206,21 @@ func main() {
 }
 
 // Start garbage collection
-func startServices() {
-	errc, err := core.Node.StartServices()
+func startGarbageCollection() {
+	errc, err := core.Node.StartGarbageCollection()
 	if err != nil {
-		shell.Println(fmt.Errorf("start service error: %s", err))
+		shell.Println(fmt.Errorf("auto gc error: %s", err))
 		return
 	}
-
-	// TODO: if we want the 'raw' gateway server when running from cmd line
-	// TODO: that can be added here directly (would need to export method)
-
 	for {
 		select {
-		case err := <-errc:
+		case err, ok := <-errc:
 			if err != nil {
-				shell.Println(fmt.Errorf("service error: %s", err))
+				shell.Println(fmt.Errorf("auto gc error: %s", err))
+			}
+			if !ok {
+				shell.Println("auto gc stopped")
+				return
 			}
 		}
 	}
