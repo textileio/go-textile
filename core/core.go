@@ -222,10 +222,10 @@ func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNo
 
 // ServeHTTPGatewayProxy starts the secure HTTP gatway proxy server
 func startGatewayProxy(t *TextileNode) (<-chan error, error) {
-	http.HandleFunc("/ipfs", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("SessionId")
-		fmt.Printf("Cookie: %s\n", cookie.Value)
 		if err != nil || cookie.Value != t.GatewayPassword {
+			log.Infof("valid Cookie: %s\n", cookie.Value)
 			w.WriteHeader(401)
 			return
 		}
