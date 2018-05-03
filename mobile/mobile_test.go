@@ -77,7 +77,7 @@ func TestWrapper_GetUsername(t *testing.T) {
 		return
 	}
 	if *un != cusername {
-		t.Errorf("got bad username: %s", un)
+		t.Errorf("got bad username: %s", *un)
 	}
 }
 
