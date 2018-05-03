@@ -64,6 +64,58 @@ func (w *Wrapper) Stop() error {
 	return w.node.Stop()
 }
 
+func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) error {
+	// build registration
+	reg := &models.Registration{
+		Username: username,
+		Password: password,
+		Identity: &models.Identity{
+			Type:  models.EmailAddress,
+			Value: email,
+		},
+		Referral: referral,
+	}
+
+	// signup
+	return w.node.SignUp(reg)
+}
+
+func (w *Wrapper) SignIn(username string, password string) error {
+	// build creds
+	creds := &models.Credentials{
+		Username: username,
+		Password: password,
+	}
+
+	// signin
+	return w.node.SignIn(creds)
+}
+
+func (w *Wrapper) SignOut() error {
+	return w.node.SignOut()
+}
+
+func (w *Wrapper) GetUsername() (*string, error) {
+	un, err := w.node.Datastore.Config().GetUsername()
+	if err != nil {
+		return nil, err
+	}
+	return &un, nil
+}
+
+func (w *Wrapper) GetAccessToken() (*string, error) {
+	at, _, err := w.node.Datastore.Config().GetTokens()
+	if err != nil {
+		return nil, err
+	}
+
+	return &at, nil
+}
+
+func (w *Wrapper) GetGatewayPassword() string {
+	return w.node.GatewayPassword
+}
+
 func (w *Wrapper) AddPhoto(path string, thumb string, thread string) (*net.MultipartRequest, error) {
 	return w.node.AddPhoto(path, thumb, thread)
 }
@@ -147,48 +199,4 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 	}
 
 	return topic, nil
-}
-
-func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) error {
-	// build registration
-	reg := &models.Registration{
-		Username: username,
-		Password: password,
-		Identity: &models.Identity{
-			Type:  models.EmailAddress,
-			Value: email,
-		},
-		Referral: referral,
-	}
-
-	// signup
-	return w.node.SignUp(reg)
-}
-
-func (w *Wrapper) SignIn(username string, password string) error {
-	// build creds
-	creds := &models.Credentials{
-		Username: username,
-		Password: password,
-	}
-
-	// signin
-	return w.node.SignIn(creds)
-}
-
-func (w *Wrapper) GetUsername() (string, error) {
-	return w.node.Datastore.Config().GetUsername()
-}
-
-func (w *Wrapper) GetAccessToken() (string, error) {
-	at, _, err := w.node.Datastore.Config().GetTokens()
-	if err != nil {
-		return "", err
-	}
-
-	return at, nil
-}
-
-func (w *Wrapper) GatewayPassword() string {
-	return w.node.GatewayPassword
 }

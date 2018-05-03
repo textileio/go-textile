@@ -76,7 +76,7 @@ func TestWrapper_GetUsername(t *testing.T) {
 		t.Errorf("get username failed: %s", err)
 		return
 	}
-	if un != cusername {
+	if *un != cusername {
 		t.Errorf("got bad username: %s", un)
 	}
 }
@@ -85,6 +85,14 @@ func TestWrapper_GetAccessToken(t *testing.T) {
 	_, err := wrapper.GetAccessToken()
 	if err != nil {
 		t.Errorf("get access token failed: %s", err)
+		return
+	}
+}
+
+func TestWrapper_GetGatewayPassword(t *testing.T) {
+	pwd := wrapper.GetGatewayPassword()
+	if pwd == "" {
+		t.Errorf("got bad gateway password: %s", pwd)
 		return
 	}
 }
@@ -174,6 +182,14 @@ func TestWrapper_PairDesktop(t *testing.T) {
 	_, err = wrapper.PairDesktop(ps)
 	if err != nil {
 		t.Errorf("pair desktop failed: %s", err)
+	}
+}
+
+func TestWrapper_SignOut(t *testing.T) {
+	err := wrapper.SignOut()
+	if err != nil {
+		t.Errorf("signout failed: %s", err)
+		return
 	}
 }
 
