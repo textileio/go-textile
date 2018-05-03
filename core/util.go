@@ -6,23 +6,22 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"fmt"
-	"net/http"
-	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
+	oldcmds "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/commands"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
+	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/corehttp"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/corerepo"
 
+	"gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-
-	"github.com/textileio/textile-go/ssl"
 )
 
 // PrintSwarmAddrs prints the addresses of the host
@@ -57,98 +56,49 @@ func printSwarmAddrs(node *core.IpfsNode) error {
 	return nil
 }
 
-// TODO: remove completely?
 // serveHTTPGateway collects options, creates listener, prints status message and starts serving requests
-// func serveHTTPGateway(cctx *oldcmds.Context) (<-chan error, error) {
-// 	cfg, err := cctx.GetConfig()
-// 	if err != nil {
-// 		return nil, fmt.Errorf("ServeHTTPGateway: GetConfig() failed: %s", err)
-// 	}
-//
-// 	gatewayMaddr, err := ma.NewMultiaddr(cfg.Addresses.Gateway)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("ServeHTTPGateway: invalid gateway address: %q (err: %s)", cfg.Addresses.Gateway, err)
-// 	}
-//
-// 	gwLis, err := manet.Listen(gatewayMaddr)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("ServeHTTPGateway: manet.Listen(%s) failed: %s", gatewayMaddr, err)
-// 	}
-// 	// we might have listened to /tcp/0 - lets see what we are listing on
-// 	gatewayMaddr = gwLis.Multiaddr()
-//
-// 	var opts = []corehttp.ServeOption{
-// 		corehttp.MetricsCollectionOption("gateway"),
-// 		corehttp.CheckVersionOption(),
-// 		corehttp.CommandsROOption(*cctx),
-// 		corehttp.VersionOption(),
-// 		corehttp.IPNSHostnameOption(),
-// 		corehttp.GatewayOption(false, "/ipfs", "/ipns"),
-// 	}
-//
-// 	if len(cfg.Gateway.RootRedirect) > 0 {
-// 		opts = append(opts, corehttp.RedirectOption("", cfg.Gateway.RootRedirect))
-// 	}
-//
-// 	node, err := cctx.ConstructNode()
-// 	if err != nil {
-// 		return nil, fmt.Errorf("ServeHTTPGateway: ConstructNode() failed: %s", err)
-// 	}
-//
-// 	errc := make(chan error)
-// 	go func() {
-// 		errc <- corehttp.Serve(node, gwLis.NetListener(), opts...)
-// 		close(errc)
-// 	}()
-// 	log.Infof("gateway (readonly) server listening on %s\n", gatewayMaddr)
-//
-// 	return errc, nil
-// }
-
-// ServeHTTPGatewayProxy starts the secure HTTP gatway proxy server
-func ServeHTTPGatewayProxy(node *TextileNode) (<-chan error, error) {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		b, err := node.GetFile(r.URL.Path, nil)
-		if err != nil {
-			log.Errorf("error decrypting path %s: %s", r.URL.Path, err)
-			w.WriteHeader(400)
-			return
-		}
-		w.Write(b)
-	})
-
-	port, err := node.GatewayPort()
+func serveHTTPGateway(cctx *oldcmds.Context) (<-chan error, error) {
+	cfg, err := cctx.GetConfig()
 	if err != nil {
-		return nil, err
-	}
-	portString := fmt.Sprintf(":%d", port)
-	// Update address/port
-	node.GatewayProxy.Addr = portString
-
-	// Check if the cert files are available.
-	certPath := filepath.Join(node.RepoPath, "cert.pem")
-	keyPath := filepath.Join(node.RepoPath, "key.pem")
-	err = ssl.Check(certPath, keyPath)
-	// If they are not available, generate new ones.
-	if err != nil {
-		err = ssl.Generate(certPath, keyPath, "localhost"+portString)
-		if err != nil {
-			log.Errorf("failed to create https certs: %s", err)
-			return nil, err
-		}
+		return nil, fmt.Errorf("ServeHTTPGateway: GetConfig() failed: %s", err)
 	}
 
-	// Start the HTTPS server in a goroutine
+	gatewayMaddr, err := ma.NewMultiaddr(cfg.Addresses.Gateway)
+	if err != nil {
+		return nil, fmt.Errorf("ServeHTTPGateway: invalid gateway address: %q (err: %s)", cfg.Addresses.Gateway, err)
+	}
+
+	gwLis, err := manet.Listen(gatewayMaddr)
+	if err != nil {
+		return nil, fmt.Errorf("ServeHTTPGateway: manet.Listen(%s) failed: %s", gatewayMaddr, err)
+	}
+	// we might have listened to /tcp/0 - lets see what we are listing on
+	gatewayMaddr = gwLis.Multiaddr()
+
+	var opts = []corehttp.ServeOption{
+		corehttp.MetricsCollectionOption("gateway"),
+		corehttp.CheckVersionOption(),
+		corehttp.CommandsROOption(*cctx),
+		corehttp.VersionOption(),
+		corehttp.IPNSHostnameOption(),
+		corehttp.GatewayOption(false, "/ipfs", "/ipns"),
+	}
+
+	if len(cfg.Gateway.RootRedirect) > 0 {
+		opts = append(opts, corehttp.RedirectOption("", cfg.Gateway.RootRedirect))
+	}
+
+	node, err := cctx.ConstructNode()
+	if err != nil {
+		return nil, fmt.Errorf("ServeHTTPGateway: ConstructNode() failed: %s", err)
+	}
+
 	errc := make(chan error)
 	go func() {
-		errc <- node.GatewayProxy.ListenAndServeTLS(certPath, keyPath)
+		errc <- corehttp.Serve(node, gwLis.NetListener(), opts...)
 		close(errc)
 	}()
-	log.Infof("decrypting gateway (readonly) server listening on /ip4/127.0.0.1/tcp/%d\n", port)
-
-	// NOTE: No need to actually do this, but keeping commented out for testing
-	// Start the HTTP server and redirect all incoming connections to HTTPS
-	//go http.ListenAndServe(":9193", http.HandlerFunc(redirectToHttps))
+	log.Infof("gateway (readonly) server listening on %s\n", gatewayMaddr)
 
 	return errc, nil
 }
