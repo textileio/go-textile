@@ -14,7 +14,7 @@ func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Me
 
 	astilog.Info("SENDING COOKIE INFO")
 	sendData(iw, "login.cookie", map[string]interface{}{
-		"name":    "SeesionId",
+		"name":    "SessionId",
 		"value":   textile.GatewayPassword,
 		"gateway": gateway,
 	})

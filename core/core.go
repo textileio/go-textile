@@ -222,7 +222,13 @@ func NewNode(repoPath string, isMobile bool, logLevel logging.Level) (*TextileNo
 
 // ServeHTTPGatewayProxy starts the secure HTTP gatway proxy server
 func startGatewayProxy(t *TextileNode) (<-chan error, error) {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/ipfs", func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("SessionId")
+		fmt.Printf("Cookie: %s\n", cookie.Value)
+		if err != nil || cookie.Value != t.GatewayPassword {
+			w.WriteHeader(401)
+			return
+		}
 		b, err := t.GetFile(r.URL.Path, nil)
 		if err != nil {
 			log.Errorf("error decrypting path %s: %s", r.URL.Path, err)
@@ -269,6 +275,10 @@ func startGatewayProxy(t *TextileNode) (<-chan error, error) {
 }
 
 // Start the node
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 func (t *TextileNode) Start() error {
 	if t.IpfsNode != nil {
 		return ErrNodeRunning
