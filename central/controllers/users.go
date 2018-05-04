@@ -71,7 +71,7 @@ func SignUp(c *gin.Context) {
 
 	// check password strength
 	match := zxcvbn.PasswordStrength(reg.Password, []string{reg.Identity.Value})
-	if match.Score < 3 {
+	if match.Score < 2 {
 		msg := fmt.Sprintf("weak password - crackable in %s", match.CrackTimeDisplay)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
