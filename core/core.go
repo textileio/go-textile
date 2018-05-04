@@ -363,6 +363,7 @@ func (t *TextileNode) Stop() error {
 
 // SignUp requests a new username and token from the central api and saves them locally
 func (t *TextileNode) SignUp(reg *cmodels.Registration) error {
+	log.Infof("signup: %s %s %s %s %s", reg.Username, "xxxxxx", reg.Identity.Type, reg.Identity.Value, reg.Referral)
 	// remote signup
 	res, err := central.SignUp(reg, t.centralUserAPI)
 	if err != nil {
@@ -370,7 +371,7 @@ func (t *TextileNode) SignUp(reg *cmodels.Registration) error {
 		return err
 	}
 	if res.Error != nil {
-		log.Errorf("signup error from central: %s", err)
+		log.Errorf("signup error from central: %s", *res.Error)
 		return errors.New(*res.Error)
 	}
 
@@ -384,6 +385,7 @@ func (t *TextileNode) SignUp(reg *cmodels.Registration) error {
 
 // SignIn requests a token with a username from the central api and saves them locally
 func (t *TextileNode) SignIn(creds *cmodels.Credentials) error {
+	log.Infof("signin: %s %s", creds.Username, "xxxxxx")
 	// remote signin
 	res, err := central.SignIn(creds, t.centralUserAPI)
 	if err != nil {
@@ -391,7 +393,7 @@ func (t *TextileNode) SignIn(creds *cmodels.Credentials) error {
 		return err
 	}
 	if res.Error != nil {
-		log.Errorf("signin error from central: %s", err)
+		log.Errorf("signin error from central: %s", *res.Error)
 		return errors.New(*res.Error)
 	}
 
