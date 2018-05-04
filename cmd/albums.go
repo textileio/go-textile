@@ -20,7 +20,7 @@ func ListAlbums(c *ishell.Context) {
 		c.Println(fmt.Sprintf("found %v threads", len(albums)))
 	}
 
-	yellow := color.New(color.FgYellow).SprintFunc()
+	blue := color.New(color.FgHiBlue).SprintFunc()
 	for _, a := range albums {
 		mem := "disabled"
 		for _, r := range rooms {
@@ -28,7 +28,7 @@ func ListAlbums(c *ishell.Context) {
 				mem = "enabled"
 			}
 		}
-		c.Println(yellow(fmt.Sprintf("name: %s, id: %s, status: %s", a.Name, a.Id, mem)))
+		c.Println(blue(fmt.Sprintf("name: %s, id: %s, status: %s", a.Name, a.Id, mem)))
 	}
 }
 
@@ -179,8 +179,8 @@ func ListAlbumPeers(c *ishell.Context) {
 		c.Println(fmt.Sprintf("found %v peers in: %s", len(list), name))
 	}
 
-	yellow := color.New(color.FgHiYellow).SprintFunc()
+	green := color.New(color.FgHiGreen).SprintFunc()
 	for _, peer := range list {
-		c.Println(yellow(peer))
+		c.Println(green(peer))
 	}
 }
