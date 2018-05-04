@@ -977,7 +977,6 @@ func (t *TextileNode) registerGatewayHandler() {
 			w.WriteHeader(401)
 			return
 		}
-		log.Infof("valid cookie: %s\n", cookie.Value)
 		b, err := t.GetFile(r.URL.Path, nil)
 		if err != nil {
 			log.Errorf("error decrypting path %s: %s", r.URL.Path, err)
