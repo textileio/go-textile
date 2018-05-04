@@ -55,12 +55,13 @@ func Init(nBitsForKeypair int, isMobile bool) (*native.Config, error) {
 	swarmConnMgrGracePeriod := DefaultConnMgrGracePeriod.String()
 
 	// some of the below are taken from the not-yet-released "lowpower" profile preset
-	if isMobile {
-		reproviderInterval = "0"
-		swarmConnMgrLowWater = 20
-		swarmConnMgrHighWater = 40
-		swarmConnMgrGracePeriod = time.Minute.String()
-	}
+	// TODO: profile with these setting on / off
+	//if isMobile {
+	//	reproviderInterval = "0"
+	//	swarmConnMgrLowWater = 20
+	//	swarmConnMgrHighWater = 40
+	//	swarmConnMgrGracePeriod = time.Minute.String()
+	//}
 
 	conf := &native.Config{
 		API: native.API{

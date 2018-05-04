@@ -161,7 +161,8 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 	if isMobile {
 		// TODO: Determine best value for this setting on mobile
 		// cfg.Swarm.DisableNatPortMap = true
-		routingOption = core.DHTClientOption
+		// NOTE: trying normal routing for a bit
+		routingOption = core.DHTOption
 	} else {
 		routingOption = core.DHTOption
 	}
