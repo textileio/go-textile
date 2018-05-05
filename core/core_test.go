@@ -56,6 +56,12 @@ func TestTextileNode_StartGarbageCollection(t *testing.T) {
 	}
 }
 
+func TestTextileNode_Online(t *testing.T) {
+	if !node.Online() {
+		t.Errorf("should report online")
+	}
+}
+
 func TestTextileNode_SignUp(t *testing.T) {
 	_, ref, err := util.CreateReferral(util.RefKey, 1)
 	if err != nil {
@@ -224,6 +230,12 @@ func TestTextileNode_Stop(t *testing.T) {
 	err := node.Stop()
 	if err != nil {
 		t.Errorf("stop node failed: %s", err)
+	}
+}
+
+func TestTextileNode_OnlineAgain(t *testing.T) {
+	if node.Online() {
+		t.Errorf("should report offline")
 	}
 }
 

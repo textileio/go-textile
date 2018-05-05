@@ -1,7 +1,6 @@
 package mobile
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -19,10 +18,7 @@ import (
 var log = logging.MustGetLogger("mobile")
 
 type Wrapper struct {
-	RepoPath       string
-	Cancel         context.CancelFunc
-	node           *tcore.TextileNode
-	gatewayRunning bool
+	RepoPath string
 }
 
 func NewNode(repoPath string, centralApiURL string) (*Wrapper, error) {
@@ -38,12 +34,13 @@ func (m *Mobile) NewNode(repoPath string, centralApiURL string) (*Wrapper, error
 	if err != nil {
 		return nil, err
 	}
+	tcore.Node = node
 
-	return &Wrapper{RepoPath: repoPath, Cancel: node.Cancel, node: node}, nil
+	return &Wrapper{RepoPath: repoPath}, nil
 }
 
 func (w *Wrapper) Start() error {
-	if err := w.node.Start(); err != nil {
+	if err := tcore.Node.Start(); err != nil {
 		if err == tcore.ErrNodeRunning {
 			return nil
 		}
@@ -51,17 +48,17 @@ func (w *Wrapper) Start() error {
 	}
 
 	// join existing rooms
-	albums := w.node.Datastore.Albums().GetAlbums("")
+	albums := tcore.Node.Datastore.Albums().GetAlbums("")
 	datacs := make([]chan string, len(albums))
 	for i, a := range albums {
-		go w.node.JoinRoom(a.Id, datacs[i])
+		go tcore.Node.JoinRoom(a.Id, datacs[i])
 	}
 
 	return nil
 }
 
 func (w *Wrapper) Stop() error {
-	if err := w.node.Stop(); err != nil && err != tcore.ErrNodeNotRunning {
+	if err := tcore.Node.Stop(); err != nil && err != tcore.ErrNodeNotRunning {
 		return err
 	}
 	return nil
@@ -80,7 +77,7 @@ func (w *Wrapper) SignUpWithEmail(username string, password string, email string
 	}
 
 	// signup
-	return w.node.SignUp(reg)
+	return tcore.Node.SignUp(reg)
 }
 
 func (w *Wrapper) SignIn(username string, password string) error {
@@ -91,20 +88,20 @@ func (w *Wrapper) SignIn(username string, password string) error {
 	}
 
 	// signin
-	return w.node.SignIn(creds)
+	return tcore.Node.SignIn(creds)
 }
 
 func (w *Wrapper) SignOut() error {
-	return w.node.SignOut()
+	return tcore.Node.SignOut()
 }
 
 func (w *Wrapper) IsSignedIn() bool {
-	_, err := w.node.Datastore.Config().GetUsername()
+	_, err := tcore.Node.Datastore.Config().GetUsername()
 	return err == nil
 }
 
 func (w *Wrapper) GetUsername() (string, error) {
-	un, err := w.node.Datastore.Config().GetUsername()
+	un, err := tcore.Node.Datastore.Config().GetUsername()
 	if err != nil {
 		return "", err
 	}
@@ -112,7 +109,7 @@ func (w *Wrapper) GetUsername() (string, error) {
 }
 
 func (w *Wrapper) GetAccessToken() (string, error) {
-	at, _, err := w.node.Datastore.Config().GetTokens()
+	at, _, err := tcore.Node.Datastore.Config().GetTokens()
 	if err != nil {
 		return "", err
 	}
@@ -120,23 +117,29 @@ func (w *Wrapper) GetAccessToken() (string, error) {
 }
 
 func (w *Wrapper) GetGatewayPassword() string {
-	return w.node.GatewayPassword
+	return tcore.Node.GatewayPassword
 }
 
 func (w *Wrapper) AddPhoto(path string, thumb string, thread string) (*net.MultipartRequest, error) {
-	return w.node.AddPhoto(path, thumb, thread)
+	return tcore.Node.AddPhoto(path, thumb, thread)
 }
 
 func (w *Wrapper) SharePhoto(hash string, thread string) (*net.MultipartRequest, error) {
-	return w.node.SharePhoto(hash, thread)
+	return tcore.Node.SharePhoto(hash, thread)
 }
 
 func (w *Wrapper) GetPhotos(offsetId string, limit int, thread string) (string, error) {
-	list := w.node.GetPhotos(offsetId, limit, thread)
+	list := tcore.Node.GetPhotos(offsetId, limit, thread)
+	if list == nil {
+		list = &tcore.PhotoList{
+			Hashes: make([]string, 0),
+		}
+	}
 
 	// gomobile does not allow slices. so, convert to json
 	jsonb, err := json.Marshal(list)
 	if err != nil {
+		log.Errorf("error marshaling json: %s", err)
 		return "", err
 	}
 
@@ -144,7 +147,7 @@ func (w *Wrapper) GetPhotos(offsetId string, limit int, thread string) (string, 
 }
 
 func (w *Wrapper) GetFileBase64(path string) (string, error) {
-	b, err := w.node.GetFile(path, nil)
+	b, err := tcore.Node.GetFile(path, nil)
 	if err != nil {
 		return "error", err
 	}
@@ -152,28 +155,34 @@ func (w *Wrapper) GetFileBase64(path string) (string, error) {
 }
 
 func (w *Wrapper) GetPeerID() (string, error) {
-	if w.node.IpfsNode == nil {
-		return "", errors.New("node not started")
+	if !tcore.Node.Online() {
+		return "", tcore.ErrNodeNotRunning
 	}
-	return w.node.IpfsNode.Identity.Pretty(), nil
+	return tcore.Node.IpfsNode.Identity.Pretty(), nil
 }
 
 func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
+	if !tcore.Node.Online() {
+		return "", tcore.ErrNodeNotRunning
+	}
 	log.Info("pairing with desktop...")
+
 	pkb, err := base64.StdEncoding.DecodeString(pkb64)
 	if err != nil {
+		log.Errorf("error decoding string: %s: %s", pkb64, err)
 		return "", err
 	}
 
 	pk, err := libp2p.UnmarshalPublicKey(pkb)
 	if err != nil {
+		log.Errorf("error unmarshaling pub key: %s", err)
 		return "", err
 	}
 
 	// the phrase will be used by the desktop client to create
 	// the private key needed to decrypt photos
 	// we invite the desktop to _read and write_ to our default album
-	da := w.node.Datastore.Albums().GetAlbumByName("default")
+	da := tcore.Node.Datastore.Albums().GetAlbumByName("default")
 	if da == nil {
 		err = errors.New("default album not found")
 		log.Error(err.Error())
@@ -182,25 +191,28 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 	// encypt with the desktop's pub key
 	cph, err := net.Encrypt(pk, []byte(da.Mnemonic))
 	if err != nil {
+		log.Errorf("encrypt failed: %s", err)
 		return "", err
 	}
 
 	// get the topic to pair with from the pub key
 	peerID, err := peer.IDFromPublicKey(pk)
 	if err != nil {
+		log.Errorf("id from public key failed: %s", err)
 		return "", err
 	}
 	topic := peerID.Pretty()
 
 	// finally, publish the encrypted phrase
-	err = w.node.IpfsNode.Floodsub.Publish(topic, cph)
+	err = tcore.Node.IpfsNode.Floodsub.Publish(topic, cph)
 	if err != nil {
+		log.Errorf("publish %s failed: %s", topic, err)
 		return "", err
 	}
 	log.Infof("published key phrase to desktop: %s", topic)
 
 	// try a ping
-	err = w.node.PingPeer(topic, 1, make(chan string))
+	err = tcore.Node.PingPeer(topic, 1, make(chan string))
 	if err != nil {
 		log.Errorf("ping %s failed: %s", topic, err)
 	}
