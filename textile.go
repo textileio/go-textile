@@ -68,7 +68,7 @@ func main() {
 		}
 		shell.Println("interrupted")
 		shell.Printf("textile node shutting down...")
-		if core.Node.IpfsNode != nil {
+		if core.Node.Online() {
 			core.Node.Stop()
 		}
 		shell.Printf("done\n")
@@ -79,6 +79,36 @@ func main() {
 	printSplashScreen(shell)
 
 	// add commands
+	shell.AddCmd(&ishell.Cmd{
+		Name: "start",
+		Help: "start the node",
+		Func: func(c *ishell.Context) {
+			if core.Node.Online() {
+				c.Println("already started")
+				return
+			}
+			if err := start(); err != nil {
+				c.Println(fmt.Errorf("start desktop node failed: %s", err))
+				return
+			}
+			c.Println("ok, started")
+		},
+	})
+	shell.AddCmd(&ishell.Cmd{
+		Name: "stop",
+		Help: "stop the node",
+		Func: func(c *ishell.Context) {
+			if !core.Node.Online() {
+				c.Println("already stopped")
+				return
+			}
+			if err := stop(); err != nil {
+				c.Println(fmt.Errorf("stop desktop node failed: %s", err))
+				return
+			}
+			c.Println("ok, stopped")
+		},
+	})
 	shell.AddCmd(&ishell.Cmd{
 		Name: "id",
 		Help: "show peer id",
@@ -176,7 +206,7 @@ func main() {
 		shell.AddCmd(albumsCmd)
 	}
 
-	// create a desktop textile node
+	// create and start a desktop textile node
 	// TODO: darwin should use App. Support dir, not home dir
 	// TODO: make api url configuratable via an option flag
 	node, err := core.NewNode(dataDir, "https://api.textile.io", false, logging.DEBUG)
@@ -185,10 +215,20 @@ func main() {
 		return
 	}
 	core.Node = node
-	// start node and https gateway server
-	if err = core.Node.Start(); err != nil {
+
+	// auto start it
+	if err := start(); err != nil {
 		shell.Println(fmt.Errorf("start desktop node failed: %s", err))
-		return
+	}
+
+	// run shell
+	shell.Run()
+}
+
+func start() error {
+	// start node
+	if err := core.Node.Start(); err != nil {
+		return err
 	}
 
 	// start garbage collection
@@ -201,8 +241,11 @@ func main() {
 		go core.Node.JoinRoom(a.Id, make(chan string))
 	}
 
-	// run shell
-	shell.Run()
+	return nil
+}
+
+func stop() error {
+	return core.Node.Stop()
 }
 
 // Start garbage collection
