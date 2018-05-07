@@ -2,12 +2,15 @@ package core
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/big"
+	mrand "math/rand"
 	"net/http"
 	"os"
 	"path"
@@ -27,7 +30,6 @@ import (
 	trepo "github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/repo/photos"
-	"github.com/textileio/textile-go/ssl"
 
 	utilmain "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/commands"
@@ -83,11 +85,11 @@ type TextileNode struct {
 	// Function to call for shutdown
 	Cancel context.CancelFunc
 
-	// The local raw gateway server
-	// Gateway http.Server
-
 	// The local decrypting gateway server
 	GatewayProxy *http.Server
+
+	// Map of hash passwords for the decrypting gateway server
+	HashPasses map[string]string
 
 	// The local password used to authenticate http gateway requests (username is TextileNode)
 	GatewayPassword string
@@ -111,6 +113,7 @@ type TextileNode struct {
 // PhotoList is a JSON-type structure that contains a list of photo hashes
 type PhotoList struct {
 	Hashes []string `json:"hashes"`
+	Paths  []string `json:"paths,omitempty"`
 }
 
 // NewNode creates a new TextileNode
@@ -181,7 +184,6 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 	}
 
 	// create default servers (no handling until start, uses default addrs)
-	// TODO: can we figure out addrs here and now?
 	gatewayProxy := &http.Server{
 		Addr: ":9999",
 	}
@@ -197,6 +199,7 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 		Datastore:       sqliteDB,
 		GatewayProxy:    gatewayProxy,
 		GatewayPassword: ksuid.New().String(),
+		HashPasses:      make(map[string]string),
 		LeftRoomChs:     make(map[string]chan struct{}),
 		leaveRoomChs:    make(map[string]chan struct{}),
 		ipfsConfig:      ncfg,
@@ -769,16 +772,24 @@ func (t *TextileNode) GetPhotos(offsetId string, limit int, album string) *Photo
 	// query for available hashes
 	a := t.Datastore.Albums().GetAlbumByName(album)
 	if a == nil {
-		return &PhotoList{Hashes: make([]string, 0)}
+		return &PhotoList{
+			Hashes: make([]string, 0),
+			Paths:  make([]string, 0),
+		}
 	}
 	list := t.Datastore.Photos().GetPhotos(offsetId, limit, "album='"+a.Id+"'")
 
 	// return json list of hashes
 	res := &PhotoList{
 		Hashes: make([]string, len(list)),
+		Paths:  make([]string, len(list)),
 	}
 	for i := range list {
-		res.Hashes[i] = list[i].Cid
+		password := ksuid.New().String()
+		hash := list[i].Cid
+		t.HashPasses[hash] = password
+		res.Hashes[i] = hash
+		res.Paths[i] = hash + ":" + password + "@localhost" + t.GatewayProxy.Addr + "/ipfs/" + hash
 	}
 
 	return res
@@ -972,17 +983,27 @@ func (t *TextileNode) registerGatewayHandler() {
 		}
 	}()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("SessionId")
-		if err != nil || cookie.Value != t.GatewayPassword {
+		log.Infof("\n%s\nport: %s", r.URL, t.GatewayProxy.Addr)
+		username, password, ok := r.BasicAuth()
+		log.Infof("ok? %t\nusername: %s\npassword: %s\n", ok, username, password)
+		if ok == false {
+			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 			w.WriteHeader(401)
 			return
 		}
+
+		if password != t.HashPasses[username] {
+			w.WriteHeader(401)
+			return
+		}
+
 		b, err := t.GetFile(r.URL.Path, nil)
 		if err != nil {
 			log.Errorf("error decrypting path %s: %s", r.URL.Path, err)
 			w.WriteHeader(400)
 			return
 		}
+		//w.Header().Set("Content-Type", "image/jpeg")
 		w.Write(b)
 	})
 }
@@ -992,39 +1013,29 @@ func (t *TextileNode) startGateway() (<-chan error, error) {
 	// try to register our handler
 	t.registerGatewayHandler()
 
-	// Determine port
-	port, err := t.GatewayPort()
-	if err != nil {
-		return nil, err
+	// pick a random port
+	// it's better (more crypto secure) to use crypto random module
+	port, err := rand.Int(rand.Reader, big.NewInt(10001))
+	portInt := int(port.Int64())
+	if err == nil {
+		// but if that doesn't work, we'll default to rand module
+		// ... with current time as seed
+		mrand.Seed(time.Now().UTC().UnixNano())
+		portInt = mrand.Intn(10001)
 	}
-	portString := fmt.Sprintf(":%d", port)
+	portInt += 30000
+	// add 30k to have value between 30000 and 40000
+	portString := fmt.Sprintf(":%d", portInt)
 	// Update address/port
 	t.GatewayProxy.Addr = portString
-
-	// Check if the cert files are available.
-	certPath := filepath.Join(t.RepoPath, "cert.pem")
-	keyPath := filepath.Join(t.RepoPath, "key.pem")
-	err = ssl.Check(certPath, keyPath)
-	// If they are not available, generate new ones.
-	if err != nil {
-		err = ssl.Generate(certPath, keyPath, "localhost"+portString)
-		if err != nil {
-			log.Errorf("failed to create https certs: %s", err)
-			return nil, err
-		}
-	}
 
 	// Start the HTTPS server in a goroutine
 	errc := make(chan error)
 	go func() {
-		errc <- t.GatewayProxy.ListenAndServeTLS(certPath, keyPath)
+		errc <- t.GatewayProxy.ListenAndServe()
 		close(errc)
 	}()
 	log.Infof("decrypting gateway (readonly) server listening on /ip4/127.0.0.1/tcp/%d\n", port)
-
-	// NOTE: No need to actually do this, but keeping commented out for testing
-	// Start the HTTP server and redirect all incoming connections to HTTPS
-	//go http.ListenAndServe(":9193", http.HandlerFunc(redirectToHttps))
 
 	return errc, nil
 }
