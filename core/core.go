@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -10,7 +9,6 @@ import (
 	"io"
 	"io/ioutil"
 	"math/big"
-	mrand "math/rand"
 	"net/http"
 	"os"
 	"path"
@@ -116,7 +114,7 @@ type TextileNode struct {
 // PhotoList is a JSON-type structure that contains a list of photo hashes
 type PhotoList struct {
 	Hashes []string `json:"hashes"`
-	Paths  []string `json:"paths,omitempty"`
+	Paths  []string `json:"paths"`
 }
 
 // NewNode creates a new TextileNode
@@ -1088,9 +1086,7 @@ func (t *TextileNode) registerGatewayHandler() {
 		}
 	}()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Infof("\n%s\nport: %s", r.URL, t.GatewayProxy.Addr)
 		username, password, ok := r.BasicAuth()
-		log.Infof("ok? %t\nusername: %s\npassword: %s\n", ok, username, password)
 		if ok == false {
 			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 			w.WriteHeader(401)
@@ -1120,14 +1116,15 @@ func (t *TextileNode) startGateway() (<-chan error, error) {
 
 	// pick a random port
 	// it's better (more crypto secure) to use crypto random module
-	port, err := rand.Int(rand.Reader, big.NewInt(10001))
+	// port, err := rand.Int(rand.Reader, big.NewInt(10001))
+	port := big.NewInt(9080)
 	portInt := int(port.Int64())
-	if err == nil {
-		// but if that doesn't work, we'll default to rand module
-		// ... with current time as seed
-		mrand.Seed(time.Now().UTC().UnixNano())
-		portInt = mrand.Intn(10001)
-	}
+	// if err == nil {
+	// 	// but if that doesn't work, we'll default to rand module
+	// 	// ... with current time as seed
+	// 	mrand.Seed(time.Now().UTC().UnixNano())
+	// 	portInt = mrand.Intn(10001)
+	// }
 	portInt += 30000
 	// add 30k to have value between 30000 and 40000
 	portString := fmt.Sprintf(":%d", portInt)
