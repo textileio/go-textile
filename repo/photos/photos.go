@@ -68,10 +68,10 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 	md := &Metadata{
 		Name:     strings.TrimSuffix(filepath.Base(path), ext),
 		Ext:      ext,
-		Created:  tm,
 		Username: un,
-		Added:    time.Now(),
 		PeerID:   n.Identity.Pretty(),
+		Created:  tm,
+		Added:    time.Now(),
 	}
 	if lat != -1 && lon != -1 {
 		md.Latitude = lat

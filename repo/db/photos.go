@@ -26,7 +26,7 @@ func (c *PhotoDB) Put(set *repo.PhotoSet) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into photos(cid, lastCid, album, name, ext, created, added, latitude, longitude, local) values(?,?,?,?,?,?,?,?,?,?)`
+	stm := `insert into photos(cid, lastCid, album, name, ext, username, peerId, created, added, latitude, longitude, local) values(?,?,?,?,?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -45,6 +45,8 @@ func (c *PhotoDB) Put(set *repo.PhotoSet) error {
 		set.AlbumID,
 		set.MetaData.Name,
 		set.MetaData.Ext,
+		set.MetaData.Username,
+		set.MetaData.PeerID,
 		int(set.MetaData.Created.Unix()),
 		int(set.MetaData.Added.Unix()),
 		set.MetaData.Latitude,
@@ -105,11 +107,11 @@ func (c *PhotoDB) handleQuery(stm string) []repo.PhotoSet {
 		return nil
 	}
 	for rows.Next() {
-		var cid, lastCid, album, name, ext string
+		var cid, lastCid, album, name, ext, username, peerId string
 		var createdInt, addedInt int
 		var latitude, longitude float64
 		var localInt int
-		if err := rows.Scan(&cid, &lastCid, &album, &name, &ext, &createdInt, &addedInt, &latitude, &longitude, &localInt); err != nil {
+		if err := rows.Scan(&cid, &lastCid, &album, &name, &ext, &username, &peerId, &createdInt, &addedInt, &latitude, &longitude, &localInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -126,6 +128,8 @@ func (c *PhotoDB) handleQuery(stm string) []repo.PhotoSet {
 			MetaData: photos.Metadata{
 				Name:      name,
 				Ext:       ext,
+				Username:  username,
+				PeerID:    peerId,
 				Created:   created,
 				Added:     added,
 				Latitude:  latitude,

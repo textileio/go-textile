@@ -14,6 +14,8 @@ import (
 
 var log = logging.MustGetLogger("db")
 
+const schemaVersion = "0"
+
 type SQLiteDatastore struct {
 	config   repo.Config
 	settings repo.ConfigurationStore
@@ -125,7 +127,7 @@ func initDatabaseTables(db *sql.DB, password string) error {
 	sqlStmt += `
 	PRAGMA user_version = 0;
 	create table config (key text primary key not null, value blob);
-	create table photos (cid text primary key not null, lastCid text, album text not null, name text not null, ext text not null, created integer, added integer not null, latitude real, longitude real, local integer not null);
+	create table photos (cid text primary key not null, lastCid text, album text not null, name text not null, ext text not null, username text, peerId text, created integer, added integer not null, latitude real, longitude real, local integer not null);
     create index index_album_added on photos (album, added);
 	create index index_album_local on photos (album, local);
     create table albums (id text primary key not null, key blob not null, mnemonic text not null, name text not null);
@@ -163,6 +165,11 @@ func (c *ConfigDB) Configure(created time.Time) error {
 	}
 	defer stmt.Close()
 	_, err = stmt.Exec("created", created.Format(time.RFC3339))
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	_, err = stmt.Exec("schema", schemaVersion)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -266,6 +273,19 @@ func (c *ConfigDB) GetCreationDate() (time.Time, error) {
 		return t, err
 	}
 	return time.Parse(time.RFC3339, string(created))
+}
+
+func (c *ConfigDB) GetSchemaVersion() (string, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	stmt, err := c.db.Prepare("select value from config where key=?")
+	defer stmt.Close()
+	var sv string
+	err = stmt.QueryRow("schema").Scan(&sv)
+	if err != nil {
+		return "", err
+	}
+	return sv, nil
 }
 
 func (c *ConfigDB) IsEncrypted() bool {
