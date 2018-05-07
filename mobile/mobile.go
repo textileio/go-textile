@@ -10,9 +10,10 @@ import (
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/net"
 
-	"github.com/textileio/textile-go/central/models"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+
+	"github.com/textileio/textile-go/central/models"
 )
 
 var log = logging.MustGetLogger("mobile")
@@ -132,7 +133,7 @@ func (w *Wrapper) GetPhotos(offsetId string, limit int, thread string) (string, 
 	list := tcore.Node.GetPhotos(offsetId, limit, thread)
 	if list == nil {
 		list = &tcore.PhotoList{
-			Hashes: make([]string, 0),
+			Items: make([]tcore.PhotoListItem, 0),
 		}
 	}
 
