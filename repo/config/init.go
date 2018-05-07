@@ -210,7 +210,7 @@ func identityConfig(nbits int) (native.Identity, error) {
 	}
 
 	log.Infof("generating %v-bit RSA keypair...", nbits)
-	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
+	sk, pk, err := ci.GenerateKeyPair(ci.Ed25519, nbits)
 	if err != nil {
 		return ident, err
 	}
