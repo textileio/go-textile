@@ -108,6 +108,9 @@ type TextileNode struct {
 
 	// API URL of the central backup / recovery / pinning user service
 	centralUserAPI string
+
+	// Whether or not we've just inited, and never run, a "fresh" node :)
+	fresh bool
 }
 
 // PhotoList is a JSON-type structure that contains a list of photo hashes
@@ -139,7 +142,7 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 	logging.SetBackend(backendFileFormatter)
 	logging.SetLevel(logLevel, "")
 
-	// get database handle for wallet indexes
+	// get database handle
 	sqliteDB, err := db.Create(repoPath, "")
 	if err != nil {
 		return nil, err
@@ -205,6 +208,7 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 		ipfsConfig:      ncfg,
 		isMobile:        isMobile,
 		centralUserAPI:  fmt.Sprintf("%s/api/v1/users", centralApiURL),
+		fresh:           true,
 	}
 
 	// create default album
@@ -232,21 +236,45 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 
 // Start the node
 func (t *TextileNode) Start() error {
-	if t.IpfsNode != nil {
+	t.fresh = false
+	if t.Online() {
 		return ErrNodeRunning
 	}
+	log.Info("starting node...")
 
 	// raise file descriptor limit
 	if err := utilmain.ManageFdLimit(); err != nil {
 		log.Errorf("setting file descriptor limit: %s", err)
 	}
 
+	// check db
+	if err := t.Datastore.Ping(); err != nil {
+		log.Debug("re-opening datastore...")
+		sqliteDB, err := db.Create(t.RepoPath, "")
+		if err != nil {
+			log.Errorf("error re-opening datastore: %s", err)
+			return err
+		}
+		t.Datastore = sqliteDB
+	}
+
+	// check repo
+	if t.ipfsConfig.Repo == nil {
+		log.Debug("re-opening repo...")
+		repo, err := fsrepo.Open(t.RepoPath)
+		if err != nil {
+			log.Errorf("error re-opening repo: %s", err)
+			return err
+		}
+		t.ipfsConfig.Repo = repo
+	}
+
 	// start the ipfs node
-	log.Info("starting node...")
 	cctx, cancel := context.WithCancel(context.Background())
 	t.Cancel = cancel
 	nd, err := core.NewNode(cctx, t.ipfsConfig)
 	if err != nil {
+		log.Errorf("error creating ipfs node: %s", err)
 		return err
 	}
 	nd.SetLocal(false)
@@ -297,6 +325,7 @@ func (t *TextileNode) Start() error {
 	// every 30s, ping the relay
 	go t.startPingingRelay()
 
+	// dunzo
 	if t.isMobile {
 		log.Info("mobile node is ready")
 	} else {
@@ -308,6 +337,9 @@ func (t *TextileNode) Start() error {
 // StartGarbageCollection starts auto garbage cleanup
 // TODO: verify this is finding the correct repo, might be using IPFS_PATH
 func (t *TextileNode) StartGarbageCollection() (<-chan error, error) {
+	if !t.Online() {
+		return nil, ErrNodeNotRunning
+	}
 	if t.isMobile {
 		return nil, errors.New("services not available on mobile")
 	}
@@ -326,7 +358,7 @@ func (t *TextileNode) StartGarbageCollection() (<-chan error, error) {
 
 // Stop the node
 func (t *TextileNode) Stop() error {
-	if t.IpfsNode == nil {
+	if !t.Online() {
 		return ErrNodeNotRunning
 	}
 	log.Info("stopping node...")
@@ -358,16 +390,26 @@ func (t *TextileNode) Stop() error {
 	dsLockFile := filepath.Join(t.RepoPath, "datastore", "LOCK")
 	if err := os.Remove(dsLockFile); err != nil {
 		log.Errorf("error removing ds lock: %s", err)
-		return err
 	}
 
+	// clean up node
 	t.IpfsNode = nil
+	t.ipfsConfig.Repo = nil
+
 	return nil
+}
+
+func (t *TextileNode) Online() bool {
+	return t.fresh || t.IpfsNode != nil
 }
 
 // SignUp requests a new username and token from the central api and saves them locally
 func (t *TextileNode) SignUp(reg *cmodels.Registration) error {
+	if !t.Online() {
+		return ErrNodeNotRunning
+	}
 	log.Infof("signup: %s %s %s %s %s", reg.Username, "xxxxxx", reg.Identity.Type, reg.Identity.Value, reg.Referral)
+
 	// remote signup
 	res, err := central.SignUp(reg, t.centralUserAPI)
 	if err != nil {
@@ -389,7 +431,11 @@ func (t *TextileNode) SignUp(reg *cmodels.Registration) error {
 
 // SignIn requests a token with a username from the central api and saves them locally
 func (t *TextileNode) SignIn(creds *cmodels.Credentials) error {
+	if !t.Online() {
+		return ErrNodeNotRunning
+	}
 	log.Infof("signin: %s %s", creds.Username, "xxxxxx")
+
 	// remote signin
 	res, err := central.SignIn(creds, t.centralUserAPI)
 	if err != nil {
@@ -411,6 +457,10 @@ func (t *TextileNode) SignIn(creds *cmodels.Credentials) error {
 
 // SignOut deletes the locally saved user info (username and tokens)
 func (t *TextileNode) SignOut() error {
+	if !t.Online() {
+		return ErrNodeNotRunning
+	}
+
 	// remote is stateless, so we just ditch the local token
 	if err := t.Datastore.Config().SignOut(); err != nil {
 		log.Errorf("local signout error: %s", err)
@@ -421,6 +471,10 @@ func (t *TextileNode) SignOut() error {
 
 // JoinRoom with a given id
 func (t *TextileNode) JoinRoom(id string, datac chan string) {
+	if !t.Online() {
+		return
+	}
+
 	// create the subscription
 	sub, err := t.IpfsNode.Floodsub.Subscribe(id)
 	if err != nil {
@@ -484,6 +538,10 @@ func (t *TextileNode) JoinRoom(id string, datac chan string) {
 
 // LeaveRoom with a given id
 func (t *TextileNode) LeaveRoom(id string) {
+	if !t.Online() {
+		return
+	}
+
 	if t.leaveRoomChs[id] == nil {
 		return
 	}
@@ -492,6 +550,10 @@ func (t *TextileNode) LeaveRoom(id string) {
 
 // WaitForRoom to join
 func (t *TextileNode) WaitForRoom() {
+	if !t.Online() {
+		return
+	}
+
 	// we're in a lonesome state here, we can just sub to our own
 	// peer id and hope somebody sends us a priv key to join a room with
 	rid := t.IpfsNode.Identity.Pretty()
@@ -555,6 +617,10 @@ func (t *TextileNode) WaitForRoom() {
 
 // ConnectToRoomPeers on a given topic
 func (t *TextileNode) ConnectToRoomPeers(topic string) context.CancelFunc {
+	if !t.Online() {
+		return nil
+	}
+
 	blk := blocks.NewBlock([]byte("floodsub:" + topic))
 	err := t.IpfsNode.Blocks.AddBlock(blk)
 	if err != nil {
@@ -570,6 +636,10 @@ func (t *TextileNode) ConnectToRoomPeers(topic string) context.CancelFunc {
 
 // GatewayPort requests the active gateway port
 func (t *TextileNode) GatewayPort() (int, error) {
+	// TODO: node does not really need to be online, but we're currently determining the port in Start
+	if !t.Online() {
+		return -1, ErrNodeNotRunning
+	}
 	// Get config and set address to raw gateway address plus one thousand,
 	// so a raw gateway on 8182 means this will run on 9182
 	cfg, err := t.Context.GetConfig()
@@ -590,8 +660,12 @@ func (t *TextileNode) GatewayPort() (int, error) {
 
 // CreateAlbum creates an album with a given name and mnemonic words
 func (t *TextileNode) CreateAlbum(mnemonic string, name string) error {
-	// use phrase if provided
+	if !t.Online() {
+		return ErrNodeNotRunning
+	}
 	log.Infof("creating a new album: %s", name)
+
+	// use phrase if provided
 	if mnemonic == "" {
 		var err error
 		mnemonic, err = createMnemonic(bip39.NewEntropy, bip39.NewMnemonic)
@@ -637,6 +711,9 @@ func (t *TextileNode) CreateAlbum(mnemonic string, name string) error {
 }
 
 func (t *TextileNode) AddPhoto(path string, thumb string, album string) (*net.MultipartRequest, error) {
+	if !t.Online() {
+		return nil, ErrNodeNotRunning
+	}
 	log.Infof("adding photo %s to %s", path, album)
 
 	// read file from disk
@@ -711,6 +788,9 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string) (*net.Mu
 }
 
 func (t *TextileNode) SharePhoto(hash string, album string) (*net.MultipartRequest, error) {
+	if !t.Online() {
+		return nil, ErrNodeNotRunning
+	}
 	log.Infof("sharing photo %s to %s...", hash, album)
 
 	// get the photo
@@ -769,6 +849,11 @@ func (t *TextileNode) SharePhoto(hash string, album string) (*net.MultipartReque
 }
 
 func (t *TextileNode) GetPhotos(offsetId string, limit int, album string) *PhotoList {
+	if !t.Online() {
+		return nil
+	}
+	log.Debugf("getting photos: offsetId: %s, limit: %d, album: %s", offsetId, limit, album)
+
 	// query for available hashes
 	a := t.Datastore.Albums().GetAlbumByName(album)
 	if a == nil {
@@ -791,6 +876,7 @@ func (t *TextileNode) GetPhotos(offsetId string, limit int, album string) *Photo
 		res.Hashes[i] = hash
 		res.Paths[i] = hash + ":" + password + "@localhost" + t.GatewayProxy.Addr + "/ipfs/" + hash
 	}
+	log.Debugf("found %d photos in thread %s", len(list), album)
 
 	return res
 }
@@ -798,6 +884,10 @@ func (t *TextileNode) GetPhotos(offsetId string, limit int, album string) *Photo
 // pass in Qm../thumb, or Qm../photo for full image
 // album is looked up if not present
 func (t *TextileNode) GetFile(path string, album *trepo.PhotoAlbum) ([]byte, error) {
+	if !t.Online() {
+		return nil, ErrNodeNotRunning
+	}
+
 	// get bytes
 	cb, err := t.getDataAtPath(path)
 	if err != nil {
@@ -841,6 +931,9 @@ func (t *TextileNode) GetFile(path string, album *trepo.PhotoAlbum) ([]byte, err
 }
 
 func (t *TextileNode) GetMetaData(hash string, album *trepo.PhotoAlbum) (*photos.Metadata, error) {
+	if !t.Online() {
+		return nil, ErrNodeNotRunning
+	}
 	b, err := t.GetFile(fmt.Sprintf("%s/meta", hash), album)
 	if err != nil {
 		log.Errorf("error getting meta file with hash: %s: %s", hash, err)
@@ -857,6 +950,9 @@ func (t *TextileNode) GetMetaData(hash string, album *trepo.PhotoAlbum) (*photos
 }
 
 func (t *TextileNode) GetLastHash(hash string, album *trepo.PhotoAlbum) (string, error) {
+	if !t.Online() {
+		return "", ErrNodeNotRunning
+	}
 	b, err := t.GetFile(fmt.Sprintf("%s/last", hash), album)
 	if err != nil {
 		log.Errorf("error getting last hash file with hash: %s: %s", hash, err)
@@ -867,6 +963,9 @@ func (t *TextileNode) GetLastHash(hash string, album *trepo.PhotoAlbum) (string,
 }
 
 func (t *TextileNode) LoadPhotoAndAlbum(hash string) (*trepo.PhotoSet, *trepo.PhotoAlbum, error) {
+	if !t.Online() {
+		return nil, nil, ErrNodeNotRunning
+	}
 	ph := t.Datastore.Photos().GetPhoto(hash)
 	if ph == nil {
 		return nil, nil, errors.New(fmt.Sprintf("photo %s not found", hash))
@@ -879,6 +978,9 @@ func (t *TextileNode) LoadPhotoAndAlbum(hash string) (*trepo.PhotoSet, *trepo.Ph
 }
 
 func (t *TextileNode) UnmarshalPrivatePeerKey() (libp2p.PrivKey, error) {
+	if !t.Online() {
+		return nil, ErrNodeNotRunning
+	}
 	cfg, err := t.Context.GetConfig()
 	if err != nil {
 		return nil, err
@@ -920,6 +1022,9 @@ func (t *TextileNode) GetPublicPeerKeyString() (string, error) {
 }
 
 func (t *TextileNode) PingPeer(addrs string, num int, out chan string) error {
+	if !t.Online() {
+		return ErrNodeNotRunning
+	}
 	addr, pid, err := parsePeerParam(addrs)
 	if addr != nil {
 		t.IpfsNode.Peerstore.AddAddr(pid, addr, pstore.TempAddrTTL) // temporary
