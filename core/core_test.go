@@ -166,7 +166,7 @@ func TestTextileNode_SharePhoto(t *testing.T) {
 
 func TestTextileNode_GetPhotos(t *testing.T) {
 	list := node.GetPhotos("", -1, "default")
-	if len(list.Hashes) == 0 {
+	if len(list.Items) == 0 {
 		t.Errorf("get photos bad result")
 	}
 }

@@ -111,10 +111,16 @@ type TextileNode struct {
 	fresh bool
 }
 
-// PhotoList is a JSON-type structure that contains a list of photo hashes
+// PhotoList is a JSON-type structure that contains a list of JSON-type objects
+type PhotoListItem struct {
+	Hash  string `json:"hash"`
+	Token string `json:"token"`
+	Proto string `json:"proto"`
+	Host  string `json:"host"`
+}
+
 type PhotoList struct {
-	Hashes []string `json:"hashes"`
-	Paths  []string `json:"paths"`
+	Items []PhotoListItem `json:"items"`
 }
 
 // NewNode creates a new TextileNode
@@ -856,30 +862,32 @@ func (t *TextileNode) GetPhotos(offsetId string, limit int, album string) *Photo
 	a := t.Datastore.Albums().GetAlbumByName(album)
 	if a == nil {
 		return &PhotoList{
-			Hashes: make([]string, 0),
-			Paths:  make([]string, 0),
+			Items: make([]PhotoListItem, 0),
 		}
 	}
 	list := t.Datastore.Photos().GetPhotos(offsetId, limit, "album='"+a.Id+"'")
 
 	// return json list of hashes
 	res := &PhotoList{
-		Hashes: make([]string, len(list)),
-		Paths:  make([]string, len(list)),
+		Items: make([]PhotoListItem, len(list)),
 	}
 	for i := range list {
 		password := ksuid.New().String()
 		hash := list[i].Cid
 		t.HashPasses[hash] = password
-		res.Hashes[i] = hash
-		res.Paths[i] = hash + ":" + password + "@localhost" + t.GatewayProxy.Addr + "/ipfs/" + hash
+		res.Items[i] = PhotoListItem{
+			Hash:  hash,
+			Token: password,
+			Proto: "http",
+			Host:  "localhost" + t.GatewayProxy.Addr,
+		}
 	}
 	log.Debugf("found %d photos in thread %s", len(list), album)
 
 	return res
 }
 
-// pass in Qm../thumb, or Qm../photo for full image
+// GetFile takes in Qm../thumb, or Qm../photo for full image
 // album is looked up if not present
 func (t *TextileNode) GetFile(path string, album *trepo.PhotoAlbum) ([]byte, error) {
 	if !t.Online() {
@@ -1087,8 +1095,8 @@ func (t *TextileNode) registerGatewayHandler() {
 	}()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		username, password, ok := r.BasicAuth()
-		log.Infof("request: s%", r.URL.RequestURI())
-		log.Infof("username: s%\tpassword: s%", username, password)
+		log.Infof("request: %s", r.URL.RequestURI())
+		log.Infof("username: %s\tpassword: %s", username, password)
 		if ok == false {
 			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 			w.WriteHeader(401)
@@ -1099,6 +1107,9 @@ func (t *TextileNode) registerGatewayHandler() {
 			w.WriteHeader(401)
 			return
 		}
+
+		// invalidate previous password
+		// t.HashPasses[username] = ksuid.New().String()
 
 		b, err := t.GetFile(r.URL.Path, nil)
 		if err != nil {
