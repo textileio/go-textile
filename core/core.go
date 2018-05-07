@@ -1087,6 +1087,8 @@ func (t *TextileNode) registerGatewayHandler() {
 	}()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		username, password, ok := r.BasicAuth()
+		log.Infof("request: s%", r.URL.RequestURI())
+		log.Infof("username: s%\tpassword: s%", username, password)
 		if ok == false {
 			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 			w.WriteHeader(401)
