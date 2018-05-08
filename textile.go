@@ -75,9 +75,6 @@ func main() {
 		os.Exit(1)
 	})
 
-	// welcome
-	printSplashScreen(shell)
-
 	// add commands
 	shell.AddCmd(&ishell.Cmd{
 		Name: "start",
@@ -221,6 +218,9 @@ func main() {
 		shell.Println(fmt.Errorf("start desktop node failed: %s", err))
 	}
 
+	// welcome
+	printSplashScreen(shell, core.Node.RepoPath)
+
 	// run shell
 	shell.Run()
 }
@@ -269,7 +269,7 @@ func startGarbageCollection() {
 	}
 }
 
-func printSplashScreen(shell *ishell.Shell) {
+func printSplashScreen(shell *ishell.Shell, dataDir string) {
 	blue := color.New(color.FgBlue).SprintFunc()
 	banner :=
 		`
@@ -283,5 +283,6 @@ _/  |_  ____ ___  ____/  |_|__|  |   ____
 	shell.Println(blue(banner))
 	shell.Println("")
 	shell.Println("textile node v" + core.Version)
+	shell.Printf("node repo path: %s\n", dataDir)
 	shell.Println("type `help` for available commands")
 }
