@@ -28,6 +28,7 @@ import (
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/repo/photos"
 	"github.com/textileio/textile-go/ssl"
+	"github.com/textileio/textile-go/util"
 
 	utilmain "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/commands"
@@ -109,6 +110,9 @@ type TextileNode struct {
 
 	// Whether or not we've just inited, and never run, a "fresh" node :)
 	fresh bool
+
+	// Captures stdout from ipfs packages
+	stdOutLogger *util.StdOutLogger
 }
 
 // PhotoList is a JSON-type structure that contains a list of photo hashes
@@ -121,7 +125,7 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 	// shutdown is not clean here yet, so we have to hackily remove
 	// the lockfile that should have been removed on shutdown
 	// before we start up again
-	// TODO: Figure out how to make this work as intended, without doing this
+	// TODO: make this work as intended, without doing this
 	repoLockFile := filepath.Join(repoPath, lockfile.LockFile)
 	os.Remove(repoLockFile)
 	dsLockFile := filepath.Join(repoPath, "datastore", "LOCK")
@@ -138,6 +142,13 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 	backendFileFormatter := logging.NewBackendFormatter(backendFile, fileLogFormat)
 	logging.SetBackend(backendFileFormatter)
 	logging.SetLevel(logLevel, "")
+
+	// capture stdout from ipfs packages
+	stdOutLogger, err := util.NewStdOutLogger(logging.MustGetLogger("ipfs"))
+	if err != nil {
+		log.Errorf("error creating stdout logger: %s", err)
+		return nil, err
+	}
 
 	// get database handle
 	sqliteDB, err := db.Create(repoPath, "")
@@ -206,6 +217,7 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 		isMobile:        isMobile,
 		centralUserAPI:  fmt.Sprintf("%s/api/v1/users", centralApiURL),
 		fresh:           true,
+		stdOutLogger:    stdOutLogger,
 	}
 
 	// create default album
@@ -238,6 +250,9 @@ func (t *TextileNode) Start() error {
 		return ErrNodeRunning
 	}
 	log.Info("starting node...")
+
+	// start capturing
+	t.stdOutLogger.Start()
 
 	// raise file descriptor limit
 	if err := utilmain.ManageFdLimit(); err != nil {
@@ -392,6 +407,9 @@ func (t *TextileNode) Stop() error {
 	// clean up node
 	t.IpfsNode = nil
 	t.ipfsConfig.Repo = nil
+
+	// stop capturing
+	t.stdOutLogger.Stop()
 
 	return nil
 }

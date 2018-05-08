@@ -209,8 +209,8 @@ func identityConfig(nbits int) (native.Identity, error) {
 		return ident, errors.New("bitsize less than 1024 is considered unsafe")
 	}
 
-	log.Infof("generating %v-bit RSA keypair...", nbits)
-	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
+	log.Infof("generating %v-bit Ed25519 keypair for peer identity...", nbits)
+	sk, pk, err := ci.GenerateKeyPair(ci.Ed25519, nbits)
 	if err != nil {
 		return ident, err
 	}
