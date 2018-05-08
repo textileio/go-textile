@@ -771,7 +771,7 @@ func (t *TextileNode) CreateAlbum(mnemonic string, name string) error {
 
 // AddPhoto adds a photo and its thumbnail to an album
 // TODO: Make this available offline
-func (t *TextileNode) AddPhoto(path string, thumb string, album string) (*net.MultipartRequest, error) {
+func (t *TextileNode) AddPhoto(path string, thumb string, album string, caption string) (*net.MultipartRequest, error) {
 	if !t.Online() {
 		return nil, ErrNodeNotRunning
 	}
@@ -816,7 +816,8 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string) (*net.Mu
 	}
 
 	// add it
-	mr, md, err := photos.Add(t.IpfsNode, a.Key.GetPublic(), p, th, lc, un)
+	// TODO: clean up this nasty method signature
+	mr, md, err := photos.Add(t.IpfsNode, a.Key.GetPublic(), p, th, lc, un, caption)
 	if err != nil {
 		log.Errorf("error adding photo: %s", err)
 		return nil, err
@@ -829,6 +830,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string) (*net.Mu
 		LastCid:  lc,
 		AlbumID:  a.Id,
 		MetaData: *md,
+		Caption:  caption,
 		IsLocal:  true,
 	}
 	err = t.Datastore.Photos().Put(set)
@@ -850,7 +852,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string) (*net.Mu
 
 // SharePhoto re-encrypts a photo from an existing album and shares it into a different album
 // TODO: Make this available offline
-func (t *TextileNode) SharePhoto(hash string, album string) (*net.MultipartRequest, error) {
+func (t *TextileNode) SharePhoto(hash string, album string, caption string) (*net.MultipartRequest, error) {
 	if !t.Online() {
 		return nil, ErrNodeNotRunning
 	}
@@ -908,7 +910,7 @@ func (t *TextileNode) SharePhoto(hash string, album string) (*net.MultipartReque
 		}
 	}()
 
-	return t.AddPhoto(ppath, tpath, album)
+	return t.AddPhoto(ppath, tpath, album, caption)
 }
 
 // GetHashRequest returns a single-use token for requesting content via the gateway
@@ -1030,7 +1032,22 @@ func (t *TextileNode) GetMetaData(hash string, album *trepo.PhotoAlbum) (*photos
 	return data, nil
 }
 
-// GetLastHash return the last updates root cid under a hash
+// GetLastHash return the caption under a hash
+// TODO: shouldn't this be available offline for local (pinned content)?
+func (t *TextileNode) GetCaption(hash string, album *trepo.PhotoAlbum) (string, error) {
+	if !t.Online() {
+		return "", ErrNodeNotRunning
+	}
+	b, err := t.GetFile(fmt.Sprintf("%s/caption", hash), album)
+	if err != nil {
+		log.Errorf("error getting caption file with hash: %s: %s", hash, err)
+		return "", err
+	}
+
+	return string(b), nil
+}
+
+// GetLastHash return the last update's root cid under a hash
 // TODO: shouldn't this be available offline for local (pinned content)?
 func (t *TextileNode) GetLastHash(hash string, album *trepo.PhotoAlbum) (string, error) {
 	if !t.Online() {
@@ -1401,6 +1418,11 @@ func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, dat
 	if err != nil {
 		return err
 	}
+	caption, err := t.GetCaption(hash, a)
+	if err != nil {
+		log.Debugf("no caption found for hash: %s", hash)
+		caption = ""
+	}
 
 	// index
 	log.Infof("indexing %s...", hash)
@@ -1409,6 +1431,7 @@ func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, dat
 		LastCid:  last,
 		AlbumID:  aid,
 		MetaData: *md,
+		Caption:  caption,
 		IsLocal:  false,
 	}
 	err = t.Datastore.Photos().Put(set)

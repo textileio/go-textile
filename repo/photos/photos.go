@@ -37,7 +37,7 @@ type Metadata struct {
 }
 
 // Add adds a photo, it's thumbnail, and it's metadata to ipfs
-func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, un string) (*net.MultipartRequest, *Metadata, error) {
+func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, un string, cap string) (*net.MultipartRequest, *Metadata, error) {
 	// path info
 	path := p.Name()
 	ext := strings.ToLower(filepath.Ext(path))
@@ -91,6 +91,12 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 		return nil, nil, err
 	}
 
+	// encrypt the caption
+	ccapb, err := net.Encrypt(pk, []byte(cap))
+	if err != nil {
+		return nil, nil, err
+	}
+
 	// create an empty virtual directory
 	dirb := uio.NewDirectory(n.DAG)
 
@@ -117,6 +123,12 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 
 	// add the metadata file
 	err = addFileToDirectory(n, dirb, cmdb, "meta")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// add caption
+	err = addFileToDirectory(n, dirb, ccapb, "caption")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -148,6 +160,9 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 		return nil, nil, err
 	}
 	if err := mr.AddFile(cmdb, "meta"); err != nil {
+		return nil, nil, err
+	}
+	if err := mr.AddFile(ccapb, "caption"); err != nil {
 		return nil, nil, err
 	}
 	if err := mr.AddFile(clcb, "last"); err != nil {

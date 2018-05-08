@@ -121,7 +121,8 @@ func TestWrapper_AddPhoto(t *testing.T) {
 }
 
 func TestWrapper_SharePhoto(t *testing.T) {
-	mr, err := wrapper.SharePhoto(hash, "beta")
+	caption := "rasputin's eyes"
+	mr, err := wrapper.SharePhoto(hash, "beta", caption)
 	if err != nil {
 		t.Errorf("share photo failed: %s", err)
 		return
