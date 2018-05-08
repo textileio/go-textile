@@ -86,6 +86,16 @@ func TestConfigDB_GetCreationDate(t *testing.T) {
 	}
 }
 
+func TestConfigDB_GetSchemaVersion(t *testing.T) {
+	sv, err := testDB.config.GetSchemaVersion()
+	if err != nil {
+		t.Error(err)
+	}
+	if sv != schemaVersion {
+		t.Error("schema version mismatch")
+	}
+}
+
 func TestInterface(t *testing.T) {
 	if testDB.Config() != testDB.config {
 		t.Error("Config() return wrong value")
