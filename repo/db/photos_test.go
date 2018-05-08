@@ -28,6 +28,7 @@ func TestPhotoDB_Put(t *testing.T) {
 		LastCid:  "",
 		AlbumID:  "Qm",
 		MetaData: photos.Metadata{},
+		Caption:  "tear down this wall",
 		IsLocal:  false,
 	})
 	if err != nil {
@@ -54,6 +55,7 @@ func TestPhotoDB_GetPhoto(t *testing.T) {
 		MetaData: photos.Metadata{
 			Added: time.Now(),
 		},
+		Caption: "one small step for man",
 		IsLocal: true,
 	})
 	if err != nil {
@@ -75,6 +77,7 @@ func TestPhotoDB_GetPhotos(t *testing.T) {
 		MetaData: photos.Metadata{
 			Added: time.Now(),
 		},
+		Caption: "one giant leap for mankind",
 		IsLocal: true,
 	})
 	if err != nil {
@@ -125,6 +128,7 @@ func TestPhotoDB_DeletePhoto(t *testing.T) {
 		LastCid:  "",
 		AlbumID:  "Qm",
 		MetaData: photos.Metadata{},
+		Caption:  "",
 		IsLocal:  true,
 	})
 	if err != nil {

@@ -127,12 +127,12 @@ func (w *Wrapper) GetGatewayPassword() string {
 
 // AddPhoto calls core AddPhoto
 func (w *Wrapper) AddPhoto(path string, thumb string, thread string) (*net.MultipartRequest, error) {
-	return tcore.Node.AddPhoto(path, thumb, thread)
+	return tcore.Node.AddPhoto(path, thumb, thread, "")
 }
 
 // SharePhoto calls core SharePhoto
-func (w *Wrapper) SharePhoto(hash string, thread string) (*net.MultipartRequest, error) {
-	return tcore.Node.SharePhoto(hash, thread)
+func (w *Wrapper) SharePhoto(hash string, thread string, caption string) (*net.MultipartRequest, error) {
+	return tcore.Node.SharePhoto(hash, thread, caption)
 }
 
 // GetHashRequest calls core GetHashRequest
