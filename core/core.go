@@ -111,14 +111,6 @@ type TextileNode struct {
 	fresh bool
 }
 
-// PhotoList is a JSON-type structure that contains a list of JSON-type objects
-type PhotoListItem struct {
-	Hash  string `json:"hash"`
-	Token string `json:"token"`
-	Proto string `json:"proto"`
-	Host  string `json:"host"`
-}
-
 type PhotoList struct {
 	Hashes []string `json:"hashes"`
 }
