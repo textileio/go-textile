@@ -120,7 +120,13 @@ type PhotoListItem struct {
 }
 
 type PhotoList struct {
-	Items []PhotoListItem `json:"items"`
+	Hashes []string `json:"hashes"`
+}
+
+type HashRequest struct {
+	Token    string `json:"token"`
+	Protocol string `json:"protocol"`
+	Host     string `json:"host"`
 }
 
 // NewNode creates a new TextileNode
@@ -852,6 +858,16 @@ func (t *TextileNode) SharePhoto(hash string, album string) (*net.MultipartReque
 	return t.AddPhoto(ppath, tpath, album)
 }
 
+func (t *TextileNode) GetHashRequest(hash string) HashRequest {
+	token := ksuid.New().String()
+	t.HashPasses[hash] = token
+	return HashRequest{
+		Token:    token,
+		Protocol: "http",
+		Host:     "localhost" + t.GatewayProxy.Addr,
+	}
+}
+
 func (t *TextileNode) GetPhotos(offsetId string, limit int, album string) *PhotoList {
 	if !t.Online() {
 		return nil
@@ -861,26 +877,17 @@ func (t *TextileNode) GetPhotos(offsetId string, limit int, album string) *Photo
 	// query for available hashes
 	a := t.Datastore.Albums().GetAlbumByName(album)
 	if a == nil {
-		return &PhotoList{
-			Items: make([]PhotoListItem, 0),
-		}
+		return &PhotoList{Hashes: make([]string, 0)}
 	}
 	list := t.Datastore.Photos().GetPhotos(offsetId, limit, "album='"+a.Id+"'")
 
 	// return json list of hashes
+	// return json list of hashes
 	res := &PhotoList{
-		Items: make([]PhotoListItem, len(list)),
+		Hashes: make([]string, len(list)),
 	}
 	for i := range list {
-		password := ksuid.New().String()
-		hash := list[i].Cid
-		t.HashPasses[hash] = password
-		res.Items[i] = PhotoListItem{
-			Hash:  hash,
-			Token: password,
-			Proto: "http",
-			Host:  "localhost" + t.GatewayProxy.Addr,
-		}
+		res.Hashes[i] = list[i].Cid
 	}
 	log.Debugf("found %d photos in thread %s", len(list), album)
 
@@ -1103,7 +1110,17 @@ func (t *TextileNode) registerGatewayHandler() {
 			return
 		}
 
-		if password != t.HashPasses[username] {
+		// parse root hash of path
+		tmp := strings.Split(r.URL.Path, "/")
+		if len(tmp) < 3 {
+			err := errors.New(fmt.Sprintf("bad path: %s", r.URL.Path))
+			log.Error(err.Error())
+			return
+		}
+		ci := tmp[2]
+
+		if password != t.HashPasses[ci] {
+			log.Infof("wrong password: %s", ci, t.HashPasses[username])
 			w.WriteHeader(401)
 			return
 		}
@@ -1117,6 +1134,7 @@ func (t *TextileNode) registerGatewayHandler() {
 			w.WriteHeader(400)
 			return
 		}
+		log.Infof("image request success: %s\tpassword: %s", username, password)
 		//w.Header().Set("Content-Type", "image/jpeg")
 		w.Write(b)
 	})

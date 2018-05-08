@@ -139,7 +139,7 @@ func TestWrapper_GetPhotos(t *testing.T) {
 	}
 	list := core.PhotoList{}
 	json.Unmarshal([]byte(res), &list)
-	if len(list.Items) == 0 {
+	if len(list.Hashes) == 0 {
 		t.Errorf("get photos bad result")
 	}
 }
@@ -152,7 +152,7 @@ func TestWrapper_GetPhotosEmptyChannel(t *testing.T) {
 	}
 	list := core.PhotoList{}
 	json.Unmarshal([]byte(res), &list)
-	if len(list.Items) != 0 {
+	if len(list.Hashes) != 0 {
 		t.Errorf("get photos bad result")
 	}
 }

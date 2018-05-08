@@ -129,11 +129,25 @@ func (w *Wrapper) SharePhoto(hash string, thread string) (*net.MultipartRequest,
 	return tcore.Node.SharePhoto(hash, thread)
 }
 
+func (w *Wrapper) GetHashRequest(hash string) (string, error) {
+	if !tcore.Node.Online() {
+		return "", tcore.ErrNodeNotRunning
+	}
+	request := tcore.Node.GetHashRequest(hash)
+	jsonb, err := json.Marshal(request)
+	if err != nil {
+		log.Errorf("error marshaling json: %s", err)
+		return "", err
+	}
+
+	return string(jsonb), nil
+}
+
 func (w *Wrapper) GetPhotos(offsetId string, limit int, thread string) (string, error) {
 	list := tcore.Node.GetPhotos(offsetId, limit, thread)
 	if list == nil {
 		list = &tcore.PhotoList{
-			Items: make([]tcore.PhotoListItem, 0),
+			Hashes: make([]string, 0),
 		}
 	}
 
