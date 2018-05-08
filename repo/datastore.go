@@ -43,6 +43,9 @@ type Config interface {
 	// Returns the date the seed was created
 	GetCreationDate() (time.Time, error)
 
+	// Returns current schema version of the database
+	GetSchemaVersion() (string, error)
+
 	// Returns true if the database has failed to decrypt properly ex) wrong pw
 	IsEncrypted() bool
 }
