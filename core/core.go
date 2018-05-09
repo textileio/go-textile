@@ -1406,18 +1406,33 @@ func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, dat
 		return nil
 	}
 
-	// convert string to an ipfs path
-	ip, err := coreapi.ParsePath(hash)
-	if err != nil {
+	// pin the dag structure
+	log.Infof("pinning %s...", hash)
+	if err := t.pinPath(hash, api, false); err != nil {
 		return err
 	}
 
-	// pin it
-	log.Infof("pinning %s recursively...", hash)
-	err = api.Pin().Add(t.IpfsNode.Context(), ip, api.Pin().WithRecursive(true))
-	if err != nil {
+	// pin the thumbnail
+	log.Infof("pinning %s/thumb...", hash)
+	if err := t.pinPath(fmt.Sprintf("%s/thumb", hash), api, false); err != nil {
 		return err
 	}
+
+	// pin the meta
+	log.Infof("pinning %s/meta...", hash)
+	if err := t.pinPath(fmt.Sprintf("%s/meta", hash), api, false); err != nil {
+		return err
+	}
+
+	// pin the last hash
+	log.Infof("pinning %s/last...", hash)
+	if err := t.pinPath(fmt.Sprintf("%s/last", hash), api, false); err != nil {
+		return err
+	}
+
+	// pin the caption (may not exist, ignore error)
+	log.Infof("pinning %s/caption...", hash)
+	t.pinPath(fmt.Sprintf("%s/caption", hash), api, false)
 
 	// unpack data set
 	log.Infof("unpacking %s...", hash)
@@ -1459,6 +1474,17 @@ func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, dat
 	return t.handleHash(last, aid, api, datac)
 }
 
+// pinPath takes an ipfs path string and pins it
+func (t *TextileNode) pinPath(path string, api iface.CoreAPI, recursive bool) error {
+	ip, err := coreapi.ParsePath(path)
+	if err != nil {
+		log.Errorf("error pinning path: %s, recursive: %t: %s", path, recursive, err)
+		return err
+	}
+	return api.Pin().Add(t.IpfsNode.Context(), ip, api.Pin().WithRecursive(recursive))
+}
+
+// touchDB ensures that we have a good db connection
 func (t *TextileNode) touchDB() error {
 	if err := t.Datastore.Ping(); err != nil {
 		log.Debug("re-opening datastore...")
