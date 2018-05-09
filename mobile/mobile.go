@@ -130,10 +130,9 @@ func (w *Wrapper) SharePhoto(hash string, thread string) (*net.MultipartRequest,
 }
 
 func (w *Wrapper) GetHashRequest(hash string) (string, error) {
-	if !tcore.Node.Online() {
-		return "", tcore.ErrNodeNotRunning
-	}
 	request := tcore.Node.GetHashRequest(hash)
+
+	// gomobile does not allow slices. so, convert to json
 	jsonb, err := json.Marshal(request)
 	if err != nil {
 		log.Errorf("error marshaling json: %s", err)
