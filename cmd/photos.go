@@ -67,9 +67,12 @@ func AddPhoto(c *ishell.Context) {
 		album = c.Args[1]
 	}
 
+	c.Print("caption (optional): ")
+	caption := c.ReadLine()
+
 	// do the add
 	f.Seek(0, 0)
-	mr, err := core.Node.AddPhoto(pp, tp, album)
+	mr, err := core.Node.AddPhoto(pp, tp, album, caption)
 	if err != nil {
 		c.Err(err)
 		return
@@ -102,7 +105,10 @@ func SharePhoto(c *ishell.Context) {
 	cid := c.Args[0]
 	dest := c.Args[1]
 
-	mr, err := core.Node.SharePhoto(cid, dest)
+	c.Print("caption (optional): ")
+	caption := c.ReadLine()
+
+	mr, err := core.Node.SharePhoto(cid, dest, caption)
 	if err != nil {
 		c.Err(err)
 		return

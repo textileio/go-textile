@@ -127,9 +127,11 @@ func initDatabaseTables(db *sql.DB, password string) error {
 	sqlStmt += `
 	PRAGMA user_version = 0;
 	create table config (key text primary key not null, value blob);
-	create table photos (cid text primary key not null, lastCid text, album text not null, name text not null, ext text not null, username text, peerId text, created integer, added integer not null, latitude real, longitude real, local integer not null);
+	create table photos (cid text primary key not null, lastCid text, album text not null, name text not null, ext text not null, username text, peerId text, created integer, added integer not null, latitude real, longitude real, local integer not null, caption text);
     create index index_album_added on photos (album, added);
 	create index index_album_local on photos (album, local);
+	create index index_album_username on photos (album, username);
+	create index index_album_peerid on photos (album, peerId);
     create table albums (id text primary key not null, key blob not null, mnemonic text not null, name text not null);
     create unique index index_name on albums (name);
 	`

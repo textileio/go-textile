@@ -25,7 +25,7 @@ var cemail = ksuid.New().String() + "@textile.io"
 func TestNewTextile(t *testing.T) {
 	os.RemoveAll("testdata/.ipfs")
 	var err error
-	wrapper, err = NewNode("testdata/.ipfs", util.CentralApiURL)
+	wrapper, err = NewNode("testdata/.ipfs", util.CentralApiURL, "DEBUG")
 	if err != nil {
 		t.Errorf("create mobile node failed: %s", err)
 	}
@@ -121,7 +121,8 @@ func TestWrapper_AddPhoto(t *testing.T) {
 }
 
 func TestWrapper_SharePhoto(t *testing.T) {
-	mr, err := wrapper.SharePhoto(hash, "beta")
+	caption := "rasputin's eyes"
+	mr, err := wrapper.SharePhoto(hash, "beta", caption)
 	if err != nil {
 		t.Errorf("share photo failed: %s", err)
 		return

@@ -206,7 +206,14 @@ func main() {
 	// create and start a desktop textile node
 	// TODO: darwin should use App. Support dir, not home dir
 	// TODO: make api url configuratable via an option flag
-	node, err := core.NewNode(dataDir, "https://api.textile.io", false, logging.DEBUG)
+	config := core.NodeConfig{
+		RepoPath:      dataDir,
+		CentralApiURL: "https://api.textile.io",
+		IsMobile:      false,
+		LogLevel:      logging.DEBUG,
+		LogFiles:      true,
+	}
+	node, err := core.NewNode(config)
 	if err != nil {
 		shell.Println(fmt.Errorf("create desktop node failed: %s", err))
 		return
@@ -283,6 +290,6 @@ _/  |_  ____ ___  ____/  |_|__|  |   ____
 	shell.Println(blue(banner))
 	shell.Println("")
 	shell.Println("textile node v" + core.Version)
-	shell.Printf("node repo path: %s\n", dataDir)
+	shell.Printf("using repo at %s\n", dataDir)
 	shell.Println("type `help` for available commands")
 }

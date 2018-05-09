@@ -28,8 +28,15 @@ var centralReg = &cmodels.Registration{
 
 func TestNewNode(t *testing.T) {
 	os.RemoveAll("testdata/.ipfs")
+	config := NodeConfig{
+		RepoPath:      "testdata/.ipfs",
+		CentralApiURL: util.CentralApiURL,
+		IsMobile:      false,
+		LogLevel:      logging.DEBUG,
+		LogFiles:      false,
+	}
 	var err error
-	node, err = NewNode("testdata/.ipfs", util.CentralApiURL, false, logging.DEBUG)
+	node, err = NewNode(config)
 	if err != nil {
 		t.Errorf("create node failed: %s", err)
 	}
@@ -142,7 +149,8 @@ func TestTextileNode_CreateAlbum(t *testing.T) {
 }
 
 func TestTextileNode_AddPhoto(t *testing.T) {
-	mr, err := node.AddPhoto("testdata/image.jpg", "testdata/thumb.jpg", "default")
+	caption := "i am not a crook"
+	mr, err := node.AddPhoto("testdata/image.jpg", "testdata/thumb.jpg", "default", caption)
 	if err != nil {
 		t.Errorf("add photo failed: %s", err)
 		return
@@ -158,7 +166,8 @@ func TestTextileNode_AddPhoto(t *testing.T) {
 }
 
 func TestTextileNode_SharePhoto(t *testing.T) {
-	mr, err := node.SharePhoto(hash, "test")
+	caption := "a day that will live on in infamy"
+	mr, err := node.SharePhoto(hash, "test", caption)
 	if err != nil {
 		t.Errorf("share photo failed: %s", err)
 		return

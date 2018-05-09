@@ -30,8 +30,15 @@ func main() {
 	// create a desktop textile node
 	// TODO: on darwin, repo should live in Application Support
 	// TODO: make api url configurable somehow
+	config := core.NodeConfig{
+		RepoPath:      "output/.ipfs",
+		CentralApiURL: "https://api.textile.io",
+		IsMobile:      false,
+		LogLevel:      logging.DEBUG,
+		LogFiles:      true,
+	}
 	var err error
-	textile, err = core.NewNode("output/.ipfs", "https://api.textile.io", false, logging.DEBUG)
+	textile, err = core.NewNode(config)
 	if err != nil {
 		astilog.Errorf("create desktop node failed: %s", err)
 		return
