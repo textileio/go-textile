@@ -4,10 +4,10 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/op/go-logging"
-	"github.com/phayes/freeport"
 
 	native "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/config"
 
@@ -16,6 +16,11 @@ import (
 )
 
 var log = logging.MustGetLogger("config")
+
+const (
+	minPort = 1024
+	maxPort = 49151
+)
 
 var textileBootstrapAddresses = []string{
 	// cluster elastic ip, node 4
@@ -139,29 +144,18 @@ const DefaultConnMgrLowWater = 600
 const DefaultConnMgrGracePeriod = time.Second * 20
 
 func addressesConfig(isMobile bool) native.Addresses {
-	swarmPort := 4001
-	gatewayPort := 8080
-	if !isMobile {
-		var err error
-		swarmPort, err = freeport.GetFreePort()
-		if err != nil {
-			log.Errorf("find free swarm port failed: %s", err)
-		}
-		gatewayPort, err = freeport.GetFreePort()
-		if err != nil {
-			log.Errorf("find free gateway port failed: %s", err)
-		}
-	}
+	swarmPort := getRandomPort()
+	gatewayPort := getRandomPort()
 
 	return native.Addresses{
 		Swarm: []string{
-			fmt.Sprintf("/ip4/0.0.0.0/tcp/%v", swarmPort),
+			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", swarmPort),
 			// "/ip4/0.0.0.0/udp/4002/utp", // disabled for now.
-			fmt.Sprintf("/ip6/::/tcp/%v", swarmPort),
+			fmt.Sprintf("/ip6/::/tcp/%d", swarmPort),
 		},
 		Announce:   []string{},
 		NoAnnounce: []string{},
-		Gateway:    fmt.Sprintf("/ip4/127.0.0.1/tcp/%v", gatewayPort),
+		Gateway:    fmt.Sprintf("127.0.0.1:%d", gatewayPort),
 	}
 }
 
@@ -230,4 +224,9 @@ func identityConfig(nbits int) (native.Identity, error) {
 	ident.PeerID = id.Pretty()
 	log.Infof("new peer identity: %s\n", ident.PeerID)
 	return ident, nil
+}
+
+func getRandomPort() int {
+	rand.Seed(time.Now().UTC().UnixNano())
+	return rand.Intn(maxPort-minPort) + minPort
 }
