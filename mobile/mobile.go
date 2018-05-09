@@ -10,9 +10,10 @@ import (
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/net"
 
-	"github.com/textileio/textile-go/central/models"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+
+	"github.com/textileio/textile-go/central/models"
 )
 
 var log = logging.MustGetLogger("mobile")
@@ -126,6 +127,19 @@ func (w *Wrapper) AddPhoto(path string, thumb string, thread string) (*net.Multi
 
 func (w *Wrapper) SharePhoto(hash string, thread string) (*net.MultipartRequest, error) {
 	return tcore.Node.SharePhoto(hash, thread)
+}
+
+func (w *Wrapper) GetHashRequest(hash string) (string, error) {
+	request := tcore.Node.GetHashRequest(hash)
+
+	// gomobile does not allow slices. so, convert to json
+	jsonb, err := json.Marshal(request)
+	if err != nil {
+		log.Errorf("error marshaling json: %s", err)
+		return "", err
+	}
+
+	return string(jsonb), nil
 }
 
 func (w *Wrapper) GetPhotos(offsetId string, limit int, thread string) (string, error) {
