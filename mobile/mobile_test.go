@@ -131,6 +131,10 @@ func TestWrapper_SharePhoto(t *testing.T) {
 	}
 }
 
+func TestWrapper_GetHashRequest(t *testing.T) {
+	// TODO
+}
+
 func TestWrapper_GetPhotos(t *testing.T) {
 	res, err := wrapper.GetPhotos("", -1, "default")
 	if err != nil {
@@ -218,6 +222,15 @@ func TestWrapper_StopAgain(t *testing.T) {
 	err := wrapper.Stop()
 	if err != nil {
 		t.Errorf("stop mobile node again should not return error: %s", err)
+	}
+}
+
+// test signin in stopped state, should re-connect to db
+func TestWrapper_SignInAgain(t *testing.T) {
+	err := wrapper.SignIn(cusername, cpassword)
+	if err != nil {
+		t.Errorf("signin failed: %s", err)
+		return
 	}
 }
 

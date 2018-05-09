@@ -18,15 +18,18 @@ import (
 
 var log = logging.MustGetLogger("mobile")
 
+// Wrapper is the object exposed in the frameworks
 type Wrapper struct {
 	RepoPath string
 }
 
+// NewNode is the mobile entry point for creating a node
 func NewNode(repoPath string, centralApiURL string) (*Wrapper, error) {
 	var m Mobile
 	return m.NewNode(repoPath, centralApiURL)
 }
 
+// Mobile is the name of the framework (must match package name)
 type Mobile struct{}
 
 // Create a gomobile compatible wrapper around TextileNode
@@ -40,6 +43,7 @@ func (m *Mobile) NewNode(repoPath string, centralApiURL string) (*Wrapper, error
 	return &Wrapper{RepoPath: repoPath}, nil
 }
 
+// Start the mobile node
 func (w *Wrapper) Start() error {
 	if err := tcore.Node.Start(); err != nil {
 		if err == tcore.ErrNodeRunning {
@@ -58,6 +62,7 @@ func (w *Wrapper) Start() error {
 	return nil
 }
 
+// Stop the mobile node
 func (w *Wrapper) Stop() error {
 	if err := tcore.Node.Stop(); err != nil && err != tcore.ErrNodeNotRunning {
 		return err
@@ -65,6 +70,7 @@ func (w *Wrapper) Stop() error {
 	return nil
 }
 
+// SignUpWithEmail creates an email based registration and calls core signup
 func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) error {
 	// build registration
 	reg := &models.Registration{
@@ -81,6 +87,7 @@ func (w *Wrapper) SignUpWithEmail(username string, password string, email string
 	return tcore.Node.SignUp(reg)
 }
 
+// SignIn build credentials and calls core SignIn
 func (w *Wrapper) SignIn(username string, password string) error {
 	// build creds
 	creds := &models.Credentials{
@@ -92,43 +99,43 @@ func (w *Wrapper) SignIn(username string, password string) error {
 	return tcore.Node.SignIn(creds)
 }
 
+// SignOut calls core SignOut
 func (w *Wrapper) SignOut() error {
 	return tcore.Node.SignOut()
 }
 
+// IsSignedIn calls core IsSignedIn
 func (w *Wrapper) IsSignedIn() bool {
-	_, err := tcore.Node.Datastore.Config().GetUsername()
-	return err == nil
+	si, _ := tcore.Node.IsSignedIn()
+	return si
 }
 
+// GetUsername calls core GetUsername
 func (w *Wrapper) GetUsername() (string, error) {
-	un, err := tcore.Node.Datastore.Config().GetUsername()
-	if err != nil {
-		return "", err
-	}
-	return un, nil
+	return tcore.Node.GetUsername()
 }
 
+// GetAccessToken calls core GetAccessToken
 func (w *Wrapper) GetAccessToken() (string, error) {
-	at, _, err := tcore.Node.Datastore.Config().GetTokens()
-	if err != nil {
-		return "", err
-	}
-	return at, nil
+	return tcore.Node.GetAccessToken()
 }
 
+// GetGatewayPassword returns the current cookie value expected by the gateway
 func (w *Wrapper) GetGatewayPassword() string {
 	return tcore.Node.GatewayPassword
 }
 
+// AddPhoto calls core AddPhoto
 func (w *Wrapper) AddPhoto(path string, thumb string, thread string) (*net.MultipartRequest, error) {
 	return tcore.Node.AddPhoto(path, thumb, thread)
 }
 
+// SharePhoto calls core SharePhoto
 func (w *Wrapper) SharePhoto(hash string, thread string) (*net.MultipartRequest, error) {
 	return tcore.Node.SharePhoto(hash, thread)
 }
 
+// GetHashRequest calls core GetHashRequest
 func (w *Wrapper) GetHashRequest(hash string) (string, error) {
 	request := tcore.Node.GetHashRequest(hash)
 
@@ -142,6 +149,7 @@ func (w *Wrapper) GetHashRequest(hash string) (string, error) {
 	return string(jsonb), nil
 }
 
+// Get Photos returns core GetPhotos with json encoding
 func (w *Wrapper) GetPhotos(offsetId string, limit int, thread string) (string, error) {
 	list := tcore.Node.GetPhotos(offsetId, limit, thread)
 	if list == nil {
@@ -160,14 +168,12 @@ func (w *Wrapper) GetPhotos(offsetId string, limit int, thread string) (string, 
 	return string(jsonb), nil
 }
 
+// GetFileBase64 call core GetFileBase64
 func (w *Wrapper) GetFileBase64(path string) (string, error) {
-	b, err := tcore.Node.GetFile(path, nil)
-	if err != nil {
-		return "error", err
-	}
-	return base64.StdEncoding.EncodeToString(b), nil
+	return tcore.Node.GetFileBase64(path)
 }
 
+// GetPeerID returns our peer id
 func (w *Wrapper) GetPeerID() (string, error) {
 	if !tcore.Node.Online() {
 		return "", tcore.ErrNodeNotRunning
@@ -175,6 +181,8 @@ func (w *Wrapper) GetPeerID() (string, error) {
 	return tcore.Node.IpfsNode.Identity.Pretty(), nil
 }
 
+// PairDesktop publishes this nodes default album keys to a desktop node
+// which is listening at it's own peer id
 func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 	if !tcore.Node.Online() {
 		return "", tcore.ErrNodeNotRunning
