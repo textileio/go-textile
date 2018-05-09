@@ -45,12 +45,7 @@ func main() {
 	}
 
 	// save off the gateway address
-	gatewayPort, err := textile.GatewayPort()
-	if err != nil {
-		astilog.Errorf("get gateway port failed: %s", err)
-		return
-	}
-	gateway = fmt.Sprintf("https://localhost:%d", gatewayPort)
+	gateway = fmt.Sprintf("http://localhost%s", textile.GatewayProxy.Addr)
 
 	// start garbage collection and gateway services
 	// TODO: see method todo before enabling

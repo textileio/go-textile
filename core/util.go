@@ -103,11 +103,6 @@ func serveHTTPGateway(cctx *oldcmds.Context) (<-chan error, error) {
 	return errc, nil
 }
 
-//func redirectToHttps(w http.ResponseWriter, r *http.Request) {
-//	// Redirect the incoming HTTP request.
-//	http.Redirect(w, r, "https://localhost:9183"+r.RequestURI, http.StatusMovedPermanently)
-//}
-
 // start auto-garbage collection process
 // TODO: investigate where this is gonna get datadir from
 // TODO: it may use the env var IPFS_PATH, which we don't want
