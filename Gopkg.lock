@@ -155,12 +155,6 @@
   version = "v1.4.0"
 
 [[projects]]
-  name = "github.com/joho/godotenv"
-  packages = ["."]
-  revision = "a79fa1e548e2c689c241d10173efd51e5d689d5b"
-  version = "v1.2.0"
-
-[[projects]]
   name = "github.com/julienschmidt/httprouter"
   packages = ["."]
   revision = "8c199fb6259ffc1af525cc3ad52ee60ba8359669"
@@ -211,12 +205,6 @@
   packages = ["."]
   revision = "b2cb9fa56473e98db8caba80237377e83fe44db5"
   version = "v1"
-
-[[projects]]
-  name = "github.com/phayes/freeport"
-  packages = ["."]
-  revision = "b8543db493a5ed890c5499e935e2cad7504f3a04"
-  version = "1.0.2"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -337,6 +325,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5a6075af21a3a9721cd059c9101809ae5ae83639f848ac32833aed8563307b36"
+  inputs-digest = "c6711577f94263a5933b47624066b5966e37cd8f12c4db2f4c465de9e40035b6"
   solver-name = "gps-cdcl"
   solver-version = 1
