@@ -36,8 +36,7 @@ type Metadata struct {
 	PeerID   string `json:"peer_id,omitempty"`
 }
 
-// Add takes an image file, and optionally a thumbnail file, and adds
-// both to a new directory, then finally adds and pins that directory.
+// Add adds a photo, it's thumbnail, and it's metadata to ipfs
 func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, un string) (*net.MultipartRequest, *Metadata, error) {
 	// path info
 	path := p.Name()
@@ -163,6 +162,7 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 	return mr, md, nil
 }
 
+// getEncryptedReaderBytes reads reader bytes and returns the encrypted result
 func getEncryptedReaderBytes(r io.Reader, pk libp2p.PubKey) ([]byte, error) {
 	b, err := ioutil.ReadAll(r)
 	if err != nil {
@@ -171,6 +171,7 @@ func getEncryptedReaderBytes(r io.Reader, pk libp2p.PubKey) ([]byte, error) {
 	return net.Encrypt(pk, b)
 }
 
+// addFileToDirectory adds bytes as file to a virtual directory (dag) structure
 func addFileToDirectory(n *core.IpfsNode, dirb *uio.Directory, b []byte, fname string) error {
 	r := bytes.NewReader(b)
 	s, err := coreunix.Add(n, r)
@@ -191,6 +192,7 @@ func addFileToDirectory(n *core.IpfsNode, dirb *uio.Directory, b []byte, fname s
 	return nil
 }
 
+// pinPhoto pins the entire photo set dag, minues the full res image
 func pinPhoto(n *core.IpfsNode, dir ipld.Node) error {
 	// pin the top-level structure (recursive: false)
 	if err := n.Pinning.Pin(n.Context(), dir, false); err != nil {

@@ -199,9 +199,14 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 		Routing: routingOption,
 	}
 
-	// create default servers (no handling until start, uses default addrs)
+	// setup gateway
+	gwAddr, err := repo.GetConfigKey("Addresses.Gateway")
+	if err != nil {
+		log.Errorf("error getting ipfs config: %s", err)
+		return nil, err
+	}
 	gatewayProxy := &http.Server{
-		Addr: ":9999",
+		Addr: gwAddr.(string),
 	}
 
 	// clean central api url
@@ -265,14 +270,8 @@ func (t *TextileNode) Start() error {
 	}
 
 	// check db
-	if err := t.Datastore.Ping(); err != nil {
-		log.Debug("re-opening datastore...")
-		sqliteDB, err := db.Create(t.RepoPath, "")
-		if err != nil {
-			log.Errorf("error re-opening datastore: %s", err)
-			return err
-		}
-		t.Datastore = sqliteDB
+	if err := t.touchDB(); err != nil {
+		return err
 	}
 
 	// check repo
@@ -425,8 +424,9 @@ func (t *TextileNode) Online() bool {
 
 // SignUp requests a new username and token from the central api and saves them locally
 func (t *TextileNode) SignUp(reg *cmodels.Registration) error {
-	if !t.Online() {
-		return ErrNodeNotRunning
+	// check db
+	if err := t.touchDB(); err != nil {
+		return err
 	}
 	log.Infof("signup: %s %s %s %s %s", reg.Username, "xxxxxx", reg.Identity.Type, reg.Identity.Value, reg.Referral)
 
@@ -451,8 +451,9 @@ func (t *TextileNode) SignUp(reg *cmodels.Registration) error {
 
 // SignIn requests a token with a username from the central api and saves them locally
 func (t *TextileNode) SignIn(creds *cmodels.Credentials) error {
-	if !t.Online() {
-		return ErrNodeNotRunning
+	// check db
+	if err := t.touchDB(); err != nil {
+		return err
 	}
 	log.Infof("signin: %s %s", creds.Username, "xxxxxx")
 
@@ -477,9 +478,11 @@ func (t *TextileNode) SignIn(creds *cmodels.Credentials) error {
 
 // SignOut deletes the locally saved user info (username and tokens)
 func (t *TextileNode) SignOut() error {
-	if !t.Online() {
-		return ErrNodeNotRunning
+	// check db
+	if err := t.touchDB(); err != nil {
+		return err
 	}
+	log.Info("signing out...")
 
 	// remote is stateless, so we just ditch the local token
 	if err := t.Datastore.Config().SignOut(); err != nil {
@@ -487,6 +490,42 @@ func (t *TextileNode) SignOut() error {
 		return err
 	}
 	return nil
+}
+
+// IsSignedIn returns whether or not a user is signed in
+func (t *TextileNode) IsSignedIn() (bool, error) {
+	// check db
+	if err := t.touchDB(); err != nil {
+		return false, err
+	}
+	_, err := t.Datastore.Config().GetUsername()
+	return err == nil, nil
+}
+
+// GetUsername returns the current user's username
+func (t *TextileNode) GetUsername() (string, error) {
+	// check db
+	if err := t.touchDB(); err != nil {
+		return "", err
+	}
+	un, err := t.Datastore.Config().GetUsername()
+	if err != nil {
+		return "", err
+	}
+	return un, nil
+}
+
+// GetAccessToken returns the current access_token (jwt) for central
+func (t *TextileNode) GetAccessToken() (string, error) {
+	// check db
+	if err := t.touchDB(); err != nil {
+		return "", err
+	}
+	at, _, err := t.Datastore.Config().GetTokens()
+	if err != nil {
+		return "", err
+	}
+	return at, nil
 }
 
 // JoinRoom with a given id
@@ -680,8 +719,9 @@ func (t *TextileNode) GatewayPort() (int, error) {
 
 // CreateAlbum creates an album with a given name and mnemonic words
 func (t *TextileNode) CreateAlbum(mnemonic string, name string) error {
-	if !t.Online() {
-		return ErrNodeNotRunning
+	// check db
+	if err := t.touchDB(); err != nil {
+		return err
 	}
 	log.Infof("creating a new album: %s", name)
 
@@ -730,6 +770,8 @@ func (t *TextileNode) CreateAlbum(mnemonic string, name string) error {
 	return t.Datastore.Albums().Put(album)
 }
 
+// AddPhoto adds a photo and its thumbnail to an album
+// TODO: Make this available offline
 func (t *TextileNode) AddPhoto(path string, thumb string, album string) (*net.MultipartRequest, error) {
 	if !t.Online() {
 		return nil, ErrNodeNotRunning
@@ -807,6 +849,8 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string) (*net.Mu
 	return mr, nil
 }
 
+// SharePhoto re-encrypts a photo from an existing album and shares it into a different album
+// TODO: Make this available offline
 func (t *TextileNode) SharePhoto(hash string, album string) (*net.MultipartRequest, error) {
 	if !t.Online() {
 		return nil, ErrNodeNotRunning
@@ -868,6 +912,7 @@ func (t *TextileNode) SharePhoto(hash string, album string) (*net.MultipartReque
 	return t.AddPhoto(ppath, tpath, album)
 }
 
+// GetHashRequest returns a single-use token for requesting content via the gateway
 func (t *TextileNode) GetHashRequest(hash string) HashRequest {
 	token := ksuid.New().String()
 	t.HashPasses[hash] = token
@@ -878,8 +923,10 @@ func (t *TextileNode) GetHashRequest(hash string) HashRequest {
 	}
 }
 
+// GetPhotos paginates photos from the datastore
 func (t *TextileNode) GetPhotos(offsetId string, limit int, album string) *PhotoList {
-	if !t.Online() {
+	// check db
+	if err := t.touchDB(); err != nil {
 		return nil
 	}
 	log.Debugf("getting photos: offsetId: %s, limit: %d, album: %s", offsetId, limit, album)
@@ -892,7 +939,6 @@ func (t *TextileNode) GetPhotos(offsetId string, limit int, album string) *Photo
 	list := t.Datastore.Photos().GetPhotos(offsetId, limit, "album='"+a.Id+"'")
 
 	// return json list of hashes
-	// return json list of hashes
 	res := &PhotoList{
 		Hashes: make([]string, len(list)),
 	}
@@ -904,8 +950,10 @@ func (t *TextileNode) GetPhotos(offsetId string, limit int, album string) *Photo
 	return res
 }
 
-// GetFile takes in Qm../thumb, or Qm../photo for full image
-// album is looked up if not present
+// GetFile cats data from the ipfs node.
+// e.g., Qm../thumb, Qm../photo, Qm../meta, Qm../caption
+// Note: album is looked up if not present
+// TODO: shouldn't this be available offline for local (pinned content)?
 func (t *TextileNode) GetFile(path string, album *trepo.PhotoAlbum) ([]byte, error) {
 	if !t.Online() {
 		return nil, ErrNodeNotRunning
@@ -953,6 +1001,17 @@ func (t *TextileNode) GetFile(path string, album *trepo.PhotoAlbum) ([]byte, err
 	return b, err
 }
 
+// GetFileBase64 returns data encoded as base64 under an ipfs path
+func (t *TextileNode) GetFileBase64(path string) (string, error) {
+	b, err := t.GetFile(path, nil)
+	if err != nil {
+		return "error", err
+	}
+	return base64.StdEncoding.EncodeToString(b), nil
+}
+
+// GetMetaData returns metadata under a hash
+// TODO: shouldn't this be available offline for local (pinned content)?
 func (t *TextileNode) GetMetaData(hash string, album *trepo.PhotoAlbum) (*photos.Metadata, error) {
 	if !t.Online() {
 		return nil, ErrNodeNotRunning
@@ -972,6 +1031,8 @@ func (t *TextileNode) GetMetaData(hash string, album *trepo.PhotoAlbum) (*photos
 	return data, nil
 }
 
+// GetLastHash return the last updates root cid under a hash
+// TODO: shouldn't this be available offline for local (pinned content)?
 func (t *TextileNode) GetLastHash(hash string, album *trepo.PhotoAlbum) (string, error) {
 	if !t.Online() {
 		return "", ErrNodeNotRunning
@@ -985,6 +1046,7 @@ func (t *TextileNode) GetLastHash(hash string, album *trepo.PhotoAlbum) (string,
 	return string(b), nil
 }
 
+// LoadPhotoAndAlbum get the indexed photo and album for a hash
 func (t *TextileNode) LoadPhotoAndAlbum(hash string) (*trepo.PhotoSet, *trepo.PhotoAlbum, error) {
 	if !t.Online() {
 		return nil, nil, ErrNodeNotRunning
@@ -1000,6 +1062,7 @@ func (t *TextileNode) LoadPhotoAndAlbum(hash string) (*trepo.PhotoSet, *trepo.Ph
 	return ph, album, nil
 }
 
+// UnmarshalPrivatePeerKey returns a PrivKey instance from the base64 encoded ipfs peer key
 func (t *TextileNode) UnmarshalPrivatePeerKey() (libp2p.PrivKey, error) {
 	if !t.Online() {
 		return nil, ErrNodeNotRunning
@@ -1029,6 +1092,7 @@ func (t *TextileNode) UnmarshalPrivatePeerKey() (libp2p.PrivKey, error) {
 	return sk, nil
 }
 
+// GetPublicPeerKeyString returns the base64 encoded public ipfs peer key
 func (t *TextileNode) GetPublicPeerKeyString() (string, error) {
 	sk, err := t.UnmarshalPrivatePeerKey()
 	if err != nil {
@@ -1044,6 +1108,7 @@ func (t *TextileNode) GetPublicPeerKeyString() (string, error) {
 	return base64.StdEncoding.EncodeToString(pkb), nil
 }
 
+// PingPeer pings a peer num times, returning the result to out chan
 func (t *TextileNode) PingPeer(addrs string, num int, out chan string) error {
 	if !t.Online() {
 		return ErrNodeNotRunning
@@ -1104,6 +1169,7 @@ func (t *TextileNode) PingPeer(addrs string, num int, out chan string) error {
 	return nil
 }
 
+// registerGatewayHandler registers a handler for the gateway
 func (t *TextileNode) registerGatewayHandler() {
 	defer func() {
 		if recover() != nil {
@@ -1112,8 +1178,7 @@ func (t *TextileNode) registerGatewayHandler() {
 	}()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		username, password, ok := r.BasicAuth()
-		log.Infof("request: %s", r.URL.RequestURI())
-		log.Infof("username: %s\tpassword: %s", username, password)
+		log.Debugf("gateway request: %s", r.URL.RequestURI())
 		if ok == false {
 			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 			w.WriteHeader(401)
@@ -1130,7 +1195,7 @@ func (t *TextileNode) registerGatewayHandler() {
 		ci := tmp[2]
 
 		if password != t.HashPasses[ci] {
-			log.Infof("wrong password: %s", ci, t.HashPasses[username])
+			log.Debugf("wrong password: %s", ci, t.HashPasses[username])
 			w.WriteHeader(401)
 			return
 		}
@@ -1144,8 +1209,7 @@ func (t *TextileNode) registerGatewayHandler() {
 			w.WriteHeader(400)
 			return
 		}
-		log.Infof("image request success: %s\tpassword: %s", username, password)
-		//w.Header().Set("Content-Type", "image/jpeg")
+
 		w.Write(b)
 	})
 }
@@ -1155,34 +1219,18 @@ func (t *TextileNode) startGateway() (<-chan error, error) {
 	// try to register our handler
 	t.registerGatewayHandler()
 
-	// pick a random port
-	// it's better (more crypto secure) to use crypto random module
-	// port, err := rand.Int(rand.Reader, big.NewInt(10001))
-	port := big.NewInt(9080)
-	portInt := int(port.Int64())
-	// if err == nil {
-	// 	// but if that doesn't work, we'll default to rand module
-	// 	// ... with current time as seed
-	// 	mrand.Seed(time.Now().UTC().UnixNano())
-	// 	portInt = mrand.Intn(10001)
-	// }
-	portInt += 30000
-	// add 30k to have value between 30000 and 40000
-	portString := fmt.Sprintf(":%d", portInt)
-	// Update address/port
-	t.GatewayProxy.Addr = portString
-
 	// Start the HTTPS server in a goroutine
 	errc := make(chan error)
 	go func() {
 		errc <- t.GatewayProxy.ListenAndServe()
 		close(errc)
 	}()
-	log.Infof("decrypting gateway (readonly) server listening on /ip4/127.0.0.1/tcp/%d\n", port)
+	log.Infof("decrypting gateway (readonly) server listening at %s\n", t.GatewayProxy.Addr)
 
 	return errc, nil
 }
 
+// startRepublishing continuously publishes the latest update in each thread
 func (t *TextileNode) startRepublishing() {
 	// do it once right away
 	t.republishLatestUpdates()
@@ -1213,6 +1261,7 @@ func (t *TextileNode) startRepublishing() {
 	}
 }
 
+// republishLatestUpdates interates through albums, publishing each ones latest update
 func (t *TextileNode) republishLatestUpdates() {
 	// do this for each album
 	albums := t.Datastore.Albums().GetAlbums("")
@@ -1232,6 +1281,8 @@ func (t *TextileNode) republishLatestUpdates() {
 	}
 }
 
+// startPingingRelay continuously pings a shared relay
+// TODO: do not hardcode relay address here
 func (t *TextileNode) startPingingRelay() {
 	relay := "QmTUvaGZqEu7qJw6DuTyhTgiZmZwdp7qN4FD4FFV3TGhjM"
 
@@ -1270,6 +1321,7 @@ func (t *TextileNode) startPingingRelay() {
 	}
 }
 
+// getDataAtPath cats any data under an ipfs path
 func (t *TextileNode) getDataAtPath(path string) ([]byte, error) {
 	// convert string to an ipfs path
 	ip, err := coreapi.ParsePath(path)
@@ -1287,6 +1339,7 @@ func (t *TextileNode) getDataAtPath(path string) ([]byte, error) {
 	return ioutil.ReadAll(r)
 }
 
+// handleRoomUpdate tries to recursively process an update sent to a thread
 func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message, aid string, datac chan string) error {
 	// unpack message
 	from := msg.GetFrom().Pretty()
@@ -1303,6 +1356,7 @@ func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message, aid string, datac 
 	return nil
 }
 
+// handleHash tries to process an update sent to a thread
 func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, datac chan string) error {
 	// look up the album
 	a := t.Datastore.Albums().GetAlbum(aid)
@@ -1371,4 +1425,17 @@ func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, dat
 
 	// check last hash
 	return t.handleHash(last, aid, api, datac)
+}
+
+func (t *TextileNode) touchDB() error {
+	if err := t.Datastore.Ping(); err != nil {
+		log.Debug("re-opening datastore...")
+		sqliteDB, err := db.Create(t.RepoPath, "")
+		if err != nil {
+			log.Errorf("error re-opening datastore: %s", err)
+			return err
+		}
+		t.Datastore = sqliteDB
+	}
+	return nil
 }

@@ -93,6 +93,18 @@ func TestTextileNode_SignIn(t *testing.T) {
 	}
 }
 
+func TestTextileNode_IsSignedIn(t *testing.T) {
+	// TODO
+}
+
+func TestTextileNode_GetUsername(t *testing.T) {
+	// TODO
+}
+
+func TestTextileNode_GetAccessToken(t *testing.T) {
+	// TODO
+}
+
 func TestTextileNode_JoinRoom(t *testing.T) {
 	da := node.Datastore.Albums().GetAlbumByName("default")
 	if da == nil {
@@ -156,6 +168,10 @@ func TestTextileNode_SharePhoto(t *testing.T) {
 	}
 }
 
+func TestTextileNode_GetHashRequest(t *testing.T) {
+	// TODO
+}
+
 func TestTextileNode_GetPhotos(t *testing.T) {
 	list := node.GetPhotos("", -1, "default")
 	if len(list.Hashes) == 0 {
@@ -174,6 +190,10 @@ func TestTextileNode_GetFile(t *testing.T) {
 	}
 }
 
+func TestTextileNode_GetFileBase64(t *testing.T) {
+	// TODO
+}
+
 func TestTextileNode_GetMetadata(t *testing.T) {
 	_, err := node.GetMetaData(hash, nil)
 	if err != nil {
@@ -188,6 +208,10 @@ func TestTextileNode_GetLastHash(t *testing.T) {
 		t.Errorf("get last hash failed: %s", err)
 		return
 	}
+}
+
+func TestTextileNode_LoadPhotoAndAlbum(t *testing.T) {
+	// TODO
 }
 
 func TestTextileNode_UnmarshalPrivatePeerKey(t *testing.T) {
@@ -228,6 +252,19 @@ func TestTextileNode_Stop(t *testing.T) {
 func TestTextileNode_OnlineAgain(t *testing.T) {
 	if node.Online() {
 		t.Errorf("should report offline")
+	}
+}
+
+// test signin in stopped state, should re-connect to db
+func TestTextileNode_SignInAgain(t *testing.T) {
+	creds := &cmodels.Credentials{
+		Username: centralReg.Username,
+		Password: centralReg.Password,
+	}
+	err := node.SignIn(creds)
+	if err != nil {
+		t.Errorf("signin failed: %s", err)
+		return
 	}
 }
 
