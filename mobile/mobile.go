@@ -24,17 +24,29 @@ type Wrapper struct {
 }
 
 // NewNode is the mobile entry point for creating a node
-func NewNode(repoPath string, centralApiURL string) (*Wrapper, error) {
+// NOTE: logLevel is one of: CRITICAL ERROR WARNING NOTICE INFO DEBUG
+func NewNode(repoPath string, centralApiURL string, logLevel string) (*Wrapper, error) {
 	var m Mobile
-	return m.NewNode(repoPath, centralApiURL)
+	return m.NewNode(repoPath, centralApiURL, logLevel)
 }
 
 // Mobile is the name of the framework (must match package name)
 type Mobile struct{}
 
 // Create a gomobile compatible wrapper around TextileNode
-func (m *Mobile) NewNode(repoPath string, centralApiURL string) (*Wrapper, error) {
-	node, err := tcore.NewNode(repoPath, centralApiURL, true, logging.DEBUG)
+func (m *Mobile) NewNode(repoPath string, centralApiURL string, logLevel string) (*Wrapper, error) {
+	ll, err := logging.LogLevel(logLevel)
+	if err != nil {
+		ll = logging.INFO
+	}
+	config := tcore.NodeConfig{
+		RepoPath:      repoPath,
+		CentralApiURL: centralApiURL,
+		IsMobile:      true,
+		LogLevel:      ll,
+		LogFiles:      true,
+	}
+	node, err := tcore.NewNode(config)
 	if err != nil {
 		return nil, err
 	}
@@ -127,12 +139,12 @@ func (w *Wrapper) GetGatewayPassword() string {
 
 // AddPhoto calls core AddPhoto
 func (w *Wrapper) AddPhoto(path string, thumb string, thread string) (*net.MultipartRequest, error) {
-	return tcore.Node.AddPhoto(path, thumb, thread)
+	return tcore.Node.AddPhoto(path, thumb, thread, "")
 }
 
 // SharePhoto calls core SharePhoto
-func (w *Wrapper) SharePhoto(hash string, thread string) (*net.MultipartRequest, error) {
-	return tcore.Node.SharePhoto(hash, thread)
+func (w *Wrapper) SharePhoto(hash string, thread string, caption string) (*net.MultipartRequest, error) {
+	return tcore.Node.SharePhoto(hash, thread, caption)
 }
 
 // GetHashRequest calls core GetHashRequest

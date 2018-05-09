@@ -124,28 +124,38 @@ type HashRequest struct {
 	Host     string `json:"host"`
 }
 
+type NodeConfig struct {
+	RepoPath      string
+	CentralApiURL string
+	IsMobile      bool
+	LogLevel      logging.Level
+	LogFiles      bool
+}
+
 // NewNode creates a new TextileNode
-func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logging.Level) (*TextileNode, error) {
-	// shutdown is not clean here yet, so we have to hackily remove
-	// the lockfile that should have been removed on shutdown
-	// before we start up again
-	// TODO: make this work as intended, without doing this
-	repoLockFile := filepath.Join(repoPath, lockfile.LockFile)
+func NewNode(config NodeConfig) (*TextileNode, error) {
+	// TODO: shouldn't need to manually remove these
+	repoLockFile := filepath.Join(config.RepoPath, lockfile.LockFile)
 	os.Remove(repoLockFile)
-	dsLockFile := filepath.Join(repoPath, "datastore", "LOCK")
+	dsLockFile := filepath.Join(config.RepoPath, "datastore", "LOCK")
 	os.Remove(dsLockFile)
 
 	// log handling
-	w := &lumberjack.Logger{
-		Filename:   path.Join(repoPath, "logs", "textile.log"),
-		MaxSize:    10, // megabytes
-		MaxBackups: 3,
-		MaxAge:     30, // days
+	var backendFile *logging.LogBackend
+	if config.LogFiles {
+		w := &lumberjack.Logger{
+			Filename:   path.Join(config.RepoPath, "logs", "textile.log"),
+			MaxSize:    10, // megabytes
+			MaxBackups: 3,
+			MaxAge:     30, // days
+		}
+		backendFile = logging.NewLogBackend(w, "", 0)
+	} else {
+		backendFile = logging.NewLogBackend(os.Stdout, "", 0)
 	}
-	backendFile := logging.NewLogBackend(w, "", 0)
 	backendFileFormatter := logging.NewBackendFormatter(backendFile, fileLogFormat)
 	logging.SetBackend(backendFileFormatter)
-	logging.SetLevel(logLevel, "")
+	logging.SetLevel(config.LogLevel, "")
 
 	// capture stdout from ipfs packages
 	stdOutLogger, err := util.NewStdOutLogger(logging.MustGetLogger("ipfs"))
@@ -155,20 +165,20 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 	}
 
 	// get database handle
-	sqliteDB, err := db.Create(repoPath, "")
+	sqliteDB, err := db.Create(config.RepoPath, "")
 	if err != nil {
 		return nil, err
 	}
 
 	// we may be running in an uninitialized state.
-	err = trepo.DoInit(repoPath, isMobile, sqliteDB.Config().Init, sqliteDB.Config().Configure)
+	err = trepo.DoInit(config.RepoPath, config.IsMobile, sqliteDB.Config().Init, sqliteDB.Config().Configure)
 	if err != nil && err != trepo.ErrRepoExists {
 		return nil, err
 	}
 
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
-	repo, err := fsrepo.Open(repoPath)
+	repo, err := fsrepo.Open(config.RepoPath)
 	if err != nil {
 		log.Errorf("error opening repo: %s", err)
 		return nil, err
@@ -176,7 +186,7 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 
 	// determine the best routing
 	var routingOption core.RoutingOption
-	if isMobile {
+	if config.IsMobile {
 		// TODO: Determine best value for this setting on mobile
 		// cfg.Swarm.DisableNatPortMap = true
 		// NOTE: trying normal routing for a bit
@@ -209,13 +219,14 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 	}
 
 	// clean central api url
-	if centralApiURL[len(centralApiURL)-1:] == "/" {
-		centralApiURL = centralApiURL[0 : len(centralApiURL)-1]
+	ca := config.CentralApiURL
+	if ca[len(ca)-1:] == "/" {
+		ca = ca[0 : len(ca)-1]
 	}
 
 	// finally, construct our node
 	node := &TextileNode{
-		RepoPath:        repoPath,
+		RepoPath:        config.RepoPath,
 		Datastore:       sqliteDB,
 		GatewayProxy:    gatewayProxy,
 		GatewayPassword: ksuid.New().String(),
@@ -223,8 +234,8 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 		LeftRoomChs:     make(map[string]chan struct{}),
 		leaveRoomChs:    make(map[string]chan struct{}),
 		ipfsConfig:      ncfg,
-		isMobile:        isMobile,
-		centralUserAPI:  fmt.Sprintf("%s/api/v1/users", centralApiURL),
+		isMobile:        config.IsMobile,
+		centralUserAPI:  fmt.Sprintf("%s/api/v1/users", config.CentralApiURL),
 		fresh:           true,
 		stdOutLogger:    stdOutLogger,
 	}
@@ -261,7 +272,7 @@ func (t *TextileNode) Start() error {
 	log.Info("starting node...")
 
 	// start capturing
-	t.stdOutLogger.Start()
+	//t.stdOutLogger.Start()
 
 	// raise file descriptor limit
 	if err := utilmain.ManageFdLimit(); err != nil {
@@ -412,7 +423,7 @@ func (t *TextileNode) Stop() error {
 	t.ipfsConfig.Repo = nil
 
 	// stop capturing
-	t.stdOutLogger.Stop()
+	//t.stdOutLogger.Stop()
 
 	return nil
 }
@@ -427,7 +438,7 @@ func (t *TextileNode) SignUp(reg *cmodels.Registration) error {
 	if err := t.touchDB(); err != nil {
 		return err
 	}
-	log.Infof("signup: %s %s %s %s %s", reg.Username, "xxxxxx", reg.Identity.Type, reg.Identity.Value, reg.Referral)
+	log.Debugf("signup: %s %s %s %s %s", reg.Username, "xxxxxx", reg.Identity.Type, reg.Identity.Value, reg.Referral)
 
 	// remote signup
 	res, err := central.SignUp(reg, t.centralUserAPI)
@@ -454,7 +465,7 @@ func (t *TextileNode) SignIn(creds *cmodels.Credentials) error {
 	if err := t.touchDB(); err != nil {
 		return err
 	}
-	log.Infof("signin: %s %s", creds.Username, "xxxxxx")
+	log.Debugf("signin: %s %s", creds.Username, "xxxxxx")
 
 	// remote signin
 	res, err := central.SignIn(creds, t.centralUserAPI)
@@ -481,7 +492,7 @@ func (t *TextileNode) SignOut() error {
 	if err := t.touchDB(); err != nil {
 		return err
 	}
-	log.Info("signing out...")
+	log.Debug("signing out...")
 
 	// remote is stateless, so we just ditch the local token
 	if err := t.Datastore.Config().SignOut(); err != nil {
@@ -570,7 +581,7 @@ func (t *TextileNode) JoinRoom(id string, datac chan string) {
 				log.Debugf("room subscription ended: %s", err)
 				return
 			} else if err != nil {
-				log.Infof(err.Error())
+				log.Debugf(err.Error())
 				return
 			}
 
@@ -631,7 +642,7 @@ func (t *TextileNode) WaitForRoom() {
 				log.Debugf("wait subscription ended: %s", err)
 				return
 			} else if err != nil {
-				log.Infof(err.Error())
+				log.Debugf(err.Error())
 				return
 			}
 			from := msg.GetFrom().Pretty()
@@ -649,7 +660,7 @@ func (t *TextileNode) WaitForRoom() {
 				return
 			}
 			ps := string(p)
-			log.Infof("decrypted mnemonic phrase as: %s\n", ps)
+			log.Debugf("decrypted mnemonic phrase as: %s\n", ps)
 
 			// create a new album for the room
 			// TODO: let user name this or take phone's name, e.g., bob's iphone
@@ -722,7 +733,7 @@ func (t *TextileNode) CreateAlbum(mnemonic string, name string) error {
 	if err := t.touchDB(); err != nil {
 		return err
 	}
-	log.Infof("creating a new album: %s", name)
+	log.Debugf("creating a new album: %s", name)
 
 	// use phrase if provided
 	if mnemonic == "" {
@@ -732,9 +743,9 @@ func (t *TextileNode) CreateAlbum(mnemonic string, name string) error {
 			log.Errorf("error creating mnemonic: %s", err)
 			return err
 		}
-		log.Infof("generating %v-bit Ed25519 keypair for: %s", trepo.NBitsForKeypair, name)
+		log.Debugf("generating %v-bit Ed25519 keypair for: %s", trepo.NBitsForKeypair, name)
 	} else {
-		log.Infof("regenerating Ed25519 keypair from mnemonic phrase for: %s", name)
+		log.Debugf("regenerating Ed25519 keypair from mnemonic phrase for: %s", name)
 	}
 
 	// create the bip39 seed from the phrase
@@ -771,11 +782,11 @@ func (t *TextileNode) CreateAlbum(mnemonic string, name string) error {
 
 // AddPhoto adds a photo and its thumbnail to an album
 // TODO: Make this available offline
-func (t *TextileNode) AddPhoto(path string, thumb string, album string) (*net.MultipartRequest, error) {
+func (t *TextileNode) AddPhoto(path string, thumb string, album string, caption string) (*net.MultipartRequest, error) {
 	if !t.Online() {
 		return nil, ErrNodeNotRunning
 	}
-	log.Infof("adding photo %s to %s", path, album)
+	log.Debugf("adding photo %s to %s", path, album)
 
 	// read file from disk
 	p, err := os.Open(path)
@@ -805,7 +816,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string) (*net.Mu
 	recent := t.Datastore.Photos().GetPhotos("", 1, "album='"+a.Id+"' and local=1")
 	if len(recent) > 0 {
 		lc = recent[0].Cid
-		log.Infof("found last hash: %s", lc)
+		log.Debugf("found last hash: %s", lc)
 	}
 
 	// get username
@@ -816,19 +827,21 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string) (*net.Mu
 	}
 
 	// add it
-	mr, md, err := photos.Add(t.IpfsNode, a.Key.GetPublic(), p, th, lc, un)
+	// TODO: clean up this nasty method signature
+	mr, md, err := photos.Add(t.IpfsNode, a.Key.GetPublic(), p, th, lc, un, caption)
 	if err != nil {
 		log.Errorf("error adding photo: %s", err)
 		return nil, err
 	}
 
 	// index
-	log.Infof("indexing %s...", mr.Boundary)
+	log.Debugf("indexing %s...", mr.Boundary)
 	set := &trepo.PhotoSet{
 		Cid:      mr.Boundary,
 		LastCid:  lc,
 		AlbumID:  a.Id,
 		MetaData: *md,
+		Caption:  caption,
 		IsLocal:  true,
 	}
 	err = t.Datastore.Photos().Put(set)
@@ -838,7 +851,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string) (*net.Mu
 	}
 
 	// publish
-	log.Infof("publishing update to %s...", a.Id)
+	log.Debugf("publishing update to %s...", a.Id)
 	err = t.IpfsNode.Floodsub.Publish(a.Id, []byte(mr.Boundary))
 	if err != nil {
 		log.Errorf("error publishing photo update: %s", err)
@@ -850,11 +863,11 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string) (*net.Mu
 
 // SharePhoto re-encrypts a photo from an existing album and shares it into a different album
 // TODO: Make this available offline
-func (t *TextileNode) SharePhoto(hash string, album string) (*net.MultipartRequest, error) {
+func (t *TextileNode) SharePhoto(hash string, album string, caption string) (*net.MultipartRequest, error) {
 	if !t.Online() {
 		return nil, ErrNodeNotRunning
 	}
-	log.Infof("sharing photo %s to %s...", hash, album)
+	log.Debugf("sharing photo %s to %s...", hash, album)
 
 	// get the photo
 	set, a, err := t.LoadPhotoAndAlbum(hash)
@@ -908,7 +921,7 @@ func (t *TextileNode) SharePhoto(hash string, album string) (*net.MultipartReque
 		}
 	}()
 
-	return t.AddPhoto(ppath, tpath, album)
+	return t.AddPhoto(ppath, tpath, album, caption)
 }
 
 // GetHashRequest returns a single-use token for requesting content via the gateway
@@ -1030,7 +1043,22 @@ func (t *TextileNode) GetMetaData(hash string, album *trepo.PhotoAlbum) (*photos
 	return data, nil
 }
 
-// GetLastHash return the last updates root cid under a hash
+// GetLastHash return the caption under a hash
+// TODO: shouldn't this be available offline for local (pinned content)?
+func (t *TextileNode) GetCaption(hash string, album *trepo.PhotoAlbum) (string, error) {
+	if !t.Online() {
+		return "", ErrNodeNotRunning
+	}
+	b, err := t.GetFile(fmt.Sprintf("%s/caption", hash), album)
+	if err != nil {
+		log.Errorf("error getting caption file with hash: %s: %s", hash, err)
+		return "", err
+	}
+
+	return string(b), nil
+}
+
+// GetLastHash return the last update's root cid under a hash
 // TODO: shouldn't this be available offline for local (pinned content)?
 func (t *TextileNode) GetLastHash(hash string, album *trepo.PhotoAlbum) (string, error) {
 	if !t.Online() {
@@ -1119,7 +1147,7 @@ func (t *TextileNode) PingPeer(addrs string, num int, out chan string) error {
 
 	if len(t.IpfsNode.Peerstore.Addrs(pid)) == 0 {
 		// Make sure we can find the node in question
-		log.Infof("looking up peer: %s", pid.Pretty())
+		log.Debugf("looking up peer: %s", pid.Pretty())
 
 		ctx, cancel := context.WithTimeout(t.IpfsNode.Context(), pingTimeout)
 		defer cancel()
@@ -1160,7 +1188,7 @@ func (t *TextileNode) PingPeer(addrs string, num int, out chan string) error {
 			case out <- msg:
 			default:
 			}
-			log.Infof(msg)
+			log.Debug(msg)
 			time.Sleep(time.Second)
 		}
 	}
@@ -1273,7 +1301,7 @@ func (t *TextileNode) republishLatestUpdates() {
 		latest := recent[0].Cid
 
 		// publish it
-		log.Infof("re-publishing %s to %s...", latest, a.Id)
+		log.Debugf("re-publishing %s to %s...", latest, a.Id)
 		if err := t.IpfsNode.Floodsub.Publish(a.Id, []byte(latest)); err != nil {
 			log.Errorf("error re-publishing update: %s", err)
 		}
@@ -1344,7 +1372,7 @@ func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message, aid string, datac 
 	from := msg.GetFrom().Pretty()
 	hash := string(msg.GetData())
 	api := coreapi.NewCoreAPI(t.IpfsNode)
-	log.Infof("got update from %s in room %s", from, aid)
+	log.Debugf("got update from %s in room %s", from, aid)
 
 	// recurse back in time starting at this hash
 	err := t.handleHash(hash, aid, api, datac)
@@ -1366,33 +1394,48 @@ func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, dat
 
 	// first update?
 	if hash == "" {
-		log.Infof("found genesis update, aborting")
+		log.Debugf("found genesis update, aborting")
 		return nil
 	}
-	log.Infof("handling update: %s...", hash)
-
-	// convert string to an ipfs path
-	ip, err := coreapi.ParsePath(hash)
-	if err != nil {
-		return err
-	}
+	log.Debugf("handling update: %s...", hash)
 
 	// check if we aleady have this hash
 	set := t.Datastore.Photos().GetPhoto(hash)
 	if set != nil {
-		log.Infof("update %s exists, aborting", hash)
+		log.Debugf("update %s exists, aborting", hash)
 		return nil
 	}
 
-	// pin it
-	log.Infof("pinning %s recursively...", hash)
-	err = api.Pin().Add(t.IpfsNode.Context(), ip, api.Pin().WithRecursive(true))
-	if err != nil {
+	// pin the dag structure
+	log.Debugf("pinning %s...", hash)
+	if err := t.pinPath(hash, api, false); err != nil {
 		return err
 	}
 
+	// pin the thumbnail
+	log.Debugf("pinning %s/thumb...", hash)
+	if err := t.pinPath(fmt.Sprintf("%s/thumb", hash), api, false); err != nil {
+		return err
+	}
+
+	// pin the meta
+	log.Debugf("pinning %s/meta...", hash)
+	if err := t.pinPath(fmt.Sprintf("%s/meta", hash), api, false); err != nil {
+		return err
+	}
+
+	// pin the last hash
+	log.Debugf("pinning %s/last...", hash)
+	if err := t.pinPath(fmt.Sprintf("%s/last", hash), api, false); err != nil {
+		return err
+	}
+
+	// pin the caption (may not exist, ignore error)
+	log.Debugf("pinning %s/caption...", hash)
+	t.pinPath(fmt.Sprintf("%s/caption", hash), api, false)
+
 	// unpack data set
-	log.Infof("unpacking %s...", hash)
+	log.Debugf("unpacking %s...", hash)
 	md, err := t.GetMetaData(hash, a)
 	if err != nil {
 		return err
@@ -1401,14 +1444,19 @@ func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, dat
 	if err != nil {
 		return err
 	}
+	caption, err := t.GetCaption(hash, a)
+	if err != nil {
+		caption = ""
+	}
 
 	// index
-	log.Infof("indexing %s...", hash)
+	log.Debugf("indexing %s...", hash)
 	set = &trepo.PhotoSet{
 		Cid:      hash,
 		LastCid:  last,
 		AlbumID:  aid,
 		MetaData: *md,
+		Caption:  caption,
 		IsLocal:  false,
 	}
 	err = t.Datastore.Photos().Put(set)
@@ -1426,6 +1474,17 @@ func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, dat
 	return t.handleHash(last, aid, api, datac)
 }
 
+// pinPath takes an ipfs path string and pins it
+func (t *TextileNode) pinPath(path string, api iface.CoreAPI, recursive bool) error {
+	ip, err := coreapi.ParsePath(path)
+	if err != nil {
+		log.Errorf("error pinning path: %s, recursive: %t: %s", path, recursive, err)
+		return err
+	}
+	return api.Pin().Add(t.IpfsNode.Context(), ip, api.Pin().WithRecursive(recursive))
+}
+
+// touchDB ensures that we have a good db connection
 func (t *TextileNode) touchDB() error {
 	if err := t.Datastore.Ping(); err != nil {
 		log.Debug("re-opening datastore...")
