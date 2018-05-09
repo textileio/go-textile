@@ -25,7 +25,7 @@ var cemail = ksuid.New().String() + "@textile.io"
 func TestNewTextile(t *testing.T) {
 	os.RemoveAll("testdata/.ipfs")
 	var err error
-	wrapper, err = NewNode("testdata/.ipfs", util.CentralApiURL)
+	wrapper, err = NewNode("testdata/.ipfs", util.CentralApiURL, "DEBUG")
 	if err != nil {
 		t.Errorf("create mobile node failed: %s", err)
 	}

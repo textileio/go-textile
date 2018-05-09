@@ -24,21 +24,26 @@ type Wrapper struct {
 }
 
 // NewNode is the mobile entry point for creating a node
-func NewNode(repoPath string, centralApiURL string) (*Wrapper, error) {
+// NOTE: logLevel is one of: CRITICAL ERROR WARNING NOTICE INFO DEBUG
+func NewNode(repoPath string, centralApiURL string, logLevel string) (*Wrapper, error) {
 	var m Mobile
-	return m.NewNode(repoPath, centralApiURL)
+	return m.NewNode(repoPath, centralApiURL, logLevel)
 }
 
 // Mobile is the name of the framework (must match package name)
 type Mobile struct{}
 
 // Create a gomobile compatible wrapper around TextileNode
-func (m *Mobile) NewNode(repoPath string, centralApiURL string) (*Wrapper, error) {
+func (m *Mobile) NewNode(repoPath string, centralApiURL string, logLevel string) (*Wrapper, error) {
+	ll, err := logging.LogLevel(logLevel)
+	if err != nil {
+		ll = logging.INFO
+	}
 	config := tcore.NodeConfig{
 		RepoPath:      repoPath,
 		CentralApiURL: centralApiURL,
 		IsMobile:      true,
-		LogLevel:      logging.DEBUG,
+		LogLevel:      ll,
 		LogFiles:      true,
 	}
 	node, err := tcore.NewNode(config)

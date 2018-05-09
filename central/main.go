@@ -51,7 +51,7 @@ func main() {
 			RepoPath:      ".ipfs",
 			CentralApiURL: "https://api.textile.io",
 			IsMobile:      false,
-			LogLevel:      logging.DEBUG,
+			LogLevel:      logging.INFO,
 			LogFiles:      false,
 		}
 		node, err := tcore.NewNode(config)
@@ -97,7 +97,6 @@ func main() {
 				continue
 			}
 			hash := string(msg.GetData())
-			log.Infof("adding update %s from %s to relay", hash, from)
 
 			// ignore if exists
 			var exists bool
@@ -113,6 +112,7 @@ func main() {
 			}
 
 			// add update to cache
+			log.Infof("adding update %s from %s to relay", hash, from)
 			if len(updateCache) == cacheSize {
 				updateCache = updateCache[1:]
 			}
