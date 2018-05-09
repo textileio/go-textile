@@ -438,7 +438,7 @@ func (t *TextileNode) SignUp(reg *cmodels.Registration) error {
 	if err := t.touchDB(); err != nil {
 		return err
 	}
-	log.Infof("signup: %s %s %s %s %s", reg.Username, "xxxxxx", reg.Identity.Type, reg.Identity.Value, reg.Referral)
+	log.Debugf("signup: %s %s %s %s %s", reg.Username, "xxxxxx", reg.Identity.Type, reg.Identity.Value, reg.Referral)
 
 	// remote signup
 	res, err := central.SignUp(reg, t.centralUserAPI)
@@ -465,7 +465,7 @@ func (t *TextileNode) SignIn(creds *cmodels.Credentials) error {
 	if err := t.touchDB(); err != nil {
 		return err
 	}
-	log.Infof("signin: %s %s", creds.Username, "xxxxxx")
+	log.Debugf("signin: %s %s", creds.Username, "xxxxxx")
 
 	// remote signin
 	res, err := central.SignIn(creds, t.centralUserAPI)
@@ -492,7 +492,7 @@ func (t *TextileNode) SignOut() error {
 	if err := t.touchDB(); err != nil {
 		return err
 	}
-	log.Info("signing out...")
+	log.Debug("signing out...")
 
 	// remote is stateless, so we just ditch the local token
 	if err := t.Datastore.Config().SignOut(); err != nil {
@@ -581,7 +581,7 @@ func (t *TextileNode) JoinRoom(id string, datac chan string) {
 				log.Debugf("room subscription ended: %s", err)
 				return
 			} else if err != nil {
-				log.Infof(err.Error())
+				log.Debugf(err.Error())
 				return
 			}
 
@@ -642,7 +642,7 @@ func (t *TextileNode) WaitForRoom() {
 				log.Debugf("wait subscription ended: %s", err)
 				return
 			} else if err != nil {
-				log.Infof(err.Error())
+				log.Debugf(err.Error())
 				return
 			}
 			from := msg.GetFrom().Pretty()
@@ -660,7 +660,7 @@ func (t *TextileNode) WaitForRoom() {
 				return
 			}
 			ps := string(p)
-			log.Infof("decrypted mnemonic phrase as: %s\n", ps)
+			log.Debugf("decrypted mnemonic phrase as: %s\n", ps)
 
 			// create a new album for the room
 			// TODO: let user name this or take phone's name, e.g., bob's iphone
@@ -733,7 +733,7 @@ func (t *TextileNode) CreateAlbum(mnemonic string, name string) error {
 	if err := t.touchDB(); err != nil {
 		return err
 	}
-	log.Infof("creating a new album: %s", name)
+	log.Debugf("creating a new album: %s", name)
 
 	// use phrase if provided
 	if mnemonic == "" {
@@ -743,9 +743,9 @@ func (t *TextileNode) CreateAlbum(mnemonic string, name string) error {
 			log.Errorf("error creating mnemonic: %s", err)
 			return err
 		}
-		log.Infof("generating %v-bit Ed25519 keypair for: %s", trepo.NBitsForKeypair, name)
+		log.Debugf("generating %v-bit Ed25519 keypair for: %s", trepo.NBitsForKeypair, name)
 	} else {
-		log.Infof("regenerating Ed25519 keypair from mnemonic phrase for: %s", name)
+		log.Debugf("regenerating Ed25519 keypair from mnemonic phrase for: %s", name)
 	}
 
 	// create the bip39 seed from the phrase
@@ -786,7 +786,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string, caption 
 	if !t.Online() {
 		return nil, ErrNodeNotRunning
 	}
-	log.Infof("adding photo %s to %s", path, album)
+	log.Debugf("adding photo %s to %s", path, album)
 
 	// read file from disk
 	p, err := os.Open(path)
@@ -816,7 +816,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string, caption 
 	recent := t.Datastore.Photos().GetPhotos("", 1, "album='"+a.Id+"' and local=1")
 	if len(recent) > 0 {
 		lc = recent[0].Cid
-		log.Infof("found last hash: %s", lc)
+		log.Debugf("found last hash: %s", lc)
 	}
 
 	// get username
@@ -835,7 +835,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string, caption 
 	}
 
 	// index
-	log.Infof("indexing %s...", mr.Boundary)
+	log.Debugf("indexing %s...", mr.Boundary)
 	set := &trepo.PhotoSet{
 		Cid:      mr.Boundary,
 		LastCid:  lc,
@@ -851,7 +851,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string, caption 
 	}
 
 	// publish
-	log.Infof("publishing update to %s...", a.Id)
+	log.Debugf("publishing update to %s...", a.Id)
 	err = t.IpfsNode.Floodsub.Publish(a.Id, []byte(mr.Boundary))
 	if err != nil {
 		log.Errorf("error publishing photo update: %s", err)
@@ -867,7 +867,7 @@ func (t *TextileNode) SharePhoto(hash string, album string, caption string) (*ne
 	if !t.Online() {
 		return nil, ErrNodeNotRunning
 	}
-	log.Infof("sharing photo %s to %s...", hash, album)
+	log.Debugf("sharing photo %s to %s...", hash, album)
 
 	// get the photo
 	set, a, err := t.LoadPhotoAndAlbum(hash)
@@ -1301,7 +1301,7 @@ func (t *TextileNode) republishLatestUpdates() {
 		latest := recent[0].Cid
 
 		// publish it
-		log.Infof("re-publishing %s to %s...", latest, a.Id)
+		log.Debugf("re-publishing %s to %s...", latest, a.Id)
 		if err := t.IpfsNode.Floodsub.Publish(a.Id, []byte(latest)); err != nil {
 			log.Errorf("error re-publishing update: %s", err)
 		}
@@ -1372,7 +1372,7 @@ func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message, aid string, datac 
 	from := msg.GetFrom().Pretty()
 	hash := string(msg.GetData())
 	api := coreapi.NewCoreAPI(t.IpfsNode)
-	log.Infof("got update from %s in room %s", from, aid)
+	log.Debugf("got update from %s in room %s", from, aid)
 
 	// recurse back in time starting at this hash
 	err := t.handleHash(hash, aid, api, datac)
@@ -1394,48 +1394,48 @@ func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, dat
 
 	// first update?
 	if hash == "" {
-		log.Infof("found genesis update, aborting")
+		log.Debugf("found genesis update, aborting")
 		return nil
 	}
-	log.Infof("handling update: %s...", hash)
+	log.Debugf("handling update: %s...", hash)
 
 	// check if we aleady have this hash
 	set := t.Datastore.Photos().GetPhoto(hash)
 	if set != nil {
-		log.Infof("update %s exists, aborting", hash)
+		log.Debugf("update %s exists, aborting", hash)
 		return nil
 	}
 
 	// pin the dag structure
-	log.Infof("pinning %s...", hash)
+	log.Debugf("pinning %s...", hash)
 	if err := t.pinPath(hash, api, false); err != nil {
 		return err
 	}
 
 	// pin the thumbnail
-	log.Infof("pinning %s/thumb...", hash)
+	log.Debugf("pinning %s/thumb...", hash)
 	if err := t.pinPath(fmt.Sprintf("%s/thumb", hash), api, false); err != nil {
 		return err
 	}
 
 	// pin the meta
-	log.Infof("pinning %s/meta...", hash)
+	log.Debugf("pinning %s/meta...", hash)
 	if err := t.pinPath(fmt.Sprintf("%s/meta", hash), api, false); err != nil {
 		return err
 	}
 
 	// pin the last hash
-	log.Infof("pinning %s/last...", hash)
+	log.Debugf("pinning %s/last...", hash)
 	if err := t.pinPath(fmt.Sprintf("%s/last", hash), api, false); err != nil {
 		return err
 	}
 
 	// pin the caption (may not exist, ignore error)
-	log.Infof("pinning %s/caption...", hash)
+	log.Debugf("pinning %s/caption...", hash)
 	t.pinPath(fmt.Sprintf("%s/caption", hash), api, false)
 
 	// unpack data set
-	log.Infof("unpacking %s...", hash)
+	log.Debugf("unpacking %s...", hash)
 	md, err := t.GetMetaData(hash, a)
 	if err != nil {
 		return err
@@ -1450,7 +1450,7 @@ func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, dat
 	}
 
 	// index
-	log.Infof("indexing %s...", hash)
+	log.Debugf("indexing %s...", hash)
 	set = &trepo.PhotoSet{
 		Cid:      hash,
 		LastCid:  last,
