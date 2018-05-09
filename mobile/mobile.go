@@ -34,7 +34,14 @@ type Mobile struct{}
 
 // Create a gomobile compatible wrapper around TextileNode
 func (m *Mobile) NewNode(repoPath string, centralApiURL string) (*Wrapper, error) {
-	node, err := tcore.NewNode(repoPath, centralApiURL, true, logging.DEBUG)
+	config := tcore.NodeConfig{
+		RepoPath:      repoPath,
+		CentralApiURL: centralApiURL,
+		IsMobile:      true,
+		LogLevel:      logging.DEBUG,
+		LogFiles:      true,
+	}
+	node, err := tcore.NewNode(config)
 	if err != nil {
 		return nil, err
 	}

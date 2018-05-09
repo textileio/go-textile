@@ -124,28 +124,38 @@ type HashRequest struct {
 	Host     string `json:"host"`
 }
 
+type NodeConfig struct {
+	RepoPath      string
+	CentralApiURL string
+	IsMobile      bool
+	LogLevel      logging.Level
+	LogFiles      bool
+}
+
 // NewNode creates a new TextileNode
-func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logging.Level) (*TextileNode, error) {
-	// shutdown is not clean here yet, so we have to hackily remove
-	// the lockfile that should have been removed on shutdown
-	// before we start up again
-	// TODO: make this work as intended, without doing this
-	repoLockFile := filepath.Join(repoPath, lockfile.LockFile)
+func NewNode(config NodeConfig) (*TextileNode, error) {
+	// TODO: shouldn't need to manually remove these
+	repoLockFile := filepath.Join(config.RepoPath, lockfile.LockFile)
 	os.Remove(repoLockFile)
-	dsLockFile := filepath.Join(repoPath, "datastore", "LOCK")
+	dsLockFile := filepath.Join(config.RepoPath, "datastore", "LOCK")
 	os.Remove(dsLockFile)
 
 	// log handling
-	w := &lumberjack.Logger{
-		Filename:   path.Join(repoPath, "logs", "textile.log"),
-		MaxSize:    10, // megabytes
-		MaxBackups: 3,
-		MaxAge:     30, // days
+	var backendFile *logging.LogBackend
+	if config.LogFiles {
+		w := &lumberjack.Logger{
+			Filename:   path.Join(config.RepoPath, "logs", "textile.log"),
+			MaxSize:    10, // megabytes
+			MaxBackups: 3,
+			MaxAge:     30, // days
+		}
+		backendFile = logging.NewLogBackend(w, "", 0)
+	} else {
+		backendFile = logging.NewLogBackend(os.Stdout, "", 0)
 	}
-	backendFile := logging.NewLogBackend(w, "", 0)
 	backendFileFormatter := logging.NewBackendFormatter(backendFile, fileLogFormat)
 	logging.SetBackend(backendFileFormatter)
-	logging.SetLevel(logLevel, "")
+	logging.SetLevel(config.LogLevel, "")
 
 	// capture stdout from ipfs packages
 	stdOutLogger, err := util.NewStdOutLogger(logging.MustGetLogger("ipfs"))
@@ -155,20 +165,20 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 	}
 
 	// get database handle
-	sqliteDB, err := db.Create(repoPath, "")
+	sqliteDB, err := db.Create(config.RepoPath, "")
 	if err != nil {
 		return nil, err
 	}
 
 	// we may be running in an uninitialized state.
-	err = trepo.DoInit(repoPath, isMobile, sqliteDB.Config().Init, sqliteDB.Config().Configure)
+	err = trepo.DoInit(config.RepoPath, config.IsMobile, sqliteDB.Config().Init, sqliteDB.Config().Configure)
 	if err != nil && err != trepo.ErrRepoExists {
 		return nil, err
 	}
 
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
-	repo, err := fsrepo.Open(repoPath)
+	repo, err := fsrepo.Open(config.RepoPath)
 	if err != nil {
 		log.Errorf("error opening repo: %s", err)
 		return nil, err
@@ -176,7 +186,7 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 
 	// determine the best routing
 	var routingOption core.RoutingOption
-	if isMobile {
+	if config.IsMobile {
 		// TODO: Determine best value for this setting on mobile
 		// cfg.Swarm.DisableNatPortMap = true
 		// NOTE: trying normal routing for a bit
@@ -209,13 +219,14 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 	}
 
 	// clean central api url
-	if centralApiURL[len(centralApiURL)-1:] == "/" {
-		centralApiURL = centralApiURL[0 : len(centralApiURL)-1]
+	ca := config.CentralApiURL
+	if ca[len(ca)-1:] == "/" {
+		ca = ca[0 : len(ca)-1]
 	}
 
 	// finally, construct our node
 	node := &TextileNode{
-		RepoPath:        repoPath,
+		RepoPath:        config.RepoPath,
 		Datastore:       sqliteDB,
 		GatewayProxy:    gatewayProxy,
 		GatewayPassword: ksuid.New().String(),
@@ -223,8 +234,8 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 		LeftRoomChs:     make(map[string]chan struct{}),
 		leaveRoomChs:    make(map[string]chan struct{}),
 		ipfsConfig:      ncfg,
-		isMobile:        isMobile,
-		centralUserAPI:  fmt.Sprintf("%s/api/v1/users", centralApiURL),
+		isMobile:        config.IsMobile,
+		centralUserAPI:  fmt.Sprintf("%s/api/v1/users", config.CentralApiURL),
 		fresh:           true,
 		stdOutLogger:    stdOutLogger,
 	}
@@ -261,7 +272,7 @@ func (t *TextileNode) Start() error {
 	log.Info("starting node...")
 
 	// start capturing
-	t.stdOutLogger.Start()
+	//t.stdOutLogger.Start()
 
 	// raise file descriptor limit
 	if err := utilmain.ManageFdLimit(); err != nil {
@@ -412,7 +423,7 @@ func (t *TextileNode) Stop() error {
 	t.ipfsConfig.Repo = nil
 
 	// stop capturing
-	t.stdOutLogger.Stop()
+	//t.stdOutLogger.Stop()
 
 	return nil
 }
@@ -1388,17 +1399,17 @@ func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, dat
 	}
 	log.Infof("handling update: %s...", hash)
 
-	// convert string to an ipfs path
-	ip, err := coreapi.ParsePath(hash)
-	if err != nil {
-		return err
-	}
-
 	// check if we aleady have this hash
 	set := t.Datastore.Photos().GetPhoto(hash)
 	if set != nil {
 		log.Infof("update %s exists, aborting", hash)
 		return nil
+	}
+
+	// convert string to an ipfs path
+	ip, err := coreapi.ParsePath(hash)
+	if err != nil {
+		return err
 	}
 
 	// pin it
@@ -1420,7 +1431,6 @@ func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, dat
 	}
 	caption, err := t.GetCaption(hash, a)
 	if err != nil {
-		log.Debugf("no caption found for hash: %s", hash)
 		caption = ""
 	}
 

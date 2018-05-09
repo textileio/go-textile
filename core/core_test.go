@@ -28,8 +28,15 @@ var centralReg = &cmodels.Registration{
 
 func TestNewNode(t *testing.T) {
 	os.RemoveAll("testdata/.ipfs")
+	config := NodeConfig{
+		RepoPath:      "testdata/.ipfs",
+		CentralApiURL: util.CentralApiURL,
+		IsMobile:      false,
+		LogLevel:      logging.DEBUG,
+		LogFiles:      false,
+	}
 	var err error
-	node, err = NewNode("testdata/.ipfs", util.CentralApiURL, false, logging.DEBUG)
+	node, err = NewNode(config)
 	if err != nil {
 		t.Errorf("create node failed: %s", err)
 	}
