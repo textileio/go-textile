@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"os"
 	"path"
@@ -27,7 +28,6 @@ import (
 	trepo "github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/repo/photos"
-	"github.com/textileio/textile-go/ssl"
 	"github.com/textileio/textile-go/util"
 
 	utilmain "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/cmd/ipfs/util"
@@ -84,11 +84,11 @@ type TextileNode struct {
 	// Function to call for shutdown
 	Cancel context.CancelFunc
 
-	// The local raw gateway server
-	// Gateway http.Server
-
 	// The local decrypting gateway server
 	GatewayProxy *http.Server
+
+	// Map of hash passwords for the decrypting gateway server
+	HashPasses map[string]string
 
 	// The local password used to authenticate http gateway requests (username is TextileNode)
 	GatewayPassword string
@@ -115,9 +115,14 @@ type TextileNode struct {
 	stdOutLogger *util.StdOutLogger
 }
 
-// PhotoList is a JSON-type structure that contains a list of photo hashes
 type PhotoList struct {
 	Hashes []string `json:"hashes"`
+}
+
+type HashRequest struct {
+	Token    string `json:"token"`
+	Protocol string `json:"protocol"`
+	Host     string `json:"host"`
 }
 
 // NewNode creates a new TextileNode
@@ -195,7 +200,6 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 	}
 
 	// create default servers (no handling until start, uses default addrs)
-	// TODO: can we figure out addrs here and now?
 	gatewayProxy := &http.Server{
 		Addr: ":9999",
 	}
@@ -211,6 +215,7 @@ func NewNode(repoPath string, centralApiURL string, isMobile bool, logLevel logg
 		Datastore:       sqliteDB,
 		GatewayProxy:    gatewayProxy,
 		GatewayPassword: ksuid.New().String(),
+		HashPasses:      make(map[string]string),
 		LeftRoomChs:     make(map[string]chan struct{}),
 		leaveRoomChs:    make(map[string]chan struct{}),
 		ipfsConfig:      ncfg,
@@ -863,6 +868,16 @@ func (t *TextileNode) SharePhoto(hash string, album string) (*net.MultipartReque
 	return t.AddPhoto(ppath, tpath, album)
 }
 
+func (t *TextileNode) GetHashRequest(hash string) HashRequest {
+	token := ksuid.New().String()
+	t.HashPasses[hash] = token
+	return HashRequest{
+		Token:    token,
+		Protocol: "http",
+		Host:     "localhost" + t.GatewayProxy.Addr,
+	}
+}
+
 func (t *TextileNode) GetPhotos(offsetId string, limit int, album string) *PhotoList {
 	if !t.Online() {
 		return nil
@@ -877,6 +892,7 @@ func (t *TextileNode) GetPhotos(offsetId string, limit int, album string) *Photo
 	list := t.Datastore.Photos().GetPhotos(offsetId, limit, "album='"+a.Id+"'")
 
 	// return json list of hashes
+	// return json list of hashes
 	res := &PhotoList{
 		Hashes: make([]string, len(list)),
 	}
@@ -888,7 +904,7 @@ func (t *TextileNode) GetPhotos(offsetId string, limit int, album string) *Photo
 	return res
 }
 
-// pass in Qm../thumb, or Qm../photo for full image
+// GetFile takes in Qm../thumb, or Qm../photo for full image
 // album is looked up if not present
 func (t *TextileNode) GetFile(path string, album *trepo.PhotoAlbum) ([]byte, error) {
 	if !t.Online() {
@@ -1095,17 +1111,41 @@ func (t *TextileNode) registerGatewayHandler() {
 		}
 	}()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("SessionId")
-		if err != nil || cookie.Value != t.GatewayPassword {
+		username, password, ok := r.BasicAuth()
+		log.Infof("request: %s", r.URL.RequestURI())
+		log.Infof("username: %s\tpassword: %s", username, password)
+		if ok == false {
+			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 			w.WriteHeader(401)
 			return
 		}
+
+		// parse root hash of path
+		tmp := strings.Split(r.URL.Path, "/")
+		if len(tmp) < 3 {
+			err := errors.New(fmt.Sprintf("bad path: %s", r.URL.Path))
+			log.Error(err.Error())
+			return
+		}
+		ci := tmp[2]
+
+		if password != t.HashPasses[ci] {
+			log.Infof("wrong password: %s", ci, t.HashPasses[username])
+			w.WriteHeader(401)
+			return
+		}
+
+		// invalidate previous password
+		// t.HashPasses[username] = ksuid.New().String()
+
 		b, err := t.GetFile(r.URL.Path, nil)
 		if err != nil {
 			log.Errorf("error decrypting path %s: %s", r.URL.Path, err)
 			w.WriteHeader(400)
 			return
 		}
+		log.Infof("image request success: %s\tpassword: %s", username, password)
+		//w.Header().Set("Content-Type", "image/jpeg")
 		w.Write(b)
 	})
 }
@@ -1115,39 +1155,30 @@ func (t *TextileNode) startGateway() (<-chan error, error) {
 	// try to register our handler
 	t.registerGatewayHandler()
 
-	// Determine port
-	port, err := t.GatewayPort()
-	if err != nil {
-		return nil, err
-	}
-	portString := fmt.Sprintf(":%d", port)
+	// pick a random port
+	// it's better (more crypto secure) to use crypto random module
+	// port, err := rand.Int(rand.Reader, big.NewInt(10001))
+	port := big.NewInt(9080)
+	portInt := int(port.Int64())
+	// if err == nil {
+	// 	// but if that doesn't work, we'll default to rand module
+	// 	// ... with current time as seed
+	// 	mrand.Seed(time.Now().UTC().UnixNano())
+	// 	portInt = mrand.Intn(10001)
+	// }
+	portInt += 30000
+	// add 30k to have value between 30000 and 40000
+	portString := fmt.Sprintf(":%d", portInt)
 	// Update address/port
 	t.GatewayProxy.Addr = portString
-
-	// Check if the cert files are available.
-	certPath := filepath.Join(t.RepoPath, "cert.pem")
-	keyPath := filepath.Join(t.RepoPath, "key.pem")
-	err = ssl.Check(certPath, keyPath)
-	// If they are not available, generate new ones.
-	if err != nil {
-		err = ssl.Generate(certPath, keyPath, "localhost"+portString)
-		if err != nil {
-			log.Errorf("failed to create https certs: %s", err)
-			return nil, err
-		}
-	}
 
 	// Start the HTTPS server in a goroutine
 	errc := make(chan error)
 	go func() {
-		errc <- t.GatewayProxy.ListenAndServeTLS(certPath, keyPath)
+		errc <- t.GatewayProxy.ListenAndServe()
 		close(errc)
 	}()
 	log.Infof("decrypting gateway (readonly) server listening on /ip4/127.0.0.1/tcp/%d\n", port)
-
-	// NOTE: No need to actually do this, but keeping commented out for testing
-	// Start the HTTP server and redirect all incoming connections to HTTPS
-	//go http.ListenAndServe(":9193", http.HandlerFunc(redirectToHttps))
 
 	return errc, nil
 }

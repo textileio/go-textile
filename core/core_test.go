@@ -121,14 +121,6 @@ func TestTextileNode_ConnectToRoomPeers(t *testing.T) {
 	// TODO
 }
 
-func TestTextileNode_GatewayPort(t *testing.T) {
-	_, err := node.GatewayPort()
-	if err != nil {
-		t.Errorf("add photo failed: %s", err)
-		return
-	}
-}
-
 func TestTextileNode_CreateAlbum(t *testing.T) {
 	err := node.CreateAlbum("", "test")
 	if err != nil {
