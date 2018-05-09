@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/big"
 	"net/http"
 	"os"
 	"path"
@@ -919,7 +918,7 @@ func (t *TextileNode) GetHashRequest(hash string) HashRequest {
 	return HashRequest{
 		Token:    token,
 		Protocol: "http",
-		Host:     "localhost" + t.GatewayProxy.Addr,
+		Host:     t.GatewayProxy.Addr,
 	}
 }
 
