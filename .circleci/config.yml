@@ -7,8 +7,15 @@ jobs:
     working_directory: /go/src/github.com/textileio/textile-go
     steps:
       - checkout
-      - run: dep ensure && cd central && dep ensure
-      - run: cd central && go install -v ./...
+      - run: dep ensure
+      - run:
+          name: vendor central
+          command: |
+            cd central
+            go get -u github.com/kardianos/govendor
+            govendor init
+            govendor add +external
+            go install -v ./...
       - run:
           name: run central and test all
           command: |
@@ -23,5 +30,6 @@ jobs:
             DB_HOSTS: 0.0.0.0:27017
             DB_NAME: textile_db
             REF_KEY: woohoo!
+            RELAY: testdummythread
       - run: go get -u github.com/asticode/go-astilectron-bundler/...
       - run: make build_desktop

@@ -27,7 +27,7 @@ const (
 	relayInterval = time.Second * 30
 )
 
-var tid = "QmPnQL1qT4cxWhUDwYHFKXVU9zXiwnU4anT22JTEj8cXnC"
+var relayThread = os.Getenv("RELAY")
 
 func init() {
 	// establish a connection to DB
@@ -75,11 +75,11 @@ func main() {
 		}()
 
 		// create the subscription
-		sub, err := node.IpfsNode.Floodsub.Subscribe(tid)
+		sub, err := node.IpfsNode.Floodsub.Subscribe(relayThread)
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Infof("joined room %s as relay buddy\n", tid)
+		log.Infof("joined room %s as relay buddy\n", relayThread)
 
 		ctx, _ := context.WithCancel(context.Background())
 		for {
@@ -142,8 +142,8 @@ func main() {
 
 func relayLatest(ipfs *core.IpfsNode) {
 	for _, update := range updateCache {
-		log.Debugf("relaying update %s to %s", update, tid)
-		if err := ipfs.Floodsub.Publish(tid, []byte(update)); err != nil {
+		log.Debugf("relaying update %s to %s", update, relayThread)
+		if err := ipfs.Floodsub.Publish(relayThread, []byte(update)); err != nil {
 			log.Errorf("error relaying update: %s", err)
 		}
 	}

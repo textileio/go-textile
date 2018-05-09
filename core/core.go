@@ -1147,7 +1147,7 @@ func (t *TextileNode) PingPeer(addrs string, num int, out chan string) error {
 
 	if len(t.IpfsNode.Peerstore.Addrs(pid)) == 0 {
 		// Make sure we can find the node in question
-		log.Infof("looking up peer: %s", pid.Pretty())
+		log.Debugf("looking up peer: %s", pid.Pretty())
 
 		ctx, cancel := context.WithTimeout(t.IpfsNode.Context(), pingTimeout)
 		defer cancel()
@@ -1188,7 +1188,7 @@ func (t *TextileNode) PingPeer(addrs string, num int, out chan string) error {
 			case out <- msg:
 			default:
 			}
-			log.Infof(msg)
+			log.Debug(msg)
 			time.Sleep(time.Second)
 		}
 	}
