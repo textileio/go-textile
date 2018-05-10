@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mitchellh/go-homedir"
 	"github.com/op/go-logging"
 
 	"github.com/textileio/textile-go/central/controllers"
@@ -16,14 +16,14 @@ import (
 	tcore "github.com/textileio/textile-go/core"
 
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
+	"path/filepath"
 )
 
 var log = logging.MustGetLogger("main")
 
-var updateCache []string
+var updateCache = make(map[string]string)
 
 const (
-	cacheSize     = 32
 	relayInterval = time.Second * 30
 )
 
@@ -46,13 +46,20 @@ func init() {
 
 func main() {
 	go func() {
+		// get home dir
+		hd, err := homedir.Dir()
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		// create a pubsub relay node
 		config := tcore.NodeConfig{
-			RepoPath:      ".ipfs",
-			CentralApiURL: "https://api.textile.io",
-			IsMobile:      false,
-			LogLevel:      logging.INFO,
+			RepoPath:      filepath.Join(hd, ".textile_central"),
+			CentralApiURL: os.Getenv("BIND"),
+			IsServer:      true,
+			LogLevel:      logging.DEBUG,
 			LogFiles:      false,
+			SwarmPort:     "4001",
 		}
 		node, err := tcore.NewNode(config)
 		if err != nil {
@@ -98,25 +105,14 @@ func main() {
 			}
 			hash := string(msg.GetData())
 
-			// ignore if exists
-			var exists bool
-		inner:
-			for _, u := range updateCache {
-				if hash == u {
-					exists = true
-					break inner
-				}
-			}
-			if exists {
+			// ignore if the latest from this peer has not changed
+			if updateCache[from] == hash {
 				continue
 			}
 
 			// add update to cache
-			log.Infof("adding update %s from %s to relay", hash, from)
-			if len(updateCache) == cacheSize {
-				updateCache = updateCache[1:]
-			}
-			updateCache = append(updateCache, hash)
+			updateCache[from] = hash
+			log.Infof("added update %s from %s to relay", hash, from)
 
 			// relay now
 			relayLatest(node.IpfsNode)
@@ -137,12 +133,12 @@ func main() {
 		v1.POST("/referrals", controllers.CreateReferral)
 		v1.GET("/referrals", controllers.ListReferrals)
 	}
-	router.Run(fmt.Sprintf("%s", os.Getenv("BIND")))
+	router.Run(os.Getenv("BIND"))
 }
 
 func relayLatest(ipfs *core.IpfsNode) {
-	for _, update := range updateCache {
-		log.Debugf("relaying update %s to %s", update, relayThread)
+	for from, update := range updateCache {
+		log.Debugf("relaying update %s from %s", update, from)
 		if err := ipfs.Floodsub.Publish(relayThread, []byte(update)); err != nil {
 			log.Errorf("error relaying update: %s", err)
 		}
