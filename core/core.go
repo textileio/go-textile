@@ -621,9 +621,11 @@ func (t *TextileNode) JoinRoom(id string, datac chan string) {
 			}
 
 			// handle the update
-			if err = t.handleRoomUpdate(msg, id, api, datac); err != nil {
-				log.Errorf("error handling room update: %s", err)
-			}
+			go func() {
+				if err = t.handleRoomUpdate(msg, id, api, datac); err != nil {
+					log.Errorf("error handling room update: %s", err)
+				}
+			}()
 		}
 	}()
 
@@ -1525,7 +1527,9 @@ func (t *TextileNode) pinPath(path string, api iface.CoreAPI, recursive bool) er
 		log.Errorf("error pinning path: %s, recursive: %t: %s", path, recursive, err)
 		return err
 	}
-	return api.Pin().Add(t.IpfsNode.Context(), ip, api.Pin().WithRecursive(recursive))
+	ctx, cancel := context.WithTimeout(t.IpfsNode.Context(), time.Minute)
+	defer cancel()
+	return api.Pin().Add(ctx, ip, api.Pin().WithRecursive(recursive))
 }
 
 // touchDB ensures that we have a good db connection
