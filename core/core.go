@@ -250,9 +250,12 @@ func NewNode(config NodeConfig) (*TextileNode, error) {
 	}
 
 	// clean central api url
-	ca := config.CentralApiURL
-	if ca[len(ca)-1:] == "/" {
-		ca = ca[0 : len(ca)-1]
+	if len(config.CentralApiURL) > 0 {
+		ca := config.CentralApiURL
+		if ca[len(ca)-1:] == "/" {
+			ca = ca[0 : len(ca)-1]
+		}
+		config.CentralApiURL = ca
 	}
 
 	// finally, construct our node
@@ -586,6 +589,7 @@ func (t *TextileNode) JoinRoom(id string, datac chan string) {
 	t.leaveRoomChs[id] = make(chan struct{})
 	t.LeftRoomChs[id] = make(chan struct{})
 
+	api := coreapi.NewCoreAPI(t.IpfsNode)
 	ctx, cancel := context.WithCancel(context.Background())
 	leave := func() {
 		cancel()
@@ -617,7 +621,7 @@ func (t *TextileNode) JoinRoom(id string, datac chan string) {
 			}
 
 			// handle the update
-			if err = t.handleRoomUpdate(msg, id, datac); err != nil {
+			if err = t.handleRoomUpdate(msg, id, api, datac); err != nil {
 				log.Errorf("error handling room update: %s", err)
 			}
 		}
@@ -1398,11 +1402,20 @@ func (t *TextileNode) getDataAtPath(path string) ([]byte, error) {
 }
 
 // handleRoomUpdate tries to recursively process an update sent to a thread
-func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message, aid string, datac chan string) error {
+func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message, aid string, api iface.CoreAPI, datac chan string) error {
 	// unpack message
 	from := msg.GetFrom().Pretty()
-	hash := string(msg.GetData())
-	api := coreapi.NewCoreAPI(t.IpfsNode)
+	data := string(msg.GetData())
+
+	// determine if this is from a relay node
+	tmp := strings.Split(data, ":")
+	var hash string
+	if len(tmp) > 1 && tmp[0] == "relay" {
+		hash = tmp[1]
+		from = fmt.Sprintf("relay:%s", from)
+	} else {
+		hash = tmp[0]
+	}
 	log.Debugf("got update from %s in room %s", from, aid)
 
 	// recurse back in time starting at this hash
