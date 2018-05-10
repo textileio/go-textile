@@ -25,6 +25,7 @@ import (
 	"github.com/textileio/textile-go/core/central"
 	"github.com/textileio/textile-go/net"
 	trepo "github.com/textileio/textile-go/repo"
+	tconfig "github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/repo/photos"
 	"github.com/textileio/textile-go/util"
@@ -128,8 +129,10 @@ type NodeConfig struct {
 	RepoPath      string
 	CentralApiURL string
 	IsMobile      bool
+	IsServer      bool
 	LogLevel      logging.Level
 	LogFiles      bool
+	SwarmPort     string
 }
 
 // NewNode creates a new TextileNode
@@ -216,6 +219,34 @@ func NewNode(config NodeConfig) (*TextileNode, error) {
 	}
 	gatewayProxy := &http.Server{
 		Addr: gwAddr.(string),
+	}
+
+	// if a specific swarm port was selected, set it in the config
+	if config.SwarmPort != "" {
+		log.Infof("using specified swarm port: %s", config.SwarmPort)
+		if err := tconfig.Update(repo, "Addresses.Swarm", []string{
+			fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", config.SwarmPort),
+			fmt.Sprintf("/ip6/::/tcp/%s", config.SwarmPort),
+		}); err != nil {
+			return nil, err
+		}
+	}
+
+	// if this is a server node, apply the ipfs server profile
+	if config.IsServer {
+		if err := tconfig.Update(repo, "Addresses.NoAnnounce", tconfig.DefaultServerFilters); err != nil {
+			return nil, err
+		}
+		if err := tconfig.Update(repo, "Swarm.AddrFilters", tconfig.DefaultServerFilters); err != nil {
+			return nil, err
+		}
+		if err := tconfig.Update(repo, "Swarm.EnableRelayHop", true); err != nil {
+			return nil, err
+		}
+		if err := tconfig.Update(repo, "Discovery.MDNS.Enabled", false); err != nil {
+			return nil, err
+		}
+		log.Info("applied server profile")
 	}
 
 	// clean central api url

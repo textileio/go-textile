@@ -24,7 +24,7 @@ import (
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
 
-// PrintSwarmAddrs prints the addresses of the host
+// printSwarmAddrs prints the addresses of the host
 func printSwarmAddrs(node *core.IpfsNode) error {
 	if !node.OnlineMode() {
 		log.Info("swarm not listening, running in offline mode")
@@ -117,6 +117,7 @@ func runGC(ctx context.Context, node *core.IpfsNode) (<-chan error, error) {
 	return errc, nil
 }
 
+// createMnemonic creates a new mnemonic phrase with given entropy
 func createMnemonic(newEntropy func(int) ([]byte, error), newMnemonic func([]byte) (string, error)) (string, error) {
 	entropy, err := newEntropy(256)
 	if err != nil {
@@ -129,6 +130,7 @@ func createMnemonic(newEntropy func(int) ([]byte, error), newMnemonic func([]byt
 	return mnemonic, nil
 }
 
+// identityKeyFromSeed returns a new key identity from a seed
 func identityKeyFromSeed(seed []byte, bits int) ([]byte, error) {
 	hm := hmac.New(sha256.New, []byte("scythian horde"))
 	hm.Write(seed)
@@ -144,6 +146,7 @@ func identityKeyFromSeed(seed []byte, bits int) ([]byte, error) {
 	return encodedKey, nil
 }
 
+// connectToPubSubPeers tries to find other peers that share current subscriptions
 func connectToPubSubPeers(ctx context.Context, n *core.IpfsNode, cid *cid.Cid) {
 	provs := n.Routing.FindProvidersAsync(ctx, cid, 10)
 	wg := &sync.WaitGroup{}
@@ -165,6 +168,7 @@ func connectToPubSubPeers(ctx context.Context, n *core.IpfsNode, cid *cid.Cid) {
 	wg.Wait()
 }
 
+// parsePeerParam takes a peer address string and returns p2p params
 func parsePeerParam(text string) (ma.Multiaddr, peer.ID, error) {
 	// to be replaced with just multiaddr parsing, once ptp is a multiaddr protocol
 	idx := strings.LastIndex(text, "/")
