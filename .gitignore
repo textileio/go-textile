@@ -66,4 +66,4 @@ dist
 *.pem
 
 # Swarm
-docker-compose.yml
+docker-compose.swarm.yml
