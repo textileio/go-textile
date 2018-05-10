@@ -8,18 +8,26 @@ jobs:
     steps:
       - checkout
       - run: dep ensure
+      - run: go get -u github.com/kardianos/govendor
       - run:
-          name: vendor central
+          name: install central
           command: |
             cd central
-            go get -u github.com/kardianos/govendor
             govendor init
             govendor add +external
             go install -v ./...
       - run:
-          name: run central and test all
+          name: install relay
+          command: |
+            cd relay
+            govendor init
+            govendor add +external
+            go install -v ./...
+      - run:
+          name: run and test all
           command: |
             central &
+            relay &
             sleep 5
             ./test_compile.sh
           environment:
