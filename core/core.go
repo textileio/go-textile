@@ -57,9 +57,11 @@ var log = logging.MustGetLogger("core")
 
 var Node *TextileNode
 
-const roomRepublishInterval = time.Minute
+const roomRepublishInterval = time.Minute * 1
 const pingRelayInterval = time.Second * 30
-const pingTimeout = 10 * time.Second
+const pingTimeout = time.Second * 10
+const pinTimeout = time.Minute * 1
+const catTimeout = time.Second * 30
 
 // ErrNodeRunning is an error for when node start is called on a running node
 var ErrNodeRunning = errors.New("node is already running")
@@ -888,12 +890,13 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string, caption 
 	}
 
 	// publish
-	log.Debugf("publishing update to %s...", a.Id)
-	err = t.IpfsNode.Floodsub.Publish(a.Id, []byte(mr.Boundary))
-	if err != nil {
-		log.Errorf("error publishing photo update: %s", err)
-		return nil, err
-	}
+	go func() {
+		err = t.IpfsNode.Floodsub.Publish(a.Id, []byte(mr.Boundary))
+		if err != nil {
+			log.Errorf("error publishing photo update: %s", err)
+		}
+		log.Debugf("published update to %s", a.Id)
+	}()
 
 	return mr, nil
 }
@@ -1338,10 +1341,13 @@ func (t *TextileNode) republishLatestUpdates() {
 		latest := recent[0].Cid
 
 		// publish it
-		log.Debugf("re-publishing %s to %s...", latest, a.Id)
-		if err := t.IpfsNode.Floodsub.Publish(a.Id, []byte(latest)); err != nil {
-			log.Errorf("error re-publishing update: %s", err)
-		}
+		go func() {
+			log.Debugf("starting re-publish...")
+			if err := t.IpfsNode.Floodsub.Publish(a.Id, []byte(latest)); err != nil {
+				log.Errorf("error re-publishing update: %s", err)
+			}
+			log.Debugf("re-published %s to %s", latest, a.Id)
+		}()
 	}
 }
 
@@ -1394,7 +1400,9 @@ func (t *TextileNode) getDataAtPath(path string) ([]byte, error) {
 	}
 
 	api := coreapi.NewCoreAPI(t.IpfsNode)
-	r, err := api.Unixfs().Cat(t.IpfsNode.Context(), ip)
+	ctx, cancel := context.WithTimeout(t.IpfsNode.Context(), catTimeout)
+	defer cancel()
+	r, err := api.Unixfs().Cat(ctx, ip)
 	if err != nil {
 		return nil, err
 	}
@@ -1527,7 +1535,7 @@ func (t *TextileNode) pinPath(path string, api iface.CoreAPI, recursive bool) er
 		log.Errorf("error pinning path: %s, recursive: %t: %s", path, recursive, err)
 		return err
 	}
-	ctx, cancel := context.WithTimeout(t.IpfsNode.Context(), time.Minute)
+	ctx, cancel := context.WithTimeout(t.IpfsNode.Context(), pinTimeout)
 	defer cancel()
 	return api.Pin().Add(ctx, ip, api.Pin().WithRecursive(recursive))
 }

@@ -110,10 +110,13 @@ func main() {
 
 func relayLatest(ipfs *core.IpfsNode) {
 	for from, update := range updateCache {
-		log.Debugf("relaying update %s from %s", update, from)
 		msg := fmt.Sprintf("relay:%s", update)
-		if err := ipfs.Floodsub.Publish(relayThread, []byte(msg)); err != nil {
-			log.Errorf("error relaying update: %s", err)
-		}
+		go func() {
+			log.Debug("starting relay...")
+			if err := ipfs.Floodsub.Publish(relayThread, []byte(msg)); err != nil {
+				log.Errorf("error relaying update: %s", err)
+			}
+			log.Debugf("relayed update %s from %s", update, from)
+		}()
 	}
 }
