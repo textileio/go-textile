@@ -1244,7 +1244,7 @@ func (t *TextileNode) registerGatewayHandler() {
 		}
 	}()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		username, password, ok := r.BasicAuth()
+		_, password, ok := r.BasicAuth()
 		log.Debugf("gateway request: %s", r.URL.RequestURI())
 		if ok == false {
 			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
@@ -1262,7 +1262,7 @@ func (t *TextileNode) registerGatewayHandler() {
 
 		ci := strings.Join(tmp[2:], "/")
 		if password != t.HashPasses[ci] {
-			log.Debugf("wrong password: %s", ci, t.HashPasses[username])
+			log.Debugf("wrong password: %s", ci, t.HashPasses[ci])
 			w.WriteHeader(401)
 			return
 		}
