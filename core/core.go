@@ -1262,7 +1262,7 @@ func (t *TextileNode) registerGatewayHandler() {
 
 		ci := strings.Join(tmp[2:], "/")
 		if password != t.HashPasses[ci] {
-			log.Debugf("wrong password: %s", ci, t.HashPasses[username])
+			log.Debugf("wrong password: %s", ci, t.HashPasses[ci])
 			w.WriteHeader(401)
 			return
 		}
