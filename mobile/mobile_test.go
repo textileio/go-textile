@@ -15,6 +15,12 @@ import (
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
+type TestMessenger struct {
+	Messenger
+}
+
+func (tm *TestMessenger) Notify(update *core.ThreadUpdate) {}
+
 var wrapper *Wrapper
 var hash string
 
@@ -24,8 +30,13 @@ var cemail = ksuid.New().String() + "@textile.io"
 
 func TestNewTextile(t *testing.T) {
 	os.RemoveAll("testdata/.ipfs")
+	config := &NodeConfig{
+		RepoPath:      "testdata/.ipfs",
+		CentralApiURL: util.CentralApiURL,
+		LogLevel:      "DEBUG",
+	}
 	var err error
-	wrapper, err = NewNode("testdata/.ipfs", util.CentralApiURL, "DEBUG")
+	wrapper, err = NewNode(config, &TestMessenger{})
 	if err != nil {
 		t.Errorf("create mobile node failed: %s", err)
 	}
@@ -181,7 +192,7 @@ func TestWrapper_GetPeerID(t *testing.T) {
 }
 
 func TestWrapper_PairDesktop(t *testing.T) {
-	_, pk, err := libp2p.GenerateKeyPair(libp2p.RSA, 4096)
+	_, pk, err := libp2p.GenerateKeyPair(libp2p.Ed25519, 1024)
 	if err != nil {
 		t.Errorf("create rsa keypair failed: %s", err)
 	}

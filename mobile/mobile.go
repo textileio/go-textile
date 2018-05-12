@@ -18,41 +18,54 @@ import (
 
 var log = logging.MustGetLogger("mobile")
 
+// Messenger is used to inform the bridge layer of new data waiting to be queried
+type Messenger interface {
+	Notify(update *tcore.ThreadUpdate)
+}
+
 // Wrapper is the object exposed in the frameworks
 type Wrapper struct {
-	RepoPath string
+	RepoPath  string
+	messenger Messenger
+}
+
+// NodeConfig is used to configure the mobile node
+type NodeConfig struct {
+	RepoPath      string
+	CentralApiURL string
+	LogLevel      string
 }
 
 // NewNode is the mobile entry point for creating a node
 // NOTE: logLevel is one of: CRITICAL ERROR WARNING NOTICE INFO DEBUG
-func NewNode(repoPath string, centralApiURL string, logLevel string) (*Wrapper, error) {
+func NewNode(config *NodeConfig, messenger Messenger) (*Wrapper, error) {
 	var m Mobile
-	return m.NewNode(repoPath, centralApiURL, logLevel)
+	return m.NewNode(config, messenger)
 }
 
 // Mobile is the name of the framework (must match package name)
 type Mobile struct{}
 
 // Create a gomobile compatible wrapper around TextileNode
-func (m *Mobile) NewNode(repoPath string, centralApiURL string, logLevel string) (*Wrapper, error) {
-	ll, err := logging.LogLevel(logLevel)
+func (m *Mobile) NewNode(config *NodeConfig, messenger Messenger) (*Wrapper, error) {
+	ll, err := logging.LogLevel(config.LogLevel)
 	if err != nil {
 		ll = logging.INFO
 	}
-	config := tcore.NodeConfig{
-		RepoPath:      repoPath,
-		CentralApiURL: centralApiURL,
+	cconfig := tcore.NodeConfig{
+		RepoPath:      config.RepoPath,
+		CentralApiURL: config.CentralApiURL,
 		IsMobile:      true,
 		LogLevel:      ll,
 		LogFiles:      true,
 	}
-	node, err := tcore.NewNode(config)
+	node, err := tcore.NewNode(cconfig)
 	if err != nil {
 		return nil, err
 	}
 	tcore.Node = node
 
-	return &Wrapper{RepoPath: repoPath}, nil
+	return &Wrapper{RepoPath: config.RepoPath, messenger: messenger}, nil
 }
 
 // Start the mobile node
@@ -65,10 +78,8 @@ func (w *Wrapper) Start() error {
 	}
 
 	// join existing rooms
-	albums := tcore.Node.Datastore.Albums().GetAlbums("")
-	datacs := make([]chan string, len(albums))
-	for i, a := range albums {
-		go tcore.Node.JoinRoom(a.Id, datacs[i])
+	for _, album := range tcore.Node.Datastore.Albums().GetAlbums("") {
+		w.joinRoom(album.Id)
 	}
 
 	return nil
@@ -246,10 +257,29 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 	log.Infof("published key phrase to desktop: %s", topic)
 
 	// try a ping
-	err = tcore.Node.PingPeer(topic, 1, make(chan string))
-	if err != nil {
-		log.Errorf("ping %s failed: %s", topic, err)
-	}
+	go func() {
+		err = tcore.Node.PingPeer(topic, 1, make(chan string))
+		if err != nil {
+			log.Errorf("ping %s failed: %s", topic, err)
+		}
+	}()
 
 	return topic, nil
+}
+
+// joinRoom and pass updates to messenger
+func (w *Wrapper) joinRoom(id string) {
+	datac := make(chan tcore.ThreadUpdate)
+	go tcore.Node.JoinRoom(id, datac)
+	go func() {
+		for {
+			select {
+			case update, ok := <-datac:
+				if !ok {
+					return
+				}
+				w.messenger.Notify(&update)
+			}
+		}
+	}()
 }

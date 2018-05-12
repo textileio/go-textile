@@ -56,6 +56,7 @@ func main() {
 
 	// create ticker for relaying updates
 	ticker := time.NewTicker(relayInterval)
+	defer ticker.Stop()
 	go func() {
 		for range ticker.C {
 			relayLatest(node.IpfsNode)
@@ -69,7 +70,8 @@ func main() {
 	}
 	log.Infof("joined room %s as relay buddy\n", relayThread)
 
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	for {
 		// unload new message
 		msg, err := sub.Next(ctx)
@@ -110,13 +112,13 @@ func main() {
 
 func relayLatest(ipfs *core.IpfsNode) {
 	for from, update := range updateCache {
-		msg := fmt.Sprintf("relay:%s", update)
-		go func() {
+		go func(from string, update string) {
 			log.Debug("starting relay...")
+			msg := fmt.Sprintf("relay:%s", update)
 			if err := ipfs.Floodsub.Publish(relayThread, []byte(msg)); err != nil {
 				log.Errorf("error relaying update: %s", err)
 			}
 			log.Debugf("relayed update %s from %s", update, from)
-		}()
+		}(from, update)
 	}
 }
