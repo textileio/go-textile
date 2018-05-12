@@ -53,7 +53,7 @@ func CreateAlbum(c *ishell.Context) {
 		return
 	}
 
-	go core.Node.JoinRoom(a.Id, make(chan string))
+	JoinRoom(c, a.Id)
 
 	cyan := color.New(color.FgCyan).SprintFunc()
 	c.Println(cyan(fmt.Sprintf("created thread #%s", name)))
@@ -77,7 +77,7 @@ func EnableAlbum(c *ishell.Context) {
 		return
 	}
 
-	go core.Node.JoinRoom(a.Id, make(chan string))
+	JoinRoom(c, a.Id)
 
 	c.Printf("ok, now enabled: %s\n", a.Id)
 }
@@ -183,4 +183,24 @@ func ListAlbumPeers(c *ishell.Context) {
 	for _, peer := range list {
 		c.Println(green(peer))
 	}
+}
+
+func JoinRoom(shell ishell.Actions, id string) {
+	cyan := color.New(color.FgCyan).SprintFunc()
+	datac := make(chan core.ThreadUpdate)
+	go core.Node.JoinRoom(id, datac)
+	go func() {
+		for {
+			select {
+			case update, ok := <-datac:
+				if !ok {
+					return
+				}
+				msg := fmt.Sprintf("\nnew photo %s in %s thread", update.Cid, update.Thread)
+				shell.ShowPrompt(false)
+				shell.Printf(cyan(msg))
+				shell.ShowPrompt(true)
+			}
+		}
+	}()
 }
