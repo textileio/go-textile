@@ -18,9 +18,26 @@ import (
 
 var log = logging.MustGetLogger("mobile")
 
+// Message is a generic go -> bridge message structure
+type Event struct {
+	Name    string `json:"name"`
+	Payload string `json:"payload"`
+}
+
+// newEvent transforms an event name and structured data in Event
+func newEvent(name string, payload map[string]interface{}) *Event {
+	event := &Event{Name: name}
+	jsonb, err := json.Marshal(payload)
+	if err != nil {
+		log.Errorf("error creating event data json: %s", err)
+	}
+	event.Payload = string(jsonb)
+	return event
+}
+
 // Messenger is used to inform the bridge layer of new data waiting to be queried
 type Messenger interface {
-	Notify(update *tcore.ThreadUpdate)
+	Notify(event *Event)
 }
 
 // Wrapper is the object exposed in the frameworks
@@ -278,7 +295,11 @@ func (w *Wrapper) joinRoom(id string) {
 				if !ok {
 					return
 				}
-				w.messenger.Notify(&update)
+				w.messenger.Notify(newEvent("onThreadUpdate", map[string]interface{}{
+					"cid":       update.Cid,
+					"thread":    update.Thread,
+					"thread_id": update.ThreadID,
+				}))
 			}
 		}
 	}()

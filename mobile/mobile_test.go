@@ -19,7 +19,7 @@ type TestMessenger struct {
 	Messenger
 }
 
-func (tm *TestMessenger) Notify(update *core.ThreadUpdate) {}
+func (tm *TestMessenger) Notify(event *Event) {}
 
 var wrapper *Wrapper
 var hash string
