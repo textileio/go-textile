@@ -136,10 +136,6 @@ func TestTextileNode_WaitForRoom(t *testing.T) {
 	// TODO
 }
 
-func TestTextileNode_ConnectToRoomPeers(t *testing.T) {
-	// TODO
-}
-
 func TestTextileNode_CreateAlbum(t *testing.T) {
 	err := node.CreateAlbum("", "test")
 	if err != nil {

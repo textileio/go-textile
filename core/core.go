@@ -12,7 +12,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -44,7 +43,6 @@ import (
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	"gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
 
 const (
@@ -414,28 +412,6 @@ func (t *TextileNode) Start() error {
 	return nil
 }
 
-// StartGarbageCollection starts auto garbage cleanup
-// TODO: verify this is finding the correct repo, might be using IPFS_PATH
-func (t *TextileNode) StartGarbageCollection() (<-chan error, error) {
-	if !t.Online() {
-		return nil, ErrNodeNotRunning
-	}
-	if t.isMobile {
-		return nil, errors.New("services not available on mobile")
-	}
-
-	// repo blockstore GC
-	var gcErrc <-chan error
-	var err error
-	gcErrc, err = runGC(t.IpfsNode.Context(), t.IpfsNode)
-	if err != nil {
-		log.Errorf("error starting gc: %s", err)
-		return nil, err
-	}
-
-	return gcErrc, nil
-}
-
 // Stop the node
 func (t *TextileNode) Stop() error {
 	t.mux.Lock()
@@ -486,6 +462,28 @@ func (t *TextileNode) Stop() error {
 
 func (t *TextileNode) Online() bool {
 	return t.fresh || t.IpfsNode != nil
+}
+
+// StartGarbageCollection starts auto garbage cleanup
+// TODO: verify this is finding the correct repo, might be using IPFS_PATH
+func (t *TextileNode) StartGarbageCollection() (<-chan error, error) {
+	if !t.Online() {
+		return nil, ErrNodeNotRunning
+	}
+	if t.isMobile {
+		return nil, errors.New("services not available on mobile")
+	}
+
+	// repo blockstore GC
+	var gcErrc <-chan error
+	var err error
+	gcErrc, err = runGC(t.IpfsNode.Context(), t.IpfsNode)
+	if err != nil {
+		log.Errorf("error starting gc: %s", err)
+		return nil, err
+	}
+
+	return gcErrc, nil
 }
 
 // SignUp requests a new username and token from the central api and saves them locally
@@ -740,49 +738,6 @@ func (t *TextileNode) WaitForRoom() {
 			return
 		}
 	}
-}
-
-// ConnectToRoomPeers on a given topic
-func (t *TextileNode) ConnectToRoomPeers(topic string) context.CancelFunc {
-	if !t.Online() {
-		return nil
-	}
-
-	blk := blocks.NewBlock([]byte("floodsub:" + topic))
-	err := t.IpfsNode.Blocks.AddBlock(blk)
-	if err != nil {
-		log.Error("pubsub discovery: ", err)
-		return nil
-	}
-
-	ctx, cancel := context.WithCancel(t.IpfsNode.Context())
-	go connectToPubSubPeers(ctx, t.IpfsNode, blk.Cid())
-
-	return cancel
-}
-
-// GatewayPort requests the active gateway port
-func (t *TextileNode) GatewayPort() (int, error) {
-	// TODO: node does not really need to be online, but we're currently determining the port in Start
-	if !t.Online() {
-		return -1, ErrNodeNotRunning
-	}
-	// Get config and set address to raw gateway address plus one thousand,
-	// so a raw gateway on 8182 means this will run on 9182
-	cfg, err := t.Context.GetConfig()
-	if err != nil {
-		log.Errorf("get gateway port failed: %s", err)
-		return -1, err
-	}
-	tmp := strings.Split(cfg.Addresses.Gateway, "/")
-	gaddrs := tmp[len(tmp)-1]
-	gaddr, err := strconv.ParseInt(gaddrs, 10, 64)
-	if err != nil {
-		log.Errorf("get address failed: %s", err)
-		return -1, err
-	}
-	port := gaddr + 1000
-	return int(port), nil
 }
 
 // CreateAlbum creates an album with a given name and mnemonic words
@@ -1339,6 +1294,9 @@ func (t *TextileNode) startRepublishing() {
 
 	// we can stop when the node stops
 	for {
+		if !t.Online() {
+			return
+		}
 		select {
 		case <-t.IpfsNode.Context().Done():
 			log.Info("republishing stopped")
@@ -1402,6 +1360,9 @@ func (t *TextileNode) startPingingRelay() {
 
 	// we can stop when the node stops
 	for {
+		if !t.Online() {
+			return
+		}
 		select {
 		case <-t.IpfsNode.Context().Done():
 			log.Info("pinging relay stopped")

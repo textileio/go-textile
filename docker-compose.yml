@@ -22,4 +22,4 @@ services:
     ports:
       - "4001:4001"
     environment:
-      - RELAY=QmPnQL1qT4cxWhUDwYHFKXVU9zXiwnU4anT22JTEj8cXnC
+      - RELAY=okaydokay
