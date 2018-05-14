@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/op/go-logging"
@@ -113,6 +114,9 @@ type TextileNode struct {
 
 	// Whether or not we've just inited, and never run, a "fresh" node :)
 	fresh bool
+
+	// Mutex for controlling lifecycle
+	mux sync.Mutex
 
 	// Captures stdout from ipfs packages
 	stdOutLogger *util.StdOutLogger
@@ -312,6 +316,8 @@ func NewNode(config NodeConfig) (*TextileNode, error) {
 
 // Start the node
 func (t *TextileNode) Start() error {
+	t.mux.Lock()
+	defer t.mux.Unlock()
 	t.fresh = false
 	if t.Online() {
 		return ErrNodeRunning
@@ -343,6 +349,7 @@ func (t *TextileNode) Start() error {
 	}
 
 	// start the ipfs node
+	log.Debug("creating an ipfs node...")
 	cctx, cancel := context.WithCancel(context.Background())
 	t.Cancel = cancel
 	nd, err := core.NewNode(cctx, t.ipfsConfig)
@@ -431,6 +438,8 @@ func (t *TextileNode) StartGarbageCollection() (<-chan error, error) {
 
 // Stop the node
 func (t *TextileNode) Stop() error {
+	t.mux.Lock()
+	defer t.mux.Unlock()
 	if !t.Online() {
 		return ErrNodeNotRunning
 	}
