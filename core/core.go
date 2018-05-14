@@ -302,7 +302,7 @@ func NewNode(config NodeConfig) (*TextileNode, error) {
 	// TODO: remove this post beta
 	ba := node.Datastore.Albums().GetAlbumByName("beta")
 	if ba == nil {
-		err = node.CreateAlbum("avoid lunch soccer wool stock evil nature nest erase enough leaf blood twenty fence soldier brave forum loyal recycle minor small pencil addict pact", "beta")
+		err = node.CreateAlbum("track soccer chapter great stove copy forum donate immune cattle boost action menu buyer mention spoon bacon boss suffer awful outdoor drum picture glance", "beta")
 		if err != nil {
 			log.Errorf("error creating beta album: %s", err)
 			return nil, err
@@ -1329,12 +1329,9 @@ func (t *TextileNode) republishLatestUpdates() {
 }
 
 // startPingingRelay continuously pings a shared relay
-// TODO: do not hardcode relay address here
 func (t *TextileNode) startPingingRelay() {
-	relay := "QmTUvaGZqEu7qJw6DuTyhTgiZmZwdp7qN4FD4FFV3TGhjM"
-
 	// do it once right away
-	err := t.PingPeer(relay, 1, make(chan string))
+	err := t.PingPeer(tconfig.RemoteRelayNode, 1, make(chan string))
 	if err != nil {
 		log.Errorf("ping relay failed: %s", err)
 	}
@@ -1351,7 +1348,7 @@ func (t *TextileNode) startPingingRelay() {
 	}()
 	go func() {
 		for range ticker.C {
-			err := t.PingPeer(relay, 1, make(chan string))
+			err := t.PingPeer(tconfig.RemoteRelayNode, 1, make(chan string))
 			if err != nil {
 				log.Errorf("ping relay failed: %s", err)
 			}
