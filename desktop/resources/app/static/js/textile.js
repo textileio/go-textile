@@ -72,11 +72,11 @@ let textile = {
 
         // new photo from room
         case "sync.data":
-          let ph = [message.gateway, "ipfs", message.hash, "photo"].join("/")
-          let th = [message.gateway, "ipfs", message.hash, "thumb"].join("/")
-          let md = [message.gateway, "ipfs", message.hash, "meta"].join("/")
+          let ph = [message.gateway, "ipfs", message.update.cid, "photo"].join("/")
+          let th = [message.gateway, "ipfs", message.update.cid, "thumb"].join("/")
+          let md = [message.gateway, "ipfs", message.update.cid, "meta"].join("/")
           let img = '<img src="' + th + '" />'
-          let $item = $('<div id="' + message.hash + '" class="grid-item" ondragstart="imageDragStart(event);" draggable="true" class="grid-item" data-url="' + ph + '" data-meta="' + md + '">' + img + '</div>')
+          let $item = $('<div id="' + message.update.cid + '" class="grid-item" ondragstart="imageDragStart(event);" draggable="true" class="grid-item" data-url="' + ph + '" data-meta="' + md + '">' + img + '</div>')
           $(".grid").isotope('insert', $item)
           break
 
