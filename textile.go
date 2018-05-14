@@ -84,7 +84,7 @@ func main() {
 				c.Println("already started")
 				return
 			}
-			if err := start(); err != nil {
+			if err := start(shell); err != nil {
 				c.Println(fmt.Errorf("start desktop node failed: %s", err))
 				return
 			}
@@ -221,7 +221,7 @@ func main() {
 	core.Node = node
 
 	// auto start it
-	if err := start(); err != nil {
+	if err := start(shell); err != nil {
 		shell.Println(fmt.Errorf("start desktop node failed: %s", err))
 	}
 
@@ -232,7 +232,7 @@ func main() {
 	shell.Run()
 }
 
-func start() error {
+func start(shell *ishell.Shell) error {
 	// start node
 	if err := core.Node.Start(); err != nil {
 		return err
@@ -243,9 +243,8 @@ func start() error {
 	//go startGarbageCollection()
 
 	// join existing rooms
-	albums := core.Node.Datastore.Albums().GetAlbums("")
-	for _, a := range albums {
-		go core.Node.JoinRoom(a.Id, make(chan string))
+	for _, album := range core.Node.Datastore.Albums().GetAlbums("") {
+		cmd.JoinRoom(shell, album.Id)
 	}
 
 	return nil

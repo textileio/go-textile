@@ -48,6 +48,7 @@ _testmain.go
 .gx/
 dist
 .ipfs
+.textile
 
 # Development environment files
 .ackrc

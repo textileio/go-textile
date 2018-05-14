@@ -118,7 +118,7 @@ func TestTextileNode_JoinRoom(t *testing.T) {
 		t.Error("default album not found")
 		return
 	}
-	go node.JoinRoom(da.Id, make(chan string))
+	go node.JoinRoom(da.Id, make(chan ThreadUpdate))
 }
 
 func TestTextileNode_LeaveRoom(t *testing.T) {

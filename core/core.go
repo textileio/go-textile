@@ -55,13 +55,14 @@ var fileLogFormat = logging.MustStringFormatter(
 )
 var log = logging.MustGetLogger("core")
 
-var Node *TextileNode
-
 const roomRepublishInterval = time.Minute * 1
 const pingRelayInterval = time.Second * 30
 const pingTimeout = time.Second * 10
 const pinTimeout = time.Minute * 1
 const catTimeout = time.Second * 30
+
+// Node is the single TextileNode instance
+var Node *TextileNode
 
 // ErrNodeRunning is an error for when node start is called on a running node
 var ErrNodeRunning = errors.New("node is already running")
@@ -117,16 +118,26 @@ type TextileNode struct {
 	stdOutLogger *util.StdOutLogger
 }
 
+// PhotoList contains a list of photo hashes
 type PhotoList struct {
 	Hashes []string `json:"hashes"`
 }
 
+// HashRequest represents a single-use gateway token
 type HashRequest struct {
 	Token    string `json:"token"`
 	Protocol string `json:"protocol"`
 	Host     string `json:"host"`
 }
 
+// ThreadUpdate is used to notify listeners about updates in a thread
+type ThreadUpdate struct {
+	Cid      string `json:"cid"`
+	Thread   string `json:"thread"`
+	ThreadID string `json:"thread_id"`
+}
+
+// NodeConfig is used to configure the node
 type NodeConfig struct {
 	RepoPath      string
 	CentralApiURL string
@@ -575,7 +586,7 @@ func (t *TextileNode) GetAccessToken() (string, error) {
 }
 
 // JoinRoom with a given id
-func (t *TextileNode) JoinRoom(id string, datac chan string) {
+func (t *TextileNode) JoinRoom(id string, datac chan ThreadUpdate) {
 	if !t.Online() {
 		return
 	}
@@ -596,9 +607,8 @@ func (t *TextileNode) JoinRoom(id string, datac chan string) {
 	leave := func() {
 		cancel()
 		close(t.LeftRoomChs[id])
-
-		delete(t.leaveRoomChs, id)
 		delete(t.LeftRoomChs, id)
+		delete(t.leaveRoomChs, id)
 		log.Infof("left room: %s\n", sub.Topic())
 	}
 
@@ -623,11 +633,11 @@ func (t *TextileNode) JoinRoom(id string, datac chan string) {
 			}
 
 			// handle the update
-			go func() {
+			go func(msg *floodsub.Message) {
 				if err = t.handleRoomUpdate(msg, id, api, datac); err != nil {
 					log.Errorf("error handling room update: %s", err)
 				}
-			}()
+			}(msg)
 		}
 	}()
 
@@ -1341,13 +1351,13 @@ func (t *TextileNode) republishLatestUpdates() {
 		latest := recent[0].Cid
 
 		// publish it
-		go func() {
+		go func(id string, hash string) {
 			log.Debugf("starting re-publish...")
-			if err := t.IpfsNode.Floodsub.Publish(a.Id, []byte(latest)); err != nil {
+			if err := t.IpfsNode.Floodsub.Publish(id, []byte(hash)); err != nil {
 				log.Errorf("error re-publishing update: %s", err)
 			}
-			log.Debugf("re-published %s to %s", latest, a.Id)
-		}()
+			log.Debugf("re-published %s to %s", hash, id)
+		}(a.Id, latest)
 	}
 }
 
@@ -1412,9 +1422,14 @@ func (t *TextileNode) getDataAtPath(path string) ([]byte, error) {
 }
 
 // handleRoomUpdate tries to recursively process an update sent to a thread
-func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message, aid string, api iface.CoreAPI, datac chan string) error {
-	// unpack message
+func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message, aid string, api iface.CoreAPI, datac chan ThreadUpdate) error {
+	// unpack from
 	from := msg.GetFrom().Pretty()
+	if from == t.IpfsNode.Identity.Pretty() {
+		return nil
+	}
+
+	// unpack message data
 	data := string(msg.GetData())
 
 	// determine if this is from a relay node
@@ -1438,7 +1453,7 @@ func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message, aid string, api if
 }
 
 // handleHash tries to process an update sent to a thread
-func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, datac chan string) error {
+func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, datac chan ThreadUpdate) error {
 	// look up the album
 	a := t.Datastore.Albums().GetAlbum(aid)
 	if a == nil {
@@ -1520,7 +1535,7 @@ func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, dat
 
 	// don't block on the send since nobody might be listening
 	select {
-	case datac <- hash:
+	case datac <- ThreadUpdate{Cid: hash, Thread: a.Name, ThreadID: a.Id}:
 	default:
 	}
 

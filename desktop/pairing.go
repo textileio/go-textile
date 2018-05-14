@@ -5,6 +5,8 @@ import (
 
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilog"
+
+	"github.com/textileio/textile-go/core"
 )
 
 var albumID string
@@ -65,18 +67,18 @@ func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Me
 func joinRoom(iw *astilectron.Window) error {
 	astilog.Info("STARTING SYNC")
 
-	datac := make(chan string)
+	datac := make(chan core.ThreadUpdate)
 	go textile.JoinRoom(albumID, datac)
 	for {
 		select {
-		case hash, ok := <-datac:
-			sendData(iw, "sync.data", map[string]interface{}{
-				"hash":    hash,
-				"gateway": gateway,
-			})
+		case update, ok := <-datac:
 			if !ok {
 				return nil
 			}
+			sendData(iw, "sync.data", map[string]interface{}{
+				"update":  update,
+				"gateway": gateway,
+			})
 		}
 	}
 }
