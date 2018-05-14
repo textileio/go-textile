@@ -33,6 +33,8 @@ var textileBootstrapAddresses = []string{
 	"/ip6/2600:1f18:6061:9403:b15e:b223:3c2e:1ee9/tcp/4001/ipfs/QmTUvaGZqEu7qJw6DuTyhTgiZmZwdp7qN4FD4FFV3TGhjM",
 }
 
+var RemoteRelayNode = "QmTUvaGZqEu7qJw6DuTyhTgiZmZwdp7qN4FD4FFV3TGhjM"
+
 // DefaultServerFilters has a list of non-routable IPv4 prefixes
 // according to http://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
 var DefaultServerFilters = []string{
