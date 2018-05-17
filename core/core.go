@@ -299,16 +299,6 @@ func NewNode(config NodeConfig) (*TextileNode, error) {
 		}
 	}
 
-	// TODO: remove this post all
-	ba := node.Datastore.Albums().GetAlbumByName("all")
-	if ba == nil {
-		err = node.CreateAlbum("track soccer chapter great stove copy forum donate immune cattle boost action menu buyer mention spoon bacon boss suffer awful outdoor drum picture glance", "all")
-		if err != nil {
-			log.Errorf("error creating all album: %s", err)
-			return nil, err
-		}
-	}
-
 	return node, nil
 }
 
@@ -566,6 +556,25 @@ func (t *TextileNode) IsSignedIn() (bool, error) {
 	return err == nil, nil
 }
 
+func (t *TextileNode) JoinThread(mnemonic string, name string) error {
+
+	ba := t.Datastore.Albums().GetAlbumByName(name)
+	if ba == nil {
+		err := t.CreateAlbum(mnemonic, name)
+		if err != nil {
+			log.Errorf("error creating album %s: %s", name, err)
+			return err
+		}
+	} else {
+		err := t.UpdateAlbum(mnemonic, name)
+		if err != nil {
+			log.Errorf("error updating album %s: %s", name, err)
+			return err
+		}
+	}
+	return nil
+}
+
 // GetUsername returns the current user's username
 func (t *TextileNode) GetUsername() (string, error) {
 	// check db
@@ -740,6 +749,20 @@ func (t *TextileNode) WaitForRoom() {
 	}
 }
 
+func (t *TextileNode) UpdateAlbum(mnemonic string, name string) error {
+	if err := t.touchDB(); err != nil {
+		return err
+	}
+	log.Debugf("updating album: %s", name)
+
+	if mnemonic == "" {
+		// TODO: Return error
+	} else {
+		log.Debugf("regenerating Ed25519 keypair from mnemonic phrase for: %s", name)
+	}
+	return t.RegisterAlbum(mnemonic, name)
+}
+
 // CreateAlbum creates an album with a given name and mnemonic words
 func (t *TextileNode) CreateAlbum(mnemonic string, name string) error {
 	// check db
@@ -760,26 +783,12 @@ func (t *TextileNode) CreateAlbum(mnemonic string, name string) error {
 	} else {
 		log.Debugf("regenerating Ed25519 keypair from mnemonic phrase for: %s", name)
 	}
+	return t.RegisterAlbum(mnemonic, name)
+}
 
-	// create the bip39 seed from the phrase
-	seed := bip39.NewSeed(mnemonic, "")
-	kb, err := identityKeyFromSeed(seed, trepo.NBitsForKeypair)
+func (t *TextileNode) RegisterAlbum(mnemonic string, name string) error {
+	id, sk, err := generateIdKey(mnemonic, "")
 	if err != nil {
-		log.Errorf("error creating identity from seed: %s", err)
-		return err
-	}
-
-	// convert to a libp2p crypto private key
-	sk, err := libp2p.UnmarshalPrivateKey(kb)
-	if err != nil {
-		log.Errorf("error unmarshaling private key: %s", err)
-		return err
-	}
-
-	// we need the resultant peer id to use as the album's id
-	id, err := peer.IDFromPrivateKey(sk)
-	if err != nil {
-		log.Errorf("error getting id from priv key: %s", err)
 		return err
 	}
 

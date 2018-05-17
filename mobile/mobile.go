@@ -150,6 +150,11 @@ func (w *Wrapper) IsSignedIn() bool {
 	return si
 }
 
+// SignOut calls core SignOut
+func (w *Wrapper) JoinThread(mnemonic string, name string) error {
+	return tcore.Node.JoinThread(mnemonic, name)
+}
+
 // GetUsername calls core GetUsername
 func (w *Wrapper) GetUsername() (string, error) {
 	return tcore.Node.GetUsername()
