@@ -151,8 +151,24 @@ func (w *Wrapper) IsSignedIn() bool {
 }
 
 // SignOut calls core SignOut
-func (w *Wrapper) JoinThread(mnemonic string, name string) error {
-	return tcore.Node.JoinThread(mnemonic, name)
+func (w *Wrapper) UpdateThread(mnemonic string, name string) error {
+	if mnemonic == "" {
+		// TODO: Return error
+		return errors.New("mnemonic must not be empty")
+	}
+
+	ba := tcore.Node.Datastore.Albums().GetAlbumByName(name)
+	if ba == nil {
+		err := tcore.Node.CreateAlbum(mnemonic, name)
+		if err != nil {
+			log.Errorf("error creating album %s: %s", name, err)
+			return err
+		}
+	} else {
+		log.Debugf("updating album: %s", name)
+		return tcore.Node.RegisterAlbum(mnemonic, name)
+	}
+	return nil
 }
 
 // GetUsername calls core GetUsername
