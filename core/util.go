@@ -22,9 +22,6 @@ import (
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-
-	trepo "github.com/textileio/textile-go/repo"
-	bip39 "github.com/tyler-smith/go-bip39"
 )
 
 // printSwarmAddrs prints the addresses of the host
@@ -237,30 +234,4 @@ func mergeErrors(cs ...<-chan error) <-chan error {
 		close(out)
 	}()
 	return out
-}
-
-func generateIdKey(mnemonic string, password string) (peer.ID, libp2p.PrivKey, error) {
-	// create the bip39 seed from the phrase
-	seed := bip39.NewSeed(mnemonic, password)
-	kb, err := identityKeyFromSeed(seed, trepo.NBitsForKeypair)
-	if err != nil {
-		log.Errorf("error creating identity from seed: %s", err)
-		return "", nil, err
-	}
-
-	// convert to a libp2p crypto private key
-	sk, err := libp2p.UnmarshalPrivateKey(kb)
-	if err != nil {
-		log.Errorf("error unmarshaling private key: %s", err)
-		return "", nil, err
-	}
-
-	// we need the resultant peer id to use as the album's id
-	id, err := peer.IDFromPrivateKey(sk)
-	if err != nil {
-		log.Errorf("error getting id from priv key: %s", err)
-		return "", nil, err
-	}
-
-	return id, sk, nil
 }
