@@ -47,7 +47,7 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 	// TODO: get image size info
 	// TODO: break this up into one method with multi sub-methods for testing
 	var tm time.Time
-	var lat, lon float64 = -1, -1
+	// var lat, lon float64 = -1, -1
 	x, err := exif.Decode(p)
 	if err == nil {
 		// time taken
@@ -56,11 +56,11 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 			tm = tmTmp
 		}
 
-		// coords taken
-		latTmp, lonTmp, ok := x.LatLong()
-		if ok {
-			lat, lon = latTmp, lonTmp
-		}
+		// // coords taken
+		// latTmp, lonTmp, ok := x.LatLong()
+		// if ok {
+		// 	lat, lon = latTmp, lonTmp
+		// }
 	}
 
 	// create a metadata file
@@ -72,10 +72,11 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 		Created:  tm,
 		Added:    time.Now(),
 	}
-	if lat != -1 && lon != -1 {
-		md.Latitude = lat
-		md.Longitude = lon
-	}
+	// disabling coords for now
+	// if lat != -1 && lon != -1 {
+	// 	md.Latitude = lat
+	// 	md.Longitude = lon
+	// }
 	mdb, err := json.Marshal(md)
 	if err != nil {
 		return nil, nil, err
