@@ -777,8 +777,25 @@ func (t *TextileNode) CreateAlbum(mnemonic string, name string) error {
 }
 
 func (t *TextileNode) RegisterAlbum(mnemonic string, name string) error {
-	id, sk, err := generateIdKey(mnemonic, "")
+	// create the bip39 seed from the phrase
+	seed := bip39.NewSeed(mnemonic, "")
+	kb, err := identityKeyFromSeed(seed, trepo.NBitsForKeypair)
 	if err != nil {
+		log.Errorf("error creating identity from seed: %s", err)
+		return err
+	}
+
+	// convert to a libp2p crypto private key
+	sk, err := libp2p.UnmarshalPrivateKey(kb)
+	if err != nil {
+		log.Errorf("error unmarshaling private key: %s", err)
+		return err
+	}
+
+	// we need the resultant peer id to use as the album's id
+	id, err := peer.IDFromPrivateKey(sk)
+	if err != nil {
+		log.Errorf("error getting id from priv key: %s", err)
 		return err
 	}
 
