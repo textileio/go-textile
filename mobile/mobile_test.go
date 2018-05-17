@@ -88,6 +88,19 @@ func TestWrapper_IsSignedIn(t *testing.T) {
 	}
 }
 
+func TestWrapper_UpdateThread(t *testing.T) {
+	err := wrapper.UpdateThread("", "all")
+	if err == nil {
+		t.Errorf("update thread with blank mnemonic: %s", "all")
+		return
+	}
+	err = wrapper.UpdateThread("I AM A DEVELOPER WHO USES WEAK MNEMONICS", "all")
+	if err != nil {
+		t.Errorf("update thread with new mnemonic failed: %s", err)
+		return
+	}
+}
+
 func TestWrapper_GetUsername(t *testing.T) {
 	un, err := wrapper.GetUsername()
 	if err != nil {
