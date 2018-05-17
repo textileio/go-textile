@@ -557,6 +557,13 @@ func (t *TextileNode) IsSignedIn() (bool, error) {
 }
 
 func (t *TextileNode) JoinThread(mnemonic string, name string) error {
+	if err := t.touchDB(); err != nil {
+		return err
+	}
+	if mnemonic == "" {
+		// TODO: Return error
+		return errors.New("mnemonic must not be empty")
+	}
 
 	ba := t.Datastore.Albums().GetAlbumByName(name)
 	if ba == nil {
@@ -566,11 +573,8 @@ func (t *TextileNode) JoinThread(mnemonic string, name string) error {
 			return err
 		}
 	} else {
-		err := t.UpdateAlbum(mnemonic, name)
-		if err != nil {
-			log.Errorf("error updating album %s: %s", name, err)
-			return err
-		}
+		log.Debugf("updating album: %s", name)
+		return t.RegisterAlbum(mnemonic, name)
 	}
 	return nil
 }
@@ -747,20 +751,6 @@ func (t *TextileNode) WaitForRoom() {
 			return
 		}
 	}
-}
-
-func (t *TextileNode) UpdateAlbum(mnemonic string, name string) error {
-	if err := t.touchDB(); err != nil {
-		return err
-	}
-	log.Debugf("updating album: %s", name)
-
-	if mnemonic == "" {
-		// TODO: Return error
-	} else {
-		log.Debugf("regenerating Ed25519 keypair from mnemonic phrase for: %s", name)
-	}
-	return t.RegisterAlbum(mnemonic, name)
 }
 
 // CreateAlbum creates an album with a given name and mnemonic words
