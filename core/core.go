@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -18,6 +19,8 @@ import (
 
 	"github.com/op/go-logging"
 	"github.com/segmentio/ksuid"
+	"github.com/tajtiattila/metadata/exif"
+	"github.com/tajtiattila/metadata/exif/exiftag"
 	"github.com/tyler-smith/go-bip39"
 	"gopkg.in/natefinch/lumberjack.v2"
 
@@ -877,6 +880,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string, caption 
 
 // SharePhoto re-encrypts a photo from an existing album and shares it into a different album
 // TODO: Make this available offline
+// TODO: Currently it _automatically_ strips sensitive GPS exif data, make this configurable
 func (t *TextileNode) SharePhoto(hash string, album string, caption string) (*net.MultipartRequest, error) {
 	if !t.Online() {
 		return nil, ErrNodeNotRunning
@@ -914,20 +918,50 @@ func (t *TextileNode) SharePhoto(hash string, album string, caption string) (*ne
 	// temp write to disk
 	ppath := filepath.Join(t.RepoPath, "tmp", set.MetaData.Name+set.MetaData.Ext)
 	tpath := filepath.Join(t.RepoPath, "tmp", "thumb_"+set.MetaData.Name+set.MetaData.Ext)
-	err = ioutil.WriteFile(ppath, pb, 0644)
+
+	f, err := os.OpenFile(ppath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return nil, err
 	}
+
+	// extract exif data from photo bytes
+	x, err := exif.DecodeBytes(pb)
+
+	if err != nil {
+		log.Warningf("error extracting exif data: %s", err)
+		// just write the photo buffer directly to file
+		if _, err = f.Write(pb); err != nil {
+			return nil, err
+		}
+	} else {
+		// strip sensitive GPS tags
+		x.Set(exiftag.GPSLatitudeRef, nil)
+		x.Set(exiftag.GPSLatitude, nil)
+		x.Set(exiftag.GPSLongitudeRef, nil)
+		x.Set(exiftag.GPSLongitude, nil)
+		x.Set(exiftag.GPSAltitudeRef, nil)
+		x.Set(exiftag.GPSAltitude, nil)
+		x.Set(exiftag.GPSDateStamp, nil)
+		x.Set(exiftag.GPSTimeStamp, nil)
+		// copy photo buffer data to file, replacing exif with x
+		if err := exif.Copy(f, bytes.NewReader(pb), x); err != nil {
+			return nil, err
+		}
+	}
+
 	defer func() {
-		err := os.Remove(ppath)
+		err = os.Remove(ppath)
 		if err != nil {
 			log.Errorf("error cleaning up shared photo path: %s", ppath)
 		}
 	}()
+
+	// thumb data can be safely written directly to file
 	err = ioutil.WriteFile(tpath, tb, 0644)
 	if err != nil {
 		return nil, err
 	}
+
 	defer func() {
 		err = os.Remove(tpath)
 		if err != nil {
