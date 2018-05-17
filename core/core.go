@@ -556,29 +556,6 @@ func (t *TextileNode) IsSignedIn() (bool, error) {
 	return err == nil, nil
 }
 
-func (t *TextileNode) JoinThread(mnemonic string, name string) error {
-	if err := t.touchDB(); err != nil {
-		return err
-	}
-	if mnemonic == "" {
-		// TODO: Return error
-		return errors.New("mnemonic must not be empty")
-	}
-
-	ba := t.Datastore.Albums().GetAlbumByName(name)
-	if ba == nil {
-		err := t.CreateAlbum(mnemonic, name)
-		if err != nil {
-			log.Errorf("error creating album %s: %s", name, err)
-			return err
-		}
-	} else {
-		log.Debugf("updating album: %s", name)
-		return t.RegisterAlbum(mnemonic, name)
-	}
-	return nil
-}
-
 // GetUsername returns the current user's username
 func (t *TextileNode) GetUsername() (string, error) {
 	// check db
