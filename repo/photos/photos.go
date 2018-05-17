@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rwcarlsen/goexif/exif"
+	"github.com/tajtiattila/metadata/exif"
 	"github.com/textileio/textile-go/net"
 
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
@@ -51,14 +51,14 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 	x, err := exif.Decode(p)
 	if err == nil {
 		// time taken
-		tmTmp, err := x.DateTime()
-		if err == nil {
+		tmTmp, ok := x.DateTime()
+		if ok {
 			tm = tmTmp
 		}
 
 		// coords taken
-		latTmp, lonTmp, err := x.LatLong()
-		if err == nil {
+		latTmp, lonTmp, ok := x.LatLong()
+		if ok {
 			lat, lon = latTmp, lonTmp
 		}
 	}
