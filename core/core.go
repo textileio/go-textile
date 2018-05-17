@@ -924,11 +924,13 @@ func (t *TextileNode) SharePhoto(hash string, album string, caption string) (*ne
 		return nil, err
 	}
 
-	// extract exif data from photo bytes
-	x, err := exif.DecodeBytes(pb)
+	// create reader over photo bytes
+	pr := bytes.NewReader(pb)
 
+	// extract exif data from photo bytes
+	x, err := exif.Decode(pr)
 	if err != nil {
-		log.Warningf("error extracting exif data: %s", err)
+		log.Debugf("error extracting exif data: %s", err)
 		// just write the photo buffer directly to file
 		if _, err = f.Write(pb); err != nil {
 			return nil, err
@@ -944,7 +946,8 @@ func (t *TextileNode) SharePhoto(hash string, album string, caption string) (*ne
 		x.Set(exiftag.GPSDateStamp, nil)
 		x.Set(exiftag.GPSTimeStamp, nil)
 		// copy photo buffer data to file, replacing exif with x
-		if err := exif.Copy(f, bytes.NewReader(pb), x); err != nil {
+		pr.Seek(0, 0) // rewind buffer reader
+		if err = exif.Copy(f, pr, x); err != nil {
 			return nil, err
 		}
 	}
@@ -1252,13 +1255,13 @@ func (t *TextileNode) registerGatewayHandler() {
 		}
 	}()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		_, password, ok := r.BasicAuth()
+		// _, password, ok := r.BasicAuth()
 		log.Debugf("gateway request: %s", r.URL.RequestURI())
-		if ok == false {
-			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
-			w.WriteHeader(401)
-			return
-		}
+		// if ok == false {
+		// w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+		// w.WriteHeader(401)
+		// return
+		// }
 
 		// parse root hash of path
 		tmp := strings.Split(r.URL.Path, "/")
@@ -1268,12 +1271,12 @@ func (t *TextileNode) registerGatewayHandler() {
 			return
 		}
 
-		ci := strings.Join(tmp[2:], "/")
-		if password != t.HashPasses[ci] {
-			log.Debugf("wrong password: %s", ci, t.HashPasses[ci])
-			w.WriteHeader(401)
-			return
-		}
+		// ci := strings.Join(tmp[2:], "/")
+		// if password != t.HashPasses[ci] {
+		// 	log.Debugf("wrong password: %s", ci, t.HashPasses[ci])
+		// 	w.WriteHeader(401)
+		// 	return
+		// }
 
 		// invalidate previous password
 		// t.HashPasses[username] = ksuid.New().String()
