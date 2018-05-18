@@ -25,7 +25,7 @@ func (c *AlbumDB) Put(album *repo.PhotoAlbum) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert or replace into albums(id, key, mnemonic, name) values(?,?,?,?)`
+	stm := `insert into albums(id, key, mnemonic, name) values(?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)

@@ -750,10 +750,7 @@ func (t *TextileNode) CreateAlbum(mnemonic string, name string) error {
 	} else {
 		log.Debugf("regenerating Ed25519 keypair from mnemonic phrase for: %s", name)
 	}
-	return t.RegisterAlbum(mnemonic, name)
-}
 
-func (t *TextileNode) RegisterAlbum(mnemonic string, name string) error {
 	// create the bip39 seed from the phrase
 	seed := bip39.NewSeed(mnemonic, "")
 	kb, err := identityKeyFromSeed(seed, trepo.NBitsForKeypair)
@@ -784,6 +781,11 @@ func (t *TextileNode) RegisterAlbum(mnemonic string, name string) error {
 		Name:     name,
 	}
 	return t.Datastore.Albums().Put(album)
+}
+
+// DeleteAlbum removes an album record by id
+func (t *TextileNode) DeleteAlbum(id string) error {
+	return t.Datastore.Albums().DeleteAlbum(id)
 }
 
 // AddPhoto adds a photo and its thumbnail to an album
