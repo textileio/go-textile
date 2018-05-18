@@ -1,4 +1,4 @@
-package net
+package crypto
 
 import (
 	"crypto/rsa"

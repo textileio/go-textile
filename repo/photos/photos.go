@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/rwcarlsen/goexif/exif"
+	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/net"
 
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
@@ -80,19 +81,19 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 	if err != nil {
 		return nil, nil, err
 	}
-	cmdb, err := net.Encrypt(pk, mdb)
+	cmdb, err := crypto.Encrypt(pk, mdb)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// encrypt the last hash
-	clcb, err := net.Encrypt(pk, []byte(lc))
+	clcb, err := crypto.Encrypt(pk, []byte(lc))
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// encrypt the caption
-	ccapb, err := net.Encrypt(pk, []byte(cap))
+	ccapb, err := crypto.Encrypt(pk, []byte(cap))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -183,7 +184,7 @@ func getEncryptedReaderBytes(r io.Reader, pk libp2p.PubKey) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return net.Encrypt(pk, b)
+	return crypto.Encrypt(pk, b)
 }
 
 // addFileToDirectory adds bytes as file to a virtual directory (dag) structure

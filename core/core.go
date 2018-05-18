@@ -23,6 +23,7 @@ import (
 
 	cmodels "github.com/textileio/textile-go/central/models"
 	"github.com/textileio/textile-go/core/central"
+	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/net"
 	trepo "github.com/textileio/textile-go/repo"
 	tconfig "github.com/textileio/textile-go/repo/config"
@@ -700,7 +701,7 @@ func (t *TextileNode) WaitForRoom() {
 				log.Errorf("error unmarshaling priv peer key: %s", err)
 				return
 			}
-			p, err := net.Decrypt(sk, msg.GetData())
+			p, err := crypto.Decrypt(sk, msg.GetData())
 			if err != nil {
 				log.Errorf("error decrypting msg data: %s", err)
 				return
@@ -1008,7 +1009,7 @@ func (t *TextileNode) GetFile(path string, album *trepo.PhotoAlbum) ([]byte, err
 	}
 
 	// finally, decrypt
-	b, err := net.Decrypt(album.Key, cb)
+	b, err := crypto.Decrypt(album.Key, cb)
 	if err != nil {
 		log.Errorf("error decrypting file: %s", err)
 		return nil, err

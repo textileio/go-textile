@@ -1,4 +1,4 @@
-package net
+package crypto
 
 import (
 	"crypto/aes"
@@ -59,19 +59,19 @@ var (
 	Salt = []byte("OpenBazaar Encryption Algorithm")
 )
 
-func Encrypt(pubKey libp2p.PubKey, plaintext []byte) ([]byte, error) {
+func Encrypt(pubKey libp2p.PubKey, bytes []byte) ([]byte, error) {
 	rsaPubkey, ok := pubKey.(*libp2p.RsaPublicKey)
 	if ok {
-		return encryptRSA(rsaPubkey, plaintext)
+		return encryptRSA(rsaPubkey, bytes)
 	}
 	ed25519Pubkey, ok := pubKey.(*libp2p.Ed25519PublicKey)
 	if ok {
-		return encryptCurve25519(ed25519Pubkey, plaintext)
+		return encryptCurve25519(ed25519Pubkey, bytes)
 	}
 	return nil, errors.New("could not determine key type")
 }
 
-func encryptCurve25519(pubKey *libp2p.Ed25519PublicKey, plaintext []byte) ([]byte, error) {
+func encryptCurve25519(pubKey *libp2p.Ed25519PublicKey, bytes []byte) ([]byte, error) {
 	// Generated ephemeral key pair
 	ephemPub, ephemPriv, err := box.GenerateKey(rand.Reader)
 	if err != nil {
@@ -94,7 +94,7 @@ func encryptCurve25519(pubKey *libp2p.Ed25519PublicKey, plaintext []byte) ([]byt
 	for i := 0; i < 24; i++ {
 		nonce[i] = n[i]
 	}
-	ciphertext = box.Seal(ciphertext, plaintext, &nonce, pk, ephemPriv)
+	ciphertext = box.Seal(ciphertext, bytes, &nonce, pk, ephemPriv)
 
 	// Prepend the ephemeral public key
 	ciphertext = append(ephemPub[:], ciphertext...)
@@ -104,7 +104,7 @@ func encryptCurve25519(pubKey *libp2p.Ed25519PublicKey, plaintext []byte) ([]byt
 	return ciphertext, nil
 }
 
-func encryptRSA(pubKey *libp2p.RsaPublicKey, plaintext []byte) ([]byte, error) {
+func encryptRSA(pubKey *libp2p.RsaPublicKey, bytes []byte) ([]byte, error) {
 	// Encrypt random secret key with RSA pubkey
 	secretKey := make([]byte, SecretKeyBytes)
 	rand.Read(secretKey)
@@ -138,14 +138,14 @@ func encryptRSA(pubKey *libp2p.RsaPublicKey, plaintext []byte) ([]byte, error) {
 
 	/* The IV needs to be unique, but not secure. Therefore it is common to
 	   include it at the beginning of the ciphertext. */
-	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
+	ciphertext := make([]byte, aes.BlockSize+len(bytes))
 	iv := ciphertext[:aes.BlockSize]
 	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
 		return nil, err
 	}
 
 	stream := cipher.NewCFBEncrypter(block, iv)
-	stream.XORKeyStream(ciphertext[aes.BlockSize:], plaintext)
+	stream.XORKeyStream(ciphertext[aes.BlockSize:], bytes)
 
 	// Create the HMAC
 	mac := hmac.New(sha256.New, macKey)
