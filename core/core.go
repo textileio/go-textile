@@ -783,11 +783,6 @@ func (t *TextileNode) CreateAlbum(mnemonic string, name string) error {
 	return t.Datastore.Albums().Put(album)
 }
 
-// DeleteAlbum removes an album record by id
-func (t *TextileNode) DeleteAlbum(id string) error {
-	return t.Datastore.Albums().DeleteAlbum(id)
-}
-
 // AddPhoto adds a photo and its thumbnail to an album
 // TODO: Make this available offline
 func (t *TextileNode) AddPhoto(path string, thumb string, album string, caption string) (*net.MultipartRequest, error) {
