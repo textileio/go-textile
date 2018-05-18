@@ -35,7 +35,7 @@ func EncryptAES(bytes []byte) (string, []byte, error) {
 	return key64, ciph, nil
 }
 
-// DecryptAES used the provided key in the form described above to decrypt bytes.
+// DecryptAES used the provided 44 byte key (:32 key, 32:12 nonce) to perform AES-256 GCM decryption.
 func DecryptAES(bytes []byte, key string) ([]byte, error) {
 	keyb, err := base64.StdEncoding.DecodeString(key)
 	if err != nil {
