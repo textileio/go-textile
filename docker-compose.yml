@@ -23,3 +23,4 @@ services:
       - "4001:4001"
     environment:
       - RELAY=okaydokay
+      - SWARM_PORT=4001
