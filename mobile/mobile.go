@@ -7,13 +7,13 @@ import (
 
 	"github.com/op/go-logging"
 
+	"github.com/textileio/textile-go/central/models"
 	tcore "github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/net"
 
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-
-	"github.com/textileio/textile-go/central/models"
 )
 
 var log = logging.MustGetLogger("mobile")
@@ -277,7 +277,7 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 		return "", err
 	}
 	// encypt with the desktop's pub key
-	cph, err := net.Encrypt(pk, []byte(da.Mnemonic))
+	cph, err := crypto.Encrypt(pk, []byte(da.Mnemonic))
 	if err != nil {
 		log.Errorf("encrypt failed: %s", err)
 		return "", err
