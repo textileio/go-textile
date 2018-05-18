@@ -166,7 +166,7 @@ func (w *Wrapper) UpdateThread(mnemonic string, name string) error {
 		}
 	} else {
 		log.Debugf("removing album: %s", name)
-		tcore.Node.Datastore.Albums().DeleteAlbum(ba.Id)
+		err = tcore.Node.Datastore.Albums().DeleteAlbum(ba.Id)
 		if err != nil {
 			log.Errorf("error deleting album %s: %s", name, err)
 			return err
