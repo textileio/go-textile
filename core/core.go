@@ -747,14 +747,14 @@ func (t *TextileNode) CreateAlbum(mnemonic string, name string) error {
 			log.Errorf("error creating mnemonic: %s", err)
 			return err
 		}
-		log.Debugf("generating %v-bit Ed25519 keypair for: %s", trepo.NBitsForKeypair, name)
+		log.Debugf("generating Ed25519 keypair for: %s", name)
 	} else {
 		log.Debugf("regenerating Ed25519 keypair from mnemonic phrase for: %s", name)
 	}
 
 	// create the bip39 seed from the phrase
 	seed := bip39.NewSeed(mnemonic, "")
-	kb, err := identityKeyFromSeed(seed, trepo.NBitsForKeypair)
+	kb, err := identityKeyFromSeed(seed)
 	if err != nil {
 		log.Errorf("error creating identity from seed: %s", err)
 		return err

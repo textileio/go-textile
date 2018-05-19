@@ -9,7 +9,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	oldcmds "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/commands"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
@@ -18,10 +17,8 @@ import (
 
 	"gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
 
 // printSwarmAddrs prints the addresses of the host
@@ -131,11 +128,11 @@ func createMnemonic(newEntropy func(int) ([]byte, error), newMnemonic func([]byt
 }
 
 // identityKeyFromSeed returns a new key identity from a seed
-func identityKeyFromSeed(seed []byte, bits int) ([]byte, error) {
+func identityKeyFromSeed(seed []byte) ([]byte, error) {
 	hm := hmac.New(sha256.New, []byte("scythian horde"))
 	hm.Write(seed)
 	reader := bytes.NewReader(hm.Sum(nil))
-	sk, _, err := libp2p.GenerateKeyPairWithReader(libp2p.Ed25519, bits, reader)
+	sk, _, err := libp2p.GenerateKeyPairWithReader(libp2p.Ed25519, 4096, reader)
 	if err != nil {
 		return nil, err
 	}
@@ -144,28 +141,6 @@ func identityKeyFromSeed(seed []byte, bits int) ([]byte, error) {
 		return nil, err
 	}
 	return encodedKey, nil
-}
-
-// connectToPubSubPeers tries to find other peers that share current subscriptions
-func connectToPubSubPeers(ctx context.Context, n *core.IpfsNode, cid *cid.Cid) {
-	provs := n.Routing.FindProvidersAsync(ctx, cid, 10)
-	wg := &sync.WaitGroup{}
-	for p := range provs {
-		wg.Add(1)
-		go func(pi pstore.PeerInfo) {
-			defer wg.Done()
-			ctx, cancel := context.WithTimeout(ctx, time.Second*10)
-			defer cancel()
-			err := n.PeerHost.Connect(ctx, pi)
-			if err != nil {
-				log.Errorf("pubsub discover: %s", err)
-				return
-			}
-			log.Infof("connected to pubsub peer: %s", pi.ID.Pretty())
-		}(p)
-	}
-
-	wg.Wait()
 }
 
 // parsePeerParam takes a peer address string and returns p2p params
