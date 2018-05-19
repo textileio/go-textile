@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"math/rand"
 	"time"
@@ -55,8 +54,8 @@ var DefaultServerFilters = []string{
 	"/ip4/240.0.0.0/ipcidr/4",
 }
 
-func Init(nBitsForKeypair int, isMobile bool) (*native.Config, error) {
-	identity, err := identityConfig(nBitsForKeypair)
+func Init(isMobile bool) (*native.Config, error) {
+	identity, err := identityConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -227,15 +226,12 @@ func defaultDatastoreConfig() native.Datastore {
 }
 
 // identityConfig initializes a new identity.
-func identityConfig(nbits int) (native.Identity, error) {
+func identityConfig() (native.Identity, error) {
 	// TODO guard higher up
 	ident := native.Identity{}
-	if nbits < 1024 {
-		return ident, errors.New("bitsize less than 1024 is considered unsafe")
-	}
 
-	log.Infof("generating %v-bit Ed25519 keypair for peer identity...", nbits)
-	sk, pk, err := ci.GenerateKeyPair(ci.Ed25519, nbits)
+	log.Infof("generating Ed25519 keypair for peer identity...")
+	sk, pk, err := ci.GenerateKeyPair(ci.Ed25519, 4096) // bits are ignored for ed25519, so use any
 	if err != nil {
 		return ident, err
 	}

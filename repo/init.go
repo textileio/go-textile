@@ -18,10 +18,6 @@ import (
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo"
 )
 
-const (
-	NBitsForKeypair = 4096
-)
-
 var log = logging.MustGetLogger("repo")
 
 var ErrRepoExists = errors.New(`ipfs configuration file already exists!
@@ -45,7 +41,7 @@ func DoInit(repoRoot string, isMobile bool, dbInit func(string) error, dbConfigu
 		return err
 	}
 
-	conf, err := config.Init(NBitsForKeypair, isMobile)
+	conf, err := config.Init(isMobile)
 	if err != nil {
 		return err
 	}
