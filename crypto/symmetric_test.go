@@ -4,26 +4,44 @@ import (
 	"testing"
 )
 
-var plaintext = "yoyoyoyo!"
-var key string
-var ciph []byte
+var symmetricTestData = struct {
+	plaintext  []byte
+	key        []byte
+	ciphertext []byte
+}{
+	plaintext: []byte("yoyoyoyo!"),
+}
+
+func TestGenerateAESKey(t *testing.T) {
+	key, err := GenerateAESKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	symmetricTestData.key = key
+}
 
 func TestEncryptAES(t *testing.T) {
-	var err error
-	key, ciph, err = EncryptAES([]byte(plaintext))
+	ciphertext, err := EncryptAES(symmetricTestData.plaintext, symmetricTestData.key)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
+	symmetricTestData.ciphertext = ciphertext
 }
 
 func TestDecryptAES(t *testing.T) {
-	plain, err := DecryptAES(ciph, key)
+	plaintext, err := DecryptAES(symmetricTestData.ciphertext, symmetricTestData.key)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
-	if string(plain) != plaintext {
-		t.Error("decrypt aes failed")
+	if string(symmetricTestData.plaintext) != string(plaintext) {
+		t.Error("decrypt AES failed")
+	}
+	key, err := GenerateAESKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	plaintext, err = DecryptAES(symmetricTestData.ciphertext, key)
+	if err == nil {
+		t.Error("decrypt AES with bad key succeeded")
 	}
 }
