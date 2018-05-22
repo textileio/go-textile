@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/op/go-logging"
+
 	"github.com/tajtiattila/metadata/exif"
 	"github.com/tajtiattila/metadata/exif/exiftag"
 	"github.com/textileio/textile-go/net"
@@ -22,6 +24,8 @@ import (
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
+
+var log = logging.MustGetLogger("core")
 
 type Metadata struct {
 	// photo data
@@ -112,6 +116,13 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 			return nil, nil, err
 		}
 		defer file.Close()
+
+		defer func() {
+			err = os.Remove(ppath)
+			if err != nil {
+				log.Errorf("error cleaning up scrubbed photo path: %s", ppath)
+			}
+		}()
 
 		err = exif.Copy(file, p, x)
 		if err != nil {
