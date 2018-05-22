@@ -12,8 +12,7 @@ import (
 
 	"github.com/op/go-logging"
 
-	"github.com/tajtiattila/metadata/exif"
-	"github.com/tajtiattila/metadata/exif/exiftag"
+	"github.com/rwcarlsen/goexif/exif"
 	"github.com/textileio/textile-go/net"
 
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
@@ -25,7 +24,7 @@ import (
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
 
-var log = logging.MustGetLogger("core")
+var log = logging.MustGetLogger("photos")
 
 type Metadata struct {
 	// photo data
@@ -53,13 +52,11 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 	// TODO: get image size info
 	// TODO: break this up into one method with multi sub-methods for testing
 	var tm time.Time
-	hasExif := false
-	x, err := exif.Decode(p)
-	if err == nil {
-		hasExif = true
+	x, ok := exif.Decode(p)
+	if ok == nil {
 		// time taken
-		tmTmp, ok := x.DateTime()
-		if ok {
+		tmTmp, err := x.DateTime()
+		if err != nil {
 			tm = tmTmp
 		}
 	}
@@ -96,45 +93,13 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 
 	// create an empty virtual directory
 	dirb := uio.NewDirectory(n.DAG)
-	var file *os.File
-
-	if hasExif {
-		// strip sensitive GPS tags
-		x.Set(exiftag.GPSLatitudeRef, nil)
-		x.Set(exiftag.GPSLatitude, nil)
-		x.Set(exiftag.GPSLongitudeRef, nil)
-		x.Set(exiftag.GPSLongitude, nil)
-		x.Set(exiftag.GPSAltitudeRef, nil)
-		x.Set(exiftag.GPSAltitude, nil)
-		x.Set(exiftag.GPSDateStamp, nil)
-		x.Set(exiftag.GPSTimeStamp, nil)
-		// copy photo buffer data to file, replacing exif with x
-		p.Seek(0, 0) // rewind buffer reader
-		ppath := filepath.Join(dname, name+"_tmp"+ext)
-		file, err = os.OpenFile(ppath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
-		if err != nil {
-			return nil, nil, err
-		}
-		defer file.Close()
-
-		defer func() {
-			err = os.Remove(ppath)
-			if err != nil {
-				log.Errorf("error cleaning up scrubbed photo path: %s", ppath)
-			}
-		}()
-
-		err = exif.Copy(file, p, x)
-		if err != nil {
-			return nil, nil, err
-		}
-	} else {
-		file = p
-	}
 
 	// add the image
-	file.Seek(0, 0)
-	pb, err := getEncryptedReaderBytes(file, pk)
+	pr, err := ImagePathWithoutExif(p.Name())
+	if err != nil {
+		return nil, nil, err
+	}
+	pb, err := getEncryptedReaderBytes(pr, pk)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -144,7 +109,14 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 	}
 
 	// add the thumbnail
-	tb, err := getEncryptedReaderBytes(t, pk)
+
+	// create temp file without exif data
+	tr, err := ImagePathWithoutExif(t.Name())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	tb, err := getEncryptedReaderBytes(tr, pk)
 	if err != nil {
 		return nil, nil, err
 	}

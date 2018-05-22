@@ -867,7 +867,6 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string, caption 
 
 // SharePhoto re-encrypts a photo from an existing album and shares it into a different album
 // TODO: Make this available offline
-// TODO: Currently it _automatically_ strips sensitive GPS exif data, make this configurable
 func (t *TextileNode) SharePhoto(hash string, album string, caption string) (*net.MultipartRequest, error) {
 	if !t.Online() {
 		return nil, ErrNodeNotRunning

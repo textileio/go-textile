@@ -213,6 +213,15 @@
   version = "v0.8.0"
 
 [[projects]]
+  branch = "go1"
+  name = "github.com/rwcarlsen/goexif"
+  packages = [
+    "exif",
+    "tiff"
+  ]
+  revision = "8d986c03457a2057c7b0fb0a48113f7dd48f9619"
+
+[[projects]]
   name = "github.com/segmentio/ksuid"
   packages = ["."]
   revision = "112f929a3020abfcd06b77c963ec919130796a35"
@@ -233,16 +242,6 @@
     "reedsolomon"
   ]
   revision = "cf5f9fa2f0d847edb8e038db7ed975e239095e1a"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/tajtiattila/metadata"
-  packages = [
-    "exif",
-    "exif/exiftag",
-    "jpeg"
-  ]
-  revision = "a7157425147401b60b3f47d44404c0402130a7e9"
 
 [[projects]]
   branch = "master"
@@ -326,6 +325,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "df9bd9ab3521ef6a096e66e5301f672162a0aa7dc1d061d48795ae9b75cf1b19"
+  inputs-digest = "19c5ebd2a4d0f16923db08113b8cb248b67b537b1bf399d6134e85a76d18190a"
   solver-name = "gps-cdcl"
   solver-version = 1
