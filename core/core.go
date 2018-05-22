@@ -302,16 +302,6 @@ func NewNode(config NodeConfig) (*TextileNode, error) {
 		}
 	}
 
-	// TODO: remove this post all
-	ba := node.Datastore.Albums().GetAlbumByName("all")
-	if ba == nil {
-		err = node.CreateAlbum("track soccer chapter great stove copy forum donate immune cattle boost action menu buyer mention spoon bacon boss suffer awful outdoor drum picture glance", "all")
-		if err != nil {
-			log.Errorf("error creating all album: %s", err)
-			return nil, err
-		}
-	}
-
 	return node, nil
 }
 

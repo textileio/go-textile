@@ -36,11 +36,11 @@ func main() {
 
 	// create a pubsub relay node
 	config := tcore.NodeConfig{
-		RepoPath:  filepath.Join(hd, ".textile_central"),
+		RepoPath:  filepath.Join(hd, fmt.Sprintf(".relay_%s", relayThread)),
 		IsServer:  true,
 		LogLevel:  logging.DEBUG,
 		LogFiles:  false,
-		SwarmPort: "4001",
+		SwarmPort: os.Getenv("SWARM_PORT"),
 	}
 	node, err := tcore.NewNode(config)
 	if err != nil {
