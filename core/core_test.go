@@ -174,14 +174,10 @@ func TestTexileNode_ExifRemoved(t *testing.T) {
 	// create reader over photo bytes
 	pr := bytes.NewReader(pb)
 	// extract exif data from photo bytes
-	x, err := exif.Decode(pr)
-	if err != nil {
-		t.Errorf("exif error: %s", err)
-		return
-	}
-	_, _, err = x.LatLong()
+	_, err = exif.Decode(pr)
 	if err == nil {
-		t.Error("GPS data not stripped!")
+		t.Errorf("exif not scrubbed: %s", err)
+		return
 	}
 }
 
