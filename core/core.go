@@ -909,23 +909,23 @@ func (t *TextileNode) SharePhoto(hash string, album string, caption string) (*ne
 	ppath := filepath.Join(t.RepoPath, "tmp", set.MetaData.Name+set.MetaData.Ext)
 	tpath := filepath.Join(t.RepoPath, "tmp", "thumb_"+set.MetaData.Name+set.MetaData.Ext)
 
-	f, err := os.OpenFile(ppath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		return nil, err
-	}
-
 	// create reader over photo bytes
 	pr := bytes.NewReader(pb)
 
 	// extract exif data from photo bytes
 	x, err := exif.Decode(pr)
 	if err != nil {
-		log.Debugf("error extracting exif data: %s", err)
+		log.Debugf("%s", err)
 		// just write the photo buffer directly to file
-		if _, err = f.Write(pb); err != nil {
+		err = ioutil.WriteFile(ppath, pb, 0644)
+		if err != nil {
 			return nil, err
 		}
 	} else {
+		f, err := os.OpenFile(ppath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+		if err != nil {
+			return nil, err
+		}
 		// strip sensitive GPS tags
 		x.Set(exiftag.GPSLatitudeRef, nil)
 		x.Set(exiftag.GPSLatitude, nil)
@@ -940,6 +940,7 @@ func (t *TextileNode) SharePhoto(hash string, album string, caption string) (*ne
 		if err = exif.Copy(f, pr, x); err != nil {
 			return nil, err
 		}
+		f.Close()
 	}
 
 	defer func() {
@@ -1245,13 +1246,13 @@ func (t *TextileNode) registerGatewayHandler() {
 		}
 	}()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// _, password, ok := r.BasicAuth()
+		_, password, ok := r.BasicAuth()
 		log.Debugf("gateway request: %s", r.URL.RequestURI())
-		// if ok == false {
-		// w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
-		// w.WriteHeader(401)
-		// return
-		// }
+		if ok == false {
+			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+			w.WriteHeader(401)
+			return
+		}
 
 		// parse root hash of path
 		tmp := strings.Split(r.URL.Path, "/")
@@ -1261,12 +1262,12 @@ func (t *TextileNode) registerGatewayHandler() {
 			return
 		}
 
-		// ci := strings.Join(tmp[2:], "/")
-		// if password != t.HashPasses[ci] {
-		// 	log.Debugf("wrong password: %s", ci, t.HashPasses[ci])
-		// 	w.WriteHeader(401)
-		// 	return
-		// }
+		ci := strings.Join(tmp[2:], "/")
+		if password != t.HashPasses[ci] {
+			log.Debugf("wrong password: %s", ci, t.HashPasses[ci])
+			w.WriteHeader(401)
+			return
+		}
 
 		// invalidate previous password
 		// t.HashPasses[username] = ksuid.New().String()
