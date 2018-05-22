@@ -1,7 +1,6 @@
 package core
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -19,8 +18,6 @@ import (
 
 	"github.com/op/go-logging"
 	"github.com/segmentio/ksuid"
-	"github.com/tajtiattila/metadata/exif"
-	"github.com/tajtiattila/metadata/exif/exiftag"
 	"github.com/tyler-smith/go-bip39"
 	"gopkg.in/natefinch/lumberjack.v2"
 
@@ -909,38 +906,9 @@ func (t *TextileNode) SharePhoto(hash string, album string, caption string) (*ne
 	ppath := filepath.Join(t.RepoPath, "tmp", set.MetaData.Name+set.MetaData.Ext)
 	tpath := filepath.Join(t.RepoPath, "tmp", "thumb_"+set.MetaData.Name+set.MetaData.Ext)
 
-	// create reader over photo bytes
-	pr := bytes.NewReader(pb)
-
-	// extract exif data from photo bytes
-	x, err := exif.Decode(pr)
+	err = ioutil.WriteFile(ppath, pb, 0644)
 	if err != nil {
-		log.Debugf("%s", err)
-		// just write the photo buffer directly to file
-		err = ioutil.WriteFile(ppath, pb, 0644)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		f, err := os.OpenFile(ppath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-		if err != nil {
-			return nil, err
-		}
-		// strip sensitive GPS tags
-		x.Set(exiftag.GPSLatitudeRef, nil)
-		x.Set(exiftag.GPSLatitude, nil)
-		x.Set(exiftag.GPSLongitudeRef, nil)
-		x.Set(exiftag.GPSLongitude, nil)
-		x.Set(exiftag.GPSAltitudeRef, nil)
-		x.Set(exiftag.GPSAltitude, nil)
-		x.Set(exiftag.GPSDateStamp, nil)
-		x.Set(exiftag.GPSTimeStamp, nil)
-		// copy photo buffer data to file, replacing exif with x
-		pr.Seek(0, 0) // rewind buffer reader
-		if err = exif.Copy(f, pr, x); err != nil {
-			return nil, err
-		}
-		f.Close()
+		return nil, err
 	}
 
 	defer func() {
