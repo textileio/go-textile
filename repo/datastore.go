@@ -99,4 +99,5 @@ type AlbumStore interface {
 
 	// Delete an album
 	DeleteAlbum(id string) error
+	DeleteAlbumByName(name string) error
 }

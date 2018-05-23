@@ -1047,6 +1047,10 @@ func (t *TextileNode) GetMetaData(hash string, album *trepo.PhotoAlbum) (*photos
 	return data, nil
 }
 
+func (t *TextileNode) TouchDB() error {
+	return t.touchDB()
+}
+
 // GetLastHash return the caption under a hash
 // TODO: shouldn't this be available offline for local (pinned content)?
 func (t *TextileNode) GetCaption(hash string, album *trepo.PhotoAlbum) (string, error) {
