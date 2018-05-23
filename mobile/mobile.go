@@ -155,23 +155,20 @@ func (w *Wrapper) UpdateThread(mnemonic string, name string) error {
 	if mnemonic == "" {
 		return errors.New("mnemonic must not be empty")
 	}
-
-	ba := tcore.Node.Datastore.Albums().GetAlbumByName(name)
-	if ba == nil {
-		log.Debugf("creating album: %s", name)
-		err := tcore.Node.CreateAlbum(mnemonic, name)
-		if err != nil {
-			log.Errorf("error creating album %s: %s", name, err)
-			return err
-		}
-	} else {
-		log.Debugf("removing album: %s", name)
-		err := tcore.Node.Datastore.Albums().DeleteAlbum(ba.Id)
-		if err != nil {
-			log.Errorf("error deleting album %s: %s", name, err)
-			return err
-		}
-		return tcore.Node.CreateAlbum(mnemonic, name)
+	if err := tcore.Node.TouchDB(); err != nil {
+		return err
+	}
+	log.Debugf("deleting album if exists: %s", name)
+	err := tcore.Node.Datastore.Albums().DeleteAlbumByName(name)
+	if err != nil {
+		log.Errorf("error deleting album %s: %s", name, err)
+		return err
+	}
+	log.Debugf("creating album: %s", name)
+	err = tcore.Node.CreateAlbum(mnemonic, name)
+	if err != nil {
+		log.Errorf("error creating album %s: %s", name, err)
+		return err
 	}
 	return nil
 }
