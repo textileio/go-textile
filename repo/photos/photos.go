@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/op/go-logging"
+
 	"github.com/rwcarlsen/goexif/exif"
 	"github.com/textileio/textile-go/net"
 
@@ -21,6 +23,8 @@ import (
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 )
+
+var log = logging.MustGetLogger("photos")
 
 type Metadata struct {
 	// photo data
@@ -47,7 +51,6 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 	// TODO: get image size info
 	// TODO: break this up into one method with multi sub-methods for testing
 	var tm time.Time
-	var lat, lon float64 = -1, -1
 	x, err := exif.Decode(p)
 	if err == nil {
 		// time taken
@@ -55,14 +58,7 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 		if err == nil {
 			tm = tmTmp
 		}
-
-		// coords taken
-		latTmp, lonTmp, err := x.LatLong()
-		if err == nil {
-			lat, lon = latTmp, lonTmp
-		}
 	}
-
 	// create a metadata file
 	md := &Metadata{
 		Name:     strings.TrimSuffix(filepath.Base(path), ext),
@@ -71,10 +67,6 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 		PeerID:   n.Identity.Pretty(),
 		Created:  tm,
 		Added:    time.Now(),
-	}
-	if lat != -1 && lon != -1 {
-		md.Latitude = lat
-		md.Longitude = lon
 	}
 	mdb, err := json.Marshal(md)
 	if err != nil {
@@ -102,7 +94,11 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 
 	// add the image
 	p.Seek(0, 0)
-	pb, err := getEncryptedReaderBytes(p, pk)
+	pr, err := ImagePathWithoutExif(p)
+	if err != nil {
+		return nil, nil, err
+	}
+	pb, err := getEncryptedReaderBytes(pr, pk)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -112,7 +108,12 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 	}
 
 	// add the thumbnail
-	tb, err := getEncryptedReaderBytes(t, pk)
+	tr, err := ImagePathWithoutExif(t)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	tb, err := getEncryptedReaderBytes(tr, pk)
 	if err != nil {
 		return nil, nil, err
 	}
