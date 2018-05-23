@@ -56,7 +56,7 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 	if ok == nil {
 		// time taken
 		tmTmp, err := x.DateTime()
-		if err != nil {
+		if err == nil {
 			tm = tmTmp
 		}
 	}
@@ -95,7 +95,8 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 	dirb := uio.NewDirectory(n.DAG)
 
 	// add the image
-	pr, err := ImagePathWithoutExif(p.Name())
+	p.Seek(0, 0)
+	pr, err := ImagePathWithoutExif(p)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -109,9 +110,7 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 	}
 
 	// add the thumbnail
-
-	// create temp file without exif data
-	tr, err := ImagePathWithoutExif(t.Name())
+	tr, err := ImagePathWithoutExif(t)
 	if err != nil {
 		return nil, nil, err
 	}

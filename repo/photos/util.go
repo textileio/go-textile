@@ -18,22 +18,12 @@ import (
 // all necessary operation to reverse its orientation to 1
 // The result is a image with corrected orientation and without
 // exif data.
-// ReadImage makes a copy of image (jpg,png or gif) and applies
-// all necessary operation to reverse its orientation to 1
-// The result is a image with corrected orientation and without
-// exif data.
-func ImagePathWithoutExif(fpath string) (*bytes.Buffer, error) {
+func ImagePathWithoutExif(ifile *os.File) (*bytes.Buffer, error) {
 	var img image.Image
 	var err error
 	writer := &bytes.Buffer{}
-	filetype := strings.ToLower(filepath.Ext(fpath))
+	filetype := strings.ToLower(filepath.Ext(ifile.Name()))
 	// deal with image
-	ifile, err := os.Open(fpath)
-	if err != nil {
-		log.Errorf("could not open file for image transformation: %s", fpath)
-		return nil, err
-	}
-	defer ifile.Close()
 	if filetype == ".jpg" || filetype == ".jpeg" {
 		img, err = jpeg.Decode(ifile)
 		if err != nil {
@@ -51,25 +41,21 @@ func ImagePathWithoutExif(fpath string) (*bytes.Buffer, error) {
 		}
 	}
 	// deal with exif
-	efile, err := os.Open(fpath)
-	if err != nil {
-		log.Debugf("could not open file for exif decoder: %s", fpath)
-	}
-	defer efile.Close()
-	x, err := exif.Decode(efile)
+	ifile.Seek(0, 0)
+	x, err := exif.Decode(ifile)
 	if err != nil {
 		if x == nil {
 			// ignore - image exif data has been already stripped
 		}
-		log.Debugf("failed reading exif data in [%s]: %s", fpath, err.Error())
+		log.Debugf("no exif data found for [%s]: %s", ifile.Name(), err.Error())
 	}
 	if x != nil {
 		orient, _ := x.Get(exif.Orientation)
 		if orient != nil {
-			log.Infof("%s had orientation %s", fpath, orient.String())
+			log.Infof("%s had orientation %s", ifile.Name(), orient.String())
 			img = reverseOrientation(img, orient.String())
 		} else {
-			log.Errorf("%s had no orientation - implying 1", fpath)
+			log.Errorf("%s had no orientation - implying 1", ifile.Name())
 			img = reverseOrientation(img, "1")
 		}
 	}
