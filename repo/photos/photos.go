@@ -46,14 +46,13 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 	path := p.Name()
 	ext := strings.ToLower(filepath.Ext(path))
 	dname := filepath.Dir(t.Name())
-	name := strings.TrimSuffix(filepath.Base(path), ext)
 
 	// try to extract exif data
 	// TODO: get image size info
 	// TODO: break this up into one method with multi sub-methods for testing
 	var tm time.Time
-	x, ok := exif.Decode(p)
-	if ok == nil {
+	x, err := exif.Decode(p)
+	if err == nil {
 		// time taken
 		tmTmp, err := x.DateTime()
 		if err == nil {
@@ -62,14 +61,13 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 	}
 	// create a metadata file
 	md := &Metadata{
-		Name:     name,
+		Name:     strings.TrimSuffix(filepath.Base(path), ext),
 		Ext:      ext,
 		Username: un,
 		PeerID:   n.Identity.Pretty(),
 		Created:  tm,
 		Added:    time.Now(),
 	}
-
 	mdb, err := json.Marshal(md)
 	if err != nil {
 		return nil, nil, err
