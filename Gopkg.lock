@@ -219,7 +219,7 @@
     "exif",
     "tiff"
   ]
-  revision = "fb35d3c3290d09f3524b684b5d42d0063c227158"
+  revision = "8d986c03457a2057c7b0fb0a48113f7dd48f9619"
 
 [[projects]]
   name = "github.com/segmentio/ksuid"
@@ -325,6 +325,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c6711577f94263a5933b47624066b5966e37cd8f12c4db2f4c465de9e40035b6"
+  inputs-digest = "19c5ebd2a4d0f16923db08113b8cb248b67b537b1bf399d6134e85a76d18190a"
   solver-name = "gps-cdcl"
   solver-version = 1

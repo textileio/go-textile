@@ -1,11 +1,14 @@
 package core_test
 
 import (
+	"bytes"
+	"fmt"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/op/go-logging"
+	"github.com/rwcarlsen/goexif/exif"
 	"github.com/segmentio/ksuid"
 
 	cmodels "github.com/textileio/textile-go/central/models"
@@ -158,6 +161,23 @@ func TestTextileNode_AddPhoto(t *testing.T) {
 	err = os.Remove("testdata/" + mr.Boundary)
 	if err != nil {
 		t.Errorf("error unlinking test multipart file: %s", err)
+	}
+}
+
+func TestTexileNode_ExifRemoved(t *testing.T) {
+	_, a, err := node.LoadPhotoAndAlbum(hash)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	pb, err := node.GetFile(fmt.Sprintf("%s/photo", hash), a)
+	// create reader over photo bytes
+	pr := bytes.NewReader(pb)
+	// extract exif data from photo bytes
+	_, err = exif.Decode(pr)
+	if err == nil {
+		t.Errorf("exif not scrubbed: %s", err)
+		return
 	}
 }
 
