@@ -91,6 +91,13 @@ func (c *AlbumDB) DeleteAlbum(id string) error {
 	return err
 }
 
+func (c *AlbumDB) DeleteAlbumByName(name string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("delete from albums where name=?", name)
+	return err
+}
+
 func (c *AlbumDB) handleQuery(stm string) []repo.PhotoAlbum {
 	var ret []repo.PhotoAlbum
 	rows, err := c.db.Query(stm)
