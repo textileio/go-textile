@@ -904,25 +904,20 @@ func (t *TextileNode) SharePhoto(hash string, album string, caption string) (*ne
 	// temp write to disk
 	ppath := filepath.Join(t.RepoPath, "tmp", set.MetaData.Name+set.MetaData.Ext)
 	tpath := filepath.Join(t.RepoPath, "tmp", "thumb_"+set.MetaData.Name+set.MetaData.Ext)
-
 	err = ioutil.WriteFile(ppath, pb, 0644)
 	if err != nil {
 		return nil, err
 	}
-
 	defer func() {
-		err = os.Remove(ppath)
+		err := os.Remove(ppath)
 		if err != nil {
 			log.Errorf("error cleaning up shared photo path: %s", ppath)
 		}
 	}()
-
-	// thumb data can be safely written directly to file
 	err = ioutil.WriteFile(tpath, tb, 0644)
 	if err != nil {
 		return nil, err
 	}
-
 	defer func() {
 		err = os.Remove(tpath)
 		if err != nil {
