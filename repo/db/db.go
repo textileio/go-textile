@@ -2,27 +2,22 @@ package db
 
 import (
 	"database/sql"
-	"path"
-	"sync"
-	"time"
-
 	_ "github.com/mutecomm/go-sqlcipher"
 	"github.com/op/go-logging"
-
 	"github.com/textileio/textile-go/repo"
+	"path"
+	"sync"
 )
 
 var log = logging.MustGetLogger("db")
 
-const schemaVersion = "0"
-
 type SQLiteDatastore struct {
-	config   repo.Config
-	settings repo.ConfigurationStore
-	photos   repo.PhotoStore
-	albums   repo.AlbumStore
-	db       *sql.DB
-	lock     *sync.Mutex
+	config  repo.ConfigStore
+	profile repo.ProfileStore
+	threads repo.ThreadStore
+	blocks  repo.BlockStore
+	db      *sql.DB
+	lock    *sync.Mutex
 }
 
 func Create(repoPath, password string) (*SQLiteDatastore, error) {
@@ -38,16 +33,12 @@ func Create(repoPath, password string) (*SQLiteDatastore, error) {
 	}
 	l := new(sync.Mutex)
 	sqliteDB := &SQLiteDatastore{
-		config: &ConfigDB{
-			db:   conn,
-			lock: l,
-			path: dbPath,
-		},
-		settings: NewConfigurationStore(conn, l),
-		photos:   NewPhotoStore(conn, l),
-		albums:   NewAlbumStore(conn, l),
-		db:       conn,
-		lock:     l,
+		config:  NewConfigStore(conn, l, dbPath),
+		profile: NewProfileStore(conn, l),
+		threads: NewThreadStore(conn, l),
+		blocks:  NewBlockStore(conn, l),
+		db:      conn,
+		lock:    l,
 	}
 
 	return sqliteDB, nil
@@ -61,20 +52,20 @@ func (d *SQLiteDatastore) Close() {
 	d.db.Close()
 }
 
-func (d *SQLiteDatastore) Config() repo.Config {
+func (d *SQLiteDatastore) Config() repo.ConfigStore {
 	return d.config
 }
 
-func (d *SQLiteDatastore) Settings() repo.ConfigurationStore {
-	return d.settings
+func (d *SQLiteDatastore) Profile() repo.ProfileStore {
+	return d.profile
 }
 
-func (d *SQLiteDatastore) Photos() repo.PhotoStore {
-	return d.photos
+func (d *SQLiteDatastore) Threads() repo.ThreadStore {
+	return d.threads
 }
 
-func (d *SQLiteDatastore) Albums() repo.AlbumStore {
-	return d.albums
+func (d *SQLiteDatastore) Blocks() repo.BlockStore {
+	return d.blocks
 }
 
 func (d *SQLiteDatastore) Copy(dbPath string, password string) error {
@@ -125,178 +116,16 @@ func initDatabaseTables(db *sql.DB, password string) error {
 		sqlStmt = "PRAGMA key = '" + password + "';"
 	}
 	sqlStmt += `
-	PRAGMA user_version = 0;
 	create table config (key text primary key not null, value blob);
-	create table photos (cid text primary key not null, lastCid text, album text not null, name text not null, ext text not null, username text, peerId text, created integer, added integer not null, latitude real, longitude real, local integer not null, caption text);
-    create index index_album_added on photos (album, added);
-	create index index_album_local on photos (album, local);
-	create index index_album_username on photos (album, username);
-	create index index_album_peerid on photos (album, peerId);
-    create table albums (id text primary key not null, key blob not null, mnemonic text not null, name text not null);
-    create unique index index_name on albums (name);
+    create table profile (key text primary key not null, value blob);
+    create table threads (id text primary key not null, name text not null, sk blob not null, head text not null);
+    create unique index index_name on threads (name);
+    create table blocks (id text primary key not null, target text not null, parents text not null, key blob not null, pk blob not null, type integer not null, date integer not null);
+    create index index_thread_type_added on blocks (pk, type, date);
 	`
 	_, err := db.Exec(sqlStmt)
 	if err != nil {
 		return err
 	}
 	return nil
-}
-
-type ConfigDB struct {
-	db   *sql.DB
-	lock *sync.Mutex
-	path string
-}
-
-func (c *ConfigDB) Init(password string) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	return initDatabaseTables(c.db, password)
-}
-
-func (c *ConfigDB) Configure(created time.Time) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	tx, err := c.db.Begin()
-	if err != nil {
-		return err
-	}
-	stmt, err := tx.Prepare("insert or replace into config(key, value) values(?,?)")
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-	_, err = stmt.Exec("created", created.Format(time.RFC3339))
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	_, err = stmt.Exec("schema", schemaVersion)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	tx.Commit()
-	return nil
-}
-
-func (c *ConfigDB) SignIn(un string, at string, rt string) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	tx, err := c.db.Begin()
-	if err != nil {
-		return err
-	}
-	stmt, err := tx.Prepare("insert or replace into config(key, value) values(?,?)")
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-	_, err = stmt.Exec("username", un)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	_, err = stmt.Exec("access", at)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	_, err = stmt.Exec("refresh", rt)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	tx.Commit()
-	return nil
-}
-
-func (c *ConfigDB) SignOut() error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	stmt, err := c.db.Prepare("delete from config where key=?")
-	defer stmt.Close()
-	_, err = stmt.Exec("username")
-	if err != nil {
-		return err
-	}
-	_, err = stmt.Exec("access")
-	if err != nil {
-		return err
-	}
-	_, err = stmt.Exec("refresh")
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *ConfigDB) GetUsername() (string, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	stmt, err := c.db.Prepare("select value from config where key=?")
-	defer stmt.Close()
-	var un string
-	err = stmt.QueryRow("username").Scan(&un)
-	if err != nil {
-		return "", err
-	}
-	return un, nil
-}
-
-func (c *ConfigDB) GetTokens() (at string, rt string, err error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	stmt, err := c.db.Prepare("select value from config where key=?")
-	defer stmt.Close()
-	err = stmt.QueryRow("access").Scan(&at)
-	if err != nil {
-		return "", "", err
-	}
-	err = stmt.QueryRow("refresh").Scan(&rt)
-	if err != nil {
-		return "", "", err
-	}
-	return at, rt, nil
-}
-
-func (c *ConfigDB) GetCreationDate() (time.Time, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	var t time.Time
-	stmt, err := c.db.Prepare("select value from config where key=?")
-	if err != nil {
-		return t, err
-	}
-	defer stmt.Close()
-	var created []byte
-	err = stmt.QueryRow("created").Scan(&created)
-	if err != nil {
-		return t, err
-	}
-	return time.Parse(time.RFC3339, string(created))
-}
-
-func (c *ConfigDB) GetSchemaVersion() (string, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	stmt, err := c.db.Prepare("select value from config where key=?")
-	defer stmt.Close()
-	var sv string
-	err = stmt.QueryRow("schema").Scan(&sv)
-	if err != nil {
-		return "", err
-	}
-	return sv, nil
-}
-
-func (c *ConfigDB) IsEncrypted() bool {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	pwdCheck := "select count(*) from sqlite_master;"
-	_, err := c.db.Exec(pwdCheck) // Fails if wrong password is entered
-	if err != nil {
-		return true
-	}
-	return false
 }

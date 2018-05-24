@@ -14,7 +14,7 @@ import (
 
 	tcore "github.com/textileio/textile-go/core"
 
-	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
+	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/core"
 )
 
 var (
