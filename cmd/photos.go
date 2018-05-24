@@ -5,6 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/disintegration/imaging"
+	"github.com/fatih/color"
+	"github.com/mitchellh/go-homedir"
+	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/core"
+	"gopkg.in/abiosoft/ishell.v2"
 	"image"
 	_ "image/gif"
 	"image/jpeg"
@@ -12,15 +18,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-
-	"github.com/disintegration/imaging"
-	"github.com/fatih/color"
-	"github.com/mitchellh/go-homedir"
-	"github.com/segmentio/ksuid"
-	"gopkg.in/abiosoft/ishell.v2"
-
-	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/repo/photos"
 )
 
 func AddPhoto(c *ishell.Context) {
@@ -124,13 +121,13 @@ func ListPhotos(c *ishell.Context) {
 		album = c.Args[0]
 	}
 
-	a := core.Node.Datastore.Albums().GetAlbumByName(album)
+	a := core.Node.Wallet.Datastore.Threads().GetByName(album)
 	if a == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", album)))
 		return
 	}
 
-	sets := core.Node.Datastore.Photos().GetPhotos("", -1, "album='"+a.Id+"'")
+	sets := core.Node.Wallet.Datastore.Photos().GetPhotos("", -1, "album='"+a.Id+"'")
 	if len(sets) == 0 {
 		c.Println(fmt.Sprintf("no photos found in: %s", album))
 	} else {

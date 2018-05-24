@@ -3,13 +3,18 @@ package repo
 import (
 	"database/sql"
 	"time"
+	"github.com/textileio/textile-go/wallet"
 )
 
+type SettingsData struct {
+	Version *string `json:"version"`
+}
+
 type Datastore interface {
-	Config() Config
-	Settings() ConfigurationStore
-	Photos() PhotoStore
-	Albums() AlbumStore
+	Config() ConfigStore
+	Profile() ProfileStore
+	Threads() ThreadStore
+	Blocks() BlockStore
 	Ping() error
 	Close()
 }
@@ -21,13 +26,24 @@ type Queryable interface {
 	ExecuteQuery(string, ...interface{}) (sql.Result, error)
 }
 
-type Config interface {
+type ConfigStore interface {
 	// Create the database and tables
 	Init(password string) error
 
 	// Configure the database
 	Configure(created time.Time) error
 
+	// Returns the date the seed was created
+	GetCreationDate() (time.Time, error)
+
+	// Returns current version of the database
+	GetVersion() (string, error)
+
+	// Returns true if the database has failed to decrypt properly ex) wrong pw
+	IsEncrypted() bool
+}
+
+type ProfileStore interface {
 	// Saves username, access token, and refresh token
 	SignIn(username string, at string, rt string) error
 
@@ -39,64 +55,42 @@ type Config interface {
 
 	// Retrieve JSON web tokens
 	GetTokens() (at string, rt string, err error)
-
-	// Returns the date the seed was created
-	GetCreationDate() (time.Time, error)
-
-	// Returns current schema version of the database
-	GetSchemaVersion() (string, error)
-
-	// Returns true if the database has failed to decrypt properly ex) wrong pw
-	IsEncrypted() bool
 }
 
-type ConfigurationStore interface {
+type ThreadStore interface {
 	Queryable
 
-	// Put settings to the database, overriding all fields
-	Put(settings SettingsData) error
+	// Add a new thread
+	Add(thread *wallet.Thread) error
 
-	// Update all non-nil fields
-	Update(settings SettingsData) error
+	// Get a single thread
+	Get(id string) *wallet.Thread
 
-	// Return the settings object
-	Get() (SettingsData, error)
+	// Get a single thread by name
+	GetByName(name string) *wallet.Thread
 
-	// Delete all settings data
-	Delete() error
+	// List threads
+	List(query string) []wallet.Thread
+
+	// Update a thread's head block
+	UpdateHead(id string, head string) error
+
+	// Delete a thread
+	Delete(id string) error
 }
 
-type PhotoStore interface {
+type BlockStore interface {
 	Queryable
 
-	// Put a new photo to the database
-	Put(set *PhotoSet) error
+	// Add a new block
+	Add(block *wallet.Block) error
 
-	// Get a single photo set
-	GetPhoto(cid string) *PhotoSet
+	// Get a single block
+	Get(id string) *wallet.Block
 
-	// A list of photos
-	GetPhotos(offsetId string, limit int, query string) []PhotoSet
+	// List blocks
+	List(offsetId string, limit int, query string) []wallet.Block
 
-	// Delete a photo
-	DeletePhoto(cid string) error
-}
-
-type AlbumStore interface {
-	Queryable
-
-	// Put a new album to the database
-	Put(album *PhotoAlbum) error
-
-	// Get a single album
-	GetAlbum(id string) *PhotoAlbum
-
-	// Get a single album by name
-	GetAlbumByName(name string) *PhotoAlbum
-
-	// A list of albums
-	GetAlbums(query string) []PhotoAlbum
-
-	// Delete an album
-	DeleteAlbum(id string) error
+	// Delete a block
+	Delete(id string) error
 }
