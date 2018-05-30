@@ -1306,10 +1306,12 @@ func (t *TextileNode) republishLatestUpdates() {
 	for _, a := range albums {
 		// find latest local update
 		recent := t.Datastore.Photos().GetPhotos("", 1, "album='"+a.Id+"' and local=1")
-		if len(recent) == 0 {
-			return
+		var latest string
+		if len(recent) > 0 {
+			latest = recent[0].Cid
+		} else {
+			latest = "ping"
 		}
-		latest := recent[0].Cid
 
 		// publish it
 		go func(id string, hash string) {
