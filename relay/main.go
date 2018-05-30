@@ -100,7 +100,9 @@ func main() {
 		}
 
 		// add new updates to cache
-		if updateCache[from] != hash {
+		if hash == "ping" {
+			log.Infof("got ping from %s", from)
+		} else if updateCache[from] != hash {
 			updateCache[from] = hash
 			log.Infof("added new update %s from %s to relay", hash, from)
 		}
