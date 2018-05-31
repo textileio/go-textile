@@ -5,103 +5,19 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
-	"fmt"
 	"sort"
 	"strings"
-	"sync"
-	"time"
 
-	oldcmds "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/commands"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
-	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/corehttp"
 	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/corerepo"
 
-	"gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
+	iaddr "gx/ipfs/QmQViVWBHbU6HmYjXcdNq7tVASCNgdg64ZGcauuDkLCivW/go-ipfs-addr"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	"gx/ipfs/QmfAkMSt9Fwzk48QDJecPcwCUjnf2uG7MLnmCGTp4C6ouL/go-ipfs-cmds"
 )
-
-// printSwarmAddrs prints the addresses of the host
-func printSwarmAddrs(node *core.IpfsNode) error {
-	if !node.OnlineMode() {
-		log.Info("swarm not listening, running in offline mode")
-		return nil
-	}
-
-	var lisAddrs []string
-	ifaceAddrs, err := node.PeerHost.Network().InterfaceListenAddresses()
-	if err != nil {
-		return err
-	}
-	for _, addr := range ifaceAddrs {
-		lisAddrs = append(lisAddrs, addr.String())
-	}
-	sort.Sort(sort.StringSlice(lisAddrs))
-	for _, addr := range lisAddrs {
-		log.Infof("swarm listening on %s\n", addr)
-	}
-
-	var addrs []string
-	for _, addr := range node.PeerHost.Addrs() {
-		addrs = append(addrs, addr.String())
-	}
-	sort.Sort(sort.StringSlice(addrs))
-	for _, addr := range addrs {
-		log.Infof("swarm announcing %s\n", addr)
-	}
-
-	return nil
-}
-
-// serveHTTPGateway collects options, creates listener, prints status message and starts serving requests
-func serveHTTPGateway(cctx *oldcmds.Context) (<-chan error, error) {
-	cfg, err := cctx.GetConfig()
-	if err != nil {
-		return nil, fmt.Errorf("ServeHTTPGateway: GetConfig() failed: %s", err)
-	}
-
-	gatewayMaddr, err := ma.NewMultiaddr(cfg.Addresses.Gateway)
-	if err != nil {
-		return nil, fmt.Errorf("ServeHTTPGateway: invalid gateway address: %q (err: %s)", cfg.Addresses.Gateway, err)
-	}
-
-	gwLis, err := manet.Listen(gatewayMaddr)
-	if err != nil {
-		return nil, fmt.Errorf("ServeHTTPGateway: manet.Listen(%s) failed: %s", gatewayMaddr, err)
-	}
-	// we might have listened to /tcp/0 - lets see what we are listing on
-	gatewayMaddr = gwLis.Multiaddr()
-
-	var opts = []corehttp.ServeOption{
-		corehttp.MetricsCollectionOption("gateway"),
-		corehttp.CheckVersionOption(),
-		corehttp.CommandsROOption(*cctx),
-		corehttp.VersionOption(),
-		corehttp.IPNSHostnameOption(),
-		corehttp.GatewayOption(false, "/ipfs", "/ipns"),
-	}
-
-	if len(cfg.Gateway.RootRedirect) > 0 {
-		opts = append(opts, corehttp.RedirectOption("", cfg.Gateway.RootRedirect))
-	}
-
-	node, err := cctx.ConstructNode()
-	if err != nil {
-		return nil, fmt.Errorf("ServeHTTPGateway: ConstructNode() failed: %s", err)
-	}
-
-	errc := make(chan error)
-	go func() {
-		errc <- corehttp.Serve(node, gwLis.NetListener(), opts...)
-		close(errc)
-	}()
-	log.Infof("gateway (readonly) server listening on %s\n", gatewayMaddr)
-
-	return errc, nil
-}
 
 // start auto-garbage collection process
 // TODO: investigate where this is gonna get datadir from
@@ -146,26 +62,36 @@ func identityKeyFromSeed(seed []byte, bits int) ([]byte, error) {
 	return encodedKey, nil
 }
 
-// connectToPubSubPeers tries to find other peers that share current subscriptions
-func connectToPubSubPeers(ctx context.Context, n *core.IpfsNode, cid *cid.Cid) {
-	provs := n.Routing.FindProvidersAsync(ctx, cid, 10)
-	wg := &sync.WaitGroup{}
-	for p := range provs {
-		wg.Add(1)
-		go func(pi pstore.PeerInfo) {
-			defer wg.Done()
-			ctx, cancel := context.WithTimeout(ctx, time.Second*10)
-			defer cancel()
-			err := n.PeerHost.Connect(ctx, pi)
-			if err != nil {
-				log.Errorf("pubsub discover: %s", err)
-				return
-			}
-			log.Infof("connected to pubsub peer: %s", pi.ID.Pretty())
-		}(p)
+// printSwarmAddrs prints the addresses of the host
+func printSwarmAddrs(node *core.IpfsNode) error {
+	if !node.OnlineMode() {
+		log.Info("swarm not listening, running in offline mode")
+		return nil
 	}
 
-	wg.Wait()
+	var lisAddrs []string
+	ifaceAddrs, err := node.PeerHost.Network().InterfaceListenAddresses()
+	if err != nil {
+		return err
+	}
+	for _, addr := range ifaceAddrs {
+		lisAddrs = append(lisAddrs, addr.String())
+	}
+	sort.Sort(sort.StringSlice(lisAddrs))
+	for _, addr := range lisAddrs {
+		log.Infof("swarm listening on %s\n", addr)
+	}
+
+	var addrs []string
+	for _, addr := range node.PeerHost.Addrs() {
+		addrs = append(addrs, addr.String())
+	}
+	sort.Sort(sort.StringSlice(addrs))
+	for _, addr := range addrs {
+		log.Infof("swarm announcing %s\n", addr)
+	}
+
+	return nil
 }
 
 // parsePeerParam takes a peer address string and returns p2p params
@@ -206,32 +132,32 @@ func parsePeerParam(text string) (ma.Multiaddr, peer.ID, error) {
 	return maddr, pid, nil
 }
 
-// merge does fan-in of multiple read-only error channels
-// taken from http://blog.golang.org/pipelines
-func mergeErrors(cs ...<-chan error) <-chan error {
-	var wg sync.WaitGroup
-	out := make(chan error)
-
-	// Start an output goroutine for each input channel in cs.  output
-	// copies values from c to out until c is closed, then calls wg.Done.
-	output := func(c <-chan error) {
-		for n := range c {
-			out <- n
-		}
-		wg.Done()
-	}
-	for _, c := range cs {
-		if c != nil {
-			wg.Add(1)
-			go output(c)
+// parseAddresses is a function that takes in a slice of string peer addresses
+// (multiaddr + peerid) and returns slices of multiaddrs and peerids.
+func parseAddresses(addrs []string) (iaddrs []iaddr.IPFSAddr, err error) {
+	iaddrs = make([]iaddr.IPFSAddr, len(addrs))
+	for i, saddr := range addrs {
+		iaddrs[i], err = iaddr.ParseString(saddr)
+		if err != nil {
+			return nil, cmds.ClientError("invalid peer address: " + err.Error())
 		}
 	}
+	return
+}
 
-	// Start a goroutine to close out once all the output goroutines are
-	// done.  This must start after the wg.Add call.
-	go func() {
-		wg.Wait()
-		close(out)
-	}()
-	return out
+// peersWithAddresses is a function that takes in a slice of string peer addresses
+// (multiaddr + peerid) and returns a slice of properly constructed peers
+func peersWithAddresses(addrs []string) (pis []pstore.PeerInfo, err error) {
+	iaddrs, err := parseAddresses(addrs)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, a := range iaddrs {
+		pis = append(pis, pstore.PeerInfo{
+			ID:    a.ID(),
+			Addrs: []ma.Multiaddr{a.Transport()},
+		})
+	}
+	return pis, nil
 }
