@@ -40,6 +40,7 @@ import (
 	lockfile "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo/lock"
 
 	"gx/ipfs/QmSFihvoND3eDaAYRCeLgLPt62yCPgMZs1NSZmKFEtJQQw/go-libp2p-floodsub"
+	"gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
@@ -55,7 +56,6 @@ var fileLogFormat = logging.MustStringFormatter(
 var log = logging.MustGetLogger("core")
 
 const roomRepublishInterval = time.Minute * 1
-const pingRelayInterval = time.Second * 30
 const pingTimeout = time.Second * 10
 const pinTimeout = time.Minute * 1
 const catTimeout = time.Second * 30
@@ -387,11 +387,10 @@ func (t *TextileNode) Start() error {
 		}
 	}()
 
-	// every min, send out latest room updates
-	go t.startRepublishing()
-
-	// every 30s, ping the relay
-	go t.startPingingRelay()
+	if !t.isMobile {
+		// every min, send out latest room updates
+		go t.startRepublishing()
+	}
 
 	// dunzo
 	if t.isMobile {
@@ -855,7 +854,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string, caption 
 
 	// publish
 	go func() {
-		err = t.IpfsNode.Floodsub.Publish(a.Id, []byte(mr.Boundary))
+		err = t.publish(a.Id, []byte(mr.Boundary))
 		if err != nil {
 			log.Errorf("error publishing photo update: %s", err)
 		}
@@ -1143,6 +1142,39 @@ func (t *TextileNode) GetPublicPeerKeyString() (string, error) {
 	return base64.StdEncoding.EncodeToString(pkb), nil
 }
 
+// ConnectPeer connect to another ipfs peer (i.e., ipfs swarm connect)
+func (t *TextileNode) ConnectPeer(addrs []string) ([]string, error) {
+	if t.IpfsNode.PeerHost == nil {
+		return nil, errors.New("not online")
+	}
+
+	snet, ok := t.IpfsNode.PeerHost.Network().(*swarm.Network)
+	if !ok {
+		return nil, errors.New("peerhost network was not swarm")
+	}
+
+	swrm := snet.Swarm()
+
+	pis, err := peersWithAddresses(addrs)
+	if err != nil {
+		return nil, err
+	}
+
+	output := make([]string, len(pis))
+	for i, pi := range pis {
+		swrm.Backoff().Clear(pi.ID)
+
+		output[i] = "connect " + pi.ID.Pretty()
+
+		err := t.IpfsNode.PeerHost.Connect(t.IpfsNode.Context(), pi)
+		if err != nil {
+			return nil, fmt.Errorf("%s failure: %s", output[i], err)
+		}
+		output[i] += " success"
+	}
+	return output, nil
+}
+
 // PingPeer pings a peer num times, returning the result to out chan
 func (t *TextileNode) PingPeer(addrs string, num int, out chan string) error {
 	if !t.Online() {
@@ -1202,6 +1234,25 @@ func (t *TextileNode) PingPeer(addrs string, num int, out chan string) error {
 	}
 
 	return nil
+}
+
+// RepublishLatestUpdate publishes latest in a single album
+func (t *TextileNode) RepublishLatestUpdate(album *trepo.PhotoAlbum) {
+	// find latest local update
+	recent := t.Datastore.Photos().GetPhotos("", 1, "album='"+album.Id+"' and local=1")
+	var latest string
+	if len(recent) > 0 {
+		latest = recent[0].Cid
+	} else {
+		latest = "ping"
+	}
+
+	// publish it
+	log.Debugf("starting re-publish...")
+	if err := t.publish(album.Id, []byte(latest)); err != nil {
+		log.Errorf("error re-publishing update: %s", err)
+	}
+	log.Debugf("re-published %s to %s", latest, album.Id)
 }
 
 // registerGatewayHandler registers a handler for the gateway
@@ -1265,6 +1316,18 @@ func (t *TextileNode) startGateway() (<-chan error, error) {
 	return errc, nil
 }
 
+// publish and ping
+func (t *TextileNode) publish(topic string, payload []byte) error {
+	out, err := t.ConnectPeer([]string{fmt.Sprintf("/p2p-circuit/ipfs/%s", tconfig.RemoteRelayNode)})
+	if err != nil {
+		return err
+	}
+	for _, o := range out {
+		log.Info(o)
+	}
+	return t.IpfsNode.Floodsub.Publish(topic, payload)
+}
+
 // startRepublishing continuously publishes the latest update in each thread
 func (t *TextileNode) startRepublishing() {
 	// do it once right away
@@ -1303,64 +1366,10 @@ func (t *TextileNode) startRepublishing() {
 func (t *TextileNode) republishLatestUpdates() {
 	// do this for each album
 	albums := t.Datastore.Albums().GetAlbums("")
-	for _, a := range albums {
-		// find latest local update
-		recent := t.Datastore.Photos().GetPhotos("", 1, "album='"+a.Id+"' and local=1")
-		var latest string
-		if len(recent) > 0 {
-			latest = recent[0].Cid
-		} else {
-			latest = "ping"
-		}
-
-		// publish it
-		go func(id string, hash string) {
-			log.Debugf("starting re-publish...")
-			if err := t.IpfsNode.Floodsub.Publish(id, []byte(hash)); err != nil {
-				log.Errorf("error re-publishing update: %s", err)
-			}
-			log.Debugf("re-published %s to %s", hash, id)
-		}(a.Id, latest)
-	}
-}
-
-// startPingingRelay continuously pings a shared relay
-func (t *TextileNode) startPingingRelay() {
-	// do it once right away
-	err := t.PingPeer(tconfig.RemoteRelayNode, 1, make(chan string))
-	if err != nil {
-		log.Errorf("ping relay failed: %s", err)
-	}
-
-	// create a never-ending ticker
-	ticker := time.NewTicker(pingRelayInterval)
-	defer func() {
-		ticker.Stop()
-		defer func() {
-			if recover() != nil {
-				log.Error("ping relay ticker already stopped")
-			}
-		}()
-	}()
-	go func() {
-		for range ticker.C {
-			err := t.PingPeer(tconfig.RemoteRelayNode, 1, make(chan string))
-			if err != nil {
-				log.Errorf("ping relay failed: %s", err)
-			}
-		}
-	}()
-
-	// we can stop when the node stops
-	for {
-		if !t.Online() {
-			return
-		}
-		select {
-		case <-t.IpfsNode.Context().Done():
-			log.Info("pinging relay stopped")
-			return
-		}
+	for _, album := range albums {
+		go func(a trepo.PhotoAlbum) {
+			t.RepublishLatestUpdate(&a)
+		}(album)
 	}
 }
 
@@ -1394,6 +1403,9 @@ func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message, aid string, api if
 
 	// unpack message data
 	data := string(msg.GetData())
+	if data == "ping" {
+		return nil
+	}
 
 	// determine if this is from a relay node
 	tmp := strings.Split(data, ":")
