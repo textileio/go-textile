@@ -301,20 +301,12 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 	topic := peerID.Pretty()
 
 	// finally, publish the encrypted phrase
-	err = tcore.Node.IpfsNode.Floodsub.Publish(topic, cph)
+	err = tcore.Node.Publish(topic, cph)
 	if err != nil {
 		log.Errorf("publish %s failed: %s", topic, err)
 		return "", err
 	}
 	log.Infof("published key phrase to desktop: %s", topic)
-
-	// try a ping
-	go func() {
-		err = tcore.Node.PingPeer(topic, 1, make(chan string))
-		if err != nil {
-			log.Errorf("ping %s failed: %s", topic, err)
-		}
-	}()
 
 	return topic, nil
 }

@@ -3,18 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/mitchellh/go-homedir"
+	"github.com/op/go-logging"
+	tcore "github.com/textileio/textile-go/core"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
-
-	"github.com/mitchellh/go-homedir"
-	"github.com/op/go-logging"
-
-	tcore "github.com/textileio/textile-go/core"
-
-	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
 )
 
 var (
@@ -54,12 +50,25 @@ func main() {
 	}
 	self := node.IpfsNode.Identity.Pretty()
 
+	var relay = func() {
+		for from, update := range updateCache {
+			go func(from string, update string) {
+				log.Debug("starting relay...")
+				msg := fmt.Sprintf("relay:%s", update)
+				if err := node.Publish(relayThread, []byte(msg)); err != nil {
+					log.Errorf("error relaying update: %s", err)
+				}
+				log.Debugf("relayed update %s from %s", update, from)
+			}(from, update)
+		}
+	}
+
 	// create ticker for relaying updates
 	ticker := time.NewTicker(relayInterval)
 	defer ticker.Stop()
 	go func() {
 		for range ticker.C {
-			relayLatest(node.IpfsNode)
+			relay()
 		}
 	}()
 
@@ -108,19 +117,6 @@ func main() {
 		}
 
 		// relay now
-		relayLatest(node.IpfsNode)
-	}
-}
-
-func relayLatest(ipfs *core.IpfsNode) {
-	for from, update := range updateCache {
-		go func(from string, update string) {
-			log.Debug("starting relay...")
-			msg := fmt.Sprintf("relay:%s", update)
-			if err := ipfs.Floodsub.Publish(relayThread, []byte(msg)); err != nil {
-				log.Errorf("error relaying update: %s", err)
-			}
-			log.Debugf("relayed update %s from %s", update, from)
-		}(from, update)
+		relay()
 	}
 }

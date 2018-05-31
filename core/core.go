@@ -854,7 +854,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string, caption 
 
 	// publish
 	go func() {
-		err = t.publish(a.Id, []byte(mr.Boundary))
+		err = t.Publish(a.Id, []byte(mr.Boundary))
 		if err != nil {
 			log.Errorf("error publishing photo update: %s", err)
 		}
@@ -1142,6 +1142,18 @@ func (t *TextileNode) GetPublicPeerKeyString() (string, error) {
 	return base64.StdEncoding.EncodeToString(pkb), nil
 }
 
+// Publish and ping
+func (t *TextileNode) Publish(topic string, payload []byte) error {
+	out, err := t.ConnectPeer([]string{fmt.Sprintf("/p2p-circuit/ipfs/%s", tconfig.RemoteRelayNode)})
+	if err != nil {
+		return err
+	}
+	for _, o := range out {
+		log.Info(o)
+	}
+	return t.IpfsNode.Floodsub.Publish(topic, payload)
+}
+
 // ConnectPeer connect to another ipfs peer (i.e., ipfs swarm connect)
 func (t *TextileNode) ConnectPeer(addrs []string) ([]string, error) {
 	if t.IpfsNode.PeerHost == nil {
@@ -1249,7 +1261,7 @@ func (t *TextileNode) RepublishLatestUpdate(album *trepo.PhotoAlbum) {
 
 	// publish it
 	log.Debugf("starting re-publish...")
-	if err := t.publish(album.Id, []byte(latest)); err != nil {
+	if err := t.Publish(album.Id, []byte(latest)); err != nil {
 		log.Errorf("error re-publishing update: %s", err)
 	}
 	log.Debugf("re-published %s to %s", latest, album.Id)
@@ -1314,18 +1326,6 @@ func (t *TextileNode) startGateway() (<-chan error, error) {
 	log.Infof("decrypting gateway (readonly) server listening at %s\n", t.GatewayProxy.Addr)
 
 	return errc, nil
-}
-
-// publish and ping
-func (t *TextileNode) publish(topic string, payload []byte) error {
-	out, err := t.ConnectPeer([]string{fmt.Sprintf("/p2p-circuit/ipfs/%s", tconfig.RemoteRelayNode)})
-	if err != nil {
-		return err
-	}
-	for _, o := range out {
-		log.Info(o)
-	}
-	return t.IpfsNode.Floodsub.Publish(topic, payload)
 }
 
 // startRepublishing continuously publishes the latest update in each thread
