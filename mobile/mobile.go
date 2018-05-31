@@ -14,6 +14,7 @@ import (
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 
 	"github.com/textileio/textile-go/central/models"
+	"github.com/textileio/textile-go/repo"
 )
 
 var log = logging.MustGetLogger("mobile")
@@ -97,6 +98,9 @@ func (w *Wrapper) Start() error {
 	// join existing rooms
 	for _, album := range tcore.Node.Datastore.Albums().GetAlbums("") {
 		w.joinRoom(album.Id)
+		go func(a *repo.PhotoAlbum) {
+			tcore.Node.RepublishLatestUpdate(a)
+		}(&album)
 	}
 
 	return nil
@@ -164,7 +168,6 @@ func (w *Wrapper) UpdateThread(mnemonic string, name string) error {
 		log.Errorf("error deleting album %s: %s", name, err)
 		return err
 	}
-	log.Debugf("creating album: %s", name)
 	err = tcore.Node.CreateAlbum(mnemonic, name)
 	if err != nil {
 		log.Errorf("error creating album %s: %s", name, err)
@@ -214,6 +217,15 @@ func (w *Wrapper) GetHashRequest(hash string) (string, error) {
 
 // Get Photos returns core GetPhotos with json encoding
 func (w *Wrapper) GetPhotos(offsetId string, limit int, thread string) (string, error) {
+	if tcore.Node.Online() {
+		go func() {
+			th := tcore.Node.Datastore.Albums().GetAlbumByName(thread)
+			if th != nil {
+				tcore.Node.RepublishLatestUpdate(th)
+			}
+		}()
+	}
+
 	list := tcore.Node.GetPhotos(offsetId, limit, thread)
 	if list == nil {
 		list = &tcore.PhotoList{
