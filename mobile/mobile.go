@@ -52,6 +52,7 @@ type NodeConfig struct {
 	RepoPath      string
 	CentralApiURL string
 	LogLevel      string
+	LogFiles      bool
 }
 
 // NewNode is the mobile entry point for creating a node
@@ -75,7 +76,7 @@ func (m *Mobile) NewNode(config *NodeConfig, messenger Messenger) (*Wrapper, err
 		CentralApiURL: config.CentralApiURL,
 		IsMobile:      true,
 		LogLevel:      ll,
-		LogFiles:      true,
+		LogFiles:      config.LogFiles,
 	}
 	node, err := tcore.NewNode(cconfig)
 	if err != nil {
