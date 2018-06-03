@@ -30,20 +30,21 @@ import (
 	"github.com/textileio/textile-go/repo/photos"
 	"github.com/textileio/textile-go/util"
 
-	utilmain "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/cmd/ipfs/util"
-	oldcmds "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/commands"
-	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
-	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/coreapi"
-	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core/coreapi/interface"
-	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/config"
-	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo"
-	lockfile "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo/lock"
+	utilmain "gx/ipfs/QmPrKYPftocu7r4DhE3LorFgsJLGUkTPFLUqkS8SsuAXYn/go-ipfs/cmd/ipfs/util"
+	oldcmds "gx/ipfs/QmPrKYPftocu7r4DhE3LorFgsJLGUkTPFLUqkS8SsuAXYn/go-ipfs/commands"
+	"gx/ipfs/QmPrKYPftocu7r4DhE3LorFgsJLGUkTPFLUqkS8SsuAXYn/go-ipfs/core"
+	"gx/ipfs/QmPrKYPftocu7r4DhE3LorFgsJLGUkTPFLUqkS8SsuAXYn/go-ipfs/core/coreapi"
+	"gx/ipfs/QmPrKYPftocu7r4DhE3LorFgsJLGUkTPFLUqkS8SsuAXYn/go-ipfs/core/coreapi/interface"
+	"gx/ipfs/QmPrKYPftocu7r4DhE3LorFgsJLGUkTPFLUqkS8SsuAXYn/go-ipfs/core/coreapi/interface/options"
+	"gx/ipfs/QmPrKYPftocu7r4DhE3LorFgsJLGUkTPFLUqkS8SsuAXYn/go-ipfs/repo/config"
+	"gx/ipfs/QmPrKYPftocu7r4DhE3LorFgsJLGUkTPFLUqkS8SsuAXYn/go-ipfs/repo/fsrepo"
 
 	"gx/ipfs/QmSFihvoND3eDaAYRCeLgLPt62yCPgMZs1NSZmKFEtJQQw/go-libp2p-floodsub"
 	"gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"gx/ipfs/QmeLAnvB66htrRvUAopheJhmgBSJRoHRCd45WZmkzrRobZ/go-libp2p-kad-dht"
 )
 
 const (
@@ -113,6 +114,9 @@ type TextileNode struct {
 	// Whether or not we've just inited, and never run, a "fresh" node :)
 	fresh bool
 
+	// Whether or no we're online
+	online bool
+
 	// Mutex for controlling lifecycle
 	mux sync.Mutex
 
@@ -153,7 +157,7 @@ type NodeConfig struct {
 // NewNode creates a new TextileNode
 func NewNode(config NodeConfig) (*TextileNode, error) {
 	// TODO: shouldn't need to manually remove these
-	repoLockFile := filepath.Join(config.RepoPath, lockfile.LockFile)
+	repoLockFile := filepath.Join(config.RepoPath, fsrepo.LockFile)
 	os.Remove(repoLockFile)
 	dsLockFile := filepath.Join(config.RepoPath, "datastore", "LOCK")
 	os.Remove(dsLockFile)
@@ -205,10 +209,7 @@ func NewNode(config NodeConfig) (*TextileNode, error) {
 	// determine the best routing
 	var routingOption core.RoutingOption
 	if config.IsMobile {
-		// TODO: Determine best value for this setting on mobile
-		// cfg.Swarm.DisableNatPortMap = true
-		// NOTE: trying normal routing for a bit
-		routingOption = core.DHTOption
+		routingOption = core.DHTClientOption
 	} else {
 		routingOption = core.DHTOption
 	}
@@ -387,6 +388,9 @@ func (t *TextileNode) Start() error {
 		}
 	}()
 
+	// wait for dht to bootstrap
+	<-dht.DefaultBootstrapConfig.DoneChan
+
 	if !t.isMobile {
 		// every min, send out latest room updates
 		go t.startRepublishing()
@@ -398,6 +402,7 @@ func (t *TextileNode) Start() error {
 	} else {
 		log.Info("desktop node is ready")
 	}
+	t.online = true
 	return nil
 }
 
@@ -446,11 +451,12 @@ func (t *TextileNode) Stop() error {
 	// stop capturing
 	//t.stdOutLogger.Stop()
 
+	t.online = false
 	return nil
 }
 
 func (t *TextileNode) Online() bool {
-	return t.fresh || t.IpfsNode != nil
+	return t.fresh || t.online
 }
 
 // StartGarbageCollection starts auto garbage cleanup
@@ -1144,12 +1150,15 @@ func (t *TextileNode) GetPublicPeerKeyString() (string, error) {
 
 // Publish and ping
 func (t *TextileNode) Publish(topic string, payload []byte) error {
+	if len(t.IpfsNode.PeerHost.Network().Peers()) == 0 {
+		return errors.New("no peers, aborting")
+	}
 	out, err := t.ConnectPeer([]string{fmt.Sprintf("/p2p-circuit/ipfs/%s", tconfig.RemoteRelayNode)})
 	if err != nil {
 		return err
 	}
 	for _, o := range out {
-		log.Info(o)
+		log.Debug(o)
 	}
 	return t.IpfsNode.Floodsub.Publish(topic, payload)
 }
@@ -1263,6 +1272,7 @@ func (t *TextileNode) RepublishLatestUpdate(album *trepo.PhotoAlbum) {
 	log.Debugf("starting re-publish...")
 	if err := t.Publish(album.Id, []byte(latest)); err != nil {
 		log.Errorf("error re-publishing update: %s", err)
+		return
 	}
 	log.Debugf("re-published %s to %s", latest, album.Id)
 }
@@ -1271,7 +1281,7 @@ func (t *TextileNode) RepublishLatestUpdate(album *trepo.PhotoAlbum) {
 func (t *TextileNode) registerGatewayHandler() {
 	defer func() {
 		if recover() != nil {
-			log.Error("gateway handler already registered")
+			log.Debug("gateway handler already registered")
 		}
 	}()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -1527,7 +1537,7 @@ func (t *TextileNode) pinPath(path string, api iface.CoreAPI, recursive bool) er
 	}
 	ctx, cancel := context.WithTimeout(t.IpfsNode.Context(), pinTimeout)
 	defer cancel()
-	return api.Pin().Add(ctx, ip, api.Pin().WithRecursive(recursive))
+	return api.Pin().Add(ctx, ip, options.Pin.Recursive(recursive))
 }
 
 // touchDB ensures that we have a good db connection

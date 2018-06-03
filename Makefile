@@ -19,7 +19,7 @@ clean:
 	rm -rf dist && rm -f Mobile.framework && rm -rf textilego.aar && rm -rf textilego-sources.jar
 
 build_test:
-	docker build -t circleci:1.10 .
+	docker build -f Dockerfile.circleci -t circleci:1.10 .
 
 build_swarm_services:
 	go get github.com/kardianos/govendor
