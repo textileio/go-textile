@@ -1158,7 +1158,7 @@ func (t *TextileNode) Publish(topic string, payload []byte) error {
 		return err
 	}
 	for _, o := range out {
-		log.Info(o)
+		log.Debug(o)
 	}
 	return t.IpfsNode.Floodsub.Publish(topic, payload)
 }
@@ -1281,7 +1281,7 @@ func (t *TextileNode) RepublishLatestUpdate(album *trepo.PhotoAlbum) {
 func (t *TextileNode) registerGatewayHandler() {
 	defer func() {
 		if recover() != nil {
-			log.Error("gateway handler already registered")
+			log.Debug("gateway handler already registered")
 		}
 	}()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
