@@ -13,9 +13,9 @@ import (
 	"github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/repo/schema"
 
-	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
-	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/namesys"
-	"gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/repo/fsrepo"
+	"gx/ipfs/QmPrKYPftocu7r4DhE3LorFgsJLGUkTPFLUqkS8SsuAXYn/go-ipfs/core"
+	"gx/ipfs/QmPrKYPftocu7r4DhE3LorFgsJLGUkTPFLUqkS8SsuAXYn/go-ipfs/namesys"
+	"gx/ipfs/QmPrKYPftocu7r4DhE3LorFgsJLGUkTPFLUqkS8SsuAXYn/go-ipfs/repo/fsrepo"
 )
 
 const (
