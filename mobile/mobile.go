@@ -14,7 +14,6 @@ import (
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 
 	"github.com/textileio/textile-go/central/models"
-	"github.com/textileio/textile-go/repo"
 )
 
 var log = logging.MustGetLogger("mobile")
@@ -99,9 +98,6 @@ func (w *Wrapper) Start() error {
 	// join existing rooms
 	for _, album := range tcore.Node.Datastore.Albums().GetAlbums("") {
 		w.joinRoom(album.Id)
-		go func(a *repo.PhotoAlbum) {
-			tcore.Node.RepublishLatestUpdate(a)
-		}(&album)
 	}
 
 	return nil
