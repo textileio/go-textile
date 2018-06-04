@@ -1,7 +1,6 @@
 package mobile_test
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"os"
 	"testing"
@@ -11,8 +10,6 @@ import (
 	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
 	util "github.com/textileio/textile-go/util/testing"
-
-	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 type TestMessenger struct {
@@ -204,22 +201,22 @@ func TestWrapper_GetPeerID(t *testing.T) {
 	}
 }
 
-func TestWrapper_PairDesktop(t *testing.T) {
-	_, pk, err := libp2p.GenerateKeyPair(libp2p.Ed25519, 1024)
-	if err != nil {
-		t.Errorf("create rsa keypair failed: %s", err)
-	}
-	pb, err := pk.Bytes()
-	if err != nil {
-		t.Errorf("get rsa keypair bytes: %s", err)
-	}
-	ps := base64.StdEncoding.EncodeToString(pb)
-
-	_, err = wrapper.PairDesktop(ps)
-	if err != nil {
-		t.Errorf("pair desktop failed: %s", err)
-	}
-}
+//func TestWrapper_PairDesktop(t *testing.T) {
+//	_, pk, err := libp2p.GenerateKeyPair(libp2p.Ed25519, 1024)
+//	if err != nil {
+//		t.Errorf("create rsa keypair failed: %s", err)
+//	}
+//	pb, err := pk.Bytes()
+//	if err != nil {
+//		t.Errorf("get rsa keypair bytes: %s", err)
+//	}
+//	ps := base64.StdEncoding.EncodeToString(pb)
+//
+//	_, err = wrapper.PairDesktop(ps)
+//	if err != nil {
+//		t.Errorf("pair desktop failed: %s", err)
+//	}
+//}
 
 func TestWrapper_SignOut(t *testing.T) {
 	err := wrapper.SignOut()

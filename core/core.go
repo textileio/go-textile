@@ -863,6 +863,7 @@ func (t *TextileNode) AddPhoto(path string, thumb string, album string, caption 
 		err = t.Publish(a.Id, []byte(mr.Boundary))
 		if err != nil {
 			log.Errorf("error publishing photo update: %s", err)
+			return
 		}
 		log.Debugf("published update to %s", a.Id)
 	}()
@@ -1383,26 +1384,6 @@ func (t *TextileNode) republishLatestUpdates() {
 	}
 }
 
-// getDataAtPath cats any data under an ipfs path
-func (t *TextileNode) getDataAtPath(path string) ([]byte, error) {
-	// convert string to an ipfs path
-	ip, err := coreapi.ParsePath(path)
-	if err != nil {
-		return nil, err
-	}
-
-	api := coreapi.NewCoreAPI(t.IpfsNode)
-	ctx, cancel := context.WithTimeout(t.IpfsNode.Context(), catTimeout)
-	defer cancel()
-	r, err := api.Unixfs().Cat(ctx, ip)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-
-	return ioutil.ReadAll(r)
-}
-
 // handleRoomUpdate tries to recursively process an update sent to a thread
 func (t *TextileNode) handleRoomUpdate(msg *floodsub.Message, aid string, api iface.CoreAPI, datac chan ThreadUpdate) error {
 	// unpack from
@@ -1523,9 +1504,39 @@ func (t *TextileNode) handleHash(hash string, aid string, api iface.CoreAPI, dat
 	case datac <- ThreadUpdate{Cid: hash, Thread: a.Name, ThreadID: a.Id}:
 	default:
 	}
+	defer func() {
+		if recover() != nil {
+			log.Error("update channel already closed")
+		}
+	}()
 
 	// check last hash
 	return t.handleHash(last, aid, api, datac)
+}
+
+// getDataAtPath cats any data under an ipfs path
+func (t *TextileNode) getDataAtPath(path string) ([]byte, error) {
+	// convert string to an ipfs path
+	ip, err := coreapi.ParsePath(path)
+	if err != nil {
+		return nil, err
+	}
+
+	api := coreapi.NewCoreAPI(t.IpfsNode)
+	ctx, cancel := context.WithTimeout(t.IpfsNode.Context(), catTimeout)
+	defer cancel()
+	r, err := api.Unixfs().Cat(ctx, ip)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	defer func() {
+		if recover() != nil {
+			log.Debug("node stopped")
+		}
+	}()
+
+	return ioutil.ReadAll(r)
 }
 
 // pinPath takes an ipfs path string and pins it
@@ -1537,7 +1548,15 @@ func (t *TextileNode) pinPath(path string, api iface.CoreAPI, recursive bool) er
 	}
 	ctx, cancel := context.WithTimeout(t.IpfsNode.Context(), pinTimeout)
 	defer cancel()
-	return api.Pin().Add(ctx, ip, options.Pin.Recursive(recursive))
+	if err := api.Pin().Add(ctx, ip, options.Pin.Recursive(recursive)); err != nil {
+		return err
+	}
+	defer func() {
+		if recover() != nil {
+			log.Debug("node stopped")
+		}
+	}()
+	return nil
 }
 
 // touchDB ensures that we have a good db connection
