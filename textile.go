@@ -234,9 +234,11 @@ func main() {
 
 func start(shell *ishell.Shell) error {
 	// start node
-	if err := core.Node.Start(); err != nil {
+	online, err := core.Node.Start()
+	if err != nil {
 		return err
 	}
+	<-online
 
 	// start garbage collection
 	// TODO: see method todo before enabling

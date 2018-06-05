@@ -14,11 +14,11 @@ import (
 	"github.com/rwcarlsen/goexif/exif"
 )
 
-// ImagePathWithoutExif makes a copy of image (jpg,png or gif) and applies
+// GetImageWithoutExif makes a copy of image (jpg,png or gif) and applies
 // all necessary operation to reverse its orientation to 1
 // The result is a image with corrected orientation and without
 // exif data.
-func ImagePathWithoutExif(ifile *os.File) (*bytes.Buffer, error) {
+func GetImageWithoutExif(ifile *os.File) (*bytes.Buffer, error) {
 	var img image.Image
 	var err error
 	writer := &bytes.Buffer{}
@@ -52,7 +52,7 @@ func ImagePathWithoutExif(ifile *os.File) (*bytes.Buffer, error) {
 	if x != nil {
 		orient, _ := x.Get(exif.Orientation)
 		if orient != nil {
-			log.Infof("%s had orientation %s", ifile.Name(), orient.String())
+			log.Debugf("%s had orientation %s", ifile.Name(), orient.String())
 			img = reverseOrientation(img, orient.String())
 		} else {
 			log.Errorf("%s had no orientation - implying 1", ifile.Name())

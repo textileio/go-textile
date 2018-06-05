@@ -44,10 +44,11 @@ func main() {
 	}
 
 	// bring it online
-	err = node.Start()
+	online, err := node.Start()
 	if err != nil {
 		log.Fatal(err)
 	}
+	<-online
 	self := node.IpfsNode.Identity.Pretty()
 
 	var relay = func() {
