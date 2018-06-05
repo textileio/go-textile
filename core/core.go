@@ -67,8 +67,11 @@ var Node *TextileNode
 // ErrNodeRunning is an error for when node start is called on a running node
 var ErrNodeRunning = errors.New("node is already running")
 
-// ErrNodeNotRunning is an error for  when node stop is called on a nil node
+// ErrNodeNotRunning is an error for when node stop is called on a stopped node
 var ErrNodeNotRunning = errors.New("node is not running")
+
+// ErrNodeNotOnline is an error for when online resources are needed on an offline node
+var ErrNodeNotOnline = errors.New("node is not online")
 
 // TextileNode is the main node interface for textile functionality
 type TextileNode struct {
@@ -101,9 +104,6 @@ type TextileNode struct {
 
 	// Signals for leaving rooms
 	leaveRoomChs map[string]chan struct{}
-
-	// IPFS configuration used to instantiate new ipfs nodes
-	ipfsConfig *core.BuildCfg
 
 	// Whether or not we're running on a mobile device
 	isMobile bool
@@ -206,27 +206,6 @@ func NewNode(config NodeConfig) (*TextileNode, error) {
 		return nil, err
 	}
 
-	// determine the best routing
-	var routingOption core.RoutingOption
-	if config.IsMobile {
-		routingOption = core.DHTClientOption
-	} else {
-		routingOption = core.DHTOption
-	}
-
-	// assemble node config
-	ncfg := &core.BuildCfg{
-		Repo:      repo,
-		Permanent: true, // temporary way to signify that node is permanent
-		Online:    true,
-		ExtraOpts: map[string]bool{
-			"pubsub": true,
-			"ipnsps": true,
-			"mplex":  true,
-		},
-		Routing: routingOption,
-	}
-
 	// setup gateway
 	gwAddr, err := repo.GetConfigKey("Addresses.Gateway")
 	if err != nil {
@@ -283,7 +262,6 @@ func NewNode(config NodeConfig) (*TextileNode, error) {
 		HashPasses:      make(map[string]string),
 		LeftRoomChs:     make(map[string]chan struct{}),
 		leaveRoomChs:    make(map[string]chan struct{}),
-		ipfsConfig:      ncfg,
 		isMobile:        config.IsMobile,
 		centralUserAPI:  fmt.Sprintf("%s/api/v1/users", config.CentralApiURL),
 		fresh:           true,
@@ -304,17 +282,16 @@ func NewNode(config NodeConfig) (*TextileNode, error) {
 }
 
 // Start the node
-func (t *TextileNode) Start() error {
+func (t *TextileNode) Start() (chan struct{}, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 	t.fresh = false
 	if t.Online() {
-		return ErrNodeRunning
+		return nil, ErrNodeRunning
 	}
+	defer func() { t.online = true }()
 	log.Info("starting node...")
-
-	// start capturing
-	//t.stdOutLogger.Start()
+	onlineCh := make(chan struct{})
 
 	// raise file descriptor limit
 	if err := utilmain.ManageFdLimit(); err != nil {
@@ -323,55 +300,44 @@ func (t *TextileNode) Start() error {
 
 	// check db
 	if err := t.touchDB(); err != nil {
-		return err
-	}
-
-	// check repo
-	if t.ipfsConfig.Repo == nil {
-		log.Debug("re-opening repo...")
-		repo, err := fsrepo.Open(t.RepoPath)
-		if err != nil {
-			log.Errorf("error re-opening repo: %s", err)
-			return err
-		}
-		t.ipfsConfig.Repo = repo
+		return nil, err
 	}
 
 	// start the ipfs node
 	log.Debug("creating an ipfs node...")
-	cctx, cancel := context.WithCancel(context.Background())
-	t.Cancel = cancel
-	nd, err := core.NewNode(cctx, t.ipfsConfig)
-	if err != nil {
-		log.Errorf("error creating ipfs node: %s", err)
-		return err
+	if err := t.createIPFS(false); err != nil {
+		log.Errorf("error creating offline ipfs node: %s", err)
+		return nil, err
 	}
-	nd.SetLocal(false)
+	go func() {
+		defer close(onlineCh)
+		if err := t.createIPFS(true); err != nil {
+			log.Errorf("error creating online ipfs node: %s", err)
+			return
+		}
 
-	// print swarm addresses
-	if err = printSwarmAddrs(nd); err != nil {
-		log.Errorf("failed to read listening addresses: %s", err)
-	}
+		// wait for dht to bootstrap
+		<-dht.DefaultBootstrapConfig.DoneChan
 
-	// build the node
-	ctx := oldcmds.Context{}
-	ctx.Online = true
-	ctx.ConfigRoot = t.RepoPath
-	ctx.LoadConfig = func(path string) (*config.Config, error) {
-		return fsrepo.ConfigAt(t.RepoPath)
-	}
-	ctx.ConstructNode = func() (*core.IpfsNode, error) {
-		return nd, nil
-	}
-	t.Context = ctx
-	t.IpfsNode = nd
+		// print swarm addresses
+		if err := printSwarmAddrs(t.IpfsNode); err != nil {
+			log.Errorf("failed to read listening addresses: %s", err)
+		}
+		log.Info("node is online")
+
+		if !t.isMobile {
+			// every min, send out latest room updates
+			go t.startRepublishing()
+		}
+	}()
 
 	// construct decrypting http gateway
 	var gwpErrc <-chan error
+	var err error
 	gwpErrc, err = t.startGateway()
 	if err != nil {
 		log.Errorf("error starting decrypting gateway: %s", err)
-		return err
+		return nil, err
 	}
 	go func() {
 		for {
@@ -388,21 +354,74 @@ func (t *TextileNode) Start() error {
 		}
 	}()
 
-	// wait for dht to bootstrap
-	<-dht.DefaultBootstrapConfig.DoneChan
+	log.Info("node is started")
 
-	if !t.isMobile {
-		// every min, send out latest room updates
-		go t.startRepublishing()
+	return onlineCh, nil
+}
+
+// createIPFS creates an IPFS node
+func (t *TextileNode) createIPFS(online bool) error {
+	// open repo
+	repo, err := fsrepo.Open(t.RepoPath)
+	if err != nil {
+		log.Errorf("error re-opening repo: %s", err)
+		return err
 	}
 
-	// dunzo
+	// determine the best routing
+	var routingOption core.RoutingOption
 	if t.isMobile {
-		log.Info("mobile node is ready")
+		routingOption = core.DHTClientOption
 	} else {
-		log.Info("desktop node is ready")
+		routingOption = core.DHTOption
 	}
-	t.online = true
+
+	// assemble node config
+	cfg := &core.BuildCfg{
+		Repo:      repo,
+		Permanent: true, // temporary way to signify that node is permanent
+		Online:    online,
+		ExtraOpts: map[string]bool{
+			"pubsub": true,
+			"ipnsps": true,
+			"mplex":  true,
+		},
+		Routing: routingOption,
+	}
+
+	// create the node
+	cctx, cancel := context.WithCancel(context.Background())
+	nd, err := core.NewNode(cctx, cfg)
+	if err != nil {
+		return err
+	}
+	nd.SetLocal(!online)
+
+	// build the context
+	ctx := oldcmds.Context{}
+	ctx.Online = online
+	ctx.ConfigRoot = t.RepoPath
+	ctx.LoadConfig = func(path string) (*config.Config, error) {
+		return fsrepo.ConfigAt(t.RepoPath)
+	}
+	ctx.ConstructNode = func() (*core.IpfsNode, error) {
+		return nd, nil
+	}
+
+	// attach to textile node
+	if t.Cancel != nil {
+		t.Cancel()
+	}
+	if t.IpfsNode != nil {
+		if err := t.IpfsNode.Close(); err != nil {
+			log.Errorf("error closing prev ipfs node: %s", err)
+			return err
+		}
+	}
+	t.Context = ctx
+	t.Cancel = cancel
+	t.IpfsNode = nd
+
 	return nil
 }
 
@@ -413,6 +432,7 @@ func (t *TextileNode) Stop() error {
 	if !t.Online() {
 		return ErrNodeNotRunning
 	}
+	defer func() { t.online = false }()
 	log.Info("stopping node...")
 
 	// shutdown the gateway
@@ -441,17 +461,11 @@ func (t *TextileNode) Stop() error {
 	t.Datastore.Close()
 	dsLockFile := filepath.Join(t.RepoPath, "datastore", "LOCK")
 	if err := os.Remove(dsLockFile); err != nil {
-		log.Errorf("error removing ds lock: %s", err)
+		log.Warningf("remove ds lock failed: %s", err)
 	}
 
-	// clean up node
-	t.IpfsNode = nil
-	t.ipfsConfig.Repo = nil
+	log.Info("node is stopped")
 
-	// stop capturing
-	//t.stdOutLogger.Stop()
-
-	t.online = false
 	return nil
 }
 
@@ -590,6 +604,9 @@ func (t *TextileNode) GetAccessToken() (string, error) {
 // JoinRoom with a given id
 func (t *TextileNode) JoinRoom(id string, datac chan ThreadUpdate) {
 	if !t.Online() {
+		return
+	}
+	if !t.IpfsNode.OnlineMode() {
 		return
 	}
 
@@ -1151,6 +1168,9 @@ func (t *TextileNode) GetPublicPeerKeyString() (string, error) {
 
 // Publish and ping
 func (t *TextileNode) Publish(topic string, payload []byte) error {
+	if !t.IpfsNode.OnlineMode() {
+		return ErrNodeNotOnline
+	}
 	if len(t.IpfsNode.PeerHost.Network().Peers()) == 0 {
 		return errors.New("no peers, aborting")
 	}
@@ -1166,10 +1186,12 @@ func (t *TextileNode) Publish(topic string, payload []byte) error {
 
 // ConnectPeer connect to another ipfs peer (i.e., ipfs swarm connect)
 func (t *TextileNode) ConnectPeer(addrs []string) ([]string, error) {
-	if t.IpfsNode.PeerHost == nil {
-		return nil, errors.New("not online")
+	if !t.Online() {
+		return nil, ErrNodeNotRunning
 	}
-
+	if !t.IpfsNode.OnlineMode() {
+		return nil, ErrNodeNotOnline
+	}
 	snet, ok := t.IpfsNode.PeerHost.Network().(*swarm.Network)
 	if !ok {
 		return nil, errors.New("peerhost network was not swarm")
@@ -1201,6 +1223,9 @@ func (t *TextileNode) ConnectPeer(addrs []string) ([]string, error) {
 func (t *TextileNode) PingPeer(addrs string, num int, out chan string) error {
 	if !t.Online() {
 		return ErrNodeNotRunning
+	}
+	if !t.IpfsNode.OnlineMode() {
+		return ErrNodeNotOnline
 	}
 	addr, pid, err := parsePeerParam(addrs)
 	if addr != nil {
@@ -1278,6 +1303,17 @@ func (t *TextileNode) RepublishLatestUpdate(album *trepo.PhotoAlbum) {
 	log.Debugf("re-published %s to %s", latest, album.Id)
 }
 
+// RepublishLatestUpdates interates through albums, publishing each ones latest update
+func (t *TextileNode) RepublishLatestUpdates() {
+	// do this for each album
+	albums := t.Datastore.Albums().GetAlbums("")
+	for _, album := range albums {
+		go func(a trepo.PhotoAlbum) {
+			t.RepublishLatestUpdate(&a)
+		}(album)
+	}
+}
+
 // registerGatewayHandler registers a handler for the gateway
 func (t *TextileNode) registerGatewayHandler() {
 	defer func() {
@@ -1304,13 +1340,10 @@ func (t *TextileNode) registerGatewayHandler() {
 
 		ci := strings.Join(tmp[2:], "/")
 		if password != t.HashPasses[ci] {
-			log.Debugf("wrong password: %s", ci, t.HashPasses[ci])
+			log.Debugf("wrong password %s for %s", t.HashPasses[ci], ci)
 			w.WriteHeader(401)
 			return
 		}
-
-		// invalidate previous password
-		// t.HashPasses[username] = ksuid.New().String()
 
 		b, err := t.GetFile(r.URL.Path, nil)
 		if err != nil {
@@ -1342,7 +1375,7 @@ func (t *TextileNode) startGateway() (<-chan error, error) {
 // startRepublishing continuously publishes the latest update in each thread
 func (t *TextileNode) startRepublishing() {
 	// do it once right away
-	t.republishLatestUpdates()
+	t.RepublishLatestUpdates()
 
 	// create a never-ending ticker
 	ticker := time.NewTicker(roomRepublishInterval)
@@ -1356,7 +1389,7 @@ func (t *TextileNode) startRepublishing() {
 	}()
 	go func() {
 		for range ticker.C {
-			t.republishLatestUpdates()
+			t.RepublishLatestUpdates()
 		}
 	}()
 
@@ -1370,17 +1403,6 @@ func (t *TextileNode) startRepublishing() {
 			log.Info("republishing stopped")
 			return
 		}
-	}
-}
-
-// republishLatestUpdates interates through albums, publishing each ones latest update
-func (t *TextileNode) republishLatestUpdates() {
-	// do this for each album
-	albums := t.Datastore.Albums().GetAlbums("")
-	for _, album := range albums {
-		go func(a trepo.PhotoAlbum) {
-			t.RepublishLatestUpdate(&a)
-		}(album)
 	}
 }
 

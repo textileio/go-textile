@@ -94,7 +94,7 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 
 	// add the image
 	p.Seek(0, 0)
-	pr, err := ImagePathWithoutExif(p)
+	pr, err := GetImageWithoutExif(p)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -108,7 +108,7 @@ func Add(n *core.IpfsNode, pk libp2p.PubKey, p *os.File, t *os.File, lc string, 
 	}
 
 	// add the thumbnail
-	tr, err := ImagePathWithoutExif(t)
+	tr, err := GetImageWithoutExif(t)
 	if err != nil {
 		return nil, nil, err
 	}
