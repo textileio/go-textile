@@ -46,14 +46,15 @@ func TestNewNode(t *testing.T) {
 }
 
 func TestTextileNode_Start(t *testing.T) {
-	err := node.Start()
+	online, err := node.Start()
 	if err != nil {
 		t.Errorf("start node failed: %s", err)
 	}
+	<-online
 }
 
 func TestTextileNode_StartAgain(t *testing.T) {
-	err := node.Start()
+	_, err := node.Start()
 	if err != ErrNodeRunning {
 		t.Errorf("start node again reported wrong error: %s", err)
 	}
