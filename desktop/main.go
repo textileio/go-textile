@@ -45,11 +45,12 @@ func main() {
 	}
 
 	// bring the node online and startup the gateway
-	err = textile.Start()
+	online, err := textile.Start()
 	if err != nil {
 		astilog.Errorf("start desktop node failed: %s", err)
 		return
 	}
+	<-online
 
 	// save off the gateway address
 	gateway = fmt.Sprintf("http://localhost%s", textile.GatewayProxy.Addr)

@@ -7,13 +7,12 @@ import (
 
 	"github.com/op/go-logging"
 
+	"github.com/textileio/textile-go/central/models"
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/net"
 
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-
-	"github.com/textileio/textile-go/central/models"
 )
 
 var log = logging.MustGetLogger("mobile")
@@ -88,17 +87,27 @@ func (m *Mobile) NewNode(config *NodeConfig, messenger Messenger) (*Wrapper, err
 
 // Start the mobile node
 func (w *Wrapper) Start() error {
-	if err := tcore.Node.Start(); err != nil {
+	online, err := tcore.Node.Start()
+	if err != nil {
 		if err == tcore.ErrNodeRunning {
 			return nil
 		}
 		return err
 	}
 
-	// join existing rooms
-	for _, album := range tcore.Node.Datastore.Albums().GetAlbums("") {
-		w.joinRoom(album.Id)
-	}
+	go func() {
+		<-online
+		// join existing rooms
+		for _, album := range tcore.Node.Datastore.Albums().GetAlbums("") {
+			w.joinRoom(album.Id)
+		}
+
+		// notify UI we're ready
+		w.messenger.Notify(newEvent("onOnline", map[string]interface{}{}))
+
+		// republish
+		tcore.Node.RepublishLatestUpdates()
+	}()
 
 	return nil
 }
