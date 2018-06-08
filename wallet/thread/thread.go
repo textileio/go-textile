@@ -18,6 +18,7 @@ import (
 	uio "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/unixfs/io"
 	"io"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -367,6 +368,16 @@ func (t *Thread) Publish() {
 		return
 	}
 	log.Debugf("published %s to %s", head, t.Id)
+}
+
+func (t *Thread) Peers() []string {
+	peers := t.ipfs.Floodsub.ListPeers(t.Id)
+	var list []string
+	for _, peer := range peers {
+		list = append(list, peer.Pretty())
+	}
+	sort.Strings(list)
+	return list
 }
 
 func (t *Thread) post(payload []byte) error {

@@ -7,7 +7,6 @@ import (
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/wallet/thread"
 	"gopkg.in/abiosoft/ishell.v2"
-	"sort"
 )
 
 func ListThreads(c *ishell.Context) {
@@ -133,21 +132,15 @@ func ListThreadPeers(c *ishell.Context) {
 		return
 	}
 
-	peers := core.Node.Wallet.Ipfs.Floodsub.ListPeers(thrd.Id)
-	var list []string
-	for _, peer := range peers {
-		list = append(list, peer.Pretty())
-	}
-	sort.Strings(list)
-
-	if len(list) == 0 {
+	peers := thrd.Peers()
+	if len(peers) == 0 {
 		c.Println(fmt.Sprintf("no peers found in: %s", name))
 	} else {
-		c.Println(fmt.Sprintf("found %v peers in: %s", len(list), name))
+		c.Println(fmt.Sprintf("found %v peers in: %s", len(peers), name))
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	for _, peer := range list {
+	for _, peer := range peers {
 		c.Println(green(peer))
 	}
 }

@@ -55,11 +55,11 @@ func (ci connInfos) Swap(i, j int) {
 }
 
 func SwarmPeers(c *ishell.Context) {
-	if !core.Node.Wallet.Online() {
+	conns, err := core.Node.Wallet.IFPSPeers()
+	if err != nil {
 		c.Err(wallet.ErrOffline)
 		return
 	}
-	conns := core.Node.Wallet.Ipfs.PeerHost.Network().Conns()
 
 	var out connInfos
 	for _, c := range conns {

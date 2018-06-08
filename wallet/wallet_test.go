@@ -1,17 +1,17 @@
-package core_test
+package wallet_test
 
 import (
 	"github.com/op/go-logging"
 	"github.com/segmentio/ksuid"
 	cmodels "github.com/textileio/textile-go/central/models"
-	. "github.com/textileio/textile-go/core"
 	util "github.com/textileio/textile-go/util/testing"
+	. "github.com/textileio/textile-go/wallet"
 	"os"
 	"testing"
 	"time"
 )
 
-var node *TextileNode
+var wallet *Wallet
 var hash string
 
 var centralReg = &cmodels.Registration{
@@ -24,7 +24,7 @@ var centralReg = &cmodels.Registration{
 	Referral: "",
 }
 
-func TestNewNode(t *testing.T) {
+func TestNewWallet(t *testing.T) {
 	os.RemoveAll("testdata/.ipfs")
 	config := NodeConfig{
 		RepoPath:      "testdata/.ipfs",
