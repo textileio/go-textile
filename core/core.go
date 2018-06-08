@@ -3,20 +3,20 @@ package core
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"os"
-	"path"
-	"path/filepath"
-	"time"
 	"github.com/op/go-logging"
-	"gopkg.in/natefinch/lumberjack.v2"
+	"github.com/textileio/textile-go/crypto"
 	trepo "github.com/textileio/textile-go/repo"
 	tconfig "github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/wallet"
+	"gopkg.in/natefinch/lumberjack.v2"
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/fsrepo"
+	"net/http"
+	"os"
+	"path"
+	"path/filepath"
 	"sync"
-	"github.com/textileio/textile-go/crypto"
+	"time"
 )
 
 var fileLogFormat = logging.MustStringFormatter(
@@ -32,9 +32,9 @@ var Node *TextileNode
 
 // TextileNode is the main node interface for textile functionality
 type TextileNode struct {
-	Wallet        *wallet.Wallet
-	gateway       *http.Server
-	mux           sync.Mutex
+	Wallet  *wallet.Wallet
+	gateway *http.Server
+	mux     sync.Mutex
 }
 
 // NodeConfig is used to configure the node
@@ -80,7 +80,7 @@ func NewNode(config NodeConfig) (*TextileNode, error) {
 	}
 
 	// we may be running in an uninitialized state.
-	err = trepo.DoInit(config.RepoPath, config.IsMobile, sqliteDB.Config().Init, sqliteDB.Config().Configure)
+	err = trepo.DoInit(config.RepoPath, config.IsMobile, Version, sqliteDB.Config().Init, sqliteDB.Config().Configure)
 	if err != nil && err != trepo.ErrRepoExists {
 		return nil, err
 	}
@@ -140,13 +140,13 @@ func NewNode(config NodeConfig) (*TextileNode, error) {
 
 	// finally, construct our node
 	node := &TextileNode{
-		Wallet:         &wallet.Wallet{
+		Wallet: &wallet.Wallet{
 			RepoPath:       config.RepoPath,
 			Datastore:      sqliteDB,
 			CentralUserAPI: fmt.Sprintf("%s/api/v1/users", config.CentralApiURL),
 			IsMobile:       config.IsMobile,
 		},
-		gateway:        gateway,
+		gateway: gateway,
 	}
 
 	return node, nil

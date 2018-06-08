@@ -2,13 +2,13 @@ package schema
 
 import (
 	"fmt"
+	"github.com/mitchellh/go-homedir"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
 	"time"
-	"github.com/mitchellh/go-homedir"
 )
 
 type textileSchemaManager struct {

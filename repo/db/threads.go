@@ -3,8 +3,6 @@ package db
 import (
 	"database/sql"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/wallet"
-	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"sync"
 )
 
@@ -16,7 +14,7 @@ func NewThreadStore(db *sql.DB, lock *sync.Mutex) repo.ThreadStore {
 	return &ThreadDB{modelStore{db, lock}}
 }
 
-func (c *ThreadDB) Add(thread *wallet.Thread) error {
+func (c *ThreadDB) Add(thread *repo.Thread) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -29,15 +27,10 @@ func (c *ThreadDB) Add(thread *wallet.Thread) error {
 		log.Errorf("error in tx prepare: %s", err)
 		return err
 	}
-	skb, err := thread.PrivKey.Bytes()
-	if err != nil {
-		log.Errorf("error getting key bytes: %s", err)
-		return err
-	}
 	defer stmt.Close()
 	_, err = stmt.Exec(
 		thread.Id,
-		skb,
+		thread.PrivKey,
 		thread.Name,
 		thread.Head,
 	)
@@ -50,7 +43,7 @@ func (c *ThreadDB) Add(thread *wallet.Thread) error {
 	return nil
 }
 
-func (c *ThreadDB) Get(id string) *wallet.Thread {
+func (c *ThreadDB) Get(id string) *repo.Thread {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	ret := c.handleQuery("select * from threads where id='" + id + "';")
@@ -60,7 +53,7 @@ func (c *ThreadDB) Get(id string) *wallet.Thread {
 	return &ret[0]
 }
 
-func (c *ThreadDB) GetByName(name string) *wallet.Thread {
+func (c *ThreadDB) GetByName(name string) *repo.Thread {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	ret := c.handleQuery("select * from threads where name='" + name + "';")
@@ -70,7 +63,7 @@ func (c *ThreadDB) GetByName(name string) *wallet.Thread {
 	return &ret[0]
 }
 
-func (c *ThreadDB) List(query string) []wallet.Thread {
+func (c *ThreadDB) List(query string) []repo.Thread {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	q := ""
@@ -101,8 +94,8 @@ func (c *ThreadDB) DeleteByName(name string) error {
 	return err
 }
 
-func (c *ThreadDB) handleQuery(stm string) []wallet.Thread {
-	var ret []wallet.Thread
+func (c *ThreadDB) handleQuery(stm string) []repo.Thread {
+	var ret []repo.Thread
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -115,15 +108,10 @@ func (c *ThreadDB) handleQuery(stm string) []wallet.Thread {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		sk, err := libp2p.UnmarshalPrivateKey(skb)
-		if err != nil {
-			log.Errorf("error unmarshaling private key: %s", err)
-			continue
-		}
-		album := wallet.Thread{
+		album := repo.Thread{
 			Id:      id,
 			Name:    name,
-			PrivKey: sk,
+			PrivKey: skb,
 			Head:    head,
 		}
 		ret = append(ret, album)

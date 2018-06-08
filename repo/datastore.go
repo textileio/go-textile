@@ -3,7 +3,6 @@ package repo
 import (
 	"database/sql"
 	"time"
-	"github.com/textileio/textile-go/wallet"
 )
 
 type Datastore interface {
@@ -27,7 +26,7 @@ type ConfigStore interface {
 	Init(password string) error
 
 	// Configure the database
-	Configure(created time.Time) error
+	Configure(created time.Time, version string) error
 
 	// Returns the date the seed was created
 	GetCreationDate() (time.Time, error)
@@ -57,16 +56,16 @@ type ThreadStore interface {
 	Queryable
 
 	// Add a new thread
-	Add(thread *wallet.Thread) error
+	Add(thread *Thread) error
 
 	// Get a single thread
-	Get(id string) *wallet.Thread
+	Get(id string) *Thread
 
 	// Get a single thread by name
-	GetByName(name string) *wallet.Thread
+	GetByName(name string) *Thread
 
 	// List threads
-	List(query string) []wallet.Thread
+	List(query string) []Thread
 
 	// Update a thread's head block
 	UpdateHead(id string, head string) error
@@ -82,16 +81,16 @@ type BlockStore interface {
 	Queryable
 
 	// Add a new block
-	Add(block *wallet.Block) error
+	Add(block *Block) error
 
 	// Get a single block
-	Get(id string) *wallet.Block
+	Get(id string) *Block
 
 	// Get a single block by target
-	GetByTarget(target string) *wallet.Block
+	GetByTarget(target string) *Block
 
 	// List blocks
-	List(offsetId string, limit int, query string) []wallet.Block
+	List(offsetId string, limit int, query string) []Block
 
 	// Delete a block
 	Delete(id string) error

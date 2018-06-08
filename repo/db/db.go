@@ -31,14 +31,14 @@ func Create(repoPath, password string) (*SQLiteDatastore, error) {
 		p := "pragma key='" + password + "';"
 		conn.Exec(p)
 	}
-	l := new(sync.Mutex)
+	mux := new(sync.Mutex)
 	sqliteDB := &SQLiteDatastore{
-		config:  NewConfigStore(conn, l, dbPath),
-		profile: NewProfileStore(conn, l),
-		threads: NewThreadStore(conn, l),
-		blocks:  NewBlockStore(conn, l),
+		config:  NewConfigStore(conn, mux, dbPath),
+		profile: NewProfileStore(conn, mux),
+		threads: NewThreadStore(conn, mux),
+		blocks:  NewBlockStore(conn, mux),
 		db:      conn,
-		lock:    l,
+		lock:    mux,
 	}
 
 	return sqliteDB, nil

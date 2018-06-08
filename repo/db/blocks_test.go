@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/wallet"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"sync"
 	"testing"
@@ -36,13 +35,13 @@ func TestBlockDB_Put(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	err = bdb.Add(&wallet.Block{
+	err = bdb.Add(&repo.Block{
 		Id:           "abcde",
 		Target:       "Qm456",
 		Parents:      []string{"Qm123"},
 		TargetKey:    key,
 		ThreadPubKey: pkb,
-		Type:         wallet.PhotoBlock,
+		Type:         repo.PhotoBlock,
 		Date:         time.Now(),
 	})
 	if err != nil {
@@ -82,25 +81,25 @@ func TestBlockDB_List(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	err = bdb.Add(&wallet.Block{
+	err = bdb.Add(&repo.Block{
 		Id:           "abcde",
 		Target:       "Qm456",
 		Parents:      []string{"Qm123"},
 		TargetKey:    key,
 		ThreadPubKey: pkb,
-		Type:         wallet.PhotoBlock,
+		Type:         repo.PhotoBlock,
 		Date:         time.Now(),
 	})
 	if err != nil {
 		t.Error(err)
 	}
-	err = bdb.Add(&wallet.Block{
+	err = bdb.Add(&repo.Block{
 		Id:           "fghijk",
 		Target:       "Qm789",
 		Parents:      []string{"Qm456"},
 		TargetKey:    key,
 		ThreadPubKey: pkb,
-		Type:         wallet.CommentBlock,
+		Type:         repo.CommentBlock,
 		Date:         time.Now().Add(time.Minute),
 	})
 	if err != nil {
