@@ -3,18 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/mitchellh/go-homedir"
+	"github.com/op/go-logging"
+	tcore "github.com/textileio/textile-go/core"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
-
-	"github.com/mitchellh/go-homedir"
-	"github.com/op/go-logging"
-
-	tcore "github.com/textileio/textile-go/core"
-
-	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/core"
 )
 
 var (
@@ -48,23 +44,37 @@ func main() {
 	}
 
 	// bring it online
-	err = node.Start()
+	online, err := node.StartWallet()
 	if err != nil {
 		log.Fatal(err)
 	}
-	self := node.IpfsNode.Identity.Pretty()
+	<-online
+	self := node.Wallet.Ipfs.Identity.Pretty()
+
+	var relay = func() {
+		for from, update := range updateCache {
+			go func(from string, update string) {
+				log.Debug("starting relay...")
+				msg := fmt.Sprintf("relay:%s", update)
+				if err := node.Wallet.Ipfs.Floodsub.Publish(relayThread, []byte(msg)); err != nil {
+					log.Errorf("error relaying update: %s", err)
+				}
+				log.Debugf("relayed update %s from %s", update, from)
+			}(from, update)
+		}
+	}
 
 	// create ticker for relaying updates
 	ticker := time.NewTicker(relayInterval)
 	defer ticker.Stop()
 	go func() {
 		for range ticker.C {
-			relayLatest(node.IpfsNode)
+			relay()
 		}
 	}()
 
 	// create the subscription
-	sub, err := node.IpfsNode.Floodsub.Subscribe(relayThread)
+	sub, err := node.Wallet.Ipfs.Floodsub.Subscribe(relayThread)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -100,25 +110,14 @@ func main() {
 		}
 
 		// add new updates to cache
-		if updateCache[from] != hash {
+		if hash == "ping" {
+			log.Infof("got ping from %s", from)
+		} else if updateCache[from] != hash {
 			updateCache[from] = hash
 			log.Infof("added new update %s from %s to relay", hash, from)
 		}
 
 		// relay now
-		relayLatest(node.IpfsNode)
-	}
-}
-
-func relayLatest(ipfs *core.IpfsNode) {
-	for from, update := range updateCache {
-		go func(from string, update string) {
-			log.Debug("starting relay...")
-			msg := fmt.Sprintf("relay:%s", update)
-			if err := ipfs.Floodsub.Publish(relayThread, []byte(msg)); err != nil {
-				log.Errorf("error relaying update: %s", err)
-			}
-			log.Debugf("relayed update %s from %s", update, from)
-		}(from, update)
+		relay()
 	}
 }

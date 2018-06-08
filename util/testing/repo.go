@@ -3,7 +3,6 @@ package testing
 import (
 	"os"
 	"path"
-
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
 )
@@ -38,11 +37,6 @@ func (r *Repository) ConfigFile() string {
 	return path.Join(r.Path, "config")
 }
 
-// RemoveSettings purges settings from the database
-func (r *Repository) RemoveSettings() error {
-	return r.DB.Settings().Delete()
-}
-
 // RemoveRepo removes the test repository
 func (r *Repository) RemoveRepo() error {
 	return deleteDirectory(r.Path)
@@ -65,12 +59,6 @@ func (r *Repository) Reset() error {
 	// Rebuild any necessary structure
 	err = repo.DoInit(r.Path, false, r.DB.Config().Init, r.DB.Config().Configure)
 	if err != nil && err != repo.ErrRepoExists {
-		return err
-	}
-
-	// Remove any settings
-	err = r.RemoveSettings()
-	if err != nil {
 		return err
 	}
 
