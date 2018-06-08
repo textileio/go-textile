@@ -31,6 +31,7 @@ import (
 	uio "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/unixfs/io"
 	"image"
 	"image/jpeg"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -322,61 +323,6 @@ func (w *Wallet) GetAccessToken() (string, error) {
 	return at, nil
 }
 
-// AddThread add a thread with a given name and mnemonic phrase
-func (w *Wallet) AddThread(name string, mnemonic string) (*thread.Thread, error) {
-	if err := w.touchDatastore(); err != nil {
-		return nil, err
-	}
-	log.Debugf("adding a new thread: %s", name)
-
-	// use phrase if provided
-	if mnemonic == "" {
-		var err error
-		mnemonic, err = util.CreateMnemonic(bip39.NewEntropy, bip39.NewMnemonic)
-		if err != nil {
-			return nil, err
-		}
-		log.Debugf("generating Ed25519 keypair for: %s", name)
-	} else {
-		log.Debugf("regenerating Ed25519 keypair from mnemonic phrase for: %s", name)
-	}
-
-	// create the bip39 seed from the phrase
-	seed := bip39.NewSeed(mnemonic, "")
-	key, err := util.IdentityKeyFromSeed(seed)
-	if err != nil {
-		return nil, err
-	}
-
-	// convert to a libp2p crypto private key
-	sk, err := libp2pc.UnmarshalPrivateKey(key)
-	if err != nil {
-		return nil, err
-	}
-
-	// get public key as b64 string since we need it as a primary table key
-	pkb, err := sk.GetPublic().Bytes()
-	if err != nil {
-		return nil, err
-	}
-	pk := libp2pc.ConfigEncodeKey(pkb)
-
-	// finally, index a new thread
-	threadModel := &trepo.Thread{
-		Id:      pk,
-		Name:    name,
-		PrivKey: key,
-	}
-	if err := w.Datastore.Threads().Add(threadModel); err != nil {
-		return nil, err
-	}
-	thrd, err := w.loadThread(threadModel)
-	if err != nil {
-		return nil, err
-	}
-	return thrd, nil
-}
-
 func (w *Wallet) Threads() []*thread.Thread {
 	return w.threads
 }
@@ -397,6 +343,69 @@ func (w *Wallet) GetThreadByName(name string) *thread.Thread {
 		}
 	}
 	return nil
+}
+
+// AddThread adds a thread with a given name and secret key
+func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread, error) {
+	if err := w.touchDatastore(); err != nil {
+		return nil, err
+	}
+	log.Debugf("adding a new thread: %s", name)
+
+	skb, err := secret.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	pkb, err := secret.GetPublic().Bytes()
+	if err != nil {
+		return nil, err
+	}
+	pk := libp2pc.ConfigEncodeKey(pkb)
+
+	// index a new thread
+	threadModel := &trepo.Thread{
+		Id:      pk,
+		Name:    name,
+		PrivKey: skb,
+	}
+	if err := w.Datastore.Threads().Add(threadModel); err != nil {
+		return nil, err
+	}
+	thrd, err := w.loadThread(threadModel)
+	if err != nil {
+		return nil, err
+	}
+	return thrd, nil
+}
+
+// AddThreadWithMnemonic adds a thread with a given name and mnemonic phrase
+func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic string) (*thread.Thread, error) {
+	// use phrase if provided
+	if mnemonic == "" {
+		var err error
+		mnemonic, err = util.CreateMnemonic(bip39.NewEntropy, bip39.NewMnemonic)
+		if err != nil {
+			return nil, err
+		}
+		log.Debugf("generating Ed25519 keypair for: %s", name)
+	} else {
+		log.Debugf("regenerating Ed25519 keypair from mnemonic phrase for: %s", name)
+	}
+
+	// create the bip39 seed from the phrase
+	seed := bip39.NewSeed(mnemonic, "")
+	key, err := util.IdentityKeyFromSeed(seed)
+	if err != nil {
+		return nil, err
+	}
+
+	// convert to a libp2p crypto private key
+	secret, err := libp2pc.UnmarshalPrivateKey(key)
+	if err != nil {
+		return nil, err
+	}
+
+	return w.AddThread(name, secret)
 }
 
 // PublishThreads publishes HEAD for each thread
@@ -674,6 +683,75 @@ func (w *Wallet) PingPeer(addrs string, num int, out chan string) error {
 		}
 	}
 	return nil
+}
+
+// WaitForInvite to join
+// TODO: needs cleanup to handle a generic invite
+func (w *Wallet) WaitForInvite() {
+	if !w.Online() {
+		return
+	}
+	// we're in a lonesome state here, we can just sub to our own
+	// peer id and hope somebody sends us a priv key to join a thread with
+	self := w.Ipfs.Identity.Pretty()
+	sub, err := w.Ipfs.Floodsub.Subscribe(self)
+	if err != nil {
+		log.Errorf("error creating subscription: %s", err)
+		return
+	}
+	log.Infof("waiting for invite at own peer id: %s\n", self)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancelCh := make(chan struct{})
+	go func() {
+		for {
+			msg, err := sub.Next(ctx)
+			if err == io.EOF || err == context.Canceled {
+				log.Debugf("wait subscription ended: %s", err)
+				return
+			} else if err != nil {
+				log.Debugf(err.Error())
+				return
+			}
+			from := msg.GetFrom().Pretty()
+			log.Infof("got pairing request from: %s\n", from)
+
+			// get private peer key and decrypt the phrase
+			skb, err := crypto.Decrypt(w.Ipfs.PrivateKey, msg.GetData())
+			if err != nil {
+				log.Errorf("error decrypting msg data: %s", err)
+				return
+			}
+			secret, err := libp2pc.UnmarshalPrivateKey(skb)
+			if err != nil {
+				log.Errorf("error unmarshaling mobile private key: %s", err)
+				return
+			}
+
+			// create a new album for the room
+			// TODO: let user name this or take phone's name, e.g., bob's iphone
+			// TODO: or auto name it, cause this means only one pairing can happen
+			_, err = w.AddThread("mobile", secret)
+			if err != nil {
+				log.Errorf("error adding mobile thread: %s", err)
+				return
+			}
+
+			// we're done
+			close(cancelCh)
+		}
+	}()
+
+	for {
+		select {
+		case <-cancelCh:
+			cancel()
+			return
+		case <-w.Ipfs.Context().Done():
+			cancel()
+			return
+		}
+	}
 }
 
 func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {

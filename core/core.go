@@ -153,6 +153,7 @@ func NewNode(config NodeConfig) (*TextileNode, error) {
 	return node, nil
 }
 
+// StopWallet starts the wallet
 func (t *TextileNode) StartWallet() (online chan struct{}, err error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
@@ -186,6 +187,7 @@ func (t *TextileNode) StartWallet() (online chan struct{}, err error) {
 	return online, nil
 }
 
+// StopWallet stops the wallet
 func (t *TextileNode) StopWallet() error {
 	t.mux.Lock()
 	defer t.mux.Unlock()
@@ -205,6 +207,11 @@ func (t *TextileNode) StopWallet() error {
 	cancelCGW()
 
 	return nil
+}
+
+// GetGatewayAddress returns the gateway's address
+func (t *TextileNode) GetGatewayAddress() string {
+	return t.gateway.Addr
 }
 
 // registerGatewayHandler registers a handler for the gateway

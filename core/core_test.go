@@ -1,16 +1,14 @@
 package core_test
 
 import (
-	"os"
-	"testing"
-	"time"
-
 	"github.com/op/go-logging"
 	"github.com/segmentio/ksuid"
-
 	cmodels "github.com/textileio/textile-go/central/models"
 	. "github.com/textileio/textile-go/core"
 	util "github.com/textileio/textile-go/util/testing"
+	"os"
+	"testing"
+	"time"
 )
 
 var node *TextileNode
@@ -42,8 +40,8 @@ func TestNewNode(t *testing.T) {
 	}
 }
 
-func TestTextileNode_Start(t *testing.T) {
-	err := node.Start()
+func TestTextileNode_StartWallet(t *testing.T) {
+	online, err := node.StartWallet()
 	if err != nil {
 		t.Errorf("start node failed: %s", err)
 	}
