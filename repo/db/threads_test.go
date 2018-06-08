@@ -3,8 +3,6 @@ package db
 import (
 	"database/sql"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/wallet"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"sync"
 	"testing"
 )
@@ -22,14 +20,10 @@ func setupThreadDB() {
 }
 
 func TestThreadDB_Add(t *testing.T) {
-	priv, _, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
-	if err != nil {
-		t.Error(err)
-	}
-	err = tdb.Add(&wallet.Thread{
+	err := tdb.Add(&repo.Thread{
 		Id:      "Qmabc123",
 		Name:    "boom",
-		PrivKey: priv,
+		PrivKey: make([]byte, 8),
 	})
 	if err != nil {
 		t.Error(err)
@@ -48,14 +42,10 @@ func TestThreadDB_Add(t *testing.T) {
 
 func TestThreadDB_Get(t *testing.T) {
 	setupThreadDB()
-	priv, _, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
-	if err != nil {
-		t.Error(err)
-	}
-	err = tdb.Add(&wallet.Thread{
+	err := tdb.Add(&repo.Thread{
 		Id:      "Qmabc",
 		Name:    "boom",
-		PrivKey: priv,
+		PrivKey: make([]byte, 8),
 	})
 	if err != nil {
 		t.Error(err)
@@ -68,22 +58,18 @@ func TestThreadDB_Get(t *testing.T) {
 
 func TestThreadDB_GetByName(t *testing.T) {
 	setupThreadDB()
-	priv, _, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
-	if err != nil {
-		t.Error(err)
-	}
-	err = tdb.Add(&wallet.Thread{
+	err := tdb.Add(&repo.Thread{
 		Id:      "Qmabc",
 		Name:    "boom",
-		PrivKey: priv,
+		PrivKey: make([]byte, 8),
 	})
 	if err != nil {
 		t.Error(err)
 	}
-	err = tdb.Add(&wallet.Thread{
+	err = tdb.Add(&repo.Thread{
 		Id:      "Qmabc2",
 		Name:    "boom",
-		PrivKey: priv,
+		PrivKey: make([]byte, 8),
 	})
 	if err == nil {
 		t.Error("unique constraint on name failed")
@@ -96,26 +82,18 @@ func TestThreadDB_GetByName(t *testing.T) {
 
 func TestThreadDB_List(t *testing.T) {
 	setupThreadDB()
-	priv, _, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
-	if err != nil {
-		t.Error(err)
-	}
-	err = tdb.Add(&wallet.Thread{
+	err := tdb.Add(&repo.Thread{
 		Id:      "Qm123",
 		Name:    "boom",
-		PrivKey: priv,
+		PrivKey: make([]byte, 8),
 	})
 	if err != nil {
 		t.Error(err)
 	}
-	priv, _, err = libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
-	if err != nil {
-		t.Error(err)
-	}
-	err = tdb.Add(&wallet.Thread{
+	err = tdb.Add(&repo.Thread{
 		Id:      "Qm456",
 		Name:    "boom2",
-		PrivKey: priv,
+		PrivKey: make([]byte, 8),
 	})
 	if err != nil {
 		t.Error(err)
@@ -134,14 +112,10 @@ func TestThreadDB_List(t *testing.T) {
 
 func TestThreadDB_UpdateHead(t *testing.T) {
 	setupThreadDB()
-	priv, _, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
-	if err != nil {
-		t.Error(err)
-	}
-	err = tdb.Add(&wallet.Thread{
+	err := tdb.Add(&repo.Thread{
 		Id:      "Qmabc",
 		Name:    "boom",
-		PrivKey: priv,
+		PrivKey: make([]byte, 8),
 	})
 	if err != nil {
 		t.Error(err)
@@ -161,14 +135,10 @@ func TestThreadDB_UpdateHead(t *testing.T) {
 
 func TestThreadDB_Delete(t *testing.T) {
 	setupThreadDB()
-	priv, _, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
-	if err != nil {
-		t.Error(err)
-	}
-	err = tdb.Add(&wallet.Thread{
+	err := tdb.Add(&repo.Thread{
 		Id:      "Qm789",
 		Name:    "boom",
-		PrivKey: priv,
+		PrivKey: make([]byte, 8),
 	})
 	if err != nil {
 		t.Error(err)

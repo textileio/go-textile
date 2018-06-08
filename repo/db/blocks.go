@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/wallet"
 	"strconv"
 	"strings"
 	"sync"
@@ -18,7 +17,7 @@ func NewBlockStore(db *sql.DB, lock *sync.Mutex) repo.BlockStore {
 	return &BlockDB{modelStore{db, lock}}
 }
 
-func (c *BlockDB) Add(block *wallet.Block) error {
+func (c *BlockDB) Add(block *repo.Block) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -50,7 +49,7 @@ func (c *BlockDB) Add(block *wallet.Block) error {
 	return nil
 }
 
-func (c *BlockDB) Get(id string) *wallet.Block {
+func (c *BlockDB) Get(id string) *repo.Block {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	ret := c.handleQuery("select * from blocks where id='" + id + "';")
@@ -60,7 +59,7 @@ func (c *BlockDB) Get(id string) *wallet.Block {
 	return &ret[0]
 }
 
-func (c *BlockDB) GetByTarget(target string) *wallet.Block {
+func (c *BlockDB) GetByTarget(target string) *repo.Block {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	ret := c.handleQuery("select * from blocks where target='" + target + "';")
@@ -70,7 +69,7 @@ func (c *BlockDB) GetByTarget(target string) *wallet.Block {
 	return &ret[0]
 }
 
-func (c *BlockDB) List(offsetId string, limit int, query string) []wallet.Block {
+func (c *BlockDB) List(offsetId string, limit int, query string) []repo.Block {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	var stm string
@@ -97,8 +96,8 @@ func (c *BlockDB) Delete(id string) error {
 	return err
 }
 
-func (c *BlockDB) handleQuery(stm string) []wallet.Block {
-	var ret []wallet.Block
+func (c *BlockDB) handleQuery(stm string) []repo.Block {
+	var ret []repo.Block
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -112,13 +111,13 @@ func (c *BlockDB) handleQuery(stm string) []wallet.Block {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		block := wallet.Block{
+		block := repo.Block{
 			Id:           id,
 			Target:       target,
 			Parents:      strings.Split(parents, ","),
 			TargetKey:    key,
 			ThreadPubKey: pk,
-			Type:         wallet.BlockType(typeInt),
+			Type:         repo.BlockType(typeInt),
 			Date:         time.Unix(int64(dateInt), 0),
 		}
 		ret = append(ret, block)

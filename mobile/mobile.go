@@ -3,15 +3,16 @@ package mobile
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/central/models"
 	tcore "github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/net"
+	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/wallet"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	"github.com/textileio/textile-go/wallet"
-	"github.com/textileio/textile-go/crypto"
-	"fmt"
 )
 
 var log = logging.MustGetLogger("mobile")
@@ -65,7 +66,7 @@ type Mobile struct{}
 // Blocks is a wrapper around a list of Blocks, which makes decoding json from a little cleaner
 // on the mobile side
 type Blocks struct {
-	Items []wallet.Block `json:"items"`
+	Items []repo.Block `json:"items"`
 }
 
 // Create a gomobile compatible wrapper around TextileNode

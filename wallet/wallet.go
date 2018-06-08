@@ -1,32 +1,32 @@
 package wallet
 
 import (
-	"time"
-	"github.com/op/go-logging"
-	"github.com/tyler-smith/go-bip39"
-	trepo "github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/crypto"
-	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/core"
-	uio "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/unixfs/io"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	"github.com/textileio/textile-go/repo/db"
-	"github.com/textileio/textile-go/net"
-	"os"
-	"strings"
-	"path/filepath"
+	"context"
+	"encoding/base64"
 	"encoding/json"
-	"github.com/textileio/textile-go/core/central"
-	cmodels "github.com/textileio/textile-go/central/models"
 	"errors"
 	"fmt"
-	"encoding/base64"
-	oldcmds "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/commands"
-	"context"
-	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/fsrepo"
-	utilmain "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/cmd/ipfs/util"
-	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/config"
+	"github.com/op/go-logging"
+	cmodels "github.com/textileio/textile-go/central/models"
+	"github.com/textileio/textile-go/core/central"
+	"github.com/textileio/textile-go/crypto"
+	"github.com/textileio/textile-go/net"
+	trepo "github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/repo/db"
+	"github.com/tyler-smith/go-bip39"
 	"gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	utilmain "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/cmd/ipfs/util"
+	oldcmds "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/commands"
+	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/core"
+	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/config"
+	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/fsrepo"
+	uio "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/unixfs/io"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
 )
 
 var log = logging.MustGetLogger("wallet")
@@ -114,8 +114,11 @@ func (w *Wallet) Start() (chan struct{}, error) {
 	}()
 
 	// setup threads
-	for _, thread := range w.Threads() {
-		w.setupThread(thread)
+	for _, model := range w.Datastore.Threads().List("") {
+		_, err := w.loadThread(&model)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	log.Info("wallet is started")
@@ -352,13 +355,13 @@ func (w *Wallet) AddThread(name string, mnemonic string) (*Thread, error) {
 
 	// create the bip39 seed from the phrase
 	seed := bip39.NewSeed(mnemonic, "")
-	kb, err := identityKeyFromSeed(seed)
+	key, err := identityKeyFromSeed(seed)
 	if err != nil {
 		return nil, err
 	}
 
 	// convert to a libp2p crypto private key
-	sk, err := libp2pc.UnmarshalPrivateKey(kb)
+	sk, err := libp2pc.UnmarshalPrivateKey(key)
 	if err != nil {
 		return nil, err
 	}
@@ -371,16 +374,18 @@ func (w *Wallet) AddThread(name string, mnemonic string) (*Thread, error) {
 	pk := libp2pc.ConfigEncodeKey(pkb)
 
 	// finally, index a new thread
-	thread := &Thread{
-		Id:       pk,
-		Name:     name,
-		PrivKey:  sk,
+	threadModel := &trepo.Thread{
+		Id:      pk,
+		Name:    name,
+		PrivKey: key,
 	}
-	if err := w.Datastore.Threads().Add(thread); err != nil {
+	if err := w.Datastore.Threads().Add(threadModel); err != nil {
 		return nil, err
 	}
-	w.setupThread(thread)
-
+	thread, err := w.loadThread(threadModel)
+	if err != nil {
+		return nil, err
+	}
 	return thread, nil
 }
 
@@ -467,7 +472,6 @@ func (w *Wallet) AddPhoto(path string) (*AddResult, error) {
 		return nil, err
 	}
 
-
 	// create a virtual directory for the photo
 	dirb := uio.NewDirectory(w.Ipfs.DAG)
 	err = addFileToDirectory(w.Ipfs, dirb, photocypher, "photo")
@@ -517,7 +521,7 @@ func (w *Wallet) AddPhoto(path string) (*AddResult, error) {
 	return &AddResult{Id: id, Key: key, RemoteRequest: request}, nil
 }
 
-func (w *Wallet) FindBlock(target string) (*Block, error) {
+func (w *Wallet) FindBlock(target string) (*trepo.Block, error) {
 	block := w.Datastore.Blocks().GetByTarget(target)
 	if block == nil {
 		return nil, errors.New("block not found locally")
@@ -684,21 +688,35 @@ func (w *Wallet) PingPeer(addrs string, num int, out chan string) error {
 	return nil
 }
 
-func (w *Wallet) setupThread(thread *Thread) {
-	thread.repoPath = w.RepoPath
-	thread.ipfs = w.Ipfs
-	thread.blocks = w.Datastore.Blocks()
-	thread.update = func(head string) error {
-		if err := w.Datastore.Threads().UpdateHead(thread.Id, head); err != nil {
-			return err
-		}
-		thread.Head = head
-		return nil
+func (w *Wallet) loadThread(model *trepo.Thread) (*Thread, error) {
+	id := model.Id // save value locally
+	threadConfig := &ThreadConfig{
+		RepoPath: w.RepoPath,
+		Ipfs:     w.Ipfs,
+		Blocks:   w.Datastore.Blocks(),
+		GetHead: func() (string, error) {
+			m := w.Datastore.Threads().Get(id)
+			if m == nil {
+				return "", errors.New(fmt.Sprintf("could not re-load thread: %s", id))
+			}
+			return m.Head, nil
+		},
+		UpdateHead: func(head string) error {
+			if err := w.Datastore.Threads().UpdateHead(id, head); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+	thread, err := NewThread(model, threadConfig)
+	if err != nil {
+		return nil, err
 	}
 	w.threads = append(w.threads, thread)
+	return thread, nil
 }
 
-func (w *Wallet) getThreadBlock(blockId string) (*Thread, *Block, error) {
+func (w *Wallet) getThreadBlock(blockId string) (*Thread, *trepo.Block, error) {
 	block := w.Datastore.Blocks().Get(blockId)
 	if block == nil {
 		return nil, nil, errors.New(fmt.Sprintf("block %s not found locally", blockId))

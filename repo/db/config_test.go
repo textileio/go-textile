@@ -1,7 +1,6 @@
 package db
 
 import (
-	"github.com/textileio/textile-go/core"
 	"os"
 	"path"
 	"testing"
@@ -21,7 +20,7 @@ func setup() {
 	os.MkdirAll(path.Join("./", "datastore"), os.ModePerm)
 	testDB, _ = Create("", "LetMeIn")
 	testDB.config.Init("LetMeIn")
-	testDB.config.Configure(time.Now())
+	testDB.config.Configure(time.Now(), "boom")
 }
 
 func teardown() {
@@ -46,7 +45,7 @@ func TestConfigDB_GetVersion(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if sv != core.Version {
+	if sv != "boom" {
 		t.Error("version mismatch")
 	}
 }

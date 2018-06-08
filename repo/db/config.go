@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
 	"sync"
 	"time"
@@ -24,7 +23,7 @@ func (c *ConfigDB) Init(password string) error {
 	return initDatabaseTables(c.db, password)
 }
 
-func (c *ConfigDB) Configure(created time.Time) error {
+func (c *ConfigDB) Configure(created time.Time, version string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -41,7 +40,7 @@ func (c *ConfigDB) Configure(created time.Time) error {
 		tx.Rollback()
 		return err
 	}
-	_, err = stmt.Exec("version", core.Version)
+	_, err = stmt.Exec("version", version)
 	if err != nil {
 		tx.Rollback()
 		return err

@@ -109,10 +109,15 @@ func PublishThread(c *ishell.Context) {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
 		return
 	}
+	head, err := thread.GetHead()
+	if err != nil {
+		c.Err(err)
+		return
+	}
 	thread.Publish()
 
 	blue := color.New(color.FgHiBlue).SprintFunc()
-	c.Println(blue(fmt.Sprintf("published %s to %s", thread.Head, thread.Id)))
+	c.Println(blue(fmt.Sprintf("published %s to %s", head, thread.Id)))
 }
 
 func ListThreadPeers(c *ishell.Context) {
