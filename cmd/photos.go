@@ -7,7 +7,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/wallet"
+	"github.com/textileio/textile-go/wallet/model"
 	"gopkg.in/abiosoft/ishell.v2"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"io/ioutil"
@@ -214,7 +214,7 @@ func CatPhotoMetadata(c *ishell.Context) {
 		c.Err(err)
 		return
 	}
-	var meta wallet.PhotoMetadata
+	var meta model.PhotoMetadata
 	if err := json.Unmarshal(file, &meta); err != nil {
 		c.Err(err)
 		return

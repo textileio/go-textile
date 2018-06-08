@@ -1,18 +1,24 @@
 package wallet
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/disintegration/imaging"
 	"github.com/op/go-logging"
+	"github.com/rwcarlsen/goexif/exif"
 	cmodels "github.com/textileio/textile-go/central/models"
 	"github.com/textileio/textile-go/core/central"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/net"
 	trepo "github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
+	"github.com/textileio/textile-go/wallet/model"
+	"github.com/textileio/textile-go/wallet/thread"
+	"github.com/textileio/textile-go/wallet/util"
 	"github.com/tyler-smith/go-bip39"
 	"gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
@@ -23,6 +29,8 @@ import (
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/config"
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/fsrepo"
 	uio "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/unixfs/io"
+	"image"
+	"image/jpeg"
 	"os"
 	"path/filepath"
 	"strings"
@@ -40,30 +48,10 @@ type Wallet struct {
 	CentralUserAPI string
 	IsMobile       bool
 	started        bool
-	threads        []*Thread
-}
-
-type Metadata struct {
-	Username string    `json:"un,omitempty"`
-	Created  time.Time `json:"cts,omitempty"`
-	Added    time.Time `json:"ats,omitempty"`
-}
-
-type FileMetadata struct {
-	Metadata
-	Name string `json:"name,omitempty"`
-	Ext  string `json:"ext,omitempty"`
-}
-
-type AddResult struct {
-	Id            string
-	Key           []byte
-	RemoteRequest *net.MultipartRequest
+	threads        []*thread.Thread
 }
 
 const pingTimeout = time.Second * 10
-const pinTimeout = time.Minute * 1
-const catTimeout = time.Second * 30
 
 // ErrRunning is an error for when node start is called on a started node
 var ErrStarted = errors.New("node is already started")
@@ -107,15 +95,15 @@ func (w *Wallet) Start() (chan struct{}, error) {
 		}
 
 		// print swarm addresses
-		if err := printSwarmAddrs(w.Ipfs); err != nil {
+		if err := util.PrintSwarmAddrs(w.Ipfs); err != nil {
 			log.Errorf("failed to read listening addresses: %s", err)
 		}
 		log.Info("wallet is online")
 	}()
 
 	// setup threads
-	for _, model := range w.Datastore.Threads().List("") {
-		_, err := w.loadThread(&model)
+	for _, mod := range w.Datastore.Threads().List("") {
+		_, err := w.loadThread(&mod)
 		if err != nil {
 			return nil, err
 		}
@@ -335,7 +323,7 @@ func (w *Wallet) GetAccessToken() (string, error) {
 }
 
 // AddThread add a thread with a given name and mnemonic phrase
-func (w *Wallet) AddThread(name string, mnemonic string) (*Thread, error) {
+func (w *Wallet) AddThread(name string, mnemonic string) (*thread.Thread, error) {
 	if err := w.touchDatastore(); err != nil {
 		return nil, err
 	}
@@ -344,7 +332,7 @@ func (w *Wallet) AddThread(name string, mnemonic string) (*Thread, error) {
 	// use phrase if provided
 	if mnemonic == "" {
 		var err error
-		mnemonic, err = createMnemonic(bip39.NewEntropy, bip39.NewMnemonic)
+		mnemonic, err = util.CreateMnemonic(bip39.NewEntropy, bip39.NewMnemonic)
 		if err != nil {
 			return nil, err
 		}
@@ -355,7 +343,7 @@ func (w *Wallet) AddThread(name string, mnemonic string) (*Thread, error) {
 
 	// create the bip39 seed from the phrase
 	seed := bip39.NewSeed(mnemonic, "")
-	key, err := identityKeyFromSeed(seed)
+	key, err := util.IdentityKeyFromSeed(seed)
 	if err != nil {
 		return nil, err
 	}
@@ -382,30 +370,30 @@ func (w *Wallet) AddThread(name string, mnemonic string) (*Thread, error) {
 	if err := w.Datastore.Threads().Add(threadModel); err != nil {
 		return nil, err
 	}
-	thread, err := w.loadThread(threadModel)
+	thrd, err := w.loadThread(threadModel)
 	if err != nil {
 		return nil, err
 	}
-	return thread, nil
+	return thrd, nil
 }
 
-func (w *Wallet) Threads() []*Thread {
+func (w *Wallet) Threads() []*thread.Thread {
 	return w.threads
 }
 
-func (w *Wallet) GetThread(id string) *Thread {
-	for _, thread := range w.threads {
-		if thread.Id == id {
-			return thread
+func (w *Wallet) GetThread(id string) *thread.Thread {
+	for _, thrd := range w.threads {
+		if thrd.Id == id {
+			return thrd
 		}
 	}
 	return nil
 }
 
-func (w *Wallet) GetThreadByName(name string) *Thread {
-	for _, thread := range w.threads {
-		if thread.Name == name {
-			return thread
+func (w *Wallet) GetThreadByName(name string) *thread.Thread {
+	for _, thrd := range w.threads {
+		if thrd.Name == name {
+			return thrd
 		}
 	}
 	return nil
@@ -414,14 +402,14 @@ func (w *Wallet) GetThreadByName(name string) *Thread {
 // PublishThreads publishes HEAD for each thread
 func (w *Wallet) PublishThreads() {
 	for _, t := range w.threads {
-		go func(thread *Thread) {
-			thread.Publish()
+		go func(thrd *thread.Thread) {
+			thrd.Publish()
 		}(t)
 	}
 }
 
 // TODO: add node master pk to dir
-func (w *Wallet) AddPhoto(path string) (*AddResult, error) {
+func (w *Wallet) AddPhoto(path string) (*model.AddResult, error) {
 	// get a key to encrypt with
 	key, err := crypto.GenerateAESKey()
 	if err != nil {
@@ -436,7 +424,7 @@ func (w *Wallet) AddPhoto(path string) (*AddResult, error) {
 	defer photo.Close()
 
 	// make a thumbnail
-	thumb, err := makeThumbnail(photo, thumbnailWidth)
+	thumb, err := makeThumbnail(photo, model.ThumbnailWidth)
 	if err != nil {
 		return nil, err
 	}
@@ -459,7 +447,7 @@ func (w *Wallet) AddPhoto(path string) (*AddResult, error) {
 	}
 
 	// encrypt files
-	photocypher, err := getEncryptedReaderBytes(photo, key)
+	photocypher, err := util.GetEncryptedReaderBytes(photo, key)
 	if err != nil {
 		return nil, err
 	}
@@ -474,15 +462,15 @@ func (w *Wallet) AddPhoto(path string) (*AddResult, error) {
 
 	// create a virtual directory for the photo
 	dirb := uio.NewDirectory(w.Ipfs.DAG)
-	err = addFileToDirectory(w.Ipfs, dirb, photocypher, "photo")
+	err = util.AddFileToDirectory(w.Ipfs, dirb, photocypher, "photo")
 	if err != nil {
 		return nil, err
 	}
-	err = addFileToDirectory(w.Ipfs, dirb, thumbcypher, "thumb")
+	err = util.AddFileToDirectory(w.Ipfs, dirb, thumbcypher, "thumb")
 	if err != nil {
 		return nil, err
 	}
-	err = addFileToDirectory(w.Ipfs, dirb, metacypher, "meta")
+	err = util.AddFileToDirectory(w.Ipfs, dirb, metacypher, "meta")
 	if err != nil {
 		return nil, err
 	}
@@ -492,7 +480,7 @@ func (w *Wallet) AddPhoto(path string) (*AddResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := pinDirectory(w.Ipfs, dir, []string{"photo"}); err != nil {
+	if err := util.PinDirectory(w.Ipfs, dir, []string{"photo"}); err != nil {
 		return nil, err
 	}
 	id := dir.Cid().Hash().B58String()
@@ -518,7 +506,7 @@ func (w *Wallet) AddPhoto(path string) (*AddResult, error) {
 	}
 
 	// all done
-	return &AddResult{Id: id, Key: key, RemoteRequest: request}, nil
+	return &model.AddResult{Id: id, Key: key, RemoteRequest: request}, nil
 }
 
 func (w *Wallet) FindBlock(target string) (*trepo.Block, error) {
@@ -537,21 +525,21 @@ func (w *Wallet) GetFile(path string, blockId string) ([]byte, error) {
 	}
 
 	// get thread for decryption
-	thread, block, err := w.getThreadBlock(blockId)
+	thrd, block, err := w.getThreadBlock(blockId)
 	if err != nil {
 		log.Error(err.Error())
 		return nil, err
 	}
 
 	// get bytes
-	cypher, err := GetDataAtPath(w.Ipfs, path)
+	cypher, err := util.GetDataAtPath(w.Ipfs, path)
 	if err != nil {
 		log.Errorf("error getting file data: %s", err)
 		return nil, err
 	}
 
 	// decrypt the file key
-	key, err := thread.Decrypt(block.TargetKey)
+	key, err := thrd.Decrypt(block.TargetKey)
 	if err != nil {
 		log.Errorf("error decrypting key: %s", err)
 		return nil, err
@@ -605,7 +593,7 @@ func (w *Wallet) ConnectPeer(addrs []string) ([]string, error) {
 
 	swrm := snet.Swarm()
 
-	pis, err := peersWithAddresses(addrs)
+	pis, err := util.PeersWithAddresses(addrs)
 	if err != nil {
 		return nil, err
 	}
@@ -633,7 +621,7 @@ func (w *Wallet) PingPeer(addrs string, num int, out chan string) error {
 	if !w.Online() {
 		return ErrOffline
 	}
-	addr, pid, err := parsePeerParam(addrs)
+	addr, pid, err := util.ParsePeerParam(addrs)
 	if addr != nil {
 		w.Ipfs.Peerstore.AddAddr(pid, addr, pstore.TempAddrTTL) // temporary
 	}
@@ -688,9 +676,9 @@ func (w *Wallet) PingPeer(addrs string, num int, out chan string) error {
 	return nil
 }
 
-func (w *Wallet) loadThread(model *trepo.Thread) (*Thread, error) {
+func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
 	id := model.Id // save value locally
-	threadConfig := &ThreadConfig{
+	threadConfig := &thread.Config{
 		RepoPath: w.RepoPath,
 		Ipfs:     w.Ipfs,
 		Blocks:   w.Datastore.Blocks(),
@@ -708,31 +696,31 @@ func (w *Wallet) loadThread(model *trepo.Thread) (*Thread, error) {
 			return nil
 		},
 	}
-	thread, err := NewThread(model, threadConfig)
+	thrd, err := thread.NewThread(model, threadConfig)
 	if err != nil {
 		return nil, err
 	}
-	w.threads = append(w.threads, thread)
-	return thread, nil
+	w.threads = append(w.threads, thrd)
+	return thrd, nil
 }
 
-func (w *Wallet) getThreadBlock(blockId string) (*Thread, *trepo.Block, error) {
+func (w *Wallet) getThreadBlock(blockId string) (*thread.Thread, *trepo.Block, error) {
 	block := w.Datastore.Blocks().Get(blockId)
 	if block == nil {
 		return nil, nil, errors.New(fmt.Sprintf("block %s not found locally", blockId))
 	}
 	threadId := libp2pc.ConfigEncodeKey(block.ThreadPubKey)
-	var thread *Thread
+	var thrd *thread.Thread
 	for _, t := range w.threads {
 		if t.Id == threadId {
-			thread = t
+			thrd = t
 			break
 		}
 	}
-	if thread == nil {
+	if thrd == nil {
 		return nil, nil, errors.New(fmt.Sprintf("could not find thread: %s", threadId))
 	}
-	return thread, block, nil
+	return thrd, block, nil
 }
 
 // touchDB ensures that we have a good db connection
@@ -747,4 +735,52 @@ func (w *Wallet) touchDatastore() error {
 		w.Datastore = sqliteDB
 	}
 	return nil
+}
+
+func makeThumbnail(photo *os.File, width int) ([]byte, error) {
+	img, _, err := image.Decode(photo)
+	if err != nil {
+		return nil, err
+	}
+	thumb := imaging.Resize(img, width, 0, imaging.Lanczos)
+	buff := new(bytes.Buffer)
+	if err = jpeg.Encode(buff, thumb, nil); err != nil {
+		return nil, err
+	}
+	photo.Seek(0, 0) // be kind, rewind
+	return buff.Bytes(), nil
+}
+
+// TODO: get image size info
+func getMetadata(photo *os.File, path string, ext string, username string) (model.PhotoMetadata, error) {
+	var created time.Time
+	var lat, lon float64
+	x, err := exif.Decode(photo)
+	if err == nil {
+		// time taken
+		createdTmp, err := x.DateTime()
+		if err == nil {
+			created = createdTmp
+		}
+		// coords taken
+		latTmp, lonTmp, err := x.LatLong()
+		if err == nil {
+			lat, lon = latTmp, lonTmp
+		}
+	}
+	meta := model.PhotoMetadata{
+		FileMetadata: model.FileMetadata{
+			Metadata: model.Metadata{
+				Username: username,
+				Created:  created,
+				Added:    time.Now(),
+			},
+			Name: strings.TrimSuffix(filepath.Base(path), ext),
+			Ext:  ext,
+		},
+		Latitude:  lat,
+		Longitude: lon,
+	}
+	photo.Seek(0, 0) // be kind, rewind
+	return meta, nil
 }

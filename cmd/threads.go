@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/wallet"
+	"github.com/textileio/textile-go/wallet/thread"
 	"gopkg.in/abiosoft/ishell.v2"
 	"sort"
 )
@@ -19,12 +19,12 @@ func ListThreads(c *ishell.Context) {
 	}
 
 	blue := color.New(color.FgHiBlue).SprintFunc()
-	for _, thread := range threads {
+	for _, thrd := range threads {
 		mem := "disabled"
-		if thread.Listening() {
+		if thrd.Listening() {
 			mem = "enabled"
 		}
-		c.Println(blue(fmt.Sprintf("name: %s, id: %s, status: %s", thread.Name, thread.Id, mem)))
+		c.Println(blue(fmt.Sprintf("name: %s, id: %s, status: %s", thrd.Name, thrd.Id, mem)))
 	}
 }
 
@@ -38,13 +38,13 @@ func CreateThread(c *ishell.Context) {
 	c.Print("key pair mnemonic phrase (optional): ")
 	mnemonic := c.ReadLine()
 
-	thread, err := core.Node.Wallet.AddThread(name, mnemonic)
+	thrd, err := core.Node.Wallet.AddThread(name, mnemonic)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
-	Subscribe(c, thread)
+	Subscribe(c, thrd)
 
 	cyan := color.New(color.FgCyan).SprintFunc()
 	c.Println(cyan(fmt.Sprintf("created thread #%s", name)))
@@ -57,20 +57,20 @@ func EnableThread(c *ishell.Context) {
 	}
 	name := c.Args[0]
 
-	thread := core.Node.Wallet.GetThreadByName(name)
-	if thread == nil {
+	thrd := core.Node.Wallet.GetThreadByName(name)
+	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
 		return
 	}
 
-	if thread.Listening() {
-		c.Printf("already enabled: %s\n", thread.Id)
+	if thrd.Listening() {
+		c.Printf("already enabled: %s\n", thrd.Id)
 		return
 	}
 
-	Subscribe(c, thread)
+	Subscribe(c, thrd)
 
-	c.Printf("ok, now enabled: %s\n", thread.Id)
+	c.Printf("ok, now enabled: %s\n", thrd.Id)
 }
 
 func DisableAlbum(c *ishell.Context) {
@@ -80,21 +80,21 @@ func DisableAlbum(c *ishell.Context) {
 	}
 	name := c.Args[0]
 
-	thread := core.Node.Wallet.GetThreadByName(name)
-	if thread == nil {
+	thrd := core.Node.Wallet.GetThreadByName(name)
+	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
 		return
 	}
 
-	if !thread.Listening() {
-		c.Printf("already disabled: %s\n", thread.Id)
+	if !thrd.Listening() {
+		c.Printf("already disabled: %s\n", thrd.Id)
 		return
 	}
 
-	thread.Unsubscribe()
-	<-thread.LeftCh
+	thrd.Unsubscribe()
+	<-thrd.LeftCh
 
-	c.Printf("ok, now disabled: %s\n", thread.Id)
+	c.Printf("ok, now disabled: %s\n", thrd.Id)
 }
 
 func PublishThread(c *ishell.Context) {
@@ -104,20 +104,20 @@ func PublishThread(c *ishell.Context) {
 	}
 	name := c.Args[0]
 
-	thread := core.Node.Wallet.GetThreadByName(name)
-	if thread == nil {
+	thrd := core.Node.Wallet.GetThreadByName(name)
+	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
 		return
 	}
-	head, err := thread.GetHead()
+	head, err := thrd.GetHead()
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	thread.Publish()
+	thrd.Publish()
 
 	blue := color.New(color.FgHiBlue).SprintFunc()
-	c.Println(blue(fmt.Sprintf("published %s to %s", head, thread.Id)))
+	c.Println(blue(fmt.Sprintf("published %s to %s", head, thrd.Id)))
 }
 
 func ListThreadPeers(c *ishell.Context) {
@@ -127,13 +127,13 @@ func ListThreadPeers(c *ishell.Context) {
 	}
 	name := c.Args[0]
 
-	thread := core.Node.Wallet.GetThreadByName(name)
-	if thread == nil {
+	thrd := core.Node.Wallet.GetThreadByName(name)
+	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
 		return
 	}
 
-	peers := core.Node.Wallet.Ipfs.Floodsub.ListPeers(thread.Id)
+	peers := core.Node.Wallet.Ipfs.Floodsub.ListPeers(thrd.Id)
 	var list []string
 	for _, peer := range peers {
 		list = append(list, peer.Pretty())
@@ -152,9 +152,9 @@ func ListThreadPeers(c *ishell.Context) {
 	}
 }
 
-func Subscribe(shell ishell.Actions, thread *wallet.Thread) {
+func Subscribe(shell ishell.Actions, thread *thread.Thread) {
 	cyan := color.New(color.FgCyan).SprintFunc()
-	datac := make(chan wallet.ThreadUpdate)
+	datac := make(chan thread.Update)
 	go thread.Subscribe(datac)
 	go func() {
 		for {

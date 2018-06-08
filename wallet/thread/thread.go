@@ -1,32 +1,31 @@
-package wallet
+package thread
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/disintegration/imaging"
-	"github.com/rwcarlsen/goexif/exif"
+	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/net"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/wallet/model"
+	"github.com/textileio/textile-go/wallet/util"
 	"gx/ipfs/QmSFihvoND3eDaAYRCeLgLPt62yCPgMZs1NSZmKFEtJQQw/go-libp2p-floodsub"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/core"
 	uio "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/unixfs/io"
-	"image"
-	"image/jpeg"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 )
 
-type ThreadConfig struct {
+var log = logging.MustGetLogger("thread")
+
+type Config struct {
 	RepoPath   string
 	Ipfs       *core.IpfsNode
 	Blocks     repo.BlockStore
@@ -35,7 +34,7 @@ type ThreadConfig struct {
 }
 
 // ThreadUpdate is used to notify listeners about updates in a thread
-type ThreadUpdate struct {
+type Update struct {
 	Id       string `json:"id"`
 	Thread   string `json:"thread"`
 	ThreadID string `json:"thread_id"`
@@ -56,16 +55,8 @@ type Thread struct {
 	listening  bool
 }
 
-const thumbnailWidth = 300
-
-type PhotoMetadata struct {
-	FileMetadata
-	Latitude  float64 `json:"lat,omitempty"`
-	Longitude float64 `json:"lon,omitempty"`
-}
-
 // NewThread create a new Thread from a repo model and config
-func NewThread(model *repo.Thread, config *ThreadConfig) (*Thread, error) {
+func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 	sk, err := libp2pc.UnmarshalPrivateKey(model.PrivKey)
 	if err != nil {
 		return nil, err
@@ -86,7 +77,7 @@ func NewThread(model *repo.Thread, config *ThreadConfig) (*Thread, error) {
 // e.g., Qm../thumb, Qm../photo, Qm../meta, Qm../caption
 func (t *Thread) GetFile(path string, block *repo.Block) ([]byte, error) {
 	// get bytes
-	cypher, err := GetDataAtPath(t.ipfs, path)
+	cypher, err := util.GetDataAtPath(t.ipfs, path)
 	if err != nil {
 		log.Errorf("error getting file data: %s", err)
 		return nil, err
@@ -113,13 +104,13 @@ func (t *Thread) GetFileBase64(path string, block *repo.Block) (string, error) {
 }
 
 // GetMetaData returns photo metadata under an id
-func (t *Thread) GetPhotoMetaData(id string, block *repo.Block) (*PhotoMetadata, error) {
+func (t *Thread) GetPhotoMetaData(id string, block *repo.Block) (*model.PhotoMetadata, error) {
 	file, err := t.GetFile(fmt.Sprintf("%s/meta", id), block)
 	if err != nil {
 		log.Errorf("error getting meta file %s: %s", id, err)
 		return nil, err
 	}
-	var data *PhotoMetadata
+	var data *model.PhotoMetadata
 	err = json.Unmarshal(file, &data)
 	if err != nil {
 		log.Errorf("error unmarshaling meta file: %s: %s", id, err)
@@ -139,7 +130,7 @@ func (t *Thread) GetCaption(id string, block *repo.Block) (string, error) {
 }
 
 // JoinRoom with a given id
-func (t *Thread) Subscribe(datac chan ThreadUpdate) {
+func (t *Thread) Subscribe(datac chan Update) {
 	if t.listening {
 		return
 	}
@@ -218,7 +209,7 @@ func (t *Thread) Listening() bool {
 }
 
 // AddPhoto adds a block for a photo to this thread
-func (t *Thread) AddPhoto(id string, caption string, key []byte) (*AddResult, error) {
+func (t *Thread) AddPhoto(id string, caption string, key []byte) (*model.AddResult, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
@@ -238,7 +229,7 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*AddResult, er
 		return nil, err
 	}
 	typeb := repo.PhotoBlock.Bytes() // silly?
-	dateb := getNowBytes()
+	dateb := util.GetNowBytes()
 
 	// encrypt caption with thread pk
 	captioncypher, err := t.Encrypt([]byte(caption))
@@ -248,31 +239,31 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*AddResult, er
 
 	// create a virtual directory for the new block
 	dirb := uio.NewDirectory(t.ipfs.DAG)
-	err = addFileToDirectory(t.ipfs, dirb, []byte(id), "target")
+	err = util.AddFileToDirectory(t.ipfs, dirb, []byte(id), "target")
 	if err != nil {
 		return nil, err
 	}
-	err = addFileToDirectory(t.ipfs, dirb, []byte(head), "parents")
+	err = util.AddFileToDirectory(t.ipfs, dirb, []byte(head), "parents")
 	if err != nil {
 		return nil, err
 	}
-	err = addFileToDirectory(t.ipfs, dirb, keycypher, "key")
+	err = util.AddFileToDirectory(t.ipfs, dirb, keycypher, "key")
 	if err != nil {
 		return nil, err
 	}
-	err = addFileToDirectory(t.ipfs, dirb, threadkey, "pk")
+	err = util.AddFileToDirectory(t.ipfs, dirb, threadkey, "pk")
 	if err != nil {
 		return nil, err
 	}
-	err = addFileToDirectory(t.ipfs, dirb, typeb, "type")
+	err = util.AddFileToDirectory(t.ipfs, dirb, typeb, "type")
 	if err != nil {
 		return nil, err
 	}
-	err = addFileToDirectory(t.ipfs, dirb, dateb, "date")
+	err = util.AddFileToDirectory(t.ipfs, dirb, dateb, "date")
 	if err != nil {
 		return nil, err
 	}
-	err = addFileToDirectory(t.ipfs, dirb, captioncypher, "caption")
+	err = util.AddFileToDirectory(t.ipfs, dirb, captioncypher, "caption")
 	if err != nil {
 		return nil, err
 	}
@@ -282,7 +273,7 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*AddResult, er
 	if err != nil {
 		return nil, err
 	}
-	if err := pinDirectory(t.ipfs, dir, []string{}); err != nil {
+	if err := util.PinDirectory(t.ipfs, dir, []string{}); err != nil {
 		return nil, err
 	}
 	bid := dir.Cid().Hash().B58String()
@@ -340,7 +331,7 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*AddResult, er
 	}
 
 	// all done
-	return &AddResult{Id: block.Id, RemoteRequest: request}, nil
+	return &model.AddResult{Id: block.Id, RemoteRequest: request}, nil
 }
 
 // Blocks paginates photos from the datastore
@@ -383,7 +374,7 @@ func (t *Thread) post(payload []byte) error {
 }
 
 // preHandleBlock tries to recursively process an update sent to a thread
-func (t *Thread) preHandleBlock(msg *floodsub.Message, datac chan ThreadUpdate) error {
+func (t *Thread) preHandleBlock(msg *floodsub.Message, datac chan Update) error {
 	// unpack from
 	from := msg.GetFrom().Pretty()
 	if from == t.ipfs.Identity.Pretty() {
@@ -414,7 +405,7 @@ func (t *Thread) preHandleBlock(msg *floodsub.Message, datac chan ThreadUpdate) 
 }
 
 // handleBlock tries to process a block
-func (t *Thread) handleBlock(id string, datac chan ThreadUpdate) error {
+func (t *Thread) handleBlock(id string, datac chan Update) error {
 	// first update?
 	if id == "" {
 		log.Debugf("found genesis block, aborting")
@@ -430,7 +421,7 @@ func (t *Thread) handleBlock(id string, datac chan ThreadUpdate) error {
 	}
 
 	log.Debugf("pinning block %s...", id)
-	if err := pinPath(t.ipfs, id, true); err != nil {
+	if err := util.PinPath(t.ipfs, id, true); err != nil {
 		return err
 	}
 
@@ -442,7 +433,7 @@ func (t *Thread) handleBlock(id string, datac chan ThreadUpdate) error {
 
 	// don't block on the send since nobody might be listening
 	select {
-	case datac <- ThreadUpdate{Id: id, Thread: t.Name, ThreadID: t.Id}:
+	case datac <- Update{Id: id, Thread: t.Name, ThreadID: t.Id}:
 	default:
 	}
 	defer func() {
@@ -457,27 +448,27 @@ func (t *Thread) handleBlock(id string, datac chan ThreadUpdate) error {
 }
 
 func (t *Thread) indexBlock(id string) (*repo.Block, error) {
-	target, err := GetDataAtPath(t.ipfs, fmt.Sprintf("%s/target", id))
+	target, err := util.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/target", id))
 	if err != nil {
 		return nil, err
 	}
-	parents, err := GetDataAtPath(t.ipfs, fmt.Sprintf("%s/parents", id))
+	parents, err := util.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/parents", id))
 	if err != nil {
 		return nil, err
 	}
-	key, err := GetDataAtPath(t.ipfs, fmt.Sprintf("%s/key", id))
+	key, err := util.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/key", id))
 	if err != nil {
 		return nil, err
 	}
-	pk, err := GetDataAtPath(t.ipfs, fmt.Sprintf("%s/pk", id))
+	pk, err := util.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/pk", id))
 	if err != nil {
 		return nil, err
 	}
-	typeb, err := GetDataAtPath(t.ipfs, fmt.Sprintf("%s/type", id))
+	typeb, err := util.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/type", id))
 	if err != nil {
 		return nil, err
 	}
-	dateb, err := GetDataAtPath(t.ipfs, fmt.Sprintf("%s/date", id))
+	dateb, err := util.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/date", id))
 	if err != nil {
 		return nil, err
 	}
@@ -496,54 +487,6 @@ func (t *Thread) indexBlock(id string) (*repo.Block, error) {
 		return nil, err
 	}
 	return block, nil
-}
-
-func makeThumbnail(photo *os.File, width int) ([]byte, error) {
-	img, _, err := image.Decode(photo)
-	if err != nil {
-		return nil, err
-	}
-	thumb := imaging.Resize(img, width, 0, imaging.Lanczos)
-	buff := new(bytes.Buffer)
-	if err = jpeg.Encode(buff, thumb, nil); err != nil {
-		return nil, err
-	}
-	photo.Seek(0, 0) // be kind, rewind
-	return buff.Bytes(), nil
-}
-
-// TODO: get image size info
-func getMetadata(photo *os.File, path string, ext string, username string) (PhotoMetadata, error) {
-	var created time.Time
-	var lat, lon float64
-	x, err := exif.Decode(photo)
-	if err == nil {
-		// time taken
-		createdTmp, err := x.DateTime()
-		if err == nil {
-			created = createdTmp
-		}
-		// coords taken
-		latTmp, lonTmp, err := x.LatLong()
-		if err == nil {
-			lat, lon = latTmp, lonTmp
-		}
-	}
-	meta := PhotoMetadata{
-		FileMetadata: FileMetadata{
-			Metadata: Metadata{
-				Username: username,
-				Created:  created,
-				Added:    time.Now(),
-			},
-			Name: strings.TrimSuffix(filepath.Base(path), ext),
-			Ext:  ext,
-		},
-		Latitude:  lat,
-		Longitude: lon,
-	}
-	photo.Seek(0, 0) // be kind, rewind
-	return meta, nil
 }
 
 // WaitForRoom to join

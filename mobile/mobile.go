@@ -11,6 +11,7 @@ import (
 	"github.com/textileio/textile-go/net"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet"
+	"github.com/textileio/textile-go/wallet/thread"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
@@ -104,8 +105,8 @@ func (w *Wrapper) Start() error {
 	go func() {
 		<-online
 		// join existing threads
-		for _, thread := range tcore.Node.Wallet.Threads() {
-			w.subscribe(thread)
+		for _, thrd := range tcore.Node.Wallet.Threads() {
+			w.subscribe(thrd)
 		}
 
 		// notify UI we're ready
@@ -174,8 +175,8 @@ func (w *Wrapper) GetAccessToken() (string, error) {
 
 // AddPhoto adds a photo by path and shares it to the default thread
 func (w *Wrapper) AddPhoto(path string, threadName string) (*net.MultipartRequest, error) {
-	thread := tcore.Node.Wallet.GetThreadByName(threadName)
-	if thread == nil {
+	thrd := tcore.Node.Wallet.GetThreadByName(threadName)
+	if thrd == nil {
 		return nil, errors.New(fmt.Sprintf("could not find thread: %s", threadName))
 	}
 	added, err := tcore.Node.Wallet.AddPhoto(path)
@@ -183,7 +184,7 @@ func (w *Wrapper) AddPhoto(path string, threadName string) (*net.MultipartReques
 		return nil, err
 	}
 	// TODO, fire off shared request to remote cluster
-	_, err = thread.AddPhoto(added.Id, "", added.Key)
+	_, err = thrd.AddPhoto(added.Id, "", added.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -221,16 +222,16 @@ func (w *Wrapper) SharePhoto(id string, threadName string, caption string) (stri
 
 // Get Photos returns core GetPhotos with json encoding
 func (w *Wrapper) GetPhotos(offsetId string, limit int, threadName string) (string, error) {
-	thread := tcore.Node.Wallet.GetThreadByName(threadName)
-	if thread == nil {
+	thrd := tcore.Node.Wallet.GetThreadByName(threadName)
+	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("thread not found: %s", threadName))
 	}
 
 	if tcore.Node.Wallet.Online() {
-		go thread.Publish()
+		go thrd.Publish()
 	}
 
-	blocks := &Blocks{thread.Blocks(offsetId, limit)}
+	blocks := &Blocks{thrd.Blocks(offsetId, limit)}
 
 	// gomobile does not allow slices. so, convert to json
 	jsonb, err := json.Marshal(blocks)
@@ -305,9 +306,9 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 }
 
 // subscribe to thread and pass updates to messenger
-func (w *Wrapper) subscribe(thread *wallet.Thread) {
-	datac := make(chan wallet.ThreadUpdate)
-	go thread.Subscribe(datac)
+func (w *Wrapper) subscribe(thrd *thread.Thread) {
+	datac := make(chan thread.Update)
+	go thrd.Subscribe(datac)
 	go func() {
 		for {
 			select {

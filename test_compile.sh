@@ -5,6 +5,9 @@ pwd
 go test -coverprofile=central.dao.cover.out ./central/dao
 go test -coverprofile=central.controllers.cover.out ./central/controllers
 go test -coverprofile=core.cover.out ./core
+go test -coverprofile=wallet.cover.out ./wallet
+go test -coverprofile=wallet.thread.cover.out ./wallet/thread
+go test -coverprofile=wallet.util.cover.out ./wallet/util
 go test -coverprofile=mobile.cover.out ./mobile
 go test -coverprofile=repo.db.cover.out ./repo/db
 go test -coverprofile=repo.photos.cover.out ./repo/photos
