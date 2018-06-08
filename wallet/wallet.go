@@ -22,6 +22,7 @@ import (
 	"github.com/tyler-smith/go-bip39"
 	"gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
+	libp2pn "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	utilmain "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/commands"
@@ -40,16 +41,24 @@ import (
 
 var log = logging.MustGetLogger("wallet")
 
-type Wallet struct {
-	Context        oldcmds.Context
+type Config struct {
 	RepoPath       string
-	Cancel         context.CancelFunc
-	Ipfs           *core.IpfsNode
 	Datastore      trepo.Datastore
 	CentralUserAPI string
 	IsMobile       bool
+}
+
+type Wallet struct {
+	context        oldcmds.Context
+	repoPath       string
+	cancel         context.CancelFunc
+	ipfs           *core.IpfsNode
+	datastore      trepo.Datastore
+	centralUserAPI string
+	isMobile       bool
 	started        bool
 	threads        []*thread.Thread
+	done           chan struct{}
 }
 
 const pingTimeout = time.Second * 10
@@ -63,12 +72,24 @@ var ErrStopped = errors.New("node is already stopped")
 // ErrOffline is an error for when online resources are requested on an offline node
 var ErrOffline = errors.New("node is offline")
 
+func NewWallet(config *Config) *Wallet {
+	return &Wallet{
+		repoPath:       config.RepoPath,
+		datastore:      config.Datastore,
+		centralUserAPI: config.CentralUserAPI,
+		isMobile:       config.IsMobile,
+	}
+}
+
 // Start
 func (w *Wallet) Start() (chan struct{}, error) {
 	if w.started {
 		return nil, ErrStarted
 	}
-	defer func() { w.started = true }()
+	defer func() {
+		w.done = make(chan struct{})
+		w.started = true
+	}()
 	log.Info("starting wallet...")
 	onlineCh := make(chan struct{})
 
@@ -96,14 +117,14 @@ func (w *Wallet) Start() (chan struct{}, error) {
 		}
 
 		// print swarm addresses
-		if err := util.PrintSwarmAddrs(w.Ipfs); err != nil {
+		if err := util.PrintSwarmAddrs(w.ipfs); err != nil {
 			log.Errorf("failed to read listening addresses: %s", err)
 		}
 		log.Info("wallet is online")
 	}()
 
 	// setup threads
-	for _, mod := range w.Datastore.Threads().List("") {
+	for _, mod := range w.datastore.Threads().List("") {
 		_, err := w.loadThread(&mod)
 		if err != nil {
 			return nil, err
@@ -118,7 +139,7 @@ func (w *Wallet) Start() (chan struct{}, error) {
 // createIPFS creates an IPFS node
 func (w *Wallet) createIPFS(online bool) error {
 	// open repo
-	repo, err := fsrepo.Open(w.RepoPath)
+	repo, err := fsrepo.Open(w.repoPath)
 	if err != nil {
 		log.Errorf("error opening repo: %s", err)
 		return err
@@ -126,7 +147,7 @@ func (w *Wallet) createIPFS(online bool) error {
 
 	// determine the best routing
 	var routingOption core.RoutingOption
-	if w.IsMobile {
+	if w.isMobile {
 		routingOption = core.DHTClientOption
 	} else {
 		routingOption = core.DHTOption
@@ -156,27 +177,27 @@ func (w *Wallet) createIPFS(online bool) error {
 	// build the context
 	ctx := oldcmds.Context{}
 	ctx.Online = online
-	ctx.ConfigRoot = w.RepoPath
+	ctx.ConfigRoot = w.repoPath
 	ctx.LoadConfig = func(path string) (*config.Config, error) {
-		return fsrepo.ConfigAt(w.RepoPath)
+		return fsrepo.ConfigAt(w.repoPath)
 	}
 	ctx.ConstructNode = func() (*core.IpfsNode, error) {
 		return nd, nil
 	}
 
 	// attach to textile node
-	if w.Cancel != nil {
-		w.Cancel()
+	if w.cancel != nil {
+		w.cancel()
 	}
-	if w.Ipfs != nil {
-		if err := w.Ipfs.Close(); err != nil {
+	if w.ipfs != nil {
+		if err := w.ipfs.Close(); err != nil {
 			log.Errorf("error closing prev ipfs node: %s", err)
 			return err
 		}
 	}
-	w.Context = ctx
-	w.Cancel = cancel
-	w.Ipfs = nd
+	w.context = ctx
+	w.cancel = cancel
+	w.ipfs = nd
 
 	return nil
 }
@@ -186,20 +207,23 @@ func (w *Wallet) Stop() error {
 	if !w.started {
 		return ErrStopped
 	}
-	defer func() { w.started = false }()
+	defer func() {
+		w.started = false
+		close(w.done)
+	}()
 	log.Info("stopping wallet...")
 
 	// close ipfs node
-	w.Context.Close()
-	w.Cancel()
-	if err := w.Ipfs.Close(); err != nil {
+	w.context.Close()
+	w.cancel()
+	if err := w.ipfs.Close(); err != nil {
 		log.Errorf("error closing ipfs node: %s", err)
 		return err
 	}
 
 	// close db connection
-	w.Datastore.Close()
-	dsLockFile := filepath.Join(w.RepoPath, "datastore", "LOCK")
+	w.datastore.Close()
+	dsLockFile := filepath.Join(w.repoPath, "datastore", "LOCK")
 	if err := os.Remove(dsLockFile); err != nil {
 		log.Warningf("remove ds lock failed: %s", err)
 	}
@@ -217,10 +241,14 @@ func (w *Wallet) Started() bool {
 }
 
 func (w *Wallet) Online() bool {
-	if w.Ipfs == nil {
+	if w.ipfs == nil {
 		return false
 	}
-	return w.Ipfs.OnlineMode()
+	return w.ipfs.OnlineMode()
+}
+
+func (w *Wallet) Done() <-chan struct{} {
+	return w.done
 }
 
 // SignUp requests a new username and token from the central api and saves them locally
@@ -231,7 +259,7 @@ func (w *Wallet) SignUp(reg *cmodels.Registration) error {
 	log.Debugf("signup: %s %s %s %s %s", reg.Username, "xxxxxx", reg.Identity.Type, reg.Identity.Value, reg.Referral)
 
 	// remote signup
-	res, err := central.SignUp(reg, w.CentralUserAPI)
+	res, err := central.SignUp(reg, w.centralUserAPI)
 	if err != nil {
 		log.Errorf("signup error: %s", err)
 		return err
@@ -242,7 +270,7 @@ func (w *Wallet) SignUp(reg *cmodels.Registration) error {
 	}
 
 	// local signin
-	if err := w.Datastore.Profile().SignIn(reg.Username, res.Session.AccessToken, res.Session.RefreshToken); err != nil {
+	if err := w.datastore.Profile().SignIn(reg.Username, res.Session.AccessToken, res.Session.RefreshToken); err != nil {
 		log.Errorf("local signin error: %s", err)
 		return err
 	}
@@ -257,7 +285,7 @@ func (w *Wallet) SignIn(creds *cmodels.Credentials) error {
 	log.Debugf("signin: %s %s", creds.Username, "xxxxxx")
 
 	// remote signin
-	res, err := central.SignIn(creds, w.CentralUserAPI)
+	res, err := central.SignIn(creds, w.centralUserAPI)
 	if err != nil {
 		log.Errorf("signin error: %s", err)
 		return err
@@ -268,7 +296,7 @@ func (w *Wallet) SignIn(creds *cmodels.Credentials) error {
 	}
 
 	// local signin
-	if err := w.Datastore.Profile().SignIn(creds.Username, res.Session.AccessToken, res.Session.RefreshToken); err != nil {
+	if err := w.datastore.Profile().SignIn(creds.Username, res.Session.AccessToken, res.Session.RefreshToken); err != nil {
 		log.Errorf("local signin error: %s", err)
 		return err
 	}
@@ -283,7 +311,7 @@ func (w *Wallet) SignOut() error {
 	log.Debug("signing out...")
 
 	// remote is stateless, so we just ditch the local token
-	if err := w.Datastore.Profile().SignOut(); err != nil {
+	if err := w.datastore.Profile().SignOut(); err != nil {
 		log.Errorf("local signout error: %s", err)
 		return err
 	}
@@ -295,7 +323,7 @@ func (w *Wallet) IsSignedIn() (bool, error) {
 	if err := w.touchDatastore(); err != nil {
 		return false, err
 	}
-	_, err := w.Datastore.Profile().GetUsername()
+	_, err := w.datastore.Profile().GetUsername()
 	return err == nil, nil
 }
 
@@ -304,7 +332,7 @@ func (w *Wallet) GetUsername() (string, error) {
 	if err := w.touchDatastore(); err != nil {
 		return "", err
 	}
-	un, err := w.Datastore.Profile().GetUsername()
+	un, err := w.datastore.Profile().GetUsername()
 	if err != nil {
 		return "", err
 	}
@@ -316,7 +344,7 @@ func (w *Wallet) GetAccessToken() (string, error) {
 	if err := w.touchDatastore(); err != nil {
 		return "", err
 	}
-	at, _, err := w.Datastore.Profile().GetTokens()
+	at, _, err := w.datastore.Profile().GetTokens()
 	if err != nil {
 		return "", err
 	}
@@ -368,7 +396,7 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 		Name:    name,
 		PrivKey: skb,
 	}
-	if err := w.Datastore.Threads().Add(threadModel); err != nil {
+	if err := w.datastore.Threads().Add(threadModel); err != nil {
 		return nil, err
 	}
 	thrd, err := w.loadThread(threadModel)
@@ -443,7 +471,7 @@ func (w *Wallet) AddPhoto(path string) (*model.AddResult, error) {
 	ext := strings.ToLower(filepath.Ext(fpath))
 
 	// get username, ignoring if not present (not signed in)
-	username, _ := w.Datastore.Profile().GetUsername()
+	username, _ := w.datastore.Profile().GetUsername()
 
 	// get metadata
 	meta, err := getMetadata(photo, fpath, ext, username)
@@ -470,16 +498,16 @@ func (w *Wallet) AddPhoto(path string) (*model.AddResult, error) {
 	}
 
 	// create a virtual directory for the photo
-	dirb := uio.NewDirectory(w.Ipfs.DAG)
-	err = util.AddFileToDirectory(w.Ipfs, dirb, photocypher, "photo")
+	dirb := uio.NewDirectory(w.ipfs.DAG)
+	err = util.AddFileToDirectory(w.ipfs, dirb, photocypher, "photo")
 	if err != nil {
 		return nil, err
 	}
-	err = util.AddFileToDirectory(w.Ipfs, dirb, thumbcypher, "thumb")
+	err = util.AddFileToDirectory(w.ipfs, dirb, thumbcypher, "thumb")
 	if err != nil {
 		return nil, err
 	}
-	err = util.AddFileToDirectory(w.Ipfs, dirb, metacypher, "meta")
+	err = util.AddFileToDirectory(w.ipfs, dirb, metacypher, "meta")
 	if err != nil {
 		return nil, err
 	}
@@ -489,14 +517,14 @@ func (w *Wallet) AddPhoto(path string) (*model.AddResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := util.PinDirectory(w.Ipfs, dir, []string{"photo"}); err != nil {
+	if err := util.PinDirectory(w.ipfs, dir, []string{"photo"}); err != nil {
 		return nil, err
 	}
 	id := dir.Cid().Hash().B58String()
 
 	// create and init a new multipart request
 	request := &net.MultipartRequest{}
-	request.Init(filepath.Join(w.RepoPath, "tmp"), id)
+	request.Init(filepath.Join(w.repoPath, "tmp"), id)
 
 	// add files to request
 	if err := request.AddFile(photocypher, "photo"); err != nil {
@@ -519,7 +547,7 @@ func (w *Wallet) AddPhoto(path string) (*model.AddResult, error) {
 }
 
 func (w *Wallet) FindBlock(target string) (*trepo.Block, error) {
-	block := w.Datastore.Blocks().GetByTarget(target)
+	block := w.datastore.Blocks().GetByTarget(target)
 	if block == nil {
 		return nil, errors.New("block not found locally")
 	}
@@ -541,7 +569,7 @@ func (w *Wallet) GetFile(path string, blockId string) ([]byte, error) {
 	}
 
 	// get bytes
-	cypher, err := util.GetDataAtPath(w.Ipfs, path)
+	cypher, err := util.GetDataAtPath(w.ipfs, path)
 	if err != nil {
 		log.Errorf("error getting file data: %s", err)
 		return nil, err
@@ -571,7 +599,7 @@ func (w *Wallet) GetIPFSPeerID() (string, error) {
 	if !w.started {
 		return "", ErrStopped
 	}
-	return w.Ipfs.Identity.Pretty(), nil
+	return w.ipfs.Identity.Pretty(), nil
 }
 
 // GetIPFSPubKeyString returns the base64 encoded public ipfs peer key
@@ -579,7 +607,7 @@ func (w *Wallet) GetIPFSPubKeyString() (string, error) {
 	if !w.started {
 		return "", ErrStopped
 	}
-	pkb, err := w.Ipfs.PrivateKey.GetPublic().Bytes()
+	pkb, err := w.ipfs.PrivateKey.GetPublic().Bytes()
 	if err != nil {
 		log.Errorf("error getting pub key bytes: %s", err)
 		return "", err
@@ -595,7 +623,7 @@ func (w *Wallet) ConnectPeer(addrs []string) ([]string, error) {
 	if !w.Online() {
 		return nil, ErrOffline
 	}
-	snet, ok := w.Ipfs.PeerHost.Network().(*swarm.Network)
+	snet, ok := w.ipfs.PeerHost.Network().(*swarm.Network)
 	if !ok {
 		return nil, errors.New("peerhost network was not swarm")
 	}
@@ -613,7 +641,7 @@ func (w *Wallet) ConnectPeer(addrs []string) ([]string, error) {
 
 		output[i] = "connect " + pi.ID.Pretty()
 
-		err := w.Ipfs.PeerHost.Connect(w.Ipfs.Context(), pi)
+		err := w.ipfs.PeerHost.Connect(w.ipfs.Context(), pi)
 		if err != nil {
 			return nil, fmt.Errorf("%s failure: %s", output[i], err)
 		}
@@ -632,27 +660,27 @@ func (w *Wallet) PingPeer(addrs string, num int, out chan string) error {
 	}
 	addr, pid, err := util.ParsePeerParam(addrs)
 	if addr != nil {
-		w.Ipfs.Peerstore.AddAddr(pid, addr, pstore.TempAddrTTL) // temporary
+		w.ipfs.Peerstore.AddAddr(pid, addr, pstore.TempAddrTTL) // temporary
 	}
 
-	if len(w.Ipfs.Peerstore.Addrs(pid)) == 0 {
+	if len(w.ipfs.Peerstore.Addrs(pid)) == 0 {
 		// Make sure we can find the node in question
 		log.Debugf("looking up peer: %s", pid.Pretty())
 
-		ctx, cancel := context.WithTimeout(w.Ipfs.Context(), pingTimeout)
+		ctx, cancel := context.WithTimeout(w.ipfs.Context(), pingTimeout)
 		defer cancel()
-		p, err := w.Ipfs.Routing.FindPeer(ctx, pid)
+		p, err := w.ipfs.Routing.FindPeer(ctx, pid)
 		if err != nil {
 			err = fmt.Errorf("peer lookup error: %s", err)
 			log.Errorf(err.Error())
 			return err
 		}
-		w.Ipfs.Peerstore.AddAddrs(p.ID, p.Addrs, pstore.TempAddrTTL)
+		w.ipfs.Peerstore.AddAddrs(p.ID, p.Addrs, pstore.TempAddrTTL)
 	}
 
-	ctx, cancel := context.WithTimeout(w.Ipfs.Context(), pingTimeout*time.Duration(num))
+	ctx, cancel := context.WithTimeout(w.ipfs.Context(), pingTimeout*time.Duration(num))
 	defer cancel()
-	pings, err := w.Ipfs.Ping.Ping(ctx, pid)
+	pings, err := w.ipfs.Ping.Ping(ctx, pid)
 	if err != nil {
 		log.Errorf("error pinging peer %s: %s", pid.Pretty(), err)
 		return err
@@ -685,6 +713,13 @@ func (w *Wallet) PingPeer(addrs string, num int, out chan string) error {
 	return nil
 }
 
+func (w *Wallet) IFPSPeers() ([]libp2pn.Conn, error) {
+	if !w.Online() {
+		return nil, ErrOffline
+	}
+	return w.ipfs.PeerHost.Network().Conns(), nil
+}
+
 // WaitForInvite to join
 // TODO: needs cleanup to handle a generic invite
 func (w *Wallet) WaitForInvite() {
@@ -693,8 +728,8 @@ func (w *Wallet) WaitForInvite() {
 	}
 	// we're in a lonesome state here, we can just sub to our own
 	// peer id and hope somebody sends us a priv key to join a thread with
-	self := w.Ipfs.Identity.Pretty()
-	sub, err := w.Ipfs.Floodsub.Subscribe(self)
+	self := w.ipfs.Identity.Pretty()
+	sub, err := w.ipfs.Floodsub.Subscribe(self)
 	if err != nil {
 		log.Errorf("error creating subscription: %s", err)
 		return
@@ -717,7 +752,7 @@ func (w *Wallet) WaitForInvite() {
 			log.Infof("got pairing request from: %s\n", from)
 
 			// get private peer key and decrypt the phrase
-			skb, err := crypto.Decrypt(w.Ipfs.PrivateKey, msg.GetData())
+			skb, err := crypto.Decrypt(w.ipfs.PrivateKey, msg.GetData())
 			if err != nil {
 				log.Errorf("error decrypting msg data: %s", err)
 				return
@@ -747,28 +782,35 @@ func (w *Wallet) WaitForInvite() {
 		case <-cancelCh:
 			cancel()
 			return
-		case <-w.Ipfs.Context().Done():
+		case <-w.ipfs.Context().Done():
 			cancel()
 			return
 		}
 	}
 }
 
+func (w *Wallet) GetDataAtPath(path string) ([]byte, error) {
+	if !w.started {
+		return nil, ErrStopped
+	}
+	return util.GetDataAtPath(w.ipfs, path)
+}
+
 func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
 	id := model.Id // save value locally
 	threadConfig := &thread.Config{
-		RepoPath: w.RepoPath,
-		Ipfs:     w.Ipfs,
-		Blocks:   w.Datastore.Blocks(),
+		RepoPath: w.repoPath,
+		Ipfs:     w.ipfs,
+		Blocks:   w.datastore.Blocks(),
 		GetHead: func() (string, error) {
-			m := w.Datastore.Threads().Get(id)
+			m := w.datastore.Threads().Get(id)
 			if m == nil {
 				return "", errors.New(fmt.Sprintf("could not re-load thread: %s", id))
 			}
 			return m.Head, nil
 		},
 		UpdateHead: func(head string) error {
-			if err := w.Datastore.Threads().UpdateHead(id, head); err != nil {
+			if err := w.datastore.Threads().UpdateHead(id, head); err != nil {
 				return err
 			}
 			return nil
@@ -783,7 +825,7 @@ func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
 }
 
 func (w *Wallet) getThreadBlock(blockId string) (*thread.Thread, *trepo.Block, error) {
-	block := w.Datastore.Blocks().Get(blockId)
+	block := w.datastore.Blocks().Get(blockId)
 	if block == nil {
 		return nil, nil, errors.New(fmt.Sprintf("block %s not found locally", blockId))
 	}
@@ -803,14 +845,14 @@ func (w *Wallet) getThreadBlock(blockId string) (*thread.Thread, *trepo.Block, e
 
 // touchDB ensures that we have a good db connection
 func (w *Wallet) touchDatastore() error {
-	if err := w.Datastore.Ping(); err != nil {
+	if err := w.datastore.Ping(); err != nil {
 		log.Debug("re-opening datastore...")
-		sqliteDB, err := db.Create(w.RepoPath, "")
+		sqliteDB, err := db.Create(w.repoPath, "")
 		if err != nil {
 			log.Errorf("error re-opening datastore: %s", err)
 			return err
 		}
-		w.Datastore = sqliteDB
+		w.datastore = sqliteDB
 	}
 	return nil
 }

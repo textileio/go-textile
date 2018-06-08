@@ -9,7 +9,6 @@ import (
 	tconfig "github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/wallet"
-	wutil "github.com/textileio/textile-go/wallet/util"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/fsrepo"
 	"net/http"
@@ -141,12 +140,12 @@ func NewNode(config NodeConfig) (*TextileNode, error) {
 
 	// finally, construct our node
 	node := &TextileNode{
-		Wallet: &wallet.Wallet{
+		Wallet: wallet.NewWallet(&wallet.Config{
 			RepoPath:       config.RepoPath,
 			Datastore:      sqliteDB,
 			CentralUserAPI: fmt.Sprintf("%s/api/v1/users", config.CentralApiURL),
 			IsMobile:       config.IsMobile,
-		},
+		}),
 		gateway: gateway,
 	}
 
@@ -239,7 +238,7 @@ func (t *TextileNode) registerGatewayHandler() {
 		}
 
 		// get raw file
-		file, err := wutil.GetDataAtPath(t.Wallet.Ipfs, r.URL.Path)
+		file, err := t.Wallet.GetDataAtPath(r.URL.Path)
 		if err != nil {
 			log.Errorf("error getting raw path %s: %s", r.URL.Path, err)
 			w.WriteHeader(404)
@@ -304,7 +303,7 @@ func (t *TextileNode) startPublishing() {
 			return
 		}
 		select {
-		case <-t.Wallet.Ipfs.Context().Done():
+		case <-t.Wallet.Done():
 			log.Info("publishing stopped")
 			return
 		}
