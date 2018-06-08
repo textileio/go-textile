@@ -38,7 +38,7 @@ func CreateThread(c *ishell.Context) {
 	c.Print("key pair mnemonic phrase (optional): ")
 	mnemonic := c.ReadLine()
 
-	thrd, err := core.Node.Wallet.AddThread(name, mnemonic)
+	thrd, err := core.Node.Wallet.AddThreadWithMnemonic(name, mnemonic)
 	if err != nil {
 		c.Err(err)
 		return
