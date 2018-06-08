@@ -60,6 +60,16 @@ func (c *BlockDB) Get(id string) *wallet.Block {
 	return &ret[0]
 }
 
+func (c *BlockDB) GetByTarget(target string) *wallet.Block {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	ret := c.handleQuery("select * from blocks where target='" + target + "';")
+	if len(ret) == 0 {
+		return nil
+	}
+	return &ret[0]
+}
+
 func (c *BlockDB) List(offsetId string, limit int, query string) []wallet.Block {
 	c.lock.Lock()
 	defer c.lock.Unlock()
