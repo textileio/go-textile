@@ -88,6 +88,9 @@ type BlockStore interface {
 	// Get a single block
 	Get(id string) *wallet.Block
 
+	// Get a single block by target
+	GetByTarget(target string) *wallet.Block
+
 	// List blocks
 	List(offsetId string, limit int, query string) []wallet.Block
 

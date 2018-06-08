@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"time"
 	"github.com/op/go-logging"
-	"github.com/segmentio/ksuid"
 	"gopkg.in/natefinch/lumberjack.v2"
 	trepo "github.com/textileio/textile-go/repo"
 	tconfig "github.com/textileio/textile-go/repo/config"
@@ -35,15 +34,7 @@ var Node *TextileNode
 type TextileNode struct {
 	Wallet        *wallet.Wallet
 	gateway       *http.Server
-	gatewayTokens map[string]string
 	mux           sync.Mutex
-}
-
-// HashRequest represents a single-use gateway token
-type HashRequest struct {
-	Token    string `json:"token"`
-	Protocol string `json:"protocol"`
-	Host     string `json:"host"`
 }
 
 // NodeConfig is used to configure the node
@@ -156,13 +147,12 @@ func NewNode(config NodeConfig) (*TextileNode, error) {
 			IsMobile:       config.IsMobile,
 		},
 		gateway:        gateway,
-		gatewayTokens:  make(map[string]string),
 	}
 
 	return node, nil
 }
 
-func (t *TextileNode) Start() (online chan struct{}, err error) {
+func (t *TextileNode) StartWallet() (online chan struct{}, err error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 	online, err = t.Wallet.Start()
@@ -195,7 +185,7 @@ func (t *TextileNode) Start() (online chan struct{}, err error) {
 	return online, nil
 }
 
-func (t *TextileNode) Stop() error {
+func (t *TextileNode) StopWallet() error {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
@@ -214,17 +204,6 @@ func (t *TextileNode) Stop() error {
 	cancelCGW()
 
 	return nil
-}
-
-// GetHashRequest returns a single-use token for requesting content via the gateway
-func (t *TextileNode) GetHashRequest(hash string) HashRequest {
-	token := ksuid.New().String()
-	t.gatewayTokens[hash] = token
-	return HashRequest{
-		Token:    token,
-		Protocol: "http",
-		Host:     t.gateway.Addr,
-	}
 }
 
 // registerGatewayHandler registers a handler for the gateway

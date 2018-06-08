@@ -40,6 +40,7 @@ type Wallet struct {
 	CentralUserAPI string
 	IsMobile       bool
 	started        bool
+	threads        []*Thread
 }
 
 type Metadata struct {
@@ -111,6 +112,11 @@ func (w *Wallet) Start() (chan struct{}, error) {
 		}
 		log.Info("wallet is online")
 	}()
+
+	// setup threads
+	for _, thread := range w.Threads() {
+		w.setupThread(thread)
+	}
 
 	log.Info("wallet is started")
 
@@ -206,6 +212,9 @@ func (w *Wallet) Stop() error {
 		log.Warningf("remove ds lock failed: %s", err)
 	}
 
+	// wipe threads
+	w.threads = nil
+
 	log.Info("wallet is stopped")
 
 	return nil
@@ -224,7 +233,6 @@ func (w *Wallet) Online() bool {
 
 // SignUp requests a new username and token from the central api and saves them locally
 func (w *Wallet) SignUp(reg *cmodels.Registration) error {
-	// check db
 	if err := w.touchDatastore(); err != nil {
 		return err
 	}
@@ -251,7 +259,6 @@ func (w *Wallet) SignUp(reg *cmodels.Registration) error {
 
 // SignIn requests a token with a username from the central api and saves them locally
 func (w *Wallet) SignIn(creds *cmodels.Credentials) error {
-	// check db
 	if err := w.touchDatastore(); err != nil {
 		return err
 	}
@@ -278,7 +285,6 @@ func (w *Wallet) SignIn(creds *cmodels.Credentials) error {
 
 // SignOut deletes the locally saved user info (username and tokens)
 func (w *Wallet) SignOut() error {
-	// check db
 	if err := w.touchDatastore(); err != nil {
 		return err
 	}
@@ -294,7 +300,6 @@ func (w *Wallet) SignOut() error {
 
 // IsSignedIn returns whether or not a user is signed in
 func (w *Wallet) IsSignedIn() (bool, error) {
-	// check db
 	if err := w.touchDatastore(); err != nil {
 		return false, err
 	}
@@ -304,7 +309,6 @@ func (w *Wallet) IsSignedIn() (bool, error) {
 
 // GetUsername returns the current user's username
 func (w *Wallet) GetUsername() (string, error) {
-	// check db
 	if err := w.touchDatastore(); err != nil {
 		return "", err
 	}
@@ -317,7 +321,6 @@ func (w *Wallet) GetUsername() (string, error) {
 
 // GetAccessToken returns the current access_token (jwt) for central
 func (w *Wallet) GetAccessToken() (string, error) {
-	// check db
 	if err := w.touchDatastore(); err != nil {
 		return "", err
 	}
@@ -372,45 +375,48 @@ func (w *Wallet) AddThread(name string, mnemonic string) (*Thread, error) {
 		Id:       pk,
 		Name:     name,
 		PrivKey:  sk,
-		repoPath: w.RepoPath,
-		ipfs:     w.Ipfs,
-		blocks:   w.Datastore.Blocks(),
 	}
 	if err := w.Datastore.Threads().Add(thread); err != nil {
 		return nil, err
 	}
+	w.setupThread(thread)
+
 	return thread, nil
 }
 
-func (w *Wallet) GetThread(id string) *Thread {
-	thread := w.Datastore.Threads().Get(id)
-	if thread == nil {
-		return nil
-	}
-	w.setupThread(thread)
-	return thread
+func (w *Wallet) Threads() []*Thread {
+	return w.threads
 }
 
-func (w *Wallet) ListThreads() []*Thread {
-	var threads []*Thread
-	for _, thread := range w.Datastore.Threads().List("") {
-		w.setupThread(&thread)
-		threads = append(threads, &thread)
+func (w *Wallet) GetThread(id string) *Thread {
+	for _, thread := range w.threads {
+		if thread.Id == id {
+			return thread
+		}
 	}
-	return threads
+	return nil
+}
+
+func (w *Wallet) GetThreadByName(name string) *Thread {
+	for _, thread := range w.threads {
+		if thread.Name == name {
+			return thread
+		}
+	}
+	return nil
 }
 
 // PublishThreads publishes HEAD for each thread
 func (w *Wallet) PublishThreads() {
-	for _, t := range w.ListThreads() {
+	for _, t := range w.threads {
 		go func(thread *Thread) {
-			thread.RepublishLatestUpdate()
+			thread.Publish()
 		}(t)
 	}
 }
 
 // TODO: add node master pk to dir
-func (w *Wallet) AddPhoto(file string, caption string) (*AddResult, error) {
+func (w *Wallet) AddPhoto(path string) (*AddResult, error) {
 	// get a key to encrypt with
 	key, err := crypto.GenerateAESKey()
 	if err != nil {
@@ -418,7 +424,7 @@ func (w *Wallet) AddPhoto(file string, caption string) (*AddResult, error) {
 	}
 
 	// read file from disk
-	photo, err := os.Open(file)
+	photo, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
@@ -431,14 +437,14 @@ func (w *Wallet) AddPhoto(file string, caption string) (*AddResult, error) {
 	}
 
 	// path info
-	path := photo.Name()
-	ext := strings.ToLower(filepath.Ext(path))
+	fpath := photo.Name()
+	ext := strings.ToLower(filepath.Ext(fpath))
 
 	// get username, ignoring if not present (not signed in)
 	username, _ := w.Datastore.Profile().GetUsername()
 
 	// get metadata
-	meta, err := getMetadata(photo, path, ext, username)
+	meta, err := getMetadata(photo, fpath, ext, username)
 	if err != nil {
 		return nil, err
 	}
@@ -460,10 +466,7 @@ func (w *Wallet) AddPhoto(file string, caption string) (*AddResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	captioncypher, err := crypto.EncryptAES([]byte(caption), key)
-	if err != nil {
-		return nil, err
-	}
+
 
 	// create a virtual directory for the photo
 	dirb := uio.NewDirectory(w.Ipfs.DAG)
@@ -476,10 +479,6 @@ func (w *Wallet) AddPhoto(file string, caption string) (*AddResult, error) {
 		return nil, err
 	}
 	err = addFileToDirectory(w.Ipfs, dirb, metacypher, "meta")
-	if err != nil {
-		return nil, err
-	}
-	err = addFileToDirectory(w.Ipfs, dirb, captioncypher, "caption")
 	if err != nil {
 		return nil, err
 	}
@@ -508,9 +507,6 @@ func (w *Wallet) AddPhoto(file string, caption string) (*AddResult, error) {
 	if err := request.AddFile(metacypher, "meta"); err != nil {
 		return nil, err
 	}
-	if err := request.AddFile(captioncypher, "caption"); err != nil {
-		return nil, err
-	}
 
 	// finish request
 	if err := request.Finish(); err != nil {
@@ -521,20 +517,24 @@ func (w *Wallet) AddPhoto(file string, caption string) (*AddResult, error) {
 	return &AddResult{Id: id, Key: key, RemoteRequest: request}, nil
 }
 
-// ListPhotos paginates photos from the datastore
-func (w *Wallet) ListPhotos(offsetId string, limit int, threadName string) *ContentList {
-	// check db
+// Blocks paginates photos from the datastore
+func (w *Wallet) Blocks(threadName string, offsetId string, limit int) []Block {
 	if err := w.touchDatastore(); err != nil {
 		return nil
 	}
-
-	// lookup thread
-	thread := w.Datastore.Threads().GetByName(threadName)
+	thread := w.GetThreadByName(threadName)
 	if thread == nil {
-		return &ContentList{Hashes: make([]string, 0)}
+		return make([]Block, 0)
 	}
-	w.setupThread(thread)
-	return thread.ListPhotos(offsetId, limit)
+	return thread.Blocks(offsetId, limit)
+}
+
+func (w *Wallet) FindBlock(target string) (*Block, error) {
+	block := w.Datastore.Blocks().GetByTarget(target)
+	if block == nil {
+		return nil, errors.New("block not found locally")
+	}
+	return block, nil
 }
 
 // GetFile cats data from ipfs and tries to decrypt it with the provided block
@@ -576,6 +576,13 @@ func (w *Wallet) GetFileBase64(path string, blockId string) (string, error) {
 		return "error", err
 	}
 	return base64.StdEncoding.EncodeToString(file), nil
+}
+
+func (w *Wallet) GetIPFSPeerID() (string, error) {
+	if !w.started {
+		return "", ErrStopped
+	}
+	return w.Ipfs.Identity.Pretty(), nil
 }
 
 // GetIPFSPubKeyString returns the base64 encoded public ipfs peer key
@@ -686,7 +693,6 @@ func (w *Wallet) PingPeer(addrs string, num int, out chan string) error {
 			time.Sleep(time.Second)
 		}
 	}
-
 	return nil
 }
 
@@ -694,6 +700,14 @@ func (w *Wallet) setupThread(thread *Thread) {
 	thread.repoPath = w.RepoPath
 	thread.ipfs = w.Ipfs
 	thread.blocks = w.Datastore.Blocks()
+	thread.update = func(head string) error {
+		if err := w.Datastore.Threads().UpdateHead(thread.Id, head); err != nil {
+			return err
+		}
+		thread.Head = head
+		return nil
+	}
+	w.threads = append(w.threads, thread)
 }
 
 func (w *Wallet) getThreadBlock(blockId string) (*Thread, *Block, error) {
@@ -702,7 +716,13 @@ func (w *Wallet) getThreadBlock(blockId string) (*Thread, *Block, error) {
 		return nil, nil, errors.New(fmt.Sprintf("block %s not found locally", blockId))
 	}
 	threadId := libp2pc.ConfigEncodeKey(block.ThreadPubKey)
-	thread := w.Datastore.Threads().Get(threadId)
+	var thread *Thread
+	for _, t := range w.threads {
+		if t.Id == threadId {
+			thread = t
+			break
+		}
+	}
 	if thread == nil {
 		return nil, nil, errors.New(fmt.Sprintf("could not find thread: %s", threadId))
 	}

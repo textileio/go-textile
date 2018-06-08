@@ -24,18 +24,22 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"strconv"
+	"sync"
 )
 
 type Thread struct {
-	Id       string
-	Name     string
-	PrivKey  libp2pc.PrivKey
-	Head     string
-	repoPath string
-	ipfs     *core.IpfsNode
-	blocks   repo.BlockStore
-	leaveCh  chan struct{}
-	LeftCh   chan struct{}
+	Id        string
+	Name      string
+	PrivKey   libp2pc.PrivKey
+	Head      string
+	LeftCh    chan struct{}
+	leaveCh   chan struct{}
+	repoPath  string
+	ipfs      *core.IpfsNode
+	blocks    repo.BlockStore
+	update    func (head string) error
+	mux       sync.Mutex
+	listening bool
 }
 
 type Block struct {
@@ -66,10 +70,6 @@ type PhotoMetadata struct {
 	FileMetadata
 	Latitude  float64 `json:"lat,omitempty"`
 	Longitude float64 `json:"lon,omitempty"`
-}
-
-type ContentList struct {
-	Hashes []string `json:"hashes"`
 }
 
 // ThreadUpdate is used to notify listeners about updates in a thread
@@ -137,6 +137,10 @@ func (t *Thread) GetCaption(id string, block *Block) (string, error) {
 
 // JoinRoom with a given id
 func (t *Thread) Subscribe(datac chan ThreadUpdate) {
+	if t.listening {
+		return
+	}
+	t.listening = true
 	sub, err := t.ipfs.Floodsub.Subscribe(t.Id)
 	if err != nil {
 		log.Errorf("error creating subscription: %s", err)
@@ -151,6 +155,7 @@ func (t *Thread) Subscribe(datac chan ThreadUpdate) {
 	leave := func() {
 		cancel()
 		close(t.LeftCh)
+		t.listening = false
 		log.Infof("left thread: %s\n", sub.Topic())
 	}
 
@@ -196,30 +201,40 @@ func (t *Thread) Subscribe(datac chan ThreadUpdate) {
 	}
 }
 
-// LeaveRoom with a given id
-func (t *Thread) Unsubscribe(id string) {
+// Unsubscribe leaves the thread
+func (t *Thread) Unsubscribe() {
 	if t.leaveCh == nil {
 		return
 	}
 	close(t.leaveCh)
 }
 
-// TODO: add block to index... t.blocks.Add(block)
-// TODO: update head for this this thread
-// TODO: use a mux per thread for new blocks
-func (t *Thread) AddPhoto(id string, key []byte) (*AddResult, error) {
-	pk := t.PrivKey.GetPublic()
+// Listening indicates whether or not we are listening in the thread
+func (t *Thread) Listening() bool {
+	return t.listening
+}
+
+// AddPhoto adds a block for a photo to this thread
+func (t *Thread) AddPhoto(id string, caption string, key []byte) (*AddResult, error) {
+	t.mux.Lock()
+	defer t.mux.Unlock()
 	// encrypt AES key with thread pk
-	keycypher, err := crypto.Encrypt(pk, key)
+	keycypher, err := t.Encrypt(key)
 	if err != nil {
 		return nil, err
 	}
-	threadkey, err := pk.Bytes()
+	threadkey, err := t.PrivKey.GetPublic().Bytes()
 	if err != nil {
 		return nil, err
 	}
 	typeb := PhotoBlock.Bytes() // silly?
 	dateb := getNowBytes()
+
+	// encrypt caption with thread pk
+	captioncypher, err := t.Encrypt([]byte(caption))
+	if err != nil {
+		return nil, err
+	}
 
 	// create a virtual directory for the new block
 	dirb := uio.NewDirectory(t.ipfs.DAG)
@@ -247,6 +262,10 @@ func (t *Thread) AddPhoto(id string, key []byte) (*AddResult, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = addFileToDirectory(t.ipfs, dirb, captioncypher, "caption")
+	if err != nil {
+		return nil, err
+	}
 
 	// pin it
 	dir, err := dirb.GetNode()
@@ -261,6 +280,11 @@ func (t *Thread) AddPhoto(id string, key []byte) (*AddResult, error) {
 	// index it
 	block, err := t.indexBlock(bid)
 	if err != nil {
+		return nil, err
+	}
+
+	// update head
+	if err := t.update(bid); err != nil {
 		return nil, err
 	}
 
@@ -296,6 +320,9 @@ func (t *Thread) AddPhoto(id string, key []byte) (*AddResult, error) {
 	if err := request.AddFile(dateb, "date"); err != nil {
 		return nil, err
 	}
+	if err := request.AddFile(captioncypher, "caption"); err != nil {
+		return nil, err
+	}
 
 	// finish request
 	if err := request.Finish(); err != nil {
@@ -303,33 +330,28 @@ func (t *Thread) AddPhoto(id string, key []byte) (*AddResult, error) {
 	}
 
 	// all done
-	return &AddResult{Id: id, RemoteRequest: request}, nil
+	return &AddResult{Id: block.Id, RemoteRequest: request}, nil
 }
 
-// ListPhotos paginates photos from the datastore
-func (t *Thread) ListPhotos(offsetId string, limit int) *ContentList {
-	log.Debugf("listing photos: offsetId: %s, limit: %d, thread: %s", offsetId, limit, t.Name)
-
-	// query for blocks in this thread
-	query := fmt.Sprintf("tpk='%s' and type=%d", t.Id, PhotoBlock)
+// Blocks paginates photos from the datastore
+func (t *Thread) Blocks(offsetId string, limit int) []Block {
+	log.Debugf("listing blocks: offsetId: %s, limit: %d, thread: %s", offsetId, limit, t.Name)
+	query := fmt.Sprintf("pk='%s' and type=%d", t.Id, PhotoBlock)
 	list := t.blocks.List(offsetId, limit, query)
-	res := &ContentList{
-		Hashes: make([]string, len(list)),
-	}
-	for i := range list {
-		res.Hashes[i] = list[i].Target
-	}
-
 	log.Debugf("found %d photos in thread %s", len(list), t.Name)
-	return res
+	return list
+}
+
+func (t *Thread) Encrypt(data []byte) ([]byte, error) {
+	return crypto.Encrypt(t.PrivKey.GetPublic(), data)
 }
 
 func (t *Thread) Decrypt(data []byte) ([]byte, error) {
 	return crypto.Decrypt(t.PrivKey, data)
 }
 
-// RepublishLatestUpdate publishes HEAD
-func (t *Thread) RepublishLatestUpdate() {
+// Publish publishes HEAD
+func (t *Thread) Publish() {
 	if t.Head == "" {
 		return
 	}
@@ -345,7 +367,7 @@ func (t *Thread) post(payload []byte) error {
 	return t.ipfs.Floodsub.Publish(t.Id, payload)
 }
 
-// handleRoomUpdate tries to recursively process an update sent to a thread
+// preHandleBlock tries to recursively process an update sent to a thread
 func (t *Thread) preHandleBlock(msg *floodsub.Message, datac chan ThreadUpdate) error {
 	// unpack from
 	from := msg.GetFrom().Pretty()
