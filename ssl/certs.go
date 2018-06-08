@@ -17,13 +17,12 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"github.com/op/go-logging"
 	"math/big"
 	"net"
 	"os"
 	"strings"
 	"time"
-
-	"github.com/op/go-logging"
 )
 
 var (

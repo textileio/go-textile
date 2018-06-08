@@ -9,6 +9,7 @@ import (
 	tconfig "github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/wallet"
+	wutil "github.com/textileio/textile-go/wallet/util"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/fsrepo"
 	"net/http"
@@ -231,7 +232,7 @@ func (t *TextileNode) registerGatewayHandler() {
 		}
 
 		// get raw file
-		file, err := wallet.GetDataAtPath(t.Wallet.Ipfs, r.URL.Path)
+		file, err := wutil.GetDataAtPath(t.Wallet.Ipfs, r.URL.Path)
 		if err != nil {
 			log.Errorf("error getting raw path %s: %s", r.URL.Path, err)
 			w.WriteHeader(404)

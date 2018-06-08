@@ -1,10 +1,11 @@
-package wallet
+package util
 
 import (
 	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
+	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/crypto"
 	iaddr "gx/ipfs/QmQViVWBHbU6HmYjXcdNq7tVASCNgdg64ZGcauuDkLCivW/go-ipfs-addr"
 	"gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds"
@@ -22,9 +23,15 @@ import (
 	"io"
 	"io/ioutil"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
+
+var log = logging.MustGetLogger("util")
+
+const pinTimeout = time.Minute * 1
+const catTimeout = time.Second * 30
 
 // GetDataAtPath cats any data under an ipfs path
 func GetDataAtPath(ipfs *core.IpfsNode, path string) ([]byte, error) {
@@ -51,8 +58,8 @@ func GetDataAtPath(ipfs *core.IpfsNode, path string) ([]byte, error) {
 	return ioutil.ReadAll(r)
 }
 
-// createMnemonic creates a new mnemonic phrase with given entropy
-func createMnemonic(newEntropy func(int) ([]byte, error), newMnemonic func([]byte) (string, error)) (string, error) {
+// CreateMnemonic creates a new mnemonic phrase with given entropy
+func CreateMnemonic(newEntropy func(int) ([]byte, error), newMnemonic func([]byte) (string, error)) (string, error) {
 	entropy, err := newEntropy(256)
 	if err != nil {
 		return "", err
@@ -64,8 +71,8 @@ func createMnemonic(newEntropy func(int) ([]byte, error), newMnemonic func([]byt
 	return mnemonic, nil
 }
 
-// identityKeyFromSeed returns a new key identity from a seed
-func identityKeyFromSeed(seed []byte) ([]byte, error) {
+// IdentityKeyFromSeed returns a new key identity from a seed
+func IdentityKeyFromSeed(seed []byte) ([]byte, error) {
 	hm := hmac.New(sha256.New, []byte("scythian horde"))
 	hm.Write(seed)
 	reader := bytes.NewReader(hm.Sum(nil))
@@ -81,12 +88,8 @@ func identityKeyFromSeed(seed []byte) ([]byte, error) {
 	return encodedKey, nil
 }
 
-// printSwarmAddrs prints the addresses of the host
-func printSwarmAddrs(node *core.IpfsNode) error {
-	if !node.OnlineMode() {
-		return ErrOffline
-	}
-
+// PrintSwarmAddrs prints the addresses of the host
+func PrintSwarmAddrs(node *core.IpfsNode) error {
 	var lisAddrs []string
 	ifaceAddrs, err := node.PeerHost.Network().InterfaceListenAddresses()
 	if err != nil {
@@ -112,8 +115,8 @@ func printSwarmAddrs(node *core.IpfsNode) error {
 	return nil
 }
 
-// parsePeerParam takes a peer address string and returns p2p params
-func parsePeerParam(text string) (ma.Multiaddr, peer.ID, error) {
+// ParsePeerParam takes a peer address string and returns p2p params
+func ParsePeerParam(text string) (ma.Multiaddr, peer.ID, error) {
 	// to be replaced with just multiaddr parsing, once ptp is a multiaddr protocol
 	idx := strings.LastIndex(text, "/")
 	if idx == -1 {
@@ -150,9 +153,9 @@ func parsePeerParam(text string) (ma.Multiaddr, peer.ID, error) {
 	return maddr, pid, nil
 }
 
-// parseAddresses is a function that takes in a slice of string peer addresses
+// ParseAddresses is a function that takes in a slice of string peer addresses
 // (multiaddr + peerid) and returns slices of multiaddrs and peerids.
-func parseAddresses(addrs []string) (iaddrs []iaddr.IPFSAddr, err error) {
+func ParseAddresses(addrs []string) (iaddrs []iaddr.IPFSAddr, err error) {
 	iaddrs = make([]iaddr.IPFSAddr, len(addrs))
 	for i, saddr := range addrs {
 		iaddrs[i], err = iaddr.ParseString(saddr)
@@ -163,10 +166,10 @@ func parseAddresses(addrs []string) (iaddrs []iaddr.IPFSAddr, err error) {
 	return
 }
 
-// peersWithAddresses is a function that takes in a slice of string peer addresses
+// PeersWithAddresses is a function that takes in a slice of string peer addresses
 // (multiaddr + peerid) and returns a slice of properly constructed peers
-func peersWithAddresses(addrs []string) (pis []pstore.PeerInfo, err error) {
-	iaddrs, err := parseAddresses(addrs)
+func PeersWithAddresses(addrs []string) (pis []pstore.PeerInfo, err error) {
+	iaddrs, err := ParseAddresses(addrs)
 	if err != nil {
 		return nil, err
 	}
@@ -180,8 +183,8 @@ func peersWithAddresses(addrs []string) (pis []pstore.PeerInfo, err error) {
 	return pis, nil
 }
 
-// getEncryptedReaderBytes reads reader bytes and returns the encrypted result
-func getEncryptedReaderBytes(reader io.Reader, key []byte) ([]byte, error) {
+// GetEncryptedReaderBytes reads reader bytes and returns the encrypted result
+func GetEncryptedReaderBytes(reader io.Reader, key []byte) ([]byte, error) {
 	bts, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, err
@@ -189,8 +192,8 @@ func getEncryptedReaderBytes(reader io.Reader, key []byte) ([]byte, error) {
 	return crypto.EncryptAES(bts, key)
 }
 
-// addFileToDirectory adds bytes as file to a virtual directory (dag) structure
-func addFileToDirectory(ipfs *core.IpfsNode, dirb *uio.Directory, bts []byte, fname string) error {
+// AddFileToDirectory adds bytes as file to a virtual directory (dag) structure
+func AddFileToDirectory(ipfs *core.IpfsNode, dirb *uio.Directory, bts []byte, fname string) error {
 	reader := bytes.NewReader(bts)
 	str, err := coreunix.Add(ipfs, reader)
 	if err != nil {
@@ -210,8 +213,8 @@ func addFileToDirectory(ipfs *core.IpfsNode, dirb *uio.Directory, bts []byte, fn
 	return nil
 }
 
-// pinPath takes an ipfs path string and pins it
-func pinPath(ipfs *core.IpfsNode, path string, recursive bool) error {
+// PinPath takes an ipfs path string and pins it
+func PinPath(ipfs *core.IpfsNode, path string, recursive bool) error {
 	ip, err := coreapi.ParsePath(path)
 	if err != nil {
 		log.Errorf("error pinning path: %s, recursive: %t: %s", path, recursive, err)
@@ -231,8 +234,8 @@ func pinPath(ipfs *core.IpfsNode, path string, recursive bool) error {
 	return nil
 }
 
-// pinDirectory pins a directory exluding any provided links
-func pinDirectory(ipfs *core.IpfsNode, dir ipld.Node, exclude []string) error {
+// PinDirectory pins a directory exluding any provided links
+func PinDirectory(ipfs *core.IpfsNode, dir ipld.Node, exclude []string) error {
 	if err := ipfs.Pinning.Pin(ipfs.Context(), dir, false); err != nil {
 		return err
 	}
@@ -252,6 +255,6 @@ outer:
 	return ipfs.Pinning.Flush()
 }
 
-func getNowBytes() []byte {
-	time.Now().Unix()
+func GetNowBytes() []byte {
+	return []byte(strconv.Itoa(int(time.Now().Unix())))
 }
