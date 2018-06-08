@@ -190,3 +190,7 @@ func TestThreadDB_Delete(t *testing.T) {
 		t.Error("Delete failed")
 	}
 }
+
+func TestThreadDB_DeleteByName(t *testing.T) {
+	// TODO
+}

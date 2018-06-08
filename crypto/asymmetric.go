@@ -9,10 +9,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
-
 	"golang.org/x/crypto/hkdf"
 	"golang.org/x/crypto/nacl/box"
-
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
@@ -56,7 +54,7 @@ var (
 	BoxDecryptionError = errors.New("failed to decrypt curve25519")
 
 	// Satic salt used in the hdkf
-	Salt = []byte("OpenBazaar Encryption Algorithm")
+	Salt = []byte("Textile Encryption Algorithm")
 )
 
 func Encrypt(pubKey libp2p.PubKey, bytes []byte) ([]byte, error) {

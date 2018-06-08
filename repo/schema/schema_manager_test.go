@@ -17,7 +17,7 @@ func TestNewSchemaManagerSetsReasonableDefaults(t *testing.T) {
 	}
 
 	expectedDataPath := "/foobarbaz"
-	subject, err = NewCustomSchemaManager(SchemaContext{
+	subject, err = NewCustomSchemaManager(Context{
 		DataPath: expectedDataPath,
 	})
 	if err != nil {
@@ -30,7 +30,7 @@ func TestNewSchemaManagerSetsReasonableDefaults(t *testing.T) {
 
 func TestNewSchemaManagerServiceDatastorePath(t *testing.T) {
 	dataPath := "/root"
-	subject, err := NewCustomSchemaManager(SchemaContext{
+	subject, err := NewCustomSchemaManager(Context{
 		DataPath: dataPath,
 	})
 	if err != nil {
@@ -50,7 +50,7 @@ func TestVerifySchemaVersion(t *testing.T) {
 	var (
 		expectedVersion = "123"
 	)
-	paths, err := NewCustomSchemaManager(SchemaContext{})
+	paths, err := NewCustomSchemaManager(Context{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +83,7 @@ func TestVerifySchemaVersion(t *testing.T) {
 }
 
 func TestBuildSchemaDirectories(t *testing.T) {
-	paths, err := NewCustomSchemaManager(SchemaContext{
+	paths, err := NewCustomSchemaManager(Context{
 		DataPath: GenerateTempPath(),
 	})
 	err = paths.BuildSchemaDirectories()

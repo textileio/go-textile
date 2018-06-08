@@ -3,7 +3,6 @@ package util
 import (
 	"bufio"
 	"os"
-
 	"github.com/op/go-logging"
 )
 

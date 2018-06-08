@@ -6,10 +6,6 @@ import (
 	"github.com/textileio/textile-go/wallet"
 )
 
-type SettingsData struct {
-	Version *string `json:"version"`
-}
-
 type Datastore interface {
 	Config() ConfigStore
 	Profile() ProfileStore
@@ -77,6 +73,9 @@ type ThreadStore interface {
 
 	// Delete a thread
 	Delete(id string) error
+
+	// Delete a thread by name
+	DeleteByName(name string) error
 }
 
 type BlockStore interface {

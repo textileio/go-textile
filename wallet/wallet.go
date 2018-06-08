@@ -517,18 +517,6 @@ func (w *Wallet) AddPhoto(path string) (*AddResult, error) {
 	return &AddResult{Id: id, Key: key, RemoteRequest: request}, nil
 }
 
-// Blocks paginates photos from the datastore
-func (w *Wallet) Blocks(threadName string, offsetId string, limit int) []Block {
-	if err := w.touchDatastore(); err != nil {
-		return nil
-	}
-	thread := w.GetThreadByName(threadName)
-	if thread == nil {
-		return make([]Block, 0)
-	}
-	return thread.Blocks(offsetId, limit)
-}
-
 func (w *Wallet) FindBlock(target string) (*Block, error) {
 	block := w.Datastore.Blocks().GetByTarget(target)
 	if block == nil {

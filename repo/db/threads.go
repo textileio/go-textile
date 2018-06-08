@@ -94,6 +94,13 @@ func (c *ThreadDB) Delete(id string) error {
 	return err
 }
 
+func (c *ThreadDB) DeleteByName(name string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("delete from threads where name=?", name)
+	return err
+}
+
 func (c *ThreadDB) handleQuery(stm string) []wallet.Thread {
 	var ret []wallet.Thread
 	rows, err := c.db.Query(stm)

@@ -352,15 +352,16 @@ func (t *Thread) Decrypt(data []byte) ([]byte, error) {
 
 // Publish publishes HEAD
 func (t *Thread) Publish() {
-	if t.Head == "" {
+	payload := t.Head
+	if payload == "" {
+		payload = "ping"
+	}
+	log.Debugf("publishing thread %s...", t.Name)
+	if err := t.post([]byte(payload)); err != nil {
+		log.Errorf("error publishing %s: %s", payload, err)
 		return
 	}
-	log.Debugf("publishing thread %s...", t.Head, t.Name)
-	if err := t.post([]byte(t.Head)); err != nil {
-		log.Errorf("error publishing %s: %s", t.Head, err)
-		return
-	}
-	log.Debugf("published %s to %s thread", t.Head, t.Id)
+	log.Debugf("published %s to %s thread", payload, t.Id)
 }
 
 func (t *Thread) post(payload []byte) error {
