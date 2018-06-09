@@ -3,7 +3,6 @@ package thread
 import (
 	"context"
 	"encoding/base64"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"github.com/op/go-logging"
@@ -19,6 +18,7 @@ import (
 	"io"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -469,12 +469,18 @@ func (t *Thread) indexBlock(id string) (*repo.Block, error) {
 	if err != nil {
 		return nil, err
 	}
+	typei, err := strconv.ParseInt(string(typeb), 10, 0)
+	if err != nil {
+		return nil, err
+	}
 	dateb, err := util.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/date", id))
 	if err != nil {
 		return nil, err
 	}
-	typei := binary.BigEndian.Uint64(typeb)
-	datei := binary.BigEndian.Uint64(dateb)
+	datei, err := strconv.ParseInt(string(dateb), 10, 0)
+	if err != nil {
+		return nil, err
+	}
 	block := &repo.Block{
 		Id:           id,
 		Target:       string(target),
