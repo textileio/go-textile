@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: textile/circleci:1.10
+      - image: textile/circleci:0.4.15
       - image: mongo:3.4.10
     working_directory: /go/src/github.com/textileio/textile-go
     steps:

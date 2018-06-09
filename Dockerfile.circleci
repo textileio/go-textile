@@ -16,6 +16,6 @@ RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 RUN go get -u github.com/whyrusleeping/gx \
     && go get -u github.com/whyrusleeping/gx-go
 
-# install go-ipfs@0.4.14 source
+# install go-ipfs@0.4.15 source
 RUN echo '{"language": "go", "gxVersion": "0.12.1", "gxDependencies": [{"hash": "QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB", "name": "go-ipfs", "version": "0.4.15"}]}' >package.json
 RUN gx install --global
