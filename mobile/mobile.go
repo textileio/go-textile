@@ -77,11 +77,13 @@ func (m *Mobile) NewNode(config *NodeConfig, messenger Messenger) (*Wrapper, err
 		ll = logging.INFO
 	}
 	cconfig := tcore.NodeConfig{
-		RepoPath:      config.RepoPath,
-		CentralApiURL: config.CentralApiURL,
-		IsMobile:      true,
-		LogLevel:      ll,
-		LogFiles:      config.LogFiles,
+		LogLevel: ll,
+		LogFiles: config.LogFiles,
+		WalletConfig: wallet.Config{
+			RepoPath:   config.RepoPath,
+			CentralAPI: config.CentralApiURL,
+			IsMobile:   true,
+		},
 	}
 	node, err := tcore.NewNode(cconfig)
 	if err != nil {
@@ -295,8 +297,7 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 	topic := peerID.Pretty()
 
 	// finally, publish the encrypted phrase
-	// TODO: connect first
-	err = tcore.Node.Wallet.Ipfs.Floodsub.Publish(topic, secretcypher)
+	err = tcore.Node.Wallet.Publish(topic, secretcypher)
 	if err != nil {
 		return "", err
 	}

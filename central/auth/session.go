@@ -1,12 +1,11 @@
 package auth
 
 import (
-	"os"
-	"time"
-
 	"github.com/dgrijalva/jwt-go"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/central/models"
+	"os"
+	"time"
 )
 
 type textileClaims struct {

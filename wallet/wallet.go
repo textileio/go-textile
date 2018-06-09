@@ -15,11 +15,13 @@ import (
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/net"
 	trepo "github.com/textileio/textile-go/repo"
+	tconfig "github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/wallet/model"
 	"github.com/textileio/textile-go/wallet/thread"
 	"github.com/textileio/textile-go/wallet/util"
 	"github.com/tyler-smith/go-bip39"
+	"gx/ipfs/QmSFihvoND3eDaAYRCeLgLPt62yCPgMZs1NSZmKFEtJQQw/go-libp2p-floodsub"
 	"gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	libp2pn "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
@@ -42,15 +44,18 @@ import (
 var log = logging.MustGetLogger("wallet")
 
 type Config struct {
-	RepoPath       string
-	Datastore      trepo.Datastore
-	CentralUserAPI string
-	IsMobile       bool
+	Version    string
+	RepoPath   string
+	CentralAPI string
+	IsMobile   bool
+	IsServer   bool
+	SwarmPort  string
 }
 
 type Wallet struct {
 	context        oldcmds.Context
 	repoPath       string
+	gatewayAddr    string
 	cancel         context.CancelFunc
 	ipfs           *core.IpfsNode
 	datastore      trepo.Datastore
@@ -72,13 +77,78 @@ var ErrStopped = errors.New("node is already stopped")
 // ErrOffline is an error for when online resources are requested on an offline node
 var ErrOffline = errors.New("node is offline")
 
-func NewWallet(config *Config) *Wallet {
+func NewWallet(config Config) (*Wallet, error) {
+	// get database handle
+	sqliteDB, err := db.Create(config.RepoPath, "")
+	if err != nil {
+		return nil, err
+	}
+
+	// we may be running in an uninitialized state.
+	err = trepo.DoInit(config.RepoPath, config.IsMobile, config.Version, sqliteDB.Config().Init, sqliteDB.Config().Configure)
+	if err != nil && err != trepo.ErrRepoExists {
+		return nil, err
+	}
+
+	// acquire the repo lock _before_ constructing a node. we need to make
+	// sure we are permitted to access the resources (datastore, etc.)
+	repo, err := fsrepo.Open(config.RepoPath)
+	if err != nil {
+		log.Errorf("error opening repo: %s", err)
+		return nil, err
+	}
+
+	// save gateway address
+	gwAddr, err := repo.GetConfigKey("Addresses.Gateway")
+	if err != nil {
+		log.Errorf("error getting gateway address: %s", err)
+		return nil, err
+	}
+
+	// if a specific swarm port was selected, set it in the config
+	if config.SwarmPort != "" {
+		log.Infof("using specified swarm port: %s", config.SwarmPort)
+		if err := tconfig.Update(repo, "Addresses.Swarm", []string{
+			fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", config.SwarmPort),
+			fmt.Sprintf("/ip6/::/tcp/%s", config.SwarmPort),
+		}); err != nil {
+			return nil, err
+		}
+	}
+
+	// if this is a server node, apply the ipfs server profile
+	if config.IsServer {
+		if err := tconfig.Update(repo, "Addresses.NoAnnounce", tconfig.DefaultServerFilters); err != nil {
+			return nil, err
+		}
+		if err := tconfig.Update(repo, "Swarm.AddrFilters", tconfig.DefaultServerFilters); err != nil {
+			return nil, err
+		}
+		if err := tconfig.Update(repo, "Swarm.EnableRelayHop", true); err != nil {
+			return nil, err
+		}
+		if err := tconfig.Update(repo, "Discovery.MDNS.Enabled", false); err != nil {
+			return nil, err
+		}
+		log.Info("applied server profile")
+	}
+
+	// clean central api url
+	if len(config.CentralAPI) > 0 {
+		ca := config.CentralAPI
+		if ca[len(ca)-1:] == "/" {
+			ca = ca[0 : len(ca)-1]
+		}
+		config.CentralAPI = ca
+	}
+
 	return &Wallet{
 		repoPath:       config.RepoPath,
-		datastore:      config.Datastore,
-		centralUserAPI: config.CentralUserAPI,
+		gatewayAddr:    gwAddr.(string),
+		datastore:      sqliteDB,
+		centralUserAPI: fmt.Sprintf("%s/api/v1/users", config.CentralAPI),
 		isMobile:       config.IsMobile,
-	}
+	}, nil
 }
 
 // Start
@@ -136,72 +206,6 @@ func (w *Wallet) Start() (chan struct{}, error) {
 	return onlineCh, nil
 }
 
-// createIPFS creates an IPFS node
-func (w *Wallet) createIPFS(online bool) error {
-	// open repo
-	repo, err := fsrepo.Open(w.repoPath)
-	if err != nil {
-		log.Errorf("error opening repo: %s", err)
-		return err
-	}
-
-	// determine the best routing
-	var routingOption core.RoutingOption
-	if w.isMobile {
-		routingOption = core.DHTClientOption
-	} else {
-		routingOption = core.DHTOption
-	}
-
-	// assemble node config
-	cfg := &core.BuildCfg{
-		Repo:      repo,
-		Permanent: true, // temporary way to signify that node is permanent
-		Online:    online,
-		ExtraOpts: map[string]bool{
-			"pubsub": true,
-			"ipnsps": true,
-			"mplex":  true,
-		},
-		Routing: routingOption,
-	}
-
-	// create the node
-	cctx, cancel := context.WithCancel(context.Background())
-	nd, err := core.NewNode(cctx, cfg)
-	if err != nil {
-		return err
-	}
-	nd.SetLocal(!online)
-
-	// build the context
-	ctx := oldcmds.Context{}
-	ctx.Online = online
-	ctx.ConfigRoot = w.repoPath
-	ctx.LoadConfig = func(path string) (*config.Config, error) {
-		return fsrepo.ConfigAt(w.repoPath)
-	}
-	ctx.ConstructNode = func() (*core.IpfsNode, error) {
-		return nd, nil
-	}
-
-	// attach to textile node
-	if w.cancel != nil {
-		w.cancel()
-	}
-	if w.ipfs != nil {
-		if err := w.ipfs.Close(); err != nil {
-			log.Errorf("error closing prev ipfs node: %s", err)
-			return err
-		}
-	}
-	w.context = ctx
-	w.cancel = cancel
-	w.ipfs = nd
-
-	return nil
-}
-
 // Stop the node
 func (w *Wallet) Stop() error {
 	if !w.started {
@@ -249,6 +253,14 @@ func (w *Wallet) Online() bool {
 
 func (w *Wallet) Done() <-chan struct{} {
 	return w.done
+}
+
+func (w *Wallet) GetGatewayAddress() string {
+	return w.gatewayAddr
+}
+
+func (w *Wallet) GetRepoPath() string {
+	return w.repoPath
 }
 
 // SignUp requests a new username and token from the central api and saves them locally
@@ -595,6 +607,13 @@ func (w *Wallet) GetFileBase64(path string, blockId string) (string, error) {
 	return base64.StdEncoding.EncodeToString(file), nil
 }
 
+func (w *Wallet) GetDataAtPath(path string) ([]byte, error) {
+	if !w.started {
+		return nil, ErrStopped
+	}
+	return util.GetDataAtPath(w.ipfs, path)
+}
+
 func (w *Wallet) GetIPFSPeerID() (string, error) {
 	if !w.started {
 		return "", ErrStopped
@@ -713,6 +732,21 @@ func (w *Wallet) PingPeer(addrs string, num int, out chan string) error {
 	return nil
 }
 
+// TODO: connect to relay if needed
+func (w *Wallet) Publish(topic string, payload []byte) error {
+	if !w.Online() {
+		return ErrOffline
+	}
+	return w.ipfs.Floodsub.Publish(topic, payload)
+}
+
+func (w *Wallet) Subscribe(topic string) (*floodsub.Subscription, error) {
+	if !w.Online() {
+		return nil, ErrOffline
+	}
+	return w.ipfs.Floodsub.Subscribe(topic)
+}
+
 func (w *Wallet) IFPSPeers() ([]libp2pn.Conn, error) {
 	if !w.Online() {
 		return nil, ErrOffline
@@ -789,11 +823,70 @@ func (w *Wallet) WaitForInvite() {
 	}
 }
 
-func (w *Wallet) GetDataAtPath(path string) ([]byte, error) {
-	if !w.started {
-		return nil, ErrStopped
+// createIPFS creates an IPFS node
+func (w *Wallet) createIPFS(online bool) error {
+	// open repo
+	repo, err := fsrepo.Open(w.repoPath)
+	if err != nil {
+		log.Errorf("error opening repo: %s", err)
+		return err
 	}
-	return util.GetDataAtPath(w.ipfs, path)
+
+	// determine the best routing
+	var routingOption core.RoutingOption
+	if w.isMobile {
+		routingOption = core.DHTClientOption
+	} else {
+		routingOption = core.DHTOption
+	}
+
+	// assemble node config
+	cfg := &core.BuildCfg{
+		Repo:      repo,
+		Permanent: true, // temporary way to signify that node is permanent
+		Online:    online,
+		ExtraOpts: map[string]bool{
+			"pubsub": true,
+			"ipnsps": true,
+			"mplex":  true,
+		},
+		Routing: routingOption,
+	}
+
+	// create the node
+	cctx, cancel := context.WithCancel(context.Background())
+	nd, err := core.NewNode(cctx, cfg)
+	if err != nil {
+		return err
+	}
+	nd.SetLocal(!online)
+
+	// build the context
+	ctx := oldcmds.Context{}
+	ctx.Online = online
+	ctx.ConfigRoot = w.repoPath
+	ctx.LoadConfig = func(path string) (*config.Config, error) {
+		return fsrepo.ConfigAt(w.repoPath)
+	}
+	ctx.ConstructNode = func() (*core.IpfsNode, error) {
+		return nd, nil
+	}
+
+	// attach to textile node
+	if w.cancel != nil {
+		w.cancel()
+	}
+	if w.ipfs != nil {
+		if err := w.ipfs.Close(); err != nil {
+			log.Errorf("error closing prev ipfs node: %s", err)
+			return err
+		}
+	}
+	w.context = ctx
+	w.cancel = cancel
+	w.ipfs = nd
+
+	return nil
 }
 
 func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {

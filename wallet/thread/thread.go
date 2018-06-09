@@ -120,95 +120,6 @@ func (t *Thread) GetPhotoMetaData(id string, block *repo.Block) (*model.PhotoMet
 	return data, nil
 }
 
-// GetLastHash return the caption under an id
-func (t *Thread) GetCaption(id string, block *repo.Block) (string, error) {
-	file, err := t.GetFile(fmt.Sprintf("%s/caption", id), block)
-	if err != nil {
-		log.Errorf("error getting caption file %s: %s", id, err)
-		return "", err
-	}
-	return string(file), nil
-}
-
-// JoinRoom with a given id
-func (t *Thread) Subscribe(datac chan Update) {
-	if t.listening {
-		return
-	}
-	t.listening = true
-	sub, err := t.ipfs.Floodsub.Subscribe(t.Id)
-	if err != nil {
-		log.Errorf("error creating subscription: %s", err)
-		return
-	}
-	log.Infof("joined thread: %s\n", t.Id)
-
-	t.leaveCh = make(chan struct{})
-	t.LeftCh = make(chan struct{})
-
-	ctx, cancel := context.WithCancel(context.Background())
-	leave := func() {
-		cancel()
-		close(t.LeftCh)
-		t.listening = false
-		log.Infof("left thread: %s\n", sub.Topic())
-	}
-
-	defer func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Errorf("thread update channel already closed")
-			}
-		}()
-		close(datac)
-	}()
-	go func() {
-		for {
-			// unload new message
-			msg, err := sub.Next(ctx)
-			if err == io.EOF || err == context.Canceled {
-				log.Debugf("thread subscription ended: %s", err)
-				return
-			} else if err != nil {
-				log.Debugf(err.Error())
-				return
-			}
-
-			// handle the update
-			go func(msg *floodsub.Message) {
-				if err = t.preHandleBlock(msg, datac); err != nil {
-					log.Errorf("error handling room update: %s", err)
-				}
-			}(msg)
-		}
-	}()
-
-	// block so we can shutdown with the leave room signal
-	for {
-		select {
-		case <-t.leaveCh:
-			leave()
-			return
-		case <-t.ipfs.Context().Done():
-			leave()
-			return
-		}
-	}
-}
-
-// Unsubscribe leaves the thread
-func (t *Thread) Unsubscribe() {
-	if t.leaveCh == nil {
-		return
-	}
-	close(t.leaveCh)
-}
-
-// Listening indicates whether or not we are listening in the thread
-func (t *Thread) Listening() bool {
-	return t.listening
-}
-
 // AddPhoto adds a block for a photo to this thread
 func (t *Thread) AddPhoto(id string, caption string, key []byte) (*model.AddResult, error) {
 	t.mux.Lock()
@@ -333,6 +244,85 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*model.AddResu
 
 	// all done
 	return &model.AddResult{Id: block.Id, RemoteRequest: request}, nil
+}
+
+// Subscribe joins the thread
+func (t *Thread) Subscribe(datac chan Update) {
+	if t.listening {
+		return
+	}
+	t.listening = true
+	sub, err := t.ipfs.Floodsub.Subscribe(t.Id)
+	if err != nil {
+		log.Errorf("error creating subscription: %s", err)
+		return
+	}
+	log.Infof("joined thread: %s\n", t.Id)
+
+	t.leaveCh = make(chan struct{})
+	t.LeftCh = make(chan struct{})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	leave := func() {
+		cancel()
+		close(t.LeftCh)
+		t.listening = false
+		log.Infof("left thread: %s\n", sub.Topic())
+	}
+
+	defer func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Errorf("thread update channel already closed")
+			}
+		}()
+		close(datac)
+	}()
+	go func() {
+		for {
+			// unload new message
+			msg, err := sub.Next(ctx)
+			if err == io.EOF || err == context.Canceled {
+				log.Debugf("thread subscription ended: %s", err)
+				return
+			} else if err != nil {
+				log.Debugf(err.Error())
+				return
+			}
+
+			// handle the update
+			go func(msg *floodsub.Message) {
+				if err = t.preHandleBlock(msg, datac); err != nil {
+					log.Errorf("error handling room update: %s", err)
+				}
+			}(msg)
+		}
+	}()
+
+	// block so we can shutdown with the leave room signal
+	for {
+		select {
+		case <-t.leaveCh:
+			leave()
+			return
+		case <-t.ipfs.Context().Done():
+			leave()
+			return
+		}
+	}
+}
+
+// Unsubscribe leaves the thread
+func (t *Thread) Unsubscribe() {
+	if t.leaveCh == nil {
+		return
+	}
+	close(t.leaveCh)
+}
+
+// Listening indicates whether or not we are listening in the thread
+func (t *Thread) Listening() bool {
+	return t.listening
 }
 
 // Blocks paginates photos from the datastore

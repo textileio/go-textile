@@ -3,9 +3,8 @@ package central
 import (
 	"bytes"
 	"encoding/json"
-	"net/http"
-
 	"github.com/textileio/textile-go/central/models"
+	"net/http"
 )
 
 var client = &http.Client{}

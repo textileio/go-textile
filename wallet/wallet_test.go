@@ -1,18 +1,17 @@
 package wallet_test
 
 import (
-	"github.com/op/go-logging"
 	"github.com/segmentio/ksuid"
 	cmodels "github.com/textileio/textile-go/central/models"
 	util "github.com/textileio/textile-go/util/testing"
 	. "github.com/textileio/textile-go/wallet"
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"os"
 	"testing"
-	"time"
 )
 
 var wallet *Wallet
-var hash string
+var addedId string
 
 var centralReg = &cmodels.Registration{
 	Username: ksuid.New().String(),
@@ -26,41 +25,46 @@ var centralReg = &cmodels.Registration{
 
 func TestNewWallet(t *testing.T) {
 	os.RemoveAll("testdata/.ipfs")
-	config := NodeConfig{
-		RepoPath:      "testdata/.ipfs",
-		CentralApiURL: util.CentralApiURL,
-		IsMobile:      false,
-		LogLevel:      logging.DEBUG,
-		LogFiles:      false,
+	config := Config{
+		RepoPath:   "testdata/.ipfs",
+		CentralAPI: util.CentralApiURL,
 	}
 	var err error
-	node, err = NewNode(config)
+	wallet, err = NewWallet(config)
 	if err != nil {
-		t.Errorf("create node failed: %s", err)
+		t.Errorf("create wallet failed: %s", err)
 	}
 }
 
-func TestTextileNode_StartWallet(t *testing.T) {
-	online, err := node.StartWallet()
+func TestWallet_StartWallet(t *testing.T) {
+	online, err := wallet.Start()
 	if err != nil {
 		t.Errorf("start node failed: %s", err)
 	}
+	<-online
 }
 
-func TestTextileNode_StartAgain(t *testing.T) {
-	err := node.Start()
-	if err != ErrNodeRunning {
-		t.Errorf("start node again reported wrong error: %s", err)
+func TestWallet_Started(t *testing.T) {
+	if !wallet.Started() {
+		t.Errorf("should report started")
 	}
 }
 
-func TestTextileNode_Online(t *testing.T) {
-	if !node.Wallet.Started() {
+func TestWallet_Online(t *testing.T) {
+	if !wallet.Online() {
 		t.Errorf("should report online")
 	}
 }
 
-func TestTextileNode_SignUp(t *testing.T) {
+func TestWallet_GetGatewayAddress(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_GetRepoPath(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_SignUp(t *testing.T) {
 	_, ref, err := util.CreateReferral(util.RefKey, 1)
 	if err != nil {
 		t.Errorf("create referral for signup failed: %s", err)
@@ -72,192 +76,178 @@ func TestTextileNode_SignUp(t *testing.T) {
 	}
 	centralReg.Referral = ref.RefCodes[0]
 
-	err = node.SignUp(centralReg)
+	err = wallet.SignUp(centralReg)
 	if err != nil {
 		t.Errorf("signup failed: %s", err)
 		return
 	}
 }
 
-func TestTextileNode_SignIn(t *testing.T) {
+func TestWallet_SignIn(t *testing.T) {
 	creds := &cmodels.Credentials{
 		Username: centralReg.Username,
 		Password: centralReg.Password,
 	}
-	err := node.SignIn(creds)
+	err := wallet.SignIn(creds)
 	if err != nil {
 		t.Errorf("signin failed: %s", err)
 		return
 	}
 }
 
-func TestTextileNode_IsSignedIn(t *testing.T) {
+func TestWallet_IsSignedIn(t *testing.T) {
 	// TODO
 }
 
-func TestTextileNode_GetUsername(t *testing.T) {
+func TestWallet_GetUsername(t *testing.T) {
 	// TODO
 }
 
-func TestTextileNode_GetAccessToken(t *testing.T) {
+func TestWallet_GetAccessToken(t *testing.T) {
 	// TODO
 }
 
-func TestTextileNode_JoinRoom(t *testing.T) {
-	da := node.Datastore.Albums().GetAlbumByName("default")
-	if da == nil {
-		t.Error("default album not found")
-		return
-	}
-	go node.JoinRoom(da.Id, make(chan ThreadUpdate))
-}
-
-func TestTextileNode_LeaveRoom(t *testing.T) {
-	da := node.Datastore.Albums().GetAlbumByName("default")
-	if da == nil {
-		t.Error("default album not found")
-		return
-	}
-	time.Sleep(time.Second)
-	node.LeaveRoom(da.Id)
-	<-node.LeftRoomChs[da.Id]
-}
-
-func TestTextileNode_WaitForRoom(t *testing.T) {
+func TestWallet_Threads(t *testing.T) {
 	// TODO
 }
 
-func TestTextileNode_CreateAlbum(t *testing.T) {
-	err := node.CreateAlbum("", "test")
+func TestWallet_GetThread(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_GetThreadByName(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_AddThread(t *testing.T) {
+	sk, _, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
 	if err != nil {
-		t.Errorf("create album failed: %s", err)
+		t.Error(err)
+	}
+	thrd, err := wallet.AddThread("test", sk)
+	if err != nil {
+		t.Errorf("add thread failed: %s", err)
 		return
+	}
+	if thrd == nil {
+		t.Error("add thread didn't return thread")
 	}
 }
 
-func TestTextileNode_AddPhoto(t *testing.T) {
-	caption := "i am not a crook"
-	mr, err := node.AddPhoto("testdata/image.jpg", "testdata/thumb.jpg", "default", caption)
+func TestWallet_AddThreadWithMnemonic(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_PublishThreads(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_AddPhoto(t *testing.T) {
+	added, err := wallet.AddPhoto("testdata/image.jpg")
 	if err != nil {
 		t.Errorf("add photo failed: %s", err)
 		return
 	}
-	if len(mr.Boundary) == 0 {
-		t.Errorf("add photo got bad hash")
+	if len(added.Id) == 0 {
+		t.Errorf("add photo got bad id")
 	}
-	hash = mr.Boundary
-	err = os.Remove("testdata/" + mr.Boundary)
+	addedId = added.Id
+	err = os.Remove("testdata/" + addedId)
 	if err != nil {
 		t.Errorf("error unlinking test multipart file: %s", err)
 	}
 }
 
-func TestTextileNode_SharePhoto(t *testing.T) {
-	caption := "a day that will live on in infamy"
-	mr, err := node.SharePhoto(hash, "test", caption)
-	if err != nil {
-		t.Errorf("share photo failed: %s", err)
-		return
-	}
-	if len(mr.Boundary) == 0 {
-		t.Errorf("share photo got bad hash")
-	}
-}
-
-func TestTextileNode_GetHashRequest(t *testing.T) {
+func TestWallet_FindBlock(t *testing.T) {
 	// TODO
 }
 
-func TestTextileNode_GetPhotos(t *testing.T) {
-	list := node.GetPhotos("", -1, "default")
-	if len(list.Hashes) == 0 {
-		t.Errorf("get photos bad result")
-	}
-}
-
-func TestTextileNode_GetFile(t *testing.T) {
-	res, err := node.GetFile(hash+"/thumb", nil)
-	if err != nil {
-		t.Errorf("get photo failed: %s", err)
-		return
-	}
-	if len(res) == 0 {
-		t.Errorf("get photo bad result")
-	}
-}
-
-func TestTextileNode_GetFileBase64(t *testing.T) {
+func TestWallet_GetFile(t *testing.T) {
 	// TODO
 }
 
-func TestTextileNode_GetMetadata(t *testing.T) {
-	_, err := node.GetMetaData(hash, nil)
-	if err != nil {
-		t.Errorf("get metadata failed: %s", err)
-		return
-	}
-}
-
-func TestTextileNode_GetLastHash(t *testing.T) {
-	_, err := node.GetLastHash(hash, nil)
-	if err != nil {
-		t.Errorf("get last hash failed: %s", err)
-		return
-	}
-}
-
-func TestTextileNode_LoadPhotoAndAlbum(t *testing.T) {
+func TestWallet_GetFileBase64(t *testing.T) {
 	// TODO
 }
 
-func TestTextileNode_UnmarshalPrivatePeerKey(t *testing.T) {
-	_, err := node.UnmarshalPrivatePeerKey()
-	if err != nil {
-		t.Errorf("unmarshal private peer key failed: %s", err)
-		return
-	}
-}
-
-func TestTextileNode_GetPublicPeerKeyString(t *testing.T) {
-	_, err := node.GetPublicPeerKeyString()
-	if err != nil {
-		t.Errorf("get peer public key as base 64 string failed: %s", err)
-		return
-	}
-}
-
-func TestTextileNode_PingPeer(t *testing.T) {
+func TestWallet_GetDataAtPath(t *testing.T) {
 	// TODO
 }
 
-func TestTextileNode_SignOut(t *testing.T) {
-	err := node.SignOut()
+func TestWallet_GetIPFSPeerID(t *testing.T) {
+	id, err := wallet.GetIPFSPeerID()
+	if err != nil {
+		t.Errorf("get ipfs peer id failed: %s", err)
+		return
+	}
+	if id == "" {
+		t.Error("ipfs peer id empty")
+		return
+	}
+}
+
+func TestWallet_GetIPFSPubKeyString(t *testing.T) {
+	key, err := wallet.GetIPFSPubKeyString()
+	if err != nil {
+		t.Errorf("get ipfs pub key failed: %s", err)
+		return
+	}
+	if key == "" {
+		t.Error("ipfs pub key empty")
+		return
+	}
+}
+
+func TestWallet_ConnectPeer(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_PingPeer(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_IPFSPeers(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_WaitForInvite(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_SignOut(t *testing.T) {
+	err := wallet.SignOut()
 	if err != nil {
 		t.Errorf("signout failed: %s", err)
 		return
 	}
 }
 
-func TestTextileNode_Stop(t *testing.T) {
-	err := node.Stop()
+func TestWallet_Stop(t *testing.T) {
+	err := wallet.Stop()
 	if err != nil {
-		t.Errorf("stop node failed: %s", err)
+		t.Errorf("stop wallet failed: %s", err)
 	}
 }
 
-func TestTextileNode_OnlineAgain(t *testing.T) {
-	if node.Online() {
+func TestWallet_StartedAgain(t *testing.T) {
+	if wallet.Online() {
+		t.Errorf("should report offline")
+	}
+}
+
+func TestWallet_OnlineAgain(t *testing.T) {
+	if wallet.Online() {
 		t.Errorf("should report offline")
 	}
 }
 
 // test signin in stopped state, should re-connect to db
-func TestTextileNode_SignInAgain(t *testing.T) {
+func TestWallet_SignInAgain(t *testing.T) {
 	creds := &cmodels.Credentials{
 		Username: centralReg.Username,
 		Password: centralReg.Password,
 	}
-	err := node.SignIn(creds)
+	err := wallet.SignIn(creds)
 	if err != nil {
 		t.Errorf("signin failed: %s", err)
 		return
@@ -265,5 +255,5 @@ func TestTextileNode_SignInAgain(t *testing.T) {
 }
 
 func Test_Teardown(t *testing.T) {
-	os.RemoveAll(node.RepoPath)
+	os.RemoveAll(wallet.GetRepoPath())
 }
