@@ -9,6 +9,7 @@ import (
 	"github.com/op/go-logging"
 	"github.com/pkg/errors"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/wallet"
 )
 
 var (
@@ -28,11 +29,13 @@ func main() {
 	// TODO: on darwin, repo should live in Application Support
 	// TODO: make api url configurable somehow
 	config := core.NodeConfig{
-		RepoPath:      "output/.ipfs",
-		CentralApiURL: "https://api.textile.io",
-		IsMobile:      false,
-		LogLevel:      logging.DEBUG,
-		LogFiles:      true,
+		LogLevel: logging.DEBUG,
+		LogFiles: true,
+		WalletConfig: wallet.Config{
+			RepoPath:   "output/.ipfs",
+			CentralAPI: "https://api.textile.io",
+			IsMobile:   false,
+		},
 	}
 	var err error
 	textile, err = core.NewNode(config)

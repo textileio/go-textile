@@ -1,9 +1,8 @@
 package controllers_test
 
 import (
-	"testing"
-
 	util "github.com/textileio/textile-go/util/testing"
+	"testing"
 )
 
 func TestReferrals_CreateReferral(t *testing.T) {

@@ -145,10 +145,10 @@ func ListThreadPeers(c *ishell.Context) {
 	}
 }
 
-func Subscribe(shell ishell.Actions, thread *thread.Thread) {
+func Subscribe(shell ishell.Actions, thrd *thread.Thread) {
 	cyan := color.New(color.FgCyan).SprintFunc()
 	datac := make(chan thread.Update)
-	go thread.Subscribe(datac)
+	go thrd.Subscribe(datac)
 	go func() {
 		for {
 			select {

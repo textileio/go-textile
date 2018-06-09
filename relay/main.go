@@ -6,6 +6,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/op/go-logging"
 	tcore "github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/wallet"
 	"io"
 	"os"
 	"path/filepath"
@@ -32,11 +33,13 @@ func main() {
 
 	// create a pubsub relay node
 	config := tcore.NodeConfig{
-		RepoPath:  filepath.Join(hd, fmt.Sprintf(".relay_%s", relayThread)),
-		IsServer:  true,
-		LogLevel:  logging.DEBUG,
-		LogFiles:  false,
-		SwarmPort: os.Getenv("SWARM_PORT"),
+		LogLevel: logging.DEBUG,
+		LogFiles: false,
+		WalletConfig: wallet.Config{
+			RepoPath:  filepath.Join(hd, fmt.Sprintf(".relay_%s", relayThread)),
+			IsServer:  true,
+			SwarmPort: os.Getenv("SWARM_PORT"),
+		},
 	}
 	node, err := tcore.NewNode(config)
 	if err != nil {
@@ -49,14 +52,17 @@ func main() {
 		log.Fatal(err)
 	}
 	<-online
-	self := node.Wallet.Ipfs.Identity.Pretty()
+	self, err := node.Wallet.GetIPFSPeerID()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	var relay = func() {
 		for from, update := range updateCache {
 			go func(from string, update string) {
 				log.Debug("starting relay...")
 				msg := fmt.Sprintf("relay:%s", update)
-				if err := node.Wallet.Ipfs.Floodsub.Publish(relayThread, []byte(msg)); err != nil {
+				if err := node.Wallet.Publish(relayThread, []byte(msg)); err != nil {
 					log.Errorf("error relaying update: %s", err)
 				}
 				log.Debugf("relayed update %s from %s", update, from)
@@ -74,7 +80,7 @@ func main() {
 	}()
 
 	// create the subscription
-	sub, err := node.Wallet.Ipfs.Floodsub.Subscribe(relayThread)
+	sub, err := node.Wallet.Subscribe(relayThread)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -1,4 +1,3 @@
-// TODO: use lumberjack logger, not stdout, see #33
 package main
 
 import (
@@ -202,11 +201,13 @@ func main() {
 	// TODO: darwin should use App. Support dir, not home dir
 	// TODO: make api url configuratable via an option flag
 	config := core.NodeConfig{
-		RepoPath:      dataDir,
-		CentralApiURL: "https://api.textile.io",
-		IsMobile:      false,
-		LogLevel:      logging.DEBUG,
-		LogFiles:      true,
+		LogLevel: logging.DEBUG,
+		LogFiles: true,
+		WalletConfig: wallet.Config{
+			RepoPath:   dataDir,
+			CentralAPI: "https://api.textile.io",
+			IsMobile:   false,
+		},
 	}
 	node, err := core.NewNode(config)
 	if err != nil {
@@ -221,7 +222,7 @@ func main() {
 	}
 
 	// welcome
-	printSplashScreen(shell, core.Node.Wallet.RepoPath)
+	printSplashScreen(shell, core.Node.Wallet.GetRepoPath())
 
 	// run shell
 	shell.Run()

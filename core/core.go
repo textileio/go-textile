@@ -2,12 +2,8 @@ package core
 
 import (
 	"context"
-	"fmt"
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/crypto"
-	trepo "github.com/textileio/textile-go/repo"
-	tconfig "github.com/textileio/textile-go/repo/config"
-	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/wallet"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/fsrepo"
@@ -39,28 +35,24 @@ type TextileNode struct {
 
 // NodeConfig is used to configure the node
 type NodeConfig struct {
-	RepoPath      string
-	CentralApiURL string
-	IsMobile      bool
-	IsServer      bool
-	LogLevel      logging.Level
-	LogFiles      bool
-	SwarmPort     string
+	LogLevel     logging.Level
+	LogFiles     bool
+	WalletConfig wallet.Config
 }
 
 // NewNode creates a new TextileNode
 func NewNode(config NodeConfig) (*TextileNode, error) {
 	// TODO: shouldn't need to manually remove these
-	repoLockFile := filepath.Join(config.RepoPath, fsrepo.LockFile)
+	repoLockFile := filepath.Join(config.WalletConfig.RepoPath, fsrepo.LockFile)
 	os.Remove(repoLockFile)
-	dsLockFile := filepath.Join(config.RepoPath, "datastore", "LOCK")
+	dsLockFile := filepath.Join(config.WalletConfig.RepoPath, "datastore", "LOCK")
 	os.Remove(dsLockFile)
 
 	// log handling
 	var backendFile *logging.LogBackend
 	if config.LogFiles {
 		w := &lumberjack.Logger{
-			Filename:   path.Join(config.RepoPath, "logs", "textile.log"),
+			Filename:   path.Join(config.WalletConfig.RepoPath, "logs", "textile.log"),
 			MaxSize:    10, // megabytes
 			MaxBackups: 3,
 			MaxAge:     30, // days
@@ -73,79 +65,19 @@ func NewNode(config NodeConfig) (*TextileNode, error) {
 	logging.SetBackend(backendFileFormatter)
 	logging.SetLevel(config.LogLevel, "")
 
-	// get database handle
-	sqliteDB, err := db.Create(config.RepoPath, "")
+	// create a wallet
+	config.WalletConfig.Version = Version
+	wall, err := wallet.NewWallet(config.WalletConfig)
 	if err != nil {
-		return nil, err
-	}
-
-	// we may be running in an uninitialized state.
-	err = trepo.DoInit(config.RepoPath, config.IsMobile, Version, sqliteDB.Config().Init, sqliteDB.Config().Configure)
-	if err != nil && err != trepo.ErrRepoExists {
-		return nil, err
-	}
-
-	// acquire the repo lock _before_ constructing a node. we need to make
-	// sure we are permitted to access the resources (datastore, etc.)
-	repo, err := fsrepo.Open(config.RepoPath)
-	if err != nil {
-		log.Errorf("error opening repo: %s", err)
 		return nil, err
 	}
 
 	// setup gateway
-	gwAddr, err := repo.GetConfigKey("Addresses.Gateway")
-	if err != nil {
-		log.Errorf("error getting ipfs config: %s", err)
-		return nil, err
-	}
-	gateway := &http.Server{Addr: gwAddr.(string)}
-
-	// if a specific swarm port was selected, set it in the config
-	if config.SwarmPort != "" {
-		log.Infof("using specified swarm port: %s", config.SwarmPort)
-		if err := tconfig.Update(repo, "Addresses.Swarm", []string{
-			fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", config.SwarmPort),
-			fmt.Sprintf("/ip6/::/tcp/%s", config.SwarmPort),
-		}); err != nil {
-			return nil, err
-		}
-	}
-
-	// if this is a server node, apply the ipfs server profile
-	if config.IsServer {
-		if err := tconfig.Update(repo, "Addresses.NoAnnounce", tconfig.DefaultServerFilters); err != nil {
-			return nil, err
-		}
-		if err := tconfig.Update(repo, "Swarm.AddrFilters", tconfig.DefaultServerFilters); err != nil {
-			return nil, err
-		}
-		if err := tconfig.Update(repo, "Swarm.EnableRelayHop", true); err != nil {
-			return nil, err
-		}
-		if err := tconfig.Update(repo, "Discovery.MDNS.Enabled", false); err != nil {
-			return nil, err
-		}
-		log.Info("applied server profile")
-	}
-
-	// clean central api url
-	if len(config.CentralApiURL) > 0 {
-		ca := config.CentralApiURL
-		if ca[len(ca)-1:] == "/" {
-			ca = ca[0 : len(ca)-1]
-		}
-		config.CentralApiURL = ca
-	}
+	gateway := &http.Server{Addr: wall.GetGatewayAddress()}
 
 	// finally, construct our node
 	node := &TextileNode{
-		Wallet: wallet.NewWallet(&wallet.Config{
-			RepoPath:       config.RepoPath,
-			Datastore:      sqliteDB,
-			CentralUserAPI: fmt.Sprintf("%s/api/v1/users", config.CentralApiURL),
-			IsMobile:       config.IsMobile,
-		}),
+		Wallet:  wall,
 		gateway: gateway,
 	}
 

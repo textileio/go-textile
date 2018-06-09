@@ -3,12 +3,11 @@ package main
 import (
 	"encoding/base64"
 	"fmt"
-	"math/rand"
-
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
 	"github.com/asticode/go-astilog"
 	"github.com/skip2/go-qrcode"
+	"math/rand"
 )
 
 // handleMessages handles messages
@@ -21,8 +20,8 @@ func handleMessages(iw *astilectron.Window, m bootstrap.MessageIn) (payload inte
 		// create a random confirmation code
 		code := fmt.Sprintf("%04d", rand.Int63n(1e4))
 
-		// get our own rsa public key
-		pk, err := textile.GetPublicPeerKeyString()
+		// get our own public key
+		pk, err := textile.Wallet.GetIPFSPubKeyString()
 		if err != nil {
 			astilog.Errorf("public key generation failed: %s", err)
 			return nil, err

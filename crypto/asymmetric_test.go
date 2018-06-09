@@ -3,9 +3,8 @@ package crypto
 import (
 	"crypto/rsa"
 	"encoding/hex"
-	"testing"
-
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"testing"
 )
 
 func TestEncryptRSA(t *testing.T) {

@@ -2,11 +2,10 @@ package crypto
 
 import (
 	"encoding/base64"
-	"strings"
-	"testing"
-
 	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/ed25519"
+	"strings"
+	"testing"
 )
 
 var publicKey = "hacXwMUbI9kfLcHEHnixSW5/VyNA0H529OihiQH78mA="

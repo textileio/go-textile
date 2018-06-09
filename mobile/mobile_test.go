@@ -3,16 +3,12 @@ package mobile_test
 import (
 	"encoding/base64"
 	"encoding/json"
-	"os"
-	"testing"
-
 	"github.com/segmentio/ksuid"
-
-	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
 	util "github.com/textileio/textile-go/util/testing"
-
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"os"
+	"testing"
 )
 
 type TestMessenger struct {
@@ -22,7 +18,8 @@ type TestMessenger struct {
 func (tm *TestMessenger) Notify(event *Event) {}
 
 var wrapper *Wrapper
-var hash string
+var addedPhotoId string
+var sharedBlockId string
 
 var cusername = ksuid.New().String()
 var cpassword = ksuid.New().String()
@@ -88,19 +85,6 @@ func TestWrapper_IsSignedIn(t *testing.T) {
 	}
 }
 
-func TestWrapper_UpdateThread(t *testing.T) {
-	err := wrapper.UpdateThread("", "all")
-	if err == nil {
-		t.Errorf("update thread with blank mnemonic: %s", "all")
-		return
-	}
-	err = wrapper.UpdateThread("I AM A DEVELOPER WHO USES WEAK MNEMONICS", "all")
-	if err != nil {
-		t.Errorf("update thread with new mnemonic failed: %s", err)
-		return
-	}
-}
-
 func TestWrapper_GetUsername(t *testing.T) {
 	un, err := wrapper.GetUsername()
 	if err != nil {
@@ -120,16 +104,8 @@ func TestWrapper_GetAccessToken(t *testing.T) {
 	}
 }
 
-func TestWrapper_GetGatewayPassword(t *testing.T) {
-	pwd := wrapper.GetGatewayPassword()
-	if pwd == "" {
-		t.Errorf("got bad gateway password: %s", pwd)
-		return
-	}
-}
-
 func TestWrapper_AddPhoto(t *testing.T) {
-	mr, err := wrapper.AddPhoto("testdata/image.jpg", "testdata/thumb.jpg", "default")
+	mr, err := wrapper.AddPhoto("testdata/image.jpg", "default")
 	if err != nil {
 		t.Errorf("add photo failed: %s", err)
 		return
@@ -137,7 +113,7 @@ func TestWrapper_AddPhoto(t *testing.T) {
 	if len(mr.Boundary) == 0 {
 		t.Errorf("add photo got bad hash")
 	}
-	hash = mr.Boundary
+	addedPhotoId = mr.Boundary
 	err = os.Remove("testdata/" + mr.Boundary)
 	if err != nil {
 		t.Errorf("error unlinking test multipart file: %s", err)
@@ -146,18 +122,15 @@ func TestWrapper_AddPhoto(t *testing.T) {
 
 func TestWrapper_SharePhoto(t *testing.T) {
 	caption := "rasputin's eyes"
-	mr, err := wrapper.SharePhoto(hash, "all", caption)
+	var err error
+	sharedBlockId, err = wrapper.SharePhoto(addedPhotoId, "test", caption)
 	if err != nil {
 		t.Errorf("share photo failed: %s", err)
 		return
 	}
-	if len(mr.Boundary) == 0 {
-		t.Errorf("share photo got bad hash")
+	if len(sharedBlockId) == 0 {
+		t.Errorf("share photo got bad id")
 	}
-}
-
-func TestWrapper_GetHashRequest(t *testing.T) {
-	// TODO
 }
 
 func TestWrapper_GetPhotos(t *testing.T) {
@@ -166,28 +139,23 @@ func TestWrapper_GetPhotos(t *testing.T) {
 		t.Errorf("get photos failed: %s", err)
 		return
 	}
-	list := core.PhotoList{}
-	json.Unmarshal([]byte(res), &list)
-	if len(list.Hashes) == 0 {
+	blocks := Blocks{}
+	json.Unmarshal([]byte(res), &blocks)
+	if len(blocks.Items) == 0 {
 		t.Errorf("get photos bad result")
 	}
 }
 
-func TestWrapper_GetPhotosEmptyChannel(t *testing.T) {
-	res, err := wrapper.GetPhotos("", -1, "empty")
-	if err != nil {
-		t.Errorf("get photos failed: %s", err)
+func TestWrapper_GetPhotosBadThread(t *testing.T) {
+	_, err := wrapper.GetPhotos("", -1, "empty")
+	if err == nil {
+		t.Errorf("get photos from bad thread should fail: %s", err)
 		return
-	}
-	list := core.PhotoList{}
-	json.Unmarshal([]byte(res), &list)
-	if len(list.Hashes) != 0 {
-		t.Errorf("get photos bad result")
 	}
 }
 
 func TestWrapper_GetFileBase64(t *testing.T) {
-	res, err := wrapper.GetFileBase64(hash + "/thumb")
+	res, err := wrapper.GetFileBase64(addedPhotoId+"/thumb", sharedBlockId)
 	if err != nil {
 		t.Errorf("get photo base64 string failed: %s", err)
 		return
@@ -197,8 +165,8 @@ func TestWrapper_GetFileBase64(t *testing.T) {
 	}
 }
 
-func TestWrapper_GetPeerID(t *testing.T) {
-	_, err := wrapper.GetPeerID()
+func TestWrapper_GetIPFSPeerID(t *testing.T) {
+	_, err := wrapper.GetIPFSPeerID()
 	if err != nil {
 		t.Errorf("get peer id failed: %s", err)
 	}
@@ -207,11 +175,11 @@ func TestWrapper_GetPeerID(t *testing.T) {
 func TestWrapper_PairDesktop(t *testing.T) {
 	_, pk, err := libp2p.GenerateKeyPair(libp2p.Ed25519, 1024)
 	if err != nil {
-		t.Errorf("create rsa keypair failed: %s", err)
+		t.Errorf("create keypair failed: %s", err)
 	}
 	pb, err := pk.Bytes()
 	if err != nil {
-		t.Errorf("get rsa keypair bytes: %s", err)
+		t.Errorf("get keypair bytes: %s", err)
 	}
 	ps := base64.StdEncoding.EncodeToString(pb)
 
