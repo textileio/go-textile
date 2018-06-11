@@ -15,7 +15,7 @@ func NewProfileStore(db *sql.DB, lock *sync.Mutex) repo.ProfileStore {
 	return &ProfileDB{db, lock}
 }
 
-func (c *ProfileDB) SignIn(un string, at string, rt string) error {
+func (c *ProfileDB) SignIn(id string, secret []byte, username string, accessToken string, refreshToken string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -27,17 +27,27 @@ func (c *ProfileDB) SignIn(un string, at string, rt string) error {
 		return err
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec("username", un)
+	_, err = stmt.Exec("id", id)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	_, err = stmt.Exec("access", at)
+	_, err = stmt.Exec("secret", secret)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	_, err = stmt.Exec("refresh", rt)
+	_, err = stmt.Exec("username", username)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	_, err = stmt.Exec("access", accessToken)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	_, err = stmt.Exec("refresh", refreshToken)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -51,6 +61,14 @@ func (c *ProfileDB) SignOut() error {
 	defer c.lock.Unlock()
 	stmt, err := c.db.Prepare("delete from profile where key=?")
 	defer stmt.Close()
+	_, err = stmt.Exec("id")
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec("secret")
+	if err != nil {
+		return err
+	}
 	_, err = stmt.Exec("username")
 	if err != nil {
 		return err
@@ -66,6 +84,32 @@ func (c *ProfileDB) SignOut() error {
 	return nil
 }
 
+func (c *ProfileDB) GetID() (string, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	stmt, err := c.db.Prepare("select value from profile where key=?")
+	defer stmt.Close()
+	var id string
+	err = stmt.QueryRow("id").Scan(&id)
+	if err != nil {
+		return "", err
+	}
+	return id, nil
+}
+
+func (c *ProfileDB) GetSecret() ([]byte, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	stmt, err := c.db.Prepare("select value from profile where key=?")
+	defer stmt.Close()
+	var secret []byte
+	err = stmt.QueryRow("secret").Scan(&secret)
+	if err != nil {
+		return nil, err
+	}
+	return secret, nil
+}
+
 func (c *ProfileDB) GetUsername() (string, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -79,18 +123,18 @@ func (c *ProfileDB) GetUsername() (string, error) {
 	return un, nil
 }
 
-func (c *ProfileDB) GetTokens() (at string, rt string, err error) {
+func (c *ProfileDB) GetTokens() (accessToken string, refreshToken string, err error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stmt, err := c.db.Prepare("select value from profile where key=?")
 	defer stmt.Close()
-	err = stmt.QueryRow("access").Scan(&at)
+	err = stmt.QueryRow("access").Scan(&accessToken)
 	if err != nil {
 		return "", "", err
 	}
-	err = stmt.QueryRow("refresh").Scan(&rt)
+	err = stmt.QueryRow("refresh").Scan(&refreshToken)
 	if err != nil {
 		return "", "", err
 	}
-	return at, rt, nil
+	return accessToken, refreshToken, nil
 }

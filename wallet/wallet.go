@@ -20,11 +20,11 @@ import (
 	"github.com/textileio/textile-go/wallet/model"
 	"github.com/textileio/textile-go/wallet/thread"
 	"github.com/textileio/textile-go/wallet/util"
-	"github.com/tyler-smith/go-bip39"
 	"gx/ipfs/QmSFihvoND3eDaAYRCeLgLPt62yCPgMZs1NSZmKFEtJQQw/go-libp2p-floodsub"
 	"gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	libp2pn "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
+	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	utilmain "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/commands"
@@ -44,12 +44,13 @@ import (
 var log = logging.MustGetLogger("wallet")
 
 type Config struct {
-	Version    string
-	RepoPath   string
-	CentralAPI string
-	IsMobile   bool
-	IsServer   bool
-	SwarmPort  string
+	Version        string
+	RepoPath       string
+	CentralAPI     string
+	IsMobile       bool
+	IsServer       bool
+	SwarmPort      string
+	MasterMnemonic *string
 }
 
 type Wallet struct {
@@ -264,9 +265,9 @@ func (w *Wallet) GetRepoPath() string {
 }
 
 // SignUp requests a new username and token from the central api and saves them locally
-func (w *Wallet) SignUp(reg *cmodels.Registration) error {
+func (w *Wallet) SignUp(reg *cmodels.Registration) (string, error) {
 	if err := w.touchDatastore(); err != nil {
-		return err
+		return "", err
 	}
 	log.Debugf("signup: %s %s %s %s %s", reg.Username, "xxxxxx", reg.Identity.Type, reg.Identity.Value, reg.Referral)
 
@@ -274,23 +275,43 @@ func (w *Wallet) SignUp(reg *cmodels.Registration) error {
 	res, err := central.SignUp(reg, w.centralUserAPI)
 	if err != nil {
 		log.Errorf("signup error: %s", err)
-		return err
+		return "", err
 	}
 	if res.Error != nil {
 		log.Errorf("signup error from central: %s", *res.Error)
-		return errors.New(*res.Error)
+		return "", errors.New(*res.Error)
+	}
+
+	// setup master secret key
+	log.Debug("generating a new master secret key")
+	master, mnemonic, err := util.PrivKeyFromMnemonic(nil)
+	if err != nil {
+		return "", err
+	}
+	masterb, err := master.Bytes()
+	if err != nil {
+		return "", err
+	}
+	id, err := peer.IDFromPrivateKey(master)
+	if err != nil {
+		return "", err
 	}
 
 	// local signin
-	if err := w.datastore.Profile().SignIn(reg.Username, res.Session.AccessToken, res.Session.RefreshToken); err != nil {
+	if err := w.datastore.Profile().SignIn(
+		id.Pretty(),
+		masterb,
+		reg.Username,
+		res.Session.AccessToken, res.Session.RefreshToken,
+	); err != nil {
 		log.Errorf("local signin error: %s", err)
-		return err
+		return "", err
 	}
-	return nil
+	return mnemonic, nil
 }
 
 // SignIn requests a token with a username from the central api and saves them locally
-func (w *Wallet) SignIn(creds *cmodels.Credentials) error {
+func (w *Wallet) SignIn(creds *cmodels.Credentials, mnemonic *string) error {
 	if err := w.touchDatastore(); err != nil {
 		return err
 	}
@@ -307,8 +328,32 @@ func (w *Wallet) SignIn(creds *cmodels.Credentials) error {
 		return errors.New(*res.Error)
 	}
 
+	// setup master secret key
+	if mnemonic != nil {
+		log.Debugf("generating master secret key from mnemonic: %s", *mnemonic)
+	} else {
+		log.Debug("generating a new master secret key")
+	}
+	master, _, err := util.PrivKeyFromMnemonic(mnemonic)
+	if err != nil {
+		return err
+	}
+	masterb, err := master.Bytes()
+	if err != nil {
+		return err
+	}
+	id, err := peer.IDFromPrivateKey(master)
+	if err != nil {
+		return err
+	}
+
 	// local signin
-	if err := w.datastore.Profile().SignIn(creds.Username, res.Session.AccessToken, res.Session.RefreshToken); err != nil {
+	if err := w.datastore.Profile().SignIn(
+		id.Pretty(),
+		masterb,
+		creds.Username,
+		res.Session.AccessToken, res.Session.RefreshToken,
+	); err != nil {
 		log.Errorf("local signin error: %s", err)
 		return err
 	}
@@ -344,11 +389,36 @@ func (w *Wallet) GetUsername() (string, error) {
 	if err := w.touchDatastore(); err != nil {
 		return "", err
 	}
-	un, err := w.datastore.Profile().GetUsername()
-	if err != nil {
+	return w.datastore.Profile().GetUsername()
+}
+
+// GetID returns the current user's master ID
+func (w *Wallet) GetID() (string, error) {
+	if err := w.touchDatastore(); err != nil {
 		return "", err
 	}
-	return un, nil
+	return w.datastore.Profile().GetID()
+}
+
+// GetMasterPrivKey returns the current user's master secret key
+func (w *Wallet) GetMasterPrivKey() (libp2pc.PrivKey, error) {
+	if err := w.touchDatastore(); err != nil {
+		return nil, err
+	}
+	skb, err := w.datastore.Profile().GetSecret()
+	if err != nil {
+		return nil, err
+	}
+	return libp2pc.UnmarshalPrivateKey(skb)
+}
+
+// GetMasterPubKey returns the current user's master public key
+func (w *Wallet) GetMasterPubKey() (libp2pc.PubKey, error) {
+	secret, err := w.GetMasterPrivKey()
+	if err != nil {
+		return nil, err
+	}
+	return secret.GetPublic(), nil
 }
 
 // GetAccessToken returns the current access_token (jwt) for central
@@ -419,32 +489,16 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 }
 
 // AddThreadWithMnemonic adds a thread with a given name and mnemonic phrase
-func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic string) (*thread.Thread, error) {
-	// use phrase if provided
-	if mnemonic == "" {
-		var err error
-		mnemonic, err = util.CreateMnemonic(bip39.NewEntropy, bip39.NewMnemonic)
-		if err != nil {
-			return nil, err
-		}
-		log.Debugf("generating Ed25519 keypair for: %s", name)
+func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string) (*thread.Thread, error) {
+	if mnemonic != nil {
+		log.Debugf("regenerating keypair from mnemonic for: %s", name)
 	} else {
-		log.Debugf("regenerating Ed25519 keypair from mnemonic phrase for: %s", name)
+		log.Debugf("generating keypair for: %s", name)
 	}
-
-	// create the bip39 seed from the phrase
-	seed := bip39.NewSeed(mnemonic, "")
-	key, err := util.IdentityKeyFromSeed(seed)
+	secret, _, err := util.PrivKeyFromMnemonic(mnemonic)
 	if err != nil {
 		return nil, err
 	}
-
-	// convert to a libp2p crypto private key
-	secret, err := libp2pc.UnmarshalPrivateKey(key)
-	if err != nil {
-		return nil, err
-	}
-
 	return w.AddThread(name, secret)
 }
 
@@ -457,7 +511,7 @@ func (w *Wallet) PublishThreads() {
 	}
 }
 
-// TODO: add node master pk to dir
+// AddPhoto add a photo to the local ipfs node
 func (w *Wallet) AddPhoto(path string) (*model.AddResult, error) {
 	// get a key to encrypt with
 	key, err := crypto.GenerateAESKey()
@@ -482,8 +536,16 @@ func (w *Wallet) AddPhoto(path string) (*model.AddResult, error) {
 	fpath := photo.Name()
 	ext := strings.ToLower(filepath.Ext(fpath))
 
-	// get username, ignoring if not present (not signed in)
+	// get username and master pub key, ignoring if not present (not signed in)
 	username, _ := w.datastore.Profile().GetUsername()
+	mpk, _ := w.GetMasterPubKey()
+	var mpkb []byte
+	if mpk != nil {
+		mpkb, err = mpk.Bytes()
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	// get metadata
 	meta, err := getMetadata(photo, fpath, ext, username)
@@ -508,6 +570,10 @@ func (w *Wallet) AddPhoto(path string) (*model.AddResult, error) {
 	if err != nil {
 		return nil, err
 	}
+	mpkcypher, err := crypto.EncryptAES(mpkb, key)
+	if err != nil {
+		return nil, err
+	}
 
 	// create a virtual directory for the photo
 	dirb := uio.NewDirectory(w.ipfs.DAG)
@@ -520,6 +586,10 @@ func (w *Wallet) AddPhoto(path string) (*model.AddResult, error) {
 		return nil, err
 	}
 	err = util.AddFileToDirectory(w.ipfs, dirb, metacypher, "meta")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(w.ipfs, dirb, mpkcypher, "pk")
 	if err != nil {
 		return nil, err
 	}
@@ -546,6 +616,9 @@ func (w *Wallet) AddPhoto(path string) (*model.AddResult, error) {
 		return nil, err
 	}
 	if err := request.AddFile(metacypher, "meta"); err != nil {
+		return nil, err
+	}
+	if err := request.AddFile(mpkcypher, "pk"); err != nil {
 		return nil, err
 	}
 

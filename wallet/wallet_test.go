@@ -11,6 +11,7 @@ import (
 )
 
 var wallet *Wallet
+var mnemonic string
 var addedId string
 
 var centralReg = &cmodels.Registration{
@@ -76,11 +77,12 @@ func TestWallet_SignUp(t *testing.T) {
 	}
 	centralReg.Referral = ref.RefCodes[0]
 
-	err = wallet.SignUp(centralReg)
+	m, err := wallet.SignUp(centralReg)
 	if err != nil {
 		t.Errorf("signup failed: %s", err)
 		return
 	}
+	mnemonic = m
 }
 
 func TestWallet_SignIn(t *testing.T) {
@@ -88,7 +90,7 @@ func TestWallet_SignIn(t *testing.T) {
 		Username: centralReg.Username,
 		Password: centralReg.Password,
 	}
-	err := wallet.SignIn(creds)
+	err := wallet.SignIn(creds, &mnemonic)
 	if err != nil {
 		t.Errorf("signin failed: %s", err)
 		return
@@ -100,6 +102,18 @@ func TestWallet_IsSignedIn(t *testing.T) {
 }
 
 func TestWallet_GetUsername(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_GetID(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_GetMasterPrivKey(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_GetMasterPubKey(t *testing.T) {
 	// TODO
 }
 
@@ -247,7 +261,7 @@ func TestWallet_SignInAgain(t *testing.T) {
 		Username: centralReg.Username,
 		Password: centralReg.Password,
 	}
-	err := wallet.SignIn(creds)
+	err := wallet.SignIn(creds, &mnemonic)
 	if err != nil {
 		t.Errorf("signin failed: %s", err)
 		return
