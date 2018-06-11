@@ -130,7 +130,7 @@ func (w *Wrapper) Stop() error {
 }
 
 // SignUpWithEmail creates an email based registration and calls core signup
-func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) error {
+func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) (string, error) {
 	// build registration
 	reg := &models.Registration{
 		Username: username,
@@ -145,13 +145,13 @@ func (w *Wrapper) SignUpWithEmail(username string, password string, email string
 }
 
 // SignIn build credentials and calls core SignIn
-func (w *Wrapper) SignIn(username string, password string) error {
+func (w *Wrapper) SignIn(username string, password string, mnemonic string) error {
 	// build creds
 	creds := &models.Credentials{
 		Username: username,
 		Password: password,
 	}
-	return tcore.Node.Wallet.SignIn(creds)
+	return tcore.Node.Wallet.SignIn(creds, &mnemonic)
 }
 
 // SignOut calls core SignOut

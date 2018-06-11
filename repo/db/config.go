@@ -70,6 +70,9 @@ func (c *ConfigDB) GetVersion() (string, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stmt, err := c.db.Prepare("select value from config where key=?")
+	if err != nil {
+		return "", err
+	}
 	defer stmt.Close()
 	var sv string
 	err = stmt.QueryRow("version").Scan(&sv)

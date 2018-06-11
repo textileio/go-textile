@@ -17,9 +17,7 @@ import (
 
 var log = logging.MustGetLogger("repo")
 
-var ErrRepoExists = errors.New(`ipfs configuration file already exists!
-Reinitializing would overwrite your keys.
-`)
+var ErrRepoExists = errors.New("repo not empty, reinitializing would overwrite your keys")
 
 func DoInit(repoRoot string, isMobile bool, version string, dbInit func(string) error, dbConfigure func(time.Time, string) error) error {
 	if err := checkWriteable(repoRoot); err != nil {
