@@ -54,17 +54,17 @@ type Config struct {
 }
 
 type Wallet struct {
-	context        oldcmds.Context
-	repoPath       string
-	gatewayAddr    string
-	cancel         context.CancelFunc
-	ipfs           *core.IpfsNode
-	datastore      trepo.Datastore
-	centralUserAPI string
-	isMobile       bool
-	started        bool
-	threads        []*thread.Thread
-	done           chan struct{}
+	context     oldcmds.Context
+	repoPath    string
+	gatewayAddr string
+	cancel      context.CancelFunc
+	ipfs        *core.IpfsNode
+	datastore   trepo.Datastore
+	centralAPI  string
+	isMobile    bool
+	started     bool
+	threads     []*thread.Thread
+	done        chan struct{}
 }
 
 const pingTimeout = time.Second * 10
@@ -144,11 +144,11 @@ func NewWallet(config Config) (*Wallet, error) {
 	}
 
 	return &Wallet{
-		repoPath:       config.RepoPath,
-		gatewayAddr:    gwAddr.(string),
-		datastore:      sqliteDB,
-		centralUserAPI: fmt.Sprintf("%s/api/v1/users", config.CentralAPI),
-		isMobile:       config.IsMobile,
+		repoPath:    config.RepoPath,
+		gatewayAddr: gwAddr.(string),
+		datastore:   sqliteDB,
+		centralAPI:  config.CentralAPI,
+		isMobile:    config.IsMobile,
 	}, nil
 }
 
@@ -272,7 +272,7 @@ func (w *Wallet) SignUp(reg *cmodels.Registration) (string, error) {
 	log.Debugf("signup: %s %s %s %s %s", reg.Username, "xxxxxx", reg.Identity.Type, reg.Identity.Value, reg.Referral)
 
 	// remote signup
-	res, err := central.SignUp(reg, w.centralUserAPI)
+	res, err := central.SignUp(reg, w.GetCentralUserAPI())
 	if err != nil {
 		log.Errorf("signup error: %s", err)
 		return "", err
@@ -318,7 +318,7 @@ func (w *Wallet) SignIn(creds *cmodels.Credentials, mnemonic *string) error {
 	log.Debugf("signin: %s %s", creds.Username, "xxxxxx")
 
 	// remote signin
-	res, err := central.SignIn(creds, w.centralUserAPI)
+	res, err := central.SignIn(creds, w.GetCentralUserAPI())
 	if err != nil {
 		log.Errorf("signin error: %s", err)
 		return err
@@ -431,6 +431,14 @@ func (w *Wallet) GetAccessToken() (string, error) {
 		return "", err
 	}
 	return at, nil
+}
+
+func (w *Wallet) GetCentralAPI() string {
+	return w.centralAPI
+}
+
+func (w *Wallet) GetCentralUserAPI() string {
+	return fmt.Sprintf("%s/api/v1/users", w.centralAPI)
 }
 
 func (w *Wallet) Threads() []*thread.Thread {

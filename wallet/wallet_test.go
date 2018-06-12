@@ -121,6 +121,14 @@ func TestWallet_GetAccessToken(t *testing.T) {
 	// TODO
 }
 
+func TestWallet_GetCentralAPI(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_GetCentralUserAPI(t *testing.T) {
+	// TODO
+}
+
 func TestWallet_Threads(t *testing.T) {
 	// TODO
 }

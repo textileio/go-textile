@@ -107,7 +107,7 @@ func TestWrapper_GetAccessToken(t *testing.T) {
 }
 
 func TestWrapper_AddPhoto(t *testing.T) {
-	mr, err := wrapper.AddPhoto("testdata/image.jpg", "default")
+	mr, err := wrapper.AddPhoto("testdata/image.jpg", "default", "howdy")
 	if err != nil {
 		t.Errorf("add photo failed: %s", err)
 		return

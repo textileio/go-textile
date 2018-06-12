@@ -176,7 +176,7 @@ func (w *Wrapper) GetAccessToken() (string, error) {
 }
 
 // AddPhoto adds a photo by path and shares it to the default thread
-func (w *Wrapper) AddPhoto(path string, threadName string) (*net.MultipartRequest, error) {
+func (w *Wrapper) AddPhoto(path string, threadName string, caption string) (*net.MultipartRequest, error) {
 	thrd := tcore.Node.Wallet.GetThreadByName(threadName)
 	if thrd == nil {
 		return nil, errors.New(fmt.Sprintf("could not find thread: %s", threadName))
@@ -185,11 +185,17 @@ func (w *Wrapper) AddPhoto(path string, threadName string) (*net.MultipartReques
 	if err != nil {
 		return nil, err
 	}
-	// TODO, fire off shared request to remote cluster
-	_, err = thrd.AddPhoto(added.Id, "", added.Key)
+	shared, err := thrd.AddPhoto(added.Id, caption, added.Key)
 	if err != nil {
 		return nil, err
 	}
+
+	// pin to remote
+	if err = shared.RemoteRequest.Send(tcore.Node.Wallet.GetCentralAPI()); err != nil {
+		return nil, err
+	}
+
+	// let the OS handle the large upload
 	return added.RemoteRequest, nil
 }
 
@@ -214,11 +220,16 @@ func (w *Wrapper) SharePhoto(id string, threadName string, caption string) (stri
 	}
 
 	// TODO: owner challenge
-	// TODO: fire off shared request to remote cluster
 	shared, err := toThread.AddPhoto(id, caption, key)
 	if err != nil {
 		return "", err
 	}
+
+	// pin to remote
+	if err = shared.RemoteRequest.Send(tcore.Node.Wallet.GetCentralAPI()); err != nil {
+		return "", err
+	}
+
 	return shared.Id, nil
 }
 
