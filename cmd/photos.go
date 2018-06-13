@@ -1,26 +1,17 @@
 package cmd
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"image"
-	_ "image/gif"
-	"image/jpeg"
-	_ "image/png"
+	"github.com/fatih/color"
+	"github.com/mitchellh/go-homedir"
+	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/wallet/model"
+	"gopkg.in/abiosoft/ishell.v2"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-
-	"github.com/disintegration/imaging"
-	"github.com/fatih/color"
-	"github.com/mitchellh/go-homedir"
-	"github.com/segmentio/ksuid"
-	"gopkg.in/abiosoft/ishell.v2"
-
-	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/repo/photos"
 )
 
 func AddPhoto(c *ishell.Context) {
@@ -30,129 +21,150 @@ func AddPhoto(c *ishell.Context) {
 	}
 
 	// try to get path with home dir tilda
-	pp, err := homedir.Expand(c.Args[0])
+	path, err := homedir.Expand(c.Args[0])
 	if err != nil {
-		pp = c.Args[0]
+		path = c.Args[0]
 	}
 
 	// open the file
-	f, err := os.Open(pp)
+	f, err := os.Open(path)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 	defer f.Close()
 
-	// try to create a thumbnail version
-	th, _, err := image.Decode(f)
-	if err != nil {
-		c.Err(err)
-		return
-	}
-	th = imaging.Resize(th, 300, 0, imaging.Lanczos)
-	thb := new(bytes.Buffer)
-	if err = jpeg.Encode(thb, th, nil); err != nil {
-		c.Err(err)
-		return
-	}
-	tp := filepath.Join(core.Node.RepoPath, "tmp", ksuid.New().String()+".jpg")
-	if err = ioutil.WriteFile(tp, thb.Bytes(), 0644); err != nil {
-		c.Err(err)
-		return
-	}
-
-	// parse album
-	album := "default"
-	if len(c.Args) > 1 {
-		album = c.Args[1]
-	}
-
 	c.Print("caption (optional): ")
 	caption := c.ReadLine()
 
 	// do the add
 	f.Seek(0, 0)
-	mr, err := core.Node.AddPhoto(pp, tp, album, caption)
+	added, err := core.Node.Wallet.AddPhoto(path)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
 	// clean up
-	if err = os.Remove(tp); err != nil {
-		c.Err(err)
-		return
-	}
-	if err = os.Remove(mr.PayloadPath); err != nil {
+	if err = os.Remove(added.RemoteRequest.PayloadPath); err != nil {
 		c.Err(err)
 		return
 	}
 
-	// show user root cid
+	// parse thread
+	threadName := "default"
+	if len(c.Args) > 1 {
+		threadName = c.Args[1]
+	}
+
+	// add to thread
+	thread := core.Node.Wallet.GetThreadByName(threadName)
+	if thread == nil {
+		c.Err(errors.New(fmt.Sprintf("could not find thread %s", threadName)))
+		return
+	}
+	tadded, err := thread.AddPhoto(added.Id, caption, added.Key)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	// show user root id
 	cyan := color.New(color.FgCyan).SprintFunc()
-	c.Println(cyan("added " + mr.Boundary + " to thread " + album))
+	c.Println(cyan("added " + added.Id + " to thread " + thread.Name + " with block " + tadded.Id))
 }
 
 func SharePhoto(c *ishell.Context) {
 	if len(c.Args) == 0 {
-		c.Err(errors.New("missing photo cid"))
+		c.Err(errors.New("missing photo id"))
 		return
 	}
 	if len(c.Args) == 1 {
 		c.Err(errors.New("missing destination thread name"))
 		return
 	}
-	cid := c.Args[0]
-	dest := c.Args[1]
+	id := c.Args[0]
+	threadName := c.Args[1]
 
 	c.Print("caption (optional): ")
 	caption := c.ReadLine()
 
-	mr, err := core.Node.SharePhoto(cid, dest, caption)
+	// get the original block
+	block, err := core.Node.Wallet.FindBlock(id)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	// and it's thread
+	fromThread := core.Node.Wallet.GetThread(block.ThreadPubKey)
+	if fromThread == nil {
+		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadPubKey)))
+		return
+	}
+
+	// lookup destination thread
+	toThread := core.Node.Wallet.GetThreadByName(threadName)
+	if toThread == nil {
+		c.Err(errors.New(fmt.Sprintf("could not find thread named %s", threadName)))
+		return
+	}
+
+	// get the file key from the original block
+	key, err := fromThread.Decrypt(block.TargetKey)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	// TODO: owner challenge
+
+	// finally, add to destination
+	shared, err := toThread.AddPhoto(id, caption, key)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green("shared " + cid + " to thread " + dest + " (new cid: " + mr.Boundary + ")"))
+	c.Println(green("shared " + id + " to thread " + toThread.Name + " (new id: " + shared.Id + ")"))
 }
 
 func ListPhotos(c *ishell.Context) {
-	album := "default"
+	threadName := "default"
 	if len(c.Args) > 0 {
-		album = c.Args[0]
+		threadName = c.Args[0]
 	}
 
-	a := core.Node.Datastore.Albums().GetAlbumByName(album)
-	if a == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", album)))
+	thread := core.Node.Wallet.GetThreadByName(threadName)
+	if thread == nil {
+		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadName)))
 		return
 	}
 
-	sets := core.Node.Datastore.Photos().GetPhotos("", -1, "album='"+a.Id+"'")
-	if len(sets) == 0 {
-		c.Println(fmt.Sprintf("no photos found in: %s", album))
+	blocks := thread.Blocks("", -1)
+	if len(blocks) == 0 {
+		c.Println(fmt.Sprintf("no photos found in: %s", threadName))
 	} else {
-		c.Println(fmt.Sprintf("found %v photos in: %s", len(sets), album))
+		c.Println(fmt.Sprintf("found %v photos in: %s", len(blocks), threadName))
 	}
 
 	magenta := color.New(color.FgHiMagenta).SprintFunc()
-	for _, s := range sets {
-		c.Println(magenta(fmt.Sprintf("cid: %s, name: %s%s", s.Cid, s.MetaData.Name, s.MetaData.Ext)))
+	for _, block := range blocks {
+		c.Println(magenta(fmt.Sprintf("id: %s, block: %s", block.Target, block.Id)))
 	}
 }
 
 func GetPhoto(c *ishell.Context) {
 	if len(c.Args) == 0 {
-		c.Err(errors.New("missing photo cid"))
+		c.Err(errors.New("missing photo id"))
 		return
 	}
 	if len(c.Args) == 1 {
 		c.Err(errors.New("missing out directory"))
 		return
 	}
-	hash := c.Args[0]
+	id := c.Args[0]
 
 	// try to get path with home dir tilda
 	dest, err := homedir.Expand(c.Args[1])
@@ -160,51 +172,57 @@ func GetPhoto(c *ishell.Context) {
 		dest = c.Args[1]
 	}
 
-	set, a, err := core.Node.LoadPhotoAndAlbum(hash)
+	block, err := core.Node.Wallet.FindBlock(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
-	pb, err := core.Node.GetFile(fmt.Sprintf("%s/photo", hash), a)
+	file, err := core.Node.Wallet.GetFile(fmt.Sprintf("%s/photo", id), block.Id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
-	path := filepath.Join(dest, set.MetaData.Name+set.MetaData.Ext)
-	if err := ioutil.WriteFile(path, pb, 0644); err != nil {
+	path := filepath.Join(dest, id)
+	if err := ioutil.WriteFile(path, file, 0644); err != nil {
 		c.Err(err)
 		return
 	}
 
 	blue := color.New(color.FgHiBlue).SprintFunc()
-	c.Println(blue("wrote " + hash + " to " + path))
+	c.Println(blue("saved to " + path))
 }
 
 func CatPhotoMetadata(c *ishell.Context) {
 	if len(c.Args) == 0 {
-		c.Err(errors.New("missing photo cid"))
+		c.Err(errors.New("missing photo id"))
 		return
 	}
-	hash := c.Args[0]
+	id := c.Args[0]
 
-	b, err := core.Node.GetFile(fmt.Sprintf("%s/meta", hash), nil)
+	block, err := core.Node.Wallet.FindBlock(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	var md photos.Metadata
-	if err := json.Unmarshal(b, &md); err != nil {
+
+	file, err := core.Node.Wallet.GetFile(fmt.Sprintf("%s/meta", id), block.Id)
+	if err != nil {
 		c.Err(err)
 		return
 	}
-	jb, err := json.MarshalIndent(md, "", "    ")
+	var meta model.PhotoMetadata
+	if err := json.Unmarshal(file, &meta); err != nil {
+		c.Err(err)
+		return
+	}
+	jsonb, err := json.MarshalIndent(meta, "", "    ")
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
 	black := color.New(color.FgHiBlack).SprintFunc()
-	c.Println(black(string(jb)))
+	c.Println(black(string(jsonb)))
 }

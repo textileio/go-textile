@@ -3,20 +3,18 @@ package main
 import (
 	"flag"
 	"fmt"
-
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
 	"github.com/asticode/go-astilog"
 	"github.com/op/go-logging"
 	"github.com/pkg/errors"
-
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/wallet"
 )
 
 var (
 	BuiltAt string
 	debug   = flag.Bool("d", false, "enables the debug mode")
-	w       *astilectron.Window
 )
 
 var textile *core.TextileNode
@@ -31,11 +29,13 @@ func main() {
 	// TODO: on darwin, repo should live in Application Support
 	// TODO: make api url configurable somehow
 	config := core.NodeConfig{
-		RepoPath:      "output/.ipfs",
-		CentralApiURL: "https://api.textile.io",
-		IsMobile:      false,
-		LogLevel:      logging.DEBUG,
-		LogFiles:      true,
+		LogLevel: logging.DEBUG,
+		LogFiles: true,
+		WalletConfig: wallet.Config{
+			RepoPath:   "output/.ipfs",
+			CentralAPI: "https://api.textile.io",
+			IsMobile:   false,
+		},
 	}
 	var err error
 	textile, err = core.NewNode(config)
@@ -45,7 +45,7 @@ func main() {
 	}
 
 	// bring the node online and startup the gateway
-	online, err := textile.Start()
+	online, err := textile.StartWallet()
 	if err != nil {
 		astilog.Errorf("start desktop node failed: %s", err)
 		return
@@ -53,29 +53,7 @@ func main() {
 	<-online
 
 	// save off the gateway address
-	gateway = fmt.Sprintf("http://localhost%s", textile.GatewayProxy.Addr)
-
-	// start garbage collection and gateway services
-	// TODO: see method todo before enabling
-	//errc, err := textile.StartGarbageCollection()
-	//if err != nil {
-	//	astilog.Errorf("auto gc error: %s", err)
-	//	return
-	//}
-	//go func() {
-	//	for {
-	//		select {
-	//		case err, ok := <-errc:
-	//			if err != nil {
-	//				astilog.Errorf("auto gc error: %s", err)
-	//			}
-	//			if !ok {
-	//				astilog.Info("auto gc stopped")
-	//				return
-	//			}
-	//		}
-	//	}
-	//}()
+	gateway = fmt.Sprintf("http://localhost%s", textile.GetGatewayAddress())
 
 	// run bootstrap
 	astilog.Debugf("Running app built at %s", BuiltAt)

@@ -4,31 +4,22 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/op/go-logging"
+	"github.com/textileio/textile-go/repo/config"
+	"github.com/textileio/textile-go/repo/schema"
+	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/core"
+	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/namesys"
+	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/fsrepo"
 	"os"
 	"path"
 	"time"
-
-	"github.com/op/go-logging"
-
-	"github.com/textileio/textile-go/repo/config"
-	"github.com/textileio/textile-go/repo/schema"
-
-	"gx/ipfs/QmPrKYPftocu7r4DhE3LorFgsJLGUkTPFLUqkS8SsuAXYn/go-ipfs/core"
-	"gx/ipfs/QmPrKYPftocu7r4DhE3LorFgsJLGUkTPFLUqkS8SsuAXYn/go-ipfs/namesys"
-	"gx/ipfs/QmPrKYPftocu7r4DhE3LorFgsJLGUkTPFLUqkS8SsuAXYn/go-ipfs/repo/fsrepo"
-)
-
-const (
-	NBitsForKeypair = 4096
 )
 
 var log = logging.MustGetLogger("repo")
 
-var ErrRepoExists = errors.New(`ipfs configuration file already exists!
-Reinitializing would overwrite your keys.
-`)
+var ErrRepoExists = errors.New("repo not empty, reinitializing would overwrite your keys")
 
-func DoInit(repoRoot string, isMobile bool, dbInit func(string) error, dbConfigure func(time.Time) error) error {
+func DoInit(repoRoot string, isMobile bool, version string, dbInit func(string) error, dbConfigure func(time.Time, string) error) error {
 	if err := checkWriteable(repoRoot); err != nil {
 		return err
 	}
@@ -38,14 +29,14 @@ func DoInit(repoRoot string, isMobile bool, dbInit func(string) error, dbConfigu
 	}
 	log.Infof("initializing textile ipfs node at %s", repoRoot)
 
-	paths, err := schema.NewCustomSchemaManager(schema.SchemaContext{
+	paths, err := schema.NewCustomSchemaManager(schema.Context{
 		DataPath: repoRoot,
 	})
 	if err := paths.BuildSchemaDirectories(); err != nil {
 		return err
 	}
 
-	conf, err := config.Init(NBitsForKeypair, isMobile)
+	conf, err := config.Init(isMobile)
 	if err != nil {
 		return err
 	}
@@ -58,7 +49,7 @@ func DoInit(repoRoot string, isMobile bool, dbInit func(string) error, dbConfigu
 		return err
 	}
 
-	if err := dbConfigure(time.Now()); err != nil {
+	if err := dbConfigure(time.Now(), version); err != nil {
 		return err
 	}
 

@@ -2,14 +2,12 @@ package main
 
 import (
 	"fmt"
-
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilog"
-
-	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/wallet/thread"
 )
 
-var albumID string
+var mobileThread *thread.Thread
 
 func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
 	astilog.Info("TEXTILE STARTED")
@@ -17,17 +15,14 @@ func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Me
 	astilog.Info("SENDING COOKIE INFO")
 	sendData(iw, "login.cookie", map[string]interface{}{
 		"name":    "SessionId",
-		"value":   textile.GatewayPassword,
+		"value":   "not used",
 		"gateway": gateway,
 	})
 
 	// check if we're configured yet
-	a := textile.Datastore.Albums().GetAlbumByName("mobile")
-	if a != nil {
-		albumID = a.Id
-
-		// can join room
-		astilog.Info("FOUND MOBILE ALBUM")
+	mobileThread := textile.Wallet.GetThreadByName("mobile")
+	if mobileThread != nil {
+		astilog.Info("FOUND MOBILE THREAD")
 
 		// tell app we're ready and send initial html
 		sendData(iw, "sync.ready", map[string]interface{}{
@@ -36,19 +31,18 @@ func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Me
 
 	} else {
 		// otherwise, start onboaring
-		astilog.Info("COULD NOT FIND MOBILE ALBUM")
+		astilog.Info("COULD NOT FIND MOBILE THREAD")
 		astilog.Info("STARTING PAIRING")
 
 		go func() {
 			// sub to own peer id for pairing setup and wait
-			textile.WaitForRoom()
+			textile.Wallet.WaitForInvite()
 
-			a := textile.Datastore.Albums().GetAlbumByName("mobile")
-			if a == nil {
+			mobileThread := textile.Wallet.GetThreadByName("mobile")
+			if mobileThread == nil {
 				astilog.Error("failed to create mobile album")
 				return
 			}
-			albumID = a.Id
 
 			// let the app know we're done pairing
 			sendMessage(iw, "onboard.complete")
@@ -67,8 +61,8 @@ func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Me
 func joinRoom(iw *astilectron.Window) error {
 	astilog.Info("STARTING SYNC")
 
-	datac := make(chan core.ThreadUpdate)
-	go textile.JoinRoom(albumID, datac)
+	datac := make(chan thread.Update)
+	go mobileThread.Subscribe(datac)
 	for {
 		select {
 		case update, ok := <-datac:
@@ -85,12 +79,12 @@ func joinRoom(iw *astilectron.Window) error {
 
 func getPhotosHTML() string {
 	var html string
-	for _, photo := range textile.Datastore.Photos().GetPhotos("", -1, "") {
-		ph := fmt.Sprintf("%s/ipfs/%s/photo", gateway, photo.Cid)
-		th := fmt.Sprintf("%s/ipfs/%s/thumb", gateway, photo.Cid)
-		md := fmt.Sprintf("%s/ipfs/%s/meta", gateway, photo.Cid)
+	for _, block := range mobileThread.Blocks("", -1) {
+		ph := fmt.Sprintf("%s/ipfs/%s/photo?block=%s", gateway, block.Target, block.Id)
+		th := fmt.Sprintf("%s/ipfs/%s/thumb?block=%s", gateway, block.Target, block.Id)
+		md := fmt.Sprintf("%s/ipfs/%s/meta?block=%s", gateway, block.Target, block.Id)
 		img := fmt.Sprintf("<img src=\"%s\" />", th)
-		html += fmt.Sprintf("<div id=\"%s\" class=\"grid-item\" ondragstart=\"imageDragStart(event);\" draggable=\"true\" data-url=\"%s\" data-meta=\"%s\">%s</div>", photo.Cid, ph, md, img)
+		html += fmt.Sprintf("<div id=\"%s\" class=\"grid-item\" ondragstart=\"imageDragStart(event);\" draggable=\"true\" data-url=\"%s\" data-meta=\"%s\">%s</div>", block.Id, ph, md, img)
 	}
 	return html
 }

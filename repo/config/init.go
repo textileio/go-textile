@@ -2,18 +2,14 @@ package config
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
-	"math/rand"
-	"time"
-
 	"github.com/op/go-logging"
-
-	"gx/ipfs/QmPrKYPftocu7r4DhE3LorFgsJLGUkTPFLUqkS8SsuAXYn/go-ipfs/repo"
-	native "gx/ipfs/QmPrKYPftocu7r4DhE3LorFgsJLGUkTPFLUqkS8SsuAXYn/go-ipfs/repo/config"
-
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo"
+	native "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/config"
+	"math/rand"
+	"time"
 )
 
 var log = logging.MustGetLogger("config")
@@ -55,8 +51,8 @@ var DefaultServerFilters = []string{
 	"/ip4/240.0.0.0/ipcidr/4",
 }
 
-func Init(nBitsForKeypair int, isMobile bool) (*native.Config, error) {
-	identity, err := identityConfig(nBitsForKeypair)
+func Init(isMobile bool) (*native.Config, error) {
+	identity, err := identityConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -227,15 +223,12 @@ func defaultDatastoreConfig() native.Datastore {
 }
 
 // identityConfig initializes a new identity.
-func identityConfig(nbits int) (native.Identity, error) {
+func identityConfig() (native.Identity, error) {
 	// TODO guard higher up
 	ident := native.Identity{}
-	if nbits < 1024 {
-		return ident, errors.New("bitsize less than 1024 is considered unsafe")
-	}
 
-	log.Infof("generating %v-bit Ed25519 keypair for peer identity...", nbits)
-	sk, pk, err := ci.GenerateKeyPair(ci.Ed25519, nbits)
+	log.Infof("generating Ed25519 keypair for peer identity...")
+	sk, pk, err := ci.GenerateKeyPair(ci.Ed25519, 4096) // bits are ignored for ed25519, so use any
 	if err != nil {
 		return ident, err
 	}

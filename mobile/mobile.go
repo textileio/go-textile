@@ -1,18 +1,19 @@
 package mobile
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"errors"
-
+	"fmt"
 	"github.com/op/go-logging"
-
 	"github.com/textileio/textile-go/central/models"
 	tcore "github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/net"
-
+	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/wallet"
+	"github.com/textileio/textile-go/wallet/thread"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 var log = logging.MustGetLogger("mobile")
@@ -63,6 +64,12 @@ func NewNode(config *NodeConfig, messenger Messenger) (*Wrapper, error) {
 // Mobile is the name of the framework (must match package name)
 type Mobile struct{}
 
+// Blocks is a wrapper around a list of Blocks, which makes decoding json from a little cleaner
+// on the mobile side
+type Blocks struct {
+	Items []repo.Block `json:"items"`
+}
+
 // Create a gomobile compatible wrapper around TextileNode
 func (m *Mobile) NewNode(config *NodeConfig, messenger Messenger) (*Wrapper, error) {
 	ll, err := logging.LogLevel(config.LogLevel)
@@ -70,11 +77,13 @@ func (m *Mobile) NewNode(config *NodeConfig, messenger Messenger) (*Wrapper, err
 		ll = logging.INFO
 	}
 	cconfig := tcore.NodeConfig{
-		RepoPath:      config.RepoPath,
-		CentralApiURL: config.CentralApiURL,
-		IsMobile:      true,
-		LogLevel:      ll,
-		LogFiles:      config.LogFiles,
+		LogLevel: ll,
+		LogFiles: config.LogFiles,
+		WalletConfig: wallet.Config{
+			RepoPath:   config.RepoPath,
+			CentralAPI: config.CentralApiURL,
+			IsMobile:   true,
+		},
 	}
 	node, err := tcore.NewNode(cconfig)
 	if err != nil {
@@ -87,9 +96,9 @@ func (m *Mobile) NewNode(config *NodeConfig, messenger Messenger) (*Wrapper, err
 
 // Start the mobile node
 func (w *Wrapper) Start() error {
-	online, err := tcore.Node.Start()
+	online, err := tcore.Node.StartWallet()
 	if err != nil {
-		if err == tcore.ErrNodeRunning {
+		if err == wallet.ErrStarted {
 			return nil
 		}
 		return err
@@ -97,16 +106,16 @@ func (w *Wrapper) Start() error {
 
 	go func() {
 		<-online
-		// join existing rooms
-		for _, album := range tcore.Node.Datastore.Albums().GetAlbums("") {
-			w.joinRoom(album.Id)
+		// join existing threads
+		for _, thrd := range tcore.Node.Wallet.Threads() {
+			w.subscribe(thrd)
 		}
 
 		// notify UI we're ready
 		w.messenger.Notify(newEvent("onOnline", map[string]interface{}{}))
 
-		// republish
-		tcore.Node.RepublishLatestUpdates()
+		// publish
+		tcore.Node.Wallet.PublishThreads()
 	}()
 
 	return nil
@@ -114,14 +123,14 @@ func (w *Wrapper) Start() error {
 
 // Stop the mobile node
 func (w *Wrapper) Stop() error {
-	if err := tcore.Node.Stop(); err != nil && err != tcore.ErrNodeNotRunning {
+	if err := tcore.Node.StopWallet(); err != nil && err != wallet.ErrStopped {
 		return err
 	}
 	return nil
 }
 
 // SignUpWithEmail creates an email based registration and calls core signup
-func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) error {
+func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) (string, error) {
 	// build registration
 	reg := &models.Registration{
 		Username: username,
@@ -132,115 +141,118 @@ func (w *Wrapper) SignUpWithEmail(username string, password string, email string
 		},
 		Referral: referral,
 	}
-
-	// signup
-	return tcore.Node.SignUp(reg)
+	return tcore.Node.Wallet.SignUp(reg)
 }
 
 // SignIn build credentials and calls core SignIn
-func (w *Wrapper) SignIn(username string, password string) error {
+func (w *Wrapper) SignIn(username string, password string, mnemonic string) error {
 	// build creds
 	creds := &models.Credentials{
 		Username: username,
 		Password: password,
 	}
-
-	// signin
-	return tcore.Node.SignIn(creds)
+	return tcore.Node.Wallet.SignIn(creds, &mnemonic)
 }
 
 // SignOut calls core SignOut
 func (w *Wrapper) SignOut() error {
-	return tcore.Node.SignOut()
+	return tcore.Node.Wallet.SignOut()
 }
 
 // IsSignedIn calls core IsSignedIn
 func (w *Wrapper) IsSignedIn() bool {
-	si, _ := tcore.Node.IsSignedIn()
+	si, _ := tcore.Node.Wallet.IsSignedIn()
 	return si
-}
-
-// Update thread allows the mobile client to choose the 'all' thread to subscribe
-func (w *Wrapper) UpdateThread(mnemonic string, name string) error {
-	if mnemonic == "" {
-		return errors.New("mnemonic must not be empty")
-	}
-	if err := tcore.Node.TouchDB(); err != nil {
-		return err
-	}
-	log.Debugf("deleting album if exists: %s", name)
-	err := tcore.Node.Datastore.Albums().DeleteAlbumByName(name)
-	if err != nil {
-		log.Errorf("error deleting album %s: %s", name, err)
-		return err
-	}
-	err = tcore.Node.CreateAlbum(mnemonic, name)
-	if err != nil {
-		log.Errorf("error creating album %s: %s", name, err)
-		return err
-	}
-	return nil
 }
 
 // GetUsername calls core GetUsername
 func (w *Wrapper) GetUsername() (string, error) {
-	return tcore.Node.GetUsername()
+	return tcore.Node.Wallet.GetUsername()
 }
 
 // GetAccessToken calls core GetAccessToken
 func (w *Wrapper) GetAccessToken() (string, error) {
-	return tcore.Node.GetAccessToken()
+	return tcore.Node.Wallet.GetAccessToken()
 }
 
-// GetGatewayPassword returns the current cookie value expected by the gateway
-func (w *Wrapper) GetGatewayPassword() string {
-	return tcore.Node.GatewayPassword
+// AddThread adds a new thread with the given name
+func (w *Wrapper) AddThread(name string) error {
+	_, err := tcore.Node.Wallet.AddThreadWithMnemonic(name, nil)
+	return err
 }
 
-// AddPhoto calls core AddPhoto
-func (w *Wrapper) AddPhoto(path string, thumb string, thread string) (*net.MultipartRequest, error) {
-	return tcore.Node.AddPhoto(path, thumb, thread, "")
-}
-
-// SharePhoto calls core SharePhoto
-func (w *Wrapper) SharePhoto(hash string, thread string, caption string) (*net.MultipartRequest, error) {
-	return tcore.Node.SharePhoto(hash, thread, caption)
-}
-
-// GetHashRequest calls core GetHashRequest
-func (w *Wrapper) GetHashRequest(hash string) (string, error) {
-	request := tcore.Node.GetHashRequest(hash)
-
-	// gomobile does not allow slices. so, convert to json
-	jsonb, err := json.Marshal(request)
+// AddPhoto adds a photo by path and shares it to the default thread
+func (w *Wrapper) AddPhoto(path string, threadName string, caption string) (*net.MultipartRequest, error) {
+	thrd := tcore.Node.Wallet.GetThreadByName(threadName)
+	if thrd == nil {
+		return nil, errors.New(fmt.Sprintf("could not find thread: %s", threadName))
+	}
+	added, err := tcore.Node.Wallet.AddPhoto(path)
 	if err != nil {
-		log.Errorf("error marshaling json: %s", err)
+		return nil, err
+	}
+	shared, err := thrd.AddPhoto(added.Id, caption, added.Key)
+	if err != nil {
+		return nil, err
+	}
+
+	// pin to remote
+	if err = shared.RemoteRequest.Send(tcore.Node.Wallet.GetCentralAPI()); err != nil {
+		return nil, err
+	}
+
+	// let the OS handle the large upload
+	return added.RemoteRequest, nil
+}
+
+// SharePhoto adds an existing photo to a new thread
+func (w *Wrapper) SharePhoto(id string, threadName string, caption string) (string, error) {
+	block, err := tcore.Node.Wallet.FindBlock(id)
+	if err != nil {
+		return "", err
+	}
+	fromThread := tcore.Node.Wallet.GetThread(block.ThreadPubKey)
+	if fromThread == nil {
+		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadPubKey))
+	}
+	toThread := tcore.Node.Wallet.GetThreadByName(threadName)
+	if toThread == nil {
+		return "", errors.New(fmt.Sprintf("could not find thread named %s", threadName))
+	}
+	key, err := fromThread.Decrypt(block.TargetKey)
+	if err != nil {
 		return "", err
 	}
 
-	return string(jsonb), nil
+	// TODO: owner challenge
+	shared, err := toThread.AddPhoto(id, caption, key)
+	if err != nil {
+		return "", err
+	}
+
+	// pin to remote
+	if err = shared.RemoteRequest.Send(tcore.Node.Wallet.GetCentralAPI()); err != nil {
+		return "", err
+	}
+
+	return shared.Id, nil
 }
 
 // Get Photos returns core GetPhotos with json encoding
-func (w *Wrapper) GetPhotos(offsetId string, limit int, thread string) (string, error) {
-	if tcore.Node.Online() {
-		go func() {
-			th := tcore.Node.Datastore.Albums().GetAlbumByName(thread)
-			if th != nil {
-				tcore.Node.RepublishLatestUpdate(th)
-			}
-		}()
+func (w *Wrapper) GetPhotos(offsetId string, limit int, threadName string) (string, error) {
+	thrd := tcore.Node.Wallet.GetThreadByName(threadName)
+	if thrd == nil {
+		return "", errors.New(fmt.Sprintf("thread not found: %s", threadName))
 	}
 
-	list := tcore.Node.GetPhotos(offsetId, limit, thread)
-	if list == nil {
-		list = &tcore.PhotoList{
-			Hashes: make([]string, 0),
-		}
+	if tcore.Node.Wallet.Online() {
+		go thrd.Publish()
 	}
+
+	blocks := &Blocks{thrd.Blocks(offsetId, limit)}
 
 	// gomobile does not allow slices. so, convert to json
-	jsonb, err := json.Marshal(list)
+	jsonb, err := json.Marshal(blocks)
 	if err != nil {
 		log.Errorf("error marshaling json: %s", err)
 		return "", err
@@ -250,66 +262,59 @@ func (w *Wrapper) GetPhotos(offsetId string, limit int, thread string) (string, 
 }
 
 // GetFileBase64 call core GetFileBase64
-func (w *Wrapper) GetFileBase64(path string) (string, error) {
-	return tcore.Node.GetFileBase64(path)
+func (w *Wrapper) GetFileBase64(path string, blockId string) (string, error) {
+	return tcore.Node.Wallet.GetFileBase64(path, blockId)
 }
 
-// GetPeerID returns our peer id
-func (w *Wrapper) GetPeerID() (string, error) {
-	if !tcore.Node.Online() {
-		return "", tcore.ErrNodeNotRunning
-	}
-	return tcore.Node.IpfsNode.Identity.Pretty(), nil
+// GetIPFSPeerID returns the wallet's ipfs peer id
+func (w *Wrapper) GetIPFSPeerID() (string, error) {
+	return tcore.Node.Wallet.GetIPFSPeerID()
 }
 
-// PairDesktop publishes this nodes default album keys to a desktop node
+// PairDesktop publishes this nodes default thread key to a desktop node
 // which is listening at it's own peer id
 func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
-	if !tcore.Node.Online() {
-		return "", tcore.ErrNodeNotRunning
+	if !tcore.Node.Wallet.Online() {
+		return "", wallet.ErrOffline
 	}
 	log.Info("pairing with desktop...")
 
-	pkb, err := base64.StdEncoding.DecodeString(pkb64)
+	pkb, err := libp2pc.ConfigDecodeKey(pkb64)
 	if err != nil {
-		log.Errorf("error decoding string: %s: %s", pkb64, err)
+		return "", err
+	}
+	pk, err := libp2pc.UnmarshalPublicKey(pkb)
+	if err != nil {
 		return "", err
 	}
 
-	pk, err := libp2p.UnmarshalPublicKey(pkb)
-	if err != nil {
-		log.Errorf("error unmarshaling pub key: %s", err)
-		return "", err
-	}
-
-	// the phrase will be used by the desktop client to create
-	// the private key needed to decrypt photos
 	// we invite the desktop to _read and write_ to our default album
-	da := tcore.Node.Datastore.Albums().GetAlbumByName("default")
-	if da == nil {
-		err = errors.New("default album not found")
+	defaultThread := tcore.Node.Wallet.GetThreadByName("default")
+	if defaultThread == nil {
+		err = errors.New("default thread not found")
 		log.Error(err.Error())
 		return "", err
 	}
-	// encypt with the desktop's pub key
-	cph, err := net.Encrypt(pk, []byte(da.Mnemonic))
+	// encypt thread secret key with the desktop's pub key
+	secret, err := defaultThread.PrivKey.Bytes()
 	if err != nil {
-		log.Errorf("encrypt failed: %s", err)
+		return "", err
+	}
+	secretcypher, err := crypto.Encrypt(pk, secret)
+	if err != nil {
 		return "", err
 	}
 
 	// get the topic to pair with from the pub key
 	peerID, err := peer.IDFromPublicKey(pk)
 	if err != nil {
-		log.Errorf("id from public key failed: %s", err)
 		return "", err
 	}
 	topic := peerID.Pretty()
 
 	// finally, publish the encrypted phrase
-	err = tcore.Node.Publish(topic, cph)
+	err = tcore.Node.Wallet.Publish(topic, secretcypher)
 	if err != nil {
-		log.Errorf("publish %s failed: %s", topic, err)
 		return "", err
 	}
 	log.Infof("published key phrase to desktop: %s", topic)
@@ -317,10 +322,10 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 	return topic, nil
 }
 
-// joinRoom and pass updates to messenger
-func (w *Wrapper) joinRoom(id string) {
-	datac := make(chan tcore.ThreadUpdate)
-	go tcore.Node.JoinRoom(id, datac)
+// subscribe to thread and pass updates to messenger
+func (w *Wrapper) subscribe(thrd *thread.Thread) {
+	datac := make(chan thread.Update)
+	go thrd.Subscribe(datac)
 	go func() {
 		for {
 			select {
@@ -329,7 +334,7 @@ func (w *Wrapper) joinRoom(id string) {
 					return
 				}
 				w.messenger.Notify(newEvent("onThreadUpdate", map[string]interface{}{
-					"cid":       update.Cid,
+					"id":        update.Id,
 					"thread":    update.Thread,
 					"thread_id": update.ThreadID,
 				}))

@@ -2,14 +2,13 @@ package schema
 
 import (
 	"fmt"
+	"github.com/mitchellh/go-homedir"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
 	"time"
-
-	"github.com/mitchellh/go-homedir"
 )
 
 type textileSchemaManager struct {
@@ -17,17 +16,17 @@ type textileSchemaManager struct {
 	dataPath string
 }
 
-// SchemaContext are the parameters which the SchemaManager derive its source of
+// Context are the parameters which the SchemaManager derive its source of
 // truth. When their zero values are provided, a reasonable default will be
 // assumed during runtime.
-type SchemaContext struct {
+type Context struct {
 	DataPath string
 	OS       string
 }
 
 // DefaultPathTransform accepts a string path representing the location where
 // application data can be stored and returns a string representing the location
-// where OpenBazaar prefers to store its schema on the filesystem relative to that
+// where we prefer to store the schema on the filesystem relative to that
 // path. If the path cannot be transformed, an error will be returned
 func TextilePathTransform(basePath string) (path string, err error) {
 	path, err = homedir.Expand(filepath.Join(basePath, directoryName()))
@@ -54,14 +53,14 @@ func NewSchemaManager() (*textileSchemaManager, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewCustomSchemaManager(SchemaContext{
+	return NewCustomSchemaManager(Context{
 		DataPath: transformedPath,
 		OS:       runtime.GOOS,
 	})
 }
 
-// NewCustomSchemaManger allows a custom SchemaContext to be provided to change
-func NewCustomSchemaManager(ctx SchemaContext) (*textileSchemaManager, error) {
+// NewCustomSchemaManger allows a custom Context to be provided to change
+func NewCustomSchemaManager(ctx Context) (*textileSchemaManager, error) {
 	if len(ctx.DataPath) == 0 {
 		path, err := TextilePathTransform(defaultDataPath())
 		if err != nil {
