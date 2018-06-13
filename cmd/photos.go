@@ -9,7 +9,6 @@ import (
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/wallet/model"
 	"gopkg.in/abiosoft/ishell.v2"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -98,10 +97,9 @@ func SharePhoto(c *ishell.Context) {
 	}
 
 	// and it's thread
-	fromThreadId := libp2pc.ConfigEncodeKey(block.ThreadPubKey)
-	fromThread := core.Node.Wallet.GetThread(fromThreadId)
+	fromThread := core.Node.Wallet.GetThread(block.ThreadPubKey)
 	if fromThread == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find thread %s", fromThreadId)))
+		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadPubKey)))
 		return
 	}
 
@@ -146,7 +144,7 @@ func ListPhotos(c *ishell.Context) {
 
 	blocks := thread.Blocks("", -1)
 	if len(blocks) == 0 {
-		c.Println(fmt.Sprintf("no photos found in: %s", blocks))
+		c.Println(fmt.Sprintf("no photos found in: %s", threadName))
 	} else {
 		c.Println(fmt.Sprintf("found %v photos in: %s", len(blocks), threadName))
 	}
