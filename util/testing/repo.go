@@ -1,11 +1,10 @@
 package testing
 
 import (
-	"os"
-	"path"
-
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
+	"os"
+	"path"
 )
 
 // Repository represents a test (temporary/volitile) repository
@@ -17,30 +16,25 @@ type Repository struct {
 
 // NewRepository creates and initializes a new temporary repository for tests
 func NewRepository() (*Repository, error) {
-	// Create repo object
-	r := &Repository{
+	// Create repository object
+	repository := &Repository{
 		Path:     GetRepoPath(),
 		Password: GetPassword(),
 	}
 
 	// Create database
 	var err error
-	r.DB, err = db.Create(r.Path, "")
+	repository.DB, err = db.Create(repository.Path, "")
 	if err != nil {
 		return nil, err
 	}
 
-	return r, nil
+	return repository, nil
 }
 
 // ConfigFile returns the path to the test configuration file
 func (r *Repository) ConfigFile() string {
 	return path.Join(r.Path, "config")
-}
-
-// RemoveSettings purges settings from the database
-func (r *Repository) RemoveSettings() error {
-	return r.DB.Settings().Delete()
 }
 
 // RemoveRepo removes the test repository
@@ -63,14 +57,8 @@ func (r *Repository) Reset() error {
 	}
 
 	// Rebuild any necessary structure
-	err = repo.DoInit(r.Path, false, r.DB.Config().Init, r.DB.Config().Configure)
+	err = repo.DoInit(r.Path, false, "boom", r.DB.Config().Init, r.DB.Config().Configure)
 	if err != nil && err != repo.ErrRepoExists {
-		return err
-	}
-
-	// Remove any settings
-	err = r.RemoveSettings()
-	if err != nil {
 		return err
 	}
 

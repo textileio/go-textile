@@ -1,17 +1,15 @@
 package controllers
 
 import (
+	"github.com/gin-gonic/gin"
+	"github.com/globalsign/mgo/bson"
+	"github.com/textileio/textile-go/central/dao"
+	"github.com/textileio/textile-go/central/models"
 	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
-
-	"github.com/gin-gonic/gin"
-	"github.com/globalsign/mgo/bson"
-
-	"github.com/textileio/textile-go/central/dao"
-	"github.com/textileio/textile-go/central/models"
 )
 
 func CreateReferral(c *gin.Context) {

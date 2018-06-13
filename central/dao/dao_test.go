@@ -2,15 +2,13 @@ package dao_test
 
 import (
 	"fmt"
+	"github.com/globalsign/mgo/bson"
+	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/central/dao"
+	"github.com/textileio/textile-go/central/models"
 	"os"
 	"testing"
 	"time"
-
-	"github.com/globalsign/mgo/bson"
-	"github.com/segmentio/ksuid"
-
-	"github.com/textileio/textile-go/central/dao"
-	"github.com/textileio/textile-go/central/models"
 )
 
 var d = dao.DAO{}

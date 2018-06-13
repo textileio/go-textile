@@ -1,13 +1,11 @@
 package main
 
 import (
-	"os"
-
 	"github.com/gin-gonic/gin"
-
 	"github.com/textileio/textile-go/central/controllers"
 	"github.com/textileio/textile-go/central/dao"
 	"github.com/textileio/textile-go/central/middleware"
+	"os"
 )
 
 func init() {

@@ -3,14 +3,6 @@
   unused-packages = true
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/btcsuite/btcd"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/btcsuite/btcutil"
-
-[[constraint]]
   name = "github.com/gin-gonic/gin"
   version = "1.2.0"
 

@@ -1,20 +1,18 @@
-// TODO: use lumberjack logger, not stdout, see #33
 package main
 
 import (
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
-
 	"github.com/fatih/color"
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
 	"github.com/op/go-logging"
-	"gopkg.in/abiosoft/ishell.v2"
-
 	"github.com/textileio/textile-go/cmd"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/wallet"
+	"gopkg.in/abiosoft/ishell.v2"
+	"os"
+	"path/filepath"
 )
 
 type Opts struct {
@@ -68,10 +66,11 @@ func main() {
 		}
 		shell.Println("interrupted")
 		shell.Printf("textile node shutting down...")
-		if core.Node.Online() {
-			core.Node.Stop()
+		if err := stop(); err != nil && err != wallet.ErrStopped {
+			c.Err(err)
+		} else {
+			shell.Printf("done\n")
 		}
-		shell.Printf("done\n")
 		os.Exit(1)
 	})
 
@@ -80,7 +79,7 @@ func main() {
 		Name: "start",
 		Help: "start the node",
 		Func: func(c *ishell.Context) {
-			if core.Node.Online() {
+			if core.Node.Wallet.Started() {
 				c.Println("already started")
 				return
 			}
@@ -95,7 +94,7 @@ func main() {
 		Name: "stop",
 		Help: "stop the node",
 		Func: func(c *ishell.Context) {
-			if !core.Node.Online() {
+			if !core.Node.Wallet.Started() {
 				c.Println("already stopped")
 				return
 			}
@@ -160,58 +159,55 @@ func main() {
 		shell.AddCmd(photoCmd)
 	}
 	{
-		albumsCmd := &ishell.Cmd{
+		threadCmd := &ishell.Cmd{
 			Name:     "thread",
 			Help:     "manage photo threads",
 			LongHelp: "Add, list, enable, disable, and get info about photo threads.",
 		}
-		albumsCmd.AddCmd(&ishell.Cmd{
+		threadCmd.AddCmd(&ishell.Cmd{
 			Name: "add",
 			Help: "add a new thread",
-			Func: cmd.CreateAlbum,
+			Func: cmd.CreateThread,
 		})
-		albumsCmd.AddCmd(&ishell.Cmd{
+		threadCmd.AddCmd(&ishell.Cmd{
 			Name: "ls",
 			Help: "list threads",
-			Func: cmd.ListAlbums,
+			Func: cmd.ListThreads,
 		})
-		albumsCmd.AddCmd(&ishell.Cmd{
+		threadCmd.AddCmd(&ishell.Cmd{
 			Name: "enable",
 			Help: "enable a thread",
-			Func: cmd.EnableAlbum,
+			Func: cmd.EnableThread,
 		})
-		albumsCmd.AddCmd(&ishell.Cmd{
+		threadCmd.AddCmd(&ishell.Cmd{
 			Name: "disable",
 			Help: "disable a thread",
 			Func: cmd.DisableAlbum,
 		})
-		albumsCmd.AddCmd(&ishell.Cmd{
-			Name: "mnemonic",
-			Help: "show mnemonic phrase",
-			Func: cmd.AlbumMnemonic,
-		})
-		albumsCmd.AddCmd(&ishell.Cmd{
+		threadCmd.AddCmd(&ishell.Cmd{
 			Name: "publish",
 			Help: "publish latest update",
-			Func: cmd.RepublishAlbum,
+			Func: cmd.PublishThread,
 		})
-		albumsCmd.AddCmd(&ishell.Cmd{
+		threadCmd.AddCmd(&ishell.Cmd{
 			Name: "peers",
 			Help: "list peers",
-			Func: cmd.ListAlbumPeers,
+			Func: cmd.ListThreadPeers,
 		})
-		shell.AddCmd(albumsCmd)
+		shell.AddCmd(threadCmd)
 	}
 
 	// create and start a desktop textile node
 	// TODO: darwin should use App. Support dir, not home dir
 	// TODO: make api url configuratable via an option flag
 	config := core.NodeConfig{
-		RepoPath:      dataDir,
-		CentralApiURL: "https://api.textile.io",
-		IsMobile:      false,
-		LogLevel:      logging.DEBUG,
-		LogFiles:      true,
+		LogLevel: logging.DEBUG,
+		LogFiles: true,
+		WalletConfig: wallet.Config{
+			RepoPath:   dataDir,
+			CentralAPI: "https://api.textile.io",
+			IsMobile:   false,
+		},
 	}
 	node, err := core.NewNode(config)
 	if err != nil {
@@ -226,7 +222,7 @@ func main() {
 	}
 
 	// welcome
-	printSplashScreen(shell, core.Node.RepoPath)
+	printSplashScreen(shell, core.Node.Wallet.GetRepoPath())
 
 	// run shell
 	shell.Run()
@@ -234,47 +230,22 @@ func main() {
 
 func start(shell *ishell.Shell) error {
 	// start node
-	online, err := core.Node.Start()
+	online, err := core.Node.StartWallet()
 	if err != nil {
 		return err
 	}
 	<-online
 
-	// start garbage collection
-	// TODO: see method todo before enabling
-	//go startGarbageCollection()
-
-	// join existing rooms
-	for _, album := range core.Node.Datastore.Albums().GetAlbums("") {
-		cmd.JoinRoom(shell, album.Id)
+	// join existing threads
+	for _, thread := range core.Node.Wallet.Threads() {
+		cmd.Subscribe(shell, thread)
 	}
 
 	return nil
 }
 
 func stop() error {
-	return core.Node.Stop()
-}
-
-// Start garbage collection
-func startGarbageCollection() {
-	errc, err := core.Node.StartGarbageCollection()
-	if err != nil {
-		shell.Println(fmt.Errorf("auto gc error: %s", err))
-		return
-	}
-	for {
-		select {
-		case err, ok := <-errc:
-			if err != nil {
-				shell.Println(fmt.Errorf("auto gc error: %s", err))
-			}
-			if !ok {
-				shell.Println("auto gc stopped")
-				return
-			}
-		}
-	}
+	return core.Node.StopWallet()
 }
 
 func printSplashScreen(shell *ishell.Shell, dataDir string) {

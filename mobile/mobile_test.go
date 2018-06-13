@@ -2,14 +2,11 @@ package mobile_test
 
 import (
 	"encoding/json"
-	"os"
-	"testing"
-
 	"github.com/segmentio/ksuid"
-
-	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
 	util "github.com/textileio/textile-go/util/testing"
+	"os"
+	"testing"
 )
 
 type TestMessenger struct {
@@ -19,7 +16,9 @@ type TestMessenger struct {
 func (tm *TestMessenger) Notify(event *Event) {}
 
 var wrapper *Wrapper
-var hash string
+var mnemonic string
+var addedPhotoId string
+var sharedBlockId string
 
 var cusername = ksuid.New().String()
 var cpassword = ksuid.New().String()
@@ -40,15 +39,13 @@ func TestNewTextile(t *testing.T) {
 }
 
 func TestWrapper_Start(t *testing.T) {
-	err := wrapper.Start()
-	if err != nil {
+	if err := wrapper.Start(); err != nil {
 		t.Errorf("start mobile node failed: %s", err)
 	}
 }
 
 func TestWrapper_StartAgain(t *testing.T) {
-	err := wrapper.Start()
-	if err != nil {
+	if err := wrapper.Start(); err != nil {
 		t.Errorf("attempt to start a running node failed: %s", err)
 	}
 }
@@ -63,16 +60,16 @@ func TestWrapper_SignUpWithEmail(t *testing.T) {
 		t.Error("create referral for signup got no codes")
 		return
 	}
-	err = wrapper.SignUpWithEmail(cusername, cpassword, cemail, ref.RefCodes[0])
+	m, err := wrapper.SignUpWithEmail(cusername, cpassword, cemail, ref.RefCodes[0])
 	if err != nil {
 		t.Errorf("signup failed: %s", err)
 		return
 	}
+	mnemonic = m
 }
 
 func TestWrapper_SignIn(t *testing.T) {
-	err := wrapper.SignIn(cusername, cpassword)
-	if err != nil {
+	if err := wrapper.SignIn(cusername, cpassword, mnemonic); err != nil {
 		t.Errorf("signin failed: %s", err)
 		return
 	}
@@ -81,19 +78,6 @@ func TestWrapper_SignIn(t *testing.T) {
 func TestWrapper_IsSignedIn(t *testing.T) {
 	if !wrapper.IsSignedIn() {
 		t.Errorf("is signed in check failed should be true")
-		return
-	}
-}
-
-func TestWrapper_UpdateThread(t *testing.T) {
-	err := wrapper.UpdateThread("", "all")
-	if err == nil {
-		t.Errorf("update thread with blank mnemonic: %s", "all")
-		return
-	}
-	err = wrapper.UpdateThread("I AM A DEVELOPER WHO USES WEAK MNEMONICS", "all")
-	if err != nil {
-		t.Errorf("update thread with new mnemonic failed: %s", err)
 		return
 	}
 }
@@ -117,16 +101,14 @@ func TestWrapper_GetAccessToken(t *testing.T) {
 	}
 }
 
-func TestWrapper_GetGatewayPassword(t *testing.T) {
-	pwd := wrapper.GetGatewayPassword()
-	if pwd == "" {
-		t.Errorf("got bad gateway password: %s", pwd)
-		return
+func TestWrapper_AddThread(t *testing.T) {
+	if err := wrapper.AddThread("default"); err != nil {
+		t.Errorf("attempt to start a running node failed: %s", err)
 	}
 }
 
 func TestWrapper_AddPhoto(t *testing.T) {
-	mr, err := wrapper.AddPhoto("testdata/image.jpg", "testdata/thumb.jpg", "default")
+	mr, err := wrapper.AddPhoto("testdata/image.jpg", "default", "howdy")
 	if err != nil {
 		t.Errorf("add photo failed: %s", err)
 		return
@@ -134,27 +116,28 @@ func TestWrapper_AddPhoto(t *testing.T) {
 	if len(mr.Boundary) == 0 {
 		t.Errorf("add photo got bad hash")
 	}
-	hash = mr.Boundary
-	err = os.Remove("testdata/" + mr.Boundary)
+	addedPhotoId = mr.Boundary
+	err = os.Remove("testdata/.ipfs/tmp/" + mr.Boundary)
 	if err != nil {
 		t.Errorf("error unlinking test multipart file: %s", err)
 	}
 }
 
 func TestWrapper_SharePhoto(t *testing.T) {
+	err := wrapper.AddThread("test")
+	if err != nil {
+		t.Errorf("add test thread failed: %s", err)
+		return
+	}
 	caption := "rasputin's eyes"
-	mr, err := wrapper.SharePhoto(hash, "all", caption)
+	sharedBlockId, err = wrapper.SharePhoto(addedPhotoId, "test", caption)
 	if err != nil {
 		t.Errorf("share photo failed: %s", err)
 		return
 	}
-	if len(mr.Boundary) == 0 {
-		t.Errorf("share photo got bad hash")
+	if len(sharedBlockId) == 0 {
+		t.Errorf("share photo got bad id")
 	}
-}
-
-func TestWrapper_GetHashRequest(t *testing.T) {
-	// TODO
 }
 
 func TestWrapper_GetPhotos(t *testing.T) {
@@ -163,28 +146,23 @@ func TestWrapper_GetPhotos(t *testing.T) {
 		t.Errorf("get photos failed: %s", err)
 		return
 	}
-	list := core.PhotoList{}
-	json.Unmarshal([]byte(res), &list)
-	if len(list.Hashes) == 0 {
+	blocks := Blocks{}
+	json.Unmarshal([]byte(res), &blocks)
+	if len(blocks.Items) == 0 {
 		t.Errorf("get photos bad result")
 	}
 }
 
-func TestWrapper_GetPhotosEmptyChannel(t *testing.T) {
-	res, err := wrapper.GetPhotos("", -1, "empty")
-	if err != nil {
-		t.Errorf("get photos failed: %s", err)
+func TestWrapper_GetPhotosBadThread(t *testing.T) {
+	_, err := wrapper.GetPhotos("", -1, "empty")
+	if err == nil {
+		t.Errorf("get photos from bad thread should fail: %s", err)
 		return
-	}
-	list := core.PhotoList{}
-	json.Unmarshal([]byte(res), &list)
-	if len(list.Hashes) != 0 {
-		t.Errorf("get photos bad result")
 	}
 }
 
 func TestWrapper_GetFileBase64(t *testing.T) {
-	res, err := wrapper.GetFileBase64(hash + "/thumb")
+	res, err := wrapper.GetFileBase64(addedPhotoId+"/thumb", sharedBlockId)
 	if err != nil {
 		t.Errorf("get photo base64 string failed: %s", err)
 		return
@@ -194,8 +172,8 @@ func TestWrapper_GetFileBase64(t *testing.T) {
 	}
 }
 
-func TestWrapper_GetPeerID(t *testing.T) {
-	_, err := wrapper.GetPeerID()
+func TestWrapper_GetIPFSPeerID(t *testing.T) {
+	_, err := wrapper.GetIPFSPeerID()
 	if err != nil {
 		t.Errorf("get peer id failed: %s", err)
 	}
@@ -204,11 +182,11 @@ func TestWrapper_GetPeerID(t *testing.T) {
 //func TestWrapper_PairDesktop(t *testing.T) {
 //	_, pk, err := libp2p.GenerateKeyPair(libp2p.Ed25519, 1024)
 //	if err != nil {
-//		t.Errorf("create rsa keypair failed: %s", err)
+//		t.Errorf("create keypair failed: %s", err)
 //	}
 //	pb, err := pk.Bytes()
 //	if err != nil {
-//		t.Errorf("get rsa keypair bytes: %s", err)
+//		t.Errorf("get keypair bytes: %s", err)
 //	}
 //	ps := base64.StdEncoding.EncodeToString(pb)
 //
@@ -219,8 +197,7 @@ func TestWrapper_GetPeerID(t *testing.T) {
 //}
 
 func TestWrapper_SignOut(t *testing.T) {
-	err := wrapper.SignOut()
-	if err != nil {
+	if err := wrapper.SignOut(); err != nil {
 		t.Errorf("signout failed: %s", err)
 		return
 	}
@@ -234,23 +211,20 @@ func TestWrapper_IsSignedInAgain(t *testing.T) {
 }
 
 func TestWrapper_Stop(t *testing.T) {
-	err := wrapper.Stop()
-	if err != nil {
+	if err := wrapper.Stop(); err != nil {
 		t.Errorf("stop mobile node failed: %s", err)
 	}
 }
 
 func TestWrapper_StopAgain(t *testing.T) {
-	err := wrapper.Stop()
-	if err != nil {
+	if err := wrapper.Stop(); err != nil {
 		t.Errorf("stop mobile node again should not return error: %s", err)
 	}
 }
 
 // test signin in stopped state, should re-connect to db
 func TestWrapper_SignInAgain(t *testing.T) {
-	err := wrapper.SignIn(cusername, cpassword)
-	if err != nil {
+	if err := wrapper.SignIn(cusername, cpassword, mnemonic); err != nil {
 		t.Errorf("signin failed: %s", err)
 		return
 	}

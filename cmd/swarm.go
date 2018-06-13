@@ -3,17 +3,15 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"github.com/fatih/color"
+	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/wallet"
+	"gopkg.in/abiosoft/ishell.v2"
+	"gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
+	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/fatih/color"
-	"gopkg.in/abiosoft/ishell.v2"
-
-	"github.com/textileio/textile-go/core"
-
-	"gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 )
 
 type streamInfo struct {
@@ -57,11 +55,11 @@ func (ci connInfos) Swap(i, j int) {
 }
 
 func SwarmPeers(c *ishell.Context) {
-	if core.Node.IpfsNode.PeerHost == nil {
-		c.Err(errors.New("not online"))
+	conns, err := core.Node.Wallet.IFPSPeers()
+	if err != nil {
+		c.Err(wallet.ErrOffline)
 		return
 	}
-	conns := core.Node.IpfsNode.PeerHost.Network().Conns()
 
 	var out connInfos
 	for _, c := range conns {
@@ -125,7 +123,7 @@ func SwarmPing(c *ishell.Context) {
 
 	out := make(chan string)
 	go func() {
-		err := core.Node.PingPeer(addrs, num, out)
+		err := core.Node.Wallet.PingPeer(addrs, num, out)
 		if err != nil {
 			c.Err(err)
 		}
@@ -155,7 +153,7 @@ func SwarmConnect(c *ishell.Context) {
 	}
 	addrs := c.Args
 
-	output, err := core.Node.ConnectPeer(addrs)
+	output, err := core.Node.Wallet.ConnectPeer(addrs)
 	if err != nil {
 		c.Err(err)
 		return
