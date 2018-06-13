@@ -120,8 +120,8 @@ func initDatabaseTables(db *sql.DB, password string) error {
     create table profile (key text primary key not null, value blob);
     create table threads (id text primary key not null, name text not null, sk blob not null, head text not null);
     create unique index index_name on threads (name);
-    create table blocks (id text primary key not null, target text not null, parents text not null, key blob not null, pk blob not null, type integer not null, date integer not null);
-    create index index_thread_type_added on blocks (pk, type, date);
+    create table blocks (id text primary key not null, target text not null, parents text not null, key blob not null, pk text not null, type integer not null, date integer not null);
+    create index index_pk_type_date on blocks (pk, type, date);
 	`
 	_, err := db.Exec(sqlStmt)
 	if err != nil {

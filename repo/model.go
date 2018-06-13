@@ -17,7 +17,7 @@ type Block struct {
 	Target       string
 	Parents      []string
 	TargetKey    []byte
-	ThreadPubKey []byte
+	ThreadPubKey string
 	Type         BlockType
 	Date         time.Time
 }

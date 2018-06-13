@@ -20,7 +20,7 @@ func setupProfileDB() {
 }
 
 func TestProfileDB_SignIn(t *testing.T) {
-	err := pdb.SignIn("woohoo!", "...", "...")
+	err := pdb.SignIn("boom", []byte("secret"), "woohoo!", "...", "...")
 	if err != nil {
 		t.Error(err)
 	}

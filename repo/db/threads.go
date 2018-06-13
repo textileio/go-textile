@@ -30,8 +30,8 @@ func (c *ThreadDB) Add(thread *repo.Thread) error {
 	defer stmt.Close()
 	_, err = stmt.Exec(
 		thread.Id,
-		thread.PrivKey,
 		thread.Name,
+		thread.PrivKey,
 		thread.Head,
 	)
 	if err != nil {

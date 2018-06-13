@@ -174,7 +174,7 @@ func TestWallet_AddPhoto(t *testing.T) {
 		t.Errorf("add photo got bad id")
 	}
 	addedId = added.Id
-	err = os.Remove("testdata/" + addedId)
+	err = os.Remove("testdata/.ipfs/tmp/" + addedId)
 	if err != nil {
 		t.Errorf("error unlinking test multipart file: %s", err)
 	}
@@ -252,8 +252,8 @@ func TestWallet_Stop(t *testing.T) {
 }
 
 func TestWallet_StartedAgain(t *testing.T) {
-	if wallet.Online() {
-		t.Errorf("should report offline")
+	if wallet.Started() {
+		t.Errorf("should report stopped")
 	}
 }
 
