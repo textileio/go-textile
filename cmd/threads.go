@@ -117,6 +117,9 @@ func PublishThread(c *ishell.Context) {
 		c.Err(err)
 		return
 	}
+	if head == "" {
+		head = "ping"
+	}
 	thrd.Publish()
 
 	blue := color.New(color.FgHiBlue).SprintFunc()
