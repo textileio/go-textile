@@ -61,28 +61,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/btcsuite/btcd"
-  packages = [
-    "btcec",
-    "chaincfg",
-    "chaincfg/chainhash",
-    "wire"
-  ]
-  revision = "2be2f12b358dc57d70b8f501b00be450192efbc3"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/btcsuite/btcutil"
-  packages = [
-    ".",
-    "base58",
-    "bech32",
-    "hdkeychain"
-  ]
-  revision = "501929d3d046174c3d39f0ea54ece471aa17238c"
-
-[[projects]]
-  branch = "master"
   name = "github.com/chzyer/readline"
   packages = ["."]
   revision = "f6d7a1f6fbf35bbf9beb80dc63c56a29dcfb759f"
@@ -262,12 +240,13 @@
     "bcrypt",
     "blowfish",
     "curve25519",
+    "ed25519",
+    "ed25519/internal/edwards25519",
     "hkdf",
     "nacl/box",
     "nacl/secretbox",
     "pbkdf2",
     "poly1305",
-    "ripemd160",
     "salsa20/salsa",
     "ssh/terminal"
   ]
@@ -325,6 +304,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c6711577f94263a5933b47624066b5966e37cd8f12c4db2f4c465de9e40035b6"
+  inputs-digest = "966efecdfee9944a2204862cfa832ae4c8c0e8966ffb94a5e26db79ca4794f72"
   solver-name = "gps-cdcl"
   solver-version = 1

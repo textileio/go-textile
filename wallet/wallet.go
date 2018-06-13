@@ -69,14 +69,11 @@ type Wallet struct {
 
 const pingTimeout = time.Second * 10
 
-// ErrRunning is an error for when node start is called on a started node
 var ErrStarted = errors.New("node is already started")
-
-// ErrStopped is an error for  when node stop is called on a stopped node
 var ErrStopped = errors.New("node is already stopped")
-
-// ErrOffline is an error for when online resources are requested on an offline node
 var ErrOffline = errors.New("node is offline")
+var ErrThreadExists = errors.New("thread already exists")
+var ErrThreadLoaded = errors.New("thread is already loaded")
 
 func NewWallet(config Config) (*Wallet, error) {
 	// get database handle
@@ -249,7 +246,7 @@ func (w *Wallet) Online() bool {
 	if w.ipfs == nil {
 		return false
 	}
-	return w.ipfs.OnlineMode()
+	return w.started && w.ipfs.OnlineMode()
 }
 
 func (w *Wallet) Done() <-chan struct{} {
@@ -465,8 +462,8 @@ func (w *Wallet) GetThreadByName(name string) *thread.Thread {
 
 // AddThread adds a thread with a given name and secret key
 func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread, error) {
-	if err := w.touchDatastore(); err != nil {
-		return nil, err
+	if _, err := w.getThreadModelByName(name); err != nil {
+		return nil, ErrThreadExists
 	}
 	log.Debugf("adding a new thread: %s", name)
 
@@ -498,6 +495,9 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 
 // AddThreadWithMnemonic adds a thread with a given name and mnemonic phrase
 func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string) (*thread.Thread, error) {
+	if _, err := w.getThreadModelByName(name); err != nil {
+		return nil, ErrThreadExists
+	}
 	if mnemonic != nil {
 		log.Debugf("regenerating keypair from mnemonic for: %s", name)
 	} else {
@@ -970,7 +970,17 @@ func (w *Wallet) createIPFS(online bool) error {
 	return nil
 }
 
+func (w *Wallet) getThreadModelByName(name string) (*trepo.Thread, error) {
+	if err := w.touchDatastore(); err != nil {
+		return nil, err
+	}
+	return w.datastore.Threads().GetByName(name), nil
+}
+
 func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
+	if w.GetThreadByName(model.Name) != nil {
+		return nil, ErrThreadLoaded
+	}
 	id := model.Id // save value locally
 	threadConfig := &thread.Config{
 		RepoPath: w.repoPath,
@@ -989,6 +999,12 @@ func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
 			}
 			return nil
 		},
+		Publish: func(payload []byte) error {
+			if err := w.Publish(id, payload); err != nil {
+				return err
+			}
+			return nil
+		},
 	}
 	thrd, err := thread.NewThread(model, threadConfig)
 	if err != nil {
@@ -1003,16 +1019,15 @@ func (w *Wallet) getThreadBlock(blockId string) (*thread.Thread, *trepo.Block, e
 	if block == nil {
 		return nil, nil, errors.New(fmt.Sprintf("block %s not found locally", blockId))
 	}
-	threadId := libp2pc.ConfigEncodeKey(block.ThreadPubKey)
 	var thrd *thread.Thread
 	for _, t := range w.threads {
-		if t.Id == threadId {
+		if t.Id == block.ThreadPubKey {
 			thrd = t
 			break
 		}
 	}
 	if thrd == nil {
-		return nil, nil, errors.New(fmt.Sprintf("could not find thread: %s", threadId))
+		return nil, nil, errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadPubKey))
 	}
 	return thrd, block, nil
 }

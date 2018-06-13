@@ -40,7 +40,7 @@ func TestBlockDB_Put(t *testing.T) {
 		Target:       "Qm456",
 		Parents:      []string{"Qm123"},
 		TargetKey:    key,
-		ThreadPubKey: pkb,
+		ThreadPubKey: libp2pc.ConfigEncodeKey(pkb),
 		Type:         repo.PhotoBlock,
 		Date:         time.Now(),
 	})
@@ -86,10 +86,18 @@ func TestBlockDB_List(t *testing.T) {
 		Target:       "Qm456",
 		Parents:      []string{"Qm123"},
 		TargetKey:    key,
-		ThreadPubKey: pkb,
+		ThreadPubKey: libp2pc.ConfigEncodeKey(pkb),
 		Type:         repo.PhotoBlock,
 		Date:         time.Now(),
 	})
+	if err != nil {
+		t.Error(err)
+	}
+	_, pk2, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
+	if err != nil {
+		t.Error(err)
+	}
+	pkb2, err := pk2.Bytes()
 	if err != nil {
 		t.Error(err)
 	}
@@ -98,7 +106,7 @@ func TestBlockDB_List(t *testing.T) {
 		Target:       "Qm789",
 		Parents:      []string{"Qm456"},
 		TargetKey:    key,
-		ThreadPubKey: pkb,
+		ThreadPubKey: libp2pc.ConfigEncodeKey(pkb2),
 		Type:         repo.CommentBlock,
 		Date:         time.Now().Add(time.Minute),
 	})
@@ -120,7 +128,7 @@ func TestBlockDB_List(t *testing.T) {
 		t.Error("returned incorrect number of blocks")
 		return
 	}
-	filtered := bdb.List("", -1, "local=1")
+	filtered := bdb.List("", -1, "pk='"+libp2pc.ConfigEncodeKey(pkb2)+"'")
 	if len(filtered) != 1 {
 		t.Error("returned incorrect number of blocks")
 		return

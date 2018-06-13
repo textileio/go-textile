@@ -174,8 +174,8 @@ func GetEncryptedReaderBytes(reader io.Reader, key []byte) ([]byte, error) {
 }
 
 // AddFileToDirectory adds bytes as file to a virtual directory (dag) structure
-func AddFileToDirectory(ipfs *core.IpfsNode, dirb *uio.Directory, bts []byte, fname string) error {
-	reader := bytes.NewReader(bts)
+func AddFileToDirectory(ipfs *core.IpfsNode, dirb *uio.Directory, data []byte, fname string) error {
+	reader := bytes.NewReader(data)
 	str, err := coreunix.Add(ipfs, reader)
 	if err != nil {
 		return err

@@ -98,7 +98,7 @@ func (m *Mobile) NewNode(config *NodeConfig, messenger Messenger) (*Wrapper, err
 func (w *Wrapper) Start() error {
 	online, err := tcore.Node.StartWallet()
 	if err != nil {
-		if err == wallet.ErrStopped {
+		if err == wallet.ErrStarted {
 			return nil
 		}
 		return err
@@ -175,6 +175,12 @@ func (w *Wrapper) GetAccessToken() (string, error) {
 	return tcore.Node.Wallet.GetAccessToken()
 }
 
+// AddThread adds a new thread with the given name
+func (w *Wrapper) AddThread(name string) error {
+	_, err := tcore.Node.Wallet.AddThreadWithMnemonic(name, nil)
+	return err
+}
+
 // AddPhoto adds a photo by path and shares it to the default thread
 func (w *Wrapper) AddPhoto(path string, threadName string, caption string) (*net.MultipartRequest, error) {
 	thrd := tcore.Node.Wallet.GetThreadByName(threadName)
@@ -205,10 +211,9 @@ func (w *Wrapper) SharePhoto(id string, threadName string, caption string) (stri
 	if err != nil {
 		return "", err
 	}
-	fromThreadId := libp2pc.ConfigEncodeKey(block.ThreadPubKey)
-	fromThread := tcore.Node.Wallet.GetThread(fromThreadId)
+	fromThread := tcore.Node.Wallet.GetThread(block.ThreadPubKey)
 	if fromThread == nil {
-		return "", errors.New(fmt.Sprintf("could not find thread %s", fromThreadId))
+		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadPubKey))
 	}
 	toThread := tcore.Node.Wallet.GetThreadByName(threadName)
 	if toThread == nil {

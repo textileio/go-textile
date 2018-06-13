@@ -32,6 +32,7 @@ type Config struct {
 	Blocks     repo.BlockStore
 	GetHead    func() (string, error)
 	UpdateHead func(head string) error
+	Publish    func(payload []byte) error
 }
 
 // ThreadUpdate is used to notify listeners about updates in a thread
@@ -52,6 +53,7 @@ type Thread struct {
 	blocks     repo.BlockStore
 	GetHead    func() (string, error)
 	updateHead func(head string) error
+	publish    func(payload []byte) error
 	mux        sync.Mutex
 	listening  bool
 }
@@ -71,6 +73,7 @@ func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 		blocks:     config.Blocks,
 		GetHead:    config.GetHead,
 		updateHead: config.UpdateHead,
+		publish:    config.Publish,
 	}, nil
 }
 
@@ -136,10 +139,11 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*model.AddResu
 	if err != nil {
 		return nil, err
 	}
-	threadkey, err := t.PrivKey.GetPublic().Bytes()
+	threadkeyb, err := t.PrivKey.GetPublic().Bytes()
 	if err != nil {
 		return nil, err
 	}
+	threadkey := libp2pc.ConfigEncodeKey(threadkeyb)
 	typeb := repo.PhotoBlock.Bytes() // silly?
 	dateb := util.GetNowBytes()
 
@@ -163,7 +167,7 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*model.AddResu
 	if err != nil {
 		return nil, err
 	}
-	err = util.AddFileToDirectory(t.ipfs, dirb, threadkey, "pk")
+	err = util.AddFileToDirectory(t.ipfs, dirb, []byte(threadkey), "pk")
 	if err != nil {
 		return nil, err
 	}
@@ -203,9 +207,10 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*model.AddResu
 
 	// post it
 	go func(bid string) {
-		err = t.post([]byte(id))
+		err = t.publish([]byte(id))
 		if err != nil {
-			log.Errorf("error posting block %s: %s", bid, err)
+			log.Warningf("failed to post block %s: %s", bid, err)
+			return
 		}
 		log.Debugf("posted block %s to %s", bid, t.Id)
 	}(block.Id)
@@ -224,7 +229,7 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*model.AddResu
 	if err := request.AddFile(keycypher, "key"); err != nil {
 		return nil, err
 	}
-	if err := request.AddFile(threadkey, "pk"); err != nil {
+	if err := request.AddFile([]byte(threadkey), "pk"); err != nil {
 		return nil, err
 	}
 	if err := request.AddFile(typeb, "type"); err != nil {
@@ -486,7 +491,7 @@ func (t *Thread) indexBlock(id string) (*repo.Block, error) {
 		Target:       string(target),
 		Parents:      strings.Split(string(parents), ","),
 		TargetKey:    key,
-		ThreadPubKey: pk,
+		ThreadPubKey: string(pk),
 		Type:         repo.BlockType(int(typei)),
 		Date:         time.Unix(int64(datei), 0),
 	}

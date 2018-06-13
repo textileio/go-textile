@@ -10,7 +10,6 @@ go test -coverprofile=wallet.thread.cover.out ./wallet/thread
 go test -coverprofile=wallet.util.cover.out ./wallet/util
 go test -coverprofile=mobile.cover.out ./mobile
 go test -coverprofile=repo.db.cover.out ./repo/db
-go test -coverprofile=repo.photos.cover.out ./repo/photos
 go test -coverprofile=repo.schema.cover.out ./repo/schema
 go test -coverprofile=net.cover.out ./net
 go test -coverprofile=crypto.cover.out ./crypto

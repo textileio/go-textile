@@ -152,7 +152,7 @@ func TestThreadDB_Delete(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := tdb.PrepareQuery("select pk from threads where id=?")
+	stmt, err := tdb.PrepareQuery("select id from threads where id=?")
 	defer stmt.Close()
 	var id string
 	err = stmt.QueryRow(all[0].Id).Scan(&id)
