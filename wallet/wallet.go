@@ -984,8 +984,8 @@ func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
 	id := model.Id // save value locally
 	threadConfig := &thread.Config{
 		RepoPath: w.repoPath,
-		Ipfs:     w.ipfs,
-		Blocks:   w.datastore.Blocks(),
+		Ipfs:     func() *core.IpfsNode { return w.ipfs },
+		Blocks:   func() trepo.BlockStore { return w.datastore.Blocks() },
 		GetHead: func() (string, error) {
 			m := w.datastore.Threads().Get(id)
 			if m == nil {

@@ -28,8 +28,8 @@ var log = logging.MustGetLogger("thread")
 
 type Config struct {
 	RepoPath   string
-	Ipfs       *core.IpfsNode
-	Blocks     repo.BlockStore
+	Ipfs       func() *core.IpfsNode
+	Blocks     func() repo.BlockStore
 	GetHead    func() (string, error)
 	UpdateHead func(head string) error
 	Publish    func(payload []byte) error
@@ -49,8 +49,8 @@ type Thread struct {
 	LeftCh     chan struct{}
 	leaveCh    chan struct{}
 	repoPath   string
-	ipfs       *core.IpfsNode
-	blocks     repo.BlockStore
+	ipfs       func() *core.IpfsNode
+	blocks     func() repo.BlockStore
 	GetHead    func() (string, error)
 	updateHead func(head string) error
 	publish    func(payload []byte) error
@@ -81,7 +81,7 @@ func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 // e.g., Qm../thumb, Qm../photo, Qm../meta, Qm../caption
 func (t *Thread) GetFile(path string, block *repo.Block) ([]byte, error) {
 	// get bytes
-	cypher, err := util.GetDataAtPath(t.ipfs, path)
+	cypher, err := util.GetDataAtPath(t.ipfs(), path)
 	if err != nil {
 		log.Errorf("error getting file data: %s", err)
 		return nil, err
@@ -154,32 +154,32 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*model.AddResu
 	}
 
 	// create a virtual directory for the new block
-	dirb := uio.NewDirectory(t.ipfs.DAG)
-	err = util.AddFileToDirectory(t.ipfs, dirb, []byte(id), "target")
+	dirb := uio.NewDirectory(t.ipfs().DAG)
+	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(id), "target")
 	if err != nil {
 		return nil, err
 	}
-	err = util.AddFileToDirectory(t.ipfs, dirb, []byte(head), "parents")
+	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(head), "parents")
 	if err != nil {
 		return nil, err
 	}
-	err = util.AddFileToDirectory(t.ipfs, dirb, keycypher, "key")
+	err = util.AddFileToDirectory(t.ipfs(), dirb, keycypher, "key")
 	if err != nil {
 		return nil, err
 	}
-	err = util.AddFileToDirectory(t.ipfs, dirb, []byte(threadkey), "pk")
+	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(threadkey), "pk")
 	if err != nil {
 		return nil, err
 	}
-	err = util.AddFileToDirectory(t.ipfs, dirb, typeb, "type")
+	err = util.AddFileToDirectory(t.ipfs(), dirb, typeb, "type")
 	if err != nil {
 		return nil, err
 	}
-	err = util.AddFileToDirectory(t.ipfs, dirb, dateb, "date")
+	err = util.AddFileToDirectory(t.ipfs(), dirb, dateb, "date")
 	if err != nil {
 		return nil, err
 	}
-	err = util.AddFileToDirectory(t.ipfs, dirb, captioncypher, "caption")
+	err = util.AddFileToDirectory(t.ipfs(), dirb, captioncypher, "caption")
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +189,7 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*model.AddResu
 	if err != nil {
 		return nil, err
 	}
-	if err := util.PinDirectory(t.ipfs, dir, []string{}); err != nil {
+	if err := util.PinDirectory(t.ipfs(), dir, []string{}); err != nil {
 		return nil, err
 	}
 	bid := dir.Cid().Hash().B58String()
@@ -257,7 +257,7 @@ func (t *Thread) Subscribe(datac chan Update) {
 		return
 	}
 	t.listening = true
-	sub, err := t.ipfs.Floodsub.Subscribe(t.Id)
+	sub, err := t.ipfs().Floodsub.Subscribe(t.Id)
 	if err != nil {
 		log.Errorf("error creating subscription: %s", err)
 		return
@@ -310,7 +310,7 @@ func (t *Thread) Subscribe(datac chan Update) {
 		case <-t.leaveCh:
 			leave()
 			return
-		case <-t.ipfs.Context().Done():
+		case <-t.ipfs().Context().Done():
 			leave()
 			return
 		}
@@ -334,7 +334,7 @@ func (t *Thread) Listening() bool {
 func (t *Thread) Blocks(offsetId string, limit int) []repo.Block {
 	log.Debugf("listing blocks: offsetId: %s, limit: %d, thread: %s", offsetId, limit, t.Name)
 	query := fmt.Sprintf("pk='%s' and type=%d", t.Id, repo.PhotoBlock)
-	list := t.blocks.List(offsetId, limit, query)
+	list := t.blocks().List(offsetId, limit, query)
 	log.Debugf("found %d photos in thread %s", len(list), t.Name)
 	return list
 }
@@ -366,7 +366,7 @@ func (t *Thread) Publish() {
 }
 
 func (t *Thread) Peers() []string {
-	peers := t.ipfs.Floodsub.ListPeers(t.Id)
+	peers := t.ipfs().Floodsub.ListPeers(t.Id)
 	var list []string
 	for _, peer := range peers {
 		list = append(list, peer.Pretty())
@@ -376,14 +376,14 @@ func (t *Thread) Peers() []string {
 }
 
 func (t *Thread) post(payload []byte) error {
-	return t.ipfs.Floodsub.Publish(t.Id, payload)
+	return t.ipfs().Floodsub.Publish(t.Id, payload)
 }
 
 // preHandleBlock tries to recursively process an update sent to a thread
 func (t *Thread) preHandleBlock(msg *floodsub.Message, datac chan Update) error {
 	// unpack from
 	from := msg.GetFrom().Pretty()
-	if from == t.ipfs.Identity.Pretty() {
+	if from == t.ipfs().Identity.Pretty() {
 		return nil
 	}
 
@@ -420,14 +420,14 @@ func (t *Thread) handleBlock(id string, datac chan Update) error {
 	log.Debugf("handling block: %s...", id)
 
 	// check if we aleady have this block
-	block := t.blocks.Get(id)
+	block := t.blocks().Get(id)
 	if block != nil {
 		log.Debugf("block %s exists, aborting", id)
 		return nil
 	}
 
 	log.Debugf("pinning block %s...", id)
-	if err := util.PinPath(t.ipfs, id, true); err != nil {
+	if err := util.PinPath(t.ipfs(), id, true); err != nil {
 		return err
 	}
 
@@ -454,23 +454,23 @@ func (t *Thread) handleBlock(id string, datac chan Update) error {
 }
 
 func (t *Thread) indexBlock(id string) (*repo.Block, error) {
-	target, err := util.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/target", id))
+	target, err := util.GetDataAtPath(t.ipfs(), fmt.Sprintf("%s/target", id))
 	if err != nil {
 		return nil, err
 	}
-	parents, err := util.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/parents", id))
+	parents, err := util.GetDataAtPath(t.ipfs(), fmt.Sprintf("%s/parents", id))
 	if err != nil {
 		return nil, err
 	}
-	key, err := util.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/key", id))
+	key, err := util.GetDataAtPath(t.ipfs(), fmt.Sprintf("%s/key", id))
 	if err != nil {
 		return nil, err
 	}
-	pk, err := util.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/pk", id))
+	pk, err := util.GetDataAtPath(t.ipfs(), fmt.Sprintf("%s/pk", id))
 	if err != nil {
 		return nil, err
 	}
-	typeb, err := util.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/type", id))
+	typeb, err := util.GetDataAtPath(t.ipfs(), fmt.Sprintf("%s/type", id))
 	if err != nil {
 		return nil, err
 	}
@@ -478,7 +478,7 @@ func (t *Thread) indexBlock(id string) (*repo.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	dateb, err := util.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/date", id))
+	dateb, err := util.GetDataAtPath(t.ipfs(), fmt.Sprintf("%s/date", id))
 	if err != nil {
 		return nil, err
 	}
@@ -495,7 +495,7 @@ func (t *Thread) indexBlock(id string) (*repo.Block, error) {
 		Type:         repo.BlockType(int(typei)),
 		Date:         time.Unix(int64(datei), 0),
 	}
-	if err := t.blocks.Add(block); err != nil {
+	if err := t.blocks().Add(block); err != nil {
 		return nil, err
 	}
 	return block, nil
