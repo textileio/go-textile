@@ -9,17 +9,17 @@ build_desktop:
 
 ios_framework:
 	CGO_CFLAGS_ALLOW='-fmodules|-fblocks' gomobile bind -target=ios/arm64 github.com/textileio/textile-go/mobile github.com/textileio/textile-go/net
-	# cp -r Mobile.framework ~/github/textileio/textile-mobile/ios/
+	cp -r Mobile.framework ~/github/textileio/textile-mobile/ios/
 
 android_framework:
 	gomobile bind -target=android -o textilego.aar github.com/textileio/textile-go/mobile github.com/textileio/textile-go/net
-	# cp -r textilego.aar ~/github/textileio/textile-mobile/android/textilego/
+	cp -r textilego.aar ~/github/textileio/textile-mobile/android/textilego/
 
 clean:
 	rm -rf dist && rm -f Mobile.framework && rm -rf textilego.aar && rm -rf textilego-sources.jar
 
 build_test:
-	docker build -t circleci:1.10 .
+	docker build -f Dockerfile.circleci -t circleci:1.10 .
 
 build_swarm_services:
 	go get github.com/kardianos/govendor
