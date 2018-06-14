@@ -241,6 +241,9 @@ func start(shell *ishell.Shell) error {
 		cmd.Subscribe(shell, thread)
 	}
 
+	// start continuously publishing
+	go core.Node.StartPublishing()
+
 	return nil
 }
 
