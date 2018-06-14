@@ -26,6 +26,7 @@ import (
 
 var log = logging.MustGetLogger("thread")
 
+// Config is used to construct a Thread
 type Config struct {
 	RepoPath   string
 	Ipfs       func() *core.IpfsNode
@@ -42,6 +43,7 @@ type Update struct {
 	ThreadID string `json:"thread_id"`
 }
 
+// Thread is the primary mechanism representing a collecion of data / files / photos
 type Thread struct {
 	Id         string
 	Name       string
@@ -206,14 +208,7 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*model.AddResu
 	}
 
 	// post it
-	go func(bid string) {
-		err = t.publish([]byte(id))
-		if err != nil {
-			log.Warningf("failed to post block %s: %s", bid, err)
-			return
-		}
-		log.Debugf("posted block %s to %s", bid, t.Id)
-	}(block.Id)
+	go t.PostHead()
 
 	// create and init a new multipart request
 	request := &net.MultipartRequest{}
@@ -339,16 +334,18 @@ func (t *Thread) Blocks(offsetId string, limit int) []repo.Block {
 	return list
 }
 
+// Encrypt data with thread public key
 func (t *Thread) Encrypt(data []byte) ([]byte, error) {
 	return crypto.Encrypt(t.PrivKey.GetPublic(), data)
 }
 
+// Decrypt data with thread secret key
 func (t *Thread) Decrypt(data []byte) ([]byte, error) {
 	return crypto.Decrypt(t.PrivKey, data)
 }
 
 // Publish publishes HEAD
-func (t *Thread) Publish() {
+func (t *Thread) PostHead() {
 	head, err := t.GetHead()
 	if err != nil {
 		log.Errorf("failed to get HEAD for %s", t.Id)
@@ -358,13 +355,14 @@ func (t *Thread) Publish() {
 		head = "ping"
 	}
 	log.Debugf("publishing thread %s...", t.Name)
-	if err := t.post([]byte(head)); err != nil {
+	if err := t.publish([]byte(head)); err != nil {
 		log.Errorf("error publishing %s: %s", head, err)
 		return
 	}
 	log.Debugf("published %s to %s", head, t.Id)
 }
 
+// Peers returns known peers active in this thread
 func (t *Thread) Peers() []string {
 	peers := t.ipfs().Floodsub.ListPeers(t.Id)
 	var list []string
@@ -373,10 +371,6 @@ func (t *Thread) Peers() []string {
 	}
 	sort.Strings(list)
 	return list
-}
-
-func (t *Thread) post(payload []byte) error {
-	return t.ipfs().Floodsub.Publish(t.Id, payload)
 }
 
 // preHandleBlock tries to recursively process an update sent to a thread
@@ -453,6 +447,7 @@ func (t *Thread) handleBlock(id string, datac chan Update) error {
 	return t.handleBlock(block.Parents[0], datac)
 }
 
+// indexBlock attempts to download the block and index it in the local db
 func (t *Thread) indexBlock(id string) (*repo.Block, error) {
 	target, err := util.GetDataAtPath(t.ipfs(), fmt.Sprintf("%s/target", id))
 	if err != nil {

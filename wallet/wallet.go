@@ -49,20 +49,24 @@ type Config struct {
 }
 
 type Wallet struct {
-	context     oldcmds.Context
-	repoPath    string
-	gatewayAddr string
-	cancel      context.CancelFunc
-	ipfs        *core.IpfsNode
-	datastore   trepo.Datastore
-	centralAPI  string
-	isMobile    bool
-	started     bool
-	threads     []*thread.Thread
-	done        chan struct{}
+	context        oldcmds.Context
+	repoPath       string
+	gatewayAddr    string
+	cancel         context.CancelFunc
+	ipfs           *core.IpfsNode
+	datastore      trepo.Datastore
+	centralAPI     string
+	isMobile       bool
+	started        bool
+	threads        []*thread.Thread
+	done           chan struct{}
+	lastRelayTouch time.Time
 }
 
-const pingTimeout = time.Second * 10
+const (
+	pingTimeout        = time.Second * 10
+	relayTouchInterval = time.Minute * 2
+)
 
 var ErrStarted = errors.New("node is already started")
 var ErrStopped = errors.New("node is already stopped")
@@ -152,6 +156,7 @@ func (w *Wallet) Start() (chan struct{}, error) {
 	defer func() {
 		w.done = make(chan struct{})
 		w.started = true
+		w.lastRelayTouch = time.Time{}
 	}()
 	log.Info("starting wallet...")
 	onlineCh := make(chan struct{})
@@ -509,7 +514,7 @@ func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string) (*thread.T
 func (w *Wallet) PublishThreads() {
 	for _, t := range w.threads {
 		go func(thrd *thread.Thread) {
-			thrd.Publish()
+			thrd.PostHead()
 		}(t)
 	}
 }
@@ -739,7 +744,6 @@ func (w *Wallet) ConnectPeer(addrs []string) ([]string, error) {
 	}
 
 	swrm := snet.Swarm()
-
 	pis, err := util.PeersWithAddresses(addrs)
 	if err != nil {
 		return nil, err
@@ -823,10 +827,20 @@ func (w *Wallet) PingPeer(addrs string, num int, out chan string) error {
 	return nil
 }
 
-// TODO: connect to relay if needed
 func (w *Wallet) Publish(topic string, payload []byte) error {
 	if !w.Online() {
 		return ErrOffline
+	}
+	if w.lastRelayTouch.Add(relayTouchInterval).Before(time.Now()) {
+		log.Debug("connecting to relay...")
+		out, err := w.ConnectPeer([]string{fmt.Sprintf("/p2p-circuit/ipfs/%s", tconfig.RemoteRelayNode)})
+		if err != nil {
+			return err
+		}
+		w.lastRelayTouch = time.Now()
+		for _, o := range out {
+			log.Debug(o)
+		}
 	}
 	return w.ipfs.Floodsub.Publish(topic, payload)
 }

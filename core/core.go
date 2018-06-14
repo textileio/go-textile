@@ -140,6 +140,37 @@ func (t *TextileNode) StopWallet() error {
 	return nil
 }
 
+// StartPublishing continuously publishes the latest update in each thread
+func (t *TextileNode) StartPublishing() {
+	t.Wallet.PublishThreads() // start now
+	ticker := time.NewTicker(threadPublishInterval)
+	defer func() {
+		ticker.Stop()
+		defer func() {
+			if recover() != nil {
+				log.Error("publishing ticker already stopped")
+			}
+		}()
+	}()
+	go func() {
+		for range ticker.C {
+			t.Wallet.PublishThreads()
+		}
+	}()
+
+	// we can stop when the node stops
+	for {
+		if !t.Wallet.Started() {
+			return
+		}
+		select {
+		case <-t.Wallet.Done():
+			log.Info("publishing stopped")
+			return
+		}
+	}
+}
+
 // GetGatewayAddress returns the gateway's address
 func (t *TextileNode) GetGatewayAddress() string {
 	return t.gateway.Addr
@@ -209,35 +240,4 @@ func (t *TextileNode) startGateway() (<-chan error, error) {
 	log.Infof("decrypting gateway (readonly) server listening at %s\n", t.gateway.Addr)
 
 	return errc, nil
-}
-
-// startPublishing continuously publishes the latest update in each thread
-func (t *TextileNode) startPublishing() {
-	t.Wallet.PublishThreads() // start now
-	ticker := time.NewTicker(threadPublishInterval)
-	defer func() {
-		ticker.Stop()
-		defer func() {
-			if recover() != nil {
-				log.Error("publishing ticker already stopped")
-			}
-		}()
-	}()
-	go func() {
-		for range ticker.C {
-			t.Wallet.PublishThreads()
-		}
-	}()
-
-	// we can stop when the node stops
-	for {
-		if !t.Wallet.Started() {
-			return
-		}
-		select {
-		case <-t.Wallet.Done():
-			log.Info("publishing stopped")
-			return
-		}
-	}
 }

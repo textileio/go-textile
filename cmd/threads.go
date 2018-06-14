@@ -120,7 +120,7 @@ func PublishThread(c *ishell.Context) {
 	if head == "" {
 		head = "ping"
 	}
-	thrd.Publish()
+	thrd.PostHead()
 
 	blue := color.New(color.FgHiBlue).SprintFunc()
 	c.Println(blue(fmt.Sprintf("published %s to %s", head, thrd.Id)))
