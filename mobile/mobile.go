@@ -245,13 +245,12 @@ func (w *Wrapper) GetPhotos(offsetId string, limit int, threadName string) (stri
 		return "", errors.New(fmt.Sprintf("thread not found: %s", threadName))
 	}
 
+	// use this opportunity to post head
 	if tcore.Node.Wallet.Online() {
-		go thrd.Publish()
+		go thrd.PostHead()
 	}
 
 	blocks := &Blocks{thrd.Blocks(offsetId, limit)}
-
-	// gomobile does not allow slices. so, convert to json
 	jsonb, err := json.Marshal(blocks)
 	if err != nil {
 		log.Errorf("error marshaling json: %s", err)
