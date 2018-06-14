@@ -2,7 +2,6 @@ package util
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/disintegration/imaging"
 	"github.com/pkg/errors"
 	"github.com/rwcarlsen/goexif/exif"
@@ -115,8 +114,6 @@ func MakeThumbnail(reader io.Reader, format ThumbnailFormat, width int) ([]byte,
 			return nil, err
 		}
 		firstFrame := img.Image[0].Bounds()
-		fmt.Println(firstFrame.Dx())
-		fmt.Println(firstFrame.Dy())
 		rect := image.Rect(0, 0, firstFrame.Dx(), firstFrame.Dy())
 		rgba := image.NewRGBA(rect)
 		for index, frame := range img.Image {
