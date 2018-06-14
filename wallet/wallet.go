@@ -1,15 +1,12 @@
 package wallet
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/disintegration/imaging"
 	"github.com/op/go-logging"
-	"github.com/rwcarlsen/goexif/exif"
 	cmodels "github.com/textileio/textile-go/central/models"
 	"github.com/textileio/textile-go/core/central"
 	"github.com/textileio/textile-go/crypto"
@@ -32,8 +29,6 @@ import (
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/config"
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/fsrepo"
 	uio "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/unixfs/io"
-	"image"
-	"image/jpeg"
 	"io"
 	"os"
 	"path/filepath"
@@ -528,21 +523,30 @@ func (w *Wallet) AddPhoto(path string) (*model.AddResult, error) {
 	}
 
 	// read file from disk
-	photo, err := os.Open(path)
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	defer photo.Close()
+	defer file.Close()
+
+	// decode image
+	reader, format, err := util.DecodeImage(file)
+	if err != nil {
+		return nil, err
+	}
 
 	// make a thumbnail
-	thumb, err := makeThumbnail(photo, model.ThumbnailWidth)
+	reader.Seek(0, 0)
+	var thumbFormat util.ThumbnailFormat
+	if format == "gif" {
+		thumbFormat = util.GIF
+	} else {
+		thumbFormat = util.JPEG
+	}
+	thumb, err := util.MakeThumbnail(reader, thumbFormat, model.ThumbnailWidth)
 	if err != nil {
 		return nil, err
 	}
-
-	// path info
-	fpath := photo.Name()
-	ext := strings.ToLower(filepath.Ext(fpath))
 
 	// get username and master pub key, ignoring if not present (not signed in)
 	username, _ := w.datastore.Profile().GetUsername()
@@ -555,8 +559,13 @@ func (w *Wallet) AddPhoto(path string) (*model.AddResult, error) {
 		}
 	}
 
+	// path info
+	fpath := file.Name()
+	ext := strings.ToLower(filepath.Ext(fpath))
+
 	// get metadata
-	meta, err := getMetadata(photo, fpath, ext, username)
+	reader.Seek(0, 0)
+	meta, err := util.GetMetadata(reader, fpath, ext, username)
 	if err != nil {
 		return nil, err
 	}
@@ -566,7 +575,8 @@ func (w *Wallet) AddPhoto(path string) (*model.AddResult, error) {
 	}
 
 	// encrypt files
-	photocypher, err := util.GetEncryptedReaderBytes(photo, key)
+	reader.Seek(0, 0)
+	photocypher, err := util.GetEncryptedReaderBytes(reader, key)
 	if err != nil {
 		return nil, err
 	}
@@ -1044,52 +1054,4 @@ func (w *Wallet) touchDatastore() error {
 		w.datastore = sqliteDB
 	}
 	return nil
-}
-
-func makeThumbnail(photo *os.File, width int) ([]byte, error) {
-	img, _, err := image.Decode(photo)
-	if err != nil {
-		return nil, err
-	}
-	thumb := imaging.Resize(img, width, 0, imaging.Lanczos)
-	buff := new(bytes.Buffer)
-	if err = jpeg.Encode(buff, thumb, nil); err != nil {
-		return nil, err
-	}
-	photo.Seek(0, 0) // be kind, rewind
-	return buff.Bytes(), nil
-}
-
-// TODO: get image size info
-func getMetadata(photo *os.File, path string, ext string, username string) (model.PhotoMetadata, error) {
-	var created time.Time
-	var lat, lon float64
-	x, err := exif.Decode(photo)
-	if err == nil {
-		// time taken
-		createdTmp, err := x.DateTime()
-		if err == nil {
-			created = createdTmp
-		}
-		// coords taken
-		latTmp, lonTmp, err := x.LatLong()
-		if err == nil {
-			lat, lon = latTmp, lonTmp
-		}
-	}
-	meta := model.PhotoMetadata{
-		FileMetadata: model.FileMetadata{
-			Metadata: model.Metadata{
-				Username: username,
-				Created:  created,
-				Added:    time.Now(),
-			},
-			Name: strings.TrimSuffix(filepath.Base(path), ext),
-			Ext:  ext,
-		},
-		Latitude:  lat,
-		Longitude: lon,
-	}
-	photo.Seek(0, 0) // be kind, rewind
-	return meta, nil
 }
