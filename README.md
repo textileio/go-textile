@@ -1,6 +1,6 @@
 # textile-go
 
-Textile CLI, desktop app, mobile bindings, and REST API.
+Textile CLI, desktop app, mobile bindings, and REST API. See [textile-mobile](https://github.com/textileio/textile-mobile/) for iOS and Android apps.
 
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/textileio/textile-go)](https://goreportcard.com/report/github.com/textileio/textile-go) [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/) [![CircleCI](https://circleci.com/gh/textileio/textile-go/tree/master.svg?style=shield)](https://circleci.com/gh/textileio/textile-go/tree/master)
 
