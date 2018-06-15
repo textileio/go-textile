@@ -21,7 +21,6 @@ import (
 	"gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	libp2pn "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	utilmain "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/commands"
@@ -82,7 +81,14 @@ func NewWallet(config Config) (*Wallet, error) {
 	}
 
 	// we may be running in an uninitialized state.
-	err = trepo.DoInit(config.RepoPath, config.IsMobile, config.Version, sqliteDB.Config().Init, sqliteDB.Config().Configure)
+	err = trepo.DoInit(config.RepoPath, config.IsMobile, config.Version,
+		sqliteDB.Config().Init, sqliteDB.Config().Configure, func() error {
+			_, id, secret, err := util.IDAndSecretFromMnemonic(nil)
+			if err != nil {
+				return err
+			}
+			return sqliteDB.Profile().Init(id, secret)
+		})
 	if err != nil && err != trepo.ErrRepoExists {
 		return nil, err
 	}
@@ -262,9 +268,9 @@ func (w *Wallet) GetRepoPath() string {
 }
 
 // SignUp requests a new username and token from the central api and saves them locally
-func (w *Wallet) SignUp(reg *cmodels.Registration) (string, error) {
+func (w *Wallet) SignUp(reg *cmodels.Registration) error {
 	if err := w.touchDatastore(); err != nil {
-		return "", err
+		return err
 	}
 	log.Debugf("signup: %s %s %s %s %s", reg.Username, "xxxxxx", reg.Identity.Type, reg.Identity.Value, reg.Referral)
 
@@ -272,43 +278,26 @@ func (w *Wallet) SignUp(reg *cmodels.Registration) (string, error) {
 	res, err := central.SignUp(reg, w.GetCentralUserAPI())
 	if err != nil {
 		log.Errorf("signup error: %s", err)
-		return "", err
+		return err
 	}
 	if res.Error != nil {
 		log.Errorf("signup error from central: %s", *res.Error)
-		return "", errors.New(*res.Error)
-	}
-
-	// setup master secret key
-	log.Debug("generating a new master secret key")
-	master, mnemonic, err := util.PrivKeyFromMnemonic(nil)
-	if err != nil {
-		return "", err
-	}
-	masterb, err := master.Bytes()
-	if err != nil {
-		return "", err
-	}
-	id, err := peer.IDFromPrivateKey(master)
-	if err != nil {
-		return "", err
+		return errors.New(*res.Error)
 	}
 
 	// local signin
 	if err := w.datastore.Profile().SignIn(
-		id.Pretty(),
-		masterb,
 		reg.Username,
 		res.Session.AccessToken, res.Session.RefreshToken,
 	); err != nil {
 		log.Errorf("local signin error: %s", err)
-		return "", err
+		return err
 	}
-	return mnemonic, nil
+	return nil
 }
 
 // SignIn requests a token with a username from the central api and saves them locally
-func (w *Wallet) SignIn(creds *cmodels.Credentials, mnemonic *string) error {
+func (w *Wallet) SignIn(creds *cmodels.Credentials) error {
 	if err := w.touchDatastore(); err != nil {
 		return err
 	}
@@ -325,29 +314,8 @@ func (w *Wallet) SignIn(creds *cmodels.Credentials, mnemonic *string) error {
 		return errors.New(*res.Error)
 	}
 
-	// setup master secret key
-	if mnemonic != nil {
-		log.Debugf("generating master secret key from mnemonic: %s", *mnemonic)
-	} else {
-		log.Debug("generating a new master secret key")
-	}
-	master, _, err := util.PrivKeyFromMnemonic(mnemonic)
-	if err != nil {
-		return err
-	}
-	masterb, err := master.Bytes()
-	if err != nil {
-		return err
-	}
-	id, err := peer.IDFromPrivateKey(master)
-	if err != nil {
-		return err
-	}
-
 	// local signin
 	if err := w.datastore.Profile().SignIn(
-		id.Pretty(),
-		masterb,
 		creds.Username,
 		res.Session.AccessToken, res.Session.RefreshToken,
 	); err != nil {
@@ -915,7 +883,6 @@ func (w *Wallet) WaitForInvite() {
 			close(cancelCh)
 		}
 	}()
-
 	for {
 		select {
 		case <-cancelCh:
@@ -1007,6 +974,9 @@ func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
 	}
 	id := model.Id // save value locally
 	threadConfig := &thread.Config{
+		WalletId: func() (string, error) {
+			return w.datastore.Profile().GetID()
+		},
 		RepoPath: w.repoPath,
 		Ipfs:     func() *core.IpfsNode { return w.ipfs },
 		Blocks:   func() trepo.BlockStore { return w.datastore.Blocks() },

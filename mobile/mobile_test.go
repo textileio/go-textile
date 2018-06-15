@@ -16,7 +16,6 @@ type TestMessenger struct {
 func (tm *TestMessenger) Notify(event *Event) {}
 
 var wrapper *Wrapper
-var mnemonic string
 var addedPhotoId string
 var sharedBlockId string
 
@@ -60,16 +59,15 @@ func TestWrapper_SignUpWithEmail(t *testing.T) {
 		t.Error("create referral for signup got no codes")
 		return
 	}
-	m, err := wrapper.SignUpWithEmail(cusername, cpassword, cemail, ref.RefCodes[0])
+	err = wrapper.SignUpWithEmail(cusername, cpassword, cemail, ref.RefCodes[0])
 	if err != nil {
 		t.Errorf("signup failed: %s", err)
 		return
 	}
-	mnemonic = m
 }
 
 func TestWrapper_SignIn(t *testing.T) {
-	if err := wrapper.SignIn(cusername, cpassword, mnemonic); err != nil {
+	if err := wrapper.SignIn(cusername, cpassword); err != nil {
 		t.Errorf("signin failed: %s", err)
 		return
 	}
@@ -224,7 +222,7 @@ func TestWrapper_StopAgain(t *testing.T) {
 
 // test signin in stopped state, should re-connect to db
 func TestWrapper_SignInAgain(t *testing.T) {
-	if err := wrapper.SignIn(cusername, cpassword, mnemonic); err != nil {
+	if err := wrapper.SignIn(cusername, cpassword); err != nil {
 		t.Errorf("signin failed: %s", err)
 		return
 	}

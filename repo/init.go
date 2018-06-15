@@ -19,7 +19,8 @@ var log = logging.MustGetLogger("repo")
 
 var ErrRepoExists = errors.New("repo not empty, reinitializing would overwrite your keys")
 
-func DoInit(repoRoot string, isMobile bool, version string, dbInit func(string) error, dbConfigure func(time.Time, string) error) error {
+func DoInit(repoRoot string, isMobile bool, version string,
+	initDB func(string) error, initConfig func(time.Time, string) error, initProfile func() error) error {
 	if err := checkWriteable(repoRoot); err != nil {
 		return err
 	}
@@ -45,11 +46,15 @@ func DoInit(repoRoot string, isMobile bool, version string, dbInit func(string) 
 		return err
 	}
 
-	if err := dbInit(""); err != nil {
+	if err := initDB(""); err != nil {
 		return err
 	}
 
-	if err := dbConfigure(time.Now(), version); err != nil {
+	if err := initConfig(time.Now(), version); err != nil {
+		return err
+	}
+
+	if err := initProfile(); err != nil {
 		return err
 	}
 
