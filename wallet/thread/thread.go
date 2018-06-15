@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/net"
@@ -28,6 +29,7 @@ var log = logging.MustGetLogger("thread")
 
 // Config is used to construct a Thread
 type Config struct {
+	WalletId   func() (string, error)
 	RepoPath   string
 	Ipfs       func() *core.IpfsNode
 	Blocks     func() repo.BlockStore
@@ -51,6 +53,7 @@ type Thread struct {
 	LeftCh     chan struct{}
 	leaveCh    chan struct{}
 	repoPath   string
+	walletId   func() (string, error)
 	ipfs       func() *core.IpfsNode
 	blocks     func() repo.BlockStore
 	GetHead    func() (string, error)
@@ -70,6 +73,7 @@ func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 		Id:         model.Id,
 		Name:       model.Name,
 		PrivKey:    sk,
+		walletId:   config.WalletId,
 		repoPath:   config.RepoPath,
 		ipfs:       config.Ipfs,
 		blocks:     config.Blocks,
@@ -344,22 +348,25 @@ func (t *Thread) Decrypt(data []byte) ([]byte, error) {
 	return crypto.Decrypt(t.PrivKey, data)
 }
 
-// Publish publishes HEAD
-func (t *Thread) PostHead() {
+// Publish publishes HEAD as a JWT
+func (t *Thread) PostHead() error {
+	log.Debugf("posting thread %s...", t.Name)
 	head, err := t.GetHead()
 	if err != nil {
-		log.Errorf("failed to get HEAD for %s", t.Id)
-		return
+		log.Errorf("failed to get HEAD for %s: %s", t.Id, err)
+		return err
 	}
-	if head == "" {
-		head = "ping"
+	token, err := t.signBlock(t.blocks().Get(head))
+	if err != nil {
+		log.Errorf("sign block failed for %s: %s", t.Id, err)
+		return err
 	}
-	log.Debugf("publishing thread %s...", t.Name)
-	if err := t.publish([]byte(head)); err != nil {
-		log.Errorf("error publishing %s: %s", head, err)
-		return
+	if err := t.publish([]byte(token)); err != nil {
+		log.Errorf("error posting %s: %s", token, err)
+		return err
 	}
-	log.Debugf("published %s to %s", head, t.Id)
+	log.Debugf("posted %s to %s", token, t.Id)
+	return nil
 }
 
 // Peers returns known peers active in this thread
@@ -494,4 +501,32 @@ func (t *Thread) indexBlock(id string) (*repo.Block, error) {
 		return nil, err
 	}
 	return block, nil
+}
+
+// signBlock generated a valid JWT based on a thread block
+func (t *Thread) signBlock(block *repo.Block) (string, error) {
+	var blockId string
+	var date time.Time
+	if block != nil {
+		blockId = block.Id
+		date = block.Date
+	} else {
+		blockId = "ping"
+		date = time.Now()
+	}
+	iss, err := t.walletId()
+	if err != nil {
+		return "", err
+	}
+	claims := jwt.StandardClaims{
+		Id:       blockId, // block cid
+		Subject:  t.Id,    // thread id (pk, base64)
+		Issuer:   iss,     // wallet id (master pk, base64)
+		IssuedAt: date.Unix(),
+	}
+	token, err := jwt.NewWithClaims(crypto.SigningMethodEd25519, claims).SignedString(t.PrivKey)
+	if err != nil {
+		return "", err
+	}
+	return token, nil
 }

@@ -9,7 +9,19 @@ func Test_PrivKeyFromMnemonic(t *testing.T) {
 	// TODO
 }
 
+func Test_IDAndSecretFromMnemonic(t *testing.T) {
+	// TODO
+}
+
 func Test_GetEncryptedReaderBytes(t *testing.T) {
+	// TODO
+}
+
+func Test_UnmarshalPrivateKeyFromString(t *testing.T) {
+	// TODO
+}
+
+func Test_UnmarshalPublicKeyFromString(t *testing.T) {
 	// TODO
 }
 
