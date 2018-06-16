@@ -177,7 +177,7 @@ func (w *Wrapper) GetAccessToken() (string, error) {
 
 // AddThread adds a new thread with the given name
 func (w *Wrapper) AddThread(name string) error {
-	_, err := tcore.Node.Wallet.AddThreadWithMnemonic(name, nil)
+	_, _, err := tcore.Node.Wallet.AddThreadWithMnemonic(name, nil)
 	return err
 }
 

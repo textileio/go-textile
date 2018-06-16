@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/op/go-logging"
@@ -26,6 +27,9 @@ import (
 )
 
 var log = logging.MustGetLogger("thread")
+
+// ErrInvalidBlock is used to reject invalid block updates
+var ErrInvalidBlock = errors.New("block is not a valid token")
 
 // Config is used to construct a Thread
 type Config struct {
@@ -393,18 +397,44 @@ func (t *Thread) preHandleBlock(msg *floodsub.Message, datac chan Update) error 
 
 	// determine if this is from a relay node
 	tmp := strings.Split(data, ":")
-	var id string
+	var tokenStr string
 	if len(tmp) > 1 && tmp[0] == "relay" {
-		id = tmp[1]
+		tokenStr = tmp[1]
 		from = fmt.Sprintf("relay:%s", from)
 	} else {
-		id = tmp[0]
+		tokenStr = tmp[0]
 	}
-	log.Debugf("got block from %s in thread %s", from, t.Id)
+	var id string
+
+	// parse token
+	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*crypto.SigningMethodEd25519); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return t.PrivKey.GetPublic(), nil
+	})
+	if err != nil {
+		return err
+	}
+	// validate
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		if id, ok = claims["jti"].(string); !ok || id == "" {
+			return ErrInvalidBlock
+		}
+		// TODO validate pk, iss, iat
+	} else {
+		return ErrInvalidBlock
+	}
+
+	log.Debugf("got block %s from %s in thread %s", id, from, t.Id)
+
+	// exit if block is just a ping
+	if id == "ping" {
+		return nil
+	}
 
 	// recurse back in time starting at this hash
-	err := t.handleBlock(id, datac)
-	if err != nil {
+	if err := t.handleBlock(id, datac); err != nil {
 		return err
 	}
 
@@ -432,9 +462,14 @@ func (t *Thread) handleBlock(id string, datac chan Update) error {
 		return err
 	}
 
-	log.Debugf("indexing %s...", id)
+	// index it
 	block, err := t.indexBlock(id)
 	if err != nil {
+		return err
+	}
+
+	// update current head
+	if err := t.updateHead(id); err != nil {
 		return err
 	}
 
@@ -448,6 +483,8 @@ func (t *Thread) handleBlock(id string, datac chan Update) error {
 			log.Error("update channel already closed")
 		}
 	}()
+
+	log.Debugf("handled block: %s", id)
 
 	// check last block
 	// TODO: handle multi parents from 3-way merge
@@ -524,7 +561,7 @@ func (t *Thread) signBlock(block *repo.Block) (string, error) {
 		Issuer:   iss,     // wallet id (master pk, base64)
 		IssuedAt: date.Unix(),
 	}
-	token, err := jwt.NewWithClaims(crypto.SigningMethodEd25519, claims).SignedString(t.PrivKey)
+	token, err := jwt.NewWithClaims(crypto.SigningMethodEd25519i, claims).SignedString(t.PrivKey)
 	if err != nil {
 		return "", err
 	}
