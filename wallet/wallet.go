@@ -682,6 +682,27 @@ func (w *Wallet) GetDataAtPath(path string) ([]byte, error) {
 	return util.GetDataAtPath(w.ipfs, path)
 }
 
+func (w *Wallet) GetFileKey(blockId string) (string, error) {
+	if !w.started {
+		return "", ErrStopped
+	}
+
+	// get thread for decryption
+	thrd, block, err := w.getThreadBlock(blockId)
+	if err != nil {
+		log.Error(err.Error())
+		return "", err
+	}
+
+	// decrypt the file key
+	key, err := thrd.Decrypt(block.TargetKey)
+	if err != nil {
+		log.Errorf("error decrypting key: %s", err)
+		return "", err
+	}
+	return string(key), nil
+}
+
 func (w *Wallet) GetIPFSPeerID() (string, error) {
 	if !w.started {
 		return "", ErrStopped

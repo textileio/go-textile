@@ -3,17 +3,21 @@ package crypto
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
 	"errors"
+	"github.com/segmentio/ksuid"
 )
 
 // GenerateAESKey returns 44 random bytes, 32 for the key and 12 for a nonce.
 func GenerateAESKey() ([]byte, error) {
-	key := make([]byte, 44)
-	_, err := rand.Read(key)
+	p1, err := ksuid.NewRandom()
 	if err != nil {
 		return nil, err
 	}
+	p2, err := ksuid.NewRandom()
+	if err != nil {
+		return nil, err
+	}
+	key := []byte(p1.String() + p2.String())[:44]
 	return key, nil
 }
 
