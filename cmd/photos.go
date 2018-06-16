@@ -226,3 +226,26 @@ func CatPhotoMetadata(c *ishell.Context) {
 	black := color.New(color.FgHiBlack).SprintFunc()
 	c.Println(black(string(jsonb)))
 }
+
+func GetPhotoKey(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing photo id"))
+		return
+	}
+	id := c.Args[0]
+
+	block, err := core.Node.Wallet.FindBlock(id)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	key, err := core.Node.Wallet.GetFileKey(block.Id)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	blue := color.New(color.FgHiBlue).SprintFunc()
+	c.Println(blue(key))
+}
