@@ -462,20 +462,24 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 }
 
 // AddThreadWithMnemonic adds a thread with a given name and mnemonic phrase
-func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string) (*thread.Thread, error) {
+func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string) (*thread.Thread, string, error) {
 	if _, err := w.getThreadModelByName(name); err != nil {
-		return nil, ErrThreadExists
+		return nil, "", ErrThreadExists
 	}
 	if mnemonic != nil {
 		log.Debugf("regenerating keypair from mnemonic for: %s", name)
 	} else {
 		log.Debugf("generating keypair for: %s", name)
 	}
-	secret, _, err := util.PrivKeyFromMnemonic(mnemonic)
+	secret, mnem, err := util.PrivKeyFromMnemonic(mnemonic)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return w.AddThread(name, secret)
+	thrd, err := w.AddThread(name, secret)
+	if err != nil {
+		return nil, "", err
+	}
+	return thrd, mnem, nil
 }
 
 // PublishThreads publishes HEAD for each thread

@@ -7,27 +7,27 @@ import (
 
 // Implements the Ed25519 signing method
 // Expects *crypto.Ed25519PublicKey for signing and *crypto.Ed25519PublicKey for validation
-type signingMethodEd25519 struct {
+type SigningMethodEd25519 struct {
 	Name string
 }
 
 // Specific instance for Ed25519
-var SigningMethodEd25519 *signingMethodEd25519
+var SigningMethodEd25519i *SigningMethodEd25519
 
 func init() {
-	SigningMethodEd25519 = &signingMethodEd25519{"Ed25519"}
-	jwt.RegisterSigningMethod(SigningMethodEd25519.Alg(), func() jwt.SigningMethod {
-		return SigningMethodEd25519
+	SigningMethodEd25519i = &SigningMethodEd25519{"Ed25519"}
+	jwt.RegisterSigningMethod(SigningMethodEd25519i.Alg(), func() jwt.SigningMethod {
+		return SigningMethodEd25519i
 	})
 }
 
-func (m *signingMethodEd25519) Alg() string {
+func (m *SigningMethodEd25519) Alg() string {
 	return m.Name
 }
 
 // Implements the Verify method from SigningMethod
 // For this signing method, must be a *crypto.Ed25519PublicKey structure.
-func (m *signingMethodEd25519) Verify(signingString, signature string, key interface{}) error {
+func (m *SigningMethodEd25519) Verify(signingString, signature string, key interface{}) error {
 	var err error
 
 	// Decode the signature
@@ -57,7 +57,7 @@ func (m *signingMethodEd25519) Verify(signingString, signature string, key inter
 
 // Implements the Sign method from SigningMethod
 // For this signing method, must be a *crypto.Ed25519PublicKey structure.
-func (m *signingMethodEd25519) Sign(signingString string, key interface{}) (string, error) {
+func (m *SigningMethodEd25519) Sign(signingString string, key interface{}) (string, error) {
 	var ed25519Key *crypto.Ed25519PrivateKey
 	var ok bool
 
