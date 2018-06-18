@@ -1,15 +1,15 @@
-package crypto
+package crypto_test
 
 import (
-	"encoding/base64"
 	"github.com/dgrijalva/jwt-go"
-	"golang.org/x/crypto/ed25519"
+	. "github.com/textileio/textile-go/crypto"
+	"github.com/textileio/textile-go/wallet/util"
 	"strings"
 	"testing"
 )
 
-var publicKey = "hacXwMUbI9kfLcHEHnixSW5/VyNA0H529OihiQH78mA="
-var privateKey = "f3GGB4mLcK7JUSeC0sd4piOBMuICzH99l5yVfh6VhT+FpxfAxRsj2R8twcQeeLFJbn9XI0DQfnb06KGJAfvyYA=="
+var publicKey = "CAESIP1G8uGFpX+iduqgJfKLt0nw870MI9ydHcKg9gDIr5Tb"
+var privateKey = "CAESYKcFG4UOHb1fyF+GlyGWfjfX47DH3y/K9fYMMMdy3Ow2/Uby4YWlf6J26qAl8ou3SfDzvQwj3J0dwqD2AMivlNv9RvLhhaV/onbqoCXyi7dJ8PO9DCPcnR3CoPYAyK+U2w=="
 
 var ed25519TestData = []struct {
 	name        string
@@ -20,7 +20,7 @@ var ed25519TestData = []struct {
 }{
 	{
 		"Ed25519",
-		"eyJhbGciOiJFZDI1NTE5IiwidHlwIjoiSldUIn0.eyJqdGkiOiJmb28iLCJzdWIiOiJiYXIifQ.A07HdQgX2_rNRjj7S4zHynLkEjjiu9BzKlSYgm0iConUN1qKTG8bfpoS7Z4StdfXWN741Iv5ZpmHaxt5Kk1LBw",
+		"eyJhbGciOiJFZDI1NTE5IiwidHlwIjoiSldUIn0.eyJqdGkiOiJmb28iLCJzdWIiOiJiYXIifQ.E73qcBjcCSsYto_Pa5CpwZUu9lA3ecCVkZ8pJiFYNaOe2x-uZCDmZnx52AByO78oxft09GosVcJtqYNv1VBxDQ",
 		"Ed25519",
 		map[string]interface{}{"jti": "foo", "sub": "bar"},
 		true,
@@ -34,32 +34,14 @@ var ed25519TestData = []struct {
 	},
 }
 
-func TestEd25519Verify(t *testing.T) {
-	var pk ed25519.PublicKey
-	var err error
-	pk, err = base64.StdEncoding.DecodeString(publicKey)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	for _, data := range ed25519TestData {
-		parts := strings.Split(data.tokenString, ".")
-
-		method := jwt.GetSigningMethod(data.alg)
-		err := method.Verify(strings.Join(parts[0:2], "."), parts[2], pk)
-		if data.valid && err != nil {
-			t.Errorf("[%v] error while verifying key: %v", data.name, err)
-		}
-		if !data.valid && err == nil {
-			t.Errorf("[%v] invalid key passed validation", data.name)
-		}
+func TestSigningMethodEd25519_Alg(t *testing.T) {
+	if SigningMethodEd25519i.Alg() != "Ed25519" {
+		t.Fatal("wrong alg")
 	}
 }
 
-func TestEd25519Sign(t *testing.T) {
-	var sk ed25519.PrivateKey
-	var err error
-	sk, err = base64.StdEncoding.DecodeString(privateKey)
+func TestSigningMethodEd25519_Sign(t *testing.T) {
+	sk, err := util.UnmarshalPrivateKeyFromString(privateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,10 +60,27 @@ func TestEd25519Sign(t *testing.T) {
 	}
 }
 
+func TestSigningMethodEd25519_Verify(t *testing.T) {
+	pk, err := util.UnmarshalPublicKeyFromString(publicKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, data := range ed25519TestData {
+		parts := strings.Split(data.tokenString, ".")
+
+		method := jwt.GetSigningMethod(data.alg)
+		err := method.Verify(strings.Join(parts[0:2], "."), parts[2], pk)
+		if data.valid && err != nil {
+			t.Errorf("[%v] error while verifying key: %v", data.name, err)
+		}
+		if !data.valid && err == nil {
+			t.Errorf("[%v] invalid key passed validation", data.name)
+		}
+	}
+}
+
 func TestGenerateEd25519Token(t *testing.T) {
-	var sk ed25519.PrivateKey
-	var err error
-	sk, err = base64.StdEncoding.DecodeString(privateKey)
+	sk, err := util.UnmarshalPrivateKeyFromString(privateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +88,7 @@ func TestGenerateEd25519Token(t *testing.T) {
 		Id:      "bar",
 		Subject: "foo",
 	}
-	_, err = jwt.NewWithClaims(SigningMethodEd25519, claims).SignedString(sk)
+	_, err = jwt.NewWithClaims(SigningMethodEd25519i, claims).SignedString(sk)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -30,7 +30,8 @@ type ConfigStore interface {
 }
 
 type ProfileStore interface {
-	SignIn(id string, secret []byte, username string, accessToken string, refreshToken string) error
+	Init(id string, secret []byte) error
+	SignIn(username string, accessToken string, refreshToken string) error
 	SignOut() error
 	GetID() (string, error)
 	GetSecret() ([]byte, error)

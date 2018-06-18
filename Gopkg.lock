@@ -240,9 +240,6 @@
     "bcrypt",
     "blowfish",
     "curve25519",
-    "ed25519",
-    "ed25519/internal/edwards25519",
-    "hkdf",
     "nacl/box",
     "nacl/secretbox",
     "pbkdf2",
@@ -304,6 +301,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "966efecdfee9944a2204862cfa832ae4c8c0e8966ffb94a5e26db79ca4794f72"
+  inputs-digest = "86a2f874602cae158a6c7f38ccbbd61504031bc9c26b042e1422779a5752018e"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -130,7 +130,7 @@ func (w *Wrapper) Stop() error {
 }
 
 // SignUpWithEmail creates an email based registration and calls core signup
-func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) (string, error) {
+func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) error {
 	// build registration
 	reg := &models.Registration{
 		Username: username,
@@ -145,13 +145,13 @@ func (w *Wrapper) SignUpWithEmail(username string, password string, email string
 }
 
 // SignIn build credentials and calls core SignIn
-func (w *Wrapper) SignIn(username string, password string, mnemonic string) error {
+func (w *Wrapper) SignIn(username string, password string) error {
 	// build creds
 	creds := &models.Credentials{
 		Username: username,
 		Password: password,
 	}
-	return tcore.Node.Wallet.SignIn(creds, &mnemonic)
+	return tcore.Node.Wallet.SignIn(creds)
 }
 
 // SignOut calls core SignOut
@@ -177,7 +177,7 @@ func (w *Wrapper) GetAccessToken() (string, error) {
 
 // AddThread adds a new thread with the given name
 func (w *Wrapper) AddThread(name string) error {
-	_, err := tcore.Node.Wallet.AddThreadWithMnemonic(name, nil)
+	_, _, err := tcore.Node.Wallet.AddThreadWithMnemonic(name, nil)
 	return err
 }
 
@@ -245,13 +245,12 @@ func (w *Wrapper) GetPhotos(offsetId string, limit int, threadName string) (stri
 		return "", errors.New(fmt.Sprintf("thread not found: %s", threadName))
 	}
 
+	// use this opportunity to post head
 	if tcore.Node.Wallet.Online() {
-		go thrd.Publish()
+		go thrd.PostHead()
 	}
 
 	blocks := &Blocks{thrd.Blocks(offsetId, limit)}
-
-	// gomobile does not allow slices. so, convert to json
 	jsonb, err := json.Marshal(blocks)
 	if err != nil {
 		log.Errorf("error marshaling json: %s", err)

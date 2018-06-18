@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/net"
@@ -26,7 +28,12 @@ import (
 
 var log = logging.MustGetLogger("thread")
 
+// ErrInvalidBlock is used to reject invalid block updates
+var ErrInvalidBlock = errors.New("block is not a valid token")
+
+// Config is used to construct a Thread
 type Config struct {
+	WalletId   func() (string, error)
 	RepoPath   string
 	Ipfs       func() *core.IpfsNode
 	Blocks     func() repo.BlockStore
@@ -42,6 +49,7 @@ type Update struct {
 	ThreadID string `json:"thread_id"`
 }
 
+// Thread is the primary mechanism representing a collecion of data / files / photos
 type Thread struct {
 	Id         string
 	Name       string
@@ -49,6 +57,7 @@ type Thread struct {
 	LeftCh     chan struct{}
 	leaveCh    chan struct{}
 	repoPath   string
+	walletId   func() (string, error)
 	ipfs       func() *core.IpfsNode
 	blocks     func() repo.BlockStore
 	GetHead    func() (string, error)
@@ -68,6 +77,7 @@ func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 		Id:         model.Id,
 		Name:       model.Name,
 		PrivKey:    sk,
+		walletId:   config.WalletId,
 		repoPath:   config.RepoPath,
 		ipfs:       config.Ipfs,
 		blocks:     config.Blocks,
@@ -206,14 +216,7 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*model.AddResu
 	}
 
 	// post it
-	go func(bid string) {
-		err = t.publish([]byte(id))
-		if err != nil {
-			log.Warningf("failed to post block %s: %s", bid, err)
-			return
-		}
-		log.Debugf("posted block %s to %s", bid, t.Id)
-	}(block.Id)
+	go t.PostHead()
 
 	// create and init a new multipart request
 	request := &net.MultipartRequest{}
@@ -339,32 +342,38 @@ func (t *Thread) Blocks(offsetId string, limit int) []repo.Block {
 	return list
 }
 
+// Encrypt data with thread public key
 func (t *Thread) Encrypt(data []byte) ([]byte, error) {
 	return crypto.Encrypt(t.PrivKey.GetPublic(), data)
 }
 
+// Decrypt data with thread secret key
 func (t *Thread) Decrypt(data []byte) ([]byte, error) {
 	return crypto.Decrypt(t.PrivKey, data)
 }
 
-// Publish publishes HEAD
-func (t *Thread) Publish() {
+// Publish publishes HEAD as a JWT
+func (t *Thread) PostHead() error {
+	log.Debugf("posting thread %s...", t.Name)
 	head, err := t.GetHead()
 	if err != nil {
-		log.Errorf("failed to get HEAD for %s", t.Id)
-		return
+		log.Errorf("failed to get HEAD for %s: %s", t.Id, err)
+		return err
 	}
-	if head == "" {
-		head = "ping"
+	token, err := t.signBlock(t.blocks().Get(head))
+	if err != nil {
+		log.Errorf("sign block failed for %s: %s", t.Id, err)
+		return err
 	}
-	log.Debugf("publishing thread %s...", t.Name)
-	if err := t.post([]byte(head)); err != nil {
-		log.Errorf("error publishing %s: %s", head, err)
-		return
+	if err := t.publish([]byte(token)); err != nil {
+		log.Errorf("error posting %s: %s", token, err)
+		return err
 	}
-	log.Debugf("published %s to %s", head, t.Id)
+	log.Debugf("posted %s to %s", token, t.Id)
+	return nil
 }
 
+// Peers returns known peers active in this thread
 func (t *Thread) Peers() []string {
 	peers := t.ipfs().Floodsub.ListPeers(t.Id)
 	var list []string
@@ -373,10 +382,6 @@ func (t *Thread) Peers() []string {
 	}
 	sort.Strings(list)
 	return list
-}
-
-func (t *Thread) post(payload []byte) error {
-	return t.ipfs().Floodsub.Publish(t.Id, payload)
 }
 
 // preHandleBlock tries to recursively process an update sent to a thread
@@ -392,18 +397,44 @@ func (t *Thread) preHandleBlock(msg *floodsub.Message, datac chan Update) error 
 
 	// determine if this is from a relay node
 	tmp := strings.Split(data, ":")
-	var id string
+	var tokenStr string
 	if len(tmp) > 1 && tmp[0] == "relay" {
-		id = tmp[1]
+		tokenStr = tmp[1]
 		from = fmt.Sprintf("relay:%s", from)
 	} else {
-		id = tmp[0]
+		tokenStr = tmp[0]
 	}
-	log.Debugf("got block from %s in thread %s", from, t.Id)
+	var id string
+
+	// parse token
+	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*crypto.SigningMethodEd25519); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return t.PrivKey.GetPublic(), nil
+	})
+	if err != nil {
+		return err
+	}
+	// validate
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		if id, ok = claims["jti"].(string); !ok || id == "" {
+			return ErrInvalidBlock
+		}
+		// TODO validate pk, iss, iat
+	} else {
+		return ErrInvalidBlock
+	}
+
+	log.Debugf("got block %s from %s in thread %s", id, from, t.Id)
+
+	// exit if block is just a ping
+	if id == "ping" {
+		return nil
+	}
 
 	// recurse back in time starting at this hash
-	err := t.handleBlock(id, datac)
-	if err != nil {
+	if err := t.handleBlock(id, datac); err != nil {
 		return err
 	}
 
@@ -431,9 +462,14 @@ func (t *Thread) handleBlock(id string, datac chan Update) error {
 		return err
 	}
 
-	log.Debugf("indexing %s...", id)
+	// index it
 	block, err := t.indexBlock(id)
 	if err != nil {
+		return err
+	}
+
+	// update current head
+	if err := t.updateHead(id); err != nil {
 		return err
 	}
 
@@ -448,11 +484,14 @@ func (t *Thread) handleBlock(id string, datac chan Update) error {
 		}
 	}()
 
+	log.Debugf("handled block: %s", id)
+
 	// check last block
 	// TODO: handle multi parents from 3-way merge
 	return t.handleBlock(block.Parents[0], datac)
 }
 
+// indexBlock attempts to download the block and index it in the local db
 func (t *Thread) indexBlock(id string) (*repo.Block, error) {
 	target, err := util.GetDataAtPath(t.ipfs(), fmt.Sprintf("%s/target", id))
 	if err != nil {
@@ -499,4 +538,32 @@ func (t *Thread) indexBlock(id string) (*repo.Block, error) {
 		return nil, err
 	}
 	return block, nil
+}
+
+// signBlock generated a valid JWT based on a thread block
+func (t *Thread) signBlock(block *repo.Block) (string, error) {
+	var blockId string
+	var date time.Time
+	if block != nil {
+		blockId = block.Id
+		date = block.Date
+	} else {
+		blockId = "ping"
+		date = time.Now()
+	}
+	iss, err := t.walletId()
+	if err != nil {
+		return "", err
+	}
+	claims := jwt.StandardClaims{
+		Id:       blockId, // block cid
+		Subject:  t.Id,    // thread id (pk, base64)
+		Issuer:   iss,     // wallet id (master pk, base64)
+		IssuedAt: date.Unix(),
+	}
+	token, err := jwt.NewWithClaims(crypto.SigningMethodEd25519i, claims).SignedString(t.PrivKey)
+	if err != nil {
+		return "", err
+	}
+	return token, nil
 }
