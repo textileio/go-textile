@@ -6,20 +6,20 @@ import (
 )
 
 type Thread struct {
-	Id      string
-	Name    string
-	PrivKey []byte
-	Head    string
+	Id      string `json:"id"`
+	Name    string `json:"name"`
+	PrivKey []byte `json:"priv_key"`
+	Head    string `json:"head"`
 }
 
 type Block struct {
-	Id           string
-	Target       string
-	Parents      []string
-	TargetKey    []byte
-	ThreadPubKey string
-	Type         BlockType
-	Date         time.Time
+	Id           string    `json:"id"`
+	Target       string    `json:"target"`
+	Parents      []string  `json:"parents"`
+	TargetKey    []byte    `json:"target_key"`
+	ThreadPubKey string    `json:"thread_pub_key"`
+	Type         BlockType `json:"type"`
+	Date         time.Time `json:"date"`
 }
 
 type BlockType int
