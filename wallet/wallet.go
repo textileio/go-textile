@@ -357,12 +357,12 @@ func (w *Wallet) GetUsername() (string, error) {
 	return w.datastore.Profile().GetUsername()
 }
 
-// GetID returns the current user's master ID
-func (w *Wallet) GetID() (string, error) {
+// GetId returns the current user's master ID
+func (w *Wallet) GetId() (string, error) {
 	if err := w.touchDatastore(); err != nil {
 		return "", err
 	}
-	return w.datastore.Profile().GetID()
+	return w.datastore.Profile().GetId()
 }
 
 // GetMasterPrivKey returns the current user's master secret key
@@ -703,7 +703,7 @@ func (w *Wallet) GetFileKey(blockId string) (string, error) {
 	return string(key), nil
 }
 
-func (w *Wallet) GetIPFSPeerID() (string, error) {
+func (w *Wallet) GetIPFSPeerId() (string, error) {
 	if !w.started {
 		return "", ErrStopped
 	}
@@ -1000,7 +1000,7 @@ func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
 	id := model.Id // save value locally
 	threadConfig := &thread.Config{
 		WalletId: func() (string, error) {
-			return w.datastore.Profile().GetID()
+			return w.datastore.Profile().GetId()
 		},
 		RepoPath: w.repoPath,
 		Ipfs:     func() *core.IpfsNode { return w.ipfs },

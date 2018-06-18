@@ -100,7 +100,7 @@ func (c *ProfileDB) SignOut() error {
 	return nil
 }
 
-func (c *ProfileDB) GetID() (string, error) {
+func (c *ProfileDB) GetId() (string, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stmt, err := c.db.Prepare("select value from profile where key=?")
