@@ -165,6 +165,16 @@ func (w *Wrapper) IsSignedIn() bool {
 	return si
 }
 
+// GetId calls core GetId
+func (w *Wrapper) GetId() (string, error) {
+	return tcore.Node.Wallet.GetId()
+}
+
+// GetIPFSPeerId returns the wallet's ipfs peer id
+func (w *Wrapper) GetIPFSPeerId() (string, error) {
+	return tcore.Node.Wallet.GetIPFSPeerId()
+}
+
 // GetUsername calls core GetUsername
 func (w *Wrapper) GetUsername() (string, error) {
 	return tcore.Node.Wallet.GetUsername()
@@ -238,7 +248,7 @@ func (w *Wrapper) SharePhoto(id string, threadName string, caption string) (stri
 	return shared.Id, nil
 }
 
-// Get Photos returns core GetPhotos with json encoding
+// GetPhotos returns core GetPhotos with json encoding
 func (w *Wrapper) GetPhotos(offsetId string, limit int, threadName string) (string, error) {
 	thrd := tcore.Node.Wallet.GetThreadByName(threadName)
 	if thrd == nil {
@@ -263,11 +273,6 @@ func (w *Wrapper) GetPhotos(offsetId string, limit int, threadName string) (stri
 // GetFileBase64 call core GetFileBase64
 func (w *Wrapper) GetFileBase64(path string, blockId string) (string, error) {
 	return tcore.Node.Wallet.GetFileBase64(path, blockId)
-}
-
-// GetIPFSPeerID returns the wallet's ipfs peer id
-func (w *Wrapper) GetIPFSPeerID() (string, error) {
-	return tcore.Node.Wallet.GetIPFSPeerID()
 }
 
 // PairDesktop publishes this nodes default thread key to a desktop node

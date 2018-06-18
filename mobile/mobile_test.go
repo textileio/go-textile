@@ -80,6 +80,24 @@ func TestWrapper_IsSignedIn(t *testing.T) {
 	}
 }
 
+func TestWrapper_GetId(t *testing.T) {
+	id, err := wrapper.GetId()
+	if err != nil {
+		t.Errorf("get id failed: %s", err)
+		return
+	}
+	if id == "" {
+		t.Error("got bad id")
+	}
+}
+
+func TestWrapper_GetIPFSPeerId(t *testing.T) {
+	_, err := wrapper.GetIPFSPeerId()
+	if err != nil {
+		t.Errorf("get peer id failed: %s", err)
+	}
+}
+
 func TestWrapper_GetUsername(t *testing.T) {
 	un, err := wrapper.GetUsername()
 	if err != nil {
@@ -167,13 +185,6 @@ func TestWrapper_GetFileBase64(t *testing.T) {
 	}
 	if len(res) == 0 {
 		t.Errorf("get photo base64 string bad result")
-	}
-}
-
-func TestWrapper_GetIPFSPeerID(t *testing.T) {
-	_, err := wrapper.GetIPFSPeerID()
-	if err != nil {
-		t.Errorf("get peer id failed: %s", err)
 	}
 }
 

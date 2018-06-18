@@ -33,7 +33,7 @@ type ProfileStore interface {
 	Init(id string, secret []byte) error
 	SignIn(username string, accessToken string, refreshToken string) error
 	SignOut() error
-	GetID() (string, error)
+	GetId() (string, error)
 	GetSecret() ([]byte, error)
 	GetUsername() (string, error)
 	GetTokens() (accessToken string, refreshToken string, err error)
