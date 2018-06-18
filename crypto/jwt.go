@@ -2,32 +2,32 @@ package crypto
 
 import (
 	"github.com/dgrijalva/jwt-go"
-	"golang.org/x/crypto/ed25519"
+	"gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 // Implements the Ed25519 signing method
-// Expects *ed25519.PrivateKey for signing and *ed25519.PublicKey for validation
-type signingMethodEd25519 struct {
+// Expects *crypto.Ed25519PublicKey for signing and *crypto.Ed25519PublicKey for validation
+type SigningMethodEd25519 struct {
 	Name string
 }
 
 // Specific instance for Ed25519
-var SigningMethodEd25519 *signingMethodEd25519
+var SigningMethodEd25519i *SigningMethodEd25519
 
 func init() {
-	SigningMethodEd25519 = &signingMethodEd25519{"Ed25519"}
-	jwt.RegisterSigningMethod(SigningMethodEd25519.Alg(), func() jwt.SigningMethod {
-		return SigningMethodEd25519
+	SigningMethodEd25519i = &SigningMethodEd25519{"Ed25519"}
+	jwt.RegisterSigningMethod(SigningMethodEd25519i.Alg(), func() jwt.SigningMethod {
+		return SigningMethodEd25519i
 	})
 }
 
-func (m *signingMethodEd25519) Alg() string {
+func (m *SigningMethodEd25519) Alg() string {
 	return m.Name
 }
 
 // Implements the Verify method from SigningMethod
-// For this signing method, must be an *ed25519.PublicKey structure.
-func (m *signingMethodEd25519) Verify(signingString, signature string, key interface{}) error {
+// For this signing method, must be a *crypto.Ed25519PublicKey structure.
+func (m *SigningMethodEd25519) Verify(signingString, signature string, key interface{}) error {
 	var err error
 
 	// Decode the signature
@@ -36,15 +36,19 @@ func (m *signingMethodEd25519) Verify(signingString, signature string, key inter
 		return err
 	}
 
-	var ed25519Key ed25519.PublicKey
+	var ed25519Key *crypto.Ed25519PublicKey
 	var ok bool
 
-	if ed25519Key, ok = key.(ed25519.PublicKey); !ok {
+	if ed25519Key, ok = key.(*crypto.Ed25519PublicKey); !ok {
 		return jwt.ErrInvalidKeyType
 	}
 
 	// Verify the signature
-	if !ed25519.Verify(ed25519Key, []byte(signingString), sig) {
+	valid, err := ed25519Key.Verify([]byte(signingString), sig)
+	if err != nil {
+		return err
+	}
+	if !valid {
 		return jwt.ErrSignatureInvalid
 	}
 
@@ -52,17 +56,20 @@ func (m *signingMethodEd25519) Verify(signingString, signature string, key inter
 }
 
 // Implements the Sign method from SigningMethod
-// For this signing method, must be an *ed25519.PrivateKey structure.
-func (m *signingMethodEd25519) Sign(signingString string, key interface{}) (string, error) {
-	var ed25519Key ed25519.PrivateKey
+// For this signing method, must be a *crypto.Ed25519PublicKey structure.
+func (m *SigningMethodEd25519) Sign(signingString string, key interface{}) (string, error) {
+	var ed25519Key *crypto.Ed25519PrivateKey
 	var ok bool
 
 	// Validate type of key
-	if ed25519Key, ok = key.(ed25519.PrivateKey); !ok {
+	if ed25519Key, ok = key.(*crypto.Ed25519PrivateKey); !ok {
 		return "", jwt.ErrInvalidKey
 	}
 
 	// Sign the string and return the encoded bytes
-	sigBytes := ed25519.Sign(ed25519Key, []byte(signingString))
+	sigBytes, err := ed25519Key.Sign([]byte(signingString))
+	if err != nil {
+		return "", err
+	}
 	return jwt.EncodeSegment(sigBytes), nil
 }

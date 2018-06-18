@@ -21,7 +21,6 @@ import (
 	"gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	libp2pn "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	utilmain "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/commands"
@@ -49,20 +48,24 @@ type Config struct {
 }
 
 type Wallet struct {
-	context     oldcmds.Context
-	repoPath    string
-	gatewayAddr string
-	cancel      context.CancelFunc
-	ipfs        *core.IpfsNode
-	datastore   trepo.Datastore
-	centralAPI  string
-	isMobile    bool
-	started     bool
-	threads     []*thread.Thread
-	done        chan struct{}
+	context        oldcmds.Context
+	repoPath       string
+	gatewayAddr    string
+	cancel         context.CancelFunc
+	ipfs           *core.IpfsNode
+	datastore      trepo.Datastore
+	centralAPI     string
+	isMobile       bool
+	started        bool
+	threads        []*thread.Thread
+	done           chan struct{}
+	lastRelayTouch time.Time
 }
 
-const pingTimeout = time.Second * 10
+const (
+	pingTimeout        = time.Second * 10
+	relayTouchInterval = time.Minute * 2
+)
 
 var ErrStarted = errors.New("node is already started")
 var ErrStopped = errors.New("node is already stopped")
@@ -78,7 +81,14 @@ func NewWallet(config Config) (*Wallet, error) {
 	}
 
 	// we may be running in an uninitialized state.
-	err = trepo.DoInit(config.RepoPath, config.IsMobile, config.Version, sqliteDB.Config().Init, sqliteDB.Config().Configure)
+	err = trepo.DoInit(config.RepoPath, config.IsMobile, config.Version,
+		sqliteDB.Config().Init, sqliteDB.Config().Configure, func() error {
+			_, id, secret, err := util.IDAndSecretFromMnemonic(nil)
+			if err != nil {
+				return err
+			}
+			return sqliteDB.Profile().Init(id, secret)
+		})
 	if err != nil && err != trepo.ErrRepoExists {
 		return nil, err
 	}
@@ -152,6 +162,7 @@ func (w *Wallet) Start() (chan struct{}, error) {
 	defer func() {
 		w.done = make(chan struct{})
 		w.started = true
+		w.lastRelayTouch = time.Time{}
 	}()
 	log.Info("starting wallet...")
 	onlineCh := make(chan struct{})
@@ -257,9 +268,9 @@ func (w *Wallet) GetRepoPath() string {
 }
 
 // SignUp requests a new username and token from the central api and saves them locally
-func (w *Wallet) SignUp(reg *cmodels.Registration) (string, error) {
+func (w *Wallet) SignUp(reg *cmodels.Registration) error {
 	if err := w.touchDatastore(); err != nil {
-		return "", err
+		return err
 	}
 	log.Debugf("signup: %s %s %s %s %s", reg.Username, "xxxxxx", reg.Identity.Type, reg.Identity.Value, reg.Referral)
 
@@ -267,43 +278,26 @@ func (w *Wallet) SignUp(reg *cmodels.Registration) (string, error) {
 	res, err := central.SignUp(reg, w.GetCentralUserAPI())
 	if err != nil {
 		log.Errorf("signup error: %s", err)
-		return "", err
+		return err
 	}
 	if res.Error != nil {
 		log.Errorf("signup error from central: %s", *res.Error)
-		return "", errors.New(*res.Error)
-	}
-
-	// setup master secret key
-	log.Debug("generating a new master secret key")
-	master, mnemonic, err := util.PrivKeyFromMnemonic(nil)
-	if err != nil {
-		return "", err
-	}
-	masterb, err := master.Bytes()
-	if err != nil {
-		return "", err
-	}
-	id, err := peer.IDFromPrivateKey(master)
-	if err != nil {
-		return "", err
+		return errors.New(*res.Error)
 	}
 
 	// local signin
 	if err := w.datastore.Profile().SignIn(
-		id.Pretty(),
-		masterb,
 		reg.Username,
 		res.Session.AccessToken, res.Session.RefreshToken,
 	); err != nil {
 		log.Errorf("local signin error: %s", err)
-		return "", err
+		return err
 	}
-	return mnemonic, nil
+	return nil
 }
 
 // SignIn requests a token with a username from the central api and saves them locally
-func (w *Wallet) SignIn(creds *cmodels.Credentials, mnemonic *string) error {
+func (w *Wallet) SignIn(creds *cmodels.Credentials) error {
 	if err := w.touchDatastore(); err != nil {
 		return err
 	}
@@ -320,29 +314,8 @@ func (w *Wallet) SignIn(creds *cmodels.Credentials, mnemonic *string) error {
 		return errors.New(*res.Error)
 	}
 
-	// setup master secret key
-	if mnemonic != nil {
-		log.Debugf("generating master secret key from mnemonic: %s", *mnemonic)
-	} else {
-		log.Debug("generating a new master secret key")
-	}
-	master, _, err := util.PrivKeyFromMnemonic(mnemonic)
-	if err != nil {
-		return err
-	}
-	masterb, err := master.Bytes()
-	if err != nil {
-		return err
-	}
-	id, err := peer.IDFromPrivateKey(master)
-	if err != nil {
-		return err
-	}
-
 	// local signin
 	if err := w.datastore.Profile().SignIn(
-		id.Pretty(),
-		masterb,
 		creds.Username,
 		res.Session.AccessToken, res.Session.RefreshToken,
 	); err != nil {
@@ -489,27 +462,31 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 }
 
 // AddThreadWithMnemonic adds a thread with a given name and mnemonic phrase
-func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string) (*thread.Thread, error) {
+func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string) (*thread.Thread, string, error) {
 	if _, err := w.getThreadModelByName(name); err != nil {
-		return nil, ErrThreadExists
+		return nil, "", ErrThreadExists
 	}
 	if mnemonic != nil {
 		log.Debugf("regenerating keypair from mnemonic for: %s", name)
 	} else {
 		log.Debugf("generating keypair for: %s", name)
 	}
-	secret, _, err := util.PrivKeyFromMnemonic(mnemonic)
+	secret, mnem, err := util.PrivKeyFromMnemonic(mnemonic)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return w.AddThread(name, secret)
+	thrd, err := w.AddThread(name, secret)
+	if err != nil {
+		return nil, "", err
+	}
+	return thrd, mnem, nil
 }
 
 // PublishThreads publishes HEAD for each thread
 func (w *Wallet) PublishThreads() {
 	for _, t := range w.threads {
 		go func(thrd *thread.Thread) {
-			thrd.Publish()
+			thrd.PostHead()
 		}(t)
 	}
 }
@@ -705,6 +682,27 @@ func (w *Wallet) GetDataAtPath(path string) ([]byte, error) {
 	return util.GetDataAtPath(w.ipfs, path)
 }
 
+func (w *Wallet) GetFileKey(blockId string) (string, error) {
+	if !w.started {
+		return "", ErrStopped
+	}
+
+	// get thread for decryption
+	thrd, block, err := w.getThreadBlock(blockId)
+	if err != nil {
+		log.Error(err.Error())
+		return "", err
+	}
+
+	// decrypt the file key
+	key, err := thrd.Decrypt(block.TargetKey)
+	if err != nil {
+		log.Errorf("error decrypting key: %s", err)
+		return "", err
+	}
+	return string(key), nil
+}
+
 func (w *Wallet) GetIPFSPeerID() (string, error) {
 	if !w.started {
 		return "", ErrStopped
@@ -739,7 +737,6 @@ func (w *Wallet) ConnectPeer(addrs []string) ([]string, error) {
 	}
 
 	swrm := snet.Swarm()
-
 	pis, err := util.PeersWithAddresses(addrs)
 	if err != nil {
 		return nil, err
@@ -823,10 +820,20 @@ func (w *Wallet) PingPeer(addrs string, num int, out chan string) error {
 	return nil
 }
 
-// TODO: connect to relay if needed
 func (w *Wallet) Publish(topic string, payload []byte) error {
 	if !w.Online() {
 		return ErrOffline
+	}
+	if w.lastRelayTouch.Add(relayTouchInterval).Before(time.Now()) {
+		log.Debug("connecting to relay...")
+		out, err := w.ConnectPeer([]string{fmt.Sprintf("/p2p-circuit/ipfs/%s", tconfig.RemoteRelayNode)})
+		if err != nil {
+			return err
+		}
+		w.lastRelayTouch = time.Now()
+		for _, o := range out {
+			log.Debug(o)
+		}
 	}
 	return w.ipfs.Floodsub.Publish(topic, payload)
 }
@@ -901,7 +908,6 @@ func (w *Wallet) WaitForInvite() {
 			close(cancelCh)
 		}
 	}()
-
 	for {
 		select {
 		case <-cancelCh:
@@ -993,6 +999,9 @@ func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
 	}
 	id := model.Id // save value locally
 	threadConfig := &thread.Config{
+		WalletId: func() (string, error) {
+			return w.datastore.Profile().GetID()
+		},
 		RepoPath: w.repoPath,
 		Ipfs:     func() *core.IpfsNode { return w.ipfs },
 		Blocks:   func() trepo.BlockStore { return w.datastore.Blocks() },

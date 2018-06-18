@@ -41,7 +41,7 @@ func CreateThread(c *ishell.Context) {
 		mnemonic = &mnemonics
 	}
 
-	thrd, err := core.Node.Wallet.AddThreadWithMnemonic(name, mnemonic)
+	thrd, mnem, err := core.Node.Wallet.AddThreadWithMnemonic(name, mnemonic)
 	if err != nil {
 		c.Err(err)
 		return
@@ -51,6 +51,7 @@ func CreateThread(c *ishell.Context) {
 
 	cyan := color.New(color.FgCyan).SprintFunc()
 	c.Println(cyan(fmt.Sprintf("created thread #%s", name)))
+	c.Println(cyan(fmt.Sprintf("mnemonic phrase: %s", mnem)))
 }
 
 func EnableThread(c *ishell.Context) {
@@ -120,7 +121,11 @@ func PublishThread(c *ishell.Context) {
 	if head == "" {
 		head = "ping"
 	}
-	thrd.Publish()
+	err = thrd.PostHead()
+	if err != nil {
+		c.Err(err)
+		return
+	}
 
 	blue := color.New(color.FgHiBlue).SprintFunc()
 	c.Println(blue(fmt.Sprintf("published %s to %s", head, thrd.Id)))
@@ -163,7 +168,7 @@ func Subscribe(shell ishell.Actions, thrd *thread.Thread) {
 				if !ok {
 					return
 				}
-				msg := fmt.Sprintf("\nnew photo %s in %s thread\n", update.Id, update.Thread)
+				msg := fmt.Sprintf("\nnew photo %s in thread %s\n", update.Id, update.Thread)
 				shell.ShowPrompt(false)
 				shell.Printf(cyan(msg))
 				shell.ShowPrompt(true)

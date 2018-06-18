@@ -15,7 +15,7 @@ func NewProfileStore(db *sql.DB, lock *sync.Mutex) repo.ProfileStore {
 	return &ProfileDB{db, lock}
 }
 
-func (c *ProfileDB) SignIn(id string, secret []byte, username string, accessToken string, refreshToken string) error {
+func (c *ProfileDB) Init(id string, secret []byte) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -37,6 +37,22 @@ func (c *ProfileDB) SignIn(id string, secret []byte, username string, accessToke
 		tx.Rollback()
 		return err
 	}
+	tx.Commit()
+	return nil
+}
+
+func (c *ProfileDB) SignIn(username string, accessToken string, refreshToken string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	tx, err := c.db.Begin()
+	if err != nil {
+		return err
+	}
+	stmt, err := tx.Prepare("insert or replace into profile(key, value) values(?,?)")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
 	_, err = stmt.Exec("username", username)
 	if err != nil {
 		tx.Rollback()

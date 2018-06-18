@@ -147,6 +147,11 @@ func main() {
 			Func: cmd.GetPhoto,
 		})
 		photoCmd.AddCmd(&ishell.Cmd{
+			Name: "key",
+			Help: "decrypt and print the key for a photo",
+			Func: cmd.GetPhotoKey,
+		})
+		photoCmd.AddCmd(&ishell.Cmd{
 			Name: "meta",
 			Help: "cat photo metadata",
 			Func: cmd.CatPhotoMetadata,
@@ -240,6 +245,9 @@ func start(shell *ishell.Shell) error {
 	for _, thread := range core.Node.Wallet.Threads() {
 		cmd.Subscribe(shell, thread)
 	}
+
+	// start continuously publishing
+	go core.Node.StartPublishing()
 
 	return nil
 }

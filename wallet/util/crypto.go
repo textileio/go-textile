@@ -37,6 +37,28 @@ func PrivKeyFromMnemonic(mnemonic *string) (libp2pc.PrivKey, string, error) {
 	return sk, *mnemonic, nil
 }
 
+// IDAndSecretFromMnemonic create a secret key from a mnemonic,
+// returns the mnemonic (it may have been generated),
+// the secret's public key (base64 string) as an id,
+// and the raw secret bytes.
+// Used for generating a new master identity.
+func IDAndSecretFromMnemonic(mnemonic *string) (mnem string, id string, secret []byte, err error) {
+	sk, mnem, err := PrivKeyFromMnemonic(mnemonic)
+	if err != nil {
+		return "", "", nil, err
+	}
+	skb, err := sk.Bytes()
+	if err != nil {
+		return "", "", nil, err
+	}
+	pkb, err := sk.GetPublic().Bytes()
+	if err != nil {
+		return "", "", nil, err
+	}
+	id = libp2pc.ConfigEncodeKey(pkb)
+	return mnem, id, skb, nil
+}
+
 // GetEncryptedReaderBytes reads reader bytes and returns the encrypted result
 func GetEncryptedReaderBytes(reader io.Reader, key []byte) ([]byte, error) {
 	bts, err := ioutil.ReadAll(reader)
@@ -49,6 +71,24 @@ func GetEncryptedReaderBytes(reader io.Reader, key []byte) ([]byte, error) {
 // GetNowBytes returns the current unix time as a byte string
 func GetNowBytes() []byte {
 	return []byte(strconv.Itoa(int(time.Now().Unix())))
+}
+
+// UnmarshalPrivateKeyFromString attempts to create a private key from a base64 encoded string
+func UnmarshalPrivateKeyFromString(key string) (libp2pc.PrivKey, error) {
+	keyb, err := libp2pc.ConfigDecodeKey(key)
+	if err != nil {
+		return nil, err
+	}
+	return libp2pc.UnmarshalPrivateKey(keyb)
+}
+
+// UnmarshalPublicKeyFromString attempts to create a public key from a base64 encoded string
+func UnmarshalPublicKeyFromString(key string) (libp2pc.PubKey, error) {
+	keyb, err := libp2pc.ConfigDecodeKey(key)
+	if err != nil {
+		return nil, err
+	}
+	return libp2pc.UnmarshalPublicKey(keyb)
 }
 
 // createMnemonic creates a new mnemonic phrase with given entropy

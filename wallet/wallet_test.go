@@ -10,8 +10,9 @@ import (
 	"testing"
 )
 
+var repo = "testdata/.ipfs"
+
 var wallet *Wallet
-var mnemonic string
 var addedId string
 
 var centralReg = &cmodels.Registration{
@@ -25,9 +26,9 @@ var centralReg = &cmodels.Registration{
 }
 
 func TestNewWallet(t *testing.T) {
-	os.RemoveAll("testdata/.ipfs")
+	os.RemoveAll(repo)
 	config := Config{
-		RepoPath:   "testdata/.ipfs",
+		RepoPath:   repo,
 		CentralAPI: util.CentralApiURL,
 	}
 	var err error
@@ -40,7 +41,7 @@ func TestNewWallet(t *testing.T) {
 func TestWallet_StartWallet(t *testing.T) {
 	online, err := wallet.Start()
 	if err != nil {
-		t.Errorf("start node failed: %s", err)
+		t.Errorf("start wallet failed: %s", err)
 	}
 	<-online
 }
@@ -77,12 +78,11 @@ func TestWallet_SignUp(t *testing.T) {
 	}
 	centralReg.Referral = ref.RefCodes[0]
 
-	m, err := wallet.SignUp(centralReg)
+	err = wallet.SignUp(centralReg)
 	if err != nil {
 		t.Errorf("signup failed: %s", err)
 		return
 	}
-	mnemonic = m
 }
 
 func TestWallet_SignIn(t *testing.T) {
@@ -90,7 +90,7 @@ func TestWallet_SignIn(t *testing.T) {
 		Username: centralReg.Username,
 		Password: centralReg.Password,
 	}
-	err := wallet.SignIn(creds, &mnemonic)
+	err := wallet.SignIn(creds)
 	if err != nil {
 		t.Errorf("signin failed: %s", err)
 		return
@@ -269,7 +269,7 @@ func TestWallet_SignInAgain(t *testing.T) {
 		Username: centralReg.Username,
 		Password: centralReg.Password,
 	}
-	err := wallet.SignIn(creds, &mnemonic)
+	err := wallet.SignIn(creds)
 	if err != nil {
 		t.Errorf("signin failed: %s", err)
 		return
