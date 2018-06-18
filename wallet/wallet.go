@@ -365,6 +365,14 @@ func (w *Wallet) GetId() (string, error) {
 	return w.datastore.Profile().GetId()
 }
 
+// GetIPFSPeerId returns the ipfs peer's id
+func (w *Wallet) GetIPFSPeerId() (string, error) {
+	if !w.started {
+		return "", ErrStopped
+	}
+	return w.ipfs.Identity.Pretty(), nil
+}
+
 // GetMasterPrivKey returns the current user's master secret key
 func (w *Wallet) GetMasterPrivKey() (libp2pc.PrivKey, error) {
 	if err := w.touchDatastore(); err != nil {
@@ -703,13 +711,6 @@ func (w *Wallet) GetFileKey(blockId string) (string, error) {
 	return string(key), nil
 }
 
-func (w *Wallet) GetIPFSPeerId() (string, error) {
-	if !w.started {
-		return "", ErrStopped
-	}
-	return w.ipfs.Identity.Pretty(), nil
-}
-
 // GetIPFSPubKeyString returns the base64 encoded public ipfs peer key
 func (w *Wallet) GetIPFSPubKeyString() (string, error) {
 	if !w.started {
@@ -820,6 +821,13 @@ func (w *Wallet) PingPeer(addrs string, num int, out chan string) error {
 	return nil
 }
 
+func (w *Wallet) IFPSPeers() ([]libp2pn.Conn, error) {
+	if !w.Online() {
+		return nil, ErrOffline
+	}
+	return w.ipfs.PeerHost.Network().Conns(), nil
+}
+
 func (w *Wallet) Publish(topic string, payload []byte) error {
 	if !w.Online() {
 		return ErrOffline
@@ -843,13 +851,6 @@ func (w *Wallet) Subscribe(topic string) (*floodsub.Subscription, error) {
 		return nil, ErrOffline
 	}
 	return w.ipfs.Floodsub.Subscribe(topic)
-}
-
-func (w *Wallet) IFPSPeers() ([]libp2pn.Conn, error) {
-	if !w.Online() {
-		return nil, ErrOffline
-	}
-	return w.ipfs.PeerHost.Network().Conns(), nil
 }
 
 // WaitForInvite to join
