@@ -275,13 +275,13 @@ func (w *Wrapper) GetFileBase64(path string, blockId string) (string, error) {
 	return tcore.Node.Wallet.GetFileBase64(path, blockId)
 }
 
-// PairDesktop publishes this nodes default thread key to a desktop node
+// PairDevice publishes this node's secret key to another node,
 // which is listening at it's own peer id
-func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
+func (w *Wrapper) PairDevice(pkb64 string) (string, error) {
 	if !tcore.Node.Wallet.Online() {
 		return "", wallet.ErrOffline
 	}
-	log.Info("pairing with desktop...")
+	log.Info("pairing with a new device...")
 
 	pkb, err := libp2pc.ConfigDecodeKey(pkb64)
 	if err != nil {
@@ -321,7 +321,7 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	log.Infof("published key phrase to desktop: %s", topic)
+	log.Infof("published key phrase to device: %s", topic)
 
 	return topic, nil
 }
