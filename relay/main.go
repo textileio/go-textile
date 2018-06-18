@@ -52,7 +52,7 @@ func main() {
 		log.Fatal(err)
 	}
 	<-online
-	self, err := node.Wallet.GetIPFSPeerID()
+	self, err := node.Wallet.GetIPFSPeerId()
 	if err != nil {
 		log.Fatal(err)
 	}
