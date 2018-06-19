@@ -80,11 +80,23 @@ func TestThread_AddPhoto(t *testing.T) {
 	}
 }
 
-func TestThread_GetFile(t *testing.T) {
+func TestThread_GetBlockData(t *testing.T) {
 	// TODO
 }
 
-func TestThread_GetFileBase64(t *testing.T) {
+func TestThread_GetBlockDataBase64(t *testing.T) {
+	// TODO
+}
+
+func TestThread_GetFileKey(t *testing.T) {
+	// TODO
+}
+
+func TestThread_GetFileData(t *testing.T) {
+	// TODO
+}
+
+func TestThread_GetFileDataBase64(t *testing.T) {
 	// TODO
 }
 

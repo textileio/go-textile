@@ -87,52 +87,6 @@ func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 	}, nil
 }
 
-// GetFile cats data from ipfs and tries to decrypt it with the provided block
-// e.g., Qm../thumb, Qm../photo, Qm../meta, Qm../caption
-func (t *Thread) GetFile(path string, block *repo.Block) ([]byte, error) {
-	// get bytes
-	cypher, err := util.GetDataAtPath(t.ipfs(), path)
-	if err != nil {
-		log.Errorf("error getting file data: %s", err)
-		return nil, err
-	}
-
-	// decrypt the file key
-	key, err := t.Decrypt(block.TargetKey)
-	if err != nil {
-		log.Errorf("error decrypting key: %s", err)
-		return nil, err
-	}
-
-	// finally, decrypt the file
-	return crypto.DecryptAES(cypher, key)
-}
-
-// GetFileBase64 returns data encoded as base64 under an ipfs path
-func (t *Thread) GetFileBase64(path string, block *repo.Block) (string, error) {
-	file, err := t.GetFile(path, block)
-	if err != nil {
-		return "error", err
-	}
-	return base64.StdEncoding.EncodeToString(file), nil
-}
-
-// GetMetaData returns photo metadata under an id
-func (t *Thread) GetPhotoMetaData(id string, block *repo.Block) (*model.PhotoMetadata, error) {
-	file, err := t.GetFile(fmt.Sprintf("%s/meta", id), block)
-	if err != nil {
-		log.Errorf("error getting meta file %s: %s", id, err)
-		return nil, err
-	}
-	var data *model.PhotoMetadata
-	err = json.Unmarshal(file, &data)
-	if err != nil {
-		log.Errorf("error unmarshaling meta file: %s: %s", id, err)
-		return nil, err
-	}
-	return data, nil
-}
-
 // AddPhoto adds a block for a photo to this thread
 func (t *Thread) AddPhoto(id string, caption string, key []byte) (*model.AddResult, error) {
 	t.mux.Lock()
@@ -252,6 +206,83 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*model.AddResu
 
 	// all done
 	return &model.AddResult{Id: block.Id, RemoteRequest: request}, nil
+}
+
+// GetBlockData cats file data from ipfs and tries to decrypt it with the provided block
+func (t *Thread) GetBlockData(path string, block *repo.Block) ([]byte, error) {
+	// get bytes
+	cypher, err := util.GetDataAtPath(t.ipfs(), path)
+	if err != nil {
+		log.Errorf("error getting file data: %s", err)
+		return nil, err
+	}
+
+	// decrypt with thread key
+	return t.Decrypt(cypher)
+}
+
+// GetBlockDataBase64 returns block data encoded as base64 under an ipfs path
+func (t *Thread) GetBlockDataBase64(path string, block *repo.Block) (string, error) {
+	file, err := t.GetBlockData(path, block)
+	if err != nil {
+		return "error", err
+	}
+	return base64.StdEncoding.EncodeToString(file), nil
+}
+
+// GetFileKey returns the decrypted AES key for a block
+func (t *Thread) GetFileKey(block *repo.Block) (string, error) {
+	key, err := t.Decrypt(block.TargetKey)
+	if err != nil {
+		log.Errorf("error decrypting key: %s", err)
+		return "", err
+	}
+	return string(key), nil
+}
+
+// GetFileData cats file data from ipfs and tries to decrypt it with the provided block
+func (t *Thread) GetFileData(path string, block *repo.Block) ([]byte, error) {
+	// get bytes
+	cypher, err := util.GetDataAtPath(t.ipfs(), path)
+	if err != nil {
+		log.Errorf("error getting file data: %s", err)
+		return nil, err
+	}
+
+	// decrypt the file key
+	key, err := t.Decrypt(block.TargetKey)
+	if err != nil {
+		log.Errorf("error decrypting key: %s", err)
+		return nil, err
+	}
+
+	// finally, decrypt the file
+	return crypto.DecryptAES(cypher, key)
+}
+
+// GetFileDataBase64 returns file data encoded as base64 under an ipfs path
+func (t *Thread) GetFileDataBase64(path string, block *repo.Block) (string, error) {
+	file, err := t.GetFileData(path, block)
+	if err != nil {
+		return "error", err
+	}
+	return base64.StdEncoding.EncodeToString(file), nil
+}
+
+// GetMetaData returns photo metadata under an id
+func (t *Thread) GetPhotoMetaData(id string, block *repo.Block) (*model.PhotoMetadata, error) {
+	file, err := t.GetFileData(fmt.Sprintf("%s/meta", id), block)
+	if err != nil {
+		log.Errorf("error getting meta file %s: %s", id, err)
+		return nil, err
+	}
+	var data *model.PhotoMetadata
+	err = json.Unmarshal(file, &data)
+	if err != nil {
+		log.Errorf("error unmarshaling meta file: %s: %s", id, err)
+		return nil, err
+	}
+	return data, nil
 }
 
 // Subscribe joins the thread

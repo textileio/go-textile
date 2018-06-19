@@ -183,14 +183,25 @@ func TestWrapper_GetPhotosBadThread(t *testing.T) {
 	}
 }
 
-func TestWrapper_GetFileBase64(t *testing.T) {
-	res, err := wrapper.GetFileBase64(addedPhotoId, "thumb")
+func TestWrapper_GetBlockData(t *testing.T) {
+	res, err := wrapper.GetBlockData(sharedBlockId, "caption")
 	if err != nil {
-		t.Errorf("get photo base64 string failed: %s", err)
+		t.Errorf("get block data failed: %s", err)
 		return
 	}
 	if len(res) == 0 {
-		t.Errorf("get photo base64 string bad result")
+		t.Errorf("get block data bad result")
+	}
+}
+
+func TestWrapper_GetFileData(t *testing.T) {
+	res, err := wrapper.GetFileData(addedPhotoId, "thumb")
+	if err != nil {
+		t.Errorf("get file data failed: %s", err)
+		return
+	}
+	if len(res) == 0 {
+		t.Errorf("get file data bad result")
 	}
 }
 
