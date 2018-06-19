@@ -162,23 +162,23 @@ func TestWrapper_SharePhoto(t *testing.T) {
 	}
 }
 
-func TestWrapper_GetPhotos(t *testing.T) {
-	res, err := wrapper.GetPhotos("", -1, "default")
+func TestWrapper_GetPhotoBlocks(t *testing.T) {
+	res, err := wrapper.GetPhotoBlocks("", -1, "default")
 	if err != nil {
-		t.Errorf("get photos failed: %s", err)
+		t.Errorf("get photo blocks failed: %s", err)
 		return
 	}
 	blocks := Blocks{}
 	json.Unmarshal([]byte(res), &blocks)
 	if len(blocks.Items) == 0 {
-		t.Errorf("get photos bad result")
+		t.Errorf("get photo blocks bad result")
 	}
 }
 
 func TestWrapper_GetPhotosBadThread(t *testing.T) {
-	_, err := wrapper.GetPhotos("", -1, "empty")
+	_, err := wrapper.GetPhotoBlocks("", -1, "empty")
 	if err == nil {
-		t.Errorf("get photos from bad thread should fail: %s", err)
+		t.Errorf("get photo blocks from bad thread should fail: %s", err)
 		return
 	}
 }
