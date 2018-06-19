@@ -118,8 +118,14 @@ func TestWrapper_GetAccessToken(t *testing.T) {
 }
 
 func TestWrapper_AddThread(t *testing.T) {
-	if err := wrapper.AddThread("default"); err != nil {
-		t.Errorf("attempt to start a running node failed: %s", err)
+	if err := wrapper.AddThread("default", ""); err != nil {
+		t.Errorf("add thread failed: %s", err)
+	}
+}
+
+func TestWrapper_AddThreadAgain(t *testing.T) {
+	if err := wrapper.AddThread("default", ""); err != nil {
+		t.Errorf("add thread again failed: %s", err)
 	}
 }
 
@@ -140,7 +146,7 @@ func TestWrapper_AddPhoto(t *testing.T) {
 }
 
 func TestWrapper_SharePhoto(t *testing.T) {
-	err := wrapper.AddThread("test")
+	err := wrapper.AddThread("test", "")
 	if err != nil {
 		t.Errorf("add test thread failed: %s", err)
 		return
