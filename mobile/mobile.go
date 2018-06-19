@@ -186,8 +186,15 @@ func (w *Wrapper) GetAccessToken() (string, error) {
 }
 
 // AddThread adds a new thread with the given name
-func (w *Wrapper) AddThread(name string) error {
-	_, _, err := tcore.Node.Wallet.AddThreadWithMnemonic(name, nil)
+func (w *Wrapper) AddThread(name string, mnemonic string) error {
+	var mnem *string
+	if mnemonic != "" {
+		mnem = &mnemonic
+	}
+	_, _, err := tcore.Node.Wallet.AddThreadWithMnemonic(name, mnem)
+	if err == wallet.ErrThreadExists {
+		return nil
+	}
 	return err
 }
 
