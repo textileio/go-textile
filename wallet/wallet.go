@@ -644,13 +644,13 @@ func (w *Wallet) FindBlock(target string) (*trepo.Block, error) {
 
 // GetFile cats data from ipfs and tries to decrypt it with the provided block
 // e.g., Qm../thumb, Qm../photo, Qm../meta, Qm../caption
-func (w *Wallet) GetFile(path string, blockId string) ([]byte, error) {
+func (w *Wallet) GetFile(path string, block *trepo.Block) ([]byte, error) {
 	if !w.started {
 		return nil, ErrStopped
 	}
 
 	// get thread for decryption
-	thrd, block, err := w.getThreadBlock(blockId)
+	thrd, err := w.getThreadByBlock(block)
 	if err != nil {
 		log.Error(err.Error())
 		return nil, err
@@ -675,8 +675,8 @@ func (w *Wallet) GetFile(path string, blockId string) ([]byte, error) {
 }
 
 // GetFileBase64 returns data encoded as base64 under an ipfs path
-func (w *Wallet) GetFileBase64(path string, blockId string) (string, error) {
-	file, err := w.GetFile(path, blockId)
+func (w *Wallet) GetFileBase64(path string, block *trepo.Block) (string, error) {
+	file, err := w.GetFile(path, block)
 	if err != nil {
 		return "error", err
 	}
@@ -690,13 +690,13 @@ func (w *Wallet) GetDataAtPath(path string) ([]byte, error) {
 	return util.GetDataAtPath(w.ipfs, path)
 }
 
-func (w *Wallet) GetFileKey(blockId string) (string, error) {
+func (w *Wallet) GetFileKey(block *trepo.Block) (string, error) {
 	if !w.started {
 		return "", ErrStopped
 	}
 
 	// get thread for decryption
-	thrd, block, err := w.getThreadBlock(blockId)
+	thrd, err := w.getThreadByBlock(block)
 	if err != nil {
 		log.Error(err.Error())
 		return "", err
@@ -1034,10 +1034,9 @@ func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
 	return thrd, nil
 }
 
-func (w *Wallet) getThreadBlock(blockId string) (*thread.Thread, *trepo.Block, error) {
-	block := w.datastore.Blocks().Get(blockId)
+func (w *Wallet) getThreadByBlock(block *trepo.Block) (*thread.Thread, error) {
 	if block == nil {
-		return nil, nil, errors.New(fmt.Sprintf("block %s not found locally", blockId))
+		return nil, errors.New("block is empty")
 	}
 	var thrd *thread.Thread
 	for _, t := range w.threads {
@@ -1047,9 +1046,9 @@ func (w *Wallet) getThreadBlock(blockId string) (*thread.Thread, *trepo.Block, e
 		}
 	}
 	if thrd == nil {
-		return nil, nil, errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadPubKey))
+		return nil, errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadPubKey))
 	}
-	return thrd, block, nil
+	return thrd, nil
 }
 
 // touchDB ensures that we have a good db connection

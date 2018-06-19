@@ -270,9 +270,14 @@ func (w *Wrapper) GetPhotos(offsetId string, limit int, threadName string) (stri
 	return string(jsonb), nil
 }
 
-// GetFileBase64 call core GetFileBase64
-func (w *Wrapper) GetFileBase64(path string, blockId string) (string, error) {
-	return tcore.Node.Wallet.GetFileBase64(path, blockId)
+// GetFileBase64 calls core GetFileBase64
+func (w *Wrapper) GetFileBase64(id string, path string) (string, error) {
+	block, err := tcore.Node.Wallet.FindBlock(id)
+	if err != nil {
+		log.Errorf("could not find block for target %s: %s", id, err)
+		return "", err
+	}
+	return tcore.Node.Wallet.GetFileBase64(fmt.Sprintf("%s/%s", id, path), block)
 }
 
 // PairDevice publishes this node's secret key to another node,
