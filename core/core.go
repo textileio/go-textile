@@ -192,12 +192,17 @@ func (t *TextileNode) registerGatewayHandler() {
 		// look for block id
 		blockId := r.URL.Query()["block"]
 		if blockId != nil {
-			block, err := t.Wallet.FindBlock(blockId[0])
+			block, err := t.Wallet.GetBlock(blockId[0])
 			if err != nil {
-				log.Errorf("error finding block for %s: %s", parsed, err)
+				log.Errorf("error finding block %s: %s", blockId[0], err)
 				return
 			}
-			file, err := t.Wallet.GetFile(parsed, block)
+			thrd := t.Wallet.GetThread(block.Id)
+			if thrd == nil {
+				log.Errorf("could not find thread for block: %s", block.Id)
+				return
+			}
+			file, err := thrd.GetFileData(parsed, block)
 			if err != nil {
 				log.Errorf("error decrypting path %s: %s", parsed, err)
 				w.WriteHeader(404)

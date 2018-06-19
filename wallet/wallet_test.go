@@ -192,23 +192,15 @@ func TestWallet_AddPhoto(t *testing.T) {
 	}
 }
 
-func TestWallet_FindBlock(t *testing.T) {
+func TestWallet_GetBlock(t *testing.T) {
 	// TODO
 }
 
-func TestWallet_GetFile(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_GetFileBase64(t *testing.T) {
+func TestWallet_GetBlockByTarget(t *testing.T) {
 	// TODO
 }
 
 func TestWallet_GetDataAtPath(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_GetFileKey(t *testing.T) {
 	// TODO
 }
 

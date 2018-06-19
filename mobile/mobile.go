@@ -224,7 +224,7 @@ func (w *Wrapper) AddPhoto(path string, threadName string, caption string) (*net
 
 // SharePhoto adds an existing photo to a new thread
 func (w *Wrapper) SharePhoto(id string, threadName string, caption string) (string, error) {
-	block, err := tcore.Node.Wallet.FindBlock(id)
+	block, err := tcore.Node.Wallet.GetBlockByTarget(id)
 	if err != nil {
 		return "", err
 	}
@@ -277,14 +277,38 @@ func (w *Wrapper) GetPhotos(offsetId string, limit int, threadName string) (stri
 	return string(jsonb), nil
 }
 
-// GetFileBase64 calls core GetFileBase64
-func (w *Wrapper) GetFileBase64(id string, path string) (string, error) {
-	block, err := tcore.Node.Wallet.FindBlock(id)
+// GetBlockData calls GetBlockDataBase64 on a thread
+func (w *Wrapper) GetBlockData(id string, path string) (string, error) {
+	block, err := tcore.Node.Wallet.GetBlock(id)
+	if err != nil {
+		log.Errorf("could not find block %s: %s", id, err)
+		return "", err
+	}
+	thrd := tcore.Node.Wallet.GetThread(block.ThreadPubKey)
+	if thrd == nil {
+		err := errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadPubKey))
+		log.Error(err.Error())
+		return "", err
+	}
+
+	return thrd.GetBlockDataBase64(fmt.Sprintf("%s/%s", id, path), block)
+}
+
+// GetFileData calls GetFileDataBase64 on a thread
+func (w *Wrapper) GetFileData(id string, path string) (string, error) {
+	block, err := tcore.Node.Wallet.GetBlockByTarget(id)
 	if err != nil {
 		log.Errorf("could not find block for target %s: %s", id, err)
 		return "", err
 	}
-	return tcore.Node.Wallet.GetFileBase64(fmt.Sprintf("%s/%s", id, path), block)
+	thrd := tcore.Node.Wallet.GetThread(block.ThreadPubKey)
+	if thrd == nil {
+		err := errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadPubKey))
+		log.Error(err.Error())
+		return "", err
+	}
+
+	return thrd.GetFileDataBase64(fmt.Sprintf("%s/%s", id, path), block)
 }
 
 // PairDevice publishes this node's secret key to another node,
