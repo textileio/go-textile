@@ -255,8 +255,8 @@ func (w *Wrapper) SharePhoto(id string, threadName string, caption string) (stri
 	return shared.Id, nil
 }
 
-// GetPhotos returns core GetPhotos with json encoding
-func (w *Wrapper) GetPhotos(offsetId string, limit int, threadName string) (string, error) {
+// GetPhotoBlocks returns thread photo blocks with json encoding
+func (w *Wrapper) GetPhotoBlocks(offsetId string, limit int, threadName string) (string, error) {
 	thrd := tcore.Node.Wallet.GetThreadByName(threadName)
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("thread not found: %s", threadName))

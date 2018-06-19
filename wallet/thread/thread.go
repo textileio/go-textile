@@ -365,6 +365,7 @@ func (t *Thread) Listening() bool {
 }
 
 // Blocks paginates photos from the datastore
+// TODO: add filter on type
 func (t *Thread) Blocks(offsetId string, limit int) []repo.Block {
 	log.Debugf("listing blocks: offsetId: %s, limit: %d, thread: %s", offsetId, limit, t.Name)
 	query := fmt.Sprintf("pk='%s' and type=%d", t.Id, repo.PhotoBlock)
