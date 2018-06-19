@@ -178,7 +178,7 @@ func TestWrapper_GetPhotosBadThread(t *testing.T) {
 }
 
 func TestWrapper_GetFileBase64(t *testing.T) {
-	res, err := wrapper.GetFileBase64(addedPhotoId+"/thumb", sharedBlockId)
+	res, err := wrapper.GetFileBase64(addedPhotoId, "thumb")
 	if err != nil {
 		t.Errorf("get photo base64 string failed: %s", err)
 		return
@@ -188,7 +188,7 @@ func TestWrapper_GetFileBase64(t *testing.T) {
 	}
 }
 
-//func TestWrapper_PairDesktop(t *testing.T) {
+//func TestWrapper_PairDevice(t *testing.T) {
 //	_, pk, err := libp2p.GenerateKeyPair(libp2p.Ed25519, 1024)
 //	if err != nil {
 //		t.Errorf("create keypair failed: %s", err)
@@ -199,9 +199,9 @@ func TestWrapper_GetFileBase64(t *testing.T) {
 //	}
 //	ps := base64.StdEncoding.EncodeToString(pb)
 //
-//	_, err = wrapper.PairDesktop(ps)
+//	_, err = wrapper.PairDevice(ps)
 //	if err != nil {
-//		t.Errorf("pair desktop failed: %s", err)
+//		t.Errorf("pair device failed: %s", err)
 //	}
 //}
 

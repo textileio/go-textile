@@ -178,7 +178,7 @@ func GetPhoto(c *ishell.Context) {
 		return
 	}
 
-	file, err := core.Node.Wallet.GetFile(fmt.Sprintf("%s/photo", id), block.Id)
+	file, err := core.Node.Wallet.GetFile(fmt.Sprintf("%s/photo", id), block)
 	if err != nil {
 		c.Err(err)
 		return
@@ -207,7 +207,7 @@ func CatPhotoMetadata(c *ishell.Context) {
 		return
 	}
 
-	file, err := core.Node.Wallet.GetFile(fmt.Sprintf("%s/meta", id), block.Id)
+	file, err := core.Node.Wallet.GetFile(fmt.Sprintf("%s/meta", id), block)
 	if err != nil {
 		c.Err(err)
 		return
@@ -240,7 +240,7 @@ func GetPhotoKey(c *ishell.Context) {
 		return
 	}
 
-	key, err := core.Node.Wallet.GetFileKey(block.Id)
+	key, err := core.Node.Wallet.GetFileKey(block)
 	if err != nil {
 		c.Err(err)
 		return
