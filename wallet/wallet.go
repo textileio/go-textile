@@ -471,7 +471,13 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 
 // AddThreadWithMnemonic adds a thread with a given name and mnemonic phrase
 func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string) (*thread.Thread, string, error) {
-	if _, err := w.getThreadModelByName(name); err != nil {
+	existing, err := w.getThreadModelByName(name)
+	if err != nil {
+		return nil, "", err
+	}
+	// not ideal way to check for existence, but want to skip
+	// all the heavy crypto stuff below if we know for sure this thread already exists
+	if existing != nil {
 		return nil, "", ErrThreadExists
 	}
 	if mnemonic != nil {
