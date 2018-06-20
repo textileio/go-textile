@@ -218,9 +218,11 @@ func (w *Wrapper) AddPhoto(path string, threadName string, caption string) (*net
 
 	// pin to remote
 	url := fmt.Sprintf("%s/add?wrap-with-directory=true", RemoteIPFSApi)
-	if err = shared.RemoteRequest.Send(url); err != nil {
+	status, err := shared.RemoteRequest.Send(url)
+	if err != nil {
 		return nil, err
 	}
+	log.Debugf("pinned block to remote (status %s)", status)
 
 	// let the OS handle the large upload
 	return added.RemoteRequest, nil
@@ -253,9 +255,11 @@ func (w *Wrapper) SharePhoto(id string, threadName string, caption string) (stri
 
 	// pin to remote
 	url := fmt.Sprintf("%s/add?wrap-with-directory=true", RemoteIPFSApi)
-	if err = shared.RemoteRequest.Send(url); err != nil {
+	status, err := shared.RemoteRequest.Send(url)
+	if err != nil {
 		return "", err
 	}
+	log.Debugf("pinned block to remote (status %s)", status)
 
 	return shared.Id, nil
 }

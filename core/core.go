@@ -96,22 +96,7 @@ func (t *TextileNode) StartWallet() (online chan struct{}, err error) {
 func (t *TextileNode) StopWallet() error {
 	t.mux.Lock()
 	defer t.mux.Unlock()
-
-	// shutdown the gateway
-	cgCtx, cancelCGW := context.WithCancel(context.Background())
-	if err := t.gateway.Shutdown(cgCtx); err != nil {
-		log.Errorf("error shutting down gateway: %s", err)
-		return err
-	}
-
-	if err := t.Wallet.Stop(); err != nil {
-		return err
-	}
-
-	// force the gateway closed if it's not already closed
-	cancelCGW()
-
-	return nil
+	return t.Wallet.Stop()
 }
 
 // StopGateway starts the gateway

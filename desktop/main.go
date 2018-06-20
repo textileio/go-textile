@@ -51,6 +51,12 @@ func main() {
 	}
 	<-online
 
+	err = textile.StartGateway()
+	if err != nil {
+		astilog.Errorf("start gateway failed: %s", err)
+		return
+	}
+
 	// save off the gateway address
 	gateway = fmt.Sprintf("http://localhost%s", textile.GetGatewayAddress())
 
