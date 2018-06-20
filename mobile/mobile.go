@@ -192,7 +192,7 @@ func (w *Wrapper) AddThread(name string, mnemonic string) error {
 		mnem = &mnemonic
 	}
 	_, _, err := tcore.Node.Wallet.AddThreadWithMnemonic(name, mnem)
-	if err == wallet.ErrThreadExists {
+	if err == wallet.ErrThreadExists || err == wallet.ErrThreadLoaded {
 		return nil
 	}
 	return err

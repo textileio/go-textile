@@ -108,6 +108,10 @@ func Init(isMobile bool) (*native.Config, error) {
 			},
 		},
 
+		Routing: native.Routing{
+			Type: "dht",
+		},
+
 		// setup the node mount points.
 		Mounts: native.Mounts{
 			IPFS: "/ipfs",
