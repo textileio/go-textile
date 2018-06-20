@@ -70,6 +70,9 @@ type Blocks struct {
 	Items []repo.Block `json:"items"`
 }
 
+// tmp while central does not proxy the remote ipfs cluster
+const RemoteIPFSApi = "https://ipfs.textile.io/api/v0"
+
 // Create a gomobile compatible wrapper around TextileNode
 func (m *Mobile) NewNode(config *NodeConfig, messenger Messenger) (*Wrapper, error) {
 	ll, err := logging.LogLevel(config.LogLevel)
@@ -192,7 +195,7 @@ func (w *Wrapper) AddThread(name string, mnemonic string) error {
 		mnem = &mnemonic
 	}
 	_, _, err := tcore.Node.Wallet.AddThreadWithMnemonic(name, mnem)
-	if err == wallet.ErrThreadExists {
+	if err == wallet.ErrThreadExists || err == wallet.ErrThreadLoaded {
 		return nil
 	}
 	return err
@@ -214,9 +217,12 @@ func (w *Wrapper) AddPhoto(path string, threadName string, caption string) (*net
 	}
 
 	// pin to remote
-	if err = shared.RemoteRequest.Send(tcore.Node.Wallet.GetCentralAPI()); err != nil {
+	url := fmt.Sprintf("%s/add?wrap-with-directory=true", RemoteIPFSApi)
+	status, err := shared.RemoteRequest.Send(url)
+	if err != nil {
 		return nil, err
 	}
+	log.Debugf("pinned block to remote (status %s)", status)
 
 	// let the OS handle the large upload
 	return added.RemoteRequest, nil
@@ -248,9 +254,12 @@ func (w *Wrapper) SharePhoto(id string, threadName string, caption string) (stri
 	}
 
 	// pin to remote
-	if err = shared.RemoteRequest.Send(tcore.Node.Wallet.GetCentralAPI()); err != nil {
+	url := fmt.Sprintf("%s/add?wrap-with-directory=true", RemoteIPFSApi)
+	status, err := shared.RemoteRequest.Send(url)
+	if err != nil {
 		return "", err
 	}
+	log.Debugf("pinned block to remote (status %s)", status)
 
 	return shared.Id, nil
 }

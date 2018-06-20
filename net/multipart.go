@@ -2,7 +2,6 @@ package net
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -71,11 +70,11 @@ func (m *MultipartRequest) Finish() error {
 	return nil
 }
 
-func (m *MultipartRequest) Send(url string) error {
+func (m *MultipartRequest) Send(url string) (string, error) {
 	// open file, will error if not first inited
 	file, err := os.Open(m.PayloadPath)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer file.Close()
 
@@ -87,13 +86,8 @@ func (m *MultipartRequest) Send(url string) error {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer resp.Body.Close()
-
-	fmt.Println("response Status:", resp.Status)
-	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println("response Body:", string(body))
-
-	return nil
+	return resp.Status, nil
 }

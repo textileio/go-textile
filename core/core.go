@@ -89,22 +89,31 @@ func NewNode(config NodeConfig) (*TextileNode, error) {
 func (t *TextileNode) StartWallet() (online chan struct{}, err error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
-	online, err = t.Wallet.Start()
-	if err != nil {
-		return nil, err
-	}
+	return t.Wallet.Start()
+}
 
-	// construct decrypting http gateway
-	var gwpErrc <-chan error
-	gwpErrc, err = t.startGateway()
-	if err != nil {
-		log.Errorf("error starting decrypting gateway: %s", err)
-		return nil, err
-	}
+// StopWallet stops the wallet
+func (t *TextileNode) StopWallet() error {
+	t.mux.Lock()
+	defer t.mux.Unlock()
+	return t.Wallet.Stop()
+}
+
+// StopGateway starts the gateway
+func (t *TextileNode) StartGateway() error {
+	// try to register our handler
+	t.registerGatewayHandler()
+
+	// start the server
+	errc := make(chan error)
+	go func() {
+		errc <- t.gateway.ListenAndServe()
+		close(errc)
+	}()
 	go func() {
 		for {
 			select {
-			case err, ok := <-gwpErrc:
+			case err, ok := <-errc:
 				if err != nil && err.Error() != "http: Server closed" {
 					log.Errorf("gateway error: %s", err)
 				}
@@ -115,30 +124,24 @@ func (t *TextileNode) StartWallet() (online chan struct{}, err error) {
 			}
 		}
 	}()
-
-	return online, nil
+	log.Infof("decrypting gateway (readonly) server listening at %s\n", t.gateway.Addr)
+	return nil
 }
 
-// StopWallet stops the wallet
-func (t *TextileNode) StopWallet() error {
-	t.mux.Lock()
-	defer t.mux.Unlock()
-
-	// shutdown the gateway
+// StopGateway stops the gateway
+func (t *TextileNode) StopGateway() error {
 	cgCtx, cancelCGW := context.WithCancel(context.Background())
 	if err := t.gateway.Shutdown(cgCtx); err != nil {
 		log.Errorf("error shutting down gateway: %s", err)
 		return err
 	}
-
-	if err := t.Wallet.Stop(); err != nil {
-		return err
-	}
-
-	// force the gateway closed if it's not already closed
 	cancelCGW()
-
 	return nil
+}
+
+// GetGatewayAddress returns the gateway's address
+func (t *TextileNode) GetGatewayAddress() string {
+	return t.gateway.Addr
 }
 
 // StartPublishing continuously publishes the latest update in each thread
@@ -170,11 +173,6 @@ func (t *TextileNode) StartPublishing() {
 			return
 		}
 	}
-}
-
-// GetGatewayAddress returns the gateway's address
-func (t *TextileNode) GetGatewayAddress() string {
-	return t.gateway.Addr
 }
 
 // registerGatewayHandler registers a handler for the gateway
@@ -242,22 +240,6 @@ func (t *TextileNode) registerGatewayHandler() {
 		// lastly, just return the raw bytes (standard gateway)
 		w.Write(file)
 	})
-}
-
-// startGateway starts the secure HTTP gatway server
-func (t *TextileNode) startGateway() (<-chan error, error) {
-	// try to register our handler
-	t.registerGatewayHandler()
-
-	// Start the HTTPS server in a goroutine
-	errc := make(chan error)
-	go func() {
-		errc <- t.gateway.ListenAndServe()
-		close(errc)
-	}()
-	log.Infof("decrypting gateway (readonly) server listening at %s\n", t.gateway.Addr)
-
-	return errc, nil
 }
 
 func parsePath(path string) (parsed string, contentType string) {
