@@ -70,6 +70,9 @@ type Blocks struct {
 	Items []repo.Block `json:"items"`
 }
 
+// tmp while central does not proxy the remote ipfs cluster
+const RemoteIPFSApi = "https://ipfs.textile.io/api/v0"
+
 // Create a gomobile compatible wrapper around TextileNode
 func (m *Mobile) NewNode(config *NodeConfig, messenger Messenger) (*Wrapper, error) {
 	ll, err := logging.LogLevel(config.LogLevel)
@@ -214,7 +217,8 @@ func (w *Wrapper) AddPhoto(path string, threadName string, caption string) (*net
 	}
 
 	// pin to remote
-	if err = shared.RemoteRequest.Send(tcore.Node.Wallet.GetCentralAPI()); err != nil {
+	url := fmt.Sprintf("%s/add?wrap-with-directory=true", RemoteIPFSApi)
+	if err = shared.RemoteRequest.Send(url); err != nil {
 		return nil, err
 	}
 
@@ -248,7 +252,8 @@ func (w *Wrapper) SharePhoto(id string, threadName string, caption string) (stri
 	}
 
 	// pin to remote
-	if err = shared.RemoteRequest.Send(tcore.Node.Wallet.GetCentralAPI()); err != nil {
+	url := fmt.Sprintf("%s/add?wrap-with-directory=true", RemoteIPFSApi)
+	if err = shared.RemoteRequest.Send(url); err != nil {
 		return "", err
 	}
 
