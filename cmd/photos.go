@@ -7,7 +7,9 @@ import (
 	"github.com/fatih/color"
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet/model"
+	"github.com/textileio/textile-go/wallet/thread"
 	"gopkg.in/abiosoft/ishell.v2"
 	"io/ioutil"
 	"os"
@@ -58,12 +60,12 @@ func AddPhoto(c *ishell.Context) {
 	}
 
 	// add to thread
-	thread := core.Node.Wallet.GetThreadByName(threadName)
-	if thread == nil {
+	thrd := core.Node.Wallet.GetThreadByName(threadName)
+	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", threadName)))
 		return
 	}
-	tadded, err := thread.AddPhoto(added.Id, caption, added.Key)
+	tadded, err := thrd.AddPhoto(added.Id, caption, added.Key)
 	if err != nil {
 		c.Err(err)
 		return
@@ -71,7 +73,7 @@ func AddPhoto(c *ishell.Context) {
 
 	// show user root id
 	cyan := color.New(color.FgCyan).SprintFunc()
-	c.Println(cyan("added " + added.Id + " to thread " + thread.Name + " with block " + tadded.Id))
+	c.Println(cyan("added " + added.Id + " to thread " + thrd.Name + " with block " + tadded.Id))
 }
 
 func SharePhoto(c *ishell.Context) {
@@ -90,16 +92,9 @@ func SharePhoto(c *ishell.Context) {
 	caption := c.ReadLine()
 
 	// get the original block
-	block, err := core.Node.Wallet.FindBlock(id)
+	block, fromThread, err := getBlockAndThreadForTarget(id)
 	if err != nil {
 		c.Err(err)
-		return
-	}
-
-	// and it's thread
-	fromThread := core.Node.Wallet.GetThread(block.ThreadPubKey)
-	if fromThread == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadPubKey)))
 		return
 	}
 
@@ -136,13 +131,13 @@ func ListPhotos(c *ishell.Context) {
 		threadName = c.Args[0]
 	}
 
-	thread := core.Node.Wallet.GetThreadByName(threadName)
-	if thread == nil {
+	thrd := core.Node.Wallet.GetThreadByName(threadName)
+	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadName)))
 		return
 	}
 
-	blocks := thread.Blocks("", -1)
+	blocks := thrd.Blocks("", -1)
 	if len(blocks) == 0 {
 		c.Println(fmt.Sprintf("no photos found in: %s", threadName))
 	} else {
@@ -172,13 +167,13 @@ func GetPhoto(c *ishell.Context) {
 		dest = c.Args[1]
 	}
 
-	block, err := core.Node.Wallet.FindBlock(id)
+	block, thrd, err := getBlockAndThreadForTarget(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
-	file, err := core.Node.Wallet.GetFile(fmt.Sprintf("%s/photo", id), block.Id)
+	file, err := thrd.GetFileData(fmt.Sprintf("%s/photo", id), block)
 	if err != nil {
 		c.Err(err)
 		return
@@ -201,13 +196,13 @@ func CatPhotoMetadata(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	block, err := core.Node.Wallet.FindBlock(id)
+	block, thrd, err := getBlockAndThreadForTarget(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
-	file, err := core.Node.Wallet.GetFile(fmt.Sprintf("%s/meta", id), block.Id)
+	file, err := thrd.GetFileData(fmt.Sprintf("%s/meta", id), block)
 	if err != nil {
 		c.Err(err)
 		return
@@ -234,13 +229,13 @@ func GetPhotoKey(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	block, err := core.Node.Wallet.FindBlock(id)
+	block, thrd, err := getBlockAndThreadForTarget(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
-	key, err := core.Node.Wallet.GetFileKey(block.Id)
+	key, err := thrd.GetFileKey(block)
 	if err != nil {
 		c.Err(err)
 		return
@@ -248,4 +243,16 @@ func GetPhotoKey(c *ishell.Context) {
 
 	blue := color.New(color.FgHiBlue).SprintFunc()
 	c.Println(blue(key))
+}
+
+func getBlockAndThreadForTarget(id string) (*repo.Block, *thread.Thread, error) {
+	block, err := core.Node.Wallet.GetBlockByTarget(id)
+	if err != nil {
+		return nil, nil, err
+	}
+	thrd := core.Node.Wallet.GetThread(block.ThreadPubKey)
+	if thrd == nil {
+		return nil, nil, errors.New(fmt.Sprintf("could not find thread %s", block.ThreadPubKey))
+	}
+	return block, thrd, nil
 }

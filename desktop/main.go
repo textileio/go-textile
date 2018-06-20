@@ -27,7 +27,6 @@ func main() {
 
 	// create a desktop textile node
 	// TODO: on darwin, repo should live in Application Support
-	// TODO: make api url configurable somehow
 	config := core.NodeConfig{
 		LogLevel: logging.DEBUG,
 		LogFiles: true,
