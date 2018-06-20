@@ -44,9 +44,23 @@ func TestTextileNode_StartAgain(t *testing.T) {
 	}
 }
 
+func TestTextileNode_StartGateway(t *testing.T) {
+	err := node.StartGateway()
+	if err != nil {
+		t.Errorf("start gateway failed: %s", err)
+	}
+}
+
 func TestTextileNode_GetGatewayAddress(t *testing.T) {
 	if len(node.GetGatewayAddress()) == 0 {
 		t.Error("get gateway address failed")
+	}
+}
+
+func TestTextileNode_StopGateway(t *testing.T) {
+	err := node.StopGateway()
+	if err != nil {
+		t.Errorf("stop gateway failed: %s", err)
 	}
 }
 
