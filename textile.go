@@ -249,10 +249,15 @@ func start(shell *ishell.Shell) error {
 	// start continuously publishing
 	go core.Node.StartPublishing()
 
-	return nil
+	// start the gateway
+	return core.Node.StartGateway()
 }
 
 func stop() error {
+	err := core.Node.StopGateway()
+	if err != nil {
+		return err
+	}
 	return core.Node.StopWallet()
 }
 
