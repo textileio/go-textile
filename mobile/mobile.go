@@ -165,6 +165,16 @@ func (w *Wrapper) IsSignedIn() bool {
 	return si
 }
 
+// GetId calls core GetId
+func (w *Wrapper) GetId() (string, error) {
+	return tcore.Node.Wallet.GetId()
+}
+
+// GetIPFSPeerId returns the wallet's ipfs peer id
+func (w *Wrapper) GetIPFSPeerId() (string, error) {
+	return tcore.Node.Wallet.GetIPFSPeerId()
+}
+
 // GetUsername calls core GetUsername
 func (w *Wrapper) GetUsername() (string, error) {
 	return tcore.Node.Wallet.GetUsername()
@@ -176,8 +186,15 @@ func (w *Wrapper) GetAccessToken() (string, error) {
 }
 
 // AddThread adds a new thread with the given name
-func (w *Wrapper) AddThread(name string) error {
-	_, _, err := tcore.Node.Wallet.AddThreadWithMnemonic(name, nil)
+func (w *Wrapper) AddThread(name string, mnemonic string) error {
+	var mnem *string
+	if mnemonic != "" {
+		mnem = &mnemonic
+	}
+	_, _, err := tcore.Node.Wallet.AddThreadWithMnemonic(name, mnem)
+	if err == wallet.ErrThreadExists {
+		return nil
+	}
 	return err
 }
 
@@ -207,7 +224,7 @@ func (w *Wrapper) AddPhoto(path string, threadName string, caption string) (*net
 
 // SharePhoto adds an existing photo to a new thread
 func (w *Wrapper) SharePhoto(id string, threadName string, caption string) (string, error) {
-	block, err := tcore.Node.Wallet.FindBlock(id)
+	block, err := tcore.Node.Wallet.GetBlockByTarget(id)
 	if err != nil {
 		return "", err
 	}
@@ -238,8 +255,8 @@ func (w *Wrapper) SharePhoto(id string, threadName string, caption string) (stri
 	return shared.Id, nil
 }
 
-// Get Photos returns core GetPhotos with json encoding
-func (w *Wrapper) GetPhotos(offsetId string, limit int, threadName string) (string, error) {
+// GetPhotoBlocks returns thread photo blocks with json encoding
+func (w *Wrapper) GetPhotoBlocks(offsetId string, limit int, threadName string) (string, error) {
 	thrd := tcore.Node.Wallet.GetThreadByName(threadName)
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("thread not found: %s", threadName))
@@ -260,23 +277,47 @@ func (w *Wrapper) GetPhotos(offsetId string, limit int, threadName string) (stri
 	return string(jsonb), nil
 }
 
-// GetFileBase64 call core GetFileBase64
-func (w *Wrapper) GetFileBase64(path string, blockId string) (string, error) {
-	return tcore.Node.Wallet.GetFileBase64(path, blockId)
+// GetBlockData calls GetBlockDataBase64 on a thread
+func (w *Wrapper) GetBlockData(id string, path string) (string, error) {
+	block, err := tcore.Node.Wallet.GetBlock(id)
+	if err != nil {
+		log.Errorf("could not find block %s: %s", id, err)
+		return "", err
+	}
+	thrd := tcore.Node.Wallet.GetThread(block.ThreadPubKey)
+	if thrd == nil {
+		err := errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadPubKey))
+		log.Error(err.Error())
+		return "", err
+	}
+
+	return thrd.GetBlockDataBase64(fmt.Sprintf("%s/%s", id, path), block)
 }
 
-// GetIPFSPeerID returns the wallet's ipfs peer id
-func (w *Wrapper) GetIPFSPeerID() (string, error) {
-	return tcore.Node.Wallet.GetIPFSPeerID()
+// GetFileData calls GetFileDataBase64 on a thread
+func (w *Wrapper) GetFileData(id string, path string) (string, error) {
+	block, err := tcore.Node.Wallet.GetBlockByTarget(id)
+	if err != nil {
+		log.Errorf("could not find block for target %s: %s", id, err)
+		return "", err
+	}
+	thrd := tcore.Node.Wallet.GetThread(block.ThreadPubKey)
+	if thrd == nil {
+		err := errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadPubKey))
+		log.Error(err.Error())
+		return "", err
+	}
+
+	return thrd.GetFileDataBase64(fmt.Sprintf("%s/%s", id, path), block)
 }
 
-// PairDesktop publishes this nodes default thread key to a desktop node
+// PairDevice publishes this node's secret key to another node,
 // which is listening at it's own peer id
-func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
+func (w *Wrapper) PairDevice(pkb64 string) (string, error) {
 	if !tcore.Node.Wallet.Online() {
 		return "", wallet.ErrOffline
 	}
-	log.Info("pairing with desktop...")
+	log.Info("pairing with a new device...")
 
 	pkb, err := libp2pc.ConfigDecodeKey(pkb64)
 	if err != nil {
@@ -316,7 +357,7 @@ func (w *Wrapper) PairDesktop(pkb64 string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	log.Infof("published key phrase to desktop: %s", topic)
+	log.Infof("published key phrase to device: %s", topic)
 
 	return topic, nil
 }

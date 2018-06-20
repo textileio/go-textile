@@ -19,10 +19,39 @@ func setupProfileDB() {
 	pdb = NewProfileStore(conn, new(sync.Mutex))
 }
 
+func TestProfileDB_Init(t *testing.T) {
+	err := pdb.Init("boom", []byte("..."))
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func TestProfileDB_SignIn(t *testing.T) {
 	err := pdb.SignIn("woohoo!", "...", "...")
 	if err != nil {
 		t.Error(err)
+	}
+}
+
+func TestProfileDB_GetId(t *testing.T) {
+	id, err := pdb.GetId()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if id != "boom" {
+		t.Error("got bad id")
+	}
+}
+
+func TestProfileDB_GetSecret(t *testing.T) {
+	secret, err := pdb.GetSecret()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if string(secret) != "..." {
+		t.Error("got bad secret")
 	}
 }
 

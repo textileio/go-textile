@@ -105,8 +105,20 @@ func TestWallet_GetUsername(t *testing.T) {
 	// TODO
 }
 
-func TestWallet_GetID(t *testing.T) {
+func TestWallet_GetId(t *testing.T) {
 	// TODO
+}
+
+func TestWallet_GetIPFSPeerId(t *testing.T) {
+	id, err := wallet.GetIPFSPeerId()
+	if err != nil {
+		t.Errorf("get ipfs peer id failed: %s", err)
+		return
+	}
+	if id == "" {
+		t.Error("ipfs peer id empty")
+		return
+	}
 }
 
 func TestWallet_GetMasterPrivKey(t *testing.T) {
@@ -180,32 +192,16 @@ func TestWallet_AddPhoto(t *testing.T) {
 	}
 }
 
-func TestWallet_FindBlock(t *testing.T) {
+func TestWallet_GetBlock(t *testing.T) {
 	// TODO
 }
 
-func TestWallet_GetFile(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_GetFileBase64(t *testing.T) {
+func TestWallet_GetBlockByTarget(t *testing.T) {
 	// TODO
 }
 
 func TestWallet_GetDataAtPath(t *testing.T) {
 	// TODO
-}
-
-func TestWallet_GetIPFSPeerID(t *testing.T) {
-	id, err := wallet.GetIPFSPeerID()
-	if err != nil {
-		t.Errorf("get ipfs peer id failed: %s", err)
-		return
-	}
-	if id == "" {
-		t.Error("ipfs peer id empty")
-		return
-	}
 }
 
 func TestWallet_GetIPFSPubKeyString(t *testing.T) {
@@ -229,6 +225,14 @@ func TestWallet_PingPeer(t *testing.T) {
 }
 
 func TestWallet_IPFSPeers(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_Publish(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_Subscribe(t *testing.T) {
 	// TODO
 }
 

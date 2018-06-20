@@ -200,6 +200,9 @@ func (w *Wallet) Start() (chan struct{}, error) {
 	// setup threads
 	for _, mod := range w.datastore.Threads().List("") {
 		_, err := w.loadThread(&mod)
+		if err == ErrThreadExists {
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -357,12 +360,20 @@ func (w *Wallet) GetUsername() (string, error) {
 	return w.datastore.Profile().GetUsername()
 }
 
-// GetID returns the current user's master ID
-func (w *Wallet) GetID() (string, error) {
+// GetId returns the current user's master ID
+func (w *Wallet) GetId() (string, error) {
 	if err := w.touchDatastore(); err != nil {
 		return "", err
 	}
-	return w.datastore.Profile().GetID()
+	return w.datastore.Profile().GetId()
+}
+
+// GetIPFSPeerId returns the ipfs peer's id
+func (w *Wallet) GetIPFSPeerId() (string, error) {
+	if !w.started {
+		return "", ErrStopped
+	}
+	return w.ipfs.Identity.Pretty(), nil
 }
 
 // GetMasterPrivKey returns the current user's master secret key
@@ -463,7 +474,13 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 
 // AddThreadWithMnemonic adds a thread with a given name and mnemonic phrase
 func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string) (*thread.Thread, string, error) {
-	if _, err := w.getThreadModelByName(name); err != nil {
+	existing, err := w.getThreadModelByName(name)
+	if err != nil {
+		return nil, "", err
+	}
+	// not ideal way to check for existence, but want to skip
+	// all the heavy crypto stuff below if we know for sure this thread already exists
+	if existing != nil {
 		return nil, "", ErrThreadExists
 	}
 	if mnemonic != nil {
@@ -626,7 +643,17 @@ func (w *Wallet) AddPhoto(path string) (*model.AddResult, error) {
 	return &model.AddResult{Id: id, Key: key, RemoteRequest: request}, nil
 }
 
-func (w *Wallet) FindBlock(target string) (*trepo.Block, error) {
+// GetBlock searches for a local block associated with the given target
+func (w *Wallet) GetBlock(id string) (*trepo.Block, error) {
+	block := w.datastore.Blocks().Get(id)
+	if block == nil {
+		return nil, errors.New("block not found locally")
+	}
+	return block, nil
+}
+
+// GetBlockByTarget searches for a local block associated with the given target
+func (w *Wallet) GetBlockByTarget(target string) (*trepo.Block, error) {
 	block := w.datastore.Blocks().GetByTarget(target)
 	if block == nil {
 		return nil, errors.New("block not found locally")
@@ -634,80 +661,12 @@ func (w *Wallet) FindBlock(target string) (*trepo.Block, error) {
 	return block, nil
 }
 
-// GetFile cats data from ipfs and tries to decrypt it with the provided block
-// e.g., Qm../thumb, Qm../photo, Qm../meta, Qm../caption
-func (w *Wallet) GetFile(path string, blockId string) ([]byte, error) {
-	if !w.started {
-		return nil, ErrStopped
-	}
-
-	// get thread for decryption
-	thrd, block, err := w.getThreadBlock(blockId)
-	if err != nil {
-		log.Error(err.Error())
-		return nil, err
-	}
-
-	// get bytes
-	cypher, err := util.GetDataAtPath(w.ipfs, path)
-	if err != nil {
-		log.Errorf("error getting file data: %s", err)
-		return nil, err
-	}
-
-	// decrypt the file key
-	key, err := thrd.Decrypt(block.TargetKey)
-	if err != nil {
-		log.Errorf("error decrypting key: %s", err)
-		return nil, err
-	}
-
-	// finally, decrypt the file
-	return crypto.DecryptAES(cypher, key)
-}
-
-// GetFileBase64 returns data encoded as base64 under an ipfs path
-func (w *Wallet) GetFileBase64(path string, blockId string) (string, error) {
-	file, err := w.GetFile(path, blockId)
-	if err != nil {
-		return "error", err
-	}
-	return base64.StdEncoding.EncodeToString(file), nil
-}
-
+// GetDataAtPath returns raw data behind an ipfs path
 func (w *Wallet) GetDataAtPath(path string) ([]byte, error) {
 	if !w.started {
 		return nil, ErrStopped
 	}
 	return util.GetDataAtPath(w.ipfs, path)
-}
-
-func (w *Wallet) GetFileKey(blockId string) (string, error) {
-	if !w.started {
-		return "", ErrStopped
-	}
-
-	// get thread for decryption
-	thrd, block, err := w.getThreadBlock(blockId)
-	if err != nil {
-		log.Error(err.Error())
-		return "", err
-	}
-
-	// decrypt the file key
-	key, err := thrd.Decrypt(block.TargetKey)
-	if err != nil {
-		log.Errorf("error decrypting key: %s", err)
-		return "", err
-	}
-	return string(key), nil
-}
-
-func (w *Wallet) GetIPFSPeerID() (string, error) {
-	if !w.started {
-		return "", ErrStopped
-	}
-	return w.ipfs.Identity.Pretty(), nil
 }
 
 // GetIPFSPubKeyString returns the base64 encoded public ipfs peer key
@@ -820,17 +779,24 @@ func (w *Wallet) PingPeer(addrs string, num int, out chan string) error {
 	return nil
 }
 
+func (w *Wallet) IFPSPeers() ([]libp2pn.Conn, error) {
+	if !w.Online() {
+		return nil, ErrOffline
+	}
+	return w.ipfs.PeerHost.Network().Conns(), nil
+}
+
 func (w *Wallet) Publish(topic string, payload []byte) error {
 	if !w.Online() {
 		return ErrOffline
 	}
 	if w.lastRelayTouch.Add(relayTouchInterval).Before(time.Now()) {
+		w.lastRelayTouch = time.Now()
 		log.Debug("connecting to relay...")
 		out, err := w.ConnectPeer([]string{fmt.Sprintf("/p2p-circuit/ipfs/%s", tconfig.RemoteRelayNode)})
 		if err != nil {
 			return err
 		}
-		w.lastRelayTouch = time.Now()
 		for _, o := range out {
 			log.Debug(o)
 		}
@@ -843,13 +809,6 @@ func (w *Wallet) Subscribe(topic string) (*floodsub.Subscription, error) {
 		return nil, ErrOffline
 	}
 	return w.ipfs.Floodsub.Subscribe(topic)
-}
-
-func (w *Wallet) IFPSPeers() ([]libp2pn.Conn, error) {
-	if !w.Online() {
-		return nil, ErrOffline
-	}
-	return w.ipfs.PeerHost.Network().Conns(), nil
 }
 
 // WaitForInvite to join
@@ -993,6 +952,23 @@ func (w *Wallet) getThreadModelByName(name string) (*trepo.Thread, error) {
 	return w.datastore.Threads().GetByName(name), nil
 }
 
+func (w *Wallet) getThreadByBlock(block *trepo.Block) (*thread.Thread, error) {
+	if block == nil {
+		return nil, errors.New("block is empty")
+	}
+	var thrd *thread.Thread
+	for _, t := range w.threads {
+		if t.Id == block.ThreadPubKey {
+			thrd = t
+			break
+		}
+	}
+	if thrd == nil {
+		return nil, errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadPubKey))
+	}
+	return thrd, nil
+}
+
 func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
 	if w.GetThreadByName(model.Name) != nil {
 		return nil, ErrThreadLoaded
@@ -1000,7 +976,7 @@ func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
 	id := model.Id // save value locally
 	threadConfig := &thread.Config{
 		WalletId: func() (string, error) {
-			return w.datastore.Profile().GetID()
+			return w.datastore.Profile().GetId()
 		},
 		RepoPath: w.repoPath,
 		Ipfs:     func() *core.IpfsNode { return w.ipfs },
@@ -1031,24 +1007,6 @@ func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
 	}
 	w.threads = append(w.threads, thrd)
 	return thrd, nil
-}
-
-func (w *Wallet) getThreadBlock(blockId string) (*thread.Thread, *trepo.Block, error) {
-	block := w.datastore.Blocks().Get(blockId)
-	if block == nil {
-		return nil, nil, errors.New(fmt.Sprintf("block %s not found locally", blockId))
-	}
-	var thrd *thread.Thread
-	for _, t := range w.threads {
-		if t.Id == block.ThreadPubKey {
-			thrd = t
-			break
-		}
-	}
-	if thrd == nil {
-		return nil, nil, errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadPubKey))
-	}
-	return thrd, block, nil
 }
 
 // touchDB ensures that we have a good db connection

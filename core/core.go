@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -186,24 +187,38 @@ func (t *TextileNode) registerGatewayHandler() {
 	// NOTE: always returning 404 in the event of an error seems most secure as it doesn't reveal existence
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.Debugf("gateway request: %s", r.URL.RequestURI())
+		parsed, contentType := parsePath(r.URL.Path)
 
 		// look for block id
 		blockId := r.URL.Query()["block"]
 		if blockId != nil {
-			file, err := t.Wallet.GetFile(r.URL.Path, blockId[0])
+			block, err := t.Wallet.GetBlock(blockId[0])
 			if err != nil {
-				log.Errorf("error decrypting path %s: %s", r.URL.Path, err)
+				log.Errorf("error finding block %s: %s", blockId[0], err)
+				return
+			}
+			thrd := t.Wallet.GetThread(block.Id)
+			if thrd == nil {
+				log.Errorf("could not find thread for block: %s", block.Id)
+				return
+			}
+			file, err := thrd.GetFileData(parsed, block)
+			if err != nil {
+				log.Errorf("error decrypting path %s: %s", parsed, err)
 				w.WriteHeader(404)
 				return
+			}
+			if contentType != "" {
+				w.Header().Set("Content-Type", contentType)
 			}
 			w.Write(file)
 			return
 		}
 
 		// get raw file
-		file, err := t.Wallet.GetDataAtPath(r.URL.Path)
+		file, err := t.Wallet.GetDataAtPath(parsed)
 		if err != nil {
-			log.Errorf("error getting raw path %s: %s", r.URL.Path, err)
+			log.Errorf("error getting raw path %s: %s", parsed, err)
 			w.WriteHeader(404)
 			return
 		}
@@ -213,9 +228,12 @@ func (t *TextileNode) registerGatewayHandler() {
 		if key != nil {
 			plain, err := crypto.DecryptAES(file, []byte(key[0]))
 			if err != nil {
-				log.Errorf("error decrypting %s: %s", r.URL.Path, err)
+				log.Errorf("error decrypting %s: %s", parsed, err)
 				w.WriteHeader(404)
 				return
+			}
+			if contentType != "" {
+				w.Header().Set("Content-Type", contentType)
 			}
 			w.Write(plain)
 			return
@@ -240,4 +258,21 @@ func (t *TextileNode) startGateway() (<-chan error, error) {
 	log.Infof("decrypting gateway (readonly) server listening at %s\n", t.gateway.Addr)
 
 	return errc, nil
+}
+
+func parsePath(path string) (parsed string, contentType string) {
+	parts := strings.Split(path, ".")
+	parsed = parts[0]
+	if len(parts) == 1 {
+		return parsed, ""
+	}
+	switch parts[1] {
+	case "jpg", "jpeg":
+		contentType = "image/jpeg"
+	case "png":
+		contentType = "image/png"
+	case "gif":
+		contentType = "image/gif"
+	}
+	return parsed, contentType
 }

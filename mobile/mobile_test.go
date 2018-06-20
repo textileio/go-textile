@@ -80,6 +80,24 @@ func TestWrapper_IsSignedIn(t *testing.T) {
 	}
 }
 
+func TestWrapper_GetId(t *testing.T) {
+	id, err := wrapper.GetId()
+	if err != nil {
+		t.Errorf("get id failed: %s", err)
+		return
+	}
+	if id == "" {
+		t.Error("got bad id")
+	}
+}
+
+func TestWrapper_GetIPFSPeerId(t *testing.T) {
+	_, err := wrapper.GetIPFSPeerId()
+	if err != nil {
+		t.Errorf("get peer id failed: %s", err)
+	}
+}
+
 func TestWrapper_GetUsername(t *testing.T) {
 	un, err := wrapper.GetUsername()
 	if err != nil {
@@ -100,8 +118,14 @@ func TestWrapper_GetAccessToken(t *testing.T) {
 }
 
 func TestWrapper_AddThread(t *testing.T) {
-	if err := wrapper.AddThread("default"); err != nil {
-		t.Errorf("attempt to start a running node failed: %s", err)
+	if err := wrapper.AddThread("default", ""); err != nil {
+		t.Errorf("add thread failed: %s", err)
+	}
+}
+
+func TestWrapper_AddThreadAgain(t *testing.T) {
+	if err := wrapper.AddThread("default", ""); err != nil {
+		t.Errorf("add thread again failed: %s", err)
 	}
 }
 
@@ -122,7 +146,7 @@ func TestWrapper_AddPhoto(t *testing.T) {
 }
 
 func TestWrapper_SharePhoto(t *testing.T) {
-	err := wrapper.AddThread("test")
+	err := wrapper.AddThread("test", "")
 	if err != nil {
 		t.Errorf("add test thread failed: %s", err)
 		return
@@ -138,46 +162,50 @@ func TestWrapper_SharePhoto(t *testing.T) {
 	}
 }
 
-func TestWrapper_GetPhotos(t *testing.T) {
-	res, err := wrapper.GetPhotos("", -1, "default")
+func TestWrapper_GetPhotoBlocks(t *testing.T) {
+	res, err := wrapper.GetPhotoBlocks("", -1, "default")
 	if err != nil {
-		t.Errorf("get photos failed: %s", err)
+		t.Errorf("get photo blocks failed: %s", err)
 		return
 	}
 	blocks := Blocks{}
 	json.Unmarshal([]byte(res), &blocks)
 	if len(blocks.Items) == 0 {
-		t.Errorf("get photos bad result")
+		t.Errorf("get photo blocks bad result")
 	}
 }
 
 func TestWrapper_GetPhotosBadThread(t *testing.T) {
-	_, err := wrapper.GetPhotos("", -1, "empty")
+	_, err := wrapper.GetPhotoBlocks("", -1, "empty")
 	if err == nil {
-		t.Errorf("get photos from bad thread should fail: %s", err)
+		t.Errorf("get photo blocks from bad thread should fail: %s", err)
 		return
 	}
 }
 
-func TestWrapper_GetFileBase64(t *testing.T) {
-	res, err := wrapper.GetFileBase64(addedPhotoId+"/thumb", sharedBlockId)
+func TestWrapper_GetBlockData(t *testing.T) {
+	res, err := wrapper.GetBlockData(sharedBlockId, "caption")
 	if err != nil {
-		t.Errorf("get photo base64 string failed: %s", err)
+		t.Errorf("get block data failed: %s", err)
 		return
 	}
 	if len(res) == 0 {
-		t.Errorf("get photo base64 string bad result")
+		t.Errorf("get block data bad result")
 	}
 }
 
-func TestWrapper_GetIPFSPeerID(t *testing.T) {
-	_, err := wrapper.GetIPFSPeerID()
+func TestWrapper_GetFileData(t *testing.T) {
+	res, err := wrapper.GetFileData(addedPhotoId, "thumb")
 	if err != nil {
-		t.Errorf("get peer id failed: %s", err)
+		t.Errorf("get file data failed: %s", err)
+		return
+	}
+	if len(res) == 0 {
+		t.Errorf("get file data bad result")
 	}
 }
 
-//func TestWrapper_PairDesktop(t *testing.T) {
+//func TestWrapper_PairDevice(t *testing.T) {
 //	_, pk, err := libp2p.GenerateKeyPair(libp2p.Ed25519, 1024)
 //	if err != nil {
 //		t.Errorf("create keypair failed: %s", err)
@@ -188,9 +216,9 @@ func TestWrapper_GetIPFSPeerID(t *testing.T) {
 //	}
 //	ps := base64.StdEncoding.EncodeToString(pb)
 //
-//	_, err = wrapper.PairDesktop(ps)
+//	_, err = wrapper.PairDevice(ps)
 //	if err != nil {
-//		t.Errorf("pair desktop failed: %s", err)
+//		t.Errorf("pair device failed: %s", err)
 //	}
 //}
 
