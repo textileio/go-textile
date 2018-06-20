@@ -200,7 +200,7 @@ func (w *Wallet) Start() (chan struct{}, error) {
 	// setup threads
 	for _, mod := range w.datastore.Threads().List("") {
 		_, err := w.loadThread(&mod)
-		if err == ErrThreadExists {
+		if err == ErrThreadLoaded {
 			continue
 		}
 		if err != nil {
@@ -441,7 +441,13 @@ func (w *Wallet) GetThreadByName(name string) *thread.Thread {
 
 // AddThread adds a thread with a given name and secret key
 func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread, error) {
-	if _, err := w.getThreadModelByName(name); err != nil {
+	existing, err := w.getThreadModelByName(name)
+	if err != nil {
+		return nil, err
+	}
+	// not ideal way to check for existence, but want to skip
+	// all the heavy crypto stuff below if we know for sure this thread already exists
+	if existing != nil {
 		return nil, ErrThreadExists
 	}
 	log.Debugf("adding a new thread: %s", name)
