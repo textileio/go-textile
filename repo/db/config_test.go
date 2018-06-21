@@ -20,7 +20,7 @@ func setup() {
 	os.MkdirAll(path.Join("./", "datastore"), os.ModePerm)
 	testDB, _ = Create("", "LetMeIn")
 	testDB.config.Init("LetMeIn")
-	testDB.config.Configure(time.Now(), "boom")
+	testDB.config.Configure(time.Now())
 }
 
 func teardown() {
@@ -37,16 +37,6 @@ func TestConfigDB_GetCreationDate(t *testing.T) {
 	_, err := testDB.config.GetCreationDate()
 	if err != nil {
 		t.Error(err)
-	}
-}
-
-func TestConfigDB_GetVersion(t *testing.T) {
-	sv, err := testDB.config.GetVersion()
-	if err != nil {
-		t.Error(err)
-	}
-	if sv != "boom" {
-		t.Error("version mismatch")
 	}
 }
 
