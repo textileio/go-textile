@@ -23,9 +23,8 @@ type Queryable interface {
 
 type ConfigStore interface {
 	Init(password string) error
-	Configure(created time.Time, version string) error
+	Configure(created time.Time) error
 	GetCreationDate() (time.Time, error)
-	GetVersion() (string, error)
 	IsEncrypted() bool
 }
 

@@ -23,7 +23,7 @@ func (c *ConfigDB) Init(password string) error {
 	return initDatabaseTables(c.db, password)
 }
 
-func (c *ConfigDB) Configure(created time.Time, version string) error {
+func (c *ConfigDB) Configure(created time.Time) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -36,11 +36,6 @@ func (c *ConfigDB) Configure(created time.Time, version string) error {
 	}
 	defer stmt.Close()
 	_, err = stmt.Exec("created", created.Format(time.RFC3339))
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	_, err = stmt.Exec("version", version)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -64,22 +59,6 @@ func (c *ConfigDB) GetCreationDate() (time.Time, error) {
 		return t, err
 	}
 	return time.Parse(time.RFC3339, string(created))
-}
-
-func (c *ConfigDB) GetVersion() (string, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	stmt, err := c.db.Prepare("select value from config where key=?")
-	if err != nil {
-		return "", err
-	}
-	defer stmt.Close()
-	var sv string
-	err = stmt.QueryRow("version").Scan(&sv)
-	if err != nil {
-		return "", err
-	}
-	return sv, nil
 }
 
 func (c *ConfigDB) IsEncrypted() bool {

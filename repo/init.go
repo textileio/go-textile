@@ -10,6 +10,7 @@ import (
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/core"
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/namesys"
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/fsrepo"
+	"io/ioutil"
 	"os"
 	"path"
 	"time"
@@ -19,16 +20,32 @@ var log = logging.MustGetLogger("repo")
 
 var ErrRepoExists = errors.New("repo not empty, reinitializing would overwrite your keys")
 
-func DoInit(repoRoot string, isMobile bool, version string,
-	initDB func(string) error, initConfig func(time.Time, string) error, initProfile func() error) error {
+const versionFilename = "textile_version"
+
+func DoInit(repoRoot string, isMobile bool, version string, initDB func(string) error, initConfig func(time.Time) error, initProfile func() error) error {
 	if err := checkWriteable(repoRoot); err != nil {
 		return err
 	}
 
+	versionPath := fmt.Sprintf("%s/%s", repoRoot, versionFilename)
 	if fsrepo.IsInitialized(repoRoot) {
-		return ErrRepoExists
+		// check version
+		var onDiskVersion []byte
+		onDiskVersion, _ = ioutil.ReadFile(versionPath)
+		if version == string(onDiskVersion) {
+			return ErrRepoExists
+		} else {
+			log.Info("old repo found, destroying...")
+			if err := destroyRepo(repoRoot); err != nil {
+				return err
+			}
+		}
 	}
 	log.Infof("initializing textile ipfs node at %s", repoRoot)
+
+	if err := ioutil.WriteFile(versionPath, []byte(version), 0644); err != nil {
+		return err
+	}
 
 	paths, err := schema.NewCustomSchemaManager(schema.Context{
 		DataPath: repoRoot,
@@ -50,7 +67,7 @@ func DoInit(repoRoot string, isMobile bool, version string,
 		return err
 	}
 
-	if err := initConfig(time.Now(), version); err != nil {
+	if err := initConfig(time.Now()); err != nil {
 		return err
 	}
 
@@ -110,4 +127,16 @@ func initializeIpnsKeyspace(repoRoot string) error {
 	}
 
 	return namesys.InitializeKeyspace(ctx, nd.Namesys, nd.Pinning, nd.PrivateKey)
+}
+
+func destroyRepo(root string) error {
+	// exclude logs
+	paths := []string{"blocks", "datastore", "keystore", "tmp", "config", "datastore_spec", "repo.lock", "version"}
+	for _, p := range paths {
+		err := os.RemoveAll(fmt.Sprintf("%s/%s", root, p))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
