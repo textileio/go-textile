@@ -21,7 +21,7 @@ func handleMessages(iw *astilectron.Window, m bootstrap.MessageIn) (payload inte
 		code := fmt.Sprintf("%04d", rand.Int63n(1e4))
 
 		// get our own public key
-		pk, err := textile.Wallet.GetIPFSPubKeyString()
+		pk, err := textile.Wallet.GetPubKeyString()
 		if err != nil {
 			astilog.Errorf("public key generation failed: %s", err)
 			return nil, err

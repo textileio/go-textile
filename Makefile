@@ -15,6 +15,12 @@ android_framework:
 	gomobile bind -target=android -o textilego.aar github.com/textileio/textile-go/mobile github.com/textileio/textile-go/net
 	cp -r textilego.aar ~/github/textileio/textile-mobile/android/textilego/
 
+P_TIMESTAMP = Mgoogle/protobuf/timestamp.proto=github.com/golang/protobuf/ptypes/timestamp
+P_ANY = Mgoogle/protobuf/any.proto=github.com/golang/protobuf/ptypes/any
+PKGMAP = $(P_TIMESTAMP),$(P_ANY)
+protos:
+	cd pb/protos && PATH=$(PATH):$(GOPATH)/bin protoc --go_out=$(PKGMAP):.. *.proto
+
 clean:
 	rm -rf dist && rm -f Mobile.framework && rm -rf textilego.aar && rm -rf textilego-sources.jar
 

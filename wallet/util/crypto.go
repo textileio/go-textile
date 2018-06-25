@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/base64"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/tyler-smith/go-bip39"
+	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/config"
 	"io"
 	"io/ioutil"
 	"strconv"
@@ -37,26 +40,31 @@ func PrivKeyFromMnemonic(mnemonic *string) (libp2pc.PrivKey, string, error) {
 	return sk, *mnemonic, nil
 }
 
-// IDAndSecretFromMnemonic create a secret key from a mnemonic,
-// returns the mnemonic (it may have been generated),
-// the secret's public key (base64 string) as an id,
-// and the raw secret bytes.
-// Used for generating a new master identity.
-func IDAndSecretFromMnemonic(mnemonic *string) (mnem string, id string, secret []byte, err error) {
-	sk, mnem, err := PrivKeyFromMnemonic(mnemonic)
+// IdentityConfig initializes a new identity.
+func IdentityConfig(sk libp2pc.PrivKey) (config.Identity, error) {
+	ident := config.Identity{}
+
+	log.Infof("generating Ed25519 keypair for peer identity...")
+	sk, pk, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 4096) // bits are ignored for ed25519, so use any
 	if err != nil {
-		return "", "", nil, err
+		return ident, err
 	}
-	skb, err := sk.Bytes()
+
+	// currently storing key unencrypted. in the future we need to encrypt it.
+	// TODO(security)
+	skbytes, err := sk.Bytes()
 	if err != nil {
-		return "", "", nil, err
+		return ident, err
 	}
-	pkb, err := sk.GetPublic().Bytes()
+	ident.PrivKey = base64.StdEncoding.EncodeToString(skbytes)
+
+	id, err := peer.IDFromPublicKey(pk)
 	if err != nil {
-		return "", "", nil, err
+		return ident, err
 	}
-	id = libp2pc.ConfigEncodeKey(pkb)
-	return mnem, id, skb, nil
+	ident.PeerID = id.Pretty()
+	log.Infof("new peer identity: %s\n", ident.PeerID)
+	return ident, nil
 }
 
 // GetEncryptedReaderBytes reads reader bytes and returns the encrypted result

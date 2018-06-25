@@ -205,7 +205,7 @@ func TestWallet_GetDataAtPath(t *testing.T) {
 }
 
 func TestWallet_GetIPFSPubKeyString(t *testing.T) {
-	key, err := wallet.GetIPFSPubKeyString()
+	key, err := wallet.GetPubKeyString()
 	if err != nil {
 		t.Errorf("get ipfs pub key failed: %s", err)
 		return

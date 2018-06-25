@@ -1,0 +1,30 @@
+syntax = "proto3";
+option go_package = "pb";
+
+import "google/protobuf/timestamp.proto";
+
+message Block {
+    string id                      = 1;
+    string target                  = 2;
+    repeated string parents        = 3;
+    bytes targetKey                = 4;
+    string threadPubKey            = 5;
+    Type type                      = 6;
+    google.protobuf.Timestamp date = 7;
+
+    enum Type {
+        INVITE  = 0;
+        PHOTO   = 1;
+        COMMENT = 2;
+        LIKE    = 3;
+    }
+}
+
+message SignedBlock {
+    string id          = 1;
+    bytes data         = 2;
+    bytes signature    = 3;
+    string threadId    = 4;
+    string threadName  = 5;
+    bytes issuerPubKey = 6;
+}

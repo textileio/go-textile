@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilog"
+	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet/thread"
 )
 
@@ -35,8 +36,8 @@ func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Me
 		astilog.Info("STARTING PAIRING")
 
 		go func() {
-			// sub to own peer id for pairing setup and wait
-			textile.Wallet.WaitForInvite()
+			// sub to owr peer id for pairing setup and wait
+			//textile.Wallet.WaitForInvite()
 
 			mobileThread := textile.Wallet.GetThreadByName("mobile")
 			if mobileThread == nil {
@@ -79,7 +80,7 @@ func joinRoom(iw *astilectron.Window) error {
 
 func getPhotosHTML() string {
 	var html string
-	for _, block := range mobileThread.Blocks("", -1) {
+	for _, block := range mobileThread.Blocks("", -1, repo.PhotoBlock) {
 		ph := fmt.Sprintf("%s/ipfs/%s/photo?block=%s", gateway, block.Target, block.Id)
 		th := fmt.Sprintf("%s/ipfs/%s/thumb?block=%s", gateway, block.Target, block.Id)
 		md := fmt.Sprintf("%s/ipfs/%s/meta?block=%s", gateway, block.Target, block.Id)

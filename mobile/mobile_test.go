@@ -91,13 +91,6 @@ func TestWrapper_GetId(t *testing.T) {
 	}
 }
 
-func TestWrapper_GetIPFSPeerId(t *testing.T) {
-	_, err := wrapper.GetIPFSPeerId()
-	if err != nil {
-		t.Errorf("get peer id failed: %s", err)
-	}
-}
-
 func TestWrapper_GetUsername(t *testing.T) {
 	un, err := wrapper.GetUsername()
 	if err != nil {
