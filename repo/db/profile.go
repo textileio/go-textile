@@ -15,32 +15,6 @@ func NewProfileStore(db *sql.DB, lock *sync.Mutex) repo.ProfileStore {
 	return &ProfileDB{db, lock}
 }
 
-func (c *ProfileDB) Init(id string, secret []byte) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	tx, err := c.db.Begin()
-	if err != nil {
-		return err
-	}
-	stmt, err := tx.Prepare("insert or replace into profile(key, value) values(?,?)")
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-	_, err = stmt.Exec("id", id)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	_, err = stmt.Exec("secret", secret)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	tx.Commit()
-	return nil
-}
-
 func (c *ProfileDB) SignIn(username string, accessToken string, refreshToken string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -98,32 +72,6 @@ func (c *ProfileDB) SignOut() error {
 		return err
 	}
 	return nil
-}
-
-func (c *ProfileDB) GetId() (string, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	stmt, err := c.db.Prepare("select value from profile where key=?")
-	defer stmt.Close()
-	var id string
-	err = stmt.QueryRow("id").Scan(&id)
-	if err != nil {
-		return "", err
-	}
-	return id, nil
-}
-
-func (c *ProfileDB) GetSecret() ([]byte, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	stmt, err := c.db.Prepare("select value from profile where key=?")
-	defer stmt.Close()
-	var secret []byte
-	err = stmt.QueryRow("secret").Scan(&secret)
-	if err != nil {
-		return nil, err
-	}
-	return secret, nil
 }
 
 func (c *ProfileDB) GetUsername() (string, error) {

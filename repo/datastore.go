@@ -9,6 +9,7 @@ type Datastore interface {
 	Config() ConfigStore
 	Profile() ProfileStore
 	Threads() ThreadStore
+	Peers() PeerStore
 	Blocks() BlockStore
 	Ping() error
 	Close()
@@ -29,11 +30,8 @@ type ConfigStore interface {
 }
 
 type ProfileStore interface {
-	Init(id string, secret []byte) error
 	SignIn(username string, accessToken string, refreshToken string) error
 	SignOut() error
-	GetId() (string, error)
-	GetSecret() ([]byte, error)
 	GetUsername() (string, error)
 	GetTokens() (accessToken string, refreshToken string, err error)
 }
@@ -56,4 +54,12 @@ type BlockStore interface {
 	GetByTarget(target string) *Block
 	List(offsetId string, limit int, query string) []Block
 	Delete(id string) error
+}
+
+type PeerStore interface {
+	Queryable
+	Add(peer *Peer) error
+	Get(row string) *Peer
+	List(offsetRow string, limit int, query string) []Peer
+	Delete(row string) error
 }

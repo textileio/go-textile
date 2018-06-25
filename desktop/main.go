@@ -37,7 +37,7 @@ func main() {
 		},
 	}
 	var err error
-	textile, err = core.NewNode(config)
+	textile, _, err = core.NewNode(config)
 	if err != nil {
 		astilog.Errorf("create desktop node failed: %s", err)
 		return

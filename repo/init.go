@@ -7,6 +7,7 @@ import (
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/repo/schema"
+	wutil "github.com/textileio/textile-go/wallet/util"
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/core"
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/namesys"
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/fsrepo"
@@ -22,9 +23,9 @@ var ErrRepoExists = errors.New("repo not empty, reinitializing would overwrite y
 
 const versionFilename = "textile_version"
 
-func DoInit(repoRoot string, isMobile bool, version string, initDB func(string) error, initConfig func(time.Time) error, initProfile func() error) error {
+func DoInit(repoRoot string, isMobile bool, version string, mnemonic *string, initDB func(string) error, initConfig func(time.Time) error) (string, error) {
 	if err := checkWriteable(repoRoot); err != nil {
-		return err
+		return "", err
 	}
 
 	versionPath := fmt.Sprintf("%s/%s", repoRoot, versionFilename)
@@ -33,49 +34,55 @@ func DoInit(repoRoot string, isMobile bool, version string, initDB func(string) 
 		var onDiskVersion []byte
 		onDiskVersion, _ = ioutil.ReadFile(versionPath)
 		if version == string(onDiskVersion) {
-			return ErrRepoExists
+			return "", ErrRepoExists
 		} else {
 			log.Info("old repo found, destroying...")
 			if err := destroyRepo(repoRoot); err != nil {
-				return err
+				return "", err
 			}
 		}
 	}
 	log.Infof("initializing textile ipfs node at %s", repoRoot)
 
 	if err := ioutil.WriteFile(versionPath, []byte(version), 0644); err != nil {
-		return err
+		return "", err
 	}
 
 	paths, err := schema.NewCustomSchemaManager(schema.Context{
 		DataPath: repoRoot,
 	})
 	if err := paths.BuildSchemaDirectories(); err != nil {
-		return err
+		return "", err
 	}
 
-	conf, err := config.Init(isMobile)
+	sk, mnem, err := wutil.PrivKeyFromMnemonic(mnemonic)
 	if err != nil {
-		return err
+		return "", err
+	}
+
+	identity, err := wutil.IdentityConfig(sk)
+	if err != nil {
+		return "", err
+	}
+
+	conf, err := config.Init(isMobile, identity)
+	if err != nil {
+		return "", err
 	}
 
 	if err := fsrepo.Init(repoRoot, conf); err != nil {
-		return err
+		return "", err
 	}
 
 	if err := initDB(""); err != nil {
-		return err
+		return "", err
 	}
 
 	if err := initConfig(time.Now()); err != nil {
-		return err
+		return "", err
 	}
 
-	if err := initProfile(); err != nil {
-		return err
-	}
-
-	return initializeIpnsKeyspace(repoRoot)
+	return mnem, initializeIpnsKeyspace(repoRoot)
 }
 
 func checkWriteable(dir string) error {

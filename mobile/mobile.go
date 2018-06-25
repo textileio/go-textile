@@ -7,12 +7,10 @@ import (
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/central/models"
 	tcore "github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/net"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet"
 	"github.com/textileio/textile-go/wallet/thread"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
@@ -43,6 +41,7 @@ type Messenger interface {
 // Wrapper is the object exposed in the frameworks
 type Wrapper struct {
 	RepoPath  string
+	Mnemonic  string
 	messenger Messenger
 }
 
@@ -88,13 +87,13 @@ func (m *Mobile) NewNode(config *NodeConfig, messenger Messenger) (*Wrapper, err
 			IsMobile:   true,
 		},
 	}
-	node, err := tcore.NewNode(cconfig)
+	node, mnemonic, err := tcore.NewNode(cconfig)
 	if err != nil {
 		return nil, err
 	}
 	tcore.Node = node
 
-	return &Wrapper{RepoPath: config.RepoPath, messenger: messenger}, nil
+	return &Wrapper{RepoPath: config.RepoPath, Mnemonic: mnemonic, messenger: messenger}, nil
 }
 
 // Start the mobile node
@@ -173,11 +172,6 @@ func (w *Wrapper) GetId() (string, error) {
 	return tcore.Node.Wallet.GetId()
 }
 
-// GetIPFSPeerId returns the wallet's ipfs peer id
-func (w *Wrapper) GetIPFSPeerId() (string, error) {
-	return tcore.Node.Wallet.GetIPFSPeerId()
-}
-
 // GetUsername calls core GetUsername
 func (w *Wrapper) GetUsername() (string, error) {
 	return tcore.Node.Wallet.GetUsername()
@@ -199,6 +193,19 @@ func (w *Wrapper) AddThread(name string, mnemonic string) error {
 		return nil
 	}
 	return err
+}
+
+// AddDevice call core AddDevice
+func (w *Wrapper) AddDevice(pubKey string) error {
+	pkb, err := libp2pc.ConfigDecodeKey(pubKey)
+	if err != nil {
+		return err
+	}
+	pk, err := libp2pc.UnmarshalPublicKey(pkb)
+	if err != nil {
+		return err
+	}
+	return tcore.Node.Wallet.AddDevice(pk)
 }
 
 // AddPhoto adds a photo by path and shares it to the default thread
@@ -276,7 +283,7 @@ func (w *Wrapper) GetPhotoBlocks(offsetId string, limit int, threadName string) 
 		go thrd.PostHead()
 	}
 
-	blocks := &Blocks{thrd.Blocks(offsetId, limit)}
+	blocks := &Blocks{thrd.Blocks(offsetId, limit, repo.PhotoBlock)}
 	jsonb, err := json.Marshal(blocks)
 	if err != nil {
 		log.Errorf("error marshaling json: %s", err)
@@ -318,57 +325,6 @@ func (w *Wrapper) GetFileData(id string, path string) (string, error) {
 	}
 
 	return thrd.GetFileDataBase64(fmt.Sprintf("%s/%s", id, path), block)
-}
-
-// PairDevice publishes this node's secret key to another node,
-// which is listening at it's own peer id
-func (w *Wrapper) PairDevice(pkb64 string) (string, error) {
-	if !tcore.Node.Wallet.Online() {
-		return "", wallet.ErrOffline
-	}
-	log.Info("pairing with a new device...")
-
-	pkb, err := libp2pc.ConfigDecodeKey(pkb64)
-	if err != nil {
-		return "", err
-	}
-	pk, err := libp2pc.UnmarshalPublicKey(pkb)
-	if err != nil {
-		return "", err
-	}
-
-	// we invite the desktop to _read and write_ to our default album
-	defaultThread := tcore.Node.Wallet.GetThreadByName("default")
-	if defaultThread == nil {
-		err = errors.New("default thread not found")
-		log.Error(err.Error())
-		return "", err
-	}
-	// encypt thread secret key with the desktop's pub key
-	secret, err := defaultThread.PrivKey.Bytes()
-	if err != nil {
-		return "", err
-	}
-	secretcypher, err := crypto.Encrypt(pk, secret)
-	if err != nil {
-		return "", err
-	}
-
-	// get the topic to pair with from the pub key
-	peerID, err := peer.IDFromPublicKey(pk)
-	if err != nil {
-		return "", err
-	}
-	topic := peerID.Pretty()
-
-	// finally, publish the encrypted phrase
-	err = tcore.Node.Wallet.Publish(topic, secretcypher)
-	if err != nil {
-		return "", err
-	}
-	log.Infof("published key phrase to device: %s", topic)
-
-	return topic, nil
 }
 
 // subscribe to thread and pass updates to messenger

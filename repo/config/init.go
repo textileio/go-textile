@@ -1,11 +1,8 @@
 package config
 
 import (
-	"encoding/base64"
 	"fmt"
 	"github.com/op/go-logging"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo"
 	native "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/config"
 	"math/rand"
@@ -51,12 +48,7 @@ var DefaultServerFilters = []string{
 	"/ip4/240.0.0.0/ipcidr/4",
 }
 
-func Init(isMobile bool) (*native.Config, error) {
-	identity, err := identityConfig()
-	if err != nil {
-		return nil, err
-	}
-
+func Init(isMobile bool, identity native.Identity) (*native.Config, error) {
 	bootstrapPeers, err := native.DefaultBootstrapPeers()
 	if err != nil {
 		return nil, err
@@ -224,34 +216,6 @@ func defaultDatastoreConfig() native.Datastore {
 			},
 		},
 	}
-}
-
-// identityConfig initializes a new identity.
-func identityConfig() (native.Identity, error) {
-	// TODO guard higher up
-	ident := native.Identity{}
-
-	log.Infof("generating Ed25519 keypair for peer identity...")
-	sk, pk, err := ci.GenerateKeyPair(ci.Ed25519, 4096) // bits are ignored for ed25519, so use any
-	if err != nil {
-		return ident, err
-	}
-
-	// currently storing key unencrypted. in the future we need to encrypt it.
-	// TODO(security)
-	skbytes, err := sk.Bytes()
-	if err != nil {
-		return ident, err
-	}
-	ident.PrivKey = base64.StdEncoding.EncodeToString(skbytes)
-
-	id, err := peer.IDFromPublicKey(pk)
-	if err != nil {
-		return ident, err
-	}
-	ident.PeerID = id.Pretty()
-	log.Infof("new peer identity: %s\n", ident.PeerID)
-	return ident, nil
 }
 
 func getRandomPort() int {
