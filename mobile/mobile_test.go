@@ -2,11 +2,12 @@ package mobile_test
 
 import (
 	"encoding/json"
+	"os"
+	"testing"
+
 	"github.com/segmentio/ksuid"
 	. "github.com/textileio/textile-go/mobile"
 	util "github.com/textileio/textile-go/util/testing"
-	"os"
-	"testing"
 )
 
 type TestMessenger struct {
@@ -50,7 +51,7 @@ func TestWrapper_StartAgain(t *testing.T) {
 }
 
 func TestWrapper_SignUpWithEmail(t *testing.T) {
-	_, ref, err := util.CreateReferral(util.RefKey, 1)
+	_, ref, err := util.CreateReferral(util.RefKey, 1, 1, "TestWrapper_SignUpWithEmail")
 	if err != nil {
 		t.Errorf("create referral for signup failed: %s", err)
 		return
