@@ -1,13 +1,14 @@
 package wallet_test
 
 import (
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"os"
+	"testing"
+
 	"github.com/segmentio/ksuid"
 	cmodels "github.com/textileio/textile-go/central/models"
 	util "github.com/textileio/textile-go/util/testing"
 	. "github.com/textileio/textile-go/wallet"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	"os"
-	"testing"
 )
 
 var repo = "testdata/.ipfs"
@@ -67,7 +68,7 @@ func TestWallet_GetRepoPath(t *testing.T) {
 }
 
 func TestWallet_SignUp(t *testing.T) {
-	_, ref, err := util.CreateReferral(util.RefKey, 1)
+	_, ref, err := util.CreateReferral(util.RefKey, 1, 1)
 	if err != nil {
 		t.Errorf("create referral for signup failed: %s", err)
 		return
