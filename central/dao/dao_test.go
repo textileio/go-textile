@@ -18,9 +18,10 @@ var now = time.Now()
 var unusedRefCnt int
 
 var ref = models.Referral{
-	ID:      bson.NewObjectId(),
-	Code:    ksuid.New().String(),
-	Created: now,
+	ID:        bson.NewObjectId(),
+	Code:      ksuid.New().String(),
+	Created:   now,
+	Remaining: 1,
 }
 
 var user = models.User{
