@@ -41,7 +41,7 @@ func CreateReferral(c *gin.Context) {
 	// hodl 'em
 	refs := make([]string, count)
 	for i := range refs {
-		code, err := createReferral()
+		code, err := createReferral(limit)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -109,12 +109,13 @@ func randString(n int) string {
 	return string(b)
 }
 
-func createReferral() (string, error) {
+func createReferral(limit int) (string, error) {
 	code := randString(5)
 	ref := models.Referral{
-		ID:      bson.NewObjectId(),
-		Code:    code,
-		Created: time.Now(),
+		ID:        bson.NewObjectId(),
+		Code:      code,
+		Created:   time.Now(),
+		Remaining: limit,
 	}
 	if err := dao.Dao.InsertReferral(ref); err != nil {
 		return "", err
