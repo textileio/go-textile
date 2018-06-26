@@ -24,24 +24,29 @@ func CreateReferral(c *gin.Context) {
 	count := 1
 	// how many times should we be able to use them
 	limit := 1
+	// simple reference to who requested the new code
+	requested_by := ""
 	params := c.Request.URL.Query()
-	if params["limit"] != nil {
-		tmp, err := strconv.ParseInt(params["limit"][0], 10, 64)
-		if err == nil {
-			limit = int(tmp)
-		}
-	}
 	if params["count"] != nil && len(params["count"]) > 0 {
 		tmp, err := strconv.ParseInt(params["count"][0], 10, 64)
 		if err == nil {
 			count = int(tmp)
 		}
 	}
+	if params["limit"] != nil {
+		tmp, err := strconv.ParseInt(params["limit"][0], 10, 64)
+		if err == nil {
+			limit = int(tmp)
+		}
+	}
+	if params["requested_by"] != nil {
+		requested_by = params["requested_by"][0]
+	}
 
 	// hodl 'em
 	refs := make([]string, count)
 	for i := range refs {
-		code, err := createReferral(limit)
+		code, err := createReferral(limit, requested_by)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -109,13 +114,14 @@ func randString(n int) string {
 	return string(b)
 }
 
-func createReferral(limit int) (string, error) {
+func createReferral(limit int, requester string) (string, error) {
 	code := randString(5)
 	ref := models.Referral{
 		ID:        bson.NewObjectId(),
 		Code:      code,
 		Created:   time.Now(),
 		Remaining: limit,
+		Requester: requester,
 	}
 	if err := dao.Dao.InsertReferral(ref); err != nil {
 		return "", err

@@ -51,7 +51,7 @@ func TestWrapper_StartAgain(t *testing.T) {
 }
 
 func TestWrapper_SignUpWithEmail(t *testing.T) {
-	_, ref, err := util.CreateReferral(util.RefKey, 1, 1)
+	_, ref, err := util.CreateReferral(util.RefKey, 1, 1, "TestWrapper_SignUpWithEmail")
 	if err != nil {
 		t.Errorf("create referral for signup failed: %s", err)
 		return

@@ -45,4 +45,5 @@ type Referral struct {
 	Code      string        `bson:"code" json:"code"`
 	Created   time.Time     `bson:"created" json:"created"`
 	Remaining int           `bson:"remaining" json:"remaining"`
+	Requester string        `bson:"requester" json:"requester"`
 }
