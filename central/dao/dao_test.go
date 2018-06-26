@@ -2,13 +2,14 @@ package dao_test
 
 import (
 	"fmt"
+	"os"
+	"testing"
+	"time"
+
 	"github.com/globalsign/mgo/bson"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/central/dao"
 	"github.com/textileio/textile-go/central/models"
-	"os"
-	"testing"
-	"time"
 )
 
 var d = dao.DAO{}
@@ -169,9 +170,7 @@ func TestDAO_ListUnusedReferrals(t *testing.T) {
 }
 
 func TestDAO_UpdateReferral(t *testing.T) {
-	used := time.Now()
-	ref.Used = &used
-	ref.UserID = &user.ID
+	ref.Remaining = 0
 	err := d.UpdateReferral(ref)
 	if err != nil {
 		t.Errorf("update ref failed: %s", err)
@@ -182,11 +181,8 @@ func TestDAO_UpdateReferral(t *testing.T) {
 		t.Errorf("find ref again by code failed: %s", err)
 		return
 	}
-	if (*loaded.Used).Unix() != used.Unix() {
-		t.Error("used mismatch")
-	}
-	if *loaded.UserID != user.ID {
-		t.Error("user id mismatch")
+	if loaded.Remaining != 0 {
+		t.Error("remaining count mismatch")
 	}
 }
 

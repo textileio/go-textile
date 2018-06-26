@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/textileio/textile-go/central/models"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+
+	"github.com/textileio/textile-go/central/models"
 )
 
 var client = &http.Client{}
@@ -31,8 +32,8 @@ func (r *ReferralResponse) Read(body io.ReadCloser) error {
 	return json.Unmarshal(b, r)
 }
 
-func CreateReferral(key string, num int) (int, *ReferralResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/referrals?count=%d", CentralApiURL, num)
+func CreateReferral(key string, num int, limit int) (int, *ReferralResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/referrals?count=%d&limit=%d", CentralApiURL, num, limit)
 	req, err := http.NewRequest("POST", url, nil)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Referral-Key", key)
