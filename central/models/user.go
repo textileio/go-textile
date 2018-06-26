@@ -1,8 +1,9 @@
 package models
 
 import (
-	"github.com/globalsign/mgo/bson"
 	"time"
+
+	"github.com/globalsign/mgo/bson"
 )
 
 type User struct {
@@ -40,9 +41,8 @@ type Identity struct {
 }
 
 type Referral struct {
-	ID      bson.ObjectId  `bson:"_id" json:"id"`
-	Code    string         `bson:"code" json:"code"`
-	Created time.Time      `bson:"created" json:"created"`
-	Used    *time.Time     `bson:"used" json:"used"`
-	UserID  *bson.ObjectId `bson:"user_id" json:"user_id"`
+	ID        bson.ObjectId `bson:"_id" json:"id"`
+	Code      string        `bson:"code" json:"code"`
+	Created   time.Time     `bson:"created" json:"created"`
+	Remaining int           `bson:"remaining" json:"remaining"`
 }

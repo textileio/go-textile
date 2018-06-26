@@ -1,13 +1,14 @@
 package controllers_test
 
 import (
-	util "github.com/textileio/textile-go/util/testing"
 	"testing"
+
+	util "github.com/textileio/textile-go/util/testing"
 )
 
 func TestReferrals_CreateReferral(t *testing.T) {
 	num := 10
-	stat, res, err := util.CreateReferral(util.RefKey, num)
+	stat, res, err := util.CreateReferral(util.RefKey, num, 1)
 	if err != nil {
 		t.Error(err)
 		return
