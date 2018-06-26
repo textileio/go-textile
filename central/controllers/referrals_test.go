@@ -8,7 +8,7 @@ import (
 
 func TestReferrals_CreateReferral(t *testing.T) {
 	num := 10
-	stat, res, err := util.CreateReferral(util.RefKey, num, 1, "TestReferrals_CreateReferral")
+	stat, res, err := util.CreateReferral(util.RefKey, num, 2, "TestReferrals_CreateReferral")
 	if err != nil {
 		t.Error(err)
 		return
