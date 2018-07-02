@@ -108,9 +108,11 @@ func (w *Wrapper) Start() error {
 
 	go func() {
 		<-online
-		// join existing threads
+		// subscribe to thread updates
 		for _, thrd := range tcore.Node.Wallet.Threads() {
-			w.subscribe(thrd)
+			go func(t *thread.Thread) {
+				w.subscribe(t)
+			}(thrd)
 		}
 
 		// notify UI we're ready
@@ -188,10 +190,13 @@ func (w *Wrapper) AddThread(name string, mnemonic string) error {
 	if mnemonic != "" {
 		mnem = &mnemonic
 	}
-	_, _, err := tcore.Node.Wallet.AddThreadWithMnemonic(name, mnem)
+	thrd, _, err := tcore.Node.Wallet.AddThreadWithMnemonic(name, mnem)
 	if err == wallet.ErrThreadExists || err == wallet.ErrThreadLoaded {
 		return nil
 	}
+
+	go w.subscribe(thrd)
+
 	return err
 }
 
@@ -329,21 +334,17 @@ func (w *Wrapper) GetFileData(id string, path string) (string, error) {
 
 // subscribe to thread and pass updates to messenger
 func (w *Wrapper) subscribe(thrd *thread.Thread) {
-	datac := make(chan thread.Update)
-	go thrd.Subscribe(datac)
-	go func() {
-		for {
-			select {
-			case update, ok := <-datac:
-				if !ok {
-					return
-				}
-				w.messenger.Notify(newEvent("onThreadUpdate", map[string]interface{}{
-					"id":        update.Id,
-					"thread":    update.Thread,
-					"thread_id": update.ThreadID,
-				}))
+	for {
+		select {
+		case update, ok := <-thrd.Updates():
+			if !ok {
+				return
 			}
+			w.messenger.Notify(newEvent("onThreadUpdate", map[string]interface{}{
+				"id":        update.Id,
+				"thread":    update.Thread,
+				"thread_id": update.ThreadID,
+			}))
 		}
-	}()
+	}
 }

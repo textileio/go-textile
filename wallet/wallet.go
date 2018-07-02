@@ -239,6 +239,9 @@ func (w *Wallet) Stop() error {
 	}
 
 	// wipe threads
+	for _, t := range w.Threads() {
+		t.Close()
+	}
 	w.threads = nil
 
 	// wipe service

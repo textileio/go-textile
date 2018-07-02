@@ -8,7 +8,6 @@ import (
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/wallet/thread"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
@@ -16,9 +15,9 @@ import (
 )
 
 const (
-	ChatMessageMaxCharacters   = 20000
-	ChatSubjectMaxCharacters   = 500
-	DefaultPointerPrefixLength = 14
+	ChatMessageMaxCharacters = 20000
+	ChatSubjectMaxCharacters = 500
+	//DefaultPointerPrefixLength = 14
 )
 
 func (s *TextileService) HandlerForMsgType(t pb.Message_MessageType) func(peer.ID, *pb.Message, interface{}) (*pb.Message, error) {
@@ -139,7 +138,7 @@ func (s *TextileService) handleThreadBlock(pid peer.ID, pmes *pb.Message, option
 	}
 
 	// handle block
-	return nil, thrd.HandleBlock(signed.Id, make(chan thread.Update))
+	return nil, thrd.HandleBlock(signed.Id)
 }
 
 func (s *TextileService) handleFollow(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {

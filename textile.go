@@ -10,6 +10,7 @@ import (
 	"github.com/textileio/textile-go/cmd"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/wallet"
+	"github.com/textileio/textile-go/wallet/thread"
 	"gopkg.in/abiosoft/ishell.v2"
 	"os"
 	"path/filepath"
@@ -210,16 +211,6 @@ func main() {
 			Func: cmd.ListThreads,
 		})
 		threadCmd.AddCmd(&ishell.Cmd{
-			Name: "enable",
-			Help: "enable a thread",
-			Func: cmd.EnableThread,
-		})
-		threadCmd.AddCmd(&ishell.Cmd{
-			Name: "disable",
-			Help: "disable a thread",
-			Func: cmd.DisableAlbum,
-		})
-		threadCmd.AddCmd(&ishell.Cmd{
 			Name: "publish",
 			Help: "publish latest update",
 			Func: cmd.PublishThread,
@@ -276,13 +267,12 @@ func start(shell *ishell.Shell) error {
 	}
 	<-online
 
-	// join existing threads
-	//for _, thread := range core.Node.Wallet.Threads() {
-	//	cmd.Subscribe(shell, thread)
-	//}
-
-	// start continuously publishing
-	//go core.Node.StartPublishing()
+	// subscribe to thread updates
+	for _, thrd := range core.Node.Wallet.Threads() {
+		go func(t *thread.Thread) {
+			cmd.Subscribe(shell, t)
+		}(thrd)
+	}
 
 	// start the gateway
 	return core.Node.StartGateway()
