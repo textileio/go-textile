@@ -197,13 +197,13 @@ func main() {
 	{
 		threadCmd := &ishell.Cmd{
 			Name:     "thread",
-			Help:     "manage photo threads",
-			LongHelp: "Add, list, enable, disable, and get info about photo threads.",
+			Help:     "manage threads",
+			LongHelp: "Add, remove, list, invite to, and get info about textile threads.",
 		}
 		threadCmd.AddCmd(&ishell.Cmd{
 			Name: "add",
 			Help: "add a new thread",
-			Func: cmd.CreateThread,
+			Func: cmd.AddThread,
 		})
 		threadCmd.AddCmd(&ishell.Cmd{
 			Name: "ls",
@@ -226,6 +226,24 @@ func main() {
 			Func: cmd.AddThreadInvite,
 		})
 		shell.AddCmd(threadCmd)
+	}
+	{
+		deviceCmd := &ishell.Cmd{
+			Name:     "device",
+			Help:     "manage connected devices",
+			LongHelp: "Add, remove, and list connected devices.",
+		}
+		deviceCmd.AddCmd(&ishell.Cmd{
+			Name: "add",
+			Help: "add a new device",
+			Func: cmd.AddDevice,
+		})
+		deviceCmd.AddCmd(&ishell.Cmd{
+			Name: "ls",
+			Help: "list devices",
+			Func: cmd.ListDevices,
+		})
+		shell.AddCmd(deviceCmd)
 	}
 
 	// create and start a desktop textile node

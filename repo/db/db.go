@@ -15,6 +15,7 @@ type SQLiteDatastore struct {
 	config  repo.ConfigStore
 	profile repo.ProfileStore
 	threads repo.ThreadStore
+	devices repo.DeviceStore
 	peers   repo.PeerStore
 	blocks  repo.BlockStore
 	db      *sql.DB
@@ -37,6 +38,7 @@ func Create(repoPath, password string) (*SQLiteDatastore, error) {
 		config:  NewConfigStore(conn, mux, dbPath),
 		profile: NewProfileStore(conn, mux),
 		threads: NewThreadStore(conn, mux),
+		devices: NewDeviceStore(conn, mux),
 		peers:   NewPeerStore(conn, mux),
 		blocks:  NewBlockStore(conn, mux),
 		db:      conn,
@@ -64,6 +66,10 @@ func (d *SQLiteDatastore) Profile() repo.ProfileStore {
 
 func (d *SQLiteDatastore) Threads() repo.ThreadStore {
 	return d.threads
+}
+
+func (d *SQLiteDatastore) Devices() repo.DeviceStore {
+	return d.devices
 }
 
 func (d *SQLiteDatastore) Peers() repo.PeerStore {
@@ -125,12 +131,14 @@ func initDatabaseTables(db *sql.DB, password string) error {
 	create table config (key text primary key not null, value blob);
     create table profile (key text primary key not null, value blob);
     create table threads (id text primary key not null, name text not null, sk blob not null, head text not null);
-    create unique index index_name on threads (name);
+    create unique index thread_name on threads (name);
+    create table devices (id text primary key not null, name text not null);
+    create unique index device_name on devices (name);
     create table peers (row text primary key not null, id text not null, thread text not null, pk text not null);
-    create unique index index_thread_id on peers (thread, id);
+    create unique index peer_thread_id on peers (thread, id);
     create table blocks (id text primary key not null, target text not null, parents text not null, key blob not null, pk text not null, type integer not null, date integer not null);
-    create index index_target on blocks (target);
-    create index index_pk_type_date on blocks (pk, type, date);
+    create index block_target on blocks (target);
+    create index block_pk_type_date on blocks (pk, type, date);
 	`
 	_, err := db.Exec(sqlStmt)
 	if err != nil {
