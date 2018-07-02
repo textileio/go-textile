@@ -2,6 +2,10 @@ package controllers
 
 import (
 	"fmt"
+	"net/http"
+	"regexp"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
 	"github.com/nbutton23/zxcvbn-go"
@@ -9,9 +13,6 @@ import (
 	"github.com/textileio/textile-go/central/dao"
 	"github.com/textileio/textile-go/central/models"
 	"golang.org/x/crypto/bcrypt"
-	"net/http"
-	"regexp"
-	"time"
 )
 
 var usernameRx = regexp.MustCompile(`^[a-zA-Z0-9_][a-zA-Z0-9._]+[a-zA-Z0-9_]$`)
@@ -27,7 +28,7 @@ func SignUp(c *gin.Context) {
 
 	// lookup the referral code
 	ref, err := dao.Dao.FindReferralByCode(reg.Referral)
-	if err != nil || ref.UserID != nil {
+	if err != nil || ref.Remaining == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "invalid or used referral code"})
 		return
 	}
@@ -106,8 +107,7 @@ func SignUp(c *gin.Context) {
 	}
 
 	// lastly, mark the code as used
-	ref.UserID = &user.ID
-	ref.Used = &user.Created
+	ref.Remaining = ref.Remaining - 1
 	if err := dao.Dao.UpdateReferral(ref); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

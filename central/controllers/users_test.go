@@ -2,9 +2,10 @@ package controllers_test
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/segmentio/ksuid"
 	util "github.com/textileio/textile-go/util/testing"
-	"testing"
 )
 
 var refCode string
@@ -24,7 +25,7 @@ var credentials = map[string]interface{}{
 
 func TestUsers_Setup(t *testing.T) {
 	// create a referral for the test
-	_, ref, err := util.CreateReferral(util.RefKey, 1)
+	_, ref, err := util.CreateReferral(util.RefKey, 1, 1, "TestUsers_Setup")
 	if err != nil {
 		t.Error(err)
 	}

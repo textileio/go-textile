@@ -3,11 +3,12 @@ package dao
 import (
 	"crypto/tls"
 	"fmt"
+	"log"
+	"net"
+
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/textileio/textile-go/central/models"
-	"log"
-	"net"
 )
 
 type DAO struct {
@@ -109,7 +110,7 @@ func (m *DAO) FindReferralByCode(code string) (models.Referral, error) {
 // List referrals
 func (m *DAO) ListUnusedReferrals() ([]models.Referral, error) {
 	var refs []models.Referral
-	err := db.C(referralCollection).Find(bson.M{"used": bson.M{"$eq": nil}}).All(&refs)
+	err := db.C(referralCollection).Find(bson.M{"remaining": bson.M{"$gt": 0}}).All(&refs)
 	return refs, err
 }
 
