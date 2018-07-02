@@ -193,14 +193,14 @@ func TestWallet_GetDataAtPath(t *testing.T) {
 	// TODO
 }
 
-func TestWallet_GetIPFSPubKeyString(t *testing.T) {
+func TestWallet_GetPubKeyString(t *testing.T) {
 	key, err := wallet.GetPubKeyString()
 	if err != nil {
-		t.Errorf("get ipfs pub key failed: %s", err)
+		t.Errorf("get pub key failed: %s", err)
 		return
 	}
 	if key == "" {
-		t.Error("ipfs pub key empty")
+		t.Error("pub key empty")
 		return
 	}
 }
