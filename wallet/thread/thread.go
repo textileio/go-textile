@@ -1,12 +1,8 @@
 package thread
 
 import (
-	"context"
-	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/op/go-logging"
@@ -17,12 +13,10 @@ import (
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet/model"
 	"github.com/textileio/textile-go/wallet/util"
-	"gx/ipfs/QmSFihvoND3eDaAYRCeLgLPt62yCPgMZs1NSZmKFEtJQQw/go-libp2p-floodsub"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/core"
 	uio "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/unixfs/io"
-	"io"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -31,9 +25,6 @@ import (
 )
 
 var log = logging.MustGetLogger("thread")
-
-// ErrInvalidBlock is used to reject invalid block updates
-var ErrInvalidBlock = errors.New("block is not a valid token")
 
 // Config is used to construct a Thread
 type Config struct {
@@ -59,8 +50,7 @@ type Thread struct {
 	Id         string
 	Name       string
 	PrivKey    libp2pc.PrivKey
-	LeftCh     chan struct{}
-	leaveCh    chan struct{}
+	updates    chan Update
 	repoPath   string
 	ipfs       func() *core.IpfsNode
 	blocks     func() repo.BlockStore
@@ -70,7 +60,6 @@ type Thread struct {
 	publish    func(payload []byte) error
 	send       func(message *pb.Message, peerId string) error
 	mux        sync.Mutex
-	listening  bool
 }
 
 // NewThread create a new Thread from a repo model and config
@@ -83,6 +72,7 @@ func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 		Id:         model.Id,
 		Name:       model.Name,
 		PrivKey:    sk,
+		updates:    make(chan Update),
 		repoPath:   config.RepoPath,
 		ipfs:       config.Ipfs,
 		blocks:     config.Blocks,
@@ -92,6 +82,10 @@ func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 		publish:    config.Publish,
 		send:       config.Send,
 	}, nil
+}
+
+func (t *Thread) Close() {
+	close(t.updates)
 }
 
 // AddInvite creates an invite block for the given recipient
@@ -332,7 +326,7 @@ func (t *Thread) GetBlockDataBase64(path string, block *repo.Block) (string, err
 	if err != nil {
 		return "error", err
 	}
-	return base64.StdEncoding.EncodeToString(file), nil
+	return libp2pc.ConfigEncodeKey(file), nil
 }
 
 // GetFileKey returns the decrypted AES key for a block
@@ -371,7 +365,7 @@ func (t *Thread) GetFileDataBase64(path string, block *repo.Block) (string, erro
 	if err != nil {
 		return "error", err
 	}
-	return base64.StdEncoding.EncodeToString(file), nil
+	return libp2pc.ConfigEncodeKey(file), nil
 }
 
 // GetMetaData returns photo metadata under an id
@@ -388,85 +382,6 @@ func (t *Thread) GetPhotoMetaData(id string, block *repo.Block) (*model.PhotoMet
 		return nil, err
 	}
 	return data, nil
-}
-
-// Subscribe joins the thread
-func (t *Thread) Subscribe(datac chan Update) {
-	if t.listening {
-		return
-	}
-	t.listening = true
-	sub, err := t.ipfs().Floodsub.Subscribe(t.Id)
-	if err != nil {
-		log.Errorf("error creating subscription: %s", err)
-		return
-	}
-	log.Infof("joined thread: %s\n", t.Id)
-
-	t.leaveCh = make(chan struct{})
-	t.LeftCh = make(chan struct{})
-
-	ctx, cancel := context.WithCancel(context.Background())
-	leave := func() {
-		cancel()
-		close(t.LeftCh)
-		t.listening = false
-		log.Infof("left thread: %s\n", sub.Topic())
-	}
-
-	defer func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Errorf("thread update channel already closed")
-			}
-		}()
-		close(datac)
-	}()
-	go func() {
-		for {
-			// unload new message
-			msg, err := sub.Next(ctx)
-			if err == io.EOF || err == context.Canceled {
-				log.Debugf("thread subscription ended: %s", err)
-				return
-			} else if err != nil {
-				log.Debugf(err.Error())
-				return
-			}
-
-			// handle the update
-			go func(msg *floodsub.Message) {
-				if err = t.preHandleBlock(msg, datac); err != nil {
-					log.Errorf("error handling room update: %s", err)
-				}
-			}(msg)
-		}
-	}()
-
-	// block so we can shutdown with the leave room signal
-	for {
-		select {
-		case <-t.leaveCh:
-			leave()
-			return
-		case <-t.ipfs().Context().Done():
-			leave()
-			return
-		}
-	}
-}
-
-// Unsubscribe leaves the thread
-func (t *Thread) Unsubscribe() {
-	if t.leaveCh == nil {
-		return
-	}
-	close(t.leaveCh)
-}
-
-// Listening indicates whether or not we are listening in the thread
-func (t *Thread) Listening() bool {
-	return t.listening
 }
 
 // Blocks paginates blocks from the datastore
@@ -532,65 +447,13 @@ func (t *Thread) GetPeers(offset string, limit int) []repo.Peer {
 	return t.peers().List(offset, limit, query)
 }
 
-// preHandleBlock tries to recursively process an update sent to a thread
-func (t *Thread) preHandleBlock(msg *floodsub.Message, datac chan Update) error {
-	// unpack from
-	from := msg.GetFrom().Pretty()
-	if from == t.ipfs().Identity.Pretty() {
-		return nil
-	}
-
-	// unpack message data
-	data := string(msg.GetData())
-
-	// determine if this is from a relay node
-	tmp := strings.Split(data, ":")
-	var tokenStr string
-	if len(tmp) > 1 && tmp[0] == "relay" {
-		tokenStr = tmp[1]
-		from = fmt.Sprintf("relay:%s", from)
-	} else {
-		tokenStr = tmp[0]
-	}
-	var id string
-
-	// parse token
-	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*crypto.SigningMethodEd25519); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return t.PrivKey.GetPublic(), nil
-	})
-	if err != nil {
-		return err
-	}
-	// validate
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		if id, ok = claims["jti"].(string); !ok || id == "" {
-			return ErrInvalidBlock
-		}
-		// TODO validate pk, iss, iat
-	} else {
-		return ErrInvalidBlock
-	}
-
-	log.Debugf("got block %s from %s in thread %s", id, from, t.Id)
-
-	// exit if block is just a ping
-	if id == "ping" {
-		return nil
-	}
-
-	// recurse back in time starting at this hash
-	if err := t.HandleBlock(id, datac); err != nil {
-		return err
-	}
-
-	return nil
+// Updates returns a read-only channel of updates
+func (t *Thread) Updates() <-chan Update {
+	return t.updates
 }
 
 // handleBlock tries to process a block
-func (t *Thread) HandleBlock(id string, datac chan Update) error {
+func (t *Thread) HandleBlock(id string) error {
 	// first update?
 	if id == "" {
 		log.Debugf("found genesis block, aborting")
@@ -621,9 +484,9 @@ func (t *Thread) HandleBlock(id string, datac chan Update) error {
 		return err
 	}
 
-	// don't block on the send since nobody might be listening
+	// don't block on the send since nobody could be listening
 	select {
-	case datac <- Update{Id: id, Thread: t.Name, ThreadID: t.Id}:
+	case t.updates <- Update{Id: id, Thread: t.Name, ThreadID: t.Id}:
 	default:
 	}
 	defer func() {
@@ -636,7 +499,7 @@ func (t *Thread) HandleBlock(id string, datac chan Update) error {
 
 	// check last block
 	// TODO: handle multi parents from 3-way merge
-	return t.HandleBlock(block.Parents[0], datac)
+	return t.HandleBlock(block.Parents[0])
 }
 
 // indexBlock attempts to download the block and index it in the local db
@@ -686,30 +549,6 @@ func (t *Thread) indexBlock(id string) (*repo.Block, error) {
 		return nil, err
 	}
 	return block, nil
-}
-
-// signBlock generated a valid JWT based on a thread block
-func (t *Thread) signBlock(block *repo.Block) (string, error) {
-	var blockId string
-	var date time.Time
-	if block != nil {
-		blockId = block.Id
-		date = block.Date
-	} else {
-		blockId = "ping"
-		date = time.Now()
-	}
-	claims := jwt.StandardClaims{
-		Id:       blockId, // block cid
-		Subject:  t.Id,    // thread id (pk, base64)
-		Issuer:   t.ipfs().Identity.Pretty(),
-		IssuedAt: date.Unix(),
-	}
-	token, err := jwt.NewWithClaims(crypto.SigningMethodEd25519i, claims).SignedString(t.PrivKey)
-	if err != nil {
-		return "", err
-	}
-	return token, nil
 }
 
 func (t *Thread) getMessageForBlock(block *repo.Block) (*pb.Message, error) {

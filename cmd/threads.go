@@ -20,11 +20,7 @@ func ListThreads(c *ishell.Context) {
 
 	blue := color.New(color.FgHiBlue).SprintFunc()
 	for _, thrd := range threads {
-		mem := "disabled"
-		if thrd.Listening() {
-			mem = "enabled"
-		}
-		c.Println(blue(fmt.Sprintf("name: %s, id: %s, status: %s", thrd.Name, thrd.Id, mem)))
+		c.Println(blue(fmt.Sprintf("name: %s, id: %s", thrd.Name, thrd.Id)))
 	}
 }
 
@@ -48,58 +44,11 @@ func CreateThread(c *ishell.Context) {
 		return
 	}
 
-	Subscribe(c, thrd)
+	go Subscribe(c, thrd)
 
 	cyan := color.New(color.FgCyan).SprintFunc()
 	c.Println(cyan(fmt.Sprintf("created thread #%s", name)))
 	c.Println(cyan(fmt.Sprintf("mnemonic phrase: %s", mnem)))
-}
-
-func EnableThread(c *ishell.Context) {
-	if len(c.Args) == 0 {
-		c.Err(errors.New("missing thread name"))
-		return
-	}
-	name := c.Args[0]
-
-	thrd := core.Node.Wallet.GetThreadByName(name)
-	if thrd == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
-		return
-	}
-
-	if thrd.Listening() {
-		c.Printf("already enabled: %s\n", thrd.Id)
-		return
-	}
-
-	Subscribe(c, thrd)
-
-	c.Printf("ok, now enabled: %s\n", thrd.Id)
-}
-
-func DisableAlbum(c *ishell.Context) {
-	if len(c.Args) == 0 {
-		c.Err(errors.New("missing thread name"))
-		return
-	}
-	name := c.Args[0]
-
-	thrd := core.Node.Wallet.GetThreadByName(name)
-	if thrd == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
-		return
-	}
-
-	if !thrd.Listening() {
-		c.Printf("already disabled: %s\n", thrd.Id)
-		return
-	}
-
-	thrd.Unsubscribe()
-	<-thrd.LeftCh
-
-	c.Printf("ok, now disabled: %s\n", thrd.Id)
 }
 
 func PublishThread(c *ishell.Context) {
@@ -206,20 +155,13 @@ func AddThreadInvite(c *ishell.Context) {
 
 func Subscribe(shell ishell.Actions, thrd *thread.Thread) {
 	cyan := color.New(color.FgCyan).SprintFunc()
-	datac := make(chan thread.Update)
-	go thrd.Subscribe(datac)
-	go func() {
-		for {
-			select {
-			case update, ok := <-datac:
-				if !ok {
-					return
-				}
-				msg := fmt.Sprintf("\nnew photo %s in thread %s\n", update.Id, update.Thread)
-				shell.ShowPrompt(false)
-				shell.Printf(cyan(msg))
-				shell.ShowPrompt(true)
+	for {
+		select {
+		case update, ok := <-thrd.Updates():
+			if !ok {
+				return
 			}
+			shell.Printf(cyan(fmt.Sprintf("new block %s in thread %s", update.Id, update.Thread)))
 		}
-	}()
+	}
 }
