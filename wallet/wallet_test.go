@@ -32,7 +32,7 @@ func TestNewWallet(t *testing.T) {
 		CentralAPI: util.CentralApiURL,
 	}
 	var err error
-	wallet, err = NewWallet(config)
+	wallet, _, err = NewWallet(config)
 	if err != nil {
 		t.Errorf("create wallet failed: %s", err)
 	}
@@ -109,23 +109,11 @@ func TestWallet_GetId(t *testing.T) {
 	// TODO
 }
 
-func TestWallet_GetIPFSPeerId(t *testing.T) {
-	id, err := wallet.GetIPFSPeerId()
-	if err != nil {
-		t.Errorf("get ipfs peer id failed: %s", err)
-		return
-	}
-	if id == "" {
-		t.Error("ipfs peer id empty")
-		return
-	}
-}
-
-func TestWallet_GetMasterPrivKey(t *testing.T) {
+func TestWallet_GetPrivKey(t *testing.T) {
 	// TODO
 }
 
-func TestWallet_GetMasterPubKey(t *testing.T) {
+func TestWallet_GetPubKey(t *testing.T) {
 	// TODO
 }
 

@@ -604,15 +604,15 @@ func (w *Wallet) AddPhoto(path string) (*model.AddResult, error) {
 		return nil, err
 	}
 
-	// get username and master pub key, ignoring if not present (not signed in)
-	username, _ := w.datastore.Profile().GetUsername()
-	mpk, _ := w.GetPubKey()
-	var mpkb []byte
-	if mpk != nil {
-		mpkb, err = mpk.Bytes()
-		if err != nil {
-			return nil, err
-		}
+	// get some meta data
+	username, _ := w.datastore.Profile().GetUsername() // ignore if not present (not signed in)
+	mpk, err := w.GetPubKey()
+	if err != nil {
+		return nil, err
+	}
+	mpkb, err := mpk.Bytes()
+	if err != nil {
+		return nil, err
 	}
 
 	// path info
@@ -733,9 +733,6 @@ func (w *Wallet) GetDataAtPath(path string) ([]byte, error) {
 
 // ConnectPeer connect to another ipfs peer (i.e., ipfs swarm connect)
 func (w *Wallet) ConnectPeer(addrs []string) ([]string, error) {
-	if !w.started {
-		return nil, ErrStopped
-	}
 	if !w.Online() {
 		return nil, ErrOffline
 	}
