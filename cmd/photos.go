@@ -21,6 +21,11 @@ func AddPhoto(c *ishell.Context) {
 		c.Err(errors.New("missing photo path"))
 		return
 	}
+	if len(c.Args) == 1 {
+		c.Err(errors.New("missing thread name"))
+		return
+	}
+	threadName := c.Args[1]
 
 	// try to get path with home dir tilda
 	path, err := homedir.Expand(c.Args[0])
@@ -51,12 +56,6 @@ func AddPhoto(c *ishell.Context) {
 	if err = os.Remove(added.RemoteRequest.PayloadPath); err != nil {
 		c.Err(err)
 		return
-	}
-
-	// parse thread
-	threadName := "default"
-	if len(c.Args) > 1 {
-		threadName = c.Args[1]
 	}
 
 	// add to thread
@@ -126,10 +125,11 @@ func SharePhoto(c *ishell.Context) {
 }
 
 func ListPhotos(c *ishell.Context) {
-	threadName := "default"
-	if len(c.Args) > 0 {
-		threadName = c.Args[0]
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing thread name"))
+		return
 	}
+	threadName := c.Args[0]
 
 	thrd := core.Node.Wallet.GetThreadByName(threadName)
 	if thrd == nil {

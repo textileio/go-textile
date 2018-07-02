@@ -29,7 +29,6 @@ import (
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/config"
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/fsrepo"
 	uio "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/unixfs/io"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -458,6 +457,7 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 	}
 	log.Debugf("adding a new thread: %s", name)
 
+	// index a new thread
 	skb, err := secret.Bytes()
 	if err != nil {
 		return nil, err
@@ -467,8 +467,6 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 		return nil, err
 	}
 	pk := libp2pc.ConfigEncodeKey(pkb)
-
-	// index a new thread
 	threadModel := &trepo.Thread{
 		Id:      pk,
 		Name:    name,
@@ -477,10 +475,28 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 	if err := w.datastore.Threads().Add(threadModel); err != nil {
 		return nil, err
 	}
+
+	// load as active thread
 	thrd, err := w.loadThread(threadModel)
 	if err != nil {
 		return nil, err
 	}
+
+	// invite each device to the new thread
+	for _, device := range w.Devices() {
+		dpkb, err := libp2pc.ConfigDecodeKey(device.Id)
+		if err != nil {
+			return nil, err
+		}
+		dpk, err := libp2pc.UnmarshalPublicKey(dpkb)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := thrd.AddInvite(dpk); err != nil {
+			return nil, err
+		}
+	}
+
 	return thrd, nil
 }
 
@@ -520,13 +536,32 @@ func (w *Wallet) PublishThreads() {
 	}
 }
 
+// Devices lists all devices
+func (w *Wallet) Devices() []trepo.Device {
+	return w.datastore.Devices().List("")
+}
+
 // AddDevice creates an invite for every current and future thread
-func (w *Wallet) AddDevice(pk libp2pc.PubKey) error {
+func (w *Wallet) AddDevice(name string, pk libp2pc.PubKey) error {
 	if !w.Online() {
 		return ErrOffline
 	}
-	log.Info("adding a new device...")
-	// TODO: insert into devices table
+
+	// index a new device
+	pkb, err := pk.Bytes()
+	if err != nil {
+		return err
+	}
+	deviceModel := &trepo.Device{
+		Id:   libp2pc.ConfigEncodeKey(pkb),
+		Name: name,
+	}
+	if err := w.datastore.Devices().Add(deviceModel); err != nil {
+		return err
+	}
+	log.Infof("added device '%s'", name)
+
+	// invite device to existing threads
 	for _, thrd := range w.threads {
 		if _, err := thrd.AddInvite(pk); err != nil {
 			return err
@@ -823,74 +858,6 @@ func (w *Wallet) Subscribe(topic string) (*floodsub.Subscription, error) {
 		return nil, ErrOffline
 	}
 	return w.ipfs.Floodsub.Subscribe(topic)
-}
-
-// WaitForPairing waits for an invite at the IPFS peer pk
-func (w *Wallet) WaitForPairing() error {
-	if !w.Online() {
-		return ErrOffline
-	}
-	addrs, err := w.GetPubKeyString()
-	if err != nil {
-		return err
-	}
-	sub, err := w.ipfs.Floodsub.Subscribe(addrs)
-	if err != nil {
-		log.Errorf("error creating subscription: %s", err)
-		return err
-	}
-	log.Infof("waiting for invite at: %s\n", addrs)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancelCh := make(chan struct{})
-	go func() {
-		for {
-			msg, err := sub.Next(ctx)
-			if err == io.EOF || err == context.Canceled {
-				log.Debugf("wait subscription ended: %s", err)
-				return
-			} else if err != nil {
-				log.Debugf(err.Error())
-				return
-			}
-			from := msg.GetFrom().Pretty()
-			log.Infof("got invite from ipfs peer: %s\n", from)
-
-			// get private peer key and decrypt the phrase
-			skb, err := crypto.Decrypt(w.ipfs.PrivateKey, msg.GetData())
-			if err != nil {
-				log.Errorf("error decrypting msg data: %s", err)
-				return
-			}
-			secret, err := libp2pc.UnmarshalPrivateKey(skb)
-			if err != nil {
-				log.Errorf("error unmarshaling invite: %s", err)
-				return
-			}
-
-			// create a new thread for
-			// TODO: let user name this or take phone's name, e.g., bob's iphone
-			// TODO: or auto name it, cause this means only one pairing can happen
-			_, err = w.AddThread("mobile", secret)
-			if err != nil {
-				log.Errorf("error adding mobile thread: %s", err)
-				return
-			}
-
-			// we're done
-			close(cancelCh)
-		}
-	}()
-	for {
-		select {
-		case <-cancelCh:
-			cancel()
-			return nil
-		case <-w.ipfs.Context().Done():
-			cancel()
-			return nil
-		}
-	}
 }
 
 // createIPFS creates an IPFS node

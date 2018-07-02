@@ -200,8 +200,8 @@ func (w *Wrapper) AddThread(name string, mnemonic string) error {
 	return err
 }
 
-// AddDevice call core AddDevice
-func (w *Wrapper) AddDevice(pubKey string) error {
+// AddDevice calls core AddDevice
+func (w *Wrapper) AddDevice(name string, pubKey string) error {
 	pkb, err := libp2pc.ConfigDecodeKey(pubKey)
 	if err != nil {
 		return err
@@ -210,7 +210,7 @@ func (w *Wrapper) AddDevice(pubKey string) error {
 	if err != nil {
 		return err
 	}
-	return tcore.Node.Wallet.AddDevice(pk)
+	return tcore.Node.Wallet.AddDevice(name, pk)
 }
 
 // AddPhoto adds a photo by path and shares it to the default thread

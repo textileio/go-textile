@@ -24,7 +24,7 @@ func ListThreads(c *ishell.Context) {
 	}
 }
 
-func CreateThread(c *ishell.Context) {
+func AddThread(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing thread name"))
 		return
@@ -47,7 +47,7 @@ func CreateThread(c *ishell.Context) {
 	go Subscribe(c, thrd)
 
 	cyan := color.New(color.FgCyan).SprintFunc()
-	c.Println(cyan(fmt.Sprintf("created thread #%s", name)))
+	c.Println(cyan(fmt.Sprintf("added thread '%s'", name)))
 	c.Println(cyan(fmt.Sprintf("mnemonic phrase: %s", mnem)))
 }
 
