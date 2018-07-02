@@ -377,6 +377,11 @@ func (w *Wallet) GetPrivKey() (libp2pc.PrivKey, error) {
 	if !w.started {
 		return nil, ErrStopped
 	}
+	if w.ipfs.PrivateKey == nil {
+		if err := w.ipfs.LoadPrivateKey(); err != nil {
+			return nil, err
+		}
+	}
 	return w.ipfs.PrivateKey, nil
 }
 
