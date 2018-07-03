@@ -10,77 +10,43 @@
     <link rel="stylesheet" href="static/lib/photoswipe/photoswipe.css">
     <link rel="stylesheet" href="static/lib/photoswipe/default-skin/default-skin.css">
     <link rel="stylesheet" href="static/css/textile.css"/>
-    <link href="static/font/style.css" rel="stylesheet" type="text/css">
     <script>
         function imageDragStart(ev) {
             const parent = ev.target.parentNode;
             const div = document.getElementById(parent.id);
             const url = div.getAttribute("data-url");
-            console.log(url);
             ev.dataTransfer.setData("DownloadURL", 'image/jpeg:fullres.jpeg:' + url);
         }
     </script>
 </head>
 <body>
 
-<div class="section onboarding hidden">
-    <div id="left"></div>
-    <div id="logo">
-        <img src="./static/img/logo-01.svg" width="301" height="116" />
-    </div>
-    <div id="ob1" class="screen hidden">
-        <div class="container">
-            <h1>Welcome to Textile Photos!</h1>
-            <h2>
-                We need to walk through just a couple steps to get you setup. Let's get started...
-            </h2>
-            <div class="row">
-                <button class="next" onClick="showOnboarding(2)">Next</button>
-            </div>
-        </div>
-    </div>
+<div class="setup">
+    <div class="titlebar"></div>
+    <img class="logo" src="static/img/logo.svg" />
+    <img class="qr-code hidden" src="" />
+    <span class="address"></span>
+</div>
 
-    <div id="ob2" class="screen hidden">
-        <div class="container">
-            <h1>Pairing with your mobile device.</h1>
-            <h2>
-                Have your mobile phone nearby. Be sure you have the Textile Photos app installed on your phone.
-            </h2>
-            <div class="row">
-                <button class="next" onClick="showOnboarding(3)">Next</button>
-            </div>
-        </div>
+<div class="main hidden">
+    <div class="titlebar"></div>
+    <div class="sidebar">
+        <h4>Threads</h4>
+        <ul class="threads">
+            <!--
+            <li class="thread"><h5># cats</h5></li>
+            <li class="thread"><h5># mugs</h5></li>
+            -->
+        </ul>
     </div>
-
-    <div id="ob3" class="screen hidden">
-        <div class="container">
-            <h1>Pairing with your mobile device.</h1>
-            <h2>
-                Now, use your mobile phone's camera to scan the QR code below. While pointing your phone's camera at the QR code, you should be prompted to open Textile Photos. Follow the instructions on your device.
-            </h2>
-            <div class="row">
-                <img class="qr-code" src="" />
-            </div>
-            <div class="row">
-                <h5>Confirmation code <span class="confirmation-code">1234</span>.</h5>
-            </div>
-            <div class="row">
-                <button class="wait">Waiting...</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="ob4" class="screen hidden">
-        <div class="container">
-            <h1>Success!</h1>
-            <h2>
-                You've now successfully paired with your mobile device. Now, any photos you take or add in Textile Photos will be automatically synced to this computer.
-            </h2>
+    <div class="content">
+        <div class="message">
+            <!--
+            <h5>This thread is empty :(</h5>
+            -->
         </div>
     </div>
 </div>
-
-<div class="section grid hidden"></div>
 
 <!-- Root element of PhotoSwipe. Must have class pswp. -->
 <div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
@@ -149,13 +115,6 @@
 
 </div>
 
-<div class="section footer ">
-    <div class="container">
-        <footer class="twelve columns">
-        </footer>
-    </div>
-</div>
-
 <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
 <script src="static/lib/astiloader/astiloader.js"></script>
 <script src="static/lib/astimodaler/astimodaler.js"></script>
@@ -176,4 +135,3 @@
 
 </body>
 </html>
-

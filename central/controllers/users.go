@@ -2,10 +2,6 @@ package controllers
 
 import (
 	"fmt"
-	"net/http"
-	"regexp"
-	"time"
-
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
 	"github.com/nbutton23/zxcvbn-go"
@@ -13,6 +9,9 @@ import (
 	"github.com/textileio/textile-go/central/dao"
 	"github.com/textileio/textile-go/central/models"
 	"golang.org/x/crypto/bcrypt"
+	"net/http"
+	"regexp"
+	"time"
 )
 
 var usernameRx = regexp.MustCompile(`^[a-zA-Z0-9_][a-zA-Z0-9._]+[a-zA-Z0-9_]$`)

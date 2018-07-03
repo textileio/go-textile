@@ -2,10 +2,9 @@ package controllers_test
 
 import (
 	"fmt"
-	"testing"
-
 	"github.com/segmentio/ksuid"
 	util "github.com/textileio/textile-go/util/testing"
+	"testing"
 )
 
 var refCode string

@@ -195,7 +195,7 @@ func (t *TextileNode) registerGatewayHandler() {
 				log.Errorf("error finding block %s: %s", blockId[0], err)
 				return
 			}
-			thrd := t.Wallet.GetThread(block.Id)
+			thrd := t.Wallet.GetThread(block.ThreadPubKey)
 			if thrd == nil {
 				log.Errorf("could not find thread for block: %s", block.Id)
 				return

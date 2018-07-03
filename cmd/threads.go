@@ -161,7 +161,7 @@ func Subscribe(shell ishell.Actions, thrd *thread.Thread) {
 			if !ok {
 				return
 			}
-			shell.Printf(cyan(fmt.Sprintf("new block %s in thread %s", update.Id, update.Thread)))
+			shell.Printf(cyan(fmt.Sprintf("new block %s in thread %s", update.Id, update.ThreadName)))
 		}
 	}
 }

@@ -38,14 +38,8 @@ type Messenger interface {
 	Notify(event *Event)
 }
 
-// Wrapper is the object exposed in the frameworks
-type Wrapper struct {
-	RepoPath  string
-	Mnemonic  string
-	messenger Messenger
-}
-
 // NodeConfig is used to configure the mobile node
+// NOTE: logLevel is one of: CRITICAL ERROR WARNING NOTICE INFO DEBUG
 type NodeConfig struct {
 	RepoPath      string
 	CentralApiURL string
@@ -53,15 +47,12 @@ type NodeConfig struct {
 	LogFiles      bool
 }
 
-// NewNode is the mobile entry point for creating a node
-// NOTE: logLevel is one of: CRITICAL ERROR WARNING NOTICE INFO DEBUG
-func NewNode(config *NodeConfig, messenger Messenger) (*Wrapper, error) {
-	var m Mobile
-	return m.NewNode(config, messenger)
-}
-
 // Mobile is the name of the framework (must match package name)
-type Mobile struct{}
+type Mobile struct {
+	RepoPath  string
+	Mnemonic  string
+	messenger Messenger
+}
 
 // Blocks is a wrapper around a list of Blocks, which makes decoding json from a little cleaner
 // on the mobile side
@@ -73,7 +64,7 @@ type Blocks struct {
 const RemoteIPFSApi = "https://ipfs.textile.io/api/v0"
 
 // Create a gomobile compatible wrapper around TextileNode
-func (m *Mobile) NewNode(config *NodeConfig, messenger Messenger) (*Wrapper, error) {
+func NewNode(config *NodeConfig, messenger Messenger) (*Mobile, error) {
 	ll, err := logging.LogLevel(config.LogLevel)
 	if err != nil {
 		ll = logging.INFO
@@ -93,11 +84,11 @@ func (m *Mobile) NewNode(config *NodeConfig, messenger Messenger) (*Wrapper, err
 	}
 	tcore.Node = node
 
-	return &Wrapper{RepoPath: config.RepoPath, Mnemonic: mnemonic, messenger: messenger}, nil
+	return &Mobile{RepoPath: config.RepoPath, Mnemonic: mnemonic, messenger: messenger}, nil
 }
 
 // Start the mobile node
-func (w *Wrapper) Start() error {
+func (m *Mobile) Start() error {
 	online, err := tcore.Node.StartWallet()
 	if err != nil {
 		if err == wallet.ErrStarted {
@@ -111,12 +102,12 @@ func (w *Wrapper) Start() error {
 		// subscribe to thread updates
 		for _, thrd := range tcore.Node.Wallet.Threads() {
 			go func(t *thread.Thread) {
-				w.subscribe(t)
+				m.subscribe(t)
 			}(thrd)
 		}
 
 		// notify UI we're ready
-		w.messenger.Notify(newEvent("onOnline", map[string]interface{}{}))
+		m.messenger.Notify(newEvent("onOnline", map[string]interface{}{}))
 
 		// publish
 		tcore.Node.Wallet.PublishThreads()
@@ -126,7 +117,7 @@ func (w *Wrapper) Start() error {
 }
 
 // Stop the mobile node
-func (w *Wrapper) Stop() error {
+func (m *Mobile) Stop() error {
 	if err := tcore.Node.StopWallet(); err != nil && err != wallet.ErrStopped {
 		return err
 	}
@@ -134,7 +125,7 @@ func (w *Wrapper) Stop() error {
 }
 
 // SignUpWithEmail creates an email based registration and calls core signup
-func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) error {
+func (m *Mobile) SignUpWithEmail(username string, password string, email string, referral string) error {
 	// build registration
 	reg := &models.Registration{
 		Username: username,
@@ -149,7 +140,7 @@ func (w *Wrapper) SignUpWithEmail(username string, password string, email string
 }
 
 // SignIn build credentials and calls core SignIn
-func (w *Wrapper) SignIn(username string, password string) error {
+func (m *Mobile) SignIn(username string, password string) error {
 	// build creds
 	creds := &models.Credentials{
 		Username: username,
@@ -159,33 +150,33 @@ func (w *Wrapper) SignIn(username string, password string) error {
 }
 
 // SignOut calls core SignOut
-func (w *Wrapper) SignOut() error {
+func (m *Mobile) SignOut() error {
 	return tcore.Node.Wallet.SignOut()
 }
 
 // IsSignedIn calls core IsSignedIn
-func (w *Wrapper) IsSignedIn() bool {
+func (m *Mobile) IsSignedIn() bool {
 	si, _ := tcore.Node.Wallet.IsSignedIn()
 	return si
 }
 
 // GetId calls core GetId
-func (w *Wrapper) GetId() (string, error) {
+func (m *Mobile) GetId() (string, error) {
 	return tcore.Node.Wallet.GetId()
 }
 
 // GetUsername calls core GetUsername
-func (w *Wrapper) GetUsername() (string, error) {
+func (m *Mobile) GetUsername() (string, error) {
 	return tcore.Node.Wallet.GetUsername()
 }
 
 // GetAccessToken calls core GetAccessToken
-func (w *Wrapper) GetAccessToken() (string, error) {
+func (m *Mobile) GetAccessToken() (string, error) {
 	return tcore.Node.Wallet.GetAccessToken()
 }
 
 // AddThread adds a new thread with the given name
-func (w *Wrapper) AddThread(name string, mnemonic string) error {
+func (m *Mobile) AddThread(name string, mnemonic string) error {
 	var mnem *string
 	if mnemonic != "" {
 		mnem = &mnemonic
@@ -195,13 +186,13 @@ func (w *Wrapper) AddThread(name string, mnemonic string) error {
 		return nil
 	}
 
-	go w.subscribe(thrd)
+	go m.subscribe(thrd)
 
 	return err
 }
 
 // AddDevice calls core AddDevice
-func (w *Wrapper) AddDevice(name string, pubKey string) error {
+func (m *Mobile) AddDevice(name string, pubKey string) error {
 	pkb, err := libp2pc.ConfigDecodeKey(pubKey)
 	if err != nil {
 		return err
@@ -214,7 +205,7 @@ func (w *Wrapper) AddDevice(name string, pubKey string) error {
 }
 
 // AddPhoto adds a photo by path and shares it to the default thread
-func (w *Wrapper) AddPhoto(path string, threadName string, caption string) (*net.MultipartRequest, error) {
+func (m *Mobile) AddPhoto(path string, threadName string, caption string) (*net.MultipartRequest, error) {
 	thrd := tcore.Node.Wallet.GetThreadByName(threadName)
 	if thrd == nil {
 		return nil, errors.New(fmt.Sprintf("could not find thread: %s", threadName))
@@ -241,7 +232,7 @@ func (w *Wrapper) AddPhoto(path string, threadName string, caption string) (*net
 }
 
 // SharePhoto adds an existing photo to a new thread
-func (w *Wrapper) SharePhoto(id string, threadName string, caption string) (string, error) {
+func (m *Mobile) SharePhoto(id string, threadName string, caption string) (string, error) {
 	block, err := tcore.Node.Wallet.GetBlockByTarget(id)
 	if err != nil {
 		return "", err
@@ -277,7 +268,7 @@ func (w *Wrapper) SharePhoto(id string, threadName string, caption string) (stri
 }
 
 // GetPhotoBlocks returns thread photo blocks with json encoding
-func (w *Wrapper) GetPhotoBlocks(offsetId string, limit int, threadName string) (string, error) {
+func (m *Mobile) GetPhotoBlocks(offsetId string, limit int, threadName string) (string, error) {
 	thrd := tcore.Node.Wallet.GetThreadByName(threadName)
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("thread not found: %s", threadName))
@@ -299,7 +290,7 @@ func (w *Wrapper) GetPhotoBlocks(offsetId string, limit int, threadName string) 
 }
 
 // GetBlockData calls GetBlockDataBase64 on a thread
-func (w *Wrapper) GetBlockData(id string, path string) (string, error) {
+func (m *Mobile) GetBlockData(id string, path string) (string, error) {
 	block, err := tcore.Node.Wallet.GetBlock(id)
 	if err != nil {
 		log.Errorf("could not find block %s: %s", id, err)
@@ -316,7 +307,7 @@ func (w *Wrapper) GetBlockData(id string, path string) (string, error) {
 }
 
 // GetFileData calls GetFileDataBase64 on a thread
-func (w *Wrapper) GetFileData(id string, path string) (string, error) {
+func (m *Mobile) GetFileData(id string, path string) (string, error) {
 	block, err := tcore.Node.Wallet.GetBlockByTarget(id)
 	if err != nil {
 		log.Errorf("could not find block for target %s: %s", id, err)
@@ -333,17 +324,19 @@ func (w *Wrapper) GetFileData(id string, path string) (string, error) {
 }
 
 // subscribe to thread and pass updates to messenger
-func (w *Wrapper) subscribe(thrd *thread.Thread) {
+func (m *Mobile) subscribe(thrd *thread.Thread) {
 	for {
 		select {
 		case update, ok := <-thrd.Updates():
 			if !ok {
 				return
 			}
-			w.messenger.Notify(newEvent("onThreadUpdate", map[string]interface{}{
-				"id":        update.Id,
-				"thread":    update.Thread,
-				"thread_id": update.ThreadID,
+			m.messenger.Notify(newEvent("onThreadUpdate", map[string]interface{}{
+				"id":          update.Id,
+				"type":        int(update.Type),
+				"target_id":   update.TargetId,
+				"thread_id":   update.ThreadId,
+				"thread_name": update.ThreadName,
 			}))
 		}
 	}
