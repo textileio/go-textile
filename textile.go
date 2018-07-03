@@ -239,6 +239,11 @@ func main() {
 			Func: cmd.AddDevice,
 		})
 		deviceCmd.AddCmd(&ishell.Cmd{
+			Name: "rm",
+			Help: "remove a device by name",
+			Func: cmd.RemoveDevice,
+		})
+		deviceCmd.AddCmd(&ishell.Cmd{
 			Name: "ls",
 			Help: "list devices",
 			Func: cmd.ListDevices,

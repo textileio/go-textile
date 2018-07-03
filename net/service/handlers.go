@@ -94,6 +94,7 @@ func (s *TextileService) handleThreadBlock(pid peer.ID, pmes *pb.Message, option
 		if err != nil || !good {
 			return nil, errors.New("bad signature")
 		}
+		// TODO: handle when name leads to conflict (add an int)
 		thrd, err = s.addThread(signed.ThreadName, sk)
 		if err != nil {
 			return nil, err

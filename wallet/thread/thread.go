@@ -40,9 +40,11 @@ type Config struct {
 
 // ThreadUpdate is used to notify listeners about updates in a thread
 type Update struct {
-	Id       string `json:"id"`
-	Thread   string `json:"thread"`
-	ThreadID string `json:"thread_id"`
+	Id         string         `json:"id"`
+	Type       repo.BlockType `json:"type"`
+	TargetId   string         `json:"target_id"`
+	ThreadId   string         `json:"thread_id"`
+	ThreadName string         `json:"thread_name"`
 }
 
 // Thread is the primary mechanism representing a collecion of data / files / photos
@@ -486,7 +488,13 @@ func (t *Thread) HandleBlock(id string) error {
 
 	// don't block on the send since nobody could be listening
 	select {
-	case t.updates <- Update{Id: id, Thread: t.Name, ThreadID: t.Id}:
+	case t.updates <- Update{
+		Id:         id,
+		Type:       block.Type,
+		TargetId:   block.Target,
+		ThreadId:   t.Id,
+		ThreadName: t.Name,
+	}:
 	default:
 	}
 	defer func() {

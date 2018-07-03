@@ -47,6 +47,21 @@ type Config struct {
 	MasterMnemonic *string
 }
 
+type Update struct {
+	Id   string     `json:"id"`
+	Name string     `json:"name"`
+	Type UpdateType `json:"type"`
+}
+
+type UpdateType int
+
+const (
+	ThreadAdded UpdateType = iota
+	ThreadRemoved
+	DeviceAdded
+	DeviceRemoved
+)
+
 type Wallet struct {
 	context        oldcmds.Context
 	repoPath       string
@@ -60,6 +75,7 @@ type Wallet struct {
 	started        bool
 	threads        []*thread.Thread
 	done           chan struct{}
+	updates        chan Update
 	lastRelayTouch time.Time
 }
 
@@ -146,6 +162,7 @@ func NewWallet(config Config) (*Wallet, string, error) {
 		datastore:   sqliteDB,
 		centralAPI:  config.CentralAPI,
 		isMobile:    config.IsMobile,
+		updates:     make(chan Update),
 	}, mnemonic, nil
 }
 
@@ -246,6 +263,9 @@ func (w *Wallet) Stop() error {
 	// wipe service
 	w.service = nil
 
+	// close updates
+	close(w.updates)
+
 	log.Info("wallet is stopped")
 
 	return nil
@@ -260,6 +280,11 @@ func (w *Wallet) Online() bool {
 		return false
 	}
 	return w.started && w.ipfs.OnlineMode()
+}
+
+// Updates returns a read-only channel of updates
+func (w *Wallet) Updates() <-chan Update {
+	return w.updates
 }
 
 func (w *Wallet) Done() <-chan struct{} {
@@ -502,6 +527,9 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 		}
 	}
 
+	// notify listeners
+	w.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadAdded})
+
 	return thrd, nil
 }
 
@@ -572,6 +600,29 @@ func (w *Wallet) AddDevice(name string, pk libp2pc.PubKey) error {
 			return err
 		}
 	}
+
+	// notify listeners
+	w.sendUpdate(Update{Id: deviceModel.Id, Name: deviceModel.Name, Type: DeviceAdded})
+
+	return nil
+}
+
+// RemoveDevice removes a device by name
+func (w *Wallet) RemoveDevice(name string) error {
+	device := w.datastore.Devices().GetByName(name)
+	if device == nil {
+		return errors.New("device not found")
+	}
+	if err := w.datastore.Devices().DeleteByName(name); err != nil {
+		return err
+	}
+	log.Infof("removed device '%s'", name)
+
+	// TODO: uninvite?
+
+	// notify listeners
+	w.sendUpdate(Update{Id: device.Id, Name: device.Name, Type: DeviceRemoved})
+
 	return nil
 }
 
@@ -997,6 +1048,18 @@ func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
 	}
 	w.threads = append(w.threads, thrd)
 	return thrd, nil
+}
+
+func (w *Wallet) sendUpdate(update Update) {
+	select {
+	case w.updates <- update:
+	default:
+	}
+	defer func() {
+		if recover() != nil {
+			log.Error("update channel already closed")
+		}
+	}()
 }
 
 // touchDB ensures that we have a good db connection

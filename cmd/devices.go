@@ -55,3 +55,20 @@ func AddDevice(c *ishell.Context) {
 	cyan := color.New(color.FgCyan).SprintFunc()
 	c.Println(cyan(fmt.Sprintf("added device '%s'", name)))
 }
+
+func RemoveDevice(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing device name"))
+		return
+	}
+	name := c.Args[0]
+
+	err := core.Node.Wallet.RemoveDevice(name)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	red := color.New(color.FgHiRed).SprintFunc()
+	c.Println(red(fmt.Sprintf("removed device '%s'", name)))
+}

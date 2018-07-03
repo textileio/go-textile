@@ -1,89 +1,245 @@
 package main
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
 	"github.com/asticode/go-astilog"
+	"github.com/mitchellh/go-homedir"
 	"github.com/op/go-logging"
 	"github.com/pkg/errors"
+	"github.com/skip2/go-qrcode"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet"
+	"github.com/textileio/textile-go/wallet/thread"
+	"os"
+	"path/filepath"
+	"time"
 )
 
 var (
-	BuiltAt string
-	debug   = flag.Bool("d", false, "enables the debug mode")
+	appName  = "Textile"
+	builtAt  string
+	debug    = flag.Bool("d", false, "enables the debug mode")
+	window   *astilectron.Window
+	textile  *core.TextileNode
+	gateway  string
+	fullsize bool
 )
 
-var textile *core.TextileNode
-var gateway string
+const (
+	SetupSize     = 384
+	QRCodeSize    = 256
+	InitialWidth  = 1024
+	InitialHeight = 633
+)
 
 func main() {
-	AppName := "Textile"
 	flag.Parse()
 	astilog.FlagInit()
+	bootstrapApp()
+}
+
+func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
+	window = iw
+
+	// get homedir
+	home, err := homedir.Dir()
+	if err != nil {
+		astilog.Fatal(errors.Wrap(err, "get homedir failed"))
+	}
+
+	// ensure app support folder is created
+	appDir := filepath.Join(home, "Library/Application Support/Textile")
+	if err := os.MkdirAll(appDir, 0755); err != nil {
+		return err
+	}
 
 	// create a desktop textile node
-	// TODO: on darwin, repo should live in Application Support
 	config := core.NodeConfig{
 		LogLevel: logging.DEBUG,
 		LogFiles: true,
 		WalletConfig: wallet.Config{
-			RepoPath:   "output/.ipfs",
+			RepoPath:   filepath.Join(appDir, "repo"),
 			CentralAPI: "https://api.textile.io",
 			IsMobile:   false,
 		},
 	}
-	var err error
 	textile, _, err = core.NewNode(config)
 	if err != nil {
-		astilog.Errorf("create desktop node failed: %s", err)
-		return
+		return err
 	}
 
 	// bring the node online and startup the gateway
 	online, err := textile.StartWallet()
 	if err != nil {
-		astilog.Errorf("start desktop node failed: %s", err)
-		return
+		return err
 	}
 	<-online
 
+	// subscribe to wallet updates
+	go func() {
+		for {
+			select {
+			case update, ok := <-textile.Wallet.Updates():
+				if !ok {
+					return
+				}
+				if update.Type == wallet.ThreadAdded {
+					expandWindowIfNeeded()
+				}
+				sendData("wallet.update", map[string]interface{}{
+					"update": update,
+				})
+			}
+		}
+	}()
+
+	// subscribe to thread updates
+	for _, thrd := range textile.Wallet.Threads() {
+		go func(t *thread.Thread) {
+			subscribe(t)
+		}(thrd)
+	}
+
 	err = textile.StartGateway()
 	if err != nil {
-		astilog.Errorf("start gateway failed: %s", err)
-		return
+		return err
 	}
 
 	// save off the gateway address
-	gateway = fmt.Sprintf("http://localhost%s", textile.GetGatewayAddress())
+	gateway = fmt.Sprintf("http://%s", textile.GetGatewayAddress())
 
-	// run bootstrap
-	astilog.Debugf("Running app built at %s", BuiltAt)
-	if err := bootstrap.Run(bootstrap.Options{
-		Asset: Asset,
-		AstilectronOptions: astilectron.Options{
-			AppName:            AppName,
-			AppIconDarwinPath:  "resources/icon.icns",
-			AppIconDefaultPath: "resources/icon.png",
-			// TODO: Revisit: slightly dangerous because this will ignore _all_ certificate errors
-			ElectronSwitches: []string{"ignore-certificate-errors", "true"},
-		},
+	// sleep for a bit on the landing screen, it feels better
+	time.Sleep(time.Second * 2)
 
-		Debug:          *debug,
-		Homepage:       "index.html",
-		MessageHandler: handleMessages,
-		OnWait:         start,
-		RestoreAssets:  RestoreAssets,
-		WindowOptions: &astilectron.WindowOptions{
-			BackgroundColor: astilectron.PtrStr("#333333"),
-			Center:          astilectron.PtrBool(true),
-			Height:          astilectron.PtrInt(633),
-			Width:           astilectron.PtrInt(1024),
-		},
-	}); err != nil {
-		astilog.Fatal(errors.Wrap(err, "running bootstrap failed"))
+	// send cookie info to front-end
+	sendData("login", map[string]interface{}{
+		"name":    "SessionId",
+		"value":   "not used",
+		"gateway": gateway,
+	})
+
+	// check if we're configured yet
+	threads := textile.Wallet.Threads()
+	if len(threads) > 0 {
+		expandWindowIfNeeded()
+
+		// load threads for UI
+		var threadsJSON []map[string]interface{}
+		for _, thrd := range threads {
+			threadsJSON = append(threadsJSON, map[string]interface{}{
+				"id":   thrd.Id,
+				"name": thrd.Name,
+			})
+		}
+		sendData("ready", map[string]interface{}{
+			"threads": threadsJSON,
+		})
+
+	} else {
+		// get qr code for setup
+		qr, pk, err := getQRCode()
+		if err != nil {
+			astilog.Error(err)
+			return err
+		}
+		sendData("setup", map[string]interface{}{
+			"qr": qr,
+			"pk": pk,
+		})
 	}
+
+	return nil
+}
+
+func sendMessage(name string) {
+	window.SendMessage(map[string]string{"name": name})
+}
+
+func sendData(name string, data map[string]interface{}) {
+	data["name"] = name
+	window.SendMessage(data)
+}
+
+func handleMessage(_ *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
+	switch m.Name {
+	case "thread.load":
+		var threadId string
+		if err := json.Unmarshal(m.Payload, &threadId); err != nil {
+			return nil, err
+		}
+		html, err := getThreadPhotos(threadId)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]interface{}{
+			"html": html,
+		}, nil
+	default:
+		return map[string]interface{}{}, nil
+	}
+}
+
+func subscribe(thrd *thread.Thread) {
+	for {
+		select {
+		case update, ok := <-thrd.Updates():
+			if !ok {
+				return
+			}
+			sendData("thread.update", map[string]interface{}{
+				"update": update,
+			})
+		}
+	}
+}
+
+func getQRCode() (string, string, error) {
+	// get our own public key
+	pk, err := textile.Wallet.GetPubKeyString()
+	if err != nil {
+		return "", "", err
+	}
+
+	// create a qr code
+	url := fmt.Sprintf("https://www.textile.io/clients?key=%s", pk)
+	png, err := qrcode.Encode(url, qrcode.Medium, QRCodeSize)
+	if err != nil {
+		return "", "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(png), pk, nil
+}
+
+func getThreadPhotos(id string) (string, error) {
+	thrd := textile.Wallet.GetThread(id)
+	if thrd == nil {
+		return "", errors.New("thread not found")
+	}
+	var html string
+	for _, block := range thrd.Blocks("", -1, repo.PhotoBlock) {
+		photo := fmt.Sprintf("%s/ipfs/%s/photo?block=%s", gateway, block.Target, block.Id)
+		thumb := fmt.Sprintf("%s/ipfs/%s/thumb?block=%s", gateway, block.Target, block.Id)
+		meta := fmt.Sprintf("%s/ipfs/%s/meta?block=%s", gateway, block.Target, block.Id)
+		img := fmt.Sprintf("<img src=\"%s\" />", thumb)
+		html += fmt.Sprintf(
+			"<div id=\"%s\" class=\"grid-item\" ondragstart=\"imageDragStart(event);\" draggable=\"true\" data-url=\"%s\" data-meta=\"%s\">%s</div>",
+			block.Id, photo, meta, img)
+	}
+	return html, nil
+}
+
+func expandWindowIfNeeded() {
+	if fullsize {
+		return
+	}
+	fullsize = true
+	go window.Resize(InitialWidth, InitialHeight)
+	go window.Center()
+	go window.Focus()
 }
