@@ -197,7 +197,7 @@ li.thread:active, li.thread.active {
 }
 
 .grid {
-    padding: 20px 20px 0;
+    padding: 8px 16px 0;
 }
 
 .grid:after {
@@ -208,8 +208,8 @@ li.thread:active, li.thread.active {
 
 .grid-item {
     float: left;
-    width: 224px;
-    height: 224px;
+    width: 176px;
+    height: 176px;
     font-size: 0;
     opacity: 0;
 }
@@ -229,6 +229,7 @@ li.thread:active, li.thread.active {
     right: 0;
     max-width: 100%;
     max-height: 100%;
+    cursor: pointer;
 }
 
 .grid-item--width2 { width: 448px; }

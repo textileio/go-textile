@@ -24,16 +24,19 @@ let textile = {
           setAddress(msg.qr, msg.pk)
           break
 
-        case 'ready':
+        case 'preready':
           hideSetup()
+          break
+
+        case 'ready':
           renderThreads(msg.threads)
+          showMain()
           break
 
         case 'wallet.update':
           switch (msg.update.type) {
             // thread added
             case 0:
-              hideSetup()
               addThread(msg.update)
               break
           }
@@ -62,10 +65,11 @@ function setAddress(qr, pk) {
 }
 
 function hideSetup() {
-  let setup = $('.setup')
-  setup.addClass('hidden')
-  let main = $('.main')
-  main.removeClass('hidden')
+  $('.setup').addClass('hidden')
+}
+
+function showMain() {
+  $('.main').removeClass('hidden')
 }
 
 function renderThreads(threads) {
@@ -82,7 +86,7 @@ function addThread(update) {
   let ul = $('.threads')
   let title = '<h5># ' + update.name + '</h5>'
   $('<li class="thread" id="' + update.id + '" onclick="loadThread(this)">' + title + '</li>').appendTo(ul)
-  if (ul.length === 1) {
+  if (ul.children().length === 1) {
     loadFirstThread()
   }
 }
@@ -118,8 +122,8 @@ function showGrid(threadId, html) {
     layoutMode: 'cellsByRow',
     itemSelector: '.grid-item',
     cellsByRow: {
-      columnWidth: 248,
-      rowHeight: 248
+      columnWidth: 192,
+      rowHeight: 192
     },
     transitionDuration: '0.2s',
     hiddenStyle: {
@@ -134,7 +138,9 @@ function showGrid(threadId, html) {
 
   // layout after each image loads
   $grid.imagesLoaded().progress(function() {
-    $grid.isotope('layout')
+    if ($grid.data('isotope')) {
+      $grid.isotope('layout')
+    }
   })
 
   // reveal items
