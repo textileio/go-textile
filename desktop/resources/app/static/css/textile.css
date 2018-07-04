@@ -232,5 +232,5 @@ li.thread:active, li.thread.active {
     cursor: pointer;
 }
 
-.grid-item--width2 { width: 448px; }
-.grid-item--height2 { height: 448px; }
+.grid-item--width2 { width: 352px; }
+.grid-item--height2 { height: 352px; }

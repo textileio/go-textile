@@ -100,14 +100,14 @@ function loadFirstThread() {
 function loadThread(el) {
   let $el = $(el)
   let id = $el.attr('id')
+  $('.thread.active').removeClass('active')
+  $el.addClass('active')
   astilectron.sendMessage({name: 'thread.load', payload: id}, function (message) {
     if (message.name === 'error') {
       asticode.notifier.error(message)
       return
     }
     showGrid(id, message.payload.html)
-    $('.thread.active').removeClass('active')
-    $el.addClass('active')
   })
 }
 
