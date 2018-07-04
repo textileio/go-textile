@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// bootstrapApp runs bootstrap. Moved to own file so we don't have to see the error highlighting :)
+// bootstrapApp runs bootstrap. Moved to own file so we don't have to see Asset and RestoreAsset highlighed as errors :)
 func bootstrapApp() {
 	astilog.Debugf("Running app built at %s", builtAt)
 	if err := bootstrap.Run(bootstrap.Options{
@@ -31,6 +31,7 @@ func bootstrapApp() {
 			Width:           astilectron.PtrInt(SetupSize),
 			BackgroundColor: astilectron.PtrStr("#ffffff"),
 			TitleBarStyle:   astilectron.TitleBarStyleHiddenInset,
+			Show:            astilectron.PtrBool(false),
 		},
 	}); err != nil {
 		astilog.Fatal(errors.Wrap(err, "bootstrap failed"))

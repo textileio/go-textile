@@ -28,14 +28,17 @@ var (
 	window   *astilectron.Window
 	textile  *core.TextileNode
 	gateway  string
-	fullsize bool
+	expanded bool
 )
 
 const (
-	SetupSize     = 384
-	QRCodeSize    = 256
-	InitialWidth  = 1024
-	InitialHeight = 633
+	SetupSize       = 384
+	QRCodeSize      = 256
+	InitialWidth    = 1024
+	InitialHeight   = 633
+	SleepOnLoad     = time.Second * 1
+	SleepOnPreReady = time.Millisecond * 200
+	SleepOnExpand   = time.Millisecond * 200
 )
 
 func main() {
@@ -44,8 +47,9 @@ func main() {
 	bootstrapApp()
 }
 
-func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
-	window = iw
+func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
+	window = w
+	window.Show()
 
 	// get homedir
 	home, err := homedir.Dir()
@@ -89,8 +93,12 @@ func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Me
 				if !ok {
 					return
 				}
-				if update.Type == wallet.ThreadAdded {
-					expandWindowIfNeeded()
+				if update.Type == wallet.ThreadAdded && !expanded {
+					sendPreReady()
+					window.Hide()
+					expandWindow()
+					window.Show()
+					window.Focus()
 				}
 				sendData("wallet.update", map[string]interface{}{
 					"update": update,
@@ -115,7 +123,7 @@ func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Me
 	gateway = fmt.Sprintf("http://%s", textile.GetGatewayAddress())
 
 	// sleep for a bit on the landing screen, it feels better
-	time.Sleep(time.Second * 2)
+	time.Sleep(SleepOnLoad)
 
 	// send cookie info to front-end
 	sendData("login", map[string]interface{}{
@@ -127,7 +135,9 @@ func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Me
 	// check if we're configured yet
 	threads := textile.Wallet.Threads()
 	if len(threads) > 0 {
-		expandWindowIfNeeded()
+		sendPreReady()
+		window.Hide()
+		expandWindow()
 
 		// load threads for UI
 		var threadsJSON []map[string]interface{}
@@ -140,6 +150,8 @@ func start(_ *astilectron.Astilectron, iw *astilectron.Window, _ *astilectron.Me
 		sendData("ready", map[string]interface{}{
 			"threads": threadsJSON,
 		})
+		window.Show()
+		window.Focus()
 
 	} else {
 		// get qr code for setup
@@ -234,12 +246,14 @@ func getThreadPhotos(id string) (string, error) {
 	return html, nil
 }
 
-func expandWindowIfNeeded() {
-	if fullsize {
-		return
-	}
-	fullsize = true
+func sendPreReady() {
+	sendMessage("preready")
+	time.Sleep(SleepOnPreReady)
+}
+
+func expandWindow() {
+	expanded = true
 	go window.Resize(InitialWidth, InitialHeight)
 	go window.Center()
-	go window.Focus()
+	time.Sleep(SleepOnExpand)
 }
