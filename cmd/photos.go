@@ -59,7 +59,7 @@ func AddPhoto(c *ishell.Context) {
 	}
 
 	// add to thread
-	thrd := core.Node.Wallet.GetThreadByName(threadName)
+	_, thrd := core.Node.Wallet.GetThreadByName(threadName)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", threadName)))
 		return
@@ -98,7 +98,7 @@ func SharePhoto(c *ishell.Context) {
 	}
 
 	// lookup destination thread
-	toThread := core.Node.Wallet.GetThreadByName(threadName)
+	_, toThread := core.Node.Wallet.GetThreadByName(threadName)
 	if toThread == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread named %s", threadName)))
 		return
@@ -131,7 +131,7 @@ func ListPhotos(c *ishell.Context) {
 	}
 	threadName := c.Args[0]
 
-	thrd := core.Node.Wallet.GetThreadByName(threadName)
+	_, thrd := core.Node.Wallet.GetThreadByName(threadName)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadName)))
 		return

@@ -118,6 +118,18 @@ func TestWallet_GetPubKey(t *testing.T) {
 	// TODO
 }
 
+func TestWallet_GetPubKeyString(t *testing.T) {
+	key, err := wallet.GetPubKeyString()
+	if err != nil {
+		t.Errorf("get pub key failed: %s", err)
+		return
+	}
+	if key == "" {
+		t.Error("pub key empty")
+		return
+	}
+}
+
 func TestWallet_GetAccessToken(t *testing.T) {
 	// TODO
 }
@@ -161,7 +173,23 @@ func TestWallet_AddThreadWithMnemonic(t *testing.T) {
 	// TODO
 }
 
+func TestWallet_RemoveThread(t *testing.T) {
+	// TODO
+}
+
 func TestWallet_PublishThreads(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_Devices(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_AddDevice(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_RemoveDevice(t *testing.T) {
 	// TODO
 }
 
@@ -193,18 +221,6 @@ func TestWallet_GetDataAtPath(t *testing.T) {
 	// TODO
 }
 
-func TestWallet_GetPubKeyString(t *testing.T) {
-	key, err := wallet.GetPubKeyString()
-	if err != nil {
-		t.Errorf("get pub key failed: %s", err)
-		return
-	}
-	if key == "" {
-		t.Error("pub key empty")
-		return
-	}
-}
-
 func TestWallet_ConnectPeer(t *testing.T) {
 	// TODO
 }
@@ -213,7 +229,7 @@ func TestWallet_PingPeer(t *testing.T) {
 	// TODO
 }
 
-func TestWallet_IPFSPeers(t *testing.T) {
+func TestWallet_Peers(t *testing.T) {
 	// TODO
 }
 
@@ -222,10 +238,6 @@ func TestWallet_Publish(t *testing.T) {
 }
 
 func TestWallet_Subscribe(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_WaitForInvite(t *testing.T) {
 	// TODO
 }
 

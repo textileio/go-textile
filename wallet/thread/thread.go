@@ -414,7 +414,7 @@ func (t *Thread) Verify(data []byte, sig []byte) (bool, error) {
 
 // PostHead publishes HEAD to peers
 func (t *Thread) PostHead() error {
-	peers := t.GetPeers("", -1)
+	peers := t.Peers("", -1)
 	if len(peers) == 0 {
 		return nil
 	}
@@ -443,8 +443,8 @@ func (t *Thread) PostHead() error {
 	return nil
 }
 
-// GetPeers returns locally known peers in this thread
-func (t *Thread) GetPeers(offset string, limit int) []repo.Peer {
+// Peers returns locally known peers in this thread
+func (t *Thread) Peers(offset string, limit int) []repo.Peer {
 	query := fmt.Sprintf("thread='%s'", t.Id)
 	return t.peers().List(offset, limit, query)
 }
