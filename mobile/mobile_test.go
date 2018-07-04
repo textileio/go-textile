@@ -8,6 +8,7 @@ import (
 	"github.com/segmentio/ksuid"
 	. "github.com/textileio/textile-go/mobile"
 	util "github.com/textileio/textile-go/util/testing"
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 type TestMessenger struct {
@@ -51,7 +52,7 @@ func TestMobile_StartAgain(t *testing.T) {
 }
 
 func TestMobile_SignUpWithEmail(t *testing.T) {
-	_, ref, err := util.CreateReferral(util.RefKey, 1, 1, "TestMobile_SignUpWithEmail")
+	_, ref, err := util.CreateReferral(util.RefKey, 1, 1, "test")
 	if err != nil {
 		t.Errorf("create referral for signup failed: %s", err)
 		return
@@ -63,21 +64,18 @@ func TestMobile_SignUpWithEmail(t *testing.T) {
 	err = mobile.SignUpWithEmail(cusername, cpassword, cemail, ref.RefCodes[0])
 	if err != nil {
 		t.Errorf("signup failed: %s", err)
-		return
 	}
 }
 
 func TestMobile_SignIn(t *testing.T) {
 	if err := mobile.SignIn(cusername, cpassword); err != nil {
 		t.Errorf("signin failed: %s", err)
-		return
 	}
 }
 
 func TestMobile_IsSignedIn(t *testing.T) {
 	if !mobile.IsSignedIn() {
 		t.Errorf("is signed in check failed should be true")
-		return
 	}
 }
 
@@ -107,7 +105,6 @@ func TestMobile_GetAccessToken(t *testing.T) {
 	_, err := mobile.GetAccessToken()
 	if err != nil {
 		t.Errorf("get access token failed: %s", err)
-		return
 	}
 }
 
@@ -123,6 +120,94 @@ func TestMobile_AddThreadAgain(t *testing.T) {
 	}
 }
 
+func TestMobile_Threads(t *testing.T) {
+	if err := mobile.AddThread("another", ""); err != nil {
+		t.Errorf("add another thread failed: %s", err)
+		return
+	}
+	res, err := mobile.Threads()
+	if err != nil {
+		t.Errorf("get threads failed: %s", err)
+		return
+	}
+	threads := Threads{}
+	json.Unmarshal([]byte(res), &threads)
+	if len(threads.Items) != 2 {
+		t.Error("get threads bad result")
+	}
+}
+
+func TestMobile_RemoveThread(t *testing.T) {
+	if err := mobile.RemoveThread("another"); err != nil {
+		t.Errorf("remove thread failed: %s", err)
+	}
+}
+
+func TestMobile_AddDevice(t *testing.T) {
+	<-mobile.Online
+	_, pk, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	pkb, err := pk.Bytes()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if err := mobile.AddDevice("hello", libp2pc.ConfigEncodeKey(pkb)); err != nil {
+		t.Errorf("add device failed: %s", err)
+	}
+}
+
+func TestMobile_AddDeviceAgain(t *testing.T) {
+	_, pk, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	pkb, err := pk.Bytes()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if err := mobile.AddDevice("hello", libp2pc.ConfigEncodeKey(pkb)); err == nil {
+		t.Error("add same device again should fail")
+	}
+}
+
+func TestMobile_Devices(t *testing.T) {
+	_, pk, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	pkb, err := pk.Bytes()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if err := mobile.AddDevice("another", libp2pc.ConfigEncodeKey(pkb)); err != nil {
+		t.Errorf("add another device failed: %s", err)
+	}
+	res, err := mobile.Devices()
+	if err != nil {
+		t.Errorf("get devices failed: %s", err)
+		return
+	}
+	devices := Devices{}
+	json.Unmarshal([]byte(res), &devices)
+	if len(devices.Items) != 2 {
+		t.Error("get devices bad result")
+	}
+}
+
+func TestMobile_RemoveDevice(t *testing.T) {
+	if err := mobile.RemoveDevice("another"); err != nil {
+		t.Errorf("remove device failed: %s", err)
+	}
+}
+
 func TestMobile_AddPhoto(t *testing.T) {
 	mr, err := mobile.AddPhoto("testdata/image.jpg", "default", "howdy")
 	if err != nil {
@@ -131,6 +216,7 @@ func TestMobile_AddPhoto(t *testing.T) {
 	}
 	if len(mr.Boundary) == 0 {
 		t.Errorf("add photo got bad hash")
+		return
 	}
 	addedPhotoId = mr.Boundary
 	err = os.Remove("testdata/.ipfs/tmp/" + mr.Boundary)
@@ -156,8 +242,8 @@ func TestMobile_SharePhoto(t *testing.T) {
 	}
 }
 
-func TestMobile_GetPhotoBlocks(t *testing.T) {
-	res, err := mobile.GetPhotoBlocks("", -1, "default")
+func TestMobile_PhotoBlocks(t *testing.T) {
+	res, err := mobile.PhotoBlocks("", -1, "default")
 	if err != nil {
 		t.Errorf("get photo blocks failed: %s", err)
 		return
@@ -169,11 +255,10 @@ func TestMobile_GetPhotoBlocks(t *testing.T) {
 	}
 }
 
-func TestMobile_GetPhotosBadThread(t *testing.T) {
-	_, err := mobile.GetPhotoBlocks("", -1, "empty")
+func TestMobile_PhotosBadThread(t *testing.T) {
+	_, err := mobile.PhotoBlocks("", -1, "empty")
 	if err == nil {
 		t.Errorf("get photo blocks from bad thread should fail: %s", err)
-		return
 	}
 }
 
@@ -202,14 +287,12 @@ func TestMobile_GetFileData(t *testing.T) {
 func TestMobile_SignOut(t *testing.T) {
 	if err := mobile.SignOut(); err != nil {
 		t.Errorf("signout failed: %s", err)
-		return
 	}
 }
 
 func TestMobile_IsSignedInAgain(t *testing.T) {
 	if mobile.IsSignedIn() {
 		t.Errorf("is signed in check failed should be false")
-		return
 	}
 }
 
@@ -229,7 +312,6 @@ func TestMobile_StopAgain(t *testing.T) {
 func TestMobile_SignInAgain(t *testing.T) {
 	if err := mobile.SignIn(cusername, cpassword); err != nil {
 		t.Errorf("signin failed: %s", err)
-		return
 	}
 }
 

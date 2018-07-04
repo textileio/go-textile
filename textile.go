@@ -206,6 +206,11 @@ func main() {
 			Func: cmd.AddThread,
 		})
 		threadCmd.AddCmd(&ishell.Cmd{
+			Name: "rm",
+			Help: "remove a thread by name",
+			Func: cmd.RemoveThread,
+		})
+		threadCmd.AddCmd(&ishell.Cmd{
 			Name: "ls",
 			Help: "list threads",
 			Func: cmd.ListThreads,

@@ -58,7 +58,7 @@ func PublishThread(c *ishell.Context) {
 	}
 	name := c.Args[0]
 
-	thrd := core.Node.Wallet.GetThreadByName(name)
+	_, thrd := core.Node.Wallet.GetThreadByName(name)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
 		return
@@ -74,7 +74,7 @@ func PublishThread(c *ishell.Context) {
 		c.Println(blue("nothing to publish"))
 		return
 	}
-	peers := thrd.GetPeers("", -1)
+	peers := thrd.Peers("", -1)
 	if len(peers) == 0 {
 		c.Println(blue("no peers to publish to"))
 		return
@@ -96,13 +96,13 @@ func ListThreadPeers(c *ishell.Context) {
 	}
 	name := c.Args[0]
 
-	thrd := core.Node.Wallet.GetThreadByName(name)
+	_, thrd := core.Node.Wallet.GetThreadByName(name)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
 		return
 	}
 
-	peers := thrd.GetPeers("", -1)
+	peers := thrd.Peers("", -1)
 	if len(peers) == 0 {
 		c.Println(fmt.Sprintf("no peers found in: %s", name))
 	} else {
@@ -127,7 +127,7 @@ func AddThreadInvite(c *ishell.Context) {
 	}
 	name := c.Args[1]
 
-	thrd := core.Node.Wallet.GetThreadByName(name)
+	_, thrd := core.Node.Wallet.GetThreadByName(name)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
 		return
@@ -151,6 +151,23 @@ func AddThreadInvite(c *ishell.Context) {
 
 	green := color.New(color.FgHiGreen).SprintFunc()
 	c.Println(green("invite sent!"))
+}
+
+func RemoveThread(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing thread name"))
+		return
+	}
+	name := c.Args[0]
+
+	err := core.Node.Wallet.RemoveThread(name)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	red := color.New(color.FgHiRed).SprintFunc()
+	c.Println(red(fmt.Sprintf("removed thread '%s'", name)))
 }
 
 func Subscribe(shell ishell.Actions, thrd *thread.Thread) {

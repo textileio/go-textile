@@ -465,13 +465,13 @@ func (w *Wallet) GetThread(id string) *thread.Thread {
 	return nil
 }
 
-func (w *Wallet) GetThreadByName(name string) *thread.Thread {
-	for _, thrd := range w.threads {
+func (w *Wallet) GetThreadByName(name string) (*int, *thread.Thread) {
+	for i, thrd := range w.threads {
 		if thrd.Name == name {
-			return thrd
+			return &i, thrd
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 // AddThread adds a thread with a given name and secret key
@@ -558,6 +558,33 @@ func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string) (*thread.T
 		return nil, "", err
 	}
 	return thrd, mnem, nil
+}
+
+// RemoveThread removes a thread by name
+func (w *Wallet) RemoveThread(name string) error {
+	i, thrd := w.GetThreadByName(name) // gets the loaded thread
+	if thrd == nil {
+		return errors.New("thread not found")
+	}
+
+	// clean up
+	thrd.Close()
+	copy(w.threads[*i:], w.threads[*i+1:])
+	w.threads[len(w.threads)-1] = nil
+	w.threads = w.threads[:len(w.threads)-1]
+
+	// remove model from db
+	if err := w.datastore.Threads().DeleteByName(name); err != nil {
+		return err
+	}
+	log.Infof("removed thread '%s'", name)
+
+	// TODO: create a "left" block?
+
+	// notify listeners
+	w.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadRemoved})
+
+	return nil
 }
 
 // PublishThreads publishes HEAD for each thread
@@ -881,7 +908,7 @@ func (w *Wallet) PingPeer(addrs string, num int, out chan string) error {
 	return nil
 }
 
-func (w *Wallet) IFPSPeers() ([]libp2pn.Conn, error) {
+func (w *Wallet) Peers() ([]libp2pn.Conn, error) {
 	if !w.Online() {
 		return nil, ErrOffline
 	}
@@ -1004,7 +1031,8 @@ func (w *Wallet) getThreadByBlock(block *trepo.Block) (*thread.Thread, error) {
 }
 
 func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
-	if w.GetThreadByName(model.Name) != nil {
+	_, loaded := w.GetThreadByName(model.Name)
+	if loaded != nil {
 		return nil, ErrThreadLoaded
 	}
 	id := model.Id // save value locally

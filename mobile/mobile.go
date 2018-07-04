@@ -51,11 +51,34 @@ type NodeConfig struct {
 type Mobile struct {
 	RepoPath  string
 	Mnemonic  string
+	Online    <-chan struct{} // not readable from bridges
 	messenger Messenger
 }
 
-// Blocks is a wrapper around a list of Blocks, which makes decoding json from a little cleaner
-// on the mobile side
+// ThreadItem is a simple meta data wrapper around a Thread
+type ThreadItem struct {
+	Id    string `json:"id"`
+	Name  string `json:"name"`
+	Peers int    `json:"peers"`
+}
+
+// Threads is a wrapper around a list of Threads
+type Threads struct {
+	Items []ThreadItem `json:"items"`
+}
+
+// DeviceItem is a simple meta data wrapper around a Device
+type DeviceItem struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// Devices is a wrapper around a list of Devices
+type Devices struct {
+	Items []DeviceItem `json:"items"`
+}
+
+// Blocks is a wrapper around a list of Blocks
 type Blocks struct {
 	Items []repo.Block `json:"items"`
 }
@@ -96,6 +119,7 @@ func (m *Mobile) Start() error {
 		}
 		return err
 	}
+	m.Online = online
 
 	go func() {
 		<-online
@@ -175,6 +199,24 @@ func (m *Mobile) GetAccessToken() (string, error) {
 	return tcore.Node.Wallet.GetAccessToken()
 }
 
+// Threads lists all threads
+func (m *Mobile) Threads() (string, error) {
+	var threads Threads
+	for _, thrd := range tcore.Node.Wallet.Threads() {
+		peers := thrd.Peers("", -1)
+		item := ThreadItem{Id: thrd.Id, Name: thrd.Name, Peers: len(peers)}
+		threads.Items = append(threads.Items, item)
+	}
+
+	jsonb, err := json.Marshal(threads)
+	if err != nil {
+		log.Errorf("error marshaling json: %s", err)
+		return "", err
+	}
+
+	return string(jsonb), nil
+}
+
 // AddThread adds a new thread with the given name
 func (m *Mobile) AddThread(name string, mnemonic string) error {
 	var mnem *string
@@ -191,6 +233,28 @@ func (m *Mobile) AddThread(name string, mnemonic string) error {
 	return err
 }
 
+// RemoveThread call core RemoveDevice
+func (m *Mobile) RemoveThread(name string) error {
+	return tcore.Node.Wallet.RemoveThread(name)
+}
+
+// Devices lists all devices
+func (m *Mobile) Devices() (string, error) {
+	var devices Devices
+	for _, dev := range tcore.Node.Wallet.Devices() {
+		item := DeviceItem{Id: dev.Id, Name: dev.Name}
+		devices.Items = append(devices.Items, item)
+	}
+
+	jsonb, err := json.Marshal(devices)
+	if err != nil {
+		log.Errorf("error marshaling json: %s", err)
+		return "", err
+	}
+
+	return string(jsonb), nil
+}
+
 // AddDevice calls core AddDevice
 func (m *Mobile) AddDevice(name string, pubKey string) error {
 	pkb, err := libp2pc.ConfigDecodeKey(pubKey)
@@ -204,9 +268,14 @@ func (m *Mobile) AddDevice(name string, pubKey string) error {
 	return tcore.Node.Wallet.AddDevice(name, pk)
 }
 
+// RemoveDevice call core RemoveDevice
+func (m *Mobile) RemoveDevice(name string) error {
+	return tcore.Node.Wallet.RemoveDevice(name)
+}
+
 // AddPhoto adds a photo by path and shares it to the default thread
 func (m *Mobile) AddPhoto(path string, threadName string, caption string) (*net.MultipartRequest, error) {
-	thrd := tcore.Node.Wallet.GetThreadByName(threadName)
+	_, thrd := tcore.Node.Wallet.GetThreadByName(threadName)
 	if thrd == nil {
 		return nil, errors.New(fmt.Sprintf("could not find thread: %s", threadName))
 	}
@@ -241,7 +310,7 @@ func (m *Mobile) SharePhoto(id string, threadName string, caption string) (strin
 	if fromThread == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadPubKey))
 	}
-	toThread := tcore.Node.Wallet.GetThreadByName(threadName)
+	_, toThread := tcore.Node.Wallet.GetThreadByName(threadName)
 	if toThread == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread named %s", threadName))
 	}
@@ -267,9 +336,9 @@ func (m *Mobile) SharePhoto(id string, threadName string, caption string) (strin
 	return shared.Id, nil
 }
 
-// GetPhotoBlocks returns thread photo blocks with json encoding
-func (m *Mobile) GetPhotoBlocks(offsetId string, limit int, threadName string) (string, error) {
-	thrd := tcore.Node.Wallet.GetThreadByName(threadName)
+// PhotoBlocks returns thread photo blocks with json encoding
+func (m *Mobile) PhotoBlocks(offsetId string, limit int, threadName string) (string, error) {
+	_, thrd := tcore.Node.Wallet.GetThreadByName(threadName)
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("thread not found: %s", threadName))
 	}
