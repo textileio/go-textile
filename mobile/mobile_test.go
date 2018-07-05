@@ -102,26 +102,29 @@ func TestMobile_GetUsername(t *testing.T) {
 }
 
 func TestMobile_GetAccessToken(t *testing.T) {
-	_, err := mobile.GetAccessToken()
-	if err != nil {
+	if _, err := mobile.GetAccessToken(); err != nil {
 		t.Errorf("get access token failed: %s", err)
 	}
 }
 
 func TestMobile_AddThread(t *testing.T) {
-	if err := mobile.AddThread("default", ""); err != nil {
+	id, err := mobile.AddThread("default", "")
+	if err != nil {
 		t.Errorf("add thread failed: %s", err)
+	}
+	if id == "" {
+		t.Error("add thread bad id")
 	}
 }
 
 func TestMobile_AddThreadAgain(t *testing.T) {
-	if err := mobile.AddThread("default", ""); err != nil {
+	if _, err := mobile.AddThread("default", ""); err != nil {
 		t.Errorf("add thread again failed: %s", err)
 	}
 }
 
 func TestMobile_Threads(t *testing.T) {
-	if err := mobile.AddThread("another", ""); err != nil {
+	if _, err := mobile.AddThread("another", ""); err != nil {
 		t.Errorf("add another thread failed: %s", err)
 		return
 	}
@@ -226,12 +229,12 @@ func TestMobile_AddPhoto(t *testing.T) {
 }
 
 func TestMobile_SharePhoto(t *testing.T) {
-	err := mobile.AddThread("test", "")
-	if err != nil {
+	if _, err := mobile.AddThread("test", ""); err != nil {
 		t.Errorf("add test thread failed: %s", err)
 		return
 	}
 	caption := "rasputin's eyes"
+	var err error
 	sharedBlockId, err = mobile.SharePhoto(addedPhotoId, "test", caption)
 	if err != nil {
 		t.Errorf("share photo failed: %s", err)
