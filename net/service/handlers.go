@@ -80,6 +80,7 @@ func (s *TextileService) handleThreadBlock(pid peer.ID, pmes *pb.Message, option
 			return nil, errors.New("thread exists")
 		}
 		if block.Target != s.self.Pretty() {
+			// TODO: should not be error right?
 			return nil, errors.New("invalid invite target")
 		}
 		skb, err := crypto.Decrypt(s.node.PrivateKey, block.TargetKey)

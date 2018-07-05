@@ -38,6 +38,7 @@ let textile = {
             // thread added
             case 0:
               addThread(msg.update)
+              showMain()
               break
           }
           break
@@ -65,18 +66,23 @@ function setAddress(qr, pk) {
 }
 
 function hideSetup() {
-  $('.setup').addClass('hidden')
+  let setup = $('.setup')
+  if (!setup.hasClass('hidden')) {
+    setup.addClass('hidden')
+  }
 }
 
 function showMain() {
-  $('.main').removeClass('hidden')
+  let main = $('.main')
+  if (main.hasClass('hidden')) {
+    main.removeClass('hidden')
+  }
 }
 
 function renderThreads(threads) {
   threads.forEach(function (thread) {
     addThread(thread)
   })
-
   if (threads.length > 0) {
     loadFirstThread()
   }
@@ -149,10 +155,7 @@ function showGrid(threadId, html) {
 }
 
 function clearGrid() {
-  let grid = $('.grid')
-  if (grid) {
-    grid.remove()
-  }
+  $('.grid').remove()
 }
 
 function addPhoto(update) {

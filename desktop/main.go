@@ -93,16 +93,19 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 				if !ok {
 					return
 				}
+				payload := map[string]interface{}{
+					"update": update,
+				}
 				if update.Type == wallet.ThreadAdded && !expanded {
 					sendPreReady()
 					window.Hide()
 					expandWindow()
+					sendData("wallet.update", payload)
 					window.Show()
 					window.Focus()
+				} else {
+					sendData("wallet.update", payload)
 				}
-				sendData("wallet.update", map[string]interface{}{
-					"update": update,
-				})
 			}
 		}
 	}()
@@ -135,10 +138,6 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 	// check if we're configured yet
 	threads := textile.Wallet.Threads()
 	if len(threads) > 0 {
-		sendPreReady()
-		window.Hide()
-		expandWindow()
-
 		// load threads for UI
 		var threadsJSON []map[string]interface{}
 		for _, thrd := range threads {
@@ -147,6 +146,11 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 				"name": thrd.Name,
 			})
 		}
+
+		// reveal
+		sendPreReady()
+		window.Hide()
+		expandWindow()
 		sendData("ready", map[string]interface{}{
 			"threads": threadsJSON,
 		})
