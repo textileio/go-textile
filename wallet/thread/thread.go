@@ -1,25 +1,23 @@
 package thread
 
 import (
-	"context"
-	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/op/go-logging"
+	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/net"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet/model"
 	"github.com/textileio/textile-go/wallet/util"
-	"gx/ipfs/QmSFihvoND3eDaAYRCeLgLPt62yCPgMZs1NSZmKFEtJQQw/go-libp2p-floodsub"
+	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/core"
 	uio "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/unixfs/io"
-	"io"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -28,25 +26,25 @@ import (
 
 var log = logging.MustGetLogger("thread")
 
-// ErrInvalidBlock is used to reject invalid block updates
-var ErrInvalidBlock = errors.New("block is not a valid token")
-
 // Config is used to construct a Thread
 type Config struct {
-	WalletId   func() (string, error)
 	RepoPath   string
 	Ipfs       func() *core.IpfsNode
 	Blocks     func() repo.BlockStore
+	Peers      func() repo.PeerStore
 	GetHead    func() (string, error)
 	UpdateHead func(head string) error
 	Publish    func(payload []byte) error
+	Send       func(message *pb.Message, peerId string) error
 }
 
 // ThreadUpdate is used to notify listeners about updates in a thread
 type Update struct {
-	Id       string `json:"id"`
-	Thread   string `json:"thread"`
-	ThreadID string `json:"thread_id"`
+	Id         string         `json:"id"`
+	Type       repo.BlockType `json:"type"`
+	TargetId   string         `json:"target_id"`
+	ThreadId   string         `json:"thread_id"`
+	ThreadName string         `json:"thread_name"`
 }
 
 // Thread is the primary mechanism representing a collecion of data / files / photos
@@ -54,17 +52,16 @@ type Thread struct {
 	Id         string
 	Name       string
 	PrivKey    libp2pc.PrivKey
-	LeftCh     chan struct{}
-	leaveCh    chan struct{}
+	updates    chan Update
 	repoPath   string
-	walletId   func() (string, error)
 	ipfs       func() *core.IpfsNode
 	blocks     func() repo.BlockStore
+	peers      func() repo.PeerStore
 	GetHead    func() (string, error)
 	updateHead func(head string) error
 	publish    func(payload []byte) error
+	send       func(message *pb.Message, peerId string) error
 	mux        sync.Mutex
-	listening  bool
 }
 
 // NewThread create a new Thread from a repo model and config
@@ -77,14 +74,121 @@ func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 		Id:         model.Id,
 		Name:       model.Name,
 		PrivKey:    sk,
-		walletId:   config.WalletId,
+		updates:    make(chan Update),
 		repoPath:   config.RepoPath,
 		ipfs:       config.Ipfs,
 		blocks:     config.Blocks,
+		peers:      config.Peers,
 		GetHead:    config.GetHead,
 		updateHead: config.UpdateHead,
 		publish:    config.Publish,
+		send:       config.Send,
 	}, nil
+}
+
+func (t *Thread) Close() {
+	close(t.updates)
+}
+
+// AddInvite creates an invite block for the given recipient
+func (t *Thread) AddInvite(target libp2pc.PubKey) (*model.AddResult, error) {
+	t.mux.Lock()
+	defer t.mux.Unlock()
+
+	// get current HEAD
+	head, err := t.GetHead()
+	if err != nil {
+		return nil, err
+	}
+
+	// get the peer id from the pub key
+	targetId, err := peer.IDFromPublicKey(target)
+	if err != nil {
+		return nil, err
+	}
+	targetpk, err := target.Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	// encypt thread secret with the recipient's public key
+	threadsk, err := t.PrivKey.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	threadskcypher, err := crypto.Encrypt(target, threadsk)
+	if err != nil {
+		return nil, err
+	}
+
+	// type and date
+	typeb := repo.InviteBlock.Bytes() // silly?
+	dateb := util.GetNowBytes()
+
+	// create a virtual directory for the new block
+	dirb := uio.NewDirectory(t.ipfs().DAG)
+	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(targetId.Pretty()), "target")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(head), "parents")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, threadskcypher, "key")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(t.Id), "pk")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, typeb, "type")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, dateb, "date")
+	if err != nil {
+		return nil, err
+	}
+
+	// pin it
+	dir, err := dirb.GetNode()
+	if err != nil {
+		return nil, err
+	}
+	if err := util.PinDirectory(t.ipfs(), dir, []string{}); err != nil {
+		return nil, err
+	}
+	bid := dir.Cid().Hash().B58String()
+
+	// index it
+	block, err := t.indexBlock(bid)
+	if err != nil {
+		return nil, err
+	}
+
+	// update head
+	if err := t.updateHead(bid); err != nil {
+		return nil, err
+	}
+
+	// add new peer
+	newPeer := &repo.Peer{
+		Row:      ksuid.New().String(),
+		Id:       targetId.Pretty(),
+		ThreadId: t.Id,
+		PubKey:   targetpk,
+	}
+	if err := t.peers().Add(newPeer); err != nil {
+		return nil, err
+	}
+
+	// post it
+	go t.PostHead()
+
+	// all done
+	return &model.AddResult{Id: block.Id}, nil
 }
 
 // AddPhoto adds a block for a photo to this thread
@@ -103,11 +207,8 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*model.AddResu
 	if err != nil {
 		return nil, err
 	}
-	threadkeyb, err := t.PrivKey.GetPublic().Bytes()
-	if err != nil {
-		return nil, err
-	}
-	threadkey := libp2pc.ConfigEncodeKey(threadkeyb)
+
+	// type and date
 	typeb := repo.PhotoBlock.Bytes() // silly?
 	dateb := util.GetNowBytes()
 
@@ -131,7 +232,7 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*model.AddResu
 	if err != nil {
 		return nil, err
 	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(threadkey), "pk")
+	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(t.Id), "pk")
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +287,7 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*model.AddResu
 	if err := request.AddFile(keycypher, "key"); err != nil {
 		return nil, err
 	}
-	if err := request.AddFile([]byte(threadkey), "pk"); err != nil {
+	if err := request.AddFile([]byte(t.Id), "pk"); err != nil {
 		return nil, err
 	}
 	if err := request.AddFile(typeb, "type"); err != nil {
@@ -227,7 +328,7 @@ func (t *Thread) GetBlockDataBase64(path string, block *repo.Block) (string, err
 	if err != nil {
 		return "error", err
 	}
-	return base64.StdEncoding.EncodeToString(file), nil
+	return libp2pc.ConfigEncodeKey(file), nil
 }
 
 // GetFileKey returns the decrypted AES key for a block
@@ -266,7 +367,7 @@ func (t *Thread) GetFileDataBase64(path string, block *repo.Block) (string, erro
 	if err != nil {
 		return "error", err
 	}
-	return base64.StdEncoding.EncodeToString(file), nil
+	return libp2pc.ConfigEncodeKey(file), nil
 }
 
 // GetMetaData returns photo metadata under an id
@@ -285,93 +386,10 @@ func (t *Thread) GetPhotoMetaData(id string, block *repo.Block) (*model.PhotoMet
 	return data, nil
 }
 
-// Subscribe joins the thread
-func (t *Thread) Subscribe(datac chan Update) {
-	if t.listening {
-		return
-	}
-	t.listening = true
-	sub, err := t.ipfs().Floodsub.Subscribe(t.Id)
-	if err != nil {
-		log.Errorf("error creating subscription: %s", err)
-		return
-	}
-	log.Infof("joined thread: %s\n", t.Id)
-
-	t.leaveCh = make(chan struct{})
-	t.LeftCh = make(chan struct{})
-
-	ctx, cancel := context.WithCancel(context.Background())
-	leave := func() {
-		cancel()
-		close(t.LeftCh)
-		t.listening = false
-		log.Infof("left thread: %s\n", sub.Topic())
-	}
-
-	defer func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Errorf("thread update channel already closed")
-			}
-		}()
-		close(datac)
-	}()
-	go func() {
-		for {
-			// unload new message
-			msg, err := sub.Next(ctx)
-			if err == io.EOF || err == context.Canceled {
-				log.Debugf("thread subscription ended: %s", err)
-				return
-			} else if err != nil {
-				log.Debugf(err.Error())
-				return
-			}
-
-			// handle the update
-			go func(msg *floodsub.Message) {
-				if err = t.preHandleBlock(msg, datac); err != nil {
-					log.Errorf("error handling room update: %s", err)
-				}
-			}(msg)
-		}
-	}()
-
-	// block so we can shutdown with the leave room signal
-	for {
-		select {
-		case <-t.leaveCh:
-			leave()
-			return
-		case <-t.ipfs().Context().Done():
-			leave()
-			return
-		}
-	}
-}
-
-// Unsubscribe leaves the thread
-func (t *Thread) Unsubscribe() {
-	if t.leaveCh == nil {
-		return
-	}
-	close(t.leaveCh)
-}
-
-// Listening indicates whether or not we are listening in the thread
-func (t *Thread) Listening() bool {
-	return t.listening
-}
-
-// Blocks paginates photos from the datastore
-// TODO: add filter on type
-func (t *Thread) Blocks(offsetId string, limit int) []repo.Block {
-	log.Debugf("listing blocks: offsetId: %s, limit: %d, thread: %s", offsetId, limit, t.Name)
-	query := fmt.Sprintf("pk='%s' and type=%d", t.Id, repo.PhotoBlock)
-	list := t.blocks().List(offsetId, limit, query)
-	log.Debugf("found %d photos in thread %s", len(list), t.Name)
-	return list
+// Blocks paginates blocks from the datastore
+func (t *Thread) Blocks(offsetId string, limit int, bType repo.BlockType) []repo.Block {
+	query := fmt.Sprintf("pk='%s' and type=%d", t.Id, bType)
+	return t.blocks().List(offsetId, limit, query)
 }
 
 // Encrypt data with thread public key
@@ -384,97 +402,60 @@ func (t *Thread) Decrypt(data []byte) ([]byte, error) {
 	return crypto.Decrypt(t.PrivKey, data)
 }
 
-// Publish publishes HEAD as a JWT
+// Sign data with thread secret key
+func (t *Thread) Sign(data []byte) ([]byte, error) {
+	return t.PrivKey.Sign(data)
+}
+
+// Verify data with thread public key
+func (t *Thread) Verify(data []byte, sig []byte) (bool, error) {
+	return t.PrivKey.GetPublic().Verify(data, sig)
+}
+
+// PostHead publishes HEAD to peers
 func (t *Thread) PostHead() error {
-	log.Debugf("posting thread %s...", t.Name)
+	peers := t.Peers("", -1)
+	if len(peers) == 0 {
+		return nil
+	}
 	head, err := t.GetHead()
 	if err != nil {
 		log.Errorf("failed to get HEAD for %s: %s", t.Id, err)
 		return err
 	}
-	token, err := t.signBlock(t.blocks().Get(head))
-	if err != nil {
-		log.Errorf("sign block failed for %s: %s", t.Id, err)
-		return err
-	}
-	if err := t.publish([]byte(token)); err != nil {
-		log.Errorf("error posting %s: %s", token, err)
-		return err
-	}
-	log.Debugf("posted %s to %s", token, t.Id)
-	return nil
-}
-
-// Peers returns known peers active in this thread
-func (t *Thread) Peers() []string {
-	peers := t.ipfs().Floodsub.ListPeers(t.Id)
-	var list []string
-	for _, peer := range peers {
-		list = append(list, peer.Pretty())
-	}
-	sort.Strings(list)
-	return list
-}
-
-// preHandleBlock tries to recursively process an update sent to a thread
-func (t *Thread) preHandleBlock(msg *floodsub.Message, datac chan Update) error {
-	// unpack from
-	from := msg.GetFrom().Pretty()
-	if from == t.ipfs().Identity.Pretty() {
+	block := t.blocks().Get(head)
+	if block == nil {
 		return nil
 	}
-
-	// unpack message data
-	data := string(msg.GetData())
-
-	// determine if this is from a relay node
-	tmp := strings.Split(data, ":")
-	var tokenStr string
-	if len(tmp) > 1 && tmp[0] == "relay" {
-		tokenStr = tmp[1]
-		from = fmt.Sprintf("relay:%s", from)
-	} else {
-		tokenStr = tmp[0]
-	}
-	var id string
-
-	// parse token
-	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*crypto.SigningMethodEd25519); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return t.PrivKey.GetPublic(), nil
-	})
+	message, err := t.getMessageForBlock(block)
 	if err != nil {
 		return err
 	}
-	// validate
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		if id, ok = claims["jti"].(string); !ok || id == "" {
-			return ErrInvalidBlock
+
+	log.Debugf("posting %s in thread %s...", block.Id, t.Name)
+	for _, p := range peers {
+		if err := t.send(message, p.Id); err != nil {
+			log.Errorf("error sending block %s to peer %s: %s", block.Id, p.Id, err)
+			return err
 		}
-		// TODO validate pk, iss, iat
-	} else {
-		return ErrInvalidBlock
 	}
-
-	log.Debugf("got block %s from %s in thread %s", id, from, t.Id)
-
-	// exit if block is just a ping
-	if id == "ping" {
-		return nil
-	}
-
-	// recurse back in time starting at this hash
-	if err := t.handleBlock(id, datac); err != nil {
-		return err
-	}
-
+	log.Debugf("posted to %d peers", len(peers))
 	return nil
+}
+
+// Peers returns locally known peers in this thread
+func (t *Thread) Peers(offset string, limit int) []repo.Peer {
+	query := fmt.Sprintf("thread='%s'", t.Id)
+	return t.peers().List(offset, limit, query)
+}
+
+// Updates returns a read-only channel of updates
+func (t *Thread) Updates() <-chan Update {
+	return t.updates
 }
 
 // handleBlock tries to process a block
-func (t *Thread) handleBlock(id string, datac chan Update) error {
+func (t *Thread) HandleBlock(id string) error {
 	// first update?
 	if id == "" {
 		log.Debugf("found genesis block, aborting")
@@ -505,9 +486,15 @@ func (t *Thread) handleBlock(id string, datac chan Update) error {
 		return err
 	}
 
-	// don't block on the send since nobody might be listening
+	// don't block on the send since nobody could be listening
 	select {
-	case datac <- Update{Id: id, Thread: t.Name, ThreadID: t.Id}:
+	case t.updates <- Update{
+		Id:         id,
+		Type:       block.Type,
+		TargetId:   block.Target,
+		ThreadId:   t.Id,
+		ThreadName: t.Name,
+	}:
 	default:
 	}
 	defer func() {
@@ -520,7 +507,7 @@ func (t *Thread) handleBlock(id string, datac chan Update) error {
 
 	// check last block
 	// TODO: handle multi parents from 3-way merge
-	return t.handleBlock(block.Parents[0], datac)
+	return t.HandleBlock(block.Parents[0])
 }
 
 // indexBlock attempts to download the block and index it in the local db
@@ -572,30 +559,52 @@ func (t *Thread) indexBlock(id string) (*repo.Block, error) {
 	return block, nil
 }
 
-// signBlock generated a valid JWT based on a thread block
-func (t *Thread) signBlock(block *repo.Block) (string, error) {
-	var blockId string
-	var date time.Time
-	if block != nil {
-		blockId = block.Id
-		date = block.Date
-	} else {
-		blockId = "ping"
-		date = time.Now()
-	}
-	iss, err := t.walletId()
+func (t *Thread) getMessageForBlock(block *repo.Block) (*pb.Message, error) {
+	// translate to pb
+	// TODO: throw out repo.Block
+	date, err := ptypes.TimestampProto(block.Date)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	claims := jwt.StandardClaims{
-		Id:       blockId, // block cid
-		Subject:  t.Id,    // thread id (pk, base64)
-		Issuer:   iss,     // wallet id (master pk, base64)
-		IssuedAt: date.Unix(),
+	pblock := &pb.Block{
+		Id:           block.Id,
+		Target:       block.Target,
+		Parents:      block.Parents,
+		TargetKey:    block.TargetKey,
+		ThreadPubKey: block.ThreadPubKey,
+		Type:         pb.Block_Type(int32(block.Type)),
+		Date:         date,
 	}
-	token, err := jwt.NewWithClaims(crypto.SigningMethodEd25519i, claims).SignedString(t.PrivKey)
+
+	// sign it
+	serialized, err := proto.Marshal(pblock)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return token, nil
+	signature, err := t.PrivKey.Sign(serialized)
+	if err != nil {
+		return nil, err
+	}
+	pkb, err := t.ipfs().PrivateKey.GetPublic().Bytes()
+	if err != nil {
+		return nil, err
+	}
+	signed := &pb.SignedBlock{
+		Id:           block.Id,
+		Data:         serialized,
+		Signature:    signature,
+		ThreadId:     t.Id,
+		ThreadName:   t.Name,
+		IssuerPubKey: pkb,
+	}
+
+	// create the message
+	payload, err := ptypes.MarshalAny(signed)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.Message{
+		MessageType: pb.Message_THREAD_BLOCK,
+		Payload:     payload,
+	}, nil
 }

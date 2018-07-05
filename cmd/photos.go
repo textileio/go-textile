@@ -21,6 +21,11 @@ func AddPhoto(c *ishell.Context) {
 		c.Err(errors.New("missing photo path"))
 		return
 	}
+	if len(c.Args) == 1 {
+		c.Err(errors.New("missing thread name"))
+		return
+	}
+	threadName := c.Args[1]
 
 	// try to get path with home dir tilda
 	path, err := homedir.Expand(c.Args[0])
@@ -53,14 +58,8 @@ func AddPhoto(c *ishell.Context) {
 		return
 	}
 
-	// parse thread
-	threadName := "default"
-	if len(c.Args) > 1 {
-		threadName = c.Args[1]
-	}
-
 	// add to thread
-	thrd := core.Node.Wallet.GetThreadByName(threadName)
+	_, thrd := core.Node.Wallet.GetThreadByName(threadName)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", threadName)))
 		return
@@ -99,7 +98,7 @@ func SharePhoto(c *ishell.Context) {
 	}
 
 	// lookup destination thread
-	toThread := core.Node.Wallet.GetThreadByName(threadName)
+	_, toThread := core.Node.Wallet.GetThreadByName(threadName)
 	if toThread == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread named %s", threadName)))
 		return
@@ -126,18 +125,19 @@ func SharePhoto(c *ishell.Context) {
 }
 
 func ListPhotos(c *ishell.Context) {
-	threadName := "default"
-	if len(c.Args) > 0 {
-		threadName = c.Args[0]
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing thread name"))
+		return
 	}
+	threadName := c.Args[0]
 
-	thrd := core.Node.Wallet.GetThreadByName(threadName)
+	_, thrd := core.Node.Wallet.GetThreadByName(threadName)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadName)))
 		return
 	}
 
-	blocks := thrd.Blocks("", -1)
+	blocks := thrd.Blocks("", -1, repo.PhotoBlock)
 	if len(blocks) == 0 {
 		c.Println(fmt.Sprintf("no photos found in: %s", threadName))
 	} else {

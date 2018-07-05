@@ -2,7 +2,6 @@ package wallet
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +10,8 @@ import (
 	"github.com/textileio/textile-go/core/central"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/net"
+	serv "github.com/textileio/textile-go/net/service"
+	"github.com/textileio/textile-go/pb"
 	trepo "github.com/textileio/textile-go/repo"
 	tconfig "github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/repo/db"
@@ -28,7 +29,6 @@ import (
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/config"
 	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/fsrepo"
 	uio "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/unixfs/io"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -47,6 +47,21 @@ type Config struct {
 	MasterMnemonic *string
 }
 
+type Update struct {
+	Id   string     `json:"id"`
+	Name string     `json:"name"`
+	Type UpdateType `json:"type"`
+}
+
+type UpdateType int
+
+const (
+	ThreadAdded UpdateType = iota
+	ThreadRemoved
+	DeviceAdded
+	DeviceRemoved
+)
+
 type Wallet struct {
 	context        oldcmds.Context
 	repoPath       string
@@ -54,11 +69,13 @@ type Wallet struct {
 	cancel         context.CancelFunc
 	ipfs           *core.IpfsNode
 	datastore      trepo.Datastore
+	service        *serv.TextileService
 	centralAPI     string
 	isMobile       bool
 	started        bool
 	threads        []*thread.Thread
 	done           chan struct{}
+	updates        chan Update
 	lastRelayTouch time.Time
 }
 
@@ -73,24 +90,18 @@ var ErrOffline = errors.New("node is offline")
 var ErrThreadExists = errors.New("thread already exists")
 var ErrThreadLoaded = errors.New("thread is already loaded")
 
-func NewWallet(config Config) (*Wallet, error) {
+func NewWallet(config Config) (*Wallet, string, error) {
 	// get database handle
 	sqliteDB, err := db.Create(config.RepoPath, "")
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	// we may be running in an uninitialized state.
-	err = trepo.DoInit(config.RepoPath, config.IsMobile, config.Version,
-		sqliteDB.Config().Init, sqliteDB.Config().Configure, func() error {
-			_, id, secret, err := util.IDAndSecretFromMnemonic(nil)
-			if err != nil {
-				return err
-			}
-			return sqliteDB.Profile().Init(id, secret)
-		})
+	mnemonic, err := trepo.DoInit(config.RepoPath, config.IsMobile, config.Version, config.MasterMnemonic,
+		sqliteDB.Config().Init, sqliteDB.Config().Configure)
 	if err != nil && err != trepo.ErrRepoExists {
-		return nil, err
+		return nil, "", err
 	}
 
 	// acquire the repo lock _before_ constructing a node. we need to make
@@ -98,14 +109,14 @@ func NewWallet(config Config) (*Wallet, error) {
 	repo, err := fsrepo.Open(config.RepoPath)
 	if err != nil {
 		log.Errorf("error opening repo: %s", err)
-		return nil, err
+		return nil, "", err
 	}
 
 	// save gateway address
 	gwAddr, err := repo.GetConfigKey("Addresses.Gateway")
 	if err != nil {
 		log.Errorf("error getting gateway address: %s", err)
-		return nil, err
+		return nil, "", err
 	}
 
 	// if a specific swarm port was selected, set it in the config
@@ -115,23 +126,23 @@ func NewWallet(config Config) (*Wallet, error) {
 			fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", config.SwarmPort),
 			fmt.Sprintf("/ip6/::/tcp/%s", config.SwarmPort),
 		}); err != nil {
-			return nil, err
+			return nil, "", err
 		}
 	}
 
 	// if this is a server node, apply the ipfs server profile
 	if config.IsServer {
 		if err := tconfig.Update(repo, "Addresses.NoAnnounce", tconfig.DefaultServerFilters); err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		if err := tconfig.Update(repo, "Swarm.AddrFilters", tconfig.DefaultServerFilters); err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		if err := tconfig.Update(repo, "Swarm.EnableRelayHop", true); err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		if err := tconfig.Update(repo, "Discovery.MDNS.Enabled", false); err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		log.Info("applied server profile")
 	}
@@ -151,7 +162,8 @@ func NewWallet(config Config) (*Wallet, error) {
 		datastore:   sqliteDB,
 		centralAPI:  config.CentralAPI,
 		isMobile:    config.IsMobile,
-	}, nil
+		updates:     make(chan Update),
+	}, mnemonic, nil
 }
 
 // Start
@@ -189,6 +201,9 @@ func (w *Wallet) Start() (chan struct{}, error) {
 			log.Errorf("error creating online ipfs node: %s", err)
 			return
 		}
+
+		// service is now configurable
+		w.service = serv.NewService(w.ipfs, w.datastore, w.GetThread, w.AddThread)
 
 		// print swarm addresses
 		if err := util.PrintSwarmAddrs(w.ipfs); err != nil {
@@ -240,7 +255,16 @@ func (w *Wallet) Stop() error {
 	}
 
 	// wipe threads
+	for _, t := range w.Threads() {
+		t.Close()
+	}
 	w.threads = nil
+
+	// wipe service
+	w.service = nil
+
+	// close updates
+	close(w.updates)
 
 	log.Info("wallet is stopped")
 
@@ -256,6 +280,11 @@ func (w *Wallet) Online() bool {
 		return false
 	}
 	return w.started && w.ipfs.OnlineMode()
+}
+
+// Updates returns a read-only channel of updates
+func (w *Wallet) Updates() <-chan Update {
+	return w.updates
 }
 
 func (w *Wallet) Done() <-chan struct{} {
@@ -360,41 +389,47 @@ func (w *Wallet) GetUsername() (string, error) {
 	return w.datastore.Profile().GetUsername()
 }
 
-// GetId returns the current user's master ID
+// GetId returns peer id
 func (w *Wallet) GetId() (string, error) {
-	if err := w.touchDatastore(); err != nil {
-		return "", err
-	}
-	return w.datastore.Profile().GetId()
-}
-
-// GetIPFSPeerId returns the ipfs peer's id
-func (w *Wallet) GetIPFSPeerId() (string, error) {
 	if !w.started {
 		return "", ErrStopped
 	}
 	return w.ipfs.Identity.Pretty(), nil
 }
 
-// GetMasterPrivKey returns the current user's master secret key
-func (w *Wallet) GetMasterPrivKey() (libp2pc.PrivKey, error) {
-	if err := w.touchDatastore(); err != nil {
-		return nil, err
+// GetPrivKey returns the current user's master secret key
+func (w *Wallet) GetPrivKey() (libp2pc.PrivKey, error) {
+	if !w.started {
+		return nil, ErrStopped
 	}
-	skb, err := w.datastore.Profile().GetSecret()
-	if err != nil {
-		return nil, err
+	if w.ipfs.PrivateKey == nil {
+		if err := w.ipfs.LoadPrivateKey(); err != nil {
+			return nil, err
+		}
 	}
-	return libp2pc.UnmarshalPrivateKey(skb)
+	return w.ipfs.PrivateKey, nil
 }
 
-// GetMasterPubKey returns the current user's master public key
-func (w *Wallet) GetMasterPubKey() (libp2pc.PubKey, error) {
-	secret, err := w.GetMasterPrivKey()
+// GetPubKey returns the current user's master public key
+func (w *Wallet) GetPubKey() (libp2pc.PubKey, error) {
+	secret, err := w.GetPrivKey()
 	if err != nil {
 		return nil, err
 	}
 	return secret.GetPublic(), nil
+}
+
+// GetPubKeyString returns the base64 encoded public ipfs peer key
+func (w *Wallet) GetPubKeyString() (string, error) {
+	pk, err := w.GetPubKey()
+	if err != nil {
+		return "", err
+	}
+	pkb, err := pk.Bytes()
+	if err != nil {
+		return "", err
+	}
+	return libp2pc.ConfigEncodeKey(pkb), nil
 }
 
 // GetAccessToken returns the current access_token (jwt) for central
@@ -430,13 +465,13 @@ func (w *Wallet) GetThread(id string) *thread.Thread {
 	return nil
 }
 
-func (w *Wallet) GetThreadByName(name string) *thread.Thread {
-	for _, thrd := range w.threads {
+func (w *Wallet) GetThreadByName(name string) (*int, *thread.Thread) {
+	for i, thrd := range w.threads {
 		if thrd.Name == name {
-			return thrd
+			return &i, thrd
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 // AddThread adds a thread with a given name and secret key
@@ -452,6 +487,7 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 	}
 	log.Debugf("adding a new thread: %s", name)
 
+	// index a new thread
 	skb, err := secret.Bytes()
 	if err != nil {
 		return nil, err
@@ -461,8 +497,6 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 		return nil, err
 	}
 	pk := libp2pc.ConfigEncodeKey(pkb)
-
-	// index a new thread
 	threadModel := &trepo.Thread{
 		Id:      pk,
 		Name:    name,
@@ -471,10 +505,31 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 	if err := w.datastore.Threads().Add(threadModel); err != nil {
 		return nil, err
 	}
+
+	// load as active thread
 	thrd, err := w.loadThread(threadModel)
 	if err != nil {
 		return nil, err
 	}
+
+	// invite each device to the new thread
+	for _, device := range w.Devices() {
+		dpkb, err := libp2pc.ConfigDecodeKey(device.Id)
+		if err != nil {
+			return nil, err
+		}
+		dpk, err := libp2pc.UnmarshalPublicKey(dpkb)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := thrd.AddInvite(dpk); err != nil {
+			return nil, err
+		}
+	}
+
+	// notify listeners
+	w.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadAdded})
+
 	return thrd, nil
 }
 
@@ -505,6 +560,33 @@ func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string) (*thread.T
 	return thrd, mnem, nil
 }
 
+// RemoveThread removes a thread by name
+func (w *Wallet) RemoveThread(name string) error {
+	i, thrd := w.GetThreadByName(name) // gets the loaded thread
+	if thrd == nil {
+		return errors.New("thread not found")
+	}
+
+	// clean up
+	thrd.Close()
+	copy(w.threads[*i:], w.threads[*i+1:])
+	w.threads[len(w.threads)-1] = nil
+	w.threads = w.threads[:len(w.threads)-1]
+
+	// remove model from db
+	if err := w.datastore.Threads().DeleteByName(name); err != nil {
+		return err
+	}
+	log.Infof("removed thread '%s'", name)
+
+	// TODO: create a "left" block?
+
+	// notify listeners
+	w.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadRemoved})
+
+	return nil
+}
+
 // PublishThreads publishes HEAD for each thread
 func (w *Wallet) PublishThreads() {
 	for _, t := range w.threads {
@@ -512,6 +594,63 @@ func (w *Wallet) PublishThreads() {
 			thrd.PostHead()
 		}(t)
 	}
+}
+
+// Devices lists all devices
+func (w *Wallet) Devices() []trepo.Device {
+	return w.datastore.Devices().List("")
+}
+
+// AddDevice creates an invite for every current and future thread
+func (w *Wallet) AddDevice(name string, pk libp2pc.PubKey) error {
+	if !w.Online() {
+		return ErrOffline
+	}
+
+	// index a new device
+	pkb, err := pk.Bytes()
+	if err != nil {
+		return err
+	}
+	deviceModel := &trepo.Device{
+		Id:   libp2pc.ConfigEncodeKey(pkb),
+		Name: name,
+	}
+	if err := w.datastore.Devices().Add(deviceModel); err != nil {
+		return err
+	}
+	log.Infof("added device '%s'", name)
+
+	// invite device to existing threads
+	for _, thrd := range w.threads {
+		if _, err := thrd.AddInvite(pk); err != nil {
+			return err
+		}
+	}
+
+	// notify listeners
+	w.sendUpdate(Update{Id: deviceModel.Id, Name: deviceModel.Name, Type: DeviceAdded})
+
+	return nil
+}
+
+// RemoveDevice removes a device by name
+func (w *Wallet) RemoveDevice(name string) error {
+	device := w.datastore.Devices().GetByName(name)
+	if device == nil {
+		return errors.New("device not found")
+	}
+	if err := w.datastore.Devices().DeleteByName(name); err != nil {
+		return err
+	}
+	log.Infof("removed device '%s'", name)
+
+	// TODO: uninvite?
+
+	// notify listeners
+	w.sendUpdate(Update{Id: device.Id, Name: device.Name, Type: DeviceRemoved})
+
+	return nil
 }
 
 // AddPhoto add a photo to the local ipfs node
@@ -548,15 +687,15 @@ func (w *Wallet) AddPhoto(path string) (*model.AddResult, error) {
 		return nil, err
 	}
 
-	// get username and master pub key, ignoring if not present (not signed in)
-	username, _ := w.datastore.Profile().GetUsername()
-	mpk, _ := w.GetMasterPubKey()
-	var mpkb []byte
-	if mpk != nil {
-		mpkb, err = mpk.Bytes()
-		if err != nil {
-			return nil, err
-		}
+	// get some meta data
+	username, _ := w.datastore.Profile().GetUsername() // ignore if not present (not signed in)
+	mpk, err := w.GetPubKey()
+	if err != nil {
+		return nil, err
+	}
+	mpkb, err := mpk.Bytes()
+	if err != nil {
+		return nil, err
 	}
 
 	// path info
@@ -675,24 +814,8 @@ func (w *Wallet) GetDataAtPath(path string) ([]byte, error) {
 	return util.GetDataAtPath(w.ipfs, path)
 }
 
-// GetIPFSPubKeyString returns the base64 encoded public ipfs peer key
-func (w *Wallet) GetIPFSPubKeyString() (string, error) {
-	if !w.started {
-		return "", ErrStopped
-	}
-	pkb, err := w.ipfs.PrivateKey.GetPublic().Bytes()
-	if err != nil {
-		log.Errorf("error getting pub key bytes: %s", err)
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString(pkb), nil
-}
-
 // ConnectPeer connect to another ipfs peer (i.e., ipfs swarm connect)
 func (w *Wallet) ConnectPeer(addrs []string) ([]string, error) {
-	if !w.started {
-		return nil, ErrStopped
-	}
 	if !w.Online() {
 		return nil, ErrOffline
 	}
@@ -785,7 +908,7 @@ func (w *Wallet) PingPeer(addrs string, num int, out chan string) error {
 	return nil
 }
 
-func (w *Wallet) IFPSPeers() ([]libp2pn.Conn, error) {
+func (w *Wallet) Peers() ([]libp2pn.Conn, error) {
 	if !w.Online() {
 		return nil, ErrOffline
 	}
@@ -815,74 +938,6 @@ func (w *Wallet) Subscribe(topic string) (*floodsub.Subscription, error) {
 		return nil, ErrOffline
 	}
 	return w.ipfs.Floodsub.Subscribe(topic)
-}
-
-// WaitForInvite to join
-// TODO: needs cleanup to handle a generic invite
-func (w *Wallet) WaitForInvite() {
-	if !w.Online() {
-		return
-	}
-	// we're in a lonesome state here, we can just sub to our own
-	// peer id and hope somebody sends us a priv key to join a thread with
-	self := w.ipfs.Identity.Pretty()
-	sub, err := w.ipfs.Floodsub.Subscribe(self)
-	if err != nil {
-		log.Errorf("error creating subscription: %s", err)
-		return
-	}
-	log.Infof("waiting for invite at own peer id: %s\n", self)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancelCh := make(chan struct{})
-	go func() {
-		for {
-			msg, err := sub.Next(ctx)
-			if err == io.EOF || err == context.Canceled {
-				log.Debugf("wait subscription ended: %s", err)
-				return
-			} else if err != nil {
-				log.Debugf(err.Error())
-				return
-			}
-			from := msg.GetFrom().Pretty()
-			log.Infof("got pairing request from: %s\n", from)
-
-			// get private peer key and decrypt the phrase
-			skb, err := crypto.Decrypt(w.ipfs.PrivateKey, msg.GetData())
-			if err != nil {
-				log.Errorf("error decrypting msg data: %s", err)
-				return
-			}
-			secret, err := libp2pc.UnmarshalPrivateKey(skb)
-			if err != nil {
-				log.Errorf("error unmarshaling mobile private key: %s", err)
-				return
-			}
-
-			// create a new album for the room
-			// TODO: let user name this or take phone's name, e.g., bob's iphone
-			// TODO: or auto name it, cause this means only one pairing can happen
-			_, err = w.AddThread("mobile", secret)
-			if err != nil {
-				log.Errorf("error adding mobile thread: %s", err)
-				return
-			}
-
-			// we're done
-			close(cancelCh)
-		}
-	}()
-	for {
-		select {
-		case <-cancelCh:
-			cancel()
-			return
-		case <-w.ipfs.Context().Done():
-			cancel()
-			return
-		}
-	}
 }
 
 // createIPFS creates an IPFS node
@@ -976,17 +1031,22 @@ func (w *Wallet) getThreadByBlock(block *trepo.Block) (*thread.Thread, error) {
 }
 
 func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
-	if w.GetThreadByName(model.Name) != nil {
+	_, loaded := w.GetThreadByName(model.Name)
+	if loaded != nil {
 		return nil, ErrThreadLoaded
 	}
 	id := model.Id // save value locally
 	threadConfig := &thread.Config{
-		WalletId: func() (string, error) {
-			return w.datastore.Profile().GetId()
-		},
 		RepoPath: w.repoPath,
-		Ipfs:     func() *core.IpfsNode { return w.ipfs },
-		Blocks:   func() trepo.BlockStore { return w.datastore.Blocks() },
+		Ipfs: func() *core.IpfsNode {
+			return w.ipfs
+		},
+		Blocks: func() trepo.BlockStore {
+			return w.datastore.Blocks()
+		},
+		Peers: func() trepo.PeerStore {
+			return w.datastore.Peers()
+		},
 		GetHead: func() (string, error) {
 			m := w.datastore.Threads().Get(id)
 			if m == nil {
@@ -1006,6 +1066,9 @@ func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
 			}
 			return nil
 		},
+		Send: func(message *pb.Message, peerId string) error {
+			return w.sendMessage(message, peerId)
+		},
 	}
 	thrd, err := thread.NewThread(model, threadConfig)
 	if err != nil {
@@ -1013,6 +1076,18 @@ func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
 	}
 	w.threads = append(w.threads, thrd)
 	return thrd, nil
+}
+
+func (w *Wallet) sendUpdate(update Update) {
+	select {
+	case w.updates <- update:
+	default:
+	}
+	defer func() {
+		if recover() != nil {
+			log.Error("update channel already closed")
+		}
+	}()
 }
 
 // touchDB ensures that we have a good db connection

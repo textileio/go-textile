@@ -108,13 +108,13 @@ func (c *ThreadDB) handleQuery(stm string) []repo.Thread {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		album := repo.Thread{
+		thread := repo.Thread{
 			Id:      id,
 			Name:    name,
 			PrivKey: skb,
 			Head:    head,
 		}
-		ret = append(ret, album)
+		ret = append(ret, thread)
 	}
 	return ret
 }

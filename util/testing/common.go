@@ -32,8 +32,8 @@ func (r *ReferralResponse) Read(body io.ReadCloser) error {
 	return json.Unmarshal(b, r)
 }
 
-func CreateReferral(key string, num int, limit int, requested_by string) (int, *ReferralResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/referrals?count=%d&limit=%d&requested_by=%s", CentralApiURL, num, limit, requested_by)
+func CreateReferral(key string, num int, limit int, requestedBy string) (int, *ReferralResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/referrals?count=%d&limit=%d&requested_by=%s", CentralApiURL, num, limit, requestedBy)
 	req, err := http.NewRequest("POST", url, nil)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Referral-Key", key)

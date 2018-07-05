@@ -12,124 +12,184 @@ let textile = {
     })
   },
 
-  pair: function () {
-    console.debug("SENDING MESSAGE:", "pair.start")
-    /** @namespace astilectron.sendMessage **/
-    astilectron.sendMessage({name: "pair.start", payload: ""}, function (message) {
-      if (message.name === "error") {
-        asticode.notifier.error("Error")
-        return
-      }
-
-      // populate qr code
-      console.debug("GOT QR CODE:", message)
-      let qrCode = document.querySelector('.qr-code')
-      qrCode.setAttribute('src', "data:image/png;base64," + message.payload.png + "")
-      let pairCode = document.querySelector('.confirmation-code')
-      pairCode.innerText = message.payload.code
-    })
-  },
-
-  start: function () {
-/** @namespace astilectron.sendMessage **/
-    astilectron.sendMessage({name: "sync.start", payload: ""}, function (message) {
-      if (message.name === "error") {
-        asticode.notifier.error("Error")
-      }
-    })
-  },
-
   listen: function() {
-    /** @namespace astilectron.onMessage **/
-    astilectron.onMessage(function(message) {
-      console.debug("GOT MESSAGE:", message)
+    astilectron.onMessage(function(msg) {
+      switch (msg.name) {
 
-      switch (message.name) {
-
-        case "login.cookie":
-          // Setup cookie session for this client
-          let expiration = new Date()
-          let hour = expiration.getHours()
-          hour = hour + 6
-          expiration.setHours(hour)
-          /** @namespace ses.cookies **/
-          session.cookies.set({
-              url: message.gateway,
-              name: message.name,
-              value: message.value,
-              expirationDate: expiration.getTime(),
-              session: true
-          }, function (err) {
-              console.error(err)
-          })
+        case 'login':
+          login(msg)
           break
 
-        // node and services are ready
-        case "sync.ready":
-          showGallery(message.html)
-          textile.start()
+        case 'setup':
+          setAddress(msg.qr, msg.pk)
           break
 
-        // new photo from room
-        case "sync.data":
-          let ph = [message.gateway, "ipfs", message.update.cid, "photo"].join("/")
-          let th = [message.gateway, "ipfs", message.update.cid, "thumb"].join("/")
-          let md = [message.gateway, "ipfs", message.update.cid, "meta"].join("/")
-          let img = '<img src="' + th + '" />'
-          let $item = $('<div id="' + message.update.cid + '" class="grid-item" ondragstart="imageDragStart(event);" draggable="true" class="grid-item" data-url="' + ph + '" data-meta="' + md + '">' + img + '</div>')
-          $(".grid").isotope('insert', $item)
+        case 'preready':
+          hideSetup()
           break
 
-        // start walk-through
-        case "onboard.start":
-          showOnboarding(1)
-          textile.pair()
+        case 'ready':
+          renderThreads(msg.threads)
+          showMain()
           break
 
-        // done onboarding, we should now have a room subscription
-        case "onboard.complete":
-          hideOnboarding()
+        case 'wallet.update':
+          switch (msg.update.type) {
+            // thread added
+            case 0:
+              addThread(msg.update)
+              showMain()
+              break
+          }
           break
+
+        case 'thread.update':
+          switch (msg.update.type) {
+            // photo added
+            case 1:
+              addPhoto(msg.update)
+              break
+          }
+          break
+
       }
     })
   },
 }
 
-function showOnboarding(screen) {
-  /** @namespace $ **/
-  let ob = $(".onboarding")
-  if (ob.hasClass("hidden")) {
-    ob.removeClass("hidden")
+function setAddress(qr, pk) {
+  $('.logo').addClass('hidden')
+  let qrCode = $('.qr-code')
+  qrCode.attr('src', 'data:image/png;base64,' + qr)
+  qrCode.removeClass('hidden')
+  $('.address').text('Address: ' + pk)
+}
+
+function hideSetup() {
+  let setup = $('.setup')
+  if (!setup.hasClass('hidden')) {
+    setup.addClass('hidden')
   }
-  $(".onboarding .screen").addClass("hidden")
-  $("#ob" + screen).removeClass("hidden")
 }
 
-function hideOnboarding() {
-  $(".onboarding").addClass("hidden")
+function showMain() {
+  let main = $('.main')
+  if (main.hasClass('hidden')) {
+    main.removeClass('hidden')
+  }
 }
 
-function showGallery(html) {
-  let grid = $(".grid")
-  grid.removeClass("hidden")
+function renderThreads(threads) {
+  threads.forEach(function (thread) {
+    addThread(thread)
+  })
+  if (threads.length > 0) {
+    loadFirstThread()
+  }
+}
+
+function addThread(update) {
+  let ul = $('.threads')
+  let title = '<h5># ' + update.name + '</h5>'
+  $('<li class="thread" id="' + update.id + '" onclick="loadThread(this)">' + title + '</li>').appendTo(ul)
+  if (ul.children().length === 1) {
+    loadFirstThread()
+  }
+}
+
+function loadFirstThread() {
+  setTimeout(function () {
+    $('.threads li').first().click()
+  }, 0)
+}
+
+function loadThread(el) {
+  let $el = $(el)
+  let id = $el.attr('id')
+  $('.thread.active').removeClass('active')
+  $el.addClass('active')
+  astilectron.sendMessage({name: 'thread.load', payload: id}, function (message) {
+    if (message.name === 'error') {
+      asticode.notifier.error(message)
+      return
+    }
+    showGrid(id, message.payload.html)
+  })
+}
+
+function showGrid(threadId, html) {
+  clearGrid()
+  $('.message').addClass('hidden')
+  let grid = $('<div class="grid" data-thread-id="' + threadId + '"></div>')
+  grid.appendTo($('.content'))
+
   grid.html(html)
-
-  // init Isotope
   let $grid = grid.isotope({
     layoutMode: 'cellsByRow',
     itemSelector: '.grid-item',
     cellsByRow: {
-      columnWidth: 248,
-      rowHeight: 248
+      columnWidth: 192,
+      rowHeight: 192
+    },
+    transitionDuration: '0.2s',
+    hiddenStyle: {
+      opacity: 0,
+      transform: 'scale(0.9)'
+    },
+    visibleStyle: {
+      opacity: 1,
+      transform: 'scale(1)'
     }
   })
 
   // layout after each image loads
   $grid.imagesLoaded().progress(function() {
-    $grid.isotope('layout')
+    if ($grid.data('isotope')) {
+      $grid.isotope('layout')
+    }
   })
 
   // reveal items
   let $items = $grid.find('.grid-item')
   $grid.addClass('is-showing-items').isotope('revealItemElements', $items)
+}
+
+function clearGrid() {
+  $('.grid').remove()
+}
+
+function addPhoto(update) {
+  let grid = $('.grid')
+  if (!grid || update.thread_id !== grid.data('thread-id')) {
+    return
+  }
+  let photo = fileURL(update, 'photo')
+  let thumb = fileURL(update, 'thumb')
+  let meta = fileURL(update, 'meta')
+  let img = '<img src="' + thumb + '" />'
+  let $item = $('<div id="' + update.id + '" class="grid-item" '
+    + 'ondragstart="imageDragStart(event);" draggable="true" '
+    + 'data-url="' + photo + '" data-meta="' + meta + '">' + img + '</div>')
+  grid.isotope('insert', $item)
+}
+
+function fileURL(update, path) {
+  return [textile.gateway, 'ipfs', update.target_id, path].join('/') + '?block=' + update.id
+}
+
+function login(data) {
+  textile.gateway = data.gateway
+  let expiration = new Date()
+  let hour = expiration.getHours()
+  hour = hour + 6
+  expiration.setHours(hour)
+  session.cookies.set({
+    url: data.gateway,
+    name: data.name,
+    value: data.value,
+    expirationDate: expiration.getTime(),
+    session: true
+  }, function (err) {
+    // console.error(err)
+  })
 }

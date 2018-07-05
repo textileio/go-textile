@@ -3,12 +3,11 @@ package dao
 import (
 	"crypto/tls"
 	"fmt"
-	"log"
-	"net"
-
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/textileio/textile-go/central/models"
+	"log"
+	"net"
 )
 
 type DAO struct {

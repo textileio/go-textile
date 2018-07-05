@@ -41,7 +41,7 @@ func main() {
 			SwarmPort: os.Getenv("SWARM_PORT"),
 		},
 	}
-	node, err := tcore.NewNode(config)
+	node, _, err := tcore.NewNode(config)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func main() {
 		log.Fatal(err)
 	}
 	<-online
-	self, err := node.Wallet.GetIPFSPeerId()
+	self, err := node.Wallet.GetId()
 	if err != nil {
 		log.Fatal(err)
 	}

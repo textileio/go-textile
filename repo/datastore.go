@@ -9,6 +9,8 @@ type Datastore interface {
 	Config() ConfigStore
 	Profile() ProfileStore
 	Threads() ThreadStore
+	Devices() DeviceStore
+	Peers() PeerStore
 	Blocks() BlockStore
 	Ping() error
 	Close()
@@ -29,11 +31,8 @@ type ConfigStore interface {
 }
 
 type ProfileStore interface {
-	Init(id string, secret []byte) error
 	SignIn(username string, accessToken string, refreshToken string) error
 	SignOut() error
-	GetId() (string, error)
-	GetSecret() ([]byte, error)
 	GetUsername() (string, error)
 	GetTokens() (accessToken string, refreshToken string, err error)
 }
@@ -49,11 +48,29 @@ type ThreadStore interface {
 	DeleteByName(name string) error
 }
 
+type DeviceStore interface {
+	Queryable
+	Add(device *Device) error
+	Get(id string) *Device
+	GetByName(name string) *Device
+	List(query string) []Device
+	Delete(id string) error
+	DeleteByName(name string) error
+}
+
+type PeerStore interface {
+	Queryable
+	Add(peer *Peer) error
+	Get(row string) *Peer
+	List(offset string, limit int, query string) []Peer
+	Delete(row string) error
+}
+
 type BlockStore interface {
 	Queryable
 	Add(block *Block) error
 	Get(id string) *Block
 	GetByTarget(target string) *Block
-	List(offsetId string, limit int, query string) []Block
+	List(offset string, limit int, query string) []Block
 	Delete(id string) error
 }

@@ -7,12 +7,10 @@ import (
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/central/models"
 	tcore "github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/net"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet"
 	"github.com/textileio/textile-go/wallet/thread"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
@@ -40,13 +38,8 @@ type Messenger interface {
 	Notify(event *Event)
 }
 
-// Wrapper is the object exposed in the frameworks
-type Wrapper struct {
-	RepoPath  string
-	messenger Messenger
-}
-
 // NodeConfig is used to configure the mobile node
+// NOTE: logLevel is one of: CRITICAL ERROR WARNING NOTICE INFO DEBUG
 type NodeConfig struct {
 	RepoPath      string
 	CentralApiURL string
@@ -54,18 +47,38 @@ type NodeConfig struct {
 	LogFiles      bool
 }
 
-// NewNode is the mobile entry point for creating a node
-// NOTE: logLevel is one of: CRITICAL ERROR WARNING NOTICE INFO DEBUG
-func NewNode(config *NodeConfig, messenger Messenger) (*Wrapper, error) {
-	var m Mobile
-	return m.NewNode(config, messenger)
+// Mobile is the name of the framework (must match package name)
+type Mobile struct {
+	RepoPath  string
+	Mnemonic  string
+	Online    <-chan struct{} // not readable from bridges
+	messenger Messenger
 }
 
-// Mobile is the name of the framework (must match package name)
-type Mobile struct{}
+// ThreadItem is a simple meta data wrapper around a Thread
+type ThreadItem struct {
+	Id    string `json:"id"`
+	Name  string `json:"name"`
+	Peers int    `json:"peers"`
+}
 
-// Blocks is a wrapper around a list of Blocks, which makes decoding json from a little cleaner
-// on the mobile side
+// Threads is a wrapper around a list of Threads
+type Threads struct {
+	Items []ThreadItem `json:"items"`
+}
+
+// DeviceItem is a simple meta data wrapper around a Device
+type DeviceItem struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// Devices is a wrapper around a list of Devices
+type Devices struct {
+	Items []DeviceItem `json:"items"`
+}
+
+// Blocks is a wrapper around a list of Blocks
 type Blocks struct {
 	Items []repo.Block `json:"items"`
 }
@@ -74,7 +87,7 @@ type Blocks struct {
 const RemoteIPFSApi = "https://ipfs.textile.io/api/v0"
 
 // Create a gomobile compatible wrapper around TextileNode
-func (m *Mobile) NewNode(config *NodeConfig, messenger Messenger) (*Wrapper, error) {
+func NewNode(config *NodeConfig, messenger Messenger) (*Mobile, error) {
 	ll, err := logging.LogLevel(config.LogLevel)
 	if err != nil {
 		ll = logging.INFO
@@ -88,17 +101,17 @@ func (m *Mobile) NewNode(config *NodeConfig, messenger Messenger) (*Wrapper, err
 			IsMobile:   true,
 		},
 	}
-	node, err := tcore.NewNode(cconfig)
+	node, mnemonic, err := tcore.NewNode(cconfig)
 	if err != nil {
 		return nil, err
 	}
 	tcore.Node = node
 
-	return &Wrapper{RepoPath: config.RepoPath, messenger: messenger}, nil
+	return &Mobile{RepoPath: config.RepoPath, Mnemonic: mnemonic, messenger: messenger}, nil
 }
 
 // Start the mobile node
-func (w *Wrapper) Start() error {
+func (m *Mobile) Start() error {
 	online, err := tcore.Node.StartWallet()
 	if err != nil {
 		if err == wallet.ErrStarted {
@@ -106,16 +119,19 @@ func (w *Wrapper) Start() error {
 		}
 		return err
 	}
+	m.Online = online
 
 	go func() {
 		<-online
-		// join existing threads
+		// subscribe to thread updates
 		for _, thrd := range tcore.Node.Wallet.Threads() {
-			w.subscribe(thrd)
+			go func(t *thread.Thread) {
+				m.subscribe(t)
+			}(thrd)
 		}
 
 		// notify UI we're ready
-		w.messenger.Notify(newEvent("onOnline", map[string]interface{}{}))
+		m.messenger.Notify(newEvent("onOnline", map[string]interface{}{}))
 
 		// publish
 		tcore.Node.Wallet.PublishThreads()
@@ -125,7 +141,7 @@ func (w *Wrapper) Start() error {
 }
 
 // Stop the mobile node
-func (w *Wrapper) Stop() error {
+func (m *Mobile) Stop() error {
 	if err := tcore.Node.StopWallet(); err != nil && err != wallet.ErrStopped {
 		return err
 	}
@@ -133,7 +149,7 @@ func (w *Wrapper) Stop() error {
 }
 
 // SignUpWithEmail creates an email based registration and calls core signup
-func (w *Wrapper) SignUpWithEmail(username string, password string, email string, referral string) error {
+func (m *Mobile) SignUpWithEmail(username string, password string, email string, referral string) error {
 	// build registration
 	reg := &models.Registration{
 		Username: username,
@@ -148,7 +164,7 @@ func (w *Wrapper) SignUpWithEmail(username string, password string, email string
 }
 
 // SignIn build credentials and calls core SignIn
-func (w *Wrapper) SignIn(username string, password string) error {
+func (m *Mobile) SignIn(username string, password string) error {
 	// build creds
 	creds := &models.Credentials{
 		Username: username,
@@ -158,52 +174,108 @@ func (w *Wrapper) SignIn(username string, password string) error {
 }
 
 // SignOut calls core SignOut
-func (w *Wrapper) SignOut() error {
+func (m *Mobile) SignOut() error {
 	return tcore.Node.Wallet.SignOut()
 }
 
 // IsSignedIn calls core IsSignedIn
-func (w *Wrapper) IsSignedIn() bool {
+func (m *Mobile) IsSignedIn() bool {
 	si, _ := tcore.Node.Wallet.IsSignedIn()
 	return si
 }
 
 // GetId calls core GetId
-func (w *Wrapper) GetId() (string, error) {
+func (m *Mobile) GetId() (string, error) {
 	return tcore.Node.Wallet.GetId()
 }
 
-// GetIPFSPeerId returns the wallet's ipfs peer id
-func (w *Wrapper) GetIPFSPeerId() (string, error) {
-	return tcore.Node.Wallet.GetIPFSPeerId()
-}
-
 // GetUsername calls core GetUsername
-func (w *Wrapper) GetUsername() (string, error) {
+func (m *Mobile) GetUsername() (string, error) {
 	return tcore.Node.Wallet.GetUsername()
 }
 
 // GetAccessToken calls core GetAccessToken
-func (w *Wrapper) GetAccessToken() (string, error) {
+func (m *Mobile) GetAccessToken() (string, error) {
 	return tcore.Node.Wallet.GetAccessToken()
 }
 
+// Threads lists all threads
+func (m *Mobile) Threads() (string, error) {
+	var threads Threads
+	for _, thrd := range tcore.Node.Wallet.Threads() {
+		peers := thrd.Peers("", -1)
+		item := ThreadItem{Id: thrd.Id, Name: thrd.Name, Peers: len(peers)}
+		threads.Items = append(threads.Items, item)
+	}
+
+	jsonb, err := json.Marshal(threads)
+	if err != nil {
+		log.Errorf("error marshaling json: %s", err)
+		return "", err
+	}
+
+	return string(jsonb), nil
+}
+
 // AddThread adds a new thread with the given name
-func (w *Wrapper) AddThread(name string, mnemonic string) error {
+func (m *Mobile) AddThread(name string, mnemonic string) error {
 	var mnem *string
 	if mnemonic != "" {
 		mnem = &mnemonic
 	}
-	_, _, err := tcore.Node.Wallet.AddThreadWithMnemonic(name, mnem)
+	thrd, _, err := tcore.Node.Wallet.AddThreadWithMnemonic(name, mnem)
 	if err == wallet.ErrThreadExists || err == wallet.ErrThreadLoaded {
 		return nil
 	}
+
+	go m.subscribe(thrd)
+
 	return err
 }
 
+// RemoveThread call core RemoveDevice
+func (m *Mobile) RemoveThread(name string) error {
+	return tcore.Node.Wallet.RemoveThread(name)
+}
+
+// Devices lists all devices
+func (m *Mobile) Devices() (string, error) {
+	var devices Devices
+	for _, dev := range tcore.Node.Wallet.Devices() {
+		item := DeviceItem{Id: dev.Id, Name: dev.Name}
+		devices.Items = append(devices.Items, item)
+	}
+
+	jsonb, err := json.Marshal(devices)
+	if err != nil {
+		log.Errorf("error marshaling json: %s", err)
+		return "", err
+	}
+
+	return string(jsonb), nil
+}
+
+// AddDevice calls core AddDevice
+func (m *Mobile) AddDevice(name string, pubKey string) error {
+	pkb, err := libp2pc.ConfigDecodeKey(pubKey)
+	if err != nil {
+		return err
+	}
+	pk, err := libp2pc.UnmarshalPublicKey(pkb)
+	if err != nil {
+		return err
+	}
+	return tcore.Node.Wallet.AddDevice(name, pk)
+}
+
+// RemoveDevice call core RemoveDevice
+func (m *Mobile) RemoveDevice(name string) error {
+	return tcore.Node.Wallet.RemoveDevice(name)
+}
+
 // AddPhoto adds a photo by path and shares it to the default thread
-func (w *Wrapper) AddPhoto(path string, threadName string, caption string) (*net.MultipartRequest, error) {
-	thrd := tcore.Node.Wallet.GetThreadByName(threadName)
+func (m *Mobile) AddPhoto(path string, threadName string, caption string) (*net.MultipartRequest, error) {
+	_, thrd := tcore.Node.Wallet.GetThreadByName(threadName)
 	if thrd == nil {
 		return nil, errors.New(fmt.Sprintf("could not find thread: %s", threadName))
 	}
@@ -229,7 +301,7 @@ func (w *Wrapper) AddPhoto(path string, threadName string, caption string) (*net
 }
 
 // SharePhoto adds an existing photo to a new thread
-func (w *Wrapper) SharePhoto(id string, threadName string, caption string) (string, error) {
+func (m *Mobile) SharePhoto(id string, threadName string, caption string) (string, error) {
 	block, err := tcore.Node.Wallet.GetBlockByTarget(id)
 	if err != nil {
 		return "", err
@@ -238,7 +310,7 @@ func (w *Wrapper) SharePhoto(id string, threadName string, caption string) (stri
 	if fromThread == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadPubKey))
 	}
-	toThread := tcore.Node.Wallet.GetThreadByName(threadName)
+	_, toThread := tcore.Node.Wallet.GetThreadByName(threadName)
 	if toThread == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread named %s", threadName))
 	}
@@ -264,9 +336,9 @@ func (w *Wrapper) SharePhoto(id string, threadName string, caption string) (stri
 	return shared.Id, nil
 }
 
-// GetPhotoBlocks returns thread photo blocks with json encoding
-func (w *Wrapper) GetPhotoBlocks(offsetId string, limit int, threadName string) (string, error) {
-	thrd := tcore.Node.Wallet.GetThreadByName(threadName)
+// PhotoBlocks returns thread photo blocks with json encoding
+func (m *Mobile) PhotoBlocks(offsetId string, limit int, threadName string) (string, error) {
+	_, thrd := tcore.Node.Wallet.GetThreadByName(threadName)
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("thread not found: %s", threadName))
 	}
@@ -276,7 +348,7 @@ func (w *Wrapper) GetPhotoBlocks(offsetId string, limit int, threadName string) 
 		go thrd.PostHead()
 	}
 
-	blocks := &Blocks{thrd.Blocks(offsetId, limit)}
+	blocks := &Blocks{thrd.Blocks(offsetId, limit, repo.PhotoBlock)}
 	jsonb, err := json.Marshal(blocks)
 	if err != nil {
 		log.Errorf("error marshaling json: %s", err)
@@ -287,7 +359,7 @@ func (w *Wrapper) GetPhotoBlocks(offsetId string, limit int, threadName string) 
 }
 
 // GetBlockData calls GetBlockDataBase64 on a thread
-func (w *Wrapper) GetBlockData(id string, path string) (string, error) {
+func (m *Mobile) GetBlockData(id string, path string) (string, error) {
 	block, err := tcore.Node.Wallet.GetBlock(id)
 	if err != nil {
 		log.Errorf("could not find block %s: %s", id, err)
@@ -304,7 +376,7 @@ func (w *Wrapper) GetBlockData(id string, path string) (string, error) {
 }
 
 // GetFileData calls GetFileDataBase64 on a thread
-func (w *Wrapper) GetFileData(id string, path string) (string, error) {
+func (m *Mobile) GetFileData(id string, path string) (string, error) {
 	block, err := tcore.Node.Wallet.GetBlockByTarget(id)
 	if err != nil {
 		log.Errorf("could not find block for target %s: %s", id, err)
@@ -320,74 +392,21 @@ func (w *Wrapper) GetFileData(id string, path string) (string, error) {
 	return thrd.GetFileDataBase64(fmt.Sprintf("%s/%s", id, path), block)
 }
 
-// PairDevice publishes this node's secret key to another node,
-// which is listening at it's own peer id
-func (w *Wrapper) PairDevice(pkb64 string) (string, error) {
-	if !tcore.Node.Wallet.Online() {
-		return "", wallet.ErrOffline
-	}
-	log.Info("pairing with a new device...")
-
-	pkb, err := libp2pc.ConfigDecodeKey(pkb64)
-	if err != nil {
-		return "", err
-	}
-	pk, err := libp2pc.UnmarshalPublicKey(pkb)
-	if err != nil {
-		return "", err
-	}
-
-	// we invite the desktop to _read and write_ to our default album
-	defaultThread := tcore.Node.Wallet.GetThreadByName("default")
-	if defaultThread == nil {
-		err = errors.New("default thread not found")
-		log.Error(err.Error())
-		return "", err
-	}
-	// encypt thread secret key with the desktop's pub key
-	secret, err := defaultThread.PrivKey.Bytes()
-	if err != nil {
-		return "", err
-	}
-	secretcypher, err := crypto.Encrypt(pk, secret)
-	if err != nil {
-		return "", err
-	}
-
-	// get the topic to pair with from the pub key
-	peerID, err := peer.IDFromPublicKey(pk)
-	if err != nil {
-		return "", err
-	}
-	topic := peerID.Pretty()
-
-	// finally, publish the encrypted phrase
-	err = tcore.Node.Wallet.Publish(topic, secretcypher)
-	if err != nil {
-		return "", err
-	}
-	log.Infof("published key phrase to device: %s", topic)
-
-	return topic, nil
-}
-
 // subscribe to thread and pass updates to messenger
-func (w *Wrapper) subscribe(thrd *thread.Thread) {
-	datac := make(chan thread.Update)
-	go thrd.Subscribe(datac)
-	go func() {
-		for {
-			select {
-			case update, ok := <-datac:
-				if !ok {
-					return
-				}
-				w.messenger.Notify(newEvent("onThreadUpdate", map[string]interface{}{
-					"id":        update.Id,
-					"thread":    update.Thread,
-					"thread_id": update.ThreadID,
-				}))
+func (m *Mobile) subscribe(thrd *thread.Thread) {
+	for {
+		select {
+		case update, ok := <-thrd.Updates():
+			if !ok {
+				return
 			}
+			m.messenger.Notify(newEvent("onThreadUpdate", map[string]interface{}{
+				"id":          update.Id,
+				"type":        int(update.Type),
+				"target_id":   update.TargetId,
+				"thread_id":   update.ThreadId,
+				"thread_name": update.ThreadName,
+			}))
 		}
-	}()
+	}
 }

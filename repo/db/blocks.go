@@ -69,16 +69,16 @@ func (c *BlockDB) GetByTarget(target string) *repo.Block {
 	return &ret[0]
 }
 
-func (c *BlockDB) List(offsetId string, limit int, query string) []repo.Block {
+func (c *BlockDB) List(offset string, limit int, query string) []repo.Block {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	var stm string
-	if offsetId != "" {
+	if offset != "" {
 		q := ""
 		if query != "" {
 			q = query + " and "
 		}
-		stm = "select * from blocks where " + q + "date<(select date from blocks where id='" + offsetId + "') order by date desc limit " + strconv.Itoa(limit) + " ;"
+		stm = "select * from blocks where " + q + "date<(select date from blocks where id='" + offset + "') order by date desc limit " + strconv.Itoa(limit) + " ;"
 	} else {
 		q := ""
 		if query != "" {

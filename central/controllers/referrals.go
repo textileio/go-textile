@@ -1,16 +1,15 @@
 package controllers
 
 import (
+	"github.com/gin-gonic/gin"
+	"github.com/globalsign/mgo/bson"
+	"github.com/textileio/textile-go/central/dao"
+	"github.com/textileio/textile-go/central/models"
 	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
-
-	"github.com/gin-gonic/gin"
-	"github.com/globalsign/mgo/bson"
-	"github.com/textileio/textile-go/central/dao"
-	"github.com/textileio/textile-go/central/models"
 )
 
 func CreateReferral(c *gin.Context) {
@@ -25,7 +24,7 @@ func CreateReferral(c *gin.Context) {
 	// how many times should we be able to use them
 	limit := 1
 	// simple reference to who requested the new code
-	requested_by := ""
+	requestedBy := ""
 	params := c.Request.URL.Query()
 	if params["count"] != nil && len(params["count"]) > 0 {
 		tmp, err := strconv.ParseInt(params["count"][0], 10, 64)
@@ -40,13 +39,13 @@ func CreateReferral(c *gin.Context) {
 		}
 	}
 	if params["requested_by"] != nil {
-		requested_by = params["requested_by"][0]
+		requestedBy = params["requested_by"][0]
 	}
 
 	// hodl 'em
 	refs := make([]string, count)
 	for i := range refs {
-		code, err := createReferral(limit, requested_by)
+		code, err := createReferral(limit, requestedBy)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
