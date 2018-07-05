@@ -218,19 +218,20 @@ func (m *Mobile) Threads() (string, error) {
 }
 
 // AddThread adds a new thread with the given name
-func (m *Mobile) AddThread(name string, mnemonic string) error {
+func (m *Mobile) AddThread(name string, mnemonic string) (string, error) {
 	var mnem *string
 	if mnemonic != "" {
 		mnem = &mnemonic
 	}
 	thrd, _, err := tcore.Node.Wallet.AddThreadWithMnemonic(name, mnem)
 	if err == wallet.ErrThreadExists || err == wallet.ErrThreadLoaded {
-		return nil
+		return "", nil
 	}
 
+	// subscribe to updates
 	go m.subscribe(thrd)
 
-	return err
+	return thrd.Id, err
 }
 
 // RemoveThread call core RemoveDevice
