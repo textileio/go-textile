@@ -224,14 +224,17 @@ func (m *Mobile) AddThread(name string, mnemonic string) (string, error) {
 		mnem = &mnemonic
 	}
 	thrd, _, err := tcore.Node.Wallet.AddThreadWithMnemonic(name, mnem)
-	if err == wallet.ErrThreadExists || err == wallet.ErrThreadLoaded {
-		return "", nil
+	if err != nil {
+		if err == wallet.ErrThreadExists || err == wallet.ErrThreadLoaded {
+			return "", nil
+		}
+		return "", err
 	}
 
 	// subscribe to updates
 	go m.subscribe(thrd)
 
-	return thrd.Id, err
+	return thrd.Id, nil
 }
 
 // RemoveThread call core RemoveDevice
@@ -363,7 +366,7 @@ func (m *Mobile) PhotoBlocks(offsetId string, limit int, threadName string) (str
 func (m *Mobile) GetBlockData(id string, path string) (string, error) {
 	block, err := tcore.Node.Wallet.GetBlock(id)
 	if err != nil {
-		log.Errorf("could not find block %s: %s", id, err)
+		log.Errorf("could not find block %s for path %s: %s", id, path, err)
 		return "", err
 	}
 	thrd := tcore.Node.Wallet.GetThread(block.ThreadPubKey)
