@@ -234,7 +234,8 @@ func TestMobile_SharePhoto(t *testing.T) {
 		return
 	}
 	caption := "rasputin's eyes"
-	sharedBlockId, err := mobile.SharePhoto(addedPhotoId, "test", caption)
+	var err error
+	sharedBlockId, err = mobile.SharePhoto(addedPhotoId, "test", caption)
 	if err != nil {
 		t.Errorf("share photo failed: %s", err)
 		return
