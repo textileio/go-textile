@@ -42,7 +42,7 @@ type NodeConfig struct {
 }
 
 // NewNode creates a new TextileNode
-func NewNode(config NodeConfig) (*TextileNode, error) {
+func NewNode(config NodeConfig) (*TextileNode, string, error) {
 	// TODO: shouldn't need to manually remove these
 	repoLockFile := filepath.Join(config.WalletConfig.RepoPath, fsrepo.LockFile)
 	os.Remove(repoLockFile)
@@ -68,9 +68,9 @@ func NewNode(config NodeConfig) (*TextileNode, error) {
 
 	// create a wallet
 	config.WalletConfig.Version = Version
-	wall, err := wallet.NewWallet(config.WalletConfig)
+	wall, mnemonic, err := wallet.NewWallet(config.WalletConfig)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	// setup gateway
@@ -82,7 +82,7 @@ func NewNode(config NodeConfig) (*TextileNode, error) {
 		gateway: gateway,
 	}
 
-	return node, nil
+	return node, mnemonic, nil
 }
 
 // StopWallet starts the wallet
@@ -195,7 +195,7 @@ func (t *TextileNode) registerGatewayHandler() {
 				log.Errorf("error finding block %s: %s", blockId[0], err)
 				return
 			}
-			thrd := t.Wallet.GetThread(block.Id)
+			thrd := t.Wallet.GetThread(block.ThreadPubKey)
 			if thrd == nil {
 				log.Errorf("could not find thread for block: %s", block.Id)
 				return

@@ -12,6 +12,18 @@ type Thread struct {
 	Head    string `json:"head"`
 }
 
+type Device struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type Peer struct {
+	Row      string `json:"row"`
+	Id       string `json:"id"`
+	ThreadId string `json:"thread_id"`
+	PubKey   []byte `json:"pub_key"`
+}
+
 type Block struct {
 	Id           string    `json:"id"`
 	Target       string    `json:"target"`

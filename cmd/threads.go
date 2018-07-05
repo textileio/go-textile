@@ -7,6 +7,7 @@ import (
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/wallet/thread"
 	"gopkg.in/abiosoft/ishell.v2"
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 func ListThreads(c *ishell.Context) {
@@ -19,15 +20,11 @@ func ListThreads(c *ishell.Context) {
 
 	blue := color.New(color.FgHiBlue).SprintFunc()
 	for _, thrd := range threads {
-		mem := "disabled"
-		if thrd.Listening() {
-			mem = "enabled"
-		}
-		c.Println(blue(fmt.Sprintf("name: %s, id: %s, status: %s", thrd.Name, thrd.Id, mem)))
+		c.Println(blue(fmt.Sprintf("name: %s, id: %s", thrd.Name, thrd.Id)))
 	}
 }
 
-func CreateThread(c *ishell.Context) {
+func AddThread(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing thread name"))
 		return
@@ -47,58 +44,11 @@ func CreateThread(c *ishell.Context) {
 		return
 	}
 
-	Subscribe(c, thrd)
+	go Subscribe(c, thrd)
 
 	cyan := color.New(color.FgCyan).SprintFunc()
-	c.Println(cyan(fmt.Sprintf("created thread #%s", name)))
+	c.Println(cyan(fmt.Sprintf("added thread '%s'", name)))
 	c.Println(cyan(fmt.Sprintf("mnemonic phrase: %s", mnem)))
-}
-
-func EnableThread(c *ishell.Context) {
-	if len(c.Args) == 0 {
-		c.Err(errors.New("missing thread name"))
-		return
-	}
-	name := c.Args[0]
-
-	thrd := core.Node.Wallet.GetThreadByName(name)
-	if thrd == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
-		return
-	}
-
-	if thrd.Listening() {
-		c.Printf("already enabled: %s\n", thrd.Id)
-		return
-	}
-
-	Subscribe(c, thrd)
-
-	c.Printf("ok, now enabled: %s\n", thrd.Id)
-}
-
-func DisableAlbum(c *ishell.Context) {
-	if len(c.Args) == 0 {
-		c.Err(errors.New("missing thread name"))
-		return
-	}
-	name := c.Args[0]
-
-	thrd := core.Node.Wallet.GetThreadByName(name)
-	if thrd == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
-		return
-	}
-
-	if !thrd.Listening() {
-		c.Printf("already disabled: %s\n", thrd.Id)
-		return
-	}
-
-	thrd.Unsubscribe()
-	<-thrd.LeftCh
-
-	c.Printf("ok, now disabled: %s\n", thrd.Id)
 }
 
 func PublishThread(c *ishell.Context) {
@@ -108,27 +58,35 @@ func PublishThread(c *ishell.Context) {
 	}
 	name := c.Args[0]
 
-	thrd := core.Node.Wallet.GetThreadByName(name)
+	_, thrd := core.Node.Wallet.GetThreadByName(name)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
 		return
 	}
+
+	blue := color.New(color.FgHiBlue).SprintFunc()
 	head, err := thrd.GetHead()
 	if err != nil {
 		c.Err(err)
 		return
 	}
 	if head == "" {
-		head = "ping"
+		c.Println(blue("nothing to publish"))
+		return
 	}
+	peers := thrd.Peers("", -1)
+	if len(peers) == 0 {
+		c.Println(blue("no peers to publish to"))
+		return
+	}
+
 	err = thrd.PostHead()
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
-	blue := color.New(color.FgHiBlue).SprintFunc()
-	c.Println(blue(fmt.Sprintf("published %s to %s", head, thrd.Id)))
+	c.Println(blue(fmt.Sprintf("published %s in thread %s to %d peers", head, thrd.Name, len(peers))))
 }
 
 func ListThreadPeers(c *ishell.Context) {
@@ -138,13 +96,13 @@ func ListThreadPeers(c *ishell.Context) {
 	}
 	name := c.Args[0]
 
-	thrd := core.Node.Wallet.GetThreadByName(name)
+	_, thrd := core.Node.Wallet.GetThreadByName(name)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
 		return
 	}
 
-	peers := thrd.Peers()
+	peers := thrd.Peers("", -1)
 	if len(peers) == 0 {
 		c.Println(fmt.Sprintf("no peers found in: %s", name))
 	} else {
@@ -153,26 +111,74 @@ func ListThreadPeers(c *ishell.Context) {
 
 	green := color.New(color.FgHiGreen).SprintFunc()
 	for _, peer := range peers {
-		c.Println(green(peer))
+		c.Println(green(peer.Id))
 	}
+}
+
+func AddThreadInvite(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing peer pub key"))
+		return
+	}
+	pks := c.Args[0]
+	if len(c.Args) == 1 {
+		c.Err(errors.New("missing thread name"))
+		return
+	}
+	name := c.Args[1]
+
+	_, thrd := core.Node.Wallet.GetThreadByName(name)
+	if thrd == nil {
+		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
+		return
+	}
+
+	pkb, err := libp2pc.ConfigDecodeKey(pks)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+	pk, err := libp2pc.UnmarshalPublicKey(pkb)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	if _, err := thrd.AddInvite(pk); err != nil {
+		c.Err(err)
+		return
+	}
+
+	green := color.New(color.FgHiGreen).SprintFunc()
+	c.Println(green("invite sent!"))
+}
+
+func RemoveThread(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing thread name"))
+		return
+	}
+	name := c.Args[0]
+
+	err := core.Node.Wallet.RemoveThread(name)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	red := color.New(color.FgHiRed).SprintFunc()
+	c.Println(red(fmt.Sprintf("removed thread '%s'", name)))
 }
 
 func Subscribe(shell ishell.Actions, thrd *thread.Thread) {
 	cyan := color.New(color.FgCyan).SprintFunc()
-	datac := make(chan thread.Update)
-	go thrd.Subscribe(datac)
-	go func() {
-		for {
-			select {
-			case update, ok := <-datac:
-				if !ok {
-					return
-				}
-				msg := fmt.Sprintf("\nnew photo %s in thread %s\n", update.Id, update.Thread)
-				shell.ShowPrompt(false)
-				shell.Printf(cyan(msg))
-				shell.ShowPrompt(true)
+	for {
+		select {
+		case update, ok := <-thrd.Updates():
+			if !ok {
+				return
 			}
+			shell.Printf(cyan(fmt.Sprintf("new block %s in thread %s", update.Id, update.ThreadName)))
 		}
-	}()
+	}
 }

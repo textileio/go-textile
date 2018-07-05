@@ -23,7 +23,7 @@ func Test_SetupThread(t *testing.T) {
 		RepoPath: trepo,
 	}
 	var err error
-	twallet, err = NewWallet(wconfig)
+	twallet, _, err = NewWallet(wconfig)
 	if err != nil {
 		t.Errorf("create wallet failed: %s", err)
 	}

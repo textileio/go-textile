@@ -122,9 +122,15 @@
 
 [[projects]]
   name = "github.com/golang/protobuf"
-  packages = ["proto"]
-  revision = "925541529c1fa6821df4e44ce2723319eb2be768"
-  version = "v1.0.0"
+  packages = [
+    "proto",
+    "ptypes",
+    "ptypes/any",
+    "ptypes/duration",
+    "ptypes/timestamp"
+  ]
+  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/jessevdk/go-flags"
@@ -301,6 +307,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "86a2f874602cae158a6c7f38ccbbd61504031bc9c26b042e1422779a5752018e"
+  inputs-digest = "e52f84e47faf9c26d8159dce3c134fcfda90e22edc402d9324577792a276ca4e"
   solver-name = "gps-cdcl"
   solver-version = 1

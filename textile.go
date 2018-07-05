@@ -10,6 +10,7 @@ import (
 	"github.com/textileio/textile-go/cmd"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/wallet"
+	"github.com/textileio/textile-go/wallet/thread"
 	"gopkg.in/abiosoft/ishell.v2"
 	"os"
 	"path/filepath"
@@ -105,26 +106,56 @@ func main() {
 			c.Println("ok, stopped")
 		},
 	})
+
 	shell.AddCmd(&ishell.Cmd{
 		Name: "id",
-		Help: "show peer id",
+		Help: "show node id",
 		Func: cmd.ShowId,
 	})
 	shell.AddCmd(&ishell.Cmd{
-		Name: "peers",
-		Help: "show connected peers (same as `ipfs swarm peers`)",
-		Func: cmd.SwarmPeers,
-	})
-	shell.AddCmd(&ishell.Cmd{
 		Name: "ping",
-		Help: "ping a peer (same as `ipfs ping`)",
-		Func: cmd.SwarmPing,
+		Help: "ping another textile node",
+		Func: func(c *ishell.Context) {
+			if !core.Node.Wallet.Online() {
+				c.Println("not online yet")
+				return
+			}
+			if len(c.Args) == 0 {
+				c.Err(errors.New("missing node id"))
+				return
+			}
+			status, err := core.Node.Wallet.GetPeerStatus(c.Args[0])
+			if err != nil {
+				c.Println(fmt.Errorf("ping failed: %s", err))
+				return
+			}
+			c.Println(status)
+		},
 	})
-	shell.AddCmd(&ishell.Cmd{
-		Name: "connect",
-		Help: "connect to a peer (same as `ipfs swarm connect`)",
-		Func: cmd.SwarmConnect,
-	})
+
+	{
+		swarmCmd := &ishell.Cmd{
+			Name:     "swarm",
+			Help:     "same as ipfs swarm",
+			LongHelp: "Inspect IPFS swarm peers.",
+		}
+		swarmCmd.AddCmd(&ishell.Cmd{
+			Name: "peers",
+			Help: "show connected peers (same as `ipfs swarm peers`)",
+			Func: cmd.SwarmPeers,
+		})
+		swarmCmd.AddCmd(&ishell.Cmd{
+			Name: "ping",
+			Help: "ping a peer (same as `ipfs ping`)",
+			Func: cmd.SwarmPing,
+		})
+		swarmCmd.AddCmd(&ishell.Cmd{
+			Name: "connect",
+			Help: "connect to a peer (same as `ipfs swarm connect`)",
+			Func: cmd.SwarmConnect,
+		})
+		shell.AddCmd(swarmCmd)
+	}
 	{
 		photoCmd := &ishell.Cmd{
 			Name:     "photo",
@@ -166,28 +197,23 @@ func main() {
 	{
 		threadCmd := &ishell.Cmd{
 			Name:     "thread",
-			Help:     "manage photo threads",
-			LongHelp: "Add, list, enable, disable, and get info about photo threads.",
+			Help:     "manage threads",
+			LongHelp: "Add, remove, list, invite to, and get info about textile threads.",
 		}
 		threadCmd.AddCmd(&ishell.Cmd{
 			Name: "add",
 			Help: "add a new thread",
-			Func: cmd.CreateThread,
+			Func: cmd.AddThread,
+		})
+		threadCmd.AddCmd(&ishell.Cmd{
+			Name: "rm",
+			Help: "remove a thread by name",
+			Func: cmd.RemoveThread,
 		})
 		threadCmd.AddCmd(&ishell.Cmd{
 			Name: "ls",
 			Help: "list threads",
 			Func: cmd.ListThreads,
-		})
-		threadCmd.AddCmd(&ishell.Cmd{
-			Name: "enable",
-			Help: "enable a thread",
-			Func: cmd.EnableThread,
-		})
-		threadCmd.AddCmd(&ishell.Cmd{
-			Name: "disable",
-			Help: "disable a thread",
-			Func: cmd.DisableAlbum,
 		})
 		threadCmd.AddCmd(&ishell.Cmd{
 			Name: "publish",
@@ -199,7 +225,35 @@ func main() {
 			Help: "list peers",
 			Func: cmd.ListThreadPeers,
 		})
+		threadCmd.AddCmd(&ishell.Cmd{
+			Name: "invite",
+			Help: "invite a peer to a thread",
+			Func: cmd.AddThreadInvite,
+		})
 		shell.AddCmd(threadCmd)
+	}
+	{
+		deviceCmd := &ishell.Cmd{
+			Name:     "device",
+			Help:     "manage connected devices",
+			LongHelp: "Add, remove, and list connected devices.",
+		}
+		deviceCmd.AddCmd(&ishell.Cmd{
+			Name: "add",
+			Help: "add a new device",
+			Func: cmd.AddDevice,
+		})
+		deviceCmd.AddCmd(&ishell.Cmd{
+			Name: "rm",
+			Help: "remove a device by name",
+			Func: cmd.RemoveDevice,
+		})
+		deviceCmd.AddCmd(&ishell.Cmd{
+			Name: "ls",
+			Help: "list devices",
+			Func: cmd.ListDevices,
+		})
+		shell.AddCmd(deviceCmd)
 	}
 
 	// create and start a desktop textile node
@@ -214,7 +268,7 @@ func main() {
 			IsMobile:   false,
 		},
 	}
-	node, err := core.NewNode(config)
+	node, _, err := core.NewNode(config)
 	if err != nil {
 		shell.Println(fmt.Errorf("create desktop node failed: %s", err))
 		return
@@ -241,13 +295,12 @@ func start(shell *ishell.Shell) error {
 	}
 	<-online
 
-	// join existing threads
-	for _, thread := range core.Node.Wallet.Threads() {
-		cmd.Subscribe(shell, thread)
+	// subscribe to thread updates
+	for _, thrd := range core.Node.Wallet.Threads() {
+		go func(t *thread.Thread) {
+			cmd.Subscribe(shell, t)
+		}(thrd)
 	}
-
-	// start continuously publishing
-	go core.Node.StartPublishing()
 
 	// start the gateway
 	return core.Node.StartGateway()

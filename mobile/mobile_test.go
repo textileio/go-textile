@@ -8,6 +8,7 @@ import (
 	"github.com/segmentio/ksuid"
 	. "github.com/textileio/textile-go/mobile"
 	util "github.com/textileio/textile-go/util/testing"
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 type TestMessenger struct {
@@ -16,7 +17,7 @@ type TestMessenger struct {
 
 func (tm *TestMessenger) Notify(event *Event) {}
 
-var wrapper *Wrapper
+var mobile *Mobile
 var addedPhotoId string
 var sharedBlockId string
 
@@ -32,26 +33,26 @@ func TestNewTextile(t *testing.T) {
 		LogLevel:      "DEBUG",
 	}
 	var err error
-	wrapper, err = NewNode(config, &TestMessenger{})
+	mobile, err = NewNode(config, &TestMessenger{})
 	if err != nil {
 		t.Errorf("create mobile node failed: %s", err)
 	}
 }
 
-func TestWrapper_Start(t *testing.T) {
-	if err := wrapper.Start(); err != nil {
+func TestMobile_Start(t *testing.T) {
+	if err := mobile.Start(); err != nil {
 		t.Errorf("start mobile node failed: %s", err)
 	}
 }
 
-func TestWrapper_StartAgain(t *testing.T) {
-	if err := wrapper.Start(); err != nil {
+func TestMobile_StartAgain(t *testing.T) {
+	if err := mobile.Start(); err != nil {
 		t.Errorf("attempt to start a running node failed: %s", err)
 	}
 }
 
-func TestWrapper_SignUpWithEmail(t *testing.T) {
-	_, ref, err := util.CreateReferral(util.RefKey, 1, 1, "TestWrapper_SignUpWithEmail")
+func TestMobile_SignUpWithEmail(t *testing.T) {
+	_, ref, err := util.CreateReferral(util.RefKey, 1, 1, "test")
 	if err != nil {
 		t.Errorf("create referral for signup failed: %s", err)
 		return
@@ -60,29 +61,26 @@ func TestWrapper_SignUpWithEmail(t *testing.T) {
 		t.Error("create referral for signup got no codes")
 		return
 	}
-	err = wrapper.SignUpWithEmail(cusername, cpassword, cemail, ref.RefCodes[0])
+	err = mobile.SignUpWithEmail(cusername, cpassword, cemail, ref.RefCodes[0])
 	if err != nil {
 		t.Errorf("signup failed: %s", err)
-		return
 	}
 }
 
-func TestWrapper_SignIn(t *testing.T) {
-	if err := wrapper.SignIn(cusername, cpassword); err != nil {
+func TestMobile_SignIn(t *testing.T) {
+	if err := mobile.SignIn(cusername, cpassword); err != nil {
 		t.Errorf("signin failed: %s", err)
-		return
 	}
 }
 
-func TestWrapper_IsSignedIn(t *testing.T) {
-	if !wrapper.IsSignedIn() {
+func TestMobile_IsSignedIn(t *testing.T) {
+	if !mobile.IsSignedIn() {
 		t.Errorf("is signed in check failed should be true")
-		return
 	}
 }
 
-func TestWrapper_GetId(t *testing.T) {
-	id, err := wrapper.GetId()
+func TestMobile_GetId(t *testing.T) {
+	id, err := mobile.GetId()
 	if err != nil {
 		t.Errorf("get id failed: %s", err)
 		return
@@ -92,15 +90,8 @@ func TestWrapper_GetId(t *testing.T) {
 	}
 }
 
-func TestWrapper_GetIPFSPeerId(t *testing.T) {
-	_, err := wrapper.GetIPFSPeerId()
-	if err != nil {
-		t.Errorf("get peer id failed: %s", err)
-	}
-}
-
-func TestWrapper_GetUsername(t *testing.T) {
-	un, err := wrapper.GetUsername()
+func TestMobile_GetUsername(t *testing.T) {
+	un, err := mobile.GetUsername()
 	if err != nil {
 		t.Errorf("get username failed: %s", err)
 		return
@@ -110,34 +101,122 @@ func TestWrapper_GetUsername(t *testing.T) {
 	}
 }
 
-func TestWrapper_GetAccessToken(t *testing.T) {
-	_, err := wrapper.GetAccessToken()
+func TestMobile_GetAccessToken(t *testing.T) {
+	_, err := mobile.GetAccessToken()
 	if err != nil {
 		t.Errorf("get access token failed: %s", err)
-		return
 	}
 }
 
-func TestWrapper_AddThread(t *testing.T) {
-	if err := wrapper.AddThread("default", ""); err != nil {
+func TestMobile_AddThread(t *testing.T) {
+	if err := mobile.AddThread("default", ""); err != nil {
 		t.Errorf("add thread failed: %s", err)
 	}
 }
 
-func TestWrapper_AddThreadAgain(t *testing.T) {
-	if err := wrapper.AddThread("default", ""); err != nil {
+func TestMobile_AddThreadAgain(t *testing.T) {
+	if err := mobile.AddThread("default", ""); err != nil {
 		t.Errorf("add thread again failed: %s", err)
 	}
 }
 
-func TestWrapper_AddPhoto(t *testing.T) {
-	mr, err := wrapper.AddPhoto("testdata/image.jpg", "default", "howdy")
+func TestMobile_Threads(t *testing.T) {
+	if err := mobile.AddThread("another", ""); err != nil {
+		t.Errorf("add another thread failed: %s", err)
+		return
+	}
+	res, err := mobile.Threads()
+	if err != nil {
+		t.Errorf("get threads failed: %s", err)
+		return
+	}
+	threads := Threads{}
+	json.Unmarshal([]byte(res), &threads)
+	if len(threads.Items) != 2 {
+		t.Error("get threads bad result")
+	}
+}
+
+func TestMobile_RemoveThread(t *testing.T) {
+	if err := mobile.RemoveThread("another"); err != nil {
+		t.Errorf("remove thread failed: %s", err)
+	}
+}
+
+func TestMobile_AddDevice(t *testing.T) {
+	<-mobile.Online
+	_, pk, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	pkb, err := pk.Bytes()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if err := mobile.AddDevice("hello", libp2pc.ConfigEncodeKey(pkb)); err != nil {
+		t.Errorf("add device failed: %s", err)
+	}
+}
+
+func TestMobile_AddDeviceAgain(t *testing.T) {
+	_, pk, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	pkb, err := pk.Bytes()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if err := mobile.AddDevice("hello", libp2pc.ConfigEncodeKey(pkb)); err == nil {
+		t.Error("add same device again should fail")
+	}
+}
+
+func TestMobile_Devices(t *testing.T) {
+	_, pk, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	pkb, err := pk.Bytes()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if err := mobile.AddDevice("another", libp2pc.ConfigEncodeKey(pkb)); err != nil {
+		t.Errorf("add another device failed: %s", err)
+	}
+	res, err := mobile.Devices()
+	if err != nil {
+		t.Errorf("get devices failed: %s", err)
+		return
+	}
+	devices := Devices{}
+	json.Unmarshal([]byte(res), &devices)
+	if len(devices.Items) != 2 {
+		t.Error("get devices bad result")
+	}
+}
+
+func TestMobile_RemoveDevice(t *testing.T) {
+	if err := mobile.RemoveDevice("another"); err != nil {
+		t.Errorf("remove device failed: %s", err)
+	}
+}
+
+func TestMobile_AddPhoto(t *testing.T) {
+	mr, err := mobile.AddPhoto("testdata/image.jpg", "default", "howdy")
 	if err != nil {
 		t.Errorf("add photo failed: %s", err)
 		return
 	}
 	if len(mr.Boundary) == 0 {
 		t.Errorf("add photo got bad hash")
+		return
 	}
 	addedPhotoId = mr.Boundary
 	err = os.Remove("testdata/.ipfs/tmp/" + mr.Boundary)
@@ -146,14 +225,14 @@ func TestWrapper_AddPhoto(t *testing.T) {
 	}
 }
 
-func TestWrapper_SharePhoto(t *testing.T) {
-	err := wrapper.AddThread("test", "")
+func TestMobile_SharePhoto(t *testing.T) {
+	err := mobile.AddThread("test", "")
 	if err != nil {
 		t.Errorf("add test thread failed: %s", err)
 		return
 	}
 	caption := "rasputin's eyes"
-	sharedBlockId, err = wrapper.SharePhoto(addedPhotoId, "test", caption)
+	sharedBlockId, err = mobile.SharePhoto(addedPhotoId, "test", caption)
 	if err != nil {
 		t.Errorf("share photo failed: %s", err)
 		return
@@ -163,8 +242,8 @@ func TestWrapper_SharePhoto(t *testing.T) {
 	}
 }
 
-func TestWrapper_GetPhotoBlocks(t *testing.T) {
-	res, err := wrapper.GetPhotoBlocks("", -1, "default")
+func TestMobile_PhotoBlocks(t *testing.T) {
+	res, err := mobile.PhotoBlocks("", -1, "default")
 	if err != nil {
 		t.Errorf("get photo blocks failed: %s", err)
 		return
@@ -176,16 +255,15 @@ func TestWrapper_GetPhotoBlocks(t *testing.T) {
 	}
 }
 
-func TestWrapper_GetPhotosBadThread(t *testing.T) {
-	_, err := wrapper.GetPhotoBlocks("", -1, "empty")
+func TestMobile_PhotosBadThread(t *testing.T) {
+	_, err := mobile.PhotoBlocks("", -1, "empty")
 	if err == nil {
 		t.Errorf("get photo blocks from bad thread should fail: %s", err)
-		return
 	}
 }
 
-func TestWrapper_GetBlockData(t *testing.T) {
-	res, err := wrapper.GetBlockData(sharedBlockId, "caption")
+func TestMobile_GetBlockData(t *testing.T) {
+	res, err := mobile.GetBlockData(sharedBlockId, "caption")
 	if err != nil {
 		t.Errorf("get block data failed: %s", err)
 		return
@@ -195,8 +273,8 @@ func TestWrapper_GetBlockData(t *testing.T) {
 	}
 }
 
-func TestWrapper_GetFileData(t *testing.T) {
-	res, err := wrapper.GetFileData(addedPhotoId, "thumb")
+func TestMobile_GetFileData(t *testing.T) {
+	res, err := mobile.GetFileData(addedPhotoId, "thumb")
 	if err != nil {
 		t.Errorf("get file data failed: %s", err)
 		return
@@ -206,57 +284,37 @@ func TestWrapper_GetFileData(t *testing.T) {
 	}
 }
 
-//func TestWrapper_PairDevice(t *testing.T) {
-//	_, pk, err := libp2p.GenerateKeyPair(libp2p.Ed25519, 1024)
-//	if err != nil {
-//		t.Errorf("create keypair failed: %s", err)
-//	}
-//	pb, err := pk.Bytes()
-//	if err != nil {
-//		t.Errorf("get keypair bytes: %s", err)
-//	}
-//	ps := base64.StdEncoding.EncodeToString(pb)
-//
-//	_, err = wrapper.PairDevice(ps)
-//	if err != nil {
-//		t.Errorf("pair device failed: %s", err)
-//	}
-//}
-
-func TestWrapper_SignOut(t *testing.T) {
-	if err := wrapper.SignOut(); err != nil {
+func TestMobile_SignOut(t *testing.T) {
+	if err := mobile.SignOut(); err != nil {
 		t.Errorf("signout failed: %s", err)
-		return
 	}
 }
 
-func TestWrapper_IsSignedInAgain(t *testing.T) {
-	if wrapper.IsSignedIn() {
+func TestMobile_IsSignedInAgain(t *testing.T) {
+	if mobile.IsSignedIn() {
 		t.Errorf("is signed in check failed should be false")
-		return
 	}
 }
 
-func TestWrapper_Stop(t *testing.T) {
-	if err := wrapper.Stop(); err != nil {
+func TestMobile_Stop(t *testing.T) {
+	if err := mobile.Stop(); err != nil {
 		t.Errorf("stop mobile node failed: %s", err)
 	}
 }
 
-func TestWrapper_StopAgain(t *testing.T) {
-	if err := wrapper.Stop(); err != nil {
+func TestMobile_StopAgain(t *testing.T) {
+	if err := mobile.Stop(); err != nil {
 		t.Errorf("stop mobile node again should not return error: %s", err)
 	}
 }
 
 // test signin in stopped state, should re-connect to db
-func TestWrapper_SignInAgain(t *testing.T) {
-	if err := wrapper.SignIn(cusername, cpassword); err != nil {
+func TestMobile_SignInAgain(t *testing.T) {
+	if err := mobile.SignIn(cusername, cpassword); err != nil {
 		t.Errorf("signin failed: %s", err)
-		return
 	}
 }
 
 func Test_Teardown(t *testing.T) {
-	os.RemoveAll(wrapper.RepoPath)
+	os.RemoveAll(mobile.RepoPath)
 }

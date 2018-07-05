@@ -33,7 +33,7 @@ func TestNewWallet(t *testing.T) {
 		CentralAPI: util.CentralApiURL,
 	}
 	var err error
-	wallet, err = NewWallet(config)
+	wallet, _, err = NewWallet(config)
 	if err != nil {
 		t.Errorf("create wallet failed: %s", err)
 	}
@@ -110,24 +110,24 @@ func TestWallet_GetId(t *testing.T) {
 	// TODO
 }
 
-func TestWallet_GetIPFSPeerId(t *testing.T) {
-	id, err := wallet.GetIPFSPeerId()
+func TestWallet_GetPrivKey(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_GetPubKey(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_GetPubKeyString(t *testing.T) {
+	key, err := wallet.GetPubKeyString()
 	if err != nil {
-		t.Errorf("get ipfs peer id failed: %s", err)
+		t.Errorf("get pub key failed: %s", err)
 		return
 	}
-	if id == "" {
-		t.Error("ipfs peer id empty")
+	if key == "" {
+		t.Error("pub key empty")
 		return
 	}
-}
-
-func TestWallet_GetMasterPrivKey(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_GetMasterPubKey(t *testing.T) {
-	// TODO
 }
 
 func TestWallet_GetAccessToken(t *testing.T) {
@@ -173,7 +173,23 @@ func TestWallet_AddThreadWithMnemonic(t *testing.T) {
 	// TODO
 }
 
+func TestWallet_RemoveThread(t *testing.T) {
+	// TODO
+}
+
 func TestWallet_PublishThreads(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_Devices(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_AddDevice(t *testing.T) {
+	// TODO
+}
+
+func TestWallet_RemoveDevice(t *testing.T) {
 	// TODO
 }
 
@@ -205,18 +221,6 @@ func TestWallet_GetDataAtPath(t *testing.T) {
 	// TODO
 }
 
-func TestWallet_GetIPFSPubKeyString(t *testing.T) {
-	key, err := wallet.GetIPFSPubKeyString()
-	if err != nil {
-		t.Errorf("get ipfs pub key failed: %s", err)
-		return
-	}
-	if key == "" {
-		t.Error("ipfs pub key empty")
-		return
-	}
-}
-
 func TestWallet_ConnectPeer(t *testing.T) {
 	// TODO
 }
@@ -225,7 +229,7 @@ func TestWallet_PingPeer(t *testing.T) {
 	// TODO
 }
 
-func TestWallet_IPFSPeers(t *testing.T) {
+func TestWallet_Peers(t *testing.T) {
 	// TODO
 }
 
@@ -234,10 +238,6 @@ func TestWallet_Publish(t *testing.T) {
 }
 
 func TestWallet_Subscribe(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_WaitForInvite(t *testing.T) {
 	// TODO
 }
 

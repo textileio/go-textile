@@ -13,11 +13,11 @@ func ShowId(c *ishell.Context) {
 		c.Err(err)
 		return
 	}
-	ipfsId, err := core.Node.Wallet.GetIPFSPeerId()
+	pk, err := core.Node.Wallet.GetPubKeyString()
 	if err != nil {
 		c.Err(err)
 		return
 	}
 	red := color.New(color.FgRed).SprintFunc()
-	c.Println(red(fmt.Sprintf("textile: %s, ipfs: %s", id, ipfsId)))
+	c.Println(red(fmt.Sprintf("id: %s, pk: %s", id, pk)))
 }
