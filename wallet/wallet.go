@@ -10,6 +10,7 @@ import (
 	"github.com/textileio/textile-go/core/central"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/net"
+	nm "github.com/textileio/textile-go/net/model"
 	serv "github.com/textileio/textile-go/net/service"
 	"github.com/textileio/textile-go/pb"
 	trepo "github.com/textileio/textile-go/repo"
@@ -654,7 +655,7 @@ func (w *Wallet) RemoveDevice(name string) error {
 }
 
 // AddPhoto add a photo to the local ipfs node
-func (w *Wallet) AddPhoto(path string) (*model.AddResult, error) {
+func (w *Wallet) AddPhoto(path string) (*nm.AddResult, error) {
 	// get a key to encrypt with
 	key, err := crypto.GenerateAESKey()
 	if err != nil {
@@ -785,7 +786,7 @@ func (w *Wallet) AddPhoto(path string) (*model.AddResult, error) {
 	}
 
 	// all done
-	return &model.AddResult{Id: id, Key: key, RemoteRequest: request}, nil
+	return &nm.AddResult{Id: id, Key: key, RemoteRequest: request}, nil
 }
 
 // GetBlock searches for a local block associated with the given target

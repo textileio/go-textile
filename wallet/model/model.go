@@ -1,9 +1,6 @@
 package model
 
-import (
-	"github.com/textileio/textile-go/net"
-	"time"
-)
+import "time"
 
 const ThumbnailWidth = 300
 
@@ -17,12 +14,6 @@ type FileMetadata struct {
 	Metadata
 	Name string `json:"name,omitempty"`
 	Ext  string `json:"ext,omitempty"`
-}
-
-type AddResult struct {
-	Id            string
-	Key           []byte
-	RemoteRequest *net.PinRequest
 }
 
 type PhotoMetadata struct {

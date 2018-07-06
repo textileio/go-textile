@@ -2,6 +2,7 @@ package repo
 
 import (
 	"database/sql"
+	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	"time"
 )
 
@@ -12,6 +13,8 @@ type Datastore interface {
 	Devices() DeviceStore
 	Peers() PeerStore
 	Blocks() BlockStore
+	OfflineMessages() OfflineMessageStore
+	Pointers() PointerStore
 	Ping() error
 	Close()
 }
@@ -73,4 +76,23 @@ type BlockStore interface {
 	GetByTarget(target string) *Block
 	List(offset string, limit int, query string) []Block
 	Delete(id string) error
+}
+
+type OfflineMessageStore interface {
+	Queryable
+	Put(url string) error
+	Has(url string) bool
+	SetMessage(url string, message []byte) error
+	GetMessages() (map[string][]byte, error)
+	DeleteMessage(url string) error
+}
+
+type PointerStore interface {
+	Queryable
+	Put(p Pointer) error
+	Delete(id peer.ID) error
+	DeleteAll(purpose Purpose) error
+	Get(id peer.ID) (Pointer, error)
+	GetByPurpose(purpose Purpose) ([]Pointer, error)
+	GetAll() ([]Pointer, error)
 }

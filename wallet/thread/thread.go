@@ -9,6 +9,7 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/net"
+	nm "github.com/textileio/textile-go/net/model"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet/model"
@@ -91,7 +92,7 @@ func (t *Thread) Close() {
 }
 
 // AddInvite creates an invite block for the given recipient
-func (t *Thread) AddInvite(target libp2pc.PubKey) (*model.AddResult, error) {
+func (t *Thread) AddInvite(target libp2pc.PubKey) (*nm.AddResult, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
@@ -188,11 +189,11 @@ func (t *Thread) AddInvite(target libp2pc.PubKey) (*model.AddResult, error) {
 	go t.PostHead()
 
 	// all done
-	return &model.AddResult{Id: block.Id}, nil
+	return &nm.AddResult{Id: block.Id}, nil
 }
 
 // AddPhoto adds a block for a photo to this thread
-func (t *Thread) AddPhoto(id string, caption string, key []byte) (*model.AddResult, error) {
+func (t *Thread) AddPhoto(id string, caption string, key []byte) (*nm.AddResult, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
@@ -306,7 +307,7 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*model.AddResu
 	}
 
 	// all done
-	return &model.AddResult{Id: block.Id, RemoteRequest: request}, nil
+	return &nm.AddResult{Id: block.Id, RemoteRequest: request}, nil
 }
 
 // GetBlockData cats file data from ipfs and tries to decrypt it with the provided block
