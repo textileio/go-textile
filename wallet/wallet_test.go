@@ -11,7 +11,7 @@ import (
 	. "github.com/textileio/textile-go/wallet"
 )
 
-var repo = "testdata/.ipfs"
+var repo = "testdata/.textile"
 
 var wallet *Wallet
 var addedId string
@@ -203,10 +203,6 @@ func TestWallet_AddPhoto(t *testing.T) {
 		t.Errorf("add photo got bad id")
 	}
 	addedId = added.Id
-	err = os.Remove("testdata/.ipfs/tmp/" + addedId)
-	if err != nil {
-		t.Errorf("error unlinking test multipart file: %s", err)
-	}
 }
 
 func TestWallet_GetBlock(t *testing.T) {

@@ -762,7 +762,7 @@ func (w *Wallet) AddPhoto(path string) (*model.AddResult, error) {
 	id := dir.Cid().Hash().B58String()
 
 	// create and init a new multipart request
-	request := &net.MultipartRequest{}
+	request := &net.PinRequest{}
 	request.Init(filepath.Join(w.repoPath, "tmp"), id)
 
 	// add files to request

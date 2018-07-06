@@ -274,7 +274,7 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*model.AddResu
 	go t.PostHead()
 
 	// create and init a new multipart request
-	request := &net.MultipartRequest{}
+	request := &net.PinRequest{}
 	request.Init(filepath.Join(t.repoPath, "tmp"), bid)
 
 	// add files to request

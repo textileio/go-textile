@@ -9,17 +9,17 @@ import (
 
 var nl = "\r\n"
 
-type MultipartRequest struct {
+type PinRequest struct {
 	Boundary    string
 	PayloadPath string
 }
 
-func (m *MultipartRequest) Init(dir string, boundary string) {
+func (m *PinRequest) Init(dir string, boundary string) {
 	m.Boundary = boundary
 	m.PayloadPath = filepath.Join(dir, boundary)
 }
 
-func (m *MultipartRequest) AddFile(b []byte, fname string) error {
+func (m *PinRequest) AddFile(b []byte, fname string) error {
 	// create file if not yet exists
 	file, err := os.OpenFile(m.PayloadPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
@@ -50,7 +50,7 @@ func (m *MultipartRequest) AddFile(b []byte, fname string) error {
 	return nil
 }
 
-func (m *MultipartRequest) Finish() error {
+func (m *PinRequest) Finish() error {
 	// open file, will error if not first inited
 	file, err := os.OpenFile(m.PayloadPath, os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
@@ -70,7 +70,7 @@ func (m *MultipartRequest) Finish() error {
 	return nil
 }
 
-func (m *MultipartRequest) Send(url string) (string, error) {
+func (m *PinRequest) Send(url string) (string, error) {
 	// open file, will error if not first inited
 	file, err := os.Open(m.PayloadPath)
 	if err != nil {

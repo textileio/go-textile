@@ -9,15 +9,17 @@ import (
 	"testing"
 )
 
+var repo = "testdata/.textile"
+
 var node *TextileNode
 
 func TestNewNode(t *testing.T) {
-	os.RemoveAll("testdata/.ipfs")
+	os.RemoveAll(repo)
 	config := NodeConfig{
 		LogLevel: logging.DEBUG,
 		LogFiles: false,
 		WalletConfig: wallet.Config{
-			RepoPath:   "testdata/.ipfs",
+			RepoPath:   repo,
 			CentralAPI: util.CentralApiURL,
 			IsMobile:   false,
 		},
