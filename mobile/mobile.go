@@ -81,11 +81,11 @@ type Devices struct {
 
 // BlockItem is a simple meta data wrapper around a Device
 type BlockItem struct {
-	Id      string    `json:"id"`
-	Target  string    `json:"target"`
-	Parents []string  `json:"parents"`
+	Id      string         `json:"id"`
+	Target  string         `json:"target"`
+	Parents []string       `json:"parents"`
 	Type    repo.BlockType `json:"type"`
-	Date    time.Time `json:"date"`
+	Date    time.Time      `json:"date"`
 }
 
 // Blocks is a wrapper around a list of Blocks
@@ -235,16 +235,25 @@ func (m *Mobile) AddThread(name string, mnemonic string) (string, error) {
 	}
 	thrd, _, err := tcore.Node.Wallet.AddThreadWithMnemonic(name, mnem)
 	if err != nil {
-		if err == wallet.ErrThreadExists || err == wallet.ErrThreadLoaded {
-			return "", nil
-		}
+		return "", err
+	}
+	peers := thrd.Peers("", -1)
+	item := ThreadItem{
+		Id:    thrd.Id,
+		Name:  thrd.Name,
+		Peers: len(peers),
+	}
+
+	jsonb, err := json.Marshal(item)
+	if err != nil {
+		log.Errorf("error marshaling json: %s", err)
 		return "", err
 	}
 
 	// subscribe to updates
 	go m.subscribe(thrd)
 
-	return thrd.Id, nil
+	return string(jsonb), nil
 }
 
 // RemoveThread call core RemoveDevice
@@ -365,11 +374,11 @@ func (m *Mobile) PhotoBlocks(offsetId string, limit int, threadName string) (str
 	blocks := &Blocks{}
 	for _, b := range thrd.Blocks(offsetId, limit, repo.PhotoBlock) {
 		blocks.Items = append(blocks.Items, BlockItem{
-			Id: b.Id,
-			Target: b.Target,
+			Id:      b.Id,
+			Target:  b.Target,
 			Parents: b.Parents,
-			Type: b.Type,
-			Date: b.Date,
+			Type:    b.Type,
+			Date:    b.Date,
 		})
 	}
 	jsonb, err := json.Marshal(blocks)

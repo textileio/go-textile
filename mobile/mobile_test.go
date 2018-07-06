@@ -108,18 +108,18 @@ func TestMobile_GetAccessToken(t *testing.T) {
 }
 
 func TestMobile_AddThread(t *testing.T) {
-	id, err := mobile.AddThread("default", "")
+	item, err := mobile.AddThread("default", "")
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
 	}
-	if id == "" {
-		t.Error("add thread bad id")
+	if item == "" {
+		t.Error("add thread bad result")
 	}
 }
 
 func TestMobile_AddThreadAgain(t *testing.T) {
-	if _, err := mobile.AddThread("default", ""); err != nil {
-		t.Errorf("add thread again failed: %s", err)
+	if _, err := mobile.AddThread("default", ""); err == nil {
+		t.Errorf("add thread again should fail: %s", err)
 	}
 }
 
