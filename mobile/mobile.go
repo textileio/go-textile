@@ -12,6 +12,7 @@ import (
 	"github.com/textileio/textile-go/wallet"
 	"github.com/textileio/textile-go/wallet/thread"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"time"
 )
 
 var log = logging.MustGetLogger("mobile")
@@ -78,9 +79,18 @@ type Devices struct {
 	Items []DeviceItem `json:"items"`
 }
 
+// BlockItem is a simple meta data wrapper around a Device
+type BlockItem struct {
+	Id      string    `json:"id"`
+	Target  string    `json:"target"`
+	Parents []string  `json:"parents"`
+	Type    repo.BlockType `json:"type"`
+	Date    time.Time `json:"date"`
+}
+
 // Blocks is a wrapper around a list of Blocks
 type Blocks struct {
-	Items []repo.Block `json:"items"`
+	Items []BlockItem `json:"items"`
 }
 
 // tmp while central does not proxy the remote ipfs cluster
@@ -352,7 +362,16 @@ func (m *Mobile) PhotoBlocks(offsetId string, limit int, threadName string) (str
 		go thrd.PostHead()
 	}
 
-	blocks := &Blocks{thrd.Blocks(offsetId, limit, repo.PhotoBlock)}
+	blocks := &Blocks{}
+	for _, b := range thrd.Blocks(offsetId, limit, repo.PhotoBlock) {
+		blocks.Items = append(blocks.Items, BlockItem{
+			Id: b.Id,
+			Target: b.Target,
+			Parents: b.Parents,
+			Type: b.Type,
+			Date: b.Date,
+		})
+	}
 	jsonb, err := json.Marshal(blocks)
 	if err != nil {
 		log.Errorf("error marshaling json: %s", err)
