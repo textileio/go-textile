@@ -1,8 +1,8 @@
 package wallet_test
 
 import (
+	nm "github.com/textileio/textile-go/net/model"
 	. "github.com/textileio/textile-go/wallet"
-	"github.com/textileio/textile-go/wallet/model"
 	"github.com/textileio/textile-go/wallet/thread"
 	"os"
 	"testing"
@@ -14,8 +14,8 @@ var twallet *Wallet
 var wonline <-chan struct{}
 
 var thrd *thread.Thread
-var wadded *model.AddResult
-var tadded *model.AddResult
+var wadded *nm.AddResult
+var tadded *nm.AddResult
 
 func Test_SetupThread(t *testing.T) {
 	os.RemoveAll(trepo)

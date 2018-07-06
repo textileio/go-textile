@@ -3,13 +3,16 @@ package net
 import (
 	"context"
 	"errors"
+	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/pb"
 	inet "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 var (
-	DuplicateMessage = errors.New("duplicate message")
+	log               = logging.MustGetLogger("net")
+	OutOfOrderMessage = errors.New("message arrived out of order")
+	DuplicateMessage  = errors.New("duplicate message")
 )
 
 type NetworkService interface {
