@@ -41,26 +41,25 @@ func init() {
 }
 
 func TestPointersPut(t *testing.T) {
-
 	err := pndb.Put(pointer)
 	if err != nil {
 		t.Error(err)
 	}
 
-	stmt, _ := pndb.PrepareQuery("select pointerId, key, address, cancelId, purpose, timestamp from pointers where pointerId=?")
+	stmt, _ := pndb.PrepareQuery("select pointerId, key, address, cancelId, purpose, date from pointers where pointerId=?")
 	defer stmt.Close()
 
 	var pointerId string
 	var key string
 	var address string
 	var purpose int
-	var timestamp int
+	var date int
 	var cancelId string
-	err = stmt.QueryRow(pointer.Value.ID.Pretty()).Scan(&pointerId, &key, &address, &cancelId, &purpose, &timestamp)
+	err = stmt.QueryRow(pointer.Value.ID.Pretty()).Scan(&pointerId, &key, &address, &cancelId, &purpose, &date)
 	if err != nil {
 		t.Error(err)
 	}
-	if pointerId != pointer.Value.ID.Pretty() || timestamp <= 0 || key != pointer.Cid.String() || purpose != 1 || cancelId != pointer.CancelId.Pretty() {
+	if pointerId != pointer.Value.ID.Pretty() || date <= 0 || key != pointer.Cid.String() || purpose != 1 || cancelId != pointer.CancelId.Pretty() {
 		t.Error("pointer returned incorrect values")
 	}
 	err = pndb.Put(pointer)
