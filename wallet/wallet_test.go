@@ -229,14 +229,6 @@ func TestWallet_Peers(t *testing.T) {
 	// TODO
 }
 
-func TestWallet_Publish(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_Subscribe(t *testing.T) {
-	// TODO
-}
-
 func TestWallet_SignOut(t *testing.T) {
 	err := wallet.SignOut()
 	if err != nil {

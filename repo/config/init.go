@@ -16,7 +16,7 @@ const (
 	maxPort = 49151
 )
 
-var textileBootstrapAddresses = []string{
+var bootstrapAddresses = []string{
 	// cluster elastic ip, node 4
 	"/ip4/35.169.206.101/tcp/4001/ipfs/QmP4S3UhmuEcGCHBGyG4zQVducj81YeNnvkCxUnZJrUopp",
 	"/ip6/2600:1f18:6061:9403:8a36:fc7f:45be:2610/tcp/4001/ipfs/QmP4S3UhmuEcGCHBGyG4zQVducj81YeNnvkCxUnZJrUopp",
@@ -25,8 +25,6 @@ var textileBootstrapAddresses = []string{
 	"/ip4/34.201.54.67/tcp/4001/ipfs/QmTUvaGZqEu7qJw6DuTyhTgiZmZwdp7qN4FD4FFV3TGhjM",
 	"/ip6/2600:1f18:6061:9403:b15e:b223:3c2e:1ee9/tcp/4001/ipfs/QmTUvaGZqEu7qJw6DuTyhTgiZmZwdp7qN4FD4FFV3TGhjM",
 }
-
-var RemoteRelayNode = "QmTUvaGZqEu7qJw6DuTyhTgiZmZwdp7qN4FD4FFV3TGhjM"
 
 // DefaultServerFilters has a list of non-routable IPv4 prefixes
 // according to http://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
@@ -48,14 +46,9 @@ var DefaultServerFilters = []string{
 	"/ip4/240.0.0.0/ipcidr/4",
 }
 
-func Init(isMobile bool, identity native.Identity) (*native.Config, error) {
-	bootstrapPeers, err := native.DefaultBootstrapPeers()
-	if err != nil {
-		return nil, err
-	}
-
-	// add our own bootstrap peer
-	for _, addr := range textileBootstrapAddresses {
+func Init(identity native.Identity) (*native.Config, error) {
+	var bootstrapPeers []native.BootstrapPeer
+	for _, addr := range bootstrapAddresses {
 		p, err := native.ParseBootstrapPeer(addr)
 		bootstrapPeers = append(bootstrapPeers, p)
 		if err != nil {
@@ -70,15 +63,6 @@ func Init(isMobile bool, identity native.Identity) (*native.Config, error) {
 	swarmConnMgrHighWater := DefaultConnMgrHighWater
 	swarmConnMgrGracePeriod := DefaultConnMgrGracePeriod.String()
 
-	// some of the below are taken from the not-yet-released "lowpower" profile preset
-	// TODO: profile with these setting on / off
-	//if isMobile {
-	//	reproviderInterval = "0"
-	//	swarmConnMgrLowWater = 20
-	//	swarmConnMgrHighWater = 40
-	//	swarmConnMgrGracePeriod = time.Minute.String()
-	//}
-
 	conf := &native.Config{
 		API: native.API{
 			HTTPHeaders: map[string][]string{
@@ -88,7 +72,7 @@ func Init(isMobile bool, identity native.Identity) (*native.Config, error) {
 
 		// setup the node's default addresses.
 		// NOTE: two swarm listen addrs, one tcp, one utp.
-		Addresses: addressesConfig(isMobile),
+		Addresses: addressesConfig(),
 
 		Datastore: datastore,
 		Bootstrap: native.BootstrapPeerStrings(bootstrapPeers),
@@ -166,7 +150,7 @@ const DefaultConnMgrLowWater = 600
 // grace period
 const DefaultConnMgrGracePeriod = time.Second * 20
 
-func addressesConfig(isMobile bool) native.Addresses {
+func addressesConfig() native.Addresses {
 	swarmPort := getRandomPort()
 	gatewayPort := getRandomPort()
 
