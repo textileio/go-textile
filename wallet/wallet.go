@@ -80,7 +80,7 @@ type Wallet struct {
 }
 
 const (
-	pingTimeout        = time.Second * 10
+	pingTimeout = time.Second * 10
 )
 
 var ErrStarted = errors.New("node is already started")

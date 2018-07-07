@@ -17,17 +17,9 @@ jobs:
             govendor add +external
             go install -v ./...
       - run:
-          name: install relay
-          command: |
-            cd relay
-            govendor init
-            govendor add +external
-            go install -v ./...
-      - run:
           name: run and test all
           command: |
             central &
-            relay &
             sleep 5
             ./test_compile.sh
           environment:
@@ -38,6 +30,5 @@ jobs:
             DB_HOSTS: 0.0.0.0:27017
             DB_NAME: textile_db
             REF_KEY: woohoo!
-            RELAY: testdummythread
       - run: go get -u github.com/asticode/go-astilectron-bundler/...
       - run: make build_desktop
