@@ -19,7 +19,6 @@ import (
 	"github.com/textileio/textile-go/wallet/model"
 	"github.com/textileio/textile-go/wallet/thread"
 	"github.com/textileio/textile-go/wallet/util"
-	"gx/ipfs/QmSFihvoND3eDaAYRCeLgLPt62yCPgMZs1NSZmKFEtJQQw/go-libp2p-floodsub"
 	"gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	libp2pn "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
@@ -82,7 +81,6 @@ type Wallet struct {
 
 const (
 	pingTimeout        = time.Second * 10
-	relayTouchInterval = time.Minute * 2
 )
 
 var ErrStarted = errors.New("node is already started")
@@ -99,7 +97,7 @@ func NewWallet(config Config) (*Wallet, string, error) {
 	}
 
 	// we may be running in an uninitialized state.
-	mnemonic, err := trepo.DoInit(config.RepoPath, config.IsMobile, config.Version, config.MasterMnemonic,
+	mnemonic, err := trepo.DoInit(config.RepoPath, config.Version, config.MasterMnemonic,
 		sqliteDB.Config().Init, sqliteDB.Config().Configure)
 	if err != nil && err != trepo.ErrRepoExists {
 		return nil, "", err
@@ -916,31 +914,6 @@ func (w *Wallet) Peers() ([]libp2pn.Conn, error) {
 	return w.ipfs.PeerHost.Network().Conns(), nil
 }
 
-func (w *Wallet) Publish(topic string, payload []byte) error {
-	if !w.Online() {
-		return ErrOffline
-	}
-	if w.lastRelayTouch.Add(relayTouchInterval).Before(time.Now()) {
-		w.lastRelayTouch = time.Now()
-		log.Debug("connecting to relay...")
-		out, err := w.ConnectPeer([]string{fmt.Sprintf("/p2p-circuit/ipfs/%s", tconfig.RemoteRelayNode)})
-		if err != nil {
-			return err
-		}
-		for _, o := range out {
-			log.Debug(o)
-		}
-	}
-	return w.ipfs.Floodsub.Publish(topic, payload)
-}
-
-func (w *Wallet) Subscribe(topic string) (*floodsub.Subscription, error) {
-	if !w.Online() {
-		return nil, ErrOffline
-	}
-	return w.ipfs.Floodsub.Subscribe(topic)
-}
-
 // createIPFS creates an IPFS node
 func (w *Wallet) createIPFS(online bool) error {
 	// open repo
@@ -1057,12 +1030,6 @@ func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
 		},
 		UpdateHead: func(head string) error {
 			if err := w.datastore.Threads().UpdateHead(id, head); err != nil {
-				return err
-			}
-			return nil
-		},
-		Publish: func(payload []byte) error {
-			if err := w.Publish(id, payload); err != nil {
 				return err
 			}
 			return nil

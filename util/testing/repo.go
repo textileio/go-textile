@@ -57,7 +57,7 @@ func (r *Repository) Reset() error {
 	}
 
 	// Rebuild any necessary structure
-	_, err = repo.DoInit(r.Path, false, "boom", nil, r.DB.Config().Init, r.DB.Config().Configure)
+	_, err = repo.DoInit(r.Path, "boom", nil, r.DB.Config().Init, r.DB.Config().Configure)
 	if err != nil && err != repo.ErrRepoExists {
 		return err
 	}

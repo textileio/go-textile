@@ -23,7 +23,7 @@ var ErrRepoExists = errors.New("repo not empty, reinitializing would overwrite y
 
 const versionFilename = "textile_version"
 
-func DoInit(repoRoot string, isMobile bool, version string, mnemonic *string, initDB func(string) error, initConfig func(time.Time) error) (string, error) {
+func DoInit(repoRoot string, version string, mnemonic *string, initDB func(string) error, initConfig func(time.Time) error) (string, error) {
 	if err := checkWriteable(repoRoot); err != nil {
 		return "", err
 	}
@@ -65,7 +65,7 @@ func DoInit(repoRoot string, isMobile bool, version string, mnemonic *string, in
 		return "", err
 	}
 
-	conf, err := config.Init(isMobile, identity)
+	conf, err := config.Init(identity)
 	if err != nil {
 		return "", err
 	}
