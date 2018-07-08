@@ -14,7 +14,6 @@ import (
 	serv "github.com/textileio/textile-go/net/service"
 	"github.com/textileio/textile-go/pb"
 	trepo "github.com/textileio/textile-go/repo"
-	tconfig "github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/wallet/model"
 	"github.com/textileio/textile-go/wallet/thread"
@@ -118,47 +117,20 @@ func NewWallet(config Config) (*Wallet, string, error) {
 	}
 
 	// if a specific swarm port was selected, set it in the config
-	if config.SwarmPort != "" {
-		log.Infof("using specified swarm port: %s", config.SwarmPort)
-		if err := tconfig.Update(repo, "Addresses.Swarm", []string{
-			fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", config.SwarmPort),
-			fmt.Sprintf("/ip6/::/tcp/%s", config.SwarmPort),
-		}); err != nil {
-			return nil, "", err
-		}
+	if err := applySwarmPortConfigOption(repo, config.SwarmPort); err != nil {
+		return nil, "", err
 	}
 
 	// if this is a server node, apply the ipfs server profile
-	if config.IsServer {
-		if err := tconfig.Update(repo, "Addresses.NoAnnounce", tconfig.DefaultServerFilters); err != nil {
-			return nil, "", err
-		}
-		if err := tconfig.Update(repo, "Swarm.AddrFilters", tconfig.DefaultServerFilters); err != nil {
-			return nil, "", err
-		}
-		if err := tconfig.Update(repo, "Swarm.EnableRelayHop", true); err != nil {
-			return nil, "", err
-		}
-		if err := tconfig.Update(repo, "Discovery.MDNS.Enabled", false); err != nil {
-			return nil, "", err
-		}
-		log.Info("applied server profile")
-	}
-
-	// clean central api url
-	if len(config.CentralAPI) > 0 {
-		ca := config.CentralAPI
-		if ca[len(ca)-1:] == "/" {
-			ca = ca[0 : len(ca)-1]
-		}
-		config.CentralAPI = ca
+	if err := applyServerConfigOption(repo, config.IsServer); err != nil {
+		return nil, "", err
 	}
 
 	return &Wallet{
 		repoPath:   config.RepoPath,
 		serverAddr: gwAddr.(string),
 		datastore:  sqliteDB,
-		centralAPI: config.CentralAPI,
+		centralAPI: filepath.Clean(config.CentralAPI),
 		isMobile:   config.IsMobile,
 		updates:    make(chan Update),
 	}, mnemonic, nil
