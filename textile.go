@@ -106,7 +106,7 @@ func main() {
 		signal.Notify(quit, os.Interrupt)
 		<-quit
 		fmt.Println("interrupted")
-		fmt.Printf("textile node shutting down...")
+		fmt.Printf("shutting down...")
 		if err := stop(); err != nil && err != wallet.ErrStopped {
 			fmt.Println(err.Error())
 		} else {
@@ -126,7 +126,7 @@ func main() {
 				return
 			}
 			shell.Println("interrupted")
-			shell.Printf("textile node shutting down...")
+			shell.Printf("shutting down...")
 			if err := stop(); err != nil && err != wallet.ErrStopped {
 				c.Err(err)
 			} else {
@@ -347,17 +347,20 @@ func stop() error {
 }
 
 func printSplashScreen() {
-	cyan := color.New(color.FgCyan).SprintFunc()
-	banner := "*** textile node ***"
-	fmt.Println(cyan(banner))
-	fmt.Println("version: " + core.Version)
-	fmt.Printf("repo: %s\n", core.Node.Wallet.GetRepoPath())
+	cyan := color.New(color.FgHiCyan).SprintFunc()
+	green := color.New(color.FgHiGreen).SprintFunc()
+	grey := color.New(color.FgHiBlack).SprintFunc()
+	white := color.New(color.FgHiWhite).SprintFunc()
+	fmt.Println(cyan("textile"))
+	fmt.Println(cyan("·······"))
+	fmt.Println(grey("version: ") + white(core.Version))
+	fmt.Println(grey("repo: ") + white(core.Node.Wallet.GetRepoPath()))
 	if Options.ServerMode {
-		fmt.Println("server mode: enabled")
+		fmt.Println(grey("server mode: ") + green("enabled"))
 	}
 	if Options.DaemonMode {
-		fmt.Println("daemon mode: enabled")
+		fmt.Println(grey("daemon mode: ") + green("enabled"))
 	} else {
-		fmt.Println("type 'help' for available commands")
+		fmt.Println(grey("type 'help' for available commands"))
 	}
 }
