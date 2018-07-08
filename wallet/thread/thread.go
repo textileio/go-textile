@@ -117,7 +117,7 @@ func (t *Thread) AddInvite(target libp2pc.PubKey) (*nm.AddResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	threadskcypher, err := crypto.Encrypt(target, threadsk)
+	threadskcipher, err := crypto.Encrypt(target, threadsk)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func (t *Thread) AddInvite(target libp2pc.PubKey) (*nm.AddResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, threadskcypher, "key")
+	err = util.AddFileToDirectory(t.ipfs(), dirb, threadskcipher, "key")
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +204,7 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*nm.AddResult,
 	}
 
 	// encrypt AES key with thread pk
-	keycypher, err := t.Encrypt(key)
+	keycipher, err := t.Encrypt(key)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +214,7 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*nm.AddResult,
 	dateb := util.GetNowBytes()
 
 	// encrypt caption with thread pk
-	captioncypher, err := t.Encrypt([]byte(caption))
+	captioncipher, err := t.Encrypt([]byte(caption))
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +229,7 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*nm.AddResult,
 	if err != nil {
 		return nil, err
 	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, keycypher, "key")
+	err = util.AddFileToDirectory(t.ipfs(), dirb, keycipher, "key")
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +245,7 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*nm.AddResult,
 	if err != nil {
 		return nil, err
 	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, captioncypher, "caption")
+	err = util.AddFileToDirectory(t.ipfs(), dirb, captioncipher, "caption")
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +285,7 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*nm.AddResult,
 	if err := request.AddFile([]byte(head), "parents"); err != nil {
 		return nil, err
 	}
-	if err := request.AddFile(keycypher, "key"); err != nil {
+	if err := request.AddFile(keycipher, "key"); err != nil {
 		return nil, err
 	}
 	if err := request.AddFile([]byte(t.Id), "pk"); err != nil {
@@ -297,7 +297,7 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*nm.AddResult,
 	if err := request.AddFile(dateb, "date"); err != nil {
 		return nil, err
 	}
-	if err := request.AddFile(captioncypher, "caption"); err != nil {
+	if err := request.AddFile(captioncipher, "caption"); err != nil {
 		return nil, err
 	}
 
@@ -313,14 +313,14 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*nm.AddResult,
 // GetBlockData cats file data from ipfs and tries to decrypt it with the provided block
 func (t *Thread) GetBlockData(path string, block *repo.Block) ([]byte, error) {
 	// get bytes
-	cypher, err := util.GetDataAtPath(t.ipfs(), path)
+	cipher, err := util.GetDataAtPath(t.ipfs(), path)
 	if err != nil {
 		log.Errorf("error getting file data: %s", err)
 		return nil, err
 	}
 
 	// decrypt with thread key
-	return t.Decrypt(cypher)
+	return t.Decrypt(cipher)
 }
 
 // GetBlockDataBase64 returns block data encoded as base64 under an ipfs path
@@ -345,7 +345,7 @@ func (t *Thread) GetFileKey(block *repo.Block) (string, error) {
 // GetFileData cats file data from ipfs and tries to decrypt it with the provided block
 func (t *Thread) GetFileData(path string, block *repo.Block) ([]byte, error) {
 	// get bytes
-	cypher, err := util.GetDataAtPath(t.ipfs(), path)
+	cipher, err := util.GetDataAtPath(t.ipfs(), path)
 	if err != nil {
 		log.Errorf("error getting file data: %s", err)
 		return nil, err
@@ -359,7 +359,7 @@ func (t *Thread) GetFileData(path string, block *repo.Block) ([]byte, error) {
 	}
 
 	// finally, decrypt the file
-	return crypto.DecryptAES(cypher, key)
+	return crypto.DecryptAES(cipher, key)
 }
 
 // GetFileDataBase64 returns file data encoded as base64 under an ipfs path
@@ -567,13 +567,13 @@ func (t *Thread) getMessageForBlock(block *repo.Block) (*pb.Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	pblock := &pb.Block{
+	pblock := &pb.ThreadBlock{
 		Id:           block.Id,
 		Target:       block.Target,
 		Parents:      block.Parents,
 		TargetKey:    block.TargetKey,
 		ThreadPubKey: block.ThreadPubKey,
-		Type:         pb.Block_Type(int32(block.Type)),
+		Type:         pb.ThreadBlock_Type(int32(block.Type)),
 		Date:         date,
 	}
 
@@ -590,7 +590,7 @@ func (t *Thread) getMessageForBlock(block *repo.Block) (*pb.Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	signed := &pb.SignedBlock{
+	signed := &pb.SignedThreadBlock{
 		Id:           block.Id,
 		Data:         serialized,
 		Signature:    signature,

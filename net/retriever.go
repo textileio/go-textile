@@ -258,6 +258,7 @@ func (m *MessageRetriever) handleMessage(env pb.Envelope, addr string, id *peer.
 }
 
 var MessageProcessingOrder = []pb.Message_MessageType{
+	pb.Message_THREAD_BLOCK,
 	pb.Message_CHAT,
 	pb.Message_FOLLOW,
 	pb.Message_UNFOLLOW,
