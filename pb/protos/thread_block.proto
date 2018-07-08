@@ -3,7 +3,7 @@ option go_package = "pb";
 
 import "google/protobuf/timestamp.proto";
 
-message Block {
+message ThreadBlock {
     string id                      = 1;
     string target                  = 2;
     repeated string parents        = 3;
@@ -20,7 +20,7 @@ message Block {
     }
 }
 
-message SignedBlock {
+message SignedThreadBlock {
     string id          = 1;
     bytes data         = 2;
     bytes signature    = 3;

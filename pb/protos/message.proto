@@ -20,7 +20,8 @@ message Message {
         OFFLINE_RELAY    = 6;
         MODERATOR_ADD    = 7;
         MODERATOR_REMOVE = 8;
-        IPFS_BLOCK       = 9;
+        STORE            = 9;
+        BLOCK            = 10;
         ERROR            = 500;
     }
 }
@@ -51,7 +52,7 @@ message SignedData {
     bytes signature      = 3;
 
     message Command {
-        string peerID                       = 1;
+        string peerId                       = 1;
         Message.MessageType type            = 2;
         google.protobuf.Timestamp timestamp = 3;
     }
@@ -61,7 +62,7 @@ message CidList {
     repeated string cids = 1;
 }
 
-message IPFSBlock {
+message Block {
     bytes rawData = 1;
     string cid    = 2;
 }

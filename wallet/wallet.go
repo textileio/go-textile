@@ -15,6 +15,7 @@ import (
 	"github.com/textileio/textile-go/pb"
 	trepo "github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
+	"github.com/textileio/textile-go/storage"
 	"github.com/textileio/textile-go/wallet/model"
 	"github.com/textileio/textile-go/wallet/thread"
 	"github.com/textileio/textile-go/wallet/util"
@@ -76,6 +77,7 @@ type Wallet struct {
 	threads            []*thread.Thread
 	done               chan struct{}
 	updates            chan Update
+	messageStorage     storage.OfflineMessagingStorage
 	messageRetriever   *net.MessageRetriever
 	pointerRepublisher *net.PointerRepublisher
 }
@@ -132,7 +134,7 @@ func NewWallet(config Config) (*Wallet, string, error) {
 		repoPath:   config.RepoPath,
 		serverAddr: gwAddr.(string),
 		datastore:  sqliteDB,
-		centralAPI: filepath.Clean(config.CentralAPI),
+		centralAPI: strings.TrimRight(config.CentralAPI, "/"),
 		isMobile:   config.IsMobile,
 		updates:    make(chan Update),
 	}, mnemonic, nil
@@ -176,6 +178,9 @@ func (w *Wallet) Start() (chan struct{}, error) {
 		// wait for dht to bootstrap
 		<-dht.DefaultBootstrapConfig.DoneChan
 
+		// set offline message storage
+		w.messageStorage = storage.NewSelfHostedStorage(w.ipfs, w.repoPath, w.sendStore)
+
 		// service is now configurable
 		w.service = serv.NewService(w.ipfs, w.datastore, w.GetThread, w.AddThread)
 
@@ -185,8 +190,8 @@ func (w *Wallet) Start() (chan struct{}, error) {
 			Ipfs:      w.ipfs,
 			Service:   w.service,
 			PrefixLen: 14,
-			SendAck:   w.SendOfflineAck,
-			SendError: w.SendError,
+			SendAck:   w.sendOfflineAck,
+			SendError: w.sendError,
 		}
 		w.messageRetriever = net.NewMessageRetriever(mrCfg)
 		go w.messageRetriever.Run()
@@ -250,8 +255,11 @@ func (w *Wallet) Stop() error {
 	}
 	w.threads = nil
 
-	// wipe service
+	// wipe services
+	w.messageStorage = nil
 	w.service = nil
+	w.messageRetriever = nil
+	w.pointerRepublisher = nil
 
 	// close updates
 	close(w.updates)
@@ -705,38 +713,38 @@ func (w *Wallet) AddPhoto(path string) (*nm.AddResult, error) {
 
 	// encrypt files
 	reader.Seek(0, 0)
-	photocypher, err := util.GetEncryptedReaderBytes(reader, key)
+	photocipher, err := util.GetEncryptedReaderBytes(reader, key)
 	if err != nil {
 		return nil, err
 	}
-	thumbcypher, err := crypto.EncryptAES(thumb, key)
+	thumbcipher, err := crypto.EncryptAES(thumb, key)
 	if err != nil {
 		return nil, err
 	}
-	metacypher, err := crypto.EncryptAES(metab, key)
+	metacipher, err := crypto.EncryptAES(metab, key)
 	if err != nil {
 		return nil, err
 	}
-	mpkcypher, err := crypto.EncryptAES(mpkb, key)
+	mpkcipher, err := crypto.EncryptAES(mpkb, key)
 	if err != nil {
 		return nil, err
 	}
 
 	// create a virtual directory for the photo
 	dirb := uio.NewDirectory(w.ipfs.DAG)
-	err = util.AddFileToDirectory(w.ipfs, dirb, photocypher, "photo")
+	err = util.AddFileToDirectory(w.ipfs, dirb, photocipher, "photo")
 	if err != nil {
 		return nil, err
 	}
-	err = util.AddFileToDirectory(w.ipfs, dirb, thumbcypher, "thumb")
+	err = util.AddFileToDirectory(w.ipfs, dirb, thumbcipher, "thumb")
 	if err != nil {
 		return nil, err
 	}
-	err = util.AddFileToDirectory(w.ipfs, dirb, metacypher, "meta")
+	err = util.AddFileToDirectory(w.ipfs, dirb, metacipher, "meta")
 	if err != nil {
 		return nil, err
 	}
-	err = util.AddFileToDirectory(w.ipfs, dirb, mpkcypher, "pk")
+	err = util.AddFileToDirectory(w.ipfs, dirb, mpkcipher, "pk")
 	if err != nil {
 		return nil, err
 	}
@@ -756,16 +764,16 @@ func (w *Wallet) AddPhoto(path string) (*nm.AddResult, error) {
 	request.Init(filepath.Join(w.repoPath, "tmp"), id)
 
 	// add files to request
-	if err := request.AddFile(photocypher, "photo"); err != nil {
+	if err := request.AddFile(photocipher, "photo"); err != nil {
 		return nil, err
 	}
-	if err := request.AddFile(thumbcypher, "thumb"); err != nil {
+	if err := request.AddFile(thumbcipher, "thumb"); err != nil {
 		return nil, err
 	}
-	if err := request.AddFile(metacypher, "meta"); err != nil {
+	if err := request.AddFile(metacipher, "meta"); err != nil {
 		return nil, err
 	}
-	if err := request.AddFile(mpkcypher, "pk"); err != nil {
+	if err := request.AddFile(mpkcipher, "pk"); err != nil {
 		return nil, err
 	}
 
@@ -1026,7 +1034,7 @@ func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
 			return nil
 		},
 		Send: func(message *pb.Message, peerId string) error {
-			return w.sendMessage(message, peerId)
+			return w.SendMessage(message, peerId)
 		},
 	}
 	thrd, err := thread.NewThread(model, threadConfig)
