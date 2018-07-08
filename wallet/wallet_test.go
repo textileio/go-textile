@@ -59,7 +59,7 @@ func TestWallet_Online(t *testing.T) {
 	}
 }
 
-func TestWallet_GetGatewayAddress(t *testing.T) {
+func TestWallet_GetServerAddress(t *testing.T) {
 	// TODO
 }
 

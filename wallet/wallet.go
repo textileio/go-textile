@@ -38,13 +38,13 @@ import (
 var log = logging.MustGetLogger("wallet")
 
 type Config struct {
-	Version        string
-	RepoPath       string
-	CentralAPI     string
-	IsMobile       bool
-	IsServer       bool
-	SwarmPort      string
-	MasterMnemonic *string
+	Version    string
+	RepoPath   string
+	CentralAPI string
+	IsMobile   bool
+	IsServer   bool
+	SwarmPort  string
+	Mnemonic   *string
 }
 
 type Update struct {
@@ -65,7 +65,7 @@ const (
 type Wallet struct {
 	context        oldcmds.Context
 	repoPath       string
-	gatewayAddr    string
+	serverAddr     string
 	cancel         context.CancelFunc
 	ipfs           *core.IpfsNode
 	datastore      trepo.Datastore
@@ -97,8 +97,7 @@ func NewWallet(config Config) (*Wallet, string, error) {
 	}
 
 	// we may be running in an uninitialized state.
-	mnemonic, err := trepo.DoInit(config.RepoPath, config.Version, config.MasterMnemonic,
-		sqliteDB.Config().Init, sqliteDB.Config().Configure)
+	mnemonic, err := trepo.DoInit(config.RepoPath, config.Version, config.Mnemonic, sqliteDB.Config().Init, sqliteDB.Config().Configure)
 	if err != nil && err != trepo.ErrRepoExists {
 		return nil, "", err
 	}
@@ -156,12 +155,12 @@ func NewWallet(config Config) (*Wallet, string, error) {
 	}
 
 	return &Wallet{
-		repoPath:    config.RepoPath,
-		gatewayAddr: gwAddr.(string),
-		datastore:   sqliteDB,
-		centralAPI:  config.CentralAPI,
-		isMobile:    config.IsMobile,
-		updates:     make(chan Update),
+		repoPath:   config.RepoPath,
+		serverAddr: gwAddr.(string),
+		datastore:  sqliteDB,
+		centralAPI: config.CentralAPI,
+		isMobile:   config.IsMobile,
+		updates:    make(chan Update),
 	}, mnemonic, nil
 }
 
@@ -290,8 +289,8 @@ func (w *Wallet) Done() <-chan struct{} {
 	return w.done
 }
 
-func (w *Wallet) GetGatewayAddress() string {
-	return w.gatewayAddr
+func (w *Wallet) GetServerAddress() string {
+	return w.serverAddr
 }
 
 func (w *Wallet) GetRepoPath() string {

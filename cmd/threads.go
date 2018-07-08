@@ -44,7 +44,7 @@ func AddThread(c *ishell.Context) {
 		return
 	}
 
-	go Subscribe(c, thrd)
+	go Subscribe(thrd)
 
 	cyan := color.New(color.FgCyan).SprintFunc()
 	c.Println(cyan(fmt.Sprintf("added thread '%s'", name)))
@@ -170,7 +170,7 @@ func RemoveThread(c *ishell.Context) {
 	c.Println(red(fmt.Sprintf("removed thread '%s'", name)))
 }
 
-func Subscribe(shell ishell.Actions, thrd *thread.Thread) {
+func Subscribe(thrd *thread.Thread) {
 	cyan := color.New(color.FgCyan).SprintFunc()
 	for {
 		select {
@@ -178,7 +178,7 @@ func Subscribe(shell ishell.Actions, thrd *thread.Thread) {
 			if !ok {
 				return
 			}
-			shell.Printf(cyan(fmt.Sprintf("new block %s in thread %s", update.Id, update.ThreadName)))
+			fmt.Printf(cyan(fmt.Sprintf("\nnew block %s in thread %s\n", update.Id, update.ThreadName)))
 		}
 	}
 }
