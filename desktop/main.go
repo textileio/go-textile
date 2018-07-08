@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/asticode/go-astilectron"
@@ -10,7 +11,6 @@ import (
 	"github.com/asticode/go-astilog"
 	"github.com/mitchellh/go-homedir"
 	"github.com/op/go-logging"
-	"github.com/pkg/errors"
 	"github.com/skip2/go-qrcode"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
@@ -54,7 +54,7 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 	// get homedir
 	home, err := homedir.Dir()
 	if err != nil {
-		astilog.Fatal(errors.Wrap(err, "get homedir failed"))
+		astilog.Fatal(fmt.Errorf("get homedir failed: %s", err))
 	}
 
 	// ensure app support folder is created
@@ -117,13 +117,11 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 		}(thrd)
 	}
 
-	err = textile.StartGateway()
-	if err != nil {
-		return err
-	}
+	// start the server
+	textile.StartServer()
 
-	// save off the gateway address
-	gateway = fmt.Sprintf("http://%s", textile.GetGatewayAddress())
+	// save off the server address
+	gateway = fmt.Sprintf("http://%s", textile.GetServerAddress())
 
 	// sleep for a bit on the landing screen, it feels better
 	time.Sleep(SleepOnLoad)
