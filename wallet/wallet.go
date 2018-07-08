@@ -19,6 +19,7 @@ import (
 	"github.com/textileio/textile-go/wallet/thread"
 	"github.com/textileio/textile-go/wallet/util"
 	"gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
+	"gx/ipfs/QmVW4cqbibru3hXA1iRmg85Fk7z9qML9k176CYQaMXVCrP/go-libp2p-kad-dht"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	libp2pn "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
@@ -62,20 +63,21 @@ const (
 )
 
 type Wallet struct {
-	context        oldcmds.Context
-	repoPath       string
-	serverAddr     string
-	cancel         context.CancelFunc
-	ipfs           *core.IpfsNode
-	datastore      trepo.Datastore
-	service        *serv.TextileService
-	centralAPI     string
-	isMobile       bool
-	started        bool
-	threads        []*thread.Thread
-	done           chan struct{}
-	updates        chan Update
-	lastRelayTouch time.Time
+	context            oldcmds.Context
+	repoPath           string
+	serverAddr         string
+	cancel             context.CancelFunc
+	ipfs               *core.IpfsNode
+	datastore          trepo.Datastore
+	service            *serv.TextileService
+	centralAPI         string
+	isMobile           bool
+	started            bool
+	threads            []*thread.Thread
+	done               chan struct{}
+	updates            chan Update
+	messageRetriever   *net.MessageRetriever
+	pointerRepublisher *net.PointerRepublisher
 }
 
 const (
@@ -144,7 +146,6 @@ func (w *Wallet) Start() (chan struct{}, error) {
 	defer func() {
 		w.done = make(chan struct{})
 		w.started = true
-		w.lastRelayTouch = time.Time{}
 	}()
 	log.Info("starting wallet...")
 	onlineCh := make(chan struct{})
@@ -172,8 +173,27 @@ func (w *Wallet) Start() (chan struct{}, error) {
 			return
 		}
 
+		// wait for dht to bootstrap
+		<-dht.DefaultBootstrapConfig.DoneChan
+
 		// service is now configurable
 		w.service = serv.NewService(w.ipfs, w.datastore, w.GetThread, w.AddThread)
+
+		// build the message retriever
+		mrCfg := net.MRConfig{
+			Db:        w.datastore,
+			Ipfs:      w.ipfs,
+			Service:   w.service,
+			PrefixLen: 14,
+			SendAck:   w.SendOfflineAck,
+			SendError: w.SendError,
+		}
+		w.messageRetriever = net.NewMessageRetriever(mrCfg)
+		go w.messageRetriever.Run()
+
+		// build the pointer republisher
+		w.pointerRepublisher = net.NewPointerRepublisher(w.ipfs, w.datastore)
+		go w.pointerRepublisher.Run()
 
 		// print swarm addresses
 		if err := util.PrintSwarmAddrs(w.ipfs); err != nil {

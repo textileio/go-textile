@@ -17,13 +17,7 @@ const (
 )
 
 var bootstrapAddresses = []string{
-	// cluster elastic ip, node 4
-	"/ip4/35.169.206.101/tcp/4001/ipfs/QmP4S3UhmuEcGCHBGyG4zQVducj81YeNnvkCxUnZJrUopp",
-	"/ip6/2600:1f18:6061:9403:8a36:fc7f:45be:2610/tcp/4001/ipfs/QmP4S3UhmuEcGCHBGyG4zQVducj81YeNnvkCxUnZJrUopp",
-
-	// relay node 5
-	"/ip4/34.201.54.67/tcp/4001/ipfs/QmTUvaGZqEu7qJw6DuTyhTgiZmZwdp7qN4FD4FFV3TGhjM",
-	"/ip6/2600:1f18:6061:9403:b15e:b223:3c2e:1ee9/tcp/4001/ipfs/QmTUvaGZqEu7qJw6DuTyhTgiZmZwdp7qN4FD4FFV3TGhjM",
+	"/ip4/127.0.0.1/tcp/25651/ipfs/QmYtcQffBR4s3JfP21tqhiY1F7TnfohoTFkRY9cQoy1o5V",
 }
 
 // DefaultServerFilters has a list of non-routable IPv4 prefixes
@@ -151,14 +145,17 @@ const DefaultConnMgrLowWater = 600
 const DefaultConnMgrGracePeriod = time.Second * 20
 
 func addressesConfig() native.Addresses {
-	swarmPort := getRandomPort()
+	swarmTCPPort := getRandomPort()
+	swarmWSPort := getRandomPort()
 	gatewayPort := getRandomPort()
 
 	return native.Addresses{
 		Swarm: []string{
-			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", swarmPort),
+			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", swarmTCPPort),
+			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", swarmTCPPort),
+			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d/ws", swarmWSPort),
+			fmt.Sprintf("/ip6/::/tcp/%d/ws", swarmWSPort),
 			// "/ip4/0.0.0.0/udp/4002/utp", // disabled for now.
-			fmt.Sprintf("/ip6/::/tcp/%d", swarmPort),
 		},
 		Announce:   []string{},
 		NoAnnounce: []string{},

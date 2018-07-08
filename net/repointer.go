@@ -16,11 +16,13 @@ type PointerRepublisher struct {
 	isModerator func() bool
 }
 
-func NewPointerRepublisher(node *core.IpfsNode, database repo.Datastore, isModerator func() bool) *PointerRepublisher {
+func NewPointerRepublisher(node *core.IpfsNode, datastore repo.Datastore) *PointerRepublisher {
 	return &PointerRepublisher{
-		ipfs:        node,
-		db:          database,
-		isModerator: isModerator,
+		ipfs: node,
+		db:   datastore,
+		isModerator: func() bool {
+			return false
+		},
 	}
 }
 

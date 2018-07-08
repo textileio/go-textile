@@ -85,7 +85,7 @@ func main() {
 	}
 	node, _, err := core.NewNode(config)
 	if err != nil {
-		shell.Println(fmt.Errorf("create desktop node failed: %s", err))
+		fmt.Println(fmt.Errorf("create desktop node failed: %s", err))
 		return
 	}
 	core.Node = node
