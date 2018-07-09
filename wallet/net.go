@@ -181,13 +181,15 @@ func (w *Wallet) sendStore(peerId string, ids []cid.Cid) error {
 	if err != nil {
 		return err
 	}
-	defer w.service.DisconnectFromPeer(pid)
+	// TODO: need to disconnect here?
+	// defer w.service.DisconnectFromPeer(pid)
 	if pmes.Payload == nil {
 		return errors.New("peer responded with nil payload")
 	}
 	if pmes.MessageType == pb.Message_ERROR {
-		log.Errorf("error response from %s: %s", peerId, string(pmes.Payload.Value))
-		return errors.New("peer responded with error message")
+		err = fmt.Errorf("error response from %s: %s", peerId, string(pmes.Payload.Value))
+		log.Errorf(err.Error())
+		return err
 	}
 
 	resp := new(pb.CidList)
