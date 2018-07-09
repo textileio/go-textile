@@ -68,6 +68,7 @@ func (s *TextileService) handleThreadBlock(pid peer.ID, pmes *pb.Message, option
 			return nil, common.OutOfOrderMessage
 		}
 		if block.Target != s.self.Pretty() {
+			// TODO: still need to verify and add as a peer in thread
 			return nil, errors.New("invite does not belong to us")
 		}
 		skb, err := crypto.Decrypt(s.node.PrivateKey, block.TargetKey)

@@ -66,7 +66,6 @@ func PublishPointer(node *core.IpfsNode, ctx context.Context, pointer Pointer) e
 	return addPointer(node, ctx, pointer.Cid, pointer.Value)
 }
 
-// Fetch pointers from the dht. They will be returned asynchronously.
 func FindPointersAsync(dht *routing.IpfsDHT, ctx context.Context, mhKey multihash.Multihash, prefixLen int) <-chan ps.PeerInfo {
 	keyhash := CreatePointerKey(mhKey, prefixLen)
 	key, _ := cid.Decode(keyhash.B58String())
@@ -74,7 +73,6 @@ func FindPointersAsync(dht *routing.IpfsDHT, ctx context.Context, mhKey multihas
 	return peerout
 }
 
-// Fetch pointers from the dht
 func FindPointers(dht *routing.IpfsDHT, ctx context.Context, mhKey multihash.Multihash, prefixLen int) ([]ps.PeerInfo, error) {
 	var providers []ps.PeerInfo
 	for p := range FindPointersAsync(dht, ctx, mhKey, prefixLen) {

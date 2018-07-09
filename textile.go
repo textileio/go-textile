@@ -347,12 +347,11 @@ func stop() error {
 }
 
 func printSplashScreen() {
-	cyan := color.New(color.FgHiCyan).SprintFunc()
+	cyan := color.New(color.FgCyan).SprintFunc()
 	green := color.New(color.FgHiGreen).SprintFunc()
 	grey := color.New(color.FgHiBlack).SprintFunc()
 	black := color.New(color.FgBlack).SprintFunc()
-	fmt.Println(cyan("textile"))
-	fmt.Println(cyan("·······"))
+	fmt.Println(cyan("TEXTILE"))
 	fmt.Println(grey("version: ") + black(core.Version))
 	fmt.Println(grey("repo: ") + black(core.Node.Wallet.GetRepoPath()))
 	if Options.ServerMode {

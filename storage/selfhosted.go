@@ -7,6 +7,10 @@ import (
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	"sync"
+	routing "gx/ipfs/QmVW4cqbibru3hXA1iRmg85Fk7z9qML9k176CYQaMXVCrP/go-libp2p-kad-dht"
+	"context"
+	"time"
 )
 
 type SelfHostedStorage struct {
@@ -39,9 +43,23 @@ func (s *SelfHostedStorage) Store(peerID peer.ID, ciphertext []byte) (ma.Multiad
 		return nil, err
 	}
 
-	// TODO: figure out where to push (thinking we can use a random subset of nodes to push to)
-	//for _, peer := range s.pushNodes {
-	//	go s.store(peer.Pretty(), []cid.Cid{*dir.Cid()})
-	//}
+	// ask key neighbors to store the message content
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second * 5)
+	defer cancel()
+	dht := s.ipfs.Routing.(*routing.IpfsDHT)
+	peers, err := dht.GetClosestPeers(ctx, dir.Cid().KeyString())
+	if err != nil {
+		return nil, err
+	}
+	wg := sync.WaitGroup{}
+	for p := range peers {
+		wg.Add(1)
+		go func(pid peer.ID) {
+			defer wg.Done()
+			s.store(pid.Pretty(), []cid.Cid{*dir.Cid()})
+		}(p)
+	}
+	wg.Wait()
+
 	return ma.NewMultiaddr("/ipfs/" + dir.Cid().Hash().B58String() + "/")
 }
