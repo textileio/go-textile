@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-var trepo = "testdata/.ipfs1"
+var trepo = "testdata/.textile1"
 
 var twallet *Wallet
 var wonline <-chan struct{}
