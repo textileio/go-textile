@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/textileio/textile-go/crypto"
+	"github.com/textileio/textile-go/net/common"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet/util"
@@ -104,6 +105,7 @@ func (m *MessageRetriever) fetchPointers(useDHT bool) {
 	inFlight := make(map[string]bool)
 	// iterate over the pointers, adding 1 to the waitgroup for each pointer found
 	for p := range peerOut {
+		log.Debugf("retriever found peer info: %s", p.Loggable())
 		if len(p.Addrs) > 0 && !m.db.OfflineMessages().Has(p.Addrs[0].String()) && !inFlight[p.Addrs[0].String()] {
 			inFlight[p.Addrs[0].String()] = true
 			log.Debugf("found pointer with location %s", p.Addrs[0].String())
@@ -138,7 +140,7 @@ func (m *MessageRetriever) fetch(pid peer.ID, addr ma.Multiaddr, wg *sync.WaitGr
 	var err error
 
 	go func() {
-		ciphertext, err = util.GetDataAtPath(m.ipfs, addr.String())
+		ciphertext, err = util.GetDataAtPath(m.ipfs, addr.String()+"/msg")
 		c <- struct{}{}
 	}()
 
@@ -217,12 +219,12 @@ func (m *MessageRetriever) handleMessage(env pb.Envelope, addr string, id *peer.
 		// get the peer ID from the public key
 		pubkey, err := libp2p.UnmarshalPublicKey(env.Pubkey)
 		if err != nil {
-			log.Errorf("Error processing message %s. Type %s: %s", addr, env.Message.MessageType, err.Error())
+			log.Errorf("error processing message %s. type %s: %s", addr, env.Message.MessageType, err.Error())
 			return err
 		}
 		i, err := peer.IDFromPublicKey(pubkey)
 		if err != nil {
-			log.Errorf("Error processing message %s. Type %s: %s", addr, env.Message.MessageType, err.Error())
+			log.Errorf("error processing message %s. type %s: %s", addr, env.Message.MessageType, err.Error())
 			return err
 		}
 		id = &i
@@ -239,7 +241,7 @@ func (m *MessageRetriever) handleMessage(env pb.Envelope, addr string, id *peer.
 	// dispatch handler
 	_, err := handler(*id, env.Message, true)
 	if err != nil {
-		if err == OutOfOrderMessage {
+		if err == common.OutOfOrderMessage {
 			ser, err := proto.Marshal(&env)
 			if err == nil {
 				err := m.db.OfflineMessages().SetMessage(addr, ser)
@@ -250,7 +252,7 @@ func (m *MessageRetriever) handleMessage(env pb.Envelope, addr string, id *peer.
 				log.Errorf("error serializing offline message %s for storage")
 			}
 		} else {
-			log.Errorf("error processing message %s. Type %s: %s", addr, env.Message.MessageType, err.Error())
+			log.Errorf("error processing message %s. type %s: %s", addr, env.Message.MessageType, err.Error())
 			return err
 		}
 	}

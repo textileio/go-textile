@@ -7,6 +7,7 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/crypto"
+	"github.com/textileio/textile-go/net/common"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
@@ -64,11 +65,10 @@ func (s *TextileService) handleThreadBlock(pid peer.ID, pmes *pb.Message, option
 	case pb.ThreadBlock_INVITE:
 		log.Debug("handling ThreadBlock_INVITE...")
 		if thrd != nil {
-			return nil, errors.New("thread exists")
+			return nil, common.OutOfOrderMessage
 		}
 		if block.Target != s.self.Pretty() {
-			// TODO: should not be error right?
-			return nil, errors.New("invalid invite target")
+			return nil, errors.New("invite does not belong to us")
 		}
 		skb, err := crypto.Decrypt(s.node.PrivateKey, block.TargetKey)
 		if err != nil {
@@ -134,18 +134,18 @@ func (s *TextileService) handleOfflineAck(pid peer.ID, pmes *pb.Message, options
 	if pmes.Payload == nil {
 		return nil, errors.New("payload is nil")
 	}
-	_, err := peer.IDB58Decode(string(pmes.Payload.Value))
+	id, err := peer.IDB58Decode(string(pmes.Payload.Value))
 	if err != nil {
 		return nil, err
 	}
-	pointer, err := s.datastore.Pointers().Get(pid)
+	pointer, err := s.datastore.Pointers().Get(id)
 	if err != nil {
 		return nil, err
 	}
 	if pointer.CancelId == nil || pointer.CancelId.Pretty() != pid.Pretty() {
 		return nil, errors.New("peer is not authorized to delete pointer")
 	}
-	err = s.datastore.Pointers().Delete(pid)
+	err = s.datastore.Pointers().Delete(id)
 	if err != nil {
 		return nil, err
 	}

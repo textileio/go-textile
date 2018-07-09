@@ -152,7 +152,7 @@ func initDatabaseTables(db *sql.DB, password string) error {
     create index block_target on blocks (target);
     create index block_pk_type_date on blocks (pk, type, date);
     create table offlinemessages (url text primary key not null, date integer, message blob);
-	create table pointers (pointerId text primary key not null, key text, address text, cancelId text, purpose integer, date integer);
+	create table pointers (id text primary key not null, key text, address text, cancelId text, purpose integer, date integer);
 	`
 	_, err := db.Exec(sqlStmt)
 	if err != nil {
