@@ -27,7 +27,7 @@ func (p *PointersDB) Put(pointer repo.Pointer) error {
 	if err != nil {
 		return err
 	}
-	stmt, err := tx.Prepare("insert into pointers(pointerId, key, address, cancelId, purpose, date) values(?,?,?,?,?,?)")
+	stmt, err := tx.Prepare("insert into pointers(id, key, address, cancelId, purpose, date) values(?,?,?,?,?,?)")
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func (p *PointersDB) Put(pointer repo.Pointer) error {
 func (p *PointersDB) Delete(id peer.ID) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	_, err := p.db.Exec("delete from pointers where pointerId=?", id.Pretty())
+	_, err := p.db.Exec("delete from pointers where id=?", id.Pretty())
 	if err != nil {
 		return err
 	}
@@ -178,7 +178,7 @@ func (p *PointersDB) GetByPurpose(purpose repo.Purpose) ([]repo.Pointer, error) 
 func (p *PointersDB) Get(id peer.ID) (repo.Pointer, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	stm := "select * from pointers where pointerId=?"
+	stm := "select * from pointers where id=?"
 	row := p.db.QueryRow(stm, id.Pretty())
 	var pointer repo.Pointer
 

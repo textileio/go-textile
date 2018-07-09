@@ -47,7 +47,7 @@ func (w *Wallet) SendMessage(message *pb.Message, peerId string) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	err = w.service.SendMessage(ctx, pid, message)
 	if err != nil {

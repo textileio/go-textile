@@ -350,11 +350,11 @@ func printSplashScreen() {
 	cyan := color.New(color.FgHiCyan).SprintFunc()
 	green := color.New(color.FgHiGreen).SprintFunc()
 	grey := color.New(color.FgHiBlack).SprintFunc()
-	white := color.New(color.FgHiWhite).SprintFunc()
+	black := color.New(color.FgBlack).SprintFunc()
 	fmt.Println(cyan("textile"))
 	fmt.Println(cyan("·······"))
-	fmt.Println(grey("version: ") + white(core.Version))
-	fmt.Println(grey("repo: ") + white(core.Node.Wallet.GetRepoPath()))
+	fmt.Println(grey("version: ") + black(core.Version))
+	fmt.Println(grey("repo: ") + black(core.Node.Wallet.GetRepoPath()))
 	if Options.ServerMode {
 		fmt.Println(grey("server mode: ") + green("enabled"))
 	}

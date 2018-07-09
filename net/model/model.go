@@ -1,6 +1,8 @@
 package model
 
-import "github.com/textileio/textile-go/net"
+import (
+	"github.com/textileio/textile-go/net"
+)
 
 type AddResult struct {
 	Id            string
