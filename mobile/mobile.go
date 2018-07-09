@@ -12,6 +12,7 @@ import (
 	"github.com/textileio/textile-go/wallet"
 	"github.com/textileio/textile-go/wallet/thread"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"time"
 )
 
 var log = logging.MustGetLogger("mobile")
@@ -25,11 +26,8 @@ type Event struct {
 // newEvent transforms an event name and structured data in Event
 func newEvent(name string, payload map[string]interface{}) *Event {
 	event := &Event{Name: name}
-	jsonb, err := json.Marshal(payload)
-	if err != nil {
-		log.Errorf("error creating event data json: %s", err)
-	}
-	event.Payload = string(jsonb)
+	jsn, _ := toJSON(payload)
+	event.Payload = jsn
 	return event
 }
 
@@ -78,13 +76,24 @@ type Devices struct {
 	Items []DeviceItem `json:"items"`
 }
 
-// Blocks is a wrapper around a list of Blocks
-type Blocks struct {
-	Items []repo.Block `json:"items"`
+// BlockItem is a simple meta data wrapper around a Device
+type BlockItem struct {
+	Id      string         `json:"id"`
+	Target  string         `json:"target"`
+	Parents []string       `json:"parents"`
+	Type    repo.BlockType `json:"type"`
+	Date    time.Time      `json:"date"`
 }
 
-// tmp while central does not proxy the remote ipfs cluster
-const RemoteIPFSApi = "https://ipfs.textile.io/api/v0"
+// Blocks is a wrapper around a list of Blocks
+type Blocks struct {
+	Items []BlockItem `json:"items"`
+}
+
+// PinRequests is a wrapper around multiple PinRequests
+type PinRequests struct {
+	Items []net.PinRequest `json:"items"`
+}
 
 // Create a gomobile compatible wrapper around TextileNode
 func NewNode(config *NodeConfig, messenger Messenger) (*Mobile, error) {
@@ -208,13 +217,12 @@ func (m *Mobile) Threads() (string, error) {
 		threads.Items = append(threads.Items, item)
 	}
 
-	jsonb, err := json.Marshal(threads)
+	// build json
+	jsn, err := toJSON(threads)
 	if err != nil {
-		log.Errorf("error marshaling json: %s", err)
 		return "", err
 	}
-
-	return string(jsonb), nil
+	return jsn, nil
 }
 
 // AddThread adds a new thread with the given name
@@ -225,16 +233,24 @@ func (m *Mobile) AddThread(name string, mnemonic string) (string, error) {
 	}
 	thrd, _, err := tcore.Node.Wallet.AddThreadWithMnemonic(name, mnem)
 	if err != nil {
-		if err == wallet.ErrThreadExists || err == wallet.ErrThreadLoaded {
-			return "", nil
-		}
 		return "", err
 	}
 
 	// subscribe to updates
 	go m.subscribe(thrd)
 
-	return thrd.Id, nil
+	// build json
+	peers := thrd.Peers("", -1)
+	item := ThreadItem{
+		Id:    thrd.Id,
+		Name:  thrd.Name,
+		Peers: len(peers),
+	}
+	jsn, err := toJSON(item)
+	if err != nil {
+		return "", err
+	}
+	return jsn, nil
 }
 
 // RemoveThread call core RemoveDevice
@@ -250,13 +266,12 @@ func (m *Mobile) Devices() (string, error) {
 		devices.Items = append(devices.Items, item)
 	}
 
-	jsonb, err := json.Marshal(devices)
+	// build json
+	jsn, err := toJSON(devices)
 	if err != nil {
-		log.Errorf("error marshaling json: %s", err)
 		return "", err
 	}
-
-	return string(jsonb), nil
+	return jsn, nil
 }
 
 // AddDevice calls core AddDevice
@@ -277,31 +292,30 @@ func (m *Mobile) RemoveDevice(name string) error {
 	return tcore.Node.Wallet.RemoveDevice(name)
 }
 
-// AddPhoto adds a photo by path and shares it to the default thread
-func (m *Mobile) AddPhoto(path string, threadName string, caption string) (*net.MultipartRequest, error) {
+// AddPhoto adds a photo by path and shares it to a thread
+func (m *Mobile) AddPhoto(path string, threadName string, caption string) (string, error) {
 	_, thrd := tcore.Node.Wallet.GetThreadByName(threadName)
 	if thrd == nil {
-		return nil, errors.New(fmt.Sprintf("could not find thread: %s", threadName))
+		return "", errors.New(fmt.Sprintf("could not find thread: %s", threadName))
 	}
 	added, err := tcore.Node.Wallet.AddPhoto(path)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	shared, err := thrd.AddPhoto(added.Id, caption, added.Key)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	// pin to remote
-	url := fmt.Sprintf("%s/add?wrap-with-directory=true", RemoteIPFSApi)
-	status, err := shared.RemoteRequest.Send(url)
+	// build json
+	requests := PinRequests{}
+	requests.Items = append(requests.Items, *added.RemoteRequest)
+	requests.Items = append(requests.Items, *shared.RemoteRequest)
+	jsn, err := toJSON(requests)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	log.Debugf("pinned block to remote (status %s)", status)
-
-	// let the OS handle the large upload
-	return added.RemoteRequest, nil
+	return jsn, nil
 }
 
 // SharePhoto adds an existing photo to a new thread
@@ -329,15 +343,14 @@ func (m *Mobile) SharePhoto(id string, threadName string, caption string) (strin
 		return "", err
 	}
 
-	// pin to remote
-	url := fmt.Sprintf("%s/add?wrap-with-directory=true", RemoteIPFSApi)
-	status, err := shared.RemoteRequest.Send(url)
+	// build json
+	requests := PinRequests{}
+	requests.Items = append(requests.Items, *shared.RemoteRequest)
+	jsn, err := toJSON(requests)
 	if err != nil {
 		return "", err
 	}
-	log.Debugf("pinned block to remote (status %s)", status)
-
-	return shared.Id, nil
+	return jsn, nil
 }
 
 // PhotoBlocks returns thread photo blocks with json encoding
@@ -347,19 +360,22 @@ func (m *Mobile) PhotoBlocks(offsetId string, limit int, threadName string) (str
 		return "", errors.New(fmt.Sprintf("thread not found: %s", threadName))
 	}
 
-	// use this opportunity to post head
-	if tcore.Node.Wallet.Online() {
-		go thrd.PostHead()
+	// build json
+	blocks := &Blocks{}
+	for _, b := range thrd.Blocks(offsetId, limit, repo.PhotoBlock) {
+		blocks.Items = append(blocks.Items, BlockItem{
+			Id:      b.Id,
+			Target:  b.Target,
+			Parents: b.Parents,
+			Type:    b.Type,
+			Date:    b.Date,
+		})
 	}
-
-	blocks := &Blocks{thrd.Blocks(offsetId, limit, repo.PhotoBlock)}
-	jsonb, err := json.Marshal(blocks)
+	jsn, err := toJSON(blocks)
 	if err != nil {
-		log.Errorf("error marshaling json: %s", err)
 		return "", err
 	}
-
-	return string(jsonb), nil
+	return jsn, nil
 }
 
 // GetBlockData calls GetBlockDataBase64 on a thread
@@ -413,4 +429,14 @@ func (m *Mobile) subscribe(thrd *thread.Thread) {
 			}))
 		}
 	}
+}
+
+// toJSON returns a json string and logs errors
+func toJSON(any interface{}) (string, error) {
+	jsonb, err := json.Marshal(any)
+	if err != nil {
+		log.Errorf("error marshaling json: %s", err)
+		return "", err
+	}
+	return string(jsonb), nil
 }

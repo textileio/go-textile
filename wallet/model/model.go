@@ -22,7 +22,7 @@ type FileMetadata struct {
 type AddResult struct {
 	Id            string
 	Key           []byte
-	RemoteRequest *net.MultipartRequest
+	RemoteRequest *net.PinRequest
 }
 
 type PhotoMetadata struct {

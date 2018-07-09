@@ -17,6 +17,8 @@ type TestMessenger struct {
 
 func (tm *TestMessenger) Notify(event *Event) {}
 
+var repo = "testdata/.textile"
+
 var mobile *Mobile
 var addedPhotoId string
 var sharedBlockId string
@@ -26,9 +28,9 @@ var cpassword = ksuid.New().String()
 var cemail = ksuid.New().String() + "@textile.io"
 
 func TestNewTextile(t *testing.T) {
-	os.RemoveAll("testdata/.ipfs")
+	os.RemoveAll(repo)
 	config := &NodeConfig{
-		RepoPath:      "testdata/.ipfs",
+		RepoPath:      repo,
 		CentralApiURL: util.CentralApiURL,
 		LogLevel:      "DEBUG",
 	}
@@ -108,18 +110,18 @@ func TestMobile_GetAccessToken(t *testing.T) {
 }
 
 func TestMobile_AddThread(t *testing.T) {
-	id, err := mobile.AddThread("default", "")
+	item, err := mobile.AddThread("default", "")
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
 	}
-	if id == "" {
-		t.Error("add thread bad id")
+	if item == "" {
+		t.Error("add thread bad result")
 	}
 }
 
 func TestMobile_AddThreadAgain(t *testing.T) {
-	if _, err := mobile.AddThread("default", ""); err != nil {
-		t.Errorf("add thread again failed: %s", err)
+	if _, err := mobile.AddThread("default", ""); err == nil {
+		t.Errorf("add thread again should fail: %s", err)
 	}
 }
 
@@ -212,20 +214,18 @@ func TestMobile_RemoveDevice(t *testing.T) {
 }
 
 func TestMobile_AddPhoto(t *testing.T) {
-	mr, err := mobile.AddPhoto("testdata/image.jpg", "default", "howdy")
+	mrs, err := mobile.AddPhoto("testdata/image.jpg", "default", "howdy")
 	if err != nil {
 		t.Errorf("add photo failed: %s", err)
 		return
 	}
-	if len(mr.Boundary) == 0 {
-		t.Errorf("add photo got bad hash")
+	reqs := PinRequests{}
+	json.Unmarshal([]byte(mrs), &reqs)
+	if len(reqs.Items) != 2 {
+		t.Errorf("add photo got bad pin requests")
 		return
 	}
-	addedPhotoId = mr.Boundary
-	err = os.Remove("testdata/.ipfs/tmp/" + mr.Boundary)
-	if err != nil {
-		t.Errorf("error unlinking test multipart file: %s", err)
-	}
+	addedPhotoId = reqs.Items[0].Boundary
 }
 
 func TestMobile_SharePhoto(t *testing.T) {
@@ -234,15 +234,18 @@ func TestMobile_SharePhoto(t *testing.T) {
 		return
 	}
 	caption := "rasputin's eyes"
-	var err error
-	sharedBlockId, err = mobile.SharePhoto(addedPhotoId, "test", caption)
+	mrs, err := mobile.SharePhoto(addedPhotoId, "test", caption)
 	if err != nil {
 		t.Errorf("share photo failed: %s", err)
 		return
 	}
-	if len(sharedBlockId) == 0 {
-		t.Errorf("share photo got bad id")
+	reqs := PinRequests{}
+	json.Unmarshal([]byte(mrs), &reqs)
+	if len(reqs.Items) != 1 {
+		t.Errorf("share photo got bad pin requests")
+		return
 	}
+	sharedBlockId = reqs.Items[0].Boundary
 }
 
 func TestMobile_PhotoBlocks(t *testing.T) {
