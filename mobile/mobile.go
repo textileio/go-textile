@@ -210,7 +210,7 @@ func (m *Mobile) GetAccessToken() (string, error) {
 
 // Threads lists all threads
 func (m *Mobile) Threads() (string, error) {
-	var threads Threads
+	threads := Threads{Items: make([]ThreadItem, 0)}
 	for _, thrd := range tcore.Node.Wallet.Threads() {
 		peers := thrd.Peers("", -1)
 		item := ThreadItem{Id: thrd.Id, Name: thrd.Name, Peers: len(peers)}
@@ -250,7 +250,7 @@ func (m *Mobile) RemoveThread(name string) error {
 
 // Devices lists all devices
 func (m *Mobile) Devices() (string, error) {
-	var devices Devices
+	devices := Devices{Items: make([]DeviceItem, 0)}
 	for _, dev := range tcore.Node.Wallet.Devices() {
 		item := DeviceItem{Id: dev.Id, Name: dev.Name}
 		devices.Items = append(devices.Items, item)

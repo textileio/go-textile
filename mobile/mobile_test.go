@@ -2,13 +2,12 @@ package mobile_test
 
 import (
 	"encoding/json"
-	"os"
-	"testing"
-
 	"github.com/segmentio/ksuid"
 	. "github.com/textileio/textile-go/mobile"
 	util "github.com/textileio/textile-go/util/testing"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"os"
+	"testing"
 )
 
 type TestMessenger struct {
@@ -106,6 +105,19 @@ func TestMobile_GetUsername(t *testing.T) {
 func TestMobile_GetAccessToken(t *testing.T) {
 	if _, err := mobile.GetAccessToken(); err != nil {
 		t.Errorf("get access token failed: %s", err)
+	}
+}
+
+func TestMobile_EmptyThreads(t *testing.T) {
+	res, err := mobile.Threads()
+	if err != nil {
+		t.Errorf("get threads failed: %s", err)
+		return
+	}
+	threads := Threads{}
+	json.Unmarshal([]byte(res), &threads)
+	if len(threads.Items) != 0 {
+		t.Error("get threads bad result")
 	}
 }
 
