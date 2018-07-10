@@ -46,7 +46,7 @@ func TestPointersPut(t *testing.T) {
 		t.Error(err)
 	}
 
-	stmt, _ := pndb.PrepareQuery("select pointerId, key, address, cancelId, purpose, date from pointers where pointerId=?")
+	stmt, _ := pndb.PrepareQuery("select id, key, address, cancelId, purpose, date from pointers where id=?")
 	defer stmt.Close()
 
 	var pointerId string
@@ -74,7 +74,7 @@ func TestDeletePointer(t *testing.T) {
 	if err != nil {
 		t.Error("pointer delete failed")
 	}
-	stmt, _ := pndb.PrepareQuery("select pointerId from pointers where pointerId=?")
+	stmt, _ := pndb.PrepareQuery("select id from pointers where id=?")
 	defer stmt.Close()
 
 	var pointerId string
@@ -92,7 +92,7 @@ func TestDeleteAllPointers(t *testing.T) {
 	if err != nil {
 		t.Error("pointer delete failed")
 	}
-	stmt, _ := pndb.PrepareQuery("select pointerId from pointers where purpose=?")
+	stmt, _ := pndb.PrepareQuery("select id from pointers where purpose=?")
 	defer stmt.Close()
 
 	var pointerId string
