@@ -26,7 +26,6 @@ var (
 	builtAt  string
 	debug    = flag.Bool("d", false, "enables the debug mode")
 	window   *astilectron.Window
-	textile  *core.TextileNode
 	gateway  string
 	expanded bool
 )
@@ -73,13 +72,13 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 			IsMobile:   false,
 		},
 	}
-	textile, _, err = core.NewNode(config)
+	core.Node, _, err = core.NewNode(config)
 	if err != nil {
 		return err
 	}
 
 	// bring the node online and startup the gateway
-	online, err := textile.StartWallet()
+	online, err := core.Node.StartWallet()
 	if err != nil {
 		return err
 	}
@@ -89,7 +88,7 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 	go func() {
 		for {
 			select {
-			case update, ok := <-textile.Wallet.Updates():
+			case update, ok := <-core.Node.Wallet.Updates():
 				if !ok {
 					return
 				}
@@ -111,17 +110,17 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 	}()
 
 	// subscribe to thread updates
-	for _, thrd := range textile.Wallet.Threads() {
+	for _, thrd := range core.Node.Wallet.Threads() {
 		go func(t *thread.Thread) {
 			subscribe(t)
 		}(thrd)
 	}
 
 	// start the server
-	textile.StartServer()
+	core.Node.StartServer()
 
 	// save off the server address
-	gateway = fmt.Sprintf("http://%s", textile.GetServerAddress())
+	gateway = fmt.Sprintf("http://%s", core.Node.GetServerAddress())
 
 	// sleep for a bit on the landing screen, it feels better
 	time.Sleep(SleepOnLoad)
@@ -134,7 +133,7 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 	})
 
 	// check if we're configured yet
-	threads := textile.Wallet.Threads()
+	threads := core.Node.Wallet.Threads()
 	if len(threads) > 0 {
 		// load threads for UI
 		var threadsJSON []map[string]interface{}
@@ -215,7 +214,7 @@ func subscribe(thrd *thread.Thread) {
 
 func getQRCode() (string, string, error) {
 	// get our own public key
-	pk, err := textile.Wallet.GetPubKeyString()
+	pk, err := core.Node.Wallet.GetPubKeyString()
 	if err != nil {
 		return "", "", err
 	}
@@ -231,7 +230,7 @@ func getQRCode() (string, string, error) {
 }
 
 func getThreadPhotos(id string) (string, error) {
-	thrd := textile.Wallet.GetThread(id)
+	thrd := core.Node.Wallet.GetThread(id)
 	if thrd == nil {
 		return "", errors.New("thread not found")
 	}

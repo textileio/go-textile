@@ -18,11 +18,13 @@ func gateway(c *gin.Context) {
 		block, err := Node.Wallet.GetBlock(blockId)
 		if err != nil {
 			log.Errorf("error finding block %s: %s", blockId, err)
+			c.Status(404)
 			return
 		}
 		thrd := Node.Wallet.GetThread(block.ThreadPubKey)
 		if thrd == nil {
 			log.Errorf("could not find thread for block: %s", block.Id)
+			c.Status(404)
 			return
 		}
 		file, err := thrd.GetFileData(contentPath, block)
