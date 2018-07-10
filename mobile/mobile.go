@@ -216,13 +216,7 @@ func (m *Mobile) Threads() (string, error) {
 		item := ThreadItem{Id: thrd.Id, Name: thrd.Name, Peers: len(peers)}
 		threads.Items = append(threads.Items, item)
 	}
-
-	// build json
-	jsn, err := toJSON(threads)
-	if err != nil {
-		return "", err
-	}
-	return jsn, nil
+	return toJSON(threads)
 }
 
 // AddThread adds a new thread with the given name
@@ -246,11 +240,7 @@ func (m *Mobile) AddThread(name string, mnemonic string) (string, error) {
 		Name:  thrd.Name,
 		Peers: len(peers),
 	}
-	jsn, err := toJSON(item)
-	if err != nil {
-		return "", err
-	}
-	return jsn, nil
+	return toJSON(item)
 }
 
 // RemoveThread call core RemoveDevice
@@ -265,13 +255,7 @@ func (m *Mobile) Devices() (string, error) {
 		item := DeviceItem{Id: dev.Id, Name: dev.Name}
 		devices.Items = append(devices.Items, item)
 	}
-
-	// build json
-	jsn, err := toJSON(devices)
-	if err != nil {
-		return "", err
-	}
-	return jsn, nil
+	return toJSON(devices)
 }
 
 // AddDevice calls core AddDevice
@@ -311,11 +295,7 @@ func (m *Mobile) AddPhoto(path string, threadName string, caption string) (strin
 	requests := PinRequests{}
 	requests.Items = append(requests.Items, *added.RemoteRequest)
 	requests.Items = append(requests.Items, *shared.RemoteRequest)
-	jsn, err := toJSON(requests)
-	if err != nil {
-		return "", err
-	}
-	return jsn, nil
+	return toJSON(requests)
 }
 
 // SharePhoto adds an existing photo to a new thread
@@ -346,11 +326,7 @@ func (m *Mobile) SharePhoto(id string, threadName string, caption string) (strin
 	// build json
 	requests := PinRequests{}
 	requests.Items = append(requests.Items, *shared.RemoteRequest)
-	jsn, err := toJSON(requests)
-	if err != nil {
-		return "", err
-	}
-	return jsn, nil
+	return toJSON(requests)
 }
 
 // PhotoBlocks returns thread photo blocks with json encoding
@@ -371,11 +347,7 @@ func (m *Mobile) PhotoBlocks(offsetId string, limit int, threadName string) (str
 			Date:    b.Date,
 		})
 	}
-	jsn, err := toJSON(blocks)
-	if err != nil {
-		return "", err
-	}
-	return jsn, nil
+	return toJSON(blocks)
 }
 
 // GetBlockData calls GetBlockDataBase64 on a thread
@@ -391,7 +363,6 @@ func (m *Mobile) GetBlockData(id string, path string) (string, error) {
 		log.Error(err.Error())
 		return "", err
 	}
-
 	return thrd.GetBlockDataBase64(fmt.Sprintf("%s/%s", id, path), block)
 }
 
@@ -408,7 +379,6 @@ func (m *Mobile) GetFileData(id string, path string) (string, error) {
 		log.Error(err.Error())
 		return "", err
 	}
-
 	return thrd.GetFileDataBase64(fmt.Sprintf("%s/%s", id, path), block)
 }
 
