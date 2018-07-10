@@ -437,12 +437,12 @@ func (t *Thread) PostHead() error {
 	wg := sync.WaitGroup{}
 	for _, p := range peers {
 		wg.Add(1)
-		go func() {
-			if err := t.send(message, p.Id); err != nil {
-				log.Errorf("error sending block %s to peer %s: %s", block.Id, p.Id, err)
+		go func(peerId string) {
+			if err := t.send(message, peerId); err != nil {
+				log.Errorf("error sending block %s to peer %s: %s", block.Id, peerId, err)
 			}
 			wg.Done()
-		}()
+		}(p.Id)
 	}
 	wg.Wait()
 	log.Debugf("posted to %d peers", len(peers))
