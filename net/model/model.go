@@ -7,5 +7,5 @@ import (
 type AddResult struct {
 	Id            string
 	Key           []byte
-	RemoteRequest *net.MultipartRequest
+	RemoteRequest *net.PinRequest
 }
