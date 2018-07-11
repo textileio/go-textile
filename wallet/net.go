@@ -47,12 +47,21 @@ func (w *Wallet) SendMessage(message *pb.Message, peerId string) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	err = w.service.SendMessage(ctx, pid, message)
-	if err != nil {
-		if err := w.sendOfflineMessage(message, pid); err != nil {
-			return err
+	var success bool
+	go func() {
+		err = w.service.SendMessage(ctx, pid, message)
+		if err == nil {
+			success = true
+		}
+	}()
+	if !success {
+		time.Sleep(time.Second * 3)
+		if !success {
+			if err := w.sendOfflineMessage(message, pid); err != nil {
+				log.Debugf("send offline message failed: %s", err)
+			}
 		}
 	}
 	return nil
