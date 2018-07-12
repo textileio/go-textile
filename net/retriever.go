@@ -205,7 +205,7 @@ func (m *MessageRetriever) attemptDecrypt(ciphertext []byte, pid peer.ID, addr m
 	m.ipfs.Repo.Datastore().Put(ds.NewKey(KeyCachePrefix+id.String()), env.Pubkey)
 
 	// respond with an ACK
-	if env.Message.MessageType != pb.Message_OFFLINE_ACK {
+	if env.Message.Type != pb.Message_OFFLINE_ACK {
 		m.sendAck(id.Pretty(), pid)
 	}
 
@@ -219,21 +219,21 @@ func (m *MessageRetriever) handleMessage(env pb.Envelope, addr string, id *peer.
 		// get the peer ID from the public key
 		pubkey, err := libp2p.UnmarshalPublicKey(env.Pubkey)
 		if err != nil {
-			log.Errorf("error processing message %s. type %s: %s", addr, env.Message.MessageType, err.Error())
+			log.Errorf("error processing message %s. type %s: %s", addr, env.Message.Type, err.Error())
 			return err
 		}
 		i, err := peer.IDFromPublicKey(pubkey)
 		if err != nil {
-			log.Errorf("error processing message %s. type %s: %s", addr, env.Message.MessageType, err.Error())
+			log.Errorf("error processing message %s. type %s: %s", addr, env.Message.Type, err.Error())
 			return err
 		}
 		id = &i
 	}
 
 	// get handler for this message type
-	handler := m.service.HandlerForMsgType(env.Message.MessageType)
+	handler := m.service.HandlerForMsgType(env.Message.Type)
 	if handler == nil {
-		err := errors.New(fmt.Sprintf("nil handler for message type %s", env.Message.MessageType))
+		err := errors.New(fmt.Sprintf("nil handler for message type %s", env.Message.Type))
 		log.Error(err.Error())
 		return err
 	}
@@ -252,15 +252,17 @@ func (m *MessageRetriever) handleMessage(env pb.Envelope, addr string, id *peer.
 				log.Errorf("error serializing offline message %s for storage")
 			}
 		} else {
-			log.Errorf("error processing message %s. type %s: %s", addr, env.Message.MessageType, err.Error())
+			log.Errorf("error processing message %s. type %s: %s", addr, env.Message.Type, err.Error())
 			return err
 		}
 	}
 	return nil
 }
 
-var MessageProcessingOrder = []pb.Message_MessageType{
-	pb.Message_THREAD_BLOCK,
+var MessageProcessingOrder = []pb.Message_Type{
+	pb.Message_THREAD_INVITE,
+	pb.Message_THREAD_DATA,
+	pb.Message_THREAD_ANNOTATION,
 	pb.Message_CHAT,
 	pb.Message_FOLLOW,
 	pb.Message_UNFOLLOW,
@@ -273,7 +275,7 @@ var MessageProcessingOrder = []pb.Message_MessageType{
 // queue based on message type and then processes the queue in order. Any messages that successfully process can then be deleted
 // from the databse.
 func (m *MessageRetriever) processQueuedMessages() {
-	messageQueue := make(map[pb.Message_MessageType][]offlineMessage)
+	messageQueue := make(map[pb.Message_Type][]offlineMessage)
 	for _, messageType := range MessageProcessingOrder {
 		messageQueue[messageType] = []offlineMessage{}
 	}
@@ -288,7 +290,7 @@ func (m *MessageRetriever) processQueuedMessages() {
 		env := new(pb.Envelope)
 		err := proto.Unmarshal(ser, env)
 		if err == nil {
-			messageQueue[env.Message.MessageType] = append(messageQueue[env.Message.MessageType], offlineMessage{url, *env})
+			messageQueue[env.Message.Type] = append(messageQueue[env.Message.Type], offlineMessage{url, *env})
 		} else {
 			log.Error("error unmarshalling serialized offline message from database")
 		}

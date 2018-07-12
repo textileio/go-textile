@@ -54,6 +54,16 @@ func (c *PeerDB) Get(row string) *repo.Peer {
 	return &ret[0]
 }
 
+func (c *PeerDB) GetByPubKey(pk string) *repo.Peer {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	ret := c.handleQuery("select * from peers where pk='" + pk + "';")
+	if len(ret) == 0 {
+		return nil
+	}
+	return &ret[0]
+}
+
 func (c *PeerDB) List(offset string, limit int, query string) []repo.Peer {
 	c.lock.Lock()
 	defer c.lock.Unlock()

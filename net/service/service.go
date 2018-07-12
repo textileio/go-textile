@@ -131,7 +131,7 @@ func (s *TextileService) handleNewMessage(stream inet.Stream, incoming bool) {
 		}
 
 		// Get handler for this msg type
-		handler := s.HandlerForMsgType(pmes.MessageType)
+		handler := s.HandlerForMsgType(pmes.Type)
 		if handler == nil {
 			stream.Reset()
 			log.Debug("got back nil handler from handlerForMsgType")
@@ -141,7 +141,7 @@ func (s *TextileService) handleNewMessage(stream inet.Stream, incoming bool) {
 		// Dispatch handler
 		rpmes, err := handler(mPeer, pmes, nil)
 		if err != nil {
-			log.Debugf("%s handle message error: %s", pmes.MessageType.String(), err)
+			log.Debugf("%s handle message error: %s", pmes.Type.String(), err)
 		}
 
 		// If nil response, return it before serializing
@@ -163,7 +163,7 @@ func (s *TextileService) handleNewMessage(stream inet.Stream, incoming bool) {
 }
 
 func (s *TextileService) SendRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
-	log.Debugf("sending %s request to %s", pmes.MessageType.String(), p.Pretty())
+	log.Debugf("sending %s request to %s", pmes.Type.String(), p.Pretty())
 	ms, err := s.messageSenderForPeer(p)
 	if err != nil {
 		return nil, err
@@ -185,7 +185,7 @@ func (s *TextileService) SendRequest(ctx context.Context, p peer.ID, pmes *pb.Me
 }
 
 func (s *TextileService) SendMessage(ctx context.Context, p peer.ID, pmes *pb.Message) error {
-	log.Debugf("sending %s message to %s", pmes.MessageType.String(), p.Pretty())
+	log.Debugf("sending %s message to %s", pmes.Type.String(), p.Pretty())
 	ms, err := s.messageSenderForPeer(p)
 	if err != nil {
 		return err

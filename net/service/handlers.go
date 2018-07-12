@@ -16,12 +16,16 @@ import (
 	"gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
 
-func (s *TextileService) HandlerForMsgType(t pb.Message_MessageType) func(peer.ID, *pb.Message, interface{}) (*pb.Message, error) {
+func (s *TextileService) HandlerForMsgType(t pb.Message_Type) func(peer.ID, *pb.Message, interface{}) (*pb.Message, error) {
 	switch t {
 	case pb.Message_PING:
 		return s.handlePing
-	case pb.Message_THREAD_BLOCK:
-		return s.handleThreadBlock
+	case pb.Message_THREAD_INVITE:
+		return s.handleThreadInvite
+	case pb.Message_THREAD_DATA:
+		return s.handleThreadData
+	case pb.Message_THREAD_ANNOTATION:
+		return s.handleThreadAnnotation
 	case pb.Message_OFFLINE_ACK:
 		return s.handleOfflineAck
 	case pb.Message_OFFLINE_RELAY:
@@ -42,36 +46,36 @@ func (s *TextileService) handlePing(pid peer.ID, pmes *pb.Message, options inter
 	return pmes, nil
 }
 
-func (s *TextileService) handleThreadBlock(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
+func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
+	log.Debug("received THREAD_INVITE message")
 	if pmes.Payload == nil {
 		return nil, errors.New("payload is nil")
 	}
-	log.Debug("received THREAD_BLOCK message")
-
-	// unpack it
 	signed := new(pb.SignedThreadBlock)
 	err := ptypes.UnmarshalAny(pmes.Payload, signed)
 	if err != nil {
 		return nil, err
 	}
-	block := new(pb.ThreadBlock)
-	err = proto.Unmarshal(signed.Data, block)
+	invite := new(pb.ThreadInvite)
+	err = proto.Unmarshal(signed.Data, invite)
 	if err != nil {
 		return nil, err
 	}
-	thrd := s.getThread(signed.ThreadId)
 
-	switch block.Type {
-	case pb.ThreadBlock_INVITE:
-		log.Debug("handling ThreadBlock_INVITE...")
-		if thrd != nil {
-			return nil, common.OutOfOrderMessage
-		}
-		if block.Target != s.self.Pretty() {
+	// load thread
+	thrd := s.getThread(signed.ThreadId)
+	if thrd != nil {
+		return nil, errors.New("thread exists")
+	}
+
+	switch invite.Type {
+	case pb.ThreadInvite_INTERNAL:
+
+		if invite.Block.Target != s.self.Pretty() {
 			// TODO: still need to verify and add as a peer in thread
 			return nil, errors.New("invite does not belong to us")
 		}
-		skb, err := crypto.Decrypt(s.node.PrivateKey, block.TargetKey)
+		skb, err := crypto.Decrypt(s.node.PrivateKey, invite.Block.TargetKey)
 		if err != nil {
 			return nil, err
 		}
@@ -111,24 +115,41 @@ func (s *TextileService) handleThreadBlock(pid peer.ID, pmes *pb.Message, option
 		if err := s.datastore.Peers().Add(newPeer); err != nil {
 			return nil, err
 		}
-	case pb.ThreadBlock_PHOTO:
-		log.Debug("handling ThreadBlock_PHOTO")
-		if thrd == nil {
-			return nil, errors.New("thread not found")
-		}
-		good, err := thrd.Verify(signed.Data, signed.Signature)
-		if err != nil || !good {
-			return nil, errors.New("bad signature")
-		}
 
-	case pb.ThreadBlock_COMMENT:
-		return nil, errors.New("TODO")
-	case pb.ThreadBlock_LIKE:
+	case pb.ThreadInvite_EXTERNAL:
 		return nil, errors.New("TODO")
 	}
 
-	// handle block
 	return nil, thrd.HandleBlock(signed.Id)
+}
+
+func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
+	log.Debug("received THREAD_DATA message")
+	if pmes.Payload == nil {
+		return nil, errors.New("payload is nil")
+	}
+	signed := new(pb.SignedThreadBlock)
+	err := ptypes.UnmarshalAny(pmes.Payload, signed)
+	if err != nil {
+		return nil, err
+	}
+
+	// load thread
+	thrd := s.getThread(signed.ThreadId)
+	if thrd == nil {
+		return nil, common.OutOfOrderMessage
+	}
+	good, err := thrd.Verify(signed.Data, signed.Signature)
+	if err != nil || !good {
+		return nil, errors.New("bad signature")
+	}
+
+	return nil, thrd.HandleBlock(signed.Id)
+}
+
+func (s *TextileService) handleThreadAnnotation(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
+	log.Debug("received THREAD_ANNOTATION message")
+	return nil, errors.New("TODO")
 }
 
 func (s *TextileService) handleOfflineAck(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
@@ -190,7 +211,7 @@ func (s *TextileService) handleOfflineRelay(pid peer.ID, pmes *pb.Message, optio
 	}
 
 	// Get handler for this message type
-	handler := s.HandlerForMsgType(env.Message.MessageType)
+	handler := s.HandlerForMsgType(env.Message.Type)
 	if handler == nil {
 		log.Debug("got back nil handler from HandlerForMsgType")
 		return nil, nil
@@ -234,8 +255,8 @@ func (s *TextileService) handleStore(pid peer.ID, pmes *pb.Message, options inte
 	errorResponse := func(error string) *pb.Message {
 		payload := &any.Any{Value: []byte(error)}
 		message := &pb.Message{
-			MessageType: pb.Message_ERROR,
-			Payload:     payload,
+			Type:    pb.Message_ERROR,
+			Payload: payload,
 		}
 		return message
 	}
@@ -269,8 +290,8 @@ func (s *TextileService) handleStore(pid peer.ID, pmes *pb.Message, options inte
 		return errorResponse("error marshalling response"), err
 	}
 	message := &pb.Message{
-		MessageType: pb.Message_STORE,
-		Payload:     payload,
+		Type:    pb.Message_STORE,
+		Payload: payload,
 	}
 	return message, nil
 }
