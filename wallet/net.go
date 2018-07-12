@@ -34,7 +34,7 @@ func (w *Wallet) GetPeerStatus(peerId string) (string, error) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	message := pb.Message{MessageType: pb.Message_PING}
+	message := pb.Message{Type: pb.Message_PING}
 	_, err = w.service.SendRequest(ctx, pid, &message)
 	if err != nil {
 		return "offline", nil
@@ -101,7 +101,7 @@ func (w *Wallet) sendOfflineMessage(message *pb.Message, pid peer.ID) error {
 	if err != nil {
 		return err
 	}
-	if message.MessageType != pb.Message_OFFLINE_ACK {
+	if message.Type != pb.Message_OFFLINE_ACK {
 		pointer.Purpose = repo.MESSAGE
 		pointer.CancelId = &pid
 		err = w.datastore.Pointers().Put(pointer)
@@ -111,7 +111,7 @@ func (w *Wallet) sendOfflineMessage(message *pb.Message, pid peer.ID) error {
 	}
 
 	log.Debugf("sending offline message to: %s, type: %s, pointer: %s, location: %s",
-		pid.Pretty(), message.MessageType.String(), pointer.Cid.String(), pointer.Value.Addrs[0].String())
+		pid.Pretty(), message.Type.String(), pointer.Cid.String(), pointer.Value.Addrs[0].String())
 
 	offlineMessageWaitGroup.Add(1)
 	go func() {
@@ -129,8 +129,8 @@ func (w *Wallet) sendOfflineMessage(message *pb.Message, pid peer.ID) error {
 func (w *Wallet) sendOfflineAck(peerId string, pointerID peer.ID) error {
 	payload := &any.Any{Value: []byte(pointerID.Pretty())}
 	message := &pb.Message{
-		MessageType: pb.Message_OFFLINE_ACK,
-		Payload:     payload,
+		Type:    pb.Message_OFFLINE_ACK,
+		Payload: payload,
 	}
 	return w.SendMessage(message, peerId)
 }
@@ -145,8 +145,8 @@ func (w *Wallet) sendChat(peerId string, chatMessage *pb.Chat) error {
 		return err
 	}
 	message := pb.Message{
-		MessageType: pb.Message_CHAT,
-		Payload:     oayload,
+		Type:    pb.Message_CHAT,
+		Payload: oayload,
 	}
 
 	pid, err := peer.IDB58Decode(peerId)
@@ -178,8 +178,8 @@ func (w *Wallet) sendStore(peerId string, ids []cid.Cid) error {
 	}
 
 	message := pb.Message{
-		MessageType: pb.Message_STORE,
-		Payload:     payload,
+		Type:    pb.Message_STORE,
+		Payload: payload,
 	}
 
 	pid, err := peer.IDB58Decode(peerId)
@@ -195,7 +195,7 @@ func (w *Wallet) sendStore(peerId string, ids []cid.Cid) error {
 	if pmes.Payload == nil {
 		return errors.New("peer responded with nil payload")
 	}
-	if pmes.MessageType == pb.Message_ERROR {
+	if pmes.Type == pb.Message_ERROR {
 		err = fmt.Errorf("error response from %s: %s", peerId, string(pmes.Payload.Value))
 		log.Errorf(err.Error())
 		return err
@@ -238,8 +238,8 @@ func (w *Wallet) sendBlock(peerId string, id cid.Cid) error {
 		return err
 	}
 	message := pb.Message{
-		MessageType: pb.Message_BLOCK,
-		Payload:     payload,
+		Type:    pb.Message_BLOCK,
+		Payload: payload,
 	}
 
 	pid, err := peer.IDB58Decode(peerId)
@@ -249,33 +249,43 @@ func (w *Wallet) sendBlock(peerId string, id cid.Cid) error {
 	return w.service.SendMessage(context.Background(), pid, &message)
 }
 
-func (w *Wallet) encryptMessage(peerID peer.ID, message []byte) (ct []byte, rerr error) {
+func (w *Wallet) encryptMessage(pid peer.ID, message []byte) (ct []byte, rerr error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	var pubKey libp2pc.PubKey
-	keyval, err := w.ipfs.Repo.Datastore().Get(ds.NewKey(net.KeyCachePrefix + peerID.String()))
-	if err != nil {
-		pubKey, err = routing.GetPublicKey(w.ipfs.Routing, ctx, []byte(peerID))
+	keyval := w.datastore.Peers().GetByPubKey(pid.Pretty())
+	if keyval != nil {
+		var err error
+		pubKey, err = libp2pc.UnmarshalPublicKey(keyval.PubKey)
 		if err != nil {
-			log.Errorf("failed to find public key for %s", peerID.Pretty())
+			log.Errorf("failed to parse peer public key for %s", pid.Pretty())
 			return nil, err
 		}
 	} else {
-		pubKey, err = libp2pc.UnmarshalPublicKey(keyval.([]byte))
+		keyval, err := w.ipfs.Repo.Datastore().Get(ds.NewKey(net.KeyCachePrefix + pid.String()))
 		if err != nil {
-			log.Errorf("failed to find public key for %s", peerID.Pretty())
-			return nil, err
+			pubKey, err = routing.GetPublicKey(w.ipfs.Routing, ctx, []byte(pid))
+			if err != nil {
+				log.Errorf("failed to find public key for %s", pid.Pretty())
+				return nil, err
+			}
+		} else {
+			pubKey, err = libp2pc.UnmarshalPublicKey(keyval.([]byte))
+			if err != nil {
+				log.Errorf("failed to find public key for %s", pid.Pretty())
+				return nil, err
+			}
 		}
 	}
 
-	if peerID.MatchesPublicKey(pubKey) {
+	if pid.MatchesPublicKey(pubKey) {
 		ciphertext, err := crypto.Encrypt(pubKey, message)
 		if err != nil {
 			return nil, err
 		}
 		return ciphertext, nil
 	} else {
-		err = errors.New(fmt.Sprintf("peer public key and id do not match for peer: %s", peerID.Pretty()))
+		err := errors.New(fmt.Sprintf("peer public key and id do not match for peer: %s", pid.Pretty()))
 		log.Error(err.Error())
 		return nil, err
 	}

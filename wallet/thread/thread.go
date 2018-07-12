@@ -210,7 +210,7 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*nm.AddResult,
 	}
 
 	// type and date
-	typeb := repo.PhotoBlock.Bytes() // silly?
+	typeb := repo.DataBlock.Bytes() // silly?
 	dateb := util.GetNowBytes()
 
 	// encrypt caption with thread pk
@@ -476,7 +476,7 @@ func (t *Thread) HandleBlock(id string) error {
 		return nil
 	}
 
-	log.Debugf("pinning block %s...", id)
+	// pin it
 	if err := util.PinPath(t.ipfs(), id, true); err != nil {
 		return err
 	}
@@ -493,6 +493,11 @@ func (t *Thread) HandleBlock(id string) error {
 	}
 
 	// don't block on the send since nobody could be listening
+	defer func() {
+		if recover() != nil {
+			log.Error("update channel already closed")
+		}
+	}()
 	select {
 	case t.updates <- Update{
 		Id:         id,
@@ -503,11 +508,6 @@ func (t *Thread) HandleBlock(id string) error {
 	}:
 	default:
 	}
-	defer func() {
-		if recover() != nil {
-			log.Error("update channel already closed")
-		}
-	}()
 
 	log.Debugf("handled block: %s", id)
 
@@ -578,12 +578,28 @@ func (t *Thread) getMessageForBlock(block *repo.Block) (*pb.Message, error) {
 		Parents:      block.Parents,
 		TargetKey:    block.TargetKey,
 		ThreadPubKey: block.ThreadPubKey,
-		Type:         pb.ThreadBlock_Type(int32(block.Type)),
 		Date:         date,
 	}
 
+	var wrap proto.Message
+	var wrapType pb.Message_Type
+	switch block.Type {
+	case repo.InviteBlock:
+		wrap = &pb.ThreadInvite{Block: pblock, Type: pb.ThreadInvite_INTERNAL}
+		wrapType = pb.Message_THREAD_INVITE
+	case repo.ExternalInviteBlock:
+		wrap = &pb.ThreadInvite{Block: pblock, Type: pb.ThreadInvite_EXTERNAL}
+		wrapType = pb.Message_THREAD_INVITE
+	case repo.DataBlock:
+		wrap = &pb.ThreadData{Block: pblock}
+		wrapType = pb.Message_THREAD_DATA
+	case repo.AnnotationBlock:
+		wrap = &pb.ThreadAnnotation{Block: pblock}
+		wrapType = pb.Message_THREAD_ANNOTATION
+	}
+
 	// sign it
-	serialized, err := proto.Marshal(pblock)
+	serialized, err := proto.Marshal(wrap)
 	if err != nil {
 		return nil, err
 	}
@@ -610,7 +626,7 @@ func (t *Thread) getMessageForBlock(block *repo.Block) (*pb.Message, error) {
 		return nil, err
 	}
 	return &pb.Message{
-		MessageType: pb.Message_THREAD_BLOCK,
-		Payload:     payload,
+		Type:    wrapType,
+		Payload: payload,
 	}, nil
 }

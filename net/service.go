@@ -12,7 +12,7 @@ var log = logging.MustGetLogger("net")
 
 type NetworkService interface {
 	HandleNewStream(s inet.Stream)
-	HandlerForMsgType(t pb.Message_MessageType) func(peer.ID, *pb.Message, interface{}) (*pb.Message, error)
+	HandlerForMsgType(t pb.Message_Type) func(peer.ID, *pb.Message, interface{}) (*pb.Message, error)
 	SendRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error)
 	SendMessage(ctx context.Context, p peer.ID, pmes *pb.Message) error
 	DisconnectFromPeer(p peer.ID) error

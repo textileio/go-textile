@@ -41,7 +41,7 @@ func TestBlockDB_Put(t *testing.T) {
 		Parents:      []string{"Qm123"},
 		TargetKey:    key,
 		ThreadPubKey: libp2pc.ConfigEncodeKey(pkb),
-		Type:         repo.PhotoBlock,
+		Type:         repo.DataBlock,
 		Date:         time.Now(),
 	})
 	if err != nil {
@@ -87,7 +87,7 @@ func TestBlockDB_List(t *testing.T) {
 		Parents:      []string{"Qm123"},
 		TargetKey:    key,
 		ThreadPubKey: libp2pc.ConfigEncodeKey(pkb),
-		Type:         repo.PhotoBlock,
+		Type:         repo.DataBlock,
 		Date:         time.Now(),
 	})
 	if err != nil {
@@ -107,7 +107,7 @@ func TestBlockDB_List(t *testing.T) {
 		Parents:      []string{"Qm456"},
 		TargetKey:    key,
 		ThreadPubKey: libp2pc.ConfigEncodeKey(pkb2),
-		Type:         repo.CommentBlock,
+		Type:         repo.AnnotationBlock,
 		Date:         time.Now().Add(time.Minute),
 	})
 	if err != nil {

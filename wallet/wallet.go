@@ -136,7 +136,6 @@ func NewWallet(config Config) (*Wallet, string, error) {
 		datastore:  sqliteDB,
 		centralAPI: strings.TrimRight(config.CentralAPI, "/"),
 		isMobile:   config.IsMobile,
-		updates:    make(chan Update),
 	}, mnemonic, nil
 }
 
@@ -151,6 +150,7 @@ func (w *Wallet) Start() (chan struct{}, error) {
 	}()
 	log.Info("starting wallet...")
 	onlineCh := make(chan struct{})
+	w.updates = make(chan Update)
 
 	// raise file descriptor limit
 	if err := utilmain.ManageFdLimit(); err != nil {
@@ -1046,15 +1046,15 @@ func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
 }
 
 func (w *Wallet) sendUpdate(update Update) {
-	select {
-	case w.updates <- update:
-	default:
-	}
 	defer func() {
 		if recover() != nil {
 			log.Error("update channel already closed")
 		}
 	}()
+	select {
+	case w.updates <- update:
+	default:
+	}
 }
 
 // touchDB ensures that we have a good db connection

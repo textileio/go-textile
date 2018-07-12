@@ -38,9 +38,9 @@ type BlockType int
 
 const (
 	InviteBlock BlockType = iota
-	PhotoBlock
-	CommentBlock
-	LikeBlock
+	ExternalInviteBlock
+	DataBlock
+	AnnotationBlock
 )
 
 func (bt BlockType) Bytes() []byte {

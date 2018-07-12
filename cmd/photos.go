@@ -137,7 +137,7 @@ func ListPhotos(c *ishell.Context) {
 		return
 	}
 
-	blocks := thrd.Blocks("", -1, repo.PhotoBlock)
+	blocks := thrd.Blocks("", -1, repo.DataBlock)
 	if len(blocks) == 0 {
 		c.Println(fmt.Sprintf("no photos found in: %s", threadName))
 	} else {

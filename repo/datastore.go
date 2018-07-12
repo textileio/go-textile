@@ -65,6 +65,7 @@ type PeerStore interface {
 	Queryable
 	Add(peer *Peer) error
 	Get(row string) *Peer
+	GetByPubKey(pk string) *Peer
 	List(offset string, limit int, query string) []Peer
 	Delete(row string) error
 }

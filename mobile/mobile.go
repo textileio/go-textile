@@ -338,7 +338,7 @@ func (m *Mobile) PhotoBlocks(offsetId string, limit int, threadName string) (str
 
 	// build json
 	blocks := &Blocks{}
-	for _, b := range thrd.Blocks(offsetId, limit, repo.PhotoBlock) {
+	for _, b := range thrd.Blocks(offsetId, limit, repo.DataBlock) {
 		blocks.Items = append(blocks.Items, BlockItem{
 			Id:      b.Id,
 			Target:  b.Target,

@@ -9,15 +9,7 @@ message ThreadBlock {
     repeated string parents        = 3;
     bytes targetKey                = 4;
     string threadPubKey            = 5;
-    Type type                      = 6;
     google.protobuf.Timestamp date = 7;
-
-    enum Type {
-        INVITE  = 0;
-        PHOTO   = 1;
-        COMMENT = 2;
-        LIKE    = 3;
-    }
 }
 
 message SignedThreadBlock {
@@ -27,4 +19,22 @@ message SignedThreadBlock {
     string threadId    = 4;
     string threadName  = 5;
     bytes issuerPubKey = 6;
+}
+
+message ThreadInvite {
+    ThreadBlock block = 1;
+    Type type         = 2;
+
+    enum Type {
+        INTERNAL = 0;
+        EXTERNAL = 1;
+    }
+}
+
+message ThreadData {
+    ThreadBlock block = 1;
+}
+
+message ThreadAnnotation {
+    ThreadBlock block = 1;
 }
