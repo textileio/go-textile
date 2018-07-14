@@ -22,8 +22,10 @@ message Message {
         STORE             = 8;
         BLOCK             = 9;
         THREAD_INVITE     = 100;
-        THREAD_DATA       = 101;
-        THREAD_ANNOTATION = 102;
+        THREAD_JOIN       = 101;
+        THREAD_LEAVE      = 102;
+        THREAD_DATA       = 103;
+        THREAD_ANNOTATION = 104;
         ERROR             = 500;
     }
 }
@@ -46,12 +48,6 @@ message Chat  {
         TYPING  = 1;
         READ    = 2;
     }
-}
-
-message SignedData {
-    bytes senderPubkey   = 1;
-    bytes serializedData = 2;
-    bytes signature      = 3;
 }
 
 message CidList {

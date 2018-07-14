@@ -13,12 +13,13 @@ message ThreadBlock {
 }
 
 message SignedThreadBlock {
-    string id          = 1;
-    bytes data         = 2;
-    bytes signature    = 3;
-    string threadId    = 4;
-    string threadName  = 5;
-    bytes issuerPubKey = 6;
+    string id             = 1;
+    bytes data            = 2;
+    string threadId       = 3;
+    bytes threadSignature = 4;
+    string threadName     = 5;
+    bytes issuerPubKey    = 6;
+    bytes issuerSignature = 7;
 }
 
 message ThreadInvite {
@@ -29,6 +30,14 @@ message ThreadInvite {
         INTERNAL = 0;
         EXTERNAL = 1;
     }
+}
+
+message ThreadJoin {
+    ThreadBlock block = 1;
+}
+
+message ThreadLeave {
+    ThreadBlock block = 1;
 }
 
 message ThreadData {

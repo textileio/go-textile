@@ -2,6 +2,7 @@ package thread
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -107,10 +108,6 @@ func (t *Thread) AddInvite(target libp2pc.PubKey) (*nm.AddResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	targetpk, err := target.Bytes()
-	if err != nil {
-		return nil, err
-	}
 
 	// encypt thread secret with the recipient's public key
 	threadsk, err := t.PrivKey.Bytes()
@@ -125,6 +122,12 @@ func (t *Thread) AddInvite(target libp2pc.PubKey) (*nm.AddResult, error) {
 	// type and date
 	typeb := repo.InviteBlock.Bytes() // silly?
 	dateb := util.GetNowBytes()
+
+	// get our own public key
+	peerpk, err := t.ipfs().PrivateKey.GetPublic().Bytes()
+	if err != nil {
+		return nil, err
+	}
 
 	// create a virtual directory for the new block
 	dirb := uio.NewDirectory(t.ipfs().DAG)
@@ -141,6 +144,186 @@ func (t *Thread) AddInvite(target libp2pc.PubKey) (*nm.AddResult, error) {
 		return nil, err
 	}
 	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(t.Id), "pk")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, peerpk, "ppk")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, typeb, "type")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, dateb, "date")
+	if err != nil {
+		return nil, err
+	}
+
+	// pin it
+	dir, err := dirb.GetNode()
+	if err != nil {
+		return nil, err
+	}
+	if err := util.PinDirectory(t.ipfs(), dir, []string{}); err != nil {
+		return nil, err
+	}
+	bid := dir.Cid().Hash().B58String()
+
+	// index it
+	block, err := t.indexBlock(bid)
+	if err != nil {
+		return nil, err
+	}
+
+	// update head
+	if err := t.updateHead(bid); err != nil {
+		return nil, err
+	}
+
+	// post it
+	go t.PostHead()
+
+	// all done
+	return &nm.AddResult{Id: block.Id}, nil
+}
+
+// AddExternalInvite creates an invite block for the given recipient
+func (t *Thread) AddExternalInvite() (*nm.AddResult, error) {
+	t.mux.Lock()
+	defer t.mux.Unlock()
+
+	// get current HEAD
+	head, err := t.GetHead()
+	if err != nil {
+		return nil, err
+	}
+
+	// generate an aes key
+	key, err := crypto.GenerateAESKey()
+	if err != nil {
+		return nil, err
+	}
+
+	// encypt thread secret with the key
+	threadsk, err := t.PrivKey.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	threadskcipher, err := crypto.EncryptAES(threadsk, key)
+	if err != nil {
+		return nil, err
+	}
+
+	// type and date
+	typeb := repo.ExternalInviteBlock.Bytes() // silly?
+	dateb := util.GetNowBytes()
+
+	// get our own public key
+	peerpk, err := t.ipfs().PrivateKey.GetPublic().Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	// create a virtual directory for the new block
+	dirb := uio.NewDirectory(t.ipfs().DAG)
+	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte("unlimited"), "target")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(head), "parents")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, threadskcipher, "key")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(t.Id), "pk")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, peerpk, "ppk")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, typeb, "type")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, dateb, "date")
+	if err != nil {
+		return nil, err
+	}
+
+	// pin it
+	dir, err := dirb.GetNode()
+	if err != nil {
+		return nil, err
+	}
+	if err := util.PinDirectory(t.ipfs(), dir, []string{}); err != nil {
+		return nil, err
+	}
+	bid := dir.Cid().Hash().B58String()
+
+	// index it
+	block, err := t.indexBlock(bid)
+	if err != nil {
+		return nil, err
+	}
+
+	// update head
+	if err := t.updateHead(bid); err != nil {
+		return nil, err
+	}
+
+	// post it
+	go t.PostHead()
+
+	// all done
+	return &nm.AddResult{Id: block.Id, Key: key}, nil
+}
+
+// AcceptInvite creates a join block
+func (t *Thread) AcceptInvite(from libp2pc.PubKey, id string) (*nm.AddResult, error) {
+	t.mux.Lock()
+	defer t.mux.Unlock()
+
+	// get current HEAD
+	head, err := t.GetHead()
+	if err != nil {
+		return nil, err
+	}
+
+	// type and date
+	typeb := repo.JoinBlock.Bytes() // silly?
+	dateb := util.GetNowBytes()
+
+	// get our own public key
+	peerpk, err := t.ipfs().PrivateKey.GetPublic().Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	// create a virtual directory for the new block
+	dirb := uio.NewDirectory(t.ipfs().DAG)
+	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(id), "target")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(head), "parents")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte("nil"), "key")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(t.Id), "pk")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, peerpk, "ppk")
 	if err != nil {
 		return nil, err
 	}
@@ -175,11 +358,19 @@ func (t *Thread) AddInvite(target libp2pc.PubKey) (*nm.AddResult, error) {
 	}
 
 	// add new peer
+	fromb, err := from.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	pid, err := peer.IDFromPublicKey(from)
+	if err != nil {
+		return nil, err
+	}
 	newPeer := &repo.Peer{
 		Row:      ksuid.New().String(),
-		Id:       targetId.Pretty(),
+		Id:       pid.Pretty(),
 		ThreadId: t.Id,
-		PubKey:   targetpk,
+		PubKey:   fromb,
 	}
 	if err := t.peers().Add(newPeer); err != nil {
 		return nil, err
@@ -219,6 +410,12 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*nm.AddResult,
 		return nil, err
 	}
 
+	// get our own public key
+	peerpk, err := t.ipfs().PrivateKey.GetPublic().Bytes()
+	if err != nil {
+		return nil, err
+	}
+
 	// create a virtual directory for the new block
 	dirb := uio.NewDirectory(t.ipfs().DAG)
 	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(id), "target")
@@ -234,6 +431,10 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*nm.AddResult,
 		return nil, err
 	}
 	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(t.Id), "pk")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(t.Id), "ppk")
 	if err != nil {
 		return nil, err
 	}
@@ -289,6 +490,9 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*nm.AddResult,
 		return nil, err
 	}
 	if err := request.AddFile([]byte(t.Id), "pk"); err != nil {
+		return nil, err
+	}
+	if err := request.AddFile(peerpk, "ppk"); err != nil {
 		return nil, err
 	}
 	if err := request.AddFile(typeb, "type"); err != nil {
@@ -409,8 +613,12 @@ func (t *Thread) Sign(data []byte) ([]byte, error) {
 }
 
 // Verify data with thread public key
-func (t *Thread) Verify(data []byte, sig []byte) (bool, error) {
-	return t.PrivKey.GetPublic().Verify(data, sig)
+func (t *Thread) Verify(data []byte, sig []byte) error {
+	good, err := t.PrivKey.GetPublic().Verify(data, sig)
+	if err != nil || !good {
+		return errors.New("bad signature")
+	}
+	return nil
 }
 
 // PostHead publishes HEAD to peers
@@ -534,6 +742,10 @@ func (t *Thread) indexBlock(id string) (*repo.Block, error) {
 	if err != nil {
 		return nil, err
 	}
+	ppk, err := util.GetDataAtPath(t.ipfs(), fmt.Sprintf("%s/ppk", id))
+	if err != nil {
+		return nil, err
+	}
 	typeb, err := util.GetDataAtPath(t.ipfs(), fmt.Sprintf("%s/type", id))
 	if err != nil {
 		return nil, err
@@ -556,6 +768,7 @@ func (t *Thread) indexBlock(id string) (*repo.Block, error) {
 		Parents:      strings.Split(string(parents), ","),
 		TargetKey:    key,
 		ThreadPubKey: string(pk),
+		PeerPubKey:   string(ppk),
 		Type:         repo.BlockType(int(typei)),
 		Date:         time.Unix(int64(datei), 0),
 	}
@@ -590,6 +803,12 @@ func (t *Thread) getMessageForBlock(block *repo.Block) (*pb.Message, error) {
 	case repo.ExternalInviteBlock:
 		wrap = &pb.ThreadInvite{Block: pblock, Type: pb.ThreadInvite_EXTERNAL}
 		wrapType = pb.Message_THREAD_INVITE
+	case repo.JoinBlock:
+		wrap = &pb.ThreadJoin{Block: pblock}
+		wrapType = pb.Message_THREAD_JOIN
+	case repo.LeaveBlock:
+		wrap = &pb.ThreadJoin{Block: pblock}
+		wrapType = pb.Message_THREAD_LEAVE
 	case repo.DataBlock:
 		wrap = &pb.ThreadData{Block: pblock}
 		wrapType = pb.Message_THREAD_DATA
@@ -603,7 +822,11 @@ func (t *Thread) getMessageForBlock(block *repo.Block) (*pb.Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	signature, err := t.PrivKey.Sign(serialized)
+	threadSignature, err := t.PrivKey.Sign(serialized)
+	if err != nil {
+		return nil, err
+	}
+	issuerSignature, err := t.ipfs().PrivateKey.Sign(serialized)
 	if err != nil {
 		return nil, err
 	}
@@ -612,12 +835,13 @@ func (t *Thread) getMessageForBlock(block *repo.Block) (*pb.Message, error) {
 		return nil, err
 	}
 	signed := &pb.SignedThreadBlock{
-		Id:           block.Id,
-		Data:         serialized,
-		Signature:    signature,
-		ThreadId:     t.Id,
-		ThreadName:   t.Name,
-		IssuerPubKey: pkb,
+		Id:              block.Id,
+		Data:            serialized,
+		IssuerSignature: issuerSignature,
+		ThreadSignature: threadSignature,
+		ThreadId:        t.Id,
+		ThreadName:      t.Name,
+		IssuerPubKey:    pkb,
 	}
 
 	// create the message
@@ -625,8 +849,5 @@ func (t *Thread) getMessageForBlock(block *repo.Block) (*pb.Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &pb.Message{
-		Type:    wrapType,
-		Payload: payload,
-	}, nil
+	return &pb.Message{Type: wrapType, Payload: payload}, nil
 }

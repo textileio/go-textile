@@ -1,6 +1,7 @@
 package mobile_test
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"github.com/segmentio/ksuid"
 	. "github.com/textileio/textile-go/mobile"
@@ -162,7 +163,7 @@ func TestMobile_RemoveThread(t *testing.T) {
 
 func TestMobile_AddDevice(t *testing.T) {
 	<-mobile.Online
-	_, pk, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
+	_, pk, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Error(err)
 		return
@@ -178,7 +179,7 @@ func TestMobile_AddDevice(t *testing.T) {
 }
 
 func TestMobile_AddDeviceAgain(t *testing.T) {
-	_, pk, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
+	_, pk, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Error(err)
 		return
@@ -194,7 +195,7 @@ func TestMobile_AddDeviceAgain(t *testing.T) {
 }
 
 func TestMobile_Devices(t *testing.T) {
-	_, pk, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
+	_, pk, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Error(err)
 		return

@@ -24,7 +24,7 @@ func (c *BlockDB) Add(block *repo.Block) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into blocks(id, target, parents, key, pk, type, date) values(?,?,?,?,?,?,?)`
+	stm := `insert into blocks(id, target, parents, key, pk, ppk, type, date) values(?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -37,6 +37,7 @@ func (c *BlockDB) Add(block *repo.Block) error {
 		strings.Join(block.Parents, ","),
 		block.TargetKey,
 		block.ThreadPubKey,
+		block.PeerPubKey,
 		int(block.Type),
 		int(block.Date.Unix()),
 	)
@@ -104,10 +105,10 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 		return nil
 	}
 	for rows.Next() {
-		var id, target, parents, pk string
+		var id, target, parents, pk, ppk string
 		var key []byte
 		var typeInt, dateInt int
-		if err := rows.Scan(&id, &target, &parents, &key, &pk, &typeInt, &dateInt); err != nil {
+		if err := rows.Scan(&id, &target, &parents, &key, &pk, &ppk, &typeInt, &dateInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -117,6 +118,7 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 			Parents:      strings.Split(parents, ","),
 			TargetKey:    key,
 			ThreadPubKey: pk,
+			PeerPubKey:   ppk,
 			Type:         repo.BlockType(typeInt),
 			Date:         time.Unix(int64(dateInt), 0),
 		}

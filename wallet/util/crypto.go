@@ -3,6 +3,7 @@ package util
 import (
 	"bytes"
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"github.com/textileio/textile-go/crypto"
@@ -42,10 +43,10 @@ func PrivKeyFromMnemonic(mnemonic *string) (libp2pc.PrivKey, string, error) {
 
 // IdentityConfig initializes a new identity.
 func IdentityConfig(sk libp2pc.PrivKey) (config.Identity, error) {
-	ident := config.Identity{}
-
 	log.Infof("generating Ed25519 keypair for peer identity...")
-	sk, pk, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 4096) // bits are ignored for ed25519, so use any
+
+	ident := config.Identity{}
+	sk, pk, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		return ident, err
 	}

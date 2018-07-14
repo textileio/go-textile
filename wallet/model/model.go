@@ -2,6 +2,11 @@ package model
 
 import "time"
 
+type Profile struct {
+	Id       string `json:"id"`
+	Username string `json:"un,omitempty"`
+}
+
 const ThumbnailWidth = 300
 
 type Metadata struct {

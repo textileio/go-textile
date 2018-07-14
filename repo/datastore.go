@@ -65,9 +65,9 @@ type PeerStore interface {
 	Queryable
 	Add(peer *Peer) error
 	Get(row string) *Peer
-	GetByPubKey(pk string) *Peer
+	GetById(id string) *Peer
 	List(offset string, limit int, query string) []Peer
-	Delete(row string) error
+	Delete(id string, thread string) error
 }
 
 type BlockStore interface {

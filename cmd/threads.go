@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet/thread"
 	"gopkg.in/abiosoft/ishell.v2"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
@@ -151,6 +152,51 @@ func AddThreadInvite(c *ishell.Context) {
 
 	green := color.New(color.FgHiGreen).SprintFunc()
 	c.Println(green("invite sent!"))
+}
+
+func AddExternalThreadInvite(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing thread name"))
+		return
+	}
+	name := c.Args[0]
+
+	_, thrd := core.Node.Wallet.GetThreadByName(name)
+	if thrd == nil {
+		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
+		return
+	}
+
+	added, err := thrd.AddExternalInvite()
+	if err != nil {
+		c.Err(err)
+		return
+	}
+	link := util.BuildExternalInviteLink(added.Id, string(added.Key), thrd.Name)
+
+	green := color.New(color.FgHiGreen).SprintFunc()
+	c.Println(green(link))
+}
+
+func AcceptExternalThreadInvite(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing invite link"))
+		return
+	}
+	blockId, key, threadName, err := util.ParseExternalInviteLink(c.Args[0])
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	_, err = core.Node.Wallet.AcceptExternalThreadInvite(blockId, []byte(key), threadName)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	green := color.New(color.FgHiGreen).SprintFunc()
+	c.Println(green("ok, accepted"))
 }
 
 func RemoveThread(c *ishell.Context) {

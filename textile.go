@@ -288,6 +288,16 @@ func main() {
 				Help: "invite a peer to a thread",
 				Func: cmd.AddThreadInvite,
 			})
+			threadCmd.AddCmd(&ishell.Cmd{
+				Name: "invite-external",
+				Help: "create an external invite link",
+				Func: cmd.AddExternalThreadInvite,
+			})
+			threadCmd.AddCmd(&ishell.Cmd{
+				Name: "accept-external",
+				Help: "accept an external thread invite",
+				Func: cmd.AcceptExternalThreadInvite,
+			})
 			shell.AddCmd(threadCmd)
 		}
 		{
@@ -350,10 +360,9 @@ func printSplashScreen() {
 	cyan := color.New(color.FgCyan).SprintFunc()
 	green := color.New(color.FgHiGreen).SprintFunc()
 	grey := color.New(color.FgHiBlack).SprintFunc()
-	black := color.New(color.FgBlack).SprintFunc()
-	fmt.Println(cyan("TEXTILE"))
-	fmt.Println(grey("version: ") + black(core.Version))
-	fmt.Println(grey("repo: ") + black(core.Node.Wallet.GetRepoPath()))
+	fmt.Println(cyan("Textile"))
+	fmt.Println(grey("version: ") + green(core.Version))
+	fmt.Println(grey("repo: ") + green(core.Node.Wallet.GetRepoPath()))
 	if Options.ServerMode {
 		fmt.Println(grey("server mode: ") + green("enabled"))
 	}
