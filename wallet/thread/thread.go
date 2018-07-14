@@ -162,8 +162,8 @@ func (t *Thread) AddExternalInvite() (*nm.AddResult, error) {
 	return &nm.AddResult{Id: res.Id, Key: key, RemoteRequest: res.RemoteRequest}, nil
 }
 
-// AcceptInvite creates a join block
-func (t *Thread) AcceptInvite(from libp2pc.PubKey, id string) (*nm.AddResult, error) {
+// Join creates a join block
+func (t *Thread) Join(from libp2pc.PubKey, id string) (*nm.AddResult, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
@@ -194,6 +194,33 @@ func (t *Thread) AcceptInvite(from libp2pc.PubKey, id string) (*nm.AddResult, er
 
 	// post it
 	go t.PostHead()
+
+	// all done
+	return res, nil
+}
+
+// Leave creates a leave block
+func (t *Thread) Leave() (*nm.AddResult, error) {
+	t.mux.Lock()
+	defer t.mux.Unlock()
+
+	// add a block
+	res, err := t.addBlock(repo.LeaveBlock, []byte(t.ipfs().Identity.Pretty()), []byte(EmptyFileString), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// post it
+	go t.PostHead()
+
+	// delete blocks
+	if err := t.blocks().DeleteByThread(t.Id); err != nil {
+		return nil, err
+	}
+	// delete peers
+	if err := t.peers().DeleteByThread(t.Id); err != nil {
+		return nil, err
+	}
 
 	// all done
 	return res, nil

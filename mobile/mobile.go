@@ -304,7 +304,8 @@ func (m *Mobile) AcceptExternalThreadInvite(link string) error {
 
 // RemoveThread call core RemoveDevice
 func (m *Mobile) RemoveThread(name string) error {
-	return tcore.Node.Wallet.RemoveThread(name)
+	_, err := tcore.Node.Wallet.RemoveThread(name)
+	return err
 }
 
 // Devices lists all devices
