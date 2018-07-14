@@ -580,6 +580,80 @@ func (w *Wallet) ForceAddThread(name string, secret libp2pc.PrivKey) (*thread.Th
 	return thrd, err
 }
 
+// RemoveThread removes a thread by name
+func (w *Wallet) RemoveThread(name string) (*nm.AddResult, error) {
+	i, thrd := w.GetThreadByName(name) // gets the loaded thread
+	if thrd == nil {
+		return nil, errors.New("thread not found")
+	}
+
+	// notify peers
+	left, err := thrd.Leave()
+	if err != nil {
+		return nil, err
+	}
+
+	// remove model from db
+	if err := w.datastore.Threads().DeleteByName(name); err != nil {
+		return nil, err
+	}
+
+	// clean up
+	thrd.Close()
+	copy(w.threads[*i:], w.threads[*i+1:])
+	w.threads[len(w.threads)-1] = nil
+	w.threads = w.threads[:len(w.threads)-1]
+
+	// notify listeners
+	w.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadRemoved})
+
+	log.Infof("removed thread '%s'", name)
+
+	return left, nil
+}
+
+// AcceptThreadInvite attemps to download an encrypted thread key from an internal invite,
+// add the thread, and notify the inviter of the join
+func (w *Wallet) AcceptThreadInvite(blockId string, name string) (*nm.AddResult, error) {
+	// download the thread key
+	skcipher, err := util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/key", blockId))
+	if err != nil {
+		return nil, err
+	}
+
+	// download from pub key
+	frompkb, err := util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/ppk", blockId))
+	if err != nil {
+		return nil, err
+	}
+	frompk, err := libp2pc.UnmarshalPublicKey(frompkb)
+	if err != nil {
+		return nil, err
+	}
+
+	// decrypt thread key with private key
+	key, err := w.GetPrivKey()
+	if err != nil {
+		return nil, err
+	}
+	skb, err := crypto.Decrypt(key, skcipher)
+	if err != nil {
+		return nil, err
+	}
+	sk, err := libp2pc.UnmarshalPrivateKey(skb)
+	if err != nil {
+		return nil, err
+	}
+
+	// add it
+	thrd, err := w.ForceAddThread(name, sk)
+	if err != nil {
+		return nil, err
+	}
+
+	return thrd.Join(frompk, blockId)
+}
+
 // AcceptExternalThreadInvite attemps to download an encrypted thread key from an external invite,
 // add the thread, and notify the inviter of the join
 func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte, name string) (*nm.AddResult, error) {
@@ -615,42 +689,7 @@ func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte, name str
 		return nil, err
 	}
 
-	return thrd.AcceptInvite(frompk, blockId)
-}
-
-// RemoveThread removes a thread by name
-func (w *Wallet) RemoveThread(name string) error {
-	i, thrd := w.GetThreadByName(name) // gets the loaded thread
-	if thrd == nil {
-		return errors.New("thread not found")
-	}
-
-	// notify peers
-
-	// delete blocks
-	if err := w.datastore.Blocks().DeleteByThread(thrd.Id); err != nil {
-		return err
-	}
-	// delete peers
-	if err := w.datastore.Peers().DeleteByThread(thrd.Id); err != nil {
-		return err
-	}
-	// remove model from db
-	if err := w.datastore.Threads().DeleteByName(name); err != nil {
-		return err
-	}
-	log.Infof("removed thread '%s'", name)
-
-	// clean up
-	thrd.Close()
-	copy(w.threads[*i:], w.threads[*i+1:])
-	w.threads[len(w.threads)-1] = nil
-	w.threads = w.threads[:len(w.threads)-1]
-
-	// notify listeners
-	w.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadRemoved})
-
-	return nil
+	return thrd.Join(frompk, blockId)
 }
 
 // PublishThreads publishes HEAD for each thread

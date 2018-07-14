@@ -129,7 +129,7 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Message, optio
 
 	// accept it, yolo
 	// TODO: Don't auto accept. Need to show some UI with pending invites.
-	thrd.AcceptInvite(issuerpk, invite.Block.Id)
+	thrd.Join(issuerpk, invite.Block.Id)
 
 	log.Debugf("accepted invite to thread %s with name %s", thrd.Id, thrd.Name)
 

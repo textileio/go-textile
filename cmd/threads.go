@@ -154,6 +154,28 @@ func AddThreadInvite(c *ishell.Context) {
 	c.Println(green("invite sent!"))
 }
 
+func AcceptThreadInvite(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing invite address"))
+		return
+	}
+	blockId := c.Args[0]
+	if len(c.Args) == 1 {
+		c.Err(errors.New("missing thread name"))
+		return
+	}
+	name := c.Args[1]
+
+	_, err := core.Node.Wallet.AcceptThreadInvite(blockId, name)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	green := color.New(color.FgHiGreen).SprintFunc()
+	c.Println(green("ok, accepted"))
+}
+
 func AddExternalThreadInvite(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing thread name"))
@@ -183,13 +205,13 @@ func AcceptExternalThreadInvite(c *ishell.Context) {
 		c.Err(errors.New("missing invite link"))
 		return
 	}
-	blockId, key, threadName, err := util.ParseExternalInviteLink(c.Args[0])
+	blockId, key, name, err := util.ParseExternalInviteLink(c.Args[0])
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
-	_, err = core.Node.Wallet.AcceptExternalThreadInvite(blockId, []byte(key), threadName)
+	_, err = core.Node.Wallet.AcceptExternalThreadInvite(blockId, []byte(key), name)
 	if err != nil {
 		c.Err(err)
 		return
@@ -206,7 +228,7 @@ func RemoveThread(c *ishell.Context) {
 	}
 	name := c.Args[0]
 
-	err := core.Node.Wallet.RemoveThread(name)
+	_, err := core.Node.Wallet.RemoveThread(name)
 	if err != nil {
 		c.Err(err)
 		return

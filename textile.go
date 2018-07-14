@@ -289,6 +289,11 @@ func main() {
 				Func: cmd.AddThreadInvite,
 			})
 			threadCmd.AddCmd(&ishell.Cmd{
+				Name: "accept",
+				Help: "accept a thread invite",
+				Func: cmd.AcceptThreadInvite,
+			})
+			threadCmd.AddCmd(&ishell.Cmd{
 				Name: "invite-external",
 				Help: "create an external invite link",
 				Func: cmd.AddExternalThreadInvite,
