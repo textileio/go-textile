@@ -625,19 +625,27 @@ func (w *Wallet) RemoveThread(name string) error {
 		return errors.New("thread not found")
 	}
 
-	// clean up
-	thrd.Close()
-	copy(w.threads[*i:], w.threads[*i+1:])
-	w.threads[len(w.threads)-1] = nil
-	w.threads = w.threads[:len(w.threads)-1]
+	// notify peers
 
+	// delete blocks
+	if err := w.datastore.Blocks().DeleteByThread(thrd.Id); err != nil {
+		return err
+	}
+	// delete peers
+	if err := w.datastore.Peers().DeleteByThread(thrd.Id); err != nil {
+		return err
+	}
 	// remove model from db
 	if err := w.datastore.Threads().DeleteByName(name); err != nil {
 		return err
 	}
 	log.Infof("removed thread '%s'", name)
 
-	// TODO: create a "left" block?
+	// clean up
+	thrd.Close()
+	copy(w.threads[*i:], w.threads[*i+1:])
+	w.threads[len(w.threads)-1] = nil
+	w.threads = w.threads[:len(w.threads)-1]
 
 	// notify listeners
 	w.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadRemoved})

@@ -91,6 +91,13 @@ func (c *PeerDB) Delete(id string, thread string) error {
 	return err
 }
 
+func (c *PeerDB) DeleteByThread(thread string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("delete from peers where thread=?", thread)
+	return err
+}
+
 func (c *PeerDB) handleQuery(stm string) []repo.Peer {
 	var ret []repo.Peer
 	rows, err := c.db.Query(stm)

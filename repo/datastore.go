@@ -68,6 +68,7 @@ type PeerStore interface {
 	GetById(id string) *Peer
 	List(offset string, limit int, query string) []Peer
 	Delete(id string, thread string) error
+	DeleteByThread(thread string) error
 }
 
 type BlockStore interface {
@@ -77,6 +78,7 @@ type BlockStore interface {
 	GetByTarget(target string) *Block
 	List(offset string, limit int, query string) []Block
 	Delete(id string) error
+	DeleteByThread(threadpk string) error
 }
 
 type OfflineMessageStore interface {
