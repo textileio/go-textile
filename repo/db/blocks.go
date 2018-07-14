@@ -97,6 +97,13 @@ func (c *BlockDB) Delete(id string) error {
 	return err
 }
 
+func (c *BlockDB) DeleteByThread(threadpk string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("delete from blocks where pk=?", threadpk)
+	return err
+}
+
 func (c *BlockDB) handleQuery(stm string) []repo.Block {
 	var ret []repo.Block
 	rows, err := c.db.Query(stm)

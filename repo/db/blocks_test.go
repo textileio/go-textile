@@ -13,6 +13,8 @@ import (
 
 var bdb repo.BlockStore
 
+var threadpk string
+
 func init() {
 	setupBlockDB()
 }
@@ -104,12 +106,13 @@ func TestBlockDB_List(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	threadpk = libp2pc.ConfigEncodeKey(pkb2)
 	err = bdb.Add(&repo.Block{
 		Id:           "fghijk",
 		Target:       "Qm789",
 		Parents:      []string{"Qm456"},
 		TargetKey:    key,
-		ThreadPubKey: libp2pc.ConfigEncodeKey(pkb2),
+		ThreadPubKey: threadpk,
 		PeerPubKey:   libp2pc.ConfigEncodeKey(pkb2),
 		Type:         repo.AnnotationBlock,
 		Date:         time.Now().Add(time.Minute),
@@ -148,6 +151,20 @@ func TestBlockDB_Delete(t *testing.T) {
 	defer stmt.Close()
 	var id string
 	err = stmt.QueryRow("abcde").Scan(&id)
+	if err == nil {
+		t.Error("Delete failed")
+	}
+}
+
+func TestBlockDB_DeleteByThread(t *testing.T) {
+	err := bdb.DeleteByThread(threadpk)
+	if err != nil {
+		t.Error(err)
+	}
+	stmt, err := bdb.PrepareQuery("select id from blocks where id=?")
+	defer stmt.Close()
+	var id string
+	err = stmt.QueryRow("fghijk").Scan(&id)
 	if err == nil {
 		t.Error("Delete failed")
 	}

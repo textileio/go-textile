@@ -28,6 +28,8 @@ import (
 
 var log = logging.MustGetLogger("thread")
 
+const EmptyFileString = "__nil__"
+
 // Config is used to construct a Thread
 type Config struct {
 	RepoPath   string
@@ -97,12 +99,6 @@ func (t *Thread) AddInvite(target libp2pc.PubKey) (*nm.AddResult, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	// get current HEAD
-	head, err := t.GetHead()
-	if err != nil {
-		return nil, err
-	}
-
 	// get the peer id from the pub key
 	targetId, err := peer.IDFromPublicKey(target)
 	if err != nil {
@@ -119,65 +115,9 @@ func (t *Thread) AddInvite(target libp2pc.PubKey) (*nm.AddResult, error) {
 		return nil, err
 	}
 
-	// type and date
-	typeb := repo.InviteBlock.Bytes() // silly?
-	dateb := util.GetNowBytes()
-
-	// get our own public key
-	peerpk, err := t.ipfs().PrivateKey.GetPublic().Bytes()
+	// add a block
+	res, err := t.addBlock(repo.InviteBlock, []byte(targetId.Pretty()), threadskcipher, nil)
 	if err != nil {
-		return nil, err
-	}
-
-	// create a virtual directory for the new block
-	dirb := uio.NewDirectory(t.ipfs().DAG)
-	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(targetId.Pretty()), "target")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(head), "parents")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, threadskcipher, "key")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(t.Id), "pk")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, peerpk, "ppk")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, typeb, "type")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, dateb, "date")
-	if err != nil {
-		return nil, err
-	}
-
-	// pin it
-	dir, err := dirb.GetNode()
-	if err != nil {
-		return nil, err
-	}
-	if err := util.PinDirectory(t.ipfs(), dir, []string{}); err != nil {
-		return nil, err
-	}
-	bid := dir.Cid().Hash().B58String()
-
-	// index it
-	block, err := t.indexBlock(bid)
-	if err != nil {
-		return nil, err
-	}
-
-	// update head
-	if err := t.updateHead(bid); err != nil {
 		return nil, err
 	}
 
@@ -185,19 +125,13 @@ func (t *Thread) AddInvite(target libp2pc.PubKey) (*nm.AddResult, error) {
 	go t.PostHead()
 
 	// all done
-	return &nm.AddResult{Id: block.Id}, nil
+	return res, nil
 }
 
 // AddExternalInvite creates an invite block for the given recipient
 func (t *Thread) AddExternalInvite() (*nm.AddResult, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
-
-	// get current HEAD
-	head, err := t.GetHead()
-	if err != nil {
-		return nil, err
-	}
 
 	// generate an aes key
 	key, err := crypto.GenerateAESKey()
@@ -215,65 +149,9 @@ func (t *Thread) AddExternalInvite() (*nm.AddResult, error) {
 		return nil, err
 	}
 
-	// type and date
-	typeb := repo.ExternalInviteBlock.Bytes() // silly?
-	dateb := util.GetNowBytes()
-
-	// get our own public key
-	peerpk, err := t.ipfs().PrivateKey.GetPublic().Bytes()
+	// add a block
+	res, err := t.addBlock(repo.ExternalInviteBlock, []byte("unlimited"), threadskcipher, nil)
 	if err != nil {
-		return nil, err
-	}
-
-	// create a virtual directory for the new block
-	dirb := uio.NewDirectory(t.ipfs().DAG)
-	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte("unlimited"), "target")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(head), "parents")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, threadskcipher, "key")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(t.Id), "pk")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, peerpk, "ppk")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, typeb, "type")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, dateb, "date")
-	if err != nil {
-		return nil, err
-	}
-
-	// pin it
-	dir, err := dirb.GetNode()
-	if err != nil {
-		return nil, err
-	}
-	if err := util.PinDirectory(t.ipfs(), dir, []string{}); err != nil {
-		return nil, err
-	}
-	bid := dir.Cid().Hash().B58String()
-
-	// index it
-	block, err := t.indexBlock(bid)
-	if err != nil {
-		return nil, err
-	}
-
-	// update head
-	if err := t.updateHead(bid); err != nil {
 		return nil, err
 	}
 
@@ -281,7 +159,7 @@ func (t *Thread) AddExternalInvite() (*nm.AddResult, error) {
 	go t.PostHead()
 
 	// all done
-	return &nm.AddResult{Id: block.Id, Key: key}, nil
+	return &nm.AddResult{Id: res.Id, Key: key, RemoteRequest: res.RemoteRequest}, nil
 }
 
 // AcceptInvite creates a join block
@@ -289,71 +167,9 @@ func (t *Thread) AcceptInvite(from libp2pc.PubKey, id string) (*nm.AddResult, er
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	// get current HEAD
-	head, err := t.GetHead()
+	// add a block
+	res, err := t.addBlock(repo.JoinBlock, []byte(id), []byte(EmptyFileString), nil)
 	if err != nil {
-		return nil, err
-	}
-
-	// type and date
-	typeb := repo.JoinBlock.Bytes() // silly?
-	dateb := util.GetNowBytes()
-
-	// get our own public key
-	peerpk, err := t.ipfs().PrivateKey.GetPublic().Bytes()
-	if err != nil {
-		return nil, err
-	}
-
-	// create a virtual directory for the new block
-	dirb := uio.NewDirectory(t.ipfs().DAG)
-	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(id), "target")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(head), "parents")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte("nil"), "key")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(t.Id), "pk")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, peerpk, "ppk")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, typeb, "type")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, dateb, "date")
-	if err != nil {
-		return nil, err
-	}
-
-	// pin it
-	dir, err := dirb.GetNode()
-	if err != nil {
-		return nil, err
-	}
-	if err := util.PinDirectory(t.ipfs(), dir, []string{}); err != nil {
-		return nil, err
-	}
-	bid := dir.Cid().Hash().B58String()
-
-	// index it
-	block, err := t.indexBlock(bid)
-	if err != nil {
-		return nil, err
-	}
-
-	// update head
-	if err := t.updateHead(bid); err != nil {
 		return nil, err
 	}
 
@@ -380,7 +196,7 @@ func (t *Thread) AcceptInvite(from libp2pc.PubKey, id string) (*nm.AddResult, er
 	go t.PostHead()
 
 	// all done
-	return &nm.AddResult{Id: block.Id}, nil
+	return res, nil
 }
 
 // AddPhoto adds a block for a photo to this thread
@@ -388,21 +204,11 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*nm.AddResult,
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	// get current HEAD
-	head, err := t.GetHead()
-	if err != nil {
-		return nil, err
-	}
-
 	// encrypt AES key with thread pk
 	keycipher, err := t.Encrypt(key)
 	if err != nil {
 		return nil, err
 	}
-
-	// type and date
-	typeb := repo.DataBlock.Bytes() // silly?
-	dateb := util.GetNowBytes()
 
 	// encrypt caption with thread pk
 	captioncipher, err := t.Encrypt([]byte(caption))
@@ -410,108 +216,17 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*nm.AddResult,
 		return nil, err
 	}
 
-	// get our own public key
-	peerpk, err := t.ipfs().PrivateKey.GetPublic().Bytes()
+	// add a block
+	res, err := t.addBlock(repo.DataBlock, []byte(id), keycipher, captioncipher)
 	if err != nil {
-		return nil, err
-	}
-
-	// create a virtual directory for the new block
-	dirb := uio.NewDirectory(t.ipfs().DAG)
-	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(id), "target")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(head), "parents")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, keycipher, "key")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(t.Id), "pk")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(t.Id), "ppk")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, typeb, "type")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, dateb, "date")
-	if err != nil {
-		return nil, err
-	}
-	err = util.AddFileToDirectory(t.ipfs(), dirb, captioncipher, "caption")
-	if err != nil {
-		return nil, err
-	}
-
-	// pin it
-	dir, err := dirb.GetNode()
-	if err != nil {
-		return nil, err
-	}
-	if err := util.PinDirectory(t.ipfs(), dir, []string{}); err != nil {
-		return nil, err
-	}
-	bid := dir.Cid().Hash().B58String()
-
-	// index it
-	block, err := t.indexBlock(bid)
-	if err != nil {
-		return nil, err
-	}
-
-	// update head
-	if err := t.updateHead(bid); err != nil {
 		return nil, err
 	}
 
 	// post it
 	go t.PostHead()
 
-	// create and init a new multipart request
-	request := &net.PinRequest{}
-	request.Init(filepath.Join(t.repoPath, "tmp"), bid)
-
-	// add files to request
-	if err := request.AddFile([]byte(id), "target"); err != nil {
-		return nil, err
-	}
-	if err := request.AddFile([]byte(head), "parents"); err != nil {
-		return nil, err
-	}
-	if err := request.AddFile(keycipher, "key"); err != nil {
-		return nil, err
-	}
-	if err := request.AddFile([]byte(t.Id), "pk"); err != nil {
-		return nil, err
-	}
-	if err := request.AddFile(peerpk, "ppk"); err != nil {
-		return nil, err
-	}
-	if err := request.AddFile(typeb, "type"); err != nil {
-		return nil, err
-	}
-	if err := request.AddFile(dateb, "date"); err != nil {
-		return nil, err
-	}
-	if err := request.AddFile(captioncipher, "caption"); err != nil {
-		return nil, err
-	}
-
-	// finish request
-	if err := request.Finish(); err != nil {
-		return nil, err
-	}
-
 	// all done
-	return &nm.AddResult{Id: block.Id, RemoteRequest: request}, nil
+	return res, nil
 }
 
 // GetBlockData cats file data from ipfs and tries to decrypt it with the provided block
@@ -675,7 +390,6 @@ func (t *Thread) HandleBlock(id string) error {
 		log.Debugf("found genesis block, aborting")
 		return nil
 	}
-	log.Debugf("handling block: %s...", id)
 
 	// check if we aleady have this block
 	block := t.blocks().Get(id)
@@ -850,4 +564,116 @@ func (t *Thread) getMessageForBlock(block *repo.Block) (*pb.Message, error) {
 		return nil, err
 	}
 	return &pb.Message{Type: wrapType, Payload: payload}, nil
+}
+
+func (t *Thread) addBlock(bt repo.BlockType, target []byte, key []byte, caption []byte) (*nm.AddResult, error) {
+	// get current HEAD
+	head, err := t.GetHead()
+	if err != nil {
+		return nil, err
+	}
+	now := util.GetNowBytes()
+	if caption == nil {
+		caption = []byte(EmptyFileString)
+	}
+
+	// get our own public key
+	peerpk, err := t.ipfs().PrivateKey.GetPublic().Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	// create a virtual directory for the new block
+	dirb := uio.NewDirectory(t.ipfs().DAG)
+	err = util.AddFileToDirectory(t.ipfs(), dirb, target, "target")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(head), "parents")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, key, "key")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, []byte(t.Id), "pk")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, peerpk, "ppk")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, bt.Bytes(), "type")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, now, "date")
+	if err != nil {
+		return nil, err
+	}
+	err = util.AddFileToDirectory(t.ipfs(), dirb, caption, "caption")
+	if err != nil {
+		return nil, err
+	}
+
+	// pin it
+	dir, err := dirb.GetNode()
+	if err != nil {
+		return nil, err
+	}
+	if err := util.PinDirectory(t.ipfs(), dir, []string{}); err != nil {
+		return nil, err
+	}
+	bid := dir.Cid().Hash().B58String()
+
+	// index it
+	block, err := t.indexBlock(bid)
+	if err != nil {
+		return nil, err
+	}
+
+	// update head
+	if err := t.updateHead(bid); err != nil {
+		return nil, err
+	}
+
+	// create and init a new multipart request
+	request := &net.PinRequest{}
+	request.Init(filepath.Join(t.repoPath, "tmp"), block.Id)
+
+	// add files to request
+	if err := request.AddFile(target, "target"); err != nil {
+		return nil, err
+	}
+	if err := request.AddFile([]byte(head), "parents"); err != nil {
+		return nil, err
+	}
+	if err := request.AddFile(key, "key"); err != nil {
+		return nil, err
+	}
+	if err := request.AddFile([]byte(t.Id), "pk"); err != nil {
+		return nil, err
+	}
+	if err := request.AddFile(peerpk, "ppk"); err != nil {
+		return nil, err
+	}
+	if err := request.AddFile(bt.Bytes(), "type"); err != nil {
+		return nil, err
+	}
+	if err := request.AddFile(now, "date"); err != nil {
+		return nil, err
+	}
+	if err := request.AddFile(caption, "caption"); err != nil {
+		return nil, err
+	}
+
+	// finish request
+	if err := request.Finish(); err != nil {
+		return nil, err
+	}
+
+	// all done
+	return &nm.AddResult{Id: block.Id, RemoteRequest: request}, nil
 }
