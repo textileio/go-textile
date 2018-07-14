@@ -1,6 +1,7 @@
 package db
 
 import (
+	"crypto/rand"
 	"database/sql"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/repo"
@@ -27,7 +28,7 @@ func TestBlockDB_Put(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_, pk, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
+	_, pk, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Error(err)
 	}
@@ -41,6 +42,7 @@ func TestBlockDB_Put(t *testing.T) {
 		Parents:      []string{"Qm123"},
 		TargetKey:    key,
 		ThreadPubKey: libp2pc.ConfigEncodeKey(pkb),
+		PeerPubKey:   libp2pc.ConfigEncodeKey(pkb),
 		Type:         repo.DataBlock,
 		Date:         time.Now(),
 	})
@@ -73,7 +75,7 @@ func TestBlockDB_List(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_, pk, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
+	_, pk, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Error(err)
 	}
@@ -87,13 +89,14 @@ func TestBlockDB_List(t *testing.T) {
 		Parents:      []string{"Qm123"},
 		TargetKey:    key,
 		ThreadPubKey: libp2pc.ConfigEncodeKey(pkb),
+		PeerPubKey:   libp2pc.ConfigEncodeKey(pkb),
 		Type:         repo.DataBlock,
 		Date:         time.Now(),
 	})
 	if err != nil {
 		t.Error(err)
 	}
-	_, pk2, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
+	_, pk2, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Error(err)
 	}
@@ -107,6 +110,7 @@ func TestBlockDB_List(t *testing.T) {
 		Parents:      []string{"Qm456"},
 		TargetKey:    key,
 		ThreadPubKey: libp2pc.ConfigEncodeKey(pkb2),
+		PeerPubKey:   libp2pc.ConfigEncodeKey(pkb2),
 		Type:         repo.AnnotationBlock,
 		Date:         time.Now().Add(time.Minute),
 	})

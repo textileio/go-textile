@@ -56,6 +56,7 @@ func (w *Wallet) SendMessage(message *pb.Message, peerId string) error {
 			success = true
 		}
 	}()
+	time.Sleep(time.Millisecond * 100)
 	if !success {
 		time.Sleep(time.Second * 3)
 		if !success {
@@ -253,7 +254,7 @@ func (w *Wallet) encryptMessage(pid peer.ID, message []byte) (ct []byte, rerr er
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	var pubKey libp2pc.PubKey
-	keyval := w.datastore.Peers().GetByPubKey(pid.Pretty())
+	keyval := w.datastore.Peers().GetById(pid.Pretty())
 	if keyval != nil {
 		var err error
 		pubKey, err = libp2pc.UnmarshalPublicKey(keyval.PubKey)

@@ -12,7 +12,6 @@ import (
 	"github.com/textileio/textile-go/net"
 	nm "github.com/textileio/textile-go/net/model"
 	serv "github.com/textileio/textile-go/net/service"
-	"github.com/textileio/textile-go/pb"
 	trepo "github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/storage"
@@ -32,6 +31,7 @@ import (
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -182,7 +182,7 @@ func (w *Wallet) Start() (chan struct{}, error) {
 		w.messageStorage = storage.NewSelfHostedStorage(w.ipfs, w.repoPath, w.sendStore)
 
 		// service is now configurable
-		w.service = serv.NewService(w.ipfs, w.datastore, w.GetThread, w.AddThread)
+		w.service = serv.NewService(w.ipfs, w.datastore, w.GetThread, w.ForceAddThread)
 
 		// build the message retriever
 		mrCfg := net.MRConfig{
@@ -556,6 +556,66 @@ func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string) (*thread.T
 		return nil, "", err
 	}
 	return thrd, mnem, nil
+}
+
+// ForceAddThread adds a thread with a given name and secret key, bumping name until there's no conflict
+func (w *Wallet) ForceAddThread(name string, secret libp2pc.PrivKey) (*thread.Thread, error) {
+	thrd, err := w.AddThread(name, secret)
+	if err == ErrThreadExists {
+		parts := strings.Split(name, "_")
+		if len(parts) == 1 {
+			name = name + "_1"
+		} else {
+			parsed, err := strconv.ParseInt(parts[1], 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			if parsed > 100 {
+				return nil, errors.New("reached force unique name upper limit")
+			}
+			name = fmt.Sprintf("%s_%s", parts[0], string(parsed+1))
+		}
+		return w.ForceAddThread(name, secret)
+	}
+	return thrd, err
+}
+
+// AcceptExternalThreadInvite attemps to download an encrypted thread key from an external invite,
+// add the thread, and notify the inviter of the join
+func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte, name string) (*nm.AddResult, error) {
+	// download the thread key
+	skcipher, err := util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/key", blockId))
+	if err != nil {
+		return nil, err
+	}
+
+	// download from pub key
+	frompkb, err := util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/ppk", blockId))
+	if err != nil {
+		return nil, err
+	}
+	frompk, err := libp2pc.UnmarshalPublicKey(frompkb)
+	if err != nil {
+		return nil, err
+	}
+
+	// decrypt thread key
+	skb, err := crypto.DecryptAES(skcipher, key)
+	if err != nil {
+		return nil, err
+	}
+	sk, err := libp2pc.UnmarshalPrivateKey(skb)
+	if err != nil {
+		return nil, err
+	}
+
+	// add it
+	thrd, err := w.ForceAddThread(name, sk)
+	if err != nil {
+		return nil, err
+	}
+
+	return thrd.AcceptInvite(frompk, blockId)
 }
 
 // RemoveThread removes a thread by name
@@ -1003,23 +1063,19 @@ func (w *Wallet) getThreadByBlock(block *trepo.Block) (*thread.Thread, error) {
 	return thrd, nil
 }
 
-func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
-	_, loaded := w.GetThreadByName(model.Name)
+func (w *Wallet) loadThread(mod *trepo.Thread) (*thread.Thread, error) {
+	_, loaded := w.GetThreadByName(mod.Name)
 	if loaded != nil {
 		return nil, ErrThreadLoaded
 	}
-	id := model.Id // save value locally
+	id := mod.Id // save value locally
 	threadConfig := &thread.Config{
 		RepoPath: w.repoPath,
 		Ipfs: func() *core.IpfsNode {
 			return w.ipfs
 		},
-		Blocks: func() trepo.BlockStore {
-			return w.datastore.Blocks()
-		},
-		Peers: func() trepo.PeerStore {
-			return w.datastore.Peers()
-		},
+		Blocks: w.datastore.Blocks,
+		Peers:  w.datastore.Peers,
 		GetHead: func() (string, error) {
 			m := w.datastore.Threads().Get(id)
 			if m == nil {
@@ -1033,11 +1089,9 @@ func (w *Wallet) loadThread(model *trepo.Thread) (*thread.Thread, error) {
 			}
 			return nil
 		},
-		Send: func(message *pb.Message, peerId string) error {
-			return w.SendMessage(message, peerId)
-		},
+		Send: w.SendMessage,
 	}
-	thrd, err := thread.NewThread(model, threadConfig)
+	thrd, err := thread.NewThread(mod, threadConfig)
 	if err != nil {
 		return nil, err
 	}

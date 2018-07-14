@@ -30,6 +30,7 @@ type Block struct {
 	Parents      []string  `json:"parents"`
 	TargetKey    []byte    `json:"target_key"`
 	ThreadPubKey string    `json:"thread_pub_key"`
+	PeerPubKey   string    `json:"peer_pub_key"`
 	Type         BlockType `json:"type"`
 	Date         time.Time `json:"date"`
 }
@@ -39,6 +40,8 @@ type BlockType int
 const (
 	InviteBlock BlockType = iota
 	ExternalInviteBlock
+	JoinBlock
+	LeaveBlock
 	DataBlock
 	AnnotationBlock
 )

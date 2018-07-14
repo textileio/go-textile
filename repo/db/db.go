@@ -149,7 +149,7 @@ func initDatabaseTables(db *sql.DB, password string) error {
     create table peers (row text primary key not null, id text not null, thread text not null, pk blob not null);
     create unique index peer_thread_id on peers (thread, id);
     create index peer_pk on peers (pk);
-    create table blocks (id text primary key not null, target text not null, parents text not null, key blob not null, pk text not null, type integer not null, date integer not null);
+    create table blocks (id text primary key not null, target text not null, parents text not null, key blob not null, pk text not null, ppk text not null, type integer not null, date integer not null);
     create index block_target on blocks (target);
     create index block_pk_type_date on blocks (pk, type, date);
     create table offlinemessages (url text primary key not null, date integer, message blob);

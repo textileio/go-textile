@@ -54,10 +54,10 @@ func (c *PeerDB) Get(row string) *repo.Peer {
 	return &ret[0]
 }
 
-func (c *PeerDB) GetByPubKey(pk string) *repo.Peer {
+func (c *PeerDB) GetById(id string) *repo.Peer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from peers where pk='" + pk + "';")
+	ret := c.handleQuery("select * from peers where id='" + id + "';")
 	if len(ret) == 0 {
 		return nil
 	}
@@ -84,10 +84,10 @@ func (c *PeerDB) List(offset string, limit int, query string) []repo.Peer {
 	return c.handleQuery(stm)
 }
 
-func (c *PeerDB) Delete(row string) error {
+func (c *PeerDB) Delete(id string, thread string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from peers where row=?", row)
+	_, err := c.db.Exec("delete from peers where id=? and thread=?", id, thread)
 	return err
 }
 

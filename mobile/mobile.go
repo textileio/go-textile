@@ -9,6 +9,7 @@ import (
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/net"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet"
 	"github.com/textileio/textile-go/wallet/thread"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
@@ -241,6 +242,64 @@ func (m *Mobile) AddThread(name string, mnemonic string) (string, error) {
 		Peers: len(peers),
 	}
 	return toJSON(item)
+}
+
+// AddThreadInvite adds a new invite to a thread with the given name
+func (m *Mobile) AddThreadInvite(threadName string, pubKey string) error {
+	_, thrd := tcore.Node.Wallet.GetThreadByName(threadName)
+	if thrd == nil {
+		return errors.New(fmt.Sprintf("could not find thread: %s", threadName))
+	}
+
+	// decode pubkey
+	pkb, err := libp2pc.ConfigDecodeKey(pubKey)
+	if err != nil {
+		return err
+	}
+	pk, err := libp2pc.UnmarshalPublicKey(pkb)
+	if err != nil {
+		return err
+	}
+
+	// add it
+	if _, err := thrd.AddInvite(pk); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// AddExternalThreadInvite generates a new external invite link to a thread
+func (m *Mobile) AddExternalThreadInvite(threadName string, pubKey string) (string, error) {
+	_, thrd := tcore.Node.Wallet.GetThreadByName(threadName)
+	if thrd == nil {
+		return "", errors.New(fmt.Sprintf("could not find thread: %s", threadName))
+	}
+
+	// add it
+	added, err := thrd.AddExternalInvite()
+	if err != nil {
+		return "", err
+	}
+	link := util.BuildExternalInviteLink(added.Id, string(added.Key), thrd.Name)
+
+	return link, nil
+}
+
+// AcceptExternalThreadInvite notifies the thread of a join
+func (m *Mobile) AcceptExternalThreadInvite(link string) error {
+	blockId, key, threadName, err := util.ParseExternalInviteLink(link)
+	if err != nil {
+		return err
+	}
+
+	// accept it
+	_, err = tcore.Node.Wallet.AcceptExternalThreadInvite(blockId, []byte(key), threadName)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // RemoveThread call core RemoveDevice
