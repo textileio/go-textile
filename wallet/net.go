@@ -56,7 +56,7 @@ func (w *Wallet) SendMessage(message *pb.Message, peerId string) error {
 			success = true
 		}
 	}()
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Millisecond * 50)
 	if !success {
 		time.Sleep(time.Second * 3)
 		if !success {
