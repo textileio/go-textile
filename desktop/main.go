@@ -223,7 +223,7 @@ func getQRCode() (string, string, error) {
 	}
 
 	// create a qr code
-	url := fmt.Sprintf("https://www.textile.io/clients?key=%s", pk)
+	url := fmt.Sprintf("https://www.textile.photos/invites/device#key=%s", pk)
 	png, err := qrcode.Encode(url, qrcode.Medium, QRCodeSize)
 	if err != nil {
 		return "", "", err
