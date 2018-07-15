@@ -222,7 +222,7 @@ func main() {
 			}
 			photoCmd.AddCmd(&ishell.Cmd{
 				Name: "add",
-				Help: "add a new photo (default thread is \"#default\")",
+				Help: "add a new photo",
 				Func: cmd.AddPhoto,
 			})
 			photoCmd.AddCmd(&ishell.Cmd{
@@ -247,7 +247,7 @@ func main() {
 			})
 			photoCmd.AddCmd(&ishell.Cmd{
 				Name: "ls",
-				Help: "list photos from a thread (defaults to \"#default\")",
+				Help: "list photos from a thread",
 				Func: cmd.ListPhotos,
 			})
 			shell.AddCmd(photoCmd)
@@ -346,6 +346,31 @@ func start() error {
 			cmd.Subscribe(t)
 		}(thrd)
 	}
+
+	// subscribe to wallet updates
+	go func() {
+		for {
+			select {
+			case update, ok := <-core.Node.Wallet.Updates():
+				if !ok {
+					return
+				}
+				switch update.Type {
+				case wallet.ThreadAdded:
+					thrd := core.Node.Wallet.GetThread(update.Id)
+					if thrd != nil {
+						go cmd.Subscribe(thrd)
+					}
+				case wallet.ThreadRemoved:
+					break
+				case wallet.DeviceAdded:
+					break
+				case wallet.DeviceRemoved:
+					break
+				}
+			}
+		}
+	}()
 
 	// start the server
 	core.Node.StartServer()

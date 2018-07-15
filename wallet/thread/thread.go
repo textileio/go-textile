@@ -104,6 +104,10 @@ func (t *Thread) AddInvite(target libp2pc.PubKey) (*nm.AddResult, error) {
 	if err != nil {
 		return nil, err
 	}
+	targetpk, err := target.Bytes()
+	if err != nil {
+		return nil, err
+	}
 
 	// encypt thread secret with the recipient's public key
 	threadsk, err := t.PrivKey.Bytes()
@@ -121,8 +125,16 @@ func (t *Thread) AddInvite(target libp2pc.PubKey) (*nm.AddResult, error) {
 		return nil, err
 	}
 
+	// create new peer for posting, but don't add yet. will get added if they accept.
+	newPeer := repo.Peer{
+		Row:      ksuid.New().String(),
+		Id:       targetId.Pretty(),
+		ThreadId: t.Id,
+		PubKey:   targetpk,
+	}
+
 	// post it
-	go t.PostHead()
+	t.PostHead([]repo.Peer{newPeer})
 
 	// all done
 	return res, nil
@@ -156,7 +168,7 @@ func (t *Thread) AddExternalInvite() (*nm.AddResult, error) {
 	}
 
 	// post it
-	go t.PostHead()
+	t.PostHead(t.Peers())
 
 	// all done
 	return &nm.AddResult{Id: res.Id, Key: key, RemoteRequest: res.RemoteRequest}, nil
@@ -193,7 +205,7 @@ func (t *Thread) Join(from libp2pc.PubKey, id string) (*nm.AddResult, error) {
 	}
 
 	// post it
-	go t.PostHead()
+	t.PostHead(t.Peers())
 
 	// all done
 	return res, nil
@@ -211,7 +223,7 @@ func (t *Thread) Leave() (*nm.AddResult, error) {
 	}
 
 	// post it
-	go t.PostHead()
+	t.PostHead(t.Peers())
 
 	// delete blocks
 	if err := t.blocks().DeleteByThread(t.Id); err != nil {
@@ -250,7 +262,7 @@ func (t *Thread) AddPhoto(id string, caption string, key []byte) (*nm.AddResult,
 	}
 
 	// post it
-	go t.PostHead()
+	t.PostHead(t.Peers())
 
 	// all done
 	return res, nil
@@ -364,8 +376,7 @@ func (t *Thread) Verify(data []byte, sig []byte) error {
 }
 
 // PostHead publishes HEAD to peers
-func (t *Thread) PostHead() error {
-	peers := t.Peers("", -1)
+func (t *Thread) PostHead(peers []repo.Peer) error {
 	if len(peers) == 0 {
 		return nil
 	}
@@ -380,6 +391,7 @@ func (t *Thread) PostHead() error {
 	}
 	message, err := t.getMessageForBlock(block)
 	if err != nil {
+		log.Errorf("failed to get message for block %s: %s", block.Id, err)
 		return err
 	}
 
@@ -400,9 +412,9 @@ func (t *Thread) PostHead() error {
 }
 
 // Peers returns locally known peers in this thread
-func (t *Thread) Peers(offset string, limit int) []repo.Peer {
+func (t *Thread) Peers() []repo.Peer {
 	query := fmt.Sprintf("thread='%s'", t.Id)
-	return t.peers().List(offset, limit, query)
+	return t.peers().List("", -1, query)
 }
 
 // Updates returns a read-only channel of updates

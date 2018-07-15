@@ -213,7 +213,7 @@ func (m *Mobile) GetAccessToken() (string, error) {
 func (m *Mobile) Threads() (string, error) {
 	threads := Threads{Items: make([]ThreadItem, 0)}
 	for _, thrd := range tcore.Node.Wallet.Threads() {
-		peers := thrd.Peers("", -1)
+		peers := thrd.Peers()
 		item := ThreadItem{Id: thrd.Id, Name: thrd.Name, Peers: len(peers)}
 		threads.Items = append(threads.Items, item)
 	}
@@ -235,7 +235,7 @@ func (m *Mobile) AddThread(name string, mnemonic string) (string, error) {
 	go m.subscribe(thrd)
 
 	// build json
-	peers := thrd.Peers("", -1)
+	peers := thrd.Peers()
 	item := ThreadItem{
 		Id:    thrd.Id,
 		Name:  thrd.Name,

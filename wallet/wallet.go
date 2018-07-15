@@ -696,7 +696,7 @@ func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte, name str
 func (w *Wallet) PublishThreads() {
 	for _, t := range w.threads {
 		go func(thrd *thread.Thread) {
-			thrd.PostHead()
+			thrd.PostHead(thrd.Peers())
 		}(t)
 	}
 }

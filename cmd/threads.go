@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"github.com/fatih/color"
@@ -32,24 +33,19 @@ func AddThread(c *ishell.Context) {
 	}
 	name := c.Args[0]
 
-	c.Print("key pair mnemonic phrase (optional): ")
-	mnemonics := c.ReadLine()
-	var mnemonic *string
-	if mnemonics != "" {
-		mnemonic = &mnemonics
-	}
-
-	thrd, mnem, err := core.Node.Wallet.AddThreadWithMnemonic(name, mnemonic)
+	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
-	go Subscribe(thrd)
+	if _, err := core.Node.Wallet.AddThread(name, sk); err != nil {
+		c.Err(err)
+		return
+	}
 
 	cyan := color.New(color.FgCyan).SprintFunc()
 	c.Println(cyan(fmt.Sprintf("added thread '%s'", name)))
-	c.Println(cyan(fmt.Sprintf("mnemonic phrase: %s", mnem)))
 }
 
 func PublishThread(c *ishell.Context) {
@@ -75,13 +71,13 @@ func PublishThread(c *ishell.Context) {
 		c.Println(blue("nothing to publish"))
 		return
 	}
-	peers := thrd.Peers("", -1)
+	peers := thrd.Peers()
 	if len(peers) == 0 {
 		c.Println(blue("no peers to publish to"))
 		return
 	}
 
-	err = thrd.PostHead()
+	err = thrd.PostHead(peers)
 	if err != nil {
 		c.Err(err)
 		return
@@ -103,7 +99,7 @@ func ListThreadPeers(c *ishell.Context) {
 		return
 	}
 
-	peers := thrd.Peers("", -1)
+	peers := thrd.Peers()
 	if len(peers) == 0 {
 		c.Println(fmt.Sprintf("no peers found in: %s", name))
 	} else {

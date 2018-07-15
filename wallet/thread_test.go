@@ -63,7 +63,7 @@ func TestThread_AddPhotoSetup(t *testing.T) {
 }
 
 func TestThread_PostHeadPreContent(t *testing.T) {
-	err := thrd.PostHead()
+	err := thrd.PostHead(thrd.Peers())
 	if err != nil {
 		t.Errorf("post head with no content failed: %s", err)
 	}
@@ -129,7 +129,7 @@ func TestThread_Decrypt(t *testing.T) {
 }
 
 func TestThread_PostHead(t *testing.T) {
-	err := thrd.PostHead()
+	err := thrd.PostHead(thrd.Peers())
 	if err != nil {
 		t.Errorf("post head with content failed: %s", err)
 	}
