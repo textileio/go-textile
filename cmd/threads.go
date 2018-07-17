@@ -192,7 +192,7 @@ func RemoveThread(c *ishell.Context) {
 	c.Println(red(fmt.Sprintf("removed thread '%s'. added block %s.", name, addr.B58String())))
 }
 
-func Subscribe(thrd *thread.Thread) {
+func Subscribe(thrd *thread.Thread, peerId string) {
 	cyan := color.New(color.FgCyan).SprintFunc()
 	red := color.New(color.FgHiRed).SprintFunc()
 	for {
@@ -216,7 +216,10 @@ func Subscribe(thrd *thread.Thread) {
 				fmt.Printf(red(err.Error()))
 				return
 			}
-			fmt.Printf(cyan(fmt.Sprintf("\nnew block %s in thread %s from %s", update.Index.Id, update.ThreadName, authorId)))
+			if authorId.Pretty() == peerId {
+				return
+			}
+			fmt.Printf(cyan(fmt.Sprintf("\nnew block %s in thread %s from %s", update.Index.Id, update.ThreadName, authorId.Pretty())))
 		}
 	}
 }

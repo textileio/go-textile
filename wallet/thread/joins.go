@@ -96,11 +96,11 @@ func (t *Thread) HandleJoinBlock(message *pb.Message, signed *pb.SignedThreadBlo
 	}
 
 	// get the inviter id
-	inviterPk, err := libp2pc.UnmarshalPublicKey(content.InviterPk)
+	inviteePk, err := libp2pc.UnmarshalPublicKey(content.Header.AuthorPk)
 	if err != nil {
 		return nil, err
 	}
-	inviterId, err := peer.IDFromPublicKey(inviterPk)
+	inviteeId, err := peer.IDFromPublicKey(inviteePk)
 	if err != nil {
 		return nil, err
 	}
@@ -108,9 +108,9 @@ func (t *Thread) HandleJoinBlock(message *pb.Message, signed *pb.SignedThreadBlo
 	// add issuer as a new local peer
 	newPeer := &repo.Peer{
 		Row:      ksuid.New().String(),
-		Id:       inviterId.Pretty(),
+		Id:       inviteeId.Pretty(),
 		ThreadId: libp2pc.ConfigEncodeKey(content.Header.ThreadPk),
-		PubKey:   content.InviterPk,
+		PubKey:   content.Header.AuthorPk,
 	}
 	if err := t.peers().Add(newPeer); err != nil {
 		return nil, err

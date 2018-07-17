@@ -337,9 +337,13 @@ func start() error {
 	<-online
 
 	// subscribe to thread updates
+	peerId, err := core.Node.Wallet.GetId()
+	if err != nil {
+		return err
+	}
 	for _, thrd := range core.Node.Wallet.Threads() {
 		go func(t *thread.Thread) {
-			cmd.Subscribe(t)
+			cmd.Subscribe(t, peerId)
 		}(thrd)
 	}
 
@@ -355,7 +359,7 @@ func start() error {
 				case wallet.ThreadAdded:
 					thrd := core.Node.Wallet.GetThread(update.Id)
 					if thrd != nil {
-						go cmd.Subscribe(thrd)
+						go cmd.Subscribe(thrd, peerId)
 					}
 				case wallet.ThreadRemoved:
 					break
