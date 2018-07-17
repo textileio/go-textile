@@ -64,7 +64,7 @@ func AddPhoto(c *ishell.Context) {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", threadName)))
 		return
 	}
-	tadded, err := thrd.AddPhoto(added.Id, caption, added.Key)
+	addr, err := thrd.AddPhoto(added.Id, caption, added.Key)
 	if err != nil {
 		c.Err(err)
 		return
@@ -72,7 +72,7 @@ func AddPhoto(c *ishell.Context) {
 
 	// show user root id
 	cyan := color.New(color.FgCyan).SprintFunc()
-	c.Println(cyan("added " + added.Id + " to thread " + thrd.Name + " with block " + tadded.Id))
+	c.Println(cyan("added " + added.Id + " to thread " + thrd.Name + " with block " + addr.B58String()))
 }
 
 func SharePhoto(c *ishell.Context) {
@@ -114,14 +114,14 @@ func SharePhoto(c *ishell.Context) {
 	// TODO: owner challenge
 
 	// finally, add to destination
-	shared, err := toThread.AddPhoto(id, caption, key)
+	addr, err := toThread.AddPhoto(id, caption, key)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green("shared " + id + " to thread " + toThread.Name + " (new id: " + shared.Id + ")"))
+	c.Println(green("shared " + id + " to thread " + toThread.Name + " (new id: " + addr.B58String() + ")"))
 }
 
 func ListPhotos(c *ishell.Context) {
@@ -137,7 +137,7 @@ func ListPhotos(c *ishell.Context) {
 		return
 	}
 
-	blocks := thrd.Blocks("", -1, repo.DataBlock)
+	blocks := thrd.Blocks("", -1, repo.PhotoBlock)
 	if len(blocks) == 0 {
 		c.Println(fmt.Sprintf("no photos found in: %s", threadName))
 	} else {
@@ -250,9 +250,9 @@ func getBlockAndThreadForTarget(id string) (*repo.Block, *thread.Thread, error) 
 	if err != nil {
 		return nil, nil, err
 	}
-	thrd := core.Node.Wallet.GetThread(block.ThreadPubKey)
+	thrd := core.Node.Wallet.GetThread(block.ThreadId)
 	if thrd == nil {
-		return nil, nil, errors.New(fmt.Sprintf("could not find thread %s", block.ThreadPubKey))
+		return nil, nil, errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
 	}
 	return block, thrd, nil
 }

@@ -183,13 +183,13 @@ func (m *MessageRetriever) attemptDecrypt(ciphertext []byte, pid peer.ID, addr m
 		log.Warning("unable to decrypt offline message from %s: %s", addr.String(), err.Error())
 		return
 	}
-	pubkey, err := libp2p.UnmarshalPublicKey(env.Pubkey)
+	pubkey, err := libp2p.UnmarshalPublicKey(env.Pk)
 	if err != nil {
 		log.Warning("unable to decrypt offline message from %s: %s", addr.String(), err.Error())
 		return
 	}
 
-	valid, err := pubkey.Verify(ser, env.Signature)
+	valid, err := pubkey.Verify(ser, env.Sig)
 	if err != nil || !valid {
 		log.Warning("unable to decrypt offline message from %s: %s", addr.String(), err.Error())
 		return
@@ -202,7 +202,7 @@ func (m *MessageRetriever) attemptDecrypt(ciphertext []byte, pid peer.ID, addr m
 	}
 
 	m.ipfs.Peerstore.AddPubKey(id, pubkey)
-	m.ipfs.Repo.Datastore().Put(ds.NewKey(KeyCachePrefix+id.String()), env.Pubkey)
+	m.ipfs.Repo.Datastore().Put(ds.NewKey(KeyCachePrefix+id.String()), env.Pk)
 
 	// respond with an ACK
 	if env.Message.Type != pb.Message_OFFLINE_ACK {
@@ -217,7 +217,7 @@ func (m *MessageRetriever) attemptDecrypt(ciphertext []byte, pid peer.ID, addr m
 func (m *MessageRetriever) handleMessage(env pb.Envelope, addr string, id *peer.ID) error {
 	if id == nil {
 		// get the peer ID from the public key
-		pubkey, err := libp2p.UnmarshalPublicKey(env.Pubkey)
+		pubkey, err := libp2p.UnmarshalPublicKey(env.Pk)
 		if err != nil {
 			log.Errorf("error processing message %s. type %s: %s", addr, env.Message.Type, err.Error())
 			return err

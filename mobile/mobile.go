@@ -144,7 +144,7 @@ func (m *Mobile) Start() error {
 		m.messenger.Notify(newEvent("onOnline", map[string]interface{}{}))
 
 		// publish
-		tcore.Node.Wallet.PublishThreads()
+		//tcore.Node.Wallet.PublishThreads()
 	}()
 
 	return nil
@@ -277,29 +277,23 @@ func (m *Mobile) AddExternalThreadInvite(threadName string, pubKey string) (stri
 	}
 
 	// add it
-	added, err := thrd.AddExternalInvite()
+	addr, key, err := thrd.AddExternalInvite()
 	if err != nil {
 		return "", err
 	}
-	link := util.BuildExternalInviteLink(added.Id, string(added.Key), thrd.Name)
+	link := util.BuildExternalInviteLink(addr.B58String(), string(key), thrd.Name)
 
 	return link, nil
 }
 
 // AcceptExternalThreadInvite notifies the thread of a join
-func (m *Mobile) AcceptExternalThreadInvite(link string) error {
-	blockId, key, threadName, err := util.ParseExternalInviteLink(link)
+func (m *Mobile) AcceptExternalThreadInvite(id string, key string) (string, error) {
+	addr, err := tcore.Node.Wallet.AcceptExternalThreadInvite(id, []byte(key))
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	// accept it
-	_, err = tcore.Node.Wallet.AcceptExternalThreadInvite(blockId, []byte(key), threadName)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return addr.B58String(), nil
 }
 
 // RemoveThread call core RemoveDevice
@@ -346,15 +340,13 @@ func (m *Mobile) AddPhoto(path string, threadName string, caption string) (strin
 	if err != nil {
 		return "", err
 	}
-	shared, err := thrd.AddPhoto(added.Id, caption, added.Key)
-	if err != nil {
+	if _, err := thrd.AddPhoto(added.Id, caption, added.Key); err != nil {
 		return "", err
 	}
 
 	// build json
 	requests := PinRequests{}
 	requests.Items = append(requests.Items, *added.RemoteRequest)
-	requests.Items = append(requests.Items, *shared.RemoteRequest)
 	return toJSON(requests)
 }
 
@@ -364,9 +356,9 @@ func (m *Mobile) SharePhoto(id string, threadName string, caption string) (strin
 	if err != nil {
 		return "", err
 	}
-	fromThread := tcore.Node.Wallet.GetThread(block.ThreadPubKey)
+	fromThread := tcore.Node.Wallet.GetThread(block.ThreadId)
 	if fromThread == nil {
-		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadPubKey))
+		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
 	}
 	_, toThread := tcore.Node.Wallet.GetThreadByName(threadName)
 	if toThread == nil {
@@ -378,15 +370,12 @@ func (m *Mobile) SharePhoto(id string, threadName string, caption string) (strin
 	}
 
 	// TODO: owner challenge
-	shared, err := toThread.AddPhoto(id, caption, key)
+	addr, err := toThread.AddPhoto(id, caption, key)
 	if err != nil {
 		return "", err
 	}
 
-	// build json
-	requests := PinRequests{}
-	requests.Items = append(requests.Items, *shared.RemoteRequest)
-	return toJSON(requests)
+	return addr.B58String(), nil
 }
 
 // PhotoBlocks returns thread photo blocks with json encoding
@@ -398,7 +387,7 @@ func (m *Mobile) PhotoBlocks(offsetId string, limit int, threadName string) (str
 
 	// build json
 	blocks := &Blocks{}
-	for _, b := range thrd.Blocks(offsetId, limit, repo.DataBlock) {
+	for _, b := range thrd.Blocks(offsetId, limit, repo.PhotoBlock) {
 		blocks.Items = append(blocks.Items, BlockItem{
 			Id:      b.Id,
 			Target:  b.Target,
@@ -417,9 +406,9 @@ func (m *Mobile) GetBlockData(id string, path string) (string, error) {
 		log.Errorf("could not find block %s for path %s: %s", id, path, err)
 		return "", err
 	}
-	thrd := tcore.Node.Wallet.GetThread(block.ThreadPubKey)
+	thrd := tcore.Node.Wallet.GetThread(block.ThreadId)
 	if thrd == nil {
-		err := errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadPubKey))
+		err := errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadId))
 		log.Error(err.Error())
 		return "", err
 	}
@@ -433,9 +422,9 @@ func (m *Mobile) GetFileData(id string, path string) (string, error) {
 		log.Errorf("could not find block for target %s: %s", id, err)
 		return "", err
 	}
-	thrd := tcore.Node.Wallet.GetThread(block.ThreadPubKey)
+	thrd := tcore.Node.Wallet.GetThread(block.ThreadId)
 	if thrd == nil {
-		err := errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadPubKey))
+		err := errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadId))
 		log.Error(err.Error())
 		return "", err
 	}
@@ -451,9 +440,7 @@ func (m *Mobile) subscribe(thrd *thread.Thread) {
 				return
 			}
 			m.messenger.Notify(newEvent("onThreadUpdate", map[string]interface{}{
-				"id":          update.Id,
-				"type":        int(update.Type),
-				"target_id":   update.TargetId,
+				"index":       update.Index,
 				"thread_id":   update.ThreadId,
 				"thread_name": update.ThreadName,
 			}))

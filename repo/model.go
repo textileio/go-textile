@@ -1,14 +1,13 @@
 package repo
 
 import (
-	"strconv"
 	"time"
 )
 
 type Thread struct {
 	Id      string `json:"id"`
 	Name    string `json:"name"`
-	PrivKey []byte `json:"priv_key"`
+	PrivKey []byte `json:"sk"`
 	Head    string `json:"head"`
 }
 
@@ -21,18 +20,19 @@ type Peer struct {
 	Row      string `json:"row"`
 	Id       string `json:"id"`
 	ThreadId string `json:"thread_id"`
-	PubKey   []byte `json:"pub_key"`
+	PubKey   []byte `json:"pk"`
 }
 
 type Block struct {
-	Id           string    `json:"id"`
-	Target       string    `json:"target"`
-	Parents      []string  `json:"parents"`
-	TargetKey    []byte    `json:"target_key"`
-	ThreadPubKey string    `json:"thread_pub_key"`
-	PeerPubKey   string    `json:"peer_pub_key"`
-	Type         BlockType `json:"type"`
-	Date         time.Time `json:"date"`
+	Id       string    `json:"id"`
+	Date     time.Time `json:"date"`
+	Parents  []string  `json:"parents"`
+	ThreadId string    `json:"thread_pk"`
+	AuthorPk string    `json:"author_pk"`
+
+	Type      BlockType `json:"type"`
+	Target    string    `json:"target"`
+	TargetKey []byte    `json:"target_key"`
 }
 
 type BlockType int
@@ -42,10 +42,5 @@ const (
 	ExternalInviteBlock
 	JoinBlock
 	LeaveBlock
-	DataBlock
-	AnnotationBlock
+	PhotoBlock
 )
-
-func (bt BlockType) Bytes() []byte {
-	return []byte(strconv.Itoa(int(bt)))
-}

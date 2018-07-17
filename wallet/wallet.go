@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/op/go-logging"
 	cmodels "github.com/textileio/textile-go/central/models"
 	"github.com/textileio/textile-go/core/central"
@@ -12,6 +14,7 @@ import (
 	"github.com/textileio/textile-go/net"
 	nm "github.com/textileio/textile-go/net/model"
 	serv "github.com/textileio/textile-go/net/service"
+	"github.com/textileio/textile-go/pb"
 	trepo "github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/storage"
@@ -22,6 +25,7 @@ import (
 	"gx/ipfs/QmVW4cqbibru3hXA1iRmg85Fk7z9qML9k176CYQaMXVCrP/go-libp2p-kad-dht"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	libp2pn "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
+	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	utilmain "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/commands"
@@ -581,14 +585,14 @@ func (w *Wallet) ForceAddThread(name string, secret libp2pc.PrivKey) (*thread.Th
 }
 
 // RemoveThread removes a thread by name
-func (w *Wallet) RemoveThread(name string) (*nm.AddResult, error) {
+func (w *Wallet) RemoveThread(name string) (mh.Multihash, error) {
 	i, thrd := w.GetThreadByName(name) // gets the loaded thread
 	if thrd == nil {
 		return nil, errors.New("thread not found")
 	}
 
 	// notify peers
-	left, err := thrd.Leave()
+	addr, err := thrd.Leave()
 	if err != nil {
 		return nil, err
 	}
@@ -609,25 +613,41 @@ func (w *Wallet) RemoveThread(name string) (*nm.AddResult, error) {
 
 	log.Infof("removed thread '%s'", name)
 
-	return left, nil
+	return addr, nil
 }
 
 // AcceptThreadInvite attemps to download an encrypted thread key from an internal invite,
 // add the thread, and notify the inviter of the join
-func (w *Wallet) AcceptThreadInvite(blockId string, name string) (*nm.AddResult, error) {
-	// download the thread key
-	skcipher, err := util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/key", blockId))
+func (w *Wallet) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
+	// download
+	messageb, err := util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s", blockId))
 	if err != nil {
+		return nil, err
+	}
+	message := new(pb.Message)
+	if err := proto.Unmarshal(messageb, message); err != nil {
+		return nil, err
+	}
+	signed := new(pb.SignedThreadBlock)
+	if err := ptypes.UnmarshalAny(message.Payload, signed); err != nil {
+		return nil, err
+	}
+	invite := new(pb.ThreadInvite)
+	if err := proto.Unmarshal(signed.Block, invite); err != nil {
 		return nil, err
 	}
 
-	// download from pub key
-	frompkb, err := util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/ppk", blockId))
+	// verify invitee
+	if invite.InviteeId != w.ipfs.Identity.Pretty() {
+		return nil, errors.New("invalid invitee")
+	}
+
+	// verify author sig
+	authorPk, err := libp2pc.UnmarshalPublicKey(invite.Header.AuthorPk)
 	if err != nil {
 		return nil, err
 	}
-	frompk, err := libp2pc.UnmarshalPublicKey(frompkb)
-	if err != nil {
+	if err := crypto.Verify(authorPk, signed.Block, signed.AuthorSig); err != nil {
 		return nil, err
 	}
 
@@ -636,7 +656,7 @@ func (w *Wallet) AcceptThreadInvite(blockId string, name string) (*nm.AddResult,
 	if err != nil {
 		return nil, err
 	}
-	skb, err := crypto.Decrypt(key, skcipher)
+	skb, err := crypto.Decrypt(key, invite.SkCipher)
 	if err != nil {
 		return nil, err
 	}
@@ -645,36 +665,52 @@ func (w *Wallet) AcceptThreadInvite(blockId string, name string) (*nm.AddResult,
 		return nil, err
 	}
 
+	// verify thread sig
+	if err := crypto.Verify(sk.GetPublic(), signed.Block, signed.ThreadSig); err != nil {
+		return nil, err
+	}
+
 	// add it
-	thrd, err := w.ForceAddThread(name, sk)
+	thrd, err := w.ForceAddThread(invite.SuggestedName, sk)
 	if err != nil {
 		return nil, err
 	}
 
-	return thrd.Join(frompk, blockId)
+	return thrd.Join(authorPk, blockId)
 }
 
 // AcceptExternalThreadInvite attemps to download an encrypted thread key from an external invite,
 // add the thread, and notify the inviter of the join
-func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte, name string) (*nm.AddResult, error) {
-	// download the thread key
-	skcipher, err := util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/key", blockId))
+func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte) (mh.Multihash, error) {
+	// download
+	messageb, err := util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s", blockId))
 	if err != nil {
+		return nil, err
+	}
+	message := new(pb.Message)
+	if err := proto.Unmarshal(messageb, message); err != nil {
+		return nil, err
+	}
+	signed := new(pb.SignedThreadBlock)
+	if err := ptypes.UnmarshalAny(message.Payload, signed); err != nil {
+		return nil, err
+	}
+	invite := new(pb.ThreadExternalInvite)
+	if err := proto.Unmarshal(signed.Block, invite); err != nil {
 		return nil, err
 	}
 
-	// download from pub key
-	frompkb, err := util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/ppk", blockId))
+	// verify author sig
+	authorPk, err := libp2pc.UnmarshalPublicKey(invite.Header.AuthorPk)
 	if err != nil {
 		return nil, err
 	}
-	frompk, err := libp2pc.UnmarshalPublicKey(frompkb)
-	if err != nil {
+	if err := crypto.Verify(authorPk, signed.Block, signed.AuthorSig); err != nil {
 		return nil, err
 	}
 
 	// decrypt thread key
-	skb, err := crypto.DecryptAES(skcipher, key)
+	skb, err := crypto.DecryptAES(invite.SkCipher, key)
 	if err != nil {
 		return nil, err
 	}
@@ -683,22 +719,18 @@ func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte, name str
 		return nil, err
 	}
 
+	// verify thread sig
+	if err := crypto.Verify(sk.GetPublic(), signed.Block, signed.ThreadSig); err != nil {
+		return nil, err
+	}
+
 	// add it
-	thrd, err := w.ForceAddThread(name, sk)
+	thrd, err := w.ForceAddThread(invite.SuggestedName, sk)
 	if err != nil {
 		return nil, err
 	}
 
-	return thrd.Join(frompk, blockId)
-}
-
-// PublishThreads publishes HEAD for each thread
-func (w *Wallet) PublishThreads() {
-	for _, t := range w.threads {
-		go func(thrd *thread.Thread) {
-			thrd.PostHead(thrd.Peers())
-		}(t)
-	}
+	return thrd.Join(authorPk, blockId)
 }
 
 // Devices lists all devices
@@ -1099,13 +1131,13 @@ func (w *Wallet) getThreadByBlock(block *trepo.Block) (*thread.Thread, error) {
 	}
 	var thrd *thread.Thread
 	for _, t := range w.threads {
-		if t.Id == block.ThreadPubKey {
+		if t.Id == block.ThreadId {
 			thrd = t
 			break
 		}
 	}
 	if thrd == nil {
-		return nil, errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadPubKey))
+		return nil, errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadId))
 	}
 	return thrd, nil
 }

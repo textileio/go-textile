@@ -118,6 +118,7 @@ func main() {
 
 		// create a new shell
 		shell = ishell.New()
+		shell.SetHomeHistoryPath(filepath.Join(dataDir, ".ishell_history"))
 
 		// handle interrupt
 		shell.Interrupt(func(c *ishell.Context, count int, input string) {
@@ -272,11 +273,6 @@ func main() {
 				Name: "ls",
 				Help: "list threads",
 				Func: cmd.ListThreads,
-			})
-			threadCmd.AddCmd(&ishell.Cmd{
-				Name: "publish",
-				Help: "publish latest update",
-				Func: cmd.PublishThread,
 			})
 			threadCmd.AddCmd(&ishell.Cmd{
 				Name: "peers",
