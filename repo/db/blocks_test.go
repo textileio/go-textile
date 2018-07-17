@@ -13,7 +13,7 @@ import (
 
 var bdb repo.BlockStore
 
-var threadpk string
+var threadId string
 
 func init() {
 	setupBlockDB()
@@ -39,14 +39,15 @@ func TestBlockDB_Put(t *testing.T) {
 		t.Error(err)
 	}
 	err = bdb.Add(&repo.Block{
-		Id:           "abcde",
-		Target:       "Qm456",
-		Parents:      []string{"Qm123"},
-		TargetKey:    key,
-		ThreadPubKey: libp2pc.ConfigEncodeKey(pkb),
-		PeerPubKey:   libp2pc.ConfigEncodeKey(pkb),
-		Type:         repo.DataBlock,
-		Date:         time.Now(),
+		Id:                "abcde",
+		Date:              time.Now(),
+		Parents:           []string{"Qm123"},
+		ThreadId:          libp2pc.ConfigEncodeKey(pkb),
+		AuthorPk:          "author_pk",
+		Type:              repo.PhotoBlock,
+		DataId:            "Qm456",
+		DataKeyCipher:     key,
+		DataCaptionCipher: []byte("xxx"),
 	})
 	if err != nil {
 		t.Error(err)
@@ -71,6 +72,14 @@ func TestBlockDB_Get(t *testing.T) {
 	}
 }
 
+func TestBlockDB_GetByDataId(t *testing.T) {
+	block := bdb.GetByDataId("Qm456")
+	if block == nil {
+		t.Error("could not get block")
+		return
+	}
+}
+
 func TestBlockDB_List(t *testing.T) {
 	setupBlockDB()
 	key, err := crypto.GenerateAESKey()
@@ -86,14 +95,15 @@ func TestBlockDB_List(t *testing.T) {
 		t.Error(err)
 	}
 	err = bdb.Add(&repo.Block{
-		Id:           "abcde",
-		Target:       "Qm456",
-		Parents:      []string{"Qm123"},
-		TargetKey:    key,
-		ThreadPubKey: libp2pc.ConfigEncodeKey(pkb),
-		PeerPubKey:   libp2pc.ConfigEncodeKey(pkb),
-		Type:         repo.DataBlock,
-		Date:         time.Now(),
+		Id:                "abcde",
+		Date:              time.Now(),
+		Parents:           []string{"Qm123"},
+		ThreadId:          libp2pc.ConfigEncodeKey(pkb),
+		AuthorPk:          "author_pk",
+		Type:              repo.PhotoBlock,
+		DataId:            "Qm456",
+		DataKeyCipher:     key,
+		DataCaptionCipher: []byte("xxx"),
 	})
 	if err != nil {
 		t.Error(err)
@@ -106,16 +116,17 @@ func TestBlockDB_List(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	threadpk = libp2pc.ConfigEncodeKey(pkb2)
+	threadId = libp2pc.ConfigEncodeKey(pkb2)
 	err = bdb.Add(&repo.Block{
-		Id:           "fghijk",
-		Target:       "Qm789",
-		Parents:      []string{"Qm456"},
-		TargetKey:    key,
-		ThreadPubKey: threadpk,
-		PeerPubKey:   libp2pc.ConfigEncodeKey(pkb2),
-		Type:         repo.AnnotationBlock,
-		Date:         time.Now().Add(time.Minute),
+		Id:                "fghijk",
+		Date:              time.Now().Add(time.Minute),
+		Parents:           []string{"Qm456"},
+		ThreadId:          threadId,
+		AuthorPk:          "author_pk",
+		Type:              repo.PhotoBlock,
+		DataId:            "Qm789",
+		DataKeyCipher:     key,
+		DataCaptionCipher: []byte("xxx"),
 	})
 	if err != nil {
 		t.Error(err)
@@ -135,7 +146,7 @@ func TestBlockDB_List(t *testing.T) {
 		t.Error("returned incorrect number of blocks")
 		return
 	}
-	filtered := bdb.List("", -1, "pk='"+libp2pc.ConfigEncodeKey(pkb2)+"'")
+	filtered := bdb.List("", -1, "threadId='"+threadId+"'")
 	if len(filtered) != 1 {
 		t.Error("returned incorrect number of blocks")
 		return
@@ -156,8 +167,8 @@ func TestBlockDB_Delete(t *testing.T) {
 	}
 }
 
-func TestBlockDB_DeleteByThread(t *testing.T) {
-	err := bdb.DeleteByThread(threadpk)
+func TestBlockDB_DeleteByThreadId(t *testing.T) {
+	err := bdb.DeleteByThreadId(threadId)
 	if err != nil {
 		t.Error(err)
 	}

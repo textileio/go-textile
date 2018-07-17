@@ -234,7 +234,7 @@ func TestMobile_AddPhoto(t *testing.T) {
 	}
 	reqs := PinRequests{}
 	json.Unmarshal([]byte(mrs), &reqs)
-	if len(reqs.Items) != 2 {
+	if len(reqs.Items) != 1 {
 		t.Errorf("add photo got bad pin requests")
 		return
 	}
@@ -247,18 +247,12 @@ func TestMobile_SharePhoto(t *testing.T) {
 		return
 	}
 	caption := "rasputin's eyes"
-	mrs, err := mobile.SharePhoto(addedPhotoId, "test", caption)
+	id, err := mobile.SharePhoto(addedPhotoId, "test", caption)
 	if err != nil {
 		t.Errorf("share photo failed: %s", err)
 		return
 	}
-	reqs := PinRequests{}
-	json.Unmarshal([]byte(mrs), &reqs)
-	if len(reqs.Items) != 1 {
-		t.Errorf("share photo got bad pin requests")
-		return
-	}
-	sharedBlockId = reqs.Items[0].Boundary
+	sharedBlockId = id
 }
 
 func TestMobile_PhotoBlocks(t *testing.T) {
@@ -282,18 +276,7 @@ func TestMobile_PhotosBadThread(t *testing.T) {
 }
 
 func TestMobile_GetBlockData(t *testing.T) {
-	res, err := mobile.GetBlockData(sharedBlockId, "caption")
-	if err != nil {
-		t.Errorf("get block data failed: %s", err)
-		return
-	}
-	if len(res) == 0 {
-		t.Errorf("get block data bad result")
-	}
-}
-
-func TestMobile_GetFileData(t *testing.T) {
-	res, err := mobile.GetFileData(addedPhotoId, "thumb")
+	res, err := mobile.GetBlockData(addedPhotoId, "thumb")
 	if err != nil {
 		t.Errorf("get file data failed: %s", err)
 		return
