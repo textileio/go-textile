@@ -22,9 +22,12 @@ func (t *Thread) AddPhoto(dataId string, caption string, key []byte) (mh.Multiha
 	}
 
 	// encrypt caption with thread pk
-	captionCipher, err := t.Encrypt([]byte(caption))
-	if err != nil {
-		return nil, err
+	var captionCipher []byte
+	if caption != "" {
+		captionCipher, err = t.Encrypt([]byte(caption))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// build block

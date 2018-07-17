@@ -92,13 +92,13 @@ func (t *Thread) Close() {
 
 // Blocks paginates blocks from the datastore
 func (t *Thread) Blocks(offsetId string, limit int, bType repo.BlockType) []repo.Block {
-	query := fmt.Sprintf("pk='%s' and type=%d", t.Id, bType)
+	query := fmt.Sprintf("threadId='%s' and type=%d", t.Id, bType)
 	return t.blocks().List(offsetId, limit, query)
 }
 
 // Peers returns locally known peers in this thread
 func (t *Thread) Peers() []repo.Peer {
-	query := fmt.Sprintf("thread='%s'", t.Id)
+	query := fmt.Sprintf("threadId='%s'", t.Id)
 	return t.peers().List("", -1, query)
 }
 
