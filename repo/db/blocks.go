@@ -24,7 +24,7 @@ func (c *BlockDB) Add(block *repo.Block) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into blocks(id, target, parents, key, pk, ppk, type, date) values(?,?,?,?,?,?,?,?)`
+	stm := `insert into blocks(id, date, parents, threadId, authorPk, type, dataId, dataKeyCipher, dataCaptionCipher) values(?,?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -33,13 +33,14 @@ func (c *BlockDB) Add(block *repo.Block) error {
 	defer stmt.Close()
 	_, err = stmt.Exec(
 		block.Id,
-		block.Target,
-		strings.Join(block.Parents, ","),
-		block.TargetKey,
-		block.ThreadPubKey,
-		block.PeerPubKey,
-		int(block.Type),
 		int(block.Date.Unix()),
+		strings.Join(block.Parents, ","),
+		block.ThreadId,
+		block.AuthorPk,
+		int(block.Type),
+		block.DataId,
+		block.DataKeyCipher,
+		block.DataCaptionCipher,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -60,10 +61,10 @@ func (c *BlockDB) Get(id string) *repo.Block {
 	return &ret[0]
 }
 
-func (c *BlockDB) GetByTarget(target string) *repo.Block {
+func (c *BlockDB) GetByDataId(dataId string) *repo.Block {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from blocks where target='" + target + "';")
+	ret := c.handleQuery("select * from blocks where dataId='" + dataId + "';")
 	if len(ret) == 0 {
 		return nil
 	}
@@ -97,10 +98,10 @@ func (c *BlockDB) Delete(id string) error {
 	return err
 }
 
-func (c *BlockDB) DeleteByThread(threadpk string) error {
+func (c *BlockDB) DeleteByThreadId(threadId string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from blocks where pk=?", threadpk)
+	_, err := c.db.Exec("delete from blocks where threadId=?", threadId)
 	return err
 }
 
@@ -112,22 +113,23 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 		return nil
 	}
 	for rows.Next() {
-		var id, target, parents, pk, ppk string
-		var key []byte
-		var typeInt, dateInt int
-		if err := rows.Scan(&id, &target, &parents, &key, &pk, &ppk, &typeInt, &dateInt); err != nil {
+		var id, parents, threadId, authorPk, dataId string
+		var dateInt, typeInt int
+		var dataKeyCipher, dataCaptionCipher []byte
+		if err := rows.Scan(&id, &dateInt, &parents, &threadId, &authorPk, &typeInt, &dataId, &dataKeyCipher, &dataCaptionCipher); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
 		block := repo.Block{
-			Id:           id,
-			Target:       target,
-			Parents:      strings.Split(parents, ","),
-			TargetKey:    key,
-			ThreadPubKey: pk,
-			PeerPubKey:   ppk,
-			Type:         repo.BlockType(typeInt),
-			Date:         time.Unix(int64(dateInt), 0),
+			Id:                id,
+			Date:              time.Unix(int64(dateInt), 0),
+			Parents:           strings.Split(parents, ","),
+			ThreadId:          threadId,
+			AuthorPk:          authorPk,
+			Type:              repo.BlockType(typeInt),
+			DataId:            dataId,
+			DataKeyCipher:     dataKeyCipher,
+			DataCaptionCipher: dataCaptionCipher,
 		}
 		ret = append(ret, block)
 	}

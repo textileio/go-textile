@@ -81,7 +81,7 @@ func (w *Wallet) sendOfflineMessage(message *pb.Message, pid peer.ID) error {
 	if err != nil {
 		return err
 	}
-	env := pb.Envelope{Message: message, Pubkey: pubKeyBytes, Signature: sig}
+	env := pb.Envelope{Message: message, Pk: pubKeyBytes, Sig: sig}
 	messageBytes, merr := proto.Marshal(&env)
 	if merr != nil {
 		return merr

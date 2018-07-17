@@ -216,15 +216,14 @@ func (t *Thread) commitBlock(content proto.Message, mt pb.Message_Type) (*pb.Mes
 }
 
 // indexBlock stores off index info for this block type
-func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType repo.BlockType, target *string, targetKey []byte) error {
+func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType repo.BlockType, dataConf *repo.DataBlockConfig) error {
 	// add a new one
 	date, err := ptypes.Timestamp(header.Date)
 	if err != nil {
 		return err
 	}
-	var targetstr string
-	if target != nil {
-		targetstr = *target
+	if dataConf == nil {
+		dataConf = new(repo.DataBlockConfig)
 	}
 	index := &repo.Block{
 		Id:       id,
@@ -234,8 +233,10 @@ func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType r
 		AuthorPk: libp2pc.ConfigEncodeKey(header.AuthorPk),
 		Type:     blockType,
 
-		Target:    targetstr,
-		TargetKey: targetKey,
+		// off-chain data links
+		DataId:            dataConf.DataId,
+		DataKeyCipher:     dataConf.DataKeyCipher,
+		DataCaptionCipher: dataConf.DataCaptionCipher,
 	}
 	if err := t.blocks().Add(index); err != nil {
 		return err

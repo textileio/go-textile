@@ -11,7 +11,7 @@ import (
 )
 
 // AddPhoto adds an outgoing photo block
-func (t *Thread) AddPhoto(sourceId string, caption string, key []byte) (mh.Multihash, error) {
+func (t *Thread) AddPhoto(dataId string, caption string, key []byte) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
@@ -35,7 +35,7 @@ func (t *Thread) AddPhoto(sourceId string, caption string, key []byte) (mh.Multi
 	content := &pb.ThreadData{
 		Header:        header,
 		Type:          pb.ThreadData_PHOTO,
-		DataId:        sourceId,
+		DataId:        dataId,
 		KeyCipher:     keyCipher,
 		CaptionCipher: captionCipher,
 	}
@@ -48,7 +48,12 @@ func (t *Thread) AddPhoto(sourceId string, caption string, key []byte) (mh.Multi
 	id := addr.B58String()
 
 	// index it locally
-	if err := t.indexBlock(id, header, repo.PhotoBlock, &sourceId, keyCipher); err != nil {
+	dconf := &repo.DataBlockConfig{
+		DataId:            dataId,
+		DataKeyCipher:     keyCipher,
+		DataCaptionCipher: captionCipher,
+	}
+	if err := t.indexBlock(id, header, repo.PhotoBlock, dconf); err != nil {
 		return nil, err
 	}
 
@@ -102,7 +107,12 @@ func (t *Thread) HandleDataBlock(message *pb.Message, signed *pb.SignedThreadBlo
 	}
 
 	// index it locally
-	if err := t.indexBlock(id, content.Header, repo.PhotoBlock, &content.DataId, content.KeyCipher); err != nil {
+	dconf := &repo.DataBlockConfig{
+		DataId:            content.DataId,
+		DataKeyCipher:     content.KeyCipher,
+		DataCaptionCipher: content.CaptionCipher,
+	}
+	if err := t.indexBlock(id, content.Header, repo.PhotoBlock, dconf); err != nil {
 		return nil, err
 	}
 

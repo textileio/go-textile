@@ -146,11 +146,11 @@ func initDatabaseTables(db *sql.DB, password string) error {
     create unique index thread_name on threads (name);
     create table devices (id text primary key not null, name text not null);
     create unique index device_name on devices (name);
-    create table peers (row text primary key not null, id text not null, thread text not null, pk blob not null);
-    create unique index peer_thread_id on peers (thread, id);
-    create table blocks (id text primary key not null, target text not null, parents text not null, key blob not null, pk text not null, ppk text not null, type integer not null, date integer not null);
-    create index block_target on blocks (target);
-    create index block_pk_type_date on blocks (pk, type, date);
+    create table peers (row text primary key not null, id text not null, pk blob not null, threadId text not null);
+    create unique index peer_threadId_id on peers (threadId, id);
+    create table blocks (id text primary key not null, date integer not null, parents text not null, threadId text not null, authorPk text not null, type integer not null, dataId text, dataKeyCipher blob, dataCaptionCipher blob);
+    create index block_dataId on blocks (dataId);
+    create index block_threadId_type_date on blocks (threadId, type, date);
     create table offlinemessages (url text primary key not null, date integer, message blob);
 	create table pointers (id text primary key not null, key text, address text, cancelId text, purpose integer, date integer);
 	`

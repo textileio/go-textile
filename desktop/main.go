@@ -235,10 +235,10 @@ func getThreadPhotos(id string) (string, error) {
 		return "", errors.New("thread not found")
 	}
 	var html string
-	for _, block := range thrd.Blocks("", -1, repo.DataBlock) {
-		photo := fmt.Sprintf("%s/ipfs/%s/photo?block=%s", gateway, block.Target, block.Id)
-		thumb := fmt.Sprintf("%s/ipfs/%s/thumb?block=%s", gateway, block.Target, block.Id)
-		meta := fmt.Sprintf("%s/ipfs/%s/meta?block=%s", gateway, block.Target, block.Id)
+	for _, block := range thrd.Blocks("", -1, repo.PhotoBlock) {
+		photo := fmt.Sprintf("%s/ipfs/%s/photo?block=%s", gateway, block.DataId, block.Id)
+		thumb := fmt.Sprintf("%s/ipfs/%s/thumb?block=%s", gateway, block.DataId, block.Id)
+		meta := fmt.Sprintf("%s/ipfs/%s/meta?block=%s", gateway, block.DataId, block.Id)
 		img := fmt.Sprintf("<img src=\"%s\" />", thumb)
 		html += fmt.Sprintf(
 			"<div id=\"%s\" class=\"grid-item\" ondragstart=\"imageDragStart(event);\" draggable=\"true\" data-url=\"%s\" data-meta=\"%s\">%s</div>",
