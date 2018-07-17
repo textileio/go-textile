@@ -49,7 +49,7 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 	id := addr.B58String()
 
 	// index it locally
-	if err := t.indexBlock(id, header, repo.ExternalInviteBlock, nil, nil); err != nil {
+	if err := t.indexBlock(id, header, repo.ExternalInviteBlock, nil); err != nil {
 		return nil, nil, err
 	}
 
@@ -90,7 +90,7 @@ func (t *Thread) HandleExternalInviteBlock(message *pb.Message, signed *pb.Signe
 	}
 
 	// index it locally
-	if err := t.indexBlock(id, content.Header, repo.ExternalInviteBlock, nil, nil); err != nil {
+	if err := t.indexBlock(id, content.Header, repo.ExternalInviteBlock, nil); err != nil {
 		return nil, err
 	}
 

@@ -934,9 +934,9 @@ func (w *Wallet) GetBlock(id string) (*trepo.Block, error) {
 	return block, nil
 }
 
-// GetBlockByTarget searches for a local block associated with the given target
-func (w *Wallet) GetBlockByTarget(target string) (*trepo.Block, error) {
-	block := w.datastore.Blocks().GetByTarget(target)
+// GetBlockByDataId searches for a local block associated with the given data id
+func (w *Wallet) GetBlockByTarget(dataId string) (*trepo.Block, error) {
+	block := w.datastore.Blocks().GetByDataId(dataId)
 	if block == nil {
 		return nil, errors.New("block not found locally")
 	}

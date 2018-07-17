@@ -32,7 +32,7 @@ func (t *Thread) Leave() (mh.Multihash, error) {
 	id := addr.B58String()
 
 	// index it locally
-	if err := t.indexBlock(id, header, repo.LeaveBlock, nil, nil); err != nil {
+	if err := t.indexBlock(id, header, repo.LeaveBlock, nil); err != nil {
 		return nil, err
 	}
 
@@ -40,11 +40,11 @@ func (t *Thread) Leave() (mh.Multihash, error) {
 	t.post(message, id, t.Peers())
 
 	// delete blocks
-	if err := t.blocks().DeleteByThread(t.Id); err != nil {
+	if err := t.blocks().DeleteByThreadId(t.Id); err != nil {
 		return nil, err
 	}
 	// delete peers
-	if err := t.peers().DeleteByThread(t.Id); err != nil {
+	if err := t.peers().DeleteByThreadId(t.Id); err != nil {
 		return nil, err
 	}
 
@@ -95,7 +95,7 @@ func (t *Thread) HandleLeaveBlock(message *pb.Message, signed *pb.SignedThreadBl
 	}
 
 	// index it locally
-	if err := t.indexBlock(id, content.Header, repo.LeaveBlock, nil, nil); err != nil {
+	if err := t.indexBlock(id, content.Header, repo.LeaveBlock, nil); err != nil {
 		return nil, err
 	}
 

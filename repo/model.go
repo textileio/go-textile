@@ -19,8 +19,8 @@ type Device struct {
 type Peer struct {
 	Row      string `json:"row"`
 	Id       string `json:"id"`
-	ThreadId string `json:"thread_id"`
 	PubKey   []byte `json:"pk"`
+	ThreadId string `json:"thread_id"`
 }
 
 type Block struct {
@@ -29,10 +29,17 @@ type Block struct {
 	Parents  []string  `json:"parents"`
 	ThreadId string    `json:"thread_pk"`
 	AuthorPk string    `json:"author_pk"`
+	Type     BlockType `json:"type"`
 
-	Type      BlockType `json:"type"`
-	Target    string    `json:"target"`
-	TargetKey []byte    `json:"target_key"`
+	DataId            string `json:"target"`
+	DataKeyCipher     []byte `json:"target_key_cipher"`
+	DataCaptionCipher []byte `json:"data_caption_cipher"`
+}
+
+type DataBlockConfig struct {
+	DataId            string `json:"target"`
+	DataKeyCipher     []byte `json:"target_key_cipher"`
+	DataCaptionCipher []byte `json:"data_caption_cipher"`
 }
 
 type BlockType int

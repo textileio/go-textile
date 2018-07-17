@@ -9,7 +9,6 @@ import (
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/net"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet"
 	"github.com/textileio/textile-go/wallet/thread"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
@@ -281,9 +280,8 @@ func (m *Mobile) AddExternalThreadInvite(threadName string, pubKey string) (stri
 	if err != nil {
 		return "", err
 	}
-	link := util.BuildExternalInviteLink(addr.B58String(), string(key), thrd.Name)
 
-	return link, nil
+	return addr.B58String() + ":" + string(key), nil
 }
 
 // AcceptExternalThreadInvite notifies the thread of a join
@@ -364,7 +362,7 @@ func (m *Mobile) SharePhoto(id string, threadName string, caption string) (strin
 	if toThread == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread named %s", threadName))
 	}
-	key, err := fromThread.Decrypt(block.TargetKey)
+	key, err := fromThread.Decrypt(block.DataKeyCipher)
 	if err != nil {
 		return "", err
 	}
@@ -390,7 +388,7 @@ func (m *Mobile) PhotoBlocks(offsetId string, limit int, threadName string) (str
 	for _, b := range thrd.Blocks(offsetId, limit, repo.PhotoBlock) {
 		blocks.Items = append(blocks.Items, BlockItem{
 			Id:      b.Id,
-			Target:  b.Target,
+			Target:  b.DataId,
 			Parents: b.Parents,
 			Type:    b.Type,
 			Date:    b.Date,
@@ -401,22 +399,6 @@ func (m *Mobile) PhotoBlocks(offsetId string, limit int, threadName string) (str
 
 // GetBlockData calls GetBlockDataBase64 on a thread
 func (m *Mobile) GetBlockData(id string, path string) (string, error) {
-	block, err := tcore.Node.Wallet.GetBlock(id)
-	if err != nil {
-		log.Errorf("could not find block %s for path %s: %s", id, path, err)
-		return "", err
-	}
-	thrd := tcore.Node.Wallet.GetThread(block.ThreadId)
-	if thrd == nil {
-		err := errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadId))
-		log.Error(err.Error())
-		return "", err
-	}
-	return thrd.GetBlockDataBase64(fmt.Sprintf("%s/%s", id, path), block)
-}
-
-// GetFileData calls GetFileDataBase64 on a thread
-func (m *Mobile) GetFileData(id string, path string) (string, error) {
 	block, err := tcore.Node.Wallet.GetBlockByTarget(id)
 	if err != nil {
 		log.Errorf("could not find block for target %s: %s", id, err)
@@ -428,7 +410,7 @@ func (m *Mobile) GetFileData(id string, path string) (string, error) {
 		log.Error(err.Error())
 		return "", err
 	}
-	return thrd.GetFileDataBase64(fmt.Sprintf("%s/%s", id, path), block)
+	return thrd.GetBlockDataBase64(fmt.Sprintf("%s/%s", id, path), block)
 }
 
 // subscribe to thread and pass updates to messenger

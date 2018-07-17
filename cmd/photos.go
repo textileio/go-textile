@@ -105,7 +105,7 @@ func SharePhoto(c *ishell.Context) {
 	}
 
 	// get the file key from the original block
-	key, err := fromThread.Decrypt(block.TargetKey)
+	key, err := fromThread.Decrypt(block.DataKeyCipher)
 	if err != nil {
 		c.Err(err)
 		return
@@ -146,7 +146,7 @@ func ListPhotos(c *ishell.Context) {
 
 	magenta := color.New(color.FgHiMagenta).SprintFunc()
 	for _, block := range blocks {
-		c.Println(magenta(fmt.Sprintf("id: %s, block: %s", block.Target, block.Id)))
+		c.Println(magenta(fmt.Sprintf("id: %s, block: %s", block.DataId, block.Id)))
 	}
 }
 
@@ -173,7 +173,7 @@ func GetPhoto(c *ishell.Context) {
 		return
 	}
 
-	file, err := thrd.GetFileData(fmt.Sprintf("%s/photo", id), block)
+	file, err := thrd.GetBlockData(fmt.Sprintf("%s/photo", id), block)
 	if err != nil {
 		c.Err(err)
 		return
@@ -202,7 +202,7 @@ func CatPhotoMetadata(c *ishell.Context) {
 		return
 	}
 
-	file, err := thrd.GetFileData(fmt.Sprintf("%s/meta", id), block)
+	file, err := thrd.GetBlockData(fmt.Sprintf("%s/meta", id), block)
 	if err != nil {
 		c.Err(err)
 		return
@@ -235,14 +235,14 @@ func GetPhotoKey(c *ishell.Context) {
 		return
 	}
 
-	key, err := thrd.GetFileKey(block)
+	key, err := thrd.GetBlockDataKey(block)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
 	blue := color.New(color.FgHiBlue).SprintFunc()
-	c.Println(blue(key))
+	c.Println(blue(string(key)))
 }
 
 func getBlockAndThreadForTarget(id string) (*repo.Block, *thread.Thread, error) {

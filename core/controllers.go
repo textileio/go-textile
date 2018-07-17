@@ -21,34 +21,34 @@ func gateway(c *gin.Context) {
 			c.Status(404)
 			return
 		}
-		thrd := Node.Wallet.GetThread(block.ThreadPubKey)
+		thrd := Node.Wallet.GetThread(block.ThreadId)
 		if thrd == nil {
 			log.Errorf("could not find thread for block: %s", block.Id)
 			c.Status(404)
 			return
 		}
-		file, err := thrd.GetFileData(contentPath, block)
+		data, err := thrd.GetBlockData(contentPath, block)
 		if err != nil {
 			log.Errorf("error decrypting path %s: %s", contentPath, err)
 			c.Status(404)
 			return
 		}
-		c.Data(200, contentType, file)
+		c.Data(200, contentType, data)
 		return
 	}
 
-	// get raw file
-	file, err := Node.Wallet.GetDataAtPath(contentPath)
+	// get raw data
+	data, err := Node.Wallet.GetDataAtPath(contentPath)
 	if err != nil {
 		log.Errorf("error getting raw path %s: %s", contentPath, err)
 		c.Status(404)
 		return
 	}
 
-	// if key is provided, try to decrypt the file with it
+	// if key is provided, try to decrypt the data with it
 	key, exists := c.GetQuery("key")
 	if exists {
-		plain, err := crypto.DecryptAES(file, []byte(key))
+		plain, err := crypto.DecryptAES(data, []byte(key))
 		if err != nil {
 			log.Errorf("error decrypting %s: %s", contentPath, err)
 			c.Status(404)
@@ -59,7 +59,7 @@ func gateway(c *gin.Context) {
 	}
 
 	// lastly, just return the raw bytes (standard gateway)
-	c.Data(200, contentType, file)
+	c.Data(200, contentType, data)
 }
 
 // pin handles pin http requests
