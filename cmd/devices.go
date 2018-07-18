@@ -58,17 +58,17 @@ func AddDevice(c *ishell.Context) {
 
 func RemoveDevice(c *ishell.Context) {
 	if len(c.Args) == 0 {
-		c.Err(errors.New("missing device name"))
+		c.Err(errors.New("missing device id"))
 		return
 	}
-	name := c.Args[0]
+	id := c.Args[0]
 
-	err := core.Node.Wallet.RemoveDevice(name)
+	err := core.Node.Wallet.RemoveDevice(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
 	red := color.New(color.FgHiRed).SprintFunc()
-	c.Println(red(fmt.Sprintf("removed device '%s'", name)))
+	c.Println(red(fmt.Sprintf("removed device '%s'", id)))
 }

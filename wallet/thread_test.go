@@ -1,9 +1,10 @@
 package wallet_test
 
 import (
+	nm "github.com/textileio/textile-go/net/model"
 	. "github.com/textileio/textile-go/wallet"
-	"github.com/textileio/textile-go/wallet/model"
 	"github.com/textileio/textile-go/wallet/thread"
+	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	"os"
 	"testing"
 )
@@ -14,8 +15,8 @@ var twallet *Wallet
 var wonline <-chan struct{}
 
 var thrd *thread.Thread
-var wadded *model.AddResult
-var tadded *model.AddResult
+var wadded *nm.AddResult
+var tadded mh.Multihash
 
 func Test_SetupThread(t *testing.T) {
 	os.RemoveAll(trepo)
@@ -62,21 +63,14 @@ func TestThread_AddPhotoSetup(t *testing.T) {
 	}
 }
 
-func TestThread_PostHeadPreContent(t *testing.T) {
-	err := thrd.PostHead()
-	if err != nil {
-		t.Errorf("post head with no content failed: %s", err)
-	}
-}
-
 func TestThread_AddPhoto(t *testing.T) {
 	var err error
-	tadded, err = thrd.AddPhoto(wadded.Id, "howdy", wadded.Key)
+	tadded, err = thrd.AddPhoto(wadded.Id, "howdy", []byte(wadded.Key))
 	if err != nil {
 		t.Errorf("add photo to thread failed: %s", err)
 	}
-	if tadded.Id == "" {
-		t.Error("add photo to thread got bad id")
+	if tadded == nil {
+		t.Error("add photo to thread got bad result")
 	}
 }
 
@@ -126,13 +120,6 @@ func TestThread_Encrypt(t *testing.T) {
 
 func TestThread_Decrypt(t *testing.T) {
 	// TODO
-}
-
-func TestThread_PostHead(t *testing.T) {
-	err := thrd.PostHead()
-	if err != nil {
-		t.Errorf("post head with content failed: %s", err)
-	}
 }
 
 func TestThread_Peers(t *testing.T) {

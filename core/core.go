@@ -2,18 +2,16 @@ package core
 
 import (
 	"context"
+	"github.com/gin-gonic/gin"
 	"github.com/op/go-logging"
-	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/wallet"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/fsrepo"
+	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"sync"
-	"time"
 )
 
 var fileLogFormat = logging.MustStringFormatter(
@@ -21,17 +19,16 @@ var fileLogFormat = logging.MustStringFormatter(
 )
 var log = logging.MustGetLogger("core")
 
-const Version = "0.0.2"
-const threadPublishInterval = time.Minute * 1
+const Version = "0.0.5"
 
 // Node is the single TextileNode instance
 var Node *TextileNode
 
 // TextileNode is the main node interface for textile functionality
 type TextileNode struct {
-	Wallet  *wallet.Wallet
-	gateway *http.Server
-	mux     sync.Mutex
+	Wallet *wallet.Wallet
+	server *http.Server
+	mux    sync.Mutex
 }
 
 // NodeConfig is used to configure the node
@@ -73,14 +70,8 @@ func NewNode(config NodeConfig) (*TextileNode, string, error) {
 		return nil, "", err
 	}
 
-	// setup gateway
-	gateway := &http.Server{Addr: wall.GetGatewayAddress()}
-
 	// finally, construct our node
-	node := &TextileNode{
-		Wallet:  wall,
-		gateway: gateway,
-	}
+	node := &TextileNode{Wallet: wall}
 
 	return node, mnemonic, nil
 }
@@ -99,162 +90,54 @@ func (t *TextileNode) StopWallet() error {
 	return t.Wallet.Stop()
 }
 
-// StopGateway starts the gateway
-func (t *TextileNode) StartGateway() error {
-	// try to register our handler
-	t.registerGatewayHandler()
+// StartServer starts the server
+func (t *TextileNode) StartServer() {
+	router := gin.Default()
+	router.GET("/ipfs/:cid/:path", gateway)
+	v1 := router.Group("/api/v1")
+	{
+		v1.POST("/pin", pin)
+	}
+	t.server = &http.Server{
+		Addr:    t.Wallet.GetServerAddress(),
+		Handler: router,
+	}
 
 	// start the server
 	errc := make(chan error)
 	go func() {
-		errc <- t.gateway.ListenAndServe()
+		errc <- t.server.ListenAndServe()
 		close(errc)
 	}()
 	go func() {
 		for {
 			select {
 			case err, ok := <-errc:
-				if err != nil && err.Error() != "http: Server closed" {
-					log.Errorf("gateway error: %s", err)
+				if err != nil && err != http.ErrServerClosed {
+					log.Errorf("server error: %s", err)
 				}
 				if !ok {
-					log.Info("decrypting gateway was shutdown")
+					log.Info("server was shutdown")
 					return
 				}
 			}
 		}
 	}()
-	log.Infof("decrypting gateway (readonly) server listening at %s\n", t.gateway.Addr)
-	return nil
+	log.Infof("server listening at %s\n", t.server.Addr)
 }
 
-// StopGateway stops the gateway
-func (t *TextileNode) StopGateway() error {
-	cgCtx, cancelCGW := context.WithCancel(context.Background())
-	if err := t.gateway.Shutdown(cgCtx); err != nil {
-		log.Errorf("error shutting down gateway: %s", err)
+// StopServer stops the server
+func (t *TextileNode) StopServer() error {
+	ctx, cancel := context.WithCancel(context.Background())
+	if err := t.server.Shutdown(ctx); err != nil {
+		log.Errorf("error shutting down server: %s", err)
 		return err
 	}
-	cancelCGW()
+	cancel()
 	return nil
 }
 
-// GetGatewayAddress returns the gateway's address
-func (t *TextileNode) GetGatewayAddress() string {
-	return t.gateway.Addr
-}
-
-// StartPublishing continuously publishes the latest update in each thread
-func (t *TextileNode) StartPublishing() {
-	t.Wallet.PublishThreads() // start now
-	ticker := time.NewTicker(threadPublishInterval)
-	defer func() {
-		ticker.Stop()
-		defer func() {
-			if recover() != nil {
-				log.Error("publishing ticker already stopped")
-			}
-		}()
-	}()
-	go func() {
-		for range ticker.C {
-			t.Wallet.PublishThreads()
-		}
-	}()
-
-	// we can stop when the node stops
-	for {
-		if !t.Wallet.Started() {
-			return
-		}
-		select {
-		case <-t.Wallet.Done():
-			log.Info("publishing stopped")
-			return
-		}
-	}
-}
-
-// registerGatewayHandler registers a handler for the gateway
-func (t *TextileNode) registerGatewayHandler() {
-	defer func() {
-		if recover() != nil {
-			log.Debug("gateway handler already registered")
-		}
-	}()
-	// NOTE: always returning 404 in the event of an error seems most secure as it doesn't reveal existence
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Debugf("gateway request: %s", r.URL.RequestURI())
-		parsed, contentType := parsePath(r.URL.Path)
-
-		// look for block id
-		blockId := r.URL.Query()["block"]
-		if blockId != nil {
-			block, err := t.Wallet.GetBlock(blockId[0])
-			if err != nil {
-				log.Errorf("error finding block %s: %s", blockId[0], err)
-				return
-			}
-			thrd := t.Wallet.GetThread(block.ThreadPubKey)
-			if thrd == nil {
-				log.Errorf("could not find thread for block: %s", block.Id)
-				return
-			}
-			file, err := thrd.GetFileData(parsed, block)
-			if err != nil {
-				log.Errorf("error decrypting path %s: %s", parsed, err)
-				w.WriteHeader(404)
-				return
-			}
-			if contentType != "" {
-				w.Header().Set("Content-Type", contentType)
-			}
-			w.Write(file)
-			return
-		}
-
-		// get raw file
-		file, err := t.Wallet.GetDataAtPath(parsed)
-		if err != nil {
-			log.Errorf("error getting raw path %s: %s", parsed, err)
-			w.WriteHeader(404)
-			return
-		}
-
-		// if key is provided, try to decrypt the file with it
-		key := r.URL.Query()["key"]
-		if key != nil {
-			plain, err := crypto.DecryptAES(file, []byte(key[0]))
-			if err != nil {
-				log.Errorf("error decrypting %s: %s", parsed, err)
-				w.WriteHeader(404)
-				return
-			}
-			if contentType != "" {
-				w.Header().Set("Content-Type", contentType)
-			}
-			w.Write(plain)
-			return
-		}
-
-		// lastly, just return the raw bytes (standard gateway)
-		w.Write(file)
-	})
-}
-
-func parsePath(path string) (parsed string, contentType string) {
-	parts := strings.Split(path, ".")
-	parsed = parts[0]
-	if len(parts) == 1 {
-		return parsed, ""
-	}
-	switch parts[1] {
-	case "jpg", "jpeg":
-		contentType = "image/jpeg"
-	case "png":
-		contentType = "image/png"
-	case "gif":
-		contentType = "image/gif"
-	}
-	return parsed, contentType
+// GetServerAddress returns the server's address
+func (t *TextileNode) GetServerAddress() string {
+	return t.server.Addr
 }

@@ -1,9 +1,13 @@
 package model
 
 import (
-	"github.com/textileio/textile-go/net"
 	"time"
 )
+
+type Profile struct {
+	Id       string `json:"id"`
+	Username string `json:"un,omitempty"`
+}
 
 const ThumbnailWidth = 300
 
@@ -19,14 +23,12 @@ type FileMetadata struct {
 	Ext  string `json:"ext,omitempty"`
 }
 
-type AddResult struct {
-	Id            string
-	Key           []byte
-	RemoteRequest *net.PinRequest
-}
-
 type PhotoMetadata struct {
 	FileMetadata
-	Latitude  float64 `json:"lat,omitempty"`
-	Longitude float64 `json:"lon,omitempty"`
+	Format          string  `json:"fmt"`
+	ThumbnailFormat string  `json:"fmttn"`
+	Width           int     `json:"width"`
+	Height          int     `json:"height"`
+	Latitude        float64 `json:"lat,omitempty"`
+	Longitude       float64 `json:"lon,omitempty"`
 }

@@ -15,7 +15,7 @@ import (
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/core"
+	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	"io"
 	"sync"
 	"time"
@@ -32,7 +32,7 @@ type TextileService struct {
 	ctx       context.Context
 	datastore repo.Datastore
 	node      *core.IpfsNode
-	getThread func(string) *thread.Thread
+	getThread func(string) (*int, *thread.Thread)
 	addThread func(string, libp2pc.PrivKey) (*thread.Thread, error)
 	sender    map[peer.ID]*sender
 	senderlk  sync.Mutex
@@ -41,7 +41,7 @@ type TextileService struct {
 func NewService(
 	node *core.IpfsNode,
 	datastore repo.Datastore,
-	getThread func(string) *thread.Thread,
+	getThread func(string) (*int, *thread.Thread),
 	addThread func(string, libp2pc.PrivKey) (*thread.Thread, error),
 ) *TextileService {
 	service := &TextileService{
@@ -131,7 +131,7 @@ func (s *TextileService) handleNewMessage(stream inet.Stream, incoming bool) {
 		}
 
 		// Get handler for this msg type
-		handler := s.HandlerForMsgType(pmes.MessageType)
+		handler := s.HandlerForMsgType(pmes.Type)
 		if handler == nil {
 			stream.Reset()
 			log.Debug("got back nil handler from handlerForMsgType")
@@ -141,7 +141,7 @@ func (s *TextileService) handleNewMessage(stream inet.Stream, incoming bool) {
 		// Dispatch handler
 		rpmes, err := handler(mPeer, pmes, nil)
 		if err != nil {
-			log.Debugf("%s handle message error: %s", pmes.MessageType.String(), err)
+			log.Debugf("%s handle message error: %s", pmes.Type.String(), err)
 		}
 
 		// If nil response, return it before serializing
@@ -163,7 +163,7 @@ func (s *TextileService) handleNewMessage(stream inet.Stream, incoming bool) {
 }
 
 func (s *TextileService) SendRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
-	log.Debugf("sending %s request to %s", pmes.MessageType.String(), p.Pretty())
+	log.Debugf("sending %s request to %s", pmes.Type.String(), p.Pretty())
 	ms, err := s.messageSenderForPeer(p)
 	if err != nil {
 		return nil, err
@@ -185,7 +185,7 @@ func (s *TextileService) SendRequest(ctx context.Context, p peer.ID, pmes *pb.Me
 }
 
 func (s *TextileService) SendMessage(ctx context.Context, p peer.ID, pmes *pb.Message) error {
-	log.Debugf("sending %s message to %s", pmes.MessageType.String(), p.Pretty())
+	log.Debugf("sending %s message to %s", pmes.Type.String(), p.Pretty())
 	ms, err := s.messageSenderForPeer(p)
 	if err != nil {
 		return err

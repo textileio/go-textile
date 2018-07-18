@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/wallet/thread"
+	"github.com/textileio/textile-go/wallet/util"
 	"gopkg.in/abiosoft/ishell.v2"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
@@ -31,87 +33,45 @@ func AddThread(c *ishell.Context) {
 	}
 	name := c.Args[0]
 
-	c.Print("key pair mnemonic phrase (optional): ")
-	mnemonics := c.ReadLine()
-	var mnemonic *string
-	if mnemonics != "" {
-		mnemonic = &mnemonics
-	}
-
-	thrd, mnem, err := core.Node.Wallet.AddThreadWithMnemonic(name, mnemonic)
+	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
-	go Subscribe(c, thrd)
+	thrd, err := core.Node.Wallet.AddThread(name, sk)
+	if err != nil {
+		c.Err(err)
+		return
+	}
 
 	cyan := color.New(color.FgCyan).SprintFunc()
-	c.Println(cyan(fmt.Sprintf("added thread '%s'", name)))
-	c.Println(cyan(fmt.Sprintf("mnemonic phrase: %s", mnem)))
-}
-
-func PublishThread(c *ishell.Context) {
-	if len(c.Args) == 0 {
-		c.Err(errors.New("missing thread name"))
-		return
-	}
-	name := c.Args[0]
-
-	_, thrd := core.Node.Wallet.GetThreadByName(name)
-	if thrd == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
-		return
-	}
-
-	blue := color.New(color.FgHiBlue).SprintFunc()
-	head, err := thrd.GetHead()
-	if err != nil {
-		c.Err(err)
-		return
-	}
-	if head == "" {
-		c.Println(blue("nothing to publish"))
-		return
-	}
-	peers := thrd.Peers("", -1)
-	if len(peers) == 0 {
-		c.Println(blue("no peers to publish to"))
-		return
-	}
-
-	err = thrd.PostHead()
-	if err != nil {
-		c.Err(err)
-		return
-	}
-
-	c.Println(blue(fmt.Sprintf("published %s in thread %s to %d peers", head, thrd.Name, len(peers))))
+	c.Println(cyan(fmt.Sprintf("added thread %s with name %s", thrd.Id, name)))
 }
 
 func ListThreadPeers(c *ishell.Context) {
 	if len(c.Args) == 0 {
-		c.Err(errors.New("missing thread name"))
+		c.Err(errors.New("missing thread id"))
 		return
 	}
-	name := c.Args[0]
+	id := c.Args[0]
 
-	_, thrd := core.Node.Wallet.GetThreadByName(name)
+	_, thrd := core.Node.Wallet.GetThread(id)
 	if thrd == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
+		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", id)))
 		return
 	}
 
-	peers := thrd.Peers("", -1)
+	peers := thrd.Peers()
 	if len(peers) == 0 {
-		c.Println(fmt.Sprintf("no peers found in: %s", name))
+		c.Println(fmt.Sprintf("no peers found in: %s", id))
 	} else {
-		c.Println(fmt.Sprintf("found %v peers in: %s", len(peers), name))
+		c.Println(fmt.Sprintf("found %v peers in: %s", len(peers), id))
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	for _, peer := range peers {
-		c.Println(green(peer.Id))
+	for _, p := range peers {
+		c.Println(green(p.Id))
 	}
 }
 
@@ -122,14 +82,14 @@ func AddThreadInvite(c *ishell.Context) {
 	}
 	pks := c.Args[0]
 	if len(c.Args) == 1 {
-		c.Err(errors.New("missing thread name"))
+		c.Err(errors.New("missing thread id"))
 		return
 	}
-	name := c.Args[1]
+	id := c.Args[1]
 
-	_, thrd := core.Node.Wallet.GetThreadByName(name)
+	_, thrd := core.Node.Wallet.GetThread(id)
 	if thrd == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", name)))
+		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", id)))
 		return
 	}
 
@@ -144,41 +104,113 @@ func AddThreadInvite(c *ishell.Context) {
 		return
 	}
 
-	if _, err := thrd.AddInvite(pk); err != nil {
+	addr, err := thrd.AddInvite(pk)
+	if err != nil {
 		c.Err(err)
 		return
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green("invite sent!"))
+	c.Println(green(fmt.Sprintf("invite sent! added block %s.", addr.B58String())))
+}
+
+func AcceptThreadInvite(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing invite address"))
+		return
+	}
+	blockId := c.Args[0]
+
+	addr, err := core.Node.Wallet.AcceptThreadInvite(blockId)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	green := color.New(color.FgHiGreen).SprintFunc()
+	c.Println(green(fmt.Sprintf("ok, accepted. added block %s.", addr.B58String())))
+}
+
+func AddExternalThreadInvite(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing thread id"))
+		return
+	}
+	id := c.Args[0]
+
+	_, thrd := core.Node.Wallet.GetThread(id)
+	if thrd == nil {
+		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", id)))
+		return
+	}
+
+	addr, key, err := thrd.AddExternalInvite()
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	green := color.New(color.FgHiGreen).SprintFunc()
+	c.Println(green(fmt.Sprintf("added! creds: %s %s", addr.B58String(), string(key))))
+}
+
+func AcceptExternalThreadInvite(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing invite id"))
+		return
+	}
+	id := c.Args[0]
+	if len(c.Args) == 1 {
+		c.Err(errors.New("missing invite key"))
+		return
+	}
+	key := c.Args[1]
+
+	addr, err := core.Node.Wallet.AcceptExternalThreadInvite(id, []byte(key))
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	green := color.New(color.FgHiGreen).SprintFunc()
+	c.Println(green(fmt.Sprintf("ok, accepted. added block %s.", addr.B58String())))
 }
 
 func RemoveThread(c *ishell.Context) {
 	if len(c.Args) == 0 {
-		c.Err(errors.New("missing thread name"))
+		c.Err(errors.New("missing thread id"))
 		return
 	}
-	name := c.Args[0]
+	id := c.Args[0]
 
-	err := core.Node.Wallet.RemoveThread(name)
+	addr, err := core.Node.Wallet.RemoveThread(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
 	red := color.New(color.FgHiRed).SprintFunc()
-	c.Println(red(fmt.Sprintf("removed thread '%s'", name)))
+	c.Println(red(fmt.Sprintf("removed thread %s. added block %s.", id, addr.B58String())))
 }
 
-func Subscribe(shell ishell.Actions, thrd *thread.Thread) {
+func Subscribe(thrd *thread.Thread, peerId string) {
 	cyan := color.New(color.FgCyan).SprintFunc()
+	red := color.New(color.FgHiRed).SprintFunc()
 	for {
 		select {
 		case update, ok := <-thrd.Updates():
 			if !ok {
 				return
 			}
-			shell.Printf(cyan(fmt.Sprintf("new block %s in thread %s", update.Id, update.ThreadName)))
+			authorId, err := util.IdFromEncodedPublicKey(update.Index.AuthorPk)
+			if err != nil {
+				fmt.Printf(red(err.Error()))
+				return
+			}
+			if authorId.Pretty() == peerId {
+				return
+			}
+			fmt.Printf(cyan(fmt.Sprintf("\nnew block %s in thread %s from %s", update.Index.Id, update.ThreadId, authorId.Pretty())))
 		}
 	}
 }
