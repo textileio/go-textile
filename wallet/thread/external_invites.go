@@ -56,6 +56,8 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 	// post it
 	t.post(message, id, t.Peers())
 
+	log.Debugf("added external invite to %s: %s", t.Id, id)
+
 	// all done
 	return addr, key, nil
 }

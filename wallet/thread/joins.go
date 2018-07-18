@@ -62,6 +62,8 @@ func (t *Thread) Join(inviterPk libp2pc.PubKey, blockId string) (mh.Multihash, e
 	// post it
 	t.post(message, id, t.Peers())
 
+	log.Debugf("joined %s via invite %s", t.Id, blockId)
+
 	// all done
 	return addr, nil
 }

@@ -7,8 +7,8 @@ import (
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/wallet/thread"
+	"github.com/textileio/textile-go/wallet/util"
 	"gopkg.in/abiosoft/ishell.v2"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
@@ -39,13 +39,14 @@ func AddThread(c *ishell.Context) {
 		return
 	}
 
-	if _, err := core.Node.Wallet.AddThread(name, sk); err != nil {
+	thrd, err := core.Node.Wallet.AddThread(name, sk)
+	if err != nil {
 		c.Err(err)
 		return
 	}
 
 	cyan := color.New(color.FgCyan).SprintFunc()
-	c.Println(cyan(fmt.Sprintf("added thread '%s'", name)))
+	c.Println(cyan(fmt.Sprintf("added thread %s with name %s", thrd.Id, name)))
 }
 
 func ListThreadPeers(c *ishell.Context) {
@@ -150,7 +151,7 @@ func AddExternalThreadInvite(c *ishell.Context) {
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green(fmt.Sprintf("id: %s, key: %s", addr.B58String(), string(key))))
+	c.Println(green(fmt.Sprintf("added! creds: %s %s", addr.B58String(), string(key))))
 }
 
 func AcceptExternalThreadInvite(c *ishell.Context) {
@@ -189,7 +190,7 @@ func RemoveThread(c *ishell.Context) {
 	}
 
 	red := color.New(color.FgHiRed).SprintFunc()
-	c.Println(red(fmt.Sprintf("removed thread '%s'. added block %s.", name, addr.B58String())))
+	c.Println(red(fmt.Sprintf("removed thread %s. added block %s.", name, addr.B58String())))
 }
 
 func Subscribe(thrd *thread.Thread, peerId string) {
@@ -201,17 +202,7 @@ func Subscribe(thrd *thread.Thread, peerId string) {
 			if !ok {
 				return
 			}
-			authorPkb, err := libp2pc.ConfigDecodeKey(update.Index.AuthorPk)
-			if err != nil {
-				fmt.Printf(red(err.Error()))
-				return
-			}
-			authorPk, err := libp2pc.UnmarshalPublicKey(authorPkb)
-			if err != nil {
-				fmt.Printf(red(err.Error()))
-				return
-			}
-			authorId, err := peer.IDFromPublicKey(authorPk)
+			authorId, err := util.IdFromEncodedPublicKey(update.Index.AuthorPk)
 			if err != nil {
 				fmt.Printf(red(err.Error()))
 				return
@@ -219,7 +210,7 @@ func Subscribe(thrd *thread.Thread, peerId string) {
 			if authorId.Pretty() == peerId {
 				return
 			}
-			fmt.Printf(cyan(fmt.Sprintf("\nnew block %s in thread %s from %s", update.Index.Id, update.ThreadName, authorId.Pretty())))
+			fmt.Printf(cyan(fmt.Sprintf("\nnew block %s in thread %s from %s", update.Index.Id, update.ThreadId, authorId.Pretty())))
 		}
 	}
 }

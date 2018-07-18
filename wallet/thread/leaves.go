@@ -48,6 +48,8 @@ func (t *Thread) Leave() (mh.Multihash, error) {
 		return nil, err
 	}
 
+	log.Debugf("left %s", t.Id)
+
 	// all done
 	return addr, nil
 }
