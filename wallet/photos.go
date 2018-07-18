@@ -29,7 +29,7 @@ func (w *Wallet) AddPhoto(path string) (*nm.AddResult, error) {
 	defer file.Close()
 
 	// decode image
-	reader, format, err := util.DecodeImage(file)
+	reader, format, size, err := util.DecodeImage(file)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (w *Wallet) AddPhoto(path string) (*nm.AddResult, error) {
 	// make a thumbnail
 	reader.Seek(0, 0)
 	var thumbFormat util.Format
-	if format == util.GIF {
+	if *format == util.GIF {
 		thumbFormat = util.GIF
 	} else {
 		thumbFormat = util.JPEG
@@ -64,7 +64,7 @@ func (w *Wallet) AddPhoto(path string) (*nm.AddResult, error) {
 
 	// get metadata
 	reader.Seek(0, 0)
-	meta, err := util.MakeMetadata(reader, fpath, ext, format, thumbFormat, username)
+	meta, err := util.MakeMetadata(reader, fpath, ext, *format, thumbFormat, size.X, size.Y, username)
 	if err != nil {
 		return nil, err
 	}
