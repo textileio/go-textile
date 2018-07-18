@@ -178,19 +178,19 @@ func AcceptExternalThreadInvite(c *ishell.Context) {
 
 func RemoveThread(c *ishell.Context) {
 	if len(c.Args) == 0 {
-		c.Err(errors.New("missing thread name"))
+		c.Err(errors.New("missing thread id"))
 		return
 	}
-	name := c.Args[0]
+	id := c.Args[0]
 
-	addr, err := core.Node.Wallet.RemoveThread(name)
+	addr, err := core.Node.Wallet.RemoveThread(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
 	red := color.New(color.FgHiRed).SprintFunc()
-	c.Println(red(fmt.Sprintf("removed thread %s. added block %s.", name, addr.B58String())))
+	c.Println(red(fmt.Sprintf("removed thread %s. added block %s.", id, addr.B58String())))
 }
 
 func Subscribe(thrd *thread.Thread, peerId string) {

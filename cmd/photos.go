@@ -8,7 +8,6 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/wallet/model"
 	"github.com/textileio/textile-go/wallet/thread"
 	"gopkg.in/abiosoft/ishell.v2"
 	"io/ioutil"
@@ -202,13 +201,8 @@ func CatPhotoMetadata(c *ishell.Context) {
 		return
 	}
 
-	data, err := thrd.GetBlockData(fmt.Sprintf("%s/meta", id), block)
+	meta, err := thrd.GetPhotoMetaData(id, block)
 	if err != nil {
-		c.Err(err)
-		return
-	}
-	var meta model.PhotoMetadata
-	if err := json.Unmarshal(data, &meta); err != nil {
 		c.Err(err)
 		return
 	}
