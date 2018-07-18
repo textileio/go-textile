@@ -63,6 +63,8 @@ func (t *Thread) AddPhoto(dataId string, caption string, key []byte) (mh.Multiha
 	// post it
 	t.post(message, id, t.Peers())
 
+	log.Debugf("added photo to %s: %s", t.Id, id)
+
 	// all done
 	return addr, nil
 }

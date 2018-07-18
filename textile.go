@@ -118,7 +118,7 @@ func main() {
 
 		// create a new shell
 		shell = ishell.New()
-		shell.SetHomeHistoryPath(filepath.Join(dataDir, ".ishell_history"))
+		shell.SetHomeHistoryPath(".ishell_history")
 
 		// handle interrupt
 		shell.Interrupt(func(c *ishell.Context, count int, input string) {

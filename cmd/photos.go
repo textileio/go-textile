@@ -72,7 +72,7 @@ func AddPhoto(c *ishell.Context) {
 
 	// show user root id
 	cyan := color.New(color.FgCyan).SprintFunc()
-	c.Println(cyan("added " + added.Id + " to thread " + thrd.Name + " with block " + addr.B58String()))
+	c.Println(cyan(fmt.Sprintf("added photo %s to %s. added block %s.", added.Id, thrd.Id, addr.B58String())))
 }
 
 func SharePhoto(c *ishell.Context) {
@@ -121,7 +121,7 @@ func SharePhoto(c *ishell.Context) {
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green("shared " + id + " to thread " + toThread.Name + " (new id: " + addr.B58String() + ")"))
+	c.Println(green(fmt.Sprintf("shared photo %s to %s. added block %s.", id, toThread.Id, addr.B58String())))
 }
 
 func ListPhotos(c *ishell.Context) {

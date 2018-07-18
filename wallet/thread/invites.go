@@ -61,14 +61,20 @@ func (t *Thread) AddInvite(inviteePk libp2pc.PubKey) (mh.Multihash, error) {
 	if err != nil {
 		return nil, err
 	}
-	newPeer := repo.Peer{
+	peers := []repo.Peer{{
 		Id:     inviteeId.Pretty(),
 		PubKey: inviteePkb,
+	}}
+	for _, p := range t.Peers() {
+		if p.Id != inviteeId.Pretty() {
+			peers = append(peers, p)
+		}
 	}
-	peers := append(t.Peers(), newPeer)
 
 	// post it
 	t.post(message, id, peers)
+
+	log.Debugf("added invite to %s for %s: %s", t.Id, inviteeId.Pretty(), id)
 
 	// all done
 	return addr, nil
