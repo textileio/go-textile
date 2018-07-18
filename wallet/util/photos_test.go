@@ -79,7 +79,7 @@ func Test_GetMetadata(t *testing.T) {
 		fpath := file.Name()
 		ext := strings.ToLower(filepath.Ext(fpath))
 
-		meta, err := GetMetadata(file, fpath, ext, "bob")
+		meta, err := MakeMetadata(file, fpath, ext, "bob")
 		if err != nil {
 			t.Fatal(err)
 		}

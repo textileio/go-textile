@@ -428,12 +428,12 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 
 // GetPhotoData returns a data url for a photo
 func (m *Mobile) GetPhotoData(id string) (string, error) {
-	return m.getImageData(id, "photo")
+	return m.getImageData(id, "photo", false)
 }
 
 // GetPhotoData returns a data url for a photo
 func (m *Mobile) GetThumbData(id string) (string, error) {
-	return m.getImageData(id, "thumb")
+	return m.getImageData(id, "thumb", true)
 }
 
 func (m *Mobile) GetPhotoMetadata(id string) (string, error) {
@@ -457,7 +457,7 @@ func (m *Mobile) GetPhotoMetadata(id string) (string, error) {
 }
 
 // getImageData returns a data url for an image under a path
-func (m *Mobile) getImageData(id string, path string) (string, error) {
+func (m *Mobile) getImageData(id string, path string, isThumb bool) (string, error) {
 	block, err := tcore.Node.Wallet.GetBlockByDataId(id)
 	if err != nil {
 		log.Errorf("could not find block for data id %s: %s", id, err)
@@ -481,7 +481,11 @@ func (m *Mobile) getImageData(id string, path string) (string, error) {
 		log.Errorf("get photo meta data failed %s: %s", id, err)
 		return "", err
 	}
-	data = getDataURLPrefix(meta) + data
+	if isThumb {
+		data = getThumbDataURLPrefix(meta) + data
+	} else {
+		data = getPhotoDataURLPrefix(meta) + data
+	}
 	return data, nil
 }
 
@@ -503,9 +507,19 @@ func (m *Mobile) subscribe(thrd *thread.Thread) {
 }
 
 // getDataURLPrefix adds the correct data url prefix to a data url
-func getDataURLPrefix(meta *model.PhotoMetadata) string {
-	format := util.ThumbnailFormat(meta.ThumbnailFormat)
-	switch format {
+func getPhotoDataURLPrefix(meta *model.PhotoMetadata) string {
+	switch util.Format(meta.Format) {
+	case util.PNG:
+		return "data:image/png;base64,"
+	case util.GIF:
+		return "data:image/gif;base64,"
+	default:
+		return "data:image/jpeg;base64,"
+	}
+}
+
+func getThumbDataURLPrefix(meta *model.PhotoMetadata) string {
+	switch util.Format(meta.ThumbnailFormat) {
 	case util.GIF:
 		return "data:image/gif;base64,"
 	default:
