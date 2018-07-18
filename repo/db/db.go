@@ -12,14 +12,16 @@ import (
 var log = logging.MustGetLogger("db")
 
 type SQLiteDatastore struct {
-	config  repo.ConfigStore
-	profile repo.ProfileStore
-	threads repo.ThreadStore
-	devices repo.DeviceStore
-	peers   repo.PeerStore
-	blocks  repo.BlockStore
-	db      *sql.DB
-	lock    *sync.Mutex
+	config          repo.ConfigStore
+	profile         repo.ProfileStore
+	threads         repo.ThreadStore
+	devices         repo.DeviceStore
+	peers           repo.PeerStore
+	blocks          repo.BlockStore
+	offlineMessages repo.OfflineMessageStore
+	pointers        repo.PointerStore
+	db              *sql.DB
+	lock            *sync.Mutex
 }
 
 func Create(repoPath, password string) (*SQLiteDatastore, error) {
@@ -35,14 +37,16 @@ func Create(repoPath, password string) (*SQLiteDatastore, error) {
 	}
 	mux := new(sync.Mutex)
 	sqliteDB := &SQLiteDatastore{
-		config:  NewConfigStore(conn, mux, dbPath),
-		profile: NewProfileStore(conn, mux),
-		threads: NewThreadStore(conn, mux),
-		devices: NewDeviceStore(conn, mux),
-		peers:   NewPeerStore(conn, mux),
-		blocks:  NewBlockStore(conn, mux),
-		db:      conn,
-		lock:    mux,
+		config:          NewConfigStore(conn, mux, dbPath),
+		profile:         NewProfileStore(conn, mux),
+		threads:         NewThreadStore(conn, mux),
+		devices:         NewDeviceStore(conn, mux),
+		peers:           NewPeerStore(conn, mux),
+		blocks:          NewBlockStore(conn, mux),
+		offlineMessages: NewOfflineMessageStore(conn, mux),
+		pointers:        NewPointerStore(conn, mux),
+		db:              conn,
+		lock:            mux,
 	}
 
 	return sqliteDB, nil
@@ -78,6 +82,14 @@ func (d *SQLiteDatastore) Peers() repo.PeerStore {
 
 func (d *SQLiteDatastore) Blocks() repo.BlockStore {
 	return d.blocks
+}
+
+func (d *SQLiteDatastore) OfflineMessages() repo.OfflineMessageStore {
+	return d.offlineMessages
+}
+
+func (d *SQLiteDatastore) Pointers() repo.PointerStore {
+	return d.pointers
 }
 
 func (d *SQLiteDatastore) Copy(dbPath string, password string) error {
@@ -131,14 +143,14 @@ func initDatabaseTables(db *sql.DB, password string) error {
 	create table config (key text primary key not null, value blob);
     create table profile (key text primary key not null, value blob);
     create table threads (id text primary key not null, name text not null, sk blob not null, head text not null);
-    create unique index thread_name on threads (name);
     create table devices (id text primary key not null, name text not null);
-    create unique index device_name on devices (name);
-    create table peers (row text primary key not null, id text not null, thread text not null, pk text not null);
-    create unique index peer_thread_id on peers (thread, id);
-    create table blocks (id text primary key not null, target text not null, parents text not null, key blob not null, pk text not null, type integer not null, date integer not null);
-    create index block_target on blocks (target);
-    create index block_pk_type_date on blocks (pk, type, date);
+    create table peers (row text primary key not null, id text not null, pk blob not null, threadId text not null);
+    create unique index peer_threadId_id on peers (threadId, id);
+    create table blocks (id text primary key not null, date integer not null, parents text not null, threadId text not null, authorPk text not null, type integer not null, dataId text, dataKeyCipher blob, dataCaptionCipher blob);
+    create index block_dataId on blocks (dataId);
+    create index block_threadId_type_date on blocks (threadId, type, date);
+    create table offlinemessages (url text primary key not null, date integer, message blob);
+	create table pointers (id text primary key not null, key text, address text, cancelId text, purpose integer, date integer);
 	`
 	_, err := db.Exec(sqlStmt)
 	if err != nil {

@@ -1,0 +1,57 @@
+syntax = "proto3";
+option go_package = "pb";
+
+import "google/protobuf/timestamp.proto";
+
+message ThreadBlockHeader {
+    google.protobuf.Timestamp date = 1;
+    repeated string parents        = 2;
+    bytes threadPk                 = 3;
+    bytes authorPk                 = 4;
+}
+
+message SignedThreadBlock {
+    bytes block     = 1;
+    bytes threadSig = 2;
+    bytes authorSig = 3;
+}
+
+message ThreadInvite {
+    ThreadBlockHeader header = 1;
+
+    bytes skCipher           = 2;
+    string suggestedName     = 3;
+    string inviteeId         = 4;
+}
+
+message ThreadExternalInvite {
+    ThreadBlockHeader header = 1;
+
+    bytes skCipher           = 2;
+    string suggestedName     = 3;
+}
+
+message ThreadJoin {
+    ThreadBlockHeader header = 1;
+
+    bytes inviterPk          = 2;
+    string blockId           = 3;
+}
+
+message ThreadLeave {
+    ThreadBlockHeader header = 1;
+}
+
+message ThreadData {
+    ThreadBlockHeader header = 1;
+
+    Type type                = 2;
+    string dataId            = 3;
+    bytes keyCipher          = 4;
+    bytes captionCipher      = 5;
+
+    enum Type {
+        PHOTO = 0;
+        TEXT  = 1;
+    }
+}

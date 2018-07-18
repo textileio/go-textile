@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"crypto/rand"
 	"github.com/segmentio/ksuid"
 	cmodels "github.com/textileio/textile-go/central/models"
 	util "github.com/textileio/textile-go/util/testing"
@@ -59,7 +60,7 @@ func TestWallet_Online(t *testing.T) {
 	}
 }
 
-func TestWallet_GetGatewayAddress(t *testing.T) {
+func TestWallet_GetServerAddress(t *testing.T) {
 	// TODO
 }
 
@@ -155,7 +156,7 @@ func TestWallet_GetThreadByName(t *testing.T) {
 }
 
 func TestWallet_AddThread(t *testing.T) {
-	sk, _, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
+	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Error(err)
 	}
@@ -226,14 +227,6 @@ func TestWallet_PingPeer(t *testing.T) {
 }
 
 func TestWallet_Peers(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_Publish(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_Subscribe(t *testing.T) {
 	// TODO
 }
 

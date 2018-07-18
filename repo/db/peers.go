@@ -22,7 +22,7 @@ func (c *PeerDB) Add(peer *repo.Peer) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into peers(row, id, thread, pk) values(?,?,?,?)`
+	stm := `insert into peers(row, id, pk, threadId) values(?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -32,8 +32,8 @@ func (c *PeerDB) Add(peer *repo.Peer) error {
 	_, err = stmt.Exec(
 		peer.Row,
 		peer.Id,
-		peer.ThreadId,
 		peer.PubKey,
+		peer.ThreadId,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -48,6 +48,16 @@ func (c *PeerDB) Get(row string) *repo.Peer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	ret := c.handleQuery("select * from peers where row='" + row + "';")
+	if len(ret) == 0 {
+		return nil
+	}
+	return &ret[0]
+}
+
+func (c *PeerDB) GetById(id string) *repo.Peer {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	ret := c.handleQuery("select * from peers where id='" + id + "';")
 	if len(ret) == 0 {
 		return nil
 	}
@@ -74,10 +84,17 @@ func (c *PeerDB) List(offset string, limit int, query string) []repo.Peer {
 	return c.handleQuery(stm)
 }
 
-func (c *PeerDB) Delete(row string) error {
+func (c *PeerDB) Delete(id string, threadId string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from peers where row=?", row)
+	_, err := c.db.Exec("delete from peers where id=? and threadId=?", id, threadId)
+	return err
+}
+
+func (c *PeerDB) DeleteByThreadId(threadId string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("delete from peers where threadId=?", threadId)
 	return err
 }
 
@@ -89,17 +106,17 @@ func (c *PeerDB) handleQuery(stm string) []repo.Peer {
 		return nil
 	}
 	for rows.Next() {
-		var row, id, thread string
+		var row, id, threadId string
 		var pk []byte
-		if err := rows.Scan(&row, &id, &thread, &pk); err != nil {
+		if err := rows.Scan(&row, &id, &pk, &threadId); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
 		block := repo.Peer{
 			Row:      row,
 			Id:       id,
-			ThreadId: thread,
 			PubKey:   pk,
+			ThreadId: threadId,
 		}
 		ret = append(ret, block)
 	}

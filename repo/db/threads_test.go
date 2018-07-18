@@ -56,30 +56,6 @@ func TestThreadDB_Get(t *testing.T) {
 	}
 }
 
-func TestThreadDB_GetByName(t *testing.T) {
-	setupThreadDB()
-	err := tdb.Add(&repo.Thread{
-		Id:      "Qmabc",
-		Name:    "boom",
-		PrivKey: make([]byte, 8),
-	})
-	if err != nil {
-		t.Error(err)
-	}
-	err = tdb.Add(&repo.Thread{
-		Id:      "Qmabc2",
-		Name:    "boom",
-		PrivKey: make([]byte, 8),
-	})
-	if err == nil {
-		t.Error("unique constraint on name failed")
-	}
-	th := tdb.GetByName("boom")
-	if th == nil {
-		t.Error("could not get thread")
-	}
-}
-
 func TestThreadDB_List(t *testing.T) {
 	setupThreadDB()
 	err := tdb.Add(&repo.Thread{
@@ -159,8 +135,4 @@ func TestThreadDB_Delete(t *testing.T) {
 	if err == nil {
 		t.Error("Delete failed")
 	}
-}
-
-func TestThreadDB_DeleteByName(t *testing.T) {
-	// TODO
 }

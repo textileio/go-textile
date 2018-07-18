@@ -13,34 +13,46 @@ import (
 )
 
 type testImage struct {
-	path    string
-	name    string
-	ext     string
-	format  string
-	hasExif bool
+	path        string
+	name        string
+	ext         string
+	format      Format
+	thumbFormat Format
+	hasExif     bool
+	width       int
+	height      int
 }
 
 var images = []testImage{
 	{
-		path:    "../testdata/image.jpg",
-		name:    "image",
-		ext:     ".jpg",
-		format:  "jpeg",
-		hasExif: true,
+		path:        "../testdata/image.jpg",
+		name:        "image",
+		ext:         ".jpg",
+		format:      JPEG,
+		thumbFormat: JPEG,
+		hasExif:     true,
+		width:       3024,
+		height:      4032,
 	},
 	{
-		path:    "../testdata/image.png",
-		name:    "image",
-		ext:     ".png",
-		format:  "png",
-		hasExif: false,
+		path:        "../testdata/image.png",
+		name:        "image",
+		ext:         ".png",
+		format:      PNG,
+		thumbFormat: JPEG,
+		hasExif:     false,
+		width:       3024,
+		height:      4032,
 	},
 	{
-		path:    "../testdata/image.gif",
-		name:    "image",
-		ext:     ".gif",
-		format:  "gif",
-		hasExif: false,
+		path:        "../testdata/image.gif",
+		name:        "image",
+		ext:         ".gif",
+		format:      GIF,
+		thumbFormat: GIF,
+		hasExif:     false,
+		width:       320,
+		height:      240,
 	},
 }
 
@@ -51,13 +63,19 @@ func Test_DecodeImage(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		reader, format, err := DecodeImage(file)
+		reader, format, size, err := DecodeImage(file)
 		if err != nil {
 			t.Fatal(err)
 		}
 		file.Close()
-		if format != i.format {
+		if *format != i.format {
 			t.Errorf("wrong format")
+		}
+		if size.X != i.width {
+			t.Errorf("wrong width")
+		}
+		if size.Y != i.height {
+			t.Errorf("wrong height")
 		}
 
 		// ensure exif was removed
@@ -69,7 +87,7 @@ func Test_DecodeImage(t *testing.T) {
 	}
 }
 
-func Test_GetMetadata(t *testing.T) {
+func Test_MakeMetadata(t *testing.T) {
 	for _, i := range images {
 		file, err := os.Open(i.path)
 		if err != nil {
@@ -79,7 +97,7 @@ func Test_GetMetadata(t *testing.T) {
 		fpath := file.Name()
 		ext := strings.ToLower(filepath.Ext(fpath))
 
-		meta, err := GetMetadata(file, fpath, ext, "bob")
+		meta, err := MakeMetadata(file, fpath, ext, i.format, i.thumbFormat, i.width, i.height, "bob")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -89,6 +107,12 @@ func Test_GetMetadata(t *testing.T) {
 		}
 		if meta.Ext != i.ext {
 			t.Error("bad photo meta extension")
+		}
+		if meta.Width != i.width {
+			t.Error("bad photo meta width")
+		}
+		if meta.Height != i.height {
+			t.Error("bad photo meta height")
 		}
 		if meta.Added.IsZero() {
 			t.Error("bad photo meta added")
@@ -109,7 +133,7 @@ func Test_MakeThumbnail(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		var thumbFormat ThumbnailFormat
+		var thumbFormat Format
 		var thumbExt string
 		if i.format == "gif" {
 			thumbFormat = GIF

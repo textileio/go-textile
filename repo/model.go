@@ -1,14 +1,13 @@
 package repo
 
 import (
-	"strconv"
 	"time"
 )
 
 type Thread struct {
 	Id      string `json:"id"`
 	Name    string `json:"name"`
-	PrivKey []byte `json:"priv_key"`
+	PrivKey []byte `json:"sk"`
 	Head    string `json:"head"`
 }
 
@@ -20,29 +19,35 @@ type Device struct {
 type Peer struct {
 	Row      string `json:"row"`
 	Id       string `json:"id"`
+	PubKey   []byte `json:"pk"`
 	ThreadId string `json:"thread_id"`
-	PubKey   []byte `json:"pub_key"`
 }
 
 type Block struct {
-	Id           string    `json:"id"`
-	Target       string    `json:"target"`
-	Parents      []string  `json:"parents"`
-	TargetKey    []byte    `json:"target_key"`
-	ThreadPubKey string    `json:"thread_pub_key"`
-	Type         BlockType `json:"type"`
-	Date         time.Time `json:"date"`
+	Id       string    `json:"id"`
+	Date     time.Time `json:"date"`
+	Parents  []string  `json:"parents"`
+	ThreadId string    `json:"thread_pk"`
+	AuthorPk string    `json:"author_pk"`
+	Type     BlockType `json:"type"`
+
+	DataId            string `json:"data_id"`
+	DataKeyCipher     []byte `json:"data_key_cipher"`
+	DataCaptionCipher []byte `json:"data_caption_cipher"`
+}
+
+type DataBlockConfig struct {
+	DataId            string `json:"target"`
+	DataKeyCipher     []byte `json:"target_key_cipher"`
+	DataCaptionCipher []byte `json:"data_caption_cipher"`
 }
 
 type BlockType int
 
 const (
 	InviteBlock BlockType = iota
+	ExternalInviteBlock
+	JoinBlock
+	LeaveBlock
 	PhotoBlock
-	CommentBlock
-	LikeBlock
 )
-
-func (bt BlockType) Bytes() []byte {
-	return []byte(strconv.Itoa(int(bt)))
-}
