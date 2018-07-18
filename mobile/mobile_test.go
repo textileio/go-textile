@@ -3,6 +3,7 @@ package mobile_test
 import (
 	"crypto/rand"
 	"encoding/json"
+	"fmt"
 	"github.com/segmentio/ksuid"
 	. "github.com/textileio/textile-go/mobile"
 	"github.com/textileio/textile-go/net/model"
@@ -333,6 +334,7 @@ func TestMobile_GetThumbData(t *testing.T) {
 		t.Errorf("get thumb data failed: %s", err)
 		return
 	}
+	fmt.Println(res)
 	if len(res) == 0 {
 		t.Errorf("get thumb data bad result")
 	}

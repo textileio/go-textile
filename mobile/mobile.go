@@ -91,6 +91,12 @@ type Photos struct {
 	Items []Photo `json:"items"`
 }
 
+// ImageData is a wrapper around an image data url and meta data
+type ImageData struct {
+	Url      string               `json:"url"`
+	Metadata *model.PhotoMetadata `json:"metadata"`
+}
+
 // ExternalInvite is a wrapper around an invite id and key
 type ExternalInvite struct {
 	Id      string `json:"id"`
@@ -469,7 +475,7 @@ func (m *Mobile) getImageData(id string, path string, isThumb bool) (string, err
 		log.Error(err.Error())
 		return "", err
 	}
-	data, err := thrd.GetBlockDataBase64(fmt.Sprintf("%s/%s", id, path), block)
+	url, err := thrd.GetBlockDataBase64(fmt.Sprintf("%s/%s", id, path), block)
 	if err != nil {
 		log.Errorf("get block data base64 failed %s: %s", id, err)
 		return "", err
@@ -482,11 +488,13 @@ func (m *Mobile) getImageData(id string, path string, isThumb bool) (string, err
 		return "", err
 	}
 	if isThumb {
-		data = getThumbDataURLPrefix(meta) + data
+		url = getThumbDataURLPrefix(meta) + url
 	} else {
-		data = getPhotoDataURLPrefix(meta) + data
+		url = getPhotoDataURLPrefix(meta) + url
 	}
-	return data, nil
+	data := &ImageData{Url: url, Metadata: meta}
+
+	return toJSON(data)
 }
 
 // subscribe to thread and pass updates to messenger
