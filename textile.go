@@ -357,7 +357,7 @@ func start() error {
 				}
 				switch update.Type {
 				case wallet.ThreadAdded:
-					thrd := core.Node.Wallet.GetThread(update.Id)
+					_, thrd := core.Node.Wallet.GetThread(update.Id)
 					if thrd != nil {
 						go cmd.Subscribe(thrd, peerId)
 					}

@@ -44,21 +44,17 @@ type ThreadStore interface {
 	Queryable
 	Add(thread *Thread) error
 	Get(id string) *Thread
-	GetByName(name string) *Thread
 	List(query string) []Thread
 	UpdateHead(id string, head string) error
 	Delete(id string) error
-	DeleteByName(name string) error
 }
 
 type DeviceStore interface {
 	Queryable
 	Add(device *Device) error
 	Get(id string) *Device
-	GetByName(name string) *Device
 	List(query string) []Device
 	Delete(id string) error
-	DeleteByName(name string) error
 }
 
 type PeerStore interface {

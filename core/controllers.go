@@ -21,7 +21,7 @@ func gateway(c *gin.Context) {
 			c.Status(404)
 			return
 		}
-		thrd := Node.Wallet.GetThread(block.ThreadId)
+		_, thrd := Node.Wallet.GetThread(block.ThreadId)
 		if thrd == nil {
 			log.Errorf("could not find thread for block: %s", block.Id)
 			c.Status(404)

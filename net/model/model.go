@@ -5,7 +5,7 @@ import (
 )
 
 type AddResult struct {
-	Id            string
-	Key           []byte
-	RemoteRequest *net.PinRequest
+	Id         string          `json:"id"`
+	Key        string          `json:"key"`
+	PinRequest *net.PinRequest `json:"pin_request"`
 }

@@ -31,8 +31,8 @@ type Block struct {
 	AuthorPk string    `json:"author_pk"`
 	Type     BlockType `json:"type"`
 
-	DataId            string `json:"target"`
-	DataKeyCipher     []byte `json:"target_key_cipher"`
+	DataId            string `json:"data_id"`
+	DataKeyCipher     []byte `json:"data_key_cipher"`
 	DataCaptionCipher []byte `json:"data_caption_cipher"`
 }
 

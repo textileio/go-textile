@@ -22,10 +22,10 @@ func AddPhoto(c *ishell.Context) {
 		return
 	}
 	if len(c.Args) == 1 {
-		c.Err(errors.New("missing thread name"))
+		c.Err(errors.New("missing thread id"))
 		return
 	}
-	threadName := c.Args[1]
+	threadId := c.Args[1]
 
 	// try to get path with home dir tilda
 	path, err := homedir.Expand(c.Args[0])
@@ -53,18 +53,18 @@ func AddPhoto(c *ishell.Context) {
 	}
 
 	// clean up
-	if err = os.Remove(added.RemoteRequest.PayloadPath); err != nil {
+	if err = os.Remove(added.PinRequest.PayloadPath); err != nil {
 		c.Err(err)
 		return
 	}
 
 	// add to thread
-	_, thrd := core.Node.Wallet.GetThreadByName(threadName)
+	_, thrd := core.Node.Wallet.GetThread(threadId)
 	if thrd == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find thread %s", threadName)))
+		c.Err(errors.New(fmt.Sprintf("could not find thread %s", threadId)))
 		return
 	}
-	addr, err := thrd.AddPhoto(added.Id, caption, added.Key)
+	addr, err := thrd.AddPhoto(added.Id, caption, []byte(added.Key))
 	if err != nil {
 		c.Err(err)
 		return
@@ -81,26 +81,26 @@ func SharePhoto(c *ishell.Context) {
 		return
 	}
 	if len(c.Args) == 1 {
-		c.Err(errors.New("missing destination thread name"))
+		c.Err(errors.New("missing destination thread id"))
 		return
 	}
 	id := c.Args[0]
-	threadName := c.Args[1]
+	threadId := c.Args[1]
 
 	c.Print("caption (optional): ")
 	caption := c.ReadLine()
 
 	// get the original block
-	block, fromThread, err := getBlockAndThreadForTarget(id)
+	block, fromThread, err := getBlockAndThreadForDataId(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
 	// lookup destination thread
-	_, toThread := core.Node.Wallet.GetThreadByName(threadName)
+	_, toThread := core.Node.Wallet.GetThread(threadId)
 	if toThread == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find thread named %s", threadName)))
+		c.Err(errors.New(fmt.Sprintf("could not find thread %s", threadId)))
 		return
 	}
 
@@ -126,22 +126,22 @@ func SharePhoto(c *ishell.Context) {
 
 func ListPhotos(c *ishell.Context) {
 	if len(c.Args) == 0 {
-		c.Err(errors.New("missing thread name"))
+		c.Err(errors.New("missing thread id"))
 		return
 	}
-	threadName := c.Args[0]
+	threadId := c.Args[0]
 
-	_, thrd := core.Node.Wallet.GetThreadByName(threadName)
+	_, thrd := core.Node.Wallet.GetThread(threadId)
 	if thrd == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadName)))
+		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadId)))
 		return
 	}
 
 	blocks := thrd.Blocks("", -1, repo.PhotoBlock)
 	if len(blocks) == 0 {
-		c.Println(fmt.Sprintf("no photos found in: %s", threadName))
+		c.Println(fmt.Sprintf("no photos found in: %s", threadId))
 	} else {
-		c.Println(fmt.Sprintf("found %v photos in: %s", len(blocks), threadName))
+		c.Println(fmt.Sprintf("found %v photos in: %s", len(blocks), threadId))
 	}
 
 	magenta := color.New(color.FgHiMagenta).SprintFunc()
@@ -167,20 +167,20 @@ func GetPhoto(c *ishell.Context) {
 		dest = c.Args[1]
 	}
 
-	block, thrd, err := getBlockAndThreadForTarget(id)
+	block, thrd, err := getBlockAndThreadForDataId(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
-	file, err := thrd.GetBlockData(fmt.Sprintf("%s/photo", id), block)
+	data, err := thrd.GetBlockData(fmt.Sprintf("%s/photo", id), block)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
 	path := filepath.Join(dest, id)
-	if err := ioutil.WriteFile(path, file, 0644); err != nil {
+	if err := ioutil.WriteFile(path, data, 0644); err != nil {
 		c.Err(err)
 		return
 	}
@@ -196,19 +196,19 @@ func CatPhotoMetadata(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	block, thrd, err := getBlockAndThreadForTarget(id)
+	block, thrd, err := getBlockAndThreadForDataId(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
-	file, err := thrd.GetBlockData(fmt.Sprintf("%s/meta", id), block)
+	data, err := thrd.GetBlockData(fmt.Sprintf("%s/meta", id), block)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 	var meta model.PhotoMetadata
-	if err := json.Unmarshal(file, &meta); err != nil {
+	if err := json.Unmarshal(data, &meta); err != nil {
 		c.Err(err)
 		return
 	}
@@ -229,7 +229,7 @@ func GetPhotoKey(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	block, thrd, err := getBlockAndThreadForTarget(id)
+	block, thrd, err := getBlockAndThreadForDataId(id)
 	if err != nil {
 		c.Err(err)
 		return
@@ -245,12 +245,12 @@ func GetPhotoKey(c *ishell.Context) {
 	c.Println(blue(string(key)))
 }
 
-func getBlockAndThreadForTarget(id string) (*repo.Block, *thread.Thread, error) {
-	block, err := core.Node.Wallet.GetBlockByTarget(id)
+func getBlockAndThreadForDataId(dataId string) (*repo.Block, *thread.Thread, error) {
+	block, err := core.Node.Wallet.GetBlockByDataId(dataId)
 	if err != nil {
 		return nil, nil, err
 	}
-	thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
 	if thrd == nil {
 		return nil, nil, errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
 	}

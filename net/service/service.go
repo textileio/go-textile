@@ -32,7 +32,7 @@ type TextileService struct {
 	ctx       context.Context
 	datastore repo.Datastore
 	node      *core.IpfsNode
-	getThread func(string) *thread.Thread
+	getThread func(string) (*int, *thread.Thread)
 	addThread func(string, libp2pc.PrivKey) (*thread.Thread, error)
 	sender    map[peer.ID]*sender
 	senderlk  sync.Mutex
@@ -41,7 +41,7 @@ type TextileService struct {
 func NewService(
 	node *core.IpfsNode,
 	datastore repo.Datastore,
-	getThread func(string) *thread.Thread,
+	getThread func(string) (*int, *thread.Thread),
 	addThread func(string, libp2pc.PrivKey) (*thread.Thread, error),
 ) *TextileService {
 	service := &TextileService{

@@ -53,16 +53,6 @@ func (c *ThreadDB) Get(id string) *repo.Thread {
 	return &ret[0]
 }
 
-func (c *ThreadDB) GetByName(name string) *repo.Thread {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from threads where name='" + name + "';")
-	if len(ret) == 0 {
-		return nil
-	}
-	return &ret[0]
-}
-
 func (c *ThreadDB) List(query string) []repo.Thread {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -84,13 +74,6 @@ func (c *ThreadDB) Delete(id string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	_, err := c.db.Exec("delete from threads where id=?", id)
-	return err
-}
-
-func (c *ThreadDB) DeleteByName(name string) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from threads where name=?", name)
 	return err
 }
 
