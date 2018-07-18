@@ -4,44 +4,38 @@ import (
 	"errors"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/segmentio/ksuid"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/textileio/textile-go/crypto"
+	"github.com/textileio/textile-go/net/common"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
 
-const (
-	ChatMessageMaxCharacters = 20000
-	ChatSubjectMaxCharacters = 500
-	//DefaultPointerPrefixLength = 14
-)
-
-func (s *TextileService) HandlerForMsgType(t pb.Message_MessageType) func(peer.ID, *pb.Message, interface{}) (*pb.Message, error) {
+func (s *TextileService) HandlerForMsgType(t pb.Message_Type) func(peer.ID, *pb.Message, interface{}) (*pb.Message, error) {
 	switch t {
 	case pb.Message_PING:
 		return s.handlePing
-	case pb.Message_THREAD_BLOCK:
-		return s.handleThreadBlock
-	case pb.Message_FOLLOW:
-		return s.handleFollow
-	case pb.Message_UNFOLLOW:
-		return s.handleUnFollow
+	case pb.Message_THREAD_INVITE:
+		return s.handleThreadInvite
+	case pb.Message_THREAD_EXTERNAL_INVITE:
+		return s.handleExternalThreadInvite
+	case pb.Message_THREAD_JOIN:
+		return s.handleThreadJoin
+	case pb.Message_THREAD_LEAVE:
+		return s.handleThreadLeave
+	case pb.Message_THREAD_DATA:
+		return s.handleThreadData
 	case pb.Message_OFFLINE_ACK:
 		return s.handleOfflineAck
 	case pb.Message_OFFLINE_RELAY:
 		return s.handleOfflineRelay
-	case pb.Message_CHAT:
-		return s.handleChat
-	//case pb.Message_MODERATOR_ADD:
-	//	return s.handleModeratorAdd
-	//case pb.Message_MODERATOR_REMOVE:
-	//	return s.handleModeratorRemove
-	case pb.Message_IPFS_BLOCK:
-		return s.handleIPFSBlock
+	case pb.Message_BLOCK:
+		return s.handleBlock
+	case pb.Message_STORE:
+		return s.handleStore
 	case pb.Message_ERROR:
 		return s.handleError
 	default:
@@ -54,179 +48,214 @@ func (s *TextileService) handlePing(pid peer.ID, pmes *pb.Message, options inter
 	return pmes, nil
 }
 
-func (s *TextileService) handleThreadBlock(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
-	if pmes.Payload == nil {
-		return nil, errors.New("payload is nil")
-	}
-	log.Debug("received THREAD_BLOCK message")
-
-	// unpack it
-	signed := new(pb.SignedBlock)
-	err := ptypes.UnmarshalAny(pmes.Payload, signed)
+func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
+	log.Debug("received THREAD_INVITE message")
+	signed, err := unpackMessage(pmes)
 	if err != nil {
 		return nil, err
 	}
-	block := new(pb.Block)
-	err = proto.Unmarshal(signed.Data, block)
+	invite := new(pb.ThreadInvite)
+	if err := proto.Unmarshal(signed.Block, invite); err != nil {
+		return nil, err
+	}
+
+	// load thread
+	threadId := libp2pc.ConfigEncodeKey(invite.Header.ThreadPk)
+	_, thrd := s.getThread(threadId)
+	if thrd != nil {
+		// known thread and invite meant for us
+		if invite.InviteeId == s.self.Pretty() {
+			return nil, errors.New("thread already exists")
+		}
+
+		// verify thread sig
+		if err := thrd.Verify(signed); err != nil {
+			return nil, err
+		}
+
+		// handle
+		if _, err := thrd.HandleInviteBlock(pmes, signed, invite); err != nil {
+			return nil, err
+		}
+
+		return nil, nil
+	} else {
+		// unknown thread and invite not meant for us... shouldn't happen
+		if invite.InviteeId != s.self.Pretty() {
+			return nil, errors.New("invalid invite block")
+		}
+	}
+
+	// lastly, unknown thread and invite meant for us
+	// unpack new thread secret that should be encrypted with our key
+	skb, err := crypto.Decrypt(s.node.PrivateKey, invite.SkCipher)
 	if err != nil {
 		return nil, err
 	}
-	thrd := s.getThread(signed.ThreadId)
-
-	switch block.Type {
-	case pb.Block_INVITE:
-		log.Debug("handling Block_INVITE...")
-		if thrd != nil {
-			return nil, errors.New("thread exists")
-		}
-		if block.Target != s.self.Pretty() {
-			// TODO: should not be error right?
-			return nil, errors.New("invalid invite target")
-		}
-		skb, err := crypto.Decrypt(s.node.PrivateKey, block.TargetKey)
-		if err != nil {
-			return nil, err
-		}
-		sk, err := libp2pc.UnmarshalPrivateKey(skb)
-		if err != nil {
-			return nil, err
-		}
-		good, err := sk.GetPublic().Verify(signed.Data, signed.Signature)
-		if err != nil || !good {
-			return nil, errors.New("bad signature")
-		}
-		// TODO: handle when name leads to conflict (add an int)
-		thrd, err = s.addThread(signed.ThreadName, sk)
-		if err != nil {
-			return nil, err
-		}
-
-		// add inviter as local peer
-		ppk, err := libp2pc.UnmarshalPublicKey(signed.IssuerPubKey)
-		if err != nil {
-			return nil, err
-		}
-		ppkb, err := ppk.Bytes()
-		if err != nil {
-			return nil, err
-		}
-		peerId, err := peer.IDFromPublicKey(ppk)
-		if err != nil {
-			return nil, err
-		}
-		newPeer := &repo.Peer{
-			Row:      ksuid.New().String(),
-			Id:       peerId.Pretty(),
-			ThreadId: thrd.Id,
-			PubKey:   ppkb,
-		}
-		if err := s.datastore.Peers().Add(newPeer); err != nil {
-			return nil, err
-		}
-	case pb.Block_PHOTO:
-		log.Debug("handling Block_PHOTO")
-		if thrd == nil {
-			return nil, errors.New("thread not found")
-		}
-		good, err := thrd.Verify(signed.Data, signed.Signature)
-		if err != nil || !good {
-			return nil, errors.New("bad signature")
-		}
-
-	case pb.Block_COMMENT:
-		return nil, errors.New("TODO")
-	case pb.Block_LIKE:
-		return nil, errors.New("TODO")
-	}
-
-	// handle block
-	return nil, thrd.HandleBlock(signed.Id)
-}
-
-func (s *TextileService) handleFollow(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
-	if pmes.Payload == nil {
-		return nil, errors.New("payload is nil")
-	}
-	sd := new(pb.SignedData)
-	err := ptypes.UnmarshalAny(pmes.Payload, sd)
+	sk, err := libp2pc.UnmarshalPrivateKey(skb)
 	if err != nil {
 		return nil, err
 	}
-	pubkey, err := libp2pc.UnmarshalPublicKey(sd.SenderPubkey)
-	if err != nil {
+
+	// verify thread sig
+	if err := crypto.Verify(sk.GetPublic(), signed.Block, signed.ThreadSig); err != nil {
 		return nil, err
-	}
-	id, err := peer.IDFromPublicKey(pubkey)
-	if err != nil {
-		return nil, err
-	}
-	data := new(pb.SignedData_Command)
-	err = proto.Unmarshal(sd.SerializedData, data)
-	if err != nil {
-		return nil, err
-	}
-	if data.PeerID != s.node.Identity.Pretty() {
-		return nil, errors.New("follow message doesn't include correct peer id")
-	}
-	if data.Type != pb.Message_FOLLOW {
-		return nil, errors.New("data type is not follow")
-	}
-	good, err := pubkey.Verify(sd.SerializedData, sd.Signature)
-	if err != nil || !good {
-		return nil, errors.New("bad signature")
 	}
 
-	//proof := append(sd.SerializedData, sd.Signature...)
-	//err = s.datastore.Followers().Put(id.Pretty(), proof)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//n := notifications.FollowNotification{notifications.NewID(), "follow", id.Pretty()}
-	//s.broadcast <- n
-	//s.datastore.Notifications().Put(n.ID, n, n.Type, time.Now())
-	log.Debugf("received FOLLOW message from %s", id.Pretty())
+	// verify author sig
+	authorPk, err := libp2pc.UnmarshalPublicKey(invite.Header.AuthorPk)
+	if err != nil {
+		return nil, err
+	}
+	if err := crypto.Verify(authorPk, signed.Block, signed.AuthorSig); err != nil {
+		return nil, err
+	}
+
+	// add the new thread (name will bump if already exists, e.g., cats -> cats_1)
+	thrd, err = s.addThread(invite.SuggestedName, sk)
+	if err != nil {
+		return nil, err
+	}
+
+	// handle
+	addr, err := thrd.HandleInviteBlock(pmes, signed, invite)
+	if err != nil {
+		return nil, err
+	}
+
+	// accept it, yolo
+	// TODO: Don't auto accept. Need to show some UI with pending invites.
+	addr, err = thrd.Join(authorPk, addr.B58String())
+	if err != nil {
+		return nil, err
+	}
+	log.Debugf("accepted invite to thread %s with name %s. added block %s.", thrd.Id, thrd.Name, addr.B58String())
+
 	return nil, nil
 }
 
-func (s *TextileService) handleUnFollow(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
-	if pmes.Payload == nil {
-		return nil, errors.New("payload is nil")
-	}
-	sd := new(pb.SignedData)
-	err := ptypes.UnmarshalAny(pmes.Payload, sd)
+func (s *TextileService) handleExternalThreadInvite(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
+	log.Debug("received THREAD_EXTERNAL_INVITE message")
+	signed, err := unpackMessage(pmes)
 	if err != nil {
 		return nil, err
 	}
-	pubkey, err := libp2pc.UnmarshalPublicKey(sd.SenderPubkey)
+	invite := new(pb.ThreadExternalInvite)
+	if err := proto.Unmarshal(signed.Block, invite); err != nil {
+		return nil, err
+	}
+
+	// load thread
+	threadId := libp2pc.ConfigEncodeKey(invite.Header.ThreadPk)
+	_, thrd := s.getThread(threadId)
+	if thrd == nil {
+		// unknown thread and external invite... shouldn't happen
+		return nil, errors.New("invalid invite block")
+	}
+
+	// verify thread sig
+	if err := thrd.Verify(signed); err != nil {
+		return nil, err
+	}
+
+	// handle
+	if _, err := thrd.HandleExternalInviteBlock(pmes, signed, invite); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+func (s *TextileService) handleThreadJoin(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
+	log.Debug("received THREAD_JOIN message")
+	signed, err := unpackMessage(pmes)
 	if err != nil {
 		return nil, err
 	}
-	id, err := peer.IDFromPublicKey(pubkey)
+	join := new(pb.ThreadJoin)
+	if err := proto.Unmarshal(signed.Block, join); err != nil {
+		return nil, err
+	}
+
+	// load thread
+	threadId := libp2pc.ConfigEncodeKey(join.Header.ThreadPk)
+	_, thrd := s.getThread(threadId)
+	if thrd == nil {
+		return nil, errors.New("invalid join block")
+	}
+
+	// verify thread sig
+	if err := thrd.Verify(signed); err != nil {
+		return nil, err
+	}
+
+	// handle
+	if _, err := thrd.HandleJoinBlock(pmes, signed, join); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+func (s *TextileService) handleThreadLeave(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
+	log.Debug("received THREAD_LEAVE message")
+	signed, err := unpackMessage(pmes)
 	if err != nil {
 		return nil, err
 	}
-	data := new(pb.SignedData_Command)
-	err = proto.Unmarshal(sd.SerializedData, data)
+	leave := new(pb.ThreadLeave)
+	if err := proto.Unmarshal(signed.Block, leave); err != nil {
+		return nil, err
+	}
+
+	// load thread
+	threadId := libp2pc.ConfigEncodeKey(leave.Header.ThreadPk)
+	_, thrd := s.getThread(threadId)
+	if thrd == nil {
+		return nil, errors.New("invalid leave block")
+	}
+
+	// verify thread sig
+	if err := thrd.Verify(signed); err != nil {
+		return nil, err
+	}
+
+	// handle
+	if _, err := thrd.HandleLeaveBlock(pmes, signed, leave); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
+	log.Debug("received THREAD_DATA message")
+	signed, err := unpackMessage(pmes)
 	if err != nil {
 		return nil, err
 	}
-	if data.PeerID != s.node.Identity.Pretty() {
-		return nil, errors.New("unfollow message doesn't include correct peer id")
+	data := new(pb.ThreadData)
+	if err := proto.Unmarshal(signed.Block, data); err != nil {
+		return nil, err
 	}
-	if data.Type != pb.Message_UNFOLLOW {
-		return nil, errors.New("data type is not unfollow")
+
+	// load thread
+	threadId := libp2pc.ConfigEncodeKey(data.Header.ThreadPk)
+	_, thrd := s.getThread(threadId)
+	if thrd == nil {
+		return nil, common.OutOfOrderMessage
 	}
-	good, err := pubkey.Verify(sd.SerializedData, sd.Signature)
-	if err != nil || !good {
-		return nil, errors.New("bad signature")
+
+	// verify
+	if err := thrd.Verify(signed); err != nil {
+		return nil, err
 	}
-	//err = s.datastore.Followers().Delete(id.Pretty())
-	//if err != nil {
-	//	return nil, err
-	//}
-	//n := notifications.UnfollowNotification{notifications.NewID(), "unfollow", id.Pretty()}
-	//s.broadcast <- n
-	log.Debugf("received UNFOLLOW message from %s", id.Pretty())
+
+	// handle
+	if _, err := thrd.HandleDataBlock(pmes, signed, data); err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
 
@@ -234,42 +263,37 @@ func (s *TextileService) handleOfflineAck(pid peer.ID, pmes *pb.Message, options
 	if pmes.Payload == nil {
 		return nil, errors.New("payload is nil")
 	}
-	_, err := peer.IDB58Decode(string(pmes.Payload.Value))
+	id, err := peer.IDB58Decode(string(pmes.Payload.Value))
 	if err != nil {
 		return nil, err
 	}
-	//pointer, err := s.datastore.Pointers().Get(pid)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//if pointer.CancelID == nil || pointer.CancelID.Pretty() != p.Pretty() {
-	//	return nil, errors.New("peer is not authorized to delete pointer")
-	//}
-	//err = s.datastore.Pointers().Delete(pid)
-	//if err != nil {
-	//	return nil, err
-	//}
+	pointer, err := s.datastore.Pointers().Get(id)
+	if err != nil {
+		return nil, err
+	}
+	if pointer.CancelId == nil || pointer.CancelId.Pretty() != pid.Pretty() {
+		return nil, errors.New("peer is not authorized to delete pointer")
+	}
+	err = s.datastore.Pointers().Delete(id)
+	if err != nil {
+		return nil, err
+	}
 	log.Debugf("received OFFLINE_ACK message from %s", pid.Pretty())
 	return nil, nil
 }
 
 func (s *TextileService) handleOfflineRelay(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
-	// This acts very similarly to attemptDecrypt&handleMessage in the Offline Message Retreiver
-	// However it does not send an ACK, or worry about message ordering
-
-	// Decrypt and unmarshal plaintext
 	if pmes.Payload == nil {
 		return nil, errors.New("payload is nil")
 	}
-	var plaintext []byte // FIXME
-	//plaintext, err := net.Decrypt(s.node.PrivateKey, pmes.Payload.Value)
-	//if err != nil {
-	//	return nil, err
-	//}
+	plaintext, err := crypto.Decrypt(s.node.PrivateKey, pmes.Payload.Value)
+	if err != nil {
+		return nil, err
+	}
 
 	// Unmarshal plaintext
 	env := pb.Envelope{}
-	err := proto.Unmarshal(plaintext, &env)
+	err = proto.Unmarshal(plaintext, &env)
 	if err != nil {
 		return nil, err
 	}
@@ -279,11 +303,11 @@ func (s *TextileService) handleOfflineRelay(pid peer.ID, pmes *pb.Message, optio
 	if err != nil {
 		return nil, err
 	}
-	pubkey, err := libp2pc.UnmarshalPublicKey(env.Pubkey)
+	pubkey, err := libp2pc.UnmarshalPublicKey(env.Pk)
 	if err != nil {
 		return nil, err
 	}
-	valid, err := pubkey.Verify(ser, env.Signature)
+	valid, err := pubkey.Verify(ser, env.Sig)
 	if err != nil || !valid {
 		return nil, err
 	}
@@ -294,7 +318,7 @@ func (s *TextileService) handleOfflineRelay(pid peer.ID, pmes *pb.Message, optio
 	}
 
 	// Get handler for this message type
-	handler := s.HandlerForMsgType(env.Message.MessageType)
+	handler := s.HandlerForMsgType(env.Message.Type)
 	if handler == nil {
 		log.Debug("got back nil handler from HandlerForMsgType")
 		return nil, nil
@@ -310,117 +334,73 @@ func (s *TextileService) handleOfflineRelay(pid peer.ID, pmes *pb.Message, optio
 	return nil, nil
 }
 
-func (s *TextileService) handleChat(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
-	// Unmarshall
+func (s *TextileService) handleBlock(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
 	if pmes.Payload == nil {
 		return nil, errors.New("payload is nil")
 	}
-	chat := new(pb.Chat)
-	err := ptypes.UnmarshalAny(pmes.Payload, chat)
+	pbblock := new(pb.Block)
+	err := ptypes.UnmarshalAny(pmes.Payload, pbblock)
 	if err != nil {
 		return nil, err
 	}
-
-	if chat.Flag == pb.Chat_TYPING {
-		//n := notifications.ChatTyping{
-		//	PeerId:  p.Pretty(),
-		//	Subject: chat.Subject,
-		//}
-		//s.broadcast <- notifications.Serialize(n)
-		return nil, nil
-	}
-	if chat.Flag == pb.Chat_READ {
-		//n := notifications.ChatRead{
-		//	PeerId:    p.Pretty(),
-		//	Subject:   chat.Subject,
-		//	MessageId: chat.MessageId,
-		//}
-		//s.broadcast <- n
-		//_, _, err = s.datastore.Chat().MarkAsRead(p.Pretty(), chat.Subject, true, chat.MessageId)
-		//if err != nil {
-		//	return nil, err
-		//}
-		return nil, nil
-	}
-
-	// Validate
-	if len(chat.Subject) > ChatSubjectMaxCharacters {
-		return nil, errors.New("chat subject over max characters")
-	}
-	if len(chat.Message) > ChatMessageMaxCharacters {
-		return nil, errors.New("chat message over max characters")
-	}
-
-	// Use correct timestamp
-	//offline, _ := options.(bool)
-	//var t time.Time
-	//if !offline {
-	//	t = time.Now()
-	//} else {
-	//	if chat.Timestamp == nil {
-	//		return nil, errors.New("invalid timestamp")
-	//	}
-	//	t, err = ptypes.Timestamp(chat.Timestamp)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//}
-
-	// Put to database
-	//err = s.datastore.Chat().Put(chat.MessageId, p.Pretty(), chat.Subject, chat.Message, t, false, false)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//if chat.Subject != "" {
-	//	go func() {
-	//		s.datastore.Purchases().MarkAsUnread(chat.Subject)
-	//		s.datastore.Sales().MarkAsUnread(chat.Subject)
-	//		s.datastore.Cases().MarkAsUnread(chat.Subject)
-	//	}()
-	//}
-	//
-	//// Push to websocket
-	//n := notifications.ChatMessage{
-	//	MessageId: chat.MessageId,
-	//	PeerId:    p.Pretty(),
-	//	Subject:   chat.Subject,
-	//	Message:   chat.Message,
-	//	Timestamp: t,
-	//}
-	//s.broadcast <- n
-	log.Debugf("received CHAT message from %s", pid.Pretty())
-	return nil, nil
-}
-
-func (s *TextileService) handleIPFSBlock(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
-	//// If we aren't accepting store requests then ban this peer
-	//if !s.node.AcceptStoreRequests {
-	//	s.node.BanManager.AddBlockedId(pid)
-	//	return nil, nil
-	//}
-
-	if pmes.Payload == nil {
-		return nil, errors.New("payload is nil")
-	}
-	b := new(pb.IPFSBlock)
-	err := ptypes.UnmarshalAny(pmes.Payload, b)
+	id, err := cid.Decode(pbblock.Cid)
 	if err != nil {
 		return nil, err
 	}
-	id, err := cid.Decode(b.Cid)
-	if err != nil {
-		return nil, err
-	}
-	block, err := blocks.NewBlockWithCid(b.RawData, id)
+	block, err := blocks.NewBlockWithCid(pbblock.RawData, id)
 	if err != nil {
 		return nil, err
 	}
 	if err := s.node.Blocks.AddBlock(block); err != nil {
 		return nil, err
 	}
-	log.Debugf("Received IPFS_BLOCK message from %s", pid.Pretty())
+	log.Debugf("received IPFS_BLOCK message from %s", pid.Pretty())
 	return nil, nil
+}
+
+func (s *TextileService) handleStore(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
+	errorResponse := func(error string) *pb.Message {
+		payload := &any.Any{Value: []byte(error)}
+		message := &pb.Message{
+			Type:    pb.Message_ERROR,
+			Payload: payload,
+		}
+		return message
+	}
+
+	if pmes.Payload == nil {
+		return nil, errors.New("payload is nil")
+	}
+	cList := new(pb.CidList)
+	err := ptypes.UnmarshalAny(pmes.Payload, cList)
+	if err != nil {
+		return errorResponse("could not unmarshall message"), err
+	}
+	var need []string
+	for _, id := range cList.Cids {
+		decoded, err := cid.Decode(id)
+		if err != nil {
+			continue
+		}
+		has, err := s.node.Blockstore.Has(decoded)
+		if err != nil || !has {
+			need = append(need, decoded.String())
+		}
+	}
+	log.Debugf("received STORE message from %s", pid.Pretty())
+	log.Debugf("requesting %d blocks from %s", len(need), pid.Pretty())
+
+	resp := new(pb.CidList)
+	resp.Cids = need
+	payload, err := ptypes.MarshalAny(resp)
+	if err != nil {
+		return errorResponse("error marshalling response"), err
+	}
+	message := &pb.Message{
+		Type:    pb.Message_STORE,
+		Payload: payload,
+	}
+	return message, nil
 }
 
 func (s *TextileService) handleError(peer peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
@@ -436,4 +416,15 @@ func (s *TextileService) handleError(peer peer.ID, pmes *pb.Message, options int
 	// TODO
 
 	return nil, nil
+}
+
+func unpackMessage(pmes *pb.Message) (*pb.SignedThreadBlock, error) {
+	if pmes.Payload == nil {
+		return nil, errors.New("payload is nil")
+	}
+	signed := new(pb.SignedThreadBlock)
+	if err := ptypes.UnmarshalAny(pmes.Payload, signed); err != nil {
+		return nil, err
+	}
+	return signed, nil
 }

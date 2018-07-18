@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/asticode/go-astilectron"
@@ -10,7 +11,6 @@ import (
 	"github.com/asticode/go-astilog"
 	"github.com/mitchellh/go-homedir"
 	"github.com/op/go-logging"
-	"github.com/pkg/errors"
 	"github.com/skip2/go-qrcode"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
@@ -26,7 +26,6 @@ var (
 	builtAt  string
 	debug    = flag.Bool("d", false, "enables the debug mode")
 	window   *astilectron.Window
-	textile  *core.TextileNode
 	gateway  string
 	expanded bool
 )
@@ -54,7 +53,7 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 	// get homedir
 	home, err := homedir.Dir()
 	if err != nil {
-		astilog.Fatal(errors.Wrap(err, "get homedir failed"))
+		astilog.Fatal(fmt.Errorf("get homedir failed: %s", err))
 	}
 
 	// ensure app support folder is created
@@ -73,13 +72,13 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 			IsMobile:   false,
 		},
 	}
-	textile, _, err = core.NewNode(config)
+	core.Node, _, err = core.NewNode(config)
 	if err != nil {
 		return err
 	}
 
 	// bring the node online and startup the gateway
-	online, err := textile.StartWallet()
+	online, err := core.Node.StartWallet()
 	if err != nil {
 		return err
 	}
@@ -89,7 +88,7 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 	go func() {
 		for {
 			select {
-			case update, ok := <-textile.Wallet.Updates():
+			case update, ok := <-core.Node.Wallet.Updates():
 				if !ok {
 					return
 				}
@@ -111,19 +110,17 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 	}()
 
 	// subscribe to thread updates
-	for _, thrd := range textile.Wallet.Threads() {
+	for _, thrd := range core.Node.Wallet.Threads() {
 		go func(t *thread.Thread) {
 			subscribe(t)
 		}(thrd)
 	}
 
-	err = textile.StartGateway()
-	if err != nil {
-		return err
-	}
+	// start the server
+	core.Node.StartServer()
 
-	// save off the gateway address
-	gateway = fmt.Sprintf("http://%s", textile.GetGatewayAddress())
+	// save off the server address
+	gateway = fmt.Sprintf("http://%s", core.Node.GetServerAddress())
 
 	// sleep for a bit on the landing screen, it feels better
 	time.Sleep(SleepOnLoad)
@@ -136,7 +133,7 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 	})
 
 	// check if we're configured yet
-	threads := textile.Wallet.Threads()
+	threads := core.Node.Wallet.Threads()
 	if len(threads) > 0 {
 		// load threads for UI
 		var threadsJSON []map[string]interface{}
@@ -217,7 +214,7 @@ func subscribe(thrd *thread.Thread) {
 
 func getQRCode() (string, string, error) {
 	// get our own public key
-	pk, err := textile.Wallet.GetPubKeyString()
+	pk, err := core.Node.Wallet.GetPubKeyString()
 	if err != nil {
 		return "", "", err
 	}
@@ -233,15 +230,15 @@ func getQRCode() (string, string, error) {
 }
 
 func getThreadPhotos(id string) (string, error) {
-	thrd := textile.Wallet.GetThread(id)
+	_, thrd := core.Node.Wallet.GetThread(id)
 	if thrd == nil {
 		return "", errors.New("thread not found")
 	}
 	var html string
 	for _, block := range thrd.Blocks("", -1, repo.PhotoBlock) {
-		photo := fmt.Sprintf("%s/ipfs/%s/photo?block=%s", gateway, block.Target, block.Id)
-		thumb := fmt.Sprintf("%s/ipfs/%s/thumb?block=%s", gateway, block.Target, block.Id)
-		meta := fmt.Sprintf("%s/ipfs/%s/meta?block=%s", gateway, block.Target, block.Id)
+		photo := fmt.Sprintf("%s/ipfs/%s/photo?block=%s", gateway, block.DataId, block.Id)
+		thumb := fmt.Sprintf("%s/ipfs/%s/thumb?block=%s", gateway, block.DataId, block.Id)
+		meta := fmt.Sprintf("%s/ipfs/%s/meta?block=%s", gateway, block.DataId, block.Id)
 		img := fmt.Sprintf("<img src=\"%s\" />", thumb)
 		html += fmt.Sprintf(
 			"<div id=\"%s\" class=\"grid-item\" ondragstart=\"imageDragStart(event);\" draggable=\"true\" data-url=\"%s\" data-meta=\"%s\">%s</div>",

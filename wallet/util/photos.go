@@ -20,19 +20,22 @@ import (
 	"time"
 )
 
-type ThumbnailFormat int
+type Format string
 
 const (
-	JPEG ThumbnailFormat = iota
-	GIF
+	JPEG Format = "jpeg"
+	PNG  Format = "png"
+	GIF  Format = "gif"
 )
 
 // DecodeImage returns a cleaned reader from an image file
-func DecodeImage(file *os.File) (*bytes.Reader, string, error) {
-	img, format, err := image.Decode(file)
+func DecodeImage(file *os.File) (*bytes.Reader, *Format, *image.Point, error) {
+	img, formatStr, err := image.Decode(file)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, nil, err
 	}
+	format := Format(formatStr)
+	size := img.Bounds().Size()
 
 	var reader *bytes.Reader
 	file.Seek(0, 0)
@@ -41,27 +44,27 @@ func DecodeImage(file *os.File) (*bytes.Reader, string, error) {
 		exf := DecodeExif(file)
 		img, err = correctOrientation(img, exf)
 		if err != nil {
-			return nil, "", err
+			return nil, nil, nil, err
 		}
 
 		// re-encoding will remove exif
 		reader, err = encodeSingleImage(img, format)
 		if err != nil {
-			return nil, "", err
+			return nil, nil, nil, err
 		}
 	} else {
 		fileb, err := ioutil.ReadAll(file)
 		if err != nil {
-			return nil, "", err
+			return nil, nil, nil, err
 		}
 		reader = bytes.NewReader(fileb)
 	}
-	return reader, format, nil
+
+	return reader, &format, &size, nil
 }
 
-// GetMetaData reads any available meta/exif data from a photo
-// TODO: get image size info
-func GetMetadata(reader io.Reader, path string, ext string, username string) (model.PhotoMetadata, error) {
+// MakeMetadata reads any available meta/exif data from a photo
+func MakeMetadata(reader io.Reader, path string, ext string, format Format, tnFormat Format, width int, height int, username string) (model.PhotoMetadata, error) {
 	var created time.Time
 	var lat, lon float64
 	x, err := exif.Decode(reader)
@@ -87,14 +90,18 @@ func GetMetadata(reader io.Reader, path string, ext string, username string) (mo
 			Name: strings.TrimSuffix(filepath.Base(path), ext),
 			Ext:  ext,
 		},
-		Latitude:  lat,
-		Longitude: lon,
+		Format:          string(format),
+		ThumbnailFormat: string(tnFormat),
+		Width:           width,
+		Height:          height,
+		Latitude:        lat,
+		Longitude:       lon,
 	}
 	return meta, nil
 }
 
 // MakeThumbnail creates a jpeg|gif thumbnail from an image
-func MakeThumbnail(reader io.Reader, format ThumbnailFormat, width int) ([]byte, error) {
+func MakeThumbnail(reader io.Reader, format Format, width int) ([]byte, error) {
 	var result []byte
 	switch format {
 	case JPEG:
@@ -162,13 +169,13 @@ func correctOrientation(img image.Image, exf *exif.Exif) (image.Image, error) {
 }
 
 // encodeSingleImage creates a reader from an image
-func encodeSingleImage(img image.Image, format string) (*bytes.Reader, error) {
+func encodeSingleImage(img image.Image, format Format) (*bytes.Reader, error) {
 	writer := &bytes.Buffer{}
 	var err error
 	switch format {
-	case "jpeg":
+	case JPEG:
 		err = jpeg.Encode(writer, img, &jpeg.Options{Quality: 100})
-	case "png":
+	case PNG:
 		// NOTE: while PNGs don't technically have exif data,
 		// they can contain meta data with sensitive info
 		err = png.Encode(writer, img)

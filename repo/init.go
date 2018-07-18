@@ -8,9 +8,9 @@ import (
 	"github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/repo/schema"
 	wutil "github.com/textileio/textile-go/wallet/util"
-	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/core"
-	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/namesys"
-	"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/repo/fsrepo"
+	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
+	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/namesys"
+	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"
 	"io/ioutil"
 	"os"
 	"path"
@@ -23,7 +23,7 @@ var ErrRepoExists = errors.New("repo not empty, reinitializing would overwrite y
 
 const versionFilename = "textile_version"
 
-func DoInit(repoRoot string, isMobile bool, version string, mnemonic *string, initDB func(string) error, initConfig func(time.Time) error) (string, error) {
+func DoInit(repoRoot string, version string, mnemonic *string, initDB func(string) error, initConfig func(time.Time) error) (string, error) {
 	if err := checkWriteable(repoRoot); err != nil {
 		return "", err
 	}
@@ -65,7 +65,7 @@ func DoInit(repoRoot string, isMobile bool, version string, mnemonic *string, in
 		return "", err
 	}
 
-	conf, err := config.Init(isMobile, identity)
+	conf, err := config.Init(identity)
 	if err != nil {
 		return "", err
 	}
