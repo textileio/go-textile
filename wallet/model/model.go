@@ -25,7 +25,8 @@ type FileMetadata struct {
 
 type PhotoMetadata struct {
 	FileMetadata
-	ThumbnailFormat int     `json:"tn_format"`
+	Format          string  `json:"fmt"`
+	ThumbnailFormat string  `json:"fmt_tn"`
 	Latitude        float64 `json:"lat,omitempty"`
 	Longitude       float64 `json:"lon,omitempty"`
 }
