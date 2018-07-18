@@ -676,7 +676,7 @@ func (w *Wallet) AddPhoto(path string) (*nm.AddResult, error) {
 
 	// get metadata
 	reader.Seek(0, 0)
-	meta, err := util.GetMetadata(reader, fpath, ext, username)
+	meta, err := util.GetMetadata(reader, fpath, ext, thumbFormat, username)
 	if err != nil {
 		return nil, err
 	}

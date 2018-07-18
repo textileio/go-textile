@@ -1,6 +1,8 @@
 package model
 
-import "time"
+import (
+	"time"
+)
 
 type Profile struct {
 	Id       string `json:"id"`
@@ -23,6 +25,7 @@ type FileMetadata struct {
 
 type PhotoMetadata struct {
 	FileMetadata
-	Latitude  float64 `json:"lat,omitempty"`
-	Longitude float64 `json:"lon,omitempty"`
+	ThumbnailFormat int     `json:"tn_format"`
+	Latitude        float64 `json:"lat,omitempty"`
+	Longitude       float64 `json:"lon,omitempty"`
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet"
+	"github.com/textileio/textile-go/wallet/model"
 	"github.com/textileio/textile-go/wallet/thread"
 	"github.com/textileio/textile-go/wallet/util"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
@@ -347,7 +348,7 @@ func (m *Mobile) AddPhoto(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return toJSON(*added)
+	return toJSON(added)
 }
 
 // SharePhoto adds an existing photo to a new thread
@@ -425,8 +426,17 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 	return toJSON(photos)
 }
 
-// GetPhotoData calls GetBlockDataBase64 on a thread
-func (m *Mobile) GetPhotoData(id string, path string) (string, error) {
+// GetPhotoData returns a data url for a photo
+func (m *Mobile) GetPhotoData(id string) (string, error) {
+	return m.getImageData(id, "photo")
+}
+
+// GetPhotoData returns a data url for a photo
+func (m *Mobile) GetThumbData(id string) (string, error) {
+	return m.getImageData(id, "thumb")
+}
+
+func (m *Mobile) GetPhotoMetadata(id string) (string, error) {
 	block, err := tcore.Node.Wallet.GetBlockByDataId(id)
 	if err != nil {
 		log.Errorf("could not find block for data id %s: %s", id, err)
@@ -438,7 +448,41 @@ func (m *Mobile) GetPhotoData(id string, path string) (string, error) {
 		log.Error(err.Error())
 		return "", err
 	}
-	return thrd.GetBlockDataBase64(fmt.Sprintf("%s/%s", id, path), block)
+	meta, err := thrd.GetPhotoMetaData(id, block)
+	if err != nil {
+		log.Errorf("get photo meta data failed %s: %s", id, err)
+		return "", err
+	}
+	return toJSON(meta)
+}
+
+// getImageData returns a data url for an image under a path
+func (m *Mobile) getImageData(id string, path string) (string, error) {
+	block, err := tcore.Node.Wallet.GetBlockByDataId(id)
+	if err != nil {
+		log.Errorf("could not find block for data id %s: %s", id, err)
+		return "", err
+	}
+	_, thrd := tcore.Node.Wallet.GetThread(block.ThreadId)
+	if thrd == nil {
+		err := errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadId))
+		log.Error(err.Error())
+		return "", err
+	}
+	data, err := thrd.GetBlockDataBase64(fmt.Sprintf("%s/%s", id, path), block)
+	if err != nil {
+		log.Errorf("get block data base64 failed %s: %s", id, err)
+		return "", err
+	}
+
+	// get meta data for url type
+	meta, err := thrd.GetPhotoMetaData(id, block)
+	if err != nil {
+		log.Errorf("get photo meta data failed %s: %s", id, err)
+		return "", err
+	}
+	data = getDataURLPrefix(meta) + data
+	return data, nil
 }
 
 // subscribe to thread and pass updates to messenger
@@ -455,6 +499,17 @@ func (m *Mobile) subscribe(thrd *thread.Thread) {
 				"thread_name": update.ThreadName,
 			}))
 		}
+	}
+}
+
+// getDataURLPrefix adds the correct data url prefix to a data url
+func getDataURLPrefix(meta *model.PhotoMetadata) string {
+	format := util.ThumbnailFormat(meta.ThumbnailFormat)
+	switch format {
+	case util.GIF:
+		return "data:image/gif;base64,"
+	default:
+		return "data:image/jpeg;base64,"
 	}
 }
 
