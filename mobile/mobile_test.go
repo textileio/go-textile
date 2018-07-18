@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/segmentio/ksuid"
 	. "github.com/textileio/textile-go/mobile"
+	"github.com/textileio/textile-go/net/model"
 	util "github.com/textileio/textile-go/util/testing"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"os"
@@ -20,8 +21,12 @@ func (tm *TestMessenger) Notify(event *Event) {}
 var repo = "testdata/.textile"
 
 var mobile *Mobile
+var defaultThreadId string
+var threadId string
 var addedPhotoId string
+var addedPhotoKey string
 var sharedBlockId string
+var deviceId string
 
 var cusername = ksuid.New().String()
 var cpassword = ksuid.New().String()
@@ -116,47 +121,66 @@ func TestMobile_EmptyThreads(t *testing.T) {
 		return
 	}
 	threads := Threads{}
-	json.Unmarshal([]byte(res), &threads)
+	err = json.Unmarshal([]byte(res), &threads)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	if len(threads.Items) != 0 {
 		t.Error("get threads bad result")
 	}
 }
 
 func TestMobile_AddThread(t *testing.T) {
-	item, err := mobile.AddThread("default", "")
+	itemStr, err := mobile.AddThread("default", "")
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
+		return
 	}
-	if item == "" {
-		t.Error("add thread bad result")
+	item := Thread{}
+	err = json.Unmarshal([]byte(itemStr), &item)
+	if err != nil {
+		t.Error(err)
+		return
 	}
-}
-
-func TestMobile_AddThreadAgain(t *testing.T) {
-	if _, err := mobile.AddThread("default", ""); err == nil {
-		t.Errorf("add thread again should fail: %s", err)
-	}
+	defaultThreadId = item.Id
 }
 
 func TestMobile_Threads(t *testing.T) {
-	if _, err := mobile.AddThread("another", ""); err != nil {
+	itemStr, err := mobile.AddThread("another", "")
+	if err != nil {
 		t.Errorf("add another thread failed: %s", err)
 		return
 	}
+	item := Thread{}
+	err = json.Unmarshal([]byte(itemStr), &item)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	threadId = item.Id
 	res, err := mobile.Threads()
 	if err != nil {
 		t.Errorf("get threads failed: %s", err)
 		return
 	}
 	threads := Threads{}
-	json.Unmarshal([]byte(res), &threads)
+	err = json.Unmarshal([]byte(res), &threads)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	if len(threads.Items) != 2 {
 		t.Error("get threads bad result")
 	}
 }
 
 func TestMobile_RemoveThread(t *testing.T) {
-	if err := mobile.RemoveThread("another"); err != nil {
+	blockId, err := mobile.RemoveThread(defaultThreadId)
+	if blockId == "" {
+		t.Errorf("remove thread bad result: %s", err)
+	}
+	if err != nil {
 		t.Errorf("remove thread failed: %s", err)
 	}
 }
@@ -173,23 +197,14 @@ func TestMobile_AddDevice(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if err := mobile.AddDevice("hello", libp2pc.ConfigEncodeKey(pkb)); err != nil {
+	deviceId = libp2pc.ConfigEncodeKey(pkb)
+	if err := mobile.AddDevice("hello", deviceId); err != nil {
 		t.Errorf("add device failed: %s", err)
 	}
 }
 
 func TestMobile_AddDeviceAgain(t *testing.T) {
-	_, pk, err := libp2pc.GenerateEd25519Key(rand.Reader)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	pkb, err := pk.Bytes()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if err := mobile.AddDevice("hello", libp2pc.ConfigEncodeKey(pkb)); err == nil {
+	if err := mobile.AddDevice("hello", deviceId); err == nil {
 		t.Error("add same device again should fail")
 	}
 }
@@ -214,69 +229,95 @@ func TestMobile_Devices(t *testing.T) {
 		return
 	}
 	devices := Devices{}
-	json.Unmarshal([]byte(res), &devices)
+	err = json.Unmarshal([]byte(res), &devices)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	if len(devices.Items) != 2 {
 		t.Error("get devices bad result")
 	}
 }
 
 func TestMobile_RemoveDevice(t *testing.T) {
-	if err := mobile.RemoveDevice("another"); err != nil {
+	if err := mobile.RemoveDevice(deviceId); err != nil {
 		t.Errorf("remove device failed: %s", err)
 	}
 }
 
 func TestMobile_AddPhoto(t *testing.T) {
-	mrs, err := mobile.AddPhoto("testdata/image.jpg", "default", "howdy")
+	resStr, err := mobile.AddPhoto("testdata/image.jpg")
 	if err != nil {
 		t.Errorf("add photo failed: %s", err)
 		return
 	}
-	reqs := PinRequests{}
-	json.Unmarshal([]byte(mrs), &reqs)
-	if len(reqs.Items) != 1 {
-		t.Errorf("add photo got bad pin requests")
+	res := model.AddResult{}
+	err = json.Unmarshal([]byte(resStr), &res)
+	if err != nil {
+		t.Error(err)
 		return
 	}
-	addedPhotoId = reqs.Items[0].Boundary
+	addedPhotoKey = res.Key
+	addedPhotoId = res.Id
 }
 
-func TestMobile_SharePhoto(t *testing.T) {
-	if _, err := mobile.AddThread("test", ""); err != nil {
+func TestMobile_AddPhotoToThread(t *testing.T) {
+	caption := "rasputin's eyes"
+	blockId, err := mobile.AddPhotoToThread(addedPhotoId, addedPhotoKey, threadId, caption)
+	if err != nil {
+		t.Errorf("add photo to thread failed: %s", err)
+		return
+	}
+	sharedBlockId = blockId
+}
+
+func TestMobile_SharePhotoToThread(t *testing.T) {
+	itemStr, err := mobile.AddThread("test", "")
+	if err != nil {
 		t.Errorf("add test thread failed: %s", err)
 		return
 	}
-	caption := "rasputin's eyes"
-	id, err := mobile.SharePhoto(addedPhotoId, "test", caption)
+	item := Thread{}
+	err = json.Unmarshal([]byte(itemStr), &item)
 	if err != nil {
-		t.Errorf("share photo failed: %s", err)
+		t.Error(err)
+		return
+	}
+	caption := "rasputin's eyes"
+	id, err := mobile.SharePhotoToThread(addedPhotoId, item.Id, caption)
+	if err != nil {
+		t.Errorf("share photo to thread failed: %s", err)
 		return
 	}
 	sharedBlockId = id
 }
 
-func TestMobile_PhotoBlocks(t *testing.T) {
-	res, err := mobile.PhotoBlocks("", -1, "default")
+func TestMobile_GetPhotos(t *testing.T) {
+	res, err := mobile.GetPhotos("", -1, threadId)
 	if err != nil {
-		t.Errorf("get photo blocks failed: %s", err)
+		t.Errorf("get photos failed: %s", err)
 		return
 	}
-	blocks := Blocks{}
-	json.Unmarshal([]byte(res), &blocks)
-	if len(blocks.Items) == 0 {
-		t.Errorf("get photo blocks bad result")
+	photos := Photos{}
+	err = json.Unmarshal([]byte(res), &photos)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if len(photos.Items) == 1 {
+		t.Errorf("get photos bad result")
 	}
 }
 
 func TestMobile_PhotosBadThread(t *testing.T) {
-	_, err := mobile.PhotoBlocks("", -1, "empty")
+	_, err := mobile.GetPhotos("", -1, "empty")
 	if err == nil {
 		t.Errorf("get photo blocks from bad thread should fail: %s", err)
 	}
 }
 
 func TestMobile_GetBlockData(t *testing.T) {
-	res, err := mobile.GetBlockData(addedPhotoId, "thumb")
+	res, err := mobile.GetPhotoData(addedPhotoId, "thumb")
 	if err != nil {
 		t.Errorf("get file data failed: %s", err)
 		return

@@ -65,7 +65,7 @@ func TestThread_AddPhotoSetup(t *testing.T) {
 
 func TestThread_AddPhoto(t *testing.T) {
 	var err error
-	tadded, err = thrd.AddPhoto(wadded.Id, "howdy", wadded.Key)
+	tadded, err = thrd.AddPhoto(wadded.Id, "howdy", []byte(wadded.Key))
 	if err != nil {
 		t.Errorf("add photo to thread failed: %s", err)
 	}

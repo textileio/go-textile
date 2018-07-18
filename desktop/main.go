@@ -230,7 +230,7 @@ func getQRCode() (string, string, error) {
 }
 
 func getThreadPhotos(id string) (string, error) {
-	thrd := core.Node.Wallet.GetThread(id)
+	_, thrd := core.Node.Wallet.GetThread(id)
 	if thrd == nil {
 		return "", errors.New("thread not found")
 	}

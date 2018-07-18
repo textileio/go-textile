@@ -35,7 +35,6 @@ import (
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -186,7 +185,7 @@ func (w *Wallet) Start() (chan struct{}, error) {
 		w.messageStorage = storage.NewSelfHostedStorage(w.ipfs, w.repoPath, w.sendStore)
 
 		// service is now configurable
-		w.service = serv.NewService(w.ipfs, w.datastore, w.GetThread, w.ForceAddThread)
+		w.service = serv.NewService(w.ipfs, w.datastore, w.GetThread, w.AddThread)
 
 		// build the message retriever
 		mrCfg := net.MRConfig{
@@ -458,18 +457,9 @@ func (w *Wallet) Threads() []*thread.Thread {
 	return w.threads
 }
 
-func (w *Wallet) GetThread(id string) *thread.Thread {
-	for _, thrd := range w.threads {
-		if thrd.Id == id {
-			return thrd
-		}
-	}
-	return nil
-}
-
-func (w *Wallet) GetThreadByName(name string) (*int, *thread.Thread) {
+func (w *Wallet) GetThread(id string) (*int, *thread.Thread) {
 	for i, thrd := range w.threads {
-		if thrd.Name == name {
+		if thrd.Id == id {
 			return &i, thrd
 		}
 	}
@@ -478,15 +468,6 @@ func (w *Wallet) GetThreadByName(name string) (*int, *thread.Thread) {
 
 // AddThread adds a thread with a given name and secret key
 func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread, error) {
-	existing, err := w.getThreadModelByName(name)
-	if err != nil {
-		return nil, err
-	}
-	// not ideal way to check for existence, but want to skip
-	// all the heavy crypto stuff below if we know for sure this thread already exists
-	if existing != nil {
-		return nil, ErrThreadExists
-	}
 	log.Debugf("adding a new thread: %s", name)
 
 	// index a new thread
@@ -537,15 +518,6 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 
 // AddThreadWithMnemonic adds a thread with a given name and mnemonic phrase
 func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string) (*thread.Thread, string, error) {
-	existing, err := w.getThreadModelByName(name)
-	if err != nil {
-		return nil, "", err
-	}
-	// not ideal way to check for existence, but want to skip
-	// all the heavy crypto stuff below if we know for sure this thread already exists
-	if existing != nil {
-		return nil, "", ErrThreadExists
-	}
 	if mnemonic != nil {
 		log.Debugf("regenerating keypair from mnemonic for: %s", name)
 	} else {
@@ -562,31 +534,9 @@ func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string) (*thread.T
 	return thrd, mnem, nil
 }
 
-// ForceAddThread adds a thread with a given name and secret key, bumping name until there's no conflict
-func (w *Wallet) ForceAddThread(name string, secret libp2pc.PrivKey) (*thread.Thread, error) {
-	thrd, err := w.AddThread(name, secret)
-	if err == ErrThreadExists {
-		parts := strings.Split(name, "_")
-		if len(parts) == 1 {
-			name = name + "_1"
-		} else {
-			parsed, err := strconv.ParseInt(parts[1], 10, 64)
-			if err != nil {
-				return nil, err
-			}
-			if parsed > 100 {
-				return nil, errors.New("reached force unique name upper limit")
-			}
-			name = fmt.Sprintf("%s_%s", parts[0], string(parsed+1))
-		}
-		return w.ForceAddThread(name, secret)
-	}
-	return thrd, err
-}
-
-// RemoveThread removes a thread by name
-func (w *Wallet) RemoveThread(name string) (mh.Multihash, error) {
-	i, thrd := w.GetThreadByName(name) // gets the loaded thread
+// RemoveThread removes a thread
+func (w *Wallet) RemoveThread(id string) (mh.Multihash, error) {
+	i, thrd := w.GetThread(id) // gets the loaded thread
 	if thrd == nil {
 		return nil, errors.New("thread not found")
 	}
@@ -598,7 +548,7 @@ func (w *Wallet) RemoveThread(name string) (mh.Multihash, error) {
 	}
 
 	// remove model from db
-	if err := w.datastore.Threads().DeleteByName(name); err != nil {
+	if err := w.datastore.Threads().Delete(id); err != nil {
 		return nil, err
 	}
 
@@ -611,7 +561,7 @@ func (w *Wallet) RemoveThread(name string) (mh.Multihash, error) {
 	// notify listeners
 	w.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadRemoved})
 
-	log.Infof("removed thread '%s'", name)
+	log.Infof("removed thread '%s'", id)
 
 	return addr, nil
 }
@@ -671,7 +621,7 @@ func (w *Wallet) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
 	}
 
 	// add it
-	thrd, err := w.ForceAddThread(invite.SuggestedName, sk)
+	thrd, err := w.AddThread(invite.SuggestedName, sk)
 	if err != nil {
 		return nil, err
 	}
@@ -725,7 +675,7 @@ func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte) (mh.Mult
 	}
 
 	// add it
-	thrd, err := w.ForceAddThread(invite.SuggestedName, sk)
+	thrd, err := w.AddThread(invite.SuggestedName, sk)
 	if err != nil {
 		return nil, err
 	}
@@ -771,16 +721,16 @@ func (w *Wallet) AddDevice(name string, pk libp2pc.PubKey) error {
 	return nil
 }
 
-// RemoveDevice removes a device by name
-func (w *Wallet) RemoveDevice(name string) error {
-	device := w.datastore.Devices().GetByName(name)
+// RemoveDevice removes a device
+func (w *Wallet) RemoveDevice(id string) error {
+	device := w.datastore.Devices().Get(id)
 	if device == nil {
 		return errors.New("device not found")
 	}
-	if err := w.datastore.Devices().DeleteByName(name); err != nil {
+	if err := w.datastore.Devices().Delete(id); err != nil {
 		return err
 	}
-	log.Infof("removed device '%s'", name)
+	log.Infof("removed device '%s'", id)
 
 	// TODO: uninvite?
 
@@ -922,7 +872,7 @@ func (w *Wallet) AddPhoto(path string) (*nm.AddResult, error) {
 	}
 
 	// all done
-	return &nm.AddResult{Id: id, Key: key, RemoteRequest: request}, nil
+	return &nm.AddResult{Id: id, Key: string(key), PinRequest: request}, nil
 }
 
 // GetBlock searches for a local block associated with the given target
@@ -935,7 +885,7 @@ func (w *Wallet) GetBlock(id string) (*trepo.Block, error) {
 }
 
 // GetBlockByDataId searches for a local block associated with the given data id
-func (w *Wallet) GetBlockByTarget(dataId string) (*trepo.Block, error) {
+func (w *Wallet) GetBlockByDataId(dataId string) (*trepo.Block, error) {
 	block := w.datastore.Blocks().GetByDataId(dataId)
 	if block == nil {
 		return nil, errors.New("block not found locally")
@@ -1118,13 +1068,6 @@ func (w *Wallet) createIPFS(online bool) error {
 	return nil
 }
 
-func (w *Wallet) getThreadModelByName(name string) (*trepo.Thread, error) {
-	if err := w.touchDatastore(); err != nil {
-		return nil, err
-	}
-	return w.datastore.Threads().GetByName(name), nil
-}
-
 func (w *Wallet) getThreadByBlock(block *trepo.Block) (*thread.Thread, error) {
 	if block == nil {
 		return nil, errors.New("block is empty")
@@ -1143,7 +1086,7 @@ func (w *Wallet) getThreadByBlock(block *trepo.Block) (*thread.Thread, error) {
 }
 
 func (w *Wallet) loadThread(mod *trepo.Thread) (*thread.Thread, error) {
-	_, loaded := w.GetThreadByName(mod.Name)
+	_, loaded := w.GetThread(mod.Id)
 	if loaded != nil {
 		return nil, ErrThreadLoaded
 	}

@@ -51,16 +51,6 @@ func (c *DeviceDB) Get(id string) *repo.Device {
 	return &ret[0]
 }
 
-func (c *DeviceDB) GetByName(name string) *repo.Device {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from devices where name='" + name + "';")
-	if len(ret) == 0 {
-		return nil
-	}
-	return &ret[0]
-}
-
 func (c *DeviceDB) List(query string) []repo.Device {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -75,13 +65,6 @@ func (c *DeviceDB) Delete(id string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	_, err := c.db.Exec("delete from devices where id=?", id)
-	return err
-}
-
-func (c *DeviceDB) DeleteByName(name string) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from devices where name=?", name)
 	return err
 }
 

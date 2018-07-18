@@ -13,8 +13,6 @@ import (
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/config"
 	"io"
 	"io/ioutil"
-	"strconv"
-	"time"
 )
 
 // PrivKeyFromMnemonic creates a private key form a mnemonic phrase
@@ -77,11 +75,6 @@ func GetEncryptedReaderBytes(reader io.Reader, key []byte) ([]byte, error) {
 	return crypto.EncryptAES(bts, key)
 }
 
-// GetNowBytes returns the current unix time as a byte string
-func GetNowBytes() []byte {
-	return []byte(strconv.Itoa(int(time.Now().Unix())))
-}
-
 // UnmarshalPrivateKeyFromString attempts to create a private key from a base64 encoded string
 func UnmarshalPrivateKeyFromString(key string) (libp2pc.PrivKey, error) {
 	keyb, err := libp2pc.ConfigDecodeKey(key)
@@ -98,6 +91,15 @@ func UnmarshalPublicKeyFromString(key string) (libp2pc.PubKey, error) {
 		return nil, err
 	}
 	return libp2pc.UnmarshalPublicKey(keyb)
+}
+
+// IdFromEncodedPublicKey return the underlying id from an encoded public key
+func IdFromEncodedPublicKey(key string) (peer.ID, error) {
+	pk, err := UnmarshalPublicKeyFromString(key)
+	if err != nil {
+		return "", err
+	}
+	return peer.IDFromPublicKey(pk)
 }
 
 // createMnemonic creates a new mnemonic phrase with given entropy

@@ -143,9 +143,7 @@ func initDatabaseTables(db *sql.DB, password string) error {
 	create table config (key text primary key not null, value blob);
     create table profile (key text primary key not null, value blob);
     create table threads (id text primary key not null, name text not null, sk blob not null, head text not null);
-    create unique index thread_name on threads (name);
     create table devices (id text primary key not null, name text not null);
-    create unique index device_name on devices (name);
     create table peers (row text primary key not null, id text not null, pk blob not null, threadId text not null);
     create unique index peer_threadId_id on peers (threadId, id);
     create table blocks (id text primary key not null, date integer not null, parents text not null, threadId text not null, authorPk text not null, type integer not null, dataId text, dataKeyCipher blob, dataCaptionCipher blob);

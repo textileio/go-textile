@@ -7,10 +7,11 @@ import (
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/central/models"
 	tcore "github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/net"
+	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet"
 	"github.com/textileio/textile-go/wallet/thread"
+	"github.com/textileio/textile-go/wallet/util"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"time"
 )
@@ -53,8 +54,8 @@ type Mobile struct {
 	messenger Messenger
 }
 
-// ThreadItem is a simple meta data wrapper around a Thread
-type ThreadItem struct {
+// Thread is a simple meta data wrapper around a Thread
+type Thread struct {
 	Id    string `json:"id"`
 	Name  string `json:"name"`
 	Peers int    `json:"peers"`
@@ -62,37 +63,38 @@ type ThreadItem struct {
 
 // Threads is a wrapper around a list of Threads
 type Threads struct {
-	Items []ThreadItem `json:"items"`
+	Items []Thread `json:"items"`
 }
 
-// DeviceItem is a simple meta data wrapper around a Device
-type DeviceItem struct {
+// Device is a simple meta data wrapper around a Device
+type Device struct {
 	Id   string `json:"id"`
 	Name string `json:"name"`
 }
 
 // Devices is a wrapper around a list of Devices
 type Devices struct {
-	Items []DeviceItem `json:"items"`
+	Items []Device `json:"items"`
 }
 
-// BlockItem is a simple meta data wrapper around a Device
-type BlockItem struct {
-	Id      string         `json:"id"`
-	Target  string         `json:"target"`
-	Parents []string       `json:"parents"`
-	Type    repo.BlockType `json:"type"`
-	Date    time.Time      `json:"date"`
+// Photo is a simple meta data wrapper around a photo block
+type Photo struct {
+	Id       string    `json:"id"`
+	Date     time.Time `json:"date"`
+	AuthorId string    `json:"author_id"`
+	Caption  string    `json:"caption"`
 }
 
-// Blocks is a wrapper around a list of Blocks
-type Blocks struct {
-	Items []BlockItem `json:"items"`
+// Photos is a wrapper around a list of photos
+type Photos struct {
+	Items []Photo `json:"items"`
 }
 
-// PinRequests is a wrapper around multiple PinRequests
-type PinRequests struct {
-	Items []net.PinRequest `json:"items"`
+// ExternalInvite is a wrapper around an invite id and key
+type ExternalInvite struct {
+	Id      string `json:"id"`
+	Key     string `json:"key"`
+	Inviter string `json:"inviter"`
 }
 
 // Create a gomobile compatible wrapper around TextileNode
@@ -210,10 +212,10 @@ func (m *Mobile) GetAccessToken() (string, error) {
 
 // Threads lists all threads
 func (m *Mobile) Threads() (string, error) {
-	threads := Threads{Items: make([]ThreadItem, 0)}
+	threads := Threads{Items: make([]Thread, 0)}
 	for _, thrd := range tcore.Node.Wallet.Threads() {
 		peers := thrd.Peers()
-		item := ThreadItem{Id: thrd.Id, Name: thrd.Name, Peers: len(peers)}
+		item := Thread{Id: thrd.Id, Name: thrd.Name, Peers: len(peers)}
 		threads.Items = append(threads.Items, item)
 	}
 	return toJSON(threads)
@@ -235,7 +237,7 @@ func (m *Mobile) AddThread(name string, mnemonic string) (string, error) {
 
 	// build json
 	peers := thrd.Peers()
-	item := ThreadItem{
+	item := Thread{
 		Id:    thrd.Id,
 		Name:  thrd.Name,
 		Peers: len(peers),
@@ -243,36 +245,37 @@ func (m *Mobile) AddThread(name string, mnemonic string) (string, error) {
 	return toJSON(item)
 }
 
-// AddThreadInvite adds a new invite to a thread with the given name
-func (m *Mobile) AddThreadInvite(threadName string, pubKey string) error {
-	_, thrd := tcore.Node.Wallet.GetThreadByName(threadName)
+// AddThreadInvite adds a new invite to a thread
+func (m *Mobile) AddThreadInvite(threadId string, inviteePk string) (string, error) {
+	_, thrd := tcore.Node.Wallet.GetThread(threadId)
 	if thrd == nil {
-		return errors.New(fmt.Sprintf("could not find thread: %s", threadName))
+		return "", errors.New(fmt.Sprintf("could not find thread: %s", threadId))
 	}
 
 	// decode pubkey
-	pkb, err := libp2pc.ConfigDecodeKey(pubKey)
+	ikb, err := libp2pc.ConfigDecodeKey(inviteePk)
 	if err != nil {
-		return err
+		return "", err
 	}
-	pk, err := libp2pc.UnmarshalPublicKey(pkb)
+	ipk, err := libp2pc.UnmarshalPublicKey(ikb)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// add it
-	if _, err := thrd.AddInvite(pk); err != nil {
-		return err
+	addr, err := thrd.AddInvite(ipk)
+	if err != nil {
+		return "", err
 	}
 
-	return nil
+	return addr.B58String(), nil
 }
 
 // AddExternalThreadInvite generates a new external invite link to a thread
-func (m *Mobile) AddExternalThreadInvite(threadName string, pubKey string) (string, error) {
-	_, thrd := tcore.Node.Wallet.GetThreadByName(threadName)
+func (m *Mobile) AddExternalThreadInvite(threadId string) (string, error) {
+	_, thrd := tcore.Node.Wallet.GetThread(threadId)
 	if thrd == nil {
-		return "", errors.New(fmt.Sprintf("could not find thread: %s", threadName))
+		return "", errors.New(fmt.Sprintf("could not find thread: %s", threadId))
 	}
 
 	// add it
@@ -281,7 +284,15 @@ func (m *Mobile) AddExternalThreadInvite(threadName string, pubKey string) (stri
 		return "", err
 	}
 
-	return addr.B58String() + ":" + string(key), nil
+	// create a structured invite
+	username, _ := m.GetUsername()
+	invite := ExternalInvite{
+		Id:      addr.B58String(),
+		Key:     string(key),
+		Inviter: username,
+	}
+
+	return toJSON(invite)
 }
 
 // AcceptExternalThreadInvite notifies the thread of a join
@@ -290,21 +301,23 @@ func (m *Mobile) AcceptExternalThreadInvite(id string, key string) (string, erro
 	if err != nil {
 		return "", err
 	}
-
 	return addr.B58String(), nil
 }
 
 // RemoveThread call core RemoveDevice
-func (m *Mobile) RemoveThread(name string) error {
-	_, err := tcore.Node.Wallet.RemoveThread(name)
-	return err
+func (m *Mobile) RemoveThread(id string) (string, error) {
+	addr, err := tcore.Node.Wallet.RemoveThread(id)
+	if err != nil {
+		return "", err
+	}
+	return addr.B58String(), err
 }
 
 // Devices lists all devices
 func (m *Mobile) Devices() (string, error) {
-	devices := Devices{Items: make([]DeviceItem, 0)}
+	devices := Devices{Items: make([]Device, 0)}
 	for _, dev := range tcore.Node.Wallet.Devices() {
-		item := DeviceItem{Id: dev.Id, Name: dev.Name}
+		item := Device{Id: dev.Id, Name: dev.Name}
 		devices.Items = append(devices.Items, item)
 	}
 	return toJSON(devices)
@@ -324,51 +337,27 @@ func (m *Mobile) AddDevice(name string, pubKey string) error {
 }
 
 // RemoveDevice call core RemoveDevice
-func (m *Mobile) RemoveDevice(name string) error {
-	return tcore.Node.Wallet.RemoveDevice(name)
+func (m *Mobile) RemoveDevice(id string) error {
+	return tcore.Node.Wallet.RemoveDevice(id)
 }
 
-// AddPhoto adds a photo by path and shares it to a thread
-func (m *Mobile) AddPhoto(path string, threadName string, caption string) (string, error) {
-	_, thrd := tcore.Node.Wallet.GetThreadByName(threadName)
-	if thrd == nil {
-		return "", errors.New(fmt.Sprintf("could not find thread: %s", threadName))
-	}
+// AddPhoto adds a photo by path
+func (m *Mobile) AddPhoto(path string) (string, error) {
 	added, err := tcore.Node.Wallet.AddPhoto(path)
 	if err != nil {
 		return "", err
 	}
-	if _, err := thrd.AddPhoto(added.Id, caption, added.Key); err != nil {
-		return "", err
-	}
-
-	// build json
-	requests := PinRequests{}
-	requests.Items = append(requests.Items, *added.RemoteRequest)
-	return toJSON(requests)
+	return toJSON(*added)
 }
 
 // SharePhoto adds an existing photo to a new thread
-func (m *Mobile) SharePhoto(id string, threadName string, caption string) (string, error) {
-	block, err := tcore.Node.Wallet.GetBlockByTarget(id)
-	if err != nil {
-		return "", err
-	}
-	fromThread := tcore.Node.Wallet.GetThread(block.ThreadId)
-	if fromThread == nil {
-		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
-	}
-	_, toThread := tcore.Node.Wallet.GetThreadByName(threadName)
-	if toThread == nil {
-		return "", errors.New(fmt.Sprintf("could not find thread named %s", threadName))
-	}
-	key, err := fromThread.Decrypt(block.DataKeyCipher)
-	if err != nil {
-		return "", err
+func (m *Mobile) AddPhotoToThread(dataId string, key string, threadId string, caption string) (string, error) {
+	_, thrd := tcore.Node.Wallet.GetThread(threadId)
+	if thrd == nil {
+		return "", errors.New(fmt.Sprintf("could not find thread %s", threadId))
 	}
 
-	// TODO: owner challenge
-	addr, err := toThread.AddPhoto(id, caption, key)
+	addr, err := thrd.AddPhoto(dataId, caption, []byte(key))
 	if err != nil {
 		return "", err
 	}
@@ -376,35 +365,74 @@ func (m *Mobile) SharePhoto(id string, threadName string, caption string) (strin
 	return addr.B58String(), nil
 }
 
-// PhotoBlocks returns thread photo blocks with json encoding
-func (m *Mobile) PhotoBlocks(offsetId string, limit int, threadName string) (string, error) {
-	_, thrd := tcore.Node.Wallet.GetThreadByName(threadName)
+// SharePhoto adds an existing photo to a new thread
+func (m *Mobile) SharePhotoToThread(dataId string, threadId string, caption string) (string, error) {
+	block, err := tcore.Node.Wallet.GetBlockByDataId(dataId)
+	if err != nil {
+		return "", err
+	}
+	_, fromThread := tcore.Node.Wallet.GetThread(block.ThreadId)
+	if fromThread == nil {
+		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
+	}
+	_, toThread := tcore.Node.Wallet.GetThread(threadId)
+	if toThread == nil {
+		return "", errors.New(fmt.Sprintf("could not find thread %s", threadId))
+	}
+	key, err := fromThread.Decrypt(block.DataKeyCipher)
+	if err != nil {
+		return "", err
+	}
+
+	// TODO: owner challenge
+	addr, err := toThread.AddPhoto(dataId, caption, key)
+	if err != nil {
+		return "", err
+	}
+
+	return addr.B58String(), nil
+}
+
+// GetPhotos returns thread photo blocks with json encoding
+func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string, error) {
+	_, thrd := tcore.Node.Wallet.GetThread(threadId)
 	if thrd == nil {
-		return "", errors.New(fmt.Sprintf("thread not found: %s", threadName))
+		return "", errors.New(fmt.Sprintf("thread not found: %s", threadId))
 	}
 
 	// build json
-	blocks := &Blocks{}
+	photos := &Photos{Items: make([]Photo, 0)}
 	for _, b := range thrd.Blocks(offsetId, limit, repo.PhotoBlock) {
-		blocks.Items = append(blocks.Items, BlockItem{
-			Id:      b.Id,
-			Target:  b.DataId,
-			Parents: b.Parents,
-			Type:    b.Type,
-			Date:    b.Date,
+		key, err := thrd.Decrypt(b.DataKeyCipher)
+		if err != nil {
+			continue
+		}
+		caption, err := crypto.DecryptAES(b.DataCaptionCipher, key)
+		if err != nil {
+			continue
+		}
+		authorId, err := util.IdFromEncodedPublicKey(b.AuthorPk)
+		if err != nil {
+			continue
+		}
+		photos.Items = append(photos.Items, Photo{
+			Id:       b.DataId,
+			Date:     b.Date,
+			Caption:  string(caption),
+			AuthorId: authorId.Pretty(),
 		})
 	}
-	return toJSON(blocks)
+	return toJSON(photos)
 }
 
-// GetBlockData calls GetBlockDataBase64 on a thread
-func (m *Mobile) GetBlockData(id string, path string) (string, error) {
-	block, err := tcore.Node.Wallet.GetBlockByTarget(id)
+// GetPhotoData calls GetBlockDataBase64 on a thread
+func (m *Mobile) GetPhotoData(id string, path string) (string, error) {
+	block, err := tcore.Node.Wallet.GetBlockByDataId(id)
 	if err != nil {
-		log.Errorf("could not find block for target %s: %s", id, err)
+		log.Errorf("could not find block for data id %s: %s", id, err)
 		return "", err
 	}
-	thrd := tcore.Node.Wallet.GetThread(block.ThreadId)
+	_, thrd := tcore.Node.Wallet.GetThread(block.ThreadId)
 	if thrd == nil {
 		err := errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadId))
 		log.Error(err.Error())

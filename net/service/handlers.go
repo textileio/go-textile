@@ -61,7 +61,7 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Message, optio
 
 	// load thread
 	threadId := libp2pc.ConfigEncodeKey(invite.Header.ThreadPk)
-	thrd := s.getThread(threadId)
+	_, thrd := s.getThread(threadId)
 	if thrd != nil {
 		// known thread and invite meant for us
 		if invite.InviteeId == s.self.Pretty() {
@@ -147,7 +147,7 @@ func (s *TextileService) handleExternalThreadInvite(pid peer.ID, pmes *pb.Messag
 
 	// load thread
 	threadId := libp2pc.ConfigEncodeKey(invite.Header.ThreadPk)
-	thrd := s.getThread(threadId)
+	_, thrd := s.getThread(threadId)
 	if thrd == nil {
 		// unknown thread and external invite... shouldn't happen
 		return nil, errors.New("invalid invite block")
@@ -179,7 +179,7 @@ func (s *TextileService) handleThreadJoin(pid peer.ID, pmes *pb.Message, options
 
 	// load thread
 	threadId := libp2pc.ConfigEncodeKey(join.Header.ThreadPk)
-	thrd := s.getThread(threadId)
+	_, thrd := s.getThread(threadId)
 	if thrd == nil {
 		return nil, errors.New("invalid join block")
 	}
@@ -210,7 +210,7 @@ func (s *TextileService) handleThreadLeave(pid peer.ID, pmes *pb.Message, option
 
 	// load thread
 	threadId := libp2pc.ConfigEncodeKey(leave.Header.ThreadPk)
-	thrd := s.getThread(threadId)
+	_, thrd := s.getThread(threadId)
 	if thrd == nil {
 		return nil, errors.New("invalid leave block")
 	}
@@ -241,7 +241,7 @@ func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Message, options
 
 	// load thread
 	threadId := libp2pc.ConfigEncodeKey(data.Header.ThreadPk)
-	thrd := s.getThread(threadId)
+	_, thrd := s.getThread(threadId)
 	if thrd == nil {
 		return nil, common.OutOfOrderMessage
 	}
