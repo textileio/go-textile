@@ -316,14 +316,36 @@ func TestMobile_PhotosBadThread(t *testing.T) {
 	}
 }
 
-func TestMobile_GetBlockData(t *testing.T) {
-	res, err := mobile.GetPhotoData(addedPhotoId, "thumb")
+func TestMobile_GetPhotoData(t *testing.T) {
+	res, err := mobile.GetPhotoData(addedPhotoId)
 	if err != nil {
-		t.Errorf("get file data failed: %s", err)
+		t.Errorf("get photo data failed: %s", err)
 		return
 	}
 	if len(res) == 0 {
-		t.Errorf("get file data bad result")
+		t.Errorf("get photo data bad result")
+	}
+}
+
+func TestMobile_GetThumbData(t *testing.T) {
+	res, err := mobile.GetPhotoData(addedPhotoId)
+	if err != nil {
+		t.Errorf("get thumb data failed: %s", err)
+		return
+	}
+	if len(res) == 0 {
+		t.Errorf("get thumb data bad result")
+	}
+}
+
+func TestMobile_GetPhotoMetadata(t *testing.T) {
+	res, err := mobile.GetPhotoMetadata(addedPhotoId)
+	if err != nil {
+		t.Errorf("get meta data failed: %s", err)
+		return
+	}
+	if len(res) == 0 {
+		t.Errorf("get meta data bad result")
 	}
 }
 

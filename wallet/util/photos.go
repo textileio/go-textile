@@ -61,7 +61,7 @@ func DecodeImage(file *os.File) (*bytes.Reader, string, error) {
 
 // GetMetaData reads any available meta/exif data from a photo
 // TODO: get image size info
-func GetMetadata(reader io.Reader, path string, ext string, username string) (model.PhotoMetadata, error) {
+func GetMetadata(reader io.Reader, path string, ext string, tformat ThumbnailFormat, username string) (model.PhotoMetadata, error) {
 	var created time.Time
 	var lat, lon float64
 	x, err := exif.Decode(reader)
@@ -87,8 +87,9 @@ func GetMetadata(reader io.Reader, path string, ext string, username string) (mo
 			Name: strings.TrimSuffix(filepath.Base(path), ext),
 			Ext:  ext,
 		},
-		Latitude:  lat,
-		Longitude: lon,
+		ThumbnailFormat: int(tformat),
+		Latitude:        lat,
+		Longitude:       lon,
 	}
 	return meta, nil
 }
