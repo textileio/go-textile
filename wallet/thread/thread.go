@@ -14,7 +14,6 @@ import (
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreapi"
 	"strings"
 	"sync"
 	"time"
@@ -170,12 +169,9 @@ func (t *Thread) addBlock(message *pb.Message) (mh.Multihash, error) {
 	if err != nil {
 		return nil, err
 	}
-	reader := bytes.NewReader(messageb)
-	path, err := coreapi.NewCoreAPI(t.ipfs()).Unixfs().Add(t.ipfs().Context(), reader)
-	if err != nil {
-		return nil, err
-	}
-	return path.Cid().Hash(), nil
+
+	// pin it
+	return util.PinData(t.ipfs(), bytes.NewReader(messageb))
 }
 
 // commitBlock seals and signs the content of a block and adds it to ipfs

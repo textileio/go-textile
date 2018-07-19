@@ -16,7 +16,7 @@ import (
 	ps "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	"gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
-	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	"sync"
 	"time"
@@ -27,21 +27,21 @@ const KeyCachePrefix = "PUBKEYCACHE_"
 const kRetrieveFrequency = time.Minute * 10
 
 type MRConfig struct {
-	Db        repo.Datastore
+	Datastore repo.Datastore
 	Ipfs      *core.IpfsNode
 	Service   NetworkService
 	PrefixLen int
 	SendAck   func(peerId string, pointerID peer.ID) error
-	SendError func(peerId string, k *libp2p.PubKey, errorMessage pb.Message) error
+	SendError func(peerId string, k *libp2pc.PubKey, errorMessage pb.Message) error
 }
 
 type MessageRetriever struct {
-	db        repo.Datastore
+	datastore repo.Datastore
 	ipfs      *core.IpfsNode
 	service   NetworkService
 	prefixLen int
 	sendAck   func(peerId string, pointerID peer.ID) error
-	sendError func(peerId string, k *libp2p.PubKey, errorMessage pb.Message) error
+	sendError func(peerId string, k *libp2pc.PubKey, errorMessage pb.Message) error
 	queueLock *sync.Mutex
 	DoneChan  chan struct{}
 	inFlight  chan struct{}
@@ -53,14 +53,14 @@ type offlineMessage struct {
 	env  pb.Envelope
 }
 
-func NewMessageRetriever(cfg MRConfig) *MessageRetriever {
+func NewMessageRetriever(config MRConfig) *MessageRetriever {
 	mr := MessageRetriever{
-		db:        cfg.Db,
-		ipfs:      cfg.Ipfs,
-		service:   cfg.Service,
-		prefixLen: cfg.PrefixLen,
-		sendAck:   cfg.SendAck,
-		sendError: cfg.SendError,
+		datastore: config.Datastore,
+		ipfs:      config.Ipfs,
+		service:   config.Service,
+		prefixLen: config.PrefixLen,
+		sendAck:   config.SendAck,
+		sendError: config.SendError,
 		queueLock: new(sync.Mutex),
 		DoneChan:  make(chan struct{}),
 		inFlight:  make(chan struct{}, 5),
@@ -84,6 +84,8 @@ func (m *MessageRetriever) Run() {
 }
 
 func (m *MessageRetriever) FetchPointers() {
+	log.Debugf("fetching pointers...")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	wg := new(sync.WaitGroup)
@@ -108,7 +110,7 @@ func (m *MessageRetriever) FetchPointers() {
 	// iterate over the pointers, adding 1 to the waitgroup for each pointer found
 	for p := range peerOut {
 		log.Debugf("retriever found peer info: %s", p.Loggable())
-		if len(p.Addrs) > 0 && !m.db.OfflineMessages().Has(p.Addrs[0].String()) && !inFlight[p.Addrs[0].String()] {
+		if len(p.Addrs) > 0 && !m.datastore.OfflineMessages().Has(p.Addrs[0].String()) && !inFlight[p.Addrs[0].String()] {
 			inFlight[p.Addrs[0].String()] = true
 			log.Debugf("found pointer with location %s", p.Addrs[0].String())
 
@@ -153,7 +155,7 @@ func (m *MessageRetriever) fetch(pid peer.ID, addr ma.Multiaddr, wg *sync.WaitGr
 			return
 		}
 		log.Debugf("successfully downloaded offline message from %s", addr.String())
-		m.db.OfflineMessages().Put(addr.String())
+		m.datastore.OfflineMessages().Put(addr.String())
 		m.attemptDecrypt(ciphertext, pid, addr)
 	case <-m.DoneChan:
 		return
@@ -185,7 +187,7 @@ func (m *MessageRetriever) attemptDecrypt(ciphertext []byte, pid peer.ID, addr m
 		log.Warning("unable to decrypt offline message from %s: %s", addr.String(), err.Error())
 		return
 	}
-	pubkey, err := libp2p.UnmarshalPublicKey(env.Pk)
+	pubkey, err := libp2pc.UnmarshalPublicKey(env.Pk)
 	if err != nil {
 		log.Warning("unable to decrypt offline message from %s: %s", addr.String(), err.Error())
 		return
@@ -219,7 +221,7 @@ func (m *MessageRetriever) attemptDecrypt(ciphertext []byte, pid peer.ID, addr m
 func (m *MessageRetriever) handleMessage(env pb.Envelope, addr string, id *peer.ID) error {
 	if id == nil {
 		// get the peer ID from the public key
-		pubkey, err := libp2p.UnmarshalPublicKey(env.Pk)
+		pubkey, err := libp2pc.UnmarshalPublicKey(env.Pk)
 		if err != nil {
 			log.Errorf("error processing message %s. type %s: %s", addr, env.Message.Type, err.Error())
 			return err
@@ -246,7 +248,7 @@ func (m *MessageRetriever) handleMessage(env pb.Envelope, addr string, id *peer.
 		if err == common.OutOfOrderMessage {
 			ser, err := proto.Marshal(&env)
 			if err == nil {
-				err := m.db.OfflineMessages().SetMessage(addr, ser)
+				err := m.datastore.OfflineMessages().SetMessage(addr, ser)
 				if err != nil {
 					log.Errorf("error saving offline message %s to database: %s", addr, err.Error())
 				}
@@ -285,7 +287,7 @@ func (m *MessageRetriever) processQueuedMessages() {
 	}
 
 	// load stored messages from database
-	messages, err := m.db.OfflineMessages().GetMessages()
+	messages, err := m.datastore.OfflineMessages().GetMessages()
 	if err != nil {
 		return
 	}
@@ -315,6 +317,6 @@ func (m *MessageRetriever) processQueuedMessages() {
 	}
 	// delete messages that we're successfully processed from the database
 	for _, url := range toDelete {
-		m.db.OfflineMessages().DeleteMessage(url)
+		m.datastore.OfflineMessages().DeleteMessage(url)
 	}
 }

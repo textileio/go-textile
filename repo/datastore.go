@@ -15,6 +15,7 @@ type Datastore interface {
 	Blocks() BlockStore
 	OfflineMessages() OfflineMessageStore
 	Pointers() PointerStore
+	PinRequests() PinRequestStore
 	Ping() error
 	Close()
 }
