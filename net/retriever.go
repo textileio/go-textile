@@ -24,6 +24,8 @@ import (
 
 const KeyCachePrefix = "PUBKEYCACHE_"
 
+const kRetrieveFrequency = time.Minute * 10
+
 type MRConfig struct {
 	Db        repo.Datastore
 	Ipfs      *core.IpfsNode
@@ -69,19 +71,19 @@ func NewMessageRetriever(cfg MRConfig) *MessageRetriever {
 }
 
 func (m *MessageRetriever) Run() {
-	dht := time.NewTicker(time.Hour)
+	dht := time.NewTicker(kRetrieveFrequency)
 	defer dht.Stop()
-	go m.fetchPointers(true)
+	go m.FetchPointers()
 	for {
 		select {
 		case <-dht.C:
 			m.Add(1)
-			go m.fetchPointers(true)
+			go m.FetchPointers()
 		}
 	}
 }
 
-func (m *MessageRetriever) fetchPointers(useDHT bool) {
+func (m *MessageRetriever) FetchPointers() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	wg := new(sync.WaitGroup)
