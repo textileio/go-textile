@@ -19,7 +19,7 @@ var fileLogFormat = logging.MustStringFormatter(
 )
 var log = logging.MustGetLogger("core")
 
-const Version = "0.0.5"
+const Version = "0.0.6"
 
 // Node is the single TextileNode instance
 var Node *TextileNode
