@@ -266,8 +266,7 @@ func TestMobile_AddPhoto(t *testing.T) {
 }
 
 func TestMobile_AddPhotoToThread(t *testing.T) {
-	caption := "rasputin's eyes"
-	blockId, err := mobile.AddPhotoToThread(addedPhotoId, addedPhotoKey, threadId, caption)
+	blockId, err := mobile.AddPhotoToThread(addedPhotoId, addedPhotoKey, threadId, "")
 	if err != nil {
 		t.Errorf("add photo to thread failed: %s", err)
 		return
@@ -287,8 +286,7 @@ func TestMobile_SharePhotoToThread(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	caption := "rasputin's eyes"
-	id, err := mobile.SharePhotoToThread(addedPhotoId, item.Id, caption)
+	id, err := mobile.SharePhotoToThread(addedPhotoId, item.Id, "howdy")
 	if err != nil {
 		t.Errorf("share photo to thread failed: %s", err)
 		return
