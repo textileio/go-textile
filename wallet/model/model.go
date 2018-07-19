@@ -1,12 +1,11 @@
 package model
 
-import (
-	"time"
-)
+import "time"
 
 type Profile struct {
 	Id       string `json:"id"`
-	Username string `json:"un,omitempty"`
+	Username string `json:"username,omitempty"`
+	AvatarId string `json:"avatar"`
 }
 
 const ThumbnailWidth = 300

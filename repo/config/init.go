@@ -17,7 +17,8 @@ const (
 )
 
 var bootstrapAddresses = []string{
-	"/ip4/127.0.0.1/tcp/11549/ipfs/QmSz2i1rWGKHEUv132oaHU1zf6RBuk17Ws6rWzzJoQNSsX",
+	"/ip4/54.89.183.252/tcp/5803/ipfs/QmQhCYvt8DESXqF6a8y2FM88nwywLeVujNZjArAkqsMF44",
+	"/ip4/34.203.191.62/tcp/19770/ipfs/QmTUDYkpz2yUaebxbn32iGaaZZ2ETQyejQtTPH6ZTc5nKv",
 }
 
 // DefaultServerFilters has a list of non-routable IPv4 prefixes

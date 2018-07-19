@@ -23,7 +23,7 @@ type Opts struct {
 	DaemonMode bool   `short:"m" long:"daemon" description:"start in a non-interactive daemon mode"`
 	ServerMode bool   `short:"s" long:"server" description:"start in server mode"`
 	LogLevel   string `short:"l" long:"loglevel" description:"set the logging level [debug, info, notice, warning, error, critical]" default:"debug"`
-	NoLogFiles bool   `short:"f" long:"logfiles" description:"do not save logs on disk"`
+	NoLogFiles bool   `short:"n" long:"nologfiles" description:"do not save logs on disk"`
 	Version    bool   `short:"v" long:"version" description:"print the version number and exit"`
 	ApiPort    string `short:"p" long:"apiport" description:"set the api port (daemon only)" default:"3000"`
 }
