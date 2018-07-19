@@ -70,6 +70,7 @@ type Wallet struct {
 	messageStorage     storage.OfflineMessagingStorage
 	messageRetriever   *net.MessageRetriever
 	pointerRepublisher *net.PointerRepublisher
+	pinner             *net.Pinner
 }
 
 const pingTimeout = time.Second * 10
@@ -174,7 +175,7 @@ func (w *Wallet) Start() (chan struct{}, error) {
 
 		// build the message retriever
 		mrCfg := net.MRConfig{
-			Db:        w.datastore,
+			Datastore: w.datastore,
 			Ipfs:      w.ipfs,
 			Service:   w.service,
 			PrefixLen: 14,
@@ -198,6 +199,21 @@ func (w *Wallet) Start() (chan struct{}, error) {
 		}
 		log.Info("wallet is online")
 	}()
+
+	// build a pin requester
+	pinnerCfg := net.PinnerConfig{
+		Datastore: w.datastore,
+		Ipfs: func() *core.IpfsNode {
+			return w.ipfs
+		},
+		Api: "https://ipfs.textile.io/api/v0/add", // TODO: put in node config
+	}
+	w.pinner = net.NewPinner(pinnerCfg)
+
+	// start ticker job if not mobile
+	if !w.isMobile {
+		go w.pinner.Run()
+	}
 
 	// setup threads
 	for _, mod := range w.datastore.Threads().List("") {
@@ -252,6 +268,7 @@ func (w *Wallet) Stop() error {
 	w.service = nil
 	w.messageRetriever = nil
 	w.pointerRepublisher = nil
+	w.pinner = nil
 
 	// close updates
 	close(w.updates)
@@ -278,6 +295,7 @@ func (w *Wallet) RunJobs() error {
 	}
 	go w.messageRetriever.FetchPointers()
 	go w.pointerRepublisher.Republish()
+	go w.pinner.Pin()
 	return nil
 }
 

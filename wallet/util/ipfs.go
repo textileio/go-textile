@@ -9,6 +9,7 @@ import (
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreapi"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreapi/interface/options"
@@ -16,6 +17,7 @@ import (
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	"io"
 	"io/ioutil"
 	"sort"
 	"strings"
@@ -155,6 +157,26 @@ func AddFileToDirectory(ipfs *core.IpfsNode, dirb *uio.Directory, data []byte, f
 	return nil
 }
 
+// Data pins
+func PinData(ipfs *core.IpfsNode, data io.Reader) (mh.Multihash, error) {
+	ctx, cancel := context.WithTimeout(ipfs.Context(), pinTimeout)
+	defer cancel()
+	api := coreapi.NewCoreAPI(ipfs)
+	path, err := api.Unixfs().Add(ctx, data)
+	if err != nil {
+		return nil, err
+	}
+	if err := api.Pin().Add(ctx, path); err != nil {
+		return nil, err
+	}
+	defer func() {
+		if recover() != nil {
+			log.Debug("node stopped")
+		}
+	}()
+	return path.Cid().Hash(), nil
+}
+
 // PinPath takes an ipfs path string and pins it
 func PinPath(ipfs *core.IpfsNode, path string, recursive bool) error {
 	ip, err := coreapi.ParsePath(path)
@@ -178,7 +200,9 @@ func PinPath(ipfs *core.IpfsNode, path string, recursive bool) error {
 
 // PinDirectory pins a directory exluding any provided links
 func PinDirectory(ipfs *core.IpfsNode, dir ipld.Node, exclude []string) error {
-	if err := ipfs.Pinning.Pin(ipfs.Context(), dir, false); err != nil {
+	ctx, cancel := context.WithTimeout(ipfs.Context(), pinTimeout)
+	defer cancel()
+	if err := ipfs.Pinning.Pin(ctx, dir, false); err != nil {
 		return err
 	}
 outer:
@@ -188,11 +212,11 @@ outer:
 				continue outer
 			}
 		}
-		node, err := item.GetNode(ipfs.Context(), ipfs.DAG)
+		node, err := item.GetNode(ctx, ipfs.DAG)
 		if err != nil {
 			return err
 		}
-		ipfs.Pinning.Pin(ipfs.Context(), node, false)
+		ipfs.Pinning.Pin(ctx, node, false)
 	}
 	return ipfs.Pinning.Flush()
 }
