@@ -182,11 +182,15 @@ func (w *Wallet) Start() (chan struct{}, error) {
 			SendError: w.sendError,
 		}
 		w.messageRetriever = net.NewMessageRetriever(mrCfg)
-		go w.messageRetriever.Run()
 
 		// build the pointer republisher
 		w.pointerRepublisher = net.NewPointerRepublisher(w.ipfs, w.datastore)
-		go w.pointerRepublisher.Run()
+
+		// start jobs if not mobile
+		if !w.isMobile {
+			go w.messageRetriever.Run()
+			go w.pointerRepublisher.Run()
+		}
 
 		// print swarm addresses
 		if err := util.PrintSwarmAddrs(w.ipfs); err != nil {
@@ -268,7 +272,15 @@ func (w *Wallet) Online() bool {
 	return w.started && w.ipfs.OnlineMode()
 }
 
-// Updates returns a read-only channel of updates
+func (w *Wallet) RunJobs() error {
+	if !w.Online() {
+		return ErrOffline
+	}
+	go w.messageRetriever.FetchPointers()
+	go w.pointerRepublisher.Republish()
+	return nil
+}
+
 func (w *Wallet) Updates() <-chan Update {
 	return w.updates
 }

@@ -4,7 +4,7 @@ Textile CLI, desktop app, mobile bindings, and REST API. See [textile-mobile](ht
 
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/textileio/textile-go)](https://goreportcard.com/report/github.com/textileio/textile-go) [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/) [![CircleCI](https://circleci.com/gh/textileio/textile-go/tree/master.svg?style=shield)](https://circleci.com/gh/textileio/textile-go/tree/master)
 
-![textile](https://s3.amazonaws.com/textile.public/cli_2.png)
+![textile](https://s3.amazonaws.com/textile.public/cli_3.png)
 
 This repository contains a cross platform cli, desktop application, and iOS/Android mobile bindings for running a Textile node. See [Textile Photos](https://www.textile.photos) for more info. 
 

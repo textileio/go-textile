@@ -150,8 +150,8 @@ func (m *Mobile) Start() error {
 		// notify UI we're ready
 		m.messenger.Notify(newEvent("onOnline", map[string]interface{}{}))
 
-		// publish
-		//tcore.Node.Wallet.PublishThreads()
+		// check for new messages
+		m.RefreshMessages()
 	}()
 
 	return nil
@@ -214,6 +214,11 @@ func (m *Mobile) GetUsername() (string, error) {
 // GetAccessToken calls core GetAccessToken
 func (m *Mobile) GetAccessToken() (string, error) {
 	return tcore.Node.Wallet.GetAccessToken()
+}
+
+// RefreshMessages run the message retriever and repointer jobs
+func (m *Mobile) RefreshMessages() error {
+	return tcore.Node.Wallet.RunJobs()
 }
 
 // Threads lists all threads
