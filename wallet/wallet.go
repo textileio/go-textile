@@ -77,7 +77,6 @@ const pingTimeout = time.Second * 10
 var ErrStarted = errors.New("node is already started")
 var ErrStopped = errors.New("node is already stopped")
 var ErrOffline = errors.New("node is offline")
-var ErrThreadExists = errors.New("thread already exists")
 var ErrThreadLoaded = errors.New("thread is already loaded")
 
 func NewWallet(config Config) (*Wallet, string, error) {
