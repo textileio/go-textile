@@ -95,3 +95,10 @@ type PointerStore interface {
 	GetByPurpose(purpose Purpose) ([]Pointer, error)
 	GetAll() ([]Pointer, error)
 }
+
+type PinRequestStore interface {
+	Queryable
+	Put(pr *PinRequest) error
+	List(offset string, limit int) []PinRequest
+	Delete(id string) error
+}
