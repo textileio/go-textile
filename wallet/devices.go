@@ -46,6 +46,10 @@ func (w *Wallet) AddDevice(name string, pk libp2pc.PubKey) error {
 
 // RemoveDevice removes a device
 func (w *Wallet) RemoveDevice(id string) error {
+	if !w.Online() {
+		return ErrOffline
+	}
+
 	device := w.datastore.Devices().Get(id)
 	if device == nil {
 		return errors.New("device not found")
