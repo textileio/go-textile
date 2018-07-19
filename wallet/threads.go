@@ -83,6 +83,10 @@ func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string) (*thread.T
 
 // RemoveThread removes a thread
 func (w *Wallet) RemoveThread(id string) (mh.Multihash, error) {
+	if !w.Online() {
+		return nil, ErrOffline
+	}
+
 	i, thrd := w.GetThread(id) // gets the loaded thread
 	if thrd == nil {
 		return nil, errors.New("thread not found")
@@ -116,6 +120,10 @@ func (w *Wallet) RemoveThread(id string) (mh.Multihash, error) {
 // AcceptThreadInvite attemps to download an encrypted thread key from an internal invite,
 // add the thread, and notify the inviter of the join
 func (w *Wallet) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
+	if !w.Online() {
+		return nil, ErrOffline
+	}
+
 	// download
 	messageb, err := util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s", blockId))
 	if err != nil {
@@ -179,6 +187,10 @@ func (w *Wallet) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
 // AcceptExternalThreadInvite attemps to download an encrypted thread key from an external invite,
 // add the thread, and notify the inviter of the join
 func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte) (mh.Multihash, error) {
+	if !w.Online() {
+		return nil, ErrOffline
+	}
+
 	// download
 	messageb, err := util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s", blockId))
 	if err != nil {
