@@ -5,12 +5,13 @@ import "time"
 type Profile struct {
 	Id       string `json:"id"`
 	Username string `json:"username,omitempty"`
-	AvatarId string `json:"avatar"`
+	AvatarId string `json:"avatar_id"`
 }
 
 const ThumbnailWidth = 300
 
 type Metadata struct {
+	Version  string    `json:"version"`
 	Username string    `json:"username,omitempty"`
 	Created  time.Time `json:"created,omitempty"`
 	Added    time.Time `json:"added"`

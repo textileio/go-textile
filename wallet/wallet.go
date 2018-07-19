@@ -53,6 +53,7 @@ const (
 )
 
 type Wallet struct {
+	version            string
 	context            oldcmds.Context
 	repoPath           string
 	serverAddr         string
@@ -118,6 +119,7 @@ func NewWallet(config Config) (*Wallet, string, error) {
 	}
 
 	return &Wallet{
+		version:    config.Version,
 		repoPath:   config.RepoPath,
 		serverAddr: gwAddr.(string),
 		datastore:  sqliteDB,

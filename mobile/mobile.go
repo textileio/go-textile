@@ -7,7 +7,6 @@ import (
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/central/models"
 	tcore "github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet"
 	"github.com/textileio/textile-go/wallet/model"
@@ -410,17 +409,17 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 	// build json
 	photos := &Photos{Items: make([]Photo, 0)}
 	for _, b := range thrd.Blocks(offsetId, limit, repo.PhotoBlock) {
-		key, err := thrd.Decrypt(b.DataKeyCipher)
-		if err != nil {
-			continue
-		}
-		caption, err := crypto.DecryptAES(b.DataCaptionCipher, key)
-		if err != nil {
-			continue
+		var caption string
+		if b.DataCaptionCipher != nil {
+			captionb, err := thrd.Decrypt(b.DataCaptionCipher)
+			if err != nil {
+				return "", err
+			}
+			caption = string(captionb)
 		}
 		authorId, err := util.IdFromEncodedPublicKey(b.AuthorPk)
 		if err != nil {
-			continue
+			return "", err
 		}
 		photos.Items = append(photos.Items, Photo{
 			Id:       b.DataId,

@@ -3,7 +3,6 @@ package mobile_test
 import (
 	"crypto/rand"
 	"encoding/json"
-	"fmt"
 	"github.com/segmentio/ksuid"
 	. "github.com/textileio/textile-go/mobile"
 	"github.com/textileio/textile-go/net/model"
@@ -177,7 +176,12 @@ func TestMobile_Threads(t *testing.T) {
 }
 
 func TestMobile_RemoveThread(t *testing.T) {
+	<-mobile.Online
 	blockId, err := mobile.RemoveThread(defaultThreadId)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	if blockId == "" {
 		t.Errorf("remove thread bad result: %s", err)
 	}
@@ -187,7 +191,6 @@ func TestMobile_RemoveThread(t *testing.T) {
 }
 
 func TestMobile_AddDevice(t *testing.T) {
-	<-mobile.Online
 	_, pk, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Error(err)
@@ -263,8 +266,7 @@ func TestMobile_AddPhoto(t *testing.T) {
 }
 
 func TestMobile_AddPhotoToThread(t *testing.T) {
-	caption := "rasputin's eyes"
-	blockId, err := mobile.AddPhotoToThread(addedPhotoId, addedPhotoKey, threadId, caption)
+	blockId, err := mobile.AddPhotoToThread(addedPhotoId, addedPhotoKey, threadId, "")
 	if err != nil {
 		t.Errorf("add photo to thread failed: %s", err)
 		return
@@ -284,8 +286,7 @@ func TestMobile_SharePhotoToThread(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	caption := "rasputin's eyes"
-	id, err := mobile.SharePhotoToThread(addedPhotoId, item.Id, caption)
+	id, err := mobile.SharePhotoToThread(addedPhotoId, item.Id, "howdy")
 	if err != nil {
 		t.Errorf("share photo to thread failed: %s", err)
 		return
@@ -305,7 +306,7 @@ func TestMobile_GetPhotos(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if len(photos.Items) == 1 {
+	if len(photos.Items) != 1 {
 		t.Errorf("get photos bad result")
 	}
 }
@@ -334,7 +335,6 @@ func TestMobile_GetThumbData(t *testing.T) {
 		t.Errorf("get thumb data failed: %s", err)
 		return
 	}
-	fmt.Println(res)
 	if len(res) == 0 {
 		t.Errorf("get thumb data bad result")
 	}
