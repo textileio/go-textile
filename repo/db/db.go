@@ -20,6 +20,7 @@ type SQLiteDatastore struct {
 	blocks          repo.BlockStore
 	offlineMessages repo.OfflineMessageStore
 	pointers        repo.PointerStore
+	pinRequests     repo.PinRequestStore
 	db              *sql.DB
 	lock            *sync.Mutex
 }
@@ -45,6 +46,7 @@ func Create(repoPath, password string) (*SQLiteDatastore, error) {
 		blocks:          NewBlockStore(conn, mux),
 		offlineMessages: NewOfflineMessageStore(conn, mux),
 		pointers:        NewPointerStore(conn, mux),
+		pinRequests:     NewPinRequestStore(conn, mux),
 		db:              conn,
 		lock:            mux,
 	}
@@ -90,6 +92,10 @@ func (d *SQLiteDatastore) OfflineMessages() repo.OfflineMessageStore {
 
 func (d *SQLiteDatastore) Pointers() repo.PointerStore {
 	return d.pointers
+}
+
+func (d *SQLiteDatastore) PinRequests() repo.PinRequestStore {
+	return d.pinRequests
 }
 
 func (d *SQLiteDatastore) Copy(dbPath string, password string) error {
@@ -151,6 +157,7 @@ func initDatabaseTables(db *sql.DB, password string) error {
     create index block_threadId_type_date on blocks (threadId, type, date);
     create table offlinemessages (url text primary key not null, date integer, message blob);
 	create table pointers (id text primary key not null, key text, address text, cancelId text, purpose integer, date integer);
+    create table pinrequests (id text primary key not null, date integer);
 	`
 	_, err := db.Exec(sqlStmt)
 	if err != nil {
