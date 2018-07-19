@@ -152,6 +152,9 @@ func (m *Mobile) Start() error {
 
 		// check for new messages
 		m.RefreshMessages()
+
+		// run the pinner
+		tcore.Node.Wallet.RunPinner()
 	}()
 
 	return nil
@@ -218,7 +221,7 @@ func (m *Mobile) GetAccessToken() (string, error) {
 
 // RefreshMessages run the message retriever and repointer jobs
 func (m *Mobile) RefreshMessages() error {
-	return tcore.Node.Wallet.RunServiceJobs()
+	return tcore.Node.Wallet.RefreshMessages()
 }
 
 // Threads lists all threads

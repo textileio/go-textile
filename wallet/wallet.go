@@ -289,14 +289,17 @@ func (w *Wallet) Online() bool {
 	return w.started && w.ipfs.OnlineMode()
 }
 
-func (w *Wallet) RunServiceJobs() error {
+func (w *Wallet) RefreshMessages() error {
 	if !w.Online() {
 		return ErrOffline
 	}
 	go w.messageRetriever.FetchPointers()
 	go w.pointerRepublisher.Republish()
-	go w.pinner.Pin()
 	return nil
+}
+
+func (w *Wallet) RunPinner() {
+	go w.pinner.Pin()
 }
 
 func (w *Wallet) Updates() <-chan Update {
