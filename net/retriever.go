@@ -84,7 +84,7 @@ func (m *MessageRetriever) Run() {
 }
 
 func (m *MessageRetriever) FetchPointers() {
-	log.Debugf("fetching pointers...")
+	log.Debug("fetching pointers...")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

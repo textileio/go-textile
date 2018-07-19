@@ -289,7 +289,7 @@ func (w *Wallet) Online() bool {
 	return w.started && w.ipfs.OnlineMode()
 }
 
-func (w *Wallet) RunJobs() error {
+func (w *Wallet) RunServiceJobs() error {
 	if !w.Online() {
 		return ErrOffline
 	}
@@ -507,6 +507,12 @@ func (w *Wallet) loadThread(mod *trepo.Thread) (*thread.Thread, error) {
 			return nil
 		},
 		Send: w.SendMessage,
+		PutPinRequest: func(id string) error {
+			if !w.isMobile {
+				return nil
+			}
+			return w.pinner.Put(id)
+		},
 	}
 	thrd, err := thread.NewThread(mod, threadConfig)
 	if err != nil {

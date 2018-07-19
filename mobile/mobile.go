@@ -218,7 +218,7 @@ func (m *Mobile) GetAccessToken() (string, error) {
 
 // RefreshMessages run the message retriever and repointer jobs
 func (m *Mobile) RefreshMessages() error {
-	return tcore.Node.Wallet.RunJobs()
+	return tcore.Node.Wallet.RunServiceJobs()
 }
 
 // Threads lists all threads
