@@ -36,7 +36,7 @@ func (r *PointerRepublisher) Run() {
 }
 
 func (r *PointerRepublisher) Republish() {
-	log.Debugf("republishing pointers...")
+	log.Debug("republishing pointers...")
 
 	republishModerator := r.isModerator()
 	pointers, err := r.datastore.Pointers().GetAll()

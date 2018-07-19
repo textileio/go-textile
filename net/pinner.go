@@ -6,6 +6,7 @@ import (
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet/util"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
+	"mime/multipart"
 	"net/http"
 	"sync"
 	"time"
@@ -48,11 +49,23 @@ func (p *Pinner) Run() {
 func (p *Pinner) Pin() {
 	p.mux.Lock()
 	defer p.mux.Unlock()
-	log.Debugf("running pinner...")
-
 	if err := p.handlePin(""); err != nil {
 		return
 	}
+}
+
+func (p *Pinner) Put(id string) error {
+	pr := &repo.PinRequest{Id: id, Date: time.Now()}
+	err := p.datastore.PinRequests().Put(pr)
+	if err != nil {
+		return err
+	}
+	log.Debugf("put pin request for %s", id)
+
+	// run it now
+	go p.Pin()
+
+	return nil
 }
 
 func (p *Pinner) handlePin(offset string) error {
@@ -95,20 +108,28 @@ func (p *Pinner) send(pr repo.PinRequest) error {
 	if err != nil {
 		return err
 	}
-	reader := bytes.NewReader(data)
 
-	// make the request
-	req, err := http.NewRequest("POST", p.api, reader)
+	// send multipart request
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("file", "pin")
+	if err != nil {
+		return err
+	}
+	part.Write(data)
+	if err := writer.Close(); err != nil {
+		return err
+	}
+	req, err := http.NewRequest("POST", p.api, body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode > 299 {
-		return nil
-	} else {
+	if resp.StatusCode != 200 {
 		return errPinRequestFailed
 	}
+	return nil
 }
