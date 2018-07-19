@@ -10,8 +10,8 @@ import (
 var nl = "\r\n"
 
 type PinRequest struct {
-	Boundary    string
-	PayloadPath string
+	Boundary    string `json:"boundary"`
+	PayloadPath string `json:"payload_path"`
 }
 
 func (m *PinRequest) Init(dir string, boundary string) {
