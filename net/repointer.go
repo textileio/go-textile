@@ -12,14 +12,14 @@ const kPointerExpiration = time.Hour * 24 * 30
 
 type PointerRepublisher struct {
 	ipfs        *core.IpfsNode
-	db          repo.Datastore
+	datastore   repo.Datastore
 	isModerator func() bool
 }
 
 func NewPointerRepublisher(node *core.IpfsNode, datastore repo.Datastore) *PointerRepublisher {
 	return &PointerRepublisher{
-		ipfs: node,
-		db:   datastore,
+		ipfs:      node,
+		datastore: datastore,
 		isModerator: func() bool {
 			return false
 		},
@@ -36,8 +36,10 @@ func (r *PointerRepublisher) Run() {
 }
 
 func (r *PointerRepublisher) Republish() {
+	log.Debug("republishing pointers...")
+
 	republishModerator := r.isModerator()
-	pointers, err := r.db.Pointers().GetAll()
+	pointers, err := r.datastore.Pointers().GetAll()
 	if err != nil {
 		log.Errorf("error republishing: %s", err)
 		return
@@ -48,7 +50,7 @@ func (r *PointerRepublisher) Republish() {
 		switch pointer.Purpose {
 		case repo.MESSAGE:
 			if time.Now().Sub(pointer.Date) > kPointerExpiration {
-				r.db.Pointers().Delete(pointer.Value.ID)
+				r.datastore.Pointers().Delete(pointer.Value.ID)
 			} else {
 				go repo.PublishPointer(r.ipfs, ctx, pointer)
 			}
@@ -56,7 +58,7 @@ func (r *PointerRepublisher) Republish() {
 			if republishModerator {
 				go repo.PublishPointer(r.ipfs, ctx, pointer)
 			} else {
-				r.db.Pointers().Delete(pointer.Value.ID)
+				r.datastore.Pointers().Delete(pointer.Value.ID)
 			}
 		default:
 			continue

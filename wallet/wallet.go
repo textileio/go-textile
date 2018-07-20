@@ -70,6 +70,7 @@ type Wallet struct {
 	messageStorage     storage.OfflineMessagingStorage
 	messageRetriever   *net.MessageRetriever
 	pointerRepublisher *net.PointerRepublisher
+	pinner             *net.Pinner
 }
 
 const pingTimeout = time.Second * 10
@@ -77,7 +78,6 @@ const pingTimeout = time.Second * 10
 var ErrStarted = errors.New("node is already started")
 var ErrStopped = errors.New("node is already stopped")
 var ErrOffline = errors.New("node is offline")
-var ErrThreadExists = errors.New("thread already exists")
 var ErrThreadLoaded = errors.New("thread is already loaded")
 
 func NewWallet(config Config) (*Wallet, string, error) {
@@ -175,7 +175,7 @@ func (w *Wallet) Start() (chan struct{}, error) {
 
 		// build the message retriever
 		mrCfg := net.MRConfig{
-			Db:        w.datastore,
+			Datastore: w.datastore,
 			Ipfs:      w.ipfs,
 			Service:   w.service,
 			PrefixLen: 14,
@@ -183,11 +183,15 @@ func (w *Wallet) Start() (chan struct{}, error) {
 			SendError: w.sendError,
 		}
 		w.messageRetriever = net.NewMessageRetriever(mrCfg)
-		go w.messageRetriever.Run()
 
 		// build the pointer republisher
 		w.pointerRepublisher = net.NewPointerRepublisher(w.ipfs, w.datastore)
-		go w.pointerRepublisher.Run()
+
+		// start jobs if not mobile
+		if !w.isMobile {
+			go w.messageRetriever.Run()
+			go w.pointerRepublisher.Run()
+		}
 
 		// print swarm addresses
 		if err := util.PrintSwarmAddrs(w.ipfs); err != nil {
@@ -195,6 +199,21 @@ func (w *Wallet) Start() (chan struct{}, error) {
 		}
 		log.Info("wallet is online")
 	}()
+
+	// build a pin requester
+	pinnerCfg := net.PinnerConfig{
+		Datastore: w.datastore,
+		Ipfs: func() *core.IpfsNode {
+			return w.ipfs
+		},
+		Api: "https://ipfs.textile.io/api/v0/add", // TODO: put in node config
+	}
+	w.pinner = net.NewPinner(pinnerCfg)
+
+	// start ticker job if not mobile
+	if !w.isMobile {
+		go w.pinner.Run()
+	}
 
 	// setup threads
 	for _, mod := range w.datastore.Threads().List("") {
@@ -249,6 +268,7 @@ func (w *Wallet) Stop() error {
 	w.service = nil
 	w.messageRetriever = nil
 	w.pointerRepublisher = nil
+	w.pinner = nil
 
 	// close updates
 	close(w.updates)
@@ -269,7 +289,19 @@ func (w *Wallet) Online() bool {
 	return w.started && w.ipfs.OnlineMode()
 }
 
-// Updates returns a read-only channel of updates
+func (w *Wallet) RefreshMessages() error {
+	if !w.Online() {
+		return ErrOffline
+	}
+	go w.messageRetriever.FetchPointers()
+	go w.pointerRepublisher.Republish()
+	return nil
+}
+
+func (w *Wallet) RunPinner() {
+	go w.pinner.Pin()
+}
+
 func (w *Wallet) Updates() <-chan Update {
 	return w.updates
 }
@@ -478,6 +510,12 @@ func (w *Wallet) loadThread(mod *trepo.Thread) (*thread.Thread, error) {
 			return nil
 		},
 		Send: w.SendMessage,
+		PutPinRequest: func(id string) error {
+			if !w.isMobile {
+				return nil
+			}
+			return w.pinner.Put(id)
+		},
 	}
 	thrd, err := thread.NewThread(mod, threadConfig)
 	if err != nil {

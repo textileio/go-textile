@@ -14,7 +14,6 @@ import (
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreapi"
 	"strings"
 	"sync"
 	"time"
@@ -24,14 +23,15 @@ var log = logging.MustGetLogger("thread")
 
 // Config is used to construct a Thread
 type Config struct {
-	RepoPath   string
-	Ipfs       func() *core.IpfsNode
-	Blocks     func() repo.BlockStore
-	Peers      func() repo.PeerStore
-	GetHead    func() (string, error)
-	UpdateHead func(head string) error
-	Publish    func(payload []byte) error
-	Send       func(message *pb.Message, peerId string) error
+	RepoPath      string
+	Ipfs          func() *core.IpfsNode
+	Blocks        func() repo.BlockStore
+	Peers         func() repo.PeerStore
+	GetHead       func() (string, error)
+	UpdateHead    func(head string) error
+	Publish       func(payload []byte) error
+	Send          func(message *pb.Message, peerId string) error
+	PutPinRequest func(id string) error
 }
 
 // ThreadUpdate is used to notify listeners about updates in a thread
@@ -43,19 +43,20 @@ type Update struct {
 
 // Thread is the primary mechanism representing a collecion of data / files / photos
 type Thread struct {
-	Id         string
-	Name       string
-	PrivKey    libp2pc.PrivKey
-	updates    chan Update
-	repoPath   string
-	ipfs       func() *core.IpfsNode
-	blocks     func() repo.BlockStore
-	peers      func() repo.PeerStore
-	GetHead    func() (string, error)
-	updateHead func(head string) error
-	publish    func(payload []byte) error
-	send       func(message *pb.Message, peerId string) error
-	mux        sync.Mutex
+	Id            string
+	Name          string
+	PrivKey       libp2pc.PrivKey
+	updates       chan Update
+	repoPath      string
+	ipfs          func() *core.IpfsNode
+	blocks        func() repo.BlockStore
+	peers         func() repo.PeerStore
+	GetHead       func() (string, error)
+	updateHead    func(head string) error
+	publish       func(payload []byte) error
+	send          func(message *pb.Message, peerId string) error
+	putPinRequest func(id string) error
+	mux           sync.Mutex
 }
 
 // NewThread create a new Thread from a repo model and config
@@ -65,18 +66,19 @@ func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 		return nil, err
 	}
 	return &Thread{
-		Id:         model.Id,
-		Name:       model.Name,
-		PrivKey:    sk,
-		updates:    make(chan Update),
-		repoPath:   config.RepoPath,
-		ipfs:       config.Ipfs,
-		blocks:     config.Blocks,
-		peers:      config.Peers,
-		GetHead:    config.GetHead,
-		updateHead: config.UpdateHead,
-		publish:    config.Publish,
-		send:       config.Send,
+		Id:            model.Id,
+		Name:          model.Name,
+		PrivKey:       sk,
+		updates:       make(chan Update),
+		repoPath:      config.RepoPath,
+		ipfs:          config.Ipfs,
+		blocks:        config.Blocks,
+		peers:         config.Peers,
+		GetHead:       config.GetHead,
+		updateHead:    config.UpdateHead,
+		publish:       config.Publish,
+		send:          config.Send,
+		putPinRequest: config.PutPinRequest,
 	}, nil
 }
 
@@ -170,12 +172,20 @@ func (t *Thread) addBlock(message *pb.Message) (mh.Multihash, error) {
 	if err != nil {
 		return nil, err
 	}
-	reader := bytes.NewReader(messageb)
-	path, err := coreapi.NewCoreAPI(t.ipfs()).Unixfs().Add(t.ipfs().Context(), reader)
+
+	// pin it
+	addr, err := util.PinData(t.ipfs(), bytes.NewReader(messageb))
 	if err != nil {
 		return nil, err
 	}
-	return path.Cid().Hash(), nil
+
+	// add a pin request
+	err = t.putPinRequest(addr.B58String())
+	if err != nil {
+		return nil, err
+	}
+
+	return addr, nil
 }
 
 // commitBlock seals and signs the content of a block and adds it to ipfs

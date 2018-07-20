@@ -15,6 +15,7 @@ type Datastore interface {
 	Blocks() BlockStore
 	OfflineMessages() OfflineMessageStore
 	Pointers() PointerStore
+	PinRequests() PinRequestStore
 	Ping() error
 	Close()
 }
@@ -94,4 +95,11 @@ type PointerStore interface {
 	Get(id peer.ID) (Pointer, error)
 	GetByPurpose(purpose Purpose) ([]Pointer, error)
 	GetAll() ([]Pointer, error)
+}
+
+type PinRequestStore interface {
+	Queryable
+	Put(pr *PinRequest) error
+	List(offset string, limit int) []PinRequest
+	Delete(id string) error
 }

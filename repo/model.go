@@ -51,3 +51,8 @@ const (
 	LeaveBlock
 	PhotoBlock
 )
+
+type PinRequest struct {
+	Id   string    `json:"id"`
+	Date time.Time `json:"date"`
+}
