@@ -81,18 +81,13 @@ func (t *Thread) AddInvite(inviteePk libp2pc.PubKey) (mh.Multihash, error) {
 }
 
 // HandleJoinBlock handles an incoming invite block
-func (t *Thread) HandleInviteBlock(message *pb.Message, signed *pb.SignedThreadBlock, content *pb.ThreadInvite) (mh.Multihash, error) {
+func (t *Thread) HandleInviteBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadInvite) (mh.Multihash, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadInvite)
 		if err := proto.Unmarshal(signed.Block, content); err != nil {
 			return nil, err
 		}
-	}
-
-	// verify author sig
-	if err := t.verifyAuthor(signed, content.Header); err != nil {
-		return nil, err
 	}
 
 	// add to ipfs
@@ -115,7 +110,7 @@ func (t *Thread) HandleInviteBlock(message *pb.Message, signed *pb.SignedThreadB
 	}
 
 	// back prop
-	if err := t.followParents(content.Header.Parents); err != nil {
+	if err := t.FollowParents(content.Header.Parents); err != nil {
 		return nil, err
 	}
 

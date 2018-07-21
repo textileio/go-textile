@@ -55,18 +55,13 @@ func (t *Thread) Leave() (mh.Multihash, error) {
 }
 
 // HandleLeaveBlock handles an incoming leave block
-func (t *Thread) HandleLeaveBlock(message *pb.Message, signed *pb.SignedThreadBlock, content *pb.ThreadLeave) (mh.Multihash, error) {
+func (t *Thread) HandleLeaveBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadLeave) (mh.Multihash, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadLeave)
 		if err := proto.Unmarshal(signed.Block, content); err != nil {
 			return nil, err
 		}
-	}
-
-	// verify author sig
-	if err := t.verifyAuthor(signed, content.Header); err != nil {
-		return nil, err
 	}
 
 	// add to ipfs
@@ -102,7 +97,7 @@ func (t *Thread) HandleLeaveBlock(message *pb.Message, signed *pb.SignedThreadBl
 	}
 
 	// back prop
-	if err := t.followParents(content.Header.Parents); err != nil {
+	if err := t.FollowParents(content.Header.Parents); err != nil {
 		return nil, err
 	}
 

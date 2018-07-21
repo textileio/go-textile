@@ -21,7 +21,7 @@ type sender struct {
 	service   *TextileService
 	singleMes int
 	invalid   bool
-	requests  map[int32]chan *pb.Message
+	requests  map[int32]chan *pb.Envelope
 	requestlk sync.Mutex
 }
 
@@ -35,7 +35,7 @@ func (s *TextileService) messageSenderForPeer(pid peer.ID) (*sender, error) {
 		s.senderlk.Unlock()
 		return ms, nil
 	}
-	ms = &sender{p: pid, service: s, requests: make(map[int32]chan *pb.Message, 2)}
+	ms = &sender{p: pid, service: s, requests: make(map[int32]chan *pb.Envelope, 2)}
 	s.sender[pid] = ms
 	s.senderlk.Unlock()
 
@@ -64,7 +64,7 @@ func (s *TextileService) newMessageSender(pid peer.ID) *sender {
 	return &sender{
 		p:        pid,
 		service:  s,
-		requests: make(map[int32]chan *pb.Message, 2), // low initial capacity
+		requests: make(map[int32]chan *pb.Envelope, 2), // low initial capacity
 	}
 }
 
@@ -114,7 +114,7 @@ func (ms *sender) prep() error {
 // behaviour.
 const streamReuseTries = 3
 
-func (ms *sender) SendMessage(ctx context.Context, pmes *pb.Message) error {
+func (ms *sender) SendMessage(ctx context.Context, pmes *pb.Envelope) error {
 	ms.lk.Lock()
 	defer ms.lk.Unlock()
 	retry := false
@@ -146,11 +146,11 @@ func (ms *sender) SendMessage(ctx context.Context, pmes *pb.Message) error {
 	}
 }
 
-func (ms *sender) SendRequest(ctx context.Context, pmes *pb.Message) (*pb.Message, error) {
-	pmes.RequestId = rand.Int31()
-	returnChan := make(chan *pb.Message)
+func (ms *sender) SendRequest(ctx context.Context, pmes *pb.Envelope) (*pb.Envelope, error) {
+	pmes.Message.RequestId = rand.Int31()
+	returnChan := make(chan *pb.Envelope)
 	ms.requestlk.Lock()
-	ms.requests[pmes.RequestId] = returnChan
+	ms.requests[pmes.Message.RequestId] = returnChan
 	ms.requestlk.Unlock()
 
 	ms.lk.Lock()
@@ -202,7 +202,7 @@ func (ms *sender) closeRequest(id int32) {
 	ms.requestlk.Unlock()
 }
 
-func (ms *sender) ctxReadMsg(ctx context.Context, returnChan chan *pb.Message) (*pb.Message, error) {
+func (ms *sender) ctxReadMsg(ctx context.Context, returnChan chan *pb.Envelope) (*pb.Envelope, error) {
 	t := time.NewTimer(ReadMessageTimeout)
 	defer t.Stop()
 

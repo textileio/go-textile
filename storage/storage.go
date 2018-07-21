@@ -2,7 +2,6 @@ package storage
 
 import (
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 type OfflineMessagingStorage interface {
@@ -20,5 +19,5 @@ type OfflineMessagingStorage interface {
 	   Custom Options -> create your own free or paid service.
 
 	   Note all messages are encrypted before passed in here. */
-	Store(peerID peer.ID, ciphertext []byte) (ma.Multiaddr, error)
+	Store(ciphertext []byte) (ma.Multiaddr, error)
 }

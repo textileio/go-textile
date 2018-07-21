@@ -13,7 +13,6 @@ message ThreadBlockHeader {
 message SignedThreadBlock {
     bytes block     = 1;
     bytes threadSig = 2;
-    bytes authorSig = 3;
 }
 
 message ThreadInvite {

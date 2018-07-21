@@ -70,18 +70,13 @@ func (t *Thread) AddPhoto(dataId string, caption string, key []byte) (mh.Multiha
 }
 
 // HandleDataBlock handles an incoming data block
-func (t *Thread) HandleDataBlock(message *pb.Message, signed *pb.SignedThreadBlock, content *pb.ThreadData) (mh.Multihash, error) {
+func (t *Thread) HandleDataBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadData) (mh.Multihash, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadData)
 		if err := proto.Unmarshal(signed.Block, content); err != nil {
 			return nil, err
 		}
-	}
-
-	// verify author sig
-	if err := t.verifyAuthor(signed, content.Header); err != nil {
-		return nil, err
 	}
 
 	// add to ipfs
@@ -122,7 +117,7 @@ func (t *Thread) HandleDataBlock(message *pb.Message, signed *pb.SignedThreadBlo
 	}
 
 	// back prop
-	if err := t.followParents(content.Header.Parents); err != nil {
+	if err := t.FollowParents(content.Header.Parents); err != nil {
 		return nil, err
 	}
 

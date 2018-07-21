@@ -97,13 +97,13 @@ func (p *PointersDB) GetAll() ([]repo.Pointer, error) {
 		if err != nil {
 			return ret, err
 		}
-		var canID *peer.ID
+		var canId *peer.ID
 		if cancelId != "" {
 			c, err := peer.IDB58Decode(cancelId)
 			if err != nil {
 				return ret, err
 			}
-			canID = &c
+			canId = &c
 		}
 		pointer := repo.Pointer{
 			Cid: k,
@@ -111,7 +111,7 @@ func (p *PointersDB) GetAll() ([]repo.Pointer, error) {
 				ID:    pid,
 				Addrs: []ma.Multiaddr{maAddr},
 			},
-			CancelId: canID,
+			CancelId: canId,
 			Purpose:  repo.Purpose(purpose),
 			Date:     time.Unix(int64(date), 0),
 		}

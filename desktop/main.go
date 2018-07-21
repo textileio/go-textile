@@ -95,15 +95,28 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 				payload := map[string]interface{}{
 					"update": update,
 				}
-				if update.Type == wallet.ThreadAdded && !expanded {
-					sendPreReady()
-					window.Hide()
-					expandWindow()
-					sendData("wallet.update", payload)
-					window.Show()
-					window.Focus()
-				} else {
-					sendData("wallet.update", payload)
+				switch update.Type {
+				case wallet.ThreadAdded:
+					_, thrd := core.Node.Wallet.GetThread(update.Id)
+					if thrd != nil {
+						go subscribe(thrd)
+					}
+					if expanded {
+						sendData("wallet.update", payload)
+					} else {
+						sendPreReady()
+						window.Hide()
+						expandWindow()
+						sendData("wallet.update", payload)
+						window.Show()
+						window.Focus()
+					}
+				case wallet.ThreadRemoved:
+					break
+				case wallet.DeviceAdded:
+					break
+				case wallet.DeviceRemoved:
+					break
 				}
 			}
 		}
