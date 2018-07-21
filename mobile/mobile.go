@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/op/go-logging"
-	"github.com/textileio/textile-go/central/models"
+	"github.com/textileio/textile-go/cafe/models"
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet"

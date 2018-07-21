@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
-	"github.com/textileio/textile-go/central/models"
+	"github.com/textileio/textile-go/cafe/models"
 	"log"
 	"net"
 )

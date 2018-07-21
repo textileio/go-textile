@@ -3,7 +3,7 @@ package auth
 import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/central/models"
+	"github.com/textileio/textile-go/cafe/models"
 	"os"
 	"time"
 )

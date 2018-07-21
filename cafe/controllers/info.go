@@ -8,6 +8,6 @@ import (
 
 func Info(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"verion": os.Getenv("VERSION"),
+		"version": os.Getenv("VERSION"),
 	})
 }

@@ -1,14 +1,14 @@
-package main
+package cafe
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/textileio/textile-go/central/controllers"
-	"github.com/textileio/textile-go/central/dao"
-	"github.com/textileio/textile-go/central/middleware"
+	"github.com/textileio/textile-go/cafe/controllers"
+	"github.com/textileio/textile-go/cafe/dao"
+	"github.com/textileio/textile-go/cafe/middleware"
 	"os"
 )
 
-func init() {
+func Init() {
 	// establish a connection to DB
 	dao.Dao = &dao.DAO{
 		Hosts:    os.Getenv("DB_HOSTS"),
@@ -23,8 +23,7 @@ func init() {
 	dao.Dao.Index()
 }
 
-func main() {
-	// build http router
+func Router() *gin.Engine {
 	router := gin.Default()
 	router.GET("/", controllers.Info)
 	router.GET("/health", controllers.Health)
@@ -38,5 +37,6 @@ func main() {
 		v1.POST("/referrals", controllers.CreateReferral)
 		v1.GET("/referrals", controllers.ListReferrals)
 	}
-	router.Run(os.Getenv("BIND"))
+
+	return router
 }

@@ -372,15 +372,18 @@ func start() error {
 		}
 	}()
 
-	// start the server
-	core.Node.StartServer()
+	// start the servers
+	core.Node.StartGateway()
+	core.Node.StartAPI()
 
 	return nil
 }
 
 func stop() error {
-	err := core.Node.StopServer()
-	if err != nil {
+	if err := core.Node.StopGateway(); err != nil {
+		return err
+	}
+	if err := core.Node.StopAPI(); err != nil {
 		return err
 	}
 	return core.Node.StopWallet()

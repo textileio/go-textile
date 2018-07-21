@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/textileio/textile-go/central/models"
+	"github.com/textileio/textile-go/cafe/models"
 )
 
 var client = &http.Client{}

@@ -130,10 +130,10 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 	}
 
 	// start the server
-	core.Node.StartServer()
+	core.Node.StartGateway()
 
 	// save off the server address
-	gateway = fmt.Sprintf("http://%s", core.Node.GetServerAddress())
+	gateway = fmt.Sprintf("http://%s", core.Node.GetGatewayAddress())
 
 	// sleep for a bit on the landing screen, it feels better
 	time.Sleep(SleepOnLoad)
