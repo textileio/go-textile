@@ -3,6 +3,7 @@ build:
 
 linux_binary:
 	./build.sh linux/amd64
+	# cd dist && tar -czvf textile-go-linux-amd64.tar.gz textile-go-linux-amd64 && cd ..
 
 build_desktop:
 	$(MAKE) -C ./desktop build

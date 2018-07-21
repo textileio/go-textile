@@ -16,9 +16,9 @@ const (
 	maxPort = 49151
 )
 
-var bootstrapAddresses = []string{
-	"/ip4/54.89.183.252/tcp/5803/ipfs/QmQhCYvt8DESXqF6a8y2FM88nwywLeVujNZjArAkqsMF44",
-	"/ip4/34.203.191.62/tcp/19770/ipfs/QmTUDYkpz2yUaebxbn32iGaaZZ2ETQyejQtTPH6ZTc5nKv",
+var BootstrapAddresses = []string{
+	"/ip4/54.89.183.252/tcp/46539/ipfs/QmVVKdbGw5VnNLWFw4YjsJUtwU3xPFemzbAMeCJtAtr2YF",
+	"/ip4/34.203.191.62/tcp/21117/ipfs/QmPZhrJ47ym4be69HUp3FC6DMV3H7kDUQTuaaYP3okpKdq",
 }
 
 // DefaultServerFilters has a list of non-routable IPv4 prefixes
@@ -43,7 +43,7 @@ var DefaultServerFilters = []string{
 
 func Init(identity native.Identity) (*native.Config, error) {
 	var bootstrapPeers []native.BootstrapPeer
-	for _, addr := range bootstrapAddresses {
+	for _, addr := range BootstrapAddresses {
 		p, err := native.ParseBootstrapPeer(addr)
 		bootstrapPeers = append(bootstrapPeers, p)
 		if err != nil {
