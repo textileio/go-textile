@@ -14,7 +14,7 @@ import (
 	"gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
 )
 
-func (s *TextileService) HandlerForMsgType(t pb.Message_Type) func(peer.ID, *pb.Message, interface{}) (*pb.Message, error) {
+func (s *TextileService) HandlerForMsgType(t pb.Message_Type) func(peer.ID, *pb.Envelope, interface{}) (*pb.Envelope, error) {
 	switch t {
 	case pb.Message_PING:
 		return s.handlePing
@@ -43,12 +43,12 @@ func (s *TextileService) HandlerForMsgType(t pb.Message_Type) func(peer.ID, *pb.
 	}
 }
 
-func (s *TextileService) handlePing(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
+func (s *TextileService) handlePing(pid peer.ID, pmes *pb.Envelope, options interface{}) (*pb.Envelope, error) {
 	log.Debugf("received PING message from %s", pid.Pretty())
 	return pmes, nil
 }
 
-func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
+func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Envelope, options interface{}) (*pb.Envelope, error) {
 	log.Debug("received THREAD_INVITE message")
 	signed, err := unpackMessage(pmes)
 	if err != nil {
@@ -107,9 +107,6 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Message, optio
 	if err != nil {
 		return nil, err
 	}
-	if err := crypto.Verify(authorPk, signed.Block, signed.AuthorSig); err != nil {
-		return nil, err
-	}
 
 	// add the new thread (name will bump if already exists, e.g., cats -> cats_1)
 	thrd, err = s.addThread(invite.SuggestedName, sk)
@@ -134,7 +131,7 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Message, optio
 	return nil, nil
 }
 
-func (s *TextileService) handleExternalThreadInvite(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
+func (s *TextileService) handleExternalThreadInvite(pid peer.ID, pmes *pb.Envelope, options interface{}) (*pb.Envelope, error) {
 	log.Debug("received THREAD_EXTERNAL_INVITE message")
 	signed, err := unpackMessage(pmes)
 	if err != nil {
@@ -166,7 +163,7 @@ func (s *TextileService) handleExternalThreadInvite(pid peer.ID, pmes *pb.Messag
 	return nil, nil
 }
 
-func (s *TextileService) handleThreadJoin(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
+func (s *TextileService) handleThreadJoin(pid peer.ID, pmes *pb.Envelope, options interface{}) (*pb.Envelope, error) {
 	log.Debug("received THREAD_JOIN message")
 	signed, err := unpackMessage(pmes)
 	if err != nil {
@@ -197,7 +194,7 @@ func (s *TextileService) handleThreadJoin(pid peer.ID, pmes *pb.Message, options
 	return nil, nil
 }
 
-func (s *TextileService) handleThreadLeave(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
+func (s *TextileService) handleThreadLeave(pid peer.ID, pmes *pb.Envelope, options interface{}) (*pb.Envelope, error) {
 	log.Debug("received THREAD_LEAVE message")
 	signed, err := unpackMessage(pmes)
 	if err != nil {
@@ -228,7 +225,7 @@ func (s *TextileService) handleThreadLeave(pid peer.ID, pmes *pb.Message, option
 	return nil, nil
 }
 
-func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
+func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Envelope, options interface{}) (*pb.Envelope, error) {
 	log.Debug("received THREAD_DATA message")
 	signed, err := unpackMessage(pmes)
 	if err != nil {
@@ -259,11 +256,11 @@ func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Message, options
 	return nil, nil
 }
 
-func (s *TextileService) handleOfflineAck(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
-	if pmes.Payload == nil {
+func (s *TextileService) handleOfflineAck(pid peer.ID, pmes *pb.Envelope, options interface{}) (*pb.Envelope, error) {
+	if pmes.Message.Payload == nil {
 		return nil, errors.New("payload is nil")
 	}
-	id, err := peer.IDB58Decode(string(pmes.Payload.Value))
+	id, err := peer.IDB58Decode(string(pmes.Message.Payload.Value))
 	if err != nil {
 		return nil, err
 	}
@@ -282,18 +279,18 @@ func (s *TextileService) handleOfflineAck(pid peer.ID, pmes *pb.Message, options
 	return nil, nil
 }
 
-func (s *TextileService) handleOfflineRelay(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
-	if pmes.Payload == nil {
+func (s *TextileService) handleOfflineRelay(pid peer.ID, pmes *pb.Envelope, options interface{}) (*pb.Envelope, error) {
+	if pmes.Message.Payload == nil {
 		return nil, errors.New("payload is nil")
 	}
-	plaintext, err := crypto.Decrypt(s.node.PrivateKey, pmes.Payload.Value)
+	plaintext, err := crypto.Decrypt(s.node.PrivateKey, pmes.Message.Payload.Value)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal plaintext
-	env := pb.Envelope{}
-	err = proto.Unmarshal(plaintext, &env)
+	env := &pb.Envelope{}
+	err = proto.Unmarshal(plaintext, env)
 	if err != nil {
 		return nil, err
 	}
@@ -325,7 +322,7 @@ func (s *TextileService) handleOfflineRelay(pid peer.ID, pmes *pb.Message, optio
 	}
 
 	// Dispatch handler
-	_, err = handler(id, env.Message, true)
+	_, err = handler(id, env, true)
 	if err != nil {
 		log.Errorf("handle message error: %s", err)
 		return nil, err
@@ -334,12 +331,12 @@ func (s *TextileService) handleOfflineRelay(pid peer.ID, pmes *pb.Message, optio
 	return nil, nil
 }
 
-func (s *TextileService) handleBlock(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
-	if pmes.Payload == nil {
+func (s *TextileService) handleBlock(pid peer.ID, pmes *pb.Envelope, options interface{}) (*pb.Envelope, error) {
+	if pmes.Message.Payload == nil {
 		return nil, errors.New("payload is nil")
 	}
 	pbblock := new(pb.Block)
-	err := ptypes.UnmarshalAny(pmes.Payload, pbblock)
+	err := ptypes.UnmarshalAny(pmes.Message.Payload, pbblock)
 	if err != nil {
 		return nil, err
 	}
@@ -358,7 +355,7 @@ func (s *TextileService) handleBlock(pid peer.ID, pmes *pb.Message, options inte
 	return nil, nil
 }
 
-func (s *TextileService) handleStore(pid peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
+func (s *TextileService) handleStore(pid peer.ID, pmes *pb.Envelope, options interface{}) (*pb.Envelope, error) {
 	errorResponse := func(error string) *pb.Message {
 		payload := &any.Any{Value: []byte(error)}
 		message := &pb.Message{
@@ -368,13 +365,13 @@ func (s *TextileService) handleStore(pid peer.ID, pmes *pb.Message, options inte
 		return message
 	}
 
-	if pmes.Payload == nil {
+	if pmes.Message.Payload == nil {
 		return nil, errors.New("payload is nil")
 	}
 	cList := new(pb.CidList)
-	err := ptypes.UnmarshalAny(pmes.Payload, cList)
+	err := ptypes.UnmarshalAny(pmes.Message.Payload, cList)
 	if err != nil {
-		return errorResponse("could not unmarshall message"), err
+		return s.newEnvelope(errorResponse("could not unmarshall message"))
 	}
 	var need []string
 	for _, id := range cList.Cids {
@@ -394,21 +391,21 @@ func (s *TextileService) handleStore(pid peer.ID, pmes *pb.Message, options inte
 	resp.Cids = need
 	payload, err := ptypes.MarshalAny(resp)
 	if err != nil {
-		return errorResponse("error marshalling response"), err
+		return s.newEnvelope(errorResponse("error marshalling response"))
 	}
 	message := &pb.Message{
 		Type:    pb.Message_STORE,
 		Payload: payload,
 	}
-	return message, nil
+	return s.newEnvelope(message)
 }
 
-func (s *TextileService) handleError(peer peer.ID, pmes *pb.Message, options interface{}) (*pb.Message, error) {
-	if pmes.Payload == nil {
+func (s *TextileService) handleError(peer peer.ID, pmes *pb.Envelope, options interface{}) (*pb.Envelope, error) {
+	if pmes.Message.Payload == nil {
 		return nil, errors.New("payload is nil")
 	}
 	errorMessage := new(pb.Error)
-	err := ptypes.UnmarshalAny(pmes.Payload, errorMessage)
+	err := ptypes.UnmarshalAny(pmes.Message.Payload, errorMessage)
 	if err != nil {
 		return nil, err
 	}
@@ -418,12 +415,12 @@ func (s *TextileService) handleError(peer peer.ID, pmes *pb.Message, options int
 	return nil, nil
 }
 
-func unpackMessage(pmes *pb.Message) (*pb.SignedThreadBlock, error) {
-	if pmes.Payload == nil {
+func unpackMessage(pmes *pb.Envelope) (*pb.SignedThreadBlock, error) {
+	if pmes.Message.Payload == nil {
 		return nil, errors.New("payload is nil")
 	}
 	signed := new(pb.SignedThreadBlock)
-	if err := ptypes.UnmarshalAny(pmes.Payload, signed); err != nil {
+	if err := ptypes.UnmarshalAny(pmes.Message.Payload, signed); err != nil {
 		return nil, err
 	}
 	return signed, nil

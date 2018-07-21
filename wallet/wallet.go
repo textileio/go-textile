@@ -509,7 +509,8 @@ func (w *Wallet) loadThread(mod *trepo.Thread) (*thread.Thread, error) {
 			}
 			return nil
 		},
-		Send: w.SendMessage,
+		Send:        w.SendMessage,
+		NewEnvelope: w.NewEnvelope,
 		PutPinRequest: func(id string) error {
 			if !w.isMobile {
 				return nil
