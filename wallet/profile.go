@@ -3,7 +3,7 @@ package wallet
 import (
 	"errors"
 	"fmt"
-	cmodels "github.com/textileio/textile-go/central/models"
+	cmodels "github.com/textileio/textile-go/cafe/models"
 	"github.com/textileio/textile-go/core/central"
 )
 

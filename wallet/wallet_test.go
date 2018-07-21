@@ -7,7 +7,7 @@ import (
 
 	"crypto/rand"
 	"github.com/segmentio/ksuid"
-	cmodels "github.com/textileio/textile-go/central/models"
+	cmodels "github.com/textileio/textile-go/cafe/models"
 	util "github.com/textileio/textile-go/util/testing"
 	. "github.com/textileio/textile-go/wallet"
 )

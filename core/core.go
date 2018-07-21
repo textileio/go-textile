@@ -12,6 +12,7 @@ import (
 	"path"
 	"path/filepath"
 	"sync"
+	"github.com/textileio/textile-go/cafe"
 )
 
 var fileLogFormat = logging.MustStringFormatter(
@@ -26,9 +27,10 @@ var Node *TextileNode
 
 // TextileNode is the main node interface for textile functionality
 type TextileNode struct {
-	Wallet *wallet.Wallet
-	server *http.Server
-	mux    sync.Mutex
+	Wallet  *wallet.Wallet
+	gateway *http.Server
+	api     *http.Server
+	mux     sync.Mutex
 }
 
 // NodeConfig is used to configure the node
@@ -90,23 +92,23 @@ func (t *TextileNode) StopWallet() error {
 	return t.Wallet.Stop()
 }
 
-// StartServer starts the server
-func (t *TextileNode) StartServer() {
+// StartGateway starts the gateway
+func (t *TextileNode) StartGateway() {
 	router := gin.Default()
 	router.GET("/ipfs/:cid/:path", gateway)
 	v1 := router.Group("/api/v1")
 	{
 		v1.POST("/pin", pin)
 	}
-	t.server = &http.Server{
-		Addr:    t.Wallet.GetServerAddress(),
+	t.gateway = &http.Server{
+		Addr:    t.Wallet.GetGatewayAddress(),
 		Handler: router,
 	}
 
-	// start the server
+	// start the gateway
 	errc := make(chan error)
 	go func() {
-		errc <- t.server.ListenAndServe()
+		errc <- t.gateway.ListenAndServe()
 		close(errc)
 	}()
 	go func() {
@@ -114,30 +116,77 @@ func (t *TextileNode) StartServer() {
 			select {
 			case err, ok := <-errc:
 				if err != nil && err != http.ErrServerClosed {
-					log.Errorf("server error: %s", err)
+					log.Errorf("gateway error: %s", err)
 				}
 				if !ok {
-					log.Info("server was shutdown")
+					log.Info("gateway was shutdown")
 					return
 				}
 			}
 		}
 	}()
-	log.Infof("server listening at %s\n", t.server.Addr)
+	log.Infof("gateway listening at %s\n", t.gateway.Addr)
 }
 
-// StopServer stops the server
-func (t *TextileNode) StopServer() error {
+// StopGateway stops the gateway
+func (t *TextileNode) StopGateway() error {
 	ctx, cancel := context.WithCancel(context.Background())
-	if err := t.server.Shutdown(ctx); err != nil {
-		log.Errorf("error shutting down server: %s", err)
+	if err := t.gateway.Shutdown(ctx); err != nil {
+		log.Errorf("error shutting down gateway: %s", err)
 		return err
 	}
 	cancel()
 	return nil
 }
 
-// GetServerAddress returns the server's address
-func (t *TextileNode) GetServerAddress() string {
-	return t.server.Addr
+// GetGatewayAddress returns the gateway's address
+func (t *TextileNode) GetGatewayAddress() string {
+	return t.gateway.Addr
+}
+
+// StartAPI starts the api
+func (t *TextileNode) StartAPI() {
+	router := cafe.Router()
+	t.api = &http.Server{
+		Addr:    t.Wallet.GetAPIAddress(),
+		Handler: router,
+	}
+
+	// start the api
+	errc := make(chan error)
+	go func() {
+		errc <- t.api.ListenAndServe()
+		close(errc)
+	}()
+	go func() {
+		for {
+			select {
+			case err, ok := <-errc:
+				if err != nil && err != http.ErrServerClosed {
+					log.Errorf("api error: %s", err)
+				}
+				if !ok {
+					log.Info("api was shutdown")
+					return
+				}
+			}
+		}
+	}()
+	log.Infof("api listening at %s\n", t.api.Addr)
+}
+
+// StopAPI stops the api
+func (t *TextileNode) StopAPI() error {
+	ctx, cancel := context.WithCancel(context.Background())
+	if err := t.api.Shutdown(ctx); err != nil {
+		log.Errorf("error shutting down api: %s", err)
+		return err
+	}
+	cancel()
+	return nil
+}
+
+// GetAPIAddress returns the gateway's address
+func (t *TextileNode) GetAPIAddress() string {
+	return t.api.Addr
 }

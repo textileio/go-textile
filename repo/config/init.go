@@ -41,7 +41,7 @@ var DefaultServerFilters = []string{
 	"/ip4/240.0.0.0/ipcidr/4",
 }
 
-func Init(identity native.Identity) (*native.Config, error) {
+func Init(identity native.Identity, version string) (*native.Config, error) {
 	var bootstrapPeers []native.BootstrapPeer
 	for _, addr := range BootstrapAddresses {
 		p, err := native.ParseBootstrapPeer(addr)
@@ -61,7 +61,7 @@ func Init(identity native.Identity) (*native.Config, error) {
 	conf := &native.Config{
 		API: native.API{
 			HTTPHeaders: map[string][]string{
-				"Server": {"go-ipfs/" + native.CurrentVersionNumber},
+				"Server": {"textile/" + version},
 			},
 		},
 
@@ -149,6 +149,7 @@ func addressesConfig() native.Addresses {
 	swarmTCPPort := getRandomPort()
 	swarmWSPort := getRandomPort()
 	gatewayPort := getRandomPort()
+	apiPort := getRandomPort()
 
 	return native.Addresses{
 		Swarm: []string{
@@ -160,7 +161,8 @@ func addressesConfig() native.Addresses {
 		},
 		Announce:   []string{},
 		NoAnnounce: []string{},
-		Gateway:    fmt.Sprintf("127.0.0.1:%d", gatewayPort),
+		Gateway:    fmt.Sprintf("0.0.0.0:%d", gatewayPort),
+		API:        fmt.Sprintf("0.0.0.0:%d", apiPort),
 	}
 }
 

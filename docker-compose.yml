@@ -6,7 +6,7 @@ services:
       - "27100:27017"
   central:
     image: central
-    build: central
+    build: cafe
     ports:
       - "8000:8000"
     environment:

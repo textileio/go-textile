@@ -56,7 +56,8 @@ type Wallet struct {
 	version            string
 	context            oldcmds.Context
 	repoPath           string
-	serverAddr         string
+	gatewayAddr        string
+	apiAddr            string
 	cancel             context.CancelFunc
 	ipfs               *core.IpfsNode
 	datastore          trepo.Datastore
@@ -108,6 +109,13 @@ func NewWallet(config Config) (*Wallet, string, error) {
 		return nil, "", err
 	}
 
+	// save api address
+	apiAddr, err := repo.GetConfigKey("Addresses.API")
+	if err != nil {
+		log.Errorf("error getting api address: %s", err)
+		return nil, "", err
+	}
+
 	// ensure bootstrap addresses are latest in config (without wiping repo)
 	if err := ensureBootstrapConfig(repo); err != nil {
 		return nil, "", err
@@ -124,12 +132,13 @@ func NewWallet(config Config) (*Wallet, string, error) {
 	}
 
 	return &Wallet{
-		version:    config.Version,
-		repoPath:   config.RepoPath,
-		serverAddr: gwAddr.(string),
-		datastore:  sqliteDB,
-		centralAPI: strings.TrimRight(config.CentralAPI, "/"),
-		isMobile:   config.IsMobile,
+		version:     config.Version,
+		repoPath:    config.RepoPath,
+		gatewayAddr: gwAddr.(string),
+		apiAddr:     apiAddr.(string),
+		datastore:   sqliteDB,
+		centralAPI:  strings.TrimRight(config.CentralAPI, "/"),
+		isMobile:    config.IsMobile,
 	}, mnemonic, nil
 }
 
@@ -319,8 +328,12 @@ func (w *Wallet) GetRepoPath() string {
 	return w.repoPath
 }
 
-func (w *Wallet) GetServerAddress() string {
-	return w.serverAddr
+func (w *Wallet) GetGatewayAddress() string {
+	return w.gatewayAddr
+}
+
+func (w *Wallet) GetAPIAddress() string {
+	return w.apiAddr
 }
 
 // GetId returns peer id

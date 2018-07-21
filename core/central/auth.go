@@ -3,7 +3,7 @@ package central
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/textileio/textile-go/central/models"
+	"github.com/textileio/textile-go/cafe/models"
 	"net/http"
 )
 

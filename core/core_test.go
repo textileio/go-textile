@@ -47,17 +47,17 @@ func TestTextileNode_StartAgain(t *testing.T) {
 }
 
 func TestTextileNode_StartServer(t *testing.T) {
-	node.StartServer()
+	node.StartGateway()
 }
 
 func TestTextileNode_GetServerAddress(t *testing.T) {
-	if len(node.GetServerAddress()) == 0 {
+	if len(node.GetGatewayAddress()) == 0 {
 		t.Error("get server address failed")
 	}
 }
 
 func TestTextileNode_StopServer(t *testing.T) {
-	err := node.StopServer()
+	err := node.StopGateway()
 	if err != nil {
 		t.Errorf("stop server failed: %s", err)
 	}
