@@ -63,18 +63,13 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 }
 
 // HandleExternalInviteBlock handles an incoming external invite block
-func (t *Thread) HandleExternalInviteBlock(message *pb.Message, signed *pb.SignedThreadBlock, content *pb.ThreadExternalInvite) (mh.Multihash, error) {
+func (t *Thread) HandleExternalInviteBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadExternalInvite) (mh.Multihash, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadExternalInvite)
 		if err := proto.Unmarshal(signed.Block, content); err != nil {
 			return nil, err
 		}
-	}
-
-	// verify author sig
-	if err := t.verifyAuthor(signed, content.Header); err != nil {
-		return nil, err
 	}
 
 	// add to ipfs
@@ -97,7 +92,7 @@ func (t *Thread) HandleExternalInviteBlock(message *pb.Message, signed *pb.Signe
 	}
 
 	// back prop
-	if err := t.followParents(content.Header.Parents); err != nil {
+	if err := t.FollowParents(content.Header.Parents); err != nil {
 		return nil, err
 	}
 

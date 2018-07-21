@@ -30,13 +30,14 @@ type Config struct {
 	GetHead       func() (string, error)
 	UpdateHead    func(head string) error
 	Publish       func(payload []byte) error
-	Send          func(message *pb.Message, peerId string) error
+	Send          func(message *pb.Envelope, peerId string, hash *string) error
+	NewEnvelope   func(message *pb.Message) (*pb.Envelope, error)
 	PutPinRequest func(id string) error
 }
 
-// ThreadUpdate is used to notify listeners about updates in a thread
+// Update is used to notify listeners about updates in a thread
 type Update struct {
-	Index      repo.Block `json:"index"`
+	Block      repo.Block `json:"block"`
 	ThreadId   string     `json:"thread_id"`
 	ThreadName string     `json:"thread_name"`
 }
@@ -54,7 +55,8 @@ type Thread struct {
 	GetHead       func() (string, error)
 	updateHead    func(head string) error
 	publish       func(payload []byte) error
-	send          func(message *pb.Message, peerId string) error
+	send          func(message *pb.Envelope, peerId string, hash *string) error
+	newEnvelope   func(message *pb.Message) (*pb.Envelope, error)
 	putPinRequest func(id string) error
 	mux           sync.Mutex
 }
@@ -78,6 +80,7 @@ func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 		updateHead:    config.UpdateHead,
 		publish:       config.Publish,
 		send:          config.Send,
+		newEnvelope:   config.NewEnvelope,
 		putPinRequest: config.PutPinRequest,
 	}, nil
 }
@@ -119,14 +122,80 @@ func (t *Thread) Verify(signed *pb.SignedThreadBlock) error {
 	return crypto.Verify(t.PrivKey.GetPublic(), signed.Block, signed.ThreadSig)
 }
 
-// verifyAuthor checks the signature in the header
-func (t *Thread) verifyAuthor(signed *pb.SignedThreadBlock, header *pb.ThreadBlockHeader) error {
-	authorPk, err := libp2pc.UnmarshalPublicKey(header.AuthorPk)
+// FollowParents tries to follow a chain of block ids, processing along the way
+func (t *Thread) FollowParents(parents []string) error {
+	// TODO: follow all parent paths
+	parent := parents[0]
+
+	// first update?
+	if parent == "" {
+		log.Debugf("found genesis block, aborting")
+		return nil
+	}
+
+	// check if we aleady have this block indexed
+	index := t.blocks().Get(parent)
+	if index != nil {
+		log.Debugf("block %s exists, aborting", parent)
+		return nil
+	}
+
+	// download it
+	serialized, err := util.GetDataAtPath(t.ipfs(), parent)
 	if err != nil {
 		return err
 	}
-	if err := crypto.Verify(authorPk, signed.Block, signed.AuthorSig); err != nil {
+	env := new(pb.Envelope)
+	if err := proto.Unmarshal(serialized, env); err != nil {
 		return err
+	}
+
+	// verify author sig
+	messageb, err := proto.Marshal(env.Message)
+	if err != nil {
+		return err
+	}
+	authorPk, err := libp2pc.UnmarshalPublicKey(env.Pk)
+	if err != nil {
+		return err
+	}
+	if err := crypto.Verify(authorPk, messageb, env.Sig); err != nil {
+		return err
+	}
+
+	// verify thread sig
+	signed := new(pb.SignedThreadBlock)
+	if err := ptypes.UnmarshalAny(env.Message.Payload, signed); err != nil {
+		return err
+	}
+	if err := t.Verify(signed); err != nil {
+		return err
+	}
+
+	// handle each type
+	switch env.Message.Type {
+	case pb.Message_THREAD_INVITE:
+		if _, err = t.HandleInviteBlock(env, signed, nil); err != nil {
+			return err
+		}
+	case pb.Message_THREAD_EXTERNAL_INVITE:
+		if _, err = t.HandleExternalInviteBlock(env, signed, nil); err != nil {
+			return err
+		}
+	case pb.Message_THREAD_JOIN:
+		if _, err = t.HandleJoinBlock(env, signed, nil); err != nil {
+			return err
+		}
+	case pb.Message_THREAD_LEAVE:
+		if _, err = t.HandleLeaveBlock(env, signed, nil); err != nil {
+			return err
+		}
+	case pb.Message_THREAD_DATA:
+		if _, err = t.HandleDataBlock(env, signed, nil); err != nil {
+			return err
+		}
+	default:
+		return errors.New(fmt.Sprintf("invalid message type: %s", env.Message.Type))
 	}
 	return nil
 }
@@ -166,47 +235,42 @@ func (t *Thread) newBlockHeader(date time.Time) (*pb.ThreadBlockHeader, error) {
 }
 
 // addBlock adds to ipfs
-func (t *Thread) addBlock(message *pb.Message) (mh.Multihash, error) {
+func (t *Thread) addBlock(envelope *pb.Envelope) (mh.Multihash, error) {
 	// marshal to bytes
-	messageb, err := proto.Marshal(message)
+	messageb, err := proto.Marshal(envelope)
 	if err != nil {
 		return nil, err
 	}
 
 	// pin it
-	addr, err := util.PinData(t.ipfs(), bytes.NewReader(messageb))
+	id, err := util.PinData(t.ipfs(), bytes.NewReader(messageb))
 	if err != nil {
 		return nil, err
 	}
 
 	// add a pin request
-	err = t.putPinRequest(addr.B58String())
+	err = t.putPinRequest(id.Hash().B58String())
 	if err != nil {
 		return nil, err
 	}
 
-	return addr, nil
+	return id.Hash(), nil
 }
 
 // commitBlock seals and signs the content of a block and adds it to ipfs
-func (t *Thread) commitBlock(content proto.Message, mt pb.Message_Type) (*pb.Message, mh.Multihash, error) {
+func (t *Thread) commitBlock(content proto.Message, mt pb.Message_Type) (*pb.Envelope, mh.Multihash, error) {
 	// sign it
-	serialized, err := proto.Marshal(content)
+	serializedContent, err := proto.Marshal(content)
 	if err != nil {
 		return nil, nil, err
 	}
-	threadSig, err := t.PrivKey.Sign(serialized)
-	if err != nil {
-		return nil, nil, err
-	}
-	authorSig, err := t.ipfs().PrivateKey.Sign(serialized)
+	threadSig, err := t.PrivKey.Sign(serializedContent)
 	if err != nil {
 		return nil, nil, err
 	}
 	signed := &pb.SignedThreadBlock{
-		Block:     serialized,
+		Block:     serializedContent,
 		ThreadSig: threadSig,
-		AuthorSig: authorSig,
 	}
 
 	// create the message
@@ -215,14 +279,18 @@ func (t *Thread) commitBlock(content proto.Message, mt pb.Message_Type) (*pb.Mes
 		return nil, nil, err
 	}
 	message := &pb.Message{Type: mt, Payload: payload}
-
-	// add to ipfs
-	addr, err := t.addBlock(message)
+	envelope, err := t.newEnvelope(message)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return message, addr, nil
+	// add to ipfs
+	addr, err := t.addBlock(envelope)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return envelope, addr, nil
 }
 
 // indexBlock stores off index info for this block type
@@ -263,74 +331,8 @@ func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType r
 	return nil
 }
 
-// followParents tries to follow a chain of block ids, processing along the way
-func (t *Thread) followParents(parents []string) error {
-	// TODO: follow all parent paths
-	parent := parents[0]
-
-	// first update?
-	if parent == "" {
-		log.Debugf("found genesis block, aborting")
-		return nil
-	}
-
-	// check if we aleady have this block indexed
-	index := t.blocks().Get(parent)
-	if index != nil {
-		log.Debugf("block %s exists, aborting", parent)
-		return nil
-	}
-
-	// download it
-	serialized, err := util.GetDataAtPath(t.ipfs(), parent)
-	if err != nil {
-		return err
-	}
-	message := new(pb.Message)
-	if err := proto.Unmarshal(serialized, message); err != nil {
-		return err
-	}
-	signed := new(pb.SignedThreadBlock)
-	err = ptypes.UnmarshalAny(message.Payload, signed)
-	if err != nil {
-		return err
-	}
-
-	// verify thread sig
-	if err := t.Verify(signed); err != nil {
-		return err
-	}
-
-	// handle each type
-	switch message.Type {
-	case pb.Message_THREAD_INVITE:
-		if _, err = t.HandleInviteBlock(message, signed, nil); err != nil {
-			return err
-		}
-	case pb.Message_THREAD_EXTERNAL_INVITE:
-		if _, err = t.HandleInviteBlock(message, signed, nil); err != nil {
-			return err
-		}
-	case pb.Message_THREAD_JOIN:
-		if _, err = t.HandleInviteBlock(message, signed, nil); err != nil {
-			return err
-		}
-	case pb.Message_THREAD_LEAVE:
-		if _, err = t.HandleInviteBlock(message, signed, nil); err != nil {
-			return err
-		}
-	case pb.Message_THREAD_DATA:
-		if _, err = t.HandleInviteBlock(message, signed, nil); err != nil {
-			return err
-		}
-	default:
-		return errors.New(fmt.Sprintf("invalid message type: %s", message.Type))
-	}
-	return nil
-}
-
 // post publishes a message with content id to peers
-func (t *Thread) post(message *pb.Message, id string, peers []repo.Peer) error {
+func (t *Thread) post(env *pb.Envelope, id string, peers []repo.Peer) error {
 	if len(peers) == 0 {
 		return nil
 	}
@@ -339,7 +341,7 @@ func (t *Thread) post(message *pb.Message, id string, peers []repo.Peer) error {
 	for _, p := range peers {
 		wg.Add(1)
 		go func(peerId string) {
-			if err := t.send(message, peerId); err != nil {
+			if err := t.send(env, peerId, &id); err != nil {
 				log.Errorf("error sending block %s to peer %s: %s", id, peerId, err)
 			}
 			wg.Done()
@@ -359,7 +361,7 @@ func (t *Thread) pushUpdate(index repo.Block) {
 	}()
 	select {
 	case t.updates <- Update{
-		Index:      index,
+		Block:      index,
 		ThreadId:   t.Id,
 		ThreadName: t.Name,
 	}:

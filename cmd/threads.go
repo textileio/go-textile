@@ -202,7 +202,7 @@ func Subscribe(thrd *thread.Thread, peerId string) {
 			if !ok {
 				return
 			}
-			authorId, err := util.IdFromEncodedPublicKey(update.Index.AuthorPk)
+			authorId, err := util.IdFromEncodedPublicKey(update.Block.AuthorPk)
 			if err != nil {
 				fmt.Printf(red(err.Error()))
 				return
@@ -210,7 +210,7 @@ func Subscribe(thrd *thread.Thread, peerId string) {
 			if authorId.Pretty() == peerId {
 				return
 			}
-			fmt.Printf(cyan(fmt.Sprintf("\nnew block %s in thread %s from %s", update.Index.Id, update.ThreadId, authorId.Pretty())))
+			fmt.Printf(cyan(fmt.Sprintf("\nnew block %s in thread %s from %s", update.Block.Id, update.ThreadId, authorId.Pretty())))
 		}
 	}
 }

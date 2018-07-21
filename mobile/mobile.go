@@ -513,7 +513,7 @@ func (m *Mobile) subscribe(thrd *thread.Thread) {
 				return
 			}
 			m.messenger.Notify(newEvent("onThreadUpdate", map[string]interface{}{
-				"index":       update.Index,
+				"block":       update.Block,
 				"thread_id":   update.ThreadId,
 				"thread_name": update.ThreadName,
 			}))

@@ -9,7 +9,6 @@ import (
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreapi"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreapi/interface/options"
@@ -158,7 +157,7 @@ func AddFileToDirectory(ipfs *core.IpfsNode, dirb *uio.Directory, data []byte, f
 }
 
 // Data pins
-func PinData(ipfs *core.IpfsNode, data io.Reader) (mh.Multihash, error) {
+func PinData(ipfs *core.IpfsNode, data io.Reader) (*cid.Cid, error) {
 	ctx, cancel := context.WithTimeout(ipfs.Context(), pinTimeout)
 	defer cancel()
 	api := coreapi.NewCoreAPI(ipfs)
@@ -174,7 +173,7 @@ func PinData(ipfs *core.IpfsNode, data io.Reader) (mh.Multihash, error) {
 			log.Debug("node stopped")
 		}
 	}()
-	return path.Cid().Hash(), nil
+	return path.Cid(), nil
 }
 
 // PinPath takes an ipfs path string and pins it
@@ -219,6 +218,11 @@ outer:
 		ipfs.Pinning.Pin(ctx, node, false)
 	}
 	return ipfs.Pinning.Flush()
+}
+
+// MultiaddrFromId creates a multiaddr from an id string
+func MultiaddrFromId(id string) (ma.Multiaddr, error) {
+	return ma.NewMultiaddr("/ipfs/" + id + "/")
 }
 
 // parseAddresses is a function that takes in a slice of string peer addresses

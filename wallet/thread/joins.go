@@ -69,18 +69,13 @@ func (t *Thread) Join(inviterPk libp2pc.PubKey, blockId string) (mh.Multihash, e
 }
 
 // HandleJoinBlock handles an incoming join block
-func (t *Thread) HandleJoinBlock(message *pb.Message, signed *pb.SignedThreadBlock, content *pb.ThreadJoin) (mh.Multihash, error) {
+func (t *Thread) HandleJoinBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadJoin) (mh.Multihash, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadJoin)
 		if err := proto.Unmarshal(signed.Block, content); err != nil {
 			return nil, err
 		}
-	}
-
-	// verify author sig
-	if err := t.verifyAuthor(signed, content.Header); err != nil {
-		return nil, err
 	}
 
 	// add to ipfs
@@ -124,7 +119,7 @@ func (t *Thread) HandleJoinBlock(message *pb.Message, signed *pb.SignedThreadBlo
 	}
 
 	// back prop
-	if err := t.followParents(content.Header.Parents); err != nil {
+	if err := t.FollowParents(content.Header.Parents); err != nil {
 		return nil, err
 	}
 
