@@ -6,6 +6,10 @@ import (
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo"
 )
 
+func ensureBootstrapConfig(rep repo.Repo) error {
+	return config.Update(rep, "Bootstrap", config.BootstrapAddresses)
+}
+
 func applySwarmPortConfigOption(rep repo.Repo, port string) error {
 	if port != "" {
 		return config.Update(rep, "Addresses.Swarm", []string{
