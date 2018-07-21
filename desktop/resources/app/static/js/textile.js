@@ -44,9 +44,9 @@ let textile = {
           break
 
         case 'thread.update':
-          switch (msg.update.type) {
+          switch (msg.update.block.type) {
             // photo added
-            case 1:
+            case 4:
               addPhoto(msg.update)
               break
           }
@@ -167,14 +167,14 @@ function addPhoto(update) {
   let thumb = fileURL(update, 'thumb')
   let meta = fileURL(update, 'meta')
   let img = '<img src="' + thumb + '" />'
-  let $item = $('<div id="' + update.id + '" class="grid-item" '
+  let $item = $('<div id="' + update.block.id + '" class="grid-item" '
     + 'ondragstart="imageDragStart(event);" draggable="true" '
     + 'data-url="' + photo + '" data-meta="' + meta + '">' + img + '</div>')
   grid.isotope('insert', $item)
 }
 
 function fileURL(update, path) {
-  return [textile.gateway, 'ipfs', update.target_id, path].join('/') + '?block=' + update.id
+  return [textile.gateway, 'ipfs', update.block.data_id, path].join('/') + '?block=' + update.block.id
 }
 
 function login(data) {

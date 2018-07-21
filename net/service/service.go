@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"github.com/golang/protobuf/proto"
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
@@ -99,7 +100,7 @@ func (s *TextileService) handleNewMessage(stream inet.Stream, incoming bool) {
 		default:
 		}
 		// Receive msg
-		pmes := new(pb.Message)
+		pmes := new(pb.Envelope)
 		if err := r.ReadMsg(pmes); err != nil {
 			stream.Reset()
 			if err == io.EOF {
@@ -108,9 +109,9 @@ func (s *TextileService) handleNewMessage(stream inet.Stream, incoming bool) {
 			return
 		}
 
-		if pmes.IsResponse {
+		if pmes.Message.IsResponse {
 			ms.requestlk.Lock()
-			ch, ok := ms.requests[pmes.RequestId]
+			ch, ok := ms.requests[pmes.Message.RequestId]
 			if ok {
 				// this is a request response
 				select {
@@ -121,7 +122,7 @@ func (s *TextileService) handleNewMessage(stream inet.Stream, incoming bool) {
 					log.Debug("request id was not removed from map on timeout")
 				}
 				close(ch)
-				delete(ms.requests, pmes.RequestId)
+				delete(ms.requests, pmes.Message.RequestId)
 			} else {
 				log.Debug("received response message with unknown request id: requesting function may have timed out")
 			}
@@ -131,7 +132,7 @@ func (s *TextileService) handleNewMessage(stream inet.Stream, incoming bool) {
 		}
 
 		// Get handler for this msg type
-		handler := s.HandlerForMsgType(pmes.Type)
+		handler := s.HandlerForMsgType(pmes.Message.Type)
 		if handler == nil {
 			stream.Reset()
 			log.Debug("got back nil handler from handlerForMsgType")
@@ -141,7 +142,7 @@ func (s *TextileService) handleNewMessage(stream inet.Stream, incoming bool) {
 		// Dispatch handler
 		rpmes, err := handler(mPeer, pmes, nil)
 		if err != nil {
-			log.Debugf("%s handle message error: %s", pmes.Type.String(), err)
+			log.Debugf("%s handle message error: %s", pmes.Message.Type.String(), err)
 		}
 
 		// If nil response, return it before serializing
@@ -150,8 +151,8 @@ func (s *TextileService) handleNewMessage(stream inet.Stream, incoming bool) {
 		}
 
 		// give back request id
-		rpmes.RequestId = pmes.RequestId
-		rpmes.IsResponse = true
+		rpmes.Message.RequestId = pmes.Message.RequestId
+		rpmes.Message.IsResponse = true
 
 		// send out response msg
 		if err := ms.SendMessage(s.ctx, rpmes); err != nil {
@@ -162,8 +163,8 @@ func (s *TextileService) handleNewMessage(stream inet.Stream, incoming bool) {
 	}
 }
 
-func (s *TextileService) SendRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
-	log.Debugf("sending %s request to %s", pmes.Type.String(), p.Pretty())
+func (s *TextileService) SendRequest(ctx context.Context, p peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
+	log.Debugf("sending %s request to %s", pmes.Message.Type.String(), p.Pretty())
 	ms, err := s.messageSenderForPeer(p)
 	if err != nil {
 		return nil, err
@@ -184,8 +185,8 @@ func (s *TextileService) SendRequest(ctx context.Context, p peer.ID, pmes *pb.Me
 	return rpmes, nil
 }
 
-func (s *TextileService) SendMessage(ctx context.Context, p peer.ID, pmes *pb.Message) error {
-	log.Debugf("sending %s message to %s", pmes.Type.String(), p.Pretty())
+func (s *TextileService) SendMessage(ctx context.Context, p peer.ID, pmes *pb.Envelope) error {
+	log.Debugf("sending %s message to %s", pmes.Message.Type.String(), p.Pretty())
 	ms, err := s.messageSenderForPeer(p)
 	if err != nil {
 		return err
@@ -195,4 +196,21 @@ func (s *TextileService) SendMessage(ctx context.Context, p peer.ID, pmes *pb.Me
 		return err
 	}
 	return nil
+}
+
+func (s *TextileService) newEnvelope(message *pb.Message) (*pb.Envelope, error) {
+	// sign it
+	serialized, err := proto.Marshal(message)
+	if err != nil {
+		return nil, err
+	}
+	authorSig, err := s.node.PrivateKey.Sign(serialized)
+	if err != nil {
+		return nil, err
+	}
+	authorPk, err := s.node.PrivateKey.GetPublic().Bytes()
+	if err != nil {
+		return nil, err
+	}
+	return &pb.Envelope{Message: message, Pk: authorPk, Sig: authorSig}, nil
 }

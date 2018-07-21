@@ -7,11 +7,14 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
+	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/net"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/wallet/util"
 	"gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
+	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	"gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
@@ -27,6 +30,34 @@ const (
 
 var offlineMessageWaitGroup sync.WaitGroup
 
+func (w *Wallet) NewEnvelope(message *pb.Message) (*pb.Envelope, error) {
+	serialized, err := proto.Marshal(message)
+	if err != nil {
+		return nil, err
+	}
+	authorSig, err := w.ipfs.PrivateKey.Sign(serialized)
+	if err != nil {
+		return nil, err
+	}
+	authorPk, err := w.ipfs.PrivateKey.GetPublic().Bytes()
+	if err != nil {
+		return nil, err
+	}
+	return &pb.Envelope{Message: message, Pk: authorPk, Sig: authorSig}, nil
+}
+
+func (w *Wallet) VerifyEnvelope(env *pb.Envelope) error {
+	messageb, err := proto.Marshal(env.Message)
+	if err != nil {
+		return err
+	}
+	authorPk, err := libp2pc.UnmarshalPublicKey(env.Pk)
+	if err != nil {
+		return err
+	}
+	return crypto.Verify(authorPk, messageb, env.Sig)
+}
+
 func (w *Wallet) GetPeerStatus(peerId string) (string, error) {
 	pid, err := peer.IDB58Decode(peerId)
 	if err != nil {
@@ -35,14 +66,18 @@ func (w *Wallet) GetPeerStatus(peerId string) (string, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	message := pb.Message{Type: pb.Message_PING}
-	_, err = w.service.SendRequest(ctx, pid, &message)
+	env, err := w.NewEnvelope(&message)
+	if err != nil {
+		return "", err
+	}
+	_, err = w.service.SendRequest(ctx, pid, env)
 	if err != nil {
 		return "offline", nil
 	}
 	return "online", nil
 }
 
-func (w *Wallet) SendMessage(message *pb.Message, peerId string) error {
+func (w *Wallet) SendMessage(env *pb.Envelope, peerId string, hash *string) error {
 	pid, err := peer.IDB58Decode(peerId)
 	if err != nil {
 		return err
@@ -51,58 +86,52 @@ func (w *Wallet) SendMessage(message *pb.Message, peerId string) error {
 	defer cancel()
 	var success bool
 	go func() {
-		err = w.service.SendMessage(ctx, pid, message)
-		if err == nil {
+		err = w.service.SendMessage(ctx, pid, env)
+		if err != nil {
+			log.Errorf("error sending direct message to %s: %s", err)
+		} else {
 			success = true
 		}
 	}()
-	time.Sleep(time.Millisecond * 50)
-	if !success {
+	go func() {
 		time.Sleep(time.Second * 3)
 		if !success {
-			if err := w.sendOfflineMessage(message, pid); err != nil {
+			if err := w.sendOfflineMessage(env, pid, hash); err != nil {
 				log.Debugf("send offline message failed: %s", err)
 			}
 		}
-	}
+	}()
 	return nil
 }
 
-func (w *Wallet) sendOfflineMessage(message *pb.Message, pid peer.ID) error {
-	pubKeyBytes, err := w.ipfs.PrivateKey.GetPublic().Bytes()
+func (w *Wallet) sendOfflineMessage(env *pb.Envelope, pid peer.ID, hash *string) error {
+	serialized, err := proto.Marshal(env)
 	if err != nil {
 		return err
 	}
-	ser, err := proto.Marshal(message)
+
+	// if we've already computed the hash, taking that to mean it's already been stored
+	var addr ma.Multiaddr
+	if hash != nil {
+		addr, err = util.MultiaddrFromId(*hash)
+	} else {
+		addr, err = w.messageStorage.Store(serialized)
+	}
 	if err != nil {
 		return err
 	}
-	sig, err := w.ipfs.PrivateKey.Sign(ser)
+
+	// create a pointer for this peer
+	mh, err := multihash.FromB58String(pid.Pretty())
 	if err != nil {
 		return err
 	}
-	env := pb.Envelope{Message: message, Pk: pubKeyBytes, Sig: sig}
-	messageBytes, merr := proto.Marshal(&env)
-	if merr != nil {
-		return merr
-	}
-	ciphertext, cerr := w.encryptMessage(pid, messageBytes)
-	if cerr != nil {
-		return cerr
-	}
-	addr, aerr := w.messageStorage.Store(pid, ciphertext)
-	if aerr != nil {
-		return aerr
-	}
-	mh, mherr := multihash.FromB58String(pid.Pretty())
-	if mherr != nil {
-		return mherr
-	}
-	pointer, err := repo.NewPointer(mh, DefaultPointerPrefixLength, addr, ciphertext)
+	entropy := ksuid.New().Bytes()
+	pointer, err := repo.NewPointer(mh, DefaultPointerPrefixLength, addr, entropy)
 	if err != nil {
 		return err
 	}
-	if message.Type != pb.Message_OFFLINE_ACK {
+	if env.Message.Type != pb.Message_OFFLINE_ACK {
 		pointer.Purpose = repo.MESSAGE
 		pointer.CancelId = &pid
 		err = w.datastore.Pointers().Put(pointer)
@@ -112,7 +141,7 @@ func (w *Wallet) sendOfflineMessage(message *pb.Message, pid peer.ID) error {
 	}
 
 	log.Debugf("sending offline message to: %s, type: %s, pointer: %s, location: %s",
-		pid.Pretty(), message.Type.String(), pointer.Cid.String(), pointer.Value.Addrs[0].String())
+		pid.Pretty(), env.Message.Type.String(), pointer.Cid.String(), pointer.Value.Addrs[0].String())
 
 	offlineMessageWaitGroup.Add(1)
 	go func() {
@@ -133,11 +162,15 @@ func (w *Wallet) sendOfflineAck(peerId string, pointerID peer.ID) error {
 		Type:    pb.Message_OFFLINE_ACK,
 		Payload: payload,
 	}
-	return w.SendMessage(message, peerId)
+	env, err := w.NewEnvelope(message)
+	if err != nil {
+		return err
+	}
+	return w.SendMessage(env, peerId, nil)
 }
 
-func (w *Wallet) sendError(peerId string, k *libp2pc.PubKey, errorMessage pb.Message) error {
-	return w.SendMessage(&errorMessage, peerId)
+func (w *Wallet) sendError(peerId string, k *libp2pc.PubKey, errorMessage pb.Envelope) error {
+	return w.SendMessage(&errorMessage, peerId, nil)
 }
 
 func (w *Wallet) sendChat(peerId string, chatMessage *pb.Chat) error {
@@ -145,9 +178,13 @@ func (w *Wallet) sendChat(peerId string, chatMessage *pb.Chat) error {
 	if err != nil {
 		return err
 	}
-	message := pb.Message{
+	message := &pb.Message{
 		Type:    pb.Message_CHAT,
 		Payload: oayload,
+	}
+	env, err := w.NewEnvelope(message)
+	if err != nil {
+		return err
 	}
 
 	pid, err := peer.IDB58Decode(peerId)
@@ -156,9 +193,9 @@ func (w *Wallet) sendChat(peerId string, chatMessage *pb.Chat) error {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	err = w.service.SendMessage(ctx, pid, &message)
+	err = w.service.SendMessage(ctx, pid, env)
 	if err != nil && chatMessage.Flag != pb.Chat_TYPING {
-		if err := w.sendOfflineMessage(&message, pid); err != nil {
+		if err := w.sendOfflineMessage(env, pid, nil); err != nil {
 			return err
 		}
 	}
@@ -178,32 +215,36 @@ func (w *Wallet) sendStore(peerId string, ids []cid.Cid) error {
 		return err
 	}
 
-	message := pb.Message{
+	message := &pb.Message{
 		Type:    pb.Message_STORE,
 		Payload: payload,
+	}
+	env, err := w.NewEnvelope(message)
+	if err != nil {
+		return err
 	}
 
 	pid, err := peer.IDB58Decode(peerId)
 	if err != nil {
 		return err
 	}
-	pmes, err := w.service.SendRequest(context.Background(), pid, &message)
+	pmes, err := w.service.SendRequest(context.Background(), pid, env)
 	if err != nil {
 		return err
 	}
 	// TODO: need to disconnect here?
 	// defer w.service.DisconnectFromPeer(pid)
-	if pmes.Payload == nil {
+	if pmes.Message.Payload == nil {
 		return errors.New("peer responded with nil payload")
 	}
-	if pmes.Type == pb.Message_ERROR {
-		err = fmt.Errorf("error response from %s: %s", peerId, string(pmes.Payload.Value))
+	if pmes.Message.Type == pb.Message_ERROR {
+		err = fmt.Errorf("error response from %s: %s", peerId, string(pmes.Message.Payload.Value))
 		log.Errorf(err.Error())
 		return err
 	}
 
 	resp := new(pb.CidList)
-	err = ptypes.UnmarshalAny(pmes.Payload, resp)
+	err = ptypes.UnmarshalAny(pmes.Message.Payload, resp)
 	if err != nil {
 		return err
 	}
@@ -238,16 +279,20 @@ func (w *Wallet) sendBlock(peerId string, id cid.Cid) error {
 	if err != nil {
 		return err
 	}
-	message := pb.Message{
+	message := &pb.Message{
 		Type:    pb.Message_BLOCK,
 		Payload: payload,
+	}
+	env, err := w.NewEnvelope(message)
+	if err != nil {
+		return err
 	}
 
 	pid, err := peer.IDB58Decode(peerId)
 	if err != nil {
 		return err
 	}
-	return w.service.SendMessage(context.Background(), pid, &message)
+	return w.service.SendMessage(context.Background(), pid, env)
 }
 
 func (w *Wallet) encryptMessage(pid peer.ID, message []byte) (ct []byte, rerr error) {

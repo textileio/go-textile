@@ -1,13 +1,13 @@
 package storage
 
 import (
+	"bytes"
 	"context"
 	"github.com/textileio/textile-go/wallet/util"
 	routing "gx/ipfs/QmVW4cqbibru3hXA1iRmg85Fk7z9qML9k176CYQaMXVCrP/go-libp2p-kad-dht"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
-	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"sync"
 	"time"
@@ -27,19 +27,10 @@ func NewSelfHostedStorage(ipfs *core.IpfsNode, repoPath string, store func(peerI
 	}
 }
 
-func (s *SelfHostedStorage) Store(peerID peer.ID, ciphertext []byte) (ma.Multiaddr, error) {
-	// create a virtual directory for the message
-	dirb := uio.NewDirectory(s.ipfs.DAG)
-	if err := util.AddFileToDirectory(s.ipfs, dirb, ciphertext, "msg"); err != nil {
-		return nil, err
-	}
-
-	// pin the directory
-	dir, err := dirb.GetNode()
+func (s *SelfHostedStorage) Store(ciphertext []byte) (ma.Multiaddr, error) {
+	// pin the message
+	id, err := util.PinData(s.ipfs, bytes.NewReader(ciphertext))
 	if err != nil {
-		return nil, err
-	}
-	if err := util.PinDirectory(s.ipfs, dir, []string{}); err != nil {
 		return nil, err
 	}
 
@@ -47,7 +38,7 @@ func (s *SelfHostedStorage) Store(peerID peer.ID, ciphertext []byte) (ma.Multiad
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	dht := s.ipfs.Routing.(*routing.IpfsDHT)
-	peers, err := dht.GetClosestPeers(ctx, dir.Cid().KeyString())
+	peers, err := dht.GetClosestPeers(ctx, id.KeyString())
 	if err != nil {
 		return nil, err
 	}
@@ -56,10 +47,10 @@ func (s *SelfHostedStorage) Store(peerID peer.ID, ciphertext []byte) (ma.Multiad
 		wg.Add(1)
 		go func(pid peer.ID) {
 			defer wg.Done()
-			s.store(pid.Pretty(), []cid.Cid{*dir.Cid()})
+			s.store(pid.Pretty(), []cid.Cid{*id})
 		}(p)
 	}
 	wg.Wait()
 
-	return ma.NewMultiaddr("/ipfs/" + dir.Cid().Hash().B58String() + "/")
+	return util.MultiaddrFromId(id.Hash().B58String())
 }

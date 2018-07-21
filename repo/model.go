@@ -27,7 +27,7 @@ type Block struct {
 	Id       string    `json:"id"`
 	Date     time.Time `json:"date"`
 	Parents  []string  `json:"parents"`
-	ThreadId string    `json:"thread_pk"`
+	ThreadId string    `json:"thread_id"`
 	AuthorPk string    `json:"author_pk"`
 	Type     BlockType `json:"type"`
 
@@ -37,8 +37,8 @@ type Block struct {
 }
 
 type DataBlockConfig struct {
-	DataId            string `json:"target"`
-	DataKeyCipher     []byte `json:"target_key_cipher"`
+	DataId            string `json:"data_id"`
+	DataKeyCipher     []byte `json:"data_key_cipher"`
 	DataCaptionCipher []byte `json:"data_caption_cipher"`
 }
 

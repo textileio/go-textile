@@ -129,12 +129,23 @@ func (w *Wallet) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
 	if err != nil {
 		return nil, err
 	}
-	message := new(pb.Message)
-	if err := proto.Unmarshal(messageb, message); err != nil {
+	env := new(pb.Envelope)
+	if err := proto.Unmarshal(messageb, env); err != nil {
 		return nil, err
 	}
+
+	// verify author sig
+	authorPk, err := libp2pc.UnmarshalPublicKey(env.Pk)
+	if err != nil {
+		return nil, err
+	}
+	if err := w.VerifyEnvelope(env); err != nil {
+		return nil, err
+	}
+
+	// unpack invite
 	signed := new(pb.SignedThreadBlock)
-	if err := ptypes.UnmarshalAny(message.Payload, signed); err != nil {
+	if err := ptypes.UnmarshalAny(env.Message.Payload, signed); err != nil {
 		return nil, err
 	}
 	invite := new(pb.ThreadInvite)
@@ -145,15 +156,6 @@ func (w *Wallet) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
 	// verify invitee
 	if invite.InviteeId != w.ipfs.Identity.Pretty() {
 		return nil, errors.New("invalid invitee")
-	}
-
-	// verify author sig
-	authorPk, err := libp2pc.UnmarshalPublicKey(invite.Header.AuthorPk)
-	if err != nil {
-		return nil, err
-	}
-	if err := crypto.Verify(authorPk, signed.Block, signed.AuthorSig); err != nil {
-		return nil, err
 	}
 
 	// decrypt thread key with private key
@@ -181,6 +183,11 @@ func (w *Wallet) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
 		return nil, err
 	}
 
+	// back prop
+	if err := thrd.FollowParents(invite.Header.Parents); err != nil {
+		return nil, err
+	}
+
 	return thrd.Join(authorPk, blockId)
 }
 
@@ -192,29 +199,31 @@ func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte) (mh.Mult
 	}
 
 	// download
-	messageb, err := util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s", blockId))
+	envb, err := util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s", blockId))
 	if err != nil {
 		return nil, err
 	}
-	message := new(pb.Message)
-	if err := proto.Unmarshal(messageb, message); err != nil {
-		return nil, err
-	}
-	signed := new(pb.SignedThreadBlock)
-	if err := ptypes.UnmarshalAny(message.Payload, signed); err != nil {
-		return nil, err
-	}
-	invite := new(pb.ThreadExternalInvite)
-	if err := proto.Unmarshal(signed.Block, invite); err != nil {
+	env := new(pb.Envelope)
+	if err := proto.Unmarshal(envb, env); err != nil {
 		return nil, err
 	}
 
 	// verify author sig
-	authorPk, err := libp2pc.UnmarshalPublicKey(invite.Header.AuthorPk)
+	authorPk, err := libp2pc.UnmarshalPublicKey(env.Pk)
 	if err != nil {
 		return nil, err
 	}
-	if err := crypto.Verify(authorPk, signed.Block, signed.AuthorSig); err != nil {
+	if err := w.VerifyEnvelope(env); err != nil {
+		return nil, err
+	}
+
+	// unpack invite
+	signed := new(pb.SignedThreadBlock)
+	if err := ptypes.UnmarshalAny(env.Message.Payload, signed); err != nil {
+		return nil, err
+	}
+	invite := new(pb.ThreadExternalInvite)
+	if err := proto.Unmarshal(signed.Block, invite); err != nil {
 		return nil, err
 	}
 
@@ -236,6 +245,11 @@ func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte) (mh.Mult
 	// add it
 	thrd, err := w.AddThread(invite.SuggestedName, sk)
 	if err != nil {
+		return nil, err
+	}
+
+	// back prop
+	if err := thrd.FollowParents(invite.Header.Parents); err != nil {
 		return nil, err
 	}
 
