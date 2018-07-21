@@ -108,6 +108,11 @@ func NewWallet(config Config) (*Wallet, string, error) {
 		return nil, "", err
 	}
 
+	// ensure bootstrap addresses are latest in config (without wiping repo)
+	if err := ensureBootstrapConfig(repo); err != nil {
+		return nil, "", err
+	}
+
 	// if a specific swarm port was selected, set it in the config
 	if err := applySwarmPortConfigOption(repo, config.SwarmPort); err != nil {
 		return nil, "", err
