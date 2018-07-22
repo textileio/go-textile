@@ -3,7 +3,6 @@ package wallet
 import (
 	"errors"
 	"fmt"
-	ccafe "github.com/textileio/textile-go/cafe"
 	cmodels "github.com/textileio/textile-go/cafe/models"
 	"github.com/textileio/textile-go/core/cafe"
 )
@@ -126,12 +125,4 @@ func (w *Wallet) GetAccessToken() (string, error) {
 		return "", err
 	}
 	return at, nil
-}
-
-// GetCafeAddr returns the cafe address is set
-func (w *Wallet) GetCafeAddr() string {
-	if w.cafeAddr == "" {
-		return ""
-	}
-	return fmt.Sprintf("%s/api/%s", w.cafeAddr, ccafe.Version)
 }

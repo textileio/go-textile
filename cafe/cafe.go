@@ -48,10 +48,11 @@ func (c *Cafe) Start(addr string) {
 	{
 		v0.PUT("/users", c.signUp)
 		v0.POST("/users", c.signIn)
-		//v0.POST("/pin", c.pin)
 
 		v0.POST("/referrals", c.createReferral)
 		v0.GET("/referrals", c.listReferrals)
+
+		v0.POST("/pin", c.pin)
 	}
 	c.server = &http.Server{
 		Addr:    addr,
