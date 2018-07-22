@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/op/go-logging"
+	"github.com/textileio/textile-go/cafe"
 	"github.com/textileio/textile-go/net"
 	serv "github.com/textileio/textile-go/net/service"
 	trepo "github.com/textileio/textile-go/repo"
@@ -193,18 +194,20 @@ func (w *Wallet) Start() (chan struct{}, error) {
 	}()
 
 	// build a pin requester
-	pinnerCfg := net.PinnerConfig{
-		Datastore: w.datastore,
-		Ipfs: func() *core.IpfsNode {
-			return w.ipfs
-		},
-		Api: fmt.Sprintf("%s/add", w.GetCafeAddr()),
-	}
-	w.pinner = net.NewPinner(pinnerCfg)
+	if w.GetCafeAddr() != "" {
+		pinnerCfg := net.PinnerConfig{
+			Datastore: w.datastore,
+			Ipfs: func() *core.IpfsNode {
+				return w.ipfs
+			},
+			Api: fmt.Sprintf("%s/pin", w.GetCafeAddr()),
+		}
+		w.pinner = net.NewPinner(pinnerCfg)
 
-	// start ticker job if not mobile
-	if !w.isMobile {
-		go w.pinner.Run()
+		// start ticker job if not mobile
+		if !w.isMobile {
+			go w.pinner.Run()
+		}
 	}
 
 	// setup threads
@@ -299,6 +302,9 @@ func (w *Wallet) RefreshMessages() error {
 }
 
 func (w *Wallet) RunPinner() {
+	if w.pinner == nil {
+		return
+	}
 	go w.pinner.Pin()
 }
 
@@ -312,6 +318,14 @@ func (w *Wallet) Done() <-chan struct{} {
 
 func (w *Wallet) GetRepoPath() string {
 	return w.repoPath
+}
+
+// GetCafeAddr returns the cafe address is set
+func (w *Wallet) GetCafeAddr() string {
+	if w.cafeAddr == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s/api/%s", w.cafeAddr, cafe.Version)
 }
 
 // GetId returns peer id
@@ -508,7 +522,7 @@ func (w *Wallet) loadThread(mod *trepo.Thread) (*thread.Thread, error) {
 		Send:        w.SendMessage,
 		NewEnvelope: w.NewEnvelope,
 		PutPinRequest: func(id string) error {
-			if !w.isMobile {
+			if w.pinner != nil {
 				return nil
 			}
 			return w.pinner.Put(id)
