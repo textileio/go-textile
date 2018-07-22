@@ -522,7 +522,7 @@ func (w *Wallet) loadThread(mod *trepo.Thread) (*thread.Thread, error) {
 		Send:        w.SendMessage,
 		NewEnvelope: w.NewEnvelope,
 		PutPinRequest: func(id string) error {
-			if w.pinner != nil {
+			if w.pinner == nil {
 				return nil
 			}
 			return w.pinner.Put(id)
