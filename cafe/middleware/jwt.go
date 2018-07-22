@@ -8,7 +8,7 @@ import (
 
 func Auth(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if c.Request.URL.Path == "/api/v1/users" || c.Request.URL.Path == "/api/v1/referrals" {
+		if c.Request.URL.Path == "/api/v0/users" || c.Request.URL.Path == "/api/v0/referrals" {
 			return
 		}
 		_, err := request.ParseFromRequest(c.Request, request.OAuth2Extractor, func(token *jwt.Token) (interface{}, error) {

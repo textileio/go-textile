@@ -1,14 +1,65 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/textileio/textile-go/crypto"
+	"net/http"
 	"strings"
 )
 
-// gateway handles gateway http requests
-func gateway(c *gin.Context) {
+// StartGateway starts the gateway
+func (t *TextileNode) StartGateway(addr string) {
+	// setup router
+	router := gin.Default()
+	router.GET("/ipfs/:cid/:path", gatewayHandler)
+	t.gateway = &http.Server{
+		Addr:    addr,
+		Handler: router,
+	}
+
+	// start listening
+	errc := make(chan error)
+	go func() {
+		errc <- t.gateway.ListenAndServe()
+		close(errc)
+	}()
+	go func() {
+		for {
+			select {
+			case err, ok := <-errc:
+				if err != nil && err != http.ErrServerClosed {
+					log.Errorf("gateway error: %s", err)
+				}
+				if !ok {
+					log.Info("gateway was shutdown")
+					return
+				}
+			}
+		}
+	}()
+	log.Infof("gateway listening at %s\n", t.gateway.Addr)
+}
+
+// StopGateway stops the gateway
+func (t *TextileNode) StopGateway() error {
+	ctx, cancel := context.WithCancel(context.Background())
+	if err := t.gateway.Shutdown(ctx); err != nil {
+		log.Errorf("error shutting down gateway: %s", err)
+		return err
+	}
+	cancel()
+	return nil
+}
+
+// GetGatewayAddr returns the gateway's address
+func (t *TextileNode) GetGatewayAddr() string {
+	return t.gateway.Addr
+}
+
+// gatewayHandler handles gateway http requests
+func gatewayHandler(c *gin.Context) {
 	path, contentType := parsePath(c.Param("path"))
 	contentPath := fmt.Sprintf("%s/%s", c.Param("cid"), path)
 
@@ -60,11 +111,6 @@ func gateway(c *gin.Context) {
 
 	// lastly, just return the raw bytes (standard gateway)
 	c.Data(200, contentType, data)
-}
-
-// pin handles pin http requests
-func pin(c *gin.Context) {
-	c.Status(200)
 }
 
 func parsePath(path string) (parsed string, contentType string) {

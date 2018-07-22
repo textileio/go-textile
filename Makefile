@@ -1,9 +1,13 @@
+goinstall:
+	go build -i -o textile textile.go
+	mv textile $(GOPATH)/bin/
+
 build:
 	./build.sh
 
 linux_binary:
 	./build.sh linux/amd64
-	# cd dist && tar -czvf textile-go-linux-amd64.tar.gz textile-go-linux-amd64 && cd ..
+	cd dist && tar -czvf textile-go-linux-amd64.tar.gz textile-go-linux-amd64 && cd ..
 
 build_desktop:
 	$(MAKE) -C ./desktop build

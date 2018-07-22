@@ -1,11 +1,10 @@
-package controllers
+package cafe
 
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
 	"github.com/nbutton23/zxcvbn-go"
-	"github.com/textileio/textile-go/cafe/auth"
 	"github.com/textileio/textile-go/cafe/dao"
 	"github.com/textileio/textile-go/cafe/models"
 	"golang.org/x/crypto/bcrypt"
@@ -18,17 +17,17 @@ var usernameRx = regexp.MustCompile(`^[a-zA-Z0-9_][a-zA-Z0-9._]+[a-zA-Z0-9_]$`)
 var emailRx = regexp.MustCompile(`^[^@^\s]+@[^@^\s]+$`)
 var numbersOnlyRx = regexp.MustCompile(`[^+^0-9]+`)
 
-func SignUp(c *gin.Context) {
+func (c *Cafe) signUp(g *gin.Context) {
 	var reg models.Registration
-	if err := c.BindJSON(&reg); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := g.BindJSON(&reg); err != nil {
+		g.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// lookup the referral code
 	ref, err := dao.Dao.FindReferralByCode(reg.Referral)
 	if err != nil || ref.Remaining == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "invalid or used referral code"})
+		g.JSON(http.StatusNotFound, gin.H{"error": "invalid or used referral code"})
 		return
 	}
 
@@ -39,7 +38,7 @@ func SignUp(c *gin.Context) {
 	// - max 30 characters (twitter is 15, instagram is 30)
 	valid := usernameRx.Match([]byte(reg.Username))
 	if !valid || len(reg.Username) > 30 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid username"})
+		g.JSON(http.StatusBadRequest, gin.H{"error": "invalid username"})
 		return
 	}
 
@@ -49,7 +48,7 @@ func SignUp(c *gin.Context) {
 		// - make sure there's at least one "@"
 		valid = emailRx.Match([]byte(reg.Identity.Value))
 		if !valid {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email address"})
+			g.JSON(http.StatusBadRequest, gin.H{"error": "invalid email address"})
 			return
 		}
 	}
@@ -61,7 +60,7 @@ func SignUp(c *gin.Context) {
 		// - make sure its not zero-length
 		cleaned := numbersOnlyRx.ReplaceAllString(reg.Identity.Value, "")
 		if len(cleaned) == 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid phone number"})
+			g.JSON(http.StatusBadRequest, gin.H{"error": "invalid phone number"})
 			return
 		}
 		reg.Identity.Value = cleaned
@@ -71,14 +70,14 @@ func SignUp(c *gin.Context) {
 	match := zxcvbn.PasswordStrength(reg.Password, []string{reg.Identity.Value})
 	if match.Score < 2 {
 		msg := fmt.Sprintf("weak password - crackable in %s", match.CrackTimeDisplay)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		g.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
 
 	// hash password
 	password, err := hashAndSalt(reg.Password)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		g.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -94,60 +93,60 @@ func SignUp(c *gin.Context) {
 		Identities: []models.Identity{*reg.Identity},
 	}
 	if err := dao.Dao.InsertUser(user); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	// get a session
-	session, err := auth.NewSession(user.ID.Hex())
+	session, err := NewSession(user.ID.Hex(), c.TokenSecret, c.Ipfs().Identity.Pretty())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	// lastly, mark the code as used
 	ref.Remaining = ref.Remaining - 1
 	if err := dao.Dao.UpdateReferral(ref); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	// ship it
-	c.JSON(http.StatusCreated, models.Response{
+	g.JSON(http.StatusCreated, models.Response{
 		Status:  http.StatusCreated,
 		Session: session,
 	})
 }
 
-func SignIn(c *gin.Context) {
+func (c *Cafe) signIn(g *gin.Context) {
 	var creds models.Credentials
-	if err := c.BindJSON(&creds); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := g.BindJSON(&creds); err != nil {
+		g.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// lookup username
 	user, err := dao.Dao.FindUserByUsername(creds.Username)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		g.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
 	// check password
 	if !checkPassword(user.Password, creds.Password) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		g.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
 
 	// get a session
-	session, err := auth.NewSession(user.ID.Hex())
+	session, err := NewSession(user.ID.Hex(), c.TokenSecret, c.Ipfs().Identity.Pretty())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	// ship it
-	c.JSON(http.StatusOK, models.Response{
+	g.JSON(http.StatusOK, models.Response{
 		Status:  http.StatusOK,
 		Session: session,
 	})

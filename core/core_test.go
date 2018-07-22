@@ -1,9 +1,10 @@
 package core_test
 
 import (
+	"fmt"
 	"github.com/op/go-logging"
 	. "github.com/textileio/textile-go/core"
-	util "github.com/textileio/textile-go/util/testing"
+	"github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/wallet"
 	"os"
 	"testing"
@@ -15,17 +16,16 @@ var node *TextileNode
 
 func TestNewNode(t *testing.T) {
 	os.RemoveAll(repo)
-	config := NodeConfig{
+	cfg := NodeConfig{
 		LogLevel: logging.DEBUG,
 		LogFiles: false,
 		WalletConfig: wallet.Config{
-			RepoPath:   repo,
-			CentralAPI: util.CentralApiURL,
-			IsMobile:   false,
+			RepoPath: repo,
+			IsMobile: false,
 		},
 	}
 	var err error
-	node, _, err = NewNode(config)
+	node, _, err = NewNode(cfg)
 	if err != nil {
 		t.Errorf("create node failed: %s", err)
 	}
@@ -47,16 +47,16 @@ func TestTextileNode_StartAgain(t *testing.T) {
 }
 
 func TestTextileNode_StartServer(t *testing.T) {
-	node.StartGateway()
+	node.StartGateway(fmt.Sprintf("127.0.0.1:%d", config.GetRandomPort()))
 }
 
-func TestTextileNode_GetServerAddress(t *testing.T) {
-	if len(node.GetGatewayAddress()) == 0 {
+func TestTextileNode_GetGatewayAddr(t *testing.T) {
+	if len(node.GetGatewayAddr()) == 0 {
 		t.Error("get server address failed")
 	}
 }
 
-func TestTextileNode_StopServer(t *testing.T) {
+func TestTextileNode_StopGateway(t *testing.T) {
 	err := node.StopGateway()
 	if err != nil {
 		t.Errorf("stop server failed: %s", err)

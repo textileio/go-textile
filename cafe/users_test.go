@@ -1,4 +1,4 @@
-package controllers_test
+package cafe
 
 import (
 	"fmt"
@@ -24,9 +24,14 @@ var credentials = map[string]interface{}{
 
 func TestUsers_Setup(t *testing.T) {
 	// create a referral for the test
-	_, ref, err := util.CreateReferral(util.RefKey, 1, 1, "TestUsers_Setup")
+	stat, ref, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "TestUsers_Setup")
 	if err != nil {
 		t.Error(err)
+		return
+	}
+	if stat != 201 {
+		t.Errorf("could not create referral, bad status: %d", stat)
+		return
 	}
 	if len(ref.RefCodes) > 0 {
 		refCode = ref.RefCodes[0]

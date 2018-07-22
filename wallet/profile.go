@@ -3,19 +3,23 @@ package wallet
 import (
 	"errors"
 	"fmt"
+	ccafe "github.com/textileio/textile-go/cafe"
 	cmodels "github.com/textileio/textile-go/cafe/models"
-	"github.com/textileio/textile-go/core/central"
+	"github.com/textileio/textile-go/core/cafe"
 )
 
 // SignUp requests a new username and token from the central api and saves them locally
 func (w *Wallet) SignUp(reg *cmodels.Registration) error {
+	if w.cafeAddr == "" {
+		return ErrNoCafeHost
+	}
 	if err := w.touchDatastore(); err != nil {
 		return err
 	}
 	log.Debugf("signup: %s %s %s %s %s", reg.Username, "xxxxxx", reg.Identity.Type, reg.Identity.Value, reg.Referral)
 
 	// remote signup
-	res, err := central.SignUp(reg, w.GetCentralUserAPI())
+	res, err := client.SignUp(reg, fmt.Sprintf("%s/users", w.GetCafeAddr()))
 	if err != nil {
 		log.Errorf("signup error: %s", err)
 		return err
@@ -38,13 +42,16 @@ func (w *Wallet) SignUp(reg *cmodels.Registration) error {
 
 // SignIn requests a token with a username from the central api and saves them locally
 func (w *Wallet) SignIn(creds *cmodels.Credentials) error {
+	if w.cafeAddr == "" {
+		return ErrNoCafeHost
+	}
 	if err := w.touchDatastore(); err != nil {
 		return err
 	}
 	log.Debugf("signin: %s %s", creds.Username, "xxxxxx")
 
 	// remote signin
-	res, err := central.SignIn(creds, w.GetCentralUserAPI())
+	res, err := client.SignIn(creds, fmt.Sprintf("%s/users", w.GetCafeAddr()))
 	if err != nil {
 		log.Errorf("signin error: %s", err)
 		return err
@@ -67,6 +74,9 @@ func (w *Wallet) SignIn(creds *cmodels.Credentials) error {
 
 // SignOut deletes the locally saved user info (username and tokens)
 func (w *Wallet) SignOut() error {
+	if w.cafeAddr == "" {
+		return ErrNoCafeHost
+	}
 	if err := w.touchDatastore(); err != nil {
 		return err
 	}
@@ -82,6 +92,9 @@ func (w *Wallet) SignOut() error {
 
 // IsSignedIn returns whether or not a user is signed in
 func (w *Wallet) IsSignedIn() (bool, error) {
+	if w.cafeAddr == "" {
+		return false, ErrNoCafeHost
+	}
 	if err := w.touchDatastore(); err != nil {
 		return false, err
 	}
@@ -91,6 +104,9 @@ func (w *Wallet) IsSignedIn() (bool, error) {
 
 // GetUsername returns the current user's username
 func (w *Wallet) GetUsername() (string, error) {
+	if w.cafeAddr == "" {
+		return "", ErrNoCafeHost
+	}
 	if err := w.touchDatastore(); err != nil {
 		return "", err
 	}
@@ -99,6 +115,9 @@ func (w *Wallet) GetUsername() (string, error) {
 
 // GetAccessToken returns the current access_token (jwt) for central
 func (w *Wallet) GetAccessToken() (string, error) {
+	if w.cafeAddr == "" {
+		return "", ErrNoCafeHost
+	}
 	if err := w.touchDatastore(); err != nil {
 		return "", err
 	}
@@ -109,10 +128,10 @@ func (w *Wallet) GetAccessToken() (string, error) {
 	return at, nil
 }
 
-func (w *Wallet) GetCentralAPI() string {
-	return w.centralAPI
-}
-
-func (w *Wallet) GetCentralUserAPI() string {
-	return fmt.Sprintf("%s/api/v1/users", w.centralAPI)
+// GetCafeAddr returns the cafe address is set
+func (w *Wallet) GetCafeAddr() string {
+	if w.cafeAddr == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s/api/%s", w.cafeAddr, ccafe.Version)
 }

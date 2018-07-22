@@ -2,8 +2,8 @@
 
 set -e
 pwd
-go test -coverprofile=central.dao.cover.out ./central/dao
-go test -coverprofile=central.controllers.cover.out ./central/controllers
+go test -coverprofile=cafe.dao.cover.out ./cafe/dao
+go test -coverprofile=cafe.cover.out ./cafe
 go test -coverprofile=core.cover.out ./core
 go test -coverprofile=wallet.cover.out ./wallet
 go test -coverprofile=wallet.util.cover.out ./wallet/util

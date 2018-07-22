@@ -40,10 +40,10 @@ type Messenger interface {
 // NodeConfig is used to configure the mobile node
 // NOTE: logLevel is one of: CRITICAL ERROR WARNING NOTICE INFO DEBUG
 type NodeConfig struct {
-	RepoPath      string
-	CentralApiURL string
-	LogLevel      string
-	LogFiles      bool
+	RepoPath string
+	CafeAddr string
+	LogLevel string
+	LogFiles bool
 }
 
 // Mobile is the name of the framework (must match package name)
@@ -113,9 +113,9 @@ func NewNode(config *NodeConfig, messenger Messenger) (*Mobile, error) {
 		LogLevel: ll,
 		LogFiles: config.LogFiles,
 		WalletConfig: wallet.Config{
-			RepoPath:   config.RepoPath,
-			CentralAPI: config.CentralApiURL,
-			IsMobile:   true,
+			RepoPath: config.RepoPath,
+			IsMobile: true,
+			CafeAddr: config.CafeAddr,
 		},
 	}
 	node, mnemonic, err := tcore.NewNode(cconfig)

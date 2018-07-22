@@ -7,25 +7,54 @@ import (
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
 	"github.com/op/go-logging"
+	"github.com/textileio/textile-go/cafe"
+	"github.com/textileio/textile-go/cafe/dao"
 	"github.com/textileio/textile-go/cmd"
 	"github.com/textileio/textile-go/core"
+	rconfig "github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/wallet"
 	"github.com/textileio/textile-go/wallet/thread"
 	"gopkg.in/abiosoft/ishell.v2"
+	icore "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
+	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
 type Opts struct {
-	DataDir    string `short:"d" long:"datadir" description:"specify the data directory to be used"`
-	DaemonMode bool   `short:"m" long:"daemon" description:"start in a non-interactive daemon mode"`
-	ServerMode bool   `short:"s" long:"server" description:"start in server mode"`
-	LogLevel   string `short:"l" long:"loglevel" description:"set the logging level [debug, info, notice, warning, error, critical]" default:"debug"`
-	NoLogFiles bool   `short:"n" long:"nologfiles" description:"do not save logs on disk"`
-	Version    bool   `short:"v" long:"version" description:"print the version number and exit"`
-	ApiPort    string `short:"p" long:"apiport" description:"set the api port (daemon only)" default:"3000"`
+	Version bool `short:"v" long:"version" description:"print the version number and exit"`
+
+	// repo location
+	DataDir string `short:"r" long:"data-dir" description:"specify the data directory to be used"`
+
+	// logging options
+	LogLevel   string `short:"l" long:"log-level" description:"set the logging level [debug, info, notice, warning, error, critical]" default:"debug"`
+	NoLogFiles bool   `short:"n" long:"no-log-files" description:"do not save logs on disk"`
+
+	// modes
+	DaemonMode bool `short:"d" long:"daemon" description:"start in a non-interactive daemon mode"`
+	ServerMode bool `short:"s" long:"server" description:"start in server mode"`
+
+	// gateway settings
+	GatewayBindAddr string `short:"g" long:"gateway-bind-addr" description:"set the gateway address" default:"127.0.0.1:random"`
+
+	// cafe client settings
+	CafeAddr string `short:"c" long:"cafe" description:"cafe host address"`
+
+	// cafe host settings
+	CafeBindAddr string `long:"cafe-bind-addr" description:"set the cafe address" default:"127.0.0.1:random"`
+
+	CafeDBHosts    string `long:"cafe-db-hosts" description:"set the cafe mongo db hosts uri"`
+	CafeDBName     string `long:"cafe-db-name" description:"set the cafe mongo db name"`
+	CafeDBUser     string `long:"cafe-db-user" description:"set the cafe mongo db user"`
+	CafeDBPassword string `long:"cafe-db-password" description:"set the cafe mongo db user password"`
+	CafeDBTLS      bool   `long:"cafe-db-tls" description:"use TLS for the cafe mongo db connection"`
+
+	CafeTokenSecret string `long:"cafe-token-secret" description:"set the cafe token secret"`
+	CafeReferralKey string `long:"cafe-referral-key" description:"set the cafe referral key"`
 }
 
 var Options Opts
@@ -61,7 +90,6 @@ func main() {
 			fmt.Println(fmt.Errorf("create repo directory failed: %s", err.Error()))
 			return
 		}
-
 		dataDir = filepath.Join(appDir, "repo")
 	}
 
@@ -72,23 +100,43 @@ func main() {
 		return
 	}
 
-	// create and start a desktop textile node
+	// node setup
 	config := core.NodeConfig{
+		WalletConfig: wallet.Config{
+			RepoPath: dataDir,
+			IsMobile: false,
+			IsServer: Options.ServerMode,
+			CafeAddr: Options.CafeAddr,
+		},
 		LogLevel: level,
 		LogFiles: !Options.NoLogFiles,
-		WalletConfig: wallet.Config{
-			RepoPath:   dataDir,
-			CentralAPI: "https://api.textile.io",
-			IsMobile:   false,
-			IsServer:   Options.ServerMode,
-		},
 	}
+
+	// create a desktop node
 	node, _, err := core.NewNode(config)
 	if err != nil {
 		fmt.Println(fmt.Errorf("create desktop node failed: %s", err))
 		return
 	}
 	core.Node = node
+
+	// check cafe mode
+	if Options.CafeBindAddr != "" {
+		cafe.Host = &cafe.Cafe{
+			Ipfs: func() *icore.IpfsNode {
+				return core.Node.Wallet.Ipfs()
+			},
+			Dao: &dao.DAO{
+				Hosts:    Options.CafeDBHosts,
+				Name:     Options.CafeDBName,
+				User:     Options.CafeDBUser,
+				Password: Options.CafeDBPassword,
+				TLS:      Options.CafeDBTLS,
+			},
+			TokenSecret: Options.CafeTokenSecret,
+			ReferralKey: Options.CafeReferralKey,
+		}
+	}
 
 	// auto start it
 	if err := start(); err != nil {
@@ -372,9 +420,13 @@ func start() error {
 		}
 	}()
 
-	// start the servers
-	core.Node.StartGateway()
-	core.Node.StartAPI()
+	// start the gateway
+	core.Node.StartGateway(resolveAddress(Options.GatewayBindAddr))
+
+	// start cafe server
+	if Options.CafeBindAddr != "" {
+		cafe.Host.Start(resolveAddress(Options.CafeBindAddr))
+	}
 
 	return nil
 }
@@ -383,8 +435,10 @@ func stop() error {
 	if err := core.Node.StopGateway(); err != nil {
 		return err
 	}
-	if err := core.Node.StopAPI(); err != nil {
-		return err
+	if Options.CafeBindAddr != "" {
+		if err := cafe.Host.Stop(); err != nil {
+			return err
+		}
 	}
 	return core.Node.StopWallet()
 }
@@ -392,10 +446,19 @@ func stop() error {
 func printSplashScreen() {
 	cyan := color.New(color.FgCyan).SprintFunc()
 	green := color.New(color.FgHiGreen).SprintFunc()
+	yellow := color.New(color.FgHiYellow).SprintFunc()
+	blue := color.New(color.FgHiBlue).SprintFunc()
 	grey := color.New(color.FgHiBlack).SprintFunc()
 	fmt.Println(cyan("Textile"))
-	fmt.Println(grey("version: ") + green(core.Version))
-	fmt.Println(grey("repo: ") + green(core.Node.Wallet.GetRepoPath()))
+	fmt.Println(grey("version: ") + blue(core.Version))
+	fmt.Println(grey("repo: ") + blue(core.Node.Wallet.GetRepoPath()))
+	fmt.Println(grey("gateway: ") + yellow(core.Node.GetGatewayAddr()))
+	if Options.CafeBindAddr != "" {
+		fmt.Println(grey("cafe: ") + yellow(Options.CafeBindAddr))
+	}
+	if Options.CafeAddr != "" {
+		fmt.Println(grey("cafe address: ") + yellow(core.Node.Wallet.GetCafeAddr()))
+	}
 	if Options.ServerMode {
 		fmt.Println(grey("server mode: ") + green("enabled"))
 	}
@@ -404,4 +467,16 @@ func printSplashScreen() {
 	} else {
 		fmt.Println(grey("type 'help' for available commands"))
 	}
+}
+
+func resolveAddress(addr string) string {
+	parts := strings.Split(addr, ":")
+	if len(parts) != 2 {
+		log.Fatalf("invalid address: %s", addr)
+	}
+	port := parts[1]
+	if port == "random" {
+		port = strconv.Itoa(rconfig.GetRandomPort())
+	}
+	return fmt.Sprintf("%s:%s", parts[0], port)
 }

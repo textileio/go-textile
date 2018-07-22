@@ -1,4 +1,4 @@
-package controllers_test
+package cafe
 
 import (
 	util "github.com/textileio/textile-go/util/testing"
@@ -7,7 +7,7 @@ import (
 
 func TestReferrals_CreateReferral(t *testing.T) {
 	num := 10
-	stat, res, err := util.CreateReferral(util.RefKey, num, 2, "TestReferrals_CreateReferral")
+	stat, res, err := util.CreateReferral(util.CafeReferralKey, num, 2, "test")
 	if err != nil {
 		t.Error(err)
 		return
@@ -23,7 +23,7 @@ func TestReferrals_CreateReferral(t *testing.T) {
 }
 
 func TestReferrals_ListReferrals(t *testing.T) {
-	stat, res, err := util.ListReferrals(util.RefKey)
+	stat, res, err := util.ListReferrals(util.CafeReferralKey)
 	if err != nil {
 		t.Error(err)
 		return

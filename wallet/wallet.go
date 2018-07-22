@@ -21,20 +21,20 @@ import (
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
 var log = logging.MustGetLogger("wallet")
 
 type Config struct {
-	Version    string
-	RepoPath   string
-	CentralAPI string
-	IsMobile   bool
-	IsServer   bool
-	SwarmPort  string
-	Mnemonic   *string
+	Version  string
+	RepoPath string
+	Mnemonic *string
+
+	IsMobile bool
+	IsServer bool
+
+	CafeAddr string
 }
 
 type Update struct {
@@ -56,13 +56,11 @@ type Wallet struct {
 	version            string
 	context            oldcmds.Context
 	repoPath           string
-	gatewayAddr        string
-	apiAddr            string
 	cancel             context.CancelFunc
 	ipfs               *core.IpfsNode
 	datastore          trepo.Datastore
 	service            *serv.TextileService
-	centralAPI         string
+	cafeAddr           string
 	isMobile           bool
 	started            bool
 	threads            []*thread.Thread
@@ -80,6 +78,7 @@ var ErrStarted = errors.New("node is already started")
 var ErrStopped = errors.New("node is already stopped")
 var ErrOffline = errors.New("node is offline")
 var ErrThreadLoaded = errors.New("thread is already loaded")
+var ErrNoCafeHost = errors.New("cafe host address is not set")
 
 func NewWallet(config Config) (*Wallet, string, error) {
 	// get database handle
@@ -102,27 +101,8 @@ func NewWallet(config Config) (*Wallet, string, error) {
 		return nil, "", err
 	}
 
-	// save gateway address
-	gwAddr, err := repo.GetConfigKey("Addresses.Gateway")
-	if err != nil {
-		log.Errorf("error getting gateway address: %s", err)
-		return nil, "", err
-	}
-
-	// save api address
-	apiAddr, err := repo.GetConfigKey("Addresses.API")
-	if err != nil {
-		log.Errorf("error getting api address: %s", err)
-		return nil, "", err
-	}
-
 	// ensure bootstrap addresses are latest in config (without wiping repo)
 	if err := ensureBootstrapConfig(repo); err != nil {
-		return nil, "", err
-	}
-
-	// if a specific swarm port was selected, set it in the config
-	if err := applySwarmPortConfigOption(repo, config.SwarmPort); err != nil {
 		return nil, "", err
 	}
 
@@ -132,13 +112,11 @@ func NewWallet(config Config) (*Wallet, string, error) {
 	}
 
 	return &Wallet{
-		version:     config.Version,
-		repoPath:    config.RepoPath,
-		gatewayAddr: gwAddr.(string),
-		apiAddr:     apiAddr.(string),
-		datastore:   sqliteDB,
-		centralAPI:  strings.TrimRight(config.CentralAPI, "/"),
-		isMobile:    config.IsMobile,
+		version:   config.Version,
+		repoPath:  config.RepoPath,
+		datastore: sqliteDB,
+		isMobile:  config.IsMobile,
+		cafeAddr:  config.CafeAddr,
 	}, mnemonic, nil
 }
 
@@ -220,7 +198,7 @@ func (w *Wallet) Start() (chan struct{}, error) {
 		Ipfs: func() *core.IpfsNode {
 			return w.ipfs
 		},
-		Api: "https://ipfs.textile.io/api/v0/add", // TODO: put in node config
+		Api: fmt.Sprintf("%s/add", w.GetCafeAddr()),
 	}
 	w.pinner = net.NewPinner(pinnerCfg)
 
@@ -303,6 +281,14 @@ func (w *Wallet) Online() bool {
 	return w.started && w.ipfs.OnlineMode()
 }
 
+func (w *Wallet) Version() string {
+	return w.version
+}
+
+func (w *Wallet) Ipfs() *core.IpfsNode {
+	return w.ipfs
+}
+
 func (w *Wallet) RefreshMessages() error {
 	if !w.Online() {
 		return ErrOffline
@@ -326,14 +312,6 @@ func (w *Wallet) Done() <-chan struct{} {
 
 func (w *Wallet) GetRepoPath() string {
 	return w.repoPath
-}
-
-func (w *Wallet) GetGatewayAddress() string {
-	return w.gatewayAddr
-}
-
-func (w *Wallet) GetAPIAddress() string {
-	return w.apiAddr
 }
 
 // GetId returns peer id

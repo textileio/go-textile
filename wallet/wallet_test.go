@@ -15,9 +15,8 @@ import (
 var repo = "testdata/.textile"
 
 var wallet *Wallet
-var addedId string
 
-var centralReg = &cmodels.Registration{
+var cafeReg = &cmodels.Registration{
 	Username: ksuid.New().String(),
 	Password: ksuid.New().String(),
 	Identity: &cmodels.Identity{
@@ -30,8 +29,8 @@ var centralReg = &cmodels.Registration{
 func TestNewWallet(t *testing.T) {
 	os.RemoveAll(repo)
 	config := Config{
-		RepoPath:   repo,
-		CentralAPI: util.CentralApiURL,
+		RepoPath: repo,
+		CafeAddr: util.CafeAddr,
 	}
 	var err error
 	wallet, _, err = NewWallet(config)
@@ -69,7 +68,7 @@ func TestWallet_GetRepoPath(t *testing.T) {
 }
 
 func TestWallet_SignUp(t *testing.T) {
-	_, ref, err := util.CreateReferral(util.RefKey, 1, 1, "TestWallet_SignUp")
+	_, ref, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
 	if err != nil {
 		t.Errorf("create referral for signup failed: %s", err)
 		return
@@ -78,9 +77,9 @@ func TestWallet_SignUp(t *testing.T) {
 		t.Error("create referral for signup got no codes")
 		return
 	}
-	centralReg.Referral = ref.RefCodes[0]
+	cafeReg.Referral = ref.RefCodes[0]
 
-	err = wallet.SignUp(centralReg)
+	err = wallet.SignUp(cafeReg)
 	if err != nil {
 		t.Errorf("signup failed: %s", err)
 		return
@@ -89,8 +88,8 @@ func TestWallet_SignUp(t *testing.T) {
 
 func TestWallet_SignIn(t *testing.T) {
 	creds := &cmodels.Credentials{
-		Username: centralReg.Username,
-		Password: centralReg.Password,
+		Username: cafeReg.Username,
+		Password: cafeReg.Password,
 	}
 	err := wallet.SignIn(creds)
 	if err != nil {
@@ -203,7 +202,6 @@ func TestWallet_AddPhoto(t *testing.T) {
 	if len(added.Id) == 0 {
 		t.Errorf("add photo got bad id")
 	}
-	addedId = added.Id
 }
 
 func TestWallet_GetBlock(t *testing.T) {
@@ -260,8 +258,8 @@ func TestWallet_OnlineAgain(t *testing.T) {
 // test signin in stopped state, should re-connect to db
 func TestWallet_SignInAgain(t *testing.T) {
 	creds := &cmodels.Credentials{
-		Username: centralReg.Username,
-		Password: centralReg.Password,
+		Username: cafeReg.Username,
+		Password: cafeReg.Password,
 	}
 	err := wallet.SignIn(creds)
 	if err != nil {
