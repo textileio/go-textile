@@ -1,4 +1,4 @@
-package controllers
+package cafe
 
 import (
 	"github.com/gin-gonic/gin"
@@ -7,15 +7,14 @@ import (
 	"github.com/textileio/textile-go/cafe/models"
 	"math/rand"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 )
 
-func CreateReferral(c *gin.Context) {
+func (c *Cafe) createReferral(g *gin.Context) {
 	// cheap way to lock down this endpoint
-	if os.Getenv("REF_KEY") != c.GetHeader("X-Referral-Key") {
-		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+	if c.ReferralKey != g.GetHeader("X-Referral-Key") {
+		g.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
 
@@ -25,7 +24,7 @@ func CreateReferral(c *gin.Context) {
 	limit := 1
 	// simple reference to who requested the new code
 	requestedBy := ""
-	params := c.Request.URL.Query()
+	params := g.Request.URL.Query()
 	if params["count"] != nil && len(params["count"]) > 0 {
 		tmp, err := strconv.ParseInt(params["count"][0], 10, 64)
 		if err == nil {
@@ -47,30 +46,30 @@ func CreateReferral(c *gin.Context) {
 	for i := range refs {
 		code, err := createReferral(limit, requestedBy)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		refs[i] = code
 	}
 
 	// ship it
-	c.JSON(http.StatusCreated, gin.H{
+	g.JSON(http.StatusCreated, gin.H{
 		"status":    http.StatusCreated,
 		"ref_codes": refs,
 	})
 }
 
-func ListReferrals(c *gin.Context) {
+func (c *Cafe) listReferrals(g *gin.Context) {
 	// cheap way to lock down this endpoint
-	if os.Getenv("REF_KEY") != c.GetHeader("X-Referral-Key") {
-		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+	if c.ReferralKey != g.GetHeader("X-Referral-Key") {
+		g.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
 
 	// get 'em
 	refs, err := dao.Dao.ListUnusedReferrals()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	codes := make([]string, len(refs))
@@ -79,7 +78,7 @@ func ListReferrals(c *gin.Context) {
 	}
 
 	// ship it
-	c.JSON(http.StatusOK, gin.H{
+	g.JSON(http.StatusOK, gin.H{
 		"status":    http.StatusOK,
 		"ref_codes": codes,
 	})

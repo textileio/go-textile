@@ -25,7 +25,6 @@ var defaultThreadId string
 var threadId string
 var addedPhotoId string
 var addedPhotoKey string
-var sharedBlockId string
 var deviceId string
 
 var cusername = ksuid.New().String()
@@ -35,9 +34,9 @@ var cemail = ksuid.New().String() + "@textile.io"
 func TestNewTextile(t *testing.T) {
 	os.RemoveAll(repo)
 	config := &NodeConfig{
-		RepoPath:      repo,
-		CentralApiURL: util.CentralApiURL,
-		LogLevel:      "DEBUG",
+		RepoPath: repo,
+		CafeAddr: util.CafeAddr,
+		LogLevel: "DEBUG",
 	}
 	var err error
 	mobile, err = NewNode(config, &TestMessenger{})
@@ -59,7 +58,7 @@ func TestMobile_StartAgain(t *testing.T) {
 }
 
 func TestMobile_SignUpWithEmail(t *testing.T) {
-	_, ref, err := util.CreateReferral(util.RefKey, 1, 1, "test")
+	_, ref, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
 	if err != nil {
 		t.Errorf("create referral for signup failed: %s", err)
 		return
@@ -266,12 +265,11 @@ func TestMobile_AddPhoto(t *testing.T) {
 }
 
 func TestMobile_AddPhotoToThread(t *testing.T) {
-	blockId, err := mobile.AddPhotoToThread(addedPhotoId, addedPhotoKey, threadId, "")
+	_, err := mobile.AddPhotoToThread(addedPhotoId, addedPhotoKey, threadId, "")
 	if err != nil {
 		t.Errorf("add photo to thread failed: %s", err)
 		return
 	}
-	sharedBlockId = blockId
 }
 
 func TestMobile_SharePhotoToThread(t *testing.T) {
@@ -286,12 +284,11 @@ func TestMobile_SharePhotoToThread(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	id, err := mobile.SharePhotoToThread(addedPhotoId, item.Id, "howdy")
+	_, err = mobile.SharePhotoToThread(addedPhotoId, item.Id, "howdy")
 	if err != nil {
 		t.Errorf("share photo to thread failed: %s", err)
 		return
 	}
-	sharedBlockId = id
 }
 
 func TestMobile_GetPhotos(t *testing.T) {

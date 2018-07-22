@@ -14,8 +14,8 @@ import (
 
 var client = &http.Client{}
 var (
-	CentralApiURL = fmt.Sprintf("http://%s", os.Getenv("HOST"))
-	RefKey        = os.Getenv("REF_KEY")
+	CafeAddr        = os.Getenv("CAFE_ADDR")
+	CafeReferralKey = os.Getenv("CAFE_REFERRAL_KEY")
 )
 
 type ReferralResponse struct {
@@ -33,7 +33,7 @@ func (r *ReferralResponse) Read(body io.ReadCloser) error {
 }
 
 func CreateReferral(key string, num int, limit int, requestedBy string) (int, *ReferralResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/referrals?count=%d&limit=%d&requested_by=%s", CentralApiURL, num, limit, requestedBy)
+	url := fmt.Sprintf("%s/api/v0/referrals?count=%d&limit=%d&requested_by=%s", CafeAddr, num, limit, requestedBy)
 	req, err := http.NewRequest("POST", url, nil)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Referral-Key", key)
@@ -42,6 +42,11 @@ func CreateReferral(key string, num int, limit int, requestedBy string) (int, *R
 		return 0, nil, err
 	}
 	defer res.Body.Close()
+
+	if res.StatusCode != 201 {
+		return res.StatusCode, nil, nil
+	}
+
 	resp := &ReferralResponse{}
 	if err := resp.Read(res.Body); err != nil {
 		return res.StatusCode, nil, err
@@ -50,7 +55,7 @@ func CreateReferral(key string, num int, limit int, requestedBy string) (int, *R
 }
 
 func ListReferrals(key string) (int, *ReferralResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/referrals", CentralApiURL)
+	url := fmt.Sprintf("%s/api/v0/referrals", CafeAddr)
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Referral-Key", key)
@@ -59,6 +64,11 @@ func ListReferrals(key string) (int, *ReferralResponse, error) {
 		return 0, nil, err
 	}
 	defer res.Body.Close()
+
+	if res.StatusCode != 200 {
+		return res.StatusCode, nil, nil
+	}
+
 	resp := &ReferralResponse{}
 	if err := resp.Read(res.Body); err != nil {
 		return res.StatusCode, nil, err
@@ -67,7 +77,7 @@ func ListReferrals(key string) (int, *ReferralResponse, error) {
 }
 
 func SignUp(reg interface{}) (int, *models.Response, error) {
-	url := fmt.Sprintf("%s/api/v1/users", CentralApiURL)
+	url := fmt.Sprintf("%s/api/v0/users", CafeAddr)
 	payload, err := json.Marshal(reg)
 	if err != nil {
 		return 0, nil, err
@@ -79,6 +89,11 @@ func SignUp(reg interface{}) (int, *models.Response, error) {
 		return 0, nil, err
 	}
 	defer res.Body.Close()
+
+	if res.StatusCode != 201 {
+		return res.StatusCode, nil, nil
+	}
+
 	resp := &models.Response{}
 	if err := resp.Read(res.Body); err != nil {
 		return res.StatusCode, nil, err
@@ -87,7 +102,7 @@ func SignUp(reg interface{}) (int, *models.Response, error) {
 }
 
 func SignIn(creds interface{}) (int, *models.Response, error) {
-	url := fmt.Sprintf("%s/api/v1/users", CentralApiURL)
+	url := fmt.Sprintf("%s/api/v0/users", CafeAddr)
 	payload, err := json.Marshal(creds)
 	if err != nil {
 		return 0, nil, err
@@ -99,6 +114,11 @@ func SignIn(creds interface{}) (int, *models.Response, error) {
 		return 0, nil, err
 	}
 	defer res.Body.Close()
+
+	if res.StatusCode != 200 {
+		return res.StatusCode, nil, nil
+	}
+
 	resp := &models.Response{}
 	if err := resp.Read(res.Body); err != nil {
 		return res.StatusCode, nil, err

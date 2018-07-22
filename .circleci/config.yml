@@ -8,27 +8,22 @@ jobs:
     steps:
       - checkout
       - run: dep ensure
-      - run: go get -u github.com/kardianos/govendor
       - run:
-          name: install central
+          name: install textile
           command: |
-            cd central
-            govendor init
-            govendor add +external
-            go install -v ./...
+            go build -i -o textile textile.go
+            mv textile $GOPATH/bin/
       - run:
           name: run and test all
           command: |
-            central &
+            textile -d -n -g=127.0.0.1:8080 -c --cafe-bind-addr=0.0.0.0:8000 --cafe-token-secret=swarmmmmm --cafe-referral-key=woohoo! --cafe-db-hosts=0.0.0.0:27017 --cafe-db-name=textile_db
             sleep 5
             ./test_compile.sh
           environment:
-            VERSION: 0.0.1
-            BIND: 0.0.0.0:8000
-            HOST: 0.0.0.0:8000
-            TOKEN_SECRET: swarmmmmmmmm
-            DB_HOSTS: 0.0.0.0:27017
-            DB_NAME: textile_db
-            REF_KEY: woohoo!
+            # cafe client settings
+            CAFE_ADDR: http://0.0.0.0:8000
+            CAFE_DB_HOSTS: 0.0.0.0:27017
+            CAFE_DB_NAME: textile_db
+            CAFE_REFERRAL_KEY: woohoo!
       - run: go get -u github.com/asticode/go-astilectron-bundler/...
       - run: make build_desktop

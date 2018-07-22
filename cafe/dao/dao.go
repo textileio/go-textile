@@ -90,6 +90,7 @@ func (m *DAO) Connect() {
 			return conn, err
 		}
 	}
+	fmt.Println(dialInfo.Addrs)
 	session, err := mgo.DialWithInfo(dialInfo)
 	if err != nil {
 		log.Fatal(err)

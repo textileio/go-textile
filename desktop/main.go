@@ -14,6 +14,7 @@ import (
 	"github.com/skip2/go-qrcode"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
+	rconfig "github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/wallet"
 	"github.com/textileio/textile-go/wallet/thread"
 	"os"
@@ -67,9 +68,8 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 		LogLevel: logging.DEBUG,
 		LogFiles: true,
 		WalletConfig: wallet.Config{
-			RepoPath:   filepath.Join(appDir, "repo"),
-			CentralAPI: "https://api.textile.io",
-			IsMobile:   false,
+			RepoPath: filepath.Join(appDir, "repo"),
+			IsMobile: false,
 		},
 	}
 	core.Node, _, err = core.NewNode(config)
@@ -129,11 +129,11 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 		}(thrd)
 	}
 
-	// start the server
-	core.Node.StartGateway()
+	// start the gateway
+	core.Node.StartGateway(fmt.Sprintf("127.0.0.1:%d", rconfig.GetRandomPort()))
 
 	// save off the server address
-	gateway = fmt.Sprintf("http://%s", core.Node.GetGatewayAddress())
+	gateway = fmt.Sprintf("http://%s", core.Node.GetGatewayAddr())
 
 	// sleep for a bit on the landing screen, it feels better
 	time.Sleep(SleepOnLoad)

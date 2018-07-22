@@ -146,23 +146,19 @@ const DefaultConnMgrLowWater = 600
 const DefaultConnMgrGracePeriod = time.Second * 20
 
 func addressesConfig() native.Addresses {
-	swarmTCPPort := getRandomPort()
-	swarmWSPort := getRandomPort()
-	gatewayPort := getRandomPort()
-	apiPort := getRandomPort()
+	swarmPort := GetRandomPort()
+	swarmWSPort := GetRandomPort()
 
 	return native.Addresses{
 		Swarm: []string{
-			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", swarmTCPPort),
-			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", swarmTCPPort),
+			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", swarmPort),
+			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", swarmPort),
 			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d/ws", swarmWSPort),
 			fmt.Sprintf("/ip6/::/tcp/%d/ws", swarmWSPort),
 			// "/ip4/0.0.0.0/udp/4002/utp", // disabled for now.
 		},
 		Announce:   []string{},
 		NoAnnounce: []string{},
-		Gateway:    fmt.Sprintf("0.0.0.0:%d", gatewayPort),
-		API:        fmt.Sprintf("0.0.0.0:%d", apiPort),
 	}
 }
 
@@ -202,7 +198,7 @@ func defaultDatastoreConfig() native.Datastore {
 	}
 }
 
-func getRandomPort() int {
+func GetRandomPort() int {
 	rand.Seed(time.Now().UTC().UnixNano())
 	return rand.Intn(maxPort-minPort) + minPort
 }

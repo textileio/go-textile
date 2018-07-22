@@ -39,8 +39,8 @@ var user = models.User{
 }
 
 func TestDao_Connect(t *testing.T) {
-	d.Hosts = os.Getenv("DB_HOSTS")
-	d.Name = os.Getenv("DB_NAME")
+	d.Hosts = os.Getenv("CAFE_DB_HOSTS")
+	d.Name = os.Getenv("CAFE_DB_NAME")
 	d.Connect()
 }
 
