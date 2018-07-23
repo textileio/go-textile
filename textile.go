@@ -247,6 +247,11 @@ func main() {
 				LongHelp: "Mange your cafe user session.",
 			}
 			cafeCmd.AddCmd(&ishell.Cmd{
+				Name: "referral",
+				Help: "get a cafe referral",
+				Func: cmd.CafeLogout,
+			})
+			cafeCmd.AddCmd(&ishell.Cmd{
 				Name: "register",
 				Help: "show connected peers (same as `ipfs swarm peers`)",
 				Func: cmd.CafeRegister,

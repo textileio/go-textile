@@ -67,7 +67,7 @@ func TestMobile_SignUpWithEmail(t *testing.T) {
 		t.Error("create referral for signup got no codes")
 		return
 	}
-	err = mobile.SignUpWithEmail(cusername, cpassword, cemail, ref.RefCodes[0])
+	err = mobile.SignUpWithEmail(cemail, cusername, cpassword, ref.RefCodes[0])
 	if err != nil {
 		t.Errorf("signup failed: %s", err)
 	}
