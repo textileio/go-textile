@@ -2,9 +2,8 @@ package wallet
 
 import (
 	"encoding/json"
+	cafe "github.com/textileio/textile-go/core/cafe"
 	"github.com/textileio/textile-go/crypto"
-	"github.com/textileio/textile-go/net"
-	nm "github.com/textileio/textile-go/net/model"
 	"github.com/textileio/textile-go/wallet/model"
 	"github.com/textileio/textile-go/wallet/util"
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
@@ -14,7 +13,7 @@ import (
 )
 
 // AddPhoto add a photo to the local ipfs node
-func (w *Wallet) AddPhoto(path string) (*nm.AddResult, error) {
+func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 	// get a key to encrypt with
 	key, err := crypto.GenerateAESKey()
 	if err != nil {
@@ -119,31 +118,34 @@ func (w *Wallet) AddPhoto(path string) (*nm.AddResult, error) {
 	if err := util.PinDirectory(w.ipfs, dir, []string{"photo"}); err != nil {
 		return nil, err
 	}
-	id := dir.Cid().Hash().B58String()
+	result := &AddDataResult{Id: dir.Cid().Hash().B58String(), Key: string(key)}
 
-	// create and init a new multipart request
-	request := &net.PinRequest{}
-	request.Init(filepath.Join(w.repoPath, "tmp"), id)
-
-	// add files to request
-	if err := request.AddFile(photocipher, "photo"); err != nil {
-		return nil, err
-	}
-	if err := request.AddFile(thumbcipher, "thumb"); err != nil {
-		return nil, err
-	}
-	if err := request.AddFile(metacipher, "meta"); err != nil {
-		return nil, err
-	}
-	if err := request.AddFile(mpkcipher, "pk"); err != nil {
-		return nil, err
+	// if not mobile, we're done
+	if !w.isMobile {
+		return result, nil
 	}
 
-	// finish request
-	if err := request.Finish(); err != nil {
+	// on mobile, make an archive for remote pinning by the OS
+	result.Archive, err = cafe.NewArchive(result.Id, filepath.Join(w.repoPath, "tmp"))
+	if err != nil {
+		return nil, err
+	}
+	defer result.Archive.Close()
+
+	// add files
+	if err := result.Archive.AddFile(photocipher, "photo"); err != nil {
+		return nil, err
+	}
+	if err := result.Archive.AddFile(thumbcipher, "thumb"); err != nil {
+		return nil, err
+	}
+	if err := result.Archive.AddFile(metacipher, "meta"); err != nil {
+		return nil, err
+	}
+	if err := result.Archive.AddFile(mpkcipher, "pk"); err != nil {
 		return nil, err
 	}
 
 	// all done
-	return &nm.AddResult{Id: id, Key: string(key), PinRequest: request}, nil
+	return result, nil
 }

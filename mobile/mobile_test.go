@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"github.com/segmentio/ksuid"
 	. "github.com/textileio/textile-go/mobile"
-	"github.com/textileio/textile-go/net/model"
 	util "github.com/textileio/textile-go/util/testing"
+	"github.com/textileio/textile-go/wallet"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"os"
 	"testing"
@@ -254,10 +254,14 @@ func TestMobile_AddPhoto(t *testing.T) {
 		t.Errorf("add photo failed: %s", err)
 		return
 	}
-	res := model.AddResult{}
+	res := wallet.AddDataResult{}
 	err = json.Unmarshal([]byte(resStr), &res)
 	if err != nil {
 		t.Error(err)
+		return
+	}
+	if res.Archive == nil {
+		t.Error("add photo result should have an archive")
 		return
 	}
 	addedPhotoKey = res.Key

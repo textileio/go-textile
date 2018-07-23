@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/cafe"
+	"github.com/textileio/textile-go/core/cafe"
 	"github.com/textileio/textile-go/net"
 	serv "github.com/textileio/textile-go/net/service"
 	trepo "github.com/textileio/textile-go/repo"
@@ -52,6 +53,13 @@ const (
 	DeviceAdded
 	DeviceRemoved
 )
+
+// AddDataResult wraps added data content id and key
+type AddDataResult struct {
+	Id      string          `json:"id"`
+	Key     string          `json:"key"`
+	Archive *client.Archive `json:"archive,omitempty"` // mobile only
+}
 
 type Wallet struct {
 	version            string
