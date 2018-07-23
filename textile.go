@@ -241,6 +241,34 @@ func main() {
 			},
 		})
 		{
+			cafeCmd := &ishell.Cmd{
+				Name:     "cafe",
+				Help:     "manage cafe session",
+				LongHelp: "Mange your cafe user session.",
+			}
+			cafeCmd.AddCmd(&ishell.Cmd{
+				Name: "register",
+				Help: "show connected peers (same as `ipfs swarm peers`)",
+				Func: cmd.CafeRegister,
+			})
+			cafeCmd.AddCmd(&ishell.Cmd{
+				Name: "login",
+				Help: "cafe login",
+				Func: cmd.CafeLogin,
+			})
+			cafeCmd.AddCmd(&ishell.Cmd{
+				Name: "status",
+				Help: "cafe status",
+				Func: cmd.CafeStatus,
+			})
+			cafeCmd.AddCmd(&ishell.Cmd{
+				Name: "logout",
+				Help: "cafe logout",
+				Func: cmd.CafeLogout,
+			})
+			shell.AddCmd(cafeCmd)
+		}
+		{
 			swarmCmd := &ishell.Cmd{
 				Name:     "swarm",
 				Help:     "same as ipfs swarm",
@@ -457,7 +485,7 @@ func printSplashScreen() {
 		fmt.Println(grey("cafe: ") + yellow(Options.CafeBindAddr))
 	}
 	if Options.CafeAddr != "" {
-		fmt.Println(grey("cafe address: ") + yellow(core.Node.Wallet.GetCafeAddr()))
+		fmt.Println(grey("cafe api: ") + yellow(core.Node.Wallet.GetCafeAddr()))
 	}
 	if Options.ServerMode {
 		fmt.Println(grey("server mode: ") + green("enabled"))

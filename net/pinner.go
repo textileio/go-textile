@@ -2,11 +2,11 @@ package net
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/pkg/errors"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet/util"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
-	"mime/multipart"
 	"net/http"
 	"sync"
 	"time"
@@ -103,32 +103,32 @@ func (p *Pinner) handlePin(offset string) error {
 }
 
 func (p *Pinner) send(pr repo.PinRequest) error {
+	// get token
+	token, _, err := p.datastore.Profile().GetTokens()
+	if err != nil {
+		return err
+	}
+
 	// load local content
 	data, err := util.GetDataAtPath(p.ipfs(), pr.Id)
 	if err != nil {
 		return err
 	}
+	reader := bytes.NewReader(data)
 
-	// send multipart request
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("file", "pin")
-	if err != nil {
-		return err
-	}
-	part.Write(data)
-	if err := writer.Close(); err != nil {
-		return err
-	}
-	req, err := http.NewRequest("POST", p.api, body)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
+	// make the request
+	req, err := http.NewRequest("POST", p.api, reader)
+	req.Header.Set("Content-Type", "application/octet-stream")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
+
+	// check status
+	if resp.StatusCode != 201 {
 		return errPinRequestFailed
 	}
 	return nil

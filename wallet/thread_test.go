@@ -1,7 +1,6 @@
 package wallet_test
 
 import (
-	nm "github.com/textileio/textile-go/net/model"
 	. "github.com/textileio/textile-go/wallet"
 	"github.com/textileio/textile-go/wallet/thread"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
@@ -15,7 +14,7 @@ var twallet *Wallet
 var wonline <-chan struct{}
 
 var thrd *thread.Thread
-var wadded *nm.AddResult
+var wadded *AddDataResult
 var tadded mh.Multihash
 
 func Test_SetupThread(t *testing.T) {

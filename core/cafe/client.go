@@ -7,14 +7,14 @@ import (
 	"net/http"
 )
 
-func SignIn(creds *models.Credentials, api string) (*models.Response, error) {
-	payload, err := json.Marshal(creds)
+func SignUp(reg *models.Registration, api string) (*models.Response, error) {
+	payload, err := json.Marshal(reg)
 	if err != nil {
 		return nil, err
 	}
 
 	// build the request
-	req, err := http.NewRequest("POST", api, bytes.NewBuffer(payload))
+	req, err := http.NewRequest("PUT", api, bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
 	res, err := client.Do(req)
@@ -31,14 +31,14 @@ func SignIn(creds *models.Credentials, api string) (*models.Response, error) {
 	return resp, nil
 }
 
-func SignUp(reg *models.Registration, api string) (*models.Response, error) {
-	payload, err := json.Marshal(reg)
+func SignIn(creds *models.Credentials, api string) (*models.Response, error) {
+	payload, err := json.Marshal(creds)
 	if err != nil {
 		return nil, err
 	}
 
 	// build the request
-	req, err := http.NewRequest("PUT", api, bytes.NewBuffer(payload))
+	req, err := http.NewRequest("POST", api, bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
 	res, err := client.Do(req)
