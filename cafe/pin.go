@@ -6,24 +6,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/textileio/textile-go/wallet/util"
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
+	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"io"
 	"net/http"
 )
 
 func (c *Cafe) pin(g *gin.Context) {
+	var id *cid.Cid
+
 	// handle based on content type
-	//var id *cid.Cid
-	var hash string
 	cType := g.Request.Header.Get("Content-Type")
 	switch cType {
-	case "application/octet-stream":
-		var err error
-		id, err := util.PinData(c.Ipfs(), g.Request.Body)
-		if err != nil {
-			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		hash = id.Hash().B58String()
 	case "application/gzip":
 		// create a virtual directory for the photo
 		dirb := uio.NewDirectory(c.Ipfs().DAG)
@@ -67,12 +60,20 @@ func (c *Cafe) pin(g *gin.Context) {
 			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		hash = dir.Cid().Hash().B58String()
+		id = dir.Cid()
+
+	default:
+		var err error
+		id, err = util.PinData(c.Ipfs(), g.Request.Body)
+		if err != nil {
+			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	// ship it
 	g.JSON(http.StatusCreated, gin.H{
 		"status": http.StatusCreated,
-		"id":     hash,
+		"id":     id.Hash().B58String(),
 	})
 }

@@ -21,6 +21,7 @@ import (
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/config"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"
+	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"os"
 	"path/filepath"
 	"time"
@@ -169,7 +170,17 @@ func (w *Wallet) Start() (chan struct{}, error) {
 		<-dht.DefaultBootstrapConfig.DoneChan
 
 		// set offline message storage
-		w.messageStorage = storage.NewSelfHostedStorage(w.ipfs, w.repoPath, w.sendStore)
+		w.messageStorage = storage.NewCafeStorage(w.ipfs, w.repoPath, func(id *cid.Cid) error {
+			if w.pinner == nil {
+				return nil
+			}
+			// get token
+			tokens, err := w.datastore.Profile().GetTokens()
+			if err != nil {
+				return err
+			}
+			return net.Pin(w.ipfs, id.Hash().B58String(), tokens, w.pinner.Url())
+		})
 
 		// service is now configurable
 		w.service = serv.NewService(w.ipfs, w.datastore, w.GetThread, w.AddThread)

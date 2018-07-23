@@ -15,6 +15,8 @@ const kPinFrequency = time.Minute * 10
 const pinGroupSize = 5
 
 var errPinRequestFailed = errors.New("pin request failed")
+var errPinRequestEmpty = errors.New("pin request empty response")
+var errPinRequestMismatch = errors.New("pin request content id mismatch")
 
 type PinnerConfig struct {
 	Datastore repo.Datastore
@@ -25,12 +27,16 @@ type PinnerConfig struct {
 type Pinner struct {
 	datastore repo.Datastore
 	ipfs      func() *core.IpfsNode
-	api       string
+	url       string
 	mux       sync.Mutex
 }
 
 func NewPinner(config PinnerConfig) *Pinner {
-	return &Pinner{datastore: config.Datastore, ipfs: config.Ipfs, api: config.Api}
+	return &Pinner{datastore: config.Datastore, ipfs: config.Ipfs, url: config.Api}
+}
+
+func (p *Pinner) Url() string {
+	return p.url
 }
 
 func (p *Pinner) Run() {
@@ -107,21 +113,30 @@ func (p *Pinner) send(pr repo.PinRequest) error {
 	if err != nil {
 		return err
 	}
+	return Pin(p.ipfs(), pr.Id, tokens, p.url)
+}
 
+func Pin(ipfs *core.IpfsNode, id string, tokens *repo.CafeTokens, url string) error {
 	// load local content
-	data, err := util.GetDataAtPath(p.ipfs(), pr.Id)
+	data, err := util.GetDataAtPath(ipfs, id)
 	if err != nil {
 		return err
 	}
 	reader := bytes.NewReader(data)
 
 	// pin to cafe
-	res, err := cafe.Pin(tokens, reader, p.api, "application/octet-stream")
+	res, err := cafe.Pin(tokens, reader, url, "application/octet-stream")
 	if err != nil {
 		return err
 	}
 	if res.Status != 201 {
 		return errPinRequestFailed
+	}
+	if res.Id == nil {
+		return errPinRequestEmpty
+	}
+	if *res.Id != id {
+		return errPinRequestMismatch
 	}
 	return nil
 }
