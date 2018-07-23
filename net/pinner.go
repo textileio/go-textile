@@ -60,9 +60,12 @@ func (p *Pinner) Pin() {
 }
 
 func (p *Pinner) Put(id string) error {
+	tokens, _ := p.datastore.Profile().GetTokens()
+	if tokens == nil {
+		return nil
+	}
 	pr := &repo.PinRequest{Id: id, Date: time.Now()}
-	err := p.datastore.PinRequests().Put(pr)
-	if err != nil {
+	if err := p.datastore.PinRequests().Put(pr); err != nil {
 		return err
 	}
 	log.Debugf("put pin request for %s", id)
@@ -109,9 +112,9 @@ func (p *Pinner) handlePin(offset string) error {
 
 func (p *Pinner) send(pr repo.PinRequest) error {
 	// get token
-	tokens, err := p.datastore.Profile().GetTokens()
-	if err != nil {
-		return err
+	tokens, _ := p.datastore.Profile().GetTokens()
+	if tokens == nil {
+		return nil
 	}
 	return Pin(p.ipfs(), pr.Id, tokens, p.url)
 }

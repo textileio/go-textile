@@ -249,7 +249,7 @@ func main() {
 			cafeCmd.AddCmd(&ishell.Cmd{
 				Name: "referral",
 				Help: "get a cafe referral",
-				Func: cmd.CafeLogout,
+				Func: cmd.CafeReferral,
 			})
 			cafeCmd.AddCmd(&ishell.Cmd{
 				Name: "register",
