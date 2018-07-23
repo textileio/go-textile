@@ -1,6 +1,7 @@
 package wallet
 
 import (
+	"bytes"
 	"encoding/json"
 	cafe "github.com/textileio/textile-go/core/cafe"
 	"github.com/textileio/textile-go/crypto"
@@ -93,20 +94,16 @@ func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 
 	// create a virtual directory for the photo
 	dirb := uio.NewDirectory(w.ipfs.DAG)
-	err = util.AddFileToDirectory(w.ipfs, dirb, photocipher, "photo")
-	if err != nil {
+	if err := util.AddFileToDirectory(w.ipfs, dirb, bytes.NewReader(photocipher), "photo"); err != nil {
 		return nil, err
 	}
-	err = util.AddFileToDirectory(w.ipfs, dirb, thumbcipher, "thumb")
-	if err != nil {
+	if err := util.AddFileToDirectory(w.ipfs, dirb, bytes.NewReader(thumbcipher), "thumb"); err != nil {
 		return nil, err
 	}
-	err = util.AddFileToDirectory(w.ipfs, dirb, metacipher, "meta")
-	if err != nil {
+	if err := util.AddFileToDirectory(w.ipfs, dirb, bytes.NewReader(metacipher), "meta"); err != nil {
 		return nil, err
 	}
-	err = util.AddFileToDirectory(w.ipfs, dirb, mpkcipher, "pk")
-	if err != nil {
+	if err := util.AddFileToDirectory(w.ipfs, dirb, bytes.NewReader(mpkcipher), "pk"); err != nil {
 		return nil, err
 	}
 

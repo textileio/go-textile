@@ -24,7 +24,7 @@ var credentials = map[string]interface{}{
 
 func TestUsers_Setup(t *testing.T) {
 	// create a referral for the test
-	stat, ref, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "TestUsers_Setup")
+	stat, ref, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
 	if err != nil {
 		t.Error(err)
 		return

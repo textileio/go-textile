@@ -20,7 +20,7 @@ func setupProfileDB() {
 }
 
 func TestProfileDB_SignIn(t *testing.T) {
-	err := pdb.SignIn("woohoo!", "...", "...")
+	err := pdb.SignIn("woohoo!", &repo.CafeTokens{Access: "access", Refresh: "refresh"})
 	if err != nil {
 		t.Error(err)
 	}
@@ -38,16 +38,16 @@ func TestProfileDB_GetUsername(t *testing.T) {
 }
 
 func TestProfileDB_GetTokens(t *testing.T) {
-	at, rt, err := pdb.GetTokens()
+	tokens, err := pdb.GetTokens()
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if at != "..." {
+	if tokens.Access != "access" {
 		t.Error("got bad access token")
 		return
 	}
-	if rt != "..." {
+	if tokens.Refresh != "refresh" {
 		t.Error("got bad refresh token")
 		return
 	}

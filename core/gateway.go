@@ -13,7 +13,8 @@ import (
 func (t *TextileNode) StartGateway(addr string) {
 	// setup router
 	router := gin.Default()
-	router.GET("/ipfs/:cid/:path", gatewayHandler)
+	router.GET("/ipfs/:root", gatewayHandler)
+	router.GET("/ipfs/:root/*path", gatewayHandler)
 	t.gateway = &http.Server{
 		Addr:    addr,
 		Handler: router,
@@ -60,8 +61,11 @@ func (t *TextileNode) GetGatewayAddr() string {
 
 // gatewayHandler handles gateway http requests
 func gatewayHandler(c *gin.Context) {
+	contentPath := c.Param("root")
 	path, contentType := parsePath(c.Param("path"))
-	contentPath := fmt.Sprintf("%s/%s", c.Param("cid"), path)
+	if c.Param("path") != "" {
+		contentPath += fmt.Sprintf("%s/%s", contentPath, path)
+	}
 
 	// look for block id
 	blockId, exists := c.GetQuery("block")

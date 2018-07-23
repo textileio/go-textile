@@ -30,9 +30,10 @@ func NewArchive(id string, dir string) (*Archive, error) {
 
 func (a *Archive) AddFile(blob []byte, fname string) error {
 	header := &tar.Header{
-		Name: fname,
-		Mode: 0644,
-		Size: int64(len(blob)),
+		Name:     fname,
+		Mode:     0644,
+		Size:     int64(len(blob)),
+		Typeflag: tar.TypeReg,
 	}
 	if err := a.tw.WriteHeader(header); err != nil {
 		return err

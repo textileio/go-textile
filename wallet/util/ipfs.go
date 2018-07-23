@@ -1,7 +1,6 @@
 package util
 
 import (
-	"bytes"
 	"context"
 	"github.com/op/go-logging"
 	iaddr "gx/ipfs/QmQViVWBHbU6HmYjXcdNq7tVASCNgdg64ZGcauuDkLCivW/go-ipfs-addr"
@@ -136,8 +135,7 @@ func PeersWithAddresses(addrs []string) (pis []pstore.PeerInfo, err error) {
 }
 
 // AddFileToDirectory adds bytes as file to a virtual directory (dag) structure
-func AddFileToDirectory(ipfs *core.IpfsNode, dirb *uio.Directory, data []byte, fname string) error {
-	reader := bytes.NewReader(data)
+func AddFileToDirectory(ipfs *core.IpfsNode, dirb *uio.Directory, reader io.Reader, fname string) error {
 	str, err := coreunix.Add(ipfs, reader)
 	if err != nil {
 		return err

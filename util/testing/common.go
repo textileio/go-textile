@@ -125,3 +125,25 @@ func SignIn(creds interface{}) (int, *models.Response, error) {
 	}
 	return res.StatusCode, resp, nil
 }
+
+func Pin(reader io.Reader, token string, cType string) (int, *models.Response, error) {
+	url := fmt.Sprintf("%s/api/v0/pin", CafeAddr)
+	req, err := http.NewRequest("POST", url, reader)
+	req.Header.Set("Content-Type", cType)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	res, err := client.Do(req)
+	if err != nil {
+		return 0, nil, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != 201 {
+		return res.StatusCode, nil, nil
+	}
+
+	resp := &models.Response{}
+	if err := resp.Read(res.Body); err != nil {
+		return res.StatusCode, nil, err
+	}
+	return res.StatusCode, resp, nil
+}
