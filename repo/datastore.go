@@ -35,10 +35,10 @@ type ConfigStore interface {
 }
 
 type ProfileStore interface {
-	SignIn(username string, accessToken string, refreshToken string) error
+	SignIn(username string, tokens *CafeTokens) error
 	SignOut() error
 	GetUsername() (string, error)
-	GetTokens() (accessToken string, refreshToken string, err error)
+	GetTokens() (tokens *CafeTokens, err error)
 }
 
 type ThreadStore interface {

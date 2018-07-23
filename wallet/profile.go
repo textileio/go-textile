@@ -5,9 +5,10 @@ import (
 	"fmt"
 	cmodels "github.com/textileio/textile-go/cafe/models"
 	"github.com/textileio/textile-go/core/cafe"
+	"github.com/textileio/textile-go/repo"
 )
 
-// SignUp requests a new username and token from the central api and saves them locally
+// SignUp requests a new username and token from a cafe and saves them locally
 func (w *Wallet) SignUp(reg *cmodels.Registration) error {
 	if w.cafeAddr == "" {
 		return ErrNoCafeHost
@@ -24,22 +25,23 @@ func (w *Wallet) SignUp(reg *cmodels.Registration) error {
 		return err
 	}
 	if res.Error != nil {
-		log.Errorf("signup error from central: %s", *res.Error)
+		log.Errorf("signup error from cafe: %s", *res.Error)
 		return errors.New(*res.Error)
 	}
 
 	// local signin
-	if err := w.datastore.Profile().SignIn(
-		reg.Username,
-		res.Session.AccessToken, res.Session.RefreshToken,
-	); err != nil {
+	tokens := &repo.CafeTokens{
+		Access:  res.Session.AccessToken,
+		Refresh: res.Session.RefreshToken,
+	}
+	if err := w.datastore.Profile().SignIn(reg.Username, tokens); err != nil {
 		log.Errorf("local signin error: %s", err)
 		return err
 	}
 	return nil
 }
 
-// SignIn requests a token with a username from the central api and saves them locally
+// SignIn requests a token with a username from a cafe and saves them locally
 func (w *Wallet) SignIn(creds *cmodels.Credentials) error {
 	if w.cafeAddr == "" {
 		return ErrNoCafeHost
@@ -56,15 +58,16 @@ func (w *Wallet) SignIn(creds *cmodels.Credentials) error {
 		return err
 	}
 	if res.Error != nil {
-		log.Errorf("signin error from central: %s", *res.Error)
+		log.Errorf("signin error from cafe: %s", *res.Error)
 		return errors.New(*res.Error)
 	}
 
 	// local signin
-	if err := w.datastore.Profile().SignIn(
-		creds.Username,
-		res.Session.AccessToken, res.Session.RefreshToken,
-	); err != nil {
+	tokens := &repo.CafeTokens{
+		Access:  res.Session.AccessToken,
+		Refresh: res.Session.RefreshToken,
+	}
+	if err := w.datastore.Profile().SignIn(creds.Username, tokens); err != nil {
 		log.Errorf("local signin error: %s", err)
 		return err
 	}
@@ -112,17 +115,13 @@ func (w *Wallet) GetUsername() (string, error) {
 	return w.datastore.Profile().GetUsername()
 }
 
-// GetAccessToken returns the current access_token (jwt) for central
-func (w *Wallet) GetAccessToken() (string, error) {
+// GetAccessToken returns the current access_token (jwt) for a cafe
+func (w *Wallet) GetTokens() (*repo.CafeTokens, error) {
 	if w.cafeAddr == "" {
-		return "", ErrNoCafeHost
+		return nil, ErrNoCafeHost
 	}
 	if err := w.touchDatastore(); err != nil {
-		return "", err
+		return nil, err
 	}
-	at, _, err := w.datastore.Profile().GetTokens()
-	if err != nil {
-		return "", err
-	}
-	return at, nil
+	return w.datastore.Profile().GetTokens()
 }

@@ -215,8 +215,12 @@ func (m *Mobile) GetUsername() (string, error) {
 }
 
 // GetAccessToken calls core GetAccessToken
-func (m *Mobile) GetAccessToken() (string, error) {
-	return tcore.Node.Wallet.GetAccessToken()
+func (m *Mobile) GetTokens() (string, error) {
+	tokens, err := tcore.Node.Wallet.GetTokens()
+	if err != nil {
+		return "", err
+	}
+	return toJSON(tokens)
 }
 
 // RefreshMessages run the message retriever and repointer jobs

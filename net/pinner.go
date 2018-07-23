@@ -2,12 +2,11 @@ package net
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/pkg/errors"
+	cafe "github.com/textileio/textile-go/core/cafe"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet/util"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
-	"net/http"
 	"sync"
 	"time"
 )
@@ -104,7 +103,7 @@ func (p *Pinner) handlePin(offset string) error {
 
 func (p *Pinner) send(pr repo.PinRequest) error {
 	// get token
-	token, _, err := p.datastore.Profile().GetTokens()
+	tokens, err := p.datastore.Profile().GetTokens()
 	if err != nil {
 		return err
 	}
@@ -116,19 +115,12 @@ func (p *Pinner) send(pr repo.PinRequest) error {
 	}
 	reader := bytes.NewReader(data)
 
-	// make the request
-	req, err := http.NewRequest("POST", p.api, reader)
-	req.Header.Set("Content-Type", "application/octet-stream")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	// pin to cafe
+	res, err := cafe.Pin(tokens, reader, p.api, "application/octet-stream")
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-
-	// check status
-	if resp.StatusCode != 201 {
+	if res.Status != 201 {
 		return errPinRequestFailed
 	}
 	return nil

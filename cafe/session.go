@@ -40,7 +40,7 @@ func NewSession(subject string, secret string, issuer string) (*models.Session, 
 		ExpiresAt:        ae.Unix(),
 		RefreshToken:     rt,
 		RefreshExpiresAt: re.Unix(),
-		SubjectID:        subject,
+		SubjectId:        subject,
 		TokenType:        "JWT",
 	}, nil
 }
