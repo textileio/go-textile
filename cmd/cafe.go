@@ -8,6 +8,19 @@ import (
 	"gopkg.in/abiosoft/ishell.v2"
 )
 
+func CafeReferral(c *ishell.Context) {
+	c.Print("key: ")
+	password := c.ReadPassword()
+
+	if err := core.Node.Wallet.GetReferral(creds); err != nil {
+		c.Err(err)
+		return
+	}
+
+	green := color.New(color.FgHiGreen).SprintFunc()
+	c.Println(green(fmt.Sprintf("welcome back, %s!", username)))
+}
+
 func CafeRegister(c *ishell.Context) {
 	c.Print("email address: ")
 	email := c.ReadLine()

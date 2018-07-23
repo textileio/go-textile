@@ -175,9 +175,9 @@ func (w *Wallet) Start() (chan struct{}, error) {
 				return nil
 			}
 			// get token
-			tokens, err := w.datastore.Profile().GetTokens()
-			if err != nil {
-				return err
+			tokens, _ := w.datastore.Profile().GetTokens()
+			if tokens == nil {
+				return nil
 			}
 			return net.Pin(w.ipfs, id.Hash().B58String(), tokens, w.pinner.Url())
 		})
