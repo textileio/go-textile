@@ -51,12 +51,6 @@ func AddPhoto(c *ishell.Context) {
 		return
 	}
 
-	// clean up
-	if err = os.Remove(added.PinRequest.PayloadPath); err != nil {
-		c.Err(err)
-		return
-	}
-
 	// add to thread
 	_, thrd := core.Node.Wallet.GetThread(threadId)
 	if thrd == nil {

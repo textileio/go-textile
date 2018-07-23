@@ -45,7 +45,7 @@ type Opts struct {
 	CafeAddr string `short:"c" long:"cafe" description:"cafe host address"`
 
 	// cafe host settings
-	CafeBindAddr string `long:"cafe-bind-addr" description:"set the cafe address" default:"127.0.0.1:random"`
+	CafeBindAddr string `long:"cafe-bind-addr" description:"set the cafe address"`
 
 	CafeDBHosts    string `long:"cafe-db-hosts" description:"set the cafe mongo db hosts uri"`
 	CafeDBName     string `long:"cafe-db-name" description:"set the cafe mongo db name"`
