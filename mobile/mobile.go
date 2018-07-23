@@ -169,7 +169,7 @@ func (m *Mobile) Stop() error {
 }
 
 // SignUpWithEmail creates an email based registration and calls core signup
-func (m *Mobile) SignUpWithEmail(username string, password string, email string, referral string) error {
+func (m *Mobile) SignUpWithEmail(email string, username string, password string, referral string) error {
 	// build registration
 	reg := &models.Registration{
 		Username: username,
