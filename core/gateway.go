@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/render"
 	"github.com/textileio/textile-go/crypto"
 	"net/http"
-	"strings"
 )
 
 // StartGateway starts the gateway
@@ -65,9 +65,8 @@ func (t *TextileNode) GetGatewayAddr() string {
 // gatewayHandler handles gateway http requests
 func gatewayHandler(c *gin.Context) {
 	contentPath := c.Param("root")
-	path, contentType := parsePath(c.Param("path"))
 	if c.Param("path") != "" {
-		contentPath = fmt.Sprintf("%s/%s", contentPath, path)
+		contentPath = fmt.Sprintf("%s/%s", contentPath, c.Param("path"))
 	}
 
 	// look for block id
@@ -91,7 +90,7 @@ func gatewayHandler(c *gin.Context) {
 			c.Status(404)
 			return
 		}
-		c.Data(200, contentType, data)
+		c.Render(200, render.Data{Data: data})
 		return
 	}
 
@@ -112,28 +111,10 @@ func gatewayHandler(c *gin.Context) {
 			c.Status(404)
 			return
 		}
-		c.Data(200, contentType, plain)
+		c.Render(200, render.Data{Data: plain})
 		return
 	}
 
 	// lastly, just return the raw bytes (standard gateway)
-	c.Data(200, contentType, data)
-}
-
-func parsePath(path string) (parsed string, contentType string) {
-	parts := strings.Split(path, ".")
-	parsed = parts[0]
-	if len(parts) == 1 {
-		return parsed, "application/octet-stream"
-	}
-	switch parts[1] {
-	case "jpg", "jpeg":
-		return parsed, "image/jpeg"
-	case "png":
-		return parsed, "image/png"
-	case "gif":
-		return parsed, "image/gif"
-	default:
-		return parsed, "application/octet-stream"
-	}
+	c.Render(200, render.Data{Data: data})
 }
