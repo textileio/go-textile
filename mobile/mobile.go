@@ -24,14 +24,6 @@ type Event struct {
 	Payload string `json:"payload"`
 }
 
-// newEvent transforms an event name and structured data in Event
-func newEvent(name string, payload map[string]interface{}) *Event {
-	event := &Event{Name: name}
-	jsn, _ := toJSON(payload)
-	event.Payload = jsn
-	return event
-}
-
 // Messenger is used to inform the bridge layer of new data waiting to be queried
 type Messenger interface {
 	Notify(event *Event)
@@ -147,8 +139,36 @@ func (m *Mobile) Start() error {
 			}(thrd)
 		}
 
+		// subscribe to wallet updates
+		go func() {
+			for {
+				select {
+				case update, ok := <-tcore.Node.Wallet.Updates():
+					if !ok {
+						return
+					}
+					payload, err := toJSON(update)
+					if err != nil {
+						return
+					}
+					var name string
+					switch update.Type {
+					case wallet.ThreadAdded:
+						name = "onThreadAdded"
+					case wallet.ThreadRemoved:
+						name = "onThreadRemoved"
+					case wallet.DeviceAdded:
+						name = "onDeviceAdded"
+					case wallet.DeviceRemoved:
+						name = "onDeviceRemoved"
+					}
+					m.messenger.Notify(&Event{Name: name, Payload: payload})
+				}
+			}
+		}()
+
 		// notify UI we're ready
-		m.messenger.Notify(newEvent("onOnline", map[string]interface{}{}))
+		m.messenger.Notify(&Event{Name: "onOnline", Payload: "{}"})
 
 		// check for new messages
 		m.RefreshMessages()
@@ -516,11 +536,10 @@ func (m *Mobile) subscribe(thrd *thread.Thread) {
 			if !ok {
 				return
 			}
-			m.messenger.Notify(newEvent("onThreadUpdate", map[string]interface{}{
-				"block":       update.Block,
-				"thread_id":   update.ThreadId,
-				"thread_name": update.ThreadName,
-			}))
+			payload, err := toJSON(update)
+			if err == nil {
+				m.messenger.Notify(&Event{Name: "onThreadUpdate", Payload: payload})
+			}
 		}
 	}
 }
