@@ -132,8 +132,8 @@ func Pin(ipfs *core.IpfsNode, id string, tokens *repo.CafeTokens, url string) er
 	if err != nil {
 		return err
 	}
-	if res.Status != 201 {
-		return errPinRequestFailed
+	if res.Error != nil {
+		return errors.New(*res.Error)
 	}
 	if res.Id == nil {
 		return errPinRequestEmpty
