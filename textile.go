@@ -247,9 +247,14 @@ func main() {
 				LongHelp: "Mange your cafe user session.",
 			}
 			cafeCmd.AddCmd(&ishell.Cmd{
-				Name: "referral",
-				Help: "get a cafe referral",
+				Name: "add-referral",
+				Help: "add cafe referrals",
 				Func: cmd.CafeReferral,
+			})
+			cafeCmd.AddCmd(&ishell.Cmd{
+				Name: "referrals",
+				Help: "list cafe referrals",
+				Func: cmd.ListCafeReferrals,
 			})
 			cafeCmd.AddCmd(&ishell.Cmd{
 				Name: "register",

@@ -8,6 +8,46 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
+// CreateReferral requests a referral from a cafe via key
+func (w *Wallet) CreateReferral(req *cmodels.ReferralRequest) (*cmodels.ReferralResponse, error) {
+	if w.cafeAddr == "" {
+		return nil, ErrNoCafeHost
+	}
+	log.Debug("requesting a referral")
+
+	// remote request
+	res, err := client.CreateReferral(req, fmt.Sprintf("%s/referrals", w.GetCafeAddr()))
+	if err != nil {
+		log.Errorf("create referral error: %s", err)
+		return nil, err
+	}
+	if res.Error != nil {
+		log.Errorf("create referral error from cafe: %s", *res.Error)
+		return nil, errors.New(*res.Error)
+	}
+	return res, nil
+}
+
+// ListReferrals lists existing referrals from a cafe via key
+func (w *Wallet) ListReferrals(key string) (*cmodels.ReferralResponse, error) {
+	if w.cafeAddr == "" {
+		return nil, ErrNoCafeHost
+	}
+	log.Debug("listing referrals")
+
+	// remote request
+	res, err := client.ListReferrals(key, fmt.Sprintf("%s/referrals", w.GetCafeAddr()))
+	if err != nil {
+		log.Errorf("list referrals error: %s", err)
+		return nil, err
+	}
+	if res.Error != nil {
+		log.Errorf("list referrals error from cafe: %s", *res.Error)
+		return nil, errors.New(*res.Error)
+	}
+	return res, nil
+}
+
 // SignUp requests a new username and token from a cafe and saves them locally
 func (w *Wallet) SignUp(reg *cmodels.Registration) error {
 	if w.cafeAddr == "" {
