@@ -40,7 +40,9 @@ func (c *Cafe) Start(addr string) {
 			"node_version": c.NodeVersion,
 		})
 	})
-	router.GET("/health", c.health)
+	router.GET("/health", func(g *gin.Context) {
+		g.Writer.WriteHeader(http.StatusNoContent)
+	})
 
 	// api routes
 	v0 := router.Group("/api/v0")

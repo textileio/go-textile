@@ -13,6 +13,9 @@ import (
 func (t *TextileNode) StartGateway(addr string) {
 	// setup router
 	router := gin.Default()
+	router.GET("/health", func(g *gin.Context) {
+		g.Writer.WriteHeader(http.StatusNoContent)
+	})
 	router.GET("/ipfs/:root", gatewayHandler)
 	router.GET("/ipfs/:root/*path", gatewayHandler)
 	t.gateway = &http.Server{
