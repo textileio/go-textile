@@ -1,15 +1,14 @@
 package wallet_test
 
 import (
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	"os"
-	"testing"
-
 	"crypto/rand"
 	"github.com/segmentio/ksuid"
 	cmodels "github.com/textileio/textile-go/cafe/models"
 	util "github.com/textileio/textile-go/util/testing"
 	. "github.com/textileio/textile-go/wallet"
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"os"
+	"testing"
 )
 
 var repo = "testdata/.textile"

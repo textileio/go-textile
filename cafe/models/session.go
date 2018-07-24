@@ -22,10 +22,30 @@ type Response struct {
 	Id      *string  `json:"id,omitempty"`
 }
 
+type ReferralResponse struct {
+	Response
+	RefCodes []string `json:"ref_codes,omitempty"`
+}
+
 func (r *Response) Read(body io.ReadCloser) error {
+	return unmarshalJson(body, r)
+}
+
+func (r *ReferralResponse) Read(body io.ReadCloser) error {
+	return unmarshalJson(body, r)
+}
+
+func unmarshalJson(body io.ReadCloser, target interface{}) error {
 	b, err := ioutil.ReadAll(body)
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(b, r)
+	return json.Unmarshal(b, target)
+}
+
+type ReferralRequest struct {
+	Key         string
+	Count       int
+	Limit       int
+	RequestedBy string
 }

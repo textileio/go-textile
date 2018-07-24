@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/textileio/textile-go/cafe/models"
+	cafe "github.com/textileio/textile-go/core/cafe"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
-
-	"github.com/textileio/textile-go/cafe/models"
 )
 
 var client = &http.Client{}
@@ -18,62 +17,13 @@ var (
 	CafeReferralKey = os.Getenv("CAFE_REFERRAL_KEY")
 )
 
-type ReferralResponse struct {
-	Status   int      `json:"status,omitempty"`
-	RefCodes []string `json:"ref_codes,omitempty"`
-	Error    string   `json:"error,omitempty"`
+func CreateReferral(key string, count int, limit int, requestedBy string) (*models.ReferralResponse, error) {
+	req := &models.ReferralRequest{Key: key, Count: count, Limit: limit, RequestedBy: requestedBy}
+	return cafe.CreateReferral(req, fmt.Sprintf("%s/api/v0/referrals", CafeAddr))
 }
 
-func (r *ReferralResponse) Read(body io.ReadCloser) error {
-	b, err := ioutil.ReadAll(body)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(b, r)
-}
-
-func CreateReferral(key string, num int, limit int, requestedBy string) (int, *ReferralResponse, error) {
-	url := fmt.Sprintf("%s/api/v0/referrals?count=%d&limit=%d&requested_by=%s", CafeAddr, num, limit, requestedBy)
-	req, err := http.NewRequest("POST", url, nil)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Referral-Key", key)
-	res, err := client.Do(req)
-	if err != nil {
-		return 0, nil, err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != 201 {
-		return res.StatusCode, nil, nil
-	}
-
-	resp := &ReferralResponse{}
-	if err := resp.Read(res.Body); err != nil {
-		return res.StatusCode, nil, err
-	}
-	return res.StatusCode, resp, nil
-}
-
-func ListReferrals(key string) (int, *ReferralResponse, error) {
-	url := fmt.Sprintf("%s/api/v0/referrals", CafeAddr)
-	req, err := http.NewRequest("GET", url, nil)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Referral-Key", key)
-	res, err := client.Do(req)
-	if err != nil {
-		return 0, nil, err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != 200 {
-		return res.StatusCode, nil, nil
-	}
-
-	resp := &ReferralResponse{}
-	if err := resp.Read(res.Body); err != nil {
-		return res.StatusCode, nil, err
-	}
-	return res.StatusCode, resp, nil
+func ListReferrals(key string) (*models.ReferralResponse, error) {
+	return cafe.ListReferrals(key, fmt.Sprintf("%s/api/v0/referrals", CafeAddr))
 }
 
 func SignUp(reg interface{}) (int, *models.Response, error) {
