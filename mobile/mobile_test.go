@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"github.com/segmentio/ksuid"
 	. "github.com/textileio/textile-go/mobile"
-	"github.com/textileio/textile-go/net/model"
 	util "github.com/textileio/textile-go/util/testing"
+	"github.com/textileio/textile-go/wallet"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"os"
 	"testing"
@@ -25,7 +25,6 @@ var defaultThreadId string
 var threadId string
 var addedPhotoId string
 var addedPhotoKey string
-var sharedBlockId string
 var deviceId string
 
 var cusername = ksuid.New().String()
@@ -35,9 +34,9 @@ var cemail = ksuid.New().String() + "@textile.io"
 func TestNewTextile(t *testing.T) {
 	os.RemoveAll(repo)
 	config := &NodeConfig{
-		RepoPath:      repo,
-		CentralApiURL: util.CentralApiURL,
-		LogLevel:      "DEBUG",
+		RepoPath: repo,
+		CafeAddr: util.CafeAddr,
+		LogLevel: "DEBUG",
 	}
 	var err error
 	mobile, err = NewNode(config, &TestMessenger{})
@@ -59,7 +58,7 @@ func TestMobile_StartAgain(t *testing.T) {
 }
 
 func TestMobile_SignUpWithEmail(t *testing.T) {
-	_, ref, err := util.CreateReferral(util.RefKey, 1, 1, "test")
+	ref, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
 	if err != nil {
 		t.Errorf("create referral for signup failed: %s", err)
 		return
@@ -68,7 +67,7 @@ func TestMobile_SignUpWithEmail(t *testing.T) {
 		t.Error("create referral for signup got no codes")
 		return
 	}
-	err = mobile.SignUpWithEmail(cusername, cpassword, cemail, ref.RefCodes[0])
+	err = mobile.SignUpWithEmail(cemail, cusername, cpassword, ref.RefCodes[0])
 	if err != nil {
 		t.Errorf("signup failed: %s", err)
 	}
@@ -108,8 +107,8 @@ func TestMobile_GetUsername(t *testing.T) {
 	}
 }
 
-func TestMobile_GetAccessToken(t *testing.T) {
-	if _, err := mobile.GetAccessToken(); err != nil {
+func TestMobile_GetTokens(t *testing.T) {
+	if _, err := mobile.GetTokens(); err != nil {
 		t.Errorf("get access token failed: %s", err)
 	}
 }
@@ -255,10 +254,14 @@ func TestMobile_AddPhoto(t *testing.T) {
 		t.Errorf("add photo failed: %s", err)
 		return
 	}
-	res := model.AddResult{}
+	res := wallet.AddDataResult{}
 	err = json.Unmarshal([]byte(resStr), &res)
 	if err != nil {
 		t.Error(err)
+		return
+	}
+	if res.Archive == nil {
+		t.Error("add photo result should have an archive")
 		return
 	}
 	addedPhotoKey = res.Key
@@ -266,12 +269,11 @@ func TestMobile_AddPhoto(t *testing.T) {
 }
 
 func TestMobile_AddPhotoToThread(t *testing.T) {
-	blockId, err := mobile.AddPhotoToThread(addedPhotoId, addedPhotoKey, threadId, "")
+	_, err := mobile.AddPhotoToThread(addedPhotoId, addedPhotoKey, threadId, "")
 	if err != nil {
 		t.Errorf("add photo to thread failed: %s", err)
 		return
 	}
-	sharedBlockId = blockId
 }
 
 func TestMobile_SharePhotoToThread(t *testing.T) {
@@ -286,12 +288,11 @@ func TestMobile_SharePhotoToThread(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	id, err := mobile.SharePhotoToThread(addedPhotoId, item.Id, "howdy")
+	_, err = mobile.SharePhotoToThread(addedPhotoId, item.Id, "howdy")
 	if err != nil {
 		t.Errorf("share photo to thread failed: %s", err)
 		return
 	}
-	sharedBlockId = id
 }
 
 func TestMobile_GetPhotos(t *testing.T) {

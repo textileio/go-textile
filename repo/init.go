@@ -65,7 +65,7 @@ func DoInit(repoRoot string, version string, mnemonic *string, initDB func(strin
 		return "", err
 	}
 
-	conf, err := config.Init(identity)
+	conf, err := config.Init(identity, version)
 	if err != nil {
 		return "", err
 	}

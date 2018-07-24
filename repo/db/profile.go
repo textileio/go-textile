@@ -15,7 +15,7 @@ func NewProfileStore(db *sql.DB, lock *sync.Mutex) repo.ProfileStore {
 	return &ProfileDB{db, lock}
 }
 
-func (c *ProfileDB) SignIn(username string, accessToken string, refreshToken string) error {
+func (c *ProfileDB) SignIn(username string, tokens *repo.CafeTokens) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -32,12 +32,12 @@ func (c *ProfileDB) SignIn(username string, accessToken string, refreshToken str
 		tx.Rollback()
 		return err
 	}
-	_, err = stmt.Exec("access", accessToken)
+	_, err = stmt.Exec("access", tokens.Access)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	_, err = stmt.Exec("refresh", refreshToken)
+	_, err = stmt.Exec("refresh", tokens.Refresh)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -87,18 +87,19 @@ func (c *ProfileDB) GetUsername() (string, error) {
 	return un, nil
 }
 
-func (c *ProfileDB) GetTokens() (accessToken string, refreshToken string, err error) {
+func (c *ProfileDB) GetTokens() (*repo.CafeTokens, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stmt, err := c.db.Prepare("select value from profile where key=?")
 	defer stmt.Close()
+	var accessToken, refreshToken string
 	err = stmt.QueryRow("access").Scan(&accessToken)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 	err = stmt.QueryRow("refresh").Scan(&refreshToken)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
-	return accessToken, refreshToken, nil
+	return &repo.CafeTokens{Access: accessToken, Refresh: refreshToken}, nil
 }

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/globalsign/mgo/bson"
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/central/dao"
-	"github.com/textileio/textile-go/central/models"
+	"github.com/textileio/textile-go/cafe/dao"
+	"github.com/textileio/textile-go/cafe/models"
 	"os"
 	"testing"
 	"time"
@@ -39,8 +39,8 @@ var user = models.User{
 }
 
 func TestDao_Connect(t *testing.T) {
-	d.Hosts = os.Getenv("DB_HOSTS")
-	d.Name = os.Getenv("DB_NAME")
+	d.Hosts = os.Getenv("CAFE_DB_HOSTS")
+	d.Name = os.Getenv("CAFE_DB_NAME")
 	d.Connect()
 }
 

@@ -83,7 +83,6 @@ func (w *Wallet) SendMessage(env *pb.Envelope, peerId string, hash *string) erro
 		return err
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	var success bool
 	go func() {
 		err = w.service.SendMessage(ctx, pid, env)
@@ -100,6 +99,7 @@ func (w *Wallet) SendMessage(env *pb.Envelope, peerId string, hash *string) erro
 				log.Debugf("send offline message failed: %s", err)
 			}
 		}
+		cancel()
 	}()
 	return nil
 }

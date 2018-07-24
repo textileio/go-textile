@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/op/go-logging"
-	"github.com/textileio/textile-go/central/models"
+	"github.com/textileio/textile-go/cafe/models"
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet"
@@ -24,14 +24,6 @@ type Event struct {
 	Payload string `json:"payload"`
 }
 
-// newEvent transforms an event name and structured data in Event
-func newEvent(name string, payload map[string]interface{}) *Event {
-	event := &Event{Name: name}
-	jsn, _ := toJSON(payload)
-	event.Payload = jsn
-	return event
-}
-
 // Messenger is used to inform the bridge layer of new data waiting to be queried
 type Messenger interface {
 	Notify(event *Event)
@@ -40,10 +32,10 @@ type Messenger interface {
 // NodeConfig is used to configure the mobile node
 // NOTE: logLevel is one of: CRITICAL ERROR WARNING NOTICE INFO DEBUG
 type NodeConfig struct {
-	RepoPath      string
-	CentralApiURL string
-	LogLevel      string
-	LogFiles      bool
+	RepoPath string
+	CafeAddr string
+	LogLevel string
+	LogFiles bool
 }
 
 // Mobile is the name of the framework (must match package name)
@@ -113,9 +105,9 @@ func NewNode(config *NodeConfig, messenger Messenger) (*Mobile, error) {
 		LogLevel: ll,
 		LogFiles: config.LogFiles,
 		WalletConfig: wallet.Config{
-			RepoPath:   config.RepoPath,
-			CentralAPI: config.CentralApiURL,
-			IsMobile:   true,
+			RepoPath: config.RepoPath,
+			IsMobile: true,
+			CafeAddr: config.CafeAddr,
 		},
 	}
 	node, mnemonic, err := tcore.NewNode(cconfig)
@@ -147,8 +139,36 @@ func (m *Mobile) Start() error {
 			}(thrd)
 		}
 
+		// subscribe to wallet updates
+		go func() {
+			for {
+				select {
+				case update, ok := <-tcore.Node.Wallet.Updates():
+					if !ok {
+						return
+					}
+					payload, err := toJSON(update)
+					if err != nil {
+						return
+					}
+					var name string
+					switch update.Type {
+					case wallet.ThreadAdded:
+						name = "onThreadAdded"
+					case wallet.ThreadRemoved:
+						name = "onThreadRemoved"
+					case wallet.DeviceAdded:
+						name = "onDeviceAdded"
+					case wallet.DeviceRemoved:
+						name = "onDeviceRemoved"
+					}
+					m.messenger.Notify(&Event{Name: name, Payload: payload})
+				}
+			}
+		}()
+
 		// notify UI we're ready
-		m.messenger.Notify(newEvent("onOnline", map[string]interface{}{}))
+		m.messenger.Notify(&Event{Name: "onOnline", Payload: "{}"})
 
 		// check for new messages
 		m.RefreshMessages()
@@ -169,7 +189,7 @@ func (m *Mobile) Stop() error {
 }
 
 // SignUpWithEmail creates an email based registration and calls core signup
-func (m *Mobile) SignUpWithEmail(username string, password string, email string, referral string) error {
+func (m *Mobile) SignUpWithEmail(email string, username string, password string, referral string) error {
 	// build registration
 	reg := &models.Registration{
 		Username: username,
@@ -215,8 +235,12 @@ func (m *Mobile) GetUsername() (string, error) {
 }
 
 // GetAccessToken calls core GetAccessToken
-func (m *Mobile) GetAccessToken() (string, error) {
-	return tcore.Node.Wallet.GetAccessToken()
+func (m *Mobile) GetTokens() (string, error) {
+	tokens, err := tcore.Node.Wallet.GetTokens()
+	if err != nil {
+		return "", err
+	}
+	return toJSON(tokens)
 }
 
 // RefreshMessages run the message retriever and repointer jobs
@@ -512,11 +536,10 @@ func (m *Mobile) subscribe(thrd *thread.Thread) {
 			if !ok {
 				return
 			}
-			m.messenger.Notify(newEvent("onThreadUpdate", map[string]interface{}{
-				"block":       update.Block,
-				"thread_id":   update.ThreadId,
-				"thread_name": update.ThreadName,
-			}))
+			payload, err := toJSON(update)
+			if err == nil {
+				m.messenger.Notify(&Event{Name: "onThreadUpdate", Payload: payload})
+			}
 		}
 	}
 }

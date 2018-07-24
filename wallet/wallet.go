@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/op/go-logging"
+	"github.com/textileio/textile-go/cafe"
+	"github.com/textileio/textile-go/core/cafe"
 	"github.com/textileio/textile-go/net"
 	serv "github.com/textileio/textile-go/net/service"
 	trepo "github.com/textileio/textile-go/repo"
@@ -19,22 +21,25 @@ import (
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/config"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"
+	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
 var log = logging.MustGetLogger("wallet")
 
 type Config struct {
-	Version    string
-	RepoPath   string
-	CentralAPI string
-	IsMobile   bool
-	IsServer   bool
-	SwarmPort  string
-	Mnemonic   *string
+	Version  string
+	RepoPath string
+	Mnemonic *string
+
+	SwarmPorts string
+
+	IsMobile bool
+	IsServer bool
+
+	CafeAddr string
 }
 
 type Update struct {
@@ -52,16 +57,22 @@ const (
 	DeviceRemoved
 )
 
+// AddDataResult wraps added data content id and key
+type AddDataResult struct {
+	Id      string          `json:"id"`
+	Key     string          `json:"key"`
+	Archive *client.Archive `json:"archive,omitempty"` // mobile only
+}
+
 type Wallet struct {
 	version            string
 	context            oldcmds.Context
 	repoPath           string
-	serverAddr         string
 	cancel             context.CancelFunc
 	ipfs               *core.IpfsNode
 	datastore          trepo.Datastore
 	service            *serv.TextileService
-	centralAPI         string
+	cafeAddr           string
 	isMobile           bool
 	started            bool
 	threads            []*thread.Thread
@@ -79,6 +90,7 @@ var ErrStarted = errors.New("node is already started")
 var ErrStopped = errors.New("node is already stopped")
 var ErrOffline = errors.New("node is offline")
 var ErrThreadLoaded = errors.New("thread is already loaded")
+var ErrNoCafeHost = errors.New("cafe host address is not set")
 
 func NewWallet(config Config) (*Wallet, string, error) {
 	// get database handle
@@ -101,20 +113,13 @@ func NewWallet(config Config) (*Wallet, string, error) {
 		return nil, "", err
 	}
 
-	// save gateway address
-	gwAddr, err := repo.GetConfigKey("Addresses.Gateway")
-	if err != nil {
-		log.Errorf("error getting gateway address: %s", err)
+	// if a specific swarm port was selected, set it in the config
+	if err := applySwarmPortConfigOption(repo, config.SwarmPorts); err != nil {
 		return nil, "", err
 	}
 
 	// ensure bootstrap addresses are latest in config (without wiping repo)
 	if err := ensureBootstrapConfig(repo); err != nil {
-		return nil, "", err
-	}
-
-	// if a specific swarm port was selected, set it in the config
-	if err := applySwarmPortConfigOption(repo, config.SwarmPort); err != nil {
 		return nil, "", err
 	}
 
@@ -124,12 +129,11 @@ func NewWallet(config Config) (*Wallet, string, error) {
 	}
 
 	return &Wallet{
-		version:    config.Version,
-		repoPath:   config.RepoPath,
-		serverAddr: gwAddr.(string),
-		datastore:  sqliteDB,
-		centralAPI: strings.TrimRight(config.CentralAPI, "/"),
-		isMobile:   config.IsMobile,
+		version:   config.Version,
+		repoPath:  config.RepoPath,
+		datastore: sqliteDB,
+		isMobile:  config.IsMobile,
+		cafeAddr:  config.CafeAddr,
 	}, mnemonic, nil
 }
 
@@ -173,7 +177,17 @@ func (w *Wallet) Start() (chan struct{}, error) {
 		<-dht.DefaultBootstrapConfig.DoneChan
 
 		// set offline message storage
-		w.messageStorage = storage.NewSelfHostedStorage(w.ipfs, w.repoPath, w.sendStore)
+		w.messageStorage = storage.NewCafeStorage(w.ipfs, w.repoPath, func(id *cid.Cid) error {
+			if w.pinner == nil {
+				return nil
+			}
+			// get token
+			tokens, _ := w.datastore.Profile().GetTokens()
+			if tokens == nil {
+				return nil
+			}
+			return net.Pin(w.ipfs, id.Hash().B58String(), tokens, w.pinner.Url())
+		})
 
 		// service is now configurable
 		w.service = serv.NewService(w.ipfs, w.datastore, w.GetThread, w.AddThread)
@@ -206,18 +220,20 @@ func (w *Wallet) Start() (chan struct{}, error) {
 	}()
 
 	// build a pin requester
-	pinnerCfg := net.PinnerConfig{
-		Datastore: w.datastore,
-		Ipfs: func() *core.IpfsNode {
-			return w.ipfs
-		},
-		Api: "https://ipfs.textile.io/api/v0/add", // TODO: put in node config
-	}
-	w.pinner = net.NewPinner(pinnerCfg)
+	if w.GetCafeAddr() != "" {
+		pinnerCfg := net.PinnerConfig{
+			Datastore: w.datastore,
+			Ipfs: func() *core.IpfsNode {
+				return w.ipfs
+			},
+			Api: fmt.Sprintf("%s/pin", w.GetCafeAddr()),
+		}
+		w.pinner = net.NewPinner(pinnerCfg)
 
-	// start ticker job if not mobile
-	if !w.isMobile {
-		go w.pinner.Run()
+		// start ticker job if not mobile
+		if !w.isMobile {
+			go w.pinner.Run()
+		}
 	}
 
 	// setup threads
@@ -294,6 +310,14 @@ func (w *Wallet) Online() bool {
 	return w.started && w.ipfs.OnlineMode()
 }
 
+func (w *Wallet) Version() string {
+	return w.version
+}
+
+func (w *Wallet) Ipfs() *core.IpfsNode {
+	return w.ipfs
+}
+
 func (w *Wallet) RefreshMessages() error {
 	if !w.Online() {
 		return ErrOffline
@@ -304,6 +328,9 @@ func (w *Wallet) RefreshMessages() error {
 }
 
 func (w *Wallet) RunPinner() {
+	if w.pinner == nil {
+		return
+	}
 	go w.pinner.Pin()
 }
 
@@ -319,8 +346,12 @@ func (w *Wallet) GetRepoPath() string {
 	return w.repoPath
 }
 
-func (w *Wallet) GetServerAddress() string {
-	return w.serverAddr
+// GetCafeAddr returns the cafe address is set
+func (w *Wallet) GetCafeAddr() string {
+	if w.cafeAddr == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s/api/%s", w.cafeAddr, cafe.Version)
 }
 
 // GetId returns peer id
@@ -417,7 +448,7 @@ func (w *Wallet) createIPFS(online bool) error {
 	// determine the best routing
 	var routingOption core.RoutingOption
 	if w.isMobile {
-		routingOption = core.DHTClientOption
+		routingOption = core.DHTOption
 	} else {
 		routingOption = core.DHTOption
 	}
@@ -517,7 +548,7 @@ func (w *Wallet) loadThread(mod *trepo.Thread) (*thread.Thread, error) {
 		Send:        w.SendMessage,
 		NewEnvelope: w.NewEnvelope,
 		PutPinRequest: func(id string) error {
-			if !w.isMobile {
+			if w.pinner == nil {
 				return nil
 			}
 			return w.pinner.Put(id)

@@ -3,8 +3,7 @@ package auth
 import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/central/models"
-	"os"
+	"github.com/textileio/textile-go/cafe/models"
 	"time"
 )
 
@@ -24,15 +23,15 @@ const (
 	week = time.Hour * 24 * 7
 )
 
-func NewSession(subject string) (*models.Session, error) {
+func NewSession(subject string, secret string, issuer string) (*models.Session, error) {
 	id := ksuid.New().String()
 	ae := time.Now().Add(week)
-	at, err := NewToken(id, subject, ae, access)
+	at, err := NewToken(id, subject, ae, access, secret, issuer)
 	if err != nil {
 		return nil, err
 	}
 	re := time.Now().Add(week * 4)
-	rt, err := NewToken("r"+id, subject, re, refresh)
+	rt, err := NewToken("r"+id, subject, re, refresh, secret, issuer)
 	if err != nil {
 		return nil, err
 	}
@@ -41,22 +40,22 @@ func NewSession(subject string) (*models.Session, error) {
 		ExpiresAt:        ae.Unix(),
 		RefreshToken:     rt,
 		RefreshExpiresAt: re.Unix(),
-		SubjectID:        subject,
+		SubjectId:        subject,
 		TokenType:        "JWT",
 	}, nil
 }
 
-func NewToken(id string, subject string, expiry time.Time, scope scope) (string, error) {
+func NewToken(id string, subject string, expiry time.Time, scope scope, secret string, issuer string) (string, error) {
 	claims := &textileClaims{
-		scope,
-		jwt.StandardClaims{
-			Audience:  "textile",
+		Scope: scope,
+		StandardClaims: jwt.StandardClaims{
+			Audience:  "/textile/app/1.0.0",
 			ExpiresAt: expiry.Unix(),
 			Id:        id,
 			IssuedAt:  time.Now().Unix(),
-			Issuer:    os.Getenv("TOKEN_ISSUER"),
+			Issuer:    issuer,
 			Subject:   subject,
 		},
 	}
-	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(os.Getenv("TOKEN_SECRET")))
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secret))
 }

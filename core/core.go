@@ -1,10 +1,8 @@
 package core
 
 import (
-	"context"
-	"github.com/gin-gonic/gin"
 	"github.com/op/go-logging"
-	"github.com/textileio/textile-go/wallet"
+	w "github.com/textileio/textile-go/wallet"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"
 	"net/http"
@@ -26,16 +24,16 @@ var Node *TextileNode
 
 // TextileNode is the main node interface for textile functionality
 type TextileNode struct {
-	Wallet *wallet.Wallet
-	server *http.Server
-	mux    sync.Mutex
+	Wallet  *w.Wallet
+	gateway *http.Server
+	mux     sync.Mutex
 }
 
 // NodeConfig is used to configure the node
 type NodeConfig struct {
+	WalletConfig w.Config
 	LogLevel     logging.Level
 	LogFiles     bool
-	WalletConfig wallet.Config
 }
 
 // NewNode creates a new TextileNode
@@ -49,13 +47,13 @@ func NewNode(config NodeConfig) (*TextileNode, string, error) {
 	// log handling
 	var backendFile *logging.LogBackend
 	if config.LogFiles {
-		w := &lumberjack.Logger{
+		logger := &lumberjack.Logger{
 			Filename:   path.Join(config.WalletConfig.RepoPath, "logs", "textile.log"),
 			MaxSize:    10, // megabytes
 			MaxBackups: 3,
 			MaxAge:     30, // days
 		}
-		backendFile = logging.NewLogBackend(w, "", 0)
+		backendFile = logging.NewLogBackend(logger, "", 0)
 	} else {
 		backendFile = logging.NewLogBackend(os.Stdout, "", 0)
 	}
@@ -65,13 +63,13 @@ func NewNode(config NodeConfig) (*TextileNode, string, error) {
 
 	// create a wallet
 	config.WalletConfig.Version = Version
-	wall, mnemonic, err := wallet.NewWallet(config.WalletConfig)
+	wallet, mnemonic, err := w.NewWallet(config.WalletConfig)
 	if err != nil {
 		return nil, "", err
 	}
 
-	// finally, construct our node
-	node := &TextileNode{Wallet: wall}
+	// construct our node
+	node := &TextileNode{Wallet: wallet}
 
 	return node, mnemonic, nil
 }
@@ -88,56 +86,4 @@ func (t *TextileNode) StopWallet() error {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 	return t.Wallet.Stop()
-}
-
-// StartServer starts the server
-func (t *TextileNode) StartServer() {
-	router := gin.Default()
-	router.GET("/ipfs/:cid/:path", gateway)
-	v1 := router.Group("/api/v1")
-	{
-		v1.POST("/pin", pin)
-	}
-	t.server = &http.Server{
-		Addr:    t.Wallet.GetServerAddress(),
-		Handler: router,
-	}
-
-	// start the server
-	errc := make(chan error)
-	go func() {
-		errc <- t.server.ListenAndServe()
-		close(errc)
-	}()
-	go func() {
-		for {
-			select {
-			case err, ok := <-errc:
-				if err != nil && err != http.ErrServerClosed {
-					log.Errorf("server error: %s", err)
-				}
-				if !ok {
-					log.Info("server was shutdown")
-					return
-				}
-			}
-		}
-	}()
-	log.Infof("server listening at %s\n", t.server.Addr)
-}
-
-// StopServer stops the server
-func (t *TextileNode) StopServer() error {
-	ctx, cancel := context.WithCancel(context.Background())
-	if err := t.server.Shutdown(ctx); err != nil {
-		log.Errorf("error shutting down server: %s", err)
-		return err
-	}
-	cancel()
-	return nil
-}
-
-// GetServerAddress returns the server's address
-func (t *TextileNode) GetServerAddress() string {
-	return t.server.Addr
 }
