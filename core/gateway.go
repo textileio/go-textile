@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
 	"github.com/textileio/textile-go/crypto"
@@ -64,10 +63,7 @@ func (t *TextileNode) GetGatewayAddr() string {
 
 // gatewayHandler handles gateway http requests
 func gatewayHandler(c *gin.Context) {
-	contentPath := c.Param("root")
-	if c.Param("path") != "" {
-		contentPath = fmt.Sprintf("%s/%s", contentPath, c.Param("path"))
-	}
+	contentPath := c.Param("root") + c.Param("path")
 
 	// look for block id
 	blockId, exists := c.GetQuery("block")
