@@ -4,20 +4,25 @@ import (
 	"fmt"
 	"github.com/textileio/textile-go/repo/config"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo"
+	"strings"
 )
 
 func ensureBootstrapConfig(rep repo.Repo) error {
 	return config.Update(rep, "Bootstrap", config.BootstrapAddresses)
 }
 
-func applySwarmPortConfigOption(rep repo.Repo, port string) error {
-	if port != "" {
-		return config.Update(rep, "Addresses.Swarm", []string{
-			fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", port),
-			fmt.Sprintf("/ip6/::/tcp/%s", port),
-		})
-		log.Infof("applied custom swarm port: %s", port)
+func applySwarmPortConfigOption(rep repo.Repo, ports string) error {
+	parts := strings.Split(ports, ",")
+	if len(parts) != 2 {
+		return nil
 	}
+	return config.Update(rep, "Addresses.Swarm", []string{
+		fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", parts[0]),
+		fmt.Sprintf("/ip6/::/tcp/%s", parts[0]),
+		fmt.Sprintf("/ip4/0.0.0.0/tcp/%s/ws", parts[1]),
+		fmt.Sprintf("/ip6/::/tcp/%s/ws", parts[1]),
+	})
+	log.Infof("applied custom swarm port: %s", ports)
 	return nil
 }
 

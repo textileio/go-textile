@@ -3,11 +3,10 @@ package net
 import (
 	"bytes"
 	"github.com/pkg/errors"
+	cafe "github.com/textileio/textile-go/core/cafe"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet/util"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
-	"mime/multipart"
-	"net/http"
 	"sync"
 	"time"
 )
@@ -16,6 +15,8 @@ const kPinFrequency = time.Minute * 10
 const pinGroupSize = 5
 
 var errPinRequestFailed = errors.New("pin request failed")
+var errPinRequestEmpty = errors.New("pin request empty response")
+var errPinRequestMismatch = errors.New("pin request content id mismatch")
 
 type PinnerConfig struct {
 	Datastore repo.Datastore
@@ -26,12 +27,16 @@ type PinnerConfig struct {
 type Pinner struct {
 	datastore repo.Datastore
 	ipfs      func() *core.IpfsNode
-	api       string
+	url       string
 	mux       sync.Mutex
 }
 
 func NewPinner(config PinnerConfig) *Pinner {
-	return &Pinner{datastore: config.Datastore, ipfs: config.Ipfs, api: config.Api}
+	return &Pinner{datastore: config.Datastore, ipfs: config.Ipfs, url: config.Api}
+}
+
+func (p *Pinner) Url() string {
+	return p.url
 }
 
 func (p *Pinner) Run() {
@@ -55,9 +60,12 @@ func (p *Pinner) Pin() {
 }
 
 func (p *Pinner) Put(id string) error {
+	tokens, _ := p.datastore.Profile().GetTokens()
+	if tokens == nil {
+		return nil
+	}
 	pr := &repo.PinRequest{Id: id, Date: time.Now()}
-	err := p.datastore.PinRequests().Put(pr)
-	if err != nil {
+	if err := p.datastore.PinRequests().Put(pr); err != nil {
 		return err
 	}
 	log.Debugf("put pin request for %s", id)
@@ -103,33 +111,35 @@ func (p *Pinner) handlePin(offset string) error {
 }
 
 func (p *Pinner) send(pr repo.PinRequest) error {
-	// load local content
-	data, err := util.GetDataAtPath(p.ipfs(), pr.Id)
-	if err != nil {
-		return err
+	// get token
+	tokens, _ := p.datastore.Profile().GetTokens()
+	if tokens == nil {
+		return nil
 	}
+	return Pin(p.ipfs(), pr.Id, tokens, p.url)
+}
 
-	// send multipart request
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("file", "pin")
+func Pin(ipfs *core.IpfsNode, id string, tokens *repo.CafeTokens, url string) error {
+	// load local content
+	data, err := util.GetDataAtPath(ipfs, id)
 	if err != nil {
 		return err
 	}
-	part.Write(data)
-	if err := writer.Close(); err != nil {
-		return err
-	}
-	req, err := http.NewRequest("POST", p.api, body)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	reader := bytes.NewReader(data)
+
+	// pin to cafe
+	res, err := cafe.Pin(tokens, reader, url, "application/octet-stream")
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return errPinRequestFailed
+	if res.Error != nil {
+		return errors.New(*res.Error)
+	}
+	if res.Id == nil {
+		return errPinRequestEmpty
+	}
+	if *res.Id != id {
+		return errPinRequestMismatch
 	}
 	return nil
 }

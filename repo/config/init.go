@@ -41,7 +41,7 @@ var DefaultServerFilters = []string{
 	"/ip4/240.0.0.0/ipcidr/4",
 }
 
-func Init(identity native.Identity) (*native.Config, error) {
+func Init(identity native.Identity, version string) (*native.Config, error) {
 	var bootstrapPeers []native.BootstrapPeer
 	for _, addr := range BootstrapAddresses {
 		p, err := native.ParseBootstrapPeer(addr)
@@ -61,7 +61,7 @@ func Init(identity native.Identity) (*native.Config, error) {
 	conf := &native.Config{
 		API: native.API{
 			HTTPHeaders: map[string][]string{
-				"Server": {"go-ipfs/" + native.CurrentVersionNumber},
+				"Server": {"textile/" + version},
 			},
 		},
 
@@ -146,21 +146,19 @@ const DefaultConnMgrLowWater = 600
 const DefaultConnMgrGracePeriod = time.Second * 20
 
 func addressesConfig() native.Addresses {
-	swarmTCPPort := getRandomPort()
-	swarmWSPort := getRandomPort()
-	gatewayPort := getRandomPort()
+	swarmPort := GetRandomPort()
+	swarmWSPort := GetRandomPort()
 
 	return native.Addresses{
 		Swarm: []string{
-			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", swarmTCPPort),
-			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", swarmTCPPort),
+			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", swarmPort),
+			fmt.Sprintf("/ip6/::/tcp/%d", swarmPort),
 			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d/ws", swarmWSPort),
 			fmt.Sprintf("/ip6/::/tcp/%d/ws", swarmWSPort),
 			// "/ip4/0.0.0.0/udp/4002/utp", // disabled for now.
 		},
 		Announce:   []string{},
 		NoAnnounce: []string{},
-		Gateway:    fmt.Sprintf("127.0.0.1:%d", gatewayPort),
 	}
 }
 
@@ -200,7 +198,7 @@ func defaultDatastoreConfig() native.Datastore {
 	}
 }
 
-func getRandomPort() int {
+func GetRandomPort() int {
 	rand.Seed(time.Now().UTC().UnixNano())
 	return rand.Intn(maxPort-minPort) + minPort
 }

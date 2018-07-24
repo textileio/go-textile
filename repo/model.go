@@ -56,3 +56,8 @@ type PinRequest struct {
 	Id   string    `json:"id"`
 	Date time.Time `json:"date"`
 }
+
+type CafeTokens struct {
+	Access  string `json:"access"`
+	Refresh string `json:"refresh"`
+}

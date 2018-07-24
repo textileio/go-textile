@@ -1,9 +1,13 @@
+goinstall:
+	go build -i -o textile textile.go
+	mv textile $(GOPATH)/bin/
+
 build:
 	./build.sh
 
 linux_binary:
 	./build.sh linux/amd64
-	# cd dist && tar -czvf textile-go-linux-amd64.tar.gz textile-go-linux-amd64 && cd ..
+	cd dist && tar -czvf textile-go-linux-amd64.tar.gz textile-go-linux-amd64 && cd ..
 
 build_desktop:
 	$(MAKE) -C ./desktop build
@@ -28,16 +32,8 @@ clean:
 build_test:
 	docker build -f Dockerfile.circleci -t circleci:1.10 .
 
-build_swarm_services:
+build_cafe:
 	go get github.com/kardianos/govendor
-	cd central && govendor init && govendor add +external
-	cd relay && govendor init && govendor add +external
-	docker-compose -f docker-compose.swarm.yml build
-	rm -rf central/vendor && rm -rf relay/vendor
-
-build_local_services:
-	go get github.com/kardianos/govendor
-	cd central && govendor init && govendor add +external
-	cd relay && govendor init && govendor add +external
+	govendor init && govendor add +external
 	docker-compose build
-	rm -rf central/vendor && rm -rf relay/vendor
+	rm -rf vendor/gx && rm vendor/vendor.json
