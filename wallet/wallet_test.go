@@ -67,7 +67,7 @@ func TestWallet_GetRepoPath(t *testing.T) {
 }
 
 func TestWallet_SignUp(t *testing.T) {
-	_, ref, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
+	ref, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
 	if err != nil {
 		t.Errorf("create referral for signup failed: %s", err)
 		return

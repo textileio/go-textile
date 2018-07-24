@@ -24,13 +24,13 @@ var credentials = map[string]interface{}{
 
 func TestUsers_Setup(t *testing.T) {
 	// create a referral for the test
-	stat, ref, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
+	ref, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if stat != 201 {
-		t.Errorf("could not create referral, bad status: %d", stat)
+	if ref.Status != 201 {
+		t.Errorf("could not create referral, bad status: %d", ref.Status)
 		return
 	}
 	if len(ref.RefCodes) > 0 {
