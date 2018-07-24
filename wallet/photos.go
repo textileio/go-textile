@@ -117,12 +117,7 @@ func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 	}
 	result := &AddDataResult{Id: dir.Cid().Hash().B58String(), Key: string(key)}
 
-	// if not mobile, we're done
-	if !w.isMobile {
-		return result, nil
-	}
-
-	// on mobile, make an archive for remote pinning by the OS
+	// make an archive for remote pinning by the OS
 	result.Archive, err = cafe.NewArchive(result.Id, filepath.Join(w.repoPath, "tmp"))
 	if err != nil {
 		return nil, err
