@@ -32,16 +32,8 @@ clean:
 build_test:
 	docker build -f Dockerfile.circleci -t circleci:1.10 .
 
-build_swarm_services:
+build_cafe:
 	go get github.com/kardianos/govendor
-	cd central && govendor init && govendor add +external
-	cd relay && govendor init && govendor add +external
-	docker-compose -f docker-compose.swarm.yml build
-	rm -rf central/vendor && rm -rf relay/vendor
-
-build_local_services:
-	go get github.com/kardianos/govendor
-	cd central && govendor init && govendor add +external
-	cd relay && govendor init && govendor add +external
+	govendor init && govendor add +external
 	docker-compose build
-	rm -rf central/vendor && rm -rf relay/vendor
+	rm -rf vendor/gx && rm vendor/vendor.json
