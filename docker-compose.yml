@@ -5,7 +5,7 @@ services:
     ports:
       - "27100:27017"
   cafe:
-    image: textile-cafe
+    image: cafe
     build: .
     ports:
       - "8000:8000"

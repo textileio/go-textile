@@ -1,5 +1,7 @@
 FROM golang:alpine
 
+RUN apk update && apk add build-base
+
 WORKDIR /go/src/github.com/textileio/textile-go
 COPY . .
 
