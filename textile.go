@@ -41,6 +41,9 @@ type Opts struct {
 	// gateway settings
 	GatewayBindAddr string `short:"g" long:"gateway-bind-addr" description:"set the gateway address" default:"127.0.0.1:random"`
 
+	// swarm settings
+	SwarmPorts string `long:"swarm-ports" description:"set the swarm ports (tcp,ws)" default:"random"`
+
 	// cafe client settings
 	CafeAddr string `short:"c" long:"cafe" description:"cafe host address"`
 
@@ -103,10 +106,11 @@ func main() {
 	// node setup
 	config := core.NodeConfig{
 		WalletConfig: wallet.Config{
-			RepoPath: dataDir,
-			IsMobile: false,
-			IsServer: Options.ServerMode,
-			CafeAddr: Options.CafeAddr,
+			RepoPath:   dataDir,
+			SwarmPorts: Options.SwarmPorts,
+			IsMobile:   false,
+			IsServer:   Options.ServerMode,
+			CafeAddr:   Options.CafeAddr,
 		},
 		LogLevel: level,
 		LogFiles: !Options.NoLogFiles,
@@ -135,6 +139,7 @@ func main() {
 			},
 			TokenSecret: Options.CafeTokenSecret,
 			ReferralKey: Options.CafeReferralKey,
+			NodeVersion: core.Version,
 		}
 	}
 

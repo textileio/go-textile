@@ -152,7 +152,7 @@ func addressesConfig() native.Addresses {
 	return native.Addresses{
 		Swarm: []string{
 			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", swarmPort),
-			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", swarmPort),
+			fmt.Sprintf("/ip6/::/tcp/%d", swarmPort),
 			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d/ws", swarmWSPort),
 			fmt.Sprintf("/ip6/::/tcp/%d/ws", swarmWSPort),
 			// "/ip4/0.0.0.0/udp/4002/utp", // disabled for now.

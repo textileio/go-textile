@@ -34,6 +34,8 @@ type Config struct {
 	RepoPath string
 	Mnemonic *string
 
+	SwarmPorts string
+
 	IsMobile bool
 	IsServer bool
 
@@ -108,6 +110,11 @@ func NewWallet(config Config) (*Wallet, string, error) {
 	repo, err := fsrepo.Open(config.RepoPath)
 	if err != nil {
 		log.Errorf("error opening repo: %s", err)
+		return nil, "", err
+	}
+
+	// if a specific swarm port was selected, set it in the config
+	if err := applySwarmPortConfigOption(repo, config.SwarmPorts); err != nil {
 		return nil, "", err
 	}
 
@@ -441,7 +448,7 @@ func (w *Wallet) createIPFS(online bool) error {
 	// determine the best routing
 	var routingOption core.RoutingOption
 	if w.isMobile {
-		routingOption = core.DHTClientOption
+		routingOption = core.DHTOption
 	} else {
 		routingOption = core.DHTOption
 	}

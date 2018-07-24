@@ -5,10 +5,11 @@ services:
     ports:
       - "27100:27017"
   central:
-    image: central
-    build: cafe
+    image: textile-cafe
+    build: .
     ports:
       - "8000:8000"
+      - "9000:9000"
     environment:
       - VERSION=0.0.1
       - BIND=0.0.0.0:8000
