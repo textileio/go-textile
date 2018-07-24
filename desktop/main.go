@@ -194,6 +194,11 @@ func sendData(name string, data map[string]interface{}) {
 
 func handleMessage(_ *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
+	case "refresh":
+		if err := core.Node.Wallet.RefreshMessages(); err != nil {
+			return nil, err
+		}
+		return map[string]interface{}{}, nil
 	case "thread.load":
 		var threadId string
 		if err := json.Unmarshal(m.Payload, &threadId); err != nil {

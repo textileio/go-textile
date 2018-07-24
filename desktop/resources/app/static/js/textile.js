@@ -79,6 +79,18 @@ function showMain() {
   }
 }
 
+function refresh() {
+  astilectron.sendMessage({name: 'refresh'}, function (message) {
+    if (message.name === 'error') {
+      asticode.notifier.error(message)
+    }
+  })
+  $('.refresh-button').addClass('rotate')
+  setTimeout(function () {
+    $('.refresh-button').removeClass('rotate')
+  }, 500)
+}
+
 function renderThreads(threads) {
   threads.forEach(function (thread) {
     addThread(thread)

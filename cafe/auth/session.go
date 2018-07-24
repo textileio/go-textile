@@ -20,26 +20,27 @@ const (
 )
 
 const (
-	week = time.Hour * 24 * 7
+	week  = time.Hour * 24 * 7
+	month = week * 4
 )
 
 func NewSession(subject string, secret string, issuer string) (*models.Session, error) {
 	id := ksuid.New().String()
-	ae := time.Now().Add(week)
-	at, err := NewToken(id, subject, ae, access, secret, issuer)
+	expiresAt := time.Now().Add(month * 3)
+	access, err := NewToken(id, subject, expiresAt, access, secret, issuer)
 	if err != nil {
 		return nil, err
 	}
-	re := time.Now().Add(week * 4)
-	rt, err := NewToken("r"+id, subject, re, refresh, secret, issuer)
+	refreshExpiresAt := time.Now().Add(month * 6)
+	refresh, err := NewToken("r"+id, subject, refreshExpiresAt, refresh, secret, issuer)
 	if err != nil {
 		return nil, err
 	}
 	return &models.Session{
-		AccessToken:      at,
-		ExpiresAt:        ae.Unix(),
-		RefreshToken:     rt,
-		RefreshExpiresAt: re.Unix(),
+		AccessToken:      access,
+		ExpiresAt:        expiresAt.Unix(),
+		RefreshToken:     refresh,
+		RefreshExpiresAt: refreshExpiresAt.Unix(),
 		SubjectId:        subject,
 		TokenType:        "JWT",
 	}, nil
