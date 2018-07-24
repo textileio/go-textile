@@ -43,6 +43,10 @@ body {
     background-size: cover;
 }
 
+body i {
+    font-family: 'FontAwesome', sans-serif !important;
+}
+
 h1, h2, h3, h4, h5, h6 {
     cursor: pointer;
     -webkit-touch-callout: none;
@@ -144,6 +148,33 @@ p, label {
     width: 100%;
     height: 32px;
     -webkit-app-region: drag;
+}
+
+.title-buttons {}
+
+.title-button {
+    position: absolute;
+    right: 0;
+    z-index: 10001;
+    border: none;
+    margin: 0;
+    padding: 12px;
+    height: initial;
+    line-height: 14px;
+    font-size: 14px;
+    cursor: pointer;
+    opacity: 0.5;
+}
+
+.title-button:hover {
+    opacity: 0.75;
+}
+
+.title-button.rotate {
+    transform: rotate(720deg);
+    transition: transform 500ms ease-out;
+    transform-origin: 47% 50%;
+    transform-style: preserve-3D;
 }
 
 .sidebar {

@@ -322,6 +322,7 @@ func (w *Wallet) RefreshMessages() error {
 	if !w.Online() {
 		return ErrOffline
 	}
+	w.messageRetriever.Add(1)
 	go w.messageRetriever.FetchPointers()
 	go w.pointerRepublisher.Republish()
 	return nil
