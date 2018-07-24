@@ -64,7 +64,7 @@ func gatewayHandler(c *gin.Context) {
 	contentPath := c.Param("root")
 	path, contentType := parsePath(c.Param("path"))
 	if c.Param("path") != "" {
-		contentPath += fmt.Sprintf("%s/%s", contentPath, path)
+		contentPath = fmt.Sprintf("%s/%s", contentPath, path)
 	}
 
 	// look for block id
