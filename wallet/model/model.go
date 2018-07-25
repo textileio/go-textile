@@ -12,7 +12,8 @@ const ThumbnailWidth = 300
 
 type Metadata struct {
 	Version  string    `json:"version"`
-	Username string    `json:"username,omitempty"`
+	PeerId   string    `json:"peer_id"`
+	Username string    `json:"username,omitempty"` // TODO: remove this in favor of fetching via ipns
 	Created  time.Time `json:"created,omitempty"`
 	Added    time.Time `json:"added"`
 }
