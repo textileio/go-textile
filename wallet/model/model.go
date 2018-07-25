@@ -5,7 +5,7 @@ import "time"
 type Profile struct {
 	Id       string `json:"id"`
 	Username string `json:"username,omitempty"`
-	AvatarId string `json:"avatar_id"`
+	AvatarId string `json:"avatar_id,omitempty"`
 }
 
 const ThumbnailWidth = 300

@@ -17,6 +17,8 @@ func (t *TextileNode) StartGateway(addr string) {
 	})
 	router.GET("/ipfs/:root", gatewayHandler)
 	router.GET("/ipfs/:root/*path", gatewayHandler)
+	router.GET("/ipns/:root", profileHandler)
+	router.GET("/ipns/:root/*path", profileHandler)
 	t.gateway = &http.Server{
 		Addr:    addr,
 		Handler: router,
@@ -108,6 +110,28 @@ func gatewayHandler(c *gin.Context) {
 			return
 		}
 		c.Render(200, render.Data{Data: plain})
+		return
+	}
+
+	// lastly, just return the raw bytes (standard gateway)
+	c.Render(200, render.Data{Data: data})
+}
+
+// profileHandler handles profile request hosted on ipns
+func profileHandler(c *gin.Context) {
+	pth, err := Node.Wallet.ResolveProfile(c.Param("root"))
+	if err != nil {
+		log.Errorf("error resolving profile %s: %s", c.Param("root"), err)
+		c.Status(404)
+		return
+	}
+
+	// get data
+	contentPath := pth.String() + c.Param("path")
+	data, err := Node.Wallet.GetDataAtPath(contentPath)
+	if err != nil {
+		log.Errorf("error getting data at profile path %s: %s", contentPath, err)
+		c.Status(404)
 		return
 	}
 
