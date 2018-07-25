@@ -48,7 +48,10 @@ func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 	}
 
 	// get some meta data
-	username, _ := w.datastore.Profile().GetUsername() // ignore if not present (not signed in)
+	prof, err := w.GetProfile()
+	if err != nil {
+		return nil, err
+	}
 	mpk, err := w.GetPubKey()
 	if err != nil {
 		return nil, err
@@ -64,7 +67,7 @@ func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 
 	// get metadata
 	reader.Seek(0, 0)
-	meta, err := util.MakeMetadata(reader, fpath, ext, *format, thumbFormat, size.X, size.Y, username, w.version)
+	meta, err := util.MakeMetadata(reader, fpath, ext, *format, thumbFormat, size.X, size.Y, prof, w.version)
 	if err != nil {
 		return nil, err
 	}

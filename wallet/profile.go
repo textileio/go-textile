@@ -243,7 +243,7 @@ func (w *Wallet) PublishProfile() (*util.IpnsEntry, error) {
 		return nil, err
 	}
 
-	// pin the directory
+	// pin the directory locally
 	dir, err := dirb.GetNode()
 	if err != nil {
 		return nil, err
@@ -253,7 +253,7 @@ func (w *Wallet) PublishProfile() (*util.IpnsEntry, error) {
 	}
 	id := dir.Cid().Hash().B58String()
 
-	// pin it
+	// request cafe pin
 	if w.pinner != nil {
 		if err := w.pinner.Put(id); err != nil {
 			return nil, err

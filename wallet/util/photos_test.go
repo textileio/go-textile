@@ -97,7 +97,8 @@ func Test_MakeMetadata(t *testing.T) {
 		fpath := file.Name()
 		ext := strings.ToLower(filepath.Ext(fpath))
 
-		meta, err := MakeMetadata(file, fpath, ext, i.format, i.thumbFormat, i.width, i.height, "bob", "1.0.0")
+		prof := &model.Profile{Id: "Qm...", Username: "bob"}
+		meta, err := MakeMetadata(file, fpath, ext, i.format, i.thumbFormat, i.width, i.height, prof, "1.0.0")
 		if err != nil {
 			t.Fatal(err)
 		}

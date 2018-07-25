@@ -493,6 +493,25 @@ func (m *Mobile) GetPhotoMetadata(id string) (string, error) {
 	return toJSON(meta)
 }
 
+// ResolveProfileInfo take a peer id and profile key name, like "username"
+func (m *Mobile) ResolveProfileInfo(peerId string, key string) (string, error) {
+	pth, err := tcore.Node.Wallet.ResolveProfile(peerId)
+	if err != nil {
+		log.Errorf("error resolving profile %s: %s", peerId, err)
+		return "", err
+	}
+
+	// get data
+	contentPath := fmt.Sprintf("%s/%s", pth.String(), key)
+	data, err := tcore.Node.Wallet.GetDataAtPath(contentPath)
+	if err != nil {
+		log.Errorf("error getting data at profile path %s: %s", contentPath, err)
+		return "", err
+	}
+
+	return string(data), nil
+}
+
 // getImageData returns a data url for an image under a path
 func (m *Mobile) getImageData(id string, path string, isThumb bool) (string, error) {
 	block, err := tcore.Node.Wallet.GetBlockByDataId(id)
