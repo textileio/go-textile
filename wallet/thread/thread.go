@@ -249,8 +249,7 @@ func (t *Thread) addBlock(envelope *pb.Envelope) (mh.Multihash, error) {
 	}
 
 	// add a pin request
-	err = t.putPinRequest(id.Hash().B58String())
-	if err != nil {
+	if err := t.putPinRequest(id.Hash().B58String()); err != nil {
 		return nil, err
 	}
 
