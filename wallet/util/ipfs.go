@@ -8,10 +8,12 @@ import (
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreapi"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreapi/interface/options"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreunix"
+	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/path"
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
@@ -26,6 +28,16 @@ var log = logging.MustGetLogger("util")
 
 const pinTimeout = time.Minute * 1
 const catTimeout = time.Second * 30
+
+type PublishOpts struct {
+	VerifyExists bool
+	PubValidTime time.Duration
+}
+
+type IpnsEntry struct {
+	Name  string
+	Value string
+}
 
 // GetDataAtPath cats any data under an ipfs path
 func GetDataAtPath(ipfs *core.IpfsNode, path string) ([]byte, error) {
@@ -221,6 +233,29 @@ outer:
 // MultiaddrFromId creates a multiaddr from an id string
 func MultiaddrFromId(id string) (ma.Multiaddr, error) {
 	return ma.NewMultiaddr("/ipfs/" + id + "/")
+}
+
+func Publish(ctx context.Context, n *core.IpfsNode, k libp2pc.PrivKey, ref path.Path, opts *PublishOpts) (*IpnsEntry, error) {
+	if opts.VerifyExists {
+		// verify the path exists
+		_, err := core.Resolve(ctx, n.Namesys, n.Resolver, ref)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	eol := time.Now().Add(opts.PubValidTime)
+	err := n.Namesys.PublishWithEOL(ctx, k, ref, eol)
+	if err != nil {
+		return nil, err
+	}
+
+	pid, err := peer.IDFromPrivateKey(k)
+	if err != nil {
+		return nil, err
+	}
+
+	return &IpnsEntry{Name: pid.Pretty(), Value: ref.String()}, nil
 }
 
 // parseAddresses is a function that takes in a slice of string peer addresses

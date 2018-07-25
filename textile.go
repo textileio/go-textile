@@ -284,6 +284,29 @@ func main() {
 			shell.AddCmd(cafeCmd)
 		}
 		{
+			profileCmd := &ishell.Cmd{
+				Name:     "profile",
+				Help:     "manage cafe profiles",
+				LongHelp: "Resolve other profiles, get and publish local profile.",
+			}
+			profileCmd.AddCmd(&ishell.Cmd{
+				Name: "get",
+				Help: "get local profile",
+				Func: cmd.GetProfile,
+			})
+			profileCmd.AddCmd(&ishell.Cmd{
+				Name: "publish",
+				Help: "publish local profile",
+				Func: cmd.PublishProfile,
+			})
+			profileCmd.AddCmd(&ishell.Cmd{
+				Name: "resolve",
+				Help: "resolve profiles",
+				Func: cmd.ResolveProfile,
+			})
+			shell.AddCmd(profileCmd)
+		}
+		{
 			swarmCmd := &ishell.Cmd{
 				Name:     "swarm",
 				Help:     "same as ipfs swarm",

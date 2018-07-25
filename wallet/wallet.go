@@ -61,7 +61,7 @@ const (
 type AddDataResult struct {
 	Id      string          `json:"id"`
 	Key     string          `json:"key"`
-	Archive *client.Archive `json:"archive,omitempty"` // mobile only
+	Archive *client.Archive `json:"archive,omitempty"`
 }
 
 type Wallet struct {
@@ -211,6 +211,13 @@ func (w *Wallet) Start() (chan struct{}, error) {
 			go w.messageRetriever.Run()
 			go w.pointerRepublisher.Run()
 		}
+
+		// re-pub profile
+		go func() {
+			if _, err := w.PublishProfile(); err != nil {
+				log.Errorf("error getting profile: %s", err)
+			}
+		}()
 
 		// print swarm addresses
 		if err := util.PrintSwarmAddrs(w.ipfs); err != nil {
@@ -446,14 +453,6 @@ func (w *Wallet) createIPFS(online bool) error {
 		return err
 	}
 
-	// determine the best routing
-	var routingOption core.RoutingOption
-	if w.isMobile {
-		routingOption = core.DHTOption
-	} else {
-		routingOption = core.DHTOption
-	}
-
 	// assemble node config
 	cfg := &core.BuildCfg{
 		Repo:      repo,
@@ -464,7 +463,7 @@ func (w *Wallet) createIPFS(online bool) error {
 			"ipnsps": true,
 			"mplex":  true,
 		},
-		Routing: routingOption,
+		Routing: core.DHTOption,
 	}
 
 	// create the node
