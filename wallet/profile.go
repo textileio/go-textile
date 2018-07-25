@@ -124,10 +124,11 @@ func (w *Wallet) SignIn(creds *cmodels.Credentials) error {
 	}
 
 	// re-pub profile
-	if _, err := w.PublishProfile(); err != nil {
-		log.Errorf("error getting profile: %s", err)
-		return err
-	}
+	go func() {
+		if _, err := w.PublishProfile(); err != nil {
+			log.Errorf("error publishing profile: %s", err)
+		}
+	}()
 
 	return nil
 }
@@ -149,10 +150,11 @@ func (w *Wallet) SignOut() error {
 	}
 
 	// re-pub profile
-	if _, err := w.PublishProfile(); err != nil {
-		log.Errorf("error getting profile: %s", err)
-		return err
-	}
+	go func() {
+		if _, err := w.PublishProfile(); err != nil {
+			log.Errorf("error publishing profile: %s", err)
+		}
+	}()
 
 	return nil
 }
@@ -226,7 +228,6 @@ func (w *Wallet) PublishProfile() (*util.IpnsEntry, error) {
 	// get current profile
 	prof, err := w.GetProfile()
 	if err != nil {
-		log.Errorf("error getting profile: %s", err)
 		return nil, err
 	}
 
@@ -250,9 +251,17 @@ func (w *Wallet) PublishProfile() (*util.IpnsEntry, error) {
 	if err := util.PinDirectory(w.ipfs, dir, []string{}); err != nil {
 		return nil, err
 	}
+	id := dir.Cid().Hash().B58String()
+
+	// pin it
+	if w.pinner != nil {
+		if err := w.pinner.Put(id); err != nil {
+			return nil, err
+		}
+	}
 
 	// extract path
-	pth, err := path.ParsePath(dir.Cid().Hash().B58String())
+	pth, err := path.ParsePath(id)
 	if err != nil {
 		return nil, err
 	}

@@ -215,7 +215,7 @@ func (w *Wallet) Start() (chan struct{}, error) {
 		// re-pub profile
 		go func() {
 			if _, err := w.PublishProfile(); err != nil {
-				log.Errorf("error getting profile: %s", err)
+				log.Errorf("error publishing profile: %s", err)
 			}
 		}()
 
