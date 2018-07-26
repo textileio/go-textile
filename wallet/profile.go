@@ -259,6 +259,9 @@ func (w *Wallet) PublishProfile() (*util.IpnsEntry, error) {
 
 	// request cafe pin
 	go func() {
+		if err := w.touchDatastore(); err != nil {
+			return
+		}
 		if err := w.putPinRequest(id); err != nil {
 			// TODO: #202 (Properly handle database/sql errors)
 			log.Warningf("pin request %s exists: %s", id)

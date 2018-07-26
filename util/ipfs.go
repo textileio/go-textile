@@ -40,8 +40,8 @@ type IpnsEntry struct {
 	Value string
 }
 
-// GetReaderAtPath returns a reader to data under an ipfs path
-func GetReaderAtPath(ipfs *core.IpfsNode, path string) (io.Reader, error) {
+// GetDataAtPath return bytes under an ipfs path
+func GetDataAtPath(ipfs *core.IpfsNode, path string) ([]byte, error) {
 	// convert string to an ipfs path
 	ip, err := coreapi.ParsePath(path)
 	if err != nil {
@@ -62,15 +62,6 @@ func GetReaderAtPath(ipfs *core.IpfsNode, path string) (io.Reader, error) {
 		}
 	}()
 
-	return reader, nil
-}
-
-// GetDataAtPath return bytes under an ipfs path
-func GetDataAtPath(ipfs *core.IpfsNode, path string) ([]byte, error) {
-	reader, err := GetReaderAtPath(ipfs, path)
-	if err != nil {
-		return nil, err
-	}
 	return ioutil.ReadAll(reader)
 }
 
@@ -287,14 +278,6 @@ func MultiaddrFromId(id string) (ma.Multiaddr, error) {
 }
 
 func Publish(ctx context.Context, n *core.IpfsNode, k libp2pc.PrivKey, ref path.Path, opts *PublishOpts) (*IpnsEntry, error) {
-	if opts.VerifyExists {
-		// verify the path exists
-		_, err := core.Resolve(ctx, n.Namesys, n.Resolver, ref)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	eol := time.Now().Add(opts.PubValidTime)
 	err := n.Namesys.PublishWithEOL(ctx, k, ref, eol)
 	if err != nil {
