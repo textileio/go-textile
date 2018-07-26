@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/textileio/textile-go/wallet/util"
+	"github.com/textileio/textile-go/util"
 	"gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	libp2pn "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
@@ -13,7 +13,7 @@ import (
 
 // ConnectPeer connect to another ipfs peer (i.e., ipfs swarm connect)
 func (w *Wallet) ConnectPeer(addrs []string) ([]string, error) {
-	if !w.Online() {
+	if !w.IsOnline() {
 		return nil, ErrOffline
 	}
 	snet, ok := w.ipfs.PeerHost.Network().(*swarm.Network)
@@ -47,7 +47,7 @@ func (w *Wallet) PingPeer(addrs string, num int, out chan string) error {
 	if !w.started {
 		return ErrStopped
 	}
-	if !w.Online() {
+	if !w.IsOnline() {
 		return ErrOffline
 	}
 	addr, pid, err := util.ParsePeerParam(addrs)
@@ -106,7 +106,7 @@ func (w *Wallet) PingPeer(addrs string, num int, out chan string) error {
 }
 
 func (w *Wallet) Peers() ([]libp2pn.Conn, error) {
-	if !w.Online() {
+	if !w.IsOnline() {
 		return nil, ErrOffline
 	}
 	return w.ipfs.PeerHost.Network().Conns(), nil

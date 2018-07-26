@@ -12,8 +12,8 @@ import (
 	trepo "github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/storage"
+	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet/thread"
-	"github.com/textileio/textile-go/wallet/util"
 	"gx/ipfs/QmVW4cqbibru3hXA1iRmg85Fk7z9qML9k176CYQaMXVCrP/go-libp2p-kad-dht"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	utilmain "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/cmd/ipfs/util"
@@ -76,6 +76,7 @@ type Wallet struct {
 	isMobile           bool
 	started            bool
 	threads            []*thread.Thread
+	online             chan struct{}
 	done               chan struct{}
 	updates            chan Update
 	messageStorage     storage.OfflineMessagingStorage
@@ -138,16 +139,16 @@ func NewWallet(config Config) (*Wallet, string, error) {
 }
 
 // Start
-func (w *Wallet) Start() (chan struct{}, error) {
+func (w *Wallet) Start() error {
 	if w.started {
-		return nil, ErrStarted
+		return ErrStarted
 	}
 	defer func() {
 		w.done = make(chan struct{})
 		w.started = true
 	}()
 	log.Info("starting wallet...")
-	onlineCh := make(chan struct{})
+	w.online = make(chan struct{})
 	w.updates = make(chan Update)
 
 	// raise file descriptor limit
@@ -157,17 +158,17 @@ func (w *Wallet) Start() (chan struct{}, error) {
 
 	// check db
 	if err := w.touchDatastore(); err != nil {
-		return nil, err
+		return err
 	}
 
 	// start the ipfs node
 	log.Debug("creating an ipfs node...")
 	if err := w.createIPFS(false); err != nil {
 		log.Errorf("error creating offline ipfs node: %s", err)
-		return nil, err
+		return err
 	}
 	go func() {
-		defer close(onlineCh)
+		defer close(w.online)
 		if err := w.createIPFS(true); err != nil {
 			log.Errorf("error creating online ipfs node: %s", err)
 			return
@@ -250,13 +251,13 @@ func (w *Wallet) Start() (chan struct{}, error) {
 			continue
 		}
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	log.Info("wallet is started")
 
-	return onlineCh, nil
+	return nil
 }
 
 // Stop the node
@@ -310,7 +311,7 @@ func (w *Wallet) Started() bool {
 	return w.started
 }
 
-func (w *Wallet) Online() bool {
+func (w *Wallet) IsOnline() bool {
 	if w.ipfs == nil {
 		return false
 	}
@@ -326,7 +327,7 @@ func (w *Wallet) Ipfs() *core.IpfsNode {
 }
 
 func (w *Wallet) RefreshMessages() error {
-	if !w.Online() {
+	if !w.IsOnline() {
 		return ErrOffline
 	}
 	w.messageRetriever.Add(1)
@@ -342,12 +343,16 @@ func (w *Wallet) RunPinner() {
 	go w.pinner.Pin()
 }
 
-func (w *Wallet) Updates() <-chan Update {
-	return w.updates
+func (w *Wallet) Online() <-chan struct{} {
+	return w.online
 }
 
 func (w *Wallet) Done() <-chan struct{} {
 	return w.done
+}
+
+func (w *Wallet) Updates() <-chan Update {
+	return w.updates
 }
 
 func (w *Wallet) GetRepoPath() string {
@@ -545,14 +550,9 @@ func (w *Wallet) loadThread(mod *trepo.Thread) (*thread.Thread, error) {
 			}
 			return nil
 		},
-		Send:        w.SendMessage,
-		NewEnvelope: w.NewEnvelope,
-		PutPinRequest: func(id string) error {
-			if w.pinner == nil {
-				return nil
-			}
-			return w.pinner.Put(id)
-		},
+		Send:          w.SendMessage,
+		NewEnvelope:   w.NewEnvelope,
+		PutPinRequest: w.putPinRequest,
 	}
 	thrd, err := thread.NewThread(mod, threadConfig)
 	if err != nil {
@@ -560,6 +560,14 @@ func (w *Wallet) loadThread(mod *trepo.Thread) (*thread.Thread, error) {
 	}
 	w.threads = append(w.threads, thrd)
 	return thrd, nil
+}
+
+// putPinRequest adds a pin request to the pinner
+func (w *Wallet) putPinRequest(id string) error {
+	if w.pinner == nil {
+		return nil
+	}
+	return w.pinner.Put(id)
 }
 
 func (w *Wallet) sendUpdate(update Update) {

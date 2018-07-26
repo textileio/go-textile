@@ -1,12 +1,12 @@
 package net
 
 import (
-	"bytes"
 	"github.com/pkg/errors"
 	cafe "github.com/textileio/textile-go/core/cafe"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/wallet/util"
+	"github.com/textileio/textile-go/util"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
+	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreapi/interface"
 	"sync"
 	"time"
 )
@@ -121,14 +121,22 @@ func (p *Pinner) send(pr repo.PinRequest, tokens *repo.CafeTokens) error {
 
 func Pin(ipfs *core.IpfsNode, id string, tokens *repo.CafeTokens, url string) error {
 	// load local content
-	data, err := util.GetDataAtPath(ipfs, id)
+	cType := "application/octet-stream"
+	reader, err := util.GetReaderAtPath(ipfs, id)
 	if err != nil {
-		return err
+		if err == iface.ErrIsDir {
+			reader, err = util.GetArchiveAtPath(ipfs, id)
+			if err != nil {
+				return err
+			}
+			cType = "application/gzip"
+		} else {
+			return err
+		}
 	}
-	reader := bytes.NewReader(data)
 
 	// pin to cafe
-	res, err := cafe.Pin(tokens, reader, url, "application/octet-stream")
+	res, err := cafe.Pin(tokens.Access, reader, url, cType)
 	if err != nil {
 		return err
 	}

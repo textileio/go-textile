@@ -27,8 +27,7 @@ func Test_SetupThread(t *testing.T) {
 	if err != nil {
 		t.Errorf("create wallet failed: %s", err)
 	}
-	wonline, err = twallet.Start()
-	if err != nil {
+	if err := twallet.Start(); err != nil {
 		t.Errorf("start wallet failed: %s", err)
 	}
 }

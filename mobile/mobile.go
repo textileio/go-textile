@@ -8,10 +8,10 @@ import (
 	"github.com/textileio/textile-go/cafe/models"
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet"
 	"github.com/textileio/textile-go/wallet/model"
 	"github.com/textileio/textile-go/wallet/thread"
-	"github.com/textileio/textile-go/wallet/util"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"time"
 )
@@ -42,7 +42,6 @@ type NodeConfig struct {
 type Mobile struct {
 	RepoPath  string
 	Mnemonic  string
-	Online    <-chan struct{} // not readable from bridges
 	messenger Messenger
 }
 
@@ -121,17 +120,15 @@ func NewNode(config *NodeConfig, messenger Messenger) (*Mobile, error) {
 
 // Start the mobile node
 func (m *Mobile) Start() error {
-	online, err := tcore.Node.StartWallet()
-	if err != nil {
+	if err := tcore.Node.StartWallet(); err != nil {
 		if err == wallet.ErrStarted {
 			return nil
 		}
 		return err
 	}
-	m.Online = online
 
 	go func() {
-		<-online
+		<-tcore.Node.Wallet.Online()
 		// subscribe to thread updates
 		for _, thrd := range tcore.Node.Wallet.Threads() {
 			go func(t *thread.Thread) {

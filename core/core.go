@@ -75,7 +75,7 @@ func NewNode(config NodeConfig) (*TextileNode, string, error) {
 }
 
 // StopWallet starts the wallet
-func (t *TextileNode) StartWallet() (online chan struct{}, err error) {
+func (t *TextileNode) StartWallet() error {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 	return t.Wallet.Start()

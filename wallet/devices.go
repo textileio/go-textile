@@ -13,7 +13,7 @@ func (w *Wallet) Devices() []trepo.Device {
 
 // AddDevice creates an invite for every current and future thread
 func (w *Wallet) AddDevice(name string, pk libp2pc.PubKey) error {
-	if !w.Online() {
+	if !w.IsOnline() {
 		return ErrOffline
 	}
 
@@ -46,7 +46,7 @@ func (w *Wallet) AddDevice(name string, pk libp2pc.PubKey) error {
 
 // RemoveDevice removes a device
 func (w *Wallet) RemoveDevice(id string) error {
-	if !w.Online() {
+	if !w.IsOnline() {
 		return ErrOffline
 	}
 

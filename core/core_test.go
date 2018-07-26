@@ -32,16 +32,14 @@ func TestNewNode(t *testing.T) {
 }
 
 func TestTextileNode_StartWallet(t *testing.T) {
-	online, err := node.StartWallet()
-	if err != nil {
+	if err := node.StartWallet(); err != nil {
 		t.Errorf("start node failed: %s", err)
 	}
-	<-online
+	<-node.Wallet.Online()
 }
 
 func TestTextileNode_StartAgain(t *testing.T) {
-	_, err := node.StartWallet()
-	if err != wallet.ErrStarted {
+	if err := node.StartWallet(); err != wallet.ErrStarted {
 		t.Errorf("start node again reported wrong error: %s", err)
 	}
 }

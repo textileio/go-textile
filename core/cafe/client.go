@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/textileio/textile-go/cafe/models"
-	"github.com/textileio/textile-go/repo"
 	"io"
 	"net/http"
 )
@@ -95,11 +94,11 @@ func SignIn(creds *models.Credentials, url string) (*models.Response, error) {
 	return resp, nil
 }
 
-func Pin(tokens *repo.CafeTokens, reader io.Reader, url string, cType string) (*models.Response, error) {
+func Pin(accessTok string, reader io.Reader, url string, cType string) (*models.Response, error) {
 	// build the request
 	req, err := http.NewRequest("POST", url, reader)
 	req.Header.Set("Content-Type", cType)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", tokens.Access))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessTok))
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil {

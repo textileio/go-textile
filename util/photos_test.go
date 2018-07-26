@@ -1,10 +1,10 @@
-package util_test
+package util
 
 import (
 	"bytes"
 	"fmt"
+	. "github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet/model"
-	. "github.com/textileio/textile-go/wallet/util"
 	"io/ioutil"
 	"os"
 	"path/filepath"

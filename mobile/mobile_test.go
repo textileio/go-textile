@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
 	util "github.com/textileio/textile-go/util/testing"
 	"github.com/textileio/textile-go/wallet"
@@ -175,7 +176,7 @@ func TestMobile_Threads(t *testing.T) {
 }
 
 func TestMobile_RemoveThread(t *testing.T) {
-	<-mobile.Online
+	<-core.Node.Wallet.Online()
 	blockId, err := mobile.RemoveThread(defaultThreadId)
 	if err != nil {
 		t.Error(err)
@@ -349,6 +350,23 @@ func TestMobile_GetPhotoMetadata(t *testing.T) {
 	}
 	if len(res) == 0 {
 		t.Errorf("get meta data bad result")
+	}
+}
+
+func TestMobile_ResolveProfileInfo(t *testing.T) {
+	// resolve own profile info
+	id, err := mobile.GetId()
+	if err != nil {
+		t.Errorf("get own id failed: %s", err)
+		return
+	}
+	info, err := mobile.ResolveProfileInfo(id, "username")
+	if err != nil {
+		t.Errorf("resolve profile info failed: %s", err)
+		return
+	}
+	if info != cusername {
+		t.Errorf("resolve profile info bad result")
 	}
 }
 

@@ -3,6 +3,7 @@ package util
 import (
 	"context"
 	"github.com/op/go-logging"
+	"github.com/textileio/textile-go/core/cafe"
 	iaddr "gx/ipfs/QmQViVWBHbU6HmYjXcdNq7tVASCNgdg64ZGcauuDkLCivW/go-ipfs-addr"
 	"gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
@@ -39,8 +40,8 @@ type IpnsEntry struct {
 	Value string
 }
 
-// GetDataAtPath cats any data under an ipfs path
-func GetDataAtPath(ipfs *core.IpfsNode, path string) ([]byte, error) {
+// GetReaderAtPath returns a reader to data under an ipfs path
+func GetReaderAtPath(ipfs *core.IpfsNode, path string) (io.Reader, error) {
 	// convert string to an ipfs path
 	ip, err := coreapi.ParsePath(path)
 	if err != nil {
@@ -50,18 +51,68 @@ func GetDataAtPath(ipfs *core.IpfsNode, path string) ([]byte, error) {
 	api := coreapi.NewCoreAPI(ipfs)
 	ctx, cancel := context.WithTimeout(ipfs.Context(), catTimeout)
 	defer cancel()
-	r, err := api.Unixfs().Cat(ctx, ip)
+	reader, err := api.Unixfs().Cat(ctx, ip)
 	if err != nil {
 		return nil, err
 	}
-	defer r.Close()
+	defer reader.Close()
 	defer func() {
 		if recover() != nil {
 			log.Debug("node stopped")
 		}
 	}()
 
-	return ioutil.ReadAll(r)
+	return reader, nil
+}
+
+// GetDataAtPath return bytes under an ipfs path
+func GetDataAtPath(ipfs *core.IpfsNode, path string) ([]byte, error) {
+	reader, err := GetReaderAtPath(ipfs, path)
+	if err != nil {
+		return nil, err
+	}
+	return ioutil.ReadAll(reader)
+}
+
+// GetArchiveAtPath builds an archive from directory links under an ipfs path
+// NOTE: currently will bork if dir path contains other dirs (depth > 1)
+func GetArchiveAtPath(ipfs *core.IpfsNode, path string) (io.Reader, error) {
+	// convert string to an ipfs path
+	ip, err := coreapi.ParsePath(path)
+	if err != nil {
+		return nil, err
+	}
+
+	api := coreapi.NewCoreAPI(ipfs)
+	ctx, cancel := context.WithTimeout(ipfs.Context(), catTimeout)
+	defer cancel()
+	links, err := api.Unixfs().Ls(ctx, ip)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if recover() != nil {
+			log.Debug("node stopped")
+		}
+	}()
+	if len(links) == 0 {
+		return nil, nil
+	}
+
+	// virtual archive
+	archive, err := client.NewArchive(nil)
+	for _, link := range links {
+		data, err := GetDataAtPath(ipfs, link.Cid.Hash().B58String())
+		if err != nil {
+			return nil, err
+		}
+		archive.AddFile(data, link.Name)
+	}
+	if err := archive.Close(); err != nil {
+		return nil, err
+	}
+
+	return archive.VirtualReader(), nil
 }
 
 // PrintSwarmAddrs prints the addresses of the host
@@ -171,11 +222,11 @@ func PinData(ipfs *core.IpfsNode, data io.Reader) (*cid.Cid, error) {
 	ctx, cancel := context.WithTimeout(ipfs.Context(), pinTimeout)
 	defer cancel()
 	api := coreapi.NewCoreAPI(ipfs)
-	path, err := api.Unixfs().Add(ctx, data)
+	pth, err := api.Unixfs().Add(ctx, data)
 	if err != nil {
 		return nil, err
 	}
-	if err := api.Pin().Add(ctx, path); err != nil {
+	if err := api.Pin().Add(ctx, pth); err != nil {
 		return nil, err
 	}
 	defer func() {
@@ -183,7 +234,7 @@ func PinData(ipfs *core.IpfsNode, data io.Reader) (*cid.Cid, error) {
 			log.Debug("node stopped")
 		}
 	}()
-	return path.Cid(), nil
+	return pth.Cid(), nil
 }
 
 // PinPath takes an ipfs path string and pins it
