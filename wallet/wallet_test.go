@@ -192,7 +192,7 @@ func TestWallet_RemoveDevice(t *testing.T) {
 }
 
 func TestWallet_AddPhoto(t *testing.T) {
-	added, err := wallet.AddPhoto("testdata/image.jpg")
+	added, err := wallet.AddPhoto("../util/testdata/image.jpg")
 	if err != nil {
 		t.Errorf("add photo failed: %s", err)
 		return

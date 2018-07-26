@@ -250,7 +250,7 @@ func TestMobile_RemoveDevice(t *testing.T) {
 }
 
 func TestMobile_AddPhoto(t *testing.T) {
-	resStr, err := mobile.AddPhoto("testdata/image.jpg")
+	resStr, err := mobile.AddPhoto("../util/testdata/image.jpg")
 	if err != nil {
 		t.Errorf("add photo failed: %s", err)
 		return

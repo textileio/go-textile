@@ -34,7 +34,6 @@ func (c *DeviceDB) Add(device *repo.Device) error {
 	)
 	if err != nil {
 		tx.Rollback()
-		log.Errorf("error in db exec: %s", err)
 		return err
 	}
 	tx.Commit()

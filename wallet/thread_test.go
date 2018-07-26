@@ -11,7 +11,6 @@ import (
 var trepo = "testdata/.textile1"
 
 var twallet *Wallet
-var wonline <-chan struct{}
 
 var thrd *thread.Thread
 var wadded *AddDataResult
@@ -41,7 +40,7 @@ func TestNewThread_WalletOffline(t *testing.T) {
 }
 
 func TestNewThread_WalletOnline(t *testing.T) {
-	<-wonline
+	<-twallet.Online()
 	var err error
 	_, _, err = twallet.AddThreadWithMnemonic("thread2", nil)
 	if err != nil {
@@ -51,7 +50,7 @@ func TestNewThread_WalletOnline(t *testing.T) {
 
 func TestThread_AddPhotoSetup(t *testing.T) {
 	var err error
-	wadded, err = twallet.AddPhoto("testdata/image.jpg")
+	wadded, err = twallet.AddPhoto("../util/testdata/image.jpg")
 	if err != nil {
 		t.Errorf("add photo failed: %s", err)
 		return
