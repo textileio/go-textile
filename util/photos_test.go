@@ -3,7 +3,6 @@ package util
 import (
 	"bytes"
 	"fmt"
-	. "github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet/model"
 	"io/ioutil"
 	"os"
@@ -25,7 +24,7 @@ type testImage struct {
 
 var images = []testImage{
 	{
-		path:        "../testdata/image.jpg",
+		path:        "testdata/image.jpg",
 		name:        "image",
 		ext:         ".jpg",
 		format:      JPEG,
@@ -35,7 +34,7 @@ var images = []testImage{
 		height:      4032,
 	},
 	{
-		path:        "../testdata/image.png",
+		path:        "testdata/image.png",
 		name:        "image",
 		ext:         ".png",
 		format:      PNG,
@@ -45,7 +44,7 @@ var images = []testImage{
 		height:      4032,
 	},
 	{
-		path:        "../testdata/image.gif",
+		path:        "testdata/image.gif",
 		name:        "image",
 		ext:         ".gif",
 		format:      GIF,

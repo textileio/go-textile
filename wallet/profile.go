@@ -260,7 +260,8 @@ func (w *Wallet) PublishProfile() (*util.IpnsEntry, error) {
 	// request cafe pin
 	go func() {
 		if err := w.putPinRequest(id); err != nil {
-			log.Errorf("error putting profile pin request %s: %s", id, err)
+			// TODO: #202 (Properly handle database/sql errors)
+			log.Warningf("pin request %s exists: %s", id)
 		}
 	}()
 

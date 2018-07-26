@@ -1,7 +1,6 @@
 package util
 
 import (
-	//. "github.com/textileio/textile-go/util"
 	"testing"
 )
 

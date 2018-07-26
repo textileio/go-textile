@@ -37,7 +37,6 @@ func (c *PeerDB) Add(peer *repo.Peer) error {
 	)
 	if err != nil {
 		tx.Rollback()
-		log.Errorf("error in db exec: %s", err)
 		return err
 	}
 	tx.Commit()
