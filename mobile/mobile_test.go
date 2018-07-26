@@ -68,8 +68,7 @@ func TestMobile_SignUpWithEmail(t *testing.T) {
 		t.Error("create referral for signup got no codes")
 		return
 	}
-	err = mobile.SignUpWithEmail(cemail, cusername, cpassword, ref.RefCodes[0])
-	if err != nil {
+	if err := mobile.SignUpWithEmail(cemail, cusername, cpassword, ref.RefCodes[0]); err != nil {
 		t.Errorf("signup failed: %s", err)
 	}
 }
@@ -121,8 +120,7 @@ func TestMobile_EmptyThreads(t *testing.T) {
 		return
 	}
 	threads := Threads{}
-	err = json.Unmarshal([]byte(res), &threads)
-	if err != nil {
+	if err := json.Unmarshal([]byte(res), &threads); err != nil {
 		t.Error(err)
 		return
 	}
@@ -138,8 +136,7 @@ func TestMobile_AddThread(t *testing.T) {
 		return
 	}
 	item := Thread{}
-	err = json.Unmarshal([]byte(itemStr), &item)
-	if err != nil {
+	if err := json.Unmarshal([]byte(itemStr), &item); err != nil {
 		t.Error(err)
 		return
 	}
@@ -153,8 +150,7 @@ func TestMobile_Threads(t *testing.T) {
 		return
 	}
 	item := Thread{}
-	err = json.Unmarshal([]byte(itemStr), &item)
-	if err != nil {
+	if err := json.Unmarshal([]byte(itemStr), &item); err != nil {
 		t.Error(err)
 		return
 	}
@@ -165,8 +161,7 @@ func TestMobile_Threads(t *testing.T) {
 		return
 	}
 	threads := Threads{}
-	err = json.Unmarshal([]byte(res), &threads)
-	if err != nil {
+	if err := json.Unmarshal([]byte(res), &threads); err != nil {
 		t.Error(err)
 		return
 	}
@@ -233,8 +228,7 @@ func TestMobile_Devices(t *testing.T) {
 		return
 	}
 	devices := Devices{}
-	err = json.Unmarshal([]byte(res), &devices)
-	if err != nil {
+	if err := json.Unmarshal([]byte(res), &devices); err != nil {
 		t.Error(err)
 		return
 	}
@@ -256,8 +250,7 @@ func TestMobile_AddPhoto(t *testing.T) {
 		return
 	}
 	res := wallet.AddDataResult{}
-	err = json.Unmarshal([]byte(resStr), &res)
-	if err != nil {
+	if err := json.Unmarshal([]byte(resStr), &res); err != nil {
 		t.Error(err)
 		return
 	}
@@ -270,8 +263,7 @@ func TestMobile_AddPhoto(t *testing.T) {
 }
 
 func TestMobile_AddPhotoToThread(t *testing.T) {
-	_, err := mobile.AddPhotoToThread(addedPhotoId, addedPhotoKey, threadId, "")
-	if err != nil {
+	if _, err := mobile.AddPhotoToThread(addedPhotoId, addedPhotoKey, threadId, ""); err != nil {
 		t.Errorf("add photo to thread failed: %s", err)
 		return
 	}
@@ -284,13 +276,11 @@ func TestMobile_SharePhotoToThread(t *testing.T) {
 		return
 	}
 	item := Thread{}
-	err = json.Unmarshal([]byte(itemStr), &item)
-	if err != nil {
+	if err := json.Unmarshal([]byte(itemStr), &item); err != nil {
 		t.Error(err)
 		return
 	}
-	_, err = mobile.SharePhotoToThread(addedPhotoId, item.Id, "howdy")
-	if err != nil {
+	if _, err := mobile.SharePhotoToThread(addedPhotoId, item.Id, "howdy"); err != nil {
 		t.Errorf("share photo to thread failed: %s", err)
 		return
 	}
@@ -303,8 +293,7 @@ func TestMobile_GetPhotos(t *testing.T) {
 		return
 	}
 	photos := Photos{}
-	err = json.Unmarshal([]byte(res), &photos)
-	if err != nil {
+	if err := json.Unmarshal([]byte(res), &photos); err != nil {
 		t.Error(err)
 		return
 	}
@@ -314,8 +303,7 @@ func TestMobile_GetPhotos(t *testing.T) {
 }
 
 func TestMobile_PhotosBadThread(t *testing.T) {
-	_, err := mobile.GetPhotos("", -1, "empty")
-	if err == nil {
+	if _, err := mobile.GetPhotos("", -1, "empty"); err == nil {
 		t.Errorf("get photo blocks from bad thread should fail: %s", err)
 	}
 }
@@ -332,7 +320,7 @@ func TestMobile_GetPhotoData(t *testing.T) {
 }
 
 func TestMobile_GetThumbData(t *testing.T) {
-	res, err := mobile.GetPhotoData(addedPhotoId)
+	res, err := mobile.GetThumbData(addedPhotoId)
 	if err != nil {
 		t.Errorf("get thumb data failed: %s", err)
 		return
