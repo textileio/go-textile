@@ -2,30 +2,45 @@ package client
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"fmt"
+	"io"
 	"os"
-	"path/filepath"
 )
 
 type Archive struct {
-	Id   string `json:"id"`
 	Path string `json:"path"`
 
-	file *os.File     `json:"-"`
-	gw   *gzip.Writer `json:"-"`
-	tw   *tar.Writer  `json:"-"`
+	wr io.Writer    `json:"-"`
+	gw *gzip.Writer `json:"-"`
+	tw *tar.Writer  `json:"-"`
 }
 
-func NewArchive(id string, dir string) (*Archive, error) {
-	path := fmt.Sprintf("%s.tar.gz", filepath.Join(dir, id))
-	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
-	if err != nil {
-		return nil, err
+func NewArchive(path *string) (*Archive, error) {
+	var writer io.Writer
+	var file *os.File
+
+	if path == nil {
+		writer = &bytes.Buffer{}
+	} else {
+		name := fmt.Sprintf("%s.tar.gz", *path)
+		var err error
+		file, err = os.OpenFile(name, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+		if err != nil {
+			return nil, err
+		}
+		writer = file
 	}
-	gw := gzip.NewWriter(file)
+
+	gw := gzip.NewWriter(writer)
 	tw := tar.NewWriter(gw)
-	return &Archive{Id: id, Path: path, file: file, gw: gw, tw: tw}, nil
+	archive := &Archive{wr: writer, gw: gw, tw: tw}
+	if file != nil {
+		archive.Path = file.Name()
+	}
+
+	return archive, nil
 }
 
 func (a *Archive) AddFile(blob []byte, fname string) error {
@@ -44,6 +59,13 @@ func (a *Archive) AddFile(blob []byte, fname string) error {
 	return nil
 }
 
+func (a *Archive) VirtualReader() io.Reader {
+	if buf, ok := a.wr.(*bytes.Buffer); ok {
+		return buf
+	}
+	return nil
+}
+
 func (a *Archive) Close() error {
 	if err := a.tw.Close(); err != nil {
 		return err
@@ -51,5 +73,8 @@ func (a *Archive) Close() error {
 	if err := a.gw.Close(); err != nil {
 		return err
 	}
-	return a.file.Close()
+	if file, ok := a.wr.(*os.File); ok {
+		file.Close()
+	}
+	return nil
 }

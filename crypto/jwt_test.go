@@ -3,7 +3,7 @@ package crypto_test
 import (
 	"github.com/dgrijalva/jwt-go"
 	. "github.com/textileio/textile-go/crypto"
-	"github.com/textileio/textile-go/wallet/util"
+	"github.com/textileio/textile-go/util"
 	"strings"
 	"testing"
 )

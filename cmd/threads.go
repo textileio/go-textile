@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet/thread"
-	"github.com/textileio/textile-go/wallet/util"
 	"gopkg.in/abiosoft/ishell.v2"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )

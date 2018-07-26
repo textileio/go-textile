@@ -8,8 +8,8 @@ import (
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/pb"
 	trepo "github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet/thread"
-	"github.com/textileio/textile-go/wallet/util"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
@@ -83,7 +83,7 @@ func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string) (*thread.T
 
 // RemoveThread removes a thread
 func (w *Wallet) RemoveThread(id string) (mh.Multihash, error) {
-	if !w.Online() {
+	if !w.IsOnline() {
 		return nil, ErrOffline
 	}
 
@@ -120,7 +120,7 @@ func (w *Wallet) RemoveThread(id string) (mh.Multihash, error) {
 // AcceptThreadInvite attemps to download an encrypted thread key from an internal invite,
 // add the thread, and notify the inviter of the join
 func (w *Wallet) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
-	if !w.Online() {
+	if !w.IsOnline() {
 		return nil, ErrOffline
 	}
 
@@ -194,7 +194,7 @@ func (w *Wallet) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
 // AcceptExternalThreadInvite attemps to download an encrypted thread key from an external invite,
 // add the thread, and notify the inviter of the join
 func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte) (mh.Multihash, error) {
-	if !w.Online() {
+	if !w.IsOnline() {
 		return nil, ErrOffline
 	}
 

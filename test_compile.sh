@@ -5,8 +5,8 @@ pwd
 go test -coverprofile=cafe.dao.cover.out ./cafe/dao
 go test -coverprofile=cafe.cover.out ./cafe
 go test -coverprofile=core.cover.out ./core
+go test -coverprofile=util.cover.out ./util
 go test -coverprofile=wallet.cover.out ./wallet
-go test -coverprofile=wallet.util.cover.out ./wallet/util
 go test -coverprofile=mobile.cover.out ./mobile
 go test -coverprofile=repo.db.cover.out ./repo/db
 go test -coverprofile=repo.schema.cover.out ./repo/schema

@@ -8,8 +8,8 @@ import (
 	cmodels "github.com/textileio/textile-go/cafe/models"
 	"github.com/textileio/textile-go/core/cafe"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet/model"
-	"github.com/textileio/textile-go/wallet/util"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/namesys/opts"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/path"
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
@@ -221,6 +221,10 @@ func (w *Wallet) ResolveProfile(name string) (path.Path, error) {
 
 // PublishProfile publishes the peer profile to ipns
 func (w *Wallet) PublishProfile() (*util.IpnsEntry, error) {
+	if !w.IsOnline() {
+		return nil, ErrOffline
+	}
+
 	if w.ipfs.Mounts.Ipns != nil && w.ipfs.Mounts.Ipns.IsActive() {
 		return nil, errors.New("cannot manually publish while IPNS is mounted")
 	}
@@ -254,11 +258,11 @@ func (w *Wallet) PublishProfile() (*util.IpnsEntry, error) {
 	id := dir.Cid().Hash().B58String()
 
 	// request cafe pin
-	if w.pinner != nil {
-		if err := w.pinner.Put(id); err != nil {
-			return nil, err
+	go func() {
+		if err := w.putPinRequest(id); err != nil {
+			log.Errorf("error putting profile pin request %s: %s", id, err)
 		}
-	}
+	}()
 
 	// extract path
 	pth, err := path.ParsePath(id)
@@ -278,7 +282,6 @@ func (w *Wallet) PublishProfile() (*util.IpnsEntry, error) {
 		PubValidTime: profileCacheTTL,
 	}
 	ctx := context.WithValue(w.ipfs.Context(), "ipns-publish-ttl", profileTTL)
-
 	entry, err := util.Publish(ctx, w.ipfs, sk, pth, popts)
 	if err != nil {
 		return nil, err

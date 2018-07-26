@@ -69,7 +69,6 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 		LogFiles: true,
 		WalletConfig: wallet.Config{
 			RepoPath: filepath.Join(appDir, "repo"),
-			IsMobile: false,
 		},
 	}
 	core.Node, _, err = core.NewNode(config)
@@ -78,11 +77,10 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 	}
 
 	// bring the node online and startup the gateway
-	online, err := core.Node.StartWallet()
-	if err != nil {
+	if err := core.Node.StartWallet(); err != nil {
 		return err
 	}
-	<-online
+	<-core.Node.Wallet.Online()
 
 	// subscribe to wallet updates
 	go func() {
@@ -97,8 +95,7 @@ func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Men
 				}
 				switch update.Type {
 				case wallet.ThreadAdded:
-					_, thrd := core.Node.Wallet.GetThread(update.Id)
-					if thrd != nil {
+					if _, thrd := core.Node.Wallet.GetThread(update.Id); thrd != nil {
 						go subscribe(thrd)
 					}
 					if expanded {

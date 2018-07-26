@@ -4,7 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"github.com/gin-gonic/gin"
-	"github.com/textileio/textile-go/wallet/util"
+	"github.com/textileio/textile-go/util"
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"io"
