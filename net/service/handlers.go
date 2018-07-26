@@ -63,11 +63,6 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Envelope, opti
 	threadId := libp2pc.ConfigEncodeKey(invite.Header.ThreadPk)
 	_, thrd := s.getThread(threadId)
 	if thrd != nil {
-		// known thread and invite meant for us
-		if invite.InviteeId == s.self.Pretty() {
-			return nil, errors.New("thread already exists")
-		}
-
 		// verify thread sig
 		if err := thrd.Verify(signed); err != nil {
 			return nil, err
@@ -108,7 +103,7 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Envelope, opti
 		return nil, err
 	}
 
-	// add the new thread (name will bump if already exists, e.g., cats -> cats_1)
+	// add the new thread
 	thrd, err = s.addThread(invite.SuggestedName, sk)
 	if err != nil {
 		return nil, err

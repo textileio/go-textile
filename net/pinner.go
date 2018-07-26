@@ -14,7 +14,6 @@ import (
 const kPinFrequency = time.Minute * 10
 const pinGroupSize = 5
 
-var errPinRequestFailed = errors.New("pin request failed")
 var errPinRequestEmpty = errors.New("pin request empty response")
 var errPinRequestMismatch = errors.New("pin request content id mismatch")
 
@@ -54,16 +53,20 @@ func (p *Pinner) Run() {
 func (p *Pinner) Pin() {
 	p.mux.Lock()
 	defer p.mux.Unlock()
-	if err := p.handlePin(""); err != nil {
+
+	// get token
+	tokens, _ := p.datastore.Profile().GetTokens()
+	if tokens == nil {
+		log.Debugf("not logged in, pinner aborting")
+		return
+	}
+
+	if err := p.handlePin("", tokens); err != nil {
 		return
 	}
 }
 
 func (p *Pinner) Put(id string) error {
-	tokens, _ := p.datastore.Profile().GetTokens()
-	if tokens == nil {
-		return nil
-	}
 	pr := &repo.PinRequest{Id: id, Date: time.Now()}
 	if err := p.datastore.PinRequests().Put(pr); err != nil {
 		return err
@@ -76,19 +79,21 @@ func (p *Pinner) Put(id string) error {
 	return nil
 }
 
-func (p *Pinner) handlePin(offset string) error {
+func (p *Pinner) handlePin(offset string, tokens *repo.CafeTokens) error {
+	// get pending pin list
 	prs := p.datastore.PinRequests().List(offset, pinGroupSize)
 	if len(prs) == 0 {
 		return nil
 	}
 	log.Debugf("handling %d pin requests...", len(prs))
 
+	// process them
 	var toDelete []string
 	wg := sync.WaitGroup{}
 	for _, r := range prs {
 		wg.Add(1)
 		go func(pr repo.PinRequest) {
-			if err := p.send(pr); err != nil {
+			if err := p.send(pr, tokens); err != nil {
 				log.Errorf("pin request %s failed: %s", pr.Id, err)
 			} else {
 				toDelete = append(toDelete, pr.Id)
@@ -107,15 +112,10 @@ func (p *Pinner) handlePin(offset string) error {
 	}
 
 	// keep going
-	return p.handlePin(prs[len(prs)-1].Id)
+	return p.handlePin(prs[len(prs)-1].Id, tokens)
 }
 
-func (p *Pinner) send(pr repo.PinRequest) error {
-	// get token
-	tokens, _ := p.datastore.Profile().GetTokens()
-	if tokens == nil {
-		return nil
-	}
+func (p *Pinner) send(pr repo.PinRequest, tokens *repo.CafeTokens) error {
 	return Pin(p.ipfs(), pr.Id, tokens, p.url)
 }
 
