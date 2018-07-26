@@ -16,13 +16,13 @@ func GetProfile(c *ishell.Context) {
 
 	green := color.New(color.FgHiGreen).SprintFunc()
 	if prof.Id != "" {
-		c.Println(green(fmt.Sprintf("id:       %s", prof.Id)))
+		c.Println(green(fmt.Sprintf("id:        %s", prof.Id)))
 	}
 	if prof.Username != "" {
-		c.Println(green(fmt.Sprintf("username: %s", prof.Username)))
+		c.Println(green(fmt.Sprintf("username:  %s", prof.Username)))
 	}
 	if prof.AvatarId != "" {
-		c.Println(green(fmt.Sprintf("avatar:   %s", prof.AvatarId)))
+		c.Println(green(fmt.Sprintf("avatar_id: %s", prof.AvatarId)))
 	}
 }
 
