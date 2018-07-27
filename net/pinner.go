@@ -22,18 +22,25 @@ var errPinRequestMismatch = errors.New("pin request content id mismatch")
 type PinnerConfig struct {
 	Datastore repo.Datastore
 	Ipfs      func() *core.IpfsNode
-	Api       string
+	Url       string
+	Tokens    *repo.CafeTokens
 }
 
 type Pinner struct {
 	datastore repo.Datastore
 	ipfs      func() *core.IpfsNode
 	url       string
+	Tokens    *repo.CafeTokens
 	mux       sync.Mutex
 }
 
-func NewPinner(config PinnerConfig) *Pinner {
-	return &Pinner{datastore: config.Datastore, ipfs: config.Ipfs, url: config.Api}
+func NewPinner(config *PinnerConfig) *Pinner {
+	return &Pinner{
+		datastore: config.Datastore,
+		ipfs:      config.Ipfs,
+		url:       config.Url,
+		Tokens:    config.Tokens,
+	}
 }
 
 func (p *Pinner) Url() string {
@@ -56,14 +63,13 @@ func (p *Pinner) Pin() {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
-	// get token
-	tokens, _ := p.datastore.Profile().GetTokens()
-	if tokens == nil {
+	// check tokens
+	if p.Tokens == nil {
 		log.Debugf("not logged in, pinner aborting")
 		return
 	}
 
-	if err := p.handlePin("", tokens); err != nil {
+	if err := p.handlePin(""); err != nil {
 		return
 	}
 }
@@ -81,7 +87,7 @@ func (p *Pinner) Put(id string) error {
 	return nil
 }
 
-func (p *Pinner) handlePin(offset string, tokens *repo.CafeTokens) error {
+func (p *Pinner) handlePin(offset string) error {
 	// get pending pin list
 	prs := p.datastore.PinRequests().List(offset, pinGroupSize)
 	if len(prs) == 0 {
@@ -95,7 +101,7 @@ func (p *Pinner) handlePin(offset string, tokens *repo.CafeTokens) error {
 	for _, r := range prs {
 		wg.Add(1)
 		go func(pr repo.PinRequest) {
-			if err := p.send(pr, tokens); err != nil {
+			if err := p.send(pr); err != nil {
 				log.Errorf("pin request %s failed: %s", pr.Id, err)
 			} else {
 				toDelete = append(toDelete, pr.Id)
@@ -114,11 +120,11 @@ func (p *Pinner) handlePin(offset string, tokens *repo.CafeTokens) error {
 	}
 
 	// keep going
-	return p.handlePin(prs[len(prs)-1].Id, tokens)
+	return p.handlePin(prs[len(prs)-1].Id)
 }
 
-func (p *Pinner) send(pr repo.PinRequest, tokens *repo.CafeTokens) error {
-	return Pin(p.ipfs(), pr.Id, tokens, p.url)
+func (p *Pinner) send(pr repo.PinRequest) error {
+	return Pin(p.ipfs(), pr.Id, p.Tokens, p.url)
 }
 
 func Pin(ipfs *core.IpfsNode, id string, tokens *repo.CafeTokens, url string) error {

@@ -179,15 +179,10 @@ func (w *Wallet) Start() error {
 
 		// set offline message storage
 		w.messageStorage = storage.NewCafeStorage(w.ipfs, w.repoPath, func(id *cid.Cid) error {
-			if w.pinner == nil {
+			if w.pinner == nil || w.pinner.Tokens == nil {
 				return nil
 			}
-			// get token
-			tokens, _ := w.datastore.Profile().GetTokens()
-			if tokens == nil {
-				return nil
-			}
-			return net.Pin(w.ipfs, id.Hash().B58String(), tokens, w.pinner.Url())
+			return net.Pin(w.ipfs, id.Hash().B58String(), w.pinner.Tokens, w.pinner.Url())
 		})
 
 		// service is now configurable
@@ -229,12 +224,14 @@ func (w *Wallet) Start() error {
 
 	// build a pin requester
 	if w.GetCafeAddr() != "" {
-		pinnerCfg := net.PinnerConfig{
+		tokens, _ := w.GetTokens()
+		pinnerCfg := &net.PinnerConfig{
 			Datastore: w.datastore,
 			Ipfs: func() *core.IpfsNode {
 				return w.ipfs
 			},
-			Api: fmt.Sprintf("%s/pin", w.GetCafeAddr()),
+			Url:    fmt.Sprintf("%s/pin", w.GetCafeAddr()),
+			Tokens: tokens,
 		}
 		w.pinner = net.NewPinner(pinnerCfg)
 
