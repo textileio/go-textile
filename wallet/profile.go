@@ -89,6 +89,12 @@ func (w *Wallet) SignUp(reg *cmodels.Registration) error {
 		log.Errorf("local signin error: %s", err)
 		return err
 	}
+
+	// pass tokens to pinner
+	if w.pinner != nil {
+		w.pinner.Tokens = tokens
+	}
+
 	return nil
 }
 
@@ -123,6 +129,11 @@ func (w *Wallet) SignIn(creds *cmodels.Credentials) error {
 		return err
 	}
 
+	// pass tokens to pinner
+	if w.pinner != nil {
+		w.pinner.Tokens = tokens
+	}
+
 	// re-pub profile
 	go func() {
 		if _, err := w.PublishProfile(); err != nil {
@@ -153,6 +164,11 @@ func (w *Wallet) SignOut() error {
 	go func() {
 		if _, err := w.PublishProfile(); err != nil {
 			log.Errorf("error publishing profile: %s", err)
+		}
+
+		// clear tokens
+		if w.pinner != nil {
+			w.pinner.Tokens = nil
 		}
 	}()
 
@@ -259,12 +275,9 @@ func (w *Wallet) PublishProfile() (*util.IpnsEntry, error) {
 
 	// request cafe pin
 	go func() {
-		if err := w.touchDatastore(); err != nil {
-			return
-		}
 		if err := w.putPinRequest(id); err != nil {
 			// TODO: #202 (Properly handle database/sql errors)
-			log.Warningf("pin request %s exists: %s", id)
+			log.Warningf("pin request exists: %s", id)
 		}
 	}()
 
