@@ -7,7 +7,7 @@ import (
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/repo/schema"
-	wutil "github.com/textileio/textile-go/wallet/util"
+	wutil "github.com/textileio/textile-go/util"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/namesys"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"

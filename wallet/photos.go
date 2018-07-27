@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	cafe "github.com/textileio/textile-go/core/cafe"
 	"github.com/textileio/textile-go/crypto"
+	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet/model"
-	"github.com/textileio/textile-go/wallet/util"
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
 	"os"
 	"path/filepath"
@@ -48,7 +48,10 @@ func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 	}
 
 	// get some meta data
-	username, _ := w.datastore.Profile().GetUsername() // ignore if not present (not signed in)
+	prof, err := w.GetProfile()
+	if err != nil {
+		return nil, err
+	}
 	mpk, err := w.GetPubKey()
 	if err != nil {
 		return nil, err
@@ -64,7 +67,7 @@ func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 
 	// get metadata
 	reader.Seek(0, 0)
-	meta, err := util.MakeMetadata(reader, fpath, ext, *format, thumbFormat, size.X, size.Y, username, w.version)
+	meta, err := util.MakeMetadata(reader, fpath, ext, *format, thumbFormat, size.X, size.Y, prof, w.version)
 	if err != nil {
 		return nil, err
 	}
@@ -117,8 +120,18 @@ func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 	}
 	result := &AddDataResult{Id: dir.Cid().Hash().B58String(), Key: string(key)}
 
+	// if not mobile, create a pin request
+	// on mobile, we let the OS handle the archive directly
+	if !w.isMobile {
+		if err := w.putPinRequest(result.Id); err != nil {
+			return nil, err
+		}
+		return result, nil
+	}
+
 	// make an archive for remote pinning by the OS
-	result.Archive, err = cafe.NewArchive(result.Id, filepath.Join(w.repoPath, "tmp"))
+	apath := filepath.Join(w.repoPath, "tmp", result.Id)
+	result.Archive, err = cafe.NewArchive(&apath)
 	if err != nil {
 		return nil, err
 	}

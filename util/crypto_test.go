@@ -1,7 +1,6 @@
-package util_test
+package util
 
 import (
-	//. "github.com/textileio/textile-go/wallet/util"
 	"testing"
 )
 

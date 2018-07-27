@@ -12,7 +12,7 @@ import (
 	"github.com/textileio/textile-go/net"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/wallet/util"
+	"github.com/textileio/textile-go/util"
 	"gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"

@@ -39,11 +39,10 @@ func TestNewWallet(t *testing.T) {
 }
 
 func TestWallet_StartWallet(t *testing.T) {
-	online, err := wallet.Start()
-	if err != nil {
+	if err := wallet.Start(); err != nil {
 		t.Errorf("start wallet failed: %s", err)
 	}
-	<-online
+	<-wallet.Online()
 }
 
 func TestWallet_Started(t *testing.T) {
@@ -52,8 +51,8 @@ func TestWallet_Started(t *testing.T) {
 	}
 }
 
-func TestWallet_Online(t *testing.T) {
-	if !wallet.Online() {
+func TestWallet_IsOnline(t *testing.T) {
+	if !wallet.IsOnline() {
 		t.Errorf("should report online")
 	}
 }
@@ -193,7 +192,7 @@ func TestWallet_RemoveDevice(t *testing.T) {
 }
 
 func TestWallet_AddPhoto(t *testing.T) {
-	added, err := wallet.AddPhoto("testdata/image.jpg")
+	added, err := wallet.AddPhoto("../util/testdata/image.jpg")
 	if err != nil {
 		t.Errorf("add photo failed: %s", err)
 		return
@@ -249,7 +248,7 @@ func TestWallet_StartedAgain(t *testing.T) {
 }
 
 func TestWallet_OnlineAgain(t *testing.T) {
-	if wallet.Online() {
+	if wallet.IsOnline() {
 		t.Errorf("should report offline")
 	}
 }

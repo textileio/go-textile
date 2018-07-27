@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
 	util "github.com/textileio/textile-go/util/testing"
 	"github.com/textileio/textile-go/wallet"
@@ -67,8 +68,7 @@ func TestMobile_SignUpWithEmail(t *testing.T) {
 		t.Error("create referral for signup got no codes")
 		return
 	}
-	err = mobile.SignUpWithEmail(cemail, cusername, cpassword, ref.RefCodes[0])
-	if err != nil {
+	if err := mobile.SignUpWithEmail(cemail, cusername, cpassword, ref.RefCodes[0]); err != nil {
 		t.Errorf("signup failed: %s", err)
 	}
 }
@@ -120,8 +120,7 @@ func TestMobile_EmptyThreads(t *testing.T) {
 		return
 	}
 	threads := Threads{}
-	err = json.Unmarshal([]byte(res), &threads)
-	if err != nil {
+	if err := json.Unmarshal([]byte(res), &threads); err != nil {
 		t.Error(err)
 		return
 	}
@@ -137,8 +136,7 @@ func TestMobile_AddThread(t *testing.T) {
 		return
 	}
 	item := Thread{}
-	err = json.Unmarshal([]byte(itemStr), &item)
-	if err != nil {
+	if err := json.Unmarshal([]byte(itemStr), &item); err != nil {
 		t.Error(err)
 		return
 	}
@@ -152,8 +150,7 @@ func TestMobile_Threads(t *testing.T) {
 		return
 	}
 	item := Thread{}
-	err = json.Unmarshal([]byte(itemStr), &item)
-	if err != nil {
+	if err := json.Unmarshal([]byte(itemStr), &item); err != nil {
 		t.Error(err)
 		return
 	}
@@ -164,8 +161,7 @@ func TestMobile_Threads(t *testing.T) {
 		return
 	}
 	threads := Threads{}
-	err = json.Unmarshal([]byte(res), &threads)
-	if err != nil {
+	if err := json.Unmarshal([]byte(res), &threads); err != nil {
 		t.Error(err)
 		return
 	}
@@ -175,7 +171,7 @@ func TestMobile_Threads(t *testing.T) {
 }
 
 func TestMobile_RemoveThread(t *testing.T) {
-	<-mobile.Online
+	<-core.Node.Wallet.Online()
 	blockId, err := mobile.RemoveThread(defaultThreadId)
 	if err != nil {
 		t.Error(err)
@@ -232,8 +228,7 @@ func TestMobile_Devices(t *testing.T) {
 		return
 	}
 	devices := Devices{}
-	err = json.Unmarshal([]byte(res), &devices)
-	if err != nil {
+	if err := json.Unmarshal([]byte(res), &devices); err != nil {
 		t.Error(err)
 		return
 	}
@@ -249,14 +244,13 @@ func TestMobile_RemoveDevice(t *testing.T) {
 }
 
 func TestMobile_AddPhoto(t *testing.T) {
-	resStr, err := mobile.AddPhoto("testdata/image.jpg")
+	resStr, err := mobile.AddPhoto("../util/testdata/image.jpg")
 	if err != nil {
 		t.Errorf("add photo failed: %s", err)
 		return
 	}
 	res := wallet.AddDataResult{}
-	err = json.Unmarshal([]byte(resStr), &res)
-	if err != nil {
+	if err := json.Unmarshal([]byte(resStr), &res); err != nil {
 		t.Error(err)
 		return
 	}
@@ -269,8 +263,7 @@ func TestMobile_AddPhoto(t *testing.T) {
 }
 
 func TestMobile_AddPhotoToThread(t *testing.T) {
-	_, err := mobile.AddPhotoToThread(addedPhotoId, addedPhotoKey, threadId, "")
-	if err != nil {
+	if _, err := mobile.AddPhotoToThread(addedPhotoId, addedPhotoKey, threadId, ""); err != nil {
 		t.Errorf("add photo to thread failed: %s", err)
 		return
 	}
@@ -283,13 +276,11 @@ func TestMobile_SharePhotoToThread(t *testing.T) {
 		return
 	}
 	item := Thread{}
-	err = json.Unmarshal([]byte(itemStr), &item)
-	if err != nil {
+	if err := json.Unmarshal([]byte(itemStr), &item); err != nil {
 		t.Error(err)
 		return
 	}
-	_, err = mobile.SharePhotoToThread(addedPhotoId, item.Id, "howdy")
-	if err != nil {
+	if _, err := mobile.SharePhotoToThread(addedPhotoId, item.Id, "howdy"); err != nil {
 		t.Errorf("share photo to thread failed: %s", err)
 		return
 	}
@@ -302,8 +293,7 @@ func TestMobile_GetPhotos(t *testing.T) {
 		return
 	}
 	photos := Photos{}
-	err = json.Unmarshal([]byte(res), &photos)
-	if err != nil {
+	if err := json.Unmarshal([]byte(res), &photos); err != nil {
 		t.Error(err)
 		return
 	}
@@ -313,8 +303,7 @@ func TestMobile_GetPhotos(t *testing.T) {
 }
 
 func TestMobile_PhotosBadThread(t *testing.T) {
-	_, err := mobile.GetPhotos("", -1, "empty")
-	if err == nil {
+	if _, err := mobile.GetPhotos("", -1, "empty"); err == nil {
 		t.Errorf("get photo blocks from bad thread should fail: %s", err)
 	}
 }
@@ -331,7 +320,7 @@ func TestMobile_GetPhotoData(t *testing.T) {
 }
 
 func TestMobile_GetThumbData(t *testing.T) {
-	res, err := mobile.GetPhotoData(addedPhotoId)
+	res, err := mobile.GetThumbData(addedPhotoId)
 	if err != nil {
 		t.Errorf("get thumb data failed: %s", err)
 		return
@@ -349,6 +338,23 @@ func TestMobile_GetPhotoMetadata(t *testing.T) {
 	}
 	if len(res) == 0 {
 		t.Errorf("get meta data bad result")
+	}
+}
+
+func TestMobile_ResolveProfileInfo(t *testing.T) {
+	// resolve own profile info
+	id, err := mobile.GetId()
+	if err != nil {
+		t.Errorf("get own id failed: %s", err)
+		return
+	}
+	info, err := mobile.ResolveProfileInfo(id, "username")
+	if err != nil {
+		t.Errorf("resolve profile info failed: %s", err)
+		return
+	}
+	if info != cusername {
+		t.Errorf("resolve profile info bad result")
 	}
 }
 

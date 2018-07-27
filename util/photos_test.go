@@ -1,10 +1,9 @@
-package util_test
+package util
 
 import (
 	"bytes"
 	"fmt"
 	"github.com/textileio/textile-go/wallet/model"
-	. "github.com/textileio/textile-go/wallet/util"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -25,7 +24,7 @@ type testImage struct {
 
 var images = []testImage{
 	{
-		path:        "../testdata/image.jpg",
+		path:        "testdata/image.jpg",
 		name:        "image",
 		ext:         ".jpg",
 		format:      JPEG,
@@ -35,7 +34,7 @@ var images = []testImage{
 		height:      4032,
 	},
 	{
-		path:        "../testdata/image.png",
+		path:        "testdata/image.png",
 		name:        "image",
 		ext:         ".png",
 		format:      PNG,
@@ -45,7 +44,7 @@ var images = []testImage{
 		height:      4032,
 	},
 	{
-		path:        "../testdata/image.gif",
+		path:        "testdata/image.gif",
 		name:        "image",
 		ext:         ".gif",
 		format:      GIF,
@@ -97,7 +96,8 @@ func Test_MakeMetadata(t *testing.T) {
 		fpath := file.Name()
 		ext := strings.ToLower(filepath.Ext(fpath))
 
-		meta, err := MakeMetadata(file, fpath, ext, i.format, i.thumbFormat, i.width, i.height, "bob", "1.0.0")
+		prof := &model.Profile{Id: "Qm...", Username: "bob"}
+		meta, err := MakeMetadata(file, fpath, ext, i.format, i.thumbFormat, i.width, i.height, prof, "1.0.0")
 		if err != nil {
 			t.Fatal(err)
 		}

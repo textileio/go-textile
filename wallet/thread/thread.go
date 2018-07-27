@@ -10,7 +10,7 @@ import (
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/wallet/util"
+	"github.com/textileio/textile-go/util"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
@@ -249,8 +249,7 @@ func (t *Thread) addBlock(envelope *pb.Envelope) (mh.Multihash, error) {
 	}
 
 	// add a pin request
-	err = t.putPinRequest(id.Hash().B58String())
-	if err != nil {
+	if err := t.putPinRequest(id.Hash().B58String()); err != nil {
 		return nil, err
 	}
 

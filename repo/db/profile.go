@@ -87,19 +87,29 @@ func (c *ProfileDB) GetUsername() (string, error) {
 	return un, nil
 }
 
-func (c *ProfileDB) GetTokens() (*repo.CafeTokens, error) {
+func (c *ProfileDB) GetTokens() (tokens *repo.CafeTokens, err error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	stmt, err := c.db.Prepare("select value from profile where key=?")
+	var stmt *sql.Stmt
+	stmt, err = c.db.Prepare("select value from profile where key=?")
+	if err != nil {
+		return
+	}
 	defer stmt.Close()
+	defer func() {
+		if recover() != nil {
+			log.Warning("get tokens recovered")
+		}
+	}()
 	var accessToken, refreshToken string
 	err = stmt.QueryRow("access").Scan(&accessToken)
 	if err != nil {
-		return nil, err
+		return
 	}
 	err = stmt.QueryRow("refresh").Scan(&refreshToken)
 	if err != nil {
-		return nil, err
+		return
 	}
-	return &repo.CafeTokens{Access: accessToken, Refresh: refreshToken}, nil
+	tokens = &repo.CafeTokens{Access: accessToken, Refresh: refreshToken}
+	return
 }

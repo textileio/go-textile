@@ -1,12 +1,23 @@
 package wallet
 
 import (
+	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	cmodels "github.com/textileio/textile-go/cafe/models"
 	"github.com/textileio/textile-go/core/cafe"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
+	"github.com/textileio/textile-go/wallet/model"
+	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/namesys/opts"
+	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/path"
+	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
+	"time"
 )
+
+var profileTTL = time.Hour * 24 * 7 * 4
+var profileCacheTTL = time.Hour * 24 * 7
 
 // CreateReferral requests a referral from a cafe via key
 func (w *Wallet) CreateReferral(req *cmodels.ReferralRequest) (*cmodels.ReferralResponse, error) {
@@ -78,6 +89,12 @@ func (w *Wallet) SignUp(reg *cmodels.Registration) error {
 		log.Errorf("local signin error: %s", err)
 		return err
 	}
+
+	// pass tokens to pinner
+	if w.pinner != nil {
+		w.pinner.Tokens = tokens
+	}
+
 	return nil
 }
 
@@ -111,6 +128,19 @@ func (w *Wallet) SignIn(creds *cmodels.Credentials) error {
 		log.Errorf("local signin error: %s", err)
 		return err
 	}
+
+	// pass tokens to pinner
+	if w.pinner != nil {
+		w.pinner.Tokens = tokens
+	}
+
+	// re-pub profile
+	go func() {
+		if _, err := w.PublishProfile(); err != nil {
+			log.Errorf("error publishing profile: %s", err)
+		}
+	}()
+
 	return nil
 }
 
@@ -129,6 +159,19 @@ func (w *Wallet) SignOut() error {
 		log.Errorf("local signout error: %s", err)
 		return err
 	}
+
+	// re-pub profile
+	go func() {
+		if _, err := w.PublishProfile(); err != nil {
+			log.Errorf("error publishing profile: %s", err)
+		}
+
+		// clear tokens
+		if w.pinner != nil {
+			w.pinner.Tokens = nil
+		}
+	}()
+
 	return nil
 }
 
@@ -164,4 +207,104 @@ func (w *Wallet) GetTokens() (*repo.CafeTokens, error) {
 		return nil, err
 	}
 	return w.datastore.Profile().GetTokens()
+}
+
+// GetProfile return a model representation of a peer profile
+func (w *Wallet) GetProfile() (*model.Profile, error) {
+	id, err := w.GetId()
+	if err != nil {
+		return nil, err
+	}
+	username, _ := w.GetUsername()
+
+	return &model.Profile{
+		Id:       id,
+		Username: username,
+		AvatarId: "", // TODO: what goes here? choose photo for avatar pic?
+	}, nil
+}
+
+// ResolveProfile looks up a peer's profile on ipns
+func (w *Wallet) ResolveProfile(name string) (path.Path, error) {
+	name = fmt.Sprintf("/ipns/%s", name)
+	var ropts []nsopts.ResolveOpt
+	ropts = append(ropts, nsopts.Depth(1))
+	ropts = append(ropts, nsopts.DhtRecordCount(4))
+	ropts = append(ropts, nsopts.DhtTimeout(5))
+
+	return w.ipfs.Namesys.Resolve(w.ipfs.Context(), name, ropts...)
+}
+
+// PublishProfile publishes the peer profile to ipns
+func (w *Wallet) PublishProfile() (*util.IpnsEntry, error) {
+	if !w.IsOnline() {
+		return nil, ErrOffline
+	}
+
+	if w.ipfs.Mounts.Ipns != nil && w.ipfs.Mounts.Ipns.IsActive() {
+		return nil, errors.New("cannot manually publish while IPNS is mounted")
+	}
+
+	// get current profile
+	prof, err := w.GetProfile()
+	if err != nil {
+		return nil, err
+	}
+
+	// create a virtual directory for the photo
+	dirb := uio.NewDirectory(w.ipfs.DAG)
+	if err := util.AddFileToDirectory(w.ipfs, dirb, bytes.NewReader([]byte(prof.Id)), "id"); err != nil {
+		return nil, err
+	}
+	if err := util.AddFileToDirectory(w.ipfs, dirb, bytes.NewReader([]byte(prof.Username)), "username"); err != nil {
+		return nil, err
+	}
+	if err := util.AddFileToDirectory(w.ipfs, dirb, bytes.NewReader([]byte(prof.AvatarId)), "avatar_id"); err != nil {
+		return nil, err
+	}
+
+	// pin the directory locally
+	dir, err := dirb.GetNode()
+	if err != nil {
+		return nil, err
+	}
+	if err := util.PinDirectory(w.ipfs, dir, []string{}); err != nil {
+		return nil, err
+	}
+	id := dir.Cid().Hash().B58String()
+
+	// request cafe pin
+	go func() {
+		if err := w.putPinRequest(id); err != nil {
+			// TODO: #202 (Properly handle database/sql errors)
+			log.Warningf("pin request exists: %s", id)
+		}
+	}()
+
+	// extract path
+	pth, err := path.ParsePath(id)
+	if err != nil {
+		return nil, err
+	}
+
+	// load our private key
+	sk, err := w.GetPrivKey()
+	if err != nil {
+		return nil, err
+	}
+
+	// finish
+	popts := &util.PublishOpts{
+		VerifyExists: true,
+		PubValidTime: profileCacheTTL,
+	}
+	ctx := context.WithValue(w.ipfs.Context(), "ipns-publish-ttl", profileTTL)
+	entry, err := util.Publish(ctx, w.ipfs, sk, pth, popts)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debugf("updated profile: %s -> %s", entry.Name, entry.Value)
+
+	return entry, nil
 }

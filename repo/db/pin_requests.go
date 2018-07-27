@@ -36,7 +36,6 @@ func (c *PinRequestDB) Put(pr *repo.PinRequest) error {
 	)
 	if err != nil {
 		tx.Rollback()
-		log.Errorf("error in db exec: %s", err)
 		return err
 	}
 	tx.Commit()
