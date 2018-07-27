@@ -56,13 +56,18 @@ func IdentityConfig(sk libp2pc.PrivKey) (config.Identity, error) {
 		return ident, err
 	}
 	ident.PrivKey = base64.StdEncoding.EncodeToString(skbytes)
+	pkbytes, err := pk.Bytes()
+	if err != nil {
+		return ident, err
+	}
+	pks := base64.StdEncoding.EncodeToString(pkbytes)
 
 	id, err := peer.IDFromPublicKey(pk)
 	if err != nil {
 		return ident, err
 	}
 	ident.PeerID = id.Pretty()
-	log.Infof("new peer identity: %s\n", ident.PeerID)
+	log.Infof("new peer identity: id: %s, pk: %s", ident.PeerID, pks)
 	return ident, nil
 }
 

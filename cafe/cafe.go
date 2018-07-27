@@ -10,7 +10,7 @@ import (
 	"net/http"
 )
 
-var log = logging.MustGetLogger("core")
+var log = logging.MustGetLogger("cafe")
 
 const Version = "v0"
 

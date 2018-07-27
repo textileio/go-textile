@@ -125,7 +125,7 @@ func (t *Thread) HandleJoinBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 		return nil, err
 	}
 
-	// echo to known peers IF we are the original inviter (avoid an endless echo)
+	// echo to known peers (sans the joiner) IF we are the original inviter (avoid an endless echo)
 	pk, err := t.ipfs().PrivateKey.GetPublic().Bytes()
 	if err != nil {
 		return nil, err
@@ -133,7 +133,13 @@ func (t *Thread) HandleJoinBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 	pks := libp2pc.ConfigEncodeKey(pk)
 	inviterPks := libp2pc.ConfigEncodeKey(content.InviterPk)
 	if pks == inviterPks {
-		t.post(message, id, t.Peers())
+		var peers []repo.Peer
+		for _, p := range t.Peers() {
+			if p.Id != inviteeId.Pretty() {
+				peers = append(peers, p)
+			}
+		}
+		t.post(message, id, peers)
 	}
 
 	return addr, nil
