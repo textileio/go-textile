@@ -93,7 +93,7 @@ func (t *Thread) HandleJoinBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 		return nil, err
 	}
 
-	// get the inviter id
+	// get the invitee id
 	inviteePk, err := libp2pc.UnmarshalPublicKey(content.Header.AuthorPk)
 	if err != nil {
 		return nil, err
@@ -123,6 +123,17 @@ func (t *Thread) HandleJoinBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 	// back prop
 	if err := t.FollowParents(content.Header.Parents); err != nil {
 		return nil, err
+	}
+
+	// echo to known peers IF we are the original inviter (avoid an endless echo)
+	pk, err := t.ipfs().PrivateKey.GetPublic().Bytes()
+	if err != nil {
+		return nil, err
+	}
+	pks := libp2pc.ConfigEncodeKey(pk)
+	inviterPks := libp2pc.ConfigEncodeKey(content.InviterPk)
+	if pks == inviterPks {
+		t.post(message, id, t.Peers())
 	}
 
 	return addr, nil
