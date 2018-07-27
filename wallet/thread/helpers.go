@@ -6,8 +6,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet/model"
-	"github.com/textileio/textile-go/wallet/util"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 

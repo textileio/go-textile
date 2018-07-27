@@ -3,15 +3,18 @@ package util
 import (
 	"context"
 	"github.com/op/go-logging"
+	"github.com/textileio/textile-go/core/cafe"
 	iaddr "gx/ipfs/QmQViVWBHbU6HmYjXcdNq7tVASCNgdg64ZGcauuDkLCivW/go-ipfs-addr"
 	"gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreapi"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreapi/interface/options"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreunix"
+	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/path"
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
@@ -27,7 +30,17 @@ var log = logging.MustGetLogger("util")
 const pinTimeout = time.Minute * 1
 const catTimeout = time.Second * 30
 
-// GetDataAtPath cats any data under an ipfs path
+type PublishOpts struct {
+	VerifyExists bool
+	PubValidTime time.Duration
+}
+
+type IpnsEntry struct {
+	Name  string
+	Value string
+}
+
+// GetDataAtPath return bytes under an ipfs path
 func GetDataAtPath(ipfs *core.IpfsNode, path string) ([]byte, error) {
 	// convert string to an ipfs path
 	ip, err := coreapi.ParsePath(path)
@@ -38,18 +51,59 @@ func GetDataAtPath(ipfs *core.IpfsNode, path string) ([]byte, error) {
 	api := coreapi.NewCoreAPI(ipfs)
 	ctx, cancel := context.WithTimeout(ipfs.Context(), catTimeout)
 	defer cancel()
-	r, err := api.Unixfs().Cat(ctx, ip)
+	reader, err := api.Unixfs().Cat(ctx, ip)
 	if err != nil {
 		return nil, err
 	}
-	defer r.Close()
+	defer reader.Close()
 	defer func() {
 		if recover() != nil {
 			log.Debug("node stopped")
 		}
 	}()
 
-	return ioutil.ReadAll(r)
+	return ioutil.ReadAll(reader)
+}
+
+// GetArchiveAtPath builds an archive from directory links under an ipfs path
+// NOTE: currently will bork if dir path contains other dirs (depth > 1)
+func GetArchiveAtPath(ipfs *core.IpfsNode, path string) (io.Reader, error) {
+	// convert string to an ipfs path
+	ip, err := coreapi.ParsePath(path)
+	if err != nil {
+		return nil, err
+	}
+
+	api := coreapi.NewCoreAPI(ipfs)
+	ctx, cancel := context.WithTimeout(ipfs.Context(), catTimeout)
+	defer cancel()
+	links, err := api.Unixfs().Ls(ctx, ip)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if recover() != nil {
+			log.Debug("node stopped")
+		}
+	}()
+	if len(links) == 0 {
+		return nil, nil
+	}
+
+	// virtual archive
+	archive, err := client.NewArchive(nil)
+	for _, link := range links {
+		data, err := GetDataAtPath(ipfs, link.Cid.Hash().B58String())
+		if err != nil {
+			return nil, err
+		}
+		archive.AddFile(data, link.Name)
+	}
+	if err := archive.Close(); err != nil {
+		return nil, err
+	}
+
+	return archive.VirtualReader(), nil
 }
 
 // PrintSwarmAddrs prints the addresses of the host
@@ -159,11 +213,11 @@ func PinData(ipfs *core.IpfsNode, data io.Reader) (*cid.Cid, error) {
 	ctx, cancel := context.WithTimeout(ipfs.Context(), pinTimeout)
 	defer cancel()
 	api := coreapi.NewCoreAPI(ipfs)
-	path, err := api.Unixfs().Add(ctx, data)
+	pth, err := api.Unixfs().Add(ctx, data)
 	if err != nil {
 		return nil, err
 	}
-	if err := api.Pin().Add(ctx, path); err != nil {
+	if err := api.Pin().Add(ctx, pth); err != nil {
 		return nil, err
 	}
 	defer func() {
@@ -171,7 +225,7 @@ func PinData(ipfs *core.IpfsNode, data io.Reader) (*cid.Cid, error) {
 			log.Debug("node stopped")
 		}
 	}()
-	return path.Cid(), nil
+	return pth.Cid(), nil
 }
 
 // PinPath takes an ipfs path string and pins it
@@ -221,6 +275,21 @@ outer:
 // MultiaddrFromId creates a multiaddr from an id string
 func MultiaddrFromId(id string) (ma.Multiaddr, error) {
 	return ma.NewMultiaddr("/ipfs/" + id + "/")
+}
+
+func Publish(ctx context.Context, n *core.IpfsNode, k libp2pc.PrivKey, ref path.Path, opts *PublishOpts) (*IpnsEntry, error) {
+	eol := time.Now().Add(opts.PubValidTime)
+	err := n.Namesys.PublishWithEOL(ctx, k, ref, eol)
+	if err != nil {
+		return nil, err
+	}
+
+	pid, err := peer.IDFromPrivateKey(k)
+	if err != nil {
+		return nil, err
+	}
+
+	return &IpnsEntry{Name: pid.Pretty(), Value: ref.String()}, nil
 }
 
 // parseAddresses is a function that takes in a slice of string peer addresses

@@ -36,7 +36,6 @@ func (c *ThreadDB) Add(thread *repo.Thread) error {
 	)
 	if err != nil {
 		tx.Rollback()
-		log.Errorf("error in db exec: %s", err)
 		return err
 	}
 	tx.Commit()

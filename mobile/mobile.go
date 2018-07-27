@@ -8,10 +8,10 @@ import (
 	"github.com/textileio/textile-go/cafe/models"
 	tcore "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet"
 	"github.com/textileio/textile-go/wallet/model"
 	"github.com/textileio/textile-go/wallet/thread"
-	"github.com/textileio/textile-go/wallet/util"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"time"
 )
@@ -42,7 +42,6 @@ type NodeConfig struct {
 type Mobile struct {
 	RepoPath  string
 	Mnemonic  string
-	Online    <-chan struct{} // not readable from bridges
 	messenger Messenger
 }
 
@@ -121,17 +120,15 @@ func NewNode(config *NodeConfig, messenger Messenger) (*Mobile, error) {
 
 // Start the mobile node
 func (m *Mobile) Start() error {
-	online, err := tcore.Node.StartWallet()
-	if err != nil {
+	if err := tcore.Node.StartWallet(); err != nil {
 		if err == wallet.ErrStarted {
 			return nil
 		}
 		return err
 	}
-	m.Online = online
 
 	go func() {
-		<-online
+		<-tcore.Node.Wallet.Online()
 		// subscribe to thread updates
 		for _, thrd := range tcore.Node.Wallet.Threads() {
 			go func(t *thread.Thread) {
@@ -491,6 +488,25 @@ func (m *Mobile) GetPhotoMetadata(id string) (string, error) {
 		return "", err
 	}
 	return toJSON(meta)
+}
+
+// ResolveProfileInfo take a peer id and profile key name, like "username"
+func (m *Mobile) ResolveProfileInfo(peerId string, key string) (string, error) {
+	pth, err := tcore.Node.Wallet.ResolveProfile(peerId)
+	if err != nil {
+		log.Errorf("error resolving profile %s: %s", peerId, err)
+		return "", err
+	}
+
+	// get data
+	contentPath := fmt.Sprintf("%s/%s", pth.String(), key)
+	data, err := tcore.Node.Wallet.GetDataAtPath(contentPath)
+	if err != nil {
+		log.Errorf("error getting data at profile path %s: %s", contentPath, err)
+		return "", err
+	}
+
+	return string(data), nil
 }
 
 // getImageData returns a data url for an image under a path

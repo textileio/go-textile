@@ -56,7 +56,8 @@ func (t *Thread) Join(inviterPk libp2pc.PubKey, blockId string) (mh.Multihash, e
 		PubKey:   inviterPkb,
 	}
 	if err := t.peers().Add(newPeer); err != nil {
-		return nil, err
+		// TODO: #202 (Properly handle database/sql errors)
+		log.Warningf("peer with id %s already exists in thread %s", newPeer.Id, t.Id)
 	}
 
 	// post it
@@ -110,7 +111,8 @@ func (t *Thread) HandleJoinBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 		PubKey:   content.Header.AuthorPk,
 	}
 	if err := t.peers().Add(newPeer); err != nil {
-		return nil, err
+		// TODO: #202 (Properly handle database/sql errors)
+		log.Warningf("peer with id %s already exists in thread %s", newPeer.Id, t.Id)
 	}
 
 	// index it locally

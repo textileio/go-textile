@@ -44,7 +44,6 @@ func (c *BlockDB) Add(block *repo.Block) error {
 	)
 	if err != nil {
 		tx.Rollback()
-		log.Errorf("error in db exec: %s", err)
 		return err
 	}
 	tx.Commit()

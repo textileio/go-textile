@@ -229,7 +229,7 @@ func main() {
 			Name: "ping",
 			Help: "ping another textile node",
 			Func: func(c *ishell.Context) {
-				if !core.Node.Wallet.Online() {
+				if !core.Node.Wallet.IsOnline() {
 					c.Println("not online yet")
 					return
 				}
@@ -282,6 +282,29 @@ func main() {
 				Func: cmd.CafeLogout,
 			})
 			shell.AddCmd(cafeCmd)
+		}
+		{
+			profileCmd := &ishell.Cmd{
+				Name:     "profile",
+				Help:     "manage cafe profiles",
+				LongHelp: "Resolve other profiles, get and publish local profile.",
+			}
+			profileCmd.AddCmd(&ishell.Cmd{
+				Name: "get",
+				Help: "get local profile",
+				Func: cmd.GetProfile,
+			})
+			profileCmd.AddCmd(&ishell.Cmd{
+				Name: "publish",
+				Help: "publish local profile",
+				Func: cmd.PublishProfile,
+			})
+			profileCmd.AddCmd(&ishell.Cmd{
+				Name: "resolve",
+				Help: "resolve profiles",
+				Func: cmd.ResolveProfile,
+			})
+			shell.AddCmd(profileCmd)
 		}
 		{
 			swarmCmd := &ishell.Cmd{
@@ -421,11 +444,10 @@ func main() {
 }
 
 func start() error {
-	online, err := core.Node.StartWallet()
-	if err != nil {
+	if err := core.Node.StartWallet(); err != nil {
 		return err
 	}
-	<-online
+	<-core.Node.Wallet.Online()
 
 	// subscribe to thread updates
 	peerId, err := core.Node.Wallet.GetId()
@@ -448,8 +470,7 @@ func start() error {
 				}
 				switch update.Type {
 				case wallet.ThreadAdded:
-					_, thrd := core.Node.Wallet.GetThread(update.Id)
-					if thrd != nil {
+					if _, thrd := core.Node.Wallet.GetThread(update.Id); thrd != nil {
 						go cmd.Subscribe(thrd, peerId)
 					}
 				case wallet.ThreadRemoved:

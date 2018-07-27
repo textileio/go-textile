@@ -7,7 +7,6 @@ import (
 	"github.com/fatih/color"
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/core/cafe"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet/thread"
 	"gopkg.in/abiosoft/ishell.v2"
@@ -47,41 +46,6 @@ func AddPhoto(c *ishell.Context) {
 	// do the add
 	f.Seek(0, 0)
 	added, err := core.Node.Wallet.AddPhoto(path)
-	if err != nil {
-		c.Err(err)
-		return
-	}
-
-	// pin the photo set if signed in to a cafe
-	tokens, _ := core.Node.Wallet.GetTokens()
-	if tokens != nil {
-		archive, err := os.Open(added.Archive.Path)
-		if err != nil {
-			c.Err(err)
-			return
-		}
-		url := fmt.Sprintf("%s/pin", core.Node.Wallet.GetCafeAddr())
-		res, err := client.Pin(tokens, archive, url, "application/gzip")
-		if err != nil {
-			c.Err(err)
-			return
-		}
-		if res.Error != nil {
-			c.Err(errors.New(*res.Error))
-			return
-		}
-		if res.Id == nil {
-			c.Err(errors.New("empty pin result"))
-			return
-		}
-		if *res.Id != added.Id {
-			c.Err(errors.New(fmt.Sprintf("pin result does not match id: %s", *res.Id)))
-			return
-		}
-	}
-
-	// remove archive
-	err = os.RemoveAll(added.Archive.Path)
 	if err != nil {
 		c.Err(err)
 		return

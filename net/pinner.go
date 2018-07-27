@@ -5,8 +5,10 @@ import (
 	"github.com/pkg/errors"
 	cafe "github.com/textileio/textile-go/core/cafe"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/wallet/util"
+	"github.com/textileio/textile-go/util"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
+	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreapi/interface"
+	"io"
 	"sync"
 	"time"
 )
@@ -14,25 +16,31 @@ import (
 const kPinFrequency = time.Minute * 10
 const pinGroupSize = 5
 
-var errPinRequestFailed = errors.New("pin request failed")
 var errPinRequestEmpty = errors.New("pin request empty response")
 var errPinRequestMismatch = errors.New("pin request content id mismatch")
 
 type PinnerConfig struct {
 	Datastore repo.Datastore
 	Ipfs      func() *core.IpfsNode
-	Api       string
+	Url       string
+	Tokens    *repo.CafeTokens
 }
 
 type Pinner struct {
 	datastore repo.Datastore
 	ipfs      func() *core.IpfsNode
 	url       string
+	Tokens    *repo.CafeTokens
 	mux       sync.Mutex
 }
 
-func NewPinner(config PinnerConfig) *Pinner {
-	return &Pinner{datastore: config.Datastore, ipfs: config.Ipfs, url: config.Api}
+func NewPinner(config *PinnerConfig) *Pinner {
+	return &Pinner{
+		datastore: config.Datastore,
+		ipfs:      config.Ipfs,
+		url:       config.Url,
+		Tokens:    config.Tokens,
+	}
 }
 
 func (p *Pinner) Url() string {
@@ -54,16 +62,19 @@ func (p *Pinner) Run() {
 func (p *Pinner) Pin() {
 	p.mux.Lock()
 	defer p.mux.Unlock()
+
+	// check tokens
+	if p.Tokens == nil {
+		log.Debugf("not logged in, pinner aborting")
+		return
+	}
+
 	if err := p.handlePin(""); err != nil {
 		return
 	}
 }
 
 func (p *Pinner) Put(id string) error {
-	tokens, _ := p.datastore.Profile().GetTokens()
-	if tokens == nil {
-		return nil
-	}
 	pr := &repo.PinRequest{Id: id, Date: time.Now()}
 	if err := p.datastore.PinRequests().Put(pr); err != nil {
 		return err
@@ -77,12 +88,14 @@ func (p *Pinner) Put(id string) error {
 }
 
 func (p *Pinner) handlePin(offset string) error {
+	// get pending pin list
 	prs := p.datastore.PinRequests().List(offset, pinGroupSize)
 	if len(prs) == 0 {
 		return nil
 	}
 	log.Debugf("handling %d pin requests...", len(prs))
 
+	// process them
 	var toDelete []string
 	wg := sync.WaitGroup{}
 	for _, r := range prs {
@@ -111,24 +124,30 @@ func (p *Pinner) handlePin(offset string) error {
 }
 
 func (p *Pinner) send(pr repo.PinRequest) error {
-	// get token
-	tokens, _ := p.datastore.Profile().GetTokens()
-	if tokens == nil {
-		return nil
-	}
-	return Pin(p.ipfs(), pr.Id, tokens, p.url)
+	return Pin(p.ipfs(), pr.Id, p.Tokens, p.url)
 }
 
 func Pin(ipfs *core.IpfsNode, id string, tokens *repo.CafeTokens, url string) error {
 	// load local content
+	cType := "application/octet-stream"
+	var reader io.Reader
 	data, err := util.GetDataAtPath(ipfs, id)
 	if err != nil {
-		return err
+		if err == iface.ErrIsDir {
+			reader, err = util.GetArchiveAtPath(ipfs, id)
+			if err != nil {
+				return err
+			}
+			cType = "application/gzip"
+		} else {
+			return err
+		}
+	} else {
+		reader = bytes.NewReader(data)
 	}
-	reader := bytes.NewReader(data)
 
 	// pin to cafe
-	res, err := cafe.Pin(tokens, reader, url, "application/octet-stream")
+	res, err := cafe.Pin(tokens.Access, reader, url, cType)
 	if err != nil {
 		return err
 	}
