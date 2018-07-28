@@ -90,7 +90,7 @@ func (t *Thread) HandleJoinBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 	// (should only happen if a misbehaving peer keeps sending the same block)
 	index := t.blocks().Get(id)
 	if index != nil {
-		return nil, err
+		return nil, nil
 	}
 
 	// get the invitee id
@@ -103,7 +103,7 @@ func (t *Thread) HandleJoinBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 		return nil, err
 	}
 
-	// add issuer as a new local peer
+	// add invitee as a new local peer
 	newPeer := &repo.Peer{
 		Row:      ksuid.New().String(),
 		Id:       inviteeId.Pretty(),

@@ -522,8 +522,7 @@ func (w *Wallet) getThreadByBlock(block *trepo.Block) (*thread.Thread, error) {
 }
 
 func (w *Wallet) loadThread(mod *trepo.Thread) (*thread.Thread, error) {
-	_, loaded := w.GetThread(mod.Id)
-	if loaded != nil {
+	if _, loaded := w.GetThread(mod.Id); loaded != nil {
 		return nil, ErrThreadLoaded
 	}
 	id := mod.Id // save value locally
