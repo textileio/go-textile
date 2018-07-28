@@ -80,7 +80,7 @@ func (t *Thread) AddInvite(inviteePk libp2pc.PubKey) (mh.Multihash, error) {
 	return addr, nil
 }
 
-// HandleJoinBlock handles an incoming invite block
+// HandleInviteBlock handles an incoming invite block
 func (t *Thread) HandleInviteBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadInvite) (mh.Multihash, error) {
 	// unmarshal if needed
 	if content == nil {
@@ -101,7 +101,7 @@ func (t *Thread) HandleInviteBlock(message *pb.Envelope, signed *pb.SignedThread
 	// (should only happen if a misbehaving peer keeps sending the same block)
 	index := t.blocks().Get(id)
 	if index != nil {
-		return nil, err
+		return nil, nil
 	}
 
 	// index it locally
