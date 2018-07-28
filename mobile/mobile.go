@@ -151,11 +151,18 @@ func (m *Mobile) Start() error {
 					var name string
 					switch update.Type {
 					case wallet.ThreadAdded:
+						// subscribe to updates
+						if _, thrd := tcore.Node.Wallet.GetThread(update.Id); thrd != nil {
+							go m.subscribe(thrd)
+						}
 						name = "onThreadAdded"
+
 					case wallet.ThreadRemoved:
 						name = "onThreadRemoved"
+
 					case wallet.DeviceAdded:
 						name = "onDeviceAdded"
+
 					case wallet.DeviceRemoved:
 						name = "onDeviceRemoved"
 					}
@@ -226,6 +233,11 @@ func (m *Mobile) GetId() (string, error) {
 	return tcore.Node.Wallet.GetId()
 }
 
+// GetPubKey calls core GetPubKeyString
+func (m *Mobile) GetPubKey() (string, error) {
+	return tcore.Node.Wallet.GetPubKeyString()
+}
+
 // GetUsername calls core GetUsername
 func (m *Mobile) GetUsername() (string, error) {
 	return tcore.Node.Wallet.GetUsername()
@@ -266,9 +278,6 @@ func (m *Mobile) AddThread(name string, mnemonic string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	// subscribe to updates
-	go m.subscribe(thrd)
 
 	// build json
 	peers := thrd.Peers()
@@ -457,6 +466,10 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 			AuthorId: authorId.Pretty(),
 		})
 	}
+
+	// check for offline messages
+	m.RefreshMessages()
+
 	return toJSON(photos)
 }
 
