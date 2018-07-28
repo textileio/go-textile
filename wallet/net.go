@@ -87,7 +87,7 @@ func (w *Wallet) SendMessage(env *pb.Envelope, peerId string, hash *string) erro
 	go func() {
 		err = w.service.SendMessage(ctx, pid, env)
 		if err != nil {
-			log.Errorf("error sending direct message to %s: %s", err)
+			log.Errorf("error sending direct message to %s: %s", pid.Pretty(), err)
 		} else {
 			success = true
 		}

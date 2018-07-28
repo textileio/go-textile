@@ -83,7 +83,7 @@ func (t *Thread) HandleExternalInviteBlock(message *pb.Envelope, signed *pb.Sign
 	// (should only happen if a misbehaving peer keeps sending the same block)
 	index := t.blocks().Get(id)
 	if index != nil {
-		return nil, err
+		return nil, nil
 	}
 
 	// index it locally

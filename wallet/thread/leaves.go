@@ -75,7 +75,7 @@ func (t *Thread) HandleLeaveBlock(message *pb.Envelope, signed *pb.SignedThreadB
 	// (should only happen if a misbehaving peer keeps sending the same block)
 	index := t.blocks().Get(id)
 	if index != nil {
-		return nil, err
+		return nil, nil
 	}
 
 	// remove peer
