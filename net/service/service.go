@@ -142,7 +142,7 @@ func (s *TextileService) handleNewMessage(stream inet.Stream, incoming bool) {
 		// Dispatch handler
 		rpmes, err := handler(mPeer, pmes, nil)
 		if err != nil {
-			log.Debugf("%s handle message error: %s", pmes.Message.Type.String(), err)
+			log.Errorf("%s handle message error: %s", pmes.Message.Type.String(), err)
 		}
 
 		// If nil response, return it before serializing
@@ -157,7 +157,7 @@ func (s *TextileService) handleNewMessage(stream inet.Stream, incoming bool) {
 		// send out response msg
 		if err := ms.SendMessage(s.ctx, rpmes); err != nil {
 			stream.Reset()
-			log.Debugf("send response error: %s", err)
+			log.Errorf("send response error: %s", err)
 			return
 		}
 	}

@@ -2,6 +2,7 @@ package thread
 
 import (
 	"github.com/golang/protobuf/proto"
+	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
@@ -90,10 +91,10 @@ func (t *Thread) HandleDataBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 	// (should only happen if a misbehaving peer keeps sending the same block)
 	index := t.blocks().Get(id)
 	if index != nil {
-		return nil, err
+		return nil, nil
 	}
 
-	// remove peer
+	// get the author id
 	authorPk, err := libp2pc.UnmarshalPublicKey(content.Header.AuthorPk)
 	if err != nil {
 		return nil, err
@@ -102,8 +103,17 @@ func (t *Thread) HandleDataBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 	if err != nil {
 		return nil, err
 	}
-	if err := t.peers().Delete(authorId.Pretty(), t.Id); err != nil {
-		return nil, err
+
+	// add author as a new local peer, just in case we haven't found this peer yet
+	newPeer := &repo.Peer{
+		Row:      ksuid.New().String(),
+		Id:       authorId.Pretty(),
+		ThreadId: libp2pc.ConfigEncodeKey(content.Header.ThreadPk),
+		PubKey:   content.Header.AuthorPk,
+	}
+	if err := t.peers().Add(newPeer); err != nil {
+		// TODO: #202 (Properly handle database/sql errors)
+		log.Warningf("peer with id %s already exists in thread %s", newPeer.Id, t.Id)
 	}
 
 	// index it locally
