@@ -382,6 +382,7 @@ func (m *Mobile) AddExternalThreadInvite(threadId string) (string, error) {
 
 // AcceptExternalThreadInvite notifies the thread of a join
 func (m *Mobile) AcceptExternalThreadInvite(id string, key string) (string, error) {
+	m.waitForOnline()
 	addr, err := tcore.Node.Wallet.AcceptExternalThreadInvite(id, []byte(key))
 	if err != nil {
 		return "", err
@@ -410,6 +411,7 @@ func (m *Mobile) Devices() (string, error) {
 
 // AddDevice calls core AddDevice
 func (m *Mobile) AddDevice(name string, pubKey string) error {
+	m.waitForOnline()
 	pkb, err := libp2pc.ConfigDecodeKey(pubKey)
 	if err != nil {
 		return err
@@ -612,6 +614,24 @@ func (m *Mobile) subscribe(thrd *thread.Thread) {
 			payload, err := toJSON(update)
 			if err == nil {
 				m.messenger.Notify(&Event{Name: "onThreadUpdate", Payload: payload})
+			}
+		}
+	}
+}
+
+// waitForOnline waits up to 5 seconds for the node to go online
+func (m *Mobile) waitForOnline() {
+	if tcore.Node.Wallet.IsOnline() {
+		return
+	}
+	deadline := time.Now().Add(time.Second * 5)
+	tick := time.NewTicker(time.Millisecond * 10)
+	defer tick.Stop()
+	for {
+		select {
+		case <-tick.C:
+			if tcore.Node.Wallet.IsOnline() || time.Now().After(deadline) {
+				return
 			}
 		}
 	}
