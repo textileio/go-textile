@@ -360,6 +360,17 @@ func TestMobile_GetPhotoMetadata(t *testing.T) {
 	}
 }
 
+func TestMobile_GetPhotoKey(t *testing.T) {
+	res, err := mobile.GetPhotoKey(addedPhotoId)
+	if err != nil {
+		t.Errorf("get key failed: %s", err)
+		return
+	}
+	if len(res) == 0 {
+		t.Errorf("get key bad result")
+	}
+}
+
 func TestMobile_SetAvatarId(t *testing.T) {
 	if err := mobile.SetAvatarId(addedPhotoId); err != nil {
 		t.Errorf("set avatar id failed: %s", err)
