@@ -201,6 +201,10 @@ func (t *Thread) FollowParents(parents []string) error {
 		if _, err = t.HandleDataBlock(env, signed, nil, true); err != nil {
 			return err
 		}
+	case pb.Message_THREAD_IGNORE:
+		if _, err = t.HandleIgnoreBlock(env, signed, nil, true); err != nil {
+			return err
+		}
 	default:
 		return errors.New(fmt.Sprintf("invalid message type: %s", env.Message.Type))
 	}
