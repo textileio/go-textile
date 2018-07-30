@@ -370,6 +370,11 @@ func main() {
 				Help: "list photos from a thread",
 				Func: cmd.ListPhotos,
 			})
+			photoCmd.AddCmd(&ishell.Cmd{
+				Name: "ignore",
+				Help: "ignore a photo in a thread (requires block id, not photo id)",
+				Func: cmd.IgnorePhoto,
+			})
 			shell.AddCmd(photoCmd)
 		}
 		{

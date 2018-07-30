@@ -98,7 +98,14 @@ func (t *Thread) Close() {
 // Blocks paginates blocks from the datastore
 func (t *Thread) Blocks(offsetId string, limit int, bType repo.BlockType) []repo.Block {
 	query := fmt.Sprintf("threadId='%s' and type=%d", t.Id, bType)
-	return t.blocks().List(offsetId, limit, query)
+	var filtered []repo.Block
+	for _, block := range t.blocks().List(offsetId, limit, query) {
+		ignored := t.blocks().GetByDataId(fmt.Sprintf("ignore-%s", block.Id))
+		if ignored == nil {
+			filtered = append(filtered, block)
+		}
+	}
+	return filtered
 }
 
 // Peers returns locally known peers in this thread

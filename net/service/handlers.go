@@ -28,6 +28,8 @@ func (s *TextileService) HandlerForMsgType(t pb.Message_Type) func(peer.ID, *pb.
 		return s.handleThreadLeave
 	case pb.Message_THREAD_DATA:
 		return s.handleThreadData
+	case pb.Message_THREAD_IGNORE:
+		return s.handleThreadIgnore
 	case pb.Message_OFFLINE_ACK:
 		return s.handleOfflineAck
 	case pb.Message_OFFLINE_RELAY:
@@ -245,6 +247,37 @@ func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Envelope, option
 
 	// handle
 	if _, err := thrd.HandleDataBlock(pmes, signed, data); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+func (s *TextileService) handleThreadIgnore(pid peer.ID, pmes *pb.Envelope, options interface{}) (*pb.Envelope, error) {
+	log.Debug("received THREAD_IGNORE message")
+	signed, err := unpackMessage(pmes)
+	if err != nil {
+		return nil, err
+	}
+	data := new(pb.ThreadIgnore)
+	if err := proto.Unmarshal(signed.Block, data); err != nil {
+		return nil, err
+	}
+
+	// load thread
+	threadId := libp2pc.ConfigEncodeKey(data.Header.ThreadPk)
+	_, thrd := s.getThread(threadId)
+	if thrd == nil {
+		return nil, common.OutOfOrderMessage
+	}
+
+	// verify
+	if err := thrd.Verify(signed); err != nil {
+		return nil, err
+	}
+
+	// handle
+	if _, err := thrd.HandleIgnoreBlock(pmes, signed, data); err != nil {
 		return nil, err
 	}
 

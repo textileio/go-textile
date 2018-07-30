@@ -50,6 +50,8 @@ const (
 	JoinBlock
 	LeaveBlock
 	PhotoBlock
+
+	IgnoreBlock = 100
 )
 
 type PinRequest struct {
