@@ -298,6 +298,17 @@ func (m *Mobile) Threads() (string, error) {
 	return toJSON(threads)
 }
 
+// PhotoThreads call core PhotoThreads
+func (m *Mobile) PhotoThreads(id string) (string, error) {
+	threads := Threads{Items: make([]Thread, 0)}
+	for _, thrd := range tcore.Node.Wallet.PhotoThreads(id) {
+		peers := thrd.Peers()
+		item := Thread{Id: thrd.Id, Name: thrd.Name, Peers: len(peers)}
+		threads.Items = append(threads.Items, item)
+	}
+	return toJSON(threads)
+}
+
 // AddThread adds a new thread with the given name
 func (m *Mobile) AddThread(name string, mnemonic string) (string, error) {
 	var mnem *string

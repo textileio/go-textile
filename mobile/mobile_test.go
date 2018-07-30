@@ -3,6 +3,7 @@ package mobile_test
 import (
 	"crypto/rand"
 	"encoding/json"
+	"fmt"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
@@ -303,9 +304,26 @@ func TestMobile_GetPhotos(t *testing.T) {
 	}
 }
 
-func TestMobile_PhotosBadThread(t *testing.T) {
+func TestMobile_GetPhotosBadThread(t *testing.T) {
 	if _, err := mobile.GetPhotos("", -1, "empty"); err == nil {
 		t.Errorf("get photo blocks from bad thread should fail: %s", err)
+	}
+}
+
+func TestMobile_PhotoThreads(t *testing.T) {
+	res, err := mobile.PhotoThreads(addedPhotoId)
+	if err != nil {
+		t.Errorf("get photo threads failed: %s", err)
+		return
+	}
+	threads := Threads{}
+	if err := json.Unmarshal([]byte(res), &threads); err != nil {
+		t.Error(err)
+		return
+	}
+	fmt.Println(res)
+	if len(threads.Items) != 2 {
+		t.Error("get photo threads bad result")
 	}
 }
 
