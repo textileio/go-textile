@@ -49,6 +49,10 @@ let textile = {
             case 4:
               addPhoto(msg.update)
               break
+            // ignore
+            case 100:
+              ignore(msg.update)
+              break
           }
           break
 
@@ -183,6 +187,21 @@ function addPhoto(update) {
     + 'ondragstart="imageDragStart(event);" draggable="true" '
     + 'data-url="' + photo + '" data-meta="' + meta + '">' + img + '</div>')
   grid.isotope('insert', $item)
+}
+
+function ignore(update) {
+  let grid = $('.grid')
+  if (!grid || update.thread_id !== grid.data('thread-id')) {
+    return
+  }
+  if (!update.block.data_id) {
+    return
+  }
+  let parts = update.block.data_id.split('-')
+  if (parts.length !== 2) {
+    return
+  }
+  grid.isotope('remove', $('#' + parts[1])).isotope('layout')
 }
 
 function fileURL(update, path) {
