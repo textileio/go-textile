@@ -27,6 +27,7 @@ message Message {
         THREAD_LEAVE           = 103;
         THREAD_DATA            = 104;
         THREAD_ANNOTATION      = 105;
+        THREAD_IGNORE          = 200;
         ERROR                  = 500;
     }
 }
