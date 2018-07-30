@@ -71,7 +71,7 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Envelope, opti
 		}
 
 		// handle
-		if _, err := thrd.HandleInviteBlock(pmes, signed, invite); err != nil {
+		if _, err := thrd.HandleInviteBlock(pmes, signed, invite, false); err != nil {
 			return nil, err
 		}
 
@@ -112,7 +112,7 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Envelope, opti
 	}
 
 	// handle
-	addr, err := thrd.HandleInviteBlock(pmes, signed, invite)
+	addr, err := thrd.HandleInviteBlock(pmes, signed, invite, false)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (s *TextileService) handleExternalThreadInvite(pid peer.ID, pmes *pb.Envelo
 	}
 
 	// handle
-	if _, err := thrd.HandleExternalInviteBlock(pmes, signed, invite); err != nil {
+	if _, err := thrd.HandleExternalInviteBlock(pmes, signed, invite, false); err != nil {
 		return nil, err
 	}
 
@@ -184,7 +184,7 @@ func (s *TextileService) handleThreadJoin(pid peer.ID, pmes *pb.Envelope, option
 	}
 
 	// handle
-	if _, err := thrd.HandleJoinBlock(pmes, signed, join); err != nil {
+	if _, err := thrd.HandleJoinBlock(pmes, signed, join, false); err != nil {
 		return nil, err
 	}
 
@@ -215,7 +215,7 @@ func (s *TextileService) handleThreadLeave(pid peer.ID, pmes *pb.Envelope, optio
 	}
 
 	// handle
-	if _, err := thrd.HandleLeaveBlock(pmes, signed, leave); err != nil {
+	if _, err := thrd.HandleLeaveBlock(pmes, signed, leave, false); err != nil {
 		return nil, err
 	}
 
@@ -246,7 +246,7 @@ func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Envelope, option
 	}
 
 	// handle
-	if _, err := thrd.HandleDataBlock(pmes, signed, data); err != nil {
+	if _, err := thrd.HandleDataBlock(pmes, signed, data, false); err != nil {
 		return nil, err
 	}
 
@@ -277,7 +277,7 @@ func (s *TextileService) handleThreadIgnore(pid peer.ID, pmes *pb.Envelope, opti
 	}
 
 	// handle
-	if _, err := thrd.HandleIgnoreBlock(pmes, signed, data); err != nil {
+	if _, err := thrd.HandleIgnoreBlock(pmes, signed, data, false); err != nil {
 		return nil, err
 	}
 

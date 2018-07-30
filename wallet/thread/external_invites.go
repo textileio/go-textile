@@ -49,7 +49,7 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 	id := addr.B58String()
 
 	// index it locally
-	if err := t.indexBlock(id, header, repo.ExternalInviteBlock, nil); err != nil {
+	if err := t.indexBlock(id, header, repo.ExternalInviteBlock, nil, false); err != nil {
 		return nil, nil, err
 	}
 
@@ -63,7 +63,7 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 }
 
 // HandleExternalInviteBlock handles an incoming external invite block
-func (t *Thread) HandleExternalInviteBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadExternalInvite) (mh.Multihash, error) {
+func (t *Thread) HandleExternalInviteBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadExternalInvite, following bool) (mh.Multihash, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadExternalInvite)
@@ -87,7 +87,7 @@ func (t *Thread) HandleExternalInviteBlock(message *pb.Envelope, signed *pb.Sign
 	}
 
 	// index it locally
-	if err := t.indexBlock(id, content.Header, repo.ExternalInviteBlock, nil); err != nil {
+	if err := t.indexBlock(id, content.Header, repo.ExternalInviteBlock, nil, following); err != nil {
 		return nil, err
 	}
 
