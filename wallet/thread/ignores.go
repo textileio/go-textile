@@ -17,7 +17,7 @@ func (t *Thread) Ignore(dataId string) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	// dataId is a fellow block id, which must be unique
+	// dataId is a fellow block id,
 	// adding an ignore specific prefix here to ensure future flexibility
 	dataId = fmt.Sprintf("ignore-%s", dataId)
 
