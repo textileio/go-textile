@@ -243,7 +243,7 @@ func (m *Mobile) GetUsername() (string, error) {
 	return tcore.Node.Wallet.GetUsername()
 }
 
-// GetAccessToken calls core GetAccessToken
+// GetTokens calls core GetTokens
 func (m *Mobile) GetTokens() (string, error) {
 	tokens, err := tcore.Node.Wallet.GetTokens()
 	if err != nil {
@@ -524,6 +524,7 @@ func (m *Mobile) GetThumbData(id string) (string, error) {
 	return m.getImageData(id, "thumb", true)
 }
 
+// GetPhotoMetadata returns a meta data object for a photo
 func (m *Mobile) GetPhotoMetadata(id string) (string, error) {
 	block, err := tcore.Node.Wallet.GetBlockByDataId(id)
 	if err != nil {
