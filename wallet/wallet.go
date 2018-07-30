@@ -87,10 +87,10 @@ type Wallet struct {
 
 const pingTimeout = time.Second * 10
 
-var ErrStarted = errors.New("node is already started")
-var ErrStopped = errors.New("node is already stopped")
+var ErrStarted = errors.New("node is started")
+var ErrStopped = errors.New("node is stopped")
 var ErrOffline = errors.New("node is offline")
-var ErrThreadLoaded = errors.New("thread is already loaded")
+var ErrThreadLoaded = errors.New("thread is loaded")
 var ErrNoCafeHost = errors.New("cafe host address is not set")
 
 func NewWallet(config Config) (*Wallet, string, error) {
@@ -146,6 +146,13 @@ func (w *Wallet) Start() error {
 	defer func() {
 		w.done = make(chan struct{})
 		w.started = true
+
+		pk, err := w.GetPubKeyString()
+		if err != nil {
+			log.Errorf("error loading pk: %s", err)
+			return
+		}
+		log.Infof("wallet is started, pk: %s", pk)
 	}()
 	log.Info("starting wallet...")
 	w.online = make(chan struct{})
@@ -252,8 +259,6 @@ func (w *Wallet) Start() error {
 			return err
 		}
 	}
-
-	log.Info("wallet is started")
 
 	return nil
 }

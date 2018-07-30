@@ -54,3 +54,9 @@ message ThreadData {
         TEXT  = 1;
     }
 }
+
+message ThreadIgnore {
+    ThreadBlockHeader header = 1;
+
+    string dataId            = 2;
+}
