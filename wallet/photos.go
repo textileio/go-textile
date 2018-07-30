@@ -7,6 +7,7 @@ import (
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet/model"
+	"github.com/textileio/textile-go/wallet/thread"
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
 	"os"
 	"path/filepath"
@@ -157,4 +158,24 @@ func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 
 	// all done
 	return result, nil
+}
+
+// PhotoThreads lists threads which contain a photo (known to the local peer)
+func (w *Wallet) PhotoThreads(id string) []*thread.Thread {
+	if err := w.touchDatastore(); err != nil {
+		log.Errorf("error re-touching datastore")
+		return nil
+	}
+	blocks := w.datastore.Blocks().List("", -1, "type=4 and dataId='"+id+"'")
+	if len(blocks) == 0 {
+		return nil
+	}
+	var threads []*thread.Thread
+	for _, block := range blocks {
+		_, thrd := w.GetThread(block.ThreadId)
+		if thrd != nil {
+			threads = append(threads, thrd)
+		}
+	}
+	return threads
 }
