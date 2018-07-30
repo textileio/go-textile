@@ -95,6 +95,14 @@ func (w *Wallet) SignUp(reg *cmodels.Registration) error {
 		w.pinner.Tokens = tokens
 	}
 
+	// initial profile publish
+	go func() {
+		<-w.Online()
+		if _, err := w.PublishProfile(nil); err != nil {
+			log.Errorf("error publishing initial profile: %s", err)
+		}
+	}()
+
 	return nil
 }
 
@@ -134,13 +142,6 @@ func (w *Wallet) SignIn(creds *cmodels.Credentials) error {
 		w.pinner.Tokens = tokens
 	}
 
-	// re-pub profile
-	go func() {
-		if _, err := w.PublishProfile(); err != nil {
-			log.Errorf("error publishing profile: %s", err)
-		}
-	}()
-
 	return nil
 }
 
@@ -160,17 +161,10 @@ func (w *Wallet) SignOut() error {
 		return err
 	}
 
-	// re-pub profile
-	go func() {
-		if _, err := w.PublishProfile(); err != nil {
-			log.Errorf("error publishing profile: %s", err)
-		}
-
-		// clear tokens
-		if w.pinner != nil {
-			w.pinner.Tokens = nil
-		}
-	}()
+	// clear tokens
+	if w.pinner != nil {
+		w.pinner.Tokens = nil
+	}
 
 	return nil
 }
@@ -187,17 +181,6 @@ func (w *Wallet) IsSignedIn() (bool, error) {
 	return err == nil, nil
 }
 
-// GetUsername returns the current user's username
-func (w *Wallet) GetUsername() (string, error) {
-	if w.cafeAddr == "" {
-		return "", ErrNoCafeHost
-	}
-	if err := w.touchDatastore(); err != nil {
-		return "", err
-	}
-	return w.datastore.Profile().GetUsername()
-}
-
 // GetAccessToken returns the current access_token (jwt) for a cafe
 func (w *Wallet) GetTokens() (*repo.CafeTokens, error) {
 	if w.cafeAddr == "" {
@@ -209,46 +192,133 @@ func (w *Wallet) GetTokens() (*repo.CafeTokens, error) {
 	return w.datastore.Profile().GetTokens()
 }
 
+// GetUsername returns the current user's username
+func (w *Wallet) GetUsername() (string, error) {
+	if w.cafeAddr == "" {
+		return "", ErrNoCafeHost
+	}
+	if err := w.touchDatastore(); err != nil {
+		return "", err
+	}
+	return w.datastore.Profile().GetUsername()
+}
+
+// GetAvatarId returns the current user's avatar id, which will be the id of a photo
+func (w *Wallet) GetAvatarId() (string, error) {
+	if w.cafeAddr == "" {
+		return "", ErrNoCafeHost
+	}
+	if err := w.touchDatastore(); err != nil {
+		return "", err
+	}
+	return w.datastore.Profile().GetAvatarId()
+}
+
+// SetAvatarId updates profile at our peer id with new avatar address
+func (w *Wallet) SetAvatarId(id string) error {
+	if w.cafeAddr == "" {
+		return ErrNoCafeHost
+	}
+	if err := w.touchDatastore(); err != nil {
+		return err
+	}
+	if err := w.datastore.Profile().SetAvatarId(id); err != nil {
+		return err
+	}
+
+	go func() {
+		<-w.Online()
+
+		// publish
+		pid, err := w.GetId()
+		if err != nil {
+			log.Errorf("error getting id (set avatar): %s", err)
+			return
+		}
+		prof, err := w.GetProfile(pid)
+		if err != nil {
+			log.Errorf("error getting profile (set avatar): %s", err)
+			return
+		}
+		if _, err := w.PublishProfile(prof); err != nil {
+			log.Errorf("error publishing profile (set avatar): %s", err)
+			return
+		}
+	}()
+	return nil
+}
+
 // GetProfile return a model representation of a peer profile
-func (w *Wallet) GetProfile() (*model.Profile, error) {
-	id, err := w.GetId()
+func (w *Wallet) GetProfile(peerId string) (*model.Profile, error) {
+	// if peer id is local, return profile from db
+	pid, err := w.GetId()
 	if err != nil {
 		return nil, err
 	}
-	username, _ := w.GetUsername()
+	if pid == peerId {
+		username, _ := w.GetUsername()
+		avatarId, _ := w.GetAvatarId()
+		return &model.Profile{Id: pid, Username: username, AvatarId: avatarId}, nil
+	}
+
+	// resolve profile at peer id
+	entry, err := w.ResolveProfile(peerId)
+	if err != nil {
+		return nil, err
+	}
+	root := entry.String()
+
+	// get components from entry
+	var username, avatarId []byte
+	username, _ = util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/%s", root, "username"))
+	avatarId, _ = util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/%s", root, "avatar_id"))
 
 	return &model.Profile{
-		Id:       id,
-		Username: username,
-		AvatarId: "", // TODO: what goes here? choose photo for avatar pic?
+		Id:       peerId,
+		Username: string(username),
+		AvatarId: string(avatarId),
 	}, nil
 }
 
 // ResolveProfile looks up a peer's profile on ipns
-func (w *Wallet) ResolveProfile(name string) (path.Path, error) {
+func (w *Wallet) ResolveProfile(name string) (*path.Path, error) {
+	if !w.IsOnline() {
+		return nil, ErrOffline
+	}
+
+	// setup query
 	name = fmt.Sprintf("/ipns/%s", name)
 	var ropts []nsopts.ResolveOpt
 	ropts = append(ropts, nsopts.Depth(1))
 	ropts = append(ropts, nsopts.DhtRecordCount(4))
 	ropts = append(ropts, nsopts.DhtTimeout(5))
 
-	return w.ipfs.Namesys.Resolve(w.ipfs.Context(), name, ropts...)
+	pth, err := w.ipfs.Namesys.Resolve(w.ipfs.Context(), name, ropts...)
+	if err != nil {
+		return nil, err
+	}
+	return &pth, nil
 }
 
 // PublishProfile publishes the peer profile to ipns
-func (w *Wallet) PublishProfile() (*util.IpnsEntry, error) {
+func (w *Wallet) PublishProfile(prof *model.Profile) (*util.IpnsEntry, error) {
 	if !w.IsOnline() {
 		return nil, ErrOffline
 	}
-
 	if w.ipfs.Mounts.Ipns != nil && w.ipfs.Mounts.Ipns.IsActive() {
 		return nil, errors.New("cannot manually publish while IPNS is mounted")
 	}
 
-	// get current profile
-	prof, err := w.GetProfile()
-	if err != nil {
-		return nil, err
+	// if nil profile, use current
+	if prof == nil {
+		pid, err := w.GetId()
+		if err != nil {
+			return nil, err
+		}
+		prof, err = w.GetProfile(pid)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// create a virtual directory for the photo

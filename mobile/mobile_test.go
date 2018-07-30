@@ -3,11 +3,13 @@ package mobile_test
 import (
 	"crypto/rand"
 	"encoding/json"
+	"fmt"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
 	util "github.com/textileio/textile-go/util/testing"
 	"github.com/textileio/textile-go/wallet"
+	"github.com/textileio/textile-go/wallet/model"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"os"
 	"testing"
@@ -302,9 +304,26 @@ func TestMobile_GetPhotos(t *testing.T) {
 	}
 }
 
-func TestMobile_PhotosBadThread(t *testing.T) {
+func TestMobile_GetPhotosBadThread(t *testing.T) {
 	if _, err := mobile.GetPhotos("", -1, "empty"); err == nil {
 		t.Errorf("get photo blocks from bad thread should fail: %s", err)
+	}
+}
+
+func TestMobile_PhotoThreads(t *testing.T) {
+	res, err := mobile.PhotoThreads(addedPhotoId)
+	if err != nil {
+		t.Errorf("get photo threads failed: %s", err)
+		return
+	}
+	threads := Threads{}
+	if err := json.Unmarshal([]byte(res), &threads); err != nil {
+		t.Error(err)
+		return
+	}
+	fmt.Println(res)
+	if len(threads.Items) != 2 {
+		t.Error("get photo threads bad result")
 	}
 }
 
@@ -341,20 +360,40 @@ func TestMobile_GetPhotoMetadata(t *testing.T) {
 	}
 }
 
-func TestMobile_ResolveProfileInfo(t *testing.T) {
-	// resolve own profile info
-	id, err := mobile.GetId()
+func TestMobile_GetPhotoKey(t *testing.T) {
+	res, err := mobile.GetPhotoKey(addedPhotoId)
 	if err != nil {
-		t.Errorf("get own id failed: %s", err)
+		t.Errorf("get key failed: %s", err)
 		return
 	}
-	info, err := mobile.ResolveProfileInfo(id, "username")
-	if err != nil {
-		t.Errorf("resolve profile info failed: %s", err)
+	if len(res) == 0 {
+		t.Errorf("get key bad result")
+	}
+}
+
+func TestMobile_SetAvatarId(t *testing.T) {
+	if err := mobile.SetAvatarId(addedPhotoId); err != nil {
+		t.Errorf("set avatar id failed: %s", err)
 		return
 	}
-	if info != cusername {
-		t.Errorf("resolve profile info bad result")
+}
+
+func TestMobile_GetProfile(t *testing.T) {
+	profs, err := mobile.GetProfile()
+	if err != nil {
+		t.Errorf("get profile failed: %s", err)
+		return
+	}
+	prof := model.Profile{}
+	if err := json.Unmarshal([]byte(profs), &prof); err != nil {
+		t.Error(err)
+		return
+	}
+	if prof.Username != cusername {
+		t.Errorf("get profile bad username result")
+	}
+	if prof.AvatarId != addedPhotoId {
+		t.Errorf("get profile bad avatar result")
 	}
 }
 

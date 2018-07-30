@@ -252,6 +252,36 @@ func (m *Mobile) GetTokens() (string, error) {
 	return toJSON(tokens)
 }
 
+// SetAvatarId calls core SetAvatarId
+func (m *Mobile) SetAvatarId(id string) error {
+	return tcore.Node.Wallet.SetAvatarId(id)
+}
+
+// GetProfile returns this peer's profile
+func (m *Mobile) GetProfile() (string, error) {
+	id, err := tcore.Node.Wallet.GetId()
+	if err != nil {
+		log.Errorf("error getting id %s: %s", id, err)
+		return "", err
+	}
+	prof, err := tcore.Node.Wallet.GetProfile(id)
+	if err != nil {
+		log.Errorf("error getting profile %s: %s", id, err)
+		return "", err
+	}
+	return toJSON(prof)
+}
+
+// GetPeerProfile uses a peer id to look up a profile
+func (m *Mobile) GetPeerProfile(peerId string) (string, error) {
+	prof, err := tcore.Node.Wallet.GetProfile(peerId)
+	if err != nil {
+		log.Errorf("error getting profile %s: %s", peerId, err)
+		return "", err
+	}
+	return toJSON(prof)
+}
+
 // RefreshMessages run the message retriever and repointer jobs
 func (m *Mobile) RefreshMessages() error {
 	return tcore.Node.Wallet.RefreshMessages()
@@ -261,6 +291,17 @@ func (m *Mobile) RefreshMessages() error {
 func (m *Mobile) Threads() (string, error) {
 	threads := Threads{Items: make([]Thread, 0)}
 	for _, thrd := range tcore.Node.Wallet.Threads() {
+		peers := thrd.Peers()
+		item := Thread{Id: thrd.Id, Name: thrd.Name, Peers: len(peers)}
+		threads.Items = append(threads.Items, item)
+	}
+	return toJSON(threads)
+}
+
+// PhotoThreads call core PhotoThreads
+func (m *Mobile) PhotoThreads(id string) (string, error) {
+	threads := Threads{Items: make([]Thread, 0)}
+	for _, thrd := range tcore.Node.Wallet.PhotoThreads(id) {
 		peers := thrd.Peers()
 		item := Thread{Id: thrd.Id, Name: thrd.Name, Peers: len(peers)}
 		threads.Items = append(threads.Items, item)
@@ -503,23 +544,25 @@ func (m *Mobile) GetPhotoMetadata(id string) (string, error) {
 	return toJSON(meta)
 }
 
-// ResolveProfileInfo take a peer id and profile key name, like "username"
-func (m *Mobile) ResolveProfileInfo(peerId string, key string) (string, error) {
-	pth, err := tcore.Node.Wallet.ResolveProfile(peerId)
+// GetPhotoKey
+func (m *Mobile) GetPhotoKey(id string) (string, error) {
+	block, err := tcore.Node.Wallet.GetBlockByDataId(id)
 	if err != nil {
-		log.Errorf("error resolving profile %s: %s", peerId, err)
+		log.Errorf("could not find block for data id %s: %s", id, err)
 		return "", err
 	}
-
-	// get data
-	contentPath := fmt.Sprintf("%s/%s", pth.String(), key)
-	data, err := tcore.Node.Wallet.GetDataAtPath(contentPath)
-	if err != nil {
-		log.Errorf("error getting data at profile path %s: %s", contentPath, err)
+	_, thrd := tcore.Node.Wallet.GetThread(block.ThreadId)
+	if thrd == nil {
+		err := errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadId))
+		log.Error(err.Error())
 		return "", err
 	}
-
-	return string(data), nil
+	key, err := thrd.GetBlockDataKey(block)
+	if err != nil {
+		log.Errorf("get photo key failed %s: %s", id, err)
+		return "", err
+	}
+	return string(key), nil
 }
 
 // getImageData returns a data url for an image under a path
