@@ -51,15 +51,11 @@ func (c *ProfileDB) SignOut() error {
 	defer c.lock.Unlock()
 	stmt, err := c.db.Prepare("delete from profile where key=?")
 	defer stmt.Close()
-	_, err = stmt.Exec("id")
-	if err != nil {
-		return err
-	}
-	_, err = stmt.Exec("secret")
-	if err != nil {
-		return err
-	}
 	_, err = stmt.Exec("username")
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec("avatar_id")
 	if err != nil {
 		return err
 	}
@@ -79,12 +75,46 @@ func (c *ProfileDB) GetUsername() (string, error) {
 	defer c.lock.Unlock()
 	stmt, err := c.db.Prepare("select value from profile where key=?")
 	defer stmt.Close()
-	var un string
-	err = stmt.QueryRow("username").Scan(&un)
+	var username string
+	err = stmt.QueryRow("username").Scan(&username)
 	if err != nil {
 		return "", err
 	}
-	return un, nil
+	return username, nil
+}
+
+func (c *ProfileDB) SetAvatarId(id string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	tx, err := c.db.Begin()
+	if err != nil {
+		return err
+	}
+	stmt, err := tx.Prepare("insert or replace into profile(key, value) values(?,?)")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec("avatar_id", id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+	return nil
+}
+
+func (c *ProfileDB) GetAvatarId() (string, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	stmt, err := c.db.Prepare("select value from profile where key=?")
+	defer stmt.Close()
+	var avatarId string
+	err = stmt.QueryRow("avatar_id").Scan(&avatarId)
+	if err != nil {
+		return "", err
+	}
+	return avatarId, nil
 }
 
 func (c *ProfileDB) GetTokens() (tokens *repo.CafeTokens, err error) {

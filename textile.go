@@ -290,11 +290,6 @@ func main() {
 				LongHelp: "Resolve other profiles, get and publish local profile.",
 			}
 			profileCmd.AddCmd(&ishell.Cmd{
-				Name: "get",
-				Help: "get local profile",
-				Func: cmd.GetProfile,
-			})
-			profileCmd.AddCmd(&ishell.Cmd{
 				Name: "publish",
 				Help: "publish local profile",
 				Func: cmd.PublishProfile,
@@ -303,6 +298,16 @@ func main() {
 				Name: "resolve",
 				Help: "resolve profiles",
 				Func: cmd.ResolveProfile,
+			})
+			profileCmd.AddCmd(&ishell.Cmd{
+				Name: "get",
+				Help: "get peer profiles",
+				Func: cmd.GetProfile,
+			})
+			profileCmd.AddCmd(&ishell.Cmd{
+				Name: "set-avatar",
+				Help: "set local profile avatar",
+				Func: cmd.SetAvatarId,
 			})
 			shell.AddCmd(profileCmd)
 		}

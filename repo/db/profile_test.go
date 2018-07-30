@@ -37,6 +37,24 @@ func TestProfileDB_GetUsername(t *testing.T) {
 	}
 }
 
+func TestProfileDB_SetAvatarId(t *testing.T) {
+	if err := pdb.SetAvatarId("/ipfs/Qm..."); err != nil {
+		t.Error(err)
+		return
+	}
+}
+
+func TestProfileDB_GetAvatarId(t *testing.T) {
+	av, err := pdb.GetAvatarId()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if av != "/ipfs/Qm..." {
+		t.Error("got bad avatar id")
+	}
+}
+
 func TestProfileDB_GetTokens(t *testing.T) {
 	tokens, err := pdb.GetTokens()
 	if err != nil {
