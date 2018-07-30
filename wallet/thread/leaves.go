@@ -32,7 +32,7 @@ func (t *Thread) Leave() (mh.Multihash, error) {
 	id := addr.B58String()
 
 	// index it locally
-	if err := t.indexBlock(id, header, repo.LeaveBlock, nil); err != nil {
+	if err := t.indexBlock(id, header, repo.LeaveBlock, nil, false); err != nil {
 		return nil, err
 	}
 
@@ -55,7 +55,7 @@ func (t *Thread) Leave() (mh.Multihash, error) {
 }
 
 // HandleLeaveBlock handles an incoming leave block
-func (t *Thread) HandleLeaveBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadLeave) (mh.Multihash, error) {
+func (t *Thread) HandleLeaveBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadLeave, following bool) (mh.Multihash, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadLeave)
@@ -92,7 +92,7 @@ func (t *Thread) HandleLeaveBlock(message *pb.Envelope, signed *pb.SignedThreadB
 	}
 
 	// index it locally
-	if err := t.indexBlock(id, content.Header, repo.LeaveBlock, nil); err != nil {
+	if err := t.indexBlock(id, content.Header, repo.LeaveBlock, nil, following); err != nil {
 		return nil, err
 	}
 

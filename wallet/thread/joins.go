@@ -40,7 +40,7 @@ func (t *Thread) Join(inviterPk libp2pc.PubKey, blockId string) (mh.Multihash, e
 	id := addr.B58String()
 
 	// index it locally
-	if err := t.indexBlock(id, header, repo.JoinBlock, nil); err != nil {
+	if err := t.indexBlock(id, header, repo.JoinBlock, nil, false); err != nil {
 		return nil, err
 	}
 
@@ -70,7 +70,7 @@ func (t *Thread) Join(inviterPk libp2pc.PubKey, blockId string) (mh.Multihash, e
 }
 
 // HandleJoinBlock handles an incoming join block
-func (t *Thread) HandleJoinBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadJoin) (mh.Multihash, error) {
+func (t *Thread) HandleJoinBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadJoin, following bool) (mh.Multihash, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadJoin)
@@ -116,7 +116,7 @@ func (t *Thread) HandleJoinBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 	}
 
 	// index it locally
-	if err := t.indexBlock(id, content.Header, repo.JoinBlock, nil); err != nil {
+	if err := t.indexBlock(id, content.Header, repo.JoinBlock, nil, following); err != nil {
 		return nil, err
 	}
 

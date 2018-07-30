@@ -52,7 +52,7 @@ func (t *Thread) AddInvite(inviteePk libp2pc.PubKey) (mh.Multihash, error) {
 	id := addr.B58String()
 
 	// index it locally
-	if err := t.indexBlock(id, header, repo.InviteBlock, nil); err != nil {
+	if err := t.indexBlock(id, header, repo.InviteBlock, nil, false); err != nil {
 		return nil, err
 	}
 
@@ -81,7 +81,7 @@ func (t *Thread) AddInvite(inviteePk libp2pc.PubKey) (mh.Multihash, error) {
 }
 
 // HandleInviteBlock handles an incoming invite block
-func (t *Thread) HandleInviteBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadInvite) (mh.Multihash, error) {
+func (t *Thread) HandleInviteBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadInvite, following bool) (mh.Multihash, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadInvite)
@@ -105,7 +105,7 @@ func (t *Thread) HandleInviteBlock(message *pb.Envelope, signed *pb.SignedThread
 	}
 
 	// index it locally
-	if err := t.indexBlock(id, content.Header, repo.InviteBlock, nil); err != nil {
+	if err := t.indexBlock(id, content.Header, repo.InviteBlock, nil, following); err != nil {
 		return nil, err
 	}
 

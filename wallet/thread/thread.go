@@ -182,23 +182,27 @@ func (t *Thread) FollowParents(parents []string) error {
 	// handle each type
 	switch env.Message.Type {
 	case pb.Message_THREAD_INVITE:
-		if _, err = t.HandleInviteBlock(env, signed, nil); err != nil {
+		if _, err = t.HandleInviteBlock(env, signed, nil, true); err != nil {
 			return err
 		}
 	case pb.Message_THREAD_EXTERNAL_INVITE:
-		if _, err = t.HandleExternalInviteBlock(env, signed, nil); err != nil {
+		if _, err = t.HandleExternalInviteBlock(env, signed, nil, true); err != nil {
 			return err
 		}
 	case pb.Message_THREAD_JOIN:
-		if _, err = t.HandleJoinBlock(env, signed, nil); err != nil {
+		if _, err = t.HandleJoinBlock(env, signed, nil, true); err != nil {
 			return err
 		}
 	case pb.Message_THREAD_LEAVE:
-		if _, err = t.HandleLeaveBlock(env, signed, nil); err != nil {
+		if _, err = t.HandleLeaveBlock(env, signed, nil, true); err != nil {
 			return err
 		}
 	case pb.Message_THREAD_DATA:
-		if _, err = t.HandleDataBlock(env, signed, nil); err != nil {
+		if _, err = t.HandleDataBlock(env, signed, nil, true); err != nil {
+			return err
+		}
+	case pb.Message_THREAD_IGNORE:
+		if _, err = t.HandleIgnoreBlock(env, signed, nil, true); err != nil {
 			return err
 		}
 	default:
@@ -300,7 +304,7 @@ func (t *Thread) commitBlock(content proto.Message, mt pb.Message_Type) (*pb.Env
 }
 
 // indexBlock stores off index info for this block type
-func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType repo.BlockType, dataConf *repo.DataBlockConfig) error {
+func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType repo.BlockType, dataConf *repo.DataBlockConfig, following bool) error {
 	// add a new one
 	date, err := ptypes.Timestamp(header.Date)
 	if err != nil {
@@ -327,8 +331,10 @@ func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType r
 	}
 
 	// update current head
-	if err := t.updateHead(index.Id); err != nil {
-		return err
+	if !following {
+		if err := t.updateHead(index.Id); err != nil {
+			return err
+		}
 	}
 
 	// notify listeners
