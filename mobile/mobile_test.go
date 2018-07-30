@@ -8,6 +8,7 @@ import (
 	. "github.com/textileio/textile-go/mobile"
 	util "github.com/textileio/textile-go/util/testing"
 	"github.com/textileio/textile-go/wallet"
+	"github.com/textileio/textile-go/wallet/model"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"os"
 	"testing"
@@ -341,20 +342,29 @@ func TestMobile_GetPhotoMetadata(t *testing.T) {
 	}
 }
 
-func TestMobile_ResolveProfileInfo(t *testing.T) {
-	// resolve own profile info
-	id, err := mobile.GetId()
-	if err != nil {
-		t.Errorf("get own id failed: %s", err)
+func TestMobile_SetAvatarId(t *testing.T) {
+	if err := mobile.SetAvatarId(addedPhotoId); err != nil {
+		t.Errorf("set avatar id failed: %s", err)
 		return
 	}
-	info, err := mobile.ResolveProfileInfo(id, "username")
+}
+
+func TestMobile_GetProfile(t *testing.T) {
+	profs, err := mobile.GetProfile()
 	if err != nil {
-		t.Errorf("resolve profile info failed: %s", err)
+		t.Errorf("get profile failed: %s", err)
 		return
 	}
-	if info != cusername {
-		t.Errorf("resolve profile info bad result")
+	prof := model.Profile{}
+	if err := json.Unmarshal([]byte(profs), &prof); err != nil {
+		t.Error(err)
+		return
+	}
+	if prof.Username != cusername {
+		t.Errorf("get profile bad username result")
+	}
+	if prof.AvatarId != addedPhotoId {
+		t.Errorf("get profile bad avatar result")
 	}
 }
 

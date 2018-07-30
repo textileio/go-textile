@@ -64,7 +64,7 @@ func DecodeImage(file *os.File) (*bytes.Reader, *Format, *image.Point, error) {
 }
 
 // MakeMetadata reads any available meta/exif data from a photo
-func MakeMetadata(reader io.Reader, path string, ext string, format Format, tnFormat Format, width int, height int, profile *model.Profile, version string) (model.PhotoMetadata, error) {
+func MakeMetadata(reader io.Reader, path string, ext string, format Format, tnFormat Format, width int, height int, id string, username, version string) (model.PhotoMetadata, error) {
 	var created time.Time
 	var lat, lon float64
 	x, err := exif.Decode(reader)
@@ -84,8 +84,8 @@ func MakeMetadata(reader io.Reader, path string, ext string, format Format, tnFo
 		FileMetadata: model.FileMetadata{
 			Metadata: model.Metadata{
 				Version:  version,
-				PeerId:   profile.Id,
-				Username: profile.Username,
+				PeerId:   id,
+				Username: username,
 				Created:  created,
 				Added:    time.Now(),
 			},

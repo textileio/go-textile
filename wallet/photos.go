@@ -48,7 +48,11 @@ func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 	}
 
 	// get some meta data
-	prof, err := w.GetProfile()
+	id, err := w.GetId()
+	if err != nil {
+		return nil, err
+	}
+	username, _ := w.GetUsername()
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +71,7 @@ func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 
 	// get metadata
 	reader.Seek(0, 0)
-	meta, err := util.MakeMetadata(reader, fpath, ext, *format, thumbFormat, size.X, size.Y, prof, w.version)
+	meta, err := util.MakeMetadata(reader, fpath, ext, *format, thumbFormat, size.X, size.Y, id, username, w.version)
 	if err != nil {
 		return nil, err
 	}

@@ -38,6 +38,8 @@ type ProfileStore interface {
 	SignIn(username string, tokens *CafeTokens) error
 	SignOut() error
 	GetUsername() (string, error)
+	SetAvatarId(id string) error
+	GetAvatarId() (string, error)
 	GetTokens() (tokens *CafeTokens, err error)
 }
 

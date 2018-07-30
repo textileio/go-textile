@@ -252,6 +252,36 @@ func (m *Mobile) GetTokens() (string, error) {
 	return toJSON(tokens)
 }
 
+// SetAvatarId calls core SetAvatarId
+func (m *Mobile) SetAvatarId(id string) error {
+	return tcore.Node.Wallet.SetAvatarId(id)
+}
+
+// GetProfile returns this peer's profile
+func (m *Mobile) GetProfile() (string, error) {
+	id, err := tcore.Node.Wallet.GetId()
+	if err != nil {
+		log.Errorf("error getting id %s: %s", id, err)
+		return "", err
+	}
+	prof, err := tcore.Node.Wallet.GetProfile(id)
+	if err != nil {
+		log.Errorf("error getting profile %s: %s", id, err)
+		return "", err
+	}
+	return toJSON(prof)
+}
+
+// GetPeerProfile uses a peer id to look up a profile
+func (m *Mobile) GetPeerProfile(peerId string) (string, error) {
+	prof, err := tcore.Node.Wallet.GetProfile(peerId)
+	if err != nil {
+		log.Errorf("error getting profile %s: %s", peerId, err)
+		return "", err
+	}
+	return toJSON(prof)
+}
+
 // RefreshMessages run the message retriever and repointer jobs
 func (m *Mobile) RefreshMessages() error {
 	return tcore.Node.Wallet.RefreshMessages()
@@ -501,25 +531,6 @@ func (m *Mobile) GetPhotoMetadata(id string) (string, error) {
 		return "", err
 	}
 	return toJSON(meta)
-}
-
-// ResolveProfileInfo take a peer id and profile key name, like "username"
-func (m *Mobile) ResolveProfileInfo(peerId string, key string) (string, error) {
-	pth, err := tcore.Node.Wallet.ResolveProfile(peerId)
-	if err != nil {
-		log.Errorf("error resolving profile %s: %s", peerId, err)
-		return "", err
-	}
-
-	// get data
-	contentPath := fmt.Sprintf("%s/%s", pth.String(), key)
-	data, err := tcore.Node.Wallet.GetDataAtPath(contentPath)
-	if err != nil {
-		log.Errorf("error getting data at profile path %s: %s", contentPath, err)
-		return "", err
-	}
-
-	return string(data), nil
 }
 
 // getImageData returns a data url for an image under a path
