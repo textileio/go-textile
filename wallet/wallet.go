@@ -208,13 +208,6 @@ func (w *Wallet) Start() error {
 			go w.pointerRepublisher.Run()
 		}
 
-		// re-pub profile
-		go func() {
-			if _, err := w.PublishProfile(); err != nil {
-				log.Errorf("error publishing profile: %s", err)
-			}
-		}()
-
 		// print swarm addresses
 		if err := util.PrintSwarmAddrs(w.ipfs); err != nil {
 			log.Errorf("failed to read listening addresses: %s", err)
@@ -239,6 +232,14 @@ func (w *Wallet) Start() error {
 		if !w.isMobile {
 			go w.pinner.Run()
 		}
+
+		// re-pub profile
+		go func() {
+			<-w.Online()
+			if _, err := w.PublishProfile(nil); err != nil {
+				log.Errorf("error publishing profile: %s", err)
+			}
+		}()
 	}
 
 	// setup threads
