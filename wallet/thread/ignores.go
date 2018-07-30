@@ -42,7 +42,7 @@ func (t *Thread) Ignore(dataId string) (mh.Multihash, error) {
 	dconf := &repo.DataBlockConfig{
 		DataId: dataId,
 	}
-	if err := t.indexBlock(id, header, repo.IgnoreBlock, dconf); err != nil {
+	if err := t.indexBlock(id, header, repo.IgnoreBlock, dconf, false); err != nil {
 		return nil, err
 	}
 
@@ -56,7 +56,7 @@ func (t *Thread) Ignore(dataId string) (mh.Multihash, error) {
 }
 
 // HandleIgnoreBlock handles an incoming ignore block
-func (t *Thread) HandleIgnoreBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadIgnore) (mh.Multihash, error) {
+func (t *Thread) HandleIgnoreBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadIgnore, following bool) (mh.Multihash, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadIgnore)
@@ -105,7 +105,7 @@ func (t *Thread) HandleIgnoreBlock(message *pb.Envelope, signed *pb.SignedThread
 	dconf := &repo.DataBlockConfig{
 		DataId: content.DataId,
 	}
-	if err := t.indexBlock(id, content.Header, repo.IgnoreBlock, dconf); err != nil {
+	if err := t.indexBlock(id, content.Header, repo.IgnoreBlock, dconf, following); err != nil {
 		return nil, err
 	}
 
