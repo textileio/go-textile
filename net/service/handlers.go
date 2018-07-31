@@ -30,6 +30,8 @@ func (s *TextileService) HandlerForMsgType(t pb.Message_Type) func(peer.ID, *pb.
 		return s.handleThreadData
 	case pb.Message_THREAD_IGNORE:
 		return s.handleThreadIgnore
+	case pb.Message_THREAD_MERGE:
+		return s.handleThreadMerge
 	case pb.Message_OFFLINE_ACK:
 		return s.handleOfflineAck
 	case pb.Message_OFFLINE_RELAY:
@@ -191,6 +193,37 @@ func (s *TextileService) handleThreadJoin(pid peer.ID, pmes *pb.Envelope, option
 	return nil, nil
 }
 
+func (s *TextileService) handleThreadMerge(pid peer.ID, pmes *pb.Envelope, options interface{}) (*pb.Envelope, error) {
+	log.Debug("received THREAD_MERGE message")
+	signed, err := unpackMessage(pmes)
+	if err != nil {
+		return nil, err
+	}
+	merge := new(pb.ThreadMerge)
+	if err := proto.Unmarshal(signed.Block, merge); err != nil {
+		return nil, err
+	}
+
+	// load thread
+	threadId := libp2pc.ConfigEncodeKey(merge.Header.ThreadPk)
+	_, thrd := s.getThread(threadId)
+	if thrd == nil {
+		return nil, errors.New("invalid merge block")
+	}
+
+	// verify thread sig
+	if err := thrd.Verify(signed); err != nil {
+		return nil, err
+	}
+
+	// handle
+	if _, err := thrd.HandleMergeBlock(pmes, signed, merge, false); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
 func (s *TextileService) handleThreadLeave(pid peer.ID, pmes *pb.Envelope, options interface{}) (*pb.Envelope, error) {
 	log.Debug("received THREAD_LEAVE message")
 	signed, err := unpackMessage(pmes)
@@ -259,13 +292,13 @@ func (s *TextileService) handleThreadIgnore(pid peer.ID, pmes *pb.Envelope, opti
 	if err != nil {
 		return nil, err
 	}
-	data := new(pb.ThreadIgnore)
-	if err := proto.Unmarshal(signed.Block, data); err != nil {
+	ignore := new(pb.ThreadIgnore)
+	if err := proto.Unmarshal(signed.Block, ignore); err != nil {
 		return nil, err
 	}
 
 	// load thread
-	threadId := libp2pc.ConfigEncodeKey(data.Header.ThreadPk)
+	threadId := libp2pc.ConfigEncodeKey(ignore.Header.ThreadPk)
 	_, thrd := s.getThread(threadId)
 	if thrd == nil {
 		return nil, common.OutOfOrderMessage
@@ -277,7 +310,7 @@ func (s *TextileService) handleThreadIgnore(pid peer.ID, pmes *pb.Envelope, opti
 	}
 
 	// handle
-	if _, err := thrd.HandleIgnoreBlock(pmes, signed, data, false); err != nil {
+	if _, err := thrd.HandleIgnoreBlock(pmes, signed, ignore, false); err != nil {
 		return nil, err
 	}
 
@@ -299,8 +332,7 @@ func (s *TextileService) handleOfflineAck(pid peer.ID, pmes *pb.Envelope, option
 	if pointer.CancelId == nil || pointer.CancelId.Pretty() != pid.Pretty() {
 		return nil, errors.New("peer is not authorized to delete pointer")
 	}
-	err = s.datastore.Pointers().Delete(id)
-	if err != nil {
+	if err := s.datastore.Pointers().Delete(id); err != nil {
 		return nil, err
 	}
 	log.Debugf("received OFFLINE_ACK message from %s", pid.Pretty())
