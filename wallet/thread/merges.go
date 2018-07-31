@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// Merge adds an outgoing merge block
-func (t *Thread) Merge(head string) (mh.Multihash, error) {
+// Merge adds an outgoing merge block, will only post to network if post is true
+func (t *Thread) Merge(head string, post bool) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
@@ -41,7 +41,9 @@ func (t *Thread) Merge(head string) (mh.Multihash, error) {
 	}
 
 	// post it
-	t.post(message, id, t.Peers())
+	if post {
+		t.post(message, id, t.Peers())
+	}
 
 	log.Debugf("adding merge to %s: %s", t.Id, id)
 
@@ -87,7 +89,7 @@ func (t *Thread) HandleMergeBlock(message *pb.Envelope, signed *pb.SignedThreadB
 	if following {
 		return addr, nil
 	}
-	if _, err := t.handleHead(id, content.Header.Parents); err != nil {
+	if _, err := t.handleHead(id, content.Header.Parents, false); err != nil {
 		return nil, err
 	}
 
