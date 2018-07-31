@@ -29,6 +29,11 @@ var ReadMessageTimeout = time.Minute * 5
 var ErrReadTimeout = fmt.Errorf("timed out reading response")
 
 func (s *TextileService) messageSenderForPeer(pid peer.ID) (*sender, error) {
+	defer func() {
+		if recover() != nil {
+			log.Error("recovered from messageSenderForPeer")
+		}
+	}()
 	s.senderlk.Lock()
 	ms, ok := s.sender[pid]
 	if ok {

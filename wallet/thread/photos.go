@@ -143,7 +143,7 @@ func (t *Thread) HandleDataBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 	if following {
 		return addr, nil
 	}
-	if _, err := t.handleHead(id, content.Header.Parents); err != nil {
+	if _, err := t.handleHead(id, content.Header.Parents, false); err != nil {
 		return nil, err
 	}
 

@@ -137,7 +137,19 @@ func (t *Thread) HandleJoinBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 	if following {
 		return addr, nil
 	}
-	if _, err := t.handleHead(id, content.Header.Parents); err != nil {
+
+	// echo merge (if needed) if we are the original inviter
+	var post bool
+	pk, err := t.ipfs().PrivateKey.GetPublic().Bytes()
+	if err != nil {
+		return nil, err
+	}
+	pks := libp2pc.ConfigEncodeKey(pk)
+	inviterPks := libp2pc.ConfigEncodeKey(content.InviterPk)
+	if pks == inviterPks {
+		post = true
+	}
+	if _, err := t.handleHead(id, content.Header.Parents, post); err != nil {
 		return nil, err
 	}
 

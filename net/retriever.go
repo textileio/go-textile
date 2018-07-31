@@ -112,7 +112,6 @@ func (m *MessageRetriever) FetchPointers() {
 	inFlight := make(map[string]bool)
 	// iterate over the pointers, adding 1 to the waitgroup for each pointer found
 	for p := range peerOut {
-		log.Debugf("retriever found peer info: %s", p.Loggable())
 		if len(p.Addrs) > 0 && !m.datastore.OfflineMessages().Has(p.Addrs[0].String()) && !inFlight[p.Addrs[0].String()] {
 			inFlight[p.Addrs[0].String()] = true
 			log.Debugf("found pointer with location %s", p.Addrs[0].String())
