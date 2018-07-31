@@ -69,7 +69,7 @@ func (c *Cafe) signUp(g *gin.Context) {
 
 	// check password strength
 	match := zxcvbn.PasswordStrength(reg.Password, []string{reg.Identity.Value})
-	if match.Score < 2 {
+	if match.Score < 1 {
 		msg := fmt.Sprintf("weak password - crackable in %s", match.CrackTimeDisplay)
 		g.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
@@ -94,7 +94,7 @@ func (c *Cafe) signUp(g *gin.Context) {
 		Identities: []models.Identity{*reg.Identity},
 	}
 	if err := dao.Dao.InsertUser(user); err != nil {
-		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		g.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		return
 	}
 
