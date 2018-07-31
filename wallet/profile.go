@@ -13,6 +13,7 @@ import (
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/namesys/opts"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/path"
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
+	"strings"
 	"time"
 )
 
@@ -222,7 +223,18 @@ func (w *Wallet) SetAvatarId(id string) error {
 	if err := w.touchDatastore(); err != nil {
 		return err
 	}
-	if err := w.datastore.Profile().SetAvatarId(id); err != nil {
+
+	// get the public key for this photo
+	key, err := w.GetPhotoKey(id)
+	if err != nil {
+		return err
+	}
+
+	// use the cafe address w/ public url
+	link := fmt.Sprintf("%s/ipfs/%s/thumb?key=%s", w.cafeAddr, id, key)
+
+	// update
+	if err := w.datastore.Profile().SetAvatarId(link); err != nil {
 		return err
 	}
 
@@ -258,6 +270,9 @@ func (w *Wallet) GetProfile(peerId string) (*model.Profile, error) {
 	if pid == peerId {
 		username, _ := w.GetUsername()
 		avatarId, _ := w.GetAvatarId()
+		if !strings.HasPrefix(avatarId, "http") {
+			avatarId = ""
+		}
 		return &model.Profile{Id: pid, Username: username, AvatarId: avatarId}, nil
 	}
 
@@ -269,14 +284,18 @@ func (w *Wallet) GetProfile(peerId string) (*model.Profile, error) {
 	root := entry.String()
 
 	// get components from entry
-	var username, avatarId []byte
-	username, _ = util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/%s", root, "username"))
-	avatarId, _ = util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/%s", root, "avatar_id"))
+	var usernameb, avatarIdb []byte
+	usernameb, _ = util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/%s", root, "username"))
+	avatarIdb, _ = util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/%s", root, "avatar_id"))
+	avatarId := string(avatarIdb)
+	if !strings.HasPrefix(avatarId, "http") {
+		avatarId = ""
+	}
 
 	return &model.Profile{
 		Id:       peerId,
-		Username: string(username),
-		AvatarId: string(avatarId),
+		Username: string(usernameb),
+		AvatarId: avatarId,
 	}, nil
 }
 
