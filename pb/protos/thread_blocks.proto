@@ -60,3 +60,7 @@ message ThreadIgnore {
 
     string dataId            = 2;
 }
+
+message ThreadMerge {
+    ThreadBlockHeader header = 1;
+}

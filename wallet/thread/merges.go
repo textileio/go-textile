@@ -4,14 +4,12 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"time"
 )
 
-// Leave creates an outgoing leave block
-func (t *Thread) Leave() (mh.Multihash, error) {
+// Merge adds an outgoing merge block
+func (t *Thread) Merge(head string) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
@@ -20,19 +18,20 @@ func (t *Thread) Leave() (mh.Multihash, error) {
 	if err != nil {
 		return nil, err
 	}
-	content := &pb.ThreadLeave{
+	header.Parents = append(header.Parents, head)
+	content := &pb.ThreadMerge{
 		Header: header,
 	}
 
 	// commit to ipfs
-	message, addr, err := t.commitBlock(content, pb.Message_THREAD_LEAVE)
+	message, addr, err := t.commitBlock(content, pb.Message_THREAD_MERGE)
 	if err != nil {
 		return nil, err
 	}
 	id := addr.B58String()
 
 	// index it locally
-	if err := t.indexBlock(id, header, repo.LeaveBlock, nil); err != nil {
+	if err := t.indexBlock(id, header, repo.MergeBlock, nil); err != nil {
 		return nil, err
 	}
 
@@ -44,26 +43,17 @@ func (t *Thread) Leave() (mh.Multihash, error) {
 	// post it
 	t.post(message, id, t.Peers())
 
-	// delete blocks
-	if err := t.blocks().DeleteByThreadId(t.Id); err != nil {
-		return nil, err
-	}
-	// delete peers
-	if err := t.peers().DeleteByThreadId(t.Id); err != nil {
-		return nil, err
-	}
-
-	log.Debugf("left %s", t.Id)
+	log.Debugf("adding merge to %s: %s", t.Id, id)
 
 	// all done
 	return addr, nil
 }
 
-// HandleLeaveBlock handles an incoming leave block
-func (t *Thread) HandleLeaveBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadLeave, following bool) (mh.Multihash, error) {
+// HandleMergeBlock handles an incoming merge block
+func (t *Thread) HandleMergeBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadMerge, following bool) (mh.Multihash, error) {
 	// unmarshal if needed
 	if content == nil {
-		content = new(pb.ThreadLeave)
+		content = new(pb.ThreadMerge)
 		if err := proto.Unmarshal(signed.Block, content); err != nil {
 			return nil, err
 		}
@@ -83,21 +73,8 @@ func (t *Thread) HandleLeaveBlock(message *pb.Envelope, signed *pb.SignedThreadB
 		return nil, nil
 	}
 
-	// remove peer
-	authorPk, err := libp2pc.UnmarshalPublicKey(content.Header.AuthorPk)
-	if err != nil {
-		return nil, err
-	}
-	authorId, err := peer.IDFromPublicKey(authorPk)
-	if err != nil {
-		return nil, err
-	}
-	if err := t.peers().Delete(authorId.Pretty(), t.Id); err != nil {
-		return nil, err
-	}
-
 	// index it locally
-	if err := t.indexBlock(id, content.Header, repo.LeaveBlock, nil); err != nil {
+	if err := t.indexBlock(id, content.Header, repo.MergeBlock, nil); err != nil {
 		return nil, err
 	}
 
