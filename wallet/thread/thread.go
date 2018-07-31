@@ -366,6 +366,7 @@ func (t *Thread) handleHead(inboundId string, parents []string, post bool) (mh.M
 	}
 	if fastForwardable {
 		// no need for a merge
+		log.Debugf("fast-forwarded to %s", inboundId)
 		if err := t.updateHead(inboundId); err != nil {
 			return nil, err
 		}
