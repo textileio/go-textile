@@ -42,7 +42,12 @@ func (t *Thread) Ignore(dataId string) (mh.Multihash, error) {
 	dconf := &repo.DataBlockConfig{
 		DataId: dataId,
 	}
-	if err := t.indexBlock(id, header, repo.IgnoreBlock, dconf, false); err != nil {
+	if err := t.indexBlock(id, header, repo.IgnoreBlock, dconf); err != nil {
+		return nil, err
+	}
+
+	// update head
+	if err := t.updateHead(id); err != nil {
 		return nil, err
 	}
 
@@ -89,28 +94,39 @@ func (t *Thread) HandleIgnoreBlock(message *pb.Envelope, signed *pb.SignedThread
 		return nil, err
 	}
 
-	// add author as a new local peer, just in case we haven't found this peer yet
-	newPeer := &repo.Peer{
-		Row:      ksuid.New().String(),
-		Id:       authorId.Pretty(),
-		ThreadId: libp2pc.ConfigEncodeKey(content.Header.ThreadPk),
-		PubKey:   content.Header.AuthorPk,
-	}
-	if err := t.peers().Add(newPeer); err != nil {
-		// TODO: #202 (Properly handle database/sql errors)
-		log.Warningf("peer with id %s already exists in thread %s", newPeer.Id, t.Id)
+	// add author as a new local peer, just in case we haven't found this peer yet.
+	// double-check not self in case we're re-discovering the thread
+	if authorId.Pretty() != t.ipfs().Identity.Pretty() {
+		newPeer := &repo.Peer{
+			Row:      ksuid.New().String(),
+			Id:       authorId.Pretty(),
+			ThreadId: libp2pc.ConfigEncodeKey(content.Header.ThreadPk),
+			PubKey:   content.Header.AuthorPk,
+		}
+		if err := t.peers().Add(newPeer); err != nil {
+			// TODO: #202 (Properly handle database/sql errors)
+			log.Warningf("peer with id %s already exists in thread %s", newPeer.Id, t.Id)
+		}
 	}
 
 	// index it locally
 	dconf := &repo.DataBlockConfig{
 		DataId: content.DataId,
 	}
-	if err := t.indexBlock(id, content.Header, repo.IgnoreBlock, dconf, following); err != nil {
+	if err := t.indexBlock(id, content.Header, repo.IgnoreBlock, dconf); err != nil {
 		return nil, err
 	}
 
 	// back prop
 	if err := t.FollowParents(content.Header.Parents); err != nil {
+		return nil, err
+	}
+
+	// handle HEAD
+	if following {
+		return addr, nil
+	}
+	if _, err := t.handleHead(id, content.Header.Parents); err != nil {
 		return nil, err
 	}
 

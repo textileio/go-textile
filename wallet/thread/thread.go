@@ -129,11 +129,18 @@ func (t *Thread) Verify(signed *pb.SignedThreadBlock) error {
 	return crypto.Verify(t.PrivKey.GetPublic(), signed.Block, signed.ThreadSig)
 }
 
-// FollowParents tries to follow a chain of block ids, processing along the way
+// FollowParents tries to follow a list of chains of block ids, processing along the way
 func (t *Thread) FollowParents(parents []string) error {
-	// TODO: follow all parent paths
-	parent := parents[0]
+	for _, parent := range parents {
+		if err := t.followParent(parent); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
+// followParent tries to follow a chain of block ids, processing along the way
+func (t *Thread) followParent(parent string) error {
 	// first update?
 	if parent == "" {
 		log.Debugf("found genesis block, aborting")
@@ -203,6 +210,10 @@ func (t *Thread) FollowParents(parents []string) error {
 		}
 	case pb.Message_THREAD_IGNORE:
 		if _, err = t.HandleIgnoreBlock(env, signed, nil, true); err != nil {
+			return err
+		}
+	case pb.Message_THREAD_MERGE:
+		if _, err = t.HandleMergeBlock(env, signed, nil, true); err != nil {
 			return err
 		}
 	default:
@@ -304,7 +315,7 @@ func (t *Thread) commitBlock(content proto.Message, mt pb.Message_Type) (*pb.Env
 }
 
 // indexBlock stores off index info for this block type
-func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType repo.BlockType, dataConf *repo.DataBlockConfig, following bool) error {
+func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType repo.BlockType, dataConf *repo.DataBlockConfig) error {
 	// add a new one
 	date, err := ptypes.Timestamp(header.Date)
 	if err != nil {
@@ -330,17 +341,38 @@ func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType r
 		return err
 	}
 
-	// update current head
-	if !following {
-		if err := t.updateHead(index.Id); err != nil {
-			return err
-		}
-	}
-
 	// notify listeners
 	t.pushUpdate(*index)
 
 	return nil
+}
+
+// handleHead determines whether or not a thread can be fast-forwarded or if a merge block is needed.
+// parents is the tip of an incoming chain
+func (t *Thread) handleHead(inboundId string, parents []string) (mh.Multihash, error) {
+	// get current HEAD
+	head, err := t.GetHead()
+	if err != nil {
+		return nil, err
+	}
+
+	// determine whether or not we can fast forward
+	var fastForwardable bool
+	for _, parent := range parents {
+		if parent == head {
+			fastForwardable = true
+		}
+	}
+	if fastForwardable {
+		// no need for a merge
+		if err := t.updateHead(inboundId); err != nil {
+			return nil, err
+		}
+		return nil, nil
+	}
+
+	// needs merge
+	return t.Merge(inboundId)
 }
 
 // post publishes a message with content id to peers
