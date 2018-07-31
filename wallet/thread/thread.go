@@ -348,23 +348,25 @@ func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType r
 }
 
 // handleHead determines whether or not a thread can be fast-forwarded or if a merge block is needed.
-// parents is the tip of an incoming chain
-func (t *Thread) handleHead(inboundId string, parents []string) (mh.Multihash, error) {
+// parents are the parents of the incoming chain.
+// If a merge is needed and post is true, it will be broadcasted to the network (joins only)
+func (t *Thread) handleHead(inboundId string, parents []string, post bool) (mh.Multihash, error) {
 	// get current HEAD
 	head, err := t.GetHead()
 	if err != nil {
 		return nil, err
 	}
 
-	// determine whether or not we can fast forward
+	// fast-forward is possible if current HEAD is equal to one of the incoming parents
 	var fastForwardable bool
 	for _, parent := range parents {
-		if parent == head {
+		if head == parent {
 			fastForwardable = true
 		}
 	}
 	if fastForwardable {
 		// no need for a merge
+		log.Debugf("fast-forwarded to %s", inboundId)
 		if err := t.updateHead(inboundId); err != nil {
 			return nil, err
 		}
@@ -372,7 +374,7 @@ func (t *Thread) handleHead(inboundId string, parents []string) (mh.Multihash, e
 	}
 
 	// needs merge
-	return t.Merge(inboundId)
+	return t.Merge(inboundId, post)
 }
 
 // post publishes a message with content id to peers

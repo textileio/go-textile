@@ -105,7 +105,7 @@ func (t *Thread) HandleExternalInviteBlock(message *pb.Envelope, signed *pb.Sign
 	if following {
 		return addr, nil
 	}
-	if _, err := t.handleHead(id, content.Header.Parents); err != nil {
+	if _, err := t.handleHead(id, content.Header.Parents, false); err != nil {
 		return nil, err
 	}
 

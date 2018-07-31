@@ -123,7 +123,7 @@ func (t *Thread) HandleInviteBlock(message *pb.Envelope, signed *pb.SignedThread
 	if following {
 		return addr, nil
 	}
-	if _, err := t.handleHead(id, content.Header.Parents); err != nil {
+	if _, err := t.handleHead(id, content.Header.Parents, false); err != nil {
 		return nil, err
 	}
 

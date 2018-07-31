@@ -298,6 +298,10 @@ func (w *Wallet) Stop() error {
 	// wipe services
 	w.messageStorage = nil
 	w.service = nil
+	select {
+	case w.messageRetriever.DoneChan <- struct{}{}:
+	default:
+	}
 	w.messageRetriever = nil
 	w.pointerRepublisher = nil
 	w.pinner = nil
