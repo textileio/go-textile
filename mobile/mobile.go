@@ -547,25 +547,9 @@ func (m *Mobile) GetPhotoMetadata(id string) (string, error) {
 	return toJSON(meta)
 }
 
-// GetPhotoKey
+// GetPhotoKey calls core GetPhotoKey
 func (m *Mobile) GetPhotoKey(id string) (string, error) {
-	block, err := tcore.Node.Wallet.GetBlockByDataId(id)
-	if err != nil {
-		log.Errorf("could not find block for data id %s: %s", id, err)
-		return "", err
-	}
-	_, thrd := tcore.Node.Wallet.GetThread(block.ThreadId)
-	if thrd == nil {
-		err := errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadId))
-		log.Error(err.Error())
-		return "", err
-	}
-	key, err := thrd.GetBlockDataKey(block)
-	if err != nil {
-		log.Errorf("get photo key failed %s: %s", id, err)
-		return "", err
-	}
-	return string(key), nil
+	return tcore.Node.Wallet.GetPhotoKey(id)
 }
 
 // getImageData returns a data url for an image under a path
