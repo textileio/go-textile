@@ -52,7 +52,12 @@ func (t *Thread) AddInvite(inviteePk libp2pc.PubKey) (mh.Multihash, error) {
 	id := addr.B58String()
 
 	// index it locally
-	if err := t.indexBlock(id, header, repo.InviteBlock, nil, false); err != nil {
+	if err := t.indexBlock(id, header, repo.InviteBlock, nil); err != nil {
+		return nil, err
+	}
+
+	// update head
+	if err := t.updateHead(id); err != nil {
 		return nil, err
 	}
 
@@ -105,12 +110,20 @@ func (t *Thread) HandleInviteBlock(message *pb.Envelope, signed *pb.SignedThread
 	}
 
 	// index it locally
-	if err := t.indexBlock(id, content.Header, repo.InviteBlock, nil, following); err != nil {
+	if err := t.indexBlock(id, content.Header, repo.InviteBlock, nil); err != nil {
 		return nil, err
 	}
 
 	// back prop
 	if err := t.FollowParents(content.Header.Parents); err != nil {
+		return nil, err
+	}
+
+	// handle HEAD
+	if following {
+		return addr, nil
+	}
+	if _, err := t.handleHead(id, content.Header.Parents); err != nil {
 		return nil, err
 	}
 

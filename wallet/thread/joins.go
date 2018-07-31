@@ -40,7 +40,12 @@ func (t *Thread) Join(inviterPk libp2pc.PubKey, blockId string) (mh.Multihash, e
 	id := addr.B58String()
 
 	// index it locally
-	if err := t.indexBlock(id, header, repo.JoinBlock, nil, false); err != nil {
+	if err := t.indexBlock(id, header, repo.JoinBlock, nil); err != nil {
+		return nil, err
+	}
+
+	// update head
+	if err := t.updateHead(id); err != nil {
 		return nil, err
 	}
 
@@ -103,20 +108,23 @@ func (t *Thread) HandleJoinBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 		return nil, err
 	}
 
-	// add invitee as a new local peer
-	newPeer := &repo.Peer{
-		Row:      ksuid.New().String(),
-		Id:       inviteeId.Pretty(),
-		ThreadId: libp2pc.ConfigEncodeKey(content.Header.ThreadPk),
-		PubKey:   content.Header.AuthorPk,
-	}
-	if err := t.peers().Add(newPeer); err != nil {
-		// TODO: #202 (Properly handle database/sql errors)
-		log.Warningf("peer with id %s already exists in thread %s", newPeer.Id, t.Id)
+	// add invitee as a new local peer.
+	// double-check not self in case we're re-discovering the thread
+	if inviteeId.Pretty() != t.ipfs().Identity.Pretty() {
+		newPeer := &repo.Peer{
+			Row:      ksuid.New().String(),
+			Id:       inviteeId.Pretty(),
+			ThreadId: libp2pc.ConfigEncodeKey(content.Header.ThreadPk),
+			PubKey:   content.Header.AuthorPk,
+		}
+		if err := t.peers().Add(newPeer); err != nil {
+			// TODO: #202 (Properly handle database/sql errors)
+			log.Warningf("peer with id %s already exists in thread %s", newPeer.Id, t.Id)
+		}
 	}
 
 	// index it locally
-	if err := t.indexBlock(id, content.Header, repo.JoinBlock, nil, following); err != nil {
+	if err := t.indexBlock(id, content.Header, repo.JoinBlock, nil); err != nil {
 		return nil, err
 	}
 
@@ -125,21 +133,12 @@ func (t *Thread) HandleJoinBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 		return nil, err
 	}
 
-	// echo to known peers (sans the joiner) IF we are the original inviter (avoid an endless echo)
-	pk, err := t.ipfs().PrivateKey.GetPublic().Bytes()
-	if err != nil {
-		return nil, err
+	// handle HEAD
+	if following {
+		return addr, nil
 	}
-	pks := libp2pc.ConfigEncodeKey(pk)
-	inviterPks := libp2pc.ConfigEncodeKey(content.InviterPk)
-	if pks == inviterPks {
-		var peers []repo.Peer
-		for _, p := range t.Peers() {
-			if p.Id != inviteeId.Pretty() {
-				peers = append(peers, p)
-			}
-		}
-		t.post(message, id, peers)
+	if _, err := t.handleHead(id, content.Header.Parents); err != nil {
+		return nil, err
 	}
 
 	return addr, nil

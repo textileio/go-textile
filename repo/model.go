@@ -51,7 +51,8 @@ const (
 	LeaveBlock
 	PhotoBlock
 
-	IgnoreBlock = 100
+	IgnoreBlock = 200
+	MergeBlock  = 201
 )
 
 type PinRequest struct {
