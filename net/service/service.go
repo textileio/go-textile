@@ -81,6 +81,11 @@ func (s *TextileService) HandleNewStream(stream inet.Stream) {
 }
 
 func (s *TextileService) handleNewMessage(stream inet.Stream, incoming bool) {
+	defer func() {
+		if recover() != nil {
+			log.Error("recovered from handleNewMessage")
+		}
+	}()
 	defer stream.Close()
 	cr := ctxio.NewReader(s.ctx, stream) // ok to use. we defer close stream in this func
 	r := ggio.NewDelimitedReader(cr, inet.MessageSizeMax)
@@ -164,6 +169,11 @@ func (s *TextileService) handleNewMessage(stream inet.Stream, incoming bool) {
 }
 
 func (s *TextileService) SendRequest(ctx context.Context, p peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
+	defer func() {
+		if recover() != nil {
+			log.Error("recovered from SendRequest")
+		}
+	}()
 	log.Debugf("sending %s request to %s", pmes.Message.Type.String(), p.Pretty())
 	ms, err := s.messageSenderForPeer(p)
 	if err != nil {
@@ -186,6 +196,11 @@ func (s *TextileService) SendRequest(ctx context.Context, p peer.ID, pmes *pb.En
 }
 
 func (s *TextileService) SendMessage(ctx context.Context, p peer.ID, pmes *pb.Envelope) error {
+	defer func() {
+		if recover() != nil {
+			log.Error("recovered from SendMessage")
+		}
+	}()
 	log.Debugf("sending %s message to %s", pmes.Message.Type.String(), p.Pretty())
 	ms, err := s.messageSenderForPeer(p)
 	if err != nil {
