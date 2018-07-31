@@ -3,7 +3,6 @@ package mobile_test
 import (
 	"crypto/rand"
 	"encoding/json"
-	"fmt"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
@@ -321,7 +320,6 @@ func TestMobile_PhotoThreads(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	fmt.Println(res)
 	if len(threads.Items) != 2 {
 		t.Error("get photo threads bad result")
 	}
@@ -392,7 +390,7 @@ func TestMobile_GetProfile(t *testing.T) {
 	if prof.Username != cusername {
 		t.Errorf("get profile bad username result")
 	}
-	if prof.AvatarId != addedPhotoId {
+	if len(prof.AvatarId) == 0 {
 		t.Errorf("get profile bad avatar result")
 	}
 }
