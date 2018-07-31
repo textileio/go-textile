@@ -270,7 +270,7 @@ func (w *Wallet) GetProfile(peerId string) (*model.Profile, error) {
 	if pid == peerId {
 		username, _ := w.GetUsername()
 		avatarId, _ := w.GetAvatarId()
-		if !strings.HasPrefix(avatarId, "https") {
+		if !strings.HasPrefix(avatarId, "http") {
 			avatarId = ""
 		}
 		return &model.Profile{Id: pid, Username: username, AvatarId: avatarId}, nil
@@ -288,7 +288,7 @@ func (w *Wallet) GetProfile(peerId string) (*model.Profile, error) {
 	usernameb, _ = util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/%s", root, "username"))
 	avatarIdb, _ = util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/%s", root, "avatar_id"))
 	avatarId := string(avatarIdb)
-	if !strings.HasPrefix(avatarId, "https") {
+	if !strings.HasPrefix(avatarId, "http") {
 		avatarId = ""
 	}
 
