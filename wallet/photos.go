@@ -3,6 +3,8 @@ package wallet
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 	cafe "github.com/textileio/textile-go/core/cafe"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/util"
@@ -178,4 +180,25 @@ func (w *Wallet) PhotoThreads(id string) []*thread.Thread {
 		}
 	}
 	return threads
+}
+
+// GetPhotoKey returns a the decrypted AES key for a photo set
+func (w *Wallet) GetPhotoKey(id string) (string, error) {
+	block, err := w.GetBlockByDataId(id)
+	if err != nil {
+		log.Errorf("could not find block for data id %s: %s", id, err)
+		return "", err
+	}
+	_, thrd := w.GetThread(block.ThreadId)
+	if thrd == nil {
+		err := errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadId))
+		log.Error(err.Error())
+		return "", err
+	}
+	key, err := thrd.GetBlockDataKey(block)
+	if err != nil {
+		log.Errorf("get photo key failed %s: %s", id, err)
+		return "", err
+	}
+	return string(key), nil
 }
