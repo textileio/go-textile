@@ -186,7 +186,7 @@ function addPhoto(update) {
   let $item = $('<div id="' + update.block.id + '" class="grid-item" '
     + 'ondragstart="imageDragStart(event);" draggable="true" '
     + 'data-url="' + photo + '" data-meta="' + meta + '">' + img + '</div>')
-  grid.isotope('insert', $item)
+  grid.isotope().prepend($item).isotope('prepended', $item)
 }
 
 function ignore(update) {
