@@ -120,6 +120,11 @@ func (ms *sender) prep() error {
 const streamReuseTries = 3
 
 func (ms *sender) SendMessage(ctx context.Context, pmes *pb.Envelope) error {
+	defer func() {
+		if recover() != nil {
+			log.Error("recovered from sender.SendMessage")
+		}
+	}()
 	ms.lk.Lock()
 	defer ms.lk.Unlock()
 	retry := false
@@ -152,6 +157,11 @@ func (ms *sender) SendMessage(ctx context.Context, pmes *pb.Envelope) error {
 }
 
 func (ms *sender) SendRequest(ctx context.Context, pmes *pb.Envelope) (*pb.Envelope, error) {
+	defer func() {
+		if recover() != nil {
+			log.Error("recovered from sender.SendRequest")
+		}
+	}()
 	pmes.Message.RequestId = rand.Int31()
 	returnChan := make(chan *pb.Envelope)
 	ms.requestlk.Lock()
