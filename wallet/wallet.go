@@ -223,14 +223,14 @@ func (w *Wallet) Start() error {
 	}()
 
 	// build a pin requester
-	if w.GetCafeAddr() != "" {
+	if w.GetCafeApiAddr() != "" {
 		tokens, _ := w.GetTokens()
 		pinnerCfg := &net.PinnerConfig{
 			Datastore: w.datastore,
 			Ipfs: func() *core.IpfsNode {
 				return w.ipfs
 			},
-			Url:    fmt.Sprintf("%s/pin", w.GetCafeAddr()),
+			Url:    fmt.Sprintf("%s/pin", w.GetCafeApiAddr()),
 			Tokens: tokens,
 		}
 		w.pinner = net.NewPinner(pinnerCfg)
@@ -366,8 +366,13 @@ func (w *Wallet) GetRepoPath() string {
 	return w.repoPath
 }
 
-// GetCafeAddr returns the cafe address is set
+// GetCafeAddr returns the cafe address if set
 func (w *Wallet) GetCafeAddr() string {
+	return w.cafeAddr
+}
+
+// GetCafeApiAddr returns the cafe address if set
+func (w *Wallet) GetCafeApiAddr() string {
 	if w.cafeAddr == "" {
 		return ""
 	}

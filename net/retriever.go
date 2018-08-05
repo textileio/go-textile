@@ -24,7 +24,7 @@ import (
 
 const KeyCachePrefix = "PUBKEYCACHE_"
 
-const kRetrieveFrequency = time.Minute * 10
+const kRetrieveFrequency = time.Minute * 5
 
 type MRConfig struct {
 	Datastore repo.Datastore

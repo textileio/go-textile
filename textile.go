@@ -531,7 +531,7 @@ func printSplashScreen() {
 		fmt.Println(grey("cafe: ") + yellow(Options.CafeBindAddr))
 	}
 	if Options.CafeAddr != "" {
-		fmt.Println(grey("cafe api: ") + yellow(core.Node.Wallet.GetCafeAddr()))
+		fmt.Println(grey("cafe api: ") + yellow(core.Node.Wallet.GetCafeApiAddr()))
 	}
 	if Options.ServerMode {
 		fmt.Println(grey("server mode: ") + green("enabled"))
