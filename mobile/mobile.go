@@ -541,8 +541,8 @@ func (m *Mobile) GetPhotoMetadata(id string) (string, error) {
 	}
 	meta, err := thrd.GetPhotoMetaData(id, block)
 	if err != nil {
-		log.Errorf("get photo meta data failed %s: %s", id, err)
-		return "", err
+		log.Warningf("get photo meta data failed %s: %s", id, err)
+		meta = &model.PhotoMetadata{}
 	}
 	return toJSON(meta)
 }
@@ -574,8 +574,8 @@ func (m *Mobile) getImageData(id string, path string, isThumb bool) (string, err
 	// get meta data for url type
 	meta, err := thrd.GetPhotoMetaData(id, block)
 	if err != nil {
-		log.Errorf("get photo meta data failed %s: %s", id, err)
-		return "", err
+		log.Warningf("get photo meta data failed %s: %s", id, err)
+		meta = &model.PhotoMetadata{}
 	}
 	if isThumb {
 		url = getThumbDataURLPrefix(meta) + url
