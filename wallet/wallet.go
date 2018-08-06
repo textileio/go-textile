@@ -470,6 +470,12 @@ func (w *Wallet) createIPFS(online bool) error {
 		return err
 	}
 
+	// determine routing
+	routing := core.DHTOption
+	if w.isMobile {
+		routing = core.DHTClientOption
+	}
+
 	// assemble node config
 	cfg := &core.BuildCfg{
 		Repo:      repo,
@@ -480,7 +486,7 @@ func (w *Wallet) createIPFS(online bool) error {
 			"ipnsps": true,
 			"mplex":  true,
 		},
-		Routing: core.DHTOption,
+		Routing: routing,
 	}
 
 	// create the node
