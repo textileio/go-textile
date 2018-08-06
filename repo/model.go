@@ -55,6 +55,27 @@ const (
 	MergeBlock  = 201
 )
 
+func (b BlockType) Description() string {
+	switch b {
+	case InviteBlock:
+		return "invite"
+	case ExternalInviteBlock:
+		return "external_invite"
+	case JoinBlock:
+		return "join"
+	case LeaveBlock:
+		return "leave"
+	case PhotoBlock:
+		return "photo"
+	case IgnoreBlock:
+		return "ignore"
+	case MergeBlock:
+		return "merge"
+	default:
+		return "invalid"
+	}
+}
+
 type PinRequest struct {
 	Id   string    `json:"id"`
 	Date time.Time `json:"date"`

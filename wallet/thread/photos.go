@@ -1,10 +1,12 @@
 package thread
 
 import (
+	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
@@ -122,6 +124,17 @@ func (t *Thread) HandleDataBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 			// TODO: #202 (Properly handle database/sql errors)
 			log.Warningf("peer with id %s already exists in thread %s", newPeer.Id, t.Id)
 		}
+	}
+
+	// pin data
+	if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/thumb", content.DataId), false); err != nil {
+		return nil, err
+	}
+	if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/meta", content.DataId), false); err != nil {
+		return nil, err
+	}
+	if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/pk", content.DataId), false); err != nil {
+		return nil, err
 	}
 
 	// index it locally
