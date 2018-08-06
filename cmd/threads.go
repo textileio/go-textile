@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/util"
+	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet/thread"
 	"gopkg.in/abiosoft/ishell.v2"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
@@ -104,14 +104,13 @@ func AddThreadInvite(c *ishell.Context) {
 		return
 	}
 
-	addr, err := thrd.AddInvite(pk)
-	if err != nil {
+	if _, err := thrd.AddInvite(pk); err != nil {
 		c.Err(err)
 		return
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green(fmt.Sprintf("invite sent! added block %s.", addr.B58String())))
+	c.Println(green("invite sent!"))
 }
 
 func AcceptThreadInvite(c *ishell.Context) {
@@ -121,14 +120,13 @@ func AcceptThreadInvite(c *ishell.Context) {
 	}
 	blockId := c.Args[0]
 
-	addr, err := core.Node.Wallet.AcceptThreadInvite(blockId)
-	if err != nil {
+	if _, err := core.Node.Wallet.AcceptThreadInvite(blockId); err != nil {
 		c.Err(err)
 		return
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green(fmt.Sprintf("ok, accepted. added block %s.", addr.B58String())))
+	c.Println(green("ok, accepted"))
 }
 
 func AddExternalThreadInvite(c *ishell.Context) {
@@ -166,14 +164,13 @@ func AcceptExternalThreadInvite(c *ishell.Context) {
 	}
 	key := c.Args[1]
 
-	addr, err := core.Node.Wallet.AcceptExternalThreadInvite(id, []byte(key))
-	if err != nil {
+	if _, err := core.Node.Wallet.AcceptExternalThreadInvite(id, []byte(key)); err != nil {
 		c.Err(err)
 		return
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green(fmt.Sprintf("ok, accepted. added block %s.", addr.B58String())))
+	c.Println(green("ok, accepted"))
 }
 
 func RemoveThread(c *ishell.Context) {
@@ -183,34 +180,29 @@ func RemoveThread(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	addr, err := core.Node.Wallet.RemoveThread(id)
-	if err != nil {
+	if _, err := core.Node.Wallet.RemoveThread(id); err != nil {
 		c.Err(err)
 		return
 	}
 
 	red := color.New(color.FgHiRed).SprintFunc()
-	c.Println(red(fmt.Sprintf("removed thread %s. added block %s.", id, addr.B58String())))
+	c.Println(red("removed thread %s", id))
 }
 
-func Subscribe(thrd *thread.Thread, peerId string) {
-	cyan := color.New(color.FgCyan).SprintFunc()
-	red := color.New(color.FgHiRed).SprintFunc()
+func Subscribe(thrd *thread.Thread) {
+	green := color.New(color.FgHiGreen).SprintFunc()
 	for {
 		select {
 		case update, ok := <-thrd.Updates():
 			if !ok {
 				return
 			}
-			authorId, err := util.IdFromEncodedPublicKey(update.Block.AuthorPk)
-			if err != nil {
-				fmt.Printf(red(err.Error()))
-				return
+			switch update.Block.Type {
+			case repo.PhotoBlock:
+
 			}
-			if authorId.Pretty() == peerId {
-				return
-			}
-			fmt.Printf(cyan(fmt.Sprintf("\nnew block %s in thread %s from %s", update.Block.Id, update.ThreadId, authorId.Pretty())))
+			msg := fmt.Sprintf("new %s block in thread '%s'", update.Block.Type.Description(), update.ThreadName)
+			fmt.Println(green(msg))
 		}
 	}
 }
