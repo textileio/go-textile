@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// Merge adds an outgoing merge block, will only post to network if post is true
-func (t *Thread) Merge(head string, post bool) (mh.Multihash, error) {
+// Merge adds a merge block, which are kept local until subsequent updates, avoiding possibly endless echoes
+func (t *Thread) Merge(head string) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
@@ -24,7 +24,7 @@ func (t *Thread) Merge(head string, post bool) (mh.Multihash, error) {
 	}
 
 	// commit to ipfs
-	message, addr, err := t.commitBlock(content, pb.Message_THREAD_MERGE)
+	_, addr, err := t.commitBlock(content, pb.Message_THREAD_MERGE)
 	if err != nil {
 		return nil, err
 	}
@@ -38,11 +38,6 @@ func (t *Thread) Merge(head string, post bool) (mh.Multihash, error) {
 	// update head
 	if err := t.updateHead(id); err != nil {
 		return nil, err
-	}
-
-	// post it
-	if post {
-		t.post(message, id, t.Peers())
 	}
 
 	log.Debugf("adding merge to %s: %s", t.Id, id)
@@ -62,7 +57,7 @@ func (t *Thread) HandleMergeBlock(message *pb.Envelope, signed *pb.SignedThreadB
 	}
 
 	// add to ipfs
-	addr, err := t.addBlock(message)
+	addr, err := t.AddBlock(message)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +84,7 @@ func (t *Thread) HandleMergeBlock(message *pb.Envelope, signed *pb.SignedThreadB
 	if following {
 		return addr, nil
 	}
-	if _, err := t.handleHead(id, content.Header.Parents, false); err != nil {
+	if _, err := t.handleHead(id, content.Header.Parents); err != nil {
 		return nil, err
 	}
 

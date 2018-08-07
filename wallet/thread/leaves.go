@@ -70,7 +70,7 @@ func (t *Thread) HandleLeaveBlock(message *pb.Envelope, signed *pb.SignedThreadB
 	}
 
 	// add to ipfs
-	addr, err := t.addBlock(message)
+	addr, err := t.AddBlock(message)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (t *Thread) HandleLeaveBlock(message *pb.Envelope, signed *pb.SignedThreadB
 	if following {
 		return addr, nil
 	}
-	if _, err := t.handleHead(id, content.Header.Parents, false); err != nil {
+	if _, err := t.handleHead(id, content.Header.Parents); err != nil {
 		return nil, err
 	}
 
