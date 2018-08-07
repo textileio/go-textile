@@ -126,25 +126,30 @@ func (t *Thread) HandleDataBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 		}
 	}
 
-	// pin data
-	if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/thumb", content.DataId), false); err != nil {
-		return nil, err
-	}
-	if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/meta", content.DataId), false); err != nil {
-		return nil, err
-	}
-	if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/pk", content.DataId), false); err != nil {
-		return nil, err
-	}
-
 	// index it locally
 	dconf := &repo.DataBlockConfig{
 		DataId:            content.DataId,
 		DataKeyCipher:     content.KeyCipher,
 		DataCaptionCipher: content.CaptionCipher,
 	}
-	if err := t.indexBlock(id, content.Header, repo.PhotoBlock, dconf); err != nil {
-		return nil, err
+	switch content.Type {
+	case pb.ThreadData_PHOTO:
+		// pin data first (it may not be available)
+		if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/thumb", content.DataId), false); err != nil {
+			return nil, err
+		}
+		if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/meta", content.DataId), false); err != nil {
+			return nil, err
+		}
+		if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/pk", content.DataId), false); err != nil {
+			return nil, err
+		}
+		if err := t.indexBlock(id, content.Header, repo.PhotoBlock, dconf); err != nil {
+			return nil, err
+		}
+	case pb.ThreadData_TEXT:
+		// TODO: comments
+		break
 	}
 
 	// back prop

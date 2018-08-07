@@ -64,3 +64,7 @@ message ThreadIgnore {
 message ThreadMerge {
     ThreadBlockHeader header = 1;
 }
+
+message ThreadWelcome {
+    ThreadBlockHeader header = 1;
+}
