@@ -460,13 +460,9 @@ func start() error {
 	<-core.Node.Wallet.Online()
 
 	// subscribe to thread updates
-	peerId, err := core.Node.Wallet.GetId()
-	if err != nil {
-		return err
-	}
 	for _, thrd := range core.Node.Wallet.Threads() {
 		go func(t *thread.Thread) {
-			cmd.Subscribe(t, peerId)
+			cmd.Subscribe(t)
 		}(thrd)
 	}
 
@@ -481,7 +477,7 @@ func start() error {
 				switch update.Type {
 				case wallet.ThreadAdded:
 					if _, thrd := core.Node.Wallet.GetThread(update.Id); thrd != nil {
-						go cmd.Subscribe(thrd, peerId)
+						go cmd.Subscribe(thrd)
 					}
 				case wallet.ThreadRemoved:
 					break
@@ -531,7 +527,7 @@ func printSplashScreen() {
 		fmt.Println(grey("cafe: ") + yellow(Options.CafeBindAddr))
 	}
 	if Options.CafeAddr != "" {
-		fmt.Println(grey("cafe api: ") + yellow(core.Node.Wallet.GetCafeAddr()))
+		fmt.Println(grey("cafe api: ") + yellow(core.Node.Wallet.GetCafeApiAddr()))
 	}
 	if Options.ServerMode {
 		fmt.Println(grey("server mode: ") + green("enabled"))

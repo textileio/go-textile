@@ -171,7 +171,7 @@ func (s *TextileService) handleNewMessage(stream inet.Stream, incoming bool) {
 func (s *TextileService) SendRequest(ctx context.Context, p peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
 	defer func() {
 		if recover() != nil {
-			log.Error("recovered from SendRequest")
+			log.Error("recovered from service.SendRequest")
 		}
 	}()
 	log.Debugf("sending %s request to %s", pmes.Message.Type.String(), p.Pretty())
@@ -198,7 +198,7 @@ func (s *TextileService) SendRequest(ctx context.Context, p peer.ID, pmes *pb.En
 func (s *TextileService) SendMessage(ctx context.Context, p peer.ID, pmes *pb.Envelope) error {
 	defer func() {
 		if recover() != nil {
-			log.Error("recovered from SendMessage")
+			log.Error("recovered from service.SendMessage")
 		}
 	}()
 	log.Debugf("sending %s message to %s", pmes.Message.Type.String(), p.Pretty())
