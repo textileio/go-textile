@@ -138,6 +138,8 @@ func (t *Thread) HandleJoinBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 		return addr, nil
 	}
 
+	// send welcome
+
 	// echo merge (if needed) if we are the original inviter
 	var post bool
 	pk, err := t.ipfs().PrivateKey.GetPublic().Bytes()

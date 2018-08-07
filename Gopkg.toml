@@ -1,42 +1,45 @@
 [prune]
   go-tests = true
-  unused-packages = true
 
 [[constraint]]
   name = "github.com/gin-gonic/gin"
   version = "1.2.0"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/globalsign/mgo"
+  branch = "master"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/mitchellh/go-homedir"
+  branch = "master"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/mutecomm/go-sqlcipher"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/op/go-logging"
   version = "1.0.0"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/tyler-smith/go-bip39"
+  branch = "master"
 
 [[constraint]]
-  branch = "master"
   name = "golang.org/x/crypto"
+  branch = "master"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/asticode/go-astilectron"
+  branch = "master"
 
 [[override]]
+  name = "github.com/asticode/go-astilectron-bundler"
   branch = "master"
+
+[[override]]
   name = "github.com/chzyer/readline"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/golang/protobuf"
