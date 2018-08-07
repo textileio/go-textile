@@ -71,7 +71,7 @@ func (t *Thread) HandleIgnoreBlock(message *pb.Envelope, signed *pb.SignedThread
 	}
 
 	// add to ipfs
-	addr, err := t.addBlock(message)
+	addr, err := t.AddBlock(message)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,8 @@ func (t *Thread) HandleIgnoreBlock(message *pb.Envelope, signed *pb.SignedThread
 
 	// add author as a new local peer, just in case we haven't found this peer yet.
 	// double-check not self in case we're re-discovering the thread
-	if authorId.Pretty() != t.ipfs().Identity.Pretty() {
+	self := authorId.Pretty() == t.ipfs().Identity.Pretty()
+	if !self {
 		newPeer := &repo.Peer{
 			Row:      ksuid.New().String(),
 			Id:       authorId.Pretty(),
@@ -126,7 +127,7 @@ func (t *Thread) HandleIgnoreBlock(message *pb.Envelope, signed *pb.SignedThread
 	if following {
 		return addr, nil
 	}
-	if _, err := t.handleHead(id, content.Header.Parents, false); err != nil {
+	if _, err := t.handleHead(id, content.Header.Parents); err != nil {
 		return nil, err
 	}
 

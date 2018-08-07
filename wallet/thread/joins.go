@@ -1,13 +1,16 @@
 package thread
 
 import (
+	"fmt"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"strings"
 	"time"
 )
 
@@ -85,7 +88,7 @@ func (t *Thread) HandleJoinBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 	}
 
 	// add to ipfs
-	addr, err := t.addBlock(message)
+	addr, err := t.AddBlock(message)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +113,8 @@ func (t *Thread) HandleJoinBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 
 	// add invitee as a new local peer.
 	// double-check not self in case we're re-discovering the thread
-	if inviteeId.Pretty() != t.ipfs().Identity.Pretty() {
+	self := inviteeId.Pretty() == t.ipfs().Identity.Pretty()
+	if !self {
 		newPeer := &repo.Peer{
 			Row:      ksuid.New().String(),
 			Id:       inviteeId.Pretty(),
@@ -133,27 +137,61 @@ func (t *Thread) HandleJoinBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 		return nil, err
 	}
 
-	// handle HEAD
+	// short circuit if we're traversing history
 	if following {
 		return addr, nil
 	}
 
-	// send welcome
-
-	// echo merge (if needed) if we are the original inviter
-	var post bool
-	pk, err := t.ipfs().PrivateKey.GetPublic().Bytes()
+	// send welcome direct to this peer if the invitee could use a merge, i.e., we have newer updates
+	head, err := t.GetHead()
 	if err != nil {
 		return nil, err
 	}
-	pks := libp2pc.ConfigEncodeKey(pk)
-	inviterPks := libp2pc.ConfigEncodeKey(content.InviterPk)
-	if pks == inviterPks {
-		post = true
+	if head != content.BlockId {
+		if _, err := t.Welcome(inviteeId.Pretty()); err != nil {
+			return nil, err
+		}
 	}
-	if _, err := t.handleHead(id, content.Header.Parents, post); err != nil {
+
+	// handle HEAD
+	if _, err := t.handleHead(id, content.Header.Parents); err != nil {
 		return nil, err
 	}
 
+	return addr, nil
+}
+
+// Join creates an outgoing join block, which is NOT commited to the hash chain
+func (t *Thread) Welcome(peerId string) (mh.Multihash, error) {
+	t.mux.Lock()
+	defer t.mux.Unlock()
+
+	target := t.peers().GetById(peerId)
+	if target == nil {
+		return nil, errors.New(fmt.Sprintf("peer not found: %s", peerId))
+	}
+
+	// build block
+	header, err := t.newBlockHeader(time.Now())
+	if err != nil {
+		return nil, err
+	}
+	content := &pb.ThreadWelcome{
+		Header: header,
+	}
+
+	// commit to ipfs
+	message, addr, err := t.commitBlock(content, pb.Message_THREAD_WELCOME)
+	if err != nil {
+		return nil, err
+	}
+	id := addr.B58String()
+
+	// post it
+	t.post(message, id, []repo.Peer{*target})
+
+	log.Debugf("welcomed %s at update %s", peerId, strings.Join(header.Parents, ","))
+
+	// all done
 	return addr, nil
 }

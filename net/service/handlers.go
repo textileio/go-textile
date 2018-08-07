@@ -20,8 +20,6 @@ func (s *TextileService) HandlerForMsgType(t pb.Message_Type) func(peer.ID, *pb.
 		return s.handlePing
 	case pb.Message_THREAD_INVITE:
 		return s.handleThreadInvite
-	case pb.Message_THREAD_EXTERNAL_INVITE:
-		return s.handleExternalThreadInvite
 	case pb.Message_THREAD_JOIN:
 		return s.handleThreadJoin
 	case pb.Message_THREAD_LEAVE:
@@ -67,25 +65,16 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Envelope, opti
 	threadId := libp2pc.ConfigEncodeKey(invite.Header.ThreadPk)
 	_, thrd := s.getThread(threadId)
 	if thrd != nil {
-		// verify thread sig
-		if err := thrd.Verify(signed); err != nil {
-			return nil, err
-		}
-
-		// handle
-		if _, err := thrd.HandleInviteBlock(pmes, signed, invite, false); err != nil {
-			return nil, err
-		}
-
+		// thread exists, aborting
 		return nil, nil
-	} else {
-		// unknown thread and invite not meant for us... shouldn't happen
-		if invite.InviteeId != s.self.Pretty() {
-			return nil, errors.New("invalid invite block")
-		}
 	}
 
-	// lastly, unknown thread and invite meant for us
+	// check if it's meant for us (should always be, but safety first)
+	if invite.InviteeId != s.self.Pretty() {
+		return nil, errors.New("invalid invite block")
+	}
+
+	// unknown thread and invite meant for us
 	// unpack new thread secret that should be encrypted with our key
 	skb, err := crypto.Decrypt(s.node.PrivateKey, invite.SkCipher)
 	if err != nil {
@@ -113,51 +102,18 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Envelope, opti
 		return nil, err
 	}
 
-	// handle
-	addr, err := thrd.HandleInviteBlock(pmes, signed, invite, false)
+	// add to ipfs
+	addr, err := thrd.AddBlock(pmes)
 	if err != nil {
 		return nil, err
 	}
 
 	// accept it, yolo
 	// TODO: Don't auto accept. Need to show some UI with pending invites.
-	addr, err = thrd.Join(authorPk, addr.B58String())
-	if err != nil {
+	if _, err = thrd.Join(authorPk, addr.B58String()); err != nil {
 		return nil, err
 	}
-	log.Debugf("accepted invite to thread %s with name %s. added block %s.", thrd.Id, thrd.Name, addr.B58String())
-
-	return nil, nil
-}
-
-func (s *TextileService) handleExternalThreadInvite(pid peer.ID, pmes *pb.Envelope, options interface{}) (*pb.Envelope, error) {
-	log.Debug("received THREAD_EXTERNAL_INVITE message")
-	signed, err := unpackMessage(pmes)
-	if err != nil {
-		return nil, err
-	}
-	invite := new(pb.ThreadExternalInvite)
-	if err := proto.Unmarshal(signed.Block, invite); err != nil {
-		return nil, err
-	}
-
-	// load thread
-	threadId := libp2pc.ConfigEncodeKey(invite.Header.ThreadPk)
-	_, thrd := s.getThread(threadId)
-	if thrd == nil {
-		// unknown thread and external invite... shouldn't happen
-		return nil, errors.New("invalid invite block")
-	}
-
-	// verify thread sig
-	if err := thrd.Verify(signed); err != nil {
-		return nil, err
-	}
-
-	// handle
-	if _, err := thrd.HandleExternalInviteBlock(pmes, signed, invite, false); err != nil {
-		return nil, err
-	}
+	log.Debugf("accepted invite to thread %s with name %s", thrd.Id, thrd.Name)
 
 	return nil, nil
 }

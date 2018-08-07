@@ -129,6 +129,28 @@ func (t *Thread) Verify(signed *pb.SignedThreadBlock) error {
 	return crypto.Verify(t.PrivKey.GetPublic(), signed.Block, signed.ThreadSig)
 }
 
+// AddBlock adds to ipfs
+func (t *Thread) AddBlock(envelope *pb.Envelope) (mh.Multihash, error) {
+	// marshal to bytes
+	messageb, err := proto.Marshal(envelope)
+	if err != nil {
+		return nil, err
+	}
+
+	// pin it
+	id, err := util.PinData(t.ipfs(), bytes.NewReader(messageb))
+	if err != nil {
+		return nil, err
+	}
+
+	// add a pin request
+	if err := t.putPinRequest(id.Hash().B58String()); err != nil {
+		log.Warningf("pin request exists: %s", id.Hash().B58String())
+	}
+
+	return id.Hash(), nil
+}
+
 // FollowParents tries to follow a list of chains of block ids, processing along the way
 func (t *Thread) FollowParents(parents []string) error {
 	for _, parent := range parents {
@@ -188,14 +210,6 @@ func (t *Thread) followParent(parent string) error {
 
 	// handle each type
 	switch env.Message.Type {
-	case pb.Message_THREAD_INVITE:
-		if _, err = t.HandleInviteBlock(env, signed, nil, true); err != nil {
-			return err
-		}
-	case pb.Message_THREAD_EXTERNAL_INVITE:
-		if _, err = t.HandleExternalInviteBlock(env, signed, nil, true); err != nil {
-			return err
-		}
 	case pb.Message_THREAD_JOIN:
 		if _, err = t.HandleJoinBlock(env, signed, nil, true); err != nil {
 			return err
@@ -256,28 +270,6 @@ func (t *Thread) newBlockHeader(date time.Time) (*pb.ThreadBlockHeader, error) {
 	}, nil
 }
 
-// addBlock adds to ipfs
-func (t *Thread) addBlock(envelope *pb.Envelope) (mh.Multihash, error) {
-	// marshal to bytes
-	messageb, err := proto.Marshal(envelope)
-	if err != nil {
-		return nil, err
-	}
-
-	// pin it
-	id, err := util.PinData(t.ipfs(), bytes.NewReader(messageb))
-	if err != nil {
-		return nil, err
-	}
-
-	// add a pin request
-	if err := t.putPinRequest(id.Hash().B58String()); err != nil {
-		log.Warningf("pin request exists: %s", id.Hash().B58String())
-	}
-
-	return id.Hash(), nil
-}
-
 // commitBlock seals and signs the content of a block and adds it to ipfs
 func (t *Thread) commitBlock(content proto.Message, mt pb.Message_Type) (*pb.Envelope, mh.Multihash, error) {
 	// sign it
@@ -306,7 +298,7 @@ func (t *Thread) commitBlock(content proto.Message, mt pb.Message_Type) (*pb.Env
 	}
 
 	// add to ipfs
-	addr, err := t.addBlock(envelope)
+	addr, err := t.AddBlock(envelope)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -349,8 +341,7 @@ func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType r
 
 // handleHead determines whether or not a thread can be fast-forwarded or if a merge block is needed
 // - parents are the parents of the incoming chain
-// - post indicates whether or not it will be broadcasted to other peers
-func (t *Thread) handleHead(inboundId string, parents []string, post bool) (mh.Multihash, error) {
+func (t *Thread) handleHead(inboundId string, parents []string) (mh.Multihash, error) {
 	// get current HEAD
 	head, err := t.GetHead()
 	if err != nil {
@@ -374,7 +365,7 @@ func (t *Thread) handleHead(inboundId string, parents []string, post bool) (mh.M
 	}
 
 	// needs merge
-	return t.Merge(inboundId, post)
+	return t.Merge(inboundId)
 }
 
 // post publishes a message with content id to peers
