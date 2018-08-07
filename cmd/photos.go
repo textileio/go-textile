@@ -57,15 +57,10 @@ func AddPhoto(c *ishell.Context) {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", threadId)))
 		return
 	}
-	addr, err := thrd.AddPhoto(added.Id, caption, []byte(added.Key))
-	if err != nil {
+	if _, err := thrd.AddPhoto(added.Id, caption, []byte(added.Key)); err != nil {
 		c.Err(err)
 		return
 	}
-
-	// show user root id
-	cyan := color.New(color.FgCyan).SprintFunc()
-	c.Println(cyan(fmt.Sprintf("added photo %s to %s. added block %s.", added.Id, thrd.Id, addr.B58String())))
 }
 
 func SharePhoto(c *ishell.Context) {
@@ -107,14 +102,10 @@ func SharePhoto(c *ishell.Context) {
 	// TODO: owner challenge
 
 	// finally, add to destination
-	addr, err := toThread.AddPhoto(id, caption, key)
-	if err != nil {
+	if _, err := toThread.AddPhoto(id, caption, key); err != nil {
 		c.Err(err)
 		return
 	}
-
-	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green(fmt.Sprintf("shared photo %s to %s. added block %s.", id, toThread.Id, addr.B58String())))
 }
 
 func ListPhotos(c *ishell.Context) {
@@ -251,14 +242,10 @@ func IgnorePhoto(c *ishell.Context) {
 		return
 	}
 
-	addr, err := thrd.Ignore(block.Id)
-	if err != nil {
+	if _, err := thrd.Ignore(block.Id); err != nil {
 		c.Err(err)
 		return
 	}
-
-	red := color.New(color.FgHiRed).SprintFunc()
-	c.Println(red(fmt.Sprintf("ok, sent ignore for %s via %s", block.Id, addr.B58String())))
 }
 
 func getBlockAndThreadForDataId(dataId string) (*repo.Block, *thread.Thread, error) {

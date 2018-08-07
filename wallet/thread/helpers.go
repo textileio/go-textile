@@ -18,7 +18,6 @@ func (t *Thread) GetBlockDataKey(block *repo.Block) ([]byte, error) {
 	}
 	key, err := t.Decrypt(block.DataKeyCipher)
 	if err != nil {
-		log.Errorf("error decrypting key cipher: %s", err)
 		return nil, err
 	}
 	return key, nil
@@ -32,7 +31,6 @@ func (t *Thread) GetBlockData(path string, block *repo.Block) ([]byte, error) {
 	}
 	cipher, err := util.GetDataAtPath(t.ipfs(), path)
 	if err != nil {
-		log.Errorf("error getting file data: %s", err)
 		return nil, err
 	}
 	return crypto.DecryptAES(cipher, key)
@@ -51,13 +49,11 @@ func (t *Thread) GetBlockDataBase64(path string, block *repo.Block) (string, err
 func (t *Thread) GetPhotoMetaData(id string, block *repo.Block) (*model.PhotoMetadata, error) {
 	file, err := t.GetBlockData(fmt.Sprintf("%s/meta", id), block)
 	if err != nil {
-		log.Errorf("error getting meta file %s: %s", id, err)
 		return nil, err
 	}
 	var data *model.PhotoMetadata
 	err = json.Unmarshal(file, &data)
 	if err != nil {
-		log.Errorf("error unmarshaling meta file: %s: %s", id, err)
 		return nil, err
 	}
 	return data, nil

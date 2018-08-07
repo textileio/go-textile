@@ -28,7 +28,7 @@ func (w *Wallet) CreateReferral(req *cmodels.ReferralRequest) (*cmodels.Referral
 	log.Debug("requesting a referral")
 
 	// remote request
-	res, err := client.CreateReferral(req, fmt.Sprintf("%s/referrals", w.GetCafeAddr()))
+	res, err := client.CreateReferral(req, fmt.Sprintf("%s/referrals", w.GetCafeApiAddr()))
 	if err != nil {
 		log.Errorf("create referral error: %s", err)
 		return nil, err
@@ -48,7 +48,7 @@ func (w *Wallet) ListReferrals(key string) (*cmodels.ReferralResponse, error) {
 	log.Debug("listing referrals")
 
 	// remote request
-	res, err := client.ListReferrals(key, fmt.Sprintf("%s/referrals", w.GetCafeAddr()))
+	res, err := client.ListReferrals(key, fmt.Sprintf("%s/referrals", w.GetCafeApiAddr()))
 	if err != nil {
 		log.Errorf("list referrals error: %s", err)
 		return nil, err
@@ -71,7 +71,7 @@ func (w *Wallet) SignUp(reg *cmodels.Registration) error {
 	log.Debugf("signup: %s %s %s %s %s", reg.Username, "xxxxxx", reg.Identity.Type, reg.Identity.Value, reg.Referral)
 
 	// remote signup
-	res, err := client.SignUp(reg, fmt.Sprintf("%s/users", w.GetCafeAddr()))
+	res, err := client.SignUp(reg, fmt.Sprintf("%s/users", w.GetCafeApiAddr()))
 	if err != nil {
 		log.Errorf("signup error: %s", err)
 		return err
@@ -118,7 +118,7 @@ func (w *Wallet) SignIn(creds *cmodels.Credentials) error {
 	log.Debugf("signin: %s %s", creds.Username, "xxxxxx")
 
 	// remote signin
-	res, err := client.SignIn(creds, fmt.Sprintf("%s/users", w.GetCafeAddr()))
+	res, err := client.SignIn(creds, fmt.Sprintf("%s/users", w.GetCafeApiAddr()))
 	if err != nil {
 		log.Errorf("signin error: %s", err)
 		return err
