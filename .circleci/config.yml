@@ -25,5 +25,5 @@ jobs:
             CAFE_DB_HOSTS: 0.0.0.0:27017
             CAFE_DB_NAME: textile_db
             CAFE_REFERRAL_KEY: woohoo!
-      - run: go get -u github.com/asticode/go-astilectron-bundler/...
+      - run: go install ./vendor/github.com/asticode/go-astilectron-bundler/astilectron-bundler
       - run: make build_desktop

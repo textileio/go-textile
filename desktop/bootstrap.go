@@ -11,28 +11,28 @@ import (
 func bootstrapApp() {
 	astilog.Debugf("Running app built at %s", builtAt)
 	if err := bootstrap.Run(bootstrap.Options{
-		Asset: Asset,
+		Asset:    Asset,
+		AssetDir: AssetDir,
 		AstilectronOptions: astilectron.Options{
 			AppName:            appName,
 			AppIconDarwinPath:  "resources/icon.icns",
 			AppIconDefaultPath: "resources/icon.png",
-			// TODO: Revisit: slightly dangerous because this will ignore _all_ certificate errors
-			ElectronSwitches: []string{"ignore-certificate-errors", "true"},
 		},
-
-		Debug:          *debug,
-		Homepage:       "index.html",
-		MessageHandler: handleMessage,
-		OnWait:         start,
-		RestoreAssets:  RestoreAssets,
-		WindowOptions: &astilectron.WindowOptions{
-			Center:          astilectron.PtrBool(true),
-			Height:          astilectron.PtrInt(SetupSize),
-			Width:           astilectron.PtrInt(SetupSize),
-			BackgroundColor: astilectron.PtrStr("#ffffff"),
-			TitleBarStyle:   astilectron.TitleBarStyleHiddenInset,
-			Show:            astilectron.PtrBool(false),
-		},
+		Debug:         *debug,
+		OnWait:        start,
+		RestoreAssets: RestoreAssets,
+		Windows: []*bootstrap.Window{{
+			Homepage:       "index.html",
+			MessageHandler: handleMessage,
+			Options: &astilectron.WindowOptions{
+				Center:          astilectron.PtrBool(true),
+				Height:          astilectron.PtrInt(SetupSize),
+				Width:           astilectron.PtrInt(SetupSize),
+				BackgroundColor: astilectron.PtrStr("#ffffff"),
+				TitleBarStyle:   astilectron.TitleBarStyleHiddenInset,
+				Show:            astilectron.PtrBool(false),
+			},
+		}},
 	}); err != nil {
 		astilog.Fatal(errors.Wrap(err, "bootstrap failed"))
 	}

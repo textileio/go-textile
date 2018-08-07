@@ -47,8 +47,8 @@ func main() {
 	bootstrapApp()
 }
 
-func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
-	window = w
+func start(_ *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
+	window = w[0]
 	window.Show()
 
 	// get homedir
