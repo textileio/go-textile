@@ -347,9 +347,9 @@ func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType r
 	return nil
 }
 
-// handleHead determines whether or not a thread can be fast-forwarded or if a merge block is needed.
-// parents are the parents of the incoming chain.
-// If a merge is needed and post is true, it will be broadcasted to the network (joins only)
+// handleHead determines whether or not a thread can be fast-forwarded or if a merge block is needed
+// - parents are the parents of the incoming chain
+// - post indicates whether or not it will be broadcasted to other peers
 func (t *Thread) handleHead(inboundId string, parents []string, post bool) (mh.Multihash, error) {
 	// get current HEAD
 	head, err := t.GetHead()
