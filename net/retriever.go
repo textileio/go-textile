@@ -190,26 +190,25 @@ func (m *MessageRetriever) unpackMessage(payload []byte, pid peer.ID, addr ma.Mu
 		return err
 	}
 
-	// validate the signature
+	// validate the envelope signature
 	ser, err := proto.Marshal(env.Message)
 	if err != nil {
 		return err
 	}
-	pubkey, err := libp2pc.UnmarshalPublicKey(env.Pk)
+	pk, err := libp2pc.UnmarshalPublicKey(env.Pk)
 	if err != nil {
 		return err
 	}
-	valid, err := pubkey.Verify(ser, env.Sig)
-	if err != nil || !valid {
+	if err := crypto.Verify(pk, ser, env.Sig); err != nil {
 		return err
 	}
-	id, err := peer.IDFromPublicKey(pubkey)
+	id, err := peer.IDFromPublicKey(pk)
 	if err != nil {
 		return err
 	}
 
-	// cache pubkey, probably should remove this... we already have it in thread peer table
-	m.ipfs.Peerstore.AddPubKey(id, pubkey)
+	// cache pk, probably should remove this... we already have it in thread peer table
+	m.ipfs.Peerstore.AddPubKey(id, pk)
 	m.ipfs.Repo.Datastore().Put(ds.NewKey(KeyCachePrefix+id.String()), env.Pk)
 
 	// respond with an ACK
@@ -266,6 +265,8 @@ var MessageProcessingOrder = []pb.Message_Type{
 	pb.Message_THREAD_LEAVE,
 	pb.Message_THREAD_DATA,
 	pb.Message_THREAD_ANNOTATION,
+	pb.Message_THREAD_IGNORE,
+	pb.Message_THREAD_MERGE,
 	pb.Message_CHAT,
 	pb.Message_FOLLOW,
 	pb.Message_UNFOLLOW,

@@ -61,7 +61,7 @@ func (t *Thread) Ignore(dataId string) (mh.Multihash, error) {
 }
 
 // HandleIgnoreBlock handles an incoming ignore block
-func (t *Thread) HandleIgnoreBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadIgnore, following bool) (mh.Multihash, error) {
+func (t *Thread) HandleIgnoreBlock(from *peer.ID, message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadIgnore, following bool) (mh.Multihash, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadIgnore)
@@ -71,7 +71,7 @@ func (t *Thread) HandleIgnoreBlock(message *pb.Envelope, signed *pb.SignedThread
 	}
 
 	// add to ipfs
-	addr, err := t.AddBlock(message)
+	addr, err := t.addBlock(message)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,8 @@ func (t *Thread) HandleIgnoreBlock(message *pb.Envelope, signed *pb.SignedThread
 	}
 
 	// back prop
-	if err := t.FollowParents(content.Header.Parents); err != nil {
+	newPeers, err := t.FollowParents(content.Header.Parents, from)
+	if err != nil {
 		return nil, err
 	}
 
@@ -129,6 +130,13 @@ func (t *Thread) HandleIgnoreBlock(message *pb.Envelope, signed *pb.SignedThread
 	}
 	if _, err := t.handleHead(id, content.Header.Parents); err != nil {
 		return nil, err
+	}
+
+	// handle newly discovered peers during back prop, after updating HEAD
+	for _, newPeer := range newPeers {
+		if err := t.sendWelcome(newPeer); err != nil {
+			return nil, err
+		}
 	}
 
 	return addr, nil

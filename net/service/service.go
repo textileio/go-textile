@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/golang/protobuf/proto"
 	"github.com/op/go-logging"
+	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet/thread"
@@ -111,6 +112,22 @@ func (s *TextileService) handleNewMessage(stream inet.Stream, incoming bool) {
 			if err == io.EOF {
 				log.Debugf("disconnected from peer %s", mPeer.Pretty())
 			}
+			return
+		}
+
+		// validate the signature
+		ser, err := proto.Marshal(pmes.Message)
+		if err != nil {
+			log.Errorf("marshal error %s", err)
+			return
+		}
+		pk, err := libp2pc.UnmarshalPublicKey(pmes.Pk)
+		if err != nil {
+			log.Errorf("unmarshal pubkey error %s", err)
+			return
+		}
+		if err := crypto.Verify(pk, ser, pmes.Sig); err != nil {
+			log.Warningf("invalid signature %s", err)
 			return
 		}
 

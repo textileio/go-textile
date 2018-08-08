@@ -1,18 +1,24 @@
 package thread
 
 import (
-	"fmt"
 	"github.com/golang/protobuf/proto"
-	"github.com/pkg/errors"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	"strings"
 	"time"
 )
+
+// welcome represents an intention to welcome a peer at a certain block
+// (these are needed in order to remember the point at which to welcome a
+// given peer while recursively following parents)
+type peerWelcome struct {
+	peer      repo.Peer
+	atBlockId string
+}
 
 // Join creates an outgoing join block
 func (t *Thread) Join(inviterPk libp2pc.PubKey, blockId string) (mh.Multihash, error) {
@@ -78,19 +84,19 @@ func (t *Thread) Join(inviterPk libp2pc.PubKey, blockId string) (mh.Multihash, e
 }
 
 // HandleJoinBlock handles an incoming join block
-func (t *Thread) HandleJoinBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadJoin, following bool) (mh.Multihash, error) {
+func (t *Thread) HandleJoinBlock(from *peer.ID, message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadJoin, following bool) (mh.Multihash, *repo.Peer, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadJoin)
 		if err := proto.Unmarshal(signed.Block, content); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	// add to ipfs
-	addr, err := t.AddBlock(message)
+	addr, err := t.addBlock(message)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	id := addr.B58String()
 
@@ -98,100 +104,115 @@ func (t *Thread) HandleJoinBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 	// (should only happen if a misbehaving peer keeps sending the same block)
 	index := t.blocks().Get(id)
 	if index != nil {
-		return nil, nil
+		return nil, nil, err
 	}
 
 	// get the invitee id
-	inviteePk, err := libp2pc.UnmarshalPublicKey(content.Header.AuthorPk)
+	authorPk, err := libp2pc.UnmarshalPublicKey(content.Header.AuthorPk)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	inviteeId, err := peer.IDFromPublicKey(inviteePk)
+	authorId, err := peer.IDFromPublicKey(authorPk)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// add invitee as a new local peer.
 	// double-check not self in case we're re-discovering the thread
-	self := inviteeId.Pretty() == t.ipfs().Identity.Pretty()
+	var joined *repo.Peer
+	var isNew bool
+	self := authorId.Pretty() == t.ipfs().Identity.Pretty()
 	if !self {
-		newPeer := &repo.Peer{
+		joined = &repo.Peer{
 			Row:      ksuid.New().String(),
-			Id:       inviteeId.Pretty(),
+			Id:       authorId.Pretty(),
 			ThreadId: libp2pc.ConfigEncodeKey(content.Header.ThreadPk),
 			PubKey:   content.Header.AuthorPk,
 		}
-		if err := t.peers().Add(newPeer); err != nil {
+		if err := t.peers().Add(joined); err != nil {
 			// TODO: #202 (Properly handle database/sql errors)
-			log.Warningf("peer with id %s already exists in thread %s", newPeer.Id, t.Id)
+			log.Warningf("peer with id %s already exists in thread %s", joined.Id, t.Id)
+		} else {
+			isNew = true
 		}
 	}
 
 	// index it locally
 	if err := t.indexBlock(id, content.Header, repo.JoinBlock, nil); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// back prop
-	if err := t.FollowParents(content.Header.Parents); err != nil {
-		return nil, err
+	newPeers, err := t.FollowParents(content.Header.Parents, from)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	// short circuit if we're traversing history
+	// short circuit if we're traversing history as a new peer
 	if following {
-		return addr, nil
+		// if a new peer is discovered during back prop, we'll need to send a welcome
+		// but not until _after_ HEAD has been updated at the update entry point, where
+		// the new peers will be collected
+		// NOTE: if from == nil, we've started with an invite, in which case there is
+		// no need to handle new peers in this manner (they're sent OUR join)
+		if joined != nil && isNew && from != nil && joined.Id != from.Pretty() {
+			return addr, joined, nil
+		}
+		return addr, nil, nil
 	}
 
-	// send welcome direct to this peer if the invitee could use a merge, i.e., we have newer updates
+	// send latest direct to this peer if they could use a merge, i.e., we have newer updates
 	head, err := t.GetHead()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	if head != content.BlockId {
-		if _, err := t.Welcome(inviteeId.Pretty()); err != nil {
-			return nil, err
+	if joined != nil && isNew && head != content.BlockId {
+		if err := t.sendWelcome(*joined); err != nil {
+			return nil, nil, err
 		}
 	}
 
 	// handle HEAD
 	if _, err := t.handleHead(id, content.Header.Parents); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return addr, nil
+	// handle newly discovered peers during back prop, after updating HEAD
+	for _, newPeer := range newPeers {
+		if err := t.sendWelcome(newPeer); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return addr, nil, nil
 }
 
-// Join creates an outgoing join block, which is NOT commited to the hash chain
-func (t *Thread) Welcome(peerId string) (mh.Multihash, error) {
+// welcome sends the latest HEAD block
+func (t *Thread) sendWelcome(joined repo.Peer) error {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	target := t.peers().GetById(peerId)
-	if target == nil {
-		return nil, errors.New(fmt.Sprintf("peer not found: %s", peerId))
+	// get current HEAD
+	head, err := t.GetHead()
+	if err != nil {
+		return err
 	}
 
-	// build block
-	header, err := t.newBlockHeader(time.Now())
+	// download it
+	serialized, err := util.GetDataAtPath(t.ipfs(), head)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	content := &pb.ThreadWelcome{
-		Header: header,
+	env := new(pb.Envelope)
+	if err := proto.Unmarshal(serialized, env); err != nil {
+		return err
 	}
 
-	// commit to ipfs
-	message, addr, err := t.commitBlock(content, pb.Message_THREAD_WELCOME)
-	if err != nil {
-		return nil, err
-	}
-	id := addr.B58String()
+	log.Debugf("welcoming %s at update %s", joined.Id, head)
 
 	// post it
-	t.post(message, id, []repo.Peer{*target})
-
-	log.Debugf("welcomed %s at update %s", peerId, strings.Join(header.Parents, ","))
+	t.post(env, head, []repo.Peer{joined})
 
 	// all done
-	return addr, nil
+	return nil
 }

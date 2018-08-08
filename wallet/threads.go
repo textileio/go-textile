@@ -183,6 +183,11 @@ func (w *Wallet) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
 		return nil, err
 	}
 
+	// follow parents, update head
+	if err := thrd.HandleInviteMessage(invite); err != nil {
+		return nil, err
+	}
+
 	return thrd.Join(authorPk, blockId)
 }
 
@@ -240,6 +245,11 @@ func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte) (mh.Mult
 	// add it
 	thrd, err := w.AddThread(invite.SuggestedName, sk)
 	if err != nil {
+		return nil, err
+	}
+
+	// follow parents, update head
+	if err := thrd.HandleExternalInviteMessage(invite); err != nil {
 		return nil, err
 	}
 
