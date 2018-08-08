@@ -29,7 +29,6 @@ message Message {
         THREAD_ANNOTATION      = 105;
         THREAD_IGNORE          = 200;
         THREAD_MERGE           = 201;
-        THREAD_WELCOME         = 202;
         ERROR                  = 500;
     }
 }

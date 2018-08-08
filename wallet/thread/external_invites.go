@@ -51,3 +51,22 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 	// all done
 	return addr, key, nil
 }
+
+// HandleExternalInviteMessage handles an incoming external invite
+// - this happens right before a join
+// - the invite is not kept on-chain, so we only need to follow parents and update HEAD
+func (t *Thread) HandleExternalInviteMessage(content *pb.ThreadExternalInvite) error {
+	// back prop
+	if _, err := t.FollowParents(content.Header.Parents, nil); err != nil {
+		return err
+	}
+
+	// update HEAD if parents of the invite are actual updates
+	if len(content.Header.Parents) > 0 {
+		if err := t.updateHead(content.Header.Parents[0]); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

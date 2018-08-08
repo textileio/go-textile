@@ -60,7 +60,7 @@ func (t *Thread) Leave() (mh.Multihash, error) {
 }
 
 // HandleLeaveBlock handles an incoming leave block
-func (t *Thread) HandleLeaveBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadLeave, following bool) (mh.Multihash, error) {
+func (t *Thread) HandleLeaveBlock(from *peer.ID, message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadLeave, following bool) (mh.Multihash, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadLeave)
@@ -70,7 +70,7 @@ func (t *Thread) HandleLeaveBlock(message *pb.Envelope, signed *pb.SignedThreadB
 	}
 
 	// add to ipfs
-	addr, err := t.AddBlock(message)
+	addr, err := t.addBlock(message)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +102,8 @@ func (t *Thread) HandleLeaveBlock(message *pb.Envelope, signed *pb.SignedThreadB
 	}
 
 	// back prop
-	if err := t.FollowParents(content.Header.Parents); err != nil {
+	newPeers, err := t.FollowParents(content.Header.Parents, from)
+	if err != nil {
 		return nil, err
 	}
 
@@ -112,6 +113,13 @@ func (t *Thread) HandleLeaveBlock(message *pb.Envelope, signed *pb.SignedThreadB
 	}
 	if _, err := t.handleHead(id, content.Header.Parents); err != nil {
 		return nil, err
+	}
+
+	// handle newly discovered peers during back prop, after updating HEAD
+	for _, newPeer := range newPeers {
+		if err := t.sendWelcome(newPeer); err != nil {
+			return nil, err
+		}
 	}
 
 	return addr, nil

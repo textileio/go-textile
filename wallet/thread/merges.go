@@ -4,6 +4,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	"time"
 )
@@ -47,7 +48,7 @@ func (t *Thread) Merge(head string) (mh.Multihash, error) {
 }
 
 // HandleMergeBlock handles an incoming merge block
-func (t *Thread) HandleMergeBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadMerge, following bool) (mh.Multihash, error) {
+func (t *Thread) HandleMergeBlock(from *peer.ID, message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadMerge, following bool) (mh.Multihash, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadMerge)
@@ -57,7 +58,7 @@ func (t *Thread) HandleMergeBlock(message *pb.Envelope, signed *pb.SignedThreadB
 	}
 
 	// add to ipfs
-	addr, err := t.AddBlock(message)
+	addr, err := t.addBlock(message)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +77,8 @@ func (t *Thread) HandleMergeBlock(message *pb.Envelope, signed *pb.SignedThreadB
 	}
 
 	// back prop
-	if err := t.FollowParents(content.Header.Parents); err != nil {
+	newPeers, err := t.FollowParents(content.Header.Parents, from)
+	if err != nil {
 		return nil, err
 	}
 
@@ -86,6 +88,13 @@ func (t *Thread) HandleMergeBlock(message *pb.Envelope, signed *pb.SignedThreadB
 	}
 	if _, err := t.handleHead(id, content.Header.Parents); err != nil {
 		return nil, err
+	}
+
+	// handle newly discovered peers during back prop, after updating HEAD
+	for _, newPeer := range newPeers {
+		if err := t.sendWelcome(newPeer); err != nil {
+			return nil, err
+		}
 	}
 
 	return addr, nil

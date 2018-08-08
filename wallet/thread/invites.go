@@ -69,3 +69,22 @@ func (t *Thread) AddInvite(inviteePk libp2pc.PubKey) (mh.Multihash, error) {
 	// all done
 	return addr, nil
 }
+
+// HandleInviteMessage handles an incoming invite
+// - this happens right before a join
+// - the invite is not kept on-chain, so we only need to follow parents and update HEAD
+func (t *Thread) HandleInviteMessage(content *pb.ThreadInvite) error {
+	// back prop
+	if _, err := t.FollowParents(content.Header.Parents, nil); err != nil {
+		return err
+	}
+
+	// update HEAD if parents of the invite are actual updates
+	if len(content.Header.Parents) > 0 {
+		if err := t.updateHead(content.Header.Parents[0]); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
