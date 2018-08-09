@@ -12,46 +12,46 @@ import (
 )
 
 type testImage struct {
-	path        string
-	name        string
-	ext         string
-	format      Format
-	thumbFormat Format
-	hasExif     bool
-	width       int
-	height      int
+	path           string
+	name           string
+	ext            string
+	format         Format
+	encodingFormat Format
+	hasExif        bool
+	width          int
+	height         int
 }
 
 var images = []testImage{
 	{
-		path:        "testdata/image.jpg",
-		name:        "image",
-		ext:         ".jpg",
-		format:      JPEG,
-		thumbFormat: JPEG,
-		hasExif:     true,
-		width:       3024,
-		height:      4032,
+		path:           "testdata/image.jpg",
+		name:           "image",
+		ext:            ".jpg",
+		format:         JPEG,
+		encodingFormat: JPEG,
+		hasExif:        true,
+		width:          3024,
+		height:         4032,
 	},
 	{
-		path:        "testdata/image.png",
-		name:        "image",
-		ext:         ".png",
-		format:      PNG,
-		thumbFormat: JPEG,
-		hasExif:     false,
-		width:       3024,
-		height:      4032,
+		path:           "testdata/image.png",
+		name:           "image",
+		ext:            ".png",
+		format:         PNG,
+		encodingFormat: JPEG,
+		hasExif:        false,
+		width:          3024,
+		height:         4032,
 	},
 	{
-		path:        "testdata/image.gif",
-		name:        "image",
-		ext:         ".gif",
-		format:      GIF,
-		thumbFormat: GIF,
-		hasExif:     false,
-		width:       320,
-		height:      240,
+		path:           "testdata/image.gif",
+		name:           "image",
+		ext:            ".gif",
+		format:         GIF,
+		encodingFormat: GIF,
+		hasExif:        false,
+		width:          320,
+		height:         240,
 	},
 }
 
@@ -86,6 +86,37 @@ func Test_DecodeImage(t *testing.T) {
 	}
 }
 
+func Test_EncodeImage(t *testing.T) {
+	for _, i := range images {
+		file, err := os.Open(i.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		var encodingFormat Format
+		var thumbExt string
+		if i.format == "gif" {
+			encodingFormat = GIF
+			thumbExt = ".gif"
+		} else {
+			encodingFormat = JPEG
+			thumbExt = ".jpeg"
+		}
+		fileb, err := ioutil.ReadAll(file)
+		reader := bytes.NewReader(fileb)
+
+		thumb, err := EncodeImage(reader, encodingFormat, model.ThumbnailSize)
+		if err != nil {
+			t.Fatal(err)
+		}
+		file.Close()
+		err = ioutil.WriteFile(fmt.Sprintf("/tmp/img_%s%s", i.format, thumbExt), thumb, 0644)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
 func Test_MakeMetadata(t *testing.T) {
 	for _, i := range images {
 		file, err := os.Open(i.path)
@@ -96,7 +127,7 @@ func Test_MakeMetadata(t *testing.T) {
 		fpath := file.Name()
 		ext := strings.ToLower(filepath.Ext(fpath))
 
-		meta, err := MakeMetadata(file, fpath, ext, i.format, i.thumbFormat, i.width, i.height, "Qm...", "bob", "1.0.0")
+		meta, err := MakeMetadata(file, fpath, ext, i.format, i.encodingFormat, i.width, i.height, "Qm...", "1.0.0")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -106,6 +137,12 @@ func Test_MakeMetadata(t *testing.T) {
 		}
 		if meta.Ext != i.ext {
 			t.Error("bad photo meta extension")
+		}
+		if meta.OriginalFormat != string(i.format) {
+			t.Error("bad photo original format")
+		}
+		if meta.EncodingFormat != string(i.encodingFormat) {
+			t.Error("bad photo encoding format")
 		}
 		if meta.Width != i.width {
 			t.Error("bad photo meta width")
@@ -121,37 +158,6 @@ func Test_MakeMetadata(t *testing.T) {
 		}
 		if (i.hasExif && meta.Longitude == 0) || (!i.hasExif && meta.Longitude != 0) {
 			t.Error("bad photo meta longitude")
-		}
-	}
-}
-
-func Test_MakeThumbnail(t *testing.T) {
-	for _, i := range images {
-		file, err := os.Open(i.path)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		var thumbFormat Format
-		var thumbExt string
-		if i.format == "gif" {
-			thumbFormat = GIF
-			thumbExt = ".gif"
-		} else {
-			thumbFormat = JPEG
-			thumbExt = ".jpeg"
-		}
-		fileb, err := ioutil.ReadAll(file)
-		reader := bytes.NewReader(fileb)
-
-		thumb, err := MakeThumbnail(reader, thumbFormat, model.ThumbnailWidth)
-		if err != nil {
-			t.Fatal(err)
-		}
-		file.Close()
-		err = ioutil.WriteFile(fmt.Sprintf("/tmp/img_%s%s", i.format, thumbExt), thumb, 0644)
-		if err != nil {
-			t.Fatal(err)
 		}
 	}
 }

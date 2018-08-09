@@ -125,6 +125,9 @@ func (p *Pinner) send(pr repo.PinRequest) error {
 }
 
 func Pin(ipfs *core.IpfsNode, id string, tokens *repo.CafeTokens, url string) error {
+	if tokens == nil {
+		return errors.New("pin attempted without tokens")
+	}
 	// load local content
 	cType := "application/octet-stream"
 	var reader io.Reader

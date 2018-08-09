@@ -69,6 +69,7 @@ func gatewayHandler(c *gin.Context) {
 	contentPath := c.Param("root") + c.Param("path")
 
 	// look for block id
+	// NOTE: this only works for the local node, but very useful for desktop
 	blockId, exists := c.GetQuery("block")
 	if exists {
 		block, err := Node.Wallet.GetBlock(blockId)
@@ -156,7 +157,7 @@ func profileHandler(c *gin.Context) {
 				return
 			}
 		}
-		c.Redirect(302, location)
+		c.Redirect(307, location)
 	}
 
 	c.Render(200, render.Data{Data: data})
