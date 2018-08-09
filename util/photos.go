@@ -74,9 +74,12 @@ func EncodeImage(reader io.Reader, format Format, size model.ImageSize) ([]byte,
 		if err != nil {
 			return nil, err
 		}
-		thumb := imaging.Resize(img, width, 0, imaging.Lanczos)
+		if img.Bounds().Size().X < width {
+			width = img.Bounds().Size().X
+		}
+		resized := imaging.Resize(img, width, 0, imaging.Lanczos)
 		buff := new(bytes.Buffer)
-		if err = jpeg.Encode(buff, thumb, nil); err != nil {
+		if err = jpeg.Encode(buff, resized, nil); err != nil {
 			return nil, err
 		}
 		result = buff.Bytes()
@@ -85,17 +88,22 @@ func EncodeImage(reader io.Reader, format Format, size model.ImageSize) ([]byte,
 		if err != nil {
 			return nil, err
 		}
+		if len(img.Image) == 0 {
+			return nil, errors.New("gif does not have any frames")
+		}
 		firstFrame := img.Image[0].Bounds()
+		if firstFrame.Dx() < width {
+			width = firstFrame.Dx()
+		}
 		rect := image.Rect(0, 0, firstFrame.Dx(), firstFrame.Dy())
 		rgba := image.NewRGBA(rect)
 		for index, frame := range img.Image {
 			bounds := frame.Bounds()
 			draw.Draw(rgba, bounds, frame, bounds.Min, draw.Over)
-			img.Image[index] = imageToPaletted(imaging.Resize(rgba, width, 0, imaging.Box))
+			img.Image[index] = imageToPaletted(imaging.Resize(rgba, width, 0, imaging.Lanczos))
 		}
-		aspect := float64(img.Config.Width) / float64(img.Config.Height)
-		img.Config.Width = width
-		img.Config.Height = int(float64(width) / aspect)
+		img.Config.Width = img.Image[0].Bounds().Dx()
+		img.Config.Height = img.Image[0].Bounds().Dy()
 		buff := new(bytes.Buffer)
 		if err = gif.EncodeAll(buff, img); err != nil {
 			return nil, err

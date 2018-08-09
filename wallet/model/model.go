@@ -2,15 +2,6 @@ package model
 
 import "time"
 
-type ImageType string
-
-const (
-	ThumbnailType ImageType = "thumb"
-	SmallType               = "small"
-	MediumType              = "medium"
-	LargeType               = "photo"
-)
-
 type ImageSize int
 
 const (
