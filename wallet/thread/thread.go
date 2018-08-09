@@ -100,7 +100,7 @@ func (t *Thread) Close() {
 func (t *Thread) Blocks(offsetId string, limit int, btype *repo.BlockType) []repo.Block {
 	var query string
 	if btype != nil {
-		query = fmt.Sprintf("threadId='%s' and type=%d", t.Id, btype)
+		query = fmt.Sprintf("threadId='%s' and type=%d", t.Id, *btype)
 	} else {
 		query = fmt.Sprintf("threadId='%s'", t.Id)
 	}

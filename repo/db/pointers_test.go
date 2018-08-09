@@ -185,9 +185,14 @@ func TestPointersDB_Get(t *testing.T) {
 		CancelId: nil,
 	}
 	err := pndb.Put(m)
-	p, err := pndb.Get(id)
 	if err != nil {
-		t.Error("get pointers returned error")
+		t.Errorf("put pointer returned error: %s", err)
+		return
+	}
+	p := pndb.Get(id)
+	if p == nil {
+		t.Error("get pointer returned nil")
+		return
 	}
 
 	if p.Purpose != m.Purpose {
