@@ -63,48 +63,11 @@ func DecodeImage(file *os.File) (*bytes.Reader, *Format, *image.Point, error) {
 	return reader, &format, &size, nil
 }
 
-// MakeMetadata reads any available meta/exif data from a photo
-func MakeMetadata(reader io.Reader, path string, ext string, format Format, tnFormat Format, width int, height int, id string, username, version string) (model.PhotoMetadata, error) {
-	var created time.Time
-	var lat, lon float64
-	x, err := exif.Decode(reader)
-	if err == nil {
-		// time taken
-		createdTmp, err := x.DateTime()
-		if err == nil {
-			created = createdTmp
-		}
-		// coords taken
-		latTmp, lonTmp, err := x.LatLong()
-		if err == nil {
-			lat, lon = latTmp, lonTmp
-		}
-	}
-	meta := model.PhotoMetadata{
-		FileMetadata: model.FileMetadata{
-			Metadata: model.Metadata{
-				Version:  version,
-				PeerId:   id,
-				Username: username,
-				Created:  created,
-				Added:    time.Now(),
-			},
-			Name: strings.TrimSuffix(filepath.Base(path), ext),
-			Ext:  ext,
-		},
-		Format:          string(format),
-		ThumbnailFormat: string(tnFormat),
-		Width:           width,
-		Height:          height,
-		Latitude:        lat,
-		Longitude:       lon,
-	}
-	return meta, nil
-}
-
-// MakeThumbnail creates a jpeg|gif thumbnail from an image
-func MakeThumbnail(reader io.Reader, format Format, width int) ([]byte, error) {
+// EncodeImage creates a jpeg|gif thumbnail from an image
+// - jpeg quality is currently the default (75/100)
+func EncodeImage(reader io.Reader, format Format, size model.ImageSize) ([]byte, error) {
 	var result []byte
+	width := int(size)
 	switch format {
 	case JPEG:
 		img, _, err := image.Decode(reader)
@@ -149,6 +112,44 @@ func DecodeExif(reader io.Reader) *exif.Exif {
 		return nil
 	}
 	return exf
+}
+
+// MakeMetadata reads any available meta/exif data from a photo
+func MakeMetadata(reader io.Reader, path string, ext string, format Format, encodingFormat Format, width int, height int, id string, version string) (model.PhotoMetadata, error) {
+	var created time.Time
+	var lat, lon float64
+	x, err := exif.Decode(reader)
+	if err == nil {
+		// time taken
+		createdTmp, err := x.DateTime()
+		if err == nil {
+			created = createdTmp
+		}
+		// coords taken
+		latTmp, lonTmp, err := x.LatLong()
+		if err == nil {
+			lat, lon = latTmp, lonTmp
+		}
+	}
+	meta := model.PhotoMetadata{
+		FileMetadata: model.FileMetadata{
+			Metadata: model.Metadata{
+				Version: version,
+				PeerId:  id,
+				Created: created,
+				Added:   time.Now(),
+			},
+			Name: strings.TrimSuffix(filepath.Base(path), ext),
+			Ext:  ext,
+		},
+		OriginalFormat: string(format),
+		EncodingFormat: string(encodingFormat),
+		Width:          width,
+		Height:         height,
+		Latitude:       lat,
+		Longitude:      lon,
+	}
+	return meta, nil
 }
 
 // correctOrientation returns a copy of an image (jpg|png|gif) with exif removed

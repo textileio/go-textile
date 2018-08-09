@@ -138,6 +138,9 @@ func (t *Thread) HandleDataBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 		if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/thumb", content.DataId), false); err != nil {
 			return nil, err
 		}
+		if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/small", content.DataId), false); err != nil {
+			log.Warningf("photo set missing small size")
+		}
 		if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/meta", content.DataId), false); err != nil {
 			return nil, err
 		}

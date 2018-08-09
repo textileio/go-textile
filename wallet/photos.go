@@ -36,29 +36,53 @@ func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// make a thumbnail
-	reader.Seek(0, 0)
-	var thumbFormat util.Format
+	var encodingFormat util.Format
 	if *format == util.GIF {
-		thumbFormat = util.GIF
+		encodingFormat = util.GIF
 	} else {
-		thumbFormat = util.JPEG
+		encodingFormat = util.JPEG
 	}
-	thumb, err := util.MakeThumbnail(reader, thumbFormat, model.ThumbnailWidth)
+
+	// make all image sizes
+	reader.Seek(0, 0)
+	thumb, err := util.EncodeImage(reader, encodingFormat, model.ThumbnailSize)
+	if err != nil {
+		return nil, err
+	}
+	reader.Seek(0, 0)
+	small, err := util.EncodeImage(reader, encodingFormat, model.SmallSize)
+	if err != nil {
+		return nil, err
+	}
+	reader.Seek(0, 0)
+	medium, err := util.EncodeImage(reader, encodingFormat, model.MediumSize)
+	if err != nil {
+		return nil, err
+	}
+	reader.Seek(0, 0)
+	large, err := util.EncodeImage(reader, encodingFormat, model.LargeSize)
 	if err != nil {
 		return nil, err
 	}
 
-	// get some meta data
+	// make meta data
+	fpath := file.Name()
+	ext := strings.ToLower(filepath.Ext(fpath))
 	id, err := w.GetId()
 	if err != nil {
 		return nil, err
 	}
-	username, _ := w.GetUsername()
+	reader.Seek(0, 0)
+	meta, err := util.MakeMetadata(reader, fpath, ext, *format, encodingFormat, size.X, size.Y, id, w.version)
 	if err != nil {
 		return nil, err
 	}
+	metab, err := json.Marshal(meta)
+	if err != nil {
+		return nil, err
+	}
+
+	// get public key
 	mpk, err := w.GetPubKey()
 	if err != nil {
 		return nil, err
@@ -68,28 +92,20 @@ func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 		return nil, err
 	}
 
-	// path info
-	fpath := file.Name()
-	ext := strings.ToLower(filepath.Ext(fpath))
-
-	// get metadata
-	reader.Seek(0, 0)
-	meta, err := util.MakeMetadata(reader, fpath, ext, *format, thumbFormat, size.X, size.Y, id, username, w.version)
-	if err != nil {
-		return nil, err
-	}
-	metab, err := json.Marshal(meta)
-	if err != nil {
-		return nil, err
-	}
-
 	// encrypt files
-	reader.Seek(0, 0)
-	photocipher, err := util.GetEncryptedReaderBytes(reader, key)
+	thumbcipher, err := crypto.EncryptAES(thumb, key)
 	if err != nil {
 		return nil, err
 	}
-	thumbcipher, err := crypto.EncryptAES(thumb, key)
+	smallcipher, err := crypto.EncryptAES(small, key)
+	if err != nil {
+		return nil, err
+	}
+	mediumcipher, err := crypto.EncryptAES(medium, key)
+	if err != nil {
+		return nil, err
+	}
+	largecipher, err := crypto.EncryptAES(large, key)
 	if err != nil {
 		return nil, err
 	}
@@ -104,10 +120,16 @@ func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 
 	// create a virtual directory for the photo
 	dirb := uio.NewDirectory(w.ipfs.DAG)
-	if err := util.AddFileToDirectory(w.ipfs, dirb, bytes.NewReader(photocipher), "photo"); err != nil {
+	if err := util.AddFileToDirectory(w.ipfs, dirb, bytes.NewReader(thumbcipher), "thumb"); err != nil {
 		return nil, err
 	}
-	if err := util.AddFileToDirectory(w.ipfs, dirb, bytes.NewReader(thumbcipher), "thumb"); err != nil {
+	if err := util.AddFileToDirectory(w.ipfs, dirb, bytes.NewReader(smallcipher), "small"); err != nil {
+		return nil, err
+	}
+	if err := util.AddFileToDirectory(w.ipfs, dirb, bytes.NewReader(mediumcipher), "medium"); err != nil {
+		return nil, err
+	}
+	if err := util.AddFileToDirectory(w.ipfs, dirb, bytes.NewReader(largecipher), "photo"); err != nil {
 		return nil, err
 	}
 	if err := util.AddFileToDirectory(w.ipfs, dirb, bytes.NewReader(metacipher), "meta"); err != nil {
@@ -122,7 +144,7 @@ func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := util.PinDirectory(w.ipfs, dir, []string{"photo"}); err != nil {
+	if err := util.PinDirectory(w.ipfs, dir, []string{"medium", "photo"}); err != nil {
 		return nil, err
 	}
 	result := &AddDataResult{Id: dir.Cid().Hash().B58String(), Key: string(key)}
@@ -145,10 +167,16 @@ func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 	defer result.Archive.Close()
 
 	// add files
-	if err := result.Archive.AddFile(photocipher, "photo"); err != nil {
+	if err := result.Archive.AddFile(thumbcipher, "thumb"); err != nil {
 		return nil, err
 	}
-	if err := result.Archive.AddFile(thumbcipher, "thumb"); err != nil {
+	if err := result.Archive.AddFile(smallcipher, "small"); err != nil {
+		return nil, err
+	}
+	if err := result.Archive.AddFile(mediumcipher, "medium"); err != nil {
+		return nil, err
+	}
+	if err := result.Archive.AddFile(largecipher, "photo"); err != nil {
 		return nil, err
 	}
 	if err := result.Archive.AddFile(metacipher, "meta"); err != nil {
@@ -186,18 +214,14 @@ func (w *Wallet) PhotoThreads(id string) []*thread.Thread {
 func (w *Wallet) GetPhotoKey(id string) (string, error) {
 	block, err := w.GetBlockByDataId(id)
 	if err != nil {
-		log.Errorf("could not find block for data id %s: %s", id, err)
 		return "", err
 	}
 	_, thrd := w.GetThread(block.ThreadId)
 	if thrd == nil {
-		err := errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadId))
-		log.Error(err.Error())
-		return "", err
+		return "", errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadId))
 	}
 	key, err := thrd.GetBlockDataKey(block)
 	if err != nil {
-		log.Errorf("get photo key failed %s: %s", id, err)
 		return "", err
 	}
 	return string(key), nil
