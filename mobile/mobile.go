@@ -1,6 +1,7 @@
 package mobile
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"github.com/textileio/textile-go/wallet/model"
 	"github.com/textileio/textile-go/wallet/thread"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"image"
 	"time"
 )
 
@@ -81,10 +83,9 @@ type Photos struct {
 	Items []Photo `json:"items"`
 }
 
-// ImageData is a wrapper around an image data url and meta data
+// ImageData is a wrapper around an image data url
 type ImageData struct {
-	Url      string               `json:"url"`
-	Metadata *model.PhotoMetadata `json:"metadata"`
+	Url string `json:"url"`
 }
 
 // ExternalInvite is a wrapper around an invite id and key
@@ -517,14 +518,33 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 	return toJSON(photos)
 }
 
-// GetPhotoData returns a data url for a photo
-func (m *Mobile) GetPhotoData(id string) (string, error) {
-	return m.getImageData(id, "photo", false)
-}
-
-// GetPhotoData returns a data url for a photo
-func (m *Mobile) GetThumbData(id string) (string, error) {
-	return m.getImageData(id, "thumb", true)
+// GetPhotoData returns a data url for an image under a path
+func (m *Mobile) GetPhotoData(id string, path string) (string, error) {
+	block, err := tcore.Node.Wallet.GetBlockByDataId(id)
+	if err != nil {
+		log.Errorf("could not find block for data id %s: %s", id, err)
+		return "", err
+	}
+	_, thrd := tcore.Node.Wallet.GetThread(block.ThreadId)
+	if thrd == nil {
+		err := errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadId))
+		log.Error(err.Error())
+		return "", err
+	}
+	data, err := thrd.GetBlockData(fmt.Sprintf("%s/%s", id, path), block)
+	if err != nil {
+		log.Errorf("get block data failed %s: %s", id, err)
+		return "", err
+	}
+	_, formatStr, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil {
+		log.Errorf("could not determine image format: %s", err)
+		return "", err
+	}
+	prefix := getImageDataURLPrefix(util.Format(formatStr))
+	encoded := libp2pc.ConfigEncodeKey(data)
+	img := &ImageData{Url: prefix + encoded}
+	return toJSON(img)
 }
 
 // GetPhotoMetadata returns a meta data object for a photo
@@ -551,41 +571,6 @@ func (m *Mobile) GetPhotoMetadata(id string) (string, error) {
 // GetPhotoKey calls core GetPhotoKey
 func (m *Mobile) GetPhotoKey(id string) (string, error) {
 	return tcore.Node.Wallet.GetPhotoKey(id)
-}
-
-// getImageData returns a data url for an image under a path
-func (m *Mobile) getImageData(id string, path string, isThumb bool) (string, error) {
-	block, err := tcore.Node.Wallet.GetBlockByDataId(id)
-	if err != nil {
-		log.Errorf("could not find block for data id %s: %s", id, err)
-		return "", err
-	}
-	_, thrd := tcore.Node.Wallet.GetThread(block.ThreadId)
-	if thrd == nil {
-		err := errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadId))
-		log.Error(err.Error())
-		return "", err
-	}
-	url, err := thrd.GetBlockDataBase64(fmt.Sprintf("%s/%s", id, path), block)
-	if err != nil {
-		log.Errorf("get block data base64 failed %s: %s", id, err)
-		return "", err
-	}
-
-	// get meta data for url type
-	meta, err := thrd.GetPhotoMetaData(id, block)
-	if err != nil {
-		log.Warningf("get photo meta data failed %s: %s", id, err)
-		meta = &model.PhotoMetadata{}
-	}
-	if isThumb {
-		url = getThumbDataURLPrefix(meta) + url
-	} else {
-		url = getPhotoDataURLPrefix(meta) + url
-	}
-	data := &ImageData{Url: url, Metadata: meta}
-
-	return toJSON(data)
 }
 
 // subscribe to thread and pass updates to messenger
@@ -622,20 +607,11 @@ func (m *Mobile) waitForOnline() {
 	}
 }
 
-// getDataURLPrefix adds the correct data url prefix to a data url
-func getPhotoDataURLPrefix(meta *model.PhotoMetadata) string {
-	switch util.Format(meta.Format) {
+// getImageDataURLPrefix adds the correct data url prefix to a data url
+func getImageDataURLPrefix(format util.Format) string {
+	switch format {
 	case util.PNG:
 		return "data:image/png;base64,"
-	case util.GIF:
-		return "data:image/gif;base64,"
-	default:
-		return "data:image/jpeg;base64,"
-	}
-}
-
-func getThumbDataURLPrefix(meta *model.PhotoMetadata) string {
-	switch util.Format(meta.ThumbnailFormat) {
 	case util.GIF:
 		return "data:image/gif;base64,"
 	default:
