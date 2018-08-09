@@ -8,48 +8,9 @@ Textile CLI, desktop app, mobile bindings, and REST API. See [textile-mobile](ht
 
 This repository contains a cross platform cli, desktop application, and iOS/Android mobile bindings for running a Textile node. See [Textile Photos](https://www.textile.photos) for more info. 
 
-Until [Textile Photos](https://www.textile.photos) is ready for public release, this library will be rapidly evolving.
+Until [Textile Photos](https://www.textile.photos) is ready for public release, this library will be rapidly evolving. 
 
-## Building
-
-Build the CLI:
-
-```
-make build
-```
-
-Build the iOS Framework:
-
-```
-make ios_framework
-```
-
-Build the Android Framework:
-
-```
-make android_framework
-``` 
-
-### Desktop client
-
-```
-go get -u github.com/asticode/go-astitools
-go get -u github.com/asticode/go-astilectron-bundler/...
-go get -u github.com/asticode/go-astilectron-bootstrap/...
-```
-
-```
-make build_desktop
-```
-
-you can now open the desktop build, stored in `desktop/output/darwin-amd64` (for mac). or run it in dev mode
-
-```
-cd desktop/
-go run *.go
-```
-
-## Contributing
+## Install
 
 ```
 go get github.com/textileio/textile-go
@@ -92,7 +53,45 @@ npm run setup
 
 This will start the interactive commit prompt.
 
-#### Commitizen
+## Building
+
+There are various things to build:
+
+#### The CLI:
+
+```
+make build
+```
+
+#### The iOS Framework:
+
+```
+make ios_framework
+```
+
+#### The Android Framework:
+
+```
+make android_framework
+```
+
+#### The Desktop Application
+
+The build is made by a vendored version of `go-astilectron-bundler`. Due to Go's painful package management, you'll want to delete any `go-astilectron`-related binaries and source code you have installed from `github.com/asticode` in your `$GOPATH`. Then you can install the vendored `go-astilectron-bundler`:
+```
+go install ./vendor/github.com/asticode/go-astilectron-bundler/astilectron-bundler
+```
+Run `make` to build the app for Darwin:
+```
+make build_desktop
+```
+Double-click the built app in `desktop/output/darwin-amd64`, or run it directly:
+```
+cd desktop && go run *.go
+```
+To build for Linux or Windows, see [go-astilectron-bundler](https://github.com/asticode/go-astilectron-bundler).
+
+## Contributing
 
 The easiest way to write a valid commit message is to use the `npm` script:
 
