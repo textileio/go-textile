@@ -399,6 +399,16 @@ func main() {
 				Func: cmd.ListThreads,
 			})
 			threadCmd.AddCmd(&ishell.Cmd{
+				Name: "blocks",
+				Help: "list blocks",
+				Func: cmd.ListThreadBlocks,
+			})
+			threadCmd.AddCmd(&ishell.Cmd{
+				Name: "head",
+				Help: "show current HEAD",
+				Func: cmd.GetThreadHead,
+			})
+			threadCmd.AddCmd(&ishell.Cmd{
 				Name: "peers",
 				Help: "list peers",
 				Func: cmd.ListThreadPeers,

@@ -66,13 +66,62 @@ func ListThreadPeers(c *ishell.Context) {
 	if len(peers) == 0 {
 		c.Println(fmt.Sprintf("no peers found in: %s", id))
 	} else {
-		c.Println(fmt.Sprintf("found %v peers in: %s", len(peers), id))
+		c.Println(fmt.Sprintf("%v peers:", len(peers)))
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
 	for _, p := range peers {
 		c.Println(green(p.Id))
 	}
+}
+
+func ListThreadBlocks(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing thread id"))
+		return
+	}
+	threadId := c.Args[0]
+
+	_, thrd := core.Node.Wallet.GetThread(threadId)
+	if thrd == nil {
+		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadId)))
+		return
+	}
+
+	blocks := thrd.Blocks("", -1, nil)
+	if len(blocks) == 0 {
+		c.Println(fmt.Sprintf("no blocks found in: %s", threadId))
+	} else {
+		c.Println(fmt.Sprintf("%v blocks:", len(blocks)))
+	}
+
+	magenta := color.New(color.FgHiMagenta).SprintFunc()
+	for _, block := range blocks {
+		c.Println(magenta(fmt.Sprintf("%s %s", block.Type.Description(), block.Id)))
+	}
+}
+
+func GetThreadHead(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing thread id"))
+		return
+	}
+	threadId := c.Args[0]
+
+	_, thrd := core.Node.Wallet.GetThread(threadId)
+	if thrd == nil {
+		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadId)))
+		return
+	}
+
+	head, err := thrd.GetHead()
+	if thrd == nil {
+		c.Err(err)
+		return
+	}
+
+	yellow := color.New(color.FgHiYellow).SprintFunc()
+	c.Println(yellow(head))
 }
 
 func AddThreadInvite(c *ishell.Context) {

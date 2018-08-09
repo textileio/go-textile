@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"errors"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -8,6 +9,7 @@ import (
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/net/common"
 	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/textile-go/util"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
@@ -20,8 +22,6 @@ func (s *TextileService) HandlerForMsgType(t pb.Message_Type) func(peer.ID, *pb.
 		return s.handlePing
 	case pb.Message_THREAD_INVITE:
 		return s.handleThreadInvite
-	case pb.Message_THREAD_EXTERNAL_INVITE:
-		return s.handleExternalThreadInvite
 	case pb.Message_THREAD_JOIN:
 		return s.handleThreadJoin
 	case pb.Message_THREAD_LEAVE:
@@ -67,25 +67,16 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Envelope, opti
 	threadId := libp2pc.ConfigEncodeKey(invite.Header.ThreadPk)
 	_, thrd := s.getThread(threadId)
 	if thrd != nil {
-		// verify thread sig
-		if err := thrd.Verify(signed); err != nil {
-			return nil, err
-		}
-
-		// handle
-		if _, err := thrd.HandleInviteBlock(pmes, signed, invite, false); err != nil {
-			return nil, err
-		}
-
+		// thread exists, aborting
 		return nil, nil
-	} else {
-		// unknown thread and invite not meant for us... shouldn't happen
-		if invite.InviteeId != s.self.Pretty() {
-			return nil, errors.New("invalid invite block")
-		}
 	}
 
-	// lastly, unknown thread and invite meant for us
+	// check if it's meant for us (should be, but safety first)
+	if invite.InviteeId != s.self.Pretty() {
+		return nil, errors.New("invalid invite block")
+	}
+
+	// unknown thread and invite meant for us
 	// unpack new thread secret that should be encrypted with our key
 	skb, err := crypto.Decrypt(s.node.PrivateKey, invite.SkCipher)
 	if err != nil {
@@ -101,63 +92,16 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Envelope, opti
 		return nil, err
 	}
 
-	// verify author sig
-	authorPk, err := libp2pc.UnmarshalPublicKey(invite.Header.AuthorPk)
+	// add to local ipfs for later use when joining
+	pmesb, err := proto.Marshal(pmes)
 	if err != nil {
 		return nil, err
 	}
-
-	// add the new thread
-	thrd, err = s.addThread(invite.SuggestedName, sk)
-	if err != nil {
+	if _, err := util.PinData(s.node, bytes.NewReader(pmesb)); err != nil {
 		return nil, err
 	}
 
-	// handle
-	addr, err := thrd.HandleInviteBlock(pmes, signed, invite, false)
-	if err != nil {
-		return nil, err
-	}
-
-	// accept it, yolo
-	// TODO: Don't auto accept. Need to show some UI with pending invites.
-	addr, err = thrd.Join(authorPk, addr.B58String())
-	if err != nil {
-		return nil, err
-	}
-	log.Debugf("accepted invite to thread %s with name %s. added block %s.", thrd.Id, thrd.Name, addr.B58String())
-
-	return nil, nil
-}
-
-func (s *TextileService) handleExternalThreadInvite(pid peer.ID, pmes *pb.Envelope, options interface{}) (*pb.Envelope, error) {
-	log.Debug("received THREAD_EXTERNAL_INVITE message")
-	signed, err := unpackMessage(pmes)
-	if err != nil {
-		return nil, err
-	}
-	invite := new(pb.ThreadExternalInvite)
-	if err := proto.Unmarshal(signed.Block, invite); err != nil {
-		return nil, err
-	}
-
-	// load thread
-	threadId := libp2pc.ConfigEncodeKey(invite.Header.ThreadPk)
-	_, thrd := s.getThread(threadId)
-	if thrd == nil {
-		// unknown thread and external invite... shouldn't happen
-		return nil, errors.New("invalid invite block")
-	}
-
-	// verify thread sig
-	if err := thrd.Verify(signed); err != nil {
-		return nil, err
-	}
-
-	// handle
-	if _, err := thrd.HandleExternalInviteBlock(pmes, signed, invite, false); err != nil {
-		return nil, err
-	}
+	// TODO: add invite notification that can be used to accept
 
 	return nil, nil
 }
@@ -186,7 +130,7 @@ func (s *TextileService) handleThreadJoin(pid peer.ID, pmes *pb.Envelope, option
 	}
 
 	// handle
-	if _, err := thrd.HandleJoinBlock(pmes, signed, join, false); err != nil {
+	if _, _, err := thrd.HandleJoinBlock(&pid, pmes, signed, join, false); err != nil {
 		return nil, err
 	}
 
@@ -205,7 +149,7 @@ func (s *TextileService) handleThreadMerge(pid peer.ID, pmes *pb.Envelope, optio
 	}
 
 	// load thread
-	threadId := libp2pc.ConfigEncodeKey(merge.Header.ThreadPk)
+	threadId := libp2pc.ConfigEncodeKey(merge.ThreadPk)
 	_, thrd := s.getThread(threadId)
 	if thrd == nil {
 		return nil, errors.New("invalid merge block")
@@ -217,7 +161,7 @@ func (s *TextileService) handleThreadMerge(pid peer.ID, pmes *pb.Envelope, optio
 	}
 
 	// handle
-	if _, err := thrd.HandleMergeBlock(pmes, signed, merge, false); err != nil {
+	if _, err := thrd.HandleMergeBlock(&pid, pmes.Message, signed, merge, false); err != nil {
 		return nil, err
 	}
 
@@ -248,7 +192,7 @@ func (s *TextileService) handleThreadLeave(pid peer.ID, pmes *pb.Envelope, optio
 	}
 
 	// handle
-	if _, err := thrd.HandleLeaveBlock(pmes, signed, leave, false); err != nil {
+	if _, err := thrd.HandleLeaveBlock(&pid, pmes, signed, leave, false); err != nil {
 		return nil, err
 	}
 
@@ -273,13 +217,13 @@ func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Envelope, option
 		return nil, common.OutOfOrderMessage
 	}
 
-	// verify
+	// verify thread sig
 	if err := thrd.Verify(signed); err != nil {
 		return nil, err
 	}
 
 	// handle
-	if _, err := thrd.HandleDataBlock(pmes, signed, data, false); err != nil {
+	if _, err := thrd.HandleDataBlock(&pid, pmes, signed, data, false); err != nil {
 		return nil, err
 	}
 
@@ -304,13 +248,13 @@ func (s *TextileService) handleThreadIgnore(pid peer.ID, pmes *pb.Envelope, opti
 		return nil, common.OutOfOrderMessage
 	}
 
-	// verify
+	// verify thread sig
 	if err := thrd.Verify(signed); err != nil {
 		return nil, err
 	}
 
 	// handle
-	if _, err := thrd.HandleIgnoreBlock(pmes, signed, ignore, false); err != nil {
+	if _, err := thrd.HandleIgnoreBlock(&pid, pmes, signed, ignore, false); err != nil {
 		return nil, err
 	}
 
@@ -325,9 +269,9 @@ func (s *TextileService) handleOfflineAck(pid peer.ID, pmes *pb.Envelope, option
 	if err != nil {
 		return nil, err
 	}
-	pointer, err := s.datastore.Pointers().Get(id)
-	if err != nil {
-		return nil, err
+	pointer := s.datastore.Pointers().Get(id)
+	if pointer == nil {
+		return nil, errors.New("pointer not found")
 	}
 	if pointer.CancelId == nil || pointer.CancelId.Pretty() != pid.Pretty() {
 		return nil, errors.New("peer is not authorized to delete pointer")
@@ -348,40 +292,39 @@ func (s *TextileService) handleOfflineRelay(pid peer.ID, pmes *pb.Envelope, opti
 		return nil, err
 	}
 
-	// Unmarshal plaintext
+	// unmarshal plaintext
 	env := &pb.Envelope{}
 	err = proto.Unmarshal(plaintext, env)
 	if err != nil {
 		return nil, err
 	}
 
-	// Validate the signature
+	// validate envelope signature
 	ser, err := proto.Marshal(env.Message)
 	if err != nil {
 		return nil, err
 	}
-	pubkey, err := libp2pc.UnmarshalPublicKey(env.Pk)
+	pk, err := libp2pc.UnmarshalPublicKey(env.Pk)
 	if err != nil {
 		return nil, err
 	}
-	valid, err := pubkey.Verify(ser, env.Sig)
-	if err != nil || !valid {
+	if err := crypto.Verify(pk, ser, env.Sig); err != nil {
 		return nil, err
 	}
 
-	id, err := peer.IDFromPublicKey(pubkey)
+	id, err := peer.IDFromPublicKey(pk)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get handler for this message type
+	// get handler for this message type
 	handler := s.HandlerForMsgType(env.Message.Type)
 	if handler == nil {
 		log.Debug("got back nil handler from HandlerForMsgType")
 		return nil, nil
 	}
 
-	// Dispatch handler
+	// dispatch handler
 	_, err = handler(id, env, true)
 	if err != nil {
 		log.Errorf("handle message error: %s", err)

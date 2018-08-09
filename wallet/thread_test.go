@@ -95,18 +95,6 @@ func TestThread_GetPhotoMetaData(t *testing.T) {
 	// TODO
 }
 
-func TestThread_Subscribe(t *testing.T) {
-	// TODO
-}
-
-func TestThread_Unsubscribe(t *testing.T) {
-	// TODO
-}
-
-func TestThread_Listening(t *testing.T) {
-	// TODO
-}
-
 func TestThread_Blocks(t *testing.T) {
 	// TODO
 }

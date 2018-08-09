@@ -175,12 +175,11 @@ func (p *PointersDB) GetByPurpose(purpose repo.Purpose) ([]repo.Pointer, error) 
 	return ret, nil
 }
 
-func (p *PointersDB) Get(id peer.ID) (repo.Pointer, error) {
+func (p *PointersDB) Get(id peer.ID) *repo.Pointer {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	stm := "select * from pointers where id=?"
 	row := p.db.QueryRow(stm, id.Pretty())
-	var pointer repo.Pointer
 
 	var pointerId string
 	var key string
@@ -189,29 +188,33 @@ func (p *PointersDB) Get(id peer.ID) (repo.Pointer, error) {
 	var date int
 	var cancelId string
 	if err := row.Scan(&pointerId, &key, &address, &cancelId, &purpose, &date); err != nil {
-		return pointer, err
+		return nil
 	}
 	maAddr, err := ma.NewMultiaddr(address)
 	if err != nil {
-		return pointer, err
+		log.Errorf("error getting addr: %s", err)
+		return nil
 	}
 	pid, err := peer.IDB58Decode(pointerId)
 	if err != nil {
-		return pointer, err
+		log.Errorf("error getting id: %s", err)
+		return nil
 	}
 	k, err := cid.Decode(key)
 	if err != nil {
-		return pointer, err
+		log.Errorf("error decoding cid: %s", err)
+		return nil
 	}
 	var canID *peer.ID
 	if cancelId != "" {
 		c, err := peer.IDB58Decode(cancelId)
 		if err != nil {
-			return pointer, err
+			log.Errorf("error getting cancel id: %s", err)
+			return nil
 		}
 		canID = &c
 	}
-	pointer = repo.Pointer{
+	return &repo.Pointer{
 		Cid: k,
 		Value: ps.PeerInfo{
 			ID:    pid,
@@ -221,5 +224,4 @@ func (p *PointersDB) Get(id peer.ID) (repo.Pointer, error) {
 		Purpose:  repo.Purpose(purpose),
 		Date:     time.Unix(int64(date), 0),
 	}
-	return pointer, nil
 }

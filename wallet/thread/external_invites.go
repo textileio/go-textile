@@ -1,15 +1,14 @@
 package thread
 
 import (
-	"github.com/golang/protobuf/proto"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	"time"
 )
 
-// AddExternalInvite creates an outgoing external invite
+// AddExternalInvite creates an external invite, which can be retrieved by any peer
+// and does not become part of the hash chain
 func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
@@ -42,72 +41,32 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 	}
 
 	// commit to ipfs
-	message, addr, err := t.commitBlock(content, pb.Message_THREAD_EXTERNAL_INVITE)
+	_, addr, err := t.commitBlock(content, pb.Message_THREAD_EXTERNAL_INVITE)
 	if err != nil {
 		return nil, nil, err
 	}
-	id := addr.B58String()
 
-	// index it locally
-	if err := t.indexBlock(id, header, repo.ExternalInviteBlock, nil); err != nil {
-		return nil, nil, err
-	}
-
-	// update head
-	if err := t.updateHead(id); err != nil {
-		return nil, nil, err
-	}
-
-	// post it
-	t.post(message, id, t.Peers())
-
-	log.Debugf("added external invite to %s: %s", t.Id, id)
+	log.Debugf("created EXTERNAL_INVITE for %s", t.Id)
 
 	// all done
 	return addr, key, nil
 }
 
-// HandleExternalInviteBlock handles an incoming external invite block
-func (t *Thread) HandleExternalInviteBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadExternalInvite, following bool) (mh.Multihash, error) {
-	// unmarshal if needed
-	if content == nil {
-		content = new(pb.ThreadExternalInvite)
-		if err := proto.Unmarshal(signed.Block, content); err != nil {
-			return nil, err
+// HandleExternalInviteMessage handles an incoming external invite
+// - this happens right before a join
+// - the invite is not kept on-chain, so we only need to follow parents and update HEAD
+func (t *Thread) HandleExternalInviteMessage(content *pb.ThreadExternalInvite) error {
+	// back prop
+	if _, err := t.FollowParents(content.Header.Parents, nil); err != nil {
+		return err
+	}
+
+	// update HEAD if parents of the invite are actual updates
+	if len(content.Header.Parents) > 0 {
+		if err := t.updateHead(content.Header.Parents[0]); err != nil {
+			return err
 		}
 	}
 
-	// add to ipfs
-	addr, err := t.addBlock(message)
-	if err != nil {
-		return nil, err
-	}
-	id := addr.B58String()
-
-	// check if we aleady have this block indexed
-	// (should only happen if a misbehaving peer keeps sending the same block)
-	index := t.blocks().Get(id)
-	if index != nil {
-		return nil, nil
-	}
-
-	// index it locally
-	if err := t.indexBlock(id, content.Header, repo.ExternalInviteBlock, nil); err != nil {
-		return nil, err
-	}
-
-	// back prop
-	if err := t.FollowParents(content.Header.Parents); err != nil {
-		return nil, err
-	}
-
-	// handle HEAD
-	if following {
-		return addr, nil
-	}
-	if _, err := t.handleHead(id, content.Header.Parents, false); err != nil {
-		return nil, err
-	}
-
-	return addr, nil
+	return nil
 }
