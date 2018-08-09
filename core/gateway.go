@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin/render"
 	"github.com/textileio/textile-go/crypto"
 	"net/http"
-	"strings"
 )
 
 // StartGateway starts the gateway
@@ -147,13 +146,17 @@ func profileHandler(c *gin.Context) {
 
 	// if this is an avatar request, fetch and return the linked image
 	if isAvatar {
-		// cheap migration from older formats...
 		location := string(data)
-		if !strings.HasPrefix(location, "/ipfs") || !strings.Contains(location, "?key=") {
-			location = fmt.Sprintf("https://avatars.dicebear.com/v2/identicon/%s.svg", c.Param("root"))
+		if location == "" {
+			fallback, _ := c.GetQuery("fallback")
+			if fallback == "true" {
+				location = fmt.Sprintf("https://avatars.dicebear.com/v2/identicon/%s.svg", c.Param("root"))
+			} else {
+				c.Status(404)
+				return
+			}
 		}
 		c.Redirect(302, location)
-		return
 	}
 
 	c.Render(200, render.Data{Data: data})
