@@ -13,7 +13,6 @@ import (
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/namesys/opts"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/path"
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
-	"strings"
 	"time"
 )
 
@@ -231,7 +230,7 @@ func (w *Wallet) SetAvatarId(id string) error {
 	}
 
 	// use the cafe address w/ public url
-	link := fmt.Sprintf("%s/ipfs/%s/thumb?key=%s", w.cafeAddr, id, key)
+	link := fmt.Sprintf("/ipfs/%s/thumb?key=%s", id, key)
 
 	// update
 	if err := w.datastore.Profile().SetAvatarId(link); err != nil {
@@ -270,9 +269,6 @@ func (w *Wallet) GetProfile(peerId string) (*model.Profile, error) {
 	if pid == peerId {
 		username, _ := w.GetUsername()
 		avatarId, _ := w.GetAvatarId()
-		if !strings.HasPrefix(avatarId, "http") {
-			avatarId = ""
-		}
 		return &model.Profile{Id: pid, Username: username, AvatarId: avatarId}, nil
 	}
 
@@ -288,9 +284,6 @@ func (w *Wallet) GetProfile(peerId string) (*model.Profile, error) {
 	usernameb, _ = util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/%s", root, "username"))
 	avatarIdb, _ = util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/%s", root, "avatar_id"))
 	avatarId := string(avatarIdb)
-	if !strings.HasPrefix(avatarId, "http") {
-		avatarId = ""
-	}
 
 	return &model.Profile{
 		Id:       peerId,
