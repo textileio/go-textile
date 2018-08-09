@@ -47,7 +47,7 @@ func (t *Thread) AddPhoto(dataId string, caption string, key []byte) (mh.Multiha
 	}
 
 	// commit to ipfs
-	message, addr, err := t.commitBlock(content, pb.Message_THREAD_DATA)
+	env, addr, err := t.commitBlock(content, pb.Message_THREAD_DATA)
 	if err != nil {
 		return nil, err
 	}
@@ -69,16 +69,16 @@ func (t *Thread) AddPhoto(dataId string, caption string, key []byte) (mh.Multiha
 	}
 
 	// post it
-	t.post(message, id, t.Peers())
+	t.post(env, id, t.Peers())
 
-	log.Debugf("added photo to %s: %s", t.Id, id)
+	log.Debugf("added DATA to %s: %s", t.Id, id)
 
 	// all done
 	return addr, nil
 }
 
 // HandleDataBlock handles an incoming data block
-func (t *Thread) HandleDataBlock(from *peer.ID, message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadData, following bool) (mh.Multihash, error) {
+func (t *Thread) HandleDataBlock(from *peer.ID, env *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadData, following bool) (mh.Multihash, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadData)
@@ -88,7 +88,7 @@ func (t *Thread) HandleDataBlock(from *peer.ID, message *pb.Envelope, signed *pb
 	}
 
 	// add to ipfs
-	addr, err := t.addBlock(message)
+	addr, err := t.addBlock(env)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,6 @@ func (t *Thread) HandleDataBlock(from *peer.ID, message *pb.Envelope, signed *pb
 		}
 		if err := t.peers().Add(newPeer); err != nil {
 			// TODO: #202 (Properly handle database/sql errors)
-			log.Warningf("peer with id %s already exists in thread %s", newPeer.Id, t.Id)
 		}
 	}
 

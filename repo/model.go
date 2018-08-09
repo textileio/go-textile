@@ -58,21 +58,21 @@ const (
 func (b BlockType) Description() string {
 	switch b {
 	case InviteBlock:
-		return "invite"
+		return "INVITE"
 	case ExternalInviteBlock:
-		return "external_invite"
+		return "EXTERNAL_INVITE"
 	case JoinBlock:
-		return "join"
+		return "JOIN"
 	case LeaveBlock:
-		return "leave"
+		return "LEAVE"
 	case PhotoBlock:
-		return "photo"
+		return "PHOTO"
 	case IgnoreBlock:
-		return "ignore"
+		return "IGNORE"
 	case MergeBlock:
-		return "merge"
+		return "MERGE"
 	default:
-		return "invalid"
+		return "INVALID"
 	}
 }
 

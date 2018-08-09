@@ -32,7 +32,7 @@ func (t *Thread) Ignore(dataId string) (mh.Multihash, error) {
 	}
 
 	// commit to ipfs
-	message, addr, err := t.commitBlock(content, pb.Message_THREAD_IGNORE)
+	env, addr, err := t.commitBlock(content, pb.Message_THREAD_IGNORE)
 	if err != nil {
 		return nil, err
 	}
@@ -52,16 +52,16 @@ func (t *Thread) Ignore(dataId string) (mh.Multihash, error) {
 	}
 
 	// post it
-	t.post(message, id, t.Peers())
+	t.post(env, id, t.Peers())
 
-	log.Debugf("ignore added to %s: %s", t.Id, id)
+	log.Debugf("added IGNORE to %s: %s", t.Id, id)
 
 	// all done
 	return addr, nil
 }
 
 // HandleIgnoreBlock handles an incoming ignore block
-func (t *Thread) HandleIgnoreBlock(from *peer.ID, message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadIgnore, following bool) (mh.Multihash, error) {
+func (t *Thread) HandleIgnoreBlock(from *peer.ID, env *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadIgnore, following bool) (mh.Multihash, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadIgnore)
@@ -71,7 +71,7 @@ func (t *Thread) HandleIgnoreBlock(from *peer.ID, message *pb.Envelope, signed *
 	}
 
 	// add to ipfs
-	addr, err := t.addBlock(message)
+	addr, err := t.addBlock(env)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,6 @@ func (t *Thread) HandleIgnoreBlock(from *peer.ID, message *pb.Envelope, signed *
 		}
 		if err := t.peers().Add(newPeer); err != nil {
 			// TODO: #202 (Properly handle database/sql errors)
-			log.Warningf("peer with id %s already exists in thread %s", newPeer.Id, t.Id)
 		}
 	}
 

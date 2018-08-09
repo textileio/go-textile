@@ -46,7 +46,7 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 		return nil, nil, err
 	}
 
-	log.Debugf("added external invite to '%s'", t.Name)
+	log.Debugf("created EXTERNAL_INVITE for %s", t.Id)
 
 	// all done
 	return addr, key, nil

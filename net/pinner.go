@@ -65,7 +65,6 @@ func (p *Pinner) Pin() {
 
 	// check tokens
 	if p.Tokens == nil {
-		log.Debugf("not logged in, pinner aborting")
 		return
 	}
 
@@ -79,7 +78,6 @@ func (p *Pinner) Put(id string) error {
 	if err := p.datastore.PinRequests().Put(pr); err != nil {
 		return err
 	}
-	log.Debugf("put pin request for %s", id)
 
 	// run it now
 	go p.Pin()
@@ -110,7 +108,7 @@ func (p *Pinner) handlePin(offset string) error {
 		}(r)
 	}
 	wg.Wait()
-	log.Debugf("successfully handled %d pin requests, deleting...", len(toDelete))
+	log.Debugf("handled %d pin requests, deleting...", len(toDelete))
 
 	// clean up
 	for _, id := range toDelete {

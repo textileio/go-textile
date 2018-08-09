@@ -121,11 +121,12 @@ func ListPhotos(c *ishell.Context) {
 		return
 	}
 
-	blocks := thrd.Blocks("", -1, repo.PhotoBlock)
+	btype := repo.PhotoBlock
+	blocks := thrd.Blocks("", -1, &btype)
 	if len(blocks) == 0 {
 		c.Println(fmt.Sprintf("no photos found in: %s", threadId))
 	} else {
-		c.Println(fmt.Sprintf("found %v photos in: %s", len(blocks), threadId))
+		c.Println(fmt.Sprintf("%v photos:", len(blocks)))
 	}
 
 	magenta := color.New(color.FgHiMagenta).SprintFunc()

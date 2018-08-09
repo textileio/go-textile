@@ -97,10 +97,19 @@ func (t *Thread) Close() {
 }
 
 // Blocks paginates blocks from the datastore
-func (t *Thread) Blocks(offsetId string, limit int, bType repo.BlockType) []repo.Block {
-	query := fmt.Sprintf("threadId='%s' and type=%d", t.Id, bType)
+func (t *Thread) Blocks(offsetId string, limit int, btype *repo.BlockType) []repo.Block {
+	var query string
+	if btype != nil {
+		query = fmt.Sprintf("threadId='%s' and type=%d", t.Id, btype)
+	} else {
+		query = fmt.Sprintf("threadId='%s'", t.Id)
+	}
+	all := t.blocks().List(offsetId, limit, query)
+	if btype == nil {
+		return all
+	}
 	var filtered []repo.Block
-	for _, block := range t.blocks().List(offsetId, limit, query) {
+	for _, block := range all {
 		ignored := t.blocks().GetByDataId(fmt.Sprintf("ignore-%s", block.Id))
 		if ignored == nil {
 			filtered = append(filtered, block)
@@ -166,26 +175,37 @@ func (t *Thread) followParent(parent string, from *peer.ID) (*repo.Peer, error) 
 		return nil, err
 	}
 	env := new(pb.Envelope)
+	message := new(pb.Message)
 	if err := proto.Unmarshal(serialized, env); err != nil {
 		return nil, err
 	}
-
-	// verify author sig
-	messageb, err := proto.Marshal(env.Message)
-	if err != nil {
-		return nil, err
+	if env.Message != nil {
+		// verify author sig
+		messageb, err := proto.Marshal(env.Message)
+		if err != nil {
+			return nil, err
+		}
+		authorPk, err := libp2pc.UnmarshalPublicKey(env.Pk)
+		if err != nil {
+			return nil, err
+		}
+		if err := crypto.Verify(authorPk, messageb, env.Sig); err != nil {
+			return nil, err
+		}
+		message = env.Message
+	} else {
+		// might be a merge block
+		if err := proto.Unmarshal(serialized, message); err != nil {
+			return nil, err
+		}
 	}
-	authorPk, err := libp2pc.UnmarshalPublicKey(env.Pk)
-	if err != nil {
-		return nil, err
-	}
-	if err := crypto.Verify(authorPk, messageb, env.Sig); err != nil {
-		return nil, err
+	if message.Payload == nil {
+		return nil, errors.New("nil message payload")
 	}
 
 	// verify thread sig
 	signed := new(pb.SignedThreadBlock)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, signed); err != nil {
+	if err := ptypes.UnmarshalAny(message.Payload, signed); err != nil {
 		return nil, err
 	}
 	if err := t.Verify(signed); err != nil {
@@ -194,7 +214,7 @@ func (t *Thread) followParent(parent string, from *peer.ID) (*repo.Peer, error) 
 
 	// handle each type
 	var joined *repo.Peer
-	switch env.Message.Type {
+	switch message.Type {
 	case pb.Message_THREAD_JOIN:
 		var err error
 		_, joined, err = t.HandleJoinBlock(from, env, signed, nil, true)
@@ -214,11 +234,11 @@ func (t *Thread) followParent(parent string, from *peer.ID) (*repo.Peer, error) 
 			return nil, err
 		}
 	case pb.Message_THREAD_MERGE:
-		if _, err := t.HandleMergeBlock(from, env, signed, nil, true); err != nil {
+		if _, err := t.HandleMergeBlock(from, message, signed, nil, true); err != nil {
 			return nil, err
 		}
 	default:
-		return nil, errors.New(fmt.Sprintf("invalid message type: %s", env.Message.Type))
+		return nil, errors.New(fmt.Sprintf("invalid message type: %s", message.Type))
 	}
 	return joined, nil
 }
@@ -386,7 +406,6 @@ func (t *Thread) post(env *pb.Envelope, id string, peers []repo.Peer) {
 	if len(peers) == 0 {
 		return
 	}
-	log.Debugf("posting %s in thread %s...", id, t.Name)
 	wg := sync.WaitGroup{}
 	for _, p := range peers {
 		wg.Add(1)
@@ -398,7 +417,6 @@ func (t *Thread) post(env *pb.Envelope, id string, peers []repo.Peer) {
 		}(p.Id)
 	}
 	wg.Wait()
-	log.Debugf("posted to %d peers", len(peers))
 }
 
 // pushUpdate pushes thread updates to UI listeners

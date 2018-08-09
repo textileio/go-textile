@@ -149,7 +149,7 @@ func (s *TextileService) handleThreadMerge(pid peer.ID, pmes *pb.Envelope, optio
 	}
 
 	// load thread
-	threadId := libp2pc.ConfigEncodeKey(merge.Header.ThreadPk)
+	threadId := libp2pc.ConfigEncodeKey(merge.ThreadPk)
 	_, thrd := s.getThread(threadId)
 	if thrd == nil {
 		return nil, errors.New("invalid merge block")
@@ -161,7 +161,7 @@ func (s *TextileService) handleThreadMerge(pid peer.ID, pmes *pb.Envelope, optio
 	}
 
 	// handle
-	if _, err := thrd.HandleMergeBlock(&pid, pmes, signed, merge, false); err != nil {
+	if _, err := thrd.HandleMergeBlock(&pid, pmes.Message, signed, merge, false); err != nil {
 		return nil, err
 	}
 
@@ -269,9 +269,9 @@ func (s *TextileService) handleOfflineAck(pid peer.ID, pmes *pb.Envelope, option
 	if err != nil {
 		return nil, err
 	}
-	pointer, err := s.datastore.Pointers().Get(id)
-	if err != nil {
-		return nil, err
+	pointer := s.datastore.Pointers().Get(id)
+	if pointer == nil {
+		return nil, errors.New("pointer not found")
 	}
 	if pointer.CancelId == nil || pointer.CancelId.Pretty() != pid.Pretty() {
 		return nil, errors.New("peer is not authorized to delete pointer")
