@@ -47,8 +47,8 @@ func main() {
 	bootstrapApp()
 }
 
-func start(_ *astilectron.Astilectron, w *astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
-	window = w
+func start(_ *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
+	window = w[0]
 	window.Show()
 
 	// get homedir
@@ -250,7 +250,8 @@ func getThreadPhotos(id string) (string, error) {
 		return "", errors.New("thread not found")
 	}
 	var html string
-	for _, block := range thrd.Blocks("", -1, repo.PhotoBlock) {
+	btype := repo.PhotoBlock
+	for _, block := range thrd.Blocks("", -1, &btype) {
 		photo := fmt.Sprintf("%s/ipfs/%s/photo?block=%s", gateway, block.DataId, block.Id)
 		thumb := fmt.Sprintf("%s/ipfs/%s/thumb?block=%s", gateway, block.DataId, block.Id)
 		meta := fmt.Sprintf("%s/ipfs/%s/meta?block=%s", gateway, block.DataId, block.Id)

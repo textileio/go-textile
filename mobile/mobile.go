@@ -489,7 +489,8 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 
 	// build json
 	photos := &Photos{Items: make([]Photo, 0)}
-	for _, b := range thrd.Blocks(offsetId, limit, repo.PhotoBlock) {
+	btype := repo.PhotoBlock
+	for _, b := range thrd.Blocks(offsetId, limit, &btype) {
 		var caption string
 		if b.DataCaptionCipher != nil {
 			captionb, err := thrd.Decrypt(b.DataCaptionCipher)

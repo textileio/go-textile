@@ -47,7 +47,7 @@ func (t *Thread) AddPhoto(dataId string, caption string, key []byte) (mh.Multiha
 	}
 
 	// commit to ipfs
-	message, addr, err := t.commitBlock(content, pb.Message_THREAD_DATA)
+	env, addr, err := t.commitBlock(content, pb.Message_THREAD_DATA)
 	if err != nil {
 		return nil, err
 	}
@@ -69,16 +69,16 @@ func (t *Thread) AddPhoto(dataId string, caption string, key []byte) (mh.Multiha
 	}
 
 	// post it
-	t.post(message, id, t.Peers())
+	t.post(env, id, t.Peers())
 
-	log.Debugf("added photo to %s: %s", t.Id, id)
+	log.Debugf("added DATA to %s: %s", t.Id, id)
 
 	// all done
 	return addr, nil
 }
 
 // HandleDataBlock handles an incoming data block
-func (t *Thread) HandleDataBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadData, following bool) (mh.Multihash, error) {
+func (t *Thread) HandleDataBlock(from *peer.ID, env *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadData, following bool) (mh.Multihash, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadData)
@@ -88,7 +88,7 @@ func (t *Thread) HandleDataBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 	}
 
 	// add to ipfs
-	addr, err := t.addBlock(message)
+	addr, err := t.addBlock(env)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,8 @@ func (t *Thread) HandleDataBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 
 	// add author as a new local peer, just in case we haven't found this peer yet.
 	// double-check not self in case we're re-discovering the thread
-	if authorId.Pretty() != t.ipfs().Identity.Pretty() {
+	self := authorId.Pretty() == t.ipfs().Identity.Pretty()
+	if !self {
 		newPeer := &repo.Peer{
 			Row:      ksuid.New().String(),
 			Id:       authorId.Pretty(),
@@ -122,19 +123,7 @@ func (t *Thread) HandleDataBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 		}
 		if err := t.peers().Add(newPeer); err != nil {
 			// TODO: #202 (Properly handle database/sql errors)
-			log.Warningf("peer with id %s already exists in thread %s", newPeer.Id, t.Id)
 		}
-	}
-
-	// pin data
-	if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/thumb", content.DataId), false); err != nil {
-		return nil, err
-	}
-	if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/meta", content.DataId), false); err != nil {
-		return nil, err
-	}
-	if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/pk", content.DataId), false); err != nil {
-		return nil, err
 	}
 
 	// index it locally
@@ -143,12 +132,29 @@ func (t *Thread) HandleDataBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 		DataKeyCipher:     content.KeyCipher,
 		DataCaptionCipher: content.CaptionCipher,
 	}
-	if err := t.indexBlock(id, content.Header, repo.PhotoBlock, dconf); err != nil {
-		return nil, err
+	switch content.Type {
+	case pb.ThreadData_PHOTO:
+		// pin data first (it may not be available)
+		if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/thumb", content.DataId), false); err != nil {
+			return nil, err
+		}
+		if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/meta", content.DataId), false); err != nil {
+			return nil, err
+		}
+		if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/pk", content.DataId), false); err != nil {
+			return nil, err
+		}
+		if err := t.indexBlock(id, content.Header, repo.PhotoBlock, dconf); err != nil {
+			return nil, err
+		}
+	case pb.ThreadData_TEXT:
+		// TODO: comments
+		break
 	}
 
 	// back prop
-	if err := t.FollowParents(content.Header.Parents); err != nil {
+	newPeers, err := t.FollowParents(content.Header.Parents, from)
+	if err != nil {
 		return nil, err
 	}
 
@@ -156,8 +162,15 @@ func (t *Thread) HandleDataBlock(message *pb.Envelope, signed *pb.SignedThreadBl
 	if following {
 		return addr, nil
 	}
-	if _, err := t.handleHead(id, content.Header.Parents, false); err != nil {
+	if _, err := t.handleHead(id, content.Header.Parents); err != nil {
 		return nil, err
+	}
+
+	// handle newly discovered peers during back prop, after updating HEAD
+	for _, newPeer := range newPeers {
+		if err := t.sendWelcome(newPeer); err != nil {
+			return nil, err
+		}
 	}
 
 	return addr, nil

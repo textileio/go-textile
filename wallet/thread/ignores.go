@@ -32,7 +32,7 @@ func (t *Thread) Ignore(dataId string) (mh.Multihash, error) {
 	}
 
 	// commit to ipfs
-	message, addr, err := t.commitBlock(content, pb.Message_THREAD_IGNORE)
+	env, addr, err := t.commitBlock(content, pb.Message_THREAD_IGNORE)
 	if err != nil {
 		return nil, err
 	}
@@ -52,16 +52,16 @@ func (t *Thread) Ignore(dataId string) (mh.Multihash, error) {
 	}
 
 	// post it
-	t.post(message, id, t.Peers())
+	t.post(env, id, t.Peers())
 
-	log.Debugf("ignore added to %s: %s", t.Id, id)
+	log.Debugf("added IGNORE to %s: %s", t.Id, id)
 
 	// all done
 	return addr, nil
 }
 
 // HandleIgnoreBlock handles an incoming ignore block
-func (t *Thread) HandleIgnoreBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadIgnore, following bool) (mh.Multihash, error) {
+func (t *Thread) HandleIgnoreBlock(from *peer.ID, env *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadIgnore, following bool) (mh.Multihash, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadIgnore)
@@ -71,7 +71,7 @@ func (t *Thread) HandleIgnoreBlock(message *pb.Envelope, signed *pb.SignedThread
 	}
 
 	// add to ipfs
-	addr, err := t.addBlock(message)
+	addr, err := t.addBlock(env)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,8 @@ func (t *Thread) HandleIgnoreBlock(message *pb.Envelope, signed *pb.SignedThread
 
 	// add author as a new local peer, just in case we haven't found this peer yet.
 	// double-check not self in case we're re-discovering the thread
-	if authorId.Pretty() != t.ipfs().Identity.Pretty() {
+	self := authorId.Pretty() == t.ipfs().Identity.Pretty()
+	if !self {
 		newPeer := &repo.Peer{
 			Row:      ksuid.New().String(),
 			Id:       authorId.Pretty(),
@@ -105,7 +106,6 @@ func (t *Thread) HandleIgnoreBlock(message *pb.Envelope, signed *pb.SignedThread
 		}
 		if err := t.peers().Add(newPeer); err != nil {
 			// TODO: #202 (Properly handle database/sql errors)
-			log.Warningf("peer with id %s already exists in thread %s", newPeer.Id, t.Id)
 		}
 	}
 
@@ -118,7 +118,8 @@ func (t *Thread) HandleIgnoreBlock(message *pb.Envelope, signed *pb.SignedThread
 	}
 
 	// back prop
-	if err := t.FollowParents(content.Header.Parents); err != nil {
+	newPeers, err := t.FollowParents(content.Header.Parents, from)
+	if err != nil {
 		return nil, err
 	}
 
@@ -126,8 +127,15 @@ func (t *Thread) HandleIgnoreBlock(message *pb.Envelope, signed *pb.SignedThread
 	if following {
 		return addr, nil
 	}
-	if _, err := t.handleHead(id, content.Header.Parents, false); err != nil {
+	if _, err := t.handleHead(id, content.Header.Parents); err != nil {
 		return nil, err
+	}
+
+	// handle newly discovered peers during back prop, after updating HEAD
+	for _, newPeer := range newPeers {
+		if err := t.sendWelcome(newPeer); err != nil {
+			return nil, err
+		}
 	}
 
 	return addr, nil

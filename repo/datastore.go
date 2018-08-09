@@ -94,7 +94,7 @@ type PointerStore interface {
 	Put(p Pointer) error
 	Delete(id peer.ID) error
 	DeleteAll(purpose Purpose) error
-	Get(id peer.ID) (Pointer, error)
+	Get(id peer.ID) *Pointer
 	GetByPurpose(purpose Purpose) ([]Pointer, error)
 	GetAll() ([]Pointer, error)
 }

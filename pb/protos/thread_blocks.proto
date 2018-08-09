@@ -62,5 +62,6 @@ message ThreadIgnore {
 }
 
 message ThreadMerge {
-    ThreadBlockHeader header = 1;
+    repeated string parents = 2;
+    bytes threadPk          = 3;
 }

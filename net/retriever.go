@@ -114,7 +114,6 @@ func (m *MessageRetriever) FetchPointers() {
 	for p := range peerOut {
 		if len(p.Addrs) > 0 && !m.datastore.OfflineMessages().Has(p.Addrs[0].String()) && !inFlight[p.Addrs[0].String()] {
 			inFlight[p.Addrs[0].String()] = true
-			log.Debugf("found pointer with location %s", p.Addrs[0].String())
 
 			// check protocol
 			if len(p.Addrs[0].Protocols()) == 1 && p.Addrs[0].Protocols()[0].Code == ma.P_IPFS {
@@ -154,10 +153,9 @@ func (m *MessageRetriever) fetch(pid peer.ID, addr ma.Multiaddr, wg *sync.WaitGr
 	select {
 	case <-c:
 		if err != nil {
-			log.Errorf("error retrieving offline message from %s, %s", addrs, err)
 			return
 		}
-		log.Debugf("successfully downloaded offline message from %s", addrs)
+		//log.Debugf("successfully downloaded offline message %s", addrs)
 
 		// attempt to decrypt and unmarshal
 		plaintext, err := crypto.Decrypt(m.ipfs.PrivateKey, payload)
@@ -167,13 +165,12 @@ func (m *MessageRetriever) fetch(pid peer.ID, addr ma.Multiaddr, wg *sync.WaitGr
 
 		// thread blocks have encrypted contents
 		if err := m.unpackMessage(payload, pid, addr); err != nil {
-			log.Errorf("unable to unpack offline message from %s: %s", addrs, err)
 			return
 		}
 
 		// store away
 		if err := m.datastore.OfflineMessages().Put(addr.String()); err != nil {
-			log.Errorf("put offline message from %s failed: %s", addrs, err)
+			log.Errorf("put offline message %s failed: %s", addrs, err)
 		}
 		return
 
@@ -182,7 +179,7 @@ func (m *MessageRetriever) fetch(pid peer.ID, addr ma.Multiaddr, wg *sync.WaitGr
 	}
 }
 
-// unpackMessage unpacks, vefifies, and handles an envelope
+// unpackMessage unpacks, verifies, and handles an envelope
 func (m *MessageRetriever) unpackMessage(payload []byte, pid peer.ID, addr ma.Multiaddr) error {
 	// unmarshal
 	env := &pb.Envelope{}
@@ -190,26 +187,25 @@ func (m *MessageRetriever) unpackMessage(payload []byte, pid peer.ID, addr ma.Mu
 		return err
 	}
 
-	// validate the signature
+	// validate the envelope signature
 	ser, err := proto.Marshal(env.Message)
 	if err != nil {
 		return err
 	}
-	pubkey, err := libp2pc.UnmarshalPublicKey(env.Pk)
+	pk, err := libp2pc.UnmarshalPublicKey(env.Pk)
 	if err != nil {
 		return err
 	}
-	valid, err := pubkey.Verify(ser, env.Sig)
-	if err != nil || !valid {
+	if err := crypto.Verify(pk, ser, env.Sig); err != nil {
 		return err
 	}
-	id, err := peer.IDFromPublicKey(pubkey)
+	id, err := peer.IDFromPublicKey(pk)
 	if err != nil {
 		return err
 	}
 
-	// cache pubkey, probably should remove this... we already have it in thread peer table
-	m.ipfs.Peerstore.AddPubKey(id, pubkey)
+	// cache pk, probably should remove this... we already have it in thread peer table
+	m.ipfs.Peerstore.AddPubKey(id, pk)
 	m.ipfs.Repo.Datastore().Put(ds.NewKey(KeyCachePrefix+id.String()), env.Pk)
 
 	// respond with an ACK
@@ -254,6 +250,7 @@ func (m *MessageRetriever) handleMessage(env *pb.Envelope, addr string, id *peer
 				return err
 			}
 		} else {
+			// log.Warningf("error handling offline message %s with type %s: %s", addr, env.Message.Type.String(), err)
 			return err
 		}
 	}
@@ -266,6 +263,8 @@ var MessageProcessingOrder = []pb.Message_Type{
 	pb.Message_THREAD_LEAVE,
 	pb.Message_THREAD_DATA,
 	pb.Message_THREAD_ANNOTATION,
+	pb.Message_THREAD_IGNORE,
+	pb.Message_THREAD_MERGE,
 	pb.Message_CHAT,
 	pb.Message_FOLLOW,
 	pb.Message_UNFOLLOW,

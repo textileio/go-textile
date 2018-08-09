@@ -183,8 +183,8 @@ func (w *Wallet) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	// back prop
-	if err := thrd.FollowParents(invite.Header.Parents); err != nil {
+	// follow parents, update head
+	if err := thrd.HandleInviteMessage(invite); err != nil {
 		return nil, err
 	}
 
@@ -248,8 +248,8 @@ func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte) (mh.Mult
 		return nil, err
 	}
 
-	// back prop
-	if err := thrd.FollowParents(invite.Header.Parents); err != nil {
+	// follow parents, update head
+	if err := thrd.HandleExternalInviteMessage(invite); err != nil {
 		return nil, err
 	}
 

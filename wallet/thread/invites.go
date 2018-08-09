@@ -1,7 +1,6 @@
 package thread
 
 import (
-	"github.com/golang/protobuf/proto"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
@@ -11,7 +10,8 @@ import (
 	"time"
 )
 
-// AddInvite creates an outgoing invite block
+// AddInvite creates an outgoing invite block, which is sent directly to the recipient
+// and does not become part of the hash chain
 func (t *Thread) AddInvite(inviteePk libp2pc.PubKey) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
@@ -51,81 +51,40 @@ func (t *Thread) AddInvite(inviteePk libp2pc.PubKey) (mh.Multihash, error) {
 	}
 	id := addr.B58String()
 
-	// index it locally
-	if err := t.indexBlock(id, header, repo.InviteBlock, nil); err != nil {
-		return nil, err
-	}
-
-	// update head
-	if err := t.updateHead(id); err != nil {
-		return nil, err
-	}
-
 	// create new peer for posting, but don't add it yet. it will get added if+when they accept.
 	inviteePkb, err := inviteePk.Bytes()
 	if err != nil {
 		return nil, err
 	}
-	peers := []repo.Peer{{
+	target := repo.Peer{
 		Id:     inviteeId.Pretty(),
 		PubKey: inviteePkb,
-	}}
-	for _, p := range t.Peers() {
-		if p.Id != inviteeId.Pretty() {
-			peers = append(peers, p)
-		}
 	}
 
 	// post it
-	t.post(message, id, peers)
+	t.post(message, id, []repo.Peer{target})
 
-	log.Debugf("added invite to %s for %s: %s", t.Id, inviteeId.Pretty(), id)
+	log.Debugf("sent INVITE to %s for %s", inviteeId.Pretty(), t.Id)
 
 	// all done
 	return addr, nil
 }
 
-// HandleInviteBlock handles an incoming invite block
-func (t *Thread) HandleInviteBlock(message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadInvite, following bool) (mh.Multihash, error) {
-	// unmarshal if needed
-	if content == nil {
-		content = new(pb.ThreadInvite)
-		if err := proto.Unmarshal(signed.Block, content); err != nil {
-			return nil, err
+// HandleInviteMessage handles an incoming invite
+// - this happens right before a join
+// - the invite is not kept on-chain, so we only need to follow parents and update HEAD
+func (t *Thread) HandleInviteMessage(content *pb.ThreadInvite) error {
+	// back prop
+	if _, err := t.FollowParents(content.Header.Parents, nil); err != nil {
+		return err
+	}
+
+	// update HEAD if parents of the invite are actual updates
+	if len(content.Header.Parents) > 0 {
+		if err := t.updateHead(content.Header.Parents[0]); err != nil {
+			return err
 		}
 	}
 
-	// add to ipfs
-	addr, err := t.addBlock(message)
-	if err != nil {
-		return nil, err
-	}
-	id := addr.B58String()
-
-	// check if we aleady have this block indexed
-	// (should only happen if a misbehaving peer keeps sending the same block)
-	index := t.blocks().Get(id)
-	if index != nil {
-		return nil, nil
-	}
-
-	// index it locally
-	if err := t.indexBlock(id, content.Header, repo.InviteBlock, nil); err != nil {
-		return nil, err
-	}
-
-	// back prop
-	if err := t.FollowParents(content.Header.Parents); err != nil {
-		return nil, err
-	}
-
-	// handle HEAD
-	if following {
-		return addr, nil
-	}
-	if _, err := t.handleHead(id, content.Header.Parents, false); err != nil {
-		return nil, err
-	}
-
-	return addr, nil
+	return nil
 }
