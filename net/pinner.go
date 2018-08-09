@@ -91,7 +91,6 @@ func (p *Pinner) handlePin(offset string) error {
 	if len(prs) == 0 {
 		return nil
 	}
-	log.Debugf("handling %d pin requests...", len(prs))
 
 	// process them
 	var toDelete []string

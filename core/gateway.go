@@ -2,10 +2,12 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
 	"github.com/textileio/textile-go/crypto"
 	"net/http"
+	"strings"
 )
 
 // StartGateway starts the gateway
@@ -117,8 +119,16 @@ func gatewayHandler(c *gin.Context) {
 	c.Render(200, render.Data{Data: data})
 }
 
-// profileHandler handles profile request hosted on ipns
+// profileHandler handles requests for profile info hosted on ipns
+// NOTE: avatar is a magic path, will return data behind link at avatar_id
 func profileHandler(c *gin.Context) {
+	pathp := c.Param("path")
+	var isAvatar bool
+	if pathp == "/avatar" {
+		pathp += "_id"
+		isAvatar = true
+	}
+
 	pth, err := Node.Wallet.ResolveProfile(c.Param("root"))
 	if err != nil {
 		log.Errorf("error resolving profile %s: %s", c.Param("root"), err)
@@ -127,7 +137,7 @@ func profileHandler(c *gin.Context) {
 	}
 
 	// get data
-	contentPath := pth.String() + c.Param("path")
+	contentPath := pth.String() + pathp
 	data, err := Node.Wallet.GetDataAtPath(contentPath)
 	if err != nil {
 		log.Errorf("error getting data at profile path %s: %s", contentPath, err)
@@ -135,6 +145,16 @@ func profileHandler(c *gin.Context) {
 		return
 	}
 
-	// lastly, just return the raw bytes (standard gateway)
+	// if this is an avatar request, fetch and return the linked image
+	if isAvatar {
+		// cheap migration from older formats...
+		location := string(data)
+		if !strings.HasPrefix(location, "/ipfs") || !strings.Contains(location, "?key=") {
+			location = fmt.Sprintf("https://avatars.dicebear.com/v2/identicon/%s.svg", c.Param("root"))
+		}
+		c.Redirect(302, location)
+		return
+	}
+
 	c.Render(200, render.Data{Data: data})
 }
