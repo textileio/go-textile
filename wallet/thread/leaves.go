@@ -25,7 +25,7 @@ func (t *Thread) Leave() (mh.Multihash, error) {
 	}
 
 	// commit to ipfs
-	message, addr, err := t.commitBlock(content, pb.Message_THREAD_LEAVE)
+	env, addr, err := t.commitBlock(content, pb.Message_THREAD_LEAVE)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (t *Thread) Leave() (mh.Multihash, error) {
 	}
 
 	// post it
-	t.post(message, id, t.Peers())
+	t.post(env, id, t.Peers())
 
 	// delete blocks
 	if err := t.blocks().DeleteByThreadId(t.Id); err != nil {
@@ -53,14 +53,14 @@ func (t *Thread) Leave() (mh.Multihash, error) {
 		return nil, err
 	}
 
-	log.Debugf("left %s", t.Id)
+	log.Debugf("added LEAVE to %s: %s", t.Id, id)
 
 	// all done
 	return addr, nil
 }
 
 // HandleLeaveBlock handles an incoming leave block
-func (t *Thread) HandleLeaveBlock(from *peer.ID, message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadLeave, following bool) (mh.Multihash, error) {
+func (t *Thread) HandleLeaveBlock(from *peer.ID, env *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadLeave, following bool) (mh.Multihash, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadLeave)
@@ -70,7 +70,7 @@ func (t *Thread) HandleLeaveBlock(from *peer.ID, message *pb.Envelope, signed *p
 	}
 
 	// add to ipfs
-	addr, err := t.addBlock(message)
+	addr, err := t.addBlock(env)
 	if err != nil {
 		return nil, err
 	}

@@ -64,7 +64,7 @@ func (t *Thread) AddInvite(inviteePk libp2pc.PubKey) (mh.Multihash, error) {
 	// post it
 	t.post(message, id, []repo.Peer{target})
 
-	log.Debugf("sent invite to %s for '%s'", inviteeId.Pretty(), t.Name)
+	log.Debugf("sent INVITE to %s for %s", inviteeId.Pretty(), t.Id)
 
 	// all done
 	return addr, nil

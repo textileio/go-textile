@@ -86,9 +86,7 @@ func (w *Wallet) SendMessage(env *pb.Envelope, peerId string, hash *string) erro
 	var success bool
 	go func() {
 		err = w.service.SendMessage(ctx, pid, env)
-		if err != nil {
-			log.Errorf("error sending direct message to %s: %s", pid.Pretty(), err)
-		} else {
+		if err == nil {
 			success = true
 		}
 	}()
@@ -140,7 +138,7 @@ func (w *Wallet) sendOfflineMessage(env *pb.Envelope, pid peer.ID, hash *string)
 		}
 	}
 
-	log.Debugf("sending offline message to: %s, type: %s, pointer: %s, location: %s",
+	log.Debugf("sending offline message to: %s, type: %s, pointer: %s, addr: %s",
 		pid.Pretty(), env.Message.Type.String(), pointer.Cid.String(), pointer.Value.Addrs[0].String())
 
 	offlineMessageWaitGroup.Add(1)

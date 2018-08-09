@@ -12,14 +12,6 @@ import (
 	"time"
 )
 
-// welcome represents an intention to welcome a peer at a certain block
-// (these are needed in order to remember the point at which to welcome a
-// given peer while recursively following parents)
-type peerWelcome struct {
-	peer      repo.Peer
-	atBlockId string
-}
-
 // Join creates an outgoing join block
 func (t *Thread) Join(inviterPk libp2pc.PubKey, blockId string) (mh.Multihash, error) {
 	t.mux.Lock()
@@ -42,7 +34,7 @@ func (t *Thread) Join(inviterPk libp2pc.PubKey, blockId string) (mh.Multihash, e
 	}
 
 	// commit to ipfs
-	message, addr, err := t.commitBlock(content, pb.Message_THREAD_JOIN)
+	env, addr, err := t.commitBlock(content, pb.Message_THREAD_JOIN)
 	if err != nil {
 		return nil, err
 	}
@@ -63,28 +55,30 @@ func (t *Thread) Join(inviterPk libp2pc.PubKey, blockId string) (mh.Multihash, e
 	if err != nil {
 		return nil, err
 	}
-	newPeer := &repo.Peer{
-		Row:      ksuid.New().String(),
-		Id:       inviterPid.Pretty(),
-		ThreadId: t.Id,
-		PubKey:   inviterPkb,
-	}
-	if err := t.peers().Add(newPeer); err != nil {
-		// TODO: #202 (Properly handle database/sql errors)
-		log.Warningf("peer with id %s already exists in thread %s", newPeer.Id, t.Id)
+	self := inviterPid.Pretty() == t.ipfs().Identity.Pretty()
+	if !self {
+		newPeer := &repo.Peer{
+			Row:      ksuid.New().String(),
+			Id:       inviterPid.Pretty(),
+			ThreadId: t.Id,
+			PubKey:   inviterPkb,
+		}
+		if err := t.peers().Add(newPeer); err != nil {
+			// TODO: #202 (Properly handle database/sql errors)
+		}
 	}
 
 	// post it
-	t.post(message, id, t.Peers())
+	t.post(env, id, t.Peers())
 
-	log.Debugf("joined %s via invite %s", t.Id, blockId)
+	log.Debugf("added JOIN to %s: %s", t.Id, id)
 
 	// all done
 	return addr, nil
 }
 
 // HandleJoinBlock handles an incoming join block
-func (t *Thread) HandleJoinBlock(from *peer.ID, message *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadJoin, following bool) (mh.Multihash, *repo.Peer, error) {
+func (t *Thread) HandleJoinBlock(from *peer.ID, env *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadJoin, following bool) (mh.Multihash, *repo.Peer, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadJoin)
@@ -94,7 +88,7 @@ func (t *Thread) HandleJoinBlock(from *peer.ID, message *pb.Envelope, signed *pb
 	}
 
 	// add to ipfs
-	addr, err := t.addBlock(message)
+	addr, err := t.addBlock(env)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -120,7 +114,6 @@ func (t *Thread) HandleJoinBlock(from *peer.ID, message *pb.Envelope, signed *pb
 	// add invitee as a new local peer.
 	// double-check not self in case we're re-discovering the thread
 	var joined *repo.Peer
-	var isNew bool
 	self := authorId.Pretty() == t.ipfs().Identity.Pretty()
 	if !self {
 		joined = &repo.Peer{
@@ -131,9 +124,6 @@ func (t *Thread) HandleJoinBlock(from *peer.ID, message *pb.Envelope, signed *pb
 		}
 		if err := t.peers().Add(joined); err != nil {
 			// TODO: #202 (Properly handle database/sql errors)
-			log.Warningf("peer with id %s already exists in thread %s", joined.Id, t.Id)
-		} else {
-			isNew = true
 		}
 	}
 
@@ -155,7 +145,7 @@ func (t *Thread) HandleJoinBlock(from *peer.ID, message *pb.Envelope, signed *pb
 		// the new peers will be collected
 		// NOTE: if from == nil, we've started with an invite, in which case there is
 		// no need to handle new peers in this manner (they're sent OUR join)
-		if joined != nil && isNew && from != nil && joined.Id != from.Pretty() {
+		if joined != nil && from != nil && joined.Id != from.Pretty() {
 			return addr, joined, nil
 		}
 		return addr, nil, nil
@@ -166,7 +156,7 @@ func (t *Thread) HandleJoinBlock(from *peer.ID, message *pb.Envelope, signed *pb
 	if err != nil {
 		return nil, nil, err
 	}
-	if joined != nil && isNew && head != content.BlockId {
+	if joined != nil && head != content.BlockId {
 		if err := t.sendWelcome(*joined); err != nil {
 			return nil, nil, err
 		}
@@ -207,8 +197,20 @@ func (t *Thread) sendWelcome(joined repo.Peer) error {
 	if err := proto.Unmarshal(serialized, env); err != nil {
 		return err
 	}
+	if env.Message == nil {
+		// might be a merge block
+		message := new(pb.Message)
+		if err := proto.Unmarshal(serialized, message); err != nil {
+			return err
+		}
+		var err error
+		env, err = t.newEnvelope(message)
+		if err != nil {
+			return err
+		}
+	}
 
-	log.Debugf("welcoming %s at update %s", joined.Id, head)
+	log.Debugf("WELCOME sent to %s at %s", joined.Id, head)
 
 	// post it
 	t.post(env, head, []repo.Peer{joined})
