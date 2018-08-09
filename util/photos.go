@@ -63,8 +63,67 @@ func DecodeImage(file *os.File) (*bytes.Reader, *Format, *image.Point, error) {
 	return reader, &format, &size, nil
 }
 
+// EncodeImage creates a jpeg|gif thumbnail from an image
+// - jpeg quality is currently the default (75/100)
+func EncodeImage(reader io.Reader, format Format, size model.ImageSize) ([]byte, error) {
+	var result []byte
+	width := int(size)
+	switch format {
+	case JPEG:
+		img, _, err := image.Decode(reader)
+		if err != nil {
+			return nil, err
+		}
+		if img.Bounds().Size().X < width {
+			width = img.Bounds().Size().X
+		}
+		resized := imaging.Resize(img, width, 0, imaging.Lanczos)
+		buff := new(bytes.Buffer)
+		if err = jpeg.Encode(buff, resized, nil); err != nil {
+			return nil, err
+		}
+		result = buff.Bytes()
+	case GIF:
+		img, err := gif.DecodeAll(reader)
+		if err != nil {
+			return nil, err
+		}
+		if len(img.Image) == 0 {
+			return nil, errors.New("gif does not have any frames")
+		}
+		firstFrame := img.Image[0].Bounds()
+		if firstFrame.Dx() < width {
+			width = firstFrame.Dx()
+		}
+		rect := image.Rect(0, 0, firstFrame.Dx(), firstFrame.Dy())
+		rgba := image.NewRGBA(rect)
+		for index, frame := range img.Image {
+			bounds := frame.Bounds()
+			draw.Draw(rgba, bounds, frame, bounds.Min, draw.Over)
+			img.Image[index] = imageToPaletted(imaging.Resize(rgba, width, 0, imaging.Lanczos))
+		}
+		img.Config.Width = img.Image[0].Bounds().Dx()
+		img.Config.Height = img.Image[0].Bounds().Dy()
+		buff := new(bytes.Buffer)
+		if err = gif.EncodeAll(buff, img); err != nil {
+			return nil, err
+		}
+		result = buff.Bytes()
+	}
+	return result, nil
+}
+
+// DecodeExif returns exif data from a reader if present
+func DecodeExif(reader io.Reader) *exif.Exif {
+	exf, err := exif.Decode(reader)
+	if err != nil {
+		return nil
+	}
+	return exf
+}
+
 // MakeMetadata reads any available meta/exif data from a photo
-func MakeMetadata(reader io.Reader, path string, ext string, format Format, tnFormat Format, width int, height int, id string, username, version string) (model.PhotoMetadata, error) {
+func MakeMetadata(reader io.Reader, path string, ext string, format Format, encodingFormat Format, width int, height int, id string, version string) (model.PhotoMetadata, error) {
 	var created time.Time
 	var lat, lon float64
 	x, err := exif.Decode(reader)
@@ -83,72 +142,22 @@ func MakeMetadata(reader io.Reader, path string, ext string, format Format, tnFo
 	meta := model.PhotoMetadata{
 		FileMetadata: model.FileMetadata{
 			Metadata: model.Metadata{
-				Version:  version,
-				PeerId:   id,
-				Username: username,
-				Created:  created,
-				Added:    time.Now(),
+				Version: version,
+				PeerId:  id,
+				Created: created,
+				Added:   time.Now(),
 			},
 			Name: strings.TrimSuffix(filepath.Base(path), ext),
 			Ext:  ext,
 		},
-		Format:          string(format),
-		ThumbnailFormat: string(tnFormat),
-		Width:           width,
-		Height:          height,
-		Latitude:        lat,
-		Longitude:       lon,
+		OriginalFormat: string(format),
+		EncodingFormat: string(encodingFormat),
+		Width:          width,
+		Height:         height,
+		Latitude:       lat,
+		Longitude:      lon,
 	}
 	return meta, nil
-}
-
-// MakeThumbnail creates a jpeg|gif thumbnail from an image
-func MakeThumbnail(reader io.Reader, format Format, width int) ([]byte, error) {
-	var result []byte
-	switch format {
-	case JPEG:
-		img, _, err := image.Decode(reader)
-		if err != nil {
-			return nil, err
-		}
-		thumb := imaging.Resize(img, width, 0, imaging.Lanczos)
-		buff := new(bytes.Buffer)
-		if err = jpeg.Encode(buff, thumb, nil); err != nil {
-			return nil, err
-		}
-		result = buff.Bytes()
-	case GIF:
-		img, err := gif.DecodeAll(reader)
-		if err != nil {
-			return nil, err
-		}
-		firstFrame := img.Image[0].Bounds()
-		rect := image.Rect(0, 0, firstFrame.Dx(), firstFrame.Dy())
-		rgba := image.NewRGBA(rect)
-		for index, frame := range img.Image {
-			bounds := frame.Bounds()
-			draw.Draw(rgba, bounds, frame, bounds.Min, draw.Over)
-			img.Image[index] = imageToPaletted(imaging.Resize(rgba, width, 0, imaging.Box))
-		}
-		aspect := float64(img.Config.Width) / float64(img.Config.Height)
-		img.Config.Width = width
-		img.Config.Height = int(float64(width) / aspect)
-		buff := new(bytes.Buffer)
-		if err = gif.EncodeAll(buff, img); err != nil {
-			return nil, err
-		}
-		result = buff.Bytes()
-	}
-	return result, nil
-}
-
-// DecodeExif returns exif data from a reader if present
-func DecodeExif(reader io.Reader) *exif.Exif {
-	exf, err := exif.Decode(reader)
-	if err != nil {
-		return nil
-	}
-	return exf
 }
 
 // correctOrientation returns a copy of an image (jpg|png|gif) with exif removed

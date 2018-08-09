@@ -8,7 +8,6 @@ import (
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet/model"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 // GetBlockDataKey returns the decrypted AES key for a block
@@ -34,15 +33,6 @@ func (t *Thread) GetBlockData(path string, block *repo.Block) ([]byte, error) {
 		return nil, err
 	}
 	return crypto.DecryptAES(cipher, key)
-}
-
-// GetFileDataBase64 returns file data encoded as base64 under an ipfs path
-func (t *Thread) GetBlockDataBase64(path string, block *repo.Block) (string, error) {
-	data, err := t.GetBlockData(path, block)
-	if err != nil {
-		return "error", err
-	}
-	return libp2pc.ConfigEncodeKey(data), nil
 }
 
 // GetPhotoMetaData returns photo metadata under an id

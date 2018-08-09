@@ -326,24 +326,13 @@ func TestMobile_PhotoThreads(t *testing.T) {
 }
 
 func TestMobile_GetPhotoData(t *testing.T) {
-	res, err := mobile.GetPhotoData(addedPhotoId)
+	res, err := mobile.GetPhotoData(addedPhotoId, "thumb")
 	if err != nil {
 		t.Errorf("get photo data failed: %s", err)
 		return
 	}
 	if len(res) == 0 {
 		t.Errorf("get photo data bad result")
-	}
-}
-
-func TestMobile_GetThumbData(t *testing.T) {
-	res, err := mobile.GetThumbData(addedPhotoId)
-	if err != nil {
-		t.Errorf("get thumb data failed: %s", err)
-		return
-	}
-	if len(res) == 0 {
-		t.Errorf("get thumb data bad result")
 	}
 }
 

@@ -5,7 +5,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/op/go-logging"
 	cdao "github.com/textileio/textile-go/cafe/dao"
-	"github.com/textileio/textile-go/cafe/middleware"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	"net/http"
 )
@@ -46,7 +45,7 @@ func (c *Cafe) Start(addr string) {
 
 	// api routes
 	v0 := router.Group("/api/v0")
-	v0.Use(middleware.Auth(c.TokenSecret))
+	// v0.Use(middleware.Auth(c.TokenSecret))
 	{
 		v0.PUT("/users", c.signUp)
 		v0.POST("/users", c.signIn)
