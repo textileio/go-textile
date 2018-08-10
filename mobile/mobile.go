@@ -76,6 +76,7 @@ type Photo struct {
 	Date     time.Time `json:"date"`
 	AuthorId string    `json:"author_id"`
 	Caption  string    `json:"caption"`
+	Username string    `json:"username"`
 }
 
 // Photos is a wrapper around a list of photos
@@ -444,8 +445,9 @@ func (m *Mobile) AddPhotoToThread(dataId string, key string, threadId string, ca
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread %s", threadId))
 	}
+	username, _ := m.GetUsername()
 
-	addr, err := thrd.AddPhoto(dataId, caption, []byte(key))
+	addr, err := thrd.AddPhoto(dataId, caption, username, []byte(key))
 	if err != nil {
 		return "", err
 	}
@@ -471,9 +473,11 @@ func (m *Mobile) SharePhotoToThread(dataId string, threadId string, caption stri
 	if err != nil {
 		return "", err
 	}
+	username, _ := m.GetUsername()
 
 	// TODO: owner challenge
-	addr, err := toThread.AddPhoto(dataId, caption, key)
+
+	addr, err := toThread.AddPhoto(dataId, caption, username, key)
 	if err != nil {
 		return "", err
 	}
@@ -492,13 +496,20 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 	photos := &Photos{Items: make([]Photo, 0)}
 	btype := repo.PhotoBlock
 	for _, b := range thrd.Blocks(offsetId, limit, &btype) {
-		var caption string
+		var caption, username string
 		if b.DataCaptionCipher != nil {
 			captionb, err := thrd.Decrypt(b.DataCaptionCipher)
 			if err != nil {
 				return "", err
 			}
 			caption = string(captionb)
+		}
+		if b.DataUsernameCipher != nil {
+			usernameb, err := thrd.Decrypt(b.DataUsernameCipher)
+			if err != nil {
+				return "", err
+			}
+			username = string(usernameb)
 		}
 		authorId, err := util.IdFromEncodedPublicKey(b.AuthorPk)
 		if err != nil {
@@ -507,8 +518,9 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 		photos.Items = append(photos.Items, Photo{
 			Id:       b.DataId,
 			Date:     b.Date,
-			Caption:  string(caption),
+			Caption:  caption,
 			AuthorId: authorId.Pretty(),
+			Username: username,
 		})
 	}
 

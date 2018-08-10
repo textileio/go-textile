@@ -51,14 +51,6 @@ func (c *ProfileDB) SignOut() error {
 	defer c.lock.Unlock()
 	stmt, err := c.db.Prepare("delete from profile where key=?")
 	defer stmt.Close()
-	_, err = stmt.Exec("username")
-	if err != nil {
-		return err
-	}
-	_, err = stmt.Exec("avatar_id")
-	if err != nil {
-		return err
-	}
 	_, err = stmt.Exec("access")
 	if err != nil {
 		return err
