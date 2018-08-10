@@ -77,7 +77,7 @@ func TestProfileDB_SignOut(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	_, err = pdb.GetUsername()
+	_, err = pdb.GetTokens()
 	if err == nil {
 		t.Error("signed out but username still present")
 	}
