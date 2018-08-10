@@ -255,3 +255,18 @@ func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte) (mh.Mult
 
 	return thrd.Join(authorPk, blockId)
 }
+
+// Threads lists loaded threads
+func (w *Wallet) Threads() []*thread.Thread {
+	return w.threads
+}
+
+// GetThread get a thread by id from loaded threads
+func (w *Wallet) GetThread(id string) (*int, *thread.Thread) {
+	for i, thrd := range w.threads {
+		if thrd.Id == id {
+			return &i, thrd
+		}
+	}
+	return nil, nil
+}
