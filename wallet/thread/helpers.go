@@ -8,6 +8,7 @@ import (
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet/model"
+	"strings"
 )
 
 // GetBlockDataKey returns the decrypted AES key for a block
@@ -30,7 +31,23 @@ func (t *Thread) GetBlockData(path string, block *repo.Block) ([]byte, error) {
 	}
 	cipher, err := util.GetDataAtPath(t.ipfs(), path)
 	if err != nil {
-		return nil, err
+
+		// size migrations
+		parts := strings.Split(path, "/")
+		if len(parts) > 1 && strings.Contains(err.Error(), "no link named") {
+			switch parts[1] {
+			case "small":
+				parts[1] = "thumb"
+			case "medium":
+				parts[1] = "photo"
+			default:
+				return nil, err
+			}
+			cipher, err = util.GetDataAtPath(t.ipfs(), strings.Join(parts, "/"))
+		}
+		if err != nil {
+			return nil, err
+		}
 	}
 	return crypto.DecryptAES(cipher, key)
 }
