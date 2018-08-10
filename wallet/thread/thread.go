@@ -354,9 +354,10 @@ func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType r
 		Type:     blockType,
 
 		// off-chain data links
-		DataId:            dataConf.DataId,
-		DataKeyCipher:     dataConf.DataKeyCipher,
-		DataCaptionCipher: dataConf.DataCaptionCipher,
+		DataId:             dataConf.DataId,
+		DataKeyCipher:      dataConf.DataKeyCipher,
+		DataCaptionCipher:  dataConf.DataCaptionCipher,
+		DataUsernameCipher: dataConf.DataUsernameCipher,
 	}
 	if err := t.blocks().Add(index); err != nil {
 		return err

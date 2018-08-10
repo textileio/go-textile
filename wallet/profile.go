@@ -177,8 +177,8 @@ func (w *Wallet) IsSignedIn() (bool, error) {
 	if err := w.touchDatastore(); err != nil {
 		return false, err
 	}
-	_, err := w.datastore.Profile().GetUsername()
-	return err == nil, nil
+	tokens, err := w.datastore.Profile().GetTokens()
+	return err == nil && tokens != nil, nil
 }
 
 // GetAccessToken returns the current access_token (jwt) for a cafe

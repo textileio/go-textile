@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/cafe/models"
@@ -27,7 +28,7 @@ func CafeReferral(c *ishell.Context) {
 	}
 	username, err := core.Node.Wallet.GetUsername()
 	if err != nil {
-		c.Err(err)
+		c.Err(errors.New("not logged in"))
 		return
 	}
 	req := &models.ReferralRequest{
