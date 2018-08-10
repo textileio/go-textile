@@ -422,37 +422,6 @@ func (w *Wallet) GetPubKeyString() (string, error) {
 	return libp2pc.ConfigEncodeKey(pkb), nil
 }
 
-func (w *Wallet) Threads() []*thread.Thread {
-	return w.threads
-}
-
-func (w *Wallet) GetThread(id string) (*int, *thread.Thread) {
-	for i, thrd := range w.threads {
-		if thrd.Id == id {
-			return &i, thrd
-		}
-	}
-	return nil, nil
-}
-
-// GetBlock searches for a local block associated with the given target
-func (w *Wallet) GetBlock(id string) (*trepo.Block, error) {
-	block := w.datastore.Blocks().Get(id)
-	if block == nil {
-		return nil, errors.New("block not found locally")
-	}
-	return block, nil
-}
-
-// GetBlockByDataId searches for a local block associated with the given data id
-func (w *Wallet) GetBlockByDataId(dataId string) (*trepo.Block, error) {
-	block := w.datastore.Blocks().GetByDataId(dataId)
-	if block == nil {
-		return nil, errors.New("block not found locally")
-	}
-	return block, nil
-}
-
 // GetDataAtPath returns raw data behind an ipfs path
 func (w *Wallet) GetDataAtPath(path string) ([]byte, error) {
 	if !w.started {
