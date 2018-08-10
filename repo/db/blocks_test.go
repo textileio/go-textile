@@ -39,15 +39,16 @@ func TestBlockDB_Put(t *testing.T) {
 		t.Error(err)
 	}
 	err = bdb.Add(&repo.Block{
-		Id:                "abcde",
-		Date:              time.Now(),
-		Parents:           []string{"Qm123"},
-		ThreadId:          libp2pc.ConfigEncodeKey(pkb),
-		AuthorPk:          "author_pk",
-		Type:              repo.PhotoBlock,
-		DataId:            "Qm456",
-		DataKeyCipher:     key,
-		DataCaptionCipher: []byte("xxx"),
+		Id:                 "abcde",
+		Date:               time.Now(),
+		Parents:            []string{"Qm123"},
+		ThreadId:           libp2pc.ConfigEncodeKey(pkb),
+		AuthorPk:           "author_pk",
+		Type:               repo.PhotoBlock,
+		DataId:             "Qm456",
+		DataKeyCipher:      key,
+		DataCaptionCipher:  []byte("xxx"),
+		DataUsernameCipher: []byte("un"),
 	})
 	if err != nil {
 		t.Error(err)
@@ -95,15 +96,16 @@ func TestBlockDB_List(t *testing.T) {
 		t.Error(err)
 	}
 	err = bdb.Add(&repo.Block{
-		Id:                "abcde",
-		Date:              time.Now(),
-		Parents:           []string{"Qm123"},
-		ThreadId:          libp2pc.ConfigEncodeKey(pkb),
-		AuthorPk:          "author_pk",
-		Type:              repo.PhotoBlock,
-		DataId:            "Qm456",
-		DataKeyCipher:     key,
-		DataCaptionCipher: []byte("xxx"),
+		Id:                 "abcde",
+		Date:               time.Now(),
+		Parents:            []string{"Qm123"},
+		ThreadId:           libp2pc.ConfigEncodeKey(pkb),
+		AuthorPk:           "author_pk",
+		Type:               repo.PhotoBlock,
+		DataId:             "Qm456",
+		DataKeyCipher:      key,
+		DataCaptionCipher:  []byte("xxx"),
+		DataUsernameCipher: []byte("un"),
 	})
 	if err != nil {
 		t.Error(err)
@@ -118,15 +120,16 @@ func TestBlockDB_List(t *testing.T) {
 	}
 	threadId = libp2pc.ConfigEncodeKey(pkb2)
 	err = bdb.Add(&repo.Block{
-		Id:                "fghijk",
-		Date:              time.Now().Add(time.Minute),
-		Parents:           []string{"Qm456"},
-		ThreadId:          threadId,
-		AuthorPk:          "author_pk",
-		Type:              repo.PhotoBlock,
-		DataId:            "Qm789",
-		DataKeyCipher:     key,
-		DataCaptionCipher: []byte("xxx"),
+		Id:                 "fghijk",
+		Date:               time.Now().Add(time.Minute),
+		Parents:            []string{"Qm456"},
+		ThreadId:           threadId,
+		AuthorPk:           "author_pk",
+		Type:               repo.PhotoBlock,
+		DataId:             "Qm789",
+		DataKeyCipher:      key,
+		DataCaptionCipher:  []byte("xxx"),
+		DataUsernameCipher: []byte("un"),
 	})
 	if err != nil {
 		t.Error(err)
