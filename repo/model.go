@@ -31,15 +31,17 @@ type Block struct {
 	AuthorPk string    `json:"author_pk"`
 	Type     BlockType `json:"type"`
 
-	DataId            string `json:"data_id"`
-	DataKeyCipher     []byte `json:"data_key_cipher"`
-	DataCaptionCipher []byte `json:"data_caption_cipher"`
+	DataId             string `json:"data_id"`
+	DataKeyCipher      []byte `json:"data_key_cipher"`
+	DataCaptionCipher  []byte `json:"data_caption_cipher"`
+	DataUsernameCipher []byte `json:"data_username_cipher"`
 }
 
 type DataBlockConfig struct {
-	DataId            string `json:"data_id"`
-	DataKeyCipher     []byte `json:"data_key_cipher"`
-	DataCaptionCipher []byte `json:"data_caption_cipher"`
+	DataId             string `json:"data_id"`
+	DataKeyCipher      []byte `json:"data_key_cipher"`
+	DataCaptionCipher  []byte `json:"data_caption_cipher"`
+	DataUsernameCipher []byte `json:"data_username_cipher"`
 }
 
 type BlockType int

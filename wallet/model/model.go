@@ -19,7 +19,6 @@ type Profile struct {
 
 type Metadata struct {
 	Version string    `json:"version"`
-	PeerId  string    `json:"peer_id"`
 	Created time.Time `json:"created,omitempty"`
 	Added   time.Time `json:"added"`
 }

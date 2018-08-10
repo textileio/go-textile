@@ -68,12 +68,8 @@ func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 	// make meta data
 	fpath := file.Name()
 	ext := strings.ToLower(filepath.Ext(fpath))
-	id, err := w.GetId()
-	if err != nil {
-		return nil, err
-	}
 	reader.Seek(0, 0)
-	meta, err := util.MakeMetadata(reader, fpath, ext, *format, encodingFormat, size.X, size.Y, id, w.version)
+	meta, err := util.MakeMetadata(reader, fpath, ext, *format, encodingFormat, size.X, size.Y, w.version)
 	if err != nil {
 		return nil, err
 	}

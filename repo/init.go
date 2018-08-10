@@ -11,7 +11,6 @@ import (
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/namesys"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"
-	"io/ioutil"
 	"os"
 	"path"
 	"time"
@@ -21,32 +20,19 @@ var log = logging.MustGetLogger("repo")
 
 var ErrRepoExists = errors.New("repo not empty, reinitializing would overwrite your keys")
 
-const versionFilename = "textile_version"
-
 func DoInit(repoRoot string, version string, mnemonic *string, initDB func(string) error, initConfig func(time.Time) error) (string, error) {
 	if err := checkWriteable(repoRoot); err != nil {
 		return "", err
 	}
 
-	versionPath := fmt.Sprintf("%s/%s", repoRoot, versionFilename)
 	if fsrepo.IsInitialized(repoRoot) {
-		// check version
-		var onDiskVersion []byte
-		onDiskVersion, _ = ioutil.ReadFile(versionPath)
-		if version == string(onDiskVersion) {
-			return "", ErrRepoExists
-		} else {
-			log.Info("old repo found, destroying...")
-			if err := destroyRepo(repoRoot); err != nil {
-				return "", err
-			}
+		// run all migrations if needed
+		if err := migrateUp(repoRoot, "", false); err != nil {
+			return "", err
 		}
+		return "", ErrRepoExists
 	}
 	log.Infof("initializing textile ipfs node at %s", repoRoot)
-
-	if err := ioutil.WriteFile(versionPath, []byte(version), 0644); err != nil {
-		return "", err
-	}
 
 	paths, err := schema.NewCustomSchemaManager(schema.Context{
 		DataPath: repoRoot,
