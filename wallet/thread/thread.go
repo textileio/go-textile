@@ -43,6 +43,14 @@ type Update struct {
 	ThreadName string     `json:"thread_name"`
 }
 
+// Info reports info about a thread
+type Info struct {
+	Head        *repo.Block `json:"head,omitempty"`
+	BlockCount  int         `json:"block_count"`
+	LatestPhoto *repo.Block `json:"latest_photo,omitempty"`
+	PhotoCount  int         `json:"photo_count"`
+}
+
 // Thread is the primary mechanism representing a collecion of data / files / photos
 type Thread struct {
 	Id            string
@@ -94,6 +102,35 @@ func (t *Thread) Updates() <-chan Update {
 // Close shutsdown the update channel
 func (t *Thread) Close() {
 	close(t.updates)
+}
+
+// Info returns thread info
+func (t *Thread) Info() (*Info, error) {
+	// block info
+	var head, latestPhoto *repo.Block
+	headId, err := t.GetHead()
+	if err != nil {
+		return nil, err
+	}
+	if headId != "" {
+		head = t.blocks().Get(headId)
+	}
+	blocks := t.blocks().Count(fmt.Sprintf("threadId='%s'", t.Id))
+
+	// photo specific info
+	query := fmt.Sprintf("threadId='%s' and type=%d", t.Id, repo.PhotoBlock)
+	latestPhotos := t.blocks().List("", 1, query)
+	if len(latestPhotos) > 0 {
+		latestPhoto = &latestPhotos[0]
+	}
+	photos := t.blocks().Count(fmt.Sprintf("threadId='%s' and type=%d", t.Id, repo.PhotoBlock))
+
+	return &Info{
+		Head:        head,
+		BlockCount:  blocks,
+		LatestPhoto: latestPhoto,
+		PhotoCount:  photos,
+	}, nil
 }
 
 // Blocks paginates blocks from the datastore

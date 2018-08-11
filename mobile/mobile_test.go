@@ -383,13 +383,13 @@ func TestMobile_GetProfile(t *testing.T) {
 	}
 }
 
-func TestMobile_GetStats(t *testing.T) {
-	res, err := mobile.GetStats()
+func TestMobile_Overview(t *testing.T) {
+	res, err := mobile.Overview()
 	if err != nil {
-		t.Errorf("get stats failed: %s", err)
+		t.Errorf("get overview failed: %s", err)
 		return
 	}
-	stats := wallet.Stats{}
+	stats := wallet.Overview{}
 	if err := json.Unmarshal([]byte(res), &stats); err != nil {
 		t.Error(err)
 		return
