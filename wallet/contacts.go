@@ -40,8 +40,7 @@ func (w *Wallet) ContactThreads(id string) []*thread.Thread {
 	}
 	var threads []*thread.Thread
 	for _, peer := range peers {
-		_, thrd := w.GetThread(peer.ThreadId)
-		if thrd != nil {
+		if _, thrd := w.GetThread(peer.ThreadId); thrd != nil {
 			threads = append(threads, thrd)
 		}
 	}
