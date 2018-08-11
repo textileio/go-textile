@@ -7,11 +7,11 @@ import (
 
 // Overview is a wallet overview object
 type Overview struct {
-	SwarmSize     int `json:"swarm_size"`
-	DeviceCount   int `json:"device_count"`
-	ThreadCount   int `json:"thread_count"`
-	PhotoCount    int `json:"photo_count"`
-	ContactsCount int `json:"contacts_count"`
+	SwarmSize    int `json:"swarm_size"`
+	DeviceCount  int `json:"device_count"`
+	ThreadCount  int `json:"thread_count"`
+	PhotoCount   int `json:"photo_count"`
+	ContactCount int `json:"contact_count"`
 }
 
 // Overview returns an overview object
@@ -31,10 +31,10 @@ func (w *Wallet) Overview() (*Overview, error) {
 	contacts := w.datastore.Peers().Count("", true)
 
 	return &Overview{
-		SwarmSize:     len(swarm),
-		DeviceCount:   devices,
-		ThreadCount:   threads,
-		PhotoCount:    photos,
-		ContactsCount: contacts,
+		SwarmSize:    len(swarm),
+		DeviceCount:  devices,
+		ThreadCount:  threads,
+		PhotoCount:   photos,
+		ContactCount: contacts,
 	}, nil
 }

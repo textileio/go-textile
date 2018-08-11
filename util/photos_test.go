@@ -3,7 +3,6 @@ package util
 import (
 	"bytes"
 	"fmt"
-	"github.com/textileio/textile-go/wallet/model"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -105,7 +104,7 @@ func Test_EncodeImage(t *testing.T) {
 		fileb, err := ioutil.ReadAll(file)
 		reader := bytes.NewReader(fileb)
 
-		thumb, err := EncodeImage(reader, encodingFormat, model.ThumbnailSize)
+		thumb, err := EncodeImage(reader, encodingFormat, ThumbnailSize)
 		if err != nil {
 			t.Fatal(err)
 		}
