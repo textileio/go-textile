@@ -5,7 +5,6 @@ import (
 	"github.com/disintegration/imaging"
 	"github.com/pkg/errors"
 	"github.com/rwcarlsen/goexif/exif"
-	"github.com/textileio/textile-go/wallet/model"
 	"image"
 	"image/color/palette"
 	"image/draw"
@@ -27,6 +26,37 @@ const (
 	PNG  Format = "png"
 	GIF  Format = "gif"
 )
+
+type ImageSize int
+
+const (
+	ThumbnailSize ImageSize = 100
+	SmallSize               = 320
+	MediumSize              = 800
+	LargeSize               = 1600
+)
+
+type Metadata struct {
+	Version string    `json:"version"`
+	Created time.Time `json:"created,omitempty"`
+	Added   time.Time `json:"added"`
+}
+
+type FileMetadata struct {
+	Metadata
+	Name string `json:"name"`
+	Ext  string `json:"extension"`
+}
+
+type PhotoMetadata struct {
+	FileMetadata
+	Width          int     `json:"width"`
+	Height         int     `json:"height"`
+	OriginalFormat string  `json:"original_format"`
+	EncodingFormat string  `json:"encoding_format"`
+	Latitude       float64 `json:"latitude,omitempty"`
+	Longitude      float64 `json:"longitude,omitempty"`
+}
 
 // DecodeImage returns a cleaned reader from an image file
 func DecodeImage(file *os.File) (*bytes.Reader, *Format, *image.Point, error) {
@@ -65,7 +95,7 @@ func DecodeImage(file *os.File) (*bytes.Reader, *Format, *image.Point, error) {
 
 // EncodeImage creates a jpeg|gif thumbnail from an image
 // - jpeg quality is currently the default (75/100)
-func EncodeImage(reader io.Reader, format Format, size model.ImageSize) ([]byte, error) {
+func EncodeImage(reader io.Reader, format Format, size ImageSize) ([]byte, error) {
 	var result []byte
 	width := int(size)
 	switch format {
@@ -123,7 +153,7 @@ func DecodeExif(reader io.Reader) *exif.Exif {
 }
 
 // MakeMetadata reads any available meta/exif data from a photo
-func MakeMetadata(reader io.Reader, path string, ext string, format Format, encodingFormat Format, width int, height int, version string) (model.PhotoMetadata, error) {
+func MakeMetadata(reader io.Reader, path string, ext string, format Format, encodingFormat Format, width int, height int, version string) (PhotoMetadata, error) {
 	var created time.Time
 	var lat, lon float64
 	x, err := exif.Decode(reader)
@@ -139,9 +169,9 @@ func MakeMetadata(reader io.Reader, path string, ext string, format Format, enco
 			lat, lon = latTmp, lonTmp
 		}
 	}
-	meta := model.PhotoMetadata{
-		FileMetadata: model.FileMetadata{
-			Metadata: model.Metadata{
+	meta := PhotoMetadata{
+		FileMetadata: FileMetadata{
+			Metadata: Metadata{
 				Version: version,
 				Created: created,
 				Added:   time.Now(),

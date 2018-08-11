@@ -86,6 +86,23 @@ func TestThreadDB_List(t *testing.T) {
 	}
 }
 
+func TestThreadDB_Count(t *testing.T) {
+	setupThreadDB()
+	err := tdb.Add(&repo.Thread{
+		Id:      "Qm123count",
+		Name:    "boom",
+		PrivKey: make([]byte, 8),
+	})
+	if err != nil {
+		t.Error(err)
+	}
+	cnt := tdb.Count("")
+	if cnt != 1 {
+		t.Error("returned incorrect count of threads")
+		return
+	}
+}
+
 func TestThreadDB_UpdateHead(t *testing.T) {
 	setupThreadDB()
 	err := tdb.Add(&repo.Thread{
