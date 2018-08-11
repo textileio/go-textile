@@ -156,6 +156,42 @@ func TestBlockDB_List(t *testing.T) {
 	}
 }
 
+func TestBlockDB_Count(t *testing.T) {
+	setupBlockDB()
+	key, err := crypto.GenerateAESKey()
+	if err != nil {
+		t.Error(err)
+	}
+	_, pk, err := libp2pc.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Error(err)
+	}
+	pkb, err := pk.Bytes()
+	if err != nil {
+		t.Error(err)
+	}
+	err = bdb.Add(&repo.Block{
+		Id:                 "abcde",
+		Date:               time.Now(),
+		Parents:            []string{"Qm123"},
+		ThreadId:           libp2pc.ConfigEncodeKey(pkb),
+		AuthorPk:           "author_pk",
+		Type:               repo.PhotoBlock,
+		DataId:             "Qm456",
+		DataKeyCipher:      key,
+		DataCaptionCipher:  []byte("xxx"),
+		DataUsernameCipher: []byte("un"),
+	})
+	if err != nil {
+		t.Error(err)
+	}
+	cnt := bdb.Count("")
+	if cnt != 1 {
+		t.Error("returned incorrect count of blocks")
+		return
+	}
+}
+
 func TestBlockDB_Delete(t *testing.T) {
 	err := bdb.Delete("abcde")
 	if err != nil {
@@ -166,7 +202,7 @@ func TestBlockDB_Delete(t *testing.T) {
 	var id string
 	err = stmt.QueryRow("abcde").Scan(&id)
 	if err == nil {
-		t.Error("Delete failed")
+		t.Error("delete failed")
 	}
 }
 
@@ -180,6 +216,6 @@ func TestBlockDB_DeleteByThreadId(t *testing.T) {
 	var id string
 	err = stmt.QueryRow("fghijk").Scan(&id)
 	if err == nil {
-		t.Error("Delete failed")
+		t.Error("delete failed")
 	}
 }

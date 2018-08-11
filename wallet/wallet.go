@@ -64,6 +64,7 @@ type AddDataResult struct {
 	Archive *client.Archive `json:"archive,omitempty"`
 }
 
+// Wallet is the main Textile node structure
 type Wallet struct {
 	version            string
 	context            oldcmds.Context
