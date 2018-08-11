@@ -7,7 +7,6 @@ import (
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/util"
-	"github.com/textileio/textile-go/wallet/model"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"image"
 	"time"
@@ -185,7 +184,7 @@ func (m *Mobile) GetPhotoMetadata(id string) (string, error) {
 	meta, err := thrd.GetPhotoMetaData(id, block)
 	if err != nil {
 		log.Warningf("get photo meta data failed %s: %s", id, err)
-		meta = &model.PhotoMetadata{}
+		meta = &util.PhotoMetadata{}
 	}
 	return toJSON(meta)
 }

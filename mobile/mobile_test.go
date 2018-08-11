@@ -383,6 +383,19 @@ func TestMobile_GetProfile(t *testing.T) {
 	}
 }
 
+func TestMobile_GetStats(t *testing.T) {
+	res, err := mobile.GetStats()
+	if err != nil {
+		t.Errorf("get stats failed: %s", err)
+		return
+	}
+	stats := wallet.Stats{}
+	if err := json.Unmarshal([]byte(res), &stats); err != nil {
+		t.Error(err)
+		return
+	}
+}
+
 func TestMobile_SignOut(t *testing.T) {
 	if err := mobile.SignOut(); err != nil {
 		t.Errorf("signout failed: %s", err)
