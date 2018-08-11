@@ -271,8 +271,8 @@ func (w *Wallet) GetThread(id string) (*int, *thread.Thread) {
 	return nil, nil
 }
 
-// GetThreadInfo gets thread info
-func (w *Wallet) GetThreadInfo(id string) (*thread.Info, error) {
+// ThreadInfo gets thread info
+func (w *Wallet) ThreadInfo(id string) (*thread.Info, error) {
 	_, thrd := w.GetThread(id)
 	if thrd == nil {
 		return nil, errors.New(fmt.Sprintf("cound not find thread: %s", id))

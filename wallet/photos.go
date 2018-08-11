@@ -193,8 +193,7 @@ func (w *Wallet) PhotoThreads(id string) []*thread.Thread {
 	}
 	var threads []*thread.Thread
 	for _, block := range blocks {
-		_, thrd := w.GetThread(block.ThreadId)
-		if thrd != nil {
+		if _, thrd := w.GetThread(block.ThreadId); thrd != nil {
 			threads = append(threads, thrd)
 		}
 	}

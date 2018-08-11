@@ -61,7 +61,7 @@ func (m *Mobile) AddThread(name string, mnemonic string) (string, error) {
 
 // ThreadInfo calls core ThreadInfo
 func (m *Mobile) ThreadInfo(threadId string) (string, error) {
-	info, err := core.Node.Wallet.GetThreadInfo(threadId)
+	info, err := core.Node.Wallet.ThreadInfo(threadId)
 	if err != nil {
 		return "", err
 	}
