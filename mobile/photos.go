@@ -31,17 +31,6 @@ type ImageData struct {
 	Url string `json:"url"`
 }
 
-// PhotoThreads call core PhotoThreads
-func (m *Mobile) PhotoThreads(id string) (string, error) {
-	threads := Threads{Items: make([]Thread, 0)}
-	for _, thrd := range core.Node.Wallet.PhotoThreads(id) {
-		peers := thrd.Peers()
-		item := Thread{Id: thrd.Id, Name: thrd.Name, Peers: len(peers)}
-		threads.Items = append(threads.Items, item)
-	}
-	return toJSON(threads)
-}
-
 // AddPhoto adds a photo by path
 func (m *Mobile) AddPhoto(path string) (string, error) {
 	added, err := core.Node.Wallet.AddPhoto(path)
@@ -192,6 +181,17 @@ func (m *Mobile) GetPhotoMetadata(id string) (string, error) {
 // GetPhotoKey calls core GetPhotoKey
 func (m *Mobile) GetPhotoKey(id string) (string, error) {
 	return core.Node.Wallet.GetPhotoKey(id)
+}
+
+// PhotoThreads call core PhotoThreads
+func (m *Mobile) PhotoThreads(id string) (string, error) {
+	threads := Threads{Items: make([]Thread, 0)}
+	for _, thrd := range core.Node.Wallet.PhotoThreads(id) {
+		peers := thrd.Peers()
+		item := Thread{Id: thrd.Id, Name: thrd.Name, Peers: len(peers)}
+		threads.Items = append(threads.Items, item)
+	}
+	return toJSON(threads)
 }
 
 // getImageDataURLPrefix adds the correct data url prefix to a data url

@@ -138,9 +138,9 @@ func (m *Mobile) RefreshMessages() error {
 	return core.Node.Wallet.RefreshMessages()
 }
 
-// GetStats calls core GetStats
-func (m *Mobile) GetStats() (string, error) {
-	stats, err := core.Node.Wallet.GetStats()
+// Overview calls core Overview
+func (m *Mobile) Overview() (string, error) {
+	stats, err := core.Node.Wallet.Overview()
 	if err != nil {
 		return "", err
 	}

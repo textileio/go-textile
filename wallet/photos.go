@@ -187,10 +187,6 @@ func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 
 // PhotoThreads lists threads which contain a photo (known to the local peer)
 func (w *Wallet) PhotoThreads(id string) []*thread.Thread {
-	if err := w.touchDatastore(); err != nil {
-		log.Errorf("error re-touching datastore")
-		return nil
-	}
 	blocks := w.datastore.Blocks().List("", -1, "type=4 and dataId='"+id+"'")
 	if len(blocks) == 0 {
 		return nil
