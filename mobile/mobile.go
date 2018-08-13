@@ -138,6 +138,15 @@ func (m *Mobile) RefreshMessages() error {
 	return core.Node.Wallet.RefreshMessages()
 }
 
+// Overview calls core Overview
+func (m *Mobile) Overview() (string, error) {
+	stats, err := core.Node.Wallet.Overview()
+	if err != nil {
+		return "", err
+	}
+	return toJSON(stats)
+}
+
 // waitForOnline waits up to 5 seconds for the node to go online
 func (m *Mobile) waitForOnline() {
 	if core.Node.Wallet.IsOnline() {

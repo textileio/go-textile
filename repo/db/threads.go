@@ -55,11 +55,24 @@ func (c *ThreadDB) Get(id string) *repo.Thread {
 func (c *ThreadDB) List(query string) []repo.Thread {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	q := ""
+	var q string
 	if query != "" {
 		q = " where " + query
 	}
 	return c.handleQuery("select * from threads" + q + ";")
+}
+
+func (c *ThreadDB) Count(query string) int {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	var q string
+	if query != "" {
+		q = " where " + query
+	}
+	row := c.db.QueryRow("select Count(*) from threads" + q + ";")
+	var count int
+	row.Scan(&count)
+	return count
 }
 
 func (c *ThreadDB) UpdateHead(id string, head string) error {

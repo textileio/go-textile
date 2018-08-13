@@ -59,6 +59,15 @@ func (m *Mobile) AddThread(name string, mnemonic string) (string, error) {
 	return toJSON(item)
 }
 
+// ThreadInfo calls core ThreadInfo
+func (m *Mobile) ThreadInfo(threadId string) (string, error) {
+	info, err := core.Node.Wallet.ThreadInfo(threadId)
+	if err != nil {
+		return "", err
+	}
+	return toJSON(info)
+}
+
 // AddThreadInvite adds a new invite to a thread
 func (m *Mobile) AddThreadInvite(threadId string, inviteePk string) (string, error) {
 	_, thrd := core.Node.Wallet.GetThread(threadId)

@@ -48,6 +48,7 @@ type ThreadStore interface {
 	Add(thread *Thread) error
 	Get(id string) *Thread
 	List(query string) []Thread
+	Count(query string) int
 	UpdateHead(id string, head string) error
 	Delete(id string) error
 }
@@ -57,6 +58,7 @@ type DeviceStore interface {
 	Add(device *Device) error
 	Get(id string) *Device
 	List(query string) []Device
+	Count(query string) int
 	Delete(id string) error
 }
 
@@ -66,6 +68,7 @@ type PeerStore interface {
 	Get(row string) *Peer
 	GetById(id string) *Peer
 	List(offset string, limit int, query string) []Peer
+	Count(query string, distinct bool) int
 	Delete(id string, thread string) error
 	DeleteByThreadId(thread string) error
 }
@@ -76,6 +79,7 @@ type BlockStore interface {
 	Get(id string) *Block
 	GetByDataId(dataId string) *Block
 	List(offset string, limit int, query string) []Block
+	Count(query string) int
 	Delete(id string) error
 	DeleteByThreadId(threadId string) error
 }

@@ -8,7 +8,6 @@ import (
 	. "github.com/textileio/textile-go/mobile"
 	util "github.com/textileio/textile-go/util/testing"
 	"github.com/textileio/textile-go/wallet"
-	"github.com/textileio/textile-go/wallet/model"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"os"
 	"testing"
@@ -371,7 +370,7 @@ func TestMobile_GetProfile(t *testing.T) {
 		t.Errorf("get profile failed: %s", err)
 		return
 	}
-	prof := model.Profile{}
+	prof := wallet.Profile{}
 	if err := json.Unmarshal([]byte(profs), &prof); err != nil {
 		t.Error(err)
 		return
@@ -381,6 +380,19 @@ func TestMobile_GetProfile(t *testing.T) {
 	}
 	if len(prof.AvatarId) == 0 {
 		t.Errorf("get profile bad avatar result")
+	}
+}
+
+func TestMobile_Overview(t *testing.T) {
+	res, err := mobile.Overview()
+	if err != nil {
+		t.Errorf("get overview failed: %s", err)
+		return
+	}
+	stats := wallet.Overview{}
+	if err := json.Unmarshal([]byte(res), &stats); err != nil {
+		t.Error(err)
+		return
 	}
 }
 
