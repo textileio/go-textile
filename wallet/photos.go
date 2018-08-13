@@ -8,7 +8,6 @@ import (
 	cafe "github.com/textileio/textile-go/core/cafe"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/util"
-	"github.com/textileio/textile-go/wallet/model"
 	"github.com/textileio/textile-go/wallet/thread"
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
 	"os"
@@ -45,22 +44,22 @@ func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 
 	// make all image sizes
 	reader.Seek(0, 0)
-	thumb, err := util.EncodeImage(reader, encodingFormat, model.ThumbnailSize)
+	thumb, err := util.EncodeImage(reader, encodingFormat, util.ThumbnailSize)
 	if err != nil {
 		return nil, err
 	}
 	reader.Seek(0, 0)
-	small, err := util.EncodeImage(reader, encodingFormat, model.SmallSize)
+	small, err := util.EncodeImage(reader, encodingFormat, util.SmallSize)
 	if err != nil {
 		return nil, err
 	}
 	reader.Seek(0, 0)
-	medium, err := util.EncodeImage(reader, encodingFormat, model.MediumSize)
+	medium, err := util.EncodeImage(reader, encodingFormat, util.MediumSize)
 	if err != nil {
 		return nil, err
 	}
 	reader.Seek(0, 0)
-	large, err := util.EncodeImage(reader, encodingFormat, model.LargeSize)
+	large, err := util.EncodeImage(reader, encodingFormat, util.LargeSize)
 	if err != nil {
 		return nil, err
 	}
@@ -188,18 +187,13 @@ func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 
 // PhotoThreads lists threads which contain a photo (known to the local peer)
 func (w *Wallet) PhotoThreads(id string) []*thread.Thread {
-	if err := w.touchDatastore(); err != nil {
-		log.Errorf("error re-touching datastore")
-		return nil
-	}
 	blocks := w.datastore.Blocks().List("", -1, "type=4 and dataId='"+id+"'")
 	if len(blocks) == 0 {
 		return nil
 	}
 	var threads []*thread.Thread
 	for _, block := range blocks {
-		_, thrd := w.GetThread(block.ThreadId)
-		if thrd != nil {
+		if _, thrd := w.GetThread(block.ThreadId); thrd != nil {
 			threads = append(threads, thrd)
 		}
 	}

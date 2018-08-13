@@ -9,12 +9,17 @@ import (
 	"github.com/textileio/textile-go/core/cafe"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/util"
-	"github.com/textileio/textile-go/wallet/model"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/namesys/opts"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/path"
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
 	"time"
 )
+
+type Profile struct {
+	Id       string `json:"id"`
+	Username string `json:"username,omitempty"`
+	AvatarId string `json:"avatar_id,omitempty"`
+}
 
 var profileTTL = time.Hour * 24 * 7 * 4
 var profileCacheTTL = time.Hour * 24 * 7
@@ -260,7 +265,7 @@ func (w *Wallet) SetAvatarId(id string) error {
 }
 
 // GetProfile return a model representation of a peer profile
-func (w *Wallet) GetProfile(peerId string) (*model.Profile, error) {
+func (w *Wallet) GetProfile(peerId string) (*Profile, error) {
 	// if peer id is local, return profile from db
 	pid, err := w.GetId()
 	if err != nil {
@@ -269,7 +274,7 @@ func (w *Wallet) GetProfile(peerId string) (*model.Profile, error) {
 	if pid == peerId {
 		username, _ := w.GetUsername()
 		avatarId, _ := w.GetAvatarId()
-		return &model.Profile{Id: pid, Username: username, AvatarId: avatarId}, nil
+		return &Profile{Id: pid, Username: username, AvatarId: avatarId}, nil
 	}
 
 	// resolve profile at peer id
@@ -285,7 +290,7 @@ func (w *Wallet) GetProfile(peerId string) (*model.Profile, error) {
 	avatarIdb, _ = util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/%s", root, "avatar_id"))
 	avatarId := string(avatarIdb)
 
-	return &model.Profile{
+	return &Profile{
 		Id:       peerId,
 		Username: string(usernameb),
 		AvatarId: avatarId,
@@ -313,7 +318,7 @@ func (w *Wallet) ResolveProfile(name string) (*path.Path, error) {
 }
 
 // PublishProfile publishes the peer profile to ipns
-func (w *Wallet) PublishProfile(prof *model.Profile) (*util.IpnsEntry, error) {
+func (w *Wallet) PublishProfile(prof *Profile) (*util.IpnsEntry, error) {
 	if !w.IsOnline() {
 		return nil, ErrOffline
 	}

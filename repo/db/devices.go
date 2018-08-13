@@ -53,11 +53,24 @@ func (c *DeviceDB) Get(id string) *repo.Device {
 func (c *DeviceDB) List(query string) []repo.Device {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	q := ""
+	var q string
 	if query != "" {
 		q = " where " + query
 	}
 	return c.handleQuery("select * from devices" + q + ";")
+}
+
+func (c *DeviceDB) Count(query string) int {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	var q string
+	if query != "" {
+		q = " where " + query
+	}
+	row := c.db.QueryRow("select Count(*) from devices" + q + ";")
+	var count int
+	row.Scan(&count)
+	return count
 }
 
 func (c *DeviceDB) Delete(id string) error {

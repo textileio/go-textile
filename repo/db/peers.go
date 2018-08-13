@@ -66,21 +66,37 @@ func (c *PeerDB) GetById(id string) *repo.Peer {
 func (c *PeerDB) List(offset string, limit int, query string) []repo.Peer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	var stm string
+	var stm, q string
 	if offset != "" {
-		q := ""
 		if query != "" {
 			q = query + " and "
 		}
 		stm = "select * from peers where " + q + "row<(select row from peers where row='" + offset + "') order by row desc limit " + strconv.Itoa(limit) + " ;"
 	} else {
-		q := ""
 		if query != "" {
 			q = "where " + query + " "
 		}
 		stm = "select * from peers " + q + "order by row desc limit " + strconv.Itoa(limit) + ";"
 	}
 	return c.handleQuery(stm)
+}
+
+func (c *PeerDB) Count(query string, distinct bool) int {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	var stm, q string
+	if query != "" {
+		q = " where " + query
+	}
+	if distinct {
+		stm = "select Count(distinct id) from peers" + q + ";"
+	} else {
+		stm = "select Count(*) from peers" + q + ";"
+	}
+	row := c.db.QueryRow(stm)
+	var count int
+	row.Scan(&count)
+	return count
 }
 
 func (c *PeerDB) Delete(id string, threadId string) error {

@@ -74,21 +74,32 @@ func (c *BlockDB) GetByDataId(dataId string) *repo.Block {
 func (c *BlockDB) List(offset string, limit int, query string) []repo.Block {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	var stm string
+	var stm, q string
 	if offset != "" {
-		q := ""
 		if query != "" {
 			q = query + " and "
 		}
 		stm = "select * from blocks where " + q + "date<(select date from blocks where id='" + offset + "') order by date desc limit " + strconv.Itoa(limit) + " ;"
 	} else {
-		q := ""
 		if query != "" {
 			q = "where " + query + " "
 		}
 		stm = "select * from blocks " + q + "order by date desc limit " + strconv.Itoa(limit) + ";"
 	}
 	return c.handleQuery(stm)
+}
+
+func (c *BlockDB) Count(query string) int {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	var q string
+	if query != "" {
+		q = " where " + query
+	}
+	row := c.db.QueryRow("select Count(*) from blocks" + q + ";")
+	var count int
+	row.Scan(&count)
+	return count
 }
 
 func (c *BlockDB) Delete(id string) error {

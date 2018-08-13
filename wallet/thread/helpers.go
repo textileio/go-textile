@@ -7,7 +7,6 @@ import (
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/util"
-	"github.com/textileio/textile-go/wallet/model"
 	"strings"
 )
 
@@ -53,12 +52,12 @@ func (t *Thread) GetBlockData(path string, block *repo.Block) ([]byte, error) {
 }
 
 // GetPhotoMetaData returns photo metadata under an id
-func (t *Thread) GetPhotoMetaData(id string, block *repo.Block) (*model.PhotoMetadata, error) {
+func (t *Thread) GetPhotoMetaData(id string, block *repo.Block) (*util.PhotoMetadata, error) {
 	file, err := t.GetBlockData(fmt.Sprintf("%s/meta", id), block)
 	if err != nil {
 		return nil, err
 	}
-	var data *model.PhotoMetadata
+	var data *util.PhotoMetadata
 	err = json.Unmarshal(file, &data)
 	if err != nil {
 		return nil, err
