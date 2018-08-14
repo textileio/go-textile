@@ -47,13 +47,8 @@ func (t *Thread) Ignore(blockId string) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	// unpin dataId if present
-	block := t.blocks().Get(blockId)
-	if block != nil && block.DataId != "" {
-		if err := util.UnpinPath(t.ipfs(), block.DataId); err != nil {
-			return nil, err
-		}
-	}
+	// unpin dataId if present and not part of another thread
+	t.unpinBlockData(blockId)
 
 	// update head
 	if err := t.updateHead(id); err != nil {
@@ -126,14 +121,9 @@ func (t *Thread) HandleIgnoreBlock(from *peer.ID, env *pb.Envelope, signed *pb.S
 		return nil, err
 	}
 
-	// unpin dataId if present
+	// unpin dataId if present and not part of another thread
 	blockId := strings.Replace(content.DataId, "ignore-", "", 1)
-	block := t.blocks().Get(blockId)
-	if block != nil && block.DataId != "" {
-		if err := util.UnpinPath(t.ipfs(), block.DataId); err != nil {
-			log.Warningf("failed to unpin data %s for block %s: %s", block.DataId, block.Id, err)
-		}
-	}
+	t.unpinBlockData(blockId)
 
 	// back prop
 	newPeers, err := t.FollowParents(content.Header.Parents, from)
@@ -157,4 +147,35 @@ func (t *Thread) HandleIgnoreBlock(from *peer.ID, env *pb.Envelope, signed *pb.S
 	}
 
 	return addr, nil
+}
+
+func (t *Thread) unpinBlockData(blockId string) {
+	block := t.blocks().Get(blockId)
+	if block != nil && block.DataId != "" {
+		all := t.blocks().List("", -1, "dataId='"+block.DataId+"'")
+		if len(all) == 1 {
+			// safe to unpin
+
+			switch block.Type {
+			case repo.PhotoBlock:
+				// unpin image paths
+				path := fmt.Sprintf("%s/thumb", block.DataId)
+				if err := util.UnpinPath(t.ipfs(), path); err != nil {
+					log.Warningf("failed to unpin %s: %s", path, err)
+				}
+				path = fmt.Sprintf("%s/small", block.DataId)
+				if err := util.UnpinPath(t.ipfs(), path); err != nil {
+					log.Warningf("failed to unpin %s: %s", path, err)
+				}
+				path = fmt.Sprintf("%s/meta", block.DataId)
+				if err := util.UnpinPath(t.ipfs(), path); err != nil {
+					log.Warningf("failed to unpin %s: %s", path, err)
+				}
+				path = fmt.Sprintf("%s/pk", block.DataId)
+				if err := util.UnpinPath(t.ipfs(), path); err != nil {
+					log.Warningf("failed to unpin %s: %s", path, err)
+				}
+			}
+		}
+	}
 }
