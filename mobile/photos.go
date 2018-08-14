@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/util"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
@@ -116,7 +117,11 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 			username = string(usernameb)
 		}
 		if b.DataMetadataCipher != nil {
-			metadatab, err := thrd.Decrypt(b.DataMetadataCipher)
+			key, err := thrd.Decrypt(b.DataKeyCipher)
+			if err != nil {
+				return "", err
+			}
+			metadatab, err := crypto.DecryptAES(b.DataMetadataCipher, key)
 			if err != nil {
 				return "", err
 			}
