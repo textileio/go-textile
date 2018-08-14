@@ -1,6 +1,7 @@
 package mobile_test
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/json"
 	"github.com/segmentio/ksuid"
@@ -9,7 +10,9 @@ import (
 	util "github.com/textileio/textile-go/util/testing"
 	"github.com/textileio/textile-go/wallet"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"image/jpeg"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -335,6 +338,84 @@ func TestMobile_GetPhotoData(t *testing.T) {
 	}
 }
 
+func TestMobile_GetPhotoDataForMinWidth(t *testing.T) {
+	// test photo
+	res, err := mobile.GetPhotoDataForMinWidth(addedPhotoId, 2000)
+	if err != nil {
+		t.Errorf("get photo data for min width failed: %s", err)
+		return
+	}
+	if len(res) == 0 {
+		t.Errorf("get photo data for min width bad result")
+		return
+	}
+	width, err := getWidthDataUrl(res)
+	if err != nil {
+		t.Errorf("get width failed: %s", err)
+		return
+	}
+	if width != 1600 {
+		t.Errorf("get photo data for min width bad result")
+	}
+
+	// test medium
+	res, err = mobile.GetPhotoDataForMinWidth(addedPhotoId, 600)
+	if err != nil {
+		t.Errorf("get photo data for min width failed: %s", err)
+		return
+	}
+	if len(res) == 0 {
+		t.Errorf("get photo data for min width bad result")
+		return
+	}
+	width, err = getWidthDataUrl(res)
+	if err != nil {
+		t.Errorf("get width failed: %s", err)
+		return
+	}
+	if width != 800 {
+		t.Errorf("get photo data for min width bad result")
+	}
+
+	// test small
+	res, err = mobile.GetPhotoDataForMinWidth(addedPhotoId, 320)
+	if err != nil {
+		t.Errorf("get photo data for min width failed: %s", err)
+		return
+	}
+	if len(res) == 0 {
+		t.Errorf("get photo data for min width bad result")
+		return
+	}
+	width, err = getWidthDataUrl(res)
+	if err != nil {
+		t.Errorf("get width failed: %s", err)
+		return
+	}
+	if width != 320 {
+		t.Errorf("get photo data for min width bad result")
+	}
+
+	// test photo
+	res, err = mobile.GetPhotoDataForMinWidth(addedPhotoId, 80)
+	if err != nil {
+		t.Errorf("get photo data for min width failed: %s", err)
+		return
+	}
+	if len(res) == 0 {
+		t.Errorf("get photo data for min width bad result")
+		return
+	}
+	width, err = getWidthDataUrl(res)
+	if err != nil {
+		t.Errorf("get width failed: %s", err)
+		return
+	}
+	if width != 100 {
+		t.Errorf("get photo data for min width bad result")
+	}
+}
+
 func TestMobile_GetPhotoMetadata(t *testing.T) {
 	res, err := mobile.GetPhotoMetadata(addedPhotoId)
 	if err != nil {
@@ -429,4 +510,21 @@ func TestMobile_SignInAgain(t *testing.T) {
 
 func Test_Teardown(t *testing.T) {
 	os.RemoveAll(mobile.RepoPath)
+}
+
+func getWidthDataUrl(res string) (int, error) {
+	var img *ImageData
+	if err := json.Unmarshal([]byte(res), &img); err != nil {
+		return 0, err
+	}
+	url := strings.Replace(img.Url, "data:image/jpeg;base64,", "", 1)
+	data, err := libp2pc.ConfigDecodeKey(url)
+	if err != nil {
+		return 0, err
+	}
+	conf, err := jpeg.DecodeConfig(bytes.NewReader(data))
+	if err != nil {
+		return 0, err
+	}
+	return conf.Width, nil
 }
