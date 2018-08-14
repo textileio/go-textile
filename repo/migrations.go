@@ -15,6 +15,7 @@ type Migration interface {
 
 var migrations = []Migration{
 	migs.Migration000{},
+	migs.Migration001{},
 }
 
 // migrateUp looks at the currently active migration version and will migrate all the way up (applying all up migrations)
@@ -23,7 +24,7 @@ func migrateUp(repoPath, dbPassword string, testnet bool) error {
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	} else if err != nil && os.IsNotExist(err) {
-		version = []byte("000")
+		version = []byte("0")
 	}
 	v, err := strconv.Atoi(string(version[0]))
 	if err != nil {

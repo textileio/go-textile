@@ -2,7 +2,6 @@ package thread
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/pkg/errors"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/repo"
@@ -51,16 +50,19 @@ func (t *Thread) GetBlockData(path string, block *repo.Block) ([]byte, error) {
 	return crypto.DecryptAES(cipher, key)
 }
 
-// GetPhotoMetaData returns photo metadata under an id
+// GetPhotoMetaData returns photo metadata indexed under a block
 func (t *Thread) GetPhotoMetaData(id string, block *repo.Block) (*util.PhotoMetadata, error) {
-	file, err := t.GetBlockData(fmt.Sprintf("%s/meta", id), block)
+	key, err := t.GetBlockDataKey(block)
 	if err != nil {
 		return nil, err
 	}
-	var data *util.PhotoMetadata
-	err = json.Unmarshal(file, &data)
+	metadatab, err := crypto.DecryptAES(block.DataMetadataCipher, key)
 	if err != nil {
 		return nil, err
 	}
-	return data, nil
+	var metadata *util.PhotoMetadata
+	if err := json.Unmarshal(metadatab, &metadata); err != nil {
+		return nil, err
+	}
+	return metadata, nil
 }
