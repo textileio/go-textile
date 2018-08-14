@@ -36,6 +36,40 @@ const (
 	LargeSize               = 1600
 )
 
+func ImageSizeForMinWidth(width int) ImageSize {
+	if width <= 100 {
+		return ThumbnailSize
+	} else if width <= 320 {
+		return SmallSize
+	} else if width <= 800 {
+		return MediumSize
+	} else {
+		return LargeSize
+	}
+}
+
+type ImagePath string
+
+const (
+	ThumbnailPath ImagePath = "/thumb"
+	SmallPath               = "/small"
+	MediumPath              = "/medium"
+	LargePath               = "/photo"
+)
+
+func ImagePathForSize(size ImageSize) ImagePath {
+	switch size {
+	case ThumbnailSize:
+		return ThumbnailPath
+	case SmallSize:
+		return SmallPath
+	case MediumSize:
+		return MediumPath
+	default:
+		return LargePath
+	}
+}
+
 type Metadata struct {
 	Version string    `json:"version"`
 	Created time.Time `json:"created,omitempty"`
