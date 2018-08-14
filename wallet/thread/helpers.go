@@ -56,6 +56,9 @@ func (t *Thread) GetPhotoMetaData(id string, block *repo.Block) (*util.PhotoMeta
 	if err != nil {
 		return nil, err
 	}
+	if block.DataMetadataCipher == nil {
+		return nil, errors.New("metadata was not indexed")
+	}
 	metadatab, err := crypto.DecryptAES(block.DataMetadataCipher, key)
 	if err != nil {
 		return nil, err
