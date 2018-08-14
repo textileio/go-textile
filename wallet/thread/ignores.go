@@ -6,20 +6,21 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"strings"
 	"time"
 )
 
-// Ignore adds an outgoing ignore block, dataId is the target block to ignore
-func (t *Thread) Ignore(dataId string) (mh.Multihash, error) {
+// Ignore adds an outgoing ignore block targeted at another block to ignore
+func (t *Thread) Ignore(blockId string) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	// dataId is a fellow block id,
 	// adding an ignore specific prefix here to ensure future flexibility
-	dataId = fmt.Sprintf("ignore-%s", dataId)
+	dataId := fmt.Sprintf("ignore-%s", blockId)
 
 	// build block
 	header, err := t.newBlockHeader(time.Now())
@@ -40,10 +41,18 @@ func (t *Thread) Ignore(dataId string) (mh.Multihash, error) {
 
 	// index it locally
 	dconf := &repo.DataBlockConfig{
-		DataId: dataId,
+		DataId: content.DataId,
 	}
 	if err := t.indexBlock(id, header, repo.IgnoreBlock, dconf); err != nil {
 		return nil, err
+	}
+
+	// unpin dataId if present
+	block := t.blocks().Get(blockId)
+	if block != nil && block.DataId != "" {
+		if err := util.UnpinPath(t.ipfs(), block.DataId); err != nil {
+			return nil, err
+		}
 	}
 
 	// update head
@@ -115,6 +124,15 @@ func (t *Thread) HandleIgnoreBlock(from *peer.ID, env *pb.Envelope, signed *pb.S
 	}
 	if err := t.indexBlock(id, content.Header, repo.IgnoreBlock, dconf); err != nil {
 		return nil, err
+	}
+
+	// unpin dataId if present
+	blockId := strings.Replace(content.DataId, "ignore-", "", 1)
+	block := t.blocks().Get(blockId)
+	if block != nil && block.DataId != "" {
+		if err := util.UnpinPath(t.ipfs(), block.DataId); err != nil {
+			log.Warningf("failed to unpin data %s for block %s: %s", block.DataId, block.Id, err)
+		}
 	}
 
 	// back prop
