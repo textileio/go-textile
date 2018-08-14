@@ -238,9 +238,14 @@ func IgnorePhoto(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	block, thrd, err := getBlockAndThreadForDataId(id)
+	block, err := core.Node.Wallet.GetBlock(id)
 	if err != nil {
 		c.Err(err)
+		return
+	}
+	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	if thrd == nil {
+		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
 		return
 	}
 

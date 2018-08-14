@@ -249,6 +249,27 @@ func PinPath(ipfs *core.IpfsNode, path string, recursive bool) error {
 	return nil
 }
 
+// UnpinPath takes an ipfs path string and unpins it
+func UnpinPath(ipfs *core.IpfsNode, path string) error {
+	ip, err := coreapi.ParsePath(path)
+	if err != nil {
+		log.Errorf("error unpinning path: %s: %s", path, err)
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ipfs.Context(), pinTimeout)
+	defer cancel()
+	api := coreapi.NewCoreAPI(ipfs)
+	if err := api.Pin().Rm(ctx, ip); err != nil {
+		return err
+	}
+	defer func() {
+		if recover() != nil {
+			log.Debug("node stopped")
+		}
+	}()
+	return nil
+}
+
 // PinDirectory pins a directory exluding any provided links
 func PinDirectory(ipfs *core.IpfsNode, dir ipld.Node, exclude []string) error {
 	ctx, cancel := context.WithTimeout(ipfs.Context(), pinTimeout)
