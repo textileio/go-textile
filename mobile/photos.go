@@ -17,6 +17,7 @@ import (
 // Photo is a simple meta data wrapper around a photo block
 type Photo struct {
 	Id       string              `json:"id"`
+	BlockId  string              `json:"block_id"`
 	Date     time.Time           `json:"date"`
 	AuthorId string              `json:"author_id"`
 	Caption  string              `json:"caption"`
@@ -89,6 +90,25 @@ func (m *Mobile) SharePhotoToThread(dataId string, threadId string, caption stri
 	return addr.B58String(), nil
 }
 
+// IgnorePhoto adds an ignore block targeted at the given block and unpins the photo set locally
+func (m *Mobile) IgnorePhoto(blockId string) (string, error) {
+	block, err := core.Node.Wallet.GetBlock(blockId)
+	if err != nil {
+		return "", err
+	}
+	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	if thrd == nil {
+		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
+	}
+
+	addr, err := thrd.Ignore(block.Id)
+	if err != nil {
+		return "", err
+	}
+
+	return addr.B58String(), nil
+}
+
 // GetPhotos returns thread photo blocks with json encoding
 func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string, error) {
 	_, thrd := core.Node.Wallet.GetThread(threadId)
@@ -135,6 +155,7 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 		}
 		photos.Items = append(photos.Items, Photo{
 			Id:       b.DataId,
+			BlockId:  b.Id,
 			Date:     b.Date,
 			Caption:  caption,
 			AuthorId: authorId.Pretty(),
