@@ -164,12 +164,19 @@ func (m *Mobile) GetPhotoData(id string, path string) (string, error) {
 		log.Errorf("get block data failed %s: %s", id, err)
 		return "", err
 	}
-	_, formatStr, err := image.DecodeConfig(bytes.NewReader(data))
+	var format string
+	meta, err := thrd.GetPhotoMetaData(id, block)
 	if err != nil {
-		log.Errorf("could not determine image format: %s", err)
-		return "", err
+		log.Warningf("get indexed photo meta data failed, decoding...")
+		_, format, err = image.DecodeConfig(bytes.NewReader(data))
+		if err != nil {
+			log.Errorf("could not determine image format: %s", err)
+			return "", err
+		}
+	} else {
+		format = meta.EncodingFormat
 	}
-	prefix := getImageDataURLPrefix(util.Format(formatStr))
+	prefix := getImageDataURLPrefix(util.Format(format))
 	encoded := libp2pc.ConfigEncodeKey(data)
 	img := &ImageData{Url: prefix + encoded}
 	return toJSON(img)
