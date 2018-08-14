@@ -20,7 +20,7 @@ var log = logging.MustGetLogger("repo")
 
 var ErrRepoExists = errors.New("repo not empty, reinitializing would overwrite your keys")
 
-const repover = "1"
+const repover = "2"
 
 func DoInit(repoRoot string, version string, mnemonic *string, initDB func(string) error, initConfig func(time.Time) error) (string, error) {
 	if err := checkWriteable(repoRoot); err != nil {

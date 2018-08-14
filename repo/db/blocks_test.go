@@ -49,6 +49,7 @@ func TestBlockDB_Put(t *testing.T) {
 		DataKeyCipher:      key,
 		DataCaptionCipher:  []byte("xxx"),
 		DataUsernameCipher: []byte("un"),
+		DataMetadataCipher: []byte("{}"),
 	})
 	if err != nil {
 		t.Error(err)
@@ -106,6 +107,7 @@ func TestBlockDB_List(t *testing.T) {
 		DataKeyCipher:      key,
 		DataCaptionCipher:  []byte("xxx"),
 		DataUsernameCipher: []byte("un"),
+		DataMetadataCipher: []byte("{}"),
 	})
 	if err != nil {
 		t.Error(err)
@@ -130,6 +132,7 @@ func TestBlockDB_List(t *testing.T) {
 		DataKeyCipher:      key,
 		DataCaptionCipher:  []byte("xxx"),
 		DataUsernameCipher: []byte("un"),
+		DataMetadataCipher: []byte("{}"),
 	})
 	if err != nil {
 		t.Error(err)
@@ -181,6 +184,7 @@ func TestBlockDB_Count(t *testing.T) {
 		DataKeyCipher:      key,
 		DataCaptionCipher:  []byte("xxx"),
 		DataUsernameCipher: []byte("un"),
+		DataMetadataCipher: []byte("{}"),
 	})
 	if err != nil {
 		t.Error(err)

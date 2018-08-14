@@ -263,7 +263,7 @@ func main() {
 			})
 			cafeCmd.AddCmd(&ishell.Cmd{
 				Name: "register",
-				Help: "show connected peers (same as `ipfs swarm peers`)",
+				Help: "cafe register",
 				Func: cmd.CafeRegister,
 			})
 			cafeCmd.AddCmd(&ishell.Cmd{
@@ -362,8 +362,8 @@ func main() {
 			})
 			photoCmd.AddCmd(&ishell.Cmd{
 				Name: "meta",
-				Help: "cat photo metadata",
-				Func: cmd.CatPhotoMetadata,
+				Help: "get photo metadata",
+				Func: cmd.GetPhotoMetadata,
 			})
 			photoCmd.AddCmd(&ishell.Cmd{
 				Name: "ls",
