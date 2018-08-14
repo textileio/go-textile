@@ -146,7 +146,7 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 	return toJSON(photos)
 }
 
-// GetPhotoData returns a data url for an image under a path
+// GetPhotoData returns a data url of an image under a path
 func (m *Mobile) GetPhotoData(id string, path string) (string, error) {
 	block, err := core.Node.Wallet.GetBlockByDataId(id)
 	if err != nil {
@@ -164,15 +164,28 @@ func (m *Mobile) GetPhotoData(id string, path string) (string, error) {
 		log.Errorf("get block data failed %s: %s", id, err)
 		return "", err
 	}
-	_, formatStr, err := image.DecodeConfig(bytes.NewReader(data))
+	var format string
+	meta, err := thrd.GetPhotoMetaData(id, block)
 	if err != nil {
-		log.Errorf("could not determine image format: %s", err)
-		return "", err
+		log.Warningf("get indexed photo meta data failed, decoding...")
+		_, format, err = image.DecodeConfig(bytes.NewReader(data))
+		if err != nil {
+			log.Errorf("could not determine image format: %s", err)
+			return "", err
+		}
+	} else {
+		format = meta.EncodingFormat
 	}
-	prefix := getImageDataURLPrefix(util.Format(formatStr))
+	prefix := getImageDataURLPrefix(util.Format(format))
 	encoded := libp2pc.ConfigEncodeKey(data)
 	img := &ImageData{Url: prefix + encoded}
 	return toJSON(img)
+}
+
+// GetPhotoDataForSize returns a data url of an image at or above requested size, or the next best option
+func (m *Mobile) GetPhotoDataForMinWidth(id string, minWidth int) (string, error) {
+	path := util.ImagePathForSize(util.ImageSizeForMinWidth(minWidth))
+	return m.GetPhotoData(id, string(path))
 }
 
 // GetPhotoMetadata returns a meta data object for a photo
