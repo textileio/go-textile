@@ -18,6 +18,12 @@ func (t *Thread) AddPhoto(dataId string, caption string, username string, key []
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
+	// download metadata
+	metadataCipher, err := util.GetDataAtPath(t.ipfs(), fmt.Sprintf("%s/meta", dataId))
+	if err != nil {
+		return nil, err
+	}
+
 	// encrypt AES key with thread pk
 	keyCipher, err := t.Encrypt(key)
 	if err != nil {
@@ -69,6 +75,7 @@ func (t *Thread) AddPhoto(dataId string, caption string, username string, key []
 		DataKeyCipher:      keyCipher,
 		DataCaptionCipher:  captionCipher,
 		DataUsernameCipher: usernameCipher,
+		DataMetadataCipher: metadataCipher,
 	}
 	if err := t.indexBlock(id, header, repo.PhotoBlock, dconf); err != nil {
 		return nil, err
@@ -159,6 +166,15 @@ func (t *Thread) HandleDataBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 		if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/pk", content.DataId), false); err != nil {
 			return nil, err
 		}
+
+		// get metadata (will be local now)
+		metadataCipher, err := util.GetDataAtPath(t.ipfs(), fmt.Sprintf("%s/meta", content.DataId))
+		if err != nil {
+			return nil, err
+		}
+		dconf.DataMetadataCipher = metadataCipher
+
+		// index
 		if err := t.indexBlock(id, content.Header, repo.PhotoBlock, dconf); err != nil {
 			return nil, err
 		}

@@ -2,9 +2,11 @@ package mobile
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/util"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
@@ -14,11 +16,12 @@ import (
 
 // Photo is a simple meta data wrapper around a photo block
 type Photo struct {
-	Id       string    `json:"id"`
-	Date     time.Time `json:"date"`
-	AuthorId string    `json:"author_id"`
-	Caption  string    `json:"caption"`
-	Username string    `json:"username"`
+	Id       string              `json:"id"`
+	Date     time.Time           `json:"date"`
+	AuthorId string              `json:"author_id"`
+	Caption  string              `json:"caption"`
+	Username string              `json:"username"`
+	Metadata *util.PhotoMetadata `json:"metadata,omitempty"`
 }
 
 // Photos is a wrapper around a list of photos
@@ -98,6 +101,7 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 	btype := repo.PhotoBlock
 	for _, b := range thrd.Blocks(offsetId, limit, &btype) {
 		var caption, username string
+		var metadata *util.PhotoMetadata
 		if b.DataCaptionCipher != nil {
 			captionb, err := thrd.Decrypt(b.DataCaptionCipher)
 			if err != nil {
@@ -112,6 +116,19 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 			}
 			username = string(usernameb)
 		}
+		if b.DataMetadataCipher != nil {
+			key, err := thrd.Decrypt(b.DataKeyCipher)
+			if err != nil {
+				return "", err
+			}
+			metadatab, err := crypto.DecryptAES(b.DataMetadataCipher, key)
+			if err != nil {
+				return "", err
+			}
+			if err := json.Unmarshal(metadatab, &metadata); err != nil {
+				log.Warningf("unmarshal photo metadata failed: %s", err)
+			}
+		}
 		authorId, err := util.IdFromEncodedPublicKey(b.AuthorPk)
 		if err != nil {
 			return "", err
@@ -122,6 +139,7 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 			Caption:  caption,
 			AuthorId: authorId.Pretty(),
 			Username: username,
+			Metadata: metadata,
 		})
 	}
 
