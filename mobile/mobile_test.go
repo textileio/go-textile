@@ -26,8 +26,9 @@ var repo = "testdata/.textile"
 
 var mobile *Mobile
 var defaultThreadId string
-var threadId string
+var threadId, threadId2 string
 var addedPhotoId string
+var sharedBlockId string
 var addedPhotoKey string
 var deviceId string
 
@@ -283,9 +284,31 @@ func TestMobile_SharePhotoToThread(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if _, err := mobile.SharePhotoToThread(addedPhotoId, item.Id, "howdy"); err != nil {
+	threadId2 = item.Id
+	sharedBlockId, err = mobile.SharePhotoToThread(addedPhotoId, item.Id, "howdy")
+	if err != nil {
 		t.Errorf("share photo to thread failed: %s", err)
 		return
+	}
+}
+
+func TestMobile_IgnorePhoto(t *testing.T) {
+	if _, err := mobile.IgnorePhoto(sharedBlockId); err != nil {
+		t.Errorf("ignore photo failed: %s", err)
+		return
+	}
+	res, err := mobile.GetPhotos("", -1, threadId2)
+	if err != nil {
+		t.Errorf("get photos failed: %s", err)
+		return
+	}
+	photos := Photos{}
+	if err := json.Unmarshal([]byte(res), &photos); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(photos.Items) != 0 {
+		t.Errorf("ignore photo bad result")
 	}
 }
 
