@@ -3,6 +3,7 @@ package thread
 import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
@@ -153,21 +154,36 @@ func (t *Thread) HandleDataBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 	}
 	switch content.Type {
 	case pb.ThreadData_PHOTO:
-		// pin data first (it may not be available)
-		if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/thumb", content.DataId), false); err != nil {
-			return nil, err
+		// check if this block has been ignored, if so, don't pin locally, but we still want the block
+		var ignore bool
+		ignored := t.blocks().GetByDataId(fmt.Sprintf("ignore-%s", id))
+		if ignored != nil {
+			date, err := ptypes.Timestamp(content.Header.Date)
+			if err != nil {
+				return nil, err
+			}
+			// ignore if the ignore block came after (could happen when bootstrapping the thread during back prop)
+			if ignored.Date.After(date) {
+				ignore = true
+			}
 		}
-		if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/small", content.DataId), false); err != nil {
-			log.Warningf("photo set missing small size")
-		}
-		if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/meta", content.DataId), false); err != nil {
-			return nil, err
-		}
-		if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/pk", content.DataId), false); err != nil {
-			return nil, err
+		if !ignore {
+			// pin data first (it may not be available)
+			if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/thumb", content.DataId), false); err != nil {
+				return nil, err
+			}
+			if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/small", content.DataId), false); err != nil {
+				log.Warningf("photo set missing small size")
+			}
+			if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/meta", content.DataId), false); err != nil {
+				return nil, err
+			}
+			if err := util.PinPath(t.ipfs(), fmt.Sprintf("%s/pk", content.DataId), false); err != nil {
+				return nil, err
+			}
 		}
 
-		// get metadata (will be local now)
+		// get metadata
 		metadataCipher, err := util.GetDataAtPath(t.ipfs(), fmt.Sprintf("%s/meta", content.DataId))
 		if err != nil {
 			return nil, err
