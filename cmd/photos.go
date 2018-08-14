@@ -180,7 +180,7 @@ func GetPhoto(c *ishell.Context) {
 	c.Println(blue("saved to " + path))
 }
 
-func CatPhotoMetadata(c *ishell.Context) {
+func GetPhotoMetadata(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing photo id"))
 		return
@@ -238,14 +238,9 @@ func IgnorePhoto(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	block, err := core.Node.Wallet.GetBlock(id)
+	block, thrd, err := getBlockAndThreadForDataId(id)
 	if err != nil {
 		c.Err(err)
-		return
-	}
-	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
-	if thrd == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
 		return
 	}
 
@@ -259,6 +254,9 @@ func getBlockAndThreadForDataId(dataId string) (*repo.Block, *thread.Thread, err
 	block, err := core.Node.Wallet.GetBlockByDataId(dataId)
 	if err != nil {
 		return nil, nil, err
+	}
+	if block.Type != repo.PhotoBlock {
+		return nil, nil, errors.New("not a photo block, aborting")
 	}
 	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
 	if thrd == nil {

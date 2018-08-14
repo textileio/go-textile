@@ -395,6 +395,7 @@ func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType r
 		DataKeyCipher:      dataConf.DataKeyCipher,
 		DataCaptionCipher:  dataConf.DataCaptionCipher,
 		DataUsernameCipher: dataConf.DataUsernameCipher,
+		DataMetadataCipher: dataConf.DataMetadataCipher,
 	}
 	if err := t.blocks().Add(index); err != nil {
 		return err

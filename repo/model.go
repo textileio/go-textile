@@ -35,6 +35,7 @@ type Block struct {
 	DataKeyCipher      []byte `json:"data_key_cipher"`
 	DataCaptionCipher  []byte `json:"data_caption_cipher"`
 	DataUsernameCipher []byte `json:"data_username_cipher"`
+	DataMetadataCipher []byte `json:"data_metadata_cipher"`
 }
 
 type DataBlockConfig struct {
@@ -42,6 +43,7 @@ type DataBlockConfig struct {
 	DataKeyCipher      []byte `json:"data_key_cipher"`
 	DataCaptionCipher  []byte `json:"data_caption_cipher"`
 	DataUsernameCipher []byte `json:"data_username_cipher"`
+	DataMetadataCipher []byte `json:"data_metadata_cipher"`
 }
 
 type BlockType int

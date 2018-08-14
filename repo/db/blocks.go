@@ -24,7 +24,7 @@ func (c *BlockDB) Add(block *repo.Block) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into blocks(id, date, parents, threadId, authorPk, type, dataId, dataKeyCipher, dataCaptionCipher, dataUsernameCipher) values(?,?,?,?,?,?,?,?,?,?)`
+	stm := `insert into blocks(id, date, parents, threadId, authorPk, type, dataId, dataKeyCipher, dataCaptionCipher, dataUsernameCipher, dataMetadataCipher) values(?,?,?,?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -42,6 +42,7 @@ func (c *BlockDB) Add(block *repo.Block) error {
 		block.DataKeyCipher,
 		block.DataCaptionCipher,
 		block.DataUsernameCipher,
+		block.DataMetadataCipher,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -126,8 +127,8 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 	for rows.Next() {
 		var id, parents, threadId, authorPk, dataId string
 		var dateInt, typeInt int
-		var dataKeyCipher, dataCaptionCipher, dataUsernameCipher []byte
-		if err := rows.Scan(&id, &dateInt, &parents, &threadId, &authorPk, &typeInt, &dataId, &dataKeyCipher, &dataCaptionCipher, &dataUsernameCipher); err != nil {
+		var dataKeyCipher, dataCaptionCipher, dataUsernameCipher, dataMetadataCipher []byte
+		if err := rows.Scan(&id, &dateInt, &parents, &threadId, &authorPk, &typeInt, &dataId, &dataKeyCipher, &dataCaptionCipher, &dataUsernameCipher, &dataMetadataCipher); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -142,6 +143,7 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 			DataKeyCipher:      dataKeyCipher,
 			DataCaptionCipher:  dataCaptionCipher,
 			DataUsernameCipher: dataUsernameCipher,
+			DataMetadataCipher: dataMetadataCipher,
 		}
 		ret = append(ret, block)
 	}
