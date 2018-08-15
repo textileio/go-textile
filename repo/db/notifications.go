@@ -23,7 +23,7 @@ func (c *NotificationDB) Add(notification *repo.Notification) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into notifications(id, date, actorId, targetId, type, read) values(?,?,?,?,?,?)`
+	stm := `insert into notifications(id, date, actorId, targetId, type, read, body) values(?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -37,6 +37,7 @@ func (c *NotificationDB) Add(notification *repo.Notification) error {
 		notification.TargetId,
 		int(notification.Type),
 		false,
+		notification.Body,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -116,9 +117,9 @@ func (c *NotificationDB) handleQuery(stm string) []repo.Notification {
 		return nil
 	}
 	for rows.Next() {
-		var id, actorId, targetId string
+		var id, actorId, targetId, body string
 		var dateInt, typeInt, readInt int
-		if err := rows.Scan(&id, &dateInt, &actorId, &targetId, &typeInt, &readInt); err != nil {
+		if err := rows.Scan(&id, &dateInt, &actorId, &targetId, &typeInt, &readInt, &body); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -133,6 +134,7 @@ func (c *NotificationDB) handleQuery(stm string) []repo.Notification {
 			TargetId: targetId,
 			Type:     repo.NotificationType(typeInt),
 			Read:     read,
+			Body:     body,
 		}
 		ret = append(ret, notif)
 	}

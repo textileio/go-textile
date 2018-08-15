@@ -29,7 +29,7 @@ func (Migration002) Up(repoPath string, dbPassword string, testnet bool) error {
 
 	// add notifications table and indexes
 	query := `
-    create table notifications (id text primary key not null, date integer not null, actorId text not null, targetId text not null, type integer not null, read integer not null);
+    create table notifications (id text primary key not null, date integer not null, actorId text not null, targetId text not null, type integer not null, read integer not null, body text not null);
     create index notification_targetId on notifications (targetId);
     create index notification_actorId on notifications (actorId);
     create index notification_read on notifications (read);

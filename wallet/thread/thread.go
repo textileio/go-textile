@@ -22,20 +22,6 @@ import (
 
 var log = logging.MustGetLogger("thread")
 
-// Config is used to construct a Thread
-type Config struct {
-	RepoPath      string
-	Ipfs          func() *core.IpfsNode
-	Blocks        func() repo.BlockStore
-	Peers         func() repo.PeerStore
-	GetHead       func() (string, error)
-	UpdateHead    func(head string) error
-	Publish       func(payload []byte) error
-	Send          func(message *pb.Envelope, peerId string, hash *string) error
-	NewEnvelope   func(message *pb.Message) (*pb.Envelope, error)
-	PutPinRequest func(id string) error
-}
-
 // Update is used to notify listeners about updates in a thread
 type Update struct {
 	Block      repo.Block `json:"block"`
@@ -49,6 +35,21 @@ type Info struct {
 	BlockCount  int         `json:"block_count"`
 	LatestPhoto *repo.Block `json:"latest_photo,omitempty"`
 	PhotoCount  int         `json:"photo_count"`
+}
+
+// Config is used to construct a Thread
+type Config struct {
+	RepoPath      string
+	Ipfs          func() *core.IpfsNode
+	Blocks        func() repo.BlockStore
+	Peers         func() repo.PeerStore
+	GetHead       func() (string, error)
+	UpdateHead    func(head string) error
+	Publish       func(payload []byte) error
+	Send          func(message *pb.Envelope, peerId string, hash *string) error
+	NewEnvelope   func(message *pb.Message) (*pb.Envelope, error)
+	PutPinRequest func(id string) error
+	GetUsername   func() string
 }
 
 // Thread is the primary mechanism representing a collecion of data / files / photos
@@ -67,6 +68,7 @@ type Thread struct {
 	send          func(message *pb.Envelope, peerId string, hash *string) error
 	newEnvelope   func(message *pb.Message) (*pb.Envelope, error)
 	putPinRequest func(id string) error
+	getUsername   func() string
 	mux           sync.Mutex
 }
 
@@ -91,6 +93,7 @@ func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 		send:          config.Send,
 		newEnvelope:   config.NewEnvelope,
 		putPinRequest: config.PutPinRequest,
+		getUsername:   config.GetUsername,
 	}, nil
 }
 
@@ -300,6 +303,16 @@ func (t *Thread) newBlockHeader(date time.Time) (*pb.ThreadBlockHeader, error) {
 		return nil, err
 	}
 
+	// encrypt our own username with thread pk
+	var authorUnCipher []byte
+	authorUn := t.getUsername()
+	if authorUn != "" {
+		authorUnCipher, err = t.Encrypt([]byte(authorUn))
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// get now date
 	pdate, err := ptypes.TimestampProto(time.Now())
 	if err != nil {
@@ -307,10 +320,11 @@ func (t *Thread) newBlockHeader(date time.Time) (*pb.ThreadBlockHeader, error) {
 	}
 
 	return &pb.ThreadBlockHeader{
-		Date:     pdate,
-		Parents:  strings.Split(string(head), ","),
-		ThreadPk: threadPk,
-		AuthorPk: authorPk,
+		Date:           pdate,
+		Parents:        strings.Split(string(head), ","),
+		ThreadPk:       threadPk,
+		AuthorPk:       authorPk,
+		AuthorUnCipher: authorUnCipher,
 	}, nil
 }
 
@@ -383,18 +397,18 @@ func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType r
 		dataConf = new(repo.DataBlockConfig)
 	}
 	index := &repo.Block{
-		Id:       id,
-		Date:     date,
-		Parents:  header.Parents,
-		ThreadId: libp2pc.ConfigEncodeKey(header.ThreadPk),
-		AuthorPk: libp2pc.ConfigEncodeKey(header.AuthorPk),
-		Type:     blockType,
+		Id:             id,
+		Date:           date,
+		Parents:        header.Parents,
+		ThreadId:       libp2pc.ConfigEncodeKey(header.ThreadPk),
+		AuthorPk:       libp2pc.ConfigEncodeKey(header.AuthorPk),
+		AuthorUnCipher: header.AuthorUnCipher,
+		Type:           blockType,
 
 		// off-chain data links
 		DataId:             dataConf.DataId,
 		DataKeyCipher:      dataConf.DataKeyCipher,
 		DataCaptionCipher:  dataConf.DataCaptionCipher,
-		DataUsernameCipher: dataConf.DataUsernameCipher,
 		DataMetadataCipher: dataConf.DataMetadataCipher,
 	}
 	if err := t.blocks().Add(index); err != nil {
