@@ -24,17 +24,17 @@ type Peer struct {
 }
 
 type Block struct {
-	Id       string    `json:"id"`
-	Date     time.Time `json:"date"`
-	Parents  []string  `json:"parents"`
-	ThreadId string    `json:"thread_id"`
-	AuthorPk string    `json:"author_pk"`
-	Type     BlockType `json:"type"`
+	Id             string    `json:"id"`
+	Date           time.Time `json:"date"`
+	Parents        []string  `json:"parents"`
+	ThreadId       string    `json:"thread_id"`
+	AuthorPk       string    `json:"author_pk"`
+	AuthorUnCipher []byte    `json:"author_un_cipher"`
+	Type           BlockType `json:"type"`
 
 	DataId             string `json:"data_id"`
 	DataKeyCipher      []byte `json:"data_key_cipher"`
 	DataCaptionCipher  []byte `json:"data_caption_cipher"`
-	DataUsernameCipher []byte `json:"data_username_cipher"`
 	DataMetadataCipher []byte `json:"data_metadata_cipher"`
 }
 
@@ -42,7 +42,6 @@ type DataBlockConfig struct {
 	DataId             string `json:"data_id"`
 	DataKeyCipher      []byte `json:"data_key_cipher"`
 	DataCaptionCipher  []byte `json:"data_caption_cipher"`
-	DataUsernameCipher []byte `json:"data_username_cipher"`
 	DataMetadataCipher []byte `json:"data_metadata_cipher"`
 }
 
@@ -89,6 +88,7 @@ type Notification struct {
 	TargetId string           `json:"target_id"` // inviteId | deviceId | blockId
 	Type     NotificationType `json:"type"`
 	Read     bool             `json:"read"`
+	Body     string           `json:"body"`
 }
 
 type NotificationType int

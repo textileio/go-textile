@@ -15,7 +15,7 @@ import (
 )
 
 // AddPhoto adds an outgoing photo block
-func (t *Thread) AddPhoto(dataId string, caption string, username string, key []byte) (mh.Multihash, error) {
+func (t *Thread) AddPhoto(dataId string, caption string, key []byte) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
@@ -40,27 +40,17 @@ func (t *Thread) AddPhoto(dataId string, caption string, username string, key []
 		}
 	}
 
-	// encrypt username with thread pk
-	var usernameCipher []byte
-	if username != "" {
-		usernameCipher, err = t.Encrypt([]byte(username))
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	// build block
 	header, err := t.newBlockHeader(time.Now())
 	if err != nil {
 		return nil, err
 	}
 	content := &pb.ThreadData{
-		Header:         header,
-		Type:           pb.ThreadData_PHOTO,
-		DataId:         dataId,
-		KeyCipher:      keyCipher,
-		CaptionCipher:  captionCipher,
-		UsernameCipher: usernameCipher,
+		Header:        header,
+		Type:          pb.ThreadData_PHOTO,
+		DataId:        dataId,
+		KeyCipher:     keyCipher,
+		CaptionCipher: captionCipher,
 	}
 
 	// commit to ipfs
@@ -75,7 +65,6 @@ func (t *Thread) AddPhoto(dataId string, caption string, username string, key []
 		DataId:             dataId,
 		DataKeyCipher:      keyCipher,
 		DataCaptionCipher:  captionCipher,
-		DataUsernameCipher: usernameCipher,
 		DataMetadataCipher: metadataCipher,
 	}
 	if err := t.indexBlock(id, header, repo.PhotoBlock, dconf); err != nil {
@@ -147,10 +136,9 @@ func (t *Thread) HandleDataBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 
 	// index it locally
 	dconf := &repo.DataBlockConfig{
-		DataId:             content.DataId,
-		DataKeyCipher:      content.KeyCipher,
-		DataCaptionCipher:  content.CaptionCipher,
-		DataUsernameCipher: content.UsernameCipher,
+		DataId:            content.DataId,
+		DataKeyCipher:     content.KeyCipher,
+		DataCaptionCipher: content.CaptionCipher,
 	}
 	switch content.Type {
 	case pb.ThreadData_PHOTO:

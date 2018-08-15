@@ -44,11 +44,11 @@ func TestBlockDB_Add(t *testing.T) {
 		Parents:            []string{"Qm123"},
 		ThreadId:           libp2pc.ConfigEncodeKey(pkb),
 		AuthorPk:           "author_pk",
+		AuthorUnCipher:     []byte("un"),
 		Type:               repo.PhotoBlock,
 		DataId:             "Qm456",
 		DataKeyCipher:      key,
 		DataCaptionCipher:  []byte("xxx"),
-		DataUsernameCipher: []byte("un"),
 		DataMetadataCipher: []byte("{}"),
 	})
 	if err != nil {
@@ -100,11 +100,11 @@ func TestBlockDB_List(t *testing.T) {
 		Parents:            []string{"Qm123"},
 		ThreadId:           libp2pc.ConfigEncodeKey(pkb),
 		AuthorPk:           "author_pk",
+		AuthorUnCipher:     []byte("un"),
 		Type:               repo.PhotoBlock,
 		DataId:             "Qm456",
 		DataKeyCipher:      key,
 		DataCaptionCipher:  []byte("xxx"),
-		DataUsernameCipher: []byte("un"),
 		DataMetadataCipher: []byte("{}"),
 	})
 	if err != nil {
@@ -125,11 +125,11 @@ func TestBlockDB_List(t *testing.T) {
 		Parents:            []string{"Qm456"},
 		ThreadId:           threadId,
 		AuthorPk:           "author_pk",
+		AuthorUnCipher:     []byte("un"),
 		Type:               repo.PhotoBlock,
 		DataId:             "Qm789",
 		DataKeyCipher:      key,
 		DataCaptionCipher:  []byte("xxx"),
-		DataUsernameCipher: []byte("un"),
 		DataMetadataCipher: []byte("{}"),
 	})
 	if err != nil {
@@ -176,11 +176,11 @@ func TestBlockDB_Count(t *testing.T) {
 		Parents:            []string{"Qm123"},
 		ThreadId:           libp2pc.ConfigEncodeKey(pkb),
 		AuthorPk:           "author_pk",
+		AuthorUnCipher:     []byte("un"),
 		Type:               repo.PhotoBlock,
 		DataId:             "Qm456",
 		DataKeyCipher:      key,
 		DataCaptionCipher:  []byte("xxx"),
-		DataUsernameCipher: []byte("un"),
 		DataMetadataCipher: []byte("{}"),
 	})
 	if err != nil {

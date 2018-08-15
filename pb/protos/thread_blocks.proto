@@ -8,7 +8,7 @@ message ThreadBlockHeader {
     repeated string parents        = 2;
     bytes threadPk                 = 3;
     bytes authorPk                 = 4;
-    bytes authorUnCipher           = 5 [deprecated = true];
+    bytes authorUnCipher           = 5;
 }
 
 message SignedThreadBlock {

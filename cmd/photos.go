@@ -51,16 +51,13 @@ func AddPhoto(c *ishell.Context) {
 		return
 	}
 
-	// get username
-	username, _ := core.Node.Wallet.GetUsername()
-
 	// add to thread
 	_, thrd := core.Node.Wallet.GetThread(threadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", threadId)))
 		return
 	}
-	if _, err := thrd.AddPhoto(added.Id, caption, username, []byte(added.Key)); err != nil {
+	if _, err := thrd.AddPhoto(added.Id, caption, []byte(added.Key)); err != nil {
 		c.Err(err)
 		return
 	}
@@ -104,11 +101,8 @@ func SharePhoto(c *ishell.Context) {
 
 	// TODO: owner challenge
 
-	// get username
-	username, _ := core.Node.Wallet.GetUsername()
-
 	// finally, add to destination
-	if _, err := toThread.AddPhoto(id, caption, username, key); err != nil {
+	if _, err := toThread.AddPhoto(id, caption, key); err != nil {
 		c.Err(err)
 		return
 	}
