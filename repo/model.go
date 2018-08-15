@@ -85,7 +85,7 @@ func (b BlockType) Description() string {
 type Notification struct {
 	Id       string           `json:"id"`
 	Date     time.Time        `json:"date"`
-	ActorId  string           `json:"author_id"` // peer id
+	ActorId  string           `json:"actor_id"`  // peer id
 	TargetId string           `json:"target_id"` // inviteId | deviceId | blockId
 	Type     NotificationType `json:"type"`
 	Read     bool             `json:"read"`
@@ -95,7 +95,7 @@ type NotificationType int
 
 const (
 	ReceivedInviteNotification NotificationType = iota // peerA invited you (inviteId)
-	DeviceAddedNotification    NotificationType = iota // new device added (deviceId)
+	DeviceAddedNotification                            // new device added (deviceId)
 	PhotoAddedNotification                             // peerA added a photo (blockId)
 	CommentAddedNotification                           // peerA commented on peerB's photo, video, comment, etc. (blockId)
 	LikeAddedNotification                              // peerA liked peerB's photo, video, comment, etc. (blockId)
