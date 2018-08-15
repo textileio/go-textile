@@ -49,11 +49,13 @@ type DataBlockConfig struct {
 type BlockType int
 
 const (
-	InviteBlock BlockType = iota
-	ExternalInviteBlock
+	InviteBlock         BlockType = iota // no longer used
+	ExternalInviteBlock                  // no longer used
 	JoinBlock
 	LeaveBlock
 	PhotoBlock
+	CommentBlock
+	LikeBlock
 
 	IgnoreBlock = 200
 	MergeBlock  = 201
@@ -61,16 +63,16 @@ const (
 
 func (b BlockType) Description() string {
 	switch b {
-	case InviteBlock:
-		return "INVITE"
-	case ExternalInviteBlock:
-		return "EXTERNAL_INVITE"
 	case JoinBlock:
 		return "JOIN"
 	case LeaveBlock:
 		return "LEAVE"
 	case PhotoBlock:
 		return "PHOTO"
+	case CommentBlock:
+		return "COMMENT"
+	case LikeBlock:
+		return "LIKE"
 	case IgnoreBlock:
 		return "IGNORE"
 	case MergeBlock:
@@ -79,6 +81,27 @@ func (b BlockType) Description() string {
 		return "INVALID"
 	}
 }
+
+type Notification struct {
+	Id       string           `json:"id"`
+	Date     time.Time        `json:"date"`
+	ActorId  string           `json:"author_id"` // peer id
+	TargetId string           `json:"target_id"` // inviteId | deviceId | blockId
+	Type     NotificationType `json:"type"`
+	Read     bool             `json:"read"`
+}
+
+type NotificationType int
+
+const (
+	ReceivedInviteNotification NotificationType = iota // peerA invited you (inviteId)
+	DeviceAddedNotification    NotificationType = iota // new device added (deviceId)
+	PhotoAddedNotification                             // peerA added a photo (blockId)
+	CommentAddedNotification                           // peerA commented on peerB's photo, video, comment, etc. (blockId)
+	LikeAddedNotification                              // peerA liked peerB's photo, video, comment, etc. (blockId)
+	PeerJoinedNotification                             // peerA joined (blockId)
+	PeerLeftNotification                               // peerA left (blockId)
+)
 
 type PinRequest struct {
 	Id   string    `json:"id"`

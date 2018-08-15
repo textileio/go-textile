@@ -18,6 +18,7 @@ type SQLiteDatastore struct {
 	devices         repo.DeviceStore
 	peers           repo.PeerStore
 	blocks          repo.BlockStore
+	notifications   repo.NotificationStore
 	offlineMessages repo.OfflineMessageStore
 	pointers        repo.PointerStore
 	pinRequests     repo.PinRequestStore
@@ -44,6 +45,7 @@ func Create(repoPath, password string) (*SQLiteDatastore, error) {
 		devices:         NewDeviceStore(conn, mux),
 		peers:           NewPeerStore(conn, mux),
 		blocks:          NewBlockStore(conn, mux),
+		notifications:   NewNotificationStore(conn, mux),
 		offlineMessages: NewOfflineMessageStore(conn, mux),
 		pointers:        NewPointerStore(conn, mux),
 		pinRequests:     NewPinRequestStore(conn, mux),
@@ -84,6 +86,10 @@ func (d *SQLiteDatastore) Peers() repo.PeerStore {
 
 func (d *SQLiteDatastore) Blocks() repo.BlockStore {
 	return d.blocks
+}
+
+func (d *SQLiteDatastore) Notifications() repo.NotificationStore {
+	return d.notifications
 }
 
 func (d *SQLiteDatastore) OfflineMessages() repo.OfflineMessageStore {
@@ -155,6 +161,10 @@ func initDatabaseTables(db *sql.DB, password string) error {
     create table blocks (id text primary key not null, date integer not null, parents text not null, threadId text not null, authorPk text not null, type integer not null, dataId text, dataKeyCipher blob, dataCaptionCipher blob, dataUsernameCipher blob, dataMetadataCipher blob);
     create index block_dataId on blocks (dataId);
     create index block_threadId_type_date on blocks (threadId, type, date);
+    create table notifications (id text primary key not null, date integer not null, actorId text not null, targetId text not null, type integer not null, read integer not null);
+    create index notification_targetId on notifications (targetId);
+    create index notification_actorId on notifications (actorId);
+    create index notification_read on notifications (read);
     create table offlinemessages (url text primary key not null, date integer, message blob);
 	create table pointers (id text primary key not null, key text, address text, cancelId text, purpose integer, date integer);
     create table pinrequests (id text primary key not null, date integer);

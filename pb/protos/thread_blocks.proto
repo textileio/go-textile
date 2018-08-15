@@ -56,6 +56,19 @@ message ThreadData {
     }
 }
 
+message ThreadAnnotation {
+    ThreadBlockHeader header = 1;
+
+    Type type                = 2;
+    bytes captionCipher      = 5;
+    bytes usernameCipher     = 6;
+
+    enum Type {
+        COMMENT = 0;
+        LIKE    = 1;
+    }
+}
+
 message ThreadIgnore {
     ThreadBlockHeader header = 1;
 
