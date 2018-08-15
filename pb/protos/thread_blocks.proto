@@ -8,6 +8,7 @@ message ThreadBlockHeader {
     repeated string parents        = 2;
     bytes threadPk                 = 3;
     bytes authorPk                 = 4;
+    bytes authorUnCipher           = 5 [deprecated = true];
 }
 
 message SignedThreadBlock {
@@ -48,7 +49,7 @@ message ThreadData {
     string dataId            = 3;
     bytes keyCipher          = 4;
     bytes captionCipher      = 5;
-    bytes usernameCipher     = 6;
+    bytes usernameCipher     = 6 [deprecated = true];
 
     enum Type {
         PHOTO = 0;
