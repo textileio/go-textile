@@ -106,7 +106,7 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Envelope, opti
 	}
 	id := ci.Hash().B58String()
 
-	// build notification
+	// send notification
 	body := fmt.Sprintf("invited you to \"%s\"", invite.SuggestedName)
 	notification, err := buildNotification(sk, invite.Header, id, repo.ReceivedInviteNotification, body)
 	if err != nil {
@@ -143,38 +143,19 @@ func (s *TextileService) handleThreadJoin(pid peer.ID, pmes *pb.Envelope, option
 	}
 
 	// handle
-	if _, _, err := thrd.HandleJoinBlock(&pid, pmes, signed, join, false); err != nil {
-		return nil, err
-	}
-
-	return nil, nil
-}
-
-func (s *TextileService) handleThreadMerge(pid peer.ID, pmes *pb.Envelope, options interface{}) (*pb.Envelope, error) {
-	log.Debug("received THREAD_MERGE message")
-	signed, err := unpackMessage(pmes)
+	addr, _, err := thrd.HandleJoinBlock(&pid, pmes, signed, join, false)
 	if err != nil {
 		return nil, err
 	}
-	merge := new(pb.ThreadMerge)
-	if err := proto.Unmarshal(signed.Block, merge); err != nil {
+	id := addr.B58String()
+
+	// send notification
+	body := fmt.Sprintf("joined \"%s\"", thrd.Name)
+	notification, err := buildNotification(thrd.PrivKey, join.Header, id, repo.PeerJoinedNotification, body)
+	if err != nil {
 		return nil, err
 	}
-
-	// load thread
-	threadId := libp2pc.ConfigEncodeKey(merge.ThreadPk)
-	_, thrd := s.getThread(threadId)
-	if thrd == nil {
-		return nil, errors.New("invalid merge block")
-	}
-
-	// verify thread sig
-	if err := thrd.Verify(signed); err != nil {
-		return nil, err
-	}
-
-	// handle
-	if _, err := thrd.HandleMergeBlock(&pid, pmes.Message, signed, merge, false); err != nil {
+	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
 
@@ -205,7 +186,19 @@ func (s *TextileService) handleThreadLeave(pid peer.ID, pmes *pb.Envelope, optio
 	}
 
 	// handle
-	if _, err := thrd.HandleLeaveBlock(&pid, pmes, signed, leave, false); err != nil {
+	addr, err := thrd.HandleLeaveBlock(&pid, pmes, signed, leave, false)
+	if err != nil {
+		return nil, err
+	}
+	id := addr.B58String()
+
+	// send notification
+	body := fmt.Sprintf("left \"%s\"", thrd.Name)
+	notification, err := buildNotification(thrd.PrivKey, leave.Header, id, repo.PeerLeftNotification, body)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
 
@@ -236,7 +229,25 @@ func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Envelope, option
 	}
 
 	// handle
-	if _, err := thrd.HandleDataBlock(&pid, pmes, signed, data, false); err != nil {
+	addr, err := thrd.HandleDataBlock(&pid, pmes, signed, data, false)
+	if err != nil {
+		return nil, err
+	}
+	id := addr.B58String()
+
+	// send notification
+	var body string
+	switch data.Type {
+	case pb.ThreadData_PHOTO:
+		body = fmt.Sprintf("added a photo to \"%s\"", thrd.Name)
+	case pb.ThreadData_TEXT:
+		break
+	}
+	notification, err := buildNotification(thrd.PrivKey, data.Header, id, repo.PhotoAddedNotification, body)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
 
@@ -268,6 +279,39 @@ func (s *TextileService) handleThreadIgnore(pid peer.ID, pmes *pb.Envelope, opti
 
 	// handle
 	if _, err := thrd.HandleIgnoreBlock(&pid, pmes, signed, ignore, false); err != nil {
+		return nil, err
+	}
+
+	// TODO: remove notifications w/ this targetId
+
+	return nil, nil
+}
+
+func (s *TextileService) handleThreadMerge(pid peer.ID, pmes *pb.Envelope, options interface{}) (*pb.Envelope, error) {
+	log.Debug("received THREAD_MERGE message")
+	signed, err := unpackMessage(pmes)
+	if err != nil {
+		return nil, err
+	}
+	merge := new(pb.ThreadMerge)
+	if err := proto.Unmarshal(signed.Block, merge); err != nil {
+		return nil, err
+	}
+
+	// load thread
+	threadId := libp2pc.ConfigEncodeKey(merge.ThreadPk)
+	_, thrd := s.getThread(threadId)
+	if thrd == nil {
+		return nil, errors.New("invalid merge block")
+	}
+
+	// verify thread sig
+	if err := thrd.Verify(signed); err != nil {
+		return nil, err
+	}
+
+	// handle
+	if _, err := thrd.HandleMergeBlock(&pid, pmes.Message, signed, merge, false); err != nil {
 		return nil, err
 	}
 
@@ -463,7 +507,7 @@ func buildNotification(threadKey libp2pc.PrivKey, header *pb.ThreadBlockHeader, 
 		}
 		authorUn = string(authorUnb)
 	} else {
-		authorUn = authorId.Pretty()[:8]
+		authorUn = authorId.Pretty()
 	}
 	return &repo.Notification{
 		Id:       ksuid.New().String(),
