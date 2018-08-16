@@ -88,6 +88,7 @@ type BlockStore interface {
 type NotificationStore interface {
 	Queryable
 	Add(notification *Notification) error
+	Get(id string) *Notification
 	Read(id string) error
 	ReadAll() error
 	List(offset string, limit int, query string) []Notification

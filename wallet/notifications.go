@@ -1,10 +1,15 @@
 package wallet
 
-import "github.com/textileio/textile-go/repo"
+import (
+	"fmt"
+	"github.com/pkg/errors"
+	"github.com/textileio/textile-go/repo"
+	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+)
 
 // GetNotifications lists notifications
-func (w *Wallet) GetNotifications(offset string, limit int, query string) []repo.Notification {
-	return w.datastore.Notifications().List(offset, limit, query)
+func (w *Wallet) GetNotifications(offset string, limit int) []repo.Notification {
+	return w.datastore.Notifications().List(offset, limit, "")
 }
 
 // CountUnreadNotifications counts unread notifications
@@ -20,4 +25,19 @@ func (w *Wallet) ReadNotification(id string) error {
 // ReadAllNotifications marks all notification as read
 func (w *Wallet) ReadAllNotifications() error {
 	return w.datastore.Notifications().ReadAll()
+}
+
+// AcceptThreadInviteViaNotification uses an invite notification to accept an invite to a thread
+func (w *Wallet) AcceptThreadInviteViaNotification(id string) (mh.Multihash, error) {
+	// look up notification
+	notification := w.datastore.Notifications().Get(id)
+	if notification == nil {
+		return nil, errors.New(fmt.Sprintf("could not find notification: %s", id))
+	}
+	if notification.Type != repo.ReceivedInviteNotification {
+		return nil, errors.New(fmt.Sprintf("notification not invite type"))
+	}
+
+	// target id is the invite's block id
+	return w.AcceptThreadInvite(notification.TargetId)
 }
