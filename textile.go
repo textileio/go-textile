@@ -458,6 +458,29 @@ func main() {
 			})
 			shell.AddCmd(deviceCmd)
 		}
+		{
+			notificationCmd := &ishell.Cmd{
+				Name:     "notification",
+				Help:     "manage notifications",
+				LongHelp: "List and read notifications.",
+			}
+			notificationCmd.AddCmd(&ishell.Cmd{
+				Name: "read",
+				Help: "mark a notification as read",
+				Func: cmd.ReadNotification,
+			})
+			notificationCmd.AddCmd(&ishell.Cmd{
+				Name: "readall",
+				Help: "mark all notifications as read",
+				Func: cmd.ReadAllNotifications,
+			})
+			notificationCmd.AddCmd(&ishell.Cmd{
+				Name: "ls",
+				Help: "list notifications",
+				Func: cmd.ListNotifications,
+			})
+			shell.AddCmd(notificationCmd)
+		}
 
 		shell.Run()
 	}
@@ -496,6 +519,20 @@ func start() error {
 				case wallet.DeviceRemoved:
 					break
 				}
+			}
+		}
+	}()
+
+	// subscribe to notifications
+	go func() {
+		yellow := color.New(color.FgHiYellow).SprintFunc()
+		for {
+			select {
+			case notification, ok := <-core.Node.Wallet.Notifications():
+				if !ok {
+					return
+				}
+				fmt.Println(yellow(notification.Body))
 			}
 		}
 	}()
