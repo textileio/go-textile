@@ -45,7 +45,7 @@ func TestNotificationDB_Add(t *testing.T) {
 }
 
 func TestNotificationDB_Get(t *testing.T) {
-	notif := bdb.Get("abcde")
+	notif := notifdb.Get("abcde")
 	if notif == nil {
 		t.Error("could not get notification")
 	}
