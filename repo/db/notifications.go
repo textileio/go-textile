@@ -47,6 +47,16 @@ func (c *NotificationDB) Add(notification *repo.Notification) error {
 	return nil
 }
 
+func (c *NotificationDB) Get(id string) *repo.Notification {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	ret := c.handleQuery("select * from notifications where id='" + id + "';")
+	if len(ret) == 0 {
+		return nil
+	}
+	return &ret[0]
+}
+
 func (c *NotificationDB) Read(id string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()

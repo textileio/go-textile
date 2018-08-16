@@ -47,7 +47,7 @@ func main() {
 	bootstrapApp()
 }
 
-func start(_ *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
+func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
 	window = w[0]
 	window.Show()
 
@@ -114,6 +114,43 @@ func start(_ *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 					break
 				case wallet.DeviceRemoved:
 					break
+				}
+			}
+		}
+	}()
+
+	// subscribe to notifications
+	go func() {
+		for {
+			select {
+			case notification, ok := <-core.Node.Wallet.Notifications():
+				if !ok {
+					return
+				}
+				// TODO: Switch on note type, allow accept invite via notification reply
+				var note = a.NewNotification(&astilectron.NotificationOptions{
+					Body:             notification.Body,
+					HasReply:         astilectron.PtrBool(true), // macOS only
+					Icon:             "/resources/icon.png",
+					ReplyPlaceholder: "type your reply here", // macOS only
+					Title:            "Textile",
+				})
+				if err := note.Create(); err != nil {
+					astilog.Error(err)
+					continue
+				}
+				note.On(astilectron.EventNameNotificationEventClicked, func(e astilectron.Event) (deleteListener bool) {
+					astilog.Debug("the notification has been clicked!")
+					return
+				})
+				// macOS only
+				note.On(astilectron.EventNameNotificationEventReplied, func(e astilectron.Event) (deleteListener bool) {
+					astilog.Debugf("the user has replied to the notification: %s", e.Reply)
+					return
+				})
+				if err := note.Show(); err != nil {
+					astilog.Error(err)
+					continue
 				}
 			}
 		}

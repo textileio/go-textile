@@ -479,6 +479,11 @@ func main() {
 				Help: "list notifications",
 				Func: cmd.ListNotifications,
 			})
+			notificationCmd.AddCmd(&ishell.Cmd{
+				Name: "accept",
+				Help: "accept an invite via notification",
+				Func: cmd.AcceptThreadInviteViaNotification,
+			})
 			shell.AddCmd(notificationCmd)
 		}
 
@@ -532,7 +537,7 @@ func start() error {
 				if !ok {
 					return
 				}
-				fmt.Println(yellow(notification.Body))
+				fmt.Println(yellow(fmt.Sprintf("%s (%s)", notification.Body, notification.Id)))
 			}
 		}
 	}()

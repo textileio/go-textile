@@ -9,7 +9,7 @@ import (
 )
 
 func ListNotifications(c *ishell.Context) {
-	notifs := core.Node.Wallet.GetNotifications("", -1, "")
+	notifs := core.Node.Wallet.GetNotifications("", -1)
 	unread := core.Node.Wallet.CountUnreadNotifications()
 	if len(notifs) == 0 {
 		c.Println("no notifications found")
@@ -51,4 +51,20 @@ func ReadAllNotifications(c *ishell.Context) {
 
 	yellow := color.New(color.FgHiYellow).SprintFunc()
 	c.Println(yellow("ok, marked all as read"))
+}
+
+func AcceptThreadInviteViaNotification(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing notification id"))
+		return
+	}
+	id := c.Args[0]
+
+	if _, err := core.Node.Wallet.AcceptThreadInviteViaNotification(id); err != nil {
+		c.Err(err)
+		return
+	}
+
+	green := color.New(color.FgHiGreen).SprintFunc()
+	c.Println(green("ok, accepted via notification"))
 }
