@@ -2,12 +2,15 @@ package wallet
 
 import (
 	"errors"
-	trepo "github.com/textileio/textile-go/repo"
+	"fmt"
+	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/repo"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"time"
 )
 
 // Devices lists all devices
-func (w *Wallet) Devices() []trepo.Device {
+func (w *Wallet) Devices() []repo.Device {
 	return w.datastore.Devices().List("")
 }
 
@@ -22,7 +25,7 @@ func (w *Wallet) AddDevice(name string, pk libp2pc.PubKey) error {
 	if err != nil {
 		return err
 	}
-	deviceModel := &trepo.Device{
+	deviceModel := &repo.Device{
 		Id:   libp2pc.ConfigEncodeKey(pkb),
 		Name: name,
 	}
@@ -41,7 +44,20 @@ func (w *Wallet) AddDevice(name string, pk libp2pc.PubKey) error {
 	// notify listeners
 	w.sendUpdate(Update{Id: deviceModel.Id, Name: deviceModel.Name, Type: DeviceAdded})
 
-	return nil
+	// send notification
+	id, err := w.GetId()
+	if err != nil {
+		return err
+	}
+	notification := &repo.Notification{
+		Id:       ksuid.New().String(),
+		Date:     time.Now(),
+		ActorId:  id,
+		TargetId: deviceModel.Id,
+		Type:     repo.DeviceAddedNotification,
+		Body:     fmt.Sprintf("You are now paired with a new device named \"%s\"", deviceModel.Name),
+	}
+	return w.sendNotification(notification)
 }
 
 // RemoveDevice removes a device
