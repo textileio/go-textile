@@ -27,7 +27,7 @@ func TestMigration002(t *testing.T) {
 	}
 
 	// test new table
-	_, err = db.Exec("insert into notifications(id, date, actorId, targetId, type, read) values(?,?,?,?,?,?,?)", "test", 0, "actorId", "targetId", 0, 0, "hey!")
+	_, err = db.Exec("insert into notifications(id, date, actorId, targetId, type, read, body) values(?,?,?,?,?,?,?)", "test", 0, "actorId", "targetId", 0, 0, "hey!")
 	if err != nil {
 		t.Error(err)
 	}
