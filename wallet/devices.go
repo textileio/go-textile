@@ -55,7 +55,7 @@ func (w *Wallet) AddDevice(name string, pk libp2pc.PubKey) error {
 		ActorId:  id,
 		TargetId: deviceModel.Id,
 		Type:     repo.DeviceAddedNotification,
-		Body:     fmt.Sprintf("You are now paired with a new device named \"%s\"", deviceModel.Name),
+		Body:     fmt.Sprintf("You are now paired with a new device named %s.", deviceModel.Name),
 	}
 	return w.sendNotification(notification)
 }
