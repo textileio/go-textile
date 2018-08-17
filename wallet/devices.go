@@ -2,7 +2,6 @@ package wallet
 
 import (
 	"errors"
-	"fmt"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/repo"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
@@ -50,12 +49,14 @@ func (w *Wallet) AddDevice(name string, pk libp2pc.PubKey) error {
 		return err
 	}
 	notification := &repo.Notification{
-		Id:       ksuid.New().String(),
-		Date:     time.Now(),
-		ActorId:  id,
-		TargetId: deviceModel.Id,
-		Type:     repo.DeviceAddedNotification,
-		Body:     fmt.Sprintf("You are now paired with a new device named %s.", deviceModel.Name),
+		Id:            ksuid.New().String(),
+		Date:          time.Now(),
+		ActorId:       id,
+		ActorUsername: "You",
+		TargetId:      deviceModel.Id,
+		Type:          repo.DeviceAddedNotification,
+		Body:          "paired with a new device",
+		Category:      deviceModel.Name,
 	}
 	return w.sendNotification(notification)
 }

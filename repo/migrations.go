@@ -17,6 +17,7 @@ var migrations = []Migration{
 	migs.Migration000{},
 	migs.Migration001{},
 	migs.Migration002{},
+	migs.Migration003{},
 }
 
 // migrateUp looks at the currently active migration version and will migrate all the way up (applying all up migrations)
