@@ -23,11 +23,13 @@ func setupNotificationDB() {
 
 func TestNotificationDB_Add(t *testing.T) {
 	err := notifdb.Add(&repo.Notification{
-		Id:       "abcde",
-		Date:     time.Now(),
-		ActorId:  ksuid.New().String(),
-		TargetId: ksuid.New().String(),
-		Type:     repo.ReceivedInviteNotification,
+		Id:            "abcde",
+		Date:          time.Now(),
+		ActorId:       ksuid.New().String(),
+		TargetId:      ksuid.New().String(),
+		Type:          repo.ReceivedInviteNotification,
+		ActorUsername: "tester",
+		Category:      "test",
 	})
 	if err != nil {
 		t.Error(err)
@@ -66,21 +68,25 @@ func TestNotificationDB_Read(t *testing.T) {
 func TestNotificationDB_ReadAll(t *testing.T) {
 	setupNotificationDB()
 	err := notifdb.Add(&repo.Notification{
-		Id:       "abcde",
-		Date:     time.Now(),
-		ActorId:  ksuid.New().String(),
-		TargetId: ksuid.New().String(),
-		Type:     repo.ReceivedInviteNotification,
+		Id:            "abcde",
+		Date:          time.Now(),
+		ActorId:       ksuid.New().String(),
+		TargetId:      ksuid.New().String(),
+		Type:          repo.ReceivedInviteNotification,
+		ActorUsername: "tester",
+		Category:      "test",
 	})
 	if err != nil {
 		t.Error(err)
 	}
 	err = notifdb.Add(&repo.Notification{
-		Id:       "abcdef",
-		Date:     time.Now(),
-		ActorId:  ksuid.New().String(),
-		TargetId: ksuid.New().String(),
-		Type:     repo.PeerJoinedNotification,
+		Id:            "abcdef",
+		Date:          time.Now(),
+		ActorId:       ksuid.New().String(),
+		TargetId:      ksuid.New().String(),
+		Type:          repo.PeerJoinedNotification,
+		ActorUsername: "tester",
+		Category:      "test",
 	})
 	if err != nil {
 		t.Error(err)
@@ -99,31 +105,37 @@ func TestNotificationDB_ReadAll(t *testing.T) {
 func TestNotificationDB_List(t *testing.T) {
 	setupNotificationDB()
 	err := notifdb.Add(&repo.Notification{
-		Id:       "abc",
-		Date:     time.Now(),
-		ActorId:  "actor1",
-		TargetId: "target1",
-		Type:     repo.ReceivedInviteNotification,
+		Id:            "abc",
+		Date:          time.Now(),
+		ActorId:       "actor1",
+		TargetId:      "target1",
+		Type:          repo.ReceivedInviteNotification,
+		ActorUsername: "tester",
+		Category:      "test",
 	})
 	if err != nil {
 		t.Error(err)
 	}
 	err = notifdb.Add(&repo.Notification{
-		Id:       "def",
-		Date:     time.Now().Add(time.Minute),
-		ActorId:  "actor1",
-		TargetId: "target2",
-		Type:     repo.PeerJoinedNotification,
+		Id:            "def",
+		Date:          time.Now().Add(time.Minute),
+		ActorId:       "actor1",
+		TargetId:      "target2",
+		Type:          repo.PeerJoinedNotification,
+		ActorUsername: "tester",
+		Category:      "test",
 	})
 	if err != nil {
 		t.Error(err)
 	}
 	err = notifdb.Add(&repo.Notification{
-		Id:       "ghi",
-		Date:     time.Now().Add(time.Minute * 2),
-		ActorId:  "actor2",
-		TargetId: "target2",
-		Type:     repo.CommentAddedNotification,
+		Id:            "ghi",
+		Date:          time.Now().Add(time.Minute * 2),
+		ActorId:       "actor2",
+		TargetId:      "target2",
+		Type:          repo.CommentAddedNotification,
+		ActorUsername: "tester",
+		Category:      "test",
 	})
 	if err != nil {
 		t.Error(err)

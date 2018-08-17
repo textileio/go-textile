@@ -127,9 +127,16 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 				if !ok {
 					return
 				}
+				var username string
+				if notification.ActorUsername != "" {
+					username = notification.ActorUsername
+				} else {
+					username = notification.ActorId
+				}
 				var note = a.NewNotification(&astilectron.NotificationOptions{
-					Body: notification.Body,
-					Icon: "/resources/icon.png",
+					Title: notification.Category,
+					Body:  fmt.Sprintf("%s %s.", username, notification.Body),
+					Icon:  "/resources/icon.png",
 				})
 				if err := note.Create(); err != nil {
 					astilog.Error(err)
