@@ -180,9 +180,9 @@ function addPhoto(update) {
     return
   }
   let photo = fileURL(update, 'photo')
-  let thumb = fileURL(update, 'thumb')
+  let small = fileURL(update, 'small')
   let meta = fileURL(update, 'meta')
-  let img = '<img src="' + thumb + '" />'
+  let img = '<img src="' + small + '" />'
   let $item = $('<div id="' + update.block.id + '" class="grid-item" '
     + 'ondragstart="imageDragStart(event);" draggable="true" '
     + 'data-url="' + photo + '" data-meta="' + meta + '">' + img + '</div>')

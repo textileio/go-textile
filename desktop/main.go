@@ -276,9 +276,9 @@ func getThreadPhotos(id string) (string, error) {
 	btype := repo.PhotoBlock
 	for _, block := range thrd.Blocks("", -1, &btype) {
 		photo := fmt.Sprintf("%s/ipfs/%s/photo?block=%s", gateway, block.DataId, block.Id)
-		thumb := fmt.Sprintf("%s/ipfs/%s/thumb?block=%s", gateway, block.DataId, block.Id)
+		small := fmt.Sprintf("%s/ipfs/%s/small?block=%s", gateway, block.DataId, block.Id)
 		meta := fmt.Sprintf("%s/ipfs/%s/meta?block=%s", gateway, block.DataId, block.Id)
-		img := fmt.Sprintf("<img src=\"%s\" />", thumb)
+		img := fmt.Sprintf("<img src=\"%s\" />", small)
 		html += fmt.Sprintf(
 			"<div id=\"%s\" class=\"grid-item\" ondragstart=\"imageDragStart(event);\" draggable=\"true\" data-url=\"%s\" data-meta=\"%s\">%s</div>",
 			block.Id, photo, meta, img)
