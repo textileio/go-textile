@@ -537,7 +537,14 @@ func start() error {
 				if !ok {
 					return
 				}
-				fmt.Println(yellow(fmt.Sprintf("%s (%s)", notification.Body, notification.Id)))
+				var username string
+				if notification.ActorUsername != "" {
+					username = notification.ActorUsername
+				} else {
+					username = notification.ActorId
+				}
+				note := fmt.Sprintf("%s %s (%s)", username, notification.Body, notification.Id)
+				fmt.Println(yellow(note))
 			}
 		}
 	}()
