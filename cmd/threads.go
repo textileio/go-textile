@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet/thread"
 	"gopkg.in/abiosoft/ishell.v2"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
@@ -245,10 +244,6 @@ func Subscribe(thrd *thread.Thread) {
 		case update, ok := <-thrd.Updates():
 			if !ok {
 				return
-			}
-			switch update.Block.Type {
-			case repo.PhotoBlock:
-
 			}
 			msg := fmt.Sprintf("new %s block in thread '%s'", update.Block.Type.Description(), update.ThreadName)
 			fmt.Println(green(msg))

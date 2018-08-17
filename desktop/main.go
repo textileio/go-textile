@@ -47,7 +47,7 @@ func main() {
 	bootstrapApp()
 }
 
-func start(_ *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
+func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
 	window = w[0]
 	window.Show()
 
@@ -114,6 +114,29 @@ func start(_ *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 					break
 				case wallet.DeviceRemoved:
 					break
+				}
+			}
+		}
+	}()
+
+	// subscribe to notifications
+	go func() {
+		for {
+			select {
+			case notification, ok := <-core.Node.Wallet.Notifications():
+				if !ok {
+					return
+				}
+				var note = a.NewNotification(&astilectron.NotificationOptions{
+					Body: notification.Body,
+					Icon: "/resources/icon.png",
+				})
+				if err := note.Create(); err != nil {
+					astilog.Error(err)
+					return
+				}
+				if err := note.Show(); err != nil {
+					astilog.Error(err)
 				}
 			}
 		}
@@ -253,9 +276,9 @@ func getThreadPhotos(id string) (string, error) {
 	btype := repo.PhotoBlock
 	for _, block := range thrd.Blocks("", -1, &btype) {
 		photo := fmt.Sprintf("%s/ipfs/%s/photo?block=%s", gateway, block.DataId, block.Id)
-		thumb := fmt.Sprintf("%s/ipfs/%s/thumb?block=%s", gateway, block.DataId, block.Id)
+		small := fmt.Sprintf("%s/ipfs/%s/small?block=%s", gateway, block.DataId, block.Id)
 		meta := fmt.Sprintf("%s/ipfs/%s/meta?block=%s", gateway, block.DataId, block.Id)
-		img := fmt.Sprintf("<img src=\"%s\" />", thumb)
+		img := fmt.Sprintf("<img src=\"%s\" />", small)
 		html += fmt.Sprintf(
 			"<div id=\"%s\" class=\"grid-item\" ondragstart=\"imageDragStart(event);\" draggable=\"true\" data-url=\"%s\" data-meta=\"%s\">%s</div>",
 			block.Id, photo, meta, img)

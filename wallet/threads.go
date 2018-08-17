@@ -7,7 +7,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/pb"
-	trepo "github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet/thread"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
@@ -25,7 +25,7 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 		return nil, err
 	}
 	pk := libp2pc.ConfigEncodeKey(pkb)
-	threadModel := &trepo.Thread{
+	threadModel := &repo.Thread{
 		Id:      pk,
 		Name:    name,
 		PrivKey: skb,

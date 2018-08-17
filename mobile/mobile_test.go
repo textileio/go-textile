@@ -31,6 +31,7 @@ var addedPhotoId string
 var sharedBlockId string
 var addedPhotoKey string
 var deviceId string
+var noteId string
 
 var cusername = ksuid.New().String()
 var cpassword = ksuid.New().String()
@@ -497,6 +498,48 @@ func TestMobile_Overview(t *testing.T) {
 	if err := json.Unmarshal([]byte(res), &stats); err != nil {
 		t.Error(err)
 		return
+	}
+}
+
+func TestMobile_GetNotifications(t *testing.T) {
+	res, err := mobile.GetNotifications("", -1)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	notes := Notifications{}
+	if err := json.Unmarshal([]byte(res), &notes); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(notes.Items) != 2 {
+		t.Error("get notifications bad result")
+		return
+	}
+	noteId = notes.Items[0].Id
+}
+
+func TestMobile_CountUnreadNotifications(t *testing.T) {
+	if mobile.CountUnreadNotifications() != 2 {
+		t.Error("count unread notifications bad result")
+	}
+}
+
+func TestMobile_ReadNotification(t *testing.T) {
+	if err := mobile.ReadNotification(noteId); err != nil {
+		t.Error(err)
+	}
+	if mobile.CountUnreadNotifications() != 1 {
+		t.Error("read notification bad result")
+	}
+}
+
+func TestMobile_ReadAllNotifications(t *testing.T) {
+	if err := mobile.ReadAllNotifications(); err != nil {
+		t.Error(err)
+	}
+	if mobile.CountUnreadNotifications() != 0 {
+		t.Error("read all notifications bad result")
 	}
 }
 
