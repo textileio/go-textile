@@ -107,7 +107,7 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Envelope, opti
 	id := ci.Hash().B58String()
 
 	// send notification
-	body := fmt.Sprintf("invited you to \"%s\"", invite.SuggestedName)
+	body := fmt.Sprintf("invited you to a thread named %s.", invite.SuggestedName)
 	notification, err := buildNotification(sk, invite.Header, id, repo.ReceivedInviteNotification, body)
 	if err != nil {
 		return nil, err
@@ -150,7 +150,7 @@ func (s *TextileService) handleThreadJoin(pid peer.ID, pmes *pb.Envelope, option
 	id := addr.B58String()
 
 	// send notification
-	body := fmt.Sprintf("joined \"%s\"", thrd.Name)
+	body := fmt.Sprintf("joined %s.", thrd.Name)
 	notification, err := buildNotification(thrd.PrivKey, join.Header, id, repo.PeerJoinedNotification, body)
 	if err != nil {
 		return nil, err
@@ -193,7 +193,7 @@ func (s *TextileService) handleThreadLeave(pid peer.ID, pmes *pb.Envelope, optio
 	id := addr.B58String()
 
 	// send notification
-	body := fmt.Sprintf("left \"%s\"", thrd.Name)
+	body := fmt.Sprintf("left %s.", thrd.Name)
 	notification, err := buildNotification(thrd.PrivKey, leave.Header, id, repo.PeerLeftNotification, body)
 	if err != nil {
 		return nil, err
@@ -239,7 +239,7 @@ func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Envelope, option
 	var body string
 	switch data.Type {
 	case pb.ThreadData_PHOTO:
-		body = fmt.Sprintf("added a photo to \"%s\"", thrd.Name)
+		body = fmt.Sprintf("added a photo to %s.", thrd.Name)
 	case pb.ThreadData_TEXT:
 		break
 	}

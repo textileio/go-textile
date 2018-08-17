@@ -127,30 +127,16 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 				if !ok {
 					return
 				}
-				// TODO: Switch on note type, allow accept invite via notification reply
 				var note = a.NewNotification(&astilectron.NotificationOptions{
-					Body:             notification.Body,
-					HasReply:         astilectron.PtrBool(true), // macOS only
-					Icon:             "/resources/icon.png",
-					ReplyPlaceholder: "type your reply here", // macOS only
-					Title:            "Textile",
+					Body: notification.Body,
+					Icon: "/resources/icon.png",
 				})
 				if err := note.Create(); err != nil {
 					astilog.Error(err)
-					continue
+					return
 				}
-				note.On(astilectron.EventNameNotificationEventClicked, func(e astilectron.Event) (deleteListener bool) {
-					astilog.Debug("the notification has been clicked!")
-					return
-				})
-				// macOS only
-				note.On(astilectron.EventNameNotificationEventReplied, func(e astilectron.Event) (deleteListener bool) {
-					astilog.Debugf("the user has replied to the notification: %s", e.Reply)
-					return
-				})
 				if err := note.Show(); err != nil {
 					astilog.Error(err)
-					continue
 				}
 			}
 		}
