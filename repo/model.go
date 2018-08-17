@@ -82,13 +82,15 @@ func (b BlockType) Description() string {
 }
 
 type Notification struct {
-	Id       string           `json:"id"`
-	Date     time.Time        `json:"date"`
-	ActorId  string           `json:"actor_id"`  // peer id
-	TargetId string           `json:"target_id"` // inviteId | deviceId | blockId
-	Type     NotificationType `json:"type"`
-	Read     bool             `json:"read"`
-	Body     string           `json:"body"`
+	Id            string           `json:"id"`
+	Date          time.Time        `json:"date"`
+	ActorId       string           `json:"actor_id"`       // peer id
+	ActorUsername string           `json:"actor_username"` // peer username
+	TargetId      string           `json:"target_id"`      // inviteId | deviceId | blockId
+	Type          NotificationType `json:"type"`
+	Read          bool             `json:"read"`
+	Body          string           `json:"body"`
+	Category      string           `json:"category"`
 }
 
 type NotificationType int
@@ -102,6 +104,27 @@ const (
 	PeerJoinedNotification                             // peerA joined (blockId)
 	PeerLeftNotification                               // peerA left (blockId)
 )
+
+func (n NotificationType) Description() string {
+	switch n {
+	case ReceivedInviteNotification:
+		return "RECEIVED_INVITE"
+	case DeviceAddedNotification:
+		return "DEVICE_ADDED"
+	case PhotoAddedNotification:
+		return "PHOTO_ADDED"
+	case CommentAddedNotification:
+		return "COMMENT_ADDED"
+	case LikeAddedNotification:
+		return "LIKE_ADDED"
+	case PeerJoinedNotification:
+		return "PEER_JOINED"
+	case PeerLeftNotification:
+		return "PEER_LEFT"
+	default:
+		return "INVALID"
+	}
+}
 
 type PinRequest struct {
 	Id   string    `json:"id"`

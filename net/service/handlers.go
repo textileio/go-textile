@@ -3,7 +3,6 @@ package service
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
@@ -107,11 +106,12 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Envelope, opti
 	id := ci.Hash().B58String()
 
 	// send notification
-	body := fmt.Sprintf("invited you to a thread named %s.", invite.SuggestedName)
-	notification, err := buildNotification(sk, invite.Header, id, repo.ReceivedInviteNotification, body)
+	notification, err := buildNotification(sk, invite.Header, id, repo.ReceivedInviteNotification)
 	if err != nil {
 		return nil, err
 	}
+	notification.Body = "invited you to join"
+	notification.Category = invite.SuggestedName
 	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
@@ -150,11 +150,12 @@ func (s *TextileService) handleThreadJoin(pid peer.ID, pmes *pb.Envelope, option
 	id := addr.B58String()
 
 	// send notification
-	body := fmt.Sprintf("joined %s.", thrd.Name)
-	notification, err := buildNotification(thrd.PrivKey, join.Header, id, repo.PeerJoinedNotification, body)
+	notification, err := buildNotification(thrd.PrivKey, join.Header, id, repo.PeerJoinedNotification)
 	if err != nil {
 		return nil, err
 	}
+	notification.Body = "joined"
+	notification.Category = thrd.Name
 	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
@@ -193,11 +194,12 @@ func (s *TextileService) handleThreadLeave(pid peer.ID, pmes *pb.Envelope, optio
 	id := addr.B58String()
 
 	// send notification
-	body := fmt.Sprintf("left %s.", thrd.Name)
-	notification, err := buildNotification(thrd.PrivKey, leave.Header, id, repo.PeerLeftNotification, body)
+	notification, err := buildNotification(thrd.PrivKey, leave.Header, id, repo.PeerLeftNotification)
 	if err != nil {
 		return nil, err
 	}
+	notification.Body = "left"
+	notification.Category = thrd.Name
 	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
@@ -236,17 +238,17 @@ func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Envelope, option
 	id := addr.B58String()
 
 	// send notification
-	var body string
-	switch data.Type {
-	case pb.ThreadData_PHOTO:
-		body = fmt.Sprintf("added a photo to %s.", thrd.Name)
-	case pb.ThreadData_TEXT:
-		break
-	}
-	notification, err := buildNotification(thrd.PrivKey, data.Header, id, repo.PhotoAddedNotification, body)
+	notification, err := buildNotification(thrd.PrivKey, data.Header, id, repo.PhotoAddedNotification)
 	if err != nil {
 		return nil, err
 	}
+	switch data.Type {
+	case pb.ThreadData_PHOTO:
+		notification.Body = "added a photo"
+	case pb.ThreadData_TEXT:
+		break
+	}
+	notification.Category = thrd.Name
 	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
@@ -486,7 +488,7 @@ func unpackMessage(pmes *pb.Envelope) (*pb.SignedThreadBlock, error) {
 	return signed, nil
 }
 
-func buildNotification(threadKey libp2pc.PrivKey, header *pb.ThreadBlockHeader, targetId string, ntype repo.NotificationType, body string) (*repo.Notification, error) {
+func buildNotification(threadKey libp2pc.PrivKey, header *pb.ThreadBlockHeader, targetId string, ntype repo.NotificationType) (*repo.Notification, error) {
 	date, err := ptypes.Timestamp(header.Date)
 	if err != nil {
 		return nil, err
@@ -506,15 +508,13 @@ func buildNotification(threadKey libp2pc.PrivKey, header *pb.ThreadBlockHeader, 
 			return nil, err
 		}
 		authorUn = string(authorUnb)
-	} else {
-		authorUn = authorId.Pretty()
 	}
 	return &repo.Notification{
-		Id:       ksuid.New().String(),
-		Date:     date,
-		ActorId:  authorId.Pretty(),
-		TargetId: targetId,
-		Type:     ntype,
-		Body:     authorUn + " " + body,
+		Id:            ksuid.New().String(),
+		Date:          date,
+		ActorId:       authorId.Pretty(),
+		ActorUsername: authorUn,
+		TargetId:      targetId,
+		Type:          ntype,
 	}, nil
 }
