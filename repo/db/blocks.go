@@ -41,7 +41,7 @@ func (c *BlockDB) Add(block *repo.Block) error {
 		block.DataId,
 		block.DataKeyCipher,
 		block.DataCaptionCipher,
-		block.DataUsernameCipher,
+		block.AuthorUnCipher,
 		block.DataMetadataCipher,
 	)
 	if err != nil {
@@ -127,8 +127,8 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 	for rows.Next() {
 		var id, parents, threadId, authorPk, dataId string
 		var dateInt, typeInt int
-		var dataKeyCipher, dataCaptionCipher, dataUsernameCipher, dataMetadataCipher []byte
-		if err := rows.Scan(&id, &dateInt, &parents, &threadId, &authorPk, &typeInt, &dataId, &dataKeyCipher, &dataCaptionCipher, &dataUsernameCipher, &dataMetadataCipher); err != nil {
+		var dataKeyCipher, dataCaptionCipher, authorUnCipher, dataMetadataCipher []byte
+		if err := rows.Scan(&id, &dateInt, &parents, &threadId, &authorPk, &typeInt, &dataId, &dataKeyCipher, &dataCaptionCipher, &authorUnCipher, &dataMetadataCipher); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -142,7 +142,7 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 			DataId:             dataId,
 			DataKeyCipher:      dataKeyCipher,
 			DataCaptionCipher:  dataCaptionCipher,
-			DataUsernameCipher: dataUsernameCipher,
+			AuthorUnCipher:     authorUnCipher,
 			DataMetadataCipher: dataMetadataCipher,
 		}
 		ret = append(ret, block)

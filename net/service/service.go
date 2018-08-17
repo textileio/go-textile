@@ -36,6 +36,7 @@ type TextileService struct {
 	node      *core.IpfsNode
 	getThread func(string) (*int, *thread.Thread)
 	addThread func(string, libp2pc.PrivKey) (*thread.Thread, error)
+	notify    func(notificaiton *repo.Notification) error
 	sender    map[peer.ID]*sender
 	senderlk  sync.Mutex
 }
@@ -45,6 +46,7 @@ func NewService(
 	datastore repo.Datastore,
 	getThread func(string) (*int, *thread.Thread),
 	addThread func(string, libp2pc.PrivKey) (*thread.Thread, error),
+	notify func(notificaiton *repo.Notification) error,
 ) *TextileService {
 	service := &TextileService{
 		host:      node.PeerHost.(host.Host),
@@ -55,6 +57,7 @@ func NewService(
 		node:      node,
 		getThread: getThread,
 		addThread: addThread,
+		notify:    notify,
 		sender:    make(map[peer.ID]*sender),
 	}
 	node.PeerHost.SetStreamHandler(ProtocolTextile, service.HandleNewStream)

@@ -52,7 +52,7 @@ func TestMigration000(t *testing.T) {
 	}
 
 	// test new field
-	_, err = db.Exec("update blocks set dataUsernameCipher=? WHERE id=?", []byte("dataUsernameCipher"), "boom")
+	_, err = db.Exec("update blocks set dataUsernameCipher=? where id=?", []byte("dataUsernameCipher"), "boom")
 	if err != nil {
 		t.Error(err)
 		return

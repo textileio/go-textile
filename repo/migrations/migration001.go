@@ -45,12 +45,12 @@ func (Migration001) Up(repoPath string, dbPassword string, testnet bool) error {
 	tx.Commit()
 
 	// update version
-	f1, err := os.Create(path.Join(repoPath, "repover"))
+	f2, err := os.Create(path.Join(repoPath, "repover"))
 	if err != nil {
 		return err
 	}
-	defer f1.Close()
-	if _, err = f1.Write([]byte("2")); err != nil {
+	defer f2.Close()
+	if _, err = f2.Write([]byte("2")); err != nil {
 		return err
 	}
 	return nil

@@ -9,7 +9,7 @@ import (
 	"github.com/textileio/textile-go/core/cafe"
 	"github.com/textileio/textile-go/net"
 	serv "github.com/textileio/textile-go/net/service"
-	trepo "github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/storage"
 	"github.com/textileio/textile-go/util"
@@ -71,7 +71,7 @@ type Wallet struct {
 	repoPath           string
 	cancel             context.CancelFunc
 	ipfs               *core.IpfsNode
-	datastore          trepo.Datastore
+	datastore          repo.Datastore
 	service            *serv.TextileService
 	cafeAddr           string
 	isMobile           bool
@@ -80,6 +80,7 @@ type Wallet struct {
 	online             chan struct{}
 	done               chan struct{}
 	updates            chan Update
+	notifications      chan repo.Notification
 	messageStorage     storage.OfflineMessagingStorage
 	messageRetriever   *net.MessageRetriever
 	pointerRepublisher *net.PointerRepublisher
@@ -102,31 +103,31 @@ func NewWallet(config Config) (*Wallet, string, error) {
 	}
 
 	// we may be running in an uninitialized state.
-	mnemonic, err := trepo.DoInit(config.RepoPath, config.Version, config.Mnemonic, sqliteDB.Config().Init, sqliteDB.Config().Configure)
-	if err != nil && err != trepo.ErrRepoExists {
+	mnemonic, err := repo.DoInit(config.RepoPath, config.Version, config.Mnemonic, sqliteDB.Config().Init, sqliteDB.Config().Configure)
+	if err != nil && err != repo.ErrRepoExists {
 		return nil, "", err
 	}
 
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
-	repo, err := fsrepo.Open(config.RepoPath)
+	rep, err := fsrepo.Open(config.RepoPath)
 	if err != nil {
 		log.Errorf("error opening repo: %s", err)
 		return nil, "", err
 	}
 
 	// if a specific swarm port was selected, set it in the config
-	if err := applySwarmPortConfigOption(repo, config.SwarmPorts); err != nil {
+	if err := applySwarmPortConfigOption(rep, config.SwarmPorts); err != nil {
 		return nil, "", err
 	}
 
 	// ensure bootstrap addresses are latest in config (without wiping repo)
-	if err := ensureBootstrapConfig(repo); err != nil {
+	if err := ensureBootstrapConfig(rep); err != nil {
 		return nil, "", err
 	}
 
 	// if this is a server node, apply the ipfs server profile
-	if err := applyServerConfigOption(repo, config.IsServer); err != nil {
+	if err := applyServerConfigOption(rep, config.IsServer); err != nil {
 		return nil, "", err
 	}
 
@@ -158,6 +159,7 @@ func (w *Wallet) Start() error {
 	log.Info("starting wallet...")
 	w.online = make(chan struct{})
 	w.updates = make(chan Update)
+	w.notifications = make(chan repo.Notification)
 
 	// raise file descriptor limit
 	if err := utilmain.ManageFdLimit(); err != nil {
@@ -194,7 +196,7 @@ func (w *Wallet) Start() error {
 		})
 
 		// service is now configurable
-		w.service = serv.NewService(w.ipfs, w.datastore, w.GetThread, w.AddThread)
+		w.service = serv.NewService(w.ipfs, w.datastore, w.GetThread, w.AddThread, w.sendNotification)
 
 		// build the message retriever
 		mrCfg := net.MRConfig{
@@ -307,8 +309,9 @@ func (w *Wallet) Stop() error {
 	w.pointerRepublisher = nil
 	w.pinner = nil
 
-	// close updates
+	// close update channels
 	close(w.updates)
+	close(w.notifications)
 
 	log.Info("wallet is stopped")
 
@@ -361,6 +364,10 @@ func (w *Wallet) Done() <-chan struct{} {
 
 func (w *Wallet) Updates() <-chan Update {
 	return w.updates
+}
+
+func (w *Wallet) Notifications() <-chan repo.Notification {
+	return w.notifications
 }
 
 func (w *Wallet) GetRepoPath() string {
@@ -434,7 +441,7 @@ func (w *Wallet) GetDataAtPath(path string) ([]byte, error) {
 // createIPFS creates an IPFS node
 func (w *Wallet) createIPFS(online bool) error {
 	// open repo
-	repo, err := fsrepo.Open(w.repoPath)
+	rep, err := fsrepo.Open(w.repoPath)
 	if err != nil {
 		log.Errorf("error opening repo: %s", err)
 		return err
@@ -448,7 +455,7 @@ func (w *Wallet) createIPFS(online bool) error {
 
 	// assemble node config
 	cfg := &core.BuildCfg{
-		Repo:      repo,
+		Repo:      rep,
 		Permanent: true, // temporary way to signify that node is permanent
 		Online:    online,
 		ExtraOpts: map[string]bool{
@@ -495,7 +502,7 @@ func (w *Wallet) createIPFS(online bool) error {
 	return nil
 }
 
-func (w *Wallet) getThreadByBlock(block *trepo.Block) (*thread.Thread, error) {
+func (w *Wallet) getThreadByBlock(block *repo.Block) (*thread.Thread, error) {
 	if block == nil {
 		return nil, errors.New("block is empty")
 	}
@@ -512,7 +519,7 @@ func (w *Wallet) getThreadByBlock(block *trepo.Block) (*thread.Thread, error) {
 	return thrd, nil
 }
 
-func (w *Wallet) loadThread(mod *trepo.Thread) (*thread.Thread, error) {
+func (w *Wallet) loadThread(mod *repo.Thread) (*thread.Thread, error) {
 	if _, loaded := w.GetThread(mod.Id); loaded != nil {
 		return nil, ErrThreadLoaded
 	}
@@ -540,6 +547,10 @@ func (w *Wallet) loadThread(mod *trepo.Thread) (*thread.Thread, error) {
 		Send:          w.SendMessage,
 		NewEnvelope:   w.NewEnvelope,
 		PutPinRequest: w.putPinRequest,
+		GetUsername: func() string {
+			username, _ := w.GetUsername()
+			return username
+		},
 	}
 	thrd, err := thread.NewThread(mod, threadConfig)
 	if err != nil {
@@ -557,6 +568,7 @@ func (w *Wallet) putPinRequest(id string) error {
 	return w.pinner.Put(id)
 }
 
+// sendUpdate adds an update to the update channel
 func (w *Wallet) sendUpdate(update Update) {
 	defer func() {
 		if recover() != nil {
@@ -567,6 +579,26 @@ func (w *Wallet) sendUpdate(update Update) {
 	case w.updates <- update:
 	default:
 	}
+}
+
+// sendNotification adds a notification to the notification channel
+func (w *Wallet) sendNotification(notification *repo.Notification) error {
+	// add to db
+	if err := w.datastore.Notifications().Add(notification); err != nil {
+		return err
+	}
+
+	// broadcast
+	defer func() {
+		if recover() != nil {
+			log.Error("notification channel already closed")
+		}
+	}()
+	select {
+	case w.notifications <- *notification:
+	default:
+	}
+	return nil
 }
 
 // touchDB ensures that we have a good db connection

@@ -25,7 +25,7 @@ func setupBlockDB() {
 	bdb = NewBlockStore(conn, new(sync.Mutex))
 }
 
-func TestBlockDB_Put(t *testing.T) {
+func TestBlockDB_Add(t *testing.T) {
 	key, err := crypto.GenerateAESKey()
 	if err != nil {
 		t.Error(err)
@@ -44,11 +44,11 @@ func TestBlockDB_Put(t *testing.T) {
 		Parents:            []string{"Qm123"},
 		ThreadId:           libp2pc.ConfigEncodeKey(pkb),
 		AuthorPk:           "author_pk",
+		AuthorUnCipher:     []byte("un"),
 		Type:               repo.PhotoBlock,
 		DataId:             "Qm456",
 		DataKeyCipher:      key,
 		DataCaptionCipher:  []byte("xxx"),
-		DataUsernameCipher: []byte("un"),
 		DataMetadataCipher: []byte("{}"),
 	})
 	if err != nil {
@@ -70,7 +70,6 @@ func TestBlockDB_Get(t *testing.T) {
 	block := bdb.Get("abcde")
 	if block == nil {
 		t.Error("could not get block")
-		return
 	}
 }
 
@@ -78,7 +77,6 @@ func TestBlockDB_GetByDataId(t *testing.T) {
 	block := bdb.GetByDataId("Qm456")
 	if block == nil {
 		t.Error("could not get block")
-		return
 	}
 }
 
@@ -102,11 +100,11 @@ func TestBlockDB_List(t *testing.T) {
 		Parents:            []string{"Qm123"},
 		ThreadId:           libp2pc.ConfigEncodeKey(pkb),
 		AuthorPk:           "author_pk",
+		AuthorUnCipher:     []byte("un"),
 		Type:               repo.PhotoBlock,
 		DataId:             "Qm456",
 		DataKeyCipher:      key,
 		DataCaptionCipher:  []byte("xxx"),
-		DataUsernameCipher: []byte("un"),
 		DataMetadataCipher: []byte("{}"),
 	})
 	if err != nil {
@@ -127,11 +125,11 @@ func TestBlockDB_List(t *testing.T) {
 		Parents:            []string{"Qm456"},
 		ThreadId:           threadId,
 		AuthorPk:           "author_pk",
+		AuthorUnCipher:     []byte("un"),
 		Type:               repo.PhotoBlock,
 		DataId:             "Qm789",
 		DataKeyCipher:      key,
 		DataCaptionCipher:  []byte("xxx"),
-		DataUsernameCipher: []byte("un"),
 		DataMetadataCipher: []byte("{}"),
 	})
 	if err != nil {
@@ -155,7 +153,6 @@ func TestBlockDB_List(t *testing.T) {
 	filtered := bdb.List("", -1, "threadId='"+threadId+"'")
 	if len(filtered) != 1 {
 		t.Error("returned incorrect number of blocks")
-		return
 	}
 }
 
@@ -179,11 +176,11 @@ func TestBlockDB_Count(t *testing.T) {
 		Parents:            []string{"Qm123"},
 		ThreadId:           libp2pc.ConfigEncodeKey(pkb),
 		AuthorPk:           "author_pk",
+		AuthorUnCipher:     []byte("un"),
 		Type:               repo.PhotoBlock,
 		DataId:             "Qm456",
 		DataKeyCipher:      key,
 		DataCaptionCipher:  []byte("xxx"),
-		DataUsernameCipher: []byte("un"),
 		DataMetadataCipher: []byte("{}"),
 	})
 	if err != nil {
@@ -192,7 +189,6 @@ func TestBlockDB_Count(t *testing.T) {
 	cnt := bdb.Count("")
 	if cnt != 1 {
 		t.Error("returned incorrect count of blocks")
-		return
 	}
 }
 

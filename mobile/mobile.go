@@ -115,6 +115,22 @@ func (m *Mobile) Start() error {
 			}
 		}()
 
+		// subscribe to notifications
+		go func() {
+			for {
+				select {
+				case notification, ok := <-core.Node.Wallet.Notifications():
+					if !ok {
+						return
+					}
+					payload, err := toJSON(notification)
+					if err == nil {
+						m.messenger.Notify(&Event{Name: "onNotification", Payload: payload})
+					}
+				}
+			}
+		}()
+
 		// notify UI we're ready
 		m.messenger.Notify(&Event{Name: "onOnline", Payload: "{}"})
 

@@ -13,6 +13,7 @@ type Datastore interface {
 	Devices() DeviceStore
 	Peers() PeerStore
 	Blocks() BlockStore
+	Notifications() NotificationStore
 	OfflineMessages() OfflineMessageStore
 	Pointers() PointerStore
 	PinRequests() PinRequestStore
@@ -82,6 +83,19 @@ type BlockStore interface {
 	Count(query string) int
 	Delete(id string) error
 	DeleteByThreadId(threadId string) error
+}
+
+type NotificationStore interface {
+	Queryable
+	Add(notification *Notification) error
+	Get(id string) *Notification
+	Read(id string) error
+	ReadAll() error
+	List(offset string, limit int, query string) []Notification
+	CountUnread() int
+	Delete(id string) error
+	DeleteByActorId(actorId string) error
+	DeleteByTargetId(targetId string) error
 }
 
 type OfflineMessageStore interface {

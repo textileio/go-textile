@@ -50,9 +50,8 @@ func (m *Mobile) AddPhotoToThread(dataId string, key string, threadId string, ca
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread %s", threadId))
 	}
-	username, _ := m.GetUsername()
 
-	addr, err := thrd.AddPhoto(dataId, caption, username, []byte(key))
+	addr, err := thrd.AddPhoto(dataId, caption, []byte(key))
 	if err != nil {
 		return "", err
 	}
@@ -78,11 +77,10 @@ func (m *Mobile) SharePhotoToThread(dataId string, threadId string, caption stri
 	if err != nil {
 		return "", err
 	}
-	username, _ := m.GetUsername()
 
 	// TODO: owner challenge
 
-	addr, err := toThread.AddPhoto(dataId, caption, username, key)
+	addr, err := toThread.AddPhoto(dataId, caption, key)
 	if err != nil {
 		return "", err
 	}
@@ -129,8 +127,8 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 			}
 			caption = string(captionb)
 		}
-		if b.DataUsernameCipher != nil {
-			usernameb, err := thrd.Decrypt(b.DataUsernameCipher)
+		if b.AuthorUnCipher != nil {
+			usernameb, err := thrd.Decrypt(b.AuthorUnCipher)
 			if err != nil {
 				return "", err
 			}
