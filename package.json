@@ -19,7 +19,10 @@
     "precommit": ". ./script/precommit.sh",
     "coverage": "go tool cover -html=coverage.out",
     "format": "go fmt ./...",
-    "lint": "golint `go list ./... | grep -v /vendor/`"
+    "lint": "golint `go list ./... | grep -v /vendor/`",
+    "preversion": "npm run precommit",
+    "postversion": "git push --follow-tags",
+    "release": "npm version patch"
   },
   "config": {
     "commitizen": {

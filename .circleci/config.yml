@@ -1,29 +1,363 @@
 version: 2
+
+checkout-linux: &checkout-linux
+  attach_workspace:
+    at: /root
+
+move-linux-src: &move-linux-src
+  run:
+    name: move source to go path
+    command: |
+      mv ~/project/* /go/src/github.com/textileio/textile-go/
+
+restore-linux-dep-cache: &restore-linux-dep-cache
+  restore_cache:
+    key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
+
+restore-linux-gx-cache: &restore-linux-gx-cache
+  restore_cache:
+    key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
+
+install-linux-deps: &install-linux-deps
+  run:
+    name: install deps
+    command: |
+      dep ensure
+      gx install
+
+save-linux-dep-cache: &save-linux-dep-cache
+  save_cache:
+    key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
+    paths:
+    - /go/src/github.com/textileio/textile-go/vendor
+
+save-linux-gx-cache: &save-linux-gx-cache
+  save_cache:
+    key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
+    paths:
+    - /go/src/gx
+
 jobs:
-  build:
+
+  persist-checkout:
     docker:
-      - image: textile/circleci:0.4.16-dev
-      - image: mongo:3.4.10
+    - image: python
+    steps:
+    - checkout
+    - run:
+        name: clean up git
+        command: |
+          rm -rf .git
+    - persist_to_workspace:
+        root: /root
+        paths:
+        - project
+
+  unit-test:
+    docker:
+    - image: textile/builder:1.10.3
+    - image: mongo:3.4.10
     working_directory: /go/src/github.com/textileio/textile-go
     steps:
-      - checkout
-      - run: dep ensure
-      - run:
-          name: install textile
-          command: |
-            go build -i -o textile textile.go
-            mv textile $GOPATH/bin/
-      - run:
-          name: run and test all
-          command: |
-            textile -d -n -g=127.0.0.1:8080 --cafe-bind-addr=0.0.0.0:8000 --cafe-token-secret=swarmmmmm --cafe-referral-key=woohoo! --cafe-db-hosts=0.0.0.0:27017 --cafe-db-name=textile_db &
-            sleep 5
-            ./test_compile.sh
-          environment:
-            # cafe client settings
-            CAFE_ADDR: http://0.0.0.0:8000
-            CAFE_DB_HOSTS: 0.0.0.0:27017
-            CAFE_DB_NAME: textile_db
-            CAFE_REFERRAL_KEY: woohoo!
-      - run: go install ./vendor/github.com/asticode/go-astilectron-bundler/astilectron-bundler
-      - run: make build_desktop
+    - *checkout-linux
+    - *move-linux-src
+    - *restore-linux-dep-cache
+    - *restore-linux-gx-cache
+    - *install-linux-deps
+    - *save-linux-dep-cache
+    - *save-linux-gx-cache
+    - run:
+        name: install textile
+        command: |
+          go build -i -o textile textile.go
+          mv textile $GOPATH/bin/
+    - run:
+        name: run tests
+        command: |
+          textile -d -n -g=127.0.0.1:8080 --cafe-bind-addr=0.0.0.0:8000 --cafe-token-secret=swarmmmmm --cafe-referral-key=woohoo! --cafe-db-hosts=0.0.0.0:27017 --cafe-db-name=textile_db &
+          sleep 5
+          ./test_compile.sh
+        environment:
+          # client node settings
+          CAFE_ADDR: http://0.0.0.0:8000
+          CAFE_DB_HOSTS: 0.0.0.0:27017
+          CAFE_DB_NAME: textile_db
+          CAFE_REFERRAL_KEY: woohoo!
+
+  build-cli:
+    docker:
+    - image: textile/builder:1.10.3
+    working_directory: /go/src/github.com/textileio/textile-go
+    steps:
+    - *checkout-linux
+    - *move-linux-src
+    - *restore-linux-dep-cache
+    - *restore-linux-gx-cache
+    - run:
+        name: install gox
+        command: |
+          go get github.com/mitchellh/gox
+    - run:
+        name: cross-compile
+        command: |
+          gox -osarch="linux/amd64 linux/386 linux/arm darwin/amd64 windows/386 windows/amd64" -output="{{.OS}}-{{.Arch}}"
+    - run:
+        name: collect artifacts
+        command: |
+          VERSION=v0.1.0
+          OUT=~/dist/cli
+          mkdir -p ${OUT}
+          mkdir -p tmp
+          cp dist/README.md tmp/
+          cp dist/install.sh tmp/
+          cd tmp
+          declare -a arr=("linux-amd64" "linux-386" "linux-arm" "darwin-amd64" "windows-386.exe" "windows-amd64.exe")
+          for i in "${arr[@]}"
+          do
+              OSARCH=${i%.*}
+              EXT=$([[ "$i" = *.* ]] && echo ".${i##*.}" || echo '')
+              cp ../${i} textile${EXT}
+              tar -czvf textile-go_${VERSION}_${OSARCH}.tar.gz README.md install.sh textile${EXT}
+              mv textile-go_${VERSION}_${OSARCH}.tar.gz ${OUT}/
+          done
+          cd .. && rm -rf tmp
+    - persist_to_workspace:
+        root: ~/dist
+        paths:
+        - cli
+
+  build-desktop:
+    docker:
+    - image: textile/builder:1.10.3
+    working_directory: /go/src/github.com/textileio/textile-go
+    steps:
+    - *checkout-linux
+    - *move-linux-src
+    - *restore-linux-dep-cache
+    - *restore-linux-gx-cache
+    - run:
+        name: install astilectron-bundler
+        command: |
+          go install ./vendor/github.com/asticode/go-astilectron-bundler/astilectron-bundler
+    - run:
+        name: compile
+        command: |
+          cd desktop && astilectron-bundler -v
+    - run:
+        name: collect artifacts
+        command: |
+          VERSION=v0.1.0
+          OUT=~/dist/desktop
+          mkdir -p ${OUT}
+          tar -czvf Textile_${VERSION}_linux-amd64.tar.gz desktop/output/linux-amd64/Textile
+          mv Textile_${VERSION}_linux-amd64.tar.gz ${OUT}/
+          tar -czvf Textile_${VERSION}_darwin-amd64.tar.gz desktop/output/darwin-amd64/Textile.app
+          mv Textile_${VERSION}_darwin-amd64.tar.gz ${OUT}/
+          tar -czvf Textile_${VERSION}_windows-amd64.tar.gz desktop/output/windows-amd64/Textile.exe
+          mv Textile_${VERSION}_windows-amd64.tar.gz ${OUT}/
+    - persist_to_workspace:
+        root: ~/dist
+        paths:
+        - desktop
+
+  build-ios-framework:
+    macos:
+      xcode: "9.4.0"
+    working_directory: ~/go/src/github.com/textileio/textile-go
+    steps:
+    - checkout
+    - run:
+        name: install golang
+        command: |
+          brew install golang
+    - run:
+        name: install dep
+        command: brew install dep
+    - run:
+        name: install gx
+        command: |
+          go get -u github.com/whyrusleeping/gx
+          go get -u github.com/whyrusleeping/gx-go
+    - restore_cache:
+        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
+    - restore_cache:
+        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
+    - run:
+        name: install deps
+        command: |
+          dep ensure
+          ~/go/bin/gx install
+    - save_cache:
+        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
+        paths:
+        - ~/go/src/github.com/textileio/textile-go/vendor
+    - save_cache:
+        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
+        paths:
+        - ~/go/src/gx
+    - run:
+        name: install gomobile
+        command: |
+          go get golang.org/x/mobile/cmd/gomobile
+    - run:
+        name: build ios framework
+        command: |
+          export GOPATH=~/go
+          export PATH=$PATH:$GOPATH/bin
+          gomobile init
+          gomobile bind -target=ios/arm64 github.com/textileio/textile-go/mobile
+        environment:
+          CGO_CFLAGS_ALLOW: '-fmodules|-fblocks'
+    - run:
+        name: collect artifacts
+        command: |
+          VERSION=v0.1.0
+          OUT=~/dist/ios_framework
+          mkdir -p ${OUT}
+          tar -czvf textile-go_${VERSION}_ios-framework.tar.gz Mobile.framework
+          mv textile-go_${VERSION}_ios-framework.tar.gz ${OUT}/
+    - persist_to_workspace:
+        root: ~/dist
+        paths:
+        - ios_framework
+
+  build-android-framework:
+    environment:
+      _JAVA_OPTIONS: "-Xmx512m"
+    docker:
+    - image: circleci/android:api-26-alpha
+    working_directory: ~/go/src/github.com/textileio/textile-go
+    steps:
+    - checkout
+    - run:
+        name: install golang
+        command: |
+          wget https://dl.google.com/go/go1.10.3.linux-amd64.tar.gz
+          sudo tar -C /usr/local -xzf go1.10.3.linux-amd64.tar.gz
+    - run:
+        name: install dep
+        command: |
+          export PATH=$PATH:/usr/local/go/bin
+          mkdir -p ~/go/bin
+          curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+    - run:
+        name: install gx
+        command: |
+          export PATH=$PATH:/usr/local/go/bin
+          go get -u github.com/whyrusleeping/gx
+          go get -u github.com/whyrusleeping/gx-go
+    - restore_cache:
+        key: dep-v1-android-{{ checksum "Gopkg.lock" }}-{{ arch }}
+    - restore_cache:
+        key: gx-v1-android-{{ checksum "package.json" }}-{{ arch }}
+    - run:
+        name: install deps
+        command: |
+          ~/go/bin/dep ensure
+          ~/go/bin/gx install
+    - save_cache:
+        key: dep-v1-android-{{ checksum "Gopkg.lock" }}-{{ arch }}
+        paths:
+        - ~/go/src/github.com/textileio/textile-go/vendor
+    - save_cache:
+        key: gx-v1-android-{{ checksum "package.json" }}-{{ arch }}
+        paths:
+        - ~/go/src/gx
+    - run:
+        name: install gomobile
+        command: |
+          export PATH=$PATH:/usr/local/go/bin
+          go get golang.org/x/mobile/cmd/gomobile
+    - run:
+        name: build android framework
+        command: |
+          export PATH=$PATH:/usr/local/go/bin
+          export GOPATH=~/go
+          export PATH=$PATH:$GOPATH/bin
+          gomobile init -ndk /opt/android/android-ndk-r17b
+          gomobile bind -target=android -o textilego.aar github.com/textileio/textile-go/mobile
+    - run:
+        name: collect artifacts
+        command: |
+          VERSION=v0.1.0
+          OUT=~/dist/android_aar
+          mkdir -p ${OUT}
+          tar -czvf textile-go_${VERSION}_android_aar.tar.gz textilego.aar
+          mv textile-go_${VERSION}_android_aar.tar.gz ${OUT}/
+    - persist_to_workspace:
+        root: ~/dist
+        paths:
+        - android_aar
+
+  release:
+    docker:
+    - image: cibuilds/github:0.10
+    steps:
+    - *checkout-linux
+    - deploy:
+        name: release all
+        command: |
+          mkdir -p ~/dist
+          mv ~/cli/* ~/dist/
+          mv ~/desktop/* ~/dist/
+          mv ~/ios_framework/* ~/dist/
+          mv ~/android_aar/* ~/dist/
+          ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete v0.1.0 ~/dist/
+
+workflows:
+  version: 2
+  textile-go:
+    jobs:
+    - persist-checkout:
+        filters:
+          tags:
+            only: /.*/
+    - unit-test:
+        requires:
+        - persist-checkout
+        filters:
+          tags:
+            only: /.*/
+    - build-cli:
+        requires:
+        - unit-test
+        filters:
+          branches:
+            only: master
+          tags:
+            only: /.*/
+    - build-desktop:
+        requires:
+        - unit-test
+        filters:
+          branches:
+            only: master
+          tags:
+            only: /.*/
+    - build-ios-framework:
+        requires:
+        - unit-test
+        filters:
+          branches:
+            only: master
+          tags:
+            only: /.*/
+    - build-android-framework:
+        requires:
+        - unit-test
+        filters:
+          branches:
+            only: master
+          tags:
+            only: /.*/
+    - release:
+        requires:
+        - build-cli
+        - build-desktop
+        - build-ios-framework
+        - build-android-framework
+        filters:
+          branches:
+            ignore: /.*/
+          tags:
+            only: /^v.*/
