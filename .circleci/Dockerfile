@@ -1,10 +1,9 @@
-FROM golang:1.10
+FROM golang:1.10.3
 
 # replace shell with bash so we can source files
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
-# update the repository sources list
-# and install dependencies
+# install dependencies
 RUN apt-get update \
     && apt-get install -y curl \
     && apt-get -y autoclean
@@ -15,7 +14,3 @@ RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 # install gx
 RUN go get -u github.com/whyrusleeping/gx \
     && go get -u github.com/whyrusleeping/gx-go
-
-# install go-ipfs
-RUN echo '{"language": "go", "gxVersion": "0.12.1", "gxDependencies": [{"hash": "Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T", "name": "go-ipfs", "version": "0.4.16-dev"}]}' >package.json
-RUN gx install --global
