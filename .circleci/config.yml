@@ -104,7 +104,10 @@ jobs:
     - run:
         name: collect artifacts
         command: |
-          VERSION=v0.1.0
+          VERSION=${CIRCLE_SHA1}
+          if [ "${CIRCLE_TAG}" != "" ]; then
+              VERSION=${CIRCLE_TAG}
+          fi
           OUT=~/dist/cli
           mkdir -p ${OUT}
           mkdir -p tmp
@@ -146,7 +149,10 @@ jobs:
     - run:
         name: collect artifacts
         command: |
-          VERSION=v0.1.0
+          VERSION=${CIRCLE_SHA1}
+          if [ "${CIRCLE_TAG}" != "" ]; then
+              VERSION=${CIRCLE_TAG}
+          fi
           OUT=~/dist/desktop
           mkdir -p ${OUT}
           tar -czvf Textile_${VERSION}_linux-amd64.tar.gz desktop/output/linux-amd64/Textile
@@ -211,7 +217,10 @@ jobs:
     - run:
         name: collect artifacts
         command: |
-          VERSION=v0.1.0
+          VERSION=${CIRCLE_SHA1}
+          if [ "${CIRCLE_TAG}" != "" ]; then
+              VERSION=${CIRCLE_TAG}
+          fi
           OUT=~/dist/ios_framework
           mkdir -p ${OUT}
           tar -czvf textile-go_${VERSION}_ios-framework.tar.gz Mobile.framework
@@ -279,7 +288,10 @@ jobs:
     - run:
         name: collect artifacts
         command: |
-          VERSION=v0.1.0
+          VERSION=${CIRCLE_SHA1}
+          if [ "${CIRCLE_TAG}" != "" ]; then
+              VERSION=${CIRCLE_TAG}
+          fi
           OUT=~/dist/android_aar
           mkdir -p ${OUT}
           tar -czvf textile-go_${VERSION}_android_aar.tar.gz textilego.aar
