@@ -28,7 +28,7 @@ type Opts struct {
 	Version bool `short:"v" long:"version" description:"print the version number and exit"`
 
 	// repo location
-	DataDir string `short:"r" long:"data-dir" description:"specify the data directory to be used"`
+	RepoPath string `short:"r" long:"repo-dir" description:"specify a custom repository path"`
 
 	// logging options
 	LogLevel   string `short:"l" long:"log-level" description:"set the logging level [debug, info, notice, warning, error, critical]" default:"debug"`
@@ -77,9 +77,9 @@ func main() {
 		return
 	}
 
-	// handle data dir
-	dataDir := Options.DataDir
-	if len(Options.DataDir) == 0 {
+	// handle repo path
+	repoPath := Options.RepoPath
+	if len(Options.RepoPath) == 0 {
 		// get homedir
 		home, err := homedir.Dir()
 		if err != nil {
@@ -93,7 +93,7 @@ func main() {
 			fmt.Println(fmt.Errorf("create repo directory failed: %s", err.Error()))
 			return
 		}
-		dataDir = filepath.Join(appDir, "repo")
+		repoPath = filepath.Join(appDir, "repo")
 	}
 
 	// determine log level
@@ -106,7 +106,7 @@ func main() {
 	// node setup
 	config := core.NodeConfig{
 		WalletConfig: wallet.Config{
-			RepoPath:   dataDir,
+			RepoPath:   repoPath,
 			SwarmPorts: Options.SwarmPorts,
 			IsMobile:   false,
 			IsServer:   Options.ServerMode,

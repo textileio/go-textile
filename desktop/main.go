@@ -19,6 +19,7 @@ import (
 	"github.com/textileio/textile-go/wallet/thread"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 )
 
@@ -58,7 +59,12 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	}
 
 	// ensure app support folder is created
-	appDir := filepath.Join(home, "Library/Application Support/Textile")
+	var appDir string
+	if runtime.GOOS == "darwin" {
+		appDir = filepath.Join(home, "Library/Application Support/Textile")
+	} else {
+		appDir = filepath.Join(home, ".textile")
+	}
 	if err := os.MkdirAll(appDir, 0755); err != nil {
 		return err
 	}
