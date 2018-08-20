@@ -178,6 +178,11 @@ func (t *Thread) HandleDataBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 		}
 		dconf.DataMetadataCipher = metadataCipher
 
+		// check for old username format
+		if content.Header.AuthorUnCipher == nil {
+			content.Header.AuthorUnCipher = content.UsernameCipher
+		}
+
 		// index
 		if err := t.indexBlock(id, content.Header, repo.PhotoBlock, dconf); err != nil {
 			return nil, err
