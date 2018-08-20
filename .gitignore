@@ -41,14 +41,15 @@ _cgo_export.*
 _testmain.go
 
 *.exe
+*.syso
 *.test
 *.prof
 .idea/
 *.iml
 .gx/
-dist
 .ipfs
 .textile
+dist/textile-go-*
 
 # Development environment files
 .ackrc
