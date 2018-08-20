@@ -100,8 +100,8 @@ jobs:
     - run:
         name: cross-compile
         command: |
-          gox -osarch="linux/amd64 linux/386 linux/arm darwin/amd64 windows/386 windows/amd64" -output="{{.OS}}-{{.Arch}}"
-          gox -cgo -osarch="windows/386 windows/amd64" -output="{{.OS}}-{{.Arch}}"
+          gox -osarch="linux/amd64 linux/386 linux/arm darwin/amd64" -output="{{.OS}}-{{.Arch}}"
+          CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -cgo -osarch="windows/386 windows/amd64" -output="{{.OS}}-{{.Arch}}"
     - run:
         name: collect artifacts
         command: |

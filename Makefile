@@ -1,5 +1,6 @@
 build:
-	gox -osarch="linux/amd64 linux/386 linux/arm darwin/amd64 windows/386 windows/amd64" -output="textile-go-{{.OS}}-{{.Arch}}"
+	gox -osarch="linux/amd64 linux/386 linux/arm darwin/amd64" -output="textile-go-{{.OS}}-{{.Arch}}"
+	CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -cgo -osarch="windows/386 windows/amd64" -output="textile-go-{{.OS}}-{{.Arch}}"
 	mv textile-go-* dist
 
 build_desktop:
