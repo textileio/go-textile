@@ -150,6 +150,14 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 				}
 				if err := note.Show(); err != nil {
 					astilog.Error(err)
+					return
+				}
+
+				// tmp auto-accept thread invites
+				if notification.Type == repo.ReceivedInviteNotification {
+					if _, err := core.Node.Wallet.AcceptThreadInvite(notification.TargetId); err != nil {
+						astilog.Error(err)
+					}
 				}
 			}
 		}
