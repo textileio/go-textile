@@ -1,7 +1,7 @@
 {
   "name": "textile-go",
   "description": "Textile's REST API and daemon",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "author": "textile.io",
   "license": "MIT",
   "repository": {

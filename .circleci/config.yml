@@ -104,7 +104,7 @@ jobs:
     - run:
         name: collect artifacts
         command: |
-          VERSION=${CIRCLE_SHA1}
+          VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
           if [ "${CIRCLE_TAG}" != "" ]; then
               VERSION=${CIRCLE_TAG}
           fi
@@ -128,6 +128,8 @@ jobs:
         root: ~/dist
         paths:
         - cli
+    - store_artifacts:
+        path: ~/dist/cli
 
   build-desktop:
     docker:
@@ -149,7 +151,7 @@ jobs:
     - run:
         name: collect artifacts
         command: |
-          VERSION=${CIRCLE_SHA1}
+          VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
           if [ "${CIRCLE_TAG}" != "" ]; then
               VERSION=${CIRCLE_TAG}
           fi
@@ -165,6 +167,8 @@ jobs:
         root: ~/dist
         paths:
         - desktop
+    - store_artifacts:
+        path: ~/dist/desktop
 
   build-ios-framework:
     macos:
@@ -217,7 +221,7 @@ jobs:
     - run:
         name: collect artifacts
         command: |
-          VERSION=${CIRCLE_SHA1}
+          VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
           if [ "${CIRCLE_TAG}" != "" ]; then
               VERSION=${CIRCLE_TAG}
           fi
@@ -229,6 +233,8 @@ jobs:
         root: ~/dist
         paths:
         - ios_framework
+    - store_artifacts:
+        path: ~/dist/ios_framework
 
   build-android-framework:
     environment:
@@ -288,7 +294,7 @@ jobs:
     - run:
         name: collect artifacts
         command: |
-          VERSION=${CIRCLE_SHA1}
+          VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
           if [ "${CIRCLE_TAG}" != "" ]; then
               VERSION=${CIRCLE_TAG}
           fi
@@ -300,6 +306,8 @@ jobs:
         root: ~/dist
         paths:
         - android_aar
+    - store_artifacts:
+        path: ~/dist/android_aar
 
   release:
     docker:
