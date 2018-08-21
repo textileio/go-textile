@@ -82,7 +82,7 @@ func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 		Id:            model.Id,
 		Name:          model.Name,
 		PrivKey:       sk,
-		updates:       make(chan Update),
+		updates:       make(chan Update, 10),
 		repoPath:      config.RepoPath,
 		ipfs:          config.Ipfs,
 		blocks:        config.Blocks,

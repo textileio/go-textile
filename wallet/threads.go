@@ -103,6 +103,8 @@ func (w *Wallet) RemoveThread(id string) (mh.Multihash, error) {
 		return nil, err
 	}
 
+	// TODO: tell devices somehow?
+
 	// clean up
 	thrd.Close()
 	copy(w.threads[*i:], w.threads[*i+1:])

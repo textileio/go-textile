@@ -6,6 +6,7 @@ RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 # install dependencies
 RUN apt-get update \
     && apt-get install -y curl \
+    && apt-get install -y mingw-w64 \
     && apt-get -y autoclean
 
 # install dep
