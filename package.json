@@ -1,7 +1,7 @@
 {
   "name": "textile-go",
   "description": "Textile's REST API and daemon",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "author": "textile.io",
   "license": "MIT",
   "repository": {
@@ -19,10 +19,7 @@
     "precommit": ". ./script/precommit.sh",
     "coverage": "go tool cover -html=coverage.out",
     "format": "go fmt ./...",
-    "lint": "golint `go list ./... | grep -v /vendor/`",
-    "preversion": "npm run precommit",
-    "postversion": "git push --follow-tags",
-    "release": "npm version patch"
+    "lint": "golint `go list ./... | grep -v /vendor/`"
   },
   "config": {
     "commitizen": {
