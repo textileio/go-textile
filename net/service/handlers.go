@@ -111,7 +111,7 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Envelope, opti
 		return nil, err
 	}
 	notification.Body = "invited you to join"
-	notification.Category = "#" + invite.SuggestedName
+	notification.Category = invite.SuggestedName
 	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
@@ -143,19 +143,17 @@ func (s *TextileService) handleThreadJoin(pid peer.ID, pmes *pb.Envelope, option
 	}
 
 	// handle
-	addr, _, err := thrd.HandleJoinBlock(&pid, pmes, signed, join, false)
-	if err != nil {
+	if _, _, err := thrd.HandleJoinBlock(&pid, pmes, signed, join, false); err != nil {
 		return nil, err
 	}
-	id := addr.B58String()
 
 	// send notification
-	notification, err := buildNotification(thrd.PrivKey, join.Header, id, repo.PeerJoinedNotification)
+	notification, err := buildNotification(thrd.PrivKey, join.Header, threadId, repo.PeerJoinedNotification)
 	if err != nil {
 		return nil, err
 	}
 	notification.Body = "joined"
-	notification.Category = "#" + thrd.Name
+	notification.Category = thrd.Name
 	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
@@ -187,19 +185,17 @@ func (s *TextileService) handleThreadLeave(pid peer.ID, pmes *pb.Envelope, optio
 	}
 
 	// handle
-	addr, err := thrd.HandleLeaveBlock(&pid, pmes, signed, leave, false)
-	if err != nil {
+	if _, err := thrd.HandleLeaveBlock(&pid, pmes, signed, leave, false); err != nil {
 		return nil, err
 	}
-	id := addr.B58String()
 
 	// send notification
-	notification, err := buildNotification(thrd.PrivKey, leave.Header, id, repo.PeerLeftNotification)
+	notification, err := buildNotification(thrd.PrivKey, leave.Header, threadId, repo.PeerLeftNotification)
 	if err != nil {
 		return nil, err
 	}
 	notification.Body = "left"
-	notification.Category = "#" + thrd.Name
+	notification.Category = thrd.Name
 	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
@@ -231,18 +227,16 @@ func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Envelope, option
 	}
 
 	// handle
-	addr, err := thrd.HandleDataBlock(&pid, pmes, signed, data, false)
-	if err != nil {
+	if _, err := thrd.HandleDataBlock(&pid, pmes, signed, data, false); err != nil {
 		return nil, err
 	}
-	id := addr.B58String()
 
 	// send notification
 	// check for old username format
 	if data.Header.AuthorUnCipher == nil {
 		data.Header.AuthorUnCipher = data.UsernameCipher
 	}
-	notification, err := buildNotification(thrd.PrivKey, data.Header, id, repo.PhotoAddedNotification)
+	notification, err := buildNotification(thrd.PrivKey, data.Header, threadId, repo.PhotoAddedNotification)
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +246,7 @@ func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Envelope, option
 	case pb.ThreadData_TEXT:
 		break
 	}
-	notification.Category = "#" + thrd.Name
+	notification.Category = thrd.Name
 	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
