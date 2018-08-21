@@ -201,17 +201,8 @@ func (m *MessageRetriever) fetch(pid peer.ID, addr ma.Multiaddr, wg *sync.WaitGr
 		}
 
 		// store away
-		ser, err := proto.Marshal(env)
-		if err != nil {
-			log.Errorf("marshal offline message %s failed: %s", addrs, err)
-			return
-		}
 		if err := m.datastore.OfflineMessages().Put(addrs); err != nil {
 			log.Errorf("put offline message %s failed: %s", addrs, err)
-			return
-		}
-		if err := m.datastore.OfflineMessages().SetMessage(addrs, ser); err != nil {
-			log.Errorf("store offline message data %s failed: %s", addrs, err)
 			return
 		}
 		return
