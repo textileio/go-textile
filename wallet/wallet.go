@@ -158,8 +158,8 @@ func (w *Wallet) Start() error {
 	}()
 	log.Info("starting wallet...")
 	w.online = make(chan struct{})
-	w.updates = make(chan Update)
-	w.notifications = make(chan repo.Notification)
+	w.updates = make(chan Update, 10)
+	w.notifications = make(chan repo.Notification, 10)
 
 	// raise file descriptor limit
 	if err := utilmain.ManageFdLimit(); err != nil {
@@ -575,10 +575,7 @@ func (w *Wallet) sendUpdate(update Update) {
 			log.Error("update channel already closed")
 		}
 	}()
-	select {
-	case w.updates <- update:
-	default:
-	}
+	w.updates <- update
 }
 
 // sendNotification adds a notification to the notification channel
@@ -594,10 +591,8 @@ func (w *Wallet) sendNotification(notification *repo.Notification) error {
 			log.Error("notification channel already closed")
 		}
 	}()
-	select {
-	case w.notifications <- *notification:
-	default:
-	}
+	w.notifications <- *notification
+
 	return nil
 }
 

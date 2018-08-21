@@ -19,6 +19,7 @@ import (
 	"github.com/textileio/textile-go/wallet/thread"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 )
 
@@ -58,7 +59,12 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	}
 
 	// ensure app support folder is created
-	appDir := filepath.Join(home, "Library/Application Support/Textile")
+	var appDir string
+	if runtime.GOOS == "darwin" {
+		appDir = filepath.Join(home, "Library/Application Support/Textile")
+	} else {
+		appDir = filepath.Join(home, ".textile")
+	}
 	if err := os.MkdirAll(appDir, 0755); err != nil {
 		return err
 	}
@@ -108,12 +114,8 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 						window.Show()
 						window.Focus()
 					}
-				case wallet.ThreadRemoved:
-					break
-				case wallet.DeviceAdded:
-					break
-				case wallet.DeviceRemoved:
-					break
+				default:
+					sendData("wallet.update", payload)
 				}
 			}
 		}
@@ -138,13 +140,27 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 					Body:  fmt.Sprintf("%s %s.", username, notification.Body),
 					Icon:  "/resources/icon.png",
 				})
-				if err := note.Create(); err != nil {
-					astilog.Error(err)
-					return
+
+				// tmp auto-accept thread invites
+				if notification.Type == repo.ReceivedInviteNotification {
+					go func(tid string) {
+						if _, err := core.Node.Wallet.AcceptThreadInvite(tid); err != nil {
+							astilog.Error(err)
+						}
+					}(notification.TargetId)
 				}
-				if err := note.Show(); err != nil {
-					astilog.Error(err)
-				}
+
+				// show notification
+				go func(n *astilectron.Notification) {
+					if err := n.Create(); err != nil {
+						astilog.Error(err)
+						return
+					}
+					if err := n.Show(); err != nil {
+						astilog.Error(err)
+						return
+					}
+				}(note)
 			}
 		}
 	}()

@@ -55,6 +55,8 @@ This will start the interactive commit prompt.
 
 ## Building
 
+These instructions assume the build OS is either Darwin or Linux. As such, `mingw-w64` is needed for Windows cross-compiled builds. `brew install mingw-w64` for Darwin, `apt-get install mingw-w64` for Debian, etc.
+
 There are various things to build:
 
 #### The CLI:
@@ -81,7 +83,7 @@ The build is made by a vendored version of `go-astilectron-bundler`. Due to Go's
 ```
 go install ./vendor/github.com/asticode/go-astilectron-bundler/astilectron-bundler
 ```
-Run `make` to build the app for Darwin:
+Run `make` to build the app for Darwin, Linux, and Windows:
 ```
 make build_desktop
 ```
@@ -89,7 +91,7 @@ Double-click the built app in `desktop/output/darwin-amd64`, or run it directly:
 ```
 cd desktop && go run *.go
 ```
-To build for Linux or Windows, see [go-astilectron-bundler](https://github.com/asticode/go-astilectron-bundler).
+See [go-astilectron-bundler](https://github.com/asticode/go-astilectron-bundler) for more build configurations.
 
 ## Contributing
 
