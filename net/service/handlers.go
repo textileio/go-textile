@@ -111,7 +111,7 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Envelope, opti
 		return nil, err
 	}
 	notification.Body = "invited you to join"
-	notification.Category = invite.SuggestedName
+	notification.Category = "#" + invite.SuggestedName
 	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
@@ -155,7 +155,7 @@ func (s *TextileService) handleThreadJoin(pid peer.ID, pmes *pb.Envelope, option
 		return nil, err
 	}
 	notification.Body = "joined"
-	notification.Category = thrd.Name
+	notification.Category = "#" + thrd.Name
 	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
@@ -199,7 +199,7 @@ func (s *TextileService) handleThreadLeave(pid peer.ID, pmes *pb.Envelope, optio
 		return nil, err
 	}
 	notification.Body = "left"
-	notification.Category = thrd.Name
+	notification.Category = "#" + thrd.Name
 	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
@@ -238,6 +238,10 @@ func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Envelope, option
 	id := addr.B58String()
 
 	// send notification
+	// check for old username format
+	if data.Header.AuthorUnCipher == nil {
+		data.Header.AuthorUnCipher = data.UsernameCipher
+	}
 	notification, err := buildNotification(thrd.PrivKey, data.Header, id, repo.PhotoAddedNotification)
 	if err != nil {
 		return nil, err
@@ -248,7 +252,7 @@ func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Envelope, option
 	case pb.ThreadData_TEXT:
 		break
 	}
-	notification.Category = thrd.Name
+	notification.Category = "#" + thrd.Name
 	if err := s.notify(notification); err != nil {
 		return nil, err
 	}

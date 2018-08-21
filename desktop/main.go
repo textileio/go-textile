@@ -114,12 +114,8 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 						window.Show()
 						window.Focus()
 					}
-				case wallet.ThreadRemoved:
-					break
-				case wallet.DeviceAdded:
-					break
-				case wallet.DeviceRemoved:
-					break
+				default:
+					sendData("wallet.update", payload)
 				}
 			}
 		}
@@ -144,21 +140,27 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 					Body:  fmt.Sprintf("%s %s.", username, notification.Body),
 					Icon:  "/resources/icon.png",
 				})
-				if err := note.Create(); err != nil {
-					astilog.Error(err)
-					return
-				}
-				if err := note.Show(); err != nil {
-					astilog.Error(err)
-					return
-				}
 
 				// tmp auto-accept thread invites
 				if notification.Type == repo.ReceivedInviteNotification {
-					if _, err := core.Node.Wallet.AcceptThreadInvite(notification.TargetId); err != nil {
-						astilog.Error(err)
-					}
+					go func(tid string) {
+						if _, err := core.Node.Wallet.AcceptThreadInvite(tid); err != nil {
+							astilog.Error(err)
+						}
+					}(notification.TargetId)
 				}
+
+				// show notification
+				go func(n *astilectron.Notification) {
+					if err := n.Create(); err != nil {
+						astilog.Error(err)
+						return
+					}
+					if err := n.Show(); err != nil {
+						astilog.Error(err)
+						return
+					}
+				}(note)
 			}
 		}
 	}()
