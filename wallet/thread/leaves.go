@@ -7,7 +7,6 @@ import (
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	"time"
 )
 
 // Leave creates an outgoing leave block
@@ -16,7 +15,7 @@ func (t *Thread) Leave() (mh.Multihash, error) {
 	defer t.mux.Unlock()
 
 	// build block
-	header, err := t.newBlockHeader(time.Now())
+	header, err := t.newBlockHeader()
 	if err != nil {
 		return nil, err
 	}
