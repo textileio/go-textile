@@ -101,7 +101,7 @@ jobs:
         name: cross-compile
         command: |
           gox -osarch="linux/amd64 linux/386 linux/arm darwin/amd64" -output="{{.OS}}-{{.Arch}}"
-          CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -cgo -osarch="windows/386 windows/amd64" -output="{{.OS}}-{{.Arch}}"
+          CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -cgo -osarch="windows/amd64" -output="{{.OS}}-{{.Arch}}"
     - run:
         name: collect artifacts
         command: |
@@ -115,7 +115,7 @@ jobs:
           cp dist/README.md tmp/
           cp dist/install.sh tmp/
           cd tmp
-          declare -a arr=("linux-amd64" "linux-386" "linux-arm" "darwin-amd64" "windows-386.exe" "windows-amd64.exe")
+          declare -a arr=("linux-amd64" "linux-386" "linux-arm" "darwin-amd64" "windows-amd64.exe")
           for i in "${arr[@]}"
           do
               OSARCH=${i%.*}

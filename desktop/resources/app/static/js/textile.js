@@ -113,6 +113,19 @@ function addThread(update) {
   }
 }
 
+function removeThread(update) {
+  let ul = $('.threads')
+  let active = $('.thread.active').attr('id') === update.id
+  $('#' + id).remove()
+  if (active) {
+    if (ul.children().length > 0) {
+      loadFirstThread()
+    } else {
+
+    }
+  }
+}
+
 function loadFirstThread() {
   setTimeout(function () {
     $('.threads li').first().click()
