@@ -284,7 +284,7 @@ func (t *Thread) followParent(parent string, from *peer.ID) (*repo.Peer, error) 
 }
 
 // newBlockHeader creates a new header
-func (t *Thread) newBlockHeader(date time.Time) (*pb.ThreadBlockHeader, error) {
+func (t *Thread) newBlockHeader() (*pb.ThreadBlockHeader, error) {
 	// get current HEAD
 	head, err := t.GetHead()
 	if err != nil {
