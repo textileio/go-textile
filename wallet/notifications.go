@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/textileio/textile-go/repo"
-	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 )
 
 // GetNotifications lists notifications
@@ -28,7 +27,7 @@ func (w *Wallet) ReadAllNotifications() error {
 }
 
 // AcceptThreadInviteViaNotification uses an invite notification to accept an invite to a thread
-func (w *Wallet) AcceptThreadInviteViaNotification(id string) (mh.Multihash, error) {
+func (w *Wallet) AcceptThreadInviteViaNotification(id string) (*string, error) {
 	// look up notification
 	notification := w.datastore.Notifications().Get(id)
 	if notification == nil {
