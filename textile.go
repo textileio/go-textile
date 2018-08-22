@@ -13,7 +13,6 @@ import (
 	"github.com/textileio/textile-go/core"
 	rconfig "github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/wallet"
-	"github.com/textileio/textile-go/wallet/thread"
 	"gopkg.in/abiosoft/ishell.v2"
 	icore "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	"log"
@@ -497,13 +496,6 @@ func start() error {
 	}
 	<-core.Node.Wallet.Online()
 
-	// subscribe to thread updates
-	for _, thrd := range core.Node.Wallet.Threads() {
-		go func(t *thread.Thread) {
-			cmd.Subscribe(t)
-		}(thrd)
-	}
-
 	// subscribe to wallet updates
 	go func() {
 		for {
@@ -514,9 +506,7 @@ func start() error {
 				}
 				switch update.Type {
 				case wallet.ThreadAdded:
-					if _, thrd := core.Node.Wallet.GetThread(update.Id); thrd != nil {
-						go cmd.Subscribe(thrd)
-					}
+					break
 				case wallet.ThreadRemoved:
 					break
 				case wallet.DeviceAdded:
@@ -524,6 +514,21 @@ func start() error {
 				case wallet.DeviceRemoved:
 					break
 				}
+			}
+		}
+	}()
+
+	// subscribe to thread updates
+	go func() {
+		green := color.New(color.FgHiGreen).SprintFunc()
+		for {
+			select {
+			case update, ok := <-core.Node.Wallet.ThreadUpdates():
+				if !ok {
+					return
+				}
+				msg := fmt.Sprintf("new %s block in thread '%s'", update.Block.Type.Description(), update.ThreadName)
+				fmt.Println(green(msg))
 			}
 		}
 	}()

@@ -7,15 +7,15 @@ import (
 	"time"
 )
 
-type OfflineMessagesDB struct {
+type OfflineMessageDB struct {
 	modelStore
 }
 
 func NewOfflineMessageStore(db *sql.DB, lock *sync.Mutex) repo.OfflineMessageStore {
-	return &OfflineMessagesDB{modelStore{db, lock}}
+	return &OfflineMessageDB{modelStore{db, lock}}
 }
 
-func (o *OfflineMessagesDB) Put(url string) error {
+func (o *OfflineMessageDB) Put(url string) error {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 	tx, err := o.db.Begin()
@@ -36,7 +36,7 @@ func (o *OfflineMessagesDB) Put(url string) error {
 	return nil
 }
 
-func (o *OfflineMessagesDB) Has(url string) bool {
+func (o *OfflineMessageDB) Has(url string) bool {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 	stmt, err := o.db.Prepare("select url from offlinemessages where url=?")
@@ -52,7 +52,7 @@ func (o *OfflineMessagesDB) Has(url string) bool {
 	return true
 }
 
-func (o *OfflineMessagesDB) SetMessage(url string, message []byte) error {
+func (o *OfflineMessageDB) SetMessage(url string, message []byte) error {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 	_, err := o.db.Exec("update offlinemessages set message=? where url=?", message, url)
@@ -62,7 +62,7 @@ func (o *OfflineMessagesDB) SetMessage(url string, message []byte) error {
 	return nil
 }
 
-func (o *OfflineMessagesDB) GetMessages() (map[string][]byte, error) {
+func (o *OfflineMessageDB) GetMessages() (map[string][]byte, error) {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 	stm := "select url, message from offlinemessages where message is not null"
@@ -83,7 +83,7 @@ func (o *OfflineMessagesDB) GetMessages() (map[string][]byte, error) {
 	return ret, nil
 }
 
-func (o *OfflineMessagesDB) DeleteMessage(url string) error {
+func (o *OfflineMessageDB) DeleteMessage(url string) error {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 	_, err := o.db.Exec("update offlinemessages set message=null where url=?", url)

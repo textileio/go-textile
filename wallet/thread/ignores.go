@@ -11,7 +11,6 @@ import (
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"strings"
-	"time"
 )
 
 // Ignore adds an outgoing ignore block targeted at another block to ignore
@@ -23,7 +22,7 @@ func (t *Thread) Ignore(blockId string) (mh.Multihash, error) {
 	dataId := fmt.Sprintf("ignore-%s", blockId)
 
 	// build block
-	header, err := t.newBlockHeader(time.Now())
+	header, err := t.newBlockHeader()
 	if err != nil {
 		return nil, err
 	}
