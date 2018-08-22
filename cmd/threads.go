@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/wallet/thread"
 	"gopkg.in/abiosoft/ishell.v2"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
@@ -235,18 +234,4 @@ func RemoveThread(c *ishell.Context) {
 
 	red := color.New(color.FgHiRed).SprintFunc()
 	c.Println(red("removed thread %s", id))
-}
-
-func Subscribe(thrd *thread.Thread) {
-	green := color.New(color.FgHiGreen).SprintFunc()
-	for {
-		select {
-		case update, ok := <-thrd.Updates():
-			if !ok {
-				return
-			}
-			msg := fmt.Sprintf("new %s block in thread '%s'", update.Block.Type.Description(), update.ThreadName)
-			fmt.Println(green(msg))
-		}
-	}
 }

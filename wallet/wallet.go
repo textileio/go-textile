@@ -55,6 +55,7 @@ const (
 	ThreadRemoved
 	DeviceAdded
 	DeviceRemoved
+	ThreadUpdate
 )
 
 // AddDataResult wraps added data content id and key
@@ -80,6 +81,7 @@ type Wallet struct {
 	online             chan struct{}
 	done               chan struct{}
 	updates            chan Update
+	threadUpdates      chan thread.Update
 	notifications      chan repo.Notification
 	messageStorage     storage.OfflineMessagingStorage
 	messageRetriever   *net.MessageRetriever
@@ -159,6 +161,7 @@ func (w *Wallet) Start() error {
 	log.Info("starting wallet...")
 	w.online = make(chan struct{})
 	w.updates = make(chan Update, 10)
+	w.threadUpdates = make(chan thread.Update, 10)
 	w.notifications = make(chan repo.Notification, 10)
 
 	// raise file descriptor limit
@@ -293,9 +296,6 @@ func (w *Wallet) Stop() error {
 	}
 
 	// wipe threads
-	for _, t := range w.Threads() {
-		t.Close()
-	}
 	w.threads = nil
 
 	// wipe services
@@ -311,6 +311,7 @@ func (w *Wallet) Stop() error {
 
 	// close update channels
 	close(w.updates)
+	close(w.threadUpdates)
 	close(w.notifications)
 
 	log.Info("wallet is stopped")
@@ -364,6 +365,10 @@ func (w *Wallet) Done() <-chan struct{} {
 
 func (w *Wallet) Updates() <-chan Update {
 	return w.updates
+}
+
+func (w *Wallet) ThreadUpdates() <-chan thread.Update {
+	return w.threadUpdates
 }
 
 func (w *Wallet) Notifications() <-chan repo.Notification {
@@ -551,6 +556,7 @@ func (w *Wallet) loadThread(mod *repo.Thread) (*thread.Thread, error) {
 			username, _ := w.GetUsername()
 			return username
 		},
+		SendUpdate: w.sendThreadUpdate,
 	}
 	thrd, err := thread.NewThread(mod, threadConfig)
 	if err != nil {
@@ -576,6 +582,16 @@ func (w *Wallet) sendUpdate(update Update) {
 		}
 	}()
 	w.updates <- update
+}
+
+// sendThreadUpdate adds a thread update to the update channel
+func (w *Wallet) sendThreadUpdate(update thread.Update) {
+	defer func() {
+		if recover() != nil {
+			log.Error("thread update channel already closed")
+		}
+	}()
+	w.threadUpdates <- update
 }
 
 // sendNotification adds a notification to the notification channel

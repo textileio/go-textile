@@ -50,6 +50,7 @@ type Config struct {
 	NewEnvelope   func(message *pb.Message) (*pb.Envelope, error)
 	PutPinRequest func(id string) error
 	GetUsername   func() string
+	SendUpdate    func(update Update)
 }
 
 // Thread is the primary mechanism representing a collecion of data / files / photos
@@ -57,7 +58,6 @@ type Thread struct {
 	Id            string
 	Name          string
 	PrivKey       libp2pc.PrivKey
-	updates       chan Update
 	repoPath      string
 	ipfs          func() *core.IpfsNode
 	blocks        func() repo.BlockStore
@@ -69,6 +69,7 @@ type Thread struct {
 	newEnvelope   func(message *pb.Message) (*pb.Envelope, error)
 	putPinRequest func(id string) error
 	getUsername   func() string
+	sendUpdate    func(update Update)
 	mux           sync.Mutex
 }
 
@@ -82,7 +83,6 @@ func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 		Id:            model.Id,
 		Name:          model.Name,
 		PrivKey:       sk,
-		updates:       make(chan Update, 10),
 		repoPath:      config.RepoPath,
 		ipfs:          config.Ipfs,
 		blocks:        config.Blocks,
@@ -94,17 +94,8 @@ func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 		newEnvelope:   config.NewEnvelope,
 		putPinRequest: config.PutPinRequest,
 		getUsername:   config.GetUsername,
+		sendUpdate:    config.SendUpdate,
 	}, nil
-}
-
-// Updates returns a read-only channel of updates
-func (t *Thread) Updates() <-chan Update {
-	return t.updates
-}
-
-// Close shutsdown the update channel
-func (t *Thread) Close() {
-	close(t.updates)
 }
 
 // Info returns thread info
@@ -474,17 +465,9 @@ func (t *Thread) post(env *pb.Envelope, id string, peers []repo.Peer) {
 
 // pushUpdate pushes thread updates to UI listeners
 func (t *Thread) pushUpdate(index repo.Block) {
-	defer func() {
-		if recover() != nil {
-			log.Error("update channel closed")
-		}
-	}()
-	select {
-	case t.updates <- Update{
+	t.sendUpdate(Update{
 		Block:      index,
 		ThreadId:   t.Id,
 		ThreadName: t.Name,
-	}:
-	default:
-	}
+	})
 }
