@@ -187,6 +187,11 @@ func (t *Thread) sendWelcome(joined repo.Peer) error {
 		return err
 	}
 
+	// check head
+	if head == "" {
+		return nil
+	}
+
 	// download it
 	serialized, err := util.GetDataAtPath(t.ipfs(), head)
 	if err != nil {
