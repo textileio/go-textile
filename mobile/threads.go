@@ -121,11 +121,11 @@ func (m *Mobile) AddExternalThreadInvite(threadId string) (string, error) {
 // AcceptExternalThreadInvite notifies the thread of a join
 func (m *Mobile) AcceptExternalThreadInvite(id string, key string) (string, error) {
 	m.waitForOnline()
-	addr, err := core.Node.Wallet.AcceptExternalThreadInvite(id, []byte(key))
+	thrdId, err := core.Node.Wallet.AcceptExternalThreadInvite(id, []byte(key))
 	if err != nil {
 		return "", err
 	}
-	return addr.B58String(), nil
+	return *thrdId, nil
 }
 
 // RemoveThread call core RemoveDevice
