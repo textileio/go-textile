@@ -3,6 +3,8 @@ package thread
 import (
 	"bytes"
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/pkg/errors"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/util"
@@ -18,7 +20,7 @@ func (t *Thread) Merge(head string) (mh.Multihash, error) {
 	defer t.mux.Unlock()
 
 	// build block
-	header, err := t.newBlockHeader(time.Now())
+	header, err := t.newBlockHeader()
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +29,33 @@ func (t *Thread) Merge(head string) (mh.Multihash, error) {
 	header.Parents = append(header.Parents, head)
 	// sort to ensure a deterministic (the order may be reversed on other peers)
 	sort.Strings(header.Parents)
+
+	// choose newest to use for date
+	p1b := t.blocks().Get(header.Parents[0])
+	if p1b == nil {
+		return nil, errors.New("first merge parent not found")
+	}
+	p2b := t.blocks().Get(header.Parents[1])
+	if p2b == nil {
+		return nil, errors.New("second merge parent not found")
+	}
+	var date time.Time
+	if p1b.Date.Before(p2b.Date) {
+		date = p2b.Date
+	} else {
+		date = p1b.Date
+	}
+
+	// add a small amount to date to keep it ahead of both parents
+	date = date.Add(time.Millisecond)
+
+	// set content
+	pdate, err := ptypes.TimestampProto(date)
+	if err != nil {
+		return nil, err
+	}
 	content := &pb.ThreadMerge{
+		Date:     pdate,
 		Parents:  header.Parents,
 		ThreadPk: header.ThreadPk,
 	}
@@ -106,10 +134,11 @@ func (t *Thread) HandleMergeBlock(from *peer.ID, message *pb.Message, signed *pb
 
 	// index it locally
 	// (create a fake header for the indexing step)
-	header, err := t.newBlockHeader(time.Now())
+	header, err := t.newBlockHeader()
 	if err != nil {
 		return nil, err
 	}
+	header.Date = content.Date
 	header.Parents = content.Parents
 	if err := t.indexBlock(id, header, repo.MergeBlock, nil); err != nil {
 		return nil, err

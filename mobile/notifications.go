@@ -37,9 +37,9 @@ func (m *Mobile) ReadAllNotifications() error {
 
 // AcceptThreadInviteViaNotification call core AcceptThreadInviteViaNotification
 func (m *Mobile) AcceptThreadInviteViaNotification(id string) (string, error) {
-	addr, err := core.Node.Wallet.AcceptThreadInviteViaNotification(id)
+	thrdId, err := core.Node.Wallet.AcceptThreadInviteViaNotification(id)
 	if err != nil {
 		return "", err
 	}
-	return addr.B58String(), nil
+	return *thrdId, nil
 }

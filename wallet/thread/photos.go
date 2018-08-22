@@ -11,7 +11,6 @@ import (
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	"time"
 )
 
 // AddPhoto adds an outgoing photo block
@@ -41,7 +40,7 @@ func (t *Thread) AddPhoto(dataId string, caption string, key []byte) (mh.Multiha
 	}
 
 	// build block
-	header, err := t.newBlockHeader(time.Now())
+	header, err := t.newBlockHeader()
 	if err != nil {
 		return nil, err
 	}

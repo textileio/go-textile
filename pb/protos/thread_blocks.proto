@@ -16,6 +16,10 @@ message SignedThreadBlock {
     bytes threadSig = 2;
 }
 
+message ThreadHeader {
+    ThreadBlockHeader header = 1;
+}
+
 message ThreadInvite {
     ThreadBlockHeader header = 1;
 
@@ -77,6 +81,7 @@ message ThreadIgnore {
 }
 
 message ThreadMerge {
-    repeated string parents = 2;
-    bytes threadPk          = 3;
+    google.protobuf.Timestamp date = 1;
+    repeated string parents        = 2;
+    bytes threadPk                 = 3;
 }

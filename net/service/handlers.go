@@ -8,7 +8,6 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/crypto"
-	"github.com/textileio/textile-go/net/common"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/util"
@@ -218,7 +217,7 @@ func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Envelope, option
 	threadId := libp2pc.ConfigEncodeKey(data.Header.ThreadPk)
 	_, thrd := s.getThread(threadId)
 	if thrd == nil {
-		return nil, common.OutOfOrderMessage
+		return nil, errors.New("invalid data block")
 	}
 
 	// verify thread sig
@@ -269,7 +268,7 @@ func (s *TextileService) handleThreadIgnore(pid peer.ID, pmes *pb.Envelope, opti
 	threadId := libp2pc.ConfigEncodeKey(ignore.Header.ThreadPk)
 	_, thrd := s.getThread(threadId)
 	if thrd == nil {
-		return nil, common.OutOfOrderMessage
+		return nil, errors.New("invalid ignore block")
 	}
 
 	// verify thread sig

@@ -16,7 +16,6 @@ import (
 	"github.com/textileio/textile-go/repo"
 	rconfig "github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/wallet"
-	"github.com/textileio/textile-go/wallet/thread"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -101,9 +100,6 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 				}
 				switch update.Type {
 				case wallet.ThreadAdded:
-					if _, thrd := core.Node.Wallet.GetThread(update.Id); thrd != nil {
-						go subscribe(thrd)
-					}
 					if expanded {
 						sendData("wallet.update", payload)
 					} else {
@@ -117,6 +113,21 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 				default:
 					sendData("wallet.update", payload)
 				}
+			}
+		}
+	}()
+
+	// subscribe to thread updates
+	go func() {
+		for {
+			select {
+			case update, ok := <-core.Node.Wallet.ThreadUpdates():
+				if !ok {
+					return
+				}
+				sendData("thread.update", map[string]interface{}{
+					"update": update,
+				})
 			}
 		}
 	}()
@@ -164,13 +175,6 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 			}
 		}
 	}()
-
-	// subscribe to thread updates
-	for _, thrd := range core.Node.Wallet.Threads() {
-		go func(t *thread.Thread) {
-			subscribe(t)
-		}(thrd)
-	}
 
 	// start the gateway
 	core.Node.StartGateway(fmt.Sprintf("127.0.0.1:%d", rconfig.GetRandomPort()))
@@ -256,20 +260,6 @@ func handleMessage(_ *astilectron.Window, m bootstrap.MessageIn) (interface{}, e
 		}, nil
 	default:
 		return map[string]interface{}{}, nil
-	}
-}
-
-func subscribe(thrd *thread.Thread) {
-	for {
-		select {
-		case update, ok := <-thrd.Updates():
-			if !ok {
-				return
-			}
-			sendData("thread.update", map[string]interface{}{
-				"update": update,
-			})
-		}
 	}
 }
 

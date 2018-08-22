@@ -4,7 +4,6 @@ import (
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/pb"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
-	"time"
 )
 
 // AddExternalInvite creates an external invite, which can be retrieved by any peer
@@ -30,7 +29,7 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 	}
 
 	// build block
-	header, err := t.newBlockHeader(time.Now())
+	header, err := t.newBlockHeader()
 	if err != nil {
 		return nil, nil, err
 	}
