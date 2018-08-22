@@ -172,7 +172,7 @@ jobs:
           mv Textile_${VERSION}_darwin-amd64.tar.gz ${OUT}/
           cd ${WD}/desktop/output/windows-amd64
           zip Textile_${VERSION}_windows-amd64.zip Textile.exe
-          mv Textile_${VERSION}_windows-amd64.tar.gz ${OUT}/
+          mv Textile_${VERSION}_windows-amd64.zip ${OUT}/
     - persist_to_workspace:
         root: ~/dist
         paths:

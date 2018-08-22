@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/wallet/thread"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
@@ -135,20 +134,4 @@ func (m *Mobile) RemoveThread(id string) (string, error) {
 		return "", err
 	}
 	return addr.B58String(), err
-}
-
-// subscribe to thread and pass updates to messenger
-func (m *Mobile) subscribe(thrd *thread.Thread) {
-	for {
-		select {
-		case update, ok := <-thrd.Updates():
-			if !ok {
-				return
-			}
-			payload, err := toJSON(update)
-			if err == nil {
-				m.messenger.Notify(&Event{Name: "onThreadUpdate", Payload: payload})
-			}
-		}
-	}
 }

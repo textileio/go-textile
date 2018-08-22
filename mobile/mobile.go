@@ -5,7 +5,6 @@ import (
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/wallet"
-	"github.com/textileio/textile-go/wallet/thread"
 	"time"
 )
 
@@ -73,12 +72,6 @@ func (m *Mobile) Start() error {
 
 	go func() {
 		<-core.Node.Wallet.Online()
-		// subscribe to thread updates
-		for _, thrd := range core.Node.Wallet.Threads() {
-			go func(t *thread.Thread) {
-				m.subscribe(t)
-			}(thrd)
-		}
 
 		// subscribe to wallet updates
 		go func() {
@@ -95,22 +88,31 @@ func (m *Mobile) Start() error {
 					var name string
 					switch update.Type {
 					case wallet.ThreadAdded:
-						// subscribe to updates
-						if _, thrd := core.Node.Wallet.GetThread(update.Id); thrd != nil {
-							go m.subscribe(thrd)
-						}
 						name = "onThreadAdded"
-
 					case wallet.ThreadRemoved:
 						name = "onThreadRemoved"
-
 					case wallet.DeviceAdded:
 						name = "onDeviceAdded"
-
 					case wallet.DeviceRemoved:
 						name = "onDeviceRemoved"
 					}
 					m.messenger.Notify(&Event{Name: name, Payload: payload})
+				}
+			}
+		}()
+
+		// subscribe to thread updates
+		go func() {
+			for {
+				select {
+				case update, ok := <-core.Node.Wallet.ThreadUpdates():
+					if !ok {
+						return
+					}
+					payload, err := toJSON(update)
+					if err == nil {
+						m.messenger.Notify(&Event{Name: "onThreadUpdate", Payload: payload})
+					}
 				}
 			}
 		}()
