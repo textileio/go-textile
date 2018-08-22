@@ -7,6 +7,7 @@ RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 RUN apt-get update \
     && apt-get install -y curl \
     && apt-get install -y mingw-w64 \
+    && apt-get install -y zip \
     && apt-get -y autoclean
 
 # install dep

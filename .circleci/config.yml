@@ -121,8 +121,13 @@ jobs:
               OSARCH=${i%.*}
               EXT=$([[ "$i" = *.* ]] && echo ".${i##*.}" || echo '')
               cp ../${i} textile${EXT}
-              tar -czvf textile-go_${VERSION}_${OSARCH}.tar.gz README.md install.sh textile${EXT}
-              mv textile-go_${VERSION}_${OSARCH}.tar.gz ${OUT}/
+              if [ "${EXT}" == ".exe" ]; then
+                  zip textile-go_${VERSION}_${OSARCH}.zip README.md install.sh textile${EXT}
+                  mv textile-go_${VERSION}_${OSARCH}.zip ${OUT}/
+              else
+                  tar -czvf textile-go_${VERSION}_${OSARCH}.tar.gz README.md install.sh textile${EXT}
+                  mv textile-go_${VERSION}_${OSARCH}.tar.gz ${OUT}/
+              fi
           done
           cd .. && rm -rf tmp
     - persist_to_workspace:
@@ -158,11 +163,15 @@ jobs:
           fi
           OUT=~/dist/desktop
           mkdir -p ${OUT}
-          tar -czvf Textile_${VERSION}_linux-amd64.tar.gz desktop/output/linux-amd64/Textile
+          WD=/go/src/github.com/textileio/textile-go
+          cd ${WD}/desktop/output/linux-amd64
+          tar -czvf Textile_${VERSION}_linux-amd64.tar.gz Textile
           mv Textile_${VERSION}_linux-amd64.tar.gz ${OUT}/
-          tar -czvf Textile_${VERSION}_darwin-amd64.tar.gz desktop/output/darwin-amd64/Textile.app
+          cd ${WD}/desktop/output/darwin-amd64
+          tar -czvf Textile_${VERSION}_darwin-amd64.tar.gz Textile.app
           mv Textile_${VERSION}_darwin-amd64.tar.gz ${OUT}/
-          tar -czvf Textile_${VERSION}_windows-amd64.tar.gz desktop/output/windows-amd64/Textile.exe
+          cd ${WD}/desktop/output/windows-amd64
+          zip Textile_${VERSION}_windows-amd64.zip Textile.exe
           mv Textile_${VERSION}_windows-amd64.tar.gz ${OUT}/
     - persist_to_workspace:
         root: ~/dist
