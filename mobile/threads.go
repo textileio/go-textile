@@ -48,6 +48,11 @@ func (m *Mobile) AddThread(name string, mnemonic string) (string, error) {
 		return "", err
 	}
 
+	// invite devices
+	if err := core.Node.Wallet.InviteDevices(thrd); err != nil {
+		return "", err
+	}
+
 	// build json
 	peers := thrd.Peers()
 	item := Thread{
