@@ -33,7 +33,7 @@ func Test_SetupThread(t *testing.T) {
 
 func TestNewThread_WalletOffline(t *testing.T) {
 	var err error
-	thrd, _, err = twallet.AddThreadWithMnemonic("thread1", nil)
+	thrd, _, err = twallet.AddThreadWithMnemonic("thread1", nil, true)
 	if err != nil {
 		t.Errorf("create thread while offline failed: %s", err)
 	}
@@ -42,7 +42,7 @@ func TestNewThread_WalletOffline(t *testing.T) {
 func TestNewThread_WalletOnline(t *testing.T) {
 	<-twallet.Online()
 	var err error
-	_, _, err = twallet.AddThreadWithMnemonic("thread2", nil)
+	_, _, err = twallet.AddThreadWithMnemonic("thread2", nil, true)
 	if err != nil {
 		t.Errorf("create thread while online failed: %s", err)
 	}
