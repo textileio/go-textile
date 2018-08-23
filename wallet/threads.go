@@ -40,21 +40,6 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 		return nil, err
 	}
 
-	// invite each device to the new thread
-	for _, device := range w.Devices() {
-		dpkb, err := libp2pc.ConfigDecodeKey(device.Id)
-		if err != nil {
-			return nil, err
-		}
-		dpk, err := libp2pc.UnmarshalPublicKey(dpkb)
-		if err != nil {
-			return nil, err
-		}
-		if _, err := thrd.AddInvite(dpk); err != nil {
-			return nil, err
-		}
-	}
-
 	// notify listeners
 	w.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadAdded})
 
@@ -188,7 +173,17 @@ func (w *Wallet) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
 	}
 
 	// join the thread
-	return thrd.Join(authorPk, blockId)
+	addr, err := thrd.Join(authorPk, blockId)
+	if err != nil {
+		return nil, err
+	}
+
+	// invite devices
+	if err := w.InviteDevices(thrd); err != nil {
+		return nil, err
+	}
+
+	return addr, nil
 }
 
 // AcceptExternalThreadInvite attemps to download an encrypted thread key from an external invite,
@@ -254,7 +249,17 @@ func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte) (mh.Mult
 	}
 
 	// join the thread
-	return thrd.Join(authorPk, blockId)
+	addr, err := thrd.Join(authorPk, blockId)
+	if err != nil {
+		return nil, err
+	}
+
+	// invite devices
+	if err := w.InviteDevices(thrd); err != nil {
+		return nil, err
+	}
+
+	return addr, nil
 }
 
 // Threads lists loaded threads

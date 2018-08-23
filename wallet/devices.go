@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/wallet/thread"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"time"
 )
@@ -59,6 +60,24 @@ func (w *Wallet) AddDevice(name string, pk libp2pc.PubKey) error {
 		Body:          "paired with a new device",
 	}
 	return w.sendNotification(notification)
+}
+
+// InviteDevices sends a thread invite to all devices
+func (w *Wallet) InviteDevices(thrd *thread.Thread) error {
+	for _, device := range w.Devices() {
+		dpkb, err := libp2pc.ConfigDecodeKey(device.Id)
+		if err != nil {
+			return err
+		}
+		dpk, err := libp2pc.UnmarshalPublicKey(dpkb)
+		if err != nil {
+			return err
+		}
+		if _, err := thrd.AddInvite(dpk); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // RemoveDevice removes a device

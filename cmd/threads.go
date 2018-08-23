@@ -43,6 +43,11 @@ func AddThread(c *ishell.Context) {
 		return
 	}
 
+	if err := core.Node.Wallet.InviteDevices(thrd); err != nil {
+		c.Err(err)
+		return
+	}
+
 	cyan := color.New(color.FgCyan).SprintFunc()
 	c.Println(cyan(fmt.Sprintf("added thread %s with name %s", thrd.Id, name)))
 }
