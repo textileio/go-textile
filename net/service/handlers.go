@@ -109,9 +109,9 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Envelope, opti
 	if err != nil {
 		return nil, err
 	}
-	notification.TargetId = id // invite block
-	notification.Category = invite.SuggestedName
-	notification.CategoryId = libp2pc.ConfigEncodeKey(invite.Header.ThreadPk)
+	notification.Subject = invite.SuggestedName
+	notification.SubjectId = libp2pc.ConfigEncodeKey(invite.Header.ThreadPk)
+	notification.BlockId = id // invite block
 	notification.Body = "invited you to join"
 	if err := s.notify(notification); err != nil {
 		return nil, err
@@ -154,10 +154,10 @@ func (s *TextileService) handleThreadJoin(pid peer.ID, pmes *pb.Envelope, option
 	if err != nil {
 		return nil, err
 	}
+	notification.Subject = thrd.Name
+	notification.SubjectId = thrd.Id
+	notification.BlockId = addr.B58String()
 	notification.Body = "joined"
-	notification.TargetId = addr.B58String()
-	notification.Category = thrd.Name
-	notification.CategoryId = thrd.Id
 	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
@@ -199,10 +199,10 @@ func (s *TextileService) handleThreadLeave(pid peer.ID, pmes *pb.Envelope, optio
 	if err != nil {
 		return nil, err
 	}
+	notification.Subject = thrd.Name
+	notification.SubjectId = thrd.Id
+	notification.BlockId = addr.B58String()
 	notification.Body = "left"
-	notification.TargetId = addr.B58String()
-	notification.Category = thrd.Name
-	notification.CategoryId = thrd.Id
 	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
@@ -251,6 +251,7 @@ func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Envelope, option
 		if err != nil {
 			return nil, err
 		}
+		notification.DataId = data.DataId
 		notification.Body = "added a photo"
 	case pb.ThreadData_TEXT:
 		notification, err = buildNotification(thrd.PrivKey, data.Header, repo.TextAddedNotification)
@@ -263,9 +264,9 @@ func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Envelope, option
 		}
 		notification.Body = string(body)
 	}
-	notification.TargetId = addr.B58String()
-	notification.Category = thrd.Name
-	notification.CategoryId = thrd.Id
+	notification.BlockId = addr.B58String()
+	notification.Subject = thrd.Name
+	notification.SubjectId = thrd.Id
 	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
@@ -300,8 +301,6 @@ func (s *TextileService) handleThreadIgnore(pid peer.ID, pmes *pb.Envelope, opti
 	if _, err := thrd.HandleIgnoreBlock(&pid, pmes, signed, ignore, false); err != nil {
 		return nil, err
 	}
-
-	// TODO: remove notifications w/ this targetId
 
 	return nil, nil
 }
@@ -488,8 +487,6 @@ func (s *TextileService) handleError(peer peer.ID, pmes *pb.Envelope, options in
 	if err != nil {
 		return nil, err
 	}
-
-	// TODO
 
 	return nil, nil
 }

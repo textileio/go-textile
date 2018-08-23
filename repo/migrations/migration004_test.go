@@ -52,8 +52,8 @@ func TestMigration004(t *testing.T) {
 		return
 	}
 
-	// test new fields
-	_, err = db.Exec("update notifications set categoryId=? where id=?", "catId", "test")
+	// test new table
+	_, err = db.Exec("insert into notifications(id, date, actorId, actorUsername, subject, subjectId, blockId, dataId, type, body, read) values(?,?,?,?,?,?,?,?,?,?,?)", "test", 0, "actorId", "james", "cats", "catId", "", "", 0, "hey!", 0)
 	if err != nil {
 		t.Error(err)
 		return

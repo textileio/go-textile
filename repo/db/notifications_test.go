@@ -26,11 +26,11 @@ func TestNotificationDB_Add(t *testing.T) {
 		Id:            "abcde",
 		Date:          time.Now(),
 		ActorId:       ksuid.New().String(),
-		TargetId:      ksuid.New().String(),
-		Type:          repo.ReceivedInviteNotification,
 		ActorUsername: "tester",
-		Category:      "test",
-		CategoryId:    ksuid.New().String(),
+		Subject:       "test",
+		SubjectId:     ksuid.New().String(),
+		BlockId:       ksuid.New().String(),
+		Type:          repo.ReceivedInviteNotification,
 	})
 	if err != nil {
 		t.Error(err)
@@ -72,11 +72,11 @@ func TestNotificationDB_ReadAll(t *testing.T) {
 		Id:            "abcde",
 		Date:          time.Now(),
 		ActorId:       ksuid.New().String(),
-		TargetId:      ksuid.New().String(),
-		Type:          repo.ReceivedInviteNotification,
 		ActorUsername: "tester",
-		Category:      "test",
-		CategoryId:    ksuid.New().String(),
+		Subject:       "test",
+		SubjectId:     ksuid.New().String(),
+		BlockId:       ksuid.New().String(),
+		Type:          repo.ReceivedInviteNotification,
 	})
 	if err != nil {
 		t.Error(err)
@@ -85,11 +85,11 @@ func TestNotificationDB_ReadAll(t *testing.T) {
 		Id:            "abcdef",
 		Date:          time.Now(),
 		ActorId:       ksuid.New().String(),
-		TargetId:      ksuid.New().String(),
-		Type:          repo.PeerJoinedNotification,
 		ActorUsername: "tester",
-		Category:      "test",
-		CategoryId:    ksuid.New().String(),
+		Subject:       "test",
+		SubjectId:     ksuid.New().String(),
+		BlockId:       ksuid.New().String(),
+		Type:          repo.PeerJoinedNotification,
 	})
 	if err != nil {
 		t.Error(err)
@@ -111,11 +111,11 @@ func TestNotificationDB_List(t *testing.T) {
 		Id:            "abc",
 		Date:          time.Now(),
 		ActorId:       "actor1",
-		TargetId:      "target1",
-		Type:          repo.ReceivedInviteNotification,
 		ActorUsername: "tester",
-		Category:      "test",
-		CategoryId:    ksuid.New().String(),
+		Subject:       "test",
+		SubjectId:     ksuid.New().String(),
+		BlockId:       "block1",
+		Type:          repo.ReceivedInviteNotification,
 	})
 	if err != nil {
 		t.Error(err)
@@ -124,11 +124,11 @@ func TestNotificationDB_List(t *testing.T) {
 		Id:            "def",
 		Date:          time.Now().Add(time.Minute),
 		ActorId:       "actor1",
-		TargetId:      "target2",
-		Type:          repo.PeerJoinedNotification,
 		ActorUsername: "tester",
-		Category:      "test",
-		CategoryId:    ksuid.New().String(),
+		Subject:       "test",
+		SubjectId:     ksuid.New().String(),
+		BlockId:       "block2",
+		Type:          repo.PeerJoinedNotification,
 	})
 	if err != nil {
 		t.Error(err)
@@ -137,11 +137,11 @@ func TestNotificationDB_List(t *testing.T) {
 		Id:            "ghi",
 		Date:          time.Now().Add(time.Minute * 2),
 		ActorId:       "actor2",
-		TargetId:      "target2",
-		Type:          repo.CommentAddedNotification,
 		ActorUsername: "tester",
-		Category:      "test",
-		CategoryId:    ksuid.New().String(),
+		Subject:       "test",
+		SubjectId:     ksuid.New().String(),
+		BlockId:       "block2",
+		Type:          repo.CommentAddedNotification,
 	})
 	if err != nil {
 		t.Error(err)
@@ -150,11 +150,12 @@ func TestNotificationDB_List(t *testing.T) {
 		Id:            "jkl",
 		Date:          time.Now().Add(time.Minute * 3),
 		ActorId:       "actor3",
-		TargetId:      "target3",
-		Type:          repo.CommentAddedNotification,
 		ActorUsername: "tester",
-		Category:      "test",
-		CategoryId:    "category1",
+		Subject:       "test",
+		SubjectId:     "subject1",
+		BlockId:       "block3",
+		DataId:        "data",
+		Type:          repo.PhotoAddedNotification,
 	})
 	if err != nil {
 		t.Error(err)
@@ -174,7 +175,7 @@ func TestNotificationDB_List(t *testing.T) {
 		t.Error("returned incorrect number of notifications")
 		return
 	}
-	filtered := notifdb.List("", -1, "targetId='target1'")
+	filtered := notifdb.List("", -1, "blockId='block1'")
 	if len(filtered) != 1 {
 		t.Error("returned incorrect number of notifications")
 	}
@@ -215,8 +216,8 @@ func TestNotificationDB_DeleteByActorId(t *testing.T) {
 	}
 }
 
-func TestNotificationDB_DeleteByTargetId(t *testing.T) {
-	err := notifdb.DeleteByTargetId("target2")
+func TestNotificationDB_DeleteByBlockId(t *testing.T) {
+	err := notifdb.DeleteByBlockId("block2")
 	if err != nil {
 		t.Error(err)
 	}
@@ -229,8 +230,8 @@ func TestNotificationDB_DeleteByTargetId(t *testing.T) {
 	}
 }
 
-func TestNotificationDB_DeleteByCategoryId(t *testing.T) {
-	err := notifdb.DeleteByCategoryId("category1")
+func TestNotificationDB_DeleteBySubjectId(t *testing.T) {
+	err := notifdb.DeleteBySubjectId("subject1")
 	if err != nil {
 		t.Error(err)
 	}

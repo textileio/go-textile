@@ -54,7 +54,7 @@ func (t *Thread) Leave() (mh.Multihash, error) {
 	}
 
 	// delete notifications
-	if err := t.notifications().DeleteByCategoryId(t.Id); err != nil {
+	if err := t.notifications().DeleteBySubjectId(t.Id); err != nil {
 		return nil, err
 	}
 

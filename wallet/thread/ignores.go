@@ -58,7 +58,7 @@ func (t *Thread) Ignore(blockId string) (mh.Multihash, error) {
 	t.post(env, id, t.Peers())
 
 	// delete notifications
-	if err := t.notifications().DeleteByTargetId(blockId); err != nil {
+	if err := t.notifications().DeleteByBlockId(blockId); err != nil {
 		return nil, err
 	}
 
@@ -119,7 +119,7 @@ func (t *Thread) HandleIgnoreBlock(from *peer.ID, env *pb.Envelope, signed *pb.S
 
 	// delete notifications
 	blockId := strings.Replace(content.DataId, "ignore-", "", 1)
-	if err := t.notifications().DeleteByTargetId(blockId); err != nil {
+	if err := t.notifications().DeleteByBlockId(blockId); err != nil {
 		return nil, err
 	}
 

@@ -29,7 +29,7 @@ func ListNotifications(c *ishell.Context) {
 		} else {
 			username = notif.ActorId
 		}
-		c.Println(yellow(fmt.Sprintf("%s: #%s: %s %s.", notif.Id, notif.Category, username, body)))
+		c.Println(yellow(fmt.Sprintf("%s: #%s: %s %s.", notif.Id, notif.Subject, username, body)))
 	}
 }
 

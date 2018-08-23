@@ -27,12 +27,12 @@ func (Migration004) Up(repoPath string, dbPassword string, testnet bool) error {
 		}
 	}
 
-	// add column categoryId to notifications
+	// delete notifications table
 	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
-	stmt1, err := tx.Prepare("alter table notifications add column categoryId text not null default '';")
+	stmt1, err := tx.Prepare("drop table notifications;")
 	if err != nil {
 		return err
 	}
@@ -43,8 +43,15 @@ func (Migration004) Up(repoPath string, dbPassword string, testnet bool) error {
 		return err
 	}
 
-	// add index on categoryId
-	stmt2, err := tx.Prepare("create index notification_categoryId on notifications (categoryId);")
+	// re-add notifications table and indexes
+	query := `
+    create table notifications (id text primary key not null, date integer not null, actorId text not null, actorUsername text not null, subject text not null, subjectId text not null, blockId text, dataId text, type integer not null, body text not null, read integer not null);
+    create index notification_actorId on notifications (actorId);    
+    create index notification_subjectId on notifications (subjectId);
+    create index notification_blockId on notifications (blockId);
+    create index notification_read on notifications (read);
+    `
+	stmt2, err := tx.Prepare(query)
 	if err != nil {
 		return err
 	}

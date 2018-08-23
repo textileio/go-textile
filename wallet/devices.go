@@ -53,8 +53,8 @@ func (w *Wallet) AddDevice(name string, pk libp2pc.PubKey) error {
 		Date:          time.Now(),
 		ActorId:       id,
 		ActorUsername: "You",
-		Category:      deviceModel.Name,
-		CategoryId:    deviceModel.Id,
+		Subject:       deviceModel.Name,
+		SubjectId:     deviceModel.Id,
 		Type:          repo.DeviceAddedNotification,
 		Body:          "paired with a new device",
 	}
@@ -77,7 +77,7 @@ func (w *Wallet) RemoveDevice(id string) error {
 	}
 
 	// delete notifications
-	if err := w.datastore.Notifications().DeleteByCategoryId(device.Id); err != nil {
+	if err := w.datastore.Notifications().DeleteBySubjectId(device.Id); err != nil {
 		return err
 	}
 

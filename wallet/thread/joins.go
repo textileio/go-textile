@@ -16,12 +16,11 @@ func (t *Thread) Join(inviterPk libp2pc.PubKey, blockId string) (mh.Multihash, e
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
+	// build block
 	inviterPkb, err := inviterPk.Bytes()
 	if err != nil {
 		return nil, err
 	}
-
-	// build block
 	header, err := t.newBlockHeader()
 	if err != nil {
 		return nil, err
