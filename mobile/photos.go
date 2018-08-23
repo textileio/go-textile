@@ -20,8 +20,8 @@ type Photo struct {
 	BlockId  string              `json:"block_id"`
 	Date     time.Time           `json:"date"`
 	AuthorId string              `json:"author_id"`
-	Caption  string              `json:"caption"`
-	Username string              `json:"username"`
+	Caption  string              `json:"caption,omitempty"`
+	Username string              `json:"username,omitempty"`
 	Metadata *util.PhotoMetadata `json:"metadata,omitempty"`
 }
 
@@ -118,21 +118,21 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 	photos := &Photos{Items: make([]Photo, 0)}
 	btype := repo.PhotoBlock
 	for _, b := range thrd.Blocks(offsetId, limit, &btype) {
-		var caption, username string
+		var username, caption string
 		var metadata *util.PhotoMetadata
-		if b.DataCaptionCipher != nil {
-			captionb, err := thrd.Decrypt(b.DataCaptionCipher)
-			if err != nil {
-				return "", err
-			}
-			caption = string(captionb)
-		}
 		if b.AuthorUnCipher != nil {
 			usernameb, err := thrd.Decrypt(b.AuthorUnCipher)
 			if err != nil {
 				return "", err
 			}
 			username = string(usernameb)
+		}
+		if b.DataCaptionCipher != nil {
+			captionb, err := thrd.Decrypt(b.DataCaptionCipher)
+			if err != nil {
+				return "", err
+			}
+			caption = string(captionb)
 		}
 		if b.DataMetadataCipher != nil {
 			key, err := thrd.Decrypt(b.DataKeyCipher)
@@ -151,15 +151,20 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 		if err != nil {
 			return "", err
 		}
-		photos.Items = append(photos.Items, Photo{
+		item := Photo{
 			Id:       b.DataId,
 			BlockId:  b.Id,
 			Date:     b.Date,
-			Caption:  caption,
 			AuthorId: authorId.Pretty(),
-			Username: username,
 			Metadata: metadata,
-		})
+		}
+		if username != "" {
+			item.Username = username
+		}
+		if caption != "" {
+			item.Caption = caption
+		}
+		photos.Items = append(photos.Items, item)
 	}
 
 	return toJSON(photos)
