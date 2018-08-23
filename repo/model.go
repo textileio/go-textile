@@ -86,11 +86,12 @@ type Notification struct {
 	Date          time.Time        `json:"date"`
 	ActorId       string           `json:"actor_id"`       // peer id
 	ActorUsername string           `json:"actor_username"` // peer username
-	TargetId      string           `json:"target_id"`      // inviteId | deviceId | blockId
+	TargetId      string           `json:"target_id"`      // blockId | dataId
+	Category      string           `json:"category"`       // threadName | deviceName
+	CategoryId    string           `json:"category_id"`    // threadId | deviceId
 	Type          NotificationType `json:"type"`
-	Read          bool             `json:"read"`
 	Body          string           `json:"body"`
-	Category      string           `json:"category"`
+	Read          bool             `json:"read"`
 }
 
 type NotificationType int
@@ -103,6 +104,7 @@ const (
 	LikeAddedNotification                              // peerA liked peerB's photo, video, comment, etc. (blockId)
 	PeerJoinedNotification                             // peerA joined (blockId)
 	PeerLeftNotification                               // peerA left (blockId)
+	TextAddedNotification                              // peerA added a message (blockId)
 )
 
 func (n NotificationType) Description() string {

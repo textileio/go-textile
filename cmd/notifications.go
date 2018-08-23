@@ -23,7 +23,13 @@ func ListNotifications(c *ishell.Context) {
 		if !notif.Read {
 			body += " (unread)"
 		}
-		c.Println(yellow(fmt.Sprintf("%s: %s", notif.Id, body)))
+		var username string
+		if notif.ActorUsername != "" {
+			username = notif.ActorUsername
+		} else {
+			username = notif.ActorId
+		}
+		c.Println(yellow(fmt.Sprintf("%s: #%s: %s %s.", notif.Id, notif.Category, username, body)))
 	}
 }
 
