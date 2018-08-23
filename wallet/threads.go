@@ -118,7 +118,7 @@ func (w *Wallet) RemoveThread(id string) (mh.Multihash, error) {
 
 // AcceptThreadInvite attemps to download an encrypted thread key from an internal invite,
 // add the thread, and notify the inviter of the join
-func (w *Wallet) AcceptThreadInvite(blockId string) (*string, error) {
+func (w *Wallet) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
 	if !w.IsOnline() {
 		return nil, ErrOffline
 	}
@@ -188,16 +188,12 @@ func (w *Wallet) AcceptThreadInvite(blockId string) (*string, error) {
 	}
 
 	// join the thread
-	if _, err := thrd.Join(authorPk, blockId); err != nil {
-		return nil, err
-	}
-
-	return &thrd.Id, nil
+	return thrd.Join(authorPk, blockId)
 }
 
 // AcceptExternalThreadInvite attemps to download an encrypted thread key from an external invite,
 // add the thread, and notify the inviter of the join
-func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte) (*string, error) {
+func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte) (mh.Multihash, error) {
 	if !w.IsOnline() {
 		return nil, ErrOffline
 	}
@@ -258,11 +254,7 @@ func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte) (*string
 	}
 
 	// join the thread
-	if _, err := thrd.Join(authorPk, blockId); err != nil {
-		return nil, err
-	}
-
-	return &thrd.Id, nil
+	return thrd.Join(authorPk, blockId)
 }
 
 // Threads lists loaded threads

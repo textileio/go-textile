@@ -548,7 +548,7 @@ func start() error {
 				} else {
 					username = notification.ActorId
 				}
-				note := fmt.Sprintf("#%s: %s %s.", notification.Category, username, notification.Body)
+				note := fmt.Sprintf("#%s: %s %s.", notification.Subject, username, notification.Body)
 				fmt.Println(yellow(note))
 			}
 		}
