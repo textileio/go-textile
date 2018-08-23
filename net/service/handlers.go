@@ -105,12 +105,14 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Envelope, opti
 	id := ci.Hash().B58String()
 
 	// send notification
-	notification, err := buildNotification(sk, invite.Header, id, repo.ReceivedInviteNotification)
+	notification, err := buildNotification(sk, invite.Header, repo.ReceivedInviteNotification)
 	if err != nil {
 		return nil, err
 	}
+	notification.Subject = invite.SuggestedName
+	notification.SubjectId = libp2pc.ConfigEncodeKey(invite.Header.ThreadPk)
+	notification.BlockId = id // invite block
 	notification.Body = "invited you to join"
-	notification.Category = invite.SuggestedName
 	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
@@ -142,17 +144,20 @@ func (s *TextileService) handleThreadJoin(pid peer.ID, pmes *pb.Envelope, option
 	}
 
 	// handle
-	if _, _, err := thrd.HandleJoinBlock(&pid, pmes, signed, join, false); err != nil {
+	addr, _, err := thrd.HandleJoinBlock(&pid, pmes, signed, join, false)
+	if err != nil {
 		return nil, err
 	}
 
 	// send notification
-	notification, err := buildNotification(thrd.PrivKey, join.Header, threadId, repo.PeerJoinedNotification)
+	notification, err := buildNotification(thrd.PrivKey, join.Header, repo.PeerJoinedNotification)
 	if err != nil {
 		return nil, err
 	}
+	notification.Subject = thrd.Name
+	notification.SubjectId = thrd.Id
+	notification.BlockId = addr.B58String()
 	notification.Body = "joined"
-	notification.Category = thrd.Name
 	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
@@ -184,17 +189,20 @@ func (s *TextileService) handleThreadLeave(pid peer.ID, pmes *pb.Envelope, optio
 	}
 
 	// handle
-	if _, err := thrd.HandleLeaveBlock(&pid, pmes, signed, leave, false); err != nil {
+	addr, err := thrd.HandleLeaveBlock(&pid, pmes, signed, leave, false)
+	if err != nil {
 		return nil, err
 	}
 
 	// send notification
-	notification, err := buildNotification(thrd.PrivKey, leave.Header, threadId, repo.PeerLeftNotification)
+	notification, err := buildNotification(thrd.PrivKey, leave.Header, repo.PeerLeftNotification)
 	if err != nil {
 		return nil, err
 	}
+	notification.Subject = thrd.Name
+	notification.SubjectId = thrd.Id
+	notification.BlockId = addr.B58String()
 	notification.Body = "left"
-	notification.Category = thrd.Name
 	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
@@ -226,7 +234,8 @@ func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Envelope, option
 	}
 
 	// handle
-	if _, err := thrd.HandleDataBlock(&pid, pmes, signed, data, false); err != nil {
+	addr, err := thrd.HandleDataBlock(&pid, pmes, signed, data, false)
+	if err != nil {
 		return nil, err
 	}
 
@@ -235,17 +244,29 @@ func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Envelope, option
 	if data.Header.AuthorUnCipher == nil {
 		data.Header.AuthorUnCipher = data.UsernameCipher
 	}
-	notification, err := buildNotification(thrd.PrivKey, data.Header, threadId, repo.PhotoAddedNotification)
-	if err != nil {
-		return nil, err
-	}
+	var notification *repo.Notification
 	switch data.Type {
 	case pb.ThreadData_PHOTO:
+		notification, err = buildNotification(thrd.PrivKey, data.Header, repo.PhotoAddedNotification)
+		if err != nil {
+			return nil, err
+		}
+		notification.DataId = data.DataId
 		notification.Body = "added a photo"
 	case pb.ThreadData_TEXT:
-		break
+		notification, err = buildNotification(thrd.PrivKey, data.Header, repo.TextAddedNotification)
+		if err != nil {
+			return nil, err
+		}
+		body, err := thrd.Decrypt(data.CaptionCipher)
+		if err != nil {
+			return nil, err
+		}
+		notification.Body = string(body)
 	}
-	notification.Category = thrd.Name
+	notification.BlockId = addr.B58String()
+	notification.Subject = thrd.Name
+	notification.SubjectId = thrd.Id
 	if err := s.notify(notification); err != nil {
 		return nil, err
 	}
@@ -280,8 +301,6 @@ func (s *TextileService) handleThreadIgnore(pid peer.ID, pmes *pb.Envelope, opti
 	if _, err := thrd.HandleIgnoreBlock(&pid, pmes, signed, ignore, false); err != nil {
 		return nil, err
 	}
-
-	// TODO: remove notifications w/ this targetId
 
 	return nil, nil
 }
@@ -469,8 +488,6 @@ func (s *TextileService) handleError(peer peer.ID, pmes *pb.Envelope, options in
 		return nil, err
 	}
 
-	// TODO
-
 	return nil, nil
 }
 
@@ -485,7 +502,7 @@ func unpackMessage(pmes *pb.Envelope) (*pb.SignedThreadBlock, error) {
 	return signed, nil
 }
 
-func buildNotification(threadKey libp2pc.PrivKey, header *pb.ThreadBlockHeader, targetId string, ntype repo.NotificationType) (*repo.Notification, error) {
+func buildNotification(threadKey libp2pc.PrivKey, header *pb.ThreadBlockHeader, ntype repo.NotificationType) (*repo.Notification, error) {
 	date, err := ptypes.Timestamp(header.Date)
 	if err != nil {
 		return nil, err
@@ -511,7 +528,6 @@ func buildNotification(threadKey libp2pc.PrivKey, header *pb.ThreadBlockHeader, 
 		Date:          date,
 		ActorId:       authorId.Pretty(),
 		ActorUsername: authorUn,
-		TargetId:      targetId,
 		Type:          ntype,
 	}, nil
 }

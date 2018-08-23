@@ -47,8 +47,14 @@ func (t *Thread) Leave() (mh.Multihash, error) {
 	if err := t.blocks().DeleteByThreadId(t.Id); err != nil {
 		return nil, err
 	}
+
 	// delete peers
 	if err := t.peers().DeleteByThreadId(t.Id); err != nil {
+		return nil, err
+	}
+
+	// delete notifications
+	if err := t.notifications().DeleteBySubjectId(t.Id); err != nil {
 		return nil, err
 	}
 
@@ -92,6 +98,9 @@ func (t *Thread) HandleLeaveBlock(from *peer.ID, env *pb.Envelope, signed *pb.Si
 		return nil, err
 	}
 	if err := t.peers().Delete(authorId.Pretty(), t.Id); err != nil {
+		return nil, err
+	}
+	if err := t.notifications().DeleteByActorId(t.Id); err != nil {
 		return nil, err
 	}
 

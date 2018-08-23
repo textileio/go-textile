@@ -35,7 +35,6 @@ type TextileService struct {
 	datastore repo.Datastore
 	node      *core.IpfsNode
 	getThread func(string) (*int, *thread.Thread)
-	addThread func(string, libp2pc.PrivKey) (*thread.Thread, error)
 	notify    func(notificaiton *repo.Notification) error
 	sender    map[peer.ID]*sender
 	senderlk  sync.Mutex
@@ -45,7 +44,6 @@ func NewService(
 	node *core.IpfsNode,
 	datastore repo.Datastore,
 	getThread func(string) (*int, *thread.Thread),
-	addThread func(string, libp2pc.PrivKey) (*thread.Thread, error),
 	notify func(notificaiton *repo.Notification) error,
 ) *TextileService {
 	service := &TextileService{
@@ -56,7 +54,6 @@ func NewService(
 		datastore: datastore,
 		node:      node,
 		getThread: getThread,
-		addThread: addThread,
 		notify:    notify,
 		sender:    make(map[peer.ID]*sender),
 	}

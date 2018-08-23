@@ -43,6 +43,7 @@ type Config struct {
 	Ipfs          func() *core.IpfsNode
 	Blocks        func() repo.BlockStore
 	Peers         func() repo.PeerStore
+	Notifications func() repo.NotificationStore
 	GetHead       func() (string, error)
 	UpdateHead    func(head string) error
 	Publish       func(payload []byte) error
@@ -62,6 +63,7 @@ type Thread struct {
 	ipfs          func() *core.IpfsNode
 	blocks        func() repo.BlockStore
 	peers         func() repo.PeerStore
+	notifications func() repo.NotificationStore
 	GetHead       func() (string, error)
 	updateHead    func(head string) error
 	publish       func(payload []byte) error
@@ -87,6 +89,7 @@ func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 		ipfs:          config.Ipfs,
 		blocks:        config.Blocks,
 		peers:         config.Peers,
+		notifications: config.Notifications,
 		GetHead:       config.GetHead,
 		updateHead:    config.UpdateHead,
 		publish:       config.Publish,

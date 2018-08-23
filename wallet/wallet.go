@@ -55,7 +55,6 @@ const (
 	ThreadRemoved
 	DeviceAdded
 	DeviceRemoved
-	ThreadUpdate
 )
 
 // AddDataResult wraps added data content id and key
@@ -199,7 +198,7 @@ func (w *Wallet) Start() error {
 		})
 
 		// service is now configurable
-		w.service = serv.NewService(w.ipfs, w.datastore, w.GetThread, w.AddThread, w.sendNotification)
+		w.service = serv.NewService(w.ipfs, w.datastore, w.GetThread, w.sendNotification)
 
 		// build the message retriever
 		mrCfg := net.MRConfig{
@@ -534,8 +533,9 @@ func (w *Wallet) loadThread(mod *repo.Thread) (*thread.Thread, error) {
 		Ipfs: func() *core.IpfsNode {
 			return w.ipfs
 		},
-		Blocks: w.datastore.Blocks,
-		Peers:  w.datastore.Peers,
+		Blocks:        w.datastore.Blocks,
+		Peers:         w.datastore.Peers,
+		Notifications: w.datastore.Notifications,
 		GetHead: func() (string, error) {
 			m := w.datastore.Threads().Get(id)
 			if m == nil {

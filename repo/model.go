@@ -84,25 +84,28 @@ func (b BlockType) Description() string {
 type Notification struct {
 	Id            string           `json:"id"`
 	Date          time.Time        `json:"date"`
-	ActorId       string           `json:"actor_id"`       // peer id
-	ActorUsername string           `json:"actor_username"` // peer username
-	TargetId      string           `json:"target_id"`      // inviteId | deviceId | blockId
+	ActorId       string           `json:"actor_id"`                 // peer id
+	ActorUsername string           `json:"actor_username,omitempty"` // peer username
+	Subject       string           `json:"subject"`                  // thread name | device name
+	SubjectId     string           `json:"subject_id"`               // thread id | device id
+	BlockId       string           `json:"block_id,omitempty"`       // block id
+	DataId        string           `json:"data_id,omitempty"`        // photo id, etc.
 	Type          NotificationType `json:"type"`
-	Read          bool             `json:"read"`
 	Body          string           `json:"body"`
-	Category      string           `json:"category"`
+	Read          bool             `json:"read"`
 }
 
 type NotificationType int
 
 const (
-	ReceivedInviteNotification NotificationType = iota // peerA invited you (inviteId)
-	DeviceAddedNotification                            // new device added (deviceId)
-	PhotoAddedNotification                             // peerA added a photo (blockId)
-	CommentAddedNotification                           // peerA commented on peerB's photo, video, comment, etc. (blockId)
-	LikeAddedNotification                              // peerA liked peerB's photo, video, comment, etc. (blockId)
-	PeerJoinedNotification                             // peerA joined (blockId)
-	PeerLeftNotification                               // peerA left (blockId)
+	ReceivedInviteNotification NotificationType = iota // peerA invited you
+	DeviceAddedNotification                            // new device added
+	PhotoAddedNotification                             // peerA added a photo
+	CommentAddedNotification                           // peerA commented on peerB's photo, video, comment, etc.
+	LikeAddedNotification                              // peerA liked peerB's photo, video, comment, etc.
+	PeerJoinedNotification                             // peerA joined
+	PeerLeftNotification                               // peerA left
+	TextAddedNotification                              // peerA added a message
 )
 
 func (n NotificationType) Description() string {
