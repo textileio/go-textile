@@ -13,7 +13,7 @@ Until [Textile Photos](https://www.textile.photos) is ready for public release, 
 ## Install
 
 ```
-go get github.com/textileio/textile-go
+$ go get github.com/textileio/textile-go
 ```
 
 You'll need a few different tools here to get setup...
@@ -23,7 +23,7 @@ You'll need a few different tools here to get setup...
 Golang package manager:
 
 ```
-brew install dep
+$ brew install dep
 ```
 
 #### Install `gx`
@@ -31,8 +31,8 @@ brew install dep
 IPFS package manager:
 
 ```
-go get -u github.com/whyrusleeping/gx
-go get -u github.com/whyrusleeping/gx-go
+$ go get -u github.com/whyrusleeping/gx
+$ go get -u github.com/whyrusleeping/gx-go
 ```
 
 #### Install `node`
@@ -40,7 +40,7 @@ go get -u github.com/whyrusleeping/gx-go
 NodeJS is used for git hooks and some build tooling:
 
 ```
-brew install node
+$ brew install node
 ```
 
 #### Install dependencies
@@ -48,7 +48,7 @@ brew install node
 Finally, download deps managed by `gx` and `dep`:
 
 ```
-npm run setup
+$ npm run setup
 ```
 
 This will start the interactive commit prompt.
@@ -62,34 +62,39 @@ There are various things to build:
 #### The CLI:
 
 ```
-make build
+$ go get github.com/mitchellh/gox
+$ make build
 ```
 
 #### The iOS Framework:
 
 ```
-make ios_framework
+$ go get golang.org/x/mobile/cmd/gomobile
+$ gomobile init
+$ make ios_framework
 ```
 
 #### The Android Framework:
 
 ```
-make android_framework
+$ go get golang.org/x/mobile/cmd/gomobile
+$ gomobile init
+$ make android_framework
 ```
 
 #### The Desktop Application
 
 The build is made by a vendored version of `go-astilectron-bundler`. Due to Go's painful package management, you'll want to delete any `go-astilectron`-related binaries and source code you have installed from `github.com/asticode` in your `$GOPATH`. Then you can install the vendored `go-astilectron-bundler`:
 ```
-go install ./vendor/github.com/asticode/go-astilectron-bundler/astilectron-bundler
+$ go install ./vendor/github.com/asticode/go-astilectron-bundler/astilectron-bundler
 ```
 Run `make` to build the app for Darwin, Linux, and Windows:
 ```
-make build_desktop
+$ make build_desktop
 ```
 Double-click the built app in `desktop/output/darwin-amd64`, or run it directly:
 ```
-cd desktop && go run *.go
+$ cd desktop && go run *.go
 ```
 See [go-astilectron-bundler](https://github.com/asticode/go-astilectron-bundler) for more build configurations.
 
@@ -98,7 +103,7 @@ See [go-astilectron-bundler](https://github.com/asticode/go-astilectron-bundler)
 The easiest way to write a valid commit message is to use the `npm` script:
 
 ```
-npm run cm
+$ npm run cm
 ```
 
 ## Acknowledgments
