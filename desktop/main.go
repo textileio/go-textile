@@ -147,7 +147,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 					username = notification.ActorId
 				}
 				var note = a.NewNotification(&astilectron.NotificationOptions{
-					Title: "#" + notification.Category,
+					Title: "#" + notification.Subject,
 					Body:  fmt.Sprintf("%s %s.", username, notification.Body),
 					Icon:  "/resources/icon.png",
 				})
@@ -158,7 +158,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 						if _, err := core.Node.Wallet.AcceptThreadInvite(tid); err != nil {
 							astilog.Error(err)
 						}
-					}(notification.TargetId)
+					}(notification.BlockId)
 				}
 
 				// show notification

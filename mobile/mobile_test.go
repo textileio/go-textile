@@ -512,7 +512,7 @@ func TestMobile_GetNotifications(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if len(notes.Items) != 2 {
+	if len(notes.Items) != 1 {
 		t.Error("get notifications bad result")
 		return
 	}
@@ -520,7 +520,7 @@ func TestMobile_GetNotifications(t *testing.T) {
 }
 
 func TestMobile_CountUnreadNotifications(t *testing.T) {
-	if mobile.CountUnreadNotifications() != 2 {
+	if mobile.CountUnreadNotifications() != 1 {
 		t.Error("count unread notifications bad result")
 	}
 }
@@ -529,7 +529,7 @@ func TestMobile_ReadNotification(t *testing.T) {
 	if err := mobile.ReadNotification(noteId); err != nil {
 		t.Error(err)
 	}
-	if mobile.CountUnreadNotifications() != 1 {
+	if mobile.CountUnreadNotifications() != 0 {
 		t.Error("read notification bad result")
 	}
 }

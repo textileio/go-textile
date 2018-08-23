@@ -95,7 +95,8 @@ type NotificationStore interface {
 	CountUnread() int
 	Delete(id string) error
 	DeleteByActorId(actorId string) error
-	DeleteByTargetId(targetId string) error
+	DeleteBySubjectId(subjectId string) error
+	DeleteByBlockId(blockId string) error
 }
 
 type OfflineMessageStore interface {

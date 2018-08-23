@@ -15,7 +15,7 @@ import (
 )
 
 // AddThread adds a thread with a given name and secret key
-func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread, error) {
+func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey, join bool) (*thread.Thread, error) {
 	skb, err := secret.Bytes()
 	if err != nil {
 		return nil, err
@@ -40,17 +40,9 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 		return nil, err
 	}
 
-	// invite each device to the new thread
-	for _, device := range w.Devices() {
-		dpkb, err := libp2pc.ConfigDecodeKey(device.Id)
-		if err != nil {
-			return nil, err
-		}
-		dpk, err := libp2pc.UnmarshalPublicKey(dpkb)
-		if err != nil {
-			return nil, err
-		}
-		if _, err := thrd.AddInvite(dpk); err != nil {
+	// we join here if we're the creator
+	if join {
+		if _, err := thrd.JoinInitial(); err != nil {
 			return nil, err
 		}
 	}
@@ -64,7 +56,7 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 }
 
 // AddThreadWithMnemonic adds a thread with a given name and mnemonic phrase
-func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string) (*thread.Thread, string, error) {
+func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string, join bool) (*thread.Thread, string, error) {
 	if mnemonic != nil {
 		log.Debugf("regenerating keypair from mnemonic for: %s", name)
 	} else {
@@ -74,7 +66,7 @@ func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string) (*thread.T
 	if err != nil {
 		return nil, "", err
 	}
-	thrd, err := w.AddThread(name, secret)
+	thrd, err := w.AddThread(name, secret, join)
 	if err != nil {
 		return nil, "", err
 	}
@@ -99,11 +91,9 @@ func (w *Wallet) RemoveThread(id string) (mh.Multihash, error) {
 	}
 
 	// remove model from db
-	if err := w.datastore.Threads().Delete(id); err != nil {
+	if err := w.datastore.Threads().Delete(thrd.Id); err != nil {
 		return nil, err
 	}
-
-	// TODO: tell devices somehow?
 
 	// clean up
 	copy(w.threads[*i:], w.threads[*i+1:])
@@ -113,14 +103,14 @@ func (w *Wallet) RemoveThread(id string) (mh.Multihash, error) {
 	// notify listeners
 	w.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadRemoved})
 
-	log.Infof("removed thread %s with name %s", id, thrd.Name)
+	log.Infof("removed thread %s with name %s", thrd.Id, thrd.Name)
 
 	return addr, nil
 }
 
 // AcceptThreadInvite attemps to download an encrypted thread key from an internal invite,
 // add the thread, and notify the inviter of the join
-func (w *Wallet) AcceptThreadInvite(blockId string) (*string, error) {
+func (w *Wallet) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
 	if !w.IsOnline() {
 		return nil, ErrOffline
 	}
@@ -179,7 +169,7 @@ func (w *Wallet) AcceptThreadInvite(blockId string) (*string, error) {
 	}
 
 	// add it
-	thrd, err := w.AddThread(invite.SuggestedName, sk)
+	thrd, err := w.AddThread(invite.SuggestedName, sk, false)
 	if err != nil {
 		return nil, err
 	}
@@ -190,16 +180,22 @@ func (w *Wallet) AcceptThreadInvite(blockId string) (*string, error) {
 	}
 
 	// join the thread
-	if _, err := thrd.Join(authorPk, blockId); err != nil {
+	addr, err := thrd.Join(authorPk, blockId)
+	if err != nil {
 		return nil, err
 	}
 
-	return &thrd.Id, nil
+	// invite devices
+	if err := w.InviteDevices(thrd); err != nil {
+		return nil, err
+	}
+
+	return addr, nil
 }
 
 // AcceptExternalThreadInvite attemps to download an encrypted thread key from an external invite,
 // add the thread, and notify the inviter of the join
-func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte) (*string, error) {
+func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte) (mh.Multihash, error) {
 	if !w.IsOnline() {
 		return nil, ErrOffline
 	}
@@ -249,7 +245,7 @@ func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte) (*string
 	}
 
 	// add it
-	thrd, err := w.AddThread(invite.SuggestedName, sk)
+	thrd, err := w.AddThread(invite.SuggestedName, sk, false)
 	if err != nil {
 		return nil, err
 	}
@@ -260,11 +256,17 @@ func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte) (*string
 	}
 
 	// join the thread
-	if _, err := thrd.Join(authorPk, blockId); err != nil {
+	addr, err := thrd.Join(authorPk, blockId)
+	if err != nil {
 		return nil, err
 	}
 
-	return &thrd.Id, nil
+	// invite devices
+	if err := w.InviteDevices(thrd); err != nil {
+		return nil, err
+	}
+
+	return addr, nil
 }
 
 // Threads lists loaded threads

@@ -43,8 +43,13 @@ func (m *Mobile) AddThread(name string, mnemonic string) (string, error) {
 	if mnemonic != "" {
 		mnem = &mnemonic
 	}
-	thrd, _, err := core.Node.Wallet.AddThreadWithMnemonic(name, mnem)
+	thrd, _, err := core.Node.Wallet.AddThreadWithMnemonic(name, mnem, true)
 	if err != nil {
+		return "", err
+	}
+
+	// invite devices
+	if err := core.Node.Wallet.InviteDevices(thrd); err != nil {
 		return "", err
 	}
 
@@ -120,11 +125,11 @@ func (m *Mobile) AddExternalThreadInvite(threadId string) (string, error) {
 // AcceptExternalThreadInvite notifies the thread of a join
 func (m *Mobile) AcceptExternalThreadInvite(id string, key string) (string, error) {
 	m.waitForOnline()
-	thrdId, err := core.Node.Wallet.AcceptExternalThreadInvite(id, []byte(key))
+	addr, err := core.Node.Wallet.AcceptExternalThreadInvite(id, []byte(key))
 	if err != nil {
 		return "", err
 	}
-	return *thrdId, nil
+	return addr.B58String(), nil
 }
 
 // RemoveThread call core RemoveDevice

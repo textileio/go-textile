@@ -23,7 +23,7 @@ func (c *NotificationDB) Add(notification *repo.Notification) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into notifications(id, date, actorId, targetId, type, read, body, actorUn, category) values(?,?,?,?,?,?,?,?,?)`
+	stm := `insert into notifications(id, date, actorId, actorUsername, subject, subjectId, blockId, dataId, type, body, read) values(?,?,?,?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -34,12 +34,14 @@ func (c *NotificationDB) Add(notification *repo.Notification) error {
 		notification.Id,
 		int(notification.Date.Unix()),
 		notification.ActorId,
-		notification.TargetId,
-		int(notification.Type),
-		false,
-		notification.Body,
 		notification.ActorUsername,
-		notification.Category,
+		notification.Subject,
+		notification.SubjectId,
+		notification.BlockId,
+		notification.DataId,
+		int(notification.Type),
+		notification.Body,
+		false,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -114,10 +116,17 @@ func (c *NotificationDB) DeleteByActorId(actorId string) error {
 	return err
 }
 
-func (c *NotificationDB) DeleteByTargetId(targetId string) error {
+func (c *NotificationDB) DeleteBySubjectId(subjectId string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from notifications where targetId=?", targetId)
+	_, err := c.db.Exec("delete from notifications where subjectId=?", subjectId)
+	return err
+}
+
+func (c *NotificationDB) DeleteByBlockId(blockId string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("delete from notifications where blockId=?", blockId)
 	return err
 }
 
@@ -129,9 +138,9 @@ func (c *NotificationDB) handleQuery(stm string) []repo.Notification {
 		return nil
 	}
 	for rows.Next() {
-		var id, actorId, targetId, body, actorUn, category string
+		var id, actorId, actorUsername, subject, subjectId, blockId, dataId, body string
 		var dateInt, typeInt, readInt int
-		if err := rows.Scan(&id, &dateInt, &actorId, &targetId, &typeInt, &readInt, &body, &actorUn, &category); err != nil {
+		if err := rows.Scan(&id, &dateInt, &actorId, &actorUsername, &subject, &subjectId, &blockId, &dataId, &typeInt, &body, &readInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -143,12 +152,14 @@ func (c *NotificationDB) handleQuery(stm string) []repo.Notification {
 			Id:            id,
 			Date:          time.Unix(int64(dateInt), 0),
 			ActorId:       actorId,
-			TargetId:      targetId,
+			ActorUsername: actorUsername,
+			Subject:       subject,
+			SubjectId:     subjectId,
+			BlockId:       blockId,
+			DataId:        dataId,
 			Type:          repo.NotificationType(typeInt),
-			Read:          read,
 			Body:          body,
-			ActorUsername: actorUn,
-			Category:      category,
+			Read:          read,
 		}
 		ret = append(ret, notif)
 	}

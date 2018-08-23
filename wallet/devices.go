@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/wallet/thread"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"time"
 )
@@ -53,12 +54,30 @@ func (w *Wallet) AddDevice(name string, pk libp2pc.PubKey) error {
 		Date:          time.Now(),
 		ActorId:       id,
 		ActorUsername: "You",
-		TargetId:      deviceModel.Id,
+		Subject:       deviceModel.Name,
+		SubjectId:     deviceModel.Id,
 		Type:          repo.DeviceAddedNotification,
 		Body:          "paired with a new device",
-		Category:      deviceModel.Name,
 	}
 	return w.sendNotification(notification)
+}
+
+// InviteDevices sends a thread invite to all devices
+func (w *Wallet) InviteDevices(thrd *thread.Thread) error {
+	for _, device := range w.Devices() {
+		dpkb, err := libp2pc.ConfigDecodeKey(device.Id)
+		if err != nil {
+			return err
+		}
+		dpk, err := libp2pc.UnmarshalPublicKey(dpkb)
+		if err != nil {
+			return err
+		}
+		if _, err := thrd.AddInvite(dpk); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // RemoveDevice removes a device
@@ -67,6 +86,7 @@ func (w *Wallet) RemoveDevice(id string) error {
 		return ErrOffline
 	}
 
+	// delete db record
 	device := w.datastore.Devices().Get(id)
 	if device == nil {
 		return errors.New("device not found")
@@ -74,9 +94,13 @@ func (w *Wallet) RemoveDevice(id string) error {
 	if err := w.datastore.Devices().Delete(id); err != nil {
 		return err
 	}
-	log.Infof("removed device '%s'", id)
 
-	// TODO: uninvite?
+	// delete notifications
+	if err := w.datastore.Notifications().DeleteBySubjectId(device.Id); err != nil {
+		return err
+	}
+
+	log.Infof("removed device '%s'", id)
 
 	// notify listeners
 	w.sendUpdate(Update{Id: device.Id, Name: device.Name, Type: DeviceRemoved})

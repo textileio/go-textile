@@ -57,6 +57,11 @@ func (t *Thread) Ignore(blockId string) (mh.Multihash, error) {
 	// post it
 	t.post(env, id, t.Peers())
 
+	// delete notifications
+	if err := t.notifications().DeleteByBlockId(blockId); err != nil {
+		return nil, err
+	}
+
 	log.Debugf("added IGNORE to %s: %s", t.Id, id)
 
 	// all done
@@ -112,6 +117,12 @@ func (t *Thread) HandleIgnoreBlock(from *peer.ID, env *pb.Envelope, signed *pb.S
 		}
 	}
 
+	// delete notifications
+	blockId := strings.Replace(content.DataId, "ignore-", "", 1)
+	if err := t.notifications().DeleteByBlockId(blockId); err != nil {
+		return nil, err
+	}
+
 	// index it locally
 	dconf := &repo.DataBlockConfig{
 		DataId: content.DataId,
@@ -121,7 +132,6 @@ func (t *Thread) HandleIgnoreBlock(from *peer.ID, env *pb.Envelope, signed *pb.S
 	}
 
 	// unpin dataId if present and not part of another thread
-	blockId := strings.Replace(content.DataId, "ignore-", "", 1)
 	t.unpinBlockData(blockId)
 
 	// back prop
