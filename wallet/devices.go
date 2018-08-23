@@ -53,10 +53,10 @@ func (w *Wallet) AddDevice(name string, pk libp2pc.PubKey) error {
 		Date:          time.Now(),
 		ActorId:       id,
 		ActorUsername: "You",
-		TargetId:      deviceModel.Id,
+		Category:      deviceModel.Name,
+		CategoryId:    deviceModel.Id,
 		Type:          repo.DeviceAddedNotification,
 		Body:          "paired with a new device",
-		Category:      deviceModel.Name,
 	}
 	return w.sendNotification(notification)
 }
@@ -67,6 +67,7 @@ func (w *Wallet) RemoveDevice(id string) error {
 		return ErrOffline
 	}
 
+	// delete db record
 	device := w.datastore.Devices().Get(id)
 	if device == nil {
 		return errors.New("device not found")
@@ -74,9 +75,13 @@ func (w *Wallet) RemoveDevice(id string) error {
 	if err := w.datastore.Devices().Delete(id); err != nil {
 		return err
 	}
-	log.Infof("removed device '%s'", id)
 
-	// TODO: uninvite?
+	// delete notifications
+	if err := w.datastore.Notifications().DeleteByCategoryId(device.Id); err != nil {
+		return err
+	}
+
+	log.Infof("removed device '%s'", id)
 
 	// notify listeners
 	w.sendUpdate(Update{Id: device.Id, Name: device.Name, Type: DeviceRemoved})

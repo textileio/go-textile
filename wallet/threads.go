@@ -99,11 +99,9 @@ func (w *Wallet) RemoveThread(id string) (mh.Multihash, error) {
 	}
 
 	// remove model from db
-	if err := w.datastore.Threads().Delete(id); err != nil {
+	if err := w.datastore.Threads().Delete(thrd.Id); err != nil {
 		return nil, err
 	}
-
-	// TODO: tell devices somehow?
 
 	// clean up
 	copy(w.threads[*i:], w.threads[*i+1:])
@@ -113,7 +111,7 @@ func (w *Wallet) RemoveThread(id string) (mh.Multihash, error) {
 	// notify listeners
 	w.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadRemoved})
 
-	log.Infof("removed thread %s with name %s", id, thrd.Name)
+	log.Infof("removed thread %s with name %s", thrd.Id, thrd.Name)
 
 	return addr, nil
 }

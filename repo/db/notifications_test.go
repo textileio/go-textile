@@ -30,6 +30,7 @@ func TestNotificationDB_Add(t *testing.T) {
 		Type:          repo.ReceivedInviteNotification,
 		ActorUsername: "tester",
 		Category:      "test",
+		CategoryId:    ksuid.New().String(),
 	})
 	if err != nil {
 		t.Error(err)
@@ -75,6 +76,7 @@ func TestNotificationDB_ReadAll(t *testing.T) {
 		Type:          repo.ReceivedInviteNotification,
 		ActorUsername: "tester",
 		Category:      "test",
+		CategoryId:    ksuid.New().String(),
 	})
 	if err != nil {
 		t.Error(err)
@@ -87,6 +89,7 @@ func TestNotificationDB_ReadAll(t *testing.T) {
 		Type:          repo.PeerJoinedNotification,
 		ActorUsername: "tester",
 		Category:      "test",
+		CategoryId:    ksuid.New().String(),
 	})
 	if err != nil {
 		t.Error(err)
@@ -112,6 +115,7 @@ func TestNotificationDB_List(t *testing.T) {
 		Type:          repo.ReceivedInviteNotification,
 		ActorUsername: "tester",
 		Category:      "test",
+		CategoryId:    ksuid.New().String(),
 	})
 	if err != nil {
 		t.Error(err)
@@ -124,6 +128,7 @@ func TestNotificationDB_List(t *testing.T) {
 		Type:          repo.PeerJoinedNotification,
 		ActorUsername: "tester",
 		Category:      "test",
+		CategoryId:    ksuid.New().String(),
 	})
 	if err != nil {
 		t.Error(err)
@@ -136,12 +141,26 @@ func TestNotificationDB_List(t *testing.T) {
 		Type:          repo.CommentAddedNotification,
 		ActorUsername: "tester",
 		Category:      "test",
+		CategoryId:    ksuid.New().String(),
+	})
+	if err != nil {
+		t.Error(err)
+	}
+	err = notifdb.Add(&repo.Notification{
+		Id:            "jkl",
+		Date:          time.Now().Add(time.Minute * 3),
+		ActorId:       "actor3",
+		TargetId:      "target3",
+		Type:          repo.CommentAddedNotification,
+		ActorUsername: "tester",
+		Category:      "test",
+		CategoryId:    "category1",
 	})
 	if err != nil {
 		t.Error(err)
 	}
 	all := notifdb.List("", -1, "")
-	if len(all) != 3 {
+	if len(all) != 4 {
 		t.Error("returned incorrect number of notifications")
 		return
 	}
@@ -151,7 +170,7 @@ func TestNotificationDB_List(t *testing.T) {
 		return
 	}
 	offset := notifdb.List(limited[0].Id, -1, "")
-	if len(offset) != 2 {
+	if len(offset) != 3 {
 		t.Error("returned incorrect number of notifications")
 		return
 	}
@@ -163,7 +182,7 @@ func TestNotificationDB_List(t *testing.T) {
 
 func TestNotificationDB_CountUnread(t *testing.T) {
 	cnt := notifdb.CountUnread()
-	if cnt != 3 {
+	if cnt != 4 {
 		t.Error("returned incorrect count of unread notifications")
 	}
 }
@@ -205,6 +224,20 @@ func TestNotificationDB_DeleteByTargetId(t *testing.T) {
 	defer stmt.Close()
 	var id string
 	err = stmt.QueryRow("ghi").Scan(&id)
+	if err == nil {
+		t.Error("delete failed")
+	}
+}
+
+func TestNotificationDB_DeleteByCategoryId(t *testing.T) {
+	err := notifdb.DeleteByCategoryId("category1")
+	if err != nil {
+		t.Error(err)
+	}
+	stmt, err := notifdb.PrepareQuery("select id from notifications where id=?")
+	defer stmt.Close()
+	var id string
+	err = stmt.QueryRow("jkl").Scan(&id)
 	if err == nil {
 		t.Error("delete failed")
 	}

@@ -534,8 +534,9 @@ func (w *Wallet) loadThread(mod *repo.Thread) (*thread.Thread, error) {
 		Ipfs: func() *core.IpfsNode {
 			return w.ipfs
 		},
-		Blocks: w.datastore.Blocks,
-		Peers:  w.datastore.Peers,
+		Blocks:        w.datastore.Blocks,
+		Peers:         w.datastore.Peers,
+		Notifications: w.datastore.Notifications,
 		GetHead: func() (string, error) {
 			m := w.datastore.Threads().Get(id)
 			if m == nil {

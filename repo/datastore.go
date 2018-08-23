@@ -96,6 +96,7 @@ type NotificationStore interface {
 	Delete(id string) error
 	DeleteByActorId(actorId string) error
 	DeleteByTargetId(targetId string) error
+	DeleteByCategoryId(categoryId string) error
 }
 
 type OfflineMessageStore interface {

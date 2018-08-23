@@ -23,7 +23,7 @@ func (c *NotificationDB) Add(notification *repo.Notification) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into notifications(id, date, actorId, targetId, type, read, body, actorUn, category) values(?,?,?,?,?,?,?,?,?)`
+	stm := `insert into notifications(id, date, actorId, targetId, type, read, body, actorUn, category, categoryId) values(?,?,?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -40,6 +40,7 @@ func (c *NotificationDB) Add(notification *repo.Notification) error {
 		notification.Body,
 		notification.ActorUsername,
 		notification.Category,
+		notification.CategoryId,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -121,6 +122,13 @@ func (c *NotificationDB) DeleteByTargetId(targetId string) error {
 	return err
 }
 
+func (c *NotificationDB) DeleteByCategoryId(categoryId string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("delete from notifications where categoryId=?", categoryId)
+	return err
+}
+
 func (c *NotificationDB) handleQuery(stm string) []repo.Notification {
 	var ret []repo.Notification
 	rows, err := c.db.Query(stm)
@@ -129,9 +137,9 @@ func (c *NotificationDB) handleQuery(stm string) []repo.Notification {
 		return nil
 	}
 	for rows.Next() {
-		var id, actorId, targetId, body, actorUn, category string
+		var id, actorId, targetId, body, actorUn, category, categoryId string
 		var dateInt, typeInt, readInt int
-		if err := rows.Scan(&id, &dateInt, &actorId, &targetId, &typeInt, &readInt, &body, &actorUn, &category); err != nil {
+		if err := rows.Scan(&id, &dateInt, &actorId, &targetId, &typeInt, &readInt, &body, &actorUn, &category, &categoryId); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -143,12 +151,13 @@ func (c *NotificationDB) handleQuery(stm string) []repo.Notification {
 			Id:            id,
 			Date:          time.Unix(int64(dateInt), 0),
 			ActorId:       actorId,
-			TargetId:      targetId,
-			Type:          repo.NotificationType(typeInt),
-			Read:          read,
-			Body:          body,
 			ActorUsername: actorUn,
+			TargetId:      targetId,
 			Category:      category,
+			CategoryId:    categoryId,
+			Type:          repo.NotificationType(typeInt),
+			Body:          body,
+			Read:          read,
 		}
 		ret = append(ret, notif)
 	}
