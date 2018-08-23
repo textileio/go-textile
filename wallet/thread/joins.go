@@ -11,6 +11,48 @@ import (
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
+// JoinInitial creates an outgoing join block for an emtpy thread
+func (t *Thread) JoinInitial() (mh.Multihash, error) {
+	t.mux.Lock()
+	defer t.mux.Unlock()
+
+	// build block
+	inviterPkb, err := t.PrivKey.GetPublic().Bytes()
+	if err != nil {
+		return nil, err
+	}
+	header, err := t.newBlockHeader()
+	if err != nil {
+		return nil, err
+	}
+	content := &pb.ThreadJoin{
+		Header:    header,
+		InviterPk: inviterPkb,
+	}
+
+	// commit to ipfs
+	_, addr, err := t.commitBlock(content, pb.Message_THREAD_JOIN)
+	if err != nil {
+		return nil, err
+	}
+	id := addr.B58String()
+
+	// index it locally
+	if err := t.indexBlock(id, header, repo.JoinBlock, nil); err != nil {
+		return nil, err
+	}
+
+	// update head
+	if err := t.updateHead(id); err != nil {
+		return nil, err
+	}
+
+	log.Debugf("added JOIN to %s: %s", t.Id, id)
+
+	// all done
+	return addr, nil
+}
+
 // Join creates an outgoing join block
 func (t *Thread) Join(inviterPk libp2pc.PubKey, blockId string) (mh.Multihash, error) {
 	t.mux.Lock()

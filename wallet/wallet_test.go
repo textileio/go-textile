@@ -157,7 +157,7 @@ func TestWallet_AddThread(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	thrd, err := wallet.AddThread("test", sk)
+	thrd, err := wallet.AddThread("test", sk, true)
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
 		return

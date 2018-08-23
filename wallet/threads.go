@@ -15,7 +15,7 @@ import (
 )
 
 // AddThread adds a thread with a given name and secret key
-func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread, error) {
+func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey, join bool) (*thread.Thread, error) {
 	skb, err := secret.Bytes()
 	if err != nil {
 		return nil, err
@@ -40,6 +40,13 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 		return nil, err
 	}
 
+	// we join here if we're the creator
+	if join {
+		if _, err := thrd.JoinInitial(); err != nil {
+			return nil, err
+		}
+	}
+
 	// notify listeners
 	w.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadAdded})
 
@@ -49,7 +56,7 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey) (*thread.Thread,
 }
 
 // AddThreadWithMnemonic adds a thread with a given name and mnemonic phrase
-func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string) (*thread.Thread, string, error) {
+func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string, join bool) (*thread.Thread, string, error) {
 	if mnemonic != nil {
 		log.Debugf("regenerating keypair from mnemonic for: %s", name)
 	} else {
@@ -59,7 +66,7 @@ func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string) (*thread.T
 	if err != nil {
 		return nil, "", err
 	}
-	thrd, err := w.AddThread(name, secret)
+	thrd, err := w.AddThread(name, secret, join)
 	if err != nil {
 		return nil, "", err
 	}
@@ -162,7 +169,7 @@ func (w *Wallet) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
 	}
 
 	// add it
-	thrd, err := w.AddThread(invite.SuggestedName, sk)
+	thrd, err := w.AddThread(invite.SuggestedName, sk, false)
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +245,7 @@ func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte) (mh.Mult
 	}
 
 	// add it
-	thrd, err := w.AddThread(invite.SuggestedName, sk)
+	thrd, err := w.AddThread(invite.SuggestedName, sk, false)
 	if err != nil {
 		return nil, err
 	}

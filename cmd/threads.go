@@ -37,7 +37,7 @@ func AddThread(c *ishell.Context) {
 		return
 	}
 
-	thrd, err := core.Node.Wallet.AddThread(name, sk)
+	thrd, err := core.Node.Wallet.AddThread(name, sk, true)
 	if err != nil {
 		c.Err(err)
 		return
