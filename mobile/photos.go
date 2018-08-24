@@ -223,7 +223,7 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 
 // IgnorePhoto is a semantic helper for mobile, just call IgnoreBlock
 func (m *Mobile) IgnorePhoto(blockId string) (string, error) {
-	return m.IgnoreBlock(blockId)
+	return m.ignoreBlock(blockId)
 }
 
 // AddPhotoComment adds an comment block targeted at the given block
@@ -247,7 +247,7 @@ func (m *Mobile) AddPhotoComment(blockId string, body string) (string, error) {
 
 // IgnorePhotoComment is a semantic helper for mobile, just call IgnoreBlock
 func (m *Mobile) IgnorePhotoComment(blockId string) (string, error) {
-	return m.IgnoreBlock(blockId)
+	return m.ignoreBlock(blockId)
 }
 
 // AddPhotoLike adds a like block targeted at the given block
@@ -271,7 +271,7 @@ func (m *Mobile) AddPhotoLike(blockId string) (string, error) {
 
 // IgnorePhotoLike is a semantic helper for mobile, just call IgnoreBlock
 func (m *Mobile) IgnorePhotoLike(blockId string) (string, error) {
-	return m.IgnoreBlock(blockId)
+	return m.ignoreBlock(blockId)
 }
 
 // GetPhotoData returns a data url of an image under a path
@@ -353,8 +353,8 @@ func (m *Mobile) PhotoThreads(id string) (string, error) {
 	return toJSON(threads)
 }
 
-// IgnoreBlock adds an ignore block targeted at the given block and unpins any associated block data
-func (m *Mobile) IgnoreBlock(blockId string) (string, error) {
+// ignoreBlock adds an ignore block targeted at the given block and unpins any associated block data
+func (m *Mobile) ignoreBlock(blockId string) (string, error) {
 	block, err := core.Node.Wallet.GetBlock(blockId)
 	if err != nil {
 		return "", err
