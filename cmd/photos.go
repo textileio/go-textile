@@ -306,11 +306,6 @@ func ListPhotoComments(c *ishell.Context) {
 	for _, block := range blocks {
 		body := "nil"
 		var authorUn string
-		authorId, err := util.IdFromEncodedPublicKey(block.AuthorPk)
-		if err != nil {
-			c.Err(err)
-			return
-		}
 		if block.DataCaptionCipher != nil {
 			bodyb, err := thrd.Decrypt(block.DataCaptionCipher)
 			if err != nil {
@@ -327,6 +322,11 @@ func ListPhotoComments(c *ishell.Context) {
 			}
 			authorUn = string(authorUnb)
 		} else {
+			authorId, err := util.IdFromEncodedPublicKey(block.AuthorPk)
+			if err != nil {
+				c.Err(err)
+				return
+			}
 			authorUn = authorId.Pretty()[:8]
 		}
 		c.Println(cyan(fmt.Sprintf("%s: %s", authorUn, body)))
