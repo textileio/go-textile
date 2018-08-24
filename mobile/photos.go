@@ -23,11 +23,32 @@ type Photo struct {
 	Caption  string              `json:"caption,omitempty"`
 	Username string              `json:"username,omitempty"`
 	Metadata *util.PhotoMetadata `json:"metadata,omitempty"`
+	Comments []Comment           `json:"comments"`
+	Likes    []Like              `json:"likes"`
 }
 
 // Photos is a wrapper around a list of photos
 type Photos struct {
 	Items []Photo `json:"items"`
+}
+
+// Annotation represents common annotation fields
+type Annotation struct {
+	Id       string    `json:"id"`
+	Date     time.Time `json:"date"`
+	AuthorId string    `json:"author_id"`
+	Username string    `json:"username,omitempty"`
+}
+
+// Comment is a simple wrapper around a comment block
+type Comment struct {
+	Annotation
+	Body string `json:"body"`
+}
+
+// Like is a simple wrapper around a like block
+type Like struct {
+	Annotation
 }
 
 // ImageData is a wrapper around an image data url
@@ -88,25 +109,6 @@ func (m *Mobile) SharePhotoToThread(dataId string, threadId string, caption stri
 	return addr.B58String(), nil
 }
 
-// IgnorePhoto adds an ignore block targeted at the given block and unpins the photo set locally
-func (m *Mobile) IgnorePhoto(blockId string) (string, error) {
-	block, err := core.Node.Wallet.GetBlock(blockId)
-	if err != nil {
-		return "", err
-	}
-	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
-	if thrd == nil {
-		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
-	}
-
-	addr, err := thrd.Ignore(block.Id)
-	if err != nil {
-		return "", err
-	}
-
-	return addr.B58String(), nil
-}
-
 // GetPhotos returns thread photo blocks with json encoding
 func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string, error) {
 	_, thrd := core.Node.Wallet.GetThread(threadId)
@@ -118,21 +120,29 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 	photos := &Photos{Items: make([]Photo, 0)}
 	btype := repo.PhotoBlock
 	for _, b := range thrd.Blocks(offsetId, limit, &btype) {
-		var username, caption string
-		var metadata *util.PhotoMetadata
-		if b.AuthorUnCipher != nil {
-			usernameb, err := thrd.Decrypt(b.AuthorUnCipher)
+		authorId, err := util.IdFromEncodedPublicKey(b.AuthorPk)
+		if err != nil {
+			return "", err
+		}
+		item := Photo{
+			Id:       b.DataId,
+			BlockId:  b.Id,
+			Date:     b.Date,
+			AuthorId: authorId.Pretty(),
+		}
+		if b.AuthorUsernameCipher != nil {
+			usernameb, err := thrd.Decrypt(b.AuthorUsernameCipher)
 			if err != nil {
 				return "", err
 			}
-			username = string(usernameb)
+			item.Username = string(usernameb)
 		}
 		if b.DataCaptionCipher != nil {
 			captionb, err := thrd.Decrypt(b.DataCaptionCipher)
 			if err != nil {
 				return "", err
 			}
-			caption = string(captionb)
+			item.Caption = string(captionb)
 		}
 		if b.DataMetadataCipher != nil {
 			key, err := thrd.Decrypt(b.DataKeyCipher)
@@ -143,31 +153,125 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 			if err != nil {
 				return "", err
 			}
+			var metadata *util.PhotoMetadata
 			if err := json.Unmarshal(metadatab, &metadata); err != nil {
 				log.Warningf("unmarshal photo metadata failed: %s", err)
 			}
+			item.Metadata = metadata
 		}
-		authorId, err := util.IdFromEncodedPublicKey(b.AuthorPk)
-		if err != nil {
-			return "", err
+
+		// add comments
+		ctype := repo.CommentBlock
+		for _, c := range thrd.Blocks("", -1, &ctype) {
+			authorId, err := util.IdFromEncodedPublicKey(c.AuthorPk)
+			if err != nil {
+				return "", err
+			}
+			comment := Comment{
+				Annotation: Annotation{
+					Id:       c.Id,
+					Date:     c.Date,
+					AuthorId: authorId.Pretty(),
+				},
+			}
+			if c.DataCaptionCipher != nil {
+				bodyb, err := thrd.Decrypt(c.DataCaptionCipher)
+				if err != nil {
+					return "", err
+				}
+				comment.Body = string(bodyb)
+			}
+			if c.AuthorUsernameCipher != nil {
+				authorUnb, err := thrd.Decrypt(c.AuthorUsernameCipher)
+				if err != nil {
+					return "", err
+				}
+				comment.Username = string(authorUnb)
+			}
+			item.Comments = append(item.Comments, comment)
 		}
-		item := Photo{
-			Id:       b.DataId,
-			BlockId:  b.Id,
-			Date:     b.Date,
-			AuthorId: authorId.Pretty(),
-			Metadata: metadata,
+
+		// add likes
+		ltype := repo.LikeBlock
+		for _, l := range thrd.Blocks("", -1, &ltype) {
+			authorId, err := util.IdFromEncodedPublicKey(l.AuthorPk)
+			if err != nil {
+				return "", err
+			}
+			like := Like{
+				Annotation: Annotation{
+					Id:       l.Id,
+					Date:     l.Date,
+					AuthorId: authorId.Pretty(),
+				},
+			}
+			if l.AuthorUsernameCipher != nil {
+				authorUnb, err := thrd.Decrypt(l.AuthorUsernameCipher)
+				if err != nil {
+					return "", err
+				}
+				like.Username = string(authorUnb)
+			}
+			item.Likes = append(item.Likes, like)
 		}
-		if username != "" {
-			item.Username = username
-		}
-		if caption != "" {
-			item.Caption = caption
-		}
+
 		photos.Items = append(photos.Items, item)
 	}
 
 	return toJSON(photos)
+}
+
+// IgnorePhoto is a semantic helper for mobile, just call IgnoreBlock
+func (m *Mobile) IgnorePhoto(blockId string) (string, error) {
+	return m.ignoreBlock(blockId)
+}
+
+// AddPhotoComment adds an comment block targeted at the given block
+func (m *Mobile) AddPhotoComment(blockId string, body string) (string, error) {
+	block, err := core.Node.Wallet.GetBlock(blockId)
+	if err != nil {
+		return "", err
+	}
+	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	if thrd == nil {
+		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
+	}
+
+	addr, err := thrd.AddComment(block.Id, body)
+	if err != nil {
+		return "", err
+	}
+
+	return addr.B58String(), nil
+}
+
+// IgnorePhotoComment is a semantic helper for mobile, just call IgnoreBlock
+func (m *Mobile) IgnorePhotoComment(blockId string) (string, error) {
+	return m.ignoreBlock(blockId)
+}
+
+// AddPhotoLike adds a like block targeted at the given block
+func (m *Mobile) AddPhotoLike(blockId string) (string, error) {
+	block, err := core.Node.Wallet.GetBlock(blockId)
+	if err != nil {
+		return "", err
+	}
+	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	if thrd == nil {
+		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
+	}
+
+	addr, err := thrd.AddLike(block.Id)
+	if err != nil {
+		return "", err
+	}
+
+	return addr.B58String(), nil
+}
+
+// IgnorePhotoLike is a semantic helper for mobile, just call IgnoreBlock
+func (m *Mobile) IgnorePhotoLike(blockId string) (string, error) {
+	return m.ignoreBlock(blockId)
 }
 
 // GetPhotoData returns a data url of an image under a path
@@ -247,6 +351,25 @@ func (m *Mobile) PhotoThreads(id string) (string, error) {
 		threads.Items = append(threads.Items, item)
 	}
 	return toJSON(threads)
+}
+
+// ignoreBlock adds an ignore block targeted at the given block and unpins any associated block data
+func (m *Mobile) ignoreBlock(blockId string) (string, error) {
+	block, err := core.Node.Wallet.GetBlock(blockId)
+	if err != nil {
+		return "", err
+	}
+	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	if thrd == nil {
+		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
+	}
+
+	addr, err := thrd.Ignore(block.Id)
+	if err != nil {
+		return "", err
+	}
+
+	return addr.B58String(), nil
 }
 
 // getImageDataURLPrefix adds the correct data url prefix to a data url

@@ -27,7 +27,7 @@ var repo = "testdata/.textile"
 var mobile *Mobile
 var defaultThreadId string
 var threadId, threadId2 string
-var addedPhotoId string
+var addedPhotoId, addedBlockId string
 var sharedBlockId string
 var addedPhotoKey string
 var deviceId string
@@ -268,10 +268,12 @@ func TestMobile_AddPhoto(t *testing.T) {
 }
 
 func TestMobile_AddPhotoToThread(t *testing.T) {
-	if _, err := mobile.AddPhotoToThread(addedPhotoId, addedPhotoKey, threadId, ""); err != nil {
+	id, err := mobile.AddPhotoToThread(addedPhotoId, addedPhotoKey, threadId, "")
+	if err != nil {
 		t.Errorf("add photo to thread failed: %s", err)
 		return
 	}
+	addedBlockId = id
 }
 
 func TestMobile_SharePhotoToThread(t *testing.T) {
@@ -289,7 +291,6 @@ func TestMobile_SharePhotoToThread(t *testing.T) {
 	sharedBlockId, err = mobile.SharePhotoToThread(addedPhotoId, item.Id, "howdy")
 	if err != nil {
 		t.Errorf("share photo to thread failed: %s", err)
-		return
 	}
 }
 
@@ -313,6 +314,18 @@ func TestMobile_IgnorePhoto(t *testing.T) {
 	}
 }
 
+func TestMobile_AddPhotoComment(t *testing.T) {
+	if _, err := mobile.AddPhotoComment(addedBlockId, "well, well, well"); err != nil {
+		t.Errorf("add photo comment failed: %s", err)
+	}
+}
+
+func TestMobile_AddPhotoLike(t *testing.T) {
+	if _, err := mobile.AddPhotoLike(addedBlockId); err != nil {
+		t.Errorf("add photo like failed: %s", err)
+	}
+}
+
 func TestMobile_GetPhotos(t *testing.T) {
 	res, err := mobile.GetPhotos("", -1, threadId)
 	if err != nil {
@@ -326,6 +339,12 @@ func TestMobile_GetPhotos(t *testing.T) {
 	}
 	if len(photos.Items) != 1 {
 		t.Errorf("get photos bad result")
+	}
+	if len(photos.Items[0].Comments) != 1 {
+		t.Errorf("get photo comments bad result")
+	}
+	if len(photos.Items[0].Likes) != 1 {
+		t.Errorf("get photo likes bad result")
 	}
 }
 

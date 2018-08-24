@@ -263,6 +263,10 @@ func (t *Thread) followParent(parent string, from *peer.ID) (*repo.Peer, error) 
 		if _, err := t.HandleDataBlock(from, env, signed, nil, true); err != nil {
 			return nil, err
 		}
+	case pb.Message_THREAD_ANNOTATION:
+		if _, err := t.HandleAnnotationBlock(from, env, signed, nil, true); err != nil {
+			return nil, err
+		}
 	case pb.Message_THREAD_IGNORE:
 		if _, err := t.HandleIgnoreBlock(from, env, signed, nil, true); err != nil {
 			return nil, err
@@ -391,13 +395,13 @@ func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType r
 		dataConf = new(repo.DataBlockConfig)
 	}
 	index := &repo.Block{
-		Id:             id,
-		Date:           date,
-		Parents:        header.Parents,
-		ThreadId:       libp2pc.ConfigEncodeKey(header.ThreadPk),
-		AuthorPk:       libp2pc.ConfigEncodeKey(header.AuthorPk),
-		AuthorUnCipher: header.AuthorUnCipher,
-		Type:           blockType,
+		Id:                   id,
+		Date:                 date,
+		Parents:              header.Parents,
+		ThreadId:             libp2pc.ConfigEncodeKey(header.ThreadPk),
+		AuthorPk:             libp2pc.ConfigEncodeKey(header.AuthorPk),
+		AuthorUsernameCipher: header.AuthorUnCipher,
+		Type:                 blockType,
 
 		// off-chain data links
 		DataId:             dataConf.DataId,

@@ -24,13 +24,13 @@ type Peer struct {
 }
 
 type Block struct {
-	Id             string    `json:"id"`
-	Date           time.Time `json:"date"`
-	Parents        []string  `json:"parents"`
-	ThreadId       string    `json:"thread_id"`
-	AuthorPk       string    `json:"author_pk"`
-	AuthorUnCipher []byte    `json:"author_un_cipher"`
-	Type           BlockType `json:"type"`
+	Id                   string    `json:"id"`
+	Date                 time.Time `json:"date"`
+	Parents              []string  `json:"parents"`
+	ThreadId             string    `json:"thread_id"`
+	AuthorPk             string    `json:"author_pk"`
+	AuthorUsernameCipher []byte    `json:"author_username_cipher"`
+	Type                 BlockType `json:"type"`
 
 	DataId             string `json:"data_id"`
 	DataKeyCipher      []byte `json:"data_key_cipher"`

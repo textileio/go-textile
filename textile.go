@@ -226,14 +226,14 @@ func main() {
 		})
 		shell.AddCmd(&ishell.Cmd{
 			Name: "ping",
-			Help: "ping another textile node",
+			Help: "ping another peer",
 			Func: func(c *ishell.Context) {
 				if !core.Node.Wallet.IsOnline() {
 					c.Println("not online yet")
 					return
 				}
 				if len(c.Args) == 0 {
-					c.Err(errors.New("missing node id"))
+					c.Err(errors.New("missing peer id"))
 					return
 				}
 				status, err := core.Node.Wallet.GetPeerStatus(c.Args[0])
@@ -242,6 +242,21 @@ func main() {
 					return
 				}
 				c.Println(status)
+			},
+		})
+		shell.AddCmd(&ishell.Cmd{
+			Name: "fetch-messages",
+			Help: "fetch offline messages from the DHT",
+			Func: func(c *ishell.Context) {
+				if !core.Node.Wallet.IsOnline() {
+					c.Println("not online yet")
+					return
+				}
+				if err := core.Node.Wallet.FetchMessages(); err != nil {
+					c.Println(fmt.Errorf("fetch messages failed: %s", err))
+					return
+				}
+				c.Println("ok, fetching")
 			},
 		})
 		{
@@ -370,9 +385,24 @@ func main() {
 				Func: cmd.ListPhotos,
 			})
 			photoCmd.AddCmd(&ishell.Cmd{
-				Name: "ignore",
-				Help: "ignore a photo in a thread (requires block id, not photo id)",
-				Func: cmd.IgnorePhoto,
+				Name: "comment",
+				Help: "comment on a photo (terminate input w/ ';'",
+				Func: cmd.AddPhotoComment,
+			})
+			photoCmd.AddCmd(&ishell.Cmd{
+				Name: "like",
+				Help: "like a photo",
+				Func: cmd.AddPhotoLike,
+			})
+			photoCmd.AddCmd(&ishell.Cmd{
+				Name: "comments",
+				Help: "list photo comments",
+				Func: cmd.ListPhotoComments,
+			})
+			photoCmd.AddCmd(&ishell.Cmd{
+				Name: "likes",
+				Help: "list photo likes",
+				Func: cmd.ListPhotoLikes,
 			})
 			shell.AddCmd(photoCmd)
 		}
@@ -406,6 +436,11 @@ func main() {
 				Name: "head",
 				Help: "show current HEAD",
 				Func: cmd.GetThreadHead,
+			})
+			threadCmd.AddCmd(&ishell.Cmd{
+				Name: "ignore",
+				Help: "ignore a block",
+				Func: cmd.IgnoreBlock,
 			})
 			threadCmd.AddCmd(&ishell.Cmd{
 				Name: "peers",

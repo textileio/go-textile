@@ -38,27 +38,27 @@ func (r *PointerRepublisher) Run() {
 func (r *PointerRepublisher) Republish() {
 	log.Debug("republishing pointers...")
 
-	republishModerator := r.isModerator()
+	// get all pointers
 	pointers, err := r.datastore.Pointers().GetAll()
 	if err != nil {
 		log.Errorf("error republishing: %s", err)
 		return
 	}
-	ctx := context.Background()
+	log.Debugf("found %d pointers to republish", len(pointers))
 
+	// republish or delete each pointer
+	ctx := context.Background()
 	for _, pointer := range pointers {
 		switch pointer.Purpose {
 		case repo.MESSAGE:
 			if time.Now().Sub(pointer.Date) > kPointerExpiration {
 				r.datastore.Pointers().Delete(pointer.Value.ID)
+				log.Debugf("deleted pointer %s", pointer.Value.ID.Pretty())
 			} else {
-				go repo.PublishPointer(r.ipfs, ctx, pointer)
-			}
-		case repo.MODERATOR:
-			if republishModerator {
-				go repo.PublishPointer(r.ipfs, ctx, pointer)
-			} else {
-				r.datastore.Pointers().Delete(pointer.Value.ID)
+				go func(p repo.Pointer) {
+					repo.PublishPointer(r.ipfs, ctx, p)
+					log.Debugf("published pointer %s", p.Value.ID.Pretty())
+				}(pointer)
 			}
 		default:
 			continue

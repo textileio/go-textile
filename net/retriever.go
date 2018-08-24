@@ -25,8 +25,9 @@ import (
 )
 
 const KeyCachePrefix = "PUBKEYCACHE_"
-
 const kRetrieveFrequency = time.Minute * 5
+
+var ErrFetching = errors.New("retriever already fetching")
 
 type MRConfig struct {
 	Datastore repo.Datastore
@@ -44,10 +45,9 @@ type MessageRetriever struct {
 	prefixLen int
 	sendAck   func(peerId string, pointerID peer.ID) error
 	sendError func(peerId string, k *libp2pc.PubKey, errorMessage pb.Envelope) error
-	queueLock *sync.Mutex
-	DoneChan  chan struct{}
 	inFlight  chan struct{}
-	*sync.WaitGroup
+	fetching  bool
+	DoneChan  chan struct{}
 }
 
 type offlineMessage struct {
@@ -72,20 +72,16 @@ var messageProcessingOrder = []pb.Message_Type{
 }
 
 func NewMessageRetriever(config MRConfig) *MessageRetriever {
-	mr := MessageRetriever{
+	return &MessageRetriever{
 		datastore: config.Datastore,
 		ipfs:      config.Ipfs,
 		service:   config.Service,
 		prefixLen: config.PrefixLen,
 		sendAck:   config.SendAck,
 		sendError: config.SendError,
-		queueLock: new(sync.Mutex),
-		DoneChan:  make(chan struct{}),
 		inFlight:  make(chan struct{}, 5),
-		WaitGroup: new(sync.WaitGroup),
+		DoneChan:  make(chan struct{}),
 	}
-	mr.Add(1)
-	return &mr
 }
 
 func (m *MessageRetriever) Run() {
@@ -95,13 +91,20 @@ func (m *MessageRetriever) Run() {
 	for {
 		select {
 		case <-dht.C:
-			m.Add(1)
 			go m.FetchPointers()
 		}
 	}
 }
 
-func (m *MessageRetriever) FetchPointers() {
+func (m *MessageRetriever) IsFetching() bool {
+	return m.fetching
+}
+
+func (m *MessageRetriever) FetchPointers() error {
+	if m.fetching {
+		return ErrFetching
+	}
+	m.fetching = true
 	log.Debug("fetching pointers...")
 
 	// find pointers
@@ -131,6 +134,7 @@ func (m *MessageRetriever) FetchPointers() {
 	// iterate over the pointers, adding 1 to the waitgroup for each pointer found
 	inFlight := make(map[string]bool)
 	for p := range peerOut {
+		log.Debugf("fetched pointer %s", p.ID.Pretty())
 		if len(p.Addrs) > 0 && !m.datastore.OfflineMessages().Has(p.Addrs[0].String()) && !inFlight[p.Addrs[0].String()] {
 			inFlight[p.Addrs[0].String()] = true
 
@@ -144,7 +148,11 @@ func (m *MessageRetriever) FetchPointers() {
 	}
 	wg.Wait()
 	// m.processQueuedMessages() // currently not used, message order does not matter
-	m.Done()
+
+	log.Debug("done fetching pointers")
+
+	m.fetching = false
+	return nil
 }
 
 // fetch downloads an message from ipfs
@@ -170,6 +178,7 @@ func (m *MessageRetriever) fetch(pid peer.ID, addr ma.Multiaddr, wg *sync.WaitGr
 		if err != nil {
 			return
 		}
+		log.Debugf("downloaded pointer message %s", addrs)
 
 		// attempt to decrypt and unmarshal
 		plaintext, err := crypto.Decrypt(m.ipfs.PrivateKey, payload)
