@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/net"
 	"github.com/textileio/textile-go/wallet"
 	"time"
 )
@@ -135,9 +136,6 @@ func (m *Mobile) Start() error {
 
 		// notify UI we're ready
 		m.messenger.Notify(&Event{Name: "onOnline", Payload: "{}"})
-
-		// run the pinner
-		core.Node.Wallet.RunPinner()
 	}()
 
 	return nil
@@ -151,9 +149,12 @@ func (m *Mobile) Stop() error {
 	return nil
 }
 
-// RefreshMessages run the message retriever and repointer jobs
+// RefreshMessages run the message retriever
 func (m *Mobile) RefreshMessages() error {
-	return core.Node.Wallet.RefreshMessages()
+	if err := core.Node.Wallet.FetchMessages(); err != nil && err != net.ErrFetching {
+		return err
+	}
+	return nil
 }
 
 // Overview calls core Overview

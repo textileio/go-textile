@@ -8,6 +8,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet/thread"
 	"gopkg.in/abiosoft/ishell.v2"
 	"io/ioutil"
@@ -124,7 +125,7 @@ func ListPhotos(c *ishell.Context) {
 	btype := repo.PhotoBlock
 	blocks := thrd.Blocks("", -1, &btype)
 	if len(blocks) == 0 {
-		c.Println(fmt.Sprintf("no photos found in: %s", threadId))
+		c.Println(fmt.Sprintf("no photos found in: %s", thrd.Id))
 	} else {
 		c.Println(fmt.Sprintf("%v photos:", len(blocks)))
 	}
@@ -225,7 +226,33 @@ func GetPhotoKey(c *ishell.Context) {
 	c.Println(blue(string(key)))
 }
 
-func IgnorePhoto(c *ishell.Context) {
+func AddPhotoComment(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing block id"))
+		return
+	}
+	id := c.Args[0]
+	c.Print("comment: ")
+	body := c.ReadMultiLines(";")
+
+	block, err := core.Node.Wallet.GetBlock(id)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	if thrd == nil {
+		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
+		return
+	}
+
+	if _, err := thrd.AddComment(block.Id, body); err != nil {
+		c.Err(err)
+		return
+	}
+}
+
+func AddPhotoLike(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing block id"))
 		return
@@ -243,9 +270,114 @@ func IgnorePhoto(c *ishell.Context) {
 		return
 	}
 
-	if _, err := thrd.Ignore(block.Id); err != nil {
+	if _, err := thrd.AddLike(block.Id); err != nil {
 		c.Err(err)
 		return
+	}
+}
+
+func ListPhotoComments(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing block id"))
+		return
+	}
+	id := c.Args[0]
+
+	block, err := core.Node.Wallet.GetBlock(id)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	if thrd == nil {
+		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
+		return
+	}
+
+	btype := repo.CommentBlock
+	blocks := thrd.Blocks("", -1, &btype)
+	if len(blocks) == 0 {
+		c.Println(fmt.Sprintf("no comments found on: %s", block.Id))
+	} else {
+		c.Println(fmt.Sprintf("%v comments:", len(blocks)))
+	}
+
+	cyan := color.New(color.FgHiCyan).SprintFunc()
+	for _, b := range blocks {
+		body := "nil"
+		var authorUn string
+		if b.DataCaptionCipher != nil {
+			bodyb, err := thrd.Decrypt(b.DataCaptionCipher)
+			if err != nil {
+				c.Err(err)
+				return
+			}
+			body = string(bodyb)
+		}
+		if b.AuthorUsernameCipher != nil {
+			authorUnb, err := thrd.Decrypt(b.AuthorUsernameCipher)
+			if err != nil {
+				c.Err(err)
+				return
+			}
+			authorUn = string(authorUnb)
+		} else {
+			authorId, err := util.IdFromEncodedPublicKey(b.AuthorPk)
+			if err != nil {
+				c.Err(err)
+				return
+			}
+			authorUn = authorId.Pretty()[:8]
+		}
+		c.Println(cyan(fmt.Sprintf("%s: %s: %s", b.Id, authorUn, body)))
+	}
+}
+
+func ListPhotoLikes(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing block id"))
+		return
+	}
+	id := c.Args[0]
+
+	block, err := core.Node.Wallet.GetBlock(id)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	if thrd == nil {
+		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
+		return
+	}
+
+	btype := repo.LikeBlock
+	blocks := thrd.Blocks("", -1, &btype)
+	if len(blocks) == 0 {
+		c.Println(fmt.Sprintf("no likes found on: %s", block.Id))
+	} else {
+		c.Println(fmt.Sprintf("%v likes:", len(blocks)))
+	}
+
+	cyan := color.New(color.FgHiCyan).SprintFunc()
+	for _, b := range blocks {
+		var authorUn string
+		authorId, err := util.IdFromEncodedPublicKey(b.AuthorPk)
+		if err != nil {
+			c.Err(err)
+			return
+		}
+		if b.AuthorUsernameCipher != nil {
+			authorUnb, err := thrd.Decrypt(b.AuthorUsernameCipher)
+			if err != nil {
+				c.Err(err)
+				return
+			}
+			authorUn = string(authorUnb)
+		} else {
+			authorUn = authorId.Pretty()[:8]
+		}
+		c.Println(cyan(fmt.Sprintf("%s: %s", b.Id, authorUn)))
 	}
 }
 

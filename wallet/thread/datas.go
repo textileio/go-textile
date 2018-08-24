@@ -187,7 +187,7 @@ func (t *Thread) HandleDataBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 			return nil, err
 		}
 	case pb.ThreadData_TEXT:
-		// TODO: comments
+		// TODO: chat
 		break
 	}
 

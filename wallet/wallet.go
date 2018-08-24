@@ -218,6 +218,8 @@ func (w *Wallet) Start() error {
 		if !w.isMobile {
 			go w.messageRetriever.Run()
 			go w.pointerRepublisher.Run()
+		} else {
+			go w.pointerRepublisher.Republish()
 		}
 
 		// print swarm addresses
@@ -243,6 +245,8 @@ func (w *Wallet) Start() error {
 		// start ticker job if not mobile
 		if !w.isMobile {
 			go w.pinner.Run()
+		} else {
+			go w.pinner.Pin()
 		}
 
 		// re-pub profile
@@ -337,21 +341,15 @@ func (w *Wallet) Ipfs() *core.IpfsNode {
 	return w.ipfs
 }
 
-func (w *Wallet) RefreshMessages() error {
+func (w *Wallet) FetchMessages() error {
 	if !w.IsOnline() {
 		return ErrOffline
 	}
-	w.messageRetriever.Add(1)
-	go w.messageRetriever.FetchPointers()
-	go w.pointerRepublisher.Republish()
-	return nil
-}
-
-func (w *Wallet) RunPinner() {
-	if w.pinner == nil {
-		return
+	if w.messageRetriever.IsFetching() {
+		return net.ErrFetching
 	}
-	go w.pinner.Pin()
+	go w.messageRetriever.FetchPointers()
+	return nil
 }
 
 func (w *Wallet) Online() <-chan struct{} {
