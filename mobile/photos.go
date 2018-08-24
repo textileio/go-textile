@@ -221,23 +221,9 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 	return toJSON(photos)
 }
 
-// IgnorePhoto adds an ignore block targeted at the given block and unpins the photo set locally
+// IgnorePhoto is a semantic helper for mobile, just call IgnoreBlock
 func (m *Mobile) IgnorePhoto(blockId string) (string, error) {
-	block, err := core.Node.Wallet.GetBlock(blockId)
-	if err != nil {
-		return "", err
-	}
-	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
-	if thrd == nil {
-		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
-	}
-
-	addr, err := thrd.Ignore(block.Id)
-	if err != nil {
-		return "", err
-	}
-
-	return addr.B58String(), nil
+	return m.IgnoreBlock(blockId)
 }
 
 // AddPhotoComment adds an comment block targeted at the given block
@@ -259,6 +245,11 @@ func (m *Mobile) AddPhotoComment(blockId string, body string) (string, error) {
 	return addr.B58String(), nil
 }
 
+// IgnorePhotoComment is a semantic helper for mobile, just call IgnoreBlock
+func (m *Mobile) IgnorePhotoComment(blockId string) (string, error) {
+	return m.IgnoreBlock(blockId)
+}
+
 // AddPhotoLike adds a like block targeted at the given block
 func (m *Mobile) AddPhotoLike(blockId string) (string, error) {
 	block, err := core.Node.Wallet.GetBlock(blockId)
@@ -276,6 +267,11 @@ func (m *Mobile) AddPhotoLike(blockId string) (string, error) {
 	}
 
 	return addr.B58String(), nil
+}
+
+// IgnorePhotoLike is a semantic helper for mobile, just call IgnoreBlock
+func (m *Mobile) IgnorePhotoLike(blockId string) (string, error) {
+	return m.IgnoreBlock(blockId)
 }
 
 // GetPhotoData returns a data url of an image under a path
@@ -355,6 +351,25 @@ func (m *Mobile) PhotoThreads(id string) (string, error) {
 		threads.Items = append(threads.Items, item)
 	}
 	return toJSON(threads)
+}
+
+// IgnoreBlock adds an ignore block targeted at the given block and unpins any associated block data
+func (m *Mobile) IgnoreBlock(blockId string) (string, error) {
+	block, err := core.Node.Wallet.GetBlock(blockId)
+	if err != nil {
+		return "", err
+	}
+	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	if thrd == nil {
+		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
+	}
+
+	addr, err := thrd.Ignore(block.Id)
+	if err != nil {
+		return "", err
+	}
+
+	return addr.B58String(), nil
 }
 
 // getImageDataURLPrefix adds the correct data url prefix to a data url
