@@ -68,7 +68,7 @@ func (t *Thread) AddComment(dataId string, body string) (mh.Multihash, error) {
 }
 
 // AddLike adds an outgoing like block
-func (t *Thread) AddLike(dataId, body string) (mh.Multihash, error) {
+func (t *Thread) AddLike(dataId string) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
@@ -80,6 +80,7 @@ func (t *Thread) AddLike(dataId, body string) (mh.Multihash, error) {
 	content := &pb.ThreadAnnotation{
 		Header: header,
 		Type:   pb.ThreadAnnotation_LIKE,
+		DataId: dataId,
 	}
 
 	// commit to ipfs

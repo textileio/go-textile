@@ -88,25 +88,6 @@ func (m *Mobile) SharePhotoToThread(dataId string, threadId string, caption stri
 	return addr.B58String(), nil
 }
 
-// IgnorePhoto adds an ignore block targeted at the given block and unpins the photo set locally
-func (m *Mobile) IgnorePhoto(blockId string) (string, error) {
-	block, err := core.Node.Wallet.GetBlock(blockId)
-	if err != nil {
-		return "", err
-	}
-	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
-	if thrd == nil {
-		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
-	}
-
-	addr, err := thrd.Ignore(block.Id)
-	if err != nil {
-		return "", err
-	}
-
-	return addr.B58String(), nil
-}
-
 // GetPhotos returns thread photo blocks with json encoding
 func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string, error) {
 	_, thrd := core.Node.Wallet.GetThread(threadId)
@@ -168,6 +149,63 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 	}
 
 	return toJSON(photos)
+}
+
+// IgnorePhoto adds an ignore block targeted at the given block and unpins the photo set locally
+func (m *Mobile) IgnorePhoto(blockId string) (string, error) {
+	block, err := core.Node.Wallet.GetBlock(blockId)
+	if err != nil {
+		return "", err
+	}
+	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	if thrd == nil {
+		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
+	}
+
+	addr, err := thrd.Ignore(block.Id)
+	if err != nil {
+		return "", err
+	}
+
+	return addr.B58String(), nil
+}
+
+// AddPhotoComment adds an comment block targeted at the given block
+func (m *Mobile) AddPhotoComment(blockId string, body string) (string, error) {
+	block, err := core.Node.Wallet.GetBlock(blockId)
+	if err != nil {
+		return "", err
+	}
+	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	if thrd == nil {
+		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
+	}
+
+	addr, err := thrd.AddComment(block.Id, body)
+	if err != nil {
+		return "", err
+	}
+
+	return addr.B58String(), nil
+}
+
+// AddPhotoLike adds a like block targeted at the given block
+func (m *Mobile) AddPhotoLike(blockId string) (string, error) {
+	block, err := core.Node.Wallet.GetBlock(blockId)
+	if err != nil {
+		return "", err
+	}
+	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	if thrd == nil {
+		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
+	}
+
+	addr, err := thrd.AddLike(block.Id)
+	if err != nil {
+		return "", err
+	}
+
+	return addr.B58String(), nil
 }
 
 // GetPhotoData returns a data url of an image under a path

@@ -370,9 +370,14 @@ func main() {
 				Func: cmd.ListPhotos,
 			})
 			photoCmd.AddCmd(&ishell.Cmd{
-				Name: "ignore",
-				Help: "ignore a photo in a thread (requires block id, not photo id)",
-				Func: cmd.IgnorePhoto,
+				Name: "comment",
+				Help: "comment on a photo (terminate input w/ ';'",
+				Func: cmd.AddPhotoComment,
+			})
+			photoCmd.AddCmd(&ishell.Cmd{
+				Name: "like",
+				Help: "like a photo",
+				Func: cmd.AddPhotoLike,
 			})
 			shell.AddCmd(photoCmd)
 		}
@@ -406,6 +411,11 @@ func main() {
 				Name: "head",
 				Help: "show current HEAD",
 				Func: cmd.GetThreadHead,
+			})
+			threadCmd.AddCmd(&ishell.Cmd{
+				Name: "ignore",
+				Help: "ignore a block",
+				Func: cmd.IgnoreBlock,
 			})
 			threadCmd.AddCmd(&ishell.Cmd{
 				Name: "peers",

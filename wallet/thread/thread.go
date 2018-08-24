@@ -263,6 +263,10 @@ func (t *Thread) followParent(parent string, from *peer.ID) (*repo.Peer, error) 
 		if _, err := t.HandleDataBlock(from, env, signed, nil, true); err != nil {
 			return nil, err
 		}
+	case pb.Message_THREAD_ANNOTATION:
+		if _, err := t.HandleAnnotationBlock(from, env, signed, nil, true); err != nil {
+			return nil, err
+		}
 	case pb.Message_THREAD_IGNORE:
 		if _, err := t.HandleIgnoreBlock(from, env, signed, nil, true); err != nil {
 			return nil, err

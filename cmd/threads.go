@@ -127,6 +127,30 @@ func GetThreadHead(c *ishell.Context) {
 	c.Println(yellow(head))
 }
 
+func IgnoreBlock(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing block id"))
+		return
+	}
+	id := c.Args[0]
+
+	block, err := core.Node.Wallet.GetBlock(id)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	if thrd == nil {
+		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
+		return
+	}
+
+	if _, err := thrd.Ignore(block.Id); err != nil {
+		c.Err(err)
+		return
+	}
+}
+
 func AddThreadInvite(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing peer pub key"))
