@@ -125,7 +125,7 @@ func ListPhotos(c *ishell.Context) {
 	btype := repo.PhotoBlock
 	blocks := thrd.Blocks("", -1, &btype)
 	if len(blocks) == 0 {
-		c.Println(fmt.Sprintf("no photos found in: %s", threadId))
+		c.Println(fmt.Sprintf("no photos found in: %s", thrd.Id))
 	} else {
 		c.Println(fmt.Sprintf("%v photos:", len(blocks)))
 	}
@@ -297,39 +297,39 @@ func ListPhotoComments(c *ishell.Context) {
 	btype := repo.CommentBlock
 	blocks := thrd.Blocks("", -1, &btype)
 	if len(blocks) == 0 {
-		c.Println(fmt.Sprintf("no comments found on: %s", id))
+		c.Println(fmt.Sprintf("no comments found on: %s", block.Id))
 	} else {
 		c.Println(fmt.Sprintf("%v comments:", len(blocks)))
 	}
 
 	cyan := color.New(color.FgHiCyan).SprintFunc()
-	for _, block := range blocks {
+	for _, b := range blocks {
 		body := "nil"
 		var authorUn string
-		if block.DataCaptionCipher != nil {
-			bodyb, err := thrd.Decrypt(block.DataCaptionCipher)
+		if b.DataCaptionCipher != nil {
+			bodyb, err := thrd.Decrypt(b.DataCaptionCipher)
 			if err != nil {
 				c.Err(err)
 				return
 			}
 			body = string(bodyb)
 		}
-		if block.AuthorUsernameCipher != nil {
-			authorUnb, err := thrd.Decrypt(block.AuthorUsernameCipher)
+		if b.AuthorUsernameCipher != nil {
+			authorUnb, err := thrd.Decrypt(b.AuthorUsernameCipher)
 			if err != nil {
 				c.Err(err)
 				return
 			}
 			authorUn = string(authorUnb)
 		} else {
-			authorId, err := util.IdFromEncodedPublicKey(block.AuthorPk)
+			authorId, err := util.IdFromEncodedPublicKey(b.AuthorPk)
 			if err != nil {
 				c.Err(err)
 				return
 			}
 			authorUn = authorId.Pretty()[:8]
 		}
-		c.Println(cyan(fmt.Sprintf("%s: %s", authorUn, body)))
+		c.Println(cyan(fmt.Sprintf("%s: %s: %s", b.Id, authorUn, body)))
 	}
 }
 
@@ -354,21 +354,21 @@ func ListPhotoLikes(c *ishell.Context) {
 	btype := repo.LikeBlock
 	blocks := thrd.Blocks("", -1, &btype)
 	if len(blocks) == 0 {
-		c.Println(fmt.Sprintf("no likes found on: %s", id))
+		c.Println(fmt.Sprintf("no likes found on: %s", block.Id))
 	} else {
 		c.Println(fmt.Sprintf("%v likes:", len(blocks)))
 	}
 
 	cyan := color.New(color.FgHiCyan).SprintFunc()
-	for _, block := range blocks {
+	for _, b := range blocks {
 		var authorUn string
-		authorId, err := util.IdFromEncodedPublicKey(block.AuthorPk)
+		authorId, err := util.IdFromEncodedPublicKey(b.AuthorPk)
 		if err != nil {
 			c.Err(err)
 			return
 		}
-		if block.AuthorUsernameCipher != nil {
-			authorUnb, err := thrd.Decrypt(block.AuthorUsernameCipher)
+		if b.AuthorUsernameCipher != nil {
+			authorUnb, err := thrd.Decrypt(b.AuthorUsernameCipher)
 			if err != nil {
 				c.Err(err)
 				return
@@ -377,7 +377,7 @@ func ListPhotoLikes(c *ishell.Context) {
 		} else {
 			authorUn = authorId.Pretty()[:8]
 		}
-		c.Println(cyan(authorUn))
+		c.Println(cyan(fmt.Sprintf("%s: %s", b.Id, authorUn)))
 	}
 }
 
