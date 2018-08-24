@@ -29,6 +29,8 @@ func (s *TextileService) HandlerForMsgType(t pb.Message_Type) func(peer.ID, *pb.
 		return s.handleThreadLeave
 	case pb.Message_THREAD_DATA:
 		return s.handleThreadData
+	case pb.Message_THREAD_ANNOTATION:
+		return s.handleThreadAnnotation
 	case pb.Message_THREAD_IGNORE:
 		return s.handleThreadIgnore
 	case pb.Message_THREAD_MERGE:
@@ -265,6 +267,79 @@ func (s *TextileService) handleThreadData(pid peer.ID, pmes *pb.Envelope, option
 		notification.Body = string(body)
 	}
 	notification.BlockId = addr.B58String()
+	notification.Subject = thrd.Name
+	notification.SubjectId = thrd.Id
+	if err := s.notify(notification); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+func (s *TextileService) handleThreadAnnotation(pid peer.ID, pmes *pb.Envelope, options interface{}) (*pb.Envelope, error) {
+	log.Debug("received THREAD_ANNOTATION message")
+	signed, err := unpackMessage(pmes)
+	if err != nil {
+		return nil, err
+	}
+	annotation := new(pb.ThreadAnnotation)
+	if err := proto.Unmarshal(signed.Block, annotation); err != nil {
+		return nil, err
+	}
+
+	// load thread
+	threadId := libp2pc.ConfigEncodeKey(annotation.Header.ThreadPk)
+	_, thrd := s.getThread(threadId)
+	if thrd == nil {
+		return nil, errors.New("invalid annotation block")
+	}
+
+	// verify thread sig
+	if err := thrd.Verify(signed); err != nil {
+		return nil, err
+	}
+
+	// handle
+	addr, err := thrd.HandleAnnotationBlock(&pid, pmes, signed, annotation, false)
+	if err != nil {
+		return nil, err
+	}
+
+	// find dataId block locally
+	dataBlock := s.datastore.Blocks().Get(annotation.DataId)
+	if dataBlock == nil {
+		return nil, nil
+	}
+	var target string
+	authorId, err := util.IdFromEncodedPublicKey(dataBlock.AuthorPk)
+	if err != nil {
+		return nil, err
+	}
+	// NOTE: not restricted to photo annotations here, just currently only thing possible
+	if authorId.Pretty() == s.self.Pretty() {
+		target = "your photo"
+	} else {
+		target = "a photo"
+	}
+
+	// send notification
+	var notification *repo.Notification
+	switch annotation.Type {
+	case pb.ThreadAnnotation_COMMENT:
+		notification, err = buildNotification(thrd.PrivKey, annotation.Header, repo.CommentAddedNotification)
+		if err != nil {
+			return nil, err
+		}
+		notification.Body = "commented on " + target
+	case pb.ThreadAnnotation_LIKE:
+		notification, err = buildNotification(thrd.PrivKey, annotation.Header, repo.LikeAddedNotification)
+		if err != nil {
+			return nil, err
+		}
+		notification.Body = "liked " + target
+	}
+	notification.BlockId = addr.B58String()
+	notification.DataId = dataBlock.DataId
 	notification.Subject = thrd.Name
 	notification.SubjectId = thrd.Id
 	if err := s.notify(notification); err != nil {
