@@ -101,8 +101,8 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 	for _, b := range thrd.Blocks(offsetId, limit, &btype) {
 		var username, caption string
 		var metadata *util.PhotoMetadata
-		if b.AuthorUnCipher != nil {
-			usernameb, err := thrd.Decrypt(b.AuthorUnCipher)
+		if b.AuthorUsernameCipher != nil {
+			usernameb, err := thrd.Decrypt(b.AuthorUsernameCipher)
 			if err != nil {
 				return "", err
 			}

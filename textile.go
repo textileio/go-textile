@@ -379,6 +379,16 @@ func main() {
 				Help: "like a photo",
 				Func: cmd.AddPhotoLike,
 			})
+			photoCmd.AddCmd(&ishell.Cmd{
+				Name: "comments",
+				Help: "list photo comments",
+				Func: cmd.ListPhotoComments,
+			})
+			photoCmd.AddCmd(&ishell.Cmd{
+				Name: "likes",
+				Help: "list photo likes",
+				Func: cmd.ListPhotoLikes,
+			})
 			shell.AddCmd(photoCmd)
 		}
 		{

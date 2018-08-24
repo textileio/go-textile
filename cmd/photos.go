@@ -8,6 +8,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet/thread"
 	"gopkg.in/abiosoft/ishell.v2"
 	"io/ioutil"
@@ -272,6 +273,111 @@ func AddPhotoLike(c *ishell.Context) {
 	if _, err := thrd.AddLike(block.Id); err != nil {
 		c.Err(err)
 		return
+	}
+}
+
+func ListPhotoComments(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing block id"))
+		return
+	}
+	id := c.Args[0]
+
+	block, err := core.Node.Wallet.GetBlock(id)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	if thrd == nil {
+		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
+		return
+	}
+
+	btype := repo.CommentBlock
+	blocks := thrd.Blocks("", -1, &btype)
+	if len(blocks) == 0 {
+		c.Println(fmt.Sprintf("no comments found on: %s", id))
+	} else {
+		c.Println(fmt.Sprintf("%v comments:", len(blocks)))
+	}
+
+	cyan := color.New(color.FgHiCyan).SprintFunc()
+	for _, block := range blocks {
+		body := "nil"
+		var authorUn string
+		authorId, err := util.IdFromEncodedPublicKey(block.AuthorPk)
+		if err != nil {
+			c.Err(err)
+			return
+		}
+		if block.DataCaptionCipher != nil {
+			bodyb, err := thrd.Decrypt(block.DataCaptionCipher)
+			if err != nil {
+				c.Err(err)
+				return
+			}
+			body = string(bodyb)
+		}
+		if block.AuthorUsernameCipher != nil {
+			authorUnb, err := thrd.Decrypt(block.AuthorUsernameCipher)
+			if err != nil {
+				c.Err(err)
+				return
+			}
+			authorUn = string(authorUnb)
+		} else {
+			authorUn = authorId.Pretty()[:8]
+		}
+		c.Println(cyan(fmt.Sprintf("%s: %s", authorUn, body)))
+	}
+}
+
+func ListPhotoLikes(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing block id"))
+		return
+	}
+	id := c.Args[0]
+
+	block, err := core.Node.Wallet.GetBlock(id)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	if thrd == nil {
+		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
+		return
+	}
+
+	btype := repo.LikeBlock
+	blocks := thrd.Blocks("", -1, &btype)
+	if len(blocks) == 0 {
+		c.Println(fmt.Sprintf("no likes found on: %s", id))
+	} else {
+		c.Println(fmt.Sprintf("%v likes:", len(blocks)))
+	}
+
+	cyan := color.New(color.FgHiCyan).SprintFunc()
+	for _, block := range blocks {
+		var authorUn string
+		authorId, err := util.IdFromEncodedPublicKey(block.AuthorPk)
+		if err != nil {
+			c.Err(err)
+			return
+		}
+		if block.AuthorUsernameCipher != nil {
+			authorUnb, err := thrd.Decrypt(block.AuthorUsernameCipher)
+			if err != nil {
+				c.Err(err)
+				return
+			}
+			authorUn = string(authorUnb)
+		} else {
+			authorUn = authorId.Pretty()[:8]
+		}
+		c.Println(cyan(authorUn))
 	}
 }
 

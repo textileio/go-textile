@@ -41,7 +41,7 @@ func (c *BlockDB) Add(block *repo.Block) error {
 		block.DataId,
 		block.DataKeyCipher,
 		block.DataCaptionCipher,
-		block.AuthorUnCipher,
+		block.AuthorUsernameCipher,
 		block.DataMetadataCipher,
 	)
 	if err != nil {
@@ -133,17 +133,17 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 			continue
 		}
 		block := repo.Block{
-			Id:                 id,
-			Date:               time.Unix(int64(dateInt), 0),
-			Parents:            strings.Split(parents, ","),
-			ThreadId:           threadId,
-			AuthorPk:           authorPk,
-			Type:               repo.BlockType(typeInt),
-			DataId:             dataId,
-			DataKeyCipher:      dataKeyCipher,
-			DataCaptionCipher:  dataCaptionCipher,
-			AuthorUnCipher:     authorUnCipher,
-			DataMetadataCipher: dataMetadataCipher,
+			Id:                   id,
+			Date:                 time.Unix(int64(dateInt), 0),
+			Parents:              strings.Split(parents, ","),
+			ThreadId:             threadId,
+			AuthorPk:             authorPk,
+			Type:                 repo.BlockType(typeInt),
+			DataId:               dataId,
+			DataKeyCipher:        dataKeyCipher,
+			DataCaptionCipher:    dataCaptionCipher,
+			AuthorUsernameCipher: authorUnCipher,
+			DataMetadataCipher:   dataMetadataCipher,
 		}
 		ret = append(ret, block)
 	}

@@ -395,13 +395,13 @@ func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType r
 		dataConf = new(repo.DataBlockConfig)
 	}
 	index := &repo.Block{
-		Id:             id,
-		Date:           date,
-		Parents:        header.Parents,
-		ThreadId:       libp2pc.ConfigEncodeKey(header.ThreadPk),
-		AuthorPk:       libp2pc.ConfigEncodeKey(header.AuthorPk),
-		AuthorUnCipher: header.AuthorUnCipher,
-		Type:           blockType,
+		Id:                   id,
+		Date:                 date,
+		Parents:              header.Parents,
+		ThreadId:             libp2pc.ConfigEncodeKey(header.ThreadPk),
+		AuthorPk:             libp2pc.ConfigEncodeKey(header.AuthorPk),
+		AuthorUsernameCipher: header.AuthorUnCipher,
+		Type:                 blockType,
 
 		// off-chain data links
 		DataId:             dataConf.DataId,
