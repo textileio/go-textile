@@ -226,14 +226,14 @@ func main() {
 		})
 		shell.AddCmd(&ishell.Cmd{
 			Name: "ping",
-			Help: "ping another textile node",
+			Help: "ping another peer",
 			Func: func(c *ishell.Context) {
 				if !core.Node.Wallet.IsOnline() {
 					c.Println("not online yet")
 					return
 				}
 				if len(c.Args) == 0 {
-					c.Err(errors.New("missing node id"))
+					c.Err(errors.New("missing peer id"))
 					return
 				}
 				status, err := core.Node.Wallet.GetPeerStatus(c.Args[0])
@@ -242,6 +242,21 @@ func main() {
 					return
 				}
 				c.Println(status)
+			},
+		})
+		shell.AddCmd(&ishell.Cmd{
+			Name: "fetch-messages",
+			Help: "fetch offline messages from the DHT",
+			Func: func(c *ishell.Context) {
+				if !core.Node.Wallet.IsOnline() {
+					c.Println("not online yet")
+					return
+				}
+				if err := core.Node.Wallet.FetchMessages(); err != nil {
+					c.Println(fmt.Errorf("fetch messages failed: %s", err))
+					return
+				}
+				c.Println("ok, fetching")
 			},
 		})
 		{
