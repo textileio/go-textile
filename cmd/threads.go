@@ -91,7 +91,7 @@ func ListThreadBlocks(c *ishell.Context) {
 		return
 	}
 
-	blocks := thrd.Blocks("", -1, nil)
+	blocks := thrd.Blocks("", -1, nil, nil)
 	if len(blocks) == 0 {
 		c.Println(fmt.Sprintf("no blocks found in: %s", threadId))
 	} else {

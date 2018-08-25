@@ -287,7 +287,7 @@ func getThreadPhotos(id string) (string, error) {
 	}
 	var html string
 	btype := repo.PhotoBlock
-	for _, block := range thrd.Blocks("", -1, &btype) {
+	for _, block := range thrd.Blocks("", -1, &btype, nil) {
 		photo := fmt.Sprintf("%s/ipfs/%s/photo?block=%s", gateway, block.DataId, block.Id)
 		small := fmt.Sprintf("%s/ipfs/%s/small?block=%s", gateway, block.DataId, block.Id)
 		meta := fmt.Sprintf("%s/ipfs/%s/meta?block=%s", gateway, block.DataId, block.Id)
