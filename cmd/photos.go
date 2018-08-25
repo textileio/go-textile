@@ -123,7 +123,7 @@ func ListPhotos(c *ishell.Context) {
 	}
 
 	btype := repo.PhotoBlock
-	blocks := thrd.Blocks("", -1, &btype)
+	blocks := thrd.Blocks("", -1, &btype, nil)
 	if len(blocks) == 0 {
 		c.Println(fmt.Sprintf("no photos found in: %s", thrd.Id))
 	} else {
@@ -233,7 +233,7 @@ func AddPhotoComment(c *ishell.Context) {
 	}
 	id := c.Args[0]
 	c.Print("comment: ")
-	body := c.ReadMultiLines(";")
+	body := c.ReadLine()
 
 	block, err := core.Node.Wallet.GetBlock(id)
 	if err != nil {
@@ -295,7 +295,7 @@ func ListPhotoComments(c *ishell.Context) {
 	}
 
 	btype := repo.CommentBlock
-	blocks := thrd.Blocks("", -1, &btype)
+	blocks := thrd.Blocks("", -1, &btype, &block.Id)
 	if len(blocks) == 0 {
 		c.Println(fmt.Sprintf("no comments found on: %s", block.Id))
 	} else {
@@ -352,7 +352,7 @@ func ListPhotoLikes(c *ishell.Context) {
 	}
 
 	btype := repo.LikeBlock
-	blocks := thrd.Blocks("", -1, &btype)
+	blocks := thrd.Blocks("", -1, &btype, &block.Id)
 	if len(blocks) == 0 {
 		c.Println(fmt.Sprintf("no likes found on: %s", block.Id))
 	} else {

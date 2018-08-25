@@ -131,12 +131,15 @@ func (t *Thread) Info() (*Info, error) {
 }
 
 // Blocks paginates blocks from the datastore
-func (t *Thread) Blocks(offsetId string, limit int, btype *repo.BlockType) []repo.Block {
+func (t *Thread) Blocks(offsetId string, limit int, btype *repo.BlockType, dataId *string) []repo.Block {
 	var query string
 	if btype != nil {
 		query = fmt.Sprintf("threadId='%s' and type=%d", t.Id, *btype)
 	} else {
 		query = fmt.Sprintf("threadId='%s'", t.Id)
+	}
+	if dataId != nil {
+		query += fmt.Sprintf(" and dataId='%s'", *dataId)
 	}
 	all := t.blocks().List(offsetId, limit, query)
 	if btype == nil {
