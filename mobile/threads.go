@@ -1,6 +1,7 @@
 package mobile
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"github.com/textileio/textile-go/core"
@@ -38,12 +39,12 @@ func (m *Mobile) Threads() (string, error) {
 }
 
 // AddThread adds a new thread with the given name
-func (m *Mobile) AddThread(name string, mnemonic string) (string, error) {
-	var mnem *string
-	if mnemonic != "" {
-		mnem = &mnemonic
+func (m *Mobile) AddThread(name string) (string, error) {
+	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		return "", err
 	}
-	thrd, _, err := core.Node.Wallet.AddThreadWithMnemonic(name, mnem, true)
+	thrd, err := core.Node.Wallet.AddThread(name, sk, true)
 	if err != nil {
 		return "", err
 	}
