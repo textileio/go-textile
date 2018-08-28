@@ -135,7 +135,7 @@ func TestMobile_EmptyThreads(t *testing.T) {
 }
 
 func TestMobile_AddThread(t *testing.T) {
-	itemStr, err := mobile.AddThread("default", "")
+	itemStr, err := mobile.AddThread("default")
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
 		return
@@ -149,7 +149,7 @@ func TestMobile_AddThread(t *testing.T) {
 }
 
 func TestMobile_Threads(t *testing.T) {
-	itemStr, err := mobile.AddThread("another", "")
+	itemStr, err := mobile.AddThread("another")
 	if err != nil {
 		t.Errorf("add another thread failed: %s", err)
 		return
@@ -277,7 +277,7 @@ func TestMobile_AddPhotoToThread(t *testing.T) {
 }
 
 func TestMobile_SharePhotoToThread(t *testing.T) {
-	itemStr, err := mobile.AddThread("test", "")
+	itemStr, err := mobile.AddThread("test")
 	if err != nil {
 		t.Errorf("add test thread failed: %s", err)
 		return
