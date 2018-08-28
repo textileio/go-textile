@@ -53,7 +53,14 @@ func (m *Mobile) GetPubKey() (string, error) {
 
 // GetUsername calls core GetUsername
 func (m *Mobile) GetUsername() (string, error) {
-	return core.Node.Wallet.GetUsername()
+	username, err := core.Node.Wallet.GetUsername()
+	if err != nil {
+		return "", err
+	}
+	if username == nil {
+		return "", nil
+	}
+	return *username, nil
 }
 
 // GetTokens calls core GetTokens
@@ -61,6 +68,9 @@ func (m *Mobile) GetTokens() (string, error) {
 	tokens, err := core.Node.Wallet.GetTokens()
 	if err != nil {
 		return "", err
+	}
+	if tokens == nil {
+		return "", nil
 	}
 	return toJSON(tokens)
 }

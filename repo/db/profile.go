@@ -50,6 +50,9 @@ func (c *ProfileDB) SignOut() error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stmt, err := c.db.Prepare("delete from profile where key=?")
+	if err != nil {
+		return err
+	}
 	defer stmt.Close()
 	_, err = stmt.Exec("access")
 	if err != nil {
@@ -62,17 +65,22 @@ func (c *ProfileDB) SignOut() error {
 	return nil
 }
 
-func (c *ProfileDB) GetUsername() (string, error) {
+func (c *ProfileDB) GetUsername() (*string, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stmt, err := c.db.Prepare("select value from profile where key=?")
+	if err != nil {
+		return nil, err
+	}
 	defer stmt.Close()
 	var username string
-	err = stmt.QueryRow("username").Scan(&username)
-	if err != nil {
-		return "", err
+	if err := stmt.QueryRow("username").Scan(&username); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
 	}
-	return username, nil
+	return &username, nil
 }
 
 func (c *ProfileDB) SetAvatarId(id string) error {
@@ -96,42 +104,44 @@ func (c *ProfileDB) SetAvatarId(id string) error {
 	return nil
 }
 
-func (c *ProfileDB) GetAvatarId() (string, error) {
+func (c *ProfileDB) GetAvatarId() (*string, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stmt, err := c.db.Prepare("select value from profile where key=?")
+	if err != nil {
+		return nil, err
+	}
 	defer stmt.Close()
 	var avatarId string
-	err = stmt.QueryRow("avatar_id").Scan(&avatarId)
-	if err != nil {
-		return "", err
+	if err := stmt.QueryRow("avatar_id").Scan(&avatarId); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
 	}
-	return avatarId, nil
+	return &avatarId, nil
 }
 
-func (c *ProfileDB) GetTokens() (tokens *repo.CafeTokens, err error) {
+func (c *ProfileDB) GetTokens() (*repo.CafeTokens, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	var stmt *sql.Stmt
-	stmt, err = c.db.Prepare("select value from profile where key=?")
+	stmt, err := c.db.Prepare("select value from profile where key=?")
 	if err != nil {
-		return
+		return nil, err
 	}
 	defer stmt.Close()
-	defer func() {
-		if recover() != nil {
-			log.Warning("get tokens recovered")
-		}
-	}()
 	var accessToken, refreshToken string
-	err = stmt.QueryRow("access").Scan(&accessToken)
-	if err != nil {
-		return
+	if err := stmt.QueryRow("access").Scan(&accessToken); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
 	}
-	err = stmt.QueryRow("refresh").Scan(&refreshToken)
-	if err != nil {
-		return
+	if err := stmt.QueryRow("refresh").Scan(&refreshToken); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
 	}
-	tokens = &repo.CafeTokens{Access: accessToken, Refresh: refreshToken}
-	return
+	return &repo.CafeTokens{Access: accessToken, Refresh: refreshToken}, nil
 }

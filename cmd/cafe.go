@@ -28,6 +28,10 @@ func CafeReferral(c *ishell.Context) {
 	}
 	username, err := core.Node.Wallet.GetUsername()
 	if err != nil {
+		c.Err(err)
+		return
+	}
+	if username == nil {
 		c.Err(errors.New("not logged in"))
 		return
 	}
@@ -35,7 +39,7 @@ func CafeReferral(c *ishell.Context) {
 		Key:         key,
 		Count:       count,
 		Limit:       limit,
-		RequestedBy: username,
+		RequestedBy: *username,
 	}
 	res, err := core.Node.Wallet.CreateReferral(req)
 	if err != nil {

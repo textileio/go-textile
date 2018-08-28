@@ -161,6 +161,7 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 		}
 
 		// add comments
+		item.Comments = make([]Comment, 0)
 		ctype := repo.CommentBlock
 		for _, c := range thrd.Blocks("", -1, &ctype, &b.Id) {
 			authorId, err := util.IdFromEncodedPublicKey(c.AuthorPk)
@@ -192,6 +193,7 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 		}
 
 		// add likes
+		item.Likes = make([]Like, 0)
 		ltype := repo.LikeBlock
 		for _, l := range thrd.Blocks("", -1, &ltype, &b.Id) {
 			authorId, err := util.IdFromEncodedPublicKey(l.AuthorPk)

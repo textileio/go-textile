@@ -50,7 +50,7 @@ type Config struct {
 	Send          func(message *pb.Envelope, peerId string, hash *string) error
 	NewEnvelope   func(message *pb.Message) (*pb.Envelope, error)
 	PutPinRequest func(id string) error
-	GetUsername   func() string
+	GetUsername   func() (*string, error)
 	SendUpdate    func(update Update)
 }
 
@@ -70,7 +70,7 @@ type Thread struct {
 	send          func(message *pb.Envelope, peerId string, hash *string) error
 	newEnvelope   func(message *pb.Message) (*pb.Envelope, error)
 	putPinRequest func(id string) error
-	getUsername   func() string
+	getUsername   func() (*string, error)
 	sendUpdate    func(update Update)
 	mux           sync.Mutex
 }
@@ -306,9 +306,12 @@ func (t *Thread) newBlockHeader() (*pb.ThreadBlockHeader, error) {
 
 	// encrypt our own username with thread pk
 	var authorUnCipher []byte
-	authorUn := t.getUsername()
-	if authorUn != "" {
-		authorUnCipher, err = t.Encrypt([]byte(authorUn))
+	authorUn, err := t.getUsername()
+	if err != nil {
+		return nil, err
+	}
+	if authorUn != nil {
+		authorUnCipher, err = t.Encrypt([]byte(*authorUn))
 		if err != nil {
 			return nil, err
 		}
