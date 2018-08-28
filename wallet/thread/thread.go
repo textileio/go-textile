@@ -306,10 +306,7 @@ func (t *Thread) newBlockHeader() (*pb.ThreadBlockHeader, error) {
 
 	// encrypt our own username with thread pk
 	var authorUnCipher []byte
-	authorUn, err := t.getUsername()
-	if err != nil {
-		return nil, err
-	}
+	authorUn, _ := t.getUsername()
 	if authorUn != nil {
 		authorUnCipher, err = t.Encrypt([]byte(*authorUn))
 		if err != nil {
