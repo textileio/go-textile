@@ -550,11 +550,8 @@ func (w *Wallet) loadThread(mod *repo.Thread) (*thread.Thread, error) {
 		Send:          w.SendMessage,
 		NewEnvelope:   w.NewEnvelope,
 		PutPinRequest: w.putPinRequest,
-		GetUsername: func() string {
-			username, _ := w.GetUsername()
-			return username
-		},
-		SendUpdate: w.sendThreadUpdate,
+		GetUsername:   w.GetUsername,
+		SendUpdate:    w.sendThreadUpdate,
 	}
 	thrd, err := thread.NewThread(mod, threadConfig)
 	if err != nil {

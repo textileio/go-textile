@@ -32,7 +32,7 @@ func TestProfileDB_GetUsername(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if un != "woohoo!" {
+	if *un != "woohoo!" {
 		t.Error("got bad username")
 	}
 }
@@ -50,7 +50,7 @@ func TestProfileDB_GetAvatarId(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if av != "/ipfs/Qm..." {
+	if *av != "/ipfs/Qm..." {
 		t.Error("got bad avatar id")
 	}
 }
@@ -72,13 +72,15 @@ func TestProfileDB_GetTokens(t *testing.T) {
 }
 
 func TestProfileDB_SignOut(t *testing.T) {
-	err := pdb.SignOut()
-	if err != nil {
+	if err := pdb.SignOut(); err != nil {
 		t.Error(err)
 		return
 	}
-	_, err = pdb.GetTokens()
-	if err == nil {
-		t.Error("signed out but username still present")
+	tokens, err := pdb.GetTokens()
+	if err != nil {
+		t.Error(err)
+	}
+	if tokens != nil {
+		t.Error("signed out but tokens still present")
 	}
 }
