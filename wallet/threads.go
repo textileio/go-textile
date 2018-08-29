@@ -55,24 +55,6 @@ func (w *Wallet) AddThread(name string, secret libp2pc.PrivKey, join bool) (*thr
 	return thrd, nil
 }
 
-// AddThreadWithMnemonic adds a thread with a given name and mnemonic phrase
-func (w *Wallet) AddThreadWithMnemonic(name string, mnemonic *string, join bool) (*thread.Thread, string, error) {
-	if mnemonic != nil {
-		log.Debugf("regenerating keypair from mnemonic for: %s", name)
-	} else {
-		log.Debugf("generating keypair for: %s", name)
-	}
-	secret, mnem, err := util.PrivKeyFromMnemonic(mnemonic)
-	if err != nil {
-		return nil, "", err
-	}
-	thrd, err := w.AddThread(name, secret, join)
-	if err != nil {
-		return nil, "", err
-	}
-	return thrd, mnem, nil
-}
-
 // RemoveThread removes a thread
 func (w *Wallet) RemoveThread(id string) (mh.Multihash, error) {
 	if !w.IsOnline() {

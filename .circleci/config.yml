@@ -85,21 +85,54 @@ jobs:
           CAFE_REFERRAL_KEY: woohoo!
 
   build-cli:
-    docker:
-    - image: textile/builder:1.10.3
-    working_directory: /go/src/github.com/textileio/textile-go
+    macos:
+      xcode: "9.4.0"
+    environment:
+      GOPATH: /Users/distiller/go
+    working_directory: ~/go/src/github.com/textileio/textile-go
     steps:
-    - *checkout-linux
-    - *move-linux-src
-    - *restore-linux-dep-cache
-    - *restore-linux-gx-cache
+    - checkout
+    - run:
+        name: install golang
+        command: |
+          brew install golang
+    - run:
+        name: install dep
+        command: brew install dep
+    - run:
+        name: install gx
+        command: |
+          go get -u github.com/whyrusleeping/gx
+          go get -u github.com/whyrusleeping/gx-go
+    - restore_cache:
+        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
+    - restore_cache:
+        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
+    - run:
+        name: install deps
+        command: |
+          dep ensure
+          ~/go/bin/gx install
+    - save_cache:
+        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
+        paths:
+        - ~/go/src/github.com/textileio/textile-go/vendor
+    - save_cache:
+        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
+        paths:
+        - ~/go/src/gx
     - run:
         name: install gox
         command: |
           go get github.com/mitchellh/gox
     - run:
+        name: install mingw-w64
+        command: |
+          brew install mingw-w64
+    - run:
         name: cross-compile
         command: |
+          export PATH=$PATH:$GOPATH/bin
           gox -osarch="linux/amd64 linux/386 linux/arm darwin/amd64" -output="{{.OS}}-{{.Arch}}"
           CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -cgo -osarch="windows/amd64" -output="{{.OS}}-{{.Arch}}"
     - run:
@@ -138,14 +171,25 @@ jobs:
         path: ~/dist/cli
 
   build-desktop:
-    docker:
-    - image: textile/builder:1.10.3
-    working_directory: /go/src/github.com/textileio/textile-go
+    macos:
+      xcode: "9.4.0"
+    environment:
+      GOPATH: /Users/distiller/go
+    working_directory: ~/go/src/github.com/textileio/textile-go
     steps:
-    - *checkout-linux
-    - *move-linux-src
-    - *restore-linux-dep-cache
-    - *restore-linux-gx-cache
+    - checkout
+    - run:
+        name: install golang
+        command: |
+          brew install golang
+    - restore_cache:
+        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
+    - restore_cache:
+        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
+    - run:
+        name: install mingw-w64
+        command: |
+          brew install mingw-w64
     - run:
         name: install astilectron-bundler
         command: |
@@ -153,6 +197,7 @@ jobs:
     - run:
         name: compile
         command: |
+          export PATH=$PATH:$GOPATH/bin
           cd desktop && astilectron-bundler -v
     - run:
         name: collect artifacts
@@ -163,7 +208,7 @@ jobs:
           fi
           OUT=~/dist/desktop
           mkdir -p ${OUT}
-          WD=/go/src/github.com/textileio/textile-go
+          WD=~/go/src/github.com/textileio/textile-go
           cd ${WD}/desktop/output/linux-amd64
           tar -czvf Textile_${VERSION}_linux-amd64.tar.gz Textile
           mv Textile_${VERSION}_linux-amd64.tar.gz ${OUT}/
@@ -183,6 +228,8 @@ jobs:
   build-ios-framework:
     macos:
       xcode: "9.4.0"
+    environment:
+      GOPATH: /Users/distiller/go
     working_directory: ~/go/src/github.com/textileio/textile-go
     steps:
     - checkout
@@ -190,31 +237,10 @@ jobs:
         name: install golang
         command: |
           brew install golang
-    - run:
-        name: install dep
-        command: brew install dep
-    - run:
-        name: install gx
-        command: |
-          go get -u github.com/whyrusleeping/gx
-          go get -u github.com/whyrusleeping/gx-go
     - restore_cache:
         key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
     - restore_cache:
         key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
-    - run:
-        name: install deps
-        command: |
-          dep ensure
-          ~/go/bin/gx install
-    - save_cache:
-        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
-        paths:
-        - ~/go/src/github.com/textileio/textile-go/vendor
-    - save_cache:
-        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
-        paths:
-        - ~/go/src/gx
     - run:
         name: install gomobile
         command: |
@@ -222,7 +248,6 @@ jobs:
     - run:
         name: build ios framework
         command: |
-          export GOPATH=~/go
           export PATH=$PATH:$GOPATH/bin
           gomobile init
           gomobile bind -target=ios/arm64 github.com/textileio/textile-go/mobile
@@ -357,12 +382,14 @@ workflows:
     - build-desktop:
         requires:
         - unit-test
+        - build-cli
         filters:
           tags:
             only: /.*/
     - build-ios-framework:
         requires:
         - unit-test
+        - build-cli
         filters:
           tags:
             only: /.*/

@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin/render"
 	"github.com/textileio/textile-go/crypto"
 	"net/http"
+	"strings"
 )
 
 // StartGateway starts the gateway
@@ -152,12 +153,36 @@ func profileHandler(c *gin.Context) {
 			fallback, _ := c.GetQuery("fallback")
 			if fallback == "true" {
 				location = fmt.Sprintf("https://avatars.dicebear.com/v2/identicon/%s.svg", c.Param("root"))
+				c.Redirect(307, location)
+				return
 			} else {
 				c.Status(404)
 				return
 			}
 		}
-		c.Redirect(307, location)
+
+		// parse ipfs link, must have key present
+		parsed := strings.Split(location, "?key=")
+		if len(parsed) != 2 {
+			log.Errorf("invalid raw avatar path: %s", location)
+			c.Status(404)
+			return
+		}
+		cipher, err := Node.Wallet.GetDataAtPath(parsed[0])
+		if err != nil {
+			log.Errorf("error getting raw avatar path %s: %s", parsed[0], err)
+			c.Status(404)
+			return
+		}
+		data, err = crypto.DecryptAES(cipher, []byte(parsed[1]))
+		if err != nil {
+			log.Errorf("error decrypting %s: %s", parsed[0], err)
+			c.Status(404)
+			return
+		}
+
+		c.Header("Content-Type", "image/jpeg")
+		c.Header("Cache-Control", "public, max-age=172800") // 2 days
 	}
 
 	c.Render(200, render.Data{Data: data})

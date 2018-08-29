@@ -183,7 +183,10 @@ func (w *Wallet) IsSignedIn() (bool, error) {
 		return false, err
 	}
 	tokens, err := w.datastore.Profile().GetTokens()
-	return err == nil && tokens != nil, nil
+	if err != nil {
+		return false, err
+	}
+	return tokens != nil, nil
 }
 
 // GetAccessToken returns the current access_token (jwt) for a cafe
@@ -198,23 +201,23 @@ func (w *Wallet) GetTokens() (*repo.CafeTokens, error) {
 }
 
 // GetUsername returns the current user's username
-func (w *Wallet) GetUsername() (string, error) {
+func (w *Wallet) GetUsername() (*string, error) {
 	if w.cafeAddr == "" {
-		return "", ErrNoCafeHost
+		return nil, ErrNoCafeHost
 	}
 	if err := w.touchDatastore(); err != nil {
-		return "", err
+		return nil, err
 	}
 	return w.datastore.Profile().GetUsername()
 }
 
 // GetAvatarId returns the current user's avatar id, which will be the id of a photo
-func (w *Wallet) GetAvatarId() (string, error) {
+func (w *Wallet) GetAvatarId() (*string, error) {
 	if w.cafeAddr == "" {
-		return "", ErrNoCafeHost
+		return nil, ErrNoCafeHost
 	}
 	if err := w.touchDatastore(); err != nil {
-		return "", err
+		return nil, err
 	}
 	return w.datastore.Profile().GetAvatarId()
 }
@@ -266,15 +269,28 @@ func (w *Wallet) SetAvatarId(id string) error {
 
 // GetProfile return a model representation of a peer profile
 func (w *Wallet) GetProfile(peerId string) (*Profile, error) {
+	profile := &Profile{Id: peerId}
 	// if peer id is local, return profile from db
 	pid, err := w.GetId()
 	if err != nil {
 		return nil, err
 	}
 	if pid == peerId {
-		username, _ := w.GetUsername()
-		avatarId, _ := w.GetAvatarId()
-		return &Profile{Id: pid, Username: username, AvatarId: avatarId}, nil
+		username, err := w.GetUsername()
+		if err != nil {
+			return nil, err
+		}
+		if username != nil {
+			profile.Username = *username
+		}
+		avatarId, err := w.GetAvatarId()
+		if err != nil {
+			return nil, err
+		}
+		if avatarId != nil {
+			profile.AvatarId = *avatarId
+		}
+		return profile, nil
 	}
 
 	// resolve profile at peer id
@@ -287,14 +303,14 @@ func (w *Wallet) GetProfile(peerId string) (*Profile, error) {
 	// get components from entry
 	var usernameb, avatarIdb []byte
 	usernameb, _ = util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/%s", root, "username"))
+	if usernameb != nil {
+		profile.Username = string(usernameb)
+	}
 	avatarIdb, _ = util.GetDataAtPath(w.ipfs, fmt.Sprintf("%s/%s", root, "avatar_id"))
-	avatarId := string(avatarIdb)
-
-	return &Profile{
-		Id:       peerId,
-		Username: string(usernameb),
-		AvatarId: avatarId,
-	}, nil
+	if avatarIdb != nil {
+		profile.AvatarId = string(avatarIdb)
+	}
+	return profile, nil
 }
 
 // ResolveProfile looks up a peer's profile on ipns

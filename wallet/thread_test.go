@@ -1,9 +1,11 @@
 package wallet_test
 
 import (
+	"crypto/rand"
 	. "github.com/textileio/textile-go/wallet"
 	"github.com/textileio/textile-go/wallet/thread"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"os"
 	"testing"
 )
@@ -25,6 +27,7 @@ func Test_SetupThread(t *testing.T) {
 	twallet, _, err = NewWallet(wconfig)
 	if err != nil {
 		t.Errorf("create wallet failed: %s", err)
+		return
 	}
 	if err := twallet.Start(); err != nil {
 		t.Errorf("start wallet failed: %s", err)
@@ -32,8 +35,12 @@ func Test_SetupThread(t *testing.T) {
 }
 
 func TestNewThread_WalletOffline(t *testing.T) {
-	var err error
-	thrd, _, err = twallet.AddThreadWithMnemonic("thread1", nil, true)
+	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	thrd, err = twallet.AddThread("thread1", sk, true)
 	if err != nil {
 		t.Errorf("create thread while offline failed: %s", err)
 	}
@@ -41,8 +48,12 @@ func TestNewThread_WalletOffline(t *testing.T) {
 
 func TestNewThread_WalletOnline(t *testing.T) {
 	<-twallet.Online()
-	var err error
-	_, _, err = twallet.AddThreadWithMnemonic("thread2", nil, true)
+	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	_, err = twallet.AddThread("thread2", sk, true)
 	if err != nil {
 		t.Errorf("create thread while online failed: %s", err)
 	}

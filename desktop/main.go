@@ -147,7 +147,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 					username = notification.ActorId
 				}
 				var note = a.NewNotification(&astilectron.NotificationOptions{
-					Title: "#" + notification.Subject,
+					Title: notification.Subject,
 					Body:  fmt.Sprintf("%s %s.", username, notification.Body),
 					Icon:  "/resources/icon.png",
 				})

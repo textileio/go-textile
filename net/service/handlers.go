@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
@@ -330,7 +331,11 @@ func (s *TextileService) handleThreadAnnotation(pid peer.ID, pmes *pb.Envelope, 
 		if err != nil {
 			return nil, err
 		}
-		notification.Body = "commented on " + target
+		body, err := thrd.Decrypt(annotation.CaptionCipher)
+		if err != nil {
+			return nil, err
+		}
+		notification.Body = fmt.Sprintf("commented on %s: \"%s\"", target, string(body))
 	case pb.ThreadAnnotation_LIKE:
 		notification, err = buildNotification(thrd.PrivKey, annotation.Header, repo.LikeAddedNotification)
 		if err != nil {

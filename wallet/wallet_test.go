@@ -167,10 +167,6 @@ func TestWallet_AddThread(t *testing.T) {
 	}
 }
 
-func TestWallet_AddThreadWithMnemonic(t *testing.T) {
-	// TODO
-}
-
 func TestWallet_RemoveThread(t *testing.T) {
 	// TODO
 }
