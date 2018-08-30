@@ -144,6 +144,17 @@ func (w *Wallet) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
 	if err != nil {
 		return nil, err
 	}
+	pkb, err := sk.GetPublic().Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	// ensure we dont already have this thread
+	id := libp2pc.ConfigEncodeKey(pkb)
+	if _, thrd := w.GetThread(id); thrd != nil {
+		// thread exists, aborting
+		return nil, nil
+	}
 
 	// verify thread sig
 	if err := crypto.Verify(sk.GetPublic(), signed.Block, signed.ThreadSig); err != nil {
@@ -219,6 +230,17 @@ func (w *Wallet) AcceptExternalThreadInvite(blockId string, key []byte) (mh.Mult
 	sk, err := libp2pc.UnmarshalPrivateKey(skb)
 	if err != nil {
 		return nil, err
+	}
+	pkb, err := sk.GetPublic().Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	// ensure we dont already have this thread
+	id := libp2pc.ConfigEncodeKey(pkb)
+	if _, thrd := w.GetThread(id); thrd != nil {
+		// thread exists, aborting
+		return nil, nil
 	}
 
 	// verify thread sig
