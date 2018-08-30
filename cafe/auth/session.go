@@ -1,53 +1,53 @@
 package auth
 
 import (
+	"encoding/json"
+	"errors"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/cafe/models"
 	"time"
 )
 
-type textileClaims struct {
-	Scope scope `json:"scopes"`
+var ErrInvalidClaims = errors.New("invalid claims")
+
+type TextileClaims struct {
+	Scope Scope `json:"scopes"`
 	jwt.StandardClaims
 }
 
-type scope string
+type Scope string
 
 const (
-	access  scope = "access"
-	refresh scope = "refresh"
+	Access  Scope = "access"
+	Refresh Scope = "refresh"
 )
 
-const (
-	week  = time.Hour * 24 * 7
-	month = week * 4
-)
-
-func NewSession(subject string, secret string, issuer string) (*models.Session, error) {
+func NewSession(subject string, secret string, issuer string, duration time.Duration) (*models.Session, error) {
 	id := ksuid.New().String()
-	expiresAt := time.Now().Add(month * 3)
-	access, err := NewToken(id, subject, expiresAt, access, secret, issuer)
+	now := time.Now()
+	expiresAt := now.Add(duration)
+	accessToken, err := NewToken(id, subject, expiresAt, Access, secret, issuer)
 	if err != nil {
 		return nil, err
 	}
-	refreshExpiresAt := time.Now().Add(month * 6)
-	refresh, err := NewToken("r"+id, subject, refreshExpiresAt, refresh, secret, issuer)
+	refreshExpiresAt := now.Add(duration * 2)
+	refreshToken, err := NewToken("r"+id, subject, refreshExpiresAt, Refresh, secret, issuer)
 	if err != nil {
 		return nil, err
 	}
 	return &models.Session{
-		AccessToken:      access,
+		AccessToken:      accessToken,
 		ExpiresAt:        expiresAt.Unix(),
-		RefreshToken:     refresh,
+		RefreshToken:     refreshToken,
 		RefreshExpiresAt: refreshExpiresAt.Unix(),
 		SubjectId:        subject,
 		TokenType:        "JWT",
 	}, nil
 }
 
-func NewToken(id string, subject string, expiry time.Time, scope scope, secret string, issuer string) (string, error) {
-	claims := &textileClaims{
+func NewToken(id string, subject string, expiry time.Time, scope Scope, secret string, issuer string) (string, error) {
+	claims := &TextileClaims{
 		Scope: scope,
 		StandardClaims: jwt.StandardClaims{
 			Audience:  "/textile/app/1.0.0",
@@ -59,4 +59,20 @@ func NewToken(id string, subject string, expiry time.Time, scope scope, secret s
 		},
 	}
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secret))
+}
+
+func ParseClaims(claims jwt.Claims) (*TextileClaims, error) {
+	mapClaims, ok := claims.(jwt.MapClaims)
+	if !ok {
+		return nil, ErrInvalidClaims
+	}
+	claimsb, err := json.Marshal(mapClaims)
+	if err != nil {
+		return nil, ErrInvalidClaims
+	}
+	var tclaims *TextileClaims
+	if err := json.Unmarshal(claimsb, &tclaims); err != nil {
+		return nil, ErrInvalidClaims
+	}
+	return tclaims, nil
 }

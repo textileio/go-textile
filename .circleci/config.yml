@@ -82,6 +82,7 @@ jobs:
           CAFE_ADDR: http://0.0.0.0:8000
           CAFE_DB_HOSTS: 0.0.0.0:27017
           CAFE_DB_NAME: textile_db
+          CAFE_TOKEN_SECRET: swarmmmmm
           CAFE_REFERRAL_KEY: woohoo!
 
   build-cli:
