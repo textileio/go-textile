@@ -6,6 +6,7 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/cafe/auth"
 	"github.com/textileio/textile-go/cafe/models"
+	"github.com/textileio/textile-go/net/service"
 	util "github.com/textileio/textile-go/util/testing"
 	"testing"
 	"time"
@@ -78,7 +79,7 @@ func TestTokens_Refresh(t *testing.T) {
 }
 
 func TestTokens_RefreshBadSignature(t *testing.T) {
-	session, err := auth.NewSession("abc", "bad", claims.Issuer, time.Hour)
+	session, err := auth.NewSession("abc", "bad", claims.Issuer, service.TextileProtocol, time.Hour)
 	if err != nil {
 		t.Error(err)
 		return
@@ -93,8 +94,8 @@ func TestTokens_RefreshBadSignature(t *testing.T) {
 	}
 }
 
-func TestTokens_RefreshBadIssuer(t *testing.T) {
-	session, err := auth.NewSession("abc", util.CafeTokenSecret, "trust_me", time.Hour)
+func TestTokens_RefreshBadAudience(t *testing.T) {
+	session, err := auth.NewSession("abc", util.CafeTokenSecret, claims.Issuer, "trust_us", time.Hour)
 	if err != nil {
 		t.Error(err)
 		return
@@ -110,7 +111,7 @@ func TestTokens_RefreshBadIssuer(t *testing.T) {
 }
 
 func TestTokens_RefreshExpired(t *testing.T) {
-	session, err := auth.NewSession("abc", util.CafeTokenSecret, claims.Issuer, 0)
+	session, err := auth.NewSession("abc", util.CafeTokenSecret, claims.Issuer, service.TextileProtocol, 0)
 	if err != nil {
 		t.Error(err)
 		return
