@@ -128,6 +128,7 @@ func Pin(ipfs *core.IpfsNode, id string, tokens *repo.CafeTokens, url string) er
 	if tokens == nil {
 		return errors.New("pin attempted without tokens")
 	}
+
 	// load local content
 	cType := "application/octet-stream"
 	var reader io.Reader
