@@ -8,6 +8,7 @@ import (
 	"github.com/textileio/textile-go/cafe/auth"
 	"github.com/textileio/textile-go/cafe/dao"
 	"github.com/textileio/textile-go/cafe/models"
+	"github.com/textileio/textile-go/net/service"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"regexp"
@@ -101,7 +102,7 @@ func (c *Cafe) signUp(g *gin.Context) {
 	}
 
 	// get a session
-	session, err := auth.NewSession(user.ID.Hex(), c.TokenSecret, c.Ipfs().Identity.Pretty(), month)
+	session, err := auth.NewSession(user.ID.Hex(), c.TokenSecret, c.Ipfs().Identity.Pretty(), service.TextileProtocol, month)
 	if err != nil {
 		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -142,7 +143,7 @@ func (c *Cafe) signIn(g *gin.Context) {
 	}
 
 	// get a session
-	session, err := auth.NewSession(user.ID.Hex(), c.TokenSecret, c.Ipfs().Identity.Pretty(), month)
+	session, err := auth.NewSession(user.ID.Hex(), c.TokenSecret, c.Ipfs().Identity.Pretty(), service.TextileProtocol, month)
 	if err != nil {
 		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

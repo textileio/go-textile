@@ -25,7 +25,7 @@ import (
 
 var log = logging.MustGetLogger("service")
 
-var ProtocolTextile protocol.ID = "/textile/app/1.0.0"
+var TextileProtocol protocol.ID = "/textile/app/1.0.0"
 
 type TextileService struct {
 	host      host.Host
@@ -57,8 +57,8 @@ func NewService(
 		notify:    notify,
 		sender:    make(map[peer.ID]*sender),
 	}
-	node.PeerHost.SetStreamHandler(ProtocolTextile, service.HandleNewStream)
-	log.Infof("textile service running at %s", ProtocolTextile)
+	node.PeerHost.SetStreamHandler(TextileProtocol, service.HandleNewStream)
+	log.Infof("textile service running at %s", TextileProtocol)
 	return service
 }
 

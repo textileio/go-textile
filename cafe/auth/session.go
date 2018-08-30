@@ -6,6 +6,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/cafe/models"
+	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"time"
 )
 
@@ -23,16 +24,16 @@ const (
 	Refresh Scope = "refresh"
 )
 
-func NewSession(subject string, secret string, issuer string, duration time.Duration) (*models.Session, error) {
+func NewSession(subject string, secret string, issuer string, audience protocol.ID, duration time.Duration) (*models.Session, error) {
 	id := ksuid.New().String()
 	now := time.Now()
 	expiresAt := now.Add(duration)
-	accessToken, err := NewToken(id, subject, expiresAt, Access, secret, issuer)
+	accessToken, err := NewToken(id, subject, expiresAt, Access, secret, issuer, string(audience))
 	if err != nil {
 		return nil, err
 	}
 	refreshExpiresAt := now.Add(duration * 2)
-	refreshToken, err := NewToken("r"+id, subject, refreshExpiresAt, Refresh, secret, issuer)
+	refreshToken, err := NewToken("r"+id, subject, refreshExpiresAt, Refresh, secret, issuer, string(audience))
 	if err != nil {
 		return nil, err
 	}
@@ -46,11 +47,11 @@ func NewSession(subject string, secret string, issuer string, duration time.Dura
 	}, nil
 }
 
-func NewToken(id string, subject string, expiry time.Time, scope Scope, secret string, issuer string) (string, error) {
+func NewToken(id string, subject string, expiry time.Time, scope Scope, secret string, issuer string, audience string) (string, error) {
 	claims := &TextileClaims{
 		Scope: scope,
 		StandardClaims: jwt.StandardClaims{
-			Audience:  "/textile/app/1.0.0",
+			Audience:  audience,
 			ExpiresAt: expiry.Unix(),
 			Id:        id,
 			IssuedAt:  time.Now().Unix(),

@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/textileio/textile-go/cafe/auth"
 	"github.com/textileio/textile-go/cafe/models"
+	"github.com/textileio/textile-go/net/service"
 	"net/http"
 	"strings"
 	"time"
@@ -62,11 +63,7 @@ func (c *Cafe) auth(g *gin.Context) {
 	}
 
 	// verify extra fields
-	if !claims.VerifyIssuer(c.Ipfs().Identity.Pretty(), true) {
-		g.AbortWithError(403, auth.ErrInvalidClaims)
-		return
-	}
-	if !claims.VerifyAudience("/textile/app/1.0.0", true) {
+	if !claims.VerifyAudience(string(service.TextileProtocol), true) {
 		g.AbortWithError(403, auth.ErrInvalidClaims)
 		return
 	}
@@ -117,7 +114,7 @@ func (c *Cafe) refreshToken(g *gin.Context) {
 	}
 
 	// get a new session
-	refreshed, err := auth.NewSession(session.SubjectId, c.TokenSecret, c.Ipfs().Identity.Pretty(), month)
+	refreshed, err := auth.NewSession(session.SubjectId, c.TokenSecret, c.Ipfs().Identity.Pretty(), service.TextileProtocol, month)
 	if err != nil {
 		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
