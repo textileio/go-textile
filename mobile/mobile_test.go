@@ -113,7 +113,7 @@ func TestMobile_GetUsername(t *testing.T) {
 }
 
 func TestMobile_GetTokens(t *testing.T) {
-	if _, err := mobile.GetTokens(); err != nil {
+	if _, err := mobile.GetTokens(false); err != nil {
 		t.Errorf("get access token failed: %s", err)
 	}
 }
