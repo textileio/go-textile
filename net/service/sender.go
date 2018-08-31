@@ -102,7 +102,7 @@ func (ms *sender) prep() error {
 		return nil
 	}
 
-	nstr, err := ms.service.host.NewStream(ms.service.ctx, ms.p, ProtocolTextile)
+	nstr, err := ms.service.host.NewStream(ms.service.ctx, ms.p, TextileProtocol)
 	if err != nil {
 		return err
 	}

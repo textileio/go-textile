@@ -291,6 +291,11 @@ func main() {
 				Func: cmd.CafeStatus,
 			})
 			cafeCmd.AddCmd(&ishell.Cmd{
+				Name: "tokens",
+				Help: "cafe tokens",
+				Func: cmd.CafeTokens,
+			})
+			cafeCmd.AddCmd(&ishell.Cmd{
 				Name: "logout",
 				Help: "cafe logout",
 				Func: cmd.CafeLogout,

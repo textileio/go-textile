@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/textileio/textile-go/repo"
 	"sync"
+	"time"
 )
 
 type ProfileDB struct {
@@ -38,6 +39,11 @@ func (c *ProfileDB) SignIn(username string, tokens *repo.CafeTokens) error {
 		return err
 	}
 	_, err = stmt.Exec("refresh", tokens.Refresh)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	_, err = stmt.Exec("expiry", int(tokens.Expiry.Unix()))
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -131,6 +137,7 @@ func (c *ProfileDB) GetTokens() (*repo.CafeTokens, error) {
 	}
 	defer stmt.Close()
 	var accessToken, refreshToken string
+	var expiryInt int
 	if err := stmt.QueryRow("access").Scan(&accessToken); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -143,5 +150,47 @@ func (c *ProfileDB) GetTokens() (*repo.CafeTokens, error) {
 		}
 		return nil, err
 	}
-	return &repo.CafeTokens{Access: accessToken, Refresh: refreshToken}, nil
+	if err := stmt.QueryRow("expiry").Scan(&expiryInt); err != nil {
+		if err == sql.ErrNoRows {
+			expiryInt = 0
+		} else {
+			return nil, err
+		}
+	}
+	return &repo.CafeTokens{
+		Access:  accessToken,
+		Refresh: refreshToken,
+		Expiry:  time.Unix(int64(expiryInt), 0),
+	}, nil
+}
+
+func (c *ProfileDB) UpdateTokens(tokens *repo.CafeTokens) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	tx, err := c.db.Begin()
+	if err != nil {
+		return err
+	}
+	stmt, err := tx.Prepare("insert or replace into profile(key, value) values(?,?)")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec("access", tokens.Access)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	_, err = stmt.Exec("refresh", tokens.Refresh)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	_, err = stmt.Exec("expiry", int(tokens.Expiry.Unix()))
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+	return nil
 }

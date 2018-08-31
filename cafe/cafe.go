@@ -45,13 +45,15 @@ func (c *Cafe) Start(addr string) {
 
 	// api routes
 	v0 := router.Group("/api/v0")
-	// v0.Use(middleware.Auth(c.TokenSecret))
+	v0.Use(c.auth)
 	{
 		v0.PUT("/users", c.signUp)
 		v0.POST("/users", c.signIn)
 
 		v0.POST("/referrals", c.createReferral)
 		v0.GET("/referrals", c.listReferrals)
+
+		v0.POST("/tokens", c.refreshToken)
 
 		v0.POST("/pin", c.pin)
 	}

@@ -135,6 +135,7 @@ type PinRequest struct {
 }
 
 type CafeTokens struct {
-	Access  string `json:"access"`
-	Refresh string `json:"refresh"`
+	Access  string    `json:"access"`
+	Refresh string    `json:"refresh"`
+	Expiry  time.Time `json:"expiry"`
 }

@@ -9,6 +9,7 @@ import (
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreapi/interface"
 	"io"
+	"net/http"
 	"sync"
 	"time"
 )
@@ -16,21 +17,22 @@ import (
 const kPinFrequency = time.Minute * 10
 const pinGroupSize = 5
 
-var errPinRequestEmpty = errors.New("pin request empty response")
-var errPinRequestMismatch = errors.New("pin request content id mismatch")
+var ErrTokenExpired = errors.New("token expired")
+var ErrPinRequestEmpty = errors.New("pin request empty response")
+var ErrPinRequestMismatch = errors.New("pin request content id mismatch")
 
 type PinnerConfig struct {
 	Datastore repo.Datastore
 	Ipfs      func() *core.IpfsNode
 	Url       string
-	Tokens    *repo.CafeTokens
+	GetTokens func(bool) (*repo.CafeTokens, error)
 }
 
 type Pinner struct {
 	datastore repo.Datastore
 	ipfs      func() *core.IpfsNode
 	url       string
-	Tokens    *repo.CafeTokens
+	getTokens func(bool) (*repo.CafeTokens, error)
 	mux       sync.Mutex
 }
 
@@ -39,7 +41,7 @@ func NewPinner(config *PinnerConfig) *Pinner {
 		datastore: config.Datastore,
 		ipfs:      config.Ipfs,
 		url:       config.Url,
-		Tokens:    config.Tokens,
+		getTokens: config.GetTokens,
 	}
 }
 
@@ -63,12 +65,19 @@ func (p *Pinner) Pin() {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
-	// check tokens
-	if p.Tokens == nil {
+	// get tokens
+	tokens, err := p.getTokens(false)
+	if err != nil {
+		log.Errorf("pinner get tokens error: %s", err)
+		return
+	}
+	if tokens == nil {
 		return
 	}
 
-	if err := p.handlePin(""); err != nil {
+	// start at no offset
+	if err := p.handlePins(p.datastore.PinRequests().List("", pinGroupSize), tokens); err != nil {
+		log.Errorf("pin error: %s", err)
 		return
 	}
 }
@@ -85,21 +94,24 @@ func (p *Pinner) Put(id string) error {
 	return nil
 }
 
-func (p *Pinner) handlePin(offset string) error {
-	// get pending pin list
-	prs := p.datastore.PinRequests().List(offset, pinGroupSize)
-	if len(prs) == 0 {
+func (p *Pinner) handlePins(pins []repo.PinRequest, tokens *repo.CafeTokens) error {
+	if len(pins) == 0 {
 		return nil
 	}
 
 	// process them
+	var expired bool
 	var toDelete []string
 	wg := sync.WaitGroup{}
-	for _, r := range prs {
+	for _, r := range pins {
 		wg.Add(1)
 		go func(pr repo.PinRequest) {
-			if err := p.send(pr); err != nil {
-				log.Errorf("pin request %s failed: %s", pr.Id, err)
+			if err := p.send(pr, tokens); err != nil {
+				if err == ErrTokenExpired {
+					expired = true
+				} else {
+					log.Errorf("pin request %s failed: %s", pr.Id, err)
+				}
 			} else {
 				toDelete = append(toDelete, pr.Id)
 			}
@@ -107,7 +119,21 @@ func (p *Pinner) handlePin(offset string) error {
 		}(r)
 	}
 	wg.Wait()
+
+	// check expired
+	if expired {
+		if _, err := p.getTokens(true); err != nil {
+			return err
+		}
+		p.Pin()
+		return nil
+	}
+
 	log.Debugf("handled %d pin requests, deleting...", len(toDelete))
+
+	// next batch
+	offset := pins[len(pins)-1].Id
+	next := p.datastore.PinRequests().List(offset, pinGroupSize)
 
 	// clean up
 	for _, id := range toDelete {
@@ -117,17 +143,18 @@ func (p *Pinner) handlePin(offset string) error {
 	}
 
 	// keep going
-	return p.handlePin(prs[len(prs)-1].Id)
+	return p.handlePins(next, tokens)
 }
 
-func (p *Pinner) send(pr repo.PinRequest) error {
-	return Pin(p.ipfs(), pr.Id, p.Tokens, p.url)
+func (p *Pinner) send(pr repo.PinRequest, tokens *repo.CafeTokens) error {
+	return Pin(p.ipfs(), pr.Id, tokens, p.url)
 }
 
 func Pin(ipfs *core.IpfsNode, id string, tokens *repo.CafeTokens, url string) error {
 	if tokens == nil {
 		return errors.New("pin attempted without tokens")
 	}
+
 	// load local content
 	cType := "application/octet-stream"
 	var reader io.Reader
@@ -151,14 +178,17 @@ func Pin(ipfs *core.IpfsNode, id string, tokens *repo.CafeTokens, url string) er
 	if err != nil {
 		return err
 	}
+	if res.Status == http.StatusUnauthorized {
+		return ErrTokenExpired
+	}
 	if res.Error != nil {
 		return errors.New(*res.Error)
 	}
 	if res.Id == nil {
-		return errPinRequestEmpty
+		return ErrPinRequestEmpty
 	}
 	if *res.Id != id {
-		return errPinRequestMismatch
+		return ErrPinRequestMismatch
 	}
 	return nil
 }
