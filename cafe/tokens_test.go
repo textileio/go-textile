@@ -63,7 +63,7 @@ func TestTokens_Setup(t *testing.T) {
 }
 
 func TestTokens_Refresh(t *testing.T) {
-	stat, res, err := util.Refresh(session)
+	stat, res, err := util.Refresh(session.AccessToken, session.RefreshToken)
 	if err != nil {
 		t.Error(err)
 		return
@@ -84,7 +84,7 @@ func TestTokens_RefreshBadSignature(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	stat, _, err := util.Refresh(session)
+	stat, _, err := util.Refresh(session.AccessToken, session.RefreshToken)
 	if err != nil {
 		t.Error(err)
 		return
@@ -100,7 +100,23 @@ func TestTokens_RefreshBadAudience(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	stat, _, err := util.Refresh(session)
+	stat, _, err := util.Refresh(session.AccessToken, session.RefreshToken)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if stat != 403 {
+		t.Errorf("got bad status: %d", stat)
+	}
+}
+
+func TestTokens_RefreshWrongToken(t *testing.T) {
+	session, err := auth.NewSession("abc", util.CafeTokenSecret, claims.Issuer, service.TextileProtocol, time.Hour)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	stat, _, err := util.Refresh(session.AccessToken, session.AccessToken)
 	if err != nil {
 		t.Error(err)
 		return
@@ -117,7 +133,7 @@ func TestTokens_RefreshExpired(t *testing.T) {
 		return
 	}
 	time.Sleep(time.Second)
-	stat, _, err := util.Refresh(session)
+	stat, _, err := util.Refresh(session.AccessToken, session.RefreshToken)
 	if err != nil {
 		t.Error(err)
 		return

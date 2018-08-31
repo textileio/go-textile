@@ -191,10 +191,26 @@ func (w *Wallet) Start() error {
 
 		// set offline message storage
 		w.messageStorage = storage.NewCafeStorage(w.ipfs, w.repoPath, func(id *cid.Cid) error {
-			if w.pinner == nil || w.pinner.Tokens == nil {
+			if w.pinner == nil {
 				return nil
 			}
-			return net.Pin(w.ipfs, id.Hash().B58String(), w.pinner.Tokens, w.pinner.Url())
+			tokens, err := w.GetTokens(false)
+			if err != nil {
+				return err
+			}
+			hash := id.Hash().B58String()
+			if err := net.Pin(w.ipfs, hash, tokens, w.pinner.Url()); err != nil {
+				if err == net.ErrTokenExpired {
+					tokens, err := w.GetTokens(true)
+					if err != nil {
+						return err
+					}
+					return net.Pin(w.ipfs, hash, tokens, w.pinner.Url())
+				} else {
+					return err
+				}
+			}
+			return nil
 		})
 
 		// service is now configurable
@@ -231,14 +247,13 @@ func (w *Wallet) Start() error {
 
 	// build a pin requester
 	if w.GetCafeApiAddr() != "" {
-		tokens, _ := w.GetTokens()
 		pinnerCfg := &net.PinnerConfig{
 			Datastore: w.datastore,
 			Ipfs: func() *core.IpfsNode {
 				return w.ipfs
 			},
-			Url:    fmt.Sprintf("%s/pin", w.GetCafeApiAddr()),
-			Tokens: tokens,
+			Url:       fmt.Sprintf("%s/pin", w.GetCafeApiAddr()),
+			GetTokens: w.GetTokens,
 		}
 		w.pinner = net.NewPinner(pinnerCfg)
 
