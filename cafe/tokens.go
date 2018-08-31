@@ -6,10 +6,17 @@ import (
 	"github.com/textileio/textile-go/cafe/auth"
 	"github.com/textileio/textile-go/cafe/models"
 	"github.com/textileio/textile-go/net/service"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 )
+
+var errForbidden = "forbidden"
+var forbiddenResponse = models.Response{
+	Status: http.StatusForbidden,
+	Error:  &errForbidden,
+}
 
 func (c *Cafe) verify(token *jwt.Token) (interface{}, error) {
 	return []byte(c.TokenSecret), nil
@@ -33,7 +40,7 @@ func (c *Cafe) auth(g *gin.Context) {
 	// pull out claims
 	claims, err := auth.ParseClaims(token.Claims)
 	if err != nil {
-		g.AbortWithError(403, err)
+		g.JSON(http.StatusForbidden, forbiddenResponse)
 		return
 	}
 
@@ -41,80 +48,87 @@ func (c *Cafe) auth(g *gin.Context) {
 	if pErr != nil {
 		if !claims.VerifyExpiresAt(time.Now().Unix(), true) {
 			// 401 indicates a retry is expected after a token refresh
-			g.AbortWithError(401, auth.ErrInvalidClaims)
+			g.JSON(http.StatusUnauthorized, models.Response{
+				Status: http.StatusUnauthorized,
+			})
 			return
 		}
-		g.AbortWithError(403, pErr)
+		g.JSON(http.StatusForbidden, forbiddenResponse)
 		return
 	}
 
 	// check scope
+	tokenRoute := strings.Contains(g.Request.URL.Path, "/tokens")
 	switch claims.Scope {
 	case auth.Access:
-		break
+		if tokenRoute {
+			g.JSON(http.StatusForbidden, forbiddenResponse)
+			return
+		}
 	case auth.Refresh:
-		if g.Request.URL.Path != "/api/v0/tokens" {
-			g.AbortWithError(403, auth.ErrInvalidClaims)
+		if !tokenRoute {
+			g.JSON(http.StatusForbidden, forbiddenResponse)
 			return
 		}
 	default:
-		g.AbortWithError(403, auth.ErrInvalidClaims)
+		g.JSON(http.StatusForbidden, forbiddenResponse)
 		return
 	}
 
 	// verify extra fields
 	if !claims.VerifyAudience(string(service.TextileProtocol), true) {
-		g.AbortWithError(403, auth.ErrInvalidClaims)
+		g.JSON(http.StatusForbidden, forbiddenResponse)
 		return
 	}
 }
 
 func (c *Cafe) refreshToken(g *gin.Context) {
-	var session models.Session
-	if err := g.BindJSON(&session); err != nil {
+	body, err := ioutil.ReadAll(g.Request.Body)
+	if err != nil {
 		g.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	accessToken := string(body)
 
 	// ensure bearer matches payload refresh token
-	var tokenString string
+	var refreshToken string
 	parsed := strings.Split(g.Request.Header.Get("Authorization"), " ")
 	if len(parsed) == 2 {
-		tokenString = parsed[1]
-	}
-	if session.RefreshToken != tokenString {
-		g.AbortWithError(403, auth.ErrInvalidClaims)
-		return
+		refreshToken = parsed[1]
 	}
 
 	// ensure access and token are a valid pair
-	access, _ := jwt.Parse(session.AccessToken, c.verify)
+	access, _ := jwt.Parse(accessToken, c.verify)
 	if access == nil {
-		g.AbortWithError(403, auth.ErrInvalidClaims)
+		g.JSON(http.StatusForbidden, forbiddenResponse)
 		return
 	}
-	refresh, _ := jwt.Parse(session.RefreshToken, c.verify)
+	refresh, _ := jwt.Parse(refreshToken, c.verify)
 	if refresh == nil {
-		g.AbortWithError(403, auth.ErrInvalidClaims)
+		g.JSON(http.StatusForbidden, forbiddenResponse)
 		return
 	}
 	accessClaims, err := auth.ParseClaims(access.Claims)
 	if err != nil {
-		g.AbortWithError(403, err)
+		g.JSON(http.StatusForbidden, forbiddenResponse)
 		return
 	}
 	refreshClaims, err := auth.ParseClaims(refresh.Claims)
 	if err != nil {
-		g.AbortWithError(403, err)
+		g.JSON(http.StatusForbidden, forbiddenResponse)
 		return
 	}
 	if refreshClaims.Id[1:] != accessClaims.Id {
-		g.AbortWithError(403, auth.ErrInvalidClaims)
+		g.JSON(http.StatusForbidden, forbiddenResponse)
+		return
+	}
+	if refreshClaims.Subject != accessClaims.Subject {
+		g.JSON(http.StatusForbidden, forbiddenResponse)
 		return
 	}
 
 	// get a new session
-	refreshed, err := auth.NewSession(session.SubjectId, c.TokenSecret, c.Ipfs().Identity.Pretty(), service.TextileProtocol, month)
+	refreshed, err := auth.NewSession(accessClaims.Subject, c.TokenSecret, c.Ipfs().Identity.Pretty(), service.TextileProtocol, month)
 	if err != nil {
 		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

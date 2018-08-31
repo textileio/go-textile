@@ -19,7 +19,7 @@ var (
 	CafeTokenSecret = os.Getenv("CAFE_TOKEN_SECRET")
 )
 
-func Verify(token *jwt.Token) (interface{}, error) {
+func Verify(_ *jwt.Token) (interface{}, error) {
 	return []byte(CafeTokenSecret), nil
 }
 
@@ -82,15 +82,11 @@ func SignIn(creds interface{}) (int, *models.Response, error) {
 	return res.StatusCode, resp, nil
 }
 
-func Refresh(session *models.Session) (int, *models.Response, error) {
+func Refresh(accessToken string, refreshToken string) (int, *models.Response, error) {
 	url := fmt.Sprintf("%s/api/v0/tokens", CafeAddr)
-	payload, err := json.Marshal(session)
-	if err != nil {
-		return 0, nil, err
-	}
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(accessToken)))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", session.RefreshToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", refreshToken))
 	res, err := client.Do(req)
 	if err != nil {
 		return 0, nil, err
