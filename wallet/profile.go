@@ -12,6 +12,7 @@ import (
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/namesys/opts"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/path"
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
+	"net/http"
 	"time"
 )
 
@@ -95,11 +96,6 @@ func (w *Wallet) SignUp(reg *cmodels.Registration) error {
 		return err
 	}
 
-	// pass tokens to pinner
-	if w.pinner != nil {
-		w.pinner.Tokens = tokens
-	}
-
 	// initial profile publish
 	go func() {
 		<-w.Online()
@@ -136,15 +132,11 @@ func (w *Wallet) SignIn(creds *cmodels.Credentials) error {
 	tokens := &repo.CafeTokens{
 		Access:  res.Session.AccessToken,
 		Refresh: res.Session.RefreshToken,
+		Expiry:  time.Unix(res.Session.ExpiresAt, 0),
 	}
 	if err := w.datastore.Profile().SignIn(creds.Username, tokens); err != nil {
 		log.Errorf("local signin error: %s", err)
 		return err
-	}
-
-	// pass tokens to pinner
-	if w.pinner != nil {
-		w.pinner.Tokens = tokens
 	}
 
 	return nil
@@ -166,11 +158,6 @@ func (w *Wallet) SignOut() error {
 		return err
 	}
 
-	// clear tokens
-	if w.pinner != nil {
-		w.pinner.Tokens = nil
-	}
-
 	return nil
 }
 
@@ -189,15 +176,54 @@ func (w *Wallet) IsSignedIn() (bool, error) {
 	return tokens != nil, nil
 }
 
-// GetAccessToken returns the current access_token (jwt) for a cafe
-func (w *Wallet) GetTokens() (*repo.CafeTokens, error) {
+// GetTokens returns cafe json web tokens, refreshing if needed or if forceRefresh is true
+func (w *Wallet) GetTokens(forceRefresh bool) (*repo.CafeTokens, error) {
 	if w.cafeAddr == "" {
 		return nil, ErrNoCafeHost
 	}
 	if err := w.touchDatastore(); err != nil {
 		return nil, err
 	}
-	return w.datastore.Profile().GetTokens()
+	tokens, err := w.datastore.Profile().GetTokens()
+	if err != nil {
+		return nil, err
+	}
+	if tokens == nil {
+		return nil, nil
+	}
+
+	// check expiry
+	if tokens.Expiry.After(time.Now()) && !forceRefresh {
+		return tokens, nil
+	}
+
+	// remote refresh
+	url := fmt.Sprintf("%s/tokens", w.GetCafeApiAddr())
+	res, err := client.Refresh(tokens.Access, tokens.Refresh, url)
+	if err != nil {
+		log.Errorf("get tokens error: %s", err)
+		return nil, err
+	}
+	if res.Error != nil {
+		log.Errorf("get tokens error from cafe: %s", *res.Error)
+		return nil, errors.New(*res.Error)
+	}
+	if res.Status == http.StatusUnauthorized {
+		log.Info("refresh token expired")
+		return nil, errors.New("cafe: refresh token expired")
+	}
+
+	// update tokens
+	tokens = &repo.CafeTokens{
+		Access:  res.Session.AccessToken,
+		Refresh: res.Session.RefreshToken,
+		Expiry:  time.Unix(res.Session.ExpiresAt, 0),
+	}
+	if err := w.datastore.Profile().UpdateTokens(tokens); err != nil {
+		log.Errorf("update tokens error: %s", err)
+		return nil, err
+	}
+	return tokens, nil
 }
 
 // GetUsername returns the current user's username

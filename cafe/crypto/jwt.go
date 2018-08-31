@@ -2,7 +2,7 @@ package crypto
 
 import (
 	"github.com/dgrijalva/jwt-go"
-	"gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 // Implements the Ed25519 signing method
@@ -36,10 +36,10 @@ func (m *SigningMethodEd25519) Verify(signingString, signature string, key inter
 		return err
 	}
 
-	var ed25519Key *crypto.Ed25519PublicKey
+	var ed25519Key *libp2pc.Ed25519PublicKey
 	var ok bool
 
-	if ed25519Key, ok = key.(*crypto.Ed25519PublicKey); !ok {
+	if ed25519Key, ok = key.(*libp2pc.Ed25519PublicKey); !ok {
 		return jwt.ErrInvalidKeyType
 	}
 
@@ -58,11 +58,11 @@ func (m *SigningMethodEd25519) Verify(signingString, signature string, key inter
 // Implements the Sign method from SigningMethod
 // For this signing method, must be a *crypto.Ed25519PublicKey structure.
 func (m *SigningMethodEd25519) Sign(signingString string, key interface{}) (string, error) {
-	var ed25519Key *crypto.Ed25519PrivateKey
+	var ed25519Key *libp2pc.Ed25519PrivateKey
 	var ok bool
 
 	// Validate type of key
-	if ed25519Key, ok = key.(*crypto.Ed25519PrivateKey); !ok {
+	if ed25519Key, ok = key.(*libp2pc.Ed25519PrivateKey); !ok {
 		return "", jwt.ErrInvalidKey
 	}
 

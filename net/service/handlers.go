@@ -69,8 +69,7 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Envelope, opti
 
 	// load thread
 	threadId := libp2pc.ConfigEncodeKey(invite.Header.ThreadPk)
-	_, thrd := s.getThread(threadId)
-	if thrd != nil {
+	if _, thrd := s.getThread(threadId); thrd != nil {
 		// thread exists, aborting
 		return nil, nil
 	}

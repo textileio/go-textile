@@ -5,6 +5,7 @@ import (
 	"github.com/textileio/textile-go/repo"
 	"sync"
 	"testing"
+	"time"
 )
 
 var pdb repo.ProfileStore
@@ -19,8 +20,19 @@ func setupProfileDB() {
 	pdb = NewProfileStore(conn, new(sync.Mutex))
 }
 
+func TestProfileDB_GetTokensPreSignIn(t *testing.T) {
+	tokens, err := pdb.GetTokens()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if tokens != nil {
+		t.Error("tokens should be nil")
+	}
+}
+
 func TestProfileDB_SignIn(t *testing.T) {
-	err := pdb.SignIn("woohoo!", &repo.CafeTokens{Access: "access", Refresh: "refresh"})
+	err := pdb.SignIn("woohoo!", &repo.CafeTokens{Access: "access", Refresh: "refresh", Expiry: time.Now()})
 	if err != nil {
 		t.Error(err)
 	}
@@ -68,6 +80,13 @@ func TestProfileDB_GetTokens(t *testing.T) {
 	if tokens.Refresh != "refresh" {
 		t.Error("got bad refresh token")
 		return
+	}
+}
+
+func TestProfileDB_UpdateTokens(t *testing.T) {
+	err := pdb.UpdateTokens(&repo.CafeTokens{Access: "access", Refresh: "refresh", Expiry: time.Now()})
+	if err != nil {
+		t.Error(err)
 	}
 }
 

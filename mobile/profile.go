@@ -64,8 +64,8 @@ func (m *Mobile) GetUsername() (string, error) {
 }
 
 // GetTokens calls core GetTokens
-func (m *Mobile) GetTokens() (string, error) {
-	tokens, err := core.Node.Wallet.GetTokens()
+func (m *Mobile) GetTokens(forceRefresh bool) (string, error) {
+	tokens, err := core.Node.Wallet.GetTokens(forceRefresh)
 	if err != nil {
 		return "", err
 	}

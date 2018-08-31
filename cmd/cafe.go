@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/cafe/models"
@@ -32,8 +31,8 @@ func CafeReferral(c *ishell.Context) {
 		return
 	}
 	if username == nil {
-		c.Err(errors.New("not logged in"))
-		return
+		tmp := "anonymous"
+		username = &tmp
 	}
 	req := &models.ReferralRequest{
 		Key:         key,
@@ -143,4 +142,18 @@ func CafeStatus(c *ishell.Context) {
 	} else {
 		c.Println(color.New(color.FgHiRed).SprintFunc()("not logged in"))
 	}
+}
+
+func CafeTokens(c *ishell.Context) {
+	tokens, err := core.Node.Wallet.GetTokens(false)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+	if tokens == nil {
+		c.Println(color.New(color.FgHiRed).SprintFunc()("no tokens found"))
+	}
+
+	green := color.New(color.FgHiGreen).SprintFunc()
+	c.Println(green(fmt.Sprintf("expiry: %s", tokens.Expiry.String())))
 }

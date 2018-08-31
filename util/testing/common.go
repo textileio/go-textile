@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/textileio/textile-go/cafe/models"
 	cafe "github.com/textileio/textile-go/core/cafe"
 	"io"
@@ -15,7 +16,12 @@ var client = &http.Client{}
 var (
 	CafeAddr        = os.Getenv("CAFE_ADDR")
 	CafeReferralKey = os.Getenv("CAFE_REFERRAL_KEY")
+	CafeTokenSecret = os.Getenv("CAFE_TOKEN_SECRET")
 )
+
+func Verify(_ *jwt.Token) (interface{}, error) {
+	return []byte(CafeTokenSecret), nil
+}
 
 func CreateReferral(key string, count int, limit int, requestedBy string) (*models.ReferralResponse, error) {
 	req := &models.ReferralRequest{Key: key, Count: count, Limit: limit, RequestedBy: requestedBy}
@@ -59,6 +65,28 @@ func SignIn(creds interface{}) (int, *models.Response, error) {
 	}
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json")
+	res, err := client.Do(req)
+	if err != nil {
+		return 0, nil, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != 200 {
+		return res.StatusCode, nil, nil
+	}
+
+	resp := &models.Response{}
+	if err := resp.Read(res.Body); err != nil {
+		return res.StatusCode, nil, err
+	}
+	return res.StatusCode, resp, nil
+}
+
+func Refresh(accessToken string, refreshToken string) (int, *models.Response, error) {
+	url := fmt.Sprintf("%s/api/v0/tokens", CafeAddr)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(accessToken)))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", refreshToken))
 	res, err := client.Do(req)
 	if err != nil {
 		return 0, nil, err
