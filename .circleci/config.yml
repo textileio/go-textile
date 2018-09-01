@@ -10,33 +10,6 @@ move-linux-src: &move-linux-src
     command: |
       mv ~/project/* /go/src/github.com/textileio/textile-go/
 
-restore-linux-dep-cache: &restore-linux-dep-cache
-  restore_cache:
-    key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
-
-restore-linux-gx-cache: &restore-linux-gx-cache
-  restore_cache:
-    key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
-
-install-linux-deps: &install-linux-deps
-  run:
-    name: install deps
-    command: |
-      dep ensure
-      gx install
-
-save-linux-dep-cache: &save-linux-dep-cache
-  save_cache:
-    key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
-    paths:
-    - /go/src/github.com/textileio/textile-go/vendor
-
-save-linux-gx-cache: &save-linux-gx-cache
-  save_cache:
-    key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
-    paths:
-    - /go/src/gx
-
 jobs:
 
   persist-checkout:
@@ -61,11 +34,23 @@ jobs:
     steps:
     - *checkout-linux
     - *move-linux-src
-    - *restore-linux-dep-cache
-    - *restore-linux-gx-cache
-    - *install-linux-deps
-    - *save-linux-dep-cache
-    - *save-linux-gx-cache
+    - restore_cache:
+        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
+    - restore_cache:
+        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
+    - run:
+        name: install deps
+        command: |
+          dep ensure
+          gx install
+    - save_cache:
+        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
+        paths:
+        - /go/src/github.com/textileio/textile-go/vendor
+    - save_cache:
+        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
+        paths:
+        - /go/src/gx
     - run:
         name: install textile
         command: |
@@ -85,7 +70,62 @@ jobs:
           CAFE_TOKEN_SECRET: swarmmmmm
           CAFE_REFERRAL_KEY: woohoo!
 
-  build-cli:
+  build-cli-linux:
+    docker:
+    - image: textile/builder:1.10.3
+    working_directory: /go/src/github.com/textileio/textile-go
+    steps:
+    - *checkout-linux
+    - *move-linux-src
+    - restore_cache:
+        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
+    - restore_cache:
+        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
+    - run:
+        name: install gox
+        command: |
+          go get github.com/mitchellh/gox
+    - run:
+        name: compile
+        command: |
+          gox -osarch="linux/amd64 linux/386 linux/arm" -output="{{.OS}}-{{.Arch}}"
+    - run:
+        name: collect artifacts
+        command: |
+          VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
+          if [ "${CIRCLE_TAG}" != "" ]; then
+              VERSION=${CIRCLE_TAG}
+          fi
+          OUT=~/dist/cli
+          mkdir -p ${OUT}
+          mkdir -p tmp
+          cp LICENSE tmp/
+          cp dist/README.md tmp/
+          cp dist/install.sh tmp/
+          cd tmp
+          declare -a arr=("linux-amd64" "linux-386" "linux-arm")
+          for i in "${arr[@]}"
+          do
+              OSARCH=${i%.*}
+              EXT=$([[ "$i" = *.* ]] && echo ".${i##*.}" || echo '')
+              cp ../${i} textile${EXT}
+              if [ "${EXT}" == ".exe" ]; then
+                  zip textile-go_${VERSION}_${OSARCH}.zip LICENSE README.md install.sh textile${EXT}
+                  mv textile-go_${VERSION}_${OSARCH}.zip ${OUT}/
+              else
+                  tar -czvf textile-go_${VERSION}_${OSARCH}.tar.gz LICENSE README.md install.sh textile${EXT}
+                  mv textile-go_${VERSION}_${OSARCH}.tar.gz ${OUT}/
+              fi
+          done
+          cd .. && rm -rf tmp
+    - persist_to_workspace:
+        root: ~/dist
+        paths:
+        - cli
+    - store_artifacts:
+        path: ~/dist/cli
+
+  build-cli-darwin-windows:
     macos:
       xcode: "9.4.0"
     environment:
@@ -146,6 +186,7 @@ jobs:
           OUT=~/dist/cli
           mkdir -p ${OUT}
           mkdir -p tmp
+          cp LICENSE tmp/
           cp dist/README.md tmp/
           cp dist/install.sh tmp/
           cd tmp
@@ -156,10 +197,10 @@ jobs:
               EXT=$([[ "$i" = *.* ]] && echo ".${i##*.}" || echo '')
               cp ../${i} textile${EXT}
               if [ "${EXT}" == ".exe" ]; then
-                  zip textile-go_${VERSION}_${OSARCH}.zip README.md install.sh textile${EXT}
+                  zip textile-go_${VERSION}_${OSARCH}.zip LICENSE README.md install.sh textile${EXT}
                   mv textile-go_${VERSION}_${OSARCH}.zip ${OUT}/
               else
-                  tar -czvf textile-go_${VERSION}_${OSARCH}.tar.gz README.md install.sh textile${EXT}
+                  tar -czvf textile-go_${VERSION}_${OSARCH}.tar.gz LICENSE README.md install.sh textile${EXT}
                   mv textile-go_${VERSION}_${OSARCH}.tar.gz ${OUT}/
               fi
           done
@@ -171,7 +212,7 @@ jobs:
     - store_artifacts:
         path: ~/dist/cli
 
-  build-desktop:
+  build-desktop-darwin-windows:
     macos:
       xcode: "9.4.0"
     environment:
@@ -183,10 +224,31 @@ jobs:
         name: install golang
         command: |
           brew install golang
+    - run:
+        name: install dep
+        command: brew install dep
+    - run:
+        name: install gx
+        command: |
+          go get -u github.com/whyrusleeping/gx
+          go get -u github.com/whyrusleeping/gx-go
     - restore_cache:
         key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
     - restore_cache:
         key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
+    - run:
+        name: install deps
+        command: |
+          dep ensure
+          ~/go/bin/gx install
+    - save_cache:
+        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
+        paths:
+        - ~/go/src/github.com/textileio/textile-go/vendor
+    - save_cache:
+        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
+        paths:
+        - ~/go/src/gx
     - run:
         name: install mingw-w64
         command: |
@@ -199,7 +261,7 @@ jobs:
         name: compile
         command: |
           export PATH=$PATH:$GOPATH/bin
-          cd desktop && astilectron-bundler -v
+          cd desktop && astilectron-bundler -v -c bundler.darwin-windows.json
     - run:
         name: collect artifacts
         command: |
@@ -210,15 +272,51 @@ jobs:
           OUT=~/dist/desktop
           mkdir -p ${OUT}
           WD=~/go/src/github.com/textileio/textile-go
-          cd ${WD}/desktop/output/linux-amd64
-          tar -czvf Textile_${VERSION}_linux-amd64.tar.gz Textile
-          mv Textile_${VERSION}_linux-amd64.tar.gz ${OUT}/
           cd ${WD}/desktop/output/darwin-amd64
           tar -czvf Textile_${VERSION}_darwin-amd64.tar.gz Textile.app
           mv Textile_${VERSION}_darwin-amd64.tar.gz ${OUT}/
           cd ${WD}/desktop/output/windows-amd64
           zip Textile_${VERSION}_windows-amd64.zip Textile.exe
           mv Textile_${VERSION}_windows-amd64.zip ${OUT}/
+    - persist_to_workspace:
+        root: ~/dist
+        paths:
+        - desktop
+    - store_artifacts:
+        path: ~/dist/desktop
+
+  build-desktop-linux:
+    docker:
+    - image: textile/builder:1.10.3
+    working_directory: /go/src/github.com/textileio/textile-go
+    steps:
+    - *checkout-linux
+    - *move-linux-src
+    - restore_cache:
+        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
+    - restore_cache:
+        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
+    - run:
+        name: install astilectron-bundler
+        command: |
+          go install ./vendor/github.com/asticode/go-astilectron-bundler/astilectron-bundler
+    - run:
+        name: compile
+        command: |
+          cd desktop && astilectron-bundler -v -c bundler.linux.json
+    - run:
+        name: collect artifacts
+        command: |
+          VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
+          if [ "${CIRCLE_TAG}" != "" ]; then
+              VERSION=${CIRCLE_TAG}
+          fi
+          OUT=~/dist/desktop
+          mkdir -p ${OUT}
+          WD=/go/src/github.com/textileio/textile-go
+          cd ${WD}/desktop/output/linux-amd64
+          tar -czvf Textile_${VERSION}_linux-amd64.tar.gz Textile
+          mv Textile_${VERSION}_linux-amd64.tar.gz ${OUT}/
     - persist_to_workspace:
         root: ~/dist
         paths:
@@ -238,10 +336,31 @@ jobs:
         name: install golang
         command: |
           brew install golang
+    - run:
+        name: install dep
+        command: brew install dep
+    - run:
+        name: install gx
+        command: |
+          go get -u github.com/whyrusleeping/gx
+          go get -u github.com/whyrusleeping/gx-go
     - restore_cache:
         key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
     - restore_cache:
         key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
+    - run:
+        name: install deps
+        command: |
+          dep ensure
+          ~/go/bin/gx install
+    - save_cache:
+        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
+        paths:
+        - ~/go/src/github.com/textileio/textile-go/vendor
+    - save_cache:
+        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
+        paths:
+        - ~/go/src/gx
     - run:
         name: install gomobile
         command: |
@@ -315,6 +434,11 @@ jobs:
         paths:
         - ~/go/src/gx
     - run:
+        name: install ndk-bundle
+        command: |
+          sdkmanager --install "ndk-bundle"
+          sdkmanager --licenses
+    - run:
         name: install gomobile
         command: |
           export PATH=$PATH:/usr/local/go/bin
@@ -325,7 +449,7 @@ jobs:
           export PATH=$PATH:/usr/local/go/bin
           export GOPATH=~/go
           export PATH=$PATH:$GOPATH/bin
-          gomobile init -ndk /opt/android/android-ndk-r17b
+          gomobile init -ndk /opt/android/sdk/ndk-bundle
           gomobile bind -target=android -o textilego.aar github.com/textileio/textile-go/mobile
     - run:
         name: collect artifacts
@@ -374,23 +498,33 @@ workflows:
         filters:
           tags:
             only: /.*/
-    - build-cli:
+    - build-cli-darwin-windows:
         requires:
         - unit-test
         filters:
           tags:
             only: /.*/
-    - build-desktop:
+    - build-cli-linux:
         requires:
         - unit-test
-        - build-cli
+        filters:
+          tags:
+            only: /.*/
+    - build-desktop-darwin-windows:
+        requires:
+        - unit-test
+        filters:
+          tags:
+            only: /.*/
+    - build-desktop-linux:
+        requires:
+        - unit-test
         filters:
           tags:
             only: /.*/
     - build-ios-framework:
         requires:
         - unit-test
-        - build-cli
         filters:
           tags:
             only: /.*/
@@ -402,8 +536,10 @@ workflows:
             only: /.*/
     - release:
         requires:
-        - build-cli
-        - build-desktop
+        - build-cli-darwin-windows
+        - build-cli-linux
+        - build-desktop-darwin-windows
+        - build-desktop-linux
         - build-ios-framework
         - build-android-framework
         filters:
