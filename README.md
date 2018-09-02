@@ -104,7 +104,7 @@ Commands:
 
 ## Building
 
-These instructions assume the build OS is either Darwin or Linux. As such, `mingw-w64` is needed for Windows cross-compiled builds. `brew install mingw-w64` for Darwin, `apt-get install mingw-w64` for Debian, etc.
+These instructions assume the build OS is either Darwin or Linux. CGO is required. So, building for Linux from Darwin or vice versa will likely lead to problems without a proper C toolchain. `mingw-w64` is the Windows toolchain: `brew install mingw-w64` for Darwin, `apt-get install mingw-w64` for Debian, etc.
 
 There are various things to build:
 
