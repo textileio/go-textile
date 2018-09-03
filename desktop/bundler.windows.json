@@ -1,7 +1,6 @@
 {
   "app_name": "Textile",
   "environments": [
-    {"arch": "amd64", "os": "darwin"},
     {
       "arch": "amd64",
       "os": "windows",
@@ -12,7 +11,6 @@
       }
     }
   ],
-  "icon_path_darwin": "resources/icon.icns",
   "icon_path_windows": "resources/icon.ico",
   "output_path": "output"
 }
