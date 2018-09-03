@@ -261,7 +261,9 @@ jobs:
         name: compile
         command: |
           export PATH=$PATH:$GOPATH/bin
-          cd desktop && astilectron-bundler -v -c bundler.darwin-windows.json
+          cd desktop
+          astilectron-bundler -v -c bundler.darwin.json
+          astilectron-bundler -v -c bundler.windows.json
     - run:
         name: collect artifacts
         command: |
@@ -502,36 +504,48 @@ workflows:
         requires:
         - unit-test
         filters:
+          branches:
+            only: master
           tags:
             only: /.*/
     - build-cli-linux:
         requires:
         - unit-test
         filters:
+          branches:
+            only: master
           tags:
             only: /.*/
     - build-desktop-darwin-windows:
         requires:
         - unit-test
         filters:
+          branches:
+            only: master
           tags:
             only: /.*/
     - build-desktop-linux:
         requires:
         - unit-test
         filters:
+          branches:
+            only: master
           tags:
             only: /.*/
     - build-ios-framework:
         requires:
         - unit-test
         filters:
+          branches:
+            only: master
           tags:
             only: /.*/
     - build-android-framework:
         requires:
         - unit-test
         filters:
+          branches:
+            only: master
           tags:
             only: /.*/
     - release:
