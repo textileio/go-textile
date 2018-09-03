@@ -1,0 +1,8 @@
+{
+  "app_name": "Textile",
+  "environments": [
+    {"arch": "amd64", "os": "darwin"}
+  ],
+  "icon_path_darwin": "resources/icon.icns",
+  "output_path": "output"
+}
