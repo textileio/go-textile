@@ -18,9 +18,7 @@
     "scripts"
   ],
   "scripts": {
-    "postinstall": "./scripts/fetch_release.sh",
-    "postversion": "git push --follow-tags",
-    "release": "npm version patch"
+    "postinstall": "./scripts/fetch_release.sh"
   },
   "devDependencies": {
     "husky": "^0.14.3"
