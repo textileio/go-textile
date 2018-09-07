@@ -372,7 +372,7 @@ jobs:
         command: |
           export PATH=$PATH:$GOPATH/bin
           gomobile init
-          gomobile bind -target=ios/arm64 github.com/textileio/textile-go/mobile
+          gomobile bind -target=ios github.com/textileio/textile-go/mobile
         environment:
           CGO_CFLAGS_ALLOW: '-fmodules|-fblocks'
     - run:
@@ -393,7 +393,7 @@ jobs:
     - store_artifacts:
         path: ~/dist/ios_framework
 
-  build-android-framework:
+  build-android-aar:
     environment:
       _JAVA_OPTIONS: "-Xmx512m"
     docker:
@@ -462,8 +462,8 @@ jobs:
           fi
           OUT=~/dist/android_aar
           mkdir -p ${OUT}
-          tar -czvf textile-go_${VERSION}_android_aar.tar.gz textilego.aar
-          mv textile-go_${VERSION}_android_aar.tar.gz ${OUT}/
+          tar -czvf textile-go_${VERSION}_android-aar.tar.gz textilego.aar
+          mv textile-go_${VERSION}_android-aar.tar.gz ${OUT}/
     - persist_to_workspace:
         root: ~/dist
         paths:
@@ -540,7 +540,7 @@ workflows:
             only: master
           tags:
             only: /.*/
-    - build-android-framework:
+    - build-android-aar:
         requires:
         - unit-test
         filters:
@@ -555,7 +555,7 @@ workflows:
         - build-desktop-darwin-windows
         - build-desktop-linux
         - build-ios-framework
-        - build-android-framework
+        - build-android-aar
         filters:
           branches:
             ignore: /.*/

@@ -2,7 +2,7 @@ build:
 	go build -i -o textile textile.go
 
 build_ios_framework:
-	CGO_CFLAGS_ALLOW='-fmodules|-fblocks' gomobile bind -target=ios/arm64 github.com/textileio/textile-go/mobile
+	CGO_CFLAGS_ALLOW='-fmodules|-fblocks' gomobile bind -target=ios github.com/textileio/textile-go/mobile
 
 build_android_framework:
 	gomobile bind -target=android -o textilego.aar github.com/textileio/textile-go/mobile
