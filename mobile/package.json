@@ -1,0 +1,28 @@
+{
+  "name": "@textile/go-mobile",
+  "description": "Textile iOS and Android bindings.",
+  "version": "0.1.5-rc.5",
+  "author": "textile.io",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/textileio/textile-go"
+  },
+  "homepage": "https://www.textile.io/",
+  "keywords": [
+    "textile",
+    "decentralized",
+    "mobile"
+  ],
+  "files": [
+    "scripts"
+  ],
+  "scripts": {
+    "postinstall": "./scripts/fetch_release.sh",
+    "postversion": "git push --follow-tags",
+    "release": "npm version patch"
+  },
+  "devDependencies": {
+    "husky": "^0.14.3"
+  }
+}
