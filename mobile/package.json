@@ -1,7 +1,7 @@
 {
   "name": "@textile/go-mobile",
   "description": "Textile iOS and Android bindings.",
-  "version": "0.1.5-rc.5",
+  "version": "0.1.5-rc.6",
   "author": "textile.io",
   "license": "MIT",
   "repository": {
@@ -19,8 +19,5 @@
   ],
   "scripts": {
     "postinstall": "./scripts/fetch_release.sh"
-  },
-  "devDependencies": {
-    "husky": "^0.14.3"
   }
 }
