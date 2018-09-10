@@ -86,6 +86,9 @@ func (m *Mobile) SharePhotoToThread(dataId string, threadId string, caption stri
 	if err != nil {
 		return "", err
 	}
+	if block == nil {
+		return "", errors.New(fmt.Sprintf("could not find block with data id: %s", dataId))
+	}
 	_, fromThread := core.Node.Wallet.GetThread(block.ThreadId)
 	if fromThread == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
@@ -283,6 +286,11 @@ func (m *Mobile) GetPhotoData(id string, path string) (string, error) {
 		log.Errorf("could not find block for data id %s: %s", id, err)
 		return "", err
 	}
+	if block == nil {
+		err := errors.New(fmt.Sprintf("could not find block with data id: %s", id))
+		log.Error(err.Error())
+		return "", err
+	}
 	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
 	if thrd == nil {
 		err := errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadId))
@@ -323,6 +331,11 @@ func (m *Mobile) GetPhotoMetadata(id string) (string, error) {
 	block, err := core.Node.Wallet.GetBlockByDataId(id)
 	if err != nil {
 		log.Errorf("could not find block for data id %s: %s", id, err)
+		return "", err
+	}
+	if block == nil {
+		err := errors.New(fmt.Sprintf("could not find block with data id: %s", id))
+		log.Error(err.Error())
 		return "", err
 	}
 	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
