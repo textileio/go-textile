@@ -309,23 +309,16 @@ func (w *Wallet) Stop() error {
 	// close db connection
 	w.datastore.Close()
 	dsLockFile := filepath.Join(w.repoPath, "datastore", "LOCK")
-	if err := os.Remove(dsLockFile); err != nil {
-		log.Warningf("remove ds lock failed: %s", err)
-	}
+	os.Remove(dsLockFile)
 
 	// wipe threads
 	w.threads = nil
 
-	// wipe services
-	w.messageStorage = nil
-	w.service = nil
+	// shutdown message retriever
 	select {
 	case w.messageRetriever.DoneChan <- struct{}{}:
 	default:
 	}
-	w.messageRetriever = nil
-	w.pointerRepublisher = nil
-	w.pinner = nil
 
 	// close update channels
 	close(w.updates)
