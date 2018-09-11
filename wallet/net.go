@@ -103,6 +103,11 @@ func (w *Wallet) SendMessage(env *pb.Envelope, peerId string, hash *string) erro
 }
 
 func (w *Wallet) sendOfflineMessage(env *pb.Envelope, pid peer.ID, hash *string) error {
+	defer func() {
+		if recover() != nil {
+			log.Error("recovered from sendOfflineMessage")
+		}
+	}()
 	serialized, err := proto.Marshal(env)
 	if err != nil {
 		return err
