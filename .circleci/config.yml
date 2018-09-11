@@ -130,19 +130,24 @@ jobs:
       xcode: "9.4.0"
     environment:
       GOPATH: /Users/distiller/go
+      GOROOT: /usr/local/opt/go@1.10/libexec
     working_directory: ~/go/src/github.com/textileio/textile-go
     steps:
     - checkout
     - run:
         name: install golang
         command: |
-          brew install golang
+          brew install go@1.10
     - run:
         name: install dep
-        command: brew install dep
+        command: |
+          curl -L -o dep https://github.com/golang/dep/releases/download/v0.5.0/dep-darwin-amd64
+          chmod +x dep
+          mv dep /usr/local/bin/
     - run:
         name: install gx
         command: |
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
           go get -u github.com/whyrusleeping/gx
           go get -u github.com/whyrusleeping/gx-go
     - restore_cache:
@@ -152,8 +157,9 @@ jobs:
     - run:
         name: install deps
         command: |
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
           dep ensure
-          ~/go/bin/gx install
+          gx install
     - save_cache:
         key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
         paths:
@@ -165,6 +171,7 @@ jobs:
     - run:
         name: install gox
         command: |
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
           go get github.com/mitchellh/gox
     - run:
         name: install mingw-w64
@@ -173,7 +180,7 @@ jobs:
     - run:
         name: cross-compile
         command: |
-          export PATH=$PATH:$GOPATH/bin
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
           gox -osarch="darwin/amd64" -output="{{.OS}}-{{.Arch}}"
           CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -cgo -osarch="windows/amd64" -output="{{.OS}}-{{.Arch}}"
     - run:
@@ -256,19 +263,24 @@ jobs:
       xcode: "9.4.0"
     environment:
       GOPATH: /Users/distiller/go
+      GOROOT: /usr/local/opt/go@1.10/libexec
     working_directory: ~/go/src/github.com/textileio/textile-go
     steps:
     - checkout
     - run:
         name: install golang
         command: |
-          brew install golang
+          brew install go@1.10
     - run:
         name: install dep
-        command: brew install dep
+        command: |
+          curl -L -o dep https://github.com/golang/dep/releases/download/v0.5.0/dep-darwin-amd64
+          chmod +x dep
+          mv dep /usr/local/bin/
     - run:
         name: install gx
         command: |
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
           go get -u github.com/whyrusleeping/gx
           go get -u github.com/whyrusleeping/gx-go
     - restore_cache:
@@ -278,8 +290,9 @@ jobs:
     - run:
         name: install deps
         command: |
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
           dep ensure
-          ~/go/bin/gx install
+          gx install
     - save_cache:
         key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
         paths:
@@ -295,11 +308,12 @@ jobs:
     - run:
         name: install astilectron-bundler
         command: |
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
           go install ./vendor/github.com/asticode/go-astilectron-bundler/astilectron-bundler
     - run:
         name: compile
         command: |
-          export PATH=$PATH:$GOPATH/bin
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
           cd desktop
           astilectron-bundler -v -c bundler.darwin.json
           astilectron-bundler -v -c bundler.windows.json
@@ -331,19 +345,24 @@ jobs:
       xcode: "9.4.0"
     environment:
       GOPATH: /Users/distiller/go
+      GOROOT: /usr/local/opt/go@1.10/libexec
     working_directory: ~/go/src/github.com/textileio/textile-go
     steps:
     - checkout
     - run:
         name: install golang
         command: |
-          brew install golang
+          brew install go@1.10
     - run:
         name: install dep
-        command: brew install dep
+        command: |
+          curl -L -o dep https://github.com/golang/dep/releases/download/v0.5.0/dep-darwin-amd64
+          chmod +x dep
+          mv dep /usr/local/bin/
     - run:
         name: install gx
         command: |
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
           go get -u github.com/whyrusleeping/gx
           go get -u github.com/whyrusleeping/gx-go
     - restore_cache:
@@ -353,8 +372,9 @@ jobs:
     - run:
         name: install deps
         command: |
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
           dep ensure
-          ~/go/bin/gx install
+          gx install
     - save_cache:
         key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
         paths:
@@ -366,15 +386,14 @@ jobs:
     - run:
         name: install gomobile
         command: |
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
           go get golang.org/x/mobile/cmd/gomobile
     - run:
         name: build ios framework
         command: |
-          export PATH=$PATH:$GOPATH/bin
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
           gomobile init
-          gomobile bind -target=ios github.com/textileio/textile-go/mobile
-        environment:
-          CGO_CFLAGS_ALLOW: '-fmodules|-fblocks'
+          gomobile bind -v -target=ios github.com/textileio/textile-go/mobile
     - run:
         name: collect artifacts
         command: |
@@ -394,8 +413,6 @@ jobs:
         path: ~/dist/ios_framework
 
   build-android-aar:
-    environment:
-      _JAVA_OPTIONS: "-Xmx512m"
     docker:
     - image: circleci/android:api-26-alpha
     working_directory: ~/go/src/github.com/textileio/textile-go
@@ -452,7 +469,7 @@ jobs:
           export GOPATH=~/go
           export PATH=$PATH:$GOPATH/bin
           gomobile init -ndk /opt/android/sdk/ndk-bundle
-          gomobile bind -target=android -o textilego.aar github.com/textileio/textile-go/mobile
+          gomobile bind -v -target=android -o textilego.aar github.com/textileio/textile-go/mobile
     - run:
         name: collect artifacts
         command: |
