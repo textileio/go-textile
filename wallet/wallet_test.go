@@ -196,6 +196,15 @@ func TestWallet_AddPhoto(t *testing.T) {
 	if len(added.Id) == 0 {
 		t.Errorf("add photo got bad id")
 	}
+	// test adding an image w/o the orientation tag
+	added2, err := wallet.AddPhoto("../util/testdata/image-no-orientation.jpg")
+	if err != nil {
+		t.Errorf("add photo w/o orientation tag failed: %s", err)
+		return
+	}
+	if len(added2.Id) == 0 {
+		t.Errorf("add photo w/o orientation tag got bad id")
+	}
 }
 
 func TestWallet_GetBlock(t *testing.T) {
