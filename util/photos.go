@@ -229,7 +229,7 @@ func correctOrientation(img image.Image, exf *exif.Exif) (image.Image, error) {
 		return img, nil
 	}
 	orient, err := exf.Get(exif.Orientation)
-	if err != nil {
+	if err != nil && err != exif.TagNotPresentError(exif.Orientation) {
 		return nil, err
 	}
 	if orient != nil {

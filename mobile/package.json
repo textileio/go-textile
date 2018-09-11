@@ -1,7 +1,7 @@
 {
   "name": "@textile/go-mobile",
   "description": "Textile iOS and Android bindings.",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "author": "textile.io",
   "license": "MIT",
   "repository": {
