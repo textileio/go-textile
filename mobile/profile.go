@@ -8,10 +8,10 @@ import (
 // SignUpWithEmail creates an email based registration and calls core signup
 func (m *Mobile) SignUpWithEmail(email string, username string, password string, referral string) error {
 	// build registration
-	reg := &models.Registration{
+	reg := &models.UserRegistration{
 		Username: username,
 		Password: password,
-		Identity: &models.Identity{
+		Identity: &models.UserIdentity{
 			Type:  models.EmailAddress,
 			Value: email,
 		},
@@ -23,7 +23,7 @@ func (m *Mobile) SignUpWithEmail(email string, username string, password string,
 // SignIn build credentials and calls core SignIn
 func (m *Mobile) SignIn(username string, password string) error {
 	// build creds
-	creds := &models.Credentials{
+	creds := &models.UserCredentials{
 		Username: username,
 		Password: password,
 	}

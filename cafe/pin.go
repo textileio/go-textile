@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"github.com/gin-gonic/gin"
+	"github.com/textileio/textile-go/cafe/models"
 	"github.com/textileio/textile-go/util"
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
@@ -81,12 +82,12 @@ func (c *Cafe) pin(g *gin.Context) {
 		g.JSON(http.StatusBadRequest, gin.H{"error": "invalid content-type"})
 		return
 	}
+	hash := id.Hash().B58String()
 
-	log.Debugf("pinned request with content type %s: %s", cType, id)
+	log.Debugf("pinned request with content type %s: %s", cType, hash)
 
 	// ship it
-	g.JSON(http.StatusCreated, gin.H{
-		"status": http.StatusCreated,
-		"id":     id.Hash().B58String(),
+	g.JSON(http.StatusCreated, models.PinResponse{
+		Id: &hash,
 	})
 }

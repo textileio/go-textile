@@ -18,17 +18,23 @@ var claims *auth.TextileClaims
 func TestTokens_Setup(t *testing.T) {
 	// create a referral for the test
 	var code string
-	ref, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
+	res, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if ref.Status != 201 {
-		t.Errorf("could not create referral, bad status: %d", ref.Status)
+	defer res.Body.Close()
+	if res.StatusCode != 201 {
+		t.Errorf("could not create referral, bad status: %d", res.StatusCode)
 		return
 	}
-	if len(ref.RefCodes) > 0 {
-		code = ref.RefCodes[0]
+	resp := &models.ReferralResponse{}
+	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(resp.RefCodes) > 0 {
+		code = resp.RefCodes[0]
 	} else {
 		t.Error("got bad ref codes")
 	}
@@ -41,21 +47,30 @@ func TestTokens_Setup(t *testing.T) {
 		},
 		"ref_code": code,
 	}
-	stat, res, err := util.SignUp(reg)
+	res2, err := util.SignUpUser(reg)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if stat != 201 {
-		t.Errorf("got bad status: %d", stat)
+	defer res2.Body.Close()
+	if res2.StatusCode != 201 {
+		t.Errorf("got bad status: %d", res2.StatusCode)
 		return
 	}
-	if res.Session == nil {
+	resp2 := &models.SessionResponse{}
+	if err := util.UnmarshalJSON(res2.Body, resp2); err != nil {
+		t.Error(err)
+		return
+	}
+	if resp2.Session == nil {
 		t.Error("got bad session")
 		return
 	}
-	session = res.Session
-	token, _ := jwt.Parse(session.AccessToken, util.Verify)
+	session = resp2.Session
+	token, err := jwt.Parse(session.AccessToken, util.Verify)
+	if err != nil {
+		t.Error(err)
+	}
 	claims, err = auth.ParseClaims(token.Claims)
 	if err != nil {
 		t.Error(err)
@@ -63,16 +78,22 @@ func TestTokens_Setup(t *testing.T) {
 }
 
 func TestTokens_Refresh(t *testing.T) {
-	stat, res, err := util.Refresh(session.AccessToken, session.RefreshToken)
+	res, err := util.RefreshSession(session.AccessToken, session.RefreshToken)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if stat != 200 {
-		t.Errorf("got bad status: %d", stat)
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		t.Errorf("got bad status: %d", res.StatusCode)
 		return
 	}
-	if res.Session == nil {
+	resp := &models.SessionResponse{}
+	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
+		t.Error(err)
+		return
+	}
+	if resp.Session == nil {
 		t.Error("got bad session")
 		return
 	}
@@ -84,13 +105,14 @@ func TestTokens_RefreshBadSignature(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	stat, _, err := util.Refresh(session.AccessToken, session.RefreshToken)
+	res, err := util.RefreshSession(session.AccessToken, session.RefreshToken)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if stat != 403 {
-		t.Errorf("got bad status: %d", stat)
+	defer res.Body.Close()
+	if res.StatusCode != 403 {
+		t.Errorf("got bad status: %d", res.StatusCode)
 	}
 }
 
@@ -100,13 +122,14 @@ func TestTokens_RefreshBadAudience(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	stat, _, err := util.Refresh(session.AccessToken, session.RefreshToken)
+	res, err := util.RefreshSession(session.AccessToken, session.RefreshToken)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if stat != 403 {
-		t.Errorf("got bad status: %d", stat)
+	defer res.Body.Close()
+	if res.StatusCode != 403 {
+		t.Errorf("got bad status: %d", res.StatusCode)
 	}
 }
 
@@ -116,13 +139,14 @@ func TestTokens_RefreshWrongToken(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	stat, _, err := util.Refresh(session.AccessToken, session.AccessToken)
+	res, err := util.RefreshSession(session.AccessToken, session.AccessToken)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if stat != 403 {
-		t.Errorf("got bad status: %d", stat)
+	defer res.Body.Close()
+	if res.StatusCode != 403 {
+		t.Errorf("got bad status: %d", res.StatusCode)
 	}
 }
 
@@ -133,12 +157,13 @@ func TestTokens_RefreshExpired(t *testing.T) {
 		return
 	}
 	time.Sleep(time.Second)
-	stat, _, err := util.Refresh(session.AccessToken, session.RefreshToken)
+	res, err := util.RefreshSession(session.AccessToken, session.RefreshToken)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if stat != 401 {
-		t.Errorf("got bad status: %d", stat)
+	defer res.Body.Close()
+	if res.StatusCode != 401 {
+		t.Errorf("got bad status: %d", res.StatusCode)
 	}
 }

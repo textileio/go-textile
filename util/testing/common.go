@@ -5,9 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/textileio/textile-go/cafe/models"
-	cafe "github.com/textileio/textile-go/core/cafe"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 )
@@ -19,109 +18,135 @@ var (
 	CafeTokenSecret = os.Getenv("CAFE_TOKEN_SECRET")
 )
 
-func Verify(_ *jwt.Token) (interface{}, error) {
-	return []byte(CafeTokenSecret), nil
-}
+// CAFE V0
 
-func CreateReferral(key string, count int, limit int, requestedBy string) (*models.ReferralResponse, error) {
-	req := &models.ReferralRequest{Key: key, Count: count, Limit: limit, RequestedBy: requestedBy}
-	return cafe.CreateReferral(req, fmt.Sprintf("%s/api/v0/referrals", CafeAddr))
-}
-
-func ListReferrals(key string) (*models.ReferralResponse, error) {
-	return cafe.ListReferrals(key, fmt.Sprintf("%s/api/v0/referrals", CafeAddr))
-}
-
-func SignUp(reg interface{}) (int, *models.Response, error) {
+func SignUpUser(reg interface{}) (*http.Response, error) {
 	url := fmt.Sprintf("%s/api/v0/users", CafeAddr)
 	payload, err := json.Marshal(reg)
 	if err != nil {
-		return 0, nil, err
+		return nil, err
 	}
 	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(payload))
-	req.Header.Set("Content-Type", "application/json")
-	res, err := client.Do(req)
 	if err != nil {
-		return 0, nil, err
+		return nil, err
 	}
-	defer res.Body.Close()
-
-	if res.StatusCode != 201 {
-		return res.StatusCode, nil, nil
-	}
-
-	resp := &models.Response{}
-	if err := resp.Read(res.Body); err != nil {
-		return res.StatusCode, nil, err
-	}
-	return res.StatusCode, resp, nil
+	req.Header.Set("Content-Type", "application/json")
+	return client.Do(req)
 }
 
-func SignIn(creds interface{}) (int, *models.Response, error) {
+func SignInUser(creds interface{}) (*http.Response, error) {
 	url := fmt.Sprintf("%s/api/v0/users", CafeAddr)
 	payload, err := json.Marshal(creds)
 	if err != nil {
-		return 0, nil, err
+		return nil, err
 	}
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
-	req.Header.Set("Content-Type", "application/json")
-	res, err := client.Do(req)
 	if err != nil {
-		return 0, nil, err
+		return nil, err
 	}
-	defer res.Body.Close()
-
-	if res.StatusCode != 200 {
-		return res.StatusCode, nil, nil
-	}
-
-	resp := &models.Response{}
-	if err := resp.Read(res.Body); err != nil {
-		return res.StatusCode, nil, err
-	}
-	return res.StatusCode, resp, nil
+	req.Header.Set("Content-Type", "application/json")
+	return client.Do(req)
 }
 
-func Refresh(accessToken string, refreshToken string) (int, *models.Response, error) {
-	url := fmt.Sprintf("%s/api/v0/tokens", CafeAddr)
+// CAFE V1
+
+func ProfileChallenge(creq interface{}) (*http.Response, error) {
+	url := fmt.Sprintf("%s/api/v1/profiles/challenge", CafeAddr)
+	payload, err := json.Marshal(creq)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	return client.Do(req)
+}
+
+func RegisterProfile(reg interface{}) (*http.Response, error) {
+	url := fmt.Sprintf("%s/api/v1/profiles", CafeAddr)
+	payload, err := json.Marshal(reg)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(payload))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	return client.Do(req)
+}
+
+func LoginProfile(cha interface{}) (*http.Response, error) {
+	url := fmt.Sprintf("%s/api/v1/profiles", CafeAddr)
+	payload, err := json.Marshal(cha)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	return client.Do(req)
+}
+
+func RefreshSession(accessToken string, refreshToken string) (*http.Response, error) {
+	url := fmt.Sprintf("%s/api/v1/tokens", CafeAddr)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(accessToken)))
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", refreshToken))
-	res, err := client.Do(req)
-	if err != nil {
-		return 0, nil, err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != 200 {
-		return res.StatusCode, nil, nil
-	}
-
-	resp := &models.Response{}
-	if err := resp.Read(res.Body); err != nil {
-		return res.StatusCode, nil, err
-	}
-	return res.StatusCode, resp, nil
+	return client.Do(req)
 }
 
-func Pin(reader io.Reader, token string, cType string) (int, *models.Response, error) {
-	url := fmt.Sprintf("%s/api/v0/pin", CafeAddr)
+func CreateReferral(key string, count int, limit int, requestedBy string) (*http.Response, error) {
+	url := fmt.Sprintf("%s/api/v1/referrals", CafeAddr)
+	params := fmt.Sprintf("count=%d&limit=%d&requested_by=%s", count, limit, requestedBy)
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s?%s", url, params), nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Referral-Key", key)
+	return client.Do(req)
+}
+
+func ListReferrals(key string) (*http.Response, error) {
+	url := fmt.Sprintf("%s/api/v1/referrals", CafeAddr)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Referral-Key", key)
+	return client.Do(req)
+}
+
+func Pin(reader io.Reader, token string, cType string) (*http.Response, error) {
+	url := fmt.Sprintf("%s/api/v1/pin", CafeAddr)
 	req, err := http.NewRequest("POST", url, reader)
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Set("Content-Type", cType)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-	res, err := client.Do(req)
+	return client.Do(req)
+}
+
+// UTILS
+
+func UnmarshalJSON(body io.ReadCloser, target interface{}) error {
+	b, err := ioutil.ReadAll(body)
 	if err != nil {
-		return 0, nil, err
+		return err
 	}
-	defer res.Body.Close()
+	return json.Unmarshal(b, target)
+}
 
-	if res.StatusCode != 201 {
-		return res.StatusCode, nil, nil
-	}
-
-	resp := &models.Response{}
-	if err := resp.Read(res.Body); err != nil {
-		return res.StatusCode, nil, err
-	}
-	return res.StatusCode, resp, nil
+func Verify(_ *jwt.Token) (interface{}, error) {
+	return []byte(CafeTokenSecret), nil
 }

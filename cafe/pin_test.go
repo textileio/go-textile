@@ -25,32 +25,44 @@ var photoHash = "QmSUnsZi9rGvPZLWy2v5N7fNxUWVNnA5nmppoM96FbLqLp"
 
 func TestPin_Setup(t *testing.T) {
 	// create a referral for the test
-	ref, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
+	res, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if ref.Status != 201 {
-		t.Errorf("could not create referral, bad status: %d", ref.Status)
+	defer res.Body.Close()
+	if res.StatusCode != 201 {
+		t.Errorf("could not create referral, bad status: %d", res.StatusCode)
 		return
 	}
-	if len(ref.RefCodes) > 0 {
-		pRefCode = ref.RefCodes[0]
+	resp := &models.ReferralResponse{}
+	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(resp.RefCodes) > 0 {
+		pRefCode = resp.RefCodes[0]
 	} else {
 		t.Error("got bad ref codes")
 		return
 	}
 	pRegistration["ref_code"] = pRefCode
-	stat, res, err := util.SignUp(pRegistration)
+	res2, err := util.SignUpUser(pRegistration)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if stat != 201 {
-		t.Errorf("got bad status: %d", stat)
+	defer res2.Body.Close()
+	if res2.StatusCode != 201 {
+		t.Errorf("got bad status: %d", res2.StatusCode)
 		return
 	}
-	pSession = res.Session
+	resp2 := &models.SessionResponse{}
+	if err := util.UnmarshalJSON(res2.Body, resp2); err != nil {
+		t.Error(err)
+		return
+	}
+	pSession = resp2.Session
 }
 
 func TestPin_Pin(t *testing.T) {
@@ -60,21 +72,27 @@ func TestPin_Pin(t *testing.T) {
 		return
 	}
 	defer block.Close()
-	stat, res, err := util.Pin(block, pSession.AccessToken, "application/octet-stream")
+	res, err := util.Pin(block, pSession.AccessToken, "application/octet-stream")
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if stat != 201 {
-		t.Errorf("got bad status: %d", stat)
+	defer res.Body.Close()
+	if res.StatusCode != 201 {
+		t.Errorf("got bad status: %d", res.StatusCode)
 		return
 	}
-	if res.Id == nil {
+	resp := &models.PinResponse{}
+	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
+		t.Error(err)
+		return
+	}
+	if resp.Id == nil {
 		t.Error("response should contain id")
 		return
 	}
-	if *res.Id != blockHash {
-		t.Errorf("hashes do not match: %s, %s", *res.Id, blockHash)
+	if *resp.Id != blockHash {
+		t.Errorf("hashes do not match: %s, %s", *resp.Id, blockHash)
 	}
 }
 
@@ -85,20 +103,26 @@ func TestPin_PinArchive(t *testing.T) {
 		return
 	}
 	defer archive.Close()
-	stat, res, err := util.Pin(archive, pSession.AccessToken, "application/gzip")
+	res, err := util.Pin(archive, pSession.AccessToken, "application/gzip")
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if stat != 201 {
-		t.Errorf("got bad status: %d", stat)
+	defer res.Body.Close()
+	if res.StatusCode != 201 {
+		t.Errorf("got bad status: %d", res.StatusCode)
 		return
 	}
-	if res.Id == nil {
+	resp := &models.PinResponse{}
+	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
+		t.Error(err)
+		return
+	}
+	if resp.Id == nil {
 		t.Error("response should contain id")
 		return
 	}
-	if *res.Id != photoHash {
-		t.Errorf("hashes do not match: %s, %s", *res.Id, photoHash)
+	if *resp.Id != photoHash {
+		t.Errorf("hashes do not match: %s, %s", *resp.Id, photoHash)
 	}
 }

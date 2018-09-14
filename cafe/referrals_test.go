@@ -1,6 +1,7 @@
 package cafe
 
 import (
+	"github.com/textileio/textile-go/cafe/models"
 	util "github.com/textileio/textile-go/util/testing"
 	"testing"
 )
@@ -12,12 +13,28 @@ func TestReferrals_CreateReferral(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if res.Status != 201 {
-		t.Errorf("got bad status: %d", res.Status)
+	defer res.Body.Close()
+	if res.StatusCode != 201 {
+		t.Errorf("got bad status: %d", res.StatusCode)
 		return
 	}
-	if len(res.RefCodes) != num {
+	resp := &models.ReferralResponse{}
+	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(resp.RefCodes) != num {
 		t.Error("got bad ref codes")
+		return
+	}
+	res2, err := util.CreateReferral("canihaz?", 1, 1, "test")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer res2.Body.Close()
+	if res2.StatusCode != 403 {
+		t.Errorf("got bad status: %d", res.StatusCode)
 		return
 	}
 }
@@ -28,12 +45,28 @@ func TestReferrals_ListReferrals(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if res.Status != 200 {
-		t.Errorf("got bad status: %d", res.Status)
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		t.Errorf("got bad status: %d", res.StatusCode)
 		return
 	}
-	if len(res.RefCodes) == 0 {
+	resp := &models.ReferralResponse{}
+	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(resp.RefCodes) == 0 {
 		t.Error("got bad ref codes")
+		return
+	}
+	res2, err := util.ListReferrals("canihaz?")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer res2.Body.Close()
+	if res2.StatusCode != 403 {
+		t.Errorf("got bad status: %d", res.StatusCode)
 		return
 	}
 }

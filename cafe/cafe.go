@@ -43,19 +43,27 @@ func (c *Cafe) Start(addr string) {
 		g.Writer.WriteHeader(http.StatusNoContent)
 	})
 
-	// api routes
+	// v0 routes
 	v0 := router.Group("/api/v0")
-	v0.Use(c.auth)
 	{
-		v0.PUT("/users", c.signUp)
-		v0.POST("/users", c.signIn)
-
+		v0.PUT("/users", c.signUpUser)
+		v0.POST("/users", c.signInUser)
 		v0.POST("/referrals", c.createReferral)
 		v0.GET("/referrals", c.listReferrals)
+		v0.POST("/tokens", c.authSession, c.refreshSession)
+		v0.POST("/pin", c.authSession, c.pin)
+	}
 
-		v0.POST("/tokens", c.refreshToken)
-
-		v0.POST("/pin", c.pin)
+	// v1 routes
+	v1 := router.Group("/api/v1")
+	{
+		v1.POST("/profiles/challenge", c.profileChallenge)
+		v1.PUT("/profiles", c.registerProfile)
+		v1.POST("/profiles", c.loginProfile)
+		v1.POST("/referrals", c.createReferral)
+		v1.GET("/referrals", c.listReferrals)
+		v1.POST("/tokens", c.authSession, c.refreshSession)
+		v1.POST("/pin", c.authSession, c.pin)
 	}
 	c.server = &http.Server{
 		Addr:    addr,

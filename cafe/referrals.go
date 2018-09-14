@@ -42,26 +42,25 @@ func (c *Cafe) createReferral(g *gin.Context) {
 	}
 
 	// hodl 'em
-	refs := make([]string, count)
-	for i := range refs {
+	codes := make([]string, count)
+	for i := range codes {
 		code, err := createReferral(limit, requestedBy)
 		if err != nil {
 			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		refs[i] = code
+		codes[i] = code
 	}
 
 	// ship it
-	g.JSON(http.StatusCreated, gin.H{
-		"status":    http.StatusCreated,
-		"ref_codes": refs,
+	g.JSON(http.StatusCreated, models.ReferralResponse{
+		RefCodes: codes,
 	})
 }
 
 func (c *Cafe) listReferrals(g *gin.Context) {
 	// cheap way to lock down this endpoint
-	if c.ReferralKey != g.GetHeader("X-Referral-Key") {
+	if g.GetHeader("X-Referral-Key") != c.ReferralKey {
 		g.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
@@ -78,9 +77,8 @@ func (c *Cafe) listReferrals(g *gin.Context) {
 	}
 
 	// ship it
-	g.JSON(http.StatusOK, gin.H{
-		"status":    http.StatusOK,
-		"ref_codes": codes,
+	g.JSON(http.StatusOK, models.ReferralResponse{
+		RefCodes: codes,
 	})
 }
 

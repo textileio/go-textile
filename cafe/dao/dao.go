@@ -19,12 +19,13 @@ type DAO struct {
 }
 
 var Dao *DAO
-
 var db *mgo.Database
 
 const (
 	userCollection     = "users"
+	profileCollection  = "profiles"
 	referralCollection = "referrals"
+	nonceCollection    = "nonce"
 )
 
 var indexes = map[string][]mgo.Index{
@@ -43,6 +44,14 @@ var indexes = map[string][]mgo.Index{
 			Sparse:     true,
 		},
 	},
+	profileCollection: {
+		{
+			Key:        []string{"pk"},
+			Unique:     true,
+			DropDups:   true,
+			Background: true,
+		},
+	},
 	referralCollection: {
 		{
 			Key:        []string{"code"},
@@ -52,6 +61,14 @@ var indexes = map[string][]mgo.Index{
 		},
 		{
 			Key:        []string{"user_id"},
+			Background: true,
+		},
+	},
+	nonceCollection: {
+		{
+			Key:        []string{"value"},
+			Unique:     true,
+			DropDups:   true,
 			Background: true,
 		},
 	},
@@ -148,7 +165,7 @@ func (m *DAO) FindUserByUsername(un string) (models.User, error) {
 }
 
 // Find a user by email
-func (m *DAO) FindUserByIdentity(id models.Identity) (models.User, error) {
+func (m *DAO) FindUserByIdentity(id models.UserIdentity) (models.User, error) {
 	var user models.User
 	err := db.C(userCollection).Find(bson.M{
 		"identities": bson.M{"$elemMatch": bson.M{"type": id.Type, "value": id.Value}},
@@ -171,5 +188,60 @@ func (m *DAO) DeleteUser(user models.User) error {
 // Update an existing user
 func (m *DAO) UpdateUser(user models.User) error {
 	err := db.C(userCollection).UpdateId(user.ID, &user)
+	return err
+}
+
+// PROFILES
+
+// Find a profile by id
+func (m *DAO) FindProfileById(id string) (models.Profile, error) {
+	var profile models.Profile
+	err := db.C(profileCollection).FindId(bson.ObjectIdHex(id)).One(&profile)
+	return profile, err
+}
+
+// Find a profile by public key
+func (m *DAO) FindProfileByPk(pk string) (models.Profile, error) {
+	var profile models.Profile
+	err := db.C(profileCollection).Find(bson.M{"pk": pk}).One(&profile)
+	return profile, err
+}
+
+// Insert a new profile
+func (m *DAO) InsertProfile(profile models.Profile) error {
+	err := db.C(profileCollection).Insert(&profile)
+	return err
+}
+
+// Delete an existing profile
+func (m *DAO) DeleteProfile(profile models.Profile) error {
+	err := db.C(profileCollection).Remove(&profile)
+	return err
+}
+
+// Update an existing profile
+func (m *DAO) UpdateProfile(profile models.Profile) error {
+	err := db.C(profileCollection).UpdateId(profile.ID, &profile)
+	return err
+}
+
+// NONCES
+
+// Find a nonce value
+func (m *DAO) FindNonce(value string) (models.Nonce, error) {
+	var nonce models.Nonce
+	err := db.C(nonceCollection).Find(bson.M{"value": value}).One(&nonce)
+	return nonce, err
+}
+
+// Insert a new nonce
+func (m *DAO) InsertNonce(nonce models.Nonce) error {
+	err := db.C(nonceCollection).Insert(&nonce)
+	return err
+}
+
+// Delete an existing nonce
+func (m *DAO) DeleteNonce(nonce models.Nonce) error {
+	err := db.C(nonceCollection).Remove(&nonce)
 	return err
 }

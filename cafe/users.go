@@ -19,10 +19,9 @@ var usernameRx = regexp.MustCompile(`^[a-zA-Z0-9_][a-zA-Z0-9._]+[a-zA-Z0-9_]$`)
 var emailRx = regexp.MustCompile(`^[^@^\s]+@[^@^\s]+$`)
 var numbersOnlyRx = regexp.MustCompile(`[^+^0-9]+`)
 
-const month = time.Hour * 24 * 7 * 4
-
-func (c *Cafe) signUp(g *gin.Context) {
-	var reg models.Registration
+// cafe v0
+func (c *Cafe) signUpUser(g *gin.Context) {
+	var reg models.UserRegistration
 	if err := g.BindJSON(&reg); err != nil {
 		g.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -94,7 +93,7 @@ func (c *Cafe) signUp(g *gin.Context) {
 		Password:   password,
 		Created:    now,
 		LastSeen:   now,
-		Identities: []models.Identity{*reg.Identity},
+		Identities: []models.UserIdentity{*reg.Identity},
 	}
 	if err := dao.Dao.InsertUser(user); err != nil {
 		g.JSON(http.StatusConflict, gin.H{"error": err.Error()})
@@ -102,7 +101,7 @@ func (c *Cafe) signUp(g *gin.Context) {
 	}
 
 	// get a session
-	session, err := auth.NewSession(user.ID.Hex(), c.TokenSecret, c.Ipfs().Identity.Pretty(), service.TextileProtocol, month)
+	session, err := auth.NewSession(user.ID.Hex(), c.TokenSecret, c.Ipfs().Identity.Pretty(), service.TextileProtocol, oneMonth)
 	if err != nil {
 		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -116,14 +115,14 @@ func (c *Cafe) signUp(g *gin.Context) {
 	}
 
 	// ship it
-	g.JSON(http.StatusCreated, models.Response{
-		Status:  http.StatusCreated,
+	g.JSON(http.StatusCreated, models.SessionResponse{
 		Session: session,
 	})
 }
 
-func (c *Cafe) signIn(g *gin.Context) {
-	var creds models.Credentials
+// cafe v0
+func (c *Cafe) signInUser(g *gin.Context) {
+	var creds models.UserCredentials
 	if err := g.BindJSON(&creds); err != nil {
 		g.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -143,15 +142,14 @@ func (c *Cafe) signIn(g *gin.Context) {
 	}
 
 	// get a session
-	session, err := auth.NewSession(user.ID.Hex(), c.TokenSecret, c.Ipfs().Identity.Pretty(), service.TextileProtocol, month)
+	session, err := auth.NewSession(user.ID.Hex(), c.TokenSecret, c.Ipfs().Identity.Pretty(), service.TextileProtocol, oneMonth)
 	if err != nil {
 		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	// ship it
-	g.JSON(http.StatusOK, models.Response{
-		Status:  http.StatusOK,
+	g.JSON(http.StatusOK, models.SessionResponse{
 		Session: session,
 	})
 }

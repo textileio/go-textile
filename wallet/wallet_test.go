@@ -15,10 +15,10 @@ var repo = "testdata/.textile"
 
 var wallet *Wallet
 
-var cafeReg = &cmodels.Registration{
+var cafeReg = &cmodels.UserRegistration{
 	Username: ksuid.New().String(),
 	Password: ksuid.New().String(),
-	Identity: &cmodels.Identity{
+	Identity: &cmodels.UserIdentity{
 		Type:  cmodels.EmailAddress,
 		Value: ksuid.New().String() + "@textile.io",
 	},
@@ -85,7 +85,7 @@ func TestWallet_SignUp(t *testing.T) {
 }
 
 func TestWallet_SignIn(t *testing.T) {
-	creds := &cmodels.Credentials{
+	creds := &cmodels.UserCredentials{
 		Username: cafeReg.Username,
 		Password: cafeReg.Password,
 	}
@@ -260,7 +260,7 @@ func TestWallet_OnlineAgain(t *testing.T) {
 
 // test signin in stopped state, should re-connect to db
 func TestWallet_SignInAgain(t *testing.T) {
-	creds := &cmodels.Credentials{
+	creds := &cmodels.UserCredentials{
 		Username: cafeReg.Username,
 		Password: cafeReg.Password,
 	}
