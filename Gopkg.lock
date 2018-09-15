@@ -25,11 +25,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:256d02f4968d5570039116a7042635502a1401bf96077372f33d41c07ff5de40"
+  digest = "1:261e66e5e266e89b33eb9932598683884e18a61b0569e02c96675efd309ad006"
   name = "github.com/asticode/go-astilectron"
   packages = ["."]
   pruneopts = "T"
-  revision = "05918845982b997611941fa6350c25065ffec6ce"
+  revision = "576c111b093ac9b4641bbb23d0b2e122e0736179"
 
 [[projects]]
   branch = "master"
@@ -41,23 +41,23 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1395cd185ce312ad8942234c985e821afb9cc1886043069caa5a1d3bc54616ff"
+  digest = "1:686794cb000ae6f232cd2ada80efdea69d55f31d7e85e06e227e234e3196fc23"
   name = "github.com/asticode/go-astilectron-bundler"
   packages = ["."]
   pruneopts = "T"
-  revision = "10a989b4ded4f2f053ca3d32cb40c3664b96217b"
+  revision = "f6f70d2ef6667b9d8a755ce3461b7aa3d27b3115"
 
 [[projects]]
   branch = "master"
-  digest = "1:eb1e682cd735064c73a8bc6bc4a22f882ea7b4ffc0764cf45ab54e70b83a8ec5"
+  digest = "1:71f995757424fc8b7332d9c65ab30091baf9c6a3639b80f28ef57cb32e9faf40"
   name = "github.com/asticode/go-astilog"
   packages = ["."]
   pruneopts = "T"
-  revision = "2d536498e5b6430a4df7cfa5061d3575e6b54b07"
+  revision = "f17157b971b275cc7f495550c74a7a58be091437"
 
 [[projects]]
   branch = "master"
-  digest = "1:a0c572b8df9e782f51b43a962b3687c2a333faa6f9940be6c533417287912926"
+  digest = "1:914588936be6c6959e1122bca891e37fdaabb3d95501ef687fbaa29905613c2c"
   name = "github.com/asticode/go-astitools"
   packages = [
     "archive",
@@ -71,7 +71,7 @@
     "url",
   ]
   pruneopts = "T"
-  revision = "8016eff0e9f7b91773d9e4385095385fc330f5d4"
+  revision = "c1e26674a4c64531b76a335c769db3059bd0844f"
 
 [[projects]]
   branch = "master"
@@ -90,12 +90,12 @@
   version = "v3.2.0"
 
 [[projects]]
-  digest = "1:37f0b9c67e07fbdf7f5dbf043e86d747a17ebf6b716da581410fb94c7e4e7cbd"
+  digest = "1:086953b18921f5f74c5eec8be5019768636452c4d503987a9ad894f802651672"
   name = "github.com/disintegration/imaging"
   packages = ["."]
   pruneopts = "T"
-  revision = "bbcee2f5c9d5e94ca42c8b50ec847fec64a6c134"
-  version = "v1.4.2"
+  revision = "0bd5694c78c9c3d9a3cd06a706a8f3c59296a9ac"
+  version = "v1.5.0"
 
 [[projects]]
   digest = "1:865079840386857c809b72ce300be7580cb50d3d3129ce11bf9aa6ca2bc1934a"
@@ -136,7 +136,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:36f4d6a69832ab97033030231cb449927129a363d415b42cf0fb97b5709b2af2"
+  digest = "1:f0ca78bd7a42a636aa6699c7b9e1be6f50e4ce0da8b6e9cf71d7b49a7075f1d6"
   name = "github.com/globalsign/mgo"
   packages = [
     ".",
@@ -146,10 +146,10 @@
     "internal/scram",
   ]
   pruneopts = "T"
-  revision = "113d3961e7311526535a1ef7042196563d442761"
+  revision = "1ca0a4f7cbcbe61c005d1bd43fdd8bb8b71df6bc"
 
 [[projects]]
-  digest = "1:832e17df5ff8bbe0e0693d2fb46c5e53f96c662ee804049ce3ab6557df74e3ab"
+  digest = "1:a2ecb56e5053d942aafc86738915fb94c9131bac848c543b8b6764365fd69080"
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -159,8 +159,8 @@
     "ptypes/timestamp",
   ]
   pruneopts = "T"
-  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
-  version = "v1.1.0"
+  revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:3f222a291d2810bdeccb8ba10af58fd087269863c8196f7754cfa0de098a2b56"
@@ -195,20 +195,20 @@
   version = "v0.0.9"
 
 [[projects]]
-  digest = "1:d4d17353dbd05cb52a2a52b7fe1771883b682806f68db442b436294926bbfafb"
+  digest = "1:0981502f9816113c9c8c4ac301583841855c8cf4da8c72f696b3ebedf6d0e4e5"
   name = "github.com/mattn/go-isatty"
   packages = ["."]
   pruneopts = "T"
-  revision = "0360b2af4f38e8d38c7fce2a9f4e702702d73a39"
-  version = "v0.0.3"
+  revision = "6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c"
+  version = "v0.0.4"
 
 [[projects]]
   branch = "master"
-  digest = "1:c7354463195544b1ab3c1f1fadb41430947f5d28dfbf2cdbd38268c5717a5a03"
+  digest = "1:78bbb1ba5b7c3f2ed0ea1eab57bdd3859aec7e177811563edc41198a760b06af"
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
   pruneopts = "T"
-  revision = "58046073cbffe2f25d425fe1331102f55cf719de"
+  revision = "ae18d6b8b3205b561c79e8e5f69bff09736185f4"
 
 [[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"
@@ -328,7 +328,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:2cbe8758697d867fcebf73bcc69dff8e8abaa7fd65e5704e0744e522ccff4e6a"
+  digest = "1:62fac8c414ce3fb59b87102ebebb04edd0287a721c0cd6b36f4dc866a42cf772"
   name = "golang.org/x/crypto"
   packages = [
     "bcrypt",
@@ -343,7 +343,7 @@
     "ssh/terminal",
   ]
   pruneopts = "T"
-  revision = "f027049dab0ad238e394a753dba2d14753473a04"
+  revision = "0e37d006457bf46f9e6692014ba72ef82c33022c"
 
 [[projects]]
   branch = "master"
@@ -359,22 +359,22 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:37f0fa2cdf58bbb183166149253fcaee21da37c9e0a2374d31d3f74175d07f00"
+  digest = "1:a42c6aed51ed8b42dae608760a24ce53b799ede0c31637dfcbf1116cd0c23b03"
   name = "golang.org/x/net"
   packages = ["context"]
   pruneopts = "T"
-  revision = "19491d39cadbd9cd33f26ca22cc89ba4ba38251c"
+  revision = "26e67e76b6c3f6ce91f7c52def5af501b4e0f3a2"
 
 [[projects]]
   branch = "master"
-  digest = "1:b4b2fbcd8de6fe067439f6fc3684bc53bc14ff013ee9f05c847ed6169340a755"
+  digest = "1:57d967d0c359c56065e766555f82df575d98c6b1979f7d257b83220ed1340d3b"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "T"
-  revision = "acbc56fc7007d2a01796d5bde54f39e3b3e95945"
+  revision = "d0be0721c37eeb5299f245a996a483160fc36940"
 
 [[projects]]
   digest = "1:b422e7572a450b4b928b4ad16747e6e9c296887573c6ecf5d351e438683f5385"
