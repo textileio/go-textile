@@ -12,7 +12,6 @@ import (
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/namesys/opts"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/path"
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
-	"net/http"
 	"time"
 )
 
@@ -66,7 +65,7 @@ func (w *Wallet) ListReferrals(key string) (*cmodels.ReferralResponse, error) {
 }
 
 // SignUp requests a new username and token from a cafe and saves them locally
-func (w *Wallet) SignUp(reg *cmodels.Registration) error {
+func (w *Wallet) SignUp(reg *cmodels.UserRegistration) error {
 	if w.cafeAddr == "" {
 		return ErrNoCafeHost
 	}
@@ -76,7 +75,7 @@ func (w *Wallet) SignUp(reg *cmodels.Registration) error {
 	log.Debugf("signup: %s %s %s %s %s", reg.Username, "xxxxxx", reg.Identity.Type, reg.Identity.Value, reg.Referral)
 
 	// remote signup
-	res, err := client.SignUp(reg, fmt.Sprintf("%s/users", w.GetCafeApiAddr()))
+	res, err := client.SignUpUser(reg, fmt.Sprintf("%s/users", w.GetCafeApiAddr()))
 	if err != nil {
 		log.Errorf("signup error: %s", err)
 		return err
@@ -108,7 +107,7 @@ func (w *Wallet) SignUp(reg *cmodels.Registration) error {
 }
 
 // SignIn requests a token with a username from a cafe and saves them locally
-func (w *Wallet) SignIn(creds *cmodels.Credentials) error {
+func (w *Wallet) SignIn(creds *cmodels.UserCredentials) error {
 	if w.cafeAddr == "" {
 		return ErrNoCafeHost
 	}
@@ -118,7 +117,7 @@ func (w *Wallet) SignIn(creds *cmodels.Credentials) error {
 	log.Debugf("signin: %s %s", creds.Username, "xxxxxx")
 
 	// remote signin
-	res, err := client.SignIn(creds, fmt.Sprintf("%s/users", w.GetCafeApiAddr()))
+	res, err := client.SignInUser(creds, fmt.Sprintf("%s/users", w.GetCafeApiAddr()))
 	if err != nil {
 		log.Errorf("signin error: %s", err)
 		return err
@@ -199,7 +198,7 @@ func (w *Wallet) GetTokens(forceRefresh bool) (*repo.CafeTokens, error) {
 
 	// remote refresh
 	url := fmt.Sprintf("%s/tokens", w.GetCafeApiAddr())
-	res, err := client.Refresh(tokens.Access, tokens.Refresh, url)
+	res, err := client.RefreshSession(tokens.Access, tokens.Refresh, url)
 	if err != nil {
 		log.Errorf("get tokens error: %s", err)
 		return nil, err
@@ -207,10 +206,6 @@ func (w *Wallet) GetTokens(forceRefresh bool) (*repo.CafeTokens, error) {
 	if res.Error != nil {
 		log.Errorf("get tokens error from cafe: %s", *res.Error)
 		return nil, errors.New(*res.Error)
-	}
-	if res.Status == http.StatusUnauthorized {
-		log.Info("refresh token expired")
-		return nil, errors.New("cafe: refresh token expired")
 	}
 
 	// update tokens

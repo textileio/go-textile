@@ -3,13 +3,13 @@ package net
 import (
 	"bytes"
 	"github.com/pkg/errors"
-	cafe "github.com/textileio/textile-go/core/cafe"
+	"github.com/textileio/textile-go/cafe"
+	"github.com/textileio/textile-go/core/cafe"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/util"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreapi/interface"
 	"io"
-	"net/http"
 	"sync"
 	"time"
 )
@@ -174,14 +174,14 @@ func Pin(ipfs *core.IpfsNode, id string, tokens *repo.CafeTokens, url string) er
 	}
 
 	// pin to cafe
-	res, err := cafe.Pin(tokens.Access, reader, url, cType)
+	res, err := client.Pin(tokens.Access, reader, url, cType)
 	if err != nil {
 		return err
 	}
-	if res.Status == http.StatusUnauthorized {
-		return ErrTokenExpired
-	}
 	if res.Error != nil {
+		if *res.Error == cafe.ErrUnauthorized {
+			return ErrTokenExpired
+		}
 		return errors.New(*res.Error)
 	}
 	if res.Id == nil {

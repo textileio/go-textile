@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/cafe/models"
 	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
 	util "github.com/textileio/textile-go/util/testing"
@@ -64,16 +65,22 @@ func TestMobile_StartAgain(t *testing.T) {
 }
 
 func TestMobile_SignUpWithEmail(t *testing.T) {
-	ref, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
+	res, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
 	if err != nil {
 		t.Errorf("create referral for signup failed: %s", err)
 		return
 	}
-	if len(ref.RefCodes) == 0 {
+	defer res.Body.Close()
+	resp := &models.ReferralResponse{}
+	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(resp.RefCodes) == 0 {
 		t.Error("create referral for signup got no codes")
 		return
 	}
-	if err := mobile.SignUpWithEmail(cemail, cusername, cpassword, ref.RefCodes[0]); err != nil {
+	if err := mobile.SignUpWithEmail(cemail, cusername, cpassword, resp.RefCodes[0]); err != nil {
 		t.Errorf("signup failed: %s", err)
 	}
 }

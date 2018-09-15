@@ -3,12 +3,13 @@ package cafe
 import (
 	"fmt"
 	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/cafe/models"
 	util "github.com/textileio/textile-go/util/testing"
 	"testing"
 )
 
-var refCode string
-var registration = map[string]interface{}{
+var userRefCode string
+var userRegistration = map[string]interface{}{
 	"username": ksuid.New().String(),
 	"password": ksuid.New().String(),
 	"identity": map[string]string{
@@ -18,97 +19,117 @@ var registration = map[string]interface{}{
 	"ref_code": "canihaz?",
 }
 var credentials = map[string]interface{}{
-	"username": registration["username"],
-	"password": registration["password"],
+	"username": userRegistration["username"],
+	"password": userRegistration["password"],
 }
 
 func TestUsers_Setup(t *testing.T) {
 	// create a referral for the test
-	ref, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
+	res, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if ref.Status != 201 {
-		t.Errorf("could not create referral, bad status: %d", ref.Status)
+	defer res.Body.Close()
+	if res.StatusCode != 201 {
+		t.Errorf("could not create referral, bad status: %d", res.StatusCode)
 		return
 	}
-	if len(ref.RefCodes) > 0 {
-		refCode = ref.RefCodes[0]
+	resp := &models.ReferralResponse{}
+	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(resp.RefCodes) > 0 {
+		userRefCode = resp.RefCodes[0]
 	} else {
 		t.Error("got bad ref codes")
 	}
 }
 
 func TestUsers_SignUp(t *testing.T) {
-	stat, _, err := util.SignUp(registration)
+	res, err := util.SignUpUser(userRegistration)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if stat != 404 {
-		t.Errorf("bad status from sign up with bad ref code: %d", stat)
+	defer res.Body.Close()
+	if res.StatusCode != 404 {
+		t.Errorf("bad status from sign up with bad ref code: %d", res.StatusCode)
 		return
 	}
-
-	registration["ref_code"] = refCode
-	stat2, res2, err := util.SignUp(registration)
+	userRegistration["ref_code"] = userRefCode
+	res2, err := util.SignUpUser(userRegistration)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if stat2 != 201 {
-		t.Errorf("got bad status: %d", stat)
+	defer res2.Body.Close()
+	if res2.StatusCode != 201 {
+		t.Errorf("got bad status: %d", res2.StatusCode)
 		return
 	}
-	if res2.Session == nil {
-		t.Error("got bad session")
+	resp2 := &models.SessionResponse{}
+	if err := util.UnmarshalJSON(res2.Body, resp2); err != nil {
+		t.Error(err)
 		return
 	}
-
-	stat3, _, err := util.SignUp(registration)
+	if resp2.Session == nil {
+		t.Error("signup response missing session")
+		return
+	}
+	res3, err := util.SignUpUser(userRegistration)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if stat3 != 404 {
-		t.Errorf("bad status from sign up with already used ref code: %d", stat)
+	defer res3.Body.Close()
+	if res3.StatusCode != 404 {
+		t.Errorf("bad status from sign up with already used ref code: %d", res3.StatusCode)
 		return
 	}
 }
 
 func TestUsers_SignIn(t *testing.T) {
-	stat, res, err := util.SignIn(credentials)
+	res, err := util.SignInUser(credentials)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if stat != 200 {
-		t.Errorf("got bad status: %d", stat)
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		t.Errorf("got bad status: %d", res.StatusCode)
 		return
 	}
-	if res.Session == nil {
+	resp := &models.SessionResponse{}
+	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
+		t.Error(err)
+		return
+	}
+	if resp.Session == nil {
 		t.Error("got bad session")
 		return
 	}
 	credentials["password"] = "doh!"
-	stat1, _, err := util.SignIn(credentials)
+	res2, err := util.SignInUser(credentials)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if stat1 != 403 {
-		t.Errorf("got bad status: %d", stat1)
+	defer res2.Body.Close()
+	if res2.StatusCode != 403 {
+		t.Errorf("got bad status: %d", res2.StatusCode)
 		return
 	}
 	credentials["username"] = "bart"
-	stat2, _, err := util.SignIn(credentials)
+	res3, err := util.SignInUser(credentials)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if stat2 != 404 {
-		t.Errorf("got bad status: %d", stat2)
+	defer res3.Body.Close()
+	if res3.StatusCode != 404 {
+		t.Errorf("got bad status: %d", res3.StatusCode)
 		return
 	}
 }

@@ -6,12 +6,144 @@ import (
 	"fmt"
 	"github.com/textileio/textile-go/cafe/models"
 	"io"
+	"io/ioutil"
 	"net/http"
 )
+
+func unmarshalJSON(body io.ReadCloser, target interface{}) error {
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(b, target)
+}
+
+// cafe v0
+func SignUpUser(reg *models.UserRegistration, url string) (*models.SessionResponse, error) {
+	payload, err := json.Marshal(reg)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(payload))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	resp := &models.SessionResponse{}
+	if err := unmarshalJSON(res.Body, resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// cafe v0
+func SignInUser(creds *models.UserCredentials, url string) (*models.SessionResponse, error) {
+	payload, err := json.Marshal(creds)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	resp := &models.SessionResponse{}
+	if err := unmarshalJSON(res.Body, resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// cafe v1
+func ProfileChallenge(chal *models.ChallengeRequest, url string) (*models.ChallengeResponse, error) {
+	payload, err := json.Marshal(chal)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	resp := &models.ChallengeResponse{}
+	if err := unmarshalJSON(res.Body, resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// cafe v1
+func RegisterProfile(reg *models.ProfileRegistration, url string) (*models.SessionResponse, error) {
+	payload, err := json.Marshal(reg)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(payload))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	resp := &models.SessionResponse{}
+	if err := unmarshalJSON(res.Body, resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// cafe v1
+func LoginProfile(cha *models.SignedChallenge, url string) (*models.SessionResponse, error) {
+	payload, err := json.Marshal(cha)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	resp := &models.SessionResponse{}
+	if err := unmarshalJSON(res.Body, resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
 
 func CreateReferral(rreq *models.ReferralRequest, url string) (*models.ReferralResponse, error) {
 	params := fmt.Sprintf("count=%d&limit=%d&requested_by=%s", rreq.Count, rreq.Limit, rreq.RequestedBy)
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s?%s", url, params), nil)
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Referral-Key", rreq.Key)
 	client := &http.Client{}
@@ -20,9 +152,8 @@ func CreateReferral(rreq *models.ReferralRequest, url string) (*models.ReferralR
 		return nil, err
 	}
 	defer res.Body.Close()
-
 	resp := &models.ReferralResponse{}
-	if err := resp.Read(res.Body); err != nil {
+	if err := unmarshalJSON(res.Body, resp); err != nil {
 		return nil, err
 	}
 	return resp, nil
@@ -30,6 +161,9 @@ func CreateReferral(rreq *models.ReferralRequest, url string) (*models.ReferralR
 
 func ListReferrals(key string, url string) (*models.ReferralResponse, error) {
 	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Referral-Key", key)
 	client := &http.Client{}
@@ -38,65 +172,19 @@ func ListReferrals(key string, url string) (*models.ReferralResponse, error) {
 		return nil, err
 	}
 	defer res.Body.Close()
-
 	resp := &models.ReferralResponse{}
-	if err := resp.Read(res.Body); err != nil {
+	if err := unmarshalJSON(res.Body, resp); err != nil {
 		return nil, err
 	}
 	return resp, nil
 }
 
-func SignUp(reg *models.Registration, url string) (*models.Response, error) {
-	payload, err := json.Marshal(reg)
-	if err != nil {
-		return nil, err
-	}
-
-	// build the request
-	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(payload))
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	// read response
-	resp := &models.Response{}
-	if err := resp.Read(res.Body); err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
-func SignIn(creds *models.Credentials, url string) (*models.Response, error) {
-	payload, err := json.Marshal(creds)
-	if err != nil {
-		return nil, err
-	}
-
-	// build the request
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	// read response
-	resp := &models.Response{}
-	if err := resp.Read(res.Body); err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
-func Refresh(accessToken string, refreshToken string, url string) (*models.Response, error) {
+func RefreshSession(accessToken string, refreshToken string, url string) (*models.SessionResponse, error) {
 	// build the request
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(accessToken)))
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Set("Content-Type", "text/plain")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", refreshToken))
 	client := &http.Client{}
@@ -105,18 +193,19 @@ func Refresh(accessToken string, refreshToken string, url string) (*models.Respo
 		return nil, err
 	}
 	defer res.Body.Close()
-
-	// read response
-	resp := &models.Response{}
-	if err := resp.Read(res.Body); err != nil {
+	resp := &models.SessionResponse{}
+	if err := unmarshalJSON(res.Body, resp); err != nil {
 		return nil, err
 	}
 	return resp, nil
 }
 
-func Pin(accessToken string, reader io.Reader, url string, cType string) (*models.Response, error) {
+func Pin(accessToken string, reader io.Reader, url string, cType string) (*models.PinResponse, error) {
 	// build the request
 	req, err := http.NewRequest("POST", url, reader)
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Set("Content-Type", cType)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 	client := &http.Client{}
@@ -125,10 +214,8 @@ func Pin(accessToken string, reader io.Reader, url string, cType string) (*model
 		return nil, err
 	}
 	defer res.Body.Close()
-
-	// read response
-	resp := &models.Response{}
-	if err := resp.Read(res.Body); err != nil {
+	resp := &models.PinResponse{}
+	if err := unmarshalJSON(res.Body, resp); err != nil {
 		return nil, err
 	}
 	return resp, nil

@@ -78,10 +78,10 @@ func CafeRegister(c *ishell.Context) {
 	c.Print("password: ")
 	password := c.ReadPassword()
 
-	reg := &models.Registration{
+	reg := &models.UserRegistration{
 		Username: username,
 		Password: password,
-		Identity: &models.Identity{
+		Identity: &models.UserIdentity{
 			Type:  models.EmailAddress,
 			Value: email,
 		},
@@ -102,7 +102,7 @@ func CafeLogin(c *ishell.Context) {
 	c.Print("password: ")
 	password := c.ReadPassword()
 
-	creds := &models.Credentials{
+	creds := &models.UserCredentials{
 		Username: username,
 		Password: password,
 	}

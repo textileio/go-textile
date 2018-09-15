@@ -6,13 +6,10 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"github.com/textileio/textile-go/crypto"
 	"github.com/tyler-smith/go-bip39"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/config"
-	"io"
-	"io/ioutil"
 )
 
 // PrivKeyFromMnemonic creates a private key form a mnemonic phrase
@@ -71,15 +68,6 @@ func IdentityConfig(sk libp2pc.PrivKey) (config.Identity, error) {
 	return ident, nil
 }
 
-// GetEncryptedReaderBytes reads reader bytes and returns the encrypted result
-func GetEncryptedReaderBytes(reader io.Reader, key []byte) ([]byte, error) {
-	bts, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-	return crypto.EncryptAES(bts, key)
-}
-
 // UnmarshalPrivateKeyFromString attempts to create a private key from a base64 encoded string
 func UnmarshalPrivateKeyFromString(key string) (libp2pc.PrivKey, error) {
 	keyb, err := libp2pc.ConfigDecodeKey(key)
@@ -105,6 +93,15 @@ func IdFromEncodedPublicKey(key string) (peer.ID, error) {
 		return "", err
 	}
 	return peer.IDFromPublicKey(pk)
+}
+
+// EncodeKey returns a base64 encoded key
+func EncodeKey(key libp2pc.Key) (string, error) {
+	keyb, err := key.Bytes()
+	if err != nil {
+		return "", err
+	}
+	return libp2pc.ConfigEncodeKey(keyb), nil
 }
 
 // createMnemonic creates a new mnemonic phrase with given entropy

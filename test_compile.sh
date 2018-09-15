@@ -3,6 +3,7 @@
 set -e
 pwd
 go test -coverprofile=cafe.dao.cover.out ./cafe/dao
+go test -coverprofile=cafe.crypto.cover.out ./cafe/crypto
 go test -coverprofile=cafe.cover.out ./cafe
 go test -coverprofile=core.cover.out ./core
 go test -coverprofile=util.cover.out ./util

@@ -13,20 +13,19 @@ import (
 )
 
 var errForbidden = "forbidden"
-var forbiddenResponse = models.Response{
-	Status: http.StatusForbidden,
-	Error:  &errForbidden,
+var forbiddenResponse = models.SessionResponse{
+	Error: &errForbidden,
+}
+var ErrUnauthorized = "unauthorized"
+var unauthorizedResponse = models.SessionResponse{
+	Error: &ErrUnauthorized,
 }
 
 func (c *Cafe) verify(token *jwt.Token) (interface{}, error) {
 	return []byte(c.TokenSecret), nil
 }
 
-func (c *Cafe) auth(g *gin.Context) {
-	if g.Request.URL.Path == "/api/v0/users" || g.Request.URL.Path == "/api/v0/referrals" {
-		return
-	}
-
+func (c *Cafe) authSession(g *gin.Context) {
 	// extract token string from request header
 	var tokenString string
 	parsed := strings.Split(g.Request.Header.Get("Authorization"), " ")
@@ -36,11 +35,15 @@ func (c *Cafe) auth(g *gin.Context) {
 
 	// parse it
 	token, pErr := jwt.Parse(tokenString, c.verify)
+	if token == nil {
+		g.AbortWithStatusJSON(http.StatusUnauthorized, unauthorizedResponse)
+		return
+	}
 
 	// pull out claims
 	claims, err := auth.ParseClaims(token.Claims)
 	if err != nil {
-		g.JSON(http.StatusForbidden, forbiddenResponse)
+		g.AbortWithStatusJSON(http.StatusForbidden, forbiddenResponse)
 		return
 	}
 
@@ -48,12 +51,10 @@ func (c *Cafe) auth(g *gin.Context) {
 	if pErr != nil {
 		if !claims.VerifyExpiresAt(time.Now().Unix(), true) {
 			// 401 indicates a retry is expected after a token refresh
-			g.JSON(http.StatusUnauthorized, models.Response{
-				Status: http.StatusUnauthorized,
-			})
+			g.AbortWithStatusJSON(http.StatusUnauthorized, unauthorizedResponse)
 			return
 		}
-		g.JSON(http.StatusForbidden, forbiddenResponse)
+		g.AbortWithStatusJSON(http.StatusForbidden, forbiddenResponse)
 		return
 	}
 
@@ -62,27 +63,27 @@ func (c *Cafe) auth(g *gin.Context) {
 	switch claims.Scope {
 	case auth.Access:
 		if tokenRoute {
-			g.JSON(http.StatusForbidden, forbiddenResponse)
+			g.AbortWithStatusJSON(http.StatusForbidden, forbiddenResponse)
 			return
 		}
 	case auth.Refresh:
 		if !tokenRoute {
-			g.JSON(http.StatusForbidden, forbiddenResponse)
+			g.AbortWithStatusJSON(http.StatusForbidden, forbiddenResponse)
 			return
 		}
 	default:
-		g.JSON(http.StatusForbidden, forbiddenResponse)
+		g.AbortWithStatusJSON(http.StatusForbidden, forbiddenResponse)
 		return
 	}
 
 	// verify extra fields
 	if !claims.VerifyAudience(string(service.TextileProtocol), true) {
-		g.JSON(http.StatusForbidden, forbiddenResponse)
+		g.AbortWithStatusJSON(http.StatusForbidden, forbiddenResponse)
 		return
 	}
 }
 
-func (c *Cafe) refreshToken(g *gin.Context) {
+func (c *Cafe) refreshSession(g *gin.Context) {
 	body, err := ioutil.ReadAll(g.Request.Body)
 	if err != nil {
 		g.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -128,15 +129,14 @@ func (c *Cafe) refreshToken(g *gin.Context) {
 	}
 
 	// get a new session
-	refreshed, err := auth.NewSession(accessClaims.Subject, c.TokenSecret, c.Ipfs().Identity.Pretty(), service.TextileProtocol, month)
+	refreshed, err := auth.NewSession(accessClaims.Subject, c.TokenSecret, c.Ipfs().Identity.Pretty(), service.TextileProtocol, oneMonth)
 	if err != nil {
 		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	// ship it
-	g.JSON(http.StatusOK, models.Response{
-		Status:  http.StatusOK,
+	g.JSON(http.StatusOK, models.SessionResponse{
 		Session: refreshed,
 	})
 }
