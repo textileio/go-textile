@@ -3,6 +3,7 @@ package wallet_test
 import (
 	"crypto/rand"
 	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/cafe/models"
 	cmodels "github.com/textileio/textile-go/cafe/models"
 	util "github.com/textileio/textile-go/util/testing"
 	. "github.com/textileio/textile-go/wallet"
@@ -66,16 +67,22 @@ func TestWallet_GetRepoPath(t *testing.T) {
 }
 
 func TestWallet_SignUp(t *testing.T) {
-	ref, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
+	res, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
 	if err != nil {
 		t.Errorf("create referral for signup failed: %s", err)
 		return
 	}
-	if len(ref.RefCodes) == 0 {
+	defer res.Body.Close()
+	resp := &models.ReferralResponse{}
+	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(resp.RefCodes) == 0 {
 		t.Error("create referral for signup got no codes")
 		return
 	}
-	cafeReg.Referral = ref.RefCodes[0]
+	cafeReg.Referral = resp.RefCodes[0]
 
 	err = wallet.SignUp(cafeReg)
 	if err != nil {
