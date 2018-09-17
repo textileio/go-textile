@@ -61,8 +61,8 @@ func (w *Wallet) getCafeChallenge(key libp2pc.PrivKey) (*cmodels.SignedChallenge
 	}, nil
 }
 
-// CafeRegister requests a profile public key with a cafe and save the session token locally
-func (w *Wallet) CafeRegister(key libp2pc.PrivKey, referral string) error {
+// CafeRegister registers a public key w/ a cafe, requests a session token, and saves it locally
+func (w *Wallet) CafeRegister(referral string) error {
 	if w.cafeAddr == "" {
 		return ErrNoCafeHost
 	}
@@ -71,13 +71,17 @@ func (w *Wallet) CafeRegister(key libp2pc.PrivKey, referral string) error {
 	}
 
 	// get a challenge from the cafe
+	key, err := w.GetKey()
+	if err != nil {
+		return err
+	}
 	challenge, err := w.getCafeChallenge(key)
 	if err != nil {
 		return err
 	}
 	reg := &cmodels.ProfileRegistration{
 		Challenge: *challenge,
-		Referral: referral,
+		Referral:  referral,
 	}
 
 	log.Debugf("cafe register: %s %s %s", reg.Challenge.Pk, reg.Challenge.Signature, reg.Referral)
@@ -116,7 +120,7 @@ func (w *Wallet) CafeRegister(key libp2pc.PrivKey, referral string) error {
 }
 
 // CafeLogin requests a session token from a cafe and saves it locally
-func (w *Wallet) CafeLogin(key libp2pc.PrivKey) error {
+func (w *Wallet) CafeLogin() error {
 	if w.cafeAddr == "" {
 		return ErrNoCafeHost
 	}
@@ -125,6 +129,10 @@ func (w *Wallet) CafeLogin(key libp2pc.PrivKey) error {
 	}
 
 	// get a challenge from the cafe
+	key, err := w.GetKey()
+	if err != nil {
+		return err
+	}
 	challenge, err := w.getCafeChallenge(key)
 	if err != nil {
 		return err

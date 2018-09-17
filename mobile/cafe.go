@@ -4,22 +4,26 @@ import (
 	"github.com/textileio/textile-go/core"
 )
 
-// CafeRegister calls core CafeRegister with the current profile key
+// CafeRegister calls core CafeRegister
 func (m *Mobile) CafeRegister(referral string) error {
-	key, err := core.Node.Wallet.GetKey()
-	if err != nil {
-		return err
-	}
-	return core.Node.Wallet.CafeRegister(key, referral)
+	return core.Node.Wallet.CafeRegister(referral)
 }
 
-// CafeLogin calls core CafeLogin with the current profile key
+// CafeLogin calls core CafeLogin
 func (m *Mobile) CafeLogin() error {
-	key, err := core.Node.Wallet.GetKey()
+	return core.Node.Wallet.CafeLogin()
+}
+
+// GetCafeTokens calls core GetCafeTokens
+func (m *Mobile) GetCafeTokens(forceRefresh bool) (string, error) {
+	tokens, err := core.Node.Wallet.GetCafeTokens(forceRefresh)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return core.Node.Wallet.CafeLogin(key)
+	if tokens == nil {
+		return "", nil
+	}
+	return toJSON(tokens)
 }
 
 // CafeLogout calls core CafeLogout
@@ -27,8 +31,8 @@ func (m *Mobile) CafeLogout() error {
 	return core.Node.Wallet.CafeLogout()
 }
 
-// IsSignedIn calls core IsSignedIn
-func (m *Mobile) IsSignedIn() bool {
+// CafeLoggedIn calls core CafeLoggedIn
+func (m *Mobile) CafeLoggedIn() bool {
 	loggedIn, _ := core.Node.Wallet.CafeLoggedIn()
 	return loggedIn
 }

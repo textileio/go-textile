@@ -2,9 +2,7 @@ package wallet_test
 
 import (
 	"crypto/rand"
-	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/cafe/models"
-	cmodels "github.com/textileio/textile-go/cafe/models"
 	util "github.com/textileio/textile-go/util/testing"
 	. "github.com/textileio/textile-go/wallet"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
@@ -15,16 +13,6 @@ import (
 var repo = "testdata/.textile"
 
 var wallet *Wallet
-
-var cafeReg = &cmodels.UserRegistration{
-	Username: ksuid.New().String(),
-	Password: ksuid.New().String(),
-	Identity: &cmodels.UserIdentity{
-		Type:  cmodels.EmailAddress,
-		Value: ksuid.New().String() + "@textile.io",
-	},
-	Referral: "",
-}
 
 func TestNewWallet(t *testing.T) {
 	os.RemoveAll(repo)
@@ -58,18 +46,10 @@ func TestWallet_IsOnline(t *testing.T) {
 	}
 }
 
-func TestWallet_GetServerAddress(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_GetRepoPath(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_SignUp(t *testing.T) {
+func TestWallet_CafeRegister(t *testing.T) {
 	res, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
 	if err != nil {
-		t.Errorf("create referral for signup failed: %s", err)
+		t.Errorf("create referral for registration failed: %s", err)
 		return
 	}
 	defer res.Body.Close()
@@ -79,84 +59,21 @@ func TestWallet_SignUp(t *testing.T) {
 		return
 	}
 	if len(resp.RefCodes) == 0 {
-		t.Error("create referral for signup got no codes")
+		t.Error("create referral for registration got no codes")
 		return
 	}
-	cafeReg.Referral = resp.RefCodes[0]
 
-	err = wallet.SignUp(cafeReg)
-	if err != nil {
-		t.Errorf("signup failed: %s", err)
-		return
-	}
-}
-
-func TestWallet_SignIn(t *testing.T) {
-	creds := &cmodels.UserCredentials{
-		Username: cafeReg.Username,
-		Password: cafeReg.Password,
-	}
-	err := wallet.SignIn(creds)
-	if err != nil {
-		t.Errorf("signin failed: %s", err)
+	if err := wallet.CafeRegister(resp.RefCodes[0]); err != nil {
+		t.Errorf("register failed: %s", err)
 		return
 	}
 }
 
-func TestWallet_IsSignedIn(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_GetUsername(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_GetId(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_GetPrivKey(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_GetPubKey(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_GetPubKeyString(t *testing.T) {
-	key, err := wallet.GetPubKeyString()
-	if err != nil {
-		t.Errorf("get pub key failed: %s", err)
+func TestWallet_CafeLogin(t *testing.T) {
+	if err := wallet.CafeLogin(); err != nil {
+		t.Errorf("login failed: %s", err)
 		return
 	}
-	if key == "" {
-		t.Error("pub key empty")
-		return
-	}
-}
-
-func TestWallet_GetAccessToken(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_GetCentralAPI(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_GetCentralUserAPI(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_Threads(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_GetThread(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_GetThreadByName(t *testing.T) {
-	// TODO
 }
 
 func TestWallet_AddThread(t *testing.T) {
@@ -172,26 +89,6 @@ func TestWallet_AddThread(t *testing.T) {
 	if thrd == nil {
 		t.Error("add thread didn't return thread")
 	}
-}
-
-func TestWallet_RemoveThread(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_PublishThreads(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_Devices(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_AddDevice(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_RemoveDevice(t *testing.T) {
-	// TODO
 }
 
 func TestWallet_AddPhoto(t *testing.T) {
@@ -214,34 +111,10 @@ func TestWallet_AddPhoto(t *testing.T) {
 	}
 }
 
-func TestWallet_GetBlock(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_GetBlockByTarget(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_GetDataAtPath(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_ConnectPeer(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_PingPeer(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_Peers(t *testing.T) {
-	// TODO
-}
-
-func TestWallet_SignOut(t *testing.T) {
-	err := wallet.SignOut()
+func TestWallet_CafeLogout(t *testing.T) {
+	err := wallet.CafeLogout()
 	if err != nil {
-		t.Errorf("signout failed: %s", err)
+		t.Errorf("logout failed: %s", err)
 		return
 	}
 }
@@ -265,15 +138,10 @@ func TestWallet_OnlineAgain(t *testing.T) {
 	}
 }
 
-// test signin in stopped state, should re-connect to db
-func TestWallet_SignInAgain(t *testing.T) {
-	creds := &cmodels.UserCredentials{
-		Username: cafeReg.Username,
-		Password: cafeReg.Password,
-	}
-	err := wallet.SignIn(creds)
-	if err != nil {
-		t.Errorf("signin failed: %s", err)
+// test cafe login in stopped state, should re-connect to db
+func TestWallet_LoginAgain(t *testing.T) {
+	if err := wallet.CafeLogin(); err != nil {
+		t.Errorf("login from stopped failed: %s", err)
 		return
 	}
 }

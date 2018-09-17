@@ -132,7 +132,7 @@ func (w *Wallet) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
 	}
 
 	// decrypt thread key with private key
-	key, err := w.GetPrivKey()
+	key, err := w.GetKey()
 	if err != nil {
 		return nil, err
 	}

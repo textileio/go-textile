@@ -52,7 +52,7 @@ func (w *Wallet) AddDevice(name string, pk libp2pc.PubKey) error {
 	notification := &repo.Notification{
 		Id:            ksuid.New().String(),
 		Date:          time.Now(),
-		ActorId:       id,
+		ActorId:       id.Pretty(),
 		ActorUsername: "You",
 		Subject:       deviceModel.Name,
 		SubjectId:     deviceModel.Id,

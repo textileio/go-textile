@@ -78,11 +78,11 @@ func (w *Wallet) AddPhoto(path string) (*AddDataResult, error) {
 	}
 
 	// get public key
-	mpk, err := w.GetPubKey()
+	mkey, err := w.GetKey()
 	if err != nil {
 		return nil, err
 	}
-	mpkb, err := mpk.Bytes()
+	mpkb, err := mkey.GetPublic().Bytes()
 	if err != nil {
 		return nil, err
 	}
