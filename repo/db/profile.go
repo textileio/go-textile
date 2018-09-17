@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"github.com/textileio/textile-go/repo"
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"sync"
 	"time"
 )
@@ -16,7 +17,7 @@ func NewProfileStore(db *sql.DB, lock *sync.Mutex) repo.ProfileStore {
 	return &ProfileDB{db, lock}
 }
 
-func (c *ProfileDB) SignIn(username string, tokens *repo.CafeTokens) error {
+func (c *ProfileDB) Login(key libp2pc.PrivKey, tokens *repo.CafeTokens) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -28,7 +29,11 @@ func (c *ProfileDB) SignIn(username string, tokens *repo.CafeTokens) error {
 		return err
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec("username", username)
+	keyb, err := libp2pc.MarshalPrivateKey(key)
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec("key", keyb)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -52,7 +57,7 @@ func (c *ProfileDB) SignIn(username string, tokens *repo.CafeTokens) error {
 	return nil
 }
 
-func (c *ProfileDB) SignOut() error {
+func (c *ProfileDB) Logout() error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stmt, err := c.db.Prepare("delete from profile where key=?")
@@ -60,6 +65,10 @@ func (c *ProfileDB) SignOut() error {
 		return err
 	}
 	defer stmt.Close()
+	_, err = stmt.Exec("key")
+	if err != nil {
+		return err
+	}
 	_, err = stmt.Exec("access")
 	if err != nil {
 		return err
@@ -68,6 +77,57 @@ func (c *ProfileDB) SignOut() error {
 	if err != nil {
 		return err
 	}
+	_, err = stmt.Exec("expiry")
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec("username")
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec("avatar_id")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *ProfileDB) GetKey() (libp2pc.PrivKey, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	stmt, err := c.db.Prepare("select value from profile where key=?")
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+	var keyb []byte
+	if err := stmt.QueryRow("key").Scan(&keyb); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return libp2pc.UnmarshalPrivateKey(keyb)
+}
+
+func (c *ProfileDB) SetUsername(username string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	tx, err := c.db.Begin()
+	if err != nil {
+		return err
+	}
+	stmt, err := tx.Prepare("insert or replace into profile(key, value) values(?,?)")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec("username", username)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
 	return nil
 }
 

@@ -5,10 +5,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	cmodels "github.com/textileio/textile-go/cafe/models"
-	"github.com/textileio/textile-go/core/cafe"
-	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/util"
+	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/namesys/opts"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/path"
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
@@ -24,230 +23,81 @@ type Profile struct {
 var profileTTL = time.Hour * 24 * 7 * 4
 var profileCacheTTL = time.Hour * 24 * 7
 
-// CreateReferral requests a referral from a cafe via key
-func (w *Wallet) CreateReferral(req *cmodels.ReferralRequest) (*cmodels.ReferralResponse, error) {
-	if w.cafeAddr == "" {
-		return nil, ErrNoCafeHost
-	}
-	log.Debug("requesting a referral")
-
-	// remote request
-	res, err := client.CreateReferral(req, fmt.Sprintf("%s/referrals", w.GetCafeApiAddr()))
-	if err != nil {
-		log.Errorf("create referral error: %s", err)
-		return nil, err
-	}
-	if res.Error != nil {
-		log.Errorf("create referral error from cafe: %s", *res.Error)
-		return nil, errors.New(*res.Error)
-	}
-	return res, nil
-}
-
-// ListReferrals lists existing referrals from a cafe via key
-func (w *Wallet) ListReferrals(key string) (*cmodels.ReferralResponse, error) {
-	if w.cafeAddr == "" {
-		return nil, ErrNoCafeHost
-	}
-	log.Debug("listing referrals")
-
-	// remote request
-	res, err := client.ListReferrals(key, fmt.Sprintf("%s/referrals", w.GetCafeApiAddr()))
-	if err != nil {
-		log.Errorf("list referrals error: %s", err)
-		return nil, err
-	}
-	if res.Error != nil {
-		log.Errorf("list referrals error from cafe: %s", *res.Error)
-		return nil, errors.New(*res.Error)
-	}
-	return res, nil
-}
-
-// SignUp requests a new username and token from a cafe and saves them locally
-func (w *Wallet) SignUp(reg *cmodels.UserRegistration) error {
-	if w.cafeAddr == "" {
-		return ErrNoCafeHost
-	}
-	if err := w.touchDatastore(); err != nil {
-		return err
-	}
-	log.Debugf("signup: %s %s %s %s %s", reg.Username, "xxxxxx", reg.Identity.Type, reg.Identity.Value, reg.Referral)
-
-	// remote signup
-	res, err := client.SignUpUser(reg, fmt.Sprintf("%s/users", w.GetCafeApiAddr()))
-	if err != nil {
-		log.Errorf("signup error: %s", err)
-		return err
-	}
-	if res.Error != nil {
-		log.Errorf("signup error from cafe: %s", *res.Error)
-		return errors.New(*res.Error)
-	}
-
-	// local signin
-	tokens := &repo.CafeTokens{
-		Access:  res.Session.AccessToken,
-		Refresh: res.Session.RefreshToken,
-	}
-	if err := w.datastore.Profile().SignIn(reg.Username, tokens); err != nil {
-		log.Errorf("local signin error: %s", err)
-		return err
-	}
-
-	// initial profile publish
-	go func() {
-		<-w.Online()
-		if _, err := w.PublishProfile(nil); err != nil {
-			log.Errorf("error publishing initial profile: %s", err)
-		}
-	}()
-
-	return nil
-}
-
-// SignIn requests a token with a username from a cafe and saves them locally
-func (w *Wallet) SignIn(creds *cmodels.UserCredentials) error {
-	if w.cafeAddr == "" {
-		return ErrNoCafeHost
-	}
-	if err := w.touchDatastore(); err != nil {
-		return err
-	}
-	log.Debugf("signin: %s %s", creds.Username, "xxxxxx")
-
-	// remote signin
-	res, err := client.SignInUser(creds, fmt.Sprintf("%s/users", w.GetCafeApiAddr()))
-	if err != nil {
-		log.Errorf("signin error: %s", err)
-		return err
-	}
-	if res.Error != nil {
-		log.Errorf("signin error from cafe: %s", *res.Error)
-		return errors.New(*res.Error)
-	}
-
-	// local signin
-	tokens := &repo.CafeTokens{
-		Access:  res.Session.AccessToken,
-		Refresh: res.Session.RefreshToken,
-		Expiry:  time.Unix(res.Session.ExpiresAt, 0),
-	}
-	if err := w.datastore.Profile().SignIn(creds.Username, tokens); err != nil {
-		log.Errorf("local signin error: %s", err)
-		return err
-	}
-
-	return nil
-}
-
-// SignOut deletes the locally saved user info (username and tokens)
-func (w *Wallet) SignOut() error {
-	if w.cafeAddr == "" {
-		return ErrNoCafeHost
-	}
-	if err := w.touchDatastore(); err != nil {
-		return err
-	}
-	log.Debug("signing out...")
-
-	// remote is stateless, so we just ditch the local token
-	if err := w.datastore.Profile().SignOut(); err != nil {
-		log.Errorf("local signout error: %s", err)
-		return err
-	}
-
-	return nil
-}
-
-// IsSignedIn returns whether or not a user is signed in
-func (w *Wallet) IsSignedIn() (bool, error) {
-	if w.cafeAddr == "" {
-		return false, ErrNoCafeHost
-	}
-	if err := w.touchDatastore(); err != nil {
-		return false, err
-	}
-	tokens, err := w.datastore.Profile().GetTokens()
-	if err != nil {
-		return false, err
-	}
-	return tokens != nil, nil
-}
-
-// GetTokens returns cafe json web tokens, refreshing if needed or if forceRefresh is true
-func (w *Wallet) GetTokens(forceRefresh bool) (*repo.CafeTokens, error) {
-	if w.cafeAddr == "" {
-		return nil, ErrNoCafeHost
-	}
+// GetId returns profile id
+func (w *Wallet) GetId() (*peer.ID, error) {
 	if err := w.touchDatastore(); err != nil {
 		return nil, err
 	}
-	tokens, err := w.datastore.Profile().GetTokens()
+	key, err := w.datastore.Profile().GetKey()
 	if err != nil {
 		return nil, err
 	}
-	if tokens == nil {
-		return nil, nil
-	}
-
-	// check expiry
-	if tokens.Expiry.After(time.Now()) && !forceRefresh {
-		return tokens, nil
-	}
-
-	// remote refresh
-	url := fmt.Sprintf("%s/tokens", w.GetCafeApiAddr())
-	res, err := client.RefreshSession(tokens.Access, tokens.Refresh, url)
+	id, err := peer.IDFromPrivateKey(key)
 	if err != nil {
-		log.Errorf("get tokens error: %s", err)
 		return nil, err
 	}
-	if res.Error != nil {
-		log.Errorf("get tokens error from cafe: %s", *res.Error)
-		return nil, errors.New(*res.Error)
-	}
-
-	// update tokens
-	tokens = &repo.CafeTokens{
-		Access:  res.Session.AccessToken,
-		Refresh: res.Session.RefreshToken,
-		Expiry:  time.Unix(res.Session.ExpiresAt, 0),
-	}
-	if err := w.datastore.Profile().UpdateTokens(tokens); err != nil {
-		log.Errorf("update tokens error: %s", err)
-		return nil, err
-	}
-	return tokens, nil
+	return &id, nil
 }
 
-// GetUsername returns the current user's username
+// GetKey returns profile master secret key
+func (w *Wallet) GetKey() (libp2pc.PrivKey, error) {
+	if err := w.touchDatastore(); err != nil {
+		return nil, err
+	}
+	return w.datastore.Profile().GetKey()
+}
+
+// GetUsername returns profile username
 func (w *Wallet) GetUsername() (*string, error) {
-	if w.cafeAddr == "" {
-		return nil, ErrNoCafeHost
-	}
 	if err := w.touchDatastore(); err != nil {
 		return nil, err
 	}
 	return w.datastore.Profile().GetUsername()
 }
 
-// GetAvatarId returns the current user's avatar id, which will be the id of a photo
-func (w *Wallet) GetAvatarId() (*string, error) {
-	if w.cafeAddr == "" {
-		return nil, ErrNoCafeHost
+// SetUsername updates profile with a new username
+func (w *Wallet) SetUsername(username string) error {
+	if err := w.touchDatastore(); err != nil {
+		return err
 	}
+
+	// update
+	if err := w.datastore.Profile().SetUsername(username); err != nil {
+		return err
+	}
+
+	go func() {
+		<-w.Online()
+
+		// publish
+		pid, err := w.GetId()
+		if err != nil {
+			log.Errorf("error getting id (set username): %s", err)
+			return
+		}
+		prof, err := w.GetProfile(pid.Pretty())
+		if err != nil {
+			log.Errorf("error getting profile (set username): %s", err)
+			return
+		}
+		if _, err := w.PublishProfile(prof); err != nil {
+			log.Errorf("error publishing profile (set username): %s", err)
+			return
+		}
+	}()
+	return nil
+}
+
+// GetAvatarId returns profile avatar id
+func (w *Wallet) GetAvatarId() (*string, error) {
 	if err := w.touchDatastore(); err != nil {
 		return nil, err
 	}
 	return w.datastore.Profile().GetAvatarId()
 }
 
-// SetAvatarId updates profile at our peer id with new avatar address
+// SetAvatarId updates profile with a new avatar
 func (w *Wallet) SetAvatarId(id string) error {
-	if w.cafeAddr == "" {
-		return ErrNoCafeHost
-	}
 	if err := w.touchDatastore(); err != nil {
 		return err
 	}
@@ -275,7 +125,7 @@ func (w *Wallet) SetAvatarId(id string) error {
 			log.Errorf("error getting id (set avatar): %s", err)
 			return
 		}
-		prof, err := w.GetProfile(pid)
+		prof, err := w.GetProfile(pid.Pretty())
 		if err != nil {
 			log.Errorf("error getting profile (set avatar): %s", err)
 			return
@@ -288,15 +138,16 @@ func (w *Wallet) SetAvatarId(id string) error {
 	return nil
 }
 
-// GetProfile return a model representation of a peer profile
+// GetProfile return a model representation of an ipns profile
 func (w *Wallet) GetProfile(peerId string) (*Profile, error) {
 	profile := &Profile{Id: peerId}
+
 	// if peer id is local, return profile from db
 	pid, err := w.GetId()
 	if err != nil {
 		return nil, err
 	}
-	if pid == peerId {
+	if pid.Pretty() == peerId {
 		username, err := w.GetUsername()
 		if err != nil {
 			return nil, err
@@ -334,7 +185,7 @@ func (w *Wallet) GetProfile(peerId string) (*Profile, error) {
 	return profile, nil
 }
 
-// ResolveProfile looks up a peer's profile on ipns
+// ResolveProfile looks up a profile on ipns
 func (w *Wallet) ResolveProfile(name string) (*path.Path, error) {
 	if !w.IsOnline() {
 		return nil, ErrOffline
@@ -354,7 +205,7 @@ func (w *Wallet) ResolveProfile(name string) (*path.Path, error) {
 	return &pth, nil
 }
 
-// PublishProfile publishes the peer profile to ipns
+// PublishProfile publishes profile to ipns
 func (w *Wallet) PublishProfile(prof *Profile) (*util.IpnsEntry, error) {
 	if !w.IsOnline() {
 		return nil, ErrOffline
@@ -369,7 +220,7 @@ func (w *Wallet) PublishProfile(prof *Profile) (*util.IpnsEntry, error) {
 		if err != nil {
 			return nil, err
 		}
-		prof, err = w.GetProfile(pid)
+		prof, err = w.GetProfile(pid.Pretty())
 		if err != nil {
 			return nil, err
 		}
@@ -412,7 +263,7 @@ func (w *Wallet) PublishProfile(prof *Profile) (*util.IpnsEntry, error) {
 	}
 
 	// load our private key
-	sk, err := w.GetPrivKey()
+	sk, err := w.GetKey()
 	if err != nil {
 		return nil, err
 	}

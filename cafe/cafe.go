@@ -11,7 +11,7 @@ import (
 
 var log = logging.MustGetLogger("cafe")
 
-const Version = "v0"
+const Version = "v1"
 
 var Host *Cafe
 

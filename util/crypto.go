@@ -104,6 +104,24 @@ func EncodeKey(key libp2pc.Key) (string, error) {
 	return libp2pc.ConfigEncodeKey(keyb), nil
 }
 
+// DecodePrivKey returns a private key from a base64 encoded string
+func DecodePrivKey(key string) (libp2pc.PrivKey, error) {
+	keyb, err := libp2pc.ConfigDecodeKey(key)
+	if err != nil {
+		return nil, err
+	}
+	return libp2pc.UnmarshalPrivateKey(keyb)
+}
+
+// DecodePubKey returns a public key from a base64 encoded string
+func DecodePubKey(key string) (libp2pc.PubKey, error) {
+	keyb, err := libp2pc.ConfigDecodeKey(key)
+	if err != nil {
+		return nil, err
+	}
+	return libp2pc.UnmarshalPublicKey(keyb)
+}
+
 // createMnemonic creates a new mnemonic phrase with given entropy
 func createMnemonic(newEntropy func(int) ([]byte, error), newMnemonic func([]byte) (string, error)) (string, error) {
 	entropy, err := newEntropy(256)

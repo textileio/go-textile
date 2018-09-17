@@ -18,7 +18,8 @@ func unmarshalJSON(body io.ReadCloser, target interface{}) error {
 	return json.Unmarshal(b, target)
 }
 
-// cafe v0
+// CAFE V0
+
 func SignUpUser(reg *models.UserRegistration, url string) (*models.SessionResponse, error) {
 	payload, err := json.Marshal(reg)
 	if err != nil {
@@ -42,7 +43,6 @@ func SignUpUser(reg *models.UserRegistration, url string) (*models.SessionRespon
 	return resp, nil
 }
 
-// cafe v0
 func SignInUser(creds *models.UserCredentials, url string) (*models.SessionResponse, error) {
 	payload, err := json.Marshal(creds)
 	if err != nil {
@@ -66,7 +66,8 @@ func SignInUser(creds *models.UserCredentials, url string) (*models.SessionRespo
 	return resp, nil
 }
 
-// cafe v1
+// CAFE V1
+
 func ProfileChallenge(chal *models.ChallengeRequest, url string) (*models.ChallengeResponse, error) {
 	payload, err := json.Marshal(chal)
 	if err != nil {
@@ -90,7 +91,6 @@ func ProfileChallenge(chal *models.ChallengeRequest, url string) (*models.Challe
 	return resp, nil
 }
 
-// cafe v1
 func RegisterProfile(reg *models.ProfileRegistration, url string) (*models.SessionResponse, error) {
 	payload, err := json.Marshal(reg)
 	if err != nil {
@@ -114,7 +114,6 @@ func RegisterProfile(reg *models.ProfileRegistration, url string) (*models.Sessi
 	return resp, nil
 }
 
-// cafe v1
 func LoginProfile(cha *models.SignedChallenge, url string) (*models.SessionResponse, error) {
 	payload, err := json.Marshal(cha)
 	if err != nil {

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/op/go-logging"
-	"github.com/textileio/textile-go/cafe"
 	"github.com/textileio/textile-go/core/cafe"
 	"github.com/textileio/textile-go/net"
 	serv "github.com/textileio/textile-go/net/service"
@@ -15,7 +14,6 @@ import (
 	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet/thread"
 	"gx/ipfs/QmVW4cqbibru3hXA1iRmg85Fk7z9qML9k176CYQaMXVCrP/go-libp2p-kad-dht"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	utilmain "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/commands"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
@@ -150,12 +148,17 @@ func (w *Wallet) Start() error {
 		w.done = make(chan struct{})
 		w.started = true
 
-		pk, err := w.GetPubKeyString()
+		pk, err := w.GetPeerPubKey()
 		if err != nil {
-			log.Errorf("error loading pk: %s", err)
+			log.Errorf("error loading peer pk: %s", err)
 			return
 		}
-		log.Infof("wallet is started, pk: %s", pk)
+		pks, err := util.EncodeKey(pk)
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+		log.Infof("wallet is started, peer pk: %s", pks)
 	}()
 	log.Info("starting wallet...")
 	w.online = make(chan struct{})
@@ -194,14 +197,14 @@ func (w *Wallet) Start() error {
 			if w.pinner == nil {
 				return nil
 			}
-			tokens, err := w.GetTokens(false)
+			tokens, err := w.GetCafeTokens(false)
 			if err != nil {
 				return err
 			}
 			hash := id.Hash().B58String()
 			if err := net.Pin(w.ipfs, hash, tokens, w.pinner.Url()); err != nil {
 				if err == net.ErrTokenExpired {
-					tokens, err := w.GetTokens(true)
+					tokens, err := w.GetCafeTokens(true)
 					if err != nil {
 						return err
 					}
@@ -253,7 +256,7 @@ func (w *Wallet) Start() error {
 				return w.ipfs
 			},
 			Url:       fmt.Sprintf("%s/pin", w.GetCafeApiAddr()),
-			GetTokens: w.GetTokens,
+			GetTokens: w.GetCafeTokens,
 		}
 		w.pinner = net.NewPinner(pinnerCfg)
 
@@ -263,15 +266,15 @@ func (w *Wallet) Start() error {
 		} else {
 			go w.pinner.Pin()
 		}
-
-		// re-pub profile
-		go func() {
-			<-w.Online()
-			if _, err := w.PublishProfile(nil); err != nil {
-				log.Errorf("error publishing profile: %s", err)
-			}
-		}()
 	}
+
+	// re-pub profile
+	go func() {
+		<-w.Online()
+		if _, err := w.PublishProfile(nil); err != nil {
+			log.Errorf("error publishing profile: %s", err)
+		}
+	}()
 
 	// setup threads
 	for _, mod := range w.datastore.Threads().List("") {
@@ -382,62 +385,6 @@ func (w *Wallet) Notifications() <-chan repo.Notification {
 
 func (w *Wallet) GetRepoPath() string {
 	return w.repoPath
-}
-
-// GetCafeAddr returns the cafe address if set
-func (w *Wallet) GetCafeAddr() string {
-	return w.cafeAddr
-}
-
-// GetCafeApiAddr returns the cafe address if set
-func (w *Wallet) GetCafeApiAddr() string {
-	if w.cafeAddr == "" {
-		return ""
-	}
-	return fmt.Sprintf("%s/api/%s", w.cafeAddr, cafe.Version)
-}
-
-// GetId returns peer id
-func (w *Wallet) GetId() (string, error) {
-	if !w.started {
-		return "", ErrStopped
-	}
-	return w.ipfs.Identity.Pretty(), nil
-}
-
-// GetPrivKey returns the current user's master secret key
-func (w *Wallet) GetPrivKey() (libp2pc.PrivKey, error) {
-	if !w.started {
-		return nil, ErrStopped
-	}
-	if w.ipfs.PrivateKey == nil {
-		if err := w.ipfs.LoadPrivateKey(); err != nil {
-			return nil, err
-		}
-	}
-	return w.ipfs.PrivateKey, nil
-}
-
-// GetPubKey returns the current user's master public key
-func (w *Wallet) GetPubKey() (libp2pc.PubKey, error) {
-	secret, err := w.GetPrivKey()
-	if err != nil {
-		return nil, err
-	}
-	return secret.GetPublic(), nil
-}
-
-// GetPubKeyString returns the base64 encoded public ipfs peer key
-func (w *Wallet) GetPubKeyString() (string, error) {
-	pk, err := w.GetPubKey()
-	if err != nil {
-		return "", err
-	}
-	pkb, err := pk.Bytes()
-	if err != nil {
-		return "", err
-	}
-	return libp2pc.ConfigEncodeKey(pkb), nil
 }
 
 // GetDataAtPath returns raw data behind an ipfs path

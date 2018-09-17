@@ -40,7 +40,7 @@ func CafeReferral(c *ishell.Context) {
 		Limit:       limit,
 		RequestedBy: *username,
 	}
-	res, err := core.Node.Wallet.CreateReferral(req)
+	res, err := core.Node.Wallet.CreateCafeReferral(req)
 	if err != nil {
 		c.Err(err)
 		return
@@ -56,7 +56,7 @@ func ListCafeReferrals(c *ishell.Context) {
 	c.Print("key: ")
 	key := c.ReadPassword()
 
-	res, err := core.Node.Wallet.ListReferrals(key)
+	res, err := core.Node.Wallet.ListCafeReferrals(key)
 	if err != nil {
 		c.Err(err)
 		return
@@ -145,7 +145,7 @@ func CafeStatus(c *ishell.Context) {
 }
 
 func CafeTokens(c *ishell.Context) {
-	tokens, err := core.Node.Wallet.GetTokens(false)
+	tokens, err := core.Node.Wallet.GetCafeTokens(false)
 	if err != nil {
 		c.Err(err)
 		return
