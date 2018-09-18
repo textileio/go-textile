@@ -1,10 +1,8 @@
 package cafe
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
-	"github.com/nbutton23/zxcvbn-go"
 	"github.com/textileio/textile-go/cafe/auth"
 	"github.com/textileio/textile-go/cafe/dao"
 	"github.com/textileio/textile-go/cafe/models"
@@ -69,17 +67,9 @@ func (c *Cafe) signUpUser(g *gin.Context) {
 		reg.Identity.Value = cleaned
 	}
 
-	// limit password to avoid long password strength calcs
-	if len(reg.Password) > 27 {
-		g.JSON(http.StatusBadRequest, gin.H{"error": "password must be less than 28 chars"})
-		return
-	}
-
-	//// check password strength
-	match := zxcvbn.PasswordStrength(reg.Password, []string{reg.Identity.Value})
-	if match.Score < 1 {
-		msg := fmt.Sprintf("weak password - crackable in %s", match.CrackTimeDisplay)
-		g.JSON(http.StatusBadRequest, gin.H{"error": msg})
+	// ensure decent passwords
+	if len(reg.Password) < 8 {
+		g.JSON(http.StatusBadRequest, gin.H{"error": "password must be at least 8 characters"})
 		return
 	}
 

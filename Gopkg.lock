@@ -235,24 +235,6 @@
   revision = "f799951b4ab269c2ce24913961af2cb5d681cc43"
 
 [[projects]]
-  digest = "1:b78f946e937e24a157a2896592b9ca0f9986d0748637fe0ade2f902033a8d0e3"
-  name = "github.com/nbutton23/zxcvbn-go"
-  packages = [
-    ".",
-    "adjacency",
-    "data",
-    "entropy",
-    "frequency",
-    "match",
-    "matching",
-    "scoring",
-    "utils/math",
-  ]
-  pruneopts = "T"
-  revision = "eafdab6b0663b4b528c35975c8b0e78be6e25261"
-  version = "v0.1"
-
-[[projects]]
   digest = "1:0a4290c90cd0e91b90d7c3846b78898d20d375e156b7501a908819bd5478f9f5"
   name = "github.com/op/go-logging"
   packages = ["."]
@@ -429,7 +411,6 @@
     "github.com/jessevdk/go-flags",
     "github.com/mitchellh/go-homedir",
     "github.com/mutecomm/go-sqlcipher",
-    "github.com/nbutton23/zxcvbn-go",
     "github.com/op/go-logging",
     "github.com/pkg/errors",
     "github.com/rwcarlsen/goexif/exif",
