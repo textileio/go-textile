@@ -69,7 +69,13 @@ func (c *Cafe) signUpUser(g *gin.Context) {
 		reg.Identity.Value = cleaned
 	}
 
-	// check password strength
+	// limit password to avoid long password strength calcs
+	if len(reg.Password) > 24 {
+		g.JSON(http.StatusBadRequest, gin.H{"error": "password must be less than 25 chars"})
+		return
+	}
+
+	//// check password strength
 	match := zxcvbn.PasswordStrength(reg.Password, []string{reg.Identity.Value})
 	if match.Score < 1 {
 		msg := fmt.Sprintf("weak password - crackable in %s", match.CrackTimeDisplay)
