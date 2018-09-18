@@ -31,21 +31,21 @@ type Queryable interface {
 
 type ConfigStore interface {
 	Init(password string) error
-	Configure(created time.Time) error
+	Configure(key libp2pc.PrivKey, created time.Time) error
+	GetId() (*string, error)
+	GetKey() (libp2pc.PrivKey, error)
 	GetCreationDate() (time.Time, error)
 	IsEncrypted() bool
 }
 
 type ProfileStore interface {
-	Login(key libp2pc.PrivKey, tokens *CafeTokens) error
-	Logout() error
-	GetKey() (libp2pc.PrivKey, error)
+	CafeLogin(tokens *CafeTokens) error
+	CafeLogout() error
+	GetCafeTokens() (tokens *CafeTokens, err error)
 	SetUsername(username string) error
 	GetUsername() (*string, error)
 	SetAvatarId(id string) error
 	GetAvatarId() (*string, error)
-	GetTokens() (tokens *CafeTokens, err error)
-	UpdateTokens(tokens *CafeTokens) error
 }
 
 type ThreadStore interface {

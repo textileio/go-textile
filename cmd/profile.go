@@ -14,6 +14,10 @@ func PublishProfile(c *ishell.Context) {
 		c.Err(err)
 		return
 	}
+	if entry == nil {
+		c.Println(color.New(color.FgHiRed).SprintFunc()("profile does not exist"))
+		return
+	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
 	c.Println(green(fmt.Sprintf("ok, published %s -> %s", entry.Name, entry.Value)))
@@ -27,7 +31,7 @@ func ResolveProfile(c *ishell.Context) {
 			c.Err(err)
 			return
 		}
-		name = id
+		name = id.Pretty()
 	} else {
 		name = c.Args[0]
 	}
@@ -45,12 +49,12 @@ func ResolveProfile(c *ishell.Context) {
 func GetProfile(c *ishell.Context) {
 	var id string
 	if len(c.Args) == 0 {
-		var err error
-		id, err = core.Node.Wallet.GetId()
+		pid, err := core.Node.Wallet.GetId()
 		if err != nil {
 			c.Err(err)
 			return
 		}
+		id = pid.Pretty()
 	} else {
 		id = c.Args[0]
 	}

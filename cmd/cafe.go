@@ -69,50 +69,26 @@ func ListCafeReferrals(c *ishell.Context) {
 }
 
 func CafeRegister(c *ishell.Context) {
-	c.Print("email address: ")
-	email := c.ReadLine()
-	c.Print("username: ")
-	username := c.ReadLine()
 	c.Print("referral code: ")
 	code := c.ReadLine()
-	c.Print("password: ")
-	password := c.ReadPassword()
 
-	reg := &models.UserRegistration{
-		Username: username,
-		Password: password,
-		Identity: &models.UserIdentity{
-			Type:  models.EmailAddress,
-			Value: email,
-		},
-		Referral: code,
-	}
-	if err := core.Node.Wallet.SignUp(reg); err != nil {
+	if err := core.Node.Wallet.CafeRegister(code); err != nil {
 		c.Err(err)
 		return
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green(fmt.Sprintf("welcome aboard, %s!", username)))
+	c.Println(green("welcome aboard!"))
 }
 
 func CafeLogin(c *ishell.Context) {
-	c.Print("username: ")
-	username := c.ReadLine()
-	c.Print("password: ")
-	password := c.ReadPassword()
-
-	creds := &models.UserCredentials{
-		Username: username,
-		Password: password,
-	}
-	if err := core.Node.Wallet.SignIn(creds); err != nil {
+	if err := core.Node.Wallet.CafeLogin(); err != nil {
 		c.Err(err)
 		return
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green(fmt.Sprintf("welcome back, %s!", username)))
+	c.Println(green("welcome back, %s!"))
 }
 
 func CafeLogout(c *ishell.Context) {
@@ -122,7 +98,7 @@ func CafeLogout(c *ishell.Context) {
 	if confirm != "" && confirm != "Y" {
 		return
 	}
-	if err := core.Node.Wallet.SignOut(); err != nil {
+	if err := core.Node.Wallet.CafeLogout(); err != nil {
 		c.Err(err)
 		return
 	}
@@ -132,12 +108,12 @@ func CafeLogout(c *ishell.Context) {
 }
 
 func CafeStatus(c *ishell.Context) {
-	signedIn, err := core.Node.Wallet.IsSignedIn()
+	loggedIn, err := core.Node.Wallet.CafeLoggedIn()
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	if signedIn {
+	if loggedIn {
 		c.Println(color.New(color.FgHiGreen).SprintFunc()("logged in"))
 	} else {
 		c.Println(color.New(color.FgHiRed).SprintFunc()("not logged in"))

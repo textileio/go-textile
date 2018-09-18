@@ -91,6 +91,7 @@ const pingTimeout = time.Second * 10
 var ErrStarted = errors.New("node is started")
 var ErrStopped = errors.New("node is stopped")
 var ErrOffline = errors.New("node is offline")
+var ErrProfileNotFound = errors.New("profile not found")
 var ErrThreadLoaded = errors.New("thread is loaded")
 var ErrNoCafeHost = errors.New("cafe host address is not set")
 

@@ -13,8 +13,6 @@ import (
 
 var pdb repo.ProfileStore
 
-var profileKey string
-
 func init() {
 	setupProfileDB()
 }
@@ -25,8 +23,8 @@ func setupProfileDB() {
 	pdb = NewProfileStore(conn, new(sync.Mutex))
 }
 
-func TestProfileDB_GetTokensPreLogin(t *testing.T) {
-	tokens, err := pdb.GetTokens()
+func TestProfileDB_GetCafeTokensPreLogin(t *testing.T) {
+	tokens, err := pdb.GetCafeTokens()
 	if err != nil {
 		t.Error(err)
 		return
@@ -36,7 +34,7 @@ func TestProfileDB_GetTokensPreLogin(t *testing.T) {
 	}
 }
 
-func TestProfileDB_Login(t *testing.T) {
+func TestProfileDB_CafeLogin(t *testing.T) {
 	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Error(err)
@@ -45,28 +43,9 @@ func TestProfileDB_Login(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if err := pdb.Login(sk, &repo.CafeTokens{Access: "access", Refresh: "refresh", Expiry: time.Now()}); err != nil {
+	exp := time.Now().Add(time.Hour)
+	if err := pdb.CafeLogin(&repo.CafeTokens{Access: "access", Refresh: "refresh", Expiry: exp}); err != nil {
 		t.Error(err)
-	}
-}
-
-func TestProfileDB_GetKey(t *testing.T) {
-	key, err := pdb.GetKey()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if key == nil {
-		t.Error("missing key")
-		return
-	}
-	keystr, err := util.EncodeKey(key)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if keystr != profileKey {
-		t.Error("got bad key")
 	}
 }
 
@@ -106,8 +85,8 @@ func TestProfileDB_GetAvatarId(t *testing.T) {
 	}
 }
 
-func TestProfileDB_GetTokens(t *testing.T) {
-	tokens, err := pdb.GetTokens()
+func TestProfileDB_GetCafeTokens(t *testing.T) {
+	tokens, err := pdb.GetCafeTokens()
 	if err != nil {
 		t.Error(err)
 		return
@@ -120,21 +99,17 @@ func TestProfileDB_GetTokens(t *testing.T) {
 		t.Error("got bad refresh token")
 		return
 	}
-}
-
-func TestProfileDB_UpdateTokens(t *testing.T) {
-	err := pdb.UpdateTokens(&repo.CafeTokens{Access: "access", Refresh: "refresh", Expiry: time.Now()})
-	if err != nil {
-		t.Error(err)
+	if tokens.Expiry.Before(time.Now()) {
+		t.Error("got bad expiry")
 	}
 }
 
-func TestProfileDB_Logout(t *testing.T) {
-	if err := pdb.Logout(); err != nil {
+func TestProfileDB_CafeLogout(t *testing.T) {
+	if err := pdb.CafeLogout(); err != nil {
 		t.Error(err)
 		return
 	}
-	tokens, err := pdb.GetTokens()
+	tokens, err := pdb.GetCafeTokens()
 	if err != nil {
 		t.Error(err)
 	}

@@ -28,15 +28,18 @@ func (w *Wallet) GetId() (*peer.ID, error) {
 	if err := w.touchDatastore(); err != nil {
 		return nil, err
 	}
-	key, err := w.datastore.Profile().GetKey()
+	id, err := w.datastore.Config().GetId()
 	if err != nil {
 		return nil, err
 	}
-	id, err := peer.IDFromPrivateKey(key)
+	if id == nil {
+		return nil, ErrProfileNotFound
+	}
+	pid, err := peer.IDFromString(*id)
 	if err != nil {
 		return nil, err
 	}
-	return &id, nil
+	return &pid, nil
 }
 
 // GetKey returns profile master secret key
@@ -44,7 +47,7 @@ func (w *Wallet) GetKey() (libp2pc.PrivKey, error) {
 	if err := w.touchDatastore(); err != nil {
 		return nil, err
 	}
-	return w.datastore.Profile().GetKey()
+	return w.datastore.Config().GetKey()
 }
 
 // GetUsername returns profile username

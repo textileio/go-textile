@@ -1,7 +1,6 @@
 package mobile
 
 import (
-	"github.com/pkg/errors"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/util"
 )
@@ -11,9 +10,6 @@ func (m *Mobile) GetId() (string, error) {
 	id, err := core.Node.Wallet.GetId()
 	if err != nil {
 		return "", err
-	}
-	if id == nil {
-		return "", nil
 	}
 	return id.Pretty(), nil
 }
@@ -56,11 +52,8 @@ func (m *Mobile) SetAvatarId(id string) error {
 func (m *Mobile) GetProfile() (string, error) {
 	id, err := core.Node.Wallet.GetId()
 	if err != nil {
-		log.Errorf("error getting id %s: %s", id, err)
+		log.Errorf("error getting profile: %s", err)
 		return "", err
-	}
-	if id == nil {
-		return "", errors.New("profile does not exist")
 	}
 	prof, err := core.Node.Wallet.GetProfile(id.Pretty())
 	if err != nil {
