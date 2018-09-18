@@ -70,8 +70,8 @@ func (c *Cafe) signUpUser(g *gin.Context) {
 	}
 
 	// limit password to avoid long password strength calcs
-	if len(reg.Password) > 24 {
-		g.JSON(http.StatusBadRequest, gin.H{"error": "password must be less than 25 chars"})
+	if len(reg.Password) > 27 {
+		g.JSON(http.StatusBadRequest, gin.H{"error": "password must be less than 28 chars"})
 		return
 	}
 
