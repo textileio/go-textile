@@ -30,7 +30,7 @@ type Queryable interface {
 }
 
 type ConfigStore interface {
-	Init(password string) error
+	Init(pin string) error
 	Configure(key libp2pc.PrivKey, created time.Time) error
 	GetId() (*string, error)
 	GetKey() (libp2pc.PrivKey, error)

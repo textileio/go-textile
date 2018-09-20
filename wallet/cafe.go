@@ -103,7 +103,7 @@ func (w *Wallet) CafeRegister(referral string) error {
 		Refresh: res.Session.RefreshToken,
 		Expiry:  time.Unix(res.Session.ExpiresAt, 0),
 	}
-	if err := w.datastore.Profile().Login(key, tokens); err != nil {
+	if err := w.datastore.Profile().CafeLogin(tokens); err != nil {
 		log.Errorf("local login error: %s", err)
 		return err
 	}
@@ -157,7 +157,7 @@ func (w *Wallet) CafeLogin() error {
 		Refresh: res.Session.RefreshToken,
 		Expiry:  time.Unix(res.Session.ExpiresAt, 0),
 	}
-	if err := w.datastore.Profile().Login(key, tokens); err != nil {
+	if err := w.datastore.Profile().CafeLogin(tokens); err != nil {
 		log.Errorf("local login error: %s", err)
 		return err
 	}
@@ -213,7 +213,7 @@ func (w *Wallet) CafeLogout() error {
 	log.Debug("logging out...")
 
 	// remote is stateless, so we just ditch the local token
-	if err := w.datastore.Profile().Logout(); err != nil {
+	if err := w.datastore.Profile().CafeLogout(); err != nil {
 		log.Errorf("local logout error: %s", err)
 		return err
 	}
@@ -226,7 +226,7 @@ func (w *Wallet) CafeLoggedIn() (bool, error) {
 	if err := w.touchDatastore(); err != nil {
 		return false, err
 	}
-	tokens, err := w.datastore.Profile().GetTokens()
+	tokens, err := w.datastore.Profile().GetCafeTokens()
 	if err != nil {
 		return false, err
 	}
@@ -238,7 +238,7 @@ func (w *Wallet) GetCafeTokens(forceRefresh bool) (*repo.CafeTokens, error) {
 	if err := w.touchDatastore(); err != nil {
 		return nil, err
 	}
-	tokens, err := w.datastore.Profile().GetTokens()
+	tokens, err := w.datastore.Profile().GetCafeTokens()
 	if err != nil {
 		return nil, err
 	}
@@ -269,7 +269,7 @@ func (w *Wallet) GetCafeTokens(forceRefresh bool) (*repo.CafeTokens, error) {
 		Refresh: res.Session.RefreshToken,
 		Expiry:  time.Unix(res.Session.ExpiresAt, 0),
 	}
-	if err := w.datastore.Profile().UpdateTokens(tokens); err != nil {
+	if err := w.datastore.Profile().CafeLogin(tokens); err != nil {
 		log.Errorf("update tokens error: %s", err)
 		return nil, err
 	}

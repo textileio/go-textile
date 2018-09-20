@@ -1,5 +1,6 @@
 build:
 	go build -i -o textile textile.go
+	mv textile dist/
 
 build_ios_framework:
 	gomobile bind -target=ios github.com/textileio/textile-go/mobile

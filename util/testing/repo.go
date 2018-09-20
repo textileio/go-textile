@@ -1,10 +1,13 @@
 package testing
 
 import (
+	"crypto/rand"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"os"
 	"path"
+	"time"
 )
 
 // Repository represents a test (temporary/volitile) repository
@@ -57,7 +60,16 @@ func (r *Repository) Reset() error {
 	}
 
 	// Rebuild any necessary structure
-	_, err = repo.DoInit(r.Path, "boom", nil, r.DB.Config().Init, r.DB.Config().Configure)
+	err = repo.DoInit(r.Path, "boom", func() error {
+		sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
+		if err != nil {
+			return err
+		}
+		if err := r.DB.Config().Init(""); err != nil {
+			return err
+		}
+		return r.DB.Config().Configure(sk, time.Now())
+	})
 	if err != nil && err != repo.ErrRepoExists {
 		return err
 	}

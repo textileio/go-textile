@@ -13,7 +13,6 @@ import (
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"
 	"os"
 	"path"
-	"time"
 )
 
 var log = logging.MustGetLogger("repo")
@@ -22,64 +21,64 @@ var ErrRepoExists = errors.New("repo not empty, reinitializing would overwrite y
 
 const repover = "5"
 
-func DoInit(repoRoot string, version string, mnemonic *string, initDB func(string) error, initConfig func(time.Time) error) (string, error) {
+func DoInit(repoRoot string, version string, initDatastore func() error) error {
 	if err := checkWriteable(repoRoot); err != nil {
-		return "", err
+		return err
 	}
 
+	// handle migrations
 	if fsrepo.IsInitialized(repoRoot) {
 		// run all migrations if needed
 		if err := migrateUp(repoRoot, "", false); err != nil {
-			return "", err
+			return err
 		}
-		return "", ErrRepoExists
+		return ErrRepoExists
 	}
 	log.Infof("initializing textile ipfs node at %s", repoRoot)
 
+	// custom directories
 	paths, err := schema.NewCustomSchemaManager(schema.Context{
 		DataPath: repoRoot,
 	})
 	if err := paths.BuildSchemaDirectories(); err != nil {
-		return "", err
+		return err
 	}
 
-	sk, mnem, err := wutil.PrivKeyFromMnemonic(mnemonic)
+	// TODO: remove
+	sk, _, err := wutil.PrivKeyFromMnemonic(nil)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	identity, err := wutil.IdentityConfig(sk)
+	// create an identity for the ipfs peer
+	peerIdentity, err := wutil.IdentityConfig(sk)
 	if err != nil {
-		return "", err
+		return err
 	}
-
-	conf, err := config.Init(identity, version)
+	conf, err := config.Init(peerIdentity, version)
 	if err != nil {
-		return "", err
+		return err
 	}
-
 	if err := fsrepo.Init(repoRoot, conf); err != nil {
-		return "", err
+		return err
 	}
 
-	if err := initDB(""); err != nil {
-		return "", err
+	// initialize sqlite datastore
+	if err := initDatastore(); err != nil {
+		return err
 	}
 
-	if err := initConfig(time.Now()); err != nil {
-		return "", err
-	}
-
+	// write repo version
 	repoverFile, err := os.Create(path.Join(repoRoot, "repover"))
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer repoverFile.Close()
 	if _, err := repoverFile.Write([]byte(repover)); err != nil {
-		return "", err
+		return err
 	}
 
-	return mnem, initializeIpnsKeyspace(repoRoot)
+	return initializeIpnsKeyspace(repoRoot)
 }
 
 func checkWriteable(dir string) error {

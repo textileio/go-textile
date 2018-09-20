@@ -15,6 +15,7 @@ import (
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
 	rconfig "github.com/textileio/textile-go/repo/config"
+	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet"
 	"os"
 	"path/filepath"
@@ -76,7 +77,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 			RepoPath: filepath.Join(appDir, "repo"),
 		},
 	}
-	core.Node, _, err = core.NewNode(config)
+	core.Node, err = core.NewNode(config)
 	if err != nil {
 		return err
 	}
@@ -265,7 +266,11 @@ func handleMessage(_ *astilectron.Window, m bootstrap.MessageIn) (interface{}, e
 
 func getQRCode() (string, string, error) {
 	// get our own public key
-	pk, err := core.Node.Wallet.GetPubKeyString()
+	sk, err := core.Node.Wallet.GetKey()
+	if err != nil {
+		return "", "", err
+	}
+	pk, err := util.EncodeKey(sk.GetPublic())
 	if err != nil {
 		return "", "", err
 	}

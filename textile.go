@@ -116,7 +116,7 @@ func main() {
 	}
 
 	// create a desktop node
-	node, _, err := core.NewNode(config)
+	node, err := core.NewNode(config)
 	if err != nil {
 		fmt.Println(fmt.Errorf("create desktop node failed: %s", err))
 		return
@@ -148,7 +148,7 @@ func main() {
 	}
 
 	// welcome
-	printSplashScreen()
+	//printSplashScreen()
 
 	// run it
 	if Options.DaemonMode {
@@ -260,10 +260,28 @@ func main() {
 			},
 		})
 		{
+			walletCmd := &ishell.Cmd{
+				Name:     "wallet",
+				Help:     "manage wallets",
+				LongHelp: "Create and manage your textile wallet.",
+			}
+			walletCmd.AddCmd(&ishell.Cmd{
+				Name: "create",
+				Help: "create a new textile wallet",
+				Func: cmd.CreateWallet,
+			})
+			walletCmd.AddCmd(&ishell.Cmd{
+				Name: "accounts",
+				Help: "view wallet account keys",
+				Func: cmd.WalletAccounts,
+			})
+			shell.AddCmd(walletCmd)
+		}
+		{
 			cafeCmd := &ishell.Cmd{
 				Name:     "cafe",
 				Help:     "manage cafe session",
-				LongHelp: "Mange your cafe user session.",
+				LongHelp: "Manage your cafe user session.",
 			}
 			cafeCmd.AddCmd(&ishell.Cmd{
 				Name: "add-referral",
@@ -531,6 +549,7 @@ func main() {
 }
 
 func start() error {
+	return nil
 	if err := core.Node.StartWallet(); err != nil {
 		return err
 	}

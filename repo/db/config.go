@@ -19,10 +19,10 @@ func NewConfigStore(db *sql.DB, lock *sync.Mutex, path string) repo.ConfigStore 
 	return &ConfigDB{db, lock, path}
 }
 
-func (c *ConfigDB) Init(password string) error {
+func (c *ConfigDB) Init(pin string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	return initDatabaseTables(c.db, password)
+	return initDatabaseTables(c.db, pin)
 }
 
 func (c *ConfigDB) Configure(key libp2pc.PrivKey, created time.Time) error {

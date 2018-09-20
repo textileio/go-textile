@@ -12,10 +12,20 @@ import (
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/config"
 )
 
+type WordCount int
+
+const (
+	TwelveWords WordCount = 128
+	FifteenWords = 160
+	EighteenWords = 192
+	TwentyOneWords = 224
+	TwentyFourWords = 256
+)
+
 // PrivKeyFromMnemonic creates a private key form a mnemonic phrase
 func PrivKeyFromMnemonic(mnemonic *string) (libp2pc.PrivKey, string, error) {
 	if mnemonic == nil {
-		mnemonics, err := createMnemonic(bip39.NewEntropy, bip39.NewMnemonic)
+		mnemonics, err := CreateMnemonic(TwentyFourWords)
 		if err != nil {
 			return nil, "", err
 		}
@@ -122,13 +132,13 @@ func DecodePubKey(key string) (libp2pc.PubKey, error) {
 	return libp2pc.UnmarshalPublicKey(keyb)
 }
 
-// createMnemonic creates a new mnemonic phrase with given entropy
-func createMnemonic(newEntropy func(int) ([]byte, error), newMnemonic func([]byte) (string, error)) (string, error) {
-	entropy, err := newEntropy(256)
+// CreateMnemonic creates a new mnemonic phrase with given bit size
+func CreateMnemonic(count WordCount) (string, error) {
+	entropy, err := bip39.NewEntropy(int(count))
 	if err != nil {
 		return "", err
 	}
-	mnemonic, err := newMnemonic(entropy)
+	mnemonic, err := bip39.NewMnemonic(entropy)
 	if err != nil {
 		return "", err
 	}

@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"github.com/op/go-logging"
@@ -14,6 +15,7 @@ import (
 	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet/thread"
 	"gx/ipfs/QmVW4cqbibru3hXA1iRmg85Fk7z9qML9k176CYQaMXVCrP/go-libp2p-kad-dht"
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	utilmain "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/commands"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
@@ -30,7 +32,7 @@ var log = logging.MustGetLogger("wallet")
 type Config struct {
 	Version  string
 	RepoPath string
-	Mnemonic *string
+	Pin      string
 
 	SwarmPorts string
 
@@ -95,17 +97,26 @@ var ErrProfileNotFound = errors.New("profile not found")
 var ErrThreadLoaded = errors.New("thread is loaded")
 var ErrNoCafeHost = errors.New("cafe host address is not set")
 
-func NewWallet(config Config) (*Wallet, string, error) {
+func NewWallet(config Config) (*Wallet, error) {
 	// get database handle
 	sqliteDB, err := db.Create(config.RepoPath, "")
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	// we may be running in an uninitialized state.
-	mnemonic, err := repo.DoInit(config.RepoPath, config.Version, config.Mnemonic, sqliteDB.Config().Init, sqliteDB.Config().Configure)
+	err = repo.DoInit(config.RepoPath, config.Version, func() error {
+		sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
+		if err != nil {
+			return err
+		}
+		if err := sqliteDB.Config().Init(config.Pin); err != nil {
+			return err
+		}
+		return sqliteDB.Config().Configure(sk, time.Now())
+	})
 	if err != nil && err != repo.ErrRepoExists {
-		return nil, "", err
+		return nil, err
 	}
 
 	// acquire the repo lock _before_ constructing a node. we need to make
@@ -113,22 +124,22 @@ func NewWallet(config Config) (*Wallet, string, error) {
 	rep, err := fsrepo.Open(config.RepoPath)
 	if err != nil {
 		log.Errorf("error opening repo: %s", err)
-		return nil, "", err
+		return nil, err
 	}
 
 	// if a specific swarm port was selected, set it in the config
 	if err := applySwarmPortConfigOption(rep, config.SwarmPorts); err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	// ensure bootstrap addresses are latest in config (without wiping repo)
 	if err := ensureBootstrapConfig(rep); err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	// if this is a server node, apply the ipfs server profile
 	if err := applyServerConfigOption(rep, config.IsServer); err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	return &Wallet{
@@ -137,7 +148,7 @@ func NewWallet(config Config) (*Wallet, string, error) {
 		datastore: sqliteDB,
 		isMobile:  config.IsMobile,
 		cafeAddr:  config.CafeAddr,
-	}, mnemonic, nil
+	}, nil
 }
 
 // Start

@@ -37,8 +37,7 @@ type NodeConfig struct {
 }
 
 // NewNode creates a new TextileNode
-func NewNode(config NodeConfig) (*TextileNode, string, error) {
-	// TODO: shouldn't need to manually remove these
+func NewNode(config NodeConfig) (*TextileNode, error) {
 	repoLockFile := filepath.Join(config.WalletConfig.RepoPath, fsrepo.LockFile)
 	os.Remove(repoLockFile)
 	dsLockFile := filepath.Join(config.WalletConfig.RepoPath, "datastore", "LOCK")
@@ -63,15 +62,15 @@ func NewNode(config NodeConfig) (*TextileNode, string, error) {
 
 	// create a wallet
 	config.WalletConfig.Version = Version
-	wallet, mnemonic, err := w.NewWallet(config.WalletConfig)
+	wallet, err := w.NewWallet(config.WalletConfig)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	// construct our node
 	node := &TextileNode{Wallet: wallet}
 
-	return node, mnemonic, nil
+	return node, nil
 }
 
 // StopWallet starts the wallet

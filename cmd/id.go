@@ -58,7 +58,6 @@ func ShowId(c *ishell.Context) {
 		return
 	}
 
-
 	c.Println(green(fmt.Sprintf("id: %s\npk: %s", id, pk)))
 	c.Println(green(fmt.Sprintf("peer id: %s\npeer pk: %s", pid, ppks)))
 }

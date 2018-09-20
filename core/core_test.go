@@ -25,7 +25,7 @@ func TestNewNode(t *testing.T) {
 		},
 	}
 	var err error
-	node, _, err = NewNode(cfg)
+	node, err = NewNode(cfg)
 	if err != nil {
 		t.Errorf("create node failed: %s", err)
 	}

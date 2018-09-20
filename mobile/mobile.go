@@ -34,7 +34,6 @@ type NodeConfig struct {
 // Mobile is the name of the framework (must match package name)
 type Mobile struct {
 	RepoPath  string
-	Mnemonic  string
 	messenger Messenger
 }
 
@@ -53,13 +52,13 @@ func NewNode(config *NodeConfig, messenger Messenger) (*Mobile, error) {
 			CafeAddr: config.CafeAddr,
 		},
 	}
-	node, mnemonic, err := core.NewNode(cconfig)
+	node, err := core.NewNode(cconfig)
 	if err != nil {
 		return nil, err
 	}
 	core.Node = node
 
-	return &Mobile{RepoPath: config.RepoPath, Mnemonic: mnemonic, messenger: messenger}, nil
+	return &Mobile{RepoPath: config.RepoPath, messenger: messenger}, nil
 }
 
 // Start the mobile node
