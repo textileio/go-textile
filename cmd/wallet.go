@@ -158,7 +158,7 @@ func WalletAccounts(c *ishell.Context) {
 		c.Println(green(fmt.Sprintf("PUBLIC KEY: %s", kp.Address())))
 		c.Println(red(fmt.Sprintf("SECRET KEY: %s", kp.Seed())))
 
-		c.Print("See next account (Y/n)? ")
+		c.Print("Show next account (Y/n)? ")
 		ans := c.ReadLine()
 		if ans == "n" {
 			more = false
