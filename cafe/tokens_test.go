@@ -7,7 +7,6 @@ import (
 	"github.com/textileio/textile-go/cafe/auth"
 	"github.com/textileio/textile-go/cafe/models"
 	"github.com/textileio/textile-go/net/service"
-	util "github.com/textileio/textile-go/util/testing"
 	"testing"
 	"time"
 )
@@ -18,7 +17,7 @@ var claims *auth.TextileClaims
 func TestTokens_Setup(t *testing.T) {
 	// create a referral for the test
 	var code string
-	res, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
+	res, err := createReferral(cafeReferralKey, 1, 1, "test")
 	if err != nil {
 		t.Error(err)
 		return
@@ -29,7 +28,7 @@ func TestTokens_Setup(t *testing.T) {
 		return
 	}
 	resp := &models.ReferralResponse{}
-	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
+	if err := unmarshalJSON(res.Body, resp); err != nil {
 		t.Error(err)
 		return
 	}
@@ -47,7 +46,7 @@ func TestTokens_Setup(t *testing.T) {
 		},
 		"ref_code": code,
 	}
-	res2, err := util.SignUpUser(reg)
+	res2, err := signUpUser(reg)
 	if err != nil {
 		t.Error(err)
 		return
@@ -58,7 +57,7 @@ func TestTokens_Setup(t *testing.T) {
 		return
 	}
 	resp2 := &models.SessionResponse{}
-	if err := util.UnmarshalJSON(res2.Body, resp2); err != nil {
+	if err := unmarshalJSON(res2.Body, resp2); err != nil {
 		t.Error(err)
 		return
 	}
@@ -67,7 +66,7 @@ func TestTokens_Setup(t *testing.T) {
 		return
 	}
 	session = resp2.Session
-	token, err := jwt.Parse(session.AccessToken, util.Verify)
+	token, err := jwt.Parse(session.AccessToken, verify)
 	if err != nil {
 		t.Error(err)
 	}
@@ -78,7 +77,7 @@ func TestTokens_Setup(t *testing.T) {
 }
 
 func TestTokens_Refresh(t *testing.T) {
-	res, err := util.RefreshSession(session.AccessToken, session.RefreshToken)
+	res, err := refreshSession(session.AccessToken, session.RefreshToken)
 	if err != nil {
 		t.Error(err)
 		return
@@ -89,7 +88,7 @@ func TestTokens_Refresh(t *testing.T) {
 		return
 	}
 	resp := &models.SessionResponse{}
-	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
+	if err := unmarshalJSON(res.Body, resp); err != nil {
 		t.Error(err)
 		return
 	}
@@ -105,7 +104,7 @@ func TestTokens_RefreshBadSignature(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	res, err := util.RefreshSession(session.AccessToken, session.RefreshToken)
+	res, err := refreshSession(session.AccessToken, session.RefreshToken)
 	if err != nil {
 		t.Error(err)
 		return
@@ -117,12 +116,12 @@ func TestTokens_RefreshBadSignature(t *testing.T) {
 }
 
 func TestTokens_RefreshBadAudience(t *testing.T) {
-	session, err := auth.NewSession("abc", util.CafeTokenSecret, claims.Issuer, "trust_us", time.Hour)
+	session, err := auth.NewSession("abc", cafeTokenSecret, claims.Issuer, "trust_us", time.Hour)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	res, err := util.RefreshSession(session.AccessToken, session.RefreshToken)
+	res, err := refreshSession(session.AccessToken, session.RefreshToken)
 	if err != nil {
 		t.Error(err)
 		return
@@ -134,12 +133,12 @@ func TestTokens_RefreshBadAudience(t *testing.T) {
 }
 
 func TestTokens_RefreshWrongToken(t *testing.T) {
-	session, err := auth.NewSession("abc", util.CafeTokenSecret, claims.Issuer, service.TextileProtocol, time.Hour)
+	session, err := auth.NewSession("abc", cafeTokenSecret, claims.Issuer, service.TextileProtocol, time.Hour)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	res, err := util.RefreshSession(session.AccessToken, session.AccessToken)
+	res, err := refreshSession(session.AccessToken, session.AccessToken)
 	if err != nil {
 		t.Error(err)
 		return
@@ -151,13 +150,13 @@ func TestTokens_RefreshWrongToken(t *testing.T) {
 }
 
 func TestTokens_RefreshExpired(t *testing.T) {
-	session, err := auth.NewSession("abc", util.CafeTokenSecret, claims.Issuer, service.TextileProtocol, 0)
+	session, err := auth.NewSession("abc", cafeTokenSecret, claims.Issuer, service.TextileProtocol, 0)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	time.Sleep(time.Second)
-	res, err := util.RefreshSession(session.AccessToken, session.RefreshToken)
+	res, err := refreshSession(session.AccessToken, session.RefreshToken)
 	if err != nil {
 		t.Error(err)
 		return

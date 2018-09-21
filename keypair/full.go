@@ -2,8 +2,8 @@ package keypair
 
 import (
 	"bytes"
-	"golang.org/x/crypto/ed25519"
 	"github.com/textileio/textile-go/strkey"
+	"golang.org/x/crypto/ed25519"
 )
 
 type Full struct {

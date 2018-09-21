@@ -4,8 +4,7 @@ import (
 	"crypto/rand"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/cafe/models"
-	"github.com/textileio/textile-go/util"
-	tutil "github.com/textileio/textile-go/util/testing"
+	"github.com/textileio/textile-go/ipfs"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"testing"
 )
@@ -28,7 +27,7 @@ var profileRegistration = map[string]interface{}{
 
 func TestProfiles_Setup(t *testing.T) {
 	// create a referral for the test
-	res, err := tutil.CreateReferral(tutil.CafeReferralKey, 1, 1, "test")
+	res, err := createReferral(cafeReferralKey, 1, 1, "test")
 	if err != nil {
 		t.Error(err)
 		return
@@ -39,7 +38,7 @@ func TestProfiles_Setup(t *testing.T) {
 		return
 	}
 	resp := &models.ReferralResponse{}
-	if err := tutil.UnmarshalJSON(res.Body, resp); err != nil {
+	if err := unmarshalJSON(res.Body, resp); err != nil {
 		t.Error(err)
 		return
 	}
@@ -51,7 +50,7 @@ func TestProfiles_Setup(t *testing.T) {
 }
 
 func TestProfiles_Challenge(t *testing.T) {
-	res, err := tutil.ProfileChallenge(challengeRequest)
+	res, err := profileChallenge(challengeRequest)
 	if err != nil {
 		t.Error(err)
 		return
@@ -68,12 +67,12 @@ func TestProfiles_Challenge(t *testing.T) {
 		t.Error(err)
 	}
 	profileKey = sk
-	pks, err := util.EncodeKey(pk)
+	pks, err := ipfs.EncodeKey(pk)
 	if err != nil {
 		t.Error(err)
 	}
 	challengeRequest["pk"] = pks
-	res2, err := tutil.ProfileChallenge(challengeRequest)
+	res2, err := profileChallenge(challengeRequest)
 	if err != nil {
 		t.Error(err)
 		return
@@ -84,7 +83,7 @@ func TestProfiles_Challenge(t *testing.T) {
 		return
 	}
 	resp2 := &models.ChallengeResponse{}
-	if err := tutil.UnmarshalJSON(res2.Body, resp2); err != nil {
+	if err := unmarshalJSON(res2.Body, resp2); err != nil {
 		t.Error(err)
 		return
 	}
@@ -96,7 +95,7 @@ func TestProfiles_Challenge(t *testing.T) {
 }
 
 func TestProfiles_Register(t *testing.T) {
-	res, err := tutil.RegisterProfile(profileRegistration)
+	res, err := registerProfile(profileRegistration)
 	if err != nil {
 		t.Error(err)
 		return
@@ -107,7 +106,7 @@ func TestProfiles_Register(t *testing.T) {
 		return
 	}
 	profileRegistration["ref_code"] = profileRefCode
-	res2, err := tutil.RegisterProfile(profileRegistration)
+	res2, err := registerProfile(profileRegistration)
 	if err != nil {
 		t.Error(err)
 		return
@@ -127,7 +126,7 @@ func TestProfiles_Register(t *testing.T) {
 		"nonce":     "invalid",
 		"signature": "invalid",
 	}
-	res3, err := tutil.RegisterProfile(profileRegistration)
+	res3, err := registerProfile(profileRegistration)
 	if err != nil {
 		t.Error(err)
 		return
@@ -149,7 +148,7 @@ func TestProfiles_Register(t *testing.T) {
 		"nonce":     cnonce,
 		"signature": libp2pc.ConfigEncodeKey(sigb),
 	}
-	res4, err := tutil.RegisterProfile(profileRegistration)
+	res4, err := registerProfile(profileRegistration)
 	if err != nil {
 		t.Error(err)
 		return
@@ -160,7 +159,7 @@ func TestProfiles_Register(t *testing.T) {
 		return
 	}
 	resp4 := &models.SessionResponse{}
-	if err := tutil.UnmarshalJSON(res4.Body, resp4); err != nil {
+	if err := unmarshalJSON(res4.Body, resp4); err != nil {
 		t.Error(err)
 		return
 	}
@@ -168,7 +167,7 @@ func TestProfiles_Register(t *testing.T) {
 		t.Error("registration response missing session")
 		return
 	}
-	res5, err := tutil.RegisterProfile(profileRegistration)
+	res5, err := registerProfile(profileRegistration)
 	if err != nil {
 		t.Error(err)
 		return
@@ -181,7 +180,7 @@ func TestProfiles_Register(t *testing.T) {
 }
 
 func TestProfiles_Login(t *testing.T) {
-	res, err := tutil.ProfileChallenge(challengeRequest)
+	res, err := profileChallenge(challengeRequest)
 	if err != nil {
 		t.Error(err)
 		return
@@ -192,7 +191,7 @@ func TestProfiles_Login(t *testing.T) {
 		return
 	}
 	resp := &models.ChallengeResponse{}
-	if err := tutil.UnmarshalJSON(res.Body, resp); err != nil {
+	if err := unmarshalJSON(res.Body, resp); err != nil {
 		t.Error(err)
 		return
 	}
@@ -200,7 +199,7 @@ func TestProfiles_Login(t *testing.T) {
 		t.Error("get challenge did not return a value")
 		return
 	}
-	res2, err := tutil.LoginProfile(map[string]string{
+	res2, err := loginProfile(map[string]string{
 		"pk":        "sneakypk",
 		"value":     "invalid",
 		"nonce":     "invalid",
@@ -215,7 +214,7 @@ func TestProfiles_Login(t *testing.T) {
 		t.Errorf("bad status from login with bad pk: %d", res2.StatusCode)
 		return
 	}
-	res3, err := tutil.LoginProfile(map[string]string{
+	res3, err := loginProfile(map[string]string{
 		"pk":        challengeRequest["pk"],
 		"value":     "invalid",
 		"nonce":     "invalid",
@@ -240,7 +239,7 @@ func TestProfiles_Login(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	res4, err := tutil.LoginProfile(map[string]string{
+	res4, err := loginProfile(map[string]string{
 		"pk":        challengeRequest["pk"],
 		"value":     snonce,
 		"nonce":     cnonce,
@@ -266,7 +265,7 @@ func TestProfiles_Login(t *testing.T) {
 		"nonce":     cnonce,
 		"signature": libp2pc.ConfigEncodeKey(sigb),
 	}
-	res5, err := tutil.LoginProfile(signed)
+	res5, err := loginProfile(signed)
 	if err != nil {
 		t.Error(err)
 		return
@@ -277,7 +276,7 @@ func TestProfiles_Login(t *testing.T) {
 		return
 	}
 	resp5 := &models.SessionResponse{}
-	if err := tutil.UnmarshalJSON(res5.Body, resp5); err != nil {
+	if err := unmarshalJSON(res5.Body, resp5); err != nil {
 		t.Error(err)
 		return
 	}
@@ -285,7 +284,7 @@ func TestProfiles_Login(t *testing.T) {
 		t.Error("login response missing session")
 		return
 	}
-	res6, err := tutil.LoginProfile(signed)
+	res6, err := loginProfile(signed)
 	if err != nil {
 		t.Error(err)
 		return

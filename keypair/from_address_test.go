@@ -6,7 +6,7 @@ import (
 )
 
 var _ = Describe("keypair.FromAddress", func() {
-	var subject KP
+	var subject KeyPair
 
 	JustBeforeEach(func() {
 		subject = &FromAddress{address}

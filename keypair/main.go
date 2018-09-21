@@ -22,8 +22,8 @@ var (
 	ErrCannotSign = errors.New("cannot sign")
 )
 
-// KP is the main interface for this package
-type KP interface {
+// KeyPair is the main interface for this package
+type KeyPair interface {
 	Address() string
 	Hint() [4]byte
 	Verify(input []byte, signature []byte) error
@@ -48,21 +48,10 @@ func Random() (*Full, error) {
 	return kp, nil
 }
 
-// Master returns the master keypair for a given network passphrase
-//func Master(networkPassphrase string) KP {
-//	kp, err := FromRawSeed(network.ID(networkPassphrase))
-//
-//	if err != nil {
-//		panic(err)
-//	}
-//
-//	return kp
-//}
-
-// Parse constructs a new KP from the provided string, which should be either
-// an address, or a seed.  If the provided input is a seed, the resulting KP
+// Parse constructs a new KeyPair from the provided string, which should be either
+// an address, or a seed. If the provided input is a seed, the resulting KeyPair
 // will have signing capabilities.
-func Parse(addressOrSeed string) (KP, error) {
+func Parse(addressOrSeed string) (KeyPair, error) {
 	_, err := strkey.Decode(strkey.VersionByteAccountID, addressOrSeed)
 	if err == nil {
 		return &FromAddress{addressOrSeed}, nil
@@ -91,7 +80,7 @@ func FromRawSeed(rawSeed [32]byte) (*Full, error) {
 }
 
 // MustParse is the panic-on-fail version of Parse
-func MustParse(addressOrSeed string) KP {
+func MustParse(addressOrSeed string) KeyPair {
 	kp, err := Parse(addressOrSeed)
 	if err != nil {
 		panic(err)

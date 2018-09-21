@@ -8,8 +8,8 @@ import (
 	"github.com/textileio/textile-go/cafe/dao"
 	"github.com/textileio/textile-go/cafe/models"
 	"github.com/textileio/textile-go/crypto"
+	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/net/service"
-	"github.com/textileio/textile-go/util"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"net/http"
 	"time"
@@ -23,7 +23,7 @@ func (c *Cafe) profileChallenge(g *gin.Context) {
 	}
 
 	// validate public key
-	if _, err := util.UnmarshalPublicKeyFromString(req.Pk); err != nil {
+	if _, err := ipfs.UnmarshalPublicKeyFromString(req.Pk); err != nil {
 		g.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -72,7 +72,7 @@ func (c *Cafe) registerProfile(g *gin.Context) {
 	}
 
 	// validate public key
-	pk, err := util.UnmarshalPublicKeyFromString(reg.Challenge.Pk)
+	pk, err := ipfs.UnmarshalPublicKeyFromString(reg.Challenge.Pk)
 	if err != nil {
 		g.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -155,7 +155,7 @@ func (c *Cafe) loginProfile(g *gin.Context) {
 	}
 
 	// validate public key
-	pk, err := util.UnmarshalPublicKeyFromString(profile.Pk)
+	pk, err := ipfs.UnmarshalPublicKeyFromString(profile.Pk)
 	if err != nil {
 		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

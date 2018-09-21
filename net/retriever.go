@@ -8,10 +8,9 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/textileio/textile-go/crypto"
-	"github.com/textileio/textile-go/net/common"
+	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/util"
 	routing "gx/ipfs/QmVW4cqbibru3hXA1iRmg85Fk7z9qML9k176CYQaMXVCrP/go-libp2p-kad-dht"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	ps "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
@@ -28,6 +27,7 @@ const KeyCachePrefix = "PUBKEYCACHE_"
 const kRetrieveFrequency = time.Minute * 5
 
 var ErrFetching = errors.New("retriever already fetching")
+var OutOfOrderMessage = errors.New("message arrived out of order")
 
 type MRConfig struct {
 	Datastore repo.Datastore
@@ -169,7 +169,7 @@ func (m *MessageRetriever) fetch(pid peer.ID, addr ma.Multiaddr, wg *sync.WaitGr
 	var err error
 
 	go func() {
-		payload, err = util.GetDataAtPath(m.ipfs, addrs)
+		payload, err = ipfs.GetDataAtPath(m.ipfs, addrs)
 		c <- struct{}{}
 	}()
 
@@ -262,7 +262,7 @@ func (m *MessageRetriever) handleMessage(env *pb.Envelope, addr string) error {
 
 	// dispatch handler
 	if _, err := handler(pid, env, true); err != nil {
-		if err == common.OutOfOrderMessage {
+		if err == OutOfOrderMessage {
 			ser, err := proto.Marshal(env)
 			if err != nil {
 				return err

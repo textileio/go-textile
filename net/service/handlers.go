@@ -9,9 +9,9 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/crypto"
+	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/util"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
@@ -100,7 +100,7 @@ func (s *TextileService) handleThreadInvite(pid peer.ID, pmes *pb.Envelope, opti
 	if err != nil {
 		return nil, err
 	}
-	ci, err := util.PinData(s.node, bytes.NewReader(pmesb))
+	ci, err := ipfs.PinData(s.node, bytes.NewReader(pmesb))
 	if err != nil {
 		return nil, err
 	}
@@ -311,7 +311,7 @@ func (s *TextileService) handleThreadAnnotation(pid peer.ID, pmes *pb.Envelope, 
 		return nil, nil
 	}
 	var target string
-	authorId, err := util.IdFromEncodedPublicKey(dataBlock.AuthorPk)
+	authorId, err := ipfs.IdFromEncodedPublicKey(dataBlock.AuthorPk)
 	if err != nil {
 		return nil, err
 	}

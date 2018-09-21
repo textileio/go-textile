@@ -7,9 +7,9 @@ import (
 	"github.com/fatih/color"
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/core/thread"
+	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/util"
-	"github.com/textileio/textile-go/wallet/thread"
 	"gopkg.in/abiosoft/ishell.v2"
 	"io/ioutil"
 	"os"
@@ -46,14 +46,14 @@ func AddPhoto(c *ishell.Context) {
 
 	// do the add
 	f.Seek(0, 0)
-	added, err := core.Node.Wallet.AddPhoto(path)
+	added, err := core.Node.AddPhoto(path)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
 	// add to thread
-	_, thrd := core.Node.Wallet.GetThread(threadId)
+	_, thrd := core.Node.GetThread(threadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", threadId)))
 		return
@@ -87,7 +87,7 @@ func SharePhoto(c *ishell.Context) {
 	}
 
 	// lookup destination thread
-	_, toThread := core.Node.Wallet.GetThread(threadId)
+	_, toThread := core.Node.GetThread(threadId)
 	if toThread == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", threadId)))
 		return
@@ -116,7 +116,7 @@ func ListPhotos(c *ishell.Context) {
 	}
 	threadId := c.Args[0]
 
-	_, thrd := core.Node.Wallet.GetThread(threadId)
+	_, thrd := core.Node.GetThread(threadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadId)))
 		return
@@ -235,12 +235,12 @@ func AddPhotoComment(c *ishell.Context) {
 	c.Print("comment: ")
 	body := c.ReadLine()
 
-	block, err := core.Node.Wallet.GetBlock(id)
+	block, err := core.Node.GetBlock(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	_, thrd := core.Node.GetThread(block.ThreadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
 		return
@@ -259,12 +259,12 @@ func AddPhotoLike(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	block, err := core.Node.Wallet.GetBlock(id)
+	block, err := core.Node.GetBlock(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	_, thrd := core.Node.GetThread(block.ThreadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
 		return
@@ -283,12 +283,12 @@ func ListPhotoComments(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	block, err := core.Node.Wallet.GetBlock(id)
+	block, err := core.Node.GetBlock(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	_, thrd := core.Node.GetThread(block.ThreadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
 		return
@@ -322,7 +322,7 @@ func ListPhotoComments(c *ishell.Context) {
 			}
 			authorUn = string(authorUnb)
 		} else {
-			authorId, err := util.IdFromEncodedPublicKey(b.AuthorPk)
+			authorId, err := ipfs.IdFromEncodedPublicKey(b.AuthorPk)
 			if err != nil {
 				c.Err(err)
 				return
@@ -340,12 +340,12 @@ func ListPhotoLikes(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	block, err := core.Node.Wallet.GetBlock(id)
+	block, err := core.Node.GetBlock(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	_, thrd := core.Node.GetThread(block.ThreadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
 		return
@@ -362,7 +362,7 @@ func ListPhotoLikes(c *ishell.Context) {
 	cyan := color.New(color.FgHiCyan).SprintFunc()
 	for _, b := range blocks {
 		var authorUn string
-		authorId, err := util.IdFromEncodedPublicKey(b.AuthorPk)
+		authorId, err := ipfs.IdFromEncodedPublicKey(b.AuthorPk)
 		if err != nil {
 			c.Err(err)
 			return
@@ -382,14 +382,14 @@ func ListPhotoLikes(c *ishell.Context) {
 }
 
 func getBlockAndThreadForDataId(dataId string) (*repo.Block, *thread.Thread, error) {
-	block, err := core.Node.Wallet.GetBlockByDataId(dataId)
+	block, err := core.Node.GetBlockByDataId(dataId)
 	if err != nil {
 		return nil, nil, err
 	}
 	if block.Type != repo.PhotoBlock {
 		return nil, nil, errors.New("not a photo block, aborting")
 	}
-	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	_, thrd := core.Node.GetThread(block.ThreadId)
 	if thrd == nil {
 		return nil, nil, errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
 	}

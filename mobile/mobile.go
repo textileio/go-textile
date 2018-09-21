@@ -5,7 +5,6 @@ import (
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/net"
-	"github.com/textileio/textile-go/wallet"
 	"time"
 )
 
@@ -43,16 +42,14 @@ func NewNode(config *NodeConfig, messenger Messenger) (*Mobile, error) {
 	if err != nil {
 		ll = logging.INFO
 	}
-	cconfig := core.NodeConfig{
+	cconfig := core.Config{
+		RepoPath: config.RepoPath,
+		IsMobile: true,
 		LogLevel: ll,
 		LogFiles: config.LogFiles,
-		WalletConfig: wallet.Config{
-			RepoPath: config.RepoPath,
-			IsMobile: true,
-			CafeAddr: config.CafeAddr,
-		},
+		CafeAddr: config.CafeAddr,
 	}
-	node, err := core.NewNode(cconfig)
+	node, err := core.NewTextile(cconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -63,21 +60,21 @@ func NewNode(config *NodeConfig, messenger Messenger) (*Mobile, error) {
 
 // Start the mobile node
 func (m *Mobile) Start() error {
-	if err := core.Node.StartWallet(); err != nil {
-		if err == wallet.ErrStarted {
+	if err := core.Node.Start(); err != nil {
+		if err == core.ErrStarted {
 			return nil
 		}
 		return err
 	}
 
 	go func() {
-		<-core.Node.Wallet.Online()
+		<-core.Node.Online()
 
 		// subscribe to wallet updates
 		go func() {
 			for {
 				select {
-				case update, ok := <-core.Node.Wallet.Updates():
+				case update, ok := <-core.Node.Updates():
 					if !ok {
 						return
 					}
@@ -87,13 +84,13 @@ func (m *Mobile) Start() error {
 					}
 					var name string
 					switch update.Type {
-					case wallet.ThreadAdded:
+					case core.ThreadAdded:
 						name = "onThreadAdded"
-					case wallet.ThreadRemoved:
+					case core.ThreadRemoved:
 						name = "onThreadRemoved"
-					case wallet.DeviceAdded:
+					case core.DeviceAdded:
 						name = "onDeviceAdded"
-					case wallet.DeviceRemoved:
+					case core.DeviceRemoved:
 						name = "onDeviceRemoved"
 					}
 					m.messenger.Notify(&Event{Name: name, Payload: payload})
@@ -105,7 +102,7 @@ func (m *Mobile) Start() error {
 		go func() {
 			for {
 				select {
-				case update, ok := <-core.Node.Wallet.ThreadUpdates():
+				case update, ok := <-core.Node.ThreadUpdates():
 					if !ok {
 						return
 					}
@@ -121,7 +118,7 @@ func (m *Mobile) Start() error {
 		go func() {
 			for {
 				select {
-				case notification, ok := <-core.Node.Wallet.Notifications():
+				case notification, ok := <-core.Node.Notifications():
 					if !ok {
 						return
 					}
@@ -142,7 +139,7 @@ func (m *Mobile) Start() error {
 
 // Stop the mobile node
 func (m *Mobile) Stop() error {
-	if err := core.Node.StopWallet(); err != nil && err != wallet.ErrStopped {
+	if err := core.Node.Stop(); err != nil && err != core.ErrStopped {
 		return err
 	}
 	return nil
@@ -150,7 +147,7 @@ func (m *Mobile) Stop() error {
 
 // RefreshMessages run the message retriever
 func (m *Mobile) RefreshMessages() error {
-	if err := core.Node.Wallet.FetchMessages(); err != nil && err != net.ErrFetching {
+	if err := core.Node.FetchMessages(); err != nil && err != net.ErrFetching {
 		return err
 	}
 	return nil
@@ -158,7 +155,7 @@ func (m *Mobile) RefreshMessages() error {
 
 // Overview calls core Overview
 func (m *Mobile) Overview() (string, error) {
-	stats, err := core.Node.Wallet.Overview()
+	stats, err := core.Node.Overview()
 	if err != nil {
 		return "", err
 	}
@@ -167,7 +164,7 @@ func (m *Mobile) Overview() (string, error) {
 
 // waitForOnline waits up to 5 seconds for the node to go online
 func (m *Mobile) waitForOnline() {
-	if core.Node.Wallet.IsOnline() {
+	if core.Node.IsOnline() {
 		return
 	}
 	deadline := time.Now().Add(time.Second * 5)
@@ -176,7 +173,7 @@ func (m *Mobile) waitForOnline() {
 	for {
 		select {
 		case <-tick.C:
-			if core.Node.Wallet.IsOnline() || time.Now().After(deadline) {
+			if core.Node.IsOnline() || time.Now().After(deadline) {
 				return
 			}
 		}

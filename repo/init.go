@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/op/go-logging"
+	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/repo/schema"
-	wutil "github.com/textileio/textile-go/util"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/namesys"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"
@@ -45,13 +45,13 @@ func DoInit(repoRoot string, version string, initDatastore func() error) error {
 	}
 
 	// TODO: remove
-	sk, _, err := wutil.PrivKeyFromMnemonic(nil)
+	sk, _, err := ipfs.PrivKeyFromMnemonic(nil)
 	if err != nil {
 		return err
 	}
 
 	// create an identity for the ipfs peer
-	peerIdentity, err := wutil.IdentityConfig(sk)
+	peerIdentity, err := ipfs.IdentityConfig(sk)
 	if err != nil {
 		return err
 	}

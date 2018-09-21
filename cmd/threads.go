@@ -11,7 +11,7 @@ import (
 )
 
 func ListThreads(c *ishell.Context) {
-	threads := core.Node.Wallet.Threads()
+	threads := core.Node.Threads()
 	if len(threads) == 0 {
 		c.Println("no threads found")
 	} else {
@@ -37,13 +37,13 @@ func AddThread(c *ishell.Context) {
 		return
 	}
 
-	thrd, err := core.Node.Wallet.AddThread(name, sk, true)
+	thrd, err := core.Node.AddThread(name, sk, true)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
-	if err := core.Node.Wallet.InviteDevices(thrd); err != nil {
+	if err := core.Node.InviteDevices(thrd); err != nil {
 		c.Err(err)
 		return
 	}
@@ -59,7 +59,7 @@ func ListThreadPeers(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	_, thrd := core.Node.Wallet.GetThread(id)
+	_, thrd := core.Node.GetThread(id)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", id)))
 		return
@@ -85,7 +85,7 @@ func ListThreadBlocks(c *ishell.Context) {
 	}
 	threadId := c.Args[0]
 
-	_, thrd := core.Node.Wallet.GetThread(threadId)
+	_, thrd := core.Node.GetThread(threadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadId)))
 		return
@@ -111,7 +111,7 @@ func GetThreadHead(c *ishell.Context) {
 	}
 	threadId := c.Args[0]
 
-	_, thrd := core.Node.Wallet.GetThread(threadId)
+	_, thrd := core.Node.GetThread(threadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadId)))
 		return
@@ -134,12 +134,12 @@ func IgnoreBlock(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	block, err := core.Node.Wallet.GetBlock(id)
+	block, err := core.Node.GetBlock(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	_, thrd := core.Node.GetThread(block.ThreadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
 		return
@@ -163,7 +163,7 @@ func AddThreadInvite(c *ishell.Context) {
 	}
 	id := c.Args[1]
 
-	_, thrd := core.Node.Wallet.GetThread(id)
+	_, thrd := core.Node.GetThread(id)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", id)))
 		return
@@ -196,7 +196,7 @@ func AcceptThreadInvite(c *ishell.Context) {
 	}
 	blockId := c.Args[0]
 
-	if _, err := core.Node.Wallet.AcceptThreadInvite(blockId); err != nil {
+	if _, err := core.Node.AcceptThreadInvite(blockId); err != nil {
 		c.Err(err)
 		return
 	}
@@ -212,7 +212,7 @@ func AddExternalThreadInvite(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	_, thrd := core.Node.Wallet.GetThread(id)
+	_, thrd := core.Node.GetThread(id)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", id)))
 		return
@@ -240,7 +240,7 @@ func AcceptExternalThreadInvite(c *ishell.Context) {
 	}
 	key := c.Args[1]
 
-	if _, err := core.Node.Wallet.AcceptExternalThreadInvite(id, []byte(key)); err != nil {
+	if _, err := core.Node.AcceptExternalThreadInvite(id, []byte(key)); err != nil {
 		c.Err(err)
 		return
 	}
@@ -256,7 +256,7 @@ func RemoveThread(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	if _, err := core.Node.Wallet.RemoveThread(id); err != nil {
+	if _, err := core.Node.RemoveThread(id); err != nil {
 		c.Err(err)
 		return
 	}

@@ -9,7 +9,7 @@ import (
 )
 
 var _ = Describe("keypair.Full", func() {
-	var subject KP
+	var subject KeyPair
 
 	JustBeforeEach(func() {
 		subject = &Full{seed}

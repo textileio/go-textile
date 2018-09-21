@@ -5,7 +5,7 @@ import (
 	"golang.org/x/crypto/ed25519"
 )
 
-// FromAddress represents a keypair to which only the address is know.  This KP
+// FromAddress represents a keypair to which only the address is know.  This KeyPair
 // can verify signatures, but cannot sign them.
 //
 // NOTE: ensure the address provided is a valid strkey encoded stellar address.

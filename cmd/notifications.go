@@ -9,8 +9,8 @@ import (
 )
 
 func ListNotifications(c *ishell.Context) {
-	notifs := core.Node.Wallet.GetNotifications("", -1)
-	unread := core.Node.Wallet.CountUnreadNotifications()
+	notifs := core.Node.GetNotifications("", -1)
+	unread := core.Node.CountUnreadNotifications()
 	if len(notifs) == 0 {
 		c.Println("no notifications found")
 	} else {
@@ -40,7 +40,7 @@ func ReadNotification(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	if err := core.Node.Wallet.ReadNotification(id); err != nil {
+	if err := core.Node.ReadNotification(id); err != nil {
 		c.Err(err)
 		return
 	}
@@ -50,7 +50,7 @@ func ReadNotification(c *ishell.Context) {
 }
 
 func ReadAllNotifications(c *ishell.Context) {
-	if err := core.Node.Wallet.ReadAllNotifications(); err != nil {
+	if err := core.Node.ReadAllNotifications(); err != nil {
 		c.Err(err)
 		return
 	}
@@ -66,7 +66,7 @@ func AcceptThreadInviteViaNotification(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	if _, err := core.Node.Wallet.AcceptThreadInviteViaNotification(id); err != nil {
+	if _, err := core.Node.AcceptThreadInviteViaNotification(id); err != nil {
 		c.Err(err)
 		return
 	}

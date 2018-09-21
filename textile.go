@@ -11,8 +11,8 @@ import (
 	"github.com/textileio/textile-go/cafe/dao"
 	"github.com/textileio/textile-go/cmd"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/gateway"
 	rconfig "github.com/textileio/textile-go/repo/config"
-	"github.com/textileio/textile-go/wallet"
 	"gopkg.in/abiosoft/ishell.v2"
 	icore "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	"log"
@@ -103,31 +103,32 @@ func main() {
 	}
 
 	// node setup
-	config := core.NodeConfig{
-		WalletConfig: wallet.Config{
-			RepoPath:   repoPath,
-			SwarmPorts: Options.SwarmPorts,
-			IsMobile:   false,
-			IsServer:   Options.ServerMode,
-			CafeAddr:   Options.CafeAddr,
-		},
-		LogLevel: level,
-		LogFiles: !Options.NoLogFiles,
+	config := core.Config{
+		RepoPath:   repoPath,
+		SwarmPorts: Options.SwarmPorts,
+		IsMobile:   false,
+		IsServer:   Options.ServerMode,
+		LogLevel:   level,
+		LogFiles:   !Options.NoLogFiles,
+		CafeAddr:   Options.CafeAddr,
 	}
 
 	// create a desktop node
-	node, err := core.NewNode(config)
+	node, err := core.NewTextile(config)
 	if err != nil {
 		fmt.Println(fmt.Errorf("create desktop node failed: %s", err))
 		return
 	}
 	core.Node = node
 
+	// create the gateway
+	gateway.Host = &gateway.Gateway{}
+
 	// check cafe mode
 	if Options.CafeBindAddr != "" {
 		cafe.Host = &cafe.Cafe{
 			Ipfs: func() *icore.IpfsNode {
-				return core.Node.Wallet.Ipfs()
+				return core.Node.Ipfs()
 			},
 			Dao: &dao.DAO{
 				Hosts:    Options.CafeDBHosts,
@@ -148,7 +149,7 @@ func main() {
 	}
 
 	// welcome
-	//printSplashScreen()
+	printSplashScreen()
 
 	// run it
 	if Options.DaemonMode {
@@ -159,7 +160,7 @@ func main() {
 		<-quit
 		fmt.Println("interrupted")
 		fmt.Printf("shutting down...")
-		if err := stop(); err != nil && err != wallet.ErrStopped {
+		if err := stop(); err != nil && err != core.ErrStopped {
 			fmt.Println(err.Error())
 		} else {
 			fmt.Print("done\n")
@@ -180,7 +181,7 @@ func main() {
 			}
 			shell.Println("interrupted")
 			shell.Printf("shutting down...")
-			if err := stop(); err != nil && err != wallet.ErrStopped {
+			if err := stop(); err != nil && err != core.ErrStopped {
 				c.Err(err)
 			} else {
 				shell.Printf("done\n")
@@ -193,7 +194,7 @@ func main() {
 			Name: "start",
 			Help: "start the node",
 			Func: func(c *ishell.Context) {
-				if core.Node.Wallet.Started() {
+				if core.Node.Started() {
 					c.Println("already started")
 					return
 				}
@@ -208,7 +209,7 @@ func main() {
 			Name: "stop",
 			Help: "stop the node",
 			Func: func(c *ishell.Context) {
-				if !core.Node.Wallet.Started() {
+				if !core.Node.Started() {
 					c.Println("already stopped")
 					return
 				}
@@ -228,7 +229,7 @@ func main() {
 			Name: "ping",
 			Help: "ping another peer",
 			Func: func(c *ishell.Context) {
-				if !core.Node.Wallet.IsOnline() {
+				if !core.Node.IsOnline() {
 					c.Println("not online yet")
 					return
 				}
@@ -236,7 +237,7 @@ func main() {
 					c.Err(errors.New("missing peer id"))
 					return
 				}
-				status, err := core.Node.Wallet.GetPeerStatus(c.Args[0])
+				status, err := core.Node.GetPeerStatus(c.Args[0])
 				if err != nil {
 					c.Println(fmt.Errorf("ping failed: %s", err))
 					return
@@ -248,11 +249,11 @@ func main() {
 			Name: "fetch-messages",
 			Help: "fetch offline messages from the DHT",
 			Func: func(c *ishell.Context) {
-				if !core.Node.Wallet.IsOnline() {
+				if !core.Node.IsOnline() {
 					c.Println("not online yet")
 					return
 				}
-				if err := core.Node.Wallet.FetchMessages(); err != nil {
+				if err := core.Node.FetchMessages(); err != nil {
 					c.Println(fmt.Errorf("fetch messages failed: %s", err))
 					return
 				}
@@ -286,7 +287,7 @@ func main() {
 			cafeCmd.AddCmd(&ishell.Cmd{
 				Name: "add-referral",
 				Help: "add cafe referrals",
-				Func: cmd.CafeReferral,
+				Func: cmd.CafeAddReferral,
 			})
 			cafeCmd.AddCmd(&ishell.Cmd{
 				Name: "referrals",
@@ -549,28 +550,27 @@ func main() {
 }
 
 func start() error {
-	return nil
-	if err := core.Node.StartWallet(); err != nil {
+	if err := core.Node.Start(); err != nil {
 		return err
 	}
-	<-core.Node.Wallet.Online()
+	<-core.Node.Online()
 
 	// subscribe to wallet updates
 	go func() {
 		for {
 			select {
-			case update, ok := <-core.Node.Wallet.Updates():
+			case update, ok := <-core.Node.Updates():
 				if !ok {
 					return
 				}
 				switch update.Type {
-				case wallet.ThreadAdded:
+				case core.ThreadAdded:
 					break
-				case wallet.ThreadRemoved:
+				case core.ThreadRemoved:
 					break
-				case wallet.DeviceAdded:
+				case core.DeviceAdded:
 					break
-				case wallet.DeviceRemoved:
+				case core.DeviceRemoved:
 					break
 				}
 			}
@@ -582,7 +582,7 @@ func start() error {
 		green := color.New(color.FgHiGreen).SprintFunc()
 		for {
 			select {
-			case update, ok := <-core.Node.Wallet.ThreadUpdates():
+			case update, ok := <-core.Node.ThreadUpdates():
 				if !ok {
 					return
 				}
@@ -597,7 +597,7 @@ func start() error {
 		yellow := color.New(color.FgHiYellow).SprintFunc()
 		for {
 			select {
-			case notification, ok := <-core.Node.Wallet.Notifications():
+			case notification, ok := <-core.Node.Notifications():
 				if !ok {
 					return
 				}
@@ -614,7 +614,7 @@ func start() error {
 	}()
 
 	// start the gateway
-	core.Node.StartGateway(resolveAddress(Options.GatewayBindAddr))
+	gateway.Host.Start(resolveAddress(Options.GatewayBindAddr))
 
 	// start cafe server
 	if Options.CafeBindAddr != "" {
@@ -625,7 +625,7 @@ func start() error {
 }
 
 func stop() error {
-	if err := core.Node.StopGateway(); err != nil {
+	if err := gateway.Host.Stop(); err != nil {
 		return err
 	}
 	if Options.CafeBindAddr != "" {
@@ -633,7 +633,7 @@ func stop() error {
 			return err
 		}
 	}
-	return core.Node.StopWallet()
+	return core.Node.Stop()
 }
 
 func printSplashScreen() {
@@ -644,13 +644,13 @@ func printSplashScreen() {
 	grey := color.New(color.FgHiBlack).SprintFunc()
 	fmt.Println(cyan("Textile"))
 	fmt.Println(grey("version: ") + blue(core.Version))
-	fmt.Println(grey("repo: ") + blue(core.Node.Wallet.GetRepoPath()))
-	fmt.Println(grey("gateway: ") + yellow(core.Node.GetGatewayAddr()))
+	fmt.Println(grey("repo: ") + blue(core.Node.GetRepoPath()))
+	fmt.Println(grey("gateway: ") + yellow(gateway.Host.Addr()))
 	if Options.CafeBindAddr != "" {
 		fmt.Println(grey("cafe: ") + yellow(Options.CafeBindAddr))
 	}
 	if Options.CafeAddr != "" {
-		fmt.Println(grey("cafe api: ") + yellow(core.Node.Wallet.GetCafeApiAddr()))
+		fmt.Println(grey("cafe api: ") + yellow(core.Node.GetCafeApiAddr()))
 	}
 	if Options.ServerMode {
 		fmt.Println(grey("server mode: ") + green("enabled"))

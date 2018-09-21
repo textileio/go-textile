@@ -13,7 +13,7 @@ type Notifications struct {
 // GetNotifications call core GetNotifications
 func (m *Mobile) GetNotifications(offset string, limit int) (string, error) {
 	notes := Notifications{Items: make([]repo.Notification, 0)}
-	fetched := core.Node.Wallet.GetNotifications(offset, limit)
+	fetched := core.Node.GetNotifications(offset, limit)
 	if len(fetched) > 0 {
 		notes.Items = fetched
 	}
@@ -22,22 +22,22 @@ func (m *Mobile) GetNotifications(offset string, limit int) (string, error) {
 
 // CountUnreadNotifications calls core CountUnreadNotifications
 func (m *Mobile) CountUnreadNotifications() int {
-	return core.Node.Wallet.CountUnreadNotifications()
+	return core.Node.CountUnreadNotifications()
 }
 
 // ReadNotification calls core ReadNotification
 func (m *Mobile) ReadNotification(id string) error {
-	return core.Node.Wallet.ReadNotification(id)
+	return core.Node.ReadNotification(id)
 }
 
 // ReadAllNotifications calls core ReadAllNotifications
 func (m *Mobile) ReadAllNotifications() error {
-	return core.Node.Wallet.ReadAllNotifications()
+	return core.Node.ReadAllNotifications()
 }
 
 // AcceptThreadInviteViaNotification call core AcceptThreadInviteViaNotification
 func (m *Mobile) AcceptThreadInviteViaNotification(id string) (string, error) {
-	addr, err := core.Node.Wallet.AcceptThreadInviteViaNotification(id)
+	addr, err := core.Node.AcceptThreadInviteViaNotification(id)
 	if err != nil {
 		return "", err
 	}

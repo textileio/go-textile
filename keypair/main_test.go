@@ -29,7 +29,7 @@ var (
 	}
 )
 
-func ItBehavesLikeAKP(subject *KP) {
+func ItBehavesLikeAKP(subject *KeyPair) {
 
 	// NOTE: subject will only be valid to dereference when inside am "It"
 	// example.

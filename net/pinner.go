@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"github.com/pkg/errors"
 	"github.com/textileio/textile-go/cafe"
-	"github.com/textileio/textile-go/core/cafe"
+	"github.com/textileio/textile-go/cafe/client"
+	ipfsutil "github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/util"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreapi/interface"
 	"io"
@@ -158,10 +158,10 @@ func Pin(ipfs *core.IpfsNode, id string, tokens *repo.CafeTokens, url string) er
 	// load local content
 	cType := "application/octet-stream"
 	var reader io.Reader
-	data, err := util.GetDataAtPath(ipfs, id)
+	data, err := ipfsutil.GetDataAtPath(ipfs, id)
 	if err != nil {
 		if err == iface.ErrIsDir {
-			reader, err = util.GetArchiveAtPath(ipfs, id)
+			reader, err = ipfsutil.GetArchiveAtPath(ipfs, id)
 			if err != nil {
 				return err
 			}

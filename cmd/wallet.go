@@ -4,10 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/fatih/color"
-	"github.com/textileio/textile-go/crypto"
-	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/util"
-	"github.com/tyler-smith/go-bip39"
+	"github.com/textileio/textile-go/wallet"
 	"gopkg.in/abiosoft/ishell.v2"
 	"regexp"
 	"strings"
@@ -21,7 +18,7 @@ func CreateWallet(c *ishell.Context) {
 	red := color.New(color.FgHiRed).SprintFunc()
 	green := color.New(color.FgHiGreen).SprintFunc()
 
-	var wcount util.WordCount
+	var wcount wallet.WordCount
 	count := c.MultiChoice([]string{
 		"12",
 		"15",
@@ -32,28 +29,28 @@ func CreateWallet(c *ishell.Context) {
 
 	switch count {
 	case 0:
-		wcount = util.TwelveWords
+		wcount = wallet.TwelveWords
 	case 1:
-		wcount = util.FifteenWords
+		wcount = wallet.FifteenWords
 	case 2:
-		wcount = util.EighteenWords
+		wcount = wallet.EighteenWords
 	case 3:
-		wcount = util.TwentyOneWords
+		wcount = wallet.TwentyOneWords
 	case 4:
-		wcount = util.TwentyFourWords
+		wcount = wallet.TwentyFourWords
 	default:
 		c.Err(errors.New("invalid word count"))
 	}
 
-	mnemonic, err := util.CreateMnemonic(wcount)
+	w, err := wallet.NewWallet(wcount)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
-	c.Println(cyan(strings.Repeat("-", len(mnemonic)+4)))
-	c.Println(cyan("| " + mnemonic + " |"))
-	c.Println(cyan(strings.Repeat("-", len(mnemonic)+4)))
+	c.Println(cyan(strings.Repeat("-", len(w.RecoveryPhrase)+4)))
+	c.Println(cyan("| " + w.RecoveryPhrase + " |"))
+	c.Println(cyan(strings.Repeat("-", len(w.RecoveryPhrase)+4)))
 	c.Println(grey("WARNING! Store these words above in a safe place!"))
 	c.Println(grey("WARNING! If you lose your words, you will lose access to data in all derived accounts!"))
 	c.Println(grey("WARNING! Anyone who has access to these words can access your wallet accounts!"))
@@ -61,24 +58,10 @@ func CreateWallet(c *ishell.Context) {
 	c.Println(grey("Use: `wallet accounts` command to see all generated accounts."))
 	c.Println("")
 
-	seed, err := bip39.NewSeedWithErrorChecking(mnemonic, "")
-	if err != nil {
-		c.Err(err)
-		return
-	}
+	c.Print("Enter password (leave empty if none): ")
+	password := c.ReadLine()
 
-	masterKey, err := crypto.DeriveForPath(crypto.TextileAccountPrefix, seed)
-	if err != nil {
-		c.Err(err)
-		return
-	}
-
-	key, err := masterKey.Derive(crypto.FirstHardenedIndex)
-	if err != nil {
-		c.Err(err)
-		return
-	}
-	kp, err := keypair.FromRawSeed(key.RawSeed())
+	kp, err := w.AccountAt(0, password)
 	if err != nil {
 		c.Err(err)
 		return
@@ -127,29 +110,15 @@ func WalletAccounts(c *ishell.Context) {
 			i--
 		}
 	}
+	wall := wallet.NewWalletFromRecoveryPhrase(strings.Join(words, " "))
 
-	mnemonic := strings.Join(words, " ")
-	seed, err := bip39.NewSeedWithErrorChecking(mnemonic, "")
-	if err != nil {
-		c.Err(errors.New("invalid words or checksum"))
-		return
-	}
-
-	masterKey, err := crypto.DeriveForPath(crypto.TextileAccountPrefix, seed)
-	if err != nil {
-		c.Err(err)
-		return
-	}
+	c.Print("Enter password (leave empty if none): ")
+	password := c.ReadLine()
 
 	i := 0
 	more := true
 	for more {
-		key, err := masterKey.Derive(crypto.FirstHardenedIndex + uint32(i))
-		if err != nil {
-			c.Err(err)
-			return
-		}
-		kp, err := keypair.FromRawSeed(key.RawSeed())
+		kp, err := wall.AccountAt(i, password)
 		if err != nil {
 			c.Err(err)
 			return

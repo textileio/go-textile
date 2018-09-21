@@ -2,13 +2,12 @@ package cafe
 
 import (
 	"github.com/textileio/textile-go/cafe/models"
-	util "github.com/textileio/textile-go/util/testing"
 	"testing"
 )
 
 func TestReferrals_CreateReferral(t *testing.T) {
 	num := 10
-	res, err := util.CreateReferral(util.CafeReferralKey, num, 2, "test")
+	res, err := createReferral(cafeReferralKey, num, 2, "test")
 	if err != nil {
 		t.Error(err)
 		return
@@ -19,7 +18,7 @@ func TestReferrals_CreateReferral(t *testing.T) {
 		return
 	}
 	resp := &models.ReferralResponse{}
-	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
+	if err := unmarshalJSON(res.Body, resp); err != nil {
 		t.Error(err)
 		return
 	}
@@ -27,7 +26,7 @@ func TestReferrals_CreateReferral(t *testing.T) {
 		t.Error("got bad ref codes")
 		return
 	}
-	res2, err := util.CreateReferral("canihaz?", 1, 1, "test")
+	res2, err := createReferral("canihaz?", 1, 1, "test")
 	if err != nil {
 		t.Error(err)
 		return
@@ -40,7 +39,7 @@ func TestReferrals_CreateReferral(t *testing.T) {
 }
 
 func TestReferrals_ListReferrals(t *testing.T) {
-	res, err := util.ListReferrals(util.CafeReferralKey)
+	res, err := listReferrals(cafeReferralKey)
 	if err != nil {
 		t.Error(err)
 		return
@@ -51,7 +50,7 @@ func TestReferrals_ListReferrals(t *testing.T) {
 		return
 	}
 	resp := &models.ReferralResponse{}
-	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
+	if err := unmarshalJSON(res.Body, resp); err != nil {
 		t.Error(err)
 		return
 	}
@@ -59,7 +58,7 @@ func TestReferrals_ListReferrals(t *testing.T) {
 		t.Error("got bad ref codes")
 		return
 	}
-	res2, err := util.ListReferrals("canihaz?")
+	res2, err := listReferrals("canihaz?")
 	if err != nil {
 		t.Error(err)
 		return

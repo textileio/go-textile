@@ -2,12 +2,12 @@ package mobile
 
 import (
 	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/util"
+	"github.com/textileio/textile-go/ipfs"
 )
 
 // GetId calls core GetId
 func (m *Mobile) GetId() (string, error) {
-	id, err := core.Node.Wallet.GetId()
+	id, err := core.Node.GetId()
 	if err != nil {
 		return "", err
 	}
@@ -16,24 +16,24 @@ func (m *Mobile) GetId() (string, error) {
 
 // GetPubKey returns the profile public key string
 func (m *Mobile) GetPubKey() (string, error) {
-	key, err := core.Node.Wallet.GetKey()
+	key, err := core.Node.GetKey()
 	if err != nil {
 		return "", err
 	}
 	if key == nil {
 		return "", nil
 	}
-	return util.EncodeKey(key.GetPublic())
+	return ipfs.EncodeKey(key.GetPublic())
 }
 
 // SetUsername calls core SetUsername
 func (m *Mobile) SetUsername(username string) error {
-	return core.Node.Wallet.SetUsername(username)
+	return core.Node.SetUsername(username)
 }
 
 // GetUsername calls core GetUsername
 func (m *Mobile) GetUsername() (string, error) {
-	username, err := core.Node.Wallet.GetUsername()
+	username, err := core.Node.GetUsername()
 	if err != nil {
 		return "", err
 	}
@@ -45,17 +45,17 @@ func (m *Mobile) GetUsername() (string, error) {
 
 // SetAvatarId calls core SetAvatarId
 func (m *Mobile) SetAvatarId(id string) error {
-	return core.Node.Wallet.SetAvatarId(id)
+	return core.Node.SetAvatarId(id)
 }
 
 // GetProfile returns the local profile
 func (m *Mobile) GetProfile() (string, error) {
-	id, err := core.Node.Wallet.GetId()
+	id, err := core.Node.GetId()
 	if err != nil {
 		log.Errorf("error getting profile: %s", err)
 		return "", err
 	}
-	prof, err := core.Node.Wallet.GetProfile(id.Pretty())
+	prof, err := core.Node.GetProfile(id.Pretty())
 	if err != nil {
 		log.Errorf("error getting profile %s: %s", id, err)
 		return "", err
@@ -65,7 +65,7 @@ func (m *Mobile) GetProfile() (string, error) {
 
 // GetOtherProfile looks up a profile by id
 func (m *Mobile) GetOtherProfile(peerId string) (string, error) {
-	prof, err := core.Node.Wallet.GetProfile(peerId)
+	prof, err := core.Node.GetProfile(peerId)
 	if err != nil {
 		log.Errorf("error getting profile %s: %s", peerId, err)
 		return "", err

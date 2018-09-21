@@ -10,7 +10,7 @@ import (
 )
 
 func ListDevices(c *ishell.Context) {
-	devices := core.Node.Wallet.Devices()
+	devices := core.Node.Devices()
 	if len(devices) == 0 {
 		c.Println("no devices found")
 	} else {
@@ -46,7 +46,7 @@ func AddDevice(c *ishell.Context) {
 		return
 	}
 
-	err = core.Node.Wallet.AddDevice(name, pk)
+	err = core.Node.AddDevice(name, pk)
 	if err != nil {
 		c.Err(err)
 		return
@@ -63,7 +63,7 @@ func RemoveDevice(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	err := core.Node.Wallet.RemoveDevice(id)
+	err := core.Node.RemoveDevice(id)
 	if err != nil {
 		c.Err(err)
 		return

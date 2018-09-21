@@ -3,8 +3,8 @@ package db
 import (
 	"crypto/rand"
 	"database/sql"
+	"github.com/textileio/textile-go/photo"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/util"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"sync"
 	"testing"
@@ -39,7 +39,7 @@ func TestProfileDB_CafeLogin(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	profileKey, err = util.EncodeKey(sk)
+	profileKey, err = photo.EncodeKey(sk)
 	if err != nil {
 		t.Error(err)
 	}

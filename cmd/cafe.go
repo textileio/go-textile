@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-func CafeReferral(c *ishell.Context) {
+func CafeAddReferral(c *ishell.Context) {
 	c.Print("key: ")
 	key := c.ReadPassword()
 	c.Print("count (1): ")
@@ -25,7 +25,7 @@ func CafeReferral(c *ishell.Context) {
 	if err != nil {
 		limit = 1
 	}
-	username, err := core.Node.Wallet.GetUsername()
+	username, err := core.Node.GetUsername()
 	if err != nil {
 		c.Err(err)
 		return
@@ -40,7 +40,7 @@ func CafeReferral(c *ishell.Context) {
 		Limit:       limit,
 		RequestedBy: *username,
 	}
-	res, err := core.Node.Wallet.CreateCafeReferral(req)
+	res, err := core.Node.CreateCafeReferral(req)
 	if err != nil {
 		c.Err(err)
 		return
@@ -56,7 +56,7 @@ func ListCafeReferrals(c *ishell.Context) {
 	c.Print("key: ")
 	key := c.ReadPassword()
 
-	res, err := core.Node.Wallet.ListCafeReferrals(key)
+	res, err := core.Node.ListCafeReferrals(key)
 	if err != nil {
 		c.Err(err)
 		return
@@ -72,7 +72,7 @@ func CafeRegister(c *ishell.Context) {
 	c.Print("referral code: ")
 	code := c.ReadLine()
 
-	if err := core.Node.Wallet.CafeRegister(code); err != nil {
+	if err := core.Node.CafeRegister(code); err != nil {
 		c.Err(err)
 		return
 	}
@@ -82,7 +82,7 @@ func CafeRegister(c *ishell.Context) {
 }
 
 func CafeLogin(c *ishell.Context) {
-	if err := core.Node.Wallet.CafeLogin(); err != nil {
+	if err := core.Node.CafeLogin(); err != nil {
 		c.Err(err)
 		return
 	}
@@ -98,7 +98,7 @@ func CafeLogout(c *ishell.Context) {
 	if confirm != "" && confirm != "Y" {
 		return
 	}
-	if err := core.Node.Wallet.CafeLogout(); err != nil {
+	if err := core.Node.CafeLogout(); err != nil {
 		c.Err(err)
 		return
 	}
@@ -108,7 +108,7 @@ func CafeLogout(c *ishell.Context) {
 }
 
 func CafeStatus(c *ishell.Context) {
-	loggedIn, err := core.Node.Wallet.CafeLoggedIn()
+	loggedIn, err := core.Node.CafeLoggedIn()
 	if err != nil {
 		c.Err(err)
 		return
@@ -121,7 +121,7 @@ func CafeStatus(c *ishell.Context) {
 }
 
 func CafeTokens(c *ishell.Context) {
-	tokens, err := core.Node.Wallet.GetCafeTokens(false)
+	tokens, err := core.Node.GetCafeTokens(false)
 	if err != nil {
 		c.Err(err)
 		return

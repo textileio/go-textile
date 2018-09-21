@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/util"
+	"github.com/textileio/textile-go/ipfs"
 	"gopkg.in/abiosoft/ishell.v2"
 )
 
@@ -14,7 +14,7 @@ func ShowId(c *ishell.Context) {
 	// check for an input to convert
 	if len(c.Args) != 0 {
 		pk := c.Args[0]
-		pid, err := util.IdFromEncodedPublicKey(pk)
+		pid, err := ipfs.IdFromEncodedPublicKey(pk)
 		if err != nil {
 			c.Err(err)
 			return
@@ -25,34 +25,34 @@ func ShowId(c *ishell.Context) {
 	}
 
 	// get local id / pk
-	id, err := core.Node.Wallet.GetId()
+	id, err := core.Node.GetId()
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	sk, err := core.Node.Wallet.GetKey()
+	sk, err := core.Node.GetKey()
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	pk, err := util.EncodeKey(sk.GetPublic())
+	pk, err := ipfs.EncodeKey(sk.GetPublic())
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
 	// get peer id / pk
-	pid, err := core.Node.Wallet.GetPeerId()
+	pid, err := core.Node.GetPeerId()
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	ppk, err := core.Node.Wallet.GetPeerPubKey()
+	ppk, err := core.Node.GetPeerPubKey()
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	ppks, err := util.EncodeKey(ppk)
+	ppks, err := ipfs.EncodeKey(ppk)
 	if err != nil {
 		c.Err(err)
 		return

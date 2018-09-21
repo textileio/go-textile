@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/cafe/models"
-	util "github.com/textileio/textile-go/util/testing"
 	"testing"
 )
 
@@ -25,7 +24,7 @@ var credentials = map[string]interface{}{
 
 func TestUsers_Setup(t *testing.T) {
 	// create a referral for the test
-	res, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
+	res, err := createReferral(cafeReferralKey, 1, 1, "test")
 	if err != nil {
 		t.Error(err)
 		return
@@ -36,7 +35,7 @@ func TestUsers_Setup(t *testing.T) {
 		return
 	}
 	resp := &models.ReferralResponse{}
-	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
+	if err := unmarshalJSON(res.Body, resp); err != nil {
 		t.Error(err)
 		return
 	}
@@ -48,7 +47,7 @@ func TestUsers_Setup(t *testing.T) {
 }
 
 func TestUsers_SignUp(t *testing.T) {
-	res, err := util.SignUpUser(userRegistration)
+	res, err := signUpUser(userRegistration)
 	if err != nil {
 		t.Error(err)
 		return
@@ -59,7 +58,7 @@ func TestUsers_SignUp(t *testing.T) {
 		return
 	}
 	userRegistration["ref_code"] = userRefCode
-	res2, err := util.SignUpUser(userRegistration)
+	res2, err := signUpUser(userRegistration)
 	if err != nil {
 		t.Error(err)
 		return
@@ -70,7 +69,7 @@ func TestUsers_SignUp(t *testing.T) {
 		return
 	}
 	resp2 := &models.SessionResponse{}
-	if err := util.UnmarshalJSON(res2.Body, resp2); err != nil {
+	if err := unmarshalJSON(res2.Body, resp2); err != nil {
 		t.Error(err)
 		return
 	}
@@ -78,7 +77,7 @@ func TestUsers_SignUp(t *testing.T) {
 		t.Error("signup response missing session")
 		return
 	}
-	res3, err := util.SignUpUser(userRegistration)
+	res3, err := signUpUser(userRegistration)
 	if err != nil {
 		t.Error(err)
 		return
@@ -91,7 +90,7 @@ func TestUsers_SignUp(t *testing.T) {
 }
 
 func TestUsers_SignIn(t *testing.T) {
-	res, err := util.SignInUser(credentials)
+	res, err := signInUser(credentials)
 	if err != nil {
 		t.Error(err)
 		return
@@ -102,7 +101,7 @@ func TestUsers_SignIn(t *testing.T) {
 		return
 	}
 	resp := &models.SessionResponse{}
-	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
+	if err := unmarshalJSON(res.Body, resp); err != nil {
 		t.Error(err)
 		return
 	}
@@ -111,7 +110,7 @@ func TestUsers_SignIn(t *testing.T) {
 		return
 	}
 	credentials["password"] = "doh!"
-	res2, err := util.SignInUser(credentials)
+	res2, err := signInUser(credentials)
 	if err != nil {
 		t.Error(err)
 		return
@@ -122,7 +121,7 @@ func TestUsers_SignIn(t *testing.T) {
 		return
 	}
 	credentials["username"] = "bart"
-	res3, err := util.SignInUser(credentials)
+	res3, err := signInUser(credentials)
 	if err != nil {
 		t.Error(err)
 		return

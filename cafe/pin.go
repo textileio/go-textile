@@ -5,7 +5,7 @@ import (
 	"compress/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/textileio/textile-go/cafe/models"
-	"github.com/textileio/textile-go/util"
+	"github.com/textileio/textile-go/ipfs"
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"io"
@@ -45,7 +45,7 @@ func (c *Cafe) pin(g *gin.Context) {
 				g.JSON(http.StatusBadRequest, gin.H{"error": "directories are not supported"})
 				return
 			case tar.TypeReg:
-				if err := util.AddFileToDirectory(c.Ipfs(), dirb, tr, header.Name); err != nil {
+				if err := ipfs.AddFileToDirectory(c.Ipfs(), dirb, tr, header.Name); err != nil {
 					log.Errorf("error adding file to dir %s", err)
 					g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
@@ -62,7 +62,7 @@ func (c *Cafe) pin(g *gin.Context) {
 			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		if err := util.PinDirectory(c.Ipfs(), dir, []string{}); err != nil {
+		if err := ipfs.PinDirectory(c.Ipfs(), dir, []string{}); err != nil {
 			log.Errorf("error pinning dir node %s", err)
 			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -71,7 +71,7 @@ func (c *Cafe) pin(g *gin.Context) {
 
 	case "application/octet-stream":
 		var err error
-		id, err = util.PinData(c.Ipfs(), g.Request.Body)
+		id, err = ipfs.PinData(c.Ipfs(), g.Request.Body)
 		if err != nil {
 			log.Errorf("error pinning raw body %s", err)
 			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
