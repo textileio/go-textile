@@ -3,8 +3,8 @@ package core
 import (
 	"errors"
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/core/thread"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/thread"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"time"
 )

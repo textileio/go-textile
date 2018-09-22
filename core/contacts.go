@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/textileio/textile-go/core/thread"
+	"github.com/textileio/textile-go/thread"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 

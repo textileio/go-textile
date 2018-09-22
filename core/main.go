@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/archive"
-	"github.com/textileio/textile-go/core/thread"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/net"
 	serv "github.com/textileio/textile-go/net/service"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/storage"
+	"github.com/textileio/textile-go/thread"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"gx/ipfs/QmVW4cqbibru3hXA1iRmg85Fk7z9qML9k176CYQaMXVCrP/go-libp2p-kad-dht"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
@@ -41,18 +41,14 @@ const Version = "0.1.9"
 var Node *Textile
 
 type Config struct {
-	RepoPath string
-	PinCode  string
-
+	RepoPath   string
+	PinCode    string
 	SwarmPorts string
-
-	IsMobile bool
-	IsServer bool
-
-	LogLevel logging.Level
-	LogFiles bool
-
-	CafeAddr string
+	IsMobile   bool
+	IsServer   bool
+	LogLevel   logging.Level
+	LogFiles   bool
+	CafeAddr   string
 }
 
 type Update struct {

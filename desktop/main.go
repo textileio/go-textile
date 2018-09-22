@@ -14,7 +14,7 @@ import (
 	"github.com/skip2/go-qrcode"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/gateway"
-	"github.com/textileio/textile-go/photo"
+	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/repo"
 	rconfig "github.com/textileio/textile-go/repo/config"
 	"os"
@@ -268,7 +268,7 @@ func getQRCode() (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	pk, err := photo.EncodeKey(sk.GetPublic())
+	pk, err := ipfs.EncodeKey(sk.GetPublic())
 	if err != nil {
 		return "", "", err
 	}
