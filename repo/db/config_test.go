@@ -2,7 +2,7 @@ package db
 
 import (
 	"crypto/rand"
-	"github.com/textileio/textile-go/photo"
+	"github.com/textileio/textile-go/ipfs"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"os"
@@ -29,7 +29,7 @@ func setup() {
 	if err != nil {
 		panic(err)
 	}
-	profileKey, err = photo.EncodeKey(sk)
+	profileKey, err = ipfs.EncodeKey(sk)
 	if err != nil {
 		panic(err)
 	}
@@ -76,7 +76,7 @@ func TestConfigDB_GetKey(t *testing.T) {
 		t.Error("missing key")
 		return
 	}
-	keystr, err := photo.EncodeKey(key)
+	keystr, err := ipfs.EncodeKey(key)
 	if err != nil {
 		t.Error(err)
 		return

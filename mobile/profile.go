@@ -52,7 +52,7 @@ func (m *Mobile) SetAvatarId(id string) error {
 func (m *Mobile) GetProfile() (string, error) {
 	id, err := core.Node.GetId()
 	if err != nil {
-		log.Errorf("error getting profile: %s", err)
+		log.Errorf("error getting profile (get id): %s", err)
 		return "", err
 	}
 	prof, err := core.Node.GetProfile(id.Pretty())
