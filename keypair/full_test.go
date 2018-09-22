@@ -2,7 +2,6 @@ package keypair
 
 import (
 	"encoding/hex"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -33,11 +32,11 @@ var _ = Describe("keypair.Full", func() {
 
 		Entry("hello", SignCase{
 			"hello",
-			"2e75cc20d519111caaaadddf464bb650d2eaf0a5d18d745693a16100f2a4937bc1dffa8b0b1f61a276996d7ee8deb2d0dd9ee510556077b02dec16792e915c0a",
+			"665c1a3d6a198a0c5ae63b6a1b4f6cd45f96f05f5f51d1040ef7f72fc390305d1a65cfb8057c87f484772aab757cb79720ee770cc28e58975157a6e7d2b3dc0e",
 		}),
 		Entry("this is a message", SignCase{
 			"this is a message",
-			"7b7e99d3d660a53913064d5da96abcfa0c422a88f1dca7f14cdbd22045b550030e60fcd1aad85fd08bb7425d95ca690c8f63231895f6b0dd7c0c737227092a00",
+			"293d4a0bd309959c4d07b25777be1abba838e21b9e8cade56f4ff9ae8e2d55b385ae5dd2400854620b07c3cfff928f937aa1d789d8506e845b83122e6c66e50f",
 		}),
 	)
 
