@@ -22,7 +22,7 @@ func TestEncode(t *testing.T) {
 				0x31, 0x62, 0x92, 0x90, 0x56, 0xbc, 0xf4, 0xcd,
 				0xb7, 0xd3, 0x73, 0x8d, 0x18, 0x55, 0xf3, 0x63,
 			},
-			Expected: "TBU2RRGLXH3E5CQHTD3ODLDF2BWDCYUSSBLLZ5GNW7JXHDIYKXZWHXL7",
+			Expected: "P6NKHguuQnGraNM58WZTh2tPmRAnQQn1YzHQZYPmRt8WABDF",
 		},
 		{
 			Name:        "Seed",
@@ -33,7 +33,7 @@ func TestEncode(t *testing.T) {
 				0x31, 0x62, 0x92, 0x90, 0x56, 0xbc, 0xf4, 0xcd,
 				0xb7, 0xd3, 0x73, 0x8d, 0x18, 0x55, 0xf3, 0x63,
 			},
-			Expected: "SBU2RRGLXH3E5CQHTD3ODLDF2BWDCYUSSBLLZ5GNW7JXHDIYKXZWHOKR",
+			Expected: "SV8k5RKcUg1ZtN6qvcUGXfvqjv2nGeBhxy7sUnG1AxM5jB23",
 		},
 	}
 

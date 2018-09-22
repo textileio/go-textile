@@ -15,7 +15,7 @@ func TestDecode(t *testing.T) {
 	}{
 		{
 			Name:                "AccountID",
-			Address:             "TBU2RRGLXH3E5CQHTD3ODLDF2BWDCYUSSBLLZ5GNW7JXHDIYKXZWHXL7",
+			Address:             "P6NKHguuQnGraNM58WZTh2tPmRAnQQn1YzHQZYPmRt8WABDF",
 			ExpectedVersionByte: VersionByteAccountID,
 			ExpectedPayload: []byte{
 				0x69, 0xa8, 0xc4, 0xcb, 0xb9, 0xf6, 0x4e, 0x8a,
@@ -26,7 +26,7 @@ func TestDecode(t *testing.T) {
 		},
 		{
 			Name:                "Seed",
-			Address:             "SBU2RRGLXH3E5CQHTD3ODLDF2BWDCYUSSBLLZ5GNW7JXHDIYKXZWHOKR",
+			Address:             "SV8k5RKcUg1ZtN6qvcUGXfvqjv2nGeBhxy7sUnG1AxM5jB23",
 			ExpectedVersionByte: VersionByteSeed,
 			ExpectedPayload: []byte{
 				0x69, 0xa8, 0xc4, 0xcb, 0xb9, 0xf6, 0x4e, 0x8a,
@@ -57,10 +57,10 @@ func TestDecode(t *testing.T) {
 	assert.Error(t, err)
 
 	// corrupted checksum
-	_, err = Decode(VersionByteAccountID, "GA3D5KRYM6CB7OWQ6TWYRR3Z4T7GNZLKERYNZGGA5SOAOPIFY6YQHE55")
+	_, err = Decode(VersionByteSeed, "ST1JhsR34aiso4N5RgiM2F7XRSxihACsrTDSm64VfnGTfeop")
 	assert.Error(t, err)
 
 	// corrupted payload
-	_, err = Decode(VersionByteAccountID, "GA3D5KRYM6CB7OWOOOORR3Z4T7GNZLKERYNZGGA5SOAOPIFY6YQHES5")
+	_, err = Decode(VersionByteAccountID, "P6NKHguuQnGraNM58WZTh2tPmRAnQQn1YzHQZYPmRt8WALT5")
 	assert.Error(t, err)
 }

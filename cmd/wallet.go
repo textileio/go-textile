@@ -59,7 +59,7 @@ func CreateWallet(c *ishell.Context) {
 	c.Println("")
 
 	c.Print("Enter password (leave empty if none): ")
-	password := c.ReadLine()
+	password := c.ReadPassword()
 
 	kp, err := w.AccountAt(0, password)
 	if err != nil {
@@ -113,7 +113,7 @@ func WalletAccounts(c *ishell.Context) {
 	wall := wallet.NewWalletFromRecoveryPhrase(strings.Join(words, " "))
 
 	c.Print("Enter password (leave empty if none): ")
-	password := c.ReadLine()
+	password := c.ReadPassword()
 
 	i := 0
 	more := true

@@ -14,17 +14,17 @@ func TestVersion(t *testing.T) {
 	}{
 		{
 			Name:                "AccountID",
-			Address:             "TBU2RRGLXH3E5CQHTD3ODLDF2BWDCYUSSBLLZ5GNW7JXHDIYKXZWHXL7",
+			Address:             "P46vw5b3M6qjFsnWVSCsPusZsypRPeKTSzZ9RHjbTXedMdR6",
 			ExpectedVersionByte: VersionByteAccountID,
 		},
 		{
 			Name:                "Seed",
-			Address:             "SBU2RRGLXH3E5CQHTD3ODLDF2BWDCYUSSBLLZ5GNW7JXHDIYKXZWHOKR",
+			Address:             "SUMgBQ377QKBnYfKuvToBS3gPFjzWicmhykQvoTJK9LNySu8",
 			ExpectedVersionByte: VersionByteSeed,
 		},
 		{
 			Name:                "Other (0x60)",
-			Address:             "MBU2RRGLXH3E5CQHTD3ODLDF2BWDCYUSSBLLZ5GNW7JXHDIYKXZWGTOG",
+			Address:             "Ac99rdvmhNPWhzx6wsTySWXJ5yt9HZhNaS8b8EQVHHSo5Wje",
 			ExpectedVersionByte: VersionByte(0x60),
 		},
 	}
