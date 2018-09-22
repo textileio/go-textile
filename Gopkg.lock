@@ -82,6 +82,14 @@
   revision = "a0ff2567cfb70903282db057e799fd826784d41d"
 
 [[projects]]
+  digest = "1:9f42202ac457c462ad8bb9642806d275af9ab4850cf0b1960b9c6f083d4a309a"
+  name = "github.com/davecgh/go-spew"
+  packages = ["spew"]
+  pruneopts = "T"
+  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
+  version = "v1.1.1"
+
+[[projects]]
   digest = "1:6b014c67cb522566c30ef02116f9acb50cd60954708cf92c6654e2985696db18"
   name = "github.com/dgrijalva/jwt-go"
   packages = ["."]
@@ -163,6 +171,20 @@
   version = "v1.2.0"
 
 [[projects]]
+  digest = "1:8f20c8dd713564fa97299fbcb77d729c6de9c33f3222812a76e6ecfaef80fd61"
+  name = "github.com/hpcloud/tail"
+  packages = [
+    ".",
+    "ratelimiter",
+    "util",
+    "watch",
+    "winfile",
+  ]
+  pruneopts = "T"
+  revision = "a30252cb686a21eb2d0b98132633053ec2f7f1e5"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:3f222a291d2810bdeccb8ba10af58fd087269863c8196f7754cfa0de098a2b56"
   name = "github.com/jessevdk/go-flags"
   packages = ["."]
@@ -228,11 +250,68 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:25adb195c50fff1666779f4f3cb88fc04ff789aa83929a9da8ade0ae4863bcc1"
+  name = "github.com/mr-tron/base58"
+  packages = ["base58"]
+  pruneopts = "T"
+  revision = "cee214dccb3e8160bdf79ed48a851f3a95a124ff"
+
+[[projects]]
+  branch = "master"
   digest = "1:5105e4b75f0a8e1be34365b871fc67fe89ca61841881f892cc56d3eecb7cbd7f"
   name = "github.com/mutecomm/go-sqlcipher"
   packages = ["."]
   pruneopts = "T"
   revision = "f799951b4ab269c2ce24913961af2cb5d681cc43"
+
+[[projects]]
+  digest = "1:99ec7b4370b05816679fe9ae77f1f8af4eae3df0abaeef8c3d2d42d86f55f549"
+  name = "github.com/onsi/ginkgo"
+  packages = [
+    ".",
+    "config",
+    "extensions/table",
+    "internal/codelocation",
+    "internal/containernode",
+    "internal/failer",
+    "internal/leafnodes",
+    "internal/remote",
+    "internal/spec",
+    "internal/spec_iterator",
+    "internal/specrunner",
+    "internal/suite",
+    "internal/testingtproxy",
+    "internal/writer",
+    "reporters",
+    "reporters/stenographer",
+    "reporters/stenographer/support/go-colorable",
+    "reporters/stenographer/support/go-isatty",
+    "types",
+  ]
+  pruneopts = "T"
+  revision = "3774a09d95489ccaa16032e0770d08ea77ba6184"
+  version = "v1.6.0"
+
+[[projects]]
+  digest = "1:8dd7bb91b515b86408de9c0d553f14e97ffa21c65c643976242e63d11a28999a"
+  name = "github.com/onsi/gomega"
+  packages = [
+    ".",
+    "format",
+    "internal/assertion",
+    "internal/asyncassertion",
+    "internal/oraclematcher",
+    "internal/testingtsupport",
+    "matchers",
+    "matchers/support/goraph/bipartitegraph",
+    "matchers/support/goraph/edge",
+    "matchers/support/goraph/node",
+    "matchers/support/goraph/util",
+    "types",
+  ]
+  pruneopts = "T"
+  revision = "7615b9433f86a8bdf29709bf288bc4fd0636a369"
+  version = "v1.4.2"
 
 [[projects]]
   digest = "1:0a4290c90cd0e91b90d7c3846b78898d20d375e156b7501a908819bd5478f9f5"
@@ -249,6 +328,14 @@
   pruneopts = "T"
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
+
+[[projects]]
+  digest = "1:22aa691fe0213cb5c07d103f9effebcb7ad04bee45a0ce5fe5369d0ca2ec3a1f"
+  name = "github.com/pmezard/go-difflib"
+  packages = ["difflib"]
+  pruneopts = "T"
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "go1"
@@ -290,6 +377,14 @@
   revision = "cf5f9fa2f0d847edb8e038db7ed975e239095e1a"
 
 [[projects]]
+  digest = "1:e95496462101745805bd4e041a5b841e108c7cf761264d53648246308de2761e"
+  name = "github.com/stretchr/testify"
+  packages = ["assert"]
+  pruneopts = "T"
+  revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
+  version = "v1.2.2"
+
+[[projects]]
   branch = "master"
   digest = "1:bdc3f44533dbd81b8536fb037792d8aa2597744ab3a57a5f57fd297267b40e7e"
   name = "github.com/tyler-smith/go-bip39"
@@ -316,6 +411,8 @@
     "bcrypt",
     "blowfish",
     "curve25519",
+    "ed25519",
+    "ed25519/internal/edwards25519",
     "internal/subtle",
     "nacl/box",
     "nacl/secretbox",
@@ -343,7 +440,12 @@
   branch = "master"
   digest = "1:a42c6aed51ed8b42dae608760a24ce53b799ede0c31637dfcbf1116cd0c23b03"
   name = "golang.org/x/net"
-  packages = ["context"]
+  packages = [
+    "context",
+    "html",
+    "html/atom",
+    "html/charset",
+  ]
   pruneopts = "T"
   revision = "26e67e76b6c3f6ce91f7c52def5af501b4e0f3a2"
 
@@ -359,12 +461,47 @@
   revision = "d0be0721c37eeb5299f245a996a483160fc36940"
 
 [[projects]]
+  digest = "1:6164911cb5e94e8d8d5131d646613ff82c14f5a8ce869de2f6d80d9889df8c5a"
+  name = "golang.org/x/text"
+  packages = [
+    "encoding",
+    "encoding/charmap",
+    "encoding/htmlindex",
+    "encoding/internal",
+    "encoding/internal/identifier",
+    "encoding/japanese",
+    "encoding/korean",
+    "encoding/simplifiedchinese",
+    "encoding/traditionalchinese",
+    "encoding/unicode",
+    "internal/gen",
+    "internal/tag",
+    "internal/utf8internal",
+    "language",
+    "runes",
+    "transform",
+    "unicode/cldr",
+  ]
+  pruneopts = "T"
+  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
+  version = "v0.3.0"
+
+[[projects]]
   digest = "1:b422e7572a450b4b928b4ad16747e6e9c296887573c6ecf5d351e438683f5385"
   name = "gopkg.in/abiosoft/ishell.v2"
   packages = ["."]
   pruneopts = "T"
   revision = "0a6b1640e32638dd433ee7e57ec325a7bdd79561"
   version = "v2.0.0"
+
+[[projects]]
+  digest = "1:7fc160b460a6fc506b37fcca68332464c3f2cd57b6e3f111f26c5bbfd2d5518e"
+  name = "gopkg.in/fsnotify.v1"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9"
+  source = "https://github.com/fsnotify/fsnotify.git"
+  version = "v1.4.7"
 
 [[projects]]
   digest = "1:02714116710abce990f3fa478f52c8e7029590ef13f35aab723beecdf829f136"
@@ -381,6 +518,14 @@
   pruneopts = "T"
   revision = "a96e63847dc3c67d17befa69c303767e2f84e54f"
   version = "v2.1"
+
+[[projects]]
+  branch = "v1"
+  digest = "1:0caa92e17bc0b65a98c63e5bc76a9e844cd5e56493f8fdbb28fad101a16254d9"
+  name = "gopkg.in/tomb.v1"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "dd632973f1e7218eb1089048e0798ec9ae7dceb8"
 
 [[projects]]
   digest = "1:342378ac4dcb378a5448dd723f0784ae519383532f5e70ade24132c4c8693202"
@@ -410,14 +555,21 @@
     "github.com/golang/protobuf/ptypes/timestamp",
     "github.com/jessevdk/go-flags",
     "github.com/mitchellh/go-homedir",
+    "github.com/mr-tron/base58/base58",
     "github.com/mutecomm/go-sqlcipher",
+    "github.com/onsi/ginkgo",
+    "github.com/onsi/ginkgo/extensions/table",
+    "github.com/onsi/gomega",
+    "github.com/onsi/gomega/types",
     "github.com/op/go-logging",
     "github.com/pkg/errors",
     "github.com/rwcarlsen/goexif/exif",
     "github.com/segmentio/ksuid",
     "github.com/skip2/go-qrcode",
+    "github.com/stretchr/testify/assert",
     "github.com/tyler-smith/go-bip39",
     "golang.org/x/crypto/bcrypt",
+    "golang.org/x/crypto/ed25519",
     "golang.org/x/crypto/nacl/box",
     "gopkg.in/abiosoft/ishell.v2",
     "gopkg.in/natefinch/lumberjack.v2",
