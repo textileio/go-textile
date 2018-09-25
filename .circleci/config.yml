@@ -59,7 +59,7 @@ jobs:
     - run:
         name: run tests
         command: |
-          textile -d -n -g=127.0.0.1:8080 --cafe-bind-addr=0.0.0.0:8000 --cafe-token-secret=swarmmmmm --cafe-referral-key=woohoo! --cafe-db-hosts=0.0.0.0:27017 --cafe-db-name=textile_db &
+          textile -d -n -a STqdutoFiPV9Nzh96L7bvSZNzrHkQiB2phDW1ySG9Na1kkGE -g=127.0.0.1:8080 --cafe-bind-addr=0.0.0.0:8000 --cafe-token-secret=swarmmmmm --cafe-referral-key=woohoo! --cafe-db-hosts=0.0.0.0:27017 --cafe-db-name=textile_db &
           sleep 5
           ./test_compile.sh
         environment:
