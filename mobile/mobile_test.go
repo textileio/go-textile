@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"github.com/textileio/textile-go/cafe/models"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/keypair"
 	. "github.com/textileio/textile-go/mobile"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"image/jpeg"
@@ -34,6 +35,7 @@ var noteId string
 func TestNewTextile(t *testing.T) {
 	os.RemoveAll(repo)
 	config := &NodeConfig{
+		Account:  keypair.Random().Seed(),
 		RepoPath: repo,
 		CafeAddr: os.Getenv("CAFE_ADDR"),
 		LogLevel: "DEBUG",
@@ -90,17 +92,40 @@ func TestMobile_CafeLoggedIn(t *testing.T) {
 	}
 }
 
-//func TestMobile_GetId(t *testing.T) {
-//	id, err := mobile.GetID()
-//	if err != nil {
-//		t.Errorf("get id failed: %s", err)
-//		return
-//	}
-//	if id == "" {
-//		t.Error("got bad id")
-//	}
-//}
-//
+func TestMobile_GetID(t *testing.T) {
+	id, err := mobile.GetID()
+	if err != nil {
+		t.Errorf("get id failed: %s", err)
+		return
+	}
+	if id == "" {
+		t.Error("got bad id")
+	}
+}
+
+func TestMobile_GetAddress(t *testing.T) {
+	id, err := mobile.GetAddress()
+	if err != nil {
+		t.Errorf("get address failed: %s", err)
+		return
+	}
+	if id == "" {
+		t.Error("got bad address")
+	}
+}
+
+func TestMobile_GetSeed(t *testing.T) {
+	id, err := mobile.GetSeed()
+	if err != nil {
+		t.Errorf("get seed failed: %s", err)
+		return
+	}
+	if id == "" {
+		t.Error("got bad seed")
+	}
+}
+
+// TODO: set username
 //func TestMobile_GetUsername(t *testing.T) {
 //	un, err := mobile.GetUsername()
 //	if err != nil {

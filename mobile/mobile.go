@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/net"
 	"time"
 )
@@ -24,6 +25,7 @@ type Messenger interface {
 // NodeConfig is used to configure the mobile node
 // NOTE: logLevel is one of: CRITICAL ERROR WARNING NOTICE INFO DEBUG
 type NodeConfig struct {
+	Account  string
 	RepoPath string
 	CafeAddr string
 	LogLevel string
@@ -38,11 +40,23 @@ type Mobile struct {
 
 // Create a gomobile compatible wrapper around TextileNode
 func NewNode(config *NodeConfig, messenger Messenger) (*Mobile, error) {
+	if config.Account == "" {
+		return nil, core.ErrAccountRequired
+	}
+	accnt, err := keypair.Parse(config.Account)
+	if err != nil {
+		return nil, err
+	}
+	full, ok := accnt.(*keypair.Full)
+	if !ok {
+		return nil, keypair.ErrInvalidKey
+	}
 	ll, err := logging.LogLevel(config.LogLevel)
 	if err != nil {
 		ll = logging.INFO
 	}
 	cconfig := core.Config{
+		Account:  full,
 		RepoPath: config.RepoPath,
 		IsMobile: true,
 		LogLevel: ll,

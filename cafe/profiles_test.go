@@ -61,12 +61,8 @@ func TestProfiles_Challenge(t *testing.T) {
 	}
 
 	// make a key pair
-	kp, err := keypair.Random()
-	if err != nil {
-		t.Error(err)
-	}
-	profileKey = kp
-	challengeRequest["address"] = kp.Address()
+	profileKey = keypair.Random()
+	challengeRequest["address"] = profileKey.Address()
 	res2, err := profileChallenge(challengeRequest)
 	if err != nil {
 		t.Error(err)

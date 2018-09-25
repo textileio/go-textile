@@ -81,6 +81,11 @@ func main() {
 	}
 
 	// handle account
+	// TODO: fix with an init step
+	if Options.Account == "" {
+		fmt.Println(core.ErrAccountRequired)
+		return
+	}
 	accnt, err := keypair.Parse(Options.Account)
 	if err != nil {
 		fmt.Println(fmt.Errorf("parse account seed failed: %s", err.Error()))
@@ -88,7 +93,7 @@ func main() {
 	}
 	full, ok := accnt.(*keypair.Full)
 	if !ok {
-		fmt.Println(fmt.Errorf("invalid account seed"))
+		fmt.Println(keypair.ErrInvalidKey)
 		return
 	}
 

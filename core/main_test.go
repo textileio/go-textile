@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"github.com/textileio/textile-go/cafe/models"
 	. "github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/keypair"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"os"
 	"testing"
@@ -16,6 +17,7 @@ var node *Textile
 func TestNewTextile(t *testing.T) {
 	os.RemoveAll(repo)
 	config := Config{
+		Account:  keypair.Random(),
 		RepoPath: repo,
 		CafeAddr: os.Getenv("CAFE_ADDR"),
 	}

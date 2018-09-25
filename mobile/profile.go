@@ -2,11 +2,10 @@ package mobile
 
 import (
 	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/ipfs"
 )
 
 // GetID calls core GetID
-func (m *Mobile) GetId() (string, error) {
+func (m *Mobile) GetID() (string, error) {
 	id, err := core.Node.GetID()
 	if err != nil {
 		return "", err
@@ -14,16 +13,28 @@ func (m *Mobile) GetId() (string, error) {
 	return id.Pretty(), nil
 }
 
-// GetPubKey returns the profile public key string
-func (m *Mobile) GetPubKey() (string, error) {
-	key, err := core.Node.GetKey()
+// GetAddress returns account address
+func (m *Mobile) GetAddress() (string, error) {
+	accnt, err := core.Node.GetAccount()
 	if err != nil {
 		return "", err
 	}
-	if key == nil {
+	if accnt == nil {
 		return "", nil
 	}
-	return ipfs.EncodeKey(key.GetPublic())
+	return accnt.Address(), nil
+}
+
+// GetSeed returns account seed
+func (m *Mobile) GetSeed() (string, error) {
+	accnt, err := core.Node.GetAccount()
+	if err != nil {
+		return "", err
+	}
+	if accnt == nil {
+		return "", nil
+	}
+	return accnt.Seed(), nil
 }
 
 // SetUsername calls core SetUsername

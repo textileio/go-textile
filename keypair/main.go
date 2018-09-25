@@ -36,21 +36,19 @@ type KeyPair interface {
 }
 
 // Random creates a random full keypair
-func Random() (*Full, error) {
+func Random() *Full {
 	var rawSeed [32]byte
-
 	_, err := io.ReadFull(rand.Reader, rawSeed[:])
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	kp, err := FromRawSeed(rawSeed)
-
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
-	return kp, nil
+	return kp
 }
 
 // Parse constructs a new KeyPair from the provided string, which should be either
