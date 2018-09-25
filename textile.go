@@ -12,6 +12,7 @@ import (
 	"github.com/textileio/textile-go/cmd"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/gateway"
+	"github.com/textileio/textile-go/keypair"
 	rconfig "github.com/textileio/textile-go/repo/config"
 	"gopkg.in/abiosoft/ishell.v2"
 	icore "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
@@ -25,6 +26,9 @@ import (
 
 type Opts struct {
 	Version bool `short:"v" long:"version" description:"print the version number and exit"`
+
+	// account seed
+	Account string `short:"a" long:"account" description:"textile account seed"`
 
 	// repo location
 	RepoPath string `short:"r" long:"repo-dir" description:"specify a custom repository path"`
@@ -76,6 +80,18 @@ func main() {
 		return
 	}
 
+	// handle account
+	accnt, err := keypair.Parse(Options.Account)
+	if err != nil {
+		fmt.Println(fmt.Errorf("parse account seed failed: %s", err.Error()))
+		return
+	}
+	full, ok := accnt.(*keypair.Full)
+	if !ok {
+		fmt.Println(fmt.Errorf("invalid account seed"))
+		return
+	}
+
 	// handle repo path
 	repoPath := Options.RepoPath
 	if len(Options.RepoPath) == 0 {
@@ -104,6 +120,7 @@ func main() {
 
 	// node setup
 	config := core.Config{
+		Account:    full,
 		RepoPath:   repoPath,
 		SwarmPorts: Options.SwarmPorts,
 		IsMobile:   false,

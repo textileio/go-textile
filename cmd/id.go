@@ -9,6 +9,8 @@ import (
 )
 
 func ShowId(c *ishell.Context) {
+	grey := color.New(color.FgHiBlack).SprintFunc()
+	cyan := color.New(color.FgHiCyan).SprintFunc()
 	green := color.New(color.FgHiGreen).SprintFunc()
 
 	// check for an input to convert
@@ -24,18 +26,13 @@ func ShowId(c *ishell.Context) {
 		return
 	}
 
-	// get local id / pk
-	id, err := core.Node.GetId()
+	// get account
+	accnt, err := core.Node.GetAccount()
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	sk, err := core.Node.GetKey()
-	if err != nil {
-		c.Err(err)
-		return
-	}
-	pk, err := ipfs.EncodeKey(sk.GetPublic())
+	accntId, err := core.Node.GetID()
 	if err != nil {
 		c.Err(err)
 		return
@@ -58,6 +55,11 @@ func ShowId(c *ishell.Context) {
 		return
 	}
 
-	c.Println(green(fmt.Sprintf("id: %s\npk: %s", id, pk)))
-	c.Println(green(fmt.Sprintf("peer id: %s\npeer pk: %s", pid, ppks)))
+	c.Println(grey("--- ACCOUNT ---"))
+	c.Println(cyan(fmt.Sprintf("ID: %s", accntId)))
+	c.Println(cyan(fmt.Sprintf("Address: %s", accnt.Address())))
+	c.Println(cyan(fmt.Sprintf("Seed: %s", accnt.Seed())))
+	c.Println(grey("--- PEER ---"))
+	c.Println(green(fmt.Sprintf("ID: %s", pid)))
+	c.Println(green(fmt.Sprintf("PublicKey: %s", ppks)))
 }

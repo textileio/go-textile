@@ -3,6 +3,9 @@ package keypair
 import (
 	"github.com/textileio/textile-go/strkey"
 	"golang.org/x/crypto/ed25519"
+	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	pb "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto/pb"
 )
 
 // FromAddress represents a keypair to which only the address is know.  This KeyPair
@@ -24,6 +27,24 @@ func (kp *FromAddress) Hint() (r [4]byte) {
 	return
 }
 
+func (kp *FromAddress) PeerID() (peer.ID, error) {
+	pub, err := kp.LibP2PPubKey()
+	if err != nil {
+		return "", nil
+	}
+	return peer.IDFromPublicKey(pub)
+}
+
+func (kp *FromAddress) LibP2PPrivKey() (libp2pc.PrivKey, error) {
+	return nil, ErrCannotSign
+}
+
+func (kp *FromAddress) LibP2PPubKey() (libp2pc.PubKey, error) {
+	pmes := new(pb.PublicKey)
+	pmes.Data = kp.publicKey()[:]
+	return libp2pc.UnmarshalEd25519PublicKey(pmes.GetData())
+}
+
 func (kp *FromAddress) Verify(input []byte, sig []byte) error {
 	if len(sig) != 64 {
 		return ErrInvalidSignature
@@ -31,9 +52,7 @@ func (kp *FromAddress) Verify(input []byte, sig []byte) error {
 
 	var asig [64]byte
 	copy(asig[:], sig[:])
-	slice := asig[:]
-
-	if !ed25519.Verify(kp.publicKey(), input, slice) {
+	if !ed25519.Verify(kp.publicKey(), input, asig[:]) {
 		return ErrInvalidSignature
 	}
 	return nil

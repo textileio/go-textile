@@ -79,14 +79,11 @@ func (t *Textile) AddPhoto(path string) (*AddDataResult, error) {
 	}
 
 	// get public key
-	mkey, err := t.GetKey()
+	accnt, err := t.GetAccount()
 	if err != nil {
 		return nil, err
 	}
-	mpkb, err := mkey.GetPublic().Bytes()
-	if err != nil {
-		return nil, err
-	}
+	addrb := []byte(accnt.Address())
 
 	// encrypt files
 	thumbcipher, err := crypto.EncryptAES(thumb, key)
@@ -109,7 +106,7 @@ func (t *Textile) AddPhoto(path string) (*AddDataResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	mpkcipher, err := crypto.EncryptAES(mpkb, key)
+	addrcipher, err := crypto.EncryptAES(addrb, key)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +128,7 @@ func (t *Textile) AddPhoto(path string) (*AddDataResult, error) {
 	if err := ipfs.AddFileToDirectory(t.ipfs, dirb, bytes.NewReader(metacipher), "meta"); err != nil {
 		return nil, err
 	}
-	if err := ipfs.AddFileToDirectory(t.ipfs, dirb, bytes.NewReader(mpkcipher), "pk"); err != nil {
+	if err := ipfs.AddFileToDirectory(t.ipfs, dirb, bytes.NewReader(addrcipher), "pk"); err != nil {
 		return nil, err
 	}
 
@@ -178,7 +175,7 @@ func (t *Textile) AddPhoto(path string) (*AddDataResult, error) {
 	if err := result.Archive.AddFile(metacipher, "meta"); err != nil {
 		return nil, err
 	}
-	if err := result.Archive.AddFile(mpkcipher, "pk"); err != nil {
+	if err := result.Archive.AddFile(addrcipher, "pk"); err != nil {
 		return nil, err
 	}
 

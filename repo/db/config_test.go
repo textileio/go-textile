@@ -1,10 +1,7 @@
 package db
 
 import (
-	"crypto/rand"
-	"github.com/textileio/textile-go/ipfs"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"github.com/textileio/textile-go/wallet"
 	"os"
 	"path"
 	"testing"
@@ -12,7 +9,7 @@ import (
 )
 
 var testDB *SQLiteDatastore
-var profileId, profileKey string
+var configAddress string
 
 func TestMain(m *testing.M) {
 	setup()
@@ -23,22 +20,21 @@ func TestMain(m *testing.M) {
 
 func setup() {
 	os.MkdirAll(path.Join("./", "datastore"), os.ModePerm)
-	testDB, _ = Create("", "LetMeIn")
-	testDB.config.Init("LetMeIn")
-	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
+	testDB, _ = Create("", "letmein")
+	testDB.config.Init("letmein")
+
+	w, err := wallet.NewWallet(wallet.TwelveWords)
 	if err != nil {
 		panic(err)
 	}
-	profileKey, err = ipfs.EncodeKey(sk)
+	a0, err := w.AccountAt(0, "letmeout")
 	if err != nil {
 		panic(err)
 	}
-	id, err := peer.IDFromPrivateKey(sk)
-	if err != nil {
+	configAddress = a0.Address()
+	if err := testDB.config.Configure(a0, time.Now()); err != nil {
 		panic(err)
 	}
-	profileId = id.Pretty()
-	testDB.config.Configure(sk, time.Now())
 }
 
 func teardown() {
@@ -51,38 +47,18 @@ func TestConfigDB_Create(t *testing.T) {
 	}
 }
 
-func TestConfigDB_GetId(t *testing.T) {
-	id, err := testDB.config.GetId()
+func TestConfigDB_GetAccount(t *testing.T) {
+	account, err := testDB.config.GetAccount()
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if id == nil {
-		t.Error("missing id")
+	if account == nil {
+		t.Error("missing account")
 		return
 	}
-	if *id != profileId {
-		t.Error("got bad id")
-	}
-}
-
-func TestConfigDB_GetKey(t *testing.T) {
-	key, err := testDB.config.GetKey()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if key == nil {
-		t.Error("missing key")
-		return
-	}
-	keystr, err := ipfs.EncodeKey(key)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if keystr != profileKey {
-		t.Error("got bad key")
+	if account.Address() != configAddress {
+		t.Error("got bad account")
 	}
 }
 

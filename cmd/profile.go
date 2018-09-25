@@ -26,7 +26,7 @@ func PublishProfile(c *ishell.Context) {
 func ResolveProfile(c *ishell.Context) {
 	var name string
 	if len(c.Args) == 0 {
-		id, err := core.Node.GetId()
+		id, err := core.Node.GetID()
 		if err != nil {
 			c.Err(err)
 			return
@@ -49,7 +49,7 @@ func ResolveProfile(c *ishell.Context) {
 func GetProfile(c *ishell.Context) {
 	var id string
 	if len(c.Args) == 0 {
-		pid, err := core.Node.GetId()
+		pid, err := core.Node.GetID()
 		if err != nil {
 			c.Err(err)
 			return

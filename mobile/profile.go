@@ -5,9 +5,9 @@ import (
 	"github.com/textileio/textile-go/ipfs"
 )
 
-// GetId calls core GetId
+// GetID calls core GetID
 func (m *Mobile) GetId() (string, error) {
-	id, err := core.Node.GetId()
+	id, err := core.Node.GetID()
 	if err != nil {
 		return "", err
 	}
@@ -50,7 +50,7 @@ func (m *Mobile) SetAvatarId(id string) error {
 
 // GetProfile returns the local profile
 func (m *Mobile) GetProfile() (string, error) {
-	id, err := core.Node.GetId()
+	id, err := core.Node.GetID()
 	if err != nil {
 		log.Errorf("error getting profile (get id): %s", err)
 		return "", err

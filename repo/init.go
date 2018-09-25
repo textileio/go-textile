@@ -2,12 +2,14 @@ package repo
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/repo/schema"
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/namesys"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"
@@ -44,13 +46,11 @@ func DoInit(repoRoot string, version string, initDatastore func() error) error {
 		return err
 	}
 
-	// TODO: remove
-	sk, _, err := ipfs.PrivKeyFromMnemonic(nil)
+	// create an identity for the ipfs peer
+	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		return err
 	}
-
-	// create an identity for the ipfs peer
 	peerIdentity, err := ipfs.IdentityConfig(sk)
 	if err != nil {
 		return err

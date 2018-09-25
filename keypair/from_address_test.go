@@ -21,4 +21,20 @@ var _ = Describe("keypair.FromAddress", func() {
 		})
 
 	})
+
+	Describe("LibP2PPrivKey()", func() {
+		It("fails", func() {
+			_, err := subject.LibP2PPrivKey()
+			Expect(err).To(HaveOccurred())
+		})
+
+	})
+
+	Describe("LibP2PPubKey()", func() {
+		It("succeeds", func() {
+			_, err := subject.LibP2PPubKey()
+			Expect(err).To(BeNil())
+		})
+
+	})
 })

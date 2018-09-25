@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const pingTimeout = time.Second * 10
+
 // ConnectPeer connect to another ipfs peer (i.e., ipfs swarm connect)
 func (t *Textile) ConnectPeer(addrs []string) ([]string, error) {
 	if !t.IsOnline() {

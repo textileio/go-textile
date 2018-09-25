@@ -4,6 +4,8 @@ import (
 	"crypto/rand"
 	"errors"
 	"github.com/textileio/textile-go/strkey"
+	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"io"
 )
 
@@ -26,6 +28,9 @@ var (
 type KeyPair interface {
 	Address() string
 	Hint() [4]byte
+	PeerID() (peer.ID, error)
+	LibP2PPrivKey() (libp2pc.PrivKey, error)
+	LibP2PPubKey() (libp2pc.PubKey, error)
 	Verify(input []byte, signature []byte) error
 	Sign(input []byte) ([]byte, error)
 }
@@ -69,16 +74,6 @@ func Parse(addressOrSeed string) (KeyPair, error) {
 	return nil, err
 }
 
-// FromRawSeed creates a new keypair from the provided raw ED25519 seed
-func FromRawSeed(rawSeed [32]byte) (*Full, error) {
-	seed, err := strkey.Encode(strkey.VersionByteSeed, rawSeed[:])
-	if err != nil {
-		return nil, err
-	}
-
-	return &Full{seed}, nil
-}
-
 // MustParse is the panic-on-fail version of Parse
 func MustParse(addressOrSeed string) KeyPair {
 	kp, err := Parse(addressOrSeed)
@@ -87,4 +82,14 @@ func MustParse(addressOrSeed string) KeyPair {
 	}
 
 	return kp
+}
+
+// FromRawSeed creates a new keypair from the provided raw ED25519 seed
+func FromRawSeed(rawSeed [32]byte) (*Full, error) {
+	seed, err := strkey.Encode(strkey.VersionByteSeed, rawSeed[:])
+	if err != nil {
+		return nil, err
+	}
+
+	return &Full{seed}, nil
 }

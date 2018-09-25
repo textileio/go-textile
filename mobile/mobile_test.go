@@ -91,7 +91,7 @@ func TestMobile_CafeLoggedIn(t *testing.T) {
 }
 
 //func TestMobile_GetId(t *testing.T) {
-//	id, err := mobile.GetId()
+//	id, err := mobile.GetID()
 //	if err != nil {
 //		t.Errorf("get id failed: %s", err)
 //		return

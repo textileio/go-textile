@@ -2,12 +2,12 @@ package core
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/archive"
 	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/net"
 	serv "github.com/textileio/textile-go/net/service"
 	"github.com/textileio/textile-go/repo"
@@ -16,7 +16,6 @@ import (
 	"github.com/textileio/textile-go/thread"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"gx/ipfs/QmVW4cqbibru3hXA1iRmg85Fk7z9qML9k176CYQaMXVCrP/go-libp2p-kad-dht"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	utilmain "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/commands"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
@@ -35,34 +34,30 @@ var fileLogFormat = logging.MustStringFormatter(
 )
 var log = logging.MustGetLogger("core")
 
+// Version is the core version identifier
 const Version = "0.1.9"
 
 // Node is the single Textile instance
 var Node *Textile
 
-type Config struct {
-	RepoPath   string
-	PinCode    string
-	SwarmPorts string
-	IsMobile   bool
-	IsServer   bool
-	LogLevel   logging.Level
-	LogFiles   bool
-	CafeAddr   string
-}
-
+// Update is used to notify UI listeners of changes
 type Update struct {
 	Id   string     `json:"id"`
 	Name string     `json:"name"`
 	Type UpdateType `json:"type"`
 }
 
+// UpdateType indicates a type of node update
 type UpdateType int
 
 const (
+	// ThreadAdded is emitted when a thread is added
 	ThreadAdded UpdateType = iota
+	// ThreadRemoved is emitted when a thread is removed
 	ThreadRemoved
+	// DeviceAdded is emitted when a device is added
 	DeviceAdded
+	// DeviceRemoved is emitted when a thread is removed
 	DeviceRemoved
 )
 
@@ -73,8 +68,22 @@ type AddDataResult struct {
 	Archive *archive.Archive `json:"archive,omitempty"`
 }
 
+// Config is used to setup a textile node
+type Config struct {
+	Account    *keypair.Full
+	RepoPath   string
+	PinCode    string
+	SwarmPorts string
+	IsMobile   bool
+	IsServer   bool
+	LogLevel   logging.Level
+	LogFiles   bool
+	CafeAddr   string
+}
+
 // Textile is the main Textile node structure
 type Textile struct {
+	account            *keypair.Full
 	version            string
 	context            oldcmds.Context
 	repoPath           string
@@ -98,12 +107,10 @@ type Textile struct {
 	mux                sync.Mutex
 }
 
-const pingTimeout = time.Second * 10
-
+var ErrAccountRequired = errors.New("account required")
 var ErrStarted = errors.New("node is started")
 var ErrStopped = errors.New("node is stopped")
 var ErrOffline = errors.New("node is offline")
-var ErrProfileNotFound = errors.New("profile not found")
 var ErrThreadLoaded = errors.New("thread is loaded")
 var ErrNoCafeHost = errors.New("cafe host address is not set")
 
@@ -130,6 +137,10 @@ func NewTextile(config Config) (*Textile, error) {
 	logging.SetBackend(backendFileFormatter)
 	logging.SetLevel(config.LogLevel, "")
 
+	if config.Account == nil {
+		return nil, ErrAccountRequired
+	}
+
 	// get database handle
 	sqliteDB, err := db.Create(config.RepoPath, "")
 	if err != nil {
@@ -138,14 +149,10 @@ func NewTextile(config Config) (*Textile, error) {
 
 	// we may be running in an uninitialized state.
 	err = repo.DoInit(config.RepoPath, Version, func() error {
-		sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
-		if err != nil {
-			return err
-		}
 		if err := sqliteDB.Config().Init(config.PinCode); err != nil {
 			return err
 		}
-		return sqliteDB.Config().Configure(sk, time.Now())
+		return sqliteDB.Config().Configure(config.Account, time.Now())
 	})
 	if err != nil && err != repo.ErrRepoExists {
 		return nil, err
@@ -175,6 +182,7 @@ func NewTextile(config Config) (*Textile, error) {
 	}
 
 	return &Textile{
+		account:   config.Account,
 		version:   Version,
 		repoPath:  config.RepoPath,
 		datastore: sqliteDB,
@@ -194,17 +202,20 @@ func (t *Textile) Start() error {
 		t.done = make(chan struct{})
 		t.started = true
 
-		pk, err := t.GetPeerPubKey()
+		accntId, err := t.GetID()
+		peerPk, err := t.GetPeerPubKey()
 		if err != nil {
 			log.Errorf("error loading peer pk: %s", err)
 			return
 		}
-		pks, err := ipfs.EncodeKey(pk)
+		peerPks, err := ipfs.EncodeKey(peerPk)
 		if err != nil {
 			log.Error(err.Error())
 			return
 		}
-		log.Infof("wallet is started, peer pk: %s", pks)
+		log.Info("wallet is started")
+		log.Infof("peer pk: %s", peerPks)
+		log.Infof("account id: %s", accntId.Pretty())
 	}()
 	log.Info("starting wallet...")
 	t.online = make(chan struct{})

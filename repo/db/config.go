@@ -2,9 +2,10 @@ package db
 
 import (
 	"database/sql"
+	"github.com/pkg/errors"
+	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/repo"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"github.com/textileio/textile-go/strkey"
 	"sync"
 	"time"
 )
@@ -25,7 +26,7 @@ func (c *ConfigDB) Init(pin string) error {
 	return initDatabaseTables(c.db, pin)
 }
 
-func (c *ConfigDB) Configure(key libp2pc.PrivKey, created time.Time) error {
+func (c *ConfigDB) Configure(kp *keypair.Full, created time.Time) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -37,20 +38,7 @@ func (c *ConfigDB) Configure(key libp2pc.PrivKey, created time.Time) error {
 		return err
 	}
 	defer stmt.Close()
-	keyb, err := libp2pc.MarshalPrivateKey(key)
-	if err != nil {
-		return err
-	}
-	id, err := peer.IDFromPrivateKey(key)
-	if err != nil {
-		return err
-	}
-	_, err = stmt.Exec("id", id.Pretty())
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	_, err = stmt.Exec("key", keyb)
+	_, err = stmt.Exec("seed", kp.Seed())
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -64,7 +52,7 @@ func (c *ConfigDB) Configure(key libp2pc.PrivKey, created time.Time) error {
 	return nil
 }
 
-func (c *ConfigDB) GetId() (*string, error) {
+func (c *ConfigDB) GetAccount() (*keypair.Full, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stmt, err := c.db.Prepare("select value from config where key=?")
@@ -72,32 +60,26 @@ func (c *ConfigDB) GetId() (*string, error) {
 		return nil, err
 	}
 	defer stmt.Close()
-	var id string
-	if err := stmt.QueryRow("id").Scan(&id); err != nil {
+	var seed string
+	if err := stmt.QueryRow("seed").Scan(&seed); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 		return nil, err
 	}
-	return &id, nil
-}
+	_, err = strkey.Decode(strkey.VersionByteSeed, seed)
+	if err != nil {
 
-func (c *ConfigDB) GetKey() (libp2pc.PrivKey, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	stmt, err := c.db.Prepare("select value from config where key=?")
+	}
+	kp, err := keypair.Parse(seed)
 	if err != nil {
 		return nil, err
 	}
-	defer stmt.Close()
-	var keyb []byte
-	if err := stmt.QueryRow("key").Scan(&keyb); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, err
+	full, ok := kp.(*keypair.Full)
+	if !ok {
+		return nil, errors.New("invalid seed")
 	}
-	return libp2pc.UnmarshalPrivateKey(keyb)
+	return full, nil
 }
 
 func (c *ConfigDB) GetCreationDate() (time.Time, error) {
@@ -106,9 +88,6 @@ func (c *ConfigDB) GetCreationDate() (time.Time, error) {
 	var t time.Time
 	stmt, err := c.db.Prepare("select value from config where key=?")
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return t, nil
-		}
 		return t, err
 	}
 	defer stmt.Close()

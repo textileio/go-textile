@@ -7,7 +7,7 @@ import (
 	"github.com/textileio/textile-go/cafe"
 	"github.com/textileio/textile-go/cafe/client"
 	cmodels "github.com/textileio/textile-go/cafe/models"
-	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/repo"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"time"
@@ -27,15 +27,11 @@ func (t *Textile) GetCafeApiAddr() string {
 }
 
 // getCafeChallenge requests a challenge from a cafe and signs it
-func (t *Textile) getCafeChallenge(key libp2pc.PrivKey) (*cmodels.SignedChallenge, error) {
+func (t *Textile) getCafeChallenge(accnt *keypair.Full) (*cmodels.SignedChallenge, error) {
 	if t.cafeAddr == "" {
 		return nil, ErrNoCafeHost
 	}
-	pks, err := ipfs.EncodeKey(key.GetPublic())
-	if err != nil {
-		return nil, err
-	}
-	req := &cmodels.ChallengeRequest{Pk: pks}
+	req := &cmodels.ChallengeRequest{Pk: accnt.Address()}
 	cres, err := client.ProfileChallenge(req, fmt.Sprintf("%s/profiles/challenge", t.GetCafeApiAddr()))
 	if err != nil {
 		log.Errorf("get challenge error: %s", err)
@@ -49,12 +45,12 @@ func (t *Textile) getCafeChallenge(key libp2pc.PrivKey) (*cmodels.SignedChalleng
 		return nil, errors.New("cafe returned nil challenge")
 	}
 	cnonce := ksuid.New().String()
-	sigb, err := key.Sign([]byte(*cres.Value + cnonce))
+	sigb, err := accnt.Sign([]byte(*cres.Value + cnonce))
 	if err != nil {
 		return nil, err
 	}
 	return &cmodels.SignedChallenge{
-		Pk:        pks,
+		Pk:        accnt.Address(),
 		Value:     *cres.Value,
 		Nonce:     cnonce,
 		Signature: libp2pc.ConfigEncodeKey(sigb),
@@ -71,11 +67,11 @@ func (t *Textile) CafeRegister(referral string) error {
 	}
 
 	// get a challenge from the cafe
-	key, err := t.GetKey()
+	accnt, err := t.GetAccount()
 	if err != nil {
 		return err
 	}
-	challenge, err := t.getCafeChallenge(key)
+	challenge, err := t.getCafeChallenge(accnt)
 	if err != nil {
 		return err
 	}
@@ -129,11 +125,11 @@ func (t *Textile) CafeLogin() error {
 	}
 
 	// get a challenge from the cafe
-	key, err := t.GetKey()
+	accnt, err := t.GetAccount()
 	if err != nil {
 		return err
 	}
-	challenge, err := t.getCafeChallenge(key)
+	challenge, err := t.getCafeChallenge(accnt)
 	if err != nil {
 		return err
 	}

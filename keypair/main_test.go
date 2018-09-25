@@ -16,6 +16,7 @@ func TestBuild(t *testing.T) {
 var (
 	address   = "P4WysQUVHg2GDMctx7Sf3DjLRAfRZqsZoCPr6aec7JgWpSRq"
 	seed      = "STqdutoFiPV9Nzh96L7bvSZNzrHkQiB2phDW1ySG9Na1kkGE"
+	id        = "QmZJc6ntrG3w1V5NT4u1M6YN8cS6xTavt5E2gvZce9HZ2V"
 	hint      = [4]byte{0x55, 0x79, 0x7f, 0xe1}
 	message   = []byte("hello")
 	signature = []byte{
@@ -36,6 +37,16 @@ func ItBehavesLikeAKP(subject *KeyPair) {
 	Describe("Address()", func() {
 		It("returns the correct address", func() {
 			Expect((*subject).Address()).To(Equal(address))
+		})
+	})
+
+	Describe("ID()", func() {
+		It("returns the correct peer id", func() {
+			pid, err := (*subject).PeerID()
+			if err != nil {
+				panic(err)
+			}
+			Expect(pid.Pretty()).To(Equal(id))
 		})
 	})
 

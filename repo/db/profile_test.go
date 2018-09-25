@@ -1,11 +1,8 @@
 package db
 
 import (
-	"crypto/rand"
 	"database/sql"
-	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/repo"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"sync"
 	"testing"
 	"time"
@@ -35,14 +32,6 @@ func TestProfileDB_GetCafeTokensPreLogin(t *testing.T) {
 }
 
 func TestProfileDB_CafeLogin(t *testing.T) {
-	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
-	if err != nil {
-		t.Error(err)
-	}
-	profileKey, err = ipfs.EncodeKey(sk)
-	if err != nil {
-		t.Error(err)
-	}
 	exp := time.Now().Add(time.Hour)
 	if err := pdb.CafeLogin(&repo.CafeTokens{Access: "access", Refresh: "refresh", Expiry: exp}); err != nil {
 		t.Error(err)
