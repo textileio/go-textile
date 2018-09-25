@@ -31,7 +31,7 @@ func (t *Textile) getCafeChallenge(accnt *keypair.Full) (*cmodels.SignedChalleng
 	if t.cafeAddr == "" {
 		return nil, ErrNoCafeHost
 	}
-	req := &cmodels.ChallengeRequest{Pk: accnt.Address()}
+	req := &cmodels.ChallengeRequest{Address: accnt.Address()}
 	cres, err := client.ProfileChallenge(req, fmt.Sprintf("%s/profiles/challenge", t.GetCafeApiAddr()))
 	if err != nil {
 		log.Errorf("get challenge error: %s", err)
@@ -50,7 +50,7 @@ func (t *Textile) getCafeChallenge(accnt *keypair.Full) (*cmodels.SignedChalleng
 		return nil, err
 	}
 	return &cmodels.SignedChallenge{
-		Pk:        accnt.Address(),
+		Address:   accnt.Address(),
 		Value:     *cres.Value,
 		Nonce:     cnonce,
 		Signature: libp2pc.ConfigEncodeKey(sigb),
@@ -80,7 +80,7 @@ func (t *Textile) CafeRegister(referral string) error {
 		Referral:  referral,
 	}
 
-	log.Debugf("cafe register: %s %s %s", reg.Challenge.Pk, reg.Challenge.Signature, reg.Referral)
+	log.Debugf("cafe register: %s %s %s", reg.Challenge.Address, reg.Challenge.Signature, reg.Referral)
 
 	// remote register
 	res, err := client.RegisterProfile(reg, fmt.Sprintf("%s/profiles", t.GetCafeApiAddr()))
@@ -134,7 +134,7 @@ func (t *Textile) CafeLogin() error {
 		return err
 	}
 
-	log.Debugf("login: %s %s", challenge.Pk, challenge.Signature)
+	log.Debugf("login: %s %s", challenge.Address, challenge.Signature)
 
 	// remote login
 	res, err := client.LoginProfile(challenge, fmt.Sprintf("%s/profiles", t.GetCafeApiAddr()))

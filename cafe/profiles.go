@@ -1,16 +1,15 @@
 package cafe
 
 import (
+	"encoding/base64"
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/cafe/auth"
 	"github.com/textileio/textile-go/cafe/dao"
 	"github.com/textileio/textile-go/cafe/models"
-	"github.com/textileio/textile-go/crypto"
-	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/net/service"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"net/http"
 	"time"
 )
@@ -23,7 +22,13 @@ func (c *Cafe) profileChallenge(g *gin.Context) {
 	}
 
 	// validate public key
-	if _, err := ipfs.UnmarshalPublicKeyFromString(req.Pk); err != nil {
+	accnt, err := keypair.Parse(req.Address)
+	if err != nil {
+		g.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if _, err := accnt.Sign([]byte{0x00}); err == nil {
+		// we dont want to handle account seeds, just addresses
 		g.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -31,7 +36,7 @@ func (c *Cafe) profileChallenge(g *gin.Context) {
 	// generate a new random nonce
 	nonce := models.Nonce{
 		ID:      bson.NewObjectId(),
-		Pk:      req.Pk,
+		Address: req.Address,
 		Value:   ksuid.New().String(),
 		Created: time.Now(),
 	}
@@ -66,13 +71,13 @@ func (c *Cafe) registerProfile(g *gin.Context) {
 		g.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
-	if snonce.Pk != reg.Challenge.Pk {
+	if snonce.Address != reg.Challenge.Address {
 		g.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
 
 	// validate public key
-	pk, err := ipfs.UnmarshalPublicKeyFromString(reg.Challenge.Pk)
+	accnt, err := keypair.Parse(reg.Challenge.Address)
 	if err != nil {
 		g.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -80,12 +85,12 @@ func (c *Cafe) registerProfile(g *gin.Context) {
 
 	// verify
 	payload := []byte(reg.Challenge.Value + reg.Challenge.Nonce)
-	sig, err := libp2pc.ConfigDecodeKey(reg.Challenge.Signature)
+	sig, err := base64.StdEncoding.DecodeString(reg.Challenge.Signature)
 	if err != nil {
 		g.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := crypto.Verify(pk, payload, sig); err != nil {
+	if err := accnt.Verify(payload, sig); err != nil {
 		g.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
@@ -94,7 +99,7 @@ func (c *Cafe) registerProfile(g *gin.Context) {
 	now := time.Now()
 	profile := models.Profile{
 		ID:       bson.NewObjectId(),
-		Pk:       reg.Challenge.Pk,
+		Address:  reg.Challenge.Address,
 		Created:  now,
 		LastSeen: now,
 	}
@@ -137,7 +142,7 @@ func (c *Cafe) loginProfile(g *gin.Context) {
 	}
 
 	// lookup pk
-	profile, err := dao.Dao.FindProfileByPk(cha.Pk)
+	profile, err := dao.Dao.FindProfileByAddress(cha.Address)
 	if err != nil {
 		g.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -149,26 +154,26 @@ func (c *Cafe) loginProfile(g *gin.Context) {
 		g.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
-	if snonce.Pk != cha.Pk {
+	if snonce.Address != cha.Address {
 		g.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
 
 	// validate public key
-	pk, err := ipfs.UnmarshalPublicKeyFromString(profile.Pk)
+	accnt, err := keypair.Parse(profile.Address)
 	if err != nil {
-		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		g.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// verify
 	payload := []byte(cha.Value + cha.Nonce)
-	sig, err := libp2pc.ConfigDecodeKey(cha.Signature)
+	sig, err := base64.StdEncoding.DecodeString(cha.Signature)
 	if err != nil {
 		g.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := crypto.Verify(pk, payload, sig); err != nil {
+	if err := accnt.Verify(payload, sig); err != nil {
 		g.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}

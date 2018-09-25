@@ -40,14 +40,14 @@ var user = models.User{
 
 var profile = models.Profile{
 	ID:       bson.NewObjectId(),
-	Pk:       ksuid.New().String(),
+	Address:  ksuid.New().String(),
 	Created:  now,
 	LastSeen: now,
 }
 
 var nonce = models.Nonce{
 	ID:      bson.NewObjectId(),
-	Pk:      ksuid.New().String(),
+	Address: ksuid.New().String(),
 	Value:   ksuid.New().String(),
 	Created: now,
 }
@@ -164,12 +164,12 @@ func TestDAO_InsertProfile(t *testing.T) {
 func TestDAO_InsertProfileAgain(t *testing.T) {
 	var profile2 = models.Profile{
 		ID:       bson.NewObjectId(),
-		Pk:       profile.Pk,
+		Address:  profile.Address,
 		Created:  now,
 		LastSeen: now,
 	}
 	if err := d.InsertProfile(profile2); err == nil {
-		t.Error("pk should be unique")
+		t.Error("address should be unique")
 		return
 	}
 }
@@ -180,14 +180,14 @@ func TestDAO_FindProfileById(t *testing.T) {
 		t.Errorf("find profile by id failed: %s", err)
 		return
 	}
-	if loaded.Pk != profile.Pk {
-		t.Error("pk mismatch")
+	if loaded.Address != profile.Address {
+		t.Error("address mismatch")
 	}
 }
 
 func TestDAO_FindProfileByPk(t *testing.T) {
-	if _, err := d.FindProfileByPk(profile.Pk); err != nil {
-		t.Errorf("find profile by pk failed: %s", err)
+	if _, err := d.FindProfileByAddress(profile.Address); err != nil {
+		t.Errorf("find profile by address failed: %s", err)
 		return
 	}
 }
@@ -290,7 +290,7 @@ func TestDAO_InsertNonce(t *testing.T) {
 func TestDAO_InsertNonceAgain(t *testing.T) {
 	var nonce2 = models.Nonce{
 		ID:      bson.NewObjectId(),
-		Pk:      ksuid.New().String(),
+		Address: ksuid.New().String(),
 		Value:   nonce.Value,
 		Created: now,
 	}

@@ -46,7 +46,7 @@ var indexes = map[string][]mgo.Index{
 	},
 	profileCollection: {
 		{
-			Key:        []string{"pk"},
+			Key:        []string{"address"},
 			Unique:     true,
 			DropDups:   true,
 			Background: true,
@@ -201,9 +201,9 @@ func (m *DAO) FindProfileById(id string) (models.Profile, error) {
 }
 
 // Find a profile by public key
-func (m *DAO) FindProfileByPk(pk string) (models.Profile, error) {
+func (m *DAO) FindProfileByAddress(address string) (models.Profile, error) {
 	var profile models.Profile
-	err := db.C(profileCollection).Find(bson.M{"pk": pk}).One(&profile)
+	err := db.C(profileCollection).Find(bson.M{"address": address}).One(&profile)
 	return profile, err
 }
 

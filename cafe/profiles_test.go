@@ -1,23 +1,22 @@
 package cafe
 
 import (
-	"crypto/rand"
+	"encoding/base64"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/cafe/models"
-	"github.com/textileio/textile-go/ipfs"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"github.com/textileio/textile-go/keypair"
 	"testing"
 )
 
-var profileKey libp2pc.PrivKey
+var profileKey keypair.KeyPair
 var challengeRequest = map[string]string{
-	"pk": "sneakypk",
+	"address": "sneakypk",
 }
 var challengeResponse *models.ChallengeResponse
 var profileRefCode string
 var profileRegistration = map[string]interface{}{
 	"challenge": map[string]string{
-		"pk":        "sneakypk",
+		"address":   "sneakypk",
 		"value":     "invalid",
 		"nonce":     "invalid",
 		"signature": "invalid",
@@ -62,16 +61,12 @@ func TestProfiles_Challenge(t *testing.T) {
 	}
 
 	// make a key pair
-	sk, pk, err := libp2pc.GenerateEd25519Key(rand.Reader)
+	kp, err := keypair.Random()
 	if err != nil {
 		t.Error(err)
 	}
-	profileKey = sk
-	pks, err := ipfs.EncodeKey(pk)
-	if err != nil {
-		t.Error(err)
-	}
-	challengeRequest["pk"] = pks
+	profileKey = kp
+	challengeRequest["address"] = kp.Address()
 	res2, err := profileChallenge(challengeRequest)
 	if err != nil {
 		t.Error(err)
@@ -121,7 +116,7 @@ func TestProfiles_Register(t *testing.T) {
 		snonce = *challengeResponse.Value
 	}
 	profileRegistration["challenge"] = map[string]string{
-		"pk":        "sneakypk",
+		"address":   "sneakypk",
 		"value":     snonce,
 		"nonce":     "invalid",
 		"signature": "invalid",
@@ -143,10 +138,10 @@ func TestProfiles_Register(t *testing.T) {
 		return
 	}
 	profileRegistration["challenge"] = map[string]string{
-		"pk":        challengeRequest["pk"],
+		"address":   challengeRequest["address"],
 		"value":     snonce,
 		"nonce":     cnonce,
-		"signature": libp2pc.ConfigEncodeKey(sigb),
+		"signature": base64.StdEncoding.EncodeToString(sigb),
 	}
 	res4, err := registerProfile(profileRegistration)
 	if err != nil {
@@ -200,7 +195,7 @@ func TestProfiles_Login(t *testing.T) {
 		return
 	}
 	res2, err := loginProfile(map[string]string{
-		"pk":        "sneakypk",
+		"address":   "sneakypk",
 		"value":     "invalid",
 		"nonce":     "invalid",
 		"signature": "invalid",
@@ -215,7 +210,7 @@ func TestProfiles_Login(t *testing.T) {
 		return
 	}
 	res3, err := loginProfile(map[string]string{
-		"pk":        challengeRequest["pk"],
+		"address":   challengeRequest["address"],
 		"value":     "invalid",
 		"nonce":     "invalid",
 		"signature": "invalid",
@@ -240,10 +235,10 @@ func TestProfiles_Login(t *testing.T) {
 		return
 	}
 	res4, err := loginProfile(map[string]string{
-		"pk":        challengeRequest["pk"],
+		"address":   challengeRequest["address"],
 		"value":     snonce,
 		"nonce":     cnonce,
-		"signature": libp2pc.ConfigEncodeKey(badsigb),
+		"signature": base64.StdEncoding.EncodeToString(badsigb),
 	})
 	if err != nil {
 		t.Error(err)
@@ -260,10 +255,10 @@ func TestProfiles_Login(t *testing.T) {
 		return
 	}
 	signed := map[string]string{
-		"pk":        challengeRequest["pk"],
+		"address":   challengeRequest["address"],
 		"value":     snonce,
 		"nonce":     cnonce,
-		"signature": libp2pc.ConfigEncodeKey(sigb),
+		"signature": base64.StdEncoding.EncodeToString(sigb),
 	}
 	res5, err := loginProfile(signed)
 	if err != nil {

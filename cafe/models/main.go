@@ -45,13 +45,13 @@ type UserIdentity struct {
 
 type Profile struct {
 	ID       bson.ObjectId `bson:"_id" json:"id"`
-	Pk       string        `bson:"pk" json:"pk"`
+	Address  string        `bson:"address" json:"address"`
 	Created  time.Time     `bson:"created" json:"created"`
 	LastSeen time.Time     `bson:"last_seen" json:"last_seen"`
 }
 
 type ChallengeRequest struct {
-	Pk string `json:"pk" binding:"required"`
+	Address string `json:"address" binding:"required"`
 }
 
 type ChallengeResponse struct {
@@ -60,7 +60,7 @@ type ChallengeResponse struct {
 }
 
 type SignedChallenge struct {
-	Pk        string `json:"pk" binding:"required"`
+	Address   string `json:"address" binding:"required"`
 	Value     string `json:"value" binding:"required"`
 	Nonce     string `json:"nonce" binding:"required"`
 	Signature string `json:"signature" binding:"required"`
@@ -113,7 +113,7 @@ type ReferralResponse struct {
 
 type Nonce struct {
 	ID      bson.ObjectId `bson:"_id" json:"id"`
-	Pk      string        `bson:"pk" json:"pk"`
+	Address string        `bson:"address" json:"address"`
 	Value   string        `bson:"value" json:"value"`
 	Created time.Time     `bson:"created" json:"created"`
 }
