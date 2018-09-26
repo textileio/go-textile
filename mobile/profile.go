@@ -4,39 +4,6 @@ import (
 	"github.com/textileio/textile-go/core"
 )
 
-// GetID calls core GetID
-func (m *Mobile) GetID() (string, error) {
-	id, err := core.Node.GetID()
-	if err != nil {
-		return "", err
-	}
-	return id.Pretty(), nil
-}
-
-// GetAddress returns account address
-func (m *Mobile) GetAddress() (string, error) {
-	accnt, err := core.Node.GetAccount()
-	if err != nil {
-		return "", err
-	}
-	if accnt == nil {
-		return "", nil
-	}
-	return accnt.Address(), nil
-}
-
-// GetSeed returns account seed
-func (m *Mobile) GetSeed() (string, error) {
-	accnt, err := core.Node.GetAccount()
-	if err != nil {
-		return "", err
-	}
-	if accnt == nil {
-		return "", nil
-	}
-	return accnt.Seed(), nil
-}
-
 // SetUsername calls core SetUsername
 func (m *Mobile) SetUsername(username string) error {
 	return core.Node.SetUsername(username)
@@ -61,7 +28,7 @@ func (m *Mobile) SetAvatarId(id string) error {
 
 // GetProfile returns the local profile
 func (m *Mobile) GetProfile() (string, error) {
-	id, err := core.Node.GetID()
+	id, err := core.Node.ID()
 	if err != nil {
 		log.Errorf("error getting profile (get id): %s", err)
 		return "", err

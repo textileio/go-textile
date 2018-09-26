@@ -79,7 +79,7 @@ func (t *Textile) AddPhoto(path string) (*AddDataResult, error) {
 	}
 
 	// get public key
-	accnt, err := t.GetAccount()
+	accnt, err := t.Account()
 	if err != nil {
 		return nil, err
 	}

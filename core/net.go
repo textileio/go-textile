@@ -24,9 +24,7 @@ import (
 	"time"
 )
 
-const (
-	DefaultPointerPrefixLength = 14
-)
+const DefaultPointerPrefixLength = 14
 
 var offlineMessageWaitGroup sync.WaitGroup
 

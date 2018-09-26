@@ -83,7 +83,6 @@ type Config struct {
 
 // Textile is the main Textile node structure
 type Textile struct {
-	account            *keypair.Full
 	version            string
 	context            oldcmds.Context
 	repoPath           string
@@ -182,7 +181,6 @@ func NewTextile(config Config) (*Textile, error) {
 	}
 
 	return &Textile{
-		account:   config.Account,
 		version:   Version,
 		repoPath:  config.RepoPath,
 		datastore: sqliteDB,
@@ -202,7 +200,7 @@ func (t *Textile) Start() error {
 		t.done = make(chan struct{})
 		t.started = true
 
-		accntId, err := t.GetID()
+		accntId, err := t.ID()
 		peerPk, err := t.GetPeerPubKey()
 		if err != nil {
 			log.Errorf("error loading peer pk: %s", err)

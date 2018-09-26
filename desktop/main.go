@@ -267,7 +267,7 @@ func handleMessage(_ *astilectron.Window, m bootstrap.MessageIn) (interface{}, e
 
 func getQRCode() (string, string, error) {
 	// get our own public key
-	accnt, err := core.Node.GetAccount()
+	accnt, err := core.Node.Account()
 	if err != nil {
 		return "", "", err
 	}

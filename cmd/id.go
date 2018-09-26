@@ -27,12 +27,12 @@ func ShowId(c *ishell.Context) {
 	}
 
 	// get account
-	accnt, err := core.Node.GetAccount()
+	accnt, err := core.Node.Account()
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	accntId, err := core.Node.GetID()
+	accntId, err := core.Node.ID()
 	if err != nil {
 		c.Err(err)
 		return

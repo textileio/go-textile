@@ -67,7 +67,7 @@ func (t *Textile) CafeRegister(referral string) error {
 	}
 
 	// get a challenge from the cafe
-	accnt, err := t.GetAccount()
+	accnt, err := t.Account()
 	if err != nil {
 		return err
 	}
@@ -125,7 +125,7 @@ func (t *Textile) CafeLogin() error {
 	}
 
 	// get a challenge from the cafe
-	accnt, err := t.GetAccount()
+	accnt, err := t.Account()
 	if err != nil {
 		return err
 	}

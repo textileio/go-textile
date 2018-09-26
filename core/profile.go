@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/keypair"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/namesys/opts"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/path"
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
@@ -22,27 +20,6 @@ type Profile struct {
 
 var profileTTL = time.Hour * 24 * 7 * 4
 var profileCacheTTL = time.Hour * 24 * 7
-
-// GetAccount returns account keypair
-func (t *Textile) GetAccount() (*keypair.Full, error) {
-	if err := t.touchDatastore(); err != nil {
-		return nil, err
-	}
-	return t.datastore.Config().GetAccount()
-}
-
-// GetID returns account id
-func (t *Textile) GetID() (*peer.ID, error) {
-	accnt, err := t.GetAccount()
-	if err != nil {
-		return nil, err
-	}
-	id, err := accnt.PeerID()
-	if err != nil {
-		return nil, err
-	}
-	return &id, nil
-}
 
 // GetUsername returns profile username
 func (t *Textile) GetUsername() (*string, error) {
@@ -67,7 +44,7 @@ func (t *Textile) SetUsername(username string) error {
 		<-t.Online()
 
 		// publish
-		pid, err := t.GetID()
+		pid, err := t.ID()
 		if err != nil {
 			log.Errorf("error getting id (set username): %s", err)
 			return
@@ -117,7 +94,7 @@ func (t *Textile) SetAvatarId(id string) error {
 		<-t.Online()
 
 		// publish
-		pid, err := t.GetID()
+		pid, err := t.ID()
 		if err != nil {
 			log.Errorf("error getting id (set avatar): %s", err)
 			return
@@ -140,7 +117,7 @@ func (t *Textile) GetProfile(peerId string) (*Profile, error) {
 	profile := &Profile{Id: peerId}
 
 	// if peer id is local, return profile from db
-	pid, err := t.GetID()
+	pid, err := t.ID()
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +190,7 @@ func (t *Textile) PublishProfile(prof *Profile) (*ipfs.IpnsEntry, error) {
 
 	// if nil profile, use current
 	if prof == nil {
-		pid, err := t.GetID()
+		pid, err := t.ID()
 		if err != nil {
 			return nil, err
 		}
@@ -260,7 +237,7 @@ func (t *Textile) PublishProfile(prof *Profile) (*ipfs.IpnsEntry, error) {
 	}
 
 	// load our private key
-	accnt, err := t.GetAccount()
+	accnt, err := t.Account()
 	if err != nil {
 		return nil, err
 	}

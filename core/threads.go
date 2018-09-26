@@ -132,7 +132,7 @@ func (t *Textile) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
 	}
 
 	// decrypt thread key with private key
-	accnt, err := t.GetAccount()
+	accnt, err := t.Account()
 	if err != nil {
 		return nil, err
 	}
