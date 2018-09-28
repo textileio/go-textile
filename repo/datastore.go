@@ -2,6 +2,7 @@ package repo
 
 import (
 	"database/sql"
+	"github.com/textileio/textile-go/keypair"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	"time"
 )
@@ -29,20 +30,22 @@ type Queryable interface {
 }
 
 type ConfigStore interface {
-	Init(password string) error
-	Configure(created time.Time) error
+	Init(pin string) error
+	Configure(kp *keypair.Full, mobile bool, created time.Time) error
+	GetAccount() (*keypair.Full, error)
+	GetMobile() (bool, error)
 	GetCreationDate() (time.Time, error)
 	IsEncrypted() bool
 }
 
 type ProfileStore interface {
-	SignIn(username string, tokens *CafeTokens) error
-	SignOut() error
+	CafeLogin(tokens *CafeTokens) error
+	CafeLogout() error
+	GetCafeTokens() (tokens *CafeTokens, err error)
+	SetUsername(username string) error
 	GetUsername() (*string, error)
 	SetAvatarId(id string) error
 	GetAvatarId() (*string, error)
-	GetTokens() (tokens *CafeTokens, err error)
-	UpdateTokens(tokens *CafeTokens) error
 }
 
 type ThreadStore interface {

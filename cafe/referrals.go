@@ -44,7 +44,7 @@ func (c *Cafe) createReferral(g *gin.Context) {
 	// hodl 'em
 	codes := make([]string, count)
 	for i := range codes {
-		code, err := createReferral(limit, requestedBy)
+		code, err := createReferralModel(limit, requestedBy)
 		if err != nil {
 			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -110,7 +110,7 @@ func randString(n int) string {
 	return string(b)
 }
 
-func createReferral(limit int, requester string) (string, error) {
+func createReferralModel(limit int, requester string) (string, error) {
 	code := randString(5)
 	ref := models.Referral{
 		ID:        bson.NewObjectId(),

@@ -4,12 +4,10 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/json"
-	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/cafe/models"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/keypair"
 	. "github.com/textileio/textile-go/mobile"
-	util "github.com/textileio/textile-go/util/testing"
-	"github.com/textileio/textile-go/wallet"
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"image/jpeg"
 	"os"
@@ -34,20 +32,28 @@ var addedPhotoKey string
 var deviceId string
 var noteId string
 
-var cusername = ksuid.New().String()
-var cpassword = ksuid.New().String()
-var cemail = ksuid.New().String() + "@textile.io"
-
 func TestNewTextile(t *testing.T) {
 	os.RemoveAll(repo)
 	config := &NodeConfig{
+		Account:  keypair.Random().Seed(),
 		RepoPath: repo,
-		CafeAddr: util.CafeAddr,
+		CafeAddr: os.Getenv("CAFE_ADDR"),
 		LogLevel: "DEBUG",
 	}
 	var err error
 	mobile, err = NewNode(config, &TestMessenger{})
 	if err != nil {
+		t.Errorf("create mobile node failed: %s", err)
+	}
+}
+
+func TestNewTextileAgain(t *testing.T) {
+	config := &NodeConfig{
+		RepoPath: repo,
+		CafeAddr: os.Getenv("CAFE_ADDR"),
+		LogLevel: "DEBUG",
+	}
+	if _, err := NewNode(config, &TestMessenger{}); err != nil {
 		t.Errorf("create mobile node failed: %s", err)
 	}
 }
@@ -64,41 +70,41 @@ func TestMobile_StartAgain(t *testing.T) {
 	}
 }
 
-func TestMobile_SignUpWithEmail(t *testing.T) {
-	res, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
+func TestMobile_CafeRegister(t *testing.T) {
+	req := &models.ReferralRequest{
+		Key:         os.Getenv("CAFE_REFERRAL_KEY"),
+		Count:       1,
+		Limit:       1,
+		RequestedBy: "test",
+	}
+	res, err := core.Node.CreateCafeReferral(req)
 	if err != nil {
-		t.Errorf("create referral for signup failed: %s", err)
+		t.Errorf("create referral for registration failed: %s", err)
 		return
 	}
-	defer res.Body.Close()
-	resp := &models.ReferralResponse{}
-	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
-		t.Error(err)
+	if len(res.RefCodes) == 0 {
+		t.Error("create referral for registration got no codes")
 		return
 	}
-	if len(resp.RefCodes) == 0 {
-		t.Error("create referral for signup got no codes")
-		return
-	}
-	if err := mobile.SignUpWithEmail(cemail, cusername, cpassword, resp.RefCodes[0]); err != nil {
-		t.Errorf("signup failed: %s", err)
+	if err := mobile.CafeRegister(res.RefCodes[0]); err != nil {
+		t.Errorf("register failed: %s", err)
 	}
 }
 
-func TestMobile_SignIn(t *testing.T) {
-	if err := mobile.SignIn(cusername, cpassword); err != nil {
-		t.Errorf("signin failed: %s", err)
+func TestMobile_CafeLogin(t *testing.T) {
+	if err := mobile.CafeLogin(); err != nil {
+		t.Errorf("login failed: %s", err)
 	}
 }
 
-func TestMobile_IsSignedIn(t *testing.T) {
-	if !mobile.IsSignedIn() {
-		t.Errorf("is signed in check failed should be true")
+func TestMobile_CafeLoggedIn(t *testing.T) {
+	if !mobile.CafeLoggedIn() {
+		t.Errorf("check logged in failed, should be true")
 	}
 }
 
-func TestMobile_GetId(t *testing.T) {
-	id, err := mobile.GetId()
+func TestMobile_GetID(t *testing.T) {
+	id, err := mobile.GetID()
 	if err != nil {
 		t.Errorf("get id failed: %s", err)
 		return
@@ -108,20 +114,43 @@ func TestMobile_GetId(t *testing.T) {
 	}
 }
 
-func TestMobile_GetUsername(t *testing.T) {
-	un, err := mobile.GetUsername()
+func TestMobile_GetAddress(t *testing.T) {
+	id, err := mobile.GetAddress()
 	if err != nil {
-		t.Errorf("get username failed: %s", err)
+		t.Errorf("get address failed: %s", err)
 		return
 	}
-	if un != cusername {
-		t.Errorf("got bad username: %s", un)
+	if id == "" {
+		t.Error("got bad address")
 	}
 }
 
-func TestMobile_GetTokens(t *testing.T) {
-	if _, err := mobile.GetTokens(false); err != nil {
-		t.Errorf("get access token failed: %s", err)
+func TestMobile_GetSeed(t *testing.T) {
+	id, err := mobile.GetSeed()
+	if err != nil {
+		t.Errorf("get seed failed: %s", err)
+		return
+	}
+	if id == "" {
+		t.Error("got bad seed")
+	}
+}
+
+// TODO: set username
+//func TestMobile_GetUsername(t *testing.T) {
+//	un, err := mobile.GetUsername()
+//	if err != nil {
+//		t.Errorf("get username failed: %s", err)
+//		return
+//	}
+//	if un != cusername {
+//		t.Errorf("got bad username: %s", un)
+//	}
+//}
+
+func TestMobile_GetCafeTokens(t *testing.T) {
+	if _, err := mobile.GetCafeTokens(false); err != nil {
+		t.Errorf("get cafe tokens failed: %s", err)
 	}
 }
 
@@ -183,7 +212,7 @@ func TestMobile_Threads(t *testing.T) {
 }
 
 func TestMobile_RemoveThread(t *testing.T) {
-	<-core.Node.Wallet.Online()
+	<-core.Node.Online()
 	blockId, err := mobile.RemoveThread(defaultThreadId)
 	if err != nil {
 		t.Error(err)
@@ -256,12 +285,12 @@ func TestMobile_RemoveDevice(t *testing.T) {
 }
 
 func TestMobile_AddPhoto(t *testing.T) {
-	resStr, err := mobile.AddPhoto("../util/testdata/image.jpg")
+	resStr, err := mobile.AddPhoto("../photo/testdata/image.jpg")
 	if err != nil {
 		t.Errorf("add photo failed: %s", err)
 		return
 	}
-	res := wallet.AddDataResult{}
+	res := core.AddDataResult{}
 	if err := json.Unmarshal([]byte(resStr), &res); err != nil {
 		t.Error(err)
 		return
@@ -501,17 +530,17 @@ func TestMobile_GetProfile(t *testing.T) {
 		t.Errorf("get profile failed: %s", err)
 		return
 	}
-	prof := wallet.Profile{}
+	prof := core.Profile{}
 	if err := json.Unmarshal([]byte(profs), &prof); err != nil {
 		t.Error(err)
 		return
 	}
-	if prof.Username != cusername {
-		t.Errorf("get profile bad username result")
-	}
-	if len(prof.AvatarId) == 0 {
-		t.Errorf("get profile bad avatar result")
-	}
+	//if prof.Username != cusername {
+	//	t.Errorf("get profile bad username result")
+	//}
+	//if len(prof.AvatarId) == 0 {
+	//	t.Errorf("get profile bad avatar result")
+	//}
 }
 
 func TestMobile_Overview(t *testing.T) {
@@ -520,7 +549,7 @@ func TestMobile_Overview(t *testing.T) {
 		t.Errorf("get overview failed: %s", err)
 		return
 	}
-	stats := wallet.Overview{}
+	stats := core.Overview{}
 	if err := json.Unmarshal([]byte(res), &stats); err != nil {
 		t.Error(err)
 		return
@@ -569,15 +598,15 @@ func TestMobile_ReadAllNotifications(t *testing.T) {
 	}
 }
 
-func TestMobile_SignOut(t *testing.T) {
-	if err := mobile.SignOut(); err != nil {
-		t.Errorf("signout failed: %s", err)
+func TestMobile_CafeLogout(t *testing.T) {
+	if err := mobile.CafeLogout(); err != nil {
+		t.Errorf("logout failed: %s", err)
 	}
 }
 
-func TestMobile_IsSignedInAgain(t *testing.T) {
-	if mobile.IsSignedIn() {
-		t.Errorf("is signed in check failed should be false")
+func TestMobile_CafeLoggedInAgain(t *testing.T) {
+	if mobile.CafeLoggedIn() {
+		t.Errorf("check logged in failed, should be false")
 	}
 }
 
@@ -593,10 +622,10 @@ func TestMobile_StopAgain(t *testing.T) {
 	}
 }
 
-// test signin in stopped state, should re-connect to db
-func TestMobile_SignInAgain(t *testing.T) {
-	if err := mobile.SignIn(cusername, cpassword); err != nil {
-		t.Errorf("signin failed: %s", err)
+// test login in stopped state, should re-connect to db
+func TestMobile_CafeLoginAgain(t *testing.T) {
+	if err := mobile.CafeLogin(); err != nil {
+		t.Errorf("login again failed: %s", err)
 	}
 }
 

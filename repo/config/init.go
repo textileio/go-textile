@@ -47,7 +47,7 @@ var DefaultServerFilters = []string{
 	"/ip4/240.0.0.0/ipcidr/4",
 }
 
-func Init(identity native.Identity, version string) (*native.Config, error) {
+func Init(identity native.Identity) (*native.Config, error) {
 	var bootstrapPeers []native.BootstrapPeer
 	for _, addr := range BootstrapAddresses {
 		p, err := native.ParseBootstrapPeer(addr)
@@ -67,7 +67,7 @@ func Init(identity native.Identity, version string) (*native.Config, error) {
 	conf := &native.Config{
 		API: native.API{
 			HTTPHeaders: map[string][]string{
-				"Server": {"textile/" + version},
+				"Server": {"go-ipfs/" + native.CurrentVersionNumber},
 			},
 		},
 

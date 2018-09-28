@@ -30,7 +30,7 @@ type ExternalInvite struct {
 // Threads lists all threads
 func (m *Mobile) Threads() (string, error) {
 	threads := Threads{Items: make([]Thread, 0)}
-	for _, thrd := range core.Node.Wallet.Threads() {
+	for _, thrd := range core.Node.Threads() {
 		peers := thrd.Peers()
 		item := Thread{Id: thrd.Id, Name: thrd.Name, Peers: len(peers)}
 		threads.Items = append(threads.Items, item)
@@ -44,13 +44,13 @@ func (m *Mobile) AddThread(name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	thrd, err := core.Node.Wallet.AddThread(name, sk, true)
+	thrd, err := core.Node.AddThread(name, sk, true)
 	if err != nil {
 		return "", err
 	}
 
 	// invite devices
-	if err := core.Node.Wallet.InviteDevices(thrd); err != nil {
+	if err := core.Node.InviteDevices(thrd); err != nil {
 		return "", err
 	}
 
@@ -66,7 +66,7 @@ func (m *Mobile) AddThread(name string) (string, error) {
 
 // ThreadInfo calls core ThreadInfo
 func (m *Mobile) ThreadInfo(threadId string) (string, error) {
-	info, err := core.Node.Wallet.ThreadInfo(threadId)
+	info, err := core.Node.ThreadInfo(threadId)
 	if err != nil {
 		return "", err
 	}
@@ -75,7 +75,7 @@ func (m *Mobile) ThreadInfo(threadId string) (string, error) {
 
 // AddThreadInvite adds a new invite to a thread
 func (m *Mobile) AddThreadInvite(threadId string, inviteePk string) (string, error) {
-	_, thrd := core.Node.Wallet.GetThread(threadId)
+	_, thrd := core.Node.GetThread(threadId)
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread: %s", threadId))
 	}
@@ -101,7 +101,7 @@ func (m *Mobile) AddThreadInvite(threadId string, inviteePk string) (string, err
 
 // AddExternalThreadInvite generates a new external invite link to a thread
 func (m *Mobile) AddExternalThreadInvite(threadId string) (string, error) {
-	_, thrd := core.Node.Wallet.GetThread(threadId)
+	_, thrd := core.Node.GetThread(threadId)
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread: %s", threadId))
 	}
@@ -126,7 +126,7 @@ func (m *Mobile) AddExternalThreadInvite(threadId string) (string, error) {
 // AcceptExternalThreadInvite notifies the thread of a join
 func (m *Mobile) AcceptExternalThreadInvite(id string, key string) (string, error) {
 	m.waitForOnline()
-	addr, err := core.Node.Wallet.AcceptExternalThreadInvite(id, []byte(key))
+	addr, err := core.Node.AcceptExternalThreadInvite(id, []byte(key))
 	if err != nil {
 		return "", err
 	}
@@ -135,7 +135,7 @@ func (m *Mobile) AcceptExternalThreadInvite(id string, key string) (string, erro
 
 // RemoveThread call core RemoveDevice
 func (m *Mobile) RemoveThread(id string) (string, error) {
-	addr, err := core.Node.Wallet.RemoveThread(id)
+	addr, err := core.Node.RemoveThread(id)
 	if err != nil {
 		return "", err
 	}

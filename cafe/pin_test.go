@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/cafe/models"
-	util "github.com/textileio/textile-go/util/testing"
 	"os"
 	"testing"
 )
@@ -25,7 +24,7 @@ var photoHash = "QmSUnsZi9rGvPZLWy2v5N7fNxUWVNnA5nmppoM96FbLqLp"
 
 func TestPin_Setup(t *testing.T) {
 	// create a referral for the test
-	res, err := util.CreateReferral(util.CafeReferralKey, 1, 1, "test")
+	res, err := createReferral(cafeReferralKey, 1, 1, "test")
 	if err != nil {
 		t.Error(err)
 		return
@@ -36,7 +35,7 @@ func TestPin_Setup(t *testing.T) {
 		return
 	}
 	resp := &models.ReferralResponse{}
-	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
+	if err := unmarshalJSON(res.Body, resp); err != nil {
 		t.Error(err)
 		return
 	}
@@ -47,7 +46,7 @@ func TestPin_Setup(t *testing.T) {
 		return
 	}
 	pRegistration["ref_code"] = pRefCode
-	res2, err := util.SignUpUser(pRegistration)
+	res2, err := signUpUser(pRegistration)
 	if err != nil {
 		t.Error(err)
 		return
@@ -58,7 +57,7 @@ func TestPin_Setup(t *testing.T) {
 		return
 	}
 	resp2 := &models.SessionResponse{}
-	if err := util.UnmarshalJSON(res2.Body, resp2); err != nil {
+	if err := unmarshalJSON(res2.Body, resp2); err != nil {
 		t.Error(err)
 		return
 	}
@@ -72,7 +71,7 @@ func TestPin_Pin(t *testing.T) {
 		return
 	}
 	defer block.Close()
-	res, err := util.Pin(block, pSession.AccessToken, "application/octet-stream")
+	res, err := pin(block, pSession.AccessToken, "application/octet-stream")
 	if err != nil {
 		t.Error(err)
 		return
@@ -83,7 +82,7 @@ func TestPin_Pin(t *testing.T) {
 		return
 	}
 	resp := &models.PinResponse{}
-	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
+	if err := unmarshalJSON(res.Body, resp); err != nil {
 		t.Error(err)
 		return
 	}
@@ -103,7 +102,7 @@ func TestPin_PinArchive(t *testing.T) {
 		return
 	}
 	defer archive.Close()
-	res, err := util.Pin(archive, pSession.AccessToken, "application/gzip")
+	res, err := pin(archive, pSession.AccessToken, "application/gzip")
 	if err != nil {
 		t.Error(err)
 		return
@@ -114,7 +113,7 @@ func TestPin_PinArchive(t *testing.T) {
 		return
 	}
 	resp := &models.PinResponse{}
-	if err := util.UnmarshalJSON(res.Body, resp); err != nil {
+	if err := unmarshalJSON(res.Body, resp); err != nil {
 		t.Error(err)
 		return
 	}

@@ -10,8 +10,8 @@ import (
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
-func ListThreads(c *ishell.Context) {
-	threads := core.Node.Wallet.Threads()
+func listThreads(c *ishell.Context) {
+	threads := core.Node.Threads()
 	if len(threads) == 0 {
 		c.Println("no threads found")
 	} else {
@@ -24,7 +24,7 @@ func ListThreads(c *ishell.Context) {
 	}
 }
 
-func AddThread(c *ishell.Context) {
+func addThread(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing thread name"))
 		return
@@ -37,13 +37,13 @@ func AddThread(c *ishell.Context) {
 		return
 	}
 
-	thrd, err := core.Node.Wallet.AddThread(name, sk, true)
+	thrd, err := core.Node.AddThread(name, sk, true)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
-	if err := core.Node.Wallet.InviteDevices(thrd); err != nil {
+	if err := core.Node.InviteDevices(thrd); err != nil {
 		c.Err(err)
 		return
 	}
@@ -52,14 +52,14 @@ func AddThread(c *ishell.Context) {
 	c.Println(cyan(fmt.Sprintf("added thread %s with name %s", thrd.Id, name)))
 }
 
-func ListThreadPeers(c *ishell.Context) {
+func listThreadPeers(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing thread id"))
 		return
 	}
 	id := c.Args[0]
 
-	_, thrd := core.Node.Wallet.GetThread(id)
+	_, thrd := core.Node.GetThread(id)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", id)))
 		return
@@ -78,14 +78,14 @@ func ListThreadPeers(c *ishell.Context) {
 	}
 }
 
-func ListThreadBlocks(c *ishell.Context) {
+func listThreadBlocks(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing thread id"))
 		return
 	}
 	threadId := c.Args[0]
 
-	_, thrd := core.Node.Wallet.GetThread(threadId)
+	_, thrd := core.Node.GetThread(threadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadId)))
 		return
@@ -104,14 +104,14 @@ func ListThreadBlocks(c *ishell.Context) {
 	}
 }
 
-func GetThreadHead(c *ishell.Context) {
+func getThreadHead(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing thread id"))
 		return
 	}
 	threadId := c.Args[0]
 
-	_, thrd := core.Node.Wallet.GetThread(threadId)
+	_, thrd := core.Node.GetThread(threadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadId)))
 		return
@@ -127,19 +127,19 @@ func GetThreadHead(c *ishell.Context) {
 	c.Println(yellow(head))
 }
 
-func IgnoreBlock(c *ishell.Context) {
+func ignoreBlock(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing block id"))
 		return
 	}
 	id := c.Args[0]
 
-	block, err := core.Node.Wallet.GetBlock(id)
+	block, err := core.Node.GetBlock(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	_, thrd := core.Node.Wallet.GetThread(block.ThreadId)
+	_, thrd := core.Node.GetThread(block.ThreadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
 		return
@@ -151,7 +151,7 @@ func IgnoreBlock(c *ishell.Context) {
 	}
 }
 
-func AddThreadInvite(c *ishell.Context) {
+func addThreadInvite(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing peer pub key"))
 		return
@@ -163,7 +163,7 @@ func AddThreadInvite(c *ishell.Context) {
 	}
 	id := c.Args[1]
 
-	_, thrd := core.Node.Wallet.GetThread(id)
+	_, thrd := core.Node.GetThread(id)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", id)))
 		return
@@ -189,14 +189,14 @@ func AddThreadInvite(c *ishell.Context) {
 	c.Println(green("invite sent!"))
 }
 
-func AcceptThreadInvite(c *ishell.Context) {
+func acceptThreadInvite(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing invite address"))
 		return
 	}
 	blockId := c.Args[0]
 
-	if _, err := core.Node.Wallet.AcceptThreadInvite(blockId); err != nil {
+	if _, err := core.Node.AcceptThreadInvite(blockId); err != nil {
 		c.Err(err)
 		return
 	}
@@ -205,14 +205,14 @@ func AcceptThreadInvite(c *ishell.Context) {
 	c.Println(green("ok, accepted"))
 }
 
-func AddExternalThreadInvite(c *ishell.Context) {
+func addExternalThreadInvite(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing thread id"))
 		return
 	}
 	id := c.Args[0]
 
-	_, thrd := core.Node.Wallet.GetThread(id)
+	_, thrd := core.Node.GetThread(id)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", id)))
 		return
@@ -228,7 +228,7 @@ func AddExternalThreadInvite(c *ishell.Context) {
 	c.Println(green(fmt.Sprintf("added! creds: %s %s", addr.B58String(), string(key))))
 }
 
-func AcceptExternalThreadInvite(c *ishell.Context) {
+func acceptExternalThreadInvite(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing invite id"))
 		return
@@ -240,7 +240,7 @@ func AcceptExternalThreadInvite(c *ishell.Context) {
 	}
 	key := c.Args[1]
 
-	if _, err := core.Node.Wallet.AcceptExternalThreadInvite(id, []byte(key)); err != nil {
+	if _, err := core.Node.AcceptExternalThreadInvite(id, []byte(key)); err != nil {
 		c.Err(err)
 		return
 	}
@@ -249,14 +249,14 @@ func AcceptExternalThreadInvite(c *ishell.Context) {
 	c.Println(green("ok, accepted"))
 }
 
-func RemoveThread(c *ishell.Context) {
+func removeThread(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing thread id"))
 		return
 	}
 	id := c.Args[0]
 
-	if _, err := core.Node.Wallet.RemoveThread(id); err != nil {
+	if _, err := core.Node.RemoveThread(id); err != nil {
 		c.Err(err)
 		return
 	}

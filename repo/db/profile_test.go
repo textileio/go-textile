@@ -20,8 +20,8 @@ func setupProfileDB() {
 	pdb = NewProfileStore(conn, new(sync.Mutex))
 }
 
-func TestProfileDB_GetTokensPreSignIn(t *testing.T) {
-	tokens, err := pdb.GetTokens()
+func TestProfileDB_GetCafeTokensPreLogin(t *testing.T) {
+	tokens, err := pdb.GetCafeTokens()
 	if err != nil {
 		t.Error(err)
 		return
@@ -31,10 +31,17 @@ func TestProfileDB_GetTokensPreSignIn(t *testing.T) {
 	}
 }
 
-func TestProfileDB_SignIn(t *testing.T) {
-	err := pdb.SignIn("woohoo!", &repo.CafeTokens{Access: "access", Refresh: "refresh", Expiry: time.Now()})
-	if err != nil {
+func TestProfileDB_CafeLogin(t *testing.T) {
+	exp := time.Now().Add(time.Hour)
+	if err := pdb.CafeLogin(&repo.CafeTokens{Access: "access", Refresh: "refresh", Expiry: exp}); err != nil {
 		t.Error(err)
+	}
+}
+
+func TestProfileDB_SetUsername(t *testing.T) {
+	if err := pdb.SetUsername("psyched_mike_79"); err != nil {
+		t.Error(err)
+		return
 	}
 }
 
@@ -44,7 +51,7 @@ func TestProfileDB_GetUsername(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if *un != "woohoo!" {
+	if *un != "psyched_mike_79" {
 		t.Error("got bad username")
 	}
 }
@@ -67,8 +74,8 @@ func TestProfileDB_GetAvatarId(t *testing.T) {
 	}
 }
 
-func TestProfileDB_GetTokens(t *testing.T) {
-	tokens, err := pdb.GetTokens()
+func TestProfileDB_GetCafeTokens(t *testing.T) {
+	tokens, err := pdb.GetCafeTokens()
 	if err != nil {
 		t.Error(err)
 		return
@@ -81,25 +88,21 @@ func TestProfileDB_GetTokens(t *testing.T) {
 		t.Error("got bad refresh token")
 		return
 	}
-}
-
-func TestProfileDB_UpdateTokens(t *testing.T) {
-	err := pdb.UpdateTokens(&repo.CafeTokens{Access: "access", Refresh: "refresh", Expiry: time.Now()})
-	if err != nil {
-		t.Error(err)
+	if tokens.Expiry.Before(time.Now()) {
+		t.Error("got bad expiry")
 	}
 }
 
-func TestProfileDB_SignOut(t *testing.T) {
-	if err := pdb.SignOut(); err != nil {
+func TestProfileDB_CafeLogout(t *testing.T) {
+	if err := pdb.CafeLogout(); err != nil {
 		t.Error(err)
 		return
 	}
-	tokens, err := pdb.GetTokens()
+	tokens, err := pdb.GetCafeTokens()
 	if err != nil {
 		t.Error(err)
 	}
 	if tokens != nil {
-		t.Error("signed out but tokens still present")
+		t.Error("logged out but tokens still present")
 	}
 }

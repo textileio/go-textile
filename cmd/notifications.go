@@ -8,9 +8,9 @@ import (
 	"gopkg.in/abiosoft/ishell.v2"
 )
 
-func ListNotifications(c *ishell.Context) {
-	notifs := core.Node.Wallet.GetNotifications("", -1)
-	unread := core.Node.Wallet.CountUnreadNotifications()
+func listNotifications(c *ishell.Context) {
+	notifs := core.Node.GetNotifications("", -1)
+	unread := core.Node.CountUnreadNotifications()
 	if len(notifs) == 0 {
 		c.Println("no notifications found")
 	} else {
@@ -33,14 +33,14 @@ func ListNotifications(c *ishell.Context) {
 	}
 }
 
-func ReadNotification(c *ishell.Context) {
+func readNotification(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing notification id"))
 		return
 	}
 	id := c.Args[0]
 
-	if err := core.Node.Wallet.ReadNotification(id); err != nil {
+	if err := core.Node.ReadNotification(id); err != nil {
 		c.Err(err)
 		return
 	}
@@ -49,8 +49,8 @@ func ReadNotification(c *ishell.Context) {
 	c.Println(yellow("ok, marked as read"))
 }
 
-func ReadAllNotifications(c *ishell.Context) {
-	if err := core.Node.Wallet.ReadAllNotifications(); err != nil {
+func readAllNotifications(c *ishell.Context) {
+	if err := core.Node.ReadAllNotifications(); err != nil {
 		c.Err(err)
 		return
 	}
@@ -59,14 +59,14 @@ func ReadAllNotifications(c *ishell.Context) {
 	c.Println(yellow("ok, marked all as read"))
 }
 
-func AcceptThreadInviteViaNotification(c *ishell.Context) {
+func acceptThreadInviteViaNotification(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing notification id"))
 		return
 	}
 	id := c.Args[0]
 
-	if _, err := core.Node.Wallet.AcceptThreadInviteViaNotification(id); err != nil {
+	if _, err := core.Node.AcceptThreadInviteViaNotification(id); err != nil {
 		c.Err(err)
 		return
 	}

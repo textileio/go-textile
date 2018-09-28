@@ -4,33 +4,62 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/util"
+	"github.com/textileio/textile-go/ipfs"
 	"gopkg.in/abiosoft/ishell.v2"
 )
 
-func ShowId(c *ishell.Context) {
-	var id, pk string
-	if len(c.Args) != 0 {
-		pk = c.Args[0]
-		pid, err := util.IdFromEncodedPublicKey(pk)
-		if err != nil {
-			c.Err(err)
-			return
-		}
-		id = pid.Pretty()
-	} else {
-		var err error
-		id, err = core.Node.Wallet.GetId()
-		if err != nil {
-			c.Err(err)
-			return
-		}
-		pk, err = core.Node.Wallet.GetPubKeyString()
-		if err != nil {
-			c.Err(err)
-			return
-		}
-	}
+func showId(c *ishell.Context) {
+	grey := color.New(color.FgHiBlack).SprintFunc()
+	cyan := color.New(color.FgHiCyan).SprintFunc()
 	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green(fmt.Sprintf("id: %s\npk: %s", id, pk)))
+
+	// check for an input to convert
+	if len(c.Args) != 0 {
+		pk := c.Args[0]
+		pid, err := ipfs.IdFromEncodedPublicKey(pk)
+		if err != nil {
+			c.Err(err)
+			return
+		}
+		id := pid.Pretty()
+		c.Println(green(fmt.Sprintf("id: %s\npk: %s", id, pk)))
+		return
+	}
+
+	// get account
+	accnt, err := core.Node.Account()
+	if err != nil {
+		c.Err(err)
+		return
+	}
+	accntId, err := core.Node.ID()
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	// get peer id / pk
+	pid, err := core.Node.GetPeerId()
+	if err != nil {
+		c.Err(err)
+		return
+	}
+	ppk, err := core.Node.GetPeerPubKey()
+	if err != nil {
+		c.Err(err)
+		return
+	}
+	ppks, err := ipfs.EncodeKey(ppk)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+
+	c.Println(grey("--- ACCOUNT ---"))
+	c.Println(cyan(fmt.Sprintf("ID: %s", accntId)))
+	c.Println(cyan(fmt.Sprintf("Address: %s", accnt.Address())))
+	c.Println(cyan(fmt.Sprintf("Seed: %s", accnt.Seed())))
+	c.Println(grey("--- PEER ---"))
+	c.Println(green(fmt.Sprintf("ID: %s", pid)))
+	c.Println(green(fmt.Sprintf("PublicKey: %s", ppks)))
 }

@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/net"
-	"github.com/textileio/textile-go/wallet"
+	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"
 	"time"
 )
 
@@ -25,6 +26,8 @@ type Messenger interface {
 // NodeConfig is used to configure the mobile node
 // NOTE: logLevel is one of: CRITICAL ERROR WARNING NOTICE INFO DEBUG
 type NodeConfig struct {
+	Account  string
+	PinCode  string
 	RepoPath string
 	CafeAddr string
 	LogLevel string
@@ -34,51 +37,77 @@ type NodeConfig struct {
 // Mobile is the name of the framework (must match package name)
 type Mobile struct {
 	RepoPath  string
-	Mnemonic  string
 	messenger Messenger
 }
 
 // Create a gomobile compatible wrapper around TextileNode
 func NewNode(config *NodeConfig, messenger Messenger) (*Mobile, error) {
-	ll, err := logging.LogLevel(config.LogLevel)
+	// determine log level
+	logLevel, err := logging.LogLevel(config.LogLevel)
 	if err != nil {
-		ll = logging.INFO
+		logLevel = logging.INFO
 	}
-	cconfig := core.NodeConfig{
-		LogLevel: ll,
-		LogFiles: config.LogFiles,
-		WalletConfig: wallet.Config{
+
+	// run init if needed
+	if !fsrepo.IsInitialized(config.RepoPath) {
+		if config.Account == "" {
+			return nil, core.ErrAccountRequired
+		}
+		kp, err := keypair.Parse(config.Account)
+		if err != nil {
+			return nil, err
+		}
+		accnt, ok := kp.(*keypair.Full)
+		if !ok {
+			return nil, keypair.ErrInvalidKey
+		}
+		initc := core.InitConfig{
+			Account:  *accnt,
+			PinCode:  config.PinCode,
 			RepoPath: config.RepoPath,
 			IsMobile: true,
-			CafeAddr: config.CafeAddr,
-		},
+			LogLevel: logLevel,
+			LogFiles: config.LogFiles,
+		}
+		if err := core.InitRepo(initc); err != nil {
+			return nil, err
+		}
 	}
-	node, mnemonic, err := core.NewNode(cconfig)
+
+	// build textile node
+	runc := core.RunConfig{
+		PinCode:  config.PinCode,
+		RepoPath: config.RepoPath,
+		CafeAddr: config.CafeAddr,
+		LogLevel: logLevel,
+		LogFiles: config.LogFiles,
+	}
+	node, err := core.NewTextile(runc)
 	if err != nil {
 		return nil, err
 	}
 	core.Node = node
 
-	return &Mobile{RepoPath: config.RepoPath, Mnemonic: mnemonic, messenger: messenger}, nil
+	return &Mobile{RepoPath: config.RepoPath, messenger: messenger}, nil
 }
 
 // Start the mobile node
 func (m *Mobile) Start() error {
-	if err := core.Node.StartWallet(); err != nil {
-		if err == wallet.ErrStarted {
+	if err := core.Node.Start(); err != nil {
+		if err == core.ErrStarted {
 			return nil
 		}
 		return err
 	}
 
 	go func() {
-		<-core.Node.Wallet.Online()
+		<-core.Node.Online()
 
 		// subscribe to wallet updates
 		go func() {
 			for {
 				select {
-				case update, ok := <-core.Node.Wallet.Updates():
+				case update, ok := <-core.Node.Updates():
 					if !ok {
 						return
 					}
@@ -88,13 +117,13 @@ func (m *Mobile) Start() error {
 					}
 					var name string
 					switch update.Type {
-					case wallet.ThreadAdded:
+					case core.ThreadAdded:
 						name = "onThreadAdded"
-					case wallet.ThreadRemoved:
+					case core.ThreadRemoved:
 						name = "onThreadRemoved"
-					case wallet.DeviceAdded:
+					case core.DeviceAdded:
 						name = "onDeviceAdded"
-					case wallet.DeviceRemoved:
+					case core.DeviceRemoved:
 						name = "onDeviceRemoved"
 					}
 					m.messenger.Notify(&Event{Name: name, Payload: payload})
@@ -106,7 +135,7 @@ func (m *Mobile) Start() error {
 		go func() {
 			for {
 				select {
-				case update, ok := <-core.Node.Wallet.ThreadUpdates():
+				case update, ok := <-core.Node.ThreadUpdates():
 					if !ok {
 						return
 					}
@@ -122,7 +151,7 @@ func (m *Mobile) Start() error {
 		go func() {
 			for {
 				select {
-				case notification, ok := <-core.Node.Wallet.Notifications():
+				case notification, ok := <-core.Node.Notifications():
 					if !ok {
 						return
 					}
@@ -143,7 +172,7 @@ func (m *Mobile) Start() error {
 
 // Stop the mobile node
 func (m *Mobile) Stop() error {
-	if err := core.Node.StopWallet(); err != nil && err != wallet.ErrStopped {
+	if err := core.Node.Stop(); err != nil && err != core.ErrStopped {
 		return err
 	}
 	return nil
@@ -151,7 +180,7 @@ func (m *Mobile) Stop() error {
 
 // RefreshMessages run the message retriever
 func (m *Mobile) RefreshMessages() error {
-	if err := core.Node.Wallet.FetchMessages(); err != nil && err != net.ErrFetching {
+	if err := core.Node.FetchMessages(); err != nil && err != net.ErrFetching {
 		return err
 	}
 	return nil
@@ -159,7 +188,7 @@ func (m *Mobile) RefreshMessages() error {
 
 // Overview calls core Overview
 func (m *Mobile) Overview() (string, error) {
-	stats, err := core.Node.Wallet.Overview()
+	stats, err := core.Node.Overview()
 	if err != nil {
 		return "", err
 	}
@@ -168,7 +197,7 @@ func (m *Mobile) Overview() (string, error) {
 
 // waitForOnline waits up to 5 seconds for the node to go online
 func (m *Mobile) waitForOnline() {
-	if core.Node.Wallet.IsOnline() {
+	if core.Node.IsOnline() {
 		return
 	}
 	deadline := time.Now().Add(time.Second * 5)
@@ -177,7 +206,7 @@ func (m *Mobile) waitForOnline() {
 	for {
 		select {
 		case <-tick.C:
-			if core.Node.Wallet.IsOnline() || time.Now().After(deadline) {
+			if core.Node.IsOnline() || time.Now().After(deadline) {
 				return
 			}
 		}

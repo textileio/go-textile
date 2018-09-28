@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/wallet"
 	"gopkg.in/abiosoft/ishell.v2"
 	"gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
@@ -54,10 +53,10 @@ func (ci connInfos) Swap(i, j int) {
 	ci.Peers[i], ci.Peers[j] = ci.Peers[j], ci.Peers[i]
 }
 
-func SwarmPeers(c *ishell.Context) {
-	conns, err := core.Node.Wallet.Peers()
+func swarmPeers(c *ishell.Context) {
+	conns, err := core.Node.Peers()
 	if err != nil {
-		c.Err(wallet.ErrOffline)
+		c.Err(core.ErrOffline)
 		return
 	}
 
@@ -105,7 +104,7 @@ func SwarmPeers(c *ishell.Context) {
 	}
 }
 
-func SwarmPing(c *ishell.Context) {
+func swarmPing(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing peer address"))
 		return
@@ -123,7 +122,7 @@ func SwarmPing(c *ishell.Context) {
 
 	out := make(chan string)
 	go func() {
-		err := core.Node.Wallet.PingPeer(addrs, num, out)
+		err := core.Node.PingPeer(addrs, num, out)
 		if err != nil {
 			c.Err(err)
 		}
@@ -146,14 +145,14 @@ func SwarmPing(c *ishell.Context) {
 	}
 }
 
-func SwarmConnect(c *ishell.Context) {
+func swarmConnect(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing peer address"))
 		return
 	}
 	addrs := c.Args
 
-	output, err := core.Node.Wallet.ConnectPeer(addrs)
+	output, err := core.Node.ConnectPeer(addrs)
 	if err != nil {
 		c.Err(err)
 		return

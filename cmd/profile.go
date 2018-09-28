@@ -8,10 +8,14 @@ import (
 	"gopkg.in/abiosoft/ishell.v2"
 )
 
-func PublishProfile(c *ishell.Context) {
-	entry, err := core.Node.Wallet.PublishProfile(nil)
+func publishProfile(c *ishell.Context) {
+	entry, err := core.Node.PublishProfile(nil)
 	if err != nil {
 		c.Err(err)
+		return
+	}
+	if entry == nil {
+		c.Println(color.New(color.FgHiRed).SprintFunc()("profile does not exist"))
 		return
 	}
 
@@ -19,20 +23,20 @@ func PublishProfile(c *ishell.Context) {
 	c.Println(green(fmt.Sprintf("ok, published %s -> %s", entry.Name, entry.Value)))
 }
 
-func ResolveProfile(c *ishell.Context) {
+func resolveProfile(c *ishell.Context) {
 	var name string
 	if len(c.Args) == 0 {
-		id, err := core.Node.Wallet.GetId()
+		id, err := core.Node.ID()
 		if err != nil {
 			c.Err(err)
 			return
 		}
-		name = id
+		name = id.Pretty()
 	} else {
 		name = c.Args[0]
 	}
 
-	entry, err := core.Node.Wallet.ResolveProfile(name)
+	entry, err := core.Node.ResolveProfile(name)
 	if err != nil {
 		c.Err(err)
 		return
@@ -42,20 +46,20 @@ func ResolveProfile(c *ishell.Context) {
 	c.Println(green(entry.String()))
 }
 
-func GetProfile(c *ishell.Context) {
+func getProfile(c *ishell.Context) {
 	var id string
 	if len(c.Args) == 0 {
-		var err error
-		id, err = core.Node.Wallet.GetId()
+		pid, err := core.Node.ID()
 		if err != nil {
 			c.Err(err)
 			return
 		}
+		id = pid.Pretty()
 	} else {
 		id = c.Args[0]
 	}
 
-	prof, err := core.Node.Wallet.GetProfile(id)
+	prof, err := core.Node.GetProfile(id)
 	if err != nil {
 		c.Err(err)
 		return
@@ -73,14 +77,14 @@ func GetProfile(c *ishell.Context) {
 	}
 }
 
-func SetAvatarId(c *ishell.Context) {
+func setAvatarId(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing photo id"))
 		return
 	}
 	id := c.Args[0]
 
-	if err := core.Node.Wallet.SetAvatarId(id); err != nil {
+	if err := core.Node.SetAvatarId(id); err != nil {
 		c.Err(err)
 		return
 	}

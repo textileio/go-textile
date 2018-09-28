@@ -13,9 +13,12 @@ import (
 	"github.com/op/go-logging"
 	"github.com/skip2/go-qrcode"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/gateway"
+	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/repo"
 	rconfig "github.com/textileio/textile-go/repo/config"
-	"github.com/textileio/textile-go/wallet"
+	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -23,12 +26,12 @@ import (
 )
 
 var (
-	appName  = "Textile"
-	builtAt  string
-	debug    = flag.Bool("d", false, "enables the debug mode")
-	window   *astilectron.Window
-	gateway  string
-	expanded bool
+	appName     = "Textile"
+	builtAt     string
+	debug       = flag.Bool("d", false, "enables the debug mode")
+	window      *astilectron.Window
+	gatewayAddr string
+	expanded    bool
 )
 
 const (
@@ -67,31 +70,44 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	if err := os.MkdirAll(appDir, 0755); err != nil {
 		return err
 	}
+	repoPath := filepath.Join(appDir, "repo")
 
-	// create a desktop textile node
-	config := core.NodeConfig{
+	// run init if needed
+	if !fsrepo.IsInitialized(repoPath) {
+		accnt := keypair.Random()
+		initc := core.InitConfig{
+			Account:  *accnt,
+			RepoPath: repoPath,
+			LogLevel: logging.DEBUG,
+			LogFiles: true,
+		}
+		if err := core.InitRepo(initc); err != nil {
+			return err
+		}
+	}
+
+	// build textile node
+	runc := core.RunConfig{
+		RepoPath: repoPath,
 		LogLevel: logging.DEBUG,
 		LogFiles: true,
-		WalletConfig: wallet.Config{
-			RepoPath: filepath.Join(appDir, "repo"),
-		},
 	}
-	core.Node, _, err = core.NewNode(config)
+	core.Node, err = core.NewTextile(runc)
 	if err != nil {
 		return err
 	}
 
 	// bring the node online and startup the gateway
-	if err := core.Node.StartWallet(); err != nil {
+	if err := core.Node.Start(); err != nil {
 		return err
 	}
-	<-core.Node.Wallet.Online()
+	<-core.Node.Online()
 
 	// subscribe to wallet updates
 	go func() {
 		for {
 			select {
-			case update, ok := <-core.Node.Wallet.Updates():
+			case update, ok := <-core.Node.Updates():
 				if !ok {
 					return
 				}
@@ -99,7 +115,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 					"update": update,
 				}
 				switch update.Type {
-				case wallet.ThreadAdded:
+				case core.ThreadAdded:
 					if expanded {
 						sendData("wallet.update", payload)
 					} else {
@@ -121,7 +137,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	go func() {
 		for {
 			select {
-			case update, ok := <-core.Node.Wallet.ThreadUpdates():
+			case update, ok := <-core.Node.ThreadUpdates():
 				if !ok {
 					return
 				}
@@ -136,7 +152,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	go func() {
 		for {
 			select {
-			case notification, ok := <-core.Node.Wallet.Notifications():
+			case notification, ok := <-core.Node.Notifications():
 				if !ok {
 					return
 				}
@@ -155,7 +171,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 				// tmp auto-accept thread invites
 				if notification.Type == repo.ReceivedInviteNotification {
 					go func(tid string) {
-						if _, err := core.Node.Wallet.AcceptThreadInvite(tid); err != nil {
+						if _, err := core.Node.AcceptThreadInvite(tid); err != nil {
 							astilog.Error(err)
 						}
 					}(notification.BlockId)
@@ -177,10 +193,10 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	}()
 
 	// start the gateway
-	core.Node.StartGateway(fmt.Sprintf("127.0.0.1:%d", rconfig.GetRandomPort()))
+	gateway.Host.Start(fmt.Sprintf("127.0.0.1:%d", rconfig.GetRandomPort()))
 
 	// save off the server address
-	gateway = fmt.Sprintf("http://%s", core.Node.GetGatewayAddr())
+	gatewayAddr = fmt.Sprintf("http://%s", gateway.Host.Addr())
 
 	// sleep for a bit on the landing screen, it feels better
 	time.Sleep(SleepOnLoad)
@@ -189,11 +205,11 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	sendData("login", map[string]interface{}{
 		"name":    "SessionId",
 		"value":   "not used",
-		"gateway": gateway,
+		"gateway": gatewayAddr,
 	})
 
 	// check if we're configured yet
-	threads := core.Node.Wallet.Threads()
+	threads := core.Node.Threads()
 	if len(threads) > 0 {
 		// load threads for UI
 		var threadsJSON []map[string]interface{}
@@ -242,7 +258,7 @@ func sendData(name string, data map[string]interface{}) {
 func handleMessage(_ *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
 	case "refresh":
-		if err := core.Node.Wallet.FetchMessages(); err != nil {
+		if err := core.Node.FetchMessages(); err != nil {
 			return nil, err
 		}
 		return map[string]interface{}{}, nil
@@ -265,32 +281,40 @@ func handleMessage(_ *astilectron.Window, m bootstrap.MessageIn) (interface{}, e
 
 func getQRCode() (string, string, error) {
 	// get our own public key
-	pk, err := core.Node.Wallet.GetPubKeyString()
+	accnt, err := core.Node.Account()
+	if err != nil {
+		return "", "", err
+	}
+	pk, err := accnt.LibP2PPubKey()
+	if err != nil {
+		return "", "", err
+	}
+	pks, err := ipfs.EncodeKey(pk)
 	if err != nil {
 		return "", "", err
 	}
 
 	// create a qr code
-	url := fmt.Sprintf("https://www.textile.photos/invites/device#key=%s", pk)
+	url := fmt.Sprintf("https://www.textile.photos/invites/device#key=%s", pks)
 	png, err := qrcode.Encode(url, qrcode.Medium, QRCodeSize)
 	if err != nil {
 		return "", "", err
 	}
 
-	return base64.StdEncoding.EncodeToString(png), pk, nil
+	return base64.StdEncoding.EncodeToString(png), pks, nil
 }
 
 func getThreadPhotos(id string) (string, error) {
-	_, thrd := core.Node.Wallet.GetThread(id)
+	_, thrd := core.Node.GetThread(id)
 	if thrd == nil {
 		return "", errors.New("thread not found")
 	}
 	var html string
 	btype := repo.PhotoBlock
 	for _, block := range thrd.Blocks("", -1, &btype, nil) {
-		photo := fmt.Sprintf("%s/ipfs/%s/photo?block=%s", gateway, block.DataId, block.Id)
-		small := fmt.Sprintf("%s/ipfs/%s/small?block=%s", gateway, block.DataId, block.Id)
-		meta := fmt.Sprintf("%s/ipfs/%s/meta?block=%s", gateway, block.DataId, block.Id)
+		photo := fmt.Sprintf("%s/ipfs/%s/photo?block=%s", gatewayAddr, block.DataId, block.Id)
+		small := fmt.Sprintf("%s/ipfs/%s/small?block=%s", gatewayAddr, block.DataId, block.Id)
+		meta := fmt.Sprintf("%s/ipfs/%s/meta?block=%s", gatewayAddr, block.DataId, block.Id)
 		img := fmt.Sprintf("<img src=\"%s\" />", small)
 		html += fmt.Sprintf(
 			"<div id=\"%s\" class=\"grid-item\" ondragstart=\"imageDragStart(event);\" draggable=\"true\" data-url=\"%s\" data-meta=\"%s\">%s</div>",

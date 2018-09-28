@@ -19,7 +19,7 @@ type Devices struct {
 // Devices lists all devices
 func (m *Mobile) Devices() (string, error) {
 	devices := Devices{Items: make([]Device, 0)}
-	for _, dev := range core.Node.Wallet.Devices() {
+	for _, dev := range core.Node.Devices() {
 		item := Device{Id: dev.Id, Name: dev.Name}
 		devices.Items = append(devices.Items, item)
 	}
@@ -37,10 +37,10 @@ func (m *Mobile) AddDevice(name string, pubKey string) error {
 	if err != nil {
 		return err
 	}
-	return core.Node.Wallet.AddDevice(name, pk)
+	return core.Node.AddDevice(name, pk)
 }
 
 // RemoveDevice call core RemoveDevice
 func (m *Mobile) RemoveDevice(id string) error {
-	return core.Node.Wallet.RemoveDevice(id)
+	return core.Node.RemoveDevice(id)
 }

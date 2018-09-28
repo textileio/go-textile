@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-func CafeReferral(c *ishell.Context) {
+func cafeAddReferral(c *ishell.Context) {
 	c.Print("key: ")
 	key := c.ReadPassword()
 	c.Print("count (1): ")
@@ -25,7 +25,7 @@ func CafeReferral(c *ishell.Context) {
 	if err != nil {
 		limit = 1
 	}
-	username, err := core.Node.Wallet.GetUsername()
+	username, err := core.Node.GetUsername()
 	if err != nil {
 		c.Err(err)
 		return
@@ -40,7 +40,7 @@ func CafeReferral(c *ishell.Context) {
 		Limit:       limit,
 		RequestedBy: *username,
 	}
-	res, err := core.Node.Wallet.CreateReferral(req)
+	res, err := core.Node.CreateCafeReferral(req)
 	if err != nil {
 		c.Err(err)
 		return
@@ -52,11 +52,11 @@ func CafeReferral(c *ishell.Context) {
 	}
 }
 
-func ListCafeReferrals(c *ishell.Context) {
+func listCafeReferrals(c *ishell.Context) {
 	c.Print("key: ")
 	key := c.ReadPassword()
 
-	res, err := core.Node.Wallet.ListReferrals(key)
+	res, err := core.Node.ListCafeReferrals(key)
 	if err != nil {
 		c.Err(err)
 		return
@@ -68,61 +68,37 @@ func ListCafeReferrals(c *ishell.Context) {
 	}
 }
 
-func CafeRegister(c *ishell.Context) {
-	c.Print("email address: ")
-	email := c.ReadLine()
-	c.Print("username: ")
-	username := c.ReadLine()
+func cafeRegister(c *ishell.Context) {
 	c.Print("referral code: ")
 	code := c.ReadLine()
-	c.Print("password: ")
-	password := c.ReadPassword()
 
-	reg := &models.UserRegistration{
-		Username: username,
-		Password: password,
-		Identity: &models.UserIdentity{
-			Type:  models.EmailAddress,
-			Value: email,
-		},
-		Referral: code,
-	}
-	if err := core.Node.Wallet.SignUp(reg); err != nil {
+	if err := core.Node.CafeRegister(code); err != nil {
 		c.Err(err)
 		return
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green(fmt.Sprintf("welcome aboard, %s!", username)))
+	c.Println(green("welcome aboard!"))
 }
 
-func CafeLogin(c *ishell.Context) {
-	c.Print("username: ")
-	username := c.ReadLine()
-	c.Print("password: ")
-	password := c.ReadPassword()
-
-	creds := &models.UserCredentials{
-		Username: username,
-		Password: password,
-	}
-	if err := core.Node.Wallet.SignIn(creds); err != nil {
+func cafeLogin(c *ishell.Context) {
+	if err := core.Node.CafeLogin(); err != nil {
 		c.Err(err)
 		return
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green(fmt.Sprintf("welcome back, %s!", username)))
+	c.Println(green("welcome back, %s!"))
 }
 
-func CafeLogout(c *ishell.Context) {
+func cafeLogout(c *ishell.Context) {
 	c.Print("logout? Y/n")
 	confirm := c.ReadLine()
 
 	if confirm != "" && confirm != "Y" {
 		return
 	}
-	if err := core.Node.Wallet.SignOut(); err != nil {
+	if err := core.Node.CafeLogout(); err != nil {
 		c.Err(err)
 		return
 	}
@@ -131,21 +107,21 @@ func CafeLogout(c *ishell.Context) {
 	c.Println(green("see ya!"))
 }
 
-func CafeStatus(c *ishell.Context) {
-	signedIn, err := core.Node.Wallet.IsSignedIn()
+func cafeStatus(c *ishell.Context) {
+	loggedIn, err := core.Node.CafeLoggedIn()
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	if signedIn {
+	if loggedIn {
 		c.Println(color.New(color.FgHiGreen).SprintFunc()("logged in"))
 	} else {
 		c.Println(color.New(color.FgHiRed).SprintFunc()("not logged in"))
 	}
 }
 
-func CafeTokens(c *ishell.Context) {
-	tokens, err := core.Node.Wallet.GetTokens(false)
+func cafeTokens(c *ishell.Context) {
+	tokens, err := core.Node.GetCafeTokens(false)
 	if err != nil {
 		c.Err(err)
 		return

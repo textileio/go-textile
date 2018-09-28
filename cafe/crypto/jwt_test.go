@@ -3,7 +3,7 @@ package crypto_test
 import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/textileio/textile-go/cafe/crypto"
-	"github.com/textileio/textile-go/util"
+	"github.com/textileio/textile-go/ipfs"
 	"strings"
 	"testing"
 )
@@ -41,7 +41,7 @@ func TestSigningMethodEd25519_Alg(t *testing.T) {
 }
 
 func TestSigningMethodEd25519_Sign(t *testing.T) {
-	sk, err := util.UnmarshalPrivateKeyFromString(privateKey)
+	sk, err := ipfs.UnmarshalPrivateKeyFromString(privateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +61,7 @@ func TestSigningMethodEd25519_Sign(t *testing.T) {
 }
 
 func TestSigningMethodEd25519_Verify(t *testing.T) {
-	pk, err := util.UnmarshalPublicKeyFromString(publicKey)
+	pk, err := ipfs.UnmarshalPublicKeyFromString(publicKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestSigningMethodEd25519_Verify(t *testing.T) {
 }
 
 func TestGenerateEd25519Token(t *testing.T) {
-	sk, err := util.UnmarshalPrivateKeyFromString(privateKey)
+	sk, err := ipfs.UnmarshalPrivateKeyFromString(privateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
