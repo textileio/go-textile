@@ -163,8 +163,8 @@ func (x *WalletInitCommand) Execute(args []string) error {
 		return err
 	}
 	fmt.Println("--- ACCOUNT 0 ---")
-	fmt.Println(fmt.Sprintf("PUBLIC KEY: %s", kp.Address()))
-	fmt.Println(fmt.Sprintf("SECRET KEY: %s", kp.Seed()))
+	fmt.Println(fmt.Sprintf("PUBLIC ADDR: %s", kp.Address()))
+	fmt.Println(fmt.Sprintf("SECRET SEED: %s", kp.Seed()))
 
 	return nil
 }
@@ -181,13 +181,7 @@ func (x *WalletAccountsCommand) Execute(args []string) error {
 	shell := ishell.New()
 
 	// determine word count
-	count := shell.MultiChoice([]string{
-		"12",
-		"15",
-		"18",
-		"21",
-		"24",
-	}, "How many words are in your mnemonic recovery phrase?")
+	count := shell.MultiChoice([]string{"12", "15", "18", "21", "24"}, "How many words are in your mnemonic recovery phrase?")
 	var wcount wallet.WordCount
 	switch count {
 	case 0:
@@ -223,8 +217,8 @@ func (x *WalletAccountsCommand) Execute(args []string) error {
 			return err
 		}
 		fmt.Println(fmt.Sprintf("--- ACCOUNT %d ---", i))
-		fmt.Println(fmt.Sprintf("PUBLIC KEY: %s", kp.Address()))
-		fmt.Println(fmt.Sprintf("SECRET KEY: %s", kp.Seed()))
+		fmt.Println(fmt.Sprintf("PUBLIC ADDR: %s", kp.Address()))
+		fmt.Println(fmt.Sprintf("SECRET SEED: %s", kp.Seed()))
 	}
 	return nil
 }
