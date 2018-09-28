@@ -29,8 +29,8 @@ import (
 var wordsRegexp = regexp.MustCompile(`^[a-z]+$`)
 
 type IPFSOptions struct {
-	ServerMode  bool   `long:"server" description:"apply IPFS server profile"`
-	SwarmPorts  string `long:"swarm-ports" description:"set the swarm ports (tcp,ws)" default:"random"`
+	ServerMode bool   `long:"server" description:"apply IPFS server profile"`
+	SwarmPorts string `long:"swarm-ports" description:"set the swarm ports (tcp,ws)" default:"random"`
 }
 
 type LogOptions struct {
@@ -57,18 +57,15 @@ type CafeOptions struct {
 	ReferralKey string `long:"cafe-referral-key" description:"set the cafe referral key"`
 }
 
-type Options struct {
-	RepoPath string     `short:"r" long:"repo-dir" description:"specify a custom repository path"`
-	Logs     LogOptions `group:"Log Options"`
-}
+type Options struct{}
 
-type WalletCommand struct{
-	Init WalletInitCommand `command:"init"`
+type WalletCommand struct {
+	Init     WalletInitCommand     `command:"init"`
 	Accounts WalletAccountsCommand `command:"accounts"`
 }
 
 type WalletInitCommand struct {
-	WordCount int `short:"w" long:"word-count" description:"number of mnemonic recovery phrase words: 12,15,18,21,24" default:"12"`
+	WordCount int    `short:"w" long:"word-count" description:"number of mnemonic recovery phrase words: 12,15,18,21,24" default:"12"`
 	Password  string `short:"p" long:"password" description:"mnemonic recovery phrase password (omit if none)"`
 }
 
@@ -81,18 +78,24 @@ type WalletAccountsCommand struct {
 type VersionCommand struct{}
 
 type InitCommand struct {
-	AccountSeed string `required:"true" short:"s" long:"seed" description:"account seed (run 'wallet' command to generate new seeds)"`
+	AccountSeed string      `required:"true" short:"s" long:"seed" description:"account seed (run 'wallet' command to generate new seeds)"`
+	RepoPath    string      `short:"r" long:"repo-dir" description:"specify a custom repository path"`
+	Logs        LogOptions  `group:"Log Options"`
 	IPFS        IPFSOptions `group:"IPFS Options"`
 }
 
 type DaemonCommand struct {
-	Gateway GatewayOptions `group:"Gateway Options"`
-	Cafe    CafeOptions    `group:"Cafe Options"`
+	RepoPath string         `short:"r" long:"repo-dir" description:"specify a custom repository path"`
+	Logs     LogOptions     `group:"Log Options"`
+	Gateway  GatewayOptions `group:"Gateway Options"`
+	Cafe     CafeOptions    `group:"Cafe Options"`
 }
 
 type ShellCommand struct {
-	Gateway GatewayOptions `group:"Gateway Options"`
-	Cafe    CafeOptions    `group:"Cafe Options"`
+	RepoPath string         `short:"r" long:"repo-dir" description:"specify a custom repository path"`
+	Logs     LogOptions     `group:"Log Options"`
+	Gateway  GatewayOptions `group:"Gateway Options"`
+	Cafe     CafeOptions    `group:"Cafe Options"`
 }
 
 var initCommand InitCommand
@@ -214,7 +217,7 @@ func (x *WalletAccountsCommand) Execute(args []string) error {
 	wall := wallet.NewWalletFromRecoveryPhrase(strings.Join(words, " "))
 
 	// show info
-	for i := x.Offset; i < x.Offset + x.Depth; i++ {
+	for i := x.Offset; i < x.Offset+x.Depth; i++ {
 		kp, err := wall.AccountAt(i, x.Password)
 		if err != nil {
 			return err
@@ -243,13 +246,13 @@ func (x *InitCommand) Execute(args []string) error {
 	}
 
 	// handle repo path
-	repoPath, err := getRepoPath()
+	repoPath, err := getRepoPath(x.RepoPath)
 	if err != nil {
 		return err
 	}
 
 	// determine log level
-	level, err := logging.LogLevel(strings.ToUpper(options.Logs.Level))
+	level, err := logging.LogLevel(strings.ToUpper(x.Logs.Level))
 	if err != nil {
 		return errors.New(fmt.Sprintf("determine log level failed: %s", err))
 	}
@@ -262,7 +265,7 @@ func (x *InitCommand) Execute(args []string) error {
 		IsMobile:   false,
 		IsServer:   x.IPFS.ServerMode,
 		LogLevel:   level,
-		LogFiles:   !options.Logs.NoFiles,
+		LogFiles:   !x.Logs.NoFiles,
 	}
 
 	// initialize a node
@@ -276,7 +279,7 @@ func (x *InitCommand) Execute(args []string) error {
 }
 
 func (x *DaemonCommand) Execute(args []string) error {
-	if err := buildNode(x.Cafe, x.Gateway); err != nil {
+	if err := buildNode(x.RepoPath, x.Cafe, x.Gateway, x.Logs); err != nil {
 		return err
 	}
 	printSplashScreen(x.Cafe, true)
@@ -297,7 +300,7 @@ func (x *DaemonCommand) Execute(args []string) error {
 }
 
 func (x *ShellCommand) Execute(args []string) error {
-	if err := buildNode(x.Cafe, x.Gateway); err != nil {
+	if err := buildNode(x.RepoPath, x.Cafe, x.Gateway, x.Logs); err != nil {
 		return err
 	}
 	printSplashScreen(x.Cafe, false)
@@ -311,9 +314,8 @@ func (x *ShellCommand) Execute(args []string) error {
 	return nil
 }
 
-func getRepoPath() (string, error) {
+func getRepoPath(repoPath string) (string, error) {
 	// handle repo path
-	repoPath := options.RepoPath
 	if len(repoPath) == 0 {
 		// get homedir
 		home, err := homedir.Dir()
@@ -331,15 +333,15 @@ func getRepoPath() (string, error) {
 	return repoPath, nil
 }
 
-func buildNode(cafeOpts CafeOptions, gatewayOpts GatewayOptions) error {
+func buildNode(repoPath string, cafeOpts CafeOptions, gatewayOpts GatewayOptions, logOpts LogOptions) error {
 	// handle repo path
-	repoPathf, err := getRepoPath()
+	repoPathf, err := getRepoPath(repoPath)
 	if err != nil {
 		return err
 	}
 
 	// determine log level
-	level, err := logging.LogLevel(strings.ToUpper(options.Logs.Level))
+	level, err := logging.LogLevel(strings.ToUpper(logOpts.Level))
 	if err != nil {
 		return errors.New(fmt.Sprintf("determine log level failed: %s", err))
 	}
@@ -349,7 +351,7 @@ func buildNode(cafeOpts CafeOptions, gatewayOpts GatewayOptions) error {
 		RepoPath: repoPathf,
 		CafeAddr: cafeOpts.Addr,
 		LogLevel: level,
-		LogFiles: !options.Logs.NoFiles,
+		LogFiles: !logOpts.NoFiles,
 	}
 
 	// create a node
