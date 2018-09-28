@@ -31,7 +31,7 @@ type InitOptions struct {
 }
 
 type LogOptions struct {
-	Level   string `short:"l" long:"log-level" description:"set the logging level [debug, info, notice, warning, error, critical]" default:"debug"`
+	Level   string `short:"l" long:"log-level" description:"set the logging level [debug, info, notice, warning, error, critical]" default:"info"`
 	NoFiles bool   `short:"n" long:"no-log-files" description:"do not save logs on disk"`
 }
 
