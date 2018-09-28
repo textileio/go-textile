@@ -9,7 +9,7 @@ import (
 
 type Migration004 struct{}
 
-func (Migration004) Up(repoPath string, dbPassword string, testnet bool) error {
+func (Migration004) Up(repoPath string, pinCode string, testnet bool) error {
 	var dbPath string
 	if testnet {
 		dbPath = path.Join(repoPath, "datastore", "testnet.db")
@@ -20,8 +20,8 @@ func (Migration004) Up(repoPath string, dbPassword string, testnet bool) error {
 	if err != nil {
 		return err
 	}
-	if dbPassword != "" {
-		p := "pragma key='" + dbPassword + "';"
+	if pinCode != "" {
+		p := "pragma key='" + pinCode + "';"
 		if _, err := db.Exec(p); err != nil {
 			return err
 		}
@@ -75,6 +75,6 @@ func (Migration004) Up(repoPath string, dbPassword string, testnet bool) error {
 	return nil
 }
 
-func (Migration004) Down(repoPath string, dbPassword string, testnet bool) error {
+func (Migration004) Down(repoPath string, pinCode string, testnet bool) error {
 	return nil
 }

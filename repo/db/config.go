@@ -26,7 +26,7 @@ func (c *ConfigDB) Init(pin string) error {
 	return initDatabaseTables(c.db, pin)
 }
 
-func (c *ConfigDB) Configure(kp *keypair.Full, created time.Time) error {
+func (c *ConfigDB) Configure(kp *keypair.Full, mobile bool, created time.Time) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -39,6 +39,15 @@ func (c *ConfigDB) Configure(kp *keypair.Full, created time.Time) error {
 	}
 	defer stmt.Close()
 	_, err = stmt.Exec("seed", kp.Seed())
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	var mobileInt int
+	if mobile {
+		mobileInt = 1
+	}
+	_, err = stmt.Exec("mobile", mobileInt)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -80,6 +89,26 @@ func (c *ConfigDB) GetAccount() (*keypair.Full, error) {
 		return nil, errors.New("invalid seed")
 	}
 	return full, nil
+}
+
+func (c *ConfigDB) GetMobile() (bool, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	var mobile bool
+	stmt, err := c.db.Prepare("select value from config where key=?")
+	if err != nil {
+		return mobile, err
+	}
+	defer stmt.Close()
+	var mobileInt int
+	err = stmt.QueryRow("mobile").Scan(&mobileInt)
+	if err != nil {
+		return mobile, err
+	}
+	if mobileInt == 1 {
+		mobile = true
+	}
+	return mobile, nil
 }
 
 func (c *ConfigDB) GetCreationDate() (time.Time, error) {

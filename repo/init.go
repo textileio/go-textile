@@ -19,21 +19,18 @@ import (
 
 var log = logging.MustGetLogger("repo")
 
-var ErrRepoExists = errors.New("repo not empty, reinitializing would overwrite your keys")
+var ErrRepoExists = errors.New("repo not empty, reinitializing would overwrite your account")
+var ErrRepoDoesNotExist = errors.New("repo does not exist, initialization is required")
 
 const repover = "5"
 
-func DoInit(repoRoot string, version string, initDatastore func() error) error {
+func DoInit(repoRoot string, initDatastore func() error) error {
 	if err := checkWriteable(repoRoot); err != nil {
 		return err
 	}
 
-	// handle migrations
+	// double check if initialized
 	if fsrepo.IsInitialized(repoRoot) {
-		// run all migrations if needed
-		if err := migrateUp(repoRoot, "", false); err != nil {
-			return err
-		}
 		return ErrRepoExists
 	}
 	log.Infof("initializing textile ipfs node at %s", repoRoot)
@@ -55,7 +52,7 @@ func DoInit(repoRoot string, version string, initDatastore func() error) error {
 	if err != nil {
 		return err
 	}
-	conf, err := config.Init(peerIdentity, version)
+	conf, err := config.Init(peerIdentity)
 	if err != nil {
 		return err
 	}
@@ -134,7 +131,17 @@ func initializeIpnsKeyspace(repoRoot string) error {
 
 func destroyRepo(root string) error {
 	// exclude logs
-	paths := []string{"blocks", "datastore", "keystore", "tmp", "config", "datastore_spec", "repo.lock", "version"}
+	paths := []string{
+		"blocks",
+		"datastore",
+		"keystore",
+		"tmp",
+		"config",
+		"datastore_spec",
+		"repo.lock",
+		"repover",
+		"version",
+	}
 	for _, p := range paths {
 		err := os.RemoveAll(fmt.Sprintf("%s/%s", root, p))
 		if err != nil {

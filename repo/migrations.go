@@ -9,8 +9,8 @@ import (
 )
 
 type Migration interface {
-	Up(repoPath string, dbPassword string, testnet bool) error
-	Down(repoPath string, dbPassword string, testnet bool) error
+	Up(repoPath string, pinCode string, testnet bool) error
+	Down(repoPath string, pinCode string, testnet bool) error
 }
 
 var migrations = []Migration{
@@ -21,8 +21,8 @@ var migrations = []Migration{
 	migs.Migration004{},
 }
 
-// migrateUp looks at the currently active migration version and will migrate all the way up (applying all up migrations)
-func migrateUp(repoPath, dbPassword string, testnet bool) error {
+// MigrateUp looks at the currently active migration version and will migrate all the way up (applying all up migrations)
+func MigrateUp(repoPath, pinCode string, testnet bool) error {
 	version, err := ioutil.ReadFile(path.Join(repoPath, "repover"))
 	if err != nil && !os.IsNotExist(err) {
 		return err
@@ -36,7 +36,7 @@ func migrateUp(repoPath, dbPassword string, testnet bool) error {
 	x := v
 	for _, m := range migrations[v:] {
 		log.Infof("migrating repo to version %d...", x+1)
-		err := m.Up(repoPath, dbPassword, testnet)
+		err := m.Up(repoPath, pinCode, testnet)
 		if err != nil {
 			log.Errorf("error migrating repo to version %d: %s", x+1, err)
 			return err

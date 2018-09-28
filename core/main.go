@@ -68,17 +68,25 @@ type AddDataResult struct {
 	Archive *archive.Archive `json:"archive,omitempty"`
 }
 
-// Config is used to setup a textile node
-type Config struct {
-	Account    *keypair.Full
-	RepoPath   string
+// InitConfig is used to setup a textile node
+type InitConfig struct {
 	PinCode    string
+	RepoPath   string
+	LogLevel   logging.Level
+	LogFiles   bool
+	Account    keypair.Full
 	SwarmPorts string
 	IsMobile   bool
 	IsServer   bool
-	LogLevel   logging.Level
-	LogFiles   bool
-	CafeAddr   string
+}
+
+// RunConfig is used to define run options for a textile node
+type RunConfig struct {
+	PinCode  string
+	RepoPath string
+	LogLevel logging.Level
+	LogFiles bool
+	CafeAddr string
 }
 
 // Textile is the main Textile node structure
@@ -91,7 +99,6 @@ type Textile struct {
 	datastore          repo.Datastore
 	service            *serv.TextileService
 	cafeAddr           string
-	isMobile           bool
 	started            bool
 	threads            []*thread.Thread
 	online             chan struct{}
@@ -113,47 +120,70 @@ var ErrOffline = errors.New("node is offline")
 var ErrThreadLoaded = errors.New("thread is loaded")
 var ErrNoCafeHost = errors.New("cafe host address is not set")
 
-func NewTextile(config Config) (*Textile, error) {
-	repoLockFile := filepath.Join(config.RepoPath, fsrepo.LockFile)
-	os.Remove(repoLockFile)
-	dsLockFile := filepath.Join(config.RepoPath, "datastore", "LOCK")
-	os.Remove(dsLockFile)
+// InitRepo initializes a new node repo
+func InitRepo(config InitConfig) error {
+	// ensure init has not been run
+	if fsrepo.IsInitialized(config.RepoPath) {
+		return repo.ErrRepoExists
+	}
 
 	// log handling
-	var backendFile *logging.LogBackend
-	if config.LogFiles {
-		logger := &lumberjack.Logger{
-			Filename:   path.Join(config.RepoPath, "logs", "textile.log"),
-			MaxSize:    10, // megabytes
-			MaxBackups: 3,
-			MaxAge:     30, // days
-		}
-		backendFile = logging.NewLogBackend(logger, "", 0)
-	} else {
-		backendFile = logging.NewLogBackend(os.Stdout, "", 0)
-	}
-	backendFileFormatter := logging.NewBackendFormatter(backendFile, fileLogFormat)
-	logging.SetBackend(backendFileFormatter)
-	logging.SetLevel(config.LogLevel, "")
-
-	if config.Account == nil {
-		return nil, ErrAccountRequired
-	}
+	setupLogging(config.RepoPath, config.LogLevel, config.LogFiles)
 
 	// get database handle
-	sqliteDB, err := db.Create(config.RepoPath, "")
+	sqliteDB, err := db.Create(config.RepoPath, config.PinCode)
+	if err != nil {
+		return err
+	}
+
+	// init ipfs repo
+	if err := repo.DoInit(config.RepoPath, func() error {
+		if err := sqliteDB.Config().Init(config.PinCode); err != nil {
+			return err
+		}
+		return sqliteDB.Config().Configure(&config.Account, config.IsMobile, time.Now())
+	}); err != nil {
+		return err
+	}
+
+	// acquire the repo lock _before_ constructing a node. we need to make
+	// sure we are permitted to access the resources (datastore, etc.)
+	rep, err := fsrepo.Open(config.RepoPath)
+	if err != nil {
+		log.Errorf("error opening repo: %s", err)
+		return err
+	}
+
+	// if a specific swarm port was selected, set it in the config
+	if err := applySwarmPortConfigOption(rep, config.SwarmPorts); err != nil {
+		return err
+	}
+
+	// if this is a server node, apply the ipfs server profile
+	return applyServerConfigOption(rep, config.IsServer)
+}
+
+// NewTextile runs a node out of an initialized repo
+func NewTextile(config RunConfig) (*Textile, error) {
+	// ensure init has been run
+	if !fsrepo.IsInitialized(config.RepoPath) {
+		return nil, repo.ErrRepoDoesNotExist
+	}
+
+	// force open the repo and datastore (fixme please)
+	removeLocks(config.RepoPath)
+
+	// log handling
+	setupLogging(config.RepoPath, config.LogLevel, config.LogFiles)
+
+	// get database handle
+	sqliteDB, err := db.Create(config.RepoPath, config.PinCode)
 	if err != nil {
 		return nil, err
 	}
 
-	// we may be running in an uninitialized state.
-	err = repo.DoInit(config.RepoPath, Version, func() error {
-		if err := sqliteDB.Config().Init(config.PinCode); err != nil {
-			return err
-		}
-		return sqliteDB.Config().Configure(config.Account, time.Now())
-	})
-	if err != nil && err != repo.ErrRepoExists {
+	// run all migrations if needed
+	if err := repo.MigrateUp(config.RepoPath, config.PinCode, false); err != nil {
 		return nil, err
 	}
 
@@ -165,18 +195,8 @@ func NewTextile(config Config) (*Textile, error) {
 		return nil, err
 	}
 
-	// if a specific swarm port was selected, set it in the config
-	if err := applySwarmPortConfigOption(rep, config.SwarmPorts); err != nil {
-		return nil, err
-	}
-
 	// ensure bootstrap addresses are latest in config (without wiping repo)
 	if err := ensureBootstrapConfig(rep); err != nil {
-		return nil, err
-	}
-
-	// if this is a server node, apply the ipfs server profile
-	if err := applyServerConfigOption(rep, config.IsServer); err != nil {
 		return nil, err
 	}
 
@@ -184,7 +204,6 @@ func NewTextile(config Config) (*Textile, error) {
 		version:   Version,
 		repoPath:  config.RepoPath,
 		datastore: sqliteDB,
-		isMobile:  config.IsMobile,
 		cafeAddr:  config.CafeAddr,
 	}, nil
 }
@@ -289,7 +308,7 @@ func (t *Textile) Start() error {
 		t.pointerRepublisher = net.NewPointerRepublisher(t.ipfs, t.datastore)
 
 		// start jobs if not mobile
-		if !t.isMobile {
+		if !t.IsMobile() {
 			go t.messageRetriever.Run()
 			go t.pointerRepublisher.Run()
 		} else {
@@ -316,7 +335,7 @@ func (t *Textile) Start() error {
 		t.pinner = net.NewPinner(pinnerCfg)
 
 		// start ticker job if not mobile
-		if !t.isMobile {
+		if !t.IsMobile() {
 			go t.pinner.Run()
 		} else {
 			go t.pinner.Pin()
@@ -401,6 +420,19 @@ func (t *Textile) IsOnline() bool {
 	return t.started && t.ipfs.OnlineMode()
 }
 
+func (t *Textile) IsMobile() bool {
+	if err := t.touchDatastore(); err != nil {
+		log.Errorf("error calling is mobile: %s", err)
+		return false
+	}
+	mobile, err := t.datastore.Config().GetMobile()
+	if err != nil {
+		log.Errorf("error calling is mobile: %s", err)
+		return false
+	}
+	return mobile
+}
+
 func (t *Textile) Version() string {
 	return t.version
 }
@@ -463,7 +495,7 @@ func (t *Textile) createIPFS(online bool) error {
 
 	// determine routing
 	routing := core.DHTOption
-	if t.isMobile {
+	if t.IsMobile() {
 		routing = core.DHTClientOption
 	}
 
@@ -619,7 +651,7 @@ func (t *Textile) sendNotification(notification *repo.Notification) error {
 	return nil
 }
 
-// touchDB ensures that we have a good db connection
+// touchDatastore ensures that we have a good db connection
 func (t *Textile) touchDatastore() error {
 	if err := t.datastore.Ping(); err != nil {
 		log.Debug("re-opening datastore...")
@@ -631,4 +663,31 @@ func (t *Textile) touchDatastore() error {
 		t.datastore = sqliteDB
 	}
 	return nil
+}
+
+// setupLogging handles log settings
+func setupLogging(repoPath string, level logging.Level, files bool) {
+	var backendFile *logging.LogBackend
+	if files {
+		logger := &lumberjack.Logger{
+			Filename:   path.Join(repoPath, "logs", "textile.log"),
+			MaxSize:    10, // megabytes
+			MaxBackups: 3,
+			MaxAge:     30, // days
+		}
+		backendFile = logging.NewLogBackend(logger, "", 0)
+	} else {
+		backendFile = logging.NewLogBackend(os.Stdout, "", 0)
+	}
+	backendFileFormatter := logging.NewBackendFormatter(backendFile, fileLogFormat)
+	logging.SetBackend(backendFileFormatter)
+	logging.SetLevel(level, "")
+}
+
+// removeLocks force deletes the IPFS repo and SQLite DB lock files
+func removeLocks(repoPath string) {
+	repoLockFile := filepath.Join(repoPath, fsrepo.LockFile)
+	os.Remove(repoLockFile)
+	dsLockFile := filepath.Join(repoPath, "datastore", "LOCK")
+	os.Remove(dsLockFile)
 }

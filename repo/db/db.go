@@ -26,15 +26,15 @@ type SQLiteDatastore struct {
 	lock            *sync.Mutex
 }
 
-func Create(repoPath, password string) (*SQLiteDatastore, error) {
+func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 	var dbPath string
 	dbPath = path.Join(repoPath, "datastore", "mainnet.db")
 	conn, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, err
 	}
-	if password != "" {
-		p := "pragma key='" + password + "';"
+	if pin != "" {
+		p := "pragma key='" + pin + "';"
 		conn.Exec(p)
 	}
 	mux := new(sync.Mutex)

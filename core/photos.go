@@ -144,7 +144,7 @@ func (t *Textile) AddPhoto(path string) (*AddDataResult, error) {
 
 	// if not mobile, create a pin request
 	// on mobile, we let the OS handle the archive directly
-	if !t.isMobile {
+	if !t.IsMobile() {
 		if err := t.putPinRequest(result.Id); err != nil {
 			return nil, err
 		}

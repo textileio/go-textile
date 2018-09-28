@@ -32,7 +32,7 @@ func setup() {
 		panic(err)
 	}
 	configAddress = a0.Address()
-	if err := testDB.config.Configure(a0, time.Now()); err != nil {
+	if err := testDB.config.Configure(a0, true, time.Now()); err != nil {
 		panic(err)
 	}
 }
@@ -59,6 +59,16 @@ func TestConfigDB_GetAccount(t *testing.T) {
 	}
 	if account.Address() != configAddress {
 		t.Error("got bad account")
+	}
+}
+
+func TestConfigDB_GetMobile(t *testing.T) {
+	mobile, err := testDB.config.GetMobile()
+	if err != nil {
+		t.Error(err)
+	}
+	if !mobile {
+		t.Error("mobile should be true")
 	}
 }
 
