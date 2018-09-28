@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-func CafeAddReferral(c *ishell.Context) {
+func cafeAddReferral(c *ishell.Context) {
 	c.Print("key: ")
 	key := c.ReadPassword()
 	c.Print("count (1): ")
@@ -52,7 +52,7 @@ func CafeAddReferral(c *ishell.Context) {
 	}
 }
 
-func ListCafeReferrals(c *ishell.Context) {
+func listCafeReferrals(c *ishell.Context) {
 	c.Print("key: ")
 	key := c.ReadPassword()
 
@@ -68,7 +68,7 @@ func ListCafeReferrals(c *ishell.Context) {
 	}
 }
 
-func CafeRegister(c *ishell.Context) {
+func cafeRegister(c *ishell.Context) {
 	c.Print("referral code: ")
 	code := c.ReadLine()
 
@@ -81,7 +81,7 @@ func CafeRegister(c *ishell.Context) {
 	c.Println(green("welcome aboard!"))
 }
 
-func CafeLogin(c *ishell.Context) {
+func cafeLogin(c *ishell.Context) {
 	if err := core.Node.CafeLogin(); err != nil {
 		c.Err(err)
 		return
@@ -91,7 +91,7 @@ func CafeLogin(c *ishell.Context) {
 	c.Println(green("welcome back, %s!"))
 }
 
-func CafeLogout(c *ishell.Context) {
+func cafeLogout(c *ishell.Context) {
 	c.Print("logout? Y/n")
 	confirm := c.ReadLine()
 
@@ -107,7 +107,7 @@ func CafeLogout(c *ishell.Context) {
 	c.Println(green("see ya!"))
 }
 
-func CafeStatus(c *ishell.Context) {
+func cafeStatus(c *ishell.Context) {
 	loggedIn, err := core.Node.CafeLoggedIn()
 	if err != nil {
 		c.Err(err)
@@ -120,7 +120,7 @@ func CafeStatus(c *ishell.Context) {
 	}
 }
 
-func CafeTokens(c *ishell.Context) {
+func cafeTokens(c *ishell.Context) {
 	tokens, err := core.Node.GetCafeTokens(false)
 	if err != nil {
 		c.Err(err)

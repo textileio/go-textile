@@ -16,7 +16,7 @@ import (
 	"path/filepath"
 )
 
-func AddPhoto(c *ishell.Context) {
+func addPhoto(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing photo path"))
 		return
@@ -64,7 +64,7 @@ func AddPhoto(c *ishell.Context) {
 	}
 }
 
-func SharePhoto(c *ishell.Context) {
+func sharePhoto(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing photo id"))
 		return
@@ -109,7 +109,7 @@ func SharePhoto(c *ishell.Context) {
 	}
 }
 
-func ListPhotos(c *ishell.Context) {
+func listPhotos(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing thread id"))
 		return
@@ -136,7 +136,7 @@ func ListPhotos(c *ishell.Context) {
 	}
 }
 
-func GetPhoto(c *ishell.Context) {
+func getPhoto(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing photo id"))
 		return
@@ -175,7 +175,7 @@ func GetPhoto(c *ishell.Context) {
 	c.Println(blue("saved to " + path))
 }
 
-func GetPhotoMetadata(c *ishell.Context) {
+func getPhotoMetadata(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing photo id"))
 		return
@@ -203,7 +203,7 @@ func GetPhotoMetadata(c *ishell.Context) {
 	c.Println(black(string(jsonb)))
 }
 
-func GetPhotoKey(c *ishell.Context) {
+func getPhotoKey(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing photo id"))
 		return
@@ -226,7 +226,7 @@ func GetPhotoKey(c *ishell.Context) {
 	c.Println(blue(string(key)))
 }
 
-func AddPhotoComment(c *ishell.Context) {
+func addPhotoComment(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing block id"))
 		return
@@ -252,7 +252,7 @@ func AddPhotoComment(c *ishell.Context) {
 	}
 }
 
-func AddPhotoLike(c *ishell.Context) {
+func addPhotoLike(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing block id"))
 		return
@@ -276,7 +276,7 @@ func AddPhotoLike(c *ishell.Context) {
 	}
 }
 
-func ListPhotoComments(c *ishell.Context) {
+func listPhotoComments(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing block id"))
 		return
@@ -333,7 +333,7 @@ func ListPhotoComments(c *ishell.Context) {
 	}
 }
 
-func ListPhotoLikes(c *ishell.Context) {
+func listPhotoLikes(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing block id"))
 		return

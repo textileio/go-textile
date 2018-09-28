@@ -8,7 +8,7 @@ import (
 	"gopkg.in/abiosoft/ishell.v2"
 )
 
-func PublishProfile(c *ishell.Context) {
+func publishProfile(c *ishell.Context) {
 	entry, err := core.Node.PublishProfile(nil)
 	if err != nil {
 		c.Err(err)
@@ -23,7 +23,7 @@ func PublishProfile(c *ishell.Context) {
 	c.Println(green(fmt.Sprintf("ok, published %s -> %s", entry.Name, entry.Value)))
 }
 
-func ResolveProfile(c *ishell.Context) {
+func resolveProfile(c *ishell.Context) {
 	var name string
 	if len(c.Args) == 0 {
 		id, err := core.Node.ID()
@@ -46,7 +46,7 @@ func ResolveProfile(c *ishell.Context) {
 	c.Println(green(entry.String()))
 }
 
-func GetProfile(c *ishell.Context) {
+func getProfile(c *ishell.Context) {
 	var id string
 	if len(c.Args) == 0 {
 		pid, err := core.Node.ID()
@@ -77,7 +77,7 @@ func GetProfile(c *ishell.Context) {
 	}
 }
 
-func SetAvatarId(c *ishell.Context) {
+func setAvatarId(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing photo id"))
 		return

@@ -8,7 +8,7 @@ import (
 	"gopkg.in/abiosoft/ishell.v2"
 )
 
-func ShowId(c *ishell.Context) {
+func showId(c *ishell.Context) {
 	grey := color.New(color.FgHiBlack).SprintFunc()
 	cyan := color.New(color.FgHiCyan).SprintFunc()
 	green := color.New(color.FgHiGreen).SprintFunc()

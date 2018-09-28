@@ -53,7 +53,7 @@ func (ci connInfos) Swap(i, j int) {
 	ci.Peers[i], ci.Peers[j] = ci.Peers[j], ci.Peers[i]
 }
 
-func SwarmPeers(c *ishell.Context) {
+func swarmPeers(c *ishell.Context) {
 	conns, err := core.Node.Peers()
 	if err != nil {
 		c.Err(core.ErrOffline)
@@ -104,7 +104,7 @@ func SwarmPeers(c *ishell.Context) {
 	}
 }
 
-func SwarmPing(c *ishell.Context) {
+func swarmPing(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing peer address"))
 		return
@@ -145,7 +145,7 @@ func SwarmPing(c *ishell.Context) {
 	}
 }
 
-func SwarmConnect(c *ishell.Context) {
+func swarmConnect(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing peer address"))
 		return

@@ -9,7 +9,7 @@ import (
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
-func ListDevices(c *ishell.Context) {
+func listDevices(c *ishell.Context) {
 	devices := core.Node.Devices()
 	if len(devices) == 0 {
 		c.Println("no devices found")
@@ -23,7 +23,7 @@ func ListDevices(c *ishell.Context) {
 	}
 }
 
-func AddDevice(c *ishell.Context) {
+func addDevice(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing device name"))
 		return
@@ -56,7 +56,7 @@ func AddDevice(c *ishell.Context) {
 	c.Println(cyan(fmt.Sprintf("added device '%s'", name)))
 }
 
-func RemoveDevice(c *ishell.Context) {
+func removeDevice(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing device id"))
 		return

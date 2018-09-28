@@ -8,7 +8,7 @@ import (
 	"gopkg.in/abiosoft/ishell.v2"
 )
 
-func ListNotifications(c *ishell.Context) {
+func listNotifications(c *ishell.Context) {
 	notifs := core.Node.GetNotifications("", -1)
 	unread := core.Node.CountUnreadNotifications()
 	if len(notifs) == 0 {
@@ -33,7 +33,7 @@ func ListNotifications(c *ishell.Context) {
 	}
 }
 
-func ReadNotification(c *ishell.Context) {
+func readNotification(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing notification id"))
 		return
@@ -49,7 +49,7 @@ func ReadNotification(c *ishell.Context) {
 	c.Println(yellow("ok, marked as read"))
 }
 
-func ReadAllNotifications(c *ishell.Context) {
+func readAllNotifications(c *ishell.Context) {
 	if err := core.Node.ReadAllNotifications(); err != nil {
 		c.Err(err)
 		return
@@ -59,7 +59,7 @@ func ReadAllNotifications(c *ishell.Context) {
 	c.Println(yellow("ok, marked all as read"))
 }
 
-func AcceptThreadInviteViaNotification(c *ishell.Context) {
+func acceptThreadInviteViaNotification(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing notification id"))
 		return

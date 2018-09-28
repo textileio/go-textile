@@ -14,19 +14,22 @@ import (
 	"github.com/textileio/textile-go/gateway"
 	"github.com/textileio/textile-go/keypair"
 	rconfig "github.com/textileio/textile-go/repo/config"
+	"github.com/textileio/textile-go/wallet"
 	"gopkg.in/abiosoft/ishell.v2"
 	icore "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 )
 
-type InitOptions struct {
-	AccountSeed string `required:"true" short:"s" long:"seed" description:"account seed (run 'wallet' command to generate new seeds)"`
-	ServerMode  bool   `long:"server" description:"start in server mode"`
+var wordsRegexp = regexp.MustCompile(`^[a-z]+$`)
+
+type IPFSOptions struct {
+	ServerMode  bool   `long:"server" description:"apply IPFS server profile"`
 	SwarmPorts  string `long:"swarm-ports" description:"set the swarm ports (tcp,ws)" default:"random"`
 }
 
@@ -59,10 +62,27 @@ type Options struct {
 	Logs     LogOptions `group:"Log Options"`
 }
 
+type WalletCommand struct{
+	Init WalletInitCommand `command:"init"`
+	Accounts WalletAccountsCommand `command:"accounts"`
+}
+
+type WalletInitCommand struct {
+	WordCount int `short:"w" long:"word-count" description:"number of mnemonic recovery phrase words: 12,15,18,21,24" default:"12"`
+	Password  string `short:"p" long:"password" description:"mnemonic recovery phrase password (omit if none)"`
+}
+
+type WalletAccountsCommand struct {
+	Password string `short:"p" long:"password" description:"mnemonic recovery phrase password (omit if none)"`
+	Depth    int    `short:"d" long:"depth" description:"number of accounts to show" default:"1"`
+	Offset   int    `short:"o" long:"offset" description:"account depth to start from" default:"0"`
+}
+
 type VersionCommand struct{}
 
 type InitCommand struct {
-	Init InitOptions `group:"Init Options"`
+	AccountSeed string `required:"true" short:"s" long:"seed" description:"account seed (run 'wallet' command to generate new seeds)"`
+	IPFS        IPFSOptions `group:"IPFS Options"`
 }
 
 type DaemonCommand struct {
@@ -77,17 +97,21 @@ type ShellCommand struct {
 
 var initCommand InitCommand
 var versionCommand VersionCommand
+var walletCommand WalletCommand
 var shellCommand ShellCommand
 var daemonCommand DaemonCommand
 var options Options
 var parser = flags.NewParser(&options, flags.Default)
-var shell *ishell.Shell
 
 func init() {
 	parser.AddCommand("version",
 		"Print version and exit",
 		"Print the current version and exit.",
 		&versionCommand)
+	parser.AddCommand("wallet",
+		"Manage a wallet of accounts",
+		"Initialize a new wallet, or view accounts from an existing wallet.",
+		&walletCommand)
 	parser.AddCommand("init",
 		"Init the node repo and exit",
 		"Initialize the node repository and exit.",
@@ -106,6 +130,102 @@ func main() {
 	parser.Parse()
 }
 
+func (x *WalletInitCommand) Execute(args []string) error {
+	// determine word count
+	wcount, err := wallet.NewWordCount(x.WordCount)
+	if err != nil {
+		return err
+	}
+
+	// create a new wallet
+	w, err := wallet.NewWallet(wcount.EntropySize())
+	if err != nil {
+		return err
+	}
+
+	// show info
+	fmt.Println(strings.Repeat("-", len(w.RecoveryPhrase)+4))
+	fmt.Println("| " + w.RecoveryPhrase + " |")
+	fmt.Println(strings.Repeat("-", len(w.RecoveryPhrase)+4))
+	fmt.Println("WARNING! Store these words above in a safe place!")
+	fmt.Println("WARNING! If you lose your words, you will lose access to data in all derived accounts!")
+	fmt.Println("WARNING! Anyone who has access to these words can access your wallet accounts!")
+	fmt.Println("")
+	fmt.Println("Use: `wallet accounts` command to inspect more accounts.")
+	fmt.Println("")
+
+	// show first account
+	kp, err := w.AccountAt(0, x.Password)
+	if err != nil {
+		return err
+	}
+	fmt.Println("--- ACCOUNT 0 ---")
+	fmt.Println(fmt.Sprintf("PUBLIC KEY: %s", kp.Address()))
+	fmt.Println(fmt.Sprintf("SECRET KEY: %s", kp.Seed()))
+
+	return nil
+}
+
+func (x *WalletAccountsCommand) Execute(args []string) error {
+	if x.Depth < 1 || x.Depth > 100 {
+		return errors.New("depth must be greater than 0 and less than 100")
+	}
+	if x.Offset < 0 || x.Offset > x.Depth {
+		return errors.New("offset must be greater than 0 and less than depth")
+	}
+
+	// create a shell for reading input
+	shell := ishell.New()
+
+	// determine word count
+	count := shell.MultiChoice([]string{
+		"12",
+		"15",
+		"18",
+		"21",
+		"24",
+	}, "How many words are in your mnemonic recovery phrase?")
+	var wcount wallet.WordCount
+	switch count {
+	case 0:
+		wcount = wallet.TwelveWords
+	case 1:
+		wcount = wallet.FifteenWords
+	case 2:
+		wcount = wallet.EighteenWords
+	case 3:
+		wcount = wallet.TwentyOneWords
+	case 4:
+		wcount = wallet.TwentyFourWords
+	default:
+		return wallet.ErrInvalidWordCount
+	}
+
+	// read input
+	words := make([]string, int(wcount))
+	for i := 0; i < int(wcount); i++ {
+		shell.Print(fmt.Sprintf("Enter word #%d: ", i+1))
+		words[i] = shell.ReadLine()
+		if !wordsRegexp.MatchString(words[i]) {
+			shell.Println("Invalid word, try again.")
+			i--
+		}
+	}
+	wall := wallet.NewWalletFromRecoveryPhrase(strings.Join(words, " "))
+
+	// show info
+	for i := x.Offset; i < x.Offset + x.Depth; i++ {
+		kp, err := wall.AccountAt(i, x.Password)
+		if err != nil {
+			return err
+		}
+		fmt.Println(fmt.Sprintf("--- ACCOUNT %d ---", i))
+		fmt.Println(fmt.Sprintf("PUBLIC KEY: %s", kp.Address()))
+		fmt.Println(fmt.Sprintf("SECRET KEY: %s", kp.Seed()))
+	}
+	return nil
+}
+
 func (x *VersionCommand) Execute(args []string) error {
 	fmt.Println(core.Version)
 	return nil
@@ -113,7 +233,7 @@ func (x *VersionCommand) Execute(args []string) error {
 
 func (x *InitCommand) Execute(args []string) error {
 	// build keypair from provided seed
-	kp, err := keypair.Parse(x.Init.AccountSeed)
+	kp, err := keypair.Parse(x.AccountSeed)
 	if err != nil {
 		return errors.New(fmt.Sprintf("parse account seed failed: %s", err))
 	}
@@ -138,9 +258,9 @@ func (x *InitCommand) Execute(args []string) error {
 	config := core.InitConfig{
 		Account:    *accnt,
 		RepoPath:   repoPath,
-		SwarmPorts: x.Init.SwarmPorts,
+		SwarmPorts: x.IPFS.SwarmPorts,
 		IsMobile:   false,
-		IsServer:   x.Init.ServerMode,
+		IsServer:   x.IPFS.ServerMode,
 		LogLevel:   level,
 		LogFiles:   !options.Logs.NoFiles,
 	}
@@ -182,383 +302,12 @@ func (x *ShellCommand) Execute(args []string) error {
 	}
 	printSplashScreen(x.Cafe, false)
 
-	// create a new shell
-	shell = ishell.New()
-	shell.SetHomeHistoryPath(".ishell_history")
-
-	// handle interrupt
-	shell.Interrupt(func(c *ishell.Context, count int, input string) {
-		if count == 1 {
-			shell.Println("input Ctrl-C once more to exit")
-			return
-		}
-		shell.Println("interrupted")
-		shell.Printf("shutting down...")
-		if err := stopNode(x.Cafe); err != nil && err != core.ErrStopped {
-			c.Err(err)
-		} else {
-			shell.Printf("done\n")
-		}
-		os.Exit(1)
+	// run the shell
+	cmd.RunShell(func() error {
+		return startNode(x.Cafe, x.Gateway)
+	}, func() error {
+		return stopNode(x.Cafe)
 	})
-
-	// add interactive commands
-	shell.AddCmd(&ishell.Cmd{
-		Name: "start",
-		Help: "start the node",
-		Func: func(c *ishell.Context) {
-			if core.Node.Started() {
-				c.Println("already started")
-				return
-			}
-			if err := startNode(x.Cafe, x.Gateway); err != nil {
-				c.Println(fmt.Errorf("start node failed: %s", err))
-				return
-			}
-			c.Println("ok, started")
-		},
-	})
-	shell.AddCmd(&ishell.Cmd{
-		Name: "stop",
-		Help: "stop the node",
-		Func: func(c *ishell.Context) {
-			if !core.Node.Started() {
-				c.Println("already stopped")
-				return
-			}
-			if err := stopNode(x.Cafe); err != nil {
-				c.Println(fmt.Errorf("stop node failed: %s", err))
-				return
-			}
-			c.Println("ok, stopped")
-		},
-	})
-	shell.AddCmd(&ishell.Cmd{
-		Name: "id",
-		Help: "show node id",
-		Func: cmd.ShowId,
-	})
-	shell.AddCmd(&ishell.Cmd{
-		Name: "ping",
-		Help: "ping another peer",
-		Func: func(c *ishell.Context) {
-			if !core.Node.IsOnline() {
-				c.Println("not online yet")
-				return
-			}
-			if len(c.Args) == 0 {
-				c.Err(errors.New("missing peer id"))
-				return
-			}
-			status, err := core.Node.GetPeerStatus(c.Args[0])
-			if err != nil {
-				c.Println(fmt.Errorf("ping failed: %s", err))
-				return
-			}
-			c.Println(status)
-		},
-	})
-	shell.AddCmd(&ishell.Cmd{
-		Name: "fetch-messages",
-		Help: "fetch offline messages from the DHT",
-		Func: func(c *ishell.Context) {
-			if !core.Node.IsOnline() {
-				c.Println("not online yet")
-				return
-			}
-			if err := core.Node.FetchMessages(); err != nil {
-				c.Println(fmt.Errorf("fetch messages failed: %s", err))
-				return
-			}
-			c.Println("ok, fetching")
-		},
-	})
-	{
-		walletCmd := &ishell.Cmd{
-			Name:     "wallet",
-			Help:     "manage wallets",
-			LongHelp: "Create and manage your textile wallet.",
-		}
-		walletCmd.AddCmd(&ishell.Cmd{
-			Name: "create",
-			Help: "create a new textile wallet",
-			Func: cmd.CreateWallet,
-		})
-		walletCmd.AddCmd(&ishell.Cmd{
-			Name: "accounts",
-			Help: "view wallet account keys",
-			Func: cmd.WalletAccounts,
-		})
-		shell.AddCmd(walletCmd)
-	}
-	{
-		cafeCmd := &ishell.Cmd{
-			Name:     "cafe",
-			Help:     "manage cafe session",
-			LongHelp: "Manage your cafe user session.",
-		}
-		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "add-referral",
-			Help: "add cafe referrals",
-			Func: cmd.CafeAddReferral,
-		})
-		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "referrals",
-			Help: "list cafe referrals",
-			Func: cmd.ListCafeReferrals,
-		})
-		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "register",
-			Help: "cafe register",
-			Func: cmd.CafeRegister,
-		})
-		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "login",
-			Help: "cafe login",
-			Func: cmd.CafeLogin,
-		})
-		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "status",
-			Help: "cafe status",
-			Func: cmd.CafeStatus,
-		})
-		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "tokens",
-			Help: "cafe tokens",
-			Func: cmd.CafeTokens,
-		})
-		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "logout",
-			Help: "cafe logout",
-			Func: cmd.CafeLogout,
-		})
-		shell.AddCmd(cafeCmd)
-	}
-	{
-		profileCmd := &ishell.Cmd{
-			Name:     "profile",
-			Help:     "manage cafe profiles",
-			LongHelp: "Resolve other profiles, get and publish local profile.",
-		}
-		profileCmd.AddCmd(&ishell.Cmd{
-			Name: "publish",
-			Help: "publish local profile",
-			Func: cmd.PublishProfile,
-		})
-		profileCmd.AddCmd(&ishell.Cmd{
-			Name: "resolve",
-			Help: "resolve profiles",
-			Func: cmd.ResolveProfile,
-		})
-		profileCmd.AddCmd(&ishell.Cmd{
-			Name: "get",
-			Help: "get peer profiles",
-			Func: cmd.GetProfile,
-		})
-		profileCmd.AddCmd(&ishell.Cmd{
-			Name: "set-avatar",
-			Help: "set local profile avatar",
-			Func: cmd.SetAvatarId,
-		})
-		shell.AddCmd(profileCmd)
-	}
-	{
-		swarmCmd := &ishell.Cmd{
-			Name:     "swarm",
-			Help:     "same as ipfs swarm",
-			LongHelp: "Inspect IPFS swarm peers.",
-		}
-		swarmCmd.AddCmd(&ishell.Cmd{
-			Name: "peers",
-			Help: "show connected peers (same as `ipfs swarm peers`)",
-			Func: cmd.SwarmPeers,
-		})
-		swarmCmd.AddCmd(&ishell.Cmd{
-			Name: "ping",
-			Help: "ping a peer (same as `ipfs ping`)",
-			Func: cmd.SwarmPing,
-		})
-		swarmCmd.AddCmd(&ishell.Cmd{
-			Name: "connect",
-			Help: "connect to a peer (same as `ipfs swarm connect`)",
-			Func: cmd.SwarmConnect,
-		})
-		shell.AddCmd(swarmCmd)
-	}
-	{
-		photoCmd := &ishell.Cmd{
-			Name:     "photo",
-			Help:     "manage photos",
-			LongHelp: "Add, list, and get info about photos.",
-		}
-		photoCmd.AddCmd(&ishell.Cmd{
-			Name: "add",
-			Help: "add a new photo",
-			Func: cmd.AddPhoto,
-		})
-		photoCmd.AddCmd(&ishell.Cmd{
-			Name: "share",
-			Help: "share a photo to a different thread",
-			Func: cmd.SharePhoto,
-		})
-		photoCmd.AddCmd(&ishell.Cmd{
-			Name: "get",
-			Help: "save a photo to a local file",
-			Func: cmd.GetPhoto,
-		})
-		photoCmd.AddCmd(&ishell.Cmd{
-			Name: "key",
-			Help: "decrypt and print the key for a photo",
-			Func: cmd.GetPhotoKey,
-		})
-		photoCmd.AddCmd(&ishell.Cmd{
-			Name: "meta",
-			Help: "get photo metadata",
-			Func: cmd.GetPhotoMetadata,
-		})
-		photoCmd.AddCmd(&ishell.Cmd{
-			Name: "ls",
-			Help: "list photos from a thread",
-			Func: cmd.ListPhotos,
-		})
-		photoCmd.AddCmd(&ishell.Cmd{
-			Name: "comment",
-			Help: "comment on a photo (terminate input w/ ';'",
-			Func: cmd.AddPhotoComment,
-		})
-		photoCmd.AddCmd(&ishell.Cmd{
-			Name: "like",
-			Help: "like a photo",
-			Func: cmd.AddPhotoLike,
-		})
-		photoCmd.AddCmd(&ishell.Cmd{
-			Name: "comments",
-			Help: "list photo comments",
-			Func: cmd.ListPhotoComments,
-		})
-		photoCmd.AddCmd(&ishell.Cmd{
-			Name: "likes",
-			Help: "list photo likes",
-			Func: cmd.ListPhotoLikes,
-		})
-		shell.AddCmd(photoCmd)
-	}
-	{
-		threadCmd := &ishell.Cmd{
-			Name:     "thread",
-			Help:     "manage threads",
-			LongHelp: "Add, remove, list, invite to, and get info about textile threads.",
-		}
-		threadCmd.AddCmd(&ishell.Cmd{
-			Name: "add",
-			Help: "add a new thread",
-			Func: cmd.AddThread,
-		})
-		threadCmd.AddCmd(&ishell.Cmd{
-			Name: "rm",
-			Help: "remove a thread by name",
-			Func: cmd.RemoveThread,
-		})
-		threadCmd.AddCmd(&ishell.Cmd{
-			Name: "ls",
-			Help: "list threads",
-			Func: cmd.ListThreads,
-		})
-		threadCmd.AddCmd(&ishell.Cmd{
-			Name: "blocks",
-			Help: "list blocks",
-			Func: cmd.ListThreadBlocks,
-		})
-		threadCmd.AddCmd(&ishell.Cmd{
-			Name: "head",
-			Help: "show current HEAD",
-			Func: cmd.GetThreadHead,
-		})
-		threadCmd.AddCmd(&ishell.Cmd{
-			Name: "ignore",
-			Help: "ignore a block",
-			Func: cmd.IgnoreBlock,
-		})
-		threadCmd.AddCmd(&ishell.Cmd{
-			Name: "peers",
-			Help: "list peers",
-			Func: cmd.ListThreadPeers,
-		})
-		threadCmd.AddCmd(&ishell.Cmd{
-			Name: "invite",
-			Help: "invite a peer to a thread",
-			Func: cmd.AddThreadInvite,
-		})
-		threadCmd.AddCmd(&ishell.Cmd{
-			Name: "accept",
-			Help: "accept a thread invite",
-			Func: cmd.AcceptThreadInvite,
-		})
-		threadCmd.AddCmd(&ishell.Cmd{
-			Name: "invite-external",
-			Help: "create an external invite link",
-			Func: cmd.AddExternalThreadInvite,
-		})
-		threadCmd.AddCmd(&ishell.Cmd{
-			Name: "accept-external",
-			Help: "accept an external thread invite",
-			Func: cmd.AcceptExternalThreadInvite,
-		})
-		shell.AddCmd(threadCmd)
-	}
-	{
-		deviceCmd := &ishell.Cmd{
-			Name:     "device",
-			Help:     "manage connected devices",
-			LongHelp: "Add, remove, and list connected devices.",
-		}
-		deviceCmd.AddCmd(&ishell.Cmd{
-			Name: "add",
-			Help: "add a new device",
-			Func: cmd.AddDevice,
-		})
-		deviceCmd.AddCmd(&ishell.Cmd{
-			Name: "rm",
-			Help: "remove a device by name",
-			Func: cmd.RemoveDevice,
-		})
-		deviceCmd.AddCmd(&ishell.Cmd{
-			Name: "ls",
-			Help: "list devices",
-			Func: cmd.ListDevices,
-		})
-		shell.AddCmd(deviceCmd)
-	}
-	{
-		notificationCmd := &ishell.Cmd{
-			Name:     "notification",
-			Help:     "manage notifications",
-			LongHelp: "List and read notifications.",
-		}
-		notificationCmd.AddCmd(&ishell.Cmd{
-			Name: "read",
-			Help: "mark a notification as read",
-			Func: cmd.ReadNotification,
-		})
-		notificationCmd.AddCmd(&ishell.Cmd{
-			Name: "readall",
-			Help: "mark all notifications as read",
-			Func: cmd.ReadAllNotifications,
-		})
-		notificationCmd.AddCmd(&ishell.Cmd{
-			Name: "ls",
-			Help: "list notifications",
-			Func: cmd.ListNotifications,
-		})
-		notificationCmd.AddCmd(&ishell.Cmd{
-			Name: "accept",
-			Help: "accept an invite via notification",
-			Func: cmd.AcceptThreadInviteViaNotification,
-		})
-		shell.AddCmd(notificationCmd)
-	}
-
-	shell.Run()
 	return nil
 }
 

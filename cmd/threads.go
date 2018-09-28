@@ -10,7 +10,7 @@ import (
 	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
-func ListThreads(c *ishell.Context) {
+func listThreads(c *ishell.Context) {
 	threads := core.Node.Threads()
 	if len(threads) == 0 {
 		c.Println("no threads found")
@@ -24,7 +24,7 @@ func ListThreads(c *ishell.Context) {
 	}
 }
 
-func AddThread(c *ishell.Context) {
+func addThread(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing thread name"))
 		return
@@ -52,7 +52,7 @@ func AddThread(c *ishell.Context) {
 	c.Println(cyan(fmt.Sprintf("added thread %s with name %s", thrd.Id, name)))
 }
 
-func ListThreadPeers(c *ishell.Context) {
+func listThreadPeers(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing thread id"))
 		return
@@ -78,7 +78,7 @@ func ListThreadPeers(c *ishell.Context) {
 	}
 }
 
-func ListThreadBlocks(c *ishell.Context) {
+func listThreadBlocks(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing thread id"))
 		return
@@ -104,7 +104,7 @@ func ListThreadBlocks(c *ishell.Context) {
 	}
 }
 
-func GetThreadHead(c *ishell.Context) {
+func getThreadHead(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing thread id"))
 		return
@@ -127,7 +127,7 @@ func GetThreadHead(c *ishell.Context) {
 	c.Println(yellow(head))
 }
 
-func IgnoreBlock(c *ishell.Context) {
+func ignoreBlock(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing block id"))
 		return
@@ -151,7 +151,7 @@ func IgnoreBlock(c *ishell.Context) {
 	}
 }
 
-func AddThreadInvite(c *ishell.Context) {
+func addThreadInvite(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing peer pub key"))
 		return
@@ -189,7 +189,7 @@ func AddThreadInvite(c *ishell.Context) {
 	c.Println(green("invite sent!"))
 }
 
-func AcceptThreadInvite(c *ishell.Context) {
+func acceptThreadInvite(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing invite address"))
 		return
@@ -205,7 +205,7 @@ func AcceptThreadInvite(c *ishell.Context) {
 	c.Println(green("ok, accepted"))
 }
 
-func AddExternalThreadInvite(c *ishell.Context) {
+func addExternalThreadInvite(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing thread id"))
 		return
@@ -228,7 +228,7 @@ func AddExternalThreadInvite(c *ishell.Context) {
 	c.Println(green(fmt.Sprintf("added! creds: %s %s", addr.B58String(), string(key))))
 }
 
-func AcceptExternalThreadInvite(c *ishell.Context) {
+func acceptExternalThreadInvite(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing invite id"))
 		return
@@ -249,7 +249,7 @@ func AcceptExternalThreadInvite(c *ishell.Context) {
 	c.Println(green("ok, accepted"))
 }
 
-func RemoveThread(c *ishell.Context) {
+func removeThread(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing thread id"))
 		return
