@@ -18,6 +18,7 @@ import (
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/repo"
 	rconfig "github.com/textileio/textile-go/repo/config"
+	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -69,16 +70,29 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	if err := os.MkdirAll(appDir, 0755); err != nil {
 		return err
 	}
+	repoPath := filepath.Join(appDir, "repo")
 
-	// create a desktop textile node
-	// FIXME: allow local account login here, remove random account seed
-	config := core.Config{
-		Account:  keypair.Random(),
-		RepoPath: filepath.Join(appDir, "repo"),
+	// run init if needed
+	if !fsrepo.IsInitialized(repoPath) {
+		accnt := keypair.Random()
+		initc := core.InitConfig{
+			Account:  *accnt,
+			RepoPath: repoPath,
+			LogLevel: logging.DEBUG,
+			LogFiles: true,
+		}
+		if err := core.InitRepo(initc); err != nil {
+			return err
+		}
+	}
+
+	// build textile node
+	runc := core.RunConfig{
+		RepoPath: repoPath,
 		LogLevel: logging.DEBUG,
 		LogFiles: true,
 	}
-	core.Node, err = core.NewTextile(config)
+	core.Node, err = core.NewTextile(runc)
 	if err != nil {
 		return err
 	}

@@ -47,6 +47,17 @@ func TestNewTextile(t *testing.T) {
 	}
 }
 
+func TestNewTextileAgain(t *testing.T) {
+	config := &NodeConfig{
+		RepoPath: repo,
+		CafeAddr: os.Getenv("CAFE_ADDR"),
+		LogLevel: "DEBUG",
+	}
+	if _, err := NewNode(config, &TestMessenger{}); err != nil {
+		t.Errorf("create mobile node failed: %s", err)
+	}
+}
+
 func TestMobile_Start(t *testing.T) {
 	if err := mobile.Start(); err != nil {
 		t.Errorf("start mobile node failed: %s", err)

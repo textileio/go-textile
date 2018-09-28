@@ -6,6 +6,7 @@ import (
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/net"
+	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"
 	"time"
 )
 
@@ -26,6 +27,7 @@ type Messenger interface {
 // NOTE: logLevel is one of: CRITICAL ERROR WARNING NOTICE INFO DEBUG
 type NodeConfig struct {
 	Account  string
+	PinCode  string
 	RepoPath string
 	CafeAddr string
 	LogLevel string
@@ -40,30 +42,47 @@ type Mobile struct {
 
 // Create a gomobile compatible wrapper around TextileNode
 func NewNode(config *NodeConfig, messenger Messenger) (*Mobile, error) {
-	if config.Account == "" {
-		return nil, core.ErrAccountRequired
-	}
-	accnt, err := keypair.Parse(config.Account)
+	// determine log level
+	logLevel, err := logging.LogLevel(config.LogLevel)
 	if err != nil {
-		return nil, err
+		logLevel = logging.INFO
 	}
-	full, ok := accnt.(*keypair.Full)
-	if !ok {
-		return nil, keypair.ErrInvalidKey
+
+	// run init if needed
+	if !fsrepo.IsInitialized(config.RepoPath) {
+		if config.Account == "" {
+			return nil, core.ErrAccountRequired
+		}
+		kp, err := keypair.Parse(config.Account)
+		if err != nil {
+			return nil, err
+		}
+		accnt, ok := kp.(*keypair.Full)
+		if !ok {
+			return nil, keypair.ErrInvalidKey
+		}
+		initc := core.InitConfig{
+			Account:  *accnt,
+			PinCode:  config.PinCode,
+			RepoPath: config.RepoPath,
+			IsMobile: true,
+			LogLevel: logLevel,
+			LogFiles: config.LogFiles,
+		}
+		if err := core.InitRepo(initc); err != nil {
+			return nil, err
+		}
 	}
-	ll, err := logging.LogLevel(config.LogLevel)
-	if err != nil {
-		ll = logging.INFO
-	}
-	cconfig := core.Config{
-		Account:  full,
+
+	// build textile node
+	runc := core.RunConfig{
+		PinCode:  config.PinCode,
 		RepoPath: config.RepoPath,
-		IsMobile: true,
-		LogLevel: ll,
-		LogFiles: config.LogFiles,
 		CafeAddr: config.CafeAddr,
+		LogLevel: logLevel,
+		LogFiles: config.LogFiles,
 	}
-	node, err := core.NewTextile(cconfig)
+	node, err := core.NewTextile(runc)
 	if err != nil {
 		return nil, err
 	}

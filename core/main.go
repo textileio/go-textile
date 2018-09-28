@@ -35,7 +35,7 @@ var fileLogFormat = logging.MustStringFormatter(
 var log = logging.MustGetLogger("core")
 
 // Version is the core version identifier
-const Version = "0.1.9"
+const Version = "0.2.0"
 
 // Node is the single Textile instance
 var Node *Textile
@@ -70,23 +70,23 @@ type AddDataResult struct {
 
 // InitConfig is used to setup a textile node
 type InitConfig struct {
+	Account    keypair.Full
 	PinCode    string
 	RepoPath   string
-	LogLevel   logging.Level
-	LogFiles   bool
-	Account    keypair.Full
 	SwarmPorts string
 	IsMobile   bool
 	IsServer   bool
+	LogLevel   logging.Level
+	LogFiles   bool
 }
 
 // RunConfig is used to define run options for a textile node
 type RunConfig struct {
 	PinCode  string
 	RepoPath string
+	CafeAddr string
 	LogLevel logging.Level
 	LogFiles bool
-	CafeAddr string
 }
 
 // Textile is the main Textile node structure
@@ -219,10 +219,19 @@ func (t *Textile) Start() error {
 		t.done = make(chan struct{})
 		t.started = true
 
+		addr, err := t.Address()
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
 		accntId, err := t.ID()
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
 		peerPk, err := t.GetPeerPubKey()
 		if err != nil {
-			log.Errorf("error loading peer pk: %s", err)
+			log.Error(err.Error())
 			return
 		}
 		peerPks, err := ipfs.EncodeKey(peerPk)
@@ -231,8 +240,9 @@ func (t *Textile) Start() error {
 			return
 		}
 		log.Info("wallet is started")
-		log.Infof("peer pk: %s", peerPks)
+		log.Infof("account address: %s", addr)
 		log.Infof("account id: %s", accntId.Pretty())
+		log.Infof("peer pk: %s", peerPks)
 	}()
 	log.Info("starting wallet...")
 	t.online = make(chan struct{})

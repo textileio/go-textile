@@ -65,6 +65,12 @@ func Init(identity native.Identity) (*native.Config, error) {
 	swarmConnMgrGracePeriod := DefaultConnMgrGracePeriod.String()
 
 	conf := &native.Config{
+		API: native.API{
+			HTTPHeaders: map[string][]string{
+				"Server": {"go-ipfs/" + native.CurrentVersionNumber},
+			},
+		},
+
 		// setup the node's default addresses.
 		// NOTE: two swarm listen addrs, one tcp, one utp.
 		Addresses: addressesConfig(),

@@ -2,6 +2,7 @@ package core_test
 
 import (
 	"crypto/rand"
+	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/cafe/models"
 	. "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
@@ -14,15 +15,25 @@ var repo = "testdata/.textile"
 
 var node *Textile
 
-func TestNewTextile(t *testing.T) {
+func TestInitRepo(t *testing.T) {
 	os.RemoveAll(repo)
-	config := Config{
-		Account:  keypair.Random(),
+	accnt := keypair.Random()
+	if err := InitRepo(InitConfig{
+		Account:  *accnt,
+		RepoPath: repo,
+		LogLevel: logging.DEBUG,
+	}); err != nil {
+		t.Errorf("init node failed: %s", err)
+	}
+}
+
+func TestNewTextile(t *testing.T) {
+	var err error
+	node, err = NewTextile(RunConfig{
 		RepoPath: repo,
 		CafeAddr: os.Getenv("CAFE_ADDR"),
-	}
-	var err error
-	node, err = NewTextile(config)
+		LogLevel: logging.DEBUG,
+	})
 	if err != nil {
 		t.Errorf("create node failed: %s", err)
 	}

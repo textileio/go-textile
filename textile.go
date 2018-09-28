@@ -89,7 +89,7 @@ func init() {
 		"Print the current version and exit.",
 		&versionCommand)
 	parser.AddCommand("init",
-		"Init the node repo",
+		"Init the node repo and exit",
 		"Initialize the node repository and exit.",
 		&initCommand)
 	parser.AddCommand("shell",
@@ -128,6 +128,12 @@ func (x *InitCommand) Execute(args []string) error {
 		return err
 	}
 
+	// determine log level
+	level, err := logging.LogLevel(strings.ToUpper(options.Logs.Level))
+	if err != nil {
+		return errors.New(fmt.Sprintf("determine log level failed: %s", err))
+	}
+
 	// build config
 	config := core.InitConfig{
 		Account:    *accnt,
@@ -135,6 +141,8 @@ func (x *InitCommand) Execute(args []string) error {
 		SwarmPorts: x.Init.SwarmPorts,
 		IsMobile:   false,
 		IsServer:   x.Init.ServerMode,
+		LogLevel:   level,
+		LogFiles:   !options.Logs.NoFiles,
 	}
 
 	// initialize a node
@@ -590,9 +598,9 @@ func buildNode(cafeOpts CafeOptions, gatewayOpts GatewayOptions) error {
 	// node setup
 	config := core.RunConfig{
 		RepoPath: repoPathf,
+		CafeAddr: cafeOpts.Addr,
 		LogLevel: level,
 		LogFiles: !options.Logs.NoFiles,
-		CafeAddr: cafeOpts.Addr,
 	}
 
 	// create a node
