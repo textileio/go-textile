@@ -22,6 +22,7 @@ import (
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/config"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
 	"os"
 	"path"
 	"path/filepath"
@@ -146,8 +147,7 @@ func InitRepo(config InitConfig) error {
 		return err
 	}
 
-	// acquire the repo lock _before_ constructing a node. we need to make
-	// sure we are permitted to access the resources (datastore, etc.)
+	// open the repo
 	rep, err := fsrepo.Open(config.RepoPath)
 	if err != nil {
 		log.Errorf("error opening repo: %s", err)
@@ -160,7 +160,16 @@ func InitRepo(config InitConfig) error {
 	}
 
 	// if this is a server node, apply the ipfs server profile
-	return applyServerConfigOption(rep, config.IsServer)
+	if err := applyServerConfigOption(rep, config.IsServer); err != nil {
+		return err
+	}
+
+	// add account key to ipfs keystore for resolving ipns profile
+	sk, err := config.Account.LibP2PPrivKey()
+	if err != nil {
+		return err
+	}
+	return rep.Keystore().Put("account", sk)
 }
 
 // NewTextile runs a node out of an initialized repo
@@ -187,8 +196,7 @@ func NewTextile(config RunConfig) (*Textile, error) {
 		return nil, err
 	}
 
-	// acquire the repo lock _before_ constructing a node. we need to make
-	// sure we are permitted to access the resources (datastore, etc.)
+	// open repo
 	rep, err := fsrepo.Open(config.RepoPath)
 	if err != nil {
 		log.Errorf("error opening repo: %s", err)
@@ -353,12 +361,12 @@ func (t *Textile) Start() error {
 	}
 
 	// re-pub profile
-	go func() {
-		<-t.Online()
-		if _, err := t.PublishProfile(nil); err != nil {
-			log.Errorf("error publishing profile: %s", err)
-		}
-	}()
+	//go func() {
+	//	<-t.Online()
+	//	if _, err := t.PublishProfile(nil); err != nil {
+	//		log.Errorf("error publishing profile: %s", err)
+	//	}
+	//}()
 
 	// setup threads
 	for _, mod := range t.datastore.Threads().List("") {
@@ -492,6 +500,14 @@ func (t *Textile) GetDataAtPath(path string) ([]byte, error) {
 		return nil, ErrStopped
 	}
 	return ipfs.GetDataAtPath(t.ipfs, path)
+}
+
+// GetLinksAtPath returns ipld links behind an ipfs path
+func (t *Textile) GetLinksAtPath(path string) ([]*ipld.Link, error) {
+	if !t.started {
+		return nil, ErrStopped
+	}
+	return ipfs.GetLinksAtPath(t.ipfs, path)
 }
 
 // createIPFS creates an IPFS node

@@ -8,6 +8,7 @@ import (
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/crypto"
+	iface "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreapi/interface"
 	"net/http"
 	"strings"
 )
@@ -110,6 +111,20 @@ func gatewayHandler(c *gin.Context) {
 	// get raw data
 	data, err := core.Node.GetDataAtPath(contentPath)
 	if err != nil {
+		if err == iface.ErrIsDir {
+			links, err := core.Node.GetLinksAtPath(contentPath)
+			if err != nil {
+				log.Errorf("error getting raw path %s: %s", contentPath, err)
+				c.Status(404)
+				return
+			}
+			var list []string
+			for _, link := range links {
+				list = append(list, "/"+link.Name)
+			}
+			c.String(200, "%s", strings.Join(list, "\n"))
+			return
+		}
 		log.Errorf("error getting raw path %s: %s", contentPath, err)
 		c.Status(404)
 		return
@@ -133,15 +148,16 @@ func gatewayHandler(c *gin.Context) {
 }
 
 // profileHandler handles requests for profile info hosted on ipns
-// NOTE: avatar is a magic path, will return data behind link at avatar_id
+// NOTE: avatar is a magic path, will return data behind link at avatar_uri
 func profileHandler(c *gin.Context) {
 	pathp := c.Param("path")
 	var isAvatar bool
 	if pathp == "/avatar" {
-		pathp += "_id"
+		pathp += "_uri"
 		isAvatar = true
 	}
 
+	// resolve the actual content
 	pth, err := core.Node.ResolveProfile(c.Param("root"))
 	if err != nil {
 		log.Errorf("error resolving profile %s: %s", c.Param("root"), err)

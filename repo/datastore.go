@@ -44,8 +44,8 @@ type ProfileStore interface {
 	GetCafeTokens() (tokens *CafeTokens, err error)
 	SetUsername(username string) error
 	GetUsername() (*string, error)
-	SetAvatarId(id string) error
-	GetAvatarId() (*string, error)
+	SetAvatar(uri string) error
+	GetAvatar() (*string, error)
 }
 
 type ThreadStore interface {

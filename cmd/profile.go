@@ -67,13 +67,13 @@ func getProfile(c *ishell.Context) {
 
 	green := color.New(color.FgHiGreen).SprintFunc()
 	if prof.Id != "" {
-		c.Println(green(fmt.Sprintf("id:        %s", prof.Id)))
+		c.Println(green(fmt.Sprintf("id:         %s", prof.Id)))
 	}
 	if prof.Username != "" {
-		c.Println(green(fmt.Sprintf("username:  %s", prof.Username)))
+		c.Println(green(fmt.Sprintf("username:   %s", prof.Username)))
 	}
-	if prof.AvatarId != "" {
-		c.Println(green(fmt.Sprintf("avatar_id: %s", prof.AvatarId)))
+	if prof.AvatarUri != "" {
+		c.Println(green(fmt.Sprintf("avatar_uri: %s", prof.AvatarUri)))
 	}
 }
 
@@ -84,7 +84,7 @@ func setAvatarId(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	if err := core.Node.SetAvatarId(id); err != nil {
+	if err := core.Node.SetAvatar(id); err != nil {
 		c.Err(err)
 		return
 	}

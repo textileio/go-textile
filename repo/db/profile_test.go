@@ -56,21 +56,21 @@ func TestProfileDB_GetUsername(t *testing.T) {
 	}
 }
 
-func TestProfileDB_SetAvatarId(t *testing.T) {
-	if err := pdb.SetAvatarId("/ipfs/Qm..."); err != nil {
+func TestProfileDB_SetAvatar(t *testing.T) {
+	if err := pdb.SetAvatar("/ipfs/Qm..."); err != nil {
 		t.Error(err)
 		return
 	}
 }
 
-func TestProfileDB_GetAvatarId(t *testing.T) {
-	av, err := pdb.GetAvatarId()
+func TestProfileDB_GetAvatar(t *testing.T) {
+	av, err := pdb.GetAvatar()
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	if *av != "/ipfs/Qm..." {
-		t.Error("got bad avatar id")
+		t.Error("got bad avatar")
 	}
 }
 

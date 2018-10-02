@@ -35,11 +35,11 @@ func (kp *FromAddress) PeerID() (peer.ID, error) {
 	return peer.IDFromPublicKey(pub)
 }
 
-func (kp *FromAddress) LibP2PPrivKey() (libp2pc.PrivKey, error) {
+func (kp *FromAddress) LibP2PPrivKey() (*libp2pc.Ed25519PrivateKey, error) {
 	return nil, ErrCannotSign
 }
 
-func (kp *FromAddress) LibP2PPubKey() (libp2pc.PubKey, error) {
+func (kp *FromAddress) LibP2PPubKey() (*libp2pc.Ed25519PublicKey, error) {
 	pmes := new(pb.PublicKey)
 	pmes.Data = kp.publicKey()[:]
 	return libp2pc.UnmarshalEd25519PublicKey(pmes.GetData())

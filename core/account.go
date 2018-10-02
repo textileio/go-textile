@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/keypair"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
@@ -51,4 +52,30 @@ func (t *Textile) Verify(input []byte, sig []byte) error {
 		return err
 	}
 	return accnt.Verify(input, sig)
+}
+
+// Encrypt encrypts input with account address
+func (t *Textile) Encrypt(input []byte) ([]byte, error) {
+	accnt, err := t.Account()
+	if err != nil {
+		return nil, err
+	}
+	pk, err := accnt.LibP2PPubKey()
+	if err != nil {
+		return nil, err
+	}
+	return crypto.Encrypt(pk, input)
+}
+
+// Decrypt decrypts input with account address
+func (t *Textile) Decrypt(input []byte) ([]byte, error) {
+	accnt, err := t.Account()
+	if err != nil {
+		return nil, err
+	}
+	sk, err := accnt.LibP2PPrivKey()
+	if err != nil {
+		return nil, err
+	}
+	return crypto.Decrypt(sk, input)
 }

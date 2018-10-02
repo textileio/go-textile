@@ -47,7 +47,6 @@ func GetDataAtPath(ipfs *core.IpfsNode, path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	api := coreapi.NewCoreAPI(ipfs)
 	ctx, cancel := context.WithTimeout(ipfs.Context(), catTimeout)
 	defer cancel()
@@ -61,7 +60,6 @@ func GetDataAtPath(ipfs *core.IpfsNode, path string) ([]byte, error) {
 			log.Debug("node stopped")
 		}
 	}()
-
 	return ioutil.ReadAll(reader)
 }
 
@@ -73,7 +71,6 @@ func GetArchiveAtPath(ipfs *core.IpfsNode, path string) (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	api := coreapi.NewCoreAPI(ipfs)
 	ctx, cancel := context.WithTimeout(ipfs.Context(), catTimeout)
 	defer cancel()
@@ -106,8 +103,30 @@ func GetArchiveAtPath(ipfs *core.IpfsNode, path string) (io.Reader, error) {
 	return arch.VirtualReader(), nil
 }
 
+// GetLinksAtPath return ipld links under a path
+func GetLinksAtPath(ipfs *core.IpfsNode, path string) ([]*ipld.Link, error) {
+	// convert string to an ipfs path
+	ip, err := coreapi.ParsePath(path)
+	if err != nil {
+		return nil, err
+	}
+	api := coreapi.NewCoreAPI(ipfs)
+	ctx, cancel := context.WithTimeout(ipfs.Context(), catTimeout)
+	defer cancel()
+	links, err := api.Unixfs().Ls(ctx, ip)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if recover() != nil {
+			log.Debug("node stopped")
+		}
+	}()
+	return links, nil
+}
+
 // AddFileToDirectory adds bytes as file to a virtual directory (dag) structure
-func AddFileToDirectory(ipfs *core.IpfsNode, dirb *uio.Directory, reader io.Reader, fname string) error {
+func AddFileToDirectory(ipfs *core.IpfsNode, dir *uio.Directory, reader io.Reader, fname string) error {
 	str, err := coreunix.Add(ipfs, reader)
 	if err != nil {
 		return err
@@ -120,7 +139,7 @@ func AddFileToDirectory(ipfs *core.IpfsNode, dirb *uio.Directory, reader io.Read
 	if err != nil {
 		return err
 	}
-	if err := dirb.AddChild(ipfs.Context(), fname, node); err != nil {
+	if err := dir.AddChild(ipfs.Context(), fname, node); err != nil {
 		return err
 	}
 	return nil

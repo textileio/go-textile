@@ -13,9 +13,15 @@ import (
 )
 
 type Profile struct {
-	Id       string `json:"id"`
-	Username string `json:"username,omitempty"`
-	AvatarId string `json:"avatar_id,omitempty"`
+	Id        string                 `json:"id"`
+	Username  string                 `json:"username,omitempty"`
+	AvatarUri string                 `json:"avatar_uri,omitempty"`
+	Threads   map[string]ThreadState `json:"threads,omitempty"`
+}
+
+type ThreadState struct {
+	Head string `json:"head"`
+	Sk   string `json:"sk"`
 }
 
 var profileTTL = time.Hour * 24 * 7 * 4
@@ -62,16 +68,16 @@ func (t *Textile) SetUsername(username string) error {
 	return nil
 }
 
-// GetAvatarId returns profile avatar id
-func (t *Textile) GetAvatarId() (*string, error) {
+// GetAvatar returns profile avatar
+func (t *Textile) GetAvatar() (*string, error) {
 	if err := t.touchDatastore(); err != nil {
 		return nil, err
 	}
-	return t.datastore.Profile().GetAvatarId()
+	return t.datastore.Profile().GetAvatar()
 }
 
-// SetAvatarId updates profile with a new avatar
-func (t *Textile) SetAvatarId(id string) error {
+// SetAvatar updates profile with a new avatar at the given photo id
+func (t *Textile) SetAvatar(id string) error {
 	if err := t.touchDatastore(); err != nil {
 		return err
 	}
@@ -82,11 +88,11 @@ func (t *Textile) SetAvatarId(id string) error {
 		return err
 	}
 
-	// use the cafe address w/ public url
-	link := fmt.Sprintf("/ipfs/%s/thumb?key=%s", id, key)
+	// build a public uri
+	uri := fmt.Sprintf("/ipfs/%s/thumb?key=%s", id, key)
 
 	// update
-	if err := t.datastore.Profile().SetAvatarId(link); err != nil {
+	if err := t.datastore.Profile().SetAvatar(uri); err != nil {
 		return err
 	}
 
@@ -129,12 +135,12 @@ func (t *Textile) GetProfile(peerId string) (*Profile, error) {
 		if username != nil {
 			profile.Username = *username
 		}
-		avatarId, err := t.GetAvatarId()
+		avatar, err := t.GetAvatar()
 		if err != nil {
 			return nil, err
 		}
-		if avatarId != nil {
-			profile.AvatarId = *avatarId
+		if avatar != nil {
+			profile.AvatarUri = *avatar
 		}
 		return profile, nil
 	}
@@ -147,14 +153,14 @@ func (t *Textile) GetProfile(peerId string) (*Profile, error) {
 	root := entry.String()
 
 	// get components from entry
-	var usernameb, avatarIdb []byte
+	var usernameb, avatarb []byte
 	usernameb, _ = ipfs.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/%s", root, "username"))
 	if usernameb != nil {
 		profile.Username = string(usernameb)
 	}
-	avatarIdb, _ = ipfs.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/%s", root, "avatar_id"))
-	if avatarIdb != nil {
-		profile.AvatarId = string(avatarIdb)
+	avatarb, _ = ipfs.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/%s", root, "avatar_uri"))
+	if avatarb != nil {
+		profile.AvatarUri = string(avatarb)
 	}
 	return profile, nil
 }
@@ -200,27 +206,83 @@ func (t *Textile) PublishProfile(prof *Profile) (*ipfs.IpnsEntry, error) {
 		}
 	}
 
-	// create a virtual directory for the photo
-	dirb := uio.NewDirectory(t.ipfs.DAG)
-	if err := ipfs.AddFileToDirectory(t.ipfs, dirb, bytes.NewReader([]byte(prof.Id)), "id"); err != nil {
+	// create a virtual directory for the profile
+	dir := uio.NewDirectory(t.ipfs.DAG)
+
+	// add public components
+	if err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader([]byte(prof.Id)), "id"); err != nil {
 		return nil, err
 	}
-	if err := ipfs.AddFileToDirectory(t.ipfs, dirb, bytes.NewReader([]byte(prof.Username)), "username"); err != nil {
+	if err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader([]byte(prof.Username)), "username"); err != nil {
 		return nil, err
 	}
-	if err := ipfs.AddFileToDirectory(t.ipfs, dirb, bytes.NewReader([]byte(prof.AvatarId)), "avatar_id"); err != nil {
+	if err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader([]byte(prof.AvatarUri)), "avatar_uri"); err != nil {
+		return nil, err
+	}
+
+	// add private encrypted threads state
+	threadsDir := uio.NewDirectory(t.ipfs.DAG)
+	for _, thrd := range t.threads {
+		dir := uio.NewDirectory(t.ipfs.DAG)
+		head, err := thrd.GetHead()
+		if err != nil {
+			return nil, err
+		}
+		if head != "" {
+			headc, err := t.Encrypt([]byte(head))
+			if err != nil {
+				return nil, err
+			}
+			if err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader(headc), "head"); err != nil {
+				return nil, err
+			}
+		}
+		skb, err := thrd.PrivKey.Bytes()
+		if err != nil {
+			return nil, err
+		}
+		skc, err := t.Encrypt(skb)
+		if err != nil {
+			return nil, err
+		}
+		if err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader(skc), "sk"); err != nil {
+			return nil, err
+		}
+		id, err := thrd.Base58Id()
+		if err != nil {
+			return nil, err
+		}
+		node, err := dir.GetNode()
+		if err != nil {
+			return nil, err
+		}
+		if err := ipfs.PinDirectory(t.ipfs, node, []string{}); err != nil {
+			return nil, err
+		}
+		if err := threadsDir.AddChild(t.ipfs.Context(), id, node); err != nil {
+			return nil, err
+		}
+	}
+	threadsNode, err := threadsDir.GetNode()
+	if err != nil {
+		return nil, err
+	}
+	if err := ipfs.PinDirectory(t.ipfs, threadsNode, []string{}); err != nil {
+		return nil, err
+	}
+	if err := dir.AddChild(t.ipfs.Context(), "threads", threadsNode); err != nil {
 		return nil, err
 	}
 
 	// pin the directory locally
-	dir, err := dirb.GetNode()
+	node, err := dir.GetNode()
 	if err != nil {
 		return nil, err
 	}
-	if err := ipfs.PinDirectory(t.ipfs, dir, []string{}); err != nil {
+	if err := ipfs.PinDirectory(t.ipfs, node, []string{}); err != nil {
 		return nil, err
 	}
-	id := dir.Cid().Hash().B58String()
+	id := node.Cid().Hash().B58String()
 
 	// request cafe pin
 	go func() {

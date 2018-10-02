@@ -145,7 +145,7 @@ func (c *ProfileDB) GetUsername() (*string, error) {
 	return &username, nil
 }
 
-func (c *ProfileDB) SetAvatarId(id string) error {
+func (c *ProfileDB) SetAvatar(uri string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -157,7 +157,7 @@ func (c *ProfileDB) SetAvatarId(id string) error {
 		return err
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec("avatar_id", id)
+	_, err = stmt.Exec("avatar", uri)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -166,7 +166,7 @@ func (c *ProfileDB) SetAvatarId(id string) error {
 	return nil
 }
 
-func (c *ProfileDB) GetAvatarId() (*string, error) {
+func (c *ProfileDB) GetAvatar() (*string, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stmt, err := c.db.Prepare("select value from profile where key=?")
@@ -174,12 +174,12 @@ func (c *ProfileDB) GetAvatarId() (*string, error) {
 		return nil, err
 	}
 	defer stmt.Close()
-	var avatarId string
-	if err := stmt.QueryRow("avatar_id").Scan(&avatarId); err != nil {
+	var avatarUri string
+	if err := stmt.QueryRow("avatar").Scan(&avatarUri); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 		return nil, err
 	}
-	return &avatarId, nil
+	return &avatarUri, nil
 }

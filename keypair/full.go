@@ -34,7 +34,7 @@ func (kp *Full) PeerID() (peer.ID, error) {
 	return peer.IDFromPublicKey(pub)
 }
 
-func (kp *Full) LibP2PPrivKey() (libp2pc.PrivKey, error) {
+func (kp *Full) LibP2PPrivKey() (*libp2pc.Ed25519PrivateKey, error) {
 	buf := make([]byte, 96)
 	copy(buf, kp.rawSeed()[:])
 	copy(buf[64:], kp.publicKey()[:])
@@ -43,7 +43,7 @@ func (kp *Full) LibP2PPrivKey() (libp2pc.PrivKey, error) {
 	return libp2pc.UnmarshalEd25519PrivateKey(pmes.GetData())
 }
 
-func (kp *Full) LibP2PPubKey() (libp2pc.PubKey, error) {
+func (kp *Full) LibP2PPubKey() (*libp2pc.Ed25519PublicKey, error) {
 	pmes := new(pb.PublicKey)
 	pmes.Data = kp.publicKey()[:]
 	return libp2pc.UnmarshalEd25519PublicKey(pmes.GetData())

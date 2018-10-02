@@ -29,8 +29,8 @@ type KeyPair interface {
 	Address() string
 	Hint() [4]byte
 	PeerID() (peer.ID, error)
-	LibP2PPrivKey() (libp2pc.PrivKey, error)
-	LibP2PPubKey() (libp2pc.PubKey, error)
+	LibP2PPrivKey() (*libp2pc.Ed25519PrivateKey, error)
+	LibP2PPubKey() (*libp2pc.Ed25519PublicKey, error)
 	Verify(input []byte, signature []byte) error
 	Sign(input []byte) ([]byte, error)
 }
