@@ -517,8 +517,8 @@ func TestMobile_GetPhotoKey(t *testing.T) {
 	}
 }
 
-func TestMobile_SetAvatarId(t *testing.T) {
-	if err := mobile.SetAvatarId(addedPhotoId); err != nil {
+func TestMobile_SetAvatar(t *testing.T) {
+	if err := mobile.SetAvatar(addedPhotoId); err != nil {
 		t.Errorf("set avatar id failed: %s", err)
 		return
 	}

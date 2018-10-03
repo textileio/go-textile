@@ -21,9 +21,9 @@ func (m *Mobile) GetUsername() (string, error) {
 	return *username, nil
 }
 
-// SetAvatarId calls core SetAvatarId
-func (m *Mobile) SetAvatarId(id string) error {
-	return core.Node.SetAvatarId(id)
+// SetAvatar calls core SetAvatar
+func (m *Mobile) SetAvatar(id string) error {
+	return core.Node.SetAvatar(id)
 }
 
 // GetProfile returns the local profile
