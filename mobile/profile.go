@@ -26,14 +26,14 @@ func (m *Mobile) SetAvatar(id string) error {
 	return core.Node.SetAvatar(id)
 }
 
-// GetProfile returns the local profile
+// GetAccountProfile returns the local profile
 func (m *Mobile) GetProfile() (string, error) {
 	id, err := core.Node.ID()
 	if err != nil {
 		log.Errorf("error getting profile (get id): %s", err)
 		return "", err
 	}
-	prof, err := core.Node.GetProfile(id.Pretty())
+	prof, err := core.Node.GetAccountProfile(id.Pretty())
 	if err != nil {
 		log.Errorf("error getting profile %s: %s", id, err)
 		return "", err
@@ -43,7 +43,7 @@ func (m *Mobile) GetProfile() (string, error) {
 
 // GetOtherProfile looks up a profile by id
 func (m *Mobile) GetOtherProfile(peerId string) (string, error) {
-	prof, err := core.Node.GetProfile(peerId)
+	prof, err := core.Node.GetAccountProfile(peerId)
 	if err != nil {
 		log.Errorf("error getting profile %s: %s", peerId, err)
 		return "", err

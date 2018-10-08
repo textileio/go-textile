@@ -104,14 +104,6 @@ func (t *Textile) CafeRegister(referral string) error {
 		return err
 	}
 
-	// initial profile publish
-	go func() {
-		<-t.Online()
-		if _, err := t.PublishProfile(nil); err != nil {
-			log.Errorf("error publishing initial profile: %s", err)
-		}
-	}()
-
 	return nil
 }
 

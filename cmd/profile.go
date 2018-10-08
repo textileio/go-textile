@@ -9,7 +9,7 @@ import (
 )
 
 func publishProfile(c *ishell.Context) {
-	entry, err := core.Node.PublishProfile(nil)
+	entry, err := core.Node.PublishAccountProfile(nil)
 	if err != nil {
 		c.Err(err)
 		return
@@ -36,7 +36,7 @@ func resolveProfile(c *ishell.Context) {
 		name = c.Args[0]
 	}
 
-	entry, err := core.Node.ResolveProfile(name)
+	entry, err := core.Node.ResolveName(name)
 	if err != nil {
 		c.Err(err)
 		return
@@ -59,15 +59,15 @@ func getProfile(c *ishell.Context) {
 		id = c.Args[0]
 	}
 
-	prof, err := core.Node.GetProfile(id)
+	prof, err := core.Node.GetAccountProfile(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	if prof.Id != "" {
-		c.Println(green(fmt.Sprintf("id:         %s", prof.Id)))
+	if prof.Address != "" {
+		c.Println(green(fmt.Sprintf("address:         %s", prof.Address)))
 	}
 	if prof.Username != "" {
 		c.Println(green(fmt.Sprintf("username:   %s", prof.Username)))

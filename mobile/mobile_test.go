@@ -530,7 +530,7 @@ func TestMobile_GetProfile(t *testing.T) {
 		t.Errorf("get profile failed: %s", err)
 		return
 	}
-	prof := core.Profile{}
+	prof := core.AccountProfile{}
 	if err := json.Unmarshal([]byte(profs), &prof); err != nil {
 		t.Error(err)
 		return

@@ -6,17 +6,22 @@ import (
 	"errors"
 	"fmt"
 	"github.com/textileio/textile-go/ipfs"
+	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/namesys/opts"
 	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/path"
 	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
 	"time"
 )
 
-type Profile struct {
-	Id        string                 `json:"id"`
-	Username  string                 `json:"username,omitempty"`
-	AvatarUri string                 `json:"avatar_uri,omitempty"`
-	Threads   map[string]ThreadState `json:"threads,omitempty"`
+type AccountProfile struct {
+	Address   string   `json:"address"`
+	Peers     []string `json:"peers"`
+	Username  string   `json:"username,omitempty"`
+	AvatarUri string   `json:"avatar_uri,omitempty"`
+}
+
+type PeerProfile struct {
+	Threads map[string]ThreadState `json:"threads,omitempty"`
 }
 
 type ThreadState struct {
@@ -55,12 +60,12 @@ func (t *Textile) SetUsername(username string) error {
 			log.Errorf("error getting id (set username): %s", err)
 			return
 		}
-		prof, err := t.GetProfile(pid.Pretty())
+		prof, err := t.GetAccountProfile(pid.Pretty())
 		if err != nil {
 			log.Errorf("error getting profile (set username): %s", err)
 			return
 		}
-		if _, err := t.PublishProfile(prof); err != nil {
+		if _, err := t.PublishAccountProfile(prof); err != nil {
 			log.Errorf("error publishing profile (set username): %s", err)
 			return
 		}
@@ -105,12 +110,12 @@ func (t *Textile) SetAvatar(id string) error {
 			log.Errorf("error getting id (set avatar): %s", err)
 			return
 		}
-		prof, err := t.GetProfile(pid.Pretty())
+		prof, err := t.GetAccountProfile(pid.Pretty())
 		if err != nil {
 			log.Errorf("error getting profile (set avatar): %s", err)
 			return
 		}
-		if _, err := t.PublishProfile(prof); err != nil {
+		if _, err := t.PublishAccountProfile(prof); err != nil {
 			log.Errorf("error publishing profile (set avatar): %s", err)
 			return
 		}
@@ -118,9 +123,9 @@ func (t *Textile) SetAvatar(id string) error {
 	return nil
 }
 
-// GetProfile return a model representation of an ipns profile
-func (t *Textile) GetProfile(peerId string) (*Profile, error) {
-	profile := &Profile{Id: peerId}
+// GetAccountProfile return a model representation of an ipns profile
+func (t *Textile) GetAccountProfile(peerId string) (*AccountProfile, error) {
+	profile := &AccountProfile{}
 
 	// if peer id is local, return profile from db
 	pid, err := t.ID()
@@ -128,6 +133,11 @@ func (t *Textile) GetProfile(peerId string) (*Profile, error) {
 		return nil, err
 	}
 	if pid.Pretty() == peerId {
+		addr, err := t.Address()
+		if err != nil {
+			return nil, err
+		}
+		profile.Address = addr
 		username, err := t.GetUsername()
 		if err != nil {
 			return nil, err
@@ -146,14 +156,18 @@ func (t *Textile) GetProfile(peerId string) (*Profile, error) {
 	}
 
 	// resolve profile at peer id
-	entry, err := t.ResolveProfile(peerId)
+	entry, err := t.ResolveName(peerId)
 	if err != nil {
 		return nil, err
 	}
 	root := entry.String()
 
 	// get components from entry
-	var usernameb, avatarb []byte
+	var addrb, usernameb, avatarb []byte
+	addrb, _ = ipfs.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/%s", root, "address"))
+	if addrb != nil {
+		profile.Address = string(addrb)
+	}
 	usernameb, _ = ipfs.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/%s", root, "username"))
 	if usernameb != nil {
 		profile.Username = string(usernameb)
@@ -165,28 +179,8 @@ func (t *Textile) GetProfile(peerId string) (*Profile, error) {
 	return profile, nil
 }
 
-// ResolveProfile looks up a profile on ipns
-func (t *Textile) ResolveProfile(name string) (*path.Path, error) {
-	if !t.IsOnline() {
-		return nil, ErrOffline
-	}
-
-	// setup query
-	name = fmt.Sprintf("/ipns/%s", name)
-	var ropts []nsopts.ResolveOpt
-	ropts = append(ropts, nsopts.Depth(1))
-	ropts = append(ropts, nsopts.DhtRecordCount(4))
-	ropts = append(ropts, nsopts.DhtTimeout(5))
-
-	pth, err := t.ipfs.Namesys.Resolve(t.ipfs.Context(), name, ropts...)
-	if err != nil {
-		return nil, err
-	}
-	return &pth, nil
-}
-
-// PublishProfile publishes profile to ipns
-func (t *Textile) PublishProfile(prof *Profile) (*ipfs.IpnsEntry, error) {
+// PublishAccountProfile publishes profile to ipns
+func (t *Textile) PublishAccountProfile(prof *AccountProfile) (*ipfs.IpnsEntry, error) {
 	if !t.IsOnline() {
 		return nil, ErrOffline
 	}
@@ -200,7 +194,7 @@ func (t *Textile) PublishProfile(prof *Profile) (*ipfs.IpnsEntry, error) {
 		if err != nil {
 			return nil, err
 		}
-		prof, err = t.GetProfile(pid.Pretty())
+		prof, err = t.GetAccountProfile(pid.Pretty())
 		if err != nil {
 			return nil, err
 		}
@@ -210,7 +204,7 @@ func (t *Textile) PublishProfile(prof *Profile) (*ipfs.IpnsEntry, error) {
 	dir := uio.NewDirectory(t.ipfs.DAG)
 
 	// add public components
-	if err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader([]byte(prof.Id)), "id"); err != nil {
+	if err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader([]byte(prof.Address)), "address"); err != nil {
 		return nil, err
 	}
 	if err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader([]byte(prof.Username)), "username"); err != nil {
@@ -219,6 +213,50 @@ func (t *Textile) PublishProfile(prof *Profile) (*ipfs.IpnsEntry, error) {
 	if err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader([]byte(prof.AvatarUri)), "avatar_uri"); err != nil {
 		return nil, err
 	}
+
+	// pin the directory locally
+	node, err := dir.GetNode()
+	if err != nil {
+		return nil, err
+	}
+	if err := ipfs.PinDirectory(t.ipfs, node, []string{}); err != nil {
+		return nil, err
+	}
+	id := node.Cid().Hash().B58String()
+
+	// request cafe pin
+	go func() {
+		if err := t.putPinRequest(id); err != nil {
+			// TODO: #202 (Properly handle database/sql errors)
+			log.Warningf("pin request exists: %s", id)
+		}
+	}()
+
+	// load our private key
+	accnt, err := t.Account()
+	if err != nil {
+		return nil, err
+	}
+	sk, err := accnt.LibP2PPrivKey()
+	if err != nil {
+		return nil, err
+	}
+
+	// finish
+	return t.publish(id, sk)
+}
+
+// PublishPeerProfile publishes a peer profile to ipns
+func (t *Textile) PublishPeerProfile() (*ipfs.IpnsEntry, error) {
+	if !t.IsOnline() {
+		return nil, ErrOffline
+	}
+	if t.ipfs.Mounts.Ipns != nil && t.ipfs.Mounts.Ipns.IsActive() {
+		return nil, errors.New("cannot manually publish while IPNS is mounted")
+	}
+
+	// create a virtual directory for the profile
+	dir := uio.NewDirectory(t.ipfs.DAG)
 
 	// add private encrypted threads state
 	threadsDir := uio.NewDirectory(t.ipfs.DAG)
@@ -292,34 +330,43 @@ func (t *Textile) PublishProfile(prof *Profile) (*ipfs.IpnsEntry, error) {
 		}
 	}()
 
-	// extract path
-	pth, err := path.ParsePath(id)
-	if err != nil {
-		return nil, err
-	}
-
-	// load our private key
-	accnt, err := t.Account()
-	if err != nil {
-		return nil, err
-	}
-	sk, err := accnt.LibP2PPrivKey()
-	if err != nil {
-		return nil, err
-	}
-
 	// finish
-	popts := &ipfs.PublishOpts{
-		VerifyExists: true,
-		PubValidTime: profileCacheTTL,
+	return t.publish(id, t.ipfs.PrivateKey)
+}
+
+// ResolveName looks up a profile on ipns
+func (t *Textile) ResolveName(name string) (*path.Path, error) {
+	if !t.IsOnline() {
+		return nil, ErrOffline
+	}
+
+	// query options
+	name = fmt.Sprintf("/ipns/%s", name)
+	var ropts []nsopts.ResolveOpt
+	ropts = append(ropts, nsopts.Depth(1))
+	ropts = append(ropts, nsopts.DhtRecordCount(4))
+	ropts = append(ropts, nsopts.DhtTimeout(5))
+
+	// resolve w/ ipns
+	pth, err := t.ipfs.Namesys.Resolve(t.ipfs.Context(), name, ropts...)
+	if err != nil {
+		return nil, err
+	}
+	return &pth, nil
+}
+
+func (t *Textile) publish(cid string, sk libp2pc.PrivKey) (*ipfs.IpnsEntry, error) {
+	pth, err := path.ParsePath(cid)
+	if err != nil {
+		return nil, err
 	}
 	ctx := context.WithValue(t.ipfs.Context(), "ipns-publish-ttl", profileTTL)
-	entry, err := ipfs.Publish(ctx, t.ipfs, sk, pth, popts)
+	entry, err := ipfs.Publish(ctx, t.ipfs, sk, pth, profileCacheTTL)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debugf("updated profile: %s -> %s", entry.Name, entry.Value)
+	log.Debugf("published: %s -> %s", entry.Name, entry.Value)
 
 	return entry, nil
 }

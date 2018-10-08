@@ -50,6 +50,13 @@ func (t *Textile) AddThread(name string, secret libp2pc.PrivKey, join bool) (*th
 	// notify listeners
 	t.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadAdded})
 
+	// update profile
+	go func() {
+		if _, err := t.PublishPeerProfile(); err != nil {
+			log.Errorf("error publishing peer profile: %s", err)
+		}
+	}()
+
 	log.Debugf("added a new thread %s with name %s", thrd.Id, name)
 
 	return thrd, nil
@@ -84,6 +91,13 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 
 	// notify listeners
 	t.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadRemoved})
+
+	// update profile
+	go func() {
+		if _, err := t.PublishPeerProfile(); err != nil {
+			log.Errorf("error publishing peer profile: %s", err)
+		}
+	}()
 
 	log.Infof("removed thread %s with name %s", thrd.Id, thrd.Name)
 

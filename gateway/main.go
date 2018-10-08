@@ -21,7 +21,7 @@ type Gateway struct {
 	server *http.Server
 }
 
-// NewGateway creates a gateway server
+// Start creates a gateway server
 func (g *Gateway) Start(addr string) {
 	// setup router
 	router := gin.Default()
@@ -62,7 +62,7 @@ func (g *Gateway) Start(addr string) {
 	log.Infof("gateway listening at %s\n", g.server.Addr)
 }
 
-// StopGateway stops the gateway
+// Stop stops the gateway
 func (g *Gateway) Stop() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	if err := g.server.Shutdown(ctx); err != nil {
@@ -108,27 +108,8 @@ func gatewayHandler(c *gin.Context) {
 		return
 	}
 
-	// get raw data
-	data, err := core.Node.GetDataAtPath(contentPath)
-	if err != nil {
-		if err == iface.ErrIsDir {
-			links, err := core.Node.GetLinksAtPath(contentPath)
-			if err != nil {
-				log.Errorf("error getting raw path %s: %s", contentPath, err)
-				c.Status(404)
-				return
-			}
-			var list []string
-			for _, link := range links {
-				list = append(list, "/"+link.Name)
-			}
-			c.String(200, "%s", strings.Join(list, "\n"))
-			return
-		}
-		log.Errorf("error getting raw path %s: %s", contentPath, err)
-		c.Status(404)
-		return
-	}
+	// get data behind path
+	data := getDataAtPath(c, contentPath)
 
 	// if key is provided, try to decrypt the data with it
 	key, exists := c.GetQuery("key")
@@ -158,21 +139,16 @@ func profileHandler(c *gin.Context) {
 	}
 
 	// resolve the actual content
-	pth, err := core.Node.ResolveProfile(c.Param("root"))
+	pth, err := core.Node.ResolveName(c.Param("root"))
 	if err != nil {
 		log.Errorf("error resolving profile %s: %s", c.Param("root"), err)
 		c.Status(404)
 		return
 	}
 
-	// get data
+	// get data behind path
 	contentPath := pth.String() + pathp
-	data, err := core.Node.GetDataAtPath(contentPath)
-	if err != nil {
-		log.Errorf("error getting data at profile path %s: %s", contentPath, err)
-		c.Status(404)
-		return
-	}
+	data := getDataAtPath(c, contentPath)
 
 	// if this is an avatar request, fetch and return the linked image
 	if isAvatar {
@@ -214,4 +190,28 @@ func profileHandler(c *gin.Context) {
 	}
 
 	c.Render(200, render.Data{Data: data})
+}
+
+func getDataAtPath(c *gin.Context, pth string) []byte {
+	data, err := core.Node.GetDataAtPath(pth)
+	if err != nil {
+		if err == iface.ErrIsDir {
+			links, err := core.Node.GetLinksAtPath(pth)
+			if err != nil {
+				log.Errorf("error getting raw path %s: %s", pth, err)
+				c.Status(404)
+				return nil
+			}
+			var list []string
+			for _, link := range links {
+				list = append(list, "/"+link.Name)
+			}
+			c.String(200, "%s", strings.Join(list, "\n"))
+			return nil
+		}
+		log.Errorf("error getting raw path %s: %s", pth, err)
+		c.Status(404)
+		return nil
+	}
+	return data
 }

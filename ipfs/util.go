@@ -30,11 +30,6 @@ var log = logging.MustGetLogger("ipfs")
 const pinTimeout = time.Minute * 1
 const catTimeout = time.Second * 30
 
-type PublishOpts struct {
-	VerifyExists bool
-	PubValidTime time.Duration
-}
-
 type IpnsEntry struct {
 	Name  string
 	Value string
@@ -236,18 +231,16 @@ func MultiaddrFromId(id string) (ma.Multiaddr, error) {
 }
 
 // Publish publishes a node to ipns
-func Publish(ctx context.Context, n *core.IpfsNode, k libp2pc.PrivKey, ref path.Path, opts *PublishOpts) (*IpnsEntry, error) {
-	eol := time.Now().Add(opts.PubValidTime)
+func Publish(ctx context.Context, n *core.IpfsNode, k libp2pc.PrivKey, ref path.Path, dur time.Duration) (*IpnsEntry, error) {
+	eol := time.Now().Add(dur)
 	err := n.Namesys.PublishWithEOL(ctx, k, ref, eol)
 	if err != nil {
 		return nil, err
 	}
-
 	pid, err := peer.IDFromPrivateKey(k)
 	if err != nil {
 		return nil, err
 	}
-
 	return &IpnsEntry{Name: pid.Pretty(), Value: ref.String()}, nil
 }
 

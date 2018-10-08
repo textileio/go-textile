@@ -169,7 +169,32 @@ func InitRepo(config InitConfig) error {
 	if err != nil {
 		return err
 	}
-	return rep.Keystore().Put("account", sk)
+	if err := rep.Keystore().Put("account", sk); err != nil {
+		return err
+	}
+
+	fmt.Println("Publishing new account peer identity...")
+
+	// create a tmp node
+	node, err := NewTextile(RunConfig{
+		PinCode:  config.PinCode,
+		RepoPath: config.RepoPath,
+		LogLevel: config.LogLevel,
+		LogFiles: config.LogFiles,
+	})
+	if err != nil {
+		return err
+	}
+
+	// add new peer to account profile
+	if err := node.Start(); err != nil {
+		return err
+	}
+	<-node.Online()
+	if _, err := node.PublishAccountProfile(nil); err != nil {
+		log.Errorf("error publishing profile: %s", err)
+	}
+	return nil
 }
 
 // NewTextile runs a node out of an initialized repo
@@ -203,7 +228,7 @@ func NewTextile(config RunConfig) (*Textile, error) {
 		return nil, err
 	}
 
-	// ensure bootstrap addresses are latest in config (without wiping repo)
+	// ensure bootstrap addresses are latest in config
 	if err := ensureBootstrapConfig(rep); err != nil {
 		return nil, err
 	}
@@ -352,21 +377,13 @@ func (t *Textile) Start() error {
 		}
 		t.pinner = net.NewPinner(pinnerCfg)
 
-		// start ticker job if not mobile
+		// start pinner ticker if not mobile, otherwise do the job once
 		if !t.IsMobile() {
 			go t.pinner.Run()
 		} else {
 			go t.pinner.Pin()
 		}
 	}
-
-	// re-pub profile
-	//go func() {
-	//	<-t.Online()
-	//	if _, err := t.PublishProfile(nil); err != nil {
-	//		log.Errorf("error publishing profile: %s", err)
-	//	}
-	//}()
 
 	// setup threads
 	for _, mod := range t.datastore.Threads().List("") {
@@ -615,6 +632,11 @@ func (t *Textile) loadThread(mod *repo.Thread) (*thread.Thread, error) {
 			if err := t.datastore.Threads().UpdateHead(id, head); err != nil {
 				return err
 			}
+			go func() {
+				if _, err := t.PublishPeerProfile(); err != nil {
+					log.Errorf("error publishing peer profile: %s", err)
+				}
+			}()
 			return nil
 		},
 		Send:          t.SendMessage,

@@ -9,6 +9,7 @@ message ThreadBlockHeader {
     bytes threadPk                 = 3;
     bytes authorPk                 = 4;
     bytes authorUnCipher           = 5;
+    string address                 = 6;
 }
 
 message SignedThreadBlock {
