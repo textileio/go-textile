@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/repo"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"sync"
 	"testing"
 	"time"

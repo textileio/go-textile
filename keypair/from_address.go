@@ -3,9 +3,9 @@ package keypair
 import (
 	"github.com/textileio/textile-go/strkey"
 	"golang.org/x/crypto/ed25519"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	pb "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto/pb"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	pb "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto/pb"
 )
 
 // FromAddress represents a keypair to which only the address is know.  This KeyPair
@@ -42,7 +42,15 @@ func (kp *FromAddress) LibP2PPrivKey() (*libp2pc.Ed25519PrivateKey, error) {
 func (kp *FromAddress) LibP2PPubKey() (*libp2pc.Ed25519PublicKey, error) {
 	pmes := new(pb.PublicKey)
 	pmes.Data = kp.publicKey()[:]
-	return libp2pc.UnmarshalEd25519PublicKey(pmes.GetData())
+	pk, err := libp2pc.UnmarshalEd25519PublicKey(pmes.GetData())
+	if err != nil {
+		return nil, err
+	}
+	epk, ok := pk.(*libp2pc.Ed25519PublicKey)
+	if !ok {
+		return nil, nil
+	}
+	return epk, nil
 }
 
 func (kp *FromAddress) Verify(input []byte, sig []byte) error {

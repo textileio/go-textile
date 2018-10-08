@@ -6,8 +6,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
 	"gopkg.in/abiosoft/ishell.v2"
-	"gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	"sort"
 	"strconv"
 	"strings"
@@ -70,10 +69,10 @@ func swarmPeers(c *ishell.Context) {
 			Peer: pid.Pretty(),
 		}
 
-		swcon, ok := c.(*swarm.Conn)
-		if ok {
-			ci.Muxer = fmt.Sprintf("%T", swcon.StreamConn().Conn())
-		}
+		//swcon, ok := c.(*swarm.Conn)
+		//if ok {
+		//	ci.Muxer = fmt.Sprintf("%T", swcon.StreamConn().Conn())
+		//}
 
 		sort.Sort(&ci)
 		out.Peers = append(out.Peers, ci)

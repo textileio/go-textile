@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/textileio/textile-go/core"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 // Thread is a simple meta data wrapper around a Thread

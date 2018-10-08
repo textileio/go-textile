@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/textileio/textile-go/ipfs"
-	"gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
-	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
-	libp2pn "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
+	libp2pn "gx/ipfs/QmPjvxTpVH8qJyQDnxnsxF9kv9jezKD1kozz1hs3fCGsNh/go-libp2p-net"
+	pstore "gx/ipfs/QmZR2XWVVBCtbgBWnQhWk2xcQfaR3W8faQPriAiaaj7rsr/go-libp2p-peerstore"
+	"gx/ipfs/QmemVjhp1UuWPQqrWSvPcaqH3QJRMjMqNm4T2RULMkDDQe/go-libp2p-swarm"
 	"time"
 )
 
@@ -18,12 +18,11 @@ func (t *Textile) ConnectPeer(addrs []string) ([]string, error) {
 	if !t.IsOnline() {
 		return nil, ErrOffline
 	}
-	snet, ok := t.ipfs.PeerHost.Network().(*swarm.Network)
+	swrm, ok := t.ipfs.PeerHost.Network().(*swarm.Swarm)
 	if !ok {
 		return nil, errors.New("peerhost network was not swarm")
 	}
 
-	swrm := snet.Swarm()
 	pis, err := ipfs.PeersWithAddresses(addrs)
 	if err != nil {
 		return nil, err

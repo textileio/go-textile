@@ -13,13 +13,13 @@ import (
 	"github.com/textileio/textile-go/net"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
-	"gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	"gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	"gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	"gx/ipfs/QmZ383TySJVeZWzGnWui6pRcKyYZk9VkKTuW7tmKRWk5au/go-libp2p-routing"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	ds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
 	"sync"
 	"time"
 )
@@ -91,9 +91,10 @@ func (t *Textile) SendMessage(env *pb.Envelope, peerId string, hash *string) err
 	go func() {
 		time.Sleep(time.Second * 3)
 		if !success {
-			if err := t.sendOfflineMessage(env, pid, hash); err != nil {
-				log.Debugf("send offline message failed: %s", err)
-			}
+			log.Debug("TODO send to inbox!")
+			//if err := t.sendOfflineMessage(env, pid, hash); err != nil {
+			//	log.Debugf("send offline message failed: %s", err)
+			//}
 		}
 		cancel()
 	}()
@@ -194,12 +195,12 @@ func (t *Textile) sendChat(peerId string, chatMessage *pb.Chat) error {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	err = t.service.SendMessage(ctx, pid, env)
-	if err != nil && chatMessage.Flag != pb.Chat_TYPING {
-		if err := t.sendOfflineMessage(env, pid, nil); err != nil {
-			return err
-		}
-	}
+	return t.service.SendMessage(ctx, pid, env)
+	//if err != nil && chatMessage.Flag != pb.Chat_TYPING {
+	//	if err := t.sendOfflineMessage(env, pid, nil); err != nil {
+	//		return err
+	//	}
+	//}
 	return nil
 }
 
@@ -311,7 +312,7 @@ func (t *Textile) encryptMessage(pid peer.ID, message []byte) (ct []byte, rerr e
 	} else {
 		keyval, err := t.ipfs.Repo.Datastore().Get(ds.NewKey(net.KeyCachePrefix + pid.String()))
 		if err != nil {
-			pubKey, err = routing.GetPublicKey(t.ipfs.Routing, ctx, []byte(pid))
+			pubKey, err = routing.GetPublicKey(t.ipfs.Routing, ctx, pid)
 			if err != nil {
 				log.Errorf("failed to find public key for %s", pid.Pretty())
 				return nil, err

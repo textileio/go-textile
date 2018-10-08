@@ -3,7 +3,7 @@ package core
 import (
 	"fmt"
 	"github.com/textileio/textile-go/repo/config"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo"
 	"strings"
 )
 

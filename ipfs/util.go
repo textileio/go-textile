@@ -4,20 +4,21 @@ import (
 	"context"
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/archive"
-	iaddr "gx/ipfs/QmQViVWBHbU6HmYjXcdNq7tVASCNgdg64ZGcauuDkLCivW/go-ipfs-addr"
-	"gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreapi"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreapi/interface/options"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core/coreunix"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/path"
-	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
-	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	"gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
+	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	pstore "gx/ipfs/QmZR2XWVVBCtbgBWnQhWk2xcQfaR3W8faQPriAiaaj7rsr/go-libp2p-peerstore"
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	"gx/ipfs/Qme4QgoVPyQqxVc4G1c2L2wc9TDa6o294rtspGMnBNRujm/go-ipfs-addr"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core/coreapi"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core/coreapi/interface"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core/coreapi/interface/options"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core/coreunix"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/path"
+	uio "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/unixfs/io"
 	"io"
 	"io/ioutil"
 	"sort"
@@ -36,9 +37,9 @@ type IpnsEntry struct {
 }
 
 // GetDataAtPath return bytes under an ipfs path
-func GetDataAtPath(ipfs *core.IpfsNode, path string) ([]byte, error) {
+func GetDataAtPath(ipfs *core.IpfsNode, pth string) ([]byte, error) {
 	// convert string to an ipfs path
-	ip, err := coreapi.ParsePath(path)
+	ip, err := iface.ParsePath(pth)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +63,7 @@ func GetDataAtPath(ipfs *core.IpfsNode, path string) ([]byte, error) {
 // NOTE: currently will bork if dir path contains other dirs (depth > 1)
 func GetArchiveAtPath(ipfs *core.IpfsNode, path string) (io.Reader, error) {
 	// convert string to an ipfs path
-	ip, err := coreapi.ParsePath(path)
+	ip, err := iface.ParsePath(path)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +102,7 @@ func GetArchiveAtPath(ipfs *core.IpfsNode, path string) (io.Reader, error) {
 // GetLinksAtPath return ipld links under a path
 func GetLinksAtPath(ipfs *core.IpfsNode, path string) ([]*ipld.Link, error) {
 	// convert string to an ipfs path
-	ip, err := coreapi.ParsePath(path)
+	ip, err := iface.ParsePath(path)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +122,7 @@ func GetLinksAtPath(ipfs *core.IpfsNode, path string) ([]*ipld.Link, error) {
 }
 
 // AddFileToDirectory adds bytes as file to a virtual directory (dag) structure
-func AddFileToDirectory(ipfs *core.IpfsNode, dir *uio.Directory, reader io.Reader, fname string) error {
+func AddFileToDirectory(ipfs *core.IpfsNode, dir uio.Directory, reader io.Reader, fname string) error {
 	str, err := coreunix.Add(ipfs, reader)
 	if err != nil {
 		return err
@@ -162,7 +163,7 @@ func PinData(ipfs *core.IpfsNode, data io.Reader) (*cid.Cid, error) {
 
 // PinPath takes an ipfs path string and pins it
 func PinPath(ipfs *core.IpfsNode, path string, recursive bool) error {
-	ip, err := coreapi.ParsePath(path)
+	ip, err := iface.ParsePath(path)
 	if err != nil {
 		log.Errorf("error pinning path: %s, recursive: %t: %s", path, recursive, err)
 		return err
@@ -183,7 +184,7 @@ func PinPath(ipfs *core.IpfsNode, path string, recursive bool) error {
 
 // UnpinPath takes an ipfs path string and unpins it
 func UnpinPath(ipfs *core.IpfsNode, path string) error {
-	ip, err := coreapi.ParsePath(path)
+	ip, err := iface.ParsePath(path)
 	if err != nil {
 		log.Errorf("error unpinning path: %s: %s", path, err)
 		return err
@@ -311,16 +312,28 @@ func ParsePeerParam(text string) (ma.Multiaddr, peer.ID, error) {
 
 // PeersWithAddresses is a function that takes in a slice of string peer addresses
 // (multiaddr + peerid) and returns a slice of properly constructed peers
-func PeersWithAddresses(addrs []string) (pis []pstore.PeerInfo, err error) {
+
+func PeersWithAddresses(addrs []string) ([]pstore.PeerInfo, error) {
 	iaddrs, err := parseAddresses(addrs)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, a := range iaddrs {
+	peers := make(map[peer.ID][]ma.Multiaddr, len(iaddrs))
+	for _, iaddr := range iaddrs {
+		id := iaddr.ID()
+		current, ok := peers[id]
+		if tpt := iaddr.Transport(); tpt != nil {
+			peers[id] = append(current, tpt)
+		} else if !ok {
+			peers[id] = nil
+		}
+	}
+	pis := make([]pstore.PeerInfo, 0, len(peers))
+	for id, maddrs := range peers {
 		pis = append(pis, pstore.PeerInfo{
-			ID:    a.ID(),
-			Addrs: []ma.Multiaddr{a.Transport()},
+			ID:    id,
+			Addrs: maddrs,
 		})
 	}
 	return pis, nil
@@ -328,10 +341,10 @@ func PeersWithAddresses(addrs []string) (pis []pstore.PeerInfo, err error) {
 
 // parseAddresses is a function that takes in a slice of string peer addresses
 // (multiaddr + peerid) and returns slices of multiaddrs and peerids.
-func parseAddresses(addrs []string) (iaddrs []iaddr.IPFSAddr, err error) {
-	iaddrs = make([]iaddr.IPFSAddr, len(addrs))
+func parseAddresses(addrs []string) (iaddrs []ipfsaddr.IPFSAddr, err error) {
+	iaddrs = make([]ipfsaddr.IPFSAddr, len(addrs))
 	for i, saddr := range addrs {
-		iaddrs[i], err = iaddr.ParseString(saddr)
+		iaddrs[i], err = ipfsaddr.ParseString(saddr)
 		if err != nil {
 			return nil, cmds.ClientError("invalid peer address: " + err.Error())
 		}

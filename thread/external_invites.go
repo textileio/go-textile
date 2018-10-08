@@ -3,7 +3,7 @@ package thread
 import (
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/pb"
-	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 )
 
 // AddExternalInvite creates an external invite, which can be retrieved by any peer

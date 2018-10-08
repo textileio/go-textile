@@ -5,14 +5,14 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
-	routing "gx/ipfs/QmVW4cqbibru3hXA1iRmg85Fk7z9qML9k176CYQaMXVCrP/go-libp2p-kad-dht"
-	pb "gx/ipfs/QmVW4cqbibru3hXA1iRmg85Fk7z9qML9k176CYQaMXVCrP/go-libp2p-kad-dht/pb"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	ps "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	"gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
-	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	"gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	routing "gx/ipfs/QmTktQYCKzQjhxF6dk5xJPRuhHn3JBiKGvMLoiDy1mYmxC/go-libp2p-kad-dht"
+	pb "gx/ipfs/QmTktQYCKzQjhxF6dk5xJPRuhHn3JBiKGvMLoiDy1mYmxC/go-libp2p-kad-dht/pb"
+	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	ps "gx/ipfs/QmZR2XWVVBCtbgBWnQhWk2xcQfaR3W8faQPriAiaaj7rsr/go-libp2p-peerstore"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 	"strconv"
 	"sync"
 	"time"
@@ -86,15 +86,15 @@ func PutPointerToPeer(node *core.IpfsNode, ctx context.Context, peer peer.ID, po
 	return putPointer(ctx, dht, peer, pointer.Value, pointer.Cid.KeyString())
 }
 
-func GetPointersFromPeer(node *core.IpfsNode, ctx context.Context, p peer.ID, key *cid.Cid) ([]*ps.PeerInfo, error) {
-	dht := node.Routing.(*routing.IpfsDHT)
-	pmes := pb.NewMessage(pb.Message_GET_PROVIDERS, key.KeyString(), 0)
-	resp, err := dht.SendRequest(ctx, p, pmes)
-	if err != nil {
-		return []*ps.PeerInfo{}, err
-	}
-	return pb.PBPeersToPeerInfos(resp.GetProviderPeers()), nil
-}
+//func GetPointersFromPeer(node *core.IpfsNode, ctx context.Context, p peer.ID, key *cid.Cid) ([]*ps.PeerInfo, error) {
+//	dht := node.Routing.(*routing.IpfsDHT)
+//	pmes := pb.NewMessage(pb.Message_GET_PROVIDERS, key.KeyString(), 0)
+//	resp, err := dht.SendRequest(ctx, p, pmes)
+//	if err != nil {
+//		return []*ps.PeerInfo{}, err
+//	}
+//	return pb.PBPeersToPeerInfos(resp.GetProviderPeers()), nil
+//}
 
 func addPointer(node *core.IpfsNode, ctx context.Context, k *cid.Cid, pi ps.PeerInfo) error {
 	dht := node.Routing.(*routing.IpfsDHT)
@@ -118,10 +118,10 @@ func putPointer(ctx context.Context, dht *routing.IpfsDHT, p peer.ID, pi ps.Peer
 	pmes := pb.NewMessage(pb.Message_ADD_PROVIDER, skey, 0)
 	pmes.ProviderPeers = pb.RawPeerInfosToPBPeers([]ps.PeerInfo{pi})
 
-	err := dht.SendMessage(ctx, p, pmes)
-	if err != nil {
-		return err
-	}
+	//err := dht.SendMessage(ctx, p, pmes)
+	//if err != nil {
+	//	return err
+	//}
 	return nil
 }
 

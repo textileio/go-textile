@@ -15,14 +15,13 @@ import (
 	"github.com/textileio/textile-go/storage"
 	"github.com/textileio/textile-go/thread"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"gx/ipfs/QmVW4cqbibru3hXA1iRmg85Fk7z9qML9k176CYQaMXVCrP/go-libp2p-kad-dht"
-	utilmain "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/cmd/ipfs/util"
-	oldcmds "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/commands"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/config"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"
-	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	utilmain "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/cmd/ipfs/util"
+	oldcmds "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/commands"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/config"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/fsrepo"
 	"os"
 	"path"
 	"path/filepath"
@@ -169,32 +168,32 @@ func InitRepo(config InitConfig) error {
 	if err != nil {
 		return err
 	}
-	if err := rep.Keystore().Put("account", sk); err != nil {
-		return err
-	}
+	return rep.Keystore().Put("account", sk)
 
-	fmt.Println("Publishing new account peer identity...")
+	// TODO: discover other devices
 
-	// create a tmp node
-	node, err := NewTextile(RunConfig{
-		PinCode:  config.PinCode,
-		RepoPath: config.RepoPath,
-		LogLevel: config.LogLevel,
-		LogFiles: config.LogFiles,
-	})
-	if err != nil {
-		return err
-	}
-
-	// add new peer to account profile
-	if err := node.Start(); err != nil {
-		return err
-	}
-	<-node.Online()
-	if _, err := node.PublishAccountProfile(nil); err != nil {
-		log.Errorf("error publishing profile: %s", err)
-	}
-	return nil
+	//fmt.Println("Publishing new account peer identity...")
+	//
+	//// create a tmp node
+	//node, err := NewTextile(RunConfig{
+	//	PinCode:  config.PinCode,
+	//	RepoPath: config.RepoPath,
+	//	LogLevel: config.LogLevel,
+	//	LogFiles: config.LogFiles,
+	//})
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//// add new peer to account profile
+	//if err := node.Start(); err != nil {
+	//	return err
+	//}
+	//<-node.Online()
+	//if _, err := node.PublishAccountProfile(nil); err != nil {
+	//	log.Errorf("error publishing profile: %s", err)
+	//}
+	//return nil
 }
 
 // NewTextile runs a node out of an initialized repo
@@ -307,7 +306,7 @@ func (t *Textile) Start() error {
 		}
 
 		// wait for dht to bootstrap
-		<-dht.DefaultBootstrapConfig.DoneChan
+		//<-dht.DefaultBootstrapConfig.DoneChan
 
 		// set offline message storage
 		t.messageStorage = storage.NewCafeStorage(t.ipfs, t.repoPath, func(id *cid.Cid) error {
@@ -337,25 +336,25 @@ func (t *Textile) Start() error {
 		t.service = serv.NewService(t.ipfs, t.datastore, t.GetThread, t.sendNotification)
 
 		// build the message retriever
-		mrCfg := net.MRConfig{
-			Datastore: t.datastore,
-			Ipfs:      t.ipfs,
-			Service:   t.service,
-			PrefixLen: 14,
-			SendAck:   t.sendOfflineAck,
-			SendError: t.sendError,
-		}
-		t.messageRetriever = net.NewMessageRetriever(mrCfg)
+		//mrCfg := net.MRConfig{
+		//	Datastore: t.datastore,
+		//	Ipfs:      t.ipfs,
+		//	Service:   t.service,
+		//	PrefixLen: 14,
+		//	SendAck:   t.sendOfflineAck,
+		//	SendError: t.sendError,
+		//}
+		//t.messageRetriever = net.NewMessageRetriever(mrCfg)
 
 		// build the pointer republisher
-		t.pointerRepublisher = net.NewPointerRepublisher(t.ipfs, t.datastore)
+		//t.pointerRepublisher = net.NewPointerRepublisher(t.ipfs, t.datastore)
 
 		// start jobs if not mobile
 		if !t.IsMobile() {
-			go t.messageRetriever.Run()
-			go t.pointerRepublisher.Run()
+			//go t.messageRetriever.Run()
+			//go t.pointerRepublisher.Run()
 		} else {
-			go t.pointerRepublisher.Republish()
+			//go t.pointerRepublisher.Republish()
 		}
 
 		// print swarm addresses
@@ -429,10 +428,10 @@ func (t *Textile) Stop() error {
 	t.threads = nil
 
 	// shutdown message retriever
-	select {
-	case t.messageRetriever.DoneChan <- struct{}{}:
-	default:
-	}
+	//select {
+	//case t.messageRetriever.DoneChan <- struct{}{}:
+	//default:
+	//}
 
 	// close update channels
 	close(t.updates)
@@ -480,10 +479,10 @@ func (t *Textile) FetchMessages() error {
 	if !t.IsOnline() {
 		return ErrOffline
 	}
-	if t.messageRetriever.IsFetching() {
-		return net.ErrFetching
-	}
-	go t.messageRetriever.FetchPointers()
+	//if t.messageRetriever.IsFetching() {
+	//	return net.ErrFetching
+	//}
+	//go t.messageRetriever.FetchPointers()
 	return nil
 }
 
