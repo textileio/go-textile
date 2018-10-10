@@ -22,6 +22,14 @@ import (
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 )
 
+// ThreadService is a libp2p service for orchestrating a collection of files with annotations
+// amongst a group of peers
+type ThreadsHandler struct {
+	service          *service.Service
+	getThread        func(id string) (*int, *thread.Thread)
+	sendNotification func(note *repo.Notification) error
+}
+
 // NewThreadsService returns a new threads service
 func NewThreadsService(
 	node *core.IpfsNode,
@@ -34,14 +42,6 @@ func NewThreadsService(
 		sendNotification: sendNotification,
 	}
 	return service.NewService(handler, node, datastore)
-}
-
-// ThreadService is a libp2p service for orchestrating a collection of files with annotations
-// amongst a group of peers
-type ThreadsHandler struct {
-	service          *service.Service
-	getThread        func(id string) (*int, *thread.Thread)
-	sendNotification func(note *repo.Notification) error
 }
 
 // Protocol returns the handler protocol
@@ -67,15 +67,11 @@ func (h *ThreadsHandler) Handle(mtype pb.Message_Type) func(*service.Service, pe
 	case pb.Message_THREAD_MERGE:
 		return h.handleMerge
 
-	// TODO: Move these to account service
+	// TODO: Move these to pin service
 	case pb.Message_BLOCK:
 		return h.handleBlock
 	case pb.Message_STORE:
 		return h.handleStore
-	case pb.Message_PING:
-		return h.handlePing
-	case pb.Message_ERROR:
-		return h.handleError
 	default:
 		return nil
 	}
@@ -440,8 +436,6 @@ func (h *ThreadsHandler) handleMerge(s *service.Service, pid peer.ID, pmes *pb.E
 	return nil, nil
 }
 
-// TODO: Move these to account service
-
 func (h *ThreadsHandler) handleBlock(s *service.Service, pid peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
 	if pmes.Message.Payload == nil {
 		return nil, errors.New("payload is nil")
@@ -509,24 +503,6 @@ func (h *ThreadsHandler) handleStore(s *service.Service, pid peer.ID, pmes *pb.E
 		Payload: payload,
 	}
 	return newEnvelope(s.Node().PrivateKey, message)
-}
-
-func (h *ThreadsHandler) handlePing(s *service.Service, pid peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
-	log.Debugf("received PING message from %h", pid.Pretty())
-	return pmes, nil
-}
-
-func (h *ThreadsHandler) handleError(s *service.Service, peer peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
-	if pmes.Message.Payload == nil {
-		return nil, errors.New("payload is nil")
-	}
-	errorMessage := new(pb.Error)
-	err := ptypes.UnmarshalAny(pmes.Message.Payload, errorMessage)
-	if err != nil {
-		return nil, err
-	}
-
-	return nil, nil
 }
 
 // unpackThreadMessage returns an envelope's signed thread block

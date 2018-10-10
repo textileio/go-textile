@@ -12,10 +12,8 @@ import (
 	"github.com/textileio/textile-go/net/service"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
-	"github.com/textileio/textile-go/storage"
 	"github.com/textileio/textile-go/thread"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 	utilmain "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/commands"
@@ -91,26 +89,24 @@ type RunConfig struct {
 
 // Textile is the main Textile node structure
 type Textile struct {
-	version            string
-	context            oldcmds.Context
-	repoPath           string
-	cancel             context.CancelFunc
-	ipfs               *core.IpfsNode
-	datastore          repo.Datastore
-	cafeAddr           string
-	started            bool
-	threads            []*thread.Thread
-	threadsService     *service.Service
-	online             chan struct{}
-	done               chan struct{}
-	updates            chan Update
-	threadUpdates      chan thread.Update
-	notifications      chan repo.Notification
-	messageStorage     storage.OfflineMessagingStorage
-	messageRetriever   *net.MessageRetriever
-	pointerRepublisher *net.PointerRepublisher
-	pinner             *net.Pinner
-	mux                sync.Mutex
+	version        string
+	context        oldcmds.Context
+	repoPath       string
+	cancel         context.CancelFunc
+	ipfs           *core.IpfsNode
+	datastore      repo.Datastore
+	cafeAddr       string
+	started        bool
+	threads        []*thread.Thread
+	online         chan struct{}
+	done           chan struct{}
+	updates        chan Update
+	threadUpdates  chan thread.Update
+	notifications  chan repo.Notification
+	threadsService *service.Service
+	cafeService    *net.CafeService
+	pinner         *net.Pinner
+	mux            sync.Mutex
 }
 
 var ErrAccountRequired = errors.New("account required")
@@ -309,31 +305,33 @@ func (t *Textile) Start() error {
 		//<-dht.DefaultBootstrapConfig.DoneChan
 
 		// set offline message storage
-		t.messageStorage = storage.NewCafeStorage(t.ipfs, t.repoPath, func(id *cid.Cid) error {
-			if t.pinner == nil {
-				return nil
-			}
-			tokens, err := t.GetCafeTokens(false)
-			if err != nil {
-				return err
-			}
-			hash := id.Hash().B58String()
-			if err := net.Pin(t.ipfs, hash, tokens, t.pinner.Url()); err != nil {
-				if err == net.ErrTokenExpired {
-					tokens, err := t.GetCafeTokens(true)
-					if err != nil {
-						return err
-					}
-					return net.Pin(t.ipfs, hash, tokens, t.pinner.Url())
-				} else {
-					return err
-				}
-			}
-			return nil
-		})
+		//t.messageStorage = storage.NewCafeStorage(t.ipfs, t.repoPath, func(id *cid.Cid) error {
+		//	if t.pinner == nil {
+		//		return nil
+		//	}
+		//	tokens, err := t.GetCafeTokens(false)
+		//	if err != nil {
+		//		return err
+		//	}
+		//	hash := id.Hash().B58String()
+		//	if err := net.Pin(t.ipfs, hash, tokens, t.pinner.Url()); err != nil {
+		//		if err == net.ErrTokenExpired {
+		//			tokens, err := t.GetCafeTokens(true)
+		//			if err != nil {
+		//				return err
+		//			}
+		//			return net.Pin(t.ipfs, hash, tokens, t.pinner.Url())
+		//		} else {
+		//			return err
+		//		}
+		//	}
+		//	return nil
+		//})
 
-		// threadsService is now configurable
+		// configure services
 		t.threadsService = net.NewThreadsService(t.ipfs, t.datastore, t.GetThread, t.sendNotification)
+
+		t.cafeService = net.NewCafeService(t.ipfs, t.datastore)
 
 		// build the message retriever
 		//mrCfg := net.MRConfig{

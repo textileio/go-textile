@@ -18,56 +18,6 @@ func unmarshalJSON(body io.ReadCloser, target interface{}) error {
 	return json.Unmarshal(b, target)
 }
 
-// CAFE V0
-
-func SignUpUser(reg *models.UserRegistration, url string) (*models.SessionResponse, error) {
-	payload, err := json.Marshal(reg)
-	if err != nil {
-		return nil, err
-	}
-	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(payload))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-	resp := &models.SessionResponse{}
-	if err := unmarshalJSON(res.Body, resp); err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
-func SignInUser(creds *models.UserCredentials, url string) (*models.SessionResponse, error) {
-	payload, err := json.Marshal(creds)
-	if err != nil {
-		return nil, err
-	}
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-	resp := &models.SessionResponse{}
-	if err := unmarshalJSON(res.Body, resp); err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
-// CAFE V1
-
 func ProfileChallenge(chal *models.ChallengeRequest, url string) (*models.ChallengeResponse, error) {
 	payload, err := json.Marshal(chal)
 	if err != nil {

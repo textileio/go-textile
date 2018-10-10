@@ -9,6 +9,7 @@ import (
 	cmodels "github.com/textileio/textile-go/cafe/models"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/repo"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"time"
 )
@@ -59,9 +60,9 @@ func (t *Textile) getCafeChallenge(accnt *keypair.Full) (*cmodels.SignedChalleng
 
 // CafeRegister registers a public key w/ a cafe, requests a session token, and saves it locally
 func (t *Textile) CafeRegister(referral string) error {
-	if t.cafeAddr == "" {
-		return ErrNoCafeHost
-	}
+	//if t.cafeAddr == "" {
+	//	return ErrNoCafeHost
+	//}
 	if err := t.touchDatastore(); err != nil {
 		return err
 	}
@@ -71,38 +72,46 @@ func (t *Textile) CafeRegister(referral string) error {
 	if err != nil {
 		return err
 	}
-	challenge, err := t.getCafeChallenge(accnt)
-	if err != nil {
+
+	pid, err := peer.IDB58Decode("12D3KooWGcFNG8h3v9P6M862PqCvKjh32gu1Enx8VJsaN6iNt7dF")
+
+	if err := t.cafeService.RequestChallenge(accnt, pid); err != nil {
 		return err
 	}
-	reg := &cmodels.ProfileRegistration{
-		Challenge: *challenge,
-		Referral:  referral,
-	}
+	return nil
 
-	log.Debugf("cafe register: %s %s %s", reg.Challenge.Address, reg.Challenge.Signature, reg.Referral)
-
-	// remote register
-	res, err := client.RegisterProfile(reg, fmt.Sprintf("%s/profiles", t.GetCafeApiAddr()))
-	if err != nil {
-		log.Errorf("register error: %s", err)
-		return err
-	}
-	if res.Error != nil {
-		log.Errorf("register error from cafe: %s", *res.Error)
-		return errors.New(*res.Error)
-	}
-
-	// local login
-	tokens := &repo.CafeTokens{
-		Access:  res.Session.AccessToken,
-		Refresh: res.Session.RefreshToken,
-		Expiry:  time.Unix(res.Session.ExpiresAt, 0),
-	}
-	if err := t.datastore.Profile().CafeLogin(tokens); err != nil {
-		log.Errorf("local login error: %s", err)
-		return err
-	}
+	//challenge, err := t.getCafeChallenge(accnt)
+	//if err != nil {
+	//	return err
+	//}
+	//reg := &cmodels.ProfileRegistration{
+	//	Challenge: *challenge,
+	//	Referral:  referral,
+	//}
+	//
+	//log.Debugf("cafe register: %s %s %s", reg.Challenge.Address, reg.Challenge.Signature, reg.Referral)
+	//
+	//// remote register
+	//res, err := client.RegisterProfile(reg, fmt.Sprintf("%s/profiles", t.GetCafeApiAddr()))
+	//if err != nil {
+	//	log.Errorf("register error: %s", err)
+	//	return err
+	//}
+	//if res.Error != nil {
+	//	log.Errorf("register error from cafe: %s", *res.Error)
+	//	return errors.New(*res.Error)
+	//}
+	//
+	//// local login
+	//tokens := &repo.CafeTokens{
+	//	Access:  res.Session.AccessToken,
+	//	Refresh: res.Session.RefreshToken,
+	//	Expiry:  time.Unix(res.Session.ExpiresAt, 0),
+	//}
+	//if err := t.datastore.Profile().CafeLogin(tokens); err != nil {
+	//	log.Errorf("local login error: %s", err)
+	//	return err
+	//}
 
 	return nil
 }

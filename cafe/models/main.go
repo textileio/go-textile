@@ -5,44 +5,6 @@ import (
 	"time"
 )
 
-// USER (cafe v0)
-
-type User struct {
-	ID         bson.ObjectId  `bson:"_id" json:"id"`
-	Username   string         `bson:"username" json:"username"`
-	Password   string         `bson:"password" json:"password"`
-	Created    time.Time      `bson:"created" json:"created"`
-	LastSeen   time.Time      `bson:"last_seen" json:"last_seen"`
-	Identities []UserIdentity `bson:"identities" json:"identities"`
-}
-
-type UserRegistration struct {
-	Username string        `json:"username" binding:"required"`
-	Password string        `json:"password" binding:"required"`
-	Identity *UserIdentity `json:"identity" binding:"required"`
-	Referral string        `json:"ref_code" binding:"required"`
-}
-
-type UserCredentials struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
-}
-
-type UserIdentityType string
-
-const (
-	PhoneNumber  UserIdentityType = "phone_number"
-	EmailAddress UserIdentityType = "email_address"
-)
-
-type UserIdentity struct {
-	Type     UserIdentityType `bson:"type" json:"type" binding:"required"`
-	Value    string           `bson:"value" json:"value" binding:"required"`
-	Verified bool             `bson:"verified" json:"verified"`
-}
-
-// PROFILES (cafe v1)
-
 type Profile struct {
 	ID       bson.ObjectId `bson:"_id" json:"id"`
 	Address  string        `bson:"address" json:"address"`

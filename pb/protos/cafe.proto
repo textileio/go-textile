@@ -1,0 +1,11 @@
+syntax = "proto3";
+option go_package = "pb";
+
+message CafeChallengeRequest {
+    string address = 1;
+}
+
+message CafeChallengeResponse {
+    string value = 1;
+    string error = 2;
+}

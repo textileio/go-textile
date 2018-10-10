@@ -21,6 +21,11 @@ message Message {
         MODERATOR_REMOVE       = 7;
         STORE                  = 8;
         BLOCK                  = 9;
+
+        CAFE_CHALLENGE_REQUEST  = 50;
+        CAFE_CHALLENGE_RESPONSE = 51;
+        CAFE_REGISTRATION       = 52;
+
         THREAD_INVITE          = 100;
         THREAD_EXTERNAL_INVITE = 101;
         THREAD_JOIN            = 102;

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/pb"
@@ -113,6 +114,33 @@ func (s *Service) DisconnectFromPeer(pid peer.ID) error {
 	return nil
 }
 
+// NewEnvelope returns a signed pb message
+func (s *Service) NewEnvelope(message proto.Message, mtype pb.Message_Type) (*pb.Envelope, error) {
+	payload, err := ptypes.MarshalAny(message)
+	if err != nil {
+		return nil, err
+	}
+	msg := &pb.Message{Type: mtype, Payload: payload}
+	serialized, err := proto.Marshal(msg)
+	if err != nil {
+		return nil, err
+	}
+	authorSig, err := s.node.PrivateKey.Sign(serialized)
+	if err != nil {
+		return nil, err
+	}
+	authorPk, err := s.node.PrivateKey.GetPublic().Bytes()
+	if err != nil {
+		return nil, err
+	}
+	return &pb.Envelope{Message: msg, Pk: authorPk, Sig: authorSig}, nil
+}
+
+// NewErrorMessage returns a signed pb error message
+func (s *Service) NewErrorMessage(code int, msg string) (*pb.Envelope, error) {
+	return s.NewEnvelope(&pb.Error{Code: uint32(code), Message: msg}, pb.Message_ERROR)
+}
+
 // handleNewStream handles a p2p net stream in the background
 func (s *Service) handleNewStream(stream inet.Stream) {
 	go s.handleNewMessage(stream)
@@ -192,12 +220,16 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 			return
 		}
 
-		// get handler for this msg type
-		handler := s.handler.Handle(pmes.Message.Type)
+		// try a generic handler for this msg type
+		handler := s.handleGeneric(pmes.Message.Type)
 		if handler == nil {
-			stream.Reset()
-			log.Debug("got back nil handler")
-			return
+			// get service specific handler for this msg type
+			handler := s.handler.Handle(pmes.Message.Type)
+			if handler == nil {
+				stream.Reset()
+				log.Debug("got back nil handler")
+				return
+			}
 		}
 
 		// dispatch handler
@@ -206,7 +238,7 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 			log.Errorf("%s handle message error: %s", pmes.Message.Type.String(), err)
 		}
 
-		// ff nil response, return it before serializing
+		// if nil response, return it before serializing
 		if rpmes == nil {
 			continue
 		}
@@ -222,4 +254,37 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 			return
 		}
 	}
+}
+
+// handleGeneric provides service level handlers for common message types
+func (s *Service) handleGeneric(mtype pb.Message_Type) func(*Service, peer.ID, *pb.Envelope) (*pb.Envelope, error) {
+	switch mtype {
+	case pb.Message_PING:
+		return handlePing
+	case pb.Message_ERROR:
+		return handleError
+	default:
+		return nil
+	}
+}
+
+// handlePing receives a PING message
+func handlePing(_ *Service, pid peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
+	log.Debugf("received PING message from %h", pid.Pretty())
+	return pmes, nil
+}
+
+// handleError receives an ERROR message
+func handleError(_ *Service, pid peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
+	log.Debugf("received ERROR message from %h", pid.Pretty())
+	if pmes.Message.Payload == nil {
+		return nil, errors.New("payload is nil")
+	}
+	errorMessage := new(pb.Error)
+	err := ptypes.UnmarshalAny(pmes.Message.Payload, errorMessage)
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
