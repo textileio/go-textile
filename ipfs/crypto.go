@@ -76,20 +76,15 @@ func EncodeKey(key libp2pc.Key) (string, error) {
 	return libp2pc.ConfigEncodeKey(keyb), nil
 }
 
-// DecodePrivKey returns a private key from a base64 encoded string
-func DecodePrivKey(key string) (libp2pc.PrivKey, error) {
-	keyb, err := libp2pc.ConfigDecodeKey(key)
+// PubKeyFromID attempts to extract a public key from a base58 encoded id
+func PubKeyFromID(id string) (libp2pc.PubKey, error) {
+	pid, err := peer.IDB58Decode(id)
 	if err != nil {
 		return nil, err
 	}
-	return libp2pc.UnmarshalPrivateKey(keyb)
-}
-
-// DecodePubKey returns a public key from a base64 encoded string
-func DecodePubKey(key string) (libp2pc.PubKey, error) {
-	keyb, err := libp2pc.ConfigDecodeKey(key)
+	pk, err := pid.ExtractPublicKey()
 	if err != nil {
 		return nil, err
 	}
-	return libp2pc.UnmarshalPublicKey(keyb)
+	return pk, nil
 }

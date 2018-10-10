@@ -6,6 +6,7 @@ import (
 	"github.com/textileio/textile-go/pb"
 	inet "gx/ipfs/QmPjvxTpVH8qJyQDnxnsxF9kv9jezKD1kozz1hs3fCGsNh/go-libp2p-net"
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
+	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"math/rand"
 	"sync"
@@ -13,41 +14,46 @@ import (
 )
 
 type sender struct {
-	s         inet.Stream
-	w         ggio.WriteCloser
-	r         ggio.ReadCloser
-	lk        sync.Mutex
-	p         peer.ID
-	service   *TextileService
-	singleMes int
-	invalid   bool
-	requests  map[int32]chan *pb.Envelope
-	requestlk sync.Mutex
+	protocol   protocol.ID
+	stream     inet.Stream
+	writer     ggio.WriteCloser
+	reader     ggio.ReadCloser
+	mux        sync.Mutex
+	pid        peer.ID
+	service    *Service
+	singleMsg  int
+	invalid    bool
+	requests   map[int32]chan *pb.Envelope
+	requestMux sync.Mutex
 }
 
-var ReadMessageTimeout = time.Minute * 5
+var ReadMessageTimeout = time.Minute * 1
 var ErrReadTimeout = fmt.Errorf("timed out reading response")
 
-func (s *TextileService) messageSenderForPeer(pid peer.ID) (*sender, error) {
+func (s *Service) messageSenderForPeer(pid peer.ID, proto protocol.ID) (*sender, error) {
 	defer func() {
 		if recover() != nil {
 			log.Error("recovered from messageSenderForPeer")
 		}
 	}()
-	s.senderlk.Lock()
+	s.senderMux.Lock()
 	ms, ok := s.sender[pid]
 	if ok {
-		s.senderlk.Unlock()
+		s.senderMux.Unlock()
 		return ms, nil
 	}
-	ms = &sender{p: pid, service: s, requests: make(map[int32]chan *pb.Envelope, 2)}
+	ms = &sender{
+		protocol: proto,
+		pid:      pid,
+		service:  s,
+		requests: make(map[int32]chan *pb.Envelope, 2),
+	}
 	s.sender[pid] = ms
-	s.senderlk.Unlock()
+	s.senderMux.Unlock()
 
 	if err := ms.prepOrInvalidate(); err != nil {
-		s.senderlk.Lock()
-		defer s.senderlk.Unlock()
-
+		s.senderMux.Lock()
+		defer s.senderMux.Unlock()
 		if msCur, ok := s.sender[pid]; ok {
 			// Changed. Use the new one, old one is invalid and
 			// not in the map so we can just throw it away.
@@ -65,28 +71,20 @@ func (s *TextileService) messageSenderForPeer(pid peer.ID) (*sender, error) {
 	return ms, nil
 }
 
-func (s *TextileService) newMessageSender(pid peer.ID) *sender {
-	return &sender{
-		p:        pid,
-		service:  s,
-		requests: make(map[int32]chan *pb.Envelope, 2), // low initial capacity
-	}
-}
-
 // invalidate is called before this sender is removed from the strmap.
 // It prevents the sender from being reused/reinitialized and then
 // forgotten (leaving the stream open).
 func (ms *sender) invalidate() {
 	ms.invalid = true
-	if ms.s != nil {
-		ms.s.Reset()
-		ms.s = nil
+	if ms.stream != nil {
+		ms.stream.Reset()
+		ms.stream = nil
 	}
 }
 
 func (ms *sender) prepOrInvalidate() error {
-	ms.lk.Lock()
-	defer ms.lk.Unlock()
+	ms.mux.Lock()
+	defer ms.mux.Unlock()
 	if err := ms.prep(); err != nil {
 		ms.invalidate()
 		return err
@@ -98,19 +96,16 @@ func (ms *sender) prep() error {
 	if ms.invalid {
 		return fmt.Errorf("message sender has been invalidated")
 	}
-	if ms.s != nil {
+	if ms.stream != nil {
 		return nil
 	}
-
-	nstr, err := ms.service.host.NewStream(ms.service.ctx, ms.p, TextileProtocol)
+	nstr, err := ms.service.node.PeerHost.NewStream(ms.service.node.Context(), ms.pid, ms.protocol)
 	if err != nil {
 		return err
 	}
-
-	ms.r = ggio.NewDelimitedReader(nstr, inet.MessageSizeMax)
-	ms.w = ggio.NewDelimitedWriter(nstr)
-	ms.s = nstr
-
+	ms.reader = ggio.NewDelimitedReader(nstr, inet.MessageSizeMax)
+	ms.writer = ggio.NewDelimitedWriter(nstr)
+	ms.stream = nstr
 	return nil
 }
 
@@ -125,18 +120,16 @@ func (ms *sender) SendMessage(ctx context.Context, pmes *pb.Envelope) error {
 			log.Error("recovered from sender.SendMessage")
 		}
 	}()
-	ms.lk.Lock()
-	defer ms.lk.Unlock()
+	ms.mux.Lock()
+	defer ms.mux.Unlock()
 	retry := false
 	for {
 		if err := ms.prep(); err != nil {
 			return err
 		}
-
-		if err := ms.w.WriteMsg(pmes); err != nil {
-			ms.s.Reset()
-			ms.s = nil
-
+		if err := ms.writer.WriteMsg(pmes); err != nil {
+			ms.stream.Reset()
+			ms.stream = nil
 			if retry {
 				return err
 			} else {
@@ -144,14 +137,12 @@ func (ms *sender) SendMessage(ctx context.Context, pmes *pb.Envelope) error {
 				continue
 			}
 		}
-
-		if ms.singleMes > streamReuseTries {
-			ms.s.Close()
-			ms.s = nil
+		if ms.singleMsg > streamReuseTries {
+			ms.stream.Close()
+			ms.stream = nil
 		} else if retry {
-			ms.singleMes++
+			ms.singleMsg++
 		}
-
 		return nil
 	}
 }
@@ -164,22 +155,20 @@ func (ms *sender) SendRequest(ctx context.Context, pmes *pb.Envelope) (*pb.Envel
 	}()
 	pmes.Message.RequestId = rand.Int31()
 	returnChan := make(chan *pb.Envelope)
-	ms.requestlk.Lock()
+	ms.requestMux.Lock()
 	ms.requests[pmes.Message.RequestId] = returnChan
-	ms.requestlk.Unlock()
+	ms.requestMux.Unlock()
 
-	ms.lk.Lock()
-	defer ms.lk.Unlock()
+	ms.mux.Lock()
+	defer ms.mux.Unlock()
 	retry := false
 	for {
 		if err := ms.prep(); err != nil {
 			return nil, err
 		}
-
-		if err := ms.w.WriteMsg(pmes); err != nil {
-			ms.s.Reset()
-			ms.s = nil
-
+		if err := ms.writer.WriteMsg(pmes); err != nil {
+			ms.stream.Reset()
+			ms.stream = nil
 			if retry {
 				return nil, err
 			} else {
@@ -187,40 +176,36 @@ func (ms *sender) SendRequest(ctx context.Context, pmes *pb.Envelope) (*pb.Envel
 				continue
 			}
 		}
-
 		mes, err := ms.ctxReadMsg(ctx, returnChan)
 		if err != nil {
-			ms.s.Reset()
-			ms.s = nil
+			ms.stream.Reset()
+			ms.stream = nil
 			return nil, err
 		}
-
-		if ms.singleMes > streamReuseTries {
-			ms.s.Close()
-			ms.s = nil
+		if ms.singleMsg > streamReuseTries {
+			ms.stream.Close()
+			ms.stream = nil
 		} else if retry {
-			ms.singleMes++
+			ms.singleMsg++
 		}
-
 		return mes, nil
 	}
 }
 
 // stop listening for responses
 func (ms *sender) closeRequest(id int32) {
-	ms.requestlk.Lock()
+	ms.requestMux.Lock()
 	ch, ok := ms.requests[id]
 	if ok {
 		close(ch)
 		delete(ms.requests, id)
 	}
-	ms.requestlk.Unlock()
+	ms.requestMux.Unlock()
 }
 
 func (ms *sender) ctxReadMsg(ctx context.Context, returnChan chan *pb.Envelope) (*pb.Envelope, error) {
 	t := time.NewTimer(ReadMessageTimeout)
 	defer t.Stop()
-
 	select {
 	case mes := <-returnChan:
 		return mes, nil

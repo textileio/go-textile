@@ -3,7 +3,6 @@ package net
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -32,7 +31,7 @@ var OutOfOrderMessage = errors.New("message arrived out of order")
 type MRConfig struct {
 	Datastore repo.Datastore
 	Ipfs      *core.IpfsNode
-	Service   NetworkService
+	//Service   NetworkService
 	PrefixLen int
 	SendAck   func(peerId string, pointerID peer.ID) error
 	SendError func(peerId string, k *libp2pc.PubKey, errorMessage pb.Envelope) error
@@ -41,7 +40,7 @@ type MRConfig struct {
 type MessageRetriever struct {
 	datastore repo.Datastore
 	ipfs      *core.IpfsNode
-	service   NetworkService
+	//service   NetworkService
 	prefixLen int
 	sendAck   func(peerId string, pointerID peer.ID) error
 	sendError func(peerId string, k *libp2pc.PubKey, errorMessage pb.Envelope) error
@@ -75,7 +74,7 @@ func NewMessageRetriever(config MRConfig) *MessageRetriever {
 	return &MessageRetriever{
 		datastore: config.Datastore,
 		ipfs:      config.Ipfs,
-		service:   config.Service,
+		//service:   config.Service,
 		prefixLen: config.PrefixLen,
 		sendAck:   config.SendAck,
 		sendError: config.SendError,
@@ -249,31 +248,31 @@ func (m *MessageRetriever) verifyMessage(payload []byte, pid peer.ID, addr ma.Mu
 // handleMessage loads the hander for this message type and attempts to process the message
 func (m *MessageRetriever) handleMessage(env *pb.Envelope, addr string) error {
 	// get the peer ID from the public key
-	pid, err := getEnvelopeSenderId(env)
-	if err != nil {
-		return err
-	}
-
+	//pid, err := getEnvelopeSenderId(env)
+	//if err != nil {
+	//	return err
+	//}
+	//
 	// get handler for this message type
-	handler := m.service.HandlerForMsgType(env.Message.Type)
-	if handler == nil {
-		return errors.New(fmt.Sprintf("nil handler for message type %s", env.Message.Type))
-	}
-
-	// dispatch handler
-	if _, err := handler(pid, env, true); err != nil {
-		if err == OutOfOrderMessage {
-			ser, err := proto.Marshal(env)
-			if err != nil {
-				return err
-			}
-			if err := m.datastore.OfflineMessages().SetMessage(addr, ser); err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
-	}
+	//handler := m.service.HandlerForMsgType(env.Message.Type)
+	//if handler == nil {
+	//	return errors.New(fmt.Sprintf("nil handler for message type %s", env.Message.Type))
+	//}
+	//
+	//// dispatch handler
+	//if _, err := handler(pid, env, true); err != nil {
+	//	if err == OutOfOrderMessage {
+	//		ser, err := proto.Marshal(env)
+	//		if err != nil {
+	//			return err
+	//		}
+	//		if err := m.datastore.OfflineMessages().SetMessage(addr, ser); err != nil {
+	//			return err
+	//		}
+	//	} else {
+	//		return err
+	//	}
+	//}
 	return nil
 }
 

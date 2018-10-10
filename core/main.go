@@ -9,7 +9,7 @@ import (
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/net"
-	serv "github.com/textileio/textile-go/net/service"
+	"github.com/textileio/textile-go/net/service"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/storage"
@@ -97,10 +97,10 @@ type Textile struct {
 	cancel             context.CancelFunc
 	ipfs               *core.IpfsNode
 	datastore          repo.Datastore
-	service            *serv.TextileService
 	cafeAddr           string
 	started            bool
 	threads            []*thread.Thread
+	threadsService     *service.Service
 	online             chan struct{}
 	done               chan struct{}
 	updates            chan Update
@@ -221,16 +221,16 @@ func NewTextile(config RunConfig) (*Textile, error) {
 	}
 
 	// open repo
-	rep, err := fsrepo.Open(config.RepoPath)
-	if err != nil {
-		log.Errorf("error opening repo: %s", err)
-		return nil, err
-	}
+	//rep, err := fsrepo.Open(config.RepoPath)
+	//if err != nil {
+	//	log.Errorf("error opening repo: %s", err)
+	//	return nil, err
+	//}
 
 	// ensure bootstrap addresses are latest in config
-	if err := ensureBootstrapConfig(rep); err != nil {
-		return nil, err
-	}
+	//if err := ensureBootstrapConfig(rep); err != nil {
+	//	return nil, err
+	//}
 
 	return &Textile{
 		version:   Version,
@@ -271,12 +271,12 @@ func (t *Textile) Start() error {
 			log.Error(err.Error())
 			return
 		}
-		log.Info("wallet is started")
+		log.Info("node is started")
 		log.Infof("account address: %s", addr)
 		log.Infof("account id: %s", accntId.Pretty())
 		log.Infof("peer pk: %s", peerPks)
 	}()
-	log.Info("starting wallet...")
+	log.Info("starting node...")
 	t.online = make(chan struct{})
 	t.updates = make(chan Update, 10)
 	t.threadUpdates = make(chan thread.Update, 10)
@@ -332,14 +332,14 @@ func (t *Textile) Start() error {
 			return nil
 		})
 
-		// service is now configurable
-		t.service = serv.NewService(t.ipfs, t.datastore, t.GetThread, t.sendNotification)
+		// threadsService is now configurable
+		t.threadsService = net.NewThreadsService(t.ipfs, t.datastore, t.GetThread, t.sendNotification)
 
 		// build the message retriever
 		//mrCfg := net.MRConfig{
 		//	Datastore: t.datastore,
 		//	Ipfs:      t.ipfs,
-		//	Service:   t.service,
+		//	Service:   t.threadsService,
 		//	PrefixLen: 14,
 		//	SendAck:   t.sendOfflineAck,
 		//	SendError: t.sendError,
@@ -361,7 +361,7 @@ func (t *Textile) Start() error {
 		if err := ipfs.PrintSwarmAddrs(t.ipfs); err != nil {
 			log.Errorf("failed to read listening addresses: %s", err)
 		}
-		log.Info("wallet is online")
+		log.Info("node is online")
 	}()
 
 	// build a pin requester
@@ -409,7 +409,7 @@ func (t *Textile) Stop() error {
 		t.started = false
 		close(t.done)
 	}()
-	log.Info("stopping wallet...")
+	log.Info("stopping node...")
 
 	// close ipfs node
 	t.context.Close()
@@ -438,7 +438,7 @@ func (t *Textile) Stop() error {
 	close(t.threadUpdates)
 	close(t.notifications)
 
-	log.Info("wallet is stopped")
+	log.Info("node is stopped")
 
 	return nil
 }
@@ -631,11 +631,11 @@ func (t *Textile) loadThread(mod *repo.Thread) (*thread.Thread, error) {
 			if err := t.datastore.Threads().UpdateHead(id, head); err != nil {
 				return err
 			}
-			go func() {
-				if _, err := t.PublishPeerProfile(); err != nil {
-					log.Errorf("error publishing peer profile: %s", err)
-				}
-			}()
+			//go func() {
+			//	if _, err := t.PublishPeerProfile(); err != nil {
+			//		log.Errorf("error publishing peer profile: %s", err)
+			//	}
+			//}()
 			return nil
 		},
 		Send:          t.SendMessage,

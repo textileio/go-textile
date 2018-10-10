@@ -99,7 +99,7 @@ func TestTokens_Refresh(t *testing.T) {
 }
 
 func TestTokens_RefreshBadSignature(t *testing.T) {
-	session, err := auth.NewSession("abc", "bad", claims.Issuer, service.TextileProtocol, time.Hour)
+	session, err := auth.NewSession("abc", "bad", claims.Issuer, service.ThreadProtocol, time.Hour)
 	if err != nil {
 		t.Error(err)
 		return
@@ -133,7 +133,7 @@ func TestTokens_RefreshBadAudience(t *testing.T) {
 }
 
 func TestTokens_RefreshWrongToken(t *testing.T) {
-	session, err := auth.NewSession("abc", cafeTokenSecret, claims.Issuer, service.TextileProtocol, time.Hour)
+	session, err := auth.NewSession("abc", cafeTokenSecret, claims.Issuer, service.ThreadProtocol, time.Hour)
 	if err != nil {
 		t.Error(err)
 		return
@@ -150,7 +150,7 @@ func TestTokens_RefreshWrongToken(t *testing.T) {
 }
 
 func TestTokens_RefreshExpired(t *testing.T) {
-	session, err := auth.NewSession("abc", cafeTokenSecret, claims.Issuer, service.TextileProtocol, 0)
+	session, err := auth.NewSession("abc", cafeTokenSecret, claims.Issuer, service.ThreadProtocol, 0)
 	if err != nil {
 		t.Error(err)
 		return

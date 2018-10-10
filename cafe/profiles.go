@@ -9,7 +9,6 @@ import (
 	"github.com/textileio/textile-go/cafe/dao"
 	"github.com/textileio/textile-go/cafe/models"
 	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/net/service"
 	"net/http"
 	"time"
 )
@@ -109,7 +108,7 @@ func (c *Cafe) registerProfile(g *gin.Context) {
 	}
 
 	// get a session
-	session, err := auth.NewSession(profile.ID.Hex(), c.TokenSecret, c.Ipfs().Identity.Pretty(), service.TextileProtocol, oneMonth)
+	session, err := auth.NewSession(profile.ID.Hex(), c.TokenSecret, c.Ipfs().Identity.Pretty(), "FIXME", oneMonth)
 	if err != nil {
 		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -179,7 +178,7 @@ func (c *Cafe) loginProfile(g *gin.Context) {
 	}
 
 	// get a session
-	session, err := auth.NewSession(profile.ID.Hex(), c.TokenSecret, c.Ipfs().Identity.Pretty(), service.TextileProtocol, oneMonth)
+	session, err := auth.NewSession(profile.ID.Hex(), c.TokenSecret, c.Ipfs().Identity.Pretty(), "FIXME", oneMonth)
 	if err != nil {
 		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

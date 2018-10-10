@@ -44,22 +44,11 @@ func showId(c *ishell.Context) {
 		c.Err(err)
 		return
 	}
-	ppk, err := core.Node.GetPeerPubKey()
-	if err != nil {
-		c.Err(err)
-		return
-	}
-	ppks, err := ipfs.EncodeKey(ppk)
-	if err != nil {
-		c.Err(err)
-		return
-	}
 
 	c.Println(grey("--- ACCOUNT ---"))
-	c.Println(cyan(fmt.Sprintf("ID: %s", accntId)))
+	c.Println(cyan(fmt.Sprintf("ID: %s", accntId.Pretty())))
 	c.Println(cyan(fmt.Sprintf("Address: %s", accnt.Address())))
 	c.Println(cyan(fmt.Sprintf("Seed: %s", accnt.Seed())))
 	c.Println(grey("--- PEER ---"))
 	c.Println(green(fmt.Sprintf("ID: %s", pid)))
-	c.Println(green(fmt.Sprintf("PublicKey: %s", ppks)))
 }

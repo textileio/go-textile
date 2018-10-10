@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-var log = logging.MustGetLogger("photos")
+var log = logging.MustGetLogger("photo")
 
 type Format string
 

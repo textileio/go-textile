@@ -48,8 +48,6 @@ func (c *Cafe) Start(addr string) {
 	// v0 routes
 	v0 := router.Group("/api/v0")
 	{
-		v0.PUT("/users", c.signUpUser)
-		v0.POST("/users", c.signInUser)
 		v0.POST("/referrals", c.createReferral)
 		v0.GET("/referrals", c.listReferrals)
 		v0.POST("/tokens", c.authSession, c.refreshSession)

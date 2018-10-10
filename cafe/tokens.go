@@ -5,7 +5,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/textileio/textile-go/cafe/auth"
 	"github.com/textileio/textile-go/cafe/models"
-	"github.com/textileio/textile-go/net/service"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -77,7 +76,7 @@ func (c *Cafe) authSession(g *gin.Context) {
 	}
 
 	// verify extra fields
-	if !claims.VerifyAudience(string(service.TextileProtocol), true) {
+	if !claims.VerifyAudience(string("FIXME"), true) {
 		g.AbortWithStatusJSON(http.StatusForbidden, forbiddenResponse)
 		return
 	}
@@ -129,7 +128,7 @@ func (c *Cafe) refreshSession(g *gin.Context) {
 	}
 
 	// get a new session
-	refreshed, err := auth.NewSession(accessClaims.Subject, c.TokenSecret, c.Ipfs().Identity.Pretty(), service.TextileProtocol, oneMonth)
+	refreshed, err := auth.NewSession(accessClaims.Subject, c.TokenSecret, c.Ipfs().Identity.Pretty(), "FIXME", oneMonth)
 	if err != nil {
 		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

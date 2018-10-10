@@ -48,14 +48,14 @@ var DefaultServerFilters = []string{
 }
 
 func Init(identity native.Identity) (*native.Config, error) {
-	var bootstrapPeers []native.BootstrapPeer
-	for _, addr := range BootstrapAddresses {
-		p, err := native.ParseBootstrapPeer(addr)
-		bootstrapPeers = append(bootstrapPeers, p)
-		if err != nil {
-			return nil, err
-		}
-	}
+	//var bootstrapPeers []native.BootstrapPeer
+	//for _, addr := range BootstrapAddresses {
+	//	p, err := native.ParseBootstrapPeer(addr)
+	//	bootstrapPeers = append(bootstrapPeers, p)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//}
 
 	datastore := defaultDatastoreConfig()
 
@@ -76,7 +76,7 @@ func Init(identity native.Identity) (*native.Config, error) {
 		Addresses: addressesConfig(),
 
 		Datastore: datastore,
-		Bootstrap: native.BootstrapPeerStrings(bootstrapPeers),
+		Bootstrap: native.DefaultBootstrapAddresses,
 		Identity:  identity,
 		Discovery: native.Discovery{
 			MDNS: native.MDNS{

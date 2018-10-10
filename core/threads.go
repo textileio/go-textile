@@ -51,11 +51,11 @@ func (t *Textile) AddThread(name string, secret libp2pc.PrivKey, join bool) (*th
 	t.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadAdded})
 
 	// update profile
-	go func() {
-		if _, err := t.PublishPeerProfile(); err != nil {
-			log.Errorf("error publishing peer profile: %s", err)
-		}
-	}()
+	//go func() {
+	//	if _, err := t.PublishPeerProfile(); err != nil {
+	//		log.Errorf("error publishing peer profile: %s", err)
+	//	}
+	//}()
 
 	log.Debugf("added a new thread %s with name %s", thrd.Id, name)
 
@@ -93,11 +93,11 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	t.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadRemoved})
 
 	// update profile
-	go func() {
-		if _, err := t.PublishPeerProfile(); err != nil {
-			log.Errorf("error publishing peer profile: %s", err)
-		}
-	}()
+	//go func() {
+	//	if _, err := t.PublishPeerProfile(); err != nil {
+	//		log.Errorf("error publishing peer profile: %s", err)
+	//	}
+	//}()
 
 	log.Infof("removed thread %s with name %s", thrd.Id, thrd.Name)
 
@@ -146,15 +146,7 @@ func (t *Textile) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
 	}
 
 	// decrypt thread key with private key
-	accnt, err := t.Account()
-	if err != nil {
-		return nil, err
-	}
-	key, err := accnt.LibP2PPrivKey()
-	if err != nil {
-		return nil, err
-	}
-	skb, err := crypto.Decrypt(key, invite.SkCipher)
+	skb, err := crypto.Decrypt(t.ipfs.PrivateKey, invite.SkCipher)
 	if err != nil {
 		return nil, err
 	}
