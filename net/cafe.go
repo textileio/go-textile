@@ -32,8 +32,28 @@ func (h *CafeService) Protocol() protocol.ID {
 	return protocol.ID("/textile/cafe/1.0.0")
 }
 
+// Node returns the underlying ipfs Node
+func (h *CafeService) Node() *core.IpfsNode {
+	return h.service.Node
+}
+
+// Datastore returns the underlying datastore
+func (h *CafeService) Datastore() repo.Datastore {
+	return h.service.Datastore
+}
+
+// Ping pings another peer
+func (h *CafeService) Ping(pid peer.ID) (service.PeerStatus, error) {
+	return h.service.Ping(pid)
+}
+
+// VerifyEnvelope calls service verify
+func (h *CafeService) VerifyEnvelope(env *pb.Envelope) error {
+	return h.service.VerifyEnvelope(env)
+}
+
 // Handle is called by the underlying service handler method
-func (h *CafeService) Handle(mtype pb.Message_Type) func(*service.Service, peer.ID, *pb.Envelope) (*pb.Envelope, error) {
+func (h *CafeService) Handle(mtype pb.Message_Type) func(peer.ID, *pb.Envelope) (*pb.Envelope, error) {
 	switch mtype {
 	case pb.Message_CAFE_CHALLENGE_REQUEST:
 		return h.handleChallenge
@@ -42,10 +62,11 @@ func (h *CafeService) Handle(mtype pb.Message_Type) func(*service.Service, peer.
 	}
 }
 
+// RequestChallenge asks a fellow peer for a cafe challenge
 func (h *CafeService) RequestChallenge(kp *keypair.Full, pid peer.ID) error {
-	env, err := h.service.NewEnvelope(&pb.CafeChallengeRequest{
+	env, err := h.service.NewEnvelope(pb.Message_CAFE_CHALLENGE_RESPONSE, &pb.CafeChallengeRequest{
 		Address: kp.Address(),
-	}, pb.Message_CAFE_CHALLENGE_RESPONSE)
+	}, nil, false)
 	if err != nil {
 		return err
 	}
@@ -59,9 +80,9 @@ func (h *CafeService) RequestChallenge(kp *keypair.Full, pid peer.ID) error {
 }
 
 // handleChallenge receives a challenge request
-func (h *CafeService) handleChallenge(s *service.Service, pid peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
+func (h *CafeService) handleChallenge(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
 	log.Debug("received CAFE_CHALLENGE message")
-	signed, err := unpackThreadMessage(pmes)
+	signed, err := unpackThreadMessage(env)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +98,7 @@ func (h *CafeService) handleChallenge(s *service.Service, pid peer.ID, pmes *pb.
 	}
 	if _, err := accnt.Sign([]byte{0x00}); err == nil {
 		// we dont want to handle account seeds, just addresses
-		errMsg, err := s.NewErrorMessage(400, "invalid address")
+		errMsg, err := h.service.NewErrorMessage(400, "invalid address")
 		if err != nil {
 			return nil, err
 		}
@@ -85,5 +106,7 @@ func (h *CafeService) handleChallenge(s *service.Service, pid peer.ID, pmes *pb.
 	}
 
 	// return a wrapped response
-	return s.NewEnvelope(&pb.CafeChallengeResponse{Value: ksuid.New().String()}, pb.Message_CAFE_CHALLENGE_RESPONSE)
+	return h.service.NewEnvelope(pb.Message_CAFE_CHALLENGE_RESPONSE, &pb.CafeChallengeResponse{
+		Value: ksuid.New().String(),
+	}, nil, false)
 }

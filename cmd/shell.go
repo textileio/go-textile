@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/textileio/textile-go/core"
 	"gopkg.in/abiosoft/ishell.v2"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"os"
 )
 
@@ -78,7 +79,12 @@ func RunShell(startNode func() error, stopNode func() error) {
 				c.Err(errors.New("missing peer id"))
 				return
 			}
-			status, err := core.Node.GetPeerStatus(c.Args[0])
+			pid, err := peer.IDB58Decode(c.Args[0])
+			if err != nil {
+				c.Println(fmt.Errorf("bad peer id: %s", err))
+				return
+			}
+			status, err := core.Node.CafeService().Ping(pid)
 			if err != nil {
 				c.Println(fmt.Errorf("ping failed: %s", err))
 				return

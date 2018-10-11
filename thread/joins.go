@@ -249,7 +249,7 @@ func (t *Thread) sendWelcome(joined repo.Peer) error {
 			return err
 		}
 		var err error
-		env, err = t.newEnvelope(message)
+		env, err = t.wrapMessage(message)
 		if err != nil {
 			return err
 		}
@@ -262,4 +262,21 @@ func (t *Thread) sendWelcome(joined repo.Peer) error {
 
 	// all done
 	return nil
+}
+
+// wrapMessage wraps a plain message in an envelope to be sent over the wire
+func (t *Thread) wrapMessage(message *pb.Message) (*pb.Envelope, error) {
+	ser, err := proto.Marshal(message)
+	if err != nil {
+		return nil, err
+	}
+	sig, err := t.ipfs().PrivateKey.Sign(ser)
+	if err != nil {
+		return nil, err
+	}
+	pk, err := t.ipfs().PrivateKey.GetPublic().Bytes()
+	if err != nil {
+		return nil, err
+	}
+	return &pb.Envelope{Message: message, Pk: pk, Sig: sig}, nil
 }

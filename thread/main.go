@@ -47,9 +47,8 @@ type Config struct {
 	Notifications func() repo.NotificationStore
 	GetHead       func() (string, error)
 	UpdateHead    func(head string) error
-	Publish       func(payload []byte) error
-	Send          func(message *pb.Envelope, peerId string, hash *string) error
-	NewEnvelope   func(message *pb.Message) (*pb.Envelope, error)
+	NewBlock      func(sk libp2pc.PrivKey, mtype pb.Message_Type, msg proto.Message) (*pb.Envelope, error)
+	SendMessage   func(message *pb.Envelope, pid peer.ID) error
 	PutPinRequest func(id string) error
 	GetUsername   func() (*string, error)
 	SendUpdate    func(update Update)
@@ -67,9 +66,8 @@ type Thread struct {
 	notifications func() repo.NotificationStore
 	GetHead       func() (string, error)
 	updateHead    func(head string) error
-	publish       func(payload []byte) error
-	send          func(message *pb.Envelope, peerId string, hash *string) error
-	newEnvelope   func(message *pb.Message) (*pb.Envelope, error)
+	newBlock      func(sk libp2pc.PrivKey, mtype pb.Message_Type, msg proto.Message) (*pb.Envelope, error)
+	sendMessage   func(message *pb.Envelope, pid peer.ID) error
 	putPinRequest func(id string) error
 	getUsername   func() (*string, error)
 	sendUpdate    func(update Update)
@@ -93,9 +91,8 @@ func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 		notifications: config.Notifications,
 		GetHead:       config.GetHead,
 		updateHead:    config.UpdateHead,
-		publish:       config.Publish,
-		send:          config.Send,
-		newEnvelope:   config.NewEnvelope,
+		newBlock:      config.NewBlock,
+		sendMessage:   config.SendMessage,
 		putPinRequest: config.PutPinRequest,
 		getUsername:   config.GetUsername,
 		sendUpdate:    config.SendUpdate,
@@ -362,39 +359,20 @@ func (t *Thread) addBlock(envelope *pb.Envelope) (mh.Multihash, error) {
 }
 
 // commitBlock seals and signs the content of a block and adds it to ipfs
-func (t *Thread) commitBlock(content proto.Message, mt pb.Message_Type) (*pb.Envelope, mh.Multihash, error) {
-	// sign it
-	serializedContent, err := proto.Marshal(content)
-	if err != nil {
-		return nil, nil, err
-	}
-	threadSig, err := t.PrivKey.Sign(serializedContent)
-	if err != nil {
-		return nil, nil, err
-	}
-	signed := &pb.SignedThreadBlock{
-		Block:     serializedContent,
-		ThreadSig: threadSig,
-	}
-
-	// create the message
-	payload, err := ptypes.MarshalAny(signed)
-	if err != nil {
-		return nil, nil, err
-	}
-	message := &pb.Message{Type: mt, Payload: payload}
-	envelope, err := t.newEnvelope(message)
+func (t *Thread) commitBlock(content proto.Message, mtype pb.Message_Type) (*pb.Envelope, mh.Multihash, error) {
+	// create the block
+	env, err := t.newBlock(t.PrivKey, mtype, content)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// add to ipfs
-	addr, err := t.addBlock(envelope)
+	addr, err := t.addBlock(env)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return envelope, addr, nil
+	return env, addr, nil
 }
 
 // indexBlock stores off index info for this block type
@@ -474,7 +452,12 @@ func (t *Thread) post(env *pb.Envelope, id string, peers []repo.Peer) {
 	for _, p := range peers {
 		wg.Add(1)
 		go func(peerId string) {
-			if err := t.send(env, peerId, &id); err != nil {
+			pid, err := peer.IDB58Decode(peerId)
+			if err != nil {
+				log.Errorf("error decoding peer id %s: %s", peerId, err)
+				return
+			}
+			if err := t.sendMessage(env, pid); err != nil {
 				log.Errorf("error sending block %s to peer %s: %s", id, peerId, err)
 			}
 			wg.Done()

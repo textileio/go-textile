@@ -9,7 +9,6 @@ import (
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/net"
-	"github.com/textileio/textile-go/net/service"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/thread"
@@ -103,7 +102,7 @@ type Textile struct {
 	updates        chan Update
 	threadUpdates  chan thread.Update
 	notifications  chan repo.Notification
-	threadsService *service.Service
+	threadsService *net.ThreadsService
 	cafeService    *net.CafeService
 	pinner         *net.Pinner
 	mux            sync.Mutex
@@ -337,7 +336,7 @@ func (t *Textile) Start() error {
 		//mrCfg := net.MRConfig{
 		//	Datastore: t.datastore,
 		//	Ipfs:      t.ipfs,
-		//	Service:   t.threadsService,
+		//	service:   t.threadsService,
 		//	PrefixLen: 14,
 		//	SendAck:   t.sendOfflineAck,
 		//	SendError: t.sendError,
@@ -471,6 +470,10 @@ func (t *Textile) Version() string {
 
 func (t *Textile) Ipfs() *core.IpfsNode {
 	return t.ipfs
+}
+
+func (t *Textile) CafeService() *net.CafeService {
+	return t.cafeService
 }
 
 func (t *Textile) FetchMessages() error {
@@ -636,8 +639,8 @@ func (t *Textile) loadThread(mod *repo.Thread) (*thread.Thread, error) {
 			//}()
 			return nil
 		},
-		Send:          t.SendMessage,
-		NewEnvelope:   t.NewEnvelope,
+		NewBlock:      t.threadsService.NewBlock,
+		SendMessage:   t.threadsService.SendMessage,
 		PutPinRequest: t.putPinRequest,
 		GetUsername:   t.GetUsername,
 		SendUpdate:    t.sendThreadUpdate,

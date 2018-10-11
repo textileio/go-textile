@@ -43,7 +43,7 @@ func (t *Textile) ConnectPeer(addrs []string) ([]string, error) {
 	return output, nil
 }
 
-// PingPeer pings a peer num times, returning the result to out chan
+// Ping pings a peer num times, returning the result to out chan
 func (t *Textile) PingPeer(addrs string, num int, out chan string) error {
 	if !t.started {
 		return ErrStopped

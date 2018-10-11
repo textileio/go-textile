@@ -2,6 +2,7 @@ package net
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"github.com/golang/protobuf/proto"
@@ -24,7 +25,7 @@ import (
 
 // ThreadService is a libp2p service for orchestrating a collection of files with annotations
 // amongst a group of peers
-type ThreadsHandler struct {
+type ThreadsService struct {
 	service          *service.Service
 	getThread        func(id string) (*int, *thread.Thread)
 	sendNotification func(note *repo.Notification) error
@@ -36,21 +37,66 @@ func NewThreadsService(
 	datastore repo.Datastore,
 	getThread func(id string) (*int, *thread.Thread),
 	sendNotification func(note *repo.Notification) error,
-) *service.Service {
-	handler := &ThreadsHandler{
+) *ThreadsService {
+	handler := &ThreadsService{
 		getThread:        getThread,
 		sendNotification: sendNotification,
 	}
-	return service.NewService(handler, node, datastore)
+	handler.service = service.NewService(handler, node, datastore)
+	return handler
 }
 
 // Protocol returns the handler protocol
-func (h *ThreadsHandler) Protocol() protocol.ID {
+func (h *ThreadsService) Protocol() protocol.ID {
 	return protocol.ID("/textile/threads/1.0.0")
 }
 
+// Node returns the underlying ipfs Node
+func (h *ThreadsService) Node() *core.IpfsNode {
+	return h.service.Node
+}
+
+// Datastore returns the underlying datastore
+func (h *ThreadsService) Datastore() repo.Datastore {
+	return h.service.Datastore
+}
+
+// Ping pings another peer
+func (h *ThreadsService) Ping(pid peer.ID) (service.PeerStatus, error) {
+	return h.service.Ping(pid)
+}
+
+// VerifyEnvelope calls service verify
+func (h *ThreadsService) VerifyEnvelope(env *pb.Envelope) error {
+	return h.service.VerifyEnvelope(env)
+}
+
+// NewBlock returns a thread-signed block in an envelope
+func (h *ThreadsService) NewBlock(sk libp2pc.PrivKey, mtype pb.Message_Type, msg proto.Message) (*pb.Envelope, error) {
+	ser, err := proto.Marshal(msg)
+	if err != nil {
+		return nil, err
+	}
+	threadSig, err := sk.Sign(ser)
+	if err != nil {
+		return nil, err
+	}
+	signed := &pb.SignedThreadBlock{
+		Block:     ser,
+		ThreadSig: threadSig,
+	}
+	return h.service.NewEnvelope(mtype, signed, nil, false)
+}
+
+// SendMessage sends a message to a peer
+func (h *ThreadsService) SendMessage(env *pb.Envelope, pid peer.ID) error {
+	ctx, cancel := context.WithTimeout(context.Background(), service.DefaultTimeout)
+	defer cancel()
+	return h.service.SendMessage(ctx, pid, env)
+}
+
 // Handle is called by the underlying service handler method
-func (h *ThreadsHandler) Handle(mtype pb.Message_Type) func(*service.Service, peer.ID, *pb.Envelope) (*pb.Envelope, error) {
+func (h *ThreadsService) Handle(mtype pb.Message_Type) func(peer.ID, *pb.Envelope) (*pb.Envelope, error) {
 	switch mtype {
 	case pb.Message_THREAD_INVITE:
 		return h.handleInvite
@@ -77,9 +123,9 @@ func (h *ThreadsHandler) Handle(mtype pb.Message_Type) func(*service.Service, pe
 	}
 }
 
-func (h *ThreadsHandler) handleInvite(s *service.Service, pid peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
+func (h *ThreadsService) handleInvite(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
 	log.Debug("received THREAD_INVITE message")
-	signed, err := unpackThreadMessage(pmes)
+	signed, err := unpackThreadMessage(env)
 	if err != nil {
 		return nil, err
 	}
@@ -96,13 +142,13 @@ func (h *ThreadsHandler) handleInvite(s *service.Service, pid peer.ID, pmes *pb.
 	}
 
 	// check if it'h meant for us (should be, but safety first)
-	if invite.InviteeId != s.Node().Identity.Pretty() {
+	if invite.InviteeId != h.Node().Identity.Pretty() {
 		return nil, errors.New("invalid invite block")
 	}
 
 	// unknown thread and invite meant for us
 	// unpack new thread secret that should be encrypted with our key
-	skb, err := crypto.Decrypt(s.Node().PrivateKey, invite.SkCipher)
+	skb, err := crypto.Decrypt(h.Node().PrivateKey, invite.SkCipher)
 	if err != nil {
 		return nil, err
 	}
@@ -117,11 +163,11 @@ func (h *ThreadsHandler) handleInvite(s *service.Service, pid peer.ID, pmes *pb.
 	}
 
 	// add to local ipfs for later use when joining
-	pmesb, err := proto.Marshal(pmes)
+	envb, err := proto.Marshal(env)
 	if err != nil {
 		return nil, err
 	}
-	ci, err := ipfs.PinData(s.Node(), bytes.NewReader(pmesb))
+	ci, err := ipfs.PinData(h.Node(), bytes.NewReader(envb))
 	if err != nil {
 		return nil, err
 	}
@@ -143,9 +189,9 @@ func (h *ThreadsHandler) handleInvite(s *service.Service, pid peer.ID, pmes *pb.
 	return nil, nil
 }
 
-func (h *ThreadsHandler) handleJoin(s *service.Service, pid peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
+func (h *ThreadsService) handleJoin(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
 	log.Debug("received THREAD_JOIN message")
-	signed, err := unpackThreadMessage(pmes)
+	signed, err := unpackThreadMessage(env)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +213,7 @@ func (h *ThreadsHandler) handleJoin(s *service.Service, pid peer.ID, pmes *pb.En
 	}
 
 	// handle
-	addr, _, err := thrd.HandleJoinBlock(&pid, pmes, signed, join, false)
+	addr, _, err := thrd.HandleJoinBlock(&pid, env, signed, join, false)
 	if err != nil {
 		return nil, err
 	}
@@ -188,9 +234,9 @@ func (h *ThreadsHandler) handleJoin(s *service.Service, pid peer.ID, pmes *pb.En
 	return nil, nil
 }
 
-func (h *ThreadsHandler) handleLeave(s *service.Service, pid peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
+func (h *ThreadsService) handleLeave(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
 	log.Debug("received THREAD_LEAVE message")
-	signed, err := unpackThreadMessage(pmes)
+	signed, err := unpackThreadMessage(env)
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +258,7 @@ func (h *ThreadsHandler) handleLeave(s *service.Service, pid peer.ID, pmes *pb.E
 	}
 
 	// handle
-	addr, err := thrd.HandleLeaveBlock(&pid, pmes, signed, leave, false)
+	addr, err := thrd.HandleLeaveBlock(&pid, env, signed, leave, false)
 	if err != nil {
 		return nil, err
 	}
@@ -233,9 +279,9 @@ func (h *ThreadsHandler) handleLeave(s *service.Service, pid peer.ID, pmes *pb.E
 	return nil, nil
 }
 
-func (h *ThreadsHandler) handleData(s *service.Service, pid peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
+func (h *ThreadsService) handleData(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
 	log.Debug("received THREAD_DATA message")
-	signed, err := unpackThreadMessage(pmes)
+	signed, err := unpackThreadMessage(env)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +303,7 @@ func (h *ThreadsHandler) handleData(s *service.Service, pid peer.ID, pmes *pb.En
 	}
 
 	// handle
-	addr, err := thrd.HandleDataBlock(&pid, pmes, signed, data, false)
+	addr, err := thrd.HandleDataBlock(&pid, env, signed, data, false)
 	if err != nil {
 		return nil, err
 	}
@@ -297,9 +343,9 @@ func (h *ThreadsHandler) handleData(s *service.Service, pid peer.ID, pmes *pb.En
 	return nil, nil
 }
 
-func (h *ThreadsHandler) handleAnnotation(s *service.Service, pid peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
+func (h *ThreadsService) handleAnnotation(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
 	log.Debug("received THREAD_ANNOTATION message")
-	signed, err := unpackThreadMessage(pmes)
+	signed, err := unpackThreadMessage(env)
 	if err != nil {
 		return nil, err
 	}
@@ -321,13 +367,13 @@ func (h *ThreadsHandler) handleAnnotation(s *service.Service, pid peer.ID, pmes 
 	}
 
 	// handle
-	addr, err := thrd.HandleAnnotationBlock(&pid, pmes, signed, annotation, false)
+	addr, err := thrd.HandleAnnotationBlock(&pid, env, signed, annotation, false)
 	if err != nil {
 		return nil, err
 	}
 
 	// find dataId block locally
-	dataBlock := s.Datastore().Blocks().Get(annotation.DataId)
+	dataBlock := h.Datastore().Blocks().Get(annotation.DataId)
 	if dataBlock == nil {
 		return nil, nil
 	}
@@ -337,7 +383,7 @@ func (h *ThreadsHandler) handleAnnotation(s *service.Service, pid peer.ID, pmes 
 		return nil, err
 	}
 	// NOTE: not restricted to photo annotations here, just currently only thing possible
-	if authorId.Pretty() == s.Node().Identity.Pretty() {
+	if authorId.Pretty() == h.Node().Identity.Pretty() {
 		target = "your photo"
 	} else {
 		target = "a photo"
@@ -374,9 +420,9 @@ func (h *ThreadsHandler) handleAnnotation(s *service.Service, pid peer.ID, pmes 
 	return nil, nil
 }
 
-func (h *ThreadsHandler) handleIgnore(s *service.Service, pid peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
+func (h *ThreadsService) handleIgnore(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
 	log.Debug("received THREAD_IGNORE message")
-	signed, err := unpackThreadMessage(pmes)
+	signed, err := unpackThreadMessage(env)
 	if err != nil {
 		return nil, err
 	}
@@ -398,16 +444,16 @@ func (h *ThreadsHandler) handleIgnore(s *service.Service, pid peer.ID, pmes *pb.
 	}
 
 	// handle
-	if _, err := thrd.HandleIgnoreBlock(&pid, pmes, signed, ignore, false); err != nil {
+	if _, err := thrd.HandleIgnoreBlock(&pid, env, signed, ignore, false); err != nil {
 		return nil, err
 	}
 
 	return nil, nil
 }
 
-func (h *ThreadsHandler) handleMerge(s *service.Service, pid peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
+func (h *ThreadsService) handleMerge(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
 	log.Debug("received THREAD_MERGE message")
-	signed, err := unpackThreadMessage(pmes)
+	signed, err := unpackThreadMessage(env)
 	if err != nil {
 		return nil, err
 	}
@@ -429,19 +475,19 @@ func (h *ThreadsHandler) handleMerge(s *service.Service, pid peer.ID, pmes *pb.E
 	}
 
 	// handle
-	if _, err := thrd.HandleMergeBlock(&pid, pmes.Message, signed, merge, false); err != nil {
+	if _, err := thrd.HandleMergeBlock(&pid, env.Message, signed, merge, false); err != nil {
 		return nil, err
 	}
 
 	return nil, nil
 }
 
-func (h *ThreadsHandler) handleBlock(s *service.Service, pid peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
-	if pmes.Message.Payload == nil {
+func (h *ThreadsService) handleBlock(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	if env.Message.Payload == nil {
 		return nil, errors.New("payload is nil")
 	}
 	pbblock := new(pb.Block)
-	err := ptypes.UnmarshalAny(pmes.Message.Payload, pbblock)
+	err := ptypes.UnmarshalAny(env.Message.Payload, pbblock)
 	if err != nil {
 		return nil, err
 	}
@@ -453,14 +499,14 @@ func (h *ThreadsHandler) handleBlock(s *service.Service, pid peer.ID, pmes *pb.E
 	if err != nil {
 		return nil, err
 	}
-	if err := s.Node().Blocks.AddBlock(block); err != nil {
+	if err := h.Node().Blocks.AddBlock(block); err != nil {
 		return nil, err
 	}
-	log.Debugf("received IPFS_BLOCK message from %h", pid.Pretty())
+	log.Debugf("received IPFS_BLOCK message from %s", pid.Pretty())
 	return nil, nil
 }
 
-func (h *ThreadsHandler) handleStore(s *service.Service, pid peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
+func (h *ThreadsService) handleStore(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
 	errorResponse := func(error string) *pb.Message {
 		payload := &any.Any{Value: []byte(error)}
 		message := &pb.Message{
@@ -470,13 +516,13 @@ func (h *ThreadsHandler) handleStore(s *service.Service, pid peer.ID, pmes *pb.E
 		return message
 	}
 
-	if pmes.Message.Payload == nil {
+	if env.Message.Payload == nil {
 		return nil, errors.New("payload is nil")
 	}
 	cList := new(pb.CidList)
-	err := ptypes.UnmarshalAny(pmes.Message.Payload, cList)
+	err := ptypes.UnmarshalAny(env.Message.Payload, cList)
 	if err != nil {
-		return newEnvelope(s.Node().PrivateKey, errorResponse("could not unmarshall message"))
+		return newEnvelope(h.Node().PrivateKey, errorResponse("could not unmarshall message"))
 	}
 	var need []string
 	for _, id := range cList.Cids {
@@ -484,34 +530,34 @@ func (h *ThreadsHandler) handleStore(s *service.Service, pid peer.ID, pmes *pb.E
 		if err != nil {
 			continue
 		}
-		has, err := s.Node().Blockstore.Has(decoded)
+		has, err := h.Node().Blockstore.Has(decoded)
 		if err != nil || !has {
 			need = append(need, decoded.String())
 		}
 	}
-	log.Debugf("received STORE message from %h", pid.Pretty())
-	log.Debugf("requesting %d blocks from %h", len(need), pid.Pretty())
+	log.Debugf("received STORE message from %s", pid.Pretty())
+	log.Debugf("requesting %d blocks from %s", len(need), pid.Pretty())
 
 	resp := new(pb.CidList)
 	resp.Cids = need
 	payload, err := ptypes.MarshalAny(resp)
 	if err != nil {
-		return newEnvelope(s.Node().PrivateKey, errorResponse("error marshalling response"))
+		return newEnvelope(h.Node().PrivateKey, errorResponse("error marshalling response"))
 	}
 	message := &pb.Message{
 		Type:    pb.Message_STORE,
 		Payload: payload,
 	}
-	return newEnvelope(s.Node().PrivateKey, message)
+	return newEnvelope(h.Node().PrivateKey, message)
 }
 
 // unpackThreadMessage returns an envelope's signed thread block
-func unpackThreadMessage(pmes *pb.Envelope) (*pb.SignedThreadBlock, error) {
-	if pmes.Message.Payload == nil {
+func unpackThreadMessage(env *pb.Envelope) (*pb.SignedThreadBlock, error) {
+	if env.Message.Payload == nil {
 		return nil, errors.New("payload is nil")
 	}
 	signed := new(pb.SignedThreadBlock)
-	if err := ptypes.UnmarshalAny(pmes.Message.Payload, signed); err != nil {
+	if err := ptypes.UnmarshalAny(env.Message.Payload, signed); err != nil {
 		return nil, err
 	}
 	return signed, nil

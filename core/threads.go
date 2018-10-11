@@ -126,7 +126,7 @@ func (t *Textile) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := t.VerifyEnvelope(env); err != nil {
+	if err := t.threadsService.VerifyEnvelope(env); err != nil {
 		return nil, err
 	}
 
@@ -218,7 +218,7 @@ func (t *Textile) AcceptExternalThreadInvite(blockId string, key []byte) (mh.Mul
 	if err != nil {
 		return nil, err
 	}
-	if err := t.VerifyEnvelope(env); err != nil {
+	if err := t.threadsService.VerifyEnvelope(env); err != nil {
 		return nil, err
 	}
 

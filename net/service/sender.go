@@ -8,7 +8,6 @@ import (
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
-	"math/rand"
 	"sync"
 	"time"
 )
@@ -31,11 +30,6 @@ var ReadMessageTimeout = time.Minute * 1
 var ErrReadTimeout = fmt.Errorf("timed out reading response")
 
 func (s *Service) messageSenderForPeer(pid peer.ID, proto protocol.ID) (*sender, error) {
-	defer func() {
-		if recover() != nil {
-			log.Error("recovered from messageSenderForPeer")
-		}
-	}()
 	s.senderMux.Lock()
 	ms, ok := s.sender[pid]
 	if ok {
@@ -99,7 +93,7 @@ func (ms *sender) prep() error {
 	if ms.stream != nil {
 		return nil
 	}
-	nstr, err := ms.service.node.PeerHost.NewStream(ms.service.node.Context(), ms.pid, ms.protocol)
+	nstr, err := ms.service.Node.PeerHost.NewStream(ms.service.Node.Context(), ms.pid, ms.protocol)
 	if err != nil {
 		return err
 	}
@@ -115,11 +109,6 @@ func (ms *sender) prep() error {
 const streamReuseTries = 3
 
 func (ms *sender) SendMessage(ctx context.Context, pmes *pb.Envelope) error {
-	defer func() {
-		if recover() != nil {
-			log.Error("recovered from sender.SendMessage")
-		}
-	}()
 	ms.mux.Lock()
 	defer ms.mux.Unlock()
 	retry := false
@@ -148,12 +137,6 @@ func (ms *sender) SendMessage(ctx context.Context, pmes *pb.Envelope) error {
 }
 
 func (ms *sender) SendRequest(ctx context.Context, pmes *pb.Envelope) (*pb.Envelope, error) {
-	defer func() {
-		if recover() != nil {
-			log.Error("recovered from sender.SendRequest")
-		}
-	}()
-	pmes.Message.RequestId = rand.Int31()
 	returnChan := make(chan *pb.Envelope)
 	ms.requestMux.Lock()
 	ms.requests[pmes.Message.RequestId] = returnChan

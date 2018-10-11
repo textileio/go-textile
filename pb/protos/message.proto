@@ -12,7 +12,7 @@ message Message {
 
     enum Type {
         PING                   = 0;
-        CHAT                   = 1;
+        PONG                   = 1;
         FOLLOW                 = 2;
         UNFOLLOW               = 3;
         OFFLINE_ACK            = 4;
