@@ -6,6 +6,7 @@ package pb
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
+import timestamp "github.com/golang/protobuf/ptypes/timestamp"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -18,97 +19,248 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type CafeChallengeRequest struct {
+type CafeChallenge struct {
 	Address              string   `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *CafeChallengeRequest) Reset()         { *m = CafeChallengeRequest{} }
-func (m *CafeChallengeRequest) String() string { return proto.CompactTextString(m) }
-func (*CafeChallengeRequest) ProtoMessage()    {}
-func (*CafeChallengeRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_816f6a2c7f5af367, []int{0}
+func (m *CafeChallenge) Reset()         { *m = CafeChallenge{} }
+func (m *CafeChallenge) String() string { return proto.CompactTextString(m) }
+func (*CafeChallenge) ProtoMessage()    {}
+func (*CafeChallenge) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cafe_192c80549ba4de69, []int{0}
 }
-func (m *CafeChallengeRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_CafeChallengeRequest.Unmarshal(m, b)
+func (m *CafeChallenge) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CafeChallenge.Unmarshal(m, b)
 }
-func (m *CafeChallengeRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_CafeChallengeRequest.Marshal(b, m, deterministic)
+func (m *CafeChallenge) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CafeChallenge.Marshal(b, m, deterministic)
 }
-func (dst *CafeChallengeRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeChallengeRequest.Merge(dst, src)
+func (dst *CafeChallenge) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeChallenge.Merge(dst, src)
 }
-func (m *CafeChallengeRequest) XXX_Size() int {
-	return xxx_messageInfo_CafeChallengeRequest.Size(m)
+func (m *CafeChallenge) XXX_Size() int {
+	return xxx_messageInfo_CafeChallenge.Size(m)
 }
-func (m *CafeChallengeRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_CafeChallengeRequest.DiscardUnknown(m)
+func (m *CafeChallenge) XXX_DiscardUnknown() {
+	xxx_messageInfo_CafeChallenge.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_CafeChallengeRequest proto.InternalMessageInfo
+var xxx_messageInfo_CafeChallenge proto.InternalMessageInfo
 
-func (m *CafeChallengeRequest) GetAddress() string {
+func (m *CafeChallenge) GetAddress() string {
 	if m != nil {
 		return m.Address
 	}
 	return ""
 }
 
-type CafeChallengeResponse struct {
+type CafeNonce struct {
 	Value                string   `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *CafeChallengeResponse) Reset()         { *m = CafeChallengeResponse{} }
-func (m *CafeChallengeResponse) String() string { return proto.CompactTextString(m) }
-func (*CafeChallengeResponse) ProtoMessage()    {}
-func (*CafeChallengeResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_816f6a2c7f5af367, []int{1}
+func (m *CafeNonce) Reset()         { *m = CafeNonce{} }
+func (m *CafeNonce) String() string { return proto.CompactTextString(m) }
+func (*CafeNonce) ProtoMessage()    {}
+func (*CafeNonce) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cafe_192c80549ba4de69, []int{1}
 }
-func (m *CafeChallengeResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_CafeChallengeResponse.Unmarshal(m, b)
+func (m *CafeNonce) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CafeNonce.Unmarshal(m, b)
 }
-func (m *CafeChallengeResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_CafeChallengeResponse.Marshal(b, m, deterministic)
+func (m *CafeNonce) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CafeNonce.Marshal(b, m, deterministic)
 }
-func (dst *CafeChallengeResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeChallengeResponse.Merge(dst, src)
+func (dst *CafeNonce) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeNonce.Merge(dst, src)
 }
-func (m *CafeChallengeResponse) XXX_Size() int {
-	return xxx_messageInfo_CafeChallengeResponse.Size(m)
+func (m *CafeNonce) XXX_Size() int {
+	return xxx_messageInfo_CafeNonce.Size(m)
 }
-func (m *CafeChallengeResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_CafeChallengeResponse.DiscardUnknown(m)
+func (m *CafeNonce) XXX_DiscardUnknown() {
+	xxx_messageInfo_CafeNonce.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_CafeChallengeResponse proto.InternalMessageInfo
+var xxx_messageInfo_CafeNonce proto.InternalMessageInfo
 
-func (m *CafeChallengeResponse) GetValue() string {
+func (m *CafeNonce) GetValue() string {
 	if m != nil {
 		return m.Value
 	}
 	return ""
 }
 
-func init() {
-	proto.RegisterType((*CafeChallengeRequest)(nil), "CafeChallengeRequest")
-	proto.RegisterType((*CafeChallengeResponse)(nil), "CafeChallengeResponse")
+type CafeRegistration struct {
+	Address              string   `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Value                string   `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	Nonce                string   `protobuf:"bytes,3,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	Sig                  []byte   `protobuf:"bytes,4,opt,name=sig,proto3" json:"sig,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func init() { proto.RegisterFile("cafe.proto", fileDescriptor_cafe_816f6a2c7f5af367) }
+func (m *CafeRegistration) Reset()         { *m = CafeRegistration{} }
+func (m *CafeRegistration) String() string { return proto.CompactTextString(m) }
+func (*CafeRegistration) ProtoMessage()    {}
+func (*CafeRegistration) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cafe_192c80549ba4de69, []int{2}
+}
+func (m *CafeRegistration) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CafeRegistration.Unmarshal(m, b)
+}
+func (m *CafeRegistration) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CafeRegistration.Marshal(b, m, deterministic)
+}
+func (dst *CafeRegistration) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeRegistration.Merge(dst, src)
+}
+func (m *CafeRegistration) XXX_Size() int {
+	return xxx_messageInfo_CafeRegistration.Size(m)
+}
+func (m *CafeRegistration) XXX_DiscardUnknown() {
+	xxx_messageInfo_CafeRegistration.DiscardUnknown(m)
+}
 
-var fileDescriptor_cafe_816f6a2c7f5af367 = []byte{
-	// 116 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x4a, 0x4e, 0x4c, 0x4b,
-	0xd5, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x57, 0x32, 0xe0, 0x12, 0x71, 0x4e, 0x4c, 0x4b, 0x75, 0xce,
-	0x48, 0xcc, 0xc9, 0x49, 0xcd, 0x4b, 0x4f, 0x0d, 0x4a, 0x2d, 0x2c, 0x4d, 0x2d, 0x2e, 0x11, 0x92,
-	0xe0, 0x62, 0x4f, 0x4c, 0x49, 0x29, 0x4a, 0x2d, 0x2e, 0x96, 0x60, 0x54, 0x60, 0xd4, 0xe0, 0x0c,
-	0x82, 0x71, 0x95, 0x74, 0xb9, 0x44, 0xd1, 0x74, 0x14, 0x17, 0xe4, 0xe7, 0x15, 0xa7, 0x0a, 0x89,
-	0x70, 0xb1, 0x96, 0x25, 0xe6, 0x94, 0xa6, 0x42, 0x35, 0x40, 0x38, 0x4e, 0x2c, 0x51, 0x4c, 0x05,
-	0x49, 0x49, 0x6c, 0x60, 0xdb, 0x8c, 0x01, 0x01, 0x00, 0x00, 0xff, 0xff, 0x6d, 0x44, 0x2f, 0x56,
-	0x7b, 0x00, 0x00, 0x00,
+var xxx_messageInfo_CafeRegistration proto.InternalMessageInfo
+
+func (m *CafeRegistration) GetAddress() string {
+	if m != nil {
+		return m.Address
+	}
+	return ""
+}
+
+func (m *CafeRegistration) GetValue() string {
+	if m != nil {
+		return m.Value
+	}
+	return ""
+}
+
+func (m *CafeRegistration) GetNonce() string {
+	if m != nil {
+		return m.Nonce
+	}
+	return ""
+}
+
+func (m *CafeRegistration) GetSig() []byte {
+	if m != nil {
+		return m.Sig
+	}
+	return nil
+}
+
+type CafeSession struct {
+	Access               string               `protobuf:"bytes,1,opt,name=access,proto3" json:"access,omitempty"`
+	Exp                  *timestamp.Timestamp `protobuf:"bytes,2,opt,name=exp,proto3" json:"exp,omitempty"`
+	Refresh              string               `protobuf:"bytes,3,opt,name=refresh,proto3" json:"refresh,omitempty"`
+	Rexp                 *timestamp.Timestamp `protobuf:"bytes,4,opt,name=rexp,proto3" json:"rexp,omitempty"`
+	Subject              string               `protobuf:"bytes,5,opt,name=subject,proto3" json:"subject,omitempty"`
+	Type                 string               `protobuf:"bytes,6,opt,name=type,proto3" json:"type,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
+	XXX_unrecognized     []byte               `json:"-"`
+	XXX_sizecache        int32                `json:"-"`
+}
+
+func (m *CafeSession) Reset()         { *m = CafeSession{} }
+func (m *CafeSession) String() string { return proto.CompactTextString(m) }
+func (*CafeSession) ProtoMessage()    {}
+func (*CafeSession) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cafe_192c80549ba4de69, []int{3}
+}
+func (m *CafeSession) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CafeSession.Unmarshal(m, b)
+}
+func (m *CafeSession) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CafeSession.Marshal(b, m, deterministic)
+}
+func (dst *CafeSession) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeSession.Merge(dst, src)
+}
+func (m *CafeSession) XXX_Size() int {
+	return xxx_messageInfo_CafeSession.Size(m)
+}
+func (m *CafeSession) XXX_DiscardUnknown() {
+	xxx_messageInfo_CafeSession.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CafeSession proto.InternalMessageInfo
+
+func (m *CafeSession) GetAccess() string {
+	if m != nil {
+		return m.Access
+	}
+	return ""
+}
+
+func (m *CafeSession) GetExp() *timestamp.Timestamp {
+	if m != nil {
+		return m.Exp
+	}
+	return nil
+}
+
+func (m *CafeSession) GetRefresh() string {
+	if m != nil {
+		return m.Refresh
+	}
+	return ""
+}
+
+func (m *CafeSession) GetRexp() *timestamp.Timestamp {
+	if m != nil {
+		return m.Rexp
+	}
+	return nil
+}
+
+func (m *CafeSession) GetSubject() string {
+	if m != nil {
+		return m.Subject
+	}
+	return ""
+}
+
+func (m *CafeSession) GetType() string {
+	if m != nil {
+		return m.Type
+	}
+	return ""
+}
+
+func init() {
+	proto.RegisterType((*CafeChallenge)(nil), "CafeChallenge")
+	proto.RegisterType((*CafeNonce)(nil), "CafeNonce")
+	proto.RegisterType((*CafeRegistration)(nil), "CafeRegistration")
+	proto.RegisterType((*CafeSession)(nil), "CafeSession")
+}
+
+func init() { proto.RegisterFile("cafe.proto", fileDescriptor_cafe_192c80549ba4de69) }
+
+var fileDescriptor_cafe_192c80549ba4de69 = []byte{
+	// 272 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x90, 0x41, 0x4b, 0xc3, 0x30,
+	0x18, 0x86, 0xe9, 0xd6, 0x55, 0xf6, 0x4d, 0x61, 0x04, 0x91, 0xb0, 0x8b, 0xb3, 0xa7, 0x09, 0xd2,
+	0x81, 0xfe, 0x03, 0x77, 0xf7, 0x50, 0x3d, 0x79, 0x4b, 0xb3, 0xaf, 0x59, 0x47, 0xd7, 0x84, 0x24,
+	0x15, 0xfd, 0x8d, 0xfe, 0x29, 0xf9, 0x92, 0x96, 0x79, 0x11, 0x6f, 0x79, 0x3e, 0x5e, 0x9e, 0x37,
+	0xbc, 0x00, 0x52, 0xd4, 0x58, 0x18, 0xab, 0xbd, 0x5e, 0xdd, 0x2a, 0xad, 0x55, 0x8b, 0xdb, 0x40,
+	0x55, 0x5f, 0x6f, 0x7d, 0x73, 0x42, 0xe7, 0xc5, 0xc9, 0xc4, 0x40, 0x7e, 0x0f, 0x57, 0x3b, 0x51,
+	0xe3, 0xee, 0x20, 0xda, 0x16, 0x3b, 0x85, 0x8c, 0xc3, 0x85, 0xd8, 0xef, 0x2d, 0x3a, 0xc7, 0x93,
+	0x75, 0xb2, 0x99, 0x97, 0x23, 0xe6, 0x77, 0x30, 0xa7, 0xe8, 0x8b, 0xee, 0x24, 0xb2, 0x6b, 0x98,
+	0x7d, 0x88, 0xb6, 0xc7, 0x21, 0x14, 0x21, 0x3f, 0xc2, 0x92, 0x22, 0x25, 0xaa, 0xc6, 0x79, 0x2b,
+	0x7c, 0xa3, 0xbb, 0xbf, 0x85, 0x67, 0xc7, 0xe4, 0x97, 0x83, 0xae, 0x1d, 0x55, 0xf0, 0x69, 0xbc,
+	0x06, 0x60, 0x4b, 0x98, 0xba, 0x46, 0xf1, 0x74, 0x9d, 0x6c, 0x2e, 0x4b, 0x7a, 0xe6, 0xdf, 0x09,
+	0x2c, 0xa8, 0xec, 0x15, 0x9d, 0xa3, 0x9e, 0x1b, 0xc8, 0x84, 0x94, 0xe7, 0x9a, 0x81, 0xd8, 0x03,
+	0x4c, 0xf1, 0xd3, 0x84, 0x8e, 0xc5, 0xe3, 0xaa, 0x88, 0x83, 0x14, 0xe3, 0x20, 0xc5, 0xdb, 0x38,
+	0x48, 0x49, 0x31, 0xfa, 0xad, 0xc5, 0xda, 0xa2, 0x3b, 0x0c, 0xfd, 0x23, 0xb2, 0x02, 0x52, 0x4b,
+	0xa2, 0xf4, 0x5f, 0x51, 0xc8, 0x91, 0xc9, 0xf5, 0xd5, 0x11, 0xa5, 0xe7, 0xb3, 0x68, 0x1a, 0x90,
+	0x31, 0x48, 0xfd, 0x97, 0x41, 0x9e, 0x85, 0x73, 0x78, 0x3f, 0xa7, 0xef, 0x13, 0x53, 0x55, 0x59,
+	0xb0, 0x3d, 0xfd, 0x04, 0x00, 0x00, 0xff, 0xff, 0x6e, 0xca, 0x97, 0xde, 0xc3, 0x01, 0x00, 0x00,
 }

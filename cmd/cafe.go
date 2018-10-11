@@ -69,10 +69,10 @@ func listCafeReferrals(c *ishell.Context) {
 }
 
 func cafeRegister(c *ishell.Context) {
-	c.Print("referral code: ")
-	code := c.ReadLine()
+	c.Print("cafe peer id: ")
+	peerId := c.ReadLine()
 
-	if err := core.Node.CafeRegister(code); err != nil {
+	if err := core.Node.CafeRegister(peerId); err != nil {
 		c.Err(err)
 		return
 	}

@@ -1,10 +1,28 @@
 syntax = "proto3";
 option go_package = "pb";
 
-message CafeChallengeRequest {
+import "google/protobuf/timestamp.proto";
+
+message CafeChallenge {
     string address = 1;
 }
 
-message CafeChallengeResponse {
+message CafeNonce {
     string value = 1;
+}
+
+message CafeRegistration {
+    string address = 1;
+    string value   = 2;
+    string nonce   = 3;
+    bytes  sig     = 4;
+}
+
+message CafeSession {
+    string access                  = 1;
+    google.protobuf.Timestamp exp  = 2;
+    string refresh                 = 3;
+    google.protobuf.Timestamp rexp = 4;
+    string subject                 = 5;
+    string type                    = 6;
 }

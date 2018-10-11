@@ -22,9 +22,10 @@ message Message {
         STORE                  = 8;
         BLOCK                  = 9;
 
-        CAFE_CHALLENGE_REQUEST  = 50;
-        CAFE_CHALLENGE_RESPONSE = 51;
-        CAFE_REGISTRATION       = 52;
+        CAFE_CHALLENGE    = 50;
+        CAFE_NONCE        = 51;
+        CAFE_REGISTRATION = 52;
+        CAFE_SESSION      = 53;
 
         THREAD_INVITE          = 100;
         THREAD_EXTERNAL_INVITE = 101;

@@ -3,11 +3,13 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/cafe"
 	"github.com/textileio/textile-go/cafe/client"
 	cmodels "github.com/textileio/textile-go/cafe/models"
 	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
@@ -59,11 +61,12 @@ func (t *Textile) getCafeChallenge(accnt *keypair.Full) (*cmodels.SignedChalleng
 }
 
 // CafeRegister registers a public key w/ a cafe, requests a session token, and saves it locally
-func (t *Textile) CafeRegister(referral string) error {
-	//if t.cafeAddr == "" {
-	//	return ErrNoCafeHost
-	//}
+func (t *Textile) CafeRegister(peerId string) error {
 	if err := t.touchDatastore(); err != nil {
+		return err
+	}
+	pid, err := peer.IDB58Decode(peerId)
+	if err != nil {
 		return err
 	}
 
@@ -72,49 +75,42 @@ func (t *Textile) CafeRegister(referral string) error {
 	if err != nil {
 		return err
 	}
-
-	pid, err := peer.IDB58Decode("12D3KooWKCsu1xcj3vkz3fMukruRUogBERNcDLSEykMtScVB4pv1")
-
-	challenge, err := t.cafeService.RequestChallenge(accnt, pid)
+	res, err := t.cafeService.RequestChallenge(accnt, pid)
 	if err != nil {
 		return err
 	}
-	fmt.Println(challenge.Value)
-	return nil
 
-	//challenge, err := t.getCafeChallenge(accnt)
-	//if err != nil {
-	//	return err
-	//}
-	//reg := &cmodels.ProfileRegistration{
-	//	Challenge: *challenge,
-	//	Referral:  referral,
-	//}
-	//
-	//log.Debugf("cafe register: %s %s %s", reg.Challenge.Address, reg.Challenge.Signature, reg.Referral)
-	//
-	//// remote register
-	//res, err := client.RegisterProfile(reg, fmt.Sprintf("%s/profiles", t.GetCafeApiAddr()))
-	//if err != nil {
-	//	log.Errorf("register error: %s", err)
-	//	return err
-	//}
-	//if res.Error != nil {
-	//	log.Errorf("register error from cafe: %s", *res.Error)
-	//	return errors.New(*res.Error)
-	//}
-	//
-	//// local login
-	//tokens := &repo.CafeTokens{
-	//	Access:  res.Session.AccessToken,
-	//	Refresh: res.Session.RefreshToken,
-	//	Expiry:  time.Unix(res.Session.ExpiresAt, 0),
-	//}
-	//if err := t.datastore.Profile().CafeLogin(tokens); err != nil {
-	//	log.Errorf("local login error: %s", err)
-	//	return err
-	//}
+	// complete the challenge
+	cnonce := ksuid.New().String()
+	sig, err := accnt.Sign([]byte(res.Value + cnonce))
+	if err != nil {
+		return err
+	}
+	reg := &pb.CafeRegistration{
+		Address: accnt.Address(),
+		Value:   res.Value,
+		Nonce:   cnonce,
+		Sig:     sig,
+	}
+	session, err := t.cafeService.Register(reg, pid)
+	if err != nil {
+		return err
+	}
 
+	// local login
+	exp, err := ptypes.Timestamp(session.Exp)
+	if err != nil {
+		return err
+	}
+	tokens := &repo.CafeTokens{
+		Access:  session.Access,
+		Refresh: session.Refresh,
+		Expiry:  exp,
+	}
+	if err := t.datastore.Profile().CafeLogin(tokens); err != nil {
+		log.Errorf("local login error: %s", err)
+		return err
+	}
 	return nil
 }
 
