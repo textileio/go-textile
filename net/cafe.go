@@ -95,9 +95,19 @@ func (h *CafeService) handleChallengeRequest(pid peer.ID, env *pb.Envelope) (*pb
 		return h.service.NewError(400, "invalid address", env.Message.RequestId)
 	}
 
+	// generate a new random nonce
+	nonce := &repo.Nonce{
+		Value:   ksuid.New().String(),
+		Address: req.Address,
+		Date:    time.Now(),
+	}
+	if err := h.Datastore().Nonces().Add(nonce); err != nil {
+		return h.service.NewError(500, err.Error(), env.Message.RequestId)
+	}
+
 	// return a wrapped response
 	return h.service.NewEnvelope(pb.Message_CAFE_CHALLENGE_RESPONSE, &pb.CafeChallengeResponse{
-		Value: ksuid.New().String(),
+		Value: nonce.Value,
 	}, &env.Message.RequestId, true)
 }
 

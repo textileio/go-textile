@@ -73,7 +73,7 @@ func (t *Textile) CafeRegister(referral string) error {
 		return err
 	}
 
-	pid, err := peer.IDB58Decode("12D3KooWGcFNG8h3v9P6M862PqCvKjh32gu1Enx8VJsaN6iNt7dF")
+	pid, err := peer.IDB58Decode("12D3KooWKCsu1xcj3vkz3fMukruRUogBERNcDLSEykMtScVB4pv1")
 
 	challenge, err := t.cafeService.RequestChallenge(accnt, pid)
 	if err != nil {

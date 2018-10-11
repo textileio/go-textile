@@ -18,6 +18,8 @@ type Datastore interface {
 	OfflineMessages() OfflineMessageStore
 	Pointers() PointerStore
 	PinRequests() PinRequestStore
+	Nonces() NonceStore
+	Accounts() AccountStore
 	Ping() error
 	Close()
 }

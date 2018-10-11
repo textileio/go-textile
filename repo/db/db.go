@@ -109,6 +109,10 @@ func (d *SQLiteDatastore) Pointers() repo.PointerStore {
 	return d.pointers
 }
 
+func (d *SQLiteDatastore) PinRequests() repo.PinRequestStore {
+	return d.pinRequests
+}
+
 func (d *SQLiteDatastore) Nonces() repo.NonceStore {
 	return d.nonces
 }
