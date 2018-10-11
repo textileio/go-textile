@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
@@ -73,36 +74,35 @@ func NewService(
 }
 
 // SendMessage sends a message to a peer
-func (s *Service) SendMessage(ctx context.Context, pid peer.ID, pmes *pb.Envelope) error {
-	log.Debugf("sending %s message to %s", pmes.Message.Type.String(), pid.Pretty())
+func (s *Service) SendMessage(ctx context.Context, pid peer.ID, env *pb.Envelope) error {
+	log.Debugf("sending %s to %s", env.Message.Type.String(), pid.Pretty())
 	ms, err := s.messageSenderForPeer(pid, s.handler.Protocol())
 	if err != nil {
 		return err
 	}
-	if err := ms.SendMessage(ctx, pmes); err != nil {
+	if err := ms.SendMessage(ctx, env); err != nil {
 		return err
 	}
 	return nil
 }
 
 // SendRequest sends a request to a peer
-func (s *Service) SendRequest(ctx context.Context, pid peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
-	log.Debugf("sending %s request to %s", pmes.Message.Type.String(), pid.Pretty())
+func (s *Service) SendRequest(ctx context.Context, pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	log.Debugf("sending %s to %s", env.Message.Type.String(), pid.Pretty())
 	ms, err := s.messageSenderForPeer(pid, s.handler.Protocol())
 	if err != nil {
 		return nil, err
 	}
-	rpmes, err := ms.SendRequest(ctx, pmes)
+	renv, err := ms.SendRequest(ctx, env)
 	if err != nil {
-		log.Debugf("no response from %s", pid.Pretty())
 		return nil, err
 	}
-	if rpmes == nil {
+	if renv == nil {
 		log.Debugf("no response from %s", pid.Pretty())
 		return nil, errors.New("no response from peer")
 	}
-	log.Debugf("received response from %s", pid.Pretty())
-	return rpmes, nil
+	log.Infof("received %s response from %s", renv.Message.Type.String(), pid.Pretty())
+	return renv, nil
 }
 
 // Ping pings another peer and returns status
@@ -153,11 +153,6 @@ func (s *Service) NewEnvelope(mtype pb.Message_Type, msg proto.Message, id *int3
 	return env, nil
 }
 
-// NewErrorMessage returns a signed pb error message
-func (s *Service) NewErrorMessage(code int, msg string) (*pb.Envelope, error) {
-	return s.NewEnvelope(pb.Message_ERROR, &pb.Error{Code: uint32(code), Message: msg}, nil, false)
-}
-
 // VerifyEnvelope verifies the authenticity of an envelope
 func (s *Service) VerifyEnvelope(env *pb.Envelope) error {
 	ser, err := proto.Marshal(env.Message)
@@ -169,6 +164,32 @@ func (s *Service) VerifyEnvelope(env *pb.Envelope) error {
 		return err
 	}
 	return crypto.Verify(pk, ser, env.Sig)
+}
+
+// NewError returns a signed pb error message
+func (s *Service) NewError(code int, msg string, id int32) (*pb.Envelope, error) {
+	return s.NewEnvelope(pb.Message_ERROR, &pb.Error{
+		Code:    uint32(code),
+		Message: msg,
+	}, &id, true)
+}
+
+// HandleError receives an ERROR message
+func (s *Service) HandleError(pid peer.ID, env *pb.Envelope) error {
+	if env.Message.Payload == nil {
+		err := fmt.Sprintf("message payload with type %s is nil", env.Message.Type.String())
+		log.Error(err)
+		return errors.New(err)
+	}
+	if env.Message.Type != pb.Message_ERROR {
+		return nil
+	} else {
+		errMsg := new(pb.Error)
+		if err := ptypes.UnmarshalAny(env.Message.Payload, errMsg); err != nil {
+			return err
+		}
+		return errors.New(errMsg.Message)
+	}
 }
 
 // handleNewStream handles a p2p net stream in the background
@@ -214,7 +235,7 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 		// check signature
 		if err := s.VerifyEnvelope(env); err != nil {
 			log.Warningf("error verifying message: %s", err)
-			return
+			continue
 		}
 
 		// check if the message is a response
@@ -240,25 +261,27 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 			return
 		}
 
-		// try a generic handler for this msg type
-		handler := s.handleGeneric(env.Message.Type)
+		// try a core handler for this msg type
+		handler := s.handleCore(env.Message.Type)
 		if handler == nil {
-			// get service specific handler for this msg type
-			handler := s.handler.Handle(env.Message.Type)
+			// get service specific handler
+			handler = s.handler.Handle(env.Message.Type)
 			if handler == nil {
-				stream.Reset()
-				log.Debug("got back nil handler")
-				return
+				log.Errorf("got back nil handler for message type %s", env.Message.Type.String())
+				continue
 			}
 		}
 
 		// dispatch handler
+		log.Infof("received %s from %s", env.Message.Type.String(), rpid.Pretty())
+		if env.Message.Payload == nil {
+			log.Errorf("message payload with type %s is nil", env.Message.Type.String())
+			continue
+		}
 		renv, err := handler(rpid, env)
 		if err != nil {
 			log.Errorf("%s handle message error: %s", env.Message.Type.String(), err)
 		}
-
-		// if nil response, return it before serializing
 		if renv == nil {
 			continue
 		}
@@ -272,13 +295,11 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 	}
 }
 
-// handleGeneric provides service level handlers for common message types
-func (s *Service) handleGeneric(mtype pb.Message_Type) func(peer.ID, *pb.Envelope) (*pb.Envelope, error) {
+// handleCore provides service level handlers for common message types
+func (s *Service) handleCore(mtype pb.Message_Type) func(peer.ID, *pb.Envelope) (*pb.Envelope, error) {
 	switch mtype {
 	case pb.Message_PING:
 		return s.handlePing
-	case pb.Message_ERROR:
-		return s.handleError
 	default:
 		return nil
 	}
@@ -288,19 +309,4 @@ func (s *Service) handleGeneric(mtype pb.Message_Type) func(peer.ID, *pb.Envelop
 func (s *Service) handlePing(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
 	log.Debugf("received PING message from %s", pid.Pretty())
 	return s.NewEnvelope(pb.Message_PONG, nil, &env.Message.RequestId, true)
-}
-
-// handleError receives an ERROR message
-func (s *Service) handleError(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	log.Debugf("received ERROR message from %s", pid.Pretty())
-	if env.Message.Payload == nil {
-		return nil, errors.New("payload is nil")
-	}
-	errorMessage := new(pb.Error)
-	err := ptypes.UnmarshalAny(env.Message.Payload, errorMessage)
-	if err != nil {
-		return nil, err
-	}
-
-	return nil, nil
 }

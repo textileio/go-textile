@@ -256,20 +256,9 @@ func (t *Textile) Start() error {
 			log.Error(err.Error())
 			return
 		}
-		peerPk, err := t.GetPeerPubKey()
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
-		peerPks, err := ipfs.EncodeKey(peerPk)
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
 		log.Info("node is started")
 		log.Infof("account address: %s", addr)
 		log.Infof("account id: %s", accntId.Pretty())
-		log.Infof("peer pk: %s", peerPks)
 	}()
 	log.Info("starting node...")
 	t.online = make(chan struct{})

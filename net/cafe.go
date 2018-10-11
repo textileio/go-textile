@@ -2,7 +2,7 @@ package net
 
 import (
 	"context"
-	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/net/service"
@@ -14,8 +14,7 @@ import (
 	"time"
 )
 
-// CafeService is a libp2p service for orchestrating a collection of files with annotations
-// amongst a group of peers
+// CafeService is a libp2p service for proxing
 type CafeService struct {
 	service *service.Service
 }
@@ -56,38 +55,33 @@ func (h *CafeService) VerifyEnvelope(env *pb.Envelope) error {
 func (h *CafeService) Handle(mtype pb.Message_Type) func(peer.ID, *pb.Envelope) (*pb.Envelope, error) {
 	switch mtype {
 	case pb.Message_CAFE_CHALLENGE_REQUEST:
-		return h.handleChallenge
+		return h.handleChallengeRequest
 	default:
 		return nil
 	}
 }
 
 // RequestChallenge asks a fellow peer for a cafe challenge
-func (h *CafeService) RequestChallenge(kp *keypair.Full, pid peer.ID) error {
-	env, err := h.service.NewEnvelope(pb.Message_CAFE_CHALLENGE_RESPONSE, &pb.CafeChallengeRequest{
+func (h *CafeService) RequestChallenge(kp *keypair.Full, pid peer.ID) (*pb.CafeChallengeResponse, error) {
+	env, err := h.service.NewEnvelope(pb.Message_CAFE_CHALLENGE_REQUEST, &pb.CafeChallengeRequest{
 		Address: kp.Address(),
 	}, nil, false)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	_, err = h.service.SendRequest(ctx, pid, env)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// handleChallenge receives a challenge request
-func (h *CafeService) handleChallenge(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	log.Debug("received CAFE_CHALLENGE message")
-	signed, err := unpackThreadMessage(env)
+	renv, err := h.service.SendRequest(ctx, pid, env)
 	if err != nil {
 		return nil, err
 	}
+	return h.handleChallengeResponse(pid, renv)
+}
+
+// handleChallengeRequest receives a challenge request
+func (h *CafeService) handleChallengeRequest(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
 	req := new(pb.CafeChallengeRequest)
-	if err := proto.Unmarshal(signed.Block, req); err != nil {
+	if err := ptypes.UnmarshalAny(env.Message.Payload, req); err != nil {
 		return nil, err
 	}
 
@@ -98,15 +92,23 @@ func (h *CafeService) handleChallenge(pid peer.ID, env *pb.Envelope) (*pb.Envelo
 	}
 	if _, err := accnt.Sign([]byte{0x00}); err == nil {
 		// we dont want to handle account seeds, just addresses
-		errMsg, err := h.service.NewErrorMessage(400, "invalid address")
-		if err != nil {
-			return nil, err
-		}
-		return errMsg, nil
+		return h.service.NewError(400, "invalid address", env.Message.RequestId)
 	}
 
 	// return a wrapped response
 	return h.service.NewEnvelope(pb.Message_CAFE_CHALLENGE_RESPONSE, &pb.CafeChallengeResponse{
 		Value: ksuid.New().String(),
-	}, nil, false)
+	}, &env.Message.RequestId, true)
+}
+
+// handleChallengeResponse receives a challenge request
+func (h *CafeService) handleChallengeResponse(pid peer.ID, env *pb.Envelope) (*pb.CafeChallengeResponse, error) {
+	if err := h.service.HandleError(pid, env); err != nil {
+		return nil, err
+	}
+	res := new(pb.CafeChallengeResponse)
+	if err := ptypes.UnmarshalAny(env.Message.Payload, res); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
