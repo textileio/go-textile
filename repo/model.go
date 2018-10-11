@@ -4,6 +4,19 @@ import (
 	"time"
 )
 
+type Account struct {
+	Id       string    `json:"id"`
+	Address  string    `json:"address"`
+	Created  time.Time `json:"created"`
+	LastSeen time.Time `json:"last_seen"`
+}
+
+type Nonce struct {
+	Value   string    `json:"value"`
+	Address string    `json:"address"`
+	Date    time.Time `json:"date"`
+}
+
 type Thread struct {
 	Id      string `json:"id"`
 	Name    string `json:"name"`

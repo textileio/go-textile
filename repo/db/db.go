@@ -22,8 +22,13 @@ type SQLiteDatastore struct {
 	offlineMessages repo.OfflineMessageStore
 	pointers        repo.PointerStore
 	pinRequests     repo.PinRequestStore
-	db              *sql.DB
-	lock            *sync.Mutex
+
+	// cafe tables
+	nonces   repo.NonceStore
+	accounts repo.AccountStore
+
+	db   *sql.DB
+	lock *sync.Mutex
 }
 
 func Create(repoPath, pin string) (*SQLiteDatastore, error) {
@@ -49,8 +54,12 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 		offlineMessages: NewOfflineMessageStore(conn, mux),
 		pointers:        NewPointerStore(conn, mux),
 		pinRequests:     NewPinRequestStore(conn, mux),
-		db:              conn,
-		lock:            mux,
+
+		nonces:   NewNonceStore(conn, mux),
+		accounts: NewAccountStore(conn, mux),
+
+		db:   conn,
+		lock: mux,
 	}
 
 	return sqliteDB, nil
@@ -100,8 +109,12 @@ func (d *SQLiteDatastore) Pointers() repo.PointerStore {
 	return d.pointers
 }
 
-func (d *SQLiteDatastore) PinRequests() repo.PinRequestStore {
-	return d.pinRequests
+func (d *SQLiteDatastore) Nonces() repo.NonceStore {
+	return d.nonces
+}
+
+func (d *SQLiteDatastore) Accounts() repo.AccountStore {
+	return d.accounts
 }
 
 func (d *SQLiteDatastore) Copy(dbPath string, password string) error {
@@ -162,13 +175,17 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index block_dataId on blocks (dataId);
     create index block_threadId_type_date on blocks (threadId, type, date);
     create table notifications (id text primary key not null, date integer not null, actorId text not null, actorUsername text not null, subject text not null, subjectId text not null, blockId text, dataId text, type integer not null, body text not null, read integer not null);
-    create index notification_actorId on notifications (actorId);    
+    create index notification_actorId on notifications (actorId);
     create index notification_subjectId on notifications (subjectId);
     create index notification_blockId on notifications (blockId);
     create index notification_read on notifications (read);
     create table offlinemessages (url text primary key not null, date integer, message blob);
 	create table pointers (id text primary key not null, key text, address text, cancelId text, purpose integer, date integer);
     create table pinrequests (id text primary key not null, date integer);
+	create table nonces (value text primary key not null, address text not null, date integer not null);
+    create table accounts (id text primary key not null, address text not null, created integer not null, lastSeen integer not null);
+    create index account_address on accounts (address);
+    create index account_lastSeen on accounts (lastSeen);
 	`
 	_, err := db.Exec(sqlStmt)
 	if err != nil {

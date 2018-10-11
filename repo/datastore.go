@@ -128,3 +128,20 @@ type PinRequestStore interface {
 	List(offset string, limit int) []PinRequest
 	Delete(id string) error
 }
+
+// Cafe stores
+
+type NonceStore interface {
+	Add(nonce *Nonce) error
+	Get(value string) *Nonce
+	Delete(value string) error
+}
+
+type AccountStore interface {
+	Add(account *Account) error
+	Get(id string) *Account
+	Count() int
+	ListByAddress(address string) []Account
+	UpdateLastSeen(id string, date time.Time) error
+	Delete(id string) error
+}
