@@ -15,6 +15,9 @@ go test -coverprofile=strkey.cover.out ./strkey
 # wallet
 go test -coverprofile=wallet.cover.out ./wallet
 
+# jwt
+go test -coverprofile=jwt.cover.out ./jwt
+
 # repo
 go test -coverprofile=repo.db.cover.out ./repo/db
 go test -coverprofile=repo.schema.cover.out ./repo/schema
@@ -36,8 +39,6 @@ go test -coverprofile=mobile.cover.out ./mobile
 go test -coverprofile=gateway.cover.out ./gateway
 
 # cafe
-go test -coverprofile=cafe.dao.cover.out ./cafe/dao
-go test -coverprofile=cafe.crypto.cover.out ./cafe/crypto
 go test -coverprofile=cafe.cover.out ./cafe
 
 echo "mode: set" > coverage.out && cat *.cover.out | grep -v mode: | sort -r | \

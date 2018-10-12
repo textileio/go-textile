@@ -1,9 +1,9 @@
-package crypto_test
+package jwt_test
 
 import (
 	"github.com/dgrijalva/jwt-go"
-	"github.com/textileio/textile-go/cafe/crypto"
 	"github.com/textileio/textile-go/ipfs"
+	. "github.com/textileio/textile-go/jwt"
 	"strings"
 	"testing"
 )
@@ -35,7 +35,7 @@ var ed25519TestData = []struct {
 }
 
 func TestSigningMethodEd25519_Alg(t *testing.T) {
-	if crypto.SigningMethodEd25519i.Alg() != "Ed25519" {
+	if SigningMethodEd25519i.Alg() != "Ed25519" {
 		t.Fatal("wrong alg")
 	}
 }
@@ -88,7 +88,7 @@ func TestGenerateEd25519Token(t *testing.T) {
 		Id:      "bar",
 		Subject: "foo",
 	}
-	_, err = jwt.NewWithClaims(crypto.SigningMethodEd25519i, claims).SignedString(sk)
+	_, err = jwt.NewWithClaims(SigningMethodEd25519i, claims).SignedString(sk)
 	if err != nil {
 		t.Fatal(err)
 	}

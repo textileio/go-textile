@@ -2,13 +2,9 @@ package net
 
 import (
 	"context"
-	"encoding/base64"
-	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/cafe/auth"
-	"github.com/textileio/textile-go/cafe/dao"
-	"github.com/textileio/textile-go/cafe/models"
+	"github.com/textileio/textile-go/jwt"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/net/service"
 	"github.com/textileio/textile-go/pb"
@@ -16,9 +12,10 @@ import (
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
-	"net/http"
 	"time"
 )
+
+const defaultSessionDuration = time.Hour * 24 * 7 * 4
 
 // CafeService is a libp2p service for proxing
 type CafeService struct {
@@ -191,29 +188,18 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 	}
 
 	// get a session
-	session, err := auth.NewSession(profile.ID.Hex(), c.TokenSecret, c.Ipfs().Identity.Pretty(), "FIXME", oneMonth)
+	session, err := jwt.NewSession(h.Node().PrivateKey, pid, h.Protocol(), defaultSessionDuration)
 	if err != nil {
-		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	// mark the code as used
-	ref.Remaining = ref.Remaining - 1
-	if err := dao.Dao.UpdateReferral(ref); err != nil {
-		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
 
 	// delete the nonce
-	if err := dao.Dao.DeleteNonce(snonce); err != nil {
-		g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+	if err := h.Datastore().Nonces().Delete(snonce.Value); err != nil {
+		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
 
 	// return a wrapped response
-	//return h.service.NewEnvelope(pb.Message_CAFE_SESSION, &pb.CafeSession{
-	//	Value: nonce.Value,
-	//}, &env.Message.RequestId, true)
+	return h.service.NewEnvelope(pb.Message_CAFE_SESSION, session, &env.Message.RequestId, true)
 }
 
 // handleSession receives a session response

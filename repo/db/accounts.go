@@ -22,7 +22,7 @@ func (c *AccountDB) Add(account *repo.Account) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into blocks(id, address, created, lastSeen) values(?,?,?,?)`
+	stm := `insert into accounts(id, address, created, lastSeen) values(?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -46,7 +46,7 @@ func (c *AccountDB) Add(account *repo.Account) error {
 func (c *AccountDB) Get(id string) *repo.Account {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from blocks where id='" + id + "';")
+	ret := c.handleQuery("select * from accounts where id='" + id + "';")
 	if len(ret) == 0 {
 		return nil
 	}

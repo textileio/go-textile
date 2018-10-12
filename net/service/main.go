@@ -287,6 +287,7 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 		}
 
 		// send out response msg
+		log.Debugf("responding with %s to %s", renv.Message.Type.String(), rpid.Pretty())
 		if err := ms.SendMessage(s.Node.Context(), renv); err != nil {
 			stream.Reset()
 			log.Errorf("send response error: %s", err)

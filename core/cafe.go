@@ -205,13 +205,13 @@ func (t *Textile) CafeLogout() error {
 	if err := t.touchDatastore(); err != nil {
 		return err
 	}
-	log.Debug("logging out...")
 
 	// remote is stateless, so we just ditch the local token
 	if err := t.datastore.Profile().CafeLogout(); err != nil {
 		log.Errorf("local logout error: %s", err)
 		return err
 	}
+	log.Debug("logged out")
 
 	return nil
 }
