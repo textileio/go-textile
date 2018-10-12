@@ -2,7 +2,6 @@ syntax = "proto3";
 option go_package = "pb";
 
 import "google/protobuf/any.proto";
-import "google/protobuf/timestamp.proto";
 
 message Message {
     Type type                   = 1;
@@ -38,29 +37,6 @@ message Envelope {
     Message message = 1;
     bytes pk        = 2;
     bytes sig       = 3;
-}
-
-message Chat  {
-    string id                      = 1;
-    string subject                 = 2;
-    google.protobuf.Timestamp date = 3;
-    string message                 = 4;
-    Flag flag                      = 5;
-
-    enum Flag {
-        MESSAGE = 0;
-        TYPING  = 1;
-        READ    = 2;
-    }
-}
-
-message CidList {
-    repeated string cids = 1;
-}
-
-message Block {
-    bytes rawData = 1;
-    string cid    = 2;
 }
 
 message Error {

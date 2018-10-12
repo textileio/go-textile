@@ -9,6 +9,8 @@ import (
 	"github.com/textileio/textile-go/net/service"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"gx/ipfs/QmVzK524a2VWLqyvtBeiHKsUAWYgeAk4DBeZoY7vpNPNRx/go-block-format"
+	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
@@ -61,13 +63,17 @@ func (h *CafeService) Handle(mtype pb.Message_Type) func(peer.ID, *pb.Envelope) 
 		return h.handleChallenge
 	case pb.Message_CAFE_REGISTRATION:
 		return h.handleRegistration
+	case pb.Message_CAFE_STORE:
+		return h.handleStore
+	case pb.Message_CAFE_BLOCK:
+		return h.handleBlock
 	default:
 		return nil
 	}
 }
 
-// RequestChallenge asks a fellow peer for a cafe challenge
-func (h *CafeService) RequestChallenge(kp *keypair.Full, pid peer.ID) (*pb.CafeNonce, error) {
+// Challenge asks a fellow peer for a cafe challenge
+func (h *CafeService) Challenge(kp *keypair.Full, cafe peer.ID) (*pb.CafeNonce, error) {
 	env, err := h.service.NewEnvelope(pb.Message_CAFE_CHALLENGE, &pb.CafeChallenge{
 		Address: kp.Address(),
 	}, nil, false)
@@ -76,26 +82,94 @@ func (h *CafeService) RequestChallenge(kp *keypair.Full, pid peer.ID) (*pb.CafeN
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), service.DefaultTimeout)
 	defer cancel()
-	renv, err := h.service.SendRequest(ctx, pid, env)
+	renv, err := h.service.SendRequest(ctx, cafe, env)
 	if err != nil {
 		return nil, err
 	}
-	return h.handleNonce(pid, renv)
+	return h.handleNonce(cafe, renv)
 }
 
 // Register registers a peer with a cafe
-func (h *CafeService) Register(reg *pb.CafeRegistration, pid peer.ID) (*pb.CafeSession, error) {
+func (h *CafeService) Register(reg *pb.CafeRegistration, cafe peer.ID) (*pb.CafeSession, error) {
 	env, err := h.service.NewEnvelope(pb.Message_CAFE_REGISTRATION, reg, nil, false)
 	if err != nil {
 		return nil, err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), service.DefaultTimeout)
 	defer cancel()
-	renv, err := h.service.SendRequest(ctx, pid, env)
+	renv, err := h.service.SendRequest(ctx, cafe, env)
 	if err != nil {
 		return nil, err
 	}
-	return h.handleSession(pid, renv)
+	return h.handleSession(cafe, renv)
+}
+
+// Store stores (pins) content on a cafe
+func (h *CafeService) Store(cids []cid.Cid, cafe peer.ID) error {
+	var ids []string
+	for _, c := range cids {
+		ids = append(ids, c.String())
+	}
+	store := &pb.CafeCidList{Cids: ids}
+	env, err := h.service.NewEnvelope(pb.Message_CAFE_STORE, store, nil, false)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), service.DefaultTimeout)
+	defer cancel()
+	renv, err := h.service.SendRequest(ctx, cafe, env)
+	if err != nil {
+		return err
+	}
+	if err := h.service.HandleError(cafe, env); err != nil {
+		return err
+	}
+
+	// unpack response as a request list
+	req := new(pb.CafeCidList)
+	err = ptypes.UnmarshalAny(renv.Message.Payload, req)
+	if err != nil {
+		return err
+	}
+	if len(req.Cids) == 0 {
+		log.Debugf("peer %s requested no blocks", cafe.Pretty())
+		return nil
+	}
+	log.Debugf("sending %d blocks to %s", len(req.Cids), cafe.Pretty())
+
+	// send each block
+	for _, id := range req.Cids {
+		decoded, err := cid.Decode(id)
+		if err != nil {
+			continue
+		}
+		h.SendBlock(*decoded, cafe)
+	}
+	return nil
+}
+
+// SendBlock sends a block by cid to a peer
+func (h *CafeService) SendBlock(id cid.Cid, pid peer.ID) error {
+	// get block locally
+	ctx, cancel := context.WithTimeout(context.Background(), service.DefaultTimeout)
+	defer cancel()
+	block, err := h.Node().Blocks.GetBlock(ctx, &id)
+	if err != nil {
+		return err
+	}
+
+	// send it
+	pblock := &pb.CafeBlock{
+		Cid:     block.Cid().String(),
+		RawData: block.RawData(),
+	}
+	env, err := h.service.NewEnvelope(pb.Message_CAFE_BLOCK, pblock, nil, false)
+	if err != nil {
+		return err
+	}
+	sctx, scancel := context.WithTimeout(context.Background(), service.DefaultTimeout)
+	defer scancel()
+	return h.service.SendMessage(sctx, pid, env)
 }
 
 // handleChallenge receives a challenge request
@@ -111,7 +185,7 @@ func (h *CafeService) handleChallenge(pid peer.ID, env *pb.Envelope) (*pb.Envelo
 		return nil, err
 	}
 	if _, err := accnt.Sign([]byte{0x00}); err == nil {
-		// we dont want to handle account seeds, just addresses
+		// we don't want to handle account seeds, just addresses
 		return h.service.NewError(400, "invalid address", env.Message.RequestId)
 	}
 
@@ -165,7 +239,7 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 		return nil, err
 	}
 	if _, err := accnt.Sign([]byte{0x00}); err == nil {
-		// we dont want to handle account seeds, just addresses
+		// we don't want to handle account seeds, just addresses
 		return h.service.NewError(400, "invalid address", env.Message.RequestId)
 	}
 
@@ -212,4 +286,52 @@ func (h *CafeService) handleSession(pid peer.ID, env *pb.Envelope) (*pb.CafeSess
 		return nil, err
 	}
 	return res, nil
+}
+
+// handleSession receives a store request
+func (h *CafeService) handleStore(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	store := new(pb.CafeCidList)
+	err := ptypes.UnmarshalAny(env.Message.Payload, store)
+	if err != nil {
+		return nil, err
+	}
+
+	// ignore cids for blocks already present in local datastore
+	var need []string
+	for _, id := range store.Cids {
+		decoded, err := cid.Decode(id)
+		if err != nil {
+			continue
+		}
+		has, err := h.Node().Blockstore.Has(decoded)
+		if err != nil || !has {
+			need = append(need, decoded.String())
+		}
+	}
+	res := &pb.CafeCidList{Cids: need}
+	return h.service.NewEnvelope(pb.Message_CAFE_STORE, res, &env.Message.RequestId, true)
+}
+
+// handleBlock receives a block message
+func (h *CafeService) handleBlock(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	pblock := new(pb.CafeBlock)
+	err := ptypes.UnmarshalAny(env.Message.Payload, pblock)
+	if err != nil {
+		return nil, err
+	}
+	id, err := cid.Decode(pblock.Cid)
+	if err != nil {
+		return nil, err
+	}
+
+	// add a new block to the local datastore
+	block, err := blocks.NewBlockWithCid(pblock.RawData, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := h.Node().Blocks.AddBlock(block); err != nil {
+		return nil, err
+	}
+	log.Debugf("pinned %s from %s", pblock.Cid, pid.Pretty())
+	return nil, nil
 }

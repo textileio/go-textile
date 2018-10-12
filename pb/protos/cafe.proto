@@ -15,7 +15,7 @@ message CafeRegistration {
     string address = 1;
     string value   = 2;
     string nonce   = 3;
-    bytes  sig     = 4;
+    bytes sig      = 4;
 }
 
 message CafeSession {
@@ -25,4 +25,13 @@ message CafeSession {
     google.protobuf.Timestamp rexp = 4;
     string subject                 = 5;
     string type                    = 6;
+}
+
+message CafeCidList {
+    repeated string cids = 1;
+}
+
+message CafeBlock {
+    bytes rawData = 1;
+    string cid    = 2;
 }

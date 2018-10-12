@@ -75,7 +75,7 @@ func (t *Textile) CafeRegister(peerId string) error {
 	if err != nil {
 		return err
 	}
-	res, err := t.cafeService.RequestChallenge(accnt, pid)
+	res, err := t.cafeService.Challenge(accnt, pid)
 	if err != nil {
 		return err
 	}
