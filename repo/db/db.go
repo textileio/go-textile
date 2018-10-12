@@ -12,20 +12,17 @@ import (
 var log = logging.MustGetLogger("db")
 
 type SQLiteDatastore struct {
-	config          repo.ConfigStore
-	profile         repo.ProfileStore
-	threads         repo.ThreadStore
-	devices         repo.DeviceStore
-	peers           repo.PeerStore
-	blocks          repo.BlockStore
-	notifications   repo.NotificationStore
-	offlineMessages repo.OfflineMessageStore
-	pointers        repo.PointerStore
-	pinRequests     repo.PinRequestStore
-
-	// cafe tables
-	nonces   repo.NonceStore
-	accounts repo.AccountStore
+	config        repo.ConfigStore
+	profile       repo.ProfileStore
+	threads       repo.ThreadStore
+	devices       repo.DeviceStore
+	peers         repo.PeerStore
+	blocks        repo.BlockStore
+	notifications repo.NotificationStore
+	pinRequests   repo.PinRequestStore
+	cafeNonces    repo.CafeNonceStore
+	cafeAccounts  repo.CafeAccountStore
+	cafeSessions  repo.CafeSessionStore
 
 	db   *sql.DB
 	lock *sync.Mutex
@@ -44,22 +41,19 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 	}
 	mux := new(sync.Mutex)
 	sqliteDB := &SQLiteDatastore{
-		config:          NewConfigStore(conn, mux, dbPath),
-		profile:         NewProfileStore(conn, mux),
-		threads:         NewThreadStore(conn, mux),
-		devices:         NewDeviceStore(conn, mux),
-		peers:           NewPeerStore(conn, mux),
-		blocks:          NewBlockStore(conn, mux),
-		notifications:   NewNotificationStore(conn, mux),
-		offlineMessages: NewOfflineMessageStore(conn, mux),
-		pointers:        NewPointerStore(conn, mux),
-		pinRequests:     NewPinRequestStore(conn, mux),
-
-		nonces:   NewNonceStore(conn, mux),
-		accounts: NewAccountStore(conn, mux),
-
-		db:   conn,
-		lock: mux,
+		config:        NewConfigStore(conn, mux, dbPath),
+		profile:       NewProfileStore(conn, mux),
+		threads:       NewThreadStore(conn, mux),
+		devices:       NewDeviceStore(conn, mux),
+		peers:         NewPeerStore(conn, mux),
+		blocks:        NewBlockStore(conn, mux),
+		notifications: NewNotificationStore(conn, mux),
+		pinRequests:   NewPinRequestStore(conn, mux),
+		cafeNonces:    NewCafeNonceStore(conn, mux),
+		cafeAccounts:  NewCafeAccountStore(conn, mux),
+		cafeSessions:  NewCafeSessionStore(conn, mux),
+		db:            conn,
+		lock:          mux,
 	}
 
 	return sqliteDB, nil
@@ -101,24 +95,20 @@ func (d *SQLiteDatastore) Notifications() repo.NotificationStore {
 	return d.notifications
 }
 
-func (d *SQLiteDatastore) OfflineMessages() repo.OfflineMessageStore {
-	return d.offlineMessages
-}
-
-func (d *SQLiteDatastore) Pointers() repo.PointerStore {
-	return d.pointers
-}
-
 func (d *SQLiteDatastore) PinRequests() repo.PinRequestStore {
 	return d.pinRequests
 }
 
-func (d *SQLiteDatastore) Nonces() repo.NonceStore {
-	return d.nonces
+func (d *SQLiteDatastore) CafeNonces() repo.CafeNonceStore {
+	return d.cafeNonces
 }
 
-func (d *SQLiteDatastore) Accounts() repo.AccountStore {
-	return d.accounts
+func (d *SQLiteDatastore) CafeAccounts() repo.CafeAccountStore {
+	return d.cafeAccounts
+}
+
+func (d *SQLiteDatastore) CafeSessions() repo.CafeSessionStore {
+	return d.cafeSessions
 }
 
 func (d *SQLiteDatastore) Copy(dbPath string, password string) error {
@@ -190,6 +180,7 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create table accounts (id text primary key not null, address text not null, created integer not null, lastSeen integer not null);
     create index account_address on accounts (address);
     create index account_lastSeen on accounts (lastSeen);
+    create table sessions (id text primary key not null, access text not null, refresh text not null, expiry integer not null);
 	`
 	_, err := db.Exec(sqlStmt)
 	if err != nil {

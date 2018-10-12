@@ -4,17 +4,24 @@ import (
 	"time"
 )
 
-type Account struct {
+type CafeNonce struct {
+	Value   string    `json:"value"`
+	Address string    `json:"address"`
+	Date    time.Time `json:"date"`
+}
+
+type CafeAccount struct {
 	Id       string    `json:"id"`
 	Address  string    `json:"address"`
 	Created  time.Time `json:"created"`
 	LastSeen time.Time `json:"last_seen"`
 }
 
-type Nonce struct {
-	Value   string    `json:"value"`
-	Address string    `json:"address"`
-	Date    time.Time `json:"date"`
+type CafeSession struct {
+	Id      string    `json:"id"`
+	Access  string    `json:"access"`
+	Refresh string    `json:"refresh"`
+	Expiry  time.Time `json:"expiry"`
 }
 
 type Thread struct {
@@ -145,10 +152,4 @@ func (n NotificationType) Description() string {
 type PinRequest struct {
 	Id   string    `json:"id"`
 	Date time.Time `json:"date"`
-}
-
-type CafeTokens struct {
-	Access  string    `json:"access"`
-	Refresh string    `json:"refresh"`
-	Expiry  time.Time `json:"expiry"`
 }

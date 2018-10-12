@@ -7,15 +7,15 @@ import (
 	"time"
 )
 
-type AccountDB struct {
+type CafeAccountDB struct {
 	modelStore
 }
 
-func NewAccountStore(db *sql.DB, lock *sync.Mutex) repo.AccountStore {
-	return &AccountDB{modelStore{db, lock}}
+func NewCafeAccountStore(db *sql.DB, lock *sync.Mutex) repo.CafeAccountStore {
+	return &CafeAccountDB{modelStore{db, lock}}
 }
 
-func (c *AccountDB) Add(account *repo.Account) error {
+func (c *CafeAccountDB) Add(account *repo.CafeAccount) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -43,7 +43,7 @@ func (c *AccountDB) Add(account *repo.Account) error {
 	return nil
 }
 
-func (c *AccountDB) Get(id string) *repo.Account {
+func (c *CafeAccountDB) Get(id string) *repo.CafeAccount {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	ret := c.handleQuery("select * from accounts where id='" + id + "';")
@@ -53,7 +53,7 @@ func (c *AccountDB) Get(id string) *repo.Account {
 	return &ret[0]
 }
 
-func (c *AccountDB) Count() int {
+func (c *CafeAccountDB) Count() int {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	row := c.db.QueryRow("select Count(*) from accounts;")
@@ -62,29 +62,29 @@ func (c *AccountDB) Count() int {
 	return count
 }
 
-func (c *AccountDB) ListByAddress(address string) []repo.Account {
+func (c *CafeAccountDB) ListByAddress(address string) []repo.CafeAccount {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stm := "select * from accounts where address='" + address + "' order by lastSeen desc;"
 	return c.handleQuery(stm)
 }
 
-func (c *AccountDB) UpdateLastSeen(id string, date time.Time) error {
+func (c *CafeAccountDB) UpdateLastSeen(id string, date time.Time) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	_, err := c.db.Exec("update accounts set lastSeen=? where id=?", int(date.Unix()), id)
 	return err
 }
 
-func (c *AccountDB) Delete(id string) error {
+func (c *CafeAccountDB) Delete(id string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	_, err := c.db.Exec("delete from accounts where id=?", id)
 	return err
 }
 
-func (c *AccountDB) handleQuery(stm string) []repo.Account {
-	var ret []repo.Account
+func (c *CafeAccountDB) handleQuery(stm string) []repo.CafeAccount {
+	var ret []repo.CafeAccount
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -97,7 +97,7 @@ func (c *AccountDB) handleQuery(stm string) []repo.Account {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		block := repo.Account{
+		block := repo.CafeAccount{
 			Id:       id,
 			Address:  address,
 			Created:  time.Unix(int64(createdInt), 0),

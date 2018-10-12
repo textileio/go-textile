@@ -25,14 +25,14 @@ type PinnerConfig struct {
 	Datastore repo.Datastore
 	Ipfs      func() *core.IpfsNode
 	Url       string
-	GetTokens func(bool) (*repo.CafeTokens, error)
+	GetTokens func(bool) (*repo.CafeSession, error)
 }
 
 type Pinner struct {
 	datastore repo.Datastore
 	ipfs      func() *core.IpfsNode
 	url       string
-	getTokens func(bool) (*repo.CafeTokens, error)
+	getTokens func(bool) (*repo.CafeSession, error)
 	mux       sync.Mutex
 }
 
@@ -94,7 +94,7 @@ func (p *Pinner) Put(id string) error {
 	return nil
 }
 
-func (p *Pinner) handlePins(pins []repo.PinRequest, tokens *repo.CafeTokens) error {
+func (p *Pinner) handlePins(pins []repo.PinRequest, tokens *repo.CafeSession) error {
 	if len(pins) == 0 {
 		return nil
 	}
@@ -146,11 +146,11 @@ func (p *Pinner) handlePins(pins []repo.PinRequest, tokens *repo.CafeTokens) err
 	return p.handlePins(next, tokens)
 }
 
-func (p *Pinner) send(pr repo.PinRequest, tokens *repo.CafeTokens) error {
+func (p *Pinner) send(pr repo.PinRequest, tokens *repo.CafeSession) error {
 	return Pin(p.ipfs(), pr.Id, tokens, p.url)
 }
 
-func Pin(ipfs *core.IpfsNode, id string, tokens *repo.CafeTokens, url string) error {
+func Pin(ipfs *core.IpfsNode, id string, tokens *repo.CafeSession, url string) error {
 	if tokens == nil {
 		return errors.New("pin attempted without tokens")
 	}

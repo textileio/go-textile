@@ -316,9 +316,10 @@ func (t *Textile) Start() error {
 		//	return nil
 		//})
 
-		// configure services
+		// setup thread service
 		t.threadsService = net.NewThreadsService(t.ipfs, t.datastore, t.GetThread, t.sendNotification)
 
+		// setup cafe service
 		t.cafeService = net.NewCafeService(t.ipfs, t.datastore)
 
 		// build the message retriever
@@ -351,24 +352,24 @@ func (t *Textile) Start() error {
 	}()
 
 	// build a pin requester
-	if t.GetCafeApiAddr() != "" {
-		pinnerCfg := &net.PinnerConfig{
-			Datastore: t.datastore,
-			Ipfs: func() *core.IpfsNode {
-				return t.ipfs
-			},
-			Url:       fmt.Sprintf("%s/pin", t.GetCafeApiAddr()),
-			GetTokens: t.GetCafeTokens,
-		}
-		t.pinner = net.NewPinner(pinnerCfg)
-
-		// start pinner ticker if not mobile, otherwise do the job once
-		if !t.IsMobile() {
-			go t.pinner.Run()
-		} else {
-			go t.pinner.Pin()
-		}
-	}
+	//if t.GetCafeApiAddr() != "" {
+	//	pinnerCfg := &net.PinnerConfig{
+	//		Datastore: t.datastore,
+	//		Ipfs: func() *core.IpfsNode {
+	//			return t.ipfs
+	//		},
+	//		Url:       fmt.Sprintf("%s/pin", t.GetCafeApiAddr()),
+	//		GetTokens: t.GetCafeTokens,
+	//	}
+	//	t.pinner = net.NewPinner(pinnerCfg)
+	//
+	//	// start pinner ticker if not mobile, otherwise do the job once
+	//	if !t.IsMobile() {
+	//		go t.pinner.Run()
+	//	} else {
+	//		go t.pinner.Pin()
+	//	}
+	//}
 
 	// setup threads
 	for _, mod := range t.datastore.Threads().List("") {

@@ -7,15 +7,15 @@ import (
 	"time"
 )
 
-type NonceDB struct {
+type CafeNonceDB struct {
 	modelStore
 }
 
-func NewNonceStore(db *sql.DB, lock *sync.Mutex) repo.NonceStore {
-	return &NonceDB{modelStore{db, lock}}
+func NewCafeNonceStore(db *sql.DB, lock *sync.Mutex) repo.CafeNonceStore {
+	return &CafeNonceDB{modelStore{db, lock}}
 }
 
-func (c *NonceDB) Add(nonce *repo.Nonce) error {
+func (c *CafeNonceDB) Add(nonce *repo.CafeNonce) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -42,7 +42,7 @@ func (c *NonceDB) Add(nonce *repo.Nonce) error {
 	return nil
 }
 
-func (c *NonceDB) Get(value string) *repo.Nonce {
+func (c *CafeNonceDB) Get(value string) *repo.CafeNonce {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	ret := c.handleQuery("select * from nonces where value='" + value + "';")
@@ -52,15 +52,15 @@ func (c *NonceDB) Get(value string) *repo.Nonce {
 	return &ret[0]
 }
 
-func (c *NonceDB) Delete(value string) error {
+func (c *CafeNonceDB) Delete(value string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	_, err := c.db.Exec("delete from nonces where value=?", value)
 	return err
 }
 
-func (c *NonceDB) handleQuery(stm string) []repo.Nonce {
-	var ret []repo.Nonce
+func (c *CafeNonceDB) handleQuery(stm string) []repo.CafeNonce {
+	var ret []repo.CafeNonce
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -73,7 +73,7 @@ func (c *NonceDB) handleQuery(stm string) []repo.Nonce {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		nonce := repo.Nonce{
+		nonce := repo.CafeNonce{
 			Value:   value,
 			Address: address,
 			Date:    time.Unix(int64(dateInt), 0),

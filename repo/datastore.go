@@ -3,7 +3,6 @@ package repo
 import (
 	"database/sql"
 	"github.com/textileio/textile-go/keypair"
-	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"time"
 )
 
@@ -15,11 +14,10 @@ type Datastore interface {
 	Peers() PeerStore
 	Blocks() BlockStore
 	Notifications() NotificationStore
-	OfflineMessages() OfflineMessageStore
-	Pointers() PointerStore
 	PinRequests() PinRequestStore
-	Nonces() NonceStore
-	Accounts() AccountStore
+	CafeNonces() CafeNonceStore
+	CafeAccounts() CafeAccountStore
+	CafeSessions() CafeSessionStore
 	Ping() error
 	Close()
 }
@@ -41,9 +39,6 @@ type ConfigStore interface {
 }
 
 type ProfileStore interface {
-	CafeLogin(tokens *CafeTokens) error
-	CafeLogout() error
-	GetCafeTokens() (tokens *CafeTokens, err error)
 	SetUsername(username string) error
 	GetUsername() (*string, error)
 	SetAvatar(uri string) error
@@ -105,25 +100,6 @@ type NotificationStore interface {
 	DeleteByBlockId(blockId string) error
 }
 
-type OfflineMessageStore interface {
-	Queryable
-	Put(url string) error
-	Has(url string) bool
-	SetMessage(url string, message []byte) error
-	GetMessages() (map[string][]byte, error)
-	DeleteMessage(url string) error
-}
-
-type PointerStore interface {
-	Queryable
-	Put(p Pointer) error
-	Delete(id peer.ID) error
-	DeleteAll(purpose Purpose) error
-	Get(id peer.ID) *Pointer
-	GetByPurpose(purpose Purpose) ([]Pointer, error)
-	GetAll() ([]Pointer, error)
-}
-
 type PinRequestStore interface {
 	Queryable
 	Put(pr *PinRequest) error
@@ -131,19 +107,25 @@ type PinRequestStore interface {
 	Delete(id string) error
 }
 
-// Cafe stores
+type CafeSessionStore interface {
+	Add(session *CafeSession) error
+	Get(id string) *CafeSession
+	Delete(id string) error
+}
 
-type NonceStore interface {
-	Add(nonce *Nonce) error
-	Get(value string) *Nonce
+// Cafe-side stores
+
+type CafeNonceStore interface {
+	Add(nonce *CafeNonce) error
+	Get(value string) *CafeNonce
 	Delete(value string) error
 }
 
-type AccountStore interface {
-	Add(account *Account) error
-	Get(id string) *Account
+type CafeAccountStore interface {
+	Add(account *CafeAccount) error
+	Get(id string) *CafeAccount
 	Count() int
-	ListByAddress(address string) []Account
+	ListByAddress(address string) []CafeAccount
 	UpdateLastSeen(id string, date time.Time) error
 	Delete(id string) error
 }

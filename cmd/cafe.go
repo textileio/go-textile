@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/cafe/models"
 	"github.com/textileio/textile-go/core"
@@ -78,17 +77,17 @@ func cafeRegister(c *ishell.Context) {
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green("welcome aboard!"))
+	c.Println(green("welcome!"))
 }
 
 func cafeLogin(c *ishell.Context) {
-	if err := core.Node.CafeLogin(); err != nil {
-		c.Err(err)
-		return
-	}
-
-	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green("welcome back, %s!"))
+	//if err := core.Node.CafeLogin(); err != nil {
+	//	c.Err(err)
+	//	return
+	//}
+	//
+	//green := color.New(color.FgHiGreen).SprintFunc()
+	//c.Println(green("welcome back, %s!"))
 }
 
 func cafeLogout(c *ishell.Context) {
@@ -98,38 +97,38 @@ func cafeLogout(c *ishell.Context) {
 	if confirm != "" && confirm != "Y" {
 		return
 	}
-	if err := core.Node.CafeLogout(); err != nil {
-		c.Err(err)
-		return
-	}
+	//if err := core.Node.CafeLogout(); err != nil {
+	//	c.Err(err)
+	//	return
+	//}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
 	c.Println(green("see ya!"))
 }
 
 func cafeStatus(c *ishell.Context) {
-	loggedIn, err := core.Node.CafeLoggedIn()
-	if err != nil {
-		c.Err(err)
-		return
-	}
-	if loggedIn {
-		c.Println(color.New(color.FgHiGreen).SprintFunc()("logged in"))
-	} else {
-		c.Println(color.New(color.FgHiRed).SprintFunc()("not logged in"))
-	}
+	//loggedIn, err := core.Node.CafeLoggedIn()
+	//if err != nil {
+	//	c.Err(err)
+	//	return
+	//}
+	//if loggedIn {
+	//	c.Println(color.New(color.FgHiGreen).SprintFunc()("logged in"))
+	//} else {
+	//	c.Println(color.New(color.FgHiRed).SprintFunc()("not logged in"))
+	//}
 }
 
 func cafeTokens(c *ishell.Context) {
-	tokens, err := core.Node.GetCafeTokens(false)
-	if err != nil {
-		c.Err(err)
-		return
-	}
-	if tokens == nil {
-		c.Println(color.New(color.FgHiRed).SprintFunc()("no tokens found"))
-	}
-
-	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green(fmt.Sprintf("expiry: %s", tokens.Expiry.String())))
+	//tokens, err := core.Node.GetCafeTokens(false)
+	//if err != nil {
+	//	c.Err(err)
+	//	return
+	//}
+	//if tokens == nil {
+	//	c.Println(color.New(color.FgHiRed).SprintFunc()("no tokens found"))
+	//}
+	//
+	//green := color.New(color.FgHiGreen).SprintFunc()
+	//c.Println(green(fmt.Sprintf("expiry: %s", tokens.Expiry.String())))
 }

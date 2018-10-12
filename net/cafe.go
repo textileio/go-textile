@@ -2,6 +2,9 @@ package net
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	njwt "github.com/dgrijalva/jwt-go"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/jwt"
@@ -72,45 +75,74 @@ func (h *CafeService) Handle(mtype pb.Message_Type) func(peer.ID, *pb.Envelope) 
 	}
 }
 
-// Challenge asks a fellow peer for a cafe challenge
-func (h *CafeService) Challenge(kp *keypair.Full, cafe peer.ID) (*pb.CafeNonce, error) {
-	env, err := h.service.NewEnvelope(pb.Message_CAFE_CHALLENGE, &pb.CafeChallenge{
-		Address: kp.Address(),
-	}, nil, false)
-	if err != nil {
-		return nil, err
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), service.DefaultTimeout)
-	defer cancel()
-	renv, err := h.service.SendRequest(ctx, cafe, env)
-	if err != nil {
-		return nil, err
-	}
-	return h.handleNonce(cafe, renv)
-}
-
 // Register registers a peer with a cafe
-func (h *CafeService) Register(reg *pb.CafeRegistration, cafe peer.ID) (*pb.CafeSession, error) {
+func (h *CafeService) Register(cafe peer.ID) error {
+	// get a challenge
+	accnt, err := h.Datastore().Config().GetAccount()
+	if err != nil {
+		return err
+	}
+	challenge, err := h.challenge(accnt, cafe)
+	if err != nil {
+		return err
+	}
+
+	// complete the challenge
+	cnonce := ksuid.New().String()
+	sig, err := accnt.Sign([]byte(challenge.Value + cnonce))
+	if err != nil {
+		return err
+	}
+	reg := &pb.CafeRegistration{
+		Address: accnt.Address(),
+		Value:   challenge.Value,
+		Nonce:   cnonce,
+		Sig:     sig,
+	}
+
+	// register
 	env, err := h.service.NewEnvelope(pb.Message_CAFE_REGISTRATION, reg, nil, false)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), service.DefaultTimeout)
 	defer cancel()
 	renv, err := h.service.SendRequest(ctx, cafe, env)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return h.handleSession(cafe, renv)
+	res, err := h.handleSession(cafe, renv)
+	if err != nil {
+		return err
+	}
+
+	// local login
+	exp, err := ptypes.Timestamp(res.Exp)
+	if err != nil {
+		return err
+	}
+	session := &repo.CafeSession{
+		Id:      cafe.Pretty(),
+		Access:  res.Access,
+		Refresh: res.Refresh,
+		Expiry:  exp,
+	}
+	return h.Datastore().CafeSessions().Add(session)
 }
 
 // Store stores (pins) content on a cafe
-func (h *CafeService) Store(cids []cid.Cid, cafe peer.ID) error {
-	var ids []string
-	for _, c := range cids {
-		ids = append(ids, c.String())
+func (h *CafeService) Store(cids []string, cafe peer.ID) error {
+	// find access token for this cafe
+	session := h.Datastore().CafeSessions().Get(cafe.Pretty())
+	if session == nil {
+		return errors.New(fmt.Sprintf("could not find session for cafe %s", cafe.Pretty()))
 	}
-	store := &pb.CafeCidList{Cids: ids}
+
+	// ask cafe if it can store these cids
+	store := &pb.CafeStore{
+		Token: session.Access,
+		Cids:  cids,
+	}
 	env, err := h.service.NewEnvelope(pb.Message_CAFE_STORE, store, nil, false)
 	if err != nil {
 		return err
@@ -125,8 +157,8 @@ func (h *CafeService) Store(cids []cid.Cid, cafe peer.ID) error {
 		return err
 	}
 
-	// unpack response as a request list
-	req := new(pb.CafeCidList)
+	// unpack response as a request list of cids the cafe is able/willing to store
+	req := new(pb.CafeBlockList)
 	err = ptypes.UnmarshalAny(renv.Message.Payload, req)
 	if err != nil {
 		return err
@@ -143,13 +175,30 @@ func (h *CafeService) Store(cids []cid.Cid, cafe peer.ID) error {
 		if err != nil {
 			continue
 		}
-		h.SendBlock(*decoded, cafe)
+		h.sendBlock(*decoded, cafe)
 	}
 	return nil
 }
 
-// SendBlock sends a block by cid to a peer
-func (h *CafeService) SendBlock(id cid.Cid, pid peer.ID) error {
+// challenge asks a fellow peer for a cafe challenge
+func (h *CafeService) challenge(kp *keypair.Full, cafe peer.ID) (*pb.CafeNonce, error) {
+	env, err := h.service.NewEnvelope(pb.Message_CAFE_CHALLENGE, &pb.CafeChallenge{
+		Address: kp.Address(),
+	}, nil, false)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), service.DefaultTimeout)
+	defer cancel()
+	renv, err := h.service.SendRequest(ctx, cafe, env)
+	if err != nil {
+		return nil, err
+	}
+	return h.handleNonce(cafe, renv)
+}
+
+// sendBlock sends a block by cid to a peer
+func (h *CafeService) sendBlock(id cid.Cid, pid peer.ID) error {
 	// get block locally
 	ctx, cancel := context.WithTimeout(context.Background(), service.DefaultTimeout)
 	defer cancel()
@@ -190,12 +239,12 @@ func (h *CafeService) handleChallenge(pid peer.ID, env *pb.Envelope) (*pb.Envelo
 	}
 
 	// generate a new random nonce
-	nonce := &repo.Nonce{
+	nonce := &repo.CafeNonce{
 		Value:   ksuid.New().String(),
 		Address: req.Address,
 		Date:    time.Now(),
 	}
-	if err := h.Datastore().Nonces().Add(nonce); err != nil {
+	if err := h.Datastore().CafeNonces().Add(nonce); err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
 
@@ -225,7 +274,7 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 	}
 
 	// lookup the nonce
-	snonce := h.Datastore().Nonces().Get(reg.Value)
+	snonce := h.Datastore().CafeNonces().Get(reg.Value)
 	if snonce == nil {
 		return h.service.NewError(403, "forbidden", env.Message.RequestId)
 	}
@@ -251,13 +300,13 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 
 	// create new
 	now := time.Now()
-	account := &repo.Account{
+	account := &repo.CafeAccount{
 		Id:       pid.Pretty(),
 		Address:  reg.Address,
 		Created:  now,
 		LastSeen: now,
 	}
-	if err := h.Datastore().Accounts().Add(account); err != nil {
+	if err := h.Datastore().CafeAccounts().Add(account); err != nil {
 		return h.service.NewError(409, "conflict", env.Message.RequestId)
 	}
 
@@ -268,7 +317,7 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 	}
 
 	// delete the nonce
-	if err := h.Datastore().Nonces().Delete(snonce.Value); err != nil {
+	if err := h.Datastore().CafeNonces().Delete(snonce.Value); err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
 
@@ -290,10 +339,19 @@ func (h *CafeService) handleSession(pid peer.ID, env *pb.Envelope) (*pb.CafeSess
 
 // handleSession receives a store request
 func (h *CafeService) handleStore(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	store := new(pb.CafeCidList)
+	store := new(pb.CafeStore)
 	err := ptypes.UnmarshalAny(env.Message.Payload, store)
 	if err != nil {
 		return nil, err
+	}
+
+	// validate access token
+	rerr, err := h.authToken(store.Token, false, env.Message.RequestId)
+	if err != nil {
+		return nil, err
+	}
+	if rerr != nil {
+		return rerr, nil
 	}
 
 	// ignore cids for blocks already present in local datastore
@@ -308,30 +366,88 @@ func (h *CafeService) handleStore(pid peer.ID, env *pb.Envelope) (*pb.Envelope, 
 			need = append(need, decoded.String())
 		}
 	}
-	res := &pb.CafeCidList{Cids: need}
-	return h.service.NewEnvelope(pb.Message_CAFE_STORE, res, &env.Message.RequestId, true)
+	res := &pb.CafeBlockList{Cids: need}
+	return h.service.NewEnvelope(pb.Message_CAFE_BLOCKLIST, res, &env.Message.RequestId, true)
 }
 
 // handleBlock receives a block message
 func (h *CafeService) handleBlock(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	pblock := new(pb.CafeBlock)
-	err := ptypes.UnmarshalAny(env.Message.Payload, pblock)
-	if err != nil {
-		return nil, err
-	}
-	id, err := cid.Decode(pblock.Cid)
+	block := new(pb.CafeBlock)
+	err := ptypes.UnmarshalAny(env.Message.Payload, block)
 	if err != nil {
 		return nil, err
 	}
 
-	// add a new block to the local datastore
-	block, err := blocks.NewBlockWithCid(pblock.RawData, id)
+	// validate access token
+	rerr, err := h.authToken(block.Token, false, env.Message.RequestId)
 	if err != nil {
 		return nil, err
 	}
-	if err := h.Node().Blocks.AddBlock(block); err != nil {
+	if rerr != nil {
+		return rerr, nil
+	}
+
+	// add a new block to the local datastore
+	id, err := cid.Decode(block.Cid)
+	if err != nil {
 		return nil, err
 	}
-	log.Debugf("pinned %s from %s", pblock.Cid, pid.Pretty())
+	bblock, err := blocks.NewBlockWithCid(block.RawData, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := h.Node().Blocks.AddBlock(bblock); err != nil {
+		return nil, err
+	}
+	log.Debugf("pinned %s from %s", block.Cid, pid.Pretty())
 	return nil, nil
+}
+
+// authToken verifies a request token from a peer
+func (h *CafeService) authToken(tokenString string, refreshing bool, requestId int32) (*pb.Envelope, error) {
+	// parse it
+	token, pErr := njwt.Parse(tokenString, h.verifyKeyFunc)
+	if token == nil {
+		return h.service.NewError(401, "unauthorized", requestId)
+	}
+
+	// pull out claims
+	claims, err := jwt.ParseClaims(token.Claims)
+	if err != nil {
+		return h.service.NewError(403, "forbidden", requestId)
+	}
+
+	// check valid
+	if pErr != nil {
+		if !claims.VerifyExpiresAt(time.Now().Unix(), true) {
+			// 401 indicates a retry is expected after a token refresh
+			return h.service.NewError(401, "unauthorized", requestId)
+		}
+		return h.service.NewError(403, "forbidden", requestId)
+	}
+
+	// check scope
+	switch claims.Scope {
+	case jwt.Access:
+		if refreshing {
+			return h.service.NewError(403, "forbidden", requestId)
+		}
+	case jwt.Refresh:
+		if !refreshing {
+			return h.service.NewError(403, "forbidden", requestId)
+		}
+	default:
+		return h.service.NewError(403, "forbidden", requestId)
+	}
+
+	// verify protocol
+	if !claims.VerifyAudience(string(h.Protocol()), true) {
+		return h.service.NewError(403, "forbidden", requestId)
+	}
+	return nil, nil
+}
+
+// verifyKeyFunc returns the correct key for token verification
+func (h *CafeService) verifyKeyFunc(token *njwt.Token) (interface{}, error) {
+	return h.Node().PrivateKey, nil
 }

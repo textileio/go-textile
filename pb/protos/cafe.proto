@@ -27,11 +27,17 @@ message CafeSession {
     string type                    = 6;
 }
 
-message CafeCidList {
-    repeated string cids = 1;
+message CafeStore {
+    string token         = 1;
+    repeated string cids = 2;
+}
+
+message CafeBlockList {
+    repeated string cids = 2;
 }
 
 message CafeBlock {
-    bytes rawData = 1;
-    string cid    = 2;
+    string token  = 1;
+    bytes rawData = 2;
+    string cid    = 3;
 }

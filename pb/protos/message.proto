@@ -19,6 +19,7 @@ message Message {
         CAFE_SESSION      = 53;
         CAFE_STORE        = 54;
         CAFE_BLOCK        = 55;
+        CAFE_BLOCKLIST    = 56;
 
         THREAD_INVITE          = 100;
         THREAD_EXTERNAL_INVITE = 101;
