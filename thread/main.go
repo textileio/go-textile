@@ -40,38 +40,38 @@ type Info struct {
 
 // Config is used to construct a Thread
 type Config struct {
-	RepoPath      string
-	Ipfs          func() *core.IpfsNode
-	Blocks        func() repo.BlockStore
-	Peers         func() repo.PeerStore
-	Notifications func() repo.NotificationStore
-	GetHead       func() (string, error)
-	UpdateHead    func(head string) error
-	NewBlock      func(sk libp2pc.PrivKey, mtype pb.Message_Type, msg proto.Message) (*pb.Envelope, error)
-	SendMessage   func(message *pb.Envelope, pid peer.ID) error
-	PutPinRequest func(id string) error
-	GetUsername   func() (*string, error)
-	SendUpdate    func(update Update)
+	RepoPath        string
+	Ipfs            func() *core.IpfsNode
+	Blocks          func() repo.BlockStore
+	Peers           func() repo.PeerStore
+	Notifications   func() repo.NotificationStore
+	GetHead         func() (string, error)
+	UpdateHead      func(head string) error
+	NewBlock        func(sk libp2pc.PrivKey, mtype pb.Message_Type, msg proto.Message) (*pb.Envelope, error)
+	SendMessage     func(message *pb.Envelope, pid peer.ID) error
+	PutStoreRequest func(id string)
+	GetUsername     func() (*string, error)
+	SendUpdate      func(update Update)
 }
 
 // Thread is the primary mechanism representing a collecion of data / files / photos
 type Thread struct {
-	Id            string
-	Name          string
-	PrivKey       libp2pc.PrivKey
-	repoPath      string
-	ipfs          func() *core.IpfsNode
-	blocks        func() repo.BlockStore
-	peers         func() repo.PeerStore
-	notifications func() repo.NotificationStore
-	GetHead       func() (string, error)
-	updateHead    func(head string) error
-	newBlock      func(sk libp2pc.PrivKey, mtype pb.Message_Type, msg proto.Message) (*pb.Envelope, error)
-	sendMessage   func(message *pb.Envelope, pid peer.ID) error
-	putPinRequest func(id string) error
-	getUsername   func() (*string, error)
-	sendUpdate    func(update Update)
-	mux           sync.Mutex
+	Id              string
+	Name            string
+	PrivKey         libp2pc.PrivKey
+	repoPath        string
+	ipfs            func() *core.IpfsNode
+	blocks          func() repo.BlockStore
+	peers           func() repo.PeerStore
+	notifications   func() repo.NotificationStore
+	GetHead         func() (string, error)
+	updateHead      func(head string) error
+	newBlock        func(sk libp2pc.PrivKey, mtype pb.Message_Type, msg proto.Message) (*pb.Envelope, error)
+	sendMessage     func(message *pb.Envelope, pid peer.ID) error
+	putStoreRequest func(id string)
+	getUsername     func() (*string, error)
+	sendUpdate      func(update Update)
+	mux             sync.Mutex
 }
 
 // NewThread create a new Thread from a repo model and config
@@ -81,21 +81,21 @@ func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 		return nil, err
 	}
 	return &Thread{
-		Id:            model.Id,
-		Name:          model.Name,
-		PrivKey:       sk,
-		repoPath:      config.RepoPath,
-		ipfs:          config.Ipfs,
-		blocks:        config.Blocks,
-		peers:         config.Peers,
-		notifications: config.Notifications,
-		GetHead:       config.GetHead,
-		updateHead:    config.UpdateHead,
-		newBlock:      config.NewBlock,
-		sendMessage:   config.SendMessage,
-		putPinRequest: config.PutPinRequest,
-		getUsername:   config.GetUsername,
-		sendUpdate:    config.SendUpdate,
+		Id:              model.Id,
+		Name:            model.Name,
+		PrivKey:         sk,
+		repoPath:        config.RepoPath,
+		ipfs:            config.Ipfs,
+		blocks:          config.Blocks,
+		peers:           config.Peers,
+		notifications:   config.Notifications,
+		GetHead:         config.GetHead,
+		updateHead:      config.UpdateHead,
+		newBlock:        config.NewBlock,
+		sendMessage:     config.SendMessage,
+		putStoreRequest: config.PutStoreRequest,
+		getUsername:     config.GetUsername,
+		sendUpdate:      config.SendUpdate,
 	}, nil
 }
 
@@ -350,10 +350,8 @@ func (t *Thread) addBlock(envelope *pb.Envelope) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	// add a pin request
-	if err := t.putPinRequest(id.Hash().B58String()); err != nil {
-		log.Warningf("pin request exists: %s", id.Hash().B58String())
-	}
+	// add a store request
+	t.putStoreRequest(id.Hash().B58String())
 
 	return id.Hash(), nil
 }

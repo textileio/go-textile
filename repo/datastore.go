@@ -14,10 +14,10 @@ type Datastore interface {
 	Peers() PeerStore
 	Blocks() BlockStore
 	Notifications() NotificationStore
-	PinRequests() PinRequestStore
 	CafeNonces() CafeNonceStore
 	CafeAccounts() CafeAccountStore
 	CafeSessions() CafeSessionStore
+	CafeStoreRequests() CafeStoreRequestStore
 	Ping() error
 	Close()
 }
@@ -100,21 +100,24 @@ type NotificationStore interface {
 	DeleteByBlockId(blockId string) error
 }
 
-type PinRequestStore interface {
-	Queryable
-	Put(pr *StoreRequest) error
-	List(offset string, limit int) []StoreRequest
-	Delete(id string) error
-}
+// Cafe user-side stores
 
 type CafeSessionStore interface {
 	AddOrUpdate(session *CafeSession) error
-	Get(id string) *CafeSession
+	Get(cafeId string) *CafeSession
 	List() []CafeSession
-	Delete(id string) error
+	Delete(cafeId string) error
 }
 
-// Cafe-side stores
+type CafeStoreRequestStore interface {
+	Queryable
+	Put(req *CafeStoreRequest) error
+	List(offset string, limit int) []CafeStoreRequest
+	Delete(id string) error
+	DeleteByCafe(cafeId string) error
+}
+
+// Cafe host-side stores
 
 type CafeNonceStore interface {
 	Add(nonce *CafeNonce) error

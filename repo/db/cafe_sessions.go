@@ -22,7 +22,7 @@ func (c *CafeSessionDB) AddOrUpdate(session *repo.CafeSession) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert or replace into sessions(id, access, refresh, expiry) values(?,?,?,?)`
+	stm := `insert or replace into sessions(cafeId, access, refresh, expiry) values(?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -30,7 +30,7 @@ func (c *CafeSessionDB) AddOrUpdate(session *repo.CafeSession) error {
 	}
 	defer stmt.Close()
 	_, err = stmt.Exec(
-		session.Id,
+		session.CafeId,
 		session.Access,
 		session.Refresh,
 		int(session.Expiry.Unix()),
@@ -43,10 +43,10 @@ func (c *CafeSessionDB) AddOrUpdate(session *repo.CafeSession) error {
 	return nil
 }
 
-func (c *CafeSessionDB) Get(id string) *repo.CafeSession {
+func (c *CafeSessionDB) Get(cafeId string) *repo.CafeSession {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from sessions where id='" + id + "';")
+	ret := c.handleQuery("select * from sessions where cafeId='" + cafeId + "';")
 	if len(ret) == 0 {
 		return nil
 	}
@@ -60,10 +60,10 @@ func (c *CafeSessionDB) List() []repo.CafeSession {
 	return c.handleQuery(stm)
 }
 
-func (c *CafeSessionDB) Delete(id string) error {
+func (c *CafeSessionDB) Delete(cafeId string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from sessions where id=?", id)
+	_, err := c.db.Exec("delete from sessions where cafeId=?", cafeId)
 	return err
 }
 
@@ -75,14 +75,14 @@ func (c *CafeSessionDB) handleQuery(stm string) []repo.CafeSession {
 		return nil
 	}
 	for rows.Next() {
-		var id, access, refresh string
+		var cafeId, access, refresh string
 		var expiryInt int
-		if err := rows.Scan(&id, &access, &refresh, &expiryInt); err != nil {
+		if err := rows.Scan(&cafeId, &access, &refresh, &expiryInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
 		session := repo.CafeSession{
-			Id:      id,
+			CafeId:  cafeId,
 			Access:  access,
 			Refresh: refresh,
 			Expiry:  time.Unix(int64(expiryInt), 0),

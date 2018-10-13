@@ -12,20 +12,19 @@ import (
 var log = logging.MustGetLogger("db")
 
 type SQLiteDatastore struct {
-	config        repo.ConfigStore
-	profile       repo.ProfileStore
-	threads       repo.ThreadStore
-	devices       repo.DeviceStore
-	peers         repo.PeerStore
-	blocks        repo.BlockStore
-	notifications repo.NotificationStore
-	pinRequests   repo.PinRequestStore
-	cafeNonces    repo.CafeNonceStore
-	cafeAccounts  repo.CafeAccountStore
-	cafeSessions  repo.CafeSessionStore
-
-	db   *sql.DB
-	lock *sync.Mutex
+	config            repo.ConfigStore
+	profile           repo.ProfileStore
+	threads           repo.ThreadStore
+	devices           repo.DeviceStore
+	peers             repo.PeerStore
+	blocks            repo.BlockStore
+	notifications     repo.NotificationStore
+	cafeNonces        repo.CafeNonceStore
+	cafeAccounts      repo.CafeAccountStore
+	cafeSessions      repo.CafeSessionStore
+	cafeStoreRequests repo.CafeStoreRequestStore
+	db                *sql.DB
+	lock              *sync.Mutex
 }
 
 func Create(repoPath, pin string) (*SQLiteDatastore, error) {
@@ -41,19 +40,19 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 	}
 	mux := new(sync.Mutex)
 	sqliteDB := &SQLiteDatastore{
-		config:        NewConfigStore(conn, mux, dbPath),
-		profile:       NewProfileStore(conn, mux),
-		threads:       NewThreadStore(conn, mux),
-		devices:       NewDeviceStore(conn, mux),
-		peers:         NewPeerStore(conn, mux),
-		blocks:        NewBlockStore(conn, mux),
-		notifications: NewNotificationStore(conn, mux),
-		pinRequests:   NewPinRequestStore(conn, mux),
-		cafeNonces:    NewCafeNonceStore(conn, mux),
-		cafeAccounts:  NewCafeAccountStore(conn, mux),
-		cafeSessions:  NewCafeSessionStore(conn, mux),
-		db:            conn,
-		lock:          mux,
+		config:            NewConfigStore(conn, mux, dbPath),
+		profile:           NewProfileStore(conn, mux),
+		threads:           NewThreadStore(conn, mux),
+		devices:           NewDeviceStore(conn, mux),
+		peers:             NewPeerStore(conn, mux),
+		blocks:            NewBlockStore(conn, mux),
+		notifications:     NewNotificationStore(conn, mux),
+		cafeStoreRequests: NewCafeStoreRequestStore(conn, mux),
+		cafeNonces:        NewCafeNonceStore(conn, mux),
+		cafeAccounts:      NewCafeAccountStore(conn, mux),
+		cafeSessions:      NewCafeSessionStore(conn, mux),
+		db:                conn,
+		lock:              mux,
 	}
 
 	return sqliteDB, nil
@@ -95,10 +94,6 @@ func (d *SQLiteDatastore) Notifications() repo.NotificationStore {
 	return d.notifications
 }
 
-func (d *SQLiteDatastore) PinRequests() repo.PinRequestStore {
-	return d.pinRequests
-}
-
 func (d *SQLiteDatastore) CafeNonces() repo.CafeNonceStore {
 	return d.cafeNonces
 }
@@ -109,6 +104,10 @@ func (d *SQLiteDatastore) CafeAccounts() repo.CafeAccountStore {
 
 func (d *SQLiteDatastore) CafeSessions() repo.CafeSessionStore {
 	return d.cafeSessions
+}
+
+func (d *SQLiteDatastore) CafeStoreRequests() repo.CafeStoreRequestStore {
+	return d.cafeStoreRequests
 }
 
 func (d *SQLiteDatastore) Copy(dbPath string, password string) error {
@@ -140,12 +139,10 @@ func (d *SQLiteDatastore) Copy(dbPath string, password string) error {
 			cp = cp + "insert into encrypted." + name + " select * from main." + name + ";"
 		}
 	}
-
 	_, err = d.db.Exec(cp)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -173,14 +170,13 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index notification_subjectId on notifications (subjectId);
     create index notification_blockId on notifications (blockId);
     create index notification_read on notifications (read);
-    create table offlinemessages (url text primary key not null, date integer, message blob);
-	create table pointers (id text primary key not null, key text, address text, cancelId text, purpose integer, date integer);
-    create table pinrequests (id text primary key not null, date integer);
 	create table nonces (value text primary key not null, address text not null, date integer not null);
     create table accounts (id text primary key not null, address text not null, created integer not null, lastSeen integer not null);
     create index account_address on accounts (address);
     create index account_lastSeen on accounts (lastSeen);
-    create table sessions (id text primary key not null, access text not null, refresh text not null, expiry integer not null);
+    create table sessions (cafeId text primary key not null, access text not null, refresh text not null, expiry integer not null);
+    create table storereqs (id text primary key not null, cafeId text not null, date integer);
+    create index storereq_cafeId on storereqs (cafeId);
 	`
 	_, err := db.Exec(sqlStmt)
 	if err != nil {

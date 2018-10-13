@@ -79,10 +79,8 @@ func (t *Thread) Merge(head string) (mh.Multihash, error) {
 	}
 	id := cid.Hash().B58String()
 
-	// add a pin request
-	if err := t.putPinRequest(id); err != nil {
-		log.Warningf("pin request exists: %s", id)
-	}
+	// add a store request
+	t.putStoreRequest(id)
 
 	// index it locally
 	if err := t.indexBlock(id, header, repo.MergeBlock, nil); err != nil {
@@ -121,10 +119,8 @@ func (t *Thread) HandleMergeBlock(from *peer.ID, message *pb.Message, signed *pb
 	}
 	id := cid.Hash().B58String()
 
-	// add a pin request
-	if err := t.putPinRequest(id); err != nil {
-		log.Warningf("pin request exists: %s", id)
-	}
+	// add a store request
+	t.putStoreRequest(id)
 
 	// check if we aleady have this block indexed
 	index := t.blocks().Get(id)

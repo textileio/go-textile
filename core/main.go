@@ -88,24 +88,24 @@ type RunConfig struct {
 
 // Textile is the main Textile node structure
 type Textile struct {
-	version        string
-	context        oldcmds.Context
-	repoPath       string
-	cancel         context.CancelFunc
-	ipfs           *core.IpfsNode
-	datastore      repo.Datastore
-	cafeAddr       string
-	started        bool
-	threads        []*thread.Thread
-	online         chan struct{}
-	done           chan struct{}
-	updates        chan Update
-	threadUpdates  chan thread.Update
-	notifications  chan repo.Notification
-	threadsService *net.ThreadsService
-	cafeService    *net.CafeService
-	pinner         *net.StoreQueue
-	mux            sync.Mutex
+	version               string
+	context               oldcmds.Context
+	repoPath              string
+	cancel                context.CancelFunc
+	ipfs                  *core.IpfsNode
+	datastore             repo.Datastore
+	cafeAddr              string
+	started               bool
+	threads               []*thread.Thread
+	online                chan struct{}
+	done                  chan struct{}
+	updates               chan Update
+	threadUpdates         chan thread.Update
+	notifications         chan repo.Notification
+	threadsService        *net.ThreadsService
+	cafeService           *net.CafeService
+	cafeStoreRequestQueue *net.CafeStoreRequestQueue
+	mux                   sync.Mutex
 }
 
 var ErrAccountRequired = errors.New("account required")
@@ -215,6 +215,8 @@ func NewTextile(config RunConfig) (*Textile, error) {
 		return nil, err
 	}
 
+	// TODO: put cafes into bootstrap?
+
 	// open repo
 	//rep, err := fsrepo.Open(config.RepoPath)
 	//if err != nil {
@@ -289,87 +291,36 @@ func (t *Textile) Start() error {
 			return
 		}
 
-		// wait for dht to bootstrap
-		//<-dht.DefaultBootstrapConfig.DoneChan
-
-		// set offline message storage
-		//t.messageStorage = storage.NewCafeStorage(t.ipfs, t.repoPath, func(id *cid.Cid) error {
-		//	if t.pinner == nil {
-		//		return nil
-		//	}
-		//	tokens, err := t.GetCafeTokens(false)
-		//	if err != nil {
-		//		return err
-		//	}
-		//	hash := id.Hash().B58String()
-		//	if err := net.Pin(t.ipfs, hash, tokens, t.pinner.Url()); err != nil {
-		//		if err == net.ErrTokenExpired {
-		//			tokens, err := t.GetCafeTokens(true)
-		//			if err != nil {
-		//				return err
-		//			}
-		//			return net.Pin(t.ipfs, hash, tokens, t.pinner.Url())
-		//		} else {
-		//			return err
-		//		}
-		//	}
-		//	return nil
-		//})
-
 		// setup thread service
 		t.threadsService = net.NewThreadsService(t.ipfs, t.datastore, t.GetThread, t.sendNotification)
 
 		// setup cafe service
 		t.cafeService = net.NewCafeService(t.ipfs, t.datastore)
 
-		// build the message retriever
-		//mrCfg := net.MRConfig{
-		//	Datastore: t.datastore,
-		//	node:      t.ipfs,
-		//	service:   t.threadsService,
-		//	PrefixLen: 14,
-		//	SendAck:   t.sendOfflineAck,
-		//	SendError: t.sendError,
-		//}
-		//t.messageRetriever = net.NewMessageRetriever(mrCfg)
-
-		// build the pointer republisher
-		//t.pointerRepublisher = net.NewPointerRepublisher(t.ipfs, t.datastore)
-
-		// start jobs if not mobile
-		if !t.IsMobile() {
-			//go t.messageRetriever.Run()
-			//go t.pointerRepublisher.Run()
+		// start store queue
+		if t.IsMobile() {
+			go t.cafeStoreRequestQueue.Store()
 		} else {
-			//go t.pointerRepublisher.Republish()
+			go t.cafeStoreRequestQueue.Run()
 		}
 
 		// print swarm addresses
 		if err := ipfs.PrintSwarmAddrs(t.ipfs); err != nil {
-			log.Errorf("failed to read listening addresses: %s", err)
+			log.Errorf(err.Error())
 		}
 		log.Info("node is online")
 	}()
 
-	// build a pin requester
-	//if t.GetCafeApiAddr() != "" {
-	//	pinnerCfg := &net.PinnerConfig{
-	//		Datastore: t.datastore,
-	//		node: func() *core.IpfsNode {
-	//			return t.ipfs
-	//		},
-	//		Url:       fmt.Sprintf("%s/pin", t.GetCafeApiAddr()),
-	//		GetTokens: t.GetCafeTokens,
-	//	}
-	//	t.pinner = net.NewStoreQueue(pinnerCfg)
-	//
-	//	// start pinner ticker if not mobile, otherwise do the job once
-	//	if !t.IsMobile() {
-	//		go t.pinner.Run()
-	//	} else {
-	//		go t.pinner.Pin()
-	//	}
-	//}
+	// build a store request queue
+	t.cafeStoreRequestQueue = net.NewCafeStoreRequestQueue(
+		func() *net.CafeService {
+			return t.cafeService
+		},
+		func() *core.IpfsNode {
+			return t.ipfs
+		},
+		t.datastore,
+	)
 
 	// setup threads
 	for _, mod := range t.datastore.Threads().List("") {
@@ -381,7 +332,6 @@ func (t *Textile) Start() error {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -413,12 +363,6 @@ func (t *Textile) Stop() error {
 
 	// wipe threads
 	t.threads = nil
-
-	// shutdown message retriever
-	//select {
-	//case t.messageRetriever.DoneChan <- struct{}{}:
-	//default:
-	//}
 
 	// close update channels
 	close(t.updates)
@@ -629,11 +573,11 @@ func (t *Textile) loadThread(mod *repo.Thread) (*thread.Thread, error) {
 			//}()
 			return nil
 		},
-		NewBlock:      t.threadsService.NewBlock,
-		SendMessage:   t.threadsService.SendMessage,
-		PutPinRequest: t.putPinRequest,
-		GetUsername:   t.GetUsername,
-		SendUpdate:    t.sendThreadUpdate,
+		NewBlock:        t.threadsService.NewBlock,
+		SendMessage:     t.threadsService.SendMessage,
+		PutStoreRequest: t.cafeStoreRequestQueue.Put,
+		GetUsername:     t.GetUsername,
+		SendUpdate:      t.sendThreadUpdate,
 	}
 	thrd, err := thread.NewThread(mod, threadConfig)
 	if err != nil {
@@ -641,14 +585,6 @@ func (t *Textile) loadThread(mod *repo.Thread) (*thread.Thread, error) {
 	}
 	t.threads = append(t.threads, thrd)
 	return thrd, nil
-}
-
-// putPinRequest adds a pin request to the pinner
-func (t *Textile) putPinRequest(id string) error {
-	if t.pinner == nil {
-		return nil
-	}
-	return t.pinner.Put(id)
 }
 
 // sendUpdate adds an update to the update channel

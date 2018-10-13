@@ -224,13 +224,8 @@ func (t *Textile) PublishAccountProfile(prof *AccountProfile) (*ipfs.IpnsEntry, 
 	}
 	id := node.Cid().Hash().B58String()
 
-	// request cafe pin
-	go func() {
-		if err := t.putPinRequest(id); err != nil {
-			// TODO: #202 (Properly handle database/sql errors)
-			log.Warningf("pin request exists: %s", id)
-		}
-	}()
+	// request cafe store
+	t.cafeStoreRequestQueue.Put(id)
 
 	// load our private key
 	accnt, err := t.Account()
@@ -322,13 +317,8 @@ func (t *Textile) PublishPeerProfile() (*ipfs.IpnsEntry, error) {
 	}
 	id := node.Cid().Hash().B58String()
 
-	// request cafe pin
-	go func() {
-		if err := t.putPinRequest(id); err != nil {
-			// TODO: #202 (Properly handle database/sql errors)
-			log.Warningf("pin request exists: %s", id)
-		}
-	}()
+	// request cafe store
+	t.cafeStoreRequestQueue.Put(id)
 
 	// finish
 	return t.publish(id, t.ipfs.PrivateKey)

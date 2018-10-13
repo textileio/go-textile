@@ -18,10 +18,16 @@ type CafeAccount struct {
 }
 
 type CafeSession struct {
-	Id      string    `json:"id"`
+	CafeId  string    `json:"cafe_id"`
 	Access  string    `json:"access"`
 	Refresh string    `json:"refresh"`
 	Expiry  time.Time `json:"expiry"`
+}
+
+type CafeStoreRequest struct {
+	Id     string    `json:"id"`
+	CafeId string    `json:"cafe_id"`
+	Date   time.Time `json:"date"`
 }
 
 type Thread struct {
@@ -147,9 +153,4 @@ func (n NotificationType) Description() string {
 	default:
 		return "INVALID"
 	}
-}
-
-type StoreRequest struct {
-	Id   string    `json:"id"`
-	Date time.Time `json:"date"`
 }

@@ -46,3 +46,7 @@ message CafeBlock {
     bytes rawData = 2;
     string cid    = 3;
 }
+
+message CafeStored {
+    string cid = 1;
+}
