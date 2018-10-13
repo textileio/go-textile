@@ -175,7 +175,7 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index account_address on accounts (address);
     create index account_lastSeen on accounts (lastSeen);
     create table sessions (cafeId text primary key not null, access text not null, refresh text not null, expiry integer not null);
-    create table storereqs (id text primary key not null, cafeId text not null, date integer);
+    create table storereqs (id text not null, cafeId text not null, date integer, primary key (id, cafeId));
     create index storereq_cafeId on storereqs (cafeId);
 	`
 	_, err := db.Exec(sqlStmt)

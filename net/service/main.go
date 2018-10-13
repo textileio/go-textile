@@ -69,7 +69,7 @@ func NewService(
 		sender:    make(map[peer.ID]*sender),
 	}
 	node.PeerHost.SetStreamHandler(handler.Protocol(), service.handleNewStream)
-	log.Infof("registered service: %s", handler.Protocol())
+	log.Debugf("registered service: %s", handler.Protocol())
 	return service
 }
 
@@ -101,7 +101,7 @@ func (s *Service) SendRequest(ctx context.Context, pid peer.ID, env *pb.Envelope
 		log.Debugf("no response from %s", pid.Pretty())
 		return nil, errors.New("no response from peer")
 	}
-	log.Infof("received %s response from %s", renv.Message.Type.String(), pid.Pretty())
+	log.Debugf("received %s response from %s", renv.Message.Type.String(), pid.Pretty())
 	return renv, nil
 }
 
@@ -273,7 +273,7 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 		}
 
 		// dispatch handler
-		log.Infof("received %s from %s", env.Message.Type.String(), rpid.Pretty())
+		log.Debugf("received %s from %s", env.Message.Type.String(), rpid.Pretty())
 		if env.Message.Payload == nil {
 			log.Errorf("message payload with type %s is nil", env.Message.Type.String())
 			continue
