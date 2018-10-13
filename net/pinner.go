@@ -14,8 +14,8 @@ import (
 	"time"
 )
 
-const kPinFrequency = time.Minute * 10
-const pinGroupSize = 5
+const kFrequency = time.Minute * 10
+const groupSize = 5
 
 var ErrTokenExpired = errors.New("token expired")
 var ErrPinRequestEmpty = errors.New("pin request empty response")
@@ -23,34 +23,24 @@ var ErrPinRequestMismatch = errors.New("pin request content id mismatch")
 
 type PinnerConfig struct {
 	Datastore repo.Datastore
-	Ipfs      func() *core.IpfsNode
-	Url       string
-	GetTokens func(bool) (*repo.CafeSession, error)
+	node      *core.IpfsNode
 }
 
-type Pinner struct {
+type StoreQueue struct {
 	datastore repo.Datastore
-	ipfs      func() *core.IpfsNode
-	url       string
-	getTokens func(bool) (*repo.CafeSession, error)
+	node      *core.IpfsNode
 	mux       sync.Mutex
 }
 
-func NewPinner(config *PinnerConfig) *Pinner {
-	return &Pinner{
+func NewStoreQueue(config *PinnerConfig) *StoreQueue {
+	return &StoreQueue{
 		datastore: config.Datastore,
-		ipfs:      config.Ipfs,
-		url:       config.Url,
-		getTokens: config.GetTokens,
+		node:      config.node,
 	}
 }
 
-func (p *Pinner) Url() string {
-	return p.url
-}
-
-func (p *Pinner) Run() {
-	tick := time.NewTicker(kPinFrequency)
+func (p *StoreQueue) Run() {
+	tick := time.NewTicker(kFrequency)
 	defer tick.Stop()
 	go p.Pin()
 	for {
@@ -61,7 +51,7 @@ func (p *Pinner) Run() {
 	}
 }
 
-func (p *Pinner) Pin() {
+func (p *StoreQueue) Pin() {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
@@ -76,14 +66,14 @@ func (p *Pinner) Pin() {
 	}
 
 	// start at no offset
-	if err := p.handlePins(p.datastore.PinRequests().List("", pinGroupSize), tokens); err != nil {
+	if err := p.handle(p.datastore.PinRequests().List("", groupSize), tokens); err != nil {
 		log.Errorf("pin error: %s", err)
 		return
 	}
 }
 
-func (p *Pinner) Put(id string) error {
-	pr := &repo.PinRequest{Id: id, Date: time.Now()}
+func (p *StoreQueue) Put(id string) error {
+	pr := &repo.StoreRequest{Id: id, Date: time.Now()}
 	if err := p.datastore.PinRequests().Put(pr); err != nil {
 		return err
 	}
@@ -94,8 +84,8 @@ func (p *Pinner) Put(id string) error {
 	return nil
 }
 
-func (p *Pinner) handlePins(pins []repo.PinRequest, tokens *repo.CafeSession) error {
-	if len(pins) == 0 {
+func (p *StoreQueue) handle(reqs []repo.StoreRequest) error {
+	if len(reqs) == 0 {
 		return nil
 	}
 
@@ -103,10 +93,10 @@ func (p *Pinner) handlePins(pins []repo.PinRequest, tokens *repo.CafeSession) er
 	var expired bool
 	var toDelete []string
 	wg := sync.WaitGroup{}
-	for _, r := range pins {
+	for _, r := range reqs {
 		wg.Add(1)
-		go func(pr repo.PinRequest) {
-			if err := p.send(pr, tokens); err != nil {
+		go func(pr repo.StoreRequest) {
+			if err := p.send(pr); err != nil {
 				if err == ErrTokenExpired {
 					expired = true
 				} else {
@@ -132,7 +122,7 @@ func (p *Pinner) handlePins(pins []repo.PinRequest, tokens *repo.CafeSession) er
 	log.Debugf("handled %d pin requests, deleting...", len(toDelete))
 
 	// next batch
-	offset := pins[len(pins)-1].Id
+	offset := reqs[len(reqs)-1].Id
 	next := p.datastore.PinRequests().List(offset, pinGroupSize)
 
 	// clean up
@@ -146,8 +136,8 @@ func (p *Pinner) handlePins(pins []repo.PinRequest, tokens *repo.CafeSession) er
 	return p.handlePins(next, tokens)
 }
 
-func (p *Pinner) send(pr repo.PinRequest, tokens *repo.CafeSession) error {
-	return Pin(p.ipfs(), pr.Id, tokens, p.url)
+func (p *StoreQueue) send(pr repo.StoreRequest, tokens *repo.CafeSession) error {
+	return Pin(p.node(), pr.Id, tokens, p.url)
 }
 
 func Pin(ipfs *core.IpfsNode, id string, tokens *repo.CafeSession, url string) error {

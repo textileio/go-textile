@@ -15,14 +15,14 @@ func NewCafeSessionStore(db *sql.DB, lock *sync.Mutex) repo.CafeSessionStore {
 	return &CafeSessionDB{modelStore{db, lock}}
 }
 
-func (c *CafeSessionDB) Add(session *repo.CafeSession) error {
+func (c *CafeSessionDB) AddOrUpdate(session *repo.CafeSession) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
 	if err != nil {
 		return err
 	}
-	stm := `insert into sessions(id, access, refresh, expiry) values(?,?,?,?)`
+	stm := `insert or replace into sessions(id, access, refresh, expiry) values(?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -51,6 +51,13 @@ func (c *CafeSessionDB) Get(id string) *repo.CafeSession {
 		return nil
 	}
 	return &ret[0]
+}
+
+func (c *CafeSessionDB) List() []repo.CafeSession {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	stm := "select * from sessions order by expiry desc;"
+	return c.handleQuery(stm)
 }
 
 func (c *CafeSessionDB) Delete(id string) error {

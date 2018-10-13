@@ -27,6 +27,11 @@ message CafeSession {
     string type                    = 6;
 }
 
+message CafeRefreshSession {
+    string access  = 1;
+    string refresh = 2;
+}
+
 message CafeStore {
     string token         = 1;
     repeated string cids = 2;

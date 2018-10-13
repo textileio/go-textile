@@ -104,7 +104,7 @@ type Textile struct {
 	notifications  chan repo.Notification
 	threadsService *net.ThreadsService
 	cafeService    *net.CafeService
-	pinner         *net.Pinner
+	pinner         *net.StoreQueue
 	mux            sync.Mutex
 }
 
@@ -325,7 +325,7 @@ func (t *Textile) Start() error {
 		// build the message retriever
 		//mrCfg := net.MRConfig{
 		//	Datastore: t.datastore,
-		//	Ipfs:      t.ipfs,
+		//	node:      t.ipfs,
 		//	service:   t.threadsService,
 		//	PrefixLen: 14,
 		//	SendAck:   t.sendOfflineAck,
@@ -355,13 +355,13 @@ func (t *Textile) Start() error {
 	//if t.GetCafeApiAddr() != "" {
 	//	pinnerCfg := &net.PinnerConfig{
 	//		Datastore: t.datastore,
-	//		Ipfs: func() *core.IpfsNode {
+	//		node: func() *core.IpfsNode {
 	//			return t.ipfs
 	//		},
 	//		Url:       fmt.Sprintf("%s/pin", t.GetCafeApiAddr()),
 	//		GetTokens: t.GetCafeTokens,
 	//	}
-	//	t.pinner = net.NewPinner(pinnerCfg)
+	//	t.pinner = net.NewStoreQueue(pinnerCfg)
 	//
 	//	// start pinner ticker if not mobile, otherwise do the job once
 	//	if !t.IsMobile() {

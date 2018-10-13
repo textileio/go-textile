@@ -21,7 +21,7 @@ func setupPinRequestDB() {
 }
 
 func TestPinRequestDB_Put(t *testing.T) {
-	err := pinreqdb.Put(&repo.PinRequest{
+	err := pinreqdb.Put(&repo.StoreRequest{
 		Id:   "abcde",
 		Date: time.Now(),
 	})
@@ -42,14 +42,14 @@ func TestPinRequestDB_Put(t *testing.T) {
 
 func TestPinRequestDB_List(t *testing.T) {
 	setupPinRequestDB()
-	err := pinreqdb.Put(&repo.PinRequest{
+	err := pinreqdb.Put(&repo.StoreRequest{
 		Id:   "abcde",
 		Date: time.Now(),
 	})
 	if err != nil {
 		t.Error(err)
 	}
-	err = pinreqdb.Put(&repo.PinRequest{
+	err = pinreqdb.Put(&repo.StoreRequest{
 		Id:   "abcdef",
 		Date: time.Now().Add(time.Minute),
 	})

@@ -174,7 +174,7 @@ func (s *Service) NewError(code int, msg string, id int32) (*pb.Envelope, error)
 	}, &id, true)
 }
 
-// HandleError receives an ERROR message
+// HandleError receives an error response
 func (s *Service) HandleError(pid peer.ID, env *pb.Envelope) error {
 	if env.Message.Payload == nil {
 		err := fmt.Sprintf("message payload with type %s is nil", env.Message.Type.String())

@@ -16,7 +16,7 @@ func NewPinRequestStore(db *sql.DB, lock *sync.Mutex) repo.PinRequestStore {
 	return &PinRequestDB{modelStore{db, lock}}
 }
 
-func (c *PinRequestDB) Put(pr *repo.PinRequest) error {
+func (c *PinRequestDB) Put(pr *repo.StoreRequest) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -42,7 +42,7 @@ func (c *PinRequestDB) Put(pr *repo.PinRequest) error {
 	return nil
 }
 
-func (c *PinRequestDB) List(offset string, limit int) []repo.PinRequest {
+func (c *PinRequestDB) List(offset string, limit int) []repo.StoreRequest {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	var stm string
@@ -61,8 +61,8 @@ func (c *PinRequestDB) Delete(id string) error {
 	return err
 }
 
-func (c *PinRequestDB) handleQuery(stm string) []repo.PinRequest {
-	var ret []repo.PinRequest
+func (c *PinRequestDB) handleQuery(stm string) []repo.StoreRequest {
+	var ret []repo.StoreRequest
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -75,7 +75,7 @@ func (c *PinRequestDB) handleQuery(stm string) []repo.PinRequest {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		pr := repo.PinRequest{
+		pr := repo.StoreRequest{
 			Id:   id,
 			Date: time.Unix(int64(dateInt), 0),
 		}

@@ -149,7 +149,7 @@ func (n NotificationType) Description() string {
 	}
 }
 
-type PinRequest struct {
+type StoreRequest struct {
 	Id   string    `json:"id"`
 	Date time.Time `json:"date"`
 }

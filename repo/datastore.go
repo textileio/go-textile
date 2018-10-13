@@ -102,14 +102,15 @@ type NotificationStore interface {
 
 type PinRequestStore interface {
 	Queryable
-	Put(pr *PinRequest) error
-	List(offset string, limit int) []PinRequest
+	Put(pr *StoreRequest) error
+	List(offset string, limit int) []StoreRequest
 	Delete(id string) error
 }
 
 type CafeSessionStore interface {
-	Add(session *CafeSession) error
+	AddOrUpdate(session *CafeSession) error
 	Get(id string) *CafeSession
+	List() []CafeSession
 	Delete(id string) error
 }
 
