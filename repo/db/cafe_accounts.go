@@ -97,13 +97,13 @@ func (c *CafeAccountDB) handleQuery(stm string) []repo.CafeAccount {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		block := repo.CafeAccount{
+		accnt := repo.CafeAccount{
 			Id:       id,
 			Address:  address,
 			Created:  time.Unix(int64(createdInt), 0),
 			LastSeen: time.Unix(int64(lastSeenInt), 0),
 		}
-		ret = append(ret, block)
+		ret = append(ret, accnt)
 	}
 	return ret
 }

@@ -90,7 +90,7 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	t.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadRemoved})
 
 	// add cafe update request
-	t.cafeRequestQueue.Put(thrd.Id, repo.CafeRemoveThreadRequest)
+	//t.cafeRequestQueue.Put(thrd.Id, repo.CafeRemoveThreadRequest)
 
 	log.Infof("removed thread %s with name %s", thrd.Id, thrd.Name)
 

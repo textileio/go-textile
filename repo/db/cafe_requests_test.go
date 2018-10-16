@@ -31,7 +31,7 @@ func TestCafeStoreRequestDB_Put(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := storeReqDB.PrepareQuery("select id from cafereqs where id=?")
+	stmt, err := storeReqDB.PrepareQuery("select id from cafe_requests where id=?")
 	defer stmt.Close()
 	var id string
 	err = stmt.QueryRow("abcde").Scan(&id)
@@ -87,7 +87,7 @@ func TestCafeStoreRequestDB_Delete(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := storeReqDB.PrepareQuery("select id from cafereqs where id=?")
+	stmt, err := storeReqDB.PrepareQuery("select id from cafe_requests where id=?")
 	defer stmt.Close()
 	var id string
 	if err := stmt.QueryRow("abcde").Scan(&id); err == nil {
@@ -111,7 +111,7 @@ func TestCafeStoreRequestDB_DeleteByCafe(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := storeReqDB.PrepareQuery("select id from cafereqs where id=?")
+	stmt, err := storeReqDB.PrepareQuery("select id from cafe_requests where id=?")
 	defer stmt.Close()
 	var id string
 	if err := stmt.QueryRow("zyx").Scan(&id); err == nil {

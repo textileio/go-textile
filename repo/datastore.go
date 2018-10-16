@@ -14,10 +14,11 @@ type Datastore interface {
 	Peers() PeerStore
 	Blocks() BlockStore
 	Notifications() NotificationStore
-	CafeNonces() CafeNonceStore
-	CafeAccounts() CafeAccountStore
 	CafeSessions() CafeSessionStore
 	CafeRequests() CafeRequestStore
+	CafeNonces() CafeNonceStore
+	CafeAccounts() CafeAccountStore
+	CafeAccountThreads() CafeAccountThreadStore
 	Ping() error
 	Close()
 }
@@ -132,4 +133,12 @@ type CafeAccountStore interface {
 	ListByAddress(address string) []CafeAccount
 	UpdateLastSeen(id string, date time.Time) error
 	Delete(id string) error
+}
+
+type CafeAccountThreadStore interface {
+	Add(thrd *CafeAccountThread) error
+	Get(id string, accountId string) *CafeAccountThread
+	ListByAccount(accountId string) []CafeAccountThread
+	UpdateHead(id string, accountId string, head string) error
+	Delete(id string, accountId string) error
 }

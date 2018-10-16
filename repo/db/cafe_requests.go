@@ -23,7 +23,7 @@ func (c *CafeRequestDB) Put(req *repo.CafeRequest) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into cafereqs(id, targetId, cafeId, type, date) values(?,?,?,?,?)`
+	stm := `insert into cafe_requests(id, targetId, cafeId, type, date) values(?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -50,9 +50,9 @@ func (c *CafeRequestDB) List(offset string, limit int) []repo.CafeRequest {
 	defer c.lock.Unlock()
 	var stm string
 	if offset != "" {
-		stm = "select * from cafereqs where date<(select date from cafereqs where id='" + offset + "') order by date desc limit " + strconv.Itoa(limit) + " ;"
+		stm = "select * from cafe_requests where date<(select date from cafe_requests where id='" + offset + "') order by date asc limit " + strconv.Itoa(limit) + " ;"
 	} else {
-		stm = "select * from cafereqs order by date desc limit " + strconv.Itoa(limit) + ";"
+		stm = "select * from cafe_requests order by date asc limit " + strconv.Itoa(limit) + ";"
 	}
 	return c.handleQuery(stm)
 }
@@ -60,14 +60,14 @@ func (c *CafeRequestDB) List(offset string, limit int) []repo.CafeRequest {
 func (c *CafeRequestDB) Delete(id string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from cafereqs where id=?", id)
+	_, err := c.db.Exec("delete from cafe_requests where id=?", id)
 	return err
 }
 
 func (c *CafeRequestDB) DeleteByCafe(cafeId string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from cafereqs where cafeId=?", cafeId)
+	_, err := c.db.Exec("delete from cafe_requests where cafeId=?", cafeId)
 	return err
 }
 
