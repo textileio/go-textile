@@ -75,16 +75,3 @@ func EncodeKey(key libp2pc.Key) (string, error) {
 	}
 	return libp2pc.ConfigEncodeKey(keyb), nil
 }
-
-// PubKeyFromID attempts to extract a public key from a base58 encoded id
-func PubKeyFromID(id string) (libp2pc.PubKey, error) {
-	pid, err := peer.IDB58Decode(id)
-	if err != nil {
-		return nil, err
-	}
-	pk, err := pid.ExtractPublicKey()
-	if err != nil {
-		return nil, err
-	}
-	return pk, nil
-}

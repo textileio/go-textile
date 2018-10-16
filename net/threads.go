@@ -2,7 +2,6 @@ package net
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"github.com/golang/protobuf/proto"
@@ -10,6 +9,7 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/net/service"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
@@ -30,6 +30,7 @@ type ThreadsService struct {
 
 // NewThreadsService returns a new threads service
 func NewThreadsService(
+	account *keypair.Full,
 	node *core.IpfsNode,
 	datastore repo.Datastore,
 	getThread func(id string) (*int, *thread.Thread),
@@ -39,13 +40,18 @@ func NewThreadsService(
 		getThread:        getThread,
 		sendNotification: sendNotification,
 	}
-	handler.service = service.NewService(handler, node, datastore)
+	handler.service = service.NewService(account, handler, node, datastore)
 	return handler
 }
 
 // Protocol returns the handler protocol
 func (h *ThreadsService) Protocol() protocol.ID {
 	return protocol.ID("/textile/threads/1.0.0")
+}
+
+// Account returns the underlying account keypair
+func (h *ThreadsService) Account() *keypair.Full {
+	return h.service.Account
 }
 
 // Node returns the underlying ipfs Node
@@ -68,30 +74,6 @@ func (h *ThreadsService) VerifyEnvelope(env *pb.Envelope) error {
 	return h.service.VerifyEnvelope(env)
 }
 
-// NewBlock returns a thread-signed block in an envelope
-func (h *ThreadsService) NewBlock(sk libp2pc.PrivKey, mtype pb.Message_Type, msg proto.Message) (*pb.Envelope, error) {
-	ser, err := proto.Marshal(msg)
-	if err != nil {
-		return nil, err
-	}
-	threadSig, err := sk.Sign(ser)
-	if err != nil {
-		return nil, err
-	}
-	signed := &pb.SignedThreadBlock{
-		Block:     ser,
-		ThreadSig: threadSig,
-	}
-	return h.service.NewEnvelope(mtype, signed, nil, false)
-}
-
-// SendMessage sends a message to a peer
-func (h *ThreadsService) SendMessage(env *pb.Envelope, pid peer.ID) error {
-	ctx, cancel := context.WithTimeout(context.Background(), service.DefaultTimeout)
-	defer cancel()
-	return h.service.SendMessage(ctx, pid, env)
-}
-
 // Handle is called by the underlying service handler method
 func (h *ThreadsService) Handle(mtype pb.Message_Type) func(peer.ID, *pb.Envelope) (*pb.Envelope, error) {
 	switch mtype {
@@ -112,6 +94,28 @@ func (h *ThreadsService) Handle(mtype pb.Message_Type) func(peer.ID, *pb.Envelop
 	default:
 		return nil
 	}
+}
+
+// NewBlock returns a thread-signed block in an envelope
+func (h *ThreadsService) NewBlock(sk libp2pc.PrivKey, mtype pb.Message_Type, msg proto.Message) (*pb.Envelope, error) {
+	ser, err := proto.Marshal(msg)
+	if err != nil {
+		return nil, err
+	}
+	threadSig, err := sk.Sign(ser)
+	if err != nil {
+		return nil, err
+	}
+	signed := &pb.SignedThreadBlock{
+		Block:     ser,
+		ThreadSig: threadSig,
+	}
+	return h.service.NewEnvelope(mtype, signed, nil, false)
+}
+
+// SendMessage sends a message to a peer
+func (h *ThreadsService) SendMessage(pid peer.ID, env *pb.Envelope) error {
+	return h.service.SendMessage(pid, env)
 }
 
 // handleInvite receives an invite message

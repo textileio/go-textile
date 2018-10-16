@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/repo"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/namesys/opts"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/path"
@@ -55,7 +56,7 @@ func (t *Textile) SetUsername(username string) error {
 		<-t.Online()
 
 		// publish
-		pid, err := t.ID()
+		pid, err := t.Id()
 		if err != nil {
 			log.Errorf("error getting id (set username): %s", err)
 			return
@@ -105,7 +106,7 @@ func (t *Textile) SetAvatar(id string) error {
 		<-t.Online()
 
 		// publish
-		pid, err := t.ID()
+		pid, err := t.Id()
 		if err != nil {
 			log.Errorf("error getting id (set avatar): %s", err)
 			return
@@ -128,7 +129,7 @@ func (t *Textile) GetAccountProfile(peerId string) (*AccountProfile, error) {
 	profile := &AccountProfile{}
 
 	// if peer id is local, return profile from db
-	pid, err := t.ID()
+	pid, err := t.Id()
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +191,7 @@ func (t *Textile) PublishAccountProfile(prof *AccountProfile) (*ipfs.IpnsEntry, 
 
 	// if nil profile, use current
 	if prof == nil {
-		pid, err := t.ID()
+		pid, err := t.Id()
 		if err != nil {
 			return nil, err
 		}
@@ -225,7 +226,7 @@ func (t *Textile) PublishAccountProfile(prof *AccountProfile) (*ipfs.IpnsEntry, 
 	id := node.Cid().Hash().B58String()
 
 	// request cafe store
-	t.cafeStoreRequestQueue.Put(id)
+	t.cafeRequestQueue.Put(id, repo.CafeStoreRequest)
 
 	// load our private key
 	accnt, err := t.Account()
@@ -239,89 +240,6 @@ func (t *Textile) PublishAccountProfile(prof *AccountProfile) (*ipfs.IpnsEntry, 
 
 	// finish
 	return t.publish(id, sk)
-}
-
-// PublishPeerProfile publishes a peer profile to ipns
-func (t *Textile) PublishPeerProfile() (*ipfs.IpnsEntry, error) {
-	if !t.IsOnline() {
-		return nil, ErrOffline
-	}
-	if t.ipfs.Mounts.Ipns != nil && t.ipfs.Mounts.Ipns.IsActive() {
-		return nil, errors.New("cannot manually publish while IPNS is mounted")
-	}
-
-	// create a virtual directory for the profile
-	dir := uio.NewDirectory(t.ipfs.DAG)
-
-	// add private encrypted threads state
-	threadsDir := uio.NewDirectory(t.ipfs.DAG)
-	for _, thrd := range t.threads {
-		dir := uio.NewDirectory(t.ipfs.DAG)
-		head, err := thrd.GetHead()
-		if err != nil {
-			return nil, err
-		}
-		if head != "" {
-			headc, err := t.Encrypt([]byte(head))
-			if err != nil {
-				return nil, err
-			}
-			if err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader(headc), "head"); err != nil {
-				return nil, err
-			}
-		}
-		skb, err := thrd.PrivKey.Bytes()
-		if err != nil {
-			return nil, err
-		}
-		skc, err := t.Encrypt(skb)
-		if err != nil {
-			return nil, err
-		}
-		if err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader(skc), "sk"); err != nil {
-			return nil, err
-		}
-		id, err := thrd.Base58Id()
-		if err != nil {
-			return nil, err
-		}
-		node, err := dir.GetNode()
-		if err != nil {
-			return nil, err
-		}
-		if err := ipfs.PinDirectory(t.ipfs, node, []string{}); err != nil {
-			return nil, err
-		}
-		if err := threadsDir.AddChild(t.ipfs.Context(), id, node); err != nil {
-			return nil, err
-		}
-	}
-	threadsNode, err := threadsDir.GetNode()
-	if err != nil {
-		return nil, err
-	}
-	if err := ipfs.PinDirectory(t.ipfs, threadsNode, []string{}); err != nil {
-		return nil, err
-	}
-	if err := dir.AddChild(t.ipfs.Context(), "threads", threadsNode); err != nil {
-		return nil, err
-	}
-
-	// pin the directory locally
-	node, err := dir.GetNode()
-	if err != nil {
-		return nil, err
-	}
-	if err := ipfs.PinDirectory(t.ipfs, node, []string{}); err != nil {
-		return nil, err
-	}
-	id := node.Cid().Hash().B58String()
-
-	// request cafe store
-	t.cafeStoreRequestQueue.Put(id)
-
-	// finish
-	return t.publish(id, t.ipfs.PrivateKey)
 }
 
 // ResolveName looks up a profile on ipns

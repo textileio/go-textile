@@ -1,6 +1,7 @@
 package keypair
 
 import (
+	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/strkey"
 	"golang.org/x/crypto/ed25519"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
@@ -27,7 +28,7 @@ func (kp *FromAddress) Hint() (r [4]byte) {
 	return
 }
 
-func (kp *FromAddress) PeerID() (peer.ID, error) {
+func (kp *FromAddress) Id() (peer.ID, error) {
 	pub, err := kp.LibP2PPubKey()
 	if err != nil {
 		return "", nil
@@ -68,6 +69,18 @@ func (kp *FromAddress) Verify(input []byte, sig []byte) error {
 
 func (kp *FromAddress) Sign(input []byte) ([]byte, error) {
 	return nil, ErrCannotSign
+}
+
+func (kp *FromAddress) Encrypt(input []byte) ([]byte, error) {
+	pub, err := kp.LibP2PPubKey()
+	if err != nil {
+		return nil, err
+	}
+	return crypto.Encrypt(pub, input)
+}
+
+func (kp *FromAddress) Decrypt(input []byte) ([]byte, error) {
+	return nil, ErrCannotDecrypt
 }
 
 func (kp *FromAddress) publicKey() ed25519.PublicKey {

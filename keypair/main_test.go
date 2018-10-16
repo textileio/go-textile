@@ -40,9 +40,9 @@ func ItBehavesLikeAKP(subject *KeyPair) {
 		})
 	})
 
-	Describe("ID()", func() {
-		It("returns the correct peer id", func() {
-			pid, err := (*subject).PeerID()
+	Describe("Id()", func() {
+		It("returns the correct id", func() {
+			pid, err := (*subject).Id()
 			if err != nil {
 				panic(err)
 			}

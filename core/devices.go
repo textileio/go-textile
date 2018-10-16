@@ -45,7 +45,7 @@ func (t *Textile) AddDevice(name string, pk libp2pc.PubKey) error {
 	t.sendUpdate(Update{Id: deviceModel.Id, Name: deviceModel.Name, Type: DeviceAdded})
 
 	// send notification
-	id, err := t.ID()
+	id, err := t.Id()
 	if err != nil {
 		return err
 	}

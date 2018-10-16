@@ -2,6 +2,7 @@ package keypair
 
 import (
 	"bytes"
+	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/strkey"
 	"golang.org/x/crypto/ed25519"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
@@ -26,7 +27,7 @@ func (kp *Full) Seed() string {
 	return kp.seed
 }
 
-func (kp *Full) PeerID() (peer.ID, error) {
+func (kp *Full) Id() (peer.ID, error) {
 	pub, err := kp.LibP2PPubKey()
 	if err != nil {
 		return "", nil
@@ -81,6 +82,22 @@ func (kp *Full) Verify(input []byte, sig []byte) error {
 func (kp *Full) Sign(input []byte) ([]byte, error) {
 	_, priv := kp.keys()
 	return ed25519.Sign(priv, input)[:], nil
+}
+
+func (kp *Full) Encrypt(input []byte) ([]byte, error) {
+	pub, err := kp.LibP2PPubKey()
+	if err != nil {
+		return nil, err
+	}
+	return crypto.Encrypt(pub, input)
+}
+
+func (kp *Full) Decrypt(input []byte) ([]byte, error) {
+	priv, err := kp.LibP2PPrivKey()
+	if err != nil {
+		return nil, err
+	}
+	return crypto.Decrypt(priv, input)
 }
 
 func (kp *Full) publicKey() ed25519.PublicKey {

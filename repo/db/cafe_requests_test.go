@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var storeReqDB repo.CafeStoreRequestStore
+var storeReqDB repo.CafeRequestStore
 
 func init() {
 	setupCafeStoreRequestDB()
@@ -17,19 +17,21 @@ func init() {
 func setupCafeStoreRequestDB() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
 	initDatabaseTables(conn, "")
-	storeReqDB = NewCafeStoreRequestStore(conn, new(sync.Mutex))
+	storeReqDB = NewCafeRequestStore(conn, new(sync.Mutex))
 }
 
 func TestCafeStoreRequestDB_Put(t *testing.T) {
-	err := storeReqDB.Put(&repo.CafeStoreRequest{
-		Id:     "abcde",
-		CafeId: "boom",
-		Date:   time.Now(),
+	err := storeReqDB.Put(&repo.CafeRequest{
+		Id:       "abcde",
+		TargetId: "zxy",
+		CafeId:   "boom",
+		Type:     repo.CafeStoreRequest,
+		Date:     time.Now(),
 	})
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := storeReqDB.PrepareQuery("select id from storereqs where id=?")
+	stmt, err := storeReqDB.PrepareQuery("select id from cafereqs where id=?")
 	defer stmt.Close()
 	var id string
 	err = stmt.QueryRow("abcde").Scan(&id)
@@ -43,18 +45,22 @@ func TestCafeStoreRequestDB_Put(t *testing.T) {
 
 func TestCafeStoreRequestDB_List(t *testing.T) {
 	setupCafeStoreRequestDB()
-	err := storeReqDB.Put(&repo.CafeStoreRequest{
-		Id:     "abcde",
-		CafeId: "boom",
-		Date:   time.Now(),
+	err := storeReqDB.Put(&repo.CafeRequest{
+		Id:       "abcde",
+		TargetId: "zxy",
+		CafeId:   "boom",
+		Type:     repo.CafeAddThreadRequest,
+		Date:     time.Now(),
 	})
 	if err != nil {
 		t.Error(err)
 	}
-	err = storeReqDB.Put(&repo.CafeStoreRequest{
-		Id:     "abcdef",
-		CafeId: "boom",
-		Date:   time.Now().Add(time.Minute),
+	err = storeReqDB.Put(&repo.CafeRequest{
+		Id:       "abcdef",
+		TargetId: "zxy",
+		CafeId:   "boom",
+		Type:     repo.CafeRemoveThreadRequest,
+		Date:     time.Now().Add(time.Minute),
 	})
 	if err != nil {
 		t.Error(err)
@@ -81,7 +87,7 @@ func TestCafeStoreRequestDB_Delete(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := storeReqDB.PrepareQuery("select id from storereqs where id=?")
+	stmt, err := storeReqDB.PrepareQuery("select id from cafereqs where id=?")
 	defer stmt.Close()
 	var id string
 	if err := stmt.QueryRow("abcde").Scan(&id); err == nil {
@@ -91,10 +97,12 @@ func TestCafeStoreRequestDB_Delete(t *testing.T) {
 
 func TestCafeStoreRequestDB_DeleteByCafe(t *testing.T) {
 	setupCafeStoreRequestDB()
-	err := storeReqDB.Put(&repo.CafeStoreRequest{
-		Id:     "xyz",
-		CafeId: "boom",
-		Date:   time.Now(),
+	err := storeReqDB.Put(&repo.CafeRequest{
+		Id:       "xyz",
+		TargetId: "zxy",
+		CafeId:   "boom",
+		Type:     repo.CafeUpdateThreadRequest,
+		Date:     time.Now(),
 	})
 	if err != nil {
 		t.Error(err)
@@ -103,7 +111,7 @@ func TestCafeStoreRequestDB_DeleteByCafe(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := storeReqDB.PrepareQuery("select id from storereqs where id=?")
+	stmt, err := storeReqDB.PrepareQuery("select id from cafereqs where id=?")
 	defer stmt.Close()
 	var id string
 	if err := stmt.QueryRow("zyx").Scan(&id); err == nil {

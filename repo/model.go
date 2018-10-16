@@ -24,10 +24,36 @@ type CafeSession struct {
 	Expiry  time.Time `json:"expiry"`
 }
 
-type CafeStoreRequest struct {
-	Id     string    `json:"id"`
-	CafeId string    `json:"cafe_id"`
-	Date   time.Time `json:"date"`
+type CafeRequestType int
+
+const (
+	CafeStoreRequest CafeRequestType = iota
+	CafeAddThreadRequest
+	CafeRemoveThreadRequest
+	CafeUpdateThreadRequest
+)
+
+func (rt CafeRequestType) Description() string {
+	switch rt {
+	case CafeStoreRequest:
+		return "STORE"
+	case CafeAddThreadRequest:
+		return "ADD_THREAD"
+	case CafeRemoveThreadRequest:
+		return "REMOVE_THREAD"
+	case CafeUpdateThreadRequest:
+		return "UPDATE_THREAD"
+	default:
+		return "INVALID"
+	}
+}
+
+type CafeRequest struct {
+	Id       string          `json:"id"`
+	TargetId string          `json:"target_id"`
+	CafeId   string          `json:"cafe_id"`
+	Type     CafeRequestType `json:"type"`
+	Date     time.Time       `json:"date"`
 }
 
 type Thread struct {

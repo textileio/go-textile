@@ -13,15 +13,19 @@ message Message {
         PING = 0;
         PONG = 1;
 
-        CAFE_CHALLENGE       = 50;
-        CAFE_NONCE           = 51;
-        CAFE_REGISTRATION    = 52;
-        CAFE_SESSION         = 53;
-        CAFE_REFRESH_SESSION = 54;
-        CAFE_STORE           = 55;
-        CAFE_BLOCK           = 56;
-        CAFE_BLOCKLIST       = 57;
-        CAFE_STORED          = 58;
+        CAFE_ACK             = 50;
+        CAFE_CHALLENGE       = 51;
+        CAFE_NONCE           = 52;
+        CAFE_REGISTRATION    = 53;
+        CAFE_SESSION         = 54;
+        CAFE_REFRESH_SESSION = 55;
+        CAFE_STORE           = 56;
+        CAFE_BLOCK           = 57;
+        CAFE_BLOCKLIST       = 58;
+        CAFE_STORED          = 59;
+        CAFE_ADD_THREAD      = 60;
+        CAFE_REMOVE_THREAD   = 61;
+        CAFE_UPDATE_THREAD   = 62;
 
         THREAD_INVITE          = 100;
         THREAD_EXTERNAL_INVITE = 101;

@@ -32,7 +32,7 @@ func showId(c *ishell.Context) {
 		c.Err(err)
 		return
 	}
-	accntId, err := core.Node.ID()
+	accntId, err := core.Node.Id()
 	if err != nil {
 		c.Err(err)
 		return
@@ -46,9 +46,9 @@ func showId(c *ishell.Context) {
 	}
 
 	c.Println(grey("--- ACCOUNT ---"))
-	c.Println(cyan(fmt.Sprintf("ID: %s", accntId.Pretty())))
+	c.Println(cyan(fmt.Sprintf("Id: %s", accntId.Pretty())))
 	c.Println(cyan(fmt.Sprintf("Address: %s", accnt.Address())))
 	c.Println(cyan(fmt.Sprintf("Seed: %s", accnt.Seed())))
 	c.Println(grey("--- PEER ---"))
-	c.Println(green(fmt.Sprintf("ID: %s", pid)))
+	c.Println(green(fmt.Sprintf("Id: %s", pid)))
 }

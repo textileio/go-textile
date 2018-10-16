@@ -88,24 +88,24 @@ type RunConfig struct {
 
 // Textile is the main Textile node structure
 type Textile struct {
-	version               string
-	context               oldcmds.Context
-	repoPath              string
-	cancel                context.CancelFunc
-	ipfs                  *core.IpfsNode
-	datastore             repo.Datastore
-	cafeAddr              string
-	started               bool
-	threads               []*thread.Thread
-	online                chan struct{}
-	done                  chan struct{}
-	updates               chan Update
-	threadUpdates         chan thread.Update
-	notifications         chan repo.Notification
-	threadsService        *net.ThreadsService
-	cafeService           *net.CafeService
-	cafeStoreRequestQueue *net.CafeStoreRequestQueue
-	mux                   sync.Mutex
+	version          string
+	context          oldcmds.Context
+	repoPath         string
+	cancel           context.CancelFunc
+	ipfs             *core.IpfsNode
+	datastore        repo.Datastore
+	cafeAddr         string
+	started          bool
+	threads          []*thread.Thread
+	online           chan struct{}
+	done             chan struct{}
+	updates          chan Update
+	threadUpdates    chan thread.Update
+	notifications    chan repo.Notification
+	threadsService   *net.ThreadsService
+	cafeService      *net.CafeService
+	cafeRequestQueue *net.CafeRequestQueue
+	mux              sync.Mutex
 }
 
 var ErrAccountRequired = errors.New("account required")
@@ -253,7 +253,7 @@ func (t *Textile) Start() error {
 			log.Error(err.Error())
 			return
 		}
-		accntId, err := t.ID()
+		accntId, err := t.Id()
 		if err != nil {
 			log.Error(err.Error())
 			return
@@ -263,10 +263,6 @@ func (t *Textile) Start() error {
 		log.Infof("account id: %s", accntId.Pretty())
 	}()
 	log.Info("starting node...")
-	t.online = make(chan struct{})
-	t.updates = make(chan Update, 10)
-	t.threadUpdates = make(chan thread.Update, 10)
-	t.notifications = make(chan repo.Notification, 10)
 
 	// raise file descriptor limit
 	if err := utilmain.ManageFdLimit(); err != nil {
@@ -277,6 +273,18 @@ func (t *Textile) Start() error {
 	if err := t.touchDatastore(); err != nil {
 		return err
 	}
+
+	// load account
+	accnt, err := t.Account()
+	if err != nil {
+		return err
+	}
+
+	// build update channels
+	t.online = make(chan struct{})
+	t.updates = make(chan Update, 10)
+	t.threadUpdates = make(chan thread.Update, 10)
+	t.notifications = make(chan repo.Notification, 10)
 
 	// start the ipfs node
 	log.Debug("creating an ipfs node...")
@@ -292,16 +300,22 @@ func (t *Textile) Start() error {
 		}
 
 		// setup thread service
-		t.threadsService = net.NewThreadsService(t.ipfs, t.datastore, t.GetThread, t.sendNotification)
+		t.threadsService = net.NewThreadsService(
+			accnt,
+			t.ipfs,
+			t.datastore,
+			t.GetThread,
+			t.sendNotification,
+		)
 
 		// setup cafe service
-		t.cafeService = net.NewCafeService(t.ipfs, t.datastore)
+		t.cafeService = net.NewCafeService(accnt, t.ipfs, t.datastore)
 
 		// start store queue
 		if t.IsMobile() {
-			go t.cafeStoreRequestQueue.Store()
+			go t.cafeRequestQueue.Flush()
 		} else {
-			go t.cafeStoreRequestQueue.Run()
+			go t.cafeRequestQueue.Run()
 		}
 
 		// print swarm addresses
@@ -312,7 +326,7 @@ func (t *Textile) Start() error {
 	}()
 
 	// build a store request queue
-	t.cafeStoreRequestQueue = net.NewCafeStoreRequestQueue(
+	t.cafeRequestQueue = net.NewCafeRequestQueue(
 		func() *net.CafeService {
 			return t.cafeService
 		},
@@ -556,28 +570,24 @@ func (t *Textile) loadThread(mod *repo.Thread) (*thread.Thread, error) {
 		Peers:         t.datastore.Peers,
 		Notifications: t.datastore.Notifications,
 		GetHead: func() (string, error) {
-			m := t.datastore.Threads().Get(id)
-			if m == nil {
+			thrd := t.datastore.Threads().Get(id)
+			if thrd == nil {
 				return "", errors.New(fmt.Sprintf("could not re-load thread: %s", id))
 			}
-			return m.Head, nil
+			return thrd.Head, nil
 		},
 		UpdateHead: func(head string) error {
 			if err := t.datastore.Threads().UpdateHead(id, head); err != nil {
 				return err
 			}
-			//go func() {
-			//	if _, err := t.PublishPeerProfile(); err != nil {
-			//		log.Errorf("error publishing peer profile: %s", err)
-			//	}
-			//}()
+			t.cafeRequestQueue.Put(id, repo.CafeUpdateThreadRequest)
 			return nil
 		},
-		NewBlock:        t.threadsService.NewBlock,
-		SendMessage:     t.threadsService.SendMessage,
-		PutStoreRequest: t.cafeStoreRequestQueue.Put,
-		GetUsername:     t.GetUsername,
-		SendUpdate:      t.sendThreadUpdate,
+		NewBlock:       t.threadsService.NewBlock,
+		SendMessage:    t.threadsService.SendMessage,
+		PutCafeRequest: t.cafeRequestQueue.Put,
+		GetUsername:    t.GetUsername,
+		SendUpdate:     t.sendThreadUpdate,
 	}
 	thrd, err := thread.NewThread(mod, threadConfig)
 	if err != nil {

@@ -28,7 +28,7 @@ func (m *Mobile) SetAvatar(id string) error {
 
 // GetAccountProfile returns the local profile
 func (m *Mobile) GetProfile() (string, error) {
-	id, err := core.Node.ID()
+	id, err := core.Node.Id()
 	if err != nil {
 		log.Errorf("error getting profile (get id): %s", err)
 		return "", err

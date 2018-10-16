@@ -17,7 +17,7 @@ type Datastore interface {
 	CafeNonces() CafeNonceStore
 	CafeAccounts() CafeAccountStore
 	CafeSessions() CafeSessionStore
-	CafeStoreRequests() CafeStoreRequestStore
+	CafeRequests() CafeRequestStore
 	Ping() error
 	Close()
 }
@@ -109,10 +109,10 @@ type CafeSessionStore interface {
 	Delete(cafeId string) error
 }
 
-type CafeStoreRequestStore interface {
+type CafeRequestStore interface {
 	Queryable
-	Put(req *CafeStoreRequest) error
-	List(offset string, limit int) []CafeStoreRequest
+	Put(req *CafeRequest) error
+	List(offset string, limit int) []CafeRequest
 	Delete(id string) error
 	DeleteByCafe(cafeId string) error
 }

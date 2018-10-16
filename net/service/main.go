@@ -9,6 +9,7 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/crypto"
+	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	inet "gx/ipfs/QmPjvxTpVH8qJyQDnxnsxF9kv9jezKD1kozz1hs3fCGsNh/go-libp2p-net"
@@ -28,6 +29,7 @@ var log = logging.MustGetLogger("net")
 
 // service represents a libp2p service
 type Service struct {
+	Account   *keypair.Full
 	Node      *core.IpfsNode
 	Datastore repo.Datastore
 	handler   Handler
@@ -35,8 +37,8 @@ type Service struct {
 	senderMux sync.Mutex
 }
 
-// DefaultTimeout is the timeout context for sending / requesting messages
-const DefaultTimeout = time.Second * 5
+// defaultTimeout is the context timeout for sending / requesting messages
+const defaultTimeout = time.Second * 5
 
 // PeerStatus is the possible results from pinging another peer
 type PeerStatus string
@@ -49,6 +51,7 @@ const (
 // Handler is used to handle messages for a specific protocol
 type Handler interface {
 	Protocol() protocol.ID
+	Account() *keypair.Full
 	Node() *core.IpfsNode
 	Datastore() repo.Datastore
 	Ping(pid peer.ID) (PeerStatus, error)
@@ -57,12 +60,9 @@ type Handler interface {
 }
 
 // NewService returns a service for the given config
-func NewService(
-	handler Handler,
-	node *core.IpfsNode,
-	datastore repo.Datastore,
-) *Service {
+func NewService(account *keypair.Full, handler Handler, node *core.IpfsNode, datastore repo.Datastore) *Service {
 	service := &Service{
+		Account:   account,
 		Node:      node,
 		Datastore: datastore,
 		handler:   handler,
@@ -74,12 +74,14 @@ func NewService(
 }
 
 // SendMessage sends a message to a peer
-func (s *Service) SendMessage(ctx context.Context, pid peer.ID, env *pb.Envelope) error {
+func (s *Service) SendMessage(pid peer.ID, env *pb.Envelope) error {
 	log.Debugf("sending %s to %s", env.Message.Type.String(), pid.Pretty())
 	ms, err := s.messageSenderForPeer(pid, s.handler.Protocol())
 	if err != nil {
 		return err
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	if err := ms.SendMessage(ctx, env); err != nil {
 		return err
 	}
@@ -87,12 +89,14 @@ func (s *Service) SendMessage(ctx context.Context, pid peer.ID, env *pb.Envelope
 }
 
 // SendRequest sends a request to a peer
-func (s *Service) SendRequest(ctx context.Context, pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+func (s *Service) SendRequest(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
 	log.Debugf("sending %s to %s", env.Message.Type.String(), pid.Pretty())
 	ms, err := s.messageSenderForPeer(pid, s.handler.Protocol())
 	if err != nil {
 		return nil, err
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	renv, err := ms.SendRequest(ctx, env)
 	if err != nil {
 		return nil, err
@@ -102,19 +106,20 @@ func (s *Service) SendRequest(ctx context.Context, pid peer.ID, env *pb.Envelope
 		return nil, errors.New("no response from peer")
 	}
 	log.Debugf("received %s response from %s", renv.Message.Type.String(), pid.Pretty())
+	if err := s.handleError(renv); err != nil {
+		return nil, err
+	}
 	return renv, nil
 }
 
 // Ping pings another peer and returns status
 func (s *Service) Ping(pid peer.ID) (PeerStatus, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
-	defer cancel()
 	id := rand.Int31()
 	env, err := s.NewEnvelope(pb.Message_PING, nil, &id, false)
 	if err != nil {
 		return "", err
 	}
-	if _, err := s.SendRequest(ctx, pid, env); err != nil {
+	if _, err := s.SendRequest(pid, env); err != nil {
 		return PeerOffline, nil
 	}
 	return PeerOnline, nil
@@ -174,9 +179,9 @@ func (s *Service) NewError(code int, msg string, id int32) (*pb.Envelope, error)
 	}, &id, true)
 }
 
-// HandleError receives an error response
-func (s *Service) HandleError(pid peer.ID, env *pb.Envelope) error {
-	if env.Message.Payload == nil {
+// handleError receives an error response
+func (s *Service) handleError(env *pb.Envelope) error {
+	if env.Message.Payload == nil && env.Message.Type != pb.Message_CAFE_ACK {
 		err := fmt.Sprintf("message payload with type %s is nil", env.Message.Type.String())
 		log.Error(err)
 		return errors.New(err)

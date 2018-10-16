@@ -23,13 +23,13 @@ func (t *Textile) Address() (string, error) {
 	return accnt.Address(), nil
 }
 
-// ID returns account id
-func (t *Textile) ID() (*peer.ID, error) {
+// Id returns account id
+func (t *Textile) Id() (*peer.ID, error) {
 	accnt, err := t.Account()
 	if err != nil {
 		return nil, err
 	}
-	id, err := accnt.PeerID()
+	id, err := accnt.Id()
 	if err != nil {
 		return nil, err
 	}

@@ -50,12 +50,8 @@ func (t *Textile) AddThread(name string, secret libp2pc.PrivKey, join bool) (*th
 	// notify listeners
 	t.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadAdded})
 
-	// update profile
-	//go func() {
-	//	if _, err := t.PublishPeerProfile(); err != nil {
-	//		log.Errorf("error publishing peer profile: %s", err)
-	//	}
-	//}()
+	// add cafe update request
+	t.cafeRequestQueue.Put(thrd.Id, repo.CafeAddThreadRequest)
 
 	log.Debugf("added a new thread %s with name %s", thrd.Id, name)
 
@@ -68,7 +64,8 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 		return nil, ErrOffline
 	}
 
-	i, thrd := t.GetThread(id) // gets the loaded thread
+	// get the loaded thread
+	i, thrd := t.GetThread(id)
 	if thrd == nil {
 		return nil, errors.New("thread not found")
 	}
@@ -92,12 +89,8 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	// notify listeners
 	t.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadRemoved})
 
-	// update profile
-	//go func() {
-	//	if _, err := t.PublishPeerProfile(); err != nil {
-	//		log.Errorf("error publishing peer profile: %s", err)
-	//	}
-	//}()
+	// add cafe update request
+	t.cafeRequestQueue.Put(thrd.Id, repo.CafeRemoveThreadRequest)
 
 	log.Infof("removed thread %s with name %s", thrd.Id, thrd.Name)
 

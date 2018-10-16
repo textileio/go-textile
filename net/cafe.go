@@ -24,6 +24,9 @@ import (
 // defaultSessionDuration after which session token expires
 const defaultSessionDuration = time.Hour * 24 * 7 * 4
 
+// blockTimeout is the context timeout for getting a local block
+const blockTimeout = time.Second * 5
+
 // validation errors
 const (
 	errInvalidAddress = "invalid address"
@@ -37,15 +40,20 @@ type CafeService struct {
 }
 
 // NewCafeService returns a new threads service
-func NewCafeService(node *core.IpfsNode, datastore repo.Datastore) *CafeService {
+func NewCafeService(account *keypair.Full, node *core.IpfsNode, datastore repo.Datastore) *CafeService {
 	handler := &CafeService{}
-	handler.service = service.NewService(handler, node, datastore)
+	handler.service = service.NewService(account, handler, node, datastore)
 	return handler
 }
 
 // Protocol returns the handler protocol
 func (h *CafeService) Protocol() protocol.ID {
 	return protocol.ID("/textile/cafe/1.0.0")
+}
+
+// Account returns the underlying account keypair
+func (h *CafeService) Account() *keypair.Full {
+	return h.service.Account
 }
 
 // Node returns the underlying ipfs Node
@@ -116,14 +124,14 @@ func (h *CafeService) Register(cafe peer.ID) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), service.DefaultTimeout)
-	defer cancel()
-	renv, err := h.service.SendRequest(ctx, cafe, env)
+	renv, err := h.service.SendRequest(cafe, env)
 	if err != nil {
 		return err
 	}
-	res, err := h.handleSession(cafe, renv)
-	if err != nil {
+
+	// unpack session
+	res := new(pb.CafeSession)
+	if err := ptypes.UnmarshalAny(renv.Message.Payload, res); err != nil {
 		return err
 	}
 
@@ -144,35 +152,19 @@ func (h *CafeService) Register(cafe peer.ID) error {
 // Store stores (pins) content on a cafe and returns a list of successful cids
 func (h *CafeService) Store(cids []string, cafe peer.ID) ([]string, error) {
 	var stored []string
-	// find access token for this cafe
-	session := h.Datastore().CafeSessions().Get(cafe.Pretty())
-	if session == nil {
-		return stored, errors.New(fmt.Sprintf("could not find session for cafe %s", cafe.Pretty()))
-	}
 
 	// ask cafe if it can store these cids
-	store := &pb.CafeStore{
-		Token: session.Access,
-		Cids:  cids,
-	}
-	env, err := h.service.NewEnvelope(pb.Message_CAFE_STORE, store, nil, false)
-	if err != nil {
-		return stored, err
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), service.DefaultTimeout)
-	defer cancel()
-	renv, err := h.service.SendRequest(ctx, cafe, env)
-	if err != nil {
-		return stored, err
-	}
-	if err := h.service.HandleError(cafe, renv); err != nil {
-		if err.Error() == errUnauthorized {
-			if err := h.refresh(session, cafe); err != nil {
-				return stored, err
-			}
-		} else {
-			return stored, err
+	var accessToken string
+	renv, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
+		store := &pb.CafeStore{
+			Token: session.Access,
+			Cids:  cids,
 		}
+		accessToken = session.Access
+		return h.service.NewEnvelope(pb.Message_CAFE_STORE, store, nil, false)
+	})
+	if err != nil {
+		return stored, err
 	}
 
 	// unpack response as a request list of cids the cafe is able/willing to store
@@ -193,13 +185,96 @@ func (h *CafeService) Store(cids []string, cafe peer.ID) ([]string, error) {
 		if err != nil {
 			continue
 		}
-		if err := h.sendBlock(*decoded, cafe, session.Access); err != nil {
+		if err := h.sendBlock(*decoded, cafe, accessToken); err != nil {
 			log.Errorf("error sending block: %s", err)
 			continue
 		}
 		stored = append(stored, id)
 	}
 	return stored, nil
+}
+
+// AddThread adds a thread to a cafe backup
+func (h *CafeService) AddThread(id string, sk []byte, cafe peer.ID) error {
+	// encrypt thread secret
+	skCipher, err := h.Account().Encrypt(sk)
+	if err != nil {
+		return err
+	}
+
+	// build request
+	if _, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
+		return h.service.NewEnvelope(pb.Message_CAFE_ADD_THREAD, &pb.CafeAddThread{
+			Token:    session.Access,
+			Id:       id,
+			SkCipher: skCipher,
+		}, nil, false)
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+// RemoveThread removes a thread from a cafe backup
+func (h *CafeService) RemoveThread(id string, cafe peer.ID) error {
+	// build request
+	if _, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
+		return h.service.NewEnvelope(pb.Message_CAFE_REMOVE_THREAD, &pb.CafeRemoveThread{
+			Token: session.Access,
+			Id:    id,
+		}, nil, false)
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+// UpdateThread updates HEAD for a thread cafe backup
+func (h *CafeService) UpdateThread(id string, head string, cafe peer.ID) error {
+	// build request
+	if _, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
+		return h.service.NewEnvelope(pb.Message_CAFE_UPDATE_THREAD, &pb.CafeUpdateThread{
+			Token: session.Access,
+			Id:    id,
+			Head:  head,
+		}, nil, false)
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+// sendCafeRequest sends an authenticated request, retrying once after a session refresh
+func (h *CafeService) sendCafeRequest(cafe peer.ID, envFactory func(*repo.CafeSession) (*pb.Envelope, error)) (*pb.Envelope, error) {
+	// find access token for this cafe
+	session := h.Datastore().CafeSessions().Get(cafe.Pretty())
+	if session == nil {
+		return nil, errors.New(fmt.Sprintf("could not find session for cafe %s", cafe.Pretty()))
+	}
+	env, err := envFactory(session)
+	if err != nil {
+		return nil, err
+	}
+	renv, err := h.service.SendRequest(cafe, env)
+	if err != nil {
+		if err.Error() == errUnauthorized {
+			refreshed, err := h.refresh(session)
+			if err != nil {
+				return nil, err
+			}
+			env, err := envFactory(refreshed)
+			if err != nil {
+				return nil, err
+			}
+			renv, err = h.service.SendRequest(cafe, env)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
+	}
+	return renv, nil
 }
 
 // challenge asks a fellow peer for a cafe challenge
@@ -210,54 +285,63 @@ func (h *CafeService) challenge(kp *keypair.Full, cafe peer.ID) (*pb.CafeNonce, 
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), service.DefaultTimeout)
-	defer cancel()
-	renv, err := h.service.SendRequest(ctx, cafe, env)
+	renv, err := h.service.SendRequest(cafe, env)
 	if err != nil {
 		return nil, err
 	}
-	return h.handleNonce(cafe, renv)
+	res := new(pb.CafeNonce)
+	if err := ptypes.UnmarshalAny(renv.Message.Payload, res); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // refresh refreshes a session with a cafe
-func (h *CafeService) refresh(session *repo.CafeSession, cafe peer.ID) error {
+func (h *CafeService) refresh(session *repo.CafeSession) (*repo.CafeSession, error) {
 	refresh := &pb.CafeRefreshSession{
 		Access:  session.Access,
 		Refresh: session.Refresh,
 	}
 	env, err := h.service.NewEnvelope(pb.Message_CAFE_REFRESH_SESSION, refresh, nil, false)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), service.DefaultTimeout)
-	defer cancel()
-	renv, err := h.service.SendRequest(ctx, cafe, env)
+	pid, err := peer.IDB58Decode(session.CafeId)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	res, err := h.handleSession(cafe, renv)
+	renv, err := h.service.SendRequest(pid, env)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	// unpack session
+	res := new(pb.CafeSession)
+	if err := ptypes.UnmarshalAny(renv.Message.Payload, res); err != nil {
+		return nil, err
 	}
 
 	// local login
 	exp, err := ptypes.Timestamp(res.Exp)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	refreshed := &repo.CafeSession{
-		CafeId:  cafe.Pretty(),
+		CafeId:  session.CafeId,
 		Access:  res.Access,
 		Refresh: res.Refresh,
 		Expiry:  exp,
 	}
-	return h.Datastore().CafeSessions().AddOrUpdate(refreshed)
+	if err := h.Datastore().CafeSessions().AddOrUpdate(refreshed); err != nil {
+		return nil, err
+	}
+	return refreshed, nil
 }
 
 // sendBlock sends a block by cid to a peer
 func (h *CafeService) sendBlock(id cid.Cid, pid peer.ID, token string) error {
 	// get block locally
-	ctx, cancel := context.WithTimeout(context.Background(), service.DefaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), blockTimeout)
 	defer cancel()
 	block, err := h.Node().Blocks.GetBlock(ctx, &id)
 	if err != nil {
@@ -274,13 +358,10 @@ func (h *CafeService) sendBlock(id cid.Cid, pid peer.ID, token string) error {
 	if err != nil {
 		return err
 	}
-	sctx, scancel := context.WithTimeout(context.Background(), service.DefaultTimeout)
-	defer scancel()
-	renv, err := h.service.SendRequest(sctx, pid, env)
-	if err != nil {
+	if _, err := h.service.SendRequest(pid, env); err != nil {
 		return err
 	}
-	return h.service.HandleError(pid, renv)
+	return nil
 }
 
 // handleChallenge receives a challenge request
@@ -314,18 +395,6 @@ func (h *CafeService) handleChallenge(pid peer.ID, env *pb.Envelope) (*pb.Envelo
 	return h.service.NewEnvelope(pb.Message_CAFE_NONCE, &pb.CafeNonce{
 		Value: nonce.Value,
 	}, &env.Message.RequestId, true)
-}
-
-// handleNonce receives a challenge response
-func (h *CafeService) handleNonce(pid peer.ID, env *pb.Envelope) (*pb.CafeNonce, error) {
-	if err := h.service.HandleError(pid, env); err != nil {
-		return nil, err
-	}
-	res := new(pb.CafeNonce)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, res); err != nil {
-		return nil, err
-	}
-	return res, nil
 }
 
 // handleRegistration receives a registration request
@@ -389,18 +458,6 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 
 	// return a wrapped response
 	return h.service.NewEnvelope(pb.Message_CAFE_SESSION, session, &env.Message.RequestId, true)
-}
-
-// handleSession receives a session response
-func (h *CafeService) handleSession(pid peer.ID, env *pb.Envelope) (*pb.CafeSession, error) {
-	if err := h.service.HandleError(pid, env); err != nil {
-		return nil, err
-	}
-	res := new(pb.CafeSession)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, res); err != nil {
-		return nil, err
-	}
-	return res, nil
 }
 
 // handleRefreshSession receives a refresh session request
