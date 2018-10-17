@@ -7,7 +7,6 @@ import (
 	njwt "github.com/dgrijalva/jwt-go"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/cafe/auth"
 	"github.com/textileio/textile-go/jwt"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/net/service"
@@ -474,11 +473,11 @@ func (h *CafeService) handleRefreshSession(pid peer.ID, env *pb.Envelope) (*pb.E
 	if refresh == nil {
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
-	accessClaims, err := auth.ParseClaims(access.Claims)
+	accessClaims, err := jwt.ParseClaims(access.Claims)
 	if err != nil {
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
-	refreshClaims, err := auth.ParseClaims(refresh.Claims)
+	refreshClaims, err := jwt.ParseClaims(refresh.Claims)
 	if err != nil {
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
