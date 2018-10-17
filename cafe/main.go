@@ -4,40 +4,29 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/op/go-logging"
-	"github.com/textileio/textile-go/cafe/dao"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 	"net/http"
-	"time"
 )
 
 var log = logging.MustGetLogger("cafe")
 
-const Version = "v1"
-const oneMonth = time.Hour * 24 * 7 * 4
+const Version = "v0"
 
 var Host *Cafe
 
 type Cafe struct {
 	Ipfs        func() *core.IpfsNode
-	Dao         *dao.DAO
-	TokenSecret string
-	ReferralKey string
 	NodeVersion string
 	server      *http.Server
 }
 
 // Start starts the cafe api
 func (c *Cafe) Start(addr string) {
-	// init db connection
-	dao.Dao = c.Dao
-	dao.Dao.Connect()
-	dao.Dao.Index()
-
 	// setup router
 	router := gin.Default()
 	router.GET("/", func(g *gin.Context) {
 		g.JSON(http.StatusOK, gin.H{
-			"cafe_version": Version,
+			"api_version":  Version,
 			"node_version": c.NodeVersion,
 		})
 	})
@@ -48,22 +37,7 @@ func (c *Cafe) Start(addr string) {
 	// v0 routes
 	v0 := router.Group("/api/v0")
 	{
-		v0.POST("/referrals", c.createReferral)
-		v0.GET("/referrals", c.listReferrals)
-		v0.POST("/tokens", c.authSession, c.refreshSession)
-		v0.POST("/pin", c.authSession, c.pin)
-	}
-
-	// v1 routes
-	v1 := router.Group("/api/v1")
-	{
-		v1.POST("/profiles/challenge", c.profileChallenge)
-		v1.PUT("/profiles", c.registerProfile)
-		v1.POST("/profiles", c.loginProfile)
-		v1.POST("/referrals", c.createReferral)
-		v1.GET("/referrals", c.listReferrals)
-		v1.POST("/tokens", c.authSession, c.refreshSession)
-		v1.POST("/pin", c.authSession, c.pin)
+		v0.POST("/pin", c.pin)
 	}
 	c.server = &http.Server{
 		Addr:    addr,

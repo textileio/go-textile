@@ -15,6 +15,7 @@ import (
 	rconfig "github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/wallet"
 	"gopkg.in/abiosoft/ishell.v2"
+	ipfscore "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 	"log"
 	"os"
 	"os/signal"
@@ -350,21 +351,12 @@ func buildNode(repoPath string, cafeOpts CafeOptions, gatewayOpts GatewayOptions
 
 	// check cafe mode
 	if cafeOpts.BindAddr != "" {
-		//cafe.Host = &cafe.Cafe{
-		//	Ipfs: func() *icore.IpfsNode {
-		//		return core.Node.Ipfs()
-		//	},
-		//	Dao: &dao.DAO{
-		//		Hosts:    cafeOpts.DBHosts,
-		//		Name:     cafeOpts.DBName,
-		//		User:     cafeOpts.DBUser,
-		//		Password: cafeOpts.DBPassword,
-		//		TLS:      cafeOpts.DBTLS,
-		//	},
-		//	TokenSecret: cafeOpts.TokenSecret,
-		//	ReferralKey: cafeOpts.ReferralKey,
-		//	NodeVersion: core.Version,
-		//}
+		cafe.Host = &cafe.Cafe{
+			Ipfs: func() *ipfscore.IpfsNode {
+				return core.Node.Ipfs()
+			},
+			NodeVersion: core.Version,
+		}
 	}
 
 	// auto start it
@@ -482,11 +474,8 @@ func printSplashScreen(cafeOpts CafeOptions, daemon bool) {
 	fmt.Println(grey("repo: ") + blue(core.Node.GetRepoPath()))
 	fmt.Println(grey("gateway: ") + yellow(gateway.Host.Addr()))
 	if cafeOpts.BindAddr != "" {
-		fmt.Println(grey("cafe: ") + yellow(cafeOpts.BindAddr))
+		fmt.Println(grey("cafe api: ") + yellow(cafeOpts.BindAddr))
 	}
-	//if cafeOpts.Addr != "" {
-	//	fmt.Println(grey("cafe api: ") + yellow(core.Node.GetCafeApiAddr()))
-	//}
 	if !daemon {
 		fmt.Println(grey("type 'help' for available commands"))
 	}
