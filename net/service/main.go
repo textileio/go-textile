@@ -181,7 +181,7 @@ func (s *Service) NewError(code int, msg string, id int32) (*pb.Envelope, error)
 
 // handleError receives an error response
 func (s *Service) handleError(env *pb.Envelope) error {
-	if env.Message.Payload == nil && env.Message.Type != pb.Message_CAFE_ACK {
+	if env.Message.Payload == nil {
 		err := fmt.Sprintf("message payload with type %s is nil", env.Message.Type.String())
 		log.Error(err)
 		return errors.New(err)

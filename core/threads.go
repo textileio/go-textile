@@ -50,9 +50,6 @@ func (t *Textile) AddThread(name string, secret libp2pc.PrivKey, join bool) (*th
 	// notify listeners
 	t.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadAdded})
 
-	// add cafe update request
-	t.cafeRequestQueue.Put(thrd.Id, repo.CafeAddThreadRequest)
-
 	log.Debugf("added a new thread %s with name %s", thrd.Id, name)
 
 	return thrd, nil
@@ -88,9 +85,6 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 
 	// notify listeners
 	t.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadRemoved})
-
-	// add cafe update request
-	t.cafeRequestQueue.Put(thrd.Id, repo.CafeRemoveThreadRequest)
 
 	log.Infof("removed thread %s with name %s", thrd.Id, thrd.Name)
 
