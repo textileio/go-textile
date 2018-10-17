@@ -103,7 +103,7 @@ func (q *CafeRequestQueue) batch(reqs []repo.CafeRequest) error {
 		groups[req.CafeId] = append(groups[req.CafeId], req)
 	}
 
-	// process concurrently
+	// process each cafe group concurrently
 	var berr error
 	var toDelete []string
 	wg := sync.WaitGroup{}
@@ -118,19 +118,19 @@ func (q *CafeRequestQueue) batch(reqs []repo.CafeRequest) error {
 		for _, req := range group {
 			types[req.Type] = append(types[req.Type], req)
 		}
-		for t, tgroup := range types {
-			wg.Add(1)
-			go func(reqs []repo.CafeRequest, rtype repo.CafeRequestType, cafe peer.ID) {
-				handled, err := q.handle(reqs, rtype, cafe)
+		wg.Add(1)
+		go func(types map[repo.CafeRequestType][]repo.CafeRequest, cafe peer.ID) {
+			for t, group := range types {
+				handled, err := q.handle(group, t, cafe)
 				if err != nil {
 					berr = err
 				}
 				for _, id := range handled {
 					toDelete = append(toDelete, id)
 				}
-				wg.Done()
-			}(tgroup, t, cafe)
-		}
+			}
+			wg.Done()
+		}(types, cafe)
 	}
 	wg.Wait()
 

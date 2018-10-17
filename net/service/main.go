@@ -252,7 +252,7 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 				select {
 				case ch <- env:
 					// message returned to requester
-				case <-time.After(time.Second):
+				case <-time.After(defaultTimeout):
 					// in case ch is closed on the other end - the lock should prevent this happening
 					log.Debug("request id was not removed from map on timeout")
 				}
