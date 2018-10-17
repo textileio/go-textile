@@ -457,7 +457,7 @@ func (h *CafeService) handleRefreshSession(pid peer.ID, env *pb.Envelope) (*pb.E
 	}
 
 	// validate refresh token
-	rerr, err := h.authToken(ref.Refresh, true, env.Message.RequestId)
+	rerr, err := h.authToken(pid, ref.Refresh, true, env.Message.RequestId)
 	if err != nil {
 		return nil, err
 	}
@@ -512,7 +512,7 @@ func (h *CafeService) handleStore(pid peer.ID, env *pb.Envelope) (*pb.Envelope, 
 	}
 
 	// validate access token
-	rerr, err := h.authToken(store.Token, false, env.Message.RequestId)
+	rerr, err := h.authToken(pid, store.Token, false, env.Message.RequestId)
 	if err != nil {
 		return nil, err
 	}
@@ -547,7 +547,7 @@ func (h *CafeService) handleBlock(pid peer.ID, env *pb.Envelope) (*pb.Envelope, 
 	}
 
 	// validate access token
-	rerr, err := h.authToken(block.Token, false, env.Message.RequestId)
+	rerr, err := h.authToken(pid, block.Token, false, env.Message.RequestId)
 	if err != nil {
 		return nil, err
 	}
@@ -582,7 +582,7 @@ func (h *CafeService) handleStoreThread(pid peer.ID, env *pb.Envelope) (*pb.Enve
 	}
 
 	// validate access token
-	rerr, err := h.authToken(store.Token, false, env.Message.RequestId)
+	rerr, err := h.authToken(pid, store.Token, false, env.Message.RequestId)
 	if err != nil {
 		return nil, err
 	}
@@ -617,8 +617,7 @@ func (h *CafeService) handleStoreThread(pid peer.ID, env *pb.Envelope) (*pb.Enve
 }
 
 // authToken verifies a request token from a peer
-// TODO: verify peer matches subject
-func (h *CafeService) authToken(tokenString string, refreshing bool, requestId int32) (*pb.Envelope, error) {
+func (h *CafeService) authToken(pid peer.ID, tokenString string, refreshing bool, requestId int32) (*pb.Envelope, error) {
 	// parse it
 	token, pErr := njwt.Parse(tokenString, h.verifyKeyFunc)
 	if token == nil {
@@ -651,6 +650,11 @@ func (h *CafeService) authToken(tokenString string, refreshing bool, requestId i
 			return h.service.NewError(403, errForbidden, requestId)
 		}
 	default:
+		return h.service.NewError(403, errForbidden, requestId)
+	}
+
+	// verify owner
+	if claims.Subject != pid.Pretty() {
 		return h.service.NewError(403, errForbidden, requestId)
 	}
 
