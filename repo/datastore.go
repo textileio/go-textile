@@ -70,7 +70,7 @@ type PeerStore interface {
 	Add(peer *Peer) error
 	Get(row string) *Peer
 	GetById(id string) *Peer
-	List(offset string, limit int, query string) []Peer
+	List(limit int, query string) []Peer
 	Count(query string, distinct bool) int
 	Delete(id string, thread string) error
 	DeleteByThreadId(thread string) error

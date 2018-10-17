@@ -7,7 +7,6 @@ import (
 	"github.com/fatih/color"
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/thread"
 	"gopkg.in/abiosoft/ishell.v2"
@@ -322,12 +321,7 @@ func listPhotoComments(c *ishell.Context) {
 			}
 			authorUn = string(authorUnb)
 		} else {
-			authorId, err := ipfs.IdFromEncodedPublicKey(b.AuthorPk)
-			if err != nil {
-				c.Err(err)
-				return
-			}
-			authorUn = authorId.Pretty()[:8]
+			authorUn = b.AuthorId[:8]
 		}
 		c.Println(cyan(fmt.Sprintf("%s: %s: %s", b.Id, authorUn, body)))
 	}
@@ -362,11 +356,6 @@ func listPhotoLikes(c *ishell.Context) {
 	cyan := color.New(color.FgHiCyan).SprintFunc()
 	for _, b := range blocks {
 		var authorUn string
-		authorId, err := ipfs.IdFromEncodedPublicKey(b.AuthorPk)
-		if err != nil {
-			c.Err(err)
-			return
-		}
 		if b.AuthorUsernameCipher != nil {
 			authorUnb, err := thrd.Decrypt(b.AuthorUsernameCipher)
 			if err != nil {
@@ -375,7 +364,7 @@ func listPhotoLikes(c *ishell.Context) {
 			}
 			authorUn = string(authorUnb)
 		} else {
-			authorUn = authorId.Pretty()[:8]
+			authorUn = b.AuthorId[:8]
 		}
 		c.Println(cyan(fmt.Sprintf("%s: %s", b.Id, authorUn)))
 	}

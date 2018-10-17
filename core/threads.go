@@ -11,22 +11,22 @@ import (
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/thread"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 // AddThread adds a thread with a given name and secret key
-func (t *Textile) AddThread(name string, secret libp2pc.PrivKey, join bool) (*thread.Thread, error) {
-	skb, err := secret.Bytes()
+func (t *Textile) AddThread(name string, sk libp2pc.PrivKey, join bool) (*thread.Thread, error) {
+	id, err := peer.IDFromPrivateKey(sk)
 	if err != nil {
 		return nil, err
 	}
-	pkb, err := secret.GetPublic().Bytes()
+	skb, err := sk.Bytes()
 	if err != nil {
 		return nil, err
 	}
-	pk := libp2pc.ConfigEncodeKey(pkb)
 	threadModel := &repo.Thread{
-		Id:      pk,
+		Id:      id.Pretty(),
 		Name:    name,
 		PrivKey: skb,
 	}
@@ -141,14 +141,13 @@ func (t *Textile) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
 	if err != nil {
 		return nil, err
 	}
-	pkb, err := sk.GetPublic().Bytes()
+
+	// ensure we dont already have this thread
+	id, err := peer.IDFromPrivateKey(sk)
 	if err != nil {
 		return nil, err
 	}
-
-	// ensure we dont already have this thread
-	id := libp2pc.ConfigEncodeKey(pkb)
-	if _, thrd := t.GetThread(id); thrd != nil {
+	if _, thrd := t.GetThread(id.Pretty()); thrd != nil {
 		// thread exists, aborting
 		return nil, nil
 	}
@@ -228,14 +227,13 @@ func (t *Textile) AcceptExternalThreadInvite(blockId string, key []byte) (mh.Mul
 	if err != nil {
 		return nil, err
 	}
-	pkb, err := sk.GetPublic().Bytes()
+
+	// ensure we dont already have this thread
+	id, err := peer.IDFromPrivateKey(sk)
 	if err != nil {
 		return nil, err
 	}
-
-	// ensure we dont already have this thread
-	id := libp2pc.ConfigEncodeKey(pkb)
-	if _, thrd := t.GetThread(id); thrd != nil {
+	if _, thrd := t.GetThread(id.Pretty()); thrd != nil {
 		// thread exists, aborting
 		return nil, nil
 	}

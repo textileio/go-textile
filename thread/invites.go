@@ -6,17 +6,16 @@ import (
 	"github.com/textileio/textile-go/repo"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
-	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 // AddInvite creates an outgoing invite block, which is sent directly to the recipient
 // and does not become part of the hash chain
-func (t *Thread) AddInvite(inviteePk libp2pc.PubKey) (mh.Multihash, error) {
+func (t *Thread) AddInvite(inviteeId peer.ID) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	// get the peer id from the pub key
-	inviteeId, err := peer.IDFromPublicKey(inviteePk)
+	// get the peer pub key from the id
+	inviteePk, err := inviteeId.ExtractPublicKey()
 	if err != nil {
 		return nil, err
 	}

@@ -49,7 +49,7 @@ func TestCafeStoreRequestDB_List(t *testing.T) {
 		Id:       "abcde",
 		TargetId: "zxy",
 		CafeId:   "boom",
-		Type:     repo.CafeAddThreadRequest,
+		Type:     repo.CafeStoreThreadRequest,
 		Date:     time.Now(),
 	})
 	if err != nil {
@@ -59,7 +59,7 @@ func TestCafeStoreRequestDB_List(t *testing.T) {
 		Id:       "abcdef",
 		TargetId: "zxy",
 		CafeId:   "boom",
-		Type:     repo.CafeRemoveThreadRequest,
+		Type:     repo.CafeStoreRequest,
 		Date:     time.Now().Add(time.Minute),
 	})
 	if err != nil {
@@ -67,17 +67,17 @@ func TestCafeStoreRequestDB_List(t *testing.T) {
 	}
 	all := storeReqDB.List("", -1)
 	if len(all) != 2 {
-		t.Error("returned incorrect number of store requests")
+		t.Error("returned incorrect number of cafe requests")
 		return
 	}
 	limited := storeReqDB.List("", 1)
 	if len(limited) != 1 {
-		t.Error("returned incorrect number of store requests")
+		t.Error("returned incorrect number of cafe requests")
 		return
 	}
 	offset := storeReqDB.List(limited[0].Id, -1)
 	if len(offset) != 1 {
-		t.Error("returned incorrect number of store requests")
+		t.Error("returned incorrect number of cafe requests")
 		return
 	}
 }
@@ -101,7 +101,7 @@ func TestCafeStoreRequestDB_DeleteByCafe(t *testing.T) {
 		Id:       "xyz",
 		TargetId: "zxy",
 		CafeId:   "boom",
-		Type:     repo.CafeUpdateThreadRequest,
+		Type:     repo.CafeStoreRequest,
 		Date:     time.Now(),
 	})
 	if err != nil {

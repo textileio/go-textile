@@ -96,12 +96,12 @@ func TestPeerDB_List(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	all := peerdb.List("", -1, "")
+	all := peerdb.List(-1, "")
 	if len(all) != 2 {
 		t.Error("returned incorrect number of peers")
 		return
 	}
-	filtered := peerdb.List("", -1, "threadId='boo'")
+	filtered := peerdb.List(-1, "threadId='boo'")
 	if len(filtered) != 1 {
 		t.Error("returned incorrect number of peers")
 		return

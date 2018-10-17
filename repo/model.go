@@ -28,7 +28,7 @@ type Block struct {
 	Date                 time.Time `json:"date"`
 	Parents              []string  `json:"parents"`
 	ThreadId             string    `json:"thread_id"`
-	AuthorPk             string    `json:"author_pk"`
+	AuthorId             string    `json:"author_id"`
 	AuthorUsernameCipher []byte    `json:"author_username_cipher"`
 	Type                 BlockType `json:"type"`
 

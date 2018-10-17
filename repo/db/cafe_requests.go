@@ -50,7 +50,7 @@ func (c *CafeRequestDB) List(offset string, limit int) []repo.CafeRequest {
 	defer c.lock.Unlock()
 	var stm string
 	if offset != "" {
-		stm = "select * from cafe_requests where date<(select date from cafe_requests where id='" + offset + "') order by date asc limit " + strconv.Itoa(limit) + " ;"
+		stm = "select * from cafe_requests where date>(select date from cafe_requests where id='" + offset + "') order by date asc limit " + strconv.Itoa(limit) + ";"
 	} else {
 		stm = "select * from cafe_requests order by date asc limit " + strconv.Itoa(limit) + ";"
 	}

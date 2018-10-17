@@ -14,7 +14,6 @@ import (
 	"github.com/skip2/go-qrcode"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/gateway"
-	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/repo"
 	rconfig "github.com/textileio/textile-go/repo/config"
@@ -280,28 +279,20 @@ func handleMessage(_ *astilectron.Window, m bootstrap.MessageIn) (interface{}, e
 }
 
 func getQRCode() (string, string, error) {
-	// get our own public key
-	accnt, err := core.Node.Account()
-	if err != nil {
-		return "", "", err
-	}
-	pk, err := accnt.LibP2PPubKey()
-	if err != nil {
-		return "", "", err
-	}
-	pks, err := ipfs.EncodeKey(pk)
+	// get our own peer id for receiving an account key
+	pid, err := core.Node.GetPeerId()
 	if err != nil {
 		return "", "", err
 	}
 
 	// create a qr code
-	url := fmt.Sprintf("https://www.textile.photos/invites/device#key=%s", pks)
+	url := fmt.Sprintf("https://www.textile.photos/invites/device#id=%s", pid.Pretty())
 	png, err := qrcode.Encode(url, qrcode.Medium, QRCodeSize)
 	if err != nil {
 		return "", "", err
 	}
 
-	return base64.StdEncoding.EncodeToString(png), pks, nil
+	return base64.StdEncoding.EncodeToString(png), pid.Pretty(), nil
 }
 
 func getThreadPhotos(id string) (string, error) {

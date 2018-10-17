@@ -6,7 +6,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
 	"gopkg.in/abiosoft/ishell.v2"
-	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 )
 
 func listDevices(c *ishell.Context) {
@@ -30,24 +30,17 @@ func addDevice(c *ishell.Context) {
 	}
 	name := c.Args[0]
 	if len(c.Args) == 1 {
-		c.Err(errors.New("missing device pub key"))
+		c.Err(errors.New("missing device id"))
 		return
 	}
-	pks := c.Args[1]
 
-	pkb, err := libp2pc.ConfigDecodeKey(pks)
-	if err != nil {
-		c.Err(err)
-		return
-	}
-	pk, err := libp2pc.UnmarshalPublicKey(pkb)
+	did, err := peer.IDB58Decode(c.Args[1])
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
-	err = core.Node.AddDevice(name, pk)
-	if err != nil {
+	if err := core.Node.AddDevice(name, did); err != nil {
 		c.Err(err)
 		return
 	}

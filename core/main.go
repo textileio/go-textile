@@ -81,7 +81,6 @@ type InitConfig struct {
 type RunConfig struct {
 	PinCode  string
 	RepoPath string
-	CafeAddr string
 	LogLevel logging.Level
 	LogFiles bool
 }
@@ -94,7 +93,6 @@ type Textile struct {
 	cancel           context.CancelFunc
 	ipfs             *core.IpfsNode
 	datastore        repo.Datastore
-	cafeAddr         string
 	started          bool
 	threads          []*thread.Thread
 	online           chan struct{}
@@ -113,7 +111,6 @@ var ErrStarted = errors.New("node is started")
 var ErrStopped = errors.New("node is stopped")
 var ErrOffline = errors.New("node is offline")
 var ErrThreadLoaded = errors.New("thread is loaded")
-var ErrNoCafeHost = errors.New("cafe host address is not set")
 
 // InitRepo initializes a new node repo
 func InitRepo(config InitConfig) error {
@@ -233,7 +230,6 @@ func NewTextile(config RunConfig) (*Textile, error) {
 		version:   Version,
 		repoPath:  config.RepoPath,
 		datastore: sqliteDB,
-		cafeAddr:  config.CafeAddr,
 	}, nil
 }
 

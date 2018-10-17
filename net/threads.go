@@ -130,8 +130,11 @@ func (h *ThreadsService) handleInvite(pid peer.ID, env *pb.Envelope) (*pb.Envelo
 	}
 
 	// load thread
-	threadId := libp2pc.ConfigEncodeKey(invite.Header.ThreadPk)
-	if _, thrd := h.getThread(threadId); thrd != nil {
+	threadId, err := ipfs.IDFromPublicKeyBytes(invite.Header.ThreadPk)
+	if err != nil {
+		return nil, err
+	}
+	if _, thrd := h.getThread(threadId.Pretty()); thrd != nil {
 		// thread exists, aborting
 		return nil, nil
 	}
@@ -174,7 +177,7 @@ func (h *ThreadsService) handleInvite(pid peer.ID, env *pb.Envelope) (*pb.Envelo
 		return nil, err
 	}
 	notification.Subject = invite.SuggestedName
-	notification.SubjectId = libp2pc.ConfigEncodeKey(invite.Header.ThreadPk)
+	notification.SubjectId = threadId.Pretty()
 	notification.BlockId = id // invite block
 	notification.Body = "invited you to join"
 	if err := h.sendNotification(notification); err != nil {
@@ -195,8 +198,11 @@ func (h *ThreadsService) handleJoin(pid peer.ID, env *pb.Envelope) (*pb.Envelope
 	}
 
 	// load thread
-	threadId := libp2pc.ConfigEncodeKey(join.Header.ThreadPk)
-	_, thrd := h.getThread(threadId)
+	threadId, err := ipfs.IDFromPublicKeyBytes(join.Header.ThreadPk)
+	if err != nil {
+		return nil, err
+	}
+	_, thrd := h.getThread(threadId.Pretty())
 	if thrd == nil {
 		return nil, errors.New("invalid join block")
 	}
@@ -239,8 +245,11 @@ func (h *ThreadsService) handleLeave(pid peer.ID, env *pb.Envelope) (*pb.Envelop
 	}
 
 	// load thread
-	threadId := libp2pc.ConfigEncodeKey(leave.Header.ThreadPk)
-	_, thrd := h.getThread(threadId)
+	threadId, err := ipfs.IDFromPublicKeyBytes(leave.Header.ThreadPk)
+	if err != nil {
+		return nil, err
+	}
+	_, thrd := h.getThread(threadId.Pretty())
 	if thrd == nil {
 		return nil, errors.New("invalid leave block")
 	}
@@ -283,8 +292,11 @@ func (h *ThreadsService) handleData(pid peer.ID, env *pb.Envelope) (*pb.Envelope
 	}
 
 	// load thread
-	threadId := libp2pc.ConfigEncodeKey(data.Header.ThreadPk)
-	_, thrd := h.getThread(threadId)
+	threadId, err := ipfs.IDFromPublicKeyBytes(data.Header.ThreadPk)
+	if err != nil {
+		return nil, err
+	}
+	_, thrd := h.getThread(threadId.Pretty())
 	if thrd == nil {
 		return nil, errors.New("invalid data block")
 	}
@@ -346,8 +358,11 @@ func (h *ThreadsService) handleAnnotation(pid peer.ID, env *pb.Envelope) (*pb.En
 	}
 
 	// load thread
-	threadId := libp2pc.ConfigEncodeKey(annotation.Header.ThreadPk)
-	_, thrd := h.getThread(threadId)
+	threadId, err := ipfs.IDFromPublicKeyBytes(annotation.Header.ThreadPk)
+	if err != nil {
+		return nil, err
+	}
+	_, thrd := h.getThread(threadId.Pretty())
 	if thrd == nil {
 		return nil, errors.New("invalid annotation block")
 	}
@@ -369,12 +384,8 @@ func (h *ThreadsService) handleAnnotation(pid peer.ID, env *pb.Envelope) (*pb.En
 		return nil, nil
 	}
 	var target string
-	authorId, err := ipfs.IdFromEncodedPublicKey(dataBlock.AuthorPk)
-	if err != nil {
-		return nil, err
-	}
 	// NOTE: not restricted to photo annotations here, just currently only thing possible
-	if authorId.Pretty() == h.Node().Identity.Pretty() {
+	if dataBlock.AuthorId == h.Node().Identity.Pretty() {
 		target = "your photo"
 	} else {
 		target = "a photo"
@@ -422,8 +433,11 @@ func (h *ThreadsService) handleIgnore(pid peer.ID, env *pb.Envelope) (*pb.Envelo
 	}
 
 	// load thread
-	threadId := libp2pc.ConfigEncodeKey(ignore.Header.ThreadPk)
-	_, thrd := h.getThread(threadId)
+	threadId, err := ipfs.IDFromPublicKeyBytes(ignore.Header.ThreadPk)
+	if err != nil {
+		return nil, err
+	}
+	_, thrd := h.getThread(threadId.Pretty())
 	if thrd == nil {
 		return nil, errors.New("invalid ignore block")
 	}
@@ -452,8 +466,11 @@ func (h *ThreadsService) handleMerge(pid peer.ID, env *pb.Envelope) (*pb.Envelop
 	}
 
 	// load thread
-	threadId := libp2pc.ConfigEncodeKey(merge.ThreadPk)
-	_, thrd := h.getThread(threadId)
+	threadId, err := ipfs.IDFromPublicKeyBytes(merge.ThreadPk)
+	if err != nil {
+		return nil, err
+	}
+	_, thrd := h.getThread(threadId.Pretty())
 	if thrd == nil {
 		return nil, errors.New("invalid merge block")
 	}

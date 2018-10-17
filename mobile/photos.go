@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/crypto"
-	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/photo"
 	"github.com/textileio/textile-go/repo"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
@@ -124,15 +123,11 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 	photos := &Photos{Items: make([]Photo, 0)}
 	btype := repo.PhotoBlock
 	for _, b := range thrd.Blocks(offsetId, limit, &btype, nil) {
-		authorId, err := ipfs.IdFromEncodedPublicKey(b.AuthorPk)
-		if err != nil {
-			return "", err
-		}
 		item := Photo{
 			Id:       b.DataId,
 			BlockId:  b.Id,
 			Date:     b.Date,
-			AuthorId: authorId.Pretty(),
+			AuthorId: b.AuthorId,
 		}
 		if b.AuthorUsernameCipher != nil {
 			usernameb, err := thrd.Decrypt(b.AuthorUsernameCipher)
@@ -168,15 +163,11 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 		item.Comments = make([]Comment, 0)
 		ctype := repo.CommentBlock
 		for _, c := range thrd.Blocks("", -1, &ctype, &b.Id) {
-			authorId, err := ipfs.IdFromEncodedPublicKey(c.AuthorPk)
-			if err != nil {
-				return "", err
-			}
 			comment := Comment{
 				Annotation: Annotation{
 					Id:       c.Id,
 					Date:     c.Date,
-					AuthorId: authorId.Pretty(),
+					AuthorId: c.AuthorId,
 				},
 			}
 			if c.DataCaptionCipher != nil {
@@ -200,15 +191,11 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 		item.Likes = make([]Like, 0)
 		ltype := repo.LikeBlock
 		for _, l := range thrd.Blocks("", -1, &ltype, &b.Id) {
-			authorId, err := ipfs.IdFromEncodedPublicKey(l.AuthorPk)
-			if err != nil {
-				return "", err
-			}
 			like := Like{
 				Annotation: Annotation{
 					Id:       l.Id,
 					Date:     l.Date,
-					AuthorId: authorId.Pretty(),
+					AuthorId: l.AuthorId,
 				},
 			}
 			if l.AuthorUsernameCipher != nil {

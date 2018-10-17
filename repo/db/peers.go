@@ -63,21 +63,14 @@ func (c *PeerDB) GetById(id string) *repo.Peer {
 	return &ret[0]
 }
 
-func (c *PeerDB) List(offset string, limit int, query string) []repo.Peer {
+func (c *PeerDB) List(limit int, query string) []repo.Peer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	var stm, q string
-	if offset != "" {
-		if query != "" {
-			q = query + " and "
-		}
-		stm = "select * from peers where " + q + "row<(select row from peers where row='" + offset + "') order by row desc limit " + strconv.Itoa(limit) + " ;"
-	} else {
-		if query != "" {
-			q = "where " + query + " "
-		}
-		stm = "select * from peers " + q + "order by row desc limit " + strconv.Itoa(limit) + ";"
+	if query != "" {
+		q = "where " + query + " "
 	}
+	stm = "select * from peers " + q + "limit " + strconv.Itoa(limit) + ";"
 	return c.handleQuery(stm)
 }
 

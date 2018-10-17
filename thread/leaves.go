@@ -2,11 +2,11 @@ package thread
 
 import (
 	"github.com/golang/protobuf/proto"
+	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
-	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 // Leave creates an outgoing leave block
@@ -89,11 +89,7 @@ func (t *Thread) HandleLeaveBlock(from *peer.ID, env *pb.Envelope, signed *pb.Si
 	}
 
 	// remove peer
-	authorPk, err := libp2pc.UnmarshalPublicKey(content.Header.AuthorPk)
-	if err != nil {
-		return nil, err
-	}
-	authorId, err := peer.IDFromPublicKey(authorPk)
+	authorId, err := ipfs.IDFromPublicKeyBytes(content.Header.AuthorPk)
 	if err != nil {
 		return nil, err
 	}

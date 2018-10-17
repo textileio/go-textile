@@ -24,7 +24,7 @@ func (c *BlockDB) Add(block *repo.Block) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into blocks(id, date, parents, threadId, authorPk, type, dataId, dataKeyCipher, dataCaptionCipher, dataUsernameCipher, dataMetadataCipher) values(?,?,?,?,?,?,?,?,?,?,?)`
+	stm := `insert into blocks(id, date, parents, threadId, authorId, type, dataId, dataKeyCipher, dataCaptionCipher, dataUsernameCipher, dataMetadataCipher) values(?,?,?,?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -36,7 +36,7 @@ func (c *BlockDB) Add(block *repo.Block) error {
 		int(block.Date.Unix()),
 		strings.Join(block.Parents, ","),
 		block.ThreadId,
-		block.AuthorPk,
+		block.AuthorId,
 		int(block.Type),
 		block.DataId,
 		block.DataKeyCipher,
@@ -80,7 +80,7 @@ func (c *BlockDB) List(offset string, limit int, query string) []repo.Block {
 		if query != "" {
 			q = query + " and "
 		}
-		stm = "select * from blocks where " + q + "date<(select date from blocks where id='" + offset + "') order by date desc limit " + strconv.Itoa(limit) + " ;"
+		stm = "select * from blocks where " + q + "date<(select date from blocks where id='" + offset + "') order by date desc limit " + strconv.Itoa(limit) + ";"
 	} else {
 		if query != "" {
 			q = "where " + query + " "
@@ -125,10 +125,10 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 		return nil
 	}
 	for rows.Next() {
-		var id, parents, threadId, authorPk, dataId string
+		var id, parents, threadId, authorId, dataId string
 		var dateInt, typeInt int
 		var dataKeyCipher, dataCaptionCipher, authorUnCipher, dataMetadataCipher []byte
-		if err := rows.Scan(&id, &dateInt, &parents, &threadId, &authorPk, &typeInt, &dataId, &dataKeyCipher, &dataCaptionCipher, &authorUnCipher, &dataMetadataCipher); err != nil {
+		if err := rows.Scan(&id, &dateInt, &parents, &threadId, &authorId, &typeInt, &dataId, &dataKeyCipher, &dataCaptionCipher, &authorUnCipher, &dataMetadataCipher); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -137,7 +137,7 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 			Date:                 time.Unix(int64(dateInt), 0),
 			Parents:              strings.Split(parents, ","),
 			ThreadId:             threadId,
-			AuthorPk:             authorPk,
+			AuthorId:             authorId,
 			Type:                 repo.BlockType(typeInt),
 			DataId:               dataId,
 			DataKeyCipher:        dataKeyCipher,

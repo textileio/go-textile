@@ -8,7 +8,6 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/cafe"
-	"github.com/textileio/textile-go/cafe/dao"
 	"github.com/textileio/textile-go/cmd"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/gateway"
@@ -16,7 +15,6 @@ import (
 	rconfig "github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/wallet"
 	"gopkg.in/abiosoft/ishell.v2"
-	icore "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 	"log"
 	"os"
 	"os/signal"
@@ -47,14 +45,7 @@ type CafeOptions struct {
 	Addr string `short:"c" long:"cafe" description:"cafe host address"`
 
 	// host settings
-	BindAddr    string `long:"cafe-bind-addr" description:"set the cafe address"`
-	DBHosts     string `long:"cafe-db-hosts" description:"set the cafe mongo db hosts uri"`
-	DBName      string `long:"cafe-db-name" description:"set the cafe mongo db name"`
-	DBUser      string `long:"cafe-db-user" description:"set the cafe mongo db user"`
-	DBPassword  string `long:"cafe-db-password" description:"set the cafe mongo db user password"`
-	DBTLS       bool   `long:"cafe-db-tls" description:"use TLS for the cafe mongo db connection"`
-	TokenSecret string `long:"cafe-token-secret" description:"set the cafe token secret"`
-	ReferralKey string `long:"cafe-referral-key" description:"set the cafe referral key"`
+	BindAddr string `long:"cafe-bind-addr" description:"set the cafe address"`
 }
 
 type Options struct{}
@@ -343,7 +334,6 @@ func buildNode(repoPath string, cafeOpts CafeOptions, gatewayOpts GatewayOptions
 	// node setup
 	config := core.RunConfig{
 		RepoPath: repoPathf,
-		CafeAddr: cafeOpts.Addr,
 		LogLevel: level,
 		LogFiles: !logOpts.NoFiles,
 	}
@@ -360,21 +350,21 @@ func buildNode(repoPath string, cafeOpts CafeOptions, gatewayOpts GatewayOptions
 
 	// check cafe mode
 	if cafeOpts.BindAddr != "" {
-		cafe.Host = &cafe.Cafe{
-			Ipfs: func() *icore.IpfsNode {
-				return core.Node.Ipfs()
-			},
-			Dao: &dao.DAO{
-				Hosts:    cafeOpts.DBHosts,
-				Name:     cafeOpts.DBName,
-				User:     cafeOpts.DBUser,
-				Password: cafeOpts.DBPassword,
-				TLS:      cafeOpts.DBTLS,
-			},
-			TokenSecret: cafeOpts.TokenSecret,
-			ReferralKey: cafeOpts.ReferralKey,
-			NodeVersion: core.Version,
-		}
+		//cafe.Host = &cafe.Cafe{
+		//	Ipfs: func() *icore.IpfsNode {
+		//		return core.Node.Ipfs()
+		//	},
+		//	Dao: &dao.DAO{
+		//		Hosts:    cafeOpts.DBHosts,
+		//		Name:     cafeOpts.DBName,
+		//		User:     cafeOpts.DBUser,
+		//		Password: cafeOpts.DBPassword,
+		//		TLS:      cafeOpts.DBTLS,
+		//	},
+		//	TokenSecret: cafeOpts.TokenSecret,
+		//	ReferralKey: cafeOpts.ReferralKey,
+		//	NodeVersion: core.Version,
+		//}
 	}
 
 	// auto start it
@@ -494,9 +484,9 @@ func printSplashScreen(cafeOpts CafeOptions, daemon bool) {
 	if cafeOpts.BindAddr != "" {
 		fmt.Println(grey("cafe: ") + yellow(cafeOpts.BindAddr))
 	}
-	if cafeOpts.Addr != "" {
-		fmt.Println(grey("cafe api: ") + yellow(core.Node.GetCafeApiAddr()))
-	}
+	//if cafeOpts.Addr != "" {
+	//	fmt.Println(grey("cafe api: ") + yellow(core.Node.GetCafeApiAddr()))
+	//}
 	if !daemon {
 		fmt.Println(grey("type 'help' for available commands"))
 	}

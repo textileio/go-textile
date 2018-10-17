@@ -5,7 +5,6 @@ import (
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/net"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/fsrepo"
 	"time"
 )
@@ -29,7 +28,6 @@ type NodeConfig struct {
 	Account  string
 	PinCode  string
 	RepoPath string
-	CafeAddr string
 	LogLevel string
 	LogFiles bool
 }
@@ -78,7 +76,6 @@ func NewNode(config *NodeConfig, messenger Messenger) (*Mobile, error) {
 	runc := core.RunConfig{
 		PinCode:  config.PinCode,
 		RepoPath: config.RepoPath,
-		CafeAddr: config.CafeAddr,
 		LogLevel: logLevel,
 		LogFiles: config.LogFiles,
 	}
@@ -178,12 +175,9 @@ func (m *Mobile) Stop() error {
 	return nil
 }
 
-// RefreshMessages run the message retriever
-func (m *Mobile) RefreshMessages() error {
-	if err := core.Node.FetchMessages(); err != nil && err != net.ErrFetching {
-		return err
-	}
-	return nil
+// FetchMessages run the message retriever
+func (m *Mobile) FetchMessages() error {
+	return core.Node.FetchMessages()
 }
 
 // Overview calls core Overview

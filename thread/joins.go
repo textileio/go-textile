@@ -142,11 +142,7 @@ func (t *Thread) HandleJoinBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 	}
 
 	// get the invitee id
-	authorPk, err := libp2pc.UnmarshalPublicKey(content.Header.AuthorPk)
-	if err != nil {
-		return nil, nil, err
-	}
-	authorId, err := peer.IDFromPublicKey(authorPk)
+	authorId, err := ipfs.IDFromPublicKeyBytes(content.Header.AuthorPk)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -156,14 +152,18 @@ func (t *Thread) HandleJoinBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 	var joined *repo.Peer
 	self := authorId.Pretty() == t.ipfs().Identity.Pretty()
 	if !self {
+		threadId, err := ipfs.IDFromPublicKeyBytes(content.Header.ThreadPk)
+		if err != nil {
+			return nil, nil, err
+		}
 		joined = &repo.Peer{
 			Row:      ksuid.New().String(),
 			Id:       authorId.Pretty(),
-			ThreadId: libp2pc.ConfigEncodeKey(content.Header.ThreadPk),
+			ThreadId: threadId.Pretty(),
 			PubKey:   content.Header.AuthorPk,
 		}
 		if err := t.peers().Add(joined); err != nil {
-			// TODO: #202 (Properly handle database/sql errors)
+			log.Errorf("error adding peer: %s", err)
 		}
 	}
 

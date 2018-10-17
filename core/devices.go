@@ -5,7 +5,7 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/thread"
-	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"time"
 )
 
@@ -15,18 +15,14 @@ func (t *Textile) Devices() []repo.Device {
 }
 
 // AddDevice creates an invite for every current and future thread
-func (t *Textile) AddDevice(name string, pk libp2pc.PubKey) error {
+func (t *Textile) AddDevice(name string, pid peer.ID) error {
 	if !t.IsOnline() {
 		return ErrOffline
 	}
 
 	// index a new device
-	pkb, err := pk.Bytes()
-	if err != nil {
-		return err
-	}
 	deviceModel := &repo.Device{
-		Id:   libp2pc.ConfigEncodeKey(pkb),
+		Id:   pid.Pretty(),
 		Name: name,
 	}
 	if err := t.datastore.Devices().Add(deviceModel); err != nil {
@@ -36,7 +32,7 @@ func (t *Textile) AddDevice(name string, pk libp2pc.PubKey) error {
 
 	// invite device to existing threads
 	for _, thrd := range t.threads {
-		if _, err := thrd.AddInvite(pk); err != nil {
+		if _, err := thrd.AddInvite(pid); err != nil {
 			return err
 		}
 	}
@@ -65,15 +61,11 @@ func (t *Textile) AddDevice(name string, pk libp2pc.PubKey) error {
 // InviteDevices sends a thread invite to all devices
 func (t *Textile) InviteDevices(thrd *thread.Thread) error {
 	for _, device := range t.Devices() {
-		dpkb, err := libp2pc.ConfigDecodeKey(device.Id)
+		id, err := peer.IDB58Decode(device.Id)
 		if err != nil {
 			return err
 		}
-		dpk, err := libp2pc.UnmarshalPublicKey(dpkb)
-		if err != nil {
-			return err
-		}
-		if _, err := thrd.AddInvite(dpk); err != nil {
+		if _, err := thrd.AddInvite(id); err != nil {
 			return err
 		}
 	}

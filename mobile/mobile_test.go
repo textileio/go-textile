@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/json"
-	"github.com/textileio/textile-go/cafe/models"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
 	. "github.com/textileio/textile-go/mobile"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"image/jpeg"
 	"os"
@@ -37,7 +37,6 @@ func TestNewTextile(t *testing.T) {
 	config := &NodeConfig{
 		Account:  keypair.Random().Seed(),
 		RepoPath: repo,
-		CafeAddr: os.Getenv("CAFE_ADDR"),
 		LogLevel: "DEBUG",
 	}
 	var err error
@@ -50,7 +49,6 @@ func TestNewTextile(t *testing.T) {
 func TestNewTextileAgain(t *testing.T) {
 	config := &NodeConfig{
 		RepoPath: repo,
-		CafeAddr: os.Getenv("CAFE_ADDR"),
 		LogLevel: "DEBUG",
 	}
 	if _, err := NewNode(config, &TestMessenger{}); err != nil {
@@ -67,39 +65,6 @@ func TestMobile_Start(t *testing.T) {
 func TestMobile_StartAgain(t *testing.T) {
 	if err := mobile.Start(); err != nil {
 		t.Errorf("attempt to start a running node failed: %s", err)
-	}
-}
-
-func TestMobile_CafeRegister(t *testing.T) {
-	req := &models.ReferralRequest{
-		Key:         os.Getenv("CAFE_REFERRAL_KEY"),
-		Count:       1,
-		Limit:       1,
-		RequestedBy: "test",
-	}
-	res, err := core.Node.CreateCafeReferral(req)
-	if err != nil {
-		t.Errorf("create referral for registration failed: %s", err)
-		return
-	}
-	if len(res.RefCodes) == 0 {
-		t.Error("create referral for registration got no codes")
-		return
-	}
-	if err := mobile.CafeRegister(res.RefCodes[0]); err != nil {
-		t.Errorf("register failed: %s", err)
-	}
-}
-
-func TestMobile_CafeLogin(t *testing.T) {
-	if err := mobile.CafeLogin(); err != nil {
-		t.Errorf("login failed: %s", err)
-	}
-}
-
-func TestMobile_CafeLoggedIn(t *testing.T) {
-	if !mobile.CafeLoggedIn() {
-		t.Errorf("check logged in failed, should be true")
 	}
 }
 
@@ -147,12 +112,6 @@ func TestMobile_GetSeed(t *testing.T) {
 //		t.Errorf("got bad username: %s", un)
 //	}
 //}
-
-func TestMobile_GetCafeTokens(t *testing.T) {
-	if _, err := mobile.GetCafeTokens(false); err != nil {
-		t.Errorf("get cafe tokens failed: %s", err)
-	}
-}
 
 func TestMobile_EmptyThreads(t *testing.T) {
 	res, err := mobile.Threads()
@@ -232,12 +191,12 @@ func TestMobile_AddDevice(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	pkb, err := pk.Bytes()
+	id, err := peer.IDFromPublicKey(pk)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	deviceId = libp2pc.ConfigEncodeKey(pkb)
+	deviceId = id.Pretty()
 	if err := mobile.AddDevice("hello", deviceId); err != nil {
 		t.Errorf("add device failed: %s", err)
 	}
@@ -255,12 +214,12 @@ func TestMobile_Devices(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	pkb, err := pk.Bytes()
+	id, err := peer.IDFromPublicKey(pk)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if err := mobile.AddDevice("another", libp2pc.ConfigEncodeKey(pkb)); err != nil {
+	if err := mobile.AddDevice("another", id.Pretty()); err != nil {
 		t.Errorf("add another device failed: %s", err)
 	}
 	res, err := mobile.Devices()
@@ -535,12 +494,6 @@ func TestMobile_GetProfile(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	//if prof.Username != cusername {
-	//	t.Errorf("get profile bad username result")
-	//}
-	//if len(prof.AvatarId) == 0 {
-	//	t.Errorf("get profile bad avatar result")
-	//}
 }
 
 func TestMobile_Overview(t *testing.T) {
@@ -598,18 +551,6 @@ func TestMobile_ReadAllNotifications(t *testing.T) {
 	}
 }
 
-func TestMobile_CafeLogout(t *testing.T) {
-	if err := mobile.CafeLogout(); err != nil {
-		t.Errorf("logout failed: %s", err)
-	}
-}
-
-func TestMobile_CafeLoggedInAgain(t *testing.T) {
-	if mobile.CafeLoggedIn() {
-		t.Errorf("check logged in failed, should be false")
-	}
-}
-
 func TestMobile_Stop(t *testing.T) {
 	if err := mobile.Stop(); err != nil {
 		t.Errorf("stop mobile node failed: %s", err)
@@ -619,13 +560,6 @@ func TestMobile_Stop(t *testing.T) {
 func TestMobile_StopAgain(t *testing.T) {
 	if err := mobile.Stop(); err != nil {
 		t.Errorf("stop mobile node again should not return error: %s", err)
-	}
-}
-
-// test login in stopped state, should re-connect to db
-func TestMobile_CafeLoginAgain(t *testing.T) {
-	if err := mobile.CafeLogin(); err != nil {
-		t.Errorf("login again failed: %s", err)
 	}
 }
 

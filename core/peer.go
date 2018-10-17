@@ -1,15 +1,16 @@
 package core
 
 import (
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 // GetPeerId returns peer id
-func (t *Textile) GetPeerId() (string, error) {
+func (t *Textile) GetPeerId() (peer.ID, error) {
 	if !t.started {
 		return "", ErrStopped
 	}
-	return t.ipfs.Identity.Pretty(), nil
+	return t.ipfs.Identity, nil
 }
 
 // GetPrivKey returns the current peer private key
@@ -27,9 +28,9 @@ func (t *Textile) GetPeerPrivKey() (libp2pc.PrivKey, error) {
 
 // GetPeerPubKey returns the current peer public key
 func (t *Textile) GetPeerPubKey() (libp2pc.PubKey, error) {
-	secret, err := t.GetPeerPrivKey()
+	sk, err := t.GetPeerPrivKey()
 	if err != nil {
 		return nil, err
 	}
-	return secret.GetPublic(), nil
+	return sk.GetPublic(), nil
 }

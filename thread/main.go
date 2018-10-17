@@ -155,7 +155,7 @@ func (t *Thread) Blocks(offsetId string, limit int, btype *repo.BlockType, dataI
 // Peers returns locally known peers in this thread
 func (t *Thread) Peers() []repo.Peer {
 	query := fmt.Sprintf("threadId='%s'", t.Id)
-	return t.peers().List("", -1, query)
+	return t.peers().List(-1, query)
 }
 
 // Encrypt data with thread public key
@@ -373,12 +373,20 @@ func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType r
 	if dataConf == nil {
 		dataConf = new(repo.DataBlockConfig)
 	}
+	threadId, err := ipfs.IDFromPublicKeyBytes(header.ThreadPk)
+	if err != nil {
+		return err
+	}
+	authorId, err := ipfs.IDFromPublicKeyBytes(header.AuthorPk)
+	if err != nil {
+		return err
+	}
 	index := &repo.Block{
 		Id:                   id,
 		Date:                 date,
 		Parents:              header.Parents,
-		ThreadId:             libp2pc.ConfigEncodeKey(header.ThreadPk),
-		AuthorPk:             libp2pc.ConfigEncodeKey(header.AuthorPk),
+		ThreadId:             threadId.Pretty(),
+		AuthorId:             authorId.Pretty(),
 		AuthorUsernameCipher: header.AuthorUnCipher,
 		Type:                 blockType,
 

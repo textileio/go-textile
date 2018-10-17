@@ -3,7 +3,6 @@ package core_test
 import (
 	"crypto/rand"
 	"github.com/op/go-logging"
-	"github.com/textileio/textile-go/cafe/models"
 	. "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
@@ -31,7 +30,6 @@ func TestNewTextile(t *testing.T) {
 	var err error
 	node, err = NewTextile(RunConfig{
 		RepoPath: repo,
-		CafeAddr: os.Getenv("CAFE_ADDR"),
 		LogLevel: logging.DEBUG,
 	})
 	if err != nil {
@@ -59,32 +57,7 @@ func TestCore_IsOnline(t *testing.T) {
 }
 
 func TestCore_CafeRegister(t *testing.T) {
-	req := &models.ReferralRequest{
-		Key:         os.Getenv("CAFE_REFERRAL_KEY"),
-		Count:       1,
-		Limit:       1,
-		RequestedBy: "test",
-	}
-	res, err := node.CreateCafeReferral(req)
-	if err != nil {
-		t.Errorf("create referral for registration failed: %s", err)
-		return
-	}
-	if len(res.RefCodes) == 0 {
-		t.Error("create referral for registration got no codes")
-		return
-	}
-	if err := node.CafeRegister(res.RefCodes[0]); err != nil {
-		t.Errorf("register failed: %s", err)
-		return
-	}
-}
-
-func TestCore_CafeLogin(t *testing.T) {
-	if err := node.CafeLogin(); err != nil {
-		t.Errorf("login failed: %s", err)
-		return
-	}
+	// TODO
 }
 
 func TestCore_AddThread(t *testing.T) {
@@ -122,14 +95,6 @@ func TestCore_AddPhoto(t *testing.T) {
 	}
 }
 
-func TestCore_CafeLogout(t *testing.T) {
-	err := node.CafeLogout()
-	if err != nil {
-		t.Errorf("logout failed: %s", err)
-		return
-	}
-}
-
 func TestCore_Stop(t *testing.T) {
 	err := node.Stop()
 	if err != nil {
@@ -146,14 +111,6 @@ func TestCore_StartedAgain(t *testing.T) {
 func TestCore_OnlineAgain(t *testing.T) {
 	if node.IsOnline() {
 		t.Errorf("should report offline")
-	}
-}
-
-// test cafe login in stopped state, should re-connect to db
-func TestCore_LoginAgain(t *testing.T) {
-	if err := node.CafeLogin(); err != nil {
-		t.Errorf("login from stopped failed: %s", err)
-		return
 	}
 }
 

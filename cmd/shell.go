@@ -114,39 +114,9 @@ func RunShell(startNode func() error, stopNode func() error) {
 			LongHelp: "Manage your cafe user session.",
 		}
 		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "add-referral",
-			Help: "add cafe referrals",
-			Func: cafeAddReferral,
-		})
-		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "referrals",
-			Help: "list cafe referrals",
-			Func: listCafeReferrals,
-		})
-		cafeCmd.AddCmd(&ishell.Cmd{
 			Name: "register",
 			Help: "cafe register",
 			Func: cafeRegister,
-		})
-		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "login",
-			Help: "cafe login",
-			Func: cafeLogin,
-		})
-		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "status",
-			Help: "cafe status",
-			Func: cafeStatus,
-		})
-		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "tokens",
-			Help: "cafe tokens",
-			Func: cafeTokens,
-		})
-		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "logout",
-			Help: "cafe logout",
-			Func: cafeLogout,
 		})
 		shell.AddCmd(cafeCmd)
 	}

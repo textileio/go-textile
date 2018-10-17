@@ -83,7 +83,7 @@ func (c *NotificationDB) List(offset string, limit int, query string) []repo.Not
 		if query != "" {
 			q = query + " and "
 		}
-		stm = "select * from notifications where " + q + "date<(select date from notifications where id='" + offset + "') order by date desc limit " + strconv.Itoa(limit) + " ;"
+		stm = "select * from notifications where " + q + "date<(select date from notifications where id='" + offset + "') order by date desc limit " + strconv.Itoa(limit) + ";"
 	} else {
 		if query != "" {
 			q = "where " + query + " "
