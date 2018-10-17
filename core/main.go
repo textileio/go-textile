@@ -580,7 +580,7 @@ func (t *Textile) loadThread(mod *repo.Thread) (*thread.Thread, error) {
 			if err := t.datastore.Threads().UpdateHead(id, head); err != nil {
 				return err
 			}
-			// t.cafeRequestQueue.Put(id, repo.CafeUpdateThreadRequest)
+			t.cafeRequestQueue.Put(id, repo.CafeUpdateThreadRequest)
 			return nil
 		},
 		NewBlock:       t.threadsService.NewBlock,

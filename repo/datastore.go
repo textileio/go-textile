@@ -136,9 +136,8 @@ type CafeAccountStore interface {
 }
 
 type CafeAccountThreadStore interface {
-	Add(thrd *CafeAccountThread) error
+	AddOrUpdate(thrd *CafeAccountThread) error
 	Get(id string, accountId string) *CafeAccountThread
 	ListByAccount(accountId string) []CafeAccountThread
-	UpdateHead(id string, accountId string, head string) error
 	Delete(id string, accountId string) error
 }

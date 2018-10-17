@@ -179,7 +179,7 @@ func (q *CafeRequestQueue) handle(reqs []repo.CafeRequest, rtype repo.CafeReques
 			log.Errorf("cafe %s request to %s failed: %s", rtype.Description(), cafe.Pretty(), err)
 			herr = err
 		}
-	case repo.CafeAddThreadRequest:
+	case repo.CafeStoreThreadRequest:
 		for _, req := range reqs {
 			thrd := q.datastore.Threads().Get(req.TargetId)
 			if thrd == nil {
@@ -188,32 +188,7 @@ func (q *CafeRequestQueue) handle(reqs []repo.CafeRequest, rtype repo.CafeReques
 				herr = err
 				continue
 			}
-			if err := q.service().AddThread(thrd.Id, thrd.PrivKey, cafe); err != nil {
-				log.Errorf("cafe %s request to %s failed: %s", rtype.Description(), cafe.Pretty(), err)
-				herr = err
-				continue
-			}
-			handled = append(handled, req.Id)
-		}
-	case repo.CafeRemoveThreadRequest:
-		for _, req := range reqs {
-			if err := q.service().RemoveThread(req.TargetId, cafe); err != nil {
-				log.Errorf("cafe %s request to %s failed: %s", rtype.Description(), cafe.Pretty(), err)
-				herr = err
-				continue
-			}
-			handled = append(handled, req.Id)
-		}
-	case repo.CafeUpdateThreadRequest:
-		for _, req := range reqs {
-			thrd := q.datastore.Threads().Get(req.TargetId)
-			if thrd == nil {
-				err := errors.New(fmt.Sprintf("could not find thread: %s", req.TargetId))
-				log.Error(err.Error())
-				herr = err
-				continue
-			}
-			if err := q.service().UpdateThread(thrd.Id, thrd.Head, cafe); err != nil {
+			if err := q.service().StoreThread(thrd, cafe); err != nil {
 				log.Errorf("cafe %s request to %s failed: %s", rtype.Description(), cafe.Pretty(), err)
 				herr = err
 				continue

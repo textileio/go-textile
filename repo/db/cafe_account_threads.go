@@ -14,14 +14,14 @@ func NewCafeAccountThreadStore(db *sql.DB, lock *sync.Mutex) repo.CafeAccountThr
 	return &CafeAccountThreadDB{modelStore{db, lock}}
 }
 
-func (c *CafeAccountThreadDB) Add(thrd *repo.CafeAccountThread) error {
+func (c *CafeAccountThreadDB) AddOrUpdate(thrd *repo.CafeAccountThread) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
 	if err != nil {
 		return err
 	}
-	stm := `insert into account_threads(id, accountId, skCipher, head) values(?,?,?,?)`
+	stm := `insert or replace into account_threads(id, accountId, skCipher, headCipher, nameCipher) values(?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -32,7 +32,8 @@ func (c *CafeAccountThreadDB) Add(thrd *repo.CafeAccountThread) error {
 		thrd.Id,
 		thrd.AccountId,
 		thrd.SkCipher,
-		thrd.Head,
+		thrd.HeadCipher,
+		thrd.NameCipher,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -59,13 +60,6 @@ func (c *CafeAccountThreadDB) ListByAccount(accountId string) []repo.CafeAccount
 	return c.handleQuery(stm)
 }
 
-func (c *CafeAccountThreadDB) UpdateHead(id string, accountId string, head string) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	_, err := c.db.Exec("update account_threads set head=? where id=? and accountId=?", head, id, accountId)
-	return err
-}
-
 func (c *CafeAccountThreadDB) Delete(id string, accountId string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -82,17 +76,17 @@ func (c *CafeAccountThreadDB) handleQuery(stm string) []repo.CafeAccountThread {
 	}
 	for rows.Next() {
 		var id, accountId string
-		var head *string
-		var skCipher []byte
-		if err := rows.Scan(&id, &accountId, &skCipher, &head); err != nil {
+		var skCipher, headCipher, nameCipher []byte
+		if err := rows.Scan(&id, &accountId, &skCipher, &headCipher, &nameCipher); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
 		thrd := repo.CafeAccountThread{
-			Id:        id,
-			AccountId: accountId,
-			SkCipher:  skCipher,
-			Head:      head,
+			Id:         id,
+			AccountId:  accountId,
+			SkCipher:   skCipher,
+			HeadCipher: headCipher,
+			NameCipher: nameCipher,
 		}
 		ret = append(ret, thrd)
 	}

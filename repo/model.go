@@ -143,10 +143,11 @@ type CafeAccount struct {
 }
 
 type CafeAccountThread struct {
-	Id        string  `json:"id"`
-	AccountId string  `json:"account_id"`
-	SkCipher  []byte  `json:"sk_cipher"`
-	Head      *string `json:"head,omitempty"`
+	Id         string `json:"id"`
+	AccountId  string `json:"account_id"`
+	SkCipher   []byte `json:"sk_cipher"`
+	HeadCipher []byte `json:"head_cipher"`
+	NameCipher []byte `json:"name_cipher"`
 }
 
 type CafeSession struct {
@@ -160,21 +161,15 @@ type CafeRequestType int
 
 const (
 	CafeStoreRequest CafeRequestType = iota
-	CafeAddThreadRequest
-	CafeRemoveThreadRequest
-	CafeUpdateThreadRequest
+	CafeStoreThreadRequest
 )
 
 func (rt CafeRequestType) Description() string {
 	switch rt {
 	case CafeStoreRequest:
 		return "STORE"
-	case CafeAddThreadRequest:
-		return "ADD_THREAD"
-	case CafeRemoveThreadRequest:
-		return "REMOVE_THREAD"
-	case CafeUpdateThreadRequest:
-		return "UPDATE_THREAD"
+	case CafeStoreThreadRequest:
+		return "STORE_THREAD"
 	default:
 		return "INVALID"
 	}

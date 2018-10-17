@@ -89,12 +89,8 @@ func (h *CafeService) Handle(mtype pb.Message_Type) func(peer.ID, *pb.Envelope) 
 		return h.handleStore
 	case pb.Message_CAFE_BLOCK:
 		return h.handleBlock
-	case pb.Message_CAFE_ADD_THREAD:
-		return h.handleAddThread
-	case pb.Message_CAFE_REMOVE_THREAD:
-		return h.handleRemoveThread
-	case pb.Message_CAFE_UPDATE_THREAD:
-		return h.handleUpdateThread
+	case pb.Message_CAFE_STORE_THREAD:
+		return h.handleStoreThread
 	default:
 		return nil
 	}
@@ -200,49 +196,36 @@ func (h *CafeService) Store(cids []string, cafe peer.ID) ([]string, error) {
 	return stored, nil
 }
 
-// AddThread adds a thread to a cafe backup
-func (h *CafeService) AddThread(id string, sk []byte, cafe peer.ID) error {
-	// encrypt thread secret
-	skCipher, err := h.Account().Encrypt(sk)
+// StoreThread pushes a thread to a cafe backup
+func (h *CafeService) StoreThread(thrd *repo.Thread, cafe peer.ID) error {
+	// encrypt thread components
+	skCipher, err := h.Account().Encrypt(thrd.PrivKey)
 	if err != nil {
 		return err
 	}
-
-	// build request
-	if _, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
-		return h.service.NewEnvelope(pb.Message_CAFE_ADD_THREAD, &pb.CafeAddThread{
-			Token:    session.Access,
-			Id:       id,
-			SkCipher: skCipher,
-		}, nil, false)
-	}); err != nil {
-		return err
+	var headCipher []byte
+	if thrd.Head != "" {
+		headCipher, err = h.Account().Encrypt([]byte(thrd.Head))
+		if err != nil {
+			return err
+		}
 	}
-	return nil
-}
-
-// RemoveThread removes a thread from a cafe backup
-func (h *CafeService) RemoveThread(id string, cafe peer.ID) error {
-	// build request
-	if _, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
-		return h.service.NewEnvelope(pb.Message_CAFE_REMOVE_THREAD, &pb.CafeRemoveThread{
-			Token: session.Access,
-			Id:    id,
-		}, nil, false)
-	}); err != nil {
-		return err
+	var nameCipher []byte
+	if thrd.Name != "" {
+		nameCipher, err = h.Account().Encrypt([]byte(thrd.Name))
+		if err != nil {
+			return err
+		}
 	}
-	return nil
-}
 
-// UpdateThread updates HEAD for a thread cafe backup
-func (h *CafeService) UpdateThread(id string, head string, cafe peer.ID) error {
 	// build request
 	if _, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
-		return h.service.NewEnvelope(pb.Message_CAFE_UPDATE_THREAD, &pb.CafeUpdateThread{
-			Token: session.Access,
-			Id:    id,
-			Head:  head,
+		return h.service.NewEnvelope(pb.Message_CAFE_STORE_THREAD, &pb.CafeStoreThread{
+			Token:      session.Access,
+			Id:         thrd.Id,
+			SkCipher:   skCipher,
+			HeadCipher: headCipher,
+			NameCipher: nameCipher,
 		}, nil, false)
 	}); err != nil {
 		return err
@@ -586,20 +569,20 @@ func (h *CafeService) handleBlock(pid peer.ID, env *pb.Envelope) (*pb.Envelope, 
 	}
 
 	// return a wrapped response
-	res := &pb.CafeStored{Cid: block.Cid}
+	res := &pb.CafeStored{Id: block.Cid}
 	return h.service.NewEnvelope(pb.Message_CAFE_STORED, res, &env.Message.RequestId, true)
 }
 
-// handleAddThread receives an add thread request
-func (h *CafeService) handleAddThread(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	thrd := new(pb.CafeAddThread)
-	err := ptypes.UnmarshalAny(env.Message.Payload, thrd)
+// handleStoreThread receives a thread request
+func (h *CafeService) handleStoreThread(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	store := new(pb.CafeStoreThread)
+	err := ptypes.UnmarshalAny(env.Message.Payload, store)
 	if err != nil {
 		return nil, err
 	}
 
 	// validate access token
-	rerr, err := h.authToken(thrd.Token, false, env.Message.RequestId)
+	rerr, err := h.authToken(store.Token, false, env.Message.RequestId)
 	if err != nil {
 		return nil, err
 	}
@@ -616,88 +599,21 @@ func (h *CafeService) handleAddThread(pid peer.ID, env *pb.Envelope) (*pb.Envelo
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
 
-	// add a new thread
-	add := &repo.CafeAccountThread{
-		Id:        thrd.Id,
-		AccountId: accnt.Id,
-		SkCipher:  thrd.SkCipher,
+	// add or update
+	thrd := &repo.CafeAccountThread{
+		Id:         store.Id,
+		AccountId:  accnt.Id,
+		SkCipher:   store.SkCipher,
+		HeadCipher: store.HeadCipher,
+		NameCipher: store.NameCipher,
 	}
-	if err := h.Datastore().CafeAccountThreads().Add(add); err != nil {
+	if err := h.Datastore().CafeAccountThreads().AddOrUpdate(thrd); err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
 
 	// return a wrapped response
-	return h.service.NewEnvelope(pb.Message_CAFE_ACK, nil, &env.Message.RequestId, true)
-}
-
-// handleRemoveThread receives a remove thread request
-func (h *CafeService) handleRemoveThread(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	thrd := new(pb.CafeRemoveThread)
-	err := ptypes.UnmarshalAny(env.Message.Payload, thrd)
-	if err != nil {
-		return nil, err
-	}
-
-	// validate access token
-	rerr, err := h.authToken(thrd.Token, false, env.Message.RequestId)
-	if err != nil {
-		return nil, err
-	}
-	if rerr != nil {
-		return rerr, nil
-	}
-
-	// lookup account
-	accnt := h.Datastore().CafeAccounts().Get(pid.Pretty())
-	if accnt == nil {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
-	}
-	if err := h.Datastore().CafeAccounts().UpdateLastSeen(accnt.Id, time.Now()); err != nil {
-		return h.service.NewError(500, err.Error(), env.Message.RequestId)
-	}
-
-	// remove if exists
-	if err := h.Datastore().CafeAccountThreads().Delete(thrd.Id, pid.Pretty()); err != nil {
-		return h.service.NewError(500, err.Error(), env.Message.RequestId)
-	}
-
-	// return a wrapped response
-	return h.service.NewEnvelope(pb.Message_CAFE_ACK, nil, &env.Message.RequestId, true)
-}
-
-// handleUpdateThread receives an update thread request
-func (h *CafeService) handleUpdateThread(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	thrd := new(pb.CafeUpdateThread)
-	err := ptypes.UnmarshalAny(env.Message.Payload, thrd)
-	if err != nil {
-		return nil, err
-	}
-
-	// validate access token
-	rerr, err := h.authToken(thrd.Token, false, env.Message.RequestId)
-	if err != nil {
-		return nil, err
-	}
-	if rerr != nil {
-		return rerr, nil
-	}
-
-	// lookup account
-	accnt := h.Datastore().CafeAccounts().Get(pid.Pretty())
-	if accnt == nil {
-		return h.service.NewError(403, errForbidden, env.Message.RequestId)
-	}
-	if err := h.Datastore().CafeAccounts().UpdateLastSeen(accnt.Id, time.Now()); err != nil {
-		return h.service.NewError(500, err.Error(), env.Message.RequestId)
-	}
-
-	// remove if exists
-	if err := h.Datastore().CafeAccountThreads().UpdateHead(thrd.Id, pid.Pretty(), thrd.Head); err != nil {
-		return h.service.NewError(500, err.Error(), env.Message.RequestId)
-	}
-
-	// return a wrapped response
-	return h.service.NewEnvelope(pb.Message_CAFE_ACK, nil, &env.Message.RequestId, true)
+	res := &pb.CafeStored{Id: store.Id}
+	return h.service.NewEnvelope(pb.Message_CAFE_STORED, res, &env.Message.RequestId, true)
 }
 
 // authToken verifies a request token from a peer

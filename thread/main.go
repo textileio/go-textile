@@ -12,7 +12,6 @@ import (
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	"gx/ipfs/QmWFAMPqsEyUX7gDUsRVmMWz59FxSpJ1b2v6bJ1yYzo7jY/go-base58-fast/base58"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
@@ -126,15 +125,6 @@ func (t *Thread) Info() (*Info, error) {
 		LatestPhoto: latestPhoto,
 		PhotoCount:  photos,
 	}, nil
-}
-
-// Base58Id returns base58 encoded public key
-func (t *Thread) Base58Id() (string, error) {
-	pkb, err := t.PrivKey.GetPublic().Bytes()
-	if err != nil {
-		return "", err
-	}
-	return base58.FastBase58Encoding(pkb), nil
 }
 
 // Blocks paginates blocks from the datastore
