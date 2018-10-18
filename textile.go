@@ -371,7 +371,7 @@ func startNode(cafeOpts CafeOptions, gatewayOpts GatewayOptions) error {
 	if err := core.Node.Start(); err != nil {
 		return err
 	}
-	<-core.Node.Online()
+	<-core.Node.OnlineCh()
 
 	// subscribe to wallet updates
 	go func() {
@@ -386,9 +386,9 @@ func startNode(cafeOpts CafeOptions, gatewayOpts GatewayOptions) error {
 					break
 				case core.ThreadRemoved:
 					break
-				case core.DeviceAdded:
+				case core.AccountPeerAdded:
 					break
-				case core.DeviceRemoved:
+				case core.AccountPeerRemoved:
 					break
 				}
 			}

@@ -98,7 +98,7 @@ func (m *Mobile) Start() error {
 	}
 
 	go func() {
-		<-core.Node.Online()
+		<-core.Node.OnlineCh()
 
 		// subscribe to wallet updates
 		go func() {
@@ -118,9 +118,9 @@ func (m *Mobile) Start() error {
 						name = "onThreadAdded"
 					case core.ThreadRemoved:
 						name = "onThreadRemoved"
-					case core.DeviceAdded:
+					case core.AccountPeerAdded:
 						name = "onDeviceAdded"
-					case core.DeviceRemoved:
+					case core.AccountPeerRemoved:
 						name = "onDeviceRemoved"
 					}
 					m.messenger.Notify(&Event{Name: name, Payload: payload})
@@ -175,9 +175,9 @@ func (m *Mobile) Stop() error {
 	return nil
 }
 
-// FetchMessages run the message retriever
-func (m *Mobile) FetchMessages() error {
-	return core.Node.FetchMessages()
+// FetchCafeMessages calls core FetchCafeMessages
+func (m *Mobile) FetchCafeMessages() error {
+	return core.Node.FetchCafeMessages()
 }
 
 // Overview calls core Overview
@@ -191,7 +191,7 @@ func (m *Mobile) Overview() (string, error) {
 
 // waitForOnline waits up to 5 seconds for the node to go online
 func (m *Mobile) waitForOnline() {
-	if core.Node.IsOnline() {
+	if core.Node.Online() {
 		return
 	}
 	deadline := time.Now().Add(time.Second * 5)
@@ -200,7 +200,7 @@ func (m *Mobile) waitForOnline() {
 	for {
 		select {
 		case <-tick.C:
-			if core.Node.IsOnline() || time.Now().After(deadline) {
+			if core.Node.Online() || time.Now().After(deadline) {
 				return
 			}
 		}

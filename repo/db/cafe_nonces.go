@@ -22,7 +22,7 @@ func (c *CafeNonceDB) Add(nonce *repo.CafeNonce) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into nonces(value, address, date) values(?,?,?)`
+	stm := `insert into cafe_nonces(value, address, date) values(?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -45,7 +45,7 @@ func (c *CafeNonceDB) Add(nonce *repo.CafeNonce) error {
 func (c *CafeNonceDB) Get(value string) *repo.CafeNonce {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from nonces where value='" + value + "';")
+	ret := c.handleQuery("select * from cafe_nonces where value='" + value + "';")
 	if len(ret) == 0 {
 		return nil
 	}
@@ -55,7 +55,7 @@ func (c *CafeNonceDB) Get(value string) *repo.CafeNonce {
 func (c *CafeNonceDB) Delete(value string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from nonces where value=?", value)
+	_, err := c.db.Exec("delete from cafe_nonces where value=?", value)
 	return err
 }
 

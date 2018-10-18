@@ -16,6 +16,7 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	utilmain "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/commands"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
@@ -54,10 +55,10 @@ const (
 	ThreadAdded UpdateType = iota
 	// ThreadRemoved is emitted when a thread is removed
 	ThreadRemoved
-	// DeviceAdded is emitted when a device is added
-	DeviceAdded
-	// DeviceRemoved is emitted when a thread is removed
-	DeviceRemoved
+	// AccountPeerAdded is emitted when an account peer (device) is added
+	AccountPeerAdded
+	// AccountPeerRemoved is emitted when an account peer (device) is removed
+	AccountPeerRemoved
 )
 
 // AddDataResult wraps added data content id and key
@@ -108,6 +109,7 @@ type Textile struct {
 	mux              sync.Mutex
 }
 
+// common errors
 var ErrAccountRequired = errors.New("account required")
 var ErrStarted = errors.New("node is started")
 var ErrStopped = errors.New("node is stopped")
@@ -183,7 +185,7 @@ func InitRepo(config InitConfig) error {
 	//if err := node.Start(); err != nil {
 	//	return err
 	//}
-	//<-node.Online()
+	//<-node.OnlineCh()
 	//if _, err := node.PublishAccountProfile(nil); err != nil {
 	//	log.Errorf("error publishing profile: %s", err)
 	//}
@@ -391,8 +393,8 @@ func (t *Textile) Started() bool {
 	return t.started
 }
 
-// Started returns whether or not node is online
-func (t *Textile) IsOnline() bool {
+// Online returns whether or not node is online
+func (t *Textile) Online() bool {
 	if t.ipfs == nil {
 		return false
 	}
@@ -423,13 +425,13 @@ func (t *Textile) Ipfs() *core.IpfsNode {
 	return t.ipfs
 }
 
-// Online returns the online channel
-func (t *Textile) Online() <-chan struct{} {
+// OnlineCh returns the online channel
+func (t *Textile) OnlineCh() <-chan struct{} {
 	return t.online
 }
 
-// Done returns the core node done channel
-func (t *Textile) Done() <-chan struct{} {
+// DoneCh returns the core node done channel
+func (t *Textile) DoneCh() <-chan struct{} {
 	return t.done
 }
 
@@ -451,6 +453,36 @@ func (t *Textile) ThreadUpdates() <-chan thread.Update {
 // Notifications returns the notifications channel
 func (t *Textile) Notifications() <-chan repo.Notification {
 	return t.notifications
+}
+
+// GetPeerId returns peer id
+func (t *Textile) GetPeerId() (peer.ID, error) {
+	if !t.started {
+		return "", ErrStopped
+	}
+	return t.ipfs.Identity, nil
+}
+
+// GetPrivKey returns the current peer private key
+func (t *Textile) GetPeerPrivKey() (libp2pc.PrivKey, error) {
+	if !t.started {
+		return nil, ErrStopped
+	}
+	if t.ipfs.PrivateKey == nil {
+		if err := t.ipfs.LoadPrivateKey(); err != nil {
+			return nil, err
+		}
+	}
+	return t.ipfs.PrivateKey, nil
+}
+
+// GetPeerPubKey returns the current peer public key
+func (t *Textile) GetPeerPubKey() (libp2pc.PubKey, error) {
+	sk, err := t.GetPeerPrivKey()
+	if err != nil {
+		return nil, err
+	}
+	return sk.GetPublic(), nil
 }
 
 // GetRepoPath returns the node's repo path
@@ -568,7 +600,7 @@ func (t *Textile) loadThread(mod *repo.Thread) (*thread.Thread, error) {
 			return t.ipfs
 		},
 		Blocks:        t.datastore.Blocks,
-		Peers:         t.datastore.Peers,
+		Peers:         t.datastore.ThreadPeers,
 		Notifications: t.datastore.Notifications,
 		GetHead: func() (string, error) {
 			thrd := t.datastore.Threads().Get(id)

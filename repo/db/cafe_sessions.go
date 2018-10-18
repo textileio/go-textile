@@ -22,7 +22,7 @@ func (c *CafeSessionDB) AddOrUpdate(session *repo.CafeSession) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert or replace into sessions(cafeId, access, refresh, expiry) values(?,?,?,?)`
+	stm := `insert or replace into cafe_sessions(cafeId, access, refresh, expiry) values(?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -46,7 +46,7 @@ func (c *CafeSessionDB) AddOrUpdate(session *repo.CafeSession) error {
 func (c *CafeSessionDB) Get(cafeId string) *repo.CafeSession {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from sessions where cafeId='" + cafeId + "';")
+	ret := c.handleQuery("select * from cafe_sessions where cafeId='" + cafeId + "';")
 	if len(ret) == 0 {
 		return nil
 	}
@@ -56,14 +56,14 @@ func (c *CafeSessionDB) Get(cafeId string) *repo.CafeSession {
 func (c *CafeSessionDB) List() []repo.CafeSession {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	stm := "select * from sessions order by expiry desc;"
+	stm := "select * from cafe_sessions order by expiry desc;"
 	return c.handleQuery(stm)
 }
 
 func (c *CafeSessionDB) Delete(cafeId string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from sessions where cafeId=?", cafeId)
+	_, err := c.db.Exec("delete from cafe_sessions where cafeId=?", cafeId)
 	return err
 }
 

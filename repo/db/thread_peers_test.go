@@ -8,20 +8,20 @@ import (
 	"testing"
 )
 
-var peerdb repo.PeerStore
+var threadpeerdb repo.ThreadPeerStore
 
 func init() {
-	setupPeerDB()
+	setupThreadPeerDB()
 }
 
-func setupPeerDB() {
+func setupThreadPeerDB() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
 	initDatabaseTables(conn, "")
-	peerdb = NewPeerStore(conn, new(sync.Mutex))
+	threadpeerdb = NewThreadPeerStore(conn, new(sync.Mutex))
 }
 
-func TestPeerDB_Add(t *testing.T) {
-	err := peerdb.Add(&repo.Peer{
+func TestThreadPeerDB_Add(t *testing.T) {
+	err := threadpeerdb.Add(&repo.ThreadPeer{
 		Row:      "abc",
 		Id:       ksuid.New().String(),
 		ThreadId: ksuid.New().String(),
@@ -30,7 +30,7 @@ func TestPeerDB_Add(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := peerdb.PrepareQuery("select row from peers where row=?")
+	stmt, err := threadpeerdb.PrepareQuery("select row from thread_peers where row=?")
 	defer stmt.Close()
 	var id string
 	err = stmt.QueryRow("abc").Scan(&id)
@@ -42,9 +42,9 @@ func TestPeerDB_Add(t *testing.T) {
 	}
 }
 
-func TestPeerDB_Get(t *testing.T) {
-	setupPeerDB()
-	err := peerdb.Add(&repo.Peer{
+func TestThreadPeerDB_Get(t *testing.T) {
+	setupThreadPeerDB()
+	err := threadpeerdb.Add(&repo.ThreadPeer{
 		Row:      "abc",
 		Id:       ksuid.New().String(),
 		ThreadId: ksuid.New().String(),
@@ -53,15 +53,15 @@ func TestPeerDB_Get(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	p := peerdb.Get("abc")
+	p := threadpeerdb.Get("abc")
 	if p == nil {
 		t.Error("could not get peer")
 	}
 }
 
-func TestPeerDB_GetById(t *testing.T) {
-	setupPeerDB()
-	err := peerdb.Add(&repo.Peer{
+func TestThreadPeerDB_GetById(t *testing.T) {
+	setupThreadPeerDB()
+	err := threadpeerdb.Add(&repo.ThreadPeer{
 		Row:      ksuid.New().String(),
 		Id:       "abc",
 		ThreadId: ksuid.New().String(),
@@ -70,15 +70,15 @@ func TestPeerDB_GetById(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	p := peerdb.GetById("abc")
+	p := threadpeerdb.GetById("abc")
 	if p == nil {
 		t.Error("could not get peer")
 	}
 }
 
-func TestPeerDB_List(t *testing.T) {
-	setupPeerDB()
-	err := peerdb.Add(&repo.Peer{
+func TestThreadPeerDB_List(t *testing.T) {
+	setupThreadPeerDB()
+	err := threadpeerdb.Add(&repo.ThreadPeer{
 		Row:      "abc",
 		Id:       ksuid.New().String(),
 		ThreadId: "foo",
@@ -87,7 +87,7 @@ func TestPeerDB_List(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	err = peerdb.Add(&repo.Peer{
+	err = threadpeerdb.Add(&repo.ThreadPeer{
 		Row:      "def",
 		Id:       ksuid.New().String(),
 		ThreadId: "boo",
@@ -96,21 +96,21 @@ func TestPeerDB_List(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	all := peerdb.List(-1, "")
+	all := threadpeerdb.List(-1, "")
 	if len(all) != 2 {
 		t.Error("returned incorrect number of peers")
 		return
 	}
-	filtered := peerdb.List(-1, "threadId='boo'")
+	filtered := threadpeerdb.List(-1, "threadId='boo'")
 	if len(filtered) != 1 {
 		t.Error("returned incorrect number of peers")
 		return
 	}
 }
 
-func TestPeerDB_Count(t *testing.T) {
-	setupPeerDB()
-	err := peerdb.Add(&repo.Peer{
+func TestThreadPeerDB_Count(t *testing.T) {
+	setupThreadPeerDB()
+	err := threadpeerdb.Add(&repo.ThreadPeer{
 		Row:      "abc",
 		Id:       "bar",
 		ThreadId: "1",
@@ -119,7 +119,7 @@ func TestPeerDB_Count(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	err = peerdb.Add(&repo.Peer{
+	err = threadpeerdb.Add(&repo.ThreadPeer{
 		Row:      "def",
 		Id:       "bar",
 		ThreadId: "2",
@@ -128,24 +128,24 @@ func TestPeerDB_Count(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	cnt := peerdb.Count("", false)
+	cnt := threadpeerdb.Count("", false)
 	if cnt != 2 {
 		t.Error("returned incorrect count of peers")
 		return
 	}
-	distinct := peerdb.Count("", true)
+	distinct := threadpeerdb.Count("", true)
 	if distinct != 1 {
 		t.Error("returned incorrect count of peers")
 		return
 	}
 }
 
-func TestPeerDB_Delete(t *testing.T) {
-	err := peerdb.Delete("bar", "1")
+func TestThreadPeerDB_Delete(t *testing.T) {
+	err := threadpeerdb.Delete("bar", "1")
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := peerdb.PrepareQuery("select row from peers where row=?")
+	stmt, err := threadpeerdb.PrepareQuery("select row from thread_peers where row=?")
 	defer stmt.Close()
 	var id string
 	err = stmt.QueryRow("abc").Scan(&id)
@@ -154,12 +154,12 @@ func TestPeerDB_Delete(t *testing.T) {
 	}
 }
 
-func TestPeerDB_DeleteByThreadId(t *testing.T) {
-	err := peerdb.DeleteByThreadId("2")
+func TestThreadPeerDB_DeleteByThreadId(t *testing.T) {
+	err := threadpeerdb.DeleteByThreadId("2")
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := peerdb.PrepareQuery("select row from peers where row=?")
+	stmt, err := threadpeerdb.PrepareQuery("select row from thread_peers where row=?")
 	defer stmt.Close()
 	var id string
 	err = stmt.QueryRow("def").Scan(&id)

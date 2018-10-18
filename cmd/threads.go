@@ -44,7 +44,7 @@ func addThread(c *ishell.Context) {
 		return
 	}
 
-	if err := core.Node.InviteDevices(thrd); err != nil {
+	if err := core.Node.InviteAccountPeers(thrd); err != nil {
 		c.Err(err)
 		return
 	}

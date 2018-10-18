@@ -8,20 +8,20 @@ import (
 	"time"
 )
 
-var storeReqDB repo.CafeRequestStore
+var cafeReqDB repo.CafeRequestStore
 
 func init() {
-	setupCafeStoreRequestDB()
+	setupCafeRequestDB()
 }
 
-func setupCafeStoreRequestDB() {
+func setupCafeRequestDB() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
 	initDatabaseTables(conn, "")
-	storeReqDB = NewCafeRequestStore(conn, new(sync.Mutex))
+	cafeReqDB = NewCafeRequestStore(conn, new(sync.Mutex))
 }
 
-func TestCafeStoreRequestDB_Put(t *testing.T) {
-	err := storeReqDB.Put(&repo.CafeRequest{
+func TestCafeRequestDB_Add(t *testing.T) {
+	err := cafeReqDB.Add(&repo.CafeRequest{
 		Id:       "abcde",
 		TargetId: "zxy",
 		CafeId:   "boom",
@@ -31,7 +31,7 @@ func TestCafeStoreRequestDB_Put(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := storeReqDB.PrepareQuery("select id from cafe_requests where id=?")
+	stmt, err := cafeReqDB.PrepareQuery("select id from cafe_requests where id=?")
 	defer stmt.Close()
 	var id string
 	err = stmt.QueryRow("abcde").Scan(&id)
@@ -43,9 +43,9 @@ func TestCafeStoreRequestDB_Put(t *testing.T) {
 	}
 }
 
-func TestCafeStoreRequestDB_List(t *testing.T) {
-	setupCafeStoreRequestDB()
-	err := storeReqDB.Put(&repo.CafeRequest{
+func TestCafeRequestDB_List(t *testing.T) {
+	setupCafeRequestDB()
+	err := cafeReqDB.Add(&repo.CafeRequest{
 		Id:       "abcde",
 		TargetId: "zxy",
 		CafeId:   "boom",
@@ -55,7 +55,7 @@ func TestCafeStoreRequestDB_List(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	err = storeReqDB.Put(&repo.CafeRequest{
+	err = cafeReqDB.Add(&repo.CafeRequest{
 		Id:       "abcdef",
 		TargetId: "zxy",
 		CafeId:   "boom",
@@ -65,29 +65,29 @@ func TestCafeStoreRequestDB_List(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	all := storeReqDB.List("", -1)
+	all := cafeReqDB.List("", -1)
 	if len(all) != 2 {
-		t.Error("returned incorrect number of cafe requests")
+		t.Error("returned incorrect number of requests")
 		return
 	}
-	limited := storeReqDB.List("", 1)
+	limited := cafeReqDB.List("", 1)
 	if len(limited) != 1 {
-		t.Error("returned incorrect number of cafe requests")
+		t.Error("returned incorrect number of requests")
 		return
 	}
-	offset := storeReqDB.List(limited[0].Id, -1)
+	offset := cafeReqDB.List(limited[0].Id, -1)
 	if len(offset) != 1 {
-		t.Error("returned incorrect number of cafe requests")
+		t.Error("returned incorrect number of requests")
 		return
 	}
 }
 
-func TestCafeStoreRequestDB_Delete(t *testing.T) {
-	err := storeReqDB.Delete("abcde")
+func TestCafeRequestDB_Delete(t *testing.T) {
+	err := cafeReqDB.Delete("abcde")
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := storeReqDB.PrepareQuery("select id from cafe_requests where id=?")
+	stmt, err := cafeReqDB.PrepareQuery("select id from cafe_requests where id=?")
 	defer stmt.Close()
 	var id string
 	if err := stmt.QueryRow("abcde").Scan(&id); err == nil {
@@ -95,9 +95,9 @@ func TestCafeStoreRequestDB_Delete(t *testing.T) {
 	}
 }
 
-func TestCafeStoreRequestDB_DeleteByCafe(t *testing.T) {
-	setupCafeStoreRequestDB()
-	err := storeReqDB.Put(&repo.CafeRequest{
+func TestCafeRequestDB_DeleteByCafe(t *testing.T) {
+	setupCafeRequestDB()
+	err := cafeReqDB.Add(&repo.CafeRequest{
 		Id:       "xyz",
 		TargetId: "zxy",
 		CafeId:   "boom",
@@ -107,11 +107,11 @@ func TestCafeStoreRequestDB_DeleteByCafe(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	err = storeReqDB.DeleteByCafe("boom")
+	err = cafeReqDB.DeleteByCafe("boom")
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := storeReqDB.PrepareQuery("select id from cafe_requests where id=?")
+	stmt, err := cafeReqDB.PrepareQuery("select id from cafe_requests where id=?")
 	defer stmt.Close()
 	var id string
 	if err := stmt.QueryRow("zyx").Scan(&id); err == nil {

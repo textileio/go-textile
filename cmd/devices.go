@@ -10,7 +10,7 @@ import (
 )
 
 func listDevices(c *ishell.Context) {
-	devices := core.Node.Devices()
+	devices := core.Node.AccountPeers()
 	if len(devices) == 0 {
 		c.Println("no devices found")
 	} else {
@@ -40,7 +40,7 @@ func addDevice(c *ishell.Context) {
 		return
 	}
 
-	if err := core.Node.AddDevice(name, did); err != nil {
+	if err := core.Node.AddAccountPeer(name, did); err != nil {
 		c.Err(err)
 		return
 	}
@@ -56,7 +56,7 @@ func removeDevice(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	err := core.Node.RemoveDevice(id)
+	err := core.Node.RemoveAccountPeer(id)
 	if err != nil {
 		c.Err(err)
 		return

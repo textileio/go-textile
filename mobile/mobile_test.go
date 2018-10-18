@@ -29,7 +29,7 @@ var threadId, threadId2 string
 var addedPhotoId, addedBlockId string
 var sharedBlockId string
 var addedPhotoKey string
-var deviceId string
+var accountPeerId string
 var noteId string
 
 func TestNewTextile(t *testing.T) {
@@ -68,8 +68,8 @@ func TestMobile_StartAgain(t *testing.T) {
 	}
 }
 
-func TestMobile_GetID(t *testing.T) {
-	id, err := mobile.GetID()
+func TestMobile_GetId(t *testing.T) {
+	id, err := mobile.GetId()
 	if err != nil {
 		t.Errorf("get id failed: %s", err)
 		return
@@ -171,7 +171,7 @@ func TestMobile_Threads(t *testing.T) {
 }
 
 func TestMobile_RemoveThread(t *testing.T) {
-	<-core.Node.Online()
+	<-core.Node.OnlineCh()
 	blockId, err := mobile.RemoveThread(defaultThreadId)
 	if err != nil {
 		t.Error(err)
@@ -185,7 +185,7 @@ func TestMobile_RemoveThread(t *testing.T) {
 	}
 }
 
-func TestMobile_AddDevice(t *testing.T) {
+func TestMobile_AddAccountPeer(t *testing.T) {
 	_, pk, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Error(err)
@@ -196,15 +196,15 @@ func TestMobile_AddDevice(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	deviceId = id.Pretty()
-	if err := mobile.AddDevice("hello", deviceId); err != nil {
-		t.Errorf("add device failed: %s", err)
+	accountPeerId = id.Pretty()
+	if err := mobile.AddAccountPeer(accountPeerId, "hello"); err != nil {
+		t.Errorf("add account peer failed: %s", err)
 	}
 }
 
 func TestMobile_AddDeviceAgain(t *testing.T) {
-	if err := mobile.AddDevice("hello", deviceId); err == nil {
-		t.Error("add same device again should fail")
+	if err := mobile.AddAccountPeer(accountPeerId, "hello"); err == nil {
+		t.Error("add same account peer again should fail")
 	}
 }
 
@@ -219,27 +219,27 @@ func TestMobile_Devices(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if err := mobile.AddDevice("another", id.Pretty()); err != nil {
-		t.Errorf("add another device failed: %s", err)
+	if err := mobile.AddAccountPeer(id.Pretty(), "another"); err != nil {
+		t.Errorf("add another account peer failed: %s", err)
 	}
-	res, err := mobile.Devices()
+	res, err := mobile.AccountPeers()
 	if err != nil {
-		t.Errorf("get devices failed: %s", err)
+		t.Errorf("get account peers failed: %s", err)
 		return
 	}
-	devices := Devices{}
-	if err := json.Unmarshal([]byte(res), &devices); err != nil {
+	peers := AccountPeers{}
+	if err := json.Unmarshal([]byte(res), &peers); err != nil {
 		t.Error(err)
 		return
 	}
-	if len(devices.Items) != 2 {
-		t.Error("get devices bad result")
+	if len(peers.Items) != 2 {
+		t.Error("get account peers bad result")
 	}
 }
 
 func TestMobile_RemoveDevice(t *testing.T) {
-	if err := mobile.RemoveDevice(deviceId); err != nil {
-		t.Errorf("remove device failed: %s", err)
+	if err := mobile.RemoveAccountPeer(accountPeerId); err != nil {
+		t.Errorf("remove account peer failed: %s", err)
 	}
 }
 

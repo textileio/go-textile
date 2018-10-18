@@ -11,16 +11,16 @@ type Thread struct {
 	Head    string `json:"head"`
 }
 
-type Device struct {
-	Id   string `json:"id"`
-	Name string `json:"name"`
-}
-
-type Peer struct {
+type ThreadPeer struct {
 	Row      string `json:"row"`
 	Id       string `json:"id"`
 	PubKey   []byte `json:"pk"`
 	ThreadId string `json:"thread_id"`
+}
+
+type AccountPeer struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
 }
 
 type Block struct {
@@ -98,22 +98,22 @@ type Notification struct {
 type NotificationType int
 
 const (
-	ReceivedInviteNotification NotificationType = iota // peerA invited you
-	DeviceAddedNotification                            // new device added
-	PhotoAddedNotification                             // peerA added a photo
-	CommentAddedNotification                           // peerA commented on peerB's photo, video, comment, etc.
-	LikeAddedNotification                              // peerA liked peerB's photo, video, comment, etc.
-	PeerJoinedNotification                             // peerA joined
-	PeerLeftNotification                               // peerA left
-	TextAddedNotification                              // peerA added a message
+	ReceivedInviteNotification   NotificationType = iota // peerA invited you
+	AccountPeerAddedNotification                         // new account peer added
+	PhotoAddedNotification                               // peerA added a photo
+	CommentAddedNotification                             // peerA commented on peerB's photo, video, comment, etc.
+	LikeAddedNotification                                // peerA liked peerB's photo, video, comment, etc.
+	PeerJoinedNotification                               // peerA joined
+	PeerLeftNotification                                 // peerA left
+	TextAddedNotification                                // peerA added a message
 )
 
 func (n NotificationType) Description() string {
 	switch n {
 	case ReceivedInviteNotification:
 		return "RECEIVED_INVITE"
-	case DeviceAddedNotification:
-		return "DEVICE_ADDED"
+	case AccountPeerAddedNotification:
+		return "ACCOUNT_PEER_ADDED"
 	case PhotoAddedNotification:
 		return "PHOTO_ADDED"
 	case CommentAddedNotification:
@@ -168,24 +168,24 @@ type CafeNonce struct {
 	Date    time.Time `json:"date"`
 }
 
-type CafeAccount struct {
+type CafeClient struct {
 	Id       string    `json:"id"`
 	Address  string    `json:"address"`
 	Created  time.Time `json:"created"`
 	LastSeen time.Time `json:"last_seen"`
 }
 
-type CafeAccountThread struct {
+type CafeClientThread struct {
 	Id         string `json:"id"`
-	AccountId  string `json:"account_id"`
+	ClientId   string `json:"client_id"`
 	SkCipher   []byte `json:"sk_cipher"`
 	HeadCipher []byte `json:"head_cipher"`
 	NameCipher []byte `json:"name_cipher"`
 }
 
 type CafeMessage struct {
-	Id        string    `json:"id"`
-	AccountId string    `json:"account_id"`
-	Date      time.Time `json:"date"`
-	Read      bool      `json:"read"`
+	Id       string    `json:"id"`
+	ClientId string    `json:"client_id"`
+	Date     time.Time `json:"date"`
+	Read     bool      `json:"read"`
 }

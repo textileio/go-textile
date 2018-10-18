@@ -7,22 +7,22 @@ import (
 	"sync"
 )
 
-type PeerDB struct {
+type ThreadPeerDB struct {
 	modelStore
 }
 
-func NewPeerStore(db *sql.DB, lock *sync.Mutex) repo.PeerStore {
-	return &PeerDB{modelStore{db, lock}}
+func NewThreadPeerStore(db *sql.DB, lock *sync.Mutex) repo.ThreadPeerStore {
+	return &ThreadPeerDB{modelStore{db, lock}}
 }
 
-func (c *PeerDB) Add(peer *repo.Peer) error {
+func (c *ThreadPeerDB) Add(peer *repo.ThreadPeer) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
 	if err != nil {
 		return err
 	}
-	stm := `insert into peers(row, id, pk, threadId) values(?,?,?,?)`
+	stm := `insert into thread_peers(row, id, pk, threadId) values(?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -43,38 +43,38 @@ func (c *PeerDB) Add(peer *repo.Peer) error {
 	return nil
 }
 
-func (c *PeerDB) Get(row string) *repo.Peer {
+func (c *ThreadPeerDB) Get(row string) *repo.ThreadPeer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from peers where row='" + row + "';")
+	ret := c.handleQuery("select * from thread_peers where row='" + row + "';")
 	if len(ret) == 0 {
 		return nil
 	}
 	return &ret[0]
 }
 
-func (c *PeerDB) GetById(id string) *repo.Peer {
+func (c *ThreadPeerDB) GetById(id string) *repo.ThreadPeer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from peers where id='" + id + "';")
+	ret := c.handleQuery("select * from thread_peers where id='" + id + "';")
 	if len(ret) == 0 {
 		return nil
 	}
 	return &ret[0]
 }
 
-func (c *PeerDB) List(limit int, query string) []repo.Peer {
+func (c *ThreadPeerDB) List(limit int, query string) []repo.ThreadPeer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	var stm, q string
 	if query != "" {
 		q = "where " + query + " "
 	}
-	stm = "select * from peers " + q + "limit " + strconv.Itoa(limit) + ";"
+	stm = "select * from thread_peers " + q + "limit " + strconv.Itoa(limit) + ";"
 	return c.handleQuery(stm)
 }
 
-func (c *PeerDB) Count(query string, distinct bool) int {
+func (c *ThreadPeerDB) Count(query string, distinct bool) int {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	var stm, q string
@@ -82,9 +82,9 @@ func (c *PeerDB) Count(query string, distinct bool) int {
 		q = " where " + query
 	}
 	if distinct {
-		stm = "select Count(distinct id) from peers" + q + ";"
+		stm = "select Count(distinct id) from thread_peers" + q + ";"
 	} else {
-		stm = "select Count(*) from peers" + q + ";"
+		stm = "select Count(*) from thread_peers" + q + ";"
 	}
 	row := c.db.QueryRow(stm)
 	var count int
@@ -92,22 +92,22 @@ func (c *PeerDB) Count(query string, distinct bool) int {
 	return count
 }
 
-func (c *PeerDB) Delete(id string, threadId string) error {
+func (c *ThreadPeerDB) Delete(id string, threadId string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from peers where id=? and threadId=?", id, threadId)
+	_, err := c.db.Exec("delete from thread_peers where id=? and threadId=?", id, threadId)
 	return err
 }
 
-func (c *PeerDB) DeleteByThreadId(threadId string) error {
+func (c *ThreadPeerDB) DeleteByThreadId(threadId string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from peers where threadId=?", threadId)
+	_, err := c.db.Exec("delete from thread_peers where threadId=?", threadId)
 	return err
 }
 
-func (c *PeerDB) handleQuery(stm string) []repo.Peer {
-	var ret []repo.Peer
+func (c *ThreadPeerDB) handleQuery(stm string) []repo.ThreadPeer {
+	var ret []repo.ThreadPeer
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -120,7 +120,7 @@ func (c *PeerDB) handleQuery(stm string) []repo.Peer {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		block := repo.Peer{
+		block := repo.ThreadPeer{
 			Row:      row,
 			Id:       id,
 			PubKey:   pk,

@@ -105,7 +105,7 @@ func (t *Thread) HandleIgnoreBlock(from *peer.ID, env *pb.Envelope, signed *pb.S
 		if err != nil {
 			return nil, err
 		}
-		newPeer := &repo.Peer{
+		newPeer := &repo.ThreadPeer{
 			Row:      ksuid.New().String(),
 			Id:       authorId.Pretty(),
 			ThreadId: threadId.Pretty(),

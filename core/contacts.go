@@ -14,7 +14,7 @@ type Contact struct {
 func (t *Textile) Contacts() []*Contact {
 	var contacts []*Contact
 	set := make(map[string]*Contact)
-	for _, peer := range t.datastore.Peers().List(-1, "") {
+	for _, peer := range t.datastore.ThreadPeers().List(-1, "") {
 		c, ok := set[peer.Id]
 		if ok {
 			c.ThreadIds = append(set[peer.Id].ThreadIds, peer.ThreadId)
@@ -31,7 +31,7 @@ func (t *Textile) Contacts() []*Contact {
 
 // ContactThreads returns all threads with the given peer
 func (t *Textile) ContactThreads(id string) []*thread.Thread {
-	peers := t.datastore.Peers().List(-1, "id='"+id+"'")
+	peers := t.datastore.ThreadPeers().List(-1, "id='"+id+"'")
 	if len(peers) == 0 {
 		return nil
 	}

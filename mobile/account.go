@@ -5,7 +5,7 @@ import (
 )
 
 // Id calls core Id
-func (m *Mobile) GetID() (string, error) {
+func (m *Mobile) GetId() (string, error) {
 	id, err := core.Node.Id()
 	if err != nil {
 		return "", err

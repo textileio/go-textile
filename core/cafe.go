@@ -36,7 +36,7 @@ func (t *Textile) ListRegisteredCafes() ([]repo.CafeSession, error) {
 
 // FetchCafeMessages fetches new messages from registered cafes
 func (t *Textile) FetchCafeMessages() error {
-	if !t.IsOnline() {
+	if !t.Online() {
 		return ErrOffline
 	}
 	// TODO

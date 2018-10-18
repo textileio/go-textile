@@ -41,7 +41,7 @@ func TestCore_Start(t *testing.T) {
 	if err := node.Start(); err != nil {
 		t.Errorf("start node failed: %s", err)
 	}
-	<-node.Online()
+	<-node.OnlineCh()
 }
 
 func TestCore_Started(t *testing.T) {
@@ -50,8 +50,8 @@ func TestCore_Started(t *testing.T) {
 	}
 }
 
-func TestCore_IsOnline(t *testing.T) {
-	if !node.IsOnline() {
+func TestCore_Online(t *testing.T) {
+	if !node.Online() {
 		t.Errorf("should report online")
 	}
 }
@@ -109,7 +109,7 @@ func TestCore_StartedAgain(t *testing.T) {
 }
 
 func TestCore_OnlineAgain(t *testing.T) {
-	if node.IsOnline() {
+	if node.Online() {
 		t.Errorf("should report offline")
 	}
 }

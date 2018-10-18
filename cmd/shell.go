@@ -71,7 +71,7 @@ func RunShell(startNode func() error, stopNode func() error) {
 		Name: "ping",
 		Help: "ping another peer",
 		Func: func(c *ishell.Context) {
-			if !core.Node.IsOnline() {
+			if !core.Node.Online() {
 				c.Println("not online yet")
 				return
 			}
@@ -96,7 +96,7 @@ func RunShell(startNode func() error, stopNode func() error) {
 		Name: "fetch-messages",
 		Help: "fetch messages from registered cafes",
 		Func: func(c *ishell.Context) {
-			if !core.Node.IsOnline() {
+			if !core.Node.Online() {
 				c.Println("not online yet")
 				return
 			}

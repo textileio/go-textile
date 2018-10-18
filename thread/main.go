@@ -42,7 +42,7 @@ type Config struct {
 	RepoPath       string
 	Ipfs           func() *core.IpfsNode
 	Blocks         func() repo.BlockStore
-	Peers          func() repo.PeerStore
+	Peers          func() repo.ThreadPeerStore
 	Notifications  func() repo.NotificationStore
 	GetHead        func() (string, error)
 	UpdateHead     func(head string) error
@@ -61,7 +61,7 @@ type Thread struct {
 	repoPath       string
 	ipfs           func() *core.IpfsNode
 	blocks         func() repo.BlockStore
-	peers          func() repo.PeerStore
+	peers          func() repo.ThreadPeerStore
 	notifications  func() repo.NotificationStore
 	GetHead        func() (string, error)
 	updateHead     func(head string) error
@@ -153,7 +153,7 @@ func (t *Thread) Blocks(offsetId string, limit int, btype *repo.BlockType, dataI
 }
 
 // Peers returns locally known peers in this thread
-func (t *Thread) Peers() []repo.Peer {
+func (t *Thread) Peers() []repo.ThreadPeer {
 	query := fmt.Sprintf("threadId='%s'", t.Id)
 	return t.peers().List(-1, query)
 }
@@ -174,8 +174,8 @@ func (t *Thread) Verify(signed *pb.SignedThreadBlock) error {
 }
 
 // FollowParents tries to follow a list of chains of block ids, processing along the way
-func (t *Thread) FollowParents(parents []string, from *peer.ID) ([]repo.Peer, error) {
-	var joins []repo.Peer
+func (t *Thread) FollowParents(parents []string, from *peer.ID) ([]repo.ThreadPeer, error) {
+	var joins []repo.ThreadPeer
 	for _, parent := range parents {
 		joined, err := t.followParent(parent, from)
 		if err != nil {
@@ -189,7 +189,7 @@ func (t *Thread) FollowParents(parents []string, from *peer.ID) ([]repo.Peer, er
 }
 
 // followParent tries to follow a chain of block ids, processing along the way
-func (t *Thread) followParent(parent string, from *peer.ID) (*repo.Peer, error) {
+func (t *Thread) followParent(parent string, from *peer.ID) (*repo.ThreadPeer, error) {
 	// first update?
 	if parent == "" {
 		log.Debugf("found genesis block, aborting")
@@ -247,7 +247,7 @@ func (t *Thread) followParent(parent string, from *peer.ID) (*repo.Peer, error) 
 	}
 
 	// handle each type
-	var joined *repo.Peer
+	var joined *repo.ThreadPeer
 	switch message.Type {
 	case pb.Message_THREAD_JOIN:
 		var err error
@@ -440,7 +440,7 @@ func (t *Thread) handleHead(inboundId string, parents []string) (mh.Multihash, e
 }
 
 // post publishes a message with content id to peers
-func (t *Thread) post(env *pb.Envelope, id string, peers []repo.Peer) {
+func (t *Thread) post(env *pb.Envelope, id string, peers []repo.ThreadPeer) {
 	if len(peers) == 0 {
 		return
 	}

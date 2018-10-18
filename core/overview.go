@@ -25,10 +25,10 @@ func (t *Textile) Overview() (*Overview, error) {
 	if err != nil {
 		return nil, err
 	}
-	devices := t.datastore.Devices().Count("")
+	devices := t.datastore.AccountPeers().Count("")
 	threads := t.datastore.Threads().Count("")
 	photos := t.datastore.Blocks().Count(fmt.Sprintf("type=%d", repo.PhotoBlock))
-	contacts := t.datastore.Peers().Count("", true)
+	contacts := t.datastore.ThreadPeers().Count("", true)
 
 	return &Overview{
 		SwarmSize:    len(swarm),

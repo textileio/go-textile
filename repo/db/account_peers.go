@@ -6,22 +6,22 @@ import (
 	"sync"
 )
 
-type DeviceDB struct {
+type AccountPeerDB struct {
 	modelStore
 }
 
-func NewDeviceStore(db *sql.DB, lock *sync.Mutex) repo.DeviceStore {
-	return &DeviceDB{modelStore{db, lock}}
+func NewAccountPeerStore(db *sql.DB, lock *sync.Mutex) repo.AccountPeerStore {
+	return &AccountPeerDB{modelStore{db, lock}}
 }
 
-func (c *DeviceDB) Add(device *repo.Device) error {
+func (c *AccountPeerDB) Add(peer *repo.AccountPeer) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
 	if err != nil {
 		return err
 	}
-	stm := `insert into devices(id, name) values(?,?)`
+	stm := `insert into account_peers(id, name) values(?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -29,8 +29,8 @@ func (c *DeviceDB) Add(device *repo.Device) error {
 	}
 	defer stmt.Close()
 	_, err = stmt.Exec(
-		device.Id,
-		device.Name,
+		peer.Id,
+		peer.Name,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -40,48 +40,48 @@ func (c *DeviceDB) Add(device *repo.Device) error {
 	return nil
 }
 
-func (c *DeviceDB) Get(id string) *repo.Device {
+func (c *AccountPeerDB) Get(id string) *repo.AccountPeer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from devices where id='" + id + "';")
+	ret := c.handleQuery("select * from account_peers where id='" + id + "';")
 	if len(ret) == 0 {
 		return nil
 	}
 	return &ret[0]
 }
 
-func (c *DeviceDB) List(query string) []repo.Device {
+func (c *AccountPeerDB) List(query string) []repo.AccountPeer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	var q string
 	if query != "" {
 		q = " where " + query
 	}
-	return c.handleQuery("select * from devices" + q + ";")
+	return c.handleQuery("select * from account_peers" + q + ";")
 }
 
-func (c *DeviceDB) Count(query string) int {
+func (c *AccountPeerDB) Count(query string) int {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	var q string
 	if query != "" {
 		q = " where " + query
 	}
-	row := c.db.QueryRow("select Count(*) from devices" + q + ";")
+	row := c.db.QueryRow("select Count(*) from account_peers" + q + ";")
 	var count int
 	row.Scan(&count)
 	return count
 }
 
-func (c *DeviceDB) Delete(id string) error {
+func (c *AccountPeerDB) Delete(id string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from devices where id=?", id)
+	_, err := c.db.Exec("delete from account_peers where id=?", id)
 	return err
 }
 
-func (c *DeviceDB) handleQuery(stm string) []repo.Device {
-	var ret []repo.Device
+func (c *AccountPeerDB) handleQuery(stm string) []repo.AccountPeer {
+	var ret []repo.AccountPeer
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -93,11 +93,11 @@ func (c *DeviceDB) handleQuery(stm string) []repo.Device {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		device := repo.Device{
+		peer := repo.AccountPeer{
 			Id:   id,
 			Name: name,
 		}
-		ret = append(ret, device)
+		ret = append(ret, peer)
 	}
 	return ret
 }

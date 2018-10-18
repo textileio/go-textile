@@ -121,7 +121,7 @@ func (t *Thread) HandleDataBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 		if err != nil {
 			return nil, err
 		}
-		newPeer := &repo.Peer{
+		newPeer := &repo.ThreadPeer{
 			Row:      ksuid.New().String(),
 			Id:       authorId.Pretty(),
 			ThreadId: threadId.Pretty(),

@@ -150,7 +150,7 @@ func (t *Thread) HandleAnnotationBlock(from *peer.ID, env *pb.Envelope, signed *
 		if err != nil {
 			return nil, err
 		}
-		newPeer := &repo.Peer{
+		newPeer := &repo.ThreadPeer{
 			Row:      ksuid.New().String(),
 			Id:       authorId.Pretty(),
 			ThreadId: threadId.Pretty(),

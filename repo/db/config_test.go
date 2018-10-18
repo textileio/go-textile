@@ -19,6 +19,7 @@ func TestMain(m *testing.M) {
 }
 
 func setup() {
+	os.RemoveAll(path.Join("./", "datastore"))
 	os.MkdirAll(path.Join("./", "datastore"), os.ModePerm)
 	testDB, _ = Create("", "letmein")
 	testDB.config.Init("letmein")

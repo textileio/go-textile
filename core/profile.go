@@ -53,7 +53,7 @@ func (t *Textile) SetUsername(username string) error {
 	}
 
 	go func() {
-		<-t.Online()
+		<-t.OnlineCh()
 
 		// publish
 		pid, err := t.Id()
@@ -103,7 +103,7 @@ func (t *Textile) SetAvatar(id string) error {
 	}
 
 	go func() {
-		<-t.Online()
+		<-t.OnlineCh()
 
 		// publish
 		pid, err := t.Id()
@@ -182,7 +182,7 @@ func (t *Textile) GetAccountProfile(peerId string) (*AccountProfile, error) {
 
 // PublishAccountProfile publishes profile to ipns
 func (t *Textile) PublishAccountProfile(prof *AccountProfile) (*ipfs.IpnsEntry, error) {
-	if !t.IsOnline() {
+	if !t.Online() {
 		return nil, ErrOffline
 	}
 	if t.ipfs.Mounts.Ipns != nil && t.ipfs.Mounts.Ipns.IsActive() {
@@ -244,7 +244,7 @@ func (t *Textile) PublishAccountProfile(prof *AccountProfile) (*ipfs.IpnsEntry, 
 
 // ResolveName looks up a profile on ipns
 func (t *Textile) ResolveName(name string) (*path.Path, error) {
-	if !t.IsOnline() {
+	if !t.Online() {
 		return nil, ErrOffline
 	}
 

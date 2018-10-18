@@ -400,17 +400,17 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 
 	// create new
 	now := time.Now()
-	account := &repo.CafeAccount{
+	client := &repo.CafeClient{
 		Id:       pid.Pretty(),
 		Address:  reg.Address,
 		Created:  now,
 		LastSeen: now,
 	}
-	if err := h.datastore.CafeAccounts().Add(account); err != nil {
+	if err := h.datastore.CafeClients().Add(client); err != nil {
 		// check if already exists
-		account = h.datastore.CafeAccounts().Get(pid.Pretty())
-		if account == nil {
-			return h.service.NewError(500, "get or create account failed", env.Message.RequestId)
+		client = h.datastore.CafeClients().Get(pid.Pretty())
+		if client == nil {
+			return h.service.NewError(500, "get or create client failed", env.Message.RequestId)
 		}
 	}
 
@@ -570,24 +570,24 @@ func (h *CafeService) handleStoreThread(pid peer.ID, env *pb.Envelope) (*pb.Enve
 		return rerr, nil
 	}
 
-	// lookup account
-	accnt := h.datastore.CafeAccounts().Get(pid.Pretty())
-	if accnt == nil {
+	// lookup client
+	client := h.datastore.CafeClients().Get(pid.Pretty())
+	if client == nil {
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
-	if err := h.datastore.CafeAccounts().UpdateLastSeen(accnt.Id, time.Now()); err != nil {
+	if err := h.datastore.CafeClients().UpdateLastSeen(client.Id, time.Now()); err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
 
 	// add or update
-	thrd := &repo.CafeAccountThread{
+	thrd := &repo.CafeClientThread{
 		Id:         store.Id,
-		AccountId:  accnt.Id,
+		ClientId:   client.Id,
 		SkCipher:   store.SkCipher,
 		HeadCipher: store.HeadCipher,
 		NameCipher: store.NameCipher,
 	}
-	if err := h.datastore.CafeAccountThreads().AddOrUpdate(thrd); err != nil {
+	if err := h.datastore.CafeClientThreads().AddOrUpdate(thrd); err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
 

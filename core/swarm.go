@@ -15,7 +15,7 @@ const pingTimeout = time.Second * 10
 
 // ConnectPeer connect to another ipfs peer (i.e., ipfs swarm connect)
 func (t *Textile) ConnectPeer(addrs []string) ([]string, error) {
-	if !t.IsOnline() {
+	if !t.Online() {
 		return nil, ErrOffline
 	}
 	swrm, ok := t.ipfs.PeerHost.Network().(*swarm.Swarm)
@@ -48,7 +48,7 @@ func (t *Textile) PingPeer(addrs string, num int, out chan string) error {
 	if !t.started {
 		return ErrStopped
 	}
-	if !t.IsOnline() {
+	if !t.Online() {
 		return ErrOffline
 	}
 	addr, pid, err := ipfs.ParsePeerParam(addrs)
@@ -107,7 +107,7 @@ func (t *Textile) PingPeer(addrs string, num int, out chan string) error {
 }
 
 func (t *Textile) Peers() ([]libp2pn.Conn, error) {
-	if !t.IsOnline() {
+	if !t.Online() {
 		return nil, ErrOffline
 	}
 	return t.ipfs.PeerHost.Network().Conns(), nil

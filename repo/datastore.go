@@ -10,16 +10,16 @@ type Datastore interface {
 	Config() ConfigStore
 	Profile() ProfileStore
 	Threads() ThreadStore
-	Devices() DeviceStore
-	Peers() PeerStore
+	ThreadPeers() ThreadPeerStore
+	AccountPeers() AccountPeerStore
 	Blocks() BlockStore
 	Notifications() NotificationStore
 	CafeSessions() CafeSessionStore
 	CafeRequests() CafeRequestStore
 	CafeNonces() CafeNonceStore
-	CafeAccounts() CafeAccountStore
-	CafeAccountThreads() CafeAccountThreadStore
-	CafeMessages() CafeMessagesStore
+	CafeClients() CafeClientStore
+	CafeClientThreads() CafeClientThreadStore
+	CafeClientMessages() CafeClientMessageStore
 	Ping() error
 	Close()
 }
@@ -57,24 +57,24 @@ type ThreadStore interface {
 	Delete(id string) error
 }
 
-type DeviceStore interface {
+type ThreadPeerStore interface {
 	Queryable
-	Add(device *Device) error
-	Get(id string) *Device
-	List(query string) []Device
-	Count(query string) int
-	Delete(id string) error
-}
-
-type PeerStore interface {
-	Queryable
-	Add(peer *Peer) error
-	Get(row string) *Peer
-	GetById(id string) *Peer
-	List(limit int, query string) []Peer
+	Add(peer *ThreadPeer) error
+	Get(row string) *ThreadPeer
+	GetById(id string) *ThreadPeer
+	List(limit int, query string) []ThreadPeer
 	Count(query string, distinct bool) int
 	Delete(id string, thread string) error
 	DeleteByThreadId(thread string) error
+}
+
+type AccountPeerStore interface {
+	Queryable
+	Add(device *AccountPeer) error
+	Get(id string) *AccountPeer
+	List(query string) []AccountPeer
+	Count(query string) int
+	Delete(id string) error
 }
 
 type BlockStore interface {
@@ -127,27 +127,27 @@ type CafeNonceStore interface {
 	Delete(value string) error
 }
 
-type CafeAccountStore interface {
-	Add(account *CafeAccount) error
-	Get(id string) *CafeAccount
+type CafeClientStore interface {
+	Add(account *CafeClient) error
+	Get(id string) *CafeClient
 	Count() int
-	List() []CafeAccount
-	ListByAddress(address string) []CafeAccount
+	List() []CafeClient
+	ListByAddress(address string) []CafeClient
 	UpdateLastSeen(id string, date time.Time) error
 	Delete(id string) error
 }
 
-type CafeAccountThreadStore interface {
-	AddOrUpdate(thrd *CafeAccountThread) error
-	ListByAccount(accountId string) []CafeAccountThread
-	Delete(id string, accountId string) error
-	DeleteByAccount(accountId string) error
+type CafeClientThreadStore interface {
+	AddOrUpdate(thrd *CafeClientThread) error
+	ListByClient(clientId string) []CafeClientThread
+	Delete(id string, clientId string) error
+	DeleteByClient(clientId string) error
 }
 
-type CafeMessagesStore interface {
+type CafeClientMessageStore interface {
 	AddOrUpdate(message *CafeMessage) error
-	ListByAccount(accountId string, offset string, limit int) []CafeMessage
-	Read(id string, accountId string) error
-	Delete(id string, accountId string) error
-	DeleteByAccount(accountId string) error
+	ListByClient(clientId string, offset string, limit int) []CafeMessage
+	Read(id string, clientId string) error
+	Delete(id string, clientId string) error
+	DeleteByClient(clientId string) error
 }

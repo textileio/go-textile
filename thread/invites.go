@@ -54,13 +54,13 @@ func (t *Thread) AddInvite(inviteeId peer.ID) (mh.Multihash, error) {
 	if err != nil {
 		return nil, err
 	}
-	target := repo.Peer{
+	target := repo.ThreadPeer{
 		Id:     inviteeId.Pretty(),
 		PubKey: inviteePkb,
 	}
 
 	// post it
-	t.post(message, id, []repo.Peer{target})
+	t.post(message, id, []repo.ThreadPeer{target})
 
 	log.Debugf("sent INVITE to %s for %s", inviteeId.Pretty(), t.Id)
 

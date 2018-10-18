@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/textileio/textile-go/core"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
@@ -50,7 +51,7 @@ func (m *Mobile) AddThread(name string) (string, error) {
 	}
 
 	// invite devices
-	if err := core.Node.InviteDevices(thrd); err != nil {
+	if err := core.Node.InviteAccountPeers(thrd); err != nil {
 		return "", err
 	}
 
@@ -74,24 +75,20 @@ func (m *Mobile) ThreadInfo(threadId string) (string, error) {
 }
 
 // AddThreadInvite adds a new invite to a thread
-func (m *Mobile) AddThreadInvite(threadId string, inviteePk string) (string, error) {
+func (m *Mobile) AddThreadInvite(threadId string, inviteeId string) (string, error) {
 	_, thrd := core.Node.GetThread(threadId)
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread: %s", threadId))
 	}
 
-	// decode pubkey
-	ikb, err := libp2pc.ConfigDecodeKey(inviteePk)
-	if err != nil {
-		return "", err
-	}
-	ipk, err := libp2pc.UnmarshalPublicKey(ikb)
+	// decode id
+	pid, err := peer.IDB58Decode(inviteeId)
 	if err != nil {
 		return "", err
 	}
 
 	// add it
-	addr, err := thrd.AddInvite(ipk)
+	addr, err := thrd.AddInvite(pid)
 	if err != nil {
 		return "", err
 	}
@@ -133,7 +130,7 @@ func (m *Mobile) AcceptExternalThreadInvite(id string, key string) (string, erro
 	return addr.B58String(), nil
 }
 
-// RemoveThread call core RemoveDevice
+// RemoveThread call core RemoveThread
 func (m *Mobile) RemoveThread(id string) (string, error) {
 	addr, err := core.Node.RemoveThread(id)
 	if err != nil {

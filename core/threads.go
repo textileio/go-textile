@@ -57,7 +57,7 @@ func (t *Textile) AddThread(name string, sk libp2pc.PrivKey, join bool) (*thread
 
 // RemoveThread removes a thread
 func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
-	if !t.IsOnline() {
+	if !t.Online() {
 		return nil, ErrOffline
 	}
 
@@ -94,7 +94,7 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 // AcceptThreadInvite attemps to download an encrypted thread key from an internal invite,
 // add the thread, and notify the inviter of the join
 func (t *Textile) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
-	if !t.IsOnline() {
+	if !t.Online() {
 		return nil, ErrOffline
 	}
 
@@ -175,7 +175,7 @@ func (t *Textile) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
 	}
 
 	// invite devices
-	if err := t.InviteDevices(thrd); err != nil {
+	if err := t.InviteAccountPeers(thrd); err != nil {
 		return nil, err
 	}
 
@@ -185,7 +185,7 @@ func (t *Textile) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
 // AcceptExternalThreadInvite attemps to download an encrypted thread key from an external invite,
 // add the thread, and notify the inviter of the join
 func (t *Textile) AcceptExternalThreadInvite(blockId string, key []byte) (mh.Multihash, error) {
-	if !t.IsOnline() {
+	if !t.Online() {
 		return nil, ErrOffline
 	}
 
@@ -261,7 +261,7 @@ func (t *Textile) AcceptExternalThreadInvite(blockId string, key []byte) (mh.Mul
 	}
 
 	// invite devices
-	if err := t.InviteDevices(thrd); err != nil {
+	if err := t.InviteAccountPeers(thrd); err != nil {
 		return nil, err
 	}
 

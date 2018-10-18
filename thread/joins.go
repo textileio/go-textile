@@ -97,7 +97,7 @@ func (t *Thread) Join(inviterPk libp2pc.PubKey, blockId string) (mh.Multihash, e
 	}
 	self := inviterPid.Pretty() == t.ipfs().Identity.Pretty()
 	if !self {
-		newPeer := &repo.Peer{
+		newPeer := &repo.ThreadPeer{
 			Row:      ksuid.New().String(),
 			Id:       inviterPid.Pretty(),
 			ThreadId: t.Id,
@@ -118,7 +118,7 @@ func (t *Thread) Join(inviterPk libp2pc.PubKey, blockId string) (mh.Multihash, e
 }
 
 // HandleJoinBlock handles an incoming join block
-func (t *Thread) HandleJoinBlock(from *peer.ID, env *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadJoin, following bool) (mh.Multihash, *repo.Peer, error) {
+func (t *Thread) HandleJoinBlock(from *peer.ID, env *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadJoin, following bool) (mh.Multihash, *repo.ThreadPeer, error) {
 	// unmarshal if needed
 	if content == nil {
 		content = new(pb.ThreadJoin)
@@ -149,14 +149,14 @@ func (t *Thread) HandleJoinBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 
 	// add invitee as a new local peer.
 	// double-check not self in case we're re-discovering the thread
-	var joined *repo.Peer
+	var joined *repo.ThreadPeer
 	self := authorId.Pretty() == t.ipfs().Identity.Pretty()
 	if !self {
 		threadId, err := ipfs.IDFromPublicKeyBytes(content.Header.ThreadPk)
 		if err != nil {
 			return nil, nil, err
 		}
-		joined = &repo.Peer{
+		joined = &repo.ThreadPeer{
 			Row:      ksuid.New().String(),
 			Id:       authorId.Pretty(),
 			ThreadId: threadId.Pretty(),
@@ -218,7 +218,7 @@ func (t *Thread) HandleJoinBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 }
 
 // welcome sends the latest HEAD block
-func (t *Thread) sendWelcome(joined repo.Peer) error {
+func (t *Thread) sendWelcome(joined repo.ThreadPeer) error {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
@@ -258,7 +258,7 @@ func (t *Thread) sendWelcome(joined repo.Peer) error {
 	log.Debugf("WELCOME sent to %s at %s", joined.Id, head)
 
 	// post it
-	t.post(env, head, []repo.Peer{joined})
+	t.post(env, head, []repo.ThreadPeer{joined})
 
 	// all done
 	return nil
