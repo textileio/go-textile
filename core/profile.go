@@ -226,7 +226,7 @@ func (t *Textile) PublishAccountProfile(prof *AccountProfile) (*ipfs.IpnsEntry, 
 	id := node.Cid().Hash().B58String()
 
 	// request cafe store
-	t.cafeRequestQueue.Put(id, repo.CafeStoreRequest)
+	t.cafeRequestQueue.Add(id, repo.CafeStoreRequest)
 
 	// load our private key
 	accnt, err := t.Account()

@@ -62,6 +62,13 @@ func (c *CafeAccountDB) Count() int {
 	return count
 }
 
+func (c *CafeAccountDB) List() []repo.CafeAccount {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	stm := "select * from accounts order by lastSeen desc;"
+	return c.handleQuery(stm)
+}
+
 func (c *CafeAccountDB) ListByAddress(address string) []repo.CafeAccount {
 	c.lock.Lock()
 	defer c.lock.Unlock()

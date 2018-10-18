@@ -48,7 +48,7 @@ type Config struct {
 	UpdateHead     func(head string) error
 	NewBlock       func(sk libp2pc.PrivKey, mtype pb.Message_Type, msg proto.Message) (*pb.Envelope, error)
 	SendMessage    func(pid peer.ID, message *pb.Envelope) error
-	PutCafeRequest func(target string, rtype repo.CafeRequestType)
+	AddCafeRequest func(target string, rtype repo.CafeRequestType)
 	GetUsername    func() (*string, error)
 	SendUpdate     func(update Update)
 }
@@ -67,7 +67,7 @@ type Thread struct {
 	updateHead     func(head string) error
 	newBlock       func(sk libp2pc.PrivKey, mtype pb.Message_Type, msg proto.Message) (*pb.Envelope, error)
 	sendMessage    func(pid peer.ID, message *pb.Envelope) error
-	putCafeRequest func(target string, rtype repo.CafeRequestType)
+	addCafeRequest func(target string, rtype repo.CafeRequestType)
 	getUsername    func() (*string, error)
 	sendUpdate     func(update Update)
 	mux            sync.Mutex
@@ -92,7 +92,7 @@ func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 		updateHead:     config.UpdateHead,
 		newBlock:       config.NewBlock,
 		sendMessage:    config.SendMessage,
-		putCafeRequest: config.PutCafeRequest,
+		addCafeRequest: config.AddCafeRequest,
 		getUsername:    config.GetUsername,
 		sendUpdate:     config.SendUpdate,
 	}, nil
@@ -341,7 +341,7 @@ func (t *Thread) addBlock(envelope *pb.Envelope) (mh.Multihash, error) {
 	}
 
 	// add a store request
-	t.putCafeRequest(id.Hash().B58String(), repo.CafeStoreRequest)
+	t.addCafeRequest(id.Hash().B58String(), repo.CafeStoreRequest)
 
 	return id.Hash(), nil
 }

@@ -129,27 +129,6 @@ func (n NotificationType) Description() string {
 	}
 }
 
-type CafeNonce struct {
-	Value   string    `json:"value"`
-	Address string    `json:"address"`
-	Date    time.Time `json:"date"`
-}
-
-type CafeAccount struct {
-	Id       string    `json:"id"`
-	Address  string    `json:"address"`
-	Created  time.Time `json:"created"`
-	LastSeen time.Time `json:"last_seen"`
-}
-
-type CafeAccountThread struct {
-	Id         string `json:"id"`
-	AccountId  string `json:"account_id"`
-	SkCipher   []byte `json:"sk_cipher"`
-	HeadCipher []byte `json:"head_cipher"`
-	NameCipher []byte `json:"name_cipher"`
-}
-
 type CafeSession struct {
 	CafeId  string    `json:"cafe_id"`
 	Access  string    `json:"access"`
@@ -181,4 +160,32 @@ type CafeRequest struct {
 	CafeId   string          `json:"cafe_id"`
 	Type     CafeRequestType `json:"type"`
 	Date     time.Time       `json:"date"`
+}
+
+type CafeNonce struct {
+	Value   string    `json:"value"`
+	Address string    `json:"address"`
+	Date    time.Time `json:"date"`
+}
+
+type CafeAccount struct {
+	Id       string    `json:"id"`
+	Address  string    `json:"address"`
+	Created  time.Time `json:"created"`
+	LastSeen time.Time `json:"last_seen"`
+}
+
+type CafeAccountThread struct {
+	Id         string `json:"id"`
+	AccountId  string `json:"account_id"`
+	SkCipher   []byte `json:"sk_cipher"`
+	HeadCipher []byte `json:"head_cipher"`
+	NameCipher []byte `json:"name_cipher"`
+}
+
+type CafeMessage struct {
+	Id        string    `json:"id"`
+	AccountId string    `json:"account_id"`
+	Date      time.Time `json:"date"`
+	Read      bool      `json:"read"`
 }

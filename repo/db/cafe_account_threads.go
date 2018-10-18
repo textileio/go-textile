@@ -43,16 +43,6 @@ func (c *CafeAccountThreadDB) AddOrUpdate(thrd *repo.CafeAccountThread) error {
 	return nil
 }
 
-func (c *CafeAccountThreadDB) Get(id string, accountId string) *repo.CafeAccountThread {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from account_threads where id='" + id + "' and accountId='" + accountId + "';")
-	if len(ret) == 0 {
-		return nil
-	}
-	return &ret[0]
-}
-
 func (c *CafeAccountThreadDB) ListByAccount(accountId string) []repo.CafeAccountThread {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -64,6 +54,13 @@ func (c *CafeAccountThreadDB) Delete(id string, accountId string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	_, err := c.db.Exec("delete from account_threads where id=? and accountId=?", id, accountId)
+	return err
+}
+
+func (c *CafeAccountThreadDB) DeleteByAccount(accountId string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("delete from account_threads where accountId=?", accountId)
 	return err
 }
 

@@ -35,8 +35,8 @@ func NewCafeRequestQueue(service func() *CafeService, node func() *core.IpfsNode
 	}
 }
 
-// Put adds a request for each active cafe session
-func (q *CafeRequestQueue) Put(target string, rtype repo.CafeRequestType) {
+// Add adds a request for each active cafe session
+func (q *CafeRequestQueue) Add(target string, rtype repo.CafeRequestType) {
 	// get active cafe sessions
 	sessions := q.datastore.CafeSessions().List()
 	if len(sessions) == 0 {
@@ -52,7 +52,7 @@ func (q *CafeRequestQueue) Put(target string, rtype repo.CafeRequestType) {
 			Type:     rtype,
 			Date:     time.Now(),
 		}
-		if err := q.datastore.CafeRequests().Put(req); err != nil {
+		if err := q.datastore.CafeRequests().Add(req); err != nil {
 			log.Errorf("error adding cafe request %s: %s", target, err)
 		}
 	}

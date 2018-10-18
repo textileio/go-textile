@@ -24,6 +24,7 @@ type SQLiteDatastore struct {
 	cafeNonces         repo.CafeNonceStore
 	cafeAccounts       repo.CafeAccountStore
 	cafeAccountThreads repo.CafeAccountThreadStore
+	cafeMessages       repo.CafeMessagesStore
 	db                 *sql.DB
 	lock               *sync.Mutex
 }
@@ -53,6 +54,7 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 		cafeNonces:         NewCafeNonceStore(conn, mux),
 		cafeAccounts:       NewCafeAccountStore(conn, mux),
 		cafeAccountThreads: NewCafeAccountThreadStore(conn, mux),
+		cafeMessages:       NewCafeMessageStore(conn, mux),
 		db:                 conn,
 		lock:               mux,
 	}
@@ -116,6 +118,10 @@ func (d *SQLiteDatastore) CafeAccountThreads() repo.CafeAccountThreadStore {
 	return d.cafeAccountThreads
 }
 
+func (d *SQLiteDatastore) CafeMessages() repo.CafeMessagesStore {
+	return d.cafeMessages
+}
+
 func (d *SQLiteDatastore) Copy(dbPath string, password string) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
@@ -176,15 +182,17 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index notification_subjectId on notifications (subjectId);
     create index notification_blockId on notifications (blockId);
     create index notification_read on notifications (read);
+    create table sessions (cafeId text primary key not null, access text not null, refresh text not null, expiry integer not null);
+    create table cafe_requests (id text primary key not null, targetId text not null, cafeId text not null, type integer not null, date integer not null);
+    create index cafe_request_cafeId on cafe_requests (cafeId);
 	create table nonces (value text primary key not null, address text not null, date integer not null);
     create table accounts (id text primary key not null, address text not null, created integer not null, lastSeen integer not null);
     create index account_address on accounts (address);
     create index account_lastSeen on accounts (lastSeen);
     create table account_threads (id text not null, accountId text not null, skCipher blob not null, headCipher blob not null, nameCipher blob not null, primary key (id, accountId));
     create index account_thread_accountId on account_threads (accountId);
-    create table sessions (cafeId text primary key not null, access text not null, refresh text not null, expiry integer not null);
-    create table cafe_requests (id text primary key not null, targetId text not null, cafeId text not null, type integer not null, date integer not null);
-    create index cafe_request_cafeId on cafe_requests (cafeId);
+	create table cafe_messages (id text not null, accountId text not null, date integer not null, read integer not null, primary key (id, accountId));
+    create index cafe_message_accountId_read on cafe_messages (accountId, read);
 	`
 	_, err := db.Exec(sqlStmt)
 	if err != nil {

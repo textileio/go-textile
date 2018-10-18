@@ -16,7 +16,7 @@ func NewCafeRequestStore(db *sql.DB, lock *sync.Mutex) repo.CafeRequestStore {
 	return &CafeRequestDB{modelStore{db, lock}}
 }
 
-func (c *CafeRequestDB) Put(req *repo.CafeRequest) error {
+func (c *CafeRequestDB) Add(req *repo.CafeRequest) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()

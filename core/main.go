@@ -581,12 +581,12 @@ func (t *Textile) loadThread(mod *repo.Thread) (*thread.Thread, error) {
 			if err := t.datastore.Threads().UpdateHead(id, head); err != nil {
 				return err
 			}
-			t.cafeRequestQueue.Put(id, repo.CafeStoreThreadRequest)
+			t.cafeRequestQueue.Add(id, repo.CafeStoreThreadRequest)
 			return nil
 		},
 		NewBlock:       t.threadsService.NewBlock,
 		SendMessage:    t.threadsService.SendMessage,
-		PutCafeRequest: t.cafeRequestQueue.Put,
+		AddCafeRequest: t.cafeRequestQueue.Add,
 		GetUsername:    t.GetUsername,
 		SendUpdate:     t.sendThreadUpdate,
 	}

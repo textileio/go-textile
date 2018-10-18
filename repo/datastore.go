@@ -19,6 +19,7 @@ type Datastore interface {
 	CafeNonces() CafeNonceStore
 	CafeAccounts() CafeAccountStore
 	CafeAccountThreads() CafeAccountThreadStore
+	CafeMessages() CafeMessagesStore
 	Ping() error
 	Close()
 }
@@ -112,7 +113,7 @@ type CafeSessionStore interface {
 
 type CafeRequestStore interface {
 	Queryable
-	Put(req *CafeRequest) error
+	Add(req *CafeRequest) error
 	List(offset string, limit int) []CafeRequest
 	Delete(id string) error
 	DeleteByCafe(cafeId string) error
@@ -130,6 +131,7 @@ type CafeAccountStore interface {
 	Add(account *CafeAccount) error
 	Get(id string) *CafeAccount
 	Count() int
+	List() []CafeAccount
 	ListByAddress(address string) []CafeAccount
 	UpdateLastSeen(id string, date time.Time) error
 	Delete(id string) error
@@ -137,7 +139,15 @@ type CafeAccountStore interface {
 
 type CafeAccountThreadStore interface {
 	AddOrUpdate(thrd *CafeAccountThread) error
-	Get(id string, accountId string) *CafeAccountThread
 	ListByAccount(accountId string) []CafeAccountThread
 	Delete(id string, accountId string) error
+	DeleteByAccount(accountId string) error
+}
+
+type CafeMessagesStore interface {
+	AddOrUpdate(message *CafeMessage) error
+	ListByAccount(accountId string, offset string, limit int) []CafeMessage
+	Read(id string, accountId string) error
+	Delete(id string, accountId string) error
+	DeleteByAccount(accountId string) error
 }
