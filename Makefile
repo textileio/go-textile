@@ -4,12 +4,9 @@ build:
 
 build_ios_framework:
 	gomobile bind -target=ios github.com/textileio/textile-go/mobile
-	# rm -rf ../textile-mobile/node_modules/@textile/go-mobile/ios/Mobile.framework
-	# mv Mobile.framework ../textile-mobile/node_modules/@textile/go-mobile/ios/
 
 build_android_framework:
 	gomobile bind -target=android -o textilego.aar github.com/textileio/textile-go/mobile
-	# mv textilego.aar ../textile-mobile/node_modules/@textile/go-mobile/android/
 
 build_cafe:
 	go get github.com/kardianos/govendor

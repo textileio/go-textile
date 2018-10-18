@@ -4,13 +4,17 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"github.com/gin-gonic/gin"
-	"github.com/textileio/textile-go/cafe/models"
 	"github.com/textileio/textile-go/ipfs"
 	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	uio "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/unixfs/io"
 	"io"
 	"net/http"
 )
+
+type PinResponse struct {
+	Id    *string `json:"id,omitempty"`
+	Error *string `json:"error,omitempty"`
+}
 
 func (c *Cafe) pin(g *gin.Context) {
 	var id *cid.Cid
@@ -87,7 +91,7 @@ func (c *Cafe) pin(g *gin.Context) {
 	log.Debugf("pinned request with content type %s: %s", cType, hash)
 
 	// ship it
-	g.JSON(http.StatusCreated, models.PinResponse{
+	g.JSON(http.StatusCreated, PinResponse{
 		Id: &hash,
 	})
 }

@@ -3,21 +3,13 @@ package client
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/textileio/textile-go/cafe/models"
+	"github.com/textileio/textile-go/cafe"
 	"io"
 	"io/ioutil"
 	"net/http"
 )
 
-func unmarshalJSON(body io.ReadCloser, target interface{}) error {
-	b, err := ioutil.ReadAll(body)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(b, target)
-}
-
-func Pin(accessToken string, reader io.Reader, url string, cType string) (*models.PinResponse, error) {
+func Pin(accessToken string, reader io.Reader, url string, cType string) (*cafe.PinResponse, error) {
 	// build the request
 	req, err := http.NewRequest("POST", url, reader)
 	if err != nil {
@@ -31,9 +23,17 @@ func Pin(accessToken string, reader io.Reader, url string, cType string) (*model
 		return nil, err
 	}
 	defer res.Body.Close()
-	resp := &models.PinResponse{}
+	resp := &cafe.PinResponse{}
 	if err := unmarshalJSON(res.Body, resp); err != nil {
 		return nil, err
 	}
 	return resp, nil
+}
+
+func unmarshalJSON(body io.ReadCloser, target interface{}) error {
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(b, target)
 }

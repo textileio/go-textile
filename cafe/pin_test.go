@@ -1,7 +1,6 @@
 package cafe
 
 import (
-	"github.com/textileio/textile-go/cafe/models"
 	"github.com/textileio/textile-go/repo"
 	"os"
 	"testing"
@@ -32,7 +31,7 @@ func TestPin_Pin(t *testing.T) {
 		t.Errorf("got bad status: %d", res.StatusCode)
 		return
 	}
-	resp := &models.PinResponse{}
+	resp := &PinResponse{}
 	if err := unmarshalJSON(res.Body, resp); err != nil {
 		t.Error(err)
 		return
@@ -63,7 +62,7 @@ func TestPin_PinArchive(t *testing.T) {
 		t.Errorf("got bad status: %d", res.StatusCode)
 		return
 	}
-	resp := &models.PinResponse{}
+	resp := &PinResponse{}
 	if err := unmarshalJSON(res.Body, resp); err != nil {
 		t.Error(err)
 		return
