@@ -9,11 +9,13 @@ import (
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/net"
+	"github.com/textileio/textile-go/net/service"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/thread"
 	"gopkg.in/natefinch/lumberjack.v2"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	utilmain "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/commands"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
@@ -308,7 +310,7 @@ func (t *Textile) Start() error {
 		t.cafeService = net.NewCafeService(accnt, t.ipfs, t.datastore)
 
 		// start store queue
-		if t.IsMobile() {
+		if t.Mobile() {
 			go t.cafeRequestQueue.Flush()
 		} else {
 			go t.cafeRequestQueue.Run()
@@ -384,10 +386,12 @@ func (t *Textile) Stop() error {
 	return nil
 }
 
+// Started returns whether or not node is started
 func (t *Textile) Started() bool {
 	return t.started
 }
 
+// Started returns whether or not node is online
 func (t *Textile) IsOnline() bool {
 	if t.ipfs == nil {
 		return false
@@ -395,7 +399,8 @@ func (t *Textile) IsOnline() bool {
 	return t.started && t.ipfs.OnlineMode()
 }
 
-func (t *Textile) IsMobile() bool {
+// Mobile returns whether or not node is configured for a mobile device
+func (t *Textile) Mobile() bool {
 	if err := t.touchDatastore(); err != nil {
 		log.Errorf("error calling is mobile: %s", err)
 		return false
@@ -408,49 +413,47 @@ func (t *Textile) IsMobile() bool {
 	return mobile
 }
 
+// Version return core node version
 func (t *Textile) Version() string {
 	return t.version
 }
 
+// Ipfs returns the underlying ipfs node
 func (t *Textile) Ipfs() *core.IpfsNode {
 	return t.ipfs
 }
 
-func (t *Textile) CafeService() *net.CafeService {
-	return t.cafeService
-}
-
-func (t *Textile) FetchMessages() error {
-	if !t.IsOnline() {
-		return ErrOffline
-	}
-	//if t.messageRetriever.IsFetching() {
-	//	return net.ErrFetching
-	//}
-	//go t.messageRetriever.FetchPointers()
-	return nil
-}
-
+// Online returns the online channel
 func (t *Textile) Online() <-chan struct{} {
 	return t.online
 }
 
+// Done returns the core node done channel
 func (t *Textile) Done() <-chan struct{} {
 	return t.done
 }
 
+// Ping pings another peer
+func (t *Textile) Ping(pid peer.ID) (service.PeerStatus, error) {
+	return t.cafeService.Ping(pid)
+}
+
+// Update returns the node update channel
 func (t *Textile) Updates() <-chan Update {
 	return t.updates
 }
 
+// ThreadUpdates returns the thread update channel
 func (t *Textile) ThreadUpdates() <-chan thread.Update {
 	return t.threadUpdates
 }
 
+// Notifications returns the notifications channel
 func (t *Textile) Notifications() <-chan repo.Notification {
 	return t.notifications
 }
 
+// GetRepoPath returns the node's repo path
 func (t *Textile) GetRepoPath() string {
 	return t.repoPath
 }
@@ -482,7 +485,7 @@ func (t *Textile) createIPFS(online bool) error {
 
 	// determine routing
 	routing := core.DHTOption
-	if t.IsMobile() {
+	if t.Mobile() {
 		routing = core.DHTClientOption
 	}
 
@@ -535,6 +538,7 @@ func (t *Textile) createIPFS(online bool) error {
 	return nil
 }
 
+// getThreadByBlock returns the thread owning the given block
 func (t *Textile) getThreadByBlock(block *repo.Block) (*thread.Thread, error) {
 	if block == nil {
 		return nil, errors.New("block is empty")
@@ -552,6 +556,7 @@ func (t *Textile) getThreadByBlock(block *repo.Block) (*thread.Thread, error) {
 	return thrd, nil
 }
 
+// loadThread loads a thread into memory from the given on-disk model
 func (t *Textile) loadThread(mod *repo.Thread) (*thread.Thread, error) {
 	if _, loaded := t.GetThread(mod.Id); loaded != nil {
 		return nil, ErrThreadLoaded

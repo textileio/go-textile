@@ -84,7 +84,7 @@ func RunShell(startNode func() error, stopNode func() error) {
 				c.Println(fmt.Errorf("bad peer id: %s", err))
 				return
 			}
-			status, err := core.Node.CafeService().Ping(pid)
+			status, err := core.Node.Ping(pid)
 			if err != nil {
 				c.Println(fmt.Errorf("ping failed: %s", err))
 				return
@@ -94,13 +94,13 @@ func RunShell(startNode func() error, stopNode func() error) {
 	})
 	shell.AddCmd(&ishell.Cmd{
 		Name: "fetch-messages",
-		Help: "fetch offline messages from the DHT",
+		Help: "fetch messages from registered cafes",
 		Func: func(c *ishell.Context) {
 			if !core.Node.IsOnline() {
 				c.Println("not online yet")
 				return
 			}
-			if err := core.Node.FetchMessages(); err != nil {
+			if err := core.Node.FetchCafeMessages(); err != nil {
 				c.Println(fmt.Errorf("fetch messages failed: %s", err))
 				return
 			}
@@ -110,13 +110,23 @@ func RunShell(startNode func() error, stopNode func() error) {
 	{
 		cafeCmd := &ishell.Cmd{
 			Name:     "cafe",
-			Help:     "manage cafe session",
-			LongHelp: "Manage your cafe user session.",
+			Help:     "manage cafe sessions",
+			LongHelp: "Manage cafe sessions.",
 		}
 		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "register",
-			Help: "cafe register",
+			Name: "add",
+			Help: "add a new cafe",
 			Func: cafeRegister,
+		})
+		cafeCmd.AddCmd(&ishell.Cmd{
+			Name: "ls",
+			Help: "list active cafes",
+			Func: cafeList,
+		})
+		cafeCmd.AddCmd(&ishell.Cmd{
+			Name: "rm",
+			Help: "remove a cafe",
+			Func: cafeDeregister,
 		})
 		shell.AddCmd(cafeCmd)
 	}
