@@ -56,11 +56,6 @@ func (h *ThreadsService) Ping(pid peer.ID) (service.PeerStatus, error) {
 	return h.service.Ping(pid)
 }
 
-// VerifyEnvelope calls service verify
-func (h *ThreadsService) VerifyEnvelope(env *pb.Envelope) error {
-	return h.service.VerifyEnvelope(env)
-}
-
 // Handle is called by the underlying service handler method
 func (h *ThreadsService) Handle(mtype pb.Message_Type) func(peer.ID, *pb.Envelope) (*pb.Envelope, error) {
 	switch mtype {
@@ -83,6 +78,11 @@ func (h *ThreadsService) Handle(mtype pb.Message_Type) func(peer.ID, *pb.Envelop
 	}
 }
 
+// SendMessage sends a message to a peer
+func (h *ThreadsService) SendMessage(pid peer.ID, env *pb.Envelope) error {
+	return h.service.SendMessage(pid, env)
+}
+
 // NewBlock returns a thread-signed block in an envelope
 func (h *ThreadsService) NewBlock(sk libp2pc.PrivKey, mtype pb.Message_Type, msg proto.Message) (*pb.Envelope, error) {
 	ser, err := proto.Marshal(msg)
@@ -100,9 +100,9 @@ func (h *ThreadsService) NewBlock(sk libp2pc.PrivKey, mtype pb.Message_Type, msg
 	return h.service.NewEnvelope(mtype, signed, nil, false)
 }
 
-// SendMessage sends a message to a peer
-func (h *ThreadsService) SendMessage(pid peer.ID, env *pb.Envelope) error {
-	return h.service.SendMessage(pid, env)
+// VerifyEnvelope calls service verify
+func (h *ThreadsService) VerifyEnvelope(env *pb.Envelope) error {
+	return h.service.VerifyEnvelope(env)
 }
 
 // handleInvite receives an invite message

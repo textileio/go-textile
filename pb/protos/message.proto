@@ -23,6 +23,7 @@ message Message {
         CAFE_BLOCKLIST       = 57;
         CAFE_STORE_THREAD    = 58;
         CAFE_STORED          = 59;
+        CAFE_MESSAGE         = 60;
 
         THREAD_INVITE          = 100;
         THREAD_EXTERNAL_INVITE = 101;

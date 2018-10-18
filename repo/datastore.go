@@ -145,8 +145,8 @@ type CafeClientThreadStore interface {
 }
 
 type CafeClientMessageStore interface {
-	AddOrUpdate(message *CafeMessage) error
-	ListByClient(clientId string, offset string, limit int) []CafeMessage
+	AddOrUpdate(message *CafeClientMessage) error
+	ListByClient(clientId string, offset string, limit int) []CafeClientMessage
 	Read(id string, clientId string) error
 	Delete(id string, clientId string) error
 	DeleteByClient(clientId string) error

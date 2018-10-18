@@ -10,6 +10,7 @@ import (
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/net"
 	"github.com/textileio/textile-go/net/service"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/thread"
@@ -617,7 +618,7 @@ func (t *Textile) loadThread(mod *repo.Thread) (*thread.Thread, error) {
 			return nil
 		},
 		NewBlock:       t.threadsService.NewBlock,
-		SendMessage:    t.threadsService.SendMessage,
+		SendMessage:    t.sendMessage,
 		AddCafeRequest: t.cafeRequestQueue.Add,
 		GetUsername:    t.GetUsername,
 		SendUpdate:     t.sendThreadUpdate,
@@ -628,6 +629,14 @@ func (t *Textile) loadThread(mod *repo.Thread) (*thread.Thread, error) {
 	}
 	t.threads = append(t.threads, thrd)
 	return thrd, nil
+}
+
+// sendMessage sends a message directly to a peer, falling back
+// it will attempt to deliver the message to the peer's cafe inbox(es) if known
+func (t *Textile) sendMessage(tpeer *repo.ThreadPeer, env *pb.Envelope) error {
+	//t.threadsService.SendMessage
+	//t.cafeService.DeliverMessage
+	return nil
 }
 
 // sendUpdate adds an update to the update channel

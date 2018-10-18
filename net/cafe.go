@@ -33,7 +33,7 @@ const (
 	errForbidden      = "forbidden"
 )
 
-// CafeService is a libp2p service for proxing
+// CafeService is a libp2p pinning and offline message service
 type CafeService struct {
 	service   *service.Service
 	datastore repo.Datastore
@@ -71,6 +71,8 @@ func (h *CafeService) Handle(mtype pb.Message_Type) func(peer.ID, *pb.Envelope) 
 		return h.handleBlock
 	case pb.Message_CAFE_STORE_THREAD:
 		return h.handleStoreThread
+	case pb.Message_CAFE_MESSAGE:
+		return h.handleMessage
 	default:
 		return nil
 	}
@@ -211,6 +213,19 @@ func (h *CafeService) StoreThread(thrd *repo.Thread, cafe peer.ID) error {
 		return err
 	}
 	return nil
+}
+
+// DeliverMessage delivers a message content id to a peer's cafe inbox
+func (h *CafeService) DeliverMessage(mid string, pid peer.ID, cafe peer.ID) error {
+	// build request
+	env, err := h.service.NewEnvelope(pb.Message_CAFE_MESSAGE, &pb.CafeMessage{
+		Id:       mid,
+		ClientId: pid.Pretty(),
+	}, nil, false)
+	if err != nil {
+		return err
+	}
+	return h.service.SendMessage(cafe, env)
 }
 
 // sendCafeRequest sends an authenticated request, retrying once after a session refresh
@@ -594,6 +609,34 @@ func (h *CafeService) handleStoreThread(pid peer.ID, env *pb.Envelope) (*pb.Enve
 	// return a wrapped response
 	res := &pb.CafeStored{Id: store.Id}
 	return h.service.NewEnvelope(pb.Message_CAFE_STORED, res, &env.Message.RequestId, true)
+}
+
+// handleMessage receives an inbox message for a client
+func (h *CafeService) handleMessage(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	msg := new(pb.CafeMessage)
+	err := ptypes.UnmarshalAny(env.Message.Payload, msg)
+	if err != nil {
+		return nil, err
+	}
+
+	// lookup client
+	client := h.datastore.CafeClients().Get(msg.ClientId)
+	if client == nil {
+		log.Warningf("received message from %s for unknown client %s", pid.Pretty(), msg.ClientId)
+		return nil, nil
+	}
+
+	// add or update
+	message := &repo.CafeClientMessage{
+		Id:       msg.Id,
+		ClientId: client.Id,
+		Date:     time.Now(),
+	}
+	if err := h.datastore.CafeClientMessages().AddOrUpdate(message); err != nil {
+		log.Errorf("error adding message: %s", err)
+		return nil, nil
+	}
+	return nil, nil
 }
 
 // authToken verifies a request token from a peer

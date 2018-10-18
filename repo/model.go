@@ -183,7 +183,7 @@ type CafeClientThread struct {
 	NameCipher []byte `json:"name_cipher"`
 }
 
-type CafeMessage struct {
+type CafeClientMessage struct {
 	Id       string    `json:"id"`
 	ClientId string    `json:"client_id"`
 	Date     time.Time `json:"date"`

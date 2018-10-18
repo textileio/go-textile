@@ -47,7 +47,7 @@ type Config struct {
 	GetHead        func() (string, error)
 	UpdateHead     func(head string) error
 	NewBlock       func(sk libp2pc.PrivKey, mtype pb.Message_Type, msg proto.Message) (*pb.Envelope, error)
-	SendMessage    func(pid peer.ID, message *pb.Envelope) error
+	SendMessage    func(tpeer *repo.ThreadPeer, message *pb.Envelope) error
 	AddCafeRequest func(target string, rtype repo.CafeRequestType)
 	GetUsername    func() (*string, error)
 	SendUpdate     func(update Update)
@@ -66,7 +66,7 @@ type Thread struct {
 	GetHead        func() (string, error)
 	updateHead     func(head string) error
 	newBlock       func(sk libp2pc.PrivKey, mtype pb.Message_Type, msg proto.Message) (*pb.Envelope, error)
-	sendMessage    func(pid peer.ID, message *pb.Envelope) error
+	sendMessage    func(tpeer *repo.ThreadPeer, message *pb.Envelope) error
 	addCafeRequest func(target string, rtype repo.CafeRequestType)
 	getUsername    func() (*string, error)
 	sendUpdate     func(update Update)
@@ -445,19 +445,14 @@ func (t *Thread) post(env *pb.Envelope, id string, peers []repo.ThreadPeer) {
 		return
 	}
 	wg := sync.WaitGroup{}
-	for _, p := range peers {
+	for _, tp := range peers {
 		wg.Add(1)
-		go func(peerId string) {
-			pid, err := peer.IDB58Decode(peerId)
-			if err != nil {
-				log.Errorf("error decoding peer id %s: %s", peerId, err)
-				return
-			}
-			if err := t.sendMessage(pid, env); err != nil {
-				log.Errorf("error sending block %s to peer %s: %s", id, peerId, err)
+		go func(tp repo.ThreadPeer) {
+			if err := t.sendMessage(&tp, env); err != nil {
+				log.Errorf("error sending block %s to peer %s: %s", id, tp.Id, err)
 			}
 			wg.Done()
-		}(p.Id)
+		}(tp)
 	}
 	wg.Wait()
 }

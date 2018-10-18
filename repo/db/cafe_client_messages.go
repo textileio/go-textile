@@ -16,7 +16,7 @@ func NewCafeClientMessageStore(db *sql.DB, lock *sync.Mutex) repo.CafeClientMess
 	return &CafeClientMessagesDB{modelStore{db, lock}}
 }
 
-func (c *CafeClientMessagesDB) AddOrUpdate(message *repo.CafeMessage) error {
+func (c *CafeClientMessagesDB) AddOrUpdate(message *repo.CafeClientMessage) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -44,7 +44,7 @@ func (c *CafeClientMessagesDB) AddOrUpdate(message *repo.CafeMessage) error {
 	return nil
 }
 
-func (c *CafeClientMessagesDB) ListByClient(clientId string, offset string, limit int) []repo.CafeMessage {
+func (c *CafeClientMessagesDB) ListByClient(clientId string, offset string, limit int) []repo.CafeClientMessage {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	var stm string
@@ -77,8 +77,8 @@ func (c *CafeClientMessagesDB) DeleteByClient(clientId string) error {
 	return err
 }
 
-func (c *CafeClientMessagesDB) handleQuery(stm string) []repo.CafeMessage {
-	var ret []repo.CafeMessage
+func (c *CafeClientMessagesDB) handleQuery(stm string) []repo.CafeClientMessage {
+	var ret []repo.CafeClientMessage
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -95,7 +95,7 @@ func (c *CafeClientMessagesDB) handleQuery(stm string) []repo.CafeMessage {
 		if readInt == 1 {
 			read = true
 		}
-		message := repo.CafeMessage{
+		message := repo.CafeClientMessage{
 			Id:       id,
 			ClientId: clientId,
 			Date:     time.Unix(int64(dateInt), 0),
