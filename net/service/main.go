@@ -11,7 +11,6 @@ import (
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 	inet "gx/ipfs/QmPjvxTpVH8qJyQDnxnsxF9kv9jezKD1kozz1hs3fCGsNh/go-libp2p-net"
 	"gx/ipfs/QmTKsRYeY4simJyf37K93juSq75Lo8MVCDJ7owjmf46u8W/go-context/io"
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
@@ -31,7 +30,6 @@ var log = logging.MustGetLogger("net")
 type Service struct {
 	Account   *keypair.Full
 	Node      *core.IpfsNode
-	Datastore repo.Datastore
 	handler   Handler
 	sender    map[peer.ID]*sender
 	senderMux sync.Mutex
@@ -51,22 +49,17 @@ const (
 // Handler is used to handle messages for a specific protocol
 type Handler interface {
 	Protocol() protocol.ID
-	Account() *keypair.Full
-	Node() *core.IpfsNode
-	Datastore() repo.Datastore
 	Ping(pid peer.ID) (PeerStatus, error)
-	VerifyEnvelope(env *pb.Envelope) error
 	Handle(mtype pb.Message_Type) func(peer.ID, *pb.Envelope) (*pb.Envelope, error)
 }
 
 // NewService returns a service for the given config
-func NewService(account *keypair.Full, handler Handler, node *core.IpfsNode, datastore repo.Datastore) *Service {
+func NewService(account *keypair.Full, handler Handler, node *core.IpfsNode) *Service {
 	service := &Service{
-		Account:   account,
-		Node:      node,
-		Datastore: datastore,
-		handler:   handler,
-		sender:    make(map[peer.ID]*sender),
+		Account: account,
+		Node:    node,
+		handler: handler,
+		sender:  make(map[peer.ID]*sender),
 	}
 	node.PeerHost.SetStreamHandler(handler.Protocol(), service.handleNewStream)
 	log.Debugf("registered service: %s", handler.Protocol())

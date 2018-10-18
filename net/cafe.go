@@ -35,13 +35,14 @@ const (
 
 // CafeService is a libp2p service for proxing
 type CafeService struct {
-	service *service.Service
+	service   *service.Service
+	datastore repo.Datastore
 }
 
 // NewCafeService returns a new threads service
 func NewCafeService(account *keypair.Full, node *core.IpfsNode, datastore repo.Datastore) *CafeService {
-	handler := &CafeService{}
-	handler.service = service.NewService(account, handler, node, datastore)
+	handler := &CafeService{datastore: datastore}
+	handler.service = service.NewService(account, handler, node)
 	return handler
 }
 
@@ -50,29 +51,9 @@ func (h *CafeService) Protocol() protocol.ID {
 	return protocol.ID("/textile/cafe/1.0.0")
 }
 
-// Account returns the underlying account keypair
-func (h *CafeService) Account() *keypair.Full {
-	return h.service.Account
-}
-
-// Node returns the underlying ipfs Node
-func (h *CafeService) Node() *core.IpfsNode {
-	return h.service.Node
-}
-
-// Datastore returns the underlying datastore
-func (h *CafeService) Datastore() repo.Datastore {
-	return h.service.Datastore
-}
-
 // Ping pings another peer
 func (h *CafeService) Ping(pid peer.ID) (service.PeerStatus, error) {
 	return h.service.Ping(pid)
-}
-
-// VerifyEnvelope calls service verify
-func (h *CafeService) VerifyEnvelope(env *pb.Envelope) error {
-	return h.service.VerifyEnvelope(env)
 }
 
 // Handle is called by the underlying service handler method
@@ -98,7 +79,7 @@ func (h *CafeService) Handle(mtype pb.Message_Type) func(peer.ID, *pb.Envelope) 
 // Register creates a session with a cafe
 func (h *CafeService) Register(cafe peer.ID) error {
 	// get a challenge
-	accnt, err := h.Datastore().Config().GetAccount()
+	accnt, err := h.datastore.Config().GetAccount()
 	if err != nil {
 		return err
 	}
@@ -147,7 +128,7 @@ func (h *CafeService) Register(cafe peer.ID) error {
 		Refresh: res.Refresh,
 		Expiry:  exp,
 	}
-	return h.Datastore().CafeSessions().AddOrUpdate(session)
+	return h.datastore.CafeSessions().AddOrUpdate(session)
 }
 
 // Store stores (pins) content on a cafe and returns a list of successful cids
@@ -198,20 +179,20 @@ func (h *CafeService) Store(cids []string, cafe peer.ID) ([]string, error) {
 // StoreThread pushes a thread to a cafe backup
 func (h *CafeService) StoreThread(thrd *repo.Thread, cafe peer.ID) error {
 	// encrypt thread components
-	skCipher, err := h.Account().Encrypt(thrd.PrivKey)
+	skCipher, err := h.service.Account.Encrypt(thrd.PrivKey)
 	if err != nil {
 		return err
 	}
 	var headCipher []byte
 	if thrd.Head != "" {
-		headCipher, err = h.Account().Encrypt([]byte(thrd.Head))
+		headCipher, err = h.service.Account.Encrypt([]byte(thrd.Head))
 		if err != nil {
 			return err
 		}
 	}
 	var nameCipher []byte
 	if thrd.Name != "" {
-		nameCipher, err = h.Account().Encrypt([]byte(thrd.Name))
+		nameCipher, err = h.service.Account.Encrypt([]byte(thrd.Name))
 		if err != nil {
 			return err
 		}
@@ -235,7 +216,7 @@ func (h *CafeService) StoreThread(thrd *repo.Thread, cafe peer.ID) error {
 // sendCafeRequest sends an authenticated request, retrying once after a session refresh
 func (h *CafeService) sendCafeRequest(cafe peer.ID, envFactory func(*repo.CafeSession) (*pb.Envelope, error)) (*pb.Envelope, error) {
 	// find access token for this cafe
-	session := h.Datastore().CafeSessions().Get(cafe.Pretty())
+	session := h.datastore.CafeSessions().Get(cafe.Pretty())
 	if session == nil {
 		return nil, errors.New(fmt.Sprintf("could not find session for cafe %s", cafe.Pretty()))
 	}
@@ -320,7 +301,7 @@ func (h *CafeService) refresh(session *repo.CafeSession) (*repo.CafeSession, err
 		Refresh: res.Refresh,
 		Expiry:  exp,
 	}
-	if err := h.Datastore().CafeSessions().AddOrUpdate(refreshed); err != nil {
+	if err := h.datastore.CafeSessions().AddOrUpdate(refreshed); err != nil {
 		return nil, err
 	}
 	return refreshed, nil
@@ -331,7 +312,7 @@ func (h *CafeService) sendBlock(id cid.Cid, pid peer.ID, token string) error {
 	// get block locally
 	ctx, cancel := context.WithTimeout(context.Background(), blockTimeout)
 	defer cancel()
-	block, err := h.Node().Blocks.GetBlock(ctx, &id)
+	block, err := h.service.Node.Blocks.GetBlock(ctx, &id)
 	if err != nil {
 		return err
 	}
@@ -375,7 +356,7 @@ func (h *CafeService) handleChallenge(pid peer.ID, env *pb.Envelope) (*pb.Envelo
 		Address: req.Address,
 		Date:    time.Now(),
 	}
-	if err := h.Datastore().CafeNonces().Add(nonce); err != nil {
+	if err := h.datastore.CafeNonces().Add(nonce); err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
 
@@ -393,7 +374,7 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 	}
 
 	// lookup the nonce
-	snonce := h.Datastore().CafeNonces().Get(reg.Value)
+	snonce := h.datastore.CafeNonces().Get(reg.Value)
 	if snonce == nil {
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
@@ -425,22 +406,22 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 		Created:  now,
 		LastSeen: now,
 	}
-	if err := h.Datastore().CafeAccounts().Add(account); err != nil {
+	if err := h.datastore.CafeAccounts().Add(account); err != nil {
 		// check if already exists
-		account = h.Datastore().CafeAccounts().Get(pid.Pretty())
+		account = h.datastore.CafeAccounts().Get(pid.Pretty())
 		if account == nil {
 			return h.service.NewError(500, "get or create account failed", env.Message.RequestId)
 		}
 	}
 
 	// get a session
-	session, err := jwt.NewSession(h.Node().PrivateKey, pid, h.Protocol(), defaultSessionDuration)
+	session, err := jwt.NewSession(h.service.Node.PrivateKey, pid, h.Protocol(), defaultSessionDuration)
 	if err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
 
 	// delete the nonce
-	if err := h.Datastore().CafeNonces().Delete(snonce.Value); err != nil {
+	if err := h.datastore.CafeNonces().Delete(snonce.Value); err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
 
@@ -493,7 +474,7 @@ func (h *CafeService) handleRefreshSession(pid peer.ID, env *pb.Envelope) (*pb.E
 	if err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
-	session, err := jwt.NewSession(h.Node().PrivateKey, spid, h.Protocol(), defaultSessionDuration)
+	session, err := jwt.NewSession(h.service.Node.PrivateKey, spid, h.Protocol(), defaultSessionDuration)
 	if err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
@@ -526,7 +507,7 @@ func (h *CafeService) handleStore(pid peer.ID, env *pb.Envelope) (*pb.Envelope, 
 		if err != nil {
 			continue
 		}
-		has, err := h.Node().Blockstore.Has(decoded)
+		has, err := h.service.Node.Blockstore.Has(decoded)
 		if err != nil || !has {
 			need = append(need, decoded.String())
 		}
@@ -563,7 +544,7 @@ func (h *CafeService) handleBlock(pid peer.ID, env *pb.Envelope) (*pb.Envelope, 
 	if err != nil {
 		return nil, err
 	}
-	if err := h.Node().Blocks.AddBlock(bblock); err != nil {
+	if err := h.service.Node.Blocks.AddBlock(bblock); err != nil {
 		return nil, err
 	}
 
@@ -590,11 +571,11 @@ func (h *CafeService) handleStoreThread(pid peer.ID, env *pb.Envelope) (*pb.Enve
 	}
 
 	// lookup account
-	accnt := h.Datastore().CafeAccounts().Get(pid.Pretty())
+	accnt := h.datastore.CafeAccounts().Get(pid.Pretty())
 	if accnt == nil {
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
-	if err := h.Datastore().CafeAccounts().UpdateLastSeen(accnt.Id, time.Now()); err != nil {
+	if err := h.datastore.CafeAccounts().UpdateLastSeen(accnt.Id, time.Now()); err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
 
@@ -606,7 +587,7 @@ func (h *CafeService) handleStoreThread(pid peer.ID, env *pb.Envelope) (*pb.Enve
 		HeadCipher: store.HeadCipher,
 		NameCipher: store.NameCipher,
 	}
-	if err := h.Datastore().CafeAccountThreads().AddOrUpdate(thrd); err != nil {
+	if err := h.datastore.CafeAccountThreads().AddOrUpdate(thrd); err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
 
@@ -666,5 +647,5 @@ func (h *CafeService) authToken(pid peer.ID, tokenString string, refreshing bool
 
 // verifyKeyFunc returns the correct key for token verification
 func (h *CafeService) verifyKeyFunc(token *njwt.Token) (interface{}, error) {
-	return h.Node().PrivateKey.GetPublic(), nil
+	return h.service.Node.PrivateKey.GetPublic(), nil
 }

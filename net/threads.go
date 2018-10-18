@@ -24,6 +24,7 @@ import (
 // with annotations amongst a group of peers
 type ThreadsService struct {
 	service          *service.Service
+	datastore        repo.Datastore
 	getThread        func(id string) (*int, *thread.Thread)
 	sendNotification func(note *repo.Notification) error
 }
@@ -37,31 +38,17 @@ func NewThreadsService(
 	sendNotification func(note *repo.Notification) error,
 ) *ThreadsService {
 	handler := &ThreadsService{
+		datastore:        datastore,
 		getThread:        getThread,
 		sendNotification: sendNotification,
 	}
-	handler.service = service.NewService(account, handler, node, datastore)
+	handler.service = service.NewService(account, handler, node)
 	return handler
 }
 
 // Protocol returns the handler protocol
 func (h *ThreadsService) Protocol() protocol.ID {
 	return protocol.ID("/textile/threads/1.0.0")
-}
-
-// Account returns the underlying account keypair
-func (h *ThreadsService) Account() *keypair.Full {
-	return h.service.Account
-}
-
-// Node returns the underlying ipfs Node
-func (h *ThreadsService) Node() *core.IpfsNode {
-	return h.service.Node
-}
-
-// Datastore returns the underlying datastore
-func (h *ThreadsService) Datastore() repo.Datastore {
-	return h.service.Datastore
 }
 
 // Ping pings another peer
@@ -140,13 +127,13 @@ func (h *ThreadsService) handleInvite(pid peer.ID, env *pb.Envelope) (*pb.Envelo
 	}
 
 	// check if it'h meant for us (should be, but safety first)
-	if invite.InviteeId != h.Node().Identity.Pretty() {
+	if invite.InviteeId != h.service.Node.Identity.Pretty() {
 		return nil, errors.New("invalid invite block")
 	}
 
 	// unknown thread and invite meant for us
 	// unpack new thread secret that should be encrypted with our key
-	skb, err := crypto.Decrypt(h.Node().PrivateKey, invite.SkCipher)
+	skb, err := crypto.Decrypt(h.service.Node.PrivateKey, invite.SkCipher)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +152,7 @@ func (h *ThreadsService) handleInvite(pid peer.ID, env *pb.Envelope) (*pb.Envelo
 	if err != nil {
 		return nil, err
 	}
-	ci, err := ipfs.PinData(h.Node(), bytes.NewReader(envb))
+	ci, err := ipfs.PinData(h.service.Node, bytes.NewReader(envb))
 	if err != nil {
 		return nil, err
 	}
@@ -379,13 +366,13 @@ func (h *ThreadsService) handleAnnotation(pid peer.ID, env *pb.Envelope) (*pb.En
 	}
 
 	// find dataId block locally
-	dataBlock := h.Datastore().Blocks().Get(annotation.DataId)
+	dataBlock := h.datastore.Blocks().Get(annotation.DataId)
 	if dataBlock == nil {
 		return nil, nil
 	}
 	var target string
 	// NOTE: not restricted to photo annotations here, just currently only thing possible
-	if dataBlock.AuthorId == h.Node().Identity.Pretty() {
+	if dataBlock.AuthorId == h.service.Node.Identity.Pretty() {
 		target = "your photo"
 	} else {
 		target = "a photo"
