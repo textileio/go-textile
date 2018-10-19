@@ -44,17 +44,17 @@ func (t *Thread) Leave() (mh.Multihash, error) {
 	t.post(env, id, t.Peers())
 
 	// delete blocks
-	if err := t.blocks().DeleteByThread(t.Id); err != nil {
+	if err := t.datastore.Blocks().DeleteByThread(t.Id); err != nil {
 		return nil, err
 	}
 
 	// delete peers
-	if err := t.peers().DeleteByThread(t.Id); err != nil {
+	if err := t.datastore.ThreadPeers().DeleteByThread(t.Id); err != nil {
 		return nil, err
 	}
 
 	// delete notifications
-	if err := t.notifications().DeleteBySubjectId(t.Id); err != nil {
+	if err := t.datastore.Notifications().DeleteBySubject(t.Id); err != nil {
 		return nil, err
 	}
 
@@ -83,7 +83,7 @@ func (t *Thread) HandleLeaveBlock(from *peer.ID, env *pb.Envelope, signed *pb.Si
 
 	// check if we aleady have this block indexed
 	// (should only happen if a misbehaving peer keeps sending the same block)
-	index := t.blocks().Get(id)
+	index := t.datastore.Blocks().Get(id)
 	if index != nil {
 		return nil, nil
 	}
@@ -93,10 +93,10 @@ func (t *Thread) HandleLeaveBlock(from *peer.ID, env *pb.Envelope, signed *pb.Si
 	if err != nil {
 		return nil, err
 	}
-	if err := t.peers().Delete(authorId.Pretty(), t.Id); err != nil {
+	if err := t.datastore.ThreadPeers().Delete(authorId.Pretty(), t.Id); err != nil {
 		return nil, err
 	}
-	if err := t.notifications().DeleteByActorId(t.Id); err != nil {
+	if err := t.datastore.Notifications().DeleteByActor(t.Id); err != nil {
 		return nil, err
 	}
 

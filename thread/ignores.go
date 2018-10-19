@@ -56,7 +56,7 @@ func (t *Thread) Ignore(blockId string) (mh.Multihash, error) {
 	t.post(env, id, t.Peers())
 
 	// delete notifications
-	if err := t.notifications().DeleteByBlockId(blockId); err != nil {
+	if err := t.datastore.Notifications().DeleteByBlock(blockId); err != nil {
 		return nil, err
 	}
 
@@ -85,7 +85,7 @@ func (t *Thread) HandleIgnoreBlock(from *peer.ID, env *pb.Envelope, signed *pb.S
 
 	// check if we aleady have this block indexed
 	// (should only happen if a misbehaving peer keeps sending the same block)
-	index := t.blocks().Get(id)
+	index := t.datastore.Blocks().Get(id)
 	if index != nil {
 		return nil, nil
 	}
@@ -108,14 +108,14 @@ func (t *Thread) HandleIgnoreBlock(from *peer.ID, env *pb.Envelope, signed *pb.S
 			Id:       authorId.Pretty(),
 			ThreadId: threadId.Pretty(),
 		}
-		if err := t.peers().Add(newPeer); err != nil {
+		if err := t.datastore.ThreadPeers().Add(newPeer); err != nil {
 			log.Errorf("error adding peer: %s", err)
 		}
 	}
 
 	// delete notifications
 	blockId := strings.Replace(content.DataId, "ignore-", "", 1)
-	if err := t.notifications().DeleteByBlockId(blockId); err != nil {
+	if err := t.datastore.Notifications().DeleteByBlock(blockId); err != nil {
 		return nil, err
 	}
 
@@ -155,9 +155,9 @@ func (t *Thread) HandleIgnoreBlock(from *peer.ID, env *pb.Envelope, signed *pb.S
 }
 
 func (t *Thread) unpinBlockData(blockId string) {
-	block := t.blocks().Get(blockId)
+	block := t.datastore.Blocks().Get(blockId)
 	if block != nil && block.DataId != "" {
-		all := t.blocks().List("", -1, "dataId='"+block.DataId+"'")
+		all := t.datastore.Blocks().List("", -1, "dataId='"+block.DataId+"'")
 		if len(all) == 1 {
 			// safe to unpin
 

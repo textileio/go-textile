@@ -130,7 +130,7 @@ func (t *Thread) HandleAnnotationBlock(from *peer.ID, env *pb.Envelope, signed *
 
 	// check if we aleady have this block indexed
 	// (should only happen if a misbehaving peer keeps sending the same block)
-	index := t.blocks().Get(id)
+	index := t.datastore.Blocks().Get(id)
 	if index != nil {
 		return nil, nil
 	}
@@ -153,7 +153,7 @@ func (t *Thread) HandleAnnotationBlock(from *peer.ID, env *pb.Envelope, signed *
 			Id:       authorId.Pretty(),
 			ThreadId: threadId.Pretty(),
 		}
-		if err := t.peers().Add(newPeer); err != nil {
+		if err := t.datastore.ThreadPeers().Add(newPeer); err != nil {
 			log.Errorf("error adding peer: %s", err)
 		}
 	}

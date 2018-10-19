@@ -19,7 +19,7 @@ func (t *Textile) GetBlockByDataId(dataId string) (*repo.Block, error) {
 	if dataId == "" {
 		return nil, nil
 	}
-	block := t.datastore.Blocks().GetByDataId(dataId)
+	block := t.datastore.Blocks().GetByData(dataId)
 	if block == nil {
 		return nil, errors.New("block not found locally")
 	}

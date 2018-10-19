@@ -100,7 +100,7 @@ func (t *Thread) Join(inviterPk libp2pc.PubKey, blockId string) (mh.Multihash, e
 			Id:       inviterPid.Pretty(),
 			ThreadId: t.Id,
 		}
-		if err := t.peers().Add(newPeer); err != nil {
+		if err := t.datastore.ThreadPeers().Add(newPeer); err != nil {
 			// TODO: #202 (Properly handle database/sql errors)
 		}
 	}
@@ -133,7 +133,7 @@ func (t *Thread) HandleJoinBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 
 	// check if we aleady have this block indexed
 	// (should only happen if a misbehaving peer keeps sending the same block)
-	index := t.blocks().Get(id)
+	index := t.datastore.Blocks().Get(id)
 	if index != nil {
 		return nil, nil, err
 	}
@@ -157,7 +157,7 @@ func (t *Thread) HandleJoinBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 			Id:       authorId.Pretty(),
 			ThreadId: threadId.Pretty(),
 		}
-		if err := t.peers().Add(joined); err != nil {
+		if err := t.datastore.ThreadPeers().Add(joined); err != nil {
 			log.Errorf("error adding peer: %s", err)
 		}
 	}

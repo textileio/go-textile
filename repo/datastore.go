@@ -83,7 +83,7 @@ type BlockStore interface {
 	Queryable
 	Add(block *Block) error
 	Get(id string) *Block
-	GetByDataId(dataId string) *Block
+	GetByData(dataId string) *Block
 	List(offset string, limit int, query string) []Block
 	Count(query string) int
 	Delete(id string) error
@@ -99,9 +99,9 @@ type NotificationStore interface {
 	List(offset string, limit int) []Notification
 	CountUnread() int
 	Delete(id string) error
-	DeleteByActorId(actorId string) error
-	DeleteBySubjectId(subjectId string) error
-	DeleteByBlockId(blockId string) error
+	DeleteByActor(actorId string) error
+	DeleteBySubject(subjectId string) error
+	DeleteByBlock(blockId string) error
 }
 
 // Cafe user-side stores

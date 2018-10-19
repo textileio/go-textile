@@ -101,7 +101,7 @@ func (t *Thread) HandleDataBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 
 	// check if we aleady have this block indexed
 	// (should only happen if a misbehaving peer keeps sending the same block)
-	index := t.blocks().Get(id)
+	index := t.datastore.Blocks().Get(id)
 	if index != nil {
 		return nil, nil
 	}
@@ -124,7 +124,7 @@ func (t *Thread) HandleDataBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 			Id:       authorId.Pretty(),
 			ThreadId: threadId.Pretty(),
 		}
-		if err := t.peers().Add(newPeer); err != nil {
+		if err := t.datastore.ThreadPeers().Add(newPeer); err != nil {
 			log.Errorf("error adding peer: %s", err)
 		}
 	}
@@ -139,7 +139,7 @@ func (t *Thread) HandleDataBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 	case pb.ThreadData_PHOTO:
 		// check if this block has been ignored, if so, don't pin locally, but we still want the block
 		var ignore bool
-		ignored := t.blocks().GetByDataId(fmt.Sprintf("ignore-%s", id))
+		ignored := t.datastore.Blocks().GetByData(fmt.Sprintf("ignore-%s", id))
 		if ignored != nil {
 			date, err := ptypes.Timestamp(content.Header.Date)
 			if err != nil {

@@ -88,7 +88,7 @@ func (t *Textile) RemoveAccountPeer(id string) error {
 	}
 
 	// delete notifications
-	if err := t.datastore.Notifications().DeleteBySubjectId(mod.Id); err != nil {
+	if err := t.datastore.Notifications().DeleteBySubject(mod.Id); err != nil {
 		return err
 	}
 

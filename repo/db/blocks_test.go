@@ -56,8 +56,8 @@ func TestBlockDB_Get(t *testing.T) {
 	}
 }
 
-func TestBlockDB_GetByDataId(t *testing.T) {
-	block := bdb.GetByDataId("Qm456")
+func TestBlockDB_GetByData(t *testing.T) {
+	block := bdb.GetByData("Qm456")
 	if block == nil {
 		t.Error("could not get block")
 	}

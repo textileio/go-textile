@@ -10,7 +10,6 @@ import (
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/net"
 	"github.com/textileio/textile-go/net/service"
-	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/thread"
@@ -594,33 +593,14 @@ func (t *Textile) loadThread(mod *repo.Thread) (*thread.Thread, error) {
 	if _, loaded := t.GetThread(mod.Id); loaded != nil {
 		return nil, ErrThreadLoaded
 	}
-	id := mod.Id // save value locally
 	threadConfig := &thread.Config{
 		RepoPath: t.repoPath,
 		Ipfs: func() *core.IpfsNode {
 			return t.ipfs
 		},
-		Blocks:        t.datastore.Blocks,
-		Peers:         t.datastore.ThreadPeers,
-		Notifications: t.datastore.Notifications,
-		GetHead: func() (string, error) {
-			thrd := t.datastore.Threads().Get(id)
-			if thrd == nil {
-				return "", errors.New(fmt.Sprintf("could not re-load thread: %s", id))
-			}
-			return thrd.Head, nil
-		},
-		UpdateHead: func(head string) error {
-			if err := t.datastore.Threads().UpdateHead(id, head); err != nil {
-				return err
-			}
-			t.cafeRequestQueue.Add(id, repo.CafeStoreThreadRequest)
-			return nil
-		},
-		NewBlock:       t.threadsService.NewBlock,
-		SendMessage:    t.sendMessage,
-		AddCafeRequest: t.cafeRequestQueue.Add,
-		GetUsername:    t.GetUsername,
+		Datastore: t.datastore,
+		Service:       t.threadsService,
+		CafeQueue: t.cafeRequestQueue,
 		SendUpdate:     t.sendThreadUpdate,
 	}
 	thrd, err := thread.NewThread(mod, threadConfig)
@@ -629,14 +609,6 @@ func (t *Textile) loadThread(mod *repo.Thread) (*thread.Thread, error) {
 	}
 	t.threads = append(t.threads, thrd)
 	return thrd, nil
-}
-
-// sendMessage sends a message directly to a peer, falling back
-// it will attempt to deliver the message to the peer's cafe inbox(es) if known
-func (t *Textile) sendMessage(tpeer *repo.ThreadPeer, env *pb.Envelope) error {
-	//t.threadsService.SendMessage
-	//t.cafeService.DeliverMessage
-	return nil
 }
 
 // sendUpdate adds an update to the update channel

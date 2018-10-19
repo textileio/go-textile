@@ -31,11 +31,11 @@ func (t *Thread) Merge(head string) (mh.Multihash, error) {
 	sort.Strings(header.Parents)
 
 	// choose newest to use for date
-	p1b := t.blocks().Get(header.Parents[0])
+	p1b := t.datastore.Blocks().Get(header.Parents[0])
 	if p1b == nil {
 		return nil, errors.New("first merge parent not found")
 	}
-	p2b := t.blocks().Get(header.Parents[1])
+	p2b := t.datastore.Blocks().Get(header.Parents[1])
 	if p2b == nil {
 		return nil, errors.New("second merge parent not found")
 	}
@@ -123,7 +123,7 @@ func (t *Thread) HandleMergeBlock(from *peer.ID, message *pb.Message, signed *pb
 	t.addCafeRequest(id, repo.CafeStoreRequest)
 
 	// check if we aleady have this block indexed
-	index := t.blocks().Get(id)
+	index := t.datastore.Blocks().Get(id)
 	if index != nil {
 		return nil, nil
 	}

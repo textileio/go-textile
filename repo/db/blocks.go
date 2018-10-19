@@ -62,7 +62,7 @@ func (c *BlockDB) Get(id string) *repo.Block {
 	return &ret[0]
 }
 
-func (c *BlockDB) GetByDataId(dataId string) *repo.Block {
+func (c *BlockDB) GetByData(dataId string) *repo.Block {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	ret := c.handleQuery("select * from blocks where dataId='" + dataId + "';")

@@ -9,6 +9,7 @@ import (
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/net"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
@@ -41,15 +42,9 @@ type Info struct {
 type Config struct {
 	RepoPath       string
 	Ipfs           func() *core.IpfsNode
-	Blocks         func() repo.BlockStore
-	Peers          func() repo.ThreadPeerStore
-	Notifications  func() repo.NotificationStore
-	GetHead        func() (string, error)
-	UpdateHead     func(head string) error
-	NewBlock       func(sk libp2pc.PrivKey, mtype pb.Message_Type, msg proto.Message) (*pb.Envelope, error)
-	SendMessage    func(tpeer *repo.ThreadPeer, message *pb.Envelope) error
-	AddCafeRequest func(target string, rtype repo.CafeRequestType)
-	GetUsername    func() (*string, error)
+	Datastore      repo.Datastore
+	Service        *net.ThreadsService
+	CafeQueue      *net.CafeRequestQueue
 	SendUpdate     func(update Update)
 }
 
@@ -60,15 +55,9 @@ type Thread struct {
 	PrivKey        libp2pc.PrivKey
 	repoPath       string
 	ipfs           func() *core.IpfsNode
-	blocks         func() repo.BlockStore
-	peers          func() repo.ThreadPeerStore
-	notifications  func() repo.NotificationStore
-	GetHead        func() (string, error)
-	updateHead     func(head string) error
-	newBlock       func(sk libp2pc.PrivKey, mtype pb.Message_Type, msg proto.Message) (*pb.Envelope, error)
-	sendMessage    func(tpeer *repo.ThreadPeer, message *pb.Envelope) error
-	addCafeRequest func(target string, rtype repo.CafeRequestType)
-	getUsername    func() (*string, error)
+	datastore      repo.Datastore
+	service        *net.ThreadsService
+	cafeQueue      *net.CafeRequestQueue
 	sendUpdate     func(update Update)
 	mux            sync.Mutex
 }
@@ -85,15 +74,9 @@ func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 		PrivKey:        sk,
 		repoPath:       config.RepoPath,
 		ipfs:           config.Ipfs,
-		blocks:         config.Blocks,
-		peers:          config.Peers,
-		notifications:  config.Notifications,
-		GetHead:        config.GetHead,
-		updateHead:     config.UpdateHead,
-		newBlock:       config.NewBlock,
-		sendMessage:    config.SendMessage,
-		addCafeRequest: config.AddCafeRequest,
-		getUsername:    config.GetUsername,
+		datastore:      config.Datastore,
+		service:        config.Service,
+		cafeQueue:      config.CafeQueue,
 		sendUpdate:     config.SendUpdate,
 	}, nil
 }
@@ -102,29 +85,39 @@ func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
 func (t *Thread) Info() (*Info, error) {
 	// block info
 	var head, latestPhoto *repo.Block
-	headId, err := t.GetHead()
+	headId, err := t.Head()
 	if err != nil {
 		return nil, err
 	}
 	if headId != "" {
-		head = t.blocks().Get(headId)
+		head = t.datastore.Blocks().Get(headId)
 	}
-	blocks := t.blocks().Count(fmt.Sprintf("threadId='%s'", t.Id))
+	blocks := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s'", t.Id))
 
 	// photo specific info
 	query := fmt.Sprintf("threadId='%s' and type=%d", t.Id, repo.PhotoBlock)
-	latestPhotos := t.blocks().List("", 1, query)
+	latestPhotos := t.datastore.Blocks().List("", 1, query)
 	if len(latestPhotos) > 0 {
 		latestPhoto = &latestPhotos[0]
 	}
-	photos := t.blocks().Count(fmt.Sprintf("threadId='%s' and type=%d", t.Id, repo.PhotoBlock))
+	photos := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s' and type=%d", t.Id, repo.PhotoBlock))
 
+	// send back summary
 	return &Info{
 		Head:        head,
 		BlockCount:  blocks,
 		LatestPhoto: latestPhoto,
 		PhotoCount:  photos,
 	}, nil
+}
+
+// Head returns content id of the latest update
+func (t *Thread) Head() (string, error) {
+	mod := t.datastore.Threads().Get(t.Id)
+	if mod == nil {
+		return "", errors.New(fmt.Sprintf("could not re-load thread: %s", t.Id))
+	}
+	return mod.Head, nil
 }
 
 // Blocks paginates blocks from the datastore
@@ -138,13 +131,13 @@ func (t *Thread) Blocks(offsetId string, limit int, btype *repo.BlockType, dataI
 	if dataId != nil {
 		query += fmt.Sprintf(" and dataId='%s'", *dataId)
 	}
-	all := t.blocks().List(offsetId, limit, query)
+	all := t.datastore.Blocks().List(offsetId, limit, query)
 	if btype == nil {
 		return all
 	}
 	var filtered []repo.Block
 	for _, block := range all {
-		ignored := t.blocks().GetByDataId(fmt.Sprintf("ignore-%s", block.Id))
+		ignored := t.datastore.Blocks().GetByData(fmt.Sprintf("ignore-%s", block.Id))
 		if ignored == nil {
 			filtered = append(filtered, block)
 		}
@@ -154,7 +147,7 @@ func (t *Thread) Blocks(offsetId string, limit int, btype *repo.BlockType, dataI
 
 // Peers returns locally known peers in this thread
 func (t *Thread) Peers() []repo.ThreadPeer {
-	return t.peers().ListByThread(t.Id)
+	return t.datastore.ThreadPeers().ListByThread(t.Id)
 }
 
 // Encrypt data with thread public key
@@ -196,7 +189,7 @@ func (t *Thread) followParent(parent string, from *peer.ID) (*repo.ThreadPeer, e
 	}
 
 	// check if we aleady have this block indexed
-	index := t.blocks().Get(parent)
+	index := t.datastore.Blocks().Get(parent)
 	if index != nil {
 		log.Debugf("block %s exists, aborting", parent)
 		return nil, nil
@@ -283,7 +276,7 @@ func (t *Thread) followParent(parent string, from *peer.ID) (*repo.ThreadPeer, e
 // newBlockHeader creates a new header
 func (t *Thread) newBlockHeader() (*pb.ThreadBlockHeader, error) {
 	// get current HEAD
-	head, err := t.GetHead()
+	head, err := t.Head()
 	if err != nil {
 		return nil, err
 	}
@@ -302,7 +295,7 @@ func (t *Thread) newBlockHeader() (*pb.ThreadBlockHeader, error) {
 
 	// encrypt our own username with thread pk
 	var authorUnCipher []byte
-	authorUn, _ := t.getUsername()
+	authorUn, _ := t.datastore.Profile().GetUsername()
 	if authorUn != nil {
 		authorUnCipher, err = t.Encrypt([]byte(*authorUn))
 		if err != nil {
@@ -340,7 +333,7 @@ func (t *Thread) addBlock(envelope *pb.Envelope) (mh.Multihash, error) {
 	}
 
 	// add a store request
-	t.addCafeRequest(id.Hash().B58String(), repo.CafeStoreRequest)
+	t.cafeQueue.Add(id.Hash().B58String(), repo.CafeStoreRequest)
 
 	return id.Hash(), nil
 }
@@ -348,7 +341,7 @@ func (t *Thread) addBlock(envelope *pb.Envelope) (mh.Multihash, error) {
 // commitBlock seals and signs the content of a block and adds it to ipfs
 func (t *Thread) commitBlock(content proto.Message, mtype pb.Message_Type) (*pb.Envelope, mh.Multihash, error) {
 	// create the block
-	env, err := t.newBlock(t.PrivKey, mtype, content)
+	env, err := t.service.NewBlock(t.PrivKey, mtype, content)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -395,7 +388,7 @@ func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType r
 		DataCaptionCipher:  dataConf.DataCaptionCipher,
 		DataMetadataCipher: dataConf.DataMetadataCipher,
 	}
-	if err := t.blocks().Add(index); err != nil {
+	if err := t.datastore.Blocks().Add(index); err != nil {
 		return err
 	}
 
@@ -409,7 +402,7 @@ func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType r
 // - parents are the parents of the incoming chain
 func (t *Thread) handleHead(inboundId string, parents []string) (mh.Multihash, error) {
 	// get current HEAD
-	head, err := t.GetHead()
+	head, err := t.Head()
 	if err != nil {
 		return nil, err
 	}
@@ -438,6 +431,17 @@ func (t *Thread) handleHead(inboundId string, parents []string) (mh.Multihash, e
 	return t.Merge(inboundId)
 }
 
+// updateHead updates the ref to the content id of the latest update
+func (t *Thread) updateHead(head string) error {
+	if err := t.datastore.Threads().UpdateHead(t.Id, head); err != nil {
+		return err
+	}
+
+	// update head on cafe backups
+	t.cafeQueue.Add(t.Id, repo.CafeStoreThreadRequest)
+	return nil
+}
+
 // post publishes a message with content id to peers
 func (t *Thread) post(env *pb.Envelope, id string, peers []repo.ThreadPeer) {
 	if len(peers) == 0 {
@@ -454,6 +458,13 @@ func (t *Thread) post(env *pb.Envelope, id string, peers []repo.ThreadPeer) {
 		}(tp)
 	}
 	wg.Wait()
+}
+
+// sendMessage sends a message directly to a peer, falling back to cafe inbox based delivery
+func (t *Thread) sendMessage(tpeer *repo.ThreadPeer, env *pb.Envelope) error {
+	//t.threadsService.SendMessage
+	//t.cafeService.DeliverMessage
+	return nil
 }
 
 // pushUpdate pushes thread updates to UI listeners
