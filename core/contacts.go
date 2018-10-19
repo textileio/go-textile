@@ -1,9 +1,5 @@
 package core
 
-import (
-	"github.com/textileio/textile-go/thread"
-)
-
 // Contact is wrapper around Peer, with thread info
 type Contact struct {
 	Id        string   `json:"id"`
@@ -30,12 +26,12 @@ func (t *Textile) Contacts() []*Contact {
 }
 
 // ContactThreads returns all threads with the given peer
-func (t *Textile) ContactThreads(id string) []*thread.Thread {
+func (t *Textile) ContactThreads(id string) []*Thread {
 	peers := t.datastore.ThreadPeers().ListById(id)
 	if len(peers) == 0 {
 		return nil
 	}
-	var threads []*thread.Thread
+	var threads []*Thread
 	for _, peer := range peers {
 		if _, thrd := t.GetThread(peer.ThreadId); thrd != nil {
 			threads = append(threads, thrd)

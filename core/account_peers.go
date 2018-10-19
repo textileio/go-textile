@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/thread"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"time"
 )
@@ -59,7 +58,7 @@ func (t *Textile) AddAccountPeer(pid peer.ID, name string) error {
 }
 
 // InviteAccountPeers sends a thread invite to all peers
-func (t *Textile) InviteAccountPeers(thrd *thread.Thread) error {
+func (t *Textile) InviteAccountPeers(thrd *Thread) error {
 	for _, ap := range t.AccountPeers() {
 		id, err := peer.IDB58Decode(ap.Id)
 		if err != nil {

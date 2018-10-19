@@ -12,7 +12,6 @@ import (
 	"github.com/textileio/textile-go/net/service"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
-	"github.com/textileio/textile-go/thread"
 	"gopkg.in/natefinch/lumberjack.v2"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
@@ -97,11 +96,11 @@ type Textile struct {
 	ipfs             *core.IpfsNode
 	datastore        repo.Datastore
 	started          bool
-	threads          []*thread.Thread
+	threads          []*Thread
 	online           chan struct{}
 	done             chan struct{}
 	updates          chan Update
-	threadUpdates    chan thread.Update
+	threadUpdates    chan ThreadUpdate
 	notifications    chan repo.Notification
 	threadsService   *net.ThreadsService
 	cafeService      *net.CafeService
@@ -283,7 +282,7 @@ func (t *Textile) Start() error {
 	// build update channels
 	t.online = make(chan struct{})
 	t.updates = make(chan Update, 10)
-	t.threadUpdates = make(chan thread.Update, 10)
+	t.threadUpdates = make(chan ThreadUpdate, 10)
 	t.notifications = make(chan repo.Notification, 10)
 
 	// start the ipfs node
@@ -446,7 +445,7 @@ func (t *Textile) Updates() <-chan Update {
 }
 
 // ThreadUpdates returns the thread update channel
-func (t *Textile) ThreadUpdates() <-chan thread.Update {
+func (t *Textile) ThreadUpdates() <-chan ThreadUpdate {
 	return t.threadUpdates
 }
 
@@ -571,11 +570,11 @@ func (t *Textile) createIPFS(online bool) error {
 }
 
 // getThreadByBlock returns the thread owning the given block
-func (t *Textile) getThreadByBlock(block *repo.Block) (*thread.Thread, error) {
+func (t *Textile) getThreadByBlock(block *repo.Block) (*Thread, error) {
 	if block == nil {
 		return nil, errors.New("block is empty")
 	}
-	var thrd *thread.Thread
+	var thrd *Thread
 	for _, t := range t.threads {
 		if t.Id == block.ThreadId {
 			thrd = t
@@ -589,21 +588,21 @@ func (t *Textile) getThreadByBlock(block *repo.Block) (*thread.Thread, error) {
 }
 
 // loadThread loads a thread into memory from the given on-disk model
-func (t *Textile) loadThread(mod *repo.Thread) (*thread.Thread, error) {
+func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 	if _, loaded := t.GetThread(mod.Id); loaded != nil {
 		return nil, ErrThreadLoaded
 	}
-	threadConfig := &thread.Config{
+	threadConfig := &ThreadConfig{
 		RepoPath: t.repoPath,
 		Ipfs: func() *core.IpfsNode {
 			return t.ipfs
 		},
-		Datastore: t.datastore,
-		Service:       t.threadsService,
-		CafeQueue: t.cafeRequestQueue,
-		SendUpdate:     t.sendThreadUpdate,
+		Datastore:  t.datastore,
+		Service:    t.threadsService,
+		CafeQueue:  t.cafeRequestQueue,
+		SendUpdate: t.sendThreadUpdate,
 	}
-	thrd, err := thread.NewThread(mod, threadConfig)
+	thrd, err := NewThread(mod, threadConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -622,7 +621,7 @@ func (t *Textile) sendUpdate(update Update) {
 }
 
 // sendThreadUpdate adds a thread update to the update channel
-func (t *Textile) sendThreadUpdate(update thread.Update) {
+func (t *Textile) sendThreadUpdate(update ThreadUpdate) {
 	defer func() {
 		if recover() != nil {
 			log.Error("thread update channel already closed")

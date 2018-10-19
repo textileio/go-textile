@@ -9,7 +9,6 @@ import (
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/photo"
-	"github.com/textileio/textile-go/thread"
 	uio "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/unixfs/io"
 	"os"
 	"path/filepath"
@@ -182,12 +181,12 @@ func (t *Textile) AddPhoto(path string) (*AddDataResult, error) {
 }
 
 // PhotoThreads lists threads which contain a photo (known to the local peer)
-func (t *Textile) PhotoThreads(id string) []*thread.Thread {
+func (t *Textile) PhotoThreads(id string) []*Thread {
 	blocks := t.datastore.Blocks().List("", -1, "dataId='"+id+"'")
 	if len(blocks) == 0 {
 		return nil
 	}
-	var threads []*thread.Thread
+	var threads []*Thread
 	for _, block := range blocks {
 		if _, thrd := t.GetThread(block.ThreadId); thrd != nil {
 			threads = append(threads, thrd)

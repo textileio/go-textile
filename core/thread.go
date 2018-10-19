@@ -1,4 +1,4 @@
-package thread
+package core
 
 import (
 	"bytes"
@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/net"
@@ -21,68 +20,66 @@ import (
 	"time"
 )
 
-var log = logging.MustGetLogger("thread")
-
-// Update is used to notify listeners about updates in a thread
-type Update struct {
+// ThreadUpdate is used to notify listeners about updates in a thread
+type ThreadUpdate struct {
 	Block      repo.Block `json:"block"`
 	ThreadId   string     `json:"thread_id"`
 	ThreadName string     `json:"thread_name"`
 }
 
-// Info reports info about a thread
-type Info struct {
+// ThreadInfo reports info about a thread
+type ThreadInfo struct {
 	Head        *repo.Block `json:"head,omitempty"`
 	BlockCount  int         `json:"block_count"`
 	LatestPhoto *repo.Block `json:"latest_photo,omitempty"`
 	PhotoCount  int         `json:"photo_count"`
 }
 
-// Config is used to construct a Thread
-type Config struct {
-	RepoPath       string
-	Ipfs           func() *core.IpfsNode
-	Datastore      repo.Datastore
-	Service        *net.ThreadsService
-	CafeQueue      *net.CafeRequestQueue
-	SendUpdate     func(update Update)
+// ThreadConfig is used to construct a Thread
+type ThreadConfig struct {
+	RepoPath   string
+	Ipfs       func() *core.IpfsNode
+	Datastore  repo.Datastore
+	Service    *net.ThreadsService
+	CafeQueue  *net.CafeRequestQueue
+	SendUpdate func(update ThreadUpdate)
 }
 
 // Thread is the primary mechanism representing a collecion of data / files / photos
 type Thread struct {
-	Id             string
-	Name           string
-	PrivKey        libp2pc.PrivKey
-	repoPath       string
-	ipfs           func() *core.IpfsNode
-	datastore      repo.Datastore
-	service        *net.ThreadsService
-	cafeQueue      *net.CafeRequestQueue
-	sendUpdate     func(update Update)
-	mux            sync.Mutex
+	Id         string
+	Name       string
+	PrivKey    libp2pc.PrivKey
+	repoPath   string
+	ipfs       func() *core.IpfsNode
+	datastore  repo.Datastore
+	service    *net.ThreadsService
+	cafeQueue  *net.CafeRequestQueue
+	sendUpdate func(update ThreadUpdate)
+	mux        sync.Mutex
 }
 
 // NewThread create a new Thread from a repo model and config
-func NewThread(model *repo.Thread, config *Config) (*Thread, error) {
+func NewThread(model *repo.Thread, config *ThreadConfig) (*Thread, error) {
 	sk, err := libp2pc.UnmarshalPrivateKey(model.PrivKey)
 	if err != nil {
 		return nil, err
 	}
 	return &Thread{
-		Id:             model.Id,
-		Name:           model.Name,
-		PrivKey:        sk,
-		repoPath:       config.RepoPath,
-		ipfs:           config.Ipfs,
-		datastore:      config.Datastore,
-		service:        config.Service,
-		cafeQueue:      config.CafeQueue,
-		sendUpdate:     config.SendUpdate,
+		Id:         model.Id,
+		Name:       model.Name,
+		PrivKey:    sk,
+		repoPath:   config.RepoPath,
+		ipfs:       config.Ipfs,
+		datastore:  config.Datastore,
+		service:    config.Service,
+		cafeQueue:  config.CafeQueue,
+		sendUpdate: config.SendUpdate,
 	}, nil
 }
 
 // Info returns thread info
-func (t *Thread) Info() (*Info, error) {
+func (t *Thread) Info() (*ThreadInfo, error) {
 	// block info
 	var head, latestPhoto *repo.Block
 	headId, err := t.Head()
@@ -103,7 +100,7 @@ func (t *Thread) Info() (*Info, error) {
 	photos := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s' and type=%d", t.Id, repo.PhotoBlock))
 
 	// send back summary
-	return &Info{
+	return &ThreadInfo{
 		Head:        head,
 		BlockCount:  blocks,
 		LatestPhoto: latestPhoto,
@@ -469,7 +466,7 @@ func (t *Thread) sendMessage(tpeer *repo.ThreadPeer, env *pb.Envelope) error {
 
 // pushUpdate pushes thread updates to UI listeners
 func (t *Thread) pushUpdate(index repo.Block) {
-	t.sendUpdate(Update{
+	t.sendUpdate(ThreadUpdate{
 		Block:      index,
 		ThreadId:   t.Id,
 		ThreadName: t.Name,

@@ -9,14 +9,13 @@ import (
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/thread"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 // AddThread adds a thread with a given name and secret key
-func (t *Textile) AddThread(name string, sk libp2pc.PrivKey, join bool) (*thread.Thread, error) {
+func (t *Textile) AddThread(name string, sk libp2pc.PrivKey, join bool) (*Thread, error) {
 	id, err := peer.IDFromPrivateKey(sk)
 	if err != nil {
 		return nil, err
@@ -269,12 +268,12 @@ func (t *Textile) AcceptExternalThreadInvite(blockId string, key []byte) (mh.Mul
 }
 
 // Threads lists loaded threads
-func (t *Textile) Threads() []*thread.Thread {
+func (t *Textile) Threads() []*Thread {
 	return t.threads
 }
 
 // GetThread get a thread by id from loaded threads
-func (t *Textile) GetThread(id string) (*int, *thread.Thread) {
+func (t *Textile) GetThread(id string) (*int, *Thread) {
 	for i, thrd := range t.threads {
 		if thrd.Id == id {
 			return &i, thrd
@@ -284,7 +283,7 @@ func (t *Textile) GetThread(id string) (*int, *thread.Thread) {
 }
 
 // ThreadInfo gets thread info
-func (t *Textile) ThreadInfo(id string) (*thread.Info, error) {
+func (t *Textile) ThreadInfo(id string) (*ThreadInfo, error) {
 	_, thrd := t.GetThread(id)
 	if thrd == nil {
 		return nil, errors.New(fmt.Sprintf("cound not find thread: %s", id))

@@ -1,4 +1,4 @@
-package thread
+package core
 
 import (
 	"github.com/textileio/textile-go/crypto"

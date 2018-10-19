@@ -1,4 +1,4 @@
-package thread_test
+package core_test
 
 import "testing"
 
