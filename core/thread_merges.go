@@ -73,14 +73,14 @@ func (t *Thread) Merge(head string) (mh.Multihash, error) {
 	if err != nil {
 		return nil, err
 	}
-	cid, err := ipfs.PinData(t.ipfs(), bytes.NewReader(ser))
+	cid, err := ipfs.PinData(t.node(), bytes.NewReader(ser))
 	if err != nil {
 		return nil, err
 	}
 	id := cid.Hash().B58String()
 
 	// add a store request
-	t.addCafeRequest(id, repo.CafeStoreRequest)
+	t.cafeQueue.Add(id, repo.CafeStoreRequest)
 
 	// index it locally
 	if err := t.indexBlock(id, header, repo.MergeBlock, nil); err != nil {
@@ -113,14 +113,14 @@ func (t *Thread) HandleMergeBlock(from *peer.ID, message *pb.Message, signed *pb
 	if err != nil {
 		return nil, err
 	}
-	cid, err := ipfs.PinData(t.ipfs(), bytes.NewReader(ser))
+	cid, err := ipfs.PinData(t.node(), bytes.NewReader(ser))
 	if err != nil {
 		return nil, err
 	}
 	id := cid.Hash().B58String()
 
 	// add a store request
-	t.addCafeRequest(id, repo.CafeStoreRequest)
+	t.cafeQueue.Add(id, repo.CafeStoreRequest)
 
 	// check if we aleady have this block indexed
 	index := t.datastore.Blocks().Get(id)

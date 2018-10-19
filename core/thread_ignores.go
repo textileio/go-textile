@@ -98,7 +98,7 @@ func (t *Thread) HandleIgnoreBlock(from *peer.ID, env *pb.Envelope, signed *pb.S
 
 	// add author as a new local peer, just in case we haven't found this peer yet.
 	// double-check not self in case we're re-discovering the thread
-	self := authorId.Pretty() == t.ipfs().Identity.Pretty()
+	self := authorId.Pretty() == t.node().Identity.Pretty()
 	if !self {
 		threadId, err := ipfs.IDFromPublicKeyBytes(content.Header.ThreadPk)
 		if err != nil {
@@ -165,19 +165,19 @@ func (t *Thread) unpinBlockData(blockId string) {
 			case repo.PhotoBlock:
 				// unpin image paths
 				path := fmt.Sprintf("%s/thumb", block.DataId)
-				if err := ipfs.UnpinPath(t.ipfs(), path); err != nil {
+				if err := ipfs.UnpinPath(t.node(), path); err != nil {
 					log.Warningf("failed to unpin %s: %s", path, err)
 				}
 				path = fmt.Sprintf("%s/small", block.DataId)
-				if err := ipfs.UnpinPath(t.ipfs(), path); err != nil {
+				if err := ipfs.UnpinPath(t.node(), path); err != nil {
 					log.Warningf("failed to unpin %s: %s", path, err)
 				}
 				path = fmt.Sprintf("%s/meta", block.DataId)
-				if err := ipfs.UnpinPath(t.ipfs(), path); err != nil {
+				if err := ipfs.UnpinPath(t.node(), path); err != nil {
 					log.Warningf("failed to unpin %s: %s", path, err)
 				}
 				path = fmt.Sprintf("%s/pk", block.DataId)
-				if err := ipfs.UnpinPath(t.ipfs(), path); err != nil {
+				if err := ipfs.UnpinPath(t.node(), path); err != nil {
 					log.Warningf("failed to unpin %s: %s", path, err)
 				}
 			}

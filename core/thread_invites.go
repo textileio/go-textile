@@ -21,7 +21,7 @@ func (t *Thread) AddInvite(inviteeId peer.ID) (mh.Multihash, error) {
 	}
 
 	// encypt thread secret with the recipient's public key
-	threadSk, err := t.PrivKey.Bytes()
+	threadSk, err := t.privKey.Bytes()
 	if err != nil {
 		return nil, err
 	}

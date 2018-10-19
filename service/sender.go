@@ -12,6 +12,7 @@ import (
 	"time"
 )
 
+// sender is a reusable peer stream
 type sender struct {
 	protocol   protocol.ID
 	stream     inet.Stream
@@ -26,9 +27,13 @@ type sender struct {
 	requestMux sync.Mutex
 }
 
+// ReadMessageTimeout specifies timeout for reading a response
 var ReadMessageTimeout = time.Minute * 1
+
+// ErrReadTimeout read response has timed out
 var ErrReadTimeout = fmt.Errorf("timed out reading response")
 
+// messageSenderForPeer creates a sender for the given peer
 func (s *Service) messageSenderForPeer(pid peer.ID, proto protocol.ID) (*sender, error) {
 	s.senderMux.Lock()
 	ms, ok := s.sender[pid]
@@ -76,6 +81,7 @@ func (ms *sender) invalidate() {
 	}
 }
 
+// prepOrInvalidate invalidates a sender if prep fails
 func (ms *sender) prepOrInvalidate() error {
 	ms.mux.Lock()
 	defer ms.mux.Unlock()
@@ -86,6 +92,7 @@ func (ms *sender) prepOrInvalidate() error {
 	return nil
 }
 
+// prep creates a new stream, reader, and writer for a sender
 func (ms *sender) prep() error {
 	if ms.invalid {
 		return fmt.Errorf("message sender has been invalidated")
@@ -108,6 +115,7 @@ func (ms *sender) prep() error {
 // behaviour.
 const streamReuseTries = 3
 
+// SendMessage sends a message to a peer (a response is no expected)
 func (ms *sender) SendMessage(ctx context.Context, pmes *pb.Envelope) error {
 	ms.mux.Lock()
 	defer ms.mux.Unlock()
@@ -136,6 +144,7 @@ func (ms *sender) SendMessage(ctx context.Context, pmes *pb.Envelope) error {
 	}
 }
 
+// SendRequest sends a message to a peer and expects a response
 func (ms *sender) SendRequest(ctx context.Context, pmes *pb.Envelope) (*pb.Envelope, error) {
 	returnChan := make(chan *pb.Envelope)
 	ms.requestMux.Lock()
@@ -175,7 +184,7 @@ func (ms *sender) SendRequest(ctx context.Context, pmes *pb.Envelope) (*pb.Envel
 	}
 }
 
-// stop listening for responses
+// closeRequest stop listening for responses
 func (ms *sender) closeRequest(id int32) {
 	ms.requestMux.Lock()
 	ch, ok := ms.requests[id]
@@ -186,6 +195,7 @@ func (ms *sender) closeRequest(id int32) {
 	ms.requestMux.Unlock()
 }
 
+// ctxReadMsg reads a response
 func (ms *sender) ctxReadMsg(ctx context.Context, returnChan chan *pb.Envelope) (*pb.Envelope, error) {
 	t := time.NewTimer(ReadMessageTimeout)
 	defer t.Stop()

@@ -1,4 +1,4 @@
-package net
+package core
 
 import (
 	"bytes"
@@ -10,10 +10,9 @@ import (
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/net/service"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/thread"
+	"github.com/textileio/textile-go/service"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
@@ -25,7 +24,7 @@ import (
 type ThreadsService struct {
 	service          *service.Service
 	datastore        repo.Datastore
-	getThread        func(id string) (*int, *thread.Thread)
+	getThread        func(id string) (*int, *Thread)
 	sendNotification func(note *repo.Notification) error
 }
 
@@ -34,7 +33,7 @@ func NewThreadsService(
 	account *keypair.Full,
 	node *core.IpfsNode,
 	datastore repo.Datastore,
-	getThread func(id string) (*int, *thread.Thread),
+	getThread func(id string) (*int, *Thread),
 	sendNotification func(note *repo.Notification) error,
 ) *ThreadsService {
 	handler := &ThreadsService{
@@ -206,7 +205,7 @@ func (h *ThreadsService) handleJoin(pid peer.ID, env *pb.Envelope) (*pb.Envelope
 	}
 
 	// send notification
-	notification, err := newThreadNotification(thrd.PrivKey, join.Header, repo.PeerJoinedNotification)
+	notification, err := newThreadNotification(thrd.privKey, join.Header, repo.PeerJoinedNotification)
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +252,7 @@ func (h *ThreadsService) handleLeave(pid peer.ID, env *pb.Envelope) (*pb.Envelop
 	}
 
 	// send notification
-	notification, err := newThreadNotification(thrd.PrivKey, leave.Header, repo.PeerLeftNotification)
+	notification, err := newThreadNotification(thrd.privKey, leave.Header, repo.PeerLeftNotification)
 	if err != nil {
 		return nil, err
 	}
@@ -303,14 +302,14 @@ func (h *ThreadsService) handleData(pid peer.ID, env *pb.Envelope) (*pb.Envelope
 	var notification *repo.Notification
 	switch data.Type {
 	case pb.ThreadData_PHOTO:
-		notification, err = newThreadNotification(thrd.PrivKey, data.Header, repo.PhotoAddedNotification)
+		notification, err = newThreadNotification(thrd.privKey, data.Header, repo.PhotoAddedNotification)
 		if err != nil {
 			return nil, err
 		}
 		notification.DataId = data.DataId
 		notification.Body = "added a photo"
 	case pb.ThreadData_TEXT:
-		notification, err = newThreadNotification(thrd.PrivKey, data.Header, repo.TextAddedNotification)
+		notification, err = newThreadNotification(thrd.privKey, data.Header, repo.TextAddedNotification)
 		if err != nil {
 			return nil, err
 		}
@@ -378,7 +377,7 @@ func (h *ThreadsService) handleAnnotation(pid peer.ID, env *pb.Envelope) (*pb.En
 	var notification *repo.Notification
 	switch annotation.Type {
 	case pb.ThreadAnnotation_COMMENT:
-		notification, err = newThreadNotification(thrd.PrivKey, annotation.Header, repo.CommentAddedNotification)
+		notification, err = newThreadNotification(thrd.privKey, annotation.Header, repo.CommentAddedNotification)
 		if err != nil {
 			return nil, err
 		}
@@ -388,7 +387,7 @@ func (h *ThreadsService) handleAnnotation(pid peer.ID, env *pb.Envelope) (*pb.En
 		}
 		notification.Body = fmt.Sprintf("commented on %s: \"%s\"", target, string(body))
 	case pb.ThreadAnnotation_LIKE:
-		notification, err = newThreadNotification(thrd.PrivKey, annotation.Header, repo.LikeAddedNotification)
+		notification, err = newThreadNotification(thrd.privKey, annotation.Header, repo.LikeAddedNotification)
 		if err != nil {
 			return nil, err
 		}

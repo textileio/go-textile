@@ -17,7 +17,7 @@ func (t *Thread) AddPhoto(dataId string, caption string, key []byte) (mh.Multiha
 	defer t.mux.Unlock()
 
 	// download metadata
-	metadataCipher, err := ipfs.GetDataAtPath(t.ipfs(), fmt.Sprintf("%s/meta", dataId))
+	metadataCipher, err := ipfs.GetDataAtPath(t.node(), fmt.Sprintf("%s/meta", dataId))
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func (t *Thread) HandleDataBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 
 	// add author as a new local peer, just in case we haven't found this peer yet.
 	// double-check not self in case we're re-discovering the thread
-	self := authorId.Pretty() == t.ipfs().Identity.Pretty()
+	self := authorId.Pretty() == t.node().Identity.Pretty()
 	if !self {
 		threadId, err := ipfs.IDFromPublicKeyBytes(content.Header.ThreadPk)
 		if err != nil {
@@ -152,22 +152,22 @@ func (t *Thread) HandleDataBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 		}
 		if !ignore {
 			// pin data first (it may not be available)
-			if err := ipfs.PinPath(t.ipfs(), fmt.Sprintf("%s/thumb", content.DataId), false); err != nil {
+			if err := ipfs.PinPath(t.node(), fmt.Sprintf("%s/thumb", content.DataId), false); err != nil {
 				return nil, err
 			}
-			if err := ipfs.PinPath(t.ipfs(), fmt.Sprintf("%s/small", content.DataId), false); err != nil {
+			if err := ipfs.PinPath(t.node(), fmt.Sprintf("%s/small", content.DataId), false); err != nil {
 				log.Warningf("photo set missing small size")
 			}
-			if err := ipfs.PinPath(t.ipfs(), fmt.Sprintf("%s/meta", content.DataId), false); err != nil {
+			if err := ipfs.PinPath(t.node(), fmt.Sprintf("%s/meta", content.DataId), false); err != nil {
 				return nil, err
 			}
-			if err := ipfs.PinPath(t.ipfs(), fmt.Sprintf("%s/pk", content.DataId), false); err != nil {
+			if err := ipfs.PinPath(t.node(), fmt.Sprintf("%s/pk", content.DataId), false); err != nil {
 				return nil, err
 			}
 		}
 
 		// get metadata
-		metadataCipher, err := ipfs.GetDataAtPath(t.ipfs(), fmt.Sprintf("%s/meta", content.DataId))
+		metadataCipher, err := ipfs.GetDataAtPath(t.node(), fmt.Sprintf("%s/meta", content.DataId))
 		if err != nil {
 			return nil, err
 		}

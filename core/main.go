@@ -8,10 +8,9 @@ import (
 	"github.com/textileio/textile-go/archive"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/net"
-	"github.com/textileio/textile-go/net/service"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
+	"github.com/textileio/textile-go/service"
 	"gopkg.in/natefinch/lumberjack.v2"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
@@ -102,9 +101,9 @@ type Textile struct {
 	updates          chan Update
 	threadUpdates    chan ThreadUpdate
 	notifications    chan repo.Notification
-	threadsService   *net.ThreadsService
-	cafeService      *net.CafeService
-	cafeRequestQueue *net.CafeRequestQueue
+	threadsService   *ThreadsService
+	cafeService      *CafeService
+	cafeRequestQueue *CafeRequestQueue
 	mux              sync.Mutex
 }
 
@@ -299,7 +298,7 @@ func (t *Textile) Start() error {
 		}
 
 		// setup thread service
-		t.threadsService = net.NewThreadsService(
+		t.threadsService = NewThreadsService(
 			accnt,
 			t.ipfs,
 			t.datastore,
@@ -308,7 +307,7 @@ func (t *Textile) Start() error {
 		)
 
 		// setup cafe service
-		t.cafeService = net.NewCafeService(accnt, t.ipfs, t.datastore)
+		t.cafeService = NewCafeService(accnt, t.ipfs, t.datastore)
 
 		// start store queue
 		if t.Mobile() {
@@ -325,8 +324,8 @@ func (t *Textile) Start() error {
 	}()
 
 	// build a store request queue
-	t.cafeRequestQueue = net.NewCafeRequestQueue(
-		func() *net.CafeService {
+	t.cafeRequestQueue = NewCafeRequestQueue(
+		func() *CafeService {
 			return t.cafeService
 		},
 		func() *core.IpfsNode {
@@ -594,7 +593,7 @@ func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 	}
 	threadConfig := &ThreadConfig{
 		RepoPath: t.repoPath,
-		Ipfs: func() *core.IpfsNode {
+		Node: func() *core.IpfsNode {
 			return t.ipfs
 		},
 		Datastore:  t.datastore,

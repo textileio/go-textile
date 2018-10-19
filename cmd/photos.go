@@ -8,7 +8,6 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/thread"
 	"gopkg.in/abiosoft/ishell.v2"
 	"io/ioutil"
 	"os"
@@ -370,7 +369,7 @@ func listPhotoLikes(c *ishell.Context) {
 	}
 }
 
-func getBlockAndThreadForDataId(dataId string) (*repo.Block, *thread.Thread, error) {
+func getBlockAndThreadForDataId(dataId string) (*repo.Block, *core.Thread, error) {
 	block, err := core.Node.GetBlockByDataId(dataId)
 	if err != nil {
 		return nil, nil, err

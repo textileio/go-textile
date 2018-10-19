@@ -8,7 +8,6 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/net"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
@@ -38,10 +37,10 @@ type ThreadInfo struct {
 // ThreadConfig is used to construct a Thread
 type ThreadConfig struct {
 	RepoPath   string
-	Ipfs       func() *core.IpfsNode
+	Node       func() *core.IpfsNode
 	Datastore  repo.Datastore
-	Service    *net.ThreadsService
-	CafeQueue  *net.CafeRequestQueue
+	Service    *ThreadsService
+	CafeQueue  *CafeRequestQueue
 	SendUpdate func(update ThreadUpdate)
 }
 
@@ -49,12 +48,12 @@ type ThreadConfig struct {
 type Thread struct {
 	Id         string
 	Name       string
-	PrivKey    libp2pc.PrivKey
+	privKey    libp2pc.PrivKey
 	repoPath   string
-	ipfs       func() *core.IpfsNode
+	node       func() *core.IpfsNode
 	datastore  repo.Datastore
-	service    *net.ThreadsService
-	cafeQueue  *net.CafeRequestQueue
+	service    *ThreadsService
+	cafeQueue  *CafeRequestQueue
 	sendUpdate func(update ThreadUpdate)
 	mux        sync.Mutex
 }
@@ -68,9 +67,9 @@ func NewThread(model *repo.Thread, config *ThreadConfig) (*Thread, error) {
 	return &Thread{
 		Id:         model.Id,
 		Name:       model.Name,
-		PrivKey:    sk,
+		privKey:    sk,
 		repoPath:   config.RepoPath,
-		ipfs:       config.Ipfs,
+		node:       config.Node,
 		datastore:  config.Datastore,
 		service:    config.Service,
 		cafeQueue:  config.CafeQueue,
@@ -149,17 +148,17 @@ func (t *Thread) Peers() []repo.ThreadPeer {
 
 // Encrypt data with thread public key
 func (t *Thread) Encrypt(data []byte) ([]byte, error) {
-	return crypto.Encrypt(t.PrivKey.GetPublic(), data)
+	return crypto.Encrypt(t.privKey.GetPublic(), data)
 }
 
 // Decrypt data with thread secret key
 func (t *Thread) Decrypt(data []byte) ([]byte, error) {
-	return crypto.Decrypt(t.PrivKey, data)
+	return crypto.Decrypt(t.privKey, data)
 }
 
 // Verify verifies a signed block
 func (t *Thread) Verify(signed *pb.SignedThreadBlock) error {
-	return crypto.Verify(t.PrivKey.GetPublic(), signed.Block, signed.ThreadSig)
+	return crypto.Verify(t.privKey.GetPublic(), signed.Block, signed.ThreadSig)
 }
 
 // FollowParents tries to follow a list of chains of block ids, processing along the way
@@ -193,7 +192,7 @@ func (t *Thread) followParent(parent string, from *peer.ID) (*repo.ThreadPeer, e
 	}
 
 	// download it
-	serialized, err := ipfs.GetDataAtPath(t.ipfs(), parent)
+	serialized, err := ipfs.GetDataAtPath(t.node(), parent)
 	if err != nil {
 		return nil, err
 	}
@@ -279,13 +278,13 @@ func (t *Thread) newBlockHeader() (*pb.ThreadBlockHeader, error) {
 	}
 
 	// get our own public key
-	threadPk, err := t.PrivKey.GetPublic().Bytes()
+	threadPk, err := t.privKey.GetPublic().Bytes()
 	if err != nil {
 		return nil, err
 	}
 
 	// get our own public key
-	authorPk, err := t.ipfs().PrivateKey.GetPublic().Bytes()
+	authorPk, err := t.node().PrivateKey.GetPublic().Bytes()
 	if err != nil {
 		return nil, err
 	}
@@ -324,7 +323,7 @@ func (t *Thread) addBlock(envelope *pb.Envelope) (mh.Multihash, error) {
 	}
 
 	// pin it
-	id, err := ipfs.PinData(t.ipfs(), bytes.NewReader(messageb))
+	id, err := ipfs.PinData(t.node(), bytes.NewReader(messageb))
 	if err != nil {
 		return nil, err
 	}
@@ -338,7 +337,7 @@ func (t *Thread) addBlock(envelope *pb.Envelope) (mh.Multihash, error) {
 // commitBlock seals and signs the content of a block and adds it to ipfs
 func (t *Thread) commitBlock(content proto.Message, mtype pb.Message_Type) (*pb.Envelope, mh.Multihash, error) {
 	// create the block
-	env, err := t.service.NewBlock(t.PrivKey, mtype, content)
+	env, err := t.service.NewBlock(t.privKey, mtype, content)
 	if err != nil {
 		return nil, nil, err
 	}

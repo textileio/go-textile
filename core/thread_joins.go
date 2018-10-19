@@ -16,7 +16,7 @@ func (t *Thread) JoinInitial() (mh.Multihash, error) {
 	defer t.mux.Unlock()
 
 	// build block
-	inviterPkb, err := t.PrivKey.GetPublic().Bytes()
+	inviterPkb, err := t.privKey.GetPublic().Bytes()
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (t *Thread) Join(inviterPk libp2pc.PubKey, blockId string) (mh.Multihash, e
 	if err != nil {
 		return nil, err
 	}
-	self := inviterPid.Pretty() == t.ipfs().Identity.Pretty()
+	self := inviterPid.Pretty() == t.node().Identity.Pretty()
 	if !self {
 		newPeer := &repo.ThreadPeer{
 			Id:       inviterPid.Pretty(),
@@ -147,7 +147,7 @@ func (t *Thread) HandleJoinBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 	// add invitee as a new local peer.
 	// double-check not self in case we're re-discovering the thread
 	var joined *repo.ThreadPeer
-	self := authorId.Pretty() == t.ipfs().Identity.Pretty()
+	self := authorId.Pretty() == t.node().Identity.Pretty()
 	if !self {
 		threadId, err := ipfs.IDFromPublicKeyBytes(content.Header.ThreadPk)
 		if err != nil {
@@ -187,7 +187,7 @@ func (t *Thread) HandleJoinBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 	}
 
 	// send latest direct to this peer if they could use a merge, i.e., we have newer updates
-	head, err := t.GetHead()
+	head, err := t.Head()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -218,7 +218,7 @@ func (t *Thread) sendWelcome(joined repo.ThreadPeer) error {
 	defer t.mux.Unlock()
 
 	// get current HEAD
-	head, err := t.GetHead()
+	head, err := t.Head()
 	if err != nil {
 		return err
 	}
@@ -229,7 +229,7 @@ func (t *Thread) sendWelcome(joined repo.ThreadPeer) error {
 	}
 
 	// download it
-	serialized, err := ipfs.GetDataAtPath(t.ipfs(), head)
+	serialized, err := ipfs.GetDataAtPath(t.node(), head)
 	if err != nil {
 		return err
 	}
@@ -265,11 +265,11 @@ func (t *Thread) wrapMessage(message *pb.Message) (*pb.Envelope, error) {
 	if err != nil {
 		return nil, err
 	}
-	sig, err := t.ipfs().PrivateKey.Sign(ser)
+	sig, err := t.node().PrivateKey.Sign(ser)
 	if err != nil {
 		return nil, err
 	}
-	pk, err := t.ipfs().PrivateKey.GetPublic().Bytes()
+	pk, err := t.node().PrivateKey.GetPublic().Bytes()
 	if err != nil {
 		return nil, err
 	}

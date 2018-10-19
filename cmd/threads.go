@@ -118,7 +118,7 @@ func getThreadHead(c *ishell.Context) {
 		return
 	}
 
-	head, err := thrd.GetHead()
+	head, err := thrd.Head()
 	if thrd == nil {
 		c.Err(err)
 		return

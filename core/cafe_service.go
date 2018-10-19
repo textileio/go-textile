@@ -1,4 +1,4 @@
-package net
+package core
 
 import (
 	"context"
@@ -9,9 +9,9 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/jwt"
 	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/net/service"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/service"
 	"gx/ipfs/QmVzK524a2VWLqyvtBeiHKsUAWYgeAk4DBeZoY7vpNPNRx/go-block-format"
 	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"

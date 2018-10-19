@@ -143,7 +143,7 @@ func (t *Thread) HandleAnnotationBlock(from *peer.ID, env *pb.Envelope, signed *
 
 	// add author as a new local peer, just in case we haven't found this peer yet.
 	// double-check not self in case we're re-discovering the thread
-	self := authorId.Pretty() == t.ipfs().Identity.Pretty()
+	self := authorId.Pretty() == t.node().Identity.Pretty()
 	if !self {
 		threadId, err := ipfs.IDFromPublicKeyBytes(content.Header.ThreadPk)
 		if err != nil {

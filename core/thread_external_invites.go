@@ -19,7 +19,7 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 	}
 
 	// encypt thread secret with the key
-	threadSk, err := t.PrivKey.Bytes()
+	threadSk, err := t.privKey.Bytes()
 	if err != nil {
 		return nil, nil, err
 	}

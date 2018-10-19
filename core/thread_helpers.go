@@ -28,7 +28,7 @@ func (t *Thread) GetBlockData(path string, block *repo.Block) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	cipher, err := ipfs.GetDataAtPath(t.ipfs(), path)
+	cipher, err := ipfs.GetDataAtPath(t.node(), path)
 	if err != nil {
 
 		// size migrations
@@ -42,7 +42,7 @@ func (t *Thread) GetBlockData(path string, block *repo.Block) ([]byte, error) {
 			default:
 				return nil, err
 			}
-			cipher, err = ipfs.GetDataAtPath(t.ipfs(), strings.Join(parts, "/"))
+			cipher, err = ipfs.GetDataAtPath(t.node(), strings.Join(parts, "/"))
 		}
 		if err != nil {
 			return nil, err
