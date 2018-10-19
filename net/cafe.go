@@ -366,12 +366,12 @@ func (h *CafeService) handleChallenge(pid peer.ID, env *pb.Envelope) (*pb.Envelo
 	}
 
 	// generate a new random nonce
-	nonce := &repo.CafeNonce{
+	nonce := &repo.CafeClientNonce{
 		Value:   ksuid.New().String(),
 		Address: req.Address,
 		Date:    time.Now(),
 	}
-	if err := h.datastore.CafeNonces().Add(nonce); err != nil {
+	if err := h.datastore.CafeClientNonces().Add(nonce); err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
 
@@ -389,7 +389,7 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 	}
 
 	// lookup the nonce
-	snonce := h.datastore.CafeNonces().Get(reg.Value)
+	snonce := h.datastore.CafeClientNonces().Get(reg.Value)
 	if snonce == nil {
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
@@ -436,7 +436,7 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 	}
 
 	// delete the nonce
-	if err := h.datastore.CafeNonces().Delete(snonce.Value); err != nil {
+	if err := h.datastore.CafeClientNonces().Delete(snonce.Value); err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
 

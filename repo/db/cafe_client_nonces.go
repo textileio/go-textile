@@ -7,22 +7,22 @@ import (
 	"time"
 )
 
-type CafeNonceDB struct {
+type CafeClientNonceDB struct {
 	modelStore
 }
 
-func NewCafeNonceStore(db *sql.DB, lock *sync.Mutex) repo.CafeNonceStore {
-	return &CafeNonceDB{modelStore{db, lock}}
+func NewCafeClientNonceStore(db *sql.DB, lock *sync.Mutex) repo.CafeClientNonceStore {
+	return &CafeClientNonceDB{modelStore{db, lock}}
 }
 
-func (c *CafeNonceDB) Add(nonce *repo.CafeNonce) error {
+func (c *CafeClientNonceDB) Add(nonce *repo.CafeClientNonce) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
 	if err != nil {
 		return err
 	}
-	stm := `insert into cafe_nonces(value, address, date) values(?,?,?)`
+	stm := `insert into cafe_client_nonces(value, address, date) values(?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -42,25 +42,25 @@ func (c *CafeNonceDB) Add(nonce *repo.CafeNonce) error {
 	return nil
 }
 
-func (c *CafeNonceDB) Get(value string) *repo.CafeNonce {
+func (c *CafeClientNonceDB) Get(value string) *repo.CafeClientNonce {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from cafe_nonces where value='" + value + "';")
+	ret := c.handleQuery("select * from cafe_client_nonces where value='" + value + "';")
 	if len(ret) == 0 {
 		return nil
 	}
 	return &ret[0]
 }
 
-func (c *CafeNonceDB) Delete(value string) error {
+func (c *CafeClientNonceDB) Delete(value string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from cafe_nonces where value=?", value)
+	_, err := c.db.Exec("delete from cafe_client_nonces where value=?", value)
 	return err
 }
 
-func (c *CafeNonceDB) handleQuery(stm string) []repo.CafeNonce {
-	var ret []repo.CafeNonce
+func (c *CafeClientNonceDB) handleQuery(stm string) []repo.CafeClientNonce {
+	var ret []repo.CafeClientNonce
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -73,7 +73,7 @@ func (c *CafeNonceDB) handleQuery(stm string) []repo.CafeNonce {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		nonce := repo.CafeNonce{
+		nonce := repo.CafeClientNonce{
 			Value:   value,
 			Address: address,
 			Date:    time.Unix(int64(dateInt), 0),

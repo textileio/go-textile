@@ -17,10 +17,6 @@ message SignedThreadBlock {
     bytes threadSig = 2;
 }
 
-message ThreadHeader {
-    ThreadBlockHeader header = 1;
-}
-
 message ThreadInvite {
     ThreadBlockHeader header = 1;
 

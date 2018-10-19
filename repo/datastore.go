@@ -16,7 +16,8 @@ type Datastore interface {
 	Notifications() NotificationStore
 	CafeSessions() CafeSessionStore
 	CafeRequests() CafeRequestStore
-	CafeNonces() CafeNonceStore
+	CafeInboxes() CafeInboxStore
+	CafeClientNonces() CafeClientNonceStore
 	CafeClients() CafeClientStore
 	CafeClientThreads() CafeClientThreadStore
 	CafeClientMessages() CafeClientMessageStore
@@ -120,11 +121,19 @@ type CafeRequestStore interface {
 	DeleteByCafe(cafeId string) error
 }
 
+type CafeInboxStore interface {
+	Queryable
+	Add(inbox *CafeInbox) error
+	ListByPeer(peerId string) []CafeInbox
+	DeleteByPeer(peerId string) error
+	DeleteByCafe(cafeId string) error
+}
+
 // Cafe host-side stores
 
-type CafeNonceStore interface {
-	Add(nonce *CafeNonce) error
-	Get(value string) *CafeNonce
+type CafeClientNonceStore interface {
+	Add(nonce *CafeClientNonce) error
+	Get(value string) *CafeClientNonce
 	Delete(value string) error
 }
 

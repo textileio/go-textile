@@ -21,7 +21,8 @@ type SQLiteDatastore struct {
 	notifications      repo.NotificationStore
 	cafeSessions       repo.CafeSessionStore
 	cafeRequests       repo.CafeRequestStore
-	cafeNonces         repo.CafeNonceStore
+	cafeInboxes        repo.CafeInboxStore
+	cafeClientNonces   repo.CafeClientNonceStore
 	cafeClients        repo.CafeClientStore
 	cafeClientThreads  repo.CafeClientThreadStore
 	cafeClientMessages repo.CafeClientMessageStore
@@ -51,7 +52,8 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 		notifications:      NewNotificationStore(conn, mux),
 		cafeSessions:       NewCafeSessionStore(conn, mux),
 		cafeRequests:       NewCafeRequestStore(conn, mux),
-		cafeNonces:         NewCafeNonceStore(conn, mux),
+		cafeInboxes:        NewCafeInboxStore(conn, mux),
+		cafeClientNonces:   NewCafeClientNonceStore(conn, mux),
 		cafeClients:        NewCafeClientStore(conn, mux),
 		cafeClientThreads:  NewCafeClientThreadStore(conn, mux),
 		cafeClientMessages: NewCafeClientMessageStore(conn, mux),
@@ -106,8 +108,12 @@ func (d *SQLiteDatastore) CafeRequests() repo.CafeRequestStore {
 	return d.cafeRequests
 }
 
-func (d *SQLiteDatastore) CafeNonces() repo.CafeNonceStore {
-	return d.cafeNonces
+func (d *SQLiteDatastore) CafeInboxes() repo.CafeInboxStore {
+	return d.cafeInboxes
+}
+
+func (d *SQLiteDatastore) CafeClientNonces() repo.CafeClientNonceStore {
+	return d.cafeClientNonces
 }
 
 func (d *SQLiteDatastore) CafeClients() repo.CafeClientStore {
@@ -195,7 +201,10 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create table cafe_requests (id text primary key not null, targetId text not null, cafeId text not null, type integer not null, date integer not null);
     create index cafe_request_cafeId on cafe_requests (cafeId);
 
-	create table cafe_nonces (value text primary key not null, address text not null, date integer not null);
+	create table cafe_inboxes (peerId text not null, cafeId text not null, primary key (peerId, cafeId));
+	create index cafe_inbox_peerId on cafe_inboxes (peerId);
+
+	create table cafe_client_nonces (value text primary key not null, address text not null, date integer not null);
 
     create table cafe_clients (id text primary key not null, address text not null, created integer not null, lastSeen integer not null);
     create index cafe_client_address on cafe_clients (address);

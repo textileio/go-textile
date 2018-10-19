@@ -1,8 +1,6 @@
 package repo
 
-import (
-	"time"
-)
+import "time"
 
 type Thread struct {
 	Id      string `json:"id"`
@@ -157,7 +155,12 @@ type CafeRequest struct {
 	Date     time.Time       `json:"date"`
 }
 
-type CafeNonce struct {
+type CafeInbox struct {
+	PeerId string `json:"peer_id"`
+	CafeId string `json:"cafe_id"`
+}
+
+type CafeClientNonce struct {
 	Value   string    `json:"value"`
 	Address string    `json:"address"`
 	Date    time.Time `json:"date"`
