@@ -174,8 +174,9 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 
     create table threads (id text primary key not null, name text not null, sk blob not null, head text not null);
 
-    create table thread_peers (row text primary key not null, id text not null, pk blob not null, threadId text not null);
-    create unique index peer_threadId_id on thread_peers (threadId, id);
+    create table thread_peers (id text not null, threadId text not null, primary key (id, threadId));
+    create index thread_peer_id on thread_peers (id);
+    create index thread_peer_threadId on thread_peers (threadId);
 
     create table account_peers (id text primary key not null, name text not null);
 
@@ -190,6 +191,7 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index notification_read on notifications (read);
 
     create table cafe_sessions (cafeId text primary key not null, access text not null, refresh text not null, expiry integer not null);
+
     create table cafe_requests (id text primary key not null, targetId text not null, cafeId text not null, type integer not null, date integer not null);
     create index cafe_request_cafeId on cafe_requests (cafeId);
 

@@ -9,7 +9,7 @@ import (
 
 // GetNotifications lists notifications
 func (t *Textile) GetNotifications(offset string, limit int) []repo.Notification {
-	return t.datastore.Notifications().List(offset, limit, "")
+	return t.datastore.Notifications().List(offset, limit)
 }
 
 // CountUnreadNotifications counts unread notifications

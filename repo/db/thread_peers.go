@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"github.com/textileio/textile-go/repo"
-	"strconv"
 	"sync"
 )
 
@@ -22,7 +21,7 @@ func (c *ThreadPeerDB) Add(peer *repo.ThreadPeer) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into thread_peers(row, id, pk, threadId) values(?,?,?,?)`
+	stm := `insert into thread_peers(id, threadId) values(?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -30,9 +29,7 @@ func (c *ThreadPeerDB) Add(peer *repo.ThreadPeer) error {
 	}
 	defer stmt.Close()
 	_, err = stmt.Exec(
-		peer.Row,
 		peer.Id,
-		peer.PubKey,
 		peer.ThreadId,
 	)
 	if err != nil {
@@ -43,48 +40,35 @@ func (c *ThreadPeerDB) Add(peer *repo.ThreadPeer) error {
 	return nil
 }
 
-func (c *ThreadPeerDB) Get(row string) *repo.ThreadPeer {
+func (c *ThreadPeerDB) List() []repo.ThreadPeer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from thread_peers where row='" + row + "';")
-	if len(ret) == 0 {
-		return nil
-	}
-	return &ret[0]
-}
-
-func (c *ThreadPeerDB) GetById(id string) *repo.ThreadPeer {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from thread_peers where id='" + id + "';")
-	if len(ret) == 0 {
-		return nil
-	}
-	return &ret[0]
-}
-
-func (c *ThreadPeerDB) List(limit int, query string) []repo.ThreadPeer {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	var stm, q string
-	if query != "" {
-		q = "where " + query + " "
-	}
-	stm = "select * from thread_peers " + q + "limit " + strconv.Itoa(limit) + ";"
+	stm := "select * from thread_peers;"
 	return c.handleQuery(stm)
 }
 
-func (c *ThreadPeerDB) Count(query string, distinct bool) int {
+func (c *ThreadPeerDB) ListById(id string) []repo.ThreadPeer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	var stm, q string
-	if query != "" {
-		q = " where " + query
-	}
+	stm := "select * from thread_peers where id='" + id + "';"
+	return c.handleQuery(stm)
+}
+
+func (c *ThreadPeerDB) ListByThread(threadId string) []repo.ThreadPeer {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	stm := "select * from thread_peers where threadId='" + threadId + "';"
+	return c.handleQuery(stm)
+}
+
+func (c *ThreadPeerDB) Count(distinct bool) int {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	var stm string
 	if distinct {
-		stm = "select Count(distinct id) from thread_peers" + q + ";"
+		stm = "select Count(distinct id) from thread_peers;"
 	} else {
-		stm = "select Count(*) from thread_peers" + q + ";"
+		stm = "select Count(*) from thread_peers;"
 	}
 	row := c.db.QueryRow(stm)
 	var count int
@@ -99,7 +83,14 @@ func (c *ThreadPeerDB) Delete(id string, threadId string) error {
 	return err
 }
 
-func (c *ThreadPeerDB) DeleteByThreadId(threadId string) error {
+func (c *ThreadPeerDB) DeleteById(id string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("delete from thread_peers where id=?", id)
+	return err
+}
+
+func (c *ThreadPeerDB) DeleteByThread(threadId string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	_, err := c.db.Exec("delete from thread_peers where threadId=?", threadId)
@@ -114,16 +105,13 @@ func (c *ThreadPeerDB) handleQuery(stm string) []repo.ThreadPeer {
 		return nil
 	}
 	for rows.Next() {
-		var row, id, threadId string
-		var pk []byte
-		if err := rows.Scan(&row, &id, &pk, &threadId); err != nil {
+		var id, threadId string
+		if err := rows.Scan(&id, &threadId); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
 		block := repo.ThreadPeer{
-			Row:      row,
 			Id:       id,
-			PubKey:   pk,
 			ThreadId: threadId,
 		}
 		ret = append(ret, block)

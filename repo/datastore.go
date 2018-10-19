@@ -51,7 +51,7 @@ type ThreadStore interface {
 	Queryable
 	Add(thread *Thread) error
 	Get(id string) *Thread
-	List(query string) []Thread
+	List() []Thread
 	Count(query string) int
 	UpdateHead(id string, head string) error
 	Delete(id string) error
@@ -60,12 +60,13 @@ type ThreadStore interface {
 type ThreadPeerStore interface {
 	Queryable
 	Add(peer *ThreadPeer) error
-	Get(row string) *ThreadPeer
-	GetById(id string) *ThreadPeer
-	List(limit int, query string) []ThreadPeer
-	Count(query string, distinct bool) int
+	List() []ThreadPeer
+	ListById(id string) []ThreadPeer
+	ListByThread(threadId string) []ThreadPeer
+	Count(distinct bool) int
 	Delete(id string, thread string) error
-	DeleteByThreadId(thread string) error
+	DeleteById(id string) error
+	DeleteByThread(thread string) error
 }
 
 type AccountPeerStore interface {
@@ -85,7 +86,7 @@ type BlockStore interface {
 	List(offset string, limit int, query string) []Block
 	Count(query string) int
 	Delete(id string) error
-	DeleteByThreadId(threadId string) error
+	DeleteByThread(threadId string) error
 }
 
 type NotificationStore interface {
@@ -94,7 +95,7 @@ type NotificationStore interface {
 	Get(id string) *Notification
 	Read(id string) error
 	ReadAll() error
-	List(offset string, limit int, query string) []Notification
+	List(offset string, limit int) []Notification
 	CountUnread() int
 	Delete(id string) error
 	DeleteByActorId(actorId string) error

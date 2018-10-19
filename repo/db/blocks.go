@@ -110,7 +110,7 @@ func (c *BlockDB) Delete(id string) error {
 	return err
 }
 
-func (c *BlockDB) DeleteByThreadId(threadId string) error {
+func (c *BlockDB) DeleteByThread(threadId string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	_, err := c.db.Exec("delete from blocks where threadId=?", threadId)

@@ -75,20 +75,14 @@ func (c *NotificationDB) ReadAll() error {
 	return err
 }
 
-func (c *NotificationDB) List(offset string, limit int, query string) []repo.Notification {
+func (c *NotificationDB) List(offset string, limit int) []repo.Notification {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	var stm, q string
+	var stm string
 	if offset != "" {
-		if query != "" {
-			q = query + " and "
-		}
-		stm = "select * from notifications where " + q + "date<(select date from notifications where id='" + offset + "') order by date desc limit " + strconv.Itoa(limit) + ";"
+		stm = "select * from notifications where date<(select date from notifications where id='" + offset + "') order by date desc limit " + strconv.Itoa(limit) + ";"
 	} else {
-		if query != "" {
-			q = "where " + query + " "
-		}
-		stm = "select * from notifications " + q + "order by date desc limit " + strconv.Itoa(limit) + ";"
+		stm = "select * from notifications order by date desc limit " + strconv.Itoa(limit) + ";"
 	}
 	return c.handleQuery(stm)
 }

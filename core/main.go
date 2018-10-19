@@ -338,7 +338,7 @@ func (t *Textile) Start() error {
 	)
 
 	// setup threads
-	for _, mod := range t.datastore.Threads().List("") {
+	for _, mod := range t.datastore.Threads().List() {
 		_, err := t.loadThread(&mod)
 		if err == ErrThreadLoaded {
 			continue

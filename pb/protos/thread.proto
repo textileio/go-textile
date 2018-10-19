@@ -54,7 +54,6 @@ message ThreadData {
     string dataId            = 3;
     bytes keyCipher          = 4;
     bytes captionCipher      = 5;
-    bytes usernameCipher     = 6 [deprecated = true];
 
     enum Type {
         PHOTO = 0;

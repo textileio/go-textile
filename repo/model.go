@@ -12,9 +12,7 @@ type Thread struct {
 }
 
 type ThreadPeer struct {
-	Row      string `json:"row"`
 	Id       string `json:"id"`
-	PubKey   []byte `json:"pk"`
 	ThreadId string `json:"thread_id"`
 }
 
@@ -48,16 +46,13 @@ type DataBlockConfig struct {
 type BlockType int
 
 const (
-	InviteBlock         BlockType = iota // no longer used
-	ExternalInviteBlock                  // no longer used
-	JoinBlock
+	JoinBlock BlockType = iota
 	LeaveBlock
+	IgnoreBlock
+	MergeBlock
 	PhotoBlock
 	CommentBlock
 	LikeBlock
-
-	IgnoreBlock = 200
-	MergeBlock  = 201
 )
 
 func (b BlockType) Description() string {

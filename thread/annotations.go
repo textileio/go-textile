@@ -2,7 +2,6 @@ package thread
 
 import (
 	"github.com/golang/protobuf/proto"
-	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
@@ -151,10 +150,8 @@ func (t *Thread) HandleAnnotationBlock(from *peer.ID, env *pb.Envelope, signed *
 			return nil, err
 		}
 		newPeer := &repo.ThreadPeer{
-			Row:      ksuid.New().String(),
 			Id:       authorId.Pretty(),
 			ThreadId: threadId.Pretty(),
-			PubKey:   content.Header.AuthorPk,
 		}
 		if err := t.peers().Add(newPeer); err != nil {
 			log.Errorf("error adding peer: %s", err)

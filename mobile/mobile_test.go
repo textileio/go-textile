@@ -202,13 +202,13 @@ func TestMobile_AddAccountPeer(t *testing.T) {
 	}
 }
 
-func TestMobile_AddDeviceAgain(t *testing.T) {
+func TestMobile_AddAccountPeerAgain(t *testing.T) {
 	if err := mobile.AddAccountPeer(accountPeerId, "hello"); err == nil {
 		t.Error("add same account peer again should fail")
 	}
 }
 
-func TestMobile_Devices(t *testing.T) {
+func TestMobile_AccountPeers(t *testing.T) {
 	_, pk, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Error(err)
@@ -237,7 +237,7 @@ func TestMobile_Devices(t *testing.T) {
 	}
 }
 
-func TestMobile_RemoveDevice(t *testing.T) {
+func TestMobile_RemoveAccountPeer(t *testing.T) {
 	if err := mobile.RemoveAccountPeer(accountPeerId); err != nil {
 		t.Errorf("remove account peer failed: %s", err)
 	}

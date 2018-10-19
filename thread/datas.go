@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
@@ -122,10 +121,8 @@ func (t *Thread) HandleDataBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 			return nil, err
 		}
 		newPeer := &repo.ThreadPeer{
-			Row:      ksuid.New().String(),
 			Id:       authorId.Pretty(),
 			ThreadId: threadId.Pretty(),
-			PubKey:   content.Header.AuthorPk,
 		}
 		if err := t.peers().Add(newPeer); err != nil {
 			log.Errorf("error adding peer: %s", err)
@@ -175,11 +172,6 @@ func (t *Thread) HandleDataBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 			return nil, err
 		}
 		dconf.DataMetadataCipher = metadataCipher
-
-		// check for old username format
-		if content.Header.AuthorUnCipher == nil {
-			content.Header.AuthorUnCipher = content.UsernameCipher
-		}
 
 		// index
 		if err := t.indexBlock(id, content.Header, repo.PhotoBlock, dconf); err != nil {

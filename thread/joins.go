@@ -2,7 +2,6 @@ package thread
 
 import (
 	"github.com/golang/protobuf/proto"
-	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
@@ -98,10 +97,8 @@ func (t *Thread) Join(inviterPk libp2pc.PubKey, blockId string) (mh.Multihash, e
 	self := inviterPid.Pretty() == t.ipfs().Identity.Pretty()
 	if !self {
 		newPeer := &repo.ThreadPeer{
-			Row:      ksuid.New().String(),
 			Id:       inviterPid.Pretty(),
 			ThreadId: t.Id,
-			PubKey:   inviterPkb,
 		}
 		if err := t.peers().Add(newPeer); err != nil {
 			// TODO: #202 (Properly handle database/sql errors)
@@ -157,10 +154,8 @@ func (t *Thread) HandleJoinBlock(from *peer.ID, env *pb.Envelope, signed *pb.Sig
 			return nil, nil, err
 		}
 		joined = &repo.ThreadPeer{
-			Row:      ksuid.New().String(),
 			Id:       authorId.Pretty(),
 			ThreadId: threadId.Pretty(),
-			PubKey:   content.Header.AuthorPk,
 		}
 		if err := t.peers().Add(joined); err != nil {
 			log.Errorf("error adding peer: %s", err)

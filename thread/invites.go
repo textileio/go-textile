@@ -50,14 +50,7 @@ func (t *Thread) AddInvite(inviteeId peer.ID) (mh.Multihash, error) {
 	id := addr.B58String()
 
 	// create new peer for posting, but don't add it yet. it will get added if+when they accept.
-	inviteePkb, err := inviteePk.Bytes()
-	if err != nil {
-		return nil, err
-	}
-	target := repo.ThreadPeer{
-		Id:     inviteeId.Pretty(),
-		PubKey: inviteePkb,
-	}
+	target := repo.ThreadPeer{Id: inviteeId.Pretty()}
 
 	// post it
 	t.post(message, id, []repo.ThreadPeer{target})

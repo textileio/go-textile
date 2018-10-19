@@ -60,7 +60,7 @@ func TestNotificationDB_Read(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	notifs := notifdb.List("", 1, "")
+	notifs := notifdb.List("", 1)
 	if len(notifs) == 0 || !notifs[0].Read {
 		t.Error("notification read bad result")
 	}
@@ -99,7 +99,7 @@ func TestNotificationDB_ReadAll(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	notifs := notifdb.List("", -1, "")
+	notifs := notifdb.List("", -1)
 	if len(notifs) != 2 || !notifs[0].Read || !notifs[1].Read {
 		t.Error("notification read all bad result")
 	}
@@ -160,24 +160,20 @@ func TestNotificationDB_List(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	all := notifdb.List("", -1, "")
+	all := notifdb.List("", -1)
 	if len(all) != 4 {
 		t.Error("returned incorrect number of notifications")
 		return
 	}
-	limited := notifdb.List("", 1, "")
+	limited := notifdb.List("", 1)
 	if len(limited) != 1 {
 		t.Error("returned incorrect number of notifications")
 		return
 	}
-	offset := notifdb.List(limited[0].Id, -1, "")
+	offset := notifdb.List(limited[0].Id, -1)
 	if len(offset) != 3 {
 		t.Error("returned incorrect number of notifications")
 		return
-	}
-	filtered := notifdb.List("", -1, "blockId='block1'")
-	if len(filtered) != 1 {
-		t.Error("returned incorrect number of notifications")
 	}
 }
 

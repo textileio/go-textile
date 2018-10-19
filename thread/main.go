@@ -154,8 +154,7 @@ func (t *Thread) Blocks(offsetId string, limit int, btype *repo.BlockType, dataI
 
 // Peers returns locally known peers in this thread
 func (t *Thread) Peers() []repo.ThreadPeer {
-	query := fmt.Sprintf("threadId='%s'", t.Id)
-	return t.peers().List(-1, query)
+	return t.peers().ListByThread(t.Id)
 }
 
 // Encrypt data with thread public key

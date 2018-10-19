@@ -172,8 +172,8 @@ func TestBlockDB_Delete(t *testing.T) {
 	}
 }
 
-func TestBlockDB_DeleteByThreadId(t *testing.T) {
-	err := bdb.DeleteByThreadId("thread_id")
+func TestBlockDB_DeleteByThread(t *testing.T) {
+	err := bdb.DeleteByThread("thread_id")
 	if err != nil {
 		t.Error(err)
 	}

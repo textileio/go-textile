@@ -303,27 +303,27 @@ func RunShell(startNode func() error, stopNode func() error) {
 		shell.AddCmd(threadCmd)
 	}
 	{
-		deviceCmd := &ishell.Cmd{
-			Name:     "device",
-			Help:     "manage connected devices",
-			LongHelp: "Add, remove, and list connected devices.",
+		accountPeerCmd := &ishell.Cmd{
+			Name:     "account-peer",
+			Help:     "manage account peers",
+			LongHelp: "Add, remove, and list account peers.",
 		}
-		deviceCmd.AddCmd(&ishell.Cmd{
+		accountPeerCmd.AddCmd(&ishell.Cmd{
 			Name: "add",
-			Help: "add a new device",
-			Func: addDevice,
+			Help: "add a new account peer",
+			Func: addAccountPeer,
 		})
-		deviceCmd.AddCmd(&ishell.Cmd{
+		accountPeerCmd.AddCmd(&ishell.Cmd{
 			Name: "rm",
-			Help: "remove a device by name",
-			Func: removeDevice,
+			Help: "remove an account peer",
+			Func: removeAccountPeer,
 		})
-		deviceCmd.AddCmd(&ishell.Cmd{
+		accountPeerCmd.AddCmd(&ishell.Cmd{
 			Name: "ls",
-			Help: "list devices",
-			Func: listDevices,
+			Help: "list account peer",
+			Func: listAccountPeers,
 		})
-		shell.AddCmd(deviceCmd)
+		shell.AddCmd(accountPeerCmd)
 	}
 	{
 		notificationCmd := &ishell.Cmd{

@@ -300,10 +300,6 @@ func (h *ThreadsService) handleData(pid peer.ID, env *pb.Envelope) (*pb.Envelope
 	}
 
 	// send notification
-	// check for old username format
-	if data.Header.AuthorUnCipher == nil {
-		data.Header.AuthorUnCipher = data.UsernameCipher
-	}
 	var notification *repo.Notification
 	switch data.Type {
 	case pb.ThreadData_PHOTO:

@@ -44,12 +44,12 @@ func (t *Thread) Leave() (mh.Multihash, error) {
 	t.post(env, id, t.Peers())
 
 	// delete blocks
-	if err := t.blocks().DeleteByThreadId(t.Id); err != nil {
+	if err := t.blocks().DeleteByThread(t.Id); err != nil {
 		return nil, err
 	}
 
 	// delete peers
-	if err := t.peers().DeleteByThreadId(t.Id); err != nil {
+	if err := t.peers().DeleteByThread(t.Id); err != nil {
 		return nil, err
 	}
 

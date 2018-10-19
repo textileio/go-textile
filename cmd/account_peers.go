@@ -9,49 +9,49 @@ import (
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 )
 
-func listDevices(c *ishell.Context) {
-	devices := core.Node.AccountPeers()
-	if len(devices) == 0 {
-		c.Println("no devices found")
+func listAccountPeers(c *ishell.Context) {
+	peers := core.Node.AccountPeers()
+	if len(peers) == 0 {
+		c.Println("no peers found")
 	} else {
-		c.Println(fmt.Sprintf("found %v devices", len(devices)))
+		c.Println(fmt.Sprintf("found %v peers", len(peers)))
 	}
 
 	blue := color.New(color.FgHiBlue).SprintFunc()
-	for _, dev := range devices {
+	for _, dev := range peers {
 		c.Println(blue(fmt.Sprintf("name: %s, id: %s", dev.Name, dev.Id)))
 	}
 }
 
-func addDevice(c *ishell.Context) {
+func addAccountPeer(c *ishell.Context) {
 	if len(c.Args) == 0 {
-		c.Err(errors.New("missing device name"))
+		c.Err(errors.New("missing account peer name"))
 		return
 	}
 	name := c.Args[0]
 	if len(c.Args) == 1 {
-		c.Err(errors.New("missing device id"))
+		c.Err(errors.New("missing account peer id"))
 		return
 	}
 
-	did, err := peer.IDB58Decode(c.Args[1])
+	pid, err := peer.IDB58Decode(c.Args[1])
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
-	if err := core.Node.AddAccountPeer(name, did); err != nil {
+	if err := core.Node.AddAccountPeer(pid, name); err != nil {
 		c.Err(err)
 		return
 	}
 
 	cyan := color.New(color.FgCyan).SprintFunc()
-	c.Println(cyan(fmt.Sprintf("added device '%s'", name)))
+	c.Println(cyan(fmt.Sprintf("added account peer '%s'", name)))
 }
 
-func removeDevice(c *ishell.Context) {
+func removeAccountPeer(c *ishell.Context) {
 	if len(c.Args) == 0 {
-		c.Err(errors.New("missing device id"))
+		c.Err(errors.New("missing account peer id"))
 		return
 	}
 	id := c.Args[0]
@@ -63,5 +63,5 @@ func removeDevice(c *ishell.Context) {
 	}
 
 	red := color.New(color.FgHiRed).SprintFunc()
-	c.Println(red(fmt.Sprintf("removed device '%s'", id)))
+	c.Println(red(fmt.Sprintf("removed account peer '%s'", id)))
 }
