@@ -57,24 +57,24 @@ func (h *CafeService) Ping(pid peer.ID) (service.PeerStatus, error) {
 }
 
 // Handle is called by the underlying service handler method
-func (h *CafeService) Handle(mtype pb.Message_Type) func(peer.ID, *pb.Envelope) (*pb.Envelope, error) {
-	switch mtype {
+func (h *CafeService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	switch env.Message.Type {
 	case pb.Message_CAFE_CHALLENGE:
-		return h.handleChallenge
+		return h.handleChallenge(pid, env)
 	case pb.Message_CAFE_REGISTRATION:
-		return h.handleRegistration
+		return h.handleRegistration(pid, env)
 	case pb.Message_CAFE_REFRESH_SESSION:
-		return h.handleRefreshSession
+		return h.handleRefreshSession(pid, env)
 	case pb.Message_CAFE_STORE:
-		return h.handleStore
+		return h.handleStore(pid, env)
 	case pb.Message_CAFE_BLOCK:
-		return h.handleBlock
+		return h.handleBlock(pid, env)
 	case pb.Message_CAFE_STORE_THREAD:
-		return h.handleStoreThread
+		return h.handleStoreThread(pid, env)
 	case pb.Message_CAFE_MESSAGE:
-		return h.handleMessage
+		return h.handleMessage(pid, env)
 	default:
-		return nil
+		return nil, nil
 	}
 }
 
