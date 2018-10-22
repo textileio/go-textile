@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"github.com/textileio/textile-go/photo"
 	"github.com/textileio/textile-go/repo"
 	"sync"
 	"testing"
@@ -22,17 +23,16 @@ func setupBlockDB() {
 
 func TestBlockDB_Add(t *testing.T) {
 	err := bdb.Add(&repo.Block{
-		Id:                   "abcde",
-		Date:                 time.Now(),
-		Parents:              []string{"Qm123"},
-		ThreadId:             "thread_id",
-		AuthorId:             "author_id",
-		AuthorUsernameCipher: []byte("un"),
-		Type:                 repo.PhotoBlock,
-		DataId:               "Qm456",
-		DataKeyCipher:        []byte("key"),
-		DataCaptionCipher:    []byte("xxx"),
-		DataMetadataCipher:   []byte("{}"),
+		Id:           "abcde",
+		Date:         time.Now(),
+		Parents:      []string{"Qm123"},
+		ThreadId:     "thread_id",
+		AuthorId:     "author_id",
+		Type:         repo.PhotoBlock,
+		DataId:       "Qm456",
+		DataKey:      "key",
+		DataCaption:  "xxx",
+		DataMetadata: &photo.Metadata{Name: "boom"},
 	})
 	if err != nil {
 		t.Error(err)
@@ -66,33 +66,31 @@ func TestBlockDB_GetByData(t *testing.T) {
 func TestBlockDB_List(t *testing.T) {
 	setupBlockDB()
 	err := bdb.Add(&repo.Block{
-		Id:                   "abcde",
-		Date:                 time.Now(),
-		Parents:              []string{"Qm123"},
-		ThreadId:             "thread_id",
-		AuthorId:             "author_id",
-		AuthorUsernameCipher: []byte("un"),
-		Type:                 repo.PhotoBlock,
-		DataId:               "Qm456",
-		DataKeyCipher:        []byte("key"),
-		DataCaptionCipher:    []byte("xxx"),
-		DataMetadataCipher:   []byte("{}"),
+		Id:           "abcde",
+		Date:         time.Now(),
+		Parents:      []string{"Qm123"},
+		ThreadId:     "thread_id",
+		AuthorId:     "author_id",
+		Type:         repo.PhotoBlock,
+		DataId:       "Qm456",
+		DataKey:      "key",
+		DataCaption:  "xxx",
+		DataMetadata: &photo.Metadata{Name: "boom"},
 	})
 	if err != nil {
 		t.Error(err)
 	}
 	err = bdb.Add(&repo.Block{
-		Id:                   "fghijk",
-		Date:                 time.Now().Add(time.Minute),
-		Parents:              []string{"Qm456"},
-		ThreadId:             "thread_id",
-		AuthorId:             "author_id",
-		AuthorUsernameCipher: []byte("un"),
-		Type:                 repo.PhotoBlock,
-		DataId:               "Qm789",
-		DataKeyCipher:        []byte("key"),
-		DataCaptionCipher:    []byte("xxx"),
-		DataMetadataCipher:   []byte("{}"),
+		Id:           "fghijk",
+		Date:         time.Now().Add(time.Minute),
+		Parents:      []string{"Qm456"},
+		ThreadId:     "thread_id",
+		AuthorId:     "author_id",
+		Type:         repo.PhotoBlock,
+		DataId:       "Qm789",
+		DataKey:      "key",
+		DataCaption:  "xxx",
+		DataMetadata: &photo.Metadata{Name: "boom"},
 	})
 	if err != nil {
 		t.Error(err)
@@ -121,33 +119,31 @@ func TestBlockDB_List(t *testing.T) {
 func TestBlockDB_Count(t *testing.T) {
 	setupBlockDB()
 	err := bdb.Add(&repo.Block{
-		Id:                   "abcde",
-		Date:                 time.Now(),
-		Parents:              []string{"Qm123"},
-		ThreadId:             "thread_id",
-		AuthorId:             "author_id",
-		AuthorUsernameCipher: []byte("un"),
-		Type:                 repo.PhotoBlock,
-		DataId:               "Qm456",
-		DataKeyCipher:        []byte("key"),
-		DataCaptionCipher:    []byte("xxx"),
-		DataMetadataCipher:   []byte("{}"),
+		Id:           "abcde",
+		Date:         time.Now(),
+		Parents:      []string{"Qm123"},
+		ThreadId:     "thread_id",
+		AuthorId:     "author_id",
+		Type:         repo.PhotoBlock,
+		DataId:       "Qm456",
+		DataKey:      "key",
+		DataCaption:  "xxx",
+		DataMetadata: &photo.Metadata{Name: "boom"},
 	})
 	if err != nil {
 		t.Error(err)
 	}
 	err = bdb.Add(&repo.Block{
-		Id:                   "abcde2",
-		Date:                 time.Now(),
-		Parents:              []string{"Qm123"},
-		ThreadId:             "thread_id",
-		AuthorId:             "author_id",
-		AuthorUsernameCipher: []byte("un"),
-		Type:                 repo.PhotoBlock,
-		DataId:               "Qm456",
-		DataKeyCipher:        []byte("key"),
-		DataCaptionCipher:    []byte("xxx"),
-		DataMetadataCipher:   []byte("{}"),
+		Id:           "abcde2",
+		Date:         time.Now(),
+		Parents:      []string{"Qm123"},
+		ThreadId:     "thread_id",
+		AuthorId:     "author_id",
+		Type:         repo.PhotoBlock,
+		DataId:       "Qm456",
+		DataKey:      "key",
+		DataCaption:  "xxx",
+		DataMetadata: &photo.Metadata{Name: "boom"},
 	})
 	if err != nil {
 		t.Error(err)

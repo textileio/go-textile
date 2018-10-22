@@ -151,9 +151,11 @@ func getMetadata(node *core.IpfsNode, dataId string, key string) (*photo.Metadat
 	if err != nil {
 		return nil, err
 	}
-	var metadata *photo.Metadata
-	if err := json.Unmarshal(metaplain, &metadata); err != nil {
-		return nil, err
+	var meta *photo.Metadata
+	if metaplain != nil {
+		if err := json.Unmarshal(metaplain, &meta); err != nil {
+			return nil, err
+		}
 	}
-	return metadata, nil
+	return meta, nil
 }

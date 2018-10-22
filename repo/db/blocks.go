@@ -2,6 +2,8 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
+	"github.com/textileio/textile-go/photo"
 	"github.com/textileio/textile-go/repo"
 	"strconv"
 	"strings"
@@ -24,13 +26,18 @@ func (c *BlockDB) Add(block *repo.Block) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into blocks(id, date, parents, threadId, authorId, type, dataId, dataKeyCipher, dataCaptionCipher, dataUsernameCipher, dataMetadataCipher) values(?,?,?,?,?,?,?,?,?,?,?)`
+	stm := `insert into blocks(id, date, parents, threadId, authorId, type, dataId, dataKey, dataCaption, dataMetadata) values(?,?,?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
 		return err
 	}
 	defer stmt.Close()
+	// serialize meta data
+	meta, err := json.Marshal(block.DataMetadata)
+	if err != nil {
+		return err
+	}
 	_, err = stmt.Exec(
 		block.Id,
 		int(block.Date.Unix()),
@@ -39,10 +46,9 @@ func (c *BlockDB) Add(block *repo.Block) error {
 		block.AuthorId,
 		int(block.Type),
 		block.DataId,
-		block.DataKeyCipher,
-		block.DataCaptionCipher,
-		block.AuthorUsernameCipher,
-		block.DataMetadataCipher,
+		block.DataKey,
+		block.DataCaption,
+		meta,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -125,25 +131,31 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 		return nil
 	}
 	for rows.Next() {
-		var id, parents, threadId, authorId, dataId string
+		var id, parents, threadId, authorId, dataId, dataKey, dataCaption string
 		var dateInt, typeInt int
-		var dataKeyCipher, dataCaptionCipher, authorUnCipher, dataMetadataCipher []byte
-		if err := rows.Scan(&id, &dateInt, &parents, &threadId, &authorId, &typeInt, &dataId, &dataKeyCipher, &dataCaptionCipher, &authorUnCipher, &dataMetadataCipher); err != nil {
+		var dataMetadata []byte
+		if err := rows.Scan(&id, &dateInt, &parents, &threadId, &authorId, &typeInt, &dataId, &dataKey, &dataCaption, &dataMetadata); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
+		// unmarshal meta data
+		var meta *photo.Metadata
+		if dataMetadata != nil {
+			if err := json.Unmarshal(dataMetadata, &meta); err != nil {
+				log.Errorf("error unmarshaling meta data: %s", err)
+			}
+		}
 		block := repo.Block{
-			Id:                   id,
-			Date:                 time.Unix(int64(dateInt), 0),
-			Parents:              strings.Split(parents, ","),
-			ThreadId:             threadId,
-			AuthorId:             authorId,
-			Type:                 repo.BlockType(typeInt),
-			DataId:               dataId,
-			DataKeyCipher:        dataKeyCipher,
-			DataCaptionCipher:    dataCaptionCipher,
-			AuthorUsernameCipher: authorUnCipher,
-			DataMetadataCipher:   dataMetadataCipher,
+			Id:           id,
+			Date:         time.Unix(int64(dateInt), 0),
+			Parents:      strings.Split(parents, ","),
+			ThreadId:     threadId,
+			AuthorId:     authorId,
+			Type:         repo.BlockType(typeInt),
+			DataId:       dataId,
+			DataKey:      dataKey,
+			DataCaption:  dataCaption,
+			DataMetadata: meta,
 		}
 		ret = append(ret, block)
 	}

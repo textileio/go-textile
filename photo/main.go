@@ -22,6 +22,7 @@ import (
 
 var log = logging.MustGetLogger("photo")
 
+// Format enumerates the type of images currently supported
 type Format string
 
 const (
@@ -30,6 +31,7 @@ const (
 	GIF  Format = "gif"
 )
 
+// ImageSize enumerates the sizes that are currently auto encoded
 type ImageSize int
 
 const (
@@ -39,6 +41,7 @@ const (
 	LargeSize               = 1600
 )
 
+// ImageSizeForMinWidth is used to return a supported size for the given min width
 func ImageSizeForMinWidth(width int) ImageSize {
 	if width <= 100 {
 		return ThumbnailSize
@@ -51,6 +54,7 @@ func ImageSizeForMinWidth(width int) ImageSize {
 	}
 }
 
+// Imagepath enumerates the DAG paths for supported sizes
 type ImagePath string
 
 const (
@@ -60,6 +64,7 @@ const (
 	LargePath               = "/photo"
 )
 
+// ImagePathForSize returns the DAG path for a given supported size
 func ImagePathForSize(size ImageSize) ImagePath {
 	switch size {
 	case ThumbnailSize:
@@ -73,6 +78,8 @@ func ImagePathForSize(size ImageSize) ImagePath {
 	}
 }
 
+// Metadata (mostly exif data) stripped from images pre-encoding.
+// NOTE: Metadata is encrypted and stored alongside encoded images (in the photo set DAG).
 type Metadata struct {
 	Version        string    `json:"version"`
 	Created        time.Time `json:"created,omitempty"`
@@ -277,6 +284,7 @@ func reverseOrientation(img image.Image, orientation string) *image.NRGBA {
 	return imaging.Clone(img)
 }
 
+// imageToPaletted convert Image to Paletted for GIF handling
 func imageToPaletted(img image.Image) *image.Paletted {
 	b := img.Bounds()
 	pm := image.NewPaletted(b, palette.Plan9)
