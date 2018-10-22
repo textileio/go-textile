@@ -92,13 +92,7 @@ func gatewayHandler(c *gin.Context) {
 			c.Status(404)
 			return
 		}
-		_, thrd := core.Node.GetThread(block.ThreadId)
-		if thrd == nil {
-			log.Errorf("could not find thread for block: %s", block.Id)
-			c.Status(404)
-			return
-		}
-		data, err := thrd.GetBlockData(contentPath, block)
+		data, err := core.Node.GetBlockData(contentPath, block)
 		if err != nil {
 			log.Errorf("error decrypting path %s: %s", contentPath, err)
 			c.Status(404)

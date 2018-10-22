@@ -3,8 +3,6 @@ package core
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"github.com/textileio/textile-go/archive"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
@@ -195,19 +193,11 @@ func (t *Textile) PhotoThreads(id string) []*Thread {
 	return threads
 }
 
-// GetPhotoKey returns a the decrypted AES key for a photo set
+// GetPhotoKey returns the decrypted AES key for a photo set
 func (t *Textile) GetPhotoKey(id string) (string, error) {
 	block, err := t.GetBlockByDataId(id)
 	if err != nil {
 		return "", err
 	}
-	_, thrd := t.GetThread(block.ThreadId)
-	if thrd == nil {
-		return "", errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadId))
-	}
-	key, err := thrd.GetBlockDataKey(block)
-	if err != nil {
-		return "", err
-	}
-	return string(key), nil
+	return block.DataKey, nil
 }

@@ -78,7 +78,7 @@ func sharePhoto(c *ishell.Context) {
 	caption := c.ReadLine()
 
 	// get the original block
-	block, err := getBlockByDataId(id)
+	block, err := getPhotoBlockByDataId(id)
 	if err != nil {
 		c.Err(err)
 		return
@@ -144,7 +144,7 @@ func getPhoto(c *ishell.Context) {
 		dest = c.Args[1]
 	}
 
-	block, err := getBlockByDataId(id)
+	block, err := getPhotoBlockByDataId(id)
 	if err != nil {
 		c.Err(err)
 		return
@@ -173,7 +173,7 @@ func getPhotoMetadata(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	block, err := getBlockByDataId(id)
+	block, err := getPhotoBlockByDataId(id)
 	if err != nil {
 		c.Err(err)
 		return
@@ -196,7 +196,7 @@ func getPhotoKey(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	block, err := getBlockByDataId(id)
+	block, err := getPhotoBlockByDataId(id)
 	if err != nil {
 		c.Err(err)
 		return
@@ -322,7 +322,7 @@ func listPhotoLikes(c *ishell.Context) {
 	}
 }
 
-func getBlockByDataId(dataId string) (*repo.Block, error) {
+func getPhotoBlockByDataId(dataId string) (*repo.Block, error) {
 	block, err := core.Node.GetBlockByDataId(dataId)
 	if err != nil {
 		return nil, err

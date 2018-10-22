@@ -142,11 +142,6 @@ func (h *ThreadsService) handleInvite(from peer.ID, hash mh.Multihash, tenv *pb.
 		return err
 	}
 
-	// ensure it is meant for us
-	if msg.Invitee != h.service.Node.Identity.Pretty() {
-		return ErrInvalidThreadBlock
-	}
-
 	// pin locally for use later
 	// NOTE: as an enhancement, we could maintain an sql table for "pending threads",
 	// or make "pending" a type of thread, put sk here into those rows so we don't have
