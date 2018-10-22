@@ -2,7 +2,7 @@ package core
 
 import (
 	"fmt"
-	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
@@ -20,27 +20,21 @@ func (t *Thread) Ignore(blockId string) (mh.Multihash, error) {
 	dataId := fmt.Sprintf("ignore-%s", blockId)
 
 	// build block
-	header, err := t.newBlockHeader()
-	if err != nil {
-		return nil, err
-	}
-	content := &pb.ThreadIgnore{
-		Header: header,
-		DataId: dataId,
+	msg := &pb.ThreadIgnore{
+		Data: dataId,
 	}
 
 	// commit to ipfs
-	env, addr, err := t.commitBlock(content, pb.Message_THREAD_IGNORE)
+	res, err := t.commitBlock(msg, pb.ThreadBlock_IGNORE, nil)
 	if err != nil {
 		return nil, err
 	}
-	id := addr.B58String()
 
 	// index it locally
 	dconf := &repo.DataBlockConfig{
-		DataId: content.DataId,
+		DataId: msg.Data,
 	}
-	if err := t.indexBlock(id, header, repo.IgnoreBlock, dconf); err != nil {
+	if err := t.indexBlock(res, repo.IgnoreBlock, dconf); err != nil {
 		return nil, err
 	}
 
@@ -48,82 +42,44 @@ func (t *Thread) Ignore(blockId string) (mh.Multihash, error) {
 	t.unpinBlockData(blockId)
 
 	// update head
-	if err := t.updateHead(id); err != nil {
+	if err := t.updateHead(res.hash); err != nil {
 		return nil, err
 	}
 
 	// post it
-	t.post(env, id, t.Peers())
+	if err := t.post(res, t.Peers()); err != nil {
+		return nil, err
+	}
 
 	// delete notifications
 	if err := t.datastore.Notifications().DeleteByBlock(blockId); err != nil {
 		return nil, err
 	}
 
-	log.Debugf("added IGNORE to %s: %s", t.Id, id)
+	log.Debugf("added IGNORE to %s: %s", t.Id, res.hash.B58String())
 
 	// all done
-	return addr, nil
+	return res.hash, nil
 }
 
 // HandleIgnoreBlock handles an incoming ignore block
-func (t *Thread) HandleIgnoreBlock(from *peer.ID, env *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadIgnore, following bool) (mh.Multihash, error) {
-	// unmarshal if needed
-	if content == nil {
-		content = new(pb.ThreadIgnore)
-		if err := proto.Unmarshal(signed.Block, content); err != nil {
-			return nil, err
-		}
-	}
-
-	// add to ipfs
-	addr, err := t.addBlock(env)
-	if err != nil {
+func (t *Thread) HandleIgnoreBlock(from *peer.ID, hash mh.Multihash, block *pb.ThreadBlock, following bool) (*pb.ThreadIgnore, error) {
+	msg := new(pb.ThreadIgnore)
+	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
 		return nil, err
-	}
-	id := addr.B58String()
-
-	// check if we aleady have this block indexed
-	// (should only happen if a misbehaving peer keeps sending the same block)
-	index := t.datastore.Blocks().Get(id)
-	if index != nil {
-		return nil, nil
-	}
-
-	// get the author id
-	authorId, err := ipfs.IDFromPublicKeyBytes(content.Header.AuthorPk)
-	if err != nil {
-		return nil, err
-	}
-
-	// add author as a new local peer, just in case we haven't found this peer yet.
-	// double-check not self in case we're re-discovering the thread
-	self := authorId.Pretty() == t.node().Identity.Pretty()
-	if !self {
-		threadId, err := ipfs.IDFromPublicKeyBytes(content.Header.ThreadPk)
-		if err != nil {
-			return nil, err
-		}
-		newPeer := &repo.ThreadPeer{
-			Id:       authorId.Pretty(),
-			ThreadId: threadId.Pretty(),
-		}
-		if err := t.datastore.ThreadPeers().Add(newPeer); err != nil {
-			log.Errorf("error adding peer: %s", err)
-		}
 	}
 
 	// delete notifications
-	blockId := strings.Replace(content.DataId, "ignore-", "", 1)
+	blockId := strings.Replace(msg.Data, "ignore-", "", 1)
 	if err := t.datastore.Notifications().DeleteByBlock(blockId); err != nil {
 		return nil, err
 	}
 
 	// index it locally
 	dconf := &repo.DataBlockConfig{
-		DataId: content.DataId,
+		DataId: msg.Data,
 	}
-	if err := t.indexBlock(id, content.Header, repo.IgnoreBlock, dconf); err != nil {
+	if err := t.indexBlock(&commitResult{hash: hash, header: block.Header}, repo.IgnoreBlock, dconf); err != nil {
 		return nil, err
 	}
 
@@ -131,16 +87,16 @@ func (t *Thread) HandleIgnoreBlock(from *peer.ID, env *pb.Envelope, signed *pb.S
 	t.unpinBlockData(blockId)
 
 	// back prop
-	newPeers, err := t.FollowParents(content.Header.Parents, from)
+	newPeers, err := t.FollowParents(block.Header.Parents, from)
 	if err != nil {
 		return nil, err
 	}
 
 	// handle HEAD
 	if following {
-		return addr, nil
+		return msg, nil
 	}
-	if _, err := t.handleHead(id, content.Header.Parents); err != nil {
+	if _, err := t.handleHead(hash, block.Header.Parents); err != nil {
 		return nil, err
 	}
 
@@ -150,8 +106,7 @@ func (t *Thread) HandleIgnoreBlock(from *peer.ID, env *pb.Envelope, signed *pb.S
 			return nil, err
 		}
 	}
-
-	return addr, nil
+	return msg, nil
 }
 
 func (t *Thread) unpinBlockData(blockId string) {
@@ -169,14 +124,6 @@ func (t *Thread) unpinBlockData(blockId string) {
 					log.Warningf("failed to unpin %s: %s", path, err)
 				}
 				path = fmt.Sprintf("%s/small", block.DataId)
-				if err := ipfs.UnpinPath(t.node(), path); err != nil {
-					log.Warningf("failed to unpin %s: %s", path, err)
-				}
-				path = fmt.Sprintf("%s/meta", block.DataId)
-				if err := ipfs.UnpinPath(t.node(), path); err != nil {
-					log.Warningf("failed to unpin %s: %s", path, err)
-				}
-				path = fmt.Sprintf("%s/pk", block.DataId)
 				if err := ipfs.UnpinPath(t.node(), path); err != nil {
 					log.Warningf("failed to unpin %s: %s", path, err)
 				}

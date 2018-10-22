@@ -13,11 +13,14 @@ import (
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/service"
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
-	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 )
+
+// ErrInvalidThreadBlock is a catch all error for malformed / invalid blocks
+var ErrInvalidThreadBlock = errors.New("invalid thread block")
 
 // ThreadService is a libp2p service for orchestrating a collection of files
 // with annotations amongst a group of peers
@@ -56,24 +59,51 @@ func (h *ThreadsService) Ping(pid peer.ID) (service.PeerStatus, error) {
 }
 
 // Handle is called by the underlying service handler method
-func (h *ThreadsService) Handle(mtype pb.Message_Type) func(peer.ID, *pb.Envelope) (*pb.Envelope, error) {
-	switch mtype {
-	case pb.Message_THREAD_INVITE:
-		return h.handleInvite
-	case pb.Message_THREAD_JOIN:
-		return h.handleJoin
-	case pb.Message_THREAD_LEAVE:
-		return h.handleLeave
-	case pb.Message_THREAD_DATA:
-		return h.handleData
-	case pb.Message_THREAD_ANNOTATION:
-		return h.handleAnnotation
-	case pb.Message_THREAD_IGNORE:
-		return h.handleIgnore
-	case pb.Message_THREAD_MERGE:
-		return h.handleMerge
+func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	if env.Message.Type != pb.Message_THREAD_ENVELOPE {
+		return nil, nil
+	}
+	tenv := new(pb.ThreadEnvelope)
+	if err := ptypes.UnmarshalAny(env.Message.Payload, tenv); err != nil {
+		return nil, err
+	}
+	hash, err := mh.FromB58String(tenv.Hash)
+	if err != nil {
+		return nil, err
+	}
+
+	// look up thread
+	_, thrd := h.getThread(tenv.Thread)
+	if thrd == nil {
+		// this might be a direct invite
+		if err := h.handleInvite(pid, hash, tenv); err != nil {
+			return nil, err
+		}
+		return nil, nil
+	}
+
+	// decrypt and handle
+	block, _, err := thrd.handleBlock(hash, tenv.CipherBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	// select a handler
+	switch block.Type {
+	case pb.ThreadBlock_JOIN:
+		return nil, h.handleJoin(thrd, pid, hash, block)
+	case pb.ThreadBlock_LEAVE:
+		return nil, h.handleLeave(thrd, pid, hash, block)
+	case pb.ThreadBlock_DATA:
+		return nil, h.handleData(thrd, pid, hash, block)
+	case pb.ThreadBlock_ANNOTATION:
+		return nil, h.handleAnnotation(thrd, pid, hash, block)
+	case pb.ThreadBlock_IGNORE:
+		return nil, h.handleIgnore(thrd, pid, hash, block)
+	case pb.ThreadBlock_MERGE:
+		return nil, h.handleMerge(thrd, pid, hash, block)
 	default:
-		return nil
+		return nil, nil
 	}
 }
 
@@ -82,288 +112,140 @@ func (h *ThreadsService) SendMessage(pid peer.ID, env *pb.Envelope) error {
 	return h.service.SendMessage(pid, env)
 }
 
-// NewBlock returns a thread-signed block in an envelope
-func (h *ThreadsService) NewBlock(sk libp2pc.PrivKey, mtype pb.Message_Type, msg proto.Message) (*pb.Envelope, error) {
-	ser, err := proto.Marshal(msg)
-	if err != nil {
-		return nil, err
+// NewEnvelope signs and wraps an encypted block for transport
+func (h *ThreadsService) NewEnvelope(threadId string, hash mh.Multihash, ciphertext []byte) (*pb.Envelope, error) {
+	tenv := &pb.ThreadEnvelope{
+		Thread:      threadId,
+		Hash:        hash.B58String(),
+		CipherBlock: ciphertext,
 	}
-	threadSig, err := sk.Sign(ser)
-	if err != nil {
-		return nil, err
-	}
-	signed := &pb.SignedThreadBlock{
-		Block:     ser,
-		ThreadSig: threadSig,
-	}
-	return h.service.NewEnvelope(mtype, signed, nil, false)
-}
-
-// VerifyEnvelope calls service verify
-func (h *ThreadsService) VerifyEnvelope(env *pb.Envelope) error {
-	return h.service.VerifyEnvelope(env)
+	return h.service.NewEnvelope(pb.Message_THREAD_ENVELOPE, tenv, nil, false)
 }
 
 // handleInvite receives an invite message
-func (h *ThreadsService) handleInvite(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	signed, err := unpackThreadMessage(env)
+func (h *ThreadsService) handleInvite(from peer.ID, hash mh.Multihash, tenv *pb.ThreadEnvelope) error {
+	// attempt decrypt w/ own keys
+	plaintext, err := crypto.Decrypt(h.service.Node.PrivateKey, tenv.CipherBlock)
 	if err != nil {
-		return nil, err
+		// wasn't an invite, abort
+		return ErrInvalidThreadBlock
 	}
-	invite := new(pb.ThreadInvite)
-	if err := proto.Unmarshal(signed.Block, invite); err != nil {
-		return nil, err
+	block := new(pb.ThreadBlock)
+	if err := proto.Unmarshal(plaintext, block); err != nil {
+		return err
+	}
+	if block.Type != pb.ThreadBlock_INVITE {
+		return ErrInvalidThreadBlock
+	}
+	msg := new(pb.ThreadInvite)
+	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
+		return err
 	}
 
-	// load thread
-	threadId, err := ipfs.IDFromPublicKeyBytes(invite.Header.ThreadPk)
-	if err != nil {
-		return nil, err
-	}
-	if _, thrd := h.getThread(threadId.Pretty()); thrd != nil {
-		// thread exists, aborting
-		return nil, nil
+	// ensure it is meant for us
+	if msg.Invitee != h.service.Node.Identity.Pretty() {
+		return ErrInvalidThreadBlock
 	}
 
-	// check if it'h meant for us (should be, but safety first)
-	if invite.InviteeId != h.service.Node.Identity.Pretty() {
-		return nil, errors.New("invalid invite block")
+	// pin locally for use later
+	// NOTE: as an enhancement, we could maintain an sql table for "pending threads",
+	// or make "pending" a type of thread, put sk here into those rows so we don't have
+	// to re-download and unpack this ciphertext
+	// TODO: unpin when invite joined / ignored
+	// TODO: delete notification when joined / ignored
+	if _, err := ipfs.PinData(h.service.Node, bytes.NewReader(tenv.CipherBlock)); err != nil {
+		return err
 	}
-
-	// unknown thread and invite meant for us
-	// unpack new thread secret that should be encrypted with our key
-	skb, err := crypto.Decrypt(h.service.Node.PrivateKey, invite.SkCipher)
-	if err != nil {
-		return nil, err
-	}
-	sk, err := libp2pc.UnmarshalPrivateKey(skb)
-	if err != nil {
-		return nil, err
-	}
-
-	// verify thread sig
-	if err := crypto.Verify(sk.GetPublic(), signed.Block, signed.ThreadSig); err != nil {
-		return nil, err
-	}
-
-	// add to local ipfs for later use when joining
-	envb, err := proto.Marshal(env)
-	if err != nil {
-		return nil, err
-	}
-	ci, err := ipfs.PinData(h.service.Node, bytes.NewReader(envb))
-	if err != nil {
-		return nil, err
-	}
-	id := ci.Hash().B58String()
 
 	// send notification
-	notification, err := newThreadNotification(sk, invite.Header, repo.ReceivedInviteNotification)
+	notification, err := newThreadNotification(block.Header, repo.ReceivedInviteNotification)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	notification.Subject = invite.SuggestedName
-	notification.SubjectId = threadId.Pretty()
-	notification.BlockId = id // invite block
+	notification.Subject = msg.Name
+	notification.SubjectId = tenv.Thread
+	notification.BlockId = hash.B58String() // invite block
 	notification.Body = "invited you to join"
-	if err := h.sendNotification(notification); err != nil {
-		return nil, err
-	}
-	return nil, nil
+	return h.sendNotification(notification)
 }
 
 // handleJoin receives a join message
-func (h *ThreadsService) handleJoin(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	signed, err := unpackThreadMessage(env)
-	if err != nil {
-		return nil, err
-	}
-	join := new(pb.ThreadJoin)
-	if err := proto.Unmarshal(signed.Block, join); err != nil {
-		return nil, err
-	}
-
-	// load thread
-	threadId, err := ipfs.IDFromPublicKeyBytes(join.Header.ThreadPk)
-	if err != nil {
-		return nil, err
-	}
-	_, thrd := h.getThread(threadId.Pretty())
-	if thrd == nil {
-		return nil, errors.New("invalid join block")
-	}
-
-	// verify thread sig
-	if err := thrd.Verify(signed); err != nil {
-		return nil, err
-	}
-
-	// handle
-	addr, _, err := thrd.HandleJoinBlock(&pid, env, signed, join, false)
-	if err != nil {
-		return nil, err
+func (h *ThreadsService) handleJoin(thrd *Thread, from peer.ID, hash mh.Multihash, block *pb.ThreadBlock) error {
+	if _, err := thrd.HandleJoinBlock(&from, hash, block, nil, false); err != nil {
+		return err
 	}
 
 	// send notification
-	notification, err := newThreadNotification(thrd.privKey, join.Header, repo.PeerJoinedNotification)
+	notification, err := newThreadNotification(block.Header, repo.PeerJoinedNotification)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	notification.Subject = thrd.Name
 	notification.SubjectId = thrd.Id
-	notification.BlockId = addr.B58String()
+	notification.BlockId = hash.B58String()
 	notification.Body = "joined"
-	if err := h.sendNotification(notification); err != nil {
-		return nil, err
-	}
-	return nil, nil
+	return h.sendNotification(notification)
 }
 
 // handleLeave receives a leave message
-func (h *ThreadsService) handleLeave(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	signed, err := unpackThreadMessage(env)
-	if err != nil {
-		return nil, err
-	}
-	leave := new(pb.ThreadLeave)
-	if err := proto.Unmarshal(signed.Block, leave); err != nil {
-		return nil, err
-	}
-
-	// load thread
-	threadId, err := ipfs.IDFromPublicKeyBytes(leave.Header.ThreadPk)
-	if err != nil {
-		return nil, err
-	}
-	_, thrd := h.getThread(threadId.Pretty())
-	if thrd == nil {
-		return nil, errors.New("invalid leave block")
-	}
-
-	// verify thread sig
-	if err := thrd.Verify(signed); err != nil {
-		return nil, err
-	}
-
-	// handle
-	addr, err := thrd.HandleLeaveBlock(&pid, env, signed, leave, false)
-	if err != nil {
-		return nil, err
+func (h *ThreadsService) handleLeave(thrd *Thread, from peer.ID, hash mh.Multihash, block *pb.ThreadBlock) error {
+	if err := thrd.HandleLeaveBlock(&from, hash, block, false); err != nil {
+		return err
 	}
 
 	// send notification
-	notification, err := newThreadNotification(thrd.privKey, leave.Header, repo.PeerLeftNotification)
+	notification, err := newThreadNotification(block.Header, repo.PeerLeftNotification)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	notification.Subject = thrd.Name
 	notification.SubjectId = thrd.Id
-	notification.BlockId = addr.B58String()
+	notification.BlockId = hash.B58String()
 	notification.Body = "left"
-	if err := h.sendNotification(notification); err != nil {
-		return nil, err
-	}
-	return nil, nil
+	return h.sendNotification(notification)
 }
 
 // handleData receives a data message
-func (h *ThreadsService) handleData(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	signed, err := unpackThreadMessage(env)
+func (h *ThreadsService) handleData(thrd *Thread, from peer.ID, hash mh.Multihash, block *pb.ThreadBlock) error {
+	msg, err := thrd.HandleDataBlock(&from, hash, block, false)
 	if err != nil {
-		return nil, err
-	}
-	data := new(pb.ThreadData)
-	if err := proto.Unmarshal(signed.Block, data); err != nil {
-		return nil, err
-	}
-
-	// load thread
-	threadId, err := ipfs.IDFromPublicKeyBytes(data.Header.ThreadPk)
-	if err != nil {
-		return nil, err
-	}
-	_, thrd := h.getThread(threadId.Pretty())
-	if thrd == nil {
-		return nil, errors.New("invalid data block")
-	}
-
-	// verify thread sig
-	if err := thrd.Verify(signed); err != nil {
-		return nil, err
-	}
-
-	// handle
-	addr, err := thrd.HandleDataBlock(&pid, env, signed, data, false)
-	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// send notification
 	var notification *repo.Notification
-	switch data.Type {
+	switch msg.Type {
 	case pb.ThreadData_PHOTO:
-		notification, err = newThreadNotification(thrd.privKey, data.Header, repo.PhotoAddedNotification)
+		notification, err = newThreadNotification(block.Header, repo.PhotoAddedNotification)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		notification.DataId = data.DataId
+		notification.DataId = msg.Data
 		notification.Body = "added a photo"
 	case pb.ThreadData_TEXT:
-		notification, err = newThreadNotification(thrd.privKey, data.Header, repo.TextAddedNotification)
+		notification, err = newThreadNotification(block.Header, repo.TextAddedNotification)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		body, err := thrd.Decrypt(data.CaptionCipher)
-		if err != nil {
-			return nil, err
-		}
-		notification.Body = string(body)
+		notification.Body = msg.Caption
 	}
-	notification.BlockId = addr.B58String()
+	notification.BlockId = hash.B58String()
 	notification.Subject = thrd.Name
 	notification.SubjectId = thrd.Id
-	if err := h.sendNotification(notification); err != nil {
-		return nil, err
-	}
-	return nil, nil
+	return h.sendNotification(notification)
 }
 
 // handleAnnotation receives an annotation message
-func (h *ThreadsService) handleAnnotation(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	signed, err := unpackThreadMessage(env)
+func (h *ThreadsService) handleAnnotation(thrd *Thread, from peer.ID, hash mh.Multihash, block *pb.ThreadBlock) error {
+	msg, err := thrd.HandleAnnotationBlock(&from, hash, block, false)
 	if err != nil {
-		return nil, err
-	}
-	annotation := new(pb.ThreadAnnotation)
-	if err := proto.Unmarshal(signed.Block, annotation); err != nil {
-		return nil, err
+		return err
 	}
 
-	// load thread
-	threadId, err := ipfs.IDFromPublicKeyBytes(annotation.Header.ThreadPk)
-	if err != nil {
-		return nil, err
-	}
-	_, thrd := h.getThread(threadId.Pretty())
-	if thrd == nil {
-		return nil, errors.New("invalid annotation block")
-	}
-
-	// verify thread sig
-	if err := thrd.Verify(signed); err != nil {
-		return nil, err
-	}
-
-	// handle
-	addr, err := thrd.HandleAnnotationBlock(&pid, env, signed, annotation, false)
-	if err != nil {
-		return nil, err
-	}
-
-	// find dataId block locally
-	dataBlock := h.datastore.Blocks().Get(annotation.DataId)
+	// send notification
+	dataBlock := h.datastore.Blocks().Get(msg.Data)
 	if dataBlock == nil {
-		return nil, nil
+		return nil
 	}
 	var target string
 	// NOTE: not restricted to photo annotations here, just currently only thing possible
@@ -372,142 +254,56 @@ func (h *ThreadsService) handleAnnotation(pid peer.ID, env *pb.Envelope) (*pb.En
 	} else {
 		target = "a photo"
 	}
-
-	// send notification
 	var notification *repo.Notification
-	switch annotation.Type {
+	switch msg.Type {
 	case pb.ThreadAnnotation_COMMENT:
-		notification, err = newThreadNotification(thrd.privKey, annotation.Header, repo.CommentAddedNotification)
+		notification, err = newThreadNotification(block.Header, repo.CommentAddedNotification)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		body, err := thrd.Decrypt(annotation.CaptionCipher)
-		if err != nil {
-			return nil, err
-		}
-		notification.Body = fmt.Sprintf("commented on %s: \"%s\"", target, string(body))
+		notification.Body = fmt.Sprintf("commented on %s: \"%s\"", target, msg.Caption)
 	case pb.ThreadAnnotation_LIKE:
-		notification, err = newThreadNotification(thrd.privKey, annotation.Header, repo.LikeAddedNotification)
+		notification, err = newThreadNotification(block.Header, repo.LikeAddedNotification)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		notification.Body = "liked " + target
 	}
-	notification.BlockId = addr.B58String()
+	notification.BlockId = hash.B58String()
 	notification.DataId = dataBlock.DataId
 	notification.Subject = thrd.Name
 	notification.SubjectId = thrd.Id
-	if err := h.sendNotification(notification); err != nil {
-		return nil, err
-	}
-	return nil, nil
+	return h.sendNotification(notification)
 }
 
 // handleIgnore receives an ignore message
-func (h *ThreadsService) handleIgnore(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	signed, err := unpackThreadMessage(env)
-	if err != nil {
-		return nil, err
+func (h *ThreadsService) handleIgnore(thrd *Thread, from peer.ID, hash mh.Multihash, block *pb.ThreadBlock) error {
+	if _, err := thrd.HandleIgnoreBlock(&from, hash, block, false); err != nil {
+		return err
 	}
-	ignore := new(pb.ThreadIgnore)
-	if err := proto.Unmarshal(signed.Block, ignore); err != nil {
-		return nil, err
-	}
-
-	// load thread
-	threadId, err := ipfs.IDFromPublicKeyBytes(ignore.Header.ThreadPk)
-	if err != nil {
-		return nil, err
-	}
-	_, thrd := h.getThread(threadId.Pretty())
-	if thrd == nil {
-		return nil, errors.New("invalid ignore block")
-	}
-
-	// verify thread sig
-	if err := thrd.Verify(signed); err != nil {
-		return nil, err
-	}
-
-	// handle
-	if _, err := thrd.HandleIgnoreBlock(&pid, env, signed, ignore, false); err != nil {
-		return nil, err
-	}
-	return nil, nil
+	return nil
 }
 
 // handleMerge receives a merge message
-func (h *ThreadsService) handleMerge(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	signed, err := unpackThreadMessage(env)
-	if err != nil {
-		return nil, err
+func (h *ThreadsService) handleMerge(thrd *Thread, from peer.ID, hash mh.Multihash, block *pb.ThreadBlock) error {
+	if err := thrd.HandleMergeBlock(&from, hash, block, false); err != nil {
+		return err
 	}
-	merge := new(pb.ThreadMerge)
-	if err := proto.Unmarshal(signed.Block, merge); err != nil {
-		return nil, err
-	}
-
-	// load thread
-	threadId, err := ipfs.IDFromPublicKeyBytes(merge.ThreadPk)
-	if err != nil {
-		return nil, err
-	}
-	_, thrd := h.getThread(threadId.Pretty())
-	if thrd == nil {
-		return nil, errors.New("invalid merge block")
-	}
-
-	// verify thread sig
-	if err := thrd.Verify(signed); err != nil {
-		return nil, err
-	}
-
-	// handle
-	if _, err := thrd.HandleMergeBlock(&pid, env.Message, signed, merge, false); err != nil {
-		return nil, err
-	}
-	return nil, nil
-}
-
-// unpackThreadMessage returns an envelope's signed thread block
-func unpackThreadMessage(env *pb.Envelope) (*pb.SignedThreadBlock, error) {
-	signed := new(pb.SignedThreadBlock)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, signed); err != nil {
-		return nil, err
-	}
-	return signed, nil
+	return nil
 }
 
 // newThreadNotification returns new thread notification
-func newThreadNotification(
-	threadKey libp2pc.PrivKey,
-	header *pb.ThreadBlockHeader,
-	ntype repo.NotificationType) (*repo.Notification, error) {
+func newThreadNotification(header *pb.ThreadBlockHeader, ntype repo.NotificationType) (*repo.Notification, error) {
 	date, err := ptypes.Timestamp(header.Date)
 	if err != nil {
 		return nil, err
 	}
-	authorPk, err := libp2pc.UnmarshalPublicKey(header.AuthorPk)
-	if err != nil {
-		return nil, err
-	}
-	authorId, err := peer.IDFromPublicKey(authorPk)
-	if err != nil {
-		return nil, err
-	}
-	var authorUn string
-	if header.AuthorUnCipher != nil {
-		authorUnb, err := crypto.Decrypt(threadKey, header.AuthorUnCipher)
-		if err != nil {
-			return nil, err
-		}
-		authorUn = string(authorUnb)
-	}
+	// TODO: look up username on contact
 	return &repo.Notification{
 		Id:            ksuid.New().String(),
 		Date:          date,
-		ActorId:       authorId.Pretty(),
-		ActorUsername: authorUn,
+		ActorId:       header.Author,
+		ActorUsername: "fixme",
 		Type:          ntype,
 	}, nil
 }

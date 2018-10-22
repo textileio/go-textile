@@ -14,65 +14,96 @@ func (t *Thread) AddInvite(inviteeId peer.ID) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
+	// build block
+	threadSk, err := t.privKey.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	msg := &pb.ThreadInvite{
+		Sk:   threadSk,
+		Name: t.Name,
+	}
+
 	// get the peer pub key from the id
 	inviteePk, err := inviteeId.ExtractPublicKey()
 	if err != nil {
 		return nil, err
 	}
 
-	// encypt thread secret with the recipient's public key
-	threadSk, err := t.privKey.Bytes()
-	if err != nil {
-		return nil, err
-	}
-	threadSkCipher, err := crypto.Encrypt(inviteePk, threadSk)
-	if err != nil {
-		return nil, err
-	}
-
-	// build block
-	header, err := t.newBlockHeader()
-	if err != nil {
-		return nil, err
-	}
-	content := &pb.ThreadInvite{
-		Header:        header,
-		SkCipher:      threadSkCipher,
-		SuggestedName: t.Name,
-		InviteeId:     inviteeId.Pretty(),
-	}
-
 	// commit to ipfs
-	message, addr, err := t.commitBlock(content, pb.Message_THREAD_INVITE)
+	res, err := t.commitBlock(msg, pb.ThreadBlock_INVITE, func(plaintext []byte) ([]byte, error) {
+		return crypto.Encrypt(inviteePk, plaintext)
+	})
 	if err != nil {
 		return nil, err
 	}
-	id := addr.B58String()
 
-	// create new peer for posting, but don't add it yet. it will get added if+when they accept.
+	// create new peer for posting (it will get added if+when they accept)
 	target := repo.ThreadPeer{Id: inviteeId.Pretty()}
 
 	// post it
-	t.post(message, id, []repo.ThreadPeer{target})
+	if err := t.post(res, []repo.ThreadPeer{target}); err != nil {
+		return nil, err
+	}
 
 	log.Debugf("sent INVITE to %s for %s", inviteeId.Pretty(), t.Id)
 
 	// all done
-	return addr, nil
+	return res.hash, nil
+}
+
+// AddExternalInvite creates an external invite, which can be retrieved by any peer
+// and does not become part of the hash chain
+func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
+	t.mux.Lock()
+	defer t.mux.Unlock()
+
+	// build block
+	threadSk, err := t.privKey.Bytes()
+	if err != nil {
+		return nil, nil, err
+	}
+	msg := &pb.ThreadInvite{
+		Sk:   threadSk,
+		Name: t.Name,
+	}
+
+	// generate an aes key
+	key, err := crypto.GenerateAESKey()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// commit to ipfs
+	res, err := t.commitBlock(msg, pb.ThreadBlock_INVITE, func(plaintext []byte) ([]byte, error) {
+		return crypto.EncryptAES(plaintext, key)
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	log.Debugf("created external INVITE for %s", t.Id)
+
+	// all done
+	return res.hash, key, nil
 }
 
 // HandleInviteMessage handles an incoming invite
 // - this happens right before a join
 // - the invite is not kept on-chain, so we only need to follow parents and update HEAD
-func (t *Thread) HandleInviteMessage(content *pb.ThreadInvite) error {
+func (t *Thread) HandleInviteMessage(block *pb.ThreadBlock) error {
 	// back prop
-	if _, err := t.FollowParents(content.Header.Parents, nil); err != nil {
+	if _, err := t.FollowParents(block.Header.Parents, nil); err != nil {
 		return err
 	}
 
 	// update HEAD if parents of the invite are actual updates
-	if len(content.Header.Parents) > 0 {
-		if err := t.updateHead(content.Header.Parents[0]); err != nil {
+	if len(block.Header.Parents) > 0 {
+		hash, err := mh.FromB58String(block.Header.Parents[0])
+		if err != nil {
+			return err
+		}
+		if err := t.updateHead(hash); err != nil {
 			return err
 		}
 	}

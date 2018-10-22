@@ -13,6 +13,8 @@ message Message {
         PING = 0;
         PONG = 1;
 
+        THREAD_ENVELOPE = 10;
+
         CAFE_CHALLENGE       = 50;
         CAFE_NONCE           = 51;
         CAFE_REGISTRATION    = 52;
@@ -25,16 +27,7 @@ message Message {
         CAFE_STORED          = 59;
         CAFE_MESSAGE         = 60;
 
-        THREAD_INVITE          = 100;
-        THREAD_EXTERNAL_INVITE = 101;
-        THREAD_JOIN            = 102;
-        THREAD_LEAVE           = 103;
-        THREAD_DATA            = 104;
-        THREAD_ANNOTATION      = 105;
-        THREAD_IGNORE          = 200;
-        THREAD_MERGE           = 201;
-
-        ERROR                  = 500;
+        ERROR = 500;
     }
 }
 

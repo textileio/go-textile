@@ -50,7 +50,7 @@ const (
 type Handler interface {
 	Protocol() protocol.ID
 	Ping(pid peer.ID) (PeerStatus, error)
-	Handle(mtype pb.Message_Type) func(peer.ID, *pb.Envelope) (*pb.Envelope, error)
+	Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error)
 }
 
 // NewService returns a service for the given config
@@ -118,7 +118,7 @@ func (s *Service) Ping(pid peer.ID) (PeerStatus, error) {
 	return PeerOnline, nil
 }
 
-// NewEnvelope returns a signed pb message
+// NewEnvelope returns a signed pb message for transport
 func (s *Service) NewEnvelope(mtype pb.Message_Type, msg proto.Message, id *int32, response bool) (*pb.Envelope, error) {
 	var payload *any.Any
 	if msg != nil {
@@ -147,12 +147,19 @@ func (s *Service) NewEnvelope(mtype pb.Message_Type, msg proto.Message, id *int3
 	if err != nil {
 		return nil, err
 	}
-	env := &pb.Envelope{Message: message, Pk: pk, Sig: sig}
-	return env, nil
+	return &pb.Envelope{Message: message, Pk: pk, Sig: sig}, nil
 }
 
-// VerifyEnvelope verifies the authenticity of an envelope
-func (s *Service) VerifyEnvelope(env *pb.Envelope) error {
+// NewError returns a signed pb error message
+func (s *Service) NewError(code int, msg string, id int32) (*pb.Envelope, error) {
+	return s.NewEnvelope(pb.Message_ERROR, &pb.Error{
+		Code:    uint32(code),
+		Message: msg,
+	}, &id, true)
+}
+
+// verifyEnvelope verifies the authenticity of an envelope
+func (s *Service) verifyEnvelope(env *pb.Envelope) error {
 	ser, err := proto.Marshal(env.Message)
 	if err != nil {
 		return err
@@ -162,14 +169,6 @@ func (s *Service) VerifyEnvelope(env *pb.Envelope) error {
 		return err
 	}
 	return crypto.Verify(pk, ser, env.Sig)
-}
-
-// NewError returns a signed pb error message
-func (s *Service) NewError(code int, msg string, id int32) (*pb.Envelope, error) {
-	return s.NewEnvelope(pb.Message_ERROR, &pb.Error{
-		Code:    uint32(code),
-		Message: msg,
-	}, &id, true)
 }
 
 // handleError receives an error response
@@ -231,7 +230,7 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 		}
 
 		// check signature
-		if err := s.VerifyEnvelope(env); err != nil {
+		if err := s.verifyEnvelope(env); err != nil {
 			log.Warningf("error verifying message: %s", err)
 			continue
 		}
@@ -263,19 +262,11 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 		handler := s.handleCore(env.Message.Type)
 		if handler == nil {
 			// get service specific handler
-			handler = s.handler.Handle(env.Message.Type)
-			if handler == nil {
-				log.Errorf("got back nil handler for message type %s", env.Message.Type.String())
-				continue
-			}
+			handler = s.handler.Handle
 		}
 
 		// dispatch handler
 		log.Debugf("received %s from %s", env.Message.Type.String(), rpid.Pretty())
-		if env.Message.Payload == nil {
-			log.Errorf("message payload with type %s is nil", env.Message.Type.String())
-			continue
-		}
 		renv, err := handler(rpid, env)
 		if err != nil {
 			log.Errorf("%s handle message error: %s", env.Message.Type.String(), err)

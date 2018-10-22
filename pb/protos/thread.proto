@@ -1,55 +1,66 @@
 syntax = "proto3";
 option go_package = "pb";
 
+import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
+
+// for wire transport
+message ThreadEnvelope {
+    string thread     = 1;
+    string hash       = 2; // hash of encrypted block
+    bytes cipherBlock = 3; // encrypted ThreadBlock, also stored on ipfs for recovery
+}
+
+message ThreadBlock {
+    ThreadBlockHeader header    = 1;
+    Type type                   = 2;
+    google.protobuf.Any payload = 3; // nil for some types
+
+    enum Type {
+        MERGE           = 0; // block is stored in plaintext, no payload
+        IGNORE          = 1;
+        JOIN            = 2;
+        ANNOUNCE        = 3;
+        LEAVE           = 4; // no payload
+        DATA            = 5;
+        ANNOTATION      = 6;
+
+        INVITE          = 50;
+    }
+}
 
 message ThreadBlockHeader {
     google.protobuf.Timestamp date = 1;
     repeated string parents        = 2;
-    bytes threadPk                 = 3;
-    bytes authorPk                 = 4;
-    bytes authorUnCipher           = 5;
-    string address                 = 6;
+    string author                  = 3;
 }
 
-message SignedThreadBlock {
-    bytes block     = 1;
-    bytes threadSig = 2;
+message ThreadIgnore {
+    string data = 1;
 }
 
 message ThreadInvite {
-    ThreadBlockHeader header = 1;
-
-    bytes skCipher           = 2;
-    string suggestedName     = 3;
-    string inviteeId         = 4;
-}
-
-message ThreadExternalInvite {
-    ThreadBlockHeader header = 1;
-
-    bytes skCipher           = 2;
-    string suggestedName     = 3;
+    bytes sk       = 1;
+    string name    = 2;
 }
 
 message ThreadJoin {
-    ThreadBlockHeader header = 1;
-
-    bytes inviterPk          = 2;
-    string blockId           = 3;
+    string inviter          = 1;
+    string invite           = 2;
+    string username         = 3;
+    repeated string inboxes = 4;
 }
 
-message ThreadLeave {
-    ThreadBlockHeader header = 1;
+message ThreadAnnounce {
+    string username         = 1;
+    repeated string inboxes = 2;
 }
 
 message ThreadData {
-    ThreadBlockHeader header = 1;
-
-    Type type                = 2;
-    string dataId            = 3;
-    bytes keyCipher          = 4;
-    bytes captionCipher      = 5;
+    Type type      = 1;
+    string data    = 2;
+    string key     = 3;
+    string caption = 4;
 
     enum Type {
         PHOTO = 0;
@@ -58,26 +69,12 @@ message ThreadData {
 }
 
 message ThreadAnnotation {
-    ThreadBlockHeader header = 1;
-
-    Type type                = 2;
-    string dataId            = 3;
-    bytes captionCipher      = 4;
+    Type type      = 1;
+    string data    = 2;
+    string caption = 3;
 
     enum Type {
         COMMENT = 0;
         LIKE    = 1;
     }
-}
-
-message ThreadIgnore {
-    ThreadBlockHeader header = 1;
-
-    string dataId            = 2;
-}
-
-message ThreadMerge {
-    google.protobuf.Timestamp date = 1;
-    repeated string parents        = 2;
-    bytes threadPk                 = 3;
 }

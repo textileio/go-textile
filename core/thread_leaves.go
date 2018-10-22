@@ -1,8 +1,6 @@
 package core
 
 import (
-	"github.com/golang/protobuf/proto"
-	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
@@ -14,34 +12,26 @@ func (t *Thread) Leave() (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	// build block
-	header, err := t.newBlockHeader()
-	if err != nil {
-		return nil, err
-	}
-	content := &pb.ThreadLeave{
-		Header: header,
-	}
-
 	// commit to ipfs
-	env, addr, err := t.commitBlock(content, pb.Message_THREAD_LEAVE)
+	res, err := t.commitBlock(nil, pb.ThreadBlock_LEAVE, nil)
 	if err != nil {
 		return nil, err
 	}
-	id := addr.B58String()
 
 	// index it locally
-	if err := t.indexBlock(id, header, repo.LeaveBlock, nil); err != nil {
+	if err := t.indexBlock(res, repo.LeaveBlock, nil); err != nil {
 		return nil, err
 	}
 
 	// update head
-	if err := t.updateHead(id); err != nil {
+	if err := t.updateHead(res.hash); err != nil {
 		return nil, err
 	}
 
 	// post it
-	t.post(env, id, t.Peers())
+	if err := t.post(res, t.Peers()); err != nil {
+		return nil, err
+	}
 
 	// delete blocks
 	if err := t.datastore.Blocks().DeleteByThread(t.Id); err != nil {
@@ -58,73 +48,46 @@ func (t *Thread) Leave() (mh.Multihash, error) {
 		return nil, err
 	}
 
-	log.Debugf("added LEAVE to %s: %s", t.Id, id)
+	log.Debugf("added LEAVE to %s: %s", t.Id, res.hash.B58String())
 
 	// all done
-	return addr, nil
+	return res.hash, nil
 }
 
 // HandleLeaveBlock handles an incoming leave block
-func (t *Thread) HandleLeaveBlock(from *peer.ID, env *pb.Envelope, signed *pb.SignedThreadBlock, content *pb.ThreadLeave, following bool) (mh.Multihash, error) {
-	// unmarshal if needed
-	if content == nil {
-		content = new(pb.ThreadLeave)
-		if err := proto.Unmarshal(signed.Block, content); err != nil {
-			return nil, err
-		}
-	}
-
-	// add to ipfs
-	addr, err := t.addBlock(env)
-	if err != nil {
-		return nil, err
-	}
-	id := addr.B58String()
-
-	// check if we aleady have this block indexed
-	// (should only happen if a misbehaving peer keeps sending the same block)
-	index := t.datastore.Blocks().Get(id)
-	if index != nil {
-		return nil, nil
-	}
-
+func (t *Thread) HandleLeaveBlock(from *peer.ID, hash mh.Multihash, block *pb.ThreadBlock, following bool) error {
 	// remove peer
-	authorId, err := ipfs.IDFromPublicKeyBytes(content.Header.AuthorPk)
-	if err != nil {
-		return nil, err
+	if err := t.datastore.ThreadPeers().Delete(block.Header.Author, t.Id); err != nil {
+		return err
 	}
-	if err := t.datastore.ThreadPeers().Delete(authorId.Pretty(), t.Id); err != nil {
-		return nil, err
-	}
-	if err := t.datastore.Notifications().DeleteByActor(t.Id); err != nil {
-		return nil, err
+	if err := t.datastore.Notifications().DeleteByActor(block.Header.Author); err != nil {
+		return err
 	}
 
 	// index it locally
-	if err := t.indexBlock(id, content.Header, repo.LeaveBlock, nil); err != nil {
-		return nil, err
+	if err := t.indexBlock(&commitResult{hash: hash, header: block.Header}, repo.LeaveBlock, nil); err != nil {
+		return err
 	}
 
 	// back prop
-	newPeers, err := t.FollowParents(content.Header.Parents, from)
+	newPeers, err := t.FollowParents(block.Header.Parents, from)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// handle HEAD
 	if following {
-		return addr, nil
+		return nil
 	}
-	if _, err := t.handleHead(id, content.Header.Parents); err != nil {
-		return nil, err
+	if _, err := t.handleHead(hash, block.Header.Parents); err != nil {
+		return nil
 	}
 
 	// handle newly discovered peers during back prop, after updating HEAD
 	for _, newPeer := range newPeers {
 		if err := t.sendWelcome(newPeer); err != nil {
-			return nil, err
+			return nil
 		}
 	}
-
-	return addr, nil
+	return nil
 }

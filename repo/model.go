@@ -1,6 +1,9 @@
 package repo
 
-import "time"
+import (
+	"github.com/textileio/textile-go/photo"
+	"time"
+)
 
 type Thread struct {
 	Id      string `json:"id"`
@@ -20,34 +23,34 @@ type AccountPeer struct {
 }
 
 type Block struct {
-	Id                   string    `json:"id"`
-	Date                 time.Time `json:"date"`
-	Parents              []string  `json:"parents"`
-	ThreadId             string    `json:"thread_id"`
-	AuthorId             string    `json:"author_id"`
-	AuthorUsernameCipher []byte    `json:"author_username_cipher"`
-	Type                 BlockType `json:"type"`
+	Id       string    `json:"id"`
+	Date     time.Time `json:"date"`
+	Parents  []string  `json:"parents"`
+	ThreadId string    `json:"thread_id"`
+	AuthorId string    `json:"author_id"`
+	Type     BlockType `json:"type"`
 
-	DataId             string `json:"data_id"`
-	DataKeyCipher      []byte `json:"data_key_cipher"`
-	DataCaptionCipher  []byte `json:"data_caption_cipher"`
-	DataMetadataCipher []byte `json:"data_metadata_cipher"`
+	DataId       string          `json:"data_id"`
+	DataKey      string          `json:"data_key"`
+	DataCaption  string          `json:"data_caption"`
+	DataMetadata *photo.Metadata `json:"data_metadata"`
 }
 
 type DataBlockConfig struct {
-	DataId             string `json:"data_id"`
-	DataKeyCipher      []byte `json:"data_key_cipher"`
-	DataCaptionCipher  []byte `json:"data_caption_cipher"`
-	DataMetadataCipher []byte `json:"data_metadata_cipher"`
+	DataId       string          `json:"data_id"`
+	DataKey      string          `json:"data_key"`
+	DataCaption  string          `json:"data_caption"`
+	DataMetadata *photo.Metadata `json:"data_metadata"`
 }
 
 type BlockType int
 
 const (
-	JoinBlock BlockType = iota
-	LeaveBlock
+	MergeBlock BlockType = iota
 	IgnoreBlock
-	MergeBlock
+	JoinBlock
+	AnnounceBlock
+	LeaveBlock
 	PhotoBlock
 	CommentBlock
 	LikeBlock
@@ -134,6 +137,7 @@ type CafeRequestType int
 const (
 	CafeStoreRequest CafeRequestType = iota
 	CafeStoreThreadRequest
+	CafeInboxRequest
 )
 
 func (rt CafeRequestType) Description() string {
@@ -142,6 +146,8 @@ func (rt CafeRequestType) Description() string {
 		return "STORE"
 	case CafeStoreThreadRequest:
 		return "STORE_THREAD"
+	case CafeInboxRequest:
+		return "INBOX"
 	default:
 		return "INVALID"
 	}

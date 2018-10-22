@@ -1,11 +1,9 @@
 package core
 
 import (
-	"bytes"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
-	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
@@ -15,21 +13,21 @@ import (
 )
 
 // Merge adds a merge block, which are kept local until subsequent updates, avoiding possibly endless echoes
-func (t *Thread) Merge(head string) (mh.Multihash, error) {
+func (t *Thread) Merge(head mh.Multihash) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	// build block
+	// build custom merge header
 	header, err := t.newBlockHeader()
 	if err != nil {
 		return nil, err
 	}
-
+	// delete author since we want these identical across peers
+	header.Author = ""
 	// add a second parent
-	header.Parents = append(header.Parents, head)
+	header.Parents = append(header.Parents, head.B58String())
 	// sort to ensure a deterministic (the order may be reversed on other peers)
 	sort.Strings(header.Parents)
-
 	// choose newest to use for date
 	p1b := t.datastore.Blocks().Get(header.Parents[0])
 	if p1b == nil {
@@ -45,121 +43,73 @@ func (t *Thread) Merge(head string) (mh.Multihash, error) {
 	} else {
 		date = p1b.Date
 	}
-
 	// add a small amount to date to keep it ahead of both parents
 	date = date.Add(time.Millisecond)
-
 	// set content
 	pdate, err := ptypes.TimestampProto(date)
 	if err != nil {
 		return nil, err
 	}
-	content := &pb.ThreadMerge{
-		Date:     pdate,
-		Parents:  header.Parents,
-		ThreadPk: header.ThreadPk,
-	}
+	header.Date = pdate
 
-	// commit envelope to ipfs
-	env, addr, err := t.commitBlock(content, pb.Message_THREAD_MERGE)
+	// build block
+	block := &pb.ThreadBlock{
+		Header: header,
+		Type:   pb.ThreadBlock_MERGE,
+	}
+	plaintext, err := proto.Marshal(block)
 	if err != nil {
 		return nil, err
 	}
 
-	// commit envelope contents which does not include author info (we want to decuplicate merge blocks between peers)
-	// the resulting hash will be used to index locally, but the content needs to be available
-	// on the network in the event it's encountered during a back prop
-	ser, err := proto.Marshal(env.Message)
+	// add plaintext to ipfs
+	hash, err := t.addBlock(plaintext)
 	if err != nil {
 		return nil, err
 	}
-	cid, err := ipfs.PinData(t.node(), bytes.NewReader(ser))
-	if err != nil {
-		return nil, err
-	}
-	id := cid.Hash().B58String()
-
-	// add a store request
-	t.cafeQueue.Add(id, repo.CafeStoreRequest)
 
 	// index it locally
-	if err := t.indexBlock(id, header, repo.MergeBlock, nil); err != nil {
+	if err := t.indexBlock(&commitResult{hash: hash, header: header}, repo.MergeBlock, nil); err != nil {
 		return nil, err
 	}
 
 	// update head
-	if err := t.updateHead(id); err != nil {
+	if err := t.updateHead(hash); err != nil {
 		return nil, err
 	}
 
-	log.Debugf("adding MERGE to %s: %s", t.Id, id)
+	log.Debugf("adding MERGE to %s: %s", t.Id, hash.B58String())
 
 	// all done
-	return addr, nil
+	return hash, nil
 }
 
 // HandleMergeBlock handles an incoming merge block
-func (t *Thread) HandleMergeBlock(from *peer.ID, message *pb.Message, signed *pb.SignedThreadBlock, content *pb.ThreadMerge, following bool) (mh.Multihash, error) {
-	// unmarshal if needed
-	if content == nil {
-		content = new(pb.ThreadMerge)
-		if err := proto.Unmarshal(signed.Block, content); err != nil {
-			return nil, err
-		}
-	}
-
-	// this time on the receiver end, determine hash of content, not env
-	ser, err := proto.Marshal(message)
-	if err != nil {
-		return nil, err
-	}
-	cid, err := ipfs.PinData(t.node(), bytes.NewReader(ser))
-	if err != nil {
-		return nil, err
-	}
-	id := cid.Hash().B58String()
-
-	// add a store request
-	t.cafeQueue.Add(id, repo.CafeStoreRequest)
-
-	// check if we aleady have this block indexed
-	index := t.datastore.Blocks().Get(id)
-	if index != nil {
-		return nil, nil
-	}
-
+func (t *Thread) HandleMergeBlock(from *peer.ID, hash mh.Multihash, block *pb.ThreadBlock, following bool) error {
 	// index it locally
-	// (create a fake header for the indexing step)
-	header, err := t.newBlockHeader()
-	if err != nil {
-		return nil, err
-	}
-	header.Date = content.Date
-	header.Parents = content.Parents
-	if err := t.indexBlock(id, header, repo.MergeBlock, nil); err != nil {
-		return nil, err
+	if err := t.indexBlock(&commitResult{hash: hash, header: block.Header}, repo.MergeBlock, nil); err != nil {
+		return err
 	}
 
 	// back prop
-	newPeers, err := t.FollowParents(content.Parents, from)
+	newPeers, err := t.FollowParents(block.Header.Parents, from)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// handle HEAD
 	if following {
-		return cid.Hash(), nil
+		return nil
 	}
-	if _, err := t.handleHead(id, content.Parents); err != nil {
-		return nil, err
+	if _, err := t.handleHead(hash, block.Header.Parents); err != nil {
+		return err
 	}
 
 	// handle newly discovered peers during back prop, after updating HEAD
 	for _, newPeer := range newPeers {
 		if err := t.sendWelcome(newPeer); err != nil {
-			return nil, err
+			return err
 		}
 	}
-
-	return cid.Hash(), nil
+	return nil
 }

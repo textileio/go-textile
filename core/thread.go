@@ -156,16 +156,19 @@ func (t *Thread) Decrypt(data []byte) ([]byte, error) {
 	return crypto.Decrypt(t.privKey, data)
 }
 
-// Verify verifies a signed block
-func (t *Thread) Verify(signed *pb.SignedThreadBlock) error {
-	return crypto.Verify(t.privKey.GetPublic(), signed.Block, signed.ThreadSig)
-}
-
 // FollowParents tries to follow a list of chains of block ids, processing along the way
 func (t *Thread) FollowParents(parents []string, from *peer.ID) ([]repo.ThreadPeer, error) {
 	var joins []repo.ThreadPeer
 	for _, parent := range parents {
-		joined, err := t.followParent(parent, from)
+		if parent == "" {
+			log.Debugf("found genesis block, aborting")
+			continue
+		}
+		hash, err := mh.FromB58String(parent)
+		if err != nil {
+			return nil, err
+		}
+		joined, err := t.followParent(hash, from)
 		if err != nil {
 			return nil, err
 		}
@@ -177,96 +180,44 @@ func (t *Thread) FollowParents(parents []string, from *peer.ID) ([]repo.ThreadPe
 }
 
 // followParent tries to follow a chain of block ids, processing along the way
-func (t *Thread) followParent(parent string, from *peer.ID) (*repo.ThreadPeer, error) {
-	// first update?
-	if parent == "" {
-		log.Debugf("found genesis block, aborting")
-		return nil, nil
-	}
-
-	// check if we aleady have this block indexed
-	index := t.datastore.Blocks().Get(parent)
-	if index != nil {
-		log.Debugf("block %s exists, aborting", parent)
-		return nil, nil
-	}
-
-	// download it
-	serialized, err := ipfs.GetDataAtPath(t.node(), parent)
+func (t *Thread) followParent(parent mh.Multihash, from *peer.ID) (*repo.ThreadPeer, error) {
+	// download and decrypt
+	ciphertext, err := ipfs.GetDataAtPath(t.node(), parent.B58String())
 	if err != nil {
 		return nil, err
 	}
-	env := new(pb.Envelope)
-	message := new(pb.Message)
-	if err := proto.Unmarshal(serialized, env); err != nil {
-		return nil, err
-	}
-	if env.Message != nil {
-		// verify author sig
-		messageb, err := proto.Marshal(env.Message)
-		if err != nil {
-			return nil, err
-		}
-		authorPk, err := libp2pc.UnmarshalPublicKey(env.Pk)
-		if err != nil {
-			return nil, err
-		}
-		if err := crypto.Verify(authorPk, messageb, env.Sig); err != nil {
-			return nil, err
-		}
-		message = env.Message
-	} else {
-		// might be a merge block
-		if err := proto.Unmarshal(serialized, message); err != nil {
-			return nil, err
-		}
-	}
-	if message.Payload == nil {
-		return nil, errors.New("nil message payload")
-	}
-
-	// verify thread sig
-	signed := new(pb.SignedThreadBlock)
-	if err := ptypes.UnmarshalAny(message.Payload, signed); err != nil {
-		return nil, err
-	}
-	if err := t.Verify(signed); err != nil {
-		return nil, err
-	}
+	block, newPeer, err := t.handleBlock(parent, ciphertext)
 
 	// handle each type
-	var joined *repo.ThreadPeer
-	switch message.Type {
-	case pb.Message_THREAD_JOIN:
-		var err error
-		_, joined, err = t.HandleJoinBlock(from, env, signed, nil, true)
-		if err != nil {
+	switch block.Type {
+	case pb.ThreadBlock_JOIN:
+		if _, err := t.HandleJoinBlock(from, parent, block, newPeer, true); err != nil {
 			return nil, err
 		}
-	case pb.Message_THREAD_LEAVE:
-		if _, err := t.HandleLeaveBlock(from, env, signed, nil, true); err != nil {
+	case pb.ThreadBlock_LEAVE:
+		if err := t.HandleLeaveBlock(from, parent, block, true); err != nil {
 			return nil, err
 		}
-	case pb.Message_THREAD_DATA:
-		if _, err := t.HandleDataBlock(from, env, signed, nil, true); err != nil {
+	case pb.ThreadBlock_DATA:
+		if _, err := t.HandleDataBlock(from, parent, block, true); err != nil {
 			return nil, err
 		}
-	case pb.Message_THREAD_ANNOTATION:
-		if _, err := t.HandleAnnotationBlock(from, env, signed, nil, true); err != nil {
+	case pb.ThreadBlock_ANNOTATION:
+		if _, err := t.HandleAnnotationBlock(from, parent, block, true); err != nil {
 			return nil, err
 		}
-	case pb.Message_THREAD_IGNORE:
-		if _, err := t.HandleIgnoreBlock(from, env, signed, nil, true); err != nil {
+	case pb.ThreadBlock_IGNORE:
+		if _, err := t.HandleIgnoreBlock(from, parent, block, true); err != nil {
 			return nil, err
 		}
-	case pb.Message_THREAD_MERGE:
-		if _, err := t.HandleMergeBlock(from, message, signed, nil, true); err != nil {
+	case pb.ThreadBlock_MERGE:
+		if err := t.HandleMergeBlock(from, parent, block, true); err != nil {
 			return nil, err
 		}
 	default:
-		return nil, errors.New(fmt.Sprintf("invalid message type: %s", message.Type))
+		return nil, errors.New(fmt.Sprintf("invalid message type: %s", block.Type))
 	}
-	return joined, nil
+	return newPeer, nil
 }
 
 // newBlockHeader creates a new header
@@ -277,53 +228,69 @@ func (t *Thread) newBlockHeader() (*pb.ThreadBlockHeader, error) {
 		return nil, err
 	}
 
-	// get our own public key
-	threadPk, err := t.privKey.GetPublic().Bytes()
-	if err != nil {
-		return nil, err
-	}
-
-	// get our own public key
-	authorPk, err := t.node().PrivateKey.GetPublic().Bytes()
-	if err != nil {
-		return nil, err
-	}
-
-	// encrypt our own username with thread pk
-	var authorUnCipher []byte
-	authorUn, _ := t.datastore.Profile().GetUsername()
-	if authorUn != nil {
-		authorUnCipher, err = t.Encrypt([]byte(*authorUn))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// get now date
+	// build the header
 	pdate, err := ptypes.TimestampProto(time.Now())
 	if err != nil {
 		return nil, err
 	}
-
 	return &pb.ThreadBlockHeader{
-		Date:           pdate,
-		Parents:        strings.Split(string(head), ","),
-		ThreadPk:       threadPk,
-		AuthorPk:       authorPk,
-		AuthorUnCipher: authorUnCipher,
+		Date:    pdate,
+		Parents: strings.Split(string(head), ","),
+		Author:  t.node().Identity.Pretty(),
 	}, nil
 }
 
-// addBlock adds to ipfs
-func (t *Thread) addBlock(envelope *pb.Envelope) (mh.Multihash, error) {
-	// marshal to bytes
-	messageb, err := proto.Marshal(envelope)
+// commitResult wraps the results of a block commit
+type commitResult struct {
+	hash       mh.Multihash
+	ciphertext []byte
+	header     *pb.ThreadBlockHeader
+}
+
+// commitBlock encrypts a block with thread key (or custom method if provided) and adds it to ipfs
+func (t *Thread) commitBlock(msg proto.Message, mtype pb.ThreadBlock_Type, encrypt func(plaintext []byte) ([]byte, error)) (*commitResult, error) {
+	header, err := t.newBlockHeader()
+	if err != nil {
+		return nil, err
+	}
+	block := &pb.ThreadBlock{
+		Header: header,
+		Type:   mtype,
+	}
+	if msg != nil {
+		payload, err := ptypes.MarshalAny(msg)
+		if err != nil {
+			return nil, err
+		}
+		block.Payload = payload
+	}
+	plaintext, err := proto.Marshal(block)
 	if err != nil {
 		return nil, err
 	}
 
+	// encrypt, falling back to thread key
+	if encrypt == nil {
+		encrypt = t.Encrypt
+	}
+	ciphertext, err := encrypt(plaintext)
+	if err != nil {
+		return nil, err
+	}
+
+	// add to ipfs
+	hash, err := t.addBlock(ciphertext)
+	if err != nil {
+		return nil, err
+	}
+
+	return &commitResult{hash, ciphertext, header}, nil
+}
+
+// addBlock adds to ipfs
+func (t *Thread) addBlock(ciphertext []byte) (mh.Multihash, error) {
 	// pin it
-	id, err := ipfs.PinData(t.node(), bytes.NewReader(messageb))
+	id, err := ipfs.PinData(t.node(), bytes.NewReader(ciphertext))
 	if err != nil {
 		return nil, err
 	}
@@ -334,55 +301,76 @@ func (t *Thread) addBlock(envelope *pb.Envelope) (mh.Multihash, error) {
 	return id.Hash(), nil
 }
 
-// commitBlock seals and signs the content of a block and adds it to ipfs
-func (t *Thread) commitBlock(content proto.Message, mtype pb.Message_Type) (*pb.Envelope, mh.Multihash, error) {
-	// create the block
-	env, err := t.service.NewBlock(t.privKey, mtype, content)
+// handleBlock receives an incoming encrypted block
+func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBlock, *repo.ThreadPeer, error) {
+	// check if we aleady have this block indexed
+	index := t.datastore.Blocks().Get(hash.B58String())
+	if index != nil {
+		return nil, nil, nil
+	}
+
+	// decrypt
+	block := new(pb.ThreadBlock)
+	plaintext, err := t.Decrypt(ciphertext)
 	if err != nil {
-		return nil, nil, err
+		// might be a merge block
+		err2 := proto.Unmarshal(ciphertext, block)
+		if err2 != nil || block.Type != pb.ThreadBlock_MERGE {
+			return nil, nil, err
+		}
+	} else {
+		if err := proto.Unmarshal(plaintext, block); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	// nil payload only allowed for some types
+	if block.Payload == nil && block.Type != pb.ThreadBlock_MERGE && block.Type != pb.ThreadBlock_LEAVE {
+		return nil, nil, errors.New("nil message payload")
 	}
 
 	// add to ipfs
-	addr, err := t.addBlock(env)
-	if err != nil {
+	if _, err := t.addBlock(ciphertext); err != nil {
 		return nil, nil, err
 	}
 
-	return env, addr, nil
+	// add author as a new thread peer in case we haven't found it yet.
+	if block.Header.Author != t.node().Identity.Pretty() {
+		author := &repo.ThreadPeer{
+			Id:       block.Header.Author,
+			ThreadId: t.Id,
+		}
+		if err := t.datastore.ThreadPeers().Add(author); err != nil {
+			log.Errorf("error adding peer: %s", err)
+		}
+		return block, author, nil
+	}
+	return block, nil, nil
 }
 
 // indexBlock stores off index info for this block type
-func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType repo.BlockType, dataConf *repo.DataBlockConfig) error {
+func (t *Thread) indexBlock(commit *commitResult, blockType repo.BlockType, dataConf *repo.DataBlockConfig) error {
 	// add a new one
-	date, err := ptypes.Timestamp(header.Date)
+	date, err := ptypes.Timestamp(commit.header.Date)
 	if err != nil {
 		return err
 	}
 	if dataConf == nil {
 		dataConf = new(repo.DataBlockConfig)
 	}
-	threadId, err := ipfs.IDFromPublicKeyBytes(header.ThreadPk)
-	if err != nil {
-		return err
-	}
-	authorId, err := ipfs.IDFromPublicKeyBytes(header.AuthorPk)
-	if err != nil {
-		return err
-	}
 	index := &repo.Block{
-		Id:                   id,
-		Date:                 date,
-		Parents:              header.Parents,
-		ThreadId:             threadId.Pretty(),
-		AuthorId:             authorId.Pretty(),
-		AuthorUsernameCipher: header.AuthorUnCipher,
-		Type:                 blockType,
+		Id:       commit.hash.B58String(),
+		Date:     date,
+		Parents:  commit.header.Parents,
+		ThreadId: t.Id,
+		AuthorId: commit.header.Author,
+		Type:     blockType,
 
 		// off-chain data links
-		DataId:             dataConf.DataId,
-		DataKeyCipher:      dataConf.DataKeyCipher,
-		DataCaptionCipher:  dataConf.DataCaptionCipher,
-		DataMetadataCipher: dataConf.DataMetadataCipher,
+		DataId:       dataConf.DataId,
+		DataKey:      dataConf.DataKey,
+		DataCaption:  dataConf.DataCaption,
+		DataMetadata: dataConf.DataMetadata,
 	}
 	if err := t.datastore.Blocks().Add(index); err != nil {
 		return err
@@ -396,7 +384,7 @@ func (t *Thread) indexBlock(id string, header *pb.ThreadBlockHeader, blockType r
 
 // handleHead determines whether or not a thread can be fast-forwarded or if a merge block is needed
 // - parents are the parents of the incoming chain
-func (t *Thread) handleHead(inboundId string, parents []string) (mh.Multihash, error) {
+func (t *Thread) handleHead(inbound mh.Multihash, parents []string) (mh.Multihash, error) {
 	// get current HEAD
 	head, err := t.Head()
 	if err != nil {
@@ -416,20 +404,20 @@ func (t *Thread) handleHead(inboundId string, parents []string) (mh.Multihash, e
 	}
 	if fastForwardable {
 		// no need for a merge
-		log.Debugf("fast-forwarded to %s", inboundId)
-		if err := t.updateHead(inboundId); err != nil {
+		log.Debugf("fast-forwarded to %s", inbound.B58String())
+		if err := t.updateHead(inbound); err != nil {
 			return nil, err
 		}
 		return nil, nil
 	}
 
 	// needs merge
-	return t.Merge(inboundId)
+	return t.Merge(inbound)
 }
 
 // updateHead updates the ref to the content id of the latest update
-func (t *Thread) updateHead(head string) error {
-	if err := t.datastore.Threads().UpdateHead(t.Id, head); err != nil {
+func (t *Thread) updateHead(head mh.Multihash) error {
+	if err := t.datastore.Threads().UpdateHead(t.Id, head.B58String()); err != nil {
 		return err
 	}
 
@@ -438,27 +426,34 @@ func (t *Thread) updateHead(head string) error {
 	return nil
 }
 
-// post publishes a message with content id to peers
-func (t *Thread) post(env *pb.Envelope, id string, peers []repo.ThreadPeer) {
+// post publishes an encrypted message to thread peers
+func (t *Thread) post(commit *commitResult, peers []repo.ThreadPeer) error {
 	if len(peers) == 0 {
-		return
+		return nil
+	}
+	env, err := t.service.NewEnvelope(t.Id, commit.hash, commit.ciphertext)
+	if err != nil {
+		return err
 	}
 	wg := sync.WaitGroup{}
 	for _, tp := range peers {
 		wg.Add(1)
 		go func(tp repo.ThreadPeer) {
 			if err := t.sendMessage(&tp, env); err != nil {
-				log.Errorf("error sending block %s to peer %s: %s", id, tp.Id, err)
+				log.Errorf("error sending %s to peer %s: %s", commit.hash.B58String(), tp.Id, err)
 			}
 			wg.Done()
 		}(tp)
 	}
 	wg.Wait()
+	return nil
 }
 
-// sendMessage sends a message directly to a peer, falling back to cafe inbox based delivery
+// sendMessage sends a message directly to a peer
+// if the peer is offline, the message will be left with the peer's inboxes
+// if the inboxes are offline, SOL
 func (t *Thread) sendMessage(tpeer *repo.ThreadPeer, env *pb.Envelope) error {
-	//t.threadsService.SendMessage
+	//t.service.SendMessage
 	//t.cafeService.DeliverMessage
 	return nil
 }
