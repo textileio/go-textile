@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+type Contact struct {
+	Id       string    `json:"id"`
+	Username string    `json:"username"`
+	Added    time.Time `json:"added"`
+}
+
 type Thread struct {
 	Id      string `json:"id"`
 	Name    string `json:"name"`

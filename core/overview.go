@@ -25,7 +25,7 @@ func (t *Textile) Overview() (*Overview, error) {
 	if err != nil {
 		return nil, err
 	}
-	threads := t.datastore.Threads().Count("")
+	threads := t.datastore.Threads().Count()
 	photos := t.datastore.Blocks().Count(fmt.Sprintf("type=%d", repo.PhotoBlock))
 	contacts := t.datastore.ThreadPeers().Count(true)
 

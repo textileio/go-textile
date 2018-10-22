@@ -91,7 +91,7 @@ func TestThreadDB_Count(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	cnt := tdb.Count("")
+	cnt := tdb.Count()
 	if cnt != 1 {
 		t.Error("returned incorrect count of threads")
 		return

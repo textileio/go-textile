@@ -14,6 +14,7 @@ var log = logging.MustGetLogger("db")
 type SQLiteDatastore struct {
 	config             repo.ConfigStore
 	profile            repo.ProfileStore
+	contacts           repo.ContactStore
 	threads            repo.ThreadStore
 	threadPeers        repo.ThreadPeerStore
 	accountPeers       repo.AccountPeerStore
@@ -45,6 +46,7 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 	sqliteDB := &SQLiteDatastore{
 		config:             NewConfigStore(conn, mux, dbPath),
 		profile:            NewProfileStore(conn, mux),
+		contacts:           NewContactStore(conn, mux),
 		threads:            NewThreadStore(conn, mux),
 		threadPeers:        NewThreadPeerStore(conn, mux),
 		accountPeers:       NewAccountPeerStore(conn, mux),
@@ -78,6 +80,10 @@ func (d *SQLiteDatastore) Config() repo.ConfigStore {
 
 func (d *SQLiteDatastore) Profile() repo.ProfileStore {
 	return d.profile
+}
+
+func (d *SQLiteDatastore) Contacts() repo.ContactStore {
+	return d.contacts
 }
 
 func (d *SQLiteDatastore) Threads() repo.ThreadStore {
@@ -177,6 +183,10 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 	create table config (key text primary key not null, value blob);
 
     create table profile (key text primary key not null, value blob);
+
+	create table contacts (id text primary key not null, username text not null, added integer not null);
+    create index contact_username on contacts (username);
+	create index contact_added on contacts (added);
 
     create table threads (id text primary key not null, name text not null, sk blob not null, head text not null);
 

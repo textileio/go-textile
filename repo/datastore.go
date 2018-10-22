@@ -9,6 +9,7 @@ import (
 type Datastore interface {
 	Config() ConfigStore
 	Profile() ProfileStore
+	Contacts() ContactStore
 	Threads() ThreadStore
 	ThreadPeers() ThreadPeerStore
 	AccountPeers() AccountPeerStore
@@ -48,12 +49,21 @@ type ProfileStore interface {
 	GetAvatar() (*string, error)
 }
 
+type ContactStore interface {
+	Queryable
+	Add(device *Contact) error
+	Get(id string) *Contact
+	List() []Contact
+	Count() int
+	Delete(id string) error
+}
+
 type ThreadStore interface {
 	Queryable
 	Add(thread *Thread) error
 	Get(id string) *Thread
 	List() []Thread
-	Count(query string) int
+	Count() int
 	UpdateHead(id string, head string) error
 	Delete(id string) error
 }
