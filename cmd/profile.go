@@ -9,7 +9,7 @@ import (
 )
 
 func publishProfile(c *ishell.Context) {
-	entry, err := core.Node.PublishAccountProfile(nil)
+	entry, err := core.Node.PublishProfile(nil)
 	if err != nil {
 		c.Err(err)
 		return
@@ -36,7 +36,7 @@ func resolveProfile(c *ishell.Context) {
 		name = c.Args[0]
 	}
 
-	entry, err := core.Node.ResolveName(name)
+	entry, err := core.Node.ResolveProfile(name)
 	if err != nil {
 		c.Err(err)
 		return
@@ -59,7 +59,7 @@ func getProfile(c *ishell.Context) {
 		id = c.Args[0]
 	}
 
-	prof, err := core.Node.GetAccountProfile(id)
+	prof, err := core.Node.GetProfile(id)
 	if err != nil {
 		c.Err(err)
 		return

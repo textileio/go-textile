@@ -12,7 +12,6 @@ type Datastore interface {
 	Contacts() ContactStore
 	Threads() ThreadStore
 	ThreadPeers() ThreadPeerStore
-	AccountPeers() AccountPeerStore
 	Blocks() BlockStore
 	Notifications() NotificationStore
 	CafeSessions() CafeSessionStore
@@ -78,15 +77,6 @@ type ThreadPeerStore interface {
 	Delete(id string, thread string) error
 	DeleteById(id string) error
 	DeleteByThread(thread string) error
-}
-
-type AccountPeerStore interface {
-	Queryable
-	Add(device *AccountPeer) error
-	Get(id string) *AccountPeer
-	List(query string) []AccountPeer
-	Count(query string) int
-	Delete(id string) error
 }
 
 type BlockStore interface {

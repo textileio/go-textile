@@ -182,11 +182,6 @@ func (t *Textile) handleThreadInvite(inviteId string, plaintext []byte) (mh.Mult
 		return nil, err
 	}
 
-	// invite devices
-	if err := t.InviteAccountPeers(thrd); err != nil {
-		return nil, err
-	}
-
 	return hash, nil
 }
 

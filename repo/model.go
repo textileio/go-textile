@@ -23,11 +23,6 @@ type ThreadPeer struct {
 	ThreadId string `json:"thread_id"`
 }
 
-type AccountPeer struct {
-	Id   string `json:"id"`
-	Name string `json:"name"`
-}
-
 type Block struct {
 	Id       string    `json:"id"`
 	Date     time.Time `json:"date"`

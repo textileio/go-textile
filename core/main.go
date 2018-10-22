@@ -163,31 +163,6 @@ func InitRepo(config InitConfig) error {
 		return err
 	}
 	return rep.Keystore().Put("account", sk)
-
-	// TODO: discover other devices
-
-	//fmt.Println("Publishing new account peer identity...")
-	//
-	//// create a tmp node
-	//node, err := NewTextile(RunConfig{
-	//	PinCode:  config.PinCode,
-	//	RepoPath: config.RepoPath,
-	//	LogLevel: config.LogLevel,
-	//	LogFiles: config.LogFiles,
-	//})
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//// add new peer to account profile
-	//if err := node.Start(); err != nil {
-	//	return err
-	//}
-	//<-node.OnlineCh()
-	//if _, err := node.PublishAccountProfile(nil); err != nil {
-	//	log.Errorf("error publishing profile: %s", err)
-	//}
-	//return nil
 }
 
 // NewTextile runs a node out of an initialized repo

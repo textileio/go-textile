@@ -133,7 +133,7 @@ func profileHandler(c *gin.Context) {
 	}
 
 	// resolve the actual content
-	pth, err := core.Node.ResolveName(c.Param("root"))
+	pth, err := core.Node.ResolveProfile(c.Param("root"))
 	if err != nil {
 		log.Errorf("error resolving profile %s: %s", c.Param("root"), err)
 		c.Status(404)

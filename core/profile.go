@@ -14,23 +14,19 @@ import (
 	"time"
 )
 
-type AccountProfile struct {
+// Profile is an account-wide public profile
+// NOTE: any account peer can publish profile entries to the same IPNS key
+type Profile struct {
 	Address   string   `json:"address"`
 	Peers     []string `json:"peers"`
 	Username  string   `json:"username,omitempty"`
 	AvatarUri string   `json:"avatar_uri,omitempty"`
 }
 
-type PeerProfile struct {
-	Threads map[string]ThreadState `json:"threads,omitempty"`
-}
-
-type ThreadState struct {
-	Head string `json:"head"`
-	Sk   string `json:"sk"`
-}
-
+// profileTTL is the duration the ipns profile record will be valid
 var profileTTL = time.Hour * 24 * 7 * 4
+
+// profileCacheTTL is the duration the ipns profile record will be cached
 var profileCacheTTL = time.Hour * 24 * 7
 
 // GetUsername returns profile username
@@ -61,12 +57,12 @@ func (t *Textile) SetUsername(username string) error {
 			log.Errorf("error getting id (set username): %s", err)
 			return
 		}
-		prof, err := t.GetAccountProfile(pid.Pretty())
+		prof, err := t.GetProfile(pid.Pretty())
 		if err != nil {
 			log.Errorf("error getting profile (set username): %s", err)
 			return
 		}
-		if _, err := t.PublishAccountProfile(prof); err != nil {
+		if _, err := t.PublishProfile(prof); err != nil {
 			log.Errorf("error publishing profile (set username): %s", err)
 			return
 		}
@@ -111,12 +107,12 @@ func (t *Textile) SetAvatar(id string) error {
 			log.Errorf("error getting id (set avatar): %s", err)
 			return
 		}
-		prof, err := t.GetAccountProfile(pid.Pretty())
+		prof, err := t.GetProfile(pid.Pretty())
 		if err != nil {
 			log.Errorf("error getting profile (set avatar): %s", err)
 			return
 		}
-		if _, err := t.PublishAccountProfile(prof); err != nil {
+		if _, err := t.PublishProfile(prof); err != nil {
 			log.Errorf("error publishing profile (set avatar): %s", err)
 			return
 		}
@@ -124,9 +120,9 @@ func (t *Textile) SetAvatar(id string) error {
 	return nil
 }
 
-// GetAccountProfile return a model representation of an ipns profile
-func (t *Textile) GetAccountProfile(peerId string) (*AccountProfile, error) {
-	profile := &AccountProfile{}
+// GetProfile return a model representation of an ipns profile
+func (t *Textile) GetProfile(peerId string) (*Profile, error) {
+	profile := &Profile{}
 
 	// if peer id is local, return profile from db
 	pid, err := t.Id()
@@ -157,7 +153,7 @@ func (t *Textile) GetAccountProfile(peerId string) (*AccountProfile, error) {
 	}
 
 	// resolve profile at peer id
-	entry, err := t.ResolveName(peerId)
+	entry, err := t.ResolveProfile(peerId)
 	if err != nil {
 		return nil, err
 	}
@@ -180,8 +176,8 @@ func (t *Textile) GetAccountProfile(peerId string) (*AccountProfile, error) {
 	return profile, nil
 }
 
-// PublishAccountProfile publishes profile to ipns
-func (t *Textile) PublishAccountProfile(prof *AccountProfile) (*ipfs.IpnsEntry, error) {
+// PublishProfile publishes profile to ipns
+func (t *Textile) PublishProfile(prof *Profile) (*ipfs.IpnsEntry, error) {
 	if !t.Online() {
 		return nil, ErrOffline
 	}
@@ -195,7 +191,7 @@ func (t *Textile) PublishAccountProfile(prof *AccountProfile) (*ipfs.IpnsEntry, 
 		if err != nil {
 			return nil, err
 		}
-		prof, err = t.GetAccountProfile(pid.Pretty())
+		prof, err = t.GetProfile(pid.Pretty())
 		if err != nil {
 			return nil, err
 		}
@@ -242,8 +238,8 @@ func (t *Textile) PublishAccountProfile(prof *AccountProfile) (*ipfs.IpnsEntry, 
 	return t.publish(id, sk)
 }
 
-// ResolveName looks up a profile on ipns
-func (t *Textile) ResolveName(name string) (*path.Path, error) {
+// ResolveProfile looks up a profile on ipns
+func (t *Textile) ResolveProfile(name string) (*path.Path, error) {
 	if !t.Online() {
 		return nil, ErrOffline
 	}

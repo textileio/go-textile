@@ -303,29 +303,6 @@ func RunShell(startNode func() error, stopNode func() error) {
 		shell.AddCmd(threadCmd)
 	}
 	{
-		accountPeerCmd := &ishell.Cmd{
-			Name:     "account-peer",
-			Help:     "manage account peers",
-			LongHelp: "Add, remove, and list account peers.",
-		}
-		accountPeerCmd.AddCmd(&ishell.Cmd{
-			Name: "add",
-			Help: "add a new account peer",
-			Func: addAccountPeer,
-		})
-		accountPeerCmd.AddCmd(&ishell.Cmd{
-			Name: "rm",
-			Help: "remove an account peer",
-			Func: removeAccountPeer,
-		})
-		accountPeerCmd.AddCmd(&ishell.Cmd{
-			Name: "ls",
-			Help: "list account peer",
-			Func: listAccountPeers,
-		})
-		shell.AddCmd(accountPeerCmd)
-	}
-	{
 		notificationCmd := &ishell.Cmd{
 			Name:     "notification",
 			Help:     "manage notifications",

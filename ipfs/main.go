@@ -226,11 +226,6 @@ outer:
 	return ipfs.Pinning.Flush()
 }
 
-// MultiaddrFromId creates a multiaddr from an id string
-func MultiaddrFromId(id string) (ma.Multiaddr, error) {
-	return ma.NewMultiaddr("/ipfs/" + id + "/")
-}
-
 // Publish publishes a node to ipns
 func Publish(ctx context.Context, n *core.IpfsNode, k libp2pc.PrivKey, ref path.Path, dur time.Duration) (*IpnsEntry, error) {
 	eol := time.Now().Add(dur)

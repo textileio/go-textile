@@ -17,7 +17,6 @@ type SQLiteDatastore struct {
 	contacts           repo.ContactStore
 	threads            repo.ThreadStore
 	threadPeers        repo.ThreadPeerStore
-	accountPeers       repo.AccountPeerStore
 	blocks             repo.BlockStore
 	notifications      repo.NotificationStore
 	cafeSessions       repo.CafeSessionStore
@@ -49,7 +48,6 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 		contacts:           NewContactStore(conn, mux),
 		threads:            NewThreadStore(conn, mux),
 		threadPeers:        NewThreadPeerStore(conn, mux),
-		accountPeers:       NewAccountPeerStore(conn, mux),
 		blocks:             NewBlockStore(conn, mux),
 		notifications:      NewNotificationStore(conn, mux),
 		cafeSessions:       NewCafeSessionStore(conn, mux),
@@ -92,10 +90,6 @@ func (d *SQLiteDatastore) Threads() repo.ThreadStore {
 
 func (d *SQLiteDatastore) ThreadPeers() repo.ThreadPeerStore {
 	return d.threadPeers
-}
-
-func (d *SQLiteDatastore) AccountPeers() repo.AccountPeerStore {
-	return d.accountPeers
 }
 
 func (d *SQLiteDatastore) Blocks() repo.BlockStore {
@@ -193,8 +187,6 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create table thread_peers (id text not null, threadId text not null, primary key (id, threadId));
     create index thread_peer_id on thread_peers (id);
     create index thread_peer_threadId on thread_peers (threadId);
-
-    create table account_peers (id text primary key not null, name text not null);
 
     create table blocks (id text primary key not null, date integer not null, parents text not null, threadId text not null, authorId text not null, type integer not null, dataId text, dataKey text, dataCaption text, dataMetadata blob);
     create index block_dataId on blocks (dataId);

@@ -2,12 +2,10 @@ package mobile_test
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/json"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
 	. "github.com/textileio/textile-go/mobile"
-	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"image/jpeg"
 	"os"
@@ -29,7 +27,6 @@ var threadId, threadId2 string
 var addedPhotoId, addedBlockId string
 var sharedBlockId string
 var addedPhotoKey string
-var accountPeerId string
 var noteId string
 
 func TestNewTextile(t *testing.T) {
@@ -101,18 +98,6 @@ func TestMobile_GetSeed(t *testing.T) {
 	}
 }
 
-// TODO: set username
-//func TestMobile_GetUsername(t *testing.T) {
-//	un, err := mobile.GetUsername()
-//	if err != nil {
-//		t.Errorf("get username failed: %s", err)
-//		return
-//	}
-//	if un != cusername {
-//		t.Errorf("got bad username: %s", un)
-//	}
-//}
-
 func TestMobile_EmptyThreads(t *testing.T) {
 	res, err := mobile.Threads()
 	if err != nil {
@@ -182,64 +167,6 @@ func TestMobile_RemoveThread(t *testing.T) {
 	}
 	if err != nil {
 		t.Errorf("remove thread failed: %s", err)
-	}
-}
-
-func TestMobile_AddAccountPeer(t *testing.T) {
-	_, pk, err := libp2pc.GenerateEd25519Key(rand.Reader)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	id, err := peer.IDFromPublicKey(pk)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	accountPeerId = id.Pretty()
-	if err := mobile.AddAccountPeer(accountPeerId, "hello"); err != nil {
-		t.Errorf("add account peer failed: %s", err)
-	}
-}
-
-func TestMobile_AddAccountPeerAgain(t *testing.T) {
-	if err := mobile.AddAccountPeer(accountPeerId, "hello"); err == nil {
-		t.Error("add same account peer again should fail")
-	}
-}
-
-func TestMobile_AccountPeers(t *testing.T) {
-	_, pk, err := libp2pc.GenerateEd25519Key(rand.Reader)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	id, err := peer.IDFromPublicKey(pk)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if err := mobile.AddAccountPeer(id.Pretty(), "another"); err != nil {
-		t.Errorf("add another account peer failed: %s", err)
-	}
-	res, err := mobile.AccountPeers()
-	if err != nil {
-		t.Errorf("get account peers failed: %s", err)
-		return
-	}
-	peers := AccountPeers{}
-	if err := json.Unmarshal([]byte(res), &peers); err != nil {
-		t.Error(err)
-		return
-	}
-	if len(peers.Items) != 2 {
-		t.Error("get account peers bad result")
-	}
-}
-
-func TestMobile_RemoveAccountPeer(t *testing.T) {
-	if err := mobile.RemoveAccountPeer(accountPeerId); err != nil {
-		t.Errorf("remove account peer failed: %s", err)
 	}
 }
 
@@ -489,7 +416,7 @@ func TestMobile_GetProfile(t *testing.T) {
 		t.Errorf("get profile failed: %s", err)
 		return
 	}
-	prof := core.AccountProfile{}
+	prof := core.Profile{}
 	if err := json.Unmarshal([]byte(profs), &prof); err != nil {
 		t.Error(err)
 		return
