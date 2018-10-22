@@ -298,7 +298,7 @@ func newThreadNotification(header *pb.ThreadBlockHeader, ntype repo.Notification
 		Id:            ksuid.New().String(),
 		Date:          date,
 		ActorId:       header.Author,
-		ActorUsername: "fixme",
+		ActorUsername: header.Author[:8],
 		Type:          ntype,
 	}, nil
 }
