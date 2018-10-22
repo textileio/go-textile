@@ -214,14 +214,14 @@ func addExternalThreadInvite(c *ishell.Context) {
 		return
 	}
 
-	addr, key, err := thrd.AddExternalInvite()
+	hash, key, err := thrd.AddExternalInvite()
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green(fmt.Sprintf("added! creds: %s %s", addr.B58String(), string(key))))
+	c.Println(green(fmt.Sprintf("added! creds: %s %s", hash.B58String(), string(key))))
 }
 
 func acceptExternalThreadInvite(c *ishell.Context) {

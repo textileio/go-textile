@@ -67,7 +67,7 @@ func getProfile(c *ishell.Context) {
 
 	green := color.New(color.FgHiGreen).SprintFunc()
 	if prof.Address != "" {
-		c.Println(green(fmt.Sprintf("address:         %s", prof.Address)))
+		c.Println(green(fmt.Sprintf("address:    %s", prof.Address)))
 	}
 	if prof.Username != "" {
 		c.Println(green(fmt.Sprintf("username:   %s", prof.Username)))

@@ -56,7 +56,7 @@ func addPhoto(c *ishell.Context) {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", threadId)))
 		return
 	}
-	if _, err := thrd.AddPhoto(added.Id, caption, []byte(added.Key)); err != nil {
+	if _, err := thrd.AddPhoto(added.Id, caption, added.Key); err != nil {
 		c.Err(err)
 		return
 	}
@@ -78,7 +78,7 @@ func sharePhoto(c *ishell.Context) {
 	caption := c.ReadLine()
 
 	// get the original block
-	block, fromThread, err := getBlockAndThreadForDataId(id)
+	block, err := getBlockByDataId(id)
 	if err != nil {
 		c.Err(err)
 		return
@@ -91,17 +91,10 @@ func sharePhoto(c *ishell.Context) {
 		return
 	}
 
-	// get the file key from the original block
-	key, err := fromThread.Decrypt(block.DataKeyCipher)
-	if err != nil {
-		c.Err(err)
-		return
-	}
-
 	// TODO: owner challenge
 
 	// finally, add to destination
-	if _, err := toThread.AddPhoto(id, caption, key); err != nil {
+	if _, err := toThread.AddPhoto(id, caption, block.DataKey); err != nil {
 		c.Err(err)
 		return
 	}
@@ -151,13 +144,13 @@ func getPhoto(c *ishell.Context) {
 		dest = c.Args[1]
 	}
 
-	block, thrd, err := getBlockAndThreadForDataId(id)
+	block, err := getBlockByDataId(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
-	data, err := thrd.GetBlockData(fmt.Sprintf("%s/photo", id), block)
+	data, err := core.Node.GetBlockData(fmt.Sprintf("%s/photo", id), block)
 	if err != nil {
 		c.Err(err)
 		return
@@ -180,18 +173,13 @@ func getPhotoMetadata(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	block, thrd, err := getBlockAndThreadForDataId(id)
+	block, err := getBlockByDataId(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
-	meta, err := thrd.GetPhotoMetaData(id, block)
-	if err != nil {
-		c.Err(err)
-		return
-	}
-	jsonb, err := json.MarshalIndent(meta, "", "    ")
+	jsonb, err := json.MarshalIndent(block.DataMetadata, "", "    ")
 	if err != nil {
 		c.Err(err)
 		return
@@ -208,20 +196,14 @@ func getPhotoKey(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	block, thrd, err := getBlockAndThreadForDataId(id)
-	if err != nil {
-		c.Err(err)
-		return
-	}
-
-	key, err := thrd.GetBlockDataKey(block)
+	block, err := getBlockByDataId(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
 	blue := color.New(color.FgHiBlue).SprintFunc()
-	c.Println(blue(string(key)))
+	c.Println(blue(block.DataKey))
 }
 
 func addPhotoComment(c *ishell.Context) {
@@ -302,27 +284,8 @@ func listPhotoComments(c *ishell.Context) {
 
 	cyan := color.New(color.FgHiCyan).SprintFunc()
 	for _, b := range blocks {
-		body := "nil"
-		var authorUn string
-		if b.DataCaptionCipher != nil {
-			bodyb, err := thrd.Decrypt(b.DataCaptionCipher)
-			if err != nil {
-				c.Err(err)
-				return
-			}
-			body = string(bodyb)
-		}
-		if b.AuthorUsernameCipher != nil {
-			authorUnb, err := thrd.Decrypt(b.AuthorUsernameCipher)
-			if err != nil {
-				c.Err(err)
-				return
-			}
-			authorUn = string(authorUnb)
-		} else {
-			authorUn = b.AuthorId[:8]
-		}
-		c.Println(cyan(fmt.Sprintf("%s: %s: %s", b.Id, authorUn, body)))
+		// TODO: look up username in contacts
+		c.Println(cyan(fmt.Sprintf("%s: %s: %s", b.Id, b.AuthorId[:8], b.DataCaption)))
 	}
 }
 
@@ -354,32 +317,18 @@ func listPhotoLikes(c *ishell.Context) {
 
 	cyan := color.New(color.FgHiCyan).SprintFunc()
 	for _, b := range blocks {
-		var authorUn string
-		if b.AuthorUsernameCipher != nil {
-			authorUnb, err := thrd.Decrypt(b.AuthorUsernameCipher)
-			if err != nil {
-				c.Err(err)
-				return
-			}
-			authorUn = string(authorUnb)
-		} else {
-			authorUn = b.AuthorId[:8]
-		}
-		c.Println(cyan(fmt.Sprintf("%s: %s", b.Id, authorUn)))
+		// TODO: look up username in contacts
+		c.Println(cyan(fmt.Sprintf("%s: %s", b.Id, b.AuthorId[:8])))
 	}
 }
 
-func getBlockAndThreadForDataId(dataId string) (*repo.Block, *core.Thread, error) {
+func getBlockByDataId(dataId string) (*repo.Block, error) {
 	block, err := core.Node.GetBlockByDataId(dataId)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if block.Type != repo.PhotoBlock {
-		return nil, nil, errors.New("not a photo block, aborting")
+		return nil, errors.New("not a photo block, aborting")
 	}
-	_, thrd := core.Node.GetThread(block.ThreadId)
-	if thrd == nil {
-		return nil, nil, errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
-	}
-	return block, thrd, nil
+	return block, nil
 }
