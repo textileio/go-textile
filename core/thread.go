@@ -156,9 +156,8 @@ func (t *Thread) Decrypt(data []byte) ([]byte, error) {
 	return crypto.Decrypt(t.privKey, data)
 }
 
-// FollowParents tries to follow a list of chains of block ids, processing along the way
-func (t *Thread) FollowParents(parents []string, from *peer.ID) ([]repo.ThreadPeer, error) {
-	var joins []repo.ThreadPeer
+// followParents tries to follow a list of chains of block ids, processing along the way
+func (t *Thread) followParents(parents []string) error {
 	for _, parent := range parents {
 		if parent == "" {
 			log.Debugf("found genesis block, aborting")
@@ -166,58 +165,77 @@ func (t *Thread) FollowParents(parents []string, from *peer.ID) ([]repo.ThreadPe
 		}
 		hash, err := mh.FromB58String(parent)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		joined, err := t.followParent(hash, from)
-		if err != nil {
-			return nil, err
-		}
-		if joined != nil {
-			joins = append(joins, *joined)
+		if err := t.followParent(hash); err != nil {
+			log.Errorf("failed to follow parent %s: %s", parent, err)
+			continue
 		}
 	}
-	return joins, nil
+	return nil
 }
 
 // followParent tries to follow a chain of block ids, processing along the way
-func (t *Thread) followParent(parent mh.Multihash, from *peer.ID) (*repo.ThreadPeer, error) {
+func (t *Thread) followParent(parent mh.Multihash) error {
 	// download and decrypt
 	ciphertext, err := ipfs.GetDataAtPath(t.node(), parent.B58String())
 	if err != nil {
-		return nil, err
+		return err
 	}
-	block, newPeer, err := t.handleBlock(parent, ciphertext)
+	block, err := t.handleBlock(parent, ciphertext)
+	if err != nil {
+		return err
+	}
 
 	// handle each type
 	switch block.Type {
 	case pb.ThreadBlock_JOIN:
-		if _, err := t.HandleJoinBlock(from, parent, block, newPeer, true); err != nil {
-			return nil, err
-		}
+		_, err = t.handleJoinBlock(parent, block)
 	case pb.ThreadBlock_LEAVE:
-		if err := t.HandleLeaveBlock(from, parent, block, true); err != nil {
-			return nil, err
-		}
+		err = t.handleLeaveBlock(parent, block)
 	case pb.ThreadBlock_DATA:
-		if _, err := t.HandleDataBlock(from, parent, block, true); err != nil {
-			return nil, err
-		}
+		_, err = t.handleDataBlock(parent, block)
 	case pb.ThreadBlock_ANNOTATION:
-		if _, err := t.HandleAnnotationBlock(from, parent, block, true); err != nil {
-			return nil, err
-		}
+		_, err = t.handleAnnotationBlock(parent, block)
 	case pb.ThreadBlock_IGNORE:
-		if _, err := t.HandleIgnoreBlock(from, parent, block, true); err != nil {
-			return nil, err
-		}
+		_, err = t.handleIgnoreBlock(parent, block)
 	case pb.ThreadBlock_MERGE:
-		if err := t.HandleMergeBlock(from, parent, block, true); err != nil {
-			return nil, err
-		}
+		err = t.handleMergeBlock(parent, block)
 	default:
-		return nil, errors.New(fmt.Sprintf("invalid message type: %s", block.Type))
+		return errors.New(fmt.Sprintf("invalid message type: %s", block.Type))
 	}
-	return newPeer, nil
+	if err != nil {
+		return err
+	}
+
+	// back prop
+	return t.followParents(block.Header.Parents)
+}
+
+// addOrUpdatePeer collects thread peers, saving them as contacts and
+// saving their cafe inboxes for offline message delivery
+func (t *Thread) addOrUpdatePeer(pid peer.ID, username string, inboxes []string) {
+	// add to this thread's peer list
+	t.datastore.ThreadPeers().Add(&repo.ThreadPeer{
+		Id:       pid.Pretty(),
+		ThreadId: t.Id,
+	})
+
+	// add to contacts
+	// TODO: make add or update
+	t.datastore.Contacts().Add(&repo.Contact{
+		Id:       pid.Pretty(),
+		Username: username,
+		Added:    time.Now(),
+	})
+
+	// save cafe provided inboxes
+	for _, inbox := range inboxes {
+		t.datastore.CafeInboxes().Add(&repo.CafeInbox{
+			PeerId: pid.Pretty(),
+			CafeId: inbox,
+		})
+	}
 }
 
 // newBlockHeader creates a new header
@@ -302,11 +320,11 @@ func (t *Thread) addBlock(ciphertext []byte) (mh.Multihash, error) {
 }
 
 // handleBlock receives an incoming encrypted block
-func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBlock, *repo.ThreadPeer, error) {
+func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBlock, error) {
 	// check if we aleady have this block indexed
 	index := t.datastore.Blocks().Get(hash.B58String())
 	if index != nil {
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	// decrypt
@@ -316,36 +334,24 @@ func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBl
 		// might be a merge block
 		err2 := proto.Unmarshal(ciphertext, block)
 		if err2 != nil || block.Type != pb.ThreadBlock_MERGE {
-			return nil, nil, err
+			return nil, err
 		}
 	} else {
 		if err := proto.Unmarshal(plaintext, block); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 
 	// nil payload only allowed for some types
 	if block.Payload == nil && block.Type != pb.ThreadBlock_MERGE && block.Type != pb.ThreadBlock_LEAVE {
-		return nil, nil, errors.New("nil message payload")
+		return nil, errors.New("nil message payload")
 	}
 
 	// add to ipfs
 	if _, err := t.addBlock(ciphertext); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-
-	// add author as a new thread peer in case we haven't found it yet.
-	if block.Header.Author != t.node().Identity.Pretty() {
-		author := &repo.ThreadPeer{
-			Id:       block.Header.Author,
-			ThreadId: t.Id,
-		}
-		if err := t.datastore.ThreadPeers().Add(author); err != nil {
-			log.Errorf("error adding peer: %s", err)
-		}
-		return block, author, nil
-	}
-	return block, nil, nil
+	return block, nil
 }
 
 // indexBlock stores off index info for this block type
@@ -423,6 +429,49 @@ func (t *Thread) updateHead(head mh.Multihash) error {
 
 	// update head on cafe backups
 	t.cafeQueue.Add(t.Id, repo.CafeStoreThreadRequest)
+	return nil
+}
+
+// sendWelcome sends the latest HEAD block to a set of peers
+func (t *Thread) sendWelcome() error {
+	// get unwelcomed peers
+	peers := t.datastore.ThreadPeers().ListUnwelcomedByThread(t.Id)
+	if len(peers) == 0 {
+		return nil
+	}
+
+	// get current HEAD
+	head, err := t.Head()
+	if err != nil {
+		return err
+	}
+	if head == "" {
+		return nil
+	}
+
+	// download it
+	ciphertext, err := ipfs.GetDataAtPath(t.node(), head)
+	if err != nil {
+		return err
+	}
+
+	// post it
+	hash, err := mh.FromB58String(head)
+	if err != nil {
+		return err
+	}
+	res := &commitResult{hash: hash, ciphertext: ciphertext}
+	if err := t.post(res, peers); err != nil {
+		return err
+	}
+
+	// mark each as welcomed
+	if err := t.datastore.ThreadPeers().WelcomeByThread(t.Id); err != nil {
+		return err
+	}
+	for _, p := range peers {
+		log.Debugf("WELCOME sent to %s at %s", p.Id, head)
+	}
 	return nil
 }
 

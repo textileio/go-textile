@@ -21,6 +21,7 @@ type Thread struct {
 type ThreadPeer struct {
 	Id       string `json:"id"`
 	ThreadId string `json:"thread_id"`
+	Welcomed bool   `json:"welcomed"`
 }
 
 type Block struct {

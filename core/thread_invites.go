@@ -88,12 +88,12 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 	return res.hash, key, nil
 }
 
-// HandleInviteMessage handles an incoming invite
+// handleInviteMessage handles an incoming invite
 // - this happens right before a join
 // - the invite is not kept on-chain, so we only need to follow parents and update HEAD
-func (t *Thread) HandleInviteMessage(block *pb.ThreadBlock) error {
+func (t *Thread) handleInviteMessage(block *pb.ThreadBlock) error {
 	// back prop
-	if _, err := t.FollowParents(block.Header.Parents, nil); err != nil {
+	if err := t.followParents(block.Header.Parents); err != nil {
 		return err
 	}
 
@@ -107,6 +107,5 @@ func (t *Thread) HandleInviteMessage(block *pb.ThreadBlock) error {
 			return err
 		}
 	}
-
 	return nil
 }

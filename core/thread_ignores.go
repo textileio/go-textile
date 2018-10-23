@@ -7,7 +7,6 @@ import (
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"strings"
 )
 
@@ -62,8 +61,8 @@ func (t *Thread) Ignore(blockId string) (mh.Multihash, error) {
 	return res.hash, nil
 }
 
-// HandleIgnoreBlock handles an incoming ignore block
-func (t *Thread) HandleIgnoreBlock(from *peer.ID, hash mh.Multihash, block *pb.ThreadBlock, following bool) (*pb.ThreadIgnore, error) {
+// handleIgnoreBlock handles an incoming ignore block
+func (t *Thread) handleIgnoreBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.ThreadIgnore, error) {
 	msg := new(pb.ThreadIgnore)
 	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
 		return nil, err
@@ -85,27 +84,6 @@ func (t *Thread) HandleIgnoreBlock(from *peer.ID, hash mh.Multihash, block *pb.T
 
 	// unpin dataId if present and not part of another thread
 	t.unpinBlockData(blockId)
-
-	// back prop
-	newPeers, err := t.FollowParents(block.Header.Parents, from)
-	if err != nil {
-		return nil, err
-	}
-
-	// handle HEAD
-	if following {
-		return msg, nil
-	}
-	if _, err := t.handleHead(hash, block.Header.Parents); err != nil {
-		return nil, err
-	}
-
-	// handle newly discovered peers during back prop, after updating HEAD
-	for _, newPeer := range newPeers {
-		if err := t.sendWelcome(newPeer); err != nil {
-			return nil, err
-		}
-	}
 	return msg, nil
 }
 

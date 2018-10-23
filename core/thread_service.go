@@ -76,14 +76,14 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 	_, thrd := h.getThread(tenv.Thread)
 	if thrd == nil {
 		// this might be a direct invite
-		if err := h.handleInvite(pid, hash, tenv); err != nil {
+		if err := h.handleInvite(hash, tenv); err != nil {
 			return nil, err
 		}
 		return nil, nil
 	}
 
 	// decrypt and handle
-	block, _, err := thrd.handleBlock(hash, tenv.CipherBlock)
+	block, err := thrd.handleBlock(hash, tenv.CipherBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -91,20 +91,39 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 	// select a handler
 	switch block.Type {
 	case pb.ThreadBlock_JOIN:
-		return nil, h.handleJoin(thrd, pid, hash, block)
+		err = h.handleJoin(thrd, hash, block)
 	case pb.ThreadBlock_LEAVE:
-		return nil, h.handleLeave(thrd, pid, hash, block)
+		err = h.handleLeave(thrd, hash, block)
 	case pb.ThreadBlock_DATA:
-		return nil, h.handleData(thrd, pid, hash, block)
+		err = h.handleData(thrd, hash, block)
 	case pb.ThreadBlock_ANNOTATION:
-		return nil, h.handleAnnotation(thrd, pid, hash, block)
+		err = h.handleAnnotation(thrd, hash, block)
 	case pb.ThreadBlock_IGNORE:
-		return nil, h.handleIgnore(thrd, pid, hash, block)
+		err = h.handleIgnore(thrd, hash, block)
 	case pb.ThreadBlock_MERGE:
-		return nil, h.handleMerge(thrd, pid, hash, block)
+		err = h.handleMerge(thrd, hash, block)
 	default:
 		return nil, nil
 	}
+	if err != nil {
+		return nil, err
+	}
+
+	// back prop
+	if err := thrd.followParents(block.Header.Parents); err != nil {
+		return nil, err
+	}
+
+	// handle HEAD
+	if _, err := thrd.handleHead(hash, block.Header.Parents); err != nil {
+		return nil, err
+	}
+
+	// handle newly discovered peers during back prop
+	if err := thrd.sendWelcome(); err != nil {
+		return nil, err
+	}
+	return nil, nil
 }
 
 // SendMessage sends a message to a peer
@@ -123,7 +142,7 @@ func (h *ThreadsService) NewEnvelope(threadId string, hash mh.Multihash, ciphert
 }
 
 // handleInvite receives an invite message
-func (h *ThreadsService) handleInvite(from peer.ID, hash mh.Multihash, tenv *pb.ThreadEnvelope) error {
+func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope) error {
 	// attempt decrypt w/ own keys
 	plaintext, err := crypto.Decrypt(h.service.Node.PrivateKey, tenv.CipherBlock)
 	if err != nil {
@@ -153,7 +172,7 @@ func (h *ThreadsService) handleInvite(from peer.ID, hash mh.Multihash, tenv *pb.
 	}
 
 	// send notification
-	notification, err := newThreadNotification(block.Header, repo.ReceivedInviteNotification)
+	notification, err := h.newNotification(block.Header, repo.ReceivedInviteNotification)
 	if err != nil {
 		return err
 	}
@@ -165,13 +184,13 @@ func (h *ThreadsService) handleInvite(from peer.ID, hash mh.Multihash, tenv *pb.
 }
 
 // handleJoin receives a join message
-func (h *ThreadsService) handleJoin(thrd *Thread, from peer.ID, hash mh.Multihash, block *pb.ThreadBlock) error {
-	if _, err := thrd.HandleJoinBlock(&from, hash, block, nil, false); err != nil {
+func (h *ThreadsService) handleJoin(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
+	if _, err := thrd.handleJoinBlock(hash, block); err != nil {
 		return err
 	}
 
 	// send notification
-	notification, err := newThreadNotification(block.Header, repo.PeerJoinedNotification)
+	notification, err := h.newNotification(block.Header, repo.PeerJoinedNotification)
 	if err != nil {
 		return err
 	}
@@ -183,13 +202,13 @@ func (h *ThreadsService) handleJoin(thrd *Thread, from peer.ID, hash mh.Multihas
 }
 
 // handleLeave receives a leave message
-func (h *ThreadsService) handleLeave(thrd *Thread, from peer.ID, hash mh.Multihash, block *pb.ThreadBlock) error {
-	if err := thrd.HandleLeaveBlock(&from, hash, block, false); err != nil {
+func (h *ThreadsService) handleLeave(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
+	if err := thrd.handleLeaveBlock(hash, block); err != nil {
 		return err
 	}
 
 	// send notification
-	notification, err := newThreadNotification(block.Header, repo.PeerLeftNotification)
+	notification, err := h.newNotification(block.Header, repo.PeerLeftNotification)
 	if err != nil {
 		return err
 	}
@@ -201,8 +220,8 @@ func (h *ThreadsService) handleLeave(thrd *Thread, from peer.ID, hash mh.Multiha
 }
 
 // handleData receives a data message
-func (h *ThreadsService) handleData(thrd *Thread, from peer.ID, hash mh.Multihash, block *pb.ThreadBlock) error {
-	msg, err := thrd.HandleDataBlock(&from, hash, block, false)
+func (h *ThreadsService) handleData(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
+	msg, err := thrd.handleDataBlock(hash, block)
 	if err != nil {
 		return err
 	}
@@ -211,14 +230,14 @@ func (h *ThreadsService) handleData(thrd *Thread, from peer.ID, hash mh.Multihas
 	var notification *repo.Notification
 	switch msg.Type {
 	case pb.ThreadData_PHOTO:
-		notification, err = newThreadNotification(block.Header, repo.PhotoAddedNotification)
+		notification, err = h.newNotification(block.Header, repo.PhotoAddedNotification)
 		if err != nil {
 			return err
 		}
 		notification.DataId = msg.Data
 		notification.Body = "added a photo"
 	case pb.ThreadData_TEXT:
-		notification, err = newThreadNotification(block.Header, repo.TextAddedNotification)
+		notification, err = h.newNotification(block.Header, repo.TextAddedNotification)
 		if err != nil {
 			return err
 		}
@@ -231,8 +250,8 @@ func (h *ThreadsService) handleData(thrd *Thread, from peer.ID, hash mh.Multihas
 }
 
 // handleAnnotation receives an annotation message
-func (h *ThreadsService) handleAnnotation(thrd *Thread, from peer.ID, hash mh.Multihash, block *pb.ThreadBlock) error {
-	msg, err := thrd.HandleAnnotationBlock(&from, hash, block, false)
+func (h *ThreadsService) handleAnnotation(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
+	msg, err := thrd.handleAnnotationBlock(hash, block)
 	if err != nil {
 		return err
 	}
@@ -252,13 +271,13 @@ func (h *ThreadsService) handleAnnotation(thrd *Thread, from peer.ID, hash mh.Mu
 	var notification *repo.Notification
 	switch msg.Type {
 	case pb.ThreadAnnotation_COMMENT:
-		notification, err = newThreadNotification(block.Header, repo.CommentAddedNotification)
+		notification, err = h.newNotification(block.Header, repo.CommentAddedNotification)
 		if err != nil {
 			return err
 		}
 		notification.Body = fmt.Sprintf("commented on %s: \"%s\"", target, msg.Caption)
 	case pb.ThreadAnnotation_LIKE:
-		notification, err = newThreadNotification(block.Header, repo.LikeAddedNotification)
+		notification, err = h.newNotification(block.Header, repo.LikeAddedNotification)
 		if err != nil {
 			return err
 		}
@@ -272,33 +291,35 @@ func (h *ThreadsService) handleAnnotation(thrd *Thread, from peer.ID, hash mh.Mu
 }
 
 // handleIgnore receives an ignore message
-func (h *ThreadsService) handleIgnore(thrd *Thread, from peer.ID, hash mh.Multihash, block *pb.ThreadBlock) error {
-	if _, err := thrd.HandleIgnoreBlock(&from, hash, block, false); err != nil {
+func (h *ThreadsService) handleIgnore(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
+	if _, err := thrd.handleIgnoreBlock(hash, block); err != nil {
 		return err
 	}
 	return nil
 }
 
 // handleMerge receives a merge message
-func (h *ThreadsService) handleMerge(thrd *Thread, from peer.ID, hash mh.Multihash, block *pb.ThreadBlock) error {
-	if err := thrd.HandleMergeBlock(&from, hash, block, false); err != nil {
-		return err
-	}
-	return nil
+func (h *ThreadsService) handleMerge(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
+	return thrd.handleMergeBlock(hash, block)
 }
 
-// newThreadNotification returns new thread notification
-func newThreadNotification(header *pb.ThreadBlockHeader, ntype repo.NotificationType) (*repo.Notification, error) {
+// newNotification returns new thread notification
+func (h *ThreadsService) newNotification(header *pb.ThreadBlockHeader, ntype repo.NotificationType) (*repo.Notification, error) {
 	date, err := ptypes.Timestamp(header.Date)
 	if err != nil {
 		return nil, err
 	}
-	// TODO: look up username on contact
-	return &repo.Notification{
-		Id:            ksuid.New().String(),
-		Date:          date,
-		ActorId:       header.Author,
-		ActorUsername: header.Author[:8],
-		Type:          ntype,
-	}, nil
+	note := &repo.Notification{
+		Id:      ksuid.New().String(),
+		Date:    date,
+		ActorId: header.Author,
+		Type:    ntype,
+	}
+	contact := h.datastore.Contacts().Get(header.Author)
+	if contact != nil {
+		note.ActorUsername = contact.Username
+	} else {
+		note.ActorUsername = header.Author[:8]
+	}
+	return note, nil
 }

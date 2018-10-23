@@ -21,7 +21,7 @@ func (c *ThreadPeerDB) Add(peer *repo.ThreadPeer) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into thread_peers(id, threadId) values(?,?)`
+	stm := `insert into thread_peers(id, threadId, welcomed) values(?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -31,6 +31,7 @@ func (c *ThreadPeerDB) Add(peer *repo.ThreadPeer) error {
 	_, err = stmt.Exec(
 		peer.Id,
 		peer.ThreadId,
+		false,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -59,6 +60,20 @@ func (c *ThreadPeerDB) ListByThread(threadId string) []repo.ThreadPeer {
 	defer c.lock.Unlock()
 	stm := "select * from thread_peers where threadId='" + threadId + "';"
 	return c.handleQuery(stm)
+}
+
+func (c *ThreadPeerDB) ListUnwelcomedByThread(threadId string) []repo.ThreadPeer {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	stm := "select * from thread_peers where threadId='" + threadId + "' and welcomed=0;"
+	return c.handleQuery(stm)
+}
+
+func (c *ThreadPeerDB) WelcomeByThread(threadId string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("update thread_peers set welcomed=1 where threadId=?", threadId)
+	return err
 }
 
 func (c *ThreadPeerDB) Count(distinct bool) int {
@@ -106,15 +121,21 @@ func (c *ThreadPeerDB) handleQuery(stm string) []repo.ThreadPeer {
 	}
 	for rows.Next() {
 		var id, threadId string
-		if err := rows.Scan(&id, &threadId); err != nil {
+		var welcomedInt int
+		if err := rows.Scan(&id, &threadId, &welcomedInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		block := repo.ThreadPeer{
+		welcomed := false
+		if welcomedInt == 1 {
+			welcomed = true
+		}
+		peer := repo.ThreadPeer{
 			Id:       id,
 			ThreadId: threadId,
+			Welcomed: welcomed,
 		}
-		ret = append(ret, block)
+		ret = append(ret, peer)
 	}
 	return ret
 }

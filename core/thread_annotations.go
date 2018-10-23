@@ -6,7 +6,6 @@ import (
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 )
 
 // AddComment adds an outgoing comment block
@@ -32,52 +31,6 @@ func (t *Thread) AddLike(dataId string) (mh.Multihash, error) {
 		Type: pb.ThreadAnnotation_LIKE,
 		Data: dataId,
 	})
-}
-
-// HandleAnnotationBlock handles an incoming data block
-func (t *Thread) HandleAnnotationBlock(from *peer.ID, hash mh.Multihash, block *pb.ThreadBlock, following bool) (*pb.ThreadAnnotation, error) {
-	msg := new(pb.ThreadAnnotation)
-	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
-		return nil, err
-	}
-
-	// index it locally
-	dconf := &repo.DataBlockConfig{
-		DataId: msg.Data,
-	}
-	var atype repo.BlockType
-	switch msg.Type {
-	case pb.ThreadAnnotation_COMMENT:
-		atype = repo.CommentBlock
-		dconf.DataCaption = msg.Caption
-	case pb.ThreadAnnotation_LIKE:
-		atype = repo.LikeBlock
-	}
-	if err := t.indexBlock(&commitResult{hash: hash, header: block.Header}, atype, dconf); err != nil {
-		return nil, err
-	}
-
-	// back prop
-	newPeers, err := t.FollowParents(block.Header.Parents, from)
-	if err != nil {
-		return nil, err
-	}
-
-	// handle HEAD
-	if following {
-		return msg, nil
-	}
-	if _, err := t.handleHead(hash, block.Header.Parents); err != nil {
-		return nil, err
-	}
-
-	// handle newly discovered peers during back prop, after updating HEAD
-	for _, newPeer := range newPeers {
-		if err := t.sendWelcome(newPeer); err != nil {
-			return nil, err
-		}
-	}
-	return msg, nil
 }
 
 // addAnnotation adds an outgoing comment or like block
@@ -123,4 +76,29 @@ func (t *Thread) addAnnotation(msg *pb.ThreadAnnotation) (mh.Multihash, error) {
 
 	// all done
 	return res.hash, nil
+}
+
+// handleAnnotationBlock handles an incoming data block
+func (t *Thread) handleAnnotationBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.ThreadAnnotation, error) {
+	msg := new(pb.ThreadAnnotation)
+	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
+		return nil, err
+	}
+
+	// index it locally
+	dconf := &repo.DataBlockConfig{
+		DataId: msg.Data,
+	}
+	var atype repo.BlockType
+	switch msg.Type {
+	case pb.ThreadAnnotation_COMMENT:
+		atype = repo.CommentBlock
+		dconf.DataCaption = msg.Caption
+	case pb.ThreadAnnotation_LIKE:
+		atype = repo.LikeBlock
+	}
+	if err := t.indexBlock(&commitResult{hash: hash, header: block.Header}, atype, dconf); err != nil {
+		return nil, err
+	}
+	return msg, nil
 }

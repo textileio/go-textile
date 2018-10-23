@@ -41,7 +41,7 @@ func (t *Textile) AddThread(name string, sk libp2pc.PrivKey, join bool) (*Thread
 
 	// we join here if we're the creator
 	if join {
-		if _, err := thrd.JoinInitial(); err != nil {
+		if _, err := thrd.joinInitial(); err != nil {
 			return nil, err
 		}
 	}
@@ -108,7 +108,7 @@ func (t *Textile) AcceptThreadInvite(inviteId string) (mh.Multihash, error) {
 	if err != nil {
 		return nil, ErrInvalidThreadBlock
 	}
-	return t.handleThreadInvite(inviteId, plaintext)
+	return t.handleThreadInvite(plaintext)
 }
 
 // AcceptExternalThreadInvite attemps to download an encrypted thread key from an external invite,
@@ -129,10 +129,35 @@ func (t *Textile) AcceptExternalThreadInvite(inviteId string, key []byte) (mh.Mu
 	if err != nil {
 		return nil, ErrInvalidThreadBlock
 	}
-	return t.handleThreadInvite(inviteId, plaintext)
+	return t.handleThreadInvite(plaintext)
 }
 
-func (t *Textile) handleThreadInvite(inviteId string, plaintext []byte) (mh.Multihash, error) {
+// Threads lists loaded threads
+func (t *Textile) Threads() []*Thread {
+	return t.threads
+}
+
+// GetThread get a thread by id from loaded threads
+func (t *Textile) GetThread(id string) (*int, *Thread) {
+	for i, thrd := range t.threads {
+		if thrd.Id == id {
+			return &i, thrd
+		}
+	}
+	return nil, nil
+}
+
+// ThreadInfo gets thread info
+func (t *Textile) ThreadInfo(id string) (*ThreadInfo, error) {
+	_, thrd := t.GetThread(id)
+	if thrd == nil {
+		return nil, errors.New(fmt.Sprintf("cound not find thread: %s", id))
+	}
+	return thrd.Info()
+}
+
+// handleThreadInvite
+func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 	block := new(pb.ThreadBlock)
 	if err := proto.Unmarshal(plaintext, block); err != nil {
 		return nil, err
@@ -168,7 +193,13 @@ func (t *Textile) handleThreadInvite(inviteId string, plaintext []byte) (mh.Mult
 	}
 
 	// follow parents, update head
-	if err := thrd.HandleInviteMessage(block); err != nil {
+	if err := thrd.handleInviteMessage(block); err != nil {
+		return nil, err
+	}
+
+	// mark any discovered peers as welcomed
+	// there's no need to send a welcome because we're about to send a join message
+	if err := t.datastore.ThreadPeers().WelcomeByThread(thrd.Id); err != nil {
 		return nil, err
 	}
 
@@ -177,34 +208,9 @@ func (t *Textile) handleThreadInvite(inviteId string, plaintext []byte) (mh.Mult
 	if err != nil {
 		return nil, err
 	}
-	hash, err := thrd.Join(author, inviteId)
+	hash, err := thrd.join(author)
 	if err != nil {
 		return nil, err
 	}
-
 	return hash, nil
-}
-
-// Threads lists loaded threads
-func (t *Textile) Threads() []*Thread {
-	return t.threads
-}
-
-// GetThread get a thread by id from loaded threads
-func (t *Textile) GetThread(id string) (*int, *Thread) {
-	for i, thrd := range t.threads {
-		if thrd.Id == id {
-			return &i, thrd
-		}
-	}
-	return nil, nil
-}
-
-// ThreadInfo gets thread info
-func (t *Textile) ThreadInfo(id string) (*ThreadInfo, error) {
-	_, thrd := t.GetThread(id)
-	if thrd == nil {
-		return nil, errors.New(fmt.Sprintf("cound not find thread: %s", id))
-	}
-	return thrd.Info()
 }

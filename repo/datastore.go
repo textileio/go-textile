@@ -73,6 +73,8 @@ type ThreadPeerStore interface {
 	List() []ThreadPeer
 	ListById(id string) []ThreadPeer
 	ListByThread(threadId string) []ThreadPeer
+	ListUnwelcomedByThread(threadId string) []ThreadPeer
+	WelcomeByThread(thread string) error
 	Count(distinct bool) int
 	Delete(id string, thread string) error
 	DeleteById(id string) error

@@ -7,7 +7,6 @@ import (
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"sort"
 	"time"
 )
@@ -84,32 +83,8 @@ func (t *Thread) Merge(head mh.Multihash) (mh.Multihash, error) {
 	return hash, nil
 }
 
-// HandleMergeBlock handles an incoming merge block
-func (t *Thread) HandleMergeBlock(from *peer.ID, hash mh.Multihash, block *pb.ThreadBlock, following bool) error {
+// handleMergeBlock handles an incoming merge block
+func (t *Thread) handleMergeBlock(hash mh.Multihash, block *pb.ThreadBlock) error {
 	// index it locally
-	if err := t.indexBlock(&commitResult{hash: hash, header: block.Header}, repo.MergeBlock, nil); err != nil {
-		return err
-	}
-
-	// back prop
-	newPeers, err := t.FollowParents(block.Header.Parents, from)
-	if err != nil {
-		return err
-	}
-
-	// handle HEAD
-	if following {
-		return nil
-	}
-	if _, err := t.handleHead(hash, block.Header.Parents); err != nil {
-		return err
-	}
-
-	// handle newly discovered peers during back prop, after updating HEAD
-	for _, newPeer := range newPeers {
-		if err := t.sendWelcome(newPeer); err != nil {
-			return err
-		}
-	}
-	return nil
+	return t.indexBlock(&commitResult{hash: hash, header: block.Header}, repo.MergeBlock, nil)
 }

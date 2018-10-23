@@ -46,9 +46,8 @@ message ThreadInvite {
 
 message ThreadJoin {
     string inviter          = 1;
-    string invite           = 2;
-    string username         = 3;
-    repeated string inboxes = 4;
+    string username         = 2;
+    repeated string inboxes = 3;
 }
 
 message ThreadAnnounce {

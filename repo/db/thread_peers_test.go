@@ -24,6 +24,7 @@ func TestThreadPeerDB_Add(t *testing.T) {
 	err := threadpeerdb.Add(&repo.ThreadPeer{
 		Id:       "abc",
 		ThreadId: ksuid.New().String(),
+		Welcomed: false,
 	})
 	if err != nil {
 		t.Error(err)
@@ -45,6 +46,7 @@ func TestThreadPeerDB_ListById(t *testing.T) {
 	err := threadpeerdb.Add(&repo.ThreadPeer{
 		Id:       ksuid.New().String(),
 		ThreadId: ksuid.New().String(),
+		Welcomed: false,
 	})
 	if err != nil {
 		t.Error(err)
@@ -52,6 +54,7 @@ func TestThreadPeerDB_ListById(t *testing.T) {
 	err = threadpeerdb.Add(&repo.ThreadPeer{
 		Id:       "boo",
 		ThreadId: ksuid.New().String(),
+		Welcomed: false,
 	})
 	if err != nil {
 		t.Error(err)
@@ -68,6 +71,7 @@ func TestThreadPeerDB_ListByThread(t *testing.T) {
 	err := threadpeerdb.Add(&repo.ThreadPeer{
 		Id:       ksuid.New().String(),
 		ThreadId: "foo",
+		Welcomed: false,
 	})
 	if err != nil {
 		t.Error(err)
@@ -75,6 +79,7 @@ func TestThreadPeerDB_ListByThread(t *testing.T) {
 	err = threadpeerdb.Add(&repo.ThreadPeer{
 		Id:       ksuid.New().String(),
 		ThreadId: "boo",
+		Welcomed: false,
 	})
 	if err != nil {
 		t.Error(err)
@@ -91,6 +96,7 @@ func TestThreadPeerDB_Count(t *testing.T) {
 	err := threadpeerdb.Add(&repo.ThreadPeer{
 		Id:       "bar",
 		ThreadId: "1",
+		Welcomed: false,
 	})
 	if err != nil {
 		t.Error(err)
@@ -98,6 +104,7 @@ func TestThreadPeerDB_Count(t *testing.T) {
 	err = threadpeerdb.Add(&repo.ThreadPeer{
 		Id:       "bar",
 		ThreadId: "2",
+		Welcomed: false,
 	})
 	if err != nil {
 		t.Error(err)
@@ -105,6 +112,7 @@ func TestThreadPeerDB_Count(t *testing.T) {
 	err = threadpeerdb.Add(&repo.ThreadPeer{
 		Id:       "bar2",
 		ThreadId: "2",
+		Welcomed: false,
 	})
 	if err != nil {
 		t.Error(err)
@@ -125,6 +133,7 @@ func TestThreadPeerDB_Delete(t *testing.T) {
 	err := threadpeerdb.Add(&repo.ThreadPeer{
 		Id:       "car",
 		ThreadId: "3",
+		Welcomed: false,
 	})
 	if err != nil {
 		t.Error(err)
