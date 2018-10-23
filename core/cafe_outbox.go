@@ -12,23 +12,23 @@ import (
 )
 
 // how often to run store job (daemon only)
-const kFrequency = time.Minute * 10
+const kCafeFlushFrequency = time.Minute * 10
 
 // the size of concurrently processed requests
-// note: reqs from this group are sent as a group to each cafe
-const groupSize = 16
+// note: reqs from this group are batched to each cafe
+const cafeFlushGroupSize = 16
 
-// CafeRequestQueue holds pending cafe store requests
-type CafeRequestQueue struct {
+// CafeOutbox queues and processes outbound cafe requests
+type CafeOutbox struct {
 	service   func() *CafeService
 	node      func() *core.IpfsNode
 	datastore repo.Datastore
 	mux       sync.Mutex
 }
 
-// NewCafeRequestQueue creates a new queue
-func NewCafeRequestQueue(service func() *CafeService, node func() *core.IpfsNode, datastore repo.Datastore) *CafeRequestQueue {
-	return &CafeRequestQueue{
+// NewCafeOutbox creates a new outbox queue
+func NewCafeOutbox(service func() *CafeService, node func() *core.IpfsNode, datastore repo.Datastore) *CafeOutbox {
+	return &CafeOutbox{
 		service:   service,
 		node:      node,
 		datastore: datastore,
@@ -36,7 +36,7 @@ func NewCafeRequestQueue(service func() *CafeService, node func() *core.IpfsNode
 }
 
 // Add adds a request for each active cafe session
-func (q *CafeRequestQueue) Add(target string, rtype repo.CafeRequestType) {
+func (q *CafeOutbox) Add(target string, rtype repo.CafeRequestType) {
 	// get active cafe sessions
 	sessions := q.datastore.CafeSessions().List()
 	if len(sessions) == 0 {
@@ -45,16 +45,22 @@ func (q *CafeRequestQueue) Add(target string, rtype repo.CafeRequestType) {
 
 	// for each session, add a req
 	for _, session := range sessions {
-		req := &repo.CafeRequest{
-			Id:       ksuid.New().String(),
-			TargetId: target,
-			CafeId:   session.CafeId,
-			Type:     rtype,
-			Date:     time.Now(),
-		}
-		if err := q.datastore.CafeRequests().Add(req); err != nil {
-			log.Errorf("error adding cafe request %s: %s", target, err)
-		}
+		q.add(target, session.CafeId, rtype)
+	}
+
+	// try to flush the queue now
+	go q.Flush()
+}
+
+// AddForPeer adds a request for a peer's inbox(es)
+func (q *CafeOutbox) AddForPeer(target string, inboxes []string, rtype repo.CafeRequestType) {
+	if len(inboxes) == 0 {
+		return
+	}
+
+	// for each inbox, add a req
+	for _, inbox := range inboxes {
+		q.add(target, inbox, rtype)
 	}
 
 	// try to flush the queue now
@@ -62,8 +68,8 @@ func (q *CafeRequestQueue) Add(target string, rtype repo.CafeRequestType) {
 }
 
 // Run starts a job ticker which processes any pending requests
-func (q *CafeRequestQueue) Run() {
-	tick := time.NewTicker(kFrequency)
+func (q *CafeOutbox) Run() {
+	tick := time.NewTicker(kCafeFlushFrequency)
 	defer tick.Stop()
 	go q.Flush()
 	for {
@@ -75,7 +81,7 @@ func (q *CafeRequestQueue) Run() {
 }
 
 // Flush processes pending requests
-func (q *CafeRequestQueue) Flush() {
+func (q *CafeOutbox) Flush() {
 	q.mux.Lock()
 	defer q.mux.Unlock()
 
@@ -85,14 +91,28 @@ func (q *CafeRequestQueue) Flush() {
 	}
 
 	// start at zero offset
-	if err := q.batch(q.datastore.CafeRequests().List("", groupSize)); err != nil {
-		log.Errorf("cafe queue batch error: %s", err)
+	if err := q.batch(q.datastore.CafeRequests().List("", cafeFlushGroupSize)); err != nil {
+		log.Errorf("cafe outbox batch error: %s", err)
 		return
 	}
 }
 
+// add queues a single request
+func (q *CafeOutbox) add(target string, cafeId string, rtype repo.CafeRequestType) {
+	req := &repo.CafeRequest{
+		Id:       ksuid.New().String(),
+		TargetId: target,
+		CafeId:   cafeId,
+		Type:     rtype,
+		Date:     time.Now(),
+	}
+	if err := q.datastore.CafeRequests().Add(req); err != nil {
+		log.Errorf("error adding cafe request %s: %s", target, err)
+	}
+}
+
 // batch flushes a batch of requests
-func (q *CafeRequestQueue) batch(reqs []repo.CafeRequest) error {
+func (q *CafeOutbox) batch(reqs []repo.CafeRequest) error {
 	if len(reqs) == 0 {
 		return nil
 	}
@@ -136,7 +156,7 @@ func (q *CafeRequestQueue) batch(reqs []repo.CafeRequest) error {
 
 	// next batch
 	offset := reqs[len(reqs)-1].Id
-	next := q.datastore.CafeRequests().List(offset, groupSize)
+	next := q.datastore.CafeRequests().List(offset, cafeFlushGroupSize)
 
 	// clean up
 	var deleted []string
@@ -156,8 +176,8 @@ func (q *CafeRequestQueue) batch(reqs []repo.CafeRequest) error {
 	return berr
 }
 
-// handle handles a single request
-func (q *CafeRequestQueue) handle(reqs []repo.CafeRequest, rtype repo.CafeRequestType, cafe peer.ID) ([]string, error) {
+// handle handles a group of requests for a single cafe
+func (q *CafeOutbox) handle(reqs []repo.CafeRequest, rtype repo.CafeRequestType, cafe peer.ID) ([]string, error) {
 	var handled []string
 	var herr error
 	switch rtype {

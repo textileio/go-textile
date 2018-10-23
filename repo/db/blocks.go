@@ -143,6 +143,7 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 		if dataMetadata != nil {
 			if err := json.Unmarshal(dataMetadata, &meta); err != nil {
 				log.Errorf("error unmarshaling meta data: %s", err)
+				continue
 			}
 		}
 		block := repo.Block{

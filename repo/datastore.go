@@ -12,6 +12,7 @@ type Datastore interface {
 	Contacts() ContactStore
 	Threads() ThreadStore
 	ThreadPeers() ThreadPeerStore
+	ThreadMessages() ThreadMessageStore
 	Blocks() BlockStore
 	Notifications() NotificationStore
 	CafeSessions() CafeSessionStore
@@ -78,6 +79,13 @@ type ThreadPeerStore interface {
 	Delete(id string, thread string) error
 	DeleteById(id string) error
 	DeleteByThread(thread string) error
+}
+
+type ThreadMessageStore interface {
+	Queryable
+	Add(msg *ThreadMessage) error
+	List(offset string, limit int) []ThreadMessage
+	Delete(id string) error
 }
 
 type BlockStore interface {

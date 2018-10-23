@@ -33,7 +33,6 @@ message Message {
 
 message Envelope {
     Message message = 1;
-    bytes pk        = 2;
     bytes sig       = 3;
 }
 

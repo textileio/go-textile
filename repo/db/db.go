@@ -17,6 +17,7 @@ type SQLiteDatastore struct {
 	contacts           repo.ContactStore
 	threads            repo.ThreadStore
 	threadPeers        repo.ThreadPeerStore
+	threadMessages     repo.ThreadMessageStore
 	blocks             repo.BlockStore
 	notifications      repo.NotificationStore
 	cafeSessions       repo.CafeSessionStore
@@ -47,6 +48,7 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 		contacts:           NewContactStore(conn, mux),
 		threads:            NewThreadStore(conn, mux),
 		threadPeers:        NewThreadPeerStore(conn, mux),
+		threadMessages:     NewThreadMessageStore(conn, mux),
 		blocks:             NewBlockStore(conn, mux),
 		notifications:      NewNotificationStore(conn, mux),
 		cafeSessions:       NewCafeSessionStore(conn, mux),
@@ -88,6 +90,10 @@ func (d *SQLiteDatastore) Threads() repo.ThreadStore {
 
 func (d *SQLiteDatastore) ThreadPeers() repo.ThreadPeerStore {
 	return d.threadPeers
+}
+
+func (d *SQLiteDatastore) ThreadMessages() repo.ThreadMessageStore {
+	return d.threadMessages
 }
 
 func (d *SQLiteDatastore) Blocks() repo.BlockStore {
@@ -187,6 +193,9 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index block_dataId on blocks (dataId);
     create index block_threadId_type_date on blocks (threadId, type, date);
 
+	create table thread_messages (id text primary key not null, peerId text not null, envelope blob not null, date integer not null);
+	create index thread_message_date on thread_messages (date);
+
     create table notifications (id text primary key not null, date integer not null, actorId text not null, actorUsername text not null, subject text not null, subjectId text not null, blockId text, dataId text, type integer not null, body text not null, read integer not null);
     create index notification_actorId on notifications (actorId);
     create index notification_subjectId on notifications (subjectId);
@@ -197,6 +206,7 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 
     create table cafe_requests (id text primary key not null, targetId text not null, cafeId text not null, type integer not null, date integer not null);
     create index cafe_request_cafeId on cafe_requests (cafeId);
+	create index cafe_request_date on cafe_requests (date);
 
 	create table cafe_client_nonces (value text primary key not null, address text not null, date integer not null);
 

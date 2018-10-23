@@ -16,7 +16,6 @@ import (
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
-	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 	"io"
 	"math/rand"
@@ -143,11 +142,7 @@ func (s *Service) NewEnvelope(mtype pb.Message_Type, msg proto.Message, id *int3
 	if err != nil {
 		return nil, err
 	}
-	pk, err := s.Node.PrivateKey.GetPublic().Bytes()
-	if err != nil {
-		return nil, err
-	}
-	return &pb.Envelope{Message: message, Pk: pk, Sig: sig}, nil
+	return &pb.Envelope{Message: message, Sig: sig}, nil
 }
 
 // NewError returns a signed pb error message
@@ -159,12 +154,12 @@ func (s *Service) NewError(code int, msg string, id int32) (*pb.Envelope, error)
 }
 
 // verifyEnvelope verifies the authenticity of an envelope
-func (s *Service) verifyEnvelope(env *pb.Envelope) error {
+func (s *Service) verifyEnvelope(env *pb.Envelope, pid peer.ID) error {
 	ser, err := proto.Marshal(env.Message)
 	if err != nil {
 		return err
 	}
-	pk, err := libp2pc.UnmarshalPublicKey(env.Pk)
+	pk, err := pid.ExtractPublicKey()
 	if err != nil {
 		return err
 	}
@@ -230,7 +225,7 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 		}
 
 		// check signature
-		if err := s.verifyEnvelope(env); err != nil {
+		if err := s.verifyEnvelope(env, rpid); err != nil {
 			log.Warningf("error verifying message: %s", err)
 			continue
 		}

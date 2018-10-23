@@ -36,26 +36,28 @@ type ThreadInfo struct {
 
 // ThreadConfig is used to construct a Thread
 type ThreadConfig struct {
-	RepoPath   string
-	Node       func() *core.IpfsNode
-	Datastore  repo.Datastore
-	Service    *ThreadsService
-	CafeQueue  *CafeRequestQueue
-	SendUpdate func(update ThreadUpdate)
+	RepoPath      string
+	Node          func() *core.IpfsNode
+	Datastore     repo.Datastore
+	Service       *ThreadsService
+	ThreadsOutbox *ThreadsOutbox
+	CafeOutbox    *CafeOutbox
+	SendUpdate    func(update ThreadUpdate)
 }
 
 // Thread is the primary mechanism representing a collecion of data / files / photos
 type Thread struct {
-	Id         string
-	Name       string
-	privKey    libp2pc.PrivKey
-	repoPath   string
-	node       func() *core.IpfsNode
-	datastore  repo.Datastore
-	service    *ThreadsService
-	cafeQueue  *CafeRequestQueue
-	sendUpdate func(update ThreadUpdate)
-	mux        sync.Mutex
+	Id            string
+	Name          string
+	privKey       libp2pc.PrivKey
+	repoPath      string
+	node          func() *core.IpfsNode
+	datastore     repo.Datastore
+	service       *ThreadsService
+	threadsOutbox *ThreadsOutbox
+	cafeOutbox    *CafeOutbox
+	sendUpdate    func(update ThreadUpdate)
+	mux           sync.Mutex
 }
 
 // NewThread create a new Thread from a repo model and config
@@ -65,15 +67,16 @@ func NewThread(model *repo.Thread, config *ThreadConfig) (*Thread, error) {
 		return nil, err
 	}
 	return &Thread{
-		Id:         model.Id,
-		Name:       model.Name,
-		privKey:    sk,
-		repoPath:   config.RepoPath,
-		node:       config.Node,
-		datastore:  config.Datastore,
-		service:    config.Service,
-		cafeQueue:  config.CafeQueue,
-		sendUpdate: config.SendUpdate,
+		Id:            model.Id,
+		Name:          model.Name,
+		privKey:       sk,
+		repoPath:      config.RepoPath,
+		node:          config.Node,
+		datastore:     config.Datastore,
+		service:       config.Service,
+		threadsOutbox: config.ThreadsOutbox,
+		cafeOutbox:    config.CafeOutbox,
+		sendUpdate:    config.SendUpdate,
 	}, nil
 }
 
@@ -307,7 +310,7 @@ func (t *Thread) addBlock(ciphertext []byte) (mh.Multihash, error) {
 	}
 
 	// add a store request
-	t.cafeQueue.Add(id.Hash().B58String(), repo.CafeStoreRequest)
+	t.cafeOutbox.Add(id.Hash().B58String(), repo.CafeStoreRequest)
 
 	return id.Hash(), nil
 }
@@ -421,7 +424,7 @@ func (t *Thread) updateHead(head mh.Multihash) error {
 	}
 
 	// update head on cafe backups
-	t.cafeQueue.Add(t.Id, repo.CafeStoreThreadRequest)
+	t.cafeOutbox.Add(t.Id, repo.CafeStoreThreadRequest)
 	return nil
 }
 
@@ -478,9 +481,11 @@ func (t *Thread) post(commit *commitResult, peers []repo.ThreadPeer) error {
 		return err
 	}
 	for _, tp := range peers {
-		//if err := t.sendMessage(&tp, env); err != nil {
-		//
-		//}
+		pid, err := peer.IDB58Decode(tp.Id)
+		if err != nil {
+			return err
+		}
+		t.threadsOutbox.Add(pid, env)
 	}
 	return nil
 }

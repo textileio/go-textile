@@ -222,7 +222,7 @@ func (t *Textile) PublishProfile(prof *Profile) (*ipfs.IpnsEntry, error) {
 	id := node.Cid().Hash().B58String()
 
 	// request cafe store
-	t.cafeRequestQueue.Add(id, repo.CafeStoreRequest)
+	t.cafeOutbox.Add(id, repo.CafeStoreRequest)
 
 	// load our private key
 	accnt, err := t.Account()

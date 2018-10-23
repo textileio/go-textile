@@ -142,7 +142,7 @@ func (t *Textile) AddPhoto(path string) (*AddDataResult, error) {
 	// if not mobile, create a pin request
 	// on mobile, we let the OS handle the archive directly
 	if !t.Mobile() {
-		//t.cafeRequestQueue.Add(result.Id)
+		//t.cafeOutbox.Add(result.Id)
 		return result, nil
 	}
 

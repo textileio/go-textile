@@ -88,23 +88,24 @@ type RunConfig struct {
 
 // Textile is the main Textile node structure
 type Textile struct {
-	version          string
-	context          oldcmds.Context
-	repoPath         string
-	cancel           context.CancelFunc
-	ipfs             *core.IpfsNode
-	datastore        repo.Datastore
-	started          bool
-	threads          []*Thread
-	online           chan struct{}
-	done             chan struct{}
-	updates          chan Update
-	threadUpdates    chan ThreadUpdate
-	notifications    chan repo.Notification
-	threadsService   *ThreadsService
-	cafeService      *CafeService
-	cafeRequestQueue *CafeRequestQueue
-	mux              sync.Mutex
+	version        string
+	context        oldcmds.Context
+	repoPath       string
+	cancel         context.CancelFunc
+	ipfs           *core.IpfsNode
+	datastore      repo.Datastore
+	started        bool
+	threads        []*Thread
+	online         chan struct{}
+	done           chan struct{}
+	updates        chan Update
+	threadUpdates  chan ThreadUpdate
+	notifications  chan repo.Notification
+	threadsService *ThreadsService
+	threadsOutbox  *ThreadsOutbox
+	cafeService    *CafeService
+	cafeOutbox     *CafeOutbox
+	mux            sync.Mutex
 }
 
 // common errors
@@ -286,9 +287,11 @@ func (t *Textile) Start() error {
 
 		// start store queue
 		if t.Mobile() {
-			go t.cafeRequestQueue.Flush()
+			go t.threadsOutbox.Flush()
+			go t.cafeOutbox.Flush()
 		} else {
-			go t.cafeRequestQueue.Run()
+			go t.threadsOutbox.Run()
+			go t.cafeOutbox.Run()
 		}
 
 		// print swarm addresses
@@ -298,8 +301,8 @@ func (t *Textile) Start() error {
 		log.Info("node is online")
 	}()
 
-	// build a store request queue
-	t.cafeRequestQueue = NewCafeRequestQueue(
+	// build outbox queues
+	t.cafeOutbox = NewCafeOutbox(
 		func() *CafeService {
 			return t.cafeService
 		},
@@ -307,6 +310,16 @@ func (t *Textile) Start() error {
 			return t.ipfs
 		},
 		t.datastore,
+	)
+	t.threadsOutbox = NewThreadsOutbox(
+		func() *ThreadsService {
+			return t.threadsService
+		},
+		func() *core.IpfsNode {
+			return t.ipfs
+		},
+		t.datastore,
+		t.cafeOutbox,
 	)
 
 	// setup threads
@@ -571,10 +584,11 @@ func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 		Node: func() *core.IpfsNode {
 			return t.ipfs
 		},
-		Datastore:  t.datastore,
-		Service:    t.threadsService,
-		CafeQueue:  t.cafeRequestQueue,
-		SendUpdate: t.sendThreadUpdate,
+		Datastore:     t.datastore,
+		Service:       t.threadsService,
+		ThreadsOutbox: t.threadsOutbox,
+		CafeOutbox:    t.cafeOutbox,
+		SendUpdate:    t.sendThreadUpdate,
 	}
 	thrd, err := NewThread(mod, threadConfig)
 	if err != nil {

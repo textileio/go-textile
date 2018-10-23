@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/photo"
 	"time"
 )
@@ -23,6 +24,13 @@ type ThreadPeer struct {
 	Id       string `json:"id"`
 	ThreadId string `json:"thread_id"`
 	Welcomed bool   `json:"welcomed"`
+}
+
+type ThreadMessage struct {
+	Id       string       `json:"id"`
+	PeerId   string       `json:"peer_id"`
+	Envelope *pb.Envelope `json:"envelope"`
+	Date     time.Time    `json:"date"`
 }
 
 type Block struct {
@@ -140,7 +148,7 @@ type CafeRequestType int
 const (
 	CafeStoreRequest CafeRequestType = iota
 	CafeStoreThreadRequest
-	CafeInboxRequest
+	CafePeerInboxRequest
 )
 
 func (rt CafeRequestType) Description() string {
@@ -149,7 +157,7 @@ func (rt CafeRequestType) Description() string {
 		return "STORE"
 	case CafeStoreThreadRequest:
 		return "STORE_THREAD"
-	case CafeInboxRequest:
+	case CafePeerInboxRequest:
 		return "INBOX"
 	default:
 		return "INVALID"
