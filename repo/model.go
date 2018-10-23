@@ -8,6 +8,7 @@ import (
 type Contact struct {
 	Id       string    `json:"id"`
 	Username string    `json:"username"`
+	Inboxes  []string  `json:"inboxes"`
 	Added    time.Time `json:"added"`
 }
 
@@ -161,11 +162,6 @@ type CafeRequest struct {
 	CafeId   string          `json:"cafe_id"`
 	Type     CafeRequestType `json:"type"`
 	Date     time.Time       `json:"date"`
-}
-
-type CafeInbox struct {
-	PeerId string `json:"peer_id"`
-	CafeId string `json:"cafe_id"`
 }
 
 type CafeClientNonce struct {

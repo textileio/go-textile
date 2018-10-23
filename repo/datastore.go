@@ -16,7 +16,6 @@ type Datastore interface {
 	Notifications() NotificationStore
 	CafeSessions() CafeSessionStore
 	CafeRequests() CafeRequestStore
-	CafeInboxes() CafeInboxStore
 	CafeClientNonces() CafeClientNonceStore
 	CafeClients() CafeClientStore
 	CafeClientThreads() CafeClientThreadStore
@@ -50,7 +49,7 @@ type ProfileStore interface {
 
 type ContactStore interface {
 	Queryable
-	Add(device *Contact) error
+	AddOrUpdate(device *Contact) error
 	Get(id string) *Contact
 	List() []Contact
 	Count() int
@@ -120,14 +119,6 @@ type CafeRequestStore interface {
 	Add(req *CafeRequest) error
 	List(offset string, limit int) []CafeRequest
 	Delete(id string) error
-	DeleteByCafe(cafeId string) error
-}
-
-type CafeInboxStore interface {
-	Queryable
-	Add(inbox *CafeInbox) error
-	ListByPeer(peerId string) []CafeInbox
-	DeleteByPeer(peerId string) error
 	DeleteByCafe(cafeId string) error
 }
 

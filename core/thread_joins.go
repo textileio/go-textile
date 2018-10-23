@@ -68,17 +68,6 @@ func (t *Thread) join(inviterId peer.ID) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	// add new peer
-	if inviterId.Pretty() != t.node().Identity.Pretty() {
-		newPeer := &repo.ThreadPeer{
-			Id:       inviterId.Pretty(),
-			ThreadId: t.Id,
-		}
-		if err := t.datastore.ThreadPeers().Add(newPeer); err != nil {
-			log.Errorf("error adding peer: %s", err)
-		}
-	}
-
 	// post it
 	if err := t.post(res, t.Peers()); err != nil {
 		return nil, err

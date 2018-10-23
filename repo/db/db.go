@@ -21,7 +21,6 @@ type SQLiteDatastore struct {
 	notifications      repo.NotificationStore
 	cafeSessions       repo.CafeSessionStore
 	cafeRequests       repo.CafeRequestStore
-	cafeInboxes        repo.CafeInboxStore
 	cafeClientNonces   repo.CafeClientNonceStore
 	cafeClients        repo.CafeClientStore
 	cafeClientThreads  repo.CafeClientThreadStore
@@ -52,7 +51,6 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 		notifications:      NewNotificationStore(conn, mux),
 		cafeSessions:       NewCafeSessionStore(conn, mux),
 		cafeRequests:       NewCafeRequestStore(conn, mux),
-		cafeInboxes:        NewCafeInboxStore(conn, mux),
 		cafeClientNonces:   NewCafeClientNonceStore(conn, mux),
 		cafeClients:        NewCafeClientStore(conn, mux),
 		cafeClientThreads:  NewCafeClientThreadStore(conn, mux),
@@ -106,10 +104,6 @@ func (d *SQLiteDatastore) CafeSessions() repo.CafeSessionStore {
 
 func (d *SQLiteDatastore) CafeRequests() repo.CafeRequestStore {
 	return d.cafeRequests
-}
-
-func (d *SQLiteDatastore) CafeInboxes() repo.CafeInboxStore {
-	return d.cafeInboxes
 }
 
 func (d *SQLiteDatastore) CafeClientNonces() repo.CafeClientNonceStore {
@@ -178,7 +172,7 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 
     create table profile (key text primary key not null, value blob);
 
-	create table contacts (id text primary key not null, username text not null, added integer not null);
+	create table contacts (id text primary key not null, username text not null, inboxes text not null, added integer not null);
     create index contact_username on contacts (username);
 	create index contact_added on contacts (added);
 
@@ -203,9 +197,6 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 
     create table cafe_requests (id text primary key not null, targetId text not null, cafeId text not null, type integer not null, date integer not null);
     create index cafe_request_cafeId on cafe_requests (cafeId);
-
-	create table cafe_inboxes (peerId text not null, cafeId text not null, primary key (peerId, cafeId));
-	create index cafe_inbox_peerId on cafe_inboxes (peerId);
 
 	create table cafe_client_nonces (value text primary key not null, address text not null, date integer not null);
 

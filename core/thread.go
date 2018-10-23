@@ -219,23 +219,16 @@ func (t *Thread) addOrUpdatePeer(pid peer.ID, username string, inboxes []string)
 	t.datastore.ThreadPeers().Add(&repo.ThreadPeer{
 		Id:       pid.Pretty(),
 		ThreadId: t.Id,
+		Welcomed: false,
 	})
 
 	// add to contacts
-	// TODO: make add or update
-	t.datastore.Contacts().Add(&repo.Contact{
+	t.datastore.Contacts().AddOrUpdate(&repo.Contact{
 		Id:       pid.Pretty(),
 		Username: username,
+		Inboxes:  inboxes,
 		Added:    time.Now(),
 	})
-
-	// save cafe provided inboxes
-	for _, inbox := range inboxes {
-		t.datastore.CafeInboxes().Add(&repo.CafeInbox{
-			PeerId: pid.Pretty(),
-			CafeId: inbox,
-		})
-	}
 }
 
 // newBlockHeader creates a new header
@@ -484,26 +477,11 @@ func (t *Thread) post(commit *commitResult, peers []repo.ThreadPeer) error {
 	if err != nil {
 		return err
 	}
-	wg := sync.WaitGroup{}
 	for _, tp := range peers {
-		wg.Add(1)
-		go func(tp repo.ThreadPeer) {
-			if err := t.sendMessage(&tp, env); err != nil {
-				log.Errorf("error sending %s to peer %s: %s", commit.hash.B58String(), tp.Id, err)
-			}
-			wg.Done()
-		}(tp)
+		//if err := t.sendMessage(&tp, env); err != nil {
+		//
+		//}
 	}
-	wg.Wait()
-	return nil
-}
-
-// sendMessage sends a message directly to a peer
-// if the peer is offline, the message will be left with the peer's inboxes
-// if the inboxes are offline, SOL
-func (t *Thread) sendMessage(tpeer *repo.ThreadPeer, env *pb.Envelope) error {
-	//t.service.SendMessage
-	//t.cafeService.DeliverMessage
 	return nil
 }
 

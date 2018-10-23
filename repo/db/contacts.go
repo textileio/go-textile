@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"github.com/textileio/textile-go/repo"
+	"strings"
 	"sync"
 	"time"
 )
@@ -15,14 +16,14 @@ func NewContactStore(db *sql.DB, lock *sync.Mutex) repo.ContactStore {
 	return &ContactDB{modelStore{db, lock}}
 }
 
-func (c *ContactDB) Add(contact *repo.Contact) error {
+func (c *ContactDB) AddOrUpdate(contact *repo.Contact) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
 	if err != nil {
 		return err
 	}
-	stm := `insert into contacts(id, username, added) values(?,?,?)`
+	stm := `insert or replace into contacts(id, username, inboxes, added) values(?,?,?,coalesce((select added from contacts where id=?),?))`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -32,6 +33,8 @@ func (c *ContactDB) Add(contact *repo.Contact) error {
 	_, err = stmt.Exec(
 		contact.Id,
 		contact.Username,
+		strings.Join(contact.Inboxes, ","),
+		contact.Id,
 		int(contact.Added.Unix()),
 	)
 	if err != nil {
@@ -82,15 +85,16 @@ func (c *ContactDB) handleQuery(stm string) []repo.Contact {
 		return nil
 	}
 	for rows.Next() {
-		var id, username string
+		var id, username, inboxes string
 		var addedInt int
-		if err := rows.Scan(&id, &username, &addedInt); err != nil {
+		if err := rows.Scan(&id, &username, &inboxes, &addedInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
 		contact := repo.Contact{
 			Id:       id,
 			Username: username,
+			Inboxes:  strings.Split(inboxes, ","),
 			Added:    time.Unix(int64(addedInt), 0),
 		}
 		ret = append(ret, contact)
