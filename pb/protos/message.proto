@@ -26,6 +26,7 @@ message Message {
         CAFE_STORE_THREAD    = 58;
         CAFE_STORED          = 59;
         CAFE_MESSAGE         = 60;
+        CAFE_CHECK_MESSAGES  = 61;
 
         ERROR = 500;
     }

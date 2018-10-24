@@ -228,6 +228,16 @@ func (h *CafeService) DeliverMessage(mid string, pid peer.ID, cafe peer.ID) erro
 	return h.service.SendMessage(cafe, env)
 }
 
+// CheckMessages asks each session's inbox for new messages
+func (h *CafeService) CheckMessages(cafe peer.ID) error {
+	// build request
+	env, err := h.service.NewEnvelope(pb.Message_CAFE_CHECK_MESSAGES, nil, nil, false)
+	if err != nil {
+		return err
+	}
+	return h.service.SendMessage(cafe, env)
+}
+
 // sendCafeRequest sends an authenticated request, retrying once after a session refresh
 func (h *CafeService) sendCafeRequest(cafe peer.ID, envFactory func(*repo.CafeSession) (*pb.Envelope, error)) (*pb.Envelope, error) {
 	// find access token for this cafe
