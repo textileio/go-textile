@@ -52,5 +52,5 @@ func (t *Textile) GetBlockData(path string, block *repo.Block) ([]byte, error) {
 			return nil, err
 		}
 	}
-	return crypto.DecryptAES(ciphertext, []byte(block.DataKey))
+	return crypto.DecryptAES(ciphertext, block.DataKey)
 }

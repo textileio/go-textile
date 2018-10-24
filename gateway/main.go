@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
+	"github.com/mr-tron/base58/base58"
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/crypto"
@@ -108,7 +109,13 @@ func gatewayHandler(c *gin.Context) {
 	// if key is provided, try to decrypt the data with it
 	key, exists := c.GetQuery("key")
 	if exists {
-		plain, err := crypto.DecryptAES(data, []byte(key))
+		keyb, err := base58.Decode(key)
+		if err != nil {
+			log.Errorf("error decoding key %s: %s", key, err)
+			c.Status(404)
+			return
+		}
+		plain, err := crypto.DecryptAES(data, keyb)
 		if err != nil {
 			log.Errorf("error decrypting %s: %s", contentPath, err)
 			c.Status(404)
@@ -172,7 +179,13 @@ func profileHandler(c *gin.Context) {
 			c.Status(404)
 			return
 		}
-		data, err = crypto.DecryptAES(cipher, []byte(parsed[1]))
+		keyb, err := base58.Decode(parsed[1])
+		if err != nil {
+			log.Errorf("error decoding key %s: %s", parsed[1], err)
+			c.Status(404)
+			return
+		}
+		data, err = crypto.DecryptAES(cipher, keyb)
 		if err != nil {
 			log.Errorf("error decrypting %s: %s", parsed[0], err)
 			c.Status(404)

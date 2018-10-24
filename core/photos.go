@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/archive"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
@@ -137,7 +138,10 @@ func (t *Textile) AddPhoto(path string) (*AddDataResult, error) {
 	if err := ipfs.PinDirectory(t.ipfs, dir, []string{"medium", "photo"}); err != nil {
 		return nil, err
 	}
-	result := &AddDataResult{Id: dir.Cid().Hash().B58String(), Key: string(key)}
+	result := &AddDataResult{
+		Id:  dir.Cid().Hash().B58String(),
+		Key: base58.FastBase58Encoding(key),
+	}
 
 	// if not mobile, create a pin request
 	// on mobile, we let the OS handle the archive directly
@@ -193,11 +197,11 @@ func (t *Textile) PhotoThreads(id string) []*Thread {
 	return threads
 }
 
-// GetPhotoKey returns the decrypted AES key for a photo set
-func (t *Textile) GetPhotoKey(id string) (string, error) {
+// GetPhotoKey returns the AES key for a photo set
+func (t *Textile) GetPhotoKey(id string) ([]byte, error) {
 	block, err := t.GetBlockByDataId(id)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	return block.DataKey, nil
 }

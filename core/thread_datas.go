@@ -14,7 +14,7 @@ import (
 )
 
 // AddPhoto adds an outgoing photo block
-func (t *Thread) AddPhoto(dataId string, caption string, key string) (mh.Multihash, error) {
+func (t *Thread) AddPhoto(dataId string, caption string, key []byte) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
@@ -120,12 +120,12 @@ func (t *Thread) handleDataBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 }
 
 // getMetadata downloads and decrypts metadata
-func getMetadata(node *core.IpfsNode, dataId string, key string) (*photo.Metadata, error) {
+func getMetadata(node *core.IpfsNode, dataId string, key []byte) (*photo.Metadata, error) {
 	metacipher, err := ipfs.GetDataAtPath(node, fmt.Sprintf("%s/meta", dataId))
 	if err != nil {
 		return nil, err
 	}
-	metaplain, err := crypto.DecryptAES(metacipher, []byte(key))
+	metaplain, err := crypto.DecryptAES(metacipher, key)
 	if err != nil {
 		return nil, err
 	}

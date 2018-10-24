@@ -58,7 +58,7 @@ message ThreadAnnounce {
 message ThreadData {
     Type type      = 1;
     string data    = 2;
-    string key     = 3;
+    bytes key      = 3;
     string caption = 4;
 
     enum Type {

@@ -42,14 +42,14 @@ type Block struct {
 	Type     BlockType `json:"type"`
 
 	DataId       string          `json:"data_id"`
-	DataKey      string          `json:"data_key"`
+	DataKey      []byte          `json:"data_key"`
 	DataCaption  string          `json:"data_caption"`
 	DataMetadata *photo.Metadata `json:"data_metadata"`
 }
 
 type DataBlockConfig struct {
 	DataId       string          `json:"data_id"`
-	DataKey      string          `json:"data_key"`
+	DataKey      []byte          `json:"data_key"`
 	DataCaption  string          `json:"data_caption"`
 	DataMetadata *photo.Metadata `json:"data_metadata"`
 }

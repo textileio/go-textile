@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/mitchellh/go-homedir"
+	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
 	"gopkg.in/abiosoft/ishell.v2"
@@ -56,7 +57,12 @@ func addPhoto(c *ishell.Context) {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", threadId)))
 		return
 	}
-	if _, err := thrd.AddPhoto(added.Id, caption, added.Key); err != nil {
+	keyb, err := base58.Decode(added.Key)
+	if err != nil {
+		c.Err(err)
+		return
+	}
+	if _, err := thrd.AddPhoto(added.Id, caption, keyb); err != nil {
 		c.Err(err)
 		return
 	}
@@ -203,7 +209,7 @@ func getPhotoKey(c *ishell.Context) {
 	}
 
 	blue := color.New(color.FgHiBlue).SprintFunc()
-	c.Println(blue(block.DataKey))
+	c.Println(blue(base58.FastBase58Encoding(block.DataKey)))
 }
 
 func addPhotoComment(c *ishell.Context) {

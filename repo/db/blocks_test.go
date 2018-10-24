@@ -30,7 +30,7 @@ func TestBlockDB_Add(t *testing.T) {
 		AuthorId:     "author_id",
 		Type:         repo.PhotoBlock,
 		DataId:       "Qm456",
-		DataKey:      "key",
+		DataKey:      []byte("key"),
 		DataCaption:  "xxx",
 		DataMetadata: &photo.Metadata{Name: "boom"},
 	})
@@ -73,7 +73,7 @@ func TestBlockDB_List(t *testing.T) {
 		AuthorId:     "author_id",
 		Type:         repo.PhotoBlock,
 		DataId:       "Qm456",
-		DataKey:      "key",
+		DataKey:      []byte("key"),
 		DataCaption:  "xxx",
 		DataMetadata: &photo.Metadata{Name: "boom"},
 	})
@@ -88,7 +88,7 @@ func TestBlockDB_List(t *testing.T) {
 		AuthorId:     "author_id",
 		Type:         repo.PhotoBlock,
 		DataId:       "Qm789",
-		DataKey:      "key",
+		DataKey:      []byte("key"),
 		DataCaption:  "xxx",
 		DataMetadata: &photo.Metadata{Name: "boom"},
 	})
@@ -126,7 +126,7 @@ func TestBlockDB_Count(t *testing.T) {
 		AuthorId:     "author_id",
 		Type:         repo.PhotoBlock,
 		DataId:       "Qm456",
-		DataKey:      "key",
+		DataKey:      []byte("key"),
 		DataCaption:  "xxx",
 		DataMetadata: &photo.Metadata{Name: "boom"},
 	})
@@ -141,7 +141,7 @@ func TestBlockDB_Count(t *testing.T) {
 		AuthorId:     "author_id",
 		Type:         repo.PhotoBlock,
 		DataId:       "Qm456",
-		DataKey:      "key",
+		DataKey:      []byte("key"),
 		DataCaption:  "xxx",
 		DataMetadata: &photo.Metadata{Name: "boom"},
 	})

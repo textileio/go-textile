@@ -204,7 +204,7 @@ func RunShell(startNode func() error, stopNode func() error) {
 		})
 		photoCmd.AddCmd(&ishell.Cmd{
 			Name: "key",
-			Help: "decrypt and print the key for a photo",
+			Help: "show key for a photo (and meta data)",
 			Func: getPhotoKey,
 		})
 		photoCmd.AddCmd(&ishell.Cmd{

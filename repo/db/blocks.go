@@ -131,9 +131,9 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 		return nil
 	}
 	for rows.Next() {
-		var id, parents, threadId, authorId, dataId, dataKey, dataCaption string
+		var id, parents, threadId, authorId, dataId, dataCaption string
 		var dateInt, typeInt int
-		var dataMetadata []byte
+		var dataKey, dataMetadata []byte
 		if err := rows.Scan(&id, &dateInt, &parents, &threadId, &authorId, &typeInt, &dataId, &dataKey, &dataCaption, &dataMetadata); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue

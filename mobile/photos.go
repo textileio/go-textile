@@ -3,6 +3,7 @@ package mobile
 import (
 	"errors"
 	"fmt"
+	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/photo"
 	"github.com/textileio/textile-go/repo"
@@ -67,7 +68,11 @@ func (m *Mobile) AddPhotoToThread(dataId string, key string, threadId string, ca
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread %s", threadId))
 	}
-	hash, err := thrd.AddPhoto(dataId, caption, key)
+	keyb, err := base58.Decode(key)
+	if err != nil {
+		return "", err
+	}
+	hash, err := thrd.AddPhoto(dataId, caption, keyb)
 	if err != nil {
 		return "", err
 	}
@@ -249,7 +254,11 @@ func (m *Mobile) GetPhotoMetadata(id string) (string, error) {
 
 // GetPhotoKey calls core GetPhotoKey
 func (m *Mobile) GetPhotoKey(id string) (string, error) {
-	return core.Node.GetPhotoKey(id)
+	key, err := core.Node.GetPhotoKey(id)
+	if err != nil {
+		return "", err
+	}
+	return base58.FastBase58Encoding(key), nil
 }
 
 // PhotoThreads call core PhotoThreads
