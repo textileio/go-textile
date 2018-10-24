@@ -15,18 +15,21 @@ message Message {
 
         THREAD_ENVELOPE = 10;
 
-        CAFE_CHALLENGE       = 50;
-        CAFE_NONCE           = 51;
-        CAFE_REGISTRATION    = 52;
-        CAFE_SESSION         = 53;
-        CAFE_REFRESH_SESSION = 54;
-        CAFE_STORE           = 55;
-        CAFE_BLOCK           = 56;
-        CAFE_BLOCKLIST       = 57;
-        CAFE_STORE_THREAD    = 58;
-        CAFE_STORED          = 59;
-        CAFE_MESSAGE         = 60;
-        CAFE_CHECK_MESSAGES  = 61;
+        CAFE_CHALLENGE           = 50;
+        CAFE_NONCE               = 51;
+        CAFE_REGISTRATION        = 52;
+        CAFE_SESSION             = 53;
+        CAFE_REFRESH_SESSION     = 54;
+        CAFE_STORE               = 55;
+        CAFE_BLOCK               = 56;
+        CAFE_BLOCKLIST           = 57;
+        CAFE_STORE_THREAD        = 58;
+        CAFE_STORED              = 59;
+        CAFE_DELIVER_MESSAGE     = 60;
+        CAFE_CHECK_MESSAGES      = 61;
+        CAFE_MESSAGES            = 62;
+        CAFE_DELETE_MESSAGES     = 63;
+        CAFE_DELETE_MESSAGES_ACK = 64;
 
         ERROR = 500;
     }

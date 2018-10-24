@@ -59,7 +59,23 @@ message CafeStored {
     string id = 1;
 }
 
-message CafeMessage {
+message CafeDeliverMessage {
     string id       = 1;
     string clientId = 2;
+}
+
+message CafeCheckMessages {
+    string token = 1;
+}
+
+message CafeMessages {
+    repeated string cids = 1;
+}
+
+message CafeDeleteMessages {
+    string token = 1;
+}
+
+message CafeDeleteMessagesAck {
+    bool more = 2;
 }

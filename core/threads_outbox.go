@@ -48,13 +48,12 @@ func NewThreadsOutbox(
 
 // Add adds an outbound message
 func (q *ThreadsOutbox) Add(pid peer.ID, env *pb.Envelope) {
-	msg := &repo.ThreadMessage{
+	if err := q.datastore.ThreadMessages().Add(&repo.ThreadMessage{
 		Id:       ksuid.New().String(),
 		PeerId:   pid.Pretty(),
 		Envelope: env,
 		Date:     time.Now(),
-	}
-	if err := q.datastore.ThreadMessages().Add(msg); err != nil {
+	}); err != nil {
 		log.Errorf("error adding thread message for %s: %s", pid.Pretty(), err)
 	}
 

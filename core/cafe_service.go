@@ -26,6 +26,9 @@ const defaultSessionDuration = time.Hour * 24 * 7 * 4
 // blockTimeout is the context timeout for getting a local block
 const blockTimeout = time.Second * 5
 
+// inboxMessagePageSize is the page size used when checking messages
+const inboxMessagePageSize = 10
+
 // validation errors
 const (
 	errInvalidAddress = "invalid address"
@@ -71,8 +74,12 @@ func (h *CafeService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error
 		return h.handleBlock(pid, env)
 	case pb.Message_CAFE_STORE_THREAD:
 		return h.handleStoreThread(pid, env)
-	case pb.Message_CAFE_MESSAGE:
-		return h.handleMessage(pid, env)
+	case pb.Message_CAFE_DELIVER_MESSAGE:
+		return h.handleDeliverMessage(pid, env)
+	case pb.Message_CAFE_CHECK_MESSAGES:
+		return h.handleCheckMessages(pid, env)
+	case pb.Message_CAFE_DELETE_MESSAGES:
+		return h.handleDeleteMessages(pid, env)
 	default:
 		return nil, nil
 	}
@@ -216,9 +223,10 @@ func (h *CafeService) StoreThread(thrd *repo.Thread, cafe peer.ID) error {
 }
 
 // DeliverMessage delivers a message content id to a peer's cafe inbox
+// TODO: unpin message locally after it's delivered
 func (h *CafeService) DeliverMessage(mid string, pid peer.ID, cafe peer.ID) error {
 	// build request
-	env, err := h.service.NewEnvelope(pb.Message_CAFE_MESSAGE, &pb.CafeMessage{
+	env, err := h.service.NewEnvelope(pb.Message_CAFE_DELIVER_MESSAGE, &pb.CafeDeliverMessage{
 		Id:       mid,
 		ClientId: pid.Pretty(),
 	}, nil, false)
@@ -230,12 +238,56 @@ func (h *CafeService) DeliverMessage(mid string, pid peer.ID, cafe peer.ID) erro
 
 // CheckMessages asks each session's inbox for new messages
 func (h *CafeService) CheckMessages(cafe peer.ID) error {
-	// build request
-	env, err := h.service.NewEnvelope(pb.Message_CAFE_CHECK_MESSAGES, nil, nil, false)
+	// build an authenticated request
+	renv, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
+		return h.service.NewEnvelope(pb.Message_CAFE_CHECK_MESSAGES, &pb.CafeCheckMessages{
+			Token: session.Access,
+		}, nil, false)
+	})
 	if err != nil {
 		return err
 	}
-	return h.service.SendMessage(cafe, env)
+
+	// unpack response as a message list of cids
+	res := new(pb.CafeMessages)
+	err = ptypes.UnmarshalAny(renv.Message.Payload, res)
+	if err != nil {
+		return err
+	}
+	for _, id := range res.Cids {
+		fmt.Println(id)
+	}
+
+	// TODO: download and decrypt each message
+	// TODO: pass env to thread service handler
+
+	return nil
+}
+
+// DeleteMessages deletes a page of messages from a cafe
+func (h *CafeService) DeleteMessages(cafe peer.ID) error {
+	// build an authenticated request
+	renv, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
+		return h.service.NewEnvelope(pb.Message_CAFE_DELETE_MESSAGES, &pb.CafeDeleteMessages{
+			Token: session.Access,
+		}, nil, false)
+	})
+	if err != nil {
+		return err
+	}
+
+	// unpack response as an ack
+	res := new(pb.CafeDeleteMessagesAck)
+	err = ptypes.UnmarshalAny(renv.Message.Payload, res)
+	if err != nil {
+		return err
+	}
+	if !res.More {
+		return nil
+	}
+
+	// apparently there's more new messages waiting...
+	return h.CheckMessages(cafe)
 }
 
 // sendCafeRequest sends an authenticated request, retrying once after a session refresh
@@ -600,9 +652,6 @@ func (h *CafeService) handleStoreThread(pid peer.ID, env *pb.Envelope) (*pb.Enve
 	if client == nil {
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
-	if err := h.datastore.CafeClients().UpdateLastSeen(client.Id, time.Now()); err != nil {
-		return h.service.NewError(500, err.Error(), env.Message.RequestId)
-	}
 
 	// add or update
 	thrd := &repo.CafeClientThread{
@@ -621,9 +670,9 @@ func (h *CafeService) handleStoreThread(pid peer.ID, env *pb.Envelope) (*pb.Enve
 	return h.service.NewEnvelope(pb.Message_CAFE_STORED, res, &env.Message.RequestId, true)
 }
 
-// handleMessage receives an inbox message for a client
-func (h *CafeService) handleMessage(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	msg := new(pb.CafeMessage)
+// handleDeliverMessage receives an inbox message for a client
+func (h *CafeService) handleDeliverMessage(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	msg := new(pb.CafeDeliverMessage)
 	err := ptypes.UnmarshalAny(env.Message.Payload, msg)
 	if err != nil {
 		return nil, err
@@ -647,6 +696,82 @@ func (h *CafeService) handleMessage(pid peer.ID, env *pb.Envelope) (*pb.Envelope
 		return nil, nil
 	}
 	return nil, nil
+}
+
+// handleCheckMessages receives a check inbox messages request
+func (h *CafeService) handleCheckMessages(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	check := new(pb.CafeCheckMessages)
+	err := ptypes.UnmarshalAny(env.Message.Payload, check)
+	if err != nil {
+		return nil, err
+	}
+
+	// validate access token
+	rerr, err := h.authToken(pid, check.Token, false, env.Message.RequestId)
+	if err != nil {
+		return nil, err
+	}
+	if rerr != nil {
+		return rerr, nil
+	}
+
+	// lookup client
+	client := h.datastore.CafeClients().Get(pid.Pretty())
+	if client == nil {
+		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+	}
+
+	// update last seen
+	if err := h.datastore.CafeClients().UpdateLastSeen(client.Id, time.Now()); err != nil {
+		return h.service.NewError(500, err.Error(), env.Message.RequestId)
+	}
+
+	// list new messages
+	var cids []string
+	msgs := h.datastore.CafeClientMessages().ListByClient(client.Id, inboxMessagePageSize)
+	for _, id := range msgs {
+		cids = append(cids, id.Id)
+	}
+
+	// return a wrapped response
+	res := &pb.CafeMessages{Cids: cids}
+	return h.service.NewEnvelope(pb.Message_CAFE_MESSAGES, res, &env.Message.RequestId, true)
+}
+
+// handleDeleteMessages receives a message delete request
+func (h *CafeService) handleDeleteMessages(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	del := new(pb.CafeDeleteMessages)
+	err := ptypes.UnmarshalAny(env.Message.Payload, del)
+	if err != nil {
+		return nil, err
+	}
+
+	// validate access token
+	rerr, err := h.authToken(pid, del.Token, false, env.Message.RequestId)
+	if err != nil {
+		return nil, err
+	}
+	if rerr != nil {
+		return rerr, nil
+	}
+
+	// lookup client
+	client := h.datastore.CafeClients().Get(pid.Pretty())
+	if client == nil {
+		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+	}
+
+	// delete the most recent page
+	if err := h.datastore.CafeClientMessages().DeleteByClient(client.Id, inboxMessagePageSize); err != nil {
+		return h.service.NewError(500, err.Error(), env.Message.RequestId)
+	}
+
+	// check for more
+	remaining := h.datastore.CafeClientMessages().CountByClient(client.Id)
+
+	// return a wrapped response
+	res := &pb.CafeDeleteMessagesAck{More: remaining > 0}
+	return h.service.NewEnvelope(pb.Message_CAFE_DELETE_MESSAGES_ACK, res, &env.Message.RequestId, true)
 }
 
 // authToken verifies a request token from a peer

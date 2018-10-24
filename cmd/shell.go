@@ -92,21 +92,6 @@ func RunShell(startNode func() error, stopNode func() error) {
 			c.Println(status)
 		},
 	})
-	shell.AddCmd(&ishell.Cmd{
-		Name: "fetch-messages",
-		Help: "fetch messages from registered cafes",
-		Func: func(c *ishell.Context) {
-			if !core.Node.Online() {
-				c.Println("not online yet")
-				return
-			}
-			if err := core.Node.FetchCafeMessages(); err != nil {
-				c.Println(fmt.Errorf("fetch messages failed: %s", err))
-				return
-			}
-			c.Println("ok, fetching")
-		},
-	})
 	{
 		cafeCmd := &ishell.Cmd{
 			Name:     "cafe",
@@ -119,14 +104,19 @@ func RunShell(startNode func() error, stopNode func() error) {
 			Func: cafeRegister,
 		})
 		cafeCmd.AddCmd(&ishell.Cmd{
+			Name: "rm",
+			Help: "remove a cafe",
+			Func: cafeDeregister,
+		})
+		cafeCmd.AddCmd(&ishell.Cmd{
 			Name: "ls",
 			Help: "list active cafes",
 			Func: cafeList,
 		})
 		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "rm",
-			Help: "remove a cafe",
-			Func: cafeDeregister,
+			Name: "check-messages",
+			Help: "check messages from active cafes",
+			Func: cafeCheckMessages,
 		})
 		shell.AddCmd(cafeCmd)
 	}

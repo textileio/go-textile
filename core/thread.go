@@ -39,7 +39,7 @@ type ThreadConfig struct {
 	RepoPath      string
 	Node          func() *core.IpfsNode
 	Datastore     repo.Datastore
-	Service       *ThreadsService
+	Service       func() *ThreadsService
 	ThreadsOutbox *ThreadsOutbox
 	CafeOutbox    *CafeOutbox
 	SendUpdate    func(update ThreadUpdate)
@@ -53,7 +53,7 @@ type Thread struct {
 	repoPath      string
 	node          func() *core.IpfsNode
 	datastore     repo.Datastore
-	service       *ThreadsService
+	service       func() *ThreadsService
 	threadsOutbox *ThreadsOutbox
 	cafeOutbox    *CafeOutbox
 	sendUpdate    func(update ThreadUpdate)
@@ -188,6 +188,10 @@ func (t *Thread) followParent(parent mh.Multihash) error {
 	block, err := t.handleBlock(parent, ciphertext)
 	if err != nil {
 		return err
+	}
+	if block == nil {
+		// exists, abort
+		return nil
 	}
 
 	// handle each type
@@ -476,7 +480,7 @@ func (t *Thread) post(commit *commitResult, peers []repo.ThreadPeer) error {
 	if len(peers) == 0 {
 		return nil
 	}
-	env, err := t.service.NewEnvelope(t.Id, commit.hash, commit.ciphertext)
+	env, err := t.service().NewEnvelope(t.Id, commit.hash, commit.ciphertext)
 	if err != nil {
 		return err
 	}

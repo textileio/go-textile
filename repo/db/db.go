@@ -217,8 +217,8 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create table cafe_client_threads (id text not null, clientId text not null, skCipher blob not null, headCipher blob not null, nameCipher blob not null, primary key (id, clientId));
     create index cafe_client_thread_clientId on cafe_client_threads (clientId);
 
-	create table cafe_client_messages (id text not null, clientId text not null, date integer not null, read integer not null, primary key (id, clientId));
-    create index cafe_client_message_clientId_read on cafe_client_messages (clientId, read);
+	create table cafe_client_messages (id text not null, clientId text not null, date integer not null, primary key (id, clientId));
+    create index cafe_client_message_clientId on cafe_client_messages (clientId);
 	`
 	_, err := db.Exec(sqlStmt)
 	if err != nil {

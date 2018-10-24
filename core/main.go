@@ -423,6 +423,9 @@ func (t *Textile) DoneCh() <-chan struct{} {
 
 // Ping pings another peer
 func (t *Textile) Ping(pid peer.ID) (service.PeerStatus, error) {
+	if !t.Online() {
+		return "", ErrOffline
+	}
 	return t.cafeService.Ping(pid)
 }
 
@@ -584,8 +587,10 @@ func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 		Node: func() *core.IpfsNode {
 			return t.ipfs
 		},
-		Datastore:     t.datastore,
-		Service:       t.threadsService,
+		Datastore: t.datastore,
+		Service: func() *ThreadsService {
+			return t.threadsService
+		},
 		ThreadsOutbox: t.threadsOutbox,
 		CafeOutbox:    t.cafeOutbox,
 		SendUpdate:    t.sendThreadUpdate,

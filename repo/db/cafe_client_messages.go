@@ -23,7 +23,7 @@ func (c *CafeClientMessagesDB) AddOrUpdate(message *repo.CafeClientMessage) erro
 	if err != nil {
 		return err
 	}
-	stm := `insert or replace into cafe_client_messages(id, clientId, date, read) values(?,?,?,?)`
+	stm := `insert or replace into cafe_client_messages(id, clientId, date) values(?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -34,7 +34,6 @@ func (c *CafeClientMessagesDB) AddOrUpdate(message *repo.CafeClientMessage) erro
 		message.Id,
 		message.ClientId,
 		int(message.Date.Unix()),
-		false,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -44,23 +43,20 @@ func (c *CafeClientMessagesDB) AddOrUpdate(message *repo.CafeClientMessage) erro
 	return nil
 }
 
-func (c *CafeClientMessagesDB) ListByClient(clientId string, offset string, limit int) []repo.CafeClientMessage {
+func (c *CafeClientMessagesDB) ListByClient(clientId string, limit int) []repo.CafeClientMessage {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	var stm string
-	if offset != "" {
-		stm = "select * from cafe_client_messages where clientId='" + clientId + "' and date<(select date from cafe_client_messages where id='" + offset + "') order by date desc limit " + strconv.Itoa(limit) + ";"
-	} else {
-		stm = "select * from cafe_client_messages where clientId='" + clientId + "' order by date desc limit " + strconv.Itoa(limit) + ";"
-	}
+	stm := "select * from cafe_client_messages where clientId='" + clientId + "' order by date asc limit " + strconv.Itoa(limit) + ";"
 	return c.handleQuery(stm)
 }
 
-func (c *CafeClientMessagesDB) Read(id string, clientId string) error {
+func (c *CafeClientMessagesDB) CountByClient(clientId string) int {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("update cafe_client_messages set read=1 where id=? and clientId=?", id, clientId)
-	return err
+	row := c.db.QueryRow("select Count(*) from cafe_client_messages where clientId='" + clientId + "';")
+	var count int
+	row.Scan(&count)
+	return count
 }
 
 func (c *CafeClientMessagesDB) Delete(id string, clientId string) error {
@@ -70,10 +66,12 @@ func (c *CafeClientMessagesDB) Delete(id string, clientId string) error {
 	return err
 }
 
-func (c *CafeClientMessagesDB) DeleteByClient(clientId string) error {
+func (c *CafeClientMessagesDB) DeleteByClient(clientId string, limit int) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from cafe_client_messages where clientId=?", clientId)
+	sel := "select id from cafe_client_messages where clientId='" + clientId + "' order by date asc limit " + strconv.Itoa(limit) + ";"
+	query := "delete from cafe_client_messages where id in (" + sel + ");"
+	_, err := c.db.Exec(query)
 	return err
 }
 
@@ -86,20 +84,15 @@ func (c *CafeClientMessagesDB) handleQuery(stm string) []repo.CafeClientMessage 
 	}
 	for rows.Next() {
 		var id, clientId string
-		var dateInt, readInt int
-		if err := rows.Scan(&id, &clientId, &dateInt, &readInt); err != nil {
+		var dateInt int
+		if err := rows.Scan(&id, &clientId, &dateInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
-		}
-		read := false
-		if readInt == 1 {
-			read = true
 		}
 		message := repo.CafeClientMessage{
 			Id:       id,
 			ClientId: clientId,
 			Date:     time.Unix(int64(dateInt), 0),
-			Read:     read,
 		}
 		ret = append(ret, message)
 	}

@@ -104,15 +104,14 @@ func (q *CafeOutbox) Flush() {
 
 // add queues a single request
 func (q *CafeOutbox) add(pid peer.ID, target string, cafeId string, rtype repo.CafeRequestType) {
-	req := &repo.CafeRequest{
+	if err := q.datastore.CafeRequests().Add(&repo.CafeRequest{
 		Id:       ksuid.New().String(),
 		PeerId:   pid.Pretty(),
 		TargetId: target,
 		CafeId:   cafeId,
 		Type:     rtype,
 		Date:     time.Now(),
-	}
-	if err := q.datastore.CafeRequests().Add(req); err != nil {
+	}); err != nil {
 		log.Errorf("error adding cafe request %s: %s", target, err)
 	}
 }

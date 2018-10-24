@@ -198,5 +198,4 @@ type CafeClientMessage struct {
 	Id       string    `json:"id"`
 	ClientId string    `json:"client_id"`
 	Date     time.Time `json:"date"`
-	Read     bool      `json:"read"`
 }

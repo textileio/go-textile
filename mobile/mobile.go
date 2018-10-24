@@ -175,9 +175,9 @@ func (m *Mobile) Stop() error {
 	return nil
 }
 
-// FetchCafeMessages calls core FetchCafeMessages
+// CheckCafeMessages calls core CheckCafeMessages
 func (m *Mobile) FetchCafeMessages() error {
-	return core.Node.FetchCafeMessages()
+	return core.Node.CheckCafeMessages()
 }
 
 // Overview calls core Overview
