@@ -166,6 +166,7 @@ func (rt CafeRequestType) Description() string {
 
 type CafeRequest struct {
 	Id       string          `json:"id"`
+	PeerId   string          `json:"peer_id"`
 	TargetId string          `json:"target_id"`
 	CafeId   string          `json:"cafe_id"`
 	Type     CafeRequestType `json:"type"`

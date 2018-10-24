@@ -23,7 +23,7 @@ func (c *CafeRequestDB) Add(req *repo.CafeRequest) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into cafe_requests(id, targetId, cafeId, type, date) values(?,?,?,?,?)`
+	stm := `insert into cafe_requests(id, peerId, targetId, cafeId, type, date) values(?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -32,6 +32,7 @@ func (c *CafeRequestDB) Add(req *repo.CafeRequest) error {
 	defer stmt.Close()
 	_, err = stmt.Exec(
 		req.Id,
+		req.PeerId,
 		req.TargetId,
 		req.CafeId,
 		req.Type,
@@ -79,14 +80,15 @@ func (c *CafeRequestDB) handleQuery(stm string) []repo.CafeRequest {
 		return nil
 	}
 	for rows.Next() {
-		var id, targetId, cafeId string
+		var id, peerId, targetId, cafeId string
 		var typeInt, dateInt int
-		if err := rows.Scan(&id, &targetId, &cafeId, &typeInt, &dateInt); err != nil {
+		if err := rows.Scan(&id, &peerId, &targetId, &cafeId, &typeInt, &dateInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
 		req := repo.CafeRequest{
 			Id:       id,
+			PeerId:   peerId,
 			TargetId: targetId,
 			CafeId:   cafeId,
 			Type:     repo.CafeRequestType(typeInt),

@@ -37,6 +37,10 @@ func NewCafeOutbox(service func() *CafeService, node func() *core.IpfsNode, data
 
 // Add adds a request for each active cafe session
 func (q *CafeOutbox) Add(target string, rtype repo.CafeRequestType) {
+	if rtype == repo.CafePeerInboxRequest {
+		log.Error("inbox request to own inbox, aborting")
+		return
+	}
 	// get active cafe sessions
 	sessions := q.datastore.CafeSessions().List()
 	if len(sessions) == 0 {
@@ -45,22 +49,23 @@ func (q *CafeOutbox) Add(target string, rtype repo.CafeRequestType) {
 
 	// for each session, add a req
 	for _, session := range sessions {
-		q.add(target, session.CafeId, rtype)
+		// all possible request types are for our own peer
+		q.add(q.node().Identity, target, session.CafeId, rtype)
 	}
 
 	// try to flush the queue now
 	go q.Flush()
 }
 
-// AddForPeer adds a request for a peer's inbox(es)
-func (q *CafeOutbox) AddForPeer(target string, inboxes []string, rtype repo.CafeRequestType) {
+// InboxRequest adds a request for a peer's inbox(es)
+func (q *CafeOutbox) InboxRequest(pid peer.ID, target string, inboxes []string) {
 	if len(inboxes) == 0 {
 		return
 	}
 
 	// for each inbox, add a req
 	for _, inbox := range inboxes {
-		q.add(target, inbox, rtype)
+		q.add(pid, target, inbox, repo.CafePeerInboxRequest)
 	}
 
 	// try to flush the queue now
@@ -98,9 +103,10 @@ func (q *CafeOutbox) Flush() {
 }
 
 // add queues a single request
-func (q *CafeOutbox) add(target string, cafeId string, rtype repo.CafeRequestType) {
+func (q *CafeOutbox) add(pid peer.ID, target string, cafeId string, rtype repo.CafeRequestType) {
 	req := &repo.CafeRequest{
 		Id:       ksuid.New().String(),
+		PeerId:   pid.Pretty(),
 		TargetId: target,
 		CafeId:   cafeId,
 		Type:     rtype,
@@ -209,6 +215,25 @@ func (q *CafeOutbox) handle(reqs []repo.CafeRequest, rtype repo.CafeRequestType,
 				continue
 			}
 			if err := q.service().StoreThread(thrd, cafe); err != nil {
+				log.Errorf("cafe %s request to %s failed: %s", rtype.Description(), cafe.Pretty(), err)
+				herr = err
+				continue
+			}
+			handled = append(handled, req.Id)
+		}
+	case repo.CafePeerInboxRequest:
+		for _, req := range reqs {
+			pid, err := peer.IDB58Decode(req.PeerId)
+			if err != nil {
+				herr = err
+				continue
+			}
+			cid, err := peer.IDB58Decode(req.CafeId)
+			if err != nil {
+				herr = err
+				continue
+			}
+			if err := q.service().DeliverMessage(req.TargetId, pid, cid); err != nil {
 				log.Errorf("cafe %s request to %s failed: %s", rtype.Description(), cafe.Pretty(), err)
 				herr = err
 				continue

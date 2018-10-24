@@ -23,6 +23,7 @@ func setupCafeRequestDB() {
 func TestCafeRequestDB_Add(t *testing.T) {
 	err := cafeReqDB.Add(&repo.CafeRequest{
 		Id:       "abcde",
+		PeerId:   "peer",
 		TargetId: "zxy",
 		CafeId:   "boom",
 		Type:     repo.CafeStoreRequest,
@@ -47,6 +48,7 @@ func TestCafeRequestDB_List(t *testing.T) {
 	setupCafeRequestDB()
 	err := cafeReqDB.Add(&repo.CafeRequest{
 		Id:       "abcde",
+		PeerId:   "peer",
 		TargetId: "zxy",
 		CafeId:   "boom",
 		Type:     repo.CafeStoreThreadRequest,
@@ -57,6 +59,7 @@ func TestCafeRequestDB_List(t *testing.T) {
 	}
 	err = cafeReqDB.Add(&repo.CafeRequest{
 		Id:       "abcdef",
+		PeerId:   "peer",
 		TargetId: "zxy",
 		CafeId:   "boom",
 		Type:     repo.CafeStoreRequest,
@@ -99,6 +102,7 @@ func TestCafeRequestDB_DeleteByCafe(t *testing.T) {
 	setupCafeRequestDB()
 	err := cafeReqDB.Add(&repo.CafeRequest{
 		Id:       "xyz",
+		PeerId:   "peer",
 		TargetId: "zxy",
 		CafeId:   "boom",
 		Type:     repo.CafeStoreRequest,

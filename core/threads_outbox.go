@@ -156,7 +156,7 @@ func (q *ThreadsOutbox) handle(msg *repo.ThreadMessage) error {
 			}
 
 			// add an inbox request for message delivery
-			q.cafeOutbox.AddForPeer(hash.B58String(), contact.Inboxes, repo.CafePeerInboxRequest)
+			q.cafeOutbox.InboxRequest(pid, hash.B58String(), contact.Inboxes)
 		}
 	}
 	return nil
