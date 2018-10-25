@@ -127,6 +127,10 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 	if err := thrd.sendWelcome(); err != nil {
 		return nil, err
 	}
+
+	// flush cafe queue at the very end
+	go thrd.cafeOutbox.Flush()
+
 	return nil, nil
 }
 

@@ -56,10 +56,6 @@ func (q *CafeOutbox) Add(target string, rtype repo.CafeRequestType) error {
 			return err
 		}
 	}
-
-	// flush the queue now
-	go q.Flush()
-
 	return nil
 }
 

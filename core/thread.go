@@ -429,6 +429,7 @@ func (t *Thread) updateHead(head mh.Multihash) error {
 
 	// update head on cafe backups
 	t.cafeOutbox.Add(t.Id, repo.CafeStoreThreadRequest)
+
 	return nil
 }
 
@@ -478,6 +479,10 @@ func (t *Thread) sendWelcome() error {
 // post publishes an encrypted message to thread peers
 func (t *Thread) post(commit *commitResult, peers []repo.ThreadPeer) error {
 	if len(peers) == 0 {
+		// flush the storage queue—this is normally done in a thread
+		// via thread message queue handling, but that won't run if there's
+		// no peers to send the message to.
+		t.cafeOutbox.Flush()
 		return nil
 	}
 	env, err := t.service().NewEnvelope(t.Id, commit.hash, commit.ciphertext)

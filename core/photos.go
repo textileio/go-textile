@@ -137,8 +137,7 @@ func (t *Textile) AddPhoto(path string) (*AddDataResult, error) {
 		Key: base58.FastBase58Encoding(key),
 	}
 
-	// if not mobile, add store requests.
-	// on mobile, we let the OS handle the archive directly
+	// add store requests unless mobile, in which case the OS handles an archive directly
 	if !t.Mobile() {
 		t.cafeOutbox.Add(thumbId.Hash().B58String(), repo.CafeStoreRequest)
 		t.cafeOutbox.Add(smallId.Hash().B58String(), repo.CafeStoreRequest)
@@ -146,6 +145,7 @@ func (t *Textile) AddPhoto(path string) (*AddDataResult, error) {
 		t.cafeOutbox.Add(photoId.Hash().B58String(), repo.CafeStoreRequest)
 		t.cafeOutbox.Add(metaId.Hash().B58String(), repo.CafeStoreRequest)
 		t.cafeOutbox.Add(node.Cid().Hash().B58String(), repo.CafeStoreRequest)
+		go t.cafeOutbox.Flush()
 		return result, nil
 	}
 
