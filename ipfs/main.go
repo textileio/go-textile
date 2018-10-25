@@ -51,11 +51,6 @@ func GetDataAtPath(ipfs *core.IpfsNode, pth string) ([]byte, error) {
 		return nil, err
 	}
 	defer reader.Close()
-	defer func() {
-		if recover() != nil {
-			log.Debug("node stopped")
-		}
-	}()
 	return ioutil.ReadAll(reader)
 }
 
@@ -74,11 +69,6 @@ func GetArchiveAtPath(ipfs *core.IpfsNode, path string) (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if recover() != nil {
-			log.Debug("node stopped")
-		}
-	}()
 	if len(links) == 0 {
 		return nil, nil
 	}
@@ -95,7 +85,6 @@ func GetArchiveAtPath(ipfs *core.IpfsNode, path string) (io.Reader, error) {
 	if err := arch.Close(); err != nil {
 		return nil, err
 	}
-
 	return arch.VirtualReader(), nil
 }
 
@@ -113,32 +102,27 @@ func GetLinksAtPath(ipfs *core.IpfsNode, path string) ([]*ipld.Link, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if recover() != nil {
-			log.Debug("node stopped")
-		}
-	}()
 	return links, nil
 }
 
 // AddFileToDirectory adds bytes as file to a virtual directory (dag) structure
-func AddFileToDirectory(ipfs *core.IpfsNode, dir uio.Directory, reader io.Reader, fname string) error {
+func AddFileToDirectory(ipfs *core.IpfsNode, dir uio.Directory, reader io.Reader, fname string) (*cid.Cid, error) {
 	str, err := coreunix.Add(ipfs, reader)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	id, err := cid.Decode(str)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	node, err := ipfs.DAG.Get(ipfs.Context(), id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := dir.AddChild(ipfs.Context(), fname, node); err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return id, nil
 }
 
 // Data pins
@@ -153,11 +137,6 @@ func PinData(ipfs *core.IpfsNode, data io.Reader) (*cid.Cid, error) {
 	if err := api.Pin().Add(ctx, pth); err != nil {
 		return nil, err
 	}
-	defer func() {
-		if recover() != nil {
-			log.Debug("node stopped")
-		}
-	}()
 	return pth.Cid(), nil
 }
 
@@ -174,11 +153,6 @@ func PinPath(ipfs *core.IpfsNode, path string, recursive bool) error {
 	if err := api.Pin().Add(ctx, ip, options.Pin.Recursive(recursive)); err != nil {
 		return err
 	}
-	defer func() {
-		if recover() != nil {
-			log.Debug("node stopped")
-		}
-	}()
 	return nil
 }
 
@@ -195,11 +169,6 @@ func UnpinPath(ipfs *core.IpfsNode, path string) error {
 	if err := api.Pin().Rm(ctx, ip); err != nil {
 		return err
 	}
-	defer func() {
-		if recover() != nil {
-			log.Debug("node stopped")
-		}
-	}()
 	return nil
 }
 
@@ -263,7 +232,6 @@ func PrintSwarmAddrs(node *core.IpfsNode) error {
 	for _, addr := range addrs {
 		log.Infof("swarm announcing %s\n", addr)
 	}
-
 	return nil
 }
 
@@ -313,7 +281,6 @@ func PeersWithAddresses(addrs []string) ([]pstore.PeerInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	peers := make(map[peer.ID][]ma.Multiaddr, len(iaddrs))
 	for _, iaddr := range iaddrs {
 		id := iaddr.ID()

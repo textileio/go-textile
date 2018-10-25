@@ -49,7 +49,7 @@ func (c *Cafe) pin(g *gin.Context) {
 				g.JSON(http.StatusBadRequest, gin.H{"error": "directories are not supported"})
 				return
 			case tar.TypeReg:
-				if err := ipfs.AddFileToDirectory(c.Ipfs(), dirb, tr, header.Name); err != nil {
+				if _, err := ipfs.AddFileToDirectory(c.Ipfs(), dirb, tr, header.Name); err != nil {
 					log.Errorf("error adding file to dir %s", err)
 					g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return

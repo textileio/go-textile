@@ -647,21 +647,11 @@ func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 
 // sendUpdate adds an update to the update channel
 func (t *Textile) sendUpdate(update Update) {
-	defer func() {
-		if recover() != nil {
-			log.Error("update channel already closed")
-		}
-	}()
 	t.updates <- update
 }
 
 // sendThreadUpdate adds a thread update to the update channel
 func (t *Textile) sendThreadUpdate(update ThreadUpdate) {
-	defer func() {
-		if recover() != nil {
-			log.Error("thread update channel already closed")
-		}
-	}()
 	t.threadUpdates <- update
 }
 
@@ -673,13 +663,7 @@ func (t *Textile) sendNotification(notification *repo.Notification) error {
 	}
 
 	// broadcast
-	defer func() {
-		if recover() != nil {
-			log.Error("notification channel already closed")
-		}
-	}()
 	t.notifications <- *notification
-
 	return nil
 }
 

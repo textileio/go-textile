@@ -101,10 +101,6 @@ func (t *Thread) unpinBlockData(blockId string) {
 				if err := ipfs.UnpinPath(t.node(), path); err != nil {
 					log.Warningf("failed to unpin %s: %s", path, err)
 				}
-				path = fmt.Sprintf("%s/small", block.DataId)
-				if err := ipfs.UnpinPath(t.node(), path); err != nil {
-					log.Warningf("failed to unpin %s: %s", path, err)
-				}
 			}
 		}
 	}

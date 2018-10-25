@@ -93,14 +93,13 @@ func (t *Thread) handleDataBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 		}
 		if !ignore {
 			// pin data first (it may not be available)
+			// TODO: this shouldn't block, may need to queue somewhere
 			if err := ipfs.PinPath(t.node(), fmt.Sprintf("%s/thumb", msg.Data), false); err != nil {
 				return nil, err
 			}
-			if err := ipfs.PinPath(t.node(), fmt.Sprintf("%s/small", msg.Data), false); err != nil {
-				log.Warningf("photo set missing small size")
-			}
 
 			// get metadata
+			// TODO: same here
 			meta, err := getMetadata(t.node(), msg.Data, msg.Key)
 			if err != nil {
 				return nil, err

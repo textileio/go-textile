@@ -8,6 +8,7 @@ import (
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/photo"
+	"github.com/textileio/textile-go/repo"
 	uio "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/unixfs/io"
 	"os"
 	"path/filepath"
@@ -76,13 +77,6 @@ func (t *Textile) AddPhoto(path string) (*AddDataResult, error) {
 		return nil, err
 	}
 
-	// get public key
-	accnt, err := t.Account()
-	if err != nil {
-		return nil, err
-	}
-	addrb := []byte(accnt.Address())
-
 	// encrypt files
 	thumbcipher, err := crypto.EncryptAES(thumb, key)
 	if err != nil {
@@ -104,49 +98,54 @@ func (t *Textile) AddPhoto(path string) (*AddDataResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	addrcipher, err := crypto.EncryptAES(addrb, key)
-	if err != nil {
-		return nil, err
-	}
 
 	// create a virtual directory for the photo
-	dirb := uio.NewDirectory(t.ipfs.DAG)
-	if err := ipfs.AddFileToDirectory(t.ipfs, dirb, bytes.NewReader(thumbcipher), "thumb"); err != nil {
-		return nil, err
-	}
-	if err := ipfs.AddFileToDirectory(t.ipfs, dirb, bytes.NewReader(smallcipher), "small"); err != nil {
-		return nil, err
-	}
-	if err := ipfs.AddFileToDirectory(t.ipfs, dirb, bytes.NewReader(mediumcipher), "medium"); err != nil {
-		return nil, err
-	}
-	if err := ipfs.AddFileToDirectory(t.ipfs, dirb, bytes.NewReader(largecipher), "photo"); err != nil {
-		return nil, err
-	}
-	if err := ipfs.AddFileToDirectory(t.ipfs, dirb, bytes.NewReader(metacipher), "meta"); err != nil {
-		return nil, err
-	}
-	if err := ipfs.AddFileToDirectory(t.ipfs, dirb, bytes.NewReader(addrcipher), "pk"); err != nil {
-		return nil, err
-	}
-
-	// pin the directory
-	dir, err := dirb.GetNode()
+	dir := uio.NewDirectory(t.ipfs.DAG)
+	thumbId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader(thumbcipher), "thumb")
 	if err != nil {
 		return nil, err
 	}
-	if err := ipfs.PinDirectory(t.ipfs, dir, []string{"medium", "photo"}); err != nil {
+	smallId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader(smallcipher), "small")
+	if err != nil {
 		return nil, err
 	}
+	mediumId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader(mediumcipher), "medium")
+	if err != nil {
+		return nil, err
+	}
+	photoId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader(largecipher), "photo")
+	if err != nil {
+		return nil, err
+	}
+	metaId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader(metacipher), "meta")
+	if err != nil {
+		return nil, err
+	}
+
+	// pin _some_ of the photo set locally
+	node, err := dir.GetNode()
+	if err != nil {
+		return nil, err
+	}
+	if err := ipfs.PinDirectory(t.ipfs, node, []string{"small", "medium", "photo", "meta"}); err != nil {
+		return nil, err
+	}
+
+	// the add result is a handle for UIs to use to share to a thread
 	result := &AddDataResult{
-		Id:  dir.Cid().Hash().B58String(),
+		Id:  node.Cid().Hash().B58String(),
 		Key: base58.FastBase58Encoding(key),
 	}
 
-	// if not mobile, create a pin request
+	// if not mobile, add store requests.
 	// on mobile, we let the OS handle the archive directly
 	if !t.Mobile() {
-		//t.cafeOutbox.Add(result.Id)
+		t.cafeOutbox.Add(thumbId.Hash().B58String(), repo.CafeStoreRequest)
+		t.cafeOutbox.Add(smallId.Hash().B58String(), repo.CafeStoreRequest)
+		t.cafeOutbox.Add(mediumId.Hash().B58String(), repo.CafeStoreRequest)
+		t.cafeOutbox.Add(photoId.Hash().B58String(), repo.CafeStoreRequest)
+		t.cafeOutbox.Add(metaId.Hash().B58String(), repo.CafeStoreRequest)
+		t.cafeOutbox.Add(node.Cid().Hash().B58String(), repo.CafeStoreRequest)
 		return result, nil
 	}
 
@@ -172,9 +171,6 @@ func (t *Textile) AddPhoto(path string) (*AddDataResult, error) {
 		return nil, err
 	}
 	if err := result.Archive.AddFile(metacipher, "meta"); err != nil {
-		return nil, err
-	}
-	if err := result.Archive.AddFile(addrcipher, "pk"); err != nil {
 		return nil, err
 	}
 

@@ -201,13 +201,16 @@ func (t *Textile) PublishProfile(prof *Profile) (*ipfs.IpnsEntry, error) {
 	dir := uio.NewDirectory(t.ipfs.DAG)
 
 	// add public components
-	if err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader([]byte(prof.Address)), "address"); err != nil {
+	addressId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader([]byte(prof.Address)), "address")
+	if err != nil {
 		return nil, err
 	}
-	if err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader([]byte(prof.Username)), "username"); err != nil {
+	usernameId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader([]byte(prof.Username)), "username")
+	if err != nil {
 		return nil, err
 	}
-	if err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader([]byte(prof.AvatarUri)), "avatar_uri"); err != nil {
+	avatarId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader([]byte(prof.AvatarUri)), "avatar_uri")
+	if err != nil {
 		return nil, err
 	}
 
@@ -219,10 +222,12 @@ func (t *Textile) PublishProfile(prof *Profile) (*ipfs.IpnsEntry, error) {
 	if err := ipfs.PinDirectory(t.ipfs, node, []string{}); err != nil {
 		return nil, err
 	}
-	id := node.Cid().Hash().B58String()
 
-	// request cafe store
-	t.cafeOutbox.Add(id, repo.CafeStoreRequest)
+	// add store requests
+	t.cafeOutbox.Add(addressId.Hash().B58String(), repo.CafeStoreRequest)
+	t.cafeOutbox.Add(usernameId.Hash().B58String(), repo.CafeStoreRequest)
+	t.cafeOutbox.Add(avatarId.Hash().B58String(), repo.CafeStoreRequest)
+	t.cafeOutbox.Add(node.Cid().Hash().B58String(), repo.CafeStoreRequest)
 
 	// load our private key
 	accnt, err := t.Account()
@@ -235,7 +240,7 @@ func (t *Textile) PublishProfile(prof *Profile) (*ipfs.IpnsEntry, error) {
 	}
 
 	// finish
-	return t.publish(id, sk)
+	return t.publish(node.Cid().Hash().B58String(), sk)
 }
 
 // ResolveProfile looks up a profile on ipns
