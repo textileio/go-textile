@@ -1,8 +1,20 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	icore "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
+	"log"
+	"net/http"
+	"net/url"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
+
 	"github.com/fatih/color"
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
@@ -12,18 +24,13 @@ import (
 	"github.com/textileio/textile-go/cmd"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/gateway"
+	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/repo"
 	rconfig "github.com/textileio/textile-go/repo/config"
+	"github.com/textileio/textile-go/thread"
 	"github.com/textileio/textile-go/wallet"
 	"gopkg.in/abiosoft/ishell.v2"
-	icore "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
-	"log"
-	"os"
-	"os/signal"
-	"path/filepath"
-	"regexp"
-	"strconv"
-	"strings"
 )
 
 var wordsRegexp = regexp.MustCompile(`^[a-z]+$`)
@@ -55,6 +62,10 @@ type CafeOptions struct {
 	DBTLS       bool   `long:"cafe-db-tls" description:"use TLS for the cafe mongo db connection"`
 	TokenSecret string `long:"cafe-token-secret" description:"set the cafe token secret"`
 	ReferralKey string `long:"cafe-referral-key" description:"set the cafe referral key"`
+
+	// Slack hook url settings
+	SlackHook        string `short:"s" long:"slack-hook" description:"set the slack post hook url"`
+	WelcomeImagePath string `long:"welcome-image" description:"specify a welcome image to post to all threads on start"`
 }
 
 type Options struct{}
@@ -96,6 +107,28 @@ type ShellCommand struct {
 	Logs     LogOptions     `group:"Log Options"`
 	Gateway  GatewayOptions `group:"Gateway Options"`
 	Cafe     CafeOptions    `group:"Cafe Options"`
+}
+
+// Payload is a Slack message payload
+type Payload struct {
+	Channel     string        `json:"channel"`
+	Username    string        `json:"username"`
+	Text        string        `json:"text"`
+	Markdown    bool          `json:"mrkdwn"`
+	IconURL     string        `json:"icon_url"`
+	Attachments []*Attachment `json:"attachments"`
+}
+
+// Attachment is a Slack Hook attachment
+type Attachment struct {
+	Fallback   string `json:"fallback"`
+	AuthorName string `json:"author_name"`
+	AuthorLink string `json:"author_link"`
+	AuthorIcon string `json:"author_icon"`
+	Title      string `json:"title"`
+	TitleLink  string `json:"title_link"`
+	Text       string `json:"text"`
+	ImageURL   string `json:"image_url"`
 }
 
 var initCommand InitCommand
@@ -277,6 +310,7 @@ func (x *DaemonCommand) Execute(args []string) error {
 		return err
 	}
 	printSplashScreen(x.Cafe, true)
+	welcomeSlackMessage(x.Cafe, true)
 
 	// handle interrupt
 	quit := make(chan os.Signal)
@@ -298,6 +332,7 @@ func (x *ShellCommand) Execute(args []string) error {
 		return err
 	}
 	printSplashScreen(x.Cafe, false)
+	welcomeSlackMessage(x.Cafe, false)
 
 	// run the shell
 	cmd.RunShell(func() error {
@@ -325,6 +360,103 @@ func getRepoPath(repoPath string) (string, error) {
 		repoPath = filepath.Join(appDir, "repo")
 	}
 	return repoPath, nil
+}
+
+func threadIntegrationUpdate(update thread.Update, cafeURL string, hookURL string) error {
+	_, thrd := core.Node.GetThread(update.ThreadId)
+	if thrd == nil {
+		return fmt.Errorf("could not find thread %s", update.ThreadId)
+	}
+
+	caption := ""
+	var userName string
+	block := update.Block
+
+	authorID, err := ipfs.IdFromEncodedPublicKey(block.AuthorPk)
+	if err != nil {
+		return err
+	}
+
+	if block.DataCaptionCipher != nil {
+		captionBytes, err := thrd.Decrypt(update.Block.DataCaptionCipher)
+		if err != nil {
+			return err
+		}
+		caption = string(captionBytes)
+	}
+
+	if block.AuthorUsernameCipher != nil {
+		userNameBytes, err := thrd.Decrypt(block.AuthorUsernameCipher)
+		if err != nil {
+			return err
+		}
+		userName = string(userNameBytes)
+	} else {
+		userName = authorID.Pretty()[:8]
+	}
+
+	// Get photo/data id for creating cafe api url
+	photoID := update.Block.DataId
+
+	// Get key for photo to include in cafe api url
+	photoKey, err := core.Node.GetPhotoKey(photoID)
+	if err != nil {
+		return err
+	}
+
+	// Create message content for slack post
+	imageURL := fmt.Sprintf("%s/ipfs/%s/photo?key=%s", cafeURL, photoID, photoKey)
+
+	// Create photo attachment for slack post
+	attachment := &Attachment{
+		Fallback:   "A photo posted from the Textile Photos app.",
+		AuthorName: "TextilePhotos",
+		AuthorLink: "https://textile.photos/",
+		AuthorIcon: "https://www.textile.photos/statics/images/favicon/favicon-32x32.png",
+		Title:      "Photo from app",
+		TitleLink:  imageURL,
+		Text:       caption,
+		ImageURL:   imageURL,
+	}
+
+	// Bundle in slack Payload object
+	payload := &Payload{
+		Channel:     update.ThreadName,
+		Username:    userName,
+		Text:        fmt.Sprintf("added a photo to *'%s*'", update.ThreadName),
+		Markdown:    true,
+		IconURL:     fmt.Sprintf("%s/ipns/%s/avatar", cafeURL, authorID.Pretty()),
+		Attachments: []*Attachment{attachment},
+	}
+
+	return postPayloadToHook(payload, hookURL)
+}
+
+func postPayloadToHook(payload *Payload, hookURL string) error {
+	// JSON encode the payload
+	b, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	// Create Slack urlencoded json payload
+	data := url.Values{}
+	data.Set("payload", string(b))
+
+	// Create new Client to post to Slack hook url
+	client := &http.Client{}
+	r, err := http.NewRequest("POST", hookURL, strings.NewReader(data.Encode()))
+	if err != nil {
+		return err
+	}
+
+	// Add required headers and content type
+	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	r.Header.Add("Content-Length", strconv.Itoa(len(data.Encode())))
+
+	// Post
+	client.Do(r)
+	return nil
 }
 
 func buildNode(repoPath string, cafeOpts CafeOptions, gatewayOpts GatewayOptions, logOpts LogOptions) error {
@@ -422,6 +554,15 @@ func startNode(cafeOpts CafeOptions, gatewayOpts GatewayOptions) error {
 				if !ok {
 					return
 				}
+				if cafeOpts.SlackHook != "" && cafeOpts.Addr != "" {
+					switch update.Block.Type {
+					case repo.PhotoBlock:
+						err := threadIntegrationUpdate(update, cafeOpts.Addr, cafeOpts.SlackHook)
+						if err != nil {
+							fmt.Println(fmt.Errorf("unable to post photo integration: %s", err))
+						}
+					}
+				}
 				msg := fmt.Sprintf("new %s block in thread '%s'", update.Block.Type.Description(), update.ThreadName)
 				fmt.Println(green(msg))
 			}
@@ -499,6 +640,36 @@ func printSplashScreen(cafeOpts CafeOptions, daemon bool) {
 	}
 	if !daemon {
 		fmt.Println(grey("type 'help' for available commands"))
+	}
+}
+
+func welcomeSlackMessage(cafeOpts CafeOptions, daemon bool) {
+	path, err := homedir.Expand(cafeOpts.WelcomeImagePath)
+	if err != nil || path == "" {
+		return
+	}
+
+	// open the file
+	f, err := os.Open(path)
+	if err != nil {
+		fmt.Println("unable to post welcome image, error opening file.")
+		return
+	}
+	defer f.Close()
+
+	caption := "Hi, I'm the Textile Photos slackbot. I'm going to post your photos to Slack."
+
+	// do the add
+	f.Seek(0, 0)
+	added, err := core.Node.AddPhoto(path)
+	if err != nil {
+		return
+	}
+	threads := core.Node.Threads()
+	for _, thrd := range threads {
+		if _, err := thrd.AddPhoto(added.Id, caption, []byte(added.Key)); err != nil {
+			return
+		}
 	}
 }
 
