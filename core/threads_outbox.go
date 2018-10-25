@@ -10,9 +10,6 @@ import (
 	"time"
 )
 
-// kThreadsFlushFrequency is how often to run store job (daemon only)
-const kThreadsFlushFrequency = time.Minute * 10
-
 // threadsFlushGroupSize is the size of concurrently processed messages
 // note: msgs from this group are batched to each receiver
 const threadsFlushGroupSize = 16
@@ -49,19 +46,6 @@ func (q *ThreadsOutbox) Add(pid peer.ID, env *pb.Envelope) error {
 		Envelope: env,
 		Date:     time.Now(),
 	})
-}
-
-// Run starts a job ticker which processes any pending messages
-func (q *ThreadsOutbox) Run() {
-	tick := time.NewTicker(kThreadsFlushFrequency)
-	defer tick.Stop()
-	go q.Flush()
-	for {
-		select {
-		case <-tick.C:
-			go q.Flush()
-		}
-	}
 }
 
 // Flush processes pending messages

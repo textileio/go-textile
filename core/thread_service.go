@@ -87,6 +87,10 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 	if err != nil {
 		return nil, err
 	}
+	if block == nil {
+		// exists, abort
+		return nil, nil
+	}
 
 	// select a handler
 	switch block.Type {

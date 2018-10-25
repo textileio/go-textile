@@ -35,8 +35,14 @@ var log = logging.MustGetLogger("core")
 // Version is the core version identifier
 const Version = "0.2.0"
 
-// Node is the single Textile instance
+// Node is the single Textile instance used by mobile and the shell
 var Node *Textile
+
+// kQueueFlushFreq how often to flush the message queues
+const kQueueFlushFreq = time.Minute * 10
+
+// kMobileQueueFlushFreq how often to flush the message queues on mobile
+const kMobileQueueFlush = time.Minute * 1
 
 // Update is used to notify UI listeners of changes
 type Update struct {
@@ -262,7 +268,10 @@ func (t *Textile) Start() error {
 	t.notifications = make(chan repo.Notification, 10)
 
 	// build queues
-	t.threadsOutbox = NewThreadsOutbox(
+	t.cafeInbox = NewCafeInbox(
+		func() *CafeService {
+			return t.cafeService
+		},
 		func() *ThreadsService {
 			return t.threadsService
 		},
@@ -270,7 +279,6 @@ func (t *Textile) Start() error {
 			return t.ipfs
 		},
 		t.datastore,
-		t.cafeOutbox,
 	)
 	t.cafeOutbox = NewCafeOutbox(
 		func() *CafeService {
@@ -281,7 +289,7 @@ func (t *Textile) Start() error {
 		},
 		t.datastore,
 	)
-	t.cafeInbox = NewCafeInbox(
+	t.threadsOutbox = NewThreadsOutbox(
 		func() *ThreadsService {
 			return t.threadsService
 		},
@@ -289,6 +297,7 @@ func (t *Textile) Start() error {
 			return t.ipfs
 		},
 		t.datastore,
+		t.cafeOutbox,
 	)
 
 	// start the ipfs node
@@ -316,16 +325,8 @@ func (t *Textile) Start() error {
 		// setup cafe service
 		t.cafeService = NewCafeService(accnt, t.ipfs, t.datastore, t.cafeInbox)
 
-		// start store queue
-		if t.Mobile() {
-			go t.threadsOutbox.Flush()
-			go t.cafeOutbox.Flush()
-			go t.cafeInbox.Flush()
-		} else {
-			go t.threadsOutbox.Run()
-			go t.cafeOutbox.Run()
-			go t.cafeInbox.Run()
-		}
+		// run queues
+		go t.runQueues()
 
 		// print swarm addresses
 		if err := ipfs.PrintSwarmAddrs(t.ipfs); err != nil {
@@ -373,7 +374,7 @@ func (t *Textile) Stop() error {
 	dsLockFile := filepath.Join(t.repoPath, "datastore", "LOCK")
 	os.Remove(dsLockFile)
 
-	// wipe threads
+	// cleanup
 	t.threads = nil
 
 	// close update channels
@@ -569,6 +570,35 @@ func (t *Textile) createIPFS(online bool) error {
 	t.ipfs = nd
 
 	return nil
+}
+
+// runQueues runs each message queue
+func (t *Textile) runQueues() {
+	var freq time.Duration
+	if t.Mobile() {
+		freq = kMobileQueueFlush
+	} else {
+		freq = kQueueFlushFreq
+	}
+	tick := time.NewTicker(freq)
+	defer tick.Stop()
+	go func() {
+		time.Sleep(time.Second)
+		t.flushQueues()
+	}()
+	for {
+		select {
+		case <-tick.C:
+			t.flushQueues()
+		}
+	}
+}
+
+// flushQueues flushes each message queue
+func (t *Textile) flushQueues() {
+	go t.threadsOutbox.Flush()
+	go t.cafeOutbox.Flush()
+	go t.cafeInbox.CheckMessages()
 }
 
 // getThreadByBlock returns the thread owning the given block

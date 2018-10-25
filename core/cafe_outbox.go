@@ -17,9 +17,6 @@ import (
 	"time"
 )
 
-// kCafeOutFlushFrequency is how often to run store job (daemon only)
-const kCafeOutFlushFrequency = time.Minute * 10
-
 // cafeOutFlushGroupSize is the size of concurrently processed requests
 // note: reqs from this group are batched to each cafe
 const cafeOutFlushGroupSize = 16
@@ -83,19 +80,6 @@ func (q *CafeOutbox) InboxRequest(pid peer.ID, env *pb.Envelope, inboxes []strin
 		q.add(pid, hash.B58String(), inbox, repo.CafePeerInboxRequest)
 	}
 	return nil
-}
-
-// Run starts a job ticker which processes any pending requests
-func (q *CafeOutbox) Run() {
-	tick := time.NewTicker(kCafeOutFlushFrequency)
-	defer tick.Stop()
-	go q.Flush()
-	for {
-		select {
-		case <-tick.C:
-			go q.Flush()
-		}
-	}
 }
 
 // Flush processes pending requests

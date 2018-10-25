@@ -3,7 +3,6 @@ package core
 import (
 	"github.com/textileio/textile-go/repo"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
-	"sync"
 )
 
 // RegisterCafe registers this account with another peer (the "cafe"),
@@ -42,30 +41,5 @@ func (t *Textile) CheckCafeMessages() error {
 	if !t.Online() {
 		return ErrOffline
 	}
-
-	// get active cafe sessions
-	sessions := t.datastore.CafeSessions().List()
-	if len(sessions) == 0 {
-		return nil
-	}
-
-	// check each concurrently
-	wg := sync.WaitGroup{}
-	var cerr error
-	for _, session := range sessions {
-		cafe, err := peer.IDB58Decode(session.CafeId)
-		if err != nil {
-			cerr = err
-			continue
-		}
-		wg.Add(1)
-		go func(cafe peer.ID) {
-			if err := t.cafeService.CheckMessages(cafe); err != nil {
-				cerr = err
-			}
-			wg.Done()
-		}(cafe)
-	}
-	wg.Wait()
-	return cerr
+	return t.cafeInbox.CheckMessages()
 }

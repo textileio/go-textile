@@ -10,30 +10,62 @@ import (
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 	"sync"
-	"time"
 )
 
-// how often to run store job (daemon only)
-const kCafeInFlushFrequency = time.Minute * 10
-
-// the size of concurrently processed messages
+// cafeInFlushGroupSize is the size of concurrently processed messages
 const cafeInFlushGroupSize = 16
 
 // CafeInbox queues and processes outbound thread messages
 type CafeInbox struct {
-	service   func() *ThreadsService
-	node      func() *core.IpfsNode
-	datastore repo.Datastore
-	mux       sync.Mutex
+	service        func() *CafeService
+	threadsService func() *ThreadsService
+	node           func() *core.IpfsNode
+	datastore      repo.Datastore
+	mux            sync.Mutex
 }
 
 // NewCafeInbox creates a new inbox queue
-func NewCafeInbox(service func() *ThreadsService, node func() *core.IpfsNode, datastore repo.Datastore) *CafeInbox {
+func NewCafeInbox(
+	service func() *CafeService,
+	threadsService func() *ThreadsService,
+	node func() *core.IpfsNode,
+	datastore repo.Datastore,
+) *CafeInbox {
 	return &CafeInbox{
-		service:   service,
-		node:      node,
-		datastore: datastore,
+		service:        service,
+		threadsService: threadsService,
+		node:           node,
+		datastore:      datastore,
 	}
+}
+
+// CheckMessages asks each active cafe session for new messages
+func (q *CafeInbox) CheckMessages() error {
+	// get active cafe sessions
+	sessions := q.datastore.CafeSessions().List()
+	if len(sessions) == 0 {
+		return nil
+	}
+
+	// check each concurrently
+	wg := sync.WaitGroup{}
+	var cerr error
+	for _, session := range sessions {
+		cafe, err := peer.IDB58Decode(session.CafeId)
+		if err != nil {
+			cerr = err
+			continue
+		}
+		wg.Add(1)
+		go func(cafe peer.ID) {
+			if err := q.service().CheckMessages(cafe); err != nil {
+				cerr = err
+			}
+			wg.Done()
+		}(cafe)
+	}
+	wg.Wait()
+	return cerr
 }
 
 // Add adds an inbound message
@@ -49,26 +81,13 @@ func (q *CafeInbox) Add(msg *pb.CafeMessage) error {
 	})
 }
 
-// Run starts a job ticker which processes any pending messages
-func (q *CafeInbox) Run() {
-	tick := time.NewTicker(kCafeInFlushFrequency)
-	defer tick.Stop()
-	go q.Flush()
-	for {
-		select {
-		case <-tick.C:
-			go q.Flush()
-		}
-	}
-}
-
 // Flush processes pending messages
 func (q *CafeInbox) Flush() {
 	q.mux.Lock()
 	defer q.mux.Unlock()
 
 	// check service status
-	if q.service() == nil {
+	if q.threadsService() == nil || q.service() == nil {
 		return
 	}
 
@@ -148,13 +167,13 @@ func (q *CafeInbox) handle(msg *repo.CafeMessage) error {
 	}
 
 	// check signature
-	if err := q.service().service.VerifyEnvelope(env, pid); err != nil {
+	if err := q.threadsService().service.VerifyEnvelope(env, pid); err != nil {
 		log.Warningf("error verifying cafe message: %s", err)
 		return nil
 	}
 
 	// finally, pass to thread service for normal handling
-	if _, err := q.service().Handle(pid, env); err != nil {
+	if _, err := q.threadsService().Handle(pid, env); err != nil {
 		return err
 	}
 	return nil

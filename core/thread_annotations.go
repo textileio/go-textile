@@ -35,9 +35,6 @@ func (t *Thread) AddLike(dataId string) (mh.Multihash, error) {
 
 // addAnnotation adds an outgoing comment or like block
 func (t *Thread) addAnnotation(msg *pb.ThreadAnnotation) (mh.Multihash, error) {
-	t.mux.Lock()
-	defer t.mux.Unlock()
-
 	// commit to ipfs
 	res, err := t.commitBlock(msg, pb.ThreadBlock_ANNOTATION, nil)
 	if err != nil {

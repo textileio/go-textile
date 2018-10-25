@@ -50,7 +50,10 @@ func NewCafeService(
 	datastore repo.Datastore,
 	inbox *CafeInbox,
 ) *CafeService {
-	handler := &CafeService{datastore: datastore}
+	handler := &CafeService{
+		datastore: datastore,
+		inbox:     inbox,
+	}
 	handler.service = service.NewService(account, handler, node)
 	return handler
 }
@@ -271,6 +274,10 @@ func (h *CafeService) CheckMessages(cafe peer.ID) error {
 	// flush inbox
 	go h.inbox.Flush()
 
+	// delete them from the remote so that more can be fetched
+	if len(res.Messages) > 0 {
+		return h.DeleteMessages(cafe)
+	}
 	return nil
 }
 
