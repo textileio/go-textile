@@ -23,7 +23,7 @@ func (c *CafeClientMessagesDB) AddOrUpdate(message *repo.CafeClientMessage) erro
 	if err != nil {
 		return err
 	}
-	stm := `insert or replace into cafe_client_messages(id, clientId, date) values(?,?,?)`
+	stm := `insert or replace into cafe_client_messages(id, peerId, clientId, date) values(?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -32,6 +32,7 @@ func (c *CafeClientMessagesDB) AddOrUpdate(message *repo.CafeClientMessage) erro
 	defer stmt.Close()
 	_, err = stmt.Exec(
 		message.Id,
+		message.PeerId,
 		message.ClientId,
 		int(message.Date.Unix()),
 	)
@@ -83,14 +84,15 @@ func (c *CafeClientMessagesDB) handleQuery(stm string) []repo.CafeClientMessage 
 		return nil
 	}
 	for rows.Next() {
-		var id, clientId string
+		var id, peerId, clientId string
 		var dateInt int
-		if err := rows.Scan(&id, &clientId, &dateInt); err != nil {
+		if err := rows.Scan(&id, &peerId, &clientId, &dateInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
 		message := repo.CafeClientMessage{
 			Id:       id,
+			PeerId:   peerId,
 			ClientId: clientId,
 			Date:     time.Unix(int64(dateInt), 0),
 		}

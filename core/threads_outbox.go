@@ -1,24 +1,19 @@
 package core
 
 import (
-	"bytes"
-	"github.com/golang/protobuf/proto"
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/crypto"
-	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 	"sync"
 	"time"
 )
 
-// how often to run store job (daemon only)
+// kThreadsFlushFrequency is how often to run store job (daemon only)
 const kThreadsFlushFrequency = time.Minute * 10
 
-// the size of concurrently processed requests
+// threadsFlushGroupSize is the size of concurrently processed messages
 // note: msgs from this group are batched to each receiver
 const threadsFlushGroupSize = 16
 
@@ -47,18 +42,13 @@ func NewThreadsOutbox(
 }
 
 // Add adds an outbound message
-func (q *ThreadsOutbox) Add(pid peer.ID, env *pb.Envelope) {
-	if err := q.datastore.ThreadMessages().Add(&repo.ThreadMessage{
+func (q *ThreadsOutbox) Add(pid peer.ID, env *pb.Envelope) error {
+	return q.datastore.ThreadMessages().Add(&repo.ThreadMessage{
 		Id:       ksuid.New().String(),
 		PeerId:   pid.Pretty(),
 		Envelope: env,
 		Date:     time.Now(),
-	}); err != nil {
-		log.Errorf("error adding thread message for %s: %s", pid.Pretty(), err)
-	}
-
-	// try to flush the queue now
-	go q.Flush()
+	})
 }
 
 // Run starts a job ticker which processes any pending messages
@@ -91,7 +81,7 @@ func (q *ThreadsOutbox) Flush() {
 	}
 }
 
-// batch flushes a batch of requests
+// batch flushes a batch of messages
 func (q *ThreadsOutbox) batch(msgs []repo.ThreadMessage) error {
 	if len(msgs) == 0 {
 		return nil
@@ -113,6 +103,9 @@ func (q *ThreadsOutbox) batch(msgs []repo.ThreadMessage) error {
 		}(&msg)
 	}
 	wg.Wait()
+
+	// flush the outbox before starting a new batch
+	go q.cafeOutbox.Flush()
 
 	// next batch
 	offset := msgs[len(msgs)-1].Id
@@ -142,49 +135,21 @@ func (q *ThreadsOutbox) handle(msg *repo.ThreadMessage) error {
 	if err != nil {
 		return err
 	}
+
 	// first, attempt to send the message directly to the recipient
 	if err := q.service().SendMessage(pid, msg.Envelope); err != nil {
-		log.Warningf("send thread message direct to %s failed: %s", pid.Pretty(), err)
+		log.Debugf("send thread message direct to %s failed: %s", pid.Pretty(), err)
 
 		// peer is offline, queue an outbound cafe request for the peer's inbox(es)
 		contact := q.datastore.Contacts().Get(pid.Pretty())
 		if contact != nil && len(contact.Inboxes) > 0 {
-			hash, err := q.prepForInbox(pid, msg.Envelope)
-			if err != nil {
-				return err
-			}
+			log.Debugf("send thread message for %s to inbox(es)", pid.Pretty())
 
 			// add an inbox request for message delivery
-			q.cafeOutbox.InboxRequest(pid, hash.B58String(), contact.Inboxes)
+			if err := q.cafeOutbox.InboxRequest(pid, msg.Envelope, contact.Inboxes); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
-}
-
-// prepForInbox encrypts and pins a message intended for a peer inbox
-func (q *ThreadsOutbox) prepForInbox(pid peer.ID, env *pb.Envelope) (mh.Multihash, error) {
-	// encrypt envelope w/ recipient's pk
-	envb, err := proto.Marshal(env)
-	if err != nil {
-		return nil, err
-	}
-	pk, err := pid.ExtractPublicKey()
-	if err != nil {
-		return nil, err
-	}
-	ciphertext, err := crypto.Encrypt(pk, envb)
-	if err != nil {
-		return nil, err
-	}
-
-	// pin it
-	id, err := ipfs.PinData(q.node(), bytes.NewReader(ciphertext))
-	if err != nil {
-		return nil, err
-	}
-
-	// add a store request for the encrypted message
-	q.cafeOutbox.Add(id.Hash().B58String(), repo.CafeStoreRequest)
-
-	return id.Hash(), nil
 }

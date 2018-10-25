@@ -22,6 +22,7 @@ type SQLiteDatastore struct {
 	notifications      repo.NotificationStore
 	cafeSessions       repo.CafeSessionStore
 	cafeRequests       repo.CafeRequestStore
+	cafeMessages       repo.CafeMessageStore
 	cafeClientNonces   repo.CafeClientNonceStore
 	cafeClients        repo.CafeClientStore
 	cafeClientThreads  repo.CafeClientThreadStore
@@ -53,6 +54,7 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 		notifications:      NewNotificationStore(conn, mux),
 		cafeSessions:       NewCafeSessionStore(conn, mux),
 		cafeRequests:       NewCafeRequestStore(conn, mux),
+		cafeMessages:       NewCafeMessageStore(conn, mux),
 		cafeClientNonces:   NewCafeClientNonceStore(conn, mux),
 		cafeClients:        NewCafeClientStore(conn, mux),
 		cafeClientThreads:  NewCafeClientThreadStore(conn, mux),
@@ -110,6 +112,10 @@ func (d *SQLiteDatastore) CafeSessions() repo.CafeSessionStore {
 
 func (d *SQLiteDatastore) CafeRequests() repo.CafeRequestStore {
 	return d.cafeRequests
+}
+
+func (d *SQLiteDatastore) CafeMessages() repo.CafeMessageStore {
+	return d.cafeMessages
 }
 
 func (d *SQLiteDatastore) CafeClientNonces() repo.CafeClientNonceStore {
@@ -197,7 +203,8 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 	create index thread_message_date on thread_messages (date);
 
     create table notifications (id text primary key not null, date integer not null, actorId text not null, actorUsername text not null, subject text not null, subjectId text not null, blockId text, dataId text, type integer not null, body text not null, read integer not null);
-    create index notification_actorId on notifications (actorId);
+    create index notification_date on notifications (date);
+	create index notification_actorId on notifications (actorId);
     create index notification_subjectId on notifications (subjectId);
     create index notification_blockId on notifications (blockId);
     create index notification_read on notifications (read);
@@ -208,6 +215,9 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index cafe_request_cafeId on cafe_requests (cafeId);
 	create index cafe_request_date on cafe_requests (date);
 
+	create table cafe_messages (id text primary key not null, peerId text not null, date integer not null);
+	create index cafe_message_date on cafe_messages (date);
+
 	create table cafe_client_nonces (value text primary key not null, address text not null, date integer not null);
 
     create table cafe_clients (id text primary key not null, address text not null, created integer not null, lastSeen integer not null);
@@ -217,8 +227,9 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create table cafe_client_threads (id text not null, clientId text not null, skCipher blob not null, headCipher blob not null, nameCipher blob not null, primary key (id, clientId));
     create index cafe_client_thread_clientId on cafe_client_threads (clientId);
 
-	create table cafe_client_messages (id text not null, clientId text not null, date integer not null, primary key (id, clientId));
+	create table cafe_client_messages (id text not null, peerId text not null, clientId text not null, date integer not null, primary key (id, clientId));
     create index cafe_client_message_clientId on cafe_client_messages (clientId);
+	create index cafe_client_message_date on cafe_client_messages (date);
 	`
 	_, err := db.Exec(sqlStmt)
 	if err != nil {

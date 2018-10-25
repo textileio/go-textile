@@ -105,6 +105,7 @@ type Textile struct {
 	threadsOutbox  *ThreadsOutbox
 	cafeService    *CafeService
 	cafeOutbox     *CafeOutbox
+	cafeInbox      *CafeInbox
 	mux            sync.Mutex
 }
 
@@ -260,6 +261,36 @@ func (t *Textile) Start() error {
 	t.threadUpdates = make(chan ThreadUpdate, 10)
 	t.notifications = make(chan repo.Notification, 10)
 
+	// build queues
+	t.threadsOutbox = NewThreadsOutbox(
+		func() *ThreadsService {
+			return t.threadsService
+		},
+		func() *core.IpfsNode {
+			return t.ipfs
+		},
+		t.datastore,
+		t.cafeOutbox,
+	)
+	t.cafeOutbox = NewCafeOutbox(
+		func() *CafeService {
+			return t.cafeService
+		},
+		func() *core.IpfsNode {
+			return t.ipfs
+		},
+		t.datastore,
+	)
+	t.cafeInbox = NewCafeInbox(
+		func() *ThreadsService {
+			return t.threadsService
+		},
+		func() *core.IpfsNode {
+			return t.ipfs
+		},
+		t.datastore,
+	)
+
 	// start the ipfs node
 	log.Debug("creating an ipfs node...")
 	if err := t.createIPFS(false); err != nil {
@@ -283,15 +314,17 @@ func (t *Textile) Start() error {
 		)
 
 		// setup cafe service
-		t.cafeService = NewCafeService(accnt, t.ipfs, t.datastore)
+		t.cafeService = NewCafeService(accnt, t.ipfs, t.datastore, t.cafeInbox)
 
 		// start store queue
 		if t.Mobile() {
 			go t.threadsOutbox.Flush()
 			go t.cafeOutbox.Flush()
+			go t.cafeInbox.Flush()
 		} else {
 			go t.threadsOutbox.Run()
 			go t.cafeOutbox.Run()
+			go t.cafeInbox.Run()
 		}
 
 		// print swarm addresses
@@ -300,27 +333,6 @@ func (t *Textile) Start() error {
 		}
 		log.Info("node is online")
 	}()
-
-	// build outbox queues
-	t.cafeOutbox = NewCafeOutbox(
-		func() *CafeService {
-			return t.cafeService
-		},
-		func() *core.IpfsNode {
-			return t.ipfs
-		},
-		t.datastore,
-	)
-	t.threadsOutbox = NewThreadsOutbox(
-		func() *ThreadsService {
-			return t.threadsService
-		},
-		func() *core.IpfsNode {
-			return t.ipfs
-		},
-		t.datastore,
-		t.cafeOutbox,
-	)
 
 	// setup threads
 	for _, mod := range t.datastore.Threads().List() {

@@ -153,8 +153,8 @@ func (s *Service) NewError(code int, msg string, id int32) (*pb.Envelope, error)
 	}, &id, true)
 }
 
-// verifyEnvelope verifies the authenticity of an envelope
-func (s *Service) verifyEnvelope(env *pb.Envelope, pid peer.ID) error {
+// VerifyEnvelope verifies the authenticity of an envelope
+func (s *Service) VerifyEnvelope(env *pb.Envelope, pid peer.ID) error {
 	ser, err := proto.Marshal(env.Message)
 	if err != nil {
 		return err
@@ -225,7 +225,7 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 		}
 
 		// check signature
-		if err := s.verifyEnvelope(env, rpid); err != nil {
+		if err := s.VerifyEnvelope(env, rpid); err != nil {
 			log.Warningf("error verifying message: %s", err)
 			continue
 		}

@@ -40,10 +40,16 @@ const (
 type CafeService struct {
 	service   *service.Service
 	datastore repo.Datastore
+	inbox     *CafeInbox
 }
 
 // NewCafeService returns a new threads service
-func NewCafeService(account *keypair.Full, node *core.IpfsNode, datastore repo.Datastore) *CafeService {
+func NewCafeService(
+	account *keypair.Full,
+	node *core.IpfsNode,
+	datastore repo.Datastore,
+	inbox *CafeInbox,
+) *CafeService {
 	handler := &CafeService{datastore: datastore}
 	handler.service = service.NewService(account, handler, node)
 	return handler
@@ -254,12 +260,16 @@ func (h *CafeService) CheckMessages(cafe peer.ID) error {
 	if err != nil {
 		return err
 	}
-	for _, id := range res.Cids {
-		fmt.Println(id)
+
+	// save messages to inbox
+	for _, msg := range res.Messages {
+		if err := h.inbox.Add(msg); err != nil {
+			return err
+		}
 	}
 
-	// TODO: download and decrypt each message
-	// TODO: pass env to thread service handler
+	// flush inbox
+	go h.inbox.Flush()
 
 	return nil
 }
@@ -688,6 +698,7 @@ func (h *CafeService) handleDeliverMessage(pid peer.ID, env *pb.Envelope) (*pb.E
 	// add or update
 	message := &repo.CafeClientMessage{
 		Id:       msg.Id,
+		PeerId:   pid.Pretty(),
 		ClientId: client.Id,
 		Date:     time.Now(),
 	}
@@ -727,14 +738,23 @@ func (h *CafeService) handleCheckMessages(pid peer.ID, env *pb.Envelope) (*pb.En
 	}
 
 	// list new messages
-	var cids []string
+	res := &pb.CafeMessages{
+		Messages: make([]*pb.CafeMessage, 0),
+	}
 	msgs := h.datastore.CafeClientMessages().ListByClient(client.Id, inboxMessagePageSize)
-	for _, id := range msgs {
-		cids = append(cids, id.Id)
+	for _, msg := range msgs {
+		date, err := ptypes.TimestampProto(msg.Date)
+		if err != nil {
+			return h.service.NewError(500, err.Error(), env.Message.RequestId)
+		}
+		res.Messages = append(res.Messages, &pb.CafeMessage{
+			Id:     msg.Id,
+			PeerId: msg.PeerId,
+			Date:   date,
+		})
 	}
 
 	// return a wrapped response
-	res := &pb.CafeMessages{Cids: cids}
 	return h.service.NewEnvelope(pb.Message_CAFE_MESSAGES, res, &env.Message.RequestId, true)
 }
 

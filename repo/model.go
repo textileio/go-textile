@@ -173,6 +173,12 @@ type CafeRequest struct {
 	Date     time.Time       `json:"date"`
 }
 
+type CafeMessage struct {
+	Id     string    `json:"id"`
+	PeerId string    `json:"peer_id"`
+	Date   time.Time `json:"date"`
+}
+
 type CafeClientNonce struct {
 	Value   string    `json:"value"`
 	Address string    `json:"address"`
@@ -196,6 +202,7 @@ type CafeClientThread struct {
 
 type CafeClientMessage struct {
 	Id       string    `json:"id"`
+	PeerId   string    `json:"peer_id"`
 	ClientId string    `json:"client_id"`
 	Date     time.Time `json:"date"`
 }

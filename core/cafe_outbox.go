@@ -1,22 +1,28 @@
 package core
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/crypto"
+	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 	"sync"
 	"time"
 )
 
-// how often to run store job (daemon only)
-const kCafeFlushFrequency = time.Minute * 10
+// kCafeOutFlushFrequency is how often to run store job (daemon only)
+const kCafeOutFlushFrequency = time.Minute * 10
 
-// the size of concurrently processed requests
+// cafeOutFlushGroupSize is the size of concurrently processed requests
 // note: reqs from this group are batched to each cafe
-const cafeFlushGroupSize = 16
+const cafeOutFlushGroupSize = 16
 
 // CafeOutbox queues and processes outbound cafe requests
 type CafeOutbox struct {
@@ -36,45 +42,52 @@ func NewCafeOutbox(service func() *CafeService, node func() *core.IpfsNode, data
 }
 
 // Add adds a request for each active cafe session
-func (q *CafeOutbox) Add(target string, rtype repo.CafeRequestType) {
+func (q *CafeOutbox) Add(target string, rtype repo.CafeRequestType) error {
 	if rtype == repo.CafePeerInboxRequest {
-		log.Error("inbox request to own inbox, aborting")
-		return
+		return errors.New("inbox request to own inbox, aborting")
 	}
 	// get active cafe sessions
 	sessions := q.datastore.CafeSessions().List()
 	if len(sessions) == 0 {
-		return
+		return nil
 	}
 
 	// for each session, add a req
 	for _, session := range sessions {
 		// all possible request types are for our own peer
-		q.add(q.node().Identity, target, session.CafeId, rtype)
+		if err := q.add(q.node().Identity, target, session.CafeId, rtype); err != nil {
+			return err
+		}
 	}
 
-	// try to flush the queue now
+	// flush the queue now
 	go q.Flush()
+
+	return nil
 }
 
 // InboxRequest adds a request for a peer's inbox(es)
-func (q *CafeOutbox) InboxRequest(pid peer.ID, target string, inboxes []string) {
+func (q *CafeOutbox) InboxRequest(pid peer.ID, env *pb.Envelope, inboxes []string) error {
 	if len(inboxes) == 0 {
-		return
+		return nil
+	}
+
+	// encrypt for peer
+	hash, err := q.prepForInbox(pid, env)
+	if err != nil {
+		return err
 	}
 
 	// for each inbox, add a req
 	for _, inbox := range inboxes {
-		q.add(pid, target, inbox, repo.CafePeerInboxRequest)
+		q.add(pid, hash.B58String(), inbox, repo.CafePeerInboxRequest)
 	}
-
-	// try to flush the queue now
-	go q.Flush()
+	return nil
 }
 
 // Run starts a job ticker which processes any pending requests
 func (q *CafeOutbox) Run() {
-	tick := time.NewTicker(kCafeFlushFrequency)
+	tick := time.NewTicker(kCafeOutFlushFrequency)
 	defer tick.Stop()
 	go q.Flush()
 	for {
@@ -96,24 +109,22 @@ func (q *CafeOutbox) Flush() {
 	}
 
 	// start at zero offset
-	if err := q.batch(q.datastore.CafeRequests().List("", cafeFlushGroupSize)); err != nil {
+	if err := q.batch(q.datastore.CafeRequests().List("", cafeOutFlushGroupSize)); err != nil {
 		log.Errorf("cafe outbox batch error: %s", err)
 		return
 	}
 }
 
 // add queues a single request
-func (q *CafeOutbox) add(pid peer.ID, target string, cafeId string, rtype repo.CafeRequestType) {
-	if err := q.datastore.CafeRequests().Add(&repo.CafeRequest{
+func (q *CafeOutbox) add(pid peer.ID, target string, cafeId string, rtype repo.CafeRequestType) error {
+	return q.datastore.CafeRequests().Add(&repo.CafeRequest{
 		Id:       ksuid.New().String(),
 		PeerId:   pid.Pretty(),
 		TargetId: target,
 		CafeId:   cafeId,
 		Type:     rtype,
 		Date:     time.Now(),
-	}); err != nil {
-		log.Errorf("error adding cafe request %s: %s", target, err)
-	}
+	})
 }
 
 // batch flushes a batch of requests
@@ -161,7 +172,7 @@ func (q *CafeOutbox) batch(reqs []repo.CafeRequest) error {
 
 	// next batch
 	offset := reqs[len(reqs)-1].Id
-	next := q.datastore.CafeRequests().List(offset, cafeFlushGroupSize)
+	next := q.datastore.CafeRequests().List(offset, cafeOutFlushGroupSize)
 
 	// clean up
 	var deleted []string
@@ -241,6 +252,34 @@ func (q *CafeOutbox) handle(reqs []repo.CafeRequest, rtype repo.CafeRequestType,
 		}
 	}
 	return handled, herr
+}
+
+// prepForInbox encrypts and pins a message intended for a peer inbox
+func (q *CafeOutbox) prepForInbox(pid peer.ID, env *pb.Envelope) (mh.Multihash, error) {
+	// encrypt envelope w/ recipient's pk
+	envb, err := proto.Marshal(env)
+	if err != nil {
+		return nil, err
+	}
+	pk, err := pid.ExtractPublicKey()
+	if err != nil {
+		return nil, err
+	}
+	ciphertext, err := crypto.Encrypt(pk, envb)
+	if err != nil {
+		return nil, err
+	}
+
+	// pin it
+	id, err := ipfs.PinData(q.node(), bytes.NewReader(ciphertext))
+	if err != nil {
+		return nil, err
+	}
+
+	// add a store request for the encrypted message
+	q.Add(id.Hash().B58String(), repo.CafeStoreRequest)
+
+	return id.Hash(), nil
 }
 
 //func Store(node *core.IpfsNode, id string, session *repo.CafeSession) error {

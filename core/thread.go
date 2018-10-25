@@ -489,8 +489,14 @@ func (t *Thread) post(commit *commitResult, peers []repo.ThreadPeer) error {
 		if err != nil {
 			return err
 		}
-		t.threadsOutbox.Add(pid, env)
+		if err := t.threadsOutbox.Add(pid, env); err != nil {
+			return err
+		}
 	}
+
+	// flush the message queue
+	go t.threadsOutbox.Flush()
+
 	return nil
 }
 
