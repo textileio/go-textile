@@ -167,6 +167,15 @@ See [go-astilectron-bundler](https://github.com/asticode/go-astilectron-bundler)
 
 Note: Because `cgo` is required, you'll need to setup a proper C toolchain for cross-OS-compilation.
 
+## Webhook Integration
+
+After building the CLI/daemon, run either `shell` or `daemon` with the optional `--slack-hook` (or `-s`) and/or `--welcome-image` flags. Adding a welcome image will automatically post a welcome message and image to all Threads that the textile daemon has joined. While this is setup to support Slack webhooks, it should work for any webhook that can mimic [Slack's API](https://api.slack.com/incoming-webhooks).
+
+```
+textile daemon -s https://hooks.slack.com/services/blah/blah --welcome-image ./welcome.png
+```
+
+
 ## Contributing
 
 The easiest way to write a valid commit message is to use the `npm` script:
