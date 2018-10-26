@@ -8,10 +8,10 @@ import (
 	"testing"
 )
 
-func initAt000(db *sql.DB, password string) error {
+func initAt000(db *sql.DB, pin string) error {
 	var sqlStmt string
-	if password != "" {
-		sqlStmt = "PRAGMA key = '" + password + "';"
+	if pin != "" {
+		sqlStmt = "PRAGMA key = '" + pin + "';"
 	}
 	sqlStmt += `
     create table blocks (id text primary key not null, date integer not null, parents text not null, threadId text not null, authorPk text not null, type integer not null, dataId text, dataKeyCipher blob, dataCaptionCipher blob, dataUsernameCipher blob);

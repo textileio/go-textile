@@ -3,18 +3,21 @@ package migrations
 import (
 	"crypto/rand"
 	"database/sql"
+	"encoding/json"
+	"errors"
 	"github.com/textileio/textile-go/crypto"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 	"testing"
 )
 
-func initAt004(db *sql.DB, password string) error {
+func initAt004(db *sql.DB, pin string) error {
 	var sqlStmt string
-	if password != "" {
-		sqlStmt = "PRAGMA key = '" + password + "';"
+	if pin != "" {
+		sqlStmt = "PRAGMA key = '" + pin + "';"
 	}
 	sqlStmt += `
     create table threads (id text primary key not null, name text not null, sk blob not null, head text not null);
@@ -79,14 +82,51 @@ func Test005(t *testing.T) {
 		return
 	}
 
-	// ensure that version file was updated
-	version, err := ioutil.ReadFile("./repover")
+	// check threads
+	tfile, err := ioutil.ReadFile("./migration005_threads.ndjson")
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if string(version) != "6" {
-		t.Error("failed to write new repo version")
+	var threads []*threadRow
+	threadRows := strings.Split(string(tfile), "\n")
+	for _, row := range threadRows {
+		if len(row) == 0 {
+			continue
+		}
+		thrd := new(threadRow)
+		if err := json.Unmarshal([]byte(row), &thrd); err != nil {
+			t.Error(err)
+			return
+		}
+		threads = append(threads, thrd)
+	}
+	if len(threads) != 1 {
+		t.Error(errors.New("saved wrong number of threads"))
+		return
+	}
+
+	// check photos
+	ffile, err := ioutil.ReadFile("./migration005_default_photos.ndjson")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	var photos []*photoRow
+	photoRows := strings.Split(string(ffile), "\n")
+	for _, row := range photoRows {
+		if len(row) == 0 {
+			continue
+		}
+		photo := new(photoRow)
+		if err := json.Unmarshal([]byte(row), &photo); err != nil {
+			t.Error(err)
+			return
+		}
+		photos = append(photos, photo)
+	}
+	if len(photos) != 2 {
+		t.Error(errors.New("saved wrong number of photos"))
 		return
 	}
 

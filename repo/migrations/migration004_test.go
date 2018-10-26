@@ -8,10 +8,10 @@ import (
 	"testing"
 )
 
-func initAt003(db *sql.DB, password string) error {
+func initAt003(db *sql.DB, pin string) error {
 	var sqlStmt string
-	if password != "" {
-		sqlStmt = "PRAGMA key = '" + password + "';"
+	if pin != "" {
+		sqlStmt = "PRAGMA key = '" + pin + "';"
 	}
 	sqlStmt += `
     create table notifications (id text primary key not null, date integer not null, actorId text not null, targetId text not null, type integer not null, read integer not null, body text not null, actorUn text not null, category text not null);

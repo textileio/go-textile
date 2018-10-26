@@ -124,20 +124,7 @@ func (Major005) Up(repoPath string, pinCode string, testnet bool) error {
 	}
 
 	// blast repo sans logs
-	if err := blastRepo(repoPath); err != nil {
-		return err
-	}
-
-	// update version
-	f6, err := os.Create(path.Join(repoPath, "repover"))
-	if err != nil {
-		return err
-	}
-	defer f6.Close()
-	if _, err = f6.Write([]byte("6")); err != nil {
-		return err
-	}
-	return nil
+	return blastRepo(repoPath)
 }
 
 func (Major005) Down(repoPath string, pinCode string, testnet bool) error {
