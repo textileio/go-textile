@@ -7,9 +7,9 @@ import (
 	"path"
 )
 
-type Migration002 struct{}
+type Minor002 struct{}
 
-func (Migration002) Up(repoPath string, pinCode string, testnet bool) error {
+func (Minor002) Up(repoPath string, pinCode string, testnet bool) error {
 	var dbPath string
 	if testnet {
 		dbPath = path.Join(repoPath, "datastore", "testnet.db")
@@ -62,6 +62,10 @@ func (Migration002) Up(repoPath string, pinCode string, testnet bool) error {
 	return nil
 }
 
-func (Migration002) Down(repoPath string, pinCode string, testnet bool) error {
+func (Minor002) Down(repoPath string, pinCode string, testnet bool) error {
 	return nil
+}
+
+func (Minor002) Major() bool {
+	return false
 }

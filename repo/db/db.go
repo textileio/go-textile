@@ -134,7 +134,7 @@ func (d *SQLiteDatastore) CafeClientMessages() repo.CafeClientMessageStore {
 	return d.cafeClientMessages
 }
 
-func (d *SQLiteDatastore) Copy(dbPath string, password string) error {
+func (d *SQLiteDatastore) Copy(dbPath string, pin string) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	var cp string
@@ -152,13 +152,13 @@ func (d *SQLiteDatastore) Copy(dbPath string, password string) error {
 		}
 		tables = append(tables, name)
 	}
-	if password == "" {
+	if pin == "" {
 		cp = `attach database '` + dbPath + `' as plaintext key '';`
 		for _, name := range tables {
 			cp = cp + "insert into plaintext." + name + " select * from main." + name + ";"
 		}
 	} else {
-		cp = `attach database '` + dbPath + `' as encrypted key '` + password + `';`
+		cp = `attach database '` + dbPath + `' as encrypted key '` + pin + `';`
 		for _, name := range tables {
 			cp = cp + "insert into encrypted." + name + " select * from main." + name + ";"
 		}
@@ -170,8 +170,8 @@ func (d *SQLiteDatastore) Copy(dbPath string, password string) error {
 	return nil
 }
 
-func (d *SQLiteDatastore) InitTables(password string) error {
-	return initDatabaseTables(d.db, password)
+func (d *SQLiteDatastore) InitTables(pin string) error {
+	return initDatabaseTables(d.db, pin)
 }
 
 func initDatabaseTables(db *sql.DB, pin string) error {

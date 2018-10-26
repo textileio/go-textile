@@ -1,10 +1,10 @@
 package main
 
 import (
+	"errors"
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
 	"github.com/asticode/go-astilog"
-	"github.com/pkg/errors"
 )
 
 // bootstrapApp runs bootstrap. Moved to own file so we don't have to see Asset and RestoreAsset highlighed as errors :)

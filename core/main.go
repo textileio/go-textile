@@ -32,7 +32,7 @@ var fileLogFormat = logging.MustStringFormatter(
 var log = logging.MustGetLogger("core")
 
 // Version is the core version identifier
-const Version = "0.2.0"
+const Version = "1.0.0"
 
 // Node is the single Textile instance used by mobile and the shell
 var Node *Textile
@@ -179,25 +179,23 @@ func NewTextile(config RunConfig) (*Textile, error) {
 		return nil, repo.ErrRepoDoesNotExist
 	}
 
-	// force open the repo and datastore (fixme please)
+	// check if repo needs a major migration
+	if err := repo.Stat(config.RepoPath); err != nil {
+		return nil, err
+	}
+
+	// force open the repo and datastore (fixme)
 	removeLocks(config.RepoPath)
 
 	// log handling
 	setupLogging(config.RepoPath, config.LogLevel, config.LogFiles)
 
-	// get database handle
-	sqliteDB, err := db.Create(config.RepoPath, config.PinCode)
-	if err != nil {
-		return nil, err
-	}
-
-	// run all migrations if needed
+	// run all minor repo migrations if needed
 	if err := repo.MigrateUp(config.RepoPath, config.PinCode, false); err != nil {
 		return nil, err
 	}
 
-	// TODO: put cafes into bootstrap?
-
+	// TODO: put cafes into bootstrap
 	// open repo
 	//rep, err := fsrepo.Open(config.RepoPath)
 	//if err != nil {
@@ -209,6 +207,12 @@ func NewTextile(config RunConfig) (*Textile, error) {
 	//if err := ensureBootstrapConfig(rep); err != nil {
 	//	return nil, err
 	//}
+
+	// get database handle
+	sqliteDB, err := db.Create(config.RepoPath, config.PinCode)
+	if err != nil {
+		return nil, err
+	}
 
 	return &Textile{
 		version:   Version,
@@ -327,12 +331,12 @@ func (t *Textile) Start() error {
 		t.cafeService = NewCafeService(accnt, t.ipfs, t.datastore, t.cafeInbox)
 
 		// try to determine a public ipv4 address
-		pubIPv4, err := ipfs.PublicIPv4Addr(t.ipfs)
+		var pubIPv4 string
+		pubIPv4, err = ipfs.PublicIPv4Addr(t.ipfs)
 		if err != nil {
 			log.Infof(err.Error())
-		} else {
-			t.cafeService.setHttpAddr(pubIPv4)
 		}
+		t.cafeService.setHttpAddr(pubIPv4)
 
 		// run queues
 		go t.runQueues()

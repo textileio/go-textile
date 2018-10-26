@@ -828,16 +828,16 @@ func (h *CafeService) verifyKeyFunc(token *njwt.Token) (interface{}, error) {
 }
 
 // setHttpApi sets the cafe http api address
-func (h *CafeService) setHttpAddr(pubIPv4 string) {
-	if pubIPv4 == "" {
-		return
+func (h *CafeService) setHttpAddr(ip string) {
+	if ip == "" {
+		ip = "127.0.0.1"
 	}
 	if cafe.Host != nil {
 		binded := strings.Split(cafe.Host.Addr(), ":")
 		if len(binded) < 2 {
 			return
 		}
-		h.httpAddr = fmt.Sprintf("%s:%s", pubIPv4, binded[1])
+		h.httpAddr = fmt.Sprintf("%s:%s", ip, binded[1])
 		log.Infof("cafe http api address: %s", h.httpAddr)
 	}
 }

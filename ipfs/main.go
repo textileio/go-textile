@@ -2,8 +2,8 @@ package ipfs
 
 import (
 	"context"
+	"errors"
 	"github.com/op/go-logging"
-	"github.com/pkg/errors"
 	"github.com/textileio/textile-go/archive"
 	"gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
 	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"

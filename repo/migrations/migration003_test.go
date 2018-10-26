@@ -45,7 +45,7 @@ func TestMigration003(t *testing.T) {
 	}
 
 	// go up
-	var m Migration003
+	var m Minor003
 	err = m.Up("./", "", false)
 	if err != nil {
 		t.Error(err)

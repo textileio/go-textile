@@ -19,7 +19,7 @@ func TestMigration002(t *testing.T) {
 	}
 
 	// go up
-	var m Migration002
+	var m Minor002
 	err = m.Up("./", "", false)
 	if err != nil {
 		t.Error(err)

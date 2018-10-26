@@ -2,9 +2,9 @@ package core
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/golang/protobuf/proto"
-	"github.com/pkg/errors"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
