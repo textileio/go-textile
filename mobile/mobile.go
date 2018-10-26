@@ -175,11 +175,6 @@ func (m *Mobile) Stop() error {
 	return nil
 }
 
-// CheckCafeMessages calls core CheckCafeMessages
-func (m *Mobile) FetchCafeMessages() error {
-	return core.Node.CheckCafeMessages()
-}
-
 // Overview calls core Overview
 func (m *Mobile) Overview() (string, error) {
 	stats, err := core.Node.Overview()
@@ -187,6 +182,20 @@ func (m *Mobile) Overview() (string, error) {
 		return "", err
 	}
 	return toJSON(stats)
+}
+
+// Version returns core Version
+func (m *Mobile) Version() string {
+	return core.Version
+}
+
+// PeerId returns the ipfs peer id
+func (m *Mobile) PeerId() (string, error) {
+	pid, err := core.Node.PeerId()
+	if err != nil {
+		return "", err
+	}
+	return pid.Pretty(), nil
 }
 
 // waitForOnline waits up to 5 seconds for the node to go online

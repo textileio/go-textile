@@ -2,7 +2,9 @@ package ipfs
 
 import (
 	"context"
+	"fmt"
 	"github.com/op/go-logging"
+	"github.com/pkg/errors"
 	"github.com/textileio/textile-go/archive"
 	"gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
 	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
@@ -21,6 +23,7 @@ import (
 	uio "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/unixfs/io"
 	"io"
 	"io/ioutil"
+	"net"
 	"sort"
 	"strings"
 	"time"
@@ -235,47 +238,59 @@ func PrintSwarmAddrs(node *core.IpfsNode) error {
 	return nil
 }
 
-// ParsePeerParam takes a peer address string and returns p2p params
-func ParsePeerParam(text string) (ma.Multiaddr, peer.ID, error) {
-	// to be replaced with just multiaddr parsing, once ptp is a multiaddr protocol
-	idx := strings.LastIndex(text, "/")
-	if idx == -1 {
-		pid, err := peer.IDB58Decode(text)
-		if err != nil {
-			return nil, "", err
-		}
-
-		return nil, pid, nil
-	}
-
-	addrS := text[:idx]
-	peeridS := text[idx+1:]
-
-	var maddr ma.Multiaddr
-	var pid peer.ID
-
-	// make sure addrS parses as a multiaddr.
-	if len(addrS) > 0 {
-		var err error
-		maddr, err = ma.NewMultiaddr(addrS)
-		if err != nil {
-			return nil, "", err
-		}
-	}
-
-	// make sure idS parses as a peer.ID
-	var err error
-	pid, err = peer.IDB58Decode(peeridS)
+// PublicIPv4Addr tries to use the ipfs announced swarm addresses to determine a public ipv4 address
+// NOTE: mobile peers must use the http cafe api for file uploads
+// this method is used to inform them of that address during p2p registration
+func PublicIPv4Addr(node *core.IpfsNode) (string, error) {
+	var pub string
+	var lisAddrs []string
+	ifaceAddrs, err := node.PeerHost.Network().InterfaceListenAddresses()
 	if err != nil {
-		return nil, "", err
+		return pub, err
 	}
+	for _, addr := range ifaceAddrs {
+		lisAddrs = append(lisAddrs, addr.String())
+	}
+	sort.Sort(sort.StringSlice(lisAddrs))
+	for _, addr := range lisAddrs {
+		parts := strings.Split(addr, "/")
+		if len(parts) < 3 {
+			continue
+		}
+		if publicIPv4(net.ParseIP(parts[2])) {
+			pub = parts[2]
+			break
+		}
+	}
+	if pub == "" {
+		return pub, errors.New("no public ipv4 address found")
+	}
+	return pub, nil
+}
 
-	return maddr, pid, nil
+// publicIPv4 returns true if the given IP is superficially public
+// https://stackoverflow.com/a/41670589
+func publicIPv4(IP net.IP) bool {
+	if IP.IsLoopback() || IP.IsLinkLocalMulticast() || IP.IsLinkLocalUnicast() {
+		return false
+	}
+	if ip4 := IP.To4(); ip4 != nil {
+		switch true {
+		case ip4[0] == 10:
+			return false
+		case ip4[0] == 172 && ip4[1] >= 16 && ip4[1] <= 31:
+			return false
+		case ip4[0] == 192 && ip4[1] == 168:
+			return false
+		default:
+			return true
+		}
+	}
+	return false
 }
 
 // PeersWithAddresses is a function that takes in a slice of string peer addresses
 // (multiaddr + peerid) and returns a slice of properly constructed peers
-
 func PeersWithAddresses(addrs []string) ([]pstore.PeerInfo, error) {
 	iaddrs, err := parseAddresses(addrs)
 	if err != nil {

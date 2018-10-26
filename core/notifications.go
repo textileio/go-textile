@@ -29,7 +29,7 @@ func (t *Textile) ReadAllNotifications() error {
 
 // AcceptThreadInviteViaNotification uses an invite notification to accept an invite to a thread
 func (t *Textile) AcceptThreadInviteViaNotification(id string) (mh.Multihash, error) {
-	// look up notification
+	// lookup notification
 	notification := t.datastore.Notifications().Get(id)
 	if notification == nil {
 		return nil, errors.New(fmt.Sprintf("could not find notification: %s", id))

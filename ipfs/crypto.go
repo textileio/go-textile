@@ -57,12 +57,3 @@ func UnmarshalPublicKeyFromString(key string) (libp2pc.PubKey, error) {
 	}
 	return libp2pc.UnmarshalPublicKey(keyb)
 }
-
-// IDFromPublicKeyBytes return the underlying id from raw pub key bytes
-func IDFromPublicKeyBytes(data []byte) (peer.ID, error) {
-	pk, err := libp2pc.UnmarshalPublicKey(data)
-	if err != nil {
-		return "", err
-	}
-	return peer.IDFromPublicKey(pk)
-}

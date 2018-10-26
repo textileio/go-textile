@@ -14,7 +14,6 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
-	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	utilmain "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/commands"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
@@ -229,6 +228,7 @@ func (t *Textile) Start() error {
 		t.done = make(chan struct{})
 		t.started = true
 
+		// log peer and account info
 		addr, err := t.Address()
 		if err != nil {
 			log.Error(err.Error())
@@ -240,8 +240,9 @@ func (t *Textile) Start() error {
 			return
 		}
 		log.Info("node is started")
-		log.Infof("account address: %s", addr)
+		log.Infof("peer id: %s", t.ipfs.Identity.Pretty())
 		log.Infof("account id: %s", accntId.Pretty())
+		log.Infof("account address: %s", addr)
 	}()
 	log.Info("starting node...")
 
@@ -324,6 +325,14 @@ func (t *Textile) Start() error {
 
 		// setup cafe service
 		t.cafeService = NewCafeService(accnt, t.ipfs, t.datastore, t.cafeInbox)
+
+		// try to determine a public ipv4 address
+		pubIPv4, err := ipfs.PublicIPv4Addr(t.ipfs)
+		if err != nil {
+			log.Infof(err.Error())
+		} else {
+			t.cafeService.setHttpAddr(pubIPv4)
+		}
 
 		// run queues
 		go t.runQueues()
@@ -457,34 +466,12 @@ func (t *Textile) Notifications() <-chan repo.Notification {
 	return t.notifications
 }
 
-// GetPeerId returns peer id
-func (t *Textile) GetPeerId() (peer.ID, error) {
+// PeerId returns peer id
+func (t *Textile) PeerId() (peer.ID, error) {
 	if !t.started {
 		return "", ErrStopped
 	}
 	return t.ipfs.Identity, nil
-}
-
-// GetPrivKey returns the current peer private key
-func (t *Textile) GetPeerPrivKey() (libp2pc.PrivKey, error) {
-	if !t.started {
-		return nil, ErrStopped
-	}
-	if t.ipfs.PrivateKey == nil {
-		if err := t.ipfs.LoadPrivateKey(); err != nil {
-			return nil, err
-		}
-	}
-	return t.ipfs.PrivateKey, nil
-}
-
-// GetPeerPubKey returns the current peer public key
-func (t *Textile) GetPeerPubKey() (libp2pc.PubKey, error) {
-	sk, err := t.GetPeerPrivKey()
-	if err != nil {
-		return nil, err
-	}
-	return sk.GetPublic(), nil
 }
 
 // GetRepoPath returns the node's repo path

@@ -1,10 +1,22 @@
 package mobile
 
-import "github.com/textileio/textile-go/core"
+import (
+	"github.com/pkg/errors"
+	"github.com/textileio/textile-go/core"
+)
 
 // Contacts is a wrapper around a list of Contacts
 type Contacts struct {
 	Items []*core.Contact `json:"items"`
+}
+
+// Contact calls core Contact
+func (m *Mobile) Contact(id string) (string, error) {
+	contact := core.Node.Contact(id)
+	if contact != nil {
+		return toJSON(contact)
+	}
+	return "", errors.New("contact not found")
 }
 
 // Contacts calls core Contacts
@@ -27,4 +39,13 @@ func (m *Mobile) ContactThreads(id string) (string, error) {
 		threads.Items = append(threads.Items, item)
 	}
 	return toJSON(threads)
+}
+
+// getUsername returns a contact's username by peer id if known
+func getUsername(id string) string {
+	contact := core.Node.Contact(id)
+	if contact != nil {
+		return contact.Username
+	}
+	return id[:8]
 }

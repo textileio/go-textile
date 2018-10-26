@@ -72,7 +72,7 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 		return nil, err
 	}
 
-	// look up thread
+	// lookup thread
 	_, thrd := h.getThread(tenv.Thread)
 	if thrd == nil {
 		// this might be a direct invite

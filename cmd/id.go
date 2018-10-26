@@ -25,7 +25,7 @@ func showId(c *ishell.Context) {
 	}
 
 	// get peer id / pk
-	pid, err := core.Node.GetPeerId()
+	pid, err := core.Node.PeerId()
 	if err != nil {
 		c.Err(err)
 		return

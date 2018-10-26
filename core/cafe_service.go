@@ -7,6 +7,7 @@ import (
 	njwt "github.com/dgrijalva/jwt-go"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/cafe"
 	"github.com/textileio/textile-go/jwt"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/pb"
@@ -17,6 +18,7 @@ import (
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
+	"strings"
 	"time"
 )
 
@@ -41,6 +43,7 @@ type CafeService struct {
 	service   *service.Service
 	datastore repo.Datastore
 	inbox     *CafeInbox
+	httpAddr  string
 }
 
 // NewCafeService returns a new threads service
@@ -141,10 +144,11 @@ func (h *CafeService) Register(cafe peer.ID) error {
 		return err
 	}
 	session := &repo.CafeSession{
-		CafeId:  cafe.Pretty(),
-		Access:  res.Access,
-		Refresh: res.Refresh,
-		Expiry:  exp,
+		CafeId:   cafe.Pretty(),
+		Access:   res.Access,
+		Refresh:  res.Refresh,
+		Expiry:   exp,
+		HttpAddr: res.HttpAddr,
 	}
 	return h.datastore.CafeSessions().AddOrUpdate(session)
 }
@@ -390,10 +394,11 @@ func (h *CafeService) refresh(session *repo.CafeSession) (*repo.CafeSession, err
 		return nil, err
 	}
 	refreshed := &repo.CafeSession{
-		CafeId:  session.CafeId,
-		Access:  res.Access,
-		Refresh: res.Refresh,
-		Expiry:  exp,
+		CafeId:   session.CafeId,
+		Access:   res.Access,
+		Refresh:  res.Refresh,
+		Expiry:   exp,
+		HttpAddr: res.HttpAddr,
 	}
 	if err := h.datastore.CafeSessions().AddOrUpdate(refreshed); err != nil {
 		return nil, err
@@ -509,7 +514,7 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 	}
 
 	// get a session
-	session, err := jwt.NewSession(h.service.Node.PrivateKey, pid, h.Protocol(), defaultSessionDuration)
+	session, err := jwt.NewSession(h.service.Node.PrivateKey, pid, h.Protocol(), defaultSessionDuration, h.httpAddr)
 	if err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
@@ -568,7 +573,7 @@ func (h *CafeService) handleRefreshSession(pid peer.ID, env *pb.Envelope) (*pb.E
 	if err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
-	session, err := jwt.NewSession(h.service.Node.PrivateKey, spid, h.Protocol(), defaultSessionDuration)
+	session, err := jwt.NewSession(h.service.Node.PrivateKey, spid, h.Protocol(), defaultSessionDuration, h.httpAddr)
 	if err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
@@ -853,4 +858,19 @@ func (h *CafeService) authToken(pid peer.ID, tokenString string, refreshing bool
 // verifyKeyFunc returns the correct key for token verification
 func (h *CafeService) verifyKeyFunc(token *njwt.Token) (interface{}, error) {
 	return h.service.Node.PrivateKey.GetPublic(), nil
+}
+
+// setHttpApi sets the cafe http api address
+func (h *CafeService) setHttpAddr(pubIPv4 string) {
+	if pubIPv4 == "" {
+		return
+	}
+	if cafe.Host != nil {
+		parts := strings.Split(cafe.Host.Addr(), ":")
+		if len(parts) < 2 {
+			return
+		}
+		h.httpAddr = fmt.Sprintf("%s:%s", pubIPv4, parts[1])
+		log.Infof("cafe http api address: %s", h.httpAddr)
+	}
 }

@@ -117,7 +117,7 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 			Date:     b.Date,
 			AuthorId: b.AuthorId,
 			Caption:  b.DataCaption,
-			Username: b.AuthorId[:8],
+			Username: getUsername(b.AuthorId[:8]),
 			Metadata: b.DataMetadata,
 		}
 
@@ -130,7 +130,7 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 					Id:       c.Id,
 					Date:     c.Date,
 					AuthorId: c.AuthorId,
-					Username: c.AuthorId[:8],
+					Username: getUsername(c.AuthorId[:8]),
 				},
 				Body: c.DataCaption,
 			}
@@ -146,7 +146,7 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 					Id:       l.Id,
 					Date:     l.Date,
 					AuthorId: l.AuthorId,
-					Username: l.AuthorId[:8],
+					Username: getUsername(l.AuthorId[:8]),
 				},
 			}
 			item.Likes = append(item.Likes, like)

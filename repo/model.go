@@ -137,10 +137,11 @@ func (n NotificationType) Description() string {
 }
 
 type CafeSession struct {
-	CafeId  string    `json:"cafe_id"`
-	Access  string    `json:"access"`
-	Refresh string    `json:"refresh"`
-	Expiry  time.Time `json:"expiry"`
+	CafeId   string    `json:"cafe_id"`
+	Access   string    `json:"access"`
+	Refresh  string    `json:"refresh"`
+	Expiry   time.Time `json:"expiry"`
+	HttpAddr string    `json:"http_addr"`
 }
 
 type CafeRequestType int

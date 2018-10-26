@@ -280,7 +280,7 @@ func handleMessage(_ *astilectron.Window, m bootstrap.MessageIn) (interface{}, e
 
 func getQRCode() (string, string, error) {
 	// get our own peer id for receiving an account key
-	pid, err := core.Node.GetPeerId()
+	pid, err := core.Node.PeerId()
 	if err != nil {
 		return "", "", err
 	}

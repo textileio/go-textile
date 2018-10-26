@@ -160,11 +160,6 @@ func RunShell(startNode func() error, stopNode func() error) {
 			Func: swarmPeers,
 		})
 		swarmCmd.AddCmd(&ishell.Cmd{
-			Name: "ping",
-			Help: "ping a peer (same as `ipfs ping`)",
-			Func: swarmPing,
-		})
-		swarmCmd.AddCmd(&ishell.Cmd{
 			Name: "connect",
 			Help: "connect to a peer (same as `ipfs swarm connect`)",
 			Func: swarmConnect,

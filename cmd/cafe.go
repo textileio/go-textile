@@ -21,7 +21,7 @@ func cafeRegister(c *ishell.Context) {
 }
 
 func cafeList(c *ishell.Context) {
-	cafes, err := core.Node.ListRegisteredCafes()
+	cafes, err := core.Node.ListCafeSessions()
 	if err != nil {
 		c.Err(err)
 		return

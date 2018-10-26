@@ -22,7 +22,7 @@ func (c *CafeSessionDB) AddOrUpdate(session *repo.CafeSession) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert or replace into cafe_sessions(cafeId, access, refresh, expiry) values(?,?,?,?)`
+	stm := `insert or replace into cafe_sessions(cafeId, access, refresh, expiry, httpAddr) values(?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -34,6 +34,7 @@ func (c *CafeSessionDB) AddOrUpdate(session *repo.CafeSession) error {
 		session.Access,
 		session.Refresh,
 		int(session.Expiry.Unix()),
+		session.HttpAddr,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -75,17 +76,18 @@ func (c *CafeSessionDB) handleQuery(stm string) []repo.CafeSession {
 		return nil
 	}
 	for rows.Next() {
-		var cafeId, access, refresh string
+		var cafeId, access, refresh, httpAddr string
 		var expiryInt int
-		if err := rows.Scan(&cafeId, &access, &refresh, &expiryInt); err != nil {
+		if err := rows.Scan(&cafeId, &access, &refresh, &expiryInt, &httpAddr); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
 		session := repo.CafeSession{
-			CafeId:  cafeId,
-			Access:  access,
-			Refresh: refresh,
-			Expiry:  time.Unix(int64(expiryInt), 0),
+			CafeId:   cafeId,
+			Access:   access,
+			Refresh:  refresh,
+			Expiry:   time.Unix(int64(expiryInt), 0),
+			HttpAddr: httpAddr,
 		}
 		ret = append(ret, session)
 	}

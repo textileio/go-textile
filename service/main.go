@@ -168,7 +168,7 @@ func (s *Service) VerifyEnvelope(env *pb.Envelope, pid peer.ID) error {
 
 // handleError receives an error response
 func (s *Service) handleError(env *pb.Envelope) error {
-	if env.Message.Payload == nil {
+	if env.Message.Payload == nil && env.Message.Type != pb.Message_PONG {
 		err := fmt.Sprintf("message payload with type %s is nil", env.Message.Type.String())
 		log.Error(err)
 		return errors.New(err)

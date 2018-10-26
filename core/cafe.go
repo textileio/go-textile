@@ -28,8 +28,8 @@ func (t *Textile) DeregisterCafe(peerId string) error {
 	return t.datastore.CafeSessions().Delete(peerId)
 }
 
-// ListRegisteredCafes list registered cafe sessions
-func (t *Textile) ListRegisteredCafes() ([]repo.CafeSession, error) {
+// ListCafeSessions lists active cafe sessions
+func (t *Textile) ListCafeSessions() ([]repo.CafeSession, error) {
 	if err := t.touchDatastore(); err != nil {
 		return nil, err
 	}

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/fatih/color"
+	"github.com/gin-gonic/gin"
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
 	"github.com/op/go-logging"
@@ -42,11 +43,7 @@ type GatewayOptions struct {
 }
 
 type CafeOptions struct {
-	// client settings
-	Addr string `short:"c" long:"cafe" description:"cafe host address"`
-
-	// host settings
-	BindAddr string `long:"cafe-bind-addr" description:"set the cafe address"`
+	BindAddr string `short:"c" long:"cafe-bind-addr" description:"set the cafe address" default:"127.0.0.1:random"`
 }
 
 type Options struct{}
@@ -258,9 +255,7 @@ func (x *InitCommand) Execute(args []string) error {
 	if err := core.InitRepo(config); err != nil {
 		return errors.New(fmt.Sprintf("initialize node failed: %s", err))
 	}
-
-	fmt.Printf("Textile node initialized with public address: %s\n", accnt.Address())
-
+	fmt.Printf("node initialized with address: %s\n", accnt.Address())
 	return nil
 }
 
@@ -268,7 +263,7 @@ func (x *DaemonCommand) Execute(args []string) error {
 	if err := buildNode(x.RepoPath, x.Cafe, x.Gateway, x.Logs); err != nil {
 		return err
 	}
-	printSplashScreen(x.Cafe, true)
+	printSplashScreen(true)
 
 	// handle interrupt
 	quit := make(chan os.Signal)
@@ -276,7 +271,7 @@ func (x *DaemonCommand) Execute(args []string) error {
 	<-quit
 	fmt.Println("interrupted")
 	fmt.Printf("shutting down...")
-	if err := stopNode(x.Cafe); err != nil && err != core.ErrStopped {
+	if err := stopNode(); err != nil && err != core.ErrStopped {
 		fmt.Println(err.Error())
 	} else {
 		fmt.Print("done\n")
@@ -289,13 +284,13 @@ func (x *ShellCommand) Execute(args []string) error {
 	if err := buildNode(x.RepoPath, x.Cafe, x.Gateway, x.Logs); err != nil {
 		return err
 	}
-	printSplashScreen(x.Cafe, false)
+	printSplashScreen(false)
 
 	// run the shell
 	cmd.RunShell(func() error {
 		return startNode(x.Cafe, x.Gateway)
 	}, func() error {
-		return stopNode(x.Cafe)
+		return stopNode()
 	})
 	return nil
 }
@@ -349,14 +344,12 @@ func buildNode(repoPath string, cafeOpts CafeOptions, gatewayOpts GatewayOptions
 	// create the gateway
 	gateway.Host = &gateway.Gateway{}
 
-	// check cafe mode
-	if cafeOpts.BindAddr != "" {
-		cafe.Host = &cafe.Cafe{
-			Ipfs: func() *ipfscore.IpfsNode {
-				return core.Node.Ipfs()
-			},
-			NodeVersion: core.Version,
-		}
+	// create the cafe api
+	cafe.Host = &cafe.Cafe{
+		Ipfs: func() *ipfscore.IpfsNode {
+			return core.Node.Ipfs()
+		},
+		NodeVersion: core.Version,
 	}
 
 	// auto start it
@@ -371,7 +364,6 @@ func startNode(cafeOpts CafeOptions, gatewayOpts GatewayOptions) error {
 	if err := core.Node.Start(); err != nil {
 		return err
 	}
-	<-core.Node.OnlineCh()
 
 	// subscribe to wallet updates
 	go func() {
@@ -431,30 +423,32 @@ func startNode(cafeOpts CafeOptions, gatewayOpts GatewayOptions) error {
 		}
 	}()
 
+	// set gin to production
+	gin.SetMode(gin.ReleaseMode)
+
 	// start the gateway
 	gateway.Host.Start(resolveAddress(gatewayOpts.BindAddr))
 
 	// start cafe server
-	if cafeOpts.BindAddr != "" {
-		cafe.Host.Start(resolveAddress(cafeOpts.BindAddr))
-	}
+	cafe.Host.Start(resolveAddress(cafeOpts.BindAddr))
+
+	// wait for the ipfs node to go online
+	<-core.Node.OnlineCh()
 
 	return nil
 }
 
-func stopNode(cafeOpts CafeOptions) error {
+func stopNode() error {
 	if err := gateway.Host.Stop(); err != nil {
 		return err
 	}
-	if cafeOpts.BindAddr != "" {
-		if err := cafe.Host.Stop(); err != nil {
-			return err
-		}
+	if err := cafe.Host.Stop(); err != nil {
+		return err
 	}
 	return core.Node.Stop()
 }
 
-func printSplashScreen(cafeOpts CafeOptions, daemon bool) {
+func printSplashScreen(daemon bool) {
 	cyan := color.New(color.FgCyan).SprintFunc()
 	green := color.New(color.FgHiGreen).SprintFunc()
 	yellow := color.New(color.FgHiYellow).SprintFunc()
@@ -473,9 +467,7 @@ func printSplashScreen(cafeOpts CafeOptions, daemon bool) {
 	fmt.Println(grey("version: ") + blue(core.Version))
 	fmt.Println(grey("repo: ") + blue(core.Node.GetRepoPath()))
 	fmt.Println(grey("gateway: ") + yellow(gateway.Host.Addr()))
-	if cafeOpts.BindAddr != "" {
-		fmt.Println(grey("cafe api: ") + yellow(cafeOpts.BindAddr))
-	}
+	fmt.Println(grey("cafe: ") + yellow(cafe.Host.Addr()))
 	if !daemon {
 		fmt.Println(grey("type 'help' for available commands"))
 	}

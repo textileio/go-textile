@@ -13,7 +13,7 @@ var client = &http.Client{}
 var cafeAddr = os.Getenv("CAFE_ADDR")
 
 func pin(reader io.Reader, token string, cType string) (*http.Response, error) {
-	url := fmt.Sprintf("%s/api/v1/pin", cafeAddr)
+	url := fmt.Sprintf("%s/api/v0/pin", cafeAddr)
 	req, err := http.NewRequest("POST", url, reader)
 	if err != nil {
 		return nil, err
@@ -22,8 +22,6 @@ func pin(reader io.Reader, token string, cType string) (*http.Response, error) {
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	return client.Do(req)
 }
-
-// UTILS
 
 func unmarshalJSON(body io.ReadCloser, target interface{}) error {
 	b, err := ioutil.ReadAll(body)

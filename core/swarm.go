@@ -1,17 +1,12 @@
 package core
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/textileio/textile-go/ipfs"
 	libp2pn "gx/ipfs/QmPjvxTpVH8qJyQDnxnsxF9kv9jezKD1kozz1hs3fCGsNh/go-libp2p-net"
-	pstore "gx/ipfs/QmZR2XWVVBCtbgBWnQhWk2xcQfaR3W8faQPriAiaaj7rsr/go-libp2p-peerstore"
 	"gx/ipfs/QmemVjhp1UuWPQqrWSvPcaqH3QJRMjMqNm4T2RULMkDDQe/go-libp2p-swarm"
-	"time"
 )
-
-const pingTimeout = time.Second * 10
 
 // ConnectPeer connect to another ipfs peer (i.e., ipfs swarm connect)
 func (t *Textile) ConnectPeer(addrs []string) ([]string, error) {
@@ -41,69 +36,6 @@ func (t *Textile) ConnectPeer(addrs []string) ([]string, error) {
 		output[i] += " success"
 	}
 	return output, nil
-}
-
-// Ping pings a peer num times, returning the result to out chan
-func (t *Textile) PingPeer(addrs string, num int, out chan string) error {
-	if !t.started {
-		return ErrStopped
-	}
-	if !t.Online() {
-		return ErrOffline
-	}
-	addr, pid, err := ipfs.ParsePeerParam(addrs)
-	if addr != nil {
-		t.ipfs.Peerstore.AddAddr(pid, addr, pstore.TempAddrTTL) // temporary
-	}
-
-	if len(t.ipfs.Peerstore.Addrs(pid)) == 0 {
-		// Make sure we can find the node in question
-		log.Debugf("looking up peer: %s", pid.Pretty())
-
-		ctx, cancel := context.WithTimeout(t.ipfs.Context(), pingTimeout)
-		defer cancel()
-		p, err := t.ipfs.Routing.FindPeer(ctx, pid)
-		if err != nil {
-			err = fmt.Errorf("peer lookup error: %s", err)
-			log.Errorf(err.Error())
-			return err
-		}
-		t.ipfs.Peerstore.AddAddrs(p.ID, p.Addrs, pstore.TempAddrTTL)
-	}
-
-	ctx, cancel := context.WithTimeout(t.ipfs.Context(), pingTimeout*time.Duration(num))
-	defer cancel()
-	pings, err := t.ipfs.Ping.Ping(ctx, pid)
-	if err != nil {
-		log.Errorf("error pinging peer %s: %s", pid.Pretty(), err)
-		return err
-	}
-
-	var done bool
-	var total time.Duration
-	for i := 0; i < num && !done; i++ {
-		select {
-		case <-ctx.Done():
-			done = true
-			close(out)
-			break
-		case t, ok := <-pings:
-			if !ok {
-				done = true
-				close(out)
-				break
-			}
-			total += t
-			msg := fmt.Sprintf("ping %s completed after %f seconds", pid.Pretty(), t.Seconds())
-			select {
-			case out <- msg:
-			default:
-			}
-			log.Debug(msg)
-			time.Sleep(time.Second)
-		}
-	}
-	return nil
 }
 
 func (t *Textile) Peers() ([]libp2pn.Conn, error) {

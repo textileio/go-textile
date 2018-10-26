@@ -25,6 +25,7 @@ message CafeSession {
     google.protobuf.Timestamp rexp = 4;
     string subject                 = 5;
     string type                    = 6;
+    string httpAddr                = 7;
 }
 
 message CafeRefreshSession {

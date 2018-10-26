@@ -78,7 +78,7 @@ func (c *Cafe) Stop() error {
 	return nil
 }
 
-// GetCafeAddress returns the cafe address
-func (c *Cafe) GetCafeAddress() string {
+// Cafe returns the cafe address
+func (c *Cafe) Addr() string {
 	return c.server.Addr
 }

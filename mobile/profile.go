@@ -41,8 +41,8 @@ func (m *Mobile) GetProfile() (string, error) {
 	return toJSON(prof)
 }
 
-// GetOtherProfile looks up a profile by id
-func (m *Mobile) GetOtherProfile(peerId string) (string, error) {
+// GetPeerProfile looks up a profile by id
+func (m *Mobile) GetPeerProfile(peerId string) (string, error) {
 	prof, err := core.Node.GetProfile(peerId)
 	if err != nil {
 		log.Errorf("error getting profile %s: %s", peerId, err)

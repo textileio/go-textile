@@ -98,7 +98,6 @@ func sharePhoto(c *ishell.Context) {
 	}
 
 	// TODO: owner challenge
-
 	// finally, add to destination
 	if _, err := toThread.AddPhoto(id, caption, block.DataKey); err != nil {
 		c.Err(err)
@@ -290,8 +289,7 @@ func listPhotoComments(c *ishell.Context) {
 
 	cyan := color.New(color.FgHiCyan).SprintFunc()
 	for _, b := range blocks {
-		// TODO: look up username in contacts
-		c.Println(cyan(fmt.Sprintf("%s: %s: %s", b.Id, b.AuthorId[:8], b.DataCaption)))
+		c.Println(cyan(fmt.Sprintf("%s: %s: %s", b.Id, getUsername(b.AuthorId), b.DataCaption)))
 	}
 }
 
@@ -323,8 +321,7 @@ func listPhotoLikes(c *ishell.Context) {
 
 	cyan := color.New(color.FgHiCyan).SprintFunc()
 	for _, b := range blocks {
-		// TODO: look up username in contacts
-		c.Println(cyan(fmt.Sprintf("%s: %s", b.Id, b.AuthorId[:8])))
+		c.Println(cyan(fmt.Sprintf("%s: %s", b.Id, getUsername(b.AuthorId))))
 	}
 }
 
@@ -337,4 +334,12 @@ func getPhotoBlockByDataId(dataId string) (*repo.Block, error) {
 		return nil, errors.New("not a photo block, aborting")
 	}
 	return block, nil
+}
+
+func getUsername(peerId string) string {
+	contact := core.Node.Contact(peerId)
+	if contact != nil {
+		return contact.Username
+	}
+	return peerId[:8]
 }
