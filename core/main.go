@@ -83,6 +83,12 @@ type InitConfig struct {
 	LogFiles   bool
 }
 
+// MigrateConfig is used to define options during a major migration
+type MigrateConfig struct {
+	PinCode  string
+	RepoPath string
+}
+
 // RunConfig is used to define run options for a textile node
 type RunConfig struct {
 	PinCode  string
@@ -170,6 +176,20 @@ func InitRepo(config InitConfig) error {
 		return err
 	}
 	return rep.Keystore().Put("account", sk)
+}
+
+// MigrateRepo runs _all_ repo migrations, including major
+func MigrateRepo(config MigrateConfig) error {
+	// ensure init has been run
+	if !fsrepo.IsInitialized(config.RepoPath) {
+		return repo.ErrRepoDoesNotExist
+	}
+
+	// force open the repo and datastore (fixme)
+	removeLocks(config.RepoPath)
+
+	// run _all_ repo migrations if needed
+	return repo.MigrateUp(config.RepoPath, config.PinCode, false)
 }
 
 // NewTextile runs a node out of an initialized repo

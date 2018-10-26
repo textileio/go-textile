@@ -73,6 +73,10 @@ type InitCommand struct {
 	IPFS        IPFSOptions `group:"IPFS Options"`
 }
 
+type MigrateCommand struct {
+	RepoPath string `short:"r" long:"repo-dir" description:"specify a custom repository path"`
+}
+
 type DaemonCommand struct {
 	RepoPath string         `short:"r" long:"repo-dir" description:"specify a custom repository path"`
 	Logs     LogOptions     `group:"Log Options"`
@@ -88,6 +92,7 @@ type ShellCommand struct {
 }
 
 var initCommand InitCommand
+var migrateCommand MigrateCommand
 var versionCommand VersionCommand
 var walletCommand WalletCommand
 var shellCommand ShellCommand
@@ -107,6 +112,10 @@ func init() {
 	parser.AddCommand("init",
 		"Init the node repo and exit",
 		"Initialize the node repository and exit.",
+		&initCommand)
+	parser.AddCommand("migrate",
+		"Migrate the node repo and exit",
+		"Migrate the node repository and exit.",
 		&initCommand)
 	parser.AddCommand("shell",
 		"Start a node shell",
@@ -256,6 +265,26 @@ func (x *InitCommand) Execute(args []string) error {
 		return errors.New(fmt.Sprintf("initialize node failed: %s", err))
 	}
 	fmt.Printf("node initialized with address: %s\n", accnt.Address())
+	return nil
+}
+
+func (x *MigrateCommand) Execute(args []string) error {
+	// handle repo path
+	repoPath, err := getRepoPath(x.RepoPath)
+	if err != nil {
+		return err
+	}
+
+	// build config
+	config := core.MigrateConfig{
+		RepoPath: repoPath,
+	}
+
+	// run migrate
+	if err := core.MigrateRepo(config); err != nil {
+		return errors.New(fmt.Sprintf("migrate repo: %s", err))
+	}
+	fmt.Println("repo successfully migrated")
 	return nil
 }
 

@@ -38,6 +38,14 @@ type Mobile struct {
 	messenger Messenger
 }
 
+// MigrateRepo calls core MigrateRepo
+func MigrateRepo(config *NodeConfig) error {
+	return core.MigrateRepo(core.MigrateConfig{
+		RepoPath: config.RepoPath,
+		PinCode:  config.PinCode,
+	})
+}
+
 // Create a gomobile compatible wrapper around TextileNode
 func NewNode(config *NodeConfig, messenger Messenger) (*Mobile, error) {
 	// determine log level
