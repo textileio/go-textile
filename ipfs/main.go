@@ -2,7 +2,6 @@ package ipfs
 
 import (
 	"context"
-	"fmt"
 	"github.com/op/go-logging"
 	"github.com/pkg/errors"
 	"github.com/textileio/textile-go/archive"

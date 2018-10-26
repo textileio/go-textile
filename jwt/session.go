@@ -13,7 +13,10 @@ import (
 	"time"
 )
 
-var ErrInvalidClaims = errors.New("invalid claims")
+var ErrClaimsInvalid = errors.New("claims invalid")
+var ErrNoToken = errors.New("no token found")
+var ErrExpired = errors.New("token expired")
+var ErrInvalid = errors.New("token invalid")
 
 type TextileClaims struct {
 	Scope Scope `json:"scopes"`
@@ -94,15 +97,62 @@ func NewSession(sk libp2pc.PrivKey, pid peer.ID, proto protocol.ID, duration tim
 func ParseClaims(claims jwt.Claims) (*TextileClaims, error) {
 	mapClaims, ok := claims.(jwt.MapClaims)
 	if !ok {
-		return nil, ErrInvalidClaims
+		return nil, ErrClaimsInvalid
 	}
 	claimsb, err := json.Marshal(mapClaims)
 	if err != nil {
-		return nil, ErrInvalidClaims
+		return nil, ErrClaimsInvalid
 	}
 	var tclaims *TextileClaims
 	if err := json.Unmarshal(claimsb, &tclaims); err != nil {
-		return nil, ErrInvalidClaims
+		return nil, ErrClaimsInvalid
 	}
 	return tclaims, nil
+}
+
+func Validate(tokenString string, keyfunc jwt.Keyfunc, refreshing bool, audience string, subject *string) error {
+	// parse it
+	token, pErr := jwt.Parse(tokenString, keyfunc)
+	if token == nil {
+		return ErrNoToken
+	}
+
+	// pull out claims
+	claims, err := ParseClaims(token.Claims)
+	if err != nil {
+		return ErrInvalid
+	}
+
+	// check valid
+	if pErr != nil {
+		if !claims.VerifyExpiresAt(time.Now().Unix(), true) {
+			return ErrExpired
+		}
+		return ErrInvalid
+	}
+
+	// check scope
+	switch claims.Scope {
+	case Access:
+		if refreshing {
+			return ErrInvalid
+		}
+	case Refresh:
+		if !refreshing {
+			return ErrInvalid
+		}
+	default:
+		return ErrInvalid
+	}
+
+	// verify owner
+	if subject != nil && *subject != claims.Subject {
+		return ErrInvalid
+	}
+
+	// verify protocol
+	if !claims.VerifyAudience(audience, true) {
+		return ErrInvalid
+	}
+	return nil
 }

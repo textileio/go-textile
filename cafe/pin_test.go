@@ -1,7 +1,12 @@
 package cafe
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/textileio/textile-go/repo"
+	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"testing"
 )
@@ -9,6 +14,28 @@ import (
 var session *repo.CafeSession
 var blockHash = "QmbQ4K3vXNJ3DjCNdG2urCXs7BuHqWQG1iSjZ8fbnF8NMs"
 var photoHash = "QmSUnsZi9rGvPZLWy2v5N7fNxUWVNnA5nmppoM96FbLqLp"
+
+var client = &http.Client{}
+var cafeAddr = os.Getenv("CAFE_ADDR")
+
+func pin(reader io.Reader, token string, cType string) (*http.Response, error) {
+	url := fmt.Sprintf("%s/api/v0/pin", cafeAddr)
+	req, err := http.NewRequest("POST", url, reader)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", cType)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	return client.Do(req)
+}
+
+func unmarshalJSON(body io.ReadCloser, target interface{}) error {
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(b, target)
+}
 
 func TestPin_Setup(t *testing.T) {
 	// TODO get token from cafe service

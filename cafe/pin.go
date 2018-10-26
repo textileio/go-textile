@@ -3,12 +3,15 @@ package cafe
 import (
 	"archive/tar"
 	"compress/gzip"
+	njwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/jwt"
 	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	uio "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/unixfs/io"
 	"io"
 	"net/http"
+	"strings"
 )
 
 type PinResponse struct {
@@ -16,8 +19,36 @@ type PinResponse struct {
 	Error *string `json:"error,omitempty"`
 }
 
+var errForbidden = "forbidden"
+var forbiddenResponse = PinResponse{
+	Error: &errForbidden,
+}
+var ErrUnauthorized = "unauthorized"
+var unauthorizedResponse = PinResponse{
+	Error: &ErrUnauthorized,
+}
+
 func (c *Cafe) pin(g *gin.Context) {
 	var id *cid.Cid
+
+	// get the auth token
+	auth := strings.Split(g.Request.Header.Get("Authorization"), " ")
+	if len(auth) < 2 {
+		g.AbortWithStatusJSON(http.StatusUnauthorized, unauthorizedResponse)
+		return
+	}
+	token := auth[1]
+
+	// validate token
+	if err := jwt.Validate(token, c.verifyKeyFunc, false, string(c.Protocol), nil); err != nil {
+		switch err {
+		case jwt.ErrNoToken, jwt.ErrExpired:
+			g.AbortWithStatusJSON(http.StatusUnauthorized, unauthorizedResponse)
+		case jwt.ErrInvalid:
+			g.AbortWithStatusJSON(http.StatusForbidden, forbiddenResponse)
+		}
+		return
+	}
 
 	// handle based on content type
 	cType := g.Request.Header.Get("Content-Type")
@@ -94,4 +125,9 @@ func (c *Cafe) pin(g *gin.Context) {
 	g.JSON(http.StatusCreated, PinResponse{
 		Id: &hash,
 	})
+}
+
+// verifyKeyFunc returns the correct key for token verification
+func (c *Cafe) verifyKeyFunc(token *njwt.Token) (interface{}, error) {
+	return c.Ipfs().PrivateKey.GetPublic(), nil
 }

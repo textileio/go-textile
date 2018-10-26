@@ -350,6 +350,7 @@ func buildNode(repoPath string, cafeOpts CafeOptions, gatewayOpts GatewayOptions
 			return core.Node.Ipfs()
 		},
 		NodeVersion: core.Version,
+		Protocol:    core.CafeServiceProtocol,
 	}
 
 	// auto start it

@@ -16,8 +16,10 @@ import (
 
 var log = logging.MustGetLogger("gateway")
 
+// Host is the instance used by the daemon
 var Host *Gateway
 
+// Gateway is a HTTP API for getting files and links from IPFS
 type Gateway struct {
 	server *http.Server
 }
@@ -199,6 +201,7 @@ func profileHandler(c *gin.Context) {
 	c.Render(200, render.Data{Data: data})
 }
 
+// getDataAtPath get raw data or directory links at path
 func getDataAtPath(c *gin.Context, pth string) []byte {
 	data, err := core.Node.GetDataAtPath(pth)
 	if err != nil {

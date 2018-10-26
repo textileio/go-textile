@@ -4,19 +4,24 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/op/go-logging"
+	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 	"net/http"
 )
 
 var log = logging.MustGetLogger("cafe")
 
+// Version is the api version
 const Version = "v0"
 
+// Host is the instance used by the daemon
 var Host *Cafe
 
+// Cafe is a limited HTTP API to the cafe service
 type Cafe struct {
 	Ipfs        func() *core.IpfsNode
 	NodeVersion string
+	Protocol    protocol.ID
 	server      *http.Server
 }
 

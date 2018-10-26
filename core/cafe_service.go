@@ -38,6 +38,8 @@ const (
 	errForbidden      = "forbidden"
 )
 
+const CafeServiceProtocol = protocol.ID("/textile/cafe/1.0.0")
+
 // CafeService is a libp2p pinning and offline message service
 type CafeService struct {
 	service   *service.Service
@@ -63,7 +65,7 @@ func NewCafeService(
 
 // Protocol returns the handler protocol
 func (h *CafeService) Protocol() protocol.ID {
-	return protocol.ID("/textile/cafe/1.0.0")
+	return CafeServiceProtocol
 }
 
 // Ping pings another peer
@@ -807,50 +809,15 @@ func (h *CafeService) handleDeleteMessages(pid peer.ID, env *pb.Envelope) (*pb.E
 }
 
 // authToken verifies a request token from a peer
-func (h *CafeService) authToken(pid peer.ID, tokenString string, refreshing bool, requestId int32) (*pb.Envelope, error) {
-	// parse it
-	token, pErr := njwt.Parse(tokenString, h.verifyKeyFunc)
-	if token == nil {
-		return h.service.NewError(401, errUnauthorized, requestId)
-	}
-
-	// pull out claims
-	claims, err := jwt.ParseClaims(token.Claims)
-	if err != nil {
-		return h.service.NewError(403, errForbidden, requestId)
-	}
-
-	// check valid
-	if pErr != nil {
-		if !claims.VerifyExpiresAt(time.Now().Unix(), true) {
-			// 401 indicates a retry is expected after a token refresh
+func (h *CafeService) authToken(pid peer.ID, token string, refreshing bool, requestId int32) (*pb.Envelope, error) {
+	subject := pid.Pretty()
+	if err := jwt.Validate(token, h.verifyKeyFunc, refreshing, string(h.Protocol()), &subject); err != nil {
+		switch err {
+		case jwt.ErrNoToken, jwt.ErrExpired:
 			return h.service.NewError(401, errUnauthorized, requestId)
-		}
-		return h.service.NewError(403, errForbidden, requestId)
-	}
-
-	// check scope
-	switch claims.Scope {
-	case jwt.Access:
-		if refreshing {
+		case jwt.ErrInvalid:
 			return h.service.NewError(403, errForbidden, requestId)
 		}
-	case jwt.Refresh:
-		if !refreshing {
-			return h.service.NewError(403, errForbidden, requestId)
-		}
-	default:
-		return h.service.NewError(403, errForbidden, requestId)
-	}
-
-	// verify owner
-	if claims.Subject != pid.Pretty() {
-		return h.service.NewError(403, errForbidden, requestId)
-	}
-
-	// verify protocol
-	if !claims.VerifyAudience(string(h.Protocol()), true) {
-		return h.service.NewError(403, errForbidden, requestId)
 	}
 	return nil, nil
 }
@@ -866,11 +833,11 @@ func (h *CafeService) setHttpAddr(pubIPv4 string) {
 		return
 	}
 	if cafe.Host != nil {
-		parts := strings.Split(cafe.Host.Addr(), ":")
-		if len(parts) < 2 {
+		binded := strings.Split(cafe.Host.Addr(), ":")
+		if len(binded) < 2 {
 			return
 		}
-		h.httpAddr = fmt.Sprintf("%s:%s", pubIPv4, parts[1])
+		h.httpAddr = fmt.Sprintf("%s:%s", pubIPv4, binded[1])
 		log.Infof("cafe http api address: %s", h.httpAddr)
 	}
 }
