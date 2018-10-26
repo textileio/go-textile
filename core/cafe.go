@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/pkg/errors"
 	"github.com/textileio/textile-go/repo"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 )
@@ -34,6 +35,18 @@ func (t *Textile) ListCafeSessions() ([]repo.CafeSession, error) {
 		return nil, err
 	}
 	return t.datastore.CafeSessions().List(), nil
+}
+
+// RefreshCafeSession attempts to refresh a token with a cafe
+func (t *Textile) RefreshCafeSession(cafeId string) (*repo.CafeSession, error) {
+	if !t.Online() {
+		return nil, ErrOffline
+	}
+	session := t.datastore.CafeSessions().Get(cafeId)
+	if session == nil {
+		return nil, errors.New("session not found")
+	}
+	return t.cafeService.refresh(session)
 }
 
 // CheckCafeMessages fetches new messages from registered cafes

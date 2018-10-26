@@ -33,6 +33,15 @@ func (m *Mobile) ListCafeSessions() (string, error) {
 	return toJSON(sessions)
 }
 
+// RefreshCafeSession calls core RefreshCafeSession
+func (m *Mobile) RefreshCafeSession(cafeId string) (string, error) {
+	session, err := core.Node.RefreshCafeSession(cafeId)
+	if err != nil {
+		return "", err
+	}
+	return toJSON(session)
+}
+
 // CheckCafeMessages calls core CheckCafeMessages
 func (m *Mobile) CheckCafeMessages() error {
 	return core.Node.CheckCafeMessages()
