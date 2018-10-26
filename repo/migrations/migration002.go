@@ -21,8 +21,7 @@ func (Minor002) Up(repoPath string, pinCode string, testnet bool) error {
 		return err
 	}
 	if pinCode != "" {
-		p := "pragma key='" + pinCode + "';"
-		if _, err := db.Exec(p); err != nil {
+		if _, err := db.Exec("pragma key='" + pinCode + "';"); err != nil {
 			return err
 		}
 	}

@@ -9,7 +9,7 @@ import (
 // ErrorCannotMigrateDown is thrown if migrate down is called on a major migration
 var ErrorCannotMigrateDown = errors.New("cannot migrate down major")
 
-// blast repo sans logs
+// blastRepo repo sans logs
 func blastRepo(repoPath string) error {
 	paths := []string{
 		"blocks",

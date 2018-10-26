@@ -180,31 +180,31 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 		sqlStmt = "PRAGMA key = '" + pin + "';"
 	}
 	sqlStmt += `
-	create table config (key text primary key not null, value blob);
+    create table config (key text primary key not null, value blob);
 
     create table profile (key text primary key not null, value blob);
 
-	create table contacts (id text primary key not null, username text not null, inboxes text not null, added integer not null);
+    create table contacts (id text primary key not null, username text not null, inboxes text not null, added integer not null);
     create index contact_username on contacts (username);
-	create index contact_added on contacts (added);
+    create index contact_added on contacts (added);
 
     create table threads (id text primary key not null, name text not null, sk blob not null, head text not null);
 
     create table thread_peers (id text not null, threadId text not null, welcomed integer not null, primary key (id, threadId));
     create index thread_peer_id on thread_peers (id);
     create index thread_peer_threadId on thread_peers (threadId);
-	create index thread_peer_welcomed on thread_peers (welcomed);
+    create index thread_peer_welcomed on thread_peers (welcomed);
 
     create table blocks (id text primary key not null, date integer not null, parents text not null, threadId text not null, authorId text not null, type integer not null, dataId text, dataKey blob, dataCaption text, dataMetadata blob);
     create index block_dataId on blocks (dataId);
     create index block_threadId_type_date on blocks (threadId, type, date);
 
-	create table thread_messages (id text primary key not null, peerId text not null, envelope blob not null, date integer not null);
-	create index thread_message_date on thread_messages (date);
+    create table thread_messages (id text primary key not null, peerId text not null, envelope blob not null, date integer not null);
+    create index thread_message_date on thread_messages (date);
 
     create table notifications (id text primary key not null, date integer not null, actorId text not null, actorUsername text not null, subject text not null, subjectId text not null, blockId text, dataId text, type integer not null, body text not null, read integer not null);
     create index notification_date on notifications (date);
-	create index notification_actorId on notifications (actorId);
+    create index notification_actorId on notifications (actorId);
     create index notification_subjectId on notifications (subjectId);
     create index notification_blockId on notifications (blockId);
     create index notification_read on notifications (read);
@@ -213,12 +213,12 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 
     create table cafe_requests (id text primary key not null, peerId text not null, targetId text not null, cafeId text not null, type integer not null, date integer not null);
     create index cafe_request_cafeId on cafe_requests (cafeId);
-	create index cafe_request_date on cafe_requests (date);
+    create index cafe_request_date on cafe_requests (date);
 
-	create table cafe_messages (id text primary key not null, peerId text not null, date integer not null);
-	create index cafe_message_date on cafe_messages (date);
+    create table cafe_messages (id text primary key not null, peerId text not null, date integer not null);
+    create index cafe_message_date on cafe_messages (date);
 
-	create table cafe_client_nonces (value text primary key not null, address text not null, date integer not null);
+    create table cafe_client_nonces (value text primary key not null, address text not null, date integer not null);
 
     create table cafe_clients (id text primary key not null, address text not null, created integer not null, lastSeen integer not null);
     create index cafe_client_address on cafe_clients (address);
@@ -227,10 +227,10 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create table cafe_client_threads (id text not null, clientId text not null, skCipher blob not null, headCipher blob not null, nameCipher blob not null, primary key (id, clientId));
     create index cafe_client_thread_clientId on cafe_client_threads (clientId);
 
-	create table cafe_client_messages (id text not null, peerId text not null, clientId text not null, date integer not null, primary key (id, clientId));
+    create table cafe_client_messages (id text not null, peerId text not null, clientId text not null, date integer not null, primary key (id, clientId));
     create index cafe_client_message_clientId on cafe_client_messages (clientId);
-	create index cafe_client_message_date on cafe_client_messages (date);
-	`
+    create index cafe_client_message_date on cafe_client_messages (date);
+    `
 	_, err := db.Exec(sqlStmt)
 	if err != nil {
 		return err

@@ -18,7 +18,7 @@ func initAt003(db *sql.DB, password string) error {
     create index notification_targetId on notifications (targetId);
     create index notification_actorId on notifications (actorId);
     create index notification_read on notifications (read);
-	`
+    `
 	_, err := db.Exec(sqlStmt)
 	if err != nil {
 		return err
@@ -30,7 +30,7 @@ func initAt003(db *sql.DB, password string) error {
 	return nil
 }
 
-func TestMigration004(t *testing.T) {
+func Test004(t *testing.T) {
 	var dbPath string
 	os.Mkdir("./datastore", os.ModePerm)
 	dbPath = path.Join("./", "datastore", "mainnet.db")

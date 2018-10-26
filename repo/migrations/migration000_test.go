@@ -17,7 +17,7 @@ func initAtNone(db *sql.DB, password string) error {
     create table blocks (id text primary key not null, date integer not null, parents text not null, threadId text not null, authorPk text not null, type integer not null, dataId text, dataKeyCipher blob, dataCaptionCipher blob);
     create index block_dataId on blocks (dataId);
     create index block_threadId_type_date on blocks (threadId, type, date);
-	`
+    `
 	_, err := db.Exec(sqlStmt)
 	if err != nil {
 		return err
@@ -29,7 +29,7 @@ func initAtNone(db *sql.DB, password string) error {
 	return nil
 }
 
-func TestMigration000(t *testing.T) {
+func Test000(t *testing.T) {
 	var dbPath string
 	os.Mkdir("./datastore", os.ModePerm)
 	dbPath = path.Join("./", "datastore", "mainnet.db")

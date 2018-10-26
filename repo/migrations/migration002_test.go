@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestMigration002(t *testing.T) {
+func Test002(t *testing.T) {
 	var dbPath string
 	os.Mkdir("./datastore", os.ModePerm)
 	dbPath = path.Join("./", "datastore", "mainnet.db")
