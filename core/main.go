@@ -351,12 +351,14 @@ func (t *Textile) Start() error {
 		t.cafeService = NewCafeService(accnt, t.ipfs, t.datastore, t.cafeInbox)
 
 		// try to determine a public ipv4 address
-		var pubIPv4 string
-		pubIPv4, err = ipfs.PublicIPv4Addr(t.ipfs)
-		if err != nil {
-			log.Infof(err.Error())
+		if httpApiHost != nil {
+			var pubIPv4 string
+			pubIPv4, err = ipfs.PublicIPv4Addr(t.ipfs)
+			if err != nil {
+				log.Infof(err.Error())
+			}
+			t.cafeService.setHttpAddr(pubIPv4, t.HttpApiAddr())
 		}
-		t.cafeService.setHttpAddr(pubIPv4)
 
 		// run queues
 		go t.runQueues()

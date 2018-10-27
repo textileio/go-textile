@@ -2,7 +2,7 @@ package db
 
 import (
 	"database/sql"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"strconv"

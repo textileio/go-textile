@@ -29,7 +29,6 @@ jobs:
   unit-test:
     docker:
     - image: textile/builder:1.10.3
-    - image: mongo:3.4.10
     working_directory: /go/src/github.com/textileio/textile-go
     steps:
     - *checkout-linux
@@ -60,16 +59,9 @@ jobs:
         name: run tests
         command: |
           textile init -n -s STqdutoFiPV9Nzh96L7bvSZNzrHkQiB2phDW1ySG9Na1kkGE
-          textile daemon -n -g=127.0.0.1:8080 --cafe-bind-addr=0.0.0.0:8000 --cafe-token-secret=swarmmmmm --cafe-referral-key=woohoo! --cafe-db-hosts=0.0.0.0:27017 --cafe-db-name=textile_db &
+          textile daemon -n &
           sleep 5
           ./test_compile.sh
-        environment:
-          # client node settings
-          CAFE_ADDR: http://0.0.0.0:8000
-          CAFE_DB_HOSTS: 0.0.0.0:27017
-          CAFE_DB_NAME: textile_db
-          CAFE_TOKEN_SECRET: swarmmmmm
-          CAFE_REFERRAL_KEY: woohoo!
 
   build-cli-linux:
     docker:
@@ -499,7 +491,7 @@ jobs:
         command: |
           mkdir -p ~/dist
           mv ~/cli/* ~/dist/
-          mv ~/desktop/* ~/dist/
+          # mv ~/desktop/* ~/dist/
           mv ~/ios_framework/* ~/dist/
           mv ~/android_aar/* ~/dist/
           ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ~/dist/
@@ -534,22 +526,6 @@ workflows:
             only: master
           tags:
             only: /.*/
-    - build-desktop-darwin-windows:
-        requires:
-        - unit-test
-        filters:
-          branches:
-            only: master
-          tags:
-            only: /.*/
-    - build-desktop-linux:
-        requires:
-        - unit-test
-        filters:
-          branches:
-            only: master
-          tags:
-            only: /.*/
     - build-ios-framework:
         requires:
         - unit-test
@@ -570,8 +546,6 @@ workflows:
         requires:
         - build-cli-darwin-windows
         - build-cli-linux
-        - build-desktop-darwin-windows
-        - build-desktop-linux
         - build-ios-framework
         - build-android-aar
         filters:

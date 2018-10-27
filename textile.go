@@ -8,7 +8,6 @@ import (
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
 	"github.com/op/go-logging"
-	"github.com/textileio/textile-go/cafe"
 	"github.com/textileio/textile-go/cmd"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/gateway"
@@ -16,7 +15,6 @@ import (
 	rconfig "github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/wallet"
 	"gopkg.in/abiosoft/ishell.v2"
-	ipfscore "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 	"log"
 	"os"
 	"os/signal"
@@ -42,8 +40,8 @@ type GatewayOptions struct {
 	BindAddr string `short:"g" long:"gateway-bind-addr" description:"set the gateway address" default:"127.0.0.1:random"`
 }
 
-type CafeOptions struct {
-	BindAddr string `short:"c" long:"cafe-bind-addr" description:"set the cafe address" default:"127.0.0.1:random"`
+type HttpApiOptions struct {
+	BindAddr string `short:"a" long:"api-bind-addr" description:"set the http api address" default:"127.0.0.1:random"`
 }
 
 type Options struct{}
@@ -81,14 +79,14 @@ type DaemonCommand struct {
 	RepoPath string         `short:"r" long:"repo-dir" description:"specify a custom repository path"`
 	Logs     LogOptions     `group:"Log Options"`
 	Gateway  GatewayOptions `group:"Gateway Options"`
-	Cafe     CafeOptions    `group:"Cafe Options"`
+	HttpApi  HttpApiOptions `group:"HTTP API Options"`
 }
 
 type ShellCommand struct {
 	RepoPath string         `short:"r" long:"repo-dir" description:"specify a custom repository path"`
 	Logs     LogOptions     `group:"Log Options"`
 	Gateway  GatewayOptions `group:"Gateway Options"`
-	Cafe     CafeOptions    `group:"Cafe Options"`
+	HttpApi  HttpApiOptions `group:"HTTP API Options"`
 }
 
 var initCommand InitCommand
@@ -116,14 +114,14 @@ func init() {
 	parser.AddCommand("migrate",
 		"Migrate the node repo and exit",
 		"Migrate the node repository and exit.",
-		&initCommand)
+		&migrateCommand)
 	parser.AddCommand("shell",
 		"Start a node shell",
 		"Start an interactive node shell session.",
 		&shellCommand)
 	parser.AddCommand("daemon",
 		"Start a node daemon",
-		"Start a node daemon session (useful w/ a cafe).",
+		"Start a node daemon session.",
 		&daemonCommand)
 }
 
@@ -289,7 +287,7 @@ func (x *MigrateCommand) Execute(args []string) error {
 }
 
 func (x *DaemonCommand) Execute(args []string) error {
-	if err := buildNode(x.RepoPath, x.Cafe, x.Gateway, x.Logs); err != nil {
+	if err := buildNode(x.RepoPath, x.HttpApi, x.Gateway, x.Logs); err != nil {
 		return err
 	}
 	printSplashScreen(true)
@@ -310,14 +308,14 @@ func (x *DaemonCommand) Execute(args []string) error {
 }
 
 func (x *ShellCommand) Execute(args []string) error {
-	if err := buildNode(x.RepoPath, x.Cafe, x.Gateway, x.Logs); err != nil {
+	if err := buildNode(x.RepoPath, x.HttpApi, x.Gateway, x.Logs); err != nil {
 		return err
 	}
 	printSplashScreen(false)
 
 	// run the shell
 	cmd.RunShell(func() error {
-		return startNode(x.Cafe, x.Gateway)
+		return startNode(x.HttpApi, x.Gateway)
 	}, func() error {
 		return stopNode()
 	})
@@ -343,7 +341,7 @@ func getRepoPath(repoPath string) (string, error) {
 	return repoPath, nil
 }
 
-func buildNode(repoPath string, cafeOpts CafeOptions, gatewayOpts GatewayOptions, logOpts LogOptions) error {
+func buildNode(repoPath string, httpApiOpts HttpApiOptions, gatewayOpts GatewayOptions, logOpts LogOptions) error {
 	// handle repo path
 	repoPathf, err := getRepoPath(repoPath)
 	if err != nil {
@@ -373,24 +371,15 @@ func buildNode(repoPath string, cafeOpts CafeOptions, gatewayOpts GatewayOptions
 	// create the gateway
 	gateway.Host = &gateway.Gateway{}
 
-	// create the cafe api
-	cafe.Host = &cafe.Cafe{
-		Ipfs: func() *ipfscore.IpfsNode {
-			return core.Node.Ipfs()
-		},
-		NodeVersion: core.Version,
-		Protocol:    core.CafeServiceProtocol,
-	}
-
 	// auto start it
-	if err := startNode(cafeOpts, gatewayOpts); err != nil {
+	if err := startNode(httpApiOpts, gatewayOpts); err != nil {
 		fmt.Println(fmt.Errorf("start node failed: %s", err))
 	}
 
 	return nil
 }
 
-func startNode(cafeOpts CafeOptions, gatewayOpts GatewayOptions) error {
+func startNode(httpApiOpts HttpApiOptions, gatewayOpts GatewayOptions) error {
 	if err := core.Node.Start(); err != nil {
 		return err
 	}
@@ -459,8 +448,8 @@ func startNode(cafeOpts CafeOptions, gatewayOpts GatewayOptions) error {
 	// start the gateway
 	gateway.Host.Start(resolveAddress(gatewayOpts.BindAddr))
 
-	// start cafe server
-	cafe.Host.Start(resolveAddress(cafeOpts.BindAddr))
+	// start http api server
+	core.Node.StartHttpApi(resolveAddress(httpApiOpts.BindAddr))
 
 	// wait for the ipfs node to go online
 	<-core.Node.OnlineCh()
@@ -472,7 +461,7 @@ func stopNode() error {
 	if err := gateway.Host.Stop(); err != nil {
 		return err
 	}
-	if err := cafe.Host.Stop(); err != nil {
+	if err := core.Node.StopHttpApi(); err != nil {
 		return err
 	}
 	return core.Node.Stop()
@@ -495,9 +484,9 @@ func printSplashScreen(daemon bool) {
 	}
 	fmt.Println(grey("address: ") + green(addr))
 	fmt.Println(grey("version: ") + blue(core.Version))
-	fmt.Println(grey("repo: ") + blue(core.Node.GetRepoPath()))
+	fmt.Println(grey("repo:    ") + blue(core.Node.GetRepoPath()))
 	fmt.Println(grey("gateway: ") + yellow(gateway.Host.Addr()))
-	fmt.Println(grey("cafe: ") + yellow(cafe.Host.Addr()))
+	fmt.Println(grey("api:     ") + yellow(core.Node.HttpApiAddr()))
 	if !daemon {
 		fmt.Println(grey("type 'help' for available commands"))
 	}

@@ -10,16 +10,15 @@ import (
 	"testing"
 )
 
-var repo = "testdata/.textile"
-
+var repoPath = "testdata/.textile"
 var node *Textile
 
 func TestInitRepo(t *testing.T) {
-	os.RemoveAll(repo)
+	os.RemoveAll(repoPath)
 	accnt := keypair.Random()
 	if err := InitRepo(InitConfig{
 		Account:  *accnt,
-		RepoPath: repo,
+		RepoPath: repoPath,
 		LogLevel: logging.DEBUG,
 	}); err != nil {
 		t.Errorf("init node failed: %s", err)
@@ -29,7 +28,7 @@ func TestInitRepo(t *testing.T) {
 func TestNewTextile(t *testing.T) {
 	var err error
 	node, err = NewTextile(RunConfig{
-		RepoPath: repo,
+		RepoPath: repoPath,
 		LogLevel: logging.DEBUG,
 	})
 	if err != nil {
@@ -114,6 +113,8 @@ func TestCore_OnlineAgain(t *testing.T) {
 	}
 }
 
-func Test_Teardown(t *testing.T) {
+func TestCore_Teardown(t *testing.T) {
 	os.RemoveAll(node.GetRepoPath())
+	os.RemoveAll(node1.GetRepoPath())
+	os.RemoveAll(node2.GetRepoPath())
 }

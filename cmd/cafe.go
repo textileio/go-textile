@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
@@ -8,8 +9,11 @@ import (
 )
 
 func cafeRegister(c *ishell.Context) {
-	c.Print("cafe peer id: ")
-	peerId := c.ReadLine()
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing peer id"))
+		return
+	}
+	peerId := c.Args[0]
 
 	if err := core.Node.RegisterCafe(peerId); err != nil {
 		c.Err(err)
@@ -34,8 +38,11 @@ func cafeList(c *ishell.Context) {
 }
 
 func cafeDeregister(c *ishell.Context) {
-	c.Print("cafe peer id: ")
-	peerId := c.ReadLine()
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing peer id"))
+		return
+	}
+	peerId := c.Args[0]
 
 	if err := core.Node.DeregisterCafe(peerId); err != nil {
 		c.Err(err)

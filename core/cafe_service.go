@@ -7,7 +7,6 @@ import (
 	njwt "github.com/dgrijalva/jwt-go"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/cafe"
 	"github.com/textileio/textile-go/jwt"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/pb"
@@ -828,16 +827,14 @@ func (h *CafeService) verifyKeyFunc(token *njwt.Token) (interface{}, error) {
 }
 
 // setHttpApi sets the cafe http api address
-func (h *CafeService) setHttpAddr(ip string) {
-	if ip == "" {
-		ip = "127.0.0.1"
+func (h *CafeService) setHttpAddr(host string, boundAddr string) {
+	if host == "" {
+		host = "127.0.0.1"
 	}
-	if cafe.Host != nil {
-		binded := strings.Split(cafe.Host.Addr(), ":")
-		if len(binded) < 2 {
-			return
-		}
-		h.httpAddr = fmt.Sprintf("%s:%s", ip, binded[1])
-		log.Infof("cafe http api address: %s", h.httpAddr)
+	parts := strings.Split(boundAddr, ":")
+	if len(parts) < 2 {
+		return
 	}
+	h.httpAddr = fmt.Sprintf("%s:%s", host, parts[1])
+	log.Infof("cafe http api address: %s", h.httpAddr)
 }

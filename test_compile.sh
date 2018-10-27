@@ -35,9 +35,6 @@ go test -coverprofile=mobile.cover.out ./mobile
 # gateway
 go test -coverprofile=gateway.cover.out ./gateway
 
-# cafe
-go test -coverprofile=cafe.cover.out ./cafe
-
 echo "mode: set" > coverage.out && cat *.cover.out | grep -v mode: | sort -r | \
 awk '{if($1 != last) {print $0;last=$1}}' >> coverage.out
 rm -rf *.cover.out

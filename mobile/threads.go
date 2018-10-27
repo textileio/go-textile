@@ -50,11 +50,6 @@ func (m *Mobile) AddThread(name string) (string, error) {
 		return "", err
 	}
 
-	// invite devices
-	if err := core.Node.InviteAccountPeers(thrd); err != nil {
-		return "", err
-	}
-
 	// build json
 	peers := thrd.Peers()
 	item := Thread{
