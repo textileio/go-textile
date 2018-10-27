@@ -51,16 +51,8 @@ jobs:
         paths:
         - /go/src/gx
     - run:
-        name: install textile
-        command: |
-          go build -i -o textile textile.go
-          mv textile $GOPATH/bin/
-    - run:
         name: run tests
         command: |
-          textile init -n -s STqdutoFiPV9Nzh96L7bvSZNzrHkQiB2phDW1ySG9Na1kkGE
-          textile daemon -n &
-          sleep 5
           ./test_compile.sh
 
   build-cli-linux:
