@@ -3,10 +3,10 @@ package core_test
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/op/go-logging"
 	. "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/repo"
+	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -51,7 +51,7 @@ func TestPin_Setup(t *testing.T) {
 	if err := InitRepo(InitConfig{
 		Account:  *accnt1,
 		RepoPath: repoPath1,
-		LogLevel: logging.DEBUG,
+		LogLevel: logger.DEBUG,
 	}); err != nil {
 		t.Errorf("init node1 failed: %s", err)
 		return
@@ -59,7 +59,7 @@ func TestPin_Setup(t *testing.T) {
 	var err error
 	node1, err = NewTextile(RunConfig{
 		RepoPath: repoPath1,
-		LogLevel: logging.DEBUG,
+		LogLevel: logger.DEBUG,
 	})
 	if err != nil {
 		t.Errorf("create node1 failed: %s", err)
@@ -73,14 +73,14 @@ func TestPin_Setup(t *testing.T) {
 	if err := InitRepo(InitConfig{
 		Account:  *accnt2,
 		RepoPath: repoPath2,
-		LogLevel: logging.DEBUG,
+		LogLevel: logger.DEBUG,
 	}); err != nil {
 		t.Errorf("init node2 failed: %s", err)
 		return
 	}
 	node2, err = NewTextile(RunConfig{
 		RepoPath:     repoPath2,
-		LogLevel:     logging.DEBUG,
+		LogLevel:     logger.DEBUG,
 		CafeOpen:     true,
 		CafeBindAddr: "127.0.0.1:5000",
 	})

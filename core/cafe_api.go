@@ -46,6 +46,9 @@ func (t *Textile) startCafeApi(addr string) {
 
 // StopCafeApi stops the host instance
 func (t *Textile) stopCafeApi() error {
+	if cafeApiHost == nil {
+		return nil
+	}
 	return cafeApiHost.stop()
 }
 

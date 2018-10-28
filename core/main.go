@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/archive"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/keypair"
@@ -12,16 +11,16 @@ import (
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/service"
 	"gopkg.in/natefinch/lumberjack.v2"
+	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
-	"io"
-
-	//ipfslog "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
+	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	utilmain "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/commands"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/config"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/fsrepo"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -29,10 +28,7 @@ import (
 	"time"
 )
 
-var fileLogFormat = logging.MustStringFormatter(
-	`%{time:15:04:05.000} [%{shortfunc}] [%{level}] %{message}`,
-)
-var log = logging.MustGetLogger("core")
+var log = logging.Logger("tex-node")
 
 // Version is the core version identifier
 const Version = "1.0.0"
@@ -82,7 +78,7 @@ type InitConfig struct {
 	SwarmPorts string
 	IsMobile   bool
 	IsServer   bool
-	LogLevel   logging.Level
+	LogLevel   logger.Level
 	LogFiles   bool
 }
 
@@ -96,7 +92,7 @@ type MigrateConfig struct {
 type RunConfig struct {
 	PinCode      string
 	RepoPath     string
-	LogLevel     logging.Level
+	LogLevel     logger.Level
 	LogFiles     bool
 	CafeOpen     bool
 	CafeBindAddr string
@@ -701,9 +697,8 @@ func (t *Textile) touchDatastore() error {
 }
 
 // setupLogging handles log settings
-func setupLogging(repoPath string, level logging.Level, files bool) io.Writer {
+func setupLogging(repoPath string, level logger.Level, files bool) io.Writer {
 	var writer io.Writer
-	var backendFile *logging.LogBackend
 	if files {
 		writer = &lumberjack.Logger{
 			Filename:   path.Join(repoPath, "logs", "textile.log"),
@@ -714,12 +709,9 @@ func setupLogging(repoPath string, level logging.Level, files bool) io.Writer {
 	} else {
 		writer = os.Stdout
 	}
-	backendFile = logging.NewLogBackend(writer, "", 0)
-	backendFileFormatter := logging.NewBackendFormatter(backendFile, fileLogFormat)
-	logging.SetBackend(backendFileFormatter)
-	logging.SetLevel(level, "")
-	//ipfslog.SetLogLevel("namesys", strings.ToLower(level.String()))
-	//ipfslog.SetLogLevel("pubsub-valuestore", strings.ToLower(level.String()))
+	backendFile := logger.NewLogBackend(writer, "", 0)
+	logger.SetBackend(backendFile)
+	logging.SetAllLoggers(level)
 	return writer
 }
 

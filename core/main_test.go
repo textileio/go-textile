@@ -2,9 +2,9 @@ package core_test
 
 import (
 	"crypto/rand"
-	"github.com/op/go-logging"
 	. "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
+	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"os"
 	"testing"
@@ -19,7 +19,7 @@ func TestInitRepo(t *testing.T) {
 	if err := InitRepo(InitConfig{
 		Account:  *accnt,
 		RepoPath: repoPath,
-		LogLevel: logging.DEBUG,
+		LogLevel: logger.DEBUG,
 	}); err != nil {
 		t.Errorf("init node failed: %s", err)
 	}
@@ -29,7 +29,7 @@ func TestNewTextile(t *testing.T) {
 	var err error
 	node, err = NewTextile(RunConfig{
 		RepoPath: repoPath,
-		LogLevel: logging.DEBUG,
+		LogLevel: logger.DEBUG,
 	})
 	if err != nil {
 		t.Errorf("create node failed: %s", err)

@@ -3,9 +3,9 @@ package photo
 import (
 	"bytes"
 	"github.com/disintegration/imaging"
-	"github.com/op/go-logging"
 	"github.com/pkg/errors"
 	"github.com/rwcarlsen/goexif/exif"
+	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	"image"
 	"image/color/palette"
 	"image/draw"
@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-var log = logging.MustGetLogger("photo")
+var log = logging.Logger("tex-images")
 
 // Format enumerates the type of images currently supported
 type Format string

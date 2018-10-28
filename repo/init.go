@@ -5,10 +5,10 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/repo/schema"
+	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/namesys"
@@ -17,7 +17,7 @@ import (
 	"path"
 )
 
-var log = logging.MustGetLogger("repo")
+var log = logging.Logger("tex-repo")
 
 var ErrRepoExists = errors.New("repo not empty, reinitializing would overwrite your account")
 var ErrRepoDoesNotExist = errors.New("repo does not exist, initialization is required")

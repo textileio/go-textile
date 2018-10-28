@@ -2,14 +2,15 @@ package mobile
 
 import (
 	"encoding/json"
-	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
+	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
+	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/fsrepo"
 	"time"
 )
 
-var log = logging.MustGetLogger("mobile")
+var log = logging.Logger("tex-mobile")
 
 // Message is a generic go -> bridge message structure
 type Event struct {
@@ -49,9 +50,9 @@ func MigrateRepo(config *NodeConfig) error {
 // Create a gomobile compatible wrapper around TextileNode
 func NewNode(config *NodeConfig, messenger Messenger) (*Mobile, error) {
 	// determine log level
-	logLevel, err := logging.LogLevel(config.LogLevel)
+	logLevel, err := logger.LogLevel(config.LogLevel)
 	if err != nil {
-		logLevel = logging.INFO
+		logLevel = logger.ERROR
 	}
 
 	// run init if needed

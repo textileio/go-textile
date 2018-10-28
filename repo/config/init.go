@@ -2,14 +2,14 @@ package config
 
 import (
 	"fmt"
-	"github.com/op/go-logging"
+	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo"
 	native "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/config"
 	"math/rand"
 	"time"
 )
 
-var log = logging.MustGetLogger("config")
+var log = logging.Logger("tex-repo-config")
 
 const (
 	minPort = 1024

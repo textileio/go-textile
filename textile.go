@@ -6,7 +6,6 @@ import (
 	"github.com/fatih/color"
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
-	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/cmd"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/gateway"
@@ -14,6 +13,7 @@ import (
 	rconfig "github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/wallet"
 	"gopkg.in/abiosoft/ishell.v2"
+	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	"log"
 	"os"
 	"os/signal"
@@ -31,7 +31,7 @@ type IPFSOptions struct {
 }
 
 type LogOptions struct {
-	Level   string `short:"l" long:"log-level" description:"set the logging level [debug, info, notice, warning, error, critical]" default:"info"`
+	Level   string `short:"l" long:"log-level" description:"set the logging level [debug, info, notice, warning, error, critical]" default:"error"`
 	NoFiles bool   `short:"n" long:"no-log-files" description:"do not save logs on disk"`
 }
 
@@ -256,7 +256,7 @@ func (x *InitCommand) Execute(args []string) error {
 	}
 
 	// determine log level
-	level, err := logging.LogLevel(strings.ToUpper(x.Logs.Level))
+	level, err := logger.LogLevel(strings.ToUpper(x.Logs.Level))
 	if err != nil {
 		return errors.New(fmt.Sprintf("determine log level failed: %s", err))
 	}
@@ -363,7 +363,7 @@ func buildNode(repoPath string, apiOpts ApiOptions, gatewayOpts GatewayOptions, 
 	}
 
 	// determine log level
-	level, err := logging.LogLevel(strings.ToUpper(logOpts.Level))
+	level, err := logger.LogLevel(strings.ToUpper(logOpts.Level))
 	if err != nil {
 		return errors.New(fmt.Sprintf("determine log level failed: %s", err))
 	}
