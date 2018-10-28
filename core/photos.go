@@ -3,14 +3,13 @@ package core
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"fmt"
+	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/archive"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/photo"
-	"github.com/textileio/textile-go/thread"
-	uio "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/unixfs/io"
+	"github.com/textileio/textile-go/repo"
+	uio "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/unixfs/io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -78,13 +77,6 @@ func (t *Textile) AddPhoto(path string) (*AddDataResult, error) {
 		return nil, err
 	}
 
-	// get public key
-	accnt, err := t.Account()
-	if err != nil {
-		return nil, err
-	}
-	addrb := []byte(accnt.Address())
-
 	// encrypt files
 	thumbcipher, err := crypto.EncryptAES(thumb, key)
 	if err != nil {
@@ -106,48 +98,54 @@ func (t *Textile) AddPhoto(path string) (*AddDataResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	addrcipher, err := crypto.EncryptAES(addrb, key)
-	if err != nil {
-		return nil, err
-	}
 
 	// create a virtual directory for the photo
-	dirb := uio.NewDirectory(t.ipfs.DAG)
-	if err := ipfs.AddFileToDirectory(t.ipfs, dirb, bytes.NewReader(thumbcipher), "thumb"); err != nil {
-		return nil, err
-	}
-	if err := ipfs.AddFileToDirectory(t.ipfs, dirb, bytes.NewReader(smallcipher), "small"); err != nil {
-		return nil, err
-	}
-	if err := ipfs.AddFileToDirectory(t.ipfs, dirb, bytes.NewReader(mediumcipher), "medium"); err != nil {
-		return nil, err
-	}
-	if err := ipfs.AddFileToDirectory(t.ipfs, dirb, bytes.NewReader(largecipher), "photo"); err != nil {
-		return nil, err
-	}
-	if err := ipfs.AddFileToDirectory(t.ipfs, dirb, bytes.NewReader(metacipher), "meta"); err != nil {
-		return nil, err
-	}
-	if err := ipfs.AddFileToDirectory(t.ipfs, dirb, bytes.NewReader(addrcipher), "pk"); err != nil {
-		return nil, err
-	}
-
-	// pin the directory
-	dir, err := dirb.GetNode()
+	dir := uio.NewDirectory(t.ipfs.DAG)
+	thumbId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader(thumbcipher), "thumb")
 	if err != nil {
 		return nil, err
 	}
-	if err := ipfs.PinDirectory(t.ipfs, dir, []string{"medium", "photo"}); err != nil {
+	smallId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader(smallcipher), "small")
+	if err != nil {
 		return nil, err
 	}
-	result := &AddDataResult{Id: dir.Cid().Hash().B58String(), Key: string(key)}
+	mediumId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader(mediumcipher), "medium")
+	if err != nil {
+		return nil, err
+	}
+	photoId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader(largecipher), "photo")
+	if err != nil {
+		return nil, err
+	}
+	metaId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader(metacipher), "meta")
+	if err != nil {
+		return nil, err
+	}
 
-	// if not mobile, create a pin request
-	// on mobile, we let the OS handle the archive directly
-	if !t.IsMobile() {
-		if err := t.putPinRequest(result.Id); err != nil {
-			return nil, err
-		}
+	// pin _some_ of the photo set locally
+	node, err := dir.GetNode()
+	if err != nil {
+		return nil, err
+	}
+	if err := ipfs.PinDirectory(t.ipfs, node, []string{"small", "medium", "photo", "meta"}); err != nil {
+		return nil, err
+	}
+
+	// the add result is a handle for UIs to use to share to a thread
+	result := &AddDataResult{
+		Id:  node.Cid().Hash().B58String(),
+		Key: base58.FastBase58Encoding(key),
+	}
+
+	// add store requests unless mobile, in which case the OS handles an archive directly
+	if !t.Mobile() {
+		t.cafeOutbox.Add(thumbId.Hash().B58String(), repo.CafeStoreRequest)
+		t.cafeOutbox.Add(smallId.Hash().B58String(), repo.CafeStoreRequest)
+		t.cafeOutbox.Add(mediumId.Hash().B58String(), repo.CafeStoreRequest)
+		t.cafeOutbox.Add(photoId.Hash().B58String(), repo.CafeStoreRequest)
+		t.cafeOutbox.Add(metaId.Hash().B58String(), repo.CafeStoreRequest)
+		t.cafeOutbox.Add(node.Cid().Hash().B58String(), repo.CafeStoreRequest)
+		go t.cafeOutbox.Flush()
 		return result, nil
 	}
 
@@ -175,21 +173,18 @@ func (t *Textile) AddPhoto(path string) (*AddDataResult, error) {
 	if err := result.Archive.AddFile(metacipher, "meta"); err != nil {
 		return nil, err
 	}
-	if err := result.Archive.AddFile(addrcipher, "pk"); err != nil {
-		return nil, err
-	}
 
 	// all done
 	return result, nil
 }
 
 // PhotoThreads lists threads which contain a photo (known to the local peer)
-func (t *Textile) PhotoThreads(id string) []*thread.Thread {
+func (t *Textile) PhotoThreads(id string) []*Thread {
 	blocks := t.datastore.Blocks().List("", -1, "dataId='"+id+"'")
 	if len(blocks) == 0 {
 		return nil
 	}
-	var threads []*thread.Thread
+	var threads []*Thread
 	for _, block := range blocks {
 		if _, thrd := t.GetThread(block.ThreadId); thrd != nil {
 			threads = append(threads, thrd)
@@ -198,19 +193,11 @@ func (t *Textile) PhotoThreads(id string) []*thread.Thread {
 	return threads
 }
 
-// GetPhotoKey returns a the decrypted AES key for a photo set
-func (t *Textile) GetPhotoKey(id string) (string, error) {
+// GetPhotoKey returns the AES key for a photo set
+func (t *Textile) GetPhotoKey(id string) ([]byte, error) {
 	block, err := t.GetBlockByDataId(id)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	_, thrd := t.GetThread(block.ThreadId)
-	if thrd == nil {
-		return "", errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadId))
-	}
-	key, err := thrd.GetBlockDataKey(block)
-	if err != nil {
-		return "", err
-	}
-	return string(key), nil
+	return block.DataKey, nil
 }

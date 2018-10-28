@@ -9,10 +9,10 @@ import (
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/repo/schema"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/namesys"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"
+	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/namesys"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/fsrepo"
 	"os"
 	"path"
 )
@@ -21,8 +21,10 @@ var log = logging.MustGetLogger("repo")
 
 var ErrRepoExists = errors.New("repo not empty, reinitializing would overwrite your account")
 var ErrRepoDoesNotExist = errors.New("repo does not exist, initialization is required")
+var ErrMigrationRequired = errors.New("repo needs migration")
+var ErrRepoCorrupted = errors.New("repo is corrupted")
 
-const repover = "5"
+const repover = "6"
 
 func DoInit(repoRoot string, initDatastore func() error) error {
 	if err := checkWriteable(repoRoot); err != nil {
@@ -33,7 +35,7 @@ func DoInit(repoRoot string, initDatastore func() error) error {
 	if fsrepo.IsInitialized(repoRoot) {
 		return ErrRepoExists
 	}
-	log.Infof("initializing textile ipfs node at %s", repoRoot)
+	log.Infof("initializing repo at %s", repoRoot)
 
 	// custom directories
 	paths, err := schema.NewCustomSchemaManager(schema.Context{
@@ -127,26 +129,4 @@ func initializeIpnsKeyspace(repoRoot string) error {
 	}
 
 	return namesys.InitializeKeyspace(ctx, nd.Namesys, nd.Pinning, nd.PrivateKey)
-}
-
-func destroyRepo(root string) error {
-	// exclude logs
-	paths := []string{
-		"blocks",
-		"datastore",
-		"keystore",
-		"tmp",
-		"config",
-		"datastore_spec",
-		"repo.lock",
-		"repover",
-		"version",
-	}
-	for _, p := range paths {
-		err := os.RemoveAll(fmt.Sprintf("%s/%s", root, p))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }

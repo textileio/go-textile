@@ -143,20 +143,6 @@
   version = "v1.3.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:f0ca78bd7a42a636aa6699c7b9e1be6f50e4ce0da8b6e9cf71d7b49a7075f1d6"
-  name = "github.com/globalsign/mgo"
-  packages = [
-    ".",
-    "bson",
-    "internal/json",
-    "internal/sasl",
-    "internal/scram",
-  ]
-  pruneopts = "T"
-  revision = "1ca0a4f7cbcbe61c005d1bd43fdd8bb8b71df6bc"
-
-[[projects]]
   digest = "1:a2ecb56e5053d942aafc86738915fb94c9131bac848c543b8b6764365fd69080"
   name = "github.com/golang/protobuf"
   packages = [
@@ -408,8 +394,6 @@
   digest = "1:62fac8c414ce3fb59b87102ebebb04edd0287a721c0cd6b36f4dc866a42cf772"
   name = "golang.org/x/crypto"
   packages = [
-    "bcrypt",
-    "blowfish",
     "curve25519",
     "ed25519",
     "ed25519/internal/edwards25519",
@@ -547,8 +531,6 @@
     "github.com/fatih/color",
     "github.com/gin-gonic/gin",
     "github.com/gin-gonic/gin/render",
-    "github.com/globalsign/mgo",
-    "github.com/globalsign/mgo/bson",
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/ptypes",
     "github.com/golang/protobuf/ptypes/any",
@@ -568,7 +550,6 @@
     "github.com/skip2/go-qrcode",
     "github.com/stretchr/testify/assert",
     "github.com/tyler-smith/go-bip39",
-    "golang.org/x/crypto/bcrypt",
     "golang.org/x/crypto/ed25519",
     "golang.org/x/crypto/nacl/box",
     "gopkg.in/abiosoft/ishell.v2",

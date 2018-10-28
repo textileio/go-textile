@@ -2,6 +2,8 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
+	"github.com/textileio/textile-go/photo"
 	"github.com/textileio/textile-go/repo"
 	"strconv"
 	"strings"
@@ -24,25 +26,29 @@ func (c *BlockDB) Add(block *repo.Block) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into blocks(id, date, parents, threadId, authorPk, type, dataId, dataKeyCipher, dataCaptionCipher, dataUsernameCipher, dataMetadataCipher) values(?,?,?,?,?,?,?,?,?,?,?)`
+	stm := `insert into blocks(id, date, parents, threadId, authorId, type, dataId, dataKey, dataCaption, dataMetadata) values(?,?,?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
 		return err
 	}
 	defer stmt.Close()
+	// serialize meta data
+	meta, err := json.Marshal(block.DataMetadata)
+	if err != nil {
+		return err
+	}
 	_, err = stmt.Exec(
 		block.Id,
 		int(block.Date.Unix()),
 		strings.Join(block.Parents, ","),
 		block.ThreadId,
-		block.AuthorPk,
+		block.AuthorId,
 		int(block.Type),
 		block.DataId,
-		block.DataKeyCipher,
-		block.DataCaptionCipher,
-		block.AuthorUsernameCipher,
-		block.DataMetadataCipher,
+		block.DataKey,
+		block.DataCaption,
+		meta,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -62,7 +68,7 @@ func (c *BlockDB) Get(id string) *repo.Block {
 	return &ret[0]
 }
 
-func (c *BlockDB) GetByDataId(dataId string) *repo.Block {
+func (c *BlockDB) GetByData(dataId string) *repo.Block {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	ret := c.handleQuery("select * from blocks where dataId='" + dataId + "';")
@@ -80,7 +86,7 @@ func (c *BlockDB) List(offset string, limit int, query string) []repo.Block {
 		if query != "" {
 			q = query + " and "
 		}
-		stm = "select * from blocks where " + q + "date<(select date from blocks where id='" + offset + "') order by date desc limit " + strconv.Itoa(limit) + " ;"
+		stm = "select * from blocks where " + q + "date<(select date from blocks where id='" + offset + "') order by date desc limit " + strconv.Itoa(limit) + ";"
 	} else {
 		if query != "" {
 			q = "where " + query + " "
@@ -110,7 +116,7 @@ func (c *BlockDB) Delete(id string) error {
 	return err
 }
 
-func (c *BlockDB) DeleteByThreadId(threadId string) error {
+func (c *BlockDB) DeleteByThread(threadId string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	_, err := c.db.Exec("delete from blocks where threadId=?", threadId)
@@ -125,25 +131,32 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 		return nil
 	}
 	for rows.Next() {
-		var id, parents, threadId, authorPk, dataId string
+		var id, parents, threadId, authorId, dataId, dataCaption string
 		var dateInt, typeInt int
-		var dataKeyCipher, dataCaptionCipher, authorUnCipher, dataMetadataCipher []byte
-		if err := rows.Scan(&id, &dateInt, &parents, &threadId, &authorPk, &typeInt, &dataId, &dataKeyCipher, &dataCaptionCipher, &authorUnCipher, &dataMetadataCipher); err != nil {
+		var dataKey, dataMetadata []byte
+		if err := rows.Scan(&id, &dateInt, &parents, &threadId, &authorId, &typeInt, &dataId, &dataKey, &dataCaption, &dataMetadata); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
+		// unmarshal meta data
+		var meta *photo.Metadata
+		if dataMetadata != nil {
+			if err := json.Unmarshal(dataMetadata, &meta); err != nil {
+				log.Errorf("error unmarshaling meta data: %s", err)
+				continue
+			}
+		}
 		block := repo.Block{
-			Id:                   id,
-			Date:                 time.Unix(int64(dateInt), 0),
-			Parents:              strings.Split(parents, ","),
-			ThreadId:             threadId,
-			AuthorPk:             authorPk,
-			Type:                 repo.BlockType(typeInt),
-			DataId:               dataId,
-			DataKeyCipher:        dataKeyCipher,
-			DataCaptionCipher:    dataCaptionCipher,
-			AuthorUsernameCipher: authorUnCipher,
-			DataMetadataCipher:   dataMetadataCipher,
+			Id:           id,
+			Date:         time.Unix(int64(dateInt), 0),
+			Parents:      strings.Split(parents, ","),
+			ThreadId:     threadId,
+			AuthorId:     authorId,
+			Type:         repo.BlockType(typeInt),
+			DataId:       dataId,
+			DataKey:      dataKey,
+			DataCaption:  dataCaption,
+			DataMetadata: meta,
 		}
 		ret = append(ret, block)
 	}

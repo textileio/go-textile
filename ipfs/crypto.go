@@ -3,9 +3,9 @@ package ipfs
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/config"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/config"
 )
 
 // IdentityConfig initializes a new identity.
@@ -51,42 +51,6 @@ func UnmarshalPrivateKeyFromString(key string) (libp2pc.PrivKey, error) {
 
 // UnmarshalPublicKeyFromString attempts to create a public key from a base64 encoded string
 func UnmarshalPublicKeyFromString(key string) (libp2pc.PubKey, error) {
-	keyb, err := libp2pc.ConfigDecodeKey(key)
-	if err != nil {
-		return nil, err
-	}
-	return libp2pc.UnmarshalPublicKey(keyb)
-}
-
-// IdFromEncodedPublicKey return the underlying id from an encoded public key
-func IdFromEncodedPublicKey(key string) (peer.ID, error) {
-	pk, err := UnmarshalPublicKeyFromString(key)
-	if err != nil {
-		return "", err
-	}
-	return peer.IDFromPublicKey(pk)
-}
-
-// EncodeKey returns a base64 encoded key
-func EncodeKey(key libp2pc.Key) (string, error) {
-	keyb, err := key.Bytes()
-	if err != nil {
-		return "", err
-	}
-	return libp2pc.ConfigEncodeKey(keyb), nil
-}
-
-// DecodePrivKey returns a private key from a base64 encoded string
-func DecodePrivKey(key string) (libp2pc.PrivKey, error) {
-	keyb, err := libp2pc.ConfigDecodeKey(key)
-	if err != nil {
-		return nil, err
-	}
-	return libp2pc.UnmarshalPrivateKey(keyb)
-}
-
-// DecodePubKey returns a public key from a base64 encoded string
-func DecodePubKey(key string) (libp2pc.PubKey, error) {
 	keyb, err := libp2pc.ConfigDecodeKey(key)
 	if err != nil {
 		return nil, err

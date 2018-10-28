@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/textileio/textile-go/core"
 	"gopkg.in/abiosoft/ishell.v2"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"os"
 )
 
@@ -70,7 +71,7 @@ func RunShell(startNode func() error, stopNode func() error) {
 		Name: "ping",
 		Help: "ping another peer",
 		Func: func(c *ishell.Context) {
-			if !core.Node.IsOnline() {
+			if !core.Node.Online() {
 				c.Println("not online yet")
 				return
 			}
@@ -78,7 +79,12 @@ func RunShell(startNode func() error, stopNode func() error) {
 				c.Err(errors.New("missing peer id"))
 				return
 			}
-			status, err := core.Node.GetPeerStatus(c.Args[0])
+			pid, err := peer.IDB58Decode(c.Args[0])
+			if err != nil {
+				c.Println(fmt.Errorf("bad peer id: %s", err))
+				return
+			}
+			status, err := core.Node.Ping(pid)
 			if err != nil {
 				c.Println(fmt.Errorf("ping failed: %s", err))
 				return
@@ -86,61 +92,31 @@ func RunShell(startNode func() error, stopNode func() error) {
 			c.Println(status)
 		},
 	})
-	shell.AddCmd(&ishell.Cmd{
-		Name: "fetch-messages",
-		Help: "fetch offline messages from the DHT",
-		Func: func(c *ishell.Context) {
-			if !core.Node.IsOnline() {
-				c.Println("not online yet")
-				return
-			}
-			if err := core.Node.FetchMessages(); err != nil {
-				c.Println(fmt.Errorf("fetch messages failed: %s", err))
-				return
-			}
-			c.Println("ok, fetching")
-		},
-	})
 	{
 		cafeCmd := &ishell.Cmd{
 			Name:     "cafe",
-			Help:     "manage cafe session",
-			LongHelp: "Manage your cafe user session.",
+			Help:     "manage cafe sessions",
+			LongHelp: "Manage cafe sessions.",
 		}
 		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "add-referral",
-			Help: "add cafe referrals",
-			Func: cafeAddReferral,
-		})
-		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "referrals",
-			Help: "list cafe referrals",
-			Func: listCafeReferrals,
-		})
-		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "register",
-			Help: "cafe register",
+			Name: "add",
+			Help: "add a new cafe",
 			Func: cafeRegister,
 		})
 		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "login",
-			Help: "cafe login",
-			Func: cafeLogin,
+			Name: "rm",
+			Help: "remove a cafe",
+			Func: cafeDeregister,
 		})
 		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "status",
-			Help: "cafe status",
-			Func: cafeStatus,
+			Name: "ls",
+			Help: "list active cafes",
+			Func: cafeList,
 		})
 		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "tokens",
-			Help: "cafe tokens",
-			Func: cafeTokens,
-		})
-		cafeCmd.AddCmd(&ishell.Cmd{
-			Name: "logout",
-			Help: "cafe logout",
-			Func: cafeLogout,
+			Name: "check-messages",
+			Help: "check messages from active cafes",
+			Func: cafeCheckMessages,
 		})
 		shell.AddCmd(cafeCmd)
 	}
@@ -148,11 +124,11 @@ func RunShell(startNode func() error, stopNode func() error) {
 		profileCmd := &ishell.Cmd{
 			Name:     "profile",
 			Help:     "manage profile",
-			LongHelp: "Resolve other profiles, get and publish local profile.",
+			LongHelp: "Resolve other profiles, get and publish own profile.",
 		}
 		profileCmd.AddCmd(&ishell.Cmd{
 			Name: "publish",
-			Help: "publish local profile",
+			Help: "publish profile",
 			Func: publishProfile,
 		})
 		profileCmd.AddCmd(&ishell.Cmd{
@@ -166,9 +142,19 @@ func RunShell(startNode func() error, stopNode func() error) {
 			Func: getProfile,
 		})
 		profileCmd.AddCmd(&ishell.Cmd{
-			Name: "set-avatar",
-			Help: "set local profile avatar",
-			Func: setAvatarId,
+			Name: "avatar",
+			Help: "set profile avatar",
+			Func: setAvatar,
+		})
+		profileCmd.AddCmd(&ishell.Cmd{
+			Name: "username",
+			Help: "set profile username",
+			Func: setUsername,
+		})
+		profileCmd.AddCmd(&ishell.Cmd{
+			Name: "subs",
+			Help: "list profile subs",
+			Func: getSubs,
 		})
 		shell.AddCmd(profileCmd)
 	}
@@ -182,11 +168,6 @@ func RunShell(startNode func() error, stopNode func() error) {
 			Name: "peers",
 			Help: "show connected peers (same as `ipfs swarm peers`)",
 			Func: swarmPeers,
-		})
-		swarmCmd.AddCmd(&ishell.Cmd{
-			Name: "ping",
-			Help: "ping a peer (same as `ipfs ping`)",
-			Func: swarmPing,
 		})
 		swarmCmd.AddCmd(&ishell.Cmd{
 			Name: "connect",
@@ -218,7 +199,7 @@ func RunShell(startNode func() error, stopNode func() error) {
 		})
 		photoCmd.AddCmd(&ishell.Cmd{
 			Name: "key",
-			Help: "decrypt and print the key for a photo",
+			Help: "show key for a photo (and meta data)",
 			Func: getPhotoKey,
 		})
 		photoCmd.AddCmd(&ishell.Cmd{
@@ -315,29 +296,6 @@ func RunShell(startNode func() error, stopNode func() error) {
 			Func: acceptExternalThreadInvite,
 		})
 		shell.AddCmd(threadCmd)
-	}
-	{
-		deviceCmd := &ishell.Cmd{
-			Name:     "device",
-			Help:     "manage connected devices",
-			LongHelp: "Add, remove, and list connected devices.",
-		}
-		deviceCmd.AddCmd(&ishell.Cmd{
-			Name: "add",
-			Help: "add a new device",
-			Func: addDevice,
-		})
-		deviceCmd.AddCmd(&ishell.Cmd{
-			Name: "rm",
-			Help: "remove a device by name",
-			Func: removeDevice,
-		})
-		deviceCmd.AddCmd(&ishell.Cmd{
-			Name: "ls",
-			Help: "list devices",
-			Func: listDevices,
-		})
-		shell.AddCmd(deviceCmd)
 	}
 	{
 		notificationCmd := &ishell.Cmd{

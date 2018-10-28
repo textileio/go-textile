@@ -6,10 +6,8 @@ import (
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
 	"gopkg.in/abiosoft/ishell.v2"
-	"gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	"sort"
-	"strconv"
 	"strings"
 )
 
@@ -70,10 +68,10 @@ func swarmPeers(c *ishell.Context) {
 			Peer: pid.Pretty(),
 		}
 
-		swcon, ok := c.(*swarm.Conn)
-		if ok {
-			ci.Muxer = fmt.Sprintf("%T", swcon.StreamConn().Conn())
-		}
+		//swcon, ok := c.(*swarm.Conn)
+		//if ok {
+		//	ci.Muxer = fmt.Sprintf("%T", swcon.StreamConn().Conn())
+		//}
 
 		sort.Sort(&ci)
 		out.Peers = append(out.Peers, ci)
@@ -100,47 +98,6 @@ func swarmPeers(c *ishell.Context) {
 			}
 
 			c.Printf(cyan(fmt.Sprintf("  %s\n", s.Protocol)))
-		}
-	}
-}
-
-func swarmPing(c *ishell.Context) {
-	if len(c.Args) == 0 {
-		c.Err(errors.New("missing peer address"))
-		return
-	}
-	addrs := c.Args[0]
-	num := 1
-	if len(c.Args) > 1 {
-		parsed, err := strconv.ParseInt(c.Args[1], 10, 64)
-		if err != nil {
-			c.Err(err)
-			return
-		}
-		num = int(parsed)
-	}
-
-	out := make(chan string)
-	go func() {
-		err := core.Node.PingPeer(addrs, num, out)
-		if err != nil {
-			c.Err(err)
-		}
-	}()
-
-	green := color.New(color.FgHiGreen).SprintFunc()
-	cnt := 0
-	for {
-		select {
-		case msg, ok := <-out:
-			if !ok {
-				return
-			}
-			c.Println(green(msg))
-			cnt++
-			if cnt == num {
-				return
-			}
 		}
 	}
 }

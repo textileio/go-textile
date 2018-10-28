@@ -5,8 +5,7 @@ import (
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/net"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/fsrepo"
 	"time"
 )
 
@@ -29,7 +28,6 @@ type NodeConfig struct {
 	Account  string
 	PinCode  string
 	RepoPath string
-	CafeAddr string
 	LogLevel string
 	LogFiles bool
 }
@@ -38,6 +36,14 @@ type NodeConfig struct {
 type Mobile struct {
 	RepoPath  string
 	messenger Messenger
+}
+
+// MigrateRepo calls core MigrateRepo
+func MigrateRepo(config *NodeConfig) error {
+	return core.MigrateRepo(core.MigrateConfig{
+		RepoPath: config.RepoPath,
+		PinCode:  config.PinCode,
+	})
 }
 
 // Create a gomobile compatible wrapper around TextileNode
@@ -78,7 +84,6 @@ func NewNode(config *NodeConfig, messenger Messenger) (*Mobile, error) {
 	runc := core.RunConfig{
 		PinCode:  config.PinCode,
 		RepoPath: config.RepoPath,
-		CafeAddr: config.CafeAddr,
 		LogLevel: logLevel,
 		LogFiles: config.LogFiles,
 	}
@@ -101,7 +106,7 @@ func (m *Mobile) Start() error {
 	}
 
 	go func() {
-		<-core.Node.Online()
+		<-core.Node.OnlineCh()
 
 		// subscribe to wallet updates
 		go func() {
@@ -121,9 +126,9 @@ func (m *Mobile) Start() error {
 						name = "onThreadAdded"
 					case core.ThreadRemoved:
 						name = "onThreadRemoved"
-					case core.DeviceAdded:
+					case core.AccountPeerAdded:
 						name = "onDeviceAdded"
-					case core.DeviceRemoved:
+					case core.AccountPeerRemoved:
 						name = "onDeviceRemoved"
 					}
 					m.messenger.Notify(&Event{Name: name, Payload: payload})
@@ -178,14 +183,6 @@ func (m *Mobile) Stop() error {
 	return nil
 }
 
-// RefreshMessages run the message retriever
-func (m *Mobile) RefreshMessages() error {
-	if err := core.Node.FetchMessages(); err != nil && err != net.ErrFetching {
-		return err
-	}
-	return nil
-}
-
 // Overview calls core Overview
 func (m *Mobile) Overview() (string, error) {
 	stats, err := core.Node.Overview()
@@ -195,9 +192,23 @@ func (m *Mobile) Overview() (string, error) {
 	return toJSON(stats)
 }
 
+// Version returns core Version
+func (m *Mobile) Version() string {
+	return core.Version
+}
+
+// PeerId returns the ipfs peer id
+func (m *Mobile) PeerId() (string, error) {
+	pid, err := core.Node.PeerId()
+	if err != nil {
+		return "", err
+	}
+	return pid.Pretty(), nil
+}
+
 // waitForOnline waits up to 5 seconds for the node to go online
 func (m *Mobile) waitForOnline() {
-	if core.Node.IsOnline() {
+	if core.Node.Online() {
 		return
 	}
 	deadline := time.Now().Add(time.Second * 5)
@@ -206,7 +217,7 @@ func (m *Mobile) waitForOnline() {
 	for {
 		select {
 		case <-tick.C:
-			if core.Node.IsOnline() || time.Now().After(deadline) {
+			if core.Node.Online() || time.Now().After(deadline) {
 				return
 			}
 		}

@@ -7,9 +7,9 @@ import (
 	"path"
 )
 
-type Migration004 struct{}
+type Minor004 struct{}
 
-func (Migration004) Up(repoPath string, pinCode string, testnet bool) error {
+func (Minor004) Up(repoPath string, pinCode string, testnet bool) error {
 	var dbPath string
 	if testnet {
 		dbPath = path.Join(repoPath, "datastore", "testnet.db")
@@ -21,8 +21,7 @@ func (Migration004) Up(repoPath string, pinCode string, testnet bool) error {
 		return err
 	}
 	if pinCode != "" {
-		p := "pragma key='" + pinCode + "';"
-		if _, err := db.Exec(p); err != nil {
+		if _, err := db.Exec("pragma key='" + pinCode + "';"); err != nil {
 			return err
 		}
 	}
@@ -75,6 +74,10 @@ func (Migration004) Up(repoPath string, pinCode string, testnet bool) error {
 	return nil
 }
 
-func (Migration004) Down(repoPath string, pinCode string, testnet bool) error {
+func (Minor004) Down(repoPath string, pinCode string, testnet bool) error {
 	return nil
+}
+
+func (Minor004) Major() bool {
+	return false
 }

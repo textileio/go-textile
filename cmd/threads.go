@@ -7,7 +7,8 @@ import (
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
 	"gopkg.in/abiosoft/ishell.v2"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 func listThreads(c *ishell.Context) {
@@ -39,11 +40,6 @@ func addThread(c *ishell.Context) {
 
 	thrd, err := core.Node.AddThread(name, sk, true)
 	if err != nil {
-		c.Err(err)
-		return
-	}
-
-	if err := core.Node.InviteDevices(thrd); err != nil {
 		c.Err(err)
 		return
 	}
@@ -117,7 +113,7 @@ func getThreadHead(c *ishell.Context) {
 		return
 	}
 
-	head, err := thrd.GetHead()
+	head, err := thrd.Head()
 	if thrd == nil {
 		c.Err(err)
 		return
@@ -153,34 +149,29 @@ func ignoreBlock(c *ishell.Context) {
 
 func addThreadInvite(c *ishell.Context) {
 	if len(c.Args) == 0 {
-		c.Err(errors.New("missing peer pub key"))
+		c.Err(errors.New("missing peer id"))
 		return
 	}
-	pks := c.Args[0]
+	peerId := c.Args[0]
 	if len(c.Args) == 1 {
 		c.Err(errors.New("missing thread id"))
 		return
 	}
-	id := c.Args[1]
+	threadId := c.Args[1]
 
-	_, thrd := core.Node.GetThread(id)
+	_, thrd := core.Node.GetThread(threadId)
 	if thrd == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", id)))
+		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadId)))
 		return
 	}
 
-	pkb, err := libp2pc.ConfigDecodeKey(pks)
-	if err != nil {
-		c.Err(err)
-		return
-	}
-	pk, err := libp2pc.UnmarshalPublicKey(pkb)
+	pid, err := peer.IDB58Decode(peerId)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
-	if _, err := thrd.AddInvite(pk); err != nil {
+	if _, err := thrd.AddInvite(pid); err != nil {
 		c.Err(err)
 		return
 	}
@@ -218,14 +209,14 @@ func addExternalThreadInvite(c *ishell.Context) {
 		return
 	}
 
-	addr, key, err := thrd.AddExternalInvite()
+	hash, key, err := thrd.AddExternalInvite()
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green(fmt.Sprintf("added! creds: %s %s", addr.B58String(), string(key))))
+	c.Println(green(fmt.Sprintf("added! creds: %s %s", hash.B58String(), string(key))))
 }
 
 func acceptExternalThreadInvite(c *ishell.Context) {

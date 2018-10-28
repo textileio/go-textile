@@ -60,7 +60,7 @@ func TestNotificationDB_Read(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	notifs := notifdb.List("", 1, "")
+	notifs := notifdb.List("", 1)
 	if len(notifs) == 0 || !notifs[0].Read {
 		t.Error("notification read bad result")
 	}
@@ -99,7 +99,7 @@ func TestNotificationDB_ReadAll(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	notifs := notifdb.List("", -1, "")
+	notifs := notifdb.List("", -1)
 	if len(notifs) != 2 || !notifs[0].Read || !notifs[1].Read {
 		t.Error("notification read all bad result")
 	}
@@ -160,24 +160,20 @@ func TestNotificationDB_List(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	all := notifdb.List("", -1, "")
+	all := notifdb.List("", -1)
 	if len(all) != 4 {
 		t.Error("returned incorrect number of notifications")
 		return
 	}
-	limited := notifdb.List("", 1, "")
+	limited := notifdb.List("", 1)
 	if len(limited) != 1 {
 		t.Error("returned incorrect number of notifications")
 		return
 	}
-	offset := notifdb.List(limited[0].Id, -1, "")
+	offset := notifdb.List(limited[0].Id, -1)
 	if len(offset) != 3 {
 		t.Error("returned incorrect number of notifications")
 		return
-	}
-	filtered := notifdb.List("", -1, "blockId='block1'")
-	if len(filtered) != 1 {
-		t.Error("returned incorrect number of notifications")
 	}
 }
 
@@ -202,8 +198,8 @@ func TestNotificationDB_Delete(t *testing.T) {
 	}
 }
 
-func TestNotificationDB_DeleteByActorId(t *testing.T) {
-	err := notifdb.DeleteByActorId("actor1")
+func TestNotificationDB_DeleteByActor(t *testing.T) {
+	err := notifdb.DeleteByActor("actor1")
 	if err != nil {
 		t.Error(err)
 	}
@@ -216,22 +212,8 @@ func TestNotificationDB_DeleteByActorId(t *testing.T) {
 	}
 }
 
-func TestNotificationDB_DeleteByBlockId(t *testing.T) {
-	err := notifdb.DeleteByBlockId("block2")
-	if err != nil {
-		t.Error(err)
-	}
-	stmt, err := notifdb.PrepareQuery("select id from notifications where id=?")
-	defer stmt.Close()
-	var id string
-	err = stmt.QueryRow("ghi").Scan(&id)
-	if err == nil {
-		t.Error("delete failed")
-	}
-}
-
-func TestNotificationDB_DeleteBySubjectId(t *testing.T) {
-	err := notifdb.DeleteBySubjectId("subject1")
+func TestNotificationDB_DeleteBySubject(t *testing.T) {
+	err := notifdb.DeleteBySubject("subject1")
 	if err != nil {
 		t.Error(err)
 	}
@@ -239,6 +221,20 @@ func TestNotificationDB_DeleteBySubjectId(t *testing.T) {
 	defer stmt.Close()
 	var id string
 	err = stmt.QueryRow("jkl").Scan(&id)
+	if err == nil {
+		t.Error("delete failed")
+	}
+}
+
+func TestNotificationDB_DeleteByBlock(t *testing.T) {
+	err := notifdb.DeleteByBlock("block2")
+	if err != nil {
+		t.Error(err)
+	}
+	stmt, err := notifdb.PrepareQuery("select id from notifications where id=?")
+	defer stmt.Close()
+	var id string
+	err = stmt.QueryRow("ghi").Scan(&id)
 	if err == nil {
 		t.Error("delete failed")
 	}

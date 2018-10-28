@@ -75,20 +75,14 @@ func (c *NotificationDB) ReadAll() error {
 	return err
 }
 
-func (c *NotificationDB) List(offset string, limit int, query string) []repo.Notification {
+func (c *NotificationDB) List(offset string, limit int) []repo.Notification {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	var stm, q string
+	var stm string
 	if offset != "" {
-		if query != "" {
-			q = query + " and "
-		}
-		stm = "select * from notifications where " + q + "date<(select date from notifications where id='" + offset + "') order by date desc limit " + strconv.Itoa(limit) + " ;"
+		stm = "select * from notifications where date<(select date from notifications where id='" + offset + "') order by date desc limit " + strconv.Itoa(limit) + ";"
 	} else {
-		if query != "" {
-			q = "where " + query + " "
-		}
-		stm = "select * from notifications " + q + "order by date desc limit " + strconv.Itoa(limit) + ";"
+		stm = "select * from notifications order by date desc limit " + strconv.Itoa(limit) + ";"
 	}
 	return c.handleQuery(stm)
 }
@@ -109,21 +103,21 @@ func (c *NotificationDB) Delete(id string) error {
 	return err
 }
 
-func (c *NotificationDB) DeleteByActorId(actorId string) error {
+func (c *NotificationDB) DeleteByActor(actorId string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	_, err := c.db.Exec("delete from notifications where actorId=?", actorId)
 	return err
 }
 
-func (c *NotificationDB) DeleteBySubjectId(subjectId string) error {
+func (c *NotificationDB) DeleteBySubject(subjectId string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	_, err := c.db.Exec("delete from notifications where subjectId=?", subjectId)
 	return err
 }
 
-func (c *NotificationDB) DeleteByBlockId(blockId string) error {
+func (c *NotificationDB) DeleteByBlock(blockId string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	_, err := c.db.Exec("delete from notifications where blockId=?", blockId)

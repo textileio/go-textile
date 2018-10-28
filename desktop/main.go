@@ -14,11 +14,10 @@ import (
 	"github.com/skip2/go-qrcode"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/gateway"
-	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/repo"
 	rconfig "github.com/textileio/textile-go/repo/config"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/fsrepo"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -101,7 +100,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	if err := core.Node.Start(); err != nil {
 		return err
 	}
-	<-core.Node.Online()
+	<-core.Node.OnlineCh()
 
 	// subscribe to wallet updates
 	go func() {
@@ -258,7 +257,7 @@ func sendData(name string, data map[string]interface{}) {
 func handleMessage(_ *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
 	case "refresh":
-		if err := core.Node.FetchMessages(); err != nil {
+		if err := core.Node.CheckCafeMessages(); err != nil {
 			return nil, err
 		}
 		return map[string]interface{}{}, nil
@@ -280,28 +279,20 @@ func handleMessage(_ *astilectron.Window, m bootstrap.MessageIn) (interface{}, e
 }
 
 func getQRCode() (string, string, error) {
-	// get our own public key
-	accnt, err := core.Node.Account()
-	if err != nil {
-		return "", "", err
-	}
-	pk, err := accnt.LibP2PPubKey()
-	if err != nil {
-		return "", "", err
-	}
-	pks, err := ipfs.EncodeKey(pk)
+	// get our own peer id for receiving an account key
+	pid, err := core.Node.PeerId()
 	if err != nil {
 		return "", "", err
 	}
 
 	// create a qr code
-	url := fmt.Sprintf("https://www.textile.photos/invites/device#key=%s", pks)
+	url := fmt.Sprintf("https://www.textile.photos/invites/device#id=%s", pid.Pretty())
 	png, err := qrcode.Encode(url, qrcode.Medium, QRCodeSize)
 	if err != nil {
 		return "", "", err
 	}
 
-	return base64.StdEncoding.EncodeToString(png), pks, nil
+	return base64.StdEncoding.EncodeToString(png), pid.Pretty(), nil
 }
 
 func getThreadPhotos(id string) (string, error) {

@@ -5,7 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/textileio/textile-go/core"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 // Thread is a simple meta data wrapper around a Thread
@@ -49,11 +50,6 @@ func (m *Mobile) AddThread(name string) (string, error) {
 		return "", err
 	}
 
-	// invite devices
-	if err := core.Node.InviteDevices(thrd); err != nil {
-		return "", err
-	}
-
 	// build json
 	peers := thrd.Peers()
 	item := Thread{
@@ -74,29 +70,25 @@ func (m *Mobile) ThreadInfo(threadId string) (string, error) {
 }
 
 // AddThreadInvite adds a new invite to a thread
-func (m *Mobile) AddThreadInvite(threadId string, inviteePk string) (string, error) {
+func (m *Mobile) AddThreadInvite(threadId string, inviteeId string) (string, error) {
 	_, thrd := core.Node.GetThread(threadId)
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread: %s", threadId))
 	}
 
-	// decode pubkey
-	ikb, err := libp2pc.ConfigDecodeKey(inviteePk)
-	if err != nil {
-		return "", err
-	}
-	ipk, err := libp2pc.UnmarshalPublicKey(ikb)
+	// decode id
+	pid, err := peer.IDB58Decode(inviteeId)
 	if err != nil {
 		return "", err
 	}
 
 	// add it
-	addr, err := thrd.AddInvite(ipk)
+	hash, err := thrd.AddInvite(pid)
 	if err != nil {
 		return "", err
 	}
 
-	return addr.B58String(), nil
+	return hash.B58String(), nil
 }
 
 // AddExternalThreadInvite generates a new external invite link to a thread
@@ -107,7 +99,7 @@ func (m *Mobile) AddExternalThreadInvite(threadId string) (string, error) {
 	}
 
 	// add it
-	addr, key, err := thrd.AddExternalInvite()
+	hash, key, err := thrd.AddExternalInvite()
 	if err != nil {
 		return "", err
 	}
@@ -115,7 +107,7 @@ func (m *Mobile) AddExternalThreadInvite(threadId string) (string, error) {
 	// create a structured invite
 	username, _ := m.GetUsername()
 	invite := ExternalInvite{
-		Id:      addr.B58String(),
+		Id:      hash.B58String(),
 		Key:     string(key),
 		Inviter: username,
 	}
@@ -126,18 +118,18 @@ func (m *Mobile) AddExternalThreadInvite(threadId string) (string, error) {
 // AcceptExternalThreadInvite notifies the thread of a join
 func (m *Mobile) AcceptExternalThreadInvite(id string, key string) (string, error) {
 	m.waitForOnline()
-	addr, err := core.Node.AcceptExternalThreadInvite(id, []byte(key))
+	hash, err := core.Node.AcceptExternalThreadInvite(id, []byte(key))
 	if err != nil {
 		return "", err
 	}
-	return addr.B58String(), nil
+	return hash.B58String(), nil
 }
 
-// RemoveThread call core RemoveDevice
+// RemoveThread call core RemoveThread
 func (m *Mobile) RemoveThread(id string) (string, error) {
-	addr, err := core.Node.RemoveThread(id)
+	hash, err := core.Node.RemoveThread(id)
 	if err != nil {
 		return "", err
 	}
-	return addr.B58String(), err
+	return hash.B58String(), err
 }

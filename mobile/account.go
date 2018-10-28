@@ -4,9 +4,9 @@ import (
 	"github.com/textileio/textile-go/core"
 )
 
-// ID calls core ID
-func (m *Mobile) GetID() (string, error) {
-	id, err := core.Node.ID()
+// Id calls core Id
+func (m *Mobile) GetId() (string, error) {
+	id, err := core.Node.Id()
 	if err != nil {
 		return "", err
 	}

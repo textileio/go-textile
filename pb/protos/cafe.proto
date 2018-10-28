@@ -1,0 +1,88 @@
+syntax = "proto3";
+option go_package = "pb";
+
+import "google/protobuf/timestamp.proto";
+
+message CafeChallenge {
+    string address = 1;
+}
+
+message CafeNonce {
+    string value = 1;
+}
+
+message CafeRegistration {
+    string address = 1;
+    string value   = 2;
+    string nonce   = 3;
+    bytes sig      = 4;
+}
+
+message CafeSession {
+    string access                  = 1;
+    google.protobuf.Timestamp exp  = 2;
+    string refresh                 = 3;
+    google.protobuf.Timestamp rexp = 4;
+    string subject                 = 5;
+    string type                    = 6;
+    string httpAddr                = 7;
+}
+
+message CafeRefreshSession {
+    string access  = 1;
+    string refresh = 2;
+}
+
+message CafeStore {
+    string token         = 1;
+    repeated string cids = 2;
+}
+
+message CafeBlockList {
+    repeated string cids = 2;
+}
+
+message CafeBlock {
+    string token  = 1;
+    bytes rawData = 2;
+    string cid    = 3;
+}
+
+message CafeStoreThread {
+    string token     = 1;
+    string id        = 2;
+    bytes skCipher   = 3;
+    bytes headCipher = 4;
+    bytes nameCipher = 5;
+}
+
+message CafeStored {
+    string id = 1;
+}
+
+message CafeDeliverMessage {
+    string id       = 1;
+    string clientId = 2;
+}
+
+message CafeCheckMessages {
+    string token = 1;
+}
+
+message CafeMessage {
+    string id                      = 1;
+    string peerId                  = 2;
+    google.protobuf.Timestamp date = 3;
+}
+
+message CafeMessages {
+    repeated CafeMessage messages = 1;
+}
+
+message CafeDeleteMessages {
+    string token = 1;
+}
+
+message CafeDeleteMessagesAck {
+    bool more = 2;
+}

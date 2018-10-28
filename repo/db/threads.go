@@ -52,24 +52,16 @@ func (c *ThreadDB) Get(id string) *repo.Thread {
 	return &ret[0]
 }
 
-func (c *ThreadDB) List(query string) []repo.Thread {
+func (c *ThreadDB) List() []repo.Thread {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	var q string
-	if query != "" {
-		q = " where " + query
-	}
-	return c.handleQuery("select * from threads" + q + ";")
+	return c.handleQuery("select * from threads;")
 }
 
-func (c *ThreadDB) Count(query string) int {
+func (c *ThreadDB) Count() int {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	var q string
-	if query != "" {
-		q = " where " + query
-	}
-	row := c.db.QueryRow("select Count(*) from threads" + q + ";")
+	row := c.db.QueryRow("select Count(*) from threads;")
 	var count int
 	row.Scan(&count)
 	return count

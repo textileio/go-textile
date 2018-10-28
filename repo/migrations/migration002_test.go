@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestMigration002(t *testing.T) {
+func Test002(t *testing.T) {
 	var dbPath string
 	os.Mkdir("./datastore", os.ModePerm)
 	dbPath = path.Join("./", "datastore", "mainnet.db")
@@ -19,7 +19,7 @@ func TestMigration002(t *testing.T) {
 	}
 
 	// go up
-	var m Migration002
+	var m Minor002
 	err = m.Up("./", "", false)
 	if err != nil {
 		t.Error(err)

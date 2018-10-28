@@ -2,7 +2,6 @@ syntax = "proto3";
 option go_package = "pb";
 
 import "google/protobuf/any.proto";
-import "google/protobuf/timestamp.proto";
 
 message Message {
     Type type                   = 1;
@@ -11,55 +10,34 @@ message Message {
     bool isResponse             = 4; // optional
 
     enum Type {
-        PING                   = 0;
-        CHAT                   = 1;
-        FOLLOW                 = 2;
-        UNFOLLOW               = 3;
-        OFFLINE_ACK            = 4;
-        OFFLINE_RELAY          = 5;
-        MODERATOR_ADD          = 6;
-        MODERATOR_REMOVE       = 7;
-        STORE                  = 8;
-        BLOCK                  = 9;
-        THREAD_INVITE          = 100;
-        THREAD_EXTERNAL_INVITE = 101;
-        THREAD_JOIN            = 102;
-        THREAD_LEAVE           = 103;
-        THREAD_DATA            = 104;
-        THREAD_ANNOTATION      = 105;
-        THREAD_IGNORE          = 200;
-        THREAD_MERGE           = 201;
-        ERROR                  = 500;
+        PING = 0;
+        PONG = 1;
+
+        THREAD_ENVELOPE = 10;
+
+        CAFE_CHALLENGE           = 50;
+        CAFE_NONCE               = 51;
+        CAFE_REGISTRATION        = 52;
+        CAFE_SESSION             = 53;
+        CAFE_REFRESH_SESSION     = 54;
+        CAFE_STORE               = 55;
+        CAFE_BLOCK               = 56;
+        CAFE_BLOCKLIST           = 57;
+        CAFE_STORE_THREAD        = 58;
+        CAFE_STORED              = 59;
+        CAFE_DELIVER_MESSAGE     = 60;
+        CAFE_CHECK_MESSAGES      = 61;
+        CAFE_MESSAGES            = 62;
+        CAFE_DELETE_MESSAGES     = 63;
+        CAFE_DELETE_MESSAGES_ACK = 64;
+
+        ERROR = 500;
     }
 }
 
 message Envelope {
     Message message = 1;
-    bytes pk        = 2;
     bytes sig       = 3;
-}
-
-message Chat  {
-    string id                      = 1;
-    string subject                 = 2;
-    google.protobuf.Timestamp date = 3;
-    string message                 = 4;
-    Flag flag                      = 5;
-
-    enum Flag {
-        MESSAGE = 0;
-        TYPING  = 1;
-        READ    = 2;
-    }
-}
-
-message CidList {
-    repeated string cids = 1;
-}
-
-message Block {
-    bytes rawData = 1;
-    string cid    = 2;
 }
 
 message Error {

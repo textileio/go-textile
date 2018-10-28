@@ -74,13 +74,8 @@ func TestThreadDB_List(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	all := tdb.List("")
+	all := tdb.List()
 	if len(all) != 2 {
-		t.Error("returned incorrect number of threads")
-		return
-	}
-	filtered := tdb.List("name='boom2'")
-	if len(filtered) != 1 {
 		t.Error("returned incorrect number of threads")
 		return
 	}
@@ -96,7 +91,7 @@ func TestThreadDB_Count(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	cnt := tdb.Count("")
+	cnt := tdb.Count()
 	if cnt != 1 {
 		t.Error("returned incorrect count of threads")
 		return
@@ -136,7 +131,7 @@ func TestThreadDB_Delete(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	all := tdb.List("")
+	all := tdb.List()
 	if len(all) == 0 {
 		t.Error("returned incorrect number of threads")
 		return

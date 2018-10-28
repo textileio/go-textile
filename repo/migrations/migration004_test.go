@@ -8,17 +8,17 @@ import (
 	"testing"
 )
 
-func initAt003(db *sql.DB, password string) error {
+func initAt003(db *sql.DB, pin string) error {
 	var sqlStmt string
-	if password != "" {
-		sqlStmt = "PRAGMA key = '" + password + "';"
+	if pin != "" {
+		sqlStmt = "PRAGMA key = '" + pin + "';"
 	}
 	sqlStmt += `
     create table notifications (id text primary key not null, date integer not null, actorId text not null, targetId text not null, type integer not null, read integer not null, body text not null, actorUn text not null, category text not null);
     create index notification_targetId on notifications (targetId);
     create index notification_actorId on notifications (actorId);
     create index notification_read on notifications (read);
-	`
+    `
 	_, err := db.Exec(sqlStmt)
 	if err != nil {
 		return err
@@ -30,7 +30,7 @@ func initAt003(db *sql.DB, password string) error {
 	return nil
 }
 
-func TestMigration004(t *testing.T) {
+func Test004(t *testing.T) {
 	var dbPath string
 	os.Mkdir("./datastore", os.ModePerm)
 	dbPath = path.Join("./", "datastore", "mainnet.db")
@@ -45,7 +45,7 @@ func TestMigration004(t *testing.T) {
 	}
 
 	// go up
-	var m Migration004
+	var m Minor004
 	err = m.Up("./", "", false)
 	if err != nil {
 		t.Error(err)

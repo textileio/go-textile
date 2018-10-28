@@ -4,8 +4,8 @@ import (
 	"crypto/rand"
 	"errors"
 	"github.com/textileio/textile-go/strkey"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"io"
 )
 
@@ -22,17 +22,23 @@ var (
 	// ErrCannotSign is returned when attempting to sign a message when
 	// the keypair does not have the secret key available
 	ErrCannotSign = errors.New("cannot sign")
+
+	// ErrCannotDecrypt is returned when attempting to decrypt a message when
+	// the keypair does not have the secret key available
+	ErrCannotDecrypt = errors.New("cannot decrypt")
 )
 
 // KeyPair is the main interface for this package
 type KeyPair interface {
 	Address() string
 	Hint() [4]byte
-	PeerID() (peer.ID, error)
-	LibP2PPrivKey() (libp2pc.PrivKey, error)
-	LibP2PPubKey() (libp2pc.PubKey, error)
+	Id() (peer.ID, error)
+	LibP2PPrivKey() (*libp2pc.Ed25519PrivateKey, error)
+	LibP2PPubKey() (*libp2pc.Ed25519PublicKey, error)
 	Verify(input []byte, signature []byte) error
 	Sign(input []byte) ([]byte, error)
+	Encrypt(input []byte) ([]byte, error)
+	Decrypt(input []byte) ([]byte, error)
 }
 
 // Random creates a random full keypair

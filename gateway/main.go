@@ -5,22 +5,27 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
+	"github.com/mr-tron/base58/base58"
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/crypto"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core/coreapi/interface"
 	"net/http"
 	"strings"
 )
 
 var log = logging.MustGetLogger("gateway")
 
+// Host is the instance used by the daemon
 var Host *Gateway
 
+// Gateway is a HTTP API for getting files and links from IPFS
 type Gateway struct {
 	server *http.Server
 }
 
-// NewGateway creates a gateway server
+// Start creates a gateway server
 func (g *Gateway) Start(addr string) {
 	// setup router
 	router := gin.Default()
@@ -61,7 +66,7 @@ func (g *Gateway) Start(addr string) {
 	log.Infof("gateway listening at %s\n", g.server.Addr)
 }
 
-// StopGateway stops the gateway
+// Stop stops the gateway
 func (g *Gateway) Stop() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	if err := g.server.Shutdown(ctx); err != nil {
@@ -91,13 +96,7 @@ func gatewayHandler(c *gin.Context) {
 			c.Status(404)
 			return
 		}
-		_, thrd := core.Node.GetThread(block.ThreadId)
-		if thrd == nil {
-			log.Errorf("could not find thread for block: %s", block.Id)
-			c.Status(404)
-			return
-		}
-		data, err := thrd.GetBlockData(contentPath, block)
+		data, err := core.Node.GetBlockData(contentPath, block)
 		if err != nil {
 			log.Errorf("error decrypting path %s: %s", contentPath, err)
 			c.Status(404)
@@ -107,18 +106,19 @@ func gatewayHandler(c *gin.Context) {
 		return
 	}
 
-	// get raw data
-	data, err := core.Node.GetDataAtPath(contentPath)
-	if err != nil {
-		log.Errorf("error getting raw path %s: %s", contentPath, err)
-		c.Status(404)
-		return
-	}
+	// get data behind path
+	data := getDataAtPath(c, contentPath)
 
 	// if key is provided, try to decrypt the data with it
 	key, exists := c.GetQuery("key")
 	if exists {
-		plain, err := crypto.DecryptAES(data, []byte(key))
+		keyb, err := base58.Decode(key)
+		if err != nil {
+			log.Errorf("error decoding key %s: %s", key, err)
+			c.Status(404)
+			return
+		}
+		plain, err := crypto.DecryptAES(data, keyb)
 		if err != nil {
 			log.Errorf("error decrypting %s: %s", contentPath, err)
 			c.Status(404)
@@ -133,30 +133,32 @@ func gatewayHandler(c *gin.Context) {
 }
 
 // profileHandler handles requests for profile info hosted on ipns
-// NOTE: avatar is a magic path, will return data behind link at avatar_id
+// NOTE: avatar is a magic path, will return data behind link at avatar_uri
 func profileHandler(c *gin.Context) {
 	pathp := c.Param("path")
 	var isAvatar bool
 	if pathp == "/avatar" {
-		pathp += "_id"
+		pathp += "_uri"
 		isAvatar = true
 	}
 
-	pth, err := core.Node.ResolveProfile(c.Param("root"))
+	// resolve the actual content
+	rootId, err := peer.IDB58Decode(c.Param("root"))
+	if err != nil {
+		log.Errorf("error resolving profile %s: %s", c.Param("root"), err)
+		c.Status(404)
+		return
+	}
+	pth, err := core.Node.ResolveProfile(rootId)
 	if err != nil {
 		log.Errorf("error resolving profile %s: %s", c.Param("root"), err)
 		c.Status(404)
 		return
 	}
 
-	// get data
+	// get data behind path
 	contentPath := pth.String() + pathp
-	data, err := core.Node.GetDataAtPath(contentPath)
-	if err != nil {
-		log.Errorf("error getting data at profile path %s: %s", contentPath, err)
-		c.Status(404)
-		return
-	}
+	data := getDataAtPath(c, contentPath)
 
 	// if this is an avatar request, fetch and return the linked image
 	if isAvatar {
@@ -186,7 +188,13 @@ func profileHandler(c *gin.Context) {
 			c.Status(404)
 			return
 		}
-		data, err = crypto.DecryptAES(cipher, []byte(parsed[1]))
+		keyb, err := base58.Decode(parsed[1])
+		if err != nil {
+			log.Errorf("error decoding key %s: %s", parsed[1], err)
+			c.Status(404)
+			return
+		}
+		data, err = crypto.DecryptAES(cipher, keyb)
 		if err != nil {
 			log.Errorf("error decrypting %s: %s", parsed[0], err)
 			c.Status(404)
@@ -198,4 +206,29 @@ func profileHandler(c *gin.Context) {
 	}
 
 	c.Render(200, render.Data{Data: data})
+}
+
+// getDataAtPath get raw data or directory links at path
+func getDataAtPath(c *gin.Context, pth string) []byte {
+	data, err := core.Node.GetDataAtPath(pth)
+	if err != nil {
+		if err == iface.ErrIsDir {
+			links, err := core.Node.GetLinksAtPath(pth)
+			if err != nil {
+				log.Errorf("error getting raw path %s: %s", pth, err)
+				c.Status(404)
+				return nil
+			}
+			var list []string
+			for _, link := range links {
+				list = append(list, "/"+link.Name)
+			}
+			c.String(200, "%s", strings.Join(list, "\n"))
+			return nil
+		}
+		log.Errorf("error getting raw path %s: %s", pth, err)
+		c.Status(404)
+		return nil
+	}
+	return data
 }

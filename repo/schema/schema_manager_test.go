@@ -13,7 +13,7 @@ func TestNewSchemaManagerSetsReasonableDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 	if subject.os != runtime.GOOS {
-		t.Error("Expected default OS to be set via runtime.GOOS constant")
+		t.Error("expected default OS to be set via runtime.GOOS constant")
 	}
 
 	expectedDataPath := "/foobarbaz"
@@ -24,7 +24,7 @@ func TestNewSchemaManagerSetsReasonableDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 	if strings.HasPrefix(subject.DataPath(), expectedDataPath) != true {
-		t.Errorf("Expected DataPath to start with %s", expectedDataPath)
+		t.Errorf("expected DataPath to start with %s", expectedDataPath)
 	}
 }
 
@@ -39,7 +39,7 @@ func TestNewSchemaManagerServiceDatastorePath(t *testing.T) {
 	expectedDatastorePath := "/root/datastore/mainnet.db"
 	actualPath := subject.DatastorePath()
 	if actualPath != expectedDatastorePath {
-		t.Errorf("Datastore path for test disabled was incorrect\n\tExpected: %s\n\tActual: %s",
+		t.Errorf("datastore path for test disabled was incorrect\n\texpected: %s\n\tactual: %s",
 			expectedDatastorePath,
 			actualPath,
 		)
@@ -68,17 +68,17 @@ func TestVerifySchemaVersion(t *testing.T) {
 	versionFile.Close()
 
 	if err = paths.VerifySchemaVersion(expectedVersion); err != nil {
-		t.Fatal("Expected schema version verification to pass with expected version. Error:", err)
+		t.Fatal("expected schema version verification to pass with expected version. error:", err)
 	}
 	if err = paths.VerifySchemaVersion("anotherversion"); err == nil {
-		t.Fatal("Expected schema version verification to fail with wrong version. Error:", err)
+		t.Fatal("expected schema version verification to fail with wrong version. error:", err)
 	}
 
 	if err = os.Remove(paths.DataPathJoin("repover")); err != nil {
 		t.Fatal(err)
 	}
 	if err = paths.VerifySchemaVersion("missingfile!"); err == nil {
-		t.Fatal("Expected schema version verification to fail when file is missing. Error:", err)
+		t.Fatal("expected schema version verification to fail when file is missing. error:", err)
 	}
 }
 

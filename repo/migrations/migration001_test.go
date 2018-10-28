@@ -8,16 +8,16 @@ import (
 	"testing"
 )
 
-func initAt000(db *sql.DB, password string) error {
+func initAt000(db *sql.DB, pin string) error {
 	var sqlStmt string
-	if password != "" {
-		sqlStmt = "PRAGMA key = '" + password + "';"
+	if pin != "" {
+		sqlStmt = "PRAGMA key = '" + pin + "';"
 	}
 	sqlStmt += `
     create table blocks (id text primary key not null, date integer not null, parents text not null, threadId text not null, authorPk text not null, type integer not null, dataId text, dataKeyCipher blob, dataCaptionCipher blob, dataUsernameCipher blob);
     create index block_dataId on blocks (dataId);
     create index block_threadId_type_date on blocks (threadId, type, date);
-	`
+    `
 	_, err := db.Exec(sqlStmt)
 	if err != nil {
 		return err
@@ -29,7 +29,7 @@ func initAt000(db *sql.DB, password string) error {
 	return nil
 }
 
-func TestMigration001(t *testing.T) {
+func Test001(t *testing.T) {
 	var dbPath string
 	os.Mkdir("./datastore", os.ModePerm)
 	dbPath = path.Join("./", "datastore", "mainnet.db")
@@ -44,7 +44,7 @@ func TestMigration001(t *testing.T) {
 	}
 
 	// go up
-	var m Migration001
+	var m Minor001
 	err = m.Up("./", "", false)
 	if err != nil {
 		t.Error(err)

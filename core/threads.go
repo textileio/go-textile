@@ -9,24 +9,23 @@ import (
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/thread"
-	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
-	libp2pc "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 // AddThread adds a thread with a given name and secret key
-func (t *Textile) AddThread(name string, secret libp2pc.PrivKey, join bool) (*thread.Thread, error) {
-	skb, err := secret.Bytes()
+func (t *Textile) AddThread(name string, sk libp2pc.PrivKey, join bool) (*Thread, error) {
+	id, err := peer.IDFromPrivateKey(sk)
 	if err != nil {
 		return nil, err
 	}
-	pkb, err := secret.GetPublic().Bytes()
+	skb, err := sk.Bytes()
 	if err != nil {
 		return nil, err
 	}
-	pk := libp2pc.ConfigEncodeKey(pkb)
 	threadModel := &repo.Thread{
-		Id:      pk,
+		Id:      id.Pretty(),
 		Name:    name,
 		PrivKey: skb,
 	}
@@ -42,7 +41,7 @@ func (t *Textile) AddThread(name string, secret libp2pc.PrivKey, join bool) (*th
 
 	// we join here if we're the creator
 	if join {
-		if _, err := thrd.JoinInitial(); err != nil {
+		if _, err := thrd.joinInitial(); err != nil {
 			return nil, err
 		}
 	}
@@ -57,11 +56,12 @@ func (t *Textile) AddThread(name string, secret libp2pc.PrivKey, join bool) (*th
 
 // RemoveThread removes a thread
 func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
-	if !t.IsOnline() {
+	if !t.Online() {
 		return nil, ErrOffline
 	}
 
-	i, thrd := t.GetThread(id) // gets the loaded thread
+	// get the loaded thread
+	i, thrd := t.GetThread(id)
 	if thrd == nil {
 		return nil, errors.New("thread not found")
 	}
@@ -92,198 +92,53 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 
 // AcceptThreadInvite attemps to download an encrypted thread key from an internal invite,
 // add the thread, and notify the inviter of the join
-func (t *Textile) AcceptThreadInvite(blockId string) (mh.Multihash, error) {
-	if !t.IsOnline() {
+func (t *Textile) AcceptThreadInvite(inviteId string) (mh.Multihash, error) {
+	if !t.Online() {
 		return nil, ErrOffline
 	}
 
 	// download
-	messageb, err := ipfs.GetDataAtPath(t.ipfs, fmt.Sprintf("%s", blockId))
-	if err != nil {
-		return nil, err
-	}
-	env := new(pb.Envelope)
-	if err := proto.Unmarshal(messageb, env); err != nil {
-		return nil, err
-	}
-
-	// verify author sig
-	authorPk, err := libp2pc.UnmarshalPublicKey(env.Pk)
-	if err != nil {
-		return nil, err
-	}
-	if err := t.VerifyEnvelope(env); err != nil {
-		return nil, err
-	}
-
-	// unpack invite
-	signed := new(pb.SignedThreadBlock)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, signed); err != nil {
-		return nil, err
-	}
-	invite := new(pb.ThreadInvite)
-	if err := proto.Unmarshal(signed.Block, invite); err != nil {
-		return nil, err
-	}
-
-	// verify invitee
-	if invite.InviteeId != t.ipfs.Identity.Pretty() {
-		return nil, errors.New("invalid invitee")
-	}
-
-	// decrypt thread key with private key
-	accnt, err := t.Account()
-	if err != nil {
-		return nil, err
-	}
-	key, err := accnt.LibP2PPrivKey()
-	if err != nil {
-		return nil, err
-	}
-	skb, err := crypto.Decrypt(key, invite.SkCipher)
-	if err != nil {
-		return nil, err
-	}
-	sk, err := libp2pc.UnmarshalPrivateKey(skb)
-	if err != nil {
-		return nil, err
-	}
-	pkb, err := sk.GetPublic().Bytes()
+	ciphertext, err := ipfs.GetDataAtPath(t.ipfs, fmt.Sprintf("%s", inviteId))
 	if err != nil {
 		return nil, err
 	}
 
-	// ensure we dont already have this thread
-	id := libp2pc.ConfigEncodeKey(pkb)
-	if _, thrd := t.GetThread(id); thrd != nil {
-		// thread exists, aborting
-		return nil, nil
-	}
-
-	// verify thread sig
-	if err := crypto.Verify(sk.GetPublic(), signed.Block, signed.ThreadSig); err != nil {
-		return nil, err
-	}
-
-	// add it
-	thrd, err := t.AddThread(invite.SuggestedName, sk, false)
+	// attempt decrypt w/ own keys
+	plaintext, err := crypto.Decrypt(t.ipfs.PrivateKey, ciphertext)
 	if err != nil {
-		return nil, err
+		return nil, ErrInvalidThreadBlock
 	}
-
-	// follow parents, update head
-	if err := thrd.HandleInviteMessage(invite); err != nil {
-		return nil, err
-	}
-
-	// join the thread
-	addr, err := thrd.Join(authorPk, blockId)
-	if err != nil {
-		return nil, err
-	}
-
-	// invite devices
-	if err := t.InviteDevices(thrd); err != nil {
-		return nil, err
-	}
-
-	return addr, nil
+	return t.handleThreadInvite(plaintext)
 }
 
 // AcceptExternalThreadInvite attemps to download an encrypted thread key from an external invite,
 // add the thread, and notify the inviter of the join
-func (t *Textile) AcceptExternalThreadInvite(blockId string, key []byte) (mh.Multihash, error) {
-	if !t.IsOnline() {
+func (t *Textile) AcceptExternalThreadInvite(inviteId string, key []byte) (mh.Multihash, error) {
+	if !t.Online() {
 		return nil, ErrOffline
 	}
 
 	// download
-	envb, err := ipfs.GetDataAtPath(t.ipfs, fmt.Sprintf("%s", blockId))
-	if err != nil {
-		return nil, err
-	}
-	env := new(pb.Envelope)
-	if err := proto.Unmarshal(envb, env); err != nil {
-		return nil, err
-	}
-
-	// verify author sig
-	authorPk, err := libp2pc.UnmarshalPublicKey(env.Pk)
-	if err != nil {
-		return nil, err
-	}
-	if err := t.VerifyEnvelope(env); err != nil {
-		return nil, err
-	}
-
-	// unpack invite
-	signed := new(pb.SignedThreadBlock)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, signed); err != nil {
-		return nil, err
-	}
-	invite := new(pb.ThreadExternalInvite)
-	if err := proto.Unmarshal(signed.Block, invite); err != nil {
-		return nil, err
-	}
-
-	// decrypt thread key
-	skb, err := crypto.DecryptAES(invite.SkCipher, key)
-	if err != nil {
-		return nil, err
-	}
-	sk, err := libp2pc.UnmarshalPrivateKey(skb)
-	if err != nil {
-		return nil, err
-	}
-	pkb, err := sk.GetPublic().Bytes()
+	ciphertext, err := ipfs.GetDataAtPath(t.ipfs, fmt.Sprintf("%s", inviteId))
 	if err != nil {
 		return nil, err
 	}
 
-	// ensure we dont already have this thread
-	id := libp2pc.ConfigEncodeKey(pkb)
-	if _, thrd := t.GetThread(id); thrd != nil {
-		// thread exists, aborting
-		return nil, nil
-	}
-
-	// verify thread sig
-	if err := crypto.Verify(sk.GetPublic(), signed.Block, signed.ThreadSig); err != nil {
-		return nil, err
-	}
-
-	// add it
-	thrd, err := t.AddThread(invite.SuggestedName, sk, false)
+	// attempt decrypt w/ key
+	plaintext, err := crypto.DecryptAES(ciphertext, key)
 	if err != nil {
-		return nil, err
+		return nil, ErrInvalidThreadBlock
 	}
-
-	// follow parents, update head
-	if err := thrd.HandleExternalInviteMessage(invite); err != nil {
-		return nil, err
-	}
-
-	// join the thread
-	addr, err := thrd.Join(authorPk, blockId)
-	if err != nil {
-		return nil, err
-	}
-
-	// invite devices
-	if err := t.InviteDevices(thrd); err != nil {
-		return nil, err
-	}
-
-	return addr, nil
+	return t.handleThreadInvite(plaintext)
 }
 
 // Threads lists loaded threads
-func (t *Textile) Threads() []*thread.Thread {
+func (t *Textile) Threads() []*Thread {
 	return t.threads
 }
 
 // GetThread get a thread by id from loaded threads
-func (t *Textile) GetThread(id string) (*int, *thread.Thread) {
+func (t *Textile) GetThread(id string) (*int, *Thread) {
 	for i, thrd := range t.threads {
 		if thrd.Id == id {
 			return &i, thrd
@@ -293,10 +148,69 @@ func (t *Textile) GetThread(id string) (*int, *thread.Thread) {
 }
 
 // ThreadInfo gets thread info
-func (t *Textile) ThreadInfo(id string) (*thread.Info, error) {
+func (t *Textile) ThreadInfo(id string) (*ThreadInfo, error) {
 	_, thrd := t.GetThread(id)
 	if thrd == nil {
 		return nil, errors.New(fmt.Sprintf("cound not find thread: %s", id))
 	}
 	return thrd.Info()
+}
+
+// handleThreadInvite
+func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
+	block := new(pb.ThreadBlock)
+	if err := proto.Unmarshal(plaintext, block); err != nil {
+		return nil, err
+	}
+	if block.Type != pb.ThreadBlock_INVITE {
+		return nil, ErrInvalidThreadBlock
+	}
+	msg := new(pb.ThreadInvite)
+	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
+		return nil, err
+	}
+
+	// unpack thread secret
+	sk, err := libp2pc.UnmarshalPrivateKey(msg.Sk)
+	if err != nil {
+		return nil, err
+	}
+
+	// ensure we dont already have this thread
+	id, err := peer.IDFromPrivateKey(sk)
+	if err != nil {
+		return nil, err
+	}
+	if _, thrd := t.GetThread(id.Pretty()); thrd != nil {
+		// thread exists, aborting
+		return nil, nil
+	}
+
+	// add it
+	thrd, err := t.AddThread(msg.Name, sk, false)
+	if err != nil {
+		return nil, err
+	}
+
+	// follow parents, update head
+	if err := thrd.handleInviteMessage(block); err != nil {
+		return nil, err
+	}
+
+	// mark any discovered peers as welcomed
+	// there's no need to send a welcome because we're about to send a join message
+	if err := t.datastore.ThreadPeers().WelcomeByThread(thrd.Id); err != nil {
+		return nil, err
+	}
+
+	// join the thread
+	author, err := peer.IDB58Decode(block.Header.Author)
+	if err != nil {
+		return nil, err
+	}
+	hash, err := thrd.join(author)
+	if err != nil {
+		return nil, err
+	}
+	return hash, nil
 }

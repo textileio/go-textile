@@ -2,12 +2,12 @@ package crypto
 
 import (
 	"encoding/hex"
-	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"testing"
 )
 
 func TestEncryptCurve25519(t *testing.T) {
-	priv, pub, err := libp2p.GenerateKeyPair(libp2p.Ed25519, 0)
+	priv, pub, err := libp2pc.GenerateKeyPair(libp2pc.Ed25519, 0)
 	if err != nil {
 		t.Error(err)
 	}
@@ -37,7 +37,7 @@ func TestDecryptCurve25519(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	privKey, err := libp2p.UnmarshalPrivateKey(privKeyBytes)
+	privKey, err := libp2pc.UnmarshalPrivateKey(privKeyBytes)
 	if err != nil {
 		t.Error(err)
 		return

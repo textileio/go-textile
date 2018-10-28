@@ -8,20 +8,18 @@ import (
 	"github.com/textileio/textile-go/archive"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/net"
-	serv "github.com/textileio/textile-go/net/service"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/db"
-	"github.com/textileio/textile-go/storage"
-	"github.com/textileio/textile-go/thread"
+	"github.com/textileio/textile-go/service"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"gx/ipfs/QmVW4cqbibru3hXA1iRmg85Fk7z9qML9k176CYQaMXVCrP/go-libp2p-kad-dht"
-	utilmain "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/cmd/ipfs/util"
-	oldcmds "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/commands"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/config"
-	"gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/repo/fsrepo"
-	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	//ipfslog "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	utilmain "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/cmd/ipfs/util"
+	oldcmds "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/commands"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/config"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/fsrepo"
 	"os"
 	"path"
 	"path/filepath"
@@ -35,10 +33,16 @@ var fileLogFormat = logging.MustStringFormatter(
 var log = logging.MustGetLogger("core")
 
 // Version is the core version identifier
-const Version = "0.2.0"
+const Version = "1.0.0"
 
-// Node is the single Textile instance
+// Node is the single Textile instance used by mobile and the shell
 var Node *Textile
+
+// kQueueFlushFreq how often to flush the message queues
+const kQueueFlushFreq = time.Minute * 10
+
+// kMobileQueueFlushFreq how often to flush the message queues on mobile
+const kMobileQueueFlush = time.Minute * 1
 
 // Update is used to notify UI listeners of changes
 type Update struct {
@@ -55,10 +59,10 @@ const (
 	ThreadAdded UpdateType = iota
 	// ThreadRemoved is emitted when a thread is removed
 	ThreadRemoved
-	// DeviceAdded is emitted when a device is added
-	DeviceAdded
-	// DeviceRemoved is emitted when a thread is removed
-	DeviceRemoved
+	// AccountPeerAdded is emitted when an account peer (device) is added
+	AccountPeerAdded
+	// AccountPeerRemoved is emitted when an account peer (device) is removed
+	AccountPeerRemoved
 )
 
 // AddDataResult wraps added data content id and key
@@ -80,45 +84,49 @@ type InitConfig struct {
 	LogFiles   bool
 }
 
+// MigrateConfig is used to define options during a major migration
+type MigrateConfig struct {
+	PinCode  string
+	RepoPath string
+}
+
 // RunConfig is used to define run options for a textile node
 type RunConfig struct {
 	PinCode  string
 	RepoPath string
-	CafeAddr string
 	LogLevel logging.Level
 	LogFiles bool
 }
 
 // Textile is the main Textile node structure
 type Textile struct {
-	version            string
-	context            oldcmds.Context
-	repoPath           string
-	cancel             context.CancelFunc
-	ipfs               *core.IpfsNode
-	datastore          repo.Datastore
-	service            *serv.TextileService
-	cafeAddr           string
-	started            bool
-	threads            []*thread.Thread
-	online             chan struct{}
-	done               chan struct{}
-	updates            chan Update
-	threadUpdates      chan thread.Update
-	notifications      chan repo.Notification
-	messageStorage     storage.OfflineMessagingStorage
-	messageRetriever   *net.MessageRetriever
-	pointerRepublisher *net.PointerRepublisher
-	pinner             *net.Pinner
-	mux                sync.Mutex
+	version        string
+	context        oldcmds.Context
+	repoPath       string
+	cancel         context.CancelFunc
+	ipfs           *core.IpfsNode
+	datastore      repo.Datastore
+	started        bool
+	threads        []*Thread
+	online         chan struct{}
+	done           chan struct{}
+	updates        chan Update
+	threadUpdates  chan ThreadUpdate
+	notifications  chan repo.Notification
+	threadsService *ThreadsService
+	threadsOutbox  *ThreadsOutbox
+	cafeService    *CafeService
+	cafeOutbox     *CafeOutbox
+	cafeInbox      *CafeInbox
+	mux            sync.Mutex
 }
 
+// common errors
 var ErrAccountRequired = errors.New("account required")
 var ErrStarted = errors.New("node is started")
 var ErrStopped = errors.New("node is stopped")
 var ErrOffline = errors.New("node is offline")
 var ErrThreadLoaded = errors.New("thread is loaded")
-var ErrNoCafeHost = errors.New("cafe host address is not set")
 
 // InitRepo initializes a new node repo
 func InitRepo(config InitConfig) error {
@@ -146,8 +154,7 @@ func InitRepo(config InitConfig) error {
 		return err
 	}
 
-	// acquire the repo lock _before_ constructing a node. we need to make
-	// sure we are permitted to access the resources (datastore, etc.)
+	// open the repo
 	rep, err := fsrepo.Open(config.RepoPath)
 	if err != nil {
 		log.Errorf("error opening repo: %s", err)
@@ -160,7 +167,30 @@ func InitRepo(config InitConfig) error {
 	}
 
 	// if this is a server node, apply the ipfs server profile
-	return applyServerConfigOption(rep, config.IsServer)
+	if err := applyServerConfigOption(rep, config.IsServer); err != nil {
+		return err
+	}
+
+	// add account key to ipfs keystore for resolving ipns profile
+	sk, err := config.Account.LibP2PPrivKey()
+	if err != nil {
+		return err
+	}
+	return rep.Keystore().Put("account", sk)
+}
+
+// MigrateRepo runs _all_ repo migrations, including major
+func MigrateRepo(config MigrateConfig) error {
+	// ensure init has been run
+	if !fsrepo.IsInitialized(config.RepoPath) {
+		return repo.ErrRepoDoesNotExist
+	}
+
+	// force open the repo and datastore (fixme)
+	removeLocks(config.RepoPath)
+
+	// run _all_ repo migrations if needed
+	return repo.MigrateUp(config.RepoPath, config.PinCode, false)
 }
 
 // NewTextile runs a node out of an initialized repo
@@ -170,11 +200,34 @@ func NewTextile(config RunConfig) (*Textile, error) {
 		return nil, repo.ErrRepoDoesNotExist
 	}
 
-	// force open the repo and datastore (fixme please)
+	// check if repo needs a major migration
+	if err := repo.Stat(config.RepoPath); err != nil {
+		return nil, err
+	}
+
+	// force open the repo and datastore (fixme)
 	removeLocks(config.RepoPath)
 
 	// log handling
 	setupLogging(config.RepoPath, config.LogLevel, config.LogFiles)
+
+	// run all minor repo migrations if needed
+	if err := repo.MigrateUp(config.RepoPath, config.PinCode, false); err != nil {
+		return nil, err
+	}
+
+	// TODO: put cafes into bootstrap
+	// open repo
+	//rep, err := fsrepo.Open(config.RepoPath)
+	//if err != nil {
+	//	log.Errorf("error opening repo: %s", err)
+	//	return nil, err
+	//}
+
+	// ensure bootstrap addresses are latest in config
+	//if err := ensureBootstrapConfig(rep); err != nil {
+	//	return nil, err
+	//}
 
 	// get database handle
 	sqliteDB, err := db.Create(config.RepoPath, config.PinCode)
@@ -182,29 +235,10 @@ func NewTextile(config RunConfig) (*Textile, error) {
 		return nil, err
 	}
 
-	// run all migrations if needed
-	if err := repo.MigrateUp(config.RepoPath, config.PinCode, false); err != nil {
-		return nil, err
-	}
-
-	// acquire the repo lock _before_ constructing a node. we need to make
-	// sure we are permitted to access the resources (datastore, etc.)
-	rep, err := fsrepo.Open(config.RepoPath)
-	if err != nil {
-		log.Errorf("error opening repo: %s", err)
-		return nil, err
-	}
-
-	// ensure bootstrap addresses are latest in config (without wiping repo)
-	if err := ensureBootstrapConfig(rep); err != nil {
-		return nil, err
-	}
-
 	return &Textile{
 		version:   Version,
 		repoPath:  config.RepoPath,
 		datastore: sqliteDB,
-		cafeAddr:  config.CafeAddr,
 	}, nil
 }
 
@@ -219,36 +253,23 @@ func (t *Textile) Start() error {
 		t.done = make(chan struct{})
 		t.started = true
 
+		// log peer and account info
 		addr, err := t.Address()
 		if err != nil {
 			log.Error(err.Error())
 			return
 		}
-		accntId, err := t.ID()
+		accntId, err := t.Id()
 		if err != nil {
 			log.Error(err.Error())
 			return
 		}
-		peerPk, err := t.GetPeerPubKey()
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
-		peerPks, err := ipfs.EncodeKey(peerPk)
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
-		log.Info("wallet is started")
-		log.Infof("account address: %s", addr)
+		log.Info("node is started")
+		log.Infof("peer id: %s", t.ipfs.Identity.Pretty())
 		log.Infof("account id: %s", accntId.Pretty())
-		log.Infof("peer pk: %s", peerPks)
+		log.Infof("account address: %s", addr)
 	}()
-	log.Info("starting wallet...")
-	t.online = make(chan struct{})
-	t.updates = make(chan Update, 10)
-	t.threadUpdates = make(chan thread.Update, 10)
-	t.notifications = make(chan repo.Notification, 10)
+	log.Info("starting node...")
 
 	// raise file descriptor limit
 	if err := utilmain.ManageFdLimit(); err != nil {
@@ -259,6 +280,51 @@ func (t *Textile) Start() error {
 	if err := t.touchDatastore(); err != nil {
 		return err
 	}
+
+	// load account
+	accnt, err := t.Account()
+	if err != nil {
+		return err
+	}
+
+	// build update channels
+	t.online = make(chan struct{})
+	t.updates = make(chan Update, 10)
+	t.threadUpdates = make(chan ThreadUpdate, 10)
+	t.notifications = make(chan repo.Notification, 10)
+
+	// build queues
+	t.cafeInbox = NewCafeInbox(
+		func() *CafeService {
+			return t.cafeService
+		},
+		func() *ThreadsService {
+			return t.threadsService
+		},
+		func() *core.IpfsNode {
+			return t.ipfs
+		},
+		t.datastore,
+	)
+	t.cafeOutbox = NewCafeOutbox(
+		func() *CafeService {
+			return t.cafeService
+		},
+		func() *core.IpfsNode {
+			return t.ipfs
+		},
+		t.datastore,
+	)
+	t.threadsOutbox = NewThreadsOutbox(
+		func() *ThreadsService {
+			return t.threadsService
+		},
+		func() *core.IpfsNode {
+			return t.ipfs
+		},
+		t.datastore,
+		t.cafeOutbox,
+	)
 
 	// start the ipfs node
 	log.Debug("creating an ipfs node...")
@@ -273,95 +339,40 @@ func (t *Textile) Start() error {
 			return
 		}
 
-		// wait for dht to bootstrap
-		<-dht.DefaultBootstrapConfig.DoneChan
+		// setup thread service
+		t.threadsService = NewThreadsService(
+			accnt,
+			t.ipfs,
+			t.datastore,
+			t.GetThread,
+			t.sendNotification,
+		)
 
-		// set offline message storage
-		t.messageStorage = storage.NewCafeStorage(t.ipfs, t.repoPath, func(id *cid.Cid) error {
-			if t.pinner == nil {
-				return nil
-			}
-			tokens, err := t.GetCafeTokens(false)
+		// setup cafe service
+		t.cafeService = NewCafeService(accnt, t.ipfs, t.datastore, t.cafeInbox)
+
+		// try to determine a public ipv4 address
+		if httpApiHost != nil {
+			var pubIPv4 string
+			pubIPv4, err = ipfs.PublicIPv4Addr(t.ipfs)
 			if err != nil {
-				return err
+				log.Infof(err.Error())
 			}
-			hash := id.Hash().B58String()
-			if err := net.Pin(t.ipfs, hash, tokens, t.pinner.Url()); err != nil {
-				if err == net.ErrTokenExpired {
-					tokens, err := t.GetCafeTokens(true)
-					if err != nil {
-						return err
-					}
-					return net.Pin(t.ipfs, hash, tokens, t.pinner.Url())
-				} else {
-					return err
-				}
-			}
-			return nil
-		})
-
-		// service is now configurable
-		t.service = serv.NewService(t.ipfs, t.datastore, t.GetThread, t.sendNotification)
-
-		// build the message retriever
-		mrCfg := net.MRConfig{
-			Datastore: t.datastore,
-			Ipfs:      t.ipfs,
-			Service:   t.service,
-			PrefixLen: 14,
-			SendAck:   t.sendOfflineAck,
-			SendError: t.sendError,
+			t.cafeService.setHttpAddr(pubIPv4, t.HttpApiAddr())
 		}
-		t.messageRetriever = net.NewMessageRetriever(mrCfg)
 
-		// build the pointer republisher
-		t.pointerRepublisher = net.NewPointerRepublisher(t.ipfs, t.datastore)
-
-		// start jobs if not mobile
-		if !t.IsMobile() {
-			go t.messageRetriever.Run()
-			go t.pointerRepublisher.Run()
-		} else {
-			go t.pointerRepublisher.Republish()
-		}
+		// run queues
+		go t.runQueues()
 
 		// print swarm addresses
 		if err := ipfs.PrintSwarmAddrs(t.ipfs); err != nil {
-			log.Errorf("failed to read listening addresses: %s", err)
+			log.Errorf(err.Error())
 		}
-		log.Info("wallet is online")
-	}()
-
-	// build a pin requester
-	if t.GetCafeApiAddr() != "" {
-		pinnerCfg := &net.PinnerConfig{
-			Datastore: t.datastore,
-			Ipfs: func() *core.IpfsNode {
-				return t.ipfs
-			},
-			Url:       fmt.Sprintf("%s/pin", t.GetCafeApiAddr()),
-			GetTokens: t.GetCafeTokens,
-		}
-		t.pinner = net.NewPinner(pinnerCfg)
-
-		// start ticker job if not mobile
-		if !t.IsMobile() {
-			go t.pinner.Run()
-		} else {
-			go t.pinner.Pin()
-		}
-	}
-
-	// re-pub profile
-	go func() {
-		<-t.Online()
-		if _, err := t.PublishProfile(nil); err != nil {
-			log.Errorf("error publishing profile: %s", err)
-		}
+		log.Info("node is online")
 	}()
 
 	// setup threads
-	for _, mod := range t.datastore.Threads().List("") {
+	for _, mod := range t.datastore.Threads().List() {
 		_, err := t.loadThread(&mod)
 		if err == ErrThreadLoaded {
 			continue
@@ -370,7 +381,6 @@ func (t *Textile) Start() error {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -385,7 +395,7 @@ func (t *Textile) Stop() error {
 		t.started = false
 		close(t.done)
 	}()
-	log.Info("stopping wallet...")
+	log.Info("stopping node...")
 
 	// close ipfs node
 	t.context.Close()
@@ -400,37 +410,34 @@ func (t *Textile) Stop() error {
 	dsLockFile := filepath.Join(t.repoPath, "datastore", "LOCK")
 	os.Remove(dsLockFile)
 
-	// wipe threads
+	// cleanup
 	t.threads = nil
-
-	// shutdown message retriever
-	select {
-	case t.messageRetriever.DoneChan <- struct{}{}:
-	default:
-	}
 
 	// close update channels
 	close(t.updates)
 	close(t.threadUpdates)
 	close(t.notifications)
 
-	log.Info("wallet is stopped")
+	log.Info("node is stopped")
 
 	return nil
 }
 
+// Started returns whether or not node is started
 func (t *Textile) Started() bool {
 	return t.started
 }
 
-func (t *Textile) IsOnline() bool {
+// Online returns whether or not node is online
+func (t *Textile) Online() bool {
 	if t.ipfs == nil {
 		return false
 	}
 	return t.started && t.ipfs.OnlineMode()
 }
 
-func (t *Textile) IsMobile() bool {
+// Mobile returns whether or not node is configured for a mobile device
+func (t *Textile) Mobile() bool {
 	if err := t.touchDatastore(); err != nil {
 		log.Errorf("error calling is mobile: %s", err)
 		return false
@@ -443,45 +450,58 @@ func (t *Textile) IsMobile() bool {
 	return mobile
 }
 
+// Version return core node version
 func (t *Textile) Version() string {
 	return t.version
 }
 
+// Ipfs returns the underlying ipfs node
 func (t *Textile) Ipfs() *core.IpfsNode {
 	return t.ipfs
 }
 
-func (t *Textile) FetchMessages() error {
-	if !t.IsOnline() {
-		return ErrOffline
-	}
-	if t.messageRetriever.IsFetching() {
-		return net.ErrFetching
-	}
-	go t.messageRetriever.FetchPointers()
-	return nil
-}
-
-func (t *Textile) Online() <-chan struct{} {
+// OnlineCh returns the online channel
+func (t *Textile) OnlineCh() <-chan struct{} {
 	return t.online
 }
 
-func (t *Textile) Done() <-chan struct{} {
+// DoneCh returns the core node done channel
+func (t *Textile) DoneCh() <-chan struct{} {
 	return t.done
 }
 
+// Ping pings another peer
+func (t *Textile) Ping(pid peer.ID) (service.PeerStatus, error) {
+	if !t.Online() {
+		return "", ErrOffline
+	}
+	return t.cafeService.Ping(pid)
+}
+
+// Update returns the node update channel
 func (t *Textile) Updates() <-chan Update {
 	return t.updates
 }
 
-func (t *Textile) ThreadUpdates() <-chan thread.Update {
+// ThreadUpdates returns the thread update channel
+func (t *Textile) ThreadUpdates() <-chan ThreadUpdate {
 	return t.threadUpdates
 }
 
+// Notifications returns the notifications channel
 func (t *Textile) Notifications() <-chan repo.Notification {
 	return t.notifications
 }
 
+// PeerId returns peer id
+func (t *Textile) PeerId() (peer.ID, error) {
+	if !t.started {
+		return "", ErrStopped
+	}
+	return t.ipfs.Identity, nil
+}
+
+// GetRepoPath returns the node's repo path
 func (t *Textile) GetRepoPath() string {
 	return t.repoPath
 }
@@ -492,6 +512,14 @@ func (t *Textile) GetDataAtPath(path string) ([]byte, error) {
 		return nil, ErrStopped
 	}
 	return ipfs.GetDataAtPath(t.ipfs, path)
+}
+
+// GetLinksAtPath returns ipld links behind an ipfs path
+func (t *Textile) GetLinksAtPath(path string) ([]*ipld.Link, error) {
+	if !t.started {
+		return nil, ErrStopped
+	}
+	return ipfs.GetLinksAtPath(t.ipfs, path)
 }
 
 // createIPFS creates an IPFS node
@@ -505,7 +533,7 @@ func (t *Textile) createIPFS(online bool) error {
 
 	// determine routing
 	routing := core.DHTOption
-	if t.IsMobile() {
+	if t.Mobile() {
 		routing = core.DHTClientOption
 	}
 
@@ -558,11 +586,41 @@ func (t *Textile) createIPFS(online bool) error {
 	return nil
 }
 
-func (t *Textile) getThreadByBlock(block *repo.Block) (*thread.Thread, error) {
+// runQueues runs each message queue
+func (t *Textile) runQueues() {
+	var freq time.Duration
+	if t.Mobile() {
+		freq = kMobileQueueFlush
+	} else {
+		freq = kQueueFlushFreq
+	}
+	tick := time.NewTicker(freq)
+	defer tick.Stop()
+	go func() {
+		time.Sleep(time.Second)
+		t.flushQueues()
+	}()
+	for {
+		select {
+		case <-tick.C:
+			t.flushQueues()
+		}
+	}
+}
+
+// flushQueues flushes each message queue
+func (t *Textile) flushQueues() {
+	go t.threadsOutbox.Flush()
+	go t.cafeOutbox.Flush()
+	go t.cafeInbox.CheckMessages()
+}
+
+// getThreadByBlock returns the thread owning the given block
+func (t *Textile) getThreadByBlock(block *repo.Block) (*Thread, error) {
 	if block == nil {
 		return nil, errors.New("block is empty")
 	}
-	var thrd *thread.Thread
+	var thrd *Thread
 	for _, t := range t.threads {
 		if t.Id == block.ThreadId {
 			thrd = t
@@ -575,39 +633,25 @@ func (t *Textile) getThreadByBlock(block *repo.Block) (*thread.Thread, error) {
 	return thrd, nil
 }
 
-func (t *Textile) loadThread(mod *repo.Thread) (*thread.Thread, error) {
+// loadThread loads a thread into memory from the given on-disk model
+func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 	if _, loaded := t.GetThread(mod.Id); loaded != nil {
 		return nil, ErrThreadLoaded
 	}
-	id := mod.Id // save value locally
-	threadConfig := &thread.Config{
+	threadConfig := &ThreadConfig{
 		RepoPath: t.repoPath,
-		Ipfs: func() *core.IpfsNode {
+		Node: func() *core.IpfsNode {
 			return t.ipfs
 		},
-		Blocks:        t.datastore.Blocks,
-		Peers:         t.datastore.Peers,
-		Notifications: t.datastore.Notifications,
-		GetHead: func() (string, error) {
-			m := t.datastore.Threads().Get(id)
-			if m == nil {
-				return "", errors.New(fmt.Sprintf("could not re-load thread: %s", id))
-			}
-			return m.Head, nil
+		Datastore: t.datastore,
+		Service: func() *ThreadsService {
+			return t.threadsService
 		},
-		UpdateHead: func(head string) error {
-			if err := t.datastore.Threads().UpdateHead(id, head); err != nil {
-				return err
-			}
-			return nil
-		},
-		Send:          t.SendMessage,
-		NewEnvelope:   t.NewEnvelope,
-		PutPinRequest: t.putPinRequest,
-		GetUsername:   t.GetUsername,
+		ThreadsOutbox: t.threadsOutbox,
+		CafeOutbox:    t.cafeOutbox,
 		SendUpdate:    t.sendThreadUpdate,
 	}
-	thrd, err := thread.NewThread(mod, threadConfig)
+	thrd, err := NewThread(mod, threadConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -615,31 +659,13 @@ func (t *Textile) loadThread(mod *repo.Thread) (*thread.Thread, error) {
 	return thrd, nil
 }
 
-// putPinRequest adds a pin request to the pinner
-func (t *Textile) putPinRequest(id string) error {
-	if t.pinner == nil {
-		return nil
-	}
-	return t.pinner.Put(id)
-}
-
 // sendUpdate adds an update to the update channel
 func (t *Textile) sendUpdate(update Update) {
-	defer func() {
-		if recover() != nil {
-			log.Error("update channel already closed")
-		}
-	}()
 	t.updates <- update
 }
 
 // sendThreadUpdate adds a thread update to the update channel
-func (t *Textile) sendThreadUpdate(update thread.Update) {
-	defer func() {
-		if recover() != nil {
-			log.Error("thread update channel already closed")
-		}
-	}()
+func (t *Textile) sendThreadUpdate(update ThreadUpdate) {
 	t.threadUpdates <- update
 }
 
@@ -651,13 +677,7 @@ func (t *Textile) sendNotification(notification *repo.Notification) error {
 	}
 
 	// broadcast
-	defer func() {
-		if recover() != nil {
-			log.Error("notification channel already closed")
-		}
-	}()
 	t.notifications <- *notification
-
 	return nil
 }
 
@@ -692,6 +712,8 @@ func setupLogging(repoPath string, level logging.Level, files bool) {
 	backendFileFormatter := logging.NewBackendFormatter(backendFile, fileLogFormat)
 	logging.SetBackend(backendFileFormatter)
 	logging.SetLevel(level, "")
+	//ipfslog.SetLogLevel("namesys", strings.ToLower(level.String()))
+	//ipfslog.SetLogLevel("pubsub-valuestore", strings.ToLower(level.String()))
 }
 
 // removeLocks force deletes the IPFS repo and SQLite DB lock files

@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/ipfs"
 	"gopkg.in/abiosoft/ishell.v2"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 )
 
 func publishProfile(c *ishell.Context) {
@@ -24,19 +26,24 @@ func publishProfile(c *ishell.Context) {
 }
 
 func resolveProfile(c *ishell.Context) {
-	var name string
+	var pid peer.ID
 	if len(c.Args) == 0 {
-		id, err := core.Node.ID()
+		self, err := core.Node.PeerId()
 		if err != nil {
 			c.Err(err)
 			return
 		}
-		name = id.Pretty()
+		pid = self
 	} else {
-		name = c.Args[0]
+		var err error
+		pid, err = peer.IDB58Decode(c.Args[0])
+		if err != nil {
+			c.Err(err)
+			return
+		}
 	}
 
-	entry, err := core.Node.ResolveProfile(name)
+	entry, err := core.Node.ResolveProfile(pid)
 	if err != nil {
 		c.Err(err)
 		return
@@ -47,44 +54,77 @@ func resolveProfile(c *ishell.Context) {
 }
 
 func getProfile(c *ishell.Context) {
-	var id string
+	var pid peer.ID
 	if len(c.Args) == 0 {
-		pid, err := core.Node.ID()
+		self, err := core.Node.PeerId()
 		if err != nil {
 			c.Err(err)
 			return
 		}
-		id = pid.Pretty()
+		pid = self
 	} else {
-		id = c.Args[0]
+		var err error
+		pid, err = peer.IDB58Decode(c.Args[0])
+		if err != nil {
+			c.Err(err)
+			return
+		}
 	}
 
-	prof, err := core.Node.GetProfile(id)
+	prof, err := core.Node.GetProfile(pid)
 	if err != nil {
 		c.Err(err)
 		return
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	if prof.Id != "" {
-		c.Println(green(fmt.Sprintf("id:        %s", prof.Id)))
+	if prof.Address != "" {
+		c.Println(green(fmt.Sprintf("address:    %s", prof.Address)))
 	}
 	if prof.Username != "" {
-		c.Println(green(fmt.Sprintf("username:  %s", prof.Username)))
+		c.Println(green(fmt.Sprintf("username:   %s", prof.Username)))
 	}
-	if prof.AvatarId != "" {
-		c.Println(green(fmt.Sprintf("avatar_id: %s", prof.AvatarId)))
+	if prof.AvatarUri != "" {
+		c.Println(green(fmt.Sprintf("avatar_uri: %s", prof.AvatarUri)))
 	}
 }
 
-func setAvatarId(c *ishell.Context) {
+func getSubs(c *ishell.Context) {
+	subs, err := ipfs.IpnsSubs(core.Node.Ipfs())
+	if err != nil {
+		c.Err(err)
+		return
+	}
+	green := color.New(color.FgHiGreen).SprintFunc()
+	for _, sub := range subs {
+		c.Println(green(sub))
+	}
+}
+
+func setUsername(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing username"))
+		return
+	}
+	id := c.Args[0]
+
+	if err := core.Node.SetUsername(id); err != nil {
+		c.Err(err)
+		return
+	}
+
+	green := color.New(color.FgHiGreen).SprintFunc()
+	c.Println(green("ok, updated"))
+}
+
+func setAvatar(c *ishell.Context) {
 	if len(c.Args) == 0 {
 		c.Err(errors.New("missing photo id"))
 		return
 	}
 	id := c.Args[0]
 
-	if err := core.Node.SetAvatarId(id); err != nil {
+	if err := core.Node.SetAvatar(id); err != nil {
 		c.Err(err)
 		return
 	}

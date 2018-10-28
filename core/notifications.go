@@ -1,15 +1,15 @@
 package core
 
 import (
+	"errors"
 	"fmt"
-	"github.com/pkg/errors"
 	"github.com/textileio/textile-go/repo"
-	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 )
 
 // GetNotifications lists notifications
 func (t *Textile) GetNotifications(offset string, limit int) []repo.Notification {
-	return t.datastore.Notifications().List(offset, limit, "")
+	return t.datastore.Notifications().List(offset, limit)
 }
 
 // CountUnreadNotifications counts unread notifications
@@ -29,7 +29,7 @@ func (t *Textile) ReadAllNotifications() error {
 
 // AcceptThreadInviteViaNotification uses an invite notification to accept an invite to a thread
 func (t *Textile) AcceptThreadInviteViaNotification(id string) (mh.Multihash, error) {
-	// look up notification
+	// lookup notification
 	notification := t.datastore.Notifications().Get(id)
 	if notification == nil {
 		return nil, errors.New(fmt.Sprintf("could not find notification: %s", id))

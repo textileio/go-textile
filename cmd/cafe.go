@@ -1,104 +1,50 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"github.com/fatih/color"
-	"github.com/textileio/textile-go/cafe/models"
 	"github.com/textileio/textile-go/core"
 	"gopkg.in/abiosoft/ishell.v2"
-	"strconv"
 )
 
-func cafeAddReferral(c *ishell.Context) {
-	c.Print("key: ")
-	key := c.ReadPassword()
-	c.Print("count (1): ")
-	counts := c.ReadLine()
-	c.Print("limit (1): ")
-	limits := c.ReadLine()
-
-	count, err := strconv.Atoi(counts)
-	if err != nil {
-		count = 1
-	}
-	limit, err := strconv.Atoi(limits)
-	if err != nil {
-		limit = 1
-	}
-	username, err := core.Node.GetUsername()
-	if err != nil {
-		c.Err(err)
-		return
-	}
-	if username == nil {
-		tmp := "anonymous"
-		username = &tmp
-	}
-	req := &models.ReferralRequest{
-		Key:         key,
-		Count:       count,
-		Limit:       limit,
-		RequestedBy: *username,
-	}
-	res, err := core.Node.CreateCafeReferral(req)
-	if err != nil {
-		c.Err(err)
-		return
-	}
-
-	green := color.New(color.FgHiGreen).SprintFunc()
-	for _, ref := range res.RefCodes {
-		c.Println(green(ref))
-	}
-}
-
-func listCafeReferrals(c *ishell.Context) {
-	c.Print("key: ")
-	key := c.ReadPassword()
-
-	res, err := core.Node.ListCafeReferrals(key)
-	if err != nil {
-		c.Err(err)
-		return
-	}
-
-	yellow := color.New(color.FgHiYellow).SprintFunc()
-	for _, ref := range res.RefCodes {
-		c.Println(yellow(ref))
-	}
-}
-
 func cafeRegister(c *ishell.Context) {
-	c.Print("referral code: ")
-	code := c.ReadLine()
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing peer id"))
+		return
+	}
+	peerId := c.Args[0]
 
-	if err := core.Node.CafeRegister(code); err != nil {
+	if err := core.Node.RegisterCafe(peerId); err != nil {
 		c.Err(err)
 		return
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green("welcome aboard!"))
+	c.Println(green("welcome!"))
 }
 
-func cafeLogin(c *ishell.Context) {
-	if err := core.Node.CafeLogin(); err != nil {
+func cafeList(c *ishell.Context) {
+	cafes, err := core.Node.ListCafeSessions()
+	if err != nil {
 		c.Err(err)
 		return
 	}
 
 	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green("welcome back, %s!"))
+	for _, cafe := range cafes {
+		c.Println(green(fmt.Sprintf("peer id: %s, expires: %s", cafe.CafeId, cafe.Expiry.String())))
+	}
 }
 
-func cafeLogout(c *ishell.Context) {
-	c.Print("logout? Y/n")
-	confirm := c.ReadLine()
-
-	if confirm != "" && confirm != "Y" {
+func cafeDeregister(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Err(errors.New("missing peer id"))
 		return
 	}
-	if err := core.Node.CafeLogout(); err != nil {
+	peerId := c.Args[0]
+
+	if err := core.Node.DeregisterCafe(peerId); err != nil {
 		c.Err(err)
 		return
 	}
@@ -107,29 +53,10 @@ func cafeLogout(c *ishell.Context) {
 	c.Println(green("see ya!"))
 }
 
-func cafeStatus(c *ishell.Context) {
-	loggedIn, err := core.Node.CafeLoggedIn()
-	if err != nil {
-		c.Err(err)
+func cafeCheckMessages(c *ishell.Context) {
+	if err := core.Node.CheckCafeMessages(); err != nil {
+		c.Println(fmt.Errorf("check messages failed: %s", err))
 		return
 	}
-	if loggedIn {
-		c.Println(color.New(color.FgHiGreen).SprintFunc()("logged in"))
-	} else {
-		c.Println(color.New(color.FgHiRed).SprintFunc()("not logged in"))
-	}
-}
-
-func cafeTokens(c *ishell.Context) {
-	tokens, err := core.Node.GetCafeTokens(false)
-	if err != nil {
-		c.Err(err)
-		return
-	}
-	if tokens == nil {
-		c.Println(color.New(color.FgHiRed).SprintFunc()("no tokens found"))
-	}
-
-	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green(fmt.Sprintf("expiry: %s", tokens.Expiry.String())))
+	c.Println("ok, checking")
 }

@@ -1,7 +1,7 @@
 {
   "name": "textile-go",
   "description": "Textile's REST API and daemon",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "author": "textile.io",
   "license": "MIT",
   "repository": {
@@ -40,9 +40,9 @@
   },
   "gxDependencies": [
     {
-      "hash": "Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T",
+      "hash": "QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH",
       "name": "go-ipfs",
-      "version": "0.4.16-dev"
+      "version": "0.4.17"
     }
   ],
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\""

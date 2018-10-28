@@ -4,11 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/fatih/color"
+	"github.com/gin-gonic/gin"
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
 	"github.com/op/go-logging"
-	"github.com/textileio/textile-go/cafe"
-	"github.com/textileio/textile-go/cafe/dao"
 	"github.com/textileio/textile-go/cmd"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/gateway"
@@ -16,7 +15,6 @@ import (
 	rconfig "github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/wallet"
 	"gopkg.in/abiosoft/ishell.v2"
-	icore "gx/ipfs/Qmb8jW1F6ZVyYPW1epc2GFRipmd3S8tJ48pZKBVPzVqj9T/go-ipfs/core"
 	"log"
 	"os"
 	"os/signal"
@@ -42,19 +40,8 @@ type GatewayOptions struct {
 	BindAddr string `short:"g" long:"gateway-bind-addr" description:"set the gateway address" default:"127.0.0.1:random"`
 }
 
-type CafeOptions struct {
-	// client settings
-	Addr string `short:"c" long:"cafe" description:"cafe host address"`
-
-	// host settings
-	BindAddr    string `long:"cafe-bind-addr" description:"set the cafe address"`
-	DBHosts     string `long:"cafe-db-hosts" description:"set the cafe mongo db hosts uri"`
-	DBName      string `long:"cafe-db-name" description:"set the cafe mongo db name"`
-	DBUser      string `long:"cafe-db-user" description:"set the cafe mongo db user"`
-	DBPassword  string `long:"cafe-db-password" description:"set the cafe mongo db user password"`
-	DBTLS       bool   `long:"cafe-db-tls" description:"use TLS for the cafe mongo db connection"`
-	TokenSecret string `long:"cafe-token-secret" description:"set the cafe token secret"`
-	ReferralKey string `long:"cafe-referral-key" description:"set the cafe referral key"`
+type HttpApiOptions struct {
+	BindAddr string `short:"a" long:"api-bind-addr" description:"set the http api address" default:"127.0.0.1:random"`
 }
 
 type Options struct{}
@@ -84,21 +71,26 @@ type InitCommand struct {
 	IPFS        IPFSOptions `group:"IPFS Options"`
 }
 
+type MigrateCommand struct {
+	RepoPath string `short:"r" long:"repo-dir" description:"specify a custom repository path"`
+}
+
 type DaemonCommand struct {
 	RepoPath string         `short:"r" long:"repo-dir" description:"specify a custom repository path"`
 	Logs     LogOptions     `group:"Log Options"`
 	Gateway  GatewayOptions `group:"Gateway Options"`
-	Cafe     CafeOptions    `group:"Cafe Options"`
+	HttpApi  HttpApiOptions `group:"HTTP API Options"`
 }
 
 type ShellCommand struct {
 	RepoPath string         `short:"r" long:"repo-dir" description:"specify a custom repository path"`
 	Logs     LogOptions     `group:"Log Options"`
 	Gateway  GatewayOptions `group:"Gateway Options"`
-	Cafe     CafeOptions    `group:"Cafe Options"`
+	HttpApi  HttpApiOptions `group:"HTTP API Options"`
 }
 
 var initCommand InitCommand
+var migrateCommand MigrateCommand
 var versionCommand VersionCommand
 var walletCommand WalletCommand
 var shellCommand ShellCommand
@@ -119,13 +111,17 @@ func init() {
 		"Init the node repo and exit",
 		"Initialize the node repository and exit.",
 		&initCommand)
+	parser.AddCommand("migrate",
+		"Migrate the node repo and exit",
+		"Migrate the node repository and exit.",
+		&migrateCommand)
 	parser.AddCommand("shell",
 		"Start a node shell",
 		"Start an interactive node shell session.",
 		&shellCommand)
 	parser.AddCommand("daemon",
 		"Start a node daemon",
-		"Start a node daemon session (useful w/ a cafe).",
+		"Start a node daemon session.",
 		&daemonCommand)
 }
 
@@ -264,19 +260,37 @@ func (x *InitCommand) Execute(args []string) error {
 
 	// initialize a node
 	if err := core.InitRepo(config); err != nil {
-		return errors.New(fmt.Sprintf("initialize node failed: %s", err))
+		return errors.New(fmt.Sprintf("initialize failed: %s", err))
+	}
+	fmt.Printf("ok, address: %s\n", accnt.Address())
+	return nil
+}
+
+func (x *MigrateCommand) Execute(args []string) error {
+	// handle repo path
+	repoPath, err := getRepoPath(x.RepoPath)
+	if err != nil {
+		return err
 	}
 
-	fmt.Printf("Textile node initialized with public address: %s\n", accnt.Address())
+	// build config
+	config := core.MigrateConfig{
+		RepoPath: repoPath,
+	}
 
+	// run migrate
+	if err := core.MigrateRepo(config); err != nil {
+		return errors.New(fmt.Sprintf("migrate repo: %s", err))
+	}
+	fmt.Println("repo successfully migrated")
 	return nil
 }
 
 func (x *DaemonCommand) Execute(args []string) error {
-	if err := buildNode(x.RepoPath, x.Cafe, x.Gateway, x.Logs); err != nil {
+	if err := buildNode(x.RepoPath, x.HttpApi, x.Gateway, x.Logs); err != nil {
 		return err
 	}
-	printSplashScreen(x.Cafe, true)
+	printSplashScreen(true)
 
 	// handle interrupt
 	quit := make(chan os.Signal)
@@ -284,7 +298,7 @@ func (x *DaemonCommand) Execute(args []string) error {
 	<-quit
 	fmt.Println("interrupted")
 	fmt.Printf("shutting down...")
-	if err := stopNode(x.Cafe); err != nil && err != core.ErrStopped {
+	if err := stopNode(); err != nil && err != core.ErrStopped {
 		fmt.Println(err.Error())
 	} else {
 		fmt.Print("done\n")
@@ -294,16 +308,16 @@ func (x *DaemonCommand) Execute(args []string) error {
 }
 
 func (x *ShellCommand) Execute(args []string) error {
-	if err := buildNode(x.RepoPath, x.Cafe, x.Gateway, x.Logs); err != nil {
+	if err := buildNode(x.RepoPath, x.HttpApi, x.Gateway, x.Logs); err != nil {
 		return err
 	}
-	printSplashScreen(x.Cafe, false)
+	printSplashScreen(false)
 
 	// run the shell
 	cmd.RunShell(func() error {
-		return startNode(x.Cafe, x.Gateway)
+		return startNode(x.HttpApi, x.Gateway)
 	}, func() error {
-		return stopNode(x.Cafe)
+		return stopNode()
 	})
 	return nil
 }
@@ -327,7 +341,7 @@ func getRepoPath(repoPath string) (string, error) {
 	return repoPath, nil
 }
 
-func buildNode(repoPath string, cafeOpts CafeOptions, gatewayOpts GatewayOptions, logOpts LogOptions) error {
+func buildNode(repoPath string, httpApiOpts HttpApiOptions, gatewayOpts GatewayOptions, logOpts LogOptions) error {
 	// handle repo path
 	repoPathf, err := getRepoPath(repoPath)
 	if err != nil {
@@ -343,7 +357,6 @@ func buildNode(repoPath string, cafeOpts CafeOptions, gatewayOpts GatewayOptions
 	// node setup
 	config := core.RunConfig{
 		RepoPath: repoPathf,
-		CafeAddr: cafeOpts.Addr,
 		LogLevel: level,
 		LogFiles: !logOpts.NoFiles,
 	}
@@ -358,38 +371,18 @@ func buildNode(repoPath string, cafeOpts CafeOptions, gatewayOpts GatewayOptions
 	// create the gateway
 	gateway.Host = &gateway.Gateway{}
 
-	// check cafe mode
-	if cafeOpts.BindAddr != "" {
-		cafe.Host = &cafe.Cafe{
-			Ipfs: func() *icore.IpfsNode {
-				return core.Node.Ipfs()
-			},
-			Dao: &dao.DAO{
-				Hosts:    cafeOpts.DBHosts,
-				Name:     cafeOpts.DBName,
-				User:     cafeOpts.DBUser,
-				Password: cafeOpts.DBPassword,
-				TLS:      cafeOpts.DBTLS,
-			},
-			TokenSecret: cafeOpts.TokenSecret,
-			ReferralKey: cafeOpts.ReferralKey,
-			NodeVersion: core.Version,
-		}
-	}
-
 	// auto start it
-	if err := startNode(cafeOpts, gatewayOpts); err != nil {
+	if err := startNode(httpApiOpts, gatewayOpts); err != nil {
 		fmt.Println(fmt.Errorf("start node failed: %s", err))
 	}
 
 	return nil
 }
 
-func startNode(cafeOpts CafeOptions, gatewayOpts GatewayOptions) error {
+func startNode(httpApiOpts HttpApiOptions, gatewayOpts GatewayOptions) error {
 	if err := core.Node.Start(); err != nil {
 		return err
 	}
-	<-core.Node.Online()
 
 	// subscribe to wallet updates
 	go func() {
@@ -404,9 +397,9 @@ func startNode(cafeOpts CafeOptions, gatewayOpts GatewayOptions) error {
 					break
 				case core.ThreadRemoved:
 					break
-				case core.DeviceAdded:
+				case core.AccountPeerAdded:
 					break
-				case core.DeviceRemoved:
+				case core.AccountPeerRemoved:
 					break
 				}
 			}
@@ -449,54 +442,62 @@ func startNode(cafeOpts CafeOptions, gatewayOpts GatewayOptions) error {
 		}
 	}()
 
+	// set gin to production
+	gin.SetMode(gin.ReleaseMode)
+
 	// start the gateway
 	gateway.Host.Start(resolveAddress(gatewayOpts.BindAddr))
 
-	// start cafe server
-	if cafeOpts.BindAddr != "" {
-		cafe.Host.Start(resolveAddress(cafeOpts.BindAddr))
-	}
+	// start http api server
+	core.Node.StartHttpApi(resolveAddress(httpApiOpts.BindAddr))
+
+	// wait for the ipfs node to go online
+	<-core.Node.OnlineCh()
 
 	return nil
 }
 
-func stopNode(cafeOpts CafeOptions) error {
+func stopNode() error {
 	if err := gateway.Host.Stop(); err != nil {
 		return err
 	}
-	if cafeOpts.BindAddr != "" {
-		if err := cafe.Host.Stop(); err != nil {
-			return err
-		}
+	if err := core.Node.StopHttpApi(); err != nil {
+		return err
 	}
 	return core.Node.Stop()
 }
 
-func printSplashScreen(cafeOpts CafeOptions, daemon bool) {
-	cyan := color.New(color.FgCyan).SprintFunc()
+func printSplashScreen(daemon bool) {
+	cyan := color.New(color.FgHiCyan).SprintFunc()
 	green := color.New(color.FgHiGreen).SprintFunc()
 	yellow := color.New(color.FgHiYellow).SprintFunc()
-	blue := color.New(color.FgHiBlue).SprintFunc()
 	grey := color.New(color.FgHiBlack).SprintFunc()
-	addr, err := core.Node.Address()
+	pink := color.New(color.FgHiMagenta).SprintFunc()
+	pid, err := core.Node.PeerId()
 	if err != nil {
-		log.Fatalf("get address failed: %s", err)
+		log.Fatalf("get peer id failed: %s", err)
+	}
+	accnt, err := core.Node.Account()
+	if err != nil {
+		log.Fatalf("get account failed: %s", err)
+	}
+	accntId, err := accnt.Id()
+	if err != nil {
+		log.Fatalf("get account id failed: %s", err)
 	}
 	if daemon {
-		fmt.Println(cyan("Textile Daemon"))
+		fmt.Println(grey("Textile daemon version v" + core.Version))
 	} else {
-		fmt.Println(cyan("Textile Shell"))
+		fmt.Println(grey("Textile shell version v" + core.Version))
 	}
-	fmt.Println(grey("address: ") + green(addr))
-	fmt.Println(grey("version: ") + blue(core.Version))
-	fmt.Println(grey("repo: ") + blue(core.Node.GetRepoPath()))
+	fmt.Println(grey("repo:    ") + pink(core.Node.GetRepoPath()))
 	fmt.Println(grey("gateway: ") + yellow(gateway.Host.Addr()))
-	if cafeOpts.BindAddr != "" {
-		fmt.Println(grey("cafe: ") + yellow(cafeOpts.BindAddr))
-	}
-	if cafeOpts.Addr != "" {
-		fmt.Println(grey("cafe api: ") + yellow(core.Node.GetCafeApiAddr()))
-	}
+	fmt.Println(grey("api:     ") + yellow(core.Node.HttpApiAddr()))
+	fmt.Println(grey("--- PEER ---"))
+	fmt.Println(green(fmt.Sprintf("ID: %s", pid.Pretty())))
+	fmt.Println(grey("--- ACCOUNT ---"))
+	fmt.Println(cyan(fmt.Sprintf("ID: %s", accntId.Pretty())))
+	fmt.Println(cyan(fmt.Sprintf("Address: %s", accnt.Address())))
 	if !daemon {
 		fmt.Println(grey("type 'help' for available commands"))
 	}

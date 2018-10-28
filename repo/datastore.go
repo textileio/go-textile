@@ -3,21 +3,25 @@ package repo
 import (
 	"database/sql"
 	"github.com/textileio/textile-go/keypair"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	"time"
 )
 
 type Datastore interface {
 	Config() ConfigStore
 	Profile() ProfileStore
+	Contacts() ContactStore
 	Threads() ThreadStore
-	Devices() DeviceStore
-	Peers() PeerStore
+	ThreadPeers() ThreadPeerStore
+	ThreadMessages() ThreadMessageStore
 	Blocks() BlockStore
 	Notifications() NotificationStore
-	OfflineMessages() OfflineMessageStore
-	Pointers() PointerStore
-	PinRequests() PinRequestStore
+	CafeSessions() CafeSessionStore
+	CafeRequests() CafeRequestStore
+	CafeMessages() CafeMessageStore
+	CafeClientNonces() CafeClientNonceStore
+	CafeClients() CafeClientStore
+	CafeClientThreads() CafeClientThreadStore
+	CafeClientMessages() CafeClientMessageStore
 	Ping() error
 	Close()
 }
@@ -39,54 +43,61 @@ type ConfigStore interface {
 }
 
 type ProfileStore interface {
-	CafeLogin(tokens *CafeTokens) error
-	CafeLogout() error
-	GetCafeTokens() (tokens *CafeTokens, err error)
 	SetUsername(username string) error
 	GetUsername() (*string, error)
-	SetAvatarId(id string) error
-	GetAvatarId() (*string, error)
+	SetAvatar(uri string) error
+	GetAvatar() (*string, error)
+}
+
+type ContactStore interface {
+	Queryable
+	AddOrUpdate(device *Contact) error
+	Get(id string) *Contact
+	List() []Contact
+	Count() int
+	Delete(id string) error
 }
 
 type ThreadStore interface {
 	Queryable
 	Add(thread *Thread) error
 	Get(id string) *Thread
-	List(query string) []Thread
-	Count(query string) int
+	List() []Thread
+	Count() int
 	UpdateHead(id string, head string) error
 	Delete(id string) error
 }
 
-type DeviceStore interface {
+type ThreadPeerStore interface {
 	Queryable
-	Add(device *Device) error
-	Get(id string) *Device
-	List(query string) []Device
-	Count(query string) int
-	Delete(id string) error
+	Add(peer *ThreadPeer) error
+	List() []ThreadPeer
+	ListById(id string) []ThreadPeer
+	ListByThread(threadId string) []ThreadPeer
+	ListUnwelcomedByThread(threadId string) []ThreadPeer
+	WelcomeByThread(thread string) error
+	Count(distinct bool) int
+	Delete(id string, thread string) error
+	DeleteById(id string) error
+	DeleteByThread(thread string) error
 }
 
-type PeerStore interface {
+type ThreadMessageStore interface {
 	Queryable
-	Add(peer *Peer) error
-	Get(row string) *Peer
-	GetById(id string) *Peer
-	List(offset string, limit int, query string) []Peer
-	Count(query string, distinct bool) int
-	Delete(id string, thread string) error
-	DeleteByThreadId(thread string) error
+	Add(msg *ThreadMessage) error
+	List(offset string, limit int) []ThreadMessage
+	Delete(id string) error
 }
 
 type BlockStore interface {
 	Queryable
 	Add(block *Block) error
 	Get(id string) *Block
-	GetByDataId(dataId string) *Block
+	GetByData(dataId string) *Block
 	List(offset string, limit int, query string) []Block
 	Count(query string) int
 	Delete(id string) error
-	DeleteByThreadId(threadId string) error
+	DeleteByThread(threadId string) error
 }
 
 type NotificationStore interface {
@@ -95,36 +106,67 @@ type NotificationStore interface {
 	Get(id string) *Notification
 	Read(id string) error
 	ReadAll() error
-	List(offset string, limit int, query string) []Notification
+	List(offset string, limit int) []Notification
 	CountUnread() int
 	Delete(id string) error
-	DeleteByActorId(actorId string) error
-	DeleteBySubjectId(subjectId string) error
-	DeleteByBlockId(blockId string) error
+	DeleteByActor(actorId string) error
+	DeleteBySubject(subjectId string) error
+	DeleteByBlock(blockId string) error
 }
 
-type OfflineMessageStore interface {
-	Queryable
-	Put(url string) error
-	Has(url string) bool
-	SetMessage(url string, message []byte) error
-	GetMessages() (map[string][]byte, error)
-	DeleteMessage(url string) error
+// Cafe user-side stores
+
+type CafeSessionStore interface {
+	AddOrUpdate(session *CafeSession) error
+	Get(cafeId string) *CafeSession
+	List() []CafeSession
+	Delete(cafeId string) error
 }
 
-type PointerStore interface {
+type CafeRequestStore interface {
 	Queryable
-	Put(p Pointer) error
-	Delete(id peer.ID) error
-	DeleteAll(purpose Purpose) error
-	Get(id peer.ID) *Pointer
-	GetByPurpose(purpose Purpose) ([]Pointer, error)
-	GetAll() ([]Pointer, error)
-}
-
-type PinRequestStore interface {
-	Queryable
-	Put(pr *PinRequest) error
-	List(offset string, limit int) []PinRequest
+	Add(req *CafeRequest) error
+	List(offset string, limit int) []CafeRequest
 	Delete(id string) error
+	DeleteByCafe(cafeId string) error
+}
+
+type CafeMessageStore interface {
+	Queryable
+	Add(msg *CafeMessage) error
+	List(offset string, limit int) []CafeMessage
+	Delete(id string) error
+}
+
+// Cafe host-side stores
+
+type CafeClientNonceStore interface {
+	Add(nonce *CafeClientNonce) error
+	Get(value string) *CafeClientNonce
+	Delete(value string) error
+}
+
+type CafeClientStore interface {
+	Add(account *CafeClient) error
+	Get(id string) *CafeClient
+	Count() int
+	List() []CafeClient
+	ListByAddress(address string) []CafeClient
+	UpdateLastSeen(id string, date time.Time) error
+	Delete(id string) error
+}
+
+type CafeClientThreadStore interface {
+	AddOrUpdate(thrd *CafeClientThread) error
+	ListByClient(clientId string) []CafeClientThread
+	Delete(id string, clientId string) error
+	DeleteByClient(clientId string) error
+}
+
+type CafeClientMessageStore interface {
+	AddOrUpdate(message *CafeClientMessage) error
+	ListByClient(clientId string, limit int) []CafeClientMessage
+	CountByClient(clientId string) int
+	Delete(id string, clientId string) error
+	DeleteByClient(clientId string, limit int) error
 }
