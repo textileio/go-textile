@@ -124,11 +124,11 @@ func RunShell(startNode func() error, stopNode func() error) {
 		profileCmd := &ishell.Cmd{
 			Name:     "profile",
 			Help:     "manage profile",
-			LongHelp: "Resolve other profiles, get and publish local profile.",
+			LongHelp: "Resolve other profiles, get and publish own profile.",
 		}
 		profileCmd.AddCmd(&ishell.Cmd{
 			Name: "publish",
-			Help: "publish local profile",
+			Help: "publish profile",
 			Func: publishProfile,
 		})
 		profileCmd.AddCmd(&ishell.Cmd{
@@ -142,9 +142,19 @@ func RunShell(startNode func() error, stopNode func() error) {
 			Func: getProfile,
 		})
 		profileCmd.AddCmd(&ishell.Cmd{
-			Name: "set-avatar",
-			Help: "set local profile avatar",
-			Func: setAvatarId,
+			Name: "avatar",
+			Help: "set profile avatar",
+			Func: setAvatar,
+		})
+		profileCmd.AddCmd(&ishell.Cmd{
+			Name: "username",
+			Help: "set profile username",
+			Func: setUsername,
+		})
+		profileCmd.AddCmd(&ishell.Cmd{
+			Name: "subs",
+			Help: "list profile subs",
+			Func: getSubs,
 		})
 		shell.AddCmd(profileCmd)
 	}

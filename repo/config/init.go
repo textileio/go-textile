@@ -16,17 +16,6 @@ const (
 	maxPort = 49151
 )
 
-var BootstrapAddresses = []string{
-	"/ip4/54.89.183.252/tcp/46539/ipfs/QmVVKdbGw5VnNLWFw4YjsJUtwU3xPFemzbAMeCJtAtr2YF",  // us-east-1 (1)
-	"/ip4/34.203.191.62/tcp/21117/ipfs/QmPZhrJ47ym4be69HUp3FC6DMV3H7kDUQTuaaYP3okpKdq",  // us-east-1 (2)
-	"/ip4/54.175.223.66/tcp/38180/ipfs/Qmen1NEX4FcVsPVdVS9HK3ZjdymePSWtLwhpggrnfr6i7F",  // us-east-1 (3)
-	"/ip4/18.213.220.205/tcp/18343/ipfs/QmarZawkUWeFw1zxyNJBSKQvt3HX3AWVPxkktNaU34ojuK", // us-east-1 (4)
-
-	"/ip4/52.59.250.251/tcp/45785/ipfs/QmZcuJi2ctkkjwTF2HBAN9tU8w1Gkj1r2ZUm7tfcBuXSsf", // eu-central-1 (1)
-	"/ip4/35.159.51.5/tcp/8367/ipfs/QmUoxL8BJYKLPVMkyPHERA2uy8ns3uKmLC3Kc4WQRP28Vt",    // eu-central-1 (2)
-	"/ip4/35.158.110.50/tcp/42603/ipfs/QmXvhsrgmwr9zHQWgpokQCpuuBCGFffo79PHJSadFX6TjD", // eu-central-1 (3)
-}
-
 // DefaultServerFilters has a list of non-routable IPv4 prefixes
 // according to http://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
 var DefaultServerFilters = []string{
@@ -48,21 +37,12 @@ var DefaultServerFilters = []string{
 }
 
 func Init(identity native.Identity) (*native.Config, error) {
-	//var bootstrapPeers []native.BootstrapPeer
-	//for _, addr := range BootstrapAddresses {
-	//	p, err := native.ParseBootstrapPeer(addr)
-	//	bootstrapPeers = append(bootstrapPeers, p)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//}
+	bootstrapPeers, err := native.DefaultBootstrapPeers()
+	if err != nil {
+		return nil, err
+	}
 
 	datastore := defaultDatastoreConfig()
-
-	reproviderInterval := "12h"
-	swarmConnMgrLowWater := DefaultConnMgrLowWater
-	swarmConnMgrHighWater := DefaultConnMgrHighWater
-	swarmConnMgrGracePeriod := DefaultConnMgrGracePeriod.String()
 
 	conf := &native.Config{
 		API: native.API{
@@ -76,7 +56,7 @@ func Init(identity native.Identity) (*native.Config, error) {
 		Addresses: addressesConfig(),
 
 		Datastore: datastore,
-		Bootstrap: native.DefaultBootstrapAddresses,
+		Bootstrap: native.BootstrapPeerStrings(bootstrapPeers),
 		Identity:  identity,
 		Discovery: native.Discovery{
 			MDNS: native.MDNS{
@@ -110,14 +90,14 @@ func Init(identity native.Identity) (*native.Config, error) {
 			},
 		},
 		Reprovider: native.Reprovider{
-			Interval: reproviderInterval,
+			Interval: "12h",
 			Strategy: "all",
 		},
 		Swarm: native.SwarmConfig{
 			ConnMgr: native.ConnMgr{
-				LowWater:    swarmConnMgrLowWater,
-				HighWater:   swarmConnMgrHighWater,
-				GracePeriod: swarmConnMgrGracePeriod,
+				LowWater:    DefaultConnMgrLowWater,
+				HighWater:   DefaultConnMgrHighWater,
+				GracePeriod: DefaultConnMgrGracePeriod.String(),
 				Type:        "basic",
 			},
 		},

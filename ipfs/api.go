@@ -3,35 +3,31 @@ package ipfs
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/archive"
-	"gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
 	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
-	pstore "gx/ipfs/QmZR2XWVVBCtbgBWnQhWk2xcQfaR3W8faQPriAiaaj7rsr/go-libp2p-peerstore"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
-	"gx/ipfs/Qme4QgoVPyQqxVc4G1c2L2wc9TDa6o294rtspGMnBNRujm/go-ipfs-addr"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core/coreapi"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core/coreapi/interface"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core/coreapi/interface/options"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core/coreunix"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/namesys/opts"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/path"
 	uio "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/unixfs/io"
 	"io"
 	"io/ioutil"
-	"net"
-	"sort"
-	"strings"
 	"time"
 )
 
 var log = logging.MustGetLogger("ipfs")
 
-const pinTimeout = time.Minute * 1
+const pinTimeout = time.Minute
 const catTimeout = time.Second * 30
+const ipnsTimeout = time.Second * 10
 
 type IpnsEntry struct {
 	Name  string
@@ -197,133 +193,42 @@ outer:
 	return ipfs.Pinning.Flush()
 }
 
-// Publish publishes a node to ipns
-func Publish(ctx context.Context, n *core.IpfsNode, k libp2pc.PrivKey, ref path.Path, dur time.Duration) (*IpnsEntry, error) {
+// Publish publishes a content id to ipns
+func Publish(node *core.IpfsNode, sk libp2pc.PrivKey, id string, dur time.Duration, cache time.Duration) (*IpnsEntry, error) {
+	if node.Mounts.Ipns != nil && node.Mounts.Ipns.IsActive() {
+		return nil, errors.New("cannot manually publish while IPNS is mounted")
+	}
+	pth, err := path.ParsePath(id)
+	if err != nil {
+		return nil, err
+	}
 	eol := time.Now().Add(dur)
-	err := n.Namesys.PublishWithEOL(ctx, k, ref, eol)
+	ctx, cancel := context.WithTimeout(node.Context(), ipnsTimeout)
+	ctx = context.WithValue(ctx, "ipns-publish-ttl", cache)
+	defer cancel()
+	if err := node.Namesys.PublishWithEOL(ctx, sk, pth, eol); err != nil {
+		return nil, err
+	}
+	pid, err := peer.IDFromPrivateKey(sk)
 	if err != nil {
 		return nil, err
 	}
-	pid, err := peer.IDFromPrivateKey(k)
+	return &IpnsEntry{Name: pid.Pretty(), Value: pth.String()}, nil
+}
+
+// Publish publishes a node to ipns
+func Resolve(node *core.IpfsNode, name peer.ID) (*path.Path, error) {
+	// query options
+	key := fmt.Sprintf("/ipns/%s", name.Pretty())
+	var ropts []nsopts.ResolveOpt
+	ropts = append(ropts, nsopts.Depth(1))
+	ropts = append(ropts, nsopts.DhtRecordCount(16))
+	ropts = append(ropts, nsopts.DhtTimeout(ipnsTimeout))
+
+	// resolve w/ ipns
+	pth, err := node.Namesys.Resolve(node.Context(), key, ropts...)
 	if err != nil {
 		return nil, err
 	}
-	return &IpnsEntry{Name: pid.Pretty(), Value: ref.String()}, nil
-}
-
-// PrintSwarmAddrs prints the addresses of the host
-func PrintSwarmAddrs(node *core.IpfsNode) error {
-	var lisAddrs []string
-	ifaceAddrs, err := node.PeerHost.Network().InterfaceListenAddresses()
-	if err != nil {
-		return err
-	}
-	for _, addr := range ifaceAddrs {
-		lisAddrs = append(lisAddrs, addr.String())
-	}
-	sort.Sort(sort.StringSlice(lisAddrs))
-	for _, addr := range lisAddrs {
-		log.Infof("swarm listening on %s\n", addr)
-	}
-
-	var addrs []string
-	for _, addr := range node.PeerHost.Addrs() {
-		addrs = append(addrs, addr.String())
-	}
-	sort.Sort(sort.StringSlice(addrs))
-	for _, addr := range addrs {
-		log.Infof("swarm announcing %s\n", addr)
-	}
-	return nil
-}
-
-// PublicIPv4Addr tries to use the ipfs announced swarm addresses to determine a public ipv4 address
-// NOTE: mobile peers must use the http cafe api for file uploads
-// this method is used to inform them of that address during p2p registration
-func PublicIPv4Addr(node *core.IpfsNode) (string, error) {
-	var pub string
-	var lisAddrs []string
-	ifaceAddrs, err := node.PeerHost.Network().InterfaceListenAddresses()
-	if err != nil {
-		return pub, err
-	}
-	for _, addr := range ifaceAddrs {
-		lisAddrs = append(lisAddrs, addr.String())
-	}
-	sort.Sort(sort.StringSlice(lisAddrs))
-	for _, addr := range lisAddrs {
-		parts := strings.Split(addr, "/")
-		if len(parts) < 3 {
-			continue
-		}
-		if publicIPv4(net.ParseIP(parts[2])) {
-			pub = parts[2]
-			break
-		}
-	}
-	if pub == "" {
-		return pub, errors.New("no public ipv4 address found")
-	}
-	return pub, nil
-}
-
-// publicIPv4 returns true if the given IP is superficially public
-// https://stackoverflow.com/a/41670589
-func publicIPv4(IP net.IP) bool {
-	if IP.IsLoopback() || IP.IsLinkLocalMulticast() || IP.IsLinkLocalUnicast() {
-		return false
-	}
-	if ip4 := IP.To4(); ip4 != nil {
-		switch true {
-		case ip4[0] == 10:
-			return false
-		case ip4[0] == 172 && ip4[1] >= 16 && ip4[1] <= 31:
-			return false
-		case ip4[0] == 192 && ip4[1] == 168:
-			return false
-		default:
-			return true
-		}
-	}
-	return false
-}
-
-// PeersWithAddresses is a function that takes in a slice of string peer addresses
-// (multiaddr + peerid) and returns a slice of properly constructed peers
-func PeersWithAddresses(addrs []string) ([]pstore.PeerInfo, error) {
-	iaddrs, err := parseAddresses(addrs)
-	if err != nil {
-		return nil, err
-	}
-	peers := make(map[peer.ID][]ma.Multiaddr, len(iaddrs))
-	for _, iaddr := range iaddrs {
-		id := iaddr.ID()
-		current, ok := peers[id]
-		if tpt := iaddr.Transport(); tpt != nil {
-			peers[id] = append(current, tpt)
-		} else if !ok {
-			peers[id] = nil
-		}
-	}
-	pis := make([]pstore.PeerInfo, 0, len(peers))
-	for id, maddrs := range peers {
-		pis = append(pis, pstore.PeerInfo{
-			ID:    id,
-			Addrs: maddrs,
-		})
-	}
-	return pis, nil
-}
-
-// parseAddresses is a function that takes in a slice of string peer addresses
-// (multiaddr + peerid) and returns slices of multiaddrs and peerids.
-func parseAddresses(addrs []string) (iaddrs []ipfsaddr.IPFSAddr, err error) {
-	iaddrs = make([]ipfsaddr.IPFSAddr, len(addrs))
-	for i, saddr := range addrs {
-		iaddrs[i], err = ipfsaddr.ParseString(saddr)
-		if err != nil {
-			return nil, cmds.ClientError("invalid peer address: " + err.Error())
-		}
-	}
-	return
+	return &pth, nil
 }

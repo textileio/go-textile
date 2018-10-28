@@ -13,6 +13,7 @@ import (
 	"github.com/textileio/textile-go/service"
 	"gopkg.in/natefinch/lumberjack.v2"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	//ipfslog "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	utilmain "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/commands"
@@ -711,6 +712,8 @@ func setupLogging(repoPath string, level logging.Level, files bool) {
 	backendFileFormatter := logging.NewBackendFormatter(backendFile, fileLogFormat)
 	logging.SetBackend(backendFileFormatter)
 	logging.SetLevel(level, "")
+	//ipfslog.SetLogLevel("namesys", strings.ToLower(level.String()))
+	//ipfslog.SetLogLevel("pubsub-valuestore", strings.ToLower(level.String()))
 }
 
 // removeLocks force deletes the IPFS repo and SQLite DB lock files

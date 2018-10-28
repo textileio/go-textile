@@ -260,9 +260,9 @@ func (x *InitCommand) Execute(args []string) error {
 
 	// initialize a node
 	if err := core.InitRepo(config); err != nil {
-		return errors.New(fmt.Sprintf("initialize node failed: %s", err))
+		return errors.New(fmt.Sprintf("initialize failed: %s", err))
 	}
-	fmt.Printf("node initialized with address: %s\n", accnt.Address())
+	fmt.Printf("ok, address: %s\n", accnt.Address())
 	return nil
 }
 
@@ -468,25 +468,36 @@ func stopNode() error {
 }
 
 func printSplashScreen(daemon bool) {
-	cyan := color.New(color.FgCyan).SprintFunc()
+	cyan := color.New(color.FgHiCyan).SprintFunc()
 	green := color.New(color.FgHiGreen).SprintFunc()
 	yellow := color.New(color.FgHiYellow).SprintFunc()
-	blue := color.New(color.FgHiBlue).SprintFunc()
 	grey := color.New(color.FgHiBlack).SprintFunc()
-	addr, err := core.Node.Address()
+	pink := color.New(color.FgHiMagenta).SprintFunc()
+	pid, err := core.Node.PeerId()
 	if err != nil {
-		log.Fatalf("get address failed: %s", err)
+		log.Fatalf("get peer id failed: %s", err)
+	}
+	accnt, err := core.Node.Account()
+	if err != nil {
+		log.Fatalf("get account failed: %s", err)
+	}
+	accntId, err := accnt.Id()
+	if err != nil {
+		log.Fatalf("get account id failed: %s", err)
 	}
 	if daemon {
-		fmt.Println(cyan("Textile Daemon"))
+		fmt.Println(grey("Textile daemon version v" + core.Version))
 	} else {
-		fmt.Println(cyan("Textile Shell"))
+		fmt.Println(grey("Textile shell version v" + core.Version))
 	}
-	fmt.Println(grey("address: ") + green(addr))
-	fmt.Println(grey("version: ") + blue(core.Version))
-	fmt.Println(grey("repo:    ") + blue(core.Node.GetRepoPath()))
+	fmt.Println(grey("repo:    ") + pink(core.Node.GetRepoPath()))
 	fmt.Println(grey("gateway: ") + yellow(gateway.Host.Addr()))
 	fmt.Println(grey("api:     ") + yellow(core.Node.HttpApiAddr()))
+	fmt.Println(grey("--- PEER ---"))
+	fmt.Println(green(fmt.Sprintf("ID: %s", pid.Pretty())))
+	fmt.Println(grey("--- ACCOUNT ---"))
+	fmt.Println(cyan(fmt.Sprintf("ID: %s", accntId.Pretty())))
+	fmt.Println(cyan(fmt.Sprintf("Address: %s", accnt.Address())))
 	if !daemon {
 		fmt.Println(grey("type 'help' for available commands"))
 	}

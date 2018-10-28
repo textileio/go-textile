@@ -32,9 +32,9 @@ func showId(c *ishell.Context) {
 	}
 
 	c.Println(grey("--- PEER ---"))
-	c.Println(green(fmt.Sprintf("Id: %s", pid.Pretty())))
+	c.Println(green(fmt.Sprintf("ID: %s", pid.Pretty())))
 	c.Println(grey("--- ACCOUNT ---"))
-	c.Println(cyan(fmt.Sprintf("Id: %s", accntId.Pretty())))
+	c.Println(cyan(fmt.Sprintf("ID: %s", accntId.Pretty())))
 	c.Println(cyan(fmt.Sprintf("Address: %s", accnt.Address())))
 	c.Println(cyan(fmt.Sprintf("Seed: %s", accnt.Seed())))
 }

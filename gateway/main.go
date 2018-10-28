@@ -9,6 +9,7 @@ import (
 	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/crypto"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core/coreapi/interface"
 	"net/http"
 	"strings"
@@ -142,7 +143,13 @@ func profileHandler(c *gin.Context) {
 	}
 
 	// resolve the actual content
-	pth, err := core.Node.ResolveProfile(c.Param("root"))
+	rootId, err := peer.IDB58Decode(c.Param("root"))
+	if err != nil {
+		log.Errorf("error resolving profile %s: %s", c.Param("root"), err)
+		c.Status(404)
+		return
+	}
+	pth, err := core.Node.ResolveProfile(rootId)
 	if err != nil {
 		log.Errorf("error resolving profile %s: %s", c.Param("root"), err)
 		c.Status(404)

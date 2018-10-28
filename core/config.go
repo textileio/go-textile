@@ -8,7 +8,8 @@ import (
 )
 
 func ensureBootstrapConfig(rep repo.Repo) error {
-	return config.Update(rep, "Bootstrap", config.BootstrapAddresses)
+	//return config.Update(rep, "Bootstrap", config.BootstrapAddresses)
+	return nil
 }
 
 func applySwarmPortConfigOption(rep repo.Repo, ports string) error {

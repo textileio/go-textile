@@ -2,6 +2,7 @@ package mobile
 
 import (
 	"github.com/textileio/textile-go/core"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 )
 
 // SetUsername calls core SetUsername
@@ -28,14 +29,12 @@ func (m *Mobile) SetAvatar(id string) error {
 
 // GetProfile returns the local profile
 func (m *Mobile) GetProfile() (string, error) {
-	id, err := core.Node.Id()
+	id, err := core.Node.PeerId()
 	if err != nil {
-		log.Errorf("error getting profile (get id): %s", err)
 		return "", err
 	}
-	prof, err := core.Node.GetProfile(id.Pretty())
+	prof, err := core.Node.GetProfile(id)
 	if err != nil {
-		log.Errorf("error getting profile %s: %s", id, err)
 		return "", err
 	}
 	return toJSON(prof)
@@ -43,9 +42,12 @@ func (m *Mobile) GetProfile() (string, error) {
 
 // GetPeerProfile looks up a profile by id
 func (m *Mobile) GetPeerProfile(peerId string) (string, error) {
-	prof, err := core.Node.GetProfile(peerId)
+	pid, err := peer.IDB58Decode(peerId)
 	if err != nil {
-		log.Errorf("error getting profile %s: %s", peerId, err)
+		return "", err
+	}
+	prof, err := core.Node.GetProfile(pid)
+	if err != nil {
 		return "", err
 	}
 	return toJSON(prof)
