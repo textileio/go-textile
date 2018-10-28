@@ -7,6 +7,7 @@ import (
 	njwt "github.com/dgrijalva/jwt-go"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/jwt"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/pb"
@@ -45,6 +46,7 @@ type CafeService struct {
 	datastore repo.Datastore
 	inbox     *CafeInbox
 	httpAddr  string
+	open      bool
 }
 
 // NewCafeService returns a new threads service
@@ -473,6 +475,11 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 		return nil, err
 	}
 
+	// are we open?
+	if !h.open {
+		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+	}
+
 	// lookup the nonce
 	snonce := h.datastore.CafeClientNonces().Get(reg.Value)
 	if snonce == nil {
@@ -534,6 +541,11 @@ func (h *CafeService) handleRefreshSession(pid peer.ID, env *pb.Envelope) (*pb.E
 	ref := new(pb.CafeRefreshSession)
 	if err := ptypes.UnmarshalAny(env.Message.Payload, ref); err != nil {
 		return nil, err
+	}
+
+	// are we _still_ open?
+	if !h.open {
+		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
 
 	// validate refresh token
@@ -827,11 +839,19 @@ func (h *CafeService) verifyKeyFunc(token *njwt.Token) (interface{}, error) {
 }
 
 // setHttpApi sets the cafe http api address
-func (h *CafeService) setHttpAddr(host string, boundAddr string) {
+func (h *CafeService) setHttpAddr(addr string) {
+	var host string
+	if cafeApiHost != nil {
+		var err error
+		host, err = ipfs.PublicIPv4Addr(h.service.Node)
+		if err != nil {
+			log.Infof(err.Error())
+		}
+	}
 	if host == "" {
 		host = "127.0.0.1"
 	}
-	parts := strings.Split(boundAddr, ":")
+	parts := strings.Split(addr, ":")
 	if len(parts) < 2 {
 		return
 	}

@@ -31,7 +31,7 @@ func RunShell(startNode func() error, stopNode func() error) {
 		os.Exit(1)
 	})
 
-	// add interactive commands
+	// add node commands
 	shell.AddCmd(&ishell.Cmd{
 		Name: "start",
 		Help: "start the node",
@@ -62,11 +62,14 @@ func RunShell(startNode func() error, stopNode func() error) {
 			c.Println("ok, stopped")
 		},
 	})
-	shell.AddCmd(&ishell.Cmd{
-		Name: "id",
-		Help: "show address and peer info",
-		Func: showId,
-	})
+
+	// add all commands w/ shell counterparts
+	for _, c := range Cmds() {
+		if c.Shell() != nil {
+			shell.AddCmd(c.Shell())
+		}
+	}
+
 	shell.AddCmd(&ishell.Cmd{
 		Name: "ping",
 		Help: "ping another peer",

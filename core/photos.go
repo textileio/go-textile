@@ -68,7 +68,7 @@ func (t *Textile) AddPhoto(path string) (*AddDataResult, error) {
 	fpath := file.Name()
 	ext := strings.ToLower(filepath.Ext(fpath))
 	reader.Seek(0, 0)
-	meta, err := photo.MakeMetadata(reader, fpath, ext, *format, encodingFormat, size.X, size.Y, t.version)
+	meta, err := photo.MakeMetadata(reader, fpath, ext, *format, encodingFormat, size.X, size.Y, Version)
 	if err != nil {
 		return nil, err
 	}
