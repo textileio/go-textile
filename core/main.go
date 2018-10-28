@@ -696,7 +696,7 @@ func (t *Textile) touchDatastore() error {
 	return nil
 }
 
-// setupLogging handles log settings
+// setupLogging hijacks the ipfs logging system, putting output to files
 func setupLogging(repoPath string, level logger.Level, files bool) io.Writer {
 	var writer io.Writer
 	if files {

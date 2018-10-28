@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"gopkg.in/abiosoft/ishell.v2"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 type Cmd interface {
@@ -20,6 +22,7 @@ func Cmds() []Cmd {
 	return []Cmd{
 		&peerCmd,
 		&addressCmd,
+		&pingCmd,
 	}
 }
 
@@ -39,20 +42,16 @@ func executeStringCmd(name string, args []string) error {
 
 func request(meth string, cmd string, args []string) (*http.Response, error) {
 	url := fmt.Sprintf("http://127.0.0.1:8000/api/v0/%s", cmd)
-	req, err := http.NewRequest(meth, url, nil)
+	var body io.Reader
+	if len(args) > 0 {
+		body = bytes.NewReader([]byte(strings.Join(args, ",")))
+	}
+	req, err := http.NewRequest(meth, url, body)
 	if err != nil {
 		return nil, err
 	}
 	client := &http.Client{}
 	return client.Do(req)
-}
-
-func unmarshalJSON(body io.ReadCloser, target interface{}) error {
-	data, err := ioutil.ReadAll(body)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(data, target)
 }
 
 func unmarshalString(body io.ReadCloser) (string, error) {
@@ -61,4 +60,12 @@ func unmarshalString(body io.ReadCloser) (string, error) {
 		return "", err
 	}
 	return string(data), nil
+}
+
+func unmarshalJSON(body io.ReadCloser, target interface{}) error {
+	data, err := ioutil.ReadAll(body)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, target)
 }

@@ -3,7 +3,10 @@ package core
 import (
 	"context"
 	"github.com/gin-gonic/gin"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 // apiVersion is the api version
@@ -59,6 +62,7 @@ func (a *api) Start() {
 	{
 		v0.GET("/peer", a.peer)
 		v0.GET("/address", a.address)
+		v0.GET("/ping", a.ping)
 	}
 	a.server = &http.Server{
 		Addr:    a.addr,
@@ -99,10 +103,12 @@ func (a *api) Stop() error {
 	return nil
 }
 
+// -- COMMANDS -- //
+
 func (a *api) peer(g *gin.Context) {
 	pid, err := a.node.PeerId()
 	if err != nil {
-		g.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		a.abort500(g, err)
 		return
 	}
 	g.String(http.StatusOK, pid.Pretty())
@@ -111,8 +117,52 @@ func (a *api) peer(g *gin.Context) {
 func (a *api) address(g *gin.Context) {
 	addr, err := a.node.Address()
 	if err != nil {
-		g.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		a.abort500(g, err)
 		return
 	}
 	g.String(http.StatusOK, addr)
+}
+
+func (a *api) ping(g *gin.Context) {
+	args, err := a.readArgs(g)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+	if len(args) == 0 {
+		g.String(http.StatusBadRequest, "missing peer id")
+		return
+	}
+	pid, err := peer.IDB58Decode(args[0])
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+	status, err := a.node.Ping(pid)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+	g.String(http.StatusOK, string(status))
+}
+
+// -- HELPERS -- //
+
+func (a *api) readArgs(g *gin.Context) ([]string, error) {
+	body, err := ioutil.ReadAll(g.Request.Body)
+	if err != nil {
+		return nil, err
+	}
+	var args []string
+	for _, a := range strings.Split(string(body), ",") {
+		arg := strings.TrimSpace(a)
+		if arg != "" {
+			args = append(args, arg)
+		}
+	}
+	return args, nil
+}
+
+func (a *api) abort500(g *gin.Context, err error) {
+	g.String(http.StatusInternalServerError, err.Error())
 }
