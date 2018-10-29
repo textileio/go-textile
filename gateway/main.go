@@ -28,7 +28,9 @@ type Gateway struct {
 // Start creates a gateway server
 func (g *Gateway) Start(addr string) {
 	gin.SetMode(gin.ReleaseMode)
-	gin.DefaultWriter = core.Node.Writer()
+	if core.Node != nil {
+		gin.DefaultWriter = core.Node.Writer()
+	}
 
 	// setup router
 	router := gin.Default()

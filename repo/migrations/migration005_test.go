@@ -1,4 +1,4 @@
-package migrations_test
+package migrations
 
 import (
 	"crypto/rand"
@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/textileio/textile-go/crypto"
-	. "github.com/textileio/textile-go/repo/migrations"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"io/ioutil"
 	"os"

@@ -597,20 +597,23 @@ func (t *Textile) runQueues() {
 	}
 	tick := time.NewTicker(freq)
 	defer tick.Stop()
-	go func() {
-		time.Sleep(time.Second)
-		t.flushQueues()
-	}()
+	t.flushQueues()
 	for {
 		select {
 		case <-tick.C:
 			t.flushQueues()
+		case <-t.done:
+			return
 		}
 	}
 }
 
 // flushQueues flushes each message queue
 func (t *Textile) flushQueues() {
+	if err := t.touchDatastore(); err != nil {
+		log.Error(err)
+		return
+	}
 	go t.threadsOutbox.Flush()
 	go t.cafeOutbox.Flush()
 	go t.cafeInbox.CheckMessages()

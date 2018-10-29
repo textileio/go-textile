@@ -51,6 +51,9 @@ func (t *Textile) RefreshCafeSession(cafeId string) (*repo.CafeSession, error) {
 
 // CheckCafeMessages fetches new messages from registered cafes
 func (t *Textile) CheckCafeMessages() error {
+	if err := t.touchDatastore(); err != nil {
+		return err
+	}
 	if !t.Online() {
 		return ErrOffline
 	}

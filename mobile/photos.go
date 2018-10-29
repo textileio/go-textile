@@ -55,7 +55,7 @@ type ImageData struct {
 
 // AddPhoto adds a photo by path
 func (m *Mobile) AddPhoto(path string) (string, error) {
-	added, err := core.Node.AddPhoto(path)
+	added, err := core.Node.AddImageByPath(path)
 	if err != nil {
 		return "", err
 	}

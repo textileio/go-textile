@@ -153,7 +153,7 @@ func (a *api) addImage(g *gin.Context) {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
-	fileHeaders := form.File["files"]
+	fileHeaders := form.File["file"]
 	var adds []*AddDataResult
 	for _, header := range fileHeaders {
 		file, err := header.Open()
@@ -166,9 +166,10 @@ func (a *api) addImage(g *gin.Context) {
 			g.String(http.StatusBadRequest, err.Error())
 			return
 		}
+		file.Close()
 		adds = append(adds, added)
 	}
-	g.JSON(http.StatusCreated, adds)
+	g.JSON(http.StatusCreated, gin.H{"items": adds})
 }
 
 // -- HELPERS -- //

@@ -23,14 +23,14 @@ var session *repo.CafeSession
 var blockHash = "QmbQ4K3vXNJ3DjCNdG2urCXs7BuHqWQG1iSjZ8fbnF8NMs"
 var photoHash = "QmSUnsZi9rGvPZLWy2v5N7fNxUWVNnA5nmppoM96FbLqLp"
 
-func TestPin_Setup(t *testing.T) {
+func TestCafeApi_Setup(t *testing.T) {
 	// start one node
 	os.RemoveAll(repoPath1)
 	accnt1 := keypair.Random()
 	if err := InitRepo(InitConfig{
 		Account:  *accnt1,
 		RepoPath: repoPath1,
-		LogLevel: logger.DEBUG,
+		LogLevel: logger.ERROR,
 	}); err != nil {
 		t.Errorf("init node1 failed: %s", err)
 		return
@@ -38,7 +38,7 @@ func TestPin_Setup(t *testing.T) {
 	var err error
 	node1, err = NewTextile(RunConfig{
 		RepoPath: repoPath1,
-		LogLevel: logger.DEBUG,
+		LogLevel: logger.ERROR,
 	})
 	if err != nil {
 		t.Errorf("create node1 failed: %s", err)
@@ -52,14 +52,14 @@ func TestPin_Setup(t *testing.T) {
 	if err := InitRepo(InitConfig{
 		Account:  *accnt2,
 		RepoPath: repoPath2,
-		LogLevel: logger.DEBUG,
+		LogLevel: logger.ERROR,
 	}); err != nil {
 		t.Errorf("init node2 failed: %s", err)
 		return
 	}
 	node2, err = NewTextile(RunConfig{
 		RepoPath:     repoPath2,
-		LogLevel:     logger.DEBUG,
+		LogLevel:     logger.ERROR,
 		CafeOpen:     true,
 		CafeBindAddr: "127.0.0.1:5000",
 	})
@@ -97,7 +97,7 @@ func TestPin_Setup(t *testing.T) {
 	}
 }
 
-func TestPin_Pin(t *testing.T) {
+func TestCafeApi_Pin(t *testing.T) {
 	block, err := os.Open("testdata/" + blockHash)
 	if err != nil {
 		t.Error(err)
@@ -129,7 +129,7 @@ func TestPin_Pin(t *testing.T) {
 	}
 }
 
-func TestPin_PinArchive(t *testing.T) {
+func TestCafeApi_PinArchive(t *testing.T) {
 	archive, err := os.Open("testdata/" + photoHash + ".tar.gz")
 	if err != nil {
 		t.Error(err)
@@ -159,6 +159,13 @@ func TestPin_PinArchive(t *testing.T) {
 	if resp.Id != photoHash {
 		t.Errorf("hashes do not match: %s, %s", resp.Id, photoHash)
 	}
+}
+
+func TestCafeApi_Teardown(t *testing.T) {
+	node1.Stop()
+	node2.Stop()
+	node1 = nil
+	node2 = nil
 }
 
 func pin(reader io.Reader, cType string, token string, addr string) (*http.Response, error) {

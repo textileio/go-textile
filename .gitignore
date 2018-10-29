@@ -49,8 +49,7 @@ _testmain.go
 *.iml
 .gx/
 .ipfs
-.textile
-dist/textile-go-*
+.textile*
 
 # Development environment files
 .ackrc

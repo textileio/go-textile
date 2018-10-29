@@ -137,8 +137,8 @@ func (x *imageCmd) Execute(args []string) error {
 	}
 	defer file.Close()
 
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
 	part, err := writer.CreateFormFile("file", filepath.Base(path))
 	if err != nil {
 		return err
@@ -146,18 +146,23 @@ func (x *imageCmd) Execute(args []string) error {
 	if _, err = io.Copy(part, file); err != nil {
 		return err
 	}
+	writer.Close()
 
-	var added *core.AddDataResult
+	var added *struct {
+		Items []core.AddDataResult `json:"items"`
+	}
 	if err := executeJsonCmd(POST, "add/"+x.Name(), params{
 		args:    args,
-		payload: body,
+		payload: &body,
 		ctype:   writer.FormDataContentType(),
 	}, &added); err != nil {
 		return err
 	}
 
-	fmt.Println("id  :" + added.Id)
-	fmt.Println("key :" + added.Key)
+	for _, item := range added.Items {
+		fmt.Println("id:  " + item.Id)
+		fmt.Println("key: " + item.Key)
+	}
 	return nil
 }
 
