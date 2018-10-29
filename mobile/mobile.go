@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/wallet"
 	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
-	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/fsrepo"
+	"strings"
 	"time"
 )
 
@@ -23,10 +24,60 @@ type Messenger interface {
 	Notify(event *Event)
 }
 
-// NodeConfig is used to configure the mobile node
-// NOTE: logLevel is one of: CRITICAL ERROR WARNING NOTICE INFO DEBUG
-type NodeConfig struct {
-	Account  string
+// NewWallet creates a brand new wallet and returns its recovery phrase
+func NewWallet(wordCount int) (string, error) {
+	// determine word count
+	wcount, err := wallet.NewWordCount(wordCount)
+	if err != nil {
+		return "", err
+	}
+
+	// create a new wallet
+	w, err := wallet.NewWallet(wcount.EntropySize())
+	if err != nil {
+		return "", err
+	}
+
+	// return the new recovery phrase
+	return w.RecoveryPhrase, nil
+}
+
+// WalletAccount represents a derived account in a wallet
+type WalletAccount struct {
+	Seed    string
+	Address string
+}
+
+// GetWalletAccountAt derives the account at the given index
+func GetWalletAccountAt(phrase string, index int, password string) (string, error) {
+	w := wallet.NewWalletFromRecoveryPhrase(phrase)
+	accnt, err := w.AccountAt(index, password)
+	if err != nil {
+		return "", err
+	}
+	return toJSON(WalletAccount{
+		Seed:    accnt.Seed(),
+		Address: accnt.Address(),
+	})
+}
+
+// InitConfig is used to setup a textile node
+type InitConfig struct {
+	Seed     string
+	PinCode  string
+	RepoPath string
+	LogLevel string
+	LogFiles bool
+}
+
+// MigrateConfig is used to define options during a major migration
+type MigrateConfig struct {
+	PinCode  string
+	RepoPath string
+}
+
+// RunConfig is used to define run options for a mobile node
+type RunConfig struct {
 	PinCode  string
 	RepoPath string
 	LogLevel string
@@ -39,56 +90,61 @@ type Mobile struct {
 	messenger Messenger
 }
 
-// MigrateRepo calls core MigrateRepo
-func MigrateRepo(config *NodeConfig) error {
-	return core.MigrateRepo(core.MigrateConfig{
-		RepoPath: config.RepoPath,
-		PinCode:  config.PinCode,
-	})
-}
+// InitRepo calls core InitRepo
+func InitRepo(config *InitConfig) error {
+	// convert seed string to full account keypair
+	if config.Seed == "" {
+		return core.ErrAccountRequired
+	}
+	kp, err := keypair.Parse(config.Seed)
+	if err != nil {
+		return err
+	}
+	accnt, ok := kp.(*keypair.Full)
+	if !ok {
+		return keypair.ErrInvalidKey
+	}
 
-// Create a gomobile compatible wrapper around TextileNode
-func NewNode(config *NodeConfig, messenger Messenger) (*Mobile, error) {
-	// determine log level
-	logLevel, err := logger.LogLevel(config.LogLevel)
+	// logLevel is one of: critical error warning notice info debug
+	logLevel, err := logger.LogLevel(strings.ToUpper(config.LogLevel))
 	if err != nil {
 		logLevel = logger.ERROR
 	}
 
-	// run init if needed
-	if !fsrepo.IsInitialized(config.RepoPath) {
-		if config.Account == "" {
-			return nil, core.ErrAccountRequired
-		}
-		kp, err := keypair.Parse(config.Account)
-		if err != nil {
-			return nil, err
-		}
-		accnt, ok := kp.(*keypair.Full)
-		if !ok {
-			return nil, keypair.ErrInvalidKey
-		}
-		initc := core.InitConfig{
-			Account:  *accnt,
-			PinCode:  config.PinCode,
-			RepoPath: config.RepoPath,
-			IsMobile: true,
-			LogLevel: logLevel,
-			LogFiles: config.LogFiles,
-		}
-		if err := core.InitRepo(initc); err != nil {
-			return nil, err
-		}
+	// ready to call core
+	return core.InitRepo(core.InitConfig{
+		Account:  *accnt,
+		PinCode:  config.PinCode,
+		RepoPath: config.RepoPath,
+		IsMobile: true,
+		LogLevel: logLevel,
+		LogFiles: config.LogFiles,
+	})
+}
+
+// MigrateRepo calls core MigrateRepo
+func MigrateRepo(config *MigrateConfig) error {
+	return core.MigrateRepo(core.MigrateConfig{
+		PinCode:  config.PinCode,
+		RepoPath: config.RepoPath,
+	})
+}
+
+// Create a gomobile compatible wrapper around Textile
+func NewTextile(config *RunConfig, messenger Messenger) (*Mobile, error) {
+	// logLevel is one of: critical error warning notice info debug
+	logLevel, err := logger.LogLevel(strings.ToUpper(config.LogLevel))
+	if err != nil {
+		logLevel = logger.ERROR
 	}
 
 	// build textile node
-	runc := core.RunConfig{
+	node, err := core.NewTextile(core.RunConfig{
 		PinCode:  config.PinCode,
 		RepoPath: config.RepoPath,
 		LogLevel: logLevel,
 		LogFiles: config.LogFiles,
-	}
-	node, err := core.NewTextile(runc)
+	})
 	if err != nil {
 		return nil, err
 	}

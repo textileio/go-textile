@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/keypair"
 	. "github.com/textileio/textile-go/mobile"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"image/jpeg"
@@ -21,6 +20,9 @@ func (tm *TestMessenger) Notify(event *Event) {}
 
 var repo = "testdata/.textile"
 
+var recovery string
+var seed string
+
 var mobile *Mobile
 var defaultThreadId string
 var threadId, threadId2 string
@@ -30,26 +32,63 @@ var addedPhotoKey string
 
 //var noteId string
 
-func TestNewTextile(t *testing.T) {
+func TestNewWallet(t *testing.T) {
+	var err error
+	recovery, err = NewWallet(12)
+	if err != nil {
+		t.Errorf("new mobile wallet failed: %s", err)
+	}
+}
+
+func TestGetWalletAccountAt(t *testing.T) {
+	res, err := GetWalletAccountAt(recovery, 0, "")
+	if err != nil {
+		t.Errorf("get mobile wallet account at failed: %s", err)
+	}
+	accnt := WalletAccount{}
+	if err := json.Unmarshal([]byte(res), &accnt); err != nil {
+		t.Error(err)
+		return
+	}
+	seed = accnt.Seed
+}
+
+func TestInitRepo(t *testing.T) {
 	os.RemoveAll(repo)
-	config := &NodeConfig{
-		Account:  keypair.Random().Seed(),
+	if err := InitRepo(&InitConfig{
+		Seed:     seed,
 		RepoPath: repo,
-		LogLevel: "ERROR",
+	}); err != nil {
+		t.Errorf("init mobile repo failed: %s", err)
+	}
+}
+
+func TestMigrateRepo(t *testing.T) {
+	if err := MigrateRepo(&MigrateConfig{
+		RepoPath: repo,
+	}); err != nil {
+		t.Errorf("migrate mobile repo failed: %s", err)
+	}
+}
+
+func TestNewTextile(t *testing.T) {
+	config := &RunConfig{
+		RepoPath: repo,
+		LogLevel: "error",
 	}
 	var err error
-	mobile, err = NewNode(config, &TestMessenger{})
+	mobile, err = NewTextile(config, &TestMessenger{})
 	if err != nil {
 		t.Errorf("create mobile node failed: %s", err)
 	}
 }
 
 func TestNewTextileAgain(t *testing.T) {
-	config := &NodeConfig{
+	config := &RunConfig{
 		RepoPath: repo,
-		LogLevel: "ERROR",
+		LogLevel: "error",
 	}
-	if _, err := NewNode(config, &TestMessenger{}); err != nil {
+	if _, err := NewTextile(config, &TestMessenger{}); err != nil {
 		t.Errorf("create mobile node failed: %s", err)
 	}
 }
