@@ -17,7 +17,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"github.com/op/go-logging"
+	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	"math/big"
 	"net"
 	"os"
@@ -33,7 +33,7 @@ var (
 	ecdsaCurve = ""
 )
 
-var log = logging.MustGetLogger("ssl")
+var log = logging.Logger("tex-ssl")
 
 func publicKey(priv interface{}) interface{} {
 	switch k := priv.(type) {

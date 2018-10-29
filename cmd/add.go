@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,61 +11,186 @@ import (
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
 	"gopkg.in/abiosoft/ishell.v2"
+	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"os"
 	"path/filepath"
 )
 
-func addPhoto(c *ishell.Context) {
-	if len(c.Args) == 0 {
-		c.Err(errors.New("missing photo path"))
-		return
-	}
-	if len(c.Args) == 1 {
-		c.Err(errors.New("missing thread id"))
-		return
-	}
-	threadId := c.Args[1]
+/*
+photoCmd := &ishell.Cmd{
+	Name:     "photo",
+	Help:     "manage photos",
+	LongHelp: "Add, list, and get info about photos.",
+}
+photoCmd.AddCmd(&ishell.Cmd{
+	Name: "add",
+	Help: "add a new photo",
+	Func: addPhoto,
+})
+photoCmd.AddCmd(&ishell.Cmd{
+	Name: "share",
+	Help: "share a photo to a different thread",
+	Func: sharePhoto,
+})
+photoCmd.AddCmd(&ishell.Cmd{
+	Name: "get",
+	Help: "save a photo to a local file",
+	Func: getPhoto,
+})
+photoCmd.AddCmd(&ishell.Cmd{
+	Name: "key",
+	Help: "show key for a photo (and meta data)",
+	Func: getPhotoKey,
+})
+photoCmd.AddCmd(&ishell.Cmd{
+	Name: "meta",
+	Help: "get photo metadata",
+	Func: getPhotoMetadata,
+})
+photoCmd.AddCmd(&ishell.Cmd{
+	Name: "ls",
+	Help: "list photos from a thread",
+	Func: listPhotos,
+})
+photoCmd.AddCmd(&ishell.Cmd{
+	Name: "comment",
+	Help: "comment on a photo (terminate input w/ ';'",
+	Func: addPhotoComment,
+})
+photoCmd.AddCmd(&ishell.Cmd{
+	Name: "like",
+	Help: "like a photo",
+	Func: addPhotoLike,
+})
+photoCmd.AddCmd(&ishell.Cmd{
+	Name: "comments",
+	Help: "list photo comments",
+	Func: listPhotoComments,
+})
+photoCmd.AddCmd(&ishell.Cmd{
+	Name: "likes",
+	Help: "list photo likes",
+	Func: listPhotoLikes,
+})
+shell.AddCmd(photoCmd)
+*/
 
-	// try to get path with home dir tilda
-	path, err := homedir.Expand(c.Args[0])
+func init() {
+	register(&addCmd{})
+}
+
+type addCmd struct {
+	Image imageCmd `command:"image"`
+}
+
+func (x *addCmd) Name() string {
+	return "add"
+}
+
+func (x *addCmd) Short() string {
+	return "fixme"
+}
+
+func (x *addCmd) Long() string {
+	return "fixme"
+}
+
+func (x *addCmd) Shell() *ishell.Cmd {
+	cmd := &ishell.Cmd{
+		Name:     x.Name(),
+		Help:     x.Short(),
+		LongHelp: x.Long(),
+	}
+	cmd.AddCmd((&imageCmd{}).Shell())
+	return cmd
+}
+
+type imageCmd struct{}
+
+func (x *imageCmd) Name() string {
+	return "image"
+}
+
+func (x *imageCmd) Short() string {
+	return "fixme"
+}
+
+func (x *imageCmd) Long() string {
+	return "fixme"
+}
+
+func (x *imageCmd) Execute(args []string) error {
+	if len(args) == 0 {
+		return errors.New("missing image path")
+	}
+
+	path, err := homedir.Expand(args[0])
 	if err != nil {
-		path = c.Args[0]
+		path = args[0]
 	}
 
-	// open the file
-	f, err := os.Open(path)
+	file, err := os.Open(path)
 	if err != nil {
-		c.Err(err)
-		return
+		return err
 	}
-	defer f.Close()
+	defer file.Close()
 
-	c.Print("caption (optional): ")
-	caption := c.ReadLine()
-
-	// do the add
-	f.Seek(0, 0)
-	added, err := core.Node.AddPhoto(path)
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	part, err := writer.CreateFormFile("file", filepath.Base(path))
 	if err != nil {
-		c.Err(err)
-		return
+		return err
+	}
+	if _, err = io.Copy(part, file); err != nil {
+		return err
+	}
+	writer.Close()
+
+	var added *struct {
+		Items []core.AddDataResult `json:"items"`
+	}
+	if err := executeJsonCmd(POST, "add/"+x.Name(), params{
+		args:    args,
+		payload: &body,
+		ctype:   writer.FormDataContentType(),
+	}, &added); err != nil {
+		return err
 	}
 
-	// add to thread
-	_, thrd := core.Node.GetThread(threadId)
-	if thrd == nil {
-		c.Err(errors.New(fmt.Sprintf("could not find thread %s", threadId)))
-		return
+	for _, item := range added.Items {
+		fmt.Println("id:  " + item.Id)
+		fmt.Println("key: " + item.Key)
 	}
-	keyb, err := base58.Decode(added.Key)
-	if err != nil {
-		c.Err(err)
-		return
-	}
-	if _, err := thrd.AddPhoto(added.Id, caption, keyb); err != nil {
-		c.Err(err)
-		return
+	return nil
+}
+
+func (x *imageCmd) Shell() *ishell.Cmd {
+	return &ishell.Cmd{
+		Name:     x.Name(),
+		Help:     x.Short(),
+		LongHelp: x.Long(),
+		Func: func(c *ishell.Context) {
+			if len(c.Args) == 0 {
+				c.Err(errors.New("missing image path"))
+				return
+			}
+
+			path, err := homedir.Expand(c.Args[0])
+			if err != nil {
+				path = c.Args[0]
+			}
+
+			added, err := core.Node.AddImageByPath(path)
+			if err != nil {
+				c.Err(err)
+				return
+			}
+
+			c.Println(Grey("id:  ") + Green(added.Id))
+			c.Println(Grey("key: ") + Green(added.Key))
+		},
 	}
 }
 

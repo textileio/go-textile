@@ -3,13 +3,13 @@ package db
 import (
 	"database/sql"
 	_ "github.com/mutecomm/go-sqlcipher"
-	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/repo"
+	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	"path"
 	"sync"
 )
 
-var log = logging.MustGetLogger("db")
+var log = logging.Logger("tex-datastore")
 
 type SQLiteDatastore struct {
 	config             repo.ConfigStore

@@ -300,14 +300,6 @@
   version = "v1.4.2"
 
 [[projects]]
-  digest = "1:0a4290c90cd0e91b90d7c3846b78898d20d375e156b7501a908819bd5478f9f5"
-  name = "github.com/op/go-logging"
-  packages = ["."]
-  pruneopts = "T"
-  revision = "b2cb9fa56473e98db8caba80237377e83fe44db5"
-  version = "v1"
-
-[[projects]]
   digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
   name = "github.com/pkg/errors"
   packages = ["."]
@@ -543,7 +535,6 @@
     "github.com/onsi/ginkgo/extensions/table",
     "github.com/onsi/gomega",
     "github.com/onsi/gomega/types",
-    "github.com/op/go-logging",
     "github.com/pkg/errors",
     "github.com/rwcarlsen/goexif/exif",
     "github.com/segmentio/ksuid",

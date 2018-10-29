@@ -1,11 +1,9 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"github.com/textileio/textile-go/core"
 	"gopkg.in/abiosoft/ishell.v2"
-	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"os"
 )
 
@@ -31,7 +29,7 @@ func RunShell(startNode func() error, stopNode func() error) {
 		os.Exit(1)
 	})
 
-	// add interactive commands
+	// add node commands
 	shell.AddCmd(&ishell.Cmd{
 		Name: "start",
 		Help: "start the node",
@@ -62,36 +60,14 @@ func RunShell(startNode func() error, stopNode func() error) {
 			c.Println("ok, stopped")
 		},
 	})
-	shell.AddCmd(&ishell.Cmd{
-		Name: "id",
-		Help: "show address and peer info",
-		Func: showId,
-	})
-	shell.AddCmd(&ishell.Cmd{
-		Name: "ping",
-		Help: "ping another peer",
-		Func: func(c *ishell.Context) {
-			if !core.Node.Online() {
-				c.Println("not online yet")
-				return
-			}
-			if len(c.Args) == 0 {
-				c.Err(errors.New("missing peer id"))
-				return
-			}
-			pid, err := peer.IDB58Decode(c.Args[0])
-			if err != nil {
-				c.Println(fmt.Errorf("bad peer id: %s", err))
-				return
-			}
-			status, err := core.Node.Ping(pid)
-			if err != nil {
-				c.Println(fmt.Errorf("ping failed: %s", err))
-				return
-			}
-			c.Println(status)
-		},
-	})
+
+	// add all commands w/ shell counterparts
+	for _, c := range Cmds() {
+		if c.Shell() != nil {
+			shell.AddCmd(c.Shell())
+		}
+	}
+
 	{
 		cafeCmd := &ishell.Cmd{
 			Name:     "cafe",
@@ -182,11 +158,11 @@ func RunShell(startNode func() error, stopNode func() error) {
 			Help:     "manage photos",
 			LongHelp: "Add, list, and get info about photos.",
 		}
-		photoCmd.AddCmd(&ishell.Cmd{
-			Name: "add",
-			Help: "add a new photo",
-			Func: addPhoto,
-		})
+		//photoCmd.AddCmd(&ishell.Cmd{
+		//	Name: "add",
+		//	Help: "add a new photo",
+		//	Func: addPhoto,
+		//})
 		photoCmd.AddCmd(&ishell.Cmd{
 			Name: "share",
 			Help: "share a photo to a different thread",

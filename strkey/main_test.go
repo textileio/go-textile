@@ -1,9 +1,9 @@
-package strkey
+package strkey_test
 
 import (
-	"testing"
-
 	"github.com/stretchr/testify/assert"
+	. "github.com/textileio/textile-go/strkey"
+	"testing"
 )
 
 func TestVersion(t *testing.T) {

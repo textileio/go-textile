@@ -6,16 +6,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
 	"github.com/mr-tron/base58/base58"
-	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/crypto"
+	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core/coreapi/interface"
 	"net/http"
 	"strings"
 )
 
-var log = logging.MustGetLogger("gateway")
+var log = logging.Logger("gateway")
 
 // Host is the instance used by the daemon
 var Host *Gateway
@@ -27,6 +27,11 @@ type Gateway struct {
 
 // Start creates a gateway server
 func (g *Gateway) Start(addr string) {
+	gin.SetMode(gin.ReleaseMode)
+	if core.Node != nil {
+		gin.DefaultWriter = core.Node.Writer()
+	}
+
 	// setup router
 	router := gin.Default()
 	router.GET("/health", func(g *gin.Context) {

@@ -1,6 +1,7 @@
-package crypto
+package crypto_test
 
 import (
+	. "github.com/textileio/textile-go/crypto"
 	"testing"
 )
 

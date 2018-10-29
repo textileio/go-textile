@@ -3,7 +3,7 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
-	"github.com/textileio/textile-go/photo"
+	"github.com/textileio/textile-go/images"
 	"github.com/textileio/textile-go/repo"
 	"strconv"
 	"strings"
@@ -139,7 +139,7 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 			continue
 		}
 		// unmarshal meta data
-		var meta *photo.Metadata
+		var meta *images.Metadata
 		if dataMetadata != nil {
 			if err := json.Unmarshal(dataMetadata, &meta); err != nil {
 				log.Errorf("error unmarshaling meta data: %s", err)

@@ -23,8 +23,8 @@ go test -coverprofile=repo.db.cover.out ./repo/db
 go test -coverprofile=repo.schema.cover.out ./repo/schema
 go test -coverprofile=repo.migrations.cover.out ./repo/migrations
 
-# photo
-go test -coverprofile=photo.cover.out ./photo
+# images
+go test -coverprofile=images.cover.out ./images
 
 # core
 go test -coverprofile=core.cover.out ./core

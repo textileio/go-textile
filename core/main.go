@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/op/go-logging"
 	"github.com/textileio/textile-go/archive"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/keypair"
@@ -12,14 +11,16 @@ import (
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/service"
 	"gopkg.in/natefinch/lumberjack.v2"
+	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
-	//ipfslog "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
+	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	utilmain "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/commands"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/config"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/fsrepo"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -27,15 +28,12 @@ import (
 	"time"
 )
 
-var fileLogFormat = logging.MustStringFormatter(
-	`%{time:15:04:05.000} [%{shortfunc}] [%{level}] %{message}`,
-)
-var log = logging.MustGetLogger("core")
+var log = logging.Logger("tex-node")
 
 // Version is the core version identifier
 const Version = "1.0.0"
 
-// Node is the single Textile instance used by mobile and the shell
+// Node is the single Textile instance used by mobile and the cmd tool
 var Node *Textile
 
 // kQueueFlushFreq how often to flush the message queues
@@ -80,7 +78,7 @@ type InitConfig struct {
 	SwarmPorts string
 	IsMobile   bool
 	IsServer   bool
-	LogLevel   logging.Level
+	LogLevel   logger.Level
 	LogFiles   bool
 }
 
@@ -92,15 +90,16 @@ type MigrateConfig struct {
 
 // RunConfig is used to define run options for a textile node
 type RunConfig struct {
-	PinCode  string
-	RepoPath string
-	LogLevel logging.Level
-	LogFiles bool
+	PinCode      string
+	RepoPath     string
+	LogLevel     logger.Level
+	LogFiles     bool
+	CafeOpen     bool
+	CafeBindAddr string
 }
 
 // Textile is the main Textile node structure
 type Textile struct {
-	version        string
 	context        oldcmds.Context
 	repoPath       string
 	cancel         context.CancelFunc
@@ -115,10 +114,13 @@ type Textile struct {
 	notifications  chan repo.Notification
 	threadsService *ThreadsService
 	threadsOutbox  *ThreadsOutbox
+	cafeOpen       bool
+	cafeBindAddr   string
 	cafeService    *CafeService
 	cafeOutbox     *CafeOutbox
 	cafeInbox      *CafeInbox
 	mux            sync.Mutex
+	writer         io.Writer
 }
 
 // common errors
@@ -208,8 +210,15 @@ func NewTextile(config RunConfig) (*Textile, error) {
 	// force open the repo and datastore (fixme)
 	removeLocks(config.RepoPath)
 
+	// build the node
+	node := &Textile{
+		repoPath:     config.RepoPath,
+		cafeOpen:     config.CafeOpen,
+		cafeBindAddr: config.CafeBindAddr,
+	}
+
 	// log handling
-	setupLogging(config.RepoPath, config.LogLevel, config.LogFiles)
+	node.writer = setupLogging(config.RepoPath, config.LogLevel, config.LogFiles)
 
 	// run all minor repo migrations if needed
 	if err := repo.MigrateUp(config.RepoPath, config.PinCode, false); err != nil {
@@ -234,12 +243,10 @@ func NewTextile(config RunConfig) (*Textile, error) {
 	if err != nil {
 		return nil, err
 	}
+	node.datastore = sqliteDB
 
-	return &Textile{
-		version:   Version,
-		repoPath:  config.RepoPath,
-		datastore: sqliteDB,
-	}, nil
+	// all done
+	return node, nil
 }
 
 // Start
@@ -259,14 +266,8 @@ func (t *Textile) Start() error {
 			log.Error(err.Error())
 			return
 		}
-		accntId, err := t.Id()
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
 		log.Info("node is started")
 		log.Infof("peer id: %s", t.ipfs.Identity.Pretty())
-		log.Infof("account id: %s", accntId.Pretty())
 		log.Infof("account address: %s", addr)
 	}()
 	log.Info("starting node...")
@@ -350,15 +351,10 @@ func (t *Textile) Start() error {
 
 		// setup cafe service
 		t.cafeService = NewCafeService(accnt, t.ipfs, t.datastore, t.cafeInbox)
-
-		// try to determine a public ipv4 address
-		if httpApiHost != nil {
-			var pubIPv4 string
-			pubIPv4, err = ipfs.PublicIPv4Addr(t.ipfs)
-			if err != nil {
-				log.Infof(err.Error())
-			}
-			t.cafeService.setHttpAddr(pubIPv4, t.HttpApiAddr())
+		if t.cafeOpen {
+			t.cafeService.setHttpAddr(t.cafeBindAddr)
+			t.cafeService.open = true
+			t.startCafeApi(t.cafeBindAddr)
 		}
 
 		// run queues
@@ -396,6 +392,11 @@ func (t *Textile) Stop() error {
 		close(t.done)
 	}()
 	log.Info("stopping node...")
+
+	// close apis
+	if err := t.stopCafeApi(); err != nil {
+		return err
+	}
 
 	// close ipfs node
 	t.context.Close()
@@ -450,9 +451,9 @@ func (t *Textile) Mobile() bool {
 	return mobile
 }
 
-// Version return core node version
-func (t *Textile) Version() string {
-	return t.version
+// Writer returns the output writer (logger / stdout)
+func (t *Textile) Writer() io.Writer {
+	return t.writer
 }
 
 // Ipfs returns the underlying ipfs node
@@ -596,20 +597,23 @@ func (t *Textile) runQueues() {
 	}
 	tick := time.NewTicker(freq)
 	defer tick.Stop()
-	go func() {
-		time.Sleep(time.Second)
-		t.flushQueues()
-	}()
+	t.flushQueues()
 	for {
 		select {
 		case <-tick.C:
 			t.flushQueues()
+		case <-t.done:
+			return
 		}
 	}
 }
 
 // flushQueues flushes each message queue
 func (t *Textile) flushQueues() {
+	if err := t.touchDatastore(); err != nil {
+		log.Error(err)
+		return
+	}
 	go t.threadsOutbox.Flush()
 	go t.cafeOutbox.Flush()
 	go t.cafeInbox.CheckMessages()
@@ -695,25 +699,23 @@ func (t *Textile) touchDatastore() error {
 	return nil
 }
 
-// setupLogging handles log settings
-func setupLogging(repoPath string, level logging.Level, files bool) {
-	var backendFile *logging.LogBackend
+// setupLogging hijacks the ipfs logging system, putting output to files
+func setupLogging(repoPath string, level logger.Level, files bool) io.Writer {
+	var writer io.Writer
 	if files {
-		logger := &lumberjack.Logger{
+		writer = &lumberjack.Logger{
 			Filename:   path.Join(repoPath, "logs", "textile.log"),
 			MaxSize:    10, // megabytes
 			MaxBackups: 3,
 			MaxAge:     30, // days
 		}
-		backendFile = logging.NewLogBackend(logger, "", 0)
 	} else {
-		backendFile = logging.NewLogBackend(os.Stdout, "", 0)
+		writer = os.Stdout
 	}
-	backendFileFormatter := logging.NewBackendFormatter(backendFile, fileLogFormat)
-	logging.SetBackend(backendFileFormatter)
-	logging.SetLevel(level, "")
-	//ipfslog.SetLogLevel("namesys", strings.ToLower(level.String()))
-	//ipfslog.SetLogLevel("pubsub-valuestore", strings.ToLower(level.String()))
+	backendFile := logger.NewLogBackend(writer, "", 0)
+	logger.SetBackend(backendFile)
+	logging.SetAllLoggers(level)
+	return writer
 }
 
 // removeLocks force deletes the IPFS repo and SQLite DB lock files

@@ -10,13 +10,13 @@ import (
 	"github.com/asticode/go-astilectron-bootstrap"
 	"github.com/asticode/go-astilog"
 	"github.com/mitchellh/go-homedir"
-	"github.com/op/go-logging"
 	"github.com/skip2/go-qrcode"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/gateway"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/repo"
 	rconfig "github.com/textileio/textile-go/repo/config"
+	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/fsrepo"
 	"os"
 	"path/filepath"
@@ -77,7 +77,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 		initc := core.InitConfig{
 			Account:  *accnt,
 			RepoPath: repoPath,
-			LogLevel: logging.DEBUG,
+			LogLevel: logger.ERROR,
 			LogFiles: true,
 		}
 		if err := core.InitRepo(initc); err != nil {
@@ -88,7 +88,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	// build textile node
 	runc := core.RunConfig{
 		RepoPath: repoPath,
-		LogLevel: logging.DEBUG,
+		LogLevel: logger.ERROR,
 		LogFiles: true,
 	}
 	core.Node, err = core.NewTextile(runc)

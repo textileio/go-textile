@@ -3,7 +3,6 @@ package core
 import (
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/keypair"
-	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 )
 
 // Account returns account keypair
@@ -21,19 +20,6 @@ func (t *Textile) Address() (string, error) {
 		return "", err
 	}
 	return accnt.Address(), nil
-}
-
-// Id returns account id
-func (t *Textile) Id() (*peer.ID, error) {
-	accnt, err := t.Account()
-	if err != nil {
-		return nil, err
-	}
-	id, err := accnt.Id()
-	if err != nil {
-		return nil, err
-	}
-	return &id, nil
 }
 
 // Sign signs input with account seed

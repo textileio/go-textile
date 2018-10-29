@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/crypto"
+	"github.com/textileio/textile-go/images"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/photo"
 	"github.com/textileio/textile-go/repo"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
@@ -119,7 +119,7 @@ func (t *Thread) handleDataBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 }
 
 // getMetadata downloads and decrypts metadata
-func getMetadata(node *core.IpfsNode, dataId string, key []byte) (*photo.Metadata, error) {
+func getMetadata(node *core.IpfsNode, dataId string, key []byte) (*images.Metadata, error) {
 	metacipher, err := ipfs.GetDataAtPath(node, fmt.Sprintf("%s/meta", dataId))
 	if err != nil {
 		return nil, err
@@ -128,7 +128,7 @@ func getMetadata(node *core.IpfsNode, dataId string, key []byte) (*photo.Metadat
 	if err != nil {
 		return nil, err
 	}
-	var meta *photo.Metadata
+	var meta *images.Metadata
 	if metaplain != nil {
 		if err := json.Unmarshal(metaplain, &meta); err != nil {
 			return nil, err

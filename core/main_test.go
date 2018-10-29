@@ -2,9 +2,9 @@ package core_test
 
 import (
 	"crypto/rand"
-	"github.com/op/go-logging"
 	. "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
+	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"os"
 	"testing"
@@ -19,7 +19,7 @@ func TestInitRepo(t *testing.T) {
 	if err := InitRepo(InitConfig{
 		Account:  *accnt,
 		RepoPath: repoPath,
-		LogLevel: logging.DEBUG,
+		LogLevel: logger.ERROR,
 	}); err != nil {
 		t.Errorf("init node failed: %s", err)
 	}
@@ -29,7 +29,7 @@ func TestNewTextile(t *testing.T) {
 	var err error
 	node, err = NewTextile(RunConfig{
 		RepoPath: repoPath,
-		LogLevel: logging.DEBUG,
+		LogLevel: logger.ERROR,
 	})
 	if err != nil {
 		t.Errorf("create node failed: %s", err)
@@ -74,19 +74,19 @@ func TestCore_AddThread(t *testing.T) {
 	}
 }
 
-func TestCore_AddPhoto(t *testing.T) {
-	added, err := node.AddPhoto("../photo/testdata/image.jpg")
+func TestCore_AddImage(t *testing.T) {
+	added, err := node.AddImageByPath("../images/testdata/image.jpg")
 	if err != nil {
-		t.Errorf("add photo failed: %s", err)
+		t.Errorf("add image failed: %s", err)
 		return
 	}
 	if len(added.Id) == 0 {
-		t.Errorf("add photo got bad id")
+		t.Errorf("add image got bad id")
 	}
 	// test adding an image w/o the orientation tag
-	added2, err := node.AddPhoto("../photo/testdata/image-no-orientation.jpg")
+	added2, err := node.AddImageByPath("../images/testdata/image-no-orientation.jpg")
 	if err != nil {
-		t.Errorf("add photo w/o orientation tag failed: %s", err)
+		t.Errorf("add image w/o orientation tag failed: %s", err)
 		return
 	}
 	if len(added2.Id) == 0 {
@@ -95,8 +95,7 @@ func TestCore_AddPhoto(t *testing.T) {
 }
 
 func TestCore_Stop(t *testing.T) {
-	err := node.Stop()
-	if err != nil {
+	if err := node.Stop(); err != nil {
 		t.Errorf("stop node failed: %s", err)
 	}
 }
@@ -114,7 +113,5 @@ func TestCore_OnlineAgain(t *testing.T) {
 }
 
 func TestCore_Teardown(t *testing.T) {
-	os.RemoveAll(node.GetRepoPath())
-	os.RemoveAll(node1.GetRepoPath())
-	os.RemoveAll(node2.GetRepoPath())
+	node = nil
 }

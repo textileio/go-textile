@@ -27,14 +27,15 @@ var threadId, threadId2 string
 var addedPhotoId, addedBlockId string
 var sharedBlockId string
 var addedPhotoKey string
-var noteId string
+
+//var noteId string
 
 func TestNewTextile(t *testing.T) {
 	os.RemoveAll(repo)
 	config := &NodeConfig{
 		Account:  keypair.Random().Seed(),
 		RepoPath: repo,
-		LogLevel: "DEBUG",
+		LogLevel: "ERROR",
 	}
 	var err error
 	mobile, err = NewNode(config, &TestMessenger{})
@@ -46,7 +47,7 @@ func TestNewTextile(t *testing.T) {
 func TestNewTextileAgain(t *testing.T) {
 	config := &NodeConfig{
 		RepoPath: repo,
-		LogLevel: "DEBUG",
+		LogLevel: "ERROR",
 	}
 	if _, err := NewNode(config, &TestMessenger{}); err != nil {
 		t.Errorf("create mobile node failed: %s", err)
@@ -62,17 +63,6 @@ func TestMobile_Start(t *testing.T) {
 func TestMobile_StartAgain(t *testing.T) {
 	if err := mobile.Start(); err != nil {
 		t.Errorf("attempt to start a running node failed: %s", err)
-	}
-}
-
-func TestMobile_GetId(t *testing.T) {
-	id, err := mobile.GetId()
-	if err != nil {
-		t.Errorf("get id failed: %s", err)
-		return
-	}
-	if id == "" {
-		t.Error("got bad id")
 	}
 }
 
@@ -171,7 +161,7 @@ func TestMobile_RemoveThread(t *testing.T) {
 }
 
 func TestMobile_AddPhoto(t *testing.T) {
-	resStr, err := mobile.AddPhoto("../photo/testdata/image.jpg")
+	resStr, err := mobile.AddPhoto("../images/testdata/image.jpg")
 	if err != nil {
 		t.Errorf("add photo failed: %s", err)
 		return
@@ -491,7 +481,7 @@ func TestMobile_StopAgain(t *testing.T) {
 }
 
 func Test_Teardown(t *testing.T) {
-	os.RemoveAll(mobile.RepoPath)
+	mobile = nil
 }
 
 func getWidthDataUrl(res string) (int, error) {
