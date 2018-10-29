@@ -18,6 +18,50 @@ This repository currently contains a CLI/daemon, a desktop application, and iOS/
 
 ## Install
 
+Download the [latest release](https://github.com/textileio/textile-go/releases/latest) for your OS.
+
+## Usage
+```
+~ $ textile --help
+Usage:
+  textile [OPTIONS] <command>
+
+Help Options:
+  -h, --help  Show this help message
+
+Available commands:
+  daemon   Start a node daemon
+  init     Init the node repo and exit
+  migrate  Migrate the node repo and exit
+  shell    Start a node shell
+  version  Print version and exit
+  wallet   Manage a wallet of accounts
+```
+
+Textile uses an HD Wallet as an account key manager. You may use the name derived account seed on multiple devices to sync wallet data. To get started, run:
+
+```
+$ textile wallet init
+```
+
+This will generate a recovery phrase for _all your accounts_. You may specify a word count and password as well (run with `--help` for usage).
+
+Next, use an account from you wallet to initialize a node. First time users should just use _Account 0_, which is printed out by the `wallet init` subcommand. Use the `accounts` subcommand to access deeper derived wallet accounts.
+
+```
+$ textile init -s <account_seed>
+```
+
+Finally, start the daemon or interactive shell:
+
+```
+$ textile daemon|shell
+```
+
+TODO: Run through creating a thread, adding images, comments, etc.
+
+## Contributing
+
 ```
 $ go get github.com/textileio/textile-go
 ```
@@ -57,63 +101,6 @@ Finally, download deps managed by `gx` and `dep`:
 $ npm run setup
 ```
 
-## Usage
-```
-~ $ go run textile.go --help
-Usage:
-  textile [OPTIONS]
-
-Application Options:
-  -v, --version            print the version number and exit
-  -r, --repo-dir=          specify a custom repository path
-  -l, --log-level=         set the logging level [debug, info, notice, warning, error, critical] (default: debug)
-  -n, --no-log-files       do not save logs on disk
-  -d, --daemon             start in a non-interactive daemon mode
-  -s, --server             start in server mode
-  -g, --gateway-bind-addr= set the gateway address (default: 127.0.0.1:random)
-      --swarm-ports=       set the swarm ports (tcp,ws) (default: random)
-  -c, --cafe=              cafe host address
-      --cafe-bind-addr=    set the cafe address
-      --cafe-db-hosts=     set the cafe mongo db hosts uri
-      --cafe-db-name=      set the cafe mongo db name
-      --cafe-db-user=      set the cafe mongo db user
-      --cafe-db-password=  set the cafe mongo db user password
-      --cafe-db-tls        use TLS for the cafe mongo db connection
-      --cafe-token-secret= set the cafe token secret
-      --cafe-referral-key= set the cafe referral key
-
-Help Options:
-  -h, --help               Show this help message
-```
-
-## CLI Usage
-```
-~ $ go run textile.go
-Textile
-version: 0.1.2
-repo: /Users/sander/.textile/repo
-gateway: 127.0.0.1:5446
-type 'help' for available commands
->>> help
-
-Commands:
-  cafe                manage cafe session
-  clear               clear the screen
-  device              manage connected devices
-  exit                exit the program
-  fetch-messages      fetch offline messages from the DHT
-  help                display help
-  id                  show node id
-  notification        manage notifications
-  photo               manage photos
-  ping                ping another peer
-  profile             manage cafe profiles
-  start               start the node
-  stop                stop the node
-  swarm               same as ipfs swarm
-  thread              manage threads
-```
-
 ## Building
 
 There are various things to build:
@@ -142,6 +129,8 @@ $ make android_framework
 
 #### Desktop Application
 
+WARNING: Desktop is an unmaintained experiment. Security issues may exist.
+
 The build is made by a vendored version of `go-astilectron-bundler`. Due to Go's painful package management, you'll want to delete any `go-astilectron`-related binaries and source code you have installed from `github.com/asticode` in your `$GOPATH`. Then you can install the vendored `go-astilectron-bundler`:
 
 ```
@@ -167,7 +156,7 @@ See [go-astilectron-bundler](https://github.com/asticode/go-astilectron-bundler)
 
 Note: Because `cgo` is required, you'll need to setup a proper C toolchain for cross-OS-compilation.
 
-## Contributing
+## Commitizen
 
 The easiest way to write a valid commit message is to use the `npm` script:
 
@@ -179,7 +168,7 @@ This will start the interactive commit prompt.
 
 ## Acknowledgments
 
-Thanks to @cpacia, @drwasho and the rest of the OpenBazaar contributors for their work on [openbazaar-go](https://github.com/OpenBazaar/openbazaar-go). 
+While almost entirely different now, this project was jumpstarted from OpenBazaar. Thanks to @cpacia, @drwasho and the rest of the contributors for their work on [openbazaar-go](https://github.com/OpenBazaar/openbazaar-go).
 
 ## License
 
