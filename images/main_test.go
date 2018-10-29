@@ -1,8 +1,9 @@
-package photo
+package images_test
 
 import (
 	"bytes"
 	"fmt"
+	. "github.com/textileio/textile-go/images"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -126,7 +127,7 @@ func Test_MakeMetadata(t *testing.T) {
 		fpath := file.Name()
 		ext := strings.ToLower(filepath.Ext(fpath))
 
-		meta, err := MakeMetadata(file, fpath, ext, i.format, i.encodingFormat, i.width, i.height, "1.0.0")
+		meta, err := NewMetadata(file, fpath, ext, i.format, i.encodingFormat, i.width, i.height, "1.0.0")
 		if err != nil {
 			t.Fatal(err)
 		}

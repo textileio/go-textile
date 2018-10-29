@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/photo"
+	"github.com/textileio/textile-go/images"
 	"github.com/textileio/textile-go/repo"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"time"
@@ -13,15 +13,15 @@ import (
 
 // Photo is a simple meta data wrapper around a photo block
 type Photo struct {
-	Id       string          `json:"id"`
-	BlockId  string          `json:"block_id"`
-	Date     time.Time       `json:"date"`
-	AuthorId string          `json:"author_id"`
-	Caption  string          `json:"caption,omitempty"`
-	Username string          `json:"username,omitempty"`
-	Metadata *photo.Metadata `json:"metadata,omitempty"`
-	Comments []Comment       `json:"comments"`
-	Likes    []Like          `json:"likes"`
+	Id       string           `json:"id"`
+	BlockId  string           `json:"block_id"`
+	Date     time.Time        `json:"date"`
+	AuthorId string           `json:"author_id"`
+	Caption  string           `json:"caption,omitempty"`
+	Username string           `json:"username,omitempty"`
+	Metadata *images.Metadata `json:"metadata,omitempty"`
+	Comments []Comment        `json:"comments"`
+	Likes    []Like           `json:"likes"`
 }
 
 // Photos is a wrapper around a list of photos
@@ -225,7 +225,7 @@ func (m *Mobile) GetPhotoData(id string, path string) (string, error) {
 		return "", err
 	}
 	format := block.DataMetadata.EncodingFormat
-	prefix := getImageDataURLPrefix(photo.Format(format))
+	prefix := getImageDataURLPrefix(images.Format(format))
 	encoded := libp2pc.ConfigEncodeKey(data)
 	img := &ImageData{Url: prefix + encoded}
 	return toJSON(img)
@@ -233,7 +233,7 @@ func (m *Mobile) GetPhotoData(id string, path string) (string, error) {
 
 // GetPhotoDataForSize returns a data url of an image at or above requested size, or the next best option
 func (m *Mobile) GetPhotoDataForMinWidth(id string, minWidth int) (string, error) {
-	path := photo.ImagePathForSize(photo.ImageSizeForMinWidth(minWidth))
+	path := images.ImagePathForSize(images.ImageSizeForMinWidth(minWidth))
 	return m.GetPhotoData(id, string(path))
 }
 
@@ -290,11 +290,11 @@ func (m *Mobile) ignoreBlock(blockId string) (string, error) {
 }
 
 // getImageDataURLPrefix adds the correct data url prefix to a data url
-func getImageDataURLPrefix(format photo.Format) string {
+func getImageDataURLPrefix(format images.Format) string {
 	switch format {
-	case photo.PNG:
+	case images.PNG:
 		return "data:image/png;base64,"
-	case photo.GIF:
+	case images.GIF:
 		return "data:image/gif;base64,"
 	default:
 		return "data:image/jpeg;base64,"

@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
-	"io/ioutil"
 	"net/http"
 	"strings"
 )
@@ -63,6 +62,8 @@ func (a *api) Start() {
 		v0.GET("/peer", a.peer)
 		v0.GET("/address", a.address)
 		v0.GET("/ping", a.ping)
+
+		v0.POST("/add/image", a.addImage)
 	}
 	a.server = &http.Server{
 		Addr:    a.addr,
@@ -135,7 +136,7 @@ func (a *api) ping(g *gin.Context) {
 	}
 	pid, err := peer.IDB58Decode(args[0])
 	if err != nil {
-		a.abort500(g, err)
+		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 	status, err := a.node.Ping(pid)
@@ -146,15 +147,36 @@ func (a *api) ping(g *gin.Context) {
 	g.String(http.StatusOK, string(status))
 }
 
+func (a *api) addImage(g *gin.Context) {
+	form, err := g.MultipartForm()
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	fileHeaders := form.File["files"]
+	var adds []*AddDataResult
+	for _, header := range fileHeaders {
+		file, err := header.Open()
+		if err != nil {
+			g.String(http.StatusBadRequest, err.Error())
+			return
+		}
+		added, err := a.node.AddImage(file, header.Filename)
+		if err != nil {
+			g.String(http.StatusBadRequest, err.Error())
+			return
+		}
+		adds = append(adds, added)
+	}
+	g.JSON(http.StatusCreated, adds)
+}
+
 // -- HELPERS -- //
 
 func (a *api) readArgs(g *gin.Context) ([]string, error) {
-	body, err := ioutil.ReadAll(g.Request.Body)
-	if err != nil {
-		return nil, err
-	}
+	header := g.Request.Header.Get("X-Textile-Args")
 	var args []string
-	for _, a := range strings.Split(string(body), ",") {
+	for _, a := range strings.Split(header, ",") {
 		arg := strings.TrimSpace(a)
 		if arg != "" {
 			args = append(args, arg)

@@ -158,11 +158,11 @@ func RunShell(startNode func() error, stopNode func() error) {
 			Help:     "manage photos",
 			LongHelp: "Add, list, and get info about photos.",
 		}
-		photoCmd.AddCmd(&ishell.Cmd{
-			Name: "add",
-			Help: "add a new photo",
-			Func: addPhoto,
-		})
+		//photoCmd.AddCmd(&ishell.Cmd{
+		//	Name: "add",
+		//	Help: "add a new photo",
+		//	Func: addPhoto,
+		//})
 		photoCmd.AddCmd(&ishell.Cmd{
 			Name: "share",
 			Help: "share a photo to a different thread",

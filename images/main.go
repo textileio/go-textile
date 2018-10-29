@@ -1,4 +1,4 @@
-package photo
+package images
 
 import (
 	"bytes"
@@ -14,7 +14,7 @@ import (
 	"image/png"
 	"io"
 	"io/ioutil"
-	"os"
+	"mime/multipart"
 	"path/filepath"
 	"strings"
 	"time"
@@ -95,7 +95,7 @@ type Metadata struct {
 }
 
 // DecodeImage returns a cleaned reader from an image file
-func DecodeImage(file *os.File) (*bytes.Reader, *Format, *image.Point, error) {
+func DecodeImage(file multipart.File) (*bytes.Reader, *Format, *image.Point, error) {
 	img, formatStr, err := image.Decode(file)
 	if err != nil {
 		return nil, nil, nil, err
@@ -188,8 +188,8 @@ func DecodeExif(reader io.Reader) *exif.Exif {
 	return exf
 }
 
-// MakeMetadata reads any available meta/exif data from a photo
-func MakeMetadata(reader io.Reader, path string, ext string, format Format, encodingFormat Format, width int, height int, version string) (Metadata, error) {
+// NewMetadata reads any available meta/exif data from a photo
+func NewMetadata(reader io.Reader, path string, ext string, format Format, encodingFormat Format, width int, height int, version string) (Metadata, error) {
 	var created time.Time
 	var lat, lon float64
 	x, err := exif.Decode(reader)
@@ -205,7 +205,7 @@ func MakeMetadata(reader io.Reader, path string, ext string, format Format, enco
 			lat, lon = latTmp, lonTmp
 		}
 	}
-	meta := Metadata{
+	return Metadata{
 		Version:        version,
 		Created:        created,
 		Added:          time.Now(),
@@ -217,8 +217,7 @@ func MakeMetadata(reader io.Reader, path string, ext string, format Format, enco
 		Height:         height,
 		Latitude:       lat,
 		Longitude:      lon,
-	}
-	return meta, nil
+	}, nil
 }
 
 // correctOrientation returns a copy of an image (jpg|png|gif) with exif removed

@@ -8,27 +8,34 @@ import (
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 )
 
-var pingCmd PingCmd
+func init() {
+	register(&pingCmd{})
+}
 
-type PingCmd struct{}
+type pingCmd struct{}
 
-func (x *PingCmd) Name() string {
+func (x *pingCmd) Name() string {
 	return "ping"
 }
 
-func (x *PingCmd) Short() string {
+func (x *pingCmd) Short() string {
 	return "fixme"
 }
 
-func (x *PingCmd) Long() string {
+func (x *pingCmd) Long() string {
 	return "fixme"
 }
 
-func (x *PingCmd) Execute(args []string) error {
-	return executeStringCmd(x.Name(), args)
+func (x *pingCmd) Execute(args []string) error {
+	res, err := executeStringCmd(GET, x.Name(), params{args: args})
+	if err != nil {
+		return err
+	}
+	fmt.Println(res)
+	return nil
 }
 
-func (x *PingCmd) Shell() *ishell.Cmd {
+func (x *pingCmd) Shell() *ishell.Cmd {
 	return &ishell.Cmd{
 		Name:     x.Name(),
 		Help:     x.Short(),

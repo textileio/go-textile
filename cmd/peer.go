@@ -1,32 +1,40 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
 	"gopkg.in/abiosoft/ishell.v2"
 )
 
-var peerCmd PeerCmd
+func init() {
+	register(&peerCmd{})
+}
 
-type PeerCmd struct{}
+type peerCmd struct{}
 
-func (x *PeerCmd) Name() string {
+func (x *peerCmd) Name() string {
 	return "peer"
 }
 
-func (x *PeerCmd) Short() string {
+func (x *peerCmd) Short() string {
 	return "fixme"
 }
 
-func (x *PeerCmd) Long() string {
+func (x *peerCmd) Long() string {
 	return "fixme"
 }
 
-func (x *PeerCmd) Execute(args []string) error {
-	return executeStringCmd(x.Name(), nil)
+func (x *peerCmd) Execute(args []string) error {
+	res, err := executeStringCmd(GET, x.Name(), params{})
+	if err != nil {
+		return err
+	}
+	fmt.Println(res)
+	return nil
 }
 
-func (x *PeerCmd) Shell() *ishell.Cmd {
+func (x *peerCmd) Shell() *ishell.Cmd {
 	return &ishell.Cmd{
 		Name:     x.Name(),
 		Help:     x.Short(),

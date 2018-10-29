@@ -1,8 +1,8 @@
 package repo
 
 import (
+	"github.com/textileio/textile-go/images"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/photo"
 	"time"
 )
 
@@ -41,17 +41,17 @@ type Block struct {
 	AuthorId string    `json:"author_id"`
 	Type     BlockType `json:"type"`
 
-	DataId       string          `json:"data_id"`
-	DataKey      []byte          `json:"data_key"`
-	DataCaption  string          `json:"data_caption"`
-	DataMetadata *photo.Metadata `json:"data_metadata"`
+	DataId       string           `json:"data_id"`
+	DataKey      []byte           `json:"data_key"`
+	DataCaption  string           `json:"data_caption"`
+	DataMetadata *images.Metadata `json:"data_metadata"`
 }
 
 type DataBlockConfig struct {
-	DataId       string          `json:"data_id"`
-	DataKey      []byte          `json:"data_key"`
-	DataCaption  string          `json:"data_caption"`
-	DataMetadata *photo.Metadata `json:"data_metadata"`
+	DataId       string           `json:"data_id"`
+	DataKey      []byte           `json:"data_key"`
+	DataCaption  string           `json:"data_caption"`
+	DataMetadata *images.Metadata `json:"data_metadata"`
 }
 
 type BlockType int

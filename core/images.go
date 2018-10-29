@@ -6,73 +6,76 @@ import (
 	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/archive"
 	"github.com/textileio/textile-go/crypto"
+	"github.com/textileio/textile-go/images"
 	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/photo"
 	"github.com/textileio/textile-go/repo"
 	uio "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/unixfs/io"
+	"mime/multipart"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-// AddPhoto add a photo to the local ipfs node
-func (t *Textile) AddPhoto(path string) (*AddDataResult, error) {
-	// get a key to encrypt with
-	key, err := crypto.GenerateAESKey()
-	if err != nil {
-		return nil, err
-	}
-
-	// read file from disk
+// AddImageByPath reads an image at path and calls AddImage
+func (t *Textile) AddImageByPath(path string) (*AddDataResult, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
+	return t.AddImage(file, file.Name())
+}
 
+// AddImage adds an image to the local ipfs node
+func (t *Textile) AddImage(file multipart.File, name string) (*AddDataResult, error) {
 	// decode image
-	reader, format, size, err := photo.DecodeImage(file)
+	reader, format, size, err := images.DecodeImage(file)
 	if err != nil {
 		return nil, err
 	}
-	var encodingFormat photo.Format
-	if *format == photo.GIF {
-		encodingFormat = photo.GIF
+	var encodingFormat images.Format
+	if *format == images.GIF {
+		encodingFormat = images.GIF
 	} else {
-		encodingFormat = photo.JPEG
+		encodingFormat = images.JPEG
 	}
 
 	// make all image sizes
 	reader.Seek(0, 0)
-	thumb, err := photo.EncodeImage(reader, encodingFormat, photo.ThumbnailSize)
+	thumb, err := images.EncodeImage(reader, encodingFormat, images.ThumbnailSize)
 	if err != nil {
 		return nil, err
 	}
 	reader.Seek(0, 0)
-	small, err := photo.EncodeImage(reader, encodingFormat, photo.SmallSize)
+	small, err := images.EncodeImage(reader, encodingFormat, images.SmallSize)
 	if err != nil {
 		return nil, err
 	}
 	reader.Seek(0, 0)
-	medium, err := photo.EncodeImage(reader, encodingFormat, photo.MediumSize)
+	medium, err := images.EncodeImage(reader, encodingFormat, images.MediumSize)
 	if err != nil {
 		return nil, err
 	}
 	reader.Seek(0, 0)
-	large, err := photo.EncodeImage(reader, encodingFormat, photo.LargeSize)
+	large, err := images.EncodeImage(reader, encodingFormat, images.LargeSize)
 	if err != nil {
 		return nil, err
 	}
 
 	// make meta data
-	fpath := file.Name()
-	ext := strings.ToLower(filepath.Ext(fpath))
+	ext := strings.ToLower(filepath.Ext(name))
 	reader.Seek(0, 0)
-	meta, err := photo.MakeMetadata(reader, fpath, ext, *format, encodingFormat, size.X, size.Y, Version)
+	meta, err := images.NewMetadata(reader, name, ext, *format, encodingFormat, size.X, size.Y, Version)
 	if err != nil {
 		return nil, err
 	}
 	metab, err := json.Marshal(meta)
+	if err != nil {
+		return nil, err
+	}
+
+	// get a key to encrypt with
+	key, err := crypto.GenerateAESKey()
 	if err != nil {
 		return nil, err
 	}

@@ -1,30 +1,38 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
 	"gopkg.in/abiosoft/ishell.v2"
 )
 
-var addressCmd AddressCmd
+func init() {
+	register(&addressCmd{})
+}
 
-type AddressCmd struct{}
+type addressCmd struct{}
 
-func (x *AddressCmd) Name() string {
+func (x *addressCmd) Name() string {
 	return "address"
 }
-func (x *AddressCmd) Short() string {
+func (x *addressCmd) Short() string {
 	return "fixme"
 }
-func (x *AddressCmd) Long() string {
+func (x *addressCmd) Long() string {
 	return "fixme"
 }
 
-func (x *AddressCmd) Execute(args []string) error {
-	return executeStringCmd(x.Name(), nil)
+func (x *addressCmd) Execute(args []string) error {
+	res, err := executeStringCmd(GET, x.Name(), params{})
+	if err != nil {
+		return err
+	}
+	fmt.Println(res)
+	return nil
 }
 
-func (x *AddressCmd) Shell() *ishell.Cmd {
+func (x *addressCmd) Shell() *ishell.Cmd {
 	return &ishell.Cmd{
 		Name: x.Name(),
 		Help: x.Short(),

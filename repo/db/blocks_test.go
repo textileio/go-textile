@@ -2,7 +2,7 @@ package db
 
 import (
 	"database/sql"
-	"github.com/textileio/textile-go/photo"
+	"github.com/textileio/textile-go/images"
 	"github.com/textileio/textile-go/repo"
 	"sync"
 	"testing"
@@ -32,7 +32,7 @@ func TestBlockDB_Add(t *testing.T) {
 		DataId:       "Qm456",
 		DataKey:      []byte("key"),
 		DataCaption:  "xxx",
-		DataMetadata: &photo.Metadata{Name: "boom"},
+		DataMetadata: &images.Metadata{Name: "boom"},
 	})
 	if err != nil {
 		t.Error(err)
@@ -75,7 +75,7 @@ func TestBlockDB_List(t *testing.T) {
 		DataId:       "Qm456",
 		DataKey:      []byte("key"),
 		DataCaption:  "xxx",
-		DataMetadata: &photo.Metadata{Name: "boom"},
+		DataMetadata: &images.Metadata{Name: "boom"},
 	})
 	if err != nil {
 		t.Error(err)
@@ -90,7 +90,7 @@ func TestBlockDB_List(t *testing.T) {
 		DataId:       "Qm789",
 		DataKey:      []byte("key"),
 		DataCaption:  "xxx",
-		DataMetadata: &photo.Metadata{Name: "boom"},
+		DataMetadata: &images.Metadata{Name: "boom"},
 	})
 	if err != nil {
 		t.Error(err)
@@ -128,7 +128,7 @@ func TestBlockDB_Count(t *testing.T) {
 		DataId:       "Qm456",
 		DataKey:      []byte("key"),
 		DataCaption:  "xxx",
-		DataMetadata: &photo.Metadata{Name: "boom"},
+		DataMetadata: &images.Metadata{Name: "boom"},
 	})
 	if err != nil {
 		t.Error(err)
@@ -143,7 +143,7 @@ func TestBlockDB_Count(t *testing.T) {
 		DataId:       "Qm456",
 		DataKey:      []byte("key"),
 		DataCaption:  "xxx",
-		DataMetadata: &photo.Metadata{Name: "boom"},
+		DataMetadata: &images.Metadata{Name: "boom"},
 	})
 	if err != nil {
 		t.Error(err)

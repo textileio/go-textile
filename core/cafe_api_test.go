@@ -23,27 +23,6 @@ var session *repo.CafeSession
 var blockHash = "QmbQ4K3vXNJ3DjCNdG2urCXs7BuHqWQG1iSjZ8fbnF8NMs"
 var photoHash = "QmSUnsZi9rGvPZLWy2v5N7fNxUWVNnA5nmppoM96FbLqLp"
 
-var client = &http.Client{}
-
-func pin(reader io.Reader, cType string, token string, addr string) (*http.Response, error) {
-	url := fmt.Sprintf("%s/cafe/v0/pin", addr)
-	req, err := http.NewRequest("POST", url, reader)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", cType)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-	return client.Do(req)
-}
-
-func unmarshalJSON(body io.ReadCloser, target interface{}) error {
-	b, err := ioutil.ReadAll(body)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(b, target)
-}
-
 func TestPin_Setup(t *testing.T) {
 	// start one node
 	os.RemoveAll(repoPath1)
@@ -180,4 +159,24 @@ func TestPin_PinArchive(t *testing.T) {
 	if resp.Id != photoHash {
 		t.Errorf("hashes do not match: %s, %s", resp.Id, photoHash)
 	}
+}
+
+func pin(reader io.Reader, cType string, token string, addr string) (*http.Response, error) {
+	url := fmt.Sprintf("%s/cafe/v0/pin", addr)
+	req, err := http.NewRequest("POST", url, reader)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", cType)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	client := &http.Client{}
+	return client.Do(req)
+}
+
+func unmarshalJSON(body io.ReadCloser, target interface{}) error {
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(b, target)
 }

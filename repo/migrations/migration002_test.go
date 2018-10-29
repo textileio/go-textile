@@ -1,7 +1,8 @@
-package migrations
+package migrations_test
 
 import (
 	"database/sql"
+	. "github.com/textileio/textile-go/repo/migrations"
 	"io/ioutil"
 	"os"
 	"path"

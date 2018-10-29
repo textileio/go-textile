@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/fatih/color"
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/cmd"
@@ -23,115 +22,104 @@ import (
 	"strings"
 )
 
-var wordsRegexp = regexp.MustCompile(`^[a-z]+$`)
-
-type IPFSOptions struct {
+type ipfsOptions struct {
 	ServerMode bool   `long:"server" description:"apply IPFS server profile"`
 	SwarmPorts string `long:"swarm-ports" description:"set the swarm ports (tcp,ws)" default:"random"`
 }
 
-type LogOptions struct {
+type logOptions struct {
 	Level   string `short:"l" long:"log-level" description:"set the logging level [debug, info, notice, warning, error, critical]" default:"error"`
 	NoFiles bool   `short:"n" long:"no-log-files" description:"do not save logs on disk"`
 }
 
-type ApiOptions struct {
+type apiOptions struct {
 	BindAddr string `short:"a" long:"api-bind-addr" description:"set the rest api address" default:"127.0.0.1:random"`
 }
 
-type GatewayOptions struct {
+type gatewayOptions struct {
 	BindAddr string `short:"g" long:"gateway-bind-addr" description:"set the gateway address" default:"127.0.0.1:random"`
 }
 
-type CafeApiOptions struct {
+type cafeApiOptions struct {
 	Open     bool   `short:"c" long:"open-cafe" description:"opens the cafe service for other peers"`
 	BindAddr string `long:"cafe-bind-addr" description:"set the cafe rest api address" default:"127.0.0.1:random"`
 }
 
-type Options struct{}
+type options struct{}
 
-type WalletCommand struct {
-	Init     WalletInitCommand     `command:"init"`
-	Accounts WalletAccountsCommand `command:"accounts"`
+type walletCmd struct {
+	Init     walletInitCmd     `command:"init"`
+	Accounts walletAccountsCmd `command:"accounts"`
 }
 
-type WalletInitCommand struct {
+type walletInitCmd struct {
 	WordCount int    `short:"w" long:"word-count" description:"number of mnemonic recovery phrase words: 12,15,18,21,24" default:"12"`
 	Password  string `short:"p" long:"password" description:"mnemonic recovery phrase password (omit if none)"`
 }
 
-type WalletAccountsCommand struct {
+type walletAccountsCmd struct {
 	Password string `short:"p" long:"password" description:"mnemonic recovery phrase password (omit if none)"`
 	Depth    int    `short:"d" long:"depth" description:"number of accounts to show" default:"1"`
 	Offset   int    `short:"o" long:"offset" description:"account depth to start from" default:"0"`
 }
 
-type VersionCommand struct{}
+type versionCmd struct{}
 
-type InitCommand struct {
+type initCmd struct {
 	AccountSeed string      `required:"true" short:"s" long:"seed" description:"account seed (run 'wallet' command to generate new seeds)"`
 	RepoPath    string      `short:"r" long:"repo-dir" description:"specify a custom repository path"`
-	Logs        LogOptions  `group:"Log Options"`
-	IPFS        IPFSOptions `group:"IPFS Options"`
+	Logs        logOptions  `group:"Log Options"`
+	IPFS        ipfsOptions `group:"IPFS Options"`
 }
 
-type MigrateCommand struct {
+type migrateCmd struct {
 	RepoPath string `short:"r" long:"repo-dir" description:"specify a custom repository path"`
 }
 
-type DaemonCommand struct {
+type daemonCmd struct {
 	RepoPath string         `short:"r" long:"repo-dir" description:"specify a custom repository path"`
-	Logs     LogOptions     `group:"Log Options"`
-	Api      ApiOptions     `group:"API Options"`
-	Gateway  GatewayOptions `group:"Gateway Options"`
-	CafeApi  CafeApiOptions `group:"Cafe API Options"`
+	Logs     logOptions     `group:"Log Options"`
+	Api      apiOptions     `group:"API Options"`
+	Gateway  gatewayOptions `group:"Gateway Options"`
+	CafeApi  cafeApiOptions `group:"Cafe API Options"`
 }
 
-type ShellCommand struct {
+type shellCmd struct {
 	RepoPath string         `short:"r" long:"repo-dir" description:"specify a custom repository path"`
-	Logs     LogOptions     `group:"Log Options"`
-	Api      ApiOptions     `group:"API Options"`
-	Gateway  GatewayOptions `group:"Gateway Options"`
-	CafeApi  CafeApiOptions `group:"Cafe API Options"`
+	Logs     logOptions     `group:"Log Options"`
+	Api      apiOptions     `group:"API Options"`
+	Gateway  gatewayOptions `group:"Gateway Options"`
+	CafeApi  cafeApiOptions `group:"Cafe API Options"`
 }
 
-// main commands
-var initCommand InitCommand
-var migrateCommand MigrateCommand
-var versionCommand VersionCommand
-var walletCommand WalletCommand
-var shellCommand ShellCommand
-var daemonCommand DaemonCommand
-
-var options Options
-var parser = flags.NewParser(&options, flags.Default)
+var parser = flags.NewParser(&options{}, flags.Default)
 
 func init() {
 	// add main commands
 	parser.AddCommand("version",
 		"Print version and exit",
 		"Print the current version and exit.",
-		&versionCommand)
+		&versionCmd{})
 	parser.AddCommand("wallet",
 		"Manage a wallet of accounts",
 		"Initialize a new wallet, or view accounts from an existing wallet.",
-		&walletCommand)
+		&walletCmd{})
 	parser.AddCommand("init",
 		"Init the node repo and exit",
 		"Initialize the node repository and exit.",
-		&initCommand)
+		&initCmd{})
 	parser.AddCommand("migrate",
 		"Migrate the node repo and exit",
 		"Migrate the node repository and exit.",
-		&migrateCommand)
+		&migrateCmd{})
 	parser.AddCommand("shell",
 		"Start a node shell",
 		"Start an interactive node shell session.",
-		&shellCommand)
+		&shellCmd{})
 	parser.AddCommand("daemon",
 		"Start a node daemon",
 		"Start a node daemon session.",
-		&daemonCommand)
+		&daemonCmd{})
 
 	// add cmd commands
 	for _, c := range cmd.Cmds() {
@@ -143,7 +131,7 @@ func main() {
 	parser.Parse()
 }
 
-func (x *WalletInitCommand) Execute(args []string) error {
+func (x *walletInitCmd) Execute(args []string) error {
 	// determine word count
 	wcount, err := wallet.NewWordCount(x.WordCount)
 	if err != nil {
@@ -179,7 +167,9 @@ func (x *WalletInitCommand) Execute(args []string) error {
 	return nil
 }
 
-func (x *WalletAccountsCommand) Execute(args []string) error {
+var wordsRegexp = regexp.MustCompile(`^[a-z]+$`)
+
+func (x *walletAccountsCmd) Execute(args []string) error {
 	if x.Depth < 1 || x.Depth > 100 {
 		return errors.New("depth must be greater than 0 and less than 100")
 	}
@@ -233,12 +223,12 @@ func (x *WalletAccountsCommand) Execute(args []string) error {
 	return nil
 }
 
-func (x *VersionCommand) Execute(args []string) error {
+func (x *versionCmd) Execute(args []string) error {
 	fmt.Println(core.Version)
 	return nil
 }
 
-func (x *InitCommand) Execute(args []string) error {
+func (x *initCmd) Execute(args []string) error {
 	// build keypair from provided seed
 	kp, err := keypair.Parse(x.AccountSeed)
 	if err != nil {
@@ -280,7 +270,7 @@ func (x *InitCommand) Execute(args []string) error {
 	return nil
 }
 
-func (x *MigrateCommand) Execute(args []string) error {
+func (x *migrateCmd) Execute(args []string) error {
 	// handle repo path
 	repoPath, err := getRepoPath(x.RepoPath)
 	if err != nil {
@@ -300,7 +290,7 @@ func (x *MigrateCommand) Execute(args []string) error {
 	return nil
 }
 
-func (x *DaemonCommand) Execute(args []string) error {
+func (x *daemonCmd) Execute(args []string) error {
 	if err := buildNode(x.RepoPath, x.Api, x.Gateway, x.CafeApi, x.Logs); err != nil {
 		return err
 	}
@@ -321,7 +311,7 @@ func (x *DaemonCommand) Execute(args []string) error {
 	return nil
 }
 
-func (x *ShellCommand) Execute(args []string) error {
+func (x *shellCmd) Execute(args []string) error {
 	if err := buildNode(x.RepoPath, x.Api, x.Gateway, x.CafeApi, x.Logs); err != nil {
 		return err
 	}
@@ -355,7 +345,7 @@ func getRepoPath(repoPath string) (string, error) {
 	return repoPath, nil
 }
 
-func buildNode(repoPath string, apiOpts ApiOptions, gatewayOpts GatewayOptions, cafeOpts CafeApiOptions, logOpts LogOptions) error {
+func buildNode(repoPath string, apiOpts apiOptions, gatewayOpts gatewayOptions, cafeOpts cafeApiOptions, logOpts logOptions) error {
 	// handle repo path
 	repoPathf, err := getRepoPath(repoPath)
 	if err != nil {
@@ -394,7 +384,7 @@ func buildNode(repoPath string, apiOpts ApiOptions, gatewayOpts GatewayOptions, 
 	return nil
 }
 
-func startNode(apiOpts ApiOptions, gatewayOpts GatewayOptions) error {
+func startNode(apiOpts apiOptions, gatewayOpts gatewayOptions) error {
 	if err := core.Node.Start(); err != nil {
 		return err
 	}
@@ -423,7 +413,6 @@ func startNode(apiOpts ApiOptions, gatewayOpts GatewayOptions) error {
 
 	// subscribe to thread updates
 	go func() {
-		green := color.New(color.FgHiGreen).SprintFunc()
 		for {
 			select {
 			case update, ok := <-core.Node.ThreadUpdates():
@@ -431,14 +420,13 @@ func startNode(apiOpts ApiOptions, gatewayOpts GatewayOptions) error {
 					return
 				}
 				msg := fmt.Sprintf("new %s block in thread '%s'", update.Block.Type.Description(), update.ThreadName)
-				fmt.Println(green(msg))
+				fmt.Println(cmd.Green(msg))
 			}
 		}
 	}()
 
 	// subscribe to notifications
 	go func() {
-		yellow := color.New(color.FgHiYellow).SprintFunc()
 		for {
 			select {
 			case notification, ok := <-core.Node.Notifications():
@@ -452,7 +440,7 @@ func startNode(apiOpts ApiOptions, gatewayOpts GatewayOptions) error {
 					username = notification.ActorId
 				}
 				note := fmt.Sprintf("#%s: %s %s.", notification.Subject, username, notification.Body)
-				fmt.Println(yellow(note))
+				fmt.Println(cmd.Yellow(note))
 			}
 		}
 	}()
@@ -480,9 +468,6 @@ func stopNode() error {
 }
 
 func printSplashScreen(daemon bool) {
-	cyan := color.New(color.FgHiCyan).SprintFunc()
-	green := color.New(color.FgHiGreen).SprintFunc()
-	grey := color.New(color.FgHiBlack).SprintFunc()
 	pid, err := core.Node.PeerId()
 	if err != nil {
 		log.Fatalf("get peer id failed: %s", err)
@@ -492,20 +477,20 @@ func printSplashScreen(daemon bool) {
 		log.Fatalf("get account failed: %s", err)
 	}
 	if daemon {
-		fmt.Println(grey("Textile daemon version v" + core.Version))
+		fmt.Println(cmd.Grey("Textile daemon version v" + core.Version))
 	} else {
-		fmt.Println(grey("Textile shell version v" + core.Version))
+		fmt.Println(cmd.Grey("Textile shell version v" + core.Version))
 	}
-	fmt.Println(grey("repo:    ") + grey(core.Node.GetRepoPath()))
-	fmt.Println(grey("api:     ") + grey(core.Node.ApiAddr()))
-	fmt.Println(grey("gateway: ") + grey(gateway.Host.Addr()))
+	fmt.Println(cmd.Grey("repo:    ") + cmd.Grey(core.Node.GetRepoPath()))
+	fmt.Println(cmd.Grey("api:     ") + cmd.Grey(core.Node.ApiAddr()))
+	fmt.Println(cmd.Grey("gateway: ") + cmd.Grey(gateway.Host.Addr()))
 	if core.Node.CafeApiAddr() != "" {
-		fmt.Println(grey("cafe:    ") + grey(core.Node.CafeApiAddr()))
+		fmt.Println(cmd.Grey("cafe:    ") + cmd.Grey(core.Node.CafeApiAddr()))
 	}
-	fmt.Println(grey("peer:    ") + green(pid.Pretty()))
-	fmt.Println(grey("account: ") + cyan(accnt.Address()))
+	fmt.Println(cmd.Grey("peer:    ") + cmd.Green(pid.Pretty()))
+	fmt.Println(cmd.Grey("account: ") + cmd.Cyan(accnt.Address()))
 	if !daemon {
-		fmt.Println(grey("type 'help' for available commands"))
+		fmt.Println(cmd.Grey("type 'help' for available commands"))
 	}
 }
 
