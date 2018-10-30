@@ -66,7 +66,7 @@ func (t *Textile) ContactThreads(id string) []*Thread {
 	}
 	var threads []*Thread
 	for _, peer := range peers {
-		if _, thrd := t.GetThread(peer.ThreadId); thrd != nil {
+		if _, thrd := t.Thread(peer.ThreadId); thrd != nil {
 			threads = append(threads, thrd)
 		}
 	}

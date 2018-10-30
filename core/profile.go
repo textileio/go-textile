@@ -25,8 +25,8 @@ var profileLifetime = time.Hour * 24 * 7
 // profileTTL is the duration the ipns profile record will be locally cached
 var profileTTL = time.Hour
 
-// GetUsername returns profile username
-func (t *Textile) GetUsername() (*string, error) {
+// Username returns profile username
+func (t *Textile) Username() (*string, error) {
 	if err := t.touchDatastore(); err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (t *Textile) SetUsername(username string) error {
 		<-t.OnlineCh()
 
 		// publish
-		prof, err := t.GetProfile(t.ipfs.Identity)
+		prof, err := t.Profile(t.ipfs.Identity)
 		if err != nil {
 			log.Errorf("error getting profile (set username): %s", err)
 			return
@@ -61,8 +61,8 @@ func (t *Textile) SetUsername(username string) error {
 	return nil
 }
 
-// GetAvatar returns profile avatar
-func (t *Textile) GetAvatar() (*string, error) {
+// Avatar returns profile avatar
+func (t *Textile) Avatar() (*string, error) {
 	if err := t.touchDatastore(); err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (t *Textile) SetAvatar(id string) error {
 	}
 
 	// get the public key for this photo
-	key, err := t.GetPhotoKey(id)
+	key, err := t.PhotoKey(id)
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func (t *Textile) SetAvatar(id string) error {
 		<-t.OnlineCh()
 
 		// publish
-		prof, err := t.GetProfile(t.ipfs.Identity)
+		prof, err := t.Profile(t.ipfs.Identity)
 		if err != nil {
 			log.Errorf("error getting profile (set avatar): %s", err)
 			return
@@ -106,8 +106,8 @@ func (t *Textile) SetAvatar(id string) error {
 	return nil
 }
 
-// GetProfile return a model representation of an ipns profile
-func (t *Textile) GetProfile(pid peer.ID) (*Profile, error) {
+// Profile return a model representation of an ipns profile
+func (t *Textile) Profile(pid peer.ID) (*Profile, error) {
 	profile := &Profile{}
 
 	// if peer id is local, return profile from db
@@ -117,14 +117,14 @@ func (t *Textile) GetProfile(pid peer.ID) (*Profile, error) {
 			return nil, err
 		}
 		profile.Address = addr
-		username, err := t.GetUsername()
+		username, err := t.Username()
 		if err != nil {
 			return nil, err
 		}
 		if username != nil {
 			profile.Username = *username
 		}
-		avatar, err := t.GetAvatar()
+		avatar, err := t.Avatar()
 		if err != nil {
 			return nil, err
 		}
@@ -143,15 +143,15 @@ func (t *Textile) GetProfile(pid peer.ID) (*Profile, error) {
 
 	// get components from entry
 	var addrb, usernameb, avatarb []byte
-	addrb, _ = ipfs.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/%s", root, "address"))
+	addrb, _ = ipfs.DataAtPath(t.ipfs, fmt.Sprintf("%s/%s", root, "address"))
 	if addrb != nil {
 		profile.Address = string(addrb)
 	}
-	usernameb, _ = ipfs.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/%s", root, "username"))
+	usernameb, _ = ipfs.DataAtPath(t.ipfs, fmt.Sprintf("%s/%s", root, "username"))
 	if usernameb != nil {
 		profile.Username = string(usernameb)
 	}
-	avatarb, _ = ipfs.GetDataAtPath(t.ipfs, fmt.Sprintf("%s/%s", root, "avatar_uri"))
+	avatarb, _ = ipfs.DataAtPath(t.ipfs, fmt.Sprintf("%s/%s", root, "avatar_uri"))
 	if avatarb != nil {
 		profile.AvatarUri = string(avatarb)
 	}
@@ -167,7 +167,7 @@ func (t *Textile) PublishProfile(prof *Profile) (*ipfs.IpnsEntry, error) {
 	// if nil profile, use current
 	if prof == nil {
 		var err error
-		prof, err = t.GetProfile(t.ipfs.Identity)
+		prof, err = t.Profile(t.ipfs.Identity)
 		if err != nil {
 			return nil, err
 		}

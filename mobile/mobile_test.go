@@ -40,8 +40,8 @@ func TestNewWallet(t *testing.T) {
 	}
 }
 
-func TestGetWalletAccountAt(t *testing.T) {
-	res, err := GetWalletAccountAt(recovery, 0, "")
+func TestWalletAccountAt(t *testing.T) {
+	res, err := WalletAccountAt(recovery, 0, "")
 	if err != nil {
 		t.Errorf("get mobile wallet account at failed: %s", err)
 	}
@@ -105,8 +105,8 @@ func TestMobile_StartAgain(t *testing.T) {
 	}
 }
 
-func TestMobile_GetAddress(t *testing.T) {
-	id, err := mobile.GetAddress()
+func TestMobile_Address(t *testing.T) {
+	id, err := mobile.Address()
 	if err != nil {
 		t.Errorf("get address failed: %s", err)
 		return
@@ -116,8 +116,8 @@ func TestMobile_GetAddress(t *testing.T) {
 	}
 }
 
-func TestMobile_GetSeed(t *testing.T) {
-	id, err := mobile.GetSeed()
+func TestMobile_Seed(t *testing.T) {
+	id, err := mobile.Seed()
 	if err != nil {
 		t.Errorf("get seed failed: %s", err)
 		return
@@ -250,7 +250,7 @@ func TestMobile_IgnorePhoto(t *testing.T) {
 		t.Errorf("ignore photo failed: %s", err)
 		return
 	}
-	res, err := mobile.GetPhotos("", -1, threadId2)
+	res, err := mobile.Photos("", -1, threadId2)
 	if err != nil {
 		t.Errorf("get photos failed: %s", err)
 		return
@@ -277,8 +277,8 @@ func TestMobile_AddPhotoLike(t *testing.T) {
 	}
 }
 
-func TestMobile_GetPhotos(t *testing.T) {
-	res, err := mobile.GetPhotos("", -1, threadId)
+func TestMobile_Photos(t *testing.T) {
+	res, err := mobile.Photos("", -1, threadId)
 	if err != nil {
 		t.Errorf("get photos failed: %s", err)
 		return
@@ -299,8 +299,8 @@ func TestMobile_GetPhotos(t *testing.T) {
 	}
 }
 
-func TestMobile_GetPhotosBadThread(t *testing.T) {
-	if _, err := mobile.GetPhotos("", -1, "empty"); err == nil {
+func TestMobile_PhotosBadThread(t *testing.T) {
+	if _, err := mobile.Photos("", -1, "empty"); err == nil {
 		t.Errorf("get photo blocks from bad thread should fail: %s", err)
 	}
 }
@@ -321,8 +321,8 @@ func TestMobile_PhotoThreads(t *testing.T) {
 	}
 }
 
-func TestMobile_GetPhotoData(t *testing.T) {
-	res, err := mobile.GetPhotoData(addedPhotoId, "thumb")
+func TestMobile_PhotoData(t *testing.T) {
+	res, err := mobile.PhotoData(addedPhotoId, "thumb")
 	if err != nil {
 		t.Errorf("get photo data failed: %s", err)
 		return
@@ -332,9 +332,9 @@ func TestMobile_GetPhotoData(t *testing.T) {
 	}
 }
 
-func TestMobile_GetPhotoDataForMinWidth(t *testing.T) {
+func TestMobile_PhotoDataForMinWidth(t *testing.T) {
 	// test photo
-	res, err := mobile.GetPhotoDataForMinWidth(addedPhotoId, 2000)
+	res, err := mobile.PhotoDataForMinWidth(addedPhotoId, 2000)
 	if err != nil {
 		t.Errorf("get photo data for min width failed: %s", err)
 		return
@@ -353,7 +353,7 @@ func TestMobile_GetPhotoDataForMinWidth(t *testing.T) {
 	}
 
 	// test medium
-	res, err = mobile.GetPhotoDataForMinWidth(addedPhotoId, 600)
+	res, err = mobile.PhotoDataForMinWidth(addedPhotoId, 600)
 	if err != nil {
 		t.Errorf("get photo data for min width failed: %s", err)
 		return
@@ -372,7 +372,7 @@ func TestMobile_GetPhotoDataForMinWidth(t *testing.T) {
 	}
 
 	// test small
-	res, err = mobile.GetPhotoDataForMinWidth(addedPhotoId, 320)
+	res, err = mobile.PhotoDataForMinWidth(addedPhotoId, 320)
 	if err != nil {
 		t.Errorf("get photo data for min width failed: %s", err)
 		return
@@ -391,7 +391,7 @@ func TestMobile_GetPhotoDataForMinWidth(t *testing.T) {
 	}
 
 	// test photo
-	res, err = mobile.GetPhotoDataForMinWidth(addedPhotoId, 80)
+	res, err = mobile.PhotoDataForMinWidth(addedPhotoId, 80)
 	if err != nil {
 		t.Errorf("get photo data for min width failed: %s", err)
 		return
@@ -410,8 +410,8 @@ func TestMobile_GetPhotoDataForMinWidth(t *testing.T) {
 	}
 }
 
-func TestMobile_GetPhotoMetadata(t *testing.T) {
-	res, err := mobile.GetPhotoMetadata(addedPhotoId)
+func TestMobile_PhotoMetadata(t *testing.T) {
+	res, err := mobile.PhotoMetadata(addedPhotoId)
 	if err != nil {
 		t.Errorf("get meta data failed: %s", err)
 		return
@@ -421,8 +421,8 @@ func TestMobile_GetPhotoMetadata(t *testing.T) {
 	}
 }
 
-func TestMobile_GetPhotoKey(t *testing.T) {
-	res, err := mobile.GetPhotoKey(addedPhotoId)
+func TestMobile_PhotoKey(t *testing.T) {
+	res, err := mobile.PhotoKey(addedPhotoId)
 	if err != nil {
 		t.Errorf("get key failed: %s", err)
 		return
@@ -439,8 +439,8 @@ func TestMobile_SetAvatar(t *testing.T) {
 	}
 }
 
-func TestMobile_GetProfile(t *testing.T) {
-	profs, err := mobile.GetProfile()
+func TestMobile_Profile(t *testing.T) {
+	profs, err := mobile.Profile()
 	if err != nil {
 		t.Errorf("get profile failed: %s", err)
 		return
@@ -465,8 +465,8 @@ func TestMobile_Overview(t *testing.T) {
 	}
 }
 
-//func TestMobile_GetNotifications(t *testing.T) {
-//	res, err := mobile.GetNotifications("", -1)
+//func TestMobile_Notifications(t *testing.T) {
+//	res, err := mobile.Notifications("", -1)
 //	if err != nil {
 //		t.Error(err)
 //		return

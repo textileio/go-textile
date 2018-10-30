@@ -393,7 +393,7 @@ func startNode(apiOpts apiOptions, gatewayOpts gatewayOptions) error {
 	go func() {
 		for {
 			select {
-			case update, ok := <-core.Node.Updates():
+			case update, ok := <-core.Node.UpdateCh():
 				if !ok {
 					return
 				}
@@ -415,7 +415,7 @@ func startNode(apiOpts apiOptions, gatewayOpts gatewayOptions) error {
 	go func() {
 		for {
 			select {
-			case update, ok := <-core.Node.ThreadUpdates():
+			case update, ok := <-core.Node.ThreadUpdateCh():
 				if !ok {
 					return
 				}
@@ -429,7 +429,7 @@ func startNode(apiOpts apiOptions, gatewayOpts gatewayOptions) error {
 	go func() {
 		for {
 			select {
-			case notification, ok := <-core.Node.Notifications():
+			case notification, ok := <-core.Node.NotificationCh():
 				if !ok {
 					return
 				}
@@ -481,7 +481,7 @@ func printSplashScreen(daemon bool) {
 	} else {
 		fmt.Println(cmd.Grey("Textile shell version v" + core.Version))
 	}
-	fmt.Println(cmd.Grey("repo:    ") + cmd.Grey(core.Node.GetRepoPath()))
+	fmt.Println(cmd.Grey("repo:    ") + cmd.Grey(core.Node.RepoPath()))
 	fmt.Println(cmd.Grey("api:     ") + cmd.Grey(core.Node.ApiAddr()))
 	fmt.Println(cmd.Grey("gateway: ") + cmd.Grey(gateway.Host.Addr()))
 	if core.Node.CafeApiAddr() != "" {

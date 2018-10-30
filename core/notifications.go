@@ -7,8 +7,8 @@ import (
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 )
 
-// GetNotifications lists notifications
-func (t *Textile) GetNotifications(offset string, limit int) []repo.Notification {
+// Notifications lists notifications
+func (t *Textile) Notifications(offset string, limit int) []repo.Notification {
 	return t.datastore.Notifications().List(offset, limit)
 }
 

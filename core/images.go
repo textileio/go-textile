@@ -189,16 +189,16 @@ func (t *Textile) PhotoThreads(id string) []*Thread {
 	}
 	var threads []*Thread
 	for _, block := range blocks {
-		if _, thrd := t.GetThread(block.ThreadId); thrd != nil {
+		if _, thrd := t.Thread(block.ThreadId); thrd != nil {
 			threads = append(threads, thrd)
 		}
 	}
 	return threads
 }
 
-// GetPhotoKey returns the AES key for a photo set
-func (t *Textile) GetPhotoKey(id string) ([]byte, error) {
-	block, err := t.GetBlockByDataId(id)
+// PhotoKey returns the AES key for a photo set
+func (t *Textile) PhotoKey(id string) ([]byte, error) {
+	block, err := t.BlockByDataId(id)
 	if err != nil {
 		return nil, err
 	}

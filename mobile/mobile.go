@@ -48,8 +48,8 @@ type WalletAccount struct {
 	Address string
 }
 
-// GetWalletAccountAt derives the account at the given index
-func GetWalletAccountAt(phrase string, index int, password string) (string, error) {
+// WalletAccountAt derives the account at the given index
+func WalletAccountAt(phrase string, index int, password string) (string, error) {
 	w := wallet.NewWalletFromRecoveryPhrase(phrase)
 	accnt, err := w.AccountAt(index, password)
 	if err != nil {
@@ -169,7 +169,7 @@ func (m *Mobile) Start() error {
 		go func() {
 			for {
 				select {
-				case update, ok := <-core.Node.Updates():
+				case update, ok := <-core.Node.UpdateCh():
 					if !ok {
 						return
 					}
@@ -197,7 +197,7 @@ func (m *Mobile) Start() error {
 		go func() {
 			for {
 				select {
-				case update, ok := <-core.Node.ThreadUpdates():
+				case update, ok := <-core.Node.ThreadUpdateCh():
 					if !ok {
 						return
 					}
@@ -213,7 +213,7 @@ func (m *Mobile) Start() error {
 		go func() {
 			for {
 				select {
-				case notification, ok := <-core.Node.Notifications():
+				case notification, ok := <-core.Node.NotificationCh():
 					if !ok {
 						return
 					}

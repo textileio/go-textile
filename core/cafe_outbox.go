@@ -266,7 +266,7 @@ func (q *CafeOutbox) prepForInbox(pid peer.ID, env *pb.Envelope) (mh.Multihash, 
 //	// load local content
 //	cType := "application/octet-stream"
 //	var reader io.Reader
-//	data, err := ipfsutil.GetDataAtPath(node, id)
+//	data, err := ipfsutil.DataAtPath(node, id)
 //	if err != nil {
 //		if err == iface.ErrIsDir {
 //			reader, err = ipfsutil.GetArchiveAtPath(node, id)

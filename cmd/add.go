@@ -217,7 +217,7 @@ func sharePhoto(c *ishell.Context) {
 	}
 
 	// lookup destination thread
-	_, toThread := core.Node.GetThread(threadId)
+	_, toThread := core.Node.Thread(threadId)
 	if toThread == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", threadId)))
 		return
@@ -238,14 +238,14 @@ func listPhotos(c *ishell.Context) {
 	}
 	threadId := c.Args[0]
 
-	_, thrd := core.Node.GetThread(threadId)
+	_, thrd := core.Node.Thread(threadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadId)))
 		return
 	}
 
-	btype := repo.PhotoBlock
-	blocks := thrd.Blocks("", -1, &btype, nil)
+	query := fmt.Sprintf("threadId='%s' and type=%d", thrd.Id, repo.PhotoBlock)
+	blocks := core.Node.Blocks("", -1, query)
 	if len(blocks) == 0 {
 		c.Println(fmt.Sprintf("no photos found in: %s", thrd.Id))
 	} else {
@@ -281,7 +281,7 @@ func getPhoto(c *ishell.Context) {
 		return
 	}
 
-	data, err := core.Node.GetBlockData(fmt.Sprintf("%s/photo", id), block)
+	data, err := core.Node.BlockData(fmt.Sprintf("%s/photo", id), block)
 	if err != nil {
 		c.Err(err)
 		return
@@ -346,12 +346,12 @@ func addPhotoComment(c *ishell.Context) {
 	c.Print("comment: ")
 	body := c.ReadLine()
 
-	block, err := core.Node.GetBlock(id)
+	block, err := core.Node.Block(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	_, thrd := core.Node.GetThread(block.ThreadId)
+	_, thrd := core.Node.Thread(block.ThreadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
 		return
@@ -370,12 +370,12 @@ func addPhotoLike(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	block, err := core.Node.GetBlock(id)
+	block, err := core.Node.Block(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	_, thrd := core.Node.GetThread(block.ThreadId)
+	_, thrd := core.Node.Thread(block.ThreadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
 		return
@@ -394,19 +394,19 @@ func listPhotoComments(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	block, err := core.Node.GetBlock(id)
+	block, err := core.Node.Block(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	_, thrd := core.Node.GetThread(block.ThreadId)
+	_, thrd := core.Node.Thread(block.ThreadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
 		return
 	}
 
-	btype := repo.CommentBlock
-	blocks := thrd.Blocks("", -1, &btype, &block.Id)
+	query := fmt.Sprintf("threadId='%s' and type=%d", thrd.Id, repo.CommentBlock)
+	blocks := core.Node.Blocks("", -1, query)
 	if len(blocks) == 0 {
 		c.Println(fmt.Sprintf("no comments found on: %s", block.Id))
 	} else {
@@ -426,19 +426,19 @@ func listPhotoLikes(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	block, err := core.Node.GetBlock(id)
+	block, err := core.Node.Block(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	_, thrd := core.Node.GetThread(block.ThreadId)
+	_, thrd := core.Node.Thread(block.ThreadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
 		return
 	}
 
-	btype := repo.LikeBlock
-	blocks := thrd.Blocks("", -1, &btype, &block.Id)
+	query := fmt.Sprintf("threadId='%s' and type=%d", thrd.Id, repo.LikeBlock)
+	blocks := core.Node.Blocks("", -1, query)
 	if len(blocks) == 0 {
 		c.Println(fmt.Sprintf("no likes found on: %s", block.Id))
 	} else {
@@ -452,7 +452,7 @@ func listPhotoLikes(c *ishell.Context) {
 }
 
 func getPhotoBlockByDataId(dataId string) (*repo.Block, error) {
-	block, err := core.Node.GetBlockByDataId(dataId)
+	block, err := core.Node.BlockByDataId(dataId)
 	if err != nil {
 		return nil, err
 	}

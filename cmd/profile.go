@@ -71,7 +71,7 @@ func getProfile(c *ishell.Context) {
 		}
 	}
 
-	prof, err := core.Node.GetProfile(pid)
+	prof, err := core.Node.Profile(pid)
 	if err != nil {
 		c.Err(err)
 		return
