@@ -31,8 +31,9 @@ type ThreadInfo struct {
 	Id         string      `json:"id"`
 	Name       string      `json:"name"`
 	Head       *repo.Block `json:"head,omitempty"`
-	BlockCount int         `json:"block_count"`
-	FileCount  int         `json:"file_count"`
+	PeerCount  int         `json:"peer_cnt"`
+	BlockCount int         `json:"block_cnt"`
+	FileCount  int         `json:"file_cnt"`
 }
 
 // ThreadConfig is used to construct a Thread
@@ -100,6 +101,7 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 		Id:         t.Id,
 		Name:       t.Name,
 		Head:       head,
+		PeerCount:  len(t.Peers()) + 1,
 		BlockCount: blocks,
 		FileCount:  files,
 	}, nil
