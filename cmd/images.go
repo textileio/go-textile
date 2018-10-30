@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,7 +11,6 @@ import (
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
 	"gopkg.in/abiosoft/ishell.v2"
-	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -21,51 +19,56 @@ import (
 )
 
 func init() {
-	register(&addCmd{})
+	register(&imagesCmd{})
 }
 
-type addCmd struct {
-	Image  addImageCmd  `command:"image"`
-	Thread addThreadCmd `command:"thread"`
+type imagesCmd struct {
+	Add addImagesCmd `command:"add"`
+	//List   lsImagesCmd  `command:"ls"`
+	//Get    getImagesCmd `command:"get"`
+	//Delete delImagesCmd `command:"del"`
 }
 
-func (x *addCmd) Name() string {
-	return "add"
+func (x *imagesCmd) Name() string {
+	return "images"
 }
 
-func (x *addCmd) Short() string {
-	return "Add images and threads"
+func (x *imagesCmd) Short() string {
+	return "Manage images"
 }
 
-func (x *addCmd) Long() string {
-	return "Add is a subcommand for adding images and threads to the wallet account."
+func (x *imagesCmd) Long() string {
+	return "Add, ls, get, and del images."
 }
 
-func (x *addCmd) Shell() *ishell.Cmd {
+func (x *imagesCmd) Shell() *ishell.Cmd {
 	cmd := &ishell.Cmd{
 		Name:     x.Name(),
 		Help:     x.Short(),
 		LongHelp: x.Long(),
 	}
-	cmd.AddCmd((&addImageCmd{}).Shell())
+	cmd.AddCmd((&addImagesCmd{}).Shell())
+	//cmd.AddCmd((&lsImagesCmd{}).Shell())
+	//cmd.AddCmd((&getImagesCmd{}).Shell())
+	//cmd.AddCmd((&delImagesCmd{}).Shell())
 	return cmd
 }
 
-type addImageCmd struct{}
+type addImagesCmd struct{}
 
-func (x *addImageCmd) Name() string {
-	return "image"
+func (x *addImagesCmd) Name() string {
+	return "add"
 }
 
-func (x *addImageCmd) Short() string {
+func (x *addImagesCmd) Short() string {
 	return "Add an image"
 }
 
-func (x *addImageCmd) Long() string {
+func (x *addImagesCmd) Long() string {
 	return "Encodes, encrypts, and adds an image to the wallet account."
 }
 
-func (x *addImageCmd) Execute(args []string) error {
+func (x *addImagesCmd) Execute(args []string) error {
 	if len(args) == 0 {
 		return errors.New("missing image path")
 	}
@@ -95,7 +98,7 @@ func (x *addImageCmd) Execute(args []string) error {
 	var added *struct {
 		Items []core.AddDataResult `json:"items"`
 	}
-	if err := executeJsonCmd(POST, "add/"+x.Name(), params{
+	if err := executeJsonCmd(POST, "images/"+x.Name(), params{
 		args:    args,
 		payload: &body,
 		ctype:   writer.FormDataContentType(),
@@ -110,7 +113,7 @@ func (x *addImageCmd) Execute(args []string) error {
 	return nil
 }
 
-func (x *addImageCmd) Shell() *ishell.Cmd {
+func (x *addImagesCmd) Shell() *ishell.Cmd {
 	return &ishell.Cmd{
 		Name:     x.Name(),
 		Help:     x.Short(),
@@ -120,72 +123,17 @@ func (x *addImageCmd) Shell() *ishell.Cmd {
 				c.Err(errors.New("missing image path"))
 				return
 			}
-
 			path, err := homedir.Expand(c.Args[0])
 			if err != nil {
 				path = c.Args[0]
 			}
-
 			added, err := core.Node.AddImageByPath(path)
 			if err != nil {
 				c.Err(err)
 				return
 			}
-
 			c.Println(Grey("id:  ") + Green(added.Id))
 			c.Println(Grey("key: ") + Green(added.Key))
-		},
-	}
-}
-
-type addThreadCmd struct{}
-
-func (x *addThreadCmd) Name() string {
-	return "thread"
-}
-
-func (x *addThreadCmd) Short() string {
-	return "Add a new thread"
-}
-
-func (x *addThreadCmd) Long() string {
-	return "Adds a new thread for tracking a set of files between peers."
-}
-
-func (x *addThreadCmd) Execute(args []string) error {
-	res, err := executeStringCmd(POST, "add/"+x.Name(), params{args: args})
-	if err != nil {
-		return err
-	}
-	fmt.Println(res)
-	return nil
-}
-
-func (x *addThreadCmd) Shell() *ishell.Cmd {
-	return &ishell.Cmd{
-		Name:     x.Name(),
-		Help:     x.Short(),
-		LongHelp: x.Long(),
-		Func: func(c *ishell.Context) {
-			if len(c.Args) == 0 {
-				c.Err(errors.New("missing thread name"))
-				return
-			}
-			name := c.Args[0]
-
-			sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
-			if err != nil {
-				c.Err(err)
-				return
-			}
-
-			thrd, err := core.Node.AddThread(name, sk, true)
-			if err != nil {
-				c.Err(err)
-				return
-			}
-
-			c.Println(Grey("id:  ") + Cyan(thrd.Id))
 		},
 	}
 }

@@ -41,10 +41,10 @@ type Block struct {
 	AuthorId string    `json:"author_id"`
 	Type     BlockType `json:"type"`
 
-	DataId       string           `json:"data_id"`
-	DataKey      []byte           `json:"data_key"`
-	DataCaption  string           `json:"data_caption"`
-	DataMetadata *images.Metadata `json:"data_metadata"`
+	DataId       string           `json:"data_id,omitempty"`
+	DataKey      []byte           `json:"data_key,omitempty"`
+	DataCaption  string           `json:"data_caption,omitempty"`
+	DataMetadata *images.Metadata `json:"data_metadata,omitempty"`
 }
 
 type DataBlockConfig struct {

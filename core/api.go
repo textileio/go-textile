@@ -65,8 +65,12 @@ func (a *api) Start() {
 		v0.GET("/address", a.address)
 		v0.GET("/ping", a.ping)
 
-		v0.POST("/add/image", a.addImage)
-		v0.POST("/add/thread", a.addThread)
+		v0.POST("/threads/add", a.addThread)
+		v0.GET("/threads", a.getThreads)
+		v0.GET("/threads/:id", a.getThread)
+		//v0.DELETE("/threads/:id", a.delThread)
+
+		v0.POST("/images/add", a.addImage)
 	}
 	a.server = &http.Server{
 		Addr:    a.addr,
@@ -107,7 +111,7 @@ func (a *api) Stop() error {
 	return nil
 }
 
-// -- COMMANDS -- //
+// -- INFO -- //
 
 func (a *api) peer(g *gin.Context) {
 	pid, err := a.node.PeerId()
@@ -126,6 +130,8 @@ func (a *api) address(g *gin.Context) {
 	}
 	g.String(http.StatusOK, addr)
 }
+
+// -- NETWORK -- //
 
 func (a *api) ping(g *gin.Context) {
 	args, err := a.readArgs(g)
@@ -149,6 +155,8 @@ func (a *api) ping(g *gin.Context) {
 	}
 	g.String(http.StatusOK, string(status))
 }
+
+// -- IMAGES -- //
 
 func (a *api) addImage(g *gin.Context) {
 	form, err := g.MultipartForm()
@@ -175,6 +183,8 @@ func (a *api) addImage(g *gin.Context) {
 	g.JSON(http.StatusCreated, gin.H{"items": adds})
 }
 
+// -- THREADS -- //
+
 func (a *api) addThread(g *gin.Context) {
 	args, err := a.readArgs(g)
 	if err != nil {
@@ -196,6 +206,42 @@ func (a *api) addThread(g *gin.Context) {
 		return
 	}
 	g.String(http.StatusCreated, thrd.Id)
+}
+
+func (a *api) getThreads(g *gin.Context) {
+	var infos []*ThreadInfo
+	for _, thrd := range a.node.Threads() {
+		info, err := thrd.Info()
+		if err != nil {
+			a.abort500(g, err)
+			return
+		}
+		infos = append(infos, info)
+	}
+	g.JSON(http.StatusOK, gin.H{"items": infos})
+}
+
+func (a *api) getThread(g *gin.Context) {
+	args, err := a.readArgs(g)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+	if len(args) == 0 {
+		g.String(http.StatusBadRequest, "missing thread id")
+		return
+	}
+	_, thrd := a.node.Thread(args[0])
+	if thrd == nil {
+		g.String(http.StatusNotFound, "thread not found")
+		return
+	}
+	info, err := thrd.Info()
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+	g.JSON(http.StatusOK, info)
 }
 
 // -- HELPERS -- //

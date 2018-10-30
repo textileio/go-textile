@@ -217,29 +217,14 @@ func RunShell(startNode func() error, stopNode func() error) {
 			LongHelp: "Add, remove, list, invite to, and get info about textile threads.",
 		}
 		threadCmd.AddCmd(&ishell.Cmd{
-			Name: "add",
-			Help: "add a new thread",
-			Func: addThread,
-		})
-		threadCmd.AddCmd(&ishell.Cmd{
 			Name: "rm",
 			Help: "remove a thread by name",
 			Func: removeThread,
 		})
 		threadCmd.AddCmd(&ishell.Cmd{
-			Name: "ls",
-			Help: "list threads",
-			Func: listThreads,
-		})
-		threadCmd.AddCmd(&ishell.Cmd{
 			Name: "blocks",
 			Help: "list blocks",
 			Func: listThreadBlocks,
-		})
-		threadCmd.AddCmd(&ishell.Cmd{
-			Name: "head",
-			Help: "show current HEAD",
-			Func: getThreadHead,
 		})
 		threadCmd.AddCmd(&ishell.Cmd{
 			Name: "ignore",
