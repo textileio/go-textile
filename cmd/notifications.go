@@ -9,7 +9,7 @@ import (
 )
 
 func listNotifications(c *ishell.Context) {
-	notifs := core.Node.GetNotifications("", -1)
+	notifs := core.Node.Notifications("", -1)
 	unread := core.Node.CountUnreadNotifications()
 	if len(notifs) == 0 {
 		c.Println("no notifications found")

@@ -95,13 +95,13 @@ func gatewayHandler(c *gin.Context) {
 	// NOTE: this only works for the local node, but very useful for desktop
 	blockId, exists := c.GetQuery("block")
 	if exists {
-		block, err := core.Node.GetBlock(blockId)
+		block, err := core.Node.Block(blockId)
 		if err != nil {
 			log.Errorf("error finding block %s: %s", blockId, err)
 			c.Status(404)
 			return
 		}
-		data, err := core.Node.GetBlockData(contentPath, block)
+		data, err := core.Node.BlockData(contentPath, block)
 		if err != nil {
 			log.Errorf("error decrypting path %s: %s", contentPath, err)
 			c.Status(404)
@@ -187,7 +187,7 @@ func profileHandler(c *gin.Context) {
 			c.Status(404)
 			return
 		}
-		cipher, err := core.Node.GetDataAtPath(parsed[0])
+		cipher, err := core.Node.DataAtPath(parsed[0])
 		if err != nil {
 			log.Errorf("error getting raw avatar path %s: %s", parsed[0], err)
 			c.Status(404)
@@ -215,10 +215,10 @@ func profileHandler(c *gin.Context) {
 
 // getDataAtPath get raw data or directory links at path
 func getDataAtPath(c *gin.Context, pth string) []byte {
-	data, err := core.Node.GetDataAtPath(pth)
+	data, err := core.Node.DataAtPath(pth)
 	if err != nil {
 		if err == iface.ErrIsDir {
-			links, err := core.Node.GetLinksAtPath(pth)
+			links, err := core.Node.LinksAtPath(pth)
 			if err != nil {
 				log.Errorf("error getting raw path %s: %s", pth, err)
 				c.Status(404)

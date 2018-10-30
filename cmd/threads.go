@@ -55,7 +55,7 @@ func listThreadPeers(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	_, thrd := core.Node.GetThread(id)
+	_, thrd := core.Node.Thread(id)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", id)))
 		return
@@ -81,13 +81,13 @@ func listThreadBlocks(c *ishell.Context) {
 	}
 	threadId := c.Args[0]
 
-	_, thrd := core.Node.GetThread(threadId)
+	_, thrd := core.Node.Thread(threadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadId)))
 		return
 	}
 
-	blocks := thrd.Blocks("", -1, nil, nil)
+	blocks := core.Node.Blocks("", -1, "threadId='"+thrd.Id+"'")
 	if len(blocks) == 0 {
 		c.Println(fmt.Sprintf("no blocks found in: %s", threadId))
 	} else {
@@ -107,7 +107,7 @@ func getThreadHead(c *ishell.Context) {
 	}
 	threadId := c.Args[0]
 
-	_, thrd := core.Node.GetThread(threadId)
+	_, thrd := core.Node.Thread(threadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadId)))
 		return
@@ -130,12 +130,12 @@ func ignoreBlock(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	block, err := core.Node.GetBlock(id)
+	block, err := core.Node.Block(id)
 	if err != nil {
 		c.Err(err)
 		return
 	}
-	_, thrd := core.Node.GetThread(block.ThreadId)
+	_, thrd := core.Node.Thread(block.ThreadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
 		return
@@ -159,7 +159,7 @@ func addThreadInvite(c *ishell.Context) {
 	}
 	threadId := c.Args[1]
 
-	_, thrd := core.Node.GetThread(threadId)
+	_, thrd := core.Node.Thread(threadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadId)))
 		return
@@ -203,7 +203,7 @@ func addExternalThreadInvite(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	_, thrd := core.Node.GetThread(id)
+	_, thrd := core.Node.Thread(id)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", id)))
 		return

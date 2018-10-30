@@ -151,7 +151,7 @@ func (q *CafeInbox) handle(msg *repo.CafeMessage) error {
 	}
 
 	// download the actual message
-	ciphertext, err := ipfs.GetDataAtPath(q.node(), msg.Id)
+	ciphertext, err := ipfs.DataAtPath(q.node(), msg.Id)
 	if err != nil {
 		return err
 	}

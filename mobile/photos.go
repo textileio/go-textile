@@ -64,7 +64,7 @@ func (m *Mobile) AddPhoto(path string) (string, error) {
 
 // SharePhoto adds an existing photo to a new thread
 func (m *Mobile) AddPhotoToThread(dataId string, key string, threadId string, caption string) (string, error) {
-	_, thrd := core.Node.GetThread(threadId)
+	_, thrd := core.Node.Thread(threadId)
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread %s", threadId))
 	}
@@ -81,14 +81,14 @@ func (m *Mobile) AddPhotoToThread(dataId string, key string, threadId string, ca
 
 // SharePhoto adds an existing photo to a new thread
 func (m *Mobile) SharePhotoToThread(dataId string, threadId string, caption string) (string, error) {
-	block, err := core.Node.GetBlockByDataId(dataId)
+	block, err := core.Node.BlockByDataId(dataId)
 	if err != nil {
 		return "", err
 	}
 	if block == nil {
 		return "", errors.New(fmt.Sprintf("could not find block with data id: %s", dataId))
 	}
-	_, toThread := core.Node.GetThread(threadId)
+	_, toThread := core.Node.Thread(threadId)
 	if toThread == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread %s", threadId))
 	}
@@ -100,17 +100,21 @@ func (m *Mobile) SharePhotoToThread(dataId string, threadId string, caption stri
 	return hash.B58String(), nil
 }
 
-// GetPhotos returns thread photo blocks with json encoding
-func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string, error) {
-	_, thrd := core.Node.GetThread(threadId)
-	if thrd == nil {
-		return "", errors.New(fmt.Sprintf("thread not found: %s", threadId))
+// Photos returns thread photo blocks with json encoding
+func (m *Mobile) Photos(offset string, limit int, threadId string) (string, error) {
+	var pre, query string
+	if threadId != "" {
+		_, thrd := core.Node.Thread(threadId)
+		if thrd == nil {
+			return "", errors.New(fmt.Sprintf("thread not found: %s", threadId))
+		}
+		pre = fmt.Sprintf("threadId='%s' and ", threadId)
 	}
+	query = fmt.Sprintf("%stype=%d", pre, repo.PhotoBlock)
 
 	// build json
 	photos := &Photos{Items: make([]Photo, 0)}
-	btype := repo.PhotoBlock
-	for _, b := range thrd.Blocks(offsetId, limit, &btype, nil) {
+	for _, b := range core.Node.Blocks(offset, limit, query) {
 		item := Photo{
 			Id:       b.DataId,
 			BlockId:  b.Id,
@@ -122,9 +126,9 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 		}
 
 		// add comments
+		cquery := fmt.Sprintf("%stype=%d and dataId='%s'", pre, repo.CommentBlock, b.Id)
 		item.Comments = make([]Comment, 0)
-		ctype := repo.CommentBlock
-		for _, c := range thrd.Blocks("", -1, &ctype, &b.Id) {
+		for _, c := range core.Node.Blocks("", -1, cquery) {
 			comment := Comment{
 				Annotation: Annotation{
 					Id:       c.Id,
@@ -138,9 +142,9 @@ func (m *Mobile) GetPhotos(offsetId string, limit int, threadId string) (string,
 		}
 
 		// add likes
+		lquery := fmt.Sprintf("%stype=%d and dataId='%s'", pre, repo.LikeBlock, b.Id)
 		item.Likes = make([]Like, 0)
-		ltype := repo.LikeBlock
-		for _, l := range thrd.Blocks("", -1, &ltype, &b.Id) {
+		for _, l := range core.Node.Blocks("", -1, lquery) {
 			like := Like{
 				Annotation: Annotation{
 					Id:       l.Id,
@@ -165,11 +169,11 @@ func (m *Mobile) IgnorePhoto(blockId string) (string, error) {
 
 // AddPhotoComment adds an comment block targeted at the given block
 func (m *Mobile) AddPhotoComment(blockId string, body string) (string, error) {
-	block, err := core.Node.GetBlock(blockId)
+	block, err := core.Node.Block(blockId)
 	if err != nil {
 		return "", err
 	}
-	_, thrd := core.Node.GetThread(block.ThreadId)
+	_, thrd := core.Node.Thread(block.ThreadId)
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
 	}
@@ -187,11 +191,11 @@ func (m *Mobile) IgnorePhotoComment(blockId string) (string, error) {
 
 // AddPhotoLike adds a like block targeted at the given block
 func (m *Mobile) AddPhotoLike(blockId string) (string, error) {
-	block, err := core.Node.GetBlock(blockId)
+	block, err := core.Node.Block(blockId)
 	if err != nil {
 		return "", err
 	}
-	_, thrd := core.Node.GetThread(block.ThreadId)
+	_, thrd := core.Node.Thread(block.ThreadId)
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
 	}
@@ -207,9 +211,9 @@ func (m *Mobile) IgnorePhotoLike(blockId string) (string, error) {
 	return m.ignoreBlock(blockId)
 }
 
-// GetPhotoData returns a data url of an image under a path
-func (m *Mobile) GetPhotoData(id string, path string) (string, error) {
-	block, err := core.Node.GetBlockByDataId(id)
+// PhotoData returns a data url of an image under a path
+func (m *Mobile) PhotoData(id string, path string) (string, error) {
+	block, err := core.Node.BlockByDataId(id)
 	if err != nil {
 		log.Errorf("could not find block for data id %s: %s", id, err)
 		return "", err
@@ -219,7 +223,7 @@ func (m *Mobile) GetPhotoData(id string, path string) (string, error) {
 		log.Error(err.Error())
 		return "", err
 	}
-	data, err := core.Node.GetBlockData(fmt.Sprintf("%s/%s", id, path), block)
+	data, err := core.Node.BlockData(fmt.Sprintf("%s/%s", id, path), block)
 	if err != nil {
 		log.Errorf("get block data failed %s: %s", id, err)
 		return "", err
@@ -231,15 +235,15 @@ func (m *Mobile) GetPhotoData(id string, path string) (string, error) {
 	return toJSON(img)
 }
 
-// GetPhotoDataForSize returns a data url of an image at or above requested size, or the next best option
-func (m *Mobile) GetPhotoDataForMinWidth(id string, minWidth int) (string, error) {
+// PhotoDataForSize returns a data url of an image at or above requested size, or the next best option
+func (m *Mobile) PhotoDataForMinWidth(id string, minWidth int) (string, error) {
 	path := images.ImagePathForSize(images.ImageSizeForMinWidth(minWidth))
-	return m.GetPhotoData(id, string(path))
+	return m.PhotoData(id, string(path))
 }
 
-// GetPhotoMetadata returns a meta data object for a photo
-func (m *Mobile) GetPhotoMetadata(id string) (string, error) {
-	block, err := core.Node.GetBlockByDataId(id)
+// PhotoMetadata returns a meta data object for a photo
+func (m *Mobile) PhotoMetadata(id string) (string, error) {
+	block, err := core.Node.BlockByDataId(id)
 	if err != nil {
 		log.Errorf("could not find block for data id %s: %s", id, err)
 		return "", err
@@ -252,9 +256,9 @@ func (m *Mobile) GetPhotoMetadata(id string) (string, error) {
 	return toJSON(block.DataMetadata)
 }
 
-// GetPhotoKey calls core GetPhotoKey
-func (m *Mobile) GetPhotoKey(id string) (string, error) {
-	key, err := core.Node.GetPhotoKey(id)
+// PhotoKey calls core PhotoKey
+func (m *Mobile) PhotoKey(id string) (string, error) {
+	key, err := core.Node.PhotoKey(id)
 	if err != nil {
 		return "", err
 	}
@@ -274,11 +278,11 @@ func (m *Mobile) PhotoThreads(id string) (string, error) {
 
 // ignoreBlock adds an ignore block targeted at the given block and unpins any associated block data
 func (m *Mobile) ignoreBlock(blockId string) (string, error) {
-	block, err := core.Node.GetBlock(blockId)
+	block, err := core.Node.Block(blockId)
 	if err != nil {
 		return "", err
 	}
-	_, thrd := core.Node.GetThread(block.ThreadId)
+	_, thrd := core.Node.Thread(block.ThreadId)
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
 	}

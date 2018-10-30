@@ -345,7 +345,7 @@ func (t *Textile) Start() error {
 			accnt,
 			t.ipfs,
 			t.datastore,
-			t.GetThread,
+			t.Thread,
 			t.sendNotification,
 		)
 
@@ -479,18 +479,18 @@ func (t *Textile) Ping(pid peer.ID) (service.PeerStatus, error) {
 	return t.cafeService.Ping(pid)
 }
 
-// Update returns the node update channel
-func (t *Textile) Updates() <-chan Update {
+// UpdateCh returns the node update channel
+func (t *Textile) UpdateCh() <-chan Update {
 	return t.updates
 }
 
-// ThreadUpdates returns the thread update channel
-func (t *Textile) ThreadUpdates() <-chan ThreadUpdate {
+// ThreadUpdateCh returns the thread update channel
+func (t *Textile) ThreadUpdateCh() <-chan ThreadUpdate {
 	return t.threadUpdates
 }
 
-// Notifications returns the notifications channel
-func (t *Textile) Notifications() <-chan repo.Notification {
+// NotificationsCh returns the notifications channel
+func (t *Textile) NotificationCh() <-chan repo.Notification {
 	return t.notifications
 }
 
@@ -502,25 +502,25 @@ func (t *Textile) PeerId() (peer.ID, error) {
 	return t.ipfs.Identity, nil
 }
 
-// GetRepoPath returns the node's repo path
-func (t *Textile) GetRepoPath() string {
+// RepoPath returns the node's repo path
+func (t *Textile) RepoPath() string {
 	return t.repoPath
 }
 
-// GetDataAtPath returns raw data behind an ipfs path
-func (t *Textile) GetDataAtPath(path string) ([]byte, error) {
+// DataAtPath returns raw data behind an ipfs path
+func (t *Textile) DataAtPath(path string) ([]byte, error) {
 	if !t.started {
 		return nil, ErrStopped
 	}
-	return ipfs.GetDataAtPath(t.ipfs, path)
+	return ipfs.DataAtPath(t.ipfs, path)
 }
 
-// GetLinksAtPath returns ipld links behind an ipfs path
-func (t *Textile) GetLinksAtPath(path string) ([]*ipld.Link, error) {
+// LinksAtPath returns ipld links behind an ipfs path
+func (t *Textile) LinksAtPath(path string) ([]*ipld.Link, error) {
 	if !t.started {
 		return nil, ErrStopped
 	}
-	return ipfs.GetLinksAtPath(t.ipfs, path)
+	return ipfs.LinksAtPath(t.ipfs, path)
 }
 
 // createIPFS creates an IPFS node
@@ -619,8 +619,8 @@ func (t *Textile) flushQueues() {
 	go t.cafeInbox.CheckMessages()
 }
 
-// getThreadByBlock returns the thread owning the given block
-func (t *Textile) getThreadByBlock(block *repo.Block) (*Thread, error) {
+// threadByBlock returns the thread owning the given block
+func (t *Textile) threadByBlock(block *repo.Block) (*Thread, error) {
 	if block == nil {
 		return nil, errors.New("block is empty")
 	}
@@ -639,7 +639,7 @@ func (t *Textile) getThreadByBlock(block *repo.Block) (*Thread, error) {
 
 // loadThread loads a thread into memory from the given on-disk model
 func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
-	if _, loaded := t.GetThread(mod.Id); loaded != nil {
+	if _, loaded := t.Thread(mod.Id); loaded != nil {
 		return nil, ErrThreadLoaded
 	}
 	threadConfig := &ThreadConfig{

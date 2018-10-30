@@ -119,31 +119,6 @@ func (t *Thread) Head() (string, error) {
 	return mod.Head, nil
 }
 
-// Blocks paginates blocks from the datastore
-func (t *Thread) Blocks(offsetId string, limit int, btype *repo.BlockType, dataId *string) []repo.Block {
-	var query string
-	if btype != nil {
-		query = fmt.Sprintf("threadId='%s' and type=%d", t.Id, *btype)
-	} else {
-		query = fmt.Sprintf("threadId='%s'", t.Id)
-	}
-	if dataId != nil {
-		query += fmt.Sprintf(" and dataId='%s'", *dataId)
-	}
-	all := t.datastore.Blocks().List(offsetId, limit, query)
-	if btype == nil {
-		return all
-	}
-	var filtered []repo.Block
-	for _, block := range all {
-		ignored := t.datastore.Blocks().GetByData(fmt.Sprintf("ignore-%s", block.Id))
-		if ignored == nil {
-			filtered = append(filtered, block)
-		}
-	}
-	return filtered
-}
-
 // Peers returns locally known peers in this thread
 func (t *Thread) Peers() []repo.ThreadPeer {
 	return t.datastore.ThreadPeers().ListByThread(t.Id)
@@ -181,7 +156,7 @@ func (t *Thread) followParents(parents []string) error {
 // followParent tries to follow a chain of block ids, processing along the way
 func (t *Thread) followParent(parent mh.Multihash) error {
 	// download and decrypt
-	ciphertext, err := ipfs.GetDataAtPath(t.node(), parent.B58String())
+	ciphertext, err := ipfs.DataAtPath(t.node(), parent.B58String())
 	if err != nil {
 		return err
 	}
@@ -451,7 +426,7 @@ func (t *Thread) sendWelcome() error {
 	}
 
 	// download it
-	ciphertext, err := ipfs.GetDataAtPath(t.node(), head)
+	ciphertext, err := ipfs.DataAtPath(t.node(), head)
 	if err != nil {
 		return err
 	}

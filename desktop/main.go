@@ -106,7 +106,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	go func() {
 		for {
 			select {
-			case update, ok := <-core.Node.Updates():
+			case update, ok := <-core.Node.UpdateCh():
 				if !ok {
 					return
 				}
@@ -136,7 +136,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	go func() {
 		for {
 			select {
-			case update, ok := <-core.Node.ThreadUpdates():
+			case update, ok := <-core.Node.ThreadUpdateCh():
 				if !ok {
 					return
 				}
@@ -151,7 +151,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	go func() {
 		for {
 			select {
-			case notification, ok := <-core.Node.Notifications():
+			case notification, ok := <-core.Node.NotificationCh():
 				if !ok {
 					return
 				}
@@ -296,13 +296,13 @@ func getQRCode() (string, string, error) {
 }
 
 func getThreadPhotos(id string) (string, error) {
-	_, thrd := core.Node.GetThread(id)
+	_, thrd := core.Node.Thread(id)
 	if thrd == nil {
 		return "", errors.New("thread not found")
 	}
 	var html string
-	btype := repo.PhotoBlock
-	for _, block := range thrd.Blocks("", -1, &btype, nil) {
+	query := fmt.Sprintf("threadId='%s' and type=%d", thrd.Id, repo.PhotoBlock)
+	for _, block := range core.Node.Blocks("", -1, query) {
 		photo := fmt.Sprintf("%s/ipfs/%s/photo?block=%s", gatewayAddr, block.DataId, block.Id)
 		small := fmt.Sprintf("%s/ipfs/%s/small?block=%s", gatewayAddr, block.DataId, block.Id)
 		meta := fmt.Sprintf("%s/ipfs/%s/meta?block=%s", gatewayAddr, block.DataId, block.Id)

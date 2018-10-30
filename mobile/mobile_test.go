@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/keypair"
 	. "github.com/textileio/textile-go/mobile"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"image/jpeg"
@@ -21,6 +20,9 @@ func (tm *TestMessenger) Notify(event *Event) {}
 
 var repo = "testdata/.textile"
 
+var recovery string
+var seed string
+
 var mobile *Mobile
 var defaultThreadId string
 var threadId, threadId2 string
@@ -30,26 +32,63 @@ var addedPhotoKey string
 
 //var noteId string
 
-func TestNewTextile(t *testing.T) {
+func TestNewWallet(t *testing.T) {
+	var err error
+	recovery, err = NewWallet(12)
+	if err != nil {
+		t.Errorf("new mobile wallet failed: %s", err)
+	}
+}
+
+func TestWalletAccountAt(t *testing.T) {
+	res, err := WalletAccountAt(recovery, 0, "")
+	if err != nil {
+		t.Errorf("get mobile wallet account at failed: %s", err)
+	}
+	accnt := WalletAccount{}
+	if err := json.Unmarshal([]byte(res), &accnt); err != nil {
+		t.Error(err)
+		return
+	}
+	seed = accnt.Seed
+}
+
+func TestInitRepo(t *testing.T) {
 	os.RemoveAll(repo)
-	config := &NodeConfig{
-		Account:  keypair.Random().Seed(),
+	if err := InitRepo(&InitConfig{
+		Seed:     seed,
 		RepoPath: repo,
-		LogLevel: "ERROR",
+	}); err != nil {
+		t.Errorf("init mobile repo failed: %s", err)
+	}
+}
+
+func TestMigrateRepo(t *testing.T) {
+	if err := MigrateRepo(&MigrateConfig{
+		RepoPath: repo,
+	}); err != nil {
+		t.Errorf("migrate mobile repo failed: %s", err)
+	}
+}
+
+func TestNewTextile(t *testing.T) {
+	config := &RunConfig{
+		RepoPath: repo,
+		LogLevel: "error",
 	}
 	var err error
-	mobile, err = NewNode(config, &TestMessenger{})
+	mobile, err = NewTextile(config, &TestMessenger{})
 	if err != nil {
 		t.Errorf("create mobile node failed: %s", err)
 	}
 }
 
 func TestNewTextileAgain(t *testing.T) {
-	config := &NodeConfig{
+	config := &RunConfig{
 		RepoPath: repo,
-		LogLevel: "ERROR",
+		LogLevel: "error",
 	}
-	if _, err := NewNode(config, &TestMessenger{}); err != nil {
+	if _, err := NewTextile(config, &TestMessenger{}); err != nil {
 		t.Errorf("create mobile node failed: %s", err)
 	}
 }
@@ -66,8 +105,8 @@ func TestMobile_StartAgain(t *testing.T) {
 	}
 }
 
-func TestMobile_GetAddress(t *testing.T) {
-	id, err := mobile.GetAddress()
+func TestMobile_Address(t *testing.T) {
+	id, err := mobile.Address()
 	if err != nil {
 		t.Errorf("get address failed: %s", err)
 		return
@@ -77,8 +116,8 @@ func TestMobile_GetAddress(t *testing.T) {
 	}
 }
 
-func TestMobile_GetSeed(t *testing.T) {
-	id, err := mobile.GetSeed()
+func TestMobile_Seed(t *testing.T) {
+	id, err := mobile.Seed()
 	if err != nil {
 		t.Errorf("get seed failed: %s", err)
 		return
@@ -211,7 +250,7 @@ func TestMobile_IgnorePhoto(t *testing.T) {
 		t.Errorf("ignore photo failed: %s", err)
 		return
 	}
-	res, err := mobile.GetPhotos("", -1, threadId2)
+	res, err := mobile.Photos("", -1, threadId2)
 	if err != nil {
 		t.Errorf("get photos failed: %s", err)
 		return
@@ -238,8 +277,8 @@ func TestMobile_AddPhotoLike(t *testing.T) {
 	}
 }
 
-func TestMobile_GetPhotos(t *testing.T) {
-	res, err := mobile.GetPhotos("", -1, threadId)
+func TestMobile_Photos(t *testing.T) {
+	res, err := mobile.Photos("", -1, threadId)
 	if err != nil {
 		t.Errorf("get photos failed: %s", err)
 		return
@@ -260,8 +299,8 @@ func TestMobile_GetPhotos(t *testing.T) {
 	}
 }
 
-func TestMobile_GetPhotosBadThread(t *testing.T) {
-	if _, err := mobile.GetPhotos("", -1, "empty"); err == nil {
+func TestMobile_PhotosBadThread(t *testing.T) {
+	if _, err := mobile.Photos("", -1, "empty"); err == nil {
 		t.Errorf("get photo blocks from bad thread should fail: %s", err)
 	}
 }
@@ -282,8 +321,8 @@ func TestMobile_PhotoThreads(t *testing.T) {
 	}
 }
 
-func TestMobile_GetPhotoData(t *testing.T) {
-	res, err := mobile.GetPhotoData(addedPhotoId, "thumb")
+func TestMobile_PhotoData(t *testing.T) {
+	res, err := mobile.PhotoData(addedPhotoId, "thumb")
 	if err != nil {
 		t.Errorf("get photo data failed: %s", err)
 		return
@@ -293,9 +332,9 @@ func TestMobile_GetPhotoData(t *testing.T) {
 	}
 }
 
-func TestMobile_GetPhotoDataForMinWidth(t *testing.T) {
+func TestMobile_PhotoDataForMinWidth(t *testing.T) {
 	// test photo
-	res, err := mobile.GetPhotoDataForMinWidth(addedPhotoId, 2000)
+	res, err := mobile.PhotoDataForMinWidth(addedPhotoId, 2000)
 	if err != nil {
 		t.Errorf("get photo data for min width failed: %s", err)
 		return
@@ -314,7 +353,7 @@ func TestMobile_GetPhotoDataForMinWidth(t *testing.T) {
 	}
 
 	// test medium
-	res, err = mobile.GetPhotoDataForMinWidth(addedPhotoId, 600)
+	res, err = mobile.PhotoDataForMinWidth(addedPhotoId, 600)
 	if err != nil {
 		t.Errorf("get photo data for min width failed: %s", err)
 		return
@@ -333,7 +372,7 @@ func TestMobile_GetPhotoDataForMinWidth(t *testing.T) {
 	}
 
 	// test small
-	res, err = mobile.GetPhotoDataForMinWidth(addedPhotoId, 320)
+	res, err = mobile.PhotoDataForMinWidth(addedPhotoId, 320)
 	if err != nil {
 		t.Errorf("get photo data for min width failed: %s", err)
 		return
@@ -352,7 +391,7 @@ func TestMobile_GetPhotoDataForMinWidth(t *testing.T) {
 	}
 
 	// test photo
-	res, err = mobile.GetPhotoDataForMinWidth(addedPhotoId, 80)
+	res, err = mobile.PhotoDataForMinWidth(addedPhotoId, 80)
 	if err != nil {
 		t.Errorf("get photo data for min width failed: %s", err)
 		return
@@ -371,8 +410,8 @@ func TestMobile_GetPhotoDataForMinWidth(t *testing.T) {
 	}
 }
 
-func TestMobile_GetPhotoMetadata(t *testing.T) {
-	res, err := mobile.GetPhotoMetadata(addedPhotoId)
+func TestMobile_PhotoMetadata(t *testing.T) {
+	res, err := mobile.PhotoMetadata(addedPhotoId)
 	if err != nil {
 		t.Errorf("get meta data failed: %s", err)
 		return
@@ -382,8 +421,8 @@ func TestMobile_GetPhotoMetadata(t *testing.T) {
 	}
 }
 
-func TestMobile_GetPhotoKey(t *testing.T) {
-	res, err := mobile.GetPhotoKey(addedPhotoId)
+func TestMobile_PhotoKey(t *testing.T) {
+	res, err := mobile.PhotoKey(addedPhotoId)
 	if err != nil {
 		t.Errorf("get key failed: %s", err)
 		return
@@ -400,8 +439,8 @@ func TestMobile_SetAvatar(t *testing.T) {
 	}
 }
 
-func TestMobile_GetProfile(t *testing.T) {
-	profs, err := mobile.GetProfile()
+func TestMobile_Profile(t *testing.T) {
+	profs, err := mobile.Profile()
 	if err != nil {
 		t.Errorf("get profile failed: %s", err)
 		return
@@ -426,8 +465,8 @@ func TestMobile_Overview(t *testing.T) {
 	}
 }
 
-//func TestMobile_GetNotifications(t *testing.T) {
-//	res, err := mobile.GetNotifications("", -1)
+//func TestMobile_Notifications(t *testing.T) {
+//	res, err := mobile.Notifications("", -1)
 //	if err != nil {
 //		t.Error(err)
 //		return

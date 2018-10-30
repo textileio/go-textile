@@ -10,10 +10,10 @@ type Notifications struct {
 	Items []repo.Notification `json:"items"`
 }
 
-// GetNotifications call core GetNotifications
-func (m *Mobile) GetNotifications(offset string, limit int) (string, error) {
+// Notifications call core Notifications
+func (m *Mobile) Notifications(offset string, limit int) (string, error) {
 	notes := Notifications{Items: make([]repo.Notification, 0)}
-	fetched := core.Node.GetNotifications(offset, limit)
+	fetched := core.Node.Notifications(offset, limit)
 	if len(fetched) > 0 {
 		notes.Items = fetched
 	}

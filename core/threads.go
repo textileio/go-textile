@@ -61,7 +61,7 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	}
 
 	// get the loaded thread
-	i, thrd := t.GetThread(id)
+	i, thrd := t.Thread(id)
 	if thrd == nil {
 		return nil, errors.New("thread not found")
 	}
@@ -98,7 +98,7 @@ func (t *Textile) AcceptThreadInvite(inviteId string) (mh.Multihash, error) {
 	}
 
 	// download
-	ciphertext, err := ipfs.GetDataAtPath(t.ipfs, fmt.Sprintf("%s", inviteId))
+	ciphertext, err := ipfs.DataAtPath(t.ipfs, fmt.Sprintf("%s", inviteId))
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func (t *Textile) AcceptExternalThreadInvite(inviteId string, key []byte) (mh.Mu
 	}
 
 	// download
-	ciphertext, err := ipfs.GetDataAtPath(t.ipfs, fmt.Sprintf("%s", inviteId))
+	ciphertext, err := ipfs.DataAtPath(t.ipfs, fmt.Sprintf("%s", inviteId))
 	if err != nil {
 		return nil, err
 	}
@@ -137,8 +137,8 @@ func (t *Textile) Threads() []*Thread {
 	return t.threads
 }
 
-// GetThread get a thread by id from loaded threads
-func (t *Textile) GetThread(id string) (*int, *Thread) {
+// Thread get a thread by id from loaded threads
+func (t *Textile) Thread(id string) (*int, *Thread) {
 	for i, thrd := range t.threads {
 		if thrd.Id == id {
 			return &i, thrd
@@ -149,7 +149,7 @@ func (t *Textile) GetThread(id string) (*int, *Thread) {
 
 // ThreadInfo gets thread info
 func (t *Textile) ThreadInfo(id string) (*ThreadInfo, error) {
-	_, thrd := t.GetThread(id)
+	_, thrd := t.Thread(id)
 	if thrd == nil {
 		return nil, errors.New(fmt.Sprintf("cound not find thread: %s", id))
 	}
@@ -181,7 +181,7 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, thrd := t.GetThread(id.Pretty()); thrd != nil {
+	if _, thrd := t.Thread(id.Pretty()); thrd != nil {
 		// thread exists, aborting
 		return nil, nil
 	}

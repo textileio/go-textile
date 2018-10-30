@@ -34,8 +34,8 @@ type IpnsEntry struct {
 	Value string
 }
 
-// GetDataAtPath return bytes under an ipfs path
-func GetDataAtPath(ipfs *core.IpfsNode, pth string) ([]byte, error) {
+// DataAtPath return bytes under an ipfs path
+func DataAtPath(ipfs *core.IpfsNode, pth string) ([]byte, error) {
 	// convert string to an ipfs path
 	ip, err := iface.ParsePath(pth)
 	if err != nil {
@@ -52,9 +52,9 @@ func GetDataAtPath(ipfs *core.IpfsNode, pth string) ([]byte, error) {
 	return ioutil.ReadAll(reader)
 }
 
-// GetArchiveAtPath builds an archive from directory links under an ipfs path
+// ArchiveAtPath builds an archive from directory links under an ipfs path
 // NOTE: currently will bork if dir path contains other dirs (depth > 1)
-func GetArchiveAtPath(ipfs *core.IpfsNode, path string) (io.Reader, error) {
+func ArchiveAtPath(ipfs *core.IpfsNode, path string) (io.Reader, error) {
 	// convert string to an ipfs path
 	ip, err := iface.ParsePath(path)
 	if err != nil {
@@ -74,7 +74,7 @@ func GetArchiveAtPath(ipfs *core.IpfsNode, path string) (io.Reader, error) {
 	// virtual archive
 	arch, err := archive.NewArchive(nil)
 	for _, link := range links {
-		data, err := GetDataAtPath(ipfs, link.Cid.Hash().B58String())
+		data, err := DataAtPath(ipfs, link.Cid.Hash().B58String())
 		if err != nil {
 			return nil, err
 		}
@@ -86,8 +86,8 @@ func GetArchiveAtPath(ipfs *core.IpfsNode, path string) (io.Reader, error) {
 	return arch.VirtualReader(), nil
 }
 
-// GetLinksAtPath return ipld links under a path
-func GetLinksAtPath(ipfs *core.IpfsNode, path string) ([]*ipld.Link, error) {
+// LinksAtPath return ipld links under a path
+func LinksAtPath(ipfs *core.IpfsNode, path string) ([]*ipld.Link, error) {
 	// convert string to an ipfs path
 	ip, err := iface.ParsePath(path)
 	if err != nil {

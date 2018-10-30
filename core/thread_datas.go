@@ -120,7 +120,7 @@ func (t *Thread) handleDataBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 
 // getMetadata downloads and decrypts metadata
 func getMetadata(node *core.IpfsNode, dataId string, key []byte) (*images.Metadata, error) {
-	metacipher, err := ipfs.GetDataAtPath(node, fmt.Sprintf("%s/meta", dataId))
+	metacipher, err := ipfs.DataAtPath(node, fmt.Sprintf("%s/meta", dataId))
 	if err != nil {
 		return nil, err
 	}
