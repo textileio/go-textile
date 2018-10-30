@@ -20,29 +20,30 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type ipfsOptions struct {
-	ServerMode bool   `long:"server" description:"apply IPFS server profile"`
-	SwarmPorts string `long:"swarm-ports" description:"set the swarm ports (tcp,ws)" default:"random"`
+	ServerMode bool   `long:"server" description:"Apply IPFS server profile"`
+	SwarmPorts string `long:"swarm-ports" description:"Set the swarm ports (tcp,ws)" default:"random"`
 }
 
 type logOptions struct {
-	Level   string `short:"l" long:"log-level" description:"set the logging level [debug, info, notice, warning, error, critical]" default:"error"`
-	NoFiles bool   `short:"n" long:"no-log-files" description:"do not save logs on disk"`
+	Level   string `short:"l" long:"log-level" description:"Set the logging level [debug, info, notice, warning, error, critical]" default:"error"`
+	NoFiles bool   `short:"n" long:"no-log-files" description:"Do not save logs on disk"`
 }
 
 type apiOptions struct {
-	BindAddr string `short:"a" long:"api-bind-addr" description:"set the rest api address" default:"127.0.0.1:random"`
+	BindAddr string `short:"a" long:"api-bind-addr" description:"Set the rest api address" default:"127.0.0.1:random"`
 }
 
 type gatewayOptions struct {
-	BindAddr string `short:"g" long:"gateway-bind-addr" description:"set the gateway address" default:"127.0.0.1:random"`
+	BindAddr string `short:"g" long:"gateway-bind-addr" description:"Set the gateway address" default:"127.0.0.1:random"`
 }
 
 type cafeApiOptions struct {
-	Open     bool   `short:"c" long:"open-cafe" description:"opens the cafe service for other peers"`
-	BindAddr string `long:"cafe-bind-addr" description:"set the cafe rest api address" default:"127.0.0.1:random"`
+	Open     bool   `short:"c" long:"open-cafe" description:"Opens the cafe service for other peers"`
+	BindAddr string `long:"cafe-bind-addr" description:"Set the cafe rest api address" default:"127.0.0.1:random"`
 }
 
 type options struct{}
@@ -53,31 +54,31 @@ type walletCmd struct {
 }
 
 type walletInitCmd struct {
-	WordCount int    `short:"w" long:"word-count" description:"number of mnemonic recovery phrase words: 12,15,18,21,24" default:"12"`
-	Password  string `short:"p" long:"password" description:"mnemonic recovery phrase password (omit if none)"`
+	WordCount int    `short:"w" long:"word-count" description:"Number of mnemonic recovery phrase words: 12,15,18,21,24" default:"12"`
+	Password  string `short:"p" long:"password" description:"Mnemonic recovery phrase password (omit if none)"`
 }
 
 type walletAccountsCmd struct {
-	Password string `short:"p" long:"password" description:"mnemonic recovery phrase password (omit if none)"`
-	Depth    int    `short:"d" long:"depth" description:"number of accounts to show" default:"1"`
-	Offset   int    `short:"o" long:"offset" description:"account depth to start from" default:"0"`
+	Password string `short:"p" long:"password" description:"Mnemonic recovery phrase password (omit if none)"`
+	Depth    int    `short:"d" long:"depth" description:"Number of accounts to show" default:"1"`
+	Offset   int    `short:"o" long:"offset" description:"Account depth to start from" default:"0"`
 }
 
 type versionCmd struct{}
 
 type initCmd struct {
-	AccountSeed string      `required:"true" short:"s" long:"seed" description:"account seed (run 'wallet' command to generate new seeds)"`
-	RepoPath    string      `short:"r" long:"repo-dir" description:"specify a custom repository path"`
+	AccountSeed string      `required:"true" short:"s" long:"seed" description:"Account seed (run 'wallet' command to generate new seeds)"`
+	RepoPath    string      `short:"r" long:"repo-dir" description:"Specify a custom repository path"`
 	Logs        logOptions  `group:"Log Options"`
 	IPFS        ipfsOptions `group:"IPFS Options"`
 }
 
 type migrateCmd struct {
-	RepoPath string `short:"r" long:"repo-dir" description:"specify a custom repository path"`
+	RepoPath string `short:"r" long:"repo-dir" description:"Specify a custom repository path"`
 }
 
 type daemonCmd struct {
-	RepoPath string         `short:"r" long:"repo-dir" description:"specify a custom repository path"`
+	RepoPath string         `short:"r" long:"repo-dir" description:"Specify a custom repository path"`
 	Logs     logOptions     `group:"Log Options"`
 	Api      apiOptions     `group:"API Options"`
 	Gateway  gatewayOptions `group:"Gateway Options"`
@@ -85,7 +86,7 @@ type daemonCmd struct {
 }
 
 type shellCmd struct {
-	RepoPath string         `short:"r" long:"repo-dir" description:"specify a custom repository path"`
+	RepoPath string         `short:"r" long:"repo-dir" description:"Specify a custom repository path"`
 	Logs     logOptions     `group:"Log Options"`
 	Api      apiOptions     `group:"API Options"`
 	Gateway  gatewayOptions `group:"Gateway Options"`
@@ -419,8 +420,13 @@ func startNode(apiOpts apiOptions, gatewayOpts gatewayOptions) error {
 				if !ok {
 					return
 				}
-				msg := fmt.Sprintf("new %s block in thread '%s'", update.Block.Type.Description(), update.ThreadName)
-				fmt.Println(cmd.Green(msg))
+				date := update.Block.Date.Format(time.RFC822)
+				desc := update.Block.Type.Description()
+				username := update.Block.AuthorId[len(update.Block.AuthorId)-7:] // TODO: look up in contacts
+				thrd := update.ThreadId[len(update.ThreadId)-7:]
+				msg := cmd.Grey(date+"  "+username+" added ") +
+					cmd.Green(desc) + cmd.Grey(" update to thread "+thrd)
+				fmt.Println(msg)
 			}
 		}
 	}()

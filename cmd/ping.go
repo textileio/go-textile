@@ -19,11 +19,11 @@ func (x *pingCmd) Name() string {
 }
 
 func (x *pingCmd) Short() string {
-	return "fixme"
+	return "Ping another peer"
 }
 
 func (x *pingCmd) Long() string {
-	return "fixme"
+	return "Pings another peer on the network, returning online|offline."
 }
 
 func (x *pingCmd) Execute(args []string) error {

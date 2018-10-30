@@ -327,7 +327,7 @@ func (h *ThreadsService) newNotification(header *pb.ThreadBlockHeader, ntype rep
 	if contact != nil {
 		note.ActorUsername = contact.Username
 	} else {
-		note.ActorUsername = header.Author[:8]
+		note.ActorUsername = header.Author[len(header.Author)-7:]
 	}
 	return note, nil
 }

@@ -18,11 +18,11 @@ func (x *peerCmd) Name() string {
 }
 
 func (x *peerCmd) Short() string {
-	return "fixme"
+	return "Show peer ID"
 }
 
 func (x *peerCmd) Long() string {
-	return "fixme"
+	return "Shows the local node's peer ID."
 }
 
 func (x *peerCmd) Execute(args []string) error {

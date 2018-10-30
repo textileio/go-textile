@@ -2,8 +2,10 @@ package core
 
 import (
 	"context"
+	"crypto/rand"
 	"github.com/gin-gonic/gin"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"net/http"
 	"strings"
 )
@@ -64,6 +66,7 @@ func (a *api) Start() {
 		v0.GET("/ping", a.ping)
 
 		v0.POST("/add/image", a.addImage)
+		v0.POST("/add/thread", a.addThread)
 	}
 	a.server = &http.Server{
 		Addr:    a.addr,
@@ -170,6 +173,29 @@ func (a *api) addImage(g *gin.Context) {
 		adds = append(adds, added)
 	}
 	g.JSON(http.StatusCreated, gin.H{"items": adds})
+}
+
+func (a *api) addThread(g *gin.Context) {
+	args, err := a.readArgs(g)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+	if len(args) == 0 {
+		g.String(http.StatusBadRequest, "missing thread name")
+		return
+	}
+	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+	thrd, err := a.node.AddThread(args[0], sk, true)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+	g.String(http.StatusCreated, thrd.Id)
 }
 
 // -- HELPERS -- //

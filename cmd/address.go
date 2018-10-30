@@ -17,10 +17,10 @@ func (x *addressCmd) Name() string {
 	return "address"
 }
 func (x *addressCmd) Short() string {
-	return "fixme"
+	return "Show wallet address"
 }
 func (x *addressCmd) Long() string {
-	return "fixme"
+	return "Shows the local node's wallet address."
 }
 
 func (x *addressCmd) Execute(args []string) error {

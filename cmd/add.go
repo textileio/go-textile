@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
 	"gopkg.in/abiosoft/ishell.v2"
+	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -18,71 +20,13 @@ import (
 	"path/filepath"
 )
 
-/*
-photoCmd := &ishell.Cmd{
-	Name:     "photo",
-	Help:     "manage photos",
-	LongHelp: "Add, list, and get info about photos.",
-}
-photoCmd.AddCmd(&ishell.Cmd{
-	Name: "add",
-	Help: "add a new photo",
-	Func: addPhoto,
-})
-photoCmd.AddCmd(&ishell.Cmd{
-	Name: "share",
-	Help: "share a photo to a different thread",
-	Func: sharePhoto,
-})
-photoCmd.AddCmd(&ishell.Cmd{
-	Name: "get",
-	Help: "save a photo to a local file",
-	Func: getPhoto,
-})
-photoCmd.AddCmd(&ishell.Cmd{
-	Name: "key",
-	Help: "show key for a photo (and meta data)",
-	Func: getPhotoKey,
-})
-photoCmd.AddCmd(&ishell.Cmd{
-	Name: "meta",
-	Help: "get photo metadata",
-	Func: getPhotoMetadata,
-})
-photoCmd.AddCmd(&ishell.Cmd{
-	Name: "ls",
-	Help: "list photos from a thread",
-	Func: listPhotos,
-})
-photoCmd.AddCmd(&ishell.Cmd{
-	Name: "comment",
-	Help: "comment on a photo (terminate input w/ ';'",
-	Func: addPhotoComment,
-})
-photoCmd.AddCmd(&ishell.Cmd{
-	Name: "like",
-	Help: "like a photo",
-	Func: addPhotoLike,
-})
-photoCmd.AddCmd(&ishell.Cmd{
-	Name: "comments",
-	Help: "list photo comments",
-	Func: listPhotoComments,
-})
-photoCmd.AddCmd(&ishell.Cmd{
-	Name: "likes",
-	Help: "list photo likes",
-	Func: listPhotoLikes,
-})
-shell.AddCmd(photoCmd)
-*/
-
 func init() {
 	register(&addCmd{})
 }
 
 type addCmd struct {
-	Image imageCmd `command:"image"`
+	Image  addImageCmd  `command:"image"`
+	Thread addThreadCmd `command:"thread"`
 }
 
 func (x *addCmd) Name() string {
@@ -90,11 +34,11 @@ func (x *addCmd) Name() string {
 }
 
 func (x *addCmd) Short() string {
-	return "fixme"
+	return "Add images and threads"
 }
 
 func (x *addCmd) Long() string {
-	return "fixme"
+	return "Add is a subcommand for adding images and threads to the wallet account."
 }
 
 func (x *addCmd) Shell() *ishell.Cmd {
@@ -103,25 +47,25 @@ func (x *addCmd) Shell() *ishell.Cmd {
 		Help:     x.Short(),
 		LongHelp: x.Long(),
 	}
-	cmd.AddCmd((&imageCmd{}).Shell())
+	cmd.AddCmd((&addImageCmd{}).Shell())
 	return cmd
 }
 
-type imageCmd struct{}
+type addImageCmd struct{}
 
-func (x *imageCmd) Name() string {
+func (x *addImageCmd) Name() string {
 	return "image"
 }
 
-func (x *imageCmd) Short() string {
-	return "fixme"
+func (x *addImageCmd) Short() string {
+	return "Add an image"
 }
 
-func (x *imageCmd) Long() string {
-	return "fixme"
+func (x *addImageCmd) Long() string {
+	return "Encodes, encrypts, and adds an image to the wallet account."
 }
 
-func (x *imageCmd) Execute(args []string) error {
+func (x *addImageCmd) Execute(args []string) error {
 	if len(args) == 0 {
 		return errors.New("missing image path")
 	}
@@ -166,7 +110,7 @@ func (x *imageCmd) Execute(args []string) error {
 	return nil
 }
 
-func (x *imageCmd) Shell() *ishell.Cmd {
+func (x *addImageCmd) Shell() *ishell.Cmd {
 	return &ishell.Cmd{
 		Name:     x.Name(),
 		Help:     x.Short(),
@@ -193,6 +137,60 @@ func (x *imageCmd) Shell() *ishell.Cmd {
 		},
 	}
 }
+
+type addThreadCmd struct{}
+
+func (x *addThreadCmd) Name() string {
+	return "thread"
+}
+
+func (x *addThreadCmd) Short() string {
+	return "Add a new thread"
+}
+
+func (x *addThreadCmd) Long() string {
+	return "Adds a new thread for tracking a set of files between peers."
+}
+
+func (x *addThreadCmd) Execute(args []string) error {
+	res, err := executeStringCmd(POST, "add/"+x.Name(), params{args: args})
+	if err != nil {
+		return err
+	}
+	fmt.Println(res)
+	return nil
+}
+
+func (x *addThreadCmd) Shell() *ishell.Cmd {
+	return &ishell.Cmd{
+		Name:     x.Name(),
+		Help:     x.Short(),
+		LongHelp: x.Long(),
+		Func: func(c *ishell.Context) {
+			if len(c.Args) == 0 {
+				c.Err(errors.New("missing thread name"))
+				return
+			}
+			name := c.Args[0]
+
+			sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
+			if err != nil {
+				c.Err(err)
+				return
+			}
+
+			thrd, err := core.Node.AddThread(name, sk, true)
+			if err != nil {
+				c.Err(err)
+				return
+			}
+
+			c.Println(Grey("id:  ") + Cyan(thrd.Id))
+		},
+	}
+}
+
+////////////////////////////////////////////////////////////////////////
 
 func sharePhoto(c *ishell.Context) {
 	if len(c.Args) == 0 {
