@@ -413,7 +413,8 @@ func listPhotoComments(c *ishell.Context) {
 
 	cyan := color.New(color.FgHiCyan).SprintFunc()
 	for _, b := range blocks {
-		c.Println(cyan(fmt.Sprintf("%s: %s: %s", b.Id, getUsername(b.AuthorId), b.DataCaption)))
+		username := core.Node.ContactUsername(b.AuthorId)
+		c.Println(cyan(fmt.Sprintf("%s: %s: %s", b.Id, username, b.DataCaption)))
 	}
 }
 
@@ -445,7 +446,8 @@ func listPhotoLikes(c *ishell.Context) {
 
 	cyan := color.New(color.FgHiCyan).SprintFunc()
 	for _, b := range blocks {
-		c.Println(cyan(fmt.Sprintf("%s: %s", b.Id, getUsername(b.AuthorId))))
+		username := core.Node.ContactUsername(b.AuthorId)
+		c.Println(cyan(fmt.Sprintf("%s: %s", b.Id, username)))
 	}
 }
 
@@ -458,12 +460,4 @@ func getPhotoBlockByDataId(dataId string) (*repo.Block, error) {
 		return nil, errors.New("not a photo block, aborting")
 	}
 	return block, nil
-}
-
-func getUsername(peerId string) string {
-	contact := core.Node.Contact(peerId)
-	if contact != nil {
-		return contact.Username
-	}
-	return peerId[:8]
 }

@@ -317,17 +317,10 @@ func (h *ThreadsService) newNotification(header *pb.ThreadBlockHeader, ntype rep
 	if err != nil {
 		return nil, err
 	}
-	note := &repo.Notification{
+	return &repo.Notification{
 		Id:      ksuid.New().String(),
 		Date:    date,
 		ActorId: header.Author,
 		Type:    ntype,
-	}
-	contact := h.datastore.Contacts().Get(header.Author)
-	if contact != nil {
-		note.ActorUsername = contact.Username
-	} else {
-		note.ActorUsername = header.Author[len(header.Author)-7:]
-	}
-	return note, nil
+	}, nil
 }

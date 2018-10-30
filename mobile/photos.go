@@ -121,7 +121,7 @@ func (m *Mobile) Photos(offset string, limit int, threadId string) (string, erro
 			Date:     b.Date,
 			AuthorId: b.AuthorId,
 			Caption:  b.DataCaption,
-			Username: getUsername(b.AuthorId[len(b.AuthorId)-7:]),
+			Username: core.Node.ContactUsername(b.AuthorId),
 			Metadata: b.DataMetadata,
 		}
 
@@ -134,7 +134,7 @@ func (m *Mobile) Photos(offset string, limit int, threadId string) (string, erro
 					Id:       c.Id,
 					Date:     c.Date,
 					AuthorId: c.AuthorId,
-					Username: getUsername(c.AuthorId[len(c.AuthorId)-7:]),
+					Username: core.Node.ContactUsername(c.AuthorId),
 				},
 				Body: c.DataCaption,
 			}
@@ -150,7 +150,7 @@ func (m *Mobile) Photos(offset string, limit int, threadId string) (string, erro
 					Id:       l.Id,
 					Date:     l.Date,
 					AuthorId: l.AuthorId,
-					Username: getUsername(l.AuthorId[len(l.AuthorId)-7:]),
+					Username: core.Node.ContactUsername(l.AuthorId),
 				},
 			}
 			item.Likes = append(item.Likes, like)

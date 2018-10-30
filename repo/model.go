@@ -89,17 +89,16 @@ func (b BlockType) Description() string {
 }
 
 type Notification struct {
-	Id            string           `json:"id"`
-	Date          time.Time        `json:"date"`
-	ActorId       string           `json:"actor_id"`                 // peer id
-	ActorUsername string           `json:"actor_username,omitempty"` // peer username
-	Subject       string           `json:"subject"`                  // thread name | device name
-	SubjectId     string           `json:"subject_id"`               // thread id | device id
-	BlockId       string           `json:"block_id,omitempty"`       // block id
-	DataId        string           `json:"data_id,omitempty"`        // photo id, etc.
-	Type          NotificationType `json:"type"`
-	Body          string           `json:"body"`
-	Read          bool             `json:"read"`
+	Id        string           `json:"id"`
+	Date      time.Time        `json:"date"`
+	ActorId   string           `json:"actor_id"`           // peer id
+	Subject   string           `json:"subject"`            // thread name | device name
+	SubjectId string           `json:"subject_id"`         // thread id | device id
+	BlockId   string           `json:"block_id,omitempty"` // block id
+	DataId    string           `json:"data_id,omitempty"`  // photo id, etc.
+	Type      NotificationType `json:"type"`
+	Body      string           `json:"body"`
+	Read      bool             `json:"read"`
 }
 
 type NotificationType int

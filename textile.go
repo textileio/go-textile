@@ -435,18 +435,13 @@ func startNode(apiOpts apiOptions, gatewayOpts gatewayOptions) error {
 	go func() {
 		for {
 			select {
-			case notification, ok := <-core.Node.NotificationCh():
+			case note, ok := <-core.Node.NotificationCh():
 				if !ok {
 					return
 				}
-				var username string
-				if notification.ActorUsername != "" {
-					username = notification.ActorUsername
-				} else {
-					username = notification.ActorId
-				}
-				note := fmt.Sprintf("#%s: %s %s.", notification.Subject, username, notification.Body)
-				fmt.Println(cmd.Yellow(note))
+				username := core.Node.ContactUsername(note.ActorId)
+				msg := fmt.Sprintf("#%s: %s %s.", note.Subject, username, note.Body)
+				fmt.Println(cmd.Yellow(msg))
 			}
 		}
 	}()
