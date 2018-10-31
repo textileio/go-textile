@@ -21,6 +21,9 @@ This repository currently contains a CLI/daemon, a desktop application, and iOS/
 Download the [latest release](https://github.com/textileio/textile-go/releases/latest) for your OS.
 
 ## Usage
+
+NOTE: The command line tool currently has limited access to the internal node APIs. We're quickly mapping everything over to a newly designed REST API and command line tool. Stay tuned for docs.
+
 ```
 ~ $ textile --help
 Usage:
@@ -30,10 +33,15 @@ Help Options:
   -h, --help  Show this help message
 
 Available commands:
+  address  Show wallet address
   daemon   Start a node daemon
+  images   Manage images
   init     Init the node repo and exit
   migrate  Migrate the node repo and exit
+  peer     Show peer ID
+  ping     Ping another peer
   shell    Start a node shell
+  threads  Manage threads
   version  Print version and exit
   wallet   Manage a wallet of accounts
 ```
@@ -52,10 +60,10 @@ Next, use an account from you wallet to initialize a node. First time users shou
 $ textile init -s <account_seed>
 ```
 
-Finally, start the daemon or interactive shell:
+Finally, start the daemon:
 
 ```
-$ textile daemon|shell
+$ textile daemon
 ```
 
 TODO: Run through creating a thread, adding images, comments, etc.
