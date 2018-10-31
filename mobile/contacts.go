@@ -29,8 +29,12 @@ func (m *Mobile) Contacts() (string, error) {
 	return toJSON(contacts)
 }
 
+// ContactUsername calls core ContactUsername
+func (m *Mobile) ContactUsername(id string) string {
+	return core.Node.ContactUsername(id)
+}
+
 // ContactThreads calls core ContactThreads
-// - id is a contact's peer id
 func (m *Mobile) ContactThreads(id string) (string, error) {
 	threads := Threads{Items: make([]Thread, 0)}
 	for _, thrd := range core.Node.ContactThreads(id) {
@@ -39,13 +43,4 @@ func (m *Mobile) ContactThreads(id string) (string, error) {
 		threads.Items = append(threads.Items, item)
 	}
 	return toJSON(threads)
-}
-
-// getUsername returns a contact's username by peer id if known
-func getUsername(id string) string {
-	contact := core.Node.Contact(id)
-	if contact != nil {
-		return contact.Username
-	}
-	return id[:8]
 }

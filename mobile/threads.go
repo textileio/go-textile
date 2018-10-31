@@ -71,7 +71,7 @@ func (m *Mobile) ThreadInfo(threadId string) (string, error) {
 
 // AddThreadInvite adds a new invite to a thread
 func (m *Mobile) AddThreadInvite(threadId string, inviteeId string) (string, error) {
-	_, thrd := core.Node.Thread(threadId)
+	thrd := core.Node.Thread(threadId)
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread: %s", threadId))
 	}
@@ -93,7 +93,7 @@ func (m *Mobile) AddThreadInvite(threadId string, inviteeId string) (string, err
 
 // AddExternalThreadInvite generates a new external invite link to a thread
 func (m *Mobile) AddExternalThreadInvite(threadId string) (string, error) {
-	_, thrd := core.Node.Thread(threadId)
+	thrd := core.Node.Thread(threadId)
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread: %s", threadId))
 	}

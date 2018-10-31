@@ -146,10 +146,16 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 				continue
 			}
 		}
+		plist := make([]string, 0)
+		for _, p := range strings.Split(parents, ",") {
+			if p != "" {
+				plist = append(plist, p)
+			}
+		}
 		block := repo.Block{
 			Id:           id,
 			Date:         time.Unix(int64(dateInt), 0),
-			Parents:      strings.Split(parents, ","),
+			Parents:      plist,
 			ThreadId:     threadId,
 			AuthorId:     authorId,
 			Type:         repo.BlockType(typeInt),

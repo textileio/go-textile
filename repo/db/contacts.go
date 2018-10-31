@@ -91,6 +91,12 @@ func (c *ContactDB) handleQuery(stm string) []repo.Contact {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
+		ilist := make([]string, 0)
+		for _, p := range strings.Split(inboxes, ",") {
+			if p != "" {
+				ilist = append(ilist, p)
+			}
+		}
 		contact := repo.Contact{
 			Id:       id,
 			Username: username,

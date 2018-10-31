@@ -61,7 +61,15 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	}
 
 	// get the loaded thread
-	i, thrd := t.Thread(id)
+	var thrd *Thread
+	var index int
+	for i, th := range t.threads {
+		if th.Id == id {
+			thrd = th
+			index = i
+			break
+		}
+	}
 	if thrd == nil {
 		return nil, errors.New("thread not found")
 	}
@@ -78,7 +86,7 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	}
 
 	// clean up
-	copy(t.threads[*i:], t.threads[*i+1:])
+	copy(t.threads[index:], t.threads[index+1:])
 	t.threads[len(t.threads)-1] = nil
 	t.threads = t.threads[:len(t.threads)-1]
 
@@ -138,18 +146,18 @@ func (t *Textile) Threads() []*Thread {
 }
 
 // Thread get a thread by id from loaded threads
-func (t *Textile) Thread(id string) (*int, *Thread) {
-	for i, thrd := range t.threads {
+func (t *Textile) Thread(id string) *Thread {
+	for _, thrd := range t.threads {
 		if thrd.Id == id {
-			return &i, thrd
+			return thrd
 		}
 	}
-	return nil, nil
+	return nil
 }
 
 // ThreadInfo gets thread info
 func (t *Textile) ThreadInfo(id string) (*ThreadInfo, error) {
-	_, thrd := t.Thread(id)
+	thrd := t.Thread(id)
 	if thrd == nil {
 		return nil, errors.New(fmt.Sprintf("cound not find thread: %s", id))
 	}
@@ -181,7 +189,7 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, thrd := t.Thread(id.Pretty()); thrd != nil {
+	if thrd := t.Thread(id.Pretty()); thrd != nil {
 		// thread exists, aborting
 		return nil, nil
 	}

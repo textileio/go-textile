@@ -151,29 +151,24 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	go func() {
 		for {
 			select {
-			case notification, ok := <-core.Node.NotificationCh():
+			case note, ok := <-core.Node.NotificationCh():
 				if !ok {
 					return
 				}
-				var username string
-				if notification.ActorUsername != "" {
-					username = notification.ActorUsername
-				} else {
-					username = notification.ActorId
-				}
-				var note = a.NewNotification(&astilectron.NotificationOptions{
-					Title: notification.Subject,
-					Body:  fmt.Sprintf("%s %s.", username, notification.Body),
+				username := core.Node.ContactUsername(note.ActorId)
+				var uinote = a.NewNotification(&astilectron.NotificationOptions{
+					Title: note.Subject,
+					Body:  fmt.Sprintf("%s %s.", username, note.Body),
 					Icon:  "/resources/icon.png",
 				})
 
 				// tmp auto-accept thread invites
-				if notification.Type == repo.ReceivedInviteNotification {
+				if note.Type == repo.ReceivedInviteNotification {
 					go func(tid string) {
 						if _, err := core.Node.AcceptThreadInvite(tid); err != nil {
 							astilog.Error(err)
 						}
-					}(notification.BlockId)
+					}(note.BlockId)
 				}
 
 				// show notification
@@ -186,7 +181,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 						astilog.Error(err)
 						return
 					}
-				}(note)
+				}(uinote)
 			}
 		}
 	}()
@@ -296,7 +291,7 @@ func getQRCode() (string, string, error) {
 }
 
 func getThreadPhotos(id string) (string, error) {
-	_, thrd := core.Node.Thread(id)
+	thrd := core.Node.Thread(id)
 	if thrd == nil {
 		return "", errors.New("thread not found")
 	}

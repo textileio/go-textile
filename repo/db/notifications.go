@@ -23,7 +23,7 @@ func (c *NotificationDB) Add(notification *repo.Notification) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into notifications(id, date, actorId, actorUsername, subject, subjectId, blockId, dataId, type, body, read) values(?,?,?,?,?,?,?,?,?,?,?)`
+	stm := `insert into notifications(id, date, actorId, subject, subjectId, blockId, dataId, type, body, read) values(?,?,?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -34,7 +34,6 @@ func (c *NotificationDB) Add(notification *repo.Notification) error {
 		notification.Id,
 		int(notification.Date.Unix()),
 		notification.ActorId,
-		notification.ActorUsername,
 		notification.Subject,
 		notification.SubjectId,
 		notification.BlockId,
@@ -132,9 +131,9 @@ func (c *NotificationDB) handleQuery(stm string) []repo.Notification {
 		return nil
 	}
 	for rows.Next() {
-		var id, actorId, actorUsername, subject, subjectId, blockId, dataId, body string
+		var id, actorId, subject, subjectId, blockId, dataId, body string
 		var dateInt, typeInt, readInt int
-		if err := rows.Scan(&id, &dateInt, &actorId, &actorUsername, &subject, &subjectId, &blockId, &dataId, &typeInt, &body, &readInt); err != nil {
+		if err := rows.Scan(&id, &dateInt, &actorId, &subject, &subjectId, &blockId, &dataId, &typeInt, &body, &readInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -143,17 +142,16 @@ func (c *NotificationDB) handleQuery(stm string) []repo.Notification {
 			read = true
 		}
 		notif := repo.Notification{
-			Id:            id,
-			Date:          time.Unix(int64(dateInt), 0),
-			ActorId:       actorId,
-			ActorUsername: actorUsername,
-			Subject:       subject,
-			SubjectId:     subjectId,
-			BlockId:       blockId,
-			DataId:        dataId,
-			Type:          repo.NotificationType(typeInt),
-			Body:          body,
-			Read:          read,
+			Id:        id,
+			Date:      time.Unix(int64(dateInt), 0),
+			ActorId:   actorId,
+			Subject:   subject,
+			SubjectId: subjectId,
+			BlockId:   blockId,
+			DataId:    dataId,
+			Type:      repo.NotificationType(typeInt),
+			Body:      body,
+			Read:      read,
 		}
 		ret = append(ret, notif)
 	}

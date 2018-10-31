@@ -202,7 +202,7 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create table thread_messages (id text primary key not null, peerId text not null, envelope blob not null, date integer not null);
     create index thread_message_date on thread_messages (date);
 
-    create table notifications (id text primary key not null, date integer not null, actorId text not null, actorUsername text not null, subject text not null, subjectId text not null, blockId text, dataId text, type integer not null, body text not null, read integer not null);
+    create table notifications (id text primary key not null, date integer not null, actorId text not null, subject text not null, subjectId text not null, blockId text, dataId text, type integer not null, body text not null, read integer not null);
     create index notification_date on notifications (date);
     create index notification_actorId on notifications (actorId);
     create index notification_subjectId on notifications (subjectId);

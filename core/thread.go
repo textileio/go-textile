@@ -28,10 +28,12 @@ type ThreadUpdate struct {
 
 // ThreadInfo reports info about a thread
 type ThreadInfo struct {
-	Head        *repo.Block `json:"head,omitempty"`
-	BlockCount  int         `json:"block_count"`
-	LatestPhoto *repo.Block `json:"latest_photo,omitempty"`
-	PhotoCount  int         `json:"photo_count"`
+	Id         string      `json:"id"`
+	Name       string      `json:"name"`
+	Head       *repo.Block `json:"head,omitempty"`
+	PeerCount  int         `json:"peer_cnt"`
+	BlockCount int         `json:"block_cnt"`
+	FileCount  int         `json:"file_cnt"`
 }
 
 // ThreadConfig is used to construct a Thread
@@ -83,7 +85,7 @@ func NewThread(model *repo.Thread, config *ThreadConfig) (*Thread, error) {
 // Info returns thread info
 func (t *Thread) Info() (*ThreadInfo, error) {
 	// block info
-	var head, latestPhoto *repo.Block
+	var head *repo.Block
 	headId, err := t.Head()
 	if err != nil {
 		return nil, err
@@ -92,21 +94,16 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 		head = t.datastore.Blocks().Get(headId)
 	}
 	blocks := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s'", t.Id))
-
-	// photo specific info
-	query := fmt.Sprintf("threadId='%s' and type=%d", t.Id, repo.PhotoBlock)
-	latestPhotos := t.datastore.Blocks().List("", 1, query)
-	if len(latestPhotos) > 0 {
-		latestPhoto = &latestPhotos[0]
-	}
-	photos := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s' and type=%d", t.Id, repo.PhotoBlock))
+	files := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s' and type=%d", t.Id, repo.PhotoBlock))
 
 	// send back summary
 	return &ThreadInfo{
-		Head:        head,
-		BlockCount:  blocks,
-		LatestPhoto: latestPhoto,
-		PhotoCount:  photos,
+		Id:         t.Id,
+		Name:       t.Name,
+		Head:       head,
+		PeerCount:  len(t.Peers()) + 1,
+		BlockCount: blocks,
+		FileCount:  files,
 	}, nil
 }
 

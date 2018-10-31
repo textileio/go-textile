@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"github.com/fatih/color"
-	"github.com/textileio/textile-go/core"
 	"gopkg.in/abiosoft/ishell.v2"
 )
 
@@ -18,20 +15,15 @@ func (x *peerCmd) Name() string {
 }
 
 func (x *peerCmd) Short() string {
-	return "fixme"
+	return "Show peer ID"
 }
 
 func (x *peerCmd) Long() string {
-	return "fixme"
+	return "Shows the local node's peer ID."
 }
 
 func (x *peerCmd) Execute(args []string) error {
-	res, err := executeStringCmd(GET, x.Name(), params{})
-	if err != nil {
-		return err
-	}
-	fmt.Println(res)
-	return nil
+	return callPeer(args, nil)
 }
 
 func (x *peerCmd) Shell() *ishell.Cmd {
@@ -40,13 +32,18 @@ func (x *peerCmd) Shell() *ishell.Cmd {
 		Help:     x.Short(),
 		LongHelp: x.Long(),
 		Func: func(c *ishell.Context) {
-			green := color.New(color.FgHiGreen).SprintFunc()
-			pid, err := core.Node.PeerId()
-			if err != nil {
+			if err := callPeer(c.Args, c); err != nil {
 				c.Err(err)
-				return
 			}
-			c.Println(green(pid.Pretty()))
 		},
 	}
+}
+
+func callPeer(_ []string, ctx *ishell.Context) error {
+	res, err := executeStringCmd(GET, "peer", params{})
+	if err != nil {
+		return err
+	}
+	output(res, ctx)
+	return nil
 }
