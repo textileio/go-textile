@@ -64,7 +64,7 @@ func (m *Mobile) AddPhoto(path string) (string, error) {
 
 // SharePhoto adds an existing photo to a new thread
 func (m *Mobile) AddPhotoToThread(dataId string, key string, threadId string, caption string) (string, error) {
-	_, thrd := core.Node.Thread(threadId)
+	thrd := core.Node.Thread(threadId)
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread %s", threadId))
 	}
@@ -88,7 +88,7 @@ func (m *Mobile) SharePhotoToThread(dataId string, threadId string, caption stri
 	if block == nil {
 		return "", errors.New(fmt.Sprintf("could not find block with data id: %s", dataId))
 	}
-	_, toThread := core.Node.Thread(threadId)
+	toThread := core.Node.Thread(threadId)
 	if toThread == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread %s", threadId))
 	}
@@ -104,7 +104,7 @@ func (m *Mobile) SharePhotoToThread(dataId string, threadId string, caption stri
 func (m *Mobile) Photos(offset string, limit int, threadId string) (string, error) {
 	var pre, query string
 	if threadId != "" {
-		_, thrd := core.Node.Thread(threadId)
+		thrd := core.Node.Thread(threadId)
 		if thrd == nil {
 			return "", errors.New(fmt.Sprintf("thread not found: %s", threadId))
 		}
@@ -173,7 +173,7 @@ func (m *Mobile) AddPhotoComment(blockId string, body string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	_, thrd := core.Node.Thread(block.ThreadId)
+	thrd := core.Node.Thread(block.ThreadId)
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
 	}
@@ -195,7 +195,7 @@ func (m *Mobile) AddPhotoLike(blockId string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	_, thrd := core.Node.Thread(block.ThreadId)
+	thrd := core.Node.Thread(block.ThreadId)
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
 	}
@@ -282,7 +282,7 @@ func (m *Mobile) ignoreBlock(blockId string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	_, thrd := core.Node.Thread(block.ThreadId)
+	thrd := core.Node.Thread(block.ThreadId)
 	if thrd == nil {
 		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
 	}

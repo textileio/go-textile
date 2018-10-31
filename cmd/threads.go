@@ -1,26 +1,25 @@
 package cmd
 
 import (
-	"crypto/rand"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
 	"gopkg.in/abiosoft/ishell.v2"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
-	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
+
+var errMissingThreadId = errors.New("missing thread id")
 
 func init() {
 	register(&threadsCmd{})
 }
 
 type threadsCmd struct {
-	Add  addThreadsCmd `command:"add"`
-	List lsThreadsCmd  `command:"ls"`
-	Get  getThreadsCmd `command:"get"`
-	//Delete delThreadsCmd `command:"del"`
+	Add    addThreadsCmd `command:"add"`
+	List   lsThreadsCmd  `command:"ls"`
+	Get    getThreadsCmd `command:"get"`
+	Remove rmThreadsCmd  `command:"rm"`
 }
 
 func (x *threadsCmd) Name() string {
@@ -44,7 +43,7 @@ func (x *threadsCmd) Shell() *ishell.Cmd {
 	cmd.AddCmd((&addThreadsCmd{}).Shell())
 	cmd.AddCmd((&lsThreadsCmd{}).Shell())
 	cmd.AddCmd((&getThreadsCmd{}).Shell())
-	//cmd.AddCmd((&delThreadsCmd{}).Shell())
+	cmd.AddCmd((&rmThreadsCmd{}).Shell())
 	return cmd
 }
 
@@ -63,12 +62,7 @@ func (x *addThreadsCmd) Long() string {
 }
 
 func (x *addThreadsCmd) Execute(args []string) error {
-	res, err := executeStringCmd(POST, "threads/"+x.Name(), params{args: args})
-	if err != nil {
-		return err
-	}
-	fmt.Println(res)
-	return nil
+	return callAddThreads(args, nil)
 }
 
 func (x *addThreadsCmd) Shell() *ishell.Cmd {
@@ -77,23 +71,21 @@ func (x *addThreadsCmd) Shell() *ishell.Cmd {
 		Help:     x.Short(),
 		LongHelp: x.Long(),
 		Func: func(c *ishell.Context) {
-			if len(c.Args) == 0 {
-				c.Err(errors.New("missing thread name"))
-				return
-			}
-			sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
-			if err != nil {
+			if err := callAddThreads(c.Args, c); err != nil {
 				c.Err(err)
-				return
 			}
-			thrd, err := core.Node.AddThread(c.Args[0], sk, true)
-			if err != nil {
-				c.Err(err)
-				return
-			}
-			c.Println(Grey("id:  ") + Cyan(thrd.Id))
 		},
 	}
+}
+
+func callAddThreads(args []string, ctx *ishell.Context) error {
+	var info *core.ThreadInfo
+	res, err := executeJsonCmd(POST, "threads", params{args: args}, &info)
+	if err != nil {
+		return err
+	}
+	output(res, ctx)
+	return nil
 }
 
 type lsThreadsCmd struct{}
@@ -111,18 +103,7 @@ func (x *lsThreadsCmd) Long() string {
 }
 
 func (x *lsThreadsCmd) Execute(args []string) error {
-	var list *struct {
-		Items []core.ThreadInfo `json:"items"`
-	}
-	if err := executeJsonCmd(GET, "threads", params{}, &list); err != nil {
-		return err
-	}
-	jsonb, err := json.MarshalIndent(list.Items, "", "    ")
-	if err != nil {
-		return err
-	}
-	fmt.Println(string(jsonb))
-	return nil
+	return callLsThreads(args, nil)
 }
 
 func (x *lsThreadsCmd) Shell() *ishell.Cmd {
@@ -131,34 +112,21 @@ func (x *lsThreadsCmd) Shell() *ishell.Cmd {
 		Help:     x.Short(),
 		LongHelp: x.Long(),
 		Func: func(c *ishell.Context) {
-			var infos []*core.ThreadInfo
-			for _, thrd := range core.Node.Threads() {
-				info, err := thrd.Info()
-				if err != nil {
-					c.Err(err)
-					return
-				}
-				infos = append(infos, info)
+			if err := callLsThreads(c.Args, c); err != nil {
+				c.Err(err)
 			}
-			if len(infos) == 0 {
-				c.Println(Grey("[]"))
-				return
-			}
-			c.Println("[")
-			for i, info := range infos {
-				jsonb, err := json.MarshalIndent(info, "", "    ")
-				if err != nil {
-					c.Err(err)
-					return
-				}
-				c.Println(Grey(string(jsonb)))
-				if i != len(infos)-1 {
-					c.Print(Grey(","))
-				}
-			}
-			c.Println("]")
 		},
 	}
+}
+
+func callLsThreads(_ []string, ctx *ishell.Context) error {
+	var list *[]core.ThreadInfo
+	res, err := executeJsonCmd(GET, "threads", params{}, &list)
+	if err != nil {
+		return err
+	}
+	output(res, ctx)
+	return nil
 }
 
 type getThreadsCmd struct{}
@@ -176,16 +144,7 @@ func (x *getThreadsCmd) Long() string {
 }
 
 func (x *getThreadsCmd) Execute(args []string) error {
-	var info *core.ThreadInfo
-	if err := executeJsonCmd(GET, "threads/"+x.Name(), params{args: args}, &info); err != nil {
-		return err
-	}
-	jsonb, err := json.MarshalIndent(info, "", "    ")
-	if err != nil {
-		return err
-	}
-	fmt.Println(string(jsonb))
-	return nil
+	return callGetThreads(args, nil)
 }
 
 func (x *getThreadsCmd) Shell() *ishell.Cmd {
@@ -194,28 +153,67 @@ func (x *getThreadsCmd) Shell() *ishell.Cmd {
 		Help:     x.Short(),
 		LongHelp: x.Long(),
 		Func: func(c *ishell.Context) {
-			if len(c.Args) == 0 {
-				c.Err(errors.New("missing thread id"))
-				return
-			}
-			_, thrd := core.Node.Thread(c.Args[0])
-			if thrd == nil {
-				c.Err(errors.New(fmt.Sprintf("could not find thread: %s", c.Args[0])))
-				return
-			}
-			info, err := thrd.Info()
-			if thrd == nil {
+			if err := callGetThreads(c.Args, c); err != nil {
 				c.Err(err)
-				return
 			}
-			jsonb, err := json.MarshalIndent(info, "", "    ")
-			if err != nil {
-				c.Err(err)
-				return
-			}
-			c.Println(Grey(string(jsonb)))
 		},
 	}
+}
+
+func callGetThreads(args []string, ctx *ishell.Context) error {
+	if len(args) == 0 {
+		return errMissingThreadId
+	}
+	var info *core.ThreadInfo
+	res, err := executeJsonCmd(GET, "threads/"+args[0], params{}, &info)
+	if err != nil {
+		return err
+	}
+	output(res, ctx)
+	return nil
+}
+
+type rmThreadsCmd struct{}
+
+func (x *rmThreadsCmd) Name() string {
+	return "rm"
+}
+
+func (x *rmThreadsCmd) Short() string {
+	return "Remove a thread"
+}
+
+func (x *rmThreadsCmd) Long() string {
+	return "Leaves and removes a thread."
+}
+
+func (x *rmThreadsCmd) Execute(args []string) error {
+	return callRmThreads(args, nil)
+}
+
+func (x *rmThreadsCmd) Shell() *ishell.Cmd {
+	return &ishell.Cmd{
+		Name:     x.Name(),
+		Help:     x.Short(),
+		LongHelp: x.Long(),
+		Func: func(c *ishell.Context) {
+			if err := callRmThreads(c.Args, c); err != nil {
+				c.Err(err)
+			}
+		},
+	}
+}
+
+func callRmThreads(args []string, ctx *ishell.Context) error {
+	if len(args) == 0 {
+		return errMissingThreadId
+	}
+	res, err := executeStringCmd(DEL, "threads/"+args[0], params{})
+	if err != nil {
+		return nil
+	}
+	output(res, ctx)
+	return nil
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -227,7 +225,7 @@ func listThreadPeers(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	_, thrd := core.Node.Thread(id)
+	thrd := core.Node.Thread(id)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", id)))
 		return
@@ -253,7 +251,7 @@ func listThreadBlocks(c *ishell.Context) {
 	}
 	threadId := c.Args[0]
 
-	_, thrd := core.Node.Thread(threadId)
+	thrd := core.Node.Thread(threadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadId)))
 		return
@@ -284,7 +282,7 @@ func ignoreBlock(c *ishell.Context) {
 		c.Err(err)
 		return
 	}
-	_, thrd := core.Node.Thread(block.ThreadId)
+	thrd := core.Node.Thread(block.ThreadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
 		return
@@ -308,7 +306,7 @@ func addThreadInvite(c *ishell.Context) {
 	}
 	threadId := c.Args[1]
 
-	_, thrd := core.Node.Thread(threadId)
+	thrd := core.Node.Thread(threadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadId)))
 		return
@@ -352,7 +350,7 @@ func addExternalThreadInvite(c *ishell.Context) {
 	}
 	id := c.Args[0]
 
-	_, thrd := core.Node.Thread(id)
+	thrd := core.Node.Thread(id)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", id)))
 		return
@@ -387,20 +385,4 @@ func acceptExternalThreadInvite(c *ishell.Context) {
 
 	green := color.New(color.FgHiGreen).SprintFunc()
 	c.Println(green("ok, accepted"))
-}
-
-func removeThread(c *ishell.Context) {
-	if len(c.Args) == 0 {
-		c.Err(errors.New("missing thread id"))
-		return
-	}
-	id := c.Args[0]
-
-	if _, err := core.Node.RemoveThread(id); err != nil {
-		c.Err(err)
-		return
-	}
-
-	red := color.New(color.FgHiRed).SprintFunc()
-	c.Println(red("removed thread %s", id))
 }

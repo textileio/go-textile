@@ -65,12 +65,12 @@ func (a *api) Start() {
 		v0.GET("/address", a.address)
 		v0.GET("/ping", a.ping)
 
-		v0.POST("/threads/add", a.addThread)
+		v0.POST("/threads", a.addThread)
 		v0.GET("/threads", a.getThreads)
 		v0.GET("/threads/:id", a.getThread)
-		//v0.DELETE("/threads/:id", a.delThread)
+		v0.DELETE("/threads/:id", a.rmThread)
 
-		v0.POST("/images/add", a.addImage)
+		v0.POST("/images", a.addImage)
 	}
 	a.server = &http.Server{
 		Addr:    a.addr,
@@ -180,7 +180,7 @@ func (a *api) addImage(g *gin.Context) {
 		file.Close()
 		adds = append(adds, added)
 	}
-	g.JSON(http.StatusCreated, gin.H{"items": adds})
+	g.JSON(http.StatusCreated, adds)
 }
 
 // -- THREADS -- //
@@ -205,7 +205,12 @@ func (a *api) addThread(g *gin.Context) {
 		a.abort500(g, err)
 		return
 	}
-	g.String(http.StatusCreated, thrd.Id)
+	info, err := thrd.Info()
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+	g.JSON(http.StatusCreated, info)
 }
 
 func (a *api) getThreads(g *gin.Context) {
@@ -218,20 +223,12 @@ func (a *api) getThreads(g *gin.Context) {
 		}
 		infos = append(infos, info)
 	}
-	g.JSON(http.StatusOK, gin.H{"items": infos})
+	g.JSON(http.StatusOK, infos)
 }
 
 func (a *api) getThread(g *gin.Context) {
-	args, err := a.readArgs(g)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-	if len(args) == 0 {
-		g.String(http.StatusBadRequest, "missing thread id")
-		return
-	}
-	_, thrd := a.node.Thread(args[0])
+	id := g.Param("id")
+	thrd := a.node.Thread(id)
 	if thrd == nil {
 		g.String(http.StatusNotFound, "thread not found")
 		return
@@ -242,6 +239,20 @@ func (a *api) getThread(g *gin.Context) {
 		return
 	}
 	g.JSON(http.StatusOK, info)
+}
+
+func (a *api) rmThread(g *gin.Context) {
+	id := g.Param("id")
+	thrd := a.node.Thread(id)
+	if thrd == nil {
+		g.String(http.StatusNotFound, "thread not found")
+		return
+	}
+	if _, err := a.node.RemoveThread(id); err != nil {
+		a.abort500(g, err)
+		return
+	}
+	g.String(http.StatusOK, "ok")
 }
 
 // -- HELPERS -- //

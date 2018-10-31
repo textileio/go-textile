@@ -639,7 +639,7 @@ func (t *Textile) threadByBlock(block *repo.Block) (*Thread, error) {
 
 // loadThread loads a thread into memory from the given on-disk model
 func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
-	if _, loaded := t.Thread(mod.Id); loaded != nil {
+	if loaded := t.Thread(mod.Id); loaded != nil {
 		return nil, ErrThreadLoaded
 	}
 	threadConfig := &ThreadConfig{

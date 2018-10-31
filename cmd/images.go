@@ -18,6 +18,8 @@ import (
 	"path/filepath"
 )
 
+var errMissingImagePath = errors.New("missing image path")
+
 func init() {
 	register(&imagesCmd{})
 }
@@ -69,21 +71,35 @@ func (x *addImagesCmd) Long() string {
 }
 
 func (x *addImagesCmd) Execute(args []string) error {
-	if len(args) == 0 {
-		return errors.New("missing image path")
-	}
+	return callAddImages(args, nil)
+}
 
+func (x *addImagesCmd) Shell() *ishell.Cmd {
+	return &ishell.Cmd{
+		Name:     x.Name(),
+		Help:     x.Short(),
+		LongHelp: x.Long(),
+		Func: func(c *ishell.Context) {
+			if err := callAddImages(c.Args, c); err != nil {
+				c.Err(err)
+			}
+		},
+	}
+}
+
+func callAddImages(args []string, ctx *ishell.Context) error {
+	if len(args) == 0 {
+		return errMissingImagePath
+	}
 	path, err := homedir.Expand(args[0])
 	if err != nil {
 		path = args[0]
 	}
-
 	file, err := os.Open(path)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 	part, err := writer.CreateFormFile("file", filepath.Base(path))
@@ -94,48 +110,17 @@ func (x *addImagesCmd) Execute(args []string) error {
 		return err
 	}
 	writer.Close()
-
-	var added *struct {
-		Items []core.AddDataResult `json:"items"`
-	}
-	if err := executeJsonCmd(POST, "images/"+x.Name(), params{
+	var list *[]core.AddDataResult
+	res, err := executeJsonCmd(POST, "images", params{
 		args:    args,
 		payload: &body,
 		ctype:   writer.FormDataContentType(),
-	}, &added); err != nil {
+	}, &list)
+	if err != nil {
 		return err
 	}
-
-	for _, item := range added.Items {
-		fmt.Println("id:  " + item.Id)
-		fmt.Println("key: " + item.Key)
-	}
+	output(res, ctx)
 	return nil
-}
-
-func (x *addImagesCmd) Shell() *ishell.Cmd {
-	return &ishell.Cmd{
-		Name:     x.Name(),
-		Help:     x.Short(),
-		LongHelp: x.Long(),
-		Func: func(c *ishell.Context) {
-			if len(c.Args) == 0 {
-				c.Err(errors.New("missing image path"))
-				return
-			}
-			path, err := homedir.Expand(c.Args[0])
-			if err != nil {
-				path = c.Args[0]
-			}
-			added, err := core.Node.AddImageByPath(path)
-			if err != nil {
-				c.Err(err)
-				return
-			}
-			c.Println(Grey("id:  ") + Green(added.Id))
-			c.Println(Grey("key: ") + Green(added.Key))
-		},
-	}
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -163,7 +148,7 @@ func sharePhoto(c *ishell.Context) {
 	}
 
 	// lookup destination thread
-	_, toThread := core.Node.Thread(threadId)
+	toThread := core.Node.Thread(threadId)
 	if toThread == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", threadId)))
 		return
@@ -184,7 +169,7 @@ func listPhotos(c *ishell.Context) {
 	}
 	threadId := c.Args[0]
 
-	_, thrd := core.Node.Thread(threadId)
+	thrd := core.Node.Thread(threadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread: %s", threadId)))
 		return
@@ -297,7 +282,7 @@ func addPhotoComment(c *ishell.Context) {
 		c.Err(err)
 		return
 	}
-	_, thrd := core.Node.Thread(block.ThreadId)
+	thrd := core.Node.Thread(block.ThreadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
 		return
@@ -321,7 +306,7 @@ func addPhotoLike(c *ishell.Context) {
 		c.Err(err)
 		return
 	}
-	_, thrd := core.Node.Thread(block.ThreadId)
+	thrd := core.Node.Thread(block.ThreadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
 		return
@@ -345,7 +330,7 @@ func listPhotoComments(c *ishell.Context) {
 		c.Err(err)
 		return
 	}
-	_, thrd := core.Node.Thread(block.ThreadId)
+	thrd := core.Node.Thread(block.ThreadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
 		return
@@ -378,7 +363,7 @@ func listPhotoLikes(c *ishell.Context) {
 		c.Err(err)
 		return
 	}
-	_, thrd := core.Node.Thread(block.ThreadId)
+	thrd := core.Node.Thread(block.ThreadId)
 	if thrd == nil {
 		c.Err(errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId)))
 		return

@@ -42,7 +42,7 @@ const (
 	GET  method = "GET"
 	POST method = "POST"
 	PUT  method = "PUT"
-	DEL  method = "DEL"
+	DEL  method = "DELETE"
 )
 
 type params struct {
@@ -52,8 +52,8 @@ type params struct {
 	ctype   string
 }
 
-func executeStringCmd(meth method, name string, pars params) (string, error) {
-	req, err := request(meth, name, pars)
+func executeStringCmd(meth method, pth string, pars params) (string, error) {
+	req, err := request(meth, pth, pars)
 	if err != nil {
 		return "", err
 	}
@@ -65,24 +65,31 @@ func executeStringCmd(meth method, name string, pars params) (string, error) {
 	return res, nil
 }
 
-func executeJsonCmd(meth method, name string, pars params, target interface{}) error {
-	req, err := request(meth, name, pars)
+func executeJsonCmd(meth method, pth string, pars params, target interface{}) (string, error) {
+	req, err := request(meth, pth, pars)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer req.Body.Close()
 	if req.StatusCode >= 400 {
 		res, err := unmarshalString(req.Body)
 		if err != nil {
-			return err
+			return "", err
 		}
-		return errors.New(res)
+		return "", errors.New(res)
 	}
-	return unmarshalJSON(req.Body, target)
+	if err := unmarshalJSON(req.Body, target); err != nil {
+		return "", err
+	}
+	data, err := json.MarshalIndent(target, "", "    ")
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
 
-func request(meth method, cmd string, pars params) (*http.Response, error) {
-	url := fmt.Sprintf("http://127.0.0.1:8000/api/v0/%s", cmd)
+func request(meth method, pth string, pars params) (*http.Response, error) {
+	url := fmt.Sprintf("http://127.0.0.1:40600/api/v0/%s", pth)
 	req, err := http.NewRequest(string(meth), url, pars.payload)
 	if err != nil {
 		return nil, err
@@ -118,4 +125,12 @@ func unmarshalJSON(body io.ReadCloser, target interface{}) error {
 		return err
 	}
 	return json.Unmarshal(data, target)
+}
+
+func output(value interface{}, ctx *ishell.Context) {
+	if ctx != nil {
+		ctx.Println(Grey(value))
+	} else {
+		fmt.Println(value)
+	}
 }

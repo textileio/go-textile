@@ -27,7 +27,7 @@ var ErrInvalidThreadBlock = errors.New("invalid thread block")
 type ThreadsService struct {
 	service          *service.Service
 	datastore        repo.Datastore
-	getThread        func(id string) (*int, *Thread)
+	getThread        func(id string) *Thread
 	sendNotification func(note *repo.Notification) error
 }
 
@@ -36,7 +36,7 @@ func NewThreadsService(
 	account *keypair.Full,
 	node *core.IpfsNode,
 	datastore repo.Datastore,
-	getThread func(id string) (*int, *Thread),
+	getThread func(id string) *Thread,
 	sendNotification func(note *repo.Notification) error,
 ) *ThreadsService {
 	handler := &ThreadsService{
@@ -73,7 +73,7 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 	}
 
 	// lookup thread
-	_, thrd := h.getThread(tenv.Thread)
+	thrd := h.getThread(tenv.Thread)
 	if thrd == nil {
 		// this might be a direct invite
 		if err := h.handleInvite(hash, tenv); err != nil {

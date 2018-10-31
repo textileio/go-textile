@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"github.com/fatih/color"
-	"github.com/textileio/textile-go/core"
 	"gopkg.in/abiosoft/ishell.v2"
 )
 
@@ -24,12 +21,7 @@ func (x *addressCmd) Long() string {
 }
 
 func (x *addressCmd) Execute(args []string) error {
-	res, err := executeStringCmd(GET, x.Name(), params{})
-	if err != nil {
-		return err
-	}
-	fmt.Println(res)
-	return nil
+	return callAddress(args, nil)
 }
 
 func (x *addressCmd) Shell() *ishell.Cmd {
@@ -37,13 +29,18 @@ func (x *addressCmd) Shell() *ishell.Cmd {
 		Name: x.Name(),
 		Help: x.Short(),
 		Func: func(c *ishell.Context) {
-			cyan := color.New(color.FgHiCyan).SprintFunc()
-			addr, err := core.Node.Address()
-			if err != nil {
+			if err := callAddress(c.Args, c); err != nil {
 				c.Err(err)
-				return
 			}
-			c.Println(cyan(addr))
 		},
 	}
+}
+
+func callAddress(_ []string, ctx *ishell.Context) error {
+	res, err := executeStringCmd(GET, "address", params{})
+	if err != nil {
+		return err
+	}
+	output(res, ctx)
+	return nil
 }

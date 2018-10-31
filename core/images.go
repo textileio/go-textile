@@ -189,7 +189,7 @@ func (t *Textile) PhotoThreads(id string) []*Thread {
 	}
 	var threads []*Thread
 	for _, block := range blocks {
-		if _, thrd := t.Thread(block.ThreadId); thrd != nil {
+		if thrd := t.Thread(block.ThreadId); thrd != nil {
 			threads = append(threads, thrd)
 		}
 	}
