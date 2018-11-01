@@ -2,10 +2,8 @@ package core
 
 import (
 	"context"
-	"crypto/rand"
 	"github.com/gin-gonic/gin"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
-	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"net/http"
 	"strings"
 )
@@ -65,12 +63,18 @@ func (a *api) Start() {
 		v0.GET("/address", a.address)
 		v0.GET("/ping", a.ping)
 
-		v0.POST("/threads", a.addThread)
-		v0.GET("/threads", a.getThreads)
-		v0.GET("/threads/:id", a.getThread)
-		v0.DELETE("/threads/:id", a.rmThread)
+		v0.POST("/threads", a.addThreads)
+		v0.GET("/threads", a.lsThreads)
+		v0.GET("/threads/:id", a.getThreads)
+		v0.DELETE("/threads/:id", a.rmThreads)
 
-		v0.POST("/images", a.addImage)
+		v0.POST("/images", a.addImages)
+
+		v0.POST("/cafes", a.addCafes)
+		v0.GET("/cafes", a.lsCafes)
+		v0.GET("/cafes/:id", a.getCafes)
+		v0.DELETE("/cafes/:id", a.rmCafes)
+		v0.POST("/cafes/check_mail", a.checkMailCafes)
 	}
 	a.server = &http.Server{
 		Addr:    a.addr,
@@ -111,7 +115,7 @@ func (a *api) Stop() error {
 	return nil
 }
 
-// -- INFO -- //
+// -- UTILITY ENDPOINTS -- //
 
 func (a *api) peer(g *gin.Context) {
 	pid, err := a.node.PeerId()
@@ -130,8 +134,6 @@ func (a *api) address(g *gin.Context) {
 	}
 	g.String(http.StatusOK, addr)
 }
-
-// -- NETWORK -- //
 
 func (a *api) ping(g *gin.Context) {
 	args, err := a.readArgs(g)
@@ -155,107 +157,6 @@ func (a *api) ping(g *gin.Context) {
 	}
 	g.String(http.StatusOK, string(status))
 }
-
-// -- IMAGES -- //
-
-func (a *api) addImage(g *gin.Context) {
-	form, err := g.MultipartForm()
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-	fileHeaders := form.File["file"]
-	var adds []*AddDataResult
-	for _, header := range fileHeaders {
-		file, err := header.Open()
-		if err != nil {
-			g.String(http.StatusBadRequest, err.Error())
-			return
-		}
-		added, err := a.node.AddImage(file, header.Filename)
-		if err != nil {
-			g.String(http.StatusBadRequest, err.Error())
-			return
-		}
-		file.Close()
-		adds = append(adds, added)
-	}
-	g.JSON(http.StatusCreated, adds)
-}
-
-// -- THREADS -- //
-
-func (a *api) addThread(g *gin.Context) {
-	args, err := a.readArgs(g)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-	if len(args) == 0 {
-		g.String(http.StatusBadRequest, "missing thread name")
-		return
-	}
-	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-	thrd, err := a.node.AddThread(args[0], sk, true)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-	info, err := thrd.Info()
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-	g.JSON(http.StatusCreated, info)
-}
-
-func (a *api) getThreads(g *gin.Context) {
-	infos := make([]*ThreadInfo, 0)
-	for _, thrd := range a.node.Threads() {
-		info, err := thrd.Info()
-		if err != nil {
-			a.abort500(g, err)
-			return
-		}
-		infos = append(infos, info)
-	}
-	g.JSON(http.StatusOK, infos)
-}
-
-func (a *api) getThread(g *gin.Context) {
-	id := g.Param("id")
-	thrd := a.node.Thread(id)
-	if thrd == nil {
-		g.String(http.StatusNotFound, "thread not found")
-		return
-	}
-	info, err := thrd.Info()
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-	g.JSON(http.StatusOK, info)
-}
-
-func (a *api) rmThread(g *gin.Context) {
-	id := g.Param("id")
-	thrd := a.node.Thread(id)
-	if thrd == nil {
-		g.String(http.StatusNotFound, "thread not found")
-		return
-	}
-	if _, err := a.node.RemoveThread(id); err != nil {
-		a.abort500(g, err)
-		return
-	}
-	g.String(http.StatusOK, "ok")
-}
-
-// -- HELPERS -- //
 
 func (a *api) readArgs(g *gin.Context) ([]string, error) {
 	header := g.Request.Header.Get("X-Textile-Args")

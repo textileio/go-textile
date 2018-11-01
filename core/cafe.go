@@ -8,33 +8,42 @@ import (
 
 // RegisterCafe registers this account with another peer (the "cafe"),
 // which provides a session token for the service
-func (t *Textile) RegisterCafe(peerId string) error {
+func (t *Textile) RegisterCafe(peerId string) (*repo.CafeSession, error) {
 	if !t.Online() {
-		return ErrOffline
+		return nil, ErrOffline
 	}
 
 	// call up the peer, see if they're offering a cafe
 	pid, err := peer.IDB58Decode(peerId)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return t.cafeService.Register(pid)
+	if err := t.cafeService.Register(pid); err != nil {
+		return nil, err
+	}
+
+	// publish profile w/ updated inboxes
+	if err := t.PublishProfile(); err != nil {
+		return nil, err
+	}
+
+	return t.datastore.CafeSessions().Get(pid.Pretty()), nil
 }
 
-// DeregisterCafe removes the session associated with the given cafe
-func (t *Textile) DeregisterCafe(peerId string) error {
-	if err := t.touchDatastore(); err != nil {
-		return err
-	}
-	return t.datastore.CafeSessions().Delete(peerId)
-}
-
-// ListCafeSessions lists active cafe sessions
-func (t *Textile) ListCafeSessions() ([]repo.CafeSession, error) {
+// CafeSessions lists active cafe sessions
+func (t *Textile) CafeSessions() ([]repo.CafeSession, error) {
 	if err := t.touchDatastore(); err != nil {
 		return nil, err
 	}
 	return t.datastore.CafeSessions().List(), nil
+}
+
+// CafeSession returns an active session by id
+func (t *Textile) CafeSession(peerId string) (*repo.CafeSession, error) {
+	if err := t.touchDatastore(); err != nil {
+		return nil, err
+	}
+	return t.datastore.CafeSessions().Get(peerId), nil
 }
 
 // RefreshCafeSession attempts to refresh a token with a cafe
@@ -49,8 +58,21 @@ func (t *Textile) RefreshCafeSession(cafeId string) (*repo.CafeSession, error) {
 	return t.cafeService.refresh(session)
 }
 
-// CheckCafeMessages fetches new messages from registered cafes
-func (t *Textile) CheckCafeMessages() error {
+// DeregisterCafe removes the session associated with the given cafe
+func (t *Textile) DeregisterCafe(peerId string) error {
+	if err := t.touchDatastore(); err != nil {
+		return err
+	}
+	if err := t.datastore.CafeSessions().Delete(peerId); err != nil {
+		return err
+	}
+
+	// publish profile w/ updated inboxes
+	return t.PublishProfile()
+}
+
+// CheckCafeMail fetches new messages from registered cafes
+func (t *Textile) CheckCafeMail() error {
 	if err := t.touchDatastore(); err != nil {
 		return err
 	}

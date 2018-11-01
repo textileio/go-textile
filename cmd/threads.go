@@ -31,7 +31,10 @@ func (x *threadsCmd) Short() string {
 }
 
 func (x *threadsCmd) Long() string {
-	return "Add, ls, get, and del threads."
+	return `
+Threads are distributed sets of files between peers. 
+Use this command to add, list, get, and remove threads.
+`
 }
 
 func (x *threadsCmd) Shell() *ishell.Cmd {
@@ -60,7 +63,7 @@ func (x *addThreadsCmd) Short() string {
 }
 
 func (x *addThreadsCmd) Long() string {
-	return "Adds a new thread for tracking a set of files between peers."
+	return "Adds and joins a new thread."
 }
 
 func (x *addThreadsCmd) Execute(args []string) error {
@@ -104,7 +107,7 @@ func (x *lsThreadsCmd) Short() string {
 }
 
 func (x *lsThreadsCmd) Long() string {
-	return "Adds a new thread for tracking a set of files between peers."
+	return "List info about all threads."
 }
 
 func (x *lsThreadsCmd) Execute(args []string) error {
@@ -148,7 +151,7 @@ func (x *getThreadsCmd) Short() string {
 }
 
 func (x *getThreadsCmd) Long() string {
-	return "Gets and displays info for a thread."
+	return "Gets and displays info about a thread."
 }
 
 func (x *getThreadsCmd) Execute(args []string) error {

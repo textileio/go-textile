@@ -11,18 +11,10 @@ import (
 )
 
 func publishProfile(c *ishell.Context) {
-	entry, err := core.Node.PublishProfile(nil)
-	if err != nil {
+	if err := core.Node.PublishProfile(); err != nil {
 		c.Err(err)
 		return
 	}
-	if entry == nil {
-		c.Println(color.New(color.FgHiRed).SprintFunc()("profile does not exist"))
-		return
-	}
-
-	green := color.New(color.FgHiGreen).SprintFunc()
-	c.Println(green(fmt.Sprintf("ok, published %s -> %s", entry.Name, entry.Value)))
 }
 
 func resolveProfile(c *ishell.Context) {

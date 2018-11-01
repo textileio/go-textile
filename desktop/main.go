@@ -247,7 +247,7 @@ func sendData(name string, data map[string]interface{}) {
 func handleMessage(_ *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
 	case "refresh":
-		if err := core.Node.CheckCafeMessages(); err != nil {
+		if err := core.Node.CheckCafeMail(); err != nil {
 			return nil, err
 		}
 		return map[string]interface{}{}, nil
