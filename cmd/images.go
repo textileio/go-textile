@@ -56,7 +56,9 @@ func (x *imagesCmd) Shell() *ishell.Cmd {
 	return cmd
 }
 
-type addImagesCmd struct{}
+type addImagesCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
 
 func (x *addImagesCmd) Name() string {
 	return "add"
@@ -71,6 +73,7 @@ func (x *addImagesCmd) Long() string {
 }
 
 func (x *addImagesCmd) Execute(args []string) error {
+	setApi(x.Client)
 	return callAddImages(args, nil)
 }
 

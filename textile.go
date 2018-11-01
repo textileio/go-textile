@@ -82,7 +82,7 @@ type daemonCmd struct {
 }
 
 type shellCmd struct {
-	ApiAddr string `long:"api" description:"API address to use" default:"127.0.0.1:40600"`
+	Client cmd.ClientOptions `group:"Client Options"`
 }
 
 var shell *ishell.Shell
@@ -292,7 +292,7 @@ func (x *daemonCmd) Execute(args []string) error {
 	if err := buildNode(x.PinCode, x.RepoPath); err != nil {
 		return err
 	}
-	printSplashScreen()
+	printSplash()
 
 	// handle interrupt
 	quit := make(chan os.Signal)
@@ -330,10 +330,7 @@ func (x *shellCmd) Execute(args []string) error {
 		}
 	}
 
-	fmt.Println(cmd.Grey("Textile shell version v" + core.Version))
-	fmt.Println(cmd.Grey("type 'help' for available commands"))
-
-	shell.Run()
+	cmd.RunShell(shell, x.Client)
 	return nil
 }
 
@@ -466,7 +463,7 @@ func stopNode() error {
 	return core.Node.Stop()
 }
 
-func printSplashScreen() {
+func printSplash() {
 	pid, err := core.Node.PeerId()
 	if err != nil {
 		log.Fatalf("get peer id failed: %s", err)
@@ -476,12 +473,12 @@ func printSplashScreen() {
 		log.Fatalf("get account failed: %s", err)
 	}
 	fmt.Println(cmd.Grey("Textile daemon version v" + core.Version))
-	fmt.Println(cmd.Grey("repo:    ") + cmd.Grey(core.Node.RepoPath()))
-	fmt.Println(cmd.Grey("api:     ") + cmd.Grey(core.Node.ApiAddr()))
-	fmt.Println(cmd.Grey("gateway: ") + cmd.Grey(gateway.Host.Addr()))
+	fmt.Println(cmd.Grey("Repo:    ") + cmd.Grey(core.Node.RepoPath()))
+	fmt.Println(cmd.Grey("API:     ") + cmd.Grey(core.Node.ApiAddr()))
+	fmt.Println(cmd.Grey("Gateway: ") + cmd.Grey(gateway.Host.Addr()))
 	if core.Node.CafeApiAddr() != "" {
-		fmt.Println(cmd.Grey("cafe:    ") + cmd.Grey(core.Node.CafeApiAddr()))
+		fmt.Println(cmd.Grey("Cafe:    ") + cmd.Grey(core.Node.CafeApiAddr()))
 	}
-	fmt.Println(cmd.Grey("peer:    ") + cmd.Green(pid.Pretty()))
-	fmt.Println(cmd.Grey("account: ") + cmd.Cyan(accnt.Address()))
+	fmt.Println(cmd.Grey("PeerID:  ") + cmd.Green(pid.Pretty()))
+	fmt.Println(cmd.Grey("Account: ") + cmd.Cyan(accnt.Address()))
 }

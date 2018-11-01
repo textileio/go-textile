@@ -214,7 +214,7 @@ func (a *api) addThread(g *gin.Context) {
 }
 
 func (a *api) getThreads(g *gin.Context) {
-	var infos []*ThreadInfo
+	infos := make([]*ThreadInfo, 0)
 	for _, thrd := range a.node.Threads() {
 		info, err := thrd.Info()
 		if err != nil {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/fatih/color"
+	"github.com/textileio/textile-go/core"
 	"gopkg.in/abiosoft/ishell.v2"
 	"io"
 	"io/ioutil"
@@ -12,12 +13,30 @@ import (
 	"strings"
 )
 
+type ClientOptions struct {
+	ApiAddr    string `long:"api" description:"API address to use" default:"http://127.0.0.1:40600"`
+	ApiVersion string `long:"api-version" description:"API version to use" default:"v0"`
+}
+
 var (
 	Grey   = color.New(color.FgHiBlack).SprintFunc()
 	Green  = color.New(color.FgHiGreen).SprintFunc()
 	Cyan   = color.New(color.FgHiCyan).SprintFunc()
 	Yellow = color.New(color.FgHiYellow).SprintFunc()
 )
+
+func RunShell(shell *ishell.Shell, opts ClientOptions) {
+	setApi(opts)
+	printSplash(core.Version)
+	shell.Run()
+}
+
+var apiAddr, apiVersion string
+
+func setApi(opts ClientOptions) {
+	apiAddr = opts.ApiAddr
+	apiVersion = opts.ApiVersion
+}
 
 var cmds []Cmd
 
@@ -89,7 +108,7 @@ func executeJsonCmd(meth method, pth string, pars params, target interface{}) (s
 }
 
 func request(meth method, pth string, pars params) (*http.Response, error) {
-	url := fmt.Sprintf("http://127.0.0.1:40600/api/v0/%s", pth)
+	url := fmt.Sprintf("%s/api/%s/%s", apiAddr, apiVersion, pth)
 	req, err := http.NewRequest(string(meth), url, pars.payload)
 	if err != nil {
 		return nil, err
@@ -133,4 +152,11 @@ func output(value interface{}, ctx *ishell.Context) {
 	} else {
 		fmt.Println(value)
 	}
+}
+
+func printSplash(version string) {
+	url := fmt.Sprintf("%s/api/%s", apiAddr, apiVersion)
+	fmt.Println(Grey("Textile shell version v" + version))
+	fmt.Println(Grey("Textile API: " + url))
+	fmt.Println(Grey("type 'help' for available commands"))
 }
