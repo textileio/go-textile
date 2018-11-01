@@ -74,7 +74,7 @@ func TestCafeApi_Setup(t *testing.T) {
 		t.Errorf(err.Error())
 		return
 	}
-	if err := node1.RegisterCafe(peerId2.Pretty()); err != nil {
+	if _, err := node1.RegisterCafe(peerId2.Pretty()); err != nil {
 		t.Errorf("register node1 w/ node2 failed: %s", err)
 		return
 	}

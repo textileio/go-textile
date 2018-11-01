@@ -12,17 +12,15 @@ type CafeSessions struct {
 
 // RegisterCafe calls core RegisterCafe
 func (m *Mobile) RegisterCafe(peerId string) error {
-	return core.Node.RegisterCafe(peerId)
+	if _, err := core.Node.RegisterCafe(peerId); err != nil {
+		return err
+	}
+	return nil
 }
 
-// DeegisterCafe calls core DeregisterCafe
-func (m *Mobile) DeregisterCafe(peerId string) error {
-	return core.Node.DeregisterCafe(peerId)
-}
-
-// ListCafeSessions calls core ListCafeSessions
-func (m *Mobile) ListCafeSessions() (string, error) {
-	items, err := core.Node.ListCafeSessions()
+// CafeSessions calls core ListCafeSessions
+func (m *Mobile) CafeSessions() (string, error) {
+	items, err := core.Node.CafeSessions()
 	if err != nil {
 		return "", err
 	}
@@ -31,6 +29,18 @@ func (m *Mobile) ListCafeSessions() (string, error) {
 		sessions.Items = items
 	}
 	return toJSON(sessions)
+}
+
+// CafeSession calls core CafeSession
+func (m *Mobile) CafeSession(peerId string) (string, error) {
+	session, err := core.Node.CafeSession(peerId)
+	if err != nil {
+		return "", err
+	}
+	if session == nil {
+		return "", nil
+	}
+	return toJSON(session)
 }
 
 // RefreshCafeSession calls core RefreshCafeSession
@@ -42,7 +52,12 @@ func (m *Mobile) RefreshCafeSession(cafeId string) (string, error) {
 	return toJSON(session)
 }
 
-// CheckCafeMessages calls core CheckCafeMessages
-func (m *Mobile) CheckCafeMessages() error {
-	return core.Node.CheckCafeMessages()
+// DeegisterCafe calls core DeregisterCafe
+func (m *Mobile) DeregisterCafe(peerId string) error {
+	return core.Node.DeregisterCafe(peerId)
+}
+
+// CheckCafeMail calls core CheckCafeMessages
+func (m *Mobile) CheckCafeMail() error {
+	return core.Node.CheckCafeMail()
 }
