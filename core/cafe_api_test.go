@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 )
 
 var repoPath1 = "testdata/.textile1"
@@ -67,6 +68,7 @@ func TestCafeApi_Setup(t *testing.T) {
 	// wait for both
 	<-node1.OnlineCh()
 	<-node2.OnlineCh()
+	time.Sleep(time.Second * 3)
 
 	// register cafe
 	peerId2, err := node2.PeerId()
@@ -80,7 +82,7 @@ func TestCafeApi_Setup(t *testing.T) {
 	}
 
 	// get sessions
-	sessions, err := node1.ListCafeSessions()
+	sessions, err := node1.CafeSessions()
 	if err != nil {
 		t.Errorf(err.Error())
 		return
