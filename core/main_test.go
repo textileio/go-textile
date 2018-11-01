@@ -17,7 +17,7 @@ func TestInitRepo(t *testing.T) {
 	os.RemoveAll(repoPath)
 	accnt := keypair.Random()
 	if err := InitRepo(InitConfig{
-		Account:  *accnt,
+		Account:  accnt,
 		RepoPath: repoPath,
 		LogLevel: logger.ERROR,
 	}); err != nil {
@@ -29,7 +29,6 @@ func TestNewTextile(t *testing.T) {
 	var err error
 	node, err = NewTextile(RunConfig{
 		RepoPath: repoPath,
-		LogLevel: logger.ERROR,
 	})
 	if err != nil {
 		t.Errorf("create node failed: %s", err)

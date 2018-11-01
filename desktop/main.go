@@ -75,10 +75,10 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	if !fsrepo.IsInitialized(repoPath) {
 		accnt := keypair.Random()
 		initc := core.InitConfig{
-			Account:  *accnt,
-			RepoPath: repoPath,
-			LogLevel: logger.ERROR,
-			LogFiles: true,
+			Account:   accnt,
+			RepoPath:  repoPath,
+			LogLevel:  logger.ERROR,
+			LogToDisk: true,
 		}
 		if err := core.InitRepo(initc); err != nil {
 			return err
@@ -86,12 +86,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	}
 
 	// build textile node
-	runc := core.RunConfig{
-		RepoPath: repoPath,
-		LogLevel: logger.ERROR,
-		LogFiles: true,
-	}
-	core.Node, err = core.NewTextile(runc)
+	core.Node, err = core.NewTextile(core.RunConfig{RepoPath: repoPath})
 	if err != nil {
 		return err
 	}

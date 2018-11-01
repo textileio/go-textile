@@ -26,20 +26,20 @@ var ErrRepoCorrupted = errors.New("repo is corrupted")
 
 const repover = "6"
 
-func DoInit(repoRoot string, initDatastore func() error) error {
-	if err := checkWriteable(repoRoot); err != nil {
+func Init(repoPath string, version string) error {
+	if err := checkWriteable(repoPath); err != nil {
 		return err
 	}
 
 	// double check if initialized
-	if fsrepo.IsInitialized(repoRoot) {
+	if fsrepo.IsInitialized(repoPath) {
 		return ErrRepoExists
 	}
-	log.Infof("initializing repo at %s", repoRoot)
+	log.Infof("initializing repo at %s", repoPath)
 
 	// custom directories
 	paths, err := schema.NewCustomSchemaManager(schema.Context{
-		DataPath: repoRoot,
+		DataPath: repoPath,
 	})
 	if err := paths.BuildSchemaDirectories(); err != nil {
 		return err
@@ -54,21 +54,27 @@ func DoInit(repoRoot string, initDatastore func() error) error {
 	if err != nil {
 		return err
 	}
-	conf, err := config.Init(peerIdentity)
+
+	// initialize ipfs config
+	conf, err := config.InitIpfs(peerIdentity)
 	if err != nil {
 		return err
 	}
-	if err := fsrepo.Init(repoRoot, conf); err != nil {
+	if err := fsrepo.Init(repoPath, conf); err != nil {
 		return err
 	}
 
-	// initialize sqlite datastore
-	if err := initDatastore(); err != nil {
+	// write default textile config
+	tconf, err := config.Init(version)
+	if err != nil {
+		return err
+	}
+	if err := config.Write(repoPath, tconf); err != nil {
 		return err
 	}
 
 	// write repo version
-	repoverFile, err := os.Create(path.Join(repoRoot, "repover"))
+	repoverFile, err := os.Create(path.Join(repoPath, "repover"))
 	if err != nil {
 		return err
 	}
@@ -77,7 +83,7 @@ func DoInit(repoRoot string, initDatastore func() error) error {
 		return err
 	}
 
-	return initializeIpnsKeyspace(repoRoot)
+	return initializeIpnsKeyspace(repoPath)
 }
 
 func checkWriteable(dir string) error {

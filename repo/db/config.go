@@ -26,7 +26,7 @@ func (c *ConfigDB) Init(pin string) error {
 	return initDatabaseTables(c.db, pin)
 }
 
-func (c *ConfigDB) Configure(kp *keypair.Full, mobile bool, created time.Time) error {
+func (c *ConfigDB) Configure(accnt *keypair.Full, created time.Time) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -38,22 +38,11 @@ func (c *ConfigDB) Configure(kp *keypair.Full, mobile bool, created time.Time) e
 		return err
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec("seed", kp.Seed())
-	if err != nil {
+	if _, err = stmt.Exec("seed", accnt.Seed()); err != nil {
 		tx.Rollback()
 		return err
 	}
-	var mobileInt int
-	if mobile {
-		mobileInt = 1
-	}
-	_, err = stmt.Exec("mobile", mobileInt)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	_, err = stmt.Exec("created", created.Format(time.RFC3339))
-	if err != nil {
+	if _, err = stmt.Exec("created", created.Format(time.RFC3339)); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -76,9 +65,8 @@ func (c *ConfigDB) GetAccount() (*keypair.Full, error) {
 		}
 		return nil, err
 	}
-	_, err = strkey.Decode(strkey.VersionByteSeed, seed)
-	if err != nil {
-
+	if _, err = strkey.Decode(strkey.VersionByteSeed, seed); err != nil {
+		return nil, err
 	}
 	kp, err := keypair.Parse(seed)
 	if err != nil {
@@ -91,26 +79,6 @@ func (c *ConfigDB) GetAccount() (*keypair.Full, error) {
 	return full, nil
 }
 
-func (c *ConfigDB) GetMobile() (bool, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	var mobile bool
-	stmt, err := c.db.Prepare("select value from config where key=?")
-	if err != nil {
-		return mobile, err
-	}
-	defer stmt.Close()
-	var mobileInt int
-	err = stmt.QueryRow("mobile").Scan(&mobileInt)
-	if err != nil {
-		return mobile, err
-	}
-	if mobileInt == 1 {
-		mobile = true
-	}
-	return mobile, nil
-}
-
 func (c *ConfigDB) GetCreationDate() (time.Time, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -121,8 +89,7 @@ func (c *ConfigDB) GetCreationDate() (time.Time, error) {
 	}
 	defer stmt.Close()
 	var created []byte
-	err = stmt.QueryRow("created").Scan(&created)
-	if err != nil {
+	if err := stmt.QueryRow("created").Scan(&created); err != nil {
 		return t, err
 	}
 	return time.Parse(time.RFC3339, string(created))
@@ -132,9 +99,8 @@ func (c *ConfigDB) IsEncrypted() bool {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	pwdCheck := "select count(*) from sqlite_master;"
-	_, err := c.db.Exec(pwdCheck) // Fails if wrong password is entered
-	if err != nil {
-		return true
+	if _, err := c.db.Exec(pwdCheck); err != nil {
+		return true // wrong password
 	}
 	return false
 }

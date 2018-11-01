@@ -35,9 +35,8 @@ type Queryable interface {
 
 type ConfigStore interface {
 	Init(pin string) error
-	Configure(kp *keypair.Full, mobile bool, created time.Time) error
+	Configure(accnt *keypair.Full, created time.Time) error
 	GetAccount() (*keypair.Full, error)
-	GetMobile() (bool, error)
 	GetCreationDate() (time.Time, error)
 	IsEncrypted() bool
 }

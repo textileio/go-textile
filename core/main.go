@@ -8,6 +8,7 @@ import (
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/service"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -18,12 +19,13 @@ import (
 	utilmain "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/commands"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
-	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/config"
+	ipfsconfig "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/config"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/fsrepo"
 	"io"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -72,14 +74,18 @@ type AddDataResult struct {
 
 // InitConfig is used to setup a textile node
 type InitConfig struct {
-	Account    keypair.Full
-	PinCode    string
-	RepoPath   string
-	SwarmPorts string
-	IsMobile   bool
-	IsServer   bool
-	LogLevel   logger.Level
-	LogFiles   bool
+	Account     *keypair.Full
+	PinCode     string
+	RepoPath    string
+	SwarmPorts  string
+	ApiAddr     string
+	CafeApiAddr string
+	GatewayAddr string
+	IsMobile    bool
+	IsServer    bool
+	LogLevel    logger.Level
+	LogToDisk   bool
+	CafeOpen    bool
 }
 
 // MigrateConfig is used to define options during a major migration
@@ -90,18 +96,15 @@ type MigrateConfig struct {
 
 // RunConfig is used to define run options for a textile node
 type RunConfig struct {
-	PinCode      string
-	RepoPath     string
-	LogLevel     logger.Level
-	LogFiles     bool
-	CafeOpen     bool
-	CafeBindAddr string
+	PinCode  string
+	RepoPath string
 }
 
 // Textile is the main Textile node structure
 type Textile struct {
 	context        oldcmds.Context
 	repoPath       string
+	config         *config.Config
 	cancel         context.CancelFunc
 	ipfs           *core.IpfsNode
 	datastore      repo.Datastore
@@ -114,8 +117,6 @@ type Textile struct {
 	notifications  chan repo.Notification
 	threadsService *ThreadsService
 	threadsOutbox  *ThreadsOutbox
-	cafeOpen       bool
-	cafeBindAddr   string
 	cafeService    *CafeService
 	cafeOutbox     *CafeOutbox
 	cafeInbox      *CafeInbox
@@ -131,119 +132,125 @@ var ErrOffline = errors.New("node is offline")
 var ErrThreadLoaded = errors.New("thread is loaded")
 
 // InitRepo initializes a new node repo
-func InitRepo(config InitConfig) error {
+func InitRepo(conf InitConfig) error {
 	// ensure init has not been run
-	if fsrepo.IsInitialized(config.RepoPath) {
+	if fsrepo.IsInitialized(conf.RepoPath) {
 		return repo.ErrRepoExists
 	}
 
-	// log handling
-	setupLogging(config.RepoPath, config.LogLevel, config.LogFiles)
-
-	// get database handle
-	sqliteDB, err := db.Create(config.RepoPath, config.PinCode)
-	if err != nil {
-		return err
+	// check account
+	if conf.Account == nil {
+		return ErrAccountRequired
 	}
 
-	// init ipfs repo
-	if err := repo.DoInit(config.RepoPath, func() error {
-		if err := sqliteDB.Config().Init(config.PinCode); err != nil {
-			return err
-		}
-		return sqliteDB.Config().Configure(&config.Account, config.IsMobile, time.Now())
-	}); err != nil {
+	// log handling
+	setupLogging(conf.RepoPath, conf.LogLevel, conf.LogToDisk)
+
+	// init repo
+	if err := repo.Init(conf.RepoPath, Version); err != nil {
 		return err
 	}
 
 	// open the repo
-	rep, err := fsrepo.Open(config.RepoPath)
+	rep, err := fsrepo.Open(conf.RepoPath)
 	if err != nil {
 		log.Errorf("error opening repo: %s", err)
 		return err
 	}
+	defer rep.Close()
 
 	// if a specific swarm port was selected, set it in the config
-	if err := applySwarmPortConfigOption(rep, config.SwarmPorts); err != nil {
+	if err := applySwarmPortConfigOption(rep, conf.SwarmPorts); err != nil {
 		return err
 	}
 
 	// if this is a server node, apply the ipfs server profile
-	if err := applyServerConfigOption(rep, config.IsServer); err != nil {
+	if err := applyServerConfigOption(rep, conf.IsServer); err != nil {
 		return err
 	}
 
 	// add account key to ipfs keystore for resolving ipns profile
-	sk, err := config.Account.LibP2PPrivKey()
+	sk, err := conf.Account.LibP2PPrivKey()
 	if err != nil {
 		return err
 	}
-	return rep.Keystore().Put("account", sk)
+	if err := rep.Keystore().Put("account", sk); err != nil {
+		return err
+	}
+
+	// init sqlite datastore
+	sqliteDb, err := db.Create(conf.RepoPath, conf.PinCode)
+	if err != nil {
+		return err
+	}
+	if err := sqliteDb.Config().Init(conf.PinCode); err != nil {
+		return err
+	}
+	if err := sqliteDb.Config().Configure(conf.Account, time.Now()); err != nil {
+		return err
+	}
+
+	// handle textile config
+	return applyTextileConfigOptions(conf)
 }
 
 // MigrateRepo runs _all_ repo migrations, including major
-func MigrateRepo(config MigrateConfig) error {
+func MigrateRepo(conf MigrateConfig) error {
 	// ensure init has been run
-	if !fsrepo.IsInitialized(config.RepoPath) {
+	if !fsrepo.IsInitialized(conf.RepoPath) {
 		return repo.ErrRepoDoesNotExist
 	}
 
 	// force open the repo and datastore (fixme)
-	removeLocks(config.RepoPath)
+	removeLocks(conf.RepoPath)
 
 	// run _all_ repo migrations if needed
-	return repo.MigrateUp(config.RepoPath, config.PinCode, false)
+	return repo.MigrateUp(conf.RepoPath, conf.PinCode, false)
 }
 
 // NewTextile runs a node out of an initialized repo
-func NewTextile(config RunConfig) (*Textile, error) {
+func NewTextile(conf RunConfig) (*Textile, error) {
 	// ensure init has been run
-	if !fsrepo.IsInitialized(config.RepoPath) {
+	if !fsrepo.IsInitialized(conf.RepoPath) {
 		return nil, repo.ErrRepoDoesNotExist
 	}
 
 	// check if repo needs a major migration
-	if err := repo.Stat(config.RepoPath); err != nil {
+	if err := repo.Stat(conf.RepoPath); err != nil {
 		return nil, err
 	}
 
 	// force open the repo and datastore (fixme)
-	removeLocks(config.RepoPath)
+	removeLocks(conf.RepoPath)
 
 	// build the node
-	node := &Textile{
-		repoPath:     config.RepoPath,
-		cafeOpen:     config.CafeOpen,
-		cafeBindAddr: config.CafeBindAddr,
-	}
+	node := &Textile{repoPath: conf.RepoPath}
 
-	// log handling
-	node.writer = setupLogging(config.RepoPath, config.LogLevel, config.LogFiles)
-
-	// run all minor repo migrations if needed
-	if err := repo.MigrateUp(config.RepoPath, config.PinCode, false); err != nil {
-		return nil, err
-	}
-
-	// TODO: put cafes into bootstrap
-	// open repo
-	//rep, err := fsrepo.Open(config.RepoPath)
-	//if err != nil {
-	//	log.Errorf("error opening repo: %s", err)
-	//	return nil, err
-	//}
-
-	// ensure bootstrap addresses are latest in config
-	//if err := ensureBootstrapConfig(rep); err != nil {
-	//	return nil, err
-	//}
-
-	// get database handle
-	sqliteDB, err := db.Create(config.RepoPath, config.PinCode)
+	// load textile config
+	var err error
+	node.config, err = config.Read(conf.RepoPath)
 	if err != nil {
 		return nil, err
 	}
-	node.datastore = sqliteDB
+
+	// log handling
+	llevel, err := logger.LogLevel(strings.ToUpper(node.config.Logs.LogLevel))
+	if err != nil {
+		llevel = logger.ERROR
+	}
+	node.writer = setupLogging(conf.RepoPath, llevel, node.config.Logs.LogToDisk)
+
+	// run all minor repo migrations if needed
+	if err := repo.MigrateUp(conf.RepoPath, conf.PinCode, false); err != nil {
+		return nil, err
+	}
+
+	// get database handle
+	sqliteDb, err := db.Create(conf.RepoPath, conf.PinCode)
+	if err != nil {
+		return nil, err
+	}
+	node.datastore = sqliteDb
 
 	// all done
 	return node, nil
@@ -351,10 +358,10 @@ func (t *Textile) Start() error {
 
 		// setup cafe service
 		t.cafeService = NewCafeService(accnt, t.ipfs, t.datastore, t.cafeInbox)
-		if t.cafeOpen {
-			t.cafeService.setHttpAddr(t.cafeBindAddr)
+		if t.config.Cafe.Open {
+			t.cafeService.setHttpAddr(t.config.Addresses.CafeAPI)
 			t.cafeService.open = true
-			t.startCafeApi(t.cafeBindAddr)
+			t.startCafeApi(t.config.Addresses.CafeAPI)
 		}
 
 		// run queues
@@ -439,16 +446,7 @@ func (t *Textile) Online() bool {
 
 // Mobile returns whether or not node is configured for a mobile device
 func (t *Textile) Mobile() bool {
-	if err := t.touchDatastore(); err != nil {
-		log.Errorf("error calling is mobile: %s", err)
-		return false
-	}
-	mobile, err := t.datastore.Config().GetMobile()
-	if err != nil {
-		log.Errorf("error calling is mobile: %s", err)
-		return false
-	}
-	return mobile
+	return t.config.IsMobile
 }
 
 // Writer returns the output writer (logger / stdout)
@@ -563,7 +561,7 @@ func (t *Textile) createIPFS(online bool) error {
 	ctx := oldcmds.Context{}
 	ctx.Online = online
 	ctx.ConfigRoot = t.repoPath
-	ctx.LoadConfig = func(path string) (*config.Config, error) {
+	ctx.LoadConfig = func(path string) (*ipfsconfig.Config, error) {
 		return fsrepo.ConfigAt(t.repoPath)
 	}
 	ctx.ConstructNode = func() (*core.IpfsNode, error) {
