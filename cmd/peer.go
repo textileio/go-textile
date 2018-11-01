@@ -8,7 +8,9 @@ func init() {
 	register(&peerCmd{})
 }
 
-type peerCmd struct{}
+type peerCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
 
 func (x *peerCmd) Name() string {
 	return "peer"
@@ -23,6 +25,7 @@ func (x *peerCmd) Long() string {
 }
 
 func (x *peerCmd) Execute(args []string) error {
+	setApi(x.Client)
 	return callPeer(args, nil)
 }
 

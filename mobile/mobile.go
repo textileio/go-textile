@@ -63,25 +63,20 @@ func WalletAccountAt(phrase string, index int, password string) (string, error) 
 
 // InitConfig is used to setup a textile node
 type InitConfig struct {
-	Seed     string
-	PinCode  string
-	RepoPath string
-	LogLevel string
-	LogFiles bool
+	Seed      string
+	RepoPath  string
+	LogLevel  string
+	LogToDisk bool
 }
 
 // MigrateConfig is used to define options during a major migration
 type MigrateConfig struct {
-	PinCode  string
 	RepoPath string
 }
 
 // RunConfig is used to define run options for a mobile node
 type RunConfig struct {
-	PinCode  string
 	RepoPath string
-	LogLevel string
-	LogFiles bool
 }
 
 // Mobile is the name of the framework (must match package name)
@@ -113,37 +108,26 @@ func InitRepo(config *InitConfig) error {
 
 	// ready to call core
 	return core.InitRepo(core.InitConfig{
-		Account:  *accnt,
-		PinCode:  config.PinCode,
-		RepoPath: config.RepoPath,
-		IsMobile: true,
-		LogLevel: logLevel,
-		LogFiles: config.LogFiles,
+		Account:   accnt,
+		RepoPath:  config.RepoPath,
+		IsMobile:  true,
+		LogLevel:  logLevel,
+		LogToDisk: config.LogToDisk,
 	})
 }
 
 // MigrateRepo calls core MigrateRepo
 func MigrateRepo(config *MigrateConfig) error {
 	return core.MigrateRepo(core.MigrateConfig{
-		PinCode:  config.PinCode,
 		RepoPath: config.RepoPath,
 	})
 }
 
 // Create a gomobile compatible wrapper around Textile
 func NewTextile(config *RunConfig, messenger Messenger) (*Mobile, error) {
-	// logLevel is one of: critical error warning notice info debug
-	logLevel, err := logger.LogLevel(strings.ToUpper(config.LogLevel))
-	if err != nil {
-		logLevel = logger.ERROR
-	}
-
 	// build textile node
 	node, err := core.NewTextile(core.RunConfig{
-		PinCode:  config.PinCode,
 		RepoPath: config.RepoPath,
-		LogLevel: logLevel,
-		LogFiles: config.LogFiles,
 	})
 	if err != nil {
 		return nil, err

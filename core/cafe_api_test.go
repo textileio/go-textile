@@ -6,7 +6,6 @@ import (
 	. "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/repo"
-	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -28,9 +27,8 @@ func TestCafeApi_Setup(t *testing.T) {
 	os.RemoveAll(repoPath1)
 	accnt1 := keypair.Random()
 	if err := InitRepo(InitConfig{
-		Account:  *accnt1,
+		Account:  accnt1,
 		RepoPath: repoPath1,
-		LogLevel: logger.ERROR,
 	}); err != nil {
 		t.Errorf("init node1 failed: %s", err)
 		return
@@ -38,7 +36,6 @@ func TestCafeApi_Setup(t *testing.T) {
 	var err error
 	node1, err = NewTextile(RunConfig{
 		RepoPath: repoPath1,
-		LogLevel: logger.ERROR,
 	})
 	if err != nil {
 		t.Errorf("create node1 failed: %s", err)
@@ -50,18 +47,16 @@ func TestCafeApi_Setup(t *testing.T) {
 	os.RemoveAll(repoPath2)
 	accnt2 := keypair.Random()
 	if err := InitRepo(InitConfig{
-		Account:  *accnt2,
-		RepoPath: repoPath2,
-		LogLevel: logger.ERROR,
+		Account:     accnt2,
+		RepoPath:    repoPath2,
+		CafeApiAddr: "127.0.0.1:5000",
+		CafeOpen:    true,
 	}); err != nil {
 		t.Errorf("init node2 failed: %s", err)
 		return
 	}
 	node2, err = NewTextile(RunConfig{
-		RepoPath:     repoPath2,
-		LogLevel:     logger.ERROR,
-		CafeOpen:     true,
-		CafeBindAddr: "127.0.0.1:5000",
+		RepoPath: repoPath2,
 	})
 	if err != nil {
 		t.Errorf("create node2 failed: %s", err)

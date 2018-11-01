@@ -8,7 +8,9 @@ func init() {
 	register(&addressCmd{})
 }
 
-type addressCmd struct{}
+type addressCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
 
 func (x *addressCmd) Name() string {
 	return "address"
@@ -21,6 +23,7 @@ func (x *addressCmd) Long() string {
 }
 
 func (x *addressCmd) Execute(args []string) error {
+	setApi(x.Client)
 	return callAddress(args, nil)
 }
 

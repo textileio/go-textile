@@ -47,7 +47,9 @@ func (x *threadsCmd) Shell() *ishell.Cmd {
 	return cmd
 }
 
-type addThreadsCmd struct{}
+type addThreadsCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
 
 func (x *addThreadsCmd) Name() string {
 	return "add"
@@ -62,6 +64,7 @@ func (x *addThreadsCmd) Long() string {
 }
 
 func (x *addThreadsCmd) Execute(args []string) error {
+	setApi(x.Client)
 	return callAddThreads(args, nil)
 }
 
@@ -88,7 +91,9 @@ func callAddThreads(args []string, ctx *ishell.Context) error {
 	return nil
 }
 
-type lsThreadsCmd struct{}
+type lsThreadsCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
 
 func (x *lsThreadsCmd) Name() string {
 	return "ls"
@@ -103,6 +108,7 @@ func (x *lsThreadsCmd) Long() string {
 }
 
 func (x *lsThreadsCmd) Execute(args []string) error {
+	setApi(x.Client)
 	return callLsThreads(args, nil)
 }
 
@@ -129,7 +135,9 @@ func callLsThreads(_ []string, ctx *ishell.Context) error {
 	return nil
 }
 
-type getThreadsCmd struct{}
+type getThreadsCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
 
 func (x *getThreadsCmd) Name() string {
 	return "get"
@@ -144,6 +152,7 @@ func (x *getThreadsCmd) Long() string {
 }
 
 func (x *getThreadsCmd) Execute(args []string) error {
+	setApi(x.Client)
 	return callGetThreads(args, nil)
 }
 
@@ -173,7 +182,9 @@ func callGetThreads(args []string, ctx *ishell.Context) error {
 	return nil
 }
 
-type rmThreadsCmd struct{}
+type rmThreadsCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
 
 func (x *rmThreadsCmd) Name() string {
 	return "rm"
@@ -188,6 +199,7 @@ func (x *rmThreadsCmd) Long() string {
 }
 
 func (x *rmThreadsCmd) Execute(args []string) error {
+	setApi(x.Client)
 	return callRmThreads(args, nil)
 }
 

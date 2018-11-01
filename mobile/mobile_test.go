@@ -74,7 +74,6 @@ func TestMigrateRepo(t *testing.T) {
 func TestNewTextile(t *testing.T) {
 	config := &RunConfig{
 		RepoPath: repo,
-		LogLevel: "error",
 	}
 	var err error
 	mobile, err = NewTextile(config, &TestMessenger{})
@@ -86,7 +85,6 @@ func TestNewTextile(t *testing.T) {
 func TestNewTextileAgain(t *testing.T) {
 	config := &RunConfig{
 		RepoPath: repo,
-		LogLevel: "error",
 	}
 	if _, err := NewTextile(config, &TestMessenger{}); err != nil {
 		t.Errorf("create mobile node failed: %s", err)

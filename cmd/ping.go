@@ -8,7 +8,9 @@ func init() {
 	register(&pingCmd{})
 }
 
-type pingCmd struct{}
+type pingCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
 
 func (x *pingCmd) Name() string {
 	return "ping"
@@ -23,6 +25,7 @@ func (x *pingCmd) Long() string {
 }
 
 func (x *pingCmd) Execute(args []string) error {
+	setApi(x.Client)
 	return callPing(args, nil)
 }
 

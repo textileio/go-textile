@@ -1,190 +1,109 @@
 package config
 
 import (
-	"fmt"
+	"encoding/json"
 	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
-	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo"
-	native "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/config"
-	"math/rand"
-	"time"
+	"io/ioutil"
+	"os"
+	"path"
 )
 
 var log = logging.Logger("tex-repo-config")
 
-const (
-	minPort = 1024
-	maxPort = 49151
-)
-
-// DefaultServerFilters has a list of non-routable IPv4 prefixes
-// according to http://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
-var DefaultServerFilters = []string{
-	"/ip4/10.0.0.0/ipcidr/8",
-	"/ip4/100.64.0.0/ipcidr/10",
-	"/ip4/169.254.0.0/ipcidr/16",
-	"/ip4/172.16.0.0/ipcidr/12",
-	"/ip4/192.0.0.0/ipcidr/24",
-	"/ip4/192.0.0.0/ipcidr/29",
-	"/ip4/192.0.0.8/ipcidr/32",
-	"/ip4/192.0.0.170/ipcidr/32",
-	"/ip4/192.0.0.171/ipcidr/32",
-	"/ip4/192.0.2.0/ipcidr/24",
-	"/ip4/192.168.0.0/ipcidr/16",
-	"/ip4/198.18.0.0/ipcidr/15",
-	"/ip4/198.51.100.0/ipcidr/24",
-	"/ip4/203.0.113.0/ipcidr/24",
-	"/ip4/240.0.0.0/ipcidr/4",
+// Config is used to load textile config files.
+type Config struct {
+	Account   Account   // local node's account (public info only)
+	Addresses Addresses // local node's addresses
+	API       API       // local node's API settings
+	Logs      Logs      // local node's log settings
+	IsMobile  bool      // local node is setup for mobile
+	IsServer  bool      // local node is setup for a server w/ a public IP
+	Cafe      Cafe      // local node cafe settings
 }
 
-func Init(identity native.Identity) (*native.Config, error) {
-	bootstrapPeers, err := native.DefaultBootstrapPeers()
+// Account store public account info
+type Account struct {
+	Address string // public key, seed is stored in the encrypted datastore
+}
+
+// Addresses stores the (string) bind addresses for the node.
+type Addresses struct {
+	API     string // address for the local API (RPC)
+	CafeAPI string // address for the cafe REST API
+	Gateway string // address to listen on for IPFS HTTP object gateway
+}
+
+// API settings
+type API struct {
+	HTTPHeaders map[string][]string // HTTP headers to return with the API.
+}
+
+// Logs settings
+type Logs struct {
+	LogToDisk bool   // when true, sends all logs to rolling files on disk
+	LogLevel  string // one of: critical error warning notice info debug
+}
+
+// Cafe settings
+// TODO: add some more knobs: max num. clients, max client msg age, inbox size, etc.
+type Cafe struct {
+	Open bool // when true, other peers can register with this node for cafe services
+}
+
+// Init returns the default textile config
+func Init(version string) (*Config, error) {
+	return &Config{
+		Account: Account{
+			Address: "",
+		},
+		Addresses: Addresses{
+			API:     "127.0.0.1:40600",
+			CafeAPI: "127.0.0.1:40601",
+			Gateway: "127.0.0.1:5050",
+		},
+		API: API{
+			HTTPHeaders: map[string][]string{
+				"Server": {"textile-go/" + version},
+			},
+		},
+		Logs: Logs{
+			LogToDisk: true,
+			LogLevel:  "error",
+		},
+		Cafe: Cafe{
+			Open: false,
+		},
+		IsMobile: false,
+		IsServer: false,
+	}, nil
+}
+
+// Read reads config from disk
+func Read(repoPath string) (*Config, error) {
+	data, err := ioutil.ReadFile(path.Join(repoPath, "textile"))
 	if err != nil {
 		return nil, err
 	}
-
-	datastore := defaultDatastoreConfig()
-
-	conf := &native.Config{
-		API: native.API{
-			HTTPHeaders: map[string][]string{
-				"Server": {"go-ipfs/" + native.CurrentVersionNumber},
-			},
-		},
-
-		// setup the node's default addresses.
-		// NOTE: two swarm listen addrs, one tcp, one utp.
-		Addresses: addressesConfig(),
-
-		Datastore: datastore,
-		Bootstrap: native.BootstrapPeerStrings(bootstrapPeers),
-		Identity:  identity,
-		Discovery: native.Discovery{
-			MDNS: native.MDNS{
-				Enabled:  true,
-				Interval: 10,
-			},
-		},
-
-		Routing: native.Routing{
-			Type: "dht",
-		},
-
-		// setup the node mount points.
-		Mounts: native.Mounts{
-			IPFS: "/ipfs",
-			IPNS: "/ipns",
-		},
-
-		Ipns: native.Ipns{
-			ResolveCacheSize: 128,
-		},
-
-		Gateway: native.Gateway{
-			RootRedirect: "",
-			Writable:     false,
-			PathPrefixes: []string{},
-			HTTPHeaders: map[string][]string{
-				"Access-Control-Allow-Origin":  {"*"},
-				"Access-Control-Allow-Methods": {"GET"},
-				"Access-Control-Allow-Headers": {"X-Requested-With", "Range"},
-			},
-		},
-		Reprovider: native.Reprovider{
-			Interval: "12h",
-			Strategy: "all",
-		},
-		Swarm: native.SwarmConfig{
-			ConnMgr: native.ConnMgr{
-				LowWater:    DefaultConnMgrLowWater,
-				HighWater:   DefaultConnMgrHighWater,
-				GracePeriod: DefaultConnMgrGracePeriod.String(),
-				Type:        "basic",
-			},
-		},
-		Experimental: native.Experiments{
-			FilestoreEnabled:     false,
-			ShardingEnabled:      false,
-			Libp2pStreamMounting: true,
-		},
+	var conf *Config
+	if err := json.Unmarshal(data, &conf); err != nil {
+		return nil, err
 	}
-
 	return conf, nil
 }
 
-func Update(rep repo.Repo, key string, value interface{}) error {
-	if err := rep.SetConfigKey(key, value); err != nil {
-		log.Errorf("error setting %s: %s", key, err)
+// Write replaces the on-disk version of config with the given one
+func Write(repoPath string, conf *Config) error {
+	f, err := os.Create(path.Join(repoPath, "textile"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	data, err := json.MarshalIndent(conf, "", "    ")
+	if err != nil {
+		return err
+	}
+	if _, err := f.Write(data); err != nil {
 		return err
 	}
 	return nil
-}
-
-// DefaultConnMgrHighWater is the default value for the connection managers
-// 'high water' mark
-const DefaultConnMgrHighWater = 900
-
-// DefaultConnMgrLowWater is the default value for the connection managers 'low
-// water' mark
-const DefaultConnMgrLowWater = 600
-
-// DefaultConnMgrGracePeriod is the default value for the connection managers
-// grace period
-const DefaultConnMgrGracePeriod = time.Second * 20
-
-func addressesConfig() native.Addresses {
-	swarmPort := GetRandomPort()
-	swarmWSPort := GetRandomPort()
-
-	return native.Addresses{
-		Swarm: []string{
-			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", swarmPort),
-			fmt.Sprintf("/ip6/::/tcp/%d", swarmPort),
-			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d/ws", swarmWSPort),
-			fmt.Sprintf("/ip6/::/tcp/%d/ws", swarmWSPort),
-			// "/ip4/0.0.0.0/udp/4002/utp", // disabled for now.
-		},
-		Announce:   []string{},
-		NoAnnounce: []string{},
-	}
-}
-
-// DefaultDatastoreConfig is an internal function exported to aid in testing.
-func defaultDatastoreConfig() native.Datastore {
-	return native.Datastore{
-		StorageMax:         "10GB",
-		StorageGCWatermark: 90, // 90%
-		GCPeriod:           "1h",
-		BloomFilterSize:    0,
-		Spec: map[string]interface{}{
-			"type": "mount",
-			"mounts": []interface{}{
-				map[string]interface{}{
-					"mountpoint": "/blocks",
-					"type":       "measure",
-					"prefix":     "flatfs.datastore",
-					"child": map[string]interface{}{
-						"type":      "flatfs",
-						"path":      "blocks",
-						"sync":      true,
-						"shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
-					},
-				},
-				map[string]interface{}{
-					"mountpoint": "/",
-					"type":       "measure",
-					"prefix":     "leveldb.datastore",
-					"child": map[string]interface{}{
-						"type":        "levelds",
-						"path":        "datastore",
-						"compression": "none",
-					},
-				},
-			},
-		},
-	}
-}
-
-func GetRandomPort() int {
-	rand.Seed(time.Now().UTC().UnixNano())
-	return rand.Intn(maxPort-minPort) + minPort
 }
