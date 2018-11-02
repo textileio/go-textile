@@ -870,11 +870,10 @@ func (h *CafeService) setAddrs(bindedHttpAddr string, swarmPorts config.SwarmPor
 
 	// set the http address where peers can reach this cafe
 	parts := strings.Split(bindedHttpAddr, ":")
-	if len(parts) < 2 {
-		return
+	if len(parts) == 2 {
+		h.httpAddr = fmt.Sprintf("%s:%s", host, parts[1])
+		log.Infof("cafe http api address: %s", h.httpAddr)
 	}
-	h.httpAddr = fmt.Sprintf("%s:%s", host, parts[1])
-	log.Infof("cafe http api address: %s", h.httpAddr)
 
 	// set the swarm multiaddress(es) where other peers can reach this cafe
 	h.swarmAddrs = []string{
