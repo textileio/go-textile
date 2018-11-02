@@ -23,14 +23,19 @@ type Config struct {
 
 // Account store public account info
 type Account struct {
-	Address string // public key, seed is stored in the encrypted datastore
+	Address string // public key (seed is stored in the _possibly_ encrypted datastore)
 }
 
 // Addresses stores the (string) bind addresses for the node.
 type Addresses struct {
-	API     string // address for the local API (RPC)
-	CafeAPI string // address for the cafe REST API
+	API     string // address of the local API (RPC)
+	CafeAPI string // address of the cafe REST API
 	Gateway string // address to listen on for IPFS HTTP object gateway
+}
+
+type SwarmPorts struct {
+	TCP string // TCP address port
+	WS  string // WS address port
 }
 
 // API settings

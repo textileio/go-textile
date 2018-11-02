@@ -100,7 +100,7 @@ func (c *ContactDB) handleQuery(stm string) []repo.Contact {
 		contact := repo.Contact{
 			Id:       id,
 			Username: username,
-			Inboxes:  strings.Split(inboxes, ","),
+			Inboxes:  ilist,
 			Added:    time.Unix(int64(addedInt), 0),
 		}
 		ret = append(ret, contact)

@@ -2,14 +2,14 @@ package gateway_test
 
 import (
 	"fmt"
+	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/gateway"
-	"github.com/textileio/textile-go/repo/config"
 	"testing"
 )
 
 func TestNewGateway(t *testing.T) {
 	Host = &Gateway{}
-	Host.Start(fmt.Sprintf("127.0.0.1:%d", config.GetRandomPort()))
+	Host.Start(fmt.Sprintf("127.0.0.1:%s", core.GetRandomPort()))
 }
 
 func TestGateway_Addr(t *testing.T) {

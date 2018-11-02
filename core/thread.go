@@ -223,9 +223,13 @@ func (t *Thread) newBlockHeader() (*pb.ThreadBlockHeader, error) {
 	if err != nil {
 		return nil, err
 	}
+	var parents []string
+	if head != "" {
+		parents = strings.Split(head, ",")
+	}
 	return &pb.ThreadBlockHeader{
 		Date:    pdate,
-		Parents: strings.Split(string(head), ","),
+		Parents: parents,
 		Author:  t.node().Identity.Pretty(),
 	}, nil
 }

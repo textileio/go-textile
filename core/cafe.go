@@ -27,7 +27,19 @@ func (t *Textile) RegisterCafe(peerId string) (*repo.CafeSession, error) {
 		return nil, err
 	}
 
-	return t.datastore.CafeSessions().Get(pid.Pretty()), nil
+	// add to bootstrap
+	session := t.datastore.CafeSessions().Get(pid.Pretty())
+	if session != nil {
+		var peers []string
+		for _, s := range session.SwarmAddrs {
+			peers = append(peers, s+"/ipfs/"+session.CafeId)
+		}
+		if err := updateBootstrapConfig(t.repoPath, peers, []string{}); err != nil {
+			return nil, err
+		}
+	}
+
+	return session, nil
 }
 
 // CafeSessions lists active cafe sessions
@@ -47,11 +59,11 @@ func (t *Textile) CafeSession(peerId string) (*repo.CafeSession, error) {
 }
 
 // RefreshCafeSession attempts to refresh a token with a cafe
-func (t *Textile) RefreshCafeSession(cafeId string) (*repo.CafeSession, error) {
+func (t *Textile) RefreshCafeSession(peerId string) (*repo.CafeSession, error) {
 	if !t.Online() {
 		return nil, ErrOffline
 	}
-	session := t.datastore.CafeSessions().Get(cafeId)
+	session := t.datastore.CafeSessions().Get(peerId)
 	if session == nil {
 		return nil, errors.New("session not found")
 	}
@@ -63,6 +75,21 @@ func (t *Textile) DeregisterCafe(peerId string) error {
 	if err := t.touchDatastore(); err != nil {
 		return err
 	}
+	session := t.datastore.CafeSessions().Get(peerId)
+	if session == nil {
+		return nil
+	}
+
+	// remove from bootstrap
+	var peers []string
+	for _, s := range session.SwarmAddrs {
+		peers = append(peers, s+"/ipfs/"+session.CafeId)
+	}
+	if err := updateBootstrapConfig(t.repoPath, []string{}, peers); err != nil {
+		return err
+	}
+
+	// delete from datastore
 	if err := t.datastore.CafeSessions().Delete(peerId); err != nil {
 		return err
 	}

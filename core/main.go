@@ -295,6 +295,15 @@ func (t *Textile) Start() error {
 		return err
 	}
 
+	// load swarm ports
+	sports, err := loadSwarmPorts(t.repoPath)
+	if err != nil {
+		return err
+	}
+	if sports == nil {
+		return errors.New("failed to load swarm ports")
+	}
+
 	// build update channels
 	t.online = make(chan struct{})
 	t.updates = make(chan Update, 10)
@@ -358,8 +367,8 @@ func (t *Textile) Start() error {
 
 		// setup cafe service
 		t.cafeService = NewCafeService(accnt, t.ipfs, t.datastore, t.cafeInbox)
+		t.cafeService.setAddrs(t.config.Addresses.CafeAPI, *sports)
 		if t.config.Cafe.Open {
-			t.cafeService.setHttpAddr(t.config.Addresses.CafeAPI)
 			t.cafeService.open = true
 			t.startCafeApi(t.config.Addresses.CafeAPI)
 		}
