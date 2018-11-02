@@ -22,11 +22,6 @@ func (t *Textile) RegisterCafe(peerId string) (*repo.CafeSession, error) {
 		return nil, err
 	}
 
-	// publish profile w/ updated inboxes
-	if err := t.PublishProfile(); err != nil {
-		return nil, err
-	}
-
 	// add to bootstrap
 	session := t.datastore.CafeSessions().Get(pid.Pretty())
 	if session != nil {
@@ -37,6 +32,11 @@ func (t *Textile) RegisterCafe(peerId string) (*repo.CafeSession, error) {
 		if err := updateBootstrapConfig(t.repoPath, peers, []string{}); err != nil {
 			return nil, err
 		}
+	}
+
+	// publish profile w/ updated inboxes
+	if err := t.PublishProfile(); err != nil {
+		return nil, err
 	}
 
 	return session, nil
