@@ -75,7 +75,7 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	}
 
 	// notify peers
-	addr, err := thrd.Leave()
+	addr, err := thrd.leave()
 	if err != nil {
 		return nil, err
 	}

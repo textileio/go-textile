@@ -69,7 +69,7 @@ func (t *Thread) addAnnotation(msg *pb.ThreadAnnotation) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	log.Debugf("added ANNOTATION to %s: %s", t.Id, res.hash.B58String())
+	log.Debugf("added ANNOTATION DATA to %s: %s", t.Id, res.hash.B58String())
 
 	// all done
 	return res.hash, nil

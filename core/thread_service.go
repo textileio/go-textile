@@ -239,6 +239,7 @@ func (h *ThreadsService) handleAnnounce(thrd *Thread, hash mh.Multihash, block *
 	if _, err := thrd.handleAnnounceBlock(hash, block); err != nil {
 		return err
 	}
+	return nil
 }
 
 // handleLeave receives a leave message
@@ -269,7 +270,7 @@ func (h *ThreadsService) handleData(thrd *Thread, hash mh.Multihash, block *pb.T
 	// send notification
 	var notification *repo.Notification
 	switch msg.Type {
-	case pb.ThreadData_PHOTO:
+	case pb.ThreadData_FILE:
 		notification, err = h.newNotification(block.Header, repo.FileAddedNotification)
 		if err != nil {
 			return err

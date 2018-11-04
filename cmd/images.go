@@ -178,7 +178,7 @@ func listPhotos(c *ishell.Context) {
 		return
 	}
 
-	query := fmt.Sprintf("threadId='%s' and type=%d", thrd.Id, repo.PhotoBlock)
+	query := fmt.Sprintf("threadId='%s' and type=%d", thrd.Id, repo.FileBlock)
 	blocks := core.Node.Blocks("", -1, query)
 	if len(blocks) == 0 {
 		c.Println(fmt.Sprintf("no photos found in: %s", thrd.Id))
@@ -392,7 +392,7 @@ func getPhotoBlockByDataId(dataId string) (*repo.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	if block.Type != repo.PhotoBlock {
+	if block.Type != repo.FileBlock {
 		return nil, errors.New("not a photo block, aborting")
 	}
 	return block, nil

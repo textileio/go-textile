@@ -290,7 +290,7 @@ func getThreadPhotos(id string) (string, error) {
 		return "", errors.New("thread not found")
 	}
 	var html string
-	query := fmt.Sprintf("threadId='%s' and type=%d", thrd.Id, repo.PhotoBlock)
+	query := fmt.Sprintf("threadId='%s' and type=%d", thrd.Id, repo.FileBlock)
 	for _, block := range core.Node.Blocks("", -1, query) {
 		photo := fmt.Sprintf("%s/ipfs/%s/photo?block=%s", gatewayAddr, block.DataId, block.Id)
 		small := fmt.Sprintf("%s/ipfs/%s/small?block=%s", gatewayAddr, block.DataId, block.Id)

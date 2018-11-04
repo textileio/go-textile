@@ -6,8 +6,8 @@ import (
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 )
 
-// Leave creates an outgoing leave block
-func (t *Thread) Leave() (mh.Multihash, error) {
+// leave creates an outgoing leave block
+func (t *Thread) leave() (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
