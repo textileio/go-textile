@@ -59,30 +59,36 @@ type BlockType int
 const (
 	MergeBlock BlockType = iota
 	IgnoreBlock
+	FlagBlock
 	JoinBlock
 	AnnounceBlock
 	LeaveBlock
-	PhotoBlock
+	FileBlock
+	TextBlock
 	CommentBlock
 	LikeBlock
 )
 
 func (b BlockType) Description() string {
 	switch b {
+	case MergeBlock:
+		return "MERGE"
+	case IgnoreBlock:
+		return "IGNORE"
+	case FlagBlock:
+		return "IGNORE"
 	case JoinBlock:
 		return "JOIN"
+	case AnnounceBlock:
+		return "ANNOUNCE"
 	case LeaveBlock:
 		return "LEAVE"
-	case PhotoBlock:
-		return "PHOTO"
+	case FileBlock:
+		return "FILE"
 	case CommentBlock:
 		return "COMMENT"
 	case LikeBlock:
 		return "LIKE"
-	case IgnoreBlock:
-		return "IGNORE"
-	case MergeBlock:
-		return "MERGE"
 	default:
 		return "INVALID"
 	}
@@ -106,12 +112,12 @@ type NotificationType int
 const (
 	ReceivedInviteNotification   NotificationType = iota // peerA invited you
 	AccountPeerAddedNotification                         // new account peer added
-	PhotoAddedNotification                               // peerA added a photo
-	CommentAddedNotification                             // peerA commented on peerB's photo, video, comment, etc.
-	LikeAddedNotification                                // peerA liked peerB's photo, video, comment, etc.
 	PeerJoinedNotification                               // peerA joined
 	PeerLeftNotification                                 // peerA left
+	FileAddedNotification                                // peerA added a photo
 	TextAddedNotification                                // peerA added a message
+	CommentAddedNotification                             // peerA commented on peerB's photo, video, comment, etc.
+	LikeAddedNotification                                // peerA liked peerB's photo, video, comment, etc.
 )
 
 func (n NotificationType) Description() string {
@@ -120,16 +126,18 @@ func (n NotificationType) Description() string {
 		return "RECEIVED_INVITE"
 	case AccountPeerAddedNotification:
 		return "ACCOUNT_PEER_ADDED"
-	case PhotoAddedNotification:
-		return "PHOTO_ADDED"
-	case CommentAddedNotification:
-		return "COMMENT_ADDED"
-	case LikeAddedNotification:
-		return "LIKE_ADDED"
 	case PeerJoinedNotification:
 		return "PEER_JOINED"
 	case PeerLeftNotification:
 		return "PEER_LEFT"
+	case FileAddedNotification:
+		return "FILE_ADDED"
+	case TextAddedNotification:
+		return "TEXT_ADDED"
+	case CommentAddedNotification:
+		return "COMMENT_ADDED"
+	case LikeAddedNotification:
+		return "LIKE_ADDED"
 	default:
 		return "INVALID"
 	}

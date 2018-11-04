@@ -94,18 +94,22 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 
 	// select a handler
 	switch block.Type {
+	case pb.ThreadBlock_MERGE:
+		err = h.handleMerge(thrd, hash, block)
+	case pb.ThreadBlock_IGNORE:
+		err = h.handleIgnore(thrd, hash, block)
+	case pb.ThreadBlock_FLAG:
+		err = h.handleFlag(thrd, hash, block)
 	case pb.ThreadBlock_JOIN:
 		err = h.handleJoin(thrd, hash, block)
+	case pb.ThreadBlock_ANNOUNCE:
+		err = h.handleAnnounce(thrd, hash, block)
 	case pb.ThreadBlock_LEAVE:
 		err = h.handleLeave(thrd, hash, block)
 	case pb.ThreadBlock_DATA:
 		err = h.handleData(thrd, hash, block)
 	case pb.ThreadBlock_ANNOTATION:
 		err = h.handleAnnotation(thrd, hash, block)
-	case pb.ThreadBlock_IGNORE:
-		err = h.handleIgnore(thrd, hash, block)
-	case pb.ThreadBlock_MERGE:
-		err = h.handleMerge(thrd, hash, block)
 	default:
 		return nil, nil
 	}
@@ -191,6 +195,27 @@ func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope
 	return h.sendNotification(notification)
 }
 
+// handleMerge receives a merge message
+func (h *ThreadsService) handleMerge(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
+	return thrd.handleMergeBlock(hash, block)
+}
+
+// handleIgnore receives an ignore message
+func (h *ThreadsService) handleIgnore(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
+	if _, err := thrd.handleIgnoreBlock(hash, block); err != nil {
+		return err
+	}
+	return nil
+}
+
+// handleFlag receives a flag message
+func (h *ThreadsService) handleFlag(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
+	if _, err := thrd.handleFlagBlock(hash, block); err != nil {
+		return err
+	}
+	return nil
+}
+
 // handleJoin receives a join message
 func (h *ThreadsService) handleJoin(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
 	if _, err := thrd.handleJoinBlock(hash, block); err != nil {
@@ -207,6 +232,13 @@ func (h *ThreadsService) handleJoin(thrd *Thread, hash mh.Multihash, block *pb.T
 	notification.BlockId = hash.B58String()
 	notification.Body = "joined"
 	return h.sendNotification(notification)
+}
+
+// handleAnnounce receives an announce message
+func (h *ThreadsService) handleAnnounce(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
+	if _, err := thrd.handleAnnounceBlock(hash, block); err != nil {
+		return err
+	}
 }
 
 // handleLeave receives a leave message
@@ -238,7 +270,7 @@ func (h *ThreadsService) handleData(thrd *Thread, hash mh.Multihash, block *pb.T
 	var notification *repo.Notification
 	switch msg.Type {
 	case pb.ThreadData_PHOTO:
-		notification, err = h.newNotification(block.Header, repo.PhotoAddedNotification)
+		notification, err = h.newNotification(block.Header, repo.FileAddedNotification)
 		if err != nil {
 			return err
 		}
@@ -296,19 +328,6 @@ func (h *ThreadsService) handleAnnotation(thrd *Thread, hash mh.Multihash, block
 	notification.Subject = thrd.Name
 	notification.SubjectId = thrd.Id
 	return h.sendNotification(notification)
-}
-
-// handleIgnore receives an ignore message
-func (h *ThreadsService) handleIgnore(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	if _, err := thrd.handleIgnoreBlock(hash, block); err != nil {
-		return err
-	}
-	return nil
-}
-
-// handleMerge receives a merge message
-func (h *ThreadsService) handleMerge(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	return thrd.handleMergeBlock(hash, block)
 }
 
 // newNotification returns new thread notification
