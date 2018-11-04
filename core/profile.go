@@ -44,6 +44,14 @@ func (t *Textile) SetUsername(username string) error {
 	if err := t.datastore.Profile().SetUsername(username); err != nil {
 		return err
 	}
+
+	// annouce to all threads
+	for _, thrd := range t.threads {
+		if _, err := thrd.annouce(); err != nil {
+			return err
+		}
+	}
+
 	return t.PublishProfile()
 }
 

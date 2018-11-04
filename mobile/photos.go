@@ -110,7 +110,7 @@ func (m *Mobile) Photos(offset string, limit int, threadId string) (string, erro
 		}
 		pre = fmt.Sprintf("threadId='%s' and ", threadId)
 	}
-	query = fmt.Sprintf("%stype=%d", pre, repo.PhotoBlock)
+	query = fmt.Sprintf("%stype=%d", pre, repo.FileBlock)
 
 	// build json
 	photos := &Photos{Items: make([]Photo, 0)}

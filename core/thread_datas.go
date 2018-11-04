@@ -20,7 +20,7 @@ func (t *Thread) AddPhoto(dataId string, caption string, key []byte) (mh.Multiha
 
 	// build block
 	msg := &pb.ThreadData{
-		Type:    pb.ThreadData_PHOTO,
+		Type:    pb.ThreadData_FILE,
 		Data:    dataId,
 		Key:     key,
 		Caption: caption,
@@ -43,7 +43,7 @@ func (t *Thread) AddPhoto(dataId string, caption string, key []byte) (mh.Multiha
 		DataCaption:  caption,
 		DataMetadata: meta,
 	}
-	if err := t.indexBlock(res, repo.PhotoBlock, dconf); err != nil {
+	if err := t.indexBlock(res, repo.FileBlock, dconf); err != nil {
 		return nil, err
 	}
 
@@ -57,7 +57,7 @@ func (t *Thread) AddPhoto(dataId string, caption string, key []byte) (mh.Multiha
 		return nil, err
 	}
 
-	log.Debugf("added DATA to %s: %s", t.Id, res.hash.B58String())
+	log.Debugf("added FILE DATA to %s: %s", t.Id, res.hash.B58String())
 
 	// all done
 	return res.hash, nil
@@ -77,7 +77,7 @@ func (t *Thread) handleDataBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 		DataCaption: msg.Caption,
 	}
 	switch msg.Type {
-	case pb.ThreadData_PHOTO:
+	case pb.ThreadData_FILE:
 		// check if this block has been ignored, if so, don't pin locally, but we still want the block
 		var ignore bool
 		ignored := t.datastore.Blocks().GetByData(fmt.Sprintf("ignore-%s", hash.B58String()))
@@ -108,7 +108,7 @@ func (t *Thread) handleDataBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 		}
 
 		// index
-		if err := t.indexBlock(&commitResult{hash: hash, header: block.Header}, repo.PhotoBlock, dconf); err != nil {
+		if err := t.indexBlock(&commitResult{hash: hash, header: block.Header}, repo.FileBlock, dconf); err != nil {
 			return nil, err
 		}
 	case pb.ThreadData_TEXT:

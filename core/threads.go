@@ -75,7 +75,7 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	}
 
 	// notify peers
-	addr, err := thrd.Leave()
+	addr, err := thrd.leave()
 	if err != nil {
 		return nil, err
 	}
@@ -104,11 +104,15 @@ func (t *Textile) AcceptThreadInvite(inviteId string) (mh.Multihash, error) {
 	if !t.Online() {
 		return nil, ErrOffline
 	}
+	invite := fmt.Sprintf("%s", inviteId)
 
 	// download
-	ciphertext, err := ipfs.DataAtPath(t.ipfs, fmt.Sprintf("%s", inviteId))
+	ciphertext, err := ipfs.DataAtPath(t.ipfs, invite)
 	if err != nil {
 		return nil, err
+	}
+	if err := ipfs.UnpinPath(t.ipfs, invite); err != nil {
+		log.Warningf("error unpinning path %s: %s", invite, err)
 	}
 
 	// attempt decrypt w/ own keys

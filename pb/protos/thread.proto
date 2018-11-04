@@ -19,11 +19,12 @@ message ThreadBlock {
     enum Type {
         MERGE           = 0; // block is stored in plaintext, no payload
         IGNORE          = 1;
-        JOIN            = 2;
-        ANNOUNCE        = 3;
-        LEAVE           = 4; // no payload
-        DATA            = 5;
-        ANNOTATION      = 6;
+        FLAG            = 2;
+        JOIN            = 3;
+        ANNOUNCE        = 4;
+        LEAVE           = 5; // no payload
+        DATA            = 6;
+        ANNOTATION      = 7;
 
         INVITE          = 50;
     }
@@ -35,13 +36,17 @@ message ThreadBlockHeader {
     string author                  = 3;
 }
 
+message ThreadInvite {
+    bytes sk       = 1;
+    string name    = 2;
+}
+
 message ThreadIgnore {
     string data = 1;
 }
 
-message ThreadInvite {
-    bytes sk       = 1;
-    string name    = 2;
+message ThreadFlag {
+    string data = 1;
 }
 
 message ThreadJoin {
@@ -62,7 +67,7 @@ message ThreadData {
     string caption = 4;
 
     enum Type {
-        PHOTO = 0;
+        FILE  = 0;
         TEXT  = 1;
     }
 }

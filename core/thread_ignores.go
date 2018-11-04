@@ -37,7 +37,7 @@ func (t *Thread) Ignore(blockId string) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	// unpin dataId if present and not part of another thread
+	// unpin
 	t.unpinBlockData(blockId)
 
 	// update head
@@ -82,20 +82,22 @@ func (t *Thread) handleIgnoreBlock(hash mh.Multihash, block *pb.ThreadBlock) (*p
 		return nil, err
 	}
 
-	// unpin dataId if present and not part of another thread
+	// unpin
 	t.unpinBlockData(blockId)
+
 	return msg, nil
 }
 
+// unpinBlockData unpins block data if present and not part of another thread
 func (t *Thread) unpinBlockData(blockId string) {
 	block := t.datastore.Blocks().Get(blockId)
 	if block != nil && block.DataId != "" {
-		all := t.datastore.Blocks().List("", -1, "dataId='"+block.DataId+"'")
-		if len(all) == 1 {
+		blocks := t.datastore.Blocks().List("", -1, "dataId='"+block.DataId+"'")
+		if len(blocks) == 1 {
 			// safe to unpin
 
 			switch block.Type {
-			case repo.PhotoBlock:
+			case repo.FileBlock:
 				// unpin image paths
 				path := fmt.Sprintf("%s/thumb", block.DataId)
 				if err := ipfs.UnpinPath(t.node(), path); err != nil {

@@ -94,7 +94,7 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 		head = t.datastore.Blocks().Get(headId)
 	}
 	blocks := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s'", t.Id))
-	files := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s' and type=%d", t.Id, repo.PhotoBlock))
+	files := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s' and type=%d", t.Id, repo.FileBlock))
 
 	// send back summary
 	return &ThreadInfo{
@@ -168,18 +168,22 @@ func (t *Thread) followParent(parent mh.Multihash) error {
 
 	// handle each type
 	switch block.Type {
+	case pb.ThreadBlock_MERGE:
+		err = t.handleMergeBlock(parent, block)
+	case pb.ThreadBlock_IGNORE:
+		_, err = t.handleIgnoreBlock(parent, block)
+	case pb.ThreadBlock_FLAG:
+		_, err = t.handleFlagBlock(parent, block)
 	case pb.ThreadBlock_JOIN:
 		_, err = t.handleJoinBlock(parent, block)
+	case pb.ThreadBlock_ANNOUNCE:
+		_, err = t.handleAnnounceBlock(parent, block)
 	case pb.ThreadBlock_LEAVE:
 		err = t.handleLeaveBlock(parent, block)
 	case pb.ThreadBlock_DATA:
 		_, err = t.handleDataBlock(parent, block)
 	case pb.ThreadBlock_ANNOTATION:
 		_, err = t.handleAnnotationBlock(parent, block)
-	case pb.ThreadBlock_IGNORE:
-		_, err = t.handleIgnoreBlock(parent, block)
-	case pb.ThreadBlock_MERGE:
-		err = t.handleMergeBlock(parent, block)
 	default:
 		return errors.New(fmt.Sprintf("invalid message type: %s", block.Type))
 	}
@@ -394,7 +398,7 @@ func (t *Thread) handleHead(inbound mh.Multihash, parents []string) (mh.Multihas
 	}
 
 	// needs merge
-	return t.Merge(inbound)
+	return t.merge(inbound)
 }
 
 // updateHead updates the ref to the content id of the latest update

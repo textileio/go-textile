@@ -11,8 +11,8 @@ import (
 	"time"
 )
 
-// Merge adds a merge block, which are kept local until subsequent updates, avoiding possibly endless echoes
-func (t *Thread) Merge(head mh.Multihash) (mh.Multihash, error) {
+// merge adds a merge block, which are kept local until subsequent updates, avoiding possibly endless echoes
+func (t *Thread) merge(head mh.Multihash) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 

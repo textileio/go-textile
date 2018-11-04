@@ -39,5 +39,11 @@ func (t *Textile) AcceptThreadInviteViaNotification(id string) (mh.Multihash, er
 	}
 
 	// block is the invite's block id
-	return t.AcceptThreadInvite(notification.BlockId)
+	hash, err := t.AcceptThreadInvite(notification.BlockId)
+	if err != nil {
+		return nil, err
+	}
+
+	// delete notification
+	return hash, t.datastore.Notifications().Delete(id)
 }
