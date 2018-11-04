@@ -174,11 +174,7 @@ func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope
 	}
 
 	// pin locally for use later
-	// NOTE: as an enhancement, we could maintain an sql table for "pending threads",
-	// or make "pending" a type of thread, put sk here into those rows so we don't have
-	// to re-download and unpack this ciphertext
-	// TODO: unpin when invite joined / ignored
-	// TODO: delete notification when joined / ignored
+	// TODO: w/ #347 delete notification when ignored
 	if _, err := ipfs.PinData(h.service.Node, bytes.NewReader(tenv.CipherBlock)); err != nil {
 		return err
 	}
