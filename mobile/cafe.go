@@ -18,7 +18,7 @@ func (m *Mobile) RegisterCafe(peerId string) error {
 	return nil
 }
 
-// CafeSessions calls core ListCafeSessions
+// CafeSessions calls core CafeSessions
 func (m *Mobile) CafeSessions() (string, error) {
 	items, err := core.Node.CafeSessions()
 	if err != nil {
@@ -44,8 +44,8 @@ func (m *Mobile) CafeSession(peerId string) (string, error) {
 }
 
 // RefreshCafeSession calls core RefreshCafeSession
-func (m *Mobile) RefreshCafeSession(cafeId string) (string, error) {
-	session, err := core.Node.RefreshCafeSession(cafeId)
+func (m *Mobile) RefreshCafeSession(peerId string) (string, error) {
+	session, err := core.Node.RefreshCafeSession(peerId)
 	if err != nil {
 		return "", err
 	}

@@ -26,6 +26,7 @@ message CafeSession {
     string subject                 = 5;
     string type                    = 6;
     string httpAddr                = 7;
+    repeated string swarmAddrs     = 8;
 }
 
 message CafeRefreshSession {

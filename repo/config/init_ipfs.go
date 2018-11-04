@@ -1,16 +1,9 @@
 package config
 
 import (
-	"fmt"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo"
 	native "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/config"
-	"math/rand"
 	"time"
-)
-
-const (
-	minPort = 1024
-	maxPort = 49151
 )
 
 // DefaultServerFilters has a list of non-routable IPv4 prefixes
@@ -129,17 +122,8 @@ const DefaultConnMgrLowWater = 600
 const DefaultConnMgrGracePeriod = time.Second * 20
 
 func addressesConfig() native.Addresses {
-	swarmPort := GetRandomPort()
-	swarmWSPort := GetRandomPort()
-
 	return native.Addresses{
-		Swarm: []string{
-			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", swarmPort),
-			fmt.Sprintf("/ip6/::/tcp/%d", swarmPort),
-			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d/ws", swarmWSPort),
-			fmt.Sprintf("/ip6/::/tcp/%d/ws", swarmWSPort),
-			// "/ip4/0.0.0.0/udp/4002/utp", // disabled for now.
-		},
+		Swarm:      []string{},
 		Announce:   []string{},
 		NoAnnounce: []string{},
 	}
@@ -179,9 +163,4 @@ func defaultDatastoreConfig() native.Datastore {
 			},
 		},
 	}
-}
-
-func GetRandomPort() int {
-	rand.Seed(time.Now().UTC().UnixNano())
-	return rand.Intn(maxPort-minPort) + minPort
 }

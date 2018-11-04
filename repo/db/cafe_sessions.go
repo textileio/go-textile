@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"github.com/textileio/textile-go/repo"
+	"strings"
 	"sync"
 	"time"
 )
@@ -22,7 +23,7 @@ func (c *CafeSessionDB) AddOrUpdate(session *repo.CafeSession) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert or replace into cafe_sessions(cafeId, access, refresh, expiry, httpAddr) values(?,?,?,?,?)`
+	stm := `insert or replace into cafe_sessions(cafeId, access, refresh, expiry, httpAddr, swarmAddrs) values(?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -35,6 +36,7 @@ func (c *CafeSessionDB) AddOrUpdate(session *repo.CafeSession) error {
 		session.Refresh,
 		int(session.Expiry.Unix()),
 		session.HttpAddr,
+		strings.Join(session.SwarmAddrs, ","),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -76,18 +78,25 @@ func (c *CafeSessionDB) handleQuery(stm string) []repo.CafeSession {
 		return nil
 	}
 	for rows.Next() {
-		var cafeId, access, refresh, httpAddr string
+		var cafeId, access, refresh, httpAddr, swarmAddrs string
 		var expiryInt int
-		if err := rows.Scan(&cafeId, &access, &refresh, &expiryInt, &httpAddr); err != nil {
+		if err := rows.Scan(&cafeId, &access, &refresh, &expiryInt, &httpAddr, &swarmAddrs); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
+		slist := make([]string, 0)
+		for _, p := range strings.Split(swarmAddrs, ",") {
+			if p != "" {
+				slist = append(slist, p)
+			}
+		}
 		session := repo.CafeSession{
-			CafeId:   cafeId,
-			Access:   access,
-			Refresh:  refresh,
-			Expiry:   time.Unix(int64(expiryInt), 0),
-			HttpAddr: httpAddr,
+			CafeId:     cafeId,
+			Access:     access,
+			Refresh:    refresh,
+			Expiry:     time.Unix(int64(expiryInt), 0),
+			HttpAddr:   httpAddr,
+			SwarmAddrs: slist,
 		}
 		ret = append(ret, session)
 	}

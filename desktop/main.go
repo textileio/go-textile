@@ -15,7 +15,6 @@ import (
 	"github.com/textileio/textile-go/gateway"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/repo"
-	rconfig "github.com/textileio/textile-go/repo/config"
 	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/fsrepo"
 	"os"
@@ -182,7 +181,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	}()
 
 	// start the gateway
-	gateway.Host.Start(fmt.Sprintf("127.0.0.1:%d", rconfig.GetRandomPort()))
+	gateway.Host.Start(fmt.Sprintf("127.0.0.1:%s", core.GetRandomPort()))
 
 	// save off the server address
 	gatewayAddr = fmt.Sprintf("http://%s", gateway.Host.Addr())
