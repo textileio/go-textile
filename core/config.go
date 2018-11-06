@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"github.com/textileio/textile-go/repo/config"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/fsrepo"
 	"math/rand"
@@ -36,8 +37,19 @@ func applyTextileConfigOptions(init InitConfig) error {
 		return err
 	}
 
+	// determine the account thread id
+	pk, err := init.Account.LibP2PPubKey()
+	if err != nil {
+		return err
+	}
+	atid, err := peer.IDFromPublicKey(pk)
+	if err != nil {
+		return err
+	}
+
 	// account settings
 	conf.Account.Address = init.Account.Address()
+	conf.Account.Thread = atid.Pretty()
 
 	// address settings
 	conf.Addresses.API = init.ApiAddr

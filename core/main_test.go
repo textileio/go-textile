@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	. "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/repo"
 	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"os"
@@ -63,7 +64,7 @@ func TestCore_AddThread(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	thrd, err := node.AddThread("test", sk, true)
+	thrd, err := node.AddThread("test", sk, repo.OpenThread, true)
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
 		return

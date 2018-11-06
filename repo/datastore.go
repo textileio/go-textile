@@ -10,6 +10,7 @@ type Datastore interface {
 	Config() ConfigStore
 	Profile() ProfileStore
 	Contacts() ContactStore
+	Files() FileStore
 	Threads() ThreadStore
 	ThreadPeers() ThreadPeerStore
 	ThreadMessages() ThreadMessageStore
@@ -53,6 +54,16 @@ type ContactStore interface {
 	AddOrUpdate(device *Contact) error
 	Get(id string) *Contact
 	List() []Contact
+	Count() int
+	Delete(id string) error
+}
+
+type FileStore interface {
+	Queryable
+	Add(file *File) error
+	Get(id string) *File
+	List(offset string, limit int) []File
+	ListByHash(hash string) []File
 	Count() int
 	Delete(id string) error
 }

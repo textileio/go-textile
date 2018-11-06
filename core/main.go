@@ -105,8 +105,9 @@ type Textile struct {
 	context        oldcmds.Context
 	repoPath       string
 	config         *config.Config
+	account        *keypair.Full
 	cancel         context.CancelFunc
-	ipfs           *core.IpfsNode
+	node           *core.IpfsNode
 	datastore      repo.Datastore
 	started        bool
 	threads        []*Thread
@@ -129,7 +130,6 @@ var ErrAccountRequired = errors.New("account required")
 var ErrStarted = errors.New("node is started")
 var ErrStopped = errors.New("node is stopped")
 var ErrOffline = errors.New("node is offline")
-var ErrThreadLoaded = errors.New("thread is loaded")
 
 // InitRepo initializes a new node repo
 func InitRepo(conf InitConfig) error {
@@ -252,6 +252,13 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 	}
 	node.datastore = sqliteDb
 
+	// load account
+	accnt, err := node.datastore.Config().GetAccount()
+	if err != nil {
+		return nil, err
+	}
+	node.account = accnt
+
 	// all done
 	return node, nil
 }
@@ -263,20 +270,6 @@ func (t *Textile) Start() error {
 	if t.started {
 		return ErrStarted
 	}
-	defer func() {
-		t.done = make(chan struct{})
-		t.started = true
-
-		// log peer and account info
-		addr, err := t.Address()
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
-		log.Info("node is started")
-		log.Infof("peer id: %s", t.ipfs.Identity.Pretty())
-		log.Infof("account address: %s", addr)
-	}()
 	log.Info("starting node...")
 
 	// raise file descriptor limit
@@ -289,18 +282,12 @@ func (t *Textile) Start() error {
 		return err
 	}
 
-	// load account
-	accnt, err := t.Account()
-	if err != nil {
-		return err
-	}
-
 	// load swarm ports
-	sports, err := loadSwarmPorts(t.repoPath)
+	swarmPorts, err := loadSwarmPorts(t.repoPath)
 	if err != nil {
 		return err
 	}
-	if sports == nil {
+	if swarmPorts == nil {
 		return errors.New("failed to load swarm ports")
 	}
 
@@ -319,7 +306,7 @@ func (t *Textile) Start() error {
 			return t.threadsService
 		},
 		func() *core.IpfsNode {
-			return t.ipfs
+			return t.node
 		},
 		t.datastore,
 	)
@@ -328,7 +315,7 @@ func (t *Textile) Start() error {
 			return t.cafeService
 		},
 		func() *core.IpfsNode {
-			return t.ipfs
+			return t.node
 		},
 		t.datastore,
 	)
@@ -337,7 +324,7 @@ func (t *Textile) Start() error {
 			return t.threadsService
 		},
 		func() *core.IpfsNode {
-			return t.ipfs
+			return t.node
 		},
 		t.datastore,
 		t.cafeOutbox,
@@ -358,16 +345,16 @@ func (t *Textile) Start() error {
 
 		// setup thread service
 		t.threadsService = NewThreadsService(
-			accnt,
-			t.ipfs,
+			t.account,
+			t.node,
 			t.datastore,
 			t.Thread,
 			t.sendNotification,
 		)
 
 		// setup cafe service
-		t.cafeService = NewCafeService(accnt, t.ipfs, t.datastore, t.cafeInbox)
-		t.cafeService.setAddrs(t.config.Addresses.CafeAPI, *sports)
+		t.cafeService = NewCafeService(t.account, t.node, t.datastore, t.cafeInbox)
+		t.cafeService.setAddrs(t.config.Addresses.CafeAPI, *swarmPorts)
 		if t.config.Cafe.Open {
 			t.cafeService.open = true
 			t.startCafeApi(t.config.Addresses.CafeAPI)
@@ -377,7 +364,7 @@ func (t *Textile) Start() error {
 		go t.runQueues()
 
 		// print swarm addresses
-		if err := ipfs.PrintSwarmAddrs(t.ipfs); err != nil {
+		if err := ipfs.PrintSwarmAddrs(t.node); err != nil {
 			log.Errorf(err.Error())
 		}
 		log.Info("node is online")
@@ -385,15 +372,25 @@ func (t *Textile) Start() error {
 
 	// setup threads
 	for _, mod := range t.datastore.Threads().List() {
-		_, err := t.loadThread(&mod)
-		if err == ErrThreadLoaded {
+		if _, err := t.loadThread(&mod); err == ErrThreadLoaded {
 			continue
 		}
 		if err != nil {
 			return err
 		}
 	}
-	return nil
+
+	// ready to go
+	t.done = make(chan struct{})
+	t.started = true
+
+	// log peer and account info
+	log.Info("node is started")
+	log.Infof("peer id: %s", t.node.Identity.Pretty())
+	log.Infof("account address: %s", t.account.Address())
+
+	// add account thread if it doesn't exist
+	return t.addAccountThread()
 }
 
 // Stop the node
@@ -417,7 +414,7 @@ func (t *Textile) Stop() error {
 	// close ipfs node
 	t.context.Close()
 	t.cancel()
-	if err := t.ipfs.Close(); err != nil {
+	if err := t.node.Close(); err != nil {
 		log.Errorf("error closing ipfs node: %s", err)
 		return err
 	}
@@ -447,10 +444,10 @@ func (t *Textile) Started() bool {
 
 // Online returns whether or not node is online
 func (t *Textile) Online() bool {
-	if t.ipfs == nil {
+	if t.node == nil {
 		return false
 	}
-	return t.started && t.ipfs.OnlineMode()
+	return t.started && t.node.OnlineMode()
 }
 
 // Mobile returns whether or not node is configured for a mobile device
@@ -465,7 +462,7 @@ func (t *Textile) Writer() io.Writer {
 
 // Ipfs returns the underlying ipfs node
 func (t *Textile) Ipfs() *core.IpfsNode {
-	return t.ipfs
+	return t.node
 }
 
 // OnlineCh returns the online channel
@@ -506,7 +503,7 @@ func (t *Textile) PeerId() (peer.ID, error) {
 	if !t.started {
 		return "", ErrStopped
 	}
-	return t.ipfs.Identity, nil
+	return t.node.Identity, nil
 }
 
 // RepoPath returns the node's repo path
@@ -519,7 +516,7 @@ func (t *Textile) DataAtPath(path string) ([]byte, error) {
 	if !t.started {
 		return nil, ErrStopped
 	}
-	return ipfs.DataAtPath(t.ipfs, path)
+	return ipfs.DataAtPath(t.node, path)
 }
 
 // LinksAtPath returns ipld links behind an ipfs path
@@ -527,7 +524,7 @@ func (t *Textile) LinksAtPath(path string) ([]*ipld.Link, error) {
 	if !t.started {
 		return nil, ErrStopped
 	}
-	return ipfs.LinksAtPath(t.ipfs, path)
+	return ipfs.LinksAtPath(t.node, path)
 }
 
 // createIPFS creates an IPFS node
@@ -581,15 +578,15 @@ func (t *Textile) createIPFS(online bool) error {
 	if t.cancel != nil {
 		t.cancel()
 	}
-	if t.ipfs != nil {
-		if err := t.ipfs.Close(); err != nil {
+	if t.node != nil {
+		if err := t.node.Close(); err != nil {
 			log.Errorf("error closing prev ipfs node: %s", err)
 			return err
 		}
 	}
 	t.context = ctx
 	t.cancel = cancel
-	t.ipfs = nd
+	t.node = nd
 
 	return nil
 }
@@ -652,7 +649,7 @@ func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 	threadConfig := &ThreadConfig{
 		RepoPath: t.repoPath,
 		Node: func() *core.IpfsNode {
-			return t.ipfs
+			return t.node
 		},
 		Datastore: t.datastore,
 		Service: func() *ThreadsService {

@@ -2,6 +2,7 @@ package core
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/textileio/textile-go/repo"
 	"net/http"
 )
 
@@ -12,20 +13,23 @@ func (a *api) addImages(g *gin.Context) {
 		return
 	}
 	fileHeaders := form.File["file"]
-	var adds []*AddDataResult
+	var adds []*repo.File
 	for _, header := range fileHeaders {
 		file, err := header.Open()
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return
 		}
-		added, err := a.node.AddImage(file, header.Filename)
+
+		//
+		original, err := a.node.AddFile(file, header.Filename, nil, true)
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return
 		}
+
 		file.Close()
-		adds = append(adds, added)
+		adds = append(adds, original)
 	}
 	g.JSON(http.StatusCreated, adds)
 }

@@ -15,6 +15,7 @@ type SQLiteDatastore struct {
 	config             repo.ConfigStore
 	profile            repo.ProfileStore
 	contacts           repo.ContactStore
+	files              repo.FileStore
 	threads            repo.ThreadStore
 	threadPeers        repo.ThreadPeerStore
 	threadMessages     repo.ThreadMessageStore
@@ -47,6 +48,7 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 		config:             NewConfigStore(conn, mux, dbPath),
 		profile:            NewProfileStore(conn, mux),
 		contacts:           NewContactStore(conn, mux),
+		files:              NewFileStore(conn, mux),
 		threads:            NewThreadStore(conn, mux),
 		threadPeers:        NewThreadPeerStore(conn, mux),
 		threadMessages:     NewThreadMessageStore(conn, mux),
@@ -84,6 +86,10 @@ func (d *SQLiteDatastore) Profile() repo.ProfileStore {
 
 func (d *SQLiteDatastore) Contacts() repo.ContactStore {
 	return d.contacts
+}
+
+func (d *SQLiteDatastore) Files() repo.FileStore {
+	return d.files
 }
 
 func (d *SQLiteDatastore) Threads() repo.ThreadStore {
@@ -188,7 +194,11 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index contact_username on contacts (username);
     create index contact_added on contacts (added);
 
-    create table threads (id text primary key not null, name text not null, sk blob not null, head text not null);
+    create table files (id text primary key not null, hash text not null, name text not null, key text not null, added integer not null, pinned integer not null);
+    create index file_hash on files (hash);
+    create index file_added on files (added);
+
+    create table threads (id text primary key not null, name text not null, sk blob not null, head text not null, type integer not null, state integer not null);
 
     create table thread_peers (id text not null, threadId text not null, welcomed integer not null, primary key (id, threadId));
     create index thread_peer_id on thread_peers (id);

@@ -113,7 +113,7 @@ func callAddImages(args []string, ctx *ishell.Context) error {
 		return err
 	}
 	writer.Close()
-	var list *[]core.AddDataResult
+	var list *[]repo.File
 	res, err := executeJsonCmd(POST, "images", params{
 		args:    args,
 		payload: &body,
@@ -159,7 +159,7 @@ func sharePhoto(c *ishell.Context) {
 
 	// TODO: owner challenge
 	// finally, add to destination
-	if _, err := toThread.AddPhoto(id, caption, block.DataKey); err != nil {
+	if _, err := toThread.AddFile(id, caption, block.DataKey); err != nil {
 		c.Err(err)
 		return
 	}

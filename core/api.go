@@ -127,12 +127,7 @@ func (a *api) peer(g *gin.Context) {
 }
 
 func (a *api) address(g *gin.Context) {
-	addr, err := a.node.Address()
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-	g.String(http.StatusOK, addr)
+	g.String(http.StatusOK, a.node.account.Address())
 }
 
 func (a *api) ping(g *gin.Context) {
@@ -168,6 +163,21 @@ func (a *api) readArgs(g *gin.Context) ([]string, error) {
 		}
 	}
 	return args, nil
+}
+
+func (a *api) readOpts(g *gin.Context) (map[string]string, error) {
+	header := g.Request.Header.Get("X-Textile-Opts")
+	opts := make(map[string]string)
+	for _, o := range strings.Split(header, ",") {
+		opt := strings.TrimSpace(o)
+		if opt != "" {
+			parts := strings.Split(opt, "=")
+			if len(parts) == 2 {
+				opts[parts[0]] = parts[1]
+			}
+		}
+	}
+	return opts, nil
 }
 
 func (a *api) abort500(g *gin.Context, err error) {

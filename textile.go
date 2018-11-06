@@ -375,7 +375,7 @@ func buildNode(pinCode string, repoPath string) error {
 
 	// auto start it
 	if err := startNode(); err != nil {
-		fmt.Println(fmt.Errorf("start node failed: %s", err))
+		return errors.New(fmt.Sprintf("start node failed: %s", err))
 	}
 	return nil
 }
@@ -468,10 +468,6 @@ func printSplash() {
 	if err != nil {
 		log.Fatalf("get peer id failed: %s", err)
 	}
-	accnt, err := core.Node.Account()
-	if err != nil {
-		log.Fatalf("get account failed: %s", err)
-	}
 	fmt.Println(cmd.Grey("Textile daemon version v" + core.Version))
 	fmt.Println(cmd.Grey("Repo:    ") + cmd.Grey(core.Node.RepoPath()))
 	fmt.Println(cmd.Grey("API:     ") + cmd.Grey(core.Node.ApiAddr()))
@@ -480,5 +476,5 @@ func printSplash() {
 		fmt.Println(cmd.Grey("Cafe:    ") + cmd.Grey(core.Node.CafeApiAddr()))
 	}
 	fmt.Println(cmd.Grey("PeerID:  ") + cmd.Green(pid.Pretty()))
-	fmt.Println(cmd.Grey("Account: ") + cmd.Cyan(accnt.Address()))
+	fmt.Println(cmd.Grey("Account: ") + cmd.Cyan(core.Node.Account().Address()))
 }

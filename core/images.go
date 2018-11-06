@@ -103,24 +103,24 @@ func (t *Textile) AddImage(file multipart.File, name string) (*AddDataResult, er
 	}
 
 	// create a virtual directory for the photo
-	dir := uio.NewDirectory(t.ipfs.DAG)
-	thumbId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader(thumbcipher), "thumb")
+	dir := uio.NewDirectory(t.node.DAG)
+	thumbId, err := ipfs.AddDirectoryFile(t.node, dir, bytes.NewReader(thumbcipher), "thumb")
 	if err != nil {
 		return nil, err
 	}
-	smallId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader(smallcipher), "small")
+	smallId, err := ipfs.AddDirectoryFile(t.node, dir, bytes.NewReader(smallcipher), "small")
 	if err != nil {
 		return nil, err
 	}
-	mediumId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader(mediumcipher), "medium")
+	mediumId, err := ipfs.AddDirectoryFile(t.node, dir, bytes.NewReader(mediumcipher), "medium")
 	if err != nil {
 		return nil, err
 	}
-	photoId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader(largecipher), "photo")
+	photoId, err := ipfs.AddDirectoryFile(t.node, dir, bytes.NewReader(largecipher), "photo")
 	if err != nil {
 		return nil, err
 	}
-	metaId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader(metacipher), "meta")
+	metaId, err := ipfs.AddDirectoryFile(t.node, dir, bytes.NewReader(metacipher), "meta")
 	if err != nil {
 		return nil, err
 	}
@@ -130,9 +130,9 @@ func (t *Textile) AddImage(file multipart.File, name string) (*AddDataResult, er
 	if err != nil {
 		return nil, err
 	}
-	if err := ipfs.PinDirectory(t.ipfs, node, []string{"small", "medium", "photo", "meta"}); err != nil {
-		return nil, err
-	}
+	//if err := ipfs.PinDirectory(t.node, node, []string{"small", "medium", "photo", "meta"}); err != nil {
+	//	return nil, err
+	//}
 
 	// the add result is a handle for UIs to use to share to a thread
 	result := &AddDataResult{

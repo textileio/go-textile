@@ -3,6 +3,7 @@ package core
 import (
 	"crypto/rand"
 	"github.com/gin-gonic/gin"
+	"github.com/textileio/textile-go/repo"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"net/http"
 )
@@ -17,12 +18,26 @@ func (a *api) addThreads(g *gin.Context) {
 		g.String(http.StatusBadRequest, "missing thread name")
 		return
 	}
+	opts, err := a.readOpts(g)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+	ttype := repo.OpenThread
+	if opts["type"] != "" {
+		var err error
+		ttype, err = repo.ThreadTypeFromString(opts["type"])
+		if err != nil {
+			g.String(http.StatusBadRequest, "invalid thread type")
+			return
+		}
+	}
 	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		a.abort500(g, err)
 		return
 	}
-	thrd, err := a.node.AddThread(args[0], sk, true)
+	thrd, err := a.node.AddThread(args[0], sk, ttype, true)
 	if err != nil {
 		a.abort500(g, err)
 		return
@@ -52,7 +67,7 @@ func (a *api) getThreads(g *gin.Context) {
 	id := g.Param("id")
 	thrd := a.node.Thread(id)
 	if thrd == nil {
-		g.String(http.StatusNotFound, "thread not found")
+		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
 		return
 	}
 	info, err := thrd.Info()
@@ -67,7 +82,7 @@ func (a *api) rmThreads(g *gin.Context) {
 	id := g.Param("id")
 	thrd := a.node.Thread(id)
 	if thrd == nil {
-		g.String(http.StatusNotFound, "thread not found")
+		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
 		return
 	}
 	if _, err := a.node.RemoveThread(id); err != nil {

@@ -91,12 +91,8 @@ func (t *Textile) Profile(pid peer.ID) (*Profile, error) {
 	profile := &Profile{}
 
 	// if peer id is local, return profile from db
-	if t.ipfs.Identity.Pretty() == pid.Pretty() {
-		addr, err := t.Address()
-		if err != nil {
-			return nil, err
-		}
-		profile.Address = addr
+	if t.node.Identity.Pretty() == pid.Pretty() {
+		profile.Address = t.account.Address()
 		for _, ses := range t.datastore.CafeSessions().List() {
 			profile.Inboxes = append(profile.Inboxes, ses.CafeId)
 		}
@@ -126,19 +122,19 @@ func (t *Textile) Profile(pid peer.ID) (*Profile, error) {
 
 	// get components from entry
 	var addrb, inboxesb, usernameb, avatarb []byte
-	addrb, _ = ipfs.DataAtPath(t.ipfs, fmt.Sprintf("%s/%s", root, "address"))
+	addrb, _ = ipfs.DataAtPath(t.node, fmt.Sprintf("%s/%s", root, "address"))
 	if addrb != nil {
 		profile.Address = string(addrb)
 	}
-	inboxesb, _ = ipfs.DataAtPath(t.ipfs, fmt.Sprintf("%s/%s", root, "inboxes"))
+	inboxesb, _ = ipfs.DataAtPath(t.node, fmt.Sprintf("%s/%s", root, "inboxes"))
 	if inboxesb != nil && string(inboxesb) != "" {
 		profile.Inboxes = strings.Split(string(inboxesb), ",")
 	}
-	usernameb, _ = ipfs.DataAtPath(t.ipfs, fmt.Sprintf("%s/%s", root, "username"))
+	usernameb, _ = ipfs.DataAtPath(t.node, fmt.Sprintf("%s/%s", root, "username"))
 	if usernameb != nil {
 		profile.Username = string(usernameb)
 	}
-	avatarb, _ = ipfs.DataAtPath(t.ipfs, fmt.Sprintf("%s/%s", root, "avatar_uri"))
+	avatarb, _ = ipfs.DataAtPath(t.node, fmt.Sprintf("%s/%s", root, "avatar_uri"))
 	if avatarb != nil {
 		profile.AvatarUri = string(avatarb)
 	}
@@ -147,7 +143,7 @@ func (t *Textile) Profile(pid peer.ID) (*Profile, error) {
 
 // PublishProfile publishes the current profile
 func (t *Textile) PublishProfile() error {
-	prof, err := t.Profile(t.ipfs.Identity)
+	prof, err := t.Profile(t.node.Identity)
 	if err != nil {
 		return err
 	}
@@ -171,7 +167,7 @@ func (t *Textile) ResolveProfile(name peer.ID) (*path.Path, error) {
 	if !t.Online() {
 		return nil, ErrOffline
 	}
-	return ipfs.Resolve(t.ipfs, name)
+	return ipfs.Resolve(t.node, name)
 }
 
 // publishProfile publishes profile to ipns
@@ -181,10 +177,10 @@ func (t *Textile) publishProfile(prof Profile) (*ipfs.IpnsEntry, error) {
 	}
 
 	// create a virtual directory for the profile
-	dir := uio.NewDirectory(t.ipfs.DAG)
+	dir := uio.NewDirectory(t.node.DAG)
 
 	// add public components
-	addressId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader([]byte(prof.Address)), "address")
+	addressId, err := ipfs.AddDirectoryFile(t.node, dir, bytes.NewReader([]byte(prof.Address)), "address")
 	if err != nil {
 		return nil, err
 	}
@@ -197,21 +193,21 @@ func (t *Textile) publishProfile(prof Profile) (*ipfs.IpnsEntry, error) {
 			inboxes = append(inboxes, ses.CafeId)
 		}
 		inboxesStr := strings.Join(inboxes, ",")
-		inboxesId, err = ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader([]byte(inboxesStr)), "inboxes")
+		inboxesId, err = ipfs.AddDirectoryFile(t.node, dir, bytes.NewReader([]byte(inboxesStr)), "inboxes")
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		inboxesId, err = ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader([]byte("")), "inboxes")
+		inboxesId, err = ipfs.AddDirectoryFile(t.node, dir, bytes.NewReader([]byte("")), "inboxes")
 		if err != nil {
 			return nil, err
 		}
 	}
-	usernameId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader([]byte(prof.Username)), "username")
+	usernameId, err := ipfs.AddDirectoryFile(t.node, dir, bytes.NewReader([]byte(prof.Username)), "username")
 	if err != nil {
 		return nil, err
 	}
-	avatarId, err := ipfs.AddFileToDirectory(t.ipfs, dir, bytes.NewReader([]byte(prof.AvatarUri)), "avatar_uri")
+	avatarId, err := ipfs.AddDirectoryFile(t.node, dir, bytes.NewReader([]byte(prof.AvatarUri)), "avatar_uri")
 	if err != nil {
 		return nil, err
 	}
@@ -221,9 +217,10 @@ func (t *Textile) publishProfile(prof Profile) (*ipfs.IpnsEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := ipfs.PinDirectory(t.ipfs, node, []string{}); err != nil {
-		return nil, err
-	}
+	// TODO: fixme
+	//if err := ipfs.PinDirectory(t.node, node, []string{}); err != nil {
+	//	return nil, err
+	//}
 
 	// add store requests
 	t.cafeOutbox.Add(addressId.Hash().B58String(), repo.CafeStoreRequest)
@@ -235,5 +232,5 @@ func (t *Textile) publishProfile(prof Profile) (*ipfs.IpnsEntry, error) {
 
 	// finish
 	value := node.Cid().Hash().B58String()
-	return ipfs.Publish(t.ipfs, t.ipfs.PrivateKey, value, profileLifetime, profileTTL)
+	return ipfs.Publish(t.node, t.node.PrivateKey, value, profileLifetime, profileTTL)
 }

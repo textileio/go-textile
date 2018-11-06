@@ -1,8 +1,10 @@
 package repo
 
 import (
+	"errors"
 	"github.com/textileio/textile-go/images"
 	"github.com/textileio/textile-go/pb"
+	"strings"
 	"time"
 )
 
@@ -13,11 +15,78 @@ type Contact struct {
 	Added    time.Time `json:"added"`
 }
 
+type File struct {
+	Id     string    `json:"id"`
+	Hash   string    `json:"hash"`
+	Name   string    `json:"name"`
+	Key    string    `json:"key"`
+	Added  time.Time `json:"added"`
+	Pinned bool      `json:"pinned"`
+}
+
 type Thread struct {
-	Id      string `json:"id"`
-	Name    string `json:"name"`
-	PrivKey []byte `json:"sk"`
-	Head    string `json:"head"`
+	Id      string      `json:"id"`
+	Name    string      `json:"name"`
+	PrivKey []byte      `json:"sk"`
+	Head    string      `json:"head"`
+	Type    ThreadType  `json:"type"`
+	State   ThreadState `json:"state"`
+}
+
+type ThreadType int
+
+const (
+	AccountThread ThreadType = iota // tracks account peers
+	PrivateThread                   // invites not allowed
+	OpenThread                      // invites allowed
+	// PublicThread                    // not encrypted
+)
+
+func (tt ThreadType) Description() string {
+	switch tt {
+	case AccountThread:
+		return "ACCOUNT"
+	case PrivateThread:
+		return "PRIVATE"
+	case OpenThread:
+		return "OPEN"
+	default:
+		return "INVALID"
+	}
+}
+
+func ThreadTypeFromString(desc string) (ThreadType, error) {
+	switch strings.ToUpper(strings.TrimSpace(desc)) {
+	case "ACCOUNT":
+		return AccountThread, nil
+	case "PRIVATE":
+		return PrivateThread, nil
+	case "OPEN":
+		return OpenThread, nil
+	default:
+		return -1, errors.New("could not parse thread type")
+	}
+}
+
+type ThreadState int
+
+const (
+	ThreadPending ThreadState = iota
+	ThreadLoading
+	ThreadLoaded
+)
+
+func (ts ThreadState) Description() string {
+	switch ts {
+	case ThreadPending:
+		return "PENDING"
+	case ThreadLoading:
+		return "LOADING"
+	case ThreadLoaded:
+		return "LOADED"
+	default:
+		return "INVALID"
+	}
 }
 
 type ThreadPeer struct {
@@ -76,7 +145,7 @@ func (b BlockType) Description() string {
 	case IgnoreBlock:
 		return "IGNORE"
 	case FlagBlock:
-		return "IGNORE"
+		return "FLAG"
 	case JoinBlock:
 		return "JOIN"
 	case AnnounceBlock:
@@ -85,6 +154,8 @@ func (b BlockType) Description() string {
 		return "LEAVE"
 	case FileBlock:
 		return "FILE"
+	case TextBlock:
+		return "TEXT"
 	case CommentBlock:
 		return "COMMENT"
 	case LikeBlock:

@@ -251,7 +251,7 @@ func (q *CafeOutbox) prepForInbox(pid peer.ID, env *pb.Envelope) (mh.Multihash, 
 	}
 
 	// pin it
-	id, err := ipfs.PinData(q.node(), bytes.NewReader(ciphertext))
+	id, err := ipfs.AddData(q.node(), bytes.NewReader(ciphertext), true)
 	if err != nil {
 		return nil, err
 	}

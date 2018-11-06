@@ -1,7 +1,6 @@
 package mobile
 
 import (
-	"errors"
 	"fmt"
 	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/core"
@@ -64,15 +63,18 @@ func (m *Mobile) AddPhoto(path string) (string, error) {
 
 // SharePhoto adds an existing photo to a new thread
 func (m *Mobile) AddPhotoToThread(dataId string, key string, threadId string, caption string) (string, error) {
+	if !core.Node.Started() {
+		return "", core.ErrStopped
+	}
 	thrd := core.Node.Thread(threadId)
 	if thrd == nil {
-		return "", errors.New(fmt.Sprintf("could not find thread %s", threadId))
+		return "", core.ErrThreadNotFound
 	}
 	keyb, err := base58.Decode(key)
 	if err != nil {
 		return "", err
 	}
-	hash, err := thrd.AddPhoto(dataId, caption, keyb)
+	hash, err := thrd.AddFile(dataId, caption, keyb)
 	if err != nil {
 		return "", err
 	}
@@ -81,19 +83,19 @@ func (m *Mobile) AddPhotoToThread(dataId string, key string, threadId string, ca
 
 // SharePhoto adds an existing photo to a new thread
 func (m *Mobile) SharePhotoToThread(dataId string, threadId string, caption string) (string, error) {
+	if !core.Node.Started() {
+		return "", core.ErrStopped
+	}
 	block, err := core.Node.BlockByDataId(dataId)
 	if err != nil {
 		return "", err
 	}
-	if block == nil {
-		return "", errors.New(fmt.Sprintf("could not find block with data id: %s", dataId))
-	}
 	toThread := core.Node.Thread(threadId)
 	if toThread == nil {
-		return "", errors.New(fmt.Sprintf("could not find thread %s", threadId))
+		return "", core.ErrThreadNotFound
 	}
 	// TODO: owner challenge
-	hash, err := toThread.AddPhoto(dataId, caption, block.DataKey)
+	hash, err := toThread.AddFile(dataId, caption, block.DataKey)
 	if err != nil {
 		return "", err
 	}
@@ -102,11 +104,14 @@ func (m *Mobile) SharePhotoToThread(dataId string, threadId string, caption stri
 
 // Photos returns thread photo blocks with json encoding
 func (m *Mobile) Photos(offset string, limit int, threadId string) (string, error) {
+	if !core.Node.Started() {
+		return "", core.ErrStopped
+	}
 	var pre, query string
 	if threadId != "" {
 		thrd := core.Node.Thread(threadId)
 		if thrd == nil {
-			return "", errors.New(fmt.Sprintf("thread not found: %s", threadId))
+			return "", core.ErrThreadNotFound
 		}
 		pre = fmt.Sprintf("threadId='%s' and ", threadId)
 	}
@@ -169,13 +174,16 @@ func (m *Mobile) IgnorePhoto(blockId string) (string, error) {
 
 // AddPhotoComment adds an comment block targeted at the given block
 func (m *Mobile) AddPhotoComment(blockId string, body string) (string, error) {
+	if !core.Node.Started() {
+		return "", core.ErrStopped
+	}
 	block, err := core.Node.Block(blockId)
 	if err != nil {
 		return "", err
 	}
 	thrd := core.Node.Thread(block.ThreadId)
 	if thrd == nil {
-		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
+		return "", core.ErrThreadNotFound
 	}
 	hash, err := thrd.AddComment(block.Id, body)
 	if err != nil {
@@ -191,13 +199,16 @@ func (m *Mobile) IgnorePhotoComment(blockId string) (string, error) {
 
 // AddPhotoLike adds a like block targeted at the given block
 func (m *Mobile) AddPhotoLike(blockId string) (string, error) {
+	if !core.Node.Started() {
+		return "", core.ErrStopped
+	}
 	block, err := core.Node.Block(blockId)
 	if err != nil {
 		return "", err
 	}
 	thrd := core.Node.Thread(block.ThreadId)
 	if thrd == nil {
-		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
+		return "", core.ErrThreadNotFound
 	}
 	hash, err := thrd.AddLike(block.Id)
 	if err != nil {
@@ -213,19 +224,15 @@ func (m *Mobile) IgnorePhotoLike(blockId string) (string, error) {
 
 // PhotoData returns a data url of an image under a path
 func (m *Mobile) PhotoData(id string, path string) (string, error) {
+	if !core.Node.Started() {
+		return "", core.ErrStopped
+	}
 	block, err := core.Node.BlockByDataId(id)
 	if err != nil {
-		log.Errorf("could not find block for data id %s: %s", id, err)
-		return "", err
-	}
-	if block == nil {
-		err := errors.New(fmt.Sprintf("could not find block with data id: %s", id))
-		log.Error(err.Error())
 		return "", err
 	}
 	data, err := core.Node.BlockData(fmt.Sprintf("%s/%s", id, path), block)
 	if err != nil {
-		log.Errorf("get block data failed %s: %s", id, err)
 		return "", err
 	}
 	format := block.DataMetadata.EncodingFormat
@@ -243,14 +250,11 @@ func (m *Mobile) PhotoDataForMinWidth(id string, minWidth int) (string, error) {
 
 // PhotoMetadata returns a meta data object for a photo
 func (m *Mobile) PhotoMetadata(id string) (string, error) {
+	if !core.Node.Started() {
+		return "", core.ErrStopped
+	}
 	block, err := core.Node.BlockByDataId(id)
 	if err != nil {
-		log.Errorf("could not find block for data id %s: %s", id, err)
-		return "", err
-	}
-	if block == nil {
-		err := errors.New(fmt.Sprintf("could not find block with data id: %s", id))
-		log.Error(err.Error())
 		return "", err
 	}
 	return toJSON(block.DataMetadata)
@@ -258,6 +262,9 @@ func (m *Mobile) PhotoMetadata(id string) (string, error) {
 
 // PhotoKey calls core PhotoKey
 func (m *Mobile) PhotoKey(id string) (string, error) {
+	if !core.Node.Started() {
+		return "", core.ErrStopped
+	}
 	key, err := core.Node.PhotoKey(id)
 	if err != nil {
 		return "", err
@@ -267,6 +274,9 @@ func (m *Mobile) PhotoKey(id string) (string, error) {
 
 // PhotoThreads call core PhotoThreads
 func (m *Mobile) PhotoThreads(id string) (string, error) {
+	if !core.Node.Started() {
+		return "", core.ErrStopped
+	}
 	threads := Threads{Items: make([]Thread, 0)}
 	for _, thrd := range core.Node.PhotoThreads(id) {
 		peers := thrd.Peers()
@@ -278,13 +288,16 @@ func (m *Mobile) PhotoThreads(id string) (string, error) {
 
 // ignoreBlock adds an ignore block targeted at the given block and unpins any associated block data
 func (m *Mobile) ignoreBlock(blockId string) (string, error) {
+	if !core.Node.Started() {
+		return "", core.ErrStopped
+	}
 	block, err := core.Node.Block(blockId)
 	if err != nil {
 		return "", err
 	}
 	thrd := core.Node.Thread(block.ThreadId)
 	if thrd == nil {
-		return "", errors.New(fmt.Sprintf("could not find thread %s", block.ThreadId))
+		return "", core.ErrThreadNotFound
 	}
 	hash, err := thrd.Ignore(block.Id)
 	if err != nil {

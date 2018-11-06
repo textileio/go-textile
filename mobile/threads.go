@@ -2,9 +2,8 @@ package mobile
 
 import (
 	"crypto/rand"
-	"errors"
-	"fmt"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/repo"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
@@ -30,6 +29,9 @@ type ExternalInvite struct {
 
 // Threads lists all threads
 func (m *Mobile) Threads() (string, error) {
+	if !core.Node.Started() {
+		return "", core.ErrStopped
+	}
 	threads := Threads{Items: make([]Thread, 0)}
 	for _, thrd := range core.Node.Threads() {
 		peers := thrd.Peers()
@@ -45,7 +47,7 @@ func (m *Mobile) AddThread(name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	thrd, err := core.Node.AddThread(name, sk, true)
+	thrd, err := core.Node.AddThread(name, sk, repo.OpenThread, true)
 	if err != nil {
 		return "", err
 	}
@@ -71,9 +73,12 @@ func (m *Mobile) ThreadInfo(threadId string) (string, error) {
 
 // AddThreadInvite adds a new invite to a thread
 func (m *Mobile) AddThreadInvite(threadId string, inviteeId string) (string, error) {
+	if !core.Node.Started() {
+		return "", core.ErrStopped
+	}
 	thrd := core.Node.Thread(threadId)
 	if thrd == nil {
-		return "", errors.New(fmt.Sprintf("could not find thread: %s", threadId))
+		return "", core.ErrThreadNotFound
 	}
 
 	// decode id
@@ -93,9 +98,12 @@ func (m *Mobile) AddThreadInvite(threadId string, inviteeId string) (string, err
 
 // AddExternalThreadInvite generates a new external invite link to a thread
 func (m *Mobile) AddExternalThreadInvite(threadId string) (string, error) {
+	if !core.Node.Started() {
+		return "", core.ErrStopped
+	}
 	thrd := core.Node.Thread(threadId)
 	if thrd == nil {
-		return "", errors.New(fmt.Sprintf("could not find thread: %s", threadId))
+		return "", core.ErrThreadNotFound
 	}
 
 	// add it
@@ -117,7 +125,6 @@ func (m *Mobile) AddExternalThreadInvite(threadId string) (string, error) {
 
 // AcceptExternalThreadInvite notifies the thread of a join
 func (m *Mobile) AcceptExternalThreadInvite(id string, key string) (string, error) {
-	m.waitForOnline()
 	hash, err := core.Node.AcceptExternalThreadInvite(id, []byte(key))
 	if err != nil {
 		return "", err

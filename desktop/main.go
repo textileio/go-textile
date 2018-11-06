@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"github.com/asticode/go-astilectron"
@@ -287,7 +286,7 @@ func getQRCode() (string, string, error) {
 func getThreadPhotos(id string) (string, error) {
 	thrd := core.Node.Thread(id)
 	if thrd == nil {
-		return "", errors.New("thread not found")
+		return "", core.ErrThreadNotFound
 	}
 	var html string
 	query := fmt.Sprintf("threadId='%s' and type=%d", thrd.Id, repo.FileBlock)

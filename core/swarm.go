@@ -13,7 +13,7 @@ func (t *Textile) ConnectPeer(addrs []string) ([]string, error) {
 	if !t.Online() {
 		return nil, ErrOffline
 	}
-	swrm, ok := t.ipfs.PeerHost.Network().(*swarm.Swarm)
+	swrm, ok := t.node.PeerHost.Network().(*swarm.Swarm)
 	if !ok {
 		return nil, errors.New("peerhost network was not swarm")
 	}
@@ -29,7 +29,7 @@ func (t *Textile) ConnectPeer(addrs []string) ([]string, error) {
 
 		output[i] = "connect " + pi.ID.Pretty()
 
-		err := t.ipfs.PeerHost.Connect(t.ipfs.Context(), pi)
+		err := t.node.PeerHost.Connect(t.node.Context(), pi)
 		if err != nil {
 			return nil, fmt.Errorf("%s failure: %s", output[i], err)
 		}
@@ -42,5 +42,5 @@ func (t *Textile) Peers() ([]libp2pn.Conn, error) {
 	if !t.Online() {
 		return nil, ErrOffline
 	}
-	return t.ipfs.PeerHost.Network().Conns(), nil
+	return t.node.PeerHost.Network().Conns(), nil
 }

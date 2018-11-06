@@ -19,6 +19,9 @@ import (
 	"time"
 )
 
+// errReloadFailed indicates an error occurred during thread reload
+var errThreadReload = errors.New("could not re-load thread")
+
 // ThreadUpdate is used to notify listeners about updates in a thread
 type ThreadUpdate struct {
 	Block      repo.Block `json:"block"`
@@ -31,6 +34,8 @@ type ThreadInfo struct {
 	Id         string      `json:"id"`
 	Name       string      `json:"name"`
 	Head       *repo.Block `json:"head,omitempty"`
+	Type       string      `json:"type"`
+	State      string      `json:"state"`
 	PeerCount  int         `json:"peer_cnt"`
 	BlockCount int         `json:"block_cnt"`
 	FileCount  int         `json:"file_cnt"`
@@ -84,15 +89,19 @@ func NewThread(model *repo.Thread, config *ThreadConfig) (*Thread, error) {
 
 // Info returns thread info
 func (t *Thread) Info() (*ThreadInfo, error) {
+	// load from datastore
+	mod := t.datastore.Threads().Get(t.Id)
+	if mod == nil {
+		return nil, errThreadReload
+	}
+
 	// block info
 	var head *repo.Block
-	headId, err := t.Head()
-	if err != nil {
-		return nil, err
+	if mod.Head != "" {
+		head = t.datastore.Blocks().Get(mod.Head)
 	}
-	if headId != "" {
-		head = t.datastore.Blocks().Get(headId)
-	}
+
+	// counts
 	blocks := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s'", t.Id))
 	files := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s' and type=%d", t.Id, repo.FileBlock))
 
@@ -101,6 +110,8 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 		Id:         t.Id,
 		Name:       t.Name,
 		Head:       head,
+		Type:       mod.Type.Description(),
+		State:      mod.State.Description(),
 		PeerCount:  len(t.Peers()) + 1,
 		BlockCount: blocks,
 		FileCount:  files,
@@ -111,9 +122,27 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 func (t *Thread) Head() (string, error) {
 	mod := t.datastore.Threads().Get(t.Id)
 	if mod == nil {
-		return "", errors.New(fmt.Sprintf("could not re-load thread: %s", t.Id))
+		return "", errThreadReload
 	}
 	return mod.Head, nil
+}
+
+// Head returns content id of the latest update
+func (t *Thread) Type() (repo.ThreadType, error) {
+	mod := t.datastore.Threads().Get(t.Id)
+	if mod == nil {
+		return -1, errThreadReload
+	}
+	return mod.Type, nil
+}
+
+// Head returns content id of the latest update
+func (t *Thread) State() (repo.ThreadState, error) {
+	mod := t.datastore.Threads().Get(t.Id)
+	if mod == nil {
+		return -1, errThreadReload
+	}
+	return mod.State, nil
 }
 
 // Peers returns locally known peers in this thread
@@ -288,7 +317,7 @@ func (t *Thread) commitBlock(msg proto.Message, mtype pb.ThreadBlock_Type, encry
 // addBlock adds to ipfs
 func (t *Thread) addBlock(ciphertext []byte) (mh.Multihash, error) {
 	// pin it
-	id, err := ipfs.PinData(t.node(), bytes.NewReader(ciphertext))
+	id, err := ipfs.AddData(t.node(), bytes.NewReader(ciphertext), true)
 	if err != nil {
 		return nil, err
 	}

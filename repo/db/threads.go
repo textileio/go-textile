@@ -21,7 +21,7 @@ func (c *ThreadDB) Add(thread *repo.Thread) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into threads(id, name, sk, head) values(?,?,?,?)`
+	stm := `insert into threads(id, name, sk, head, type, state) values(?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -33,6 +33,8 @@ func (c *ThreadDB) Add(thread *repo.Thread) error {
 		thread.Name,
 		thread.PrivKey,
 		thread.Head,
+		int(thread.Type),
+		int(thread.State),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -91,7 +93,8 @@ func (c *ThreadDB) handleQuery(stm string) []repo.Thread {
 	for rows.Next() {
 		var id, name, head string
 		var skb []byte
-		if err := rows.Scan(&id, &name, &skb, &head); err != nil {
+		var typeInt, stateInt int
+		if err := rows.Scan(&id, &name, &skb, &head, &typeInt, &stateInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -100,6 +103,8 @@ func (c *ThreadDB) handleQuery(stm string) []repo.Thread {
 			Name:    name,
 			PrivKey: skb,
 			Head:    head,
+			Type:    repo.ThreadType(typeInt),
+			State:   repo.ThreadState(stateInt),
 		}
 		ret = append(ret, thread)
 	}

@@ -24,6 +24,7 @@ type Config struct {
 // Account store public account info
 type Account struct {
 	Address string // public key (seed is stored in the _possibly_ encrypted datastore)
+	Thread  string // thread id of the default account thread used for sync between account peers
 }
 
 // Addresses stores the (string) bind addresses for the node.
@@ -60,6 +61,7 @@ func Init(version string) (*Config, error) {
 	return &Config{
 		Account: Account{
 			Address: "",
+			Thread:  "",
 		},
 		Addresses: Addresses{
 			API:     "127.0.0.1:40600",

@@ -13,15 +13,15 @@ import (
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 )
 
-// AddPhoto adds an outgoing photo block
-func (t *Thread) AddPhoto(dataId string, caption string, key []byte) (mh.Multihash, error) {
+// AddFile adds an outgoing file block
+func (t *Thread) AddFile(hash string, caption string, key []byte) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
 	// build block
 	msg := &pb.ThreadData{
 		Type:    pb.ThreadData_FILE,
-		Data:    dataId,
+		Data:    hash,
 		Key:     key,
 		Caption: caption,
 	}
@@ -33,12 +33,12 @@ func (t *Thread) AddPhoto(dataId string, caption string, key []byte) (mh.Multiha
 	}
 
 	// index it locally
-	meta, err := getMetadata(t.node(), dataId, key)
+	meta, err := getMetadata(t.node(), hash, key)
 	if err != nil {
 		return nil, err
 	}
 	dconf := &repo.DataBlockConfig{
-		DataId:       dataId,
+		DataId:       hash,
 		DataKey:      key,
 		DataCaption:  caption,
 		DataMetadata: meta,

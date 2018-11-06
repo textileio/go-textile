@@ -24,6 +24,8 @@ func TestThreadDB_Add(t *testing.T) {
 		Id:      "Qmabc123",
 		Name:    "boom",
 		PrivKey: make([]byte, 8),
+		Type:    repo.OpenThread,
+		State:   repo.ThreadLoaded,
 	})
 	if err != nil {
 		t.Error(err)
@@ -46,6 +48,8 @@ func TestThreadDB_Get(t *testing.T) {
 		Id:      "Qmabc",
 		Name:    "boom",
 		PrivKey: make([]byte, 8),
+		Type:    repo.OpenThread,
+		State:   repo.ThreadLoaded,
 	})
 	if err != nil {
 		t.Error(err)
@@ -70,6 +74,8 @@ func TestThreadDB_List(t *testing.T) {
 		Id:      "Qm456",
 		Name:    "boom2",
 		PrivKey: make([]byte, 8),
+		Type:    repo.AccountThread,
+		State:   repo.ThreadPending,
 	})
 	if err != nil {
 		t.Error(err)
@@ -87,6 +93,8 @@ func TestThreadDB_Count(t *testing.T) {
 		Id:      "Qm123count",
 		Name:    "boom",
 		PrivKey: make([]byte, 8),
+		Type:    repo.PrivateThread,
+		State:   repo.ThreadLoading,
 	})
 	if err != nil {
 		t.Error(err)
@@ -104,6 +112,8 @@ func TestThreadDB_UpdateHead(t *testing.T) {
 		Id:      "Qmabc",
 		Name:    "boom",
 		PrivKey: make([]byte, 8),
+		Type:    repo.PrivateThread,
+		State:   repo.ThreadLoading,
 	})
 	if err != nil {
 		t.Error(err)
@@ -127,6 +137,8 @@ func TestThreadDB_Delete(t *testing.T) {
 		Id:      "Qm789",
 		Name:    "boom",
 		PrivKey: make([]byte, 8),
+		Type:    repo.PrivateThread,
+		State:   repo.ThreadLoaded,
 	})
 	if err != nil {
 		t.Error(err)

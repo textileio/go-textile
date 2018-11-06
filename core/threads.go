@@ -14,8 +14,17 @@ import (
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
+// ErrThreadNotFound indicates thread is not found in the loaded list
+var ErrThreadNotFound = errors.New("thread not found")
+
+// ErrThreadLoaded indicates the thread is already loaded from the datastore
+var ErrThreadLoaded = errors.New("thread is loaded")
+
 // AddThread adds a thread with a given name and secret key
-func (t *Textile) AddThread(name string, sk libp2pc.PrivKey, join bool) (*Thread, error) {
+func (t *Textile) AddThread(name string, sk libp2pc.PrivKey, ttype repo.ThreadType, join bool) (*Thread, error) {
+	if !t.Started() {
+		return nil, ErrStopped
+	}
 	id, err := peer.IDFromPrivateKey(sk)
 	if err != nil {
 		return nil, err
@@ -28,6 +37,8 @@ func (t *Textile) AddThread(name string, sk libp2pc.PrivKey, join bool) (*Thread
 		Id:      id.Pretty(),
 		Name:    name,
 		PrivKey: skb,
+		Type:    ttype,
+		State:   repo.ThreadLoaded, // TODO: fix up with pending threads from invites
 	}
 	if err := t.datastore.Threads().Add(threadModel); err != nil {
 		return nil, err
@@ -107,16 +118,16 @@ func (t *Textile) AcceptThreadInvite(inviteId string) (mh.Multihash, error) {
 	invite := fmt.Sprintf("%s", inviteId)
 
 	// download
-	ciphertext, err := ipfs.DataAtPath(t.ipfs, invite)
+	ciphertext, err := ipfs.DataAtPath(t.node, invite)
 	if err != nil {
 		return nil, err
 	}
-	if err := ipfs.UnpinPath(t.ipfs, invite); err != nil {
+	if err := ipfs.UnpinPath(t.node, invite); err != nil {
 		log.Warningf("error unpinning path %s: %s", invite, err)
 	}
 
 	// attempt decrypt w/ own keys
-	plaintext, err := crypto.Decrypt(t.ipfs.PrivateKey, ciphertext)
+	plaintext, err := crypto.Decrypt(t.node.PrivateKey, ciphertext)
 	if err != nil {
 		return nil, ErrInvalidThreadBlock
 	}
@@ -131,7 +142,7 @@ func (t *Textile) AcceptExternalThreadInvite(inviteId string, key []byte) (mh.Mu
 	}
 
 	// download
-	ciphertext, err := ipfs.DataAtPath(t.ipfs, fmt.Sprintf("%s", inviteId))
+	ciphertext, err := ipfs.DataAtPath(t.node, fmt.Sprintf("%s", inviteId))
 	if err != nil {
 		return nil, err
 	}
@@ -159,8 +170,16 @@ func (t *Textile) Thread(id string) *Thread {
 	return nil
 }
 
+// AccountThread returns the loaded account thread from config
+func (t *Textile) AccountThread() *Thread {
+	return t.Thread(t.config.Account.Thread)
+}
+
 // ThreadInfo gets thread info
 func (t *Textile) ThreadInfo(id string) (*ThreadInfo, error) {
+	if !t.Started() {
+		return nil, ErrStopped
+	}
 	thrd := t.Thread(id)
 	if thrd == nil {
 		return nil, errors.New(fmt.Sprintf("cound not find thread: %s", id))
@@ -199,7 +218,7 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 	}
 
 	// add it
-	thrd, err := t.AddThread(msg.Name, sk, false)
+	thrd, err := t.AddThread(msg.Name, sk, repo.OpenThread, false)
 	if err != nil {
 		return nil, err
 	}
@@ -225,4 +244,19 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 		return nil, err
 	}
 	return hash, nil
+}
+
+// addAccountThread adds a thread with seed representing the state of the account
+func (t *Textile) addAccountThread() error {
+	if t.AccountThread() != nil {
+		return nil
+	}
+	sk, err := t.account.LibP2PPrivKey()
+	if err != nil {
+		return err
+	}
+	if _, err := t.AddThread("account", sk, repo.AccountThread, true); err != nil {
+		return err
+	}
+	return nil
 }

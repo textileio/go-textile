@@ -104,23 +104,13 @@ func TestMobile_StartAgain(t *testing.T) {
 }
 
 func TestMobile_Address(t *testing.T) {
-	id, err := mobile.Address()
-	if err != nil {
-		t.Errorf("get address failed: %s", err)
-		return
-	}
-	if id == "" {
+	if mobile.Address() == "" {
 		t.Error("got bad address")
 	}
 }
 
 func TestMobile_Seed(t *testing.T) {
-	id, err := mobile.Seed()
-	if err != nil {
-		t.Errorf("get seed failed: %s", err)
-		return
-	}
-	if id == "" {
+	if mobile.Seed() == "" {
 		t.Error("got bad seed")
 	}
 }

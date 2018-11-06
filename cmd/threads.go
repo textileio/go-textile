@@ -32,8 +32,14 @@ func (x *threadsCmd) Short() string {
 
 func (x *threadsCmd) Long() string {
 	return `
-Threads are distributed sets of files between peers. 
+Threads are distributed sets of encrypted files between peers. 
 Use this command to add, list, get, and remove threads.
+
+Open threads are the most common thread type. Open threads allow 
+any member to invite new members.
+
+Private threads are primarily used internally for backup/recovery 
+purpose and 1-to-1 communication channels.
 `
 }
 
@@ -52,6 +58,7 @@ func (x *threadsCmd) Shell() *ishell.Cmd {
 
 type addThreadsCmd struct {
 	Client ClientOptions `group:"Client Options"`
+	Type   string        `short:"t" long:"type" description:"Thread type. One of: open, private" default:"open"`
 }
 
 func (x *addThreadsCmd) Name() string {
@@ -68,7 +75,7 @@ func (x *addThreadsCmd) Long() string {
 
 func (x *addThreadsCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callAddThreads(args, nil)
+	return callAddThreads(args, map[string]string{"type": x.Type}, nil)
 }
 
 func (x *addThreadsCmd) Shell() *ishell.Cmd {
@@ -77,16 +84,21 @@ func (x *addThreadsCmd) Shell() *ishell.Cmd {
 		Help:     x.Short(),
 		LongHelp: x.Long(),
 		Func: func(c *ishell.Context) {
-			if err := callAddThreads(c.Args, c); err != nil {
+			choice := c.MultiChoice([]string{"Open (default)", "Private"}, "Please select a thread type:")
+			ttype := "open"
+			if choice == 1 {
+				ttype = "private"
+			}
+			if err := callAddThreads(c.Args, map[string]string{"type": ttype}, c); err != nil {
 				c.Err(err)
 			}
 		},
 	}
 }
 
-func callAddThreads(args []string, ctx *ishell.Context) error {
+func callAddThreads(args []string, opts map[string]string, ctx *ishell.Context) error {
 	var info *core.ThreadInfo
-	res, err := executeJsonCmd(POST, "threads", params{args: args}, &info)
+	res, err := executeJsonCmd(POST, "threads", params{args: args, opts: opts}, &info)
 	if err != nil {
 		return err
 	}

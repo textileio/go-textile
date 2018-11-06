@@ -9,6 +9,9 @@ import (
 	"strings"
 )
 
+// ErrBlockNotFound indicates a block was not found in the index
+var ErrBlockNotFound = errors.New("block not found")
+
 // GetBlocks paginates blocks from the datastore
 func (t *Textile) Blocks(offset string, limit int, query string) []repo.Block {
 	var filtered []repo.Block
@@ -25,7 +28,7 @@ func (t *Textile) Blocks(offset string, limit int, query string) []repo.Block {
 func (t *Textile) Block(id string) (*repo.Block, error) {
 	block := t.datastore.Blocks().Get(id)
 	if block == nil {
-		return nil, errors.New("block not found locally")
+		return nil, ErrBlockNotFound
 	}
 	return block, nil
 }
@@ -37,14 +40,14 @@ func (t *Textile) BlockByDataId(dataId string) (*repo.Block, error) {
 	}
 	block := t.datastore.Blocks().GetByData(dataId)
 	if block == nil {
-		return nil, errors.New("block not found locally")
+		return nil, ErrBlockNotFound
 	}
 	return block, nil
 }
 
 // BlockData cats file data from ipfs and tries to decrypt it with the provided block
 func (t *Textile) BlockData(path string, block *repo.Block) ([]byte, error) {
-	ciphertext, err := ipfs.DataAtPath(t.ipfs, path)
+	ciphertext, err := ipfs.DataAtPath(t.node, path)
 	if err != nil {
 		// size migrations
 		parts := strings.Split(path, "/")
@@ -57,7 +60,7 @@ func (t *Textile) BlockData(path string, block *repo.Block) ([]byte, error) {
 			default:
 				return nil, err
 			}
-			ciphertext, err = ipfs.DataAtPath(t.ipfs, strings.Join(parts, "/"))
+			ciphertext, err = ipfs.DataAtPath(t.node, strings.Join(parts, "/"))
 			if err != nil {
 				return nil, err
 			}

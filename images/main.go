@@ -170,8 +170,7 @@ func DecodeImage(file multipart.File) (*bytes.Reader, *Format, *image.Point, err
 	return reader, &format, &size, nil
 }
 
-// EncodeImage creates a jpeg|gif thumbnail from an image
-// - jpeg quality is currently the default (75/100)
+// EncodeImage creates a jpeg|gif from reader (jpeg quality is currently the default (75/100))
 func EncodeImage(reader io.Reader, format Format, size ImageSize) ([]byte, error) {
 	var result []byte
 	width := int(size)

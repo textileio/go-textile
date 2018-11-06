@@ -50,7 +50,7 @@ func NewThreadsService(
 
 // Protocol returns the handler protocol
 func (h *ThreadsService) Protocol() protocol.ID {
-	return protocol.ID("/textile/threads/1.0.0")
+	return protocol.ID("/textile/threads/2.0.0")
 }
 
 // Ping pings another peer
@@ -175,7 +175,7 @@ func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope
 
 	// pin locally for use later
 	// TODO: w/ #347 delete notification when ignored
-	if _, err := ipfs.PinData(h.service.Node, bytes.NewReader(tenv.CipherBlock)); err != nil {
+	if _, err := ipfs.AddData(h.service.Node, bytes.NewReader(tenv.CipherBlock), true); err != nil {
 		return err
 	}
 
