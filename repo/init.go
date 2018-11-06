@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/repo/config"
-	"github.com/textileio/textile-go/repo/schema"
 	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
@@ -36,14 +35,6 @@ func Init(repoPath string, version string) error {
 		return ErrRepoExists
 	}
 	log.Infof("initializing repo at %s", repoPath)
-
-	// custom directories
-	paths, err := schema.NewCustomSchemaManager(schema.Context{
-		DataPath: repoPath,
-	})
-	if err := paths.BuildSchemaDirectories(); err != nil {
-		return err
-	}
 
 	// create an identity for the ipfs peer
 	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
