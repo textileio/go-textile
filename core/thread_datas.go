@@ -13,21 +13,21 @@ import (
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 )
 
-// AddFile adds an outgoing file block
-func (t *Thread) AddFile(hash string, caption string, key []byte) (mh.Multihash, error) {
+// AddFile adds an outgoing files block
+func (t *Thread) AddFiles(hash string, schema string, comment string, keys map[string]string) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
 	// build block
-	msg := &pb.ThreadData{
-		Type:    pb.ThreadData_FILE,
-		Data:    hash,
-		Key:     key,
-		Caption: caption,
+	msg := &pb.ThreadFiles{
+		Target:  hash,
+		Schema:  schema,
+		Comment: comment,
+		Keys:    keys,
 	}
 
 	// commit to ipfs
-	res, err := t.commitBlock(msg, pb.ThreadBlock_DATA, nil)
+	res, err := t.commitBlock(msg, pb.ThreadBlock_FILES, nil)
 	if err != nil {
 		return nil, err
 	}

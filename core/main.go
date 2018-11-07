@@ -109,6 +109,8 @@ type Textile struct {
 	cancel         context.CancelFunc
 	node           *core.IpfsNode
 	datastore      repo.Datastore
+	fileSchemas    Schemas
+	dagSchemas     Schemas
 	started        bool
 	threads        []*Thread
 	online         chan struct{}
@@ -224,7 +226,11 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 	removeLocks(conf.RepoPath)
 
 	// build the node
-	node := &Textile{repoPath: conf.RepoPath}
+	node := &Textile{
+		repoPath:    conf.RepoPath,
+		fileSchemas: make(Schemas),
+		dagSchemas:  make(Schemas),
+	}
 
 	// load textile config
 	var err error
@@ -370,7 +376,15 @@ func (t *Textile) Start() error {
 		log.Info("node is online")
 	}()
 
-	// setup threads
+	// load schemas
+	if err := t.loadFileSchemas(fileSchemas); err != nil {
+		return err
+	}
+	if err := t.loadDAGSchemas(dagSchemas); err != nil {
+		return err
+	}
+
+	// load threads
 	for _, mod := range t.datastore.Threads().List() {
 		if _, err := t.loadThread(&mod); err == ErrThreadLoaded {
 			continue

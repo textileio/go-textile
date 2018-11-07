@@ -23,9 +23,8 @@ message ThreadBlock {
         JOIN            = 3;
         ANNOUNCE        = 4;
         LEAVE           = 5; // no payload
-        DATA            = 6;
+        FILES           = 6;
         ANNOTATION      = 7;
-
         INVITE          = 50;
     }
 }
@@ -42,11 +41,11 @@ message ThreadInvite {
 }
 
 message ThreadIgnore {
-    string data = 1;
+    string target = 1;
 }
 
 message ThreadFlag {
-    string data = 1;
+    string target = 1;
 }
 
 message ThreadJoin {
@@ -60,22 +59,17 @@ message ThreadAnnounce {
     repeated string inboxes = 2;
 }
 
-message ThreadData {
-    Type type      = 1;
-    string data    = 2;
-    bytes key      = 3;
-    string caption = 4;
-
-    enum Type {
-        FILE  = 0;
-        TEXT  = 1;
-    }
+message ThreadFiles {
+    string schema            = 1; // DAG schema
+    string target            = 2;
+    string comment           = 3;
+    map<string, string> keys = 4; // hash: key
 }
 
 message ThreadAnnotation {
     Type type      = 1;
-    string data    = 2;
-    string caption = 3;
+    string target  = 2;
+    string comment = 3;
 
     enum Type {
         COMMENT = 0;

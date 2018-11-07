@@ -72,19 +72,19 @@ func (t *Textile) AddFile(file multipart.File, name string, key []byte, pin bool
 	return model, nil
 }
 
-//func (t *Textile) SaveFile(fileId string, caption string) error {
-//	file := t.datastore.Files().Get(fileId)
-//	if file == nil {
-//		return ErrFileNotFound
-//	}
-//
-//	// save to account thread
-//	thrd := t.AccountThread()
-//	if thrd == nil {
-//		return ErrThreadNotFound
-//	}
-//	thrd.AddFile(file.Hash, caption, file.Key)
-//}
+func (t *Textile) SaveFile(fileId string, caption string) error {
+	file := t.datastore.Files().Get(fileId)
+	if file == nil {
+		return ErrFileNotFound
+	}
+
+	// save to account thread
+	thrd := t.AccountThread()
+	if thrd == nil {
+		return ErrThreadNotFound
+	}
+	thrd.AddFiles(file.Hash, caption, file.Key)
+}
 
 func (t *Textile) checksum(plaintext []byte) string {
 	sum := sha256.Sum256(plaintext)
