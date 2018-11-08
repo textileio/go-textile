@@ -36,16 +36,13 @@ type Thread struct {
 type ThreadType int
 
 const (
-	AccountThread ThreadType = iota // tracks account peers
-	PrivateThread                   // invites not allowed
+	PrivateThread ThreadType = iota // invites not allowed
 	OpenThread                      // invites allowed
-	// PublicThread                    // not encrypted
+	//ReadOnlyThread                   // writes ignored by owner
 )
 
 func (tt ThreadType) Description() string {
 	switch tt {
-	case AccountThread:
-		return "ACCOUNT"
 	case PrivateThread:
 		return "PRIVATE"
 	case OpenThread:
@@ -57,8 +54,6 @@ func (tt ThreadType) Description() string {
 
 func ThreadTypeFromString(desc string) (ThreadType, error) {
 	switch strings.ToUpper(strings.TrimSpace(desc)) {
-	case "ACCOUNT":
-		return AccountThread, nil
 	case "PRIVATE":
 		return PrivateThread, nil
 	case "OPEN":

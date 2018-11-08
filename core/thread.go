@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/golang/protobuf/proto"
@@ -22,6 +23,9 @@ import (
 // errReloadFailed indicates an error occurred during thread reload
 var errThreadReload = errors.New("could not re-load thread")
 
+// ErrInvitesNotAllowed indicated an invite was attempted on a private thread
+var ErrInvitesNotAllowed = errors.New("invites not allowed to private thread")
+
 // ThreadUpdate is used to notify listeners about updates in a thread
 type ThreadUpdate struct {
 	Block      repo.Block `json:"block"`
@@ -32,10 +36,12 @@ type ThreadUpdate struct {
 // ThreadInfo reports info about a thread
 type ThreadInfo struct {
 	Id         string      `json:"id"`
+	Key        string      `json:"key"`
 	Name       string      `json:"name"`
-	Head       *repo.Block `json:"head,omitempty"`
+	Schema     string      `json:"schema"`
 	Type       string      `json:"type"`
 	State      string      `json:"state"`
+	Head       *repo.Block `json:"head,omitempty"`
 	PeerCount  int         `json:"peer_cnt"`
 	BlockCount int         `json:"block_cnt"`
 	FileCount  int         `json:"file_cnt"`
@@ -55,7 +61,11 @@ type ThreadConfig struct {
 // Thread is the primary mechanism representing a collecion of data / files / photos
 type Thread struct {
 	Id            string
+	Key           string // app key, usually UUID
 	Name          string
+	Type          repo.ThreadType
+	schema        *DAGSchema
+	schemaHash    string
 	privKey       libp2pc.PrivKey
 	repoPath      string
 	node          func() *core.IpfsNode
@@ -68,23 +78,47 @@ type Thread struct {
 }
 
 // NewThread create a new Thread from a repo model and config
-func NewThread(model *repo.Thread, config *ThreadConfig) (*Thread, error) {
+func NewThread(model *repo.Thread, conf *ThreadConfig) (*Thread, error) {
 	sk, err := libp2pc.UnmarshalPrivateKey(model.PrivKey)
 	if err != nil {
 		return nil, err
 	}
+
+	// load schema
+	schema, err := loadThreadSchema(conf.Node(), model.Schema)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Thread{
 		Id:            model.Id,
+		Key:           model.Key,
 		Name:          model.Name,
+		Type:          model.Type,
+		schema:        schema,
+		schemaHash:    model.Schema,
 		privKey:       sk,
-		repoPath:      config.RepoPath,
-		node:          config.Node,
-		datastore:     config.Datastore,
-		service:       config.Service,
-		threadsOutbox: config.ThreadsOutbox,
-		cafeOutbox:    config.CafeOutbox,
-		sendUpdate:    config.SendUpdate,
+		repoPath:      conf.RepoPath,
+		node:          conf.Node,
+		datastore:     conf.Datastore,
+		service:       conf.Service,
+		threadsOutbox: conf.ThreadsOutbox,
+		cafeOutbox:    conf.CafeOutbox,
+		sendUpdate:    conf.SendUpdate,
 	}, nil
+}
+
+// loadThreadSchema loads a schema from ipfs by path
+func loadThreadSchema(node *core.IpfsNode, pth string) (*DAGSchema, error) {
+	data, err := ipfs.DataAtPath(node, pth)
+	if err != nil {
+		return nil, err
+	}
+	var schema *DAGSchema
+	if err := json.Unmarshal(data, &schema); err != nil {
+		return nil, err
+	}
+	return schema, nil
 }
 
 // Info returns thread info
@@ -101,6 +135,12 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 		head = t.datastore.Blocks().Get(mod.Head)
 	}
 
+	// state
+	state, err := t.State()
+	if err != nil {
+		return nil, err
+	}
+
 	// counts
 	blocks := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s'", t.Id))
 	files := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s' and type=%d", t.Id, repo.FilesBlock))
@@ -108,14 +148,25 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 	// send back summary
 	return &ThreadInfo{
 		Id:         t.Id,
+		Key:        t.Key,
 		Name:       t.Name,
-		Head:       head,
+		Schema:     mod.Schema,
 		Type:       mod.Type.Description(),
-		State:      mod.State.Description(),
+		State:      state.Description(),
+		Head:       head,
 		PeerCount:  len(t.Peers()) + 1,
 		BlockCount: blocks,
 		FileCount:  files,
 	}, nil
+}
+
+// State returns the current thread state
+func (t *Thread) State() (repo.ThreadState, error) {
+	mod := t.datastore.Threads().Get(t.Id)
+	if mod == nil {
+		return -1, errThreadReload
+	}
+	return mod.State, nil
 }
 
 // Head returns content id of the latest update
@@ -125,24 +176,6 @@ func (t *Thread) Head() (string, error) {
 		return "", errThreadReload
 	}
 	return mod.Head, nil
-}
-
-// Head returns content id of the latest update
-func (t *Thread) Type() (repo.ThreadType, error) {
-	mod := t.datastore.Threads().Get(t.Id)
-	if mod == nil {
-		return -1, errThreadReload
-	}
-	return mod.Type, nil
-}
-
-// Head returns content id of the latest update
-func (t *Thread) State() (repo.ThreadState, error) {
-	mod := t.datastore.Threads().Get(t.Id)
-	if mod == nil {
-		return -1, errThreadReload
-	}
-	return mod.State, nil
 }
 
 // Peers returns locally known peers in this thread

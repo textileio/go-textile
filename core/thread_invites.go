@@ -14,14 +14,20 @@ func (t *Thread) AddInvite(inviteeId peer.ID) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
+	// check access
+	if t.Type == repo.PrivateThread {
+		return nil, ErrInvitesNotAllowed
+	}
+
 	// build block
 	threadSk, err := t.privKey.Bytes()
 	if err != nil {
 		return nil, err
 	}
 	msg := &pb.ThreadInvite{
-		Sk:   threadSk,
-		Name: t.Name,
+		Sk:     threadSk,
+		Name:   t.Name,
+		Schema: t.schemaHash,
 	}
 
 	// get the peer pub key from the id
@@ -58,14 +64,20 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
+	// check access
+	if t.Type == repo.PrivateThread {
+		return nil, nil, ErrInvitesNotAllowed
+	}
+
 	// build block
 	threadSk, err := t.privKey.Bytes()
 	if err != nil {
 		return nil, nil, err
 	}
 	msg := &pb.ThreadInvite{
-		Sk:   threadSk,
-		Name: t.Name,
+		Sk:     threadSk,
+		Name:   t.Name,
+		Schema: t.schemaHash,
 	}
 
 	// generate an aes key

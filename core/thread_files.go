@@ -1,27 +1,44 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 )
 
 // AddFile adds an outgoing files block
-func (t *Thread) AddFiles(target string, caption string, keys map[string]string) (mh.Multihash, error) {
+func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
+	// each link should point to a dag described by the thread schema
+	//links := node.Links()
+	//
+	//for sl, s := range t.schema.Nodes {
+	//	s.
+	//}
+	//
+	//for _, link := range node.Links() {
+	//
+	//	n, err := ipfs.GetNode(t.node(), link)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//}
+
 	// build block
 	msg := &pb.ThreadFiles{
-		Target: target,
+		Target: node.Cid().Hash().B58String(),
 		Body:   caption,
 		Keys:   keys,
 	}
 
-	// TODO: verify files exist? schema matched?
+	// TODO: verify files exist? schema matched? pin
 
 	// commit to ipfs
 	res, err := t.commitBlock(msg, pb.ThreadBlock_FILES, nil)

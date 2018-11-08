@@ -121,6 +121,13 @@ func AddData(node *core.IpfsNode, data io.Reader, pin bool) (*cid.Cid, error) {
 	return pth.Cid(), nil
 }
 
+// GetNode returns a node behind an ipld link
+func GetNode(node *core.IpfsNode, link *ipld.Link) (ipld.Node, error) {
+	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
+	defer cancel()
+	return link.GetNode(ctx, node.DAG)
+}
+
 // PinPath takes an ipfs path string and pins it
 func PinPath(node *core.IpfsNode, path string, recursive bool) error {
 	ip, err := iface.ParsePath(path)
@@ -153,10 +160,10 @@ func UnpinPath(node *core.IpfsNode, path string) error {
 }
 
 // PinDirectory pins a directory structure, not links
-func PinDirectory(node *core.IpfsNode, dir ipld.Node) error {
+func PinNode(node *core.IpfsNode, n ipld.Node) error {
 	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
 	defer cancel()
-	if err := node.Pinning.Pin(ctx, dir, false); err != nil {
+	if err := node.Pinning.Pin(ctx, n, false); err != nil {
 		return err
 	}
 	return node.Pinning.Flush()

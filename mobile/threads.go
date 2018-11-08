@@ -42,12 +42,19 @@ func (m *Mobile) Threads() (string, error) {
 }
 
 // AddThread adds a new thread with the given name
-func (m *Mobile) AddThread(name string) (string, error) {
+func (m *Mobile) AddThread(key string, name string, schema string) (string, error) {
 	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		return "", err
 	}
-	thrd, err := core.Node.AddThread(name, sk, repo.OpenThread, true)
+	config := core.NewThreadConfig{
+		Key:    key,
+		Name:   name,
+		Schema: schema,
+		Type:   repo.OpenThread,
+		Join:   true,
+	}
+	thrd, err := core.Node.AddThread(sk, config)
 	if err != nil {
 		return "", err
 	}

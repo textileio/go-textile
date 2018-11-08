@@ -18,7 +18,7 @@ func (t *Thread) leave() (mh.Multihash, error) {
 	}
 
 	// index it locally
-	if err := t.indexBlock(res, repo.LeaveBlock, nil); err != nil {
+	if err := t.indexBlock(res, repo.LeaveBlock, "", ""); err != nil {
 		return nil, err
 	}
 
@@ -36,6 +36,8 @@ func (t *Thread) leave() (mh.Multihash, error) {
 	if err := t.datastore.Blocks().DeleteByThread(t.Id); err != nil {
 		return nil, err
 	}
+
+	// TODO: delete files
 
 	// delete peers
 	if err := t.datastore.ThreadPeers().DeleteByThread(t.Id); err != nil {
@@ -64,5 +66,8 @@ func (t *Thread) handleLeaveBlock(hash mh.Multihash, block *pb.ThreadBlock) erro
 	}
 
 	// index it locally
-	return t.indexBlock(&commitResult{hash: hash, header: block.Header}, repo.LeaveBlock, nil)
+	return t.indexBlock(&commitResult{
+		hash:   hash,
+		header: block.Header,
+	}, repo.LeaveBlock, "", "")
 }

@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"github.com/alecthomas/jsonschema"
 	"github.com/textileio/textile-go/ipfs"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
@@ -10,9 +11,19 @@ import (
 	"time"
 )
 
+// ErrFileSchemaNotFound indicates schema is not found in the loaded list
+var ErrFileSchemaNotFound = errors.New("file schema not found")
+
+// ErrDAGSchemaNotFound indicates schema is not found in the loaded list
+var ErrDAGSchemaNotFound = errors.New("DAG schema not found")
+
 type Schemas map[string]mh.Multihash
 
 var fileSchemas = []FileSchema{&Blob{}, &Image{}, &ImageExif{}}
+
+func (t *Textile) FileSchema(id string) mh.Multihash {
+	return t.fileSchemas[id]
+}
 
 func (t *Textile) loadFileSchemas(schemas []FileSchema) error {
 	// basic files
@@ -86,9 +97,11 @@ func mustReflectAndMarshal(any interface{}) io.Reader {
 // DAG Schemas
 
 var dagSchemas = []*DAGSchema{
-	// only one built-in so far
 	{
-		ID:  "TextilePhoto",
+		ID: "TextileAccount",
+	},
+	{
+		ID:  "TextilePhotos",
 		Pin: true,
 		Nodes: map[DAGLink]*DAGSchema{
 			"raw": {
@@ -128,6 +141,10 @@ var dagSchemas = []*DAGSchema{
 			},
 		},
 	},
+}
+
+func (t *Textile) DAGSchema(id string) mh.Multihash {
+	return t.dagSchemas[id]
 }
 
 func (t *Textile) loadDAGSchemas(schemas []*DAGSchema) error {

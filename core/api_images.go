@@ -21,8 +21,8 @@ func (a *api) addImages(g *gin.Context) {
 			return
 		}
 
-		//
-		original, err := a.node.AddFile(file, header.Filename, nil, true)
+		// TODO: add schema and key to file header
+		original, err := a.node.AddFile(file, "Image", nil)
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return

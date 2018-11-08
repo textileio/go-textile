@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
@@ -20,8 +21,18 @@ var ErrThreadNotFound = errors.New("thread not found")
 // ErrThreadLoaded indicates the thread is already loaded from the datastore
 var ErrThreadLoaded = errors.New("thread is loaded")
 
+// NewThreadConfig is used to create a new thread model
+type NewThreadConfig struct {
+	Key        string          `json:"key"`
+	Name       string          `json:"name"`
+	Schema     string          `json:"schema"`
+	SchemaHash string          `json:"schema_hash"`
+	Type       repo.ThreadType `json:"type"`
+	Join       bool            `json:"join"`
+}
+
 // AddThread adds a thread with a given name and secret key
-func (t *Textile) AddThread(name string, sk libp2pc.PrivKey, ttype repo.ThreadType, join bool) (*Thread, error) {
+func (t *Textile) AddThread(sk libp2pc.PrivKey, conf NewThreadConfig) (*Thread, error) {
 	if !t.Started() {
 		return nil, ErrStopped
 	}
@@ -33,11 +44,25 @@ func (t *Textile) AddThread(name string, sk libp2pc.PrivKey, ttype repo.ThreadTy
 	if err != nil {
 		return nil, err
 	}
+
+	// check schema valid
+	if conf.SchemaHash == "" {
+		// lookup from local ids
+		schema := t.dagSchemas[conf.Schema]
+		if schema == nil {
+			return nil, ErrDAGSchemaNotFound
+		}
+		conf.SchemaHash = schema.B58String()
+	}
+
+	// add model
 	threadModel := &repo.Thread{
 		Id:      id.Pretty(),
-		Name:    name,
+		Key:     conf.Key,
 		PrivKey: skb,
-		Type:    ttype,
+		Name:    conf.Name,
+		Schema:  conf.SchemaHash,
+		Type:    conf.Type,
 		State:   repo.ThreadLoaded, // TODO: fix up with pending threads from invites
 	}
 	if err := t.datastore.Threads().Add(threadModel); err != nil {
@@ -51,7 +76,7 @@ func (t *Textile) AddThread(name string, sk libp2pc.PrivKey, ttype repo.ThreadTy
 	}
 
 	// we join here if we're the creator
-	if join {
+	if conf.Join {
 		if _, err := thrd.joinInitial(); err != nil {
 			return nil, err
 		}
@@ -60,7 +85,7 @@ func (t *Textile) AddThread(name string, sk libp2pc.PrivKey, ttype repo.ThreadTy
 	// notify listeners
 	t.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadAdded})
 
-	log.Debugf("added a new thread %s with name %s", thrd.Id, name)
+	log.Debugf("added a new thread %s with name %s", thrd.Id, conf.Name)
 
 	return thrd, nil
 }
@@ -217,8 +242,15 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 		return nil, nil
 	}
 
-	// add it
-	thrd, err := t.AddThread(msg.Name, sk, repo.OpenThread, false)
+	// add a new model
+	config := NewThreadConfig{
+		Key:    ksuid.New().String(),
+		Name:   msg.Name,
+		Schema: msg.Schema,
+		Type:   repo.OpenThread,
+		Join:   false,
+	}
+	thrd, err := t.AddThread(sk, config)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +287,14 @@ func (t *Textile) addAccountThread() error {
 	if err != nil {
 		return err
 	}
-	if _, err := t.AddThread("account", sk, repo.AccountThread, true); err != nil {
+	config := NewThreadConfig{
+		Key:    ksuid.New().String(),
+		Name:   "account",
+		Schema: "TextileAccount",
+		Type:   repo.PrivateThread,
+		Join:   true,
+	}
+	if _, err := t.AddThread(sk, config); err != nil {
 		return err
 	}
 	return nil
