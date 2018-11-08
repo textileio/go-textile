@@ -21,7 +21,7 @@ func (c *ThreadDB) Add(thread *repo.Thread) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into threads(id, name, sk, head, type, state) values(?,?,?,?,?,?)`
+	stm := `insert into threads(id, key, sk, name, schema, type, state, head) values(?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -30,11 +30,13 @@ func (c *ThreadDB) Add(thread *repo.Thread) error {
 	defer stmt.Close()
 	_, err = stmt.Exec(
 		thread.Id,
-		thread.Name,
+		thread.Key,
 		thread.PrivKey,
-		thread.Head,
+		thread.Name,
+		thread.Schema,
 		int(thread.Type),
 		int(thread.State),
+		thread.Head,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -91,22 +93,23 @@ func (c *ThreadDB) handleQuery(stm string) []repo.Thread {
 		return nil
 	}
 	for rows.Next() {
-		var id, name, head string
+		var id, key, name, schema, head string
 		var skb []byte
 		var typeInt, stateInt int
-		if err := rows.Scan(&id, &name, &skb, &head, &typeInt, &stateInt); err != nil {
+		if err := rows.Scan(&id, &key, &skb, &name, &schema, &typeInt, &stateInt, &head); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		thread := repo.Thread{
+		ret = append(ret, repo.Thread{
 			Id:      id,
-			Name:    name,
+			Key:     key,
 			PrivKey: skb,
-			Head:    head,
+			Name:    name,
+			Schema:  schema,
 			Type:    repo.ThreadType(typeInt),
 			State:   repo.ThreadState(stateInt),
-		}
-		ret = append(ret, thread)
+			Head:    head,
+		})
 	}
 	return ret
 }

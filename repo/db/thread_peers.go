@@ -130,12 +130,11 @@ func (c *ThreadPeerDB) handleQuery(stm string) []repo.ThreadPeer {
 		if welcomedInt == 1 {
 			welcomed = true
 		}
-		peer := repo.ThreadPeer{
+		ret = append(ret, repo.ThreadPeer{
 			Id:       id,
 			ThreadId: threadId,
 			Welcomed: welcomed,
-		}
-		ret = append(ret, peer)
+		})
 	}
 	return ret
 }

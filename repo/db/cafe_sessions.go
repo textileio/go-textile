@@ -90,15 +90,14 @@ func (c *CafeSessionDB) handleQuery(stm string) []repo.CafeSession {
 				slist = append(slist, p)
 			}
 		}
-		session := repo.CafeSession{
+		ret = append(ret, repo.CafeSession{
 			CafeId:     cafeId,
 			Access:     access,
 			Refresh:    refresh,
 			Expiry:     time.Unix(int64(expiryInt), 0),
 			HttpAddr:   httpAddr,
 			SwarmAddrs: slist,
-		}
-		ret = append(ret, session)
+		})
 	}
 	return ret
 }

@@ -37,7 +37,7 @@ message Message {
 
 message Envelope {
     Message message = 1;
-    bytes sig       = 3;
+    bytes sig       = 2;
 }
 
 message Error {

@@ -103,7 +103,7 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 
 	// counts
 	blocks := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s'", t.Id))
-	files := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s' and type=%d", t.Id, repo.FileBlock))
+	files := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s' and type=%d", t.Id, repo.FilesBlock))
 
 	// send back summary
 	return &ThreadInfo{
@@ -209,10 +209,14 @@ func (t *Thread) followParent(parent mh.Multihash) error {
 		_, err = t.handleAnnounceBlock(parent, block)
 	case pb.ThreadBlock_LEAVE:
 		err = t.handleLeaveBlock(parent, block)
-	case pb.ThreadBlock_DATA:
-		_, err = t.handleDataBlock(parent, block)
-	case pb.ThreadBlock_ANNOTATION:
-		_, err = t.handleAnnotationBlock(parent, block)
+	case pb.ThreadBlock_MESSAGE:
+		_, err = t.handleMessageBlock(parent, block)
+	case pb.ThreadBlock_FILES:
+		_, err = t.handleFilesBlock(parent, block)
+	case pb.ThreadBlock_COMMENT:
+		_, err = t.handleCommentBlock(parent, block)
+	case pb.ThreadBlock_LIKE:
+		_, err = t.handleLikeBlock(parent, block)
 	default:
 		return errors.New(fmt.Sprintf("invalid message type: %s", block.Type))
 	}
@@ -364,28 +368,21 @@ func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBl
 }
 
 // indexBlock stores off index info for this block type
-func (t *Thread) indexBlock(commit *commitResult, blockType repo.BlockType, dataConf *repo.DataBlockConfig) error {
+func (t *Thread) indexBlock(commit *commitResult, blockType repo.BlockType, target string, body string) error {
 	// add a new one
 	date, err := ptypes.Timestamp(commit.header.Date)
 	if err != nil {
 		return err
 	}
-	if dataConf == nil {
-		dataConf = new(repo.DataBlockConfig)
-	}
 	index := &repo.Block{
 		Id:       commit.hash.B58String(),
+		Type:     blockType,
 		Date:     date,
 		Parents:  commit.header.Parents,
 		ThreadId: t.Id,
 		AuthorId: commit.header.Author,
-		Type:     blockType,
-
-		// off-chain data links
-		DataId:       dataConf.DataId,
-		DataKey:      dataConf.DataKey,
-		DataCaption:  dataConf.DataCaption,
-		DataMetadata: dataConf.DataMetadata,
+		Target:   target,
+		Body:     body,
 	}
 	if err := t.datastore.Blocks().Add(index); err != nil {
 		return err

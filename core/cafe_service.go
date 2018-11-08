@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	njwt "github.com/dgrijalva/jwt-go"
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/ipfs"
@@ -206,24 +207,22 @@ func (h *CafeService) Store(cids []string, cafe peer.ID) ([]string, error) {
 
 // StoreThread pushes a thread to a cafe backup
 func (h *CafeService) StoreThread(thrd *repo.Thread, cafe peer.ID) error {
-	// encrypt thread components
-	skCipher, err := h.service.Account.Encrypt(thrd.PrivKey)
+	// encrypt thread
+	plaintext, err := proto.Marshal(&pb.CafeThread{
+		Key:    thrd.Key,
+		Sk:     thrd.PrivKey,
+		Name:   thrd.Name,
+		Schema: thrd.Schema,
+		Type:   int32(thrd.Type),
+		State:  int32(thrd.State),
+		Head:   thrd.Head,
+	})
 	if err != nil {
 		return err
 	}
-	var headCipher []byte
-	if thrd.Head != "" {
-		headCipher, err = h.service.Account.Encrypt([]byte(thrd.Head))
-		if err != nil {
-			return err
-		}
-	}
-	var nameCipher []byte
-	if thrd.Name != "" {
-		nameCipher, err = h.service.Account.Encrypt([]byte(thrd.Name))
-		if err != nil {
-			return err
-		}
+	ciphertext, err := h.service.Account.Encrypt(plaintext)
+	if err != nil {
+		return err
 	}
 
 	// build request
@@ -231,9 +230,7 @@ func (h *CafeService) StoreThread(thrd *repo.Thread, cafe peer.ID) error {
 		return h.service.NewEnvelope(pb.Message_CAFE_STORE_THREAD, &pb.CafeStoreThread{
 			Token:      session.Access,
 			Id:         thrd.Id,
-			SkCipher:   skCipher,
-			HeadCipher: headCipher,
-			NameCipher: nameCipher,
+			Ciphertext: ciphertext,
 		}, nil, false)
 	}); err != nil {
 		return err
@@ -711,9 +708,7 @@ func (h *CafeService) handleStoreThread(pid peer.ID, env *pb.Envelope) (*pb.Enve
 	thrd := &repo.CafeClientThread{
 		Id:         store.Id,
 		ClientId:   client.Id,
-		SkCipher:   store.SkCipher,
-		HeadCipher: store.HeadCipher,
-		NameCipher: store.NameCipher,
+		Ciphertext: store.Ciphertext,
 	}
 	if err := h.datastore.CafeClientThreads().AddOrUpdate(thrd); err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)

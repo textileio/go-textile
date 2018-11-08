@@ -40,7 +40,7 @@ message CafeStore {
 }
 
 message CafeBlockList {
-    repeated string cids = 2;
+    repeated string cids = 1;
 }
 
 message CafeBlock {
@@ -52,9 +52,17 @@ message CafeBlock {
 message CafeStoreThread {
     string token     = 1;
     string id        = 2;
-    bytes skCipher   = 3;
-    bytes headCipher = 4;
-    bytes nameCipher = 5;
+    bytes ciphertext = 3; // encrypted CafeThread
+}
+
+message CafeThread {
+    string key    = 1;
+    bytes sk      = 2;
+    string name   = 3;
+    string schema = 4;
+    int32 type    = 5;
+    int32 state   = 6;
+    string head   = 7;
 }
 
 message CafeStored {
@@ -85,5 +93,5 @@ message CafeDeleteMessages {
 }
 
 message CafeDeleteMessagesAck {
-    bool more = 2;
+    bool more = 1;
 }

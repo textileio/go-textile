@@ -83,7 +83,7 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 	}
 
 	// decrypt and handle
-	block, err := thrd.handleBlock(hash, tenv.CipherBlock)
+	block, err := thrd.handleBlock(hash, tenv.Ciphertext)
 	if err != nil {
 		return nil, err
 	}
@@ -106,10 +106,14 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 		err = h.handleAnnounce(thrd, hash, block)
 	case pb.ThreadBlock_LEAVE:
 		err = h.handleLeave(thrd, hash, block)
-	case pb.ThreadBlock_DATA:
-		err = h.handleData(thrd, hash, block)
-	case pb.ThreadBlock_ANNOTATION:
-		err = h.handleAnnotation(thrd, hash, block)
+	case pb.ThreadBlock_MESSAGE:
+		err = h.handleMessage(thrd, hash, block)
+	case pb.ThreadBlock_FILES:
+		err = h.handleFiles(thrd, hash, block)
+	case pb.ThreadBlock_COMMENT:
+		err = h.handleComment(thrd, hash, block)
+	case pb.ThreadBlock_LIKE:
+		err = h.handleLike(thrd, hash, block)
 	default:
 		return nil, nil
 	}
@@ -146,9 +150,9 @@ func (h *ThreadsService) SendMessage(pid peer.ID, env *pb.Envelope) error {
 // NewEnvelope signs and wraps an encypted block for transport
 func (h *ThreadsService) NewEnvelope(threadId string, hash mh.Multihash, ciphertext []byte) (*pb.Envelope, error) {
 	tenv := &pb.ThreadEnvelope{
-		Thread:      threadId,
-		Hash:        hash.B58String(),
-		CipherBlock: ciphertext,
+		Thread:     threadId,
+		Hash:       hash.B58String(),
+		Ciphertext: ciphertext,
 	}
 	return h.service.NewEnvelope(pb.Message_THREAD_ENVELOPE, tenv, nil, false)
 }
@@ -156,7 +160,7 @@ func (h *ThreadsService) NewEnvelope(threadId string, hash mh.Multihash, ciphert
 // handleInvite receives an invite message
 func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope) error {
 	// attempt decrypt w/ own keys
-	plaintext, err := crypto.Decrypt(h.service.Node.PrivateKey, tenv.CipherBlock)
+	plaintext, err := crypto.Decrypt(h.service.Node.PrivateKey, tenv.Ciphertext)
 	if err != nil {
 		// wasn't an invite, abort
 		return ErrInvalidThreadBlock
@@ -175,12 +179,12 @@ func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope
 
 	// pin locally for use later
 	// TODO: w/ #347 delete notification when ignored
-	if _, err := ipfs.AddData(h.service.Node, bytes.NewReader(tenv.CipherBlock), true); err != nil {
+	if _, err := ipfs.AddData(h.service.Node, bytes.NewReader(tenv.Ciphertext), true); err != nil {
 		return err
 	}
 
 	// send notification
-	notification, err := h.newNotification(block.Header, repo.ReceivedInviteNotification)
+	notification, err := h.newNotification(block.Header, repo.InviteReceivedNotification)
 	if err != nil {
 		return err
 	}
@@ -256,72 +260,100 @@ func (h *ThreadsService) handleLeave(thrd *Thread, hash mh.Multihash, block *pb.
 	return h.sendNotification(notification)
 }
 
-// handleData receives a data message
-func (h *ThreadsService) handleData(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	msg, err := thrd.handleDataBlock(hash, block)
+// handleMessage receives a message message
+func (h *ThreadsService) handleMessage(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
+	msg, err := thrd.handleMessageBlock(hash, block)
 	if err != nil {
 		return err
 	}
 
 	// send notification
-	var notification *repo.Notification
-	switch msg.Type {
-	case pb.ThreadData_FILE:
-		notification, err = h.newNotification(block.Header, repo.FileAddedNotification)
-		if err != nil {
-			return err
-		}
-		notification.DataId = msg.Data
-		notification.Body = "added a photo"
-	case pb.ThreadData_TEXT:
-		notification, err = h.newNotification(block.Header, repo.TextAddedNotification)
-		if err != nil {
-			return err
-		}
-		notification.Body = msg.Caption
+	notification, err := h.newNotification(block.Header, repo.MessageAddedNotification)
+	if err != nil {
+		return err
 	}
+	notification.Body = msg.Body
 	notification.BlockId = hash.B58String()
 	notification.Subject = thrd.Name
 	notification.SubjectId = thrd.Id
 	return h.sendNotification(notification)
 }
 
-// handleAnnotation receives an annotation message
-func (h *ThreadsService) handleAnnotation(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	msg, err := thrd.handleAnnotationBlock(hash, block)
+// handleData receives a files message
+func (h *ThreadsService) handleFiles(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
+	msg, err := thrd.handleFilesBlock(hash, block)
 	if err != nil {
 		return err
 	}
 
 	// send notification
-	dataBlock := h.datastore.Blocks().Get(msg.Data)
-	if dataBlock == nil {
+	notification, err := h.newNotification(block.Header, repo.FilesAddedNotification)
+	if err != nil {
+		return err
+	}
+	notification.Target = msg.Target
+	notification.Body = "added a photo" // TODO: make action desc. part of schema
+	notification.BlockId = hash.B58String()
+	notification.Subject = thrd.Name
+	notification.SubjectId = thrd.Id
+	return h.sendNotification(notification)
+}
+
+// handleComment receives a comment message
+func (h *ThreadsService) handleComment(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
+	msg, err := thrd.handleCommentBlock(hash, block)
+	if err != nil {
+		return err
+	}
+
+	// send notification
+	target := h.datastore.Blocks().Get(msg.Target)
+	if target == nil {
 		return nil
 	}
-	var target string
-	// NOTE: not restricted to photo annotations here, just currently only thing possible
-	if dataBlock.AuthorId == h.service.Node.Identity.Pretty() {
-		target = "your photo"
+	var desc string
+	if target.AuthorId == h.service.Node.Identity.Pretty() {
+		desc = "your photo" // TODO: make subject desc. part of schema
 	} else {
-		target = "a photo"
+		desc = "a photo"
 	}
-	var notification *repo.Notification
-	switch msg.Type {
-	case pb.ThreadAnnotation_COMMENT:
-		notification, err = h.newNotification(block.Header, repo.CommentAddedNotification)
-		if err != nil {
-			return err
-		}
-		notification.Body = fmt.Sprintf("commented on %s: \"%s\"", target, msg.Caption)
-	case pb.ThreadAnnotation_LIKE:
-		notification, err = h.newNotification(block.Header, repo.LikeAddedNotification)
-		if err != nil {
-			return err
-		}
-		notification.Body = "liked " + target
+	notification, err := h.newNotification(block.Header, repo.CommentAddedNotification)
+	if err != nil {
+		return err
 	}
+	notification.Body = fmt.Sprintf("commented on %s: \"%s\"", desc, msg.Body)
 	notification.BlockId = hash.B58String()
-	notification.DataId = dataBlock.DataId
+	notification.Target = target.Target
+	notification.Subject = thrd.Name
+	notification.SubjectId = thrd.Id
+	return h.sendNotification(notification)
+}
+
+// handleLike receives a like message
+func (h *ThreadsService) handleLike(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
+	msg, err := thrd.handleLikeBlock(hash, block)
+	if err != nil {
+		return err
+	}
+
+	// send notification
+	target := h.datastore.Blocks().Get(msg.Target)
+	if target == nil {
+		return nil
+	}
+	var desc string
+	if target.AuthorId == h.service.Node.Identity.Pretty() {
+		desc = "your photo" // TODO: make subject desc. part of schema
+	} else {
+		desc = "a photo"
+	}
+	notification, err := h.newNotification(block.Header, repo.LikeAddedNotification)
+	if err != nil {
+		return err
+	}
+	notification.Body = "liked " + desc
+	notification.BlockId = hash.B58String()
+	notification.Target = target.Target
 	notification.Subject = thrd.Name
 	notification.SubjectId = thrd.Id
 	return h.sendNotification(notification)

@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/repo"
 	"sync"
 	"testing"
@@ -22,8 +23,10 @@ func setupThreadDB() {
 func TestThreadDB_Add(t *testing.T) {
 	err := tdb.Add(&repo.Thread{
 		Id:      "Qmabc123",
-		Name:    "boom",
+		Key:     ksuid.New().String(),
 		PrivKey: make([]byte, 8),
+		Name:    "boom",
+		Schema:  "Qm...",
 		Type:    repo.OpenThread,
 		State:   repo.ThreadLoaded,
 	})
@@ -46,8 +49,10 @@ func TestThreadDB_Get(t *testing.T) {
 	setupThreadDB()
 	err := tdb.Add(&repo.Thread{
 		Id:      "Qmabc",
-		Name:    "boom",
+		Key:     ksuid.New().String(),
 		PrivKey: make([]byte, 8),
+		Name:    "boom",
+		Schema:  "Qm...",
 		Type:    repo.OpenThread,
 		State:   repo.ThreadLoaded,
 	})
@@ -64,16 +69,22 @@ func TestThreadDB_List(t *testing.T) {
 	setupThreadDB()
 	err := tdb.Add(&repo.Thread{
 		Id:      "Qm123",
-		Name:    "boom",
+		Key:     ksuid.New().String(),
 		PrivKey: make([]byte, 8),
+		Name:    "boom",
+		Schema:  "Qm...",
+		Type:    repo.PrivateThread,
+		State:   repo.ThreadLoaded,
 	})
 	if err != nil {
 		t.Error(err)
 	}
 	err = tdb.Add(&repo.Thread{
 		Id:      "Qm456",
-		Name:    "boom2",
+		Key:     ksuid.New().String(),
 		PrivKey: make([]byte, 8),
+		Name:    "boom",
+		Schema:  "Qm...",
 		Type:    repo.AccountThread,
 		State:   repo.ThreadPending,
 	})
@@ -91,8 +102,10 @@ func TestThreadDB_Count(t *testing.T) {
 	setupThreadDB()
 	err := tdb.Add(&repo.Thread{
 		Id:      "Qm123count",
-		Name:    "boom",
+		Key:     ksuid.New().String(),
 		PrivKey: make([]byte, 8),
+		Name:    "boom",
+		Schema:  "Qm...",
 		Type:    repo.PrivateThread,
 		State:   repo.ThreadLoading,
 	})
@@ -110,8 +123,10 @@ func TestThreadDB_UpdateHead(t *testing.T) {
 	setupThreadDB()
 	err := tdb.Add(&repo.Thread{
 		Id:      "Qmabc",
-		Name:    "boom",
+		Key:     ksuid.New().String(),
 		PrivKey: make([]byte, 8),
+		Name:    "boom",
+		Schema:  "Qm...",
 		Type:    repo.PrivateThread,
 		State:   repo.ThreadLoading,
 	})
@@ -135,8 +150,10 @@ func TestThreadDB_Delete(t *testing.T) {
 	setupThreadDB()
 	err := tdb.Add(&repo.Thread{
 		Id:      "Qm789",
-		Name:    "boom",
+		Key:     ksuid.New().String(),
 		PrivKey: make([]byte, 8),
+		Name:    "boom",
+		Schema:  "Qm...",
 		Type:    repo.PrivateThread,
 		State:   repo.ThreadLoaded,
 	})

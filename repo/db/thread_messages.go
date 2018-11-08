@@ -91,13 +91,12 @@ func (c *ThreadMessageDB) handleQuery(stm string) []repo.ThreadMessage {
 			log.Errorf("error unmarshaling envelope: %s", err)
 			continue
 		}
-		msg := repo.ThreadMessage{
+		ret = append(ret, repo.ThreadMessage{
 			Id:       id,
 			PeerId:   peerId,
 			Envelope: env,
 			Date:     time.Unix(int64(dateInt), 0),
-		}
-		ret = append(ret, msg)
+		})
 	}
 	return ret
 }

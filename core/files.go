@@ -20,7 +20,7 @@ var ErrFileExists = errors.New("file exists")
 var ErrFileNotFound = errors.New("file not found")
 
 // AddFile adds a file
-func (t *Textile) AddFile(file multipart.File, name string, key []byte, pin bool) (*repo.File, error) {
+func (t *Textile) AddFile(file multipart.File, schema string, key []byte) (*repo.File, error) {
 	plaintext, err := ioutil.ReadAll(file)
 	if err != nil {
 		return nil, err
@@ -41,12 +41,12 @@ func (t *Textile) AddFile(file multipart.File, name string, key []byte, pin bool
 		}
 	}
 
-	// encrypt and add to local ipfs, optionally pinning as well
+	// encrypt and add to local ipfs
 	ciphertext, err := crypto.EncryptAES(plaintext, key)
 	if err != nil {
 		return nil, err
 	}
-	id, err := ipfs.AddData(t.node, bytes.NewReader(ciphertext), pin)
+	id, err := ipfs.AddData(t.node, bytes.NewReader(ciphertext), false)
 	if err != nil {
 		return nil, err
 	}
@@ -61,10 +61,9 @@ func (t *Textile) AddFile(file multipart.File, name string, key []byte, pin bool
 	model := &repo.File{
 		Id:     check,
 		Hash:   hash,
-		Name:   name,
+		Schema: schema,
 		Key:    base58.FastBase58Encoding(key),
 		Added:  time.Now(),
-		Pinned: pin,
 	}
 	if err := t.datastore.Files().Add(model); err != nil {
 		return nil, err
@@ -72,19 +71,19 @@ func (t *Textile) AddFile(file multipart.File, name string, key []byte, pin bool
 	return model, nil
 }
 
-func (t *Textile) SaveFile(fileId string, caption string) error {
-	file := t.datastore.Files().Get(fileId)
-	if file == nil {
-		return ErrFileNotFound
-	}
-
-	// save to account thread
-	thrd := t.AccountThread()
-	if thrd == nil {
-		return ErrThreadNotFound
-	}
-	thrd.AddFiles(file.Hash, caption, file.Key)
-}
+//func (t *Textile) SaveFile(fileId string, caption string) error {
+//	file := t.datastore.Files().Get(fileId)
+//	if file == nil {
+//		return ErrFileNotFound
+//	}
+//
+//	// save to account thread
+//	thrd := t.AccountThread()
+//	if thrd == nil {
+//		return ErrThreadNotFound
+//	}
+//	thrd.AddFiles(file.Hash, caption, file.Key)
+//}
 
 func (t *Textile) checksum(plaintext []byte) string {
 	sum := sha256.Sum256(plaintext)

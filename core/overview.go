@@ -26,7 +26,7 @@ func (t *Textile) Overview() (*Overview, error) {
 		return nil, err
 	}
 	threads := t.datastore.Threads().Count()
-	files := t.datastore.Blocks().Count(fmt.Sprintf("type=%d", repo.FileBlock))
+	files := t.datastore.Blocks().Count(fmt.Sprintf("type=%d", repo.FilesBlock))
 	contacts := t.datastore.Contacts().Count()
 
 	return &Overview{

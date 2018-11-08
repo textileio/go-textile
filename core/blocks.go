@@ -16,7 +16,7 @@ var ErrBlockNotFound = errors.New("block not found")
 func (t *Textile) Blocks(offset string, limit int, query string) []repo.Block {
 	var filtered []repo.Block
 	for _, block := range t.datastore.Blocks().List(offset, limit, query) {
-		ignored := t.datastore.Blocks().GetByData(fmt.Sprintf("ignore-%s", block.Id))
+		ignored := t.datastore.Blocks().GetByTarget(fmt.Sprintf("ignore-%s", block.Id))
 		if ignored == nil {
 			filtered = append(filtered, block)
 		}
@@ -38,7 +38,7 @@ func (t *Textile) BlockByDataId(dataId string) (*repo.Block, error) {
 	if dataId == "" {
 		return nil, nil
 	}
-	block := t.datastore.Blocks().GetByData(dataId)
+	block := t.datastore.Blocks().GetByTarget(dataId)
 	if block == nil {
 		return nil, ErrBlockNotFound
 	}

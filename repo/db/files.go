@@ -23,24 +23,19 @@ func (c *FileDB) Add(file *repo.File) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into files(id, hash, name, key, added, pinned) values(?,?,?,?,?,?)`
+	stm := `insert into files(id, hash, schema, key, added) values(?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
 		return err
 	}
 	defer stmt.Close()
-	var pinned int
-	if file.Pinned {
-		pinned = 1
-	}
 	_, err = stmt.Exec(
 		file.Id,
 		file.Hash,
-		file.Name,
+		file.Schema,
 		file.Key,
 		int(file.Added.Unix()),
-		pinned,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -103,23 +98,18 @@ func (c *FileDB) handleQuery(stm string) []repo.File {
 		return nil
 	}
 	for rows.Next() {
-		var id, hash, name, key string
-		var addedInt, pinnedInt int
-		if err := rows.Scan(&id, &hash, &name, &key, &addedInt, &pinnedInt); err != nil {
+		var id, hash, schema, key string
+		var addedInt int
+		if err := rows.Scan(&id, &hash, &schema, &key, &addedInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
-		}
-		var pinned bool
-		if pinnedInt == 1 {
-			pinned = true
 		}
 		res = append(res, repo.File{
 			Id:     id,
 			Hash:   hash,
-			Name:   name,
+			Schema: schema,
 			Key:    key,
 			Added:  time.Unix(int64(addedInt), 0),
-			Pinned: pinned,
 		})
 	}
 	return res

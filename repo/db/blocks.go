@@ -2,8 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"encoding/json"
-	"github.com/textileio/textile-go/images"
 	"github.com/textileio/textile-go/repo"
 	"strconv"
 	"strings"
@@ -26,29 +24,22 @@ func (c *BlockDB) Add(block *repo.Block) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into blocks(id, date, parents, threadId, authorId, type, dataId, dataKey, dataCaption, dataMetadata) values(?,?,?,?,?,?,?,?,?,?)`
+	stm := `insert into blocks(id, threadId, authorId, type, date, parents, target, body) values(?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
 		return err
 	}
 	defer stmt.Close()
-	// serialize meta data
-	meta, err := json.Marshal(block.DataMetadata)
-	if err != nil {
-		return err
-	}
 	_, err = stmt.Exec(
 		block.Id,
-		int(block.Date.Unix()),
-		strings.Join(block.Parents, ","),
 		block.ThreadId,
 		block.AuthorId,
 		int(block.Type),
-		block.DataId,
-		block.DataKey,
-		block.DataCaption,
-		meta,
+		int(block.Date.Unix()),
+		strings.Join(block.Parents, ","),
+		block.Target,
+		block.Body,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -68,10 +59,10 @@ func (c *BlockDB) Get(id string) *repo.Block {
 	return &ret[0]
 }
 
-func (c *BlockDB) GetByData(dataId string) *repo.Block {
+func (c *BlockDB) GetByTarget(target string) *repo.Block {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from blocks where dataId='" + dataId + "';")
+	ret := c.handleQuery("select * from blocks where target='" + target + "';")
 	if len(ret) == 0 {
 		return nil
 	}
@@ -131,20 +122,11 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 		return nil
 	}
 	for rows.Next() {
-		var id, parents, threadId, authorId, dataId, dataCaption string
+		var id, threadId, authorId, parents, target, body string
 		var dateInt, typeInt int
-		var dataKey, dataMetadata []byte
-		if err := rows.Scan(&id, &dateInt, &parents, &threadId, &authorId, &typeInt, &dataId, &dataKey, &dataCaption, &dataMetadata); err != nil {
+		if err := rows.Scan(&id, &threadId, &authorId, &typeInt, &dateInt, &parents, &target, &body); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
-		}
-		// unmarshal meta data
-		var meta *images.Metadata
-		if dataMetadata != nil {
-			if err := json.Unmarshal(dataMetadata, &meta); err != nil {
-				log.Errorf("error unmarshaling meta data: %s", err)
-				continue
-			}
 		}
 		plist := make([]string, 0)
 		for _, p := range strings.Split(parents, ",") {
@@ -152,19 +134,16 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 				plist = append(plist, p)
 			}
 		}
-		block := repo.Block{
-			Id:           id,
-			Date:         time.Unix(int64(dateInt), 0),
-			Parents:      plist,
-			ThreadId:     threadId,
-			AuthorId:     authorId,
-			Type:         repo.BlockType(typeInt),
-			DataId:       dataId,
-			DataKey:      dataKey,
-			DataCaption:  dataCaption,
-			DataMetadata: meta,
-		}
-		ret = append(ret, block)
+		ret = append(ret, repo.Block{
+			Id:       id,
+			ThreadId: threadId,
+			AuthorId: authorId,
+			Type:     repo.BlockType(typeInt),
+			Date:     time.Unix(int64(dateInt), 0),
+			Parents:  plist,
+			Target:   target,
+			Body:     body,
+		})
 	}
 	return ret
 }

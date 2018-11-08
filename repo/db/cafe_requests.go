@@ -86,15 +86,14 @@ func (c *CafeRequestDB) handleQuery(stm string) []repo.CafeRequest {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		req := repo.CafeRequest{
+		ret = append(ret, repo.CafeRequest{
 			Id:       id,
 			PeerId:   peerId,
 			TargetId: targetId,
 			CafeId:   cafeId,
 			Type:     repo.CafeRequestType(typeInt),
 			Date:     time.Unix(int64(dateInt), 0),
-		}
-		ret = append(ret, req)
+		})
 	}
 	return ret
 }

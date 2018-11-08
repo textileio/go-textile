@@ -1,34 +1,30 @@
 package core
 
 import (
-	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 )
 
-// Flag adds an outgoing flag block targeted at another block to flag
-func (t *Thread) Flag(block string) (mh.Multihash, error) {
+// AddMessage adds an outgoing message block
+func (t *Thread) AddMessage(body string) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	// adding a flag specific prefix here to ensure future flexibility
-	target := fmt.Sprintf("flag-%s", block)
-
 	// build block
-	msg := &pb.ThreadFlag{
-		Target: target,
+	msg := &pb.ThreadMessage{
+		Body: body,
 	}
 
 	// commit to ipfs
-	res, err := t.commitBlock(msg, pb.ThreadBlock_FLAG, nil)
+	res, err := t.commitBlock(msg, pb.ThreadBlock_MESSAGE, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	// index it locally
-	if err := t.indexBlock(res, repo.FlagBlock, target, ""); err != nil {
+	if err := t.indexBlock(res, repo.MessageBlock, "", body); err != nil {
 		return nil, err
 	}
 
@@ -42,28 +38,25 @@ func (t *Thread) Flag(block string) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	log.Debugf("added FLAG to %s: %s", t.Id, res.hash.B58String())
+	log.Debugf("added MESSAGE to %s: %s", t.Id, res.hash.B58String())
 
 	// all done
 	return res.hash, nil
 }
 
-// handleFlagBlock handles an incoming flag block
-func (t *Thread) handleFlagBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.ThreadFlag, error) {
-	msg := new(pb.ThreadFlag)
+// handleMessageBlock handles an incoming message block
+func (t *Thread) handleMessageBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.ThreadMessage, error) {
+	msg := new(pb.ThreadMessage)
 	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
 		return nil, err
 	}
-
-	// TODO: how do we want to handle flags? making visible to UIs would be a good start
 
 	// index it locally
 	if err := t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,
-	}, repo.FlagBlock, msg.Target, ""); err != nil {
+	}, repo.MessageBlock, "", msg.Body); err != nil {
 		return nil, err
 	}
-
 	return msg, nil
 }

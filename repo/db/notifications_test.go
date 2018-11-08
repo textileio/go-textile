@@ -147,7 +147,7 @@ func TestNotificationDB_List(t *testing.T) {
 		Subject:   "test",
 		SubjectId: "subject1",
 		BlockId:   "block3",
-		DataId:    "data",
+		Target:    "target",
 		Type:      repo.FileAddedNotification,
 	})
 	if err != nil {

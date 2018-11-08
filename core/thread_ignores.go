@@ -30,7 +30,7 @@ func (t *Thread) Ignore(blockId string) (mh.Multihash, error) {
 	}
 
 	// index it locally
-	dconf := &repo.DataBlockConfig{
+	dconf := &repo.FilesBlockConfig{
 		DataId: msg.Data,
 	}
 	if err := t.indexBlock(res, repo.IgnoreBlock, dconf); err != nil {
@@ -75,7 +75,7 @@ func (t *Thread) handleIgnoreBlock(hash mh.Multihash, block *pb.ThreadBlock) (*p
 	}
 
 	// index it locally
-	dconf := &repo.DataBlockConfig{
+	dconf := &repo.FilesBlockConfig{
 		DataId: msg.Data,
 	}
 	if err := t.indexBlock(&commitResult{hash: hash, header: block.Header}, repo.IgnoreBlock, dconf); err != nil {
@@ -97,7 +97,7 @@ func (t *Thread) unpinBlockData(blockId string) {
 			// safe to unpin
 
 			switch block.Type {
-			case repo.FileBlock:
+			case repo.FilesBlock:
 				// unpin image paths
 				path := fmt.Sprintf("%s/thumb", block.DataId)
 				if err := ipfs.UnpinPath(t.node(), path); err != nil {
