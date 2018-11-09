@@ -3,10 +3,7 @@ package core
 import (
 	"errors"
 	"fmt"
-	"github.com/textileio/textile-go/crypto"
-	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/repo"
-	"strings"
 )
 
 // ErrBlockNotFound indicates a block was not found in the index
@@ -33,12 +30,12 @@ func (t *Textile) Block(id string) (*repo.Block, error) {
 	return block, nil
 }
 
-// BlockByDataId searches for a local block associated with the given data id
-func (t *Textile) BlockByDataId(dataId string) (*repo.Block, error) {
-	if dataId == "" {
+// BlockByParent searches for a block associated with the given data id
+func (t *Textile) BlockByParent(target string) (*repo.Block, error) {
+	if target == "" {
 		return nil, nil
 	}
-	block := t.datastore.Blocks().GetByTarget(dataId)
+	block := t.datastore.Blocks().GetByTarget(target)
 	if block == nil {
 		return nil, ErrBlockNotFound
 	}
@@ -46,27 +43,27 @@ func (t *Textile) BlockByDataId(dataId string) (*repo.Block, error) {
 }
 
 // BlockData cats file data from ipfs and tries to decrypt it with the provided block
-func (t *Textile) BlockData(path string, block *repo.Block) ([]byte, error) {
-	ciphertext, err := ipfs.DataAtPath(t.node, path)
-	if err != nil {
-		// size migrations
-		parts := strings.Split(path, "/")
-		if len(parts) > 1 && strings.Contains(err.Error(), "no link named") {
-			switch parts[1] {
-			case "small":
-				parts[1] = "thumb"
-			case "medium":
-				parts[1] = "photo"
-			default:
-				return nil, err
-			}
-			ciphertext, err = ipfs.DataAtPath(t.node, strings.Join(parts, "/"))
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			return nil, err
-		}
-	}
-	return crypto.DecryptAES(ciphertext, block.DataKey)
-}
+//func (t *Textile) BlockData(path string, block *repo.Block) ([]byte, error) {
+//	ciphertext, err := ipfs.DataAtPath(t.node, path)
+//	if err != nil {
+//		// size migrations
+//		parts := strings.Split(path, "/")
+//		if len(parts) > 1 && strings.Contains(err.Error(), "no link named") {
+//			switch parts[1] {
+//			case "small":
+//				parts[1] = "thumb"
+//			case "medium":
+//				parts[1] = "photo"
+//			default:
+//				return nil, err
+//			}
+//			ciphertext, err = ipfs.DataAtPath(t.node, strings.Join(parts, "/"))
+//			if err != nil {
+//				return nil, err
+//			}
+//		} else {
+//			return nil, err
+//		}
+//	}
+//	return crypto.DecryptAES(ciphertext, block.DataKey)
+//}

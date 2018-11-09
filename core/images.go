@@ -104,23 +104,23 @@ func (t *Textile) AddImage(file multipart.File, name string) (*AddDataResult, er
 
 	// create a virtual directory for the photo
 	dir := uio.NewDirectory(t.node.DAG)
-	thumbId, err := ipfs.AddDirectoryFile(t.node, dir, bytes.NewReader(thumbcipher), "thumb")
+	thumbId, err := ipfs.AddDataToDirectory(t.node, dir, "thumb", bytes.NewReader(thumbcipher))
 	if err != nil {
 		return nil, err
 	}
-	smallId, err := ipfs.AddDirectoryFile(t.node, dir, bytes.NewReader(smallcipher), "small")
+	smallId, err := ipfs.AddDataToDirectory(t.node, dir, "small", bytes.NewReader(smallcipher))
 	if err != nil {
 		return nil, err
 	}
-	mediumId, err := ipfs.AddDirectoryFile(t.node, dir, bytes.NewReader(mediumcipher), "medium")
+	mediumId, err := ipfs.AddDataToDirectory(t.node, dir, "medium", bytes.NewReader(mediumcipher))
 	if err != nil {
 		return nil, err
 	}
-	photoId, err := ipfs.AddDirectoryFile(t.node, dir, bytes.NewReader(largecipher), "photo")
+	photoId, err := ipfs.AddDataToDirectory(t.node, dir, "photo", bytes.NewReader(largecipher))
 	if err != nil {
 		return nil, err
 	}
-	metaId, err := ipfs.AddDirectoryFile(t.node, dir, bytes.NewReader(metacipher), "meta")
+	metaId, err := ipfs.AddDataToDirectory(t.node, dir, "meta", bytes.NewReader(metacipher))
 	if err != nil {
 		return nil, err
 	}
@@ -197,10 +197,10 @@ func (t *Textile) PhotoThreads(id string) []*Thread {
 }
 
 // PhotoKey returns the AES key for a photo set
-func (t *Textile) PhotoKey(id string) ([]byte, error) {
-	block, err := t.BlockByDataId(id)
-	if err != nil {
-		return nil, err
-	}
-	return block.DataKey, nil
-}
+//func (t *Textile) PhotoKey(id string) ([]byte, error) {
+//	block := t.datastore.Blocks().GetByTarget(id)
+//	if block == nil {
+//		return nil, ErrBlockNotFound
+//	}
+//	return block.DataKey, nil
+//}

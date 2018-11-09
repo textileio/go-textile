@@ -93,23 +93,23 @@ func gatewayHandler(c *gin.Context) {
 
 	// look for block id
 	// NOTE: this only works for the local node, but very useful for desktop
-	blockId, exists := c.GetQuery("block")
-	if exists {
-		block, err := core.Node.Block(blockId)
-		if err != nil {
-			log.Errorf("error finding block %s: %s", blockId, err)
-			c.Status(404)
-			return
-		}
-		data, err := core.Node.BlockData(contentPath, block)
-		if err != nil {
-			log.Errorf("error decrypting path %s: %s", contentPath, err)
-			c.Status(404)
-			return
-		}
-		c.Render(200, render.Data{Data: data})
-		return
-	}
+	//blockId, exists := c.GetQuery("block")
+	//if exists {
+	//	block, err := core.Node.Block(blockId)
+	//	if err != nil {
+	//		log.Errorf("error finding block %s: %s", blockId, err)
+	//		c.Status(404)
+	//		return
+	//	}
+	//	data, err := core.Node.BlockData(contentPath, block)
+	//	if err != nil {
+	//		log.Errorf("error decrypting path %s: %s", contentPath, err)
+	//		c.Status(404)
+	//		return
+	//	}
+	//	c.Render(200, render.Data{Data: data})
+	//	return
+	//}
 
 	// get data behind path
 	data := getDataAtPath(c, contentPath)

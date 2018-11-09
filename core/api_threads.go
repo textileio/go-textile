@@ -3,6 +3,7 @@ package core
 import (
 	"crypto/rand"
 	"github.com/gin-gonic/gin"
+	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/repo"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"net/http"
@@ -23,21 +24,31 @@ func (a *api) addThreads(g *gin.Context) {
 		a.abort500(g, err)
 		return
 	}
-	ttype := repo.OpenThread
+	config := NewThreadConfig{
+		Key:    opts["key"],
+		Name:   args[0],
+		Schema: opts["schema"],
+		Join:   true,
+	}
+	if config.Key == "" {
+		config.Key = ksuid.New().String()
+	}
 	if opts["type"] != "" {
 		var err error
-		ttype, err = repo.ThreadTypeFromString(opts["type"])
+		config.Type, err = repo.ThreadTypeFromString(opts["type"])
 		if err != nil {
 			g.String(http.StatusBadRequest, "invalid thread type")
 			return
 		}
+	} else {
+		config.Type = repo.OpenThread
 	}
 	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		a.abort500(g, err)
 		return
 	}
-	thrd, err := a.node.AddThread(args[0], sk, ttype, true)
+	thrd, err := a.node.AddThread(sk, config)
 	if err != nil {
 		a.abort500(g, err)
 		return
@@ -90,4 +101,41 @@ func (a *api) rmThreads(g *gin.Context) {
 		return
 	}
 	g.String(http.StatusOK, "ok")
+}
+
+func (a *api) addThreadFiles(g *gin.Context) {
+	id := g.Param("id")
+	thrd := a.node.Thread(id)
+	if thrd == nil {
+		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
+		return
+	}
+
+	// handle files
+	form, err := g.MultipartForm()
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	fileHeaders := form.File["file"]
+	for _, header := range fileHeaders {
+		file, err := header.Open()
+		if err != nil {
+			g.String(http.StatusBadRequest, err.Error())
+			return
+		}
+
+		// add the raw file
+		raw, err := a.node.AddFile(file)
+		if err != nil {
+			g.String(http.StatusBadRequest, err.Error())
+			return
+		}
+
+		// based on schema
+
+		file.Close()
+
+	}
+	g.JSON(http.StatusCreated, adds)
 }

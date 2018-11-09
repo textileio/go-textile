@@ -15,11 +15,10 @@ type Contact struct {
 }
 
 type File struct {
-	Id     string    `json:"id"`
-	Hash   string    `json:"hash"`
-	Schema string    `json:"schema"`
-	Key    string    `json:"key"`
-	Added  time.Time `json:"added"`
+	Id    string    `json:"id"`
+	Hash  string    `json:"hash"`
+	Key   string    `json:"key"`
+	Added time.Time `json:"added"`
 }
 
 type Thread struct {
@@ -95,6 +94,11 @@ type ThreadMessage struct {
 	PeerId   string       `json:"peer_id"`
 	Envelope *pb.Envelope `json:"envelope"`
 	Date     time.Time    `json:"date"`
+}
+
+type ThreadFileKey struct {
+	Hash string `json:"hash"`
+	Key  string `json:"key"`
 }
 
 type Block struct {

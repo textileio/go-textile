@@ -46,9 +46,9 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf NewThreadConfig) (*Thread, 
 	}
 
 	// check schema valid
-	if conf.SchemaHash == "" {
+	if conf.SchemaHash == "" && conf.Schema != "" {
 		// lookup from local ids
-		schema := t.dagSchemas[conf.Schema]
+		schema := t.DAGSchema(conf.Schema)
 		if schema == nil {
 			return nil, ErrDAGSchemaNotFound
 		}
@@ -290,7 +290,7 @@ func (t *Textile) addAccountThread() error {
 	config := NewThreadConfig{
 		Key:    ksuid.New().String(),
 		Name:   "account",
-		Schema: "TextileAccount",
+		Schema: "account",
 		Type:   repo.PrivateThread,
 		Join:   true,
 	}

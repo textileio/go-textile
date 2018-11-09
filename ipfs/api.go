@@ -51,8 +51,8 @@ func DataAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
 }
 
 // LinksAtPath return ipld links under a path
-func LinksAtPath(node *core.IpfsNode, path string) ([]*ipld.Link, error) {
-	ip, err := iface.ParsePath(path)
+func LinksAtPath(node *core.IpfsNode, pth string) ([]*ipld.Link, error) {
+	ip, err := iface.ParsePath(pth)
 	if err != nil {
 		return nil, err
 	}
@@ -66,8 +66,8 @@ func LinksAtPath(node *core.IpfsNode, path string) ([]*ipld.Link, error) {
 	return links, nil
 }
 
-// AddDirectoryFile adds reader bytes to a virtual directory (dag) structure
-func AddDirectoryFile(node *core.IpfsNode, dir uio.Directory, reader io.Reader, fname string) (*cid.Cid, error) {
+// AddDataToDirectory adds reader bytes to a virtual dir
+func AddDataToDirectory(node *core.IpfsNode, dir uio.Directory, fname string, reader io.Reader) (*cid.Cid, error) {
 	str, err := coreunix.Add(node, reader)
 	if err != nil {
 		return nil, err
@@ -86,8 +86,8 @@ func AddDirectoryFile(node *core.IpfsNode, dir uio.Directory, reader io.Reader, 
 	return id, nil
 }
 
-// AddPathToDirectory adds a link to a virtual directory (dag) structure
-func AddDirectoryLink(node *core.IpfsNode, dir uio.Directory, fname string, pth string) error {
+// AddLinkToDirectory adds a link to a virtual dir
+func AddLinkToDirectory(node *core.IpfsNode, dir uio.Directory, fname string, pth string) error {
 	id, err := cid.Decode(pth)
 	if err != nil {
 		return err
@@ -121,16 +121,9 @@ func AddData(node *core.IpfsNode, data io.Reader, pin bool) (*cid.Cid, error) {
 	return pth.Cid(), nil
 }
 
-// GetNode returns a node behind an ipld link
-func GetNode(node *core.IpfsNode, link *ipld.Link) (ipld.Node, error) {
-	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
-	defer cancel()
-	return link.GetNode(ctx, node.DAG)
-}
-
 // PinPath takes an ipfs path string and pins it
-func PinPath(node *core.IpfsNode, path string, recursive bool) error {
-	ip, err := iface.ParsePath(path)
+func PinPath(node *core.IpfsNode, pth string, recursive bool) error {
+	ip, err := iface.ParsePath(pth)
 	if err != nil {
 		return err
 	}
@@ -144,10 +137,10 @@ func PinPath(node *core.IpfsNode, path string, recursive bool) error {
 }
 
 // UnpinPath takes an ipfs path string and unpins it
-func UnpinPath(node *core.IpfsNode, path string) error {
-	ip, err := iface.ParsePath(path)
+func UnpinPath(node *core.IpfsNode, pth string) error {
+	ip, err := iface.ParsePath(pth)
 	if err != nil {
-		log.Errorf("error unpinning path: %s: %s", path, err)
+		log.Errorf("error unpinning path: %s: %s", pth, err)
 		return err
 	}
 	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
@@ -159,11 +152,25 @@ func UnpinPath(node *core.IpfsNode, path string) error {
 	return nil
 }
 
-// PinDirectory pins a directory structure, not links
-func PinNode(node *core.IpfsNode, n ipld.Node) error {
+// LinkNode returns the node behind an ipld link
+func LinkNode(node *core.IpfsNode, link *ipld.Link) (ipld.Node, error) {
+	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
+	defer cancel()
+	return link.GetNode(ctx, node.DAG)
+}
+
+// CidNode returns the node behind a cid
+func CidNode(node *core.IpfsNode, id *cid.Cid) (ipld.Node, error) {
+	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
+	defer cancel()
+	return node.DAG.Get(ctx, id)
+}
+
+// PinNode pins an ipld node
+func PinNode(node *core.IpfsNode, nd ipld.Node) error {
 	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
 	defer cancel()
-	if err := node.Pinning.Pin(ctx, n, false); err != nil {
+	if err := node.Pinning.Pin(ctx, nd, false); err != nil {
 		return err
 	}
 	return node.Pinning.Flush()

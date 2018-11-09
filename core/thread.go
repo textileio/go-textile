@@ -23,8 +23,11 @@ import (
 // errReloadFailed indicates an error occurred during thread reload
 var errThreadReload = errors.New("could not re-load thread")
 
-// ErrInvitesNotAllowed indicated an invite was attempted on a private thread
+// ErrInvitesNotAllowed indicates an invite was attempted on a private thread
 var ErrInvitesNotAllowed = errors.New("invites not allowed to private thread")
+
+// ErrDAGSchemaRequired indicates files where added without a thread schema
+var ErrDAGSchemaRequired = errors.New("DAG schema required to add files")
 
 // ThreadUpdate is used to notify listeners about updates in a thread
 type ThreadUpdate struct {
@@ -38,7 +41,7 @@ type ThreadInfo struct {
 	Id         string      `json:"id"`
 	Key        string      `json:"key"`
 	Name       string      `json:"name"`
-	Schema     string      `json:"schema"`
+	Schema     string      `json:"schema,omitempty"`
 	Type       string      `json:"type"`
 	State      string      `json:"state"`
 	Head       *repo.Block `json:"head,omitempty"`
@@ -85,11 +88,15 @@ func NewThread(model *repo.Thread, conf *ThreadConfig) (*Thread, error) {
 	}
 
 	// load schema
-	schema, err := loadThreadSchema(conf.Node(), model.Schema)
-	if err != nil {
-		return nil, err
+	var schema *DAGSchema
+	if model.Schema != "" {
+		schema, err = loadThreadSchema(conf.Node(), model.Schema)
+		if err != nil {
+			return nil, err
+		}
 	}
 
+	// all set
 	return &Thread{
 		Id:            model.Id,
 		Key:           model.Key,

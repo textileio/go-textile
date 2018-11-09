@@ -22,23 +22,23 @@ import (
 )
 
 type ipfsOptions struct {
-	ServerMode bool   `long:"server" description:"Apply IPFS server profile"`
+	ServerMode bool   `long:"server" description:"Apply IPFS server profile."`
 	SwarmPorts string `long:"swarm-ports" description:"Set the swarm ports (TCP,WS). Random ports are chosen by default."`
 }
 
 type logOptions struct {
-	Level   string `short:"l" long:"log-level" description:"Set the logging level [debug, info, notice, warning, error, critical]" default:"error"`
-	NoFiles bool   `short:"n" long:"no-log-files" description:"Write logs to stdout instead of rolling files"`
+	Level   string `short:"l" long:"log-level" description:"Set the logging level [debug, info, notice, warning, error, critical]." default:"error"`
+	NoFiles bool   `short:"n" long:"no-log-files" description:"Write logs to stdout instead of rolling files."`
 }
 
 type addressOptions struct {
-	ApiBindAddr     string `short:"a" long:"api-bind-addr" description:"Set the local API address" default:"127.0.0.1:40600"`
-	CafeApiBindAddr string `short:"c" long:"cafe-bind-addr" description:"Set the cafe REST API address" default:"127.0.0.1:40601"`
-	GatewayBindAddr string `short:"g" long:"gateway-bind-addr" description:"Set the IPFS gateway address" default:"127.0.0.1:5050"`
+	ApiBindAddr     string `short:"a" long:"api-bind-addr" description:"Set the local API address." default:"127.0.0.1:40600"`
+	CafeApiBindAddr string `short:"c" long:"cafe-bind-addr" description:"Set the cafe REST API address." default:"127.0.0.1:40601"`
+	GatewayBindAddr string `short:"g" long:"gateway-bind-addr" description:"Set the IPFS gateway address." default:"127.0.0.1:5050"`
 }
 
 type cafeOptions struct {
-	Open bool `long:"cafe-open" description:"Opens the p2p Cafe Service for other peers"`
+	Open bool `long:"cafe-open" description:"Opens the p2p Cafe Service for other peers."`
 }
 
 type options struct{}
@@ -49,22 +49,22 @@ type walletCmd struct {
 }
 
 type walletInitCmd struct {
-	WordCount int    `short:"w" long:"word-count" description:"Number of mnemonic recovery phrase words: 12,15,18,21,24" default:"12"`
-	Password  string `short:"p" long:"password" description:"Mnemonic recovery phrase password (omit if none)"`
+	WordCount int    `short:"w" long:"word-count" description:"Number of mnemonic recovery phrase words: 12,15,18,21,24." default:"12"`
+	Password  string `short:"p" long:"password" description:"Mnemonic recovery phrase password (omit if none)."`
 }
 
 type walletAccountsCmd struct {
-	Password string `short:"p" long:"password" description:"Mnemonic recovery phrase password (omit if none)"`
-	Depth    int    `short:"d" long:"depth" description:"Number of accounts to show" default:"1"`
-	Offset   int    `short:"o" long:"offset" description:"Account depth to start from" default:"0"`
+	Password string `short:"p" long:"password" description:"Mnemonic recovery phrase password (omit if none)."`
+	Depth    int    `short:"d" long:"depth" description:"Number of accounts to show." default:"1"`
+	Offset   int    `short:"o" long:"offset" description:"Account depth to start from." default:"0"`
 }
 
 type versionCmd struct{}
 
 type initCmd struct {
-	AccountSeed string         `required:"true" short:"s" long:"seed" description:"Account seed (run 'wallet' command to generate new seeds)"`
-	PinCode     string         `short:"p" long:"pin-code" description:"Specify a pin code for datastore encryption"`
-	RepoPath    string         `short:"r" long:"repo-dir" description:"Specify a custom repository path"`
+	AccountSeed string         `required:"true" short:"s" long:"seed" description:"Account seed (run 'wallet' command to generate new seeds)."`
+	PinCode     string         `short:"p" long:"pin-code" description:"Specify a pin code for datastore encryption."`
+	RepoPath    string         `short:"r" long:"repo-dir" description:"Specify a custom repository path."`
 	Addresses   addressOptions `group:"Address Options"`
 	CafeOptions cafeOptions    `group:"Cafe Options"`
 	IPFS        ipfsOptions    `group:"IPFS Options"`
@@ -72,13 +72,13 @@ type initCmd struct {
 }
 
 type migrateCmd struct {
-	RepoPath string `short:"r" long:"repo-dir" description:"Specify a custom repository path"`
-	PinCode  string `short:"p" long:"pin-code" description:"Specify the pin code for datastore encryption (omit of none was used during init)"`
+	RepoPath string `short:"r" long:"repo-dir" description:"Specify a custom repository path."`
+	PinCode  string `short:"p" long:"pin-code" description:"Specify the pin code for datastore encryption (omit of none was used during init)."`
 }
 
 type daemonCmd struct {
-	PinCode  string `short:"p" long:"pin-code" description:"Specify the pin code for datastore encryption (omit of none was used during init)"`
-	RepoPath string `short:"r" long:"repo-dir" description:"Specify a custom repository path"`
+	PinCode  string `short:"p" long:"pin-code" description:"Specify the pin code for datastore encryption (omit of none was used during init)."`
+	RepoPath string `short:"r" long:"repo-dir" description:"Specify a custom repository path."`
 }
 
 type shellCmd struct {

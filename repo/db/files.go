@@ -23,7 +23,7 @@ func (c *FileDB) Add(file *repo.File) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into files(id, hash, schema, key, added) values(?,?,?,?,?)`
+	stm := `insert into files(id, hash, key, added) values(?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -33,7 +33,6 @@ func (c *FileDB) Add(file *repo.File) error {
 	_, err = stmt.Exec(
 		file.Id,
 		file.Hash,
-		file.Schema,
 		file.Key,
 		int(file.Added.Unix()),
 	)
@@ -98,18 +97,17 @@ func (c *FileDB) handleQuery(stm string) []repo.File {
 		return nil
 	}
 	for rows.Next() {
-		var id, hash, schema, key string
+		var id, hash, key string
 		var addedInt int
-		if err := rows.Scan(&id, &hash, &schema, &key, &addedInt); err != nil {
+		if err := rows.Scan(&id, &hash, &key, &addedInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
 		res = append(res, repo.File{
-			Id:     id,
-			Hash:   hash,
-			Schema: schema,
-			Key:    key,
-			Added:  time.Unix(int64(addedInt), 0),
+			Id:    id,
+			Hash:  hash,
+			Key:   key,
+			Added: time.Unix(int64(addedInt), 0),
 		})
 	}
 	return res

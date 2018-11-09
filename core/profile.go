@@ -70,13 +70,13 @@ func (t *Textile) SetAvatar(id string) error {
 	}
 
 	// get the public key for this photo
-	key, err := t.PhotoKey(id)
-	if err != nil {
-		return err
-	}
+	//key, err := t.PhotoKey(id)
+	//if err != nil {
+	//	return err
+	//}
 
 	// build a public uri
-	uri := fmt.Sprintf("/ipfs/%s/thumb?key=%s", id, key)
+	uri := fmt.Sprintf("/ipfs/%s/thumb?key=%s", id, "fixme")
 	if err := t.datastore.Profile().SetAvatar(uri); err != nil {
 		return err
 	}
@@ -180,7 +180,7 @@ func (t *Textile) publishProfile(prof Profile) (*ipfs.IpnsEntry, error) {
 	dir := uio.NewDirectory(t.node.DAG)
 
 	// add public components
-	addressId, err := ipfs.AddDirectoryFile(t.node, dir, bytes.NewReader([]byte(prof.Address)), "address")
+	addressId, err := ipfs.AddDataToDirectory(t.node, dir, "address", bytes.NewReader([]byte(prof.Address)))
 	if err != nil {
 		return nil, err
 	}
@@ -193,21 +193,21 @@ func (t *Textile) publishProfile(prof Profile) (*ipfs.IpnsEntry, error) {
 			inboxes = append(inboxes, ses.CafeId)
 		}
 		inboxesStr := strings.Join(inboxes, ",")
-		inboxesId, err = ipfs.AddDirectoryFile(t.node, dir, bytes.NewReader([]byte(inboxesStr)), "inboxes")
+		inboxesId, err = ipfs.AddDataToDirectory(t.node, dir, "inboxes", bytes.NewReader([]byte(inboxesStr)))
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		inboxesId, err = ipfs.AddDirectoryFile(t.node, dir, bytes.NewReader([]byte("")), "inboxes")
+		inboxesId, err = ipfs.AddDataToDirectory(t.node, dir, "inboxes", bytes.NewReader([]byte("")))
 		if err != nil {
 			return nil, err
 		}
 	}
-	usernameId, err := ipfs.AddDirectoryFile(t.node, dir, bytes.NewReader([]byte(prof.Username)), "username")
+	usernameId, err := ipfs.AddDataToDirectory(t.node, dir, "username", bytes.NewReader([]byte(prof.Username)))
 	if err != nil {
 		return nil, err
 	}
-	avatarId, err := ipfs.AddDirectoryFile(t.node, dir, bytes.NewReader([]byte(prof.AvatarUri)), "avatar_uri")
+	avatarId, err := ipfs.AddDataToDirectory(t.node, dir, "avatar_uri", bytes.NewReader([]byte(prof.AvatarUri)))
 	if err != nil {
 		return nil, err
 	}

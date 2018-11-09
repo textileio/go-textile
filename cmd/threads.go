@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/core"
 	"gopkg.in/abiosoft/ishell.v2"
 )
@@ -29,7 +30,8 @@ func (x *threadsCmd) Short() string {
 
 func (x *threadsCmd) Long() string {
 	return `
-Threads are distributed sets of encrypted files between peers. 
+Threads are distributed sets of encrypted files between peers,
+governed by build-in or custom Schemas.
 Use this command to add, list, get, and remove threads.
 
 Open threads are the most common thread type. Open threads allow 
@@ -55,7 +57,9 @@ func (x *threadsCmd) Shell() *ishell.Cmd {
 
 type addThreadsCmd struct {
 	Client ClientOptions `group:"Client Options"`
-	Type   string        `short:"t" long:"type" description:"Thread type. One of: open, private" default:"open"`
+	Key    string        `short:"k" long:"key" description:"A locally unique key used by an app to identify this thread on recovery."`
+	Type   string        `short:"t" long:"type" description:"Thread type [open, private]." default:"open"`
+	Schema string        `short:"s" long:"schema" description:"Thread schema [photos]." default:"photos"`
 }
 
 func (x *addThreadsCmd) Name() string {
@@ -72,7 +76,12 @@ func (x *addThreadsCmd) Long() string {
 
 func (x *addThreadsCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callAddThreads(args, map[string]string{"type": x.Type}, nil)
+	opts := map[string]string{
+		"key":    x.Key,
+		"type":   x.Type,
+		"schema": x.Schema,
+	}
+	return callAddThreads(args, opts, nil)
 }
 
 func (x *addThreadsCmd) Shell() *ishell.Cmd {
@@ -81,12 +90,17 @@ func (x *addThreadsCmd) Shell() *ishell.Cmd {
 		Help:     x.Short(),
 		LongHelp: x.Long(),
 		Func: func(c *ishell.Context) {
-			choice := c.MultiChoice([]string{"Open (default)", "Private"}, "Please select a thread type:")
+			choice := c.MultiChoice([]string{"open (default)", "private"}, "Please select a thread type:")
 			ttype := "open"
 			if choice == 1 {
 				ttype = "private"
 			}
-			if err := callAddThreads(c.Args, map[string]string{"type": ttype}, c); err != nil {
+			opts := map[string]string{
+				"key":    ksuid.New().String(),
+				"type":   ttype,
+				"schema": "photos",
+			}
+			if err := callAddThreads(c.Args, opts, c); err != nil {
 				c.Err(err)
 			}
 		},

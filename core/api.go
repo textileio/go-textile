@@ -67,6 +67,7 @@ func (a *api) Start() {
 		v0.GET("/threads", a.lsThreads)
 		v0.GET("/threads/:id", a.getThreads)
 		v0.DELETE("/threads/:id", a.rmThreads)
+		v0.POST("/threads/:id", a.addThreadFiles)
 
 		v0.POST("/images", a.addImages)
 
