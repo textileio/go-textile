@@ -70,16 +70,7 @@ func (x *addCafesCmd) Execute(args []string) error {
 }
 
 func (x *addCafesCmd) Shell() *ishell.Cmd {
-	return &ishell.Cmd{
-		Name:     x.Name(),
-		Help:     x.Short(),
-		LongHelp: x.Long(),
-		Func: func(c *ishell.Context) {
-			if err := callAddCafes(c.Args, c); err != nil {
-				c.Err(err)
-			}
-		},
-	}
+	return nil
 }
 
 func callAddCafes(args []string, ctx *ishell.Context) error {
@@ -114,16 +105,7 @@ func (x *lsCafesCmd) Execute(args []string) error {
 }
 
 func (x *lsCafesCmd) Shell() *ishell.Cmd {
-	return &ishell.Cmd{
-		Name:     x.Name(),
-		Help:     x.Short(),
-		LongHelp: x.Long(),
-		Func: func(c *ishell.Context) {
-			if err := callLsCafes(c.Args, c); err != nil {
-				c.Err(err)
-			}
-		},
-	}
+	return nil
 }
 
 func callLsCafes(_ []string, ctx *ishell.Context) error {
@@ -158,16 +140,7 @@ func (x *getCafesCmd) Execute(args []string) error {
 }
 
 func (x *getCafesCmd) Shell() *ishell.Cmd {
-	return &ishell.Cmd{
-		Name:     x.Name(),
-		Help:     x.Short(),
-		LongHelp: x.Long(),
-		Func: func(c *ishell.Context) {
-			if err := callGetCafes(c.Args, c); err != nil {
-				c.Err(err)
-			}
-		},
-	}
+	return nil
 }
 
 func callGetCafes(args []string, ctx *ishell.Context) error {
@@ -205,16 +178,7 @@ func (x *rmCafesCmd) Execute(args []string) error {
 }
 
 func (x *rmCafesCmd) Shell() *ishell.Cmd {
-	return &ishell.Cmd{
-		Name:     x.Name(),
-		Help:     x.Short(),
-		LongHelp: x.Long(),
-		Func: func(c *ishell.Context) {
-			if err := callRmCafes(c.Args, c); err != nil {
-				c.Err(err)
-			}
-		},
-	}
+	return nil
 }
 
 func callRmCafes(args []string, ctx *ishell.Context) error {
@@ -251,19 +215,10 @@ func (x *checkMailCafesCmd) Execute(args []string) error {
 }
 
 func (x *checkMailCafesCmd) Shell() *ishell.Cmd {
-	return &ishell.Cmd{
-		Name:     x.Name(),
-		Help:     x.Short(),
-		LongHelp: x.Long(),
-		Func: func(c *ishell.Context) {
-			if err := callCheckMailCafes(c.Args, c); err != nil {
-				c.Err(err)
-			}
-		},
-	}
+	return nil
 }
 
-func callCheckMailCafes(args []string, ctx *ishell.Context) error {
+func callCheckMailCafes(_ []string, ctx *ishell.Context) error {
 	res, err := executeStringCmd(POST, "cafes/check_mail", params{})
 	if err != nil {
 		return nil

@@ -29,7 +29,7 @@ func TestNotificationDB_Add(t *testing.T) {
 		Subject:   "test",
 		SubjectId: ksuid.New().String(),
 		BlockId:   ksuid.New().String(),
-		Type:      repo.ReceivedInviteNotification,
+		Type:      repo.InviteReceivedNotification,
 	})
 	if err != nil {
 		t.Error(err)
@@ -74,7 +74,7 @@ func TestNotificationDB_ReadAll(t *testing.T) {
 		Subject:   "test",
 		SubjectId: ksuid.New().String(),
 		BlockId:   ksuid.New().String(),
-		Type:      repo.ReceivedInviteNotification,
+		Type:      repo.InviteReceivedNotification,
 	})
 	if err != nil {
 		t.Error(err)
@@ -111,7 +111,7 @@ func TestNotificationDB_List(t *testing.T) {
 		Subject:   "test",
 		SubjectId: ksuid.New().String(),
 		BlockId:   "block1",
-		Type:      repo.ReceivedInviteNotification,
+		Type:      repo.InviteReceivedNotification,
 	})
 	if err != nil {
 		t.Error(err)
@@ -148,7 +148,7 @@ func TestNotificationDB_List(t *testing.T) {
 		SubjectId: "subject1",
 		BlockId:   "block3",
 		Target:    "target",
-		Type:      repo.FileAddedNotification,
+		Type:      repo.FilesAddedNotification,
 	})
 	if err != nil {
 		t.Error(err)

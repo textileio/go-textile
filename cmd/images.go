@@ -72,16 +72,7 @@ func (x *addImagesCmd) Execute(args []string) error {
 }
 
 func (x *addImagesCmd) Shell() *ishell.Cmd {
-	return &ishell.Cmd{
-		Name:     x.Name(),
-		Help:     x.Short(),
-		LongHelp: x.Long(),
-		Func: func(c *ishell.Context) {
-			if err := callAddImages(c.Args, c); err != nil {
-				c.Err(err)
-			}
-		},
-	}
+	return nil
 }
 
 func callAddImages(args []string, ctx *ishell.Context) error {

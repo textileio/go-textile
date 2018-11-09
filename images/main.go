@@ -136,60 +136,66 @@ func NewMetadata(
 }
 
 // DecodeImage returns a cleaned reader from an image file
-func DecodeImage(file multipart.File) (*bytes.Reader, *Format, *image.Point, error) {
+func DecodeImage(file multipart.File) (*bytes.Reader, Format, error) {
 	img, formatStr, err := image.Decode(file)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, "", err
 	}
 	format := Format(formatStr)
-	size := img.Bounds().Size()
 
 	var reader *bytes.Reader
-	file.Seek(0, 0)
 	if format != "gif" {
 		// decode exif
 		exf := DecodeExif(file)
 		img, err = correctOrientation(img, exf)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, "", err
 		}
 
 		// re-encoding will remove exif
 		reader, err = encodeSingleImage(img, format)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, "", err
 		}
 	} else {
 		fileb, err := ioutil.ReadAll(file)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, "", err
 		}
 		reader = bytes.NewReader(fileb)
 	}
 
-	return reader, &format, &size, nil
+	return reader, format, nil
 }
 
-// EncodeImage creates a jpeg|gif from reader (jpeg quality is currently the default (75/100))
-func EncodeImage(reader io.Reader, format Format, size ImageSize) ([]byte, error) {
-	var result []byte
-	width := int(size)
-	switch format {
-	case JPEG:
+// EncodeImage creates a jpeg|gif from reader (quality applies to jpeg only)
+// NOTE: format is the reader image format, destination format is chosen accordingly.
+func EncodeImage(reader io.Reader, format Format, width int, quality int) (*bytes.Buffer, error) {
+	buff := new(bytes.Buffer)
+
+	// decode image
+	reader, format, _, err := DecodeImage(file)
+	if err != nil {
+		return nil, err
+	}
+
+	if format != GIF {
+		// encode to jpeg
 		img, _, err := image.Decode(reader)
 		if err != nil {
 			return nil, err
 		}
+
 		if img.Bounds().Size().X < width {
 			width = img.Bounds().Size().X
 		}
+
 		resized := imaging.Resize(img, width, 0, imaging.Lanczos)
-		buff := new(bytes.Buffer)
-		if err = jpeg.Encode(buff, resized, nil); err != nil {
+		if err = jpeg.Encode(buff, resized, &jpeg.Options{Quality: quality}); err != nil {
 			return nil, err
 		}
-		result = buff.Bytes()
-	case GIF:
+	} else {
+		// encode to gif
 		img, err := gif.DecodeAll(reader)
 		if err != nil {
 			return nil, err
@@ -197,6 +203,7 @@ func EncodeImage(reader io.Reader, format Format, size ImageSize) ([]byte, error
 		if len(img.Image) == 0 {
 			return nil, errors.New("gif does not have any frames")
 		}
+
 		firstFrame := img.Image[0].Bounds()
 		if firstFrame.Dx() < width {
 			width = firstFrame.Dx()
@@ -208,15 +215,67 @@ func EncodeImage(reader io.Reader, format Format, size ImageSize) ([]byte, error
 			draw.Draw(rgba, bounds, frame, bounds.Min, draw.Over)
 			img.Image[index] = imageToPaletted(imaging.Resize(rgba, width, 0, imaging.Lanczos))
 		}
+
 		img.Config.Width = img.Image[0].Bounds().Dx()
 		img.Config.Height = img.Image[0].Bounds().Dy()
-		buff := new(bytes.Buffer)
+
 		if err = gif.EncodeAll(buff, img); err != nil {
 			return nil, err
 		}
-		result = buff.Bytes()
 	}
-	return result, nil
+	return buff, nil
+}
+
+// EncodeImage creates a jpeg|gif from reader (jpeg quality is currently the default (75/100))
+func EncodeImage2(reader io.Reader, format Format, size ImageSize) (*bytes.Buffer, error) {
+	buff := new(bytes.Buffer)
+	width := int(size)
+
+	switch format {
+	case JPEG:
+		img, _, err := image.Decode(reader)
+		if err != nil {
+			return nil, err
+		}
+
+		if img.Bounds().Size().X < width {
+			width = img.Bounds().Size().X
+		}
+
+		resized := imaging.Resize(img, width, 0, imaging.Lanczos)
+		if err = jpeg.Encode(buff, resized, nil); err != nil {
+			return nil, err
+		}
+
+	case GIF:
+		img, err := gif.DecodeAll(reader)
+		if err != nil {
+			return nil, err
+		}
+		if len(img.Image) == 0 {
+			return nil, errors.New("gif does not have any frames")
+		}
+
+		firstFrame := img.Image[0].Bounds()
+		if firstFrame.Dx() < width {
+			width = firstFrame.Dx()
+		}
+		rect := image.Rect(0, 0, firstFrame.Dx(), firstFrame.Dy())
+		rgba := image.NewRGBA(rect)
+		for index, frame := range img.Image {
+			bounds := frame.Bounds()
+			draw.Draw(rgba, bounds, frame, bounds.Min, draw.Over)
+			img.Image[index] = imageToPaletted(imaging.Resize(rgba, width, 0, imaging.Lanczos))
+		}
+
+		img.Config.Width = img.Image[0].Bounds().Dx()
+		img.Config.Height = img.Image[0].Bounds().Dy()
+
+		if err = gif.EncodeAll(buff, img); err != nil {
+			return nil, err
+		}
+	}
+	return buff, nil
 }
 
 // DecodeExif returns exif data from a reader if present

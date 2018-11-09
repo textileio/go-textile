@@ -16,6 +16,7 @@ type Config struct {
 	Addresses Addresses // local node's addresses
 	API       API       // local node's API settings
 	Logs      Logs      // local node's log settings
+	Threads   Threads   // local node's thread settings
 	IsMobile  bool      // local node is setup for mobile
 	IsServer  bool      // local node is setup for a server w/ a public IP
 	Cafe      Cafe      // local node cafe settings
@@ -50,6 +51,11 @@ type Logs struct {
 	LogLevel  string // one of: critical error warning notice info debug
 }
 
+// Thread settings
+type Threads struct {
+	Default string // default thread to write to
+}
+
 // Cafe settings
 // TODO: add some more knobs: max num. clients, max client msg age, inbox size, etc.
 type Cafe struct {
@@ -76,6 +82,9 @@ func Init(version string) (*Config, error) {
 		Logs: Logs{
 			LogToDisk: true,
 			LogLevel:  "error",
+		},
+		Threads: Threads{
+			Default: "",
 		},
 		Cafe: Cafe{
 			Open: false,

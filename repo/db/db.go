@@ -250,8 +250,7 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index cafe_client_message_clientId on cafe_client_messages (clientId);
     create index cafe_client_message_date on cafe_client_messages (date);
     `
-	_, err := db.Exec(sqlStmt)
-	if err != nil {
+	if _, err := db.Exec(sqlStmt); err != nil {
 		return err
 	}
 	return nil

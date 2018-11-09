@@ -85,7 +85,7 @@ func TestThreadDB_List(t *testing.T) {
 		PrivKey: make([]byte, 8),
 		Name:    "boom",
 		Schema:  "Qm...",
-		Type:    repo.AccountThread,
+		Type:    repo.PrivateThread,
 		State:   repo.ThreadPending,
 	})
 	if err != nil {

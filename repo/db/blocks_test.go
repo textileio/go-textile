@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"github.com/textileio/textile-go/images"
 	"github.com/textileio/textile-go/repo"
 	"sync"
 	"testing"
@@ -23,16 +22,14 @@ func setupBlockDB() {
 
 func TestBlockDB_Add(t *testing.T) {
 	err := bdb.Add(&repo.Block{
-		Id:           "abcde",
-		Date:         time.Now(),
-		Parents:      []string{"Qm123"},
-		ThreadId:     "thread_id",
-		AuthorId:     "author_id",
-		Type:         repo.FilesBlock,
-		DataId:       "Qm456",
-		DataKey:      []byte("key"),
-		DataCaption:  "xxx",
-		DataMetadata: &images.Metadata{Name: "boom"},
+		Id:       "abcde",
+		ThreadId: "thread_id",
+		AuthorId: "author_id",
+		Type:     repo.FilesBlock,
+		Date:     time.Now(),
+		Parents:  []string{"Qm123"},
+		Target:   "Qm456",
+		Body:     "body",
 	})
 	if err != nil {
 		t.Error(err)
@@ -56,8 +53,8 @@ func TestBlockDB_Get(t *testing.T) {
 	}
 }
 
-func TestBlockDB_GetByData(t *testing.T) {
-	block := bdb.GetByData("Qm456")
+func TestBlockDB_GetByTarget(t *testing.T) {
+	block := bdb.GetByTarget("Qm456")
 	if block == nil {
 		t.Error("could not get block")
 	}
@@ -66,31 +63,27 @@ func TestBlockDB_GetByData(t *testing.T) {
 func TestBlockDB_List(t *testing.T) {
 	setupBlockDB()
 	err := bdb.Add(&repo.Block{
-		Id:           "abcde",
-		Date:         time.Now(),
-		Parents:      []string{"Qm123"},
-		ThreadId:     "thread_id",
-		AuthorId:     "author_id",
-		Type:         repo.FilesBlock,
-		DataId:       "Qm456",
-		DataKey:      []byte("key"),
-		DataCaption:  "xxx",
-		DataMetadata: &images.Metadata{Name: "boom"},
+		Id:       "abcde",
+		ThreadId: "thread_id",
+		AuthorId: "author_id",
+		Type:     repo.FilesBlock,
+		Date:     time.Now(),
+		Parents:  []string{"Qm123"},
+		Target:   "Qm456",
+		Body:     "body",
 	})
 	if err != nil {
 		t.Error(err)
 	}
 	err = bdb.Add(&repo.Block{
-		Id:           "fghijk",
-		Date:         time.Now().Add(time.Minute),
-		Parents:      []string{"Qm456"},
-		ThreadId:     "thread_id",
-		AuthorId:     "author_id",
-		Type:         repo.FilesBlock,
-		DataId:       "Qm789",
-		DataKey:      []byte("key"),
-		DataCaption:  "xxx",
-		DataMetadata: &images.Metadata{Name: "boom"},
+		Id:       "fghijk",
+		ThreadId: "thread_id",
+		AuthorId: "author_id",
+		Type:     repo.FilesBlock,
+		Date:     time.Now().Add(time.Minute),
+		Parents:  []string{"Qm456"},
+		Target:   "Qm789",
+		Body:     "body",
 	})
 	if err != nil {
 		t.Error(err)
@@ -119,31 +112,27 @@ func TestBlockDB_List(t *testing.T) {
 func TestBlockDB_Count(t *testing.T) {
 	setupBlockDB()
 	err := bdb.Add(&repo.Block{
-		Id:           "abcde",
-		Date:         time.Now(),
-		Parents:      []string{"Qm123"},
-		ThreadId:     "thread_id",
-		AuthorId:     "author_id",
-		Type:         repo.FilesBlock,
-		DataId:       "Qm456",
-		DataKey:      []byte("key"),
-		DataCaption:  "xxx",
-		DataMetadata: &images.Metadata{Name: "boom"},
+		Id:       "abcde",
+		ThreadId: "thread_id",
+		AuthorId: "author_id",
+		Type:     repo.FilesBlock,
+		Date:     time.Now(),
+		Parents:  []string{"Qm123"},
+		Target:   "Qm456",
+		Body:     "body",
 	})
 	if err != nil {
 		t.Error(err)
 	}
 	err = bdb.Add(&repo.Block{
-		Id:           "abcde2",
-		Date:         time.Now(),
-		Parents:      []string{"Qm123"},
-		ThreadId:     "thread_id",
-		AuthorId:     "author_id",
-		Type:         repo.FilesBlock,
-		DataId:       "Qm456",
-		DataKey:      []byte("key"),
-		DataCaption:  "xxx",
-		DataMetadata: &images.Metadata{Name: "boom"},
+		Id:       "abcde2",
+		ThreadId: "thread_id",
+		AuthorId: "author_id",
+		Date:     time.Now(),
+		Type:     repo.FilesBlock,
+		Parents:  []string{"Qm123"},
+		Target:   "Qm456",
+		Body:     "body",
 	})
 	if err != nil {
 		t.Error(err)

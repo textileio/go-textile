@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/core"
 	"gopkg.in/abiosoft/ishell.v2"
 )
@@ -85,26 +84,7 @@ func (x *addThreadsCmd) Execute(args []string) error {
 }
 
 func (x *addThreadsCmd) Shell() *ishell.Cmd {
-	return &ishell.Cmd{
-		Name:     x.Name(),
-		Help:     x.Short(),
-		LongHelp: x.Long(),
-		Func: func(c *ishell.Context) {
-			choice := c.MultiChoice([]string{"open (default)", "private"}, "Please select a thread type:")
-			ttype := "open"
-			if choice == 1 {
-				ttype = "private"
-			}
-			opts := map[string]string{
-				"key":    ksuid.New().String(),
-				"type":   ttype,
-				"schema": "photos",
-			}
-			if err := callAddThreads(c.Args, opts, c); err != nil {
-				c.Err(err)
-			}
-		},
-	}
+	return nil
 }
 
 func callAddThreads(args []string, opts map[string]string, ctx *ishell.Context) error {
@@ -139,16 +119,7 @@ func (x *lsThreadsCmd) Execute(args []string) error {
 }
 
 func (x *lsThreadsCmd) Shell() *ishell.Cmd {
-	return &ishell.Cmd{
-		Name:     x.Name(),
-		Help:     x.Short(),
-		LongHelp: x.Long(),
-		Func: func(c *ishell.Context) {
-			if err := callLsThreads(c.Args, c); err != nil {
-				c.Err(err)
-			}
-		},
-	}
+	return nil
 }
 
 func callLsThreads(_ []string, ctx *ishell.Context) error {
@@ -183,16 +154,7 @@ func (x *getThreadsCmd) Execute(args []string) error {
 }
 
 func (x *getThreadsCmd) Shell() *ishell.Cmd {
-	return &ishell.Cmd{
-		Name:     x.Name(),
-		Help:     x.Short(),
-		LongHelp: x.Long(),
-		Func: func(c *ishell.Context) {
-			if err := callGetThreads(c.Args, c); err != nil {
-				c.Err(err)
-			}
-		},
-	}
+	return nil
 }
 
 func callGetThreads(args []string, ctx *ishell.Context) error {
@@ -230,16 +192,7 @@ func (x *rmThreadsCmd) Execute(args []string) error {
 }
 
 func (x *rmThreadsCmd) Shell() *ishell.Cmd {
-	return &ishell.Cmd{
-		Name:     x.Name(),
-		Help:     x.Short(),
-		LongHelp: x.Long(),
-		Func: func(c *ishell.Context) {
-			if err := callRmThreads(c.Args, c); err != nil {
-				c.Err(err)
-			}
-		},
-	}
+	return nil
 }
 
 func callRmThreads(args []string, ctx *ishell.Context) error {

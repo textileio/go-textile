@@ -63,13 +63,16 @@ func (a *api) Start() {
 		v0.GET("/address", a.address)
 		v0.GET("/ping", a.ping)
 
+		v0.POST("/files", a.addFiles)
+
+		v0.POST("/images/encode", a.encodeImages)
+		//v0.POST("/images/exif", a.exifImages)
+
 		v0.POST("/threads", a.addThreads)
 		v0.GET("/threads", a.lsThreads)
 		v0.GET("/threads/:id", a.getThreads)
 		v0.DELETE("/threads/:id", a.rmThreads)
 		v0.POST("/threads/:id", a.addThreadFiles)
-
-		v0.POST("/images", a.addImages)
 
 		v0.POST("/cafes", a.addCafes)
 		v0.GET("/cafes", a.lsCafes)
