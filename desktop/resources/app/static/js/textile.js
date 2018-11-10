@@ -1,7 +1,7 @@
 const session = require('electron').remote.session.defaultSession
 
+let target_dir = ''
 let textile = {
-
   init: function() {
     asticode.loader.init()
     asticode.modaler.init()
@@ -15,59 +15,83 @@ let textile = {
   listen: function() {
     astilectron.onMessage(function(msg) {
       switch (msg.name) {
-
-        case 'login':
-          login(msg)
+        case 'setup':
+          showSetup()
           break
 
-        case 'setup':
-          setAddress(msg.qr, msg.pk)
+        case 'pair':
+          showPairing(msg)
           break
 
         case 'preready':
-          hideSetup()
+          showWarmup()
           break
 
         case 'ready':
-          renderThreads(msg.threads)
           showMain()
           break
-
-        case 'wallet.update':
-          switch (msg.update.type) {
-            // thread added
-            case 0:
-              addThread(msg.update)
-              showMain()
-              break
-          }
-          break
-
-        case 'thread.update':
-          switch (msg.update.block.type) {
-            // photo added
-            case 4:
-              addPhoto(msg.update)
-              break
-            // ignore
-            case 100:
-              ignore(msg.update)
-              break
-          }
-          break
-
       }
     })
   },
 }
 
-function setAddress(qr, pk) {
-  $('.logo').addClass('hidden')
-  let qrCode = $('.qr-code')
-  qrCode.attr('src', 'data:image/png;base64,' + qr)
-  qrCode.removeClass('hidden')
-  $('.address').text('Address: ' + pk)
+function focus(view) {
+  $('.view').addClass('hidden')
+  $('.' + view).removeClass('hidden')
 }
+
+function showSetup() {
+  focus('setup')
+}
+
+function showConfirm(dir) {
+  target_dir = dir
+  $('.target_dir').text(target_dir)
+  focus('confirm')
+}
+
+function showPairing(msg) {
+  focus('pairing')
+  let qrCode = $('.qr-code')
+  qrCode.attr('src', 'data:image/png;base64,' + msg.qr)
+  qrCode.removeClass('hidden')
+  $('.address').text('Address: ' + msg.pk)
+}
+
+function showWarmup() {
+  focus('warmup')
+}
+
+function showMain() {
+  focus('main')
+}
+
+function rejectTargetFolder() {
+  target_dir = ''
+  showSetup()
+}
+
+function setTargetFolder() {
+  astilectron.sendMessage({name: 'openFolderDialog', payload: target_dir}, function (message) {
+    if (message.name === 'error') {
+      asticode.notifier.error(message)
+    }
+  })
+}
+
+function openFolderDialog() {
+  astilectron.showOpenDialog({
+    properties: ['openDirectory'],
+    title: 'Select a Folder',
+  },
+  function callback(filePaths) {
+    if (filePaths && filePaths.length > 0) {
+      showConfirm(filePaths[0])
+    }
+  });
+  return {payload: 'openFolderDialog'};
+}
+
 
 function hideSetup() {
   let setup = $('.setup')
@@ -76,7 +100,7 @@ function hideSetup() {
   }
 }
 
-function showMain() {
+function showMainO() {
   let main = $('.main')
   if (main.hasClass('hidden')) {
     main.removeClass('hidden')
