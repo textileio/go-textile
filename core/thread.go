@@ -11,6 +11,8 @@ import (
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/repo/config"
+	"github.com/textileio/textile-go/schema"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
@@ -38,21 +40,34 @@ type ThreadUpdate struct {
 
 // ThreadInfo reports info about a thread
 type ThreadInfo struct {
-	Id         string      `json:"id"`
-	Key        string      `json:"key"`
-	Name       string      `json:"name"`
-	Schema     string      `json:"schema,omitempty"`
-	Type       string      `json:"type"`
-	State      string      `json:"state"`
-	Head       *repo.Block `json:"head,omitempty"`
-	PeerCount  int         `json:"peer_cnt"`
-	BlockCount int         `json:"block_cnt"`
-	FileCount  int         `json:"file_cnt"`
+	Id         string     `json:"id"`
+	Key        string     `json:"key"`
+	Name       string     `json:"name"`
+	Schema     string     `json:"schema,omitempty"`
+	Type       string     `json:"type"`
+	State      string     `json:"state"`
+	Head       *BlockInfo `json:"head,omitempty"`
+	PeerCount  int        `json:"peer_cnt"`
+	BlockCount int        `json:"block_cnt"`
+	FileCount  int        `json:"file_cnt"`
+}
+
+// BlockInfo is a more readable version of repo.Block
+type BlockInfo struct {
+	Id       string    `json:"id"`
+	ThreadId string    `json:"thread_id"`
+	AuthorId string    `json:"author_id"`
+	Type     string    `json:"type"`
+	Date     time.Time `json:"date"`
+	Parents  []string  `json:"parents"`
+	Target   string    `json:"target,omitempty"`
+	Body     string    `json:"body,omitempty"`
 }
 
 // ThreadConfig is used to construct a Thread
 type ThreadConfig struct {
 	RepoPath      string
+	Config        *config.Config
 	Node          func() *core.IpfsNode
 	Datastore     repo.Datastore
 	Service       func() *ThreadsService
@@ -67,10 +82,11 @@ type Thread struct {
 	Key           string // app key, usually UUID
 	Name          string
 	Type          repo.ThreadType
-	schema        *DAGSchema
+	schema        *schema.Node
 	schemaHash    string
 	privKey       libp2pc.PrivKey
 	repoPath      string
+	config        *config.Config
 	node          func() *core.IpfsNode
 	datastore     repo.Datastore
 	service       func() *ThreadsService
@@ -87,25 +103,24 @@ func NewThread(model *repo.Thread, conf *ThreadConfig) (*Thread, error) {
 		return nil, err
 	}
 
-	// load schema
-	var schema *DAGSchema
+	var sch *schema.Node
 	if model.Schema != "" {
-		schema, err = loadThreadSchema(conf.Node(), model.Schema)
+		sch, err = loadThreadSchema(conf.Node(), model.Schema)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	// all set
 	return &Thread{
 		Id:            model.Id,
 		Key:           model.Key,
 		Name:          model.Name,
 		Type:          model.Type,
-		schema:        schema,
+		schema:        sch,
 		schemaHash:    model.Schema,
 		privKey:       sk,
 		repoPath:      conf.RepoPath,
+		config:        conf.Config,
 		node:          conf.Node,
 		datastore:     conf.Datastore,
 		service:       conf.Service,
@@ -116,43 +131,51 @@ func NewThread(model *repo.Thread, conf *ThreadConfig) (*Thread, error) {
 }
 
 // loadThreadSchema loads a schema from ipfs by path
-func loadThreadSchema(node *core.IpfsNode, pth string) (*DAGSchema, error) {
+func loadThreadSchema(node *core.IpfsNode, pth string) (*schema.Node, error) {
 	data, err := ipfs.DataAtPath(node, pth)
 	if err != nil {
 		return nil, err
 	}
-	var schema *DAGSchema
-	if err := json.Unmarshal(data, &schema); err != nil {
+
+	var sch *schema.Node
+	if err := json.Unmarshal(data, &sch); err != nil {
 		return nil, err
 	}
-	return schema, nil
+	return sch, nil
 }
 
 // Info returns thread info
 func (t *Thread) Info() (*ThreadInfo, error) {
-	// load from datastore
 	mod := t.datastore.Threads().Get(t.Id)
 	if mod == nil {
 		return nil, errThreadReload
 	}
 
-	// block info
-	var head *repo.Block
+	var head *BlockInfo
 	if mod.Head != "" {
-		head = t.datastore.Blocks().Get(mod.Head)
+		h := t.datastore.Blocks().Get(mod.Head)
+		if h != nil {
+			head = &BlockInfo{
+				Id:       h.Id,
+				ThreadId: h.ThreadId,
+				AuthorId: h.AuthorId,
+				Type:     h.Type.Description(),
+				Date:     h.Date,
+				Parents:  h.Parents,
+				Target:   h.Target,
+				Body:     h.Body,
+			}
+		}
 	}
 
-	// state
 	state, err := t.State()
 	if err != nil {
 		return nil, err
 	}
 
-	// counts
 	blocks := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s'", t.Id))
 	files := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s' and type=%d", t.Id, repo.FilesBlock))
 
-	// send back summary
 	return &ThreadInfo{
 		Id:         t.Id,
 		Key:        t.Key,
@@ -207,25 +230,28 @@ func (t *Thread) followParents(parents []string) error {
 			log.Debugf("found genesis block, aborting")
 			continue
 		}
+
 		hash, err := mh.FromB58String(parent)
 		if err != nil {
 			return err
 		}
+
 		if err := t.followParent(hash); err != nil {
 			log.Errorf("failed to follow parent %s: %s", parent, err)
 			continue
 		}
 	}
+
 	return nil
 }
 
 // followParent tries to follow a chain of block ids, processing along the way
 func (t *Thread) followParent(parent mh.Multihash) error {
-	// download and decrypt
 	ciphertext, err := ipfs.DataAtPath(t.node(), parent.B58String())
 	if err != nil {
 		return err
 	}
+
 	block, err := t.handleBlock(parent, ciphertext)
 	if err != nil {
 		return err
@@ -235,7 +261,6 @@ func (t *Thread) followParent(parent mh.Multihash) error {
 		return nil
 	}
 
-	// handle each type
 	switch block.Type {
 	case pb.ThreadBlock_MERGE:
 		err = t.handleMergeBlock(parent, block)
@@ -264,21 +289,18 @@ func (t *Thread) followParent(parent mh.Multihash) error {
 		return err
 	}
 
-	// back prop
 	return t.followParents(block.Header.Parents)
 }
 
 // addOrUpdatePeer collects thread peers, saving them as contacts and
 // saving their cafe inboxes for offline message delivery
 func (t *Thread) addOrUpdatePeer(pid peer.ID, username string, inboxes []string) {
-	// add to this thread's peer list
 	t.datastore.ThreadPeers().Add(&repo.ThreadPeer{
 		Id:       pid.Pretty(),
 		ThreadId: t.Id,
 		Welcomed: false,
 	})
 
-	// add to contacts
 	t.datastore.Contacts().AddOrUpdate(&repo.Contact{
 		Id:       pid.Pretty(),
 		Username: username,
@@ -289,21 +311,21 @@ func (t *Thread) addOrUpdatePeer(pid peer.ID, username string, inboxes []string)
 
 // newBlockHeader creates a new header
 func (t *Thread) newBlockHeader() (*pb.ThreadBlockHeader, error) {
-	// get current HEAD
 	head, err := t.Head()
 	if err != nil {
 		return nil, err
 	}
 
-	// build the header
 	pdate, err := ptypes.TimestampProto(time.Now())
 	if err != nil {
 		return nil, err
 	}
+
 	var parents []string
 	if head != "" {
 		parents = strings.Split(head, ",")
 	}
+
 	return &pb.ThreadBlockHeader{
 		Date:    pdate,
 		Parents: parents,
@@ -349,7 +371,6 @@ func (t *Thread) commitBlock(msg proto.Message, mtype pb.ThreadBlock_Type, encry
 		return nil, err
 	}
 
-	// add to ipfs
 	hash, err := t.addBlock(ciphertext)
 	if err != nil {
 		return nil, err
@@ -360,13 +381,11 @@ func (t *Thread) commitBlock(msg proto.Message, mtype pb.ThreadBlock_Type, encry
 
 // addBlock adds to ipfs
 func (t *Thread) addBlock(ciphertext []byte) (mh.Multihash, error) {
-	// pin it
 	id, err := ipfs.AddData(t.node(), bytes.NewReader(ciphertext), true)
 	if err != nil {
 		return nil, err
 	}
 
-	// add a store request
 	t.cafeOutbox.Add(id.Hash().B58String(), repo.CafeStoreRequest)
 
 	return id.Hash(), nil
@@ -374,13 +393,11 @@ func (t *Thread) addBlock(ciphertext []byte) (mh.Multihash, error) {
 
 // handleBlock receives an incoming encrypted block
 func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBlock, error) {
-	// check if we aleady have this block indexed
 	index := t.datastore.Blocks().Get(hash.B58String())
 	if index != nil {
 		return nil, nil
 	}
 
-	// decrypt
 	block := new(pb.ThreadBlock)
 	plaintext, err := t.Decrypt(ciphertext)
 	if err != nil {
@@ -400,7 +417,6 @@ func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBl
 		return nil, errors.New("nil message payload")
 	}
 
-	// add to ipfs
 	if _, err := t.addBlock(ciphertext); err != nil {
 		return nil, err
 	}
@@ -409,7 +425,6 @@ func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBl
 
 // indexBlock stores off index info for this block type
 func (t *Thread) indexBlock(commit *commitResult, blockType repo.BlockType, target string, body string) error {
-	// add a new one
 	date, err := ptypes.Timestamp(commit.header.Date)
 	if err != nil {
 		return err
@@ -428,7 +443,6 @@ func (t *Thread) indexBlock(commit *commitResult, blockType repo.BlockType, targ
 		return err
 	}
 
-	// notify listeners
 	t.pushUpdate(*index)
 
 	return nil
@@ -437,7 +451,6 @@ func (t *Thread) indexBlock(commit *commitResult, blockType repo.BlockType, targ
 // handleHead determines whether or not a thread can be fast-forwarded or if a merge block is needed
 // - parents are the parents of the incoming chain
 func (t *Thread) handleHead(inbound mh.Multihash, parents []string) (mh.Multihash, error) {
-	// get current HEAD
 	head, err := t.Head()
 	if err != nil {
 		return nil, err
@@ -473,7 +486,6 @@ func (t *Thread) updateHead(head mh.Multihash) error {
 		return err
 	}
 
-	// update head on cafe backups
 	t.cafeOutbox.Add(t.Id, repo.CafeStoreThreadRequest)
 
 	return nil
@@ -481,13 +493,11 @@ func (t *Thread) updateHead(head mh.Multihash) error {
 
 // sendWelcome sends the latest HEAD block to a set of peers
 func (t *Thread) sendWelcome() error {
-	// get unwelcomed peers
 	peers := t.datastore.ThreadPeers().ListUnwelcomedByThread(t.Id)
 	if len(peers) == 0 {
 		return nil
 	}
 
-	// get current HEAD
 	head, err := t.Head()
 	if err != nil {
 		return err
@@ -496,13 +506,11 @@ func (t *Thread) sendWelcome() error {
 		return nil
 	}
 
-	// download it
 	ciphertext, err := ipfs.DataAtPath(t.node(), head)
 	if err != nil {
 		return err
 	}
 
-	// post it
 	hash, err := mh.FromB58String(head)
 	if err != nil {
 		return err
@@ -512,7 +520,6 @@ func (t *Thread) sendWelcome() error {
 		return err
 	}
 
-	// mark each as welcomed
 	if err := t.datastore.ThreadPeers().WelcomeByThread(t.Id); err != nil {
 		return err
 	}
@@ -545,7 +552,6 @@ func (t *Thread) post(commit *commitResult, peers []repo.ThreadPeer) error {
 		}
 	}
 
-	// flush the message queue
 	go t.threadsOutbox.Flush()
 
 	return nil

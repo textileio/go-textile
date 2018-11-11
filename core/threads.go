@@ -23,12 +23,11 @@ var ErrThreadLoaded = errors.New("thread is loaded")
 
 // NewThreadConfig is used to create a new thread model
 type NewThreadConfig struct {
-	Key        string          `json:"key"`
-	Name       string          `json:"name"`
-	Schema     string          `json:"schema"`
-	SchemaHash string          `json:"schema_hash"`
-	Type       repo.ThreadType `json:"type"`
-	Join       bool            `json:"join"`
+	Key    string          `json:"key"`
+	Name   string          `json:"name"`
+	Schema mh.Multihash    `json:"schema"`
+	Type   repo.ThreadType `json:"type"`
+	Join   bool            `json:"join"`
 }
 
 // AddThread adds a thread with a given name and secret key
@@ -45,23 +44,13 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf NewThreadConfig) (*Thread, 
 		return nil, err
 	}
 
-	// check schema valid
-	if conf.SchemaHash == "" && conf.Schema != "" {
-		// lookup from local ids
-		schema := t.DAGSchema(conf.Schema)
-		if schema == nil {
-			return nil, ErrDAGSchemaNotFound
-		}
-		conf.SchemaHash = schema.B58String()
-	}
-
 	// add model
 	threadModel := &repo.Thread{
 		Id:      id.Pretty(),
 		Key:     conf.Key,
 		PrivKey: skb,
 		Name:    conf.Name,
-		Schema:  conf.SchemaHash,
+		Schema:  conf.Schema.B58String(),
 		Type:    conf.Type,
 		State:   repo.ThreadLoaded, // TODO: fix up with pending threads from invites
 	}
@@ -243,10 +232,17 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 	}
 
 	// add a new model
+	var sch mh.Multihash
+	if msg.Schema != "" {
+		sch, err = mh.FromB58String(msg.Schema)
+		if err != nil {
+			return nil, err
+		}
+	}
 	config := NewThreadConfig{
 		Key:    ksuid.New().String(),
 		Name:   msg.Name,
-		Schema: msg.Schema,
+		Schema: sch,
 		Type:   repo.OpenThread,
 		Join:   false,
 	}
@@ -287,12 +283,12 @@ func (t *Textile) addAccountThread() error {
 	if err != nil {
 		return err
 	}
+
 	config := NewThreadConfig{
-		Key:    ksuid.New().String(),
-		Name:   "account",
-		Schema: "account",
-		Type:   repo.PrivateThread,
-		Join:   true,
+		Key:  ksuid.New().String(),
+		Name: "account",
+		Type: repo.PrivateThread,
+		Join: true,
 	}
 	if _, err := t.AddThread(sk, config); err != nil {
 		return err

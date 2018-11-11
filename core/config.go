@@ -95,7 +95,6 @@ outer:
 		final = append(final, bp)
 	}
 
-	// add new
 	for _, p := range add {
 		final = append(final, p)
 	}
@@ -109,11 +108,13 @@ func loadSwarmPorts(repoPath string) (*config.SwarmPorts, error) {
 		return nil, err
 	}
 	defer rep.Close()
+
 	conf, err := rep.Config()
 	if err != nil {
 		return nil, err
 	}
 	ports := &config.SwarmPorts{}
+
 	for _, p := range conf.Addresses.Swarm {
 		tcp := tcpPortRx.FindStringSubmatch(p)
 		if len(tcp) == 2 {
@@ -134,6 +135,7 @@ func applySwarmPortConfigOption(rep repo.Repo, ports string) error {
 		parts = strings.Split(ports, ",")
 	}
 	var tcp, ws string
+
 	switch len(parts) {
 	case 1:
 		tcp = parts[0]
@@ -145,6 +147,7 @@ func applySwarmPortConfigOption(rep repo.Repo, ports string) error {
 		tcp = GetRandomPort()
 		ws = GetRandomPort()
 	}
+
 	return config.UpdateIpfs(rep, "Addresses.Swarm", []string{
 		fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", tcp),
 		fmt.Sprintf("/ip6/::/tcp/%s", tcp),
@@ -169,6 +172,7 @@ func applyServerConfigOption(rep repo.Repo, isServer bool) error {
 			return err
 		}
 		log.Info("applied server profile")
+
 	} else {
 		if err := config.UpdateIpfs(rep, "Addresses.NoAnnounce", []string{}); err != nil {
 			return err
@@ -183,5 +187,6 @@ func applyServerConfigOption(rep repo.Repo, isServer bool) error {
 			return err
 		}
 	}
+
 	return nil
 }

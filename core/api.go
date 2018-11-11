@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	"mime/multipart"
 	"net/http"
 	"strings"
 )
@@ -63,22 +64,24 @@ func (a *api) Start() {
 		v0.GET("/address", a.address)
 		v0.GET("/ping", a.ping)
 
-		v0.POST("/files", a.addFiles)
+		mills := v0.Group("/mills")
+		mills.POST("/blob", a.blobMill)
+		mills.POST("/image/resize", a.imageResizeMill)
+		mills.POST("/image/exif", a.imageExifMill)
 
-		v0.POST("/images/encode", a.encodeImages)
-		//v0.POST("/images/exif", a.exifImages)
+		threads := v0.Group("/threads")
+		threads.POST("/", a.addThreads)
+		threads.GET("/", a.lsThreads)
+		threads.GET("/:id", a.getThreads)
+		threads.DELETE("/:id", a.rmThreads)
+		threads.POST("/:id/save", a.saveFiles)
 
-		v0.POST("/threads", a.addThreads)
-		v0.GET("/threads", a.lsThreads)
-		v0.GET("/threads/:id", a.getThreads)
-		v0.DELETE("/threads/:id", a.rmThreads)
-		v0.POST("/threads/:id", a.addThreadFiles)
-
-		v0.POST("/cafes", a.addCafes)
-		v0.GET("/cafes", a.lsCafes)
-		v0.GET("/cafes/:id", a.getCafes)
-		v0.DELETE("/cafes/:id", a.rmCafes)
-		v0.POST("/cafes/check_mail", a.checkMailCafes)
+		cafes := v0.Group("/cafes")
+		cafes.POST("/", a.addCafes)
+		cafes.GET("/", a.lsCafes)
+		cafes.GET("/:id", a.getCafes)
+		cafes.DELETE("/:id", a.rmCafes)
+		cafes.POST("/check_mail", a.checkMailCafes)
 	}
 	a.server = &http.Server{
 		Addr:    a.addr,
@@ -182,6 +185,22 @@ func (a *api) readOpts(g *gin.Context) (map[string]string, error) {
 		}
 	}
 	return opts, nil
+}
+
+func (a *api) openFile(g *gin.Context) (multipart.File, string, error) {
+	form, err := g.MultipartForm()
+	if err != nil {
+		return nil, "", err
+	}
+	if len(form.File["file"]) == 0 {
+		return nil, "", err
+	}
+	header := form.File["file"][0]
+	file, err := header.Open()
+	if err != nil {
+		return nil, "", err
+	}
+	return file, header.Filename, nil
 }
 
 func (a *api) abort500(g *gin.Context, err error) {

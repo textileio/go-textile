@@ -35,7 +35,7 @@ var log = logging.Logger("tex-node")
 // Version is the core version identifier
 const Version = "1.0.0"
 
-// Node is the single Textile instance used by mobile and the cmd tool
+// Node is an instance used by mobile and the cmd tool
 var Node *Textile
 
 // kQueueFlushFreq how often to flush the message queues
@@ -109,8 +109,6 @@ type Textile struct {
 	cancel         context.CancelFunc
 	node           *core.IpfsNode
 	datastore      repo.Datastore
-	fileSchemas    Schemas
-	dagSchemas     Schemas
 	started        bool
 	threads        []*Thread
 	online         chan struct{}
@@ -135,17 +133,15 @@ var ErrOffline = errors.New("node is offline")
 
 // InitRepo initializes a new node repo
 func InitRepo(conf InitConfig) error {
-	// ensure init has not been run
+
 	if fsrepo.IsInitialized(conf.RepoPath) {
 		return repo.ErrRepoExists
 	}
 
-	// check account
 	if conf.Account == nil {
 		return ErrAccountRequired
 	}
 
-	// log handling
 	setupLogging(conf.RepoPath, conf.LogLevel, conf.LogToDisk)
 
 	// init repo
@@ -153,7 +149,6 @@ func InitRepo(conf InitConfig) error {
 		return err
 	}
 
-	// open the repo
 	rep, err := fsrepo.Open(conf.RepoPath)
 	if err != nil {
 		log.Errorf("error opening repo: %s", err)
@@ -161,26 +156,14 @@ func InitRepo(conf InitConfig) error {
 	}
 	defer rep.Close()
 
-	// if a specific swarm port was selected, set it in the config
+	// apply ipfs config opts
 	if err := applySwarmPortConfigOption(rep, conf.SwarmPorts); err != nil {
 		return err
 	}
-
-	// if this is a server node, apply the ipfs server profile
 	if err := applyServerConfigOption(rep, conf.IsServer); err != nil {
 		return err
 	}
 
-	// add account key to ipfs keystore for resolving ipns profile
-	sk, err := conf.Account.LibP2PPrivKey()
-	if err != nil {
-		return err
-	}
-	if err := rep.Keystore().Put("account", sk); err != nil {
-		return err
-	}
-
-	// init sqlite datastore
 	sqliteDb, err := db.Create(conf.RepoPath, conf.PinCode)
 	if err != nil {
 		return err
@@ -192,13 +175,11 @@ func InitRepo(conf InitConfig) error {
 		return err
 	}
 
-	// handle textile config
 	return applyTextileConfigOptions(conf)
 }
 
 // MigrateRepo runs _all_ repo migrations, including major
 func MigrateRepo(conf MigrateConfig) error {
-	// ensure init has been run
 	if !fsrepo.IsInitialized(conf.RepoPath) {
 		return repo.ErrRepoDoesNotExist
 	}
@@ -212,7 +193,6 @@ func MigrateRepo(conf MigrateConfig) error {
 
 // NewTextile runs a node out of an initialized repo
 func NewTextile(conf RunConfig) (*Textile, error) {
-	// ensure init has been run
 	if !fsrepo.IsInitialized(conf.RepoPath) {
 		return nil, repo.ErrRepoDoesNotExist
 	}
@@ -225,21 +205,14 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 	// force open the repo and datastore (fixme)
 	removeLocks(conf.RepoPath)
 
-	// build the node
-	node := &Textile{
-		repoPath:    conf.RepoPath,
-		fileSchemas: make(Schemas),
-		dagSchemas:  make(Schemas),
-	}
+	node := &Textile{repoPath: conf.RepoPath}
 
-	// load textile config
 	var err error
 	node.config, err = config.Read(conf.RepoPath)
 	if err != nil {
 		return nil, err
 	}
 
-	// log handling
 	llevel, err := logger.LogLevel(strings.ToUpper(node.config.Logs.LogLevel))
 	if err != nil {
 		llevel = logger.ERROR
@@ -251,21 +224,18 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 		return nil, err
 	}
 
-	// get database handle
 	sqliteDb, err := db.Create(conf.RepoPath, conf.PinCode)
 	if err != nil {
 		return nil, err
 	}
 	node.datastore = sqliteDb
 
-	// load account
 	accnt, err := node.datastore.Config().GetAccount()
 	if err != nil {
 		return nil, err
 	}
 	node.account = accnt
 
-	// all done
 	return node, nil
 }
 
@@ -283,12 +253,10 @@ func (t *Textile) Start() error {
 		log.Errorf("setting file descriptor limit: %s", err)
 	}
 
-	// check db
 	if err := t.touchDatastore(); err != nil {
 		return err
 	}
 
-	// load swarm ports
 	swarmPorts, err := loadSwarmPorts(t.repoPath)
 	if err != nil {
 		return err
@@ -297,13 +265,11 @@ func (t *Textile) Start() error {
 		return errors.New("failed to load swarm ports")
 	}
 
-	// build update channels
 	t.online = make(chan struct{})
 	t.updates = make(chan Update, 10)
 	t.threadUpdates = make(chan ThreadUpdate, 10)
 	t.notifications = make(chan repo.Notification, 10)
 
-	// build queues
 	t.cafeInbox = NewCafeInbox(
 		func() *CafeService {
 			return t.cafeService
@@ -349,7 +315,6 @@ func (t *Textile) Start() error {
 			return
 		}
 
-		// setup thread service
 		t.threadsService = NewThreadsService(
 			t.account,
 			t.node,
@@ -358,7 +323,6 @@ func (t *Textile) Start() error {
 			t.sendNotification,
 		)
 
-		// setup cafe service
 		t.cafeService = NewCafeService(t.account, t.node, t.datastore, t.cafeInbox)
 		t.cafeService.setAddrs(t.config.Addresses.CafeAPI, *swarmPorts)
 		if t.config.Cafe.Open {
@@ -366,25 +330,14 @@ func (t *Textile) Start() error {
 			t.startCafeApi(t.config.Addresses.CafeAPI)
 		}
 
-		// run queues
 		go t.runQueues()
 
-		// print swarm addresses
 		if err := ipfs.PrintSwarmAddrs(t.node); err != nil {
 			log.Errorf(err.Error())
 		}
 		log.Info("node is online")
 	}()
 
-	// load schemas
-	if err := t.loadFileSchemas(fileSchemas); err != nil {
-		return err
-	}
-	if err := t.loadDAGSchemas(dagSchemas); err != nil {
-		return err
-	}
-
-	// load threads
 	for _, mod := range t.datastore.Threads().List() {
 		if _, err := t.loadThread(&mod); err == ErrThreadLoaded {
 			continue
@@ -394,16 +347,13 @@ func (t *Textile) Start() error {
 		}
 	}
 
-	// ready to go
 	t.done = make(chan struct{})
 	t.started = true
 
-	// log peer and account info
 	log.Info("node is started")
 	log.Infof("peer id: %s", t.node.Identity.Pretty())
 	log.Infof("account address: %s", t.account.Address())
 
-	// add account thread if it doesn't exist
 	return t.addAccountThread()
 }
 
@@ -438,10 +388,9 @@ func (t *Textile) Stop() error {
 	dsLockFile := filepath.Join(t.repoPath, "datastore", "LOCK")
 	os.Remove(dsLockFile)
 
-	// cleanup
+	// wipe threads
 	t.threads = nil
 
-	// close update channels
 	close(t.updates)
 	close(t.threadUpdates)
 	close(t.notifications)
@@ -543,20 +492,17 @@ func (t *Textile) LinksAtPath(path string) ([]*ipld.Link, error) {
 
 // createIPFS creates an IPFS node
 func (t *Textile) createIPFS(online bool) error {
-	// open repo
 	rep, err := fsrepo.Open(t.repoPath)
 	if err != nil {
 		log.Errorf("error opening repo: %s", err)
 		return err
 	}
 
-	// determine routing
 	routing := core.DHTOption
 	if t.Mobile() {
 		routing = core.DHTClientOption
 	}
 
-	// assemble node config
 	cfg := &core.BuildCfg{
 		Repo:      rep,
 		Permanent: true, // temporary way to signify that node is permanent
@@ -569,7 +515,6 @@ func (t *Textile) createIPFS(online bool) error {
 		Routing: routing,
 	}
 
-	// create the node
 	cctx, cancel := context.WithCancel(context.Background())
 	nd, err := core.NewNode(cctx, cfg)
 	if err != nil {
@@ -577,7 +522,6 @@ func (t *Textile) createIPFS(online bool) error {
 	}
 	nd.SetLocal(!online)
 
-	// build the context
 	ctx := oldcmds.Context{}
 	ctx.Online = online
 	ctx.ConfigRoot = t.repoPath
@@ -613,9 +557,12 @@ func (t *Textile) runQueues() {
 	} else {
 		freq = kQueueFlushFreq
 	}
+
 	tick := time.NewTicker(freq)
 	defer tick.Stop()
+
 	t.flushQueues()
+
 	for {
 		select {
 		case <-tick.C:
@@ -632,6 +579,7 @@ func (t *Textile) flushQueues() {
 		log.Error(err)
 		return
 	}
+
 	go t.threadsOutbox.Flush()
 	go t.cafeOutbox.Flush()
 	go t.cafeInbox.CheckMessages()
@@ -642,6 +590,7 @@ func (t *Textile) threadByBlock(block *repo.Block) (*Thread, error) {
 	if block == nil {
 		return nil, errors.New("block is empty")
 	}
+
 	var thrd *Thread
 	for _, t := range t.threads {
 		if t.Id == block.ThreadId {
@@ -660,8 +609,10 @@ func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 	if loaded := t.Thread(mod.Id); loaded != nil {
 		return nil, ErrThreadLoaded
 	}
+
 	threadConfig := &ThreadConfig{
 		RepoPath: t.repoPath,
+		Config:   t.config,
 		Node: func() *core.IpfsNode {
 			return t.node
 		},
@@ -673,11 +624,13 @@ func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 		CafeOutbox:    t.cafeOutbox,
 		SendUpdate:    t.sendThreadUpdate,
 	}
+
 	thrd, err := NewThread(mod, threadConfig)
 	if err != nil {
 		return nil, err
 	}
 	t.threads = append(t.threads, thrd)
+
 	return thrd, nil
 }
 
@@ -693,12 +646,10 @@ func (t *Textile) sendThreadUpdate(update ThreadUpdate) {
 
 // sendNotification adds a notification to the notification channel
 func (t *Textile) sendNotification(notification *repo.Notification) error {
-	// add to db
 	if err := t.datastore.Notifications().Add(notification); err != nil {
 		return err
 	}
 
-	// broadcast
 	t.notifications <- *notification
 	return nil
 }
@@ -707,6 +658,7 @@ func (t *Textile) sendNotification(notification *repo.Notification) error {
 func (t *Textile) touchDatastore() error {
 	if err := t.datastore.Ping(); err != nil {
 		log.Debug("re-opening datastore...")
+
 		sqliteDB, err := db.Create(t.repoPath, "")
 		if err != nil {
 			log.Errorf("error re-opening datastore: %s", err)
@@ -714,6 +666,7 @@ func (t *Textile) touchDatastore() error {
 		}
 		t.datastore = sqliteDB
 	}
+
 	return nil
 }
 

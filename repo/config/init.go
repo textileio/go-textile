@@ -53,7 +53,13 @@ type Logs struct {
 
 // Thread settings
 type Threads struct {
-	Default string // default thread to write to
+	Defaults ThreadDefaults // default settings
+}
+
+// ThreadDefaults settings
+type ThreadDefaults struct {
+	Schema string // default schema to use for new threads
+	ID     string // default thread ID for reads/writes
 }
 
 // Cafe settings
@@ -84,7 +90,10 @@ func Init(version string) (*Config, error) {
 			LogLevel:  "error",
 		},
 		Threads: Threads{
-			Default: "",
+			Defaults: ThreadDefaults{
+				Schema: "",
+				ID:     "",
+			},
 		},
 		Cafe: Cafe{
 			Open: false,
@@ -100,6 +109,7 @@ func Read(repoPath string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	var conf *Config
 	if err := json.Unmarshal(data, &conf); err != nil {
 		return nil, err
@@ -114,10 +124,12 @@ func Write(repoPath string, conf *Config) error {
 		return err
 	}
 	defer f.Close()
+
 	data, err := json.MarshalIndent(conf, "", "    ")
 	if err != nil {
 		return err
 	}
+
 	if _, err := f.Write(data); err != nil {
 		return err
 	}

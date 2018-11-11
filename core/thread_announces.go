@@ -26,7 +26,7 @@ func (t *Thread) annouce() (mh.Multihash, error) {
 	}
 
 	// index it locally
-	if err := t.indexBlock(res, repo.AnnounceBlock, nil); err != nil {
+	if err := t.indexBlock(res, repo.AnnounceBlock, "", ""); err != nil {
 		return nil, err
 	}
 
@@ -54,7 +54,10 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 	}
 
 	// index it locally
-	if err := t.indexBlock(&commitResult{hash: hash, header: block.Header}, repo.AnnounceBlock, nil); err != nil {
+	if err := t.indexBlock(&commitResult{
+		hash:   hash,
+		header: block.Header,
+	}, repo.AnnounceBlock, "", ""); err != nil {
 		return nil, err
 	}
 

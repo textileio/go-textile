@@ -57,8 +57,8 @@ func (x *threadsCmd) Shell() *ishell.Cmd {
 type addThreadsCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Key    string        `short:"k" long:"key" description:"A locally unique key used by an app to identify this thread on recovery."`
-	Type   string        `short:"t" long:"type" description:"Thread type [open, private]." default:"open"`
-	Schema string        `short:"s" long:"schema" description:"Thread schema [photos]." default:"photos"`
+	Open   bool          `short:"o" long:"open" description:"Set the thread type to open (default private)."`
+	Schema string        `short:"s" long:"schema" description:"Thread schema hash. Omit for default."`
 }
 
 func (x *addThreadsCmd) Name() string {
@@ -75,9 +75,13 @@ func (x *addThreadsCmd) Long() string {
 
 func (x *addThreadsCmd) Execute(args []string) error {
 	setApi(x.Client)
+	ttype := "private"
+	if x.Open {
+		ttype = "open"
+	}
 	opts := map[string]string{
 		"key":    x.Key,
-		"type":   x.Type,
+		"type":   ttype,
 		"schema": x.Schema,
 	}
 	return callAddThreads(args, opts, nil)

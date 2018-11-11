@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"github.com/textileio/textile-go/repo"
 	"strconv"
 	"sync"
@@ -23,18 +24,29 @@ func (c *FileDB) Add(file *repo.File) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into files(id, hash, key, added) values(?,?,?,?)`
+	stm := `insert into files(mill, checksum, hash, key, media, size, added, meta) values(?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
 		return err
 	}
 	defer stmt.Close()
+	var meta []byte
+	if file.Meta != nil {
+		meta, err = json.Marshal(file.Meta)
+		if err != nil {
+			return err
+		}
+	}
 	_, err = stmt.Exec(
-		file.Id,
+		file.Mill,
+		file.Checksum,
 		file.Hash,
 		file.Key,
+		file.Media,
+		file.Size,
 		int(file.Added.Unix()),
+		meta,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -44,10 +56,20 @@ func (c *FileDB) Add(file *repo.File) error {
 	return nil
 }
 
-func (c *FileDB) Get(id string) *repo.File {
+func (c *FileDB) Get(hash string) *repo.File {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from files where id='" + id + "';")
+	ret := c.handleQuery("select * from files where hash='" + hash + "';")
+	if len(ret) == 0 {
+		return nil
+	}
+	return &ret[0]
+}
+
+func (c *FileDB) GetByPrimary(mill string, checksum string) *repo.File {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	ret := c.handleQuery("select * from files where mill='" + mill + "' and checksum='" + checksum + "';")
 	if len(ret) == 0 {
 		return nil
 	}
@@ -59,7 +81,7 @@ func (c *FileDB) List(offset string, limit int) []repo.File {
 	defer c.lock.Unlock()
 	var stm string
 	if offset != "" {
-		stm = "select * from files where added<(select added from files where id='" + offset + "') order by added desc limit " + strconv.Itoa(limit) + ";"
+		stm = "select * from files where added<(select added from files where hash='" + offset + "') order by added desc limit " + strconv.Itoa(limit) + ";"
 	} else {
 		stm = "select * from files order by added desc limit " + strconv.Itoa(limit) + ";"
 	}
@@ -82,10 +104,10 @@ func (c *FileDB) Count() int {
 	return count
 }
 
-func (c *FileDB) Delete(id string) error {
+func (c *FileDB) Delete(hash string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from files where id=?", id)
+	_, err := c.db.Exec("delete from files where hash=?", hash)
 	return err
 }
 
@@ -97,17 +119,29 @@ func (c *FileDB) handleQuery(stm string) []repo.File {
 		return nil
 	}
 	for rows.Next() {
-		var id, hash, key string
-		var addedInt int
-		if err := rows.Scan(&id, &hash, &key, &addedInt); err != nil {
+		var mill, checksum, hash, key, media string
+		var size, addedInt int
+		var metab []byte
+		if err := rows.Scan(&mill, &checksum, &hash, &key, &media, &size, &addedInt, &metab); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
+		var meta map[string]interface{}
+		if metab != nil {
+			if err := json.Unmarshal(metab, &meta); err != nil {
+				log.Errorf("failed to unmarshal file meta: %s", err)
+				continue
+			}
+		}
 		res = append(res, repo.File{
-			Id:    id,
-			Hash:  hash,
-			Key:   key,
-			Added: time.Unix(int64(addedInt), 0),
+			Mill:     mill,
+			Checksum: checksum,
+			Hash:     hash,
+			Key:      key,
+			Media:    media,
+			Size:     size,
+			Added:    time.Unix(int64(addedInt), 0),
+			Meta:     meta,
 		})
 	}
 	return res

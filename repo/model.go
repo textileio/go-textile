@@ -15,10 +15,14 @@ type Contact struct {
 }
 
 type File struct {
-	Id    string    `json:"id"`
-	Hash  string    `json:"hash"`
-	Key   string    `json:"key"`
-	Added time.Time `json:"added"`
+	Mill     string                 `json:"mill"`
+	Checksum string                 `json:"checksum"`
+	Hash     string                 `json:"hash"`
+	Key      string                 `json:"key"`
+	Media    string                 `json:"media"`
+	Size     int                    `json:"size"`
+	Added    time.Time              `json:"added"`
+	Meta     map[string]interface{} `json:"meta"`
 }
 
 type Thread struct {

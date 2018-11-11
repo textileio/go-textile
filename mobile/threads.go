@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
@@ -47,10 +48,14 @@ func (m *Mobile) AddThread(key string, name string, schema string) (string, erro
 	if err != nil {
 		return "", err
 	}
+	shash, err := mh.FromB58String(schema)
+	if err != nil {
+		return "", err
+	}
 	config := core.NewThreadConfig{
 		Key:    key,
 		Name:   name,
-		Schema: schema,
+		Schema: shash,
 		Type:   repo.OpenThread,
 		Join:   true,
 	}

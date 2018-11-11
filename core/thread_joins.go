@@ -26,7 +26,7 @@ func (t *Thread) joinInitial() (mh.Multihash, error) {
 	}
 
 	// index it locally
-	if err := t.indexBlock(res, repo.JoinBlock, nil); err != nil {
+	if err := t.indexBlock(res, repo.JoinBlock, "", ""); err != nil {
 		return nil, err
 	}
 
@@ -59,7 +59,7 @@ func (t *Thread) join(inviterId peer.ID) (mh.Multihash, error) {
 	}
 
 	// index it locally
-	if err := t.indexBlock(res, repo.JoinBlock, nil); err != nil {
+	if err := t.indexBlock(res, repo.JoinBlock, "", ""); err != nil {
 		return nil, err
 	}
 
@@ -87,7 +87,10 @@ func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 	}
 
 	// index it locally
-	if err := t.indexBlock(&commitResult{hash: hash, header: block.Header}, repo.JoinBlock, nil); err != nil {
+	if err := t.indexBlock(&commitResult{
+		hash:   hash,
+		header: block.Header,
+	}, repo.JoinBlock, "", ""); err != nil {
 		return nil, err
 	}
 

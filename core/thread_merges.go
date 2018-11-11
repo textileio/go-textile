@@ -68,7 +68,10 @@ func (t *Thread) merge(head mh.Multihash) (mh.Multihash, error) {
 	}
 
 	// index it locally
-	if err := t.indexBlock(&commitResult{hash: hash, header: header}, repo.MergeBlock, nil); err != nil {
+	if err := t.indexBlock(&commitResult{
+		hash:   hash,
+		header: header,
+	}, repo.MergeBlock, "", ""); err != nil {
 		return nil, err
 	}
 
@@ -86,5 +89,8 @@ func (t *Thread) merge(head mh.Multihash) (mh.Multihash, error) {
 // handleMergeBlock handles an incoming merge block
 func (t *Thread) handleMergeBlock(hash mh.Multihash, block *pb.ThreadBlock) error {
 	// index it locally
-	return t.indexBlock(&commitResult{hash: hash, header: block.Header}, repo.MergeBlock, nil)
+	return t.indexBlock(&commitResult{
+		hash:   hash,
+		header: block.Header,
+	}, repo.MergeBlock, "", "")
 }

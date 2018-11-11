@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/repo"
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"net/http"
 )
@@ -24,15 +25,26 @@ func (a *api) addThreads(g *gin.Context) {
 		a.abort500(g, err)
 		return
 	}
+
+	// build config
 	config := NewThreadConfig{
-		Key:    opts["key"],
-		Name:   args[0],
-		Schema: opts["schema"],
-		Join:   true,
+		Name: args[0],
+		Join: true,
 	}
-	if config.Key == "" {
+
+	if opts["key"] != "" {
+		config.Key = opts["key"]
+	} else {
 		config.Key = ksuid.New().String()
 	}
+
+	if opts["schema"] != "" {
+		config.Schema, err = mh.FromB58String(opts["schema"])
+		if err != nil {
+			g.String(http.StatusBadRequest, err.Error())
+		}
+	}
+
 	if opts["type"] != "" {
 		var err error
 		config.Type, err = repo.ThreadTypeFromString(opts["type"])
@@ -43,11 +55,14 @@ func (a *api) addThreads(g *gin.Context) {
 	} else {
 		config.Type = repo.OpenThread
 	}
+
+	// make a new secret
 	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		a.abort500(g, err)
 		return
 	}
+
 	thrd, err := a.node.AddThread(sk, config)
 	if err != nil {
 		a.abort500(g, err)
@@ -103,7 +118,7 @@ func (a *api) rmThreads(g *gin.Context) {
 	g.String(http.StatusOK, "ok")
 }
 
-func (a *api) addThreadFiles(g *gin.Context) {
+func (a *api) saveFiles(g *gin.Context) {
 	id := g.Param("id")
 	thrd := a.node.Thread(id)
 	if thrd == nil {
@@ -111,31 +126,7 @@ func (a *api) addThreadFiles(g *gin.Context) {
 		return
 	}
 
-	// handle files
-	form, err := g.MultipartForm()
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-	fileHeaders := form.File["file"]
-	for _, header := range fileHeaders {
-		file, err := header.Open()
-		if err != nil {
-			g.String(http.StatusBadRequest, err.Error())
-			return
-		}
+	// TODO
 
-		// add the raw file
-		raw, err := a.node.AddFile(file)
-		if err != nil {
-			g.String(http.StatusBadRequest, err.Error())
-			return
-		}
-
-		// based on schema
-
-		file.Close()
-
-	}
-	g.JSON(http.StatusCreated, adds)
+	g.JSON(http.StatusCreated, make(map[string]string))
 }

@@ -34,8 +34,8 @@ func (t *Textile) AcceptThreadInviteViaNotification(id string) (mh.Multihash, er
 	if notification == nil {
 		return nil, errors.New(fmt.Sprintf("could not find notification: %s", id))
 	}
-	if notification.Type != repo.ReceivedInviteNotification {
-		return nil, errors.New(fmt.Sprintf("notification not invite type"))
+	if notification.Type != repo.InviteReceivedNotification {
+		return nil, errors.New(fmt.Sprintf("notification not type invite"))
 	}
 
 	// block is the invite's block id

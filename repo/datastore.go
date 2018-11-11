@@ -62,11 +62,12 @@ type ContactStore interface {
 type FileStore interface {
 	Queryable
 	Add(file *File) error
-	Get(id string) *File
+	Get(hash string) *File
+	GetByPrimary(mill string, checksum string) *File
 	List(offset string, limit int) []File
 	ListByHash(hash string) []File
 	Count() int
-	Delete(id string) error
+	Delete(hash string) error
 }
 
 type ThreadFileKeyStore interface {
