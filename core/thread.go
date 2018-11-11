@@ -40,16 +40,17 @@ type ThreadUpdate struct {
 
 // ThreadInfo reports info about a thread
 type ThreadInfo struct {
-	Id         string     `json:"id"`
-	Key        string     `json:"key"`
-	Name       string     `json:"name"`
-	Schema     string     `json:"schema,omitempty"`
-	Type       string     `json:"type"`
-	State      string     `json:"state"`
-	Head       *BlockInfo `json:"head,omitempty"`
-	PeerCount  int        `json:"peer_cnt"`
-	BlockCount int        `json:"block_cnt"`
-	FileCount  int        `json:"file_cnt"`
+	Id         string       `json:"id"`
+	Key        string       `json:"key"`
+	Name       string       `json:"name"`
+	SchemaId   string       `json:"schema_id,omitempty"`
+	Schema     *schema.Node `json:"schema,omitempty"`
+	Type       string       `json:"type"`
+	State      string       `json:"state"`
+	Head       *BlockInfo   `json:"head,omitempty"`
+	PeerCount  int          `json:"peer_cnt"`
+	BlockCount int          `json:"block_cnt"`
+	FileCount  int          `json:"file_cnt"`
 }
 
 // BlockInfo is a more readable version of repo.Block
@@ -83,7 +84,7 @@ type Thread struct {
 	Name          string
 	Type          repo.ThreadType
 	schema        *schema.Node
-	schemaHash    string
+	schemaId      string
 	privKey       libp2pc.PrivKey
 	repoPath      string
 	config        *config.Config
@@ -105,7 +106,7 @@ func NewThread(model *repo.Thread, conf *ThreadConfig) (*Thread, error) {
 
 	var sch *schema.Node
 	if model.Schema != "" {
-		sch, err = loadThreadSchema(conf.Node(), model.Schema)
+		sch, err = loadSchema(conf.Node(), model.Schema)
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +118,7 @@ func NewThread(model *repo.Thread, conf *ThreadConfig) (*Thread, error) {
 		Name:          model.Name,
 		Type:          model.Type,
 		schema:        sch,
-		schemaHash:    model.Schema,
+		schemaId:      model.Schema,
 		privKey:       sk,
 		repoPath:      conf.RepoPath,
 		config:        conf.Config,
@@ -130,25 +131,15 @@ func NewThread(model *repo.Thread, conf *ThreadConfig) (*Thread, error) {
 	}, nil
 }
 
-// loadThreadSchema loads a schema from ipfs by path
-func loadThreadSchema(node *core.IpfsNode, pth string) (*schema.Node, error) {
-	data, err := ipfs.DataAtPath(node, pth)
-	if err != nil {
-		return nil, err
-	}
-
-	var sch *schema.Node
-	if err := json.Unmarshal(data, &sch); err != nil {
-		return nil, err
-	}
-	return sch, nil
-}
-
 // Info returns thread info
 func (t *Thread) Info() (*ThreadInfo, error) {
 	mod := t.datastore.Threads().Get(t.Id)
 	if mod == nil {
 		return nil, errThreadReload
+	}
+
+	if t.schema != nil {
+
 	}
 
 	var head *BlockInfo
@@ -180,7 +171,8 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 		Id:         t.Id,
 		Key:        t.Key,
 		Name:       t.Name,
-		Schema:     mod.Schema,
+		SchemaId:   t.schemaId,
+		Schema:     t.schema,
 		Type:       mod.Type.Description(),
 		State:      state.Description(),
 		Head:       head,
@@ -564,4 +556,19 @@ func (t *Thread) pushUpdate(index repo.Block) {
 		ThreadId:   t.Id,
 		ThreadName: t.Name,
 	})
+}
+
+// loadSchema loads a schema from a local file
+func loadSchema(node *core.IpfsNode, id string) (*schema.Node, error) {
+	data, err := ipfs.DataAtPath(node, id)
+	if err != nil {
+		return nil, err
+	}
+
+	var sch schema.Node
+	if err := json.Unmarshal(data, &sch); err != nil {
+		log.Errorf("failed to unmarshal thread schema %s: %s", id, err)
+		return nil, err
+	}
+	return &sch, nil
 }

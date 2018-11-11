@@ -3,7 +3,6 @@ package mill
 import (
 	"errors"
 	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
-	"mime/multipart"
 )
 
 var log = logging.Logger("tex-mill")
@@ -17,8 +16,10 @@ type Result struct {
 
 type Mill interface {
 	ID() string
+	Encrypt() bool
+	Pin() bool
 	AcceptMedia(media string) error
-	Mill(file multipart.File, name string) (*Result, error)
+	Mill(input []byte, name string) (*Result, error)
 }
 
 func accepts(list []string, media string) error {

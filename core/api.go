@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"mime/multipart"
@@ -65,20 +66,21 @@ func (a *api) Start() {
 		v0.GET("/ping", a.ping)
 
 		mills := v0.Group("/mills")
+		mills.POST("/schema", a.schemaMill)
 		mills.POST("/blob", a.blobMill)
 		mills.POST("/image/resize", a.imageResizeMill)
 		mills.POST("/image/exif", a.imageExifMill)
 
 		threads := v0.Group("/threads")
-		threads.POST("/", a.addThreads)
-		threads.GET("/", a.lsThreads)
+		threads.POST("", a.addThreads)
+		threads.GET("", a.lsThreads)
 		threads.GET("/:id", a.getThreads)
 		threads.DELETE("/:id", a.rmThreads)
 		threads.POST("/:id/save", a.saveFiles)
 
 		cafes := v0.Group("/cafes")
-		cafes.POST("/", a.addCafes)
-		cafes.GET("/", a.lsCafes)
+		cafes.POST("", a.addCafes)
+		cafes.GET("", a.lsCafes)
 		cafes.GET("/:id", a.getCafes)
 		cafes.DELETE("/:id", a.rmCafes)
 		cafes.POST("/check_mail", a.checkMailCafes)
@@ -196,6 +198,9 @@ func (a *api) openFile(g *gin.Context) (multipart.File, string, error) {
 		return nil, "", err
 	}
 	header := form.File["file"][0]
+	for k, v := range header.Header {
+		fmt.Println(k + ": " + strings.Join(v, ","))
+	}
 	file, err := header.Open()
 	if err != nil {
 		return nil, "", err

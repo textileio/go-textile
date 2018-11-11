@@ -44,7 +44,12 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf NewThreadConfig) (*Thread, 
 		return nil, err
 	}
 
-	// add model
+	var schema string
+	if conf.Schema != nil {
+		schema = conf.Schema.B58String()
+		t.cafeOutbox.Add(schema, repo.CafeStoreRequest)
+	}
+
 	threadModel := &repo.Thread{
 		Id:      id.Pretty(),
 		Key:     conf.Key,
@@ -58,7 +63,6 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf NewThreadConfig) (*Thread, 
 		return nil, err
 	}
 
-	// load as active thread
 	thrd, err := t.loadThread(threadModel)
 	if err != nil {
 		return nil, err
@@ -69,6 +73,10 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf NewThreadConfig) (*Thread, 
 		if _, err := thrd.joinInitial(); err != nil {
 			return nil, err
 		}
+	}
+
+	if thrd.schema != nil {
+		go t.cafeOutbox.Flush()
 	}
 
 	// notify listeners
@@ -85,7 +93,6 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 		return nil, ErrOffline
 	}
 
-	// get the loaded thread
 	var thrd *Thread
 	var index int
 	for i, th := range t.threads {
@@ -105,17 +112,14 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	// remove model from db
 	if err := t.datastore.Threads().Delete(thrd.Id); err != nil {
 		return nil, err
 	}
 
-	// clean up
 	copy(t.threads[index:], t.threads[index+1:])
 	t.threads[len(t.threads)-1] = nil
 	t.threads = t.threads[:len(t.threads)-1]
 
-	// notify listeners
 	t.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadRemoved})
 
 	log.Infof("removed thread %s with name %s", thrd.Id, thrd.Name)
@@ -131,7 +135,6 @@ func (t *Textile) AcceptThreadInvite(inviteId string) (mh.Multihash, error) {
 	}
 	invite := fmt.Sprintf("%s", inviteId)
 
-	// download
 	ciphertext, err := ipfs.DataAtPath(t.node, invite)
 	if err != nil {
 		return nil, err
@@ -155,7 +158,6 @@ func (t *Textile) AcceptExternalThreadInvite(inviteId string, key []byte) (mh.Mu
 		return nil, ErrOffline
 	}
 
-	// download
 	ciphertext, err := ipfs.DataAtPath(t.node, fmt.Sprintf("%s", inviteId))
 	if err != nil {
 		return nil, err
@@ -194,6 +196,7 @@ func (t *Textile) ThreadInfo(id string) (*ThreadInfo, error) {
 	if !t.Started() {
 		return nil, ErrStopped
 	}
+
 	thrd := t.Thread(id)
 	if thrd == nil {
 		return nil, errors.New(fmt.Sprintf("cound not find thread: %s", id))
@@ -215,13 +218,11 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	// unpack thread secret
 	sk, err := libp2pc.UnmarshalPrivateKey(msg.Sk)
 	if err != nil {
 		return nil, err
 	}
 
-	// ensure we dont already have this thread
 	id, err := peer.IDFromPrivateKey(sk)
 	if err != nil {
 		return nil, err
@@ -231,7 +232,6 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 		return nil, nil
 	}
 
-	// add a new model
 	var sch mh.Multihash
 	if msg.Schema != "" {
 		sch, err = mh.FromB58String(msg.Schema)

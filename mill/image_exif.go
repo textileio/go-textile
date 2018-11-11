@@ -1,10 +1,10 @@
 package mill
 
 import (
+	"bytes"
 	"encoding/json"
 	"github.com/rwcarlsen/goexif/exif"
 	"image"
-	"mime/multipart"
 	"path/filepath"
 	"strings"
 	"time"
@@ -28,6 +28,14 @@ func (m *ImageExif) ID() string {
 	return "/image/exif"
 }
 
+func (m *ImageExif) Encrypt() bool {
+	return true
+}
+
+func (m *ImageExif) Pin() bool {
+	return false
+}
+
 func (m *ImageExif) AcceptMedia(media string) error {
 	return accepts([]string{
 		"image/jpeg",
@@ -36,8 +44,8 @@ func (m *ImageExif) AcceptMedia(media string) error {
 	}, media)
 }
 
-func (m *ImageExif) Mill(file multipart.File, name string) (*Result, error) {
-	conf, formatStr, err := image.DecodeConfig(file)
+func (m *ImageExif) Mill(input []byte, name string) (*Result, error) {
+	conf, formatStr, err := image.DecodeConfig(bytes.NewReader(input))
 	if err != nil {
 		return nil, err
 	}
@@ -46,8 +54,7 @@ func (m *ImageExif) Mill(file multipart.File, name string) (*Result, error) {
 	var created time.Time
 	var lat, lon float64
 
-	file.Seek(0, 0)
-	exf, err := exif.Decode(file)
+	exf, err := exif.Decode(bytes.NewReader(input))
 	if err == nil {
 		createdTmp, err := exf.DateTime()
 		if err == nil {

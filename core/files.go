@@ -3,59 +3,38 @@ package core
 import (
 	"bytes"
 	"crypto/sha256"
+	"fmt"
 	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
 	m "github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/repo"
 	"io"
-	"io/ioutil"
-	"mime/multipart"
 	"net/http"
 	"time"
 )
 
 type Directory map[string]repo.File
 
-func (t *Textile) AddFile(file multipart.File, name string, mill m.Mill) (*repo.File, error) {
+func (t *Textile) FileMedia(reader io.Reader, mill m.Mill) (string, error) {
 	buffer := make([]byte, 512)
-	n, err := file.Read(buffer)
+	n, err := reader.Read(buffer)
 	if err != nil && err != io.EOF {
-		return nil, err
+		return "", err
 	}
 	media := http.DetectContentType(buffer[:n])
+	fmt.Println(media)
 
-	if err := mill.AcceptMedia(media); err != nil {
-		return nil, err
-	}
+	return media, mill.AcceptMedia(media)
+}
 
-	file.Seek(0, 0)
-	data, err := ioutil.ReadAll(file)
-	if err != nil {
-		return nil, err
-	}
-
-	check := t.checksum(data)
+func (t *Textile) AddFile(input []byte, name string, media string, mill m.Mill) (*repo.File, error) {
+	check := t.checksum(input)
 	if efile := t.datastore.Files().GetByPrimary(mill.ID(), check); efile != nil {
 		return efile, nil
 	}
 
-	file.Seek(0, 0)
-	res, err := mill.Mill(file, name)
-	if err != nil {
-		return nil, err
-	}
-
-	key, err := crypto.GenerateAESKey()
-	if err != nil {
-		return nil, err
-	}
-	ciphertext, err := crypto.EncryptAES(res.File, key)
-	if err != nil {
-		return nil, err
-	}
-
-	hash, err := ipfs.AddData(t.node, bytes.NewReader(ciphertext), false)
+	res, err := mill.Mill(input, name)
 	if err != nil {
 		return nil, err
 	}
@@ -63,16 +42,38 @@ func (t *Textile) AddFile(file multipart.File, name string, mill m.Mill) (*repo.
 	model := &repo.File{
 		Mill:     mill.ID(),
 		Checksum: check,
-		Hash:     hash.Hash().B58String(),
-		Key:      base58.FastBase58Encoding(key),
 		Media:    media,
 		Size:     len(res.File),
 		Added:    time.Now(),
 		Meta:     res.Meta,
 	}
+
+	var reader *bytes.Reader
+	if mill.Encrypt() {
+		key, err := crypto.GenerateAESKey()
+		if err != nil {
+			return nil, err
+		}
+		ciphertext, err := crypto.EncryptAES(res.File, key)
+		if err != nil {
+			return nil, err
+		}
+		model.Key = base58.FastBase58Encoding(key)
+		reader = bytes.NewReader(ciphertext)
+	} else {
+		reader = bytes.NewReader(res.File)
+	}
+
+	hash, err := ipfs.AddData(t.node, reader, mill.Pin())
+	if err != nil {
+		return nil, err
+	}
+	model.Hash = hash.Hash().B58String()
+
 	if err := t.datastore.Files().Add(model); err != nil {
 		return nil, err
 	}
+
 	return model, nil
 }
 
@@ -98,46 +99,6 @@ func (t *Textile) AddFile(file multipart.File, name string, mill m.Mill) (*repo.
 //		return ErrFileNotFound
 //	}
 //	return ipfs.AddLinkToDirectory(t.node, dir, link, file.Hash)
-//}
-
-// AddFile adds a file to ipfs, it is NOT saved to a thread
-//func (t *Textile) AddFile(file []byte, mill string) (*repo.File, error) {
-//	check := t.checksum(file)
-//
-//	// check if exists
-//	if efile := t.datastore.Files().Get(check); efile != nil {
-//		return efile, nil
-//	}
-//
-//	key, err := crypto.GenerateAESKey()
-//	if err != nil {
-//		return nil, err
-//	}
-//	ciphertext, err := crypto.EncryptAES(file, key)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	// persist
-//	id, err := ipfs.AddData(t.node, bytes.NewReader(ciphertext), false)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	model := &repo.File{
-//		Mill:     mill.ID,
-//		Checksum: check,
-//		Hash:     id.Hash().B58String(),
-//		Key:      base58.FastBase58Encoding(key),
-//		Media:    media,
-//		Size:     len(file),
-//		Added:    time.Now(),
-//		Meta:     mill.Meta,
-//	}
-//	if err := t.datastore.Files().Add(model); err != nil {
-//		return nil, err
-//	}
-//	return model, nil
 //}
 
 //func (t *Textile) SaveFile(fileId string, caption string) error {

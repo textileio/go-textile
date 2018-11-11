@@ -1,119 +1,5 @@
-package cmd
+package old
 
-//
-//import (
-//	"bytes"
-//	"errors"
-//	"github.com/mitchellh/go-homedir"
-//	"github.com/textileio/textile-go/repo"
-//	"gopkg.in/abiosoft/ishell.v2"
-//	"io"
-//	"mime/multipart"
-//	"os"
-//	"path/filepath"
-//)
-//
-//var errMissingImagePath = errors.New("missing image path")
-//
-//func init() {
-//	register(&imagesCmd{})
-//}
-//
-//type imagesCmd struct {
-//	Add addImagesCmd `command:"add"`
-//	//List   lsImagesCmd  `command:"ls"`
-//	//Get    getImagesCmd `command:"get"`
-//	//Delete delImagesCmd `command:"del"`
-//}
-//
-//func (x *imagesCmd) Name() string {
-//	return "images"
-//}
-//
-//func (x *imagesCmd) Short() string {
-//	return "Manage images"
-//}
-//
-//func (x *imagesCmd) Long() string {
-//	return "Add, ls, get, and del images."
-//}
-//
-//func (x *imagesCmd) Shell() *ishell.Cmd {
-//	cmd := &ishell.Cmd{
-//		Name:     x.Name(),
-//		Help:     x.Short(),
-//		LongHelp: x.Long(),
-//	}
-//	cmd.AddCmd((&addImagesCmd{}).Shell())
-//	//cmd.AddCmd((&lsImagesCmd{}).Shell())
-//	//cmd.AddCmd((&getImagesCmd{}).Shell())
-//	//cmd.AddCmd((&delImagesCmd{}).Shell())
-//	return cmd
-//}
-//
-//type addImagesCmd struct {
-//	Client ClientOptions `group:"Client Options"`
-//}
-//
-//func (x *addImagesCmd) Name() string {
-//	return "add"
-//}
-//
-//func (x *addImagesCmd) Short() string {
-//	return "Add an image"
-//}
-//
-//func (x *addImagesCmd) Long() string {
-//	return "Encodes, encrypts, and adds an image to the wallet account."
-//}
-//
-//func (x *addImagesCmd) Execute(args []string) error {
-//	setApi(x.Client)
-//	return callAddImages(args, nil)
-//}
-//
-//func (x *addImagesCmd) Shell() *ishell.Cmd {
-//	return nil
-//}
-//
-//func callAddImages(args []string, ctx *ishell.Context) error {
-//	if len(args) == 0 {
-//		return errMissingImagePath
-//	}
-//	path, err := homedir.Expand(args[0])
-//	if err != nil {
-//		path = args[0]
-//	}
-//	file, err := os.Open(path)
-//	if err != nil {
-//		return err
-//	}
-//	defer file.Close()
-//	var body bytes.Buffer
-//	writer := multipart.NewWriter(&body)
-//	part, err := writer.CreateFormFile("file", filepath.Base(path))
-//	if err != nil {
-//		return err
-//	}
-//	if _, err = io.Copy(part, file); err != nil {
-//		return err
-//	}
-//	writer.Close()
-//	var list *[]repo.File
-//	res, err := executeJsonCmd(POST, "images", params{
-//		args:    args,
-//		payload: &body,
-//		ctype:   writer.FormDataContentType(),
-//	}, &list)
-//	if err != nil {
-//		return err
-//	}
-//	output(res, ctx)
-//	return nil
-//}
-//
-//////////////////////////////////////////////////////////////////////////
-//
 ////func sharePhoto(c *ishell.Context) {
 ////	if len(c.Args) == 0 {
 ////		c.Err(errors.New("missing photo id"))
@@ -143,7 +29,6 @@ package cmd
 ////		return
 ////	}
 ////
-////	// TODO: owner challenge
 ////	// finally, add to destination
 ////	if _, err := toThread.AddFile(id, caption, block.DataKey); err != nil {
 ////		c.Err(err)

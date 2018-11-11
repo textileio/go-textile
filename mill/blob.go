@@ -1,25 +1,23 @@
 package mill
 
-import (
-	"io/ioutil"
-	"mime/multipart"
-)
-
 type Blob struct{}
 
 func (m *Blob) ID() string {
 	return "/blob"
 }
 
+func (m *Blob) Encrypt() bool {
+	return true
+}
+
+func (m *Blob) Pin() bool {
+	return false
+}
+
 func (m *Blob) AcceptMedia(media string) error {
 	return nil
 }
 
-func (m *Blob) Mill(file multipart.File, name string) (*Result, error) {
-	data, err := ioutil.ReadAll(file)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Result{File: data}, nil
+func (m *Blob) Mill(input []byte, name string) (*Result, error) {
+	return &Result{File: input}, nil
 }

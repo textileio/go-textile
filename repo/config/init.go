@@ -58,8 +58,7 @@ type Threads struct {
 
 // ThreadDefaults settings
 type ThreadDefaults struct {
-	Schema string // default schema to use for new threads
-	ID     string // default thread ID for reads/writes
+	ID string // default thread ID for reads/writes
 }
 
 // Cafe settings
@@ -91,8 +90,7 @@ func Init(version string) (*Config, error) {
 		},
 		Threads: Threads{
 			Defaults: ThreadDefaults{
-				Schema: "",
-				ID:     "",
+				ID: "",
 			},
 		},
 		Cafe: Cafe{

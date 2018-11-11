@@ -204,12 +204,11 @@ func (c *cafeApi) pin(g *gin.Context) {
 			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		// TODO: fixme
-		//if err := ipfs.PinDirectory(c.node.Ipfs(), dir, []string{}); err != nil {
-		//	log.Errorf("error pinning dir node %s", err)
-		//	g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		//	return
-		//}
+		if err := ipfs.PinNode(c.node.Ipfs(), dir); err != nil {
+			log.Errorf("error pinning dir node %s", err)
+			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 		id = dir.Cid()
 
 	case "application/octet-stream":

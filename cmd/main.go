@@ -9,7 +9,9 @@ import (
 	"gopkg.in/abiosoft/ishell.v2"
 	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"strings"
 )
 
@@ -144,6 +146,20 @@ func unmarshalJSON(body io.ReadCloser, target interface{}) error {
 		return err
 	}
 	return json.Unmarshal(data, target)
+}
+
+var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
+
+func escapeQuotes(s string) string {
+	return quoteEscaper.Replace(s)
+}
+
+func createFormFile(w *multipart.Writer, name string, ctype string) (io.Writer, error) {
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition",
+		fmt.Sprintf(`form-data; name="%s"; filename="%s"`, "file", escapeQuotes(name)))
+	h.Set("Content-Type", ctype)
+	return w.CreatePart(h)
 }
 
 func output(value interface{}, ctx *ishell.Context) {

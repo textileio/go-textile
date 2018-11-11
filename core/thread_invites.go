@@ -27,7 +27,7 @@ func (t *Thread) AddInvite(inviteeId peer.ID) (mh.Multihash, error) {
 	msg := &pb.ThreadInvite{
 		Sk:     threadSk,
 		Name:   t.Name,
-		Schema: t.schemaHash,
+		Schema: t.schemaId,
 	}
 
 	// get the peer pub key from the id
@@ -77,7 +77,7 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 	msg := &pb.ThreadInvite{
 		Sk:     threadSk,
 		Name:   t.Name,
-		Schema: t.schemaHash,
+		Schema: t.schemaId,
 	}
 
 	// generate an aes key

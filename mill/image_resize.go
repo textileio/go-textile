@@ -12,7 +12,6 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
-	"mime/multipart"
 	"time"
 )
 
@@ -38,6 +37,14 @@ func (m *ImageResize) ID() string {
 	return "/image/resize"
 }
 
+func (m *ImageResize) Encrypt() bool {
+	return true
+}
+
+func (m *ImageResize) Pin() bool {
+	return false
+}
+
 func (m *ImageResize) AcceptMedia(media string) error {
 	return accepts([]string{
 		"image/jpeg",
@@ -46,15 +53,15 @@ func (m *ImageResize) AcceptMedia(media string) error {
 	}, media)
 }
 
-func (m *ImageResize) Mill(file multipart.File, name string) (*Result, error) {
-	img, formatStr, err := image.Decode(file)
+func (m *ImageResize) Mill(input []byte, name string) (*Result, error) {
+	img, formatStr, err := image.Decode(bytes.NewReader(input))
 	if err != nil {
 		return nil, err
 	}
 	format := Format(formatStr)
 	size := img.Bounds().Size()
 
-	clean, err := removeExif(file, img, format)
+	clean, err := removeExif(bytes.NewReader(input), img, format)
 	if err != nil {
 		return nil, err
 	}

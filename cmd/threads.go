@@ -1,9 +1,18 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
+	"github.com/jessevdk/go-flags"
+	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/schema"
+	"github.com/textileio/textile-go/schema/textile"
 	"gopkg.in/abiosoft/ishell.v2"
+	"io/ioutil"
+	"os"
 )
 
 var errMissingThreadId = errors.New("missing thread id")
@@ -55,10 +64,11 @@ func (x *threadsCmd) Shell() *ishell.Cmd {
 }
 
 type addThreadsCmd struct {
-	Client ClientOptions `group:"Client Options"`
-	Key    string        `short:"k" long:"key" description:"A locally unique key used by an app to identify this thread on recovery."`
-	Open   bool          `short:"o" long:"open" description:"Set the thread type to open (default private)."`
-	Schema string        `short:"s" long:"schema" description:"Thread schema hash. Omit for default."`
+	Client ClientOptions  `group:"Client Options"`
+	Key    string         `short:"k" long:"key" description:"A locally unique key used by an app to identify this thread on recovery."`
+	Open   bool           `short:"o" long:"open" description:"Set the thread type to open (default private)."`
+	Schema flags.Filename `short:"s" long:"schema" description:"Thread Schema filename. Supercedes built-in schema flags."`
+	Photos bool           `long:"photos" description:"Use the built-in photo Schema."`
 }
 
 func (x *addThreadsCmd) Name() string {
@@ -79,10 +89,18 @@ func (x *addThreadsCmd) Execute(args []string) error {
 	if x.Open {
 		ttype = "open"
 	}
+
+	var sch string
+	if x.Schema == "" && x.Photos {
+		sch = "photos"
+	} else {
+		sch = string(x.Schema)
+	}
+
 	opts := map[string]string{
 		"key":    x.Key,
 		"type":   ttype,
-		"schema": x.Schema,
+		"schema": sch,
 	}
 	return callAddThreads(args, opts, nil)
 }
@@ -92,6 +110,47 @@ func (x *addThreadsCmd) Shell() *ishell.Cmd {
 }
 
 func callAddThreads(args []string, opts map[string]string, ctx *ishell.Context) error {
+	var body []byte
+
+	sch := opts["schema"]
+	if sch != "" && sch != "photos" {
+		path, err := homedir.Expand(sch)
+		if err != nil {
+			path = sch
+		}
+
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		body, err = ioutil.ReadAll(file)
+
+	} else if sch == "photos" {
+
+		var node schema.Node
+		if err := json.Unmarshal([]byte(textile.Photo), &node); err != nil {
+			return err
+		}
+		var err error
+		body, err = json.Marshal(&node)
+		if err != nil {
+			return err
+		}
+	}
+
+	if body != nil {
+		var schemaf *repo.File
+		if _, err := executeJsonCmd(POST, "mills/schema", params{
+			payload: bytes.NewReader(body),
+			ctype:   "application/json",
+		}, &schemaf); err != nil {
+			return err
+		}
+
+		opts["schema"] = schemaf.Hash
+	}
+
 	var info *core.ThreadInfo
 	res, err := executeJsonCmd(POST, "threads", params{args: args, opts: opts}, &info)
 	if err != nil {

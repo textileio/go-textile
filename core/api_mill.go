@@ -1,12 +1,38 @@
 package core
 
 import (
+	"encoding/json"
 	"github.com/gin-gonic/gin"
 	m "github.com/textileio/textile-go/mill"
+	"github.com/textileio/textile-go/schema"
 	"image/jpeg"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 )
+
+func (a *api) schemaMill(g *gin.Context) {
+	var node schema.Node
+	if err := g.BindJSON(&node); err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	mill := &m.Schema{}
+
+	data, err := json.Marshal(&node)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	added, err := a.node.AddFile(data, "", "application/json", mill)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	g.JSON(http.StatusCreated, added)
+}
 
 func (a *api) blobMill(g *gin.Context) {
 	mill := &m.Blob{}
@@ -18,7 +44,20 @@ func (a *api) blobMill(g *gin.Context) {
 	}
 	defer file.Close()
 
-	added, err := a.node.AddFile(file, name, mill)
+	media, err := a.node.FileMedia(file, mill)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	file.Seek(0, 0)
+
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	added, err := a.node.AddFile(data, name, media, mill)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -66,7 +105,20 @@ func (a *api) imageResizeMill(g *gin.Context) {
 	}
 	defer file.Close()
 
-	added, err := a.node.AddFile(file, name, mill)
+	media, err := a.node.FileMedia(file, mill)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	file.Seek(0, 0)
+
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	added, err := a.node.AddFile(data, name, media, mill)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -85,7 +137,20 @@ func (a *api) imageExifMill(g *gin.Context) {
 	}
 	defer file.Close()
 
-	added, err := a.node.AddFile(file, name, mill)
+	media, err := a.node.FileMedia(file, mill)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	file.Seek(0, 0)
+
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	added, err := a.node.AddFile(data, name, media, mill)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
