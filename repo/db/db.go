@@ -19,7 +19,6 @@ type SQLiteDatastore struct {
 	threads            repo.ThreadStore
 	threadPeers        repo.ThreadPeerStore
 	threadMessages     repo.ThreadMessageStore
-	threadFileKeys     repo.ThreadFileKeyStore
 	blocks             repo.BlockStore
 	notifications      repo.NotificationStore
 	cafeSessions       repo.CafeSessionStore
@@ -53,7 +52,6 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 		threads:            NewThreadStore(conn, mux),
 		threadPeers:        NewThreadPeerStore(conn, mux),
 		threadMessages:     NewThreadMessageStore(conn, mux),
-		threadFileKeys:     NewThreadFileKeyStore(conn, mux),
 		blocks:             NewBlockStore(conn, mux),
 		notifications:      NewNotificationStore(conn, mux),
 		cafeSessions:       NewCafeSessionStore(conn, mux),
@@ -104,10 +102,6 @@ func (d *SQLiteDatastore) ThreadPeers() repo.ThreadPeerStore {
 
 func (d *SQLiteDatastore) ThreadMessages() repo.ThreadMessageStore {
 	return d.threadMessages
-}
-
-func (d *SQLiteDatastore) ThreadFileKeys() repo.ThreadFileKeyStore {
-	return d.threadFileKeys
 }
 
 func (d *SQLiteDatastore) Blocks() repo.BlockStore {
@@ -219,8 +213,6 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 
     create table thread_messages (id text primary key not null, peerId text not null, envelope blob not null, date integer not null);
     create index thread_message_date on thread_messages (date);
-
-    create table thread_file_keys (hash text primary key not null, key text not null);
 
     create table notifications (id text primary key not null, date integer not null, actorId text not null, subject text not null, subjectId text not null, blockId text, target text, type integer not null, body text not null, read integer not null);
     create index notification_date on notifications (date);

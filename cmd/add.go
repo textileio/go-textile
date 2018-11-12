@@ -155,6 +155,7 @@ func millNode(reader *bytes.Reader, ctype string, node *schema.Node, dir map[str
 
 	for l, n := range node.Nodes {
 		reader.Seek(0, 0)
+		out("\"" + l + "\":")
 		f, err := millNode(reader, ctype, n, dir, out)
 		if err != nil {
 			return nil, err

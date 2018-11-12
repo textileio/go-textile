@@ -24,6 +24,9 @@ type Directory map[string]repo.File
 
 type Keys map[string]string
 
+const FileLinkName = "f"
+const DataLinkName = "d"
+
 func (t *Textile) MediaType(reader io.Reader, mill m.Mill) (string, error) {
 	buffer := make([]byte, 512)
 	n, err := reader.Read(buffer)
@@ -93,14 +96,14 @@ func (t *Textile) AddNodeFromFiles(files []repo.File) (ipld.Node, Keys, error) {
 		if err := t.FileNode(file, outer, link); err != nil {
 			return nil, nil, err
 		}
-		keys["/"+link] = file.Key
+		keys["/"+link+"/"] = file.Key
 	}
 
 	node, err := outer.GetNode()
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := ipfs.PinNode(t.node, node); err != nil {
+	if err := ipfs.PinNode(t.node, node, false); err != nil {
 		return nil, nil, err
 	}
 	return node, keys, nil
@@ -118,14 +121,14 @@ func (t *Textile) AddNodeFromDirs(dirs []Directory) (ipld.Node, Keys, error) {
 			if err := t.FileNode(file, inner, link); err != nil {
 				return nil, nil, err
 			}
-			keys["/"+olink+"/"+link] = file.Key
+			keys["/"+olink+"/"+link+"/"] = file.Key
 		}
 
 		node, err := inner.GetNode()
 		if err != nil {
 			return nil, nil, err
 		}
-		if err := ipfs.PinNode(t.node, node); err != nil {
+		if err := ipfs.PinNode(t.node, node, false); err != nil {
 			return nil, nil, err
 		}
 
@@ -139,7 +142,7 @@ func (t *Textile) AddNodeFromDirs(dirs []Directory) (ipld.Node, Keys, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := ipfs.PinNode(t.node, node); err != nil {
+	if err := ipfs.PinNode(t.node, node, false); err != nil {
 		return nil, nil, err
 	}
 	return node, keys, nil
@@ -150,7 +153,7 @@ func (t *Textile) FileNode(file repo.File, dir uio.Directory, link string) error
 		return ErrFileNotFound
 	}
 
-	// include encrypted file info as well
+	// include encrypted file file as well
 	plaintext, err := json.Marshal(&file)
 	if err != nil {
 		return err
@@ -166,10 +169,10 @@ func (t *Textile) FileNode(file repo.File, dir uio.Directory, link string) error
 	reader := bytes.NewReader(ciphertext)
 
 	pair := uio.NewDirectory(t.node.DAG)
-	if _, err := ipfs.AddDataToDirectory(t.node, pair, "info", reader); err != nil {
+	if _, err := ipfs.AddDataToDirectory(t.node, pair, FileLinkName, reader); err != nil {
 		return err
 	}
-	if err := ipfs.AddLinkToDirectory(t.node, pair, "data", file.Hash); err != nil {
+	if err := ipfs.AddLinkToDirectory(t.node, pair, DataLinkName, file.Hash); err != nil {
 		return err
 	}
 
@@ -177,7 +180,7 @@ func (t *Textile) FileNode(file repo.File, dir uio.Directory, link string) error
 	if err != nil {
 		return err
 	}
-	if err := ipfs.PinNode(t.node, node); err != nil {
+	if err := ipfs.PinNode(t.node, node, false); err != nil {
 		return err
 	}
 	return ipfs.AddLinkToDirectory(t.node, dir, link, node.Cid().Hash().B58String())

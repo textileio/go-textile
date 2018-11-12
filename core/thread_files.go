@@ -1,14 +1,18 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/mr-tron/base58/base58"
+	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/path"
 )
 
 // AddFile adds an outgoing files block
@@ -24,7 +28,7 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys Keys) (mh.Multiha
 
 	// each link should point to a dag described by the thread schema
 	for _, link := range node.Links() {
-		nd, err := ipfs.LinkNode(t.node(), link)
+		nd, err := ipfs.NodeAtLink(t.node(), link)
 		if err != nil {
 			return nil, err
 		}
@@ -88,17 +92,21 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 	}
 	if !ignore {
 
-		id, err := cid.Parse(hash)
+		target, err := cid.Parse(msg.Target)
 		if err != nil {
 			return nil, err
 		}
-		node, err := ipfs.CidNode(t.node(), id)
+		node, err := ipfs.NodeAtCid(t.node(), target)
 		if err != nil {
 			return nil, err
 		}
+		if err := ipfs.PinNode(t.node(), node, false); err != nil {
+			return nil, err
+		}
+
 		// each link should point to a dag described by the thread schema
 		for _, link := range node.Links() {
-			nd, err := ipfs.LinkNode(t.node(), link)
+			nd, err := ipfs.NodeAtLink(t.node(), link)
 			if err != nil {
 				return nil, err
 			}
@@ -107,14 +115,32 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 			}
 		}
 
-		t.cafeOutbox.Add(hash.B58String(), repo.CafeStoreRequest)
+		t.cafeOutbox.Add(msg.Target, repo.CafeStoreRequest)
 
-		for hash, key := range msg.Keys {
-			if err := t.datastore.ThreadFileKeys().Add(&repo.ThreadFileKey{
-				Hash: hash,
-				Key:  key,
-			}); err != nil {
+		// use msg keys to decrypt each file
+		for pth, key := range msg.Keys {
+			nd, err := ipfs.NodeAtPath(t.node(), path.Path(msg.Target+pth+FileLinkName))
+			if err != nil {
 				return nil, err
+			}
+
+			keyb, err := base58.Decode(key)
+			if err != nil {
+				return nil, err
+			}
+			plaintext, err := crypto.DecryptAES(nd.RawData(), keyb)
+			if err != nil {
+				return nil, err
+			}
+
+			var file repo.File
+			if err := json.Unmarshal(plaintext, &file); err != nil {
+				return nil, err
+			}
+			if err := t.datastore.Files().Add(&file); err != nil {
+				log.Debugf("received file already exists: %s", file.Hash)
+			} else {
+				log.Debugf("received file: %s", file.Hash)
 			}
 		}
 	}

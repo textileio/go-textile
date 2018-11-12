@@ -161,9 +161,8 @@ func (c *cafeApi) pin(g *gin.Context) {
 	cType := g.Request.Header.Get("Content-Type")
 	switch cType {
 	case "application/gzip":
-		// create a virtual directory for the photo
 		dirb := uio.NewDirectory(c.node.Ipfs().DAG)
-		// unpack archive
+
 		gr, err := gzip.NewReader(g.Request.Body)
 		if err != nil {
 			log.Errorf("error creating gzip reader %s", err)
@@ -171,6 +170,7 @@ func (c *cafeApi) pin(g *gin.Context) {
 			return
 		}
 		tr := tar.NewReader(gr)
+
 		for {
 			header, err := tr.Next()
 			if err == io.EOF {
@@ -181,6 +181,7 @@ func (c *cafeApi) pin(g *gin.Context) {
 				g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
+
 			switch header.Typeflag {
 			case tar.TypeDir:
 				log.Error("got nested directory, aborting")
@@ -204,7 +205,7 @@ func (c *cafeApi) pin(g *gin.Context) {
 			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		if err := ipfs.PinNode(c.node.Ipfs(), dir); err != nil {
+		if err := ipfs.PinNode(c.node.Ipfs(), dir, true); err != nil {
 			log.Errorf("error pinning dir node %s", err)
 			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

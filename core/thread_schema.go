@@ -8,7 +8,10 @@ import (
 )
 
 // process walks a file node, validating and applying a dag schema
-func (t *Thread) process(dag *schema.Node, node ipld.Node, pin bool) error {
+func (t *Thread) process(dag *schema.Node, node ipld.Node, inbound bool) error {
+	hash := node.Cid().Hash().B58String()
+	t.cafeOutbox.Add(hash, repo.CafeStoreRequest)
+
 	// determine if we're at a leaf
 	if len(dag.Nodes) > 0 {
 
@@ -19,35 +22,44 @@ func (t *Thread) process(dag *schema.Node, node ipld.Node, pin bool) error {
 				return schema.ErrSchemaValidationFailed
 			}
 
-			nd, err := ipfs.LinkNode(t.node(), link)
+			nd, err := ipfs.NodeAtLink(t.node(), link)
 			if err != nil {
 				return err
 			}
 
 			// keep going
-			if err := t.process(ds, nd, pin); err != nil {
+			if err := t.process(ds, nd, inbound); err != nil {
 				return err
 			}
 		}
 
-		if dag.Pin && pin {
-			if err := ipfs.PinNode(t.node(), node); err != nil {
+		if dag.Pin && inbound {
+			if err := ipfs.PinNode(t.node(), node, false); err != nil {
 				return err
 			}
 		}
 
 	} else {
-		hash := node.Cid().Hash().B58String()
+		if schema.LinkByName(node.Links(), FileLinkName) == nil {
+			return schema.ErrSchemaValidationFailed
+		}
+		if schema.LinkByName(node.Links(), DataLinkName) == nil {
+			return schema.ErrSchemaValidationFailed
+		}
 
-		if dag.Pin {
-			if err := ipfs.PinPath(t.node(), hash, true); err != nil {
+		// pin leaf nodes if schema dictates or files originate locally
+		if dag.Pin || !inbound {
+			if err := ipfs.PinNode(t.node(), node, true); err != nil {
 				return err
 			}
 		}
 
-		// if not mobile, remote pin the actual file data
-		if !t.config.IsMobile {
-			t.cafeOutbox.Add(hash, repo.CafeStoreRequest)
+		// remote pin leaf nodes if files originate locally
+		if !inbound {
+			t.cafeOutbox.Add(hash+"/"+FileLinkName, repo.CafeStoreRequest)
+			if !t.config.IsMobile {
+				t.cafeOutbox.Add(hash+"/"+DataLinkName, repo.CafeStoreRequest)
+			}
 		}
 	}
 

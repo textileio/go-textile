@@ -11,7 +11,6 @@ type Datastore interface {
 	Profile() ProfileStore
 	Contacts() ContactStore
 	Files() FileStore
-	ThreadFileKeys() ThreadFileKeyStore
 	Threads() ThreadStore
 	ThreadPeers() ThreadPeerStore
 	ThreadMessages() ThreadMessageStore
@@ -67,13 +66,6 @@ type FileStore interface {
 	List(offset string, limit int) []File
 	ListByHash(hash string) []File
 	Count() int
-	Delete(hash string) error
-}
-
-type ThreadFileKeyStore interface {
-	Queryable
-	Add(key *ThreadFileKey) error
-	Get(hash string) *ThreadFileKey
 	Delete(hash string) error
 }
 

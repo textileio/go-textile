@@ -214,7 +214,7 @@ func (t *Textile) publishProfile(prof Profile) (*ipfs.IpnsEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := ipfs.PinNode(t.node, node); err != nil {
+	if err := ipfs.PinNode(t.node, node, false); err != nil {
 		return nil, err
 	}
 

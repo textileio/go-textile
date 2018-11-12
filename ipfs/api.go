@@ -153,25 +153,33 @@ func UnpinPath(node *core.IpfsNode, pth string) error {
 	return nil
 }
 
-// LinkNode returns the node behind an ipld link
-func LinkNode(node *core.IpfsNode, link *ipld.Link) (ipld.Node, error) {
+// NodeAtLink returns the node behind an ipld link
+func NodeAtLink(node *core.IpfsNode, link *ipld.Link) (ipld.Node, error) {
 	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
 	return link.GetNode(ctx, node.DAG)
 }
 
-// CidNode returns the node behind a cid
-func CidNode(node *core.IpfsNode, id *cid.Cid) (ipld.Node, error) {
+// NodeAtCid returns the node behind a cid
+func NodeAtCid(node *core.IpfsNode, id *cid.Cid) (ipld.Node, error) {
 	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
 	return node.DAG.Get(ctx, id)
 }
 
+// NodeAtPath returns the last node under path
+func NodeAtPath(node *core.IpfsNode, pth path.Path) (ipld.Node, error) {
+	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
+	defer cancel()
+	nd, _, err := node.Resolver.ResolveToLastNode(ctx, pth)
+	return nd, err
+}
+
 // PinNode pins an ipld node
-func PinNode(node *core.IpfsNode, nd ipld.Node) error {
+func PinNode(node *core.IpfsNode, nd ipld.Node, recursive bool) error {
 	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
 	defer cancel()
-	if err := node.Pinning.Pin(ctx, nd, false); err != nil {
+	if err := node.Pinning.Pin(ctx, nd, recursive); err != nil {
 		if strings.Contains(err.Error(), "already pinned recursively") {
 			return nil
 		}

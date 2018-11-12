@@ -100,11 +100,6 @@ type ThreadMessage struct {
 	Date     time.Time    `json:"date"`
 }
 
-type ThreadFileKey struct {
-	Hash string `json:"hash"`
-	Key  string `json:"key"`
-}
-
 type Block struct {
 	Id       string    `json:"id"`
 	ThreadId string    `json:"thread_id"`
