@@ -75,6 +75,7 @@ func (a *api) Start() {
 		threads.GET("", a.lsThreads)
 		threads.GET("/:id", a.getThreads)
 		threads.DELETE("/:id", a.rmThreads)
+		threads.POST("/:id", a.createThreadInvites)
 		threads.POST("/:id/file", a.addThreadFile)
 		threads.POST("/:id/files", a.addThreadFiles)
 
