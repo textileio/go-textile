@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
@@ -21,8 +22,9 @@ func init() {
 }
 
 type addCmd struct {
-	Client ClientOptions `group:"Client Options"`
-	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
+	Client  ClientOptions `group:"Client Options"`
+	Thread  string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
+	Caption string        `short:"c" long:"caption" description:"File(s) caption."`
 }
 
 func (x *addCmd) Name() string {
@@ -43,7 +45,8 @@ Omit the --thread option to use the default thread (if selected).
 func (x *addCmd) Execute(args []string) error {
 	setApi(x.Client)
 	opts := map[string]string{
-		"thread": x.Thread,
+		"thread":  x.Thread,
+		"caption": x.Caption,
 	}
 	return callAdd(args, opts)
 }
@@ -95,38 +98,69 @@ func callAdd(args []string, opts map[string]string) error {
 	reader := bytes.NewReader(body.Bytes())
 
 	// traverse the schema and collect generated files
-	var files []repo.File
-	if err := millNode(reader, writer.FormDataContentType(), info.Schema, files, func(out string) {
+	dir := make(map[string]*repo.File)
+	f, err := millNode(reader, writer.FormDataContentType(), info.Schema, dir, func(out string) {
 		output(out, nil)
-	}); err != nil {
+	})
+	if err != nil {
 		return err
 	}
 
-	// post to thread
+	// the schemas could have generated a directory or a single file
+	var api string
+	var body2 interface{}
+	if len(dir) != 0 {
+		api = "files"
+		body2 = &dir
+	} else if f != nil {
+		api = "file"
+		body2 = &f
+	} else {
+		return nil
+	}
 
+	data, err := json.Marshal(body2)
+	if err != nil {
+		return err
+	}
+
+	var block *core.BlockInfo
+	res, err := executeJsonCmd(POST, "threads/"+threadId+"/"+api, params{
+		opts:    map[string]string{"caption": opts["caption"]},
+		payload: bytes.NewReader(data),
+		ctype:   "application/json",
+	}, &block)
+	if err != nil {
+		return err
+	}
+
+	output(res, nil)
 	return nil
 }
 
-func millNode(reader *bytes.Reader, ctype string, node *schema.Node, files []repo.File, out func(string)) error {
+func millNode(reader *bytes.Reader, ctype string, node *schema.Node, dir map[string]*repo.File, out func(string)) (*repo.File, error) {
+	file := &repo.File{}
+
 	if node.Mill != "" {
-		file := repo.File{}
 		res, err := executeJsonCmd(POST, "mills"+node.Mill, params{
 			opts:    node.Opts,
 			payload: reader,
 			ctype:   ctype,
 		}, &file)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		files = append(files, file)
 		out(res)
 	}
 
-	for _, n := range node.Nodes {
+	for l, n := range node.Nodes {
 		reader.Seek(0, 0)
-		if err := millNode(reader, ctype, n, files, out); err != nil {
-			return err
+		f, err := millNode(reader, ctype, n, dir, out)
+		if err != nil {
+			return nil, err
 		}
+		dir[l] = f
 	}
-	return nil
+
+	return file, nil
 }

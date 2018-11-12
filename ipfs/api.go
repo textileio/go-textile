@@ -19,6 +19,7 @@ import (
 	uio "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/unixfs/io"
 	"io"
 	"io/ioutil"
+	"strings"
 	"time"
 )
 
@@ -94,13 +95,13 @@ func AddLinkToDirectory(node *core.IpfsNode, dir uio.Directory, fname string, pt
 	}
 	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
-	n, err := node.DAG.Get(ctx, id)
+	nd, err := node.DAG.Get(ctx, id)
 	if err != nil {
 		return err
 	}
 	ctx2, cancel2 := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel2()
-	return dir.AddChild(ctx2, fname, n)
+	return dir.AddChild(ctx2, fname, nd)
 }
 
 // AddData takes a reader and adds it, optionally pins it
@@ -171,6 +172,9 @@ func PinNode(node *core.IpfsNode, nd ipld.Node) error {
 	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
 	defer cancel()
 	if err := node.Pinning.Pin(ctx, nd, false); err != nil {
+		if strings.Contains(err.Error(), "already pinned recursively") {
+			return nil
+		}
 		return err
 	}
 	return node.Pinning.Flush()

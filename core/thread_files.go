@@ -12,16 +12,14 @@ import (
 )
 
 // AddFile adds an outgoing files block
-func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string) (mh.Multihash, error) {
+func (t *Thread) AddFiles(node ipld.Node, caption string, keys Keys) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	// schema is required to add files
 	if t.schema == nil {
 		return nil, ErrThreadSchemaRequired
 	}
 
-	// target is the top dir containing one or more files
 	target := node.Cid().Hash().B58String()
 
 	// each link should point to a dag described by the thread schema
@@ -30,55 +28,38 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 		if err != nil {
 			return nil, err
 		}
-		if err := t.Process(t.schema, nd); err != nil {
+		if err := t.process(t.schema, nd, false); err != nil {
 			return nil, err
 		}
 	}
 
-	// outbox the dir
 	t.cafeOutbox.Add(target, repo.CafeStoreRequest)
 
-	// save keys
-	for hash, key := range keys {
-		if err := t.datastore.ThreadFileKeys().Add(&repo.ThreadFileKey{
-			Hash: hash,
-			Key:  key,
-		}); err != nil {
-			return nil, err
-		}
-	}
-
-	// build block
 	msg := &pb.ThreadFiles{
 		Target: node.Cid().Hash().B58String(),
 		Body:   caption,
 		Keys:   keys,
 	}
 
-	// commit to ipfs
 	res, err := t.commitBlock(msg, pb.ThreadBlock_FILES, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// index it locally
 	if err := t.indexBlock(res, repo.FilesBlock, msg.Target, msg.Body); err != nil {
 		return nil, err
 	}
 
-	// update head
 	if err := t.updateHead(res.hash); err != nil {
 		return nil, err
 	}
 
-	// post it
 	if err := t.post(res, t.Peers()); err != nil {
 		return nil, err
 	}
 
 	log.Debugf("added FILES to %s: %s", t.Id, res.hash.B58String())
 
-	// all done
 	return res.hash, nil
 }
 
@@ -89,12 +70,10 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 		return nil, err
 	}
 
-	// schema is required to add files
 	if t.schema == nil {
 		return nil, ErrThreadSchemaRequired
 	}
 
-	// check if this block has been ignored
 	var ignore bool
 	ignored := t.datastore.Blocks().GetByTarget(fmt.Sprintf("ignore-%s", hash.B58String()))
 	if ignored != nil {
@@ -109,7 +88,6 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 	}
 	if !ignore {
 
-		// get the node at target
 		id, err := cid.Parse(hash)
 		if err != nil {
 			return nil, err
@@ -124,15 +102,13 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 			if err != nil {
 				return nil, err
 			}
-			if err := t.Process(t.schema, nd); err != nil {
+			if err := t.process(t.schema, nd, true); err != nil {
 				return nil, err
 			}
 		}
 
-		// outbox the dir
 		t.cafeOutbox.Add(hash.B58String(), repo.CafeStoreRequest)
 
-		// save keys
 		for hash, key := range msg.Keys {
 			if err := t.datastore.ThreadFileKeys().Add(&repo.ThreadFileKey{
 				Hash: hash,
@@ -143,7 +119,6 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 		}
 	}
 
-	// index locally
 	if err := t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,

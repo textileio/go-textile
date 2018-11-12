@@ -42,7 +42,7 @@ func (a *api) blobMill(g *gin.Context) {
 	}
 	defer file.Close()
 
-	media, err := a.node.FileMedia(file, mill)
+	media, err := a.node.MediaType(file, mill)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -95,7 +95,7 @@ func (a *api) imageResizeMill(g *gin.Context) {
 	}
 	defer file.Close()
 
-	media, err := a.node.FileMedia(file, mill)
+	media, err := a.node.MediaType(file, mill)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -127,7 +127,7 @@ func (a *api) imageExifMill(g *gin.Context) {
 	}
 	defer file.Close()
 
-	if _, err := a.node.FileMedia(file, mill); err != nil {
+	if _, err := a.node.MediaType(file, mill); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}

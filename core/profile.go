@@ -70,6 +70,7 @@ func (t *Textile) SetAvatar(id string) error {
 	}
 
 	// get the public key for this photo
+	// TODO: fix
 	//key, err := t.PhotoKey(id)
 	//if err != nil {
 	//	return err
@@ -113,14 +114,12 @@ func (t *Textile) Profile(pid peer.ID) (*Profile, error) {
 		return profile, nil
 	}
 
-	// resolve profile at peer id
 	entry, err := t.ResolveProfile(pid)
 	if err != nil {
 		return nil, err
 	}
 	root := entry.String()
 
-	// get components from entry
 	var addrb, inboxesb, usernameb, avatarb []byte
 	addrb, _ = ipfs.DataAtPath(t.node, fmt.Sprintf("%s/%s", root, "address"))
 	if addrb != nil {
@@ -176,7 +175,6 @@ func (t *Textile) publishProfile(prof Profile) (*ipfs.IpnsEntry, error) {
 		return nil, ErrOffline
 	}
 
-	// create a virtual directory for the profile
 	dir := uio.NewDirectory(t.node.DAG)
 
 	// add public components
@@ -212,17 +210,14 @@ func (t *Textile) publishProfile(prof Profile) (*ipfs.IpnsEntry, error) {
 		return nil, err
 	}
 
-	// pin the directory locally
 	node, err := dir.GetNode()
 	if err != nil {
 		return nil, err
 	}
-	// TODO: fixme
-	//if err := ipfs.PinDirectory(t.node, node, []string{}); err != nil {
-	//	return nil, err
-	//}
+	if err := ipfs.PinNode(t.node, node); err != nil {
+		return nil, err
+	}
 
-	// add store requests
 	t.cafeOutbox.Add(addressId.Hash().B58String(), repo.CafeStoreRequest)
 	t.cafeOutbox.Add(inboxesId.Hash().B58String(), repo.CafeStoreRequest)
 	t.cafeOutbox.Add(usernameId.Hash().B58String(), repo.CafeStoreRequest)
@@ -230,7 +225,6 @@ func (t *Textile) publishProfile(prof Profile) (*ipfs.IpnsEntry, error) {
 	t.cafeOutbox.Add(node.Cid().Hash().B58String(), repo.CafeStoreRequest)
 	go t.cafeOutbox.Flush()
 
-	// finish
 	value := node.Cid().Hash().B58String()
 	return ipfs.Publish(t.node, t.node.PrivateKey, value, profileLifetime, profileTTL)
 }

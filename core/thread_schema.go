@@ -7,8 +7,8 @@ import (
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 )
 
-// Process walks a file node, validating and applying a dag schema
-func (t *Thread) Process(dag *schema.Node, node ipld.Node) error {
+// process walks a file node, validating and applying a dag schema
+func (t *Thread) process(dag *schema.Node, node ipld.Node, pin bool) error {
 	// determine if we're at a leaf
 	if len(dag.Nodes) > 0 {
 
@@ -25,12 +25,12 @@ func (t *Thread) Process(dag *schema.Node, node ipld.Node) error {
 			}
 
 			// keep going
-			if err := t.Process(ds, nd); err != nil {
+			if err := t.process(ds, nd, pin); err != nil {
 				return err
 			}
 		}
 
-		if dag.Pin {
+		if dag.Pin && pin {
 			if err := ipfs.PinNode(t.node(), node); err != nil {
 				return err
 			}
@@ -40,7 +40,7 @@ func (t *Thread) Process(dag *schema.Node, node ipld.Node) error {
 		hash := node.Cid().Hash().B58String()
 
 		if dag.Pin {
-			if err := ipfs.PinPath(t.node(), hash, false); err != nil {
+			if err := ipfs.PinPath(t.node(), hash, true); err != nil {
 				return err
 			}
 		}

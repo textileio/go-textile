@@ -3,19 +3,28 @@ package core
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/json"
+	"errors"
 	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
 	m "github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/repo"
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	uio "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/unixfs/io"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 )
 
+var ErrFileNotFound = errors.New("file not found")
+
 type Directory map[string]repo.File
 
-func (t *Textile) FileMedia(reader io.Reader, mill m.Mill) (string, error) {
+type Keys map[string]string
+
+func (t *Textile) MediaType(reader io.Reader, mill m.Mill) (string, error) {
 	buffer := make([]byte, 512)
 	n, err := reader.Read(buffer)
 	if err != nil && err != io.EOF {
@@ -75,68 +84,109 @@ func (t *Textile) AddFile(input []byte, name string, media string, mill m.Mill) 
 	return model, nil
 }
 
-//func (t *Textile) NewDir() uio.Directory {
-//	return uio.NewDirectory(t.node.DAG)
-//}
-//
-//func (t *Textile) LoadDir(hash string) (uio.Directory, error) {
-//	id, err := cid.Parse(hash)
-//	if err != nil {
-//		return nil, err
-//	}
-//	node, err := ipfs.CidNode(t.node, id)
-//	if err != nil {
-//		return nil, err
-//	}
-//	return uio.NewDirectoryFromNode(t.node.DAG, node)
-//}
-//
-//func (t *Textile) AddFileToDir(dir uio.Directory, fileId string, link string) error {
-//	file := t.datastore.Files().Get(fileId)
-//	if file == nil {
-//		return ErrFileNotFound
-//	}
-//	return ipfs.AddLinkToDirectory(t.node, dir, link, file.Hash)
-//}
+func (t *Textile) AddNodeFromFiles(files []repo.File) (ipld.Node, Keys, error) {
+	keys := make(Keys)
+	outer := uio.NewDirectory(t.node.DAG)
 
-//func (t *Textile) SaveFile(fileId string, caption string) error {
-//	file := t.datastore.Files().Get(fileId)
-//	if file == nil {
-//		return ErrFileNotFound
-//	}
-//
-//	// save to account thread
-//	thrd := t.AccountThread()
-//	if thrd == nil {
-//		return ErrThreadNotFound
-//	}
-//	thrd.AddFiles(file.Hash, caption, file.Key)
-//}
+	for i, file := range files {
+		link := strconv.Itoa(i)
+		if err := t.FileNode(file, outer, link); err != nil {
+			return nil, nil, err
+		}
+		keys["/"+link] = file.Key
+	}
+
+	node, err := outer.GetNode()
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := ipfs.PinNode(t.node, node); err != nil {
+		return nil, nil, err
+	}
+	return node, keys, nil
+}
+
+func (t *Textile) AddNodeFromDirs(dirs []Directory) (ipld.Node, Keys, error) {
+	keys := make(Keys)
+	outer := uio.NewDirectory(t.node.DAG)
+
+	for i, dir := range dirs {
+		inner := uio.NewDirectory(t.node.DAG)
+		olink := strconv.Itoa(i)
+
+		for link, file := range dir {
+			if err := t.FileNode(file, inner, link); err != nil {
+				return nil, nil, err
+			}
+			keys["/"+olink+"/"+link] = file.Key
+		}
+
+		node, err := inner.GetNode()
+		if err != nil {
+			return nil, nil, err
+		}
+		if err := ipfs.PinNode(t.node, node); err != nil {
+			return nil, nil, err
+		}
+
+		id := node.Cid().Hash().B58String()
+		if err := ipfs.AddLinkToDirectory(t.node, outer, olink, id); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	node, err := outer.GetNode()
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := ipfs.PinNode(t.node, node); err != nil {
+		return nil, nil, err
+	}
+	return node, keys, nil
+}
+
+func (t *Textile) FileNode(file repo.File, dir uio.Directory, link string) error {
+	if t.datastore.Files().Get(file.Hash) == nil {
+		return ErrFileNotFound
+	}
+
+	// include encrypted file info as well
+	plaintext, err := json.Marshal(&file)
+	if err != nil {
+		return err
+	}
+	key, err := base58.Decode(file.Key)
+	if err != nil {
+		return err
+	}
+	ciphertext, err := crypto.EncryptAES(plaintext, key)
+	if err != nil {
+		return err
+	}
+	reader := bytes.NewReader(ciphertext)
+
+	pair := uio.NewDirectory(t.node.DAG)
+	if _, err := ipfs.AddDataToDirectory(t.node, pair, "info", reader); err != nil {
+		return err
+	}
+	if err := ipfs.AddLinkToDirectory(t.node, pair, "data", file.Hash); err != nil {
+		return err
+	}
+
+	node, err := pair.GetNode()
+	if err != nil {
+		return err
+	}
+	if err := ipfs.PinNode(t.node, node); err != nil {
+		return err
+	}
+	return ipfs.AddLinkToDirectory(t.node, dir, link, node.Cid().Hash().B58String())
+}
 
 func (t *Textile) checksum(plaintext []byte) string {
 	sum := sha256.Sum256(plaintext)
 	return base58.FastBase58Encoding(sum[:])
 }
-
-//func (d *Directory) Pin() (mh.Multihash, error) {
-//	node, err := d.dir.LinkNode()
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	// local pin
-//	if err := ipfs.PinDirectory(d.node.node, node); err != nil {
-//		return nil, err
-//	}
-//
-//	// cafe pins
-//	hash := node.Cid().Hash().B58String()
-//	if err := d.node.cafeOutbox.Add(hash, repo.CafeStoreRequest); err != nil {
-//		return nil, err
-//	}
-//
-//	return node.Cid().Hash(), nil
-//}
 
 //// PhotoThreads lists threads which contain a photo (known to the local peer)
 //func (t *Textile) PhotoThreads(id string) []*Thread {
