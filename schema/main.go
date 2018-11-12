@@ -11,12 +11,12 @@ var ErrSchemaValidationFailed = errors.New("schema validation failed")
 
 // Node describes a DAG node
 type Node struct {
-	Pin    bool                   `json:"pin"`
-	Use    string                 `json:"use,omitempty"`
-	Mill   string                 `json:"mill,omitempty"`
-	Opts   map[string]interface{} `json:"opts,omitempty"`
-	Schema *jsonschema.Schema     `json:"schema,omitempty"`
-	Nodes  map[string]*Node       `json:"nodes,omitempty"`
+	Pin    bool               `json:"pin"`
+	Use    string             `json:"use,omitempty"`
+	Mill   string             `json:"mill,omitempty"`
+	Opts   map[string]string  `json:"opts,omitempty"`
+	Schema *jsonschema.Schema `json:"schema,omitempty"`
+	Nodes  map[string]*Node   `json:"nodes,omitempty"`
 }
 
 // LinkByName find a link w/ the given name in the provided list

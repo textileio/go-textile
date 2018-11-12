@@ -5,10 +5,8 @@ import (
 	"github.com/gin-gonic/gin"
 	m "github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/schema"
-	"image/jpeg"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 )
 
 func (a *api) schemaMill(g *gin.Context) {
@@ -74,7 +72,7 @@ func (a *api) imageResizeMill(g *gin.Context) {
 	}
 	mill := &m.ImageResize{
 		Opts: m.ImageResizeOpts{
-			Quality: jpeg.DefaultQuality,
+			Quality: "75",
 		},
 	}
 
@@ -83,19 +81,11 @@ func (a *api) imageResizeMill(g *gin.Context) {
 		g.String(http.StatusBadRequest, "missing width")
 		return
 	}
-	mill.Opts.Width, err = strconv.Atoi(opts["width"])
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
+	mill.Opts.Width = opts["width"]
 
 	// quality defaults to 75
 	if opts["quality"] != "" {
-		mill.Opts.Quality, err = strconv.Atoi(opts["quality"])
-		if err != nil {
-			g.String(http.StatusBadRequest, err.Error())
-			return
-		}
+		mill.Opts.Quality = opts["quality"]
 	}
 
 	file, name, err := a.openFile(g)
@@ -137,8 +127,7 @@ func (a *api) imageExifMill(g *gin.Context) {
 	}
 	defer file.Close()
 
-	media, err := a.node.FileMedia(file, mill)
-	if err != nil {
+	if _, err := a.node.FileMedia(file, mill); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
@@ -150,7 +139,7 @@ func (a *api) imageExifMill(g *gin.Context) {
 		return
 	}
 
-	added, err := a.node.AddFile(data, name, media, mill)
+	added, err := a.node.AddFile(data, name, "application/json", mill)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

@@ -28,8 +28,8 @@ var errThreadReload = errors.New("could not re-load thread")
 // ErrInvitesNotAllowed indicates an invite was attempted on a private thread
 var ErrInvitesNotAllowed = errors.New("invites not allowed to private thread")
 
-// ErrDAGSchemaRequired indicates files where added without a thread schema
-var ErrDAGSchemaRequired = errors.New("DAG schema required to add files")
+// ErrThreadSchemaRequired indicates files where added without a thread schema
+var ErrThreadSchemaRequired = errors.New("thread schema required to add files")
 
 // ThreadUpdate is used to notify listeners about updates in a thread
 type ThreadUpdate struct {

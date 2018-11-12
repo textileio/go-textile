@@ -91,6 +91,9 @@ func (a *api) lsThreads(g *gin.Context) {
 
 func (a *api) getThreads(g *gin.Context) {
 	id := g.Param("id")
+	if id == "default" {
+		id = a.node.config.Threads.Defaults.ID
+	}
 	thrd := a.node.Thread(id)
 	if thrd == nil {
 		g.String(http.StatusNotFound, ErrThreadNotFound.Error())

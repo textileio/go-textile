@@ -22,10 +22,11 @@ func init() {
 }
 
 type threadsCmd struct {
-	Add    addThreadsCmd `command:"add"`
-	List   lsThreadsCmd  `command:"ls"`
-	Get    getThreadsCmd `command:"get"`
-	Remove rmThreadsCmd  `command:"rm"`
+	Add        addThreadsCmd        `command:"add"`
+	List       lsThreadsCmd         `command:"ls"`
+	Get        getThreadsCmd        `command:"get"`
+	GetDefault getDefaultThreadsCmd `command:"default"`
+	Remove     rmThreadsCmd         `command:"rm"`
 }
 
 func (x *threadsCmd) Name() string {
@@ -51,16 +52,7 @@ purpose and 1-to-1 communication channels.
 }
 
 func (x *threadsCmd) Shell() *ishell.Cmd {
-	cmd := &ishell.Cmd{
-		Name:     x.Name(),
-		Help:     x.Short(),
-		LongHelp: x.Long(),
-	}
-	cmd.AddCmd((&addThreadsCmd{}).Shell())
-	cmd.AddCmd((&lsThreadsCmd{}).Shell())
-	cmd.AddCmd((&getThreadsCmd{}).Shell())
-	cmd.AddCmd((&rmThreadsCmd{}).Shell())
-	return cmd
+	return nil
 }
 
 type addThreadsCmd struct {
@@ -102,14 +94,14 @@ func (x *addThreadsCmd) Execute(args []string) error {
 		"type":   ttype,
 		"schema": sch,
 	}
-	return callAddThreads(args, opts, nil)
+	return callAddThreads(args, opts)
 }
 
 func (x *addThreadsCmd) Shell() *ishell.Cmd {
 	return nil
 }
 
-func callAddThreads(args []string, opts map[string]string, ctx *ishell.Context) error {
+func callAddThreads(args []string, opts map[string]string) error {
 	var body []byte
 
 	sch := opts["schema"]
@@ -156,7 +148,7 @@ func callAddThreads(args []string, opts map[string]string, ctx *ishell.Context) 
 	if err != nil {
 		return err
 	}
-	output(res, ctx)
+	output(res, nil)
 	return nil
 }
 
@@ -178,20 +170,20 @@ func (x *lsThreadsCmd) Long() string {
 
 func (x *lsThreadsCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callLsThreads(args, nil)
+	return callLsThreads()
 }
 
 func (x *lsThreadsCmd) Shell() *ishell.Cmd {
 	return nil
 }
 
-func callLsThreads(_ []string, ctx *ishell.Context) error {
+func callLsThreads() error {
 	var list *[]core.ThreadInfo
 	res, err := executeJsonCmd(GET, "threads", params{}, &list)
 	if err != nil {
 		return err
 	}
-	output(res, ctx)
+	output(res, nil)
 	return nil
 }
 
@@ -233,6 +225,41 @@ func callGetThreads(args []string, ctx *ishell.Context) error {
 	return nil
 }
 
+type getDefaultThreadsCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
+
+func (x *getDefaultThreadsCmd) Name() string {
+	return "default"
+}
+
+func (x *getDefaultThreadsCmd) Short() string {
+	return "Get default thread"
+}
+
+func (x *getDefaultThreadsCmd) Long() string {
+	return "Gets and displays info about the default thread (if selected)."
+}
+
+func (x *getDefaultThreadsCmd) Execute(args []string) error {
+	setApi(x.Client)
+	return callGetDefaultThreads()
+}
+
+func (x *getDefaultThreadsCmd) Shell() *ishell.Cmd {
+	return nil
+}
+
+func callGetDefaultThreads() error {
+	var info *core.ThreadInfo
+	res, err := executeJsonCmd(GET, "threads/default", params{}, &info)
+	if err != nil {
+		return err
+	}
+	output(res, nil)
+	return nil
+}
+
 type rmThreadsCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
@@ -251,14 +278,14 @@ func (x *rmThreadsCmd) Long() string {
 
 func (x *rmThreadsCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callRmThreads(args, nil)
+	return callRmThreads(args)
 }
 
 func (x *rmThreadsCmd) Shell() *ishell.Cmd {
 	return nil
 }
 
-func callRmThreads(args []string, ctx *ishell.Context) error {
+func callRmThreads(args []string) error {
 	if len(args) == 0 {
 		return errMissingThreadId
 	}
@@ -266,7 +293,7 @@ func callRmThreads(args []string, ctx *ishell.Context) error {
 	if err != nil {
 		return nil
 	}
-	output(res, ctx)
+	output(res, nil)
 	return nil
 }
 

@@ -18,11 +18,11 @@ type File struct {
 	Mill     string                 `json:"mill"`
 	Checksum string                 `json:"checksum"`
 	Hash     string                 `json:"hash"`
-	Key      string                 `json:"key"`
+	Key      string                 `json:"key,omitempty"`
 	Media    string                 `json:"media"`
 	Size     int                    `json:"size"`
 	Added    time.Time              `json:"added"`
-	Meta     map[string]interface{} `json:"meta"`
+	Meta     map[string]interface{} `json:"meta,omitempty"`
 }
 
 type Thread struct {

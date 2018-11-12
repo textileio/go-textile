@@ -36,16 +36,7 @@ Use this command to add, list, get, and remove cafes.
 }
 
 func (x *cafesCmd) Shell() *ishell.Cmd {
-	cmd := &ishell.Cmd{
-		Name:     x.Name(),
-		Help:     x.Short(),
-		LongHelp: x.Long(),
-	}
-	cmd.AddCmd((&addCafesCmd{}).Shell())
-	cmd.AddCmd((&lsCafesCmd{}).Shell())
-	cmd.AddCmd((&getCafesCmd{}).Shell())
-	cmd.AddCmd((&rmCafesCmd{}).Shell())
-	return cmd
+	return nil
 }
 
 type addCafesCmd struct {
@@ -66,20 +57,20 @@ func (x *addCafesCmd) Long() string {
 
 func (x *addCafesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callAddCafes(args, nil)
+	return callAddCafes(args)
 }
 
 func (x *addCafesCmd) Shell() *ishell.Cmd {
 	return nil
 }
 
-func callAddCafes(args []string, ctx *ishell.Context) error {
+func callAddCafes(args []string) error {
 	var info *repo.CafeSession
 	res, err := executeJsonCmd(POST, "cafes", params{args: args}, &info)
 	if err != nil {
 		return err
 	}
-	output(res, ctx)
+	output(res, nil)
 	return nil
 }
 
@@ -101,20 +92,20 @@ func (x *lsCafesCmd) Long() string {
 
 func (x *lsCafesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callLsCafes(args, nil)
+	return callLsCafes()
 }
 
 func (x *lsCafesCmd) Shell() *ishell.Cmd {
 	return nil
 }
 
-func callLsCafes(_ []string, ctx *ishell.Context) error {
+func callLsCafes() error {
 	var list *[]repo.CafeSession
 	res, err := executeJsonCmd(GET, "cafes", params{}, &list)
 	if err != nil {
 		return err
 	}
-	output(res, ctx)
+	output(res, nil)
 	return nil
 }
 
@@ -136,14 +127,14 @@ func (x *getCafesCmd) Long() string {
 
 func (x *getCafesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callGetCafes(args, nil)
+	return callGetCafes(args)
 }
 
 func (x *getCafesCmd) Shell() *ishell.Cmd {
 	return nil
 }
 
-func callGetCafes(args []string, ctx *ishell.Context) error {
+func callGetCafes(args []string) error {
 	if len(args) == 0 {
 		return errMissingCafeId
 	}
@@ -152,7 +143,7 @@ func callGetCafes(args []string, ctx *ishell.Context) error {
 	if err != nil {
 		return err
 	}
-	output(res, ctx)
+	output(res, nil)
 	return nil
 }
 
@@ -174,14 +165,14 @@ func (x *rmCafesCmd) Long() string {
 
 func (x *rmCafesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callRmCafes(args, nil)
+	return callRmCafes(args)
 }
 
 func (x *rmCafesCmd) Shell() *ishell.Cmd {
 	return nil
 }
 
-func callRmCafes(args []string, ctx *ishell.Context) error {
+func callRmCafes(args []string) error {
 	if len(args) == 0 {
 		return errMissingCafeId
 	}
@@ -189,7 +180,7 @@ func callRmCafes(args []string, ctx *ishell.Context) error {
 	if err != nil {
 		return nil
 	}
-	output(res, ctx)
+	output(res, nil)
 	return nil
 }
 
@@ -211,18 +202,18 @@ func (x *checkMailCafesCmd) Long() string {
 
 func (x *checkMailCafesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callCheckMailCafes(args, nil)
+	return callCheckMailCafes()
 }
 
 func (x *checkMailCafesCmd) Shell() *ishell.Cmd {
 	return nil
 }
 
-func callCheckMailCafes(_ []string, ctx *ishell.Context) error {
+func callCheckMailCafes() error {
 	res, err := executeStringCmd(POST, "cafes/check_mail", params{})
 	if err != nil {
 		return nil
 	}
-	output(res, ctx)
+	output(res, nil)
 	return nil
 }

@@ -8,28 +8,32 @@ var Photo = `
       "use": ":original",
       "mill": "/blob"
     },
+    "exif": {
+      "use": ":original",
+      "mill": "/image/exif"
+    },
     "large": {
       "use": ":original",
       "mill": "/image/resize",
       "opts": {
-        "width": 1600,
-        "quality": 80
+        "width": "1600",
+        "quality": "80"
       }
     },
     "medium": {
       "use": ":original",
       "mill": "/image/resize",
       "opts": {
-        "width": 800,
-        "quality": 80
+        "width": "800",
+        "quality": "80"
       }
     },
     "small": {
       "use": ":original",
       "mill": "/image/resize",
       "opts": {
-        "width": 320,
-        "quality": 80
+        "width": "320",
+        "quality": "80"
       }
     },
     "thumb": {
@@ -37,8 +41,8 @@ var Photo = `
       "use": ":original",
       "mill": "/image/resize",
       "opts": {
-        "width": 100,
-        "quality": 80
+        "width": "100",
+        "quality": "80"
       }
     }
   }

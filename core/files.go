@@ -3,7 +3,6 @@ package core
 import (
 	"bytes"
 	"crypto/sha256"
-	"fmt"
 	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
@@ -23,20 +22,19 @@ func (t *Textile) FileMedia(reader io.Reader, mill m.Mill) (string, error) {
 		return "", err
 	}
 	media := http.DetectContentType(buffer[:n])
-	fmt.Println(media)
 
 	return media, mill.AcceptMedia(media)
 }
 
 func (t *Textile) AddFile(input []byte, name string, media string, mill m.Mill) (*repo.File, error) {
-	check := t.checksum(input)
-	if efile := t.datastore.Files().GetByPrimary(mill.ID(), check); efile != nil {
-		return efile, nil
-	}
-
 	res, err := mill.Mill(input, name)
 	if err != nil {
 		return nil, err
+	}
+
+	check := t.checksum(res.File)
+	if efile := t.datastore.Files().GetByPrimary(mill.ID(), check); efile != nil {
+		return efile, nil
 	}
 
 	model := &repo.File{

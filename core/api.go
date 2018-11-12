@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"mime/multipart"
@@ -198,9 +197,6 @@ func (a *api) openFile(g *gin.Context) (multipart.File, string, error) {
 		return nil, "", err
 	}
 	header := form.File["file"][0]
-	for k, v := range header.Header {
-		fmt.Println(k + ": " + strings.Join(v, ","))
-	}
 	file, err := header.Open()
 	if err != nil {
 		return nil, "", err

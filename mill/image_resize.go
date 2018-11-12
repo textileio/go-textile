@@ -12,7 +12,7 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
-	"time"
+	"strconv"
 )
 
 // Format enumerates the type of images currently supported
@@ -24,9 +24,14 @@ const (
 	GIF  Format = "gif"
 )
 
+type ImageSize struct {
+	Width  int
+	Height int
+}
+
 type ImageResizeOpts struct {
-	Width   int `json:"width"`
-	Quality int `json:"quality"`
+	Width   string `json:"width"`
+	Quality string `json:"quality"`
 }
 
 type ImageResize struct {
@@ -59,14 +64,22 @@ func (m *ImageResize) Mill(input []byte, name string) (*Result, error) {
 		return nil, err
 	}
 	format := Format(formatStr)
-	size := img.Bounds().Size()
 
 	clean, err := removeExif(bytes.NewReader(input), img, format)
 	if err != nil {
 		return nil, err
 	}
 
-	buff, err := encodeImage(clean, format, m.Opts.Width, m.Opts.Quality)
+	width, err := strconv.Atoi(m.Opts.Width)
+	if err != nil {
+		return nil, err
+	}
+	quality, err := strconv.Atoi(m.Opts.Quality)
+	if err != nil {
+		return nil, err
+	}
+
+	buff, rect, err := encodeImage(clean, format, width, quality)
 	if err != nil {
 		return nil, err
 	}
@@ -74,9 +87,8 @@ func (m *ImageResize) Mill(input []byte, name string) (*Result, error) {
 	return &Result{
 		File: buff.Bytes(),
 		Meta: map[string]interface{}{
-			"width":   size.X,
-			"height":  size.Y,
-			"created": time.Now(),
+			"width":  rect.Dx(),
+			"height": rect.Dy(),
 		},
 	}, nil
 }
@@ -100,14 +112,15 @@ func removeExif(reader io.Reader, img image.Image, format Format) (io.Reader, er
 
 // encodeImage creates a jpeg|gif from reader (quality applies to jpeg only)
 // NOTE: format is the reader image format, destination format is chosen accordingly.
-func encodeImage(reader io.Reader, format Format, width int, quality int) (*bytes.Buffer, error) {
+func encodeImage(reader io.Reader, format Format, width int, quality int) (*bytes.Buffer, *image.Rectangle, error) {
 	buff := new(bytes.Buffer)
+	var size image.Rectangle
 
 	if format != GIF {
 		// encode to jpeg
 		img, _, err := image.Decode(reader)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		if img.Bounds().Size().X < width {
@@ -116,17 +129,18 @@ func encodeImage(reader io.Reader, format Format, width int, quality int) (*byte
 
 		resized := imaging.Resize(img, width, 0, imaging.Lanczos)
 		if err = jpeg.Encode(buff, resized, &jpeg.Options{Quality: quality}); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
+		size = resized.Rect
 
 	} else {
 		// encode to gif
 		img, err := gif.DecodeAll(reader)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if len(img.Image) == 0 {
-			return nil, errors.New("gif does not have any frames")
+			return nil, nil, errors.New("gif does not have any frames")
 		}
 
 		firstFrame := img.Image[0].Bounds()
@@ -145,11 +159,13 @@ func encodeImage(reader io.Reader, format Format, width int, quality int) (*byte
 		img.Config.Height = img.Image[0].Bounds().Dy()
 
 		if err = gif.EncodeAll(buff, img); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
+
+		size = img.Image[0].Bounds()
 	}
 
-	return buff, nil
+	return buff, &size, nil
 }
 
 // correctOrientation returns a copy of an image (jpg|png|gif) with exif removed

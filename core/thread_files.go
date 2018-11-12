@@ -18,7 +18,7 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 
 	// schema is required to add files
 	if t.schema == nil {
-		return nil, ErrDAGSchemaRequired
+		return nil, ErrThreadSchemaRequired
 	}
 
 	// target is the top dir containing one or more files
@@ -91,7 +91,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 
 	// schema is required to add files
 	if t.schema == nil {
-		return nil, ErrDAGSchemaRequired
+		return nil, ErrThreadSchemaRequired
 	}
 
 	// check if this block has been ignored
