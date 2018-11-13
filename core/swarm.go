@@ -3,9 +3,10 @@ package core
 import (
 	"errors"
 	"fmt"
-	"github.com/textileio/textile-go/ipfs"
 	libp2pn "gx/ipfs/QmPjvxTpVH8qJyQDnxnsxF9kv9jezKD1kozz1hs3fCGsNh/go-libp2p-net"
 	"gx/ipfs/QmemVjhp1UuWPQqrWSvPcaqH3QJRMjMqNm4T2RULMkDDQe/go-libp2p-swarm"
+
+	"github.com/textileio/textile-go/ipfs"
 )
 
 // ConnectPeer connect to another ipfs peer (i.e., ipfs swarm connect)

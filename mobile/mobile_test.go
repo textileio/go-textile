@@ -3,13 +3,14 @@ package mobile_test
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/textileio/textile-go/core"
-	. "github.com/textileio/textile-go/mobile"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"image/jpeg"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/textileio/textile-go/core"
+	. "github.com/textileio/textile-go/mobile"
 )
 
 type TestMessenger struct {

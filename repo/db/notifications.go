@@ -2,10 +2,11 @@ package db
 
 import (
 	"database/sql"
-	"github.com/textileio/textile-go/repo"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/textileio/textile-go/repo"
 )
 
 type NotificationDB struct {

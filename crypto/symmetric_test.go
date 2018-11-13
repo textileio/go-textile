@@ -1,8 +1,9 @@
 package crypto_test
 
 import (
-	. "github.com/textileio/textile-go/crypto"
 	"testing"
+
+	. "github.com/textileio/textile-go/crypto"
 )
 
 var symmetricTestData = struct {

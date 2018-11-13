@@ -5,6 +5,13 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/fsrepo"
+	"os"
+	"path/filepath"
+	"runtime"
+	"time"
+
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
 	"github.com/asticode/go-astilog"
@@ -14,12 +21,6 @@ import (
 	"github.com/textileio/textile-go/gateway"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/repo"
-	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
-	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/fsrepo"
-	"os"
-	"path/filepath"
-	"runtime"
-	"time"
 )
 
 var (

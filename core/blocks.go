@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"fmt"
+
 	"github.com/textileio/textile-go/repo"
 )
 

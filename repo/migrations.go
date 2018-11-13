@@ -1,11 +1,12 @@
 package repo
 
 import (
-	m "github.com/textileio/textile-go/repo/migrations"
 	"io/ioutil"
 	"os"
 	"path"
 	"strconv"
+
+	m "github.com/textileio/textile-go/repo/migrations"
 )
 
 // Migration performs minor up and down migrations

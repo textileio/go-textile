@@ -5,17 +5,18 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
-	"github.com/mr-tron/base58/base58"
-	"github.com/textileio/textile-go/crypto"
-	"github.com/textileio/textile-go/ipfs"
-	m "github.com/textileio/textile-go/mill"
-	"github.com/textileio/textile-go/repo"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 	uio "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/unixfs/io"
 	"io"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/mr-tron/base58/base58"
+	"github.com/textileio/textile-go/crypto"
+	"github.com/textileio/textile-go/ipfs"
+	m "github.com/textileio/textile-go/mill"
+	"github.com/textileio/textile-go/repo"
 )
 
 var ErrFileNotFound = errors.New("file not found")

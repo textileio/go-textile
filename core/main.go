@@ -4,14 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/textileio/textile-go/archive"
-	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/repo/config"
-	"github.com/textileio/textile-go/repo/db"
-	"github.com/textileio/textile-go/service"
-	"gopkg.in/natefinch/lumberjack.v2"
 	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
@@ -28,6 +20,15 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/textileio/textile-go/archive"
+	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/repo/config"
+	"github.com/textileio/textile-go/repo/db"
+	"github.com/textileio/textile-go/service"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var log = logging.Logger("tex-node")

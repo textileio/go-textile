@@ -1,8 +1,9 @@
 package jwt
 
 import (
-	"github.com/dgrijalva/jwt-go"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 // Implements the Ed25519 signing method

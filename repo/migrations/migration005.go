@@ -4,11 +4,12 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
-	_ "github.com/mutecomm/go-sqlcipher"
-	"github.com/textileio/textile-go/crypto"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"os"
 	"path"
+
+	_ "github.com/mutecomm/go-sqlcipher"
+	"github.com/textileio/textile-go/crypto"
 )
 
 type thread struct {

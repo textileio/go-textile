@@ -3,15 +3,16 @@ package core_test
 import (
 	"encoding/json"
 	"fmt"
-	. "github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/repo"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
 	"time"
+
+	. "github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/repo"
 )
 
 var repoPath1 = "testdata/.textile1"

@@ -2,8 +2,9 @@ package core
 
 import (
 	"errors"
-	"github.com/textileio/textile-go/repo"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+
+	"github.com/textileio/textile-go/repo"
 )
 
 // RegisterCafe registers this account with another peer (the "cafe"),

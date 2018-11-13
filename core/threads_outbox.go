@@ -1,13 +1,14 @@
 package core
 
 import (
-	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 	"sync"
 	"time"
+
+	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/textile-go/repo"
 )
 
 // threadsFlushGroupSize is the size of concurrently processed messages

@@ -3,16 +3,17 @@ package gateway
 import (
 	"context"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/render"
-	"github.com/mr-tron/base58/base58"
-	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/crypto"
 	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core/coreapi/interface"
 	"net/http"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/render"
+	"github.com/mr-tron/base58/base58"
+	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/crypto"
 )
 
 var log = logging.Logger("gateway")

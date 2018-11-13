@@ -2,9 +2,10 @@ package gateway_test
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/gateway"
-	"testing"
 )
 
 func TestNewGateway(t *testing.T) {

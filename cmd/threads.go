@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io/ioutil"
+	"os"
+
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
@@ -11,8 +14,6 @@ import (
 	"github.com/textileio/textile-go/schema"
 	"github.com/textileio/textile-go/schema/textile"
 	"gopkg.in/abiosoft/ishell.v2"
-	"io/ioutil"
-	"os"
 )
 
 var errMissingThreadId = errors.New("missing thread id")

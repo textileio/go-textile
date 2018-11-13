@@ -2,11 +2,12 @@ package db
 
 import (
 	"database/sql"
-	_ "github.com/mutecomm/go-sqlcipher"
-	"github.com/textileio/textile-go/repo"
 	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	"path"
 	"sync"
+
+	_ "github.com/mutecomm/go-sqlcipher"
+	"github.com/textileio/textile-go/repo"
 )
 
 var log = logging.Logger("tex-datastore")

@@ -1,11 +1,12 @@
 package jwt_test
 
 import (
+	"strings"
+	"testing"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/textileio/textile-go/ipfs"
 	. "github.com/textileio/textile-go/jwt"
-	"strings"
-	"testing"
 )
 
 var publicKey = "CAESIP1G8uGFpX+iduqgJfKLt0nw870MI9ydHcKg9gDIr5Tb"

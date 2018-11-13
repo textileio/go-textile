@@ -6,10 +6,11 @@ import (
 	"crypto/sha512"
 	"encoding/binary"
 	"errors"
-	"golang.org/x/crypto/ed25519"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"golang.org/x/crypto/ed25519"
 )
 
 const (

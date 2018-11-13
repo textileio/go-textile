@@ -2,8 +2,9 @@ package repo
 
 import (
 	"database/sql"
-	"github.com/textileio/textile-go/keypair"
 	"time"
+
+	"github.com/textileio/textile-go/keypair"
 )
 
 type Datastore interface {

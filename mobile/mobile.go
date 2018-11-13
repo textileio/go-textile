@@ -2,13 +2,14 @@ package mobile
 
 import (
 	"encoding/json"
-	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/wallet"
 	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	"strings"
 	"time"
+
+	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/wallet"
 )
 
 var log = logging.Logger("tex-mobile")

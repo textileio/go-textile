@@ -3,11 +3,12 @@ package old
 import (
 	"errors"
 	"fmt"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/ipfs"
 	"gopkg.in/abiosoft/ishell.v2"
-	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 )
 
 func publishProfile(c *ishell.Context) {

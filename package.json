@@ -18,7 +18,7 @@
     "commitmsg": "commitlint -e $GIT_PARAMS",
     "precommit": ". ./script/precommit.sh",
     "coverage": "go tool cover -html=coverage.out",
-    "format": "go fmt ./...",
+    "format": "goimports -w -l $(find . -type f -name '*.go' -not -path './vendor/*')",
     "lint": "golint `go list ./... | grep -v /vendor/`"
   },
   "config": {

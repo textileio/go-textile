@@ -1,11 +1,12 @@
 package db
 
 import (
-	"github.com/textileio/textile-go/wallet"
 	"os"
 	"path"
 	"testing"
 	"time"
+
+	"github.com/textileio/textile-go/wallet"
 )
 
 var testDB *SQLiteDatastore

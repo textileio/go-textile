@@ -2,11 +2,12 @@ package core
 
 import (
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	m "github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/schema"
-	"io/ioutil"
-	"net/http"
 )
 
 func (a *api) schemaMill(g *gin.Context) {

@@ -3,14 +3,15 @@ package jwt
 import (
 	"encoding/json"
 	"errors"
-	"github.com/dgrijalva/jwt-go"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/pb"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/pb"
 )
 
 var ErrClaimsInvalid = errors.New("claims invalid")

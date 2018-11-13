@@ -3,14 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/jessevdk/go-flags"
-	"github.com/mitchellh/go-homedir"
-	"github.com/textileio/textile-go/cmd"
-	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/gateway"
-	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/wallet"
-	"gopkg.in/abiosoft/ishell.v2"
 	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	"log"
 	"os"
@@ -19,6 +11,15 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/jessevdk/go-flags"
+	"github.com/mitchellh/go-homedir"
+	"github.com/textileio/textile-go/cmd"
+	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/gateway"
+	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/wallet"
+	"gopkg.in/abiosoft/ishell.v2"
 )
 
 type ipfsOptions struct {

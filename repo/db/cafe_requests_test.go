@@ -2,10 +2,11 @@ package db
 
 import (
 	"database/sql"
-	"github.com/textileio/textile-go/repo"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/textileio/textile-go/repo"
 )
 
 var cafeReqDB repo.CafeRequestStore

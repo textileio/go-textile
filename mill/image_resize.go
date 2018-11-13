@@ -3,8 +3,6 @@ package mill
 import (
 	"bytes"
 	"errors"
-	"github.com/disintegration/imaging"
-	"github.com/rwcarlsen/goexif/exif"
 	"image"
 	"image/color/palette"
 	"image/draw"
@@ -13,6 +11,9 @@ import (
 	"image/png"
 	"io"
 	"strconv"
+
+	"github.com/disintegration/imaging"
+	"github.com/rwcarlsen/goexif/exif"
 )
 
 // Format enumerates the type of images currently supported

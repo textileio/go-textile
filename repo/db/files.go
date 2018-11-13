@@ -3,10 +3,11 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
-	"github.com/textileio/textile-go/repo"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/textileio/textile-go/repo"
 )
 
 type FileDB struct {

@@ -2,15 +2,16 @@ package core_test
 
 import (
 	"crypto/rand"
-	"github.com/segmentio/ksuid"
-	. "github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/repo"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"os"
 	"testing"
+
+	"github.com/segmentio/ksuid"
+	. "github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/repo"
 )
 
 var repoPath = "testdata/.textile"

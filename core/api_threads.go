@@ -2,13 +2,14 @@ package core
 
 import (
 	"crypto/rand"
-	"github.com/gin-gonic/gin"
-	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/repo"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/repo"
 )
 
 func (a *api) addThreads(g *gin.Context) {

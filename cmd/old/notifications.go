@@ -3,6 +3,7 @@ package old
 import (
 	"errors"
 	"fmt"
+
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/core"
 	"gopkg.in/abiosoft/ishell.v2"

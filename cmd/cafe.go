@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+
 	"github.com/textileio/textile-go/repo"
 	"gopkg.in/abiosoft/ishell.v2"
 )

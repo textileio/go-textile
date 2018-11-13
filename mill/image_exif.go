@@ -3,11 +3,12 @@ package mill
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/rwcarlsen/goexif/exif"
 	"image"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/rwcarlsen/goexif/exif"
 )
 
 type ImageExifSchema struct {
