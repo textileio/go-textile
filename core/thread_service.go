@@ -16,6 +16,7 @@ import (
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 )
 
@@ -28,6 +29,7 @@ type ThreadsService struct {
 	service          *service.Service
 	datastore        repo.Datastore
 	getThread        func(id string) *Thread
+	addThread        func(sk libp2pc.PrivKey, conf NewThreadConfig) (*Thread, error)
 	sendNotification func(note *repo.Notification) error
 }
 
@@ -37,11 +39,13 @@ func NewThreadsService(
 	node *core.IpfsNode,
 	datastore repo.Datastore,
 	getThread func(id string) *Thread,
+	addThread func(sk libp2pc.PrivKey, conf NewThreadConfig) (*Thread, error),
 	sendNotification func(note *repo.Notification) error,
 ) *ThreadsService {
 	handler := &ThreadsService{
 		datastore:        datastore,
 		getThread:        getThread,
+		addThread:        addThread,
 		sendNotification: sendNotification,
 	}
 	handler.service = service.NewService(account, handler, node)

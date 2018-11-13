@@ -320,6 +320,7 @@ func (t *Textile) Start() error {
 			t.node,
 			t.datastore,
 			t.Thread,
+			t.AddThread,
 			t.sendNotification,
 		)
 
