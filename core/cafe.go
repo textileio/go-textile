@@ -13,7 +13,6 @@ func (t *Textile) RegisterCafe(peerId string) (*repo.CafeSession, error) {
 		return nil, ErrOffline
 	}
 
-	// call up the peer, see if they're offering a cafe
 	pid, err := peer.IDB58Decode(peerId)
 	if err != nil {
 		return nil, err
@@ -34,14 +33,12 @@ func (t *Textile) RegisterCafe(peerId string) (*repo.CafeSession, error) {
 		}
 	}
 
-	// annouce to all threads
 	for _, thrd := range t.threads {
 		if _, err := thrd.annouce(); err != nil {
 			return nil, err
 		}
 	}
 
-	// publish profile w/ updated inboxes
 	if err := t.PublishProfile(); err != nil {
 		return nil, err
 	}
@@ -96,19 +93,16 @@ func (t *Textile) DeregisterCafe(peerId string) error {
 		return err
 	}
 
-	// delete from datastore
 	if err := t.datastore.CafeSessions().Delete(peerId); err != nil {
 		return err
 	}
 
-	// annouce to all threads
 	for _, thrd := range t.threads {
 		if _, err := thrd.annouce(); err != nil {
 			return err
 		}
 	}
 
-	// publish profile w/ updated inboxes
 	return t.PublishProfile()
 }
 

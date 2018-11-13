@@ -51,7 +51,6 @@ func (t *Thread) merge(head mh.Multihash) (mh.Multihash, error) {
 	}
 	header.Date = pdate
 
-	// build block
 	block := &pb.ThreadBlock{
 		Header: header,
 		Type:   pb.ThreadBlock_MERGE,
@@ -67,7 +66,6 @@ func (t *Thread) merge(head mh.Multihash) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	// index it locally
 	if err := t.indexBlock(&commitResult{
 		hash:   hash,
 		header: header,
@@ -75,20 +73,17 @@ func (t *Thread) merge(head mh.Multihash) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	// update head
 	if err := t.updateHead(hash); err != nil {
 		return nil, err
 	}
 
 	log.Debugf("adding MERGE to %s: %s", t.Id, hash.B58String())
 
-	// all done
 	return hash, nil
 }
 
 // handleMergeBlock handles an incoming merge block
 func (t *Thread) handleMergeBlock(hash mh.Multihash, block *pb.ThreadBlock) error {
-	// index it locally
 	return t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,

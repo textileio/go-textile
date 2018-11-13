@@ -27,7 +27,6 @@ func (a *api) addThreads(g *gin.Context) {
 		return
 	}
 
-	// build config
 	config := NewThreadConfig{
 		Name: args[0],
 		Join: true,

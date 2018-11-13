@@ -112,19 +112,16 @@ func ParseClaims(claims jwt.Claims) (*TextileClaims, error) {
 }
 
 func Validate(tokenString string, keyfunc jwt.Keyfunc, refreshing bool, audience string, subject *string) error {
-	// parse it
 	token, pErr := jwt.Parse(tokenString, keyfunc)
 	if token == nil {
 		return ErrNoToken
 	}
 
-	// pull out claims
 	claims, err := ParseClaims(token.Claims)
 	if err != nil {
 		return ErrInvalid
 	}
 
-	// check valid
 	if pErr != nil {
 		if !claims.VerifyExpiresAt(time.Now().Unix(), true) {
 			return ErrExpired
@@ -132,7 +129,6 @@ func Validate(tokenString string, keyfunc jwt.Keyfunc, refreshing bool, audience
 		return ErrInvalid
 	}
 
-	// check scope
 	switch claims.Scope {
 	case Access:
 		if refreshing {

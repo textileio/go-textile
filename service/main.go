@@ -214,7 +214,6 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 		default:
 		}
 
-		// receive msg
 		env := new(pb.Envelope)
 		if err := reader.ReadMsg(env); err != nil {
 			stream.Reset()
@@ -224,7 +223,6 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 			return
 		}
 
-		// check signature
 		if err := s.VerifyEnvelope(env, rpid); err != nil {
 			log.Warningf("error verifying message: %s", err)
 			continue
@@ -260,7 +258,6 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 			handler = s.handler.Handle
 		}
 
-		// dispatch handler
 		log.Debugf("received %s from %s", env.Message.Type.String(), rpid.Pretty())
 		renv, err := handler(rpid, env)
 		if err != nil {
@@ -270,7 +267,6 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 			continue
 		}
 
-		// send out response msg
 		log.Debugf("responding with %s to %s", renv.Message.Type.String(), rpid.Pretty())
 		if err := ms.SendMessage(s.Node.Context(), renv); err != nil {
 			stream.Reset()

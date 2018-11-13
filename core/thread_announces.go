@@ -13,36 +13,30 @@ func (t *Thread) annouce() (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	// build block
 	msg, err := t.buildAnnounce()
 	if err != nil {
 		return nil, err
 	}
 
-	// commit to ipfs
 	res, err := t.commitBlock(msg, pb.ThreadBlock_ANNOUNCE, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// index it locally
 	if err := t.indexBlock(res, repo.AnnounceBlock, "", ""); err != nil {
 		return nil, err
 	}
 
-	// update head
 	if err := t.updateHead(res.hash); err != nil {
 		return nil, err
 	}
 
-	// post it
 	if err := t.post(res, t.Peers()); err != nil {
 		return nil, err
 	}
 
 	log.Debugf("added ANNOUNCE to %s: %s", t.Id, res.hash.B58String())
 
-	// all done
 	return res.hash, nil
 }
 
@@ -53,7 +47,6 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 		return nil, err
 	}
 
-	// index it locally
 	if err := t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,

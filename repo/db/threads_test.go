@@ -86,7 +86,7 @@ func TestThreadDB_List(t *testing.T) {
 		Name:    "boom",
 		Schema:  "Qm...",
 		Type:    repo.PrivateThread,
-		State:   repo.ThreadPending,
+		State:   repo.ThreadLoaded,
 	})
 	if err != nil {
 		t.Error(err)

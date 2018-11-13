@@ -16,35 +16,29 @@ func (t *Thread) Flag(block string) (mh.Multihash, error) {
 	// adding a flag specific prefix here to ensure future flexibility
 	target := fmt.Sprintf("flag-%s", block)
 
-	// build block
 	msg := &pb.ThreadFlag{
 		Target: target,
 	}
 
-	// commit to ipfs
 	res, err := t.commitBlock(msg, pb.ThreadBlock_FLAG, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// index it locally
 	if err := t.indexBlock(res, repo.FlagBlock, target, ""); err != nil {
 		return nil, err
 	}
 
-	// update head
 	if err := t.updateHead(res.hash); err != nil {
 		return nil, err
 	}
 
-	// post it
 	if err := t.post(res, t.Peers()); err != nil {
 		return nil, err
 	}
 
 	log.Debugf("added FLAG to %s: %s", t.Id, res.hash.B58String())
 
-	// all done
 	return res.hash, nil
 }
 
@@ -57,7 +51,6 @@ func (t *Thread) handleFlagBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 
 	// TODO: how do we want to handle flags? making visible to UIs would be a good start
 
-	// index it locally
 	if err := t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,

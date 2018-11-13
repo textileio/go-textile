@@ -43,7 +43,7 @@ func (q *CafeOutbox) Add(target string, rtype repo.CafeRequestType) error {
 	if rtype == repo.CafePeerInboxRequest {
 		return errors.New("inbox request to own inbox, aborting")
 	}
-	// get active cafe sessions
+
 	sessions := q.datastore.CafeSessions().List()
 	if len(sessions) == 0 {
 		return nil
@@ -65,13 +65,11 @@ func (q *CafeOutbox) InboxRequest(pid peer.ID, env *pb.Envelope, inboxes []strin
 		return nil
 	}
 
-	// encrypt for peer
 	hash, err := q.prepForInbox(pid, env)
 	if err != nil {
 		return err
 	}
 
-	// for each inbox, add a req
 	for _, inbox := range inboxes {
 		q.add(pid, hash.B58String(), inbox, repo.CafePeerInboxRequest)
 	}
@@ -83,12 +81,10 @@ func (q *CafeOutbox) Flush() {
 	q.mux.Lock()
 	defer q.mux.Unlock()
 
-	// check service status
 	if q.service() == nil {
 		return
 	}
 
-	// start at zero offset
 	if err := q.batch(q.datastore.CafeRequests().List("", cafeOutFlushGroupSize)); err != nil {
 		log.Errorf("cafe outbox batch error: %s", err)
 		return
@@ -154,7 +150,6 @@ func (q *CafeOutbox) batch(reqs []repo.CafeRequest) error {
 	offset := reqs[len(reqs)-1].Id
 	next := q.datastore.CafeRequests().List(offset, cafeOutFlushGroupSize)
 
-	// clean up
 	var deleted []string
 	for _, id := range toDelete {
 		if err := q.datastore.CafeRequests().Delete(id); err != nil {
@@ -250,34 +245,12 @@ func (q *CafeOutbox) prepForInbox(pid peer.ID, env *pb.Envelope) (mh.Multihash, 
 		return nil, err
 	}
 
-	// pin it
 	id, err := ipfs.AddData(q.node(), bytes.NewReader(ciphertext), true)
 	if err != nil {
 		return nil, err
 	}
 
-	// add a store request for the encrypted message
 	q.Add(id.Hash().B58String(), repo.CafeStoreRequest)
 
 	return id.Hash(), nil
 }
-
-//func Store(node *core.IpfsNode, id string, session *repo.CafeSession) error {
-//	// load local content
-//	cType := "application/octet-stream"
-//	var reader io.Reader
-//	data, err := ipfsutil.DataAtPath(node, id)
-//	if err != nil {
-//		if err == iface.ErrIsDir {
-//			reader, err = ipfsutil.GetArchiveAtPath(node, id)
-//			if err != nil {
-//				return err
-//			}
-//			cType = "application/gzip"
-//		} else {
-//			return err
-//		}
-//	} else {
-//		reader = bytes.NewReader(data)
-//	}
-//}

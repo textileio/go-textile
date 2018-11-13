@@ -14,12 +14,10 @@ func (t *Thread) AddInvite(inviteeId peer.ID) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	// check access
 	if t.Type == repo.PrivateThread {
 		return nil, ErrInvitesNotAllowed
 	}
 
-	// build block
 	threadSk, err := t.privKey.Bytes()
 	if err != nil {
 		return nil, err
@@ -30,13 +28,11 @@ func (t *Thread) AddInvite(inviteeId peer.ID) (mh.Multihash, error) {
 		Schema: t.schemaId,
 	}
 
-	// get the peer pub key from the id
 	inviteePk, err := inviteeId.ExtractPublicKey()
 	if err != nil {
 		return nil, err
 	}
 
-	// commit to ipfs
 	res, err := t.commitBlock(msg, pb.ThreadBlock_INVITE, func(plaintext []byte) ([]byte, error) {
 		return crypto.Encrypt(inviteePk, plaintext)
 	})
@@ -47,14 +43,12 @@ func (t *Thread) AddInvite(inviteeId peer.ID) (mh.Multihash, error) {
 	// create new peer for posting (it will get added if+when they accept)
 	target := repo.ThreadPeer{Id: inviteeId.Pretty()}
 
-	// post it
 	if err := t.post(res, []repo.ThreadPeer{target}); err != nil {
 		return nil, err
 	}
 
 	log.Debugf("sent INVITE to %s for %s", inviteeId.Pretty(), t.Id)
 
-	// all done
 	return res.hash, nil
 }
 
@@ -64,12 +58,10 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	// check access
 	if t.Type == repo.PrivateThread {
 		return nil, nil, ErrInvitesNotAllowed
 	}
 
-	// build block
 	threadSk, err := t.privKey.Bytes()
 	if err != nil {
 		return nil, nil, err
@@ -80,13 +72,11 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 		Schema: t.schemaId,
 	}
 
-	// generate an aes key
 	key, err := crypto.GenerateAESKey()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// commit to ipfs
 	res, err := t.commitBlock(msg, pb.ThreadBlock_INVITE, func(plaintext []byte) ([]byte, error) {
 		return crypto.EncryptAES(plaintext, key)
 	})
@@ -96,15 +86,13 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 
 	log.Debugf("created external INVITE for %s", t.Id)
 
-	// all done
 	return res.hash, key, nil
 }
 
-// handleInviteMessage handles an incoming invite
-// - this happens right before a join
-// - the invite is not kept on-chain, so we only need to follow parents and update HEAD
+// handleInviteMessage handles an incoming invite.
+// This happens right before a join. The invite is not kept on-chain,
+// so we only need to follow parents and update HEAD.
 func (t *Thread) handleInviteMessage(block *pb.ThreadBlock) error {
-	// back prop
 	if err := t.followParents(block.Header.Parents); err != nil {
 		return err
 	}

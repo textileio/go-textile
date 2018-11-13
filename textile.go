@@ -127,19 +127,16 @@ func main() {
 }
 
 func (x *walletInitCmd) Execute(args []string) error {
-	// determine word count
 	wcount, err := wallet.NewWordCount(x.WordCount)
 	if err != nil {
 		return err
 	}
 
-	// create a new wallet
 	w, err := wallet.NewWallet(wcount.EntropySize())
 	if err != nil {
 		return err
 	}
 
-	// show info
 	fmt.Println(strings.Repeat("-", len(w.RecoveryPhrase)+4))
 	fmt.Println("| " + w.RecoveryPhrase + " |")
 	fmt.Println(strings.Repeat("-", len(w.RecoveryPhrase)+4))
@@ -193,7 +190,6 @@ func (x *walletAccountsCmd) Execute(args []string) error {
 		return wallet.ErrInvalidWordCount
 	}
 
-	// read input
 	words := make([]string, int(wcount))
 	for i := 0; i < int(wcount); i++ {
 		shell.Print(fmt.Sprintf("Enter word #%d: ", i+1))
@@ -205,7 +201,6 @@ func (x *walletAccountsCmd) Execute(args []string) error {
 	}
 	wall := wallet.NewWalletFromRecoveryPhrase(strings.Join(words, " "))
 
-	// show info
 	for i := x.Offset; i < x.Offset+x.Depth; i++ {
 		kp, err := wall.AccountAt(i, x.Password)
 		if err != nil {
@@ -234,19 +229,16 @@ func (x *initCmd) Execute(args []string) error {
 		return keypair.ErrInvalidKey
 	}
 
-	// handle repo path
 	repoPath, err := getRepoPath(x.RepoPath)
 	if err != nil {
 		return err
 	}
 
-	// determine log level
 	level, err := logger.LogLevel(strings.ToUpper(x.Logs.Level))
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to determine log level: %s", err))
 	}
 
-	// build config
 	config := core.InitConfig{
 		Account:     accnt,
 		PinCode:     x.PinCode,
@@ -262,7 +254,6 @@ func (x *initCmd) Execute(args []string) error {
 		CafeOpen:    x.CafeOptions.Open,
 	}
 
-	// initialize a node
 	if err := core.InitRepo(config); err != nil {
 		return errors.New(fmt.Sprintf("initialize failed: %s", err))
 	}
@@ -271,13 +262,11 @@ func (x *initCmd) Execute(args []string) error {
 }
 
 func (x *migrateCmd) Execute(args []string) error {
-	// handle repo path
 	repoPath, err := getRepoPath(x.RepoPath)
 	if err != nil {
 		return err
 	}
 
-	// run migrate
 	if err := core.MigrateRepo(core.MigrateConfig{
 		PinCode:  x.PinCode,
 		RepoPath: repoPath,
@@ -335,7 +324,6 @@ func (x *shellCmd) Execute(args []string) error {
 }
 
 func getRepoPath(repoPath string) (string, error) {
-	// handle repo path
 	if len(repoPath) == 0 {
 		// get homedir
 		home, err := homedir.Dir()
@@ -354,13 +342,11 @@ func getRepoPath(repoPath string) (string, error) {
 }
 
 func buildNode(pinCode string, repoPath string) error {
-	// handle repo path
 	repoPathf, err := getRepoPath(repoPath)
 	if err != nil {
 		return err
 	}
 
-	// create a node
 	node, err := core.NewTextile(core.RunConfig{
 		PinCode:  pinCode,
 		RepoPath: repoPathf,
@@ -370,10 +356,8 @@ func buildNode(pinCode string, repoPath string) error {
 	}
 	core.Node = node
 
-	// create the gateway
 	gateway.Host = &gateway.Gateway{}
 
-	// auto start it
 	if err := startNode(); err != nil {
 		return errors.New(fmt.Sprintf("start node failed: %s", err))
 	}
@@ -441,13 +425,10 @@ func startNode() error {
 		}
 	}()
 
-	// start api server
+	// start apis
 	core.Node.StartApi(core.Node.Config().Addresses.API)
-
-	// start the gateway
 	gateway.Host.Start(core.Node.Config().Addresses.Gateway)
 
-	// wait for the ipfs node to go online
 	<-core.Node.OnlineCh()
 
 	return nil

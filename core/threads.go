@@ -79,7 +79,6 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf NewThreadConfig) (*Thread, 
 		go t.cafeOutbox.Flush()
 	}
 
-	// notify listeners
 	t.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadAdded})
 
 	log.Debugf("added a new thread %s with name %s", thrd.Id, conf.Name)

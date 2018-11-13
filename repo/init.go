@@ -30,7 +30,6 @@ func Init(repoPath string, version string) error {
 		return err
 	}
 
-	// double check if initialized
 	if fsrepo.IsInitialized(repoPath) {
 		return ErrRepoExists
 	}

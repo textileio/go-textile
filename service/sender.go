@@ -66,7 +66,7 @@ func (s *Service) messageSenderForPeer(pid peer.ID, proto protocol.ID) (*sender,
 		// Invalid but not in map. Must have been removed by a disconnect.
 		return nil, err
 	}
-	// All ready to go.
+
 	return ms, nil
 }
 

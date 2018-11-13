@@ -43,7 +43,7 @@ func (m *SigningMethodEd25519) Verify(signingString, signature string, key inter
 		return jwt.ErrInvalidKeyType
 	}
 
-	// Verify the signature
+	// verify the signature
 	valid, err := ed25519Key.Verify([]byte(signingString), sig)
 	if err != nil {
 		return err
@@ -61,12 +61,11 @@ func (m *SigningMethodEd25519) Sign(signingString string, key interface{}) (stri
 	var ed25519Key *libp2pc.Ed25519PrivateKey
 	var ok bool
 
-	// Validate type of key
+	// validate type of key
 	if ed25519Key, ok = key.(*libp2pc.Ed25519PrivateKey); !ok {
 		return "", jwt.ErrInvalidKey
 	}
 
-	// Sign the string and return the encoded bytes
 	sigBytes, err := ed25519Key.Sign([]byte(signingString))
 	if err != nil {
 		return "", err

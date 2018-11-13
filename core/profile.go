@@ -45,7 +45,6 @@ func (t *Textile) SetUsername(username string) error {
 		return err
 	}
 
-	// annouce to all threads
 	for _, thrd := range t.threads {
 		if _, err := thrd.annouce(); err != nil {
 			return err
@@ -149,6 +148,7 @@ func (t *Textile) PublishProfile() error {
 	if prof == nil {
 		return nil
 	}
+
 	go func() {
 		<-t.OnlineCh()
 		entry, err := t.publishProfile(*prof)

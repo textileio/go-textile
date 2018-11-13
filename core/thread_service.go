@@ -76,7 +76,6 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 		return nil, err
 	}
 
-	// lookup thread
 	thrd := h.getThread(tenv.Thread)
 	if thrd == nil {
 		// this might be a direct invite
@@ -86,7 +85,6 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 		return nil, nil
 	}
 
-	// decrypt and handle
 	block, err := thrd.handleBlock(hash, tenv.Ciphertext)
 	if err != nil {
 		return nil, err
@@ -96,7 +94,6 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 		return nil, nil
 	}
 
-	// select a handler
 	switch block.Type {
 	case pb.ThreadBlock_MERGE:
 		err = h.handleMerge(thrd, hash, block)
@@ -125,12 +122,10 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 		return nil, err
 	}
 
-	// back prop
 	if err := thrd.followParents(block.Header.Parents); err != nil {
 		return nil, err
 	}
 
-	// handle HEAD
 	if _, err := thrd.handleHead(hash, block.Header.Parents); err != nil {
 		return nil, err
 	}
@@ -140,7 +135,7 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 		return nil, err
 	}
 
-	// flush cafe queue at the very end
+	// flush cafe queue _at the very end_
 	go thrd.cafeOutbox.Flush()
 
 	return nil, nil
@@ -163,7 +158,6 @@ func (h *ThreadsService) NewEnvelope(threadId string, hash mh.Multihash, ciphert
 
 // handleInvite receives an invite message
 func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope) error {
-	// attempt decrypt w/ own keys
 	plaintext, err := crypto.Decrypt(h.service.Node.PrivateKey, tenv.Ciphertext)
 	if err != nil {
 		// wasn't an invite, abort
@@ -182,13 +176,11 @@ func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope
 	}
 
 	// pin locally for use later
-	// TODO: use new pending thread type
 	// TODO: w/ #347 delete notification when ignored
 	if _, err := ipfs.AddData(h.service.Node, bytes.NewReader(tenv.Ciphertext), true); err != nil {
 		return err
 	}
 
-	// send notification
 	notification, err := h.newNotification(block.Header, repo.InviteReceivedNotification)
 	if err != nil {
 		return err
@@ -227,7 +219,6 @@ func (h *ThreadsService) handleJoin(thrd *Thread, hash mh.Multihash, block *pb.T
 		return err
 	}
 
-	// send notification
 	notification, err := h.newNotification(block.Header, repo.PeerJoinedNotification)
 	if err != nil {
 		return err
@@ -253,7 +244,6 @@ func (h *ThreadsService) handleLeave(thrd *Thread, hash mh.Multihash, block *pb.
 		return err
 	}
 
-	// send notification
 	notification, err := h.newNotification(block.Header, repo.PeerLeftNotification)
 	if err != nil {
 		return err
@@ -272,7 +262,6 @@ func (h *ThreadsService) handleMessage(thrd *Thread, hash mh.Multihash, block *p
 		return err
 	}
 
-	// send notification
 	notification, err := h.newNotification(block.Header, repo.MessageAddedNotification)
 	if err != nil {
 		return err
@@ -291,7 +280,6 @@ func (h *ThreadsService) handleFiles(thrd *Thread, hash mh.Multihash, block *pb.
 		return err
 	}
 
-	// send notification
 	notification, err := h.newNotification(block.Header, repo.FilesAddedNotification)
 	if err != nil {
 		return err
@@ -311,7 +299,6 @@ func (h *ThreadsService) handleComment(thrd *Thread, hash mh.Multihash, block *p
 		return err
 	}
 
-	// send notification
 	target := h.datastore.Blocks().Get(msg.Target)
 	if target == nil {
 		return nil
@@ -341,7 +328,6 @@ func (h *ThreadsService) handleLike(thrd *Thread, hash mh.Multihash, block *pb.T
 		return err
 	}
 
-	// send notification
 	target := h.datastore.Blocks().Get(msg.Target)
 	if target == nil {
 		return nil

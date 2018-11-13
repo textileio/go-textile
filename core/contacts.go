@@ -16,14 +16,17 @@ func (t *Textile) Contact(id string) *Contact {
 	if model == nil {
 		return nil
 	}
+
 	peers := t.datastore.ThreadPeers().ListById(id)
 	if len(peers) == 0 {
 		return nil
 	}
+
 	var threads []string
 	for _, peer := range peers {
 		threads = append(threads, peer.ThreadId)
 	}
+
 	return &Contact{
 		Id:        model.Id,
 		ThreadIds: threads,
@@ -36,6 +39,7 @@ func (t *Textile) Contact(id string) *Contact {
 func (t *Textile) Contacts() []*Contact {
 	var contacts []*Contact
 	set := make(map[string]*Contact)
+
 	for _, peer := range t.datastore.ThreadPeers().List() {
 		c, ok := set[peer.Id]
 		if ok {
@@ -55,16 +59,19 @@ func (t *Textile) Contacts() []*Contact {
 			contacts = append(contacts, set[peer.Id])
 		}
 	}
+
 	return contacts
 }
 
 // ContactUsername returns the username for the peer id if known
 func (t *Textile) ContactUsername(id string) string {
 	username := id[len(id)-7:]
+
 	contact := t.datastore.Contacts().Get(id)
 	if contact != nil && contact.Username != "" {
 		username = contact.Username
 	}
+
 	return username
 }
 
@@ -74,11 +81,13 @@ func (t *Textile) ContactThreads(id string) []*Thread {
 	if len(peers) == 0 {
 		return nil
 	}
+
 	var threads []*Thread
 	for _, peer := range peers {
 		if thrd := t.Thread(peer.ThreadId); thrd != nil {
 			threads = append(threads, thrd)
 		}
 	}
+
 	return threads
 }

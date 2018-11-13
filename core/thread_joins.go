@@ -13,31 +13,26 @@ func (t *Thread) joinInitial() (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	// build block
 	msg, err := t.buildJoin(t.node().Identity.Pretty())
 	if err != nil {
 		return nil, err
 	}
 
-	// commit to ipfs
 	res, err := t.commitBlock(msg, pb.ThreadBlock_JOIN, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// index it locally
 	if err := t.indexBlock(res, repo.JoinBlock, "", ""); err != nil {
 		return nil, err
 	}
 
-	// update head
 	if err := t.updateHead(res.hash); err != nil {
 		return nil, err
 	}
 
 	log.Debugf("added JOIN to %s: %s", t.Id, res.hash.B58String())
 
-	// all done
 	return res.hash, nil
 }
 
@@ -46,36 +41,30 @@ func (t *Thread) join(inviterId peer.ID) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	// build block
 	msg, err := t.buildJoin(inviterId.Pretty())
 	if err != nil {
 		return nil, err
 	}
 
-	// commit to ipfs
 	res, err := t.commitBlock(msg, pb.ThreadBlock_JOIN, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// index it locally
 	if err := t.indexBlock(res, repo.JoinBlock, "", ""); err != nil {
 		return nil, err
 	}
 
-	// update head
 	if err := t.updateHead(res.hash); err != nil {
 		return nil, err
 	}
 
-	// post it
 	if err := t.post(res, t.Peers()); err != nil {
 		return nil, err
 	}
 
 	log.Debugf("added JOIN to %s: %s", t.Id, res.hash.B58String())
 
-	// all done
 	return res.hash, nil
 }
 
@@ -86,7 +75,6 @@ func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 		return nil, err
 	}
 
-	// index it locally
 	if err := t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,

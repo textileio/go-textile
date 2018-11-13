@@ -29,18 +29,19 @@ func Encrypt(pubKey libp2pc.PubKey, bytes []byte) ([]byte, error) {
 }
 
 func encryptCurve25519(pubKey *libp2pc.Ed25519PublicKey, bytes []byte) ([]byte, error) {
-	// Generated ephemeral key pair
+	// generated ephemeral key pair
 	ephemPub, ephemPriv, err := box.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil, err
 	}
-	// Convert recipient's key into curve25519
+
+	// convert recipient's key into curve25519
 	pk, err := pubKey.ToCurve25519()
 	if err != nil {
 		return nil, err
 	}
 
-	// Encrypt with nacl
+	// encrypt with nacl
 	var ciphertext []byte
 	var nonce [24]byte
 	n := make([]byte, 24)
@@ -53,10 +54,10 @@ func encryptCurve25519(pubKey *libp2pc.Ed25519PublicKey, bytes []byte) ([]byte, 
 	}
 	ciphertext = box.Seal(ciphertext, bytes, &nonce, pk, ephemPriv)
 
-	// Prepend the ephemeral public key
+	// prepend the ephemeral public key
 	ciphertext = append(ephemPub[:], ciphertext...)
 
-	// Prepend nonce
+	// prepend nonce
 	ciphertext = append(nonce[:], ciphertext...)
 	return ciphertext, nil
 }

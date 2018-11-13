@@ -32,7 +32,6 @@ func (g *Gateway) Start(addr string) {
 		gin.DefaultWriter = core.Node.Writer()
 	}
 
-	// setup router
 	router := gin.Default()
 	router.GET("/health", func(g *gin.Context) {
 		g.Writer.WriteHeader(http.StatusNoContent)
@@ -42,13 +41,11 @@ func (g *Gateway) Start(addr string) {
 	router.GET("/ipns/:root", profileHandler)
 	router.GET("/ipns/:root/*path", profileHandler)
 
-	// create it
 	g.server = &http.Server{
 		Addr:    addr,
 		Handler: router,
 	}
 
-	// start listening
 	errc := make(chan error)
 	go func() {
 		errc <- g.server.ListenAndServe()
@@ -133,7 +130,7 @@ func gatewayHandler(c *gin.Context) {
 		return
 	}
 
-	// lastly, just return the raw bytes (standard gateway)
+	// lastly, just return the raw bytes
 	c.Render(200, render.Data{Data: data})
 }
 

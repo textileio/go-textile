@@ -23,7 +23,7 @@ func IpnsSubs(node *core.IpfsNode) ([]string, error) {
 	for _, key := range node.PSRouter.GetSubscriptions() {
 		ns, k, err := record.SplitKey(key)
 		if err != nil || ns != "ipns" {
-			// Not necessarily an error.
+			// not necessarily an error.
 			continue
 		}
 		pid, err := peer.IDFromString(k)

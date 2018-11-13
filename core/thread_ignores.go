@@ -17,18 +17,15 @@ func (t *Thread) Ignore(block string) (mh.Multihash, error) {
 	// adding an ignore specific prefix here to ensure future flexibility
 	target := fmt.Sprintf("ignore-%s", block)
 
-	// build block
 	msg := &pb.ThreadIgnore{
 		Target: target,
 	}
 
-	// commit to ipfs
 	res, err := t.commitBlock(msg, pb.ThreadBlock_IGNORE, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// index it locally
 	if err := t.indexBlock(res, repo.IgnoreBlock, target, ""); err != nil {
 		return nil, err
 	}
@@ -36,24 +33,20 @@ func (t *Thread) Ignore(block string) (mh.Multihash, error) {
 	// unpin
 	//t.unpinBlockTarget(block)
 
-	// update head
 	if err := t.updateHead(res.hash); err != nil {
 		return nil, err
 	}
 
-	// post it
 	if err := t.post(res, t.Peers()); err != nil {
 		return nil, err
 	}
 
-	// delete notifications
 	if err := t.datastore.Notifications().DeleteByBlock(block); err != nil {
 		return nil, err
 	}
 
 	log.Debugf("added IGNORE to %s: %s", t.Id, res.hash.B58String())
 
-	// all done
 	return res.hash, nil
 }
 
@@ -70,7 +63,6 @@ func (t *Thread) handleIgnoreBlock(hash mh.Multihash, block *pb.ThreadBlock) (*p
 		return nil, err
 	}
 
-	// index it locally
 	if err := t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,

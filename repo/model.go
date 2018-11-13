@@ -69,15 +69,12 @@ func ThreadTypeFromString(desc string) (ThreadType, error) {
 type ThreadState int
 
 const (
-	ThreadPending ThreadState = iota
-	ThreadLoading
+	ThreadLoading ThreadState = iota
 	ThreadLoaded
 )
 
 func (ts ThreadState) Description() string {
 	switch ts {
-	case ThreadPending:
-		return "PENDING"
 	case ThreadLoading:
 		return "LOADING"
 	case ThreadLoaded:

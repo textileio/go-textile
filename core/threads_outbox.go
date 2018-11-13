@@ -53,12 +53,10 @@ func (q *ThreadsOutbox) Flush() {
 	q.mux.Lock()
 	defer q.mux.Unlock()
 
-	// check service status
 	if q.service() == nil {
 		return
 	}
 
-	// start at zero offset
 	if err := q.batch(q.datastore.ThreadMessages().List("", threadsFlushGroupSize)); err != nil {
 		log.Errorf("thread outbox batch error: %s", err)
 		return
@@ -71,7 +69,6 @@ func (q *ThreadsOutbox) batch(msgs []repo.ThreadMessage) error {
 		return nil
 	}
 
-	// process the batch
 	var berr error
 	var toDelete []string
 	wg := sync.WaitGroup{}
@@ -95,7 +92,6 @@ func (q *ThreadsOutbox) batch(msgs []repo.ThreadMessage) error {
 	offset := msgs[len(msgs)-1].Id
 	next := q.datastore.ThreadMessages().List(offset, threadsFlushGroupSize)
 
-	// clean up
 	var deleted []string
 	for _, id := range toDelete {
 		if err := q.datastore.ThreadMessages().Delete(id); err != nil {

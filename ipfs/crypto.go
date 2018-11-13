@@ -19,7 +19,6 @@ func IdentityConfig(sk libp2pc.PrivKey) (config.Identity, error) {
 	}
 
 	// currently storing key unencrypted. in the future we need to encrypt it.
-	// TODO(security)
 	skbytes, err := sk.Bytes()
 	if err != nil {
 		return ident, err

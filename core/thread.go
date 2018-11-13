@@ -138,10 +138,6 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 		return nil, errThreadReload
 	}
 
-	if t.schema != nil {
-
-	}
-
 	var head *BlockInfo
 	if mod.Head != "" {
 		h := t.datastore.Blocks().Get(mod.Head)

@@ -86,12 +86,10 @@ func (q *CafeInbox) Flush() {
 	q.mux.Lock()
 	defer q.mux.Unlock()
 
-	// check service status
 	if q.threadsService() == nil || q.service() == nil {
 		return
 	}
 
-	// start at zero offset
 	if err := q.batch(q.datastore.CafeMessages().List("", cafeInFlushGroupSize)); err != nil {
 		log.Errorf("cafe inbox batch error: %s", err)
 		return
@@ -104,7 +102,6 @@ func (q *CafeInbox) batch(msgs []repo.CafeMessage) error {
 		return nil
 	}
 
-	// process the batch
 	var berr error
 	var toDelete []string
 	wg := sync.WaitGroup{}
@@ -125,7 +122,6 @@ func (q *CafeInbox) batch(msgs []repo.CafeMessage) error {
 	offset := msgs[len(msgs)-1].Id
 	next := q.datastore.CafeMessages().List(offset, cafeInFlushGroupSize)
 
-	// clean up
 	var deleted []string
 	for _, id := range toDelete {
 		if err := q.datastore.CafeMessages().Delete(id); err != nil {
@@ -156,7 +152,6 @@ func (q *CafeInbox) handle(msg *repo.CafeMessage) error {
 		return err
 	}
 
-	// decrypt and unmarshal to envelope
 	envb, err := crypto.Decrypt(q.node().PrivateKey, ciphertext)
 	if err != nil {
 		return err
@@ -166,13 +161,12 @@ func (q *CafeInbox) handle(msg *repo.CafeMessage) error {
 		return err
 	}
 
-	// check signature
 	if err := q.threadsService().service.VerifyEnvelope(env, pid); err != nil {
 		log.Warningf("error verifying cafe message: %s", err)
 		return nil
 	}
 
-	// finally, pass to thread service for normal handling
+	// pass to thread service for normal handling
 	if _, err := q.threadsService().Handle(pid, env); err != nil {
 		return err
 	}
