@@ -177,7 +177,6 @@ func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope
 	}
 
 	// pin locally for use later
-	// TODO: w/ #347 delete notification when ignored
 	if _, err := ipfs.AddData(h.service.Node, bytes.NewReader(tenv.Ciphertext), true); err != nil {
 		return err
 	}

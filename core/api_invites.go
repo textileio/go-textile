@@ -92,3 +92,14 @@ func (a *api) acceptInvite(g *gin.Context) {
 
 	g.JSON(http.StatusCreated, info)
 }
+
+func (a *api) ignoreInvite(g *gin.Context) {
+	id := g.Param("id")
+
+	if err := a.node.IgnoreThreadInvite(id); err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	g.String(http.StatusOK, "ok")
+}

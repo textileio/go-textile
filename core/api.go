@@ -82,7 +82,7 @@ func (a *api) Start() {
 		invite := v0.Group("/invite")
 		invite.POST("", a.createInvite)
 		invite.POST("/:id/accept", a.acceptInvite)
-		//invite.POST("/:id/ignore", a.ignoreInvite)
+		invite.POST("/:id/ignore", a.ignoreInvite)
 
 		cafes := v0.Group("/cafes")
 		cafes.POST("", a.addCafes)

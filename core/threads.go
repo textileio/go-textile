@@ -127,49 +127,6 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	return addr, nil
 }
 
-// AcceptThreadInvite attemps to download an encrypted thread key from an internal invite,
-// add the thread, and notify the inviter of the join
-func (t *Textile) AcceptThreadInvite(inviteId string) (mh.Multihash, error) {
-	if !t.Online() {
-		return nil, ErrOffline
-	}
-
-	ciphertext, err := ipfs.DataAtPath(t.node, inviteId)
-	if err != nil {
-		return nil, err
-	}
-	if err := ipfs.UnpinPath(t.node, inviteId); err != nil {
-		log.Warningf("error unpinning path %s: %s", inviteId, err)
-	}
-
-	// attempt decrypt w/ own keys
-	plaintext, err := crypto.Decrypt(t.node.PrivateKey, ciphertext)
-	if err != nil {
-		return nil, ErrInvalidThreadBlock
-	}
-	return t.handleThreadInvite(plaintext)
-}
-
-// AcceptExternalThreadInvite attemps to download an encrypted thread key from an external invite,
-// add the thread, and notify the inviter of the join
-func (t *Textile) AcceptExternalThreadInvite(inviteId string, key []byte) (mh.Multihash, error) {
-	if !t.Online() {
-		return nil, ErrOffline
-	}
-
-	ciphertext, err := ipfs.DataAtPath(t.node, fmt.Sprintf("%s", inviteId))
-	if err != nil {
-		return nil, err
-	}
-
-	// attempt decrypt w/ key
-	plaintext, err := crypto.DecryptAES(ciphertext, key)
-	if err != nil {
-		return nil, ErrInvalidThreadBlock
-	}
-	return t.handleThreadInvite(plaintext)
-}
-
 // Threads lists loaded threads
 func (t *Textile) Threads() []*Thread {
 	return t.threads
@@ -201,6 +158,72 @@ func (t *Textile) ThreadInfo(id string) (*ThreadInfo, error) {
 		return nil, errors.New(fmt.Sprintf("cound not find thread: %s", id))
 	}
 	return thrd.Info()
+}
+
+// AcceptThreadInvite attemps to download an encrypted thread key from an internal invite,
+// add the thread, and notify the inviter of the join
+func (t *Textile) AcceptThreadInvite(inviteId string) (mh.Multihash, error) {
+	if !t.Online() {
+		return nil, ErrOffline
+	}
+
+	ciphertext, err := ipfs.DataAtPath(t.node, inviteId)
+	if err != nil {
+		return nil, err
+	}
+	if err := ipfs.UnpinPath(t.node, inviteId); err != nil {
+		log.Warningf("error unpinning path %s: %s", inviteId, err)
+	}
+
+	// attempt decrypt w/ own keys
+	plaintext, err := crypto.Decrypt(t.node.PrivateKey, ciphertext)
+	if err != nil {
+		return nil, ErrInvalidThreadBlock
+	}
+	hash, err := t.handleThreadInvite(plaintext)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := t.datastore.Notifications().DeleteByBlock(inviteId); err != nil {
+		return nil, err
+	}
+
+	return hash, nil
+}
+
+// AcceptExternalThreadInvite attemps to download an encrypted thread key from an external invite,
+// add the thread, and notify the inviter of the join
+func (t *Textile) AcceptExternalThreadInvite(inviteId string, key []byte) (mh.Multihash, error) {
+	if !t.Online() {
+		return nil, ErrOffline
+	}
+
+	ciphertext, err := ipfs.DataAtPath(t.node, fmt.Sprintf("%s", inviteId))
+	if err != nil {
+		return nil, err
+	}
+
+	// attempt decrypt w/ key
+	plaintext, err := crypto.DecryptAES(ciphertext, key)
+	if err != nil {
+		return nil, ErrInvalidThreadBlock
+	}
+	return t.handleThreadInvite(plaintext)
+}
+
+// IgnoreThreadInvite unpins a direct peer-to-peer invite and removes
+// the associated notification.
+func (t *Textile) IgnoreThreadInvite(inviteId string) error {
+	if !t.Started() {
+		return ErrStopped
+	}
+
+	if err := ipfs.UnpinPath(t.node, inviteId); err != nil {
+		log.Warningf("error unpinning path %s: %s", inviteId, err)
+	}
+
+	return t.datastore.Notifications().DeleteByBlock(inviteId)
 }
 
 // handleThreadInvite

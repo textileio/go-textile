@@ -17,7 +17,7 @@ var errMissingInviteId = errors.New("missing invite id")
 type inviteCmd struct {
 	Create createInviteCmd `command:"create"`
 	Accept acceptInviteCmd `command:"accept"`
-	//Ignore ignoreInviteCmd `command:"ignore"`
+	Ignore ignoreInviteCmd `command:"ignore"`
 }
 
 func (x *inviteCmd) Name() string {
@@ -141,6 +141,47 @@ func callAcceptInvite(args []string, opts map[string]string) error {
 		args: args,
 		opts: opts,
 	}, &info)
+	if err != nil {
+		return err
+	}
+	output(res, nil)
+	return nil
+}
+
+type ignoreInviteCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
+
+func (x *ignoreInviteCmd) Name() string {
+	return "ignore"
+}
+
+func (x *ignoreInviteCmd) Short() string {
+	return "Ignore direct invite to a thread"
+}
+
+func (x *ignoreInviteCmd) Long() string {
+	return `
+Ignores a direct peer-to-peer invite to a thread.
+`
+}
+
+func (x *ignoreInviteCmd) Execute(args []string) error {
+	setApi(x.Client)
+	return callIgnoreInvite(args)
+}
+
+func (x *ignoreInviteCmd) Shell() *ishell.Cmd {
+	return nil
+}
+
+func callIgnoreInvite(args []string) error {
+	if len(args) == 0 {
+		return errMissingInviteId
+	}
+	res, err := executeStringCmd(POST, "invite/"+args[0]+"/ignore", params{
+		args: args,
+	})
 	if err != nil {
 		return err
 	}
