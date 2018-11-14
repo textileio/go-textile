@@ -2,11 +2,12 @@ package db
 
 import (
 	"database/sql"
-	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/repo"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/repo"
 )
 
 var notifdb repo.NotificationStore

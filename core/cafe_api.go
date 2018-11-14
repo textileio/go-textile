@@ -4,15 +4,16 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
-	njwt "github.com/dgrijalva/jwt-go"
-	"github.com/gin-gonic/gin"
-	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/jwt"
 	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	uio "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/unixfs/io"
 	"io"
 	"net/http"
 	"strings"
+
+	njwt "github.com/dgrijalva/jwt-go"
+	"github.com/gin-gonic/gin"
+	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/jwt"
 )
 
 // cafeApiVersion is the cafe api version

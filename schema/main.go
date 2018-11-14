@@ -2,8 +2,9 @@ package schema
 
 import (
 	"errors"
-	"github.com/alecthomas/jsonschema"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+
+	"github.com/alecthomas/jsonschema"
 )
 
 // ErrSchemaValidationFailed indicates dag schema validation failed

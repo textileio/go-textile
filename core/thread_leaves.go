@@ -1,9 +1,10 @@
 package core
 
 import (
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 )
 
 // leave creates an outgoing leave block

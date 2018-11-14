@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+
 	"github.com/textileio/textile-go/repo"
 	"gopkg.in/abiosoft/ishell.v2"
 )
@@ -178,7 +179,7 @@ func callRmCafes(args []string) error {
 	}
 	res, err := executeStringCmd(DEL, "cafes/"+args[0], params{})
 	if err != nil {
-		return nil
+		return err
 	}
 	output(res, nil)
 	return nil
@@ -212,7 +213,7 @@ func (x *checkMailCafesCmd) Shell() *ishell.Cmd {
 func callCheckMailCafes() error {
 	res, err := executeStringCmd(POST, "cafes/check_mail", params{})
 	if err != nil {
-		return nil
+		return err
 	}
 	output(res, nil)
 	return nil

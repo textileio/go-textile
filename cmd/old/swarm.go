@@ -3,12 +3,13 @@ package old
 import (
 	"errors"
 	"fmt"
-	"github.com/fatih/color"
-	"github.com/textileio/textile-go/core"
-	"gopkg.in/abiosoft/ishell.v2"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	"sort"
 	"strings"
+
+	"github.com/fatih/color"
+	"github.com/textileio/textile-go/core"
+	"gopkg.in/abiosoft/ishell.v2"
 )
 
 type streamInfo struct {

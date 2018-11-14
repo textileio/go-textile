@@ -1,8 +1,9 @@
 package mobile
 
 import (
-	"github.com/textileio/textile-go/core"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+
+	"github.com/textileio/textile-go/core"
 )
 
 // SetUsername calls core SetUsername

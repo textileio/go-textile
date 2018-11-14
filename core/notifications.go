@@ -3,8 +3,9 @@ package core
 import (
 	"errors"
 	"fmt"
-	"github.com/textileio/textile-go/repo"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+
+	"github.com/textileio/textile-go/repo"
 )
 
 // Notifications lists notifications

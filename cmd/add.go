@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
+	"mime/multipart"
+	"os"
+	"path/filepath"
+
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema"
 	"gopkg.in/abiosoft/ishell.v2"
-	"io"
-	"mime/multipart"
-	"os"
-	"path/filepath"
 )
 
 var errMissingFilePath = errors.New("missing file path")

@@ -1,9 +1,10 @@
 package core
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/textileio/textile-go/repo"
-	"net/http"
 )
 
 func (a *api) addCafes(g *gin.Context) {

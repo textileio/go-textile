@@ -2,10 +2,11 @@ package db
 
 import (
 	"database/sql"
-	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/repo"
 	"sync"
 	"testing"
+
+	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/repo"
 )
 
 var tdb repo.ThreadStore

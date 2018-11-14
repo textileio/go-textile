@@ -2,8 +2,9 @@ package db
 
 import (
 	"database/sql"
-	"github.com/textileio/textile-go/repo"
 	"sync"
+
+	"github.com/textileio/textile-go/repo"
 )
 
 type ThreadDB struct {

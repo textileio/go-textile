@@ -2,9 +2,10 @@ package migrations
 
 import (
 	"database/sql"
-	_ "github.com/mutecomm/go-sqlcipher"
 	"os"
 	"path"
+
+	_ "github.com/mutecomm/go-sqlcipher"
 )
 
 type Minor000 struct{}

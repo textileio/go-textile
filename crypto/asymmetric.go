@@ -3,8 +3,9 @@ package crypto
 import (
 	"crypto/rand"
 	"errors"
-	"golang.org/x/crypto/nacl/box"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+
+	"golang.org/x/crypto/nacl/box"
 )
 
 const (

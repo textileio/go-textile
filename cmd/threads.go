@@ -297,57 +297,7 @@ func callRmThreads(args []string) error {
 	}
 	res, err := executeStringCmd(DEL, "threads/"+args[0], params{})
 	if err != nil {
-		return nil
-	}
-	output(res, nil)
-	return nil
-}
-
-type inviteThreadsCmd struct {
-	Client ClientOptions `group:"Client Options"`
-	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
-	Peer   string        `short:"p" long:"peer" description:"Peer ID. Omit to create an external invite."`
-}
-
-func (x *inviteThreadsCmd) Name() string {
-	return "rm"
-}
-
-func (x *inviteThreadsCmd) Short() string {
-	return "Invite a peer to join a thread"
-}
-
-func (x *inviteThreadsCmd) Long() string {
-	return `
-Creates an invite to join a thread.
-Omit the --peer option to create an external invite.
-Omit the --thread option to use the default thread (if selected).
-`
-}
-
-func (x *inviteThreadsCmd) Execute(args []string) error {
-	setApi(x.Client)
-	opts := map[string]string{
-		"thread": x.Thread,
-		"peer":   x.Peer,
-	}
-	return callInviteThreads(opts)
-}
-
-func (x *inviteThreadsCmd) Shell() *ishell.Cmd {
-	return nil
-}
-
-func callInviteThreads(opts map[string]string) error {
-	threadId := opts["thread"]
-	if threadId == "" {
-		threadId = "default"
-	}
-	res, err := executeStringCmd(POST, "threads/"+threadId, params{
-		opts: map[string]string{"peer": opts["peer"]},
-	})
-	if err != nil {
-		return nil
+		return err
 	}
 	output(res, nil)
 	return nil

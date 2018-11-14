@@ -2,11 +2,12 @@ package db
 
 import (
 	"database/sql"
-	"github.com/textileio/textile-go/repo"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/textileio/textile-go/repo"
 )
 
 type BlockDB struct {

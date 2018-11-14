@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/fatih/color"
-	"github.com/textileio/textile-go/core"
-	"gopkg.in/abiosoft/ishell.v2"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
+
+	"github.com/fatih/color"
+	"github.com/textileio/textile-go/core"
+	"gopkg.in/abiosoft/ishell.v2"
 )
 
 type ClientOptions struct {

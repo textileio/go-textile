@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+
 	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/crc16"
 )

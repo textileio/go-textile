@@ -1,11 +1,12 @@
 package keypair
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
-	"testing"
 )
 
 func TestBuild(t *testing.T) {

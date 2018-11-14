@@ -2,10 +2,11 @@ package db
 
 import (
 	"database/sql"
-	"github.com/textileio/textile-go/repo"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/textileio/textile-go/repo"
 )
 
 type ContactDB struct {

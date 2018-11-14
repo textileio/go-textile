@@ -3,14 +3,15 @@ package core
 import (
 	"bytes"
 	"fmt"
-	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/repo"
 	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/path"
 	uio "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/unixfs/io"
 	"strings"
 	"time"
+
+	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/repo"
 )
 
 // Profile is an account-wide public profile

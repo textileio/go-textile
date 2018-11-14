@@ -2,9 +2,10 @@ package repo
 
 import (
 	"errors"
-	"github.com/textileio/textile-go/pb"
 	"strings"
 	"time"
+
+	"github.com/textileio/textile-go/pb"
 )
 
 type Contact struct {

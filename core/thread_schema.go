@@ -1,10 +1,11 @@
 package core
 
 import (
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema"
-	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 )
 
 // process walks a file node, validating and applying a dag schema
