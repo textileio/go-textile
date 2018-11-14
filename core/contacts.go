@@ -65,7 +65,7 @@ func (t *Textile) Contacts() []*Contact {
 
 // ContactUsername returns the username for the peer id if known
 func (t *Textile) ContactUsername(id string) string {
-	username := id[len(id)-7:]
+	username := id[len(id)-8:]
 
 	contact := t.datastore.Contacts().Get(id)
 	if contact != nil && contact.Username != "" {

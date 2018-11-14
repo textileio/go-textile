@@ -2,11 +2,13 @@ package core
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"mime/multipart"
 	"net/http"
 	"strings"
+	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 // apiVersion is the api version
@@ -78,6 +80,7 @@ func (a *api) Start() {
 		threads.POST("/:id", a.createThreadInvites)
 		threads.POST("/:id/file", a.addThreadFile)
 		threads.POST("/:id/files", a.addThreadFiles)
+		threads.GET("/:id/updates", a.streamThreads)
 
 		cafes := v0.Group("/cafes")
 		cafes.POST("", a.addCafes)
@@ -116,12 +119,13 @@ func (a *api) Start() {
 
 // Stop stops the http api
 func (a *api) Stop() error {
-	ctx, cancel := context.WithCancel(context.Background())
+	// Use timeout to force a deadline
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 	if err := a.server.Shutdown(ctx); err != nil {
 		log.Errorf("error shutting down api: %s", err)
 		return err
 	}
-	cancel()
 	return nil
 }
 

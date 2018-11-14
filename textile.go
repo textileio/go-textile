@@ -3,14 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/jessevdk/go-flags"
-	"github.com/mitchellh/go-homedir"
-	"github.com/textileio/textile-go/cmd"
-	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/gateway"
-	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/wallet"
-	"gopkg.in/abiosoft/ishell.v2"
 	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	"log"
 	"os"
@@ -19,6 +11,15 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/jessevdk/go-flags"
+	"github.com/mitchellh/go-homedir"
+	"github.com/textileio/textile-go/cmd"
+	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/gateway"
+	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/wallet"
+	"gopkg.in/abiosoft/ishell.v2"
 )
 
 type ipfsOptions struct {
@@ -391,21 +392,27 @@ func startNode() error {
 		}
 	}()
 
-	// subscribe to thread updates
+	// Subscribe to thread updates
+	listener := core.Node.ThreadUpdateCh()
 	go func() {
 		for {
 			select {
-			case update, ok := <-core.Node.ThreadUpdateCh():
+			case value, ok := <-listener.Ch:
 				if !ok {
 					return
 				}
-				date := update.Block.Date.Format(time.RFC822)
-				desc := update.Block.Type.Description()
-				username := core.Node.ContactUsername(update.Block.AuthorId)
-				thrd := update.ThreadId[len(update.ThreadId)-7:]
-				msg := cmd.Grey(date+"  "+username+" added ") +
-					cmd.Green(desc) + cmd.Grey(" update to thread "+thrd)
-				fmt.Println(msg)
+				// Since broadcaster requires an empty interface, we can't call any methods
+				// So use type assertions to let runtime check that we have a ThreadUpdate
+				if update, ok := value.(core.ThreadUpdate); ok {
+					date := update.Block.Date.Format(time.RFC822)
+					desc := update.Block.Type.Description()
+					username := core.Node.ContactUsername(update.Block.AuthorId)
+					thrd := update.ThreadId[len(update.ThreadId)-8:]
+					msg := cmd.Grey(date+"  "+username+" added ") +
+						cmd.Green(desc) + cmd.Grey(" update to thread "+thrd)
+					fmt.Println(msg)
+				}
+			default:
 			}
 		}
 	}()

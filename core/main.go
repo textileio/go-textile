@@ -4,14 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/textileio/textile-go/archive"
-	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/repo/config"
-	"github.com/textileio/textile-go/repo/db"
-	"github.com/textileio/textile-go/service"
-	"gopkg.in/natefinch/lumberjack.v2"
 	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
@@ -28,9 +20,18 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/textileio/textile-go/archive"
+	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/repo/config"
+	"github.com/textileio/textile-go/repo/db"
+	"github.com/textileio/textile-go/service"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-var log = logging.Logger("tex-node")
+var log = logging.Logger("tex-core")
 
 // Version is the core version identifier
 const Version = "1.0.0"
@@ -114,7 +115,7 @@ type Textile struct {
 	online         chan struct{}
 	done           chan struct{}
 	updates        chan Update
-	threadUpdates  chan ThreadUpdate
+	threadUpdates  Broadcaster
 	notifications  chan repo.Notification
 	threadsService *ThreadsService
 	threadsOutbox  *ThreadsOutbox
@@ -267,7 +268,7 @@ func (t *Textile) Start() error {
 
 	t.online = make(chan struct{})
 	t.updates = make(chan Update, 10)
-	t.threadUpdates = make(chan ThreadUpdate, 10)
+	// t.threadUpdates = make(chan ThreadUpdate, 10)
 	t.notifications = make(chan repo.Notification, 10)
 
 	t.cafeInbox = NewCafeInbox(
@@ -393,7 +394,7 @@ func (t *Textile) Stop() error {
 	t.threads = nil
 
 	close(t.updates)
-	close(t.threadUpdates)
+	t.threadUpdates.Close()
 	close(t.notifications)
 
 	log.Info("node is stopped")
@@ -453,8 +454,8 @@ func (t *Textile) UpdateCh() <-chan Update {
 }
 
 // ThreadUpdateCh returns the thread update channel
-func (t *Textile) ThreadUpdateCh() <-chan ThreadUpdate {
-	return t.threadUpdates
+func (t *Textile) ThreadUpdateCh() *Listener {
+	return t.threadUpdates.Listen()
 }
 
 // NotificationsCh returns the notifications channel
@@ -642,7 +643,7 @@ func (t *Textile) sendUpdate(update Update) {
 
 // sendThreadUpdate adds a thread update to the update channel
 func (t *Textile) sendThreadUpdate(update ThreadUpdate) {
-	t.threadUpdates <- update
+	t.threadUpdates.Send(update)
 }
 
 // sendNotification adds a notification to the notification channel
@@ -687,6 +688,9 @@ func setupLogging(repoPath string, level logger.Level, files bool) io.Writer {
 	backendFile := logger.NewLogBackend(writer, "", 0)
 	logger.SetBackend(backendFile)
 	logging.SetAllLoggers(level)
+
+	// TODO: Remove this when sub-command level logging control is added
+	logging.SetLogLevel("tex-core", "DEBUG")
 	return writer
 }
 

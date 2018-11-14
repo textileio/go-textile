@@ -2,13 +2,15 @@ package core
 
 import (
 	"crypto/rand"
-	"github.com/gin-gonic/gin"
-	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/repo"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	"io"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/repo"
 )
 
 func (a *api) addThreads(g *gin.Context) {
@@ -246,4 +248,37 @@ func (a *api) addThreadFiles(g *gin.Context) {
 	}
 
 	g.JSON(http.StatusCreated, info)
+}
+
+func (a *api) streamThreads(g *gin.Context) {
+	id := g.Param("id")
+	thrd := a.node.Thread(id)
+	if thrd == nil {
+		g.String(http.StatusNotFound, "thread not found")
+		return
+	}
+	opts, err := a.readOpts(g)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+
+	listener := a.node.ThreadUpdateCh()
+	g.Stream(func(w io.Writer) bool {
+		select {
+		case update, ok := <-listener.Ch:
+			if !ok {
+				return false
+			}
+			if opts["events"] == "true" {
+				g.SSEvent("threadUpdate", update)
+			} else {
+				g.JSON(http.StatusOK, update)
+			}
+		default:
+		}
+		return true
+	})
+
+	listener.Close()
 }
