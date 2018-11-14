@@ -133,14 +133,13 @@ func (t *Textile) AcceptThreadInvite(inviteId string) (mh.Multihash, error) {
 	if !t.Online() {
 		return nil, ErrOffline
 	}
-	invite := fmt.Sprintf("%s", inviteId)
 
-	ciphertext, err := ipfs.DataAtPath(t.node, invite)
+	ciphertext, err := ipfs.DataAtPath(t.node, inviteId)
 	if err != nil {
 		return nil, err
 	}
-	if err := ipfs.UnpinPath(t.node, invite); err != nil {
-		log.Warningf("error unpinning path %s: %s", invite, err)
+	if err := ipfs.UnpinPath(t.node, inviteId); err != nil {
+		log.Warningf("error unpinning path %s: %s", inviteId, err)
 	}
 
 	// attempt decrypt w/ own keys

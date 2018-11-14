@@ -419,9 +419,12 @@ func startNode() error {
 				if !ok {
 					return
 				}
+				date := note.Date.Format(time.RFC822)
 				username := core.Node.ContactUsername(note.ActorId)
-				msg := fmt.Sprintf("#%s: %s %s.", note.Subject, username, note.Body)
-				fmt.Println(cmd.Yellow(msg))
+				thrd := note.SubjectId[len(note.SubjectId)-7:]
+				msg := cmd.Grey(date+"  "+username+" ") + cmd.Cyan(note.Body) +
+					cmd.Grey(" "+thrd)
+				fmt.Println(msg)
 			}
 		}
 	}()

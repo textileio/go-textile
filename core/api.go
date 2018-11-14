@@ -76,9 +76,13 @@ func (a *api) Start() {
 		threads.GET("", a.lsThreads)
 		threads.GET("/:id", a.getThreads)
 		threads.DELETE("/:id", a.rmThreads)
-		threads.POST("/:id", a.createThreadInvites)
 		threads.POST("/:id/file", a.addThreadFile)
 		threads.POST("/:id/files", a.addThreadFiles)
+
+		invite := v0.Group("/invite")
+		invite.POST("", a.createInvite)
+		invite.POST("/:id/accept", a.acceptInvite)
+		//invite.POST("/:id/ignore", a.ignoreInvite)
 
 		cafes := v0.Group("/cafes")
 		cafes.POST("", a.addCafes)

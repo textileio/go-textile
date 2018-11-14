@@ -3,7 +3,6 @@ package core
 import (
 	"crypto/rand"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"net/http"
 
@@ -119,46 +118,6 @@ func (a *api) rmThreads(g *gin.Context) {
 		a.abort500(g, err)
 		return
 	}
-	g.String(http.StatusOK, "ok")
-}
-
-func (a *api) createThreadInvites(g *gin.Context) {
-	opts, err := a.readOpts(g)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-	var pid peer.ID
-	if opts["peer"] != "" {
-		pid, err = peer.IDB58Decode(opts["peer"])
-		if err != nil {
-			g.String(http.StatusBadRequest, err.Error())
-			return
-		}
-	}
-
-	id := g.Param("id")
-	if id == "default" {
-		id = a.node.config.Threads.Defaults.ID
-	}
-	thrd := a.node.Thread(id)
-	if thrd == nil {
-		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
-		return
-	}
-
-	if pid != "" {
-		if _, err := thrd.AddInvite(pid); err != nil {
-			a.abort500(g, err)
-			return
-		}
-	} else {
-		if _, _, err := thrd.AddExternalInvite(); err != nil {
-			a.abort500(g, err)
-			return
-		}
-	}
-
 	g.String(http.StatusOK, "ok")
 }
 
