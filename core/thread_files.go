@@ -24,6 +24,9 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys Keys) (mh.Multiha
 	if t.schema == nil {
 		return nil, ErrThreadSchemaRequired
 	}
+	if node == nil {
+		return nil, ErrInvalidFileNode
+	}
 
 	target := node.Cid().Hash().B58String()
 
@@ -92,7 +95,6 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 		}
 	}
 	if !ignore {
-
 		target, err := cid.Parse(msg.Target)
 		if err != nil {
 			return nil, err
