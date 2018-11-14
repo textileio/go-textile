@@ -17,10 +17,12 @@ import (
 )
 
 var errMissingFilePath = errors.New("missing file path")
+var errMissingFileBlockId = errors.New("missing file block id")
 
 func init() {
 	register(&addCmd{})
 	register(&lsCmd{})
+	register(&getCmd{})
 }
 
 type addCmd struct {
@@ -209,6 +211,62 @@ func callLs(opts map[string]string) error {
 	res, err := executeJsonCmd(GET, "threads/"+threadId+"/files", params{
 		opts: opts,
 	}, &list)
+	if err != nil {
+		return err
+	}
+
+	output(res, nil)
+	return nil
+}
+
+type getCmd struct {
+	Client ClientOptions `group:"Client Options"`
+	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
+	Block  string        `short:"b" long:"block" description:"File Block ID."`
+}
+
+func (x *getCmd) Name() string {
+	return "get"
+}
+
+func (x *getCmd) Short() string {
+	return "Get a file in a thread"
+}
+
+func (x *getCmd) Long() string {
+	return `
+Gets a file in a thread.
+Omit the --thread option to use the default thread (if selected).
+`
+}
+
+func (x *getCmd) Execute(args []string) error {
+	setApi(x.Client)
+	opts := map[string]string{
+		"thread": x.Thread,
+		"block":  x.Block,
+	}
+	return callGet(args, opts)
+}
+
+func (x *getCmd) Shell() *ishell.Cmd {
+	return nil
+}
+
+func callGet(args []string, opts map[string]string) error {
+	if len(args) == 0 {
+		return errMissingFileBlockId
+	}
+
+	threadId := opts["thread"]
+	if threadId == "" {
+		threadId = "default"
+	}
+
+	var info core.FilesInfo
+	res, err := executeJsonCmd(GET, "threads/"+threadId+"/files/"+args[0], params{
+		opts: opts,
+	}, &info)
 	if err != nil {
 		return err
 	}

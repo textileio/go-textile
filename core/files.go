@@ -33,6 +33,11 @@ type FileInfo struct {
 }
 
 type FilesInfo struct {
+	Id       string        `json:"id"`
+	Date     time.Time     `json:"date"`
+	AuthorId string        `json:"author_id"`
+	Username string        `json:"username,omitempty"`
+	Caption  string        `json:"caption,omitempty"`
 	FileInfo []FileInfo    `json:"files"`
 	Comments []CommentInfo `json:"comments"`
 	Likes    []LikeInfo    `json:"likes"`
@@ -226,72 +231,125 @@ func (t *Textile) Files(threadId string, offset string, limit int) ([]FilesInfo,
 	}
 
 	for _, block := range blocks {
-		links, err := ipfs.LinksAtPath(t.node, block.Target)
+		files, err := t.fileAtBlock(block)
 		if err != nil {
 			return nil, err
 		}
 
-		files := FilesInfo{
-			FileInfo: make([]FileInfo, len(links)),
-			Comments: make([]CommentInfo, 0),
-			Likes:    make([]LikeInfo, 0),
-		}
-
-		for _, index := range links {
-			node, err := ipfs.NodeAtLink(t.node, index)
-			if err != nil {
-				return nil, err
-			}
-			fnames := node.Links()
-
-			info := FileInfo{
-				Path: block.Target + "/" + index.Name,
-			}
-			if len(fnames) > 0 {
-				// directory of files
-				info.Links = make(Directory)
-				for _, link := range node.Links() {
-					pair, err := ipfs.NodeAtLink(t.node, link)
-					if err != nil {
-						return nil, err
-					}
-					file, err := t.fileForPair(pair)
-					if err != nil {
-						return nil, err
-					}
-					if file != nil {
-						info.Links[link.Name] = *file
-					}
-				}
-			} else {
-				// single file
-				file, err := t.fileForPair(node)
-				if err != nil {
-					return nil, err
-				}
-				info.File = file
-			}
-
-			i, err := strconv.Atoi(index.Name)
-			if err != nil {
-				return nil, err
-			}
-			files.FileInfo[i] = info
-		}
-
-		files.Comments, err = t.fileComments(threadId, block.Target)
-		if err != nil {
-			return nil, err
-		}
-		files.Likes, err = t.fileLikes(threadId, block.Target)
+		comments, err := t.fileComments(threadId, block.Target)
 		if err != nil {
 			return nil, err
 		}
 
-		list = append(list, files)
+		likes, err := t.fileLikes(threadId, block.Target)
+		if err != nil {
+			return nil, err
+		}
+
+		list = append(list, FilesInfo{
+			Id:       block.Id,
+			Date:     block.Date,
+			AuthorId: block.AuthorId,
+			Username: t.ContactUsername(block.AuthorId),
+			Caption:  block.Body,
+			FileInfo: files,
+			Comments: comments,
+			Likes:    likes,
+		})
 	}
 
 	return list, nil
+}
+
+func (t *Textile) File(threadId string, blockId string) (*FilesInfo, error) {
+	block, err := t.Block(blockId)
+	if err != nil {
+		return nil, err
+	}
+
+	files, err := t.fileAtBlock(*block)
+	if err != nil {
+		return nil, err
+	}
+
+	comments, err := t.fileComments(threadId, block.Target)
+	if err != nil {
+		return nil, err
+	}
+
+	likes, err := t.fileLikes(threadId, block.Target)
+	if err != nil {
+		return nil, err
+	}
+
+	return &FilesInfo{
+		Id:       block.Id,
+		Date:     block.Date,
+		AuthorId: block.AuthorId,
+		Username: t.ContactUsername(block.AuthorId),
+		Caption:  block.Body,
+		FileInfo: files,
+		Comments: comments,
+		Likes:    likes,
+	}, nil
+}
+
+// fileAtBlock retrieves the file-add targeted by the block
+func (t *Textile) fileAtBlock(block repo.Block) ([]FileInfo, error) {
+	if block.Type != repo.FilesBlock {
+		return nil, ErrBlockNotFile
+	}
+
+	links, err := ipfs.LinksAtPath(t.node, block.Target)
+	if err != nil {
+		return nil, err
+	}
+
+	files := make([]FileInfo, len(links))
+
+	for _, index := range links {
+		node, err := ipfs.NodeAtLink(t.node, index)
+		if err != nil {
+			return nil, err
+		}
+		fnames := node.Links()
+
+		info := FileInfo{
+			Path: block.Target + "/" + index.Name,
+		}
+		if len(fnames) > 0 {
+			// directory of files
+			info.Links = make(Directory)
+			for _, link := range node.Links() {
+				pair, err := ipfs.NodeAtLink(t.node, link)
+				if err != nil {
+					return nil, err
+				}
+				file, err := t.fileForPair(pair)
+				if err != nil {
+					return nil, err
+				}
+				if file != nil {
+					info.Links[link.Name] = *file
+				}
+			}
+		} else {
+			// single file
+			file, err := t.fileForPair(node)
+			if err != nil {
+				return nil, err
+			}
+			info.File = file
+		}
+
+		i, err := strconv.Atoi(index.Name)
+		if err != nil {
+			return nil, err
+		}
+		files[i] = info
+	}
+
+	return files, nil
 }
 
 func (t *Textile) checksum(plaintext []byte) string {
@@ -300,7 +358,7 @@ func (t *Textile) checksum(plaintext []byte) string {
 }
 
 func (t *Textile) fileForPair(pair ipld.Node) (*repo.File, error) {
-	d, _, err := pair.ResolveLink([]string{"d"})
+	d, _, err := pair.ResolveLink([]string{DataLinkName})
 	if err != nil {
 		return nil, err
 	}

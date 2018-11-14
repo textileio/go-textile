@@ -101,22 +101,21 @@ func (a *api) lsThreadFiles(g *gin.Context) {
 }
 
 func (a *api) getThreadFiles(g *gin.Context) {
-	//id := g.Param("id")
-	//if id == "default" {
-	//	id = a.node.config.Threads.Defaults.ID
-	//}
-	//thrd := a.node.Thread(id)
-	//if thrd == nil {
-	//	g.String(http.StatusNotFound, ErrThreadNotFound.Error())
-	//	return
-	//}
-	//fileId := g.Param("fid")
+	threadId := g.Param("id")
+	if threadId == "default" {
+		threadId = a.node.config.Threads.Defaults.ID
+	}
+	thrd := a.node.Thread(threadId)
+	if thrd == nil {
+		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
+		return
+	}
 
-	//hash, err := thrd.AddFiles(node, opts["caption"], keys)
-	//if err != nil {
-	//	g.String(http.StatusBadRequest, err.Error())
-	//	return
-	//}
+	info, err := a.node.File(threadId, g.Param("block"))
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
 
-	//g.JSON(http.StatusCreated, info)
+	g.JSON(http.StatusOK, info)
 }
