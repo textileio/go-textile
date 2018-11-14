@@ -133,6 +133,6 @@ func Test005(t *testing.T) {
 
 	os.RemoveAll("./migration005_threads.ndjson")
 	os.RemoveAll("./migration005_default_photos.ndjson")
-	//os.RemoveAll("./datastore")
-	//os.RemoveAll("./repover")
+	os.RemoveAll("./datastore")
+	os.RemoveAll("./repover")
 }
