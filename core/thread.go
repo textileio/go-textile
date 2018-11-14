@@ -32,6 +32,12 @@ var ErrInvitesNotAllowed = errors.New("invites not allowed to private thread")
 // ErrThreadSchemaRequired indicates files where added without a thread schema
 var ErrThreadSchemaRequired = errors.New("thread schema required to add files")
 
+// ErrInvalidFileNode indicates files where added via a nil ipld node
+var ErrInvalidFileNode = errors.New("invalid files node")
+
+// ErrBlockNotFile indicates a file was requested via a non-file block
+var ErrBlockNotFile = errors.New("block is not a file")
+
 // ThreadUpdate is used to notify listeners about updates in a thread
 type ThreadUpdate struct {
 	Block      repo.Block `json:"block"`

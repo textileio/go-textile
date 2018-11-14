@@ -58,29 +58,3 @@ func (t *Textile) BlockInfo(id string) (*BlockInfo, error) {
 		Body:     block.Body,
 	}, nil
 }
-
-// BlockData cats file data from ipfs and tries to decrypt it with the provided block
-//func (t *Textile) BlockData(path string, block *repo.Block) ([]byte, error) {
-//	ciphertext, err := ipfs.DataAtPath(t.node, path)
-//	if err != nil {
-//		// size migrations
-//		parts := strings.Split(path, "/")
-//		if len(parts) > 1 && strings.Contains(err.Error(), "no link named") {
-//			switch parts[1] {
-//			case "small":
-//				parts[1] = "thumb"
-//			case "medium":
-//				parts[1] = "photo"
-//			default:
-//				return nil, err
-//			}
-//			ciphertext, err = ipfs.DataAtPath(t.node, strings.Join(parts, "/"))
-//			if err != nil {
-//				return nil, err
-//			}
-//		} else {
-//			return nil, err
-//		}
-//	}
-//	return crypto.DecryptAES(ciphertext, block.DataKey)
-//}
