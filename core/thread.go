@@ -40,9 +40,10 @@ var ErrBlockNotFile = errors.New("block is not a file")
 
 // ThreadUpdate is used to notify listeners about updates in a thread
 type ThreadUpdate struct {
-	Block      repo.Block `json:"block"`
-	ThreadId   string     `json:"thread_id"`
-	ThreadName string     `json:"thread_name"`
+	Block      repo.Block  `json:"block"`
+	ThreadId   string      `json:"thread_id"`
+	ThreadName string      `json:"thread_name"`
+	Info       interface{} `json:"info,omitempty"`
 }
 
 // ThreadInfo reports info about a thread

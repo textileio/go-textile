@@ -122,93 +122,6 @@ func (a *api) rmThreads(g *gin.Context) {
 	g.String(http.StatusOK, "ok")
 }
 
-func (a *api) addThreadFile(g *gin.Context) {
-	opts, err := a.readOpts(g)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-
-	var file repo.File
-	if err := g.BindJSON(&file); err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	id := g.Param("id")
-	if id == "default" {
-		id = a.node.config.Threads.Defaults.ID
-	}
-	thrd := a.node.Thread(id)
-	if thrd == nil {
-		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
-		return
-	}
-
-	node, keys, err := a.node.AddNodeFromFiles([]repo.File{file})
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	hash, err := thrd.AddFiles(node, opts["caption"], keys)
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-	info, err := a.node.BlockInfo(hash.B58String())
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	g.JSON(http.StatusCreated, info)
-}
-
-func (a *api) addThreadFiles(g *gin.Context) {
-	opts, err := a.readOpts(g)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-
-	var dir Directory
-	if err := g.BindJSON(&dir); err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	id := g.Param("id")
-	if id == "default" {
-		id = a.node.config.Threads.Defaults.ID
-	}
-	thrd := a.node.Thread(id)
-	if thrd == nil {
-		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
-		return
-	}
-
-	node, keys, err := a.node.AddNodeFromDirs([]Directory{dir})
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	hash, err := thrd.AddFiles(node, opts["caption"], keys)
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	info, err := a.node.BlockInfo(hash.B58String())
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	g.JSON(http.StatusCreated, info)
-}
-
 func (a *api) streamThreads(g *gin.Context) {
 	id := g.Param("id")
 	thrd := a.node.Thread(id)
@@ -229,10 +142,13 @@ func (a *api) streamThreads(g *gin.Context) {
 			if !ok {
 				return false
 			}
-			if opts["events"] == "true" {
-				g.SSEvent("threadUpdate", update)
-			} else {
-				g.JSON(http.StatusOK, update)
+			if data, ok := update.(ThreadUpdate); ok {
+				info, _ := addBlockInfo(a, data)
+				if opts["events"] == "true" {
+					g.SSEvent("threadUpdate", info)
+				} else {
+					g.JSON(http.StatusOK, info)
+				}
 			}
 		default:
 		}
@@ -240,4 +156,51 @@ func (a *api) streamThreads(g *gin.Context) {
 	})
 
 	listener.Close()
+}
+
+func addBlockInfo(a *api, update ThreadUpdate) (ThreadUpdate, error) {
+	block := update.Block
+	username := a.node.ContactUsername(block.AuthorId)
+
+	var info interface{}
+	switch update.Block.Type {
+	case repo.FilesBlock:
+		info, _ = a.node.File(update.ThreadId, update.Block.Id)
+	case repo.CommentBlock:
+		info = CommentInfo{
+			Id:       block.Id,
+			Date:     block.Date,
+			AuthorId: block.AuthorId,
+			Username: username,
+			Body:     block.Body,
+		}
+	case repo.LikeBlock:
+		info = LikeInfo{
+			Id:       block.Id,
+			Date:     block.Date,
+			AuthorId: block.AuthorId,
+			Username: username,
+		}
+	case repo.JoinBlock:
+		info = JoinInfo{
+			Id:       block.Id,
+			Date:     block.Date,
+			AuthorId: block.AuthorId,
+			Username: username,
+		}
+	case repo.LeaveBlock:
+		info = JoinInfo{
+			Id:       block.Id,
+			Date:     block.Date,
+			AuthorId: block.AuthorId,
+			Username: username,
+		}
+	default: // Don't have a need for others yet...
+	}
+	return ThreadUpdate{
+		Block:      update.Block,
+		ThreadId:   update.ThreadId,
+		ThreadName: update.ThreadName,
+		Info:       info,
+	}, nil
 }

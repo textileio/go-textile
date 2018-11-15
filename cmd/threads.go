@@ -30,7 +30,6 @@ type threadsCmd struct {
 	Get        getThreadsCmd        `command:"get"`
 	GetDefault getDefaultThreadsCmd `command:"default"`
 	Remove     rmThreadsCmd         `command:"rm"`
-	Invite     inviteThreadsCmd     `command:"invite"`
 	Stream     streamThreadsCmd     `command:"updates"`
 }
 

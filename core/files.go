@@ -58,6 +58,20 @@ type LikeInfo struct {
 	Username string    `json:"username,omitempty"`
 }
 
+type JoinInfo struct {
+	Id       string    `json:"id"`
+	Date     time.Time `json:"date"`
+	AuthorId string    `json:"author_id"`
+	Username string    `json:"username,omitempty"`
+}
+
+type LeaveInfo struct {
+	Id       string    `json:"id"`
+	Date     time.Time `json:"date"`
+	AuthorId string    `json:"author_id"`
+	Username string    `json:"username,omitempty"`
+}
+
 const FileLinkName = "f"
 const DataLinkName = "d"
 
