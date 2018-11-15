@@ -13,7 +13,6 @@ import (
 
 type ImageExifSchema struct {
 	Created   time.Time `json:"created,omitempty"`
-	Added     time.Time `json:"added"`
 	Name      string    `json:"name"`
 	Ext       string    `json:"extension"`
 	Width     int       `json:"width"`
@@ -70,7 +69,6 @@ func (m *ImageExif) Mill(input []byte, name string) (*Result, error) {
 
 	res := &ImageExifSchema{
 		Created:   created,
-		Added:     time.Now(),
 		Name:      name,
 		Ext:       strings.ToLower(filepath.Ext(name)),
 		Format:    string(format),

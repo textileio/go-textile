@@ -138,6 +138,7 @@ func callAdd(args []string, opts map[string]string) error {
 		return err
 	}
 
+	output("\"block\":", nil)
 	output(res, nil)
 	return nil
 }
