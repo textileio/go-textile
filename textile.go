@@ -403,8 +403,11 @@ func startNode() error {
 				date := update.Block.Date.Format(time.RFC822)
 				desc := update.Block.Type.Description()
 				username := core.Node.ContactUsername(update.Block.AuthorId)
+				if username != "" {
+					username += " "
+				}
 				thrd := update.ThreadId[len(update.ThreadId)-7:]
-				msg := cmd.Grey(date+"  "+username+" added ") +
+				msg := cmd.Grey(date+"  "+username+"added ") +
 					cmd.Green(desc) + cmd.Grey(" update to thread "+thrd)
 				fmt.Println(msg)
 			}

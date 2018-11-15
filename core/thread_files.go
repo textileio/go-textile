@@ -6,7 +6,6 @@ import (
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
-	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/path"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/mr-tron/base58/base58"
@@ -122,7 +121,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 
 		// use msg keys to decrypt each file
 		for pth, key := range msg.Keys {
-			nd, err := ipfs.NodeAtPath(t.node(), path.Path(msg.Target+pth+FileLinkName))
+			fd, err := ipfs.DataAtPath(t.node(), msg.Target+pth+FileLinkName)
 			if err != nil {
 				return nil, err
 			}
@@ -131,7 +130,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 			if err != nil {
 				return nil, err
 			}
-			plaintext, err := crypto.DecryptAES(nd.RawData(), keyb)
+			plaintext, err := crypto.DecryptAES(fd, keyb)
 			if err != nil {
 				return nil, err
 			}
@@ -140,10 +139,9 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 			if err := json.Unmarshal(plaintext, &file); err != nil {
 				return nil, err
 			}
+			log.Debugf("received file: %s", file.Hash)
 			if err := t.datastore.Files().Add(&file); err != nil {
-				log.Debugf("received file already exists: %s", file.Hash)
-			} else {
-				log.Debugf("received file: %s", file.Hash)
+				log.Debugf("file exists: %s", file.Hash)
 			}
 		}
 	}

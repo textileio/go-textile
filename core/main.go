@@ -689,6 +689,7 @@ func setupLogging(repoPath string, level logger.Level, files bool) io.Writer {
 	logger.SetBackend(backendFile)
 	logging.SetAllLoggers(level)
 
+	// tmp until we have a log command to alter subsystems
 	logging.SetLogLevel("tex-core", "debug")
 	logging.SetLogLevel("tex-service", "debug")
 	logging.SetLogLevel("tex-gateway", "debug")
