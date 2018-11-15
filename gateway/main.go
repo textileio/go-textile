@@ -16,7 +16,7 @@ import (
 	"github.com/textileio/textile-go/crypto"
 )
 
-var log = logging.Logger("gateway")
+var log = logging.Logger("tex-gateway")
 
 // Host is the instance used by the daemon
 var Host *Gateway

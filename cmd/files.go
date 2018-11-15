@@ -1,13 +1,16 @@
 package cmd
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
@@ -171,7 +174,7 @@ type lsCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
 	Offset string        `short:"o" long:"offset" description:"Offset ID to start listing from."`
-	Limit  string        `short:"l" long:"limit" description:"List page size."`
+	Limit  string        `short:"l" long:"limit" description:"List page size." default:"25"`
 }
 
 func (x *lsCmd) Name() string {
@@ -193,6 +196,8 @@ func (x *lsCmd) Execute(args []string) error {
 	setApi(x.Client)
 	opts := map[string]string{
 		"thread": x.Thread,
+		"offset": x.Offset,
+		"limit":  x.Limit,
 	}
 	return callLs(opts)
 }
@@ -208,15 +213,32 @@ func callLs(opts map[string]string) error {
 	}
 
 	var list []core.FilesInfo
-	res, err := executeJsonCmd(GET, "threads/"+threadId+"/files", params{
-		opts: opts,
-	}, &list)
+	res, err := executeJsonCmd(GET, "threads/"+threadId+"/files", params{opts: opts}, &list)
 	if err != nil {
 		return err
 	}
 
 	output(res, nil)
-	return nil
+
+	limit, err := strconv.Atoi(opts["limit"])
+	if err != nil {
+		return err
+	}
+	if len(list) < limit {
+		return nil
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("next page...")
+	if _, err := reader.ReadString('\n'); err != nil {
+		return err
+	}
+
+	return callLs(map[string]string{
+		"thread": opts["thread"],
+		"offset": list[len(list)-1].Id,
+		"limit":  opts["limit"],
+	})
 }
 
 type getCmd struct {
@@ -264,9 +286,7 @@ func callGet(args []string, opts map[string]string) error {
 	}
 
 	var info core.FilesInfo
-	res, err := executeJsonCmd(GET, "threads/"+threadId+"/files/"+args[0], params{
-		opts: opts,
-	}, &info)
+	res, err := executeJsonCmd(GET, "threads/"+threadId+"/files/"+args[0], params{opts: opts}, &info)
 	if err != nil {
 		return err
 	}

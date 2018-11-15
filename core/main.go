@@ -31,7 +31,7 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-var log = logging.Logger("tex-node")
+var log = logging.Logger("tex-core")
 
 // Version is the core version identifier
 const Version = "1.0.0"
@@ -688,6 +688,14 @@ func setupLogging(repoPath string, level logger.Level, files bool) io.Writer {
 	backendFile := logger.NewLogBackend(writer, "", 0)
 	logger.SetBackend(backendFile)
 	logging.SetAllLoggers(level)
+
+	logging.SetLogLevel("tex-core", "debug")
+	logging.SetLogLevel("tex-service", "debug")
+	logging.SetLogLevel("tex-gateway", "debug")
+	logging.SetLogLevel("tex-ipfs", "debug")
+	logging.SetLogLevel("tex-mill", "debug")
+	logging.SetLogLevel("tex-mobile", "debug")
+
 	return writer
 }
 
