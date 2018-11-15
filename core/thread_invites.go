@@ -24,9 +24,10 @@ func (t *Thread) AddInvite(inviteeId peer.ID) (mh.Multihash, error) {
 		return nil, err
 	}
 	msg := &pb.ThreadInvite{
-		Sk:     threadSk,
-		Name:   t.Name,
-		Schema: t.schemaId,
+		Sk:        threadSk,
+		Name:      t.Name,
+		Schema:    t.schemaId,
+		Initiator: t.initiator,
 	}
 
 	inviteePk, err := inviteeId.ExtractPublicKey()
@@ -68,9 +69,10 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 		return nil, nil, err
 	}
 	msg := &pb.ThreadInvite{
-		Sk:     threadSk,
-		Name:   t.Name,
-		Schema: t.schemaId,
+		Sk:        threadSk,
+		Name:      t.Name,
+		Schema:    t.schemaId,
+		Initiator: t.initiator,
 	}
 
 	key, err := crypto.GenerateAESKey()

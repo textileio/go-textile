@@ -200,7 +200,7 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index file_hash on files (hash);
     create index file_added on files (added);
 
-    create table threads (id text primary key not null, key text not null, sk blob not null, name text not null, schema text not null, type integer not null, state integer not null, head text not null);
+    create table threads (id text primary key not null, key text not null, sk blob not null, name text not null, schema text not null, initiator text not null, type integer not null, state integer not null, head text not null);
     create unique index thread_key on threads (key);
 
     create table thread_peers (id text not null, threadId text not null, welcomed integer not null, primary key (id, threadId));

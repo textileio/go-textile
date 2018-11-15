@@ -53,19 +53,23 @@ func (m *Mobile) AddThread(key string, name string, schema string) (string, erro
 	if err != nil {
 		return "", err
 	}
+	pid, err := core.Node.PeerId()
+	if err != nil {
+		return "", err
+	}
 	config := core.NewThreadConfig{
-		Key:    key,
-		Name:   name,
-		Schema: shash,
-		Type:   repo.OpenThread,
-		Join:   true,
+		Key:       key,
+		Name:      name,
+		Schema:    shash,
+		Initiator: pid.Pretty(),
+		Type:      repo.OpenThread,
+		Join:      true,
 	}
 	thrd, err := core.Node.AddThread(sk, config)
 	if err != nil {
 		return "", err
 	}
 
-	// build json
 	peers := thrd.Peers()
 	item := Thread{
 		Id:    thrd.Id,
@@ -94,13 +98,11 @@ func (m *Mobile) AddThreadInvite(threadId string, inviteeId string) (string, err
 		return "", core.ErrThreadNotFound
 	}
 
-	// decode id
 	pid, err := peer.IDB58Decode(inviteeId)
 	if err != nil {
 		return "", err
 	}
 
-	// add it
 	hash, err := thrd.AddInvite(pid)
 	if err != nil {
 		return "", err
@@ -119,13 +121,11 @@ func (m *Mobile) AddExternalThreadInvite(threadId string) (string, error) {
 		return "", core.ErrThreadNotFound
 	}
 
-	// add it
 	hash, key, err := thrd.AddExternalInvite()
 	if err != nil {
 		return "", err
 	}
 
-	// create a structured invite
 	username, _ := m.Username()
 	invite := ExternalInvite{
 		Id:      hash.B58String(),

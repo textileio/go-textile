@@ -38,9 +38,10 @@ message ThreadBlockHeader {
 }
 
 message ThreadInvite {
-    bytes sk      = 1;
-    string name   = 2;
-    string schema = 3;
+    bytes sk         = 1;
+    string name      = 2;
+    string schema    = 3;
+    string initiator = 4;
 }
 
 message ThreadIgnore {

@@ -18,6 +18,7 @@ type Contact struct {
 type File struct {
 	Mill     string                 `json:"mill"`
 	Checksum string                 `json:"checksum"`
+	Parent   string                 `json:"parent,omitempty"`
 	Hash     string                 `json:"hash"`
 	Key      string                 `json:"key,omitempty"`
 	Media    string                 `json:"media"`
@@ -27,28 +28,35 @@ type File struct {
 }
 
 type Thread struct {
-	Id      string      `json:"id"`
-	Key     string      `json:"key"`
-	PrivKey []byte      `json:"sk"`
-	Name    string      `json:"name"`
-	Schema  string      `json:"schema"`
-	Type    ThreadType  `json:"type"`
-	State   ThreadState `json:"state"`
-	Head    string      `json:"head"`
+	Id        string      `json:"id"`
+	Key       string      `json:"key"`
+	PrivKey   []byte      `json:"sk"`
+	Name      string      `json:"name"`
+	Schema    string      `json:"schema"`
+	Initiator string      `json:"initiator"`
+	Type      ThreadType  `json:"type"`
+	State     ThreadState `json:"state"`
+	Head      string      `json:"head"`
 }
 
 type ThreadType int
 
+// in order of decreasing privacy
 const (
-	PrivateThread ThreadType = iota // invites not allowed
-	OpenThread                      // invites allowed
-	//ReadOnlyThread                   // writes ignored by owner
+	PrivateThread  ThreadType = iota // invites not allowed
+	ReadOnlyThread                   // all non-initiator writes ignored
+	PublicThread                     // only non-initiator file writes ignored (annotations allowed)
+	OpenThread                       // all writes allowed
 )
 
 func (tt ThreadType) Description() string {
 	switch tt {
 	case PrivateThread:
 		return "PRIVATE"
+	case ReadOnlyThread:
+		return "READONLY"
+	case PublicThread:
+		return "PUBLIC"
 	case OpenThread:
 		return "OPEN"
 	default:

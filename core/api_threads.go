@@ -28,8 +28,9 @@ func (a *api) addThreads(g *gin.Context) {
 	}
 
 	config := NewThreadConfig{
-		Name: args[0],
-		Join: true,
+		Name:      args[0],
+		Join:      true,
+		Initiator: a.node.node.Identity.Pretty(),
 	}
 
 	if opts["key"] != "" {
