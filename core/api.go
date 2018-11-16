@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -58,6 +59,14 @@ func (a *api) Start() {
 	router.GET("/health", func(g *gin.Context) {
 		g.Writer.WriteHeader(http.StatusNoContent)
 	})
+
+	// Allows all origins
+	// TODO: Do not use this in production, needs to be configurable
+	config := cors.DefaultConfig()
+	config.AllowAllOrigins = true
+	config.AllowMethods = []string{"GET", "POST", "PUT", "HEAD", "PATCH", "OPTIONS"}
+	config.AllowHeaders = []string{"Content-Type", "Access-Control-Allow-Headers", "Authorization", "X-Requested-With", "X-Textile-Args", "X-Textile-Opts", "Method"}
+	router.Use(cors.New(config))
 
 	// v0 routes
 	v0 := router.Group("/api/v0")
