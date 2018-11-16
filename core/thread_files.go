@@ -35,7 +35,7 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys Keys) (mh.Multiha
 		if err != nil {
 			return nil, err
 		}
-		if err := t.process(t.schema, nd, false); err != nil {
+		if err := t.processNode(t.schema, nd, false); err != nil {
 			return nil, err
 		}
 	}
@@ -112,7 +112,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 			if err != nil {
 				return nil, err
 			}
-			if err := t.process(t.schema, nd, true); err != nil {
+			if err := t.processNode(t.schema, nd, true); err != nil {
 				return nil, err
 			}
 		}

@@ -118,6 +118,9 @@ func callAddThreads(args []string, opts map[string]string) error {
 		}
 		defer file.Close()
 		body, err = ioutil.ReadAll(file)
+		if err != nil {
+			return err
+		}
 
 	} else if sch == "photos" {
 

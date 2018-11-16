@@ -57,7 +57,7 @@ func (m *Mobile) AddThread(key string, name string, schema string) (string, erro
 	if err != nil {
 		return "", err
 	}
-	config := core.NewThreadConfig{
+	config := core.AddThreadConfig{
 		Key:       key,
 		Name:      name,
 		Schema:    shash,

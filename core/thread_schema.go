@@ -8,63 +8,70 @@ import (
 	"github.com/textileio/textile-go/schema"
 )
 
-// process walks a file node, validating and applying a dag schema
-func (t *Thread) process(dag *schema.Node, node ipld.Node, inbound bool) error {
-	hash := node.Cid().Hash().B58String()
+// processNode walks a file node, validating and applying a dag schema
+func (t *Thread) processNode(node *schema.Node, inode ipld.Node, inbound bool) error {
+	hash := inode.Cid().Hash().B58String()
 	t.cafeOutbox.Add(hash, repo.CafeStoreRequest)
 
-	// determine if we're at a leaf
-	if len(dag.Nodes) > 0 {
+	if len(node.Links) == 0 {
+		return t.processLink(inode, node.Pin, inbound)
+	}
 
-		for name, ds := range dag.Nodes {
-			// ensure link is present
-			link := schema.LinkByName(node.Links(), name)
-			if link == nil {
-				return schema.ErrSchemaValidationFailed
-			}
-
-			nd, err := ipfs.NodeAtLink(t.node(), link)
-			if err != nil {
-				return err
-			}
-
-			// keep going
-			if err := t.process(ds, nd, inbound); err != nil {
-				return err
-			}
-		}
-
-		if dag.Pin && inbound {
-			if err := ipfs.PinNode(t.node(), node, false); err != nil {
-				return err
-			}
-		}
-
-	} else {
-		if schema.LinkByName(node.Links(), FileLinkName) == nil {
-			return schema.ErrSchemaValidationFailed
-		}
-		if schema.LinkByName(node.Links(), DataLinkName) == nil {
+	for name, l := range node.Links {
+		// ensure link is present
+		link := schema.LinkByName(inode.Links(), name)
+		if link == nil {
 			return schema.ErrSchemaValidationFailed
 		}
 
-		// pin leaf nodes if schema dictates or files originate locally
-		if dag.Pin || !inbound {
-			if err := ipfs.PinNode(t.node(), node, true); err != nil {
-				return err
-			}
+		n, err := ipfs.NodeAtLink(t.node(), link)
+		if err != nil {
+			return err
 		}
 
-		// remote pin leaf nodes if files originate locally
-		if !inbound {
-			t.cafeOutbox.Add(hash+"/"+FileLinkName, repo.CafeStoreRequest)
-			if !t.config.IsMobile {
-				t.cafeOutbox.Add(hash+"/"+DataLinkName, repo.CafeStoreRequest)
-			}
+		if err := t.processLink(n, l.Pin, inbound); err != nil {
+			return err
+		}
+	}
+
+	// pin link directory
+	if node.Pin && inbound {
+		if err := ipfs.PinNode(t.node(), inode, false); err != nil {
+			return err
 		}
 	}
 
 	go t.cafeOutbox.Flush()
+
+	return nil
+}
+
+// processLink validates and pins file nodes
+func (t *Thread) processLink(inode ipld.Node, pin bool, inbound bool) error {
+	hash := inode.Cid().Hash().B58String()
+	t.cafeOutbox.Add(hash, repo.CafeStoreRequest)
+
+	if schema.LinkByName(inode.Links(), FileLinkName) == nil {
+		return schema.ErrSchemaValidationFailed
+	}
+	if schema.LinkByName(inode.Links(), DataLinkName) == nil {
+		return schema.ErrSchemaValidationFailed
+	}
+
+	// pin leaf nodes if schema dictates or files originate locally
+	if pin || !inbound {
+		if err := ipfs.PinNode(t.node(), inode, true); err != nil {
+			return err
+		}
+	}
+
+	// remote pin leaf nodes if files originate locally
+	if !inbound {
+		t.cafeOutbox.Add(hash+"/"+FileLinkName, repo.CafeStoreRequest)
+		if !t.config.IsMobile {
+			t.cafeOutbox.Add(hash+"/"+DataLinkName, repo.CafeStoreRequest)
+		}
+	}
 
 	return nil
 }

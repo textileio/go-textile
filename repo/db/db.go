@@ -195,7 +195,7 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index contact_username on contacts (username);
     create index contact_added on contacts (added);
 
-    create table files (mill text not null, checksum text not null, hash text not null, key text not null, media text not null, size integer not null, added integer not null, meta blob, primary key (mill, checksum));
+    create table files (mill text not null, checksum text not null, parent text not null, hash text not null, key text not null, media text not null, name text not null, size integer not null, added integer not null, meta blob, primary key (mill, checksum));
     create index file_checksum on files (checksum);
     create index file_hash on files (hash);
     create index file_added on files (added);

@@ -25,7 +25,7 @@ func (c *FileDB) Add(file *repo.File) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into files(mill, checksum, hash, key, media, size, added, meta) values(?,?,?,?,?,?,?,?)`
+	stm := `insert into files(mill, checksum, parent, hash, key, media, name, size, added, meta) values(?,?,?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -42,9 +42,11 @@ func (c *FileDB) Add(file *repo.File) error {
 	_, err = stmt.Exec(
 		file.Mill,
 		file.Checksum,
+		file.Parent,
 		file.Hash,
 		file.Key,
 		file.Media,
+		file.Name,
 		file.Size,
 		int(file.Added.Unix()),
 		meta,
@@ -71,6 +73,16 @@ func (c *FileDB) GetByPrimary(mill string, checksum string) *repo.File {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	ret := c.handleQuery("select * from files where mill='" + mill + "' and checksum='" + checksum + "';")
+	if len(ret) == 0 {
+		return nil
+	}
+	return &ret[0]
+}
+
+func (c *FileDB) GetByParent(mill string, parent string) *repo.File {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	ret := c.handleQuery("select * from files where mill='" + mill + "' and parent='" + parent + "';")
 	if len(ret) == 0 {
 		return nil
 	}
@@ -120,10 +132,10 @@ func (c *FileDB) handleQuery(stm string) []repo.File {
 		return nil
 	}
 	for rows.Next() {
-		var mill, checksum, hash, key, media string
+		var mill, checksum, parent, hash, key, media, name string
 		var size, addedInt int
 		var metab []byte
-		if err := rows.Scan(&mill, &checksum, &hash, &key, &media, &size, &addedInt, &metab); err != nil {
+		if err := rows.Scan(&mill, &checksum, &parent, &hash, &key, &media, &name, &size, &addedInt, &metab); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -137,9 +149,11 @@ func (c *FileDB) handleQuery(stm string) []repo.File {
 		res = append(res, repo.File{
 			Mill:     mill,
 			Checksum: checksum,
+			Parent:   parent,
 			Hash:     hash,
 			Key:      key,
 			Media:    media,
+			Name:     name,
 			Size:     size,
 			Added:    time.Unix(int64(addedInt), 0),
 			Meta:     meta,

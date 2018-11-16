@@ -22,6 +22,7 @@ type File struct {
 	Hash     string                 `json:"hash"`
 	Key      string                 `json:"key,omitempty"`
 	Media    string                 `json:"media"`
+	Name     string                 `json:"name"`
 	Size     int                    `json:"size"`
 	Added    time.Time              `json:"added"`
 	Meta     map[string]interface{} `json:"meta,omitempty"`

@@ -21,6 +21,8 @@ import (
 
 var errMissingFilePath = errors.New("missing file path")
 var errMissingFileBlockId = errors.New("missing file block id")
+var errSchemaNoFiles = errors.New("schema doesn't generate any files")
+var errNoFileSourceFound = errors.New("no file source found for links")
 
 func init() {
 	register(&addCmd{})
@@ -62,6 +64,11 @@ func (x *addCmd) Shell() *ishell.Cmd {
 	return nil
 }
 
+type step struct {
+	name string
+	link *schema.Link
+}
+
 func callAdd(args []string, opts map[string]string) error {
 	if len(args) == 0 {
 		return errMissingFilePath
@@ -86,11 +93,11 @@ func callAdd(args []string, opts map[string]string) error {
 		path = args[0]
 	}
 
-	file, err := os.Open(path)
+	f, err := os.Open(path)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer f.Close()
 
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
@@ -98,29 +105,87 @@ func callAdd(args []string, opts map[string]string) error {
 	if err != nil {
 		return err
 	}
-	if _, err = io.Copy(part, file); err != nil {
+	if _, err = io.Copy(part, f); err != nil {
 		return err
 	}
 	writer.Close()
 	reader := bytes.NewReader(body.Bytes())
 
 	// traverse the schema and collect generated files
-	dir := make(map[string]*repo.File)
-	f, err := millNode(reader, writer.FormDataContentType(), info.Schema, dir, func(out string) {
-		output(out, nil)
-	})
-	if err != nil {
-		return err
-	}
-
-	// the schemas could have generated a directory or a single file
 	var payload interface{}
-	if len(dir) != 0 {
+	if info.Schema.Mill != "" {
+		file := &repo.File{}
+
+		res, err := executeJsonCmd(POST, "mills"+info.Schema.Mill, params{
+			opts:    info.Schema.Opts,
+			payload: reader,
+			ctype:   writer.FormDataContentType(),
+		}, &file)
+		if err != nil {
+			return err
+		}
+		output(res, nil)
+		payload = &file
+
+	} else if len(info.Schema.Links) > 0 {
+		dir := make(map[string]*repo.File)
+
+		// determine order
+		var steps []step
+		run := info.Schema.Links
+		i := 0
+		for {
+			if i > len(info.Schema.Links) {
+				return errors.New("schema order is not solvable")
+			}
+			next := orderLinks(run, &steps)
+			if len(next) == 0 {
+				break
+			}
+			run = next
+			i++
+		}
+
+		// send each link
+		for _, step := range steps {
+			file := &repo.File{}
+			output("\""+step.name+"\":", nil)
+
+			if step.link.Use == ":file" {
+				reader.Seek(0, 0)
+				res, err := executeJsonCmd(POST, "mills"+step.link.Mill, params{
+					opts:    step.link.Opts,
+					payload: reader,
+					ctype:   writer.FormDataContentType(),
+				}, &file)
+				if err != nil {
+					return err
+				}
+				dir[step.name] = file
+				output(res, nil)
+
+			} else {
+				if dir[step.link.Use] == nil {
+					return errors.New(step.link.Use + " not found")
+				}
+				if len(step.link.Opts) == 0 {
+					step.link.Opts = make(map[string]string)
+				}
+				step.link.Opts["use"] = dir[step.link.Use].Hash
+				res, err := executeJsonCmd(POST, "mills"+step.link.Mill, params{
+					opts: step.link.Opts,
+				}, &file)
+				if err != nil {
+					return err
+				}
+				dir[step.name] = file
+				output(res, nil)
+			}
+		}
 		payload = &dir
-	} else if f != nil {
-		payload = &f
+
 	} else {
-		return errors.New("schema generated no files")
+		return errSchemaNoFiles
 	}
 
 	data, err := json.Marshal(payload)
@@ -143,32 +208,27 @@ func callAdd(args []string, opts map[string]string) error {
 	return nil
 }
 
-func millNode(reader *bytes.Reader, ctype string, node *schema.Node, dir map[string]*repo.File, out func(string)) (*repo.File, error) {
-	file := &repo.File{}
-
-	if node.Mill != "" {
-		res, err := executeJsonCmd(POST, "mills"+node.Mill, params{
-			opts:    node.Opts,
-			payload: reader,
-			ctype:   ctype,
-		}, &file)
-		if err != nil {
-			return nil, err
+func orderLinks(links map[string]*schema.Link, steps *[]step) map[string]*schema.Link {
+	unused := make(map[string]*schema.Link)
+	for name, link := range links {
+		if link.Use == ":file" {
+			*steps = append([]step{{name: name, link: link}}, *steps...)
+		} else {
+			useAt := -1
+			for i, s := range *steps {
+				if link.Use == s.name {
+					useAt = i
+					break
+				}
+			}
+			if useAt >= 0 {
+				*steps = append(*steps, step{name: name, link: link})
+			} else {
+				unused[name] = link
+			}
 		}
-		out(res)
 	}
-
-	for l, n := range node.Nodes {
-		reader.Seek(0, 0)
-		out("\"" + l + "\":")
-		f, err := millNode(reader, ctype, n, dir, out)
-		if err != nil {
-			return nil, err
-		}
-		dir[l] = f
-	}
-
-	return file, nil
+	return unused
 }
 
 type lsCmd struct {

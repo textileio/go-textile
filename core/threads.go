@@ -22,8 +22,8 @@ var ErrThreadNotFound = errors.New("thread not found")
 // ErrThreadLoaded indicates the thread is already loaded from the datastore
 var ErrThreadLoaded = errors.New("thread is loaded")
 
-// NewThreadConfig is used to create a new thread model
-type NewThreadConfig struct {
+// AddThreadConfig is used to create a new thread model
+type AddThreadConfig struct {
 	Key       string          `json:"key"`
 	Name      string          `json:"name"`
 	Schema    mh.Multihash    `json:"schema"`
@@ -33,7 +33,7 @@ type NewThreadConfig struct {
 }
 
 // AddThread adds a thread with a given name and secret key
-func (t *Textile) AddThread(sk libp2pc.PrivKey, conf NewThreadConfig) (*Thread, error) {
+func (t *Textile) AddThread(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, error) {
 	if !t.Started() {
 		return nil, ErrStopped
 	}
@@ -263,7 +263,7 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 			return nil, err
 		}
 	}
-	config := NewThreadConfig{
+	config := AddThreadConfig{
 		Key:       ksuid.New().String(),
 		Name:      msg.Name,
 		Schema:    sch,
@@ -309,7 +309,7 @@ func (t *Textile) addAccountThread() error {
 		return err
 	}
 
-	config := NewThreadConfig{
+	config := AddThreadConfig{
 		Key:       ksuid.New().String(),
 		Name:      "account",
 		Initiator: t.account.Address(),

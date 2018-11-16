@@ -2,7 +2,7 @@ package core
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -24,7 +24,12 @@ func (a *api) schemaMill(g *gin.Context) {
 		return
 	}
 
-	added, err := a.node.AddFile(data, "", "application/json", mill)
+	conf := AddFileConfig{
+		Input: data,
+		Media: "application/json",
+	}
+
+	added, err := a.node.AddFile(mill, conf)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -34,29 +39,20 @@ func (a *api) schemaMill(g *gin.Context) {
 }
 
 func (a *api) blobMill(g *gin.Context) {
+	opts, err := a.readOpts(g)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
 	mill := &m.Blob{}
 
-	file, name, err := a.openFile(g)
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-	defer file.Close()
-
-	media, err := a.node.MediaType(file, mill)
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-	file.Seek(0, 0)
-
-	data, err := ioutil.ReadAll(file)
+	conf, err := a.getFileConfig(g, mill, opts["use"])
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	added, err := a.node.AddFile(data, name, media, mill)
+	added, err := a.node.AddFile(mill, *conf)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -89,27 +85,13 @@ func (a *api) imageResizeMill(g *gin.Context) {
 		mill.Opts.Quality = opts["quality"]
 	}
 
-	file, name, err := a.openFile(g)
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-	defer file.Close()
-
-	media, err := a.node.MediaType(file, mill)
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-	file.Seek(0, 0)
-
-	data, err := ioutil.ReadAll(file)
+	conf, err := a.getFileConfig(g, mill, opts["use"])
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	added, err := a.node.AddFile(data, name, media, mill)
+	added, err := a.node.AddFile(mill, *conf)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -119,28 +101,23 @@ func (a *api) imageResizeMill(g *gin.Context) {
 }
 
 func (a *api) imageExifMill(g *gin.Context) {
+	opts, err := a.readOpts(g)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
 	mill := &m.ImageExif{}
 
-	file, name, err := a.openFile(g)
+	fmt.Println(opts["use"])
+
+	conf, err := a.getFileConfig(g, mill, opts["use"])
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
-	defer file.Close()
+	conf.Media = "application/json"
 
-	if _, err := a.node.MediaType(file, mill); err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-	file.Seek(0, 0)
-
-	data, err := ioutil.ReadAll(file)
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	added, err := a.node.AddFile(data, name, "application/json", mill)
+	added, err := a.node.AddFile(mill, *conf)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

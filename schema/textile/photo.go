@@ -3,17 +3,17 @@ package textile
 var Photo = `
 {
   "pin": true,
-  "nodes": {
+  "links": {
     "raw": {
-      "use": ":original",
+      "use": ":file",
       "mill": "/blob"
     },
     "exif": {
-      "use": ":original",
+      "use": "raw",
       "mill": "/image/exif"
     },
     "large": {
-      "use": ":original",
+      "use": "raw",
       "mill": "/image/resize",
       "opts": {
         "width": "1600",
@@ -21,7 +21,7 @@ var Photo = `
       }
     },
     "medium": {
-      "use": ":original",
+      "use": "raw",
       "mill": "/image/resize",
       "opts": {
         "width": "800",
@@ -29,7 +29,7 @@ var Photo = `
       }
     },
     "small": {
-      "use": ":original",
+      "use": "raw",
       "mill": "/image/resize",
       "opts": {
         "width": "320",
@@ -38,7 +38,7 @@ var Photo = `
     },
     "thumb": {
       "pin": true,
-      "use": ":original",
+      "use": "raw",
       "mill": "/image/resize",
       "opts": {
         "width": "100",
@@ -55,7 +55,7 @@ var Photo = `
 var Person = `
 {
   "pin": true,
-  "use": ":original",
+  "use": ":file",
   "mill": "/json",
   "schema": {
     "$id": "https://example.com/person.schema.json",

@@ -75,7 +75,7 @@ func TestCore_AddThread(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	config := NewThreadConfig{
+	config := AddThreadConfig{
 		Key:       ksuid.New().String(),
 		Name:      "test",
 		Schema:    schema,
