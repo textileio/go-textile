@@ -5,7 +5,6 @@ import (
 	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	"strings"
-	"time"
 
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
@@ -246,24 +245,6 @@ func (m *Mobile) PeerId() (string, error) {
 		return "", err
 	}
 	return pid.Pretty(), nil
-}
-
-// waitForOnline waits up to 5 seconds for the node to go online
-func (m *Mobile) waitForOnline() {
-	if core.Node.Online() {
-		return
-	}
-	deadline := time.Now().Add(time.Second * 5)
-	tick := time.NewTicker(time.Millisecond * 10)
-	defer tick.Stop()
-	for {
-		select {
-		case <-tick.C:
-			if core.Node.Online() || time.Now().After(deadline) {
-				return
-			}
-		}
-	}
 }
 
 // toJSON returns a json string and logs errors

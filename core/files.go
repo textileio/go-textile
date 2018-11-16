@@ -73,16 +73,16 @@ func (t *Textile) MediaType(reader io.Reader, mill m.Mill) (string, error) {
 }
 
 type AddFileConfig struct {
-	Input  []byte `json:"input"`
-	Parent string `json:"parent"`
-	Media  string `json:"media"`
-	Name   string `json:"name"`
+	Input []byte `json:"input"`
+	Use   string `json:"use"`
+	Media string `json:"media"`
+	Name  string `json:"name"`
 }
 
 func (t *Textile) AddFile(mill m.Mill, conf AddFileConfig) (*repo.File, error) {
 	var source string
-	if conf.Parent != "" {
-		source = conf.Parent
+	if conf.Use != "" {
+		source = conf.Use
 	} else {
 		source = t.checksum(conf.Input)
 	}
@@ -450,18 +450,3 @@ func (t *Textile) fileLikes(threadId string, target string) ([]LikeInfo, error) 
 
 	return likes, nil
 }
-
-//// FileThreads lists threads which contain a photo (known to the local peer)
-//func (t *Textile) FileThreads(id string) []*Thread {
-//	blocks := t.datastore.Blocks().List("", -1, "dataId='"+id+"'")
-//	if len(blocks) == 0 {
-//		return nil
-//	}
-//	var threads []*Thread
-//	for _, block := range blocks {
-//		if thrd := t.Thread(block.ThreadId); thrd != nil {
-//			threads = append(threads, thrd)
-//		}
-//	}
-//	return threads
-//}

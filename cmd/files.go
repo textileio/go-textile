@@ -22,7 +22,6 @@ import (
 var errMissingFilePath = errors.New("missing file path")
 var errMissingFileBlockId = errors.New("missing file block id")
 var errSchemaNoFiles = errors.New("schema doesn't generate any files")
-var errNoFileSourceFound = errors.New("no file source found for links")
 
 func init() {
 	register(&addCmd{})

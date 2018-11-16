@@ -2,61 +2,58 @@ package mobile
 
 import (
 	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/images"
-	//libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
-	"time"
 )
 
-// Photo is a simple meta data wrapper around a photo block
-type Photo struct {
-	Id       string           `json:"id"`
-	BlockId  string           `json:"block_id"`
-	Date     time.Time        `json:"date"`
-	AuthorId string           `json:"author_id"`
-	Caption  string           `json:"caption,omitempty"`
-	Username string           `json:"username,omitempty"`
-	Metadata *images.Metadata `json:"metadata,omitempty"`
-	Comments []Comment        `json:"comments"`
-	Likes    []Like           `json:"likes"`
-}
+//// Photo is a simple meta data wrapper around a photo block
+//type Photo struct {
+//	Id       string           `json:"id"`
+//	BlockId  string           `json:"block_id"`
+//	Date     time.Time        `json:"date"`
+//	AuthorId string           `json:"author_id"`
+//	Caption  string           `json:"caption,omitempty"`
+//	Username string           `json:"username,omitempty"`
+//	Metadata *images.Metadata `json:"metadata,omitempty"`
+//	Comments []Comment        `json:"comments"`
+//	Likes    []Like           `json:"likes"`
+//}
+//
+//// Photos is a wrapper around a list of photos
+//type Photos struct {
+//	Items []Photo `json:"items"`
+//}
+//
+//// Annotation represents common annotation fields
+//type Annotation struct {
+//	Id       string    `json:"id"`
+//	Date     time.Time `json:"date"`
+//	AuthorId string    `json:"author_id"`
+//	Username string    `json:"username,omitempty"`
+//}
+//
+//// Comment is a simple wrapper around a comment block
+//type Comment struct {
+//	Annotation
+//	Body string `json:"body"`
+//}
+//
+//// Like is a simple wrapper around a like block
+//type Like struct {
+//	Annotation
+//}
+//
+//// ImageData is a wrapper around an image data url
+//type ImageData struct {
+//	Url string `json:"url"`
+//}
 
-// Photos is a wrapper around a list of photos
-type Photos struct {
-	Items []Photo `json:"items"`
-}
-
-// Annotation represents common annotation fields
-type Annotation struct {
-	Id       string    `json:"id"`
-	Date     time.Time `json:"date"`
-	AuthorId string    `json:"author_id"`
-	Username string    `json:"username,omitempty"`
-}
-
-// Comment is a simple wrapper around a comment block
-type Comment struct {
-	Annotation
-	Body string `json:"body"`
-}
-
-// Like is a simple wrapper around a like block
-type Like struct {
-	Annotation
-}
-
-// ImageData is a wrapper around an image data url
-type ImageData struct {
-	Url string `json:"url"`
-}
-
-// AddPhoto adds a photo by path
-func (m *Mobile) AddPhoto(path string) (string, error) {
-	added, err := core.Node.AddImageByPath(path)
-	if err != nil {
-		return "", err
-	}
-	return toJSON(added)
-}
+// AddFile processes a file by path for a thread, but does NOT share it
+//func (m *Mobile) AddFile(path string) (string, error) {
+//	added, err := core.Node.AddFile(path)
+//	if err != nil {
+//		return "", err
+//	}
+//	return toJSON(added)
+//}
 
 //// AddPhotoToThread adds an existing photo to a new thread
 //func (m *Mobile) AddPhotoToThread(dataId string, key string, threadId string, caption string) (string, error) {
@@ -91,7 +88,7 @@ func (m *Mobile) AddPhoto(path string) (string, error) {
 //	if toThread == nil {
 //		return "", core.ErrThreadNotFound
 //	}
-//	// TODO: owner challenge
+//	// owner challenge
 //	hash, err := toThread.AddFile(dataId, caption, block.DataKey)
 //	if err != nil {
 //		return "", err
@@ -304,13 +301,28 @@ func (m *Mobile) ignoreBlock(blockId string) (string, error) {
 }
 
 // getImageDataURLPrefix adds the correct data url prefix to a data url
-func getImageDataURLPrefix(format images.Format) string {
-	switch format {
-	case images.PNG:
-		return "data:image/png;base64,"
-	case images.GIF:
-		return "data:image/gif;base64,"
-	default:
-		return "data:image/jpeg;base64,"
-	}
-}
+//func getImageDataURLPrefix(format images.Format) string {
+//	switch format {
+//	case images.PNG:
+//		return "data:image/png;base64,"
+//	case images.GIF:
+//		return "data:image/gif;base64,"
+//	default:
+//		return "data:image/jpeg;base64,"
+//	}
+//}
+
+//// FileThreads lists threads which contain a photo (known to the local peer)
+//func (t *Textile) FileThreads(id string) []*Thread {
+//	blocks := t.datastore.Blocks().List("", -1, "dataId='"+id+"'")
+//	if len(blocks) == 0 {
+//		return nil
+//	}
+//	var threads []*Thread
+//	for _, block := range blocks {
+//		if thrd := t.Thread(block.ThreadId); thrd != nil {
+//			threads = append(threads, thrd)
+//		}
+//	}
+//	return threads
+//}
