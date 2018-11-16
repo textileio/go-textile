@@ -16,7 +16,6 @@ var ErrMediaTypeNotSupported = errors.New("media type not supported")
 type Result struct {
 	File []byte
 	Meta map[string]interface{}
-	Opts string // hash of opts, could be empty
 }
 
 type Mill interface {
