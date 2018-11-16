@@ -239,7 +239,7 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string) (*AddFileCo
 			return nil, err
 		}
 		conf.Name = file.Name
-		conf.Parent = file.Parent
+		conf.Parent = file.Checksum
 	}
 
 	media, err := a.node.MediaType(reader, mill)

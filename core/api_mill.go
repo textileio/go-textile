@@ -2,7 +2,6 @@ package core
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -107,8 +106,6 @@ func (a *api) imageExifMill(g *gin.Context) {
 		return
 	}
 	mill := &m.ImageExif{}
-
-	fmt.Println(opts["use"])
 
 	conf, err := a.getFileConfig(g, mill, opts["use"])
 	if err != nil {
