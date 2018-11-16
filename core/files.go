@@ -80,9 +80,24 @@ type AddFileConfig struct {
 }
 
 func (t *Textile) AddFile(mill m.Mill, conf AddFileConfig) (*repo.File, error) {
-	//if efile := t.datastore.Files().GetByParent(mill.ID(), parent); efile != nil {
-	//	return efile, nil
-	//}
+	var source string
+	if conf.Parent != "" {
+		source = conf.Parent
+	} else {
+		source = t.checksum(conf.Input)
+	}
+
+	opts, err := mill.Options()
+	if err != nil {
+		return nil, err
+	}
+	if opts != "" {
+		source += ":" + opts
+	}
+
+	if efile := t.datastore.Files().GetBySource(mill.ID(), source); efile != nil {
+		return efile, nil
+	}
 
 	res, err := mill.Mill(conf.Input, conf.Name)
 	if err != nil {
@@ -97,7 +112,7 @@ func (t *Textile) AddFile(mill m.Mill, conf AddFileConfig) (*repo.File, error) {
 	model := &repo.File{
 		Mill:     mill.ID(),
 		Checksum: check,
-		Parent:   conf.Parent,
+		Source:   source,
 		Media:    conf.Media,
 		Name:     conf.Name,
 		Size:     len(res.File),

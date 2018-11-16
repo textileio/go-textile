@@ -44,6 +44,10 @@ func (m *ImageExif) AcceptMedia(media string) error {
 	}, media)
 }
 
+func (m *ImageExif) Options() (string, error) {
+	return "", nil
+}
+
 func (m *ImageExif) Mill(input []byte, name string) (*Result, error) {
 	conf, formatStr, err := image.DecodeConfig(bytes.NewReader(input))
 	if err != nil {

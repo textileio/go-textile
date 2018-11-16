@@ -18,7 +18,7 @@ type Contact struct {
 type File struct {
 	Mill     string                 `json:"mill"`
 	Checksum string                 `json:"checksum"`
-	Parent   string                 `json:"parent,omitempty"`
+	Source   string                 `json:"source"`
 	Hash     string                 `json:"hash"`
 	Key      string                 `json:"key,omitempty"`
 	Media    string                 `json:"media"`
