@@ -86,8 +86,34 @@ func (t *Textile) MediaType(reader io.Reader, mill m.Mill) (string, error) {
 	return media, mill.AcceptMedia(media)
 }
 
-func (t *Textile) AddFile(input []byte, name string, media string, mill m.Mill) (*repo.File, error) {
-	res, err := mill.Mill(input, name)
+type AddFileConfig struct {
+	Input  []byte `json:"input"`
+	Parent string `json:"parent"`
+	Media  string `json:"media"`
+	Name   string `json:"name"`
+}
+
+func (t *Textile) AddFile(mill m.Mill, conf AddFileConfig) (*repo.File, error) {
+	var source string
+	if conf.Parent != "" {
+		source = conf.Parent
+	} else {
+		source = t.checksum(conf.Input)
+	}
+
+	opts, err := mill.Options()
+	if err != nil {
+		return nil, err
+	}
+	if opts != "" {
+		source += ":" + opts
+	}
+
+	if efile := t.datastore.Files().GetBySource(mill.ID(), source); efile != nil {
+		return efile, nil
+	}
+
+	res, err := mill.Mill(conf.Input, conf.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +126,9 @@ func (t *Textile) AddFile(input []byte, name string, media string, mill m.Mill) 
 	model := &repo.File{
 		Mill:     mill.ID(),
 		Checksum: check,
-		Media:    media,
+		Source:   source,
+		Media:    conf.Media,
+		Name:     conf.Name,
 		Size:     len(res.File),
 		Added:    time.Now(),
 		Meta:     res.Meta,
@@ -201,7 +229,7 @@ func (t *Textile) FileNode(file repo.File, dir uio.Directory, link string) error
 		return ErrFileNotFound
 	}
 
-	// include encrypted file file as well
+	// include encrypted file as well
 	plaintext, err := json.Marshal(&file)
 	if err != nil {
 		return err
@@ -364,6 +392,26 @@ func (t *Textile) fileAtBlock(block repo.Block) ([]FileInfo, error) {
 	}
 
 	return files, nil
+}
+
+func (t *Textile) filePlaintext(fileId string) (io.ReadSeeker, *repo.File, error) {
+	file := t.datastore.Files().Get(fileId)
+	if file == nil {
+		return nil, nil, errors.New("file not found")
+	}
+	ciphertext, err := ipfs.DataAtPath(t.node, file.Hash)
+	if err != nil {
+		return nil, nil, err
+	}
+	key, err := base58.Decode(file.Key)
+	if err != nil {
+		return nil, nil, err
+	}
+	plaintext, err := crypto.DecryptAES(ciphertext, key)
+	if err != nil {
+		return nil, nil, err
+	}
+	return bytes.NewReader(plaintext), file, nil
 }
 
 func (t *Textile) checksum(plaintext []byte) string {

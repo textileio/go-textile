@@ -13,7 +13,6 @@ import (
 
 type ImageExifSchema struct {
 	Created   time.Time `json:"created,omitempty"`
-	Added     time.Time `json:"added"`
 	Name      string    `json:"name"`
 	Ext       string    `json:"extension"`
 	Width     int       `json:"width"`
@@ -45,6 +44,10 @@ func (m *ImageExif) AcceptMedia(media string) error {
 	}, media)
 }
 
+func (m *ImageExif) Options() (string, error) {
+	return "", nil
+}
+
 func (m *ImageExif) Mill(input []byte, name string) (*Result, error) {
 	conf, formatStr, err := image.DecodeConfig(bytes.NewReader(input))
 	if err != nil {
@@ -70,7 +73,6 @@ func (m *ImageExif) Mill(input []byte, name string) (*Result, error) {
 
 	res := &ImageExifSchema{
 		Created:   created,
-		Added:     time.Now(),
 		Name:      name,
 		Ext:       strings.ToLower(filepath.Ext(name)),
 		Format:    string(format),

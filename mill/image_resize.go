@@ -59,6 +59,10 @@ func (m *ImageResize) AcceptMedia(media string) error {
 	}, media)
 }
 
+func (m *ImageResize) Options() (string, error) {
+	return hashOpts(m.Opts)
+}
+
 func (m *ImageResize) Mill(input []byte, name string) (*Result, error) {
 	img, formatStr, err := image.Decode(bytes.NewReader(input))
 	if err != nil {

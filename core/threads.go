@@ -22,17 +22,18 @@ var ErrThreadNotFound = errors.New("thread not found")
 // ErrThreadLoaded indicates the thread is already loaded from the datastore
 var ErrThreadLoaded = errors.New("thread is loaded")
 
-// NewThreadConfig is used to create a new thread model
-type NewThreadConfig struct {
-	Key    string          `json:"key"`
-	Name   string          `json:"name"`
-	Schema mh.Multihash    `json:"schema"`
-	Type   repo.ThreadType `json:"type"`
-	Join   bool            `json:"join"`
+// AddThreadConfig is used to create a new thread model
+type AddThreadConfig struct {
+	Key       string          `json:"key"`
+	Name      string          `json:"name"`
+	Schema    mh.Multihash    `json:"schema"`
+	Initiator string          `json:"initiator"`
+	Type      repo.ThreadType `json:"type"`
+	Join      bool            `json:"join"`
 }
 
 // AddThread adds a thread with a given name and secret key
-func (t *Textile) AddThread(sk libp2pc.PrivKey, conf NewThreadConfig) (*Thread, error) {
+func (t *Textile) AddThread(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, error) {
 	if !t.Started() {
 		return nil, ErrStopped
 	}
@@ -52,13 +53,14 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf NewThreadConfig) (*Thread, 
 	}
 
 	threadModel := &repo.Thread{
-		Id:      id.Pretty(),
-		Key:     conf.Key,
-		PrivKey: skb,
-		Name:    conf.Name,
-		Schema:  conf.Schema.B58String(),
-		Type:    conf.Type,
-		State:   repo.ThreadLoaded, // TODO: fix up with pending threads from invites
+		Id:        id.Pretty(),
+		Key:       conf.Key,
+		PrivKey:   skb,
+		Name:      conf.Name,
+		Schema:    conf.Schema.B58String(),
+		Initiator: conf.Initiator,
+		Type:      conf.Type,
+		State:     repo.ThreadLoaded,
 	}
 	if err := t.datastore.Threads().Add(threadModel); err != nil {
 		return nil, err
@@ -261,12 +263,13 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 			return nil, err
 		}
 	}
-	config := NewThreadConfig{
-		Key:    ksuid.New().String(),
-		Name:   msg.Name,
-		Schema: sch,
-		Type:   repo.OpenThread,
-		Join:   false,
+	config := AddThreadConfig{
+		Key:       ksuid.New().String(),
+		Name:      msg.Name,
+		Schema:    sch,
+		Initiator: msg.Initiator,
+		Type:      repo.OpenThread,
+		Join:      false,
 	}
 	thrd, err := t.AddThread(sk, config)
 	if err != nil {
@@ -306,11 +309,12 @@ func (t *Textile) addAccountThread() error {
 		return err
 	}
 
-	config := NewThreadConfig{
-		Key:  ksuid.New().String(),
-		Name: "account",
-		Type: repo.PrivateThread,
-		Join: true,
+	config := AddThreadConfig{
+		Key:       ksuid.New().String(),
+		Name:      "account",
+		Initiator: t.account.Address(),
+		Type:      repo.PrivateThread,
+		Join:      true,
 	}
 	if _, err := t.AddThread(sk, config); err != nil {
 		return err

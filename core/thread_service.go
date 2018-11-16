@@ -30,7 +30,7 @@ type ThreadsService struct {
 	service          *service.Service
 	datastore        repo.Datastore
 	getThread        func(id string) *Thread
-	addThread        func(sk libp2pc.PrivKey, conf NewThreadConfig) (*Thread, error)
+	addThread        func(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, error)
 	sendNotification func(note *repo.Notification) error
 }
 
@@ -40,7 +40,7 @@ func NewThreadsService(
 	node *core.IpfsNode,
 	datastore repo.Datastore,
 	getThread func(id string) *Thread,
-	addThread func(sk libp2pc.PrivKey, conf NewThreadConfig) (*Thread, error),
+	addThread func(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, error),
 	sendNotification func(note *repo.Notification) error,
 ) *ThreadsService {
 	handler := &ThreadsService{

@@ -45,17 +45,23 @@ func (t *Textile) Contacts() []*Contact {
 		if ok {
 			c.ThreadIds = append(set[peer.Id].ThreadIds, peer.ThreadId)
 		} else {
-			username := peer.Id[:8]
-			contact := t.datastore.Contacts().Get(peer.Id)
-			if contact != nil {
-				username = contact.Username
+			if peer.Id == "" {
+				continue
 			}
-			set[peer.Id] = &Contact{
-				Id:        contact.Id,
+			contact := &Contact{
+				Id:        peer.Id,
 				ThreadIds: []string{peer.ThreadId},
-				Username:  username,
-				Added:     contact.Added,
 			}
+
+			model := t.datastore.Contacts().Get(peer.Id)
+			if model != nil && model.Username != "" {
+				contact.Username = model.Username
+				contact.Added = model.Added
+			} else {
+				contact.Username = peer.Id[len(peer.Id)-7:]
+			}
+
+			set[peer.Id] = contact
 			contacts = append(contacts, set[peer.Id])
 		}
 	}
@@ -65,7 +71,11 @@ func (t *Textile) Contacts() []*Contact {
 
 // ContactUsername returns the username for the peer id if known
 func (t *Textile) ContactUsername(id string) string {
-	username := id[len(id)-8:]
+	var username string
+	if id == "" {
+		return ""
+	}
+	username = id[len(id)-8:]
 
 	contact := t.datastore.Contacts().Get(id)
 	if contact != nil && contact.Username != "" {

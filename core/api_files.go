@@ -3,6 +3,7 @@ package core
 import (
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 	"net/http"
+	"strconv"
 
 	"github.com/textileio/textile-go/repo"
 
@@ -75,11 +76,11 @@ func (a *api) addThreadFiles(g *gin.Context) {
 }
 
 func (a *api) lsThreadFiles(g *gin.Context) {
-	//opts, err := a.readOpts(g)
-	//if err != nil {
-	//	a.abort500(g, err)
-	//	return
-	//}
+	opts, err := a.readOpts(g)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
 
 	threadId := g.Param("id")
 	if threadId == "default" {
@@ -91,7 +92,16 @@ func (a *api) lsThreadFiles(g *gin.Context) {
 		return
 	}
 
-	list, err := a.node.Files(thrd.Id, "", 1000)
+	limit := 25
+	if opts["limit"] != "" {
+		limit, err = strconv.Atoi(opts["limit"])
+		if err != nil {
+			g.String(http.StatusBadRequest, err.Error())
+			return
+		}
+	}
+
+	list, err := a.node.Files(thrd.Id, opts["offset"], limit)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

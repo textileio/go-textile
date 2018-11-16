@@ -71,12 +71,17 @@ func TestCore_AddThread(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	config := NewThreadConfig{
-		Key:    ksuid.New().String(),
-		Name:   "test",
-		Schema: schema,
-		Type:   repo.OpenThread,
-		Join:   true,
+	pid, err := node.PeerId()
+	if err != nil {
+		t.Error(err)
+	}
+	config := AddThreadConfig{
+		Key:       ksuid.New().String(),
+		Name:      "test",
+		Schema:    schema,
+		Initiator: pid.Pretty(),
+		Type:      repo.OpenThread,
+		Join:      true,
 	}
 	thrd, err := node.AddThread(sk, config)
 	if err != nil {

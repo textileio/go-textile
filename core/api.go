@@ -2,13 +2,19 @@ package core
 
 import (
 	"context"
+	"errors"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
+	m "github.com/textileio/textile-go/mill"
+	"github.com/textileio/textile-go/repo"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -215,7 +221,7 @@ func (a *api) openFile(g *gin.Context) (multipart.File, string, error) {
 		return nil, "", err
 	}
 	if len(form.File["file"]) == 0 {
-		return nil, "", err
+		return nil, "", errors.New("no file attached")
 	}
 	header := form.File["file"][0]
 	file, err := header.Open()
@@ -223,6 +229,45 @@ func (a *api) openFile(g *gin.Context) (multipart.File, string, error) {
 		return nil, "", err
 	}
 	return file, header.Filename, nil
+}
+
+func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string) (*AddFileConfig, error) {
+	var reader io.ReadSeeker
+	conf := &AddFileConfig{}
+
+	if use == "" {
+		file, fn, err := a.openFile(g)
+		if err != nil {
+			return nil, err
+		}
+		defer file.Close()
+		reader = file
+		conf.Name = fn
+	} else {
+		var file *repo.File
+		var err error
+		reader, file, err = a.node.filePlaintext(use)
+		if err != nil {
+			return nil, err
+		}
+		conf.Name = file.Name
+		conf.Parent = file.Checksum
+	}
+
+	media, err := a.node.MediaType(reader, mill)
+	if err != nil {
+		return nil, err
+	}
+	conf.Media = media
+	reader.Seek(0, 0)
+
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	conf.Input = data
+
+	return conf, nil
 }
 
 func (a *api) abort500(g *gin.Context, err error) {

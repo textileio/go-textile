@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
-	"strconv"
 	"sync"
 	"time"
 
@@ -25,7 +24,7 @@ func (c *FileDB) Add(file *repo.File) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into files(mill, checksum, hash, key, media, size, added, meta) values(?,?,?,?,?,?,?,?)`
+	stm := `insert into files(mill, checksum, source, hash, key, media, name, size, added, meta) values(?,?,?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -42,9 +41,11 @@ func (c *FileDB) Add(file *repo.File) error {
 	_, err = stmt.Exec(
 		file.Mill,
 		file.Checksum,
+		file.Source,
 		file.Hash,
 		file.Key,
 		file.Media,
+		file.Name,
 		file.Size,
 		int(file.Added.Unix()),
 		meta,
@@ -77,23 +78,14 @@ func (c *FileDB) GetByPrimary(mill string, checksum string) *repo.File {
 	return &ret[0]
 }
 
-func (c *FileDB) List(offset string, limit int) []repo.File {
+func (c *FileDB) GetBySource(mill string, source string) *repo.File {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	var stm string
-	if offset != "" {
-		stm = "select * from files where added<(select added from files where hash='" + offset + "') order by added desc limit " + strconv.Itoa(limit) + ";"
-	} else {
-		stm = "select * from files order by added desc limit " + strconv.Itoa(limit) + ";"
+	ret := c.handleQuery("select * from files where mill='" + mill + "' and source='" + source + "';")
+	if len(ret) == 0 {
+		return nil
 	}
-	return c.handleQuery(stm)
-}
-
-func (c *FileDB) ListByHash(hash string) []repo.File {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	stm := "select * from files where hash='" + hash + "' order by added desc;"
-	return c.handleQuery(stm)
+	return &ret[0]
 }
 
 func (c *FileDB) Count() int {
@@ -120,10 +112,10 @@ func (c *FileDB) handleQuery(stm string) []repo.File {
 		return nil
 	}
 	for rows.Next() {
-		var mill, checksum, hash, key, media string
+		var mill, checksum, source, hash, key, media, name string
 		var size, addedInt int
 		var metab []byte
-		if err := rows.Scan(&mill, &checksum, &hash, &key, &media, &size, &addedInt, &metab); err != nil {
+		if err := rows.Scan(&mill, &checksum, &source, &hash, &key, &media, &name, &size, &addedInt, &metab); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -137,9 +129,11 @@ func (c *FileDB) handleQuery(stm string) []repo.File {
 		res = append(res, repo.File{
 			Mill:     mill,
 			Checksum: checksum,
+			Source:   source,
 			Hash:     hash,
 			Key:      key,
 			Media:    media,
+			Name:     name,
 			Size:     size,
 			Added:    time.Unix(int64(addedInt), 0),
 			Meta:     meta,

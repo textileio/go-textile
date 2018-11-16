@@ -18,6 +18,10 @@ func (m *Blob) AcceptMedia(media string) error {
 	return nil
 }
 
+func (m *Blob) Options() (string, error) {
+	return "", nil
+}
+
 func (m *Blob) Mill(input []byte, name string) (*Result, error) {
 	return &Result{File: input}, nil
 }

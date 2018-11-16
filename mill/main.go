@@ -1,8 +1,12 @@
 package mill
 
 import (
+	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
+
+	"github.com/mr-tron/base58/base58"
 )
 
 var log = logging.Logger("tex-mill")
@@ -19,6 +23,7 @@ type Mill interface {
 	Encrypt() bool
 	Pin() bool
 	AcceptMedia(media string) error
+	Options() (string, error)
 	Mill(input []byte, name string) (*Result, error)
 }
 
@@ -29,4 +34,13 @@ func accepts(list []string, media string) error {
 		}
 	}
 	return ErrMediaTypeNotSupported
+}
+
+func hashOpts(opts interface{}) (string, error) {
+	data, err := json.Marshal(opts)
+	if err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256(data)
+	return base58.FastBase58Encoding(sum[:]), nil
 }
