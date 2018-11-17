@@ -124,7 +124,7 @@ func (a *api) Start() {
 			}
 		}
 	}()
-	log.Infof("api listening at %s\n", a.server.Addr)
+	log.Infof("api listening at %s", a.server.Addr)
 }
 
 // Stop stops the http api

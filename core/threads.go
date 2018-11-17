@@ -34,9 +34,6 @@ type AddThreadConfig struct {
 
 // AddThread adds a thread with a given name and secret key
 func (t *Textile) AddThread(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, error) {
-	if !t.Started() {
-		return nil, ErrStopped
-	}
 	id, err := peer.IDFromPrivateKey(sk)
 	if err != nil {
 		return nil, err
@@ -91,10 +88,6 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, 
 
 // RemoveThread removes a thread
 func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
-	if !t.Online() {
-		return nil, ErrOffline
-	}
-
 	var thrd *Thread
 	var index int
 	for i, th := range t.threads {
@@ -151,10 +144,6 @@ func (t *Textile) AccountThread() *Thread {
 
 // ThreadInfo gets thread info
 func (t *Textile) ThreadInfo(id string) (*ThreadInfo, error) {
-	if !t.Started() {
-		return nil, ErrStopped
-	}
-
 	thrd := t.Thread(id)
 	if thrd == nil {
 		return nil, errors.New(fmt.Sprintf("cound not find thread: %s", id))
@@ -165,10 +154,6 @@ func (t *Textile) ThreadInfo(id string) (*ThreadInfo, error) {
 // AcceptThreadInvite attemps to download an encrypted thread key from an internal invite,
 // add the thread, and notify the inviter of the join
 func (t *Textile) AcceptThreadInvite(inviteId string) (mh.Multihash, error) {
-	if !t.Online() {
-		return nil, ErrOffline
-	}
-
 	ciphertext, err := ipfs.DataAtPath(t.node, inviteId)
 	if err != nil {
 		return nil, err
@@ -197,10 +182,6 @@ func (t *Textile) AcceptThreadInvite(inviteId string) (mh.Multihash, error) {
 // AcceptExternalThreadInvite attemps to download an encrypted thread key from an external invite,
 // add the thread, and notify the inviter of the join
 func (t *Textile) AcceptExternalThreadInvite(inviteId string, key []byte) (mh.Multihash, error) {
-	if !t.Online() {
-		return nil, ErrOffline
-	}
-
 	ciphertext, err := ipfs.DataAtPath(t.node, fmt.Sprintf("%s", inviteId))
 	if err != nil {
 		return nil, err
@@ -217,14 +198,9 @@ func (t *Textile) AcceptExternalThreadInvite(inviteId string, key []byte) (mh.Mu
 // IgnoreThreadInvite unpins a direct peer-to-peer invite and removes
 // the associated notification.
 func (t *Textile) IgnoreThreadInvite(inviteId string) error {
-	if !t.Started() {
-		return ErrStopped
-	}
-
 	if err := ipfs.UnpinPath(t.node, inviteId); err != nil {
 		log.Warningf("error unpinning path %s: %s", inviteId, err)
 	}
-
 	return t.datastore.Notifications().DeleteByBlock(inviteId)
 }
 

@@ -1,13 +1,11 @@
 package mobile_test
 
 import (
-	"bytes"
 	"encoding/json"
-	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
-	"image/jpeg"
 	"os"
-	"strings"
 	"testing"
+
+	"github.com/segmentio/ksuid"
 
 	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
@@ -116,7 +114,7 @@ func TestMobile_Seed(t *testing.T) {
 	}
 }
 
-func TestMobile_EmptyThreads(t *testing.T) {
+func TestMobile_AccountThread(t *testing.T) {
 	res, err := mobile.Threads()
 	if err != nil {
 		t.Errorf("get threads failed: %s", err)
@@ -127,14 +125,13 @@ func TestMobile_EmptyThreads(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if len(threads.Items) != 0 {
+	if len(threads.Items) != 1 {
 		t.Error("get threads bad result")
 	}
 }
 
 func TestMobile_AddThread(t *testing.T) {
-	<-core.Node.OnlineCh()
-	itemStr, err := mobile.AddThread("default", "default", "TextilePhotos")
+	itemStr, err := mobile.AddThread(ksuid.New().String(), "default")
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
 		return
@@ -148,17 +145,6 @@ func TestMobile_AddThread(t *testing.T) {
 }
 
 func TestMobile_Threads(t *testing.T) {
-	itemStr, err := mobile.AddThread("another", "another", "TextilePhotos")
-	if err != nil {
-		t.Errorf("add another thread failed: %s", err)
-		return
-	}
-	item := Thread{}
-	if err := json.Unmarshal([]byte(itemStr), &item); err != nil {
-		t.Error(err)
-		return
-	}
-	threadId = item.Id
 	res, err := mobile.Threads()
 	if err != nil {
 		t.Errorf("get threads failed: %s", err)
@@ -175,7 +161,17 @@ func TestMobile_Threads(t *testing.T) {
 }
 
 func TestMobile_RemoveThread(t *testing.T) {
-	blockId, err := mobile.RemoveThread(defaultThreadId)
+	itemStr, err := mobile.AddThread(ksuid.New().String(), "another")
+	if err != nil {
+		t.Errorf("add another thread failed: %s", err)
+		return
+	}
+	item := Thread{}
+	if err := json.Unmarshal([]byte(itemStr), &item); err != nil {
+		t.Error(err)
+		return
+	}
+	blockId, err := mobile.RemoveThread(item.Id)
 	if err != nil {
 		t.Error(err)
 		return
@@ -188,23 +184,21 @@ func TestMobile_RemoveThread(t *testing.T) {
 	}
 }
 
-func TestMobile_AddPhoto(t *testing.T) {
-	resStr, err := mobile.AddPhoto("../images/testdata/image.jpg")
+func TestMobile_AddFile(t *testing.T) {
+	resStr, err := mobile.AddFile("../images/testdata/image.jpg", defaultThreadId)
 	if err != nil {
-		t.Errorf("add photo failed: %s", err)
+		t.Errorf("add file failed: %s", err)
 		return
 	}
-	res := core.AddDataResult{}
+	res := core.Directory{}
 	if err := json.Unmarshal([]byte(resStr), &res); err != nil {
 		t.Error(err)
 		return
 	}
-	if res.Archive == nil {
-		t.Error("add photo result should have an archive")
+	if len(res) != 6 {
+		t.Error("wrong number of files")
 		return
 	}
-	addedPhotoKey = res.Key
-	addedPhotoId = res.Id
 }
 
 //func TestMobile_AddPhotoToThread(t *testing.T) {
@@ -421,6 +415,27 @@ func TestMobile_AddPhoto(t *testing.T) {
 //	}
 //}
 
+func TestMobile_Overview(t *testing.T) {
+	<-mobile.OnlineCh()
+	res, err := mobile.Overview()
+	if err != nil {
+		t.Errorf("get overview failed: %s", err)
+		return
+	}
+	stats := core.Overview{}
+	if err := json.Unmarshal([]byte(res), &stats); err != nil {
+		t.Error(err)
+		return
+	}
+}
+
+func TestMobile_SetUsername(t *testing.T) {
+	if err := mobile.SetUsername("boomer"); err != nil {
+		t.Errorf("set username failed: %s", err)
+		return
+	}
+}
+
 func TestMobile_SetAvatar(t *testing.T) {
 	if err := mobile.SetAvatar(addedPhotoId); err != nil {
 		t.Errorf("set avatar id failed: %s", err)
@@ -436,19 +451,6 @@ func TestMobile_Profile(t *testing.T) {
 	}
 	prof := core.Profile{}
 	if err := json.Unmarshal([]byte(profs), &prof); err != nil {
-		t.Error(err)
-		return
-	}
-}
-
-func TestMobile_Overview(t *testing.T) {
-	res, err := mobile.Overview()
-	if err != nil {
-		t.Errorf("get overview failed: %s", err)
-		return
-	}
-	stats := core.Overview{}
-	if err := json.Unmarshal([]byte(res), &stats); err != nil {
 		t.Error(err)
 		return
 	}
@@ -512,19 +514,19 @@ func Test_Teardown(t *testing.T) {
 	mobile = nil
 }
 
-func getWidthDataUrl(res string) (int, error) {
-	var img *ImageData
-	if err := json.Unmarshal([]byte(res), &img); err != nil {
-		return 0, err
-	}
-	url := strings.Replace(img.Url, "data:image/jpeg;base64,", "", 1)
-	data, err := libp2pc.ConfigDecodeKey(url)
-	if err != nil {
-		return 0, err
-	}
-	conf, err := jpeg.DecodeConfig(bytes.NewReader(data))
-	if err != nil {
-		return 0, err
-	}
-	return conf.Width, nil
-}
+//func getWidthDataUrl(res string) (int, error) {
+//	var img *ImageData
+//	if err := json.Unmarshal([]byte(res), &img); err != nil {
+//		return 0, err
+//	}
+//	url := strings.Replace(img.Url, "data:image/jpeg;base64,", "", 1)
+//	data, err := libp2pc.ConfigDecodeKey(url)
+//	if err != nil {
+//		return 0, err
+//	}
+//	conf, err := jpeg.DecodeConfig(bytes.NewReader(data))
+//	if err != nil {
+//		return 0, err
+//	}
+//	return conf.Width, nil
+//}

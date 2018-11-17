@@ -238,8 +238,5 @@ func (c *cafeApi) pin(g *gin.Context) {
 
 // verifyKeyFunc returns the correct key for token verification
 func (c *cafeApi) verifyKeyFunc(token *njwt.Token) (interface{}, error) {
-	if !c.node.Started() {
-		return nil, ErrStopped
-	}
 	return c.node.Ipfs().PrivateKey.GetPublic(), nil
 }

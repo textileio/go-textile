@@ -11,9 +11,6 @@ import (
 
 // ConnectPeer connect to another ipfs peer (i.e., ipfs swarm connect)
 func (t *Textile) ConnectPeer(addrs []string) ([]string, error) {
-	if !t.Online() {
-		return nil, ErrOffline
-	}
 	swrm, ok := t.node.PeerHost.Network().(*swarm.Swarm)
 	if !ok {
 		return nil, errors.New("peerhost network was not swarm")
@@ -40,8 +37,5 @@ func (t *Textile) ConnectPeer(addrs []string) ([]string, error) {
 }
 
 func (t *Textile) Peers() ([]libp2pn.Conn, error) {
-	if !t.Online() {
-		return nil, ErrOffline
-	}
 	return t.node.PeerHost.Network().Conns(), nil
 }

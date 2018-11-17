@@ -1,6 +1,6 @@
 package textile
 
-var Photo = `
+var Photos = `
 {
   "pin": true,
   "links": {

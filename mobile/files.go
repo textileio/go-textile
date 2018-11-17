@@ -20,7 +20,7 @@ type FileData struct {
 
 // AddFile processes a file by path for a thread, but does NOT share it
 func (m *Mobile) AddFile(path string, threadId string) (string, error) {
-	thrd := core.Node.Thread(threadId)
+	thrd := m.node.Thread(threadId)
 	if thrd == nil {
 		return "", core.ErrThreadNotFound
 	}
@@ -31,14 +31,17 @@ func (m *Mobile) AddFile(path string, threadId string) (string, error) {
 
 	var result interface{}
 
-	mill := getMill(thrd.Schema.Mill)
+	mill, err := getMill(thrd.Schema.Mill, thrd.Schema.Opts)
+	if err != nil {
+		return "", err
+	}
 	if mill != nil {
 		conf, err := m.getFileConfig(mill, path, "")
 		if err != nil {
 			return "", err
 		}
 
-		added, err := core.Node.AddFile(mill, *conf)
+		added, err := m.node.AddFile(mill, *conf)
 		if err != nil {
 			return "", err
 		}
@@ -55,7 +58,10 @@ func (m *Mobile) AddFile(path string, threadId string) (string, error) {
 
 		// send each link
 		for _, step := range steps {
-			mill := getMill(step.Link.Mill)
+			mill, err := getMill(step.Link.Mill, step.Link.Opts)
+			if err != nil {
+				return "", err
+			}
 			var conf *core.AddFileConfig
 
 			if step.Link.Use == schema.FileTag {
@@ -73,7 +79,7 @@ func (m *Mobile) AddFile(path string, threadId string) (string, error) {
 					return "", err
 				}
 			}
-			added, err := core.Node.AddFile(mill, *conf)
+			added, err := m.node.AddFile(mill, *conf)
 			if err != nil {
 				return "", err
 			}
@@ -103,7 +109,7 @@ func (m *Mobile) getFileConfig(mill m.Mill, path string, use string) (*core.AddF
 	} else {
 		var file *repo.File
 		var err error
-		reader, file, err = core.Node.FilePlaintext(use)
+		reader, file, err = m.node.FilePlaintext(use)
 		if err != nil {
 			return nil, err
 		}
@@ -111,7 +117,7 @@ func (m *Mobile) getFileConfig(mill m.Mill, path string, use string) (*core.AddF
 		conf.Use = file.Checksum
 	}
 
-	media, err := core.Node.MediaType(reader, mill)
+	media, err := m.node.MediaType(reader, mill)
 	if err != nil {
 		return nil, err
 	}
@@ -127,29 +133,38 @@ func (m *Mobile) getFileConfig(mill m.Mill, path string, use string) (*core.AddF
 	return conf, nil
 }
 
-func getMill(id string) m.Mill {
+func getMill(id string, opts map[string]string) (m.Mill, error) {
 	switch id {
 	case "/blob":
-		return &m.Blob{}
+		return &m.Blob{}, nil
 	case "/image/resize":
+		width := opts["width"]
+		if width == "" {
+			return nil, errors.New("missing width")
+		}
+		quality := opts["quality"]
+		if quality == "" {
+			quality = "75"
+		}
 		return &m.ImageResize{
 			Opts: m.ImageResizeOpts{
-				Quality: "75",
+				Width:   width,
+				Quality: quality,
 			},
-		}
+		}, nil
 	case "/image/exif":
-		return &m.ImageExif{}
+		return &m.ImageExif{}, nil
 	default:
-		return nil
+		return nil, nil
 	}
 }
 
 //// AddPhotoToThread adds an existing photo to a new thread
 //func (m *Mobile) AddPhotoToThread(dataId string, key string, threadId string, caption string) (string, error) {
-//	if !core.Node.Started() {
+//	if !m.node.Started() {
 //		return "", core.ErrStopped
 //	}
-//	thrd := core.Node.Thread(threadId)
+//	thrd := m.node.Thread(threadId)
 //	if thrd == nil {
 //		return "", core.ErrThreadNotFound
 //	}
@@ -166,14 +181,14 @@ func getMill(id string) m.Mill {
 //
 //// SharePhotoToThread adds an existing photo to a new thread
 //func (m *Mobile) SharePhotoToThread(dataId string, threadId string, caption string) (string, error) {
-//	if !core.Node.Started() {
+//	if !m.node.Started() {
 //		return "", core.ErrStopped
 //	}
-//	block, err := core.Node.BlockByDataId(dataId)
+//	block, err := m.node.BlockByDataId(dataId)
 //	if err != nil {
 //		return "", err
 //	}
-//	toThread := core.Node.Thread(threadId)
+//	toThread := m.node.Thread(threadId)
 //	if toThread == nil {
 //		return "", core.ErrThreadNotFound
 //	}
@@ -187,12 +202,12 @@ func getMill(id string) m.Mill {
 //
 //// Photos returns thread photo blocks with json encoding
 //func (m *Mobile) Photos(offset string, limit int, threadId string) (string, error) {
-//	if !core.Node.Started() {
+//	if !m.node.Started() {
 //		return "", core.ErrStopped
 //	}
 //	var pre, query string
 //	if threadId != "" {
-//		thrd := core.Node.Thread(threadId)
+//		thrd := m.node.Thread(threadId)
 //		if thrd == nil {
 //			return "", core.ErrThreadNotFound
 //		}
@@ -202,27 +217,27 @@ func getMill(id string) m.Mill {
 //
 //	// build json
 //	photos := &Photos{Items: make([]Photo, 0)}
-//	for _, b := range core.Node.Blocks(offset, limit, query) {
+//	for _, b := range m.node.Blocks(offset, limit, query) {
 //		item := Photo{
 //			Id:       b.DataId,
 //			BlockId:  b.Id,
 //			Date:     b.Date,
 //			AuthorId: b.AuthorId,
 //			Caption:  b.DataCaption,
-//			Username: core.Node.ContactUsername(b.AuthorId),
+//			Username: m.node.ContactUsername(b.AuthorId),
 //			Metadata: b.DataMetadata,
 //		}
 //
 //		// add comments
 //		cquery := fmt.Sprintf("%stype=%d and dataId='%s'", pre, repo.CommentBlock, b.Id)
 //		item.Comments = make([]Comment, 0)
-//		for _, c := range core.Node.Blocks("", -1, cquery) {
+//		for _, c := range m.node.Blocks("", -1, cquery) {
 //			comment := Comment{
 //				Annotation: Annotation{
 //					Id:       c.Id,
 //					Date:     c.Date,
 //					AuthorId: c.AuthorId,
-//					Username: core.Node.ContactUsername(c.AuthorId),
+//					Username: m.node.ContactUsername(c.AuthorId),
 //				},
 //				Body: c.DataCaption,
 //			}
@@ -232,13 +247,13 @@ func getMill(id string) m.Mill {
 //		// add likes
 //		lquery := fmt.Sprintf("%stype=%d and dataId='%s'", pre, repo.LikeBlock, b.Id)
 //		item.Likes = make([]Like, 0)
-//		for _, l := range core.Node.Blocks("", -1, lquery) {
+//		for _, l := range m.node.Blocks("", -1, lquery) {
 //			like := Like{
 //				Annotation: Annotation{
 //					Id:       l.Id,
 //					Date:     l.Date,
 //					AuthorId: l.AuthorId,
-//					Username: core.Node.ContactUsername(l.AuthorId),
+//					Username: m.node.ContactUsername(l.AuthorId),
 //				},
 //			}
 //			item.Likes = append(item.Likes, like)
@@ -257,14 +272,14 @@ func getMill(id string) m.Mill {
 //
 //// AddPhotoComment adds an comment block targeted at the given block
 //func (m *Mobile) AddPhotoComment(blockId string, body string) (string, error) {
-//	if !core.Node.Started() {
+//	if !m.node.Started() {
 //		return "", core.ErrStopped
 //	}
-//	block, err := core.Node.Block(blockId)
+//	block, err := m.node.Block(blockId)
 //	if err != nil {
 //		return "", err
 //	}
-//	thrd := core.Node.Thread(block.ThreadId)
+//	thrd := m.node.Thread(block.ThreadId)
 //	if thrd == nil {
 //		return "", core.ErrThreadNotFound
 //	}
@@ -282,14 +297,14 @@ func getMill(id string) m.Mill {
 //
 //// AddPhotoLike adds a like block targeted at the given block
 //func (m *Mobile) AddPhotoLike(blockId string) (string, error) {
-//	if !core.Node.Started() {
+//	if !m.node.Started() {
 //		return "", core.ErrStopped
 //	}
-//	block, err := core.Node.Block(blockId)
+//	block, err := m.node.Block(blockId)
 //	if err != nil {
 //		return "", err
 //	}
-//	thrd := core.Node.Thread(block.ThreadId)
+//	thrd := m.node.Thread(block.ThreadId)
 //	if thrd == nil {
 //		return "", core.ErrThreadNotFound
 //	}
@@ -307,14 +322,14 @@ func getMill(id string) m.Mill {
 //
 //// PhotoData returns a data url of an image under a path
 //func (m *Mobile) PhotoData(id string, path string) (string, error) {
-//	if !core.Node.Started() {
+//	if !m.node.Started() {
 //		return "", core.ErrStopped
 //	}
-//	block, err := core.Node.BlockByDataId(id)
+//	block, err := m.node.BlockByDataId(id)
 //	if err != nil {
 //		return "", err
 //	}
-//	data, err := core.Node.BlockData(fmt.Sprintf("%s/%s", id, path), block)
+//	data, err := m.node.BlockData(fmt.Sprintf("%s/%s", id, path), block)
 //	if err != nil {
 //		return "", err
 //	}
@@ -333,10 +348,10 @@ func getMill(id string) m.Mill {
 //
 //// PhotoMetadata returns a meta data object for a photo
 //func (m *Mobile) PhotoMetadata(id string) (string, error) {
-//	if !core.Node.Started() {
+//	if !m.node.Started() {
 //		return "", core.ErrStopped
 //	}
-//	block, err := core.Node.BlockByDataId(id)
+//	block, err := m.node.BlockByDataId(id)
 //	if err != nil {
 //		return "", err
 //	}
@@ -345,10 +360,10 @@ func getMill(id string) m.Mill {
 //
 //// PhotoKey calls core PhotoKey
 //func (m *Mobile) PhotoKey(id string) (string, error) {
-//	if !core.Node.Started() {
+//	if !m.node.Started() {
 //		return "", core.ErrStopped
 //	}
-//	key, err := core.Node.PhotoKey(id)
+//	key, err := m.node.PhotoKey(id)
 //	if err != nil {
 //		return "", err
 //	}
@@ -357,11 +372,11 @@ func getMill(id string) m.Mill {
 //
 //// PhotoThreads call core PhotoThreads
 //func (m *Mobile) PhotoThreads(id string) (string, error) {
-//	if !core.Node.Started() {
+//	if !m.node.Started() {
 //		return "", core.ErrStopped
 //	}
 //	threads := Threads{Items: make([]Thread, 0)}
-//	for _, thrd := range core.Node.PhotoThreads(id) {
+//	for _, thrd := range m.node.PhotoThreads(id) {
 //		peers := thrd.Peers()
 //		item := Thread{Id: thrd.Id, Name: thrd.Name, Peers: len(peers)}
 //		threads.Items = append(threads.Items, item)
@@ -371,14 +386,14 @@ func getMill(id string) m.Mill {
 
 // ignoreBlock adds an ignore block targeted at the given block and unpins any associated block data
 func (m *Mobile) ignoreBlock(blockId string) (string, error) {
-	if !core.Node.Started() {
+	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
-	block, err := core.Node.Block(blockId)
+	block, err := m.node.Block(blockId)
 	if err != nil {
 		return "", err
 	}
-	thrd := core.Node.Thread(block.ThreadId)
+	thrd := m.node.Thread(block.ThreadId)
 	if thrd == nil {
 		return "", core.ErrThreadNotFound
 	}

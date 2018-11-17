@@ -12,7 +12,7 @@ type Contacts struct {
 
 // Contact calls core Contact
 func (m *Mobile) Contact(id string) (string, error) {
-	contact := core.Node.Contact(id)
+	contact := m.node.Contact(id)
 	if contact != nil {
 		return toJSON(contact)
 	}
@@ -22,7 +22,7 @@ func (m *Mobile) Contact(id string) (string, error) {
 // Contacts calls core Contacts
 func (m *Mobile) Contacts() (string, error) {
 	contacts := Contacts{Items: make([]*core.Contact, 0)}
-	items := core.Node.Contacts()
+	items := m.node.Contacts()
 	if items != nil {
 		contacts.Items = items
 	}
@@ -31,13 +31,13 @@ func (m *Mobile) Contacts() (string, error) {
 
 // ContactUsername calls core ContactUsername
 func (m *Mobile) ContactUsername(id string) string {
-	return core.Node.ContactUsername(id)
+	return m.node.ContactUsername(id)
 }
 
 // ContactThreads calls core ContactThreads
 func (m *Mobile) ContactThreads(id string) (string, error) {
 	threads := Threads{Items: make([]Thread, 0)}
-	for _, thrd := range core.Node.ContactThreads(id) {
+	for _, thrd := range m.node.ContactThreads(id) {
 		peers := thrd.Peers()
 		item := Thread{Id: thrd.Id, Name: thrd.Name, Peers: len(peers)}
 		threads.Items = append(threads.Items, item)

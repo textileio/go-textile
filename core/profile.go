@@ -31,17 +31,11 @@ var profileTTL = time.Hour
 
 // Username returns profile username
 func (t *Textile) Username() (*string, error) {
-	if err := t.touchDatastore(); err != nil {
-		return nil, err
-	}
 	return t.datastore.Profile().GetUsername()
 }
 
 // SetUsername updates profile with a new username
 func (t *Textile) SetUsername(username string) error {
-	if err := t.touchDatastore(); err != nil {
-		return err
-	}
 	if err := t.datastore.Profile().SetUsername(username); err != nil {
 		return err
 	}
@@ -57,17 +51,11 @@ func (t *Textile) SetUsername(username string) error {
 
 // Avatar returns profile avatar
 func (t *Textile) Avatar() (*string, error) {
-	if err := t.touchDatastore(); err != nil {
-		return nil, err
-	}
 	return t.datastore.Profile().GetAvatar()
 }
 
 // SetAvatar updates profile with a new avatar at the given photo id
 func (t *Textile) SetAvatar(id string) error {
-	if err := t.touchDatastore(); err != nil {
-		return err
-	}
 
 	// get the public key for this photo
 	// TODO: fix
@@ -86,9 +74,6 @@ func (t *Textile) SetAvatar(id string) error {
 
 // Profile return a model representation of an ipns profile
 func (t *Textile) Profile(pid peer.ID) (*Profile, error) {
-	if !t.Started() {
-		return nil, ErrStopped
-	}
 	profile := &Profile{}
 
 	// if peer id is local, return profile from db
@@ -164,18 +149,11 @@ func (t *Textile) PublishProfile() error {
 
 // ResolveProfile looks up a profile on ipns
 func (t *Textile) ResolveProfile(name peer.ID) (*path.Path, error) {
-	if !t.Online() {
-		return nil, ErrOffline
-	}
 	return ipfs.Resolve(t.node, name)
 }
 
 // publishProfile publishes profile to ipns
 func (t *Textile) publishProfile(prof Profile) (*ipfs.IpnsEntry, error) {
-	if !t.Online() {
-		return nil, ErrOffline
-	}
-
 	dir := uio.NewDirectory(t.node.DAG)
 
 	// add public components

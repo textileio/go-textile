@@ -48,7 +48,7 @@ func PrintSwarmAddrs(node *core.IpfsNode) error {
 	}
 	sort.Sort(sort.StringSlice(lisAddrs))
 	for _, addr := range lisAddrs {
-		log.Infof("swarm listening on %s\n", addr)
+		log.Infof("swarm listening on %s", addr)
 	}
 
 	var addrs []string
@@ -57,7 +57,7 @@ func PrintSwarmAddrs(node *core.IpfsNode) error {
 	}
 	sort.Sort(sort.StringSlice(addrs))
 	for _, addr := range addrs {
-		log.Infof("swarm announcing %s\n", addr)
+		log.Infof("swarm announcing %s", addr)
 	}
 	return nil
 }
