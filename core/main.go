@@ -327,7 +327,7 @@ func (t *Textile) Start() error {
 
 		t.cafeService = NewCafeService(t.account, t.node, t.datastore, t.cafeInbox)
 		t.cafeService.setAddrs(t.config.Addresses.CafeAPI, *swarmPorts)
-		if t.config.Cafe.Open {
+		if t.config.Cafe.Host.Open {
 			t.cafeService.open = true
 			t.startCafeApi(t.config.Addresses.CafeAPI)
 		}

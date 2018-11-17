@@ -62,9 +62,27 @@ type ThreadDefaults struct {
 }
 
 // Cafe settings
-// TODO: add some more knobs: max num. clients, max client msg age, inbox size, etc.
 type Cafe struct {
+	Host   CafeHost
+	Client CafeClient
+}
+
+// TODO: add some more knobs: max num. clients, max client msg age, inbox size, etc.
+type CafeHost struct {
 	Open bool // when true, other peers can register with this node for cafe services
+}
+
+// CafeClient settings
+type CafeClient struct {
+	Mobile MobileCafeClient
+}
+
+// MobileCafeClient settings
+type MobileCafeClient struct {
+	// messages w/ size less than limit will be handled by the p2p cafe service,
+	// messages w/ size greater than limit will be handled by the mobile OS's background
+	// upload service and the cafe HTTP API
+	P2PWireLimit int
 }
 
 // Init returns the default textile config
@@ -94,7 +112,14 @@ func Init(version string) (*Config, error) {
 			},
 		},
 		Cafe: Cafe{
-			Open: false,
+			Host: CafeHost{
+				Open: false,
+			},
+			Client: CafeClient{
+				Mobile: MobileCafeClient{
+					P2PWireLimit: 20000,
+				},
+			},
 		},
 		IsMobile: false,
 		IsServer: false,
