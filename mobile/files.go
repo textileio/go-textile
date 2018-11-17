@@ -1,59 +1,148 @@
 package mobile
 
 import (
+	"errors"
+	"io"
+	"io/ioutil"
+	"os"
+
+	m "github.com/textileio/textile-go/mill"
+	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/schema"
+
 	"github.com/textileio/textile-go/core"
 )
 
-//// Photo is a simple meta data wrapper around a photo block
-//type Photo struct {
-//	Id       string           `json:"id"`
-//	BlockId  string           `json:"block_id"`
-//	Date     time.Time        `json:"date"`
-//	AuthorId string           `json:"author_id"`
-//	Caption  string           `json:"caption,omitempty"`
-//	Username string           `json:"username,omitempty"`
-//	Metadata *images.Metadata `json:"metadata,omitempty"`
-//	Comments []Comment        `json:"comments"`
-//	Likes    []Like           `json:"likes"`
-//}
-//
-//// Photos is a wrapper around a list of photos
-//type Photos struct {
-//	Items []Photo `json:"items"`
-//}
-//
-//// Annotation represents common annotation fields
-//type Annotation struct {
-//	Id       string    `json:"id"`
-//	Date     time.Time `json:"date"`
-//	AuthorId string    `json:"author_id"`
-//	Username string    `json:"username,omitempty"`
-//}
-//
-//// Comment is a simple wrapper around a comment block
-//type Comment struct {
-//	Annotation
-//	Body string `json:"body"`
-//}
-//
-//// Like is a simple wrapper around a like block
-//type Like struct {
-//	Annotation
-//}
-//
-//// ImageData is a wrapper around an image data url
-//type ImageData struct {
-//	Url string `json:"url"`
-//}
+// FileData is a wrapper around a file data url
+type FileData struct {
+	Url string `json:"url"`
+}
 
 // AddFile processes a file by path for a thread, but does NOT share it
-//func (m *Mobile) AddFile(path string) (string, error) {
-//	added, err := core.Node.AddFile(path)
-//	if err != nil {
-//		return "", err
-//	}
-//	return toJSON(added)
-//}
+func (m *Mobile) AddFile(path string, threadId string) (string, error) {
+	thrd := core.Node.Thread(threadId)
+	if thrd == nil {
+		return "", core.ErrThreadNotFound
+	}
+
+	if thrd.Schema == nil {
+		return "", core.ErrThreadSchemaRequired
+	}
+
+	var result interface{}
+
+	mill := getMill(thrd.Schema.Mill)
+	if mill != nil {
+		conf, err := m.getFileConfig(mill, path, "")
+		if err != nil {
+			return "", err
+		}
+
+		added, err := core.Node.AddFile(mill, *conf)
+		if err != nil {
+			return "", err
+		}
+		result = &added
+
+	} else if len(thrd.Schema.Links) > 0 {
+		dir := make(map[string]*repo.File)
+
+		// determine order
+		steps, err := schema.Steps(thrd.Schema.Links)
+		if err != nil {
+			return "", err
+		}
+
+		// send each link
+		for _, step := range steps {
+			mill := getMill(step.Link.Mill)
+			var conf *core.AddFileConfig
+
+			if step.Link.Use == schema.FileTag {
+				conf, err = m.getFileConfig(mill, path, "")
+				if err != nil {
+					return "", err
+				}
+
+			} else {
+				if dir[step.Link.Use] == nil {
+					return "", errors.New(step.Link.Use + " not found")
+				}
+				conf, err = m.getFileConfig(mill, path, dir[step.Link.Use].Hash)
+				if err != nil {
+					return "", err
+				}
+			}
+			added, err := core.Node.AddFile(mill, *conf)
+			if err != nil {
+				return "", err
+			}
+			dir[step.Name] = added
+		}
+		result = &dir
+
+	} else {
+		return "", schema.ErrEmptySchema
+	}
+
+	return toJSON(result)
+}
+
+func (m *Mobile) getFileConfig(mill m.Mill, path string, use string) (*core.AddFileConfig, error) {
+	var reader io.ReadSeeker
+	conf := &core.AddFileConfig{}
+
+	if use == "" {
+		f, err := os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+		reader = f
+		conf.Name = f.Name()
+	} else {
+		var file *repo.File
+		var err error
+		reader, file, err = core.Node.FilePlaintext(use)
+		if err != nil {
+			return nil, err
+		}
+		conf.Name = file.Name
+		conf.Use = file.Checksum
+	}
+
+	media, err := core.Node.MediaType(reader, mill)
+	if err != nil {
+		return nil, err
+	}
+	conf.Media = media
+	reader.Seek(0, 0)
+
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	conf.Input = data
+
+	return conf, nil
+}
+
+func getMill(id string) m.Mill {
+	switch id {
+	case "/blob":
+		return &m.Blob{}
+	case "/image/resize":
+		return &m.ImageResize{
+			Opts: m.ImageResizeOpts{
+				Quality: "75",
+			},
+		}
+	case "/image/exif":
+		return &m.ImageExif{}
+	default:
+		return nil
+	}
+}
 
 //// AddPhotoToThread adds an existing photo to a new thread
 //func (m *Mobile) AddPhotoToThread(dataId string, key string, threadId string, caption string) (string, error) {
@@ -161,7 +250,7 @@ import (
 //	return toJSON(photos)
 //}
 //
-//// IgnorePhoto is a semantic helper for mobile, just call IgnoreBlock
+//// IgnorePhoto is a semantic helper for mobile, just calls IgnoreBlock
 //func (m *Mobile) IgnorePhoto(blockId string) (string, error) {
 //	return m.ignoreBlock(blockId)
 //}
@@ -293,7 +382,7 @@ func (m *Mobile) ignoreBlock(blockId string) (string, error) {
 	if thrd == nil {
 		return "", core.ErrThreadNotFound
 	}
-	hash, err := thrd.Ignore(block.Id)
+	hash, err := thrd.AddIgnore(block.Id)
 	if err != nil {
 		return "", err
 	}

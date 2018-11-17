@@ -78,7 +78,7 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, 
 		}
 	}
 
-	if thrd.schema != nil {
+	if thrd.Schema != nil {
 		go t.cafeOutbox.Flush()
 	}
 

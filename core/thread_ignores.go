@@ -10,8 +10,8 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
-// Ignore adds an outgoing ignore block targeted at another block to ignore
-func (t *Thread) Ignore(block string) (mh.Multihash, error) {
+// AddIgnore adds an outgoing ignore block targeted at another block to ignore
+func (t *Thread) AddIgnore(block string) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 

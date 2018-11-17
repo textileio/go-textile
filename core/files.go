@@ -248,7 +248,6 @@ func (t *Textile) FileNode(file repo.File, dir uio.Directory, link string) error
 	return ipfs.AddLinkToDirectory(t.node, dir, link, node.Cid().Hash().B58String())
 }
 
-// Files paginates files in a thread
 func (t *Textile) Files(threadId string, offset string, limit int) ([]FilesInfo, error) {
 	list := make([]FilesInfo, 0)
 
@@ -322,7 +321,26 @@ func (t *Textile) File(threadId string, blockId string) (*FilesInfo, error) {
 	}, nil
 }
 
-// fileAtBlock retrieves the file-add targeted by the block
+func (t *Textile) FilePlaintext(fileId string) (io.ReadSeeker, *repo.File, error) {
+	file := t.datastore.Files().Get(fileId)
+	if file == nil {
+		return nil, nil, errors.New("file not found")
+	}
+	ciphertext, err := ipfs.DataAtPath(t.node, file.Hash)
+	if err != nil {
+		return nil, nil, err
+	}
+	key, err := base58.Decode(file.Key)
+	if err != nil {
+		return nil, nil, err
+	}
+	plaintext, err := crypto.DecryptAES(ciphertext, key)
+	if err != nil {
+		return nil, nil, err
+	}
+	return bytes.NewReader(plaintext), file, nil
+}
+
 func (t *Textile) fileAtBlock(block repo.Block) ([]FileInfo, error) {
 	if block.Type != repo.FilesBlock {
 		return nil, ErrBlockNotFile
@@ -378,26 +396,6 @@ func (t *Textile) fileAtBlock(block repo.Block) ([]FileInfo, error) {
 	}
 
 	return files, nil
-}
-
-func (t *Textile) filePlaintext(fileId string) (io.ReadSeeker, *repo.File, error) {
-	file := t.datastore.Files().Get(fileId)
-	if file == nil {
-		return nil, nil, errors.New("file not found")
-	}
-	ciphertext, err := ipfs.DataAtPath(t.node, file.Hash)
-	if err != nil {
-		return nil, nil, err
-	}
-	key, err := base58.Decode(file.Key)
-	if err != nil {
-		return nil, nil, err
-	}
-	plaintext, err := crypto.DecryptAES(ciphertext, key)
-	if err != nil {
-		return nil, nil, err
-	}
-	return bytes.NewReader(plaintext), file, nil
 }
 
 func (t *Textile) checksum(plaintext []byte) string {

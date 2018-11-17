@@ -9,8 +9,8 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
-// Flag adds an outgoing flag block targeted at another block to flag
-func (t *Thread) Flag(block string) (mh.Multihash, error) {
+// AddFlag adds an outgoing flag block targeted at another block to flag
+func (t *Thread) AddFlag(block string) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 

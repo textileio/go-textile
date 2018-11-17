@@ -224,17 +224,17 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string) (*AddFileCo
 	conf := &AddFileConfig{}
 
 	if use == "" {
-		file, fn, err := a.openFile(g)
+		f, fn, err := a.openFile(g)
 		if err != nil {
 			return nil, err
 		}
-		defer file.Close()
-		reader = file
+		defer f.Close()
+		reader = f
 		conf.Name = fn
 	} else {
 		var file *repo.File
 		var err error
-		reader, file, err = a.node.filePlaintext(use)
+		reader, file, err = a.node.FilePlaintext(use)
 		if err != nil {
 			return nil, err
 		}

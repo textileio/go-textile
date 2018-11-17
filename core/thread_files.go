@@ -20,7 +20,7 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys Keys) (mh.Multiha
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	if t.schema == nil {
+	if t.Schema == nil {
 		return nil, ErrThreadSchemaRequired
 	}
 	if node == nil {
@@ -35,7 +35,7 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys Keys) (mh.Multiha
 		if err != nil {
 			return nil, err
 		}
-		if err := t.processNode(t.schema, nd, false); err != nil {
+		if err := t.processNode(t.Schema, nd, false); err != nil {
 			return nil, err
 		}
 	}
@@ -77,7 +77,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 		return nil, err
 	}
 
-	if t.schema == nil {
+	if t.Schema == nil {
 		return nil, ErrThreadSchemaRequired
 	}
 
@@ -112,7 +112,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 			if err != nil {
 				return nil, err
 			}
-			if err := t.processNode(t.schema, nd, true); err != nil {
+			if err := t.processNode(t.Schema, nd, true); err != nil {
 				return nil, err
 			}
 		}

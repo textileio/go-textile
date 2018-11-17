@@ -21,7 +21,6 @@ import (
 
 var errMissingFilePath = errors.New("missing file path")
 var errMissingFileBlockId = errors.New("missing file block id")
-var errSchemaNoFiles = errors.New("schema doesn't generate any files")
 
 func init() {
 	register(&addCmd{})
@@ -61,11 +60,6 @@ func (x *addCmd) Execute(args []string) error {
 
 func (x *addCmd) Shell() *ishell.Cmd {
 	return nil
-}
-
-type step struct {
-	name string
-	link *schema.Link
 }
 
 func callAdd(args []string, opts map[string]string) error {
@@ -130,61 +124,51 @@ func callAdd(args []string, opts map[string]string) error {
 		dir := make(map[string]*repo.File)
 
 		// determine order
-		var steps []step
-		run := info.Schema.Links
-		i := 0
-		for {
-			if i > len(info.Schema.Links) {
-				return errors.New("schema order is not solvable")
-			}
-			next := orderLinks(run, &steps)
-			if len(next) == 0 {
-				break
-			}
-			run = next
-			i++
+		steps, err := schema.Steps(info.Schema.Links)
+		if err != nil {
+			return err
 		}
 
 		// send each link
 		for _, step := range steps {
 			file := &repo.File{}
-			output("\""+step.name+"\":", nil)
+			output("\""+step.Name+"\":", nil)
 
-			if step.link.Use == ":file" {
+			if step.Link.Use == schema.FileTag {
 				reader.Seek(0, 0)
-				res, err := executeJsonCmd(POST, "mills"+step.link.Mill, params{
-					opts:    step.link.Opts,
+				res, err := executeJsonCmd(POST, "mills"+step.Link.Mill, params{
+					opts:    step.Link.Opts,
 					payload: reader,
 					ctype:   writer.FormDataContentType(),
 				}, &file)
 				if err != nil {
 					return err
 				}
-				dir[step.name] = file
+				dir[step.Name] = file
 				output(res, nil)
 
 			} else {
-				if dir[step.link.Use] == nil {
-					return errors.New(step.link.Use + " not found")
+				if dir[step.Link.Use] == nil {
+					return errors.New(step.Link.Use + " not found")
 				}
-				if len(step.link.Opts) == 0 {
-					step.link.Opts = make(map[string]string)
+				if len(step.Link.Opts) == 0 {
+					step.Link.Opts = make(map[string]string)
 				}
-				step.link.Opts["use"] = dir[step.link.Use].Hash
-				res, err := executeJsonCmd(POST, "mills"+step.link.Mill, params{
-					opts: step.link.Opts,
+				step.Link.Opts["use"] = dir[step.Link.Use].Hash
+				res, err := executeJsonCmd(POST, "mills"+step.Link.Mill, params{
+					opts: step.Link.Opts,
 				}, &file)
 				if err != nil {
 					return err
 				}
-				dir[step.name] = file
+				dir[step.Name] = file
 				output(res, nil)
 			}
 		}
 		payload = &dir
 
 	} else {
-		return errSchemaNoFiles
+		return schema.ErrEmptySchema
 	}
 
 	data, err := json.Marshal(payload)
@@ -205,29 +189,6 @@ func callAdd(args []string, opts map[string]string) error {
 	output("\"block\":", nil)
 	output(res, nil)
 	return nil
-}
-
-func orderLinks(links map[string]*schema.Link, steps *[]step) map[string]*schema.Link {
-	unused := make(map[string]*schema.Link)
-	for name, link := range links {
-		if link.Use == ":file" {
-			*steps = append([]step{{name: name, link: link}}, *steps...)
-		} else {
-			useAt := -1
-			for i, s := range *steps {
-				if link.Use == s.name {
-					useAt = i
-					break
-				}
-			}
-			if useAt >= 0 {
-				*steps = append(*steps, step{name: name, link: link})
-			} else {
-				unused[name] = link
-			}
-		}
-	}
-	return unused
 }
 
 type lsCmd struct {

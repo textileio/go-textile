@@ -373,7 +373,7 @@ func callRmThreads(args []string) error {
 //		return
 //	}
 //
-//	if _, err := thrd.Ignore(block.Id); err != nil {
+//	if _, err := thrd.AddIgnore(block.Id); err != nil {
 //		c.Err(err)
 //		return
 //	}
