@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/textileio/textile-go/schema"
+
 	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
@@ -61,7 +63,7 @@ type LikeInfo struct {
 const FileLinkName = "f"
 const DataLinkName = "d"
 
-func (t *Textile) MediaType(reader io.Reader, mill m.Mill) (string, error) {
+func (t *Textile) GetMedia(reader io.Reader, mill m.Mill) (string, error) {
 	buffer := make([]byte, 512)
 	n, err := reader.Read(buffer)
 	if err != nil && err != io.EOF {
@@ -70,6 +72,23 @@ func (t *Textile) MediaType(reader io.Reader, mill m.Mill) (string, error) {
 	media := http.DetectContentType(buffer[:n])
 
 	return media, mill.AcceptMedia(media)
+}
+
+func (t *Textile) AddSchema(jsonstr string, name string) (*repo.File, error) {
+	var node schema.Node
+	if err := json.Unmarshal([]byte(jsonstr), &node); err != nil {
+		return nil, err
+	}
+	data, err := json.Marshal(&node)
+	if err != nil {
+		return nil, err
+	}
+
+	return t.AddFile(&m.Schema{}, AddFileConfig{
+		Input: data,
+		Media: "application/json",
+		Name:  name,
+	})
 }
 
 type AddFileConfig struct {

@@ -37,8 +37,8 @@ var Photos = `
       }
     },
     "thumb": {
-      "pin": true,
       "use": "raw",
+      "pin": true,
       "mill": "/image/resize",
       "opts": {
         "width": "100",
@@ -48,36 +48,3 @@ var Photos = `
   }
 }
 `
-
-// Example schema w/ using the JSON mill:
-/*
-
-var Person = `
-{
-  "pin": true,
-  "use": ":file",
-  "mill": "/json",
-  "schema": {
-    "$id": "https://example.com/person.schema.json",
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "title": "Person",
-    "type": "object",
-    "properties": {
-      "firstName": {
-        "type": "string",
-        "description": "The person's first name."
-      },
-      "lastName": {
-        "type": "string",
-        "description": "The person's last name."
-      },
-      "age": {
-        "description": "Age in years which must be equal to or greater than zero.",
-        "type": "integer",
-        "minimum": 0
-      }
-    }
-  }
-}
-`
-*/

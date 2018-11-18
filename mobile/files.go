@@ -117,7 +117,7 @@ func (m *Mobile) getFileConfig(mill m.Mill, path string, use string) (*core.AddF
 		conf.Use = file.Checksum
 	}
 
-	media, err := m.node.MediaType(reader, mill)
+	media, err := m.node.GetMedia(reader, mill)
 	if err != nil {
 		return nil, err
 	}

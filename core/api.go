@@ -242,7 +242,7 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string) (*AddFileCo
 		conf.Use = file.Checksum
 	}
 
-	media, err := a.node.MediaType(reader, mill)
+	media, err := a.node.GetMedia(reader, mill)
 	if err != nil {
 		return nil, err
 	}

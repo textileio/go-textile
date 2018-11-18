@@ -5,8 +5,13 @@ import (
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/textileio/textile-go/mill"
+
+	"github.com/textileio/textile-go/schema/textile"
 
 	"github.com/segmentio/ksuid"
 	. "github.com/textileio/textile-go/core"
@@ -16,6 +21,8 @@ import (
 
 var repoPath = "testdata/.textile"
 var node *Textile
+
+var schemaHash mh.Multihash
 
 func TestInitRepo(t *testing.T) {
 	os.RemoveAll(repoPath)
@@ -39,35 +46,54 @@ func TestNewTextile(t *testing.T) {
 	}
 }
 
-func TestCore_Start(t *testing.T) {
+func TestTextile_Start(t *testing.T) {
 	if err := node.Start(); err != nil {
 		t.Errorf("start node failed: %s", err)
 	}
 	<-node.OnlineCh()
 }
 
-func TestCore_Started(t *testing.T) {
+func TestTextile_Started(t *testing.T) {
 	if !node.Started() {
 		t.Errorf("should report started")
 	}
 }
 
-func TestCore_Online(t *testing.T) {
+func TestTextile_Online(t *testing.T) {
 	if !node.Online() {
 		t.Errorf("should report online")
 	}
 }
 
-func TestCore_CafeRegister(t *testing.T) {
-	// TODO
+func TestTextile_GetMedia(t *testing.T) {
+	f, err := os.Open("../mill/testdata/image.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	media, err := node.GetMedia(f, &mill.ImageResize{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if media != "image/jpeg" {
+		t.Errorf("wrong media type: %s", media)
+	}
 }
 
-func TestCore_AddThread(t *testing.T) {
-	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
+func TestTextile_AddSchema(t *testing.T) {
+	file, err := node.AddSchema(textile.Photos, "test")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
-	schema, err := mh.FromB58String("QmUp6zZ6mNCCqcWfaoofcXPFB1CBhBtXJVLCE2gMPTuoVS")
+	schemaHash, err = mh.FromB58String(file.Hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestTextile_AddThread(t *testing.T) {
+	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Error(err)
 	}
@@ -78,7 +104,7 @@ func TestCore_AddThread(t *testing.T) {
 	config := AddThreadConfig{
 		Key:       ksuid.New().String(),
 		Name:      "test",
-		Schema:    schema,
+		Schema:    schemaHash,
 		Initiator: pid.Pretty(),
 		Type:      repo.OpenThread,
 		Join:      true,
@@ -93,44 +119,63 @@ func TestCore_AddThread(t *testing.T) {
 	}
 }
 
-//func TestCore_AddImage(t *testing.T) {
-//	added, err := node.AddImageByPath("../images/testdata/image.jpg")
-//	if err != nil {
-//		t.Errorf("add image failed: %s", err)
-//		return
-//	}
-//	if len(added.Id) == 0 {
-//		t.Errorf("add image got bad id")
-//	}
-//	// test adding an image w/o the orientation tag
-//	added2, err := node.AddImageByPath("../images/testdata/image-no-orientation.jpg")
-//	if err != nil {
-//		t.Errorf("add image w/o orientation tag failed: %s", err)
-//		return
-//	}
-//	if len(added2.Id) == 0 {
-//		t.Errorf("add photo w/o orientation tag got bad id")
-//	}
-//}
+func TestTextile_AddFile(t *testing.T) {
+	f, err := os.Open("../mill/testdata/image.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
 
-func TestCore_Stop(t *testing.T) {
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	m := &mill.ImageResize{
+		Opts: mill.ImageResizeOpts{
+			Width:   "200",
+			Quality: "75",
+		},
+	}
+	conf := AddFileConfig{
+		Input: data,
+		Name:  "image.jpeg",
+		Media: "image/jpeg",
+	}
+
+	file, err := node.AddFile(m, conf)
+	if err != nil {
+		t.Errorf("add file failed: %s", err)
+		return
+	}
+
+	if file.Mill != "/image/resize" {
+		t.Error("wrong mill")
+	}
+	if file.Checksum != "HvPo7SQJLLVqjMbYkn9eKhcByXmR7YGyzjtVS1f7G4Ry" {
+		t.Error("wrong checksum")
+	}
+}
+
+func TestTextile_Stop(t *testing.T) {
 	if err := node.Stop(); err != nil {
 		t.Errorf("stop node failed: %s", err)
 	}
 }
 
-func TestCore_StartedAgain(t *testing.T) {
+func TestTextile_StartedAgain(t *testing.T) {
 	if node.Started() {
 		t.Errorf("should report stopped")
 	}
 }
 
-func TestCore_OnlineAgain(t *testing.T) {
+func TestTextile_OnlineAgain(t *testing.T) {
 	if node.Online() {
 		t.Errorf("should report offline")
 	}
 }
 
-func TestCore_Teardown(t *testing.T) {
+func TestTextile_Teardown(t *testing.T) {
 	node = nil
+	os.RemoveAll(repoPath)
 }

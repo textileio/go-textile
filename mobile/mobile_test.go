@@ -17,19 +17,14 @@ type TestMessenger struct {
 
 func (tm *TestMessenger) Notify(event *Event) {}
 
-var repo = "testdata/.textile"
+var repoPath = "testdata/.textile"
 
 var recovery string
 var seed string
 
 var mobile *Mobile
 var defaultThreadId string
-var threadId, threadId2 string
-var addedPhotoId, addedBlockId string
-var sharedBlockId string
-var addedPhotoKey string
-
-//var noteId string
+var addedPhotoId string
 
 func TestNewWallet(t *testing.T) {
 	var err error
@@ -53,10 +48,10 @@ func TestWalletAccountAt(t *testing.T) {
 }
 
 func TestInitRepo(t *testing.T) {
-	os.RemoveAll(repo)
+	os.RemoveAll(repoPath)
 	if err := InitRepo(&InitConfig{
 		Seed:     seed,
-		RepoPath: repo,
+		RepoPath: repoPath,
 	}); err != nil {
 		t.Errorf("init mobile repo failed: %s", err)
 	}
@@ -64,7 +59,7 @@ func TestInitRepo(t *testing.T) {
 
 func TestMigrateRepo(t *testing.T) {
 	if err := MigrateRepo(&MigrateConfig{
-		RepoPath: repo,
+		RepoPath: repoPath,
 	}); err != nil {
 		t.Errorf("migrate mobile repo failed: %s", err)
 	}
@@ -72,7 +67,7 @@ func TestMigrateRepo(t *testing.T) {
 
 func TestNewTextile(t *testing.T) {
 	config := &RunConfig{
-		RepoPath: repo,
+		RepoPath: repoPath,
 	}
 	var err error
 	mobile, err = NewTextile(config, &TestMessenger{})
@@ -83,7 +78,7 @@ func TestNewTextile(t *testing.T) {
 
 func TestNewTextileAgain(t *testing.T) {
 	config := &RunConfig{
-		RepoPath: repo,
+		RepoPath: repoPath,
 	}
 	if _, err := NewTextile(config, &TestMessenger{}); err != nil {
 		t.Errorf("create mobile node failed: %s", err)
@@ -185,7 +180,7 @@ func TestMobile_RemoveThread(t *testing.T) {
 }
 
 func TestMobile_AddFile(t *testing.T) {
-	resStr, err := mobile.AddFile("../images/testdata/image.jpg", defaultThreadId)
+	resStr, err := mobile.AddFile("../mill/testdata/image.jpg", defaultThreadId)
 	if err != nil {
 		t.Errorf("add file failed: %s", err)
 		return
@@ -436,12 +431,12 @@ func TestMobile_SetUsername(t *testing.T) {
 	}
 }
 
-func TestMobile_SetAvatar(t *testing.T) {
-	if err := mobile.SetAvatar(addedPhotoId); err != nil {
-		t.Errorf("set avatar id failed: %s", err)
-		return
-	}
-}
+//func TestMobile_SetAvatar(t *testing.T) {
+//	if err := mobile.SetAvatar(addedPhotoId); err != nil {
+//		t.Errorf("set avatar id failed: %s", err)
+//		return
+//	}
+//}
 
 func TestMobile_Profile(t *testing.T) {
 	profs, err := mobile.Profile()
@@ -512,6 +507,7 @@ func TestMobile_StopAgain(t *testing.T) {
 
 func Test_Teardown(t *testing.T) {
 	mobile = nil
+	os.RemoveAll(repoPath)
 }
 
 //func getWidthDataUrl(res string) (int, error) {
