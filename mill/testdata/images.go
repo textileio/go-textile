@@ -24,7 +24,7 @@ var Images = []TestImage{
 		HasExif: false,
 		Width:   3024,
 		Height:  4032,
-		Created: -62135596800,
+		Created: -1,
 	},
 	{
 		Path:    "testdata/image.gif",
@@ -32,6 +32,6 @@ var Images = []TestImage{
 		HasExif: false,
 		Width:   320,
 		Height:  240,
-		Created: -62135596800,
+		Created: -1,
 	},
 }
