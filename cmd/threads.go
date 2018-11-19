@@ -123,7 +123,6 @@ func callAddThreads(args []string, opts map[string]string) error {
 		}
 
 	} else if sch == "photos" {
-
 		var node schema.Node
 		if err := json.Unmarshal([]byte(textile.Photos), &node); err != nil {
 			return err

@@ -180,7 +180,7 @@ func TestMobile_RemoveThread(t *testing.T) {
 }
 
 func TestMobile_AddFile(t *testing.T) {
-	resStr, err := mobile.AddFile("../mill/testdata/image.jpg", defaultThreadId)
+	resStr, err := mobile.PrepareFile("../mill/testdata/image.jpg", defaultThreadId)
 	if err != nil {
 		t.Errorf("add file failed: %s", err)
 		return

@@ -1,7 +1,9 @@
 package mobile
 
 import (
+	"encoding/json"
 	"errors"
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 	"io"
 	"io/ioutil"
 	"os"
@@ -18,8 +20,8 @@ type FileData struct {
 	Url string `json:"url"`
 }
 
-// AddFile processes a file by path for a thread, but does NOT share it
-func (m *Mobile) AddFile(path string, threadId string) (string, error) {
+// PrepareFile processes a file by path for a thread, but does NOT share it
+func (m *Mobile) PrepareFile(path string, threadId string) (string, error) {
 	thrd := m.node.Thread(threadId)
 	if thrd == nil {
 		return "", core.ErrThreadNotFound
@@ -94,6 +96,138 @@ func (m *Mobile) AddFile(path string, threadId string) (string, error) {
 	return toJSON(result)
 }
 
+// AddFile adds a prepared file to a thread
+func (m *Mobile) AddFile(jsonstr string, threadId string, caption string) (string, error) {
+	if !m.node.Started() {
+		return "", core.ErrStopped
+	}
+
+	thrd := m.node.Thread(threadId)
+	if thrd == nil {
+		return "", core.ErrThreadNotFound
+	}
+
+	var node ipld.Node
+	var keys core.Keys
+
+	// parse file or directory
+	var dir core.Directory
+	if err := json.Unmarshal([]byte(jsonstr), &dir); err != nil {
+		return "", err
+	}
+	var err error
+	if len(dir) > 0 {
+		node, keys, err = m.node.AddNodeFromDirs([]core.Directory{dir})
+		if err != nil {
+			return "", err
+		}
+	} else {
+		var file repo.File
+		if err := json.Unmarshal([]byte(jsonstr), &file); err != nil {
+			return "", err
+		}
+		node, keys, err = m.node.AddNodeFromFiles([]repo.File{file})
+		if err != nil {
+			return "", err
+		}
+	}
+
+	if node == nil {
+		return "", errors.New("no files found")
+	}
+
+	hash, err := thrd.AddFiles(node, caption, keys)
+	if err != nil {
+		return "", err
+	}
+
+	info, err := m.node.BlockInfo(hash.B58String())
+	if err != nil {
+		return "", err
+	}
+
+	return toJSON(info)
+}
+
+// AddFileByTarget adds a prepared file to a thread by referencing its top level hash,
+// which is the target of an existing files block.
+func (m *Mobile) AddFileByTarget(target string, threadId string, caption string) (string, error) {
+	if !m.node.Started() {
+		return "", core.ErrStopped
+	}
+
+	thrd := m.node.Thread(threadId)
+	if thrd == nil {
+		return "", core.ErrThreadNotFound
+	}
+
+	block, err := m.node.BlockByTarget(target)
+	if err != nil {
+		return "", err
+	}
+
+	fsinfo, err := m.node.File(threadId, block.Id)
+	if err != nil {
+		return "", err
+	}
+
+	var dirs []core.Directory
+	var files []repo.File
+
+	for _, info := range fsinfo.Files {
+		if len(info.Links) > 0 {
+			dirs = append(dirs, info.Links)
+		} else if info.File != nil {
+			files = append(files, *info.File)
+		}
+	}
+
+	var node ipld.Node
+	var keys core.Keys
+
+	if len(dirs) > 0 {
+		node, keys, err = m.node.AddNodeFromDirs(dirs)
+		if err != nil {
+			return "", err
+		}
+	} else if len(files) > 0 {
+		node, keys, err = m.node.AddNodeFromFiles(files)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	if node == nil {
+		return "", errors.New("no files found")
+	}
+
+	hash, err := thrd.AddFiles(node, caption, keys)
+	if err != nil {
+		return "", err
+	}
+
+	info, err := m.node.BlockInfo(hash.B58String())
+	if err != nil {
+		return "", err
+	}
+
+	return toJSON(info)
+}
+
+// Files calls core Files
+func (m *Mobile) Files(threadId string, offset string, limit int) (string, error) {
+	if !m.node.Started() {
+		return "", core.ErrStopped
+	}
+
+	files, err := m.node.Files(threadId, offset, limit)
+	if err != nil {
+		return "", err
+	}
+
+	return toJSON(files)
+}
+
 func (m *Mobile) getFileConfig(mill m.Mill, path string, use string) (*core.AddFileConfig, error) {
 	var reader io.ReadSeeker
 	conf := &core.AddFileConfig{}
@@ -159,112 +293,6 @@ func getMill(id string, opts map[string]string) (m.Mill, error) {
 	}
 }
 
-//// AddPhotoToThread adds an existing photo to a new thread
-//func (m *Mobile) AddPhotoToThread(dataId string, key string, threadId string, caption string) (string, error) {
-//	if !m.node.Started() {
-//		return "", core.ErrStopped
-//	}
-//	thrd := m.node.Thread(threadId)
-//	if thrd == nil {
-//		return "", core.ErrThreadNotFound
-//	}
-//	keyb, err := base58.Decode(key)
-//	if err != nil {
-//		return "", err
-//	}
-//	hash, err := thrd.AddFile(dataId, caption, keyb)
-//	if err != nil {
-//		return "", err
-//	}
-//	return hash.B58String(), nil
-//}
-//
-//// SharePhotoToThread adds an existing photo to a new thread
-//func (m *Mobile) SharePhotoToThread(dataId string, threadId string, caption string) (string, error) {
-//	if !m.node.Started() {
-//		return "", core.ErrStopped
-//	}
-//	block, err := m.node.BlockByDataId(dataId)
-//	if err != nil {
-//		return "", err
-//	}
-//	toThread := m.node.Thread(threadId)
-//	if toThread == nil {
-//		return "", core.ErrThreadNotFound
-//	}
-//	// owner challenge
-//	hash, err := toThread.AddFile(dataId, caption, block.DataKey)
-//	if err != nil {
-//		return "", err
-//	}
-//	return hash.B58String(), nil
-//}
-//
-//// Photos returns thread photo blocks with json encoding
-//func (m *Mobile) Photos(offset string, limit int, threadId string) (string, error) {
-//	if !m.node.Started() {
-//		return "", core.ErrStopped
-//	}
-//	var pre, query string
-//	if threadId != "" {
-//		thrd := m.node.Thread(threadId)
-//		if thrd == nil {
-//			return "", core.ErrThreadNotFound
-//		}
-//		pre = fmt.Sprintf("threadId='%s' and ", threadId)
-//	}
-//	query = fmt.Sprintf("%stype=%d", pre, repo.FilesBlock)
-//
-//	// build json
-//	photos := &Photos{Items: make([]Photo, 0)}
-//	for _, b := range m.node.Blocks(offset, limit, query) {
-//		item := Photo{
-//			Id:       b.DataId,
-//			BlockId:  b.Id,
-//			Date:     b.Date,
-//			AuthorId: b.AuthorId,
-//			Caption:  b.DataCaption,
-//			Username: m.node.ContactUsername(b.AuthorId),
-//			Metadata: b.DataMetadata,
-//		}
-//
-//		// add comments
-//		cquery := fmt.Sprintf("%stype=%d and dataId='%s'", pre, repo.CommentBlock, b.Id)
-//		item.Comments = make([]Comment, 0)
-//		for _, c := range m.node.Blocks("", -1, cquery) {
-//			comment := Comment{
-//				Annotation: Annotation{
-//					Id:       c.Id,
-//					Date:     c.Date,
-//					AuthorId: c.AuthorId,
-//					Username: m.node.ContactUsername(c.AuthorId),
-//				},
-//				Body: c.DataCaption,
-//			}
-//			item.Comments = append(item.Comments, comment)
-//		}
-//
-//		// add likes
-//		lquery := fmt.Sprintf("%stype=%d and dataId='%s'", pre, repo.LikeBlock, b.Id)
-//		item.Likes = make([]Like, 0)
-//		for _, l := range m.node.Blocks("", -1, lquery) {
-//			like := Like{
-//				Annotation: Annotation{
-//					Id:       l.Id,
-//					Date:     l.Date,
-//					AuthorId: l.AuthorId,
-//					Username: m.node.ContactUsername(l.AuthorId),
-//				},
-//			}
-//			item.Likes = append(item.Likes, like)
-//		}
-//
-//		// collect
-//		photos.Items = append(photos.Items, item)
-//	}
-//	return toJSON(photos)
-//}
-//
 //// IgnorePhoto is a semantic helper for mobile, just calls IgnoreBlock
 //func (m *Mobile) IgnorePhoto(blockId string) (string, error) {
 //	return m.ignoreBlock(blockId)

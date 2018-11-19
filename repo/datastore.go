@@ -64,7 +64,7 @@ type FileStore interface {
 	Add(file *File) error
 	Get(hash string) *File
 	GetByPrimary(mill string, checksum string) *File
-	GetBySource(mill string, source string) *File
+	GetBySource(mill string, source string, opts string) *File
 	Count() int
 	Delete(hash string) error
 }

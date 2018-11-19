@@ -8,17 +8,11 @@ import (
 	"github.com/textileio/textile-go/pb"
 )
 
-type Contact struct {
-	Id       string    `json:"id"`
-	Username string    `json:"username"`
-	Inboxes  []string  `json:"inboxes"`
-	Added    time.Time `json:"added"`
-}
-
 type File struct {
 	Mill     string                 `json:"mill"`
 	Checksum string                 `json:"checksum"`
 	Source   string                 `json:"source"`
+	Opts     string                 `json:"opts,omitempty"`
 	Hash     string                 `json:"hash"`
 	Key      string                 `json:"key,omitempty"`
 	Media    string                 `json:"media"`
@@ -158,6 +152,13 @@ func (b BlockType) Description() string {
 	default:
 		return "INVALID"
 	}
+}
+
+type Contact struct {
+	Id       string    `json:"id"`
+	Username string    `json:"username"`
+	Inboxes  []string  `json:"inboxes"`
+	Added    time.Time `json:"added"`
 }
 
 type Notification struct {

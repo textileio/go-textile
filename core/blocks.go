@@ -31,8 +31,8 @@ func (t *Textile) Block(id string) (*repo.Block, error) {
 	return block, nil
 }
 
-// BlockByParent returns block with parent
-func (t *Textile) BlockByParent(target string) (*repo.Block, error) {
+// BlockByTarget returns block with parent
+func (t *Textile) BlockByTarget(target string) (*repo.Block, error) {
 	block := t.datastore.Blocks().GetByTarget(target)
 	if block == nil {
 		return nil, ErrBlockNotFound
