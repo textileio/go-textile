@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
-	"fmt"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 	uio "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/unixfs/io"
 	"io"
@@ -28,68 +27,8 @@ type Keys map[string]string
 
 type Directory map[string]repo.File
 
-type FileInfo struct {
-	Path  string     `json:"path"`
-	File  *repo.File `json:"file,omitempty"`
-	Links Directory  `json:"links,omitempty"`
-}
-
-type FilesInfo struct {
-	Id       string        `json:"id"`
-	Date     time.Time     `json:"date"`
-	AuthorId string        `json:"author_id"`
-	Username string        `json:"username,omitempty"`
-	Caption  string        `json:"caption,omitempty"`
-	Files    []FileInfo    `json:"files"`
-	Comments []CommentInfo `json:"comments"`
-	Likes    []LikeInfo    `json:"likes"`
-}
-
-type CommentInfo struct {
-	Id       string    `json:"id"`
-	Date     time.Time `json:"date"`
-	AuthorId string    `json:"author_id"`
-	Username string    `json:"username,omitempty"`
-	Body     string    `json:"body"`
-}
-
-type LikeInfo struct {
-	Id       string    `json:"id"`
-	Date     time.Time `json:"date"`
-	AuthorId string    `json:"author_id"`
-	Username string    `json:"username,omitempty"`
-}
-
 const FileLinkName = "f"
 const DataLinkName = "d"
-
-func (t *Textile) GetMedia(reader io.Reader, mill m.Mill) (string, error) {
-	buffer := make([]byte, 512)
-	n, err := reader.Read(buffer)
-	if err != nil && err != io.EOF {
-		return "", err
-	}
-	media := http.DetectContentType(buffer[:n])
-
-	return media, mill.AcceptMedia(media)
-}
-
-func (t *Textile) AddSchema(jsonstr string, name string) (*repo.File, error) {
-	var node schema.Node
-	if err := json.Unmarshal([]byte(jsonstr), &node); err != nil {
-		return nil, err
-	}
-	data, err := json.Marshal(&node)
-	if err != nil {
-		return nil, err
-	}
-
-	return t.AddFile(&m.Schema{}, AddFileConfig{
-		Input: data,
-		Media: "application/json",
-		Name:  name,
-	})
-}
 
 type AddFileConfig struct {
 	Input []byte `json:"input"`
@@ -169,6 +108,34 @@ func (t *Textile) AddFile(mill m.Mill, conf AddFileConfig) (*repo.File, error) {
 	return t.datastore.Files().Get(model.Hash), nil
 }
 
+func (t *Textile) GetMedia(reader io.Reader, mill m.Mill) (string, error) {
+	buffer := make([]byte, 512)
+	n, err := reader.Read(buffer)
+	if err != nil && err != io.EOF {
+		return "", err
+	}
+	media := http.DetectContentType(buffer[:n])
+
+	return media, mill.AcceptMedia(media)
+}
+
+func (t *Textile) AddSchema(jsonstr string, name string) (*repo.File, error) {
+	var node schema.Node
+	if err := json.Unmarshal([]byte(jsonstr), &node); err != nil {
+		return nil, err
+	}
+	data, err := json.Marshal(&node)
+	if err != nil {
+		return nil, err
+	}
+
+	return t.AddFile(&m.Schema{}, AddFileConfig{
+		Input: data,
+		Media: "application/json",
+		Name:  name,
+	})
+}
+
 func (t *Textile) AddNodeFromFiles(files []repo.File) (ipld.Node, Keys, error) {
 	keys := make(Keys)
 	outer := uio.NewDirectory(t.node.DAG)
@@ -230,86 +197,8 @@ func (t *Textile) AddNodeFromDirs(dirs []Directory) (ipld.Node, Keys, error) {
 	return node, keys, nil
 }
 
-func (t *Textile) Files(threadId string, offset string, limit int) ([]FilesInfo, error) {
-	thrd := t.Thread(threadId)
-	if thrd == nil {
-		return nil, ErrThreadNotFound
-	}
-
-	list := make([]FilesInfo, 0)
-
-	query := fmt.Sprintf("threadId='%s' and type=%d", threadId, repo.FilesBlock)
-	blocks := t.Blocks(offset, limit, query)
-	if len(blocks) == 0 {
-		return list, nil
-	}
-
-	for _, block := range blocks {
-		files, err := t.fileAtBlock(block)
-		if err != nil {
-			return nil, err
-		}
-
-		comments, err := t.fileComments(threadId, block.Id)
-		if err != nil {
-			return nil, err
-		}
-
-		likes, err := t.fileLikes(threadId, block.Id)
-		if err != nil {
-			return nil, err
-		}
-
-		list = append(list, FilesInfo{
-			Id:       block.Id,
-			Date:     block.Date,
-			AuthorId: block.AuthorId,
-			Username: t.ContactUsername(block.AuthorId),
-			Caption:  block.Body,
-			Files:    files,
-			Comments: comments,
-			Likes:    likes,
-		})
-	}
-
-	return list, nil
-}
-
-func (t *Textile) File(threadId string, blockId string) (*FilesInfo, error) {
-	block, err := t.Block(blockId)
-	if err != nil {
-		return nil, err
-	}
-
-	files, err := t.fileAtBlock(*block)
-	if err != nil {
-		return nil, err
-	}
-
-	comments, err := t.fileComments(threadId, block.Target)
-	if err != nil {
-		return nil, err
-	}
-
-	likes, err := t.fileLikes(threadId, block.Target)
-	if err != nil {
-		return nil, err
-	}
-
-	return &FilesInfo{
-		Id:       block.Id,
-		Date:     block.Date,
-		AuthorId: block.AuthorId,
-		Username: t.ContactUsername(block.AuthorId),
-		Caption:  block.Body,
-		Files:    files,
-		Comments: comments,
-		Likes:    likes,
-	}, nil
-}
-
-func (t *Textile) FilePlaintext(fileId string) (io.ReadSeeker, *repo.File, error) {
-	file := t.datastore.Files().Get(fileId)
+func (t *Textile) FileData(hash string) (io.ReadSeeker, *repo.File, error) {
+	file := t.datastore.Files().Get(hash)
 	if file == nil {
 		return nil, nil, errors.New("file not found")
 	}
@@ -366,68 +255,6 @@ func (t *Textile) fileNode(file repo.File, dir uio.Directory, link string) error
 	return ipfs.AddLinkToDirectory(t.node, dir, link, node.Cid().Hash().B58String())
 }
 
-func (t *Textile) fileAtBlock(block repo.Block) ([]FileInfo, error) {
-	if block.Type != repo.FilesBlock {
-		return nil, ErrBlockNotFile
-	}
-
-	links, err := ipfs.LinksAtPath(t.node, block.Target)
-	if err != nil {
-		return nil, err
-	}
-
-	files := make([]FileInfo, len(links))
-
-	for _, index := range links {
-		node, err := ipfs.NodeAtLink(t.node, index)
-		if err != nil {
-			return nil, err
-		}
-		fnames := node.Links()
-
-		info := FileInfo{
-			Path: block.Target + "/" + index.Name,
-		}
-		if len(fnames) > 0 {
-			// directory of files
-			info.Links = make(Directory)
-			for _, link := range node.Links() {
-				pair, err := ipfs.NodeAtLink(t.node, link)
-				if err != nil {
-					return nil, err
-				}
-				file, err := t.fileForPair(pair)
-				if err != nil {
-					return nil, err
-				}
-				if file != nil {
-					info.Links[link.Name] = *file
-				}
-			}
-		} else {
-			// single file
-			file, err := t.fileForPair(node)
-			if err != nil {
-				return nil, err
-			}
-			info.File = file
-		}
-
-		i, err := strconv.Atoi(index.Name)
-		if err != nil {
-			return nil, err
-		}
-		files[i] = info
-	}
-
-	return files, nil
-}
-
-func (t *Textile) checksum(plaintext []byte) string {
-	sum := sha256.Sum256(plaintext)
-	return base58.FastBase58Encoding(sum[:])
-}
-
 func (t *Textile) fileForPair(pair ipld.Node) (*repo.File, error) {
 	d, _, err := pair.ResolveLink([]string{DataLinkName})
 	if err != nil {
@@ -439,37 +266,7 @@ func (t *Textile) fileForPair(pair ipld.Node) (*repo.File, error) {
 	return t.datastore.Files().Get(d.Cid.Hash().B58String()), nil
 }
 
-func (t *Textile) fileComments(threadId string, target string) ([]CommentInfo, error) {
-	comments := make([]CommentInfo, 0)
-
-	query := fmt.Sprintf("threadId='%s' and type=%d and target='%s'", threadId, repo.CommentBlock, target)
-	for _, block := range t.Blocks("", -1, query) {
-		info := CommentInfo{
-			Id:       block.Id,
-			Date:     block.Date,
-			AuthorId: block.AuthorId,
-			Username: t.ContactUsername(block.AuthorId),
-			Body:     block.Body,
-		}
-		comments = append(comments, info)
-	}
-
-	return comments, nil
-}
-
-func (t *Textile) fileLikes(threadId string, target string) ([]LikeInfo, error) {
-	likes := make([]LikeInfo, 0)
-
-	query := fmt.Sprintf("threadId='%s' and type=%d and target='%s'", threadId, repo.LikeBlock, target)
-	for _, block := range t.Blocks("", -1, query) {
-		info := LikeInfo{
-			Id:       block.Id,
-			Date:     block.Date,
-			AuthorId: block.AuthorId,
-			Username: t.ContactUsername(block.AuthorId),
-		}
-		likes = append(likes, info)
-	}
-
-	return likes, nil
+func (t *Textile) checksum(plaintext []byte) string {
+	sum := sha256.Sum256(plaintext)
+	return base58.FastBase58Encoding(sum[:])
 }

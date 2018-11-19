@@ -233,7 +233,7 @@ func callLs(opts map[string]string) error {
 		threadId = "default"
 	}
 
-	var list []core.FilesInfo
+	var list []core.ThreadFilesInfo
 	res, err := executeJsonCmd(GET, "threads/"+threadId+"/files", params{opts: opts}, &list)
 	if err != nil {
 		return err
@@ -257,7 +257,7 @@ func callLs(opts map[string]string) error {
 
 	return callLs(map[string]string{
 		"thread": opts["thread"],
-		"offset": list[len(list)-1].Id,
+		"offset": list[len(list)-1].Block,
 		"limit":  opts["limit"],
 	})
 }
@@ -306,7 +306,7 @@ func callGet(args []string, opts map[string]string) error {
 		threadId = "default"
 	}
 
-	var info core.FilesInfo
+	var info core.ThreadFilesInfo
 	res, err := executeJsonCmd(GET, "threads/"+threadId+"/files/"+args[0], params{opts: opts}, &info)
 	if err != nil {
 		return err

@@ -2,7 +2,6 @@ package core
 
 import (
 	"encoding/json"
-	"fmt"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
@@ -82,14 +81,14 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 	}
 
 	var ignore bool
-	ignored := t.datastore.Blocks().GetByTarget(fmt.Sprintf("ignore-%s", hash.B58String()))
-	if ignored != nil {
+	ignored := t.datastore.Blocks().List("", -1, "target='ignore-"+hash.B58String()+"'")
+	if len(ignored) > 0 {
 		date, err := ptypes.Timestamp(block.Header.Date)
 		if err != nil {
 			return nil, err
 		}
-		// ignore if the ignore block came after (could happen during back prop)
-		if ignored.Date.After(date) {
+		// ignore if the first (latest) ignore came after (could happen during back prop)
+		if ignored[0].Date.After(date) {
 			ignore = true
 		}
 	}

@@ -1,12 +1,14 @@
 package mobile
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/repo"
@@ -33,8 +35,8 @@ func (m *Mobile) AddSchema(jsonstr string) (string, error) {
 	return toJSON(added)
 }
 
-// PrepareFile processes a file by path for a thread, but does NOT share it
-func (m *Mobile) PrepareFile(path string, threadId string) (string, error) {
+// PrepareFiles processes a file by path for a thread, but does NOT share it
+func (m *Mobile) PrepareFiles(path string, threadId string) (string, error) {
 	thrd := m.node.Thread(threadId)
 	if thrd == nil {
 		return "", core.ErrThreadNotFound
@@ -109,8 +111,8 @@ func (m *Mobile) PrepareFile(path string, threadId string) (string, error) {
 	return toJSON(result)
 }
 
-// AddFile adds a prepared file to a thread
-func (m *Mobile) AddFile(jsonstr string, threadId string, caption string) (string, error) {
+// AddThreadFiles adds a prepared file to a thread
+func (m *Mobile) AddThreadFiles(jsonstr string, threadId string, caption string) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
@@ -157,9 +159,9 @@ func (m *Mobile) AddFile(jsonstr string, threadId string, caption string) (strin
 	return m.blockInfo(hash)
 }
 
-// AddFileByTarget adds a prepared file to a thread by referencing its top level hash,
+// AddThreadFilesByTarget adds a prepared file to a thread by referencing its top level hash,
 // which is the target of an existing files block.
-func (m *Mobile) AddFileByTarget(target string, threadId string, caption string) (string, error) {
+func (m *Mobile) AddThreadFilesByTarget(target string, threadId string, caption string) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
@@ -169,12 +171,13 @@ func (m *Mobile) AddFileByTarget(target string, threadId string, caption string)
 		return "", core.ErrThreadNotFound
 	}
 
-	block, err := m.node.BlockByTarget(target)
-	if err != nil {
-		return "", err
+	// just need one block w/ the same target, doesn't matter what thread
+	blocks := m.node.BlocksByTarget(target)
+	if len(blocks) == 0 {
+		return "", errors.New("target not found")
 	}
 
-	fsinfo, err := m.node.File(threadId, block.Id)
+	fsinfo, err := m.node.ThreadFile(blocks[0].Id)
 	if err != nil {
 		return "", err
 	}
@@ -217,18 +220,42 @@ func (m *Mobile) AddFileByTarget(target string, threadId string, caption string)
 	return m.blockInfo(hash)
 }
 
-// Files calls core Files
-func (m *Mobile) Files(threadId string, offset string, limit int) (string, error) {
+// ThreadFiles calls core ThreadFiles
+func (m *Mobile) ThreadFiles(offset string, limit int, threadId string) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
 
-	files, err := m.node.Files(threadId, offset, limit)
+	files, err := m.node.ThreadFiles(offset, limit, threadId)
 	if err != nil {
 		return "", err
 	}
 
 	return toJSON(files)
+}
+
+// FileData returns a data url of a raw file under a path
+func (m *Mobile) FileData(hash string) (string, error) {
+	if !m.node.Started() {
+		return "", core.ErrStopped
+	}
+
+	reader, file, err := m.node.FileData(hash)
+	if err != nil {
+		return "", err
+	}
+
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return "", err
+	}
+
+	prefix := "data:" + file.Media + ";base64,"
+	img := &FileData{
+		Url: prefix + base64.StdEncoding.EncodeToString(data),
+	}
+
+	return toJSON(img)
 }
 
 func (m *Mobile) addSchema(jsonstr string) (*repo.File, error) {
@@ -260,11 +287,12 @@ func (m *Mobile) getFileConfig(mil mill.Mill, path string, use string) (*core.Ad
 		}
 		defer f.Close()
 		reader = f
-		conf.Name = f.Name()
+		_, file := filepath.Split(f.Name())
+		conf.Name = file
 	} else {
 		var file *repo.File
 		var err error
-		reader, file, err = m.node.FilePlaintext(use)
+		reader, file, err = m.node.FileData(use)
 		if err != nil {
 			return nil, err
 		}
@@ -314,26 +342,6 @@ func getMill(id string, opts map[string]string) (mill.Mill, error) {
 	}
 }
 
-//// FileData returns a data url of a file under a path
-//func (m *Mobile) PhotoData(id string, path string) (string, error) {
-//	if !m.node.Started() {
-//		return "", core.ErrStopped
-//	}
-//	block, err := m.node.BlockByDataId(id)
-//	if err != nil {
-//		return "", err
-//	}
-//	data, err := m.node.BlockData(fmt.Sprintf("%s/%s", id, path), block)
-//	if err != nil {
-//		return "", err
-//	}
-//	format := block.DataMetadata.EncodingFormat
-//	prefix := getImageDataURLPrefix(images.Format(format))
-//	encoded := libp2pc.ConfigEncodeKey(data)
-//	img := &ImageData{Url: prefix + encoded}
-//	return toJSON(img)
-//}
-
 //// FileDataForMinWidth returns a data url of an image at or above requested size, or the next best option
 //func (m *Mobile) FileDataForMinWidth(id string, minWidth int) (string, error) {
 //	path := images.ImagePathForSize(images.ImageSizeForMinWidth(minWidth))
@@ -350,45 +358,4 @@ func getMill(id string, opts map[string]string) (mill.Mill, error) {
 //		return "", err
 //	}
 //	return toJSON(block.DataMetadata)
-//}
-
-//// FileThreads call core PhotoThreads
-//func (m *Mobile) PhotoThreads(id string) (string, error) {
-//	if !m.node.Started() {
-//		return "", core.ErrStopped
-//	}
-//	threads := Threads{Items: make([]Thread, 0)}
-//	for _, thrd := range m.node.PhotoThreads(id) {
-//		peers := thrd.Peers()
-//		item := Thread{Id: thrd.Id, Name: thrd.Name, Peers: len(peers)}
-//		threads.Items = append(threads.Items, item)
-//	}
-//	return toJSON(threads)
-//}
-
-// getImageDataURLPrefix adds the correct data url prefix to a data url
-//func getImageDataURLPrefix(format images.Format) string {
-//	switch format {
-//	case images.PNG:
-//		return "data:image/png;base64,"
-//	case images.GIF:
-//		return "data:image/gif;base64,"
-//	default:
-//		return "data:image/jpeg;base64,"
-//	}
-//}
-
-//// FileThreads lists threads which contain a photo (known to the local peer)
-//func (t *Textile) FileThreads(id string) []*Thread {
-//	blocks := t.datastore.Blocks().List("", -1, "dataId='"+id+"'")
-//	if len(blocks) == 0 {
-//		return nil
-//	}
-//	var threads []*Thread
-//	for _, block := range blocks {
-//		if thrd := t.Thread(block.ThreadId); thrd != nil {
-//			threads = append(threads, thrd)
-//		}
-//	}
-//	return threads
 //}

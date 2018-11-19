@@ -234,7 +234,7 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string) (*AddFileCo
 	} else {
 		var file *repo.File
 		var err error
-		reader, file, err = a.node.FilePlaintext(use)
+		reader, file, err = a.node.FileData(use)
 		if err != nil {
 			return nil, err
 		}

@@ -60,16 +60,6 @@ func (c *BlockDB) Get(id string) *repo.Block {
 	return &ret[0]
 }
 
-func (c *BlockDB) GetByTarget(target string) *repo.Block {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from blocks where target='" + target + "';")
-	if len(ret) == 0 {
-		return nil
-	}
-	return &ret[0]
-}
-
 func (c *BlockDB) List(offset string, limit int, query string) []repo.Block {
 	c.lock.Lock()
 	defer c.lock.Unlock()

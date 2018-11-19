@@ -2,8 +2,8 @@ package mobile
 
 import "github.com/textileio/textile-go/core"
 
-// AddIgnore adds an ignore targeted at the given block and unpins any associated target data
-func (m *Mobile) AddIgnore(blockId string) (string, error) {
+// AddThreadIgnore adds an ignore targeted at the given block and unpins any associated target data
+func (m *Mobile) AddThreadIgnore(blockId string) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}

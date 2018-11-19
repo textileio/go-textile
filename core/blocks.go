@@ -2,7 +2,6 @@ package core
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/textileio/textile-go/repo"
 )
@@ -15,8 +14,8 @@ func (t *Textile) Blocks(offset string, limit int, query string) []repo.Block {
 	var filtered []repo.Block
 
 	for _, block := range t.datastore.Blocks().List(offset, limit, query) {
-		ignored := t.datastore.Blocks().GetByTarget(fmt.Sprintf("ignore-%s", block.Id))
-		if ignored == nil {
+		ignored := t.datastore.Blocks().List("", -1, "target='ignore-"+block.Id+"'")
+		if len(ignored) == 0 {
 			filtered = append(filtered, block)
 		}
 	}
@@ -33,13 +32,9 @@ func (t *Textile) Block(id string) (*repo.Block, error) {
 	return block, nil
 }
 
-// BlockByTarget returns block with parent
-func (t *Textile) BlockByTarget(target string) (*repo.Block, error) {
-	block := t.datastore.Blocks().GetByTarget(target)
-	if block == nil {
-		return nil, ErrBlockNotFound
-	}
-	return block, nil
+// BlocksByTarget returns block with parent
+func (t *Textile) BlocksByTarget(target string) []repo.Block {
+	return t.datastore.Blocks().List("", -1, "target='"+target+"'")
 }
 
 // BlockInfo returns block info with id

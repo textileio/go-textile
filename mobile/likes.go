@@ -2,8 +2,8 @@ package mobile
 
 import "github.com/textileio/textile-go/core"
 
-// AddLike adds a like targeted at the given block
-func (m *Mobile) AddLike(blockId string) (string, error) {
+// AddThreadLike adds a like targeted at the given block
+func (m *Mobile) AddThreadLike(blockId string) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}

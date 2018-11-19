@@ -104,7 +104,6 @@ type BlockStore interface {
 	Queryable
 	Add(block *Block) error
 	Get(id string) *Block
-	GetByTarget(target string) *Block
 	List(offset string, limit int, query string) []Block
 	Count(query string) int
 	Delete(id string) error

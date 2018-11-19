@@ -2,9 +2,9 @@ package mobile_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/segmentio/ksuid"
 
@@ -25,8 +25,9 @@ var seed string
 
 var mobile *Mobile
 var defaultThreadId string
-var files string
+var prepared string
 var filesBlock core.BlockInfo
+var files []core.ThreadFilesInfo
 
 func TestNewWallet(t *testing.T) {
 	var err error
@@ -181,10 +182,10 @@ func TestMobile_RemoveThread(t *testing.T) {
 	}
 }
 
-func TestMobile_PrepareFile(t *testing.T) {
-	res, err := mobile.PrepareFile("../mill/testdata/image.jpeg", defaultThreadId)
+func TestMobile_PrepareFiles(t *testing.T) {
+	res, err := mobile.PrepareFiles("../mill/testdata/image.jpeg", defaultThreadId)
 	if err != nil {
-		t.Errorf("prepare file failed: %s", err)
+		t.Errorf("prepare files failed: %s", err)
 		return
 	}
 	dir := core.Directory{}
@@ -195,13 +196,13 @@ func TestMobile_PrepareFile(t *testing.T) {
 	if len(dir) != 6 {
 		t.Error("wrong number of files")
 	}
-	files = res
+	prepared = res
 }
 
-func TestMobile_AddFile(t *testing.T) {
-	res, err := mobile.AddFile(files, defaultThreadId, "hello")
+func TestMobile_AddThreadFiles(t *testing.T) {
+	res, err := mobile.AddThreadFiles(prepared, defaultThreadId, "hello")
 	if err != nil {
-		t.Errorf("add file failed: %s", err)
+		t.Errorf("add thread files failed: %s", err)
 		return
 	}
 	info := core.BlockInfo{}
@@ -209,12 +210,13 @@ func TestMobile_AddFile(t *testing.T) {
 		t.Error(err)
 	}
 	filesBlock = info
+	time.Sleep(time.Second)
 }
 
-func TestMobile_AddFileByTarget(t *testing.T) {
-	res, err := mobile.AddFileByTarget(filesBlock.Target, defaultThreadId, "hello")
+func TestMobile_AddThreadFilesByTarget(t *testing.T) {
+	res, err := mobile.AddThreadFilesByTarget(filesBlock.Target, defaultThreadId, "hello again")
 	if err != nil {
-		t.Errorf("add file failed: %s", err)
+		t.Errorf("add thread files by target failed: %s", err)
 		return
 	}
 	info := &core.BlockInfo{}
@@ -223,33 +225,31 @@ func TestMobile_AddFileByTarget(t *testing.T) {
 	}
 }
 
-func TestMobile_AddComment(t *testing.T) {
-	if _, err := mobile.AddComment(filesBlock.Id, "hell yeah"); err != nil {
-		t.Errorf("add comment failed: %s", err)
+func TestMobile_AddThreadComment(t *testing.T) {
+	if _, err := mobile.AddThreadComment(filesBlock.Id, "hell yeah"); err != nil {
+		t.Errorf("add thread comment failed: %s", err)
 	}
 }
 
-func TestMobile_AddLike(t *testing.T) {
-	if _, err := mobile.AddLike(filesBlock.Id); err != nil {
-		t.Errorf("add like failed: %s", err)
+func TestMobile_AddThreadLike(t *testing.T) {
+	if _, err := mobile.AddThreadLike(filesBlock.Id); err != nil {
+		t.Errorf("add thread like failed: %s", err)
 	}
 }
 
-func TestMobile_Files(t *testing.T) {
-	res, err := mobile.Files(defaultThreadId, "", -1)
+func TestMobile_ThreadFiles(t *testing.T) {
+	res, err := mobile.ThreadFiles("", -1, defaultThreadId)
 	if err != nil {
-		t.Errorf("get files failed: %s", err)
+		t.Errorf("get thread files failed: %s", err)
 		return
 	}
-	var files []core.FilesInfo
 	if err := json.Unmarshal([]byte(res), &files); err != nil {
 		t.Error(err)
 		return
 	}
 	if len(files) != 2 {
-		t.Errorf("get files bad result")
+		t.Errorf("get thread files bad result")
 	}
-	fmt.Println(res)
 	if len(files[1].Comments) != 1 {
 		t.Errorf("file comments bad result")
 	}
@@ -258,58 +258,42 @@ func TestMobile_Files(t *testing.T) {
 	}
 }
 
-func TestMobile_FilesBadThread(t *testing.T) {
-	if _, err := mobile.Files("empty", "", -1); err == nil {
-		t.Error("get files from bad thread should fail")
+func TestMobile_ThreadFilesBadThread(t *testing.T) {
+	if _, err := mobile.ThreadFiles("", -1, "empty"); err == nil {
+		t.Error("get thread files from bad thread should fail")
 	}
 }
 
-func TestMobile_AddIgnore(t *testing.T) {
-	if _, err := mobile.AddIgnore(filesBlock.Id); err != nil {
-		t.Errorf("add ignore failed: %s", err)
-	}
-	res, err := mobile.Files(defaultThreadId, "", -1)
+func TestMobile_FileData(t *testing.T) {
+	res, err := mobile.FileData(files[0].Files[0].Links["small"].Hash)
 	if err != nil {
-		t.Errorf("get files failed: %s", err)
+		t.Errorf("get file data failed: %s", err)
 		return
 	}
-	var files []core.FilesInfo
+	if len(res) == 0 {
+		t.Errorf("get file data bad result")
+	}
+}
+
+func TestMobile_AddThreadIgnore(t *testing.T) {
+	if _, err := mobile.AddThreadIgnore(filesBlock.Id); err != nil {
+		t.Errorf("add thread ignore failed: %s", err)
+	}
+	res, err := mobile.ThreadFiles("", -1, defaultThreadId)
+	if err != nil {
+		t.Errorf("get thread files failed: %s", err)
+		return
+	}
+	var files []core.ThreadFilesInfo
 	if err := json.Unmarshal([]byte(res), &files); err != nil {
 		t.Error(err)
 		return
 	}
 	if len(files) != 1 {
-		t.Errorf("ignore bad result")
+		t.Errorf("thread ignore bad result")
 	}
 }
 
-//func TestMobile_PhotoThreads(t *testing.T) {
-//	res, err := mobile.PhotoThreads(addedPhotoId)
-//	if err != nil {
-//		t.Errorf("get photo threads failed: %s", err)
-//		return
-//	}
-//	threads := Threads{}
-//	if err := json.Unmarshal([]byte(res), &threads); err != nil {
-//		t.Error(err)
-//		return
-//	}
-//	if len(threads.Items) != 2 {
-//		t.Error("get photo threads bad result")
-//	}
-//}
-//
-//func TestMobile_PhotoData(t *testing.T) {
-//	res, err := mobile.PhotoData(addedPhotoId, "thumb")
-//	if err != nil {
-//		t.Errorf("get photo data failed: %s", err)
-//		return
-//	}
-//	if len(res) == 0 {
-//		t.Errorf("get photo data bad result")
-//	}
-//}
-//
 //func TestMobile_PhotoDataForMinWidth(t *testing.T) {
 //	// test photo
 //	res, err := mobile.PhotoDataForMinWidth(addedPhotoId, 2000)
