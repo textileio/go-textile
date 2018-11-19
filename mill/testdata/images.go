@@ -6,7 +6,6 @@ type TestImage struct {
 	HasExif bool
 	Width   int
 	Height  int
-	Created int64
 }
 
 var Images = []TestImage{
@@ -16,7 +15,6 @@ var Images = []TestImage{
 		HasExif: true,
 		Width:   3024,
 		Height:  4032,
-		Created: 1526926068,
 	},
 	{
 		Path:    "testdata/image.png",
@@ -24,7 +22,6 @@ var Images = []TestImage{
 		HasExif: false,
 		Width:   3024,
 		Height:  4032,
-		Created: -1,
 	},
 	{
 		Path:    "testdata/image.gif",
@@ -32,6 +29,5 @@ var Images = []TestImage{
 		HasExif: false,
 		Width:   320,
 		Height:  240,
-		Created: -1,
 	},
 }
