@@ -2,6 +2,7 @@ package mobile_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
 
@@ -24,7 +25,8 @@ var seed string
 
 var mobile *Mobile
 var defaultThreadId string
-var addedPhotoId string
+var files string
+var filesBlock core.BlockInfo
 
 func TestNewWallet(t *testing.T) {
 	var err error
@@ -109,34 +111,34 @@ func TestMobile_Seed(t *testing.T) {
 	}
 }
 
-func TestMobile_AccountThread(t *testing.T) {
+func TestMobile_CheckAccountThread(t *testing.T) {
 	res, err := mobile.Threads()
 	if err != nil {
 		t.Errorf("get threads failed: %s", err)
 		return
 	}
-	threads := Threads{}
+	var threads []core.ThreadInfo
 	if err := json.Unmarshal([]byte(res), &threads); err != nil {
 		t.Error(err)
 		return
 	}
-	if len(threads.Items) != 1 {
+	if len(threads) != 1 {
 		t.Error("get threads bad result")
 	}
 }
 
 func TestMobile_AddThread(t *testing.T) {
-	itemStr, err := mobile.AddThread(ksuid.New().String(), "default")
+	res, err := mobile.AddThread(ksuid.New().String(), "default")
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
 		return
 	}
-	item := Thread{}
-	if err := json.Unmarshal([]byte(itemStr), &item); err != nil {
+	var thrd *core.ThreadInfo
+	if err := json.Unmarshal([]byte(res), &thrd); err != nil {
 		t.Error(err)
 		return
 	}
-	defaultThreadId = item.Id
+	defaultThreadId = thrd.Id
 }
 
 func TestMobile_Threads(t *testing.T) {
@@ -145,143 +147,141 @@ func TestMobile_Threads(t *testing.T) {
 		t.Errorf("get threads failed: %s", err)
 		return
 	}
-	threads := Threads{}
+	var threads []core.ThreadInfo
 	if err := json.Unmarshal([]byte(res), &threads); err != nil {
 		t.Error(err)
 		return
 	}
-	if len(threads.Items) != 2 {
+	if len(threads) != 2 {
 		t.Error("get threads bad result")
 	}
 }
 
 func TestMobile_RemoveThread(t *testing.T) {
-	itemStr, err := mobile.AddThread(ksuid.New().String(), "another")
+	res, err := mobile.AddThread(ksuid.New().String(), "another")
 	if err != nil {
-		t.Errorf("add another thread failed: %s", err)
+		t.Errorf("remove thread failed: %s", err)
 		return
 	}
-	item := Thread{}
-	if err := json.Unmarshal([]byte(itemStr), &item); err != nil {
+	var thrd *core.ThreadInfo
+	if err := json.Unmarshal([]byte(res), &thrd); err != nil {
 		t.Error(err)
 		return
 	}
-	blockId, err := mobile.RemoveThread(item.Id)
+	res2, err := mobile.RemoveThread(thrd.Id)
 	if err != nil {
 		t.Error(err)
 		return
-	}
-	if blockId == "" {
-		t.Errorf("remove thread bad result: %s", err)
 	}
 	if err != nil {
 		t.Errorf("remove thread failed: %s", err)
 	}
+	if res2 == "" {
+		t.Errorf("remove thread bad result: %s", err)
+	}
+}
+
+func TestMobile_PrepareFile(t *testing.T) {
+	res, err := mobile.PrepareFile("../mill/testdata/image.jpeg", defaultThreadId)
+	if err != nil {
+		t.Errorf("prepare file failed: %s", err)
+		return
+	}
+	dir := core.Directory{}
+	if err := json.Unmarshal([]byte(res), &dir); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(dir) != 6 {
+		t.Error("wrong number of files")
+	}
+	files = res
 }
 
 func TestMobile_AddFile(t *testing.T) {
-	resStr, err := mobile.PrepareFile("../mill/testdata/image.jpg", defaultThreadId)
+	res, err := mobile.AddFile(files, defaultThreadId, "hello")
 	if err != nil {
 		t.Errorf("add file failed: %s", err)
 		return
 	}
-	res := core.Directory{}
-	if err := json.Unmarshal([]byte(resStr), &res); err != nil {
+	info := core.BlockInfo{}
+	if err := json.Unmarshal([]byte(res), &info); err != nil {
 		t.Error(err)
+	}
+	filesBlock = info
+}
+
+func TestMobile_AddFileByTarget(t *testing.T) {
+	res, err := mobile.AddFileByTarget(filesBlock.Target, defaultThreadId, "hello")
+	if err != nil {
+		t.Errorf("add file failed: %s", err)
 		return
 	}
-	if len(res) != 6 {
-		t.Error("wrong number of files")
-		return
+	info := &core.BlockInfo{}
+	if err := json.Unmarshal([]byte(res), &info); err != nil {
+		t.Error(err)
 	}
 }
 
-//func TestMobile_AddPhotoToThread(t *testing.T) {
-//	id, err := mobile.AddPhotoToThread(addedPhotoId, addedPhotoKey, threadId, "")
-//	if err != nil {
-//		t.Errorf("add photo to thread failed: %s", err)
-//		return
-//	}
-//	addedBlockId = id
-//}
-//
-//func TestMobile_SharePhotoToThread(t *testing.T) {
-//	itemStr, err := mobile.AddThread("test", "test", "TextilePhotos")
-//	if err != nil {
-//		t.Errorf("add test thread failed: %s", err)
-//		return
-//	}
-//	item := Thread{}
-//	if err := json.Unmarshal([]byte(itemStr), &item); err != nil {
-//		t.Error(err)
-//		return
-//	}
-//	threadId2 = item.Id
-//	sharedBlockId, err = mobile.SharePhotoToThread(addedPhotoId, item.Id, "howdy")
-//	if err != nil {
-//		t.Errorf("share photo to thread failed: %s", err)
-//	}
-//}
-//
-//func TestMobile_IgnorePhoto(t *testing.T) {
-//	if _, err := mobile.IgnorePhoto(sharedBlockId); err != nil {
-//		t.Errorf("ignore photo failed: %s", err)
-//		return
-//	}
-//	res, err := mobile.Photos("", -1, threadId2)
-//	if err != nil {
-//		t.Errorf("get photos failed: %s", err)
-//		return
-//	}
-//	photos := Photos{}
-//	if err := json.Unmarshal([]byte(res), &photos); err != nil {
-//		t.Error(err)
-//		return
-//	}
-//	if len(photos.Items) != 0 {
-//		t.Errorf("ignore photo bad result")
-//	}
-//}
-//
-//func TestMobile_AddPhotoComment(t *testing.T) {
-//	if _, err := mobile.AddPhotoComment(addedBlockId, "well, well, well"); err != nil {
-//		t.Errorf("add photo comment failed: %s", err)
-//	}
-//}
-//
-//func TestMobile_AddPhotoLike(t *testing.T) {
-//	if _, err := mobile.AddPhotoLike(addedBlockId); err != nil {
-//		t.Errorf("add photo like failed: %s", err)
-//	}
-//}
-//
-//func TestMobile_Photos(t *testing.T) {
-//	res, err := mobile.Photos("", -1, threadId)
-//	if err != nil {
-//		t.Errorf("get photos failed: %s", err)
-//		return
-//	}
-//	photos := Photos{}
-//	if err := json.Unmarshal([]byte(res), &photos); err != nil {
-//		t.Error(err)
-//		return
-//	}
-//	if len(photos.Items) != 1 {
-//		t.Errorf("get photos bad result")
-//	}
-//	if len(photos.Items[0].Comments) != 1 {
-//		t.Errorf("get photo comments bad result")
-//	}
-//	if len(photos.Items[0].Likes) != 1 {
-//		t.Errorf("get photo likes bad result")
-//	}
-//}
-//
-//func TestMobile_PhotosBadThread(t *testing.T) {
-//	if _, err := mobile.Photos("", -1, "empty"); err == nil {
-//		t.Errorf("get photo blocks from bad thread should fail: %s", err)
-//	}
-//}
+func TestMobile_AddComment(t *testing.T) {
+	if _, err := mobile.AddComment(filesBlock.Id, "hell yeah"); err != nil {
+		t.Errorf("add comment failed: %s", err)
+	}
+}
+
+func TestMobile_AddLike(t *testing.T) {
+	if _, err := mobile.AddLike(filesBlock.Id); err != nil {
+		t.Errorf("add like failed: %s", err)
+	}
+}
+
+func TestMobile_Files(t *testing.T) {
+	res, err := mobile.Files(defaultThreadId, "", -1)
+	if err != nil {
+		t.Errorf("get files failed: %s", err)
+		return
+	}
+	var files []core.FilesInfo
+	if err := json.Unmarshal([]byte(res), &files); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(files) != 2 {
+		t.Errorf("get files bad result")
+	}
+	fmt.Println(res)
+	if len(files[1].Comments) != 1 {
+		t.Errorf("file comments bad result")
+	}
+	if len(files[1].Likes) != 1 {
+		t.Errorf("file likes bad result")
+	}
+}
+
+func TestMobile_FilesBadThread(t *testing.T) {
+	if _, err := mobile.Files("empty", "", -1); err == nil {
+		t.Error("get files from bad thread should fail")
+	}
+}
+
+func TestMobile_AddIgnore(t *testing.T) {
+	if _, err := mobile.AddIgnore(filesBlock.Id); err != nil {
+		t.Errorf("add ignore failed: %s", err)
+	}
+	res, err := mobile.Files(defaultThreadId, "", -1)
+	if err != nil {
+		t.Errorf("get files failed: %s", err)
+		return
+	}
+	var files []core.FilesInfo
+	if err := json.Unmarshal([]byte(res), &files); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(files) != 1 {
+		t.Errorf("ignore bad result")
+	}
+}
 
 //func TestMobile_PhotoThreads(t *testing.T) {
 //	res, err := mobile.PhotoThreads(addedPhotoId)
@@ -396,17 +396,6 @@ func TestMobile_AddFile(t *testing.T) {
 //	}
 //	if len(res) == 0 {
 //		t.Errorf("get meta data bad result")
-//	}
-//}
-//
-//func TestMobile_PhotoKey(t *testing.T) {
-//	res, err := mobile.PhotoKey(addedPhotoId)
-//	if err != nil {
-//		t.Errorf("get key failed: %s", err)
-//		return
-//	}
-//	if len(res) == 0 {
-//		t.Errorf("get key bad result")
 //	}
 //}
 

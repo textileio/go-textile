@@ -4,18 +4,10 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
-// Notifications is a wrapper around a list of Notifications
-type Notifications struct {
-	Items []repo.Notification `json:"items"`
-}
-
 // Notifications call core Notifications
 func (m *Mobile) Notifications(offset string, limit int) (string, error) {
-	notes := Notifications{Items: make([]repo.Notification, 0)}
-	fetched := m.node.Notifications(offset, limit)
-	if len(fetched) > 0 {
-		notes.Items = fetched
-	}
+	notes := make([]repo.Notification, 0)
+	notes = m.node.Notifications(offset, limit)
 	return toJSON(notes)
 }
 

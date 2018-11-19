@@ -43,11 +43,5 @@ func TestImageExif_Mill(t *testing.T) {
 		if exif.Format != i.Format {
 			t.Errorf("wrong format")
 		}
-		if (i.HasExif && exif.Latitude == 0) || (!i.HasExif && exif.Latitude != 0) {
-			t.Error("wrong latitude")
-		}
-		if (i.HasExif && exif.Longitude == 0) || (!i.HasExif && exif.Longitude != 0) {
-			t.Error("wrong longitude")
-		}
 	}
 }

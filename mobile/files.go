@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	m "github.com/textileio/textile-go/mill"
+	"github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema"
 
@@ -18,6 +18,19 @@ import (
 // FileData is a wrapper around a file data url
 type FileData struct {
 	Url string `json:"url"`
+}
+
+// AddSchema adds a new schema via schema mill
+func (m *Mobile) AddSchema(jsonstr string) (string, error) {
+	if !m.node.Started() {
+		return "", core.ErrStopped
+	}
+	added, err := m.addSchema(jsonstr)
+	if err != nil {
+		return "", err
+	}
+
+	return toJSON(added)
 }
 
 // PrepareFile processes a file by path for a thread, but does NOT share it
@@ -33,17 +46,17 @@ func (m *Mobile) PrepareFile(path string, threadId string) (string, error) {
 
 	var result interface{}
 
-	mill, err := getMill(thrd.Schema.Mill, thrd.Schema.Opts)
+	mil, err := getMill(thrd.Schema.Mill, thrd.Schema.Opts)
 	if err != nil {
 		return "", err
 	}
-	if mill != nil {
-		conf, err := m.getFileConfig(mill, path, "")
+	if mil != nil {
+		conf, err := m.getFileConfig(mil, path, "")
 		if err != nil {
 			return "", err
 		}
 
-		added, err := m.node.AddFile(mill, *conf)
+		added, err := m.node.AddFile(mil, *conf)
 		if err != nil {
 			return "", err
 		}
@@ -60,14 +73,14 @@ func (m *Mobile) PrepareFile(path string, threadId string) (string, error) {
 
 		// send each link
 		for _, step := range steps {
-			mill, err := getMill(step.Link.Mill, step.Link.Opts)
+			mil, err := getMill(step.Link.Mill, step.Link.Opts)
 			if err != nil {
 				return "", err
 			}
 			var conf *core.AddFileConfig
 
 			if step.Link.Use == schema.FileTag {
-				conf, err = m.getFileConfig(mill, path, "")
+				conf, err = m.getFileConfig(mil, path, "")
 				if err != nil {
 					return "", err
 				}
@@ -76,12 +89,12 @@ func (m *Mobile) PrepareFile(path string, threadId string) (string, error) {
 				if dir[step.Link.Use] == nil {
 					return "", errors.New(step.Link.Use + " not found")
 				}
-				conf, err = m.getFileConfig(mill, path, dir[step.Link.Use].Hash)
+				conf, err = m.getFileConfig(mil, path, dir[step.Link.Use].Hash)
 				if err != nil {
 					return "", err
 				}
 			}
-			added, err := m.node.AddFile(mill, *conf)
+			added, err := m.node.AddFile(mil, *conf)
 			if err != nil {
 				return "", err
 			}
@@ -141,12 +154,7 @@ func (m *Mobile) AddFile(jsonstr string, threadId string, caption string) (strin
 		return "", err
 	}
 
-	info, err := m.node.BlockInfo(hash.B58String())
-	if err != nil {
-		return "", err
-	}
-
-	return toJSON(info)
+	return m.blockInfo(hash)
 }
 
 // AddFileByTarget adds a prepared file to a thread by referencing its top level hash,
@@ -206,12 +214,7 @@ func (m *Mobile) AddFileByTarget(target string, threadId string, caption string)
 		return "", err
 	}
 
-	info, err := m.node.BlockInfo(hash.B58String())
-	if err != nil {
-		return "", err
-	}
-
-	return toJSON(info)
+	return m.blockInfo(hash)
 }
 
 // Files calls core Files
@@ -228,7 +231,25 @@ func (m *Mobile) Files(threadId string, offset string, limit int) (string, error
 	return toJSON(files)
 }
 
-func (m *Mobile) getFileConfig(mill m.Mill, path string, use string) (*core.AddFileConfig, error) {
+func (m *Mobile) addSchema(jsonstr string) (*repo.File, error) {
+	var node schema.Node
+	if err := json.Unmarshal([]byte(jsonstr), &node); err != nil {
+		return nil, err
+	}
+	data, err := json.Marshal(&node)
+	if err != nil {
+		return nil, err
+	}
+
+	conf := core.AddFileConfig{
+		Input: data,
+		Media: "application/json",
+	}
+
+	return m.node.AddFile(&mill.Schema{}, conf)
+}
+
+func (m *Mobile) getFileConfig(mil mill.Mill, path string, use string) (*core.AddFileConfig, error) {
 	var reader io.ReadSeeker
 	conf := &core.AddFileConfig{}
 
@@ -251,7 +272,7 @@ func (m *Mobile) getFileConfig(mill m.Mill, path string, use string) (*core.AddF
 		conf.Use = file.Checksum
 	}
 
-	media, err := m.node.GetMedia(reader, mill)
+	media, err := m.node.GetMedia(reader, mil)
 	if err != nil {
 		return nil, err
 	}
@@ -267,10 +288,10 @@ func (m *Mobile) getFileConfig(mill m.Mill, path string, use string) (*core.AddF
 	return conf, nil
 }
 
-func getMill(id string, opts map[string]string) (m.Mill, error) {
+func getMill(id string, opts map[string]string) (mill.Mill, error) {
 	switch id {
 	case "/blob":
-		return &m.Blob{}, nil
+		return &mill.Blob{}, nil
 	case "/image/resize":
 		width := opts["width"]
 		if width == "" {
@@ -280,75 +301,20 @@ func getMill(id string, opts map[string]string) (m.Mill, error) {
 		if quality == "" {
 			quality = "75"
 		}
-		return &m.ImageResize{
-			Opts: m.ImageResizeOpts{
+		return &mill.ImageResize{
+			Opts: mill.ImageResizeOpts{
 				Width:   width,
 				Quality: quality,
 			},
 		}, nil
 	case "/image/exif":
-		return &m.ImageExif{}, nil
+		return &mill.ImageExif{}, nil
 	default:
 		return nil, nil
 	}
 }
 
-//// IgnorePhoto is a semantic helper for mobile, just calls IgnoreBlock
-//func (m *Mobile) IgnorePhoto(blockId string) (string, error) {
-//	return m.ignoreBlock(blockId)
-//}
-//
-//// AddPhotoComment adds an comment block targeted at the given block
-//func (m *Mobile) AddPhotoComment(blockId string, body string) (string, error) {
-//	if !m.node.Started() {
-//		return "", core.ErrStopped
-//	}
-//	block, err := m.node.Block(blockId)
-//	if err != nil {
-//		return "", err
-//	}
-//	thrd := m.node.Thread(block.ThreadId)
-//	if thrd == nil {
-//		return "", core.ErrThreadNotFound
-//	}
-//	hash, err := thrd.AddComment(block.Id, body)
-//	if err != nil {
-//		return "", err
-//	}
-//	return hash.B58String(), nil
-//}
-//
-//// IgnorePhotoComment is a semantic helper for mobile, just call IgnoreBlock
-//func (m *Mobile) IgnorePhotoComment(blockId string) (string, error) {
-//	return m.ignoreBlock(blockId)
-//}
-//
-//// AddPhotoLike adds a like block targeted at the given block
-//func (m *Mobile) AddPhotoLike(blockId string) (string, error) {
-//	if !m.node.Started() {
-//		return "", core.ErrStopped
-//	}
-//	block, err := m.node.Block(blockId)
-//	if err != nil {
-//		return "", err
-//	}
-//	thrd := m.node.Thread(block.ThreadId)
-//	if thrd == nil {
-//		return "", core.ErrThreadNotFound
-//	}
-//	hash, err := thrd.AddLike(block.Id)
-//	if err != nil {
-//		return "", err
-//	}
-//	return hash.B58String(), nil
-//}
-//
-//// IgnorePhotoLike is a semantic helper for mobile, just call IgnoreBlock
-//func (m *Mobile) IgnorePhotoLike(blockId string) (string, error) {
-//	return m.ignoreBlock(blockId)
-//}
-//
-//// PhotoData returns a data url of an image under a path
+//// FileData returns a data url of a file under a path
 //func (m *Mobile) PhotoData(id string, path string) (string, error) {
 //	if !m.node.Started() {
 //		return "", core.ErrStopped
@@ -367,14 +333,14 @@ func getMill(id string, opts map[string]string) (m.Mill, error) {
 //	img := &ImageData{Url: prefix + encoded}
 //	return toJSON(img)
 //}
-//
-//// PhotoDataForSize returns a data url of an image at or above requested size, or the next best option
-//func (m *Mobile) PhotoDataForMinWidth(id string, minWidth int) (string, error) {
+
+//// FileDataForMinWidth returns a data url of an image at or above requested size, or the next best option
+//func (m *Mobile) FileDataForMinWidth(id string, minWidth int) (string, error) {
 //	path := images.ImagePathForSize(images.ImageSizeForMinWidth(minWidth))
 //	return m.PhotoData(id, string(path))
 //}
-//
-//// PhotoMetadata returns a meta data object for a photo
+
+//// FileMetadata returns meta data object for a photo
 //func (m *Mobile) PhotoMetadata(id string) (string, error) {
 //	if !m.node.Started() {
 //		return "", core.ErrStopped
@@ -385,20 +351,8 @@ func getMill(id string, opts map[string]string) (m.Mill, error) {
 //	}
 //	return toJSON(block.DataMetadata)
 //}
-//
-//// PhotoKey calls core PhotoKey
-//func (m *Mobile) PhotoKey(id string) (string, error) {
-//	if !m.node.Started() {
-//		return "", core.ErrStopped
-//	}
-//	key, err := m.node.PhotoKey(id)
-//	if err != nil {
-//		return "", err
-//	}
-//	return base58.FastBase58Encoding(key), nil
-//}
-//
-//// PhotoThreads call core PhotoThreads
+
+//// FileThreads call core PhotoThreads
 //func (m *Mobile) PhotoThreads(id string) (string, error) {
 //	if !m.node.Started() {
 //		return "", core.ErrStopped
@@ -411,26 +365,6 @@ func getMill(id string, opts map[string]string) (m.Mill, error) {
 //	}
 //	return toJSON(threads)
 //}
-
-// ignoreBlock adds an ignore block targeted at the given block and unpins any associated block data
-func (m *Mobile) ignoreBlock(blockId string) (string, error) {
-	if !m.node.Started() {
-		return "", core.ErrStopped
-	}
-	block, err := m.node.Block(blockId)
-	if err != nil {
-		return "", err
-	}
-	thrd := m.node.Thread(block.ThreadId)
-	if thrd == nil {
-		return "", core.ErrThreadNotFound
-	}
-	hash, err := thrd.AddIgnore(block.Id)
-	if err != nil {
-		return "", err
-	}
-	return hash.B58String(), nil
-}
 
 // getImageDataURLPrefix adds the correct data url prefix to a data url
 //func getImageDataURLPrefix(format images.Format) string {

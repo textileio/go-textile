@@ -5,11 +5,6 @@ import (
 	"github.com/textileio/textile-go/core"
 )
 
-// Contacts is a wrapper around a list of Contacts
-type Contacts struct {
-	Items []*core.Contact `json:"items"`
-}
-
 // Contact calls core Contact
 func (m *Mobile) Contact(id string) (string, error) {
 	contact := m.node.Contact(id)
@@ -21,11 +16,8 @@ func (m *Mobile) Contact(id string) (string, error) {
 
 // Contacts calls core Contacts
 func (m *Mobile) Contacts() (string, error) {
-	contacts := Contacts{Items: make([]*core.Contact, 0)}
-	items := m.node.Contacts()
-	if items != nil {
-		contacts.Items = items
-	}
+	contacts := make([]core.Contact, 0)
+	contacts = m.node.Contacts()
 	return toJSON(contacts)
 }
 
@@ -36,11 +28,11 @@ func (m *Mobile) ContactUsername(id string) string {
 
 // ContactThreads calls core ContactThreads
 func (m *Mobile) ContactThreads(id string) (string, error) {
-	threads := Threads{Items: make([]Thread, 0)}
-	for _, thrd := range m.node.ContactThreads(id) {
-		peers := thrd.Peers()
-		item := Thread{Id: thrd.Id, Name: thrd.Name, Peers: len(peers)}
-		threads.Items = append(threads.Items, item)
+	infos := make([]core.ThreadInfo, 0)
+	var err error
+	infos, err = m.node.ContactThreads(id)
+	if err != nil {
+		return "", err
 	}
-	return toJSON(threads)
+	return toJSON(infos)
 }

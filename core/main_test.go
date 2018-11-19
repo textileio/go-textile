@@ -66,7 +66,7 @@ func TestTextile_Online(t *testing.T) {
 }
 
 func TestTextile_GetMedia(t *testing.T) {
-	f, err := os.Open("../mill/testdata/image.jpg")
+	f, err := os.Open("../mill/testdata/image.jpeg")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +120,7 @@ func TestTextile_AddThread(t *testing.T) {
 }
 
 func TestTextile_AddFile(t *testing.T) {
-	f, err := os.Open("../mill/testdata/image.jpg")
+	f, err := os.Open("../mill/testdata/image.jpeg")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestTextile_AddFile(t *testing.T) {
 	if file.Mill != "/image/resize" {
 		t.Error("wrong mill")
 	}
-	if file.Checksum != "HvPo7SQJLLVqjMbYkn9eKhcByXmR7YGyzjtVS1f7G4Ry" {
+	if file.Checksum != "6Em1qNFcc1B3mSToS2aVyubDi7R7w7QedY84eNbiWBW3" {
 		t.Error("wrong checksum")
 	}
 }

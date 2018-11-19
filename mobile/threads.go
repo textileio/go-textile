@@ -12,18 +12,6 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
-// Thread is a simple meta data wrapper around a Thread
-type Thread struct {
-	Id    string `json:"id"`
-	Name  string `json:"name"`
-	Peers int    `json:"peers"`
-}
-
-// Threads is a wrapper around a list of Threads
-type Threads struct {
-	Items []Thread `json:"items"`
-}
-
 // ExternalInvite is a wrapper around an invite id and key
 type ExternalInvite struct {
 	Id      string `json:"id"`
@@ -37,14 +25,16 @@ func (m *Mobile) Threads() (string, error) {
 		return "", core.ErrStopped
 	}
 
-	threads := Threads{Items: make([]Thread, 0)}
+	infos := make([]core.ThreadInfo, 0)
 	for _, thrd := range m.node.Threads() {
-		peers := thrd.Peers()
-		item := Thread{Id: thrd.Id, Name: thrd.Name, Peers: len(peers)}
-		threads.Items = append(threads.Items, item)
+		info, err := thrd.Info()
+		if err != nil {
+			return "", err
+		}
+		infos = append(infos, *info)
 	}
 
-	return toJSON(threads)
+	return toJSON(infos)
 }
 
 // AddThread adds a new thread with the given name
@@ -87,13 +77,12 @@ func (m *Mobile) AddThread(key string, name string) (string, error) {
 		return "", err
 	}
 
-	peers := thrd.Peers()
-	item := Thread{
-		Id:    thrd.Id,
-		Name:  thrd.Name,
-		Peers: len(peers),
+	info, err := thrd.Info()
+	if err != nil {
+		return "", err
 	}
-	return toJSON(item)
+
+	return toJSON(info)
 }
 
 // ThreadInfo calls core ThreadInfo
@@ -164,18 +153,25 @@ func (m *Mobile) AcceptExternalThreadInvite(id string, key string) (string, erro
 	if !m.node.Online() {
 		return "", core.ErrOffline
 	}
+
 	hash, err := m.node.AcceptExternalThreadInvite(id, []byte(key))
 	if err != nil {
 		return "", err
 	}
+
 	return hash.B58String(), nil
 }
 
 // RemoveThread call core RemoveThread
 func (m *Mobile) RemoveThread(id string) (string, error) {
+	if !m.node.Started() {
+		return "", core.ErrStopped
+	}
+
 	hash, err := m.node.RemoveThread(id)
 	if err != nil {
 		return "", err
 	}
-	return hash.B58String(), err
+
+	return hash.B58String(), nil
 }

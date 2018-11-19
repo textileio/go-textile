@@ -2,6 +2,7 @@ package mobile
 
 import (
 	"encoding/json"
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	"strings"
@@ -252,6 +253,15 @@ func (m *Mobile) Overview() (string, error) {
 		return "", err
 	}
 	return toJSON(stats)
+}
+
+// blockInfo returns json info view of a block
+func (m *Mobile) blockInfo(hash mh.Multihash) (string, error) {
+	info, err := m.node.BlockInfo(hash.B58String())
+	if err != nil {
+		return "", err
+	}
+	return toJSON(info)
 }
 
 // toJSON returns a json string and logs errors

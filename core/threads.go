@@ -123,8 +123,14 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 }
 
 // Threads lists loaded threads
-func (t *Textile) Threads() []*Thread {
-	return t.threads
+func (t *Textile) Threads() []Thread {
+	var threads []Thread
+	for _, t := range t.threads {
+		if t != nil {
+			threads = append(threads, *t)
+		}
+	}
+	return threads
 }
 
 // Thread get a thread by id from loaded threads

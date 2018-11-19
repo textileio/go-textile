@@ -1,14 +1,5 @@
 package mobile
 
-import (
-	"github.com/textileio/textile-go/repo"
-)
-
-// CafeSessions is a wrapper around a list of sessions
-type CafeSessions struct {
-	Items []repo.CafeSession `json:"items"`
-}
-
 // RegisterCafe calls core RegisterCafe
 func (m *Mobile) RegisterCafe(peerId string) error {
 	if _, err := m.node.RegisterCafe(peerId); err != nil {
@@ -23,11 +14,10 @@ func (m *Mobile) CafeSessions() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	sessions := &CafeSessions{Items: make([]repo.CafeSession, 0)}
-	if len(items) > 0 {
-		sessions.Items = items
+	if len(items) == 0 {
+		return "[]", nil
 	}
-	return toJSON(sessions)
+	return toJSON(items)
 }
 
 // CafeSession calls core CafeSession

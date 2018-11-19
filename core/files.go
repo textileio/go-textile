@@ -231,6 +231,11 @@ func (t *Textile) AddNodeFromDirs(dirs []Directory) (ipld.Node, Keys, error) {
 }
 
 func (t *Textile) Files(threadId string, offset string, limit int) ([]FilesInfo, error) {
+	thrd := t.Thread(threadId)
+	if thrd == nil {
+		return nil, ErrThreadNotFound
+	}
+
 	list := make([]FilesInfo, 0)
 
 	query := fmt.Sprintf("threadId='%s' and type=%d", threadId, repo.FilesBlock)
@@ -245,12 +250,12 @@ func (t *Textile) Files(threadId string, offset string, limit int) ([]FilesInfo,
 			return nil, err
 		}
 
-		comments, err := t.fileComments(threadId, block.Target)
+		comments, err := t.fileComments(threadId, block.Id)
 		if err != nil {
 			return nil, err
 		}
 
-		likes, err := t.fileLikes(threadId, block.Target)
+		likes, err := t.fileLikes(threadId, block.Id)
 		if err != nil {
 			return nil, err
 		}

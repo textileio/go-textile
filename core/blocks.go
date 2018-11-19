@@ -13,12 +13,14 @@ var ErrBlockNotFound = errors.New("block not found")
 // GetBlocks paginates blocks
 func (t *Textile) Blocks(offset string, limit int, query string) []repo.Block {
 	var filtered []repo.Block
+
 	for _, block := range t.datastore.Blocks().List(offset, limit, query) {
 		ignored := t.datastore.Blocks().GetByTarget(fmt.Sprintf("ignore-%s", block.Id))
 		if ignored == nil {
 			filtered = append(filtered, block)
 		}
 	}
+
 	return filtered
 }
 
