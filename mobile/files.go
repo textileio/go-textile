@@ -11,6 +11,11 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/golang/protobuf/ptypes"
+
+	"github.com/golang/protobuf/proto"
+	"github.com/textileio/textile-go/pb"
+
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/mill"
@@ -110,6 +115,68 @@ func (m *Mobile) PrepareFiles(path string, threadId string) (string, error) {
 	}
 
 	return toJSON(result)
+}
+
+// Callback is used for asyc methods (payload is a protobuf)
+type Callback interface {
+	Call([]byte, error)
+}
+
+// PrepareFilesAsync is the async flavor of PrepareFiles
+func (m *Mobile) PrepareFilesAsync(path string, threadId string, cb Callback) {
+	go func() {
+		res, err := m.PrepareFiles(path, threadId)
+		if err != nil {
+			cb.Call(nil, err)
+			return
+		}
+
+		var payload []byte
+
+		var dir core.Directory
+		if err := json.Unmarshal([]byte(res), &dir); err != nil {
+			cb.Call(nil, err)
+			return
+		}
+
+		if len(dir) > 0 {
+			pdir := &pb.Directory{Files: make(map[string]*pb.File)}
+			for k, v := range dir {
+				f, err := pbFile(v)
+				if err != nil {
+					cb.Call(nil, err)
+					return
+				}
+				pdir.Files[k] = f
+			}
+
+			payload, err = proto.Marshal(pdir)
+			if err != nil {
+				cb.Call(nil, err)
+				return
+			}
+
+		} else {
+			var file repo.File
+			if err := json.Unmarshal([]byte(res), &file); err != nil {
+				cb.Call(nil, err)
+				return
+			}
+			f, err := pbFile(file)
+			if err != nil {
+				cb.Call(nil, err)
+				return
+			}
+
+			payload, err = proto.Marshal(f)
+			if err != nil {
+				cb.Call(nil, err)
+				return
+			}
+		}
+
+		cb.Call(payload, nil)
+	}()
 }
 
 // AddThreadFiles adds a prepared file to a thread
@@ -403,4 +470,25 @@ func getMill(id string, opts map[string]string) (mill.Mill, error) {
 	default:
 		return nil, nil
 	}
+}
+
+func pbFile(file repo.File) (*pb.File, error) {
+	added, err := ptypes.TimestampProto(file.Added)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.File{
+		Mill:     file.Mill,
+		Checksum: file.Checksum,
+		Source:   file.Source,
+		Opts:     file.Opts,
+		Hash:     file.Hash,
+		Key:      file.Key,
+		Media:    file.Media,
+		Name:     file.Name,
+		Size:     int64(file.Size),
+		Added:    added,
+		Meta:     pb.ToStruct(file.Meta),
+	}, nil
 }

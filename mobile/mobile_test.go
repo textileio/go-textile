@@ -2,9 +2,13 @@ package mobile_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/golang/protobuf/proto"
+	"github.com/textileio/textile-go/pb"
 
 	"github.com/textileio/textile-go/repo"
 
@@ -14,11 +18,25 @@ import (
 	. "github.com/textileio/textile-go/mobile"
 )
 
-type TestMessenger struct {
-	Messenger
-}
+type TestMessenger struct{}
 
 func (tm *TestMessenger) Notify(event *Event) {}
+
+type TestCallback struct{}
+
+func (tc *TestCallback) Call(payload []byte, err error) {
+	if err != nil {
+		fmt.Println(fmt.Errorf("callback error: %s", err))
+		return
+	}
+	dir := new(pb.Directory)
+	if err := proto.Unmarshal(payload, dir); err != nil {
+		fmt.Println(fmt.Errorf("callback unmarshal error: %s", err))
+	}
+	for name, link := range dir.Files {
+		fmt.Println(name + ": " + link.Hash)
+	}
+}
 
 var repoPath1 = "testdata/.textile1"
 var repoPath2 = "testdata/.textile2"
@@ -202,6 +220,10 @@ func TestMobile_PrepareFiles(t *testing.T) {
 		t.Error("wrong number of files")
 	}
 	prepared = res
+}
+
+func TestMobile_PrepareFilesAsync(t *testing.T) {
+	mobile1.PrepareFilesAsync("../mill/testdata/image.jpeg", thrdId, &TestCallback{})
 }
 
 func TestMobile_AddThreadFiles(t *testing.T) {
