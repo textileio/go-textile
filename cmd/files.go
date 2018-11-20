@@ -193,7 +193,7 @@ func callAdd(args []string, opts map[string]string) error {
 
 type lsCmd struct {
 	Client ClientOptions `group:"Client Options"`
-	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
+	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for all."`
 	Offset string        `short:"o" long:"offset" description:"Offset ID to start listing from."`
 	Limit  string        `short:"l" long:"limit" description:"List page size." default:"25"`
 }
@@ -203,13 +203,14 @@ func (x *lsCmd) Name() string {
 }
 
 func (x *lsCmd) Short() string {
-	return "Paginate files in a thread"
+	return "Paginate thread files"
 }
 
 func (x *lsCmd) Long() string {
 	return `
-Paginates files in a thread.
-Omit the --thread option to use the default thread (if selected).
+Paginates thread files.
+Omit the --thread option to paginate all files.
+Specify "default" to use the default thread (if selected).
 `
 }
 
@@ -228,13 +229,8 @@ func (x *lsCmd) Shell() *ishell.Cmd {
 }
 
 func callLs(opts map[string]string) error {
-	threadId := opts["thread"]
-	if threadId == "" {
-		threadId = "default"
-	}
-
 	var list []core.ThreadFilesInfo
-	res, err := executeJsonCmd(GET, "threads/"+threadId+"/files", params{opts: opts}, &list)
+	res, err := executeJsonCmd(GET, "files", params{opts: opts}, &list)
 	if err != nil {
 		return err
 	}
@@ -264,8 +260,6 @@ func callLs(opts map[string]string) error {
 
 type getCmd struct {
 	Client ClientOptions `group:"Client Options"`
-	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
-	Block  string        `short:"b" long:"block" description:"File Block ID."`
 }
 
 func (x *getCmd) Name() string {
@@ -273,41 +267,31 @@ func (x *getCmd) Name() string {
 }
 
 func (x *getCmd) Short() string {
-	return "Get a file in a thread"
+	return "Get a thread file"
 }
 
 func (x *getCmd) Long() string {
 	return `
-Gets a file in a thread.
-Omit the --thread option to use the default thread (if selected).
+Gets a thread file by specifying a Thread Block ID.
 `
 }
 
 func (x *getCmd) Execute(args []string) error {
 	setApi(x.Client)
-	opts := map[string]string{
-		"thread": x.Thread,
-		"block":  x.Block,
-	}
-	return callGet(args, opts)
+	return callGet(args)
 }
 
 func (x *getCmd) Shell() *ishell.Cmd {
 	return nil
 }
 
-func callGet(args []string, opts map[string]string) error {
+func callGet(args []string) error {
 	if len(args) == 0 {
 		return errMissingFileBlockId
 	}
 
-	threadId := opts["thread"]
-	if threadId == "" {
-		threadId = "default"
-	}
-
 	var info core.ThreadFilesInfo
-	res, err := executeJsonCmd(GET, "threads/"+threadId+"/files/"+args[0], params{opts: opts}, &info)
+	res, err := executeJsonCmd(GET, "files/"+args[0], params{}, &info)
 	if err != nil {
 		return err
 	}

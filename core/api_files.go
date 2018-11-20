@@ -82,14 +82,16 @@ func (a *api) lsThreadFiles(g *gin.Context) {
 		return
 	}
 
-	threadId := g.Param("id")
+	threadId := opts["thread"]
 	if threadId == "default" {
 		threadId = a.node.config.Threads.Defaults.ID
 	}
-	thrd := a.node.Thread(threadId)
-	if thrd == nil {
-		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
-		return
+	if threadId != "" {
+		thrd := a.node.Thread(threadId)
+		if thrd == nil {
+			g.String(http.StatusNotFound, ErrThreadNotFound.Error())
+			return
+		}
 	}
 
 	limit := 25
@@ -101,7 +103,7 @@ func (a *api) lsThreadFiles(g *gin.Context) {
 		}
 	}
 
-	list, err := a.node.ThreadFiles(opts["offset"], limit, thrd.Id)
+	list, err := a.node.ThreadFiles(opts["offset"], limit, threadId)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -111,16 +113,6 @@ func (a *api) lsThreadFiles(g *gin.Context) {
 }
 
 func (a *api) getThreadFiles(g *gin.Context) {
-	threadId := g.Param("id")
-	if threadId == "default" {
-		threadId = a.node.config.Threads.Defaults.ID
-	}
-	thrd := a.node.Thread(threadId)
-	if thrd == nil {
-		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
-		return
-	}
-
 	info, err := a.node.ThreadFile(g.Param("block"))
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
