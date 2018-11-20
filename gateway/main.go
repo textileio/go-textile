@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
@@ -83,12 +84,12 @@ func (g *Gateway) Start(addr string) {
 
 // Stop stops the gateway
 func (g *Gateway) Stop() error {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 	if err := g.server.Shutdown(ctx); err != nil {
 		log.Errorf("error shutting down gateway: %s", err)
 		return err
 	}
-	cancel()
 	return nil
 }
 
