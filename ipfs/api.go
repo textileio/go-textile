@@ -141,7 +141,6 @@ func PinPath(node *core.IpfsNode, pth string, recursive bool) error {
 func UnpinPath(node *core.IpfsNode, pth string) error {
 	ip, err := iface.ParsePath(pth)
 	if err != nil {
-		log.Errorf("error unpinning path: %s: %s", pth, err)
 		return err
 	}
 	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
@@ -168,11 +167,14 @@ func NodeAtCid(node *core.IpfsNode, id *cid.Cid) (ipld.Node, error) {
 }
 
 // NodeAtPath returns the last node under path
-func NodeAtPath(node *core.IpfsNode, pth path.Path) (ipld.Node, error) {
+func NodeAtPath(node *core.IpfsNode, pth string) (ipld.Node, error) {
+	p, err := path.ParsePath(pth)
+	if err != nil {
+		return nil, err
+	}
 	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
-	nd, _, err := node.Resolver.ResolveToLastNode(ctx, pth)
-	return nd, err
+	return node.Resolver.ResolvePath(ctx, p)
 }
 
 // PinNode pins an ipld node

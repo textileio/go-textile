@@ -294,83 +294,70 @@ func TestMobile_AddThreadIgnore(t *testing.T) {
 	}
 }
 
-//func TestMobile_PhotoDataForMinWidth(t *testing.T) {
-//	// test photo
-//	res, err := mobile.PhotoDataForMinWidth(addedPhotoId, 2000)
-//	if err != nil {
-//		t.Errorf("get photo data for min width failed: %s", err)
-//		return
-//	}
-//	if len(res) == 0 {
-//		t.Errorf("get photo data for min width bad result")
-//		return
-//	}
-//	width, err := getWidthDataUrl(res)
-//	if err != nil {
-//		t.Errorf("get width failed: %s", err)
-//		return
-//	}
-//	if width != 1600 {
-//		t.Errorf("get photo data for min width bad result")
-//	}
-//
-//	// test medium
-//	res, err = mobile.PhotoDataForMinWidth(addedPhotoId, 600)
-//	if err != nil {
-//		t.Errorf("get photo data for min width failed: %s", err)
-//		return
-//	}
-//	if len(res) == 0 {
-//		t.Errorf("get photo data for min width bad result")
-//		return
-//	}
-//	width, err = getWidthDataUrl(res)
-//	if err != nil {
-//		t.Errorf("get width failed: %s", err)
-//		return
-//	}
-//	if width != 800 {
-//		t.Errorf("get photo data for min width bad result")
-//	}
-//
-//	// test small
-//	res, err = mobile.PhotoDataForMinWidth(addedPhotoId, 320)
-//	if err != nil {
-//		t.Errorf("get photo data for min width failed: %s", err)
-//		return
-//	}
-//	if len(res) == 0 {
-//		t.Errorf("get photo data for min width bad result")
-//		return
-//	}
-//	width, err = getWidthDataUrl(res)
-//	if err != nil {
-//		t.Errorf("get width failed: %s", err)
-//		return
-//	}
-//	if width != 320 {
-//		t.Errorf("get photo data for min width bad result")
-//	}
-//
-//	// test photo
-//	res, err = mobile.PhotoDataForMinWidth(addedPhotoId, 80)
-//	if err != nil {
-//		t.Errorf("get photo data for min width failed: %s", err)
-//		return
-//	}
-//	if len(res) == 0 {
-//		t.Errorf("get photo data for min width bad result")
-//		return
-//	}
-//	width, err = getWidthDataUrl(res)
-//	if err != nil {
-//		t.Errorf("get width failed: %s", err)
-//		return
-//	}
-//	if width != 100 {
-//		t.Errorf("get photo data for min width bad result")
-//	}
-//}
+func TestMobile_PhotoDataForMinWidth(t *testing.T) {
+	large, err := mobile.FileData(files[0].Files[0].Links["large"].Hash)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	medium, err := mobile.FileData(files[0].Files[0].Links["medium"].Hash)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	small, err := mobile.FileData(files[0].Files[0].Links["small"].Hash)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	thumb, err := mobile.FileData(files[0].Files[0].Links["thumb"].Hash)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	pth := files[0].Target + "/0"
+
+	d1, err := mobile.ImageFileDataForMinWidth(pth, 2000)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if d1 != large {
+		t.Errorf("expected large result")
+		return
+	}
+
+	d2, err := mobile.ImageFileDataForMinWidth(pth, 600)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if d2 != medium {
+		t.Errorf("expected medium result")
+		return
+	}
+
+	d3, err := mobile.ImageFileDataForMinWidth(pth, 320)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if d3 != small {
+		t.Errorf("expected small result")
+		return
+	}
+
+	d4, err := mobile.ImageFileDataForMinWidth(pth, 80)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if d4 != thumb {
+		t.Errorf("expected thumb result")
+		return
+	}
+}
 
 func TestMobile_Overview(t *testing.T) {
 	<-mobile.OnlineCh()
@@ -467,24 +454,7 @@ func TestMobile_StopAgain(t *testing.T) {
 	}
 }
 
-func Test_Teardown(t *testing.T) {
+func TestMobile_Teardown(t *testing.T) {
 	mobile = nil
 	os.RemoveAll(repoPath)
 }
-
-//func getWidthDataUrl(res string) (int, error) {
-//	var img *ImageData
-//	if err := json.Unmarshal([]byte(res), &img); err != nil {
-//		return 0, err
-//	}
-//	url := strings.Replace(img.Url, "data:image/jpeg;base64,", "", 1)
-//	data, err := libp2pc.ConfigDecodeKey(url)
-//	if err != nil {
-//		return 0, err
-//	}
-//	conf, err := jpeg.DecodeConfig(bytes.NewReader(data))
-//	if err != nil {
-//		return 0, err
-//	}
-//	return conf.Width, nil
-//}

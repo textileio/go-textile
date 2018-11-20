@@ -198,6 +198,14 @@ func (t *Textile) AddNodeFromDirs(dirs []Directory) (ipld.Node, Keys, error) {
 	return node, keys, nil
 }
 
+func (t *Textile) File(hash string) (*repo.File, error) {
+	file := t.datastore.Files().Get(hash)
+	if file == nil {
+		return nil, ErrFileNotFound
+	}
+	return file, nil
+}
+
 func (t *Textile) FileData(hash string) (io.ReadSeeker, *repo.File, error) {
 	file := t.datastore.Files().Get(hash)
 	if file == nil {

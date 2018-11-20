@@ -9,7 +9,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 
+	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema"
@@ -258,6 +260,68 @@ func (m *Mobile) FileData(hash string) (string, error) {
 	return toJSON(img)
 }
 
+type img struct {
+	hash  string
+	width int
+}
+
+// ImageFileDataForMinWidth returns a data url of an image at or above requested size,
+// or the next best option.
+// Note: Now that consumers are in control of image sizes via schemas,
+// handling this here doesn't feel right. We can eventually push this up to RN, Obj-C, Java.
+// Note: pth is <target>/<index>, e.g., "Qm.../0"
+func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) (string, error) {
+	node, err := ipfs.NodeAtPath(m.node.Ipfs(), pth)
+	if err != nil {
+		return "", err
+	}
+
+	var imgs []img
+	for _, link := range node.Links() {
+		nd, err := ipfs.NodeAtLink(m.node.Ipfs(), link)
+		if err != nil {
+			return "", err
+		}
+
+		dlink := schema.LinkByName(nd.Links(), core.DataLinkName)
+		if dlink == nil {
+			continue
+		}
+
+		file, err := m.node.File(dlink.Cid.Hash().B58String())
+		if err != nil {
+			return "", err
+		}
+
+		if file.Mill == "/image/resize" {
+			if width, ok := file.Meta["width"].(float64); ok {
+				imgs = append(imgs, img{hash: file.Hash, width: int(width)})
+			}
+		}
+	}
+
+	if len(imgs) == 0 {
+		return "", errors.New("no image files found")
+	}
+
+	sort.SliceStable(imgs, func(i, j int) bool {
+		return imgs[i].width < imgs[j].width
+	})
+
+	var hash string
+	for _, img := range imgs {
+		if img.width >= minWidth {
+			hash = img.hash
+			break
+		}
+	}
+	if hash == "" {
+		hash = imgs[len(imgs)-1].hash
+	}
+
+	return m.FileData(hash)
+}
+
 func (m *Mobile) addSchema(jsonstr string) (*repo.File, error) {
 	var node schema.Node
 	if err := json.Unmarshal([]byte(jsonstr), &node); err != nil {
@@ -341,21 +405,3 @@ func getMill(id string, opts map[string]string) (mill.Mill, error) {
 		return nil, nil
 	}
 }
-
-//// FileDataForMinWidth returns a data url of an image at or above requested size, or the next best option
-//func (m *Mobile) FileDataForMinWidth(id string, minWidth int) (string, error) {
-//	path := images.ImagePathForSize(images.ImageSizeForMinWidth(minWidth))
-//	return m.PhotoData(id, string(path))
-//}
-
-//// FileMetadata returns meta data object for a photo
-//func (m *Mobile) PhotoMetadata(id string) (string, error) {
-//	if !m.node.Started() {
-//		return "", core.ErrStopped
-//	}
-//	block, err := m.node.BlockByDataId(id)
-//	if err != nil {
-//		return "", err
-//	}
-//	return toJSON(block.DataMetadata)
-//}
