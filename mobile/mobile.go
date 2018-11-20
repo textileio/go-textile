@@ -177,10 +177,11 @@ func (m *Mobile) Start() error {
 		}()
 
 		// subscribe to thread updates
+		listener := m.node.ThreadUpdateCh()
 		go func() {
 			for {
 				select {
-				case update, ok := <-m.node.ThreadUpdateCh():
+				case update, ok := <-listener.Ch:
 					if !ok {
 						return
 					}

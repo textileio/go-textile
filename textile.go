@@ -395,7 +395,7 @@ func startNode() error {
 	}()
 
 	// Subscribe to thread updates
-	listener := core.Node.ThreadUpdateCh()
+	listener := node.ThreadUpdateCh()
 	go func() {
 		for {
 			select {
@@ -409,9 +409,9 @@ func startNode() error {
 					date := update.Block.Date.Format(time.RFC822)
 					desc := update.Block.Type.Description()
 					username := node.ContactUsername(update.Block.AuthorId)
-          if username != "" {
-					  username += " "
-          }
+					if username != "" {
+						username += " "
+					}
 					thrd := update.ThreadId[len(update.ThreadId)-8:]
 					msg := cmd.Grey(date+"  "+username+" added ") +
 						cmd.Green(desc) + cmd.Grey(" update to thread "+thrd)
