@@ -166,9 +166,9 @@ func addBlockInfo(a *api, update ThreadUpdate) (ThreadUpdate, error) {
 	var info interface{}
 	switch update.Block.Type {
 	case repo.FilesBlock:
-		info, _ = a.node.File(update.ThreadId, update.Block.Id)
+		info, _ = a.node.threadFile(&update.Block)
 	case repo.CommentBlock:
-		info = CommentInfo{
+		info = ThreadCommentInfo{
 			Id:       block.Id,
 			Date:     block.Date,
 			AuthorId: block.AuthorId,
@@ -176,21 +176,21 @@ func addBlockInfo(a *api, update ThreadUpdate) (ThreadUpdate, error) {
 			Body:     block.Body,
 		}
 	case repo.LikeBlock:
-		info = LikeInfo{
+		info = ThreadLikeInfo{
 			Id:       block.Id,
 			Date:     block.Date,
 			AuthorId: block.AuthorId,
 			Username: username,
 		}
 	case repo.JoinBlock:
-		info = JoinInfo{
+		info = ThreadJoinInfo{
 			Id:       block.Id,
 			Date:     block.Date,
 			AuthorId: block.AuthorId,
 			Username: username,
 		}
 	case repo.LeaveBlock:
-		info = JoinInfo{
+		info = ThreadLeaveInfo{
 			Id:       block.Id,
 			Date:     block.Date,
 			AuthorId: block.AuthorId,

@@ -43,6 +43,20 @@ type ThreadLikeInfo struct {
 	Username string    `json:"username,omitempty"`
 }
 
+type ThreadJoinInfo struct {
+	Id       string    `json:"id"`
+	Date     time.Time `json:"date"`
+	AuthorId string    `json:"author_id"`
+	Username string    `json:"username,omitempty"`
+}
+
+type ThreadLeaveInfo struct {
+	Id       string    `json:"id"`
+	Date     time.Time `json:"date"`
+	AuthorId string    `json:"author_id"`
+	Username string    `json:"username,omitempty"`
+}
+
 func (t *Textile) ThreadFiles(offset string, limit int, threadId string) ([]ThreadFilesInfo, error) {
 	var query string
 	if threadId != "" {
