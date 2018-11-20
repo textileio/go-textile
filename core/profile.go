@@ -26,7 +26,7 @@ import (
 // NOTE: any account peer can publish profile entries to the same IPNS key
 type Profile struct {
 	Address   string   `json:"address"`
-	Inboxes   []string `json:"inboxes"`
+	Inboxes   []string `json:"inboxes,omitempty"`
 	Username  string   `json:"username,omitempty"`
 	AvatarUri string   `json:"avatar_uri,omitempty"`
 }
@@ -233,7 +233,6 @@ func (t *Textile) ResolveProfile(name peer.ID) (*path.Path, error) {
 func (t *Textile) publishProfile(prof Profile) (*ipfs.IpnsEntry, error) {
 	dir := uio.NewDirectory(t.node.DAG)
 
-	// add public components
 	addressId, err := ipfs.AddDataToDirectory(t.node, dir, "address", bytes.NewReader([]byte(prof.Address)))
 	if err != nil {
 		return nil, err
@@ -251,19 +250,22 @@ func (t *Textile) publishProfile(prof Profile) (*ipfs.IpnsEntry, error) {
 		if err != nil {
 			return nil, err
 		}
-	} else {
-		inboxesId, err = ipfs.AddDataToDirectory(t.node, dir, "inboxes", bytes.NewReader([]byte("")))
+	}
+
+	var usernameId *cid.Cid
+	if prof.Username != "" {
+		usernameId, err = ipfs.AddDataToDirectory(t.node, dir, "username", bytes.NewReader([]byte(prof.Username)))
 		if err != nil {
 			return nil, err
 		}
 	}
-	usernameId, err := ipfs.AddDataToDirectory(t.node, dir, "username", bytes.NewReader([]byte(prof.Username)))
-	if err != nil {
-		return nil, err
-	}
-	avatarId, err := ipfs.AddDataToDirectory(t.node, dir, "avatar_uri", bytes.NewReader([]byte(prof.AvatarUri)))
-	if err != nil {
-		return nil, err
+
+	var avatarId *cid.Cid
+	if prof.AvatarUri != "" {
+		avatarId, err = ipfs.AddDataToDirectory(t.node, dir, "avatar_uri", bytes.NewReader([]byte(prof.AvatarUri)))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	node, err := dir.GetNode()
@@ -275,9 +277,15 @@ func (t *Textile) publishProfile(prof Profile) (*ipfs.IpnsEntry, error) {
 	}
 
 	t.cafeOutbox.Add(addressId.Hash().B58String(), repo.CafeStoreRequest)
-	t.cafeOutbox.Add(inboxesId.Hash().B58String(), repo.CafeStoreRequest)
-	t.cafeOutbox.Add(usernameId.Hash().B58String(), repo.CafeStoreRequest)
-	t.cafeOutbox.Add(avatarId.Hash().B58String(), repo.CafeStoreRequest)
+	if inboxesId != nil {
+		t.cafeOutbox.Add(inboxesId.Hash().B58String(), repo.CafeStoreRequest)
+	}
+	if usernameId != nil {
+		t.cafeOutbox.Add(usernameId.Hash().B58String(), repo.CafeStoreRequest)
+	}
+	if avatarId != nil {
+		t.cafeOutbox.Add(avatarId.Hash().B58String(), repo.CafeStoreRequest)
+	}
 	t.cafeOutbox.Add(node.Cid().Hash().B58String(), repo.CafeStoreRequest)
 	go t.cafeOutbox.Flush()
 

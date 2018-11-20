@@ -71,6 +71,11 @@ func (a *api) Start() {
 		v0.GET("/address", a.address)
 		v0.GET("/ping", a.ping)
 
+		profile := v0.Group("/profile")
+		profile.GET("", a.getProfile)
+		profile.POST("/username", a.setUsername)
+		profile.POST("/avatar", a.setAvatar)
+
 		mills := v0.Group("/mills")
 		mills.POST("/schema", a.schemaMill)
 		mills.POST("/blob", a.blobMill)

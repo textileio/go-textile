@@ -371,17 +371,6 @@ func TestMobile_AddThreadIgnore(t *testing.T) {
 //		t.Errorf("get photo data for min width bad result")
 //	}
 //}
-//
-//func TestMobile_PhotoMetadata(t *testing.T) {
-//	res, err := mobile.PhotoMetadata(addedPhotoId)
-//	if err != nil {
-//		t.Errorf("get meta data failed: %s", err)
-//		return
-//	}
-//	if len(res) == 0 {
-//		t.Errorf("get meta data bad result")
-//	}
-//}
 
 func TestMobile_Overview(t *testing.T) {
 	<-mobile.OnlineCh()
