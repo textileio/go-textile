@@ -202,7 +202,7 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 	rpid := stream.Conn().RemotePeer()
 	ms, err := s.messageSenderForPeer(rpid, s.handler.Protocol())
 	if err != nil {
-		log.Error("error getting message sender")
+		log.Errorf("error getting message sender: %s", err)
 		return
 	}
 

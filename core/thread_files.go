@@ -2,7 +2,6 @@ package core
 
 import (
 	"encoding/json"
-	"fmt"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
@@ -20,7 +19,7 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys Keys) (mh.Multiha
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	if t.schema == nil {
+	if t.Schema == nil {
 		return nil, ErrThreadSchemaRequired
 	}
 	if node == nil {
@@ -35,7 +34,7 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys Keys) (mh.Multiha
 		if err != nil {
 			return nil, err
 		}
-		if err := t.processNode(t.schema, nd, false); err != nil {
+		if err := t.processNode(t.Schema, nd, false); err != nil {
 			return nil, err
 		}
 	}
@@ -77,19 +76,19 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 		return nil, err
 	}
 
-	if t.schema == nil {
+	if t.Schema == nil {
 		return nil, ErrThreadSchemaRequired
 	}
 
 	var ignore bool
-	ignored := t.datastore.Blocks().GetByTarget(fmt.Sprintf("ignore-%s", hash.B58String()))
-	if ignored != nil {
+	ignored := t.datastore.Blocks().List("", -1, "target='ignore-"+hash.B58String()+"'")
+	if len(ignored) > 0 {
 		date, err := ptypes.Timestamp(block.Header.Date)
 		if err != nil {
 			return nil, err
 		}
-		// ignore if the ignore block came after (could happen during back prop)
-		if ignored.Date.After(date) {
+		// ignore if the first (latest) ignore came after (could happen during back prop)
+		if ignored[0].Date.After(date) {
 			ignore = true
 		}
 	}
@@ -112,7 +111,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 			if err != nil {
 				return nil, err
 			}
-			if err := t.processNode(t.schema, nd, true); err != nil {
+			if err := t.processNode(t.Schema, nd, true); err != nil {
 				return nil, err
 			}
 		}
@@ -126,13 +125,18 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 				return nil, err
 			}
 
-			keyb, err := base58.Decode(key)
-			if err != nil {
-				return nil, err
-			}
-			plaintext, err := crypto.DecryptAES(fd, keyb)
-			if err != nil {
-				return nil, err
+			var plaintext []byte
+			if key != "" {
+				keyb, err := base58.Decode(key)
+				if err != nil {
+					return nil, err
+				}
+				plaintext, err = crypto.DecryptAES(fd, keyb)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				plaintext = fd
 			}
 
 			var file repo.File

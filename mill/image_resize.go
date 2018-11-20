@@ -77,11 +77,11 @@ func (m *ImageResize) Mill(input []byte, name string) (*Result, error) {
 
 	width, err := strconv.Atoi(m.Opts.Width)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("invalid width: " + m.Opts.Width)
 	}
 	quality, err := strconv.Atoi(m.Opts.Quality)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("invalid quality: " + m.Opts.Quality)
 	}
 
 	buff, rect, err := encodeImage(clean, format, width, quality)

@@ -66,7 +66,7 @@ func applyTextileConfigOptions(init InitConfig) error {
 	conf.IsMobile = init.IsMobile
 
 	// cafe settings
-	conf.Cafe.Open = init.CafeOpen
+	conf.Cafe.Host.Open = init.CafeOpen
 
 	// write to disk
 	return config.Write(init.RepoPath, conf)

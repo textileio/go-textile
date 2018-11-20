@@ -2,13 +2,21 @@ package core
 
 import (
 	"bytes"
+	"crypto/rand"
 	"fmt"
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/path"
 	uio "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/unixfs/io"
+	"io/ioutil"
 	"strings"
 	"time"
+
+	"github.com/textileio/textile-go/mill"
+
+	"github.com/textileio/textile-go/schema/textile"
 
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/repo"
@@ -18,7 +26,7 @@ import (
 // NOTE: any account peer can publish profile entries to the same IPNS key
 type Profile struct {
 	Address   string   `json:"address"`
-	Inboxes   []string `json:"inboxes"`
+	Inboxes   []string `json:"inboxes,omitempty"`
 	Username  string   `json:"username,omitempty"`
 	AvatarUri string   `json:"avatar_uri,omitempty"`
 }
@@ -31,17 +39,11 @@ var profileTTL = time.Hour
 
 // Username returns profile username
 func (t *Textile) Username() (*string, error) {
-	if err := t.touchDatastore(); err != nil {
-		return nil, err
-	}
 	return t.datastore.Profile().GetUsername()
 }
 
 // SetUsername updates profile with a new username
 func (t *Textile) SetUsername(username string) error {
-	if err := t.touchDatastore(); err != nil {
-		return err
-	}
 	if err := t.datastore.Profile().SetUsername(username); err != nil {
 		return err
 	}
@@ -57,38 +59,98 @@ func (t *Textile) SetUsername(username string) error {
 
 // Avatar returns profile avatar
 func (t *Textile) Avatar() (*string, error) {
-	if err := t.touchDatastore(); err != nil {
-		return nil, err
-	}
 	return t.datastore.Profile().GetAvatar()
 }
 
-// SetAvatar updates profile with a new avatar at the given photo id
-func (t *Textile) SetAvatar(id string) error {
-	if err := t.touchDatastore(); err != nil {
+// SetAvatar updates profile with a new avatar at the given file hash.
+func (t *Textile) SetAvatar(hash string) error {
+	data, file, err := t.FileData(hash)
+	if err != nil {
+		return err
+	}
+	input, err := ioutil.ReadAll(data)
+	if err != nil {
 		return err
 	}
 
-	// get the public key for this photo
-	// TODO: fix
-	//key, err := t.PhotoKey(id)
-	//if err != nil {
-	//	return err
-	//}
+	// create a plaintext files thread for tracking avatars
+	thrd := t.ThreadByKey("avatar")
+	if thrd == nil {
+		sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
+		if err != nil {
+			return err
+		}
 
-	// build a public uri
-	uri := fmt.Sprintf("/ipfs/%s/thumb?key=%s", id, "fixme")
+		sf, err := t.AddSchema(textile.Avatars, "avatars")
+		if err != nil {
+			return err
+		}
+		shash, err := mh.FromB58String(sf.Hash)
+		if err != nil {
+			return err
+		}
+
+		thrd, err = t.AddThread(sk, AddThreadConfig{
+			Key:       "avatars",
+			Name:      "avatars",
+			Schema:    shash,
+			Initiator: t.account.Address(),
+			Type:      repo.PrivateThread,
+			Join:      true,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	large, err := t.AddFile(&mill.ImageResize{
+		Opts: mill.ImageResizeOpts{
+			Width:   thrd.Schema.Links["large"].Opts["width"],
+			Quality: thrd.Schema.Links["large"].Opts["quality"],
+		},
+	}, AddFileConfig{
+		Input:     input,
+		Media:     file.Media,
+		Plaintext: thrd.Schema.Links["large"].Plaintext,
+	})
+	if err != nil {
+		return err
+	}
+
+	small, err := t.AddFile(&mill.ImageResize{
+		Opts: mill.ImageResizeOpts{
+			Width:   thrd.Schema.Links["small"].Opts["width"],
+			Quality: thrd.Schema.Links["small"].Opts["quality"],
+		},
+	}, AddFileConfig{
+		Input:     input,
+		Media:     file.Media,
+		Plaintext: thrd.Schema.Links["small"].Plaintext,
+	})
+	if err != nil {
+		return err
+	}
+
+	dir := Directory{"large": *large, "small": *small}
+	node, keys, err := t.AddNodeFromDirs([]Directory{dir})
+	if err != nil {
+		return err
+	}
+
+	if _, err := thrd.AddFiles(node, "", keys); err != nil {
+		return err
+	}
+
+	uri := fmt.Sprintf("/ipfs/%s", node.Cid().Hash().B58String())
 	if err := t.datastore.Profile().SetAvatar(uri); err != nil {
 		return err
 	}
+
 	return t.PublishProfile()
 }
 
 // Profile return a model representation of an ipns profile
 func (t *Textile) Profile(pid peer.ID) (*Profile, error) {
-	if !t.Started() {
-		return nil, ErrStopped
-	}
 	profile := &Profile{}
 
 	// if peer id is local, return profile from db
@@ -164,21 +226,13 @@ func (t *Textile) PublishProfile() error {
 
 // ResolveProfile looks up a profile on ipns
 func (t *Textile) ResolveProfile(name peer.ID) (*path.Path, error) {
-	if !t.Online() {
-		return nil, ErrOffline
-	}
 	return ipfs.Resolve(t.node, name)
 }
 
 // publishProfile publishes profile to ipns
 func (t *Textile) publishProfile(prof Profile) (*ipfs.IpnsEntry, error) {
-	if !t.Online() {
-		return nil, ErrOffline
-	}
-
 	dir := uio.NewDirectory(t.node.DAG)
 
-	// add public components
 	addressId, err := ipfs.AddDataToDirectory(t.node, dir, "address", bytes.NewReader([]byte(prof.Address)))
 	if err != nil {
 		return nil, err
@@ -196,19 +250,22 @@ func (t *Textile) publishProfile(prof Profile) (*ipfs.IpnsEntry, error) {
 		if err != nil {
 			return nil, err
 		}
-	} else {
-		inboxesId, err = ipfs.AddDataToDirectory(t.node, dir, "inboxes", bytes.NewReader([]byte("")))
+	}
+
+	var usernameId *cid.Cid
+	if prof.Username != "" {
+		usernameId, err = ipfs.AddDataToDirectory(t.node, dir, "username", bytes.NewReader([]byte(prof.Username)))
 		if err != nil {
 			return nil, err
 		}
 	}
-	usernameId, err := ipfs.AddDataToDirectory(t.node, dir, "username", bytes.NewReader([]byte(prof.Username)))
-	if err != nil {
-		return nil, err
-	}
-	avatarId, err := ipfs.AddDataToDirectory(t.node, dir, "avatar_uri", bytes.NewReader([]byte(prof.AvatarUri)))
-	if err != nil {
-		return nil, err
+
+	var avatarId *cid.Cid
+	if prof.AvatarUri != "" {
+		avatarId, err = ipfs.AddDataToDirectory(t.node, dir, "avatar_uri", bytes.NewReader([]byte(prof.AvatarUri)))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	node, err := dir.GetNode()
@@ -220,9 +277,15 @@ func (t *Textile) publishProfile(prof Profile) (*ipfs.IpnsEntry, error) {
 	}
 
 	t.cafeOutbox.Add(addressId.Hash().B58String(), repo.CafeStoreRequest)
-	t.cafeOutbox.Add(inboxesId.Hash().B58String(), repo.CafeStoreRequest)
-	t.cafeOutbox.Add(usernameId.Hash().B58String(), repo.CafeStoreRequest)
-	t.cafeOutbox.Add(avatarId.Hash().B58String(), repo.CafeStoreRequest)
+	if inboxesId != nil {
+		t.cafeOutbox.Add(inboxesId.Hash().B58String(), repo.CafeStoreRequest)
+	}
+	if usernameId != nil {
+		t.cafeOutbox.Add(usernameId.Hash().B58String(), repo.CafeStoreRequest)
+	}
+	if avatarId != nil {
+		t.cafeOutbox.Add(avatarId.Hash().B58String(), repo.CafeStoreRequest)
+	}
 	t.cafeOutbox.Add(node.Cid().Hash().B58String(), repo.CafeStoreRequest)
 	go t.cafeOutbox.Flush()
 

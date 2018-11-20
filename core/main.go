@@ -36,9 +36,6 @@ var log = logging.Logger("tex-core")
 // Version is the core version identifier
 const Version = "1.0.0"
 
-// Node is an instance used by mobile and the cmd tool
-var Node *Textile
-
 // kQueueFlushFreq how often to flush the message queues
 const kQueueFlushFreq = time.Minute * 10
 
@@ -240,7 +237,7 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 	return node, nil
 }
 
-// Start
+// Start creates an ipfs node and starts textile services
 func (t *Textile) Start() error {
 	t.mux.Lock()
 	defer t.mux.Unlock()
@@ -327,7 +324,7 @@ func (t *Textile) Start() error {
 
 		t.cafeService = NewCafeService(t.account, t.node, t.datastore, t.cafeInbox)
 		t.cafeService.setAddrs(t.config.Addresses.CafeAPI, *swarmPorts)
-		if t.config.Cafe.Open {
+		if t.config.Cafe.Host.Open {
 			t.cafeService.open = true
 			t.startCafeApi(t.config.Addresses.CafeAPI)
 		}
@@ -359,7 +356,7 @@ func (t *Textile) Start() error {
 	return t.addAccountThread()
 }
 
-// Stop the node
+// Stop destroys the ipfs node and shutsdown textile services
 func (t *Textile) Stop() error {
 	t.mux.Lock()
 	defer t.mux.Unlock()
@@ -402,12 +399,12 @@ func (t *Textile) Stop() error {
 	return nil
 }
 
-// Started returns whether or not node is started
+// Started returns node started status
 func (t *Textile) Started() bool {
 	return t.started
 }
 
-// Online returns whether or not node is online
+// Online returns node online status
 func (t *Textile) Online() bool {
 	if t.node == nil {
 		return false
@@ -442,9 +439,6 @@ func (t *Textile) DoneCh() <-chan struct{} {
 
 // Ping pings another peer
 func (t *Textile) Ping(pid peer.ID) (service.PeerStatus, error) {
-	if !t.Online() {
-		return "", ErrOffline
-	}
 	return t.cafeService.Ping(pid)
 }
 
@@ -465,9 +459,6 @@ func (t *Textile) NotificationCh() <-chan repo.Notification {
 
 // PeerId returns peer id
 func (t *Textile) PeerId() (peer.ID, error) {
-	if !t.started {
-		return "", ErrStopped
-	}
 	return t.node.Identity, nil
 }
 
@@ -478,17 +469,11 @@ func (t *Textile) RepoPath() string {
 
 // DataAtPath returns raw data behind an ipfs path
 func (t *Textile) DataAtPath(path string) ([]byte, error) {
-	if !t.started {
-		return nil, ErrStopped
-	}
 	return ipfs.DataAtPath(t.node, path)
 }
 
 // LinksAtPath returns ipld links behind an ipfs path
 func (t *Textile) LinksAtPath(path string) ([]*ipld.Link, error) {
-	if !t.started {
-		return nil, ErrStopped
-	}
 	return ipfs.LinksAtPath(t.node, path)
 }
 

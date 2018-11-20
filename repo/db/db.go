@@ -195,9 +195,9 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index contact_username on contacts (username);
     create index contact_added on contacts (added);
 
-    create table files (mill text not null, checksum text not null, source text not null, hash text not null, key text not null, media text not null, name text not null, size integer not null, added integer not null, meta blob, primary key (mill, checksum));
+    create table files (mill text not null, checksum text not null, source text not null, opts text not null, hash text not null, key text not null, media text not null, name text not null, size integer not null, added integer not null, meta blob, primary key (mill, checksum));
     create index file_hash on files (hash);
-    create index file_mill_source on files (mill, source);
+    create unique index file_mill_source_opts on files (mill, source, opts);
 
     create table threads (id text primary key not null, key text not null, sk blob not null, name text not null, schema text not null, initiator text not null, type integer not null, state integer not null, head text not null);
     create unique index thread_key on threads (key);
@@ -208,8 +208,10 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index thread_peer_welcomed on thread_peers (welcomed);
 
     create table blocks (id text primary key not null, threadId text not null, authorId text not null, type integer not null, date integer not null, parents text not null, target text not null, body text not null);
+    create index block_threadId on blocks (threadId);
+    create index block_type on blocks (type);
+    create index block_date on blocks (date);
     create index block_target on blocks (target);
-    create index block_threadId_type_date on blocks (threadId, type, date);
 
     create table thread_messages (id text primary key not null, peerId text not null, envelope blob not null, date integer not null);
     create index thread_message_date on thread_messages (date);

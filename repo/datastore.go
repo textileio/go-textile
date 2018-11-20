@@ -64,7 +64,7 @@ type FileStore interface {
 	Add(file *File) error
 	Get(hash string) *File
 	GetByPrimary(mill string, checksum string) *File
-	GetBySource(mill string, source string) *File
+	GetBySource(mill string, source string, opts string) *File
 	Count() int
 	Delete(hash string) error
 }
@@ -73,6 +73,7 @@ type ThreadStore interface {
 	Queryable
 	Add(thread *Thread) error
 	Get(id string) *Thread
+	GetByKey(key string) *Thread
 	List() []Thread
 	Count() int
 	UpdateHead(id string, head string) error
@@ -104,7 +105,6 @@ type BlockStore interface {
 	Queryable
 	Add(block *Block) error
 	Get(id string) *Block
-	GetByTarget(target string) *Block
 	List(offset string, limit int, query string) []Block
 	Count(query string) int
 	Delete(id string) error

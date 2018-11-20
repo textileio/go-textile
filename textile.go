@@ -87,6 +87,7 @@ type shellCmd struct {
 }
 
 var shell *ishell.Shell
+var node *core.Textile
 
 var parser = flags.NewParser(&options{}, flags.Default)
 
@@ -348,16 +349,17 @@ func buildNode(pinCode string, repoPath string) error {
 		return err
 	}
 
-	node, err := core.NewTextile(core.RunConfig{
+	node, err = core.NewTextile(core.RunConfig{
 		PinCode:  pinCode,
 		RepoPath: repoPathf,
 	})
 	if err != nil {
 		return errors.New(fmt.Sprintf("create node failed: %s", err))
 	}
-	core.Node = node
 
-	gateway.Host = &gateway.Gateway{}
+	gateway.Host = &gateway.Gateway{
+		Node: node,
+	}
 
 	if err := startNode(); err != nil {
 		return errors.New(fmt.Sprintf("start node failed: %s", err))
@@ -366,7 +368,7 @@ func buildNode(pinCode string, repoPath string) error {
 }
 
 func startNode() error {
-	if err := core.Node.Start(); err != nil {
+	if err := node.Start(); err != nil {
 		return err
 	}
 
@@ -374,7 +376,7 @@ func startNode() error {
 	go func() {
 		for {
 			select {
-			case update, ok := <-core.Node.UpdateCh():
+			case update, ok := <-node.UpdateCh():
 				if !ok {
 					return
 				}
@@ -406,7 +408,10 @@ func startNode() error {
 				if update, ok := value.(core.ThreadUpdate); ok {
 					date := update.Block.Date.Format(time.RFC822)
 					desc := update.Block.Type.Description()
-					username := core.Node.ContactUsername(update.Block.AuthorId)
+					username := node.ContactUsername(update.Block.AuthorId)
+          if username != "" {
+					  username += " "
+          }
 					thrd := update.ThreadId[len(update.ThreadId)-8:]
 					msg := cmd.Grey(date+"  "+username+" added ") +
 						cmd.Green(desc) + cmd.Grey(" update to thread "+thrd)
@@ -421,12 +426,12 @@ func startNode() error {
 	go func() {
 		for {
 			select {
-			case note, ok := <-core.Node.NotificationCh():
+			case note, ok := <-node.NotificationCh():
 				if !ok {
 					return
 				}
 				date := note.Date.Format(time.RFC822)
-				username := core.Node.ContactUsername(note.ActorId)
+				username := node.ContactUsername(note.ActorId)
 				thrd := note.SubjectId[len(note.SubjectId)-7:]
 				msg := cmd.Grey(date+"  "+username+" ") + cmd.Cyan(note.Body) +
 					cmd.Grey(" "+thrd)
@@ -436,36 +441,36 @@ func startNode() error {
 	}()
 
 	// start apis
-	core.Node.StartApi(core.Node.Config().Addresses.API)
-	gateway.Host.Start(core.Node.Config().Addresses.Gateway)
+	node.StartApi(node.Config().Addresses.API)
+	gateway.Host.Start(node.Config().Addresses.Gateway)
 
-	<-core.Node.OnlineCh()
+	<-node.OnlineCh()
 
 	return nil
 }
 
 func stopNode() error {
-	if err := core.Node.StopApi(); err != nil {
+	if err := node.StopApi(); err != nil {
 		return err
 	}
 	if err := gateway.Host.Stop(); err != nil {
 		return err
 	}
-	return core.Node.Stop()
+	return node.Stop()
 }
 
 func printSplash() {
-	pid, err := core.Node.PeerId()
+	pid, err := node.PeerId()
 	if err != nil {
 		log.Fatalf("get peer id failed: %s", err)
 	}
 	fmt.Println(cmd.Grey("Textile daemon version v" + core.Version))
-	fmt.Println(cmd.Grey("Repo:    ") + cmd.Grey(core.Node.RepoPath()))
-	fmt.Println(cmd.Grey("API:     ") + cmd.Grey(core.Node.ApiAddr()))
+	fmt.Println(cmd.Grey("Repo:    ") + cmd.Grey(node.RepoPath()))
+	fmt.Println(cmd.Grey("API:     ") + cmd.Grey(node.ApiAddr()))
 	fmt.Println(cmd.Grey("Gateway: ") + cmd.Grey(gateway.Host.Addr()))
-	if core.Node.CafeApiAddr() != "" {
-		fmt.Println(cmd.Grey("Cafe:    ") + cmd.Grey(core.Node.CafeApiAddr()))
+	if node.CafeApiAddr() != "" {
+		fmt.Println(cmd.Grey("Cafe:    ") + cmd.Grey(node.CafeApiAddr()))
 	}
 	fmt.Println(cmd.Grey("PeerID:  ") + cmd.Green(pid.Pretty()))
-	fmt.Println(cmd.Grey("Account: ") + cmd.Cyan(core.Node.Account().Address()))
+	fmt.Println(cmd.Grey("Account: ") + cmd.Cyan(node.Account().Address()))
 }

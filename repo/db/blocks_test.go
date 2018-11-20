@@ -54,13 +54,6 @@ func TestBlockDB_Get(t *testing.T) {
 	}
 }
 
-func TestBlockDB_GetByTarget(t *testing.T) {
-	block := bdb.GetByTarget("Qm456")
-	if block == nil {
-		t.Error("could not get block")
-	}
-}
-
 func TestBlockDB_List(t *testing.T) {
 	setupBlockDB()
 	err := bdb.Add(&repo.Block{

@@ -24,7 +24,7 @@ func (c *FileDB) Add(file *repo.File) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into files(mill, checksum, source, hash, key, media, name, size, added, meta) values(?,?,?,?,?,?,?,?,?,?)`
+	stm := `insert into files(mill, checksum, source, opts, hash, key, media, name, size, added, meta) values(?,?,?,?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -42,6 +42,7 @@ func (c *FileDB) Add(file *repo.File) error {
 		file.Mill,
 		file.Checksum,
 		file.Source,
+		file.Opts,
 		file.Hash,
 		file.Key,
 		file.Media,
@@ -78,10 +79,10 @@ func (c *FileDB) GetByPrimary(mill string, checksum string) *repo.File {
 	return &ret[0]
 }
 
-func (c *FileDB) GetBySource(mill string, source string) *repo.File {
+func (c *FileDB) GetBySource(mill string, source string, opts string) *repo.File {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from files where mill='" + mill + "' and source='" + source + "';")
+	ret := c.handleQuery("select * from files where mill='" + mill + "' and source='" + source + "' and opts='" + opts + "';")
 	if len(ret) == 0 {
 		return nil
 	}
@@ -112,10 +113,10 @@ func (c *FileDB) handleQuery(stm string) []repo.File {
 		return nil
 	}
 	for rows.Next() {
-		var mill, checksum, source, hash, key, media, name string
+		var mill, checksum, source, opts, hash, key, media, name string
 		var size, addedInt int
 		var metab []byte
-		if err := rows.Scan(&mill, &checksum, &source, &hash, &key, &media, &name, &size, &addedInt, &metab); err != nil {
+		if err := rows.Scan(&mill, &checksum, &source, &opts, &hash, &key, &media, &name, &size, &addedInt, &metab); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -130,6 +131,7 @@ func (c *FileDB) handleQuery(stm string) []repo.File {
 			Mill:     mill,
 			Checksum: checksum,
 			Source:   source,
+			Opts:     opts,
 			Hash:     hash,
 			Key:      key,
 			Media:    media,

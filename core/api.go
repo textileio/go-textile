@@ -81,6 +81,11 @@ func (a *api) Start() {
 		v0.GET("/address", a.address)
 		v0.GET("/ping", a.ping)
 
+		profile := v0.Group("/profile")
+		profile.GET("", a.getProfile)
+		profile.POST("/username", a.setUsername)
+		profile.POST("/avatar", a.setAvatar)
+
 		mills := v0.Group("/mills")
 		mills.POST("/schema", a.schemaMill)
 		mills.POST("/blob", a.blobMill)
@@ -92,11 +97,12 @@ func (a *api) Start() {
 		threads.GET("", a.lsThreads)
 		threads.GET("/:id", a.getThreads)
 		threads.DELETE("/:id", a.rmThreads)
-
 		threads.POST("/:id/files", a.addThreadFiles)
 		threads.GET("/:id/updates", a.streamThreads)
-		threads.GET("/:id/files", a.lsThreadFiles)
-		threads.GET("/:id/files/:block", a.getThreadFiles)
+
+    files := v0.Group("/files")
+		files.GET("", a.lsThreadFiles)
+		files.GET("/:block", a.getThreadFiles)
 
 		invite := v0.Group("/invite")
 		invite.POST("", a.createInvite)
@@ -135,7 +141,7 @@ func (a *api) Start() {
 			}
 		}
 	}()
-	log.Infof("api listening at %s\n", a.server.Addr)
+	log.Infof("api listening at %s", a.server.Addr)
 }
 
 // Stop stops the http api
@@ -236,25 +242,25 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string) (*AddFileCo
 	conf := &AddFileConfig{}
 
 	if use == "" {
-		file, fn, err := a.openFile(g)
+		f, fn, err := a.openFile(g)
 		if err != nil {
 			return nil, err
 		}
-		defer file.Close()
-		reader = file
+		defer f.Close()
+		reader = f
 		conf.Name = fn
 	} else {
 		var file *repo.File
 		var err error
-		reader, file, err = a.node.filePlaintext(use)
+		reader, file, err = a.node.FileData(use)
 		if err != nil {
 			return nil, err
 		}
 		conf.Name = file.Name
-		conf.Parent = file.Checksum
+		conf.Use = file.Checksum
 	}
 
-	media, err := a.node.MediaType(reader, mill)
+	media, err := a.node.GetMedia(reader, mill)
 	if err != nil {
 		return nil, err
 	}

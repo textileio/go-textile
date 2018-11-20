@@ -1,18 +1,8 @@
 package mobile
 
-import (
-	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/repo"
-)
-
-// CafeSessions is a wrapper around a list of sessions
-type CafeSessions struct {
-	Items []repo.CafeSession `json:"items"`
-}
-
 // RegisterCafe calls core RegisterCafe
 func (m *Mobile) RegisterCafe(peerId string) error {
-	if _, err := core.Node.RegisterCafe(peerId); err != nil {
+	if _, err := m.node.RegisterCafe(peerId); err != nil {
 		return err
 	}
 	return nil
@@ -20,20 +10,19 @@ func (m *Mobile) RegisterCafe(peerId string) error {
 
 // CafeSessions calls core CafeSessions
 func (m *Mobile) CafeSessions() (string, error) {
-	items, err := core.Node.CafeSessions()
+	items, err := m.node.CafeSessions()
 	if err != nil {
 		return "", err
 	}
-	sessions := &CafeSessions{Items: make([]repo.CafeSession, 0)}
-	if len(items) > 0 {
-		sessions.Items = items
+	if len(items) == 0 {
+		return "[]", nil
 	}
-	return toJSON(sessions)
+	return toJSON(items)
 }
 
 // CafeSession calls core CafeSession
 func (m *Mobile) CafeSession(peerId string) (string, error) {
-	session, err := core.Node.CafeSession(peerId)
+	session, err := m.node.CafeSession(peerId)
 	if err != nil {
 		return "", err
 	}
@@ -45,7 +34,7 @@ func (m *Mobile) CafeSession(peerId string) (string, error) {
 
 // RefreshCafeSession calls core RefreshCafeSession
 func (m *Mobile) RefreshCafeSession(peerId string) (string, error) {
-	session, err := core.Node.RefreshCafeSession(peerId)
+	session, err := m.node.RefreshCafeSession(peerId)
 	if err != nil {
 		return "", err
 	}
@@ -54,10 +43,10 @@ func (m *Mobile) RefreshCafeSession(peerId string) (string, error) {
 
 // DeegisterCafe calls core DeregisterCafe
 func (m *Mobile) DeregisterCafe(peerId string) error {
-	return core.Node.DeregisterCafe(peerId)
+	return m.node.DeregisterCafe(peerId)
 }
 
 // CheckCafeMail calls core CheckCafeMessages
 func (m *Mobile) CheckCafeMail() error {
-	return core.Node.CheckCafeMail()
+	return m.node.CheckCafeMail()
 }

@@ -10,10 +10,6 @@ import (
 // RegisterCafe registers this account with another peer (the "cafe"),
 // which provides a session token for the service
 func (t *Textile) RegisterCafe(peerId string) (*repo.CafeSession, error) {
-	if !t.Online() {
-		return nil, ErrOffline
-	}
-
 	pid, err := peer.IDB58Decode(peerId)
 	if err != nil {
 		return nil, err
@@ -49,25 +45,16 @@ func (t *Textile) RegisterCafe(peerId string) (*repo.CafeSession, error) {
 
 // CafeSessions lists active cafe sessions
 func (t *Textile) CafeSessions() ([]repo.CafeSession, error) {
-	if err := t.touchDatastore(); err != nil {
-		return nil, err
-	}
 	return t.datastore.CafeSessions().List(), nil
 }
 
 // CafeSession returns an active session by id
 func (t *Textile) CafeSession(peerId string) (*repo.CafeSession, error) {
-	if err := t.touchDatastore(); err != nil {
-		return nil, err
-	}
 	return t.datastore.CafeSessions().Get(peerId), nil
 }
 
 // RefreshCafeSession attempts to refresh a token with a cafe
 func (t *Textile) RefreshCafeSession(peerId string) (*repo.CafeSession, error) {
-	if !t.Online() {
-		return nil, ErrOffline
-	}
 	session := t.datastore.CafeSessions().Get(peerId)
 	if session == nil {
 		return nil, errors.New("session not found")
@@ -77,9 +64,6 @@ func (t *Textile) RefreshCafeSession(peerId string) (*repo.CafeSession, error) {
 
 // DeregisterCafe removes the session associated with the given cafe
 func (t *Textile) DeregisterCafe(peerId string) error {
-	if err := t.touchDatastore(); err != nil {
-		return err
-	}
 	session := t.datastore.CafeSessions().Get(peerId)
 	if session == nil {
 		return nil
@@ -109,11 +93,5 @@ func (t *Textile) DeregisterCafe(peerId string) error {
 
 // CheckCafeMail fetches new messages from registered cafes
 func (t *Textile) CheckCafeMail() error {
-	if err := t.touchDatastore(); err != nil {
-		return err
-	}
-	if !t.Online() {
-		return ErrOffline
-	}
 	return t.cafeInbox.CheckMessages()
 }

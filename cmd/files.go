@@ -21,8 +21,6 @@ import (
 
 var errMissingFilePath = errors.New("missing file path")
 var errMissingFileBlockId = errors.New("missing file block id")
-var errSchemaNoFiles = errors.New("schema doesn't generate any files")
-var errNoFileSourceFound = errors.New("no file source found for links")
 
 func init() {
 	register(&addCmd{})
@@ -62,11 +60,6 @@ func (x *addCmd) Execute(args []string) error {
 
 func (x *addCmd) Shell() *ishell.Cmd {
 	return nil
-}
-
-type step struct {
-	name string
-	link *schema.Link
 }
 
 func callAdd(args []string, opts map[string]string) error {
@@ -131,61 +124,51 @@ func callAdd(args []string, opts map[string]string) error {
 		dir := make(map[string]*repo.File)
 
 		// determine order
-		var steps []step
-		run := info.Schema.Links
-		i := 0
-		for {
-			if i > len(info.Schema.Links) {
-				return errors.New("schema order is not solvable")
-			}
-			next := orderLinks(run, &steps)
-			if len(next) == 0 {
-				break
-			}
-			run = next
-			i++
+		steps, err := schema.Steps(info.Schema.Links)
+		if err != nil {
+			return err
 		}
 
 		// send each link
 		for _, step := range steps {
 			file := &repo.File{}
-			output("\""+step.name+"\":", nil)
+			output("\""+step.Name+"\":", nil)
 
-			if step.link.Use == ":file" {
+			if step.Link.Use == schema.FileTag {
 				reader.Seek(0, 0)
-				res, err := executeJsonCmd(POST, "mills"+step.link.Mill, params{
-					opts:    step.link.Opts,
+				res, err := executeJsonCmd(POST, "mills"+step.Link.Mill, params{
+					opts:    step.Link.Opts,
 					payload: reader,
 					ctype:   writer.FormDataContentType(),
 				}, &file)
 				if err != nil {
 					return err
 				}
-				dir[step.name] = file
+				dir[step.Name] = file
 				output(res, nil)
 
 			} else {
-				if dir[step.link.Use] == nil {
-					return errors.New(step.link.Use + " not found")
+				if dir[step.Link.Use] == nil {
+					return errors.New(step.Link.Use + " not found")
 				}
-				if len(step.link.Opts) == 0 {
-					step.link.Opts = make(map[string]string)
+				if len(step.Link.Opts) == 0 {
+					step.Link.Opts = make(map[string]string)
 				}
-				step.link.Opts["use"] = dir[step.link.Use].Hash
-				res, err := executeJsonCmd(POST, "mills"+step.link.Mill, params{
-					opts: step.link.Opts,
+				step.Link.Opts["use"] = dir[step.Link.Use].Hash
+				res, err := executeJsonCmd(POST, "mills"+step.Link.Mill, params{
+					opts: step.Link.Opts,
 				}, &file)
 				if err != nil {
 					return err
 				}
-				dir[step.name] = file
+				dir[step.Name] = file
 				output(res, nil)
 			}
 		}
 		payload = &dir
 
 	} else {
-		return errSchemaNoFiles
+		return schema.ErrEmptySchema
 	}
 
 	data, err := json.Marshal(payload)
@@ -208,32 +191,9 @@ func callAdd(args []string, opts map[string]string) error {
 	return nil
 }
 
-func orderLinks(links map[string]*schema.Link, steps *[]step) map[string]*schema.Link {
-	unused := make(map[string]*schema.Link)
-	for name, link := range links {
-		if link.Use == ":file" {
-			*steps = append([]step{{name: name, link: link}}, *steps...)
-		} else {
-			useAt := -1
-			for i, s := range *steps {
-				if link.Use == s.name {
-					useAt = i
-					break
-				}
-			}
-			if useAt >= 0 {
-				*steps = append(*steps, step{name: name, link: link})
-			} else {
-				unused[name] = link
-			}
-		}
-	}
-	return unused
-}
-
 type lsCmd struct {
 	Client ClientOptions `group:"Client Options"`
-	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
+	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for all."`
 	Offset string        `short:"o" long:"offset" description:"Offset ID to start listing from."`
 	Limit  string        `short:"l" long:"limit" description:"List page size." default:"25"`
 }
@@ -243,13 +203,14 @@ func (x *lsCmd) Name() string {
 }
 
 func (x *lsCmd) Short() string {
-	return "Paginate files in a thread"
+	return "Paginate thread files"
 }
 
 func (x *lsCmd) Long() string {
 	return `
-Paginates files in a thread.
-Omit the --thread option to use the default thread (if selected).
+Paginates thread files.
+Omit the --thread option to paginate all files.
+Specify "default" to use the default thread (if selected).
 `
 }
 
@@ -268,13 +229,8 @@ func (x *lsCmd) Shell() *ishell.Cmd {
 }
 
 func callLs(opts map[string]string) error {
-	threadId := opts["thread"]
-	if threadId == "" {
-		threadId = "default"
-	}
-
-	var list []core.FilesInfo
-	res, err := executeJsonCmd(GET, "threads/"+threadId+"/files", params{opts: opts}, &list)
+	var list []core.ThreadFilesInfo
+	res, err := executeJsonCmd(GET, "files", params{opts: opts}, &list)
 	if err != nil {
 		return err
 	}
@@ -297,15 +253,13 @@ func callLs(opts map[string]string) error {
 
 	return callLs(map[string]string{
 		"thread": opts["thread"],
-		"offset": list[len(list)-1].Id,
+		"offset": list[len(list)-1].Block,
 		"limit":  opts["limit"],
 	})
 }
 
 type getCmd struct {
 	Client ClientOptions `group:"Client Options"`
-	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
-	Block  string        `short:"b" long:"block" description:"File Block ID."`
 }
 
 func (x *getCmd) Name() string {
@@ -313,41 +267,31 @@ func (x *getCmd) Name() string {
 }
 
 func (x *getCmd) Short() string {
-	return "Get a file in a thread"
+	return "Get a thread file"
 }
 
 func (x *getCmd) Long() string {
 	return `
-Gets a file in a thread.
-Omit the --thread option to use the default thread (if selected).
+Gets a thread file by specifying a Thread Block ID.
 `
 }
 
 func (x *getCmd) Execute(args []string) error {
 	setApi(x.Client)
-	opts := map[string]string{
-		"thread": x.Thread,
-		"block":  x.Block,
-	}
-	return callGet(args, opts)
+	return callGet(args)
 }
 
 func (x *getCmd) Shell() *ishell.Cmd {
 	return nil
 }
 
-func callGet(args []string, opts map[string]string) error {
+func callGet(args []string) error {
 	if len(args) == 0 {
 		return errMissingFileBlockId
 	}
 
-	threadId := opts["thread"]
-	if threadId == "" {
-		threadId = "default"
-	}
-
-	var info core.FilesInfo
-	res, err := executeJsonCmd(GET, "threads/"+threadId+"/files/"+args[0], params{opts: opts}, &info)
+	var info core.ThreadFilesInfo
+	res, err := executeJsonCmd(GET, "files/"+args[0], params{}, &info)
 	if err != nil {
 		return err
 	}

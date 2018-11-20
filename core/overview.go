@@ -17,10 +17,6 @@ type Overview struct {
 
 // Overview returns an overview object
 func (t *Textile) Overview() (*Overview, error) {
-	if err := t.touchDatastore(); err != nil {
-		return nil, err
-	}
-
 	swarm, err := t.Peers()
 	if err != nil {
 		return nil, err

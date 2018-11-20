@@ -127,9 +127,8 @@ func callAddThreads(args []string, opts map[string]string) error {
 		}
 
 	} else if sch == "photos" {
-
 		var node schema.Node
-		if err := json.Unmarshal([]byte(textile.Photo), &node); err != nil {
+		if err := json.Unmarshal([]byte(textile.Photos), &node); err != nil {
 			return err
 		}
 		var err error
@@ -443,7 +442,7 @@ func callStreamThreads(args []string, opts map[string]string, ctx *ishell.Contex
 //		return
 //	}
 //
-//	if _, err := thrd.Ignore(block.Id); err != nil {
+//	if _, err := thrd.AddIgnore(block.Id); err != nil {
 //		c.Err(err)
 //		return
 //	}

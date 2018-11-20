@@ -51,8 +51,8 @@ type ThreadInfo struct {
 	Id         string       `json:"id"`
 	Key        string       `json:"key"`
 	Name       string       `json:"name"`
-	SchemaId   string       `json:"schema_id,omitempty"`
 	Schema     *schema.Node `json:"schema,omitempty"`
+	SchemaId   string       `json:"schema_id,omitempty"`
 	Initiator  string       `json:"initiator"`
 	Type       string       `json:"type"`
 	State      string       `json:"state"`
@@ -92,7 +92,7 @@ type Thread struct {
 	Key           string // app key, usually UUID
 	Name          string
 	Type          repo.ThreadType
-	schema        *schema.Node
+	Schema        *schema.Node
 	schemaId      string
 	initiator     string
 	privKey       libp2pc.PrivKey
@@ -127,7 +127,7 @@ func NewThread(model *repo.Thread, conf *ThreadConfig) (*Thread, error) {
 		Key:           model.Key,
 		Name:          model.Name,
 		Type:          model.Type,
-		schema:        sch,
+		Schema:        sch,
 		schemaId:      model.Schema,
 		initiator:     model.Initiator,
 		privKey:       sk,
@@ -178,8 +178,8 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 		Id:         t.Id,
 		Key:        t.Key,
 		Name:       t.Name,
+		Schema:     t.Schema,
 		SchemaId:   t.schemaId,
-		Schema:     t.schema,
 		Type:       mod.Type.Description(),
 		State:      state.Description(),
 		Head:       head,
