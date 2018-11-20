@@ -125,13 +125,18 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 				return nil, err
 			}
 
-			keyb, err := base58.Decode(key)
-			if err != nil {
-				return nil, err
-			}
-			plaintext, err := crypto.DecryptAES(fd, keyb)
-			if err != nil {
-				return nil, err
+			var plaintext []byte
+			if key != "" {
+				keyb, err := base58.Decode(key)
+				if err != nil {
+					return nil, err
+				}
+				plaintext, err = crypto.DecryptAES(fd, keyb)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				plaintext = fd
 			}
 
 			var file repo.File

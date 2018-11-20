@@ -59,16 +59,11 @@ func (m *Mobile) AddThread(key string, name string) (string, error) {
 		return "", err
 	}
 
-	pid, err := m.node.PeerId()
-	if err != nil {
-		return "", err
-	}
-
 	config := core.AddThreadConfig{
 		Key:       key,
 		Name:      name,
 		Schema:    shash,
-		Initiator: pid.Pretty(),
+		Initiator: m.node.Account().Address(),
 		Type:      repo.OpenThread,
 		Join:      true,
 	}

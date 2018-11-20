@@ -58,6 +58,16 @@ func (c *ThreadDB) Get(id string) *repo.Thread {
 	return &ret[0]
 }
 
+func (c *ThreadDB) GetByKey(key string) *repo.Thread {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	ret := c.handleQuery("select * from threads where key='" + key + "';")
+	if len(ret) == 0 {
+		return nil
+	}
+	return &ret[0]
+}
+
 func (c *ThreadDB) List() []repo.Thread {
 	c.lock.Lock()
 	defer c.lock.Unlock()

@@ -404,12 +404,12 @@ func TestMobile_SetUsername(t *testing.T) {
 	}
 }
 
-//func TestMobile_SetAvatar(t *testing.T) {
-//	if err := mobile.SetAvatar(addedPhotoId); err != nil {
-//		t.Errorf("set avatar id failed: %s", err)
-//		return
-//	}
-//}
+func TestMobile_SetAvatar(t *testing.T) {
+	if err := mobile.SetAvatar(files[0].Files[0].Links["large"].Hash); err != nil {
+		t.Errorf("set avatar failed: %s", err)
+		return
+	}
+}
 
 func TestMobile_Profile(t *testing.T) {
 	profs, err := mobile.Profile()

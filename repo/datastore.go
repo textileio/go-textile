@@ -73,6 +73,7 @@ type ThreadStore interface {
 	Queryable
 	Add(thread *Thread) error
 	Get(id string) *Thread
+	GetByKey(key string) *Thread
 	List() []Thread
 	Count() int
 	UpdateHead(id string, head string) error

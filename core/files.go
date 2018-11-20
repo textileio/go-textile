@@ -31,10 +31,11 @@ const FileLinkName = "f"
 const DataLinkName = "d"
 
 type AddFileConfig struct {
-	Input []byte `json:"input"`
-	Use   string `json:"use"`
-	Media string `json:"media"`
-	Name  string `json:"name"`
+	Input     []byte `json:"input"`
+	Use       string `json:"use"`
+	Media     string `json:"media"`
+	Name      string `json:"name"`
+	Plaintext bool   `json:"plaintext"`
 }
 
 func (t *Textile) AddFile(mill m.Mill, conf AddFileConfig) (*repo.File, error) {
@@ -77,7 +78,7 @@ func (t *Textile) AddFile(mill m.Mill, conf AddFileConfig) (*repo.File, error) {
 	}
 
 	var reader *bytes.Reader
-	if mill.Encrypt() {
+	if mill.Encrypt() && !conf.Plaintext {
 		key, err := crypto.GenerateAESKey()
 		if err != nil {
 			return nil, err
@@ -202,18 +203,25 @@ func (t *Textile) FileData(hash string) (io.ReadSeeker, *repo.File, error) {
 	if file == nil {
 		return nil, nil, errors.New("file not found")
 	}
-	ciphertext, err := ipfs.DataAtPath(t.node, file.Hash)
+	fd, err := ipfs.DataAtPath(t.node, file.Hash)
 	if err != nil {
 		return nil, nil, err
 	}
-	key, err := base58.Decode(file.Key)
-	if err != nil {
-		return nil, nil, err
+
+	var plaintext []byte
+	if file.Key != "" {
+		key, err := base58.Decode(file.Key)
+		if err != nil {
+			return nil, nil, err
+		}
+		plaintext, err = crypto.DecryptAES(fd, key)
+		if err != nil {
+			return nil, nil, err
+		}
+	} else {
+		plaintext = fd
 	}
-	plaintext, err := crypto.DecryptAES(ciphertext, key)
-	if err != nil {
-		return nil, nil, err
-	}
+
 	return bytes.NewReader(plaintext), file, nil
 }
 
@@ -222,20 +230,25 @@ func (t *Textile) fileNode(file repo.File, dir uio.Directory, link string) error
 		return ErrFileNotFound
 	}
 
-	// include encrypted file as well
+	// include file as well
 	plaintext, err := json.Marshal(&file)
 	if err != nil {
 		return err
 	}
-	key, err := base58.Decode(file.Key)
-	if err != nil {
-		return err
+	var reader *bytes.Reader
+	if file.Key != "" {
+		key, err := base58.Decode(file.Key)
+		if err != nil {
+			return err
+		}
+		ciphertext, err := crypto.EncryptAES(plaintext, key)
+		if err != nil {
+			return err
+		}
+		reader = bytes.NewReader(ciphertext)
+	} else {
+		reader = bytes.NewReader(plaintext)
 	}
-	ciphertext, err := crypto.EncryptAES(plaintext, key)
-	if err != nil {
-		return err
-	}
-	reader := bytes.NewReader(ciphertext)
 
 	pair := uio.NewDirectory(t.node.DAG)
 	if _, err := ipfs.AddDataToDirectory(t.node, pair, FileLinkName, reader); err != nil {

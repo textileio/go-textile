@@ -143,9 +143,14 @@ func (t *Textile) Thread(id string) *Thread {
 	return nil
 }
 
-// AccountThread returns the loaded account thread from config
-func (t *Textile) AccountThread() *Thread {
-	return t.Thread(t.config.Account.Thread)
+// ThreadByKey get a thread by key from loaded threads
+func (t *Textile) ThreadByKey(key string) *Thread {
+	for _, thrd := range t.threads {
+		if thrd.Key == key {
+			return thrd
+		}
+	}
+	return nil
 }
 
 // ThreadInfo gets thread info
@@ -283,7 +288,7 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 
 // addAccountThread adds a thread with seed representing the state of the account
 func (t *Textile) addAccountThread() error {
-	if t.AccountThread() != nil {
+	if t.ThreadByKey(t.config.Account.Address) != nil {
 		return nil
 	}
 	sk, err := t.account.LibP2PPrivKey()
@@ -292,7 +297,7 @@ func (t *Textile) addAccountThread() error {
 	}
 
 	config := AddThreadConfig{
-		Key:       ksuid.New().String(),
+		Key:       t.account.Address(),
 		Name:      "account",
 		Initiator: t.account.Address(),
 		Type:      repo.PrivateThread,

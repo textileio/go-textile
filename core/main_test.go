@@ -97,15 +97,11 @@ func TestTextile_AddThread(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	pid, err := node.PeerId()
-	if err != nil {
-		t.Error(err)
-	}
 	config := AddThreadConfig{
 		Key:       ksuid.New().String(),
 		Name:      "test",
 		Schema:    schemaHash,
-		Initiator: pid.Pretty(),
+		Initiator: node.Account().Address(),
 		Type:      repo.OpenThread,
 		Join:      true,
 	}

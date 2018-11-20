@@ -21,20 +21,22 @@ const FileTag = ":file"
 
 // Node describes a DAG node
 type Node struct {
-	Pin    bool               `json:"pin"`
-	Mill   string             `json:"mill,omitempty"`
-	Opts   map[string]string  `json:"opts,omitempty"`
-	Schema *jsonschema.Schema `json:"schema,omitempty"`
-	Links  map[string]*Link   `json:"links,omitempty"`
+	Pin       bool               `json:"pin"`
+	Plaintext bool               `json:"plaintext"`
+	Mill      string             `json:"mill,omitempty"`
+	Opts      map[string]string  `json:"opts,omitempty"`
+	Schema    *jsonschema.Schema `json:"schema,omitempty"`
+	Links     map[string]*Link   `json:"links,omitempty"`
 }
 
 // Link is a sub-node which can "use" input from other sub-nodes
 type Link struct {
-	Use    string             `json:"use,omitempty"`
-	Pin    bool               `json:"pin"`
-	Mill   string             `json:"mill,omitempty"`
-	Opts   map[string]string  `json:"opts,omitempty"`
-	Schema *jsonschema.Schema `json:"schema,omitempty"`
+	Use       string             `json:"use,omitempty"`
+	Pin       bool               `json:"pin"`
+	Plaintext bool               `json:"plaintext"`
+	Mill      string             `json:"mill,omitempty"`
+	Opts      map[string]string  `json:"opts,omitempty"`
+	Schema    *jsonschema.Schema `json:"schema,omitempty"`
 }
 
 // Step is an ordered name-link pair
