@@ -8,6 +8,7 @@ import (
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core/coreapi/interface"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -100,10 +101,9 @@ func (g *Gateway) Addr() string {
 func (g *Gateway) gatewayHandler(c *gin.Context) {
 	contentPath := c.Param("root") + c.Param("path")
 
-	// get data behind path
 	data := g.getDataAtPath(c, contentPath)
 
-	// if key is provided, try to decrypt the data with it
+	// attempt decrypt if key present
 	key, exists := c.GetQuery("key")
 	if exists {
 		keyb, err := base58.Decode(key)
@@ -122,27 +122,41 @@ func (g *Gateway) gatewayHandler(c *gin.Context) {
 		return
 	}
 
-	// lastly, just return the raw bytes
 	c.Render(200, render.Data{Data: data})
 }
+
+var avatarRx = regexp.MustCompile(`/avatar($|/small$|/large$)`)
 
 // profileHandler handles requests for profile info hosted on ipns
 // NOTE: avatar is a magic path, will return data behind link at avatar_uri
 func (g *Gateway) profileHandler(c *gin.Context) {
 	pathp := c.Param("path")
+	if len(pathp) > 0 && pathp[len(pathp)-1] == '/' {
+		pathp = pathp[:len(pathp)-1]
+	}
 	var isAvatar bool
-	if pathp == "/avatar" {
-		pathp += "_uri"
+	var avatarSize string
+
+	matches := avatarRx.FindStringSubmatch(pathp)
+	if len(matches) == 2 {
+		pathp = "/avatar_uri"
 		isAvatar = true
+
+		switch matches[1] {
+		case "/large":
+			avatarSize = "large"
+		default:
+			avatarSize = "small"
+		}
 	}
 
-	// resolve the actual content
 	rootId, err := peer.IDB58Decode(c.Param("root"))
 	if err != nil {
-		log.Errorf("error resolving profile %s: %s", c.Param("root"), err)
+		log.Errorf("error decoding root %s: %s", c.Param("root"), err)
 		c.Status(404)
 		return
 	}
+
 	pth, err := g.Node.ResolveProfile(rootId)
 	if err != nil {
 		log.Errorf("error resolving profile %s: %s", c.Param("root"), err)
@@ -150,7 +164,6 @@ func (g *Gateway) profileHandler(c *gin.Context) {
 		return
 	}
 
-	// get data behind path
 	contentPath := pth.String() + pathp
 	data := g.getDataAtPath(c, contentPath)
 
@@ -169,33 +182,51 @@ func (g *Gateway) profileHandler(c *gin.Context) {
 			}
 		}
 
-		// parse ipfs link, must have key present
+		// old style w/ key
 		parsed := strings.Split(location, "?key=")
-		if len(parsed) != 2 {
-			log.Errorf("invalid raw avatar path: %s", location)
-			c.Status(404)
-			return
-		}
-		cipher, err := g.Node.DataAtPath(parsed[0])
-		if err != nil {
-			log.Errorf("error getting raw avatar path %s: %s", parsed[0], err)
-			c.Status(404)
-			return
-		}
-		keyb, err := base58.Decode(parsed[1])
-		if err != nil {
-			log.Errorf("error decoding key %s: %s", parsed[1], err)
-			c.Status(404)
-			return
-		}
-		data, err = crypto.DecryptAES(cipher, keyb)
-		if err != nil {
-			log.Errorf("error decrypting %s: %s", parsed[0], err)
-			c.Status(404)
-			return
+		if len(parsed) == 2 {
+			keyb, err := base58.Decode(parsed[1])
+			if err != nil {
+				log.Errorf("error decoding key %s: %s", parsed[1], err)
+				c.Status(404)
+				return
+			}
+
+			ciphertext, err := g.Node.DataAtPath(parsed[0])
+			if err != nil {
+				c.Status(404)
+				return
+			}
+
+			data, err = crypto.DecryptAES(ciphertext, keyb)
+			if err != nil {
+				log.Errorf("error decrypting %s: %s", parsed[0], err)
+				c.Status(404)
+				return
+			}
+
+			c.Header("Content-Type", "image/jpeg")
+
+		} else {
+			pth := fmt.Sprintf("%s/0/%s/d", location, avatarSize)
+			data, err = g.Node.DataAtPath(pth)
+			if err != nil {
+				c.Status(404)
+				return
+			}
+
+			var stop int
+			if len(data) < 512 {
+				stop = len(data)
+			} else {
+				stop = 512
+			}
+			media := http.DetectContentType(data[:stop])
+			if media != "" {
+				c.Header("Content-Type", media)
+			}
 		}
 
-		c.Header("Content-Type", "image/jpeg")
 		c.Header("Cache-Control", "public, max-age=172800") // 2 days
 	}
 
@@ -209,7 +240,7 @@ func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 		if err == iface.ErrIsDir {
 			links, err := g.Node.LinksAtPath(pth)
 			if err != nil {
-				log.Errorf("error getting raw path %s: %s", pth, err)
+				log.Errorf("error getting path %s: %s", pth, err)
 				c.Status(404)
 				return nil
 			}
@@ -223,7 +254,7 @@ func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 			return nil
 		}
 
-		log.Errorf("error getting raw path %s: %s", pth, err)
+		log.Errorf("error getting path %s: %s", pth, err)
 		c.Status(404)
 		return nil
 	}

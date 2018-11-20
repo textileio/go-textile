@@ -103,6 +103,20 @@ func (t *Textile) SetAvatar(hash string) error {
 		}
 	}
 
+	large, err := t.AddFile(&mill.ImageResize{
+		Opts: mill.ImageResizeOpts{
+			Width:   thrd.Schema.Links["large"].Opts["width"],
+			Quality: thrd.Schema.Links["large"].Opts["quality"],
+		},
+	}, AddFileConfig{
+		Input:     input,
+		Media:     file.Media,
+		Plaintext: thrd.Schema.Links["large"].Plaintext,
+	})
+	if err != nil {
+		return err
+	}
+
 	small, err := t.AddFile(&mill.ImageResize{
 		Opts: mill.ImageResizeOpts{
 			Width:   thrd.Schema.Links["small"].Opts["width"],
@@ -117,21 +131,7 @@ func (t *Textile) SetAvatar(hash string) error {
 		return err
 	}
 
-	thumb, err := t.AddFile(&mill.ImageResize{
-		Opts: mill.ImageResizeOpts{
-			Width:   thrd.Schema.Links["thumb"].Opts["width"],
-			Quality: thrd.Schema.Links["thumb"].Opts["quality"],
-		},
-	}, AddFileConfig{
-		Input:     input,
-		Media:     file.Media,
-		Plaintext: thrd.Schema.Links["thumb"].Plaintext,
-	})
-	if err != nil {
-		return err
-	}
-	dir := Directory{"small": *small, "thumb": *thumb}
-
+	dir := Directory{"large": *large, "small": *small}
 	node, keys, err := t.AddNodeFromDirs([]Directory{dir})
 	if err != nil {
 		return err
