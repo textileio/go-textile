@@ -11,12 +11,11 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema"
-
-	"github.com/textileio/textile-go/core"
 )
 
 // FileData is a wrapper around a file data url

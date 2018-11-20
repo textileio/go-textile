@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/textileio/textile-go/repo"
+
 	"github.com/segmentio/ksuid"
 
 	"github.com/textileio/textile-go/core"
@@ -18,13 +20,16 @@ type TestMessenger struct {
 
 func (tm *TestMessenger) Notify(event *Event) {}
 
-var repoPath = "testdata/.textile"
+var repoPath1 = "testdata/.textile1"
+var repoPath2 = "testdata/.textile2"
 
 var recovery string
 var seed string
 
-var mobile *Mobile
-var defaultThreadId string
+var mobile1 *Mobile
+var mobile2 *Mobile
+
+var thrdId string
 var prepared string
 var filesBlock core.BlockInfo
 var files []core.ThreadFilesInfo
@@ -51,10 +56,10 @@ func TestWalletAccountAt(t *testing.T) {
 }
 
 func TestInitRepo(t *testing.T) {
-	os.RemoveAll(repoPath)
+	os.RemoveAll(repoPath1)
 	if err := InitRepo(&InitConfig{
 		Seed:     seed,
-		RepoPath: repoPath,
+		RepoPath: repoPath1,
 	}); err != nil {
 		t.Errorf("init mobile repo failed: %s", err)
 	}
@@ -62,7 +67,7 @@ func TestInitRepo(t *testing.T) {
 
 func TestMigrateRepo(t *testing.T) {
 	if err := MigrateRepo(&MigrateConfig{
-		RepoPath: repoPath,
+		RepoPath: repoPath1,
 	}); err != nil {
 		t.Errorf("migrate mobile repo failed: %s", err)
 	}
@@ -70,10 +75,10 @@ func TestMigrateRepo(t *testing.T) {
 
 func TestNewTextile(t *testing.T) {
 	config := &RunConfig{
-		RepoPath: repoPath,
+		RepoPath: repoPath1,
 	}
 	var err error
-	mobile, err = NewTextile(config, &TestMessenger{})
+	mobile1, err = NewTextile(config, &TestMessenger{})
 	if err != nil {
 		t.Errorf("create mobile node failed: %s", err)
 	}
@@ -81,7 +86,7 @@ func TestNewTextile(t *testing.T) {
 
 func TestNewTextileAgain(t *testing.T) {
 	config := &RunConfig{
-		RepoPath: repoPath,
+		RepoPath: repoPath1,
 	}
 	if _, err := NewTextile(config, &TestMessenger{}); err != nil {
 		t.Errorf("create mobile node failed: %s", err)
@@ -89,31 +94,31 @@ func TestNewTextileAgain(t *testing.T) {
 }
 
 func TestMobile_Start(t *testing.T) {
-	if err := mobile.Start(); err != nil {
+	if err := mobile1.Start(); err != nil {
 		t.Errorf("start mobile node failed: %s", err)
 	}
 }
 
 func TestMobile_StartAgain(t *testing.T) {
-	if err := mobile.Start(); err != nil {
+	if err := mobile1.Start(); err != nil {
 		t.Errorf("attempt to start a running node failed: %s", err)
 	}
 }
 
 func TestMobile_Address(t *testing.T) {
-	if mobile.Address() == "" {
+	if mobile1.Address() == "" {
 		t.Error("got bad address")
 	}
 }
 
 func TestMobile_Seed(t *testing.T) {
-	if mobile.Seed() == "" {
+	if mobile1.Seed() == "" {
 		t.Error("got bad seed")
 	}
 }
 
 func TestMobile_CheckAccountThread(t *testing.T) {
-	res, err := mobile.Threads()
+	res, err := mobile1.Threads()
 	if err != nil {
 		t.Errorf("get threads failed: %s", err)
 		return
@@ -129,7 +134,7 @@ func TestMobile_CheckAccountThread(t *testing.T) {
 }
 
 func TestMobile_AddThread(t *testing.T) {
-	res, err := mobile.AddThread(ksuid.New().String(), "default")
+	res, err := mobile1.AddThread(ksuid.New().String(), "test")
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
 		return
@@ -139,11 +144,11 @@ func TestMobile_AddThread(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	defaultThreadId = thrd.Id
+	thrdId = thrd.Id
 }
 
 func TestMobile_Threads(t *testing.T) {
-	res, err := mobile.Threads()
+	res, err := mobile1.Threads()
 	if err != nil {
 		t.Errorf("get threads failed: %s", err)
 		return
@@ -159,7 +164,7 @@ func TestMobile_Threads(t *testing.T) {
 }
 
 func TestMobile_RemoveThread(t *testing.T) {
-	res, err := mobile.AddThread(ksuid.New().String(), "another")
+	res, err := mobile1.AddThread(ksuid.New().String(), "another")
 	if err != nil {
 		t.Errorf("remove thread failed: %s", err)
 		return
@@ -169,7 +174,7 @@ func TestMobile_RemoveThread(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	res2, err := mobile.RemoveThread(thrd.Id)
+	res2, err := mobile1.RemoveThread(thrd.Id)
 	if err != nil {
 		t.Error(err)
 		return
@@ -183,7 +188,7 @@ func TestMobile_RemoveThread(t *testing.T) {
 }
 
 func TestMobile_PrepareFiles(t *testing.T) {
-	res, err := mobile.PrepareFiles("../mill/testdata/image.jpeg", defaultThreadId)
+	res, err := mobile1.PrepareFiles("../mill/testdata/image.jpeg", thrdId)
 	if err != nil {
 		t.Errorf("prepare files failed: %s", err)
 		return
@@ -200,7 +205,7 @@ func TestMobile_PrepareFiles(t *testing.T) {
 }
 
 func TestMobile_AddThreadFiles(t *testing.T) {
-	res, err := mobile.AddThreadFiles(prepared, defaultThreadId, "hello")
+	res, err := mobile1.AddThreadFiles(prepared, thrdId, "hello")
 	if err != nil {
 		t.Errorf("add thread files failed: %s", err)
 		return
@@ -214,7 +219,7 @@ func TestMobile_AddThreadFiles(t *testing.T) {
 }
 
 func TestMobile_AddThreadFilesByTarget(t *testing.T) {
-	res, err := mobile.AddThreadFilesByTarget(filesBlock.Target, defaultThreadId, "hello again")
+	res, err := mobile1.AddThreadFilesByTarget(filesBlock.Target, thrdId, "hello again")
 	if err != nil {
 		t.Errorf("add thread files by target failed: %s", err)
 		return
@@ -226,19 +231,19 @@ func TestMobile_AddThreadFilesByTarget(t *testing.T) {
 }
 
 func TestMobile_AddThreadComment(t *testing.T) {
-	if _, err := mobile.AddThreadComment(filesBlock.Id, "hell yeah"); err != nil {
+	if _, err := mobile1.AddThreadComment(filesBlock.Id, "hell yeah"); err != nil {
 		t.Errorf("add thread comment failed: %s", err)
 	}
 }
 
 func TestMobile_AddThreadLike(t *testing.T) {
-	if _, err := mobile.AddThreadLike(filesBlock.Id); err != nil {
+	if _, err := mobile1.AddThreadLike(filesBlock.Id); err != nil {
 		t.Errorf("add thread like failed: %s", err)
 	}
 }
 
 func TestMobile_ThreadFiles(t *testing.T) {
-	res, err := mobile.ThreadFiles("", -1, defaultThreadId)
+	res, err := mobile1.ThreadFiles("", -1, thrdId)
 	if err != nil {
 		t.Errorf("get thread files failed: %s", err)
 		return
@@ -259,13 +264,13 @@ func TestMobile_ThreadFiles(t *testing.T) {
 }
 
 func TestMobile_ThreadFilesBadThread(t *testing.T) {
-	if _, err := mobile.ThreadFiles("", -1, "empty"); err == nil {
+	if _, err := mobile1.ThreadFiles("", -1, "empty"); err == nil {
 		t.Error("get thread files from bad thread should fail")
 	}
 }
 
 func TestMobile_FileData(t *testing.T) {
-	res, err := mobile.FileData(files[0].Files[0].Links["small"].Hash)
+	res, err := mobile1.FileData(files[0].Files[0].Links["small"].Hash)
 	if err != nil {
 		t.Errorf("get file data failed: %s", err)
 		return
@@ -276,10 +281,10 @@ func TestMobile_FileData(t *testing.T) {
 }
 
 func TestMobile_AddThreadIgnore(t *testing.T) {
-	if _, err := mobile.AddThreadIgnore(filesBlock.Id); err != nil {
+	if _, err := mobile1.AddThreadIgnore(filesBlock.Id); err != nil {
 		t.Errorf("add thread ignore failed: %s", err)
 	}
-	res, err := mobile.ThreadFiles("", -1, defaultThreadId)
+	res, err := mobile1.ThreadFiles("", -1, thrdId)
 	if err != nil {
 		t.Errorf("get thread files failed: %s", err)
 		return
@@ -295,22 +300,22 @@ func TestMobile_AddThreadIgnore(t *testing.T) {
 }
 
 func TestMobile_PhotoDataForMinWidth(t *testing.T) {
-	large, err := mobile.FileData(files[0].Files[0].Links["large"].Hash)
+	large, err := mobile1.FileData(files[0].Files[0].Links["large"].Hash)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	medium, err := mobile.FileData(files[0].Files[0].Links["medium"].Hash)
+	medium, err := mobile1.FileData(files[0].Files[0].Links["medium"].Hash)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	small, err := mobile.FileData(files[0].Files[0].Links["small"].Hash)
+	small, err := mobile1.FileData(files[0].Files[0].Links["small"].Hash)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	thumb, err := mobile.FileData(files[0].Files[0].Links["thumb"].Hash)
+	thumb, err := mobile1.FileData(files[0].Files[0].Links["thumb"].Hash)
 	if err != nil {
 		t.Error(err)
 		return
@@ -318,7 +323,7 @@ func TestMobile_PhotoDataForMinWidth(t *testing.T) {
 
 	pth := files[0].Target + "/0"
 
-	d1, err := mobile.ImageFileDataForMinWidth(pth, 2000)
+	d1, err := mobile1.ImageFileDataForMinWidth(pth, 2000)
 	if err != nil {
 		t.Error(err)
 		return
@@ -328,7 +333,7 @@ func TestMobile_PhotoDataForMinWidth(t *testing.T) {
 		return
 	}
 
-	d2, err := mobile.ImageFileDataForMinWidth(pth, 600)
+	d2, err := mobile1.ImageFileDataForMinWidth(pth, 600)
 	if err != nil {
 		t.Error(err)
 		return
@@ -338,7 +343,7 @@ func TestMobile_PhotoDataForMinWidth(t *testing.T) {
 		return
 	}
 
-	d3, err := mobile.ImageFileDataForMinWidth(pth, 320)
+	d3, err := mobile1.ImageFileDataForMinWidth(pth, 320)
 	if err != nil {
 		t.Error(err)
 		return
@@ -348,7 +353,7 @@ func TestMobile_PhotoDataForMinWidth(t *testing.T) {
 		return
 	}
 
-	d4, err := mobile.ImageFileDataForMinWidth(pth, 80)
+	d4, err := mobile1.ImageFileDataForMinWidth(pth, 80)
 	if err != nil {
 		t.Error(err)
 		return
@@ -360,8 +365,8 @@ func TestMobile_PhotoDataForMinWidth(t *testing.T) {
 }
 
 func TestMobile_Overview(t *testing.T) {
-	<-mobile.OnlineCh()
-	res, err := mobile.Overview()
+	<-mobile1.OnlineCh()
+	res, err := mobile1.Overview()
 	if err != nil {
 		t.Errorf("get overview failed: %s", err)
 		return
@@ -374,21 +379,21 @@ func TestMobile_Overview(t *testing.T) {
 }
 
 func TestMobile_SetUsername(t *testing.T) {
-	if err := mobile.SetUsername("boomer"); err != nil {
+	if err := mobile1.SetUsername("boomer"); err != nil {
 		t.Errorf("set username failed: %s", err)
 		return
 	}
 }
 
 func TestMobile_SetAvatar(t *testing.T) {
-	if err := mobile.SetAvatar(files[0].Files[0].Links["large"].Hash); err != nil {
+	if err := mobile1.SetAvatar(files[0].Files[0].Links["large"].Hash); err != nil {
 		t.Errorf("set avatar failed: %s", err)
 		return
 	}
 }
 
 func TestMobile_Profile(t *testing.T) {
-	profs, err := mobile.Profile()
+	profs, err := mobile1.Profile()
 	if err != nil {
 		t.Errorf("get profile failed: %s", err)
 		return
@@ -400,61 +405,130 @@ func TestMobile_Profile(t *testing.T) {
 	}
 }
 
-//func TestMobile_Notifications(t *testing.T) {
-//	res, err := mobile.Notifications("", -1)
-//	if err != nil {
-//		t.Error(err)
-//		return
-//	}
-//	notes := Notifications{}
-//	if err := json.Unmarshal([]byte(res), &notes); err != nil {
-//		t.Error(err)
-//		return
-//	}
-//	if len(notes.Items) != 1 {
-//		t.Error("get notifications bad result")
-//		return
-//	}
-//	noteId = notes.Items[0].Id
-//}
-//
-//func TestMobile_CountUnreadNotifications(t *testing.T) {
-//	if mobile.CountUnreadNotifications() != 1 {
-//		t.Error("count unread notifications bad result")
-//	}
-//}
-//
-//func TestMobile_ReadNotification(t *testing.T) {
-//	if err := mobile.ReadNotification(noteId); err != nil {
-//		t.Error(err)
-//	}
-//	if mobile.CountUnreadNotifications() != 0 {
-//		t.Error("read notification bad result")
-//	}
-//}
+func TestMobile_AddThreadInvite(t *testing.T) {
+	var err error
+	mobile2, err = createAndStartMobile(repoPath2, true)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	res, err := mobile2.AddThread(ksuid.New().String(), "test2")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	var thrd *core.ThreadInfo
+	if err := json.Unmarshal([]byte(res), &thrd); err != nil {
+		t.Error(err)
+		return
+	}
+
+	pid, err := mobile1.PeerId()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	hash, err := mobile2.AddThreadInvite(thrd.Id, pid)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if hash == "" {
+		t.Errorf("bad invite result: %s", hash)
+	}
+}
+
+func TestMobile_Notifications(t *testing.T) {
+	res, err := mobile1.Notifications("", -1)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	var notes []repo.Notification
+	if err := json.Unmarshal([]byte(res), &notes); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(notes) != 0 {
+		t.Error("get notifications bad result")
+		return
+	}
+}
+
+func TestMobile_CountUnreadNotifications(t *testing.T) {
+	if mobile1.CountUnreadNotifications() != 0 {
+		t.Error("count unread notifications bad result")
+	}
+}
 
 func TestMobile_ReadAllNotifications(t *testing.T) {
-	if err := mobile.ReadAllNotifications(); err != nil {
+	if err := mobile1.ReadAllNotifications(); err != nil {
 		t.Error(err)
 	}
-	if mobile.CountUnreadNotifications() != 0 {
+	if mobile1.CountUnreadNotifications() != 0 {
 		t.Error("read all notifications bad result")
 	}
 }
 
 func TestMobile_Stop(t *testing.T) {
-	if err := mobile.Stop(); err != nil {
+	if err := mobile1.Stop(); err != nil {
 		t.Errorf("stop mobile node failed: %s", err)
 	}
 }
 
 func TestMobile_StopAgain(t *testing.T) {
-	if err := mobile.Stop(); err != nil {
+	if err := mobile1.Stop(); err != nil {
 		t.Errorf("stop mobile node again should not return error: %s", err)
 	}
 }
 
 func TestMobile_Teardown(t *testing.T) {
-	mobile = nil
+	mobile1 = nil
+	mobile2.Stop()
+	mobile2 = nil
+	os.RemoveAll(repoPath1)
+	os.RemoveAll(repoPath2)
+}
+
+func createAndStartMobile(repoPath string, waitForOnline bool) (*Mobile, error) {
 	os.RemoveAll(repoPath)
+
+	recovery, err := NewWallet(12)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := WalletAccountAt(recovery, 0, "")
+	if err != nil {
+		return nil, err
+	}
+	accnt := WalletAccount{}
+	if err := json.Unmarshal([]byte(res), &accnt); err != nil {
+		return nil, err
+	}
+
+	if err := InitRepo(&InitConfig{
+		Seed:     accnt.Seed,
+		RepoPath: repoPath,
+	}); err != nil {
+		return nil, err
+	}
+
+	mobile, err := NewTextile(&RunConfig{RepoPath: repoPath}, &TestMessenger{})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := mobile.Start(); err != nil {
+		return nil, err
+	}
+
+	if waitForOnline {
+		<-mobile.OnlineCh()
+	}
+
+	return mobile, nil
 }
