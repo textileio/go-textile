@@ -144,7 +144,10 @@ func (a *api) streamThreads(g *gin.Context) {
 				return false
 			}
 			if data, ok := update.(ThreadUpdate); ok {
-				info, _ := addBlockInfo(a, data)
+				info, err := addBlockInfo(a, data)
+				if err != nil {
+					log.Errorf("error getting thread file: %s", err)
+				}
 				if opts["events"] == "true" {
 					g.SSEvent("threadUpdate", info)
 				} else {
@@ -164,7 +167,7 @@ func addBlockInfo(a *api, update ThreadUpdate) (ThreadUpdate, error) {
 	case "FILES":
 		info, err := a.node.ThreadFile(update.Block.Id)
 		if err != nil {
-			log.Errorf("error getting thread file: %s", err)
+			return update, err
 		}
 		return ThreadUpdate{
 			Block:      update.Block,
