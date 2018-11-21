@@ -1,23 +1,91 @@
 package repo
 
 import (
-	"github.com/textileio/textile-go/images"
-	"github.com/textileio/textile-go/pb"
+	"errors"
+	"strings"
 	"time"
+
+	"github.com/textileio/textile-go/pb"
 )
 
-type Contact struct {
-	Id       string    `json:"id"`
-	Username string    `json:"username"`
-	Inboxes  []string  `json:"inboxes"`
-	Added    time.Time `json:"added"`
+type File struct {
+	Mill     string                 `json:"mill"`
+	Checksum string                 `json:"checksum"`
+	Source   string                 `json:"source"`
+	Opts     string                 `json:"opts,omitempty"`
+	Hash     string                 `json:"hash"`
+	Key      string                 `json:"key,omitempty"`
+	Media    string                 `json:"media"`
+	Name     string                 `json:"name,omitempty"`
+	Size     int                    `json:"size"`
+	Added    time.Time              `json:"added"`
+	Meta     map[string]interface{} `json:"meta,omitempty"`
 }
 
 type Thread struct {
-	Id      string `json:"id"`
-	Name    string `json:"name"`
-	PrivKey []byte `json:"sk"`
-	Head    string `json:"head"`
+	Id        string      `json:"id"`
+	Key       string      `json:"key"`
+	PrivKey   []byte      `json:"sk"`
+	Name      string      `json:"name"`
+	Schema    string      `json:"schema"`
+	Initiator string      `json:"initiator"`
+	Type      ThreadType  `json:"type"`
+	State     ThreadState `json:"state"`
+	Head      string      `json:"head"`
+}
+
+type ThreadType int
+
+// in order of decreasing privacy
+const (
+	PrivateThread  ThreadType = iota // invites not allowed
+	ReadOnlyThread                   // all non-initiator writes ignored
+	PublicThread                     // only non-initiator file writes ignored (annotations allowed)
+	OpenThread                       // all writes allowed
+)
+
+func (tt ThreadType) Description() string {
+	switch tt {
+	case PrivateThread:
+		return "PRIVATE"
+	case ReadOnlyThread:
+		return "READONLY"
+	case PublicThread:
+		return "PUBLIC"
+	case OpenThread:
+		return "OPEN"
+	default:
+		return "INVALID"
+	}
+}
+
+func ThreadTypeFromString(desc string) (ThreadType, error) {
+	switch strings.ToUpper(strings.TrimSpace(desc)) {
+	case "PRIVATE":
+		return PrivateThread, nil
+	case "OPEN":
+		return OpenThread, nil
+	default:
+		return -1, errors.New("could not parse thread type")
+	}
+}
+
+type ThreadState int
+
+const (
+	ThreadLoading ThreadState = iota
+	ThreadLoaded
+)
+
+func (ts ThreadState) Description() string {
+	switch ts {
+	case ThreadLoading:
+		return "LOADING"
+	case ThreadLoaded:
+		return "LOADED"
+	default:
+		return "INVALID"
+	}
 }
 
 type ThreadPeer struct {
@@ -35,23 +103,13 @@ type ThreadMessage struct {
 
 type Block struct {
 	Id       string    `json:"id"`
-	Date     time.Time `json:"date"`
-	Parents  []string  `json:"parents"`
 	ThreadId string    `json:"thread_id"`
 	AuthorId string    `json:"author_id"`
 	Type     BlockType `json:"type"`
-
-	DataId       string           `json:"data_id,omitempty"`
-	DataKey      []byte           `json:"data_key,omitempty"`
-	DataCaption  string           `json:"data_caption,omitempty"`
-	DataMetadata *images.Metadata `json:"data_metadata,omitempty"`
-}
-
-type DataBlockConfig struct {
-	DataId       string           `json:"data_id"`
-	DataKey      []byte           `json:"data_key"`
-	DataCaption  string           `json:"data_caption"`
-	DataMetadata *images.Metadata `json:"data_metadata"`
+	Date     time.Time `json:"date"`
+	Parents  []string  `json:"parents"`
+	Target   string    `json:"target,omitempty"`
+	Body     string    `json:"body,omitempty"`
 }
 
 type BlockType int
@@ -63,8 +121,8 @@ const (
 	JoinBlock
 	AnnounceBlock
 	LeaveBlock
-	FileBlock
-	TextBlock
+	MessageBlock
+	FilesBlock
 	CommentBlock
 	LikeBlock
 )
@@ -76,15 +134,17 @@ func (b BlockType) Description() string {
 	case IgnoreBlock:
 		return "IGNORE"
 	case FlagBlock:
-		return "IGNORE"
+		return "FLAG"
 	case JoinBlock:
 		return "JOIN"
 	case AnnounceBlock:
 		return "ANNOUNCE"
 	case LeaveBlock:
 		return "LEAVE"
-	case FileBlock:
-		return "FILE"
+	case MessageBlock:
+		return "MESSAGE"
+	case FilesBlock:
+		return "FILES"
 	case CommentBlock:
 		return "COMMENT"
 	case LikeBlock:
@@ -94,14 +154,21 @@ func (b BlockType) Description() string {
 	}
 }
 
+type Contact struct {
+	Id       string    `json:"id"`
+	Username string    `json:"username"`
+	Inboxes  []string  `json:"inboxes"`
+	Added    time.Time `json:"added"`
+}
+
 type Notification struct {
 	Id        string           `json:"id"`
 	Date      time.Time        `json:"date"`
-	ActorId   string           `json:"actor_id"`           // peer id
-	Subject   string           `json:"subject"`            // thread name | device name
-	SubjectId string           `json:"subject_id"`         // thread id | device id
-	BlockId   string           `json:"block_id,omitempty"` // block id
-	DataId    string           `json:"data_id,omitempty"`  // photo id, etc.
+	ActorId   string           `json:"actor_id"`
+	Subject   string           `json:"subject"`
+	SubjectId string           `json:"subject_id"`
+	BlockId   string           `json:"block_id,omitempty"`
+	Target    string           `json:"target,omitempty"`
 	Type      NotificationType `json:"type"`
 	Body      string           `json:"body"`
 	Read      bool             `json:"read"`
@@ -110,30 +177,30 @@ type Notification struct {
 type NotificationType int
 
 const (
-	ReceivedInviteNotification   NotificationType = iota // peerA invited you
-	AccountPeerAddedNotification                         // new account peer added
-	PeerJoinedNotification                               // peerA joined
-	PeerLeftNotification                                 // peerA left
-	FileAddedNotification                                // peerA added a photo
-	TextAddedNotification                                // peerA added a message
-	CommentAddedNotification                             // peerA commented on peerB's photo, video, comment, etc.
-	LikeAddedNotification                                // peerA liked peerB's photo, video, comment, etc.
+	InviteReceivedNotification NotificationType = iota
+	AccountPeerJoinedNotification
+	PeerJoinedNotification
+	PeerLeftNotification
+	MessageAddedNotification
+	FilesAddedNotification
+	CommentAddedNotification
+	LikeAddedNotification
 )
 
 func (n NotificationType) Description() string {
 	switch n {
-	case ReceivedInviteNotification:
-		return "RECEIVED_INVITE"
-	case AccountPeerAddedNotification:
-		return "ACCOUNT_PEER_ADDED"
+	case InviteReceivedNotification:
+		return "INVITE_RECEIVED"
+	case AccountPeerJoinedNotification:
+		return "ACCOUNT_PEER_JOINED"
 	case PeerJoinedNotification:
 		return "PEER_JOINED"
 	case PeerLeftNotification:
 		return "PEER_LEFT"
-	case FileAddedNotification:
-		return "FILE_ADDED"
-	case TextAddedNotification:
-		return "TEXT_ADDED"
+	case MessageAddedNotification:
+		return "MESSAGE_ADDED"
+	case FilesAddedNotification:
+		return "FILES_ADDED"
 	case CommentAddedNotification:
 		return "COMMENT_ADDED"
 	case LikeAddedNotification:
@@ -204,9 +271,7 @@ type CafeClient struct {
 type CafeClientThread struct {
 	Id         string `json:"id"`
 	ClientId   string `json:"client_id"`
-	SkCipher   []byte `json:"sk_cipher"`
-	HeadCipher []byte `json:"head_cipher"`
-	NameCipher []byte `json:"name_cipher"`
+	Ciphertext []byte `json:"ciphertext"`
 }
 
 type CafeClientMessage struct {

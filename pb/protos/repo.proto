@@ -1,0 +1,23 @@
+syntax = "proto3";
+option go_package = "pb";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+message File {
+    string mill                     = 1;
+    string checksum                 = 2;
+    string source                   = 3;
+    string opts                     = 4;
+    string hash                     = 5;
+    string key                      = 6;
+    string media                    = 7;
+    string name                     = 8;
+    int64 size                      = 9;
+    google.protobuf.Timestamp added = 10;
+    google.protobuf.Struct meta     = 11;
+}
+
+message Directory {
+    map<string, File> files = 1;
+}

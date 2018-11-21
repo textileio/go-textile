@@ -2,8 +2,9 @@ package db
 
 import (
 	"database/sql"
-	"github.com/textileio/textile-go/repo"
 	"sync"
+
+	"github.com/textileio/textile-go/repo"
 )
 
 type CafeClientThreadDB struct {
@@ -21,7 +22,7 @@ func (c *CafeClientThreadDB) AddOrUpdate(thrd *repo.CafeClientThread) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert or replace into cafe_client_threads(id, clientId, skCipher, headCipher, nameCipher) values(?,?,?,?,?)`
+	stm := `insert or replace into cafe_client_threads(id, clientId, ciphertext) values(?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -31,9 +32,7 @@ func (c *CafeClientThreadDB) AddOrUpdate(thrd *repo.CafeClientThread) error {
 	_, err = stmt.Exec(
 		thrd.Id,
 		thrd.ClientId,
-		thrd.SkCipher,
-		thrd.HeadCipher,
-		thrd.NameCipher,
+		thrd.Ciphertext,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -73,19 +72,16 @@ func (c *CafeClientThreadDB) handleQuery(stm string) []repo.CafeClientThread {
 	}
 	for rows.Next() {
 		var id, clientId string
-		var skCipher, headCipher, nameCipher []byte
-		if err := rows.Scan(&id, &clientId, &skCipher, &headCipher, &nameCipher); err != nil {
+		var ciphertext []byte
+		if err := rows.Scan(&id, &clientId, &ciphertext); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		thrd := repo.CafeClientThread{
+		ret = append(ret, repo.CafeClientThread{
 			Id:         id,
 			ClientId:   clientId,
-			SkCipher:   skCipher,
-			HeadCipher: headCipher,
-			NameCipher: nameCipher,
-		}
-		ret = append(ret, thrd)
+			Ciphertext: ciphertext,
+		})
 	}
 	return ret
 }

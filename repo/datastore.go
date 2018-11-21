@@ -2,14 +2,16 @@ package repo
 
 import (
 	"database/sql"
-	"github.com/textileio/textile-go/keypair"
 	"time"
+
+	"github.com/textileio/textile-go/keypair"
 )
 
 type Datastore interface {
 	Config() ConfigStore
 	Profile() ProfileStore
 	Contacts() ContactStore
+	Files() FileStore
 	Threads() ThreadStore
 	ThreadPeers() ThreadPeerStore
 	ThreadMessages() ThreadMessageStore
@@ -57,10 +59,21 @@ type ContactStore interface {
 	Delete(id string) error
 }
 
+type FileStore interface {
+	Queryable
+	Add(file *File) error
+	Get(hash string) *File
+	GetByPrimary(mill string, checksum string) *File
+	GetBySource(mill string, source string, opts string) *File
+	Count() int
+	Delete(hash string) error
+}
+
 type ThreadStore interface {
 	Queryable
 	Add(thread *Thread) error
 	Get(id string) *Thread
+	GetByKey(key string) *Thread
 	List() []Thread
 	Count() int
 	UpdateHead(id string, head string) error
@@ -92,7 +105,6 @@ type BlockStore interface {
 	Queryable
 	Add(block *Block) error
 	Get(id string) *Block
-	GetByData(dataId string) *Block
 	List(offset string, limit int, query string) []Block
 	Count(query string) int
 	Delete(id string) error

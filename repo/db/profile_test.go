@@ -2,9 +2,10 @@ package db
 
 import (
 	"database/sql"
-	"github.com/textileio/textile-go/repo"
 	"sync"
 	"testing"
+
+	"github.com/textileio/textile-go/repo"
 )
 
 var pdb repo.ProfileStore

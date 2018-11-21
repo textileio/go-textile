@@ -2,11 +2,12 @@ package db
 
 import (
 	"database/sql"
-	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/repo"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/repo"
 )
 
 var notifdb repo.NotificationStore
@@ -29,7 +30,7 @@ func TestNotificationDB_Add(t *testing.T) {
 		Subject:   "test",
 		SubjectId: ksuid.New().String(),
 		BlockId:   ksuid.New().String(),
-		Type:      repo.ReceivedInviteNotification,
+		Type:      repo.InviteReceivedNotification,
 	})
 	if err != nil {
 		t.Error(err)
@@ -74,7 +75,7 @@ func TestNotificationDB_ReadAll(t *testing.T) {
 		Subject:   "test",
 		SubjectId: ksuid.New().String(),
 		BlockId:   ksuid.New().String(),
-		Type:      repo.ReceivedInviteNotification,
+		Type:      repo.InviteReceivedNotification,
 	})
 	if err != nil {
 		t.Error(err)
@@ -111,7 +112,7 @@ func TestNotificationDB_List(t *testing.T) {
 		Subject:   "test",
 		SubjectId: ksuid.New().String(),
 		BlockId:   "block1",
-		Type:      repo.ReceivedInviteNotification,
+		Type:      repo.InviteReceivedNotification,
 	})
 	if err != nil {
 		t.Error(err)
@@ -147,8 +148,8 @@ func TestNotificationDB_List(t *testing.T) {
 		Subject:   "test",
 		SubjectId: "subject1",
 		BlockId:   "block3",
-		DataId:    "data",
-		Type:      repo.FileAddedNotification,
+		Target:    "target",
+		Type:      repo.FilesAddedNotification,
 	})
 	if err != nil {
 		t.Error(err)

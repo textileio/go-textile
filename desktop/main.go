@@ -3,9 +3,15 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
+	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
+	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/fsrepo"
+	"os"
+	"path/filepath"
+	"runtime"
+	"time"
+
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
 	"github.com/asticode/go-astilog"
@@ -15,12 +21,6 @@ import (
 	"github.com/textileio/textile-go/gateway"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/repo"
-	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
-	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/fsrepo"
-	"os"
-	"path/filepath"
-	"runtime"
-	"time"
 )
 
 var (
@@ -41,6 +41,8 @@ const (
 	SleepOnPreReady = time.Millisecond * 200
 	SleepOnExpand   = time.Millisecond * 200
 )
+
+var node *core.Textile
 
 func main() {
 	flag.Parse()
@@ -85,22 +87,22 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	}
 
 	// build textile node
-	core.Node, err = core.NewTextile(core.RunConfig{RepoPath: repoPath})
+	node, err = core.NewTextile(core.RunConfig{RepoPath: repoPath})
 	if err != nil {
 		return err
 	}
 
 	// bring the node online and startup the gateway
-	if err := core.Node.Start(); err != nil {
+	if err := node.Start(); err != nil {
 		return err
 	}
-	<-core.Node.OnlineCh()
+	<-node.OnlineCh()
 
 	// subscribe to wallet updates
 	go func() {
 		for {
 			select {
-			case update, ok := <-core.Node.UpdateCh():
+			case update, ok := <-node.UpdateCh():
 				if !ok {
 					return
 				}
@@ -130,7 +132,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	go func() {
 		for {
 			select {
-			case update, ok := <-core.Node.ThreadUpdateCh():
+			case update, ok := <-node.ThreadUpdateCh():
 				if !ok {
 					return
 				}
@@ -145,11 +147,11 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	go func() {
 		for {
 			select {
-			case note, ok := <-core.Node.NotificationCh():
+			case note, ok := <-node.NotificationCh():
 				if !ok {
 					return
 				}
-				username := core.Node.ContactUsername(note.ActorId)
+				username := node.ContactUsername(note.ActorId)
 				var uinote = a.NewNotification(&astilectron.NotificationOptions{
 					Title: note.Subject,
 					Body:  fmt.Sprintf("%s %s.", username, note.Body),
@@ -157,9 +159,9 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 				})
 
 				// tmp auto-accept thread invites
-				if note.Type == repo.ReceivedInviteNotification {
+				if note.Type == repo.InviteReceivedNotification {
 					go func(tid string) {
-						if _, err := core.Node.AcceptThreadInvite(tid); err != nil {
+						if _, err := node.AcceptThreadInvite(tid); err != nil {
 							astilog.Error(err)
 						}
 					}(note.BlockId)
@@ -197,7 +199,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	})
 
 	// check if we're configured yet
-	threads := core.Node.Threads()
+	threads := node.Threads()
 	if len(threads) > 0 {
 		// load threads for UI
 		var threadsJSON []map[string]interface{}
@@ -246,7 +248,7 @@ func sendData(name string, data map[string]interface{}) {
 func handleMessage(_ *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
 	case "refresh":
-		if err := core.Node.CheckCafeMail(); err != nil {
+		if err := node.CheckCafeMessages(); err != nil {
 			return nil, err
 		}
 		return map[string]interface{}{}, nil
@@ -269,7 +271,7 @@ func handleMessage(_ *astilectron.Window, m bootstrap.MessageIn) (interface{}, e
 
 func getQRCode() (string, string, error) {
 	// get our own peer id for receiving an account key
-	pid, err := core.Node.PeerId()
+	pid, err := node.PeerId()
 	if err != nil {
 		return "", "", err
 	}
@@ -285,20 +287,20 @@ func getQRCode() (string, string, error) {
 }
 
 func getThreadPhotos(id string) (string, error) {
-	thrd := core.Node.Thread(id)
+	thrd := node.Thread(id)
 	if thrd == nil {
-		return "", errors.New("thread not found")
+		return "", core.ErrThreadNotFound
 	}
 	var html string
-	query := fmt.Sprintf("threadId='%s' and type=%d", thrd.Id, repo.FileBlock)
-	for _, block := range core.Node.Blocks("", -1, query) {
-		photo := fmt.Sprintf("%s/ipfs/%s/photo?block=%s", gatewayAddr, block.DataId, block.Id)
-		small := fmt.Sprintf("%s/ipfs/%s/small?block=%s", gatewayAddr, block.DataId, block.Id)
-		meta := fmt.Sprintf("%s/ipfs/%s/meta?block=%s", gatewayAddr, block.DataId, block.Id)
-		img := fmt.Sprintf("<img src=\"%s\" />", small)
-		html += fmt.Sprintf(
-			"<div id=\"%s\" class=\"grid-item\" ondragstart=\"imageDragStart(event);\" draggable=\"true\" data-url=\"%s\" data-meta=\"%s\">%s</div>",
-			block.Id, photo, meta, img)
+	query := fmt.Sprintf("threadId='%s' and type=%d", thrd.Id, repo.FilesBlock)
+	for range node.Blocks("", -1, query) {
+		//photo := fmt.Sprintf("%s/ipfs/%s/photo?block=%s", gatewayAddr, block.DataId, block.Id)
+		//small := fmt.Sprintf("%s/ipfs/%s/small?block=%s", gatewayAddr, block.DataId, block.Id)
+		//meta := fmt.Sprintf("%s/ipfs/%s/meta?block=%s", gatewayAddr, block.DataId, block.Id)
+		//img := fmt.Sprintf("<img src=\"%s\" />", small)
+		//html += fmt.Sprintf(
+		//	"<div id=\"%s\" class=\"grid-item\" ondragstart=\"imageDragStart(event);\" draggable=\"true\" data-url=\"%s\" data-meta=\"%s\">%s</div>",
+		//	block.Id, photo, meta, img)
 	}
 	return html, nil
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+
 	"github.com/textileio/textile-go/repo"
 	"gopkg.in/abiosoft/ishell.v2"
 )
@@ -13,11 +14,11 @@ func init() {
 }
 
 type cafesCmd struct {
-	Add       addCafesCmd       `command:"add"`
-	List      lsCafesCmd        `command:"ls"`
-	Get       getCafesCmd       `command:"get"`
-	Remove    rmCafesCmd        `command:"rm"`
-	CheckMail checkMailCafesCmd `command:"check-mail"`
+	Add      addCafesCmd          `command:"add"`
+	List     lsCafesCmd           `command:"ls"`
+	Get      getCafesCmd          `command:"get"`
+	Remove   rmCafesCmd           `command:"rm"`
+	Messages checkCafeMessagesCmd `command:"messages"`
 }
 
 func (x *cafesCmd) Name() string {
@@ -36,16 +37,7 @@ Use this command to add, list, get, and remove cafes.
 }
 
 func (x *cafesCmd) Shell() *ishell.Cmd {
-	cmd := &ishell.Cmd{
-		Name:     x.Name(),
-		Help:     x.Short(),
-		LongHelp: x.Long(),
-	}
-	cmd.AddCmd((&addCafesCmd{}).Shell())
-	cmd.AddCmd((&lsCafesCmd{}).Shell())
-	cmd.AddCmd((&getCafesCmd{}).Shell())
-	cmd.AddCmd((&rmCafesCmd{}).Shell())
-	return cmd
+	return nil
 }
 
 type addCafesCmd struct {
@@ -66,29 +58,20 @@ func (x *addCafesCmd) Long() string {
 
 func (x *addCafesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callAddCafes(args, nil)
+	return callAddCafes(args)
 }
 
 func (x *addCafesCmd) Shell() *ishell.Cmd {
-	return &ishell.Cmd{
-		Name:     x.Name(),
-		Help:     x.Short(),
-		LongHelp: x.Long(),
-		Func: func(c *ishell.Context) {
-			if err := callAddCafes(c.Args, c); err != nil {
-				c.Err(err)
-			}
-		},
-	}
+	return nil
 }
 
-func callAddCafes(args []string, ctx *ishell.Context) error {
+func callAddCafes(args []string) error {
 	var info *repo.CafeSession
 	res, err := executeJsonCmd(POST, "cafes", params{args: args}, &info)
 	if err != nil {
 		return err
 	}
-	output(res, ctx)
+	output(res, nil)
 	return nil
 }
 
@@ -110,29 +93,20 @@ func (x *lsCafesCmd) Long() string {
 
 func (x *lsCafesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callLsCafes(args, nil)
+	return callLsCafes()
 }
 
 func (x *lsCafesCmd) Shell() *ishell.Cmd {
-	return &ishell.Cmd{
-		Name:     x.Name(),
-		Help:     x.Short(),
-		LongHelp: x.Long(),
-		Func: func(c *ishell.Context) {
-			if err := callLsCafes(c.Args, c); err != nil {
-				c.Err(err)
-			}
-		},
-	}
+	return nil
 }
 
-func callLsCafes(_ []string, ctx *ishell.Context) error {
+func callLsCafes() error {
 	var list *[]repo.CafeSession
 	res, err := executeJsonCmd(GET, "cafes", params{}, &list)
 	if err != nil {
 		return err
 	}
-	output(res, ctx)
+	output(res, nil)
 	return nil
 }
 
@@ -154,23 +128,14 @@ func (x *getCafesCmd) Long() string {
 
 func (x *getCafesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callGetCafes(args, nil)
+	return callGetCafes(args)
 }
 
 func (x *getCafesCmd) Shell() *ishell.Cmd {
-	return &ishell.Cmd{
-		Name:     x.Name(),
-		Help:     x.Short(),
-		LongHelp: x.Long(),
-		Func: func(c *ishell.Context) {
-			if err := callGetCafes(c.Args, c); err != nil {
-				c.Err(err)
-			}
-		},
-	}
+	return nil
 }
 
-func callGetCafes(args []string, ctx *ishell.Context) error {
+func callGetCafes(args []string) error {
 	if len(args) == 0 {
 		return errMissingCafeId
 	}
@@ -179,7 +144,7 @@ func callGetCafes(args []string, ctx *ishell.Context) error {
 	if err != nil {
 		return err
 	}
-	output(res, ctx)
+	output(res, nil)
 	return nil
 }
 
@@ -201,73 +166,55 @@ func (x *rmCafesCmd) Long() string {
 
 func (x *rmCafesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callRmCafes(args, nil)
+	return callRmCafes(args)
 }
 
 func (x *rmCafesCmd) Shell() *ishell.Cmd {
-	return &ishell.Cmd{
-		Name:     x.Name(),
-		Help:     x.Short(),
-		LongHelp: x.Long(),
-		Func: func(c *ishell.Context) {
-			if err := callRmCafes(c.Args, c); err != nil {
-				c.Err(err)
-			}
-		},
-	}
+	return nil
 }
 
-func callRmCafes(args []string, ctx *ishell.Context) error {
+func callRmCafes(args []string) error {
 	if len(args) == 0 {
 		return errMissingCafeId
 	}
 	res, err := executeStringCmd(DEL, "cafes/"+args[0], params{})
 	if err != nil {
-		return nil
+		return err
 	}
-	output(res, ctx)
+	output(res, nil)
 	return nil
 }
 
-type checkMailCafesCmd struct {
+type checkCafeMessagesCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *checkMailCafesCmd) Name() string {
+func (x *checkCafeMessagesCmd) Name() string {
 	return "check-mail"
 }
 
-func (x *checkMailCafesCmd) Short() string {
+func (x *checkCafeMessagesCmd) Short() string {
 	return "Checks mail at all cafes"
 }
 
-func (x *checkMailCafesCmd) Long() string {
+func (x *checkCafeMessagesCmd) Long() string {
 	return "Check for mail at all cafes. New messages are downloaded and processed opportunistically."
 }
 
-func (x *checkMailCafesCmd) Execute(args []string) error {
+func (x *checkCafeMessagesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callCheckMailCafes(args, nil)
+	return callCheckCafeMessages()
 }
 
-func (x *checkMailCafesCmd) Shell() *ishell.Cmd {
-	return &ishell.Cmd{
-		Name:     x.Name(),
-		Help:     x.Short(),
-		LongHelp: x.Long(),
-		Func: func(c *ishell.Context) {
-			if err := callCheckMailCafes(c.Args, c); err != nil {
-				c.Err(err)
-			}
-		},
-	}
+func (x *checkCafeMessagesCmd) Shell() *ishell.Cmd {
+	return nil
 }
 
-func callCheckMailCafes(args []string, ctx *ishell.Context) error {
-	res, err := executeStringCmd(POST, "cafes/check_mail", params{})
+func callCheckCafeMessages() error {
+	res, err := executeStringCmd(POST, "cafes/messages", params{})
 	if err != nil {
-		return nil
+		return err
 	}
-	output(res, ctx)
+	output(res, nil)
 	return nil
 }

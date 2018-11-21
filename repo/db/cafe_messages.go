@@ -2,10 +2,11 @@ package db
 
 import (
 	"database/sql"
-	"github.com/textileio/textile-go/repo"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/textileio/textile-go/repo"
 )
 
 type CafeMessageDB struct {
@@ -76,12 +77,11 @@ func (c *CafeMessageDB) handleQuery(stm string) []repo.CafeMessage {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		msg := repo.CafeMessage{
+		ret = append(ret, repo.CafeMessage{
 			Id:     id,
 			PeerId: peerId,
 			Date:   time.Unix(int64(dateInt), 0),
-		}
-		ret = append(ret, msg)
+		})
 	}
 	return ret
 }

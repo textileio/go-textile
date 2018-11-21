@@ -1,18 +1,19 @@
 package keypair
 
 import (
-	"github.com/textileio/textile-go/crypto"
-	"github.com/textileio/textile-go/strkey"
-	"golang.org/x/crypto/ed25519"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	pb "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto/pb"
+
+	"github.com/textileio/textile-go/crypto"
+	"github.com/textileio/textile-go/strkey"
+	"golang.org/x/crypto/ed25519"
 )
 
 // FromAddress represents a keypair to which only the address is know.  This KeyPair
 // can verify signatures, but cannot sign them.
 //
-// NOTE: ensure the address provided is a valid strkey encoded stellar address.
+// NOTE: ensure the address provided is a valid strkey encoded textile address.
 // Some operations will panic otherwise. It's recommended that you create these
 // structs through the Parse() method.
 type FromAddress struct {

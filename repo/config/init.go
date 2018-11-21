@@ -16,6 +16,7 @@ type Config struct {
 	Addresses Addresses // local node's addresses
 	API       API       // local node's API settings
 	Logs      Logs      // local node's log settings
+	Threads   Threads   // local node's thread settings
 	IsMobile  bool      // local node is setup for mobile
 	IsServer  bool      // local node is setup for a server w/ a public IP
 	Cafe      Cafe      // local node cafe settings
@@ -24,6 +25,7 @@ type Config struct {
 // Account store public account info
 type Account struct {
 	Address string // public key (seed is stored in the _possibly_ encrypted datastore)
+	Thread  string // thread id of the default account thread used for sync between account peers
 }
 
 // Addresses stores the (string) bind addresses for the node.
@@ -49,10 +51,38 @@ type Logs struct {
 	LogLevel  string // one of: critical error warning notice info debug
 }
 
+// Thread settings
+type Threads struct {
+	Defaults ThreadDefaults // default settings
+}
+
+// ThreadDefaults settings
+type ThreadDefaults struct {
+	ID string // default thread ID for reads/writes
+}
+
 // Cafe settings
-// TODO: add some more knobs: max num. clients, max client msg age, inbox size, etc.
 type Cafe struct {
+	Host   CafeHost
+	Client CafeClient
+}
+
+// TODO: add some more knobs: max num. clients, max client msg age, inbox size, etc.
+type CafeHost struct {
 	Open bool // when true, other peers can register with this node for cafe services
+}
+
+// CafeClient settings
+type CafeClient struct {
+	Mobile MobileCafeClient
+}
+
+// MobileCafeClient settings
+type MobileCafeClient struct {
+	// messages w/ size less than limit will be handled by the p2p cafe service,
+	// messages w/ size greater than limit will be handled by the mobile OS's background
+	// upload service and the cafe HTTP API
+	P2PWireLimit int
 }
 
 // Init returns the default textile config
@@ -60,6 +90,7 @@ func Init(version string) (*Config, error) {
 	return &Config{
 		Account: Account{
 			Address: "",
+			Thread:  "",
 		},
 		Addresses: Addresses{
 			API:     "127.0.0.1:40600",
@@ -75,8 +106,20 @@ func Init(version string) (*Config, error) {
 			LogToDisk: true,
 			LogLevel:  "error",
 		},
+		Threads: Threads{
+			Defaults: ThreadDefaults{
+				ID: "",
+			},
+		},
 		Cafe: Cafe{
-			Open: false,
+			Host: CafeHost{
+				Open: false,
+			},
+			Client: CafeClient{
+				Mobile: MobileCafeClient{
+					P2PWireLimit: 20000,
+				},
+			},
 		},
 		IsMobile: false,
 		IsServer: false,
@@ -89,6 +132,7 @@ func Read(repoPath string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	var conf *Config
 	if err := json.Unmarshal(data, &conf); err != nil {
 		return nil, err
@@ -103,10 +147,12 @@ func Write(repoPath string, conf *Config) error {
 		return err
 	}
 	defer f.Close()
+
 	data, err := json.MarshalIndent(conf, "", "    ")
 	if err != nil {
 		return err
 	}
+
 	if _, err := f.Write(data); err != nil {
 		return err
 	}

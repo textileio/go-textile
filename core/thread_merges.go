@@ -2,13 +2,14 @@ package core
 
 import (
 	"errors"
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	"sort"
+	"time"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	"sort"
-	"time"
 )
 
 // merge adds a merge block, which are kept local until subsequent updates, avoiding possibly endless echoes
@@ -51,7 +52,6 @@ func (t *Thread) merge(head mh.Multihash) (mh.Multihash, error) {
 	}
 	header.Date = pdate
 
-	// build block
 	block := &pb.ThreadBlock{
 		Header: header,
 		Type:   pb.ThreadBlock_MERGE,
@@ -67,24 +67,26 @@ func (t *Thread) merge(head mh.Multihash) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	// index it locally
-	if err := t.indexBlock(&commitResult{hash: hash, header: header}, repo.MergeBlock, nil); err != nil {
+	if err := t.indexBlock(&commitResult{
+		hash:   hash,
+		header: header,
+	}, repo.MergeBlock, "", ""); err != nil {
 		return nil, err
 	}
 
-	// update head
 	if err := t.updateHead(hash); err != nil {
 		return nil, err
 	}
 
 	log.Debugf("adding MERGE to %s: %s", t.Id, hash.B58String())
 
-	// all done
 	return hash, nil
 }
 
 // handleMergeBlock handles an incoming merge block
 func (t *Thread) handleMergeBlock(hash mh.Multihash, block *pb.ThreadBlock) error {
-	// index it locally
-	return t.indexBlock(&commitResult{hash: hash, header: block.Header}, repo.MergeBlock, nil)
+	return t.indexBlock(&commitResult{
+		hash:   hash,
+		header: block.Header,
+	}, repo.MergeBlock, "", "")
 }

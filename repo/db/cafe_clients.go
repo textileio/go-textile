@@ -2,9 +2,10 @@ package db
 
 import (
 	"database/sql"
-	"github.com/textileio/textile-go/repo"
 	"sync"
 	"time"
+
+	"github.com/textileio/textile-go/repo"
 )
 
 type CafeClientDB struct {
@@ -104,13 +105,12 @@ func (c *CafeClientDB) handleQuery(stm string) []repo.CafeClient {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		accnt := repo.CafeClient{
+		ret = append(ret, repo.CafeClient{
 			Id:       id,
 			Address:  address,
 			Created:  time.Unix(int64(createdInt), 0),
 			LastSeen: time.Unix(int64(lastSeenInt), 0),
-		}
-		ret = append(ret, accnt)
+		})
 	}
 	return ret
 }

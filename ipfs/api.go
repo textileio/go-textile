@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/textileio/textile-go/archive"
 	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
@@ -20,6 +19,7 @@ import (
 	uio "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/unixfs/io"
 	"io"
 	"io/ioutil"
+	"strings"
 	"time"
 )
 
@@ -35,14 +35,13 @@ type IpnsEntry struct {
 }
 
 // DataAtPath return bytes under an ipfs path
-func DataAtPath(ipfs *core.IpfsNode, pth string) ([]byte, error) {
-	// convert string to an ipfs path
+func DataAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
 	ip, err := iface.ParsePath(pth)
 	if err != nil {
 		return nil, err
 	}
-	api := coreapi.NewCoreAPI(ipfs)
-	ctx, cancel := context.WithTimeout(ipfs.Context(), catTimeout)
+	api := coreapi.NewCoreAPI(node)
+	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
 	reader, err := api.Unixfs().Cat(ctx, ip)
 	if err != nil {
@@ -52,49 +51,14 @@ func DataAtPath(ipfs *core.IpfsNode, pth string) ([]byte, error) {
 	return ioutil.ReadAll(reader)
 }
 
-// ArchiveAtPath builds an archive from directory links under an ipfs path
-// NOTE: currently will bork if dir path contains other dirs (depth > 1)
-func ArchiveAtPath(ipfs *core.IpfsNode, path string) (io.Reader, error) {
-	// convert string to an ipfs path
-	ip, err := iface.ParsePath(path)
-	if err != nil {
-		return nil, err
-	}
-	api := coreapi.NewCoreAPI(ipfs)
-	ctx, cancel := context.WithTimeout(ipfs.Context(), catTimeout)
-	defer cancel()
-	links, err := api.Unixfs().Ls(ctx, ip)
-	if err != nil {
-		return nil, err
-	}
-	if len(links) == 0 {
-		return nil, nil
-	}
-
-	// virtual archive
-	arch, err := archive.NewArchive(nil)
-	for _, link := range links {
-		data, err := DataAtPath(ipfs, link.Cid.Hash().B58String())
-		if err != nil {
-			return nil, err
-		}
-		arch.AddFile(data, link.Name)
-	}
-	if err := arch.Close(); err != nil {
-		return nil, err
-	}
-	return arch.VirtualReader(), nil
-}
-
 // LinksAtPath return ipld links under a path
-func LinksAtPath(ipfs *core.IpfsNode, path string) ([]*ipld.Link, error) {
-	// convert string to an ipfs path
-	ip, err := iface.ParsePath(path)
+func LinksAtPath(node *core.IpfsNode, pth string) ([]*ipld.Link, error) {
+	ip, err := iface.ParsePath(pth)
 	if err != nil {
 		return nil, err
 	}
-	api := coreapi.NewCoreAPI(ipfs)
-	ctx, cancel := context.WithTimeout(ipfs.Context(), catTimeout)
+	api := coreapi.NewCoreAPI(node)
+	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
 	links, err := api.Unixfs().Ls(ctx, ip)
 	if err != nil {
@@ -103,9 +67,9 @@ func LinksAtPath(ipfs *core.IpfsNode, path string) ([]*ipld.Link, error) {
 	return links, nil
 }
 
-// AddFileToDirectory adds bytes as file to a virtual directory (dag) structure
-func AddFileToDirectory(ipfs *core.IpfsNode, dir uio.Directory, reader io.Reader, fname string) (*cid.Cid, error) {
-	str, err := coreunix.Add(ipfs, reader)
+// AddDataToDirectory adds reader bytes to a virtual dir
+func AddDataToDirectory(node *core.IpfsNode, dir uio.Directory, fname string, reader io.Reader) (*cid.Cid, error) {
+	str, err := coreunix.Add(node, reader)
 	if err != nil {
 		return nil, err
 	}
@@ -113,24 +77,44 @@ func AddFileToDirectory(ipfs *core.IpfsNode, dir uio.Directory, reader io.Reader
 	if err != nil {
 		return nil, err
 	}
-	node, err := ipfs.DAG.Get(ipfs.Context(), id)
+	n, err := node.DAG.Get(node.Context(), id)
 	if err != nil {
 		return nil, err
 	}
-	if err := dir.AddChild(ipfs.Context(), fname, node); err != nil {
+	if err := dir.AddChild(node.Context(), fname, n); err != nil {
 		return nil, err
 	}
 	return id, nil
 }
 
-// Data pins
-func PinData(ipfs *core.IpfsNode, data io.Reader) (*cid.Cid, error) {
-	ctx, cancel := context.WithTimeout(ipfs.Context(), pinTimeout)
+// AddLinkToDirectory adds a link to a virtual dir
+func AddLinkToDirectory(node *core.IpfsNode, dir uio.Directory, fname string, pth string) error {
+	id, err := cid.Decode(pth)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
-	api := coreapi.NewCoreAPI(ipfs)
+	nd, err := node.DAG.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+	ctx2, cancel2 := context.WithTimeout(node.Context(), catTimeout)
+	defer cancel2()
+	return dir.AddChild(ctx2, fname, nd)
+}
+
+// AddData takes a reader and adds it, optionally pins it
+func AddData(node *core.IpfsNode, data io.Reader, pin bool) (*cid.Cid, error) {
+	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
+	defer cancel()
+	api := coreapi.NewCoreAPI(node)
 	pth, err := api.Unixfs().Add(ctx, data)
 	if err != nil {
 		return nil, err
+	}
+	if !pin {
+		return pth.Cid(), nil
 	}
 	if err := api.Pin().Add(ctx, pth); err != nil {
 		return nil, err
@@ -139,15 +123,14 @@ func PinData(ipfs *core.IpfsNode, data io.Reader) (*cid.Cid, error) {
 }
 
 // PinPath takes an ipfs path string and pins it
-func PinPath(ipfs *core.IpfsNode, path string, recursive bool) error {
-	ip, err := iface.ParsePath(path)
+func PinPath(node *core.IpfsNode, pth string, recursive bool) error {
+	ip, err := iface.ParsePath(pth)
 	if err != nil {
-		log.Errorf("error pinning path: %s, recursive: %t: %s", path, recursive, err)
 		return err
 	}
-	ctx, cancel := context.WithTimeout(ipfs.Context(), pinTimeout)
+	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
 	defer cancel()
-	api := coreapi.NewCoreAPI(ipfs)
+	api := coreapi.NewCoreAPI(node)
 	if err := api.Pin().Add(ctx, ip, options.Pin.Recursive(recursive)); err != nil {
 		return err
 	}
@@ -155,42 +138,56 @@ func PinPath(ipfs *core.IpfsNode, path string, recursive bool) error {
 }
 
 // UnpinPath takes an ipfs path string and unpins it
-func UnpinPath(ipfs *core.IpfsNode, path string) error {
-	ip, err := iface.ParsePath(path)
+func UnpinPath(node *core.IpfsNode, pth string) error {
+	ip, err := iface.ParsePath(pth)
 	if err != nil {
-		log.Errorf("error unpinning path: %s: %s", path, err)
 		return err
 	}
-	ctx, cancel := context.WithTimeout(ipfs.Context(), pinTimeout)
+	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
 	defer cancel()
-	api := coreapi.NewCoreAPI(ipfs)
+	api := coreapi.NewCoreAPI(node)
 	if err := api.Pin().Rm(ctx, ip); err != nil {
 		return err
 	}
 	return nil
 }
 
-// PinDirectory pins a directory exluding any provided links
-func PinDirectory(ipfs *core.IpfsNode, dir ipld.Node, exclude []string) error {
-	ctx, cancel := context.WithTimeout(ipfs.Context(), pinTimeout)
+// NodeAtLink returns the node behind an ipld link
+func NodeAtLink(node *core.IpfsNode, link *ipld.Link) (ipld.Node, error) {
+	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
-	if err := ipfs.Pinning.Pin(ctx, dir, false); err != nil {
+	return link.GetNode(ctx, node.DAG)
+}
+
+// NodeAtCid returns the node behind a cid
+func NodeAtCid(node *core.IpfsNode, id *cid.Cid) (ipld.Node, error) {
+	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
+	defer cancel()
+	return node.DAG.Get(ctx, id)
+}
+
+// NodeAtPath returns the last node under path
+func NodeAtPath(node *core.IpfsNode, pth string) (ipld.Node, error) {
+	p, err := path.ParsePath(pth)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
+	defer cancel()
+	return node.Resolver.ResolvePath(ctx, p)
+}
+
+// PinNode pins an ipld node
+func PinNode(node *core.IpfsNode, nd ipld.Node, recursive bool) error {
+	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
+	defer cancel()
+	if err := node.Pinning.Pin(ctx, nd, recursive); err != nil {
+		if strings.Contains(err.Error(), "already pinned recursively") {
+			return nil
+		}
 		return err
 	}
-outer:
-	for _, item := range dir.Links() {
-		for _, ex := range exclude {
-			if item.Name == ex {
-				continue outer
-			}
-		}
-		node, err := item.GetNode(ctx, ipfs.DAG)
-		if err != nil {
-			return err
-		}
-		ipfs.Pinning.Pin(ctx, node, false)
-	}
-	return ipfs.Pinning.Flush()
+	return node.Pinning.Flush()
 }
 
 // Publish publishes a content id to ipns
@@ -216,16 +213,13 @@ func Publish(node *core.IpfsNode, sk libp2pc.PrivKey, id string, dur time.Durati
 	return &IpnsEntry{Name: pid.Pretty(), Value: pth.String()}, nil
 }
 
-// Publish publishes a node to ipns
+// Resolve resolves an ipns path to an ipfs path
 func Resolve(node *core.IpfsNode, name peer.ID) (*path.Path, error) {
-	// query options
 	key := fmt.Sprintf("/ipns/%s", name.Pretty())
 	var ropts []nsopts.ResolveOpt
 	ropts = append(ropts, nsopts.Depth(1))
 	ropts = append(ropts, nsopts.DhtRecordCount(16))
 	ropts = append(ropts, nsopts.DhtTimeout(ipnsTimeout))
-
-	// resolve w/ ipns
 	pth, err := node.Namesys.Resolve(node.Context(), key, ropts...)
 	if err != nil {
 		return nil, err

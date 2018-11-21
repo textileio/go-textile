@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/fatih/color"
-	"github.com/textileio/textile-go/core"
-	"gopkg.in/abiosoft/ishell.v2"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
+
+	"github.com/fatih/color"
+	"github.com/textileio/textile-go/core"
+	"gopkg.in/abiosoft/ishell.v2"
 )
 
 type ClientOptions struct {
@@ -135,7 +136,7 @@ func unmarshalString(body io.ReadCloser) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(data), nil
+	return trimQuotes(string(data)), nil
 }
 
 func unmarshalJSON(body io.ReadCloser, target interface{}) error {
@@ -152,6 +153,16 @@ func output(value interface{}, ctx *ishell.Context) {
 	} else {
 		fmt.Println(value)
 	}
+}
+
+func trimQuotes(s string) string {
+	if len(s) > 0 && s[0] == '"' {
+		s = s[1:]
+	}
+	if len(s) > 0 && s[len(s)-1] == '"' {
+		s = s[:len(s)-1]
+	}
+	return s
 }
 
 func printSplash(version string) {

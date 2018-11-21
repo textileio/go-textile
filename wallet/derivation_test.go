@@ -3,10 +3,11 @@ package wallet_test
 import (
 	"encoding/hex"
 	"fmt"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/textileio/textile-go/keypair"
 	. "github.com/textileio/textile-go/wallet"
-	"testing"
 )
 
 func ExampleDeriveFromPath() {

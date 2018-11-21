@@ -2,11 +2,12 @@ package db
 
 import (
 	"database/sql"
-	_ "github.com/mutecomm/go-sqlcipher"
-	"github.com/textileio/textile-go/repo"
 	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	"path"
 	"sync"
+
+	_ "github.com/mutecomm/go-sqlcipher"
+	"github.com/textileio/textile-go/repo"
 )
 
 var log = logging.Logger("tex-datastore")
@@ -15,6 +16,7 @@ type SQLiteDatastore struct {
 	config             repo.ConfigStore
 	profile            repo.ProfileStore
 	contacts           repo.ContactStore
+	files              repo.FileStore
 	threads            repo.ThreadStore
 	threadPeers        repo.ThreadPeerStore
 	threadMessages     repo.ThreadMessageStore
@@ -47,6 +49,7 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 		config:             NewConfigStore(conn, mux, dbPath),
 		profile:            NewProfileStore(conn, mux),
 		contacts:           NewContactStore(conn, mux),
+		files:              NewFileStore(conn, mux),
 		threads:            NewThreadStore(conn, mux),
 		threadPeers:        NewThreadPeerStore(conn, mux),
 		threadMessages:     NewThreadMessageStore(conn, mux),
@@ -84,6 +87,10 @@ func (d *SQLiteDatastore) Profile() repo.ProfileStore {
 
 func (d *SQLiteDatastore) Contacts() repo.ContactStore {
 	return d.contacts
+}
+
+func (d *SQLiteDatastore) Files() repo.FileStore {
+	return d.files
 }
 
 func (d *SQLiteDatastore) Threads() repo.ThreadStore {
@@ -188,21 +195,28 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index contact_username on contacts (username);
     create index contact_added on contacts (added);
 
-    create table threads (id text primary key not null, name text not null, sk blob not null, head text not null);
+    create table files (mill text not null, checksum text not null, source text not null, opts text not null, hash text not null, key text not null, media text not null, name text not null, size integer not null, added integer not null, meta blob, primary key (mill, checksum));
+    create index file_hash on files (hash);
+    create unique index file_mill_source_opts on files (mill, source, opts);
+
+    create table threads (id text primary key not null, key text not null, sk blob not null, name text not null, schema text not null, initiator text not null, type integer not null, state integer not null, head text not null);
+    create unique index thread_key on threads (key);
 
     create table thread_peers (id text not null, threadId text not null, welcomed integer not null, primary key (id, threadId));
     create index thread_peer_id on thread_peers (id);
     create index thread_peer_threadId on thread_peers (threadId);
     create index thread_peer_welcomed on thread_peers (welcomed);
 
-    create table blocks (id text primary key not null, date integer not null, parents text not null, threadId text not null, authorId text not null, type integer not null, dataId text, dataKey blob, dataCaption text, dataMetadata blob);
-    create index block_dataId on blocks (dataId);
-    create index block_threadId_type_date on blocks (threadId, type, date);
+    create table blocks (id text primary key not null, threadId text not null, authorId text not null, type integer not null, date integer not null, parents text not null, target text not null, body text not null);
+    create index block_threadId on blocks (threadId);
+    create index block_type on blocks (type);
+    create index block_date on blocks (date);
+    create index block_target on blocks (target);
 
     create table thread_messages (id text primary key not null, peerId text not null, envelope blob not null, date integer not null);
     create index thread_message_date on thread_messages (date);
 
-    create table notifications (id text primary key not null, date integer not null, actorId text not null, subject text not null, subjectId text not null, blockId text, dataId text, type integer not null, body text not null, read integer not null);
+    create table notifications (id text primary key not null, date integer not null, actorId text not null, subject text not null, subjectId text not null, blockId text, target text, type integer not null, body text not null, read integer not null);
     create index notification_date on notifications (date);
     create index notification_actorId on notifications (actorId);
     create index notification_subjectId on notifications (subjectId);
@@ -224,15 +238,14 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index cafe_client_address on cafe_clients (address);
     create index cafe_client_lastSeen on cafe_clients (lastSeen);
 
-    create table cafe_client_threads (id text not null, clientId text not null, skCipher blob not null, headCipher blob not null, nameCipher blob not null, primary key (id, clientId));
+    create table cafe_client_threads (id text not null, clientId text not null, ciphertext blob not null, primary key (id, clientId));
     create index cafe_client_thread_clientId on cafe_client_threads (clientId);
 
     create table cafe_client_messages (id text not null, peerId text not null, clientId text not null, date integer not null, primary key (id, clientId));
     create index cafe_client_message_clientId on cafe_client_messages (clientId);
     create index cafe_client_message_date on cafe_client_messages (date);
     `
-	_, err := db.Exec(sqlStmt)
-	if err != nil {
+	if _, err := db.Exec(sqlStmt); err != nil {
 		return err
 	}
 	return nil

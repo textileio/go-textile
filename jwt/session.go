@@ -3,14 +3,15 @@ package jwt
 import (
 	"encoding/json"
 	"errors"
-	"github.com/dgrijalva/jwt-go"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/pb"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/pb"
 )
 
 var ErrClaimsInvalid = errors.New("claims invalid")
@@ -112,19 +113,16 @@ func ParseClaims(claims jwt.Claims) (*TextileClaims, error) {
 }
 
 func Validate(tokenString string, keyfunc jwt.Keyfunc, refreshing bool, audience string, subject *string) error {
-	// parse it
 	token, pErr := jwt.Parse(tokenString, keyfunc)
 	if token == nil {
 		return ErrNoToken
 	}
 
-	// pull out claims
 	claims, err := ParseClaims(token.Claims)
 	if err != nil {
 		return ErrInvalid
 	}
 
-	// check valid
 	if pErr != nil {
 		if !claims.VerifyExpiresAt(time.Now().Unix(), true) {
 			return ErrExpired
@@ -132,7 +130,6 @@ func Validate(tokenString string, keyfunc jwt.Keyfunc, refreshing bool, audience
 		return ErrInvalid
 	}
 
-	// check scope
 	switch claims.Scope {
 	case Access:
 		if refreshing {

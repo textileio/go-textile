@@ -4,15 +4,16 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
-	njwt "github.com/dgrijalva/jwt-go"
-	"github.com/gin-gonic/gin"
-	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/jwt"
 	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 	uio "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/unixfs/io"
 	"io"
 	"net/http"
 	"strings"
+
+	njwt "github.com/dgrijalva/jwt-go"
+	"github.com/gin-gonic/gin"
+	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/jwt"
 )
 
 // cafeApiVersion is the cafe api version
@@ -161,9 +162,8 @@ func (c *cafeApi) pin(g *gin.Context) {
 	cType := g.Request.Header.Get("Content-Type")
 	switch cType {
 	case "application/gzip":
-		// create a virtual directory for the photo
 		dirb := uio.NewDirectory(c.node.Ipfs().DAG)
-		// unpack archive
+
 		gr, err := gzip.NewReader(g.Request.Body)
 		if err != nil {
 			log.Errorf("error creating gzip reader %s", err)
@@ -171,6 +171,7 @@ func (c *cafeApi) pin(g *gin.Context) {
 			return
 		}
 		tr := tar.NewReader(gr)
+
 		for {
 			header, err := tr.Next()
 			if err == io.EOF {
@@ -181,13 +182,14 @@ func (c *cafeApi) pin(g *gin.Context) {
 				g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
+
 			switch header.Typeflag {
 			case tar.TypeDir:
 				log.Error("got nested directory, aborting")
 				g.JSON(http.StatusBadRequest, gin.H{"error": "directories are not supported"})
 				return
 			case tar.TypeReg:
-				if _, err := ipfs.AddFileToDirectory(c.node.Ipfs(), dirb, tr, header.Name); err != nil {
+				if _, err := ipfs.AddDataToDirectory(c.node.Ipfs(), dirb, header.Name, tr); err != nil {
 					log.Errorf("error adding file to dir %s", err)
 					g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
@@ -204,7 +206,7 @@ func (c *cafeApi) pin(g *gin.Context) {
 			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		if err := ipfs.PinDirectory(c.node.Ipfs(), dir, []string{}); err != nil {
+		if err := ipfs.PinNode(c.node.Ipfs(), dir, true); err != nil {
 			log.Errorf("error pinning dir node %s", err)
 			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -213,7 +215,7 @@ func (c *cafeApi) pin(g *gin.Context) {
 
 	case "application/octet-stream":
 		var err error
-		id, err = ipfs.PinData(c.node.Ipfs(), g.Request.Body)
+		id, err = ipfs.AddData(c.node.Ipfs(), g.Request.Body, true)
 		if err != nil {
 			log.Errorf("error pinning raw body %s", err)
 			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -236,8 +238,5 @@ func (c *cafeApi) pin(g *gin.Context) {
 
 // verifyKeyFunc returns the correct key for token verification
 func (c *cafeApi) verifyKeyFunc(token *njwt.Token) (interface{}, error) {
-	if !c.node.Started() {
-		return nil, ErrStopped
-	}
 	return c.node.Ipfs().PrivateKey.GetPublic(), nil
 }

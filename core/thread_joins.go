@@ -1,11 +1,12 @@
 package core
 
 import (
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 )
 
 // joinInitial creates an outgoing join block for an emtpy thread
@@ -13,31 +14,26 @@ func (t *Thread) joinInitial() (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	// build block
 	msg, err := t.buildJoin(t.node().Identity.Pretty())
 	if err != nil {
 		return nil, err
 	}
 
-	// commit to ipfs
 	res, err := t.commitBlock(msg, pb.ThreadBlock_JOIN, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// index it locally
-	if err := t.indexBlock(res, repo.JoinBlock, nil); err != nil {
+	if err := t.indexBlock(res, repo.JoinBlock, "", ""); err != nil {
 		return nil, err
 	}
 
-	// update head
 	if err := t.updateHead(res.hash); err != nil {
 		return nil, err
 	}
 
 	log.Debugf("added JOIN to %s: %s", t.Id, res.hash.B58String())
 
-	// all done
 	return res.hash, nil
 }
 
@@ -46,36 +42,30 @@ func (t *Thread) join(inviterId peer.ID) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	// build block
 	msg, err := t.buildJoin(inviterId.Pretty())
 	if err != nil {
 		return nil, err
 	}
 
-	// commit to ipfs
 	res, err := t.commitBlock(msg, pb.ThreadBlock_JOIN, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// index it locally
-	if err := t.indexBlock(res, repo.JoinBlock, nil); err != nil {
+	if err := t.indexBlock(res, repo.JoinBlock, "", ""); err != nil {
 		return nil, err
 	}
 
-	// update head
 	if err := t.updateHead(res.hash); err != nil {
 		return nil, err
 	}
 
-	// post it
 	if err := t.post(res, t.Peers()); err != nil {
 		return nil, err
 	}
 
 	log.Debugf("added JOIN to %s: %s", t.Id, res.hash.B58String())
 
-	// all done
 	return res.hash, nil
 }
 
@@ -86,8 +76,10 @@ func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 		return nil, err
 	}
 
-	// index it locally
-	if err := t.indexBlock(&commitResult{hash: hash, header: block.Header}, repo.JoinBlock, nil); err != nil {
+	if err := t.indexBlock(&commitResult{
+		hash:   hash,
+		header: block.Header,
+	}, repo.JoinBlock, "", ""); err != nil {
 		return nil, err
 	}
 

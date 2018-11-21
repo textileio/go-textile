@@ -6,9 +6,9 @@ import "google/protobuf/timestamp.proto";
 
 // for wire transport
 message ThreadEnvelope {
-    string thread     = 1;
-    string hash       = 2; // hash of encrypted block
-    bytes cipherBlock = 3; // encrypted ThreadBlock, also stored on ipfs for recovery
+    string thread    = 1;
+    string hash      = 2; // hash of encrypted block
+    bytes ciphertext = 3; // encrypted ThreadBlock, also stored on ipfs for recovery
 }
 
 message ThreadBlock {
@@ -17,16 +17,17 @@ message ThreadBlock {
     google.protobuf.Any payload = 3; // nil for some types
 
     enum Type {
-        MERGE           = 0; // block is stored in plaintext, no payload
-        IGNORE          = 1;
-        FLAG            = 2;
-        JOIN            = 3;
-        ANNOUNCE        = 4;
-        LEAVE           = 5; // no payload
-        DATA            = 6;
-        ANNOTATION      = 7;
-
-        INVITE          = 50;
+        MERGE    = 0; // block is stored in plaintext, no payload
+        IGNORE   = 1;
+        FLAG     = 2;
+        JOIN     = 3;
+        ANNOUNCE = 4;
+        LEAVE    = 5; // no payload
+        MESSAGE  = 6;
+        FILES    = 7;
+        COMMENT  = 8;
+        LIKE     = 9;
+        INVITE   = 50;
     }
 }
 
@@ -37,16 +38,18 @@ message ThreadBlockHeader {
 }
 
 message ThreadInvite {
-    bytes sk       = 1;
-    string name    = 2;
+    bytes sk         = 1;
+    string name      = 2;
+    string schema    = 3;
+    string initiator = 4;
 }
 
 message ThreadIgnore {
-    string data = 1;
+    string target = 1;
 }
 
 message ThreadFlag {
-    string data = 1;
+    string target = 1;
 }
 
 message ThreadJoin {
@@ -60,25 +63,21 @@ message ThreadAnnounce {
     repeated string inboxes = 2;
 }
 
-message ThreadData {
-    Type type      = 1;
-    string data    = 2;
-    bytes key      = 3;
-    string caption = 4;
-
-    enum Type {
-        FILE  = 0;
-        TEXT  = 1;
-    }
+message ThreadMessage {
+    string body = 1;
 }
 
-message ThreadAnnotation {
-    Type type      = 1;
-    string data    = 2;
-    string caption = 3;
+message ThreadFiles {
+    string target            = 1; // top-level file hash
+    string body              = 2;
+    map<string, string> keys = 3; // hash: key
+}
 
-    enum Type {
-        COMMENT = 0;
-        LIKE    = 1;
-    }
+message ThreadComment {
+    string target = 1;
+    string body   = 2;
+}
+
+message ThreadLike {
+    string target = 1;
 }

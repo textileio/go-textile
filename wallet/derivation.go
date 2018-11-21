@@ -6,10 +6,11 @@ import (
 	"crypto/sha512"
 	"encoding/binary"
 	"errors"
-	"golang.org/x/crypto/ed25519"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"golang.org/x/crypto/ed25519"
 )
 
 const (
@@ -57,7 +58,7 @@ func DeriveForPath(path string, seed []byte) (*Key, error) {
 			return nil, err
 		}
 
-		// We operate on hardened keys
+		// we operate on hardened keys
 		i := uint32(i64) + FirstHardenedIndex
 		key, err = key.Derive(i)
 		if err != nil {
@@ -130,7 +131,7 @@ func IsValidPath(path string) bool {
 		return false
 	}
 
-	// Check for overflows
+	// check for overflows
 	segments := strings.Split(path, "/")
 	for _, segment := range segments[1:] {
 		_, err := strconv.ParseUint(strings.TrimRight(segment, "'"), 10, 32)

@@ -2,10 +2,18 @@ package core
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
+	"errors"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	"io"
+	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"strings"
+
+	m "github.com/textileio/textile-go/mill"
+	"github.com/textileio/textile-go/repo"
+
+	"github.com/gin-gonic/gin"
 )
 
 // apiVersion is the api version
@@ -63,18 +71,39 @@ func (a *api) Start() {
 		v0.GET("/address", a.address)
 		v0.GET("/ping", a.ping)
 
-		v0.POST("/threads", a.addThreads)
-		v0.GET("/threads", a.lsThreads)
-		v0.GET("/threads/:id", a.getThreads)
-		v0.DELETE("/threads/:id", a.rmThreads)
+		profile := v0.Group("/profile")
+		profile.GET("", a.getProfile)
+		profile.POST("/username", a.setUsername)
+		profile.POST("/avatar", a.setAvatar)
 
-		v0.POST("/images", a.addImages)
+		mills := v0.Group("/mills")
+		mills.POST("/schema", a.schemaMill)
+		mills.POST("/blob", a.blobMill)
+		mills.POST("/image/resize", a.imageResizeMill)
+		mills.POST("/image/exif", a.imageExifMill)
 
-		v0.POST("/cafes", a.addCafes)
-		v0.GET("/cafes", a.lsCafes)
-		v0.GET("/cafes/:id", a.getCafes)
-		v0.DELETE("/cafes/:id", a.rmCafes)
-		v0.POST("/cafes/check_mail", a.checkMailCafes)
+		threads := v0.Group("/threads")
+		threads.POST("", a.addThreads)
+		threads.GET("", a.lsThreads)
+		threads.GET("/:id", a.getThreads)
+		threads.DELETE("/:id", a.rmThreads)
+		threads.POST("/:id/files", a.addThreadFiles)
+
+		files := v0.Group("/files")
+		files.GET("", a.lsThreadFiles)
+		files.GET("/:block", a.getThreadFiles)
+
+		invite := v0.Group("/invite")
+		invite.POST("", a.createInvite)
+		invite.POST("/:id/accept", a.acceptInvite)
+		invite.POST("/:id/ignore", a.ignoreInvite)
+
+		cafes := v0.Group("/cafes")
+		cafes.POST("", a.addCafes)
+		cafes.GET("", a.lsCafes)
+		cafes.GET("/:id", a.getCafes)
+		cafes.DELETE("/:id", a.rmCafes)
+		cafes.POST("/messages", a.checkCafeMessages)
 	}
 	a.server = &http.Server{
 		Addr:    a.addr,
@@ -101,7 +130,7 @@ func (a *api) Start() {
 			}
 		}
 	}()
-	log.Infof("api listening at %s\n", a.server.Addr)
+	log.Infof("api listening at %s", a.server.Addr)
 }
 
 // Stop stops the http api
@@ -127,12 +156,7 @@ func (a *api) peer(g *gin.Context) {
 }
 
 func (a *api) address(g *gin.Context) {
-	addr, err := a.node.Address()
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-	g.String(http.StatusOK, addr)
+	g.String(http.StatusOK, a.node.account.Address())
 }
 
 func (a *api) ping(g *gin.Context) {
@@ -168,6 +192,76 @@ func (a *api) readArgs(g *gin.Context) ([]string, error) {
 		}
 	}
 	return args, nil
+}
+
+func (a *api) readOpts(g *gin.Context) (map[string]string, error) {
+	header := g.Request.Header.Get("X-Textile-Opts")
+	opts := make(map[string]string)
+	for _, o := range strings.Split(header, ",") {
+		opt := strings.TrimSpace(o)
+		if opt != "" {
+			parts := strings.Split(opt, "=")
+			if len(parts) == 2 {
+				opts[parts[0]] = parts[1]
+			}
+		}
+	}
+	return opts, nil
+}
+
+func (a *api) openFile(g *gin.Context) (multipart.File, string, error) {
+	form, err := g.MultipartForm()
+	if err != nil {
+		return nil, "", err
+	}
+	if len(form.File["file"]) == 0 {
+		return nil, "", errors.New("no file attached")
+	}
+	header := form.File["file"][0]
+	file, err := header.Open()
+	if err != nil {
+		return nil, "", err
+	}
+	return file, header.Filename, nil
+}
+
+func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string) (*AddFileConfig, error) {
+	var reader io.ReadSeeker
+	conf := &AddFileConfig{}
+
+	if use == "" {
+		f, fn, err := a.openFile(g)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+		reader = f
+		conf.Name = fn
+	} else {
+		var file *repo.File
+		var err error
+		reader, file, err = a.node.FileData(use)
+		if err != nil {
+			return nil, err
+		}
+		conf.Name = file.Name
+		conf.Use = file.Checksum
+	}
+
+	media, err := a.node.GetMedia(reader, mill)
+	if err != nil {
+		return nil, err
+	}
+	conf.Media = media
+	reader.Seek(0, 0)
+
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	conf.Input = data
+
+	return conf, nil
 }
 
 func (a *api) abort500(g *gin.Context, err error) {

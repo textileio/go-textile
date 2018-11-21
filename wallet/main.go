@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"errors"
+
 	"github.com/textileio/textile-go/keypair"
 	"github.com/tyler-smith/go-bip39"
 )

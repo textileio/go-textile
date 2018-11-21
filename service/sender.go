@@ -3,13 +3,14 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/textileio/textile-go/pb"
 	inet "gx/ipfs/QmPjvxTpVH8qJyQDnxnsxF9kv9jezKD1kozz1hs3fCGsNh/go-libp2p-net"
 	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"sync"
 	"time"
+
+	"github.com/textileio/textile-go/pb"
 )
 
 // sender is a reusable peer stream
@@ -66,7 +67,7 @@ func (s *Service) messageSenderForPeer(pid peer.ID, proto protocol.ID) (*sender,
 		// Invalid but not in map. Must have been removed by a disconnect.
 		return nil, err
 	}
-	// All ready to go.
+
 	return ms, nil
 }
 

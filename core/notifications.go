@@ -3,8 +3,9 @@ package core
 import (
 	"errors"
 	"fmt"
-	"github.com/textileio/textile-go/repo"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+
+	"github.com/textileio/textile-go/repo"
 )
 
 // Notifications lists notifications
@@ -29,13 +30,12 @@ func (t *Textile) ReadAllNotifications() error {
 
 // AcceptThreadInviteViaNotification uses an invite notification to accept an invite to a thread
 func (t *Textile) AcceptThreadInviteViaNotification(id string) (mh.Multihash, error) {
-	// lookup notification
 	notification := t.datastore.Notifications().Get(id)
 	if notification == nil {
 		return nil, errors.New(fmt.Sprintf("could not find notification: %s", id))
 	}
-	if notification.Type != repo.ReceivedInviteNotification {
-		return nil, errors.New(fmt.Sprintf("notification not invite type"))
+	if notification.Type != repo.InviteReceivedNotification {
+		return nil, errors.New(fmt.Sprintf("notification not type invite"))
 	}
 
 	// block is the invite's block id
@@ -44,6 +44,5 @@ func (t *Textile) AcceptThreadInviteViaNotification(id string) (mh.Multihash, er
 		return nil, err
 	}
 
-	// delete notification
 	return hash, t.datastore.Notifications().Delete(id)
 }

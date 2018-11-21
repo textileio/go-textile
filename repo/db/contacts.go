@@ -2,10 +2,11 @@ package db
 
 import (
 	"database/sql"
-	"github.com/textileio/textile-go/repo"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/textileio/textile-go/repo"
 )
 
 type ContactDB struct {
@@ -97,13 +98,12 @@ func (c *ContactDB) handleQuery(stm string) []repo.Contact {
 				ilist = append(ilist, p)
 			}
 		}
-		contact := repo.Contact{
+		ret = append(ret, repo.Contact{
 			Id:       id,
 			Username: username,
 			Inboxes:  ilist,
 			Added:    time.Unix(int64(addedInt), 0),
-		}
-		ret = append(ret, contact)
+		})
 	}
 	return ret
 }

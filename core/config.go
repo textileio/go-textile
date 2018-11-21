@@ -2,7 +2,7 @@ package core
 
 import (
 	"fmt"
-	"github.com/textileio/textile-go/repo/config"
+	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/fsrepo"
 	"math/rand"
@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/textileio/textile-go/repo/config"
 )
 
 const minPort = 1024
@@ -36,8 +38,19 @@ func applyTextileConfigOptions(init InitConfig) error {
 		return err
 	}
 
+	// determine the account thread id
+	pk, err := init.Account.LibP2PPubKey()
+	if err != nil {
+		return err
+	}
+	atid, err := peer.IDFromPublicKey(pk)
+	if err != nil {
+		return err
+	}
+
 	// account settings
 	conf.Account.Address = init.Account.Address()
+	conf.Account.Thread = atid.Pretty()
 
 	// address settings
 	conf.Addresses.API = init.ApiAddr
@@ -53,7 +66,7 @@ func applyTextileConfigOptions(init InitConfig) error {
 	conf.IsMobile = init.IsMobile
 
 	// cafe settings
-	conf.Cafe.Open = init.CafeOpen
+	conf.Cafe.Host.Open = init.CafeOpen
 
 	// write to disk
 	return config.Write(init.RepoPath, conf)
@@ -83,7 +96,6 @@ outer:
 		final = append(final, bp)
 	}
 
-	// add new
 	for _, p := range add {
 		final = append(final, p)
 	}
@@ -97,11 +109,13 @@ func loadSwarmPorts(repoPath string) (*config.SwarmPorts, error) {
 		return nil, err
 	}
 	defer rep.Close()
+
 	conf, err := rep.Config()
 	if err != nil {
 		return nil, err
 	}
 	ports := &config.SwarmPorts{}
+
 	for _, p := range conf.Addresses.Swarm {
 		tcp := tcpPortRx.FindStringSubmatch(p)
 		if len(tcp) == 2 {
@@ -122,6 +136,7 @@ func applySwarmPortConfigOption(rep repo.Repo, ports string) error {
 		parts = strings.Split(ports, ",")
 	}
 	var tcp, ws string
+
 	switch len(parts) {
 	case 1:
 		tcp = parts[0]
@@ -133,6 +148,7 @@ func applySwarmPortConfigOption(rep repo.Repo, ports string) error {
 		tcp = GetRandomPort()
 		ws = GetRandomPort()
 	}
+
 	return config.UpdateIpfs(rep, "Addresses.Swarm", []string{
 		fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", tcp),
 		fmt.Sprintf("/ip6/::/tcp/%s", tcp),
@@ -157,6 +173,7 @@ func applyServerConfigOption(rep repo.Repo, isServer bool) error {
 			return err
 		}
 		log.Info("applied server profile")
+
 	} else {
 		if err := config.UpdateIpfs(rep, "Addresses.NoAnnounce", []string{}); err != nil {
 			return err
@@ -171,5 +188,6 @@ func applyServerConfigOption(rep repo.Repo, isServer bool) error {
 			return err
 		}
 	}
+
 	return nil
 }

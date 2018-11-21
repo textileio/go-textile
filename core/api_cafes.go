@@ -1,9 +1,10 @@
 package core
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/textileio/textile-go/repo"
-	"net/http"
 )
 
 func (a *api) addCafes(g *gin.Context) {
@@ -59,8 +60,8 @@ func (a *api) rmCafes(g *gin.Context) {
 	g.String(http.StatusOK, "ok")
 }
 
-func (a *api) checkMailCafes(g *gin.Context) {
-	if err := a.node.CheckCafeMail(); err != nil {
+func (a *api) checkCafeMessages(g *gin.Context) {
+	if err := a.node.CheckCafeMessages(); err != nil {
 		a.abort500(g, err)
 		return
 	}

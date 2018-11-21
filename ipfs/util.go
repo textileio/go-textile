@@ -23,7 +23,7 @@ func IpnsSubs(node *core.IpfsNode) ([]string, error) {
 	for _, key := range node.PSRouter.GetSubscriptions() {
 		ns, k, err := record.SplitKey(key)
 		if err != nil || ns != "ipns" {
-			// Not necessarily an error.
+			// not necessarily an error.
 			continue
 		}
 		pid, err := peer.IDFromString(k)
@@ -48,7 +48,7 @@ func PrintSwarmAddrs(node *core.IpfsNode) error {
 	}
 	sort.Sort(sort.StringSlice(lisAddrs))
 	for _, addr := range lisAddrs {
-		log.Infof("swarm listening on %s\n", addr)
+		log.Infof("swarm listening on %s", addr)
 	}
 
 	var addrs []string
@@ -57,7 +57,7 @@ func PrintSwarmAddrs(node *core.IpfsNode) error {
 	}
 	sort.Sort(sort.StringSlice(addrs))
 	for _, addr := range addrs {
-		log.Infof("swarm announcing %s\n", addr)
+		log.Infof("swarm announcing %s", addr)
 	}
 	return nil
 }

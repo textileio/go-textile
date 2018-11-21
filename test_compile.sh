@@ -20,11 +20,10 @@ go test -coverprofile=jwt.cover.out ./jwt
 
 # repo
 go test -coverprofile=repo.db.cover.out ./repo/db
-go test -coverprofile=repo.schema.cover.out ./repo/schema
 go test -coverprofile=repo.migrations.cover.out ./repo/migrations
 
-# images
-go test -coverprofile=images.cover.out ./images
+# mill
+go test -coverprofile=mill.cover.out ./mill
 
 # core
 go test -coverprofile=core.cover.out ./core

@@ -19,24 +19,17 @@ func IdentityConfig(sk libp2pc.PrivKey) (config.Identity, error) {
 	}
 
 	// currently storing key unencrypted. in the future we need to encrypt it.
-	// TODO(security)
 	skbytes, err := sk.Bytes()
 	if err != nil {
 		return ident, err
 	}
 	ident.PrivKey = base64.StdEncoding.EncodeToString(skbytes)
-	pkbytes, err := pk.Bytes()
-	if err != nil {
-		return ident, err
-	}
-	pks := base64.StdEncoding.EncodeToString(pkbytes)
 
 	id, err := peer.IDFromPublicKey(pk)
 	if err != nil {
 		return ident, err
 	}
 	ident.PeerID = id.Pretty()
-	log.Infof("new peer identity: id: %s, pk: %s", ident.PeerID, pks)
 	return ident, nil
 }
 

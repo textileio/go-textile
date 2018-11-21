@@ -1,18 +1,17 @@
 package mobile
 
 import (
-	"github.com/textileio/textile-go/core"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 )
 
 // SetUsername calls core SetUsername
 func (m *Mobile) SetUsername(username string) error {
-	return core.Node.SetUsername(username)
+	return m.node.SetUsername(username)
 }
 
 // Username calls core Username
 func (m *Mobile) Username() (string, error) {
-	username, err := core.Node.Username()
+	username, err := m.node.Username()
 	if err != nil {
 		return "", err
 	}
@@ -23,17 +22,17 @@ func (m *Mobile) Username() (string, error) {
 }
 
 // SetAvatar calls core SetAvatar
-func (m *Mobile) SetAvatar(id string) error {
-	return core.Node.SetAvatar(id)
+func (m *Mobile) SetAvatar(hash string) error {
+	return m.node.SetAvatar(hash)
 }
 
 // Profile returns the local profile
 func (m *Mobile) Profile() (string, error) {
-	id, err := core.Node.PeerId()
+	id, err := m.node.PeerId()
 	if err != nil {
 		return "", err
 	}
-	prof, err := core.Node.Profile(id)
+	prof, err := m.node.Profile(id)
 	if err != nil {
 		return "", err
 	}
@@ -46,7 +45,7 @@ func (m *Mobile) PeerProfile(peerId string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	prof, err := core.Node.Profile(pid)
+	prof, err := m.node.Profile(pid)
 	if err != nil {
 		return "", err
 	}

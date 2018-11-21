@@ -1,13 +1,14 @@
 package core
 
 import (
-	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 	"sync"
 	"time"
+
+	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/textile-go/repo"
 )
 
 // threadsFlushGroupSize is the size of concurrently processed messages
@@ -53,12 +54,10 @@ func (q *ThreadsOutbox) Flush() {
 	q.mux.Lock()
 	defer q.mux.Unlock()
 
-	// check service status
 	if q.service() == nil {
 		return
 	}
 
-	// start at zero offset
 	if err := q.batch(q.datastore.ThreadMessages().List("", threadsFlushGroupSize)); err != nil {
 		log.Errorf("thread outbox batch error: %s", err)
 		return
@@ -71,7 +70,6 @@ func (q *ThreadsOutbox) batch(msgs []repo.ThreadMessage) error {
 		return nil
 	}
 
-	// process the batch
 	var berr error
 	var toDelete []string
 	wg := sync.WaitGroup{}
@@ -95,7 +93,6 @@ func (q *ThreadsOutbox) batch(msgs []repo.ThreadMessage) error {
 	offset := msgs[len(msgs)-1].Id
 	next := q.datastore.ThreadMessages().List(offset, threadsFlushGroupSize)
 
-	// clean up
 	var deleted []string
 	for _, id := range toDelete {
 		if err := q.datastore.ThreadMessages().Delete(id); err != nil {

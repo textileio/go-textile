@@ -3,15 +3,16 @@ package core_test
 import (
 	"encoding/json"
 	"fmt"
-	. "github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/repo"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
 	"time"
+
+	. "github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/repo"
 )
 
 var repoPath1 = "testdata/.textile1"
@@ -163,6 +164,8 @@ func TestCafeApi_Teardown(t *testing.T) {
 	node2.Stop()
 	node1 = nil
 	node2 = nil
+	os.RemoveAll(repoPath1)
+	os.RemoveAll(repoPath2)
 }
 
 func pin(reader io.Reader, cType string, token string, addr string) (*http.Response, error) {

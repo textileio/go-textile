@@ -3,14 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/jessevdk/go-flags"
-	"github.com/mitchellh/go-homedir"
-	"github.com/textileio/textile-go/cmd"
-	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/gateway"
-	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/wallet"
-	"gopkg.in/abiosoft/ishell.v2"
 	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	"log"
 	"os"
@@ -19,26 +11,35 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/jessevdk/go-flags"
+	"github.com/mitchellh/go-homedir"
+	"github.com/textileio/textile-go/cmd"
+	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/gateway"
+	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/wallet"
+	"gopkg.in/abiosoft/ishell.v2"
 )
 
 type ipfsOptions struct {
-	ServerMode bool   `long:"server" description:"Apply IPFS server profile"`
+	ServerMode bool   `long:"server" description:"Apply IPFS server profile."`
 	SwarmPorts string `long:"swarm-ports" description:"Set the swarm ports (TCP,WS). Random ports are chosen by default."`
 }
 
 type logOptions struct {
-	Level   string `short:"l" long:"log-level" description:"Set the logging level [debug, info, notice, warning, error, critical]" default:"error"`
-	NoFiles bool   `short:"n" long:"no-log-files" description:"Write logs to stdout instead of rolling files"`
+	Level   string `short:"l" long:"log-level" description:"Set the logging level [debug, info, notice, warning, error, critical]." default:"error"`
+	NoFiles bool   `short:"n" long:"no-log-files" description:"Write logs to stdout instead of rolling files."`
 }
 
 type addressOptions struct {
-	ApiBindAddr     string `short:"a" long:"api-bind-addr" description:"Set the local API address" default:"127.0.0.1:40600"`
-	CafeApiBindAddr string `short:"c" long:"cafe-bind-addr" description:"Set the cafe REST API address" default:"127.0.0.1:40601"`
-	GatewayBindAddr string `short:"g" long:"gateway-bind-addr" description:"Set the IPFS gateway address" default:"127.0.0.1:5050"`
+	ApiBindAddr     string `short:"a" long:"api-bind-addr" description:"Set the local API address." default:"127.0.0.1:40600"`
+	CafeApiBindAddr string `short:"c" long:"cafe-bind-addr" description:"Set the cafe REST API address." default:"127.0.0.1:40601"`
+	GatewayBindAddr string `short:"g" long:"gateway-bind-addr" description:"Set the IPFS gateway address." default:"127.0.0.1:5050"`
 }
 
 type cafeOptions struct {
-	Open bool `long:"cafe-open" description:"Opens the p2p Cafe Service for other peers"`
+	Open bool `long:"cafe-open" description:"Opens the p2p Cafe Service for other peers."`
 }
 
 type options struct{}
@@ -49,22 +50,22 @@ type walletCmd struct {
 }
 
 type walletInitCmd struct {
-	WordCount int    `short:"w" long:"word-count" description:"Number of mnemonic recovery phrase words: 12,15,18,21,24" default:"12"`
-	Password  string `short:"p" long:"password" description:"Mnemonic recovery phrase password (omit if none)"`
+	WordCount int    `short:"w" long:"word-count" description:"Number of mnemonic recovery phrase words: 12,15,18,21,24." default:"12"`
+	Password  string `short:"p" long:"password" description:"Mnemonic recovery phrase password (omit if none)."`
 }
 
 type walletAccountsCmd struct {
-	Password string `short:"p" long:"password" description:"Mnemonic recovery phrase password (omit if none)"`
-	Depth    int    `short:"d" long:"depth" description:"Number of accounts to show" default:"1"`
-	Offset   int    `short:"o" long:"offset" description:"Account depth to start from" default:"0"`
+	Password string `short:"p" long:"password" description:"Mnemonic recovery phrase password (omit if none)."`
+	Depth    int    `short:"d" long:"depth" description:"Number of accounts to show." default:"1"`
+	Offset   int    `short:"o" long:"offset" description:"Account depth to start from." default:"0"`
 }
 
 type versionCmd struct{}
 
 type initCmd struct {
-	AccountSeed string         `required:"true" short:"s" long:"seed" description:"Account seed (run 'wallet' command to generate new seeds)"`
-	PinCode     string         `short:"p" long:"pin-code" description:"Specify a pin code for datastore encryption"`
-	RepoPath    string         `short:"r" long:"repo-dir" description:"Specify a custom repository path"`
+	AccountSeed string         `required:"true" short:"s" long:"seed" description:"Account seed (run 'wallet' command to generate new seeds)."`
+	PinCode     string         `short:"p" long:"pin-code" description:"Specify a pin code for datastore encryption."`
+	RepoPath    string         `short:"r" long:"repo-dir" description:"Specify a custom repository path."`
 	Addresses   addressOptions `group:"Address Options"`
 	CafeOptions cafeOptions    `group:"Cafe Options"`
 	IPFS        ipfsOptions    `group:"IPFS Options"`
@@ -72,13 +73,13 @@ type initCmd struct {
 }
 
 type migrateCmd struct {
-	RepoPath string `short:"r" long:"repo-dir" description:"Specify a custom repository path"`
-	PinCode  string `short:"p" long:"pin-code" description:"Specify the pin code for datastore encryption (omit of none was used during init)"`
+	RepoPath string `short:"r" long:"repo-dir" description:"Specify a custom repository path."`
+	PinCode  string `short:"p" long:"pin-code" description:"Specify the pin code for datastore encryption (omit of none was used during init)."`
 }
 
 type daemonCmd struct {
-	PinCode  string `short:"p" long:"pin-code" description:"Specify the pin code for datastore encryption (omit of none was used during init)"`
-	RepoPath string `short:"r" long:"repo-dir" description:"Specify a custom repository path"`
+	PinCode  string `short:"p" long:"pin-code" description:"Specify the pin code for datastore encryption (omit of none was used during init)."`
+	RepoPath string `short:"r" long:"repo-dir" description:"Specify a custom repository path."`
 }
 
 type shellCmd struct {
@@ -86,6 +87,7 @@ type shellCmd struct {
 }
 
 var shell *ishell.Shell
+var node *core.Textile
 
 var parser = flags.NewParser(&options{}, flags.Default)
 
@@ -96,7 +98,7 @@ func init() {
 		"Print the current version and exit.",
 		&versionCmd{})
 	parser.AddCommand("wallet",
-		"Manage a wallet of accounts",
+		"Manage or create an account wallet",
 		"Initialize a new wallet, or view accounts from an existing wallet.",
 		&walletCmd{})
 	parser.AddCommand("init",
@@ -108,11 +110,11 @@ func init() {
 		"Migrate the node repository and exit.",
 		&migrateCmd{})
 	parser.AddCommand("shell",
-		"Start an command shell",
+		"Start a shell session",
 		"Start an interactive command shell session.",
 		&shellCmd{})
 	parser.AddCommand("daemon",
-		"Start a node daemon",
+		"Start the daemon",
 		"Start a node daemon session.",
 		&daemonCmd{})
 
@@ -127,19 +129,16 @@ func main() {
 }
 
 func (x *walletInitCmd) Execute(args []string) error {
-	// determine word count
 	wcount, err := wallet.NewWordCount(x.WordCount)
 	if err != nil {
 		return err
 	}
 
-	// create a new wallet
 	w, err := wallet.NewWallet(wcount.EntropySize())
 	if err != nil {
 		return err
 	}
 
-	// show info
 	fmt.Println(strings.Repeat("-", len(w.RecoveryPhrase)+4))
 	fmt.Println("| " + w.RecoveryPhrase + " |")
 	fmt.Println(strings.Repeat("-", len(w.RecoveryPhrase)+4))
@@ -193,7 +192,6 @@ func (x *walletAccountsCmd) Execute(args []string) error {
 		return wallet.ErrInvalidWordCount
 	}
 
-	// read input
 	words := make([]string, int(wcount))
 	for i := 0; i < int(wcount); i++ {
 		shell.Print(fmt.Sprintf("Enter word #%d: ", i+1))
@@ -205,7 +203,6 @@ func (x *walletAccountsCmd) Execute(args []string) error {
 	}
 	wall := wallet.NewWalletFromRecoveryPhrase(strings.Join(words, " "))
 
-	// show info
 	for i := x.Offset; i < x.Offset+x.Depth; i++ {
 		kp, err := wall.AccountAt(i, x.Password)
 		if err != nil {
@@ -234,19 +231,16 @@ func (x *initCmd) Execute(args []string) error {
 		return keypair.ErrInvalidKey
 	}
 
-	// handle repo path
 	repoPath, err := getRepoPath(x.RepoPath)
 	if err != nil {
 		return err
 	}
 
-	// determine log level
 	level, err := logger.LogLevel(strings.ToUpper(x.Logs.Level))
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to determine log level: %s", err))
 	}
 
-	// build config
 	config := core.InitConfig{
 		Account:     accnt,
 		PinCode:     x.PinCode,
@@ -262,7 +256,6 @@ func (x *initCmd) Execute(args []string) error {
 		CafeOpen:    x.CafeOptions.Open,
 	}
 
-	// initialize a node
 	if err := core.InitRepo(config); err != nil {
 		return errors.New(fmt.Sprintf("initialize failed: %s", err))
 	}
@@ -271,13 +264,11 @@ func (x *initCmd) Execute(args []string) error {
 }
 
 func (x *migrateCmd) Execute(args []string) error {
-	// handle repo path
 	repoPath, err := getRepoPath(x.RepoPath)
 	if err != nil {
 		return err
 	}
 
-	// run migrate
 	if err := core.MigrateRepo(core.MigrateConfig{
 		PinCode:  x.PinCode,
 		RepoPath: repoPath,
@@ -335,7 +326,6 @@ func (x *shellCmd) Execute(args []string) error {
 }
 
 func getRepoPath(repoPath string) (string, error) {
-	// handle repo path
 	if len(repoPath) == 0 {
 		// get homedir
 		home, err := homedir.Dir()
@@ -354,34 +344,31 @@ func getRepoPath(repoPath string) (string, error) {
 }
 
 func buildNode(pinCode string, repoPath string) error {
-	// handle repo path
 	repoPathf, err := getRepoPath(repoPath)
 	if err != nil {
 		return err
 	}
 
-	// create a node
-	node, err := core.NewTextile(core.RunConfig{
+	node, err = core.NewTextile(core.RunConfig{
 		PinCode:  pinCode,
 		RepoPath: repoPathf,
 	})
 	if err != nil {
 		return errors.New(fmt.Sprintf("create node failed: %s", err))
 	}
-	core.Node = node
 
-	// create the gateway
-	gateway.Host = &gateway.Gateway{}
+	gateway.Host = &gateway.Gateway{
+		Node: node,
+	}
 
-	// auto start it
 	if err := startNode(); err != nil {
-		fmt.Println(fmt.Errorf("start node failed: %s", err))
+		return errors.New(fmt.Sprintf("start node failed: %s", err))
 	}
 	return nil
 }
 
 func startNode() error {
-	if err := core.Node.Start(); err != nil {
+	if err := node.Start(); err != nil {
 		return err
 	}
 
@@ -389,7 +376,7 @@ func startNode() error {
 	go func() {
 		for {
 			select {
-			case update, ok := <-core.Node.UpdateCh():
+			case update, ok := <-node.UpdateCh():
 				if !ok {
 					return
 				}
@@ -411,15 +398,18 @@ func startNode() error {
 	go func() {
 		for {
 			select {
-			case update, ok := <-core.Node.ThreadUpdateCh():
+			case update, ok := <-node.ThreadUpdateCh():
 				if !ok {
 					return
 				}
 				date := update.Block.Date.Format(time.RFC822)
 				desc := update.Block.Type.Description()
-				username := core.Node.ContactUsername(update.Block.AuthorId)
+				username := node.ContactUsername(update.Block.AuthorId)
+				if username != "" {
+					username += " "
+				}
 				thrd := update.ThreadId[len(update.ThreadId)-7:]
-				msg := cmd.Grey(date+"  "+username+" added ") +
+				msg := cmd.Grey(date+"  "+username+"added ") +
 					cmd.Green(desc) + cmd.Grey(" update to thread "+thrd)
 				fmt.Println(msg)
 			}
@@ -430,55 +420,51 @@ func startNode() error {
 	go func() {
 		for {
 			select {
-			case note, ok := <-core.Node.NotificationCh():
+			case note, ok := <-node.NotificationCh():
 				if !ok {
 					return
 				}
-				username := core.Node.ContactUsername(note.ActorId)
-				msg := fmt.Sprintf("#%s: %s %s.", note.Subject, username, note.Body)
-				fmt.Println(cmd.Yellow(msg))
+				date := note.Date.Format(time.RFC822)
+				username := node.ContactUsername(note.ActorId)
+				thrd := note.SubjectId[len(note.SubjectId)-7:]
+				msg := cmd.Grey(date+"  "+username+" ") + cmd.Cyan(note.Body) +
+					cmd.Grey(" "+thrd)
+				fmt.Println(msg)
 			}
 		}
 	}()
 
-	// start api server
-	core.Node.StartApi(core.Node.Config().Addresses.API)
+	// start apis
+	node.StartApi(node.Config().Addresses.API)
+	gateway.Host.Start(node.Config().Addresses.Gateway)
 
-	// start the gateway
-	gateway.Host.Start(core.Node.Config().Addresses.Gateway)
-
-	// wait for the ipfs node to go online
-	<-core.Node.OnlineCh()
+	<-node.OnlineCh()
 
 	return nil
 }
 
 func stopNode() error {
-	if err := core.Node.StopApi(); err != nil {
+	if err := node.StopApi(); err != nil {
 		return err
 	}
 	if err := gateway.Host.Stop(); err != nil {
 		return err
 	}
-	return core.Node.Stop()
+	return node.Stop()
 }
 
 func printSplash() {
-	pid, err := core.Node.PeerId()
+	pid, err := node.PeerId()
 	if err != nil {
 		log.Fatalf("get peer id failed: %s", err)
 	}
-	accnt, err := core.Node.Account()
-	if err != nil {
-		log.Fatalf("get account failed: %s", err)
-	}
 	fmt.Println(cmd.Grey("Textile daemon version v" + core.Version))
-	fmt.Println(cmd.Grey("Repo:    ") + cmd.Grey(core.Node.RepoPath()))
-	fmt.Println(cmd.Grey("API:     ") + cmd.Grey(core.Node.ApiAddr()))
+	fmt.Println(cmd.Grey("Repo:    ") + cmd.Grey(node.RepoPath()))
+	fmt.Println(cmd.Grey("API:     ") + cmd.Grey(node.ApiAddr()))
 	fmt.Println(cmd.Grey("Gateway: ") + cmd.Grey(gateway.Host.Addr()))
-	if core.Node.CafeApiAddr() != "" {
-		fmt.Println(cmd.Grey("Cafe:    ") + cmd.Grey(core.Node.CafeApiAddr()))
+	if node.CafeApiAddr() != "" {
+		fmt.Println(cmd.Grey("Cafe:    ") + cmd.Grey(node.CafeApiAddr()))
 	}
 	fmt.Println(cmd.Grey("PeerID:  ") + cmd.Green(pid.Pretty()))
-	fmt.Println(cmd.Grey("Account: ") + cmd.Cyan(accnt.Address()))
+	fmt.Println(cmd.Grey("Account: ") + cmd.Cyan(node.Account().Address()))
 }

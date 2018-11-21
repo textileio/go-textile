@@ -2,9 +2,11 @@ package db
 
 import (
 	"database/sql"
-	"github.com/textileio/textile-go/repo"
 	"sync"
 	"testing"
+
+	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/repo"
 )
 
 var tdb repo.ThreadStore
@@ -21,9 +23,14 @@ func setupThreadDB() {
 
 func TestThreadDB_Add(t *testing.T) {
 	err := tdb.Add(&repo.Thread{
-		Id:      "Qmabc123",
-		Name:    "boom",
-		PrivKey: make([]byte, 8),
+		Id:        "Qmabc123",
+		Key:       ksuid.New().String(),
+		PrivKey:   make([]byte, 8),
+		Name:      "boom",
+		Schema:    "Qm...",
+		Initiator: "123",
+		Type:      repo.OpenThread,
+		State:     repo.ThreadLoaded,
 	})
 	if err != nil {
 		t.Error(err)
@@ -43,9 +50,14 @@ func TestThreadDB_Add(t *testing.T) {
 func TestThreadDB_Get(t *testing.T) {
 	setupThreadDB()
 	err := tdb.Add(&repo.Thread{
-		Id:      "Qmabc",
-		Name:    "boom",
-		PrivKey: make([]byte, 8),
+		Id:        "Qmabc",
+		Key:       ksuid.New().String(),
+		PrivKey:   make([]byte, 8),
+		Name:      "boom",
+		Schema:    "Qm...",
+		Initiator: "123",
+		Type:      repo.OpenThread,
+		State:     repo.ThreadLoaded,
 	})
 	if err != nil {
 		t.Error(err)
@@ -59,17 +71,26 @@ func TestThreadDB_Get(t *testing.T) {
 func TestThreadDB_List(t *testing.T) {
 	setupThreadDB()
 	err := tdb.Add(&repo.Thread{
-		Id:      "Qm123",
-		Name:    "boom",
-		PrivKey: make([]byte, 8),
+		Id:        "Qm123",
+		Key:       ksuid.New().String(),
+		PrivKey:   make([]byte, 8),
+		Name:      "boom",
+		Schema:    "Qm...",
+		Initiator: "123",
+		Type:      repo.PrivateThread,
+		State:     repo.ThreadLoaded,
 	})
 	if err != nil {
 		t.Error(err)
 	}
 	err = tdb.Add(&repo.Thread{
 		Id:      "Qm456",
-		Name:    "boom2",
+		Key:     ksuid.New().String(),
 		PrivKey: make([]byte, 8),
+		Name:    "boom",
+		Schema:  "Qm...",
+		Type:    repo.PrivateThread,
+		State:   repo.ThreadLoaded,
 	})
 	if err != nil {
 		t.Error(err)
@@ -84,9 +105,14 @@ func TestThreadDB_List(t *testing.T) {
 func TestThreadDB_Count(t *testing.T) {
 	setupThreadDB()
 	err := tdb.Add(&repo.Thread{
-		Id:      "Qm123count",
-		Name:    "boom",
-		PrivKey: make([]byte, 8),
+		Id:        "Qm123count",
+		Key:       ksuid.New().String(),
+		PrivKey:   make([]byte, 8),
+		Name:      "boom",
+		Schema:    "Qm...",
+		Initiator: "123",
+		Type:      repo.PrivateThread,
+		State:     repo.ThreadLoading,
 	})
 	if err != nil {
 		t.Error(err)
@@ -101,9 +127,14 @@ func TestThreadDB_Count(t *testing.T) {
 func TestThreadDB_UpdateHead(t *testing.T) {
 	setupThreadDB()
 	err := tdb.Add(&repo.Thread{
-		Id:      "Qmabc",
-		Name:    "boom",
-		PrivKey: make([]byte, 8),
+		Id:        "Qmabc",
+		Key:       ksuid.New().String(),
+		PrivKey:   make([]byte, 8),
+		Name:      "boom",
+		Schema:    "Qm...",
+		Initiator: "123",
+		Type:      repo.PrivateThread,
+		State:     repo.ThreadLoading,
 	})
 	if err != nil {
 		t.Error(err)
@@ -124,9 +155,14 @@ func TestThreadDB_UpdateHead(t *testing.T) {
 func TestThreadDB_Delete(t *testing.T) {
 	setupThreadDB()
 	err := tdb.Add(&repo.Thread{
-		Id:      "Qm789",
-		Name:    "boom",
-		PrivKey: make([]byte, 8),
+		Id:        "Qm789",
+		Key:       ksuid.New().String(),
+		PrivKey:   make([]byte, 8),
+		Name:      "boom",
+		Schema:    "Qm...",
+		Initiator: "123",
+		Type:      repo.PrivateThread,
+		State:     repo.ThreadLoaded,
 	})
 	if err != nil {
 		t.Error(err)

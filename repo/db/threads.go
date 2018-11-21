@@ -2,8 +2,9 @@ package db
 
 import (
 	"database/sql"
-	"github.com/textileio/textile-go/repo"
 	"sync"
+
+	"github.com/textileio/textile-go/repo"
 )
 
 type ThreadDB struct {
@@ -21,7 +22,7 @@ func (c *ThreadDB) Add(thread *repo.Thread) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into threads(id, name, sk, head) values(?,?,?,?)`
+	stm := `insert into threads(id, key, sk, name, schema, initiator, type, state, head) values(?,?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -30,8 +31,13 @@ func (c *ThreadDB) Add(thread *repo.Thread) error {
 	defer stmt.Close()
 	_, err = stmt.Exec(
 		thread.Id,
-		thread.Name,
+		thread.Key,
 		thread.PrivKey,
+		thread.Name,
+		thread.Schema,
+		thread.Initiator,
+		int(thread.Type),
+		int(thread.State),
 		thread.Head,
 	)
 	if err != nil {
@@ -46,6 +52,16 @@ func (c *ThreadDB) Get(id string) *repo.Thread {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	ret := c.handleQuery("select * from threads where id='" + id + "';")
+	if len(ret) == 0 {
+		return nil
+	}
+	return &ret[0]
+}
+
+func (c *ThreadDB) GetByKey(key string) *repo.Thread {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	ret := c.handleQuery("select * from threads where key='" + key + "';")
 	if len(ret) == 0 {
 		return nil
 	}
@@ -89,19 +105,24 @@ func (c *ThreadDB) handleQuery(stm string) []repo.Thread {
 		return nil
 	}
 	for rows.Next() {
-		var id, name, head string
+		var id, key, name, schema, initiator, head string
 		var skb []byte
-		if err := rows.Scan(&id, &name, &skb, &head); err != nil {
+		var typeInt, stateInt int
+		if err := rows.Scan(&id, &key, &skb, &name, &schema, &initiator, &typeInt, &stateInt, &head); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		thread := repo.Thread{
-			Id:      id,
-			Name:    name,
-			PrivKey: skb,
-			Head:    head,
-		}
-		ret = append(ret, thread)
+		ret = append(ret, repo.Thread{
+			Id:        id,
+			Key:       key,
+			PrivKey:   skb,
+			Name:      name,
+			Schema:    schema,
+			Initiator: initiator,
+			Type:      repo.ThreadType(typeInt),
+			State:     repo.ThreadState(stateInt),
+			Head:      head,
+		})
 	}
 	return ret
 }

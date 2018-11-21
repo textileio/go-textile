@@ -1,9 +1,10 @@
 package core
 
 import (
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 )
 
 // leave creates an outgoing leave block
@@ -11,45 +12,37 @@ func (t *Thread) leave() (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	// commit to ipfs
 	res, err := t.commitBlock(nil, pb.ThreadBlock_LEAVE, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// index it locally
-	if err := t.indexBlock(res, repo.LeaveBlock, nil); err != nil {
+	if err := t.indexBlock(res, repo.LeaveBlock, "", ""); err != nil {
 		return nil, err
 	}
 
-	// update head
 	if err := t.updateHead(res.hash); err != nil {
 		return nil, err
 	}
 
-	// post it
 	if err := t.post(res, t.Peers()); err != nil {
 		return nil, err
 	}
 
-	// delete blocks
+	// cleanup
+	// TODO: delete files
 	if err := t.datastore.Blocks().DeleteByThread(t.Id); err != nil {
 		return nil, err
 	}
-
-	// delete peers
 	if err := t.datastore.ThreadPeers().DeleteByThread(t.Id); err != nil {
 		return nil, err
 	}
-
-	// delete notifications
 	if err := t.datastore.Notifications().DeleteBySubject(t.Id); err != nil {
 		return nil, err
 	}
 
 	log.Debugf("added LEAVE to %s: %s", t.Id, res.hash.B58String())
 
-	// all done
 	return res.hash, nil
 }
 
@@ -63,6 +56,8 @@ func (t *Thread) handleLeaveBlock(hash mh.Multihash, block *pb.ThreadBlock) erro
 		return err
 	}
 
-	// index it locally
-	return t.indexBlock(&commitResult{hash: hash, header: block.Header}, repo.LeaveBlock, nil)
+	return t.indexBlock(&commitResult{
+		hash:   hash,
+		header: block.Header,
+	}, repo.LeaveBlock, "", "")
 }
