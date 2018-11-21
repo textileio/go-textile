@@ -25,6 +25,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:a0742b7f1ff1c21d789adf6a0b9bfc70c50e52653e28c3b032a2909cbb0983c3"
+  name = "github.com/alecthomas/jsonschema"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "f2c93856175a7dd6abe88c5c3900b67ad054adcc"
+
+[[projects]]
+  branch = "master"
   digest = "1:261e66e5e266e89b33eb9932598683884e18a61b0569e02c96675efd309ad006"
   name = "github.com/asticode/go-astilectron"
   packages = ["."]
@@ -150,6 +158,7 @@
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
+    "ptypes/struct",
     "ptypes/timestamp",
   ]
   pruneopts = "T"
@@ -515,6 +524,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/alecthomas/jsonschema",
     "github.com/asticode/go-astilectron",
     "github.com/asticode/go-astilectron-bootstrap",
     "github.com/asticode/go-astilog",
@@ -526,6 +536,7 @@
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/ptypes",
     "github.com/golang/protobuf/ptypes/any",
+    "github.com/golang/protobuf/ptypes/struct",
     "github.com/golang/protobuf/ptypes/timestamp",
     "github.com/jessevdk/go-flags",
     "github.com/mitchellh/go-homedir",
