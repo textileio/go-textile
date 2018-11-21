@@ -36,7 +36,8 @@
   "language": "go",
   "gxVersion": "0.12.1",
   "gx": {
-    "dvcsimport": "github.com/textileio/textile-go"
+    "dvcsimport": "github.com/textileio/textile-go",
+    "goversion": "1.11"
   },
   "gxDependencies": [
     {

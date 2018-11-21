@@ -28,7 +28,7 @@ jobs:
 
   unit-test:
     docker:
-    - image: textile/builder:1.10.3
+    - image: textile/builder:1.11.2
     working_directory: /go/src/github.com/textileio/textile-go
     steps:
     - *checkout-linux
@@ -57,7 +57,7 @@ jobs:
 
   build-cli-linux:
     docker:
-    - image: textile/builder:1.10.3
+    - image: textile/builder:1.11.2
     working_directory: /go/src/github.com/textileio/textile-go
     steps:
     - *checkout-linux
@@ -115,14 +115,14 @@ jobs:
       xcode: "9.4.0"
     environment:
       GOPATH: /Users/distiller/go
-      GOROOT: /usr/local/opt/go@1.10/libexec
+      GOROOT: /usr/local/opt/go/libexec
     working_directory: ~/go/src/github.com/textileio/textile-go
     steps:
     - checkout
     - run:
         name: install golang
         command: |
-          brew install go@1.10
+          brew install go@1.11.2
     - run:
         name: install dep
         command: |
@@ -132,7 +132,7 @@ jobs:
     - run:
         name: install gx
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           go get -u github.com/whyrusleeping/gx
           go get -u github.com/whyrusleeping/gx-go
     - restore_cache:
@@ -142,7 +142,7 @@ jobs:
     - run:
         name: install deps
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           dep ensure
           gx install
     - save_cache:
@@ -156,7 +156,7 @@ jobs:
     - run:
         name: install gox
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           go get github.com/mitchellh/gox
     - run:
         name: install mingw-w64
@@ -165,7 +165,7 @@ jobs:
     - run:
         name: cross-compile
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           gox -osarch="darwin/amd64" -output="{{.OS}}-{{.Arch}}"
           CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -cgo -osarch="windows/amd64" -output="{{.OS}}-{{.Arch}}"
     - run:
@@ -206,7 +206,7 @@ jobs:
 
   build-desktop-linux:
     docker:
-    - image: textile/builder:1.10.3
+    - image: textile/builder:1.11.2
     working_directory: /go/src/github.com/textileio/textile-go
     steps:
     - *checkout-linux
@@ -248,14 +248,14 @@ jobs:
       xcode: "9.4.0"
     environment:
       GOPATH: /Users/distiller/go
-      GOROOT: /usr/local/opt/go@1.10/libexec
+      GOROOT: /usr/local/opt/go/libexec
     working_directory: ~/go/src/github.com/textileio/textile-go
     steps:
     - checkout
     - run:
         name: install golang
         command: |
-          brew install go@1.10
+          brew install go@1.11.2
     - run:
         name: install dep
         command: |
@@ -265,7 +265,7 @@ jobs:
     - run:
         name: install gx
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           go get -u github.com/whyrusleeping/gx
           go get -u github.com/whyrusleeping/gx-go
     - restore_cache:
@@ -275,7 +275,7 @@ jobs:
     - run:
         name: install deps
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           dep ensure
           gx install
     - save_cache:
@@ -293,12 +293,12 @@ jobs:
     - run:
         name: install astilectron-bundler
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           go install ./vendor/github.com/asticode/go-astilectron-bundler/astilectron-bundler
     - run:
         name: compile
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           cd desktop
           astilectron-bundler -v -c bundler.darwin.json
           astilectron-bundler -v -c bundler.windows.json
@@ -330,14 +330,14 @@ jobs:
       xcode: "9.4.0"
     environment:
       GOPATH: /Users/distiller/go
-      GOROOT: /usr/local/opt/go@1.10/libexec
+      GOROOT: /usr/local/opt/go/libexec
     working_directory: ~/go/src/github.com/textileio/textile-go
     steps:
     - checkout
     - run:
         name: install golang
         command: |
-          brew install go@1.10
+          brew install go@1.11.2
     - run:
         name: install dep
         command: |
@@ -347,7 +347,7 @@ jobs:
     - run:
         name: install gx
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           go get -u github.com/whyrusleeping/gx
           go get -u github.com/whyrusleeping/gx-go
     - restore_cache:
@@ -357,7 +357,7 @@ jobs:
     - run:
         name: install deps
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           dep ensure
           gx install
     - save_cache:
@@ -371,12 +371,12 @@ jobs:
     - run:
         name: install gomobile
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           go get golang.org/x/mobile/cmd/gomobile
     - run:
         name: build ios framework
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go@1.10/bin:$PATH
+          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           gomobile init
           gomobile bind -v -target=ios github.com/textileio/textile-go/mobile
     - run:
@@ -406,8 +406,8 @@ jobs:
     - run:
         name: install golang
         command: |
-          wget https://dl.google.com/go/go1.10.3.linux-amd64.tar.gz
-          sudo tar -C /usr/local -xzf go1.10.3.linux-amd64.tar.gz
+          wget https://dl.google.com/go/go1.11.2.linux-amd64.tar.gz
+          sudo tar -C /usr/local -xzf go1.11.2.linux-amd64.tar.gz
     - run:
         name: install dep
         command: |
