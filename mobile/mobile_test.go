@@ -33,9 +33,6 @@ func (tc *TestCallback) Call(payload []byte, err error) {
 	if err := proto.Unmarshal(payload, dir); err != nil {
 		fmt.Println(fmt.Errorf("callback unmarshal error: %s", err))
 	}
-	for name, link := range dir.Files {
-		fmt.Println(name + ": " + link.Hash)
-	}
 }
 
 var repoPath1 = "testdata/.textile1"

@@ -54,7 +54,9 @@ func (t *Thread) processLink(inode ipld.Node, pin bool, inbound bool) error {
 	if schema.LinkByName(inode.Links(), FileLinkName) == nil {
 		return schema.ErrSchemaValidationFailed
 	}
-	if schema.LinkByName(inode.Links(), DataLinkName) == nil {
+
+	dlink := schema.LinkByName(inode.Links(), DataLinkName)
+	if dlink == nil {
 		return schema.ErrSchemaValidationFailed
 	}
 
@@ -68,7 +70,8 @@ func (t *Thread) processLink(inode ipld.Node, pin bool, inbound bool) error {
 	// remote pin leaf nodes if files originate locally
 	if !inbound {
 		t.cafeOutbox.Add(hash+"/"+FileLinkName, repo.CafeStoreRequest)
-		if !t.config.IsMobile {
+
+		if !t.config.IsMobile || dlink.Size <= uint64(t.config.Cafe.Client.Mobile.P2PWireLimit) {
 			t.cafeOutbox.Add(hash+"/"+DataLinkName, repo.CafeStoreRequest)
 		}
 	}
