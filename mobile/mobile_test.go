@@ -29,12 +29,9 @@ func (tc *TestCallback) Call(payload []byte, err error) {
 		fmt.Println(fmt.Errorf("callback error: %s", err))
 		return
 	}
-	dir := new(pb.Directory)
-	if err := proto.Unmarshal(payload, dir); err != nil {
+	pre := new(pb.MobilePreparedFiles)
+	if err := proto.Unmarshal(payload, pre); err != nil {
 		fmt.Println(fmt.Errorf("callback unmarshal error: %s", err))
-	}
-	for name, link := range dir.Files {
-		fmt.Println(name + ": " + link.Hash)
 	}
 }
 
@@ -48,7 +45,7 @@ var mobile1 *Mobile
 var mobile2 *Mobile
 
 var thrdId string
-var prepared string
+var dir []byte
 var filesBlock core.BlockInfo
 var files []core.ThreadFilesInfo
 
@@ -211,15 +208,18 @@ func TestMobile_PrepareFiles(t *testing.T) {
 		t.Errorf("prepare files failed: %s", err)
 		return
 	}
-	dir := core.Directory{}
-	if err := json.Unmarshal([]byte(res), &dir); err != nil {
+	pre := new(pb.MobilePreparedFiles)
+	if err := proto.Unmarshal(res, pre); err != nil {
 		t.Error(err)
 		return
 	}
-	if len(dir) != 6 {
+	if len(pre.Dir.Files) != 6 {
 		t.Error("wrong number of files")
 	}
-	prepared = res
+	dir, err = proto.Marshal(pre.Dir)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestMobile_PrepareFilesAsync(t *testing.T) {
@@ -227,7 +227,7 @@ func TestMobile_PrepareFilesAsync(t *testing.T) {
 }
 
 func TestMobile_AddThreadFiles(t *testing.T) {
-	res, err := mobile1.AddThreadFiles(prepared, thrdId, "hello")
+	res, err := mobile1.AddThreadFiles(dir, thrdId, "hello")
 	if err != nil {
 		t.Errorf("add thread files failed: %s", err)
 		return

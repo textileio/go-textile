@@ -134,6 +134,10 @@ func (t *Textile) fileAtTarget(target string) ([]ThreadFileInfo, error) {
 }
 
 func (t *Textile) threadFile(block *repo.Block) (*ThreadFilesInfo, error) {
+	if block.Type != repo.FilesBlock {
+		return nil, ErrBlockNotFile
+	}
+
 	files, err := t.fileAtTarget(block.Target)
 	if err != nil {
 		return nil, err

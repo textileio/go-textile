@@ -25,6 +25,11 @@ type Messenger interface {
 	Notify(event *Event)
 }
 
+// Callback is used for asyc methods (payload is a protobuf)
+type Callback interface {
+	Call(payload []byte, err error)
+}
+
 // NewWallet creates a brand new wallet and returns its recovery phrase
 func NewWallet(wordCount int) (string, error) {
 	wcount, err := wallet.NewWordCount(wordCount)

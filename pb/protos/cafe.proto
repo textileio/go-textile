@@ -56,13 +56,14 @@ message CafeStoreThread {
 }
 
 message CafeThread {
-    string key    = 1;
-    bytes sk      = 2;
-    string name   = 3;
-    string schema = 4;
-    int32 type    = 5;
-    int32 state   = 6;
-    string head   = 7;
+    string key       = 1;
+    bytes sk         = 2;
+    string name      = 3;
+    string schema    = 4;
+    string initiator = 5;
+    int32 type       = 6;
+    int32 state      = 7;
+    string head      = 8;
 }
 
 message CafeStored {

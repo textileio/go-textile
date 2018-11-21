@@ -105,9 +105,9 @@ func callAdd(args []string, opts map[string]string) error {
 	reader := bytes.NewReader(body.Bytes())
 
 	// traverse the schema and collect generated files
-	var payload interface{}
+	dir := make(core.Directory)
 	if info.Schema.Mill != "" {
-		file := &repo.File{}
+		file := repo.File{}
 
 		res, err := executeJsonCmd(POST, "mills"+info.Schema.Mill, params{
 			opts:    info.Schema.Opts,
@@ -118,10 +118,10 @@ func callAdd(args []string, opts map[string]string) error {
 			return err
 		}
 		output(res, nil)
-		payload = &file
+
+		dir[schema.SingleFileTag] = file
 
 	} else if len(info.Schema.Links) > 0 {
-		dir := make(map[string]*repo.File)
 
 		// determine order
 		steps, err := schema.Steps(info.Schema.Links)
@@ -131,7 +131,7 @@ func callAdd(args []string, opts map[string]string) error {
 
 		// send each link
 		for _, step := range steps {
-			file := &repo.File{}
+			file := repo.File{}
 			output("\""+step.Name+"\":", nil)
 
 			if step.Link.Use == schema.FileTag {
@@ -144,34 +144,36 @@ func callAdd(args []string, opts map[string]string) error {
 				if err != nil {
 					return err
 				}
-				dir[step.Name] = file
 				output(res, nil)
 
+				dir[step.Name] = file
+
 			} else {
-				if dir[step.Link.Use] == nil {
+				if dir[step.Link.Use].Hash == "" {
 					return errors.New(step.Link.Use + " not found")
 				}
+
 				if len(step.Link.Opts) == 0 {
 					step.Link.Opts = make(map[string]string)
 				}
 				step.Link.Opts["use"] = dir[step.Link.Use].Hash
+
 				res, err := executeJsonCmd(POST, "mills"+step.Link.Mill, params{
 					opts: step.Link.Opts,
 				}, &file)
 				if err != nil {
 					return err
 				}
-				dir[step.Name] = file
 				output(res, nil)
+
+				dir[step.Name] = file
 			}
 		}
-		payload = &dir
-
 	} else {
 		return schema.ErrEmptySchema
 	}
 
-	data, err := json.Marshal(payload)
+	data, err := json.Marshal(&dir)
 	if err != nil {
 		return err
 	}

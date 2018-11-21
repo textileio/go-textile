@@ -205,13 +205,14 @@ func (h *CafeService) Store(cids []string, cafe peer.ID) ([]string, error) {
 // StoreThread pushes a thread to a cafe backup
 func (h *CafeService) StoreThread(thrd *repo.Thread, cafe peer.ID) error {
 	plaintext, err := proto.Marshal(&pb.CafeThread{
-		Key:    thrd.Key,
-		Sk:     thrd.PrivKey,
-		Name:   thrd.Name,
-		Schema: thrd.Schema,
-		Type:   int32(thrd.Type),
-		State:  int32(thrd.State),
-		Head:   thrd.Head,
+		Key:       thrd.Key,
+		Sk:        thrd.PrivKey,
+		Name:      thrd.Name,
+		Schema:    thrd.Schema,
+		Initiator: thrd.Initiator,
+		Type:      int32(thrd.Type),
+		State:     int32(thrd.State),
+		Head:      thrd.Head,
 	})
 	if err != nil {
 		return err

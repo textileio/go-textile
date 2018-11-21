@@ -42,145 +42,120 @@ func (m *Mobile) AddSchema(jsonstr string) (string, error) {
 }
 
 // PrepareFiles processes a file by path for a thread, but does NOT share it
-func (m *Mobile) PrepareFiles(path string, threadId string) (string, error) {
+func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 	thrd := m.node.Thread(threadId)
 	if thrd == nil {
-		return "", core.ErrThreadNotFound
+		return nil, core.ErrThreadNotFound
 	}
 
 	if thrd.Schema == nil {
-		return "", core.ErrThreadSchemaRequired
+		return nil, core.ErrThreadSchemaRequired
 	}
 
-	var result interface{}
+	mdir := &pb.MobilePreparedFiles{
+		Dir: &pb.Directory{
+			Files: make(map[string]*pb.File),
+		},
+		Pin: make(map[string]string),
+	}
+
+	writeDir := m.RepoPath + "/tmp/"
 
 	mil, err := getMill(thrd.Schema.Mill, thrd.Schema.Opts)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if mil != nil {
 		conf, err := m.getFileConfig(mil, path, "")
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		added, err := m.node.AddFile(mil, *conf)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		result = &added
+
+		file, err := toProtoFile(added)
+		if err != nil {
+			return nil, err
+		}
+		mdir.Dir.Files[schema.SingleFileTag] = file
+
+		if added.Size >= m.node.Config().Cafe.Client.Mobile.P2PWireLimit {
+			mdir.Pin[added.Hash] = writeDir + added.Hash
+		}
 
 	} else if len(thrd.Schema.Links) > 0 {
-		dir := make(map[string]*repo.File)
 
 		// determine order
 		steps, err := schema.Steps(thrd.Schema.Links)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		// send each link
 		for _, step := range steps {
 			mil, err := getMill(step.Link.Mill, step.Link.Opts)
 			if err != nil {
-				return "", err
+				return nil, err
 			}
 			var conf *core.AddFileConfig
 
 			if step.Link.Use == schema.FileTag {
 				conf, err = m.getFileConfig(mil, path, "")
 				if err != nil {
-					return "", err
+					return nil, err
 				}
 
 			} else {
-				if dir[step.Link.Use] == nil {
-					return "", errors.New(step.Link.Use + " not found")
+				if mdir.Dir.Files[step.Link.Use] == nil {
+					return nil, errors.New(step.Link.Use + " not found")
 				}
-				conf, err = m.getFileConfig(mil, path, dir[step.Link.Use].Hash)
+
+				conf, err = m.getFileConfig(mil, path, mdir.Dir.Files[step.Link.Use].Hash)
 				if err != nil {
-					return "", err
+					return nil, err
 				}
 			}
+
 			added, err := m.node.AddFile(mil, *conf)
 			if err != nil {
-				return "", err
+				return nil, err
 			}
-			dir[step.Name] = added
-		}
-		result = &dir
 
+			file, err := toProtoFile(added)
+			if err != nil {
+				return nil, err
+			}
+			mdir.Dir.Files[step.Name] = file
+
+			if added.Size >= m.node.Config().Cafe.Client.Mobile.P2PWireLimit {
+				mdir.Pin[added.Hash] = writeDir + added.Hash
+			}
+		}
 	} else {
-		return "", schema.ErrEmptySchema
+		return nil, schema.ErrEmptySchema
 	}
 
-	return toJSON(result)
-}
+	for hash, pth := range mdir.Pin {
+		if err := m.writeFileData(hash, pth); err != nil {
+			return nil, err
+		}
+	}
 
-// Callback is used for asyc methods (payload is a protobuf)
-type Callback interface {
-	Call([]byte, error)
+	return proto.Marshal(mdir)
 }
 
 // PrepareFilesAsync is the async flavor of PrepareFiles
 func (m *Mobile) PrepareFilesAsync(path string, threadId string, cb Callback) {
 	go func() {
-		res, err := m.PrepareFiles(path, threadId)
-		if err != nil {
-			cb.Call(nil, err)
-			return
-		}
-
-		var payload []byte
-
-		var dir core.Directory
-		if err := json.Unmarshal([]byte(res), &dir); err != nil {
-			cb.Call(nil, err)
-			return
-		}
-
-		if len(dir) > 0 {
-			pdir := &pb.Directory{Files: make(map[string]*pb.File)}
-			for k, v := range dir {
-				f, err := pbFile(v)
-				if err != nil {
-					cb.Call(nil, err)
-					return
-				}
-				pdir.Files[k] = f
-			}
-
-			payload, err = proto.Marshal(pdir)
-			if err != nil {
-				cb.Call(nil, err)
-				return
-			}
-
-		} else {
-			var file repo.File
-			if err := json.Unmarshal([]byte(res), &file); err != nil {
-				cb.Call(nil, err)
-				return
-			}
-			f, err := pbFile(file)
-			if err != nil {
-				cb.Call(nil, err)
-				return
-			}
-
-			payload, err = proto.Marshal(f)
-			if err != nil {
-				cb.Call(nil, err)
-				return
-			}
-		}
-
-		cb.Call(payload, nil)
+		cb.Call(m.PrepareFiles(path, threadId))
 	}()
 }
 
 // AddThreadFiles adds a prepared file to a thread
-func (m *Mobile) AddThreadFiles(jsonstr string, threadId string, caption string) (string, error) {
+func (m *Mobile) AddThreadFiles(dir []byte, threadId string, caption string) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
@@ -193,23 +168,38 @@ func (m *Mobile) AddThreadFiles(jsonstr string, threadId string, caption string)
 	var node ipld.Node
 	var keys core.Keys
 
-	// parse file or directory
-	var dir core.Directory
-	if err := json.Unmarshal([]byte(jsonstr), &dir); err != nil {
+	mdir := new(pb.Directory)
+	if err := proto.Unmarshal(dir, mdir); err != nil {
 		return "", err
 	}
+	if len(mdir.Files) == 0 {
+		return "", errors.New("no files found")
+	}
+
 	var err error
-	if len(dir) > 0 {
-		node, keys, err = m.node.AddNodeFromDirs([]core.Directory{dir})
+	if mdir.Files[schema.SingleFileTag] != nil {
+		file, err := toRepoFile(mdir.Files[schema.SingleFileTag])
 		if err != nil {
 			return "", err
 		}
-	} else {
-		var file repo.File
-		if err := json.Unmarshal([]byte(jsonstr), &file); err != nil {
+
+		node, keys, err = m.node.AddNodeFromFiles([]repo.File{*file})
+		if err != nil {
 			return "", err
 		}
-		node, keys, err = m.node.AddNodeFromFiles([]repo.File{file})
+
+	} else {
+
+		rdir := make(core.Directory)
+		for k, v := range mdir.Files {
+			file, err := toRepoFile(v)
+			if err != nil {
+				return "", err
+			}
+			rdir[k] = *file
+		}
+
+		node, keys, err = m.node.AddNodeFromDirs([]core.Directory{rdir})
 		if err != nil {
 			return "", err
 		}
@@ -446,6 +436,19 @@ func (m *Mobile) getFileConfig(mil mill.Mill, path string, use string) (*core.Ad
 	return conf, nil
 }
 
+func (m *Mobile) writeFileData(hash string, pth string) error {
+	if err := os.MkdirAll(filepath.Dir(pth), os.ModePerm); err != nil {
+		return err
+	}
+
+	data, err := m.node.DataAtPath(hash)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(pth, data, 0644)
+}
+
 func getMill(id string, opts map[string]string) (mill.Mill, error) {
 	switch id {
 	case "/blob":
@@ -472,7 +475,7 @@ func getMill(id string, opts map[string]string) (mill.Mill, error) {
 	}
 }
 
-func pbFile(file repo.File) (*pb.File, error) {
+func toProtoFile(file *repo.File) (*pb.File, error) {
 	added, err := ptypes.TimestampProto(file.Added)
 	if err != nil {
 		return nil, err
@@ -490,5 +493,26 @@ func pbFile(file repo.File) (*pb.File, error) {
 		Size:     int64(file.Size),
 		Added:    added,
 		Meta:     pb.ToStruct(file.Meta),
+	}, nil
+}
+
+func toRepoFile(file *pb.File) (*repo.File, error) {
+	added, err := ptypes.Timestamp(file.Added)
+	if err != nil {
+		return nil, err
+	}
+
+	return &repo.File{
+		Mill:     file.Mill,
+		Checksum: file.Checksum,
+		Source:   file.Source,
+		Opts:     file.Opts,
+		Hash:     file.Hash,
+		Key:      file.Key,
+		Media:    file.Media,
+		Name:     file.Name,
+		Size:     int(file.Size),
+		Added:    added,
+		Meta:     pb.ToMap(file.Meta),
 	}, nil
 }

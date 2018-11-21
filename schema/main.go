@@ -19,6 +19,9 @@ var ErrLinkOrderNotSolvable = errors.New("link order is not solvable")
 // FileTag indicates the link should "use" the input file as source
 const FileTag = ":file"
 
+// SingleFileTag is a magic key indicating that a directory is actually a single file
+const SingleFileTag = ":single"
+
 // Node describes a DAG node
 type Node struct {
 	Pin       bool               `json:"pin"`

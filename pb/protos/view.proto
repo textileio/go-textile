@@ -1,0 +1,13 @@
+syntax = "proto3";
+option go_package = "pb";
+
+import "model.proto";
+
+message Directory {
+    map<string, File> files = 1;
+}
+
+message MobilePreparedFiles {
+    Directory dir = 1;
+    map<string, string> pin = 2;
+}

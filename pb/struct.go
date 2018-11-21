@@ -213,3 +213,56 @@ func toValue(v reflect.Value) *st.Value {
 		}
 	}
 }
+
+// The following is modified from:
+// https://github.com/GoogleCloudPlatform/google-cloud-go/blob/master/internal/protostruct/protostruct.go
+
+// Copyright 2017 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// ToMap converts a pb.Struct to a map from strings to Go types.
+// ToMap panics if s is invalid.
+func ToMap(s *st.Struct) map[string]interface{} {
+	if s == nil {
+		return nil
+	}
+	m := map[string]interface{}{}
+	for k, v := range s.Fields {
+		m[k] = ToInterface(v)
+	}
+	return m
+}
+
+func ToInterface(v *st.Value) interface{} {
+	switch k := v.Kind.(type) {
+	case *st.Value_NullValue:
+		return nil
+	case *st.Value_NumberValue:
+		return k.NumberValue
+	case *st.Value_StringValue:
+		return k.StringValue
+	case *st.Value_BoolValue:
+		return k.BoolValue
+	case *st.Value_StructValue:
+		return ToMap(k.StructValue)
+	case *st.Value_ListValue:
+		s := make([]interface{}, len(k.ListValue.Values))
+		for i, e := range k.ListValue.Values {
+			s[i] = ToInterface(e)
+		}
+		return s
+	default:
+		panic("protostruct: unknown kind")
+	}
+}
