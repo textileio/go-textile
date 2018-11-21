@@ -160,27 +160,19 @@ func (a *api) streamThreads(g *gin.Context) {
 }
 
 func addBlockInfo(a *api, update ThreadUpdate) (ThreadUpdate, error) {
-	block := update.Block
-	username := a.node.ContactUsername(block.AuthorId)
-
-	var info interface{}
 	switch update.Block.Type {
 	case "FILES":
-		info, _ = a.node.ThreadFile(update.Block.Id)
-	case "COMMENT":
-		info = ThreadCommentInfo{
-			Id:       block.Id,
-			Date:     block.Date,
-			AuthorId: block.AuthorId,
-			Username: username,
-			Body:     block.Body,
+		info, err := a.node.ThreadFile(update.Block.Id)
+		if err != nil {
+			log.Errorf("error getting thread file: %s", err)
 		}
-	default: // Don't have a need for others yet...
+		return ThreadUpdate{
+			Block:      update.Block,
+			ThreadId:   update.ThreadId,
+			ThreadName: update.ThreadName,
+			Info:       info,
+		}, nil
+	default: // For everything else... we've already go block info
+		return update, nil
 	}
-	return ThreadUpdate{
-		Block:      update.Block,
-		ThreadId:   update.ThreadId,
-		ThreadName: update.ThreadName,
-		Info:       info,
-	}, nil
 }
