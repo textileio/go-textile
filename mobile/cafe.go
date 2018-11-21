@@ -46,7 +46,7 @@ func (m *Mobile) DeregisterCafe(peerId string) error {
 	return m.node.DeregisterCafe(peerId)
 }
 
-// CheckCafeMail calls core CheckCafeMessages
-func (m *Mobile) CheckCafeMail() error {
-	return m.node.CheckCafeMail()
+// CheckCafeMessages calls core CheckCafeMessages
+func (m *Mobile) CheckCafeMessages() error {
+	return m.node.CheckCafeMessages()
 }

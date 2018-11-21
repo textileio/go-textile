@@ -91,7 +91,7 @@ func (t *Textile) DeregisterCafe(peerId string) error {
 	return t.PublishProfile()
 }
 
-// CheckCafeMail fetches new messages from registered cafes
-func (t *Textile) CheckCafeMail() error {
+// CheckCafeMessages fetches new messages from registered cafes
+func (t *Textile) CheckCafeMessages() error {
 	return t.cafeInbox.CheckMessages()
 }

@@ -98,7 +98,7 @@ func init() {
 		"Print the current version and exit.",
 		&versionCmd{})
 	parser.AddCommand("wallet",
-		"Manage a wallet of accounts",
+		"Manage or create an account wallet",
 		"Initialize a new wallet, or view accounts from an existing wallet.",
 		&walletCmd{})
 	parser.AddCommand("init",
@@ -110,11 +110,11 @@ func init() {
 		"Migrate the node repository and exit.",
 		&migrateCmd{})
 	parser.AddCommand("shell",
-		"Start an command shell",
+		"Start a shell session",
 		"Start an interactive command shell session.",
 		&shellCmd{})
 	parser.AddCommand("daemon",
-		"Start a node daemon",
+		"Start the daemon",
 		"Start a node daemon session.",
 		&daemonCmd{})
 

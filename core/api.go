@@ -103,7 +103,7 @@ func (a *api) Start() {
 		cafes.GET("", a.lsCafes)
 		cafes.GET("/:id", a.getCafes)
 		cafes.DELETE("/:id", a.rmCafes)
-		cafes.POST("/check_mail", a.checkMailCafes)
+		cafes.POST("/messages", a.checkCafeMessages)
 	}
 	a.server = &http.Server{
 		Addr:    a.addr,
