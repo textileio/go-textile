@@ -52,6 +52,7 @@ func (m *Mobile) PrepareFiles(path string, threadId string) (string, error) {
 		return "", core.ErrThreadSchemaRequired
 	}
 
+	var write []string
 	var result interface{}
 
 	mil, err := getMill(thrd.Schema.Mill, thrd.Schema.Opts)
@@ -69,6 +70,10 @@ func (m *Mobile) PrepareFiles(path string, threadId string) (string, error) {
 			return "", err
 		}
 		result = &added
+
+		if added.Size >= m.node.Config().Cafe.Client.Mobile.P2PWireLimit {
+			write = append(write, added.Hash)
+		}
 
 	} else if len(thrd.Schema.Links) > 0 {
 		dir := make(map[string]*repo.File)
@@ -107,11 +112,21 @@ func (m *Mobile) PrepareFiles(path string, threadId string) (string, error) {
 				return "", err
 			}
 			dir[step.Name] = added
+
+			if added.Size >= m.node.Config().Cafe.Client.Mobile.P2PWireLimit {
+				write = append(write, added.Hash)
+			}
 		}
 		result = &dir
 
 	} else {
 		return "", schema.ErrEmptySchema
+	}
+
+	for _, hash := range write {
+		if err := m.writeFileData(hash); err != nil {
+			return "", err
+		}
 	}
 
 	return toJSON(result)
@@ -444,6 +459,20 @@ func (m *Mobile) getFileConfig(mil mill.Mill, path string, use string) (*core.Ad
 	conf.Input = data
 
 	return conf, nil
+}
+
+func (m *Mobile) writeFileData(hash string) error {
+	pth := m.RepoPath + "/tmp" + hash
+	if err := os.MkdirAll(m.RepoPath+"/tmp", os.ModePerm); err != nil {
+		return err
+	}
+
+	data, err := m.node.DataAtPath(hash)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(pth, data, 0644)
 }
 
 func getMill(id string, opts map[string]string) (mill.Mill, error) {
