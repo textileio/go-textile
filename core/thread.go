@@ -450,17 +450,22 @@ func (t *Thread) indexBlock(commit *commitResult, blockType repo.BlockType, targ
 		return err
 	}
 
+	username := index.AuthorId[len(index.AuthorId)-7:]
+	contact := t.datastore.Contacts().Get(index.AuthorId)
+	if contact != nil && contact.Username != "" {
+		username = contact.Username
+	}
 	info := &BlockInfo{
 		Id:       index.Id,
 		ThreadId: index.ThreadId,
 		AuthorId: index.AuthorId,
+		Username: username,
 		Type:     index.Type.Description(),
 		Date:     index.Date,
 		Parents:  index.Parents,
 		Target:   index.Target,
 		Body:     index.Body,
 	}
-
 	t.pushUpdate(*info)
 
 	return nil
