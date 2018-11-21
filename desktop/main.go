@@ -132,7 +132,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	go func() {
 		for {
 			select {
-			case update, ok := <-node.ThreadUpdateCh():
+			case update, ok := <-node.GetTheadUpdateListener():
 				if !ok {
 					return
 				}

@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -120,4 +121,61 @@ func (a *api) rmThreads(g *gin.Context) {
 		return
 	}
 	g.String(http.StatusOK, "ok")
+}
+
+func (a *api) streamThreads(g *gin.Context) {
+	id := g.Param("id")
+	thrd := a.node.Thread(id)
+	if thrd == nil {
+		g.String(http.StatusNotFound, "thread not found")
+		return
+	}
+	opts, err := a.readOpts(g)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+
+	listener := a.node.GetThreadUpdateListener()
+	g.Stream(func(w io.Writer) bool {
+		select {
+		case update, ok := <-listener.Ch:
+			if !ok {
+				return false
+			}
+			if data, ok := update.(ThreadUpdate); ok {
+				info, err := addBlockInfo(a, data)
+				if err != nil {
+					log.Errorf("error getting thread file: %s", err)
+				}
+				if opts["events"] == "true" {
+					g.SSEvent("threadUpdate", info)
+				} else {
+					g.JSON(http.StatusOK, info)
+				}
+			}
+		default:
+		}
+		return true
+	})
+
+	listener.Close()
+}
+
+func addBlockInfo(a *api, update ThreadUpdate) (ThreadUpdate, error) {
+	switch update.Block.Type {
+	case "FILES":
+		info, err := a.node.ThreadFile(update.Block.Id)
+		if err != nil {
+			return update, err
+		}
+		return ThreadUpdate{
+			Block:      update.Block,
+			ThreadId:   update.ThreadId,
+			ThreadName: update.ThreadName,
+			Info:       info,
+		}, nil
+	default: // For everything else... we've already go block info
+		return update, nil
+	}
 }

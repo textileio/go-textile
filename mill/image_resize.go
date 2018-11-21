@@ -122,7 +122,7 @@ func encodeImage(reader io.Reader, format Format, width int, quality int) (*byte
 	var size image.Rectangle
 
 	if format != GIF {
-		// encode to jpeg
+		// encode to png or jpeg
 		img, _, err := image.Decode(reader)
 		if err != nil {
 			return nil, nil, err
@@ -133,8 +133,15 @@ func encodeImage(reader io.Reader, format Format, width int, quality int) (*byte
 		}
 
 		resized := imaging.Resize(img, width, 0, imaging.Lanczos)
-		if err = jpeg.Encode(buff, resized, &jpeg.Options{Quality: quality}); err != nil {
-			return nil, nil, err
+
+		if format == PNG {
+			if err = png.Encode(buff, resized); err != nil {
+				return nil, nil, err
+			}
+		} else {
+			if err = jpeg.Encode(buff, resized, &jpeg.Options{Quality: quality}); err != nil {
+				return nil, nil, err
+			}
 		}
 		size = resized.Rect
 

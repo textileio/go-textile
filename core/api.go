@@ -9,7 +9,9 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strings"
+	"time"
 
+	"github.com/gin-contrib/cors"
 	m "github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/repo"
 
@@ -64,6 +66,14 @@ func (a *api) Start() {
 		g.Writer.WriteHeader(http.StatusNoContent)
 	})
 
+	// Allows all origins
+	// TODO: Do not use this in production, needs to be configurable
+	config := cors.DefaultConfig()
+	config.AllowAllOrigins = true
+	config.AllowMethods = []string{"GET", "POST", "PUT", "HEAD", "PATCH", "OPTIONS"}
+	config.AllowHeaders = []string{"Content-Type", "Access-Control-Allow-Headers", "Authorization", "X-Requested-With", "X-Textile-Args", "X-Textile-Opts", "Method"}
+	router.Use(cors.New(config))
+
 	// v0 routes
 	v0 := router.Group("/api/v0")
 	{
@@ -88,6 +98,7 @@ func (a *api) Start() {
 		threads.GET("/:id", a.getThreads)
 		threads.DELETE("/:id", a.rmThreads)
 		threads.POST("/:id/files", a.addThreadFiles)
+		threads.GET("/:id/updates", a.streamThreads)
 
 		files := v0.Group("/files")
 		files.GET("", a.lsThreadFiles)
@@ -135,12 +146,13 @@ func (a *api) Start() {
 
 // Stop stops the http api
 func (a *api) Stop() error {
-	ctx, cancel := context.WithCancel(context.Background())
+	// Use timeout to force a deadline
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 	if err := a.server.Shutdown(ctx); err != nil {
 		log.Errorf("error shutting down api: %s", err)
 		return err
 	}
-	cancel()
 	return nil
 }
 

@@ -40,9 +40,10 @@ var ErrBlockNotFile = errors.New("block is not a file")
 
 // ThreadUpdate is used to notify listeners about updates in a thread
 type ThreadUpdate struct {
-	Block      repo.Block `json:"block"`
-	ThreadId   string     `json:"thread_id"`
-	ThreadName string     `json:"thread_name"`
+	Block      BlockInfo   `json:"block"`
+	ThreadId   string      `json:"thread_id"`
+	ThreadName string      `json:"thread_name"`
+	Info       interface{} `json:"info,omitempty"`
 }
 
 // ThreadInfo reports info about a thread
@@ -449,7 +450,23 @@ func (t *Thread) indexBlock(commit *commitResult, blockType repo.BlockType, targ
 		return err
 	}
 
-	t.pushUpdate(*index)
+	username := index.AuthorId[len(index.AuthorId)-7:]
+	contact := t.datastore.Contacts().Get(index.AuthorId)
+	if contact != nil && contact.Username != "" {
+		username = contact.Username
+	}
+	info := &BlockInfo{
+		Id:       index.Id,
+		ThreadId: index.ThreadId,
+		AuthorId: index.AuthorId,
+		Username: username,
+		Type:     index.Type.Description(),
+		Date:     index.Date,
+		Parents:  index.Parents,
+		Target:   index.Target,
+		Body:     index.Body,
+	}
+	t.pushUpdate(*info)
 
 	return nil
 }
@@ -564,7 +581,7 @@ func (t *Thread) post(commit *commitResult, peers []repo.ThreadPeer) error {
 }
 
 // pushUpdate pushes thread updates to UI listeners
-func (t *Thread) pushUpdate(index repo.Block) {
+func (t *Thread) pushUpdate(index BlockInfo) {
 	t.sendUpdate(ThreadUpdate{
 		Block:      index,
 		ThreadId:   t.Id,

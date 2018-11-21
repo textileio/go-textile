@@ -394,24 +394,30 @@ func startNode() error {
 		}
 	}()
 
-	// subscribe to thread updates
+	// Subscribe to thread updates
+	listener := node.GetThreadUpdateListener()
 	go func() {
 		for {
 			select {
-			case update, ok := <-node.ThreadUpdateCh():
+			case value, ok := <-listener.Ch:
 				if !ok {
 					return
 				}
-				date := update.Block.Date.Format(time.RFC822)
-				desc := update.Block.Type.Description()
-				username := node.ContactUsername(update.Block.AuthorId)
-				if username != "" {
-					username += " "
+				// Since broadcaster requires an empty interface, we can't call any methods
+				// So use type assertions to let runtime check that we have a ThreadUpdate
+				if update, ok := value.(core.ThreadUpdate); ok {
+					date := update.Block.Date.Format(time.RFC822)
+					desc := update.Block.Type
+					username := node.ContactUsername(update.Block.AuthorId)
+					if username != "" {
+						username += " "
+					}
+					thrd := update.ThreadId[len(update.ThreadId)-8:]
+					msg := cmd.Grey(date+"  "+username+" added ") +
+						cmd.Green(desc) + cmd.Grey(" update to thread "+thrd)
+					fmt.Println(msg)
 				}
-				thrd := update.ThreadId[len(update.ThreadId)-7:]
-				msg := cmd.Grey(date+"  "+username+"added ") +
-					cmd.Green(desc) + cmd.Grey(" update to thread "+thrd)
-				fmt.Println(msg)
+			default:
 			}
 		}
 	}()
