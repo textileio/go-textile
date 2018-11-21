@@ -17,7 +17,3 @@ message File {
     google.protobuf.Timestamp added = 10;
     google.protobuf.Struct meta     = 11;
 }
-
-message Directory {
-    map<string, File> files = 1;
-}

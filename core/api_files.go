@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/schema"
 
 	"github.com/gin-gonic/gin"
 )
@@ -30,25 +31,24 @@ func (a *api) addThreadFiles(g *gin.Context) {
 	var node ipld.Node
 	var keys Keys
 
-	// parse file or directory
 	var dir Directory
 	if err := g.BindJSON(&dir); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
-	if len(dir) > 0 {
-		node, keys, err = a.node.AddNodeFromDirs([]Directory{dir})
+	if len(dir) == 0 {
+		g.String(http.StatusBadRequest, "no files found")
+		return
+	}
+
+	if dir[schema.SingleFileTag].Hash != "" {
+		node, keys, err = a.node.AddNodeFromFiles([]repo.File{dir[schema.SingleFileTag]})
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return
 		}
 	} else {
-		var file repo.File
-		if err := g.BindJSON(&file); err != nil {
-			g.String(http.StatusBadRequest, err.Error())
-			return
-		}
-		node, keys, err = a.node.AddNodeFromFiles([]repo.File{file})
+		node, keys, err = a.node.AddNodeFromDirs([]Directory{dir})
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return
