@@ -177,7 +177,7 @@ func (m *Mobile) Start() error {
 		}()
 
 		// subscribe to thread updates
-		listener := m.node.ThreadUpdateCh()
+		listener := m.node.GetThreadUpdateListener()
 		go func() {
 			for {
 				select {

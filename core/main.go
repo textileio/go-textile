@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/textileio/textile-go/archive"
+	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/repo"
@@ -112,7 +113,7 @@ type Textile struct {
 	online         chan struct{}
 	done           chan struct{}
 	updates        chan Update
-	threadUpdates  Broadcaster
+	threadUpdates  broadcast.Broadcaster
 	notifications  chan repo.Notification
 	threadsService *ThreadsService
 	threadsOutbox  *ThreadsOutbox
@@ -265,7 +266,6 @@ func (t *Textile) Start() error {
 
 	t.online = make(chan struct{})
 	t.updates = make(chan Update, 10)
-	// t.threadUpdates = make(chan ThreadUpdate, 10)
 	t.notifications = make(chan repo.Notification, 10)
 
 	t.cafeInbox = NewCafeInbox(
@@ -447,8 +447,8 @@ func (t *Textile) UpdateCh() <-chan Update {
 	return t.updates
 }
 
-// ThreadUpdateCh returns the thread update channel
-func (t *Textile) ThreadUpdateCh() *Listener {
+// GetThreadUpdateListener returns the thread update channel
+func (t *Textile) GetThreadUpdateListener() *broadcast.Listener {
 	return t.threadUpdates.Listen()
 }
 

@@ -395,7 +395,7 @@ func startNode() error {
 	}()
 
 	// Subscribe to thread updates
-	listener := node.ThreadUpdateCh()
+	listener := node.GetThreadUpdateListener()
 	go func() {
 		for {
 			select {
@@ -407,7 +407,7 @@ func startNode() error {
 				// So use type assertions to let runtime check that we have a ThreadUpdate
 				if update, ok := value.(core.ThreadUpdate); ok {
 					date := update.Block.Date.Format(time.RFC822)
-					desc := update.Block.Type.Description()
+					desc := update.Block.Type
 					username := node.ContactUsername(update.Block.AuthorId)
 					if username != "" {
 						username += " "

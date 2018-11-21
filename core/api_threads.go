@@ -136,7 +136,7 @@ func (a *api) streamThreads(g *gin.Context) {
 		return
 	}
 
-	listener := a.node.ThreadUpdateCh()
+	listener := a.node.GetThreadUpdateListener()
 	g.Stream(func(w io.Writer) bool {
 		select {
 		case update, ok := <-listener.Ch:
@@ -165,36 +165,15 @@ func addBlockInfo(a *api, update ThreadUpdate) (ThreadUpdate, error) {
 
 	var info interface{}
 	switch update.Block.Type {
-	case repo.FilesBlock:
-		info, _ = a.node.threadFile(&update.Block)
-	case repo.CommentBlock:
+	case "FILES":
+		info, _ = a.node.ThreadFile(update.Block.Id)
+	case "COMMENT":
 		info = ThreadCommentInfo{
 			Id:       block.Id,
 			Date:     block.Date,
 			AuthorId: block.AuthorId,
 			Username: username,
 			Body:     block.Body,
-		}
-	case repo.LikeBlock:
-		info = ThreadLikeInfo{
-			Id:       block.Id,
-			Date:     block.Date,
-			AuthorId: block.AuthorId,
-			Username: username,
-		}
-	case repo.JoinBlock:
-		info = ThreadJoinInfo{
-			Id:       block.Id,
-			Date:     block.Date,
-			AuthorId: block.AuthorId,
-			Username: username,
-		}
-	case repo.LeaveBlock:
-		info = ThreadLeaveInfo{
-			Id:       block.Id,
-			Date:     block.Date,
-			AuthorId: block.AuthorId,
-			Username: username,
 		}
 	default: // Don't have a need for others yet...
 	}

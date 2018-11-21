@@ -1,4 +1,4 @@
-// Package core/broadcast implements multi-listener broadcast channels.
+// Package broadcast implements multi-listener broadcast channels.
 //
 // To create an unbuffered broadcast channel, just declare a Broadcaster:
 //
@@ -30,7 +30,7 @@
 //
 //     b.Close()
 //     v, ok <- l.Ch // returns ok == false
-package core
+package broadcast
 
 import "sync"
 
