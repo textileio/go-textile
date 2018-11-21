@@ -14,11 +14,11 @@ func init() {
 }
 
 type cafesCmd struct {
-	Add       addCafesCmd       `command:"add"`
-	List      lsCafesCmd        `command:"ls"`
-	Get       getCafesCmd       `command:"get"`
-	Remove    rmCafesCmd        `command:"rm"`
-	CheckMail checkMailCafesCmd `command:"check-mail"`
+	Add      addCafesCmd          `command:"add"`
+	List     lsCafesCmd           `command:"ls"`
+	Get      getCafesCmd          `command:"get"`
+	Remove   rmCafesCmd           `command:"rm"`
+	Messages checkCafeMessagesCmd `command:"messages"`
 }
 
 func (x *cafesCmd) Name() string {
@@ -185,33 +185,33 @@ func callRmCafes(args []string) error {
 	return nil
 }
 
-type checkMailCafesCmd struct {
+type checkCafeMessagesCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *checkMailCafesCmd) Name() string {
+func (x *checkCafeMessagesCmd) Name() string {
 	return "check-mail"
 }
 
-func (x *checkMailCafesCmd) Short() string {
+func (x *checkCafeMessagesCmd) Short() string {
 	return "Checks mail at all cafes"
 }
 
-func (x *checkMailCafesCmd) Long() string {
+func (x *checkCafeMessagesCmd) Long() string {
 	return "Check for mail at all cafes. New messages are downloaded and processed opportunistically."
 }
 
-func (x *checkMailCafesCmd) Execute(args []string) error {
+func (x *checkCafeMessagesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callCheckMailCafes()
+	return callCheckCafeMessages()
 }
 
-func (x *checkMailCafesCmd) Shell() *ishell.Cmd {
+func (x *checkCafeMessagesCmd) Shell() *ishell.Cmd {
 	return nil
 }
 
-func callCheckMailCafes() error {
-	res, err := executeStringCmd(POST, "cafes/check_mail", params{})
+func callCheckCafeMessages() error {
+	res, err := executeStringCmd(POST, "cafes/messages", params{})
 	if err != nil {
 		return err
 	}

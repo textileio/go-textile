@@ -48,6 +48,7 @@ func (t *Textile) BlockInfo(id string) (*BlockInfo, error) {
 		Id:       block.Id,
 		ThreadId: block.ThreadId,
 		AuthorId: block.AuthorId,
+		Username: t.ContactUsername(block.AuthorId),
 		Type:     block.Type.Description(),
 		Date:     block.Date,
 		Parents:  block.Parents,

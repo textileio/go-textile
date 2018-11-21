@@ -67,6 +67,7 @@ type BlockInfo struct {
 	Id       string    `json:"id"`
 	ThreadId string    `json:"thread_id"`
 	AuthorId string    `json:"author_id"`
+	Username string    `json:"username"`
 	Type     string    `json:"type"`
 	Date     time.Time `json:"date"`
 	Parents  []string  `json:"parents"`
@@ -153,10 +154,17 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 	if mod.Head != "" {
 		h := t.datastore.Blocks().Get(mod.Head)
 		if h != nil {
+			username := h.AuthorId[len(h.AuthorId)-7:]
+			contact := t.datastore.Contacts().Get(h.AuthorId)
+			if contact != nil && contact.Username != "" {
+				username = contact.Username
+			}
+
 			head = &BlockInfo{
 				Id:       h.Id,
 				ThreadId: h.ThreadId,
 				AuthorId: h.AuthorId,
+				Username: username,
 				Type:     h.Type.Description(),
 				Date:     h.Date,
 				Parents:  h.Parents,
