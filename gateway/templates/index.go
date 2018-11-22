@@ -1,3 +1,6 @@
+package templates
+
+const Index = `
 <html>
     <head>
         <title>{{.root.String}}</title>
@@ -13,3 +16,4 @@
         </ul>
 	</body>
 </html>
+`

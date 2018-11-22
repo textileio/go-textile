@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"html/template"
 	"net/http"
 	"regexp"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/crypto"
+	"github.com/textileio/textile-go/gateway/templates"
 )
 
 var log = logging.Logger("tex-gateway")
@@ -43,7 +45,7 @@ func (g *Gateway) Start(addr string) {
 	router := gin.Default()
 
 	router.Static("/css", "gateway/css")
-	router.LoadHTMLGlob("gateway/templates/*")
+	router.SetHTMLTemplate(parseTemplates())
 
 	router.GET("/health", func(c *gin.Context) {
 		c.Writer.WriteHeader(http.StatusNoContent)
@@ -291,7 +293,7 @@ func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 				})
 			}
 
-			c.HTML(http.StatusOK, "index.tmpl", gin.H{
+			c.HTML(http.StatusOK, "index", gin.H{
 				"root":  root,
 				"back":  back,
 				"links": links,
@@ -307,7 +309,19 @@ func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 }
 
 func render404(c *gin.Context) {
-	c.HTML(http.StatusNotFound, "404.tmpl", nil)
+	c.HTML(http.StatusNotFound, "404", nil)
+}
+
+func parseTemplates() *template.Template {
+	temp, err := template.New("index").Parse(templates.Index)
+	if err != nil {
+		panic(err)
+	}
+	temp, err = temp.New("404").Parse(templates.NotFound)
+	if err != nil {
+		panic(err)
+	}
+	return temp
 }
 
 func byteCountDecimal(b int64) string {

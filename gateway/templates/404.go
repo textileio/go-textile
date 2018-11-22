@@ -1,3 +1,6 @@
+package templates
+
+const NotFound = `
 <html>
     <head>
         <title>DAG-nammit.</title>
@@ -9,3 +12,4 @@
         </div>
 	</body>
 </html>
+`
