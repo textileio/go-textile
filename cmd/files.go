@@ -28,6 +28,26 @@ func init() {
 	register(&getCmd{})
 }
 
+type millOpts struct {
+	val map[string]string
+}
+
+func newMillOpts(ext map[string]string) millOpts {
+	c := make(map[string]string)
+	for k, v := range ext {
+		c[k] = v
+	}
+	return millOpts{val: c}
+}
+
+func (m millOpts) setPlaintext(v bool) {
+	m.val["plaintext"] = strconv.FormatBool(v)
+}
+
+func (m millOpts) setUse(v string) {
+	m.val["use"] = v
+}
+
 type addCmd struct {
 	Client  ClientOptions `group:"Client Options"`
 	Thread  string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
@@ -109,8 +129,11 @@ func callAdd(args []string, opts map[string]string) error {
 	if info.Schema.Mill != "" {
 		file := repo.File{}
 
+		mopts := newMillOpts(info.Schema.Opts)
+		mopts.setPlaintext(info.Schema.Plaintext)
+
 		res, err := executeJsonCmd(POST, "mills"+info.Schema.Mill, params{
-			opts:    info.Schema.Opts,
+			opts:    mopts.val,
 			payload: reader,
 			ctype:   writer.FormDataContentType(),
 		}, &file)
@@ -134,10 +157,14 @@ func callAdd(args []string, opts map[string]string) error {
 			file := repo.File{}
 			output("\""+step.Name+"\":", nil)
 
+			mopts := newMillOpts(step.Link.Opts)
+			mopts.setPlaintext(step.Link.Plaintext)
+
 			if step.Link.Use == schema.FileTag {
 				reader.Seek(0, 0)
+
 				res, err := executeJsonCmd(POST, "mills"+step.Link.Mill, params{
-					opts:    step.Link.Opts,
+					opts:    mopts.val,
 					payload: reader,
 					ctype:   writer.FormDataContentType(),
 				}, &file)
@@ -152,14 +179,10 @@ func callAdd(args []string, opts map[string]string) error {
 				if dir[step.Link.Use].Hash == "" {
 					return errors.New(step.Link.Use + " not found")
 				}
-
-				if len(step.Link.Opts) == 0 {
-					step.Link.Opts = make(map[string]string)
-				}
-				step.Link.Opts["use"] = dir[step.Link.Use].Hash
+				mopts.setUse(dir[step.Link.Use].Hash)
 
 				res, err := executeJsonCmd(POST, "mills"+step.Link.Mill, params{
-					opts: step.Link.Opts,
+					opts: mopts.val,
 				}, &file)
 				if err != nil {
 					return err

@@ -45,7 +45,9 @@ func (a *api) blobMill(g *gin.Context) {
 	}
 	mill := &m.Blob{}
 
-	conf, err := a.getFileConfig(g, mill, opts["use"])
+	plaintext := opts["plaintext"] == "true"
+
+	conf, err := a.getFileConfig(g, mill, opts["use"], plaintext)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -84,7 +86,9 @@ func (a *api) imageResizeMill(g *gin.Context) {
 		mill.Opts.Quality = opts["quality"]
 	}
 
-	conf, err := a.getFileConfig(g, mill, opts["use"])
+	plaintext := opts["plaintext"] == "true"
+
+	conf, err := a.getFileConfig(g, mill, opts["use"], plaintext)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -107,7 +111,9 @@ func (a *api) imageExifMill(g *gin.Context) {
 	}
 	mill := &m.ImageExif{}
 
-	conf, err := a.getFileConfig(g, mill, opts["use"])
+	plaintext := opts["plaintext"] == "true"
+
+	conf, err := a.getFileConfig(g, mill, opts["use"], plaintext)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

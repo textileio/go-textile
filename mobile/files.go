@@ -65,7 +65,7 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 		return nil, err
 	}
 	if mil != nil {
-		conf, err := m.getFileConfig(mil, path, "")
+		conf, err := m.getFileConfig(mil, path, "", thrd.Schema.Plaintext)
 		if err != nil {
 			return nil, err
 		}
@@ -102,7 +102,7 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 			var conf *core.AddFileConfig
 
 			if step.Link.Use == schema.FileTag {
-				conf, err = m.getFileConfig(mil, path, "")
+				conf, err = m.getFileConfig(mil, path, "", step.Link.Plaintext)
 				if err != nil {
 					return nil, err
 				}
@@ -112,7 +112,7 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 					return nil, errors.New(step.Link.Use + " not found")
 				}
 
-				conf, err = m.getFileConfig(mil, path, mdir.Dir.Files[step.Link.Use].Hash)
+				conf, err = m.getFileConfig(mil, path, mdir.Dir.Files[step.Link.Use].Hash, step.Link.Plaintext)
 				if err != nil {
 					return nil, err
 				}
@@ -395,7 +395,7 @@ func (m *Mobile) addSchema(jsonstr string) (*repo.File, error) {
 	return m.node.AddFile(&mill.Schema{}, conf)
 }
 
-func (m *Mobile) getFileConfig(mil mill.Mill, path string, use string) (*core.AddFileConfig, error) {
+func (m *Mobile) getFileConfig(mil mill.Mill, path string, use string, plaintext bool) (*core.AddFileConfig, error) {
 	var reader io.ReadSeeker
 	conf := &core.AddFileConfig{}
 
@@ -431,6 +431,7 @@ func (m *Mobile) getFileConfig(mil mill.Mill, path string, use string) (*core.Ad
 		return nil, err
 	}
 	conf.Input = data
+	conf.Plaintext = plaintext
 
 	return conf, nil
 }

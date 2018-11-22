@@ -237,7 +237,7 @@ func (a *api) openFile(g *gin.Context) (multipart.File, string, error) {
 	return file, header.Filename, nil
 }
 
-func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string) (*AddFileConfig, error) {
+func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string, plaintext bool) (*AddFileConfig, error) {
 	var reader io.ReadSeeker
 	conf := &AddFileConfig{}
 
@@ -272,6 +272,7 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string) (*AddFileCo
 		return nil, err
 	}
 	conf.Input = data
+	conf.Plaintext = plaintext
 
 	return conf, nil
 }
