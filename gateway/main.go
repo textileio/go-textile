@@ -4,20 +4,24 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"html/template"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
 
+	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
+	"gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
 	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/crypto"
+	"github.com/textileio/textile-go/gateway/templates"
 )
 
 var log = logging.Logger("tex-gateway")
@@ -39,6 +43,10 @@ func (g *Gateway) Start(addr string) {
 	}
 
 	router := gin.Default()
+
+	router.Static("/css", "gateway/css")
+	router.SetHTMLTemplate(parseTemplates())
+
 	router.GET("/health", func(c *gin.Context) {
 		c.Writer.WriteHeader(http.StatusNoContent)
 	})
@@ -111,13 +119,13 @@ func (g *Gateway) gatewayHandler(c *gin.Context) {
 		keyb, err := base58.Decode(key)
 		if err != nil {
 			log.Errorf("error decoding key %s: %s", key, err)
-			c.Status(404)
+			render404(c)
 			return
 		}
 		plain, err := crypto.DecryptAES(data, keyb)
 		if err != nil {
 			log.Errorf("error decrypting %s: %s", contentPath, err)
-			c.Status(404)
+			render404(c)
 			return
 		}
 		c.Render(200, render.Data{Data: plain})
@@ -155,14 +163,14 @@ func (g *Gateway) profileHandler(c *gin.Context) {
 	rootId, err := peer.IDB58Decode(c.Param("root"))
 	if err != nil {
 		log.Errorf("error decoding root %s: %s", c.Param("root"), err)
-		c.Status(404)
+		render404(c)
 		return
 	}
 
 	pth, err := g.Node.ResolveProfile(rootId)
 	if err != nil {
 		log.Errorf("error resolving profile %s: %s", c.Param("root"), err)
-		c.Status(404)
+		render404(c)
 		return
 	}
 
@@ -179,7 +187,7 @@ func (g *Gateway) profileHandler(c *gin.Context) {
 				c.Redirect(307, location)
 				return
 			} else {
-				c.Status(404)
+				render404(c)
 				return
 			}
 		}
@@ -190,20 +198,20 @@ func (g *Gateway) profileHandler(c *gin.Context) {
 			keyb, err := base58.Decode(parsed[1])
 			if err != nil {
 				log.Errorf("error decoding key %s: %s", parsed[1], err)
-				c.Status(404)
+				render404(c)
 				return
 			}
 
 			ciphertext, err := g.Node.DataAtPath(parsed[0])
 			if err != nil {
-				c.Status(404)
+				render404(c)
 				return
 			}
 
 			data, err = crypto.DecryptAES(ciphertext, keyb)
 			if err != nil {
 				log.Errorf("error decrypting %s: %s", parsed[0], err)
-				c.Status(404)
+				render404(c)
 				return
 			}
 
@@ -213,7 +221,7 @@ func (g *Gateway) profileHandler(c *gin.Context) {
 			pth := fmt.Sprintf("%s/0/%s/d", location, avatarSize)
 			data, err = g.Node.DataAtPath(pth)
 			if err != nil {
-				c.Status(404)
+				render404(c)
 				return
 			}
 
@@ -235,30 +243,109 @@ func (g *Gateway) profileHandler(c *gin.Context) {
 	c.Render(200, render.Data{Data: data})
 }
 
+type link struct {
+	Path iface.Path
+	Link *ipld.Link
+	Size string
+}
+
 // getDataAtPath get raw data or directory links at path
 func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 	data, err := g.Node.DataAtPath(pth)
 	if err != nil {
-		if err == iface.ErrIsDir {
-			links, err := g.Node.LinksAtPath(pth)
+		if err == files.ErrNotReader {
+			root, err := iface.ParsePath(pth)
 			if err != nil {
-				log.Errorf("error getting path %s: %s", pth, err)
-				c.Status(404)
+				log.Errorf("error parsing path %s: %s", pth, err)
+				render404(c)
 				return nil
 			}
 
-			var list []string
-			for _, link := range links {
-				list = append(list, "/"+link.Name)
+			var back string
+			parts := strings.Split(root.String(), "/")
+			if len(parts) > 0 {
+				last := parts[:len(parts)-1]
+				back = strings.Join(last, "/")
+			}
+			if back == "/ipfs" || back == "/ipns" {
+				back = root.String()
 			}
 
-			c.String(200, "%s", strings.Join(list, "\n"))
+			ilinks, err := g.Node.LinksAtPath(pth)
+			if err != nil {
+				log.Errorf("error getting links %s: %s", pth, err)
+				render404(c)
+				return nil
+			}
+
+			var links []link
+			for _, l := range ilinks {
+				ipath, err := iface.ParsePath(pth + "/" + l.Name)
+				if err != nil {
+					log.Errorf("error parsing path %s: %s", pth, err)
+					render404(c)
+					return nil
+				}
+				links = append(links, link{
+					Path: ipath,
+					Link: l,
+					Size: byteCountDecimal(int64(l.Size)),
+				})
+			}
+
+			c.HTML(http.StatusOK, "index", gin.H{
+				"root":  root,
+				"back":  back,
+				"links": links,
+			})
 			return nil
 		}
 
 		log.Errorf("error getting path %s: %s", pth, err)
-		c.Status(404)
+		render404(c)
 		return nil
 	}
 	return data
+}
+
+func render404(c *gin.Context) {
+	c.HTML(http.StatusNotFound, "404", nil)
+}
+
+func parseTemplates() *template.Template {
+	temp, err := template.New("index").Parse(templates.Index)
+	if err != nil {
+		panic(err)
+	}
+	temp, err = temp.New("404").Parse(templates.NotFound)
+	if err != nil {
+		panic(err)
+	}
+	return temp
+}
+
+func byteCountDecimal(b int64) string {
+	const unit = 1000
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "kMGTPE"[exp])
+}
+
+func byteCountBinary(b int64) string {
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
 }
