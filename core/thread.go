@@ -338,6 +338,7 @@ func (t *Thread) newBlockHeader() (*pb.ThreadBlockHeader, error) {
 		Date:    pdate,
 		Parents: parents,
 		Author:  t.node().Identity.Pretty(),
+		Address: t.config.Account.Address,
 	}, nil
 }
 

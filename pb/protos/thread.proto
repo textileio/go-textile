@@ -35,6 +35,7 @@ message ThreadBlockHeader {
     google.protobuf.Timestamp date = 1;
     repeated string parents        = 2;
     string author                  = 3;
+    string address                 = 4;
 }
 
 message ThreadInvite {
