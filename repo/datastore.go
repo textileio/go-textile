@@ -55,6 +55,7 @@ type ContactStore interface {
 	AddOrUpdate(device *Contact) error
 	Get(id string) *Contact
 	List() []Contact
+	ListByAddress(address string) []Contact
 	Count() int
 	Delete(id string) error
 }

@@ -192,7 +192,8 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 
     create table profile (key text primary key not null, value blob);
 
-    create table contacts (id text primary key not null, username text not null, inboxes text not null, added integer not null);
+    create table contacts (id text primary key not null, address text not null, username text not null, inboxes text not null, added integer not null);
+    create index contact_address on contacts (address);
     create index contact_username on contacts (username);
     create index contact_added on contacts (added);
 

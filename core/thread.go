@@ -302,7 +302,7 @@ func (t *Thread) followParent(parent mh.Multihash) error {
 
 // addOrUpdatePeer collects thread peers, saving them as contacts and
 // saving their cafe inboxes for offline message delivery
-func (t *Thread) addOrUpdatePeer(pid peer.ID, username string, inboxes []string) {
+func (t *Thread) addOrUpdatePeer(pid peer.ID, address string, username string, inboxes []string) {
 	t.datastore.ThreadPeers().Add(&repo.ThreadPeer{
 		Id:       pid.Pretty(),
 		ThreadId: t.Id,
@@ -311,6 +311,7 @@ func (t *Thread) addOrUpdatePeer(pid peer.ID, username string, inboxes []string)
 
 	t.datastore.Contacts().AddOrUpdate(&repo.Contact{
 		Id:       pid.Pretty(),
+		Address:  address,
 		Username: username,
 		Inboxes:  inboxes,
 		Added:    time.Now(),
