@@ -4,9 +4,8 @@ import (
 	"time"
 
 	native "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
+	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs"
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/repo"
-
-	ipfs "github.com/ipfs/go-ipfs"
 )
 
 // DefaultServerFilters has a list of non-routable IPv4 prefixes
@@ -99,6 +98,9 @@ func InitIpfs(identity native.Identity) (*native.Config, error) {
 			FilestoreEnabled:     false,
 			ShardingEnabled:      false,
 			Libp2pStreamMounting: true,
+		},
+		Pubsub: native.PubsubConfig{
+			Router: "gossipsub",
 		},
 	}
 
