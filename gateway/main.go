@@ -117,13 +117,13 @@ func (g *Gateway) gatewayHandler(c *gin.Context) {
 		keyb, err := base58.Decode(key)
 		if err != nil {
 			log.Errorf("error decoding key %s: %s", key, err)
-			c.Status(404)
+			render404(c)
 			return
 		}
 		plain, err := crypto.DecryptAES(data, keyb)
 		if err != nil {
 			log.Errorf("error decrypting %s: %s", contentPath, err)
-			c.Status(404)
+			render404(c)
 			return
 		}
 		c.Render(200, render.Data{Data: plain})
@@ -161,14 +161,14 @@ func (g *Gateway) profileHandler(c *gin.Context) {
 	rootId, err := peer.IDB58Decode(c.Param("root"))
 	if err != nil {
 		log.Errorf("error decoding root %s: %s", c.Param("root"), err)
-		c.Status(404)
+		render404(c)
 		return
 	}
 
 	pth, err := g.Node.ResolveProfile(rootId)
 	if err != nil {
 		log.Errorf("error resolving profile %s: %s", c.Param("root"), err)
-		c.Status(404)
+		render404(c)
 		return
 	}
 
@@ -185,7 +185,7 @@ func (g *Gateway) profileHandler(c *gin.Context) {
 				c.Redirect(307, location)
 				return
 			} else {
-				c.Status(404)
+				render404(c)
 				return
 			}
 		}
@@ -196,20 +196,20 @@ func (g *Gateway) profileHandler(c *gin.Context) {
 			keyb, err := base58.Decode(parsed[1])
 			if err != nil {
 				log.Errorf("error decoding key %s: %s", parsed[1], err)
-				c.Status(404)
+				render404(c)
 				return
 			}
 
 			ciphertext, err := g.Node.DataAtPath(parsed[0])
 			if err != nil {
-				c.Status(404)
+				render404(c)
 				return
 			}
 
 			data, err = crypto.DecryptAES(ciphertext, keyb)
 			if err != nil {
 				log.Errorf("error decrypting %s: %s", parsed[0], err)
-				c.Status(404)
+				render404(c)
 				return
 			}
 
@@ -219,7 +219,7 @@ func (g *Gateway) profileHandler(c *gin.Context) {
 			pth := fmt.Sprintf("%s/0/%s/d", location, avatarSize)
 			data, err = g.Node.DataAtPath(pth)
 			if err != nil {
-				c.Status(404)
+				render404(c)
 				return
 			}
 
@@ -255,7 +255,7 @@ func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 			root, err := iface.ParsePath(pth)
 			if err != nil {
 				log.Errorf("error parsing path %s: %s", pth, err)
-				c.Status(404)
+				render404(c)
 				return nil
 			}
 
@@ -272,7 +272,7 @@ func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 			ilinks, err := g.Node.LinksAtPath(pth)
 			if err != nil {
 				log.Errorf("error getting links %s: %s", pth, err)
-				c.Status(404)
+				render404(c)
 				return nil
 			}
 
@@ -281,7 +281,7 @@ func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 				ipath, err := iface.ParsePath(pth + "/" + l.Name)
 				if err != nil {
 					log.Errorf("error parsing path %s: %s", pth, err)
-					c.Status(404)
+					render404(c)
 					return nil
 				}
 				links = append(links, link{
@@ -300,10 +300,14 @@ func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 		}
 
 		log.Errorf("error getting path %s: %s", pth, err)
-		c.Status(404)
+		render404(c)
 		return nil
 	}
 	return data
+}
+
+func render404(c *gin.Context) {
+	c.HTML(http.StatusNotFound, "404.tmpl", nil)
 }
 
 func byteCountDecimal(b int64) string {
