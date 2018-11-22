@@ -11,6 +11,17 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:7996950d6e7d367ff77af55a45a5f59aba0d15ecd4ae74697b1bda8e9f2e66ab"
+  name = "github.com/agl/ed25519"
+  packages = [
+    "edwards25519",
+    "extra25519",
+  ]
+  pruneopts = "T"
+  revision = "5312a61534124124185d41f09206b9fef1d88403"
+
+[[projects]]
+  branch = "master"
   digest = "1:06951e8f35cdcaab989dd82bc93bc5af2ce21356aa636aa3aa594e0bca67bea6"
   name = "github.com/akavel/rsrc"
   packages = [
@@ -128,6 +139,14 @@
   packages = ["."]
   pruneopts = "T"
   revision = "3f9db97f856818214da2e1057f8ad84803971cff"
+
+[[projects]]
+  digest = "1:27ae17a75b17237a08129c9dcca244fa55c6855502ea2838a7a00c362ad76b91"
+  name = "github.com/gin-contrib/cors"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "cf4846e6a636a76237a28d9286f163c132e841bc"
+  version = "v1.2"
 
 [[projects]]
   branch = "master"
@@ -524,6 +543,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/agl/ed25519/extra25519",
     "github.com/alecthomas/jsonschema",
     "github.com/asticode/go-astilectron",
     "github.com/asticode/go-astilectron-bootstrap",
@@ -531,6 +551,7 @@
     "github.com/dgrijalva/jwt-go",
     "github.com/disintegration/imaging",
     "github.com/fatih/color",
+    "github.com/gin-contrib/cors",
     "github.com/gin-gonic/gin",
     "github.com/gin-gonic/gin/render",
     "github.com/golang/protobuf/proto",

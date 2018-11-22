@@ -3,7 +3,6 @@ package core
 import (
 	"context"
 	"errors"
-	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -11,11 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+
 	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	m "github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/repo"
-
-	"github.com/gin-gonic/gin"
 )
 
 // apiVersion is the api version

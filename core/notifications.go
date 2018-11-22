@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"fmt"
+
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 
 	"github.com/textileio/textile-go/repo"

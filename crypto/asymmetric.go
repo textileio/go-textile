@@ -3,8 +3,11 @@ package crypto
 import (
 	"crypto/rand"
 	"errors"
-	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	"fmt"
 
+	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+
+	extra "github.com/agl/ed25519/extra25519"
 	"golang.org/x/crypto/nacl/box"
 )
 
@@ -37,7 +40,7 @@ func encryptCurve25519(pubKey *libp2pc.Ed25519PublicKey, bytes []byte) ([]byte, 
 	}
 
 	// convert recipient's key into curve25519
-	pk, err := pubKey.ToCurve25519()
+	pk, err := publicToCurve25519(pubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -63,6 +66,21 @@ func encryptCurve25519(pubKey *libp2pc.Ed25519PublicKey, bytes []byte) ([]byte, 
 	return ciphertext, nil
 }
 
+func publicToCurve25519(k *libp2pc.Ed25519PublicKey) (*[32]byte, error) {
+	var cp [32]byte
+	var pk [32]byte
+	r, err := k.Raw()
+	if err != nil {
+		return nil, err
+	}
+	copy(pk[:], r)
+	success := extra.PublicKeyToCurve25519(&cp, &pk)
+	if !success {
+		return nil, fmt.Errorf("error converting ed25519 pubkey to curve25519 pubkey")
+	}
+	return &cp, nil
+}
+
 func Decrypt(privKey libp2pc.PrivKey, ciphertext []byte) ([]byte, error) {
 	ed25519Privkey, ok := privKey.(*libp2pc.Ed25519PrivateKey)
 	if ok {
@@ -72,7 +90,11 @@ func Decrypt(privKey libp2pc.PrivKey, ciphertext []byte) ([]byte, error) {
 }
 
 func decryptCurve25519(privKey *libp2pc.Ed25519PrivateKey, ciphertext []byte) ([]byte, error) {
-	curve25519Privkey := privKey.ToCurve25519()
+	curve25519Privkey, err := privateToCurve25519(privKey)
+	if err != nil {
+		return nil, err
+	}
+
 	var plaintext []byte
 
 	n := ciphertext[:NonceBytes]
@@ -96,7 +118,18 @@ func decryptCurve25519(privKey *libp2pc.Ed25519PrivateKey, ciphertext []byte) ([
 	return plaintext, nil
 }
 
-// verify verifies a signature
+func privateToCurve25519(k *libp2pc.Ed25519PrivateKey) (*[32]byte, error) {
+	var cs [32]byte
+	r, err := k.Raw()
+	if err != nil {
+		return nil, err
+	}
+	var sk [64]byte
+	copy(sk[:], r)
+	extra.PrivateKeyToCurve25519(&cs, &sk)
+	return &cs, nil
+}
+
 func Verify(pk libp2pc.PubKey, data []byte, sig []byte) error {
 	good, err := pk.Verify(data, sig)
 	if err != nil || !good {

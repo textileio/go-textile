@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/textileio/textile-go/core"
-
 	"gopkg.in/abiosoft/ishell.v2"
 )
 

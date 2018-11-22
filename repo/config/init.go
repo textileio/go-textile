@@ -2,10 +2,11 @@ package config
 
 import (
 	"encoding/json"
-	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	"io/ioutil"
 	"os"
 	"path"
+
+	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 )
 
 var log = logging.Logger("tex-repo-config")

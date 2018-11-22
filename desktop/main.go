@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
-	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/fsrepo"
 	"os"
 	"path/filepath"
 	"runtime"
 	"time"
+
+	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/repo/fsrepo"
+	logger "gx/ipfs/QmcaSwFc5RBg8yCq54QURwEU4nwjfCpjbpmaAm4VbdGLKv/go-logging"
 
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
@@ -129,10 +130,11 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	}()
 
 	// subscribe to thread updates
+	listener := node.GetThreadUpdateListener()
 	go func() {
 		for {
 			select {
-			case update, ok := <-node.GetTheadUpdateListener():
+			case update, ok := <-listener.Ch:
 				if !ok {
 					return
 				}

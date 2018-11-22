@@ -4,11 +4,12 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
-	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	uio "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/unixfs/io"
 	"io"
 	"net/http"
 	"strings"
+
+	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	uio "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/io"
 
 	njwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -136,7 +137,7 @@ func (c *cafeApi) pin(g *gin.Context) {
 		})
 		return
 	}
-	var id *cid.Cid
+	var id cid.Cid
 
 	// get the auth token
 	auth := strings.Split(g.Request.Header.Get("Authorization"), " ")
@@ -214,13 +215,13 @@ func (c *cafeApi) pin(g *gin.Context) {
 		id = dir.Cid()
 
 	case "application/octet-stream":
-		var err error
-		id, err = ipfs.AddData(c.node.Ipfs(), g.Request.Body, true)
+		idp, err := ipfs.AddData(c.node.Ipfs(), g.Request.Body, true)
 		if err != nil {
 			log.Errorf("error pinning raw body %s", err)
 			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
+		id = *idp
 	default:
 		log.Errorf("got bad content type %s", cType)
 		g.JSON(http.StatusBadRequest, gin.H{"error": "invalid content-type"})

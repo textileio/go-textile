@@ -2,9 +2,10 @@ package db
 
 import (
 	"database/sql"
-	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 	"path"
 	"sync"
+
+	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 
 	_ "github.com/mutecomm/go-sqlcipher"
 	"github.com/textileio/textile-go/repo"

@@ -3,8 +3,9 @@ package core
 import (
 	"errors"
 	"fmt"
-	libp2pn "gx/ipfs/QmPjvxTpVH8qJyQDnxnsxF9kv9jezKD1kozz1hs3fCGsNh/go-libp2p-net"
-	"gx/ipfs/QmemVjhp1UuWPQqrWSvPcaqH3QJRMjMqNm4T2RULMkDDQe/go-libp2p-swarm"
+
+	"gx/ipfs/QmVHhT8NxtApPTndiZPe4JNGNUxGWtJe3ebyxtRz4HnbEp/go-libp2p-swarm"
+	inet "gx/ipfs/QmXuRkCR7BNQa9uqfpTiFWsTQLzmTWYg91Ja1w95gnqb6u/go-libp2p-net"
 
 	"github.com/textileio/textile-go/ipfs"
 )
@@ -36,6 +37,6 @@ func (t *Textile) ConnectPeer(addrs []string) ([]string, error) {
 	return output, nil
 }
 
-func (t *Textile) Peers() ([]libp2pn.Conn, error) {
+func (t *Textile) Peers() ([]inet.Conn, error) {
 	return t.node.PeerHost.Network().Conns(), nil
 }

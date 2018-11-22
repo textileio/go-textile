@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"gx/ipfs/QmVzK524a2VWLqyvtBeiHKsUAWYgeAk4DBeZoY7vpNPNRx/go-block-format"
-	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
-	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 	"strings"
 	"time"
+
+	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	"gx/ipfs/QmRcHuYzAyswytBuMF78rj3LTChYszomRFXNg4685ZN1WM/go-block-format"
+	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core"
+	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 
 	njwt "github.com/dgrijalva/jwt-go"
 	"github.com/golang/protobuf/proto"
@@ -193,7 +194,7 @@ func (h *CafeService) Store(cids []string, cafe peer.ID) ([]string, error) {
 		if err != nil {
 			continue
 		}
-		if err := h.sendBlock(*decoded, cafe, accessToken); err != nil {
+		if err := h.sendBlock(decoded, cafe, accessToken); err != nil {
 			log.Errorf("error sending block: %s", err)
 			continue
 		}
@@ -404,7 +405,7 @@ func (h *CafeService) refresh(session *repo.CafeSession) (*repo.CafeSession, err
 func (h *CafeService) sendBlock(id cid.Cid, pid peer.ID, token string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), blockTimeout)
 	defer cancel()
-	block, err := h.service.Node.Blocks.GetBlock(ctx, &id)
+	block, err := h.service.Node.Blocks.GetBlock(ctx, id)
 	if err != nil {
 		return err
 	}
