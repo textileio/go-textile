@@ -4,21 +4,20 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
 
-	"github.com/golang/protobuf/ptypes"
+	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/textileio/textile-go/pb"
-
+	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/mill"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema"
 )

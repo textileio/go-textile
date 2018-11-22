@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	logger "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 	"log"
 	"os"
 	"os/signal"
@@ -11,6 +10,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	logger "gx/ipfs/QmcaSwFc5RBg8yCq54QURwEU4nwjfCpjbpmaAm4VbdGLKv/go-logging"
 
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"

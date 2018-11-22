@@ -1,14 +1,14 @@
 package core
 
 import (
-	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 	"net/http"
 	"strconv"
 
-	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/schema"
+	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 
 	"github.com/gin-gonic/gin"
+	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/schema"
 )
 
 func (a *api) addThreadFiles(g *gin.Context) {

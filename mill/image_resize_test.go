@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/rwcarlsen/goexif/exif"
-
 	"github.com/textileio/textile-go/mill/testdata"
 )
 

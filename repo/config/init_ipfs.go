@@ -1,9 +1,12 @@
 package config
 
 import (
-	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo"
-	native "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/repo/config"
 	"time"
+
+	native "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
+	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/repo"
+
+	ipfs "github.com/ipfs/go-ipfs"
 )
 
 // DefaultServerFilters has a list of non-routable IPv4 prefixes
@@ -37,7 +40,7 @@ func InitIpfs(identity native.Identity) (*native.Config, error) {
 	conf := &native.Config{
 		API: native.API{
 			HTTPHeaders: map[string][]string{
-				"Server": {"go-ipfs/" + native.CurrentVersionNumber},
+				"Server": {"go-ipfs/" + ipfs.CurrentVersionNumber},
 			},
 		},
 
@@ -78,6 +81,7 @@ func InitIpfs(identity native.Identity) (*native.Config, error) {
 				"Access-Control-Allow-Methods": {"GET"},
 				"Access-Control-Allow-Headers": {"X-Requested-With", "Range"},
 			},
+			APICommands: []string{},
 		},
 		Reprovider: native.Reprovider{
 			Interval: "12h",

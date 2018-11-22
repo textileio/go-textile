@@ -2,8 +2,9 @@ package crypto_test
 
 import (
 	"encoding/hex"
-	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	"testing"
+
+	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 
 	. "github.com/textileio/textile-go/crypto"
 )

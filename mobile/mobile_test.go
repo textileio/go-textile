@@ -8,14 +8,11 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/textileio/textile-go/pb"
-
-	"github.com/textileio/textile-go/repo"
-
 	"github.com/segmentio/ksuid"
-
 	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
+	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/textile-go/repo"
 )
 
 type TestMessenger struct{}

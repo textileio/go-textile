@@ -4,23 +4,25 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
-	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
-	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
-	libp2pc "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
-	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
-	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core/coreapi"
-	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core/coreapi/interface"
-	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core/coreapi/interface/options"
-	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core/coreunix"
-	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/namesys/opts"
-	"gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/path"
-	uio "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/unixfs/io"
 	"io"
 	"io/ioutil"
 	"strings"
 	"time"
+
+	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
+	"gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
+	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core"
+	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi"
+	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface"
+	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface/options"
+	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreunix"
+	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/namesys/opts"
+	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
+	"gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
+	uio "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/io"
 )
 
 var log = logging.Logger("tex-ipfs")
@@ -43,7 +45,7 @@ func DataAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
 	api := coreapi.NewCoreAPI(node)
 	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
-	reader, err := api.Unixfs().Cat(ctx, ip)
+	reader, err := api.Unixfs().Get(ctx, ip)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +86,7 @@ func AddDataToDirectory(node *core.IpfsNode, dir uio.Directory, fname string, re
 	if err := dir.AddChild(node.Context(), fname, n); err != nil {
 		return nil, err
 	}
-	return id, nil
+	return &id, nil
 }
 
 // AddLinkToDirectory adds a link to a virtual dir
@@ -105,21 +107,21 @@ func AddLinkToDirectory(node *core.IpfsNode, dir uio.Directory, fname string, pt
 }
 
 // AddData takes a reader and adds it, optionally pins it
-func AddData(node *core.IpfsNode, data io.Reader, pin bool) (*cid.Cid, error) {
+func AddData(node *core.IpfsNode, reader io.Reader, pin bool) (*cid.Cid, error) {
 	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
 	defer cancel()
 	api := coreapi.NewCoreAPI(node)
-	pth, err := api.Unixfs().Add(ctx, data)
+	pth, err := api.Unixfs().Add(ctx, dataFile(reader)())
 	if err != nil {
 		return nil, err
 	}
-	if !pin {
-		return pth.Cid(), nil
+	if pin {
+		if err := api.Pin().Add(ctx, pth); err != nil {
+			return nil, err
+		}
 	}
-	if err := api.Pin().Add(ctx, pth); err != nil {
-		return nil, err
-	}
-	return pth.Cid(), nil
+	id := pth.Cid()
+	return &id, nil
 }
 
 // PinPath takes an ipfs path string and pins it
@@ -163,7 +165,7 @@ func NodeAtLink(node *core.IpfsNode, link *ipld.Link) (ipld.Node, error) {
 func NodeAtCid(node *core.IpfsNode, id *cid.Cid) (ipld.Node, error) {
 	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
-	return node.DAG.Get(ctx, id)
+	return node.DAG.Get(ctx, *id)
 }
 
 // NodeAtPath returns the last node under path
@@ -225,4 +227,10 @@ func Resolve(node *core.IpfsNode, name peer.ID) (*path.Path, error) {
 		return nil, err
 	}
 	return &pth, nil
+}
+
+func dataFile(reader io.Reader) func() files.File {
+	return func() files.File {
+		return files.NewReaderFile("", "", ioutil.NopCloser(reader), nil)
+	}
 }
