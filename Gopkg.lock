@@ -14,7 +14,6 @@
   digest = "1:7996950d6e7d367ff77af55a45a5f59aba0d15ecd4ae74697b1bda8e9f2e66ab"
   name = "github.com/agl/ed25519"
   packages = [
-    ".",
     "edwards25519",
     "extra25519",
   ]
@@ -102,14 +101,6 @@
   revision = "a0ff2567cfb70903282db057e799fd826784d41d"
 
 [[projects]]
-  branch = "master"
-  digest = "1:0bd9f11575e82b723837f50e170d010ec29a50aa8ca02a962c439146f03aea55"
-  name = "github.com/btcsuite/btcd"
-  packages = ["btcec"]
-  pruneopts = "T"
-  revision = "67e573d211ace594f1366b4ce9d39726c4b19bd0"
-
-[[projects]]
   digest = "1:9f42202ac457c462ad8bb9642806d275af9ab4850cf0b1960b9c6f083d4a309a"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
@@ -179,14 +170,6 @@
   version = "v1.3.0"
 
 [[projects]]
-  digest = "1:da39f4a22829ca95e63566208e0ea42d6f055f41dff1b14fdab88d88f62df653"
-  name = "github.com/gogo/protobuf"
-  packages = ["proto"]
-  pruneopts = "T"
-  revision = "636bf0302bc95575d69441b25a2603156ffdddf1"
-  version = "v1.1.1"
-
-[[projects]]
   digest = "1:a2ecb56e5053d942aafc86738915fb94c9131bac848c543b8b6764365fd69080"
   name = "github.com/golang/protobuf"
   packages = [
@@ -200,14 +183,6 @@
   pruneopts = "T"
   revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
   version = "v1.2.0"
-
-[[projects]]
-  branch = "master"
-  digest = "1:6e7f344f0759e7bd98e5d373e3149b5fca4132261c241777a1c8e57176f1fe05"
-  name = "github.com/gxed/hashland"
-  packages = ["keccakpg"]
-  pruneopts = "T"
-  revision = "d9f6b97f8db22dd1e090fd0bbbe98f09cc7dd0a8"
 
 [[projects]]
   digest = "1:8f20c8dd713564fa97299fbcb77d729c6de9c33f3222812a76e6ecfaef80fd61"
@@ -248,25 +223,6 @@
   version = "v1.1"
 
 [[projects]]
-  digest = "1:fdd22ec24bf48f57a70d70893b2f2ff072ea3aebd2434139c54568a896d27814"
-  name = "github.com/libp2p/go-libp2p-crypto"
-  packages = [
-    ".",
-    "pb",
-  ]
-  pruneopts = "T"
-  revision = "274de1bb6c27780863df6b230c91324ab481dab2"
-  version = "v2.0.1"
-
-[[projects]]
-  digest = "1:6f97b382ebc77d0e966ca929b9288ee1aaed0e0800ae856134c37c63b3edb732"
-  name = "github.com/libp2p/go-libp2p-peer"
-  packages = ["."]
-  pruneopts = "T"
-  revision = "dd9b45c0649b38aebe65f98cb460676b4214a42c"
-  version = "v2.4.0"
-
-[[projects]]
   digest = "1:b168836ecd85a2d138391dbc464d2442ea9400c29cc0636f2c6056b996692e29"
   name = "github.com/mattn/go-colorable"
   packages = ["."]
@@ -281,22 +237,6 @@
   pruneopts = "T"
   revision = "6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c"
   version = "v0.0.4"
-
-[[projects]]
-  branch = "master"
-  digest = "1:130cefe87d7eeefc824978dcb78e35672d4c49a11f25c153fbf0cfd952756fa3"
-  name = "github.com/minio/blake2b-simd"
-  packages = ["."]
-  pruneopts = "T"
-  revision = "3f5f724cb5b182a5c278d6d3d55b40e7f8c2efb4"
-
-[[projects]]
-  branch = "master"
-  digest = "1:445210ef1e723060b3ebeb691648b5090f154992ee35f7065b70a6a5a96a3bb8"
-  name = "github.com/minio/sha256-simd"
-  packages = ["."]
-  pruneopts = "T"
-  revision = "51976451ce1942acbb55707a983ed232fa027110"
 
 [[projects]]
   branch = "master"
@@ -329,14 +269,6 @@
   packages = ["base58"]
   pruneopts = "T"
   revision = "cee214dccb3e8160bdf79ed48a851f3a95a124ff"
-
-[[projects]]
-  digest = "1:5267c0e75b319dc15937048139397e3f597be970891037bf5e1898910ff1f8d2"
-  name = "github.com/multiformats/go-multihash"
-  packages = ["."]
-  pruneopts = "T"
-  revision = "8be2a682ab9f254311de1375145a2f78a809b07d"
-  version = "v1.0.8"
 
 [[projects]]
   branch = "master"
@@ -451,14 +383,6 @@
   revision = "cf5f9fa2f0d847edb8e038db7ed975e239095e1a"
 
 [[projects]]
-  digest = "1:919bb3aa6d9d0b67648c219fa4925312bc3c2872da19e818fa769e9c97a2b643"
-  name = "github.com/spaolacci/murmur3"
-  packages = ["."]
-  pruneopts = "T"
-  revision = "9f5d223c60793748f04a9d5b4b4eacddfc1f755d"
-  version = "v1.1"
-
-[[projects]]
   digest = "1:e95496462101745805bd4e041a5b841e108c7cf761264d53648246308de2761e"
   name = "github.com/stretchr/testify"
   packages = ["assert"]
@@ -490,7 +414,6 @@
   digest = "1:62fac8c414ce3fb59b87102ebebb04edd0287a721c0cd6b36f4dc866a42cf772"
   name = "golang.org/x/crypto"
   packages = [
-    "blake2s",
     "curve25519",
     "ed25519",
     "ed25519/internal/edwards25519",
@@ -500,7 +423,6 @@
     "pbkdf2",
     "poly1305",
     "salsa20/salsa",
-    "sha3",
     "ssh/terminal",
   ]
   pruneopts = "T"
@@ -536,7 +458,6 @@
   digest = "1:57d967d0c359c56065e766555f82df575d98c6b1979f7d257b83220ed1340d3b"
   name = "golang.org/x/sys"
   packages = [
-    "cpu",
     "unix",
     "windows",
   ]
@@ -622,6 +543,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/agl/ed25519/extra25519",
     "github.com/alecthomas/jsonschema",
     "github.com/asticode/go-astilectron",
     "github.com/asticode/go-astilectron-bootstrap",
@@ -638,7 +560,6 @@
     "github.com/golang/protobuf/ptypes/struct",
     "github.com/golang/protobuf/ptypes/timestamp",
     "github.com/jessevdk/go-flags",
-    "github.com/libp2p/go-libp2p-peer",
     "github.com/mitchellh/go-homedir",
     "github.com/mr-tron/base58/base58",
     "github.com/mutecomm/go-sqlcipher",
