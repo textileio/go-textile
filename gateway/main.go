@@ -9,9 +9,11 @@ import (
 	"strings"
 	"time"
 
+	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
+	"gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
@@ -39,6 +41,10 @@ func (g *Gateway) Start(addr string) {
 	}
 
 	router := gin.Default()
+
+	router.Static("/css", "gateway/css")
+	router.LoadHTMLGlob("gateway/templates/*")
+
 	router.GET("/health", func(c *gin.Context) {
 		c.Writer.WriteHeader(http.StatusNoContent)
 	})
@@ -235,24 +241,61 @@ func (g *Gateway) profileHandler(c *gin.Context) {
 	c.Render(200, render.Data{Data: data})
 }
 
+type link struct {
+	Path iface.Path
+	Link *ipld.Link
+	Size string
+}
+
 // getDataAtPath get raw data or directory links at path
 func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 	data, err := g.Node.DataAtPath(pth)
 	if err != nil {
-		if err == iface.ErrIsDir {
-			links, err := g.Node.LinksAtPath(pth)
+		if err == files.ErrNotReader {
+			root, err := iface.ParsePath(pth)
 			if err != nil {
-				log.Errorf("error getting path %s: %s", pth, err)
+				log.Errorf("error parsing path %s: %s", pth, err)
 				c.Status(404)
 				return nil
 			}
 
-			var list []string
-			for _, link := range links {
-				list = append(list, "/"+link.Name)
+			var back string
+			parts := strings.Split(root.String(), "/")
+			if len(parts) > 0 {
+				last := parts[:len(parts)-1]
+				back = strings.Join(last, "/")
+			}
+			if back == "/ipfs" || back == "/ipns" {
+				back = root.String()
 			}
 
-			c.String(200, "%s", strings.Join(list, "\n"))
+			ilinks, err := g.Node.LinksAtPath(pth)
+			if err != nil {
+				log.Errorf("error getting links %s: %s", pth, err)
+				c.Status(404)
+				return nil
+			}
+
+			var links []link
+			for _, l := range ilinks {
+				ipath, err := iface.ParsePath(pth + "/" + l.Name)
+				if err != nil {
+					log.Errorf("error parsing path %s: %s", pth, err)
+					c.Status(404)
+					return nil
+				}
+				links = append(links, link{
+					Path: ipath,
+					Link: l,
+					Size: byteCountDecimal(int64(l.Size)),
+				})
+			}
+
+			c.HTML(http.StatusOK, "index.tmpl", gin.H{
+				"root":  root,
+				"back":  back,
+				"links": links,
+			})
 			return nil
 		}
 
@@ -261,4 +304,30 @@ func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 		return nil
 	}
 	return data
+}
+
+func byteCountDecimal(b int64) string {
+	const unit = 1000
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "kMGTPE"[exp])
+}
+
+func byteCountBinary(b int64) string {
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
 }

@@ -1,0 +1,45 @@
+html {
+    box-sizing: border-box;
+}
+*, *:before, *:after {
+    box-sizing: inherit;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    font-family: monospace, sans-serif;
+    color: #ffffff;
+    background-color: #222222;
+}
+
+a {
+    color: #FFB6D5;
+    text-decoration: none;
+}
+
+ul, li {
+    list-style: none;
+    width: 100%;
+}
+
+ul {
+    margin: 0;
+    padding: 2em;
+}
+
+li {
+    line-height: 2em;
+    font-size: 0.9em;
+}
+
+li span.right {
+    float: right;
+}
+
+li:nth-child(even) {
+    background: rgba(255,182,213,0.05);
+}
+li:nth-child(odd) {
+    background: none;
+}
