@@ -2,29 +2,27 @@ package core
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
+
+	"github.com/textileio/textile-go/repo"
 
 	"github.com/gin-gonic/gin"
 	m "github.com/textileio/textile-go/mill"
-	"github.com/textileio/textile-go/schema"
 )
 
 func (a *api) schemaMill(g *gin.Context) {
-	var node schema.Node
-	if err := g.BindJSON(&node); err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-	mill := &m.Schema{}
-
-	data, err := json.Marshal(&node)
+	body, err := ioutil.ReadAll(g.Request.Body)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
+	defer g.Request.Body.Close()
+
+	mill := &m.Schema{}
 
 	conf := AddFileConfig{
-		Input: data,
+		Input: body,
 		Media: "application/json",
 	}
 
@@ -121,6 +119,80 @@ func (a *api) imageExifMill(g *gin.Context) {
 	conf.Media = "application/json"
 
 	added, err := a.node.AddFile(mill, *conf)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	g.JSON(http.StatusCreated, added)
+}
+
+type jsonPayload struct {
+	Doc    map[string]interface{} `json:"doc"`
+	Schema map[string]interface{} `json:"schema" binding:"required"`
+}
+
+func (a *api) jsonMill(g *gin.Context) {
+	opts, err := a.readOpts(g)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+
+	var payload jsonPayload
+	if err := g.BindJSON(&payload); err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	sch, err := json.Marshal(payload.Schema)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	mill := &m.Json{
+		Opts: m.JsonOpts{
+			Schema: string(sch),
+		},
+	}
+
+	conf := AddFileConfig{
+		Media:     "application/json",
+		Plaintext: opts["plaintext"] == "true",
+	}
+
+	if opts["use"] == "" {
+		if payload.Doc == nil {
+			g.String(http.StatusBadRequest, "missing doc")
+			return
+		}
+
+		var err error
+		conf.Input, err = json.Marshal(payload.Doc)
+		if err != nil {
+			g.String(http.StatusBadRequest, err.Error())
+			return
+		}
+
+	} else {
+		var file *repo.File
+		reader, file, err := a.node.FileData(opts["use"])
+		if err != nil {
+			g.String(http.StatusBadRequest, err.Error())
+			return
+		}
+		conf.Name = file.Name
+		conf.Use = file.Checksum
+
+		conf.Input, err = ioutil.ReadAll(reader)
+		if err != nil {
+			g.String(http.StatusBadRequest, err.Error())
+			return
+		}
+	}
+
+	added, err := a.node.AddFile(mill, conf)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

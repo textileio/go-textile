@@ -2,7 +2,6 @@ package mobile
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -378,17 +377,8 @@ func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) (string, err
 }
 
 func (m *Mobile) addSchema(jsonstr string) (*repo.File, error) {
-	var node schema.Node
-	if err := json.Unmarshal([]byte(jsonstr), &node); err != nil {
-		return nil, err
-	}
-	data, err := json.Marshal(&node)
-	if err != nil {
-		return nil, err
-	}
-
 	conf := core.AddFileConfig{
-		Input: data,
+		Input: []byte(jsonstr),
 		Media: "application/json",
 	}
 

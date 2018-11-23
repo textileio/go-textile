@@ -1,7 +1,6 @@
 package mill
 
 import (
-	"encoding/json"
 	"testing"
 )
 
@@ -12,7 +11,7 @@ func TestSchema_Mill(t *testing.T) {
 {
   "pin": true,
   "mill": "/json",
-  "schema": {
+  "json_schema": {
     "$id": "https://example.com/person.schema.json",
     "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "Person",
@@ -36,12 +35,7 @@ func TestSchema_Mill(t *testing.T) {
 }
 `
 
-	input, err := json.Marshal(&person)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := m.Mill(input, "test"); err != nil {
+	if _, err := m.Mill([]byte(person), "test"); err != nil {
 		t.Fatal(err)
 	}
 }

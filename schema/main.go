@@ -4,8 +4,6 @@ import (
 	"errors"
 
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
-
-	"github.com/alecthomas/jsonschema"
 )
 
 // ErrSchemaValidationFailed indicates dag schema validation failed
@@ -17,6 +15,12 @@ var ErrEmptySchema = errors.New("schema is empty")
 // ErrLinkOrderNotSolvable
 var ErrLinkOrderNotSolvable = errors.New("link order is not solvable")
 
+// ErrSchemaInvalidMill indicates a schema has an invalid mill entry
+var ErrSchemaInvalidMill = errors.New("schema contains an invalid mill")
+
+// ErrMissingJsonSchema indicates json schema is missing
+var ErrMissingJsonSchema = errors.New("json mill requires a json schema")
+
 // FileTag indicates the link should "use" the input file as source
 const FileTag = ":file"
 
@@ -25,28 +29,42 @@ const SingleFileTag = ":single"
 
 // Node describes a DAG node
 type Node struct {
-	Pin       bool               `json:"pin"`
-	Plaintext bool               `json:"plaintext"`
-	Mill      string             `json:"mill,omitempty"`
-	Opts      map[string]string  `json:"opts,omitempty"`
-	Schema    *jsonschema.Schema `json:"schema,omitempty"`
-	Links     map[string]*Link   `json:"links,omitempty"`
+	Pin        bool                   `json:"pin"`
+	Plaintext  bool                   `json:"plaintext"`
+	Mill       string                 `json:"mill,omitempty"`
+	Opts       map[string]string      `json:"opts,omitempty"`
+	JsonSchema map[string]interface{} `json:"json_schema,omitempty"`
+	Links      map[string]*Link       `json:"links,omitempty"`
 }
 
 // Link is a sub-node which can "use" input from other sub-nodes
 type Link struct {
-	Use       string             `json:"use,omitempty"`
-	Pin       bool               `json:"pin"`
-	Plaintext bool               `json:"plaintext"`
-	Mill      string             `json:"mill,omitempty"`
-	Opts      map[string]string  `json:"opts,omitempty"`
-	Schema    *jsonschema.Schema `json:"schema,omitempty"`
+	Use        string                 `json:"use,omitempty"`
+	Pin        bool                   `json:"pin"`
+	Plaintext  bool                   `json:"plaintext"`
+	Mill       string                 `json:"mill,omitempty"`
+	Opts       map[string]string      `json:"opts,omitempty"`
+	JsonSchema map[string]interface{} `json:"json_schema,omitempty"`
 }
 
 // Step is an ordered name-link pair
 type Step struct {
 	Name string
 	Link *Link
+}
+
+// ValidateMill is false if mill is not one of the built in tags
+func ValidateMill(mill string) bool {
+	switch mill {
+	case
+		"/schema",
+		"/blob",
+		"/image/resize",
+		"/image/exif",
+		"/json":
+		return true
+	}
+	return false
 }
 
 // LinkByName find a link w/ the given name in the provided list

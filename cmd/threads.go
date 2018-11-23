@@ -13,7 +13,6 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/schema"
 	"github.com/textileio/textile-go/schema/textile"
 	"gopkg.in/abiosoft/ishell.v2"
 )
@@ -64,7 +63,7 @@ type addThreadsCmd struct {
 	Client ClientOptions  `group:"Client Options"`
 	Key    string         `short:"k" long:"key" description:"A locally unique key used by an app to identify this thread on recovery."`
 	Open   bool           `short:"o" long:"open" description:"Set the thread type to open (default private)."`
-	Schema flags.Filename `short:"s" long:"schema" description:"Thread Schema filename. Supercedes built-in schema flags."`
+	Schema flags.Filename `short:"s" long:"schema" description:"Thread Schema filename. Superseded by built-in schema flags."`
 	Photos bool           `long:"photos" description:"Use the built-in photo Schema."`
 }
 
@@ -127,15 +126,7 @@ func callAddThreads(args []string, opts map[string]string) error {
 		}
 
 	} else if sch == "photos" {
-		var node schema.Node
-		if err := json.Unmarshal([]byte(textile.Photos), &node); err != nil {
-			return err
-		}
-		var err error
-		body, err = json.Marshal(&node)
-		if err != nil {
-			return err
-		}
+		body = []byte(textile.Photos)
 	}
 
 	if body != nil {

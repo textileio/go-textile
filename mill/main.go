@@ -22,7 +22,7 @@ type Result struct {
 type Mill interface {
 	ID() string
 	Encrypt() bool
-	Pin() bool
+	Pin() bool // pin by default
 	AcceptMedia(media string) error
 	Options() (string, error)
 	Mill(input []byte, name string) (*Result, error)

@@ -91,6 +91,7 @@ func (a *api) Start() {
 		mills.POST("/blob", a.blobMill)
 		mills.POST("/image/resize", a.imageResizeMill)
 		mills.POST("/image/exif", a.imageExifMill)
+		mills.POST("/json", a.jsonMill)
 
 		threads := v0.Group("/threads")
 		threads.POST("", a.addThreads)
@@ -249,6 +250,7 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string, plaintext b
 		defer f.Close()
 		reader = f
 		conf.Name = fn
+
 	} else {
 		var file *repo.File
 		var err error

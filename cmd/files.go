@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"os"
 	"path/filepath"
@@ -101,48 +102,52 @@ func callAdd(args []string, opts map[string]string) error {
 		return core.ErrThreadSchemaRequired
 	}
 
-	path, err := homedir.Expand(args[0])
+	pth, err := homedir.Expand(args[0])
 	if err != nil {
-		path = args[0]
+		pth = args[0]
 	}
 
-	f, err := os.Open(path)
+	f, err := os.Open(pth)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	var body bytes.Buffer
-	writer := multipart.NewWriter(&body)
-	part, err := writer.CreateFormFile("file", filepath.Base(path))
-	if err != nil {
-		return err
-	}
-	if _, err = io.Copy(part, f); err != nil {
-		return err
-	}
-	writer.Close()
-	reader := bytes.NewReader(body.Bytes())
+	var reader io.ReadSeeker
+	var ctype string
 
 	// traverse the schema and collect generated files
 	dir := make(core.Directory)
 	if info.Schema.Mill != "" {
-		file := repo.File{}
+		var res string
+		file := &repo.File{}
 
 		mopts := newMillOpts(info.Schema.Opts)
 		mopts.setPlaintext(info.Schema.Plaintext)
 
-		res, err := executeJsonCmd(POST, "mills"+info.Schema.Mill, params{
-			opts:    mopts.val,
-			payload: reader,
-			ctype:   writer.FormDataContentType(),
-		}, &file)
-		if err != nil {
-			return err
+		if info.Schema.Mill == "/json" {
+			reader = f
+			res, file, err = handleJsonStep(info.Schema.Mill, reader, mopts, info.Schema.JsonSchema)
+			if err != nil {
+				return err
+			}
+
+		} else {
+			r, ct, err := multipartReader(f)
+			if err != nil {
+				return err
+			}
+			reader = r
+			ctype = ct
+
+			res, file, err = handleStep(info.Schema.Mill, reader, mopts, ctype)
+			if err != nil {
+				return err
+			}
 		}
 		output(res, nil)
 
-		dir[schema.SingleFileTag] = file
+		dir[schema.SingleFileTag] = *file
 
 	} else if len(info.Schema.Links) > 0 {
 
@@ -154,26 +159,42 @@ func callAdd(args []string, opts map[string]string) error {
 
 		// send each link
 		for _, step := range steps {
-			file := repo.File{}
+			var res string
+			file := &repo.File{}
 			output("\""+step.Name+"\":", nil)
 
 			mopts := newMillOpts(step.Link.Opts)
 			mopts.setPlaintext(step.Link.Plaintext)
 
 			if step.Link.Use == schema.FileTag {
-				reader.Seek(0, 0)
-
-				res, err := executeJsonCmd(POST, "mills"+step.Link.Mill, params{
-					opts:    mopts.val,
-					payload: reader,
-					ctype:   writer.FormDataContentType(),
-				}, &file)
-				if err != nil {
-					return err
+				if reader != nil {
+					reader.Seek(0, 0)
 				}
-				output(res, nil)
 
-				dir[step.Name] = file
+				if step.Link.Mill == "/json" {
+					if reader == nil {
+						reader = f
+					}
+					res, file, err = handleJsonStep(step.Link.Mill, reader, mopts, step.Link.JsonSchema)
+					if err != nil {
+						return err
+					}
+
+				} else {
+					if reader == nil {
+						r, ct, err := multipartReader(f)
+						if err != nil {
+							return err
+						}
+						reader = r
+						ctype = ct
+					}
+
+					res, file, err = handleStep(step.Link.Mill, reader, mopts, ctype)
+					if err != nil {
+						return err
+					}
+				}
 
 			} else {
 				if dir[step.Link.Use].Hash == "" {
@@ -181,16 +202,26 @@ func callAdd(args []string, opts map[string]string) error {
 				}
 				mopts.setUse(dir[step.Link.Use].Hash)
 
-				res, err := executeJsonCmd(POST, "mills"+step.Link.Mill, params{
-					opts: mopts.val,
+				var payload io.Reader
+				var err error
+				if step.Link.Mill == "/json" {
+					payload, err = jsonStepReader(nil, step.Link.JsonSchema)
+					if err != nil {
+						return err
+					}
+				}
+
+				res, err = executeJsonCmd(POST, "mills"+step.Link.Mill, params{
+					opts:    mopts.val,
+					payload: payload,
 				}, &file)
 				if err != nil {
 					return err
 				}
-				output(res, nil)
-
-				dir[step.Name] = file
 			}
+			output(res, nil)
+
+			dir[step.Name] = *file
 		}
 	} else {
 		return schema.ErrEmptySchema
@@ -213,7 +244,84 @@ func callAdd(args []string, opts map[string]string) error {
 
 	output("\"block\":", nil)
 	output(res, nil)
+
 	return nil
+}
+
+func multipartReader(f *os.File) (io.ReadSeeker, string, error) {
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	part, err := writer.CreateFormFile("file", filepath.Base(f.Name()))
+	if err != nil {
+		return nil, "", err
+	}
+	if _, err = io.Copy(part, f); err != nil {
+		return nil, "", err
+	}
+	writer.Close()
+	return bytes.NewReader(body.Bytes()), writer.FormDataContentType(), nil
+}
+
+func handleStep(mil string, reader io.Reader, opts millOpts, ctype string) (string, *repo.File, error) {
+	var file *repo.File
+
+	res, err := executeJsonCmd(POST, "mills"+mil, params{
+		opts:    opts.val,
+		payload: reader,
+		ctype:   ctype,
+	}, &file)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return res, file, nil
+}
+
+func handleJsonStep(mil string, reader io.Reader, opts millOpts, jschema map[string]interface{}) (string, *repo.File, error) {
+	var file *repo.File
+
+	payload, err := jsonStepReader(reader, jschema)
+	if err != nil {
+		return "", nil, err
+	}
+
+	res, err := executeJsonCmd(POST, "mills"+mil, params{
+		opts:    opts.val,
+		payload: payload,
+		ctype:   "application/json",
+	}, &file)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return res, file, nil
+}
+
+func jsonStepReader(reader io.Reader, jschema map[string]interface{}) (io.Reader, error) {
+	var doc map[string]interface{}
+
+	if reader != nil {
+		docd, err := ioutil.ReadAll(reader)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := json.Unmarshal(docd, &doc); err != nil {
+			return nil, err
+		}
+	}
+
+	payload := map[string]interface{}{
+		"doc":    doc,
+		"schema": jschema,
+	}
+
+	data, err := json.Marshal(&payload)
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes.NewReader(data), nil
 }
 
 type lsCmd struct {
