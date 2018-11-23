@@ -30,12 +30,12 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys Keys) (mh.Multiha
 	target := node.Cid().Hash().B58String()
 
 	// each link should point to a dag described by the thread schema
-	for _, link := range node.Links() {
+	for i, link := range node.Links() {
 		nd, err := ipfs.NodeAtLink(t.node(), link)
 		if err != nil {
 			return nil, err
 		}
-		if err := t.processNode(t.Schema, nd, false); err != nil {
+		if err := t.processNode(t.Schema, nd, i, keys, false); err != nil {
 			return nil, err
 		}
 	}
@@ -107,12 +107,12 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 		}
 
 		// each link should point to a dag described by the thread schema
-		for _, link := range node.Links() {
+		for i, link := range node.Links() {
 			nd, err := ipfs.NodeAtLink(t.node(), link)
 			if err != nil {
 				return nil, err
 			}
-			if err := t.processNode(t.Schema, nd, true); err != nil {
+			if err := t.processNode(t.Schema, nd, i, msg.Keys, true); err != nil {
 				return nil, err
 			}
 		}

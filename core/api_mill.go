@@ -1,30 +1,27 @@
 package core
 
 import (
-	"encoding/json"
+	"io/ioutil"
 	"net/http"
+
+	"github.com/textileio/textile-go/repo"
 
 	"github.com/gin-gonic/gin"
 	m "github.com/textileio/textile-go/mill"
-	"github.com/textileio/textile-go/schema"
 )
 
 func (a *api) schemaMill(g *gin.Context) {
-	var node schema.Node
-	if err := g.BindJSON(&node); err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-	mill := &m.Schema{}
-
-	data, err := json.Marshal(&node)
+	body, err := ioutil.ReadAll(g.Request.Body)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
+	defer g.Request.Body.Close()
+
+	mill := &m.Schema{}
 
 	conf := AddFileConfig{
-		Input: data,
+		Input: body,
 		Media: "application/json",
 	}
 
@@ -45,7 +42,9 @@ func (a *api) blobMill(g *gin.Context) {
 	}
 	mill := &m.Blob{}
 
-	conf, err := a.getFileConfig(g, mill, opts["use"])
+	plaintext := opts["plaintext"] == "true"
+
+	conf, err := a.getFileConfig(g, mill, opts["use"], plaintext)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -84,7 +83,9 @@ func (a *api) imageResizeMill(g *gin.Context) {
 		mill.Opts.Quality = opts["quality"]
 	}
 
-	conf, err := a.getFileConfig(g, mill, opts["use"])
+	plaintext := opts["plaintext"] == "true"
+
+	conf, err := a.getFileConfig(g, mill, opts["use"], plaintext)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -107,7 +108,9 @@ func (a *api) imageExifMill(g *gin.Context) {
 	}
 	mill := &m.ImageExif{}
 
-	conf, err := a.getFileConfig(g, mill, opts["use"])
+	plaintext := opts["plaintext"] == "true"
+
+	conf, err := a.getFileConfig(g, mill, opts["use"], plaintext)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -115,6 +118,59 @@ func (a *api) imageExifMill(g *gin.Context) {
 	conf.Media = "application/json"
 
 	added, err := a.node.AddFile(mill, *conf)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	g.JSON(http.StatusCreated, added)
+}
+
+func (a *api) jsonMill(g *gin.Context) {
+	opts, err := a.readOpts(g)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+
+	mill := &m.Json{}
+
+	conf := AddFileConfig{
+		Media:     "application/json",
+		Plaintext: opts["plaintext"] == "true",
+	}
+
+	if opts["use"] == "" {
+		body, err := ioutil.ReadAll(g.Request.Body)
+		if err != nil {
+			g.String(http.StatusBadRequest, err.Error())
+			return
+		}
+		defer g.Request.Body.Close()
+
+		if body == nil {
+			g.String(http.StatusBadRequest, "missing doc")
+			return
+		}
+		conf.Input = body
+
+	} else {
+		var file *repo.File
+		reader, file, err := a.node.FileData(opts["use"])
+		if err != nil {
+			g.String(http.StatusBadRequest, err.Error())
+			return
+		}
+		conf.Use = file.Checksum
+
+		conf.Input, err = ioutil.ReadAll(reader)
+		if err != nil {
+			g.String(http.StatusBadRequest, err.Error())
+			return
+		}
+	}
+
+	added, err := a.node.AddFile(mill, conf)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

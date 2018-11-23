@@ -91,6 +91,7 @@ func (a *api) Start() {
 		mills.POST("/blob", a.blobMill)
 		mills.POST("/image/resize", a.imageResizeMill)
 		mills.POST("/image/exif", a.imageExifMill)
+		mills.POST("/json", a.jsonMill)
 
 		threads := v0.Group("/threads")
 		threads.POST("", a.addThreads)
@@ -237,7 +238,7 @@ func (a *api) openFile(g *gin.Context) (multipart.File, string, error) {
 	return file, header.Filename, nil
 }
 
-func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string) (*AddFileConfig, error) {
+func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string, plaintext bool) (*AddFileConfig, error) {
 	var reader io.ReadSeeker
 	conf := &AddFileConfig{}
 
@@ -249,6 +250,7 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string) (*AddFileCo
 		defer f.Close()
 		reader = f
 		conf.Name = fn
+
 	} else {
 		var file *repo.File
 		var err error
@@ -272,6 +274,7 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string) (*AddFileCo
 		return nil, err
 	}
 	conf.Input = data
+	conf.Plaintext = plaintext
 
 	return conf, nil
 }

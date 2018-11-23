@@ -14,6 +14,8 @@ var log = logging.Logger("tex-mill")
 
 var ErrMediaTypeNotSupported = errors.New("media type not supported")
 
+var ErrEmptyJsonFile = errors.New("json file is empty")
+
 type Result struct {
 	File []byte
 	Meta map[string]interface{}
@@ -22,7 +24,7 @@ type Result struct {
 type Mill interface {
 	ID() string
 	Encrypt() bool
-	Pin() bool
+	Pin() bool // pin by default
 	AcceptMedia(media string) error
 	Options() (string, error)
 	Mill(input []byte, name string) (*Result, error)

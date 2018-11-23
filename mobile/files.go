@@ -2,7 +2,6 @@ package mobile
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -65,7 +64,7 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 		return nil, err
 	}
 	if mil != nil {
-		conf, err := m.getFileConfig(mil, path, "")
+		conf, err := m.getFileConfig(mil, path, "", thrd.Schema.Plaintext)
 		if err != nil {
 			return nil, err
 		}
@@ -102,7 +101,7 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 			var conf *core.AddFileConfig
 
 			if step.Link.Use == schema.FileTag {
-				conf, err = m.getFileConfig(mil, path, "")
+				conf, err = m.getFileConfig(mil, path, "", step.Link.Plaintext)
 				if err != nil {
 					return nil, err
 				}
@@ -112,7 +111,7 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 					return nil, errors.New(step.Link.Use + " not found")
 				}
 
-				conf, err = m.getFileConfig(mil, path, mdir.Dir.Files[step.Link.Use].Hash)
+				conf, err = m.getFileConfig(mil, path, mdir.Dir.Files[step.Link.Use].Hash, step.Link.Plaintext)
 				if err != nil {
 					return nil, err
 				}
@@ -378,24 +377,15 @@ func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) (string, err
 }
 
 func (m *Mobile) addSchema(jsonstr string) (*repo.File, error) {
-	var node schema.Node
-	if err := json.Unmarshal([]byte(jsonstr), &node); err != nil {
-		return nil, err
-	}
-	data, err := json.Marshal(&node)
-	if err != nil {
-		return nil, err
-	}
-
 	conf := core.AddFileConfig{
-		Input: data,
+		Input: []byte(jsonstr),
 		Media: "application/json",
 	}
 
 	return m.node.AddFile(&mill.Schema{}, conf)
 }
 
-func (m *Mobile) getFileConfig(mil mill.Mill, path string, use string) (*core.AddFileConfig, error) {
+func (m *Mobile) getFileConfig(mil mill.Mill, path string, use string, plaintext bool) (*core.AddFileConfig, error) {
 	var reader io.ReadSeeker
 	conf := &core.AddFileConfig{}
 
@@ -406,8 +396,10 @@ func (m *Mobile) getFileConfig(mil mill.Mill, path string, use string) (*core.Ad
 		}
 		defer f.Close()
 		reader = f
+
 		_, file := filepath.Split(f.Name())
 		conf.Name = file
+
 	} else {
 		var file *repo.File
 		var err error
@@ -415,15 +407,20 @@ func (m *Mobile) getFileConfig(mil mill.Mill, path string, use string) (*core.Ad
 		if err != nil {
 			return nil, err
 		}
+
 		conf.Name = file.Name
 		conf.Use = file.Checksum
 	}
 
-	media, err := m.node.GetMedia(reader, mil)
-	if err != nil {
-		return nil, err
+	var err error
+	if mil.ID() == "/json" {
+		conf.Media = "application/json"
+	} else {
+		conf.Media, err = m.node.GetMedia(reader, mil)
+		if err != nil {
+			return nil, err
+		}
 	}
-	conf.Media = media
 	reader.Seek(0, 0)
 
 	data, err := ioutil.ReadAll(reader)
@@ -431,6 +428,7 @@ func (m *Mobile) getFileConfig(mil mill.Mill, path string, use string) (*core.Ad
 		return nil, err
 	}
 	conf.Input = data
+	conf.Plaintext = plaintext
 
 	return conf, nil
 }
@@ -469,6 +467,8 @@ func getMill(id string, opts map[string]string) (mill.Mill, error) {
 		}, nil
 	case "/image/exif":
 		return &mill.ImageExif{}, nil
+	case "/json":
+		return &mill.Json{}, nil
 	default:
 		return nil, nil
 	}

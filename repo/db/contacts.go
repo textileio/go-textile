@@ -24,7 +24,7 @@ func (c *ContactDB) AddOrUpdate(contact *repo.Contact) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert or replace into contacts(id, username, inboxes, added) values(?,?,?,coalesce((select added from contacts where id=?),?))`
+	stm := `insert or replace into contacts(id, address, username, inboxes, added) values(?,?,?,?,coalesce((select added from contacts where id=?),?))`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -33,6 +33,7 @@ func (c *ContactDB) AddOrUpdate(contact *repo.Contact) error {
 	defer stmt.Close()
 	_, err = stmt.Exec(
 		contact.Id,
+		contact.Address,
 		contact.Username,
 		strings.Join(contact.Inboxes, ","),
 		contact.Id,
@@ -59,7 +60,13 @@ func (c *ContactDB) Get(id string) *repo.Contact {
 func (c *ContactDB) List() []repo.Contact {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	return c.handleQuery("select * from contacts order by username;")
+	return c.handleQuery("select * from contacts order by added desc;")
+}
+
+func (c *ContactDB) ListByAddress(address string) []repo.Contact {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	return c.handleQuery("select * from contacts where address='" + address + "' order by added desc;")
 }
 
 func (c *ContactDB) Count() int {
@@ -86,9 +93,9 @@ func (c *ContactDB) handleQuery(stm string) []repo.Contact {
 		return nil
 	}
 	for rows.Next() {
-		var id, username, inboxes string
+		var id, address, username, inboxes string
 		var addedInt int
-		if err := rows.Scan(&id, &username, &inboxes, &addedInt); err != nil {
+		if err := rows.Scan(&id, &address, &username, &inboxes, &addedInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -100,6 +107,7 @@ func (c *ContactDB) handleQuery(stm string) []repo.Contact {
 		}
 		ret = append(ret, repo.Contact{
 			Id:       id,
+			Address:  address,
 			Username: username,
 			Inboxes:  ilist,
 			Added:    time.Unix(int64(addedInt), 0),

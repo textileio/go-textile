@@ -1,27 +1,36 @@
 package core
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strconv"
+
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 
+	"github.com/mr-tron/base58/base58"
+	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema"
+	"github.com/xeipuuv/gojsonschema"
 )
 
 // processNode walks a file node, validating and applying a dag schema
-func (t *Thread) processNode(node *schema.Node, inode ipld.Node, inbound bool) error {
+func (t *Thread) processNode(node *schema.Node, inode ipld.Node, index int, keys Keys, inbound bool) error {
 	hash := inode.Cid().Hash().B58String()
 	t.cafeOutbox.Add(hash, repo.CafeStoreRequest)
 
 	if len(node.Links) == 0 {
-		return t.processLink(inode, node.Pin, inbound)
+		key := keys["/"+strconv.Itoa(index)+"/"]
+		return t.processLink(inode, node.Pin, node.Mill, key, inbound)
 	}
 
 	for name, l := range node.Links {
 		// ensure link is present
 		link := schema.LinkByName(inode.Links(), name)
 		if link == nil {
-			return schema.ErrSchemaValidationFailed
+			return schema.ErrFileValidationFailed
 		}
 
 		n, err := ipfs.NodeAtLink(t.node(), link)
@@ -29,7 +38,8 @@ func (t *Thread) processNode(node *schema.Node, inode ipld.Node, inbound bool) e
 			return err
 		}
 
-		if err := t.processLink(n, l.Pin, inbound); err != nil {
+		key := keys["/"+strconv.Itoa(index)+"/"+name+"/"]
+		if err := t.processLink(n, l.Pin, l.Mill, key, inbound); err != nil {
 			return err
 		}
 	}
@@ -47,17 +57,23 @@ func (t *Thread) processNode(node *schema.Node, inode ipld.Node, inbound bool) e
 }
 
 // processLink validates and pins file nodes
-func (t *Thread) processLink(inode ipld.Node, pin bool, inbound bool) error {
+func (t *Thread) processLink(inode ipld.Node, pin bool, mil string, key string, inbound bool) error {
 	hash := inode.Cid().Hash().B58String()
 	t.cafeOutbox.Add(hash, repo.CafeStoreRequest)
 
 	if schema.LinkByName(inode.Links(), FileLinkName) == nil {
-		return schema.ErrSchemaValidationFailed
+		return schema.ErrFileValidationFailed
 	}
 
 	dlink := schema.LinkByName(inode.Links(), DataLinkName)
 	if dlink == nil {
-		return schema.ErrSchemaValidationFailed
+		return schema.ErrFileValidationFailed
+	}
+
+	if mil == "/json" {
+		if err := t.validateJsonNode(inode, key); err != nil {
+			return err
+		}
 	}
 
 	// pin leaf nodes if schema dictates or files originate locally
@@ -74,6 +90,57 @@ func (t *Thread) processLink(inode ipld.Node, pin bool, inbound bool) error {
 		if !t.config.IsMobile || dlink.Size <= uint64(t.config.Cafe.Client.Mobile.P2PWireLimit) {
 			t.cafeOutbox.Add(hash+"/"+DataLinkName, repo.CafeStoreRequest)
 		}
+	}
+
+	return nil
+}
+
+// validateJsonNode validates the node against schema's json schema
+func (t *Thread) validateJsonNode(inode ipld.Node, key string) error {
+	if t.Schema.JsonSchema == nil {
+		return ErrJsonSchemaRequired
+	}
+
+	hash := inode.Cid().Hash().B58String()
+
+	data, err := ipfs.DataAtPath(t.node(), hash+"/"+DataLinkName)
+	if err != nil {
+		return err
+	}
+
+	var plaintext []byte
+	if key != "" {
+		keyb, err := base58.Decode(key)
+		if err != nil {
+			return err
+		}
+		plaintext, err = crypto.DecryptAES(data, keyb)
+		if err != nil {
+			return err
+		}
+	} else {
+		plaintext = data
+	}
+
+	jschema, err := json.Marshal(&t.Schema.JsonSchema)
+	if err != nil {
+		return err
+	}
+
+	sch := gojsonschema.NewStringLoader(string(jschema))
+	doc := gojsonschema.NewStringLoader(string(plaintext))
+
+	result, err := gojsonschema.Validate(sch, doc)
+	if err != nil {
+		return err
+	}
+
+	if !result.Valid() {
+		var errs string
+		for _, err := range result.Errors() {
+			errs += fmt.Sprintf("- %s\n", err)
+		}
+		return errors.New(errs)
 	}
 
 	return nil

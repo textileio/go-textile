@@ -33,6 +33,9 @@ var ErrInvitesNotAllowed = errors.New("invites not allowed to private thread")
 // ErrThreadSchemaRequired indicates files where added without a thread schema
 var ErrThreadSchemaRequired = errors.New("thread schema required to add files")
 
+// ErrJsonSchemaRequired indicates json files where added without a json schema
+var ErrJsonSchemaRequired = errors.New("thread schema does not allow json files")
+
 // ErrInvalidFileNode indicates files where added via a nil ipld node
 var ErrInvalidFileNode = errors.New("invalid files node")
 
@@ -302,7 +305,7 @@ func (t *Thread) followParent(parent mh.Multihash) error {
 
 // addOrUpdatePeer collects thread peers, saving them as contacts and
 // saving their cafe inboxes for offline message delivery
-func (t *Thread) addOrUpdatePeer(pid peer.ID, username string, inboxes []string) {
+func (t *Thread) addOrUpdatePeer(pid peer.ID, address string, username string, inboxes []string) {
 	t.datastore.ThreadPeers().Add(&repo.ThreadPeer{
 		Id:       pid.Pretty(),
 		ThreadId: t.Id,
@@ -311,6 +314,7 @@ func (t *Thread) addOrUpdatePeer(pid peer.ID, username string, inboxes []string)
 
 	t.datastore.Contacts().AddOrUpdate(&repo.Contact{
 		Id:       pid.Pretty(),
+		Address:  address,
 		Username: username,
 		Inboxes:  inboxes,
 		Added:    time.Now(),
@@ -338,6 +342,7 @@ func (t *Thread) newBlockHeader() (*pb.ThreadBlockHeader, error) {
 		Date:    pdate,
 		Parents: parents,
 		Author:  t.node().Identity.Pretty(),
+		Address: t.config.Account.Address,
 	}, nil
 }
 

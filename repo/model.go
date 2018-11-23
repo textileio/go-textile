@@ -156,6 +156,7 @@ func (b BlockType) Description() string {
 
 type Contact struct {
 	Id       string    `json:"id"`
+	Address  string    `json:"address"`
 	Username string    `json:"username"`
 	Inboxes  []string  `json:"inboxes"`
 	Added    time.Time `json:"added"`

@@ -60,7 +60,7 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 	if err != nil {
 		return nil, err
 	}
-	t.addOrUpdatePeer(pid, msg.Username, msg.Inboxes)
+	t.addOrUpdatePeer(pid, block.Header.Address, msg.Username, msg.Inboxes)
 
 	return msg, nil
 }
