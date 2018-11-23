@@ -184,7 +184,7 @@ func MigrateRepo(conf MigrateConfig) error {
 		return repo.ErrRepoDoesNotExist
 	}
 
-	// force open the repo and datastore (fixme)
+	// force open the repo and datastore
 	removeLocks(conf.RepoPath)
 
 	// run _all_ repo migrations if needed
@@ -202,7 +202,7 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 		return nil, err
 	}
 
-	// force open the repo and datastore (fixme)
+	// force open the repo and datastore
 	removeLocks(conf.RepoPath)
 
 	node := &Textile{repoPath: conf.RepoPath}

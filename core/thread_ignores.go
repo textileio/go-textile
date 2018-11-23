@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/textileio/textile-go/ipfs"
+
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 
 	"github.com/golang/protobuf/ptypes"
@@ -33,7 +35,7 @@ func (t *Thread) AddIgnore(block string) (mh.Multihash, error) {
 	}
 
 	// unpin
-	//t.unpinBlockTarget(block)
+	t.unpinTarget(block)
 
 	if err := t.updateHead(res.hash); err != nil {
 		return nil, err
@@ -73,28 +75,25 @@ func (t *Thread) handleIgnoreBlock(hash mh.Multihash, block *pb.ThreadBlock) (*p
 	}
 
 	// unpin
-	//t.unpinBlockTarget(blockId)
+	t.unpinTarget(blockId)
 
 	return msg, nil
 }
 
-// unpinBlockTarget unpins block target if present and not part of another thread
-// TODO: fix via schema
-//func (t *Thread) unpinBlockTarget(blockId string) {
-//	block := t.datastore.Blocks().Get(blockId)
-//	if block != nil && block.Target != "" {
-//		blocks := t.datastore.Blocks().List("", -1, "target='"+block.Target+"'")
-//		if len(blocks) == 1 {
-//			// safe to unpin
-//
-//			switch block.Type {
-//			case repo.FilesBlock:
-//				// unpin image paths
-//				path := fmt.Sprintf("%s/thumb", block.Target)
-//				if err := ipfs.UnpinPath(t.node(), path); err != nil {
-//					log.Warningf("failed to unpin %s: %s", path, err)
-//				}
-//			}
-//		}
-//	}
-//}
+// unpinTarget unpins block target if present and not part of another thread
+func (t *Thread) unpinTarget(blockId string) {
+	block := t.datastore.Blocks().Get(blockId)
+	if block != nil && block.Target != "" {
+		blocks := t.datastore.Blocks().List("", -1, "target='"+block.Target+"'")
+		if len(blocks) == 1 {
+			// safe to unpin
+
+			switch block.Type {
+			case repo.FilesBlock:
+				if err := ipfs.UnpinPath(t.node(), block.Target); err != nil {
+					log.Warningf("failed to unpin %s: %s", block.Target, err)
+				}
+			}
+		}
+	}
+}
