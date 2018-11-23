@@ -23,7 +23,7 @@ func (t *Thread) processNode(node *schema.Node, inode ipld.Node, index int, keys
 
 	if len(node.Links) == 0 {
 		key := keys["/"+strconv.Itoa(index)+"/"]
-		return t.processLink(inode, node.Pin, key, inbound)
+		return t.processLink(inode, node.Pin, node.Mill, key, inbound)
 	}
 
 	for name, l := range node.Links {
@@ -39,7 +39,7 @@ func (t *Thread) processNode(node *schema.Node, inode ipld.Node, index int, keys
 		}
 
 		key := keys["/"+strconv.Itoa(index)+"/"+name+"/"]
-		if err := t.processLink(n, l.Pin, key, inbound); err != nil {
+		if err := t.processLink(n, l.Pin, l.Mill, key, inbound); err != nil {
 			return err
 		}
 	}
@@ -57,7 +57,7 @@ func (t *Thread) processNode(node *schema.Node, inode ipld.Node, index int, keys
 }
 
 // processLink validates and pins file nodes
-func (t *Thread) processLink(inode ipld.Node, pin bool, key string, inbound bool) error {
+func (t *Thread) processLink(inode ipld.Node, pin bool, mil string, key string, inbound bool) error {
 	hash := inode.Cid().Hash().B58String()
 	t.cafeOutbox.Add(hash, repo.CafeStoreRequest)
 
@@ -70,8 +70,10 @@ func (t *Thread) processLink(inode ipld.Node, pin bool, key string, inbound bool
 		return schema.ErrFileValidationFailed
 	}
 
-	if err := t.validateJsonNode(inode, key); err != nil {
-		return err
+	if mil == "/json" {
+		if err := t.validateJsonNode(inode, key); err != nil {
+			return err
+		}
 	}
 
 	// pin leaf nodes if schema dictates or files originate locally
