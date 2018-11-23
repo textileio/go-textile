@@ -396,8 +396,10 @@ func (m *Mobile) getFileConfig(mil mill.Mill, path string, use string, plaintext
 		}
 		defer f.Close()
 		reader = f
+
 		_, file := filepath.Split(f.Name())
 		conf.Name = file
+
 	} else {
 		var file *repo.File
 		var err error
@@ -405,15 +407,20 @@ func (m *Mobile) getFileConfig(mil mill.Mill, path string, use string, plaintext
 		if err != nil {
 			return nil, err
 		}
+
 		conf.Name = file.Name
 		conf.Use = file.Checksum
 	}
 
-	media, err := m.node.GetMedia(reader, mil)
-	if err != nil {
-		return nil, err
+	var err error
+	if mil.ID() == "/json" {
+		conf.Media = "application/json"
+	} else {
+		conf.Media, err = m.node.GetMedia(reader, mil)
+		if err != nil {
+			return nil, err
+		}
 	}
-	conf.Media = media
 	reader.Seek(0, 0)
 
 	data, err := ioutil.ReadAll(reader)
@@ -460,6 +467,8 @@ func getMill(id string, opts map[string]string) (mill.Mill, error) {
 		}, nil
 	case "/image/exif":
 		return &mill.ImageExif{}, nil
+	case "/json":
+		return &mill.Json{}, nil
 	default:
 		return nil, nil
 	}

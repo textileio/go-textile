@@ -115,8 +115,9 @@ func callAdd(args []string, opts map[string]string) error {
 	var reader io.ReadSeeker
 	var ctype string
 
-	// traverse the schema and collect generated files
 	dir := make(core.Directory)
+
+	// traverse the schema and collect generated files
 	if info.Schema.Mill != "" {
 		var res string
 		file := &repo.File{}
