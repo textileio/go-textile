@@ -36,14 +36,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:a0742b7f1ff1c21d789adf6a0b9bfc70c50e52653e28c3b032a2909cbb0983c3"
-  name = "github.com/alecthomas/jsonschema"
-  packages = ["."]
-  pruneopts = "T"
-  revision = "f2c93856175a7dd6abe88c5c3900b67ad054adcc"
-
-[[projects]]
-  branch = "master"
   digest = "1:261e66e5e266e89b33eb9932598683884e18a61b0569e02c96675efd309ad006"
   name = "github.com/asticode/go-astilectron"
   packages = ["."]
@@ -411,6 +403,30 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:f4e5276a3b356f4692107047fd2890f2fe534f4feeb6b1fd2f6dfbd87f1ccf54"
+  name = "github.com/xeipuuv/gojsonpointer"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "4e3ac2762d5f479393488629ee9370b50873b3a6"
+
+[[projects]]
+  branch = "master"
+  digest = "1:dc6a6c28ca45d38cfce9f7cb61681ee38c5b99ec1425339bfc1e1a7ba769c807"
+  name = "github.com/xeipuuv/gojsonreference"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "bd5ef7bd5415a7ac448318e64f11a24cd21e594b"
+
+[[projects]]
+  digest = "1:8c579f5e015a6d242d9421e754b892d075294379925ae40adc9e264c3044c887"
+  name = "github.com/xeipuuv/gojsonschema"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "da425ebb7609ba06a0f395fc8a254d1c303364a0"
+  version = "v1.0"
+
+[[projects]]
+  branch = "master"
   digest = "1:62fac8c414ce3fb59b87102ebebb04edd0287a721c0cd6b36f4dc866a42cf772"
   name = "golang.org/x/crypto"
   packages = [
@@ -544,7 +560,6 @@
   analyzer-version = 1
   input-imports = [
     "github.com/agl/ed25519/extra25519",
-    "github.com/alecthomas/jsonschema",
     "github.com/asticode/go-astilectron",
     "github.com/asticode/go-astilectron-bootstrap",
     "github.com/asticode/go-astilog",
@@ -573,6 +588,7 @@
     "github.com/skip2/go-qrcode",
     "github.com/stretchr/testify/assert",
     "github.com/tyler-smith/go-bip39",
+    "github.com/xeipuuv/gojsonschema",
     "golang.org/x/crypto/ed25519",
     "golang.org/x/crypto/nacl/box",
     "gopkg.in/abiosoft/ishell.v2",
