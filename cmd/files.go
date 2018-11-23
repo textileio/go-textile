@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"os"
 	"path/filepath"
@@ -127,11 +126,7 @@ func callAdd(args []string, opts map[string]string) error {
 
 		if info.Schema.Mill == "/json" {
 			reader = f
-			res, file, err = handleJsonStep(info.Schema.Mill, reader, mopts, info.Schema.JsonSchema)
-			if err != nil {
-				return err
-			}
-
+			ctype = "application/json"
 		} else {
 			r, ct, err := multipartReader(f)
 			if err != nil {
@@ -139,11 +134,11 @@ func callAdd(args []string, opts map[string]string) error {
 			}
 			reader = r
 			ctype = ct
+		}
 
-			res, file, err = handleStep(info.Schema.Mill, reader, mopts, ctype)
-			if err != nil {
-				return err
-			}
+		res, file, err = handleStep(info.Schema.Mill, reader, mopts, ctype)
+		if err != nil {
+			return err
 		}
 		output(res, nil)
 
@@ -169,19 +164,11 @@ func callAdd(args []string, opts map[string]string) error {
 			if step.Link.Use == schema.FileTag {
 				if reader != nil {
 					reader.Seek(0, 0)
-				}
-
-				if step.Link.Mill == "/json" {
-					if reader == nil {
-						reader = f
-					}
-					res, file, err = handleJsonStep(step.Link.Mill, reader, mopts, step.Link.JsonSchema)
-					if err != nil {
-						return err
-					}
-
 				} else {
-					if reader == nil {
+					if step.Link.Mill == "/json" {
+						reader = f
+						ctype = "application/json"
+					} else {
 						r, ct, err := multipartReader(f)
 						if err != nil {
 							return err
@@ -189,11 +176,11 @@ func callAdd(args []string, opts map[string]string) error {
 						reader = r
 						ctype = ct
 					}
+				}
 
-					res, file, err = handleStep(step.Link.Mill, reader, mopts, ctype)
-					if err != nil {
-						return err
-					}
+				res, file, err = handleStep(step.Link.Mill, reader, mopts, ctype)
+				if err != nil {
+					return err
 				}
 
 			} else {
@@ -202,18 +189,8 @@ func callAdd(args []string, opts map[string]string) error {
 				}
 				mopts.setUse(dir[step.Link.Use].Hash)
 
-				var payload io.Reader
-				var err error
-				if step.Link.Mill == "/json" {
-					payload, err = jsonStepReader(nil, step.Link.JsonSchema)
-					if err != nil {
-						return err
-					}
-				}
-
 				res, err = executeJsonCmd(POST, "mills"+step.Link.Mill, params{
-					opts:    mopts.val,
-					payload: payload,
+					opts: mopts.val,
 				}, &file)
 				if err != nil {
 					return err
@@ -275,53 +252,6 @@ func handleStep(mil string, reader io.Reader, opts millOpts, ctype string) (stri
 	}
 
 	return res, file, nil
-}
-
-func handleJsonStep(mil string, reader io.Reader, opts millOpts, jschema map[string]interface{}) (string, *repo.File, error) {
-	var file *repo.File
-
-	payload, err := jsonStepReader(reader, jschema)
-	if err != nil {
-		return "", nil, err
-	}
-
-	res, err := executeJsonCmd(POST, "mills"+mil, params{
-		opts:    opts.val,
-		payload: payload,
-		ctype:   "application/json",
-	}, &file)
-	if err != nil {
-		return "", nil, err
-	}
-
-	return res, file, nil
-}
-
-func jsonStepReader(reader io.Reader, jschema map[string]interface{}) (io.Reader, error) {
-	var doc map[string]interface{}
-
-	if reader != nil {
-		docd, err := ioutil.ReadAll(reader)
-		if err != nil {
-			return nil, err
-		}
-
-		if err := json.Unmarshal(docd, &doc); err != nil {
-			return nil, err
-		}
-	}
-
-	payload := map[string]interface{}{
-		"doc":    doc,
-		"schema": jschema,
-	}
-
-	data, err := json.Marshal(&payload)
-	if err != nil {
-		return nil, err
-	}
-
-	return bytes.NewReader(data), nil
 }
 
 type lsCmd struct {

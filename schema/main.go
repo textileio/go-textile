@@ -6,11 +6,11 @@ import (
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 )
 
-// ErrSchemaValidationFailed indicates dag schema validation failed
-var ErrSchemaValidationFailed = errors.New("schema validation failed")
+// ErrFileValidationFailed indicates dag schema validation failed
+var ErrFileValidationFailed = errors.New("file failed schema validation")
 
 // ErrEmptySchema indicates a schema is empty
-var ErrEmptySchema = errors.New("schema is empty")
+var ErrEmptySchema = errors.New("schema is does not create any files")
 
 // ErrLinkOrderNotSolvable
 var ErrLinkOrderNotSolvable = errors.New("link order is not solvable")
@@ -20,6 +20,9 @@ var ErrSchemaInvalidMill = errors.New("schema contains an invalid mill")
 
 // ErrMissingJsonSchema indicates json schema is missing
 var ErrMissingJsonSchema = errors.New("json mill requires a json schema")
+
+// ErrBadJsonSchema indicates json schema is invalid
+var ErrBadJsonSchema = errors.New("json schema is not valid")
 
 // FileTag indicates the link should "use" the input file as source
 const FileTag = ":file"

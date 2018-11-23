@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
@@ -127,11 +126,6 @@ func (a *api) imageExifMill(g *gin.Context) {
 	g.JSON(http.StatusCreated, added)
 }
 
-type jsonPayload struct {
-	Doc    map[string]interface{} `json:"doc"`
-	Schema map[string]interface{} `json:"schema" binding:"required"`
-}
-
 func (a *api) jsonMill(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
@@ -139,23 +133,7 @@ func (a *api) jsonMill(g *gin.Context) {
 		return
 	}
 
-	var payload jsonPayload
-	if err := g.BindJSON(&payload); err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	sch, err := json.Marshal(payload.Schema)
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	mill := &m.Json{
-		Opts: m.JsonOpts{
-			Schema: string(sch),
-		},
-	}
+	mill := &m.Json{}
 
 	conf := AddFileConfig{
 		Media:     "application/json",
@@ -163,17 +141,18 @@ func (a *api) jsonMill(g *gin.Context) {
 	}
 
 	if opts["use"] == "" {
-		if payload.Doc == nil {
-			g.String(http.StatusBadRequest, "missing doc")
-			return
-		}
-
-		var err error
-		conf.Input, err = json.Marshal(payload.Doc)
+		body, err := ioutil.ReadAll(g.Request.Body)
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return
 		}
+		defer g.Request.Body.Close()
+
+		if body == nil {
+			g.String(http.StatusBadRequest, "missing doc")
+			return
+		}
+		conf.Input = body
 
 	} else {
 		var file *repo.File
@@ -182,7 +161,6 @@ func (a *api) jsonMill(g *gin.Context) {
 			g.String(http.StatusBadRequest, err.Error())
 			return
 		}
-		conf.Name = file.Name
 		conf.Use = file.Checksum
 
 		conf.Input, err = ioutil.ReadAll(reader)

@@ -33,6 +33,9 @@ var ErrInvitesNotAllowed = errors.New("invites not allowed to private thread")
 // ErrThreadSchemaRequired indicates files where added without a thread schema
 var ErrThreadSchemaRequired = errors.New("thread schema required to add files")
 
+// ErrJsonSchemaRequired indicates json files where added without a json schema
+var ErrJsonSchemaRequired = errors.New("thread schema does not allow json files")
+
 // ErrInvalidFileNode indicates files where added via a nil ipld node
 var ErrInvalidFileNode = errors.New("invalid files node")
 

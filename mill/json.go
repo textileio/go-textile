@@ -1,19 +1,10 @@
 package mill
 
 import (
-	"errors"
-	"fmt"
-
-	"github.com/xeipuuv/gojsonschema"
+	"encoding/json"
 )
 
-type JsonOpts struct {
-	Schema string `json:"schema"`
-}
-
-type Json struct {
-	Opts JsonOpts
-}
+type Json struct{}
 
 func (m *Json) ID() string {
 	return "/json"
@@ -34,25 +25,23 @@ func (m *Json) AcceptMedia(media string) error {
 }
 
 func (m *Json) Options() (string, error) {
-	return hashOpts(m.Opts)
+	return "", nil
 }
 
 func (m *Json) Mill(input []byte, name string) (*Result, error) {
-	sch := gojsonschema.NewStringLoader(m.Opts.Schema)
-	doc := gojsonschema.NewStringLoader(string(input))
+	var any map[string]interface{}
+	if err := json.Unmarshal(input, &any); err != nil {
+		return nil, err
+	}
 
-	result, err := gojsonschema.Validate(sch, doc)
+	if len(any) == 0 {
+		return nil, ErrEmptyJsonFile
+	}
+
+	data, err := json.Marshal(&any)
 	if err != nil {
 		return nil, err
 	}
 
-	if !result.Valid() {
-		var errs string
-		for _, err := range result.Errors() {
-			errs += fmt.Sprintf("- %s\n", err)
-		}
-		return nil, errors.New(errs)
-	}
-
-	return &Result{File: input}, nil
+	return &Result{File: data}, nil
 }

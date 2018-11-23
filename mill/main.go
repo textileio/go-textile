@@ -14,6 +14,8 @@ var log = logging.Logger("tex-mill")
 
 var ErrMediaTypeNotSupported = errors.New("media type not supported")
 
+var ErrEmptyJsonFile = errors.New("json file is empty")
+
 type Result struct {
 	File []byte
 	Meta map[string]interface{}

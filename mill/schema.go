@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/textileio/textile-go/schema"
+	"github.com/xeipuuv/gojsonschema"
 )
 
 type Schema struct{}
@@ -49,6 +50,9 @@ func (m *Schema) Mill(input []byte, name string) (*Result, error) {
 				if link.JsonSchema == nil {
 					return nil, schema.ErrMissingJsonSchema
 				}
+				if err := validateJsonSchema(link.JsonSchema); err != nil {
+					return nil, err
+				}
 			}
 		}
 
@@ -67,6 +71,9 @@ func (m *Schema) Mill(input []byte, name string) (*Result, error) {
 			if node.JsonSchema == nil {
 				return nil, schema.ErrMissingJsonSchema
 			}
+			if err := validateJsonSchema(node.JsonSchema); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -76,4 +83,19 @@ func (m *Schema) Mill(input []byte, name string) (*Result, error) {
 	}
 
 	return &Result{File: data}, nil
+}
+
+func validateJsonSchema(jschema map[string]interface{}) error {
+	data, err := json.Marshal(&jschema)
+	if err != nil {
+		return err
+	}
+
+	loader := gojsonschema.NewStringLoader(string(data))
+
+	if _, err := gojsonschema.NewSchema(loader); err != nil {
+		return schema.ErrBadJsonSchema
+	}
+
+	return nil
 }

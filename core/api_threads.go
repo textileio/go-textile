@@ -2,6 +2,7 @@ package core
 
 import (
 	"crypto/rand"
+	"errors"
 	"io"
 	"net/http"
 
@@ -147,7 +148,7 @@ func (a *api) streamThreads(g *gin.Context) {
 			if data, ok := update.(ThreadUpdate); ok {
 				info, err := addBlockInfo(a, data)
 				if err != nil {
-					log.Errorf("error getting thread file: %s", err)
+					log.Error(err)
 				}
 				if opts["events"] == "true" {
 					g.SSEvent("threadUpdate", info)
@@ -168,7 +169,7 @@ func addBlockInfo(a *api, update ThreadUpdate) (ThreadUpdate, error) {
 	case "FILES":
 		info, err := a.node.ThreadFile(update.Block.Id)
 		if err != nil {
-			return update, err
+			return update, errors.New("error getting thread file: " + err.Error())
 		}
 		return ThreadUpdate{
 			Block:      update.Block,
