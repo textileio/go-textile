@@ -73,7 +73,7 @@ jobs:
     - run:
         name: compile
         command: |
-          gox -osarch="linux/amd64 linux/386 linux/arm" -output="{{.OS}}-{{.Arch}}"
+          gox -ldflags "-w" -osarch="linux/amd64 linux/386 linux/arm" -output="{{.OS}}-{{.Arch}}"
     - run:
         name: collect artifacts
         command: |
@@ -166,8 +166,8 @@ jobs:
         name: cross-compile
         command: |
           export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
-          gox -osarch="darwin/amd64" -output="{{.OS}}-{{.Arch}}"
-          CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -cgo -osarch="windows/amd64" -output="{{.OS}}-{{.Arch}}"
+          gox -ldflags "-w" -osarch="darwin/amd64" -output="{{.OS}}-{{.Arch}}"
+          CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -ldflags "-w" -cgo -osarch="windows/amd64" -output="{{.OS}}-{{.Arch}}"
     - run:
         name: collect artifacts
         command: |
@@ -378,7 +378,7 @@ jobs:
         command: |
           export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           gomobile init
-          gomobile bind -v -target=ios github.com/textileio/textile-go/mobile
+          gomobile bind -ldflags "-w" -v -target=ios github.com/textileio/textile-go/mobile
     - run:
         name: collect artifacts
         command: |
@@ -427,6 +427,7 @@ jobs:
     - run:
         name: install deps
         command: |
+          export PATH=$PATH:/usr/local/go/bin
           ~/go/bin/dep ensure
           ~/go/bin/gx install
     - save_cache:
@@ -454,7 +455,7 @@ jobs:
           export GOPATH=~/go
           export PATH=$PATH:$GOPATH/bin
           gomobile init -ndk /opt/android/sdk/ndk-bundle
-          gomobile bind -v -target=android -o textilego.aar github.com/textileio/textile-go/mobile
+          gomobile bind -ldflags "-w" -v -target=android -o textilego.aar github.com/textileio/textile-go/mobile
     - run:
         name: collect artifacts
         command: |
