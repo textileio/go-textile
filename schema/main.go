@@ -32,6 +32,7 @@ const SingleFileTag = ":single"
 
 // Node describes a DAG node
 type Node struct {
+	Name       string                 `json:"name,omitempty"`
 	Pin        bool                   `json:"pin"`
 	Plaintext  bool                   `json:"plaintext"`
 	Mill       string                 `json:"mill,omitempty"`

@@ -286,7 +286,7 @@ func (h *ThreadsService) handleFiles(thrd *Thread, hash mh.Multihash, block *pb.
 		return err
 	}
 	notification.Target = msg.Target
-	notification.Body = "added a photo" // TODO: make action desc. part of schema
+	notification.Body = "added a " + threadSubject(thrd.Schema.Name)
 	notification.BlockId = hash.B58String()
 	notification.Subject = thrd.Name
 	notification.SubjectId = thrd.Id
@@ -306,9 +306,9 @@ func (h *ThreadsService) handleComment(thrd *Thread, hash mh.Multihash, block *p
 	}
 	var desc string
 	if target.AuthorId == h.service.Node.Identity.Pretty() {
-		desc = "your photo" // TODO: make subject desc. part of schema
+		desc = "your " + threadSubject(thrd.Schema.Name)
 	} else {
-		desc = "a photo"
+		desc = "a " + threadSubject(thrd.Schema.Name)
 	}
 	notification, err := h.newNotification(block.Header, repo.CommentAddedNotification)
 	if err != nil {
@@ -335,9 +335,9 @@ func (h *ThreadsService) handleLike(thrd *Thread, hash mh.Multihash, block *pb.T
 	}
 	var desc string
 	if target.AuthorId == h.service.Node.Identity.Pretty() {
-		desc = "your photo" // TODO: make subject desc. part of schema
+		desc = "your " + threadSubject(thrd.Schema.Name)
 	} else {
-		desc = "a photo"
+		desc = "a " + threadSubject(thrd.Schema.Name)
 	}
 	notification, err := h.newNotification(block.Header, repo.LikeAddedNotification)
 	if err != nil {
@@ -363,4 +363,12 @@ func (h *ThreadsService) newNotification(header *pb.ThreadBlockHeader, ntype rep
 		ActorId: header.Author,
 		Type:    ntype,
 	}, nil
+}
+
+// threadSubject returns the thread subject
+func threadSubject(name string) string {
+	if name == "" {
+		return "file"
+	}
+	return name
 }
