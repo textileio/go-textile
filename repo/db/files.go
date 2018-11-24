@@ -3,6 +3,8 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"strings"
 	"sync"
 	"time"
 
@@ -24,13 +26,14 @@ func (c *FileDB) Add(file *repo.File) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into files(mill, checksum, source, opts, hash, key, media, name, size, added, meta) values(?,?,?,?,?,?,?,?,?,?,?)`
+	stm := `insert into files(mill, checksum, source, opts, hash, key, media, name, size, added, meta, targets) values(?,?,?,?,?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
 		return err
 	}
 	defer stmt.Close()
+
 	var meta []byte
 	if file.Meta != nil {
 		meta, err = json.Marshal(file.Meta)
@@ -38,6 +41,12 @@ func (c *FileDB) Add(file *repo.File) error {
 			return err
 		}
 	}
+
+	var targets *string
+	if len(file.Targets) > 0 {
+		*targets = strings.Join(file.Targets, ",")
+	}
+
 	_, err = stmt.Exec(
 		file.Mill,
 		file.Checksum,
@@ -50,11 +59,13 @@ func (c *FileDB) Add(file *repo.File) error {
 		file.Size,
 		int(file.Added.Unix()),
 		meta,
+		targets,
 	)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
+
 	tx.Commit()
 	return nil
 }
@@ -89,6 +100,58 @@ func (c *FileDB) GetBySource(mill string, source string, opts string) *repo.File
 	return &ret[0]
 }
 
+func (c *FileDB) AddTarget(hash string, target string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	res := c.handleTargetsQuery("select targets from files where hash='" + hash + "';")
+	if len(res) == 0 {
+		return errors.New("file not found")
+	}
+	etargets := res[0]
+
+	if targetExists(target, etargets) {
+		return nil
+	}
+
+	etargets = append(etargets, target)
+	targets := strings.Join(etargets, ",")
+
+	_, err := c.db.Exec("update files set targets=? where hash=?", targets, hash)
+	return err
+}
+
+func (c *FileDB) RemoveTarget(hash string, target string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	res := c.handleTargetsQuery("select targets from files where hash='" + hash + "';")
+	if len(res) == 0 {
+		return errors.New("file not found")
+	}
+	etargets := res[0]
+
+	if !targetExists(target, etargets) {
+		return nil
+	}
+
+	var list []string
+	for _, t := range etargets {
+		if t != target {
+			list = append(list, t)
+		}
+	}
+
+	var targets *string
+	if len(list) > 0 {
+		tmp := strings.Join(list, ",")
+		targets = &tmp
+	}
+
+	_, err := c.db.Exec("update files set targets=? where hash=?", targets, hash)
+	return err
+}
+
 func (c *FileDB) Count() int {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -116,10 +179,13 @@ func (c *FileDB) handleQuery(stm string) []repo.File {
 		var mill, checksum, source, opts, hash, key, media, name string
 		var size, addedInt int
 		var metab []byte
-		if err := rows.Scan(&mill, &checksum, &source, &opts, &hash, &key, &media, &name, &size, &addedInt, &metab); err != nil {
+		var targets *string
+
+		if err := rows.Scan(&mill, &checksum, &source, &opts, &hash, &key, &media, &name, &size, &addedInt, &metab, &targets); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
+
 		var meta map[string]interface{}
 		if metab != nil {
 			if err := json.Unmarshal(metab, &meta); err != nil {
@@ -127,6 +193,16 @@ func (c *FileDB) handleQuery(stm string) []repo.File {
 				continue
 			}
 		}
+
+		tlist := make([]string, 0)
+		if targets != nil {
+			for _, t := range strings.Split(*targets, ",") {
+				if t != "" {
+					tlist = append(tlist, t)
+				}
+			}
+		}
+
 		res = append(res, repo.File{
 			Mill:     mill,
 			Checksum: checksum,
@@ -139,7 +215,48 @@ func (c *FileDB) handleQuery(stm string) []repo.File {
 			Size:     size,
 			Added:    time.Unix(int64(addedInt), 0),
 			Meta:     meta,
+			Targets:  tlist,
 		})
 	}
+
 	return res
+}
+
+func (c *FileDB) handleTargetsQuery(stm string) [][]string {
+	var res [][]string
+	rows, err := c.db.Query(stm)
+	if err != nil {
+		log.Errorf("error in db query: %s", err)
+		return nil
+	}
+	for rows.Next() {
+		var targets *string
+
+		if err := rows.Scan(&targets); err != nil {
+			log.Errorf("error in db scan: %s", err)
+			continue
+		}
+
+		tlist := make([]string, 0)
+		if targets != nil {
+			for _, t := range strings.Split(*targets, ",") {
+				if t != "" {
+					tlist = append(tlist, t)
+				}
+			}
+		}
+
+		res = append(res, tlist)
+	}
+
+	return res
+}
+
+func targetExists(t string, list []string) bool {
+	for _, i := range list {
+		if t == i {
+			return true
+		}
+	}
+	return false
 }

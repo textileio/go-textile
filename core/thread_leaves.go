@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 
 	"github.com/textileio/textile-go/pb"
@@ -30,7 +31,12 @@ func (t *Thread) leave() (mh.Multihash, error) {
 	}
 
 	// cleanup
-	// TODO: delete files
+	query := fmt.Sprintf("threadId='%s'", t.Id)
+	for _, block := range t.datastore.Blocks().List("", -1, query) {
+		if err := t.ignoreBlockTarget(&block); err != nil {
+			return nil, err
+		}
+	}
 	if err := t.datastore.Blocks().DeleteByThread(t.Id); err != nil {
 		return nil, err
 	}

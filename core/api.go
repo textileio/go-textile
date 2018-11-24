@@ -67,7 +67,7 @@ func (a *api) Start() {
 	})
 
 	// Allows all origins
-	// TODO: Do not use this in production, needs to be configurable
+	// TODO: Do not use this in production, needs to be configurable #355
 	config := cors.DefaultConfig()
 	config.AllowAllOrigins = true
 	config.AllowMethods = []string{"GET", "POST", "PUT", "HEAD", "PATCH", "OPTIONS"}
