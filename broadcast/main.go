@@ -1,35 +1,4 @@
-// Package broadcast implements multi-listener broadcast channels.
-//
-// To create an unbuffered broadcast channel, just declare a Broadcaster:
-//
-//     var b Broadcaster
-//
-// To create a buffered broadcast channel with capacity n, call New:
-//
-//     b := NewBroadcaster(n)
-//
-// To add a listener to a channel, call Listen and read from Ch:
-//
-//     l := b.Listen()
-//     for v := range l.Ch {
-//         // ...
-//     }
-//
-//
-// To send to the channel, call Send:
-//
-//     b.Send("Hello world!")
-//     v <- l.Ch // returns interface{}("Hello world!")
-//
-// To remove a listener, call Close.
-//
-//     l.Close()
-//
-// To close the broadcast channel, call Close. Any existing or future listeners
-// will read from a closed channel:
-//
-//     b.Close()
-//     v, ok <- l.Ch // returns ok == false
+// https://github.com/tjgq/broadcast/blob/master/broadcast.go
 package broadcast
 
 import "sync"

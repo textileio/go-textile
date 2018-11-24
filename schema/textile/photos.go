@@ -2,6 +2,7 @@ package textile
 
 var Photos = `
 {
+  "name": "photo",
   "pin": true,
   "links": {
     "raw": {

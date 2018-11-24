@@ -2,6 +2,7 @@ package textile
 
 var Avatars = `
 {
+  "name": "avatar",
   "pin": true,
   "links": {
     "large": {
