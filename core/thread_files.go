@@ -203,22 +203,23 @@ func (t *Thread) removeFiles(node ipld.Node) error {
 
 	target := node.Cid().Hash().B58String()
 
-	for _, link := range node.Links() {
-		nd, err := ipfs.NodeAtLink(t.node(), link)
-		if err != nil {
-			return err
-		}
-		if err := t.deIndexFileNode(nd, target); err != nil {
-			return err
-		}
-	}
-
 	blocks := t.datastore.Blocks().List("", -1, "target='"+target+"'")
 	if len(blocks) == 1 {
 		// safe to unpin target node
 
 		if err := ipfs.UnpinNode(t.node(), node, false); err != nil {
 			return err
+		}
+
+		// safe to dig deeper, check for other targets which contain the files
+		for _, link := range node.Links() {
+			nd, err := ipfs.NodeAtLink(t.node(), link)
+			if err != nil {
+				return err
+			}
+			if err := t.deIndexFileNode(nd, target); err != nil {
+				return err
+			}
 		}
 	}
 

@@ -93,20 +93,18 @@ $ go get -u github.com/whyrusleeping/gx
 $ go get -u github.com/whyrusleeping/gx-go
 ```
 
-#### Install `node`
-
-NodeJS is used for git hooks and some build tooling:
-
-```
-$ brew install node
-```
-
 #### Install dependencies
 
-Finally, download deps managed by `gx` and `dep`:
+Finally, download dependencies managed by `gx` and `dep`:
 
 ```
-$ npm run setup
+$ make setup
+```
+
+#### Run tests
+
+```
+$ make test_compile
 ```
 
 ## Building
@@ -135,48 +133,11 @@ $ gomobile init
 $ make android_framework
 ```
 
-#### Desktop Application
-
-WARNING: Desktop is an unmaintained experiment. Security issues may exist.
-
-The build is made by a vendored version of `go-astilectron-bundler`. Due to Go's painful package management, you'll want to delete any `go-astilectron`-related binaries and source code you have installed from `github.com/asticode` in your `$GOPATH`. Then you can install the vendored `go-astilectron-bundler`:
-
-```
-$ go install ./vendor/github.com/asticode/go-astilectron-bundler/astilectron-bundler
-```
-
-Pick your OS: Linux, Darwin, or Windows:
-
-```
-$ cd desktop
-$ astilectron-bundler -v -c bundler.linux.json
-$ astilectron-bundler -v -c bundler.darwin.json
-$ astilectron-bundler -v -c bundler.windows.json
-```
-
-Double-click the built app in `desktop/output`, or run it directly:
-
-```
-$ cd desktop && go run *.go
-```
-
-See [go-astilectron-bundler](https://github.com/asticode/go-astilectron-bundler) for more build configurations.
-
-Note: Because `cgo` is required, you'll need to setup a proper C toolchain for cross-OS-compilation.
-
-## Commitizen
-
-The easiest way to write a valid commit message is to use the `npm` script:
-
-```
-$ npm run cm
-```
-
-This will start the interactive commit prompt.
-
 ## Acknowledgments
 
 While almost entirely different now, this project was jumpstarted from OpenBazaar. Thanks to @cpacia, @drwasho and the rest of the contributors for their work on [openbazaar-go](https://github.com/OpenBazaar/openbazaar-go).
+
+And of course, thank you Protocal Labs for the incredible FOSS effort and constant inspiration.
 
 ## License
 

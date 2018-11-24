@@ -455,7 +455,7 @@ jobs:
           export GOPATH=~/go
           export PATH=$PATH:$GOPATH/bin
           gomobile init -ndk /opt/android/sdk/ndk-bundle
-          gomobile bind -ldflags "-w" -v -target=android -o textilego.aar github.com/textileio/textile-go/mobile
+          gomobile bind -ldflags "-w" -v -target=android -o mobile.aar github.com/textileio/textile-go/mobile
     - run:
         name: collect artifacts
         command: |
@@ -465,7 +465,7 @@ jobs:
           fi
           OUT=~/dist/android_aar
           mkdir -p ${OUT}
-          tar -czvf textile-go_${VERSION}_android-aar.tar.gz textilego.aar
+          tar -czvf textile-go_${VERSION}_android-aar.tar.gz mobile.aar
           mv textile-go_${VERSION}_android-aar.tar.gz ${OUT}/
     - persist_to_workspace:
         root: ~/dist

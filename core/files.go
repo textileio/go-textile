@@ -211,7 +211,7 @@ func (t *Textile) File(hash string) (*repo.File, error) {
 func (t *Textile) FileData(hash string) (io.ReadSeeker, *repo.File, error) {
 	file := t.datastore.Files().Get(hash)
 	if file == nil {
-		return nil, nil, errors.New("file not found")
+		return nil, nil, ErrFileNotFound
 	}
 	fd, err := ipfs.DataAtPath(t.node, file.Hash)
 	if err != nil {
@@ -336,7 +336,6 @@ func (t *Textile) fileNodeKeys(node ipld.Node, index int, keys *Keys) error {
 			vkeys["/"+strconv.Itoa(index)+"/"+link.Name+"/"] = key
 		}
 	}
-
 	keys = &vkeys
 
 	return nil

@@ -1,7 +1,7 @@
 {
   "name": "textile-go",
-  "description": "Textile's REST API and daemon",
-  "version": "1.0.0-rc1",
+  "description": "Encrypted, recoverable, schema-based, cross-application data storage built on IPFS and LibP2P",
+  "version": "1.0.0-rc2",
   "author": "textile.io",
   "license": "MIT",
   "repository": {
@@ -11,28 +11,7 @@
   "bugs": {
     "url": "https://github.com/textileio/textile-go"
   },
-  "scripts": {
-    "setup": "yarn install && dep ensure && gx install",
-    "clean": "rm -rf node_modules && rm -rf vendor && rm -f coverage.out",
-    "cm": "git-cz",
-    "commitmsg": "commitlint -e $GIT_PARAMS",
-    "precommit": ". ./script/precommit.sh",
-    "coverage": "go tool cover -html=coverage.out",
-    "format": "goimports -w -l $(find . -type f -name '*.go' -not -path './vendor/*')",
-    "lint": "golint `go list ./... | grep -v /vendor/`"
-  },
-  "config": {
-    "commitizen": {
-      "path": "cz-conventional-changelog"
-    }
-  },
-  "devDependencies": {
-    "@commitlint/cli": "^6.1.3",
-    "@commitlint/config-conventional": "^6.1.3",
-    "commitizen": "^2.9.6",
-    "cz-conventional-changelog": "2.1.0",
-    "husky": "^0.14.3"
-  },
+  "homepage": "https://www.textile.io/",
   "language": "go",
   "gxVersion": "0.12.1",
   "gx": {

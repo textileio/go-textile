@@ -1,22 +1,19 @@
 {
   "name": "@textile/go-mobile",
-  "description": "Textile iOS and Android bindings.",
-  "version": "1.0.0-rc1",
+  "description": "Encrypted, recoverable, schema-based, cross-application data storage built on IPFS and LibP2P.",
+  "version": "1.0.0-rc2",
   "author": "textile.io",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/textileio/textile-go"
   },
+  "bugs": {
+    "url": "https://github.com/textileio/textile-go"
+  },
   "homepage": "https://www.textile.io/",
-  "keywords": [
-    "textile",
-    "decentralized",
-    "mobile"
-  ],
-  "files": [
-    "scripts"
-  ],
+  "keywords": ["encrypted", "decentralized", "ipfs", "libp2p", "golang", "macos", "linux", "windows", "ios", "android"],
+  "files": ["scripts"],
   "scripts": {
     "postinstall": "./scripts/fetch_release.sh $npm_package_version"
   }
