@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/textileio/textile-go/ipfs"
+
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 
 	"github.com/golang/protobuf/ptypes"
@@ -32,8 +34,10 @@ func (t *Thread) AddIgnore(block string) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	// unpin
-	//t.unpinBlockTarget(block)
+	rblock := t.datastore.Blocks().Get(block)
+	if err := t.ignoreBlockTarget(rblock); err != nil {
+		return nil, err
+	}
 
 	if err := t.updateHead(res.hash); err != nil {
 		return nil, err
@@ -43,6 +47,7 @@ func (t *Thread) AddIgnore(block string) (mh.Multihash, error) {
 		return nil, err
 	}
 
+	// cleanup
 	if err := t.datastore.Notifications().DeleteByBlock(block); err != nil {
 		return nil, err
 	}
@@ -59,7 +64,7 @@ func (t *Thread) handleIgnoreBlock(hash mh.Multihash, block *pb.ThreadBlock) (*p
 		return nil, err
 	}
 
-	// delete notifications
+	// cleanup
 	blockId := strings.Replace(msg.Target, "ignore-", "", 1)
 	if err := t.datastore.Notifications().DeleteByBlock(blockId); err != nil {
 		return nil, err
@@ -72,29 +77,29 @@ func (t *Thread) handleIgnoreBlock(hash mh.Multihash, block *pb.ThreadBlock) (*p
 		return nil, err
 	}
 
-	// unpin
-	//t.unpinBlockTarget(blockId)
+	rblock := t.datastore.Blocks().Get(blockId)
+	if err := t.ignoreBlockTarget(rblock); err != nil {
+		return nil, err
+	}
 
 	return msg, nil
 }
 
-// unpinBlockTarget unpins block target if present and not part of another thread
-// TODO: fix via schema
-//func (t *Thread) unpinBlockTarget(blockId string) {
-//	block := t.datastore.Blocks().Get(blockId)
-//	if block != nil && block.Target != "" {
-//		blocks := t.datastore.Blocks().List("", -1, "target='"+block.Target+"'")
-//		if len(blocks) == 1 {
-//			// safe to unpin
-//
-//			switch block.Type {
-//			case repo.FilesBlock:
-//				// unpin image paths
-//				path := fmt.Sprintf("%s/thumb", block.Target)
-//				if err := ipfs.UnpinPath(t.node(), path); err != nil {
-//					log.Warningf("failed to unpin %s: %s", path, err)
-//				}
-//			}
-//		}
-//	}
-//}
+// ignoreBlockTarget conditionally removes block target and files
+func (t *Thread) ignoreBlockTarget(block *repo.Block) error {
+	if block == nil || block.Target == "" {
+		return nil
+	}
+
+	switch block.Type {
+	case repo.FilesBlock:
+		node, err := ipfs.NodeAtPath(t.node(), block.Target)
+		if err != nil {
+			return err
+		}
+
+		return t.removeFiles(node)
+	default:
+		return nil
+	}
+}

@@ -20,6 +20,7 @@ import (
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface/options"
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreunix"
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/namesys/opts"
+	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/pin"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 	"gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
 	uio "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/io"
@@ -140,6 +141,7 @@ func PinPath(node *core.IpfsNode, pth string, recursive bool) error {
 }
 
 // UnpinPath takes an ipfs path string and unpins it
+// Note: This is always recursive. Use UnpinNode for finer control.
 func UnpinPath(node *core.IpfsNode, pth string) error {
 	ip, err := iface.ParsePath(pth)
 	if err != nil {
@@ -148,7 +150,7 @@ func UnpinPath(node *core.IpfsNode, pth string) error {
 	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
 	defer cancel()
 	api := coreapi.NewCoreAPI(node)
-	if err := api.Pin().Rm(ctx, ip); err != nil {
+	if err := api.Pin().Rm(ctx, ip); err != nil && err != pin.ErrNotPinned {
 		return err
 	}
 	return nil
@@ -187,6 +189,17 @@ func PinNode(node *core.IpfsNode, nd ipld.Node, recursive bool) error {
 		if strings.Contains(err.Error(), "already pinned recursively") {
 			return nil
 		}
+		return err
+	}
+	return node.Pinning.Flush()
+}
+
+// UnpinNode unpins an ipld node
+func UnpinNode(node *core.IpfsNode, nd ipld.Node, recursive bool) error {
+	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
+	defer cancel()
+	err := node.Pinning.Unpin(ctx, nd.Cid(), recursive)
+	if err != nil && err != pin.ErrNotPinned {
 		return err
 	}
 	return node.Pinning.Flush()

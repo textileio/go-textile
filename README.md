@@ -12,9 +12,11 @@
 
 ## What is Textile?
 
-Riding on [IPFS](https://github.com/ipfs) and [libp2p](https://github.com/libp2p), [Textile](https://www.textile.io) aims to provide a set of straightforward primitives for building decentralized mobile applications.
+[Textile](https://www.textile.io) provides encrypted, recoverable, schema-based, and cross-application data storage built on [IPFS](https://github.com/ipfs) and [libp2p](https://github.com/libp2p). Think of it as a decentralized Firebase.
 
-This repository currently contains a CLI/daemon, a desktop application, and iOS/Android mobile bindings for running a Textile Photos node. See [textile-mobile](https://github.com/textileio/textile-mobile/) for the [Textile Photos](https://www.textile.photos) iOS/Android app.
+This repository contains the core Textile node and daemon, a CLI client, and a mobile client for building an iOS/Android application.
+
+See [textile-mobile](https://github.com/textileio/textile-mobile/) for the [Textile Photos](https://www.textile.photos) iOS/Android app.
 
 ## Install
 
@@ -33,17 +35,22 @@ Help Options:
   -h, --help  Show this help message
 
 Available commands:
+  add      Add file(s) to a thread
   address  Show wallet address
-  daemon   Start a node daemon
-  images   Manage images
+  cafes    Manage cafes
+  daemon   Start the daemon
+  get      Get a thread file
   init     Init the node repo and exit
+  invite   Manage thread invites
+  ls       Paginate thread files
   migrate  Migrate the node repo and exit
   peer     Show peer ID
   ping     Ping another peer
-  shell    Start a node shell
+  profile  Manage public profile
+  shell    Start a shell session
   threads  Manage threads
   version  Print version and exit
-  wallet   Manage a wallet of accounts
+  wallet   Manage or create an account wallet
 ```
 
 Textile uses an HD Wallet as an account key manager. You may use the name derived account seed on multiple devices to sync wallet data. To get started, run:
@@ -93,20 +100,18 @@ $ go get -u github.com/whyrusleeping/gx
 $ go get -u github.com/whyrusleeping/gx-go
 ```
 
-#### Install `node`
-
-NodeJS is used for git hooks and some build tooling:
-
-```
-$ brew install node
-```
-
 #### Install dependencies
 
-Finally, download deps managed by `gx` and `dep`:
+Finally, download dependencies managed by `gx` and `dep`:
 
 ```
-$ npm run setup
+$ make setup
+```
+
+#### Run tests
+
+```
+$ make test_compile
 ```
 
 ## Building
@@ -135,48 +140,11 @@ $ gomobile init
 $ make android_framework
 ```
 
-#### Desktop Application
-
-WARNING: Desktop is an unmaintained experiment. Security issues may exist.
-
-The build is made by a vendored version of `go-astilectron-bundler`. Due to Go's painful package management, you'll want to delete any `go-astilectron`-related binaries and source code you have installed from `github.com/asticode` in your `$GOPATH`. Then you can install the vendored `go-astilectron-bundler`:
-
-```
-$ go install ./vendor/github.com/asticode/go-astilectron-bundler/astilectron-bundler
-```
-
-Pick your OS: Linux, Darwin, or Windows:
-
-```
-$ cd desktop
-$ astilectron-bundler -v -c bundler.linux.json
-$ astilectron-bundler -v -c bundler.darwin.json
-$ astilectron-bundler -v -c bundler.windows.json
-```
-
-Double-click the built app in `desktop/output`, or run it directly:
-
-```
-$ cd desktop && go run *.go
-```
-
-See [go-astilectron-bundler](https://github.com/asticode/go-astilectron-bundler) for more build configurations.
-
-Note: Because `cgo` is required, you'll need to setup a proper C toolchain for cross-OS-compilation.
-
-## Commitizen
-
-The easiest way to write a valid commit message is to use the `npm` script:
-
-```
-$ npm run cm
-```
-
-This will start the interactive commit prompt.
-
 ## Acknowledgments
 
 While almost entirely different now, this project was jumpstarted from OpenBazaar. Thanks to @cpacia, @drwasho and the rest of the contributors for their work on [openbazaar-go](https://github.com/OpenBazaar/openbazaar-go).
+
+And of course, thank you Protocal Labs for the incredible FOSS effort and constant inspiration.
 
 ## License
 

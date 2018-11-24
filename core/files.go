@@ -22,6 +22,8 @@ import (
 )
 
 var ErrFileNotFound = errors.New("file not found")
+var ErrMissingFileLink = errors.New("file link not in node")
+var ErrMissingDataLink = errors.New("data link not in node")
 
 type Keys map[string]string
 
@@ -209,7 +211,7 @@ func (t *Textile) File(hash string) (*repo.File, error) {
 func (t *Textile) FileData(hash string) (io.ReadSeeker, *repo.File, error) {
 	file := t.datastore.Files().Get(hash)
 	if file == nil {
-		return nil, nil, errors.New("file not found")
+		return nil, nil, ErrFileNotFound
 	}
 	fd, err := ipfs.DataAtPath(t.node, file.Hash)
 	if err != nil {
@@ -290,4 +292,64 @@ func (t *Textile) fileForPair(pair ipld.Node) (*repo.File, error) {
 func (t *Textile) checksum(plaintext []byte) string {
 	sum := sha256.Sum256(plaintext)
 	return base58.FastBase58Encoding(sum[:])
+}
+
+func (t *Textile) TargetNodeKeys(node ipld.Node) (Keys, error) {
+	keys := make(Keys)
+
+	for i, link := range node.Links() {
+		fn, err := ipfs.NodeAtLink(t.node, link)
+		if err != nil {
+			return nil, err
+		}
+		if err := t.fileNodeKeys(fn, i, &keys); err != nil {
+			return nil, err
+		}
+	}
+
+	return keys, nil
+}
+
+func (t *Textile) fileNodeKeys(node ipld.Node, index int, keys *Keys) error {
+	links := node.Links()
+	vkeys := *keys
+
+	if len(links) == 0 {
+		key, err := t.fileLinkKey(node)
+		if err != nil {
+			return err
+		}
+
+		vkeys["/"+strconv.Itoa(index)+"/"] = key
+	} else {
+		for _, link := range links {
+			n, err := ipfs.NodeAtLink(t.node, link)
+			if err != nil {
+				return err
+			}
+
+			key, err := t.fileLinkKey(n)
+			if err != nil {
+				return err
+			}
+
+			vkeys["/"+strconv.Itoa(index)+"/"+link.Name+"/"] = key
+		}
+	}
+	keys = &vkeys
+
+	return nil
+}
+
+func (t *Textile) fileLinkKey(inode ipld.Node) (string, error) {
+	dlink := schema.LinkByName(inode.Links(), DataLinkName)
+	if dlink == nil {
+		return "", ErrMissingDataLink
+	}
+
+	file := t.datastore.Files().Get(dlink.Cid.Hash().B58String())
+	if file == nil {
+		return "", ErrFileNotFound
+	}
+	return file.Key, nil
 }

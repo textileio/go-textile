@@ -215,8 +215,7 @@ func (m *Mobile) AddThreadFiles(dir []byte, threadId string, caption string) (st
 	return m.blockInfo(hash)
 }
 
-// AddThreadFilesByTarget adds a prepared file to a thread by referencing its top level hash,
-// which is the target of an existing files block.
+// AddThreadFilesByTarget adds a prepared file to a thread by referencing its top level hash
 func (m *Mobile) AddThreadFilesByTarget(target string, threadId string, caption string) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
@@ -227,45 +226,14 @@ func (m *Mobile) AddThreadFilesByTarget(target string, threadId string, caption 
 		return "", core.ErrThreadNotFound
 	}
 
-	// just need one block w/ the same target, doesn't matter what thread
-	blocks := m.node.BlocksByTarget(target)
-	if len(blocks) == 0 {
-		return "", errors.New("target not found")
-	}
-
-	fsinfo, err := m.node.ThreadFile(blocks[0].Id)
+	node, err := ipfs.NodeAtPath(m.node.Ipfs(), target)
 	if err != nil {
 		return "", err
 	}
 
-	var dirs []core.Directory
-	var files []repo.File
-
-	for _, info := range fsinfo.Files {
-		if len(info.Links) > 0 {
-			dirs = append(dirs, info.Links)
-		} else if info.File != nil {
-			files = append(files, *info.File)
-		}
-	}
-
-	var node ipld.Node
-	var keys core.Keys
-
-	if len(dirs) > 0 {
-		node, keys, err = m.node.AddNodeFromDirs(dirs)
-		if err != nil {
-			return "", err
-		}
-	} else if len(files) > 0 {
-		node, keys, err = m.node.AddNodeFromFiles(files)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	if node == nil {
-		return "", errors.New("no files found")
+	keys, err := m.node.TargetNodeKeys(node)
+	if err != nil {
+		return "", err
 	}
 
 	hash, err := thrd.AddFiles(node, caption, keys)

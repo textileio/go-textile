@@ -20,6 +20,7 @@ type File struct {
 	Size     int                    `json:"size"`
 	Added    time.Time              `json:"added"`
 	Meta     map[string]interface{} `json:"meta,omitempty"`
+	Targets  []string               `json:"targets,omitempty"`
 }
 
 type Thread struct {

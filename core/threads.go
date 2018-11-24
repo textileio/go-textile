@@ -211,7 +211,7 @@ func (t *Textile) AcceptExternalThreadInvite(inviteId string, key []byte) (mh.Mu
 // the associated notification.
 func (t *Textile) IgnoreThreadInvite(inviteId string) error {
 	if err := ipfs.UnpinPath(t.node, inviteId); err != nil {
-		log.Warningf("error unpinning path %s: %s", inviteId, err)
+		return err
 	}
 	return t.datastore.Notifications().DeleteByBlock(inviteId)
 }
