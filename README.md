@@ -12,9 +12,11 @@
 
 ## What is Textile?
 
-Riding on [IPFS](https://github.com/ipfs) and [libp2p](https://github.com/libp2p), [Textile](https://www.textile.io) aims to provide a set of straightforward primitives for building decentralized mobile applications.
+[Textile](https://www.textile.io) provides encrypted, recoverable, schema-based, and cross-application data storage built on [IPFS](https://github.com/ipfs) and [libp2p](https://github.com/libp2p). Think of it as a decentralized Firebase.
 
-This repository currently contains a CLI/daemon, a desktop application, and iOS/Android mobile bindings for running a Textile Photos node. See [textile-mobile](https://github.com/textileio/textile-mobile/) for the [Textile Photos](https://www.textile.photos) iOS/Android app.
+This repository contains the core Textile node and daemon, a CLI client, and a mobile client for building an iOS/Android application.
+
+See [textile-mobile](https://github.com/textileio/textile-mobile/) for the [Textile Photos](https://www.textile.photos) iOS/Android app.
 
 ## Install
 
@@ -33,17 +35,22 @@ Help Options:
   -h, --help  Show this help message
 
 Available commands:
+  add      Add file(s) to a thread
   address  Show wallet address
-  daemon   Start a node daemon
-  images   Manage images
+  cafes    Manage cafes
+  daemon   Start the daemon
+  get      Get a thread file
   init     Init the node repo and exit
+  invite   Manage thread invites
+  ls       Paginate thread files
   migrate  Migrate the node repo and exit
   peer     Show peer ID
   ping     Ping another peer
-  shell    Start a node shell
+  profile  Manage public profile
+  shell    Start a shell session
   threads  Manage threads
   version  Print version and exit
-  wallet   Manage a wallet of accounts
+  wallet   Manage or create an account wallet
 ```
 
 Textile uses an HD Wallet as an account key manager. You may use the name derived account seed on multiple devices to sync wallet data. To get started, run:
