@@ -369,6 +369,8 @@ func buildNode(pinCode string, repoPath string) error {
 }
 
 func startNode() error {
+	listener := node.GetThreadUpdateListener()
+
 	if err := node.Start(); err != nil {
 		return err
 	}
@@ -396,7 +398,6 @@ func startNode() error {
 	}()
 
 	// subscribe to thread updates
-	listener := node.GetThreadUpdateListener()
 	go func() {
 		for {
 			select {
@@ -416,7 +417,6 @@ func startNode() error {
 						cmd.Green(desc) + cmd.Grey(" update to thread "+thrd)
 					fmt.Println(msg)
 				}
-			default:
 			}
 		}
 	}()
@@ -460,7 +460,12 @@ func stopNode() error {
 	if err := gateway.Host.Stop(); err != nil {
 		return err
 	}
-	return node.Stop()
+	if err := node.Stop(); err != nil {
+		return err
+	}
+
+	node.CloseChns()
+	return nil
 }
 
 func printSplash() {

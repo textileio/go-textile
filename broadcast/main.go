@@ -1,7 +1,13 @@
 // https://github.com/tjgq/broadcast/blob/master/broadcast.go
 package broadcast
 
-import "sync"
+import (
+	"sync"
+
+	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
+)
+
+var log = logging.Logger("tex-broadcast")
 
 // Broadcaster implements a broadcast channel.
 // The zero value is a usable unbuffered channel.
@@ -27,12 +33,12 @@ type Listener struct {
 }
 
 // Send broadcasts a message to the channel.
-// Sending on a closed channel causes a runtime panic.
 func (b *Broadcaster) Send(v interface{}) {
 	b.m.Lock()
 	defer b.m.Unlock()
 	if b.closed {
-		panic("broadcast: send after close")
+		log.Warning("send on closed channel")
+		return
 	}
 	for _, l := range b.listeners {
 		l <- v

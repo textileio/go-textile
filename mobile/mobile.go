@@ -8,6 +8,7 @@ import (
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 	logger "gx/ipfs/QmcaSwFc5RBg8yCq54QURwEU4nwjfCpjbpmaAm4VbdGLKv/go-logging"
 
+	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/wallet"
@@ -144,6 +145,11 @@ func NewTextile(config *RunConfig, messenger Messenger) (*Mobile, error) {
 
 // Start the mobile node
 func (m *Mobile) Start() error {
+	var listener *broadcast.Listener
+	if !m.node.Started() {
+		listener = m.node.GetThreadUpdateListener()
+	}
+
 	if err := m.node.Start(); err != nil {
 		if err == core.ErrStarted {
 			return nil
@@ -183,7 +189,6 @@ func (m *Mobile) Start() error {
 		}()
 
 		// subscribe to thread updates
-		listener := m.node.GetThreadUpdateListener()
 		go func() {
 			for {
 				select {
