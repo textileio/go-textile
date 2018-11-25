@@ -89,6 +89,7 @@ type Mobile struct {
 	RepoPath  string
 	node      *core.Textile
 	messenger Messenger
+	listener  *broadcast.Listener
 }
 
 // InitRepo calls core InitRepo
@@ -140,16 +141,12 @@ func NewTextile(config *RunConfig, messenger Messenger) (*Mobile, error) {
 		RepoPath:  config.RepoPath,
 		node:      node,
 		messenger: messenger,
+		listener:  node.GetThreadUpdateListener(),
 	}, nil
 }
 
 // Start the mobile node
 func (m *Mobile) Start() error {
-	var listener *broadcast.Listener
-	if !m.node.Started() {
-		listener = m.node.GetThreadUpdateListener()
-	}
-
 	if err := m.node.Start(); err != nil {
 		if err == core.ErrStarted {
 			return nil
@@ -192,7 +189,7 @@ func (m *Mobile) Start() error {
 		go func() {
 			for {
 				select {
-				case update, ok := <-listener.Ch:
+				case update, ok := <-m.listener.Ch:
 					if !ok {
 						return
 					}
