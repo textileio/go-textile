@@ -58,7 +58,9 @@ func (t *Textile) Contacts() []Contact {
 				contact.Username = model.Username
 				contact.Added = model.Added
 			} else {
-				contact.Username = peer.Id[len(peer.Id)-7:]
+				if len(peer.Id) >= 7 {
+					contact.Username = peer.Id[len(peer.Id)-7:]
+				}
 			}
 
 			set[peer.Id] = contact
@@ -75,7 +77,9 @@ func (t *Textile) ContactUsername(id string) string {
 	if id == "" {
 		return ""
 	}
-	username = id[len(id)-7:]
+	if len(id) >= 7 {
+		username = id[len(id)-7:]
+	}
 
 	contact := t.datastore.Contacts().Get(id)
 	if contact != nil && contact.Username != "" {

@@ -44,7 +44,8 @@ func (c *FileDB) Add(file *repo.File) error {
 
 	var targets *string
 	if len(file.Targets) > 0 {
-		*targets = strings.Join(file.Targets, ",")
+		tmp := strings.Join(file.Targets, ",")
+		targets = &tmp
 	}
 
 	_, err = stmt.Exec(

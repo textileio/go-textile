@@ -166,7 +166,10 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 	if mod.Head != "" {
 		h := t.datastore.Blocks().Get(mod.Head)
 		if h != nil {
-			username := h.AuthorId[len(h.AuthorId)-7:]
+			var username string
+			if len(h.AuthorId) >= 7 {
+				username = h.AuthorId[len(h.AuthorId)-7:]
+			}
 			contact := t.datastore.Contacts().Get(h.AuthorId)
 			if contact != nil && contact.Username != "" {
 				username = contact.Username
@@ -464,12 +467,15 @@ func (t *Thread) indexBlock(commit *commitResult, blockType repo.BlockType, targ
 		return err
 	}
 
-	username := index.AuthorId[len(index.AuthorId)-7:]
+	var username string
+	if len(index.AuthorId) >= 7 {
+		username = index.AuthorId[len(index.AuthorId)-7:]
+	}
 	contact := t.datastore.Contacts().Get(index.AuthorId)
 	if contact != nil && contact.Username != "" {
 		username = contact.Username
 	}
-	info := &BlockInfo{
+	t.pushUpdate(BlockInfo{
 		Id:       index.Id,
 		ThreadId: index.ThreadId,
 		AuthorId: index.AuthorId,
@@ -479,8 +485,7 @@ func (t *Thread) indexBlock(commit *commitResult, blockType repo.BlockType, targ
 		Parents:  index.Parents,
 		Target:   index.Target,
 		Body:     index.Body,
-	}
-	t.pushUpdate(*info)
+	})
 
 	return nil
 }

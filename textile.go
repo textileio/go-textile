@@ -431,9 +431,14 @@ func startNode() error {
 				}
 				date := note.Date.Format(time.RFC822)
 				username := node.ContactUsername(note.ActorId)
-				thrd := note.SubjectId[len(note.SubjectId)-7:]
+
+				var subject string
+				if len(note.SubjectId) >= 7 {
+					subject = note.SubjectId[len(note.SubjectId)-7:]
+				}
+
 				msg := cmd.Grey(date+"  "+username+" ") + cmd.Cyan(note.Body) +
-					cmd.Grey(" "+thrd)
+					cmd.Grey(" "+subject)
 				fmt.Println(msg)
 			}
 		}

@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
@@ -21,6 +22,7 @@ import (
 
 var errMissingFilePath = errors.New("missing file path")
 var errMissingFileBlockId = errors.New("missing file block id")
+var errNothingToAdd = errors.New("nothing to add")
 
 func init() {
 	register(&addCmd{})
@@ -87,17 +89,17 @@ func callAdd(args []string, opts map[string]string) error {
 		return errMissingFilePath
 	}
 
-	// first, ensure schema is present
+	// fetch schema
 	threadId := opts["thread"]
 	if threadId == "" {
 		threadId = "default"
 	}
-	var info *core.ThreadInfo
-	if _, err := executeJsonCmd(GET, "threads/"+threadId, params{}, &info); err != nil {
+	var thrd *core.ThreadInfo
+	if _, err := executeJsonCmd(GET, "threads/"+threadId, params{}, &thrd); err != nil {
 		return err
 	}
 
-	if info.Schema == nil {
+	if thrd.Schema == nil {
 		return core.ErrThreadSchemaRequired
 	}
 
@@ -106,106 +108,62 @@ func callAdd(args []string, opts map[string]string) error {
 		pth = args[0]
 	}
 
-	f, err := os.Open(pth)
+	fi, err := os.Stat(pth)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 
-	var reader io.ReadSeeker
-	var ctype string
+	var dirs []core.Directory
 
-	dir := make(core.Directory)
-
-	// traverse the schema and collect generated files
-	if info.Schema.Mill != "" {
-		var res string
-		file := &repo.File{}
-
-		mopts := newMillOpts(info.Schema.Opts)
-		mopts.setPlaintext(info.Schema.Plaintext)
-
-		if info.Schema.Mill == "/json" {
-			reader = f
-			ctype = "application/json"
-		} else {
-			r, ct, err := multipartReader(f)
-			if err != nil {
-				return err
+	var pths []string
+	if fi.IsDir() {
+		err := filepath.Walk(pth, func(pth string, fi os.FileInfo, err error) error {
+			if fi.IsDir() || fi.Name() == ".DS_Store" {
+				return nil
 			}
-			reader = r
-			ctype = ct
-		}
-
-		res, file, err = handleStep(info.Schema.Mill, reader, mopts, ctype)
-		if err != nil {
-			return err
-		}
-		output(res, nil)
-
-		dir[schema.SingleFileTag] = *file
-
-	} else if len(info.Schema.Links) > 0 {
-
-		// determine order
-		steps, err := schema.Steps(info.Schema.Links)
+			pths = append(pths, pth)
+			return nil
+		})
 		if err != nil {
 			return err
 		}
 
-		// send each link
-		for _, step := range steps {
-			var res string
-			file := &repo.File{}
-			output("\""+step.Name+"\":", nil)
+		tmp := make([]core.Directory, len(pths))
 
-			mopts := newMillOpts(step.Link.Opts)
-			mopts.setPlaintext(step.Link.Plaintext)
-
-			if step.Link.Use == schema.FileTag {
-				if reader != nil {
-					reader.Seek(0, 0)
+		wg := sync.WaitGroup{}
+		for i, pth := range pths {
+			wg.Add(1)
+			go func(i int, p string) {
+				dir, err := mill(p, thrd.Schema)
+				if err != nil {
+					output(err.Error(), nil)
 				} else {
-					if step.Link.Mill == "/json" {
-						reader = f
-						ctype = "application/json"
-					} else {
-						r, ct, err := multipartReader(f)
-						if err != nil {
-							return err
-						}
-						reader = r
-						ctype = ct
-					}
+					tmp[i] = dir
 				}
-
-				res, file, err = handleStep(step.Link.Mill, reader, mopts, ctype)
-				if err != nil {
-					return err
-				}
-
-			} else {
-				if dir[step.Link.Use].Hash == "" {
-					return errors.New(step.Link.Use + " not found")
-				}
-				mopts.setUse(dir[step.Link.Use].Hash)
-
-				res, err = executeJsonCmd(POST, "mills"+step.Link.Mill, params{
-					opts: mopts.val,
-				}, &file)
-				if err != nil {
-					return err
-				}
-			}
-			output(res, nil)
-
-			dir[step.Name] = *file
+				wg.Done()
+			}(i, pth)
 		}
+		wg.Wait()
+
+		for _, dir := range tmp {
+			if dir != nil {
+				dirs = append(dirs, dir)
+			}
+		}
+
 	} else {
-		return schema.ErrEmptySchema
+		dir, err := mill(pth, thrd.Schema)
+		if err != nil {
+			return err
+		}
+		dirs = append(dirs, dir)
 	}
 
-	data, err := json.Marshal(&dir)
+	if len(dirs) == 0 {
+		return errNothingToAdd
+	}
+
+	data, err := json.Marshal(&dirs)
 	if err != nil {
 		return err
 	}
@@ -220,10 +178,120 @@ func callAdd(args []string, opts map[string]string) error {
 		return err
 	}
 
-	output("\"block\":", nil)
 	output(res, nil)
 
 	return nil
+}
+
+func mill(pth string, node *schema.Node) (core.Directory, error) {
+	f, err := os.Open(pth)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	fi, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	if fi.IsDir() {
+		return nil, nil
+	}
+
+	var reader io.ReadSeeker
+	var ctype string
+
+	dir := make(core.Directory)
+
+	// traverse the schema and collect generated files
+	if node.Mill != "" {
+		var res string
+		file := &repo.File{}
+
+		mopts := newMillOpts(node.Opts)
+		mopts.setPlaintext(node.Plaintext)
+
+		if node.Mill == "/json" {
+			reader = f
+			ctype = "application/json"
+		} else {
+			r, ct, err := multipartReader(f)
+			if err != nil {
+				return nil, err
+			}
+			reader = r
+			ctype = ct
+		}
+
+		res, file, err = handleStep(node.Mill, reader, mopts, ctype)
+		if err != nil {
+			return nil, err
+		}
+		output(res, nil)
+
+		dir[schema.SingleFileTag] = *file
+
+	} else if len(node.Links) > 0 {
+
+		// determine order
+		steps, err := schema.Steps(node.Links)
+		if err != nil {
+			return nil, err
+		}
+
+		// send each link
+		for _, step := range steps {
+			var res string
+			file := &repo.File{}
+
+			mopts := newMillOpts(step.Link.Opts)
+			mopts.setPlaintext(step.Link.Plaintext)
+
+			if step.Link.Use == schema.FileTag {
+				if reader != nil {
+					reader.Seek(0, 0)
+				} else {
+					if step.Link.Mill == "/json" {
+						reader = f
+						ctype = "application/json"
+					} else {
+						r, ct, err := multipartReader(f)
+						if err != nil {
+							return nil, err
+						}
+						reader = r
+						ctype = ct
+					}
+				}
+
+				res, file, err = handleStep(step.Link.Mill, reader, mopts, ctype)
+				if err != nil {
+					return nil, err
+				}
+
+			} else {
+				if dir[step.Link.Use].Hash == "" {
+					return nil, errors.New(step.Link.Use + " not found")
+				}
+				mopts.setUse(dir[step.Link.Use].Hash)
+
+				res, err = executeJsonCmd(POST, "mills"+step.Link.Mill, params{
+					opts: mopts.val,
+				}, &file)
+				if err != nil {
+					return nil, err
+				}
+			}
+			output(res, nil)
+
+			dir[step.Name] = *file
+		}
+	} else {
+		return nil, schema.ErrEmptySchema
+	}
+
+	return dir, nil
 }
 
 func multipartReader(f *os.File) (io.ReadSeeker, string, error) {

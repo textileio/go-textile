@@ -31,24 +31,30 @@ func (a *api) addThreadFiles(g *gin.Context) {
 	var node ipld.Node
 	var keys Keys
 
-	var dir Directory
-	if err := g.BindJSON(&dir); err != nil {
+	var dirs []Directory
+	if err := g.BindJSON(&dirs); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
-	if len(dir) == 0 {
+	if len(dirs) == 0 {
 		g.String(http.StatusBadRequest, "no files found")
 		return
 	}
 
-	if dir[schema.SingleFileTag].Hash != "" {
-		node, keys, err = a.node.AddNodeFromFiles([]repo.File{dir[schema.SingleFileTag]})
+	if dirs[0][schema.SingleFileTag].Hash != "" {
+		var files []repo.File
+		for _, dir := range dirs {
+			if len(dir) > 0 && dir[schema.SingleFileTag].Hash != "" {
+				files = append(files, dir[schema.SingleFileTag])
+			}
+		}
+		node, keys, err = a.node.AddNodeFromFiles(files)
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return
 		}
 	} else {
-		node, keys, err = a.node.AddNodeFromDirs([]Directory{dir})
+		node, keys, err = a.node.AddNodeFromDirs(dirs)
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return
