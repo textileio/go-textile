@@ -66,6 +66,14 @@ type ThreadInfo struct {
 	FileCount  int          `json:"file_cnt"`
 }
 
+// ThreadInviteInfo reports info about a thread
+type ThreadInviteInfo struct {
+	Id      string    `json:"id"`
+	Name    string    `json:"name"`
+	Inviter string    `json:"inviter"`
+	Date    time.Time `json:"date"`
+}
+
 // BlockInfo is a more readable version of repo.Block
 type BlockInfo struct {
 	Id       string    `json:"id"`

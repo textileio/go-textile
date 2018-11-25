@@ -34,3 +34,8 @@ func (m *Mobile) AcceptThreadInviteViaNotification(id string) (string, error) {
 	}
 	return addr.B58String(), nil
 }
+
+// IgnoreThreadInviteViaNotification call core IgnoreThreadInviteViaNotification
+func (m *Mobile) IgnoreThreadInviteViaNotification(id string) error {
+	return m.node.IgnoreThreadInviteViaNotification(id)
+}

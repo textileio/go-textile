@@ -19,6 +19,7 @@ type SQLiteDatastore struct {
 	contacts           repo.ContactStore
 	files              repo.FileStore
 	threads            repo.ThreadStore
+	threadInvites      repo.ThreadInviteStore
 	threadPeers        repo.ThreadPeerStore
 	threadMessages     repo.ThreadMessageStore
 	blocks             repo.BlockStore
@@ -52,6 +53,7 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 		contacts:           NewContactStore(conn, mux),
 		files:              NewFileStore(conn, mux),
 		threads:            NewThreadStore(conn, mux),
+		threadInvites:      NewThreadInviteStore(conn, mux),
 		threadPeers:        NewThreadPeerStore(conn, mux),
 		threadMessages:     NewThreadMessageStore(conn, mux),
 		blocks:             NewBlockStore(conn, mux),
@@ -96,6 +98,10 @@ func (d *SQLiteDatastore) Files() repo.FileStore {
 
 func (d *SQLiteDatastore) Threads() repo.ThreadStore {
 	return d.threads
+}
+
+func (d *SQLiteDatastore) ThreadInvites() repo.ThreadInviteStore {
+	return d.threadInvites
 }
 
 func (d *SQLiteDatastore) ThreadPeers() repo.ThreadPeerStore {
@@ -203,6 +209,9 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 
     create table threads (id text primary key not null, key text not null, sk blob not null, name text not null, schema text not null, initiator text not null, type integer not null, state integer not null, head text not null);
     create unique index thread_key on threads (key);
+
+    create table thread_invites (id text primary key not null, block blob not null, name text not null, inviter text not null, date integer not null);
+    create index thread_invite_date on thread_invites (date);
 
     create table thread_peers (id text not null, threadId text not null, welcomed integer not null, primary key (id, threadId));
     create index thread_peer_id on thread_peers (id);

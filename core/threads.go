@@ -20,6 +20,9 @@ import (
 // ErrThreadNotFound indicates thread is not found in the loaded list
 var ErrThreadNotFound = errors.New("thread not found")
 
+// ErrThreadInviteNotFound indicates thread invite is not found
+var ErrThreadInviteNotFound = errors.New("thread invite not found")
+
 // ErrThreadLoaded indicates the thread is already loaded from the datastore
 var ErrThreadLoaded = errors.New("thread is loaded")
 
@@ -163,28 +166,34 @@ func (t *Textile) ThreadInfo(id string) (*ThreadInfo, error) {
 	return thrd.Info()
 }
 
-// AcceptThreadInvite attemps to download an encrypted thread key from an internal invite,
-// add the thread, and notify the inviter of the join
+// ThreadInvites lists info on all pending invites
+func (t *Textile) ThreadInvites() []ThreadInviteInfo {
+	list := make([]ThreadInviteInfo, 0)
+	for _, invite := range t.datastore.ThreadInvites().List() {
+		list = append(list, ThreadInviteInfo{
+			Id:      invite.Id,
+			Name:    invite.Name,
+			Inviter: t.ContactUsername(invite.Inviter),
+			Date:    invite.Date,
+		})
+	}
+
+	return list
+}
+
+// AcceptThreadInvite adds a new thread, and notifies the inviter of the join
 func (t *Textile) AcceptThreadInvite(inviteId string) (mh.Multihash, error) {
-	ciphertext, err := ipfs.DataAtPath(t.node, inviteId)
-	if err != nil {
-		return nil, err
-	}
-	if err := ipfs.UnpinPath(t.node, inviteId); err != nil {
-		log.Warningf("error unpinning path %s: %s", inviteId, err)
+	invite := t.datastore.ThreadInvites().Get(inviteId)
+	if invite == nil {
+		return nil, ErrThreadInviteNotFound
 	}
 
-	// attempt decrypt w/ own keys
-	plaintext, err := crypto.Decrypt(t.node.PrivateKey, ciphertext)
-	if err != nil {
-		return nil, ErrInvalidThreadBlock
-	}
-	hash, err := t.handleThreadInvite(plaintext)
+	hash, err := t.handleThreadInvite(invite.Block)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := t.datastore.Notifications().DeleteByBlock(inviteId); err != nil {
+	if err := t.IgnoreThreadInvite(inviteId); err != nil {
 		return nil, err
 	}
 
@@ -192,7 +201,7 @@ func (t *Textile) AcceptThreadInvite(inviteId string) (mh.Multihash, error) {
 }
 
 // AcceptExternalThreadInvite attemps to download an encrypted thread key from an external invite,
-// add the thread, and notify the inviter of the join
+// adds a new thread, and notifies the inviter of the join
 func (t *Textile) AcceptExternalThreadInvite(inviteId string, key []byte) (mh.Multihash, error) {
 	ciphertext, err := ipfs.DataAtPath(t.node, fmt.Sprintf("%s", inviteId))
 	if err != nil {
@@ -207,10 +216,9 @@ func (t *Textile) AcceptExternalThreadInvite(inviteId string, key []byte) (mh.Mu
 	return t.handleThreadInvite(plaintext)
 }
 
-// IgnoreThreadInvite unpins a direct peer-to-peer invite and removes
-// the associated notification.
+// IgnoreThreadInvite deletes the invite and removes the associated notification.
 func (t *Textile) IgnoreThreadInvite(inviteId string) error {
-	if err := ipfs.UnpinPath(t.node, inviteId); err != nil {
+	if err := t.datastore.ThreadInvites().Delete(inviteId); err != nil {
 		return err
 	}
 	return t.datastore.Notifications().DeleteByBlock(inviteId)

@@ -13,6 +13,7 @@ type Datastore interface {
 	Contacts() ContactStore
 	Files() FileStore
 	Threads() ThreadStore
+	ThreadInvites() ThreadInviteStore
 	ThreadPeers() ThreadPeerStore
 	ThreadMessages() ThreadMessageStore
 	Blocks() BlockStore
@@ -80,6 +81,14 @@ type ThreadStore interface {
 	List() []Thread
 	Count() int
 	UpdateHead(id string, head string) error
+	Delete(id string) error
+}
+
+type ThreadInviteStore interface {
+	Queryable
+	Add(invite *ThreadInvite) error
+	Get(id string) *ThreadInvite
+	List() []ThreadInvite
 	Delete(id string) error
 }
 
