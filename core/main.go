@@ -106,7 +106,7 @@ type Textile struct {
 	online         chan struct{}
 	done           chan struct{}
 	updates        chan Update
-	threadUpdates  broadcast.Broadcaster
+	threadUpdates  *broadcast.Broadcaster
 	notifications  chan repo.Notification
 	threadsService *ThreadsService
 	threadsOutbox  *ThreadsOutbox
@@ -197,7 +197,12 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 	// force open the repo and datastore
 	removeLocks(conf.RepoPath)
 
-	node := &Textile{repoPath: conf.RepoPath}
+	node := &Textile{
+		repoPath:      conf.RepoPath,
+		updates:       make(chan Update, 10),
+		threadUpdates: broadcast.NewBroadcaster(10),
+		notifications: make(chan repo.Notification, 10),
+	}
 
 	var err error
 	node.config, err = config.Read(conf.RepoPath)
@@ -260,8 +265,6 @@ func (t *Textile) Start() error {
 	}
 
 	t.online = make(chan struct{})
-	t.updates = make(chan Update, 10)
-	t.notifications = make(chan repo.Notification, 10)
 
 	t.cafeInbox = NewCafeInbox(
 		func() *CafeService {
@@ -385,13 +388,16 @@ func (t *Textile) Stop() error {
 	// wipe threads
 	t.threads = nil
 
-	close(t.updates)
-	t.threadUpdates.Close()
-	close(t.notifications)
-
 	log.Info("node is stopped")
 
 	return nil
+}
+
+// CloseChns closes update channels
+func (t *Textile) CloseChns() {
+	close(t.updates)
+	t.threadUpdates.Close()
+	close(t.notifications)
 }
 
 // Started returns node started status

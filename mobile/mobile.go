@@ -8,6 +8,7 @@ import (
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 	logger "gx/ipfs/QmcaSwFc5RBg8yCq54QURwEU4nwjfCpjbpmaAm4VbdGLKv/go-logging"
 
+	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/wallet"
@@ -88,6 +89,7 @@ type Mobile struct {
 	RepoPath  string
 	node      *core.Textile
 	messenger Messenger
+	listener  *broadcast.Listener
 }
 
 // InitRepo calls core InitRepo
@@ -139,6 +141,7 @@ func NewTextile(config *RunConfig, messenger Messenger) (*Mobile, error) {
 		RepoPath:  config.RepoPath,
 		node:      node,
 		messenger: messenger,
+		listener:  node.GetThreadUpdateListener(),
 	}, nil
 }
 
@@ -183,11 +186,10 @@ func (m *Mobile) Start() error {
 		}()
 
 		// subscribe to thread updates
-		listener := m.node.GetThreadUpdateListener()
 		go func() {
 			for {
 				select {
-				case update, ok := <-listener.Ch:
+				case update, ok := <-m.listener.Ch:
 					if !ok {
 						return
 					}

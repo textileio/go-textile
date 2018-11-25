@@ -156,7 +156,6 @@ func (a *api) streamThreads(g *gin.Context) {
 					g.JSON(http.StatusOK, info)
 				}
 			}
-		default:
 		}
 		return true
 	})
