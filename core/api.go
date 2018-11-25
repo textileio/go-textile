@@ -105,10 +105,11 @@ func (a *api) Start() {
 		files.GET("", a.lsThreadFiles)
 		files.GET("/:block", a.getThreadFiles)
 
-		invite := v0.Group("/invite")
-		invite.POST("", a.createInvite)
-		invite.POST("/:id/accept", a.acceptInvite)
-		invite.POST("/:id/ignore", a.ignoreInvite)
+		invites := v0.Group("/invites")
+		invites.POST("", a.createInvites)
+		invites.GET("", a.lsInvites)
+		invites.POST("/:id/accept", a.acceptInvites)
+		invites.POST("/:id/ignore", a.ignoreInvites)
 
 		cafes := v0.Group("/cafes")
 		cafes.POST("", a.addCafes)

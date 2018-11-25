@@ -8,26 +8,27 @@ import (
 )
 
 func init() {
-	register(&inviteCmd{})
+	register(&invitesCmd{})
 }
 
 var errMissingInviteId = errors.New("missing invite id")
 
-type inviteCmd struct {
-	Create createInviteCmd `command:"create"`
-	Accept acceptInviteCmd `command:"accept"`
-	Ignore ignoreInviteCmd `command:"ignore"`
+type invitesCmd struct {
+	Create createInvitesCmd `command:"create"`
+	List   lsInvitesCmd     `command:"ls"`
+	Accept acceptInvitesCmd `command:"accept"`
+	Ignore ignoreInvitesCmd `command:"ignore"`
 }
 
-func (x *inviteCmd) Name() string {
-	return "invite"
+func (x *invitesCmd) Name() string {
+	return "invites"
 }
 
-func (x *inviteCmd) Short() string {
+func (x *invitesCmd) Short() string {
 	return "Manage thread invites"
 }
 
-func (x *inviteCmd) Long() string {
+func (x *invitesCmd) Long() string {
 	return `
 Invites allow other peers to join threads. There are two types of
 invites: direct peer-to-peer and external.
@@ -41,25 +42,25 @@ can use it to join.
 `
 }
 
-func (x *inviteCmd) Shell() *ishell.Cmd {
+func (x *invitesCmd) Shell() *ishell.Cmd {
 	return nil
 }
 
-type createInviteCmd struct {
+type createInvitesCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
 	Peer   string        `short:"p" long:"peer" description:"Peer ID. Omit to create an external invite."`
 }
 
-func (x *createInviteCmd) Name() string {
+func (x *createInvitesCmd) Name() string {
 	return "create"
 }
 
-func (x *createInviteCmd) Short() string {
+func (x *createInvitesCmd) Short() string {
 	return "Create peer-to-peer or external invites to a thread"
 }
 
-func (x *createInviteCmd) Long() string {
+func (x *createInvitesCmd) Long() string {
 	return `
 Creates a direct peer-to-peer or external invite to a thread.
 Omit the --peer option to create an external invite.
@@ -67,26 +68,26 @@ Omit the --thread option to use the default thread (if selected).
 `
 }
 
-func (x *createInviteCmd) Execute(args []string) error {
+func (x *createInvitesCmd) Execute(args []string) error {
 	setApi(x.Client)
 	opts := map[string]string{
 		"thread": x.Thread,
 		"peer":   x.Peer,
 	}
-	return callCreateInvite(opts)
+	return callCreateInvites(opts)
 }
 
-func (x *createInviteCmd) Shell() *ishell.Cmd {
+func (x *createInvitesCmd) Shell() *ishell.Cmd {
 	return nil
 }
 
-func callCreateInvite(opts map[string]string) error {
+func callCreateInvites(opts map[string]string) error {
 	threadId := opts["thread"]
 	if threadId == "" {
 		threadId = "default"
 	}
 	var result map[string]string
-	res, err := executeJsonCmd(POST, "invite", params{
+	res, err := executeJsonCmd(POST, "invites", params{
 		opts: map[string]string{
 			"thread": threadId,
 			"peer":   opts["peer"],
@@ -99,44 +100,79 @@ func callCreateInvite(opts map[string]string) error {
 	return nil
 }
 
-type acceptInviteCmd struct {
+type lsInvitesCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
+
+func (x *lsInvitesCmd) Name() string {
+	return "ls"
+}
+
+func (x *lsInvitesCmd) Short() string {
+	return "List thread invites"
+}
+
+func (x *lsInvitesCmd) Long() string {
+	return "Lists all pending thread invites."
+}
+
+func (x *lsInvitesCmd) Execute(_ []string) error {
+	setApi(x.Client)
+	return callLsInvites()
+}
+
+func (x *lsInvitesCmd) Shell() *ishell.Cmd {
+	return nil
+}
+
+func callLsInvites() error {
+	var list []core.ThreadInviteInfo
+	res, err := executeJsonCmd(GET, "invites", params{}, &list)
+	if err != nil {
+		return err
+	}
+	output(res, nil)
+	return nil
+}
+
+type acceptInvitesCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Key    string        `short:"k" long:"key" description:"Key for an external invite."`
 }
 
-func (x *acceptInviteCmd) Name() string {
+func (x *acceptInvitesCmd) Name() string {
 	return "accept"
 }
 
-func (x *acceptInviteCmd) Short() string {
+func (x *acceptInvitesCmd) Short() string {
 	return "Accept an invite to a thread"
 }
 
-func (x *acceptInviteCmd) Long() string {
+func (x *acceptInvitesCmd) Long() string {
 	return `
 Accepts a direct peer-to-peer or external invite to a thread.
 Use the --key option with an external invite.
 `
 }
 
-func (x *acceptInviteCmd) Execute(args []string) error {
+func (x *acceptInvitesCmd) Execute(args []string) error {
 	setApi(x.Client)
 	opts := map[string]string{
 		"key": x.Key,
 	}
-	return callAcceptInvite(args, opts)
+	return callAcceptInvites(args, opts)
 }
 
-func (x *acceptInviteCmd) Shell() *ishell.Cmd {
+func (x *acceptInvitesCmd) Shell() *ishell.Cmd {
 	return nil
 }
 
-func callAcceptInvite(args []string, opts map[string]string) error {
+func callAcceptInvites(args []string, opts map[string]string) error {
 	if len(args) == 0 {
 		return errMissingInviteId
 	}
 	var info core.BlockInfo
-	res, err := executeJsonCmd(POST, "invite/"+args[0]+"/accept", params{
+	res, err := executeJsonCmd(POST, "invites/"+args[0]+"/accept", params{
 		args: args,
 		opts: opts,
 	}, &info)
@@ -147,38 +183,38 @@ func callAcceptInvite(args []string, opts map[string]string) error {
 	return nil
 }
 
-type ignoreInviteCmd struct {
+type ignoreInvitesCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *ignoreInviteCmd) Name() string {
+func (x *ignoreInvitesCmd) Name() string {
 	return "ignore"
 }
 
-func (x *ignoreInviteCmd) Short() string {
+func (x *ignoreInvitesCmd) Short() string {
 	return "Ignore direct invite to a thread"
 }
 
-func (x *ignoreInviteCmd) Long() string {
+func (x *ignoreInvitesCmd) Long() string {
 	return `
 Ignores a direct peer-to-peer invite to a thread.
 `
 }
 
-func (x *ignoreInviteCmd) Execute(args []string) error {
+func (x *ignoreInvitesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callIgnoreInvite(args)
+	return callIgnoreInvites(args)
 }
 
-func (x *ignoreInviteCmd) Shell() *ishell.Cmd {
+func (x *ignoreInvitesCmd) Shell() *ishell.Cmd {
 	return nil
 }
 
-func callIgnoreInvite(args []string) error {
+func callIgnoreInvites(args []string) error {
 	if len(args) == 0 {
 		return errMissingInviteId
 	}
-	res, err := executeStringCmd(POST, "invite/"+args[0]+"/ignore", params{
+	res, err := executeStringCmd(POST, "invites/"+args[0]+"/ignore", params{
 		args: args,
 	})
 	if err != nil {

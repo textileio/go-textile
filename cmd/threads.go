@@ -163,7 +163,7 @@ func (x *lsThreadsCmd) Short() string {
 }
 
 func (x *lsThreadsCmd) Long() string {
-	return "List info about all threads."
+	return "Lists info on all threads."
 }
 
 func (x *lsThreadsCmd) Execute(args []string) error {

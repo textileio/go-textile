@@ -395,7 +395,7 @@ func startNode() error {
 		}
 	}()
 
-	// Subscribe to thread updates
+	// subscribe to thread updates
 	listener := node.GetThreadUpdateListener()
 	go func() {
 		for {
@@ -404,8 +404,6 @@ func startNode() error {
 				if !ok {
 					return
 				}
-				// Since broadcaster requires an empty interface, we can't call any methods
-				// So use type assertions to let runtime check that we have a ThreadUpdate
 				if update, ok := value.(core.ThreadUpdate); ok {
 					date := update.Block.Date.Format(time.RFC822)
 					desc := update.Block.Type

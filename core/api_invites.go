@@ -10,7 +10,7 @@ import (
 	"github.com/mr-tron/base58/base58"
 )
 
-func (a *api) createInvite(g *gin.Context) {
+func (a *api) createInvites(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -56,7 +56,17 @@ func (a *api) createInvite(g *gin.Context) {
 	g.JSON(http.StatusCreated, result)
 }
 
-func (a *api) acceptInvite(g *gin.Context) {
+func (a *api) lsInvites(g *gin.Context) {
+	list := make([]ThreadInviteInfo, 0)
+	res := a.node.ThreadInvites()
+	if len(res) > 0 {
+		list = res
+	}
+
+	g.JSON(http.StatusOK, list)
+}
+
+func (a *api) acceptInvites(g *gin.Context) {
 	id := g.Param("id")
 	opts, err := a.readOpts(g)
 	if err != nil {
@@ -93,7 +103,7 @@ func (a *api) acceptInvite(g *gin.Context) {
 	g.JSON(http.StatusCreated, info)
 }
 
-func (a *api) ignoreInvite(g *gin.Context) {
+func (a *api) ignoreInvites(g *gin.Context) {
 	id := g.Param("id")
 
 	if err := a.node.IgnoreThreadInvite(id); err != nil {

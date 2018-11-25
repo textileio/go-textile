@@ -89,6 +89,14 @@ func (ts ThreadState) Description() string {
 	}
 }
 
+type ThreadInvite struct {
+	Id      string    `json:"id"`
+	Block   []byte    `json:"block"`
+	Name    string    `json:"name"`
+	Inviter string    `json:"inviter"`
+	Date    time.Time `json:"date"`
+}
+
 type ThreadPeer struct {
 	Id       string `json:"id"`
 	ThreadId string `json:"thread_id"`

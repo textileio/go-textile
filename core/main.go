@@ -22,7 +22,6 @@ import (
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 	logger "gx/ipfs/QmcaSwFc5RBg8yCq54QURwEU4nwjfCpjbpmaAm4VbdGLKv/go-logging"
 
-	"github.com/textileio/textile-go/archive"
 	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/keypair"
@@ -64,13 +63,6 @@ const (
 	// AccountPeerRemoved is emitted when an account peer (device) is removed
 	AccountPeerRemoved
 )
-
-// AddDataResult wraps added data content id and key
-type AddDataResult struct {
-	Id      string           `json:"id"`
-	Key     string           `json:"key"`
-	Archive *archive.Archive `json:"archive,omitempty"`
-}
 
 // InitConfig is used to setup a textile node
 type InitConfig struct {

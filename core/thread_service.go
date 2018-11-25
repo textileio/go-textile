@@ -1,7 +1,6 @@
 package core
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 
@@ -15,7 +14,6 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/crypto"
-	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
@@ -177,9 +175,21 @@ func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope
 		return err
 	}
 
-	// pin locally for use later
-	if _, err := ipfs.AddData(h.service.Node, bytes.NewReader(tenv.Ciphertext), true); err != nil {
+	date, err := ptypes.Timestamp(block.Header.Date)
+	if err != nil {
 		return err
+	}
+
+	if err := h.datastore.ThreadInvites().Add(&repo.ThreadInvite{
+		Id:      hash.B58String(),
+		Block:   plaintext,
+		Name:    msg.Name,
+		Inviter: block.Header.Author,
+		Date:    date,
+	}); err != nil {
+		// TODO: ensure conflict error not normal error
+		// exists, abort
+		return nil
 	}
 
 	notification, err := h.newNotification(block.Header, repo.InviteReceivedNotification)
