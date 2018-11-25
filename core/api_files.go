@@ -100,7 +100,7 @@ func (a *api) lsThreadFiles(g *gin.Context) {
 		}
 	}
 
-	limit := 25
+	limit := 5
 	if opts["limit"] != "" {
 		limit, err = strconv.Atoi(opts["limit"])
 		if err != nil {

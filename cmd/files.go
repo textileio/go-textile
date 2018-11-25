@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
@@ -29,6 +30,8 @@ func init() {
 	register(&lsCmd{})
 	register(&getCmd{})
 }
+
+const batchSize = 10
 
 type millOpts struct {
 	val map[string]string
@@ -54,6 +57,7 @@ type addCmd struct {
 	Client  ClientOptions `group:"Client Options"`
 	Thread  string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
 	Caption string        `short:"c" long:"caption" description:"File(s) caption."`
+	Verbose bool          `short:"v" long:"verbose" description:"Prints files as they are processed."`
 }
 
 func (x *addCmd) Name() string {
@@ -76,6 +80,7 @@ func (x *addCmd) Execute(args []string) error {
 	opts := map[string]string{
 		"thread":  x.Thread,
 		"caption": x.Caption,
+		"verbose": strconv.FormatBool(x.Verbose),
 	}
 	return callAdd(args, opts)
 }
@@ -88,6 +93,8 @@ func callAdd(args []string, opts map[string]string) error {
 	if len(args) == 0 {
 		return errMissingFilePath
 	}
+
+	verbose := opts["verbose"] == "true"
 
 	// fetch schema
 	threadId := opts["thread"]
@@ -114,6 +121,7 @@ func callAdd(args []string, opts map[string]string) error {
 	}
 
 	var dirs []core.Directory
+	start := time.Now()
 
 	var pths []string
 	if fi.IsDir() {
@@ -127,23 +135,20 @@ func callAdd(args []string, opts map[string]string) error {
 		if err != nil {
 			return err
 		}
+		output(fmt.Sprintf("found %d files", len(pths)), nil)
 
 		tmp := make([]core.Directory, len(pths))
 
-		wg := sync.WaitGroup{}
-		for i, pth := range pths {
-			wg.Add(1)
-			go func(i int, p string) {
-				dir, err := mill(p, thrd.Schema)
-				if err != nil {
-					output(err.Error(), nil)
-				} else {
-					tmp[i] = dir
-				}
-				wg.Done()
-			}(i, pth)
+		batches := batchPaths(pths, batchSize)
+		for i, batch := range batches {
+			res, err := millBatch(batch, thrd.Schema, verbose)
+			if err != nil {
+				return err
+			}
+			tmp = append(tmp, res...)
+
+			output(fmt.Sprintf("handled batch %d/%d", i+1, len(batches)), nil)
 		}
-		wg.Wait()
 
 		for _, dir := range tmp {
 			if dir != nil {
@@ -152,16 +157,24 @@ func callAdd(args []string, opts map[string]string) error {
 		}
 
 	} else {
-		dir, err := mill(pth, thrd.Schema)
+		dir, err := mill(pth, thrd.Schema, verbose)
 		if err != nil {
 			return err
 		}
 		dirs = append(dirs, dir)
 	}
+	dur := time.Now().Sub(start)
 
 	if len(dirs) == 0 {
 		return errNothingToAdd
 	}
+
+	msg := fmt.Sprintf("milled %d file", len(dirs))
+	if len(dirs) != 1 {
+		msg += "s"
+	}
+	output(fmt.Sprintf("%s in %s", msg, dur.String()), nil)
+	output("posting to thread...", nil)
 
 	data, err := json.Marshal(&dirs)
 	if err != nil {
@@ -179,11 +192,12 @@ func callAdd(args []string, opts map[string]string) error {
 	}
 
 	output(res, nil)
+	output("done", nil)
 
 	return nil
 }
 
-func mill(pth string, node *schema.Node) (core.Directory, error) {
+func mill(pth string, node *schema.Node, verbose bool) (core.Directory, error) {
 	f, err := os.Open(pth)
 	if err != nil {
 		return nil, err
@@ -228,7 +242,10 @@ func mill(pth string, node *schema.Node) (core.Directory, error) {
 		if err != nil {
 			return nil, err
 		}
-		output(res, nil)
+
+		if verbose {
+			output(res, nil)
+		}
 
 		dir[schema.SingleFileTag] = *file
 
@@ -283,7 +300,10 @@ func mill(pth string, node *schema.Node) (core.Directory, error) {
 					return nil, err
 				}
 			}
-			output(res, nil)
+
+			if verbose {
+				output(res, nil)
+			}
 
 			dir[step.Name] = *file
 		}
@@ -294,18 +314,41 @@ func mill(pth string, node *schema.Node) (core.Directory, error) {
 	return dir, nil
 }
 
-func multipartReader(f *os.File) (io.ReadSeeker, string, error) {
-	var body bytes.Buffer
-	writer := multipart.NewWriter(&body)
-	part, err := writer.CreateFormFile("file", filepath.Base(f.Name()))
-	if err != nil {
-		return nil, "", err
+func millBatch(pths []string, node *schema.Node, verbose bool) ([]core.Directory, error) {
+	tmp := make([]core.Directory, len(pths))
+
+	wg := sync.WaitGroup{}
+	for i, pth := range pths {
+		wg.Add(1)
+		go func(i int, p string) {
+			dir, err := mill(p, node, verbose)
+			if err != nil {
+				output(err.Error(), nil)
+			} else {
+				tmp[i] = dir
+			}
+			wg.Done()
+		}(i, pth)
 	}
-	if _, err = io.Copy(part, f); err != nil {
-		return nil, "", err
+	wg.Wait()
+
+	return tmp, nil
+}
+
+func batchPaths(pths []string, size int) [][]string {
+	var batches [][]string
+
+	for i := 0; i < len(pths); i += size {
+		end := i + size
+
+		if end > len(pths) {
+			end = len(pths)
+		}
+
+		batches = append(batches, pths[i:end])
 	}
-	writer.Close()
-	return bytes.NewReader(body.Bytes()), writer.FormDataContentType(), nil
+
+	return batches
 }
 
 func handleStep(mil string, reader io.Reader, opts millOpts, ctype string) (string, *repo.File, error) {
@@ -323,11 +366,25 @@ func handleStep(mil string, reader io.Reader, opts millOpts, ctype string) (stri
 	return res, file, nil
 }
 
+func multipartReader(f *os.File) (io.ReadSeeker, string, error) {
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	part, err := writer.CreateFormFile("file", filepath.Base(f.Name()))
+	if err != nil {
+		return nil, "", err
+	}
+	if _, err = io.Copy(part, f); err != nil {
+		return nil, "", err
+	}
+	writer.Close()
+	return bytes.NewReader(body.Bytes()), writer.FormDataContentType(), nil
+}
+
 type lsCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for all."`
 	Offset string        `short:"o" long:"offset" description:"Offset ID to start listing from."`
-	Limit  string        `short:"l" long:"limit" description:"List page size." default:"25"`
+	Limit  string        `short:"l" long:"limit" description:"List page size." default:"5"`
 }
 
 func (x *lsCmd) Name() string {
