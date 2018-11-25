@@ -286,8 +286,8 @@ func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key stri
 		}
 	}
 
-	// pin leaf nodes if schema dictates or files originate locally
-	if pin || !inbound {
+	// pin leaf nodes if schema dictates
+	if pin {
 		if err := ipfs.PinNode(t.node(), inode, true); err != nil {
 			return err
 		}

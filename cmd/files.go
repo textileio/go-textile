@@ -11,6 +11,8 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
@@ -21,12 +23,15 @@ import (
 
 var errMissingFilePath = errors.New("missing file path")
 var errMissingFileBlockId = errors.New("missing file block id")
+var errNothingToAdd = errors.New("nothing to add")
 
 func init() {
 	register(&addCmd{})
 	register(&lsCmd{})
 	register(&getCmd{})
 }
+
+const batchSize = 10
 
 type millOpts struct {
 	val map[string]string
@@ -52,6 +57,7 @@ type addCmd struct {
 	Client  ClientOptions `group:"Client Options"`
 	Thread  string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
 	Caption string        `short:"c" long:"caption" description:"File(s) caption."`
+	Verbose bool          `short:"v" long:"verbose" description:"Prints files as they are processed."`
 }
 
 func (x *addCmd) Name() string {
@@ -74,6 +80,7 @@ func (x *addCmd) Execute(args []string) error {
 	opts := map[string]string{
 		"thread":  x.Thread,
 		"caption": x.Caption,
+		"verbose": strconv.FormatBool(x.Verbose),
 	}
 	return callAdd(args, opts)
 }
@@ -87,17 +94,19 @@ func callAdd(args []string, opts map[string]string) error {
 		return errMissingFilePath
 	}
 
-	// first, ensure schema is present
+	verbose := opts["verbose"] == "true"
+
+	// fetch schema
 	threadId := opts["thread"]
 	if threadId == "" {
 		threadId = "default"
 	}
-	var info *core.ThreadInfo
-	if _, err := executeJsonCmd(GET, "threads/"+threadId, params{}, &info); err != nil {
+	var thrd *core.ThreadInfo
+	if _, err := executeJsonCmd(GET, "threads/"+threadId, params{}, &thrd); err != nil {
 		return err
 	}
 
-	if info.Schema == nil {
+	if thrd.Schema == nil {
 		return core.ErrThreadSchemaRequired
 	}
 
@@ -106,106 +115,68 @@ func callAdd(args []string, opts map[string]string) error {
 		pth = args[0]
 	}
 
-	f, err := os.Open(pth)
+	fi, err := os.Stat(pth)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 
-	var reader io.ReadSeeker
-	var ctype string
+	var dirs []core.Directory
+	start := time.Now()
 
-	dir := make(core.Directory)
+	var pths []string
+	if fi.IsDir() {
+		err := filepath.Walk(pth, func(pth string, fi os.FileInfo, err error) error {
+			if fi.IsDir() || fi.Name() == ".DS_Store" {
+				return nil
+			}
+			pths = append(pths, pth)
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		output(fmt.Sprintf("found %d files", len(pths)), nil)
 
-	// traverse the schema and collect generated files
-	if info.Schema.Mill != "" {
-		var res string
-		file := &repo.File{}
+		tmp := make([]core.Directory, len(pths))
 
-		mopts := newMillOpts(info.Schema.Opts)
-		mopts.setPlaintext(info.Schema.Plaintext)
-
-		if info.Schema.Mill == "/json" {
-			reader = f
-			ctype = "application/json"
-		} else {
-			r, ct, err := multipartReader(f)
+		batches := batchPaths(pths, batchSize)
+		for i, batch := range batches {
+			res, err := millBatch(batch, thrd.Schema, verbose)
 			if err != nil {
 				return err
 			}
-			reader = r
-			ctype = ct
+			tmp = append(tmp, res...)
+
+			output(fmt.Sprintf("handled batch %d/%d", i+1, len(batches)), nil)
 		}
 
-		res, file, err = handleStep(info.Schema.Mill, reader, mopts, ctype)
-		if err != nil {
-			return err
-		}
-		output(res, nil)
-
-		dir[schema.SingleFileTag] = *file
-
-	} else if len(info.Schema.Links) > 0 {
-
-		// determine order
-		steps, err := schema.Steps(info.Schema.Links)
-		if err != nil {
-			return err
-		}
-
-		// send each link
-		for _, step := range steps {
-			var res string
-			file := &repo.File{}
-			output("\""+step.Name+"\":", nil)
-
-			mopts := newMillOpts(step.Link.Opts)
-			mopts.setPlaintext(step.Link.Plaintext)
-
-			if step.Link.Use == schema.FileTag {
-				if reader != nil {
-					reader.Seek(0, 0)
-				} else {
-					if step.Link.Mill == "/json" {
-						reader = f
-						ctype = "application/json"
-					} else {
-						r, ct, err := multipartReader(f)
-						if err != nil {
-							return err
-						}
-						reader = r
-						ctype = ct
-					}
-				}
-
-				res, file, err = handleStep(step.Link.Mill, reader, mopts, ctype)
-				if err != nil {
-					return err
-				}
-
-			} else {
-				if dir[step.Link.Use].Hash == "" {
-					return errors.New(step.Link.Use + " not found")
-				}
-				mopts.setUse(dir[step.Link.Use].Hash)
-
-				res, err = executeJsonCmd(POST, "mills"+step.Link.Mill, params{
-					opts: mopts.val,
-				}, &file)
-				if err != nil {
-					return err
-				}
+		for _, dir := range tmp {
+			if dir != nil {
+				dirs = append(dirs, dir)
 			}
-			output(res, nil)
-
-			dir[step.Name] = *file
 		}
+
 	} else {
-		return schema.ErrEmptySchema
+		dir, err := mill(pth, thrd.Schema, verbose)
+		if err != nil {
+			return err
+		}
+		dirs = append(dirs, dir)
+	}
+	dur := time.Now().Sub(start)
+
+	if len(dirs) == 0 {
+		return errNothingToAdd
 	}
 
-	data, err := json.Marshal(&dir)
+	msg := fmt.Sprintf("milled %d file", len(dirs))
+	if len(dirs) != 1 {
+		msg += "s"
+	}
+	output(fmt.Sprintf("%s in %s", msg, dur.String()), nil)
+	output("posting to thread...", nil)
+
+	data, err := json.Marshal(&dirs)
 	if err != nil {
 		return err
 	}
@@ -220,24 +191,164 @@ func callAdd(args []string, opts map[string]string) error {
 		return err
 	}
 
-	output("\"block\":", nil)
 	output(res, nil)
+	output("done", nil)
 
 	return nil
 }
 
-func multipartReader(f *os.File) (io.ReadSeeker, string, error) {
-	var body bytes.Buffer
-	writer := multipart.NewWriter(&body)
-	part, err := writer.CreateFormFile("file", filepath.Base(f.Name()))
+func mill(pth string, node *schema.Node, verbose bool) (core.Directory, error) {
+	f, err := os.Open(pth)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
-	if _, err = io.Copy(part, f); err != nil {
-		return nil, "", err
+	defer f.Close()
+
+	fi, err := f.Stat()
+	if err != nil {
+		return nil, err
 	}
-	writer.Close()
-	return bytes.NewReader(body.Bytes()), writer.FormDataContentType(), nil
+
+	if fi.IsDir() {
+		return nil, nil
+	}
+
+	var reader io.ReadSeeker
+	var ctype string
+
+	dir := make(core.Directory)
+
+	// traverse the schema and collect generated files
+	if node.Mill != "" {
+		var res string
+		file := &repo.File{}
+
+		mopts := newMillOpts(node.Opts)
+		mopts.setPlaintext(node.Plaintext)
+
+		if node.Mill == "/json" {
+			reader = f
+			ctype = "application/json"
+		} else {
+			r, ct, err := multipartReader(f)
+			if err != nil {
+				return nil, err
+			}
+			reader = r
+			ctype = ct
+		}
+
+		res, file, err = handleStep(node.Mill, reader, mopts, ctype)
+		if err != nil {
+			return nil, err
+		}
+
+		if verbose {
+			output(res, nil)
+		}
+
+		dir[schema.SingleFileTag] = *file
+
+	} else if len(node.Links) > 0 {
+
+		// determine order
+		steps, err := schema.Steps(node.Links)
+		if err != nil {
+			return nil, err
+		}
+
+		// send each link
+		for _, step := range steps {
+			var res string
+			file := &repo.File{}
+
+			mopts := newMillOpts(step.Link.Opts)
+			mopts.setPlaintext(step.Link.Plaintext)
+
+			if step.Link.Use == schema.FileTag {
+				if reader != nil {
+					reader.Seek(0, 0)
+				} else {
+					if step.Link.Mill == "/json" {
+						reader = f
+						ctype = "application/json"
+					} else {
+						r, ct, err := multipartReader(f)
+						if err != nil {
+							return nil, err
+						}
+						reader = r
+						ctype = ct
+					}
+				}
+
+				res, file, err = handleStep(step.Link.Mill, reader, mopts, ctype)
+				if err != nil {
+					return nil, err
+				}
+
+			} else {
+				if dir[step.Link.Use].Hash == "" {
+					return nil, errors.New(step.Link.Use + " not found")
+				}
+				mopts.setUse(dir[step.Link.Use].Hash)
+
+				res, err = executeJsonCmd(POST, "mills"+step.Link.Mill, params{
+					opts: mopts.val,
+				}, &file)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			if verbose {
+				output(res, nil)
+			}
+
+			dir[step.Name] = *file
+		}
+	} else {
+		return nil, schema.ErrEmptySchema
+	}
+
+	return dir, nil
+}
+
+func millBatch(pths []string, node *schema.Node, verbose bool) ([]core.Directory, error) {
+	tmp := make([]core.Directory, len(pths))
+
+	wg := sync.WaitGroup{}
+	for i, pth := range pths {
+		wg.Add(1)
+		go func(i int, p string) {
+			dir, err := mill(p, node, verbose)
+			if err != nil {
+				output(err.Error(), nil)
+			} else {
+				tmp[i] = dir
+			}
+			wg.Done()
+		}(i, pth)
+	}
+	wg.Wait()
+
+	return tmp, nil
+}
+
+func batchPaths(pths []string, size int) [][]string {
+	var batches [][]string
+
+	for i := 0; i < len(pths); i += size {
+		end := i + size
+
+		if end > len(pths) {
+			end = len(pths)
+		}
+
+		batches = append(batches, pths[i:end])
+	}
+
+	return batches
 }
 
 func handleStep(mil string, reader io.Reader, opts millOpts, ctype string) (string, *repo.File, error) {
@@ -255,11 +366,25 @@ func handleStep(mil string, reader io.Reader, opts millOpts, ctype string) (stri
 	return res, file, nil
 }
 
+func multipartReader(f *os.File) (io.ReadSeeker, string, error) {
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	part, err := writer.CreateFormFile("file", filepath.Base(f.Name()))
+	if err != nil {
+		return nil, "", err
+	}
+	if _, err = io.Copy(part, f); err != nil {
+		return nil, "", err
+	}
+	writer.Close()
+	return bytes.NewReader(body.Bytes()), writer.FormDataContentType(), nil
+}
+
 type lsCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for all."`
 	Offset string        `short:"o" long:"offset" description:"Offset ID to start listing from."`
-	Limit  string        `short:"l" long:"limit" description:"List page size." default:"25"`
+	Limit  string        `short:"l" long:"limit" description:"List page size." default:"5"`
 }
 
 func (x *lsCmd) Name() string {

@@ -235,6 +235,22 @@ func (t *Textile) FileData(hash string) (io.ReadSeeker, *repo.File, error) {
 	return bytes.NewReader(plaintext), file, nil
 }
 
+func (t *Textile) TargetNodeKeys(node ipld.Node) (Keys, error) {
+	keys := make(Keys)
+
+	for i, link := range node.Links() {
+		fn, err := ipfs.NodeAtLink(t.node, link)
+		if err != nil {
+			return nil, err
+		}
+		if err := t.fileNodeKeys(fn, i, &keys); err != nil {
+			return nil, err
+		}
+	}
+
+	return keys, nil
+}
+
 func (t *Textile) fileNode(file repo.File, dir uio.Directory, link string) error {
 	if t.datastore.Files().Get(file.Hash) == nil {
 		return ErrFileNotFound
@@ -275,6 +291,7 @@ func (t *Textile) fileNode(file repo.File, dir uio.Directory, link string) error
 	if err := ipfs.PinNode(t.node, node, false); err != nil {
 		return err
 	}
+
 	return ipfs.AddLinkToDirectory(t.node, dir, link, node.Cid().Hash().B58String())
 }
 
@@ -292,22 +309,6 @@ func (t *Textile) fileForPair(pair ipld.Node) (*repo.File, error) {
 func (t *Textile) checksum(plaintext []byte) string {
 	sum := sha256.Sum256(plaintext)
 	return base58.FastBase58Encoding(sum[:])
-}
-
-func (t *Textile) TargetNodeKeys(node ipld.Node) (Keys, error) {
-	keys := make(Keys)
-
-	for i, link := range node.Links() {
-		fn, err := ipfs.NodeAtLink(t.node, link)
-		if err != nil {
-			return nil, err
-		}
-		if err := t.fileNodeKeys(fn, i, &keys); err != nil {
-			return nil, err
-		}
-	}
-
-	return keys, nil
 }
 
 func (t *Textile) fileNodeKeys(node ipld.Node, index int, keys *Keys) error {
