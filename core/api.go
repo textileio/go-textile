@@ -105,6 +105,9 @@ func (a *api) Start() {
 		files.GET("", a.lsThreadFiles)
 		files.GET("/:block", a.getThreadFiles)
 
+		keys := v0.Group("/keys")
+		keys.GET("/:target", a.lsThreadFileTargetKeys)
+
 		invites := v0.Group("/invites")
 		invites.POST("", a.createInvites)
 		invites.GET("", a.lsInvites)

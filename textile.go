@@ -260,7 +260,7 @@ func (x *initCmd) Execute(args []string) error {
 	if err := core.InitRepo(config); err != nil {
 		return errors.New(fmt.Sprintf("initialize failed: %s", err))
 	}
-	fmt.Printf("ok, address: %s\n", accnt.Address())
+	fmt.Printf("Initialized account with address %s\n", accnt.Address())
 	return nil
 }
 
@@ -276,7 +276,7 @@ func (x *migrateCmd) Execute(args []string) error {
 	}); err != nil {
 		return errors.New(fmt.Sprintf("migrate repo: %s", err))
 	}
-	fmt.Println("repo successfully migrated")
+	fmt.Println("Repo was successfully migrated")
 	return nil
 }
 
@@ -290,8 +290,8 @@ func (x *daemonCmd) Execute(args []string) error {
 	quit := make(chan os.Signal)
 	signal.Notify(quit, os.Interrupt)
 	<-quit
-	fmt.Println("interrupted")
-	fmt.Printf("shutting down...")
+	fmt.Println("Interrupted")
+	fmt.Printf("Shutting down...")
 	if err := stopNode(); err != nil && err != core.ErrStopped {
 		fmt.Println(err.Error())
 	} else {

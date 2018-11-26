@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -24,11 +25,13 @@ import (
 var errMissingFilePath = errors.New("missing file path")
 var errMissingFileBlockId = errors.New("missing file block id")
 var errNothingToAdd = errors.New("nothing to add")
+var errMissingTarget = errors.New("missing file(s) target")
 
 func init() {
 	register(&addCmd{})
 	register(&lsCmd{})
 	register(&getCmd{})
+	register(&keysCmd{})
 }
 
 const batchSize = 10
@@ -57,6 +60,7 @@ type addCmd struct {
 	Client  ClientOptions `group:"Client Options"`
 	Thread  string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
 	Caption string        `short:"c" long:"caption" description:"File(s) caption."`
+	Group   bool          `short:"g" long:"group" description:"Group directory files."`
 	Verbose bool          `short:"v" long:"verbose" description:"Prints files as they are processed."`
 }
 
@@ -70,7 +74,9 @@ func (x *addCmd) Short() string {
 
 func (x *addCmd) Long() string {
 	return `
-Adds a file or directory to a thread.
+Adds a file or directory of files to a thread. Files not supported 
+by the thread schema are ignored. Nested directories are included.
+Use the --group option to add directory files as a single object.  
 Omit the --thread option to use the default thread (if selected).
 `
 }
@@ -80,6 +86,7 @@ func (x *addCmd) Execute(args []string) error {
 	opts := map[string]string{
 		"thread":  x.Thread,
 		"caption": x.Caption,
+		"group":   strconv.FormatBool(x.Group),
 		"verbose": strconv.FormatBool(x.Verbose),
 	}
 	return callAdd(args, opts)
@@ -94,6 +101,7 @@ func callAdd(args []string, opts map[string]string) error {
 		return errMissingFilePath
 	}
 
+	group := opts["group"] == "true"
 	verbose := opts["verbose"] == "true"
 
 	// fetch schema
@@ -120,10 +128,12 @@ func callAdd(args []string, opts map[string]string) error {
 		return err
 	}
 
+	var pths []string
 	var dirs []core.Directory
+	var count int
+
 	start := time.Now()
 
-	var pths []string
 	if fi.IsDir() {
 		err := filepath.Walk(pth, func(pth string, fi os.FileInfo, err error) error {
 			if fi.IsDir() || fi.Name() == ".DS_Store" {
@@ -135,9 +145,11 @@ func callAdd(args []string, opts map[string]string) error {
 		if err != nil {
 			return err
 		}
-		output(fmt.Sprintf("found %d files", len(pths)), nil)
-
-		tmp := make([]core.Directory, len(pths))
+		msg := fmt.Sprintf("Found %d file", len(pths))
+		if len(pths) != 1 {
+			msg += "s"
+		}
+		output(msg, nil)
 
 		batches := batchPaths(pths, batchSize)
 		for i, batch := range batches {
@@ -145,14 +157,30 @@ func callAdd(args []string, opts map[string]string) error {
 			if err != nil {
 				return err
 			}
-			tmp = append(tmp, res...)
 
-			output(fmt.Sprintf("handled batch %d/%d", i+1, len(batches)), nil)
-		}
+			output(fmt.Sprintf("Milled batch %d/%d", i+1, len(batches)), nil)
 
-		for _, dir := range tmp {
-			if dir != nil {
-				dirs = append(dirs, dir)
+			if group {
+				for _, dir := range res {
+					if dir != nil {
+						dirs = append(dirs, dir)
+						count++
+					}
+				}
+			} else {
+				for _, dir := range res {
+					if dir != nil {
+						caption := strings.TrimSpace(fmt.Sprintf("%s (%d)", opts["caption"], count+1))
+						block, err := add([]core.Directory{dir}, threadId, caption, verbose)
+						if err != nil {
+							return err
+						}
+
+						output(fmt.Sprintf("File %d target: %s", count+1, block.Target), nil)
+
+						count++
+					}
+				}
 			}
 		}
 
@@ -161,40 +189,59 @@ func callAdd(args []string, opts map[string]string) error {
 		if err != nil {
 			return err
 		}
-		dirs = append(dirs, dir)
+
+		block, err := add([]core.Directory{dir}, threadId, opts["caption"], verbose)
+		if err != nil {
+			return err
+		}
+		output(fmt.Sprintf("File target: %s", block.Target), nil)
+
+		count++
 	}
+
+	if group && len(dirs) > 0 {
+		block, err := add(dirs, threadId, opts["caption"], verbose)
+		if err != nil {
+			return err
+		}
+		output(fmt.Sprintf("Group target: %s", block.Target), nil)
+	}
+
 	dur := time.Now().Sub(start)
 
-	if len(dirs) == 0 {
+	if count == 0 {
 		return errNothingToAdd
 	}
 
-	msg := fmt.Sprintf("milled %d file", len(dirs))
-	if len(dirs) != 1 {
+	msg := fmt.Sprintf("Added %d file", count)
+	if count != 1 {
 		msg += "s"
 	}
 	output(fmt.Sprintf("%s in %s", msg, dur.String()), nil)
-	output("posting to thread...", nil)
 
+	return nil
+}
+
+func add(dirs []core.Directory, threadId string, caption string, verbose bool) (*core.BlockInfo, error) {
 	data, err := json.Marshal(&dirs)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var block *core.BlockInfo
 	res, err := executeJsonCmd(POST, "threads/"+threadId+"/files", params{
-		opts:    map[string]string{"caption": opts["caption"]},
+		opts:    map[string]string{"caption": caption},
 		payload: bytes.NewReader(data),
 		ctype:   "application/json",
 	}, &block)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	output(res, nil)
-	output("done", nil)
-
-	return nil
+	if verbose {
+		output(res, nil)
+	}
+	return block, nil
 }
 
 func mill(pth string, node *schema.Node, verbose bool) (core.Directory, error) {
@@ -320,15 +367,17 @@ func millBatch(pths []string, node *schema.Node, verbose bool) ([]core.Directory
 	wg := sync.WaitGroup{}
 	for i, pth := range pths {
 		wg.Add(1)
+
 		go func(i int, p string) {
 			dir, err := mill(p, node, verbose)
 			if err != nil {
-				output(err.Error(), nil)
+				output("mill error: "+err.Error(), nil)
 			} else {
 				tmp[i] = dir
 			}
 			wg.Done()
 		}(i, pth)
+
 	}
 	wg.Wait()
 
@@ -481,6 +530,48 @@ func callGet(args []string) error {
 
 	var info core.ThreadFilesInfo
 	res, err := executeJsonCmd(GET, "files/"+args[0], params{}, &info)
+	if err != nil {
+		return err
+	}
+
+	output(res, nil)
+	return nil
+}
+
+type keysCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
+
+func (x *keysCmd) Name() string {
+	return "keys"
+}
+
+func (x *keysCmd) Short() string {
+	return "Show file keys"
+}
+
+func (x *keysCmd) Long() string {
+	return `
+Shows file keys under the given target from an add.
+`
+}
+
+func (x *keysCmd) Execute(args []string) error {
+	setApi(x.Client)
+	return callKeys(args)
+}
+
+func (x *keysCmd) Shell() *ishell.Cmd {
+	return nil
+}
+
+func callKeys(args []string) error {
+	if len(args) == 0 {
+		return errMissingTarget
+	}
+
+	var keys core.Keys
+	res, err := executeJsonCmd(GET, "keys/"+args[0], params{}, &keys)
 	if err != nil {
 		return err
 	}
