@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -44,9 +46,14 @@ func (g *Gateway) Start(addr string) {
 
 	router := gin.Default()
 
-	router.Static("/css", "gateway/css")
-	router.SetHTMLTemplate(parseTemplates())
+	// static takes an absolute path
+	_, root, _, ok := runtime.Caller(0)
+	if !ok {
+		panic("gateway failed to load static files")
+	}
 
+	router.Static("/static", filepath.Join(filepath.Dir(root), "static"))
+	router.SetHTMLTemplate(parseTemplates())
 	router.GET("/health", func(c *gin.Context) {
 		c.Writer.WriteHeader(http.StatusNoContent)
 	})
@@ -63,6 +70,10 @@ func (g *Gateway) Start(addr string) {
 	router.GET("/ipfs/:root/*path", g.gatewayHandler)
 	router.GET("/ipns/:root", g.profileHandler)
 	router.GET("/ipns/:root/*path", g.profileHandler)
+
+	router.NoRoute(func(c *gin.Context) {
+		render404(c)
+	})
 
 	g.server = &http.Server{
 		Addr:    addr,
