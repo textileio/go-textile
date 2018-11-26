@@ -25,11 +25,13 @@ import (
 var errMissingFilePath = errors.New("missing file path")
 var errMissingFileBlockId = errors.New("missing file block id")
 var errNothingToAdd = errors.New("nothing to add")
+var errMissingTarget = errors.New("missing file(s) target")
 
 func init() {
 	register(&addCmd{})
 	register(&lsCmd{})
 	register(&getCmd{})
+	register(&keysCmd{})
 }
 
 const batchSize = 10
@@ -528,6 +530,48 @@ func callGet(args []string) error {
 
 	var info core.ThreadFilesInfo
 	res, err := executeJsonCmd(GET, "files/"+args[0], params{}, &info)
+	if err != nil {
+		return err
+	}
+
+	output(res, nil)
+	return nil
+}
+
+type keysCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
+
+func (x *keysCmd) Name() string {
+	return "keys"
+}
+
+func (x *keysCmd) Short() string {
+	return "Show file keys"
+}
+
+func (x *keysCmd) Long() string {
+	return `
+Shows file keys under the given target from an add.
+`
+}
+
+func (x *keysCmd) Execute(args []string) error {
+	setApi(x.Client)
+	return callKeys(args)
+}
+
+func (x *keysCmd) Shell() *ishell.Cmd {
+	return nil
+}
+
+func callKeys(args []string) error {
+	if len(args) == 0 {
+		return errMissingTarget
+	}
+
+	var keys core.Keys
+	res, err := executeJsonCmd(GET, "keys/"+args[0], params{}, &keys)
 	if err != nil {
 		return err
 	}

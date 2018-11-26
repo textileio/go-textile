@@ -256,21 +256,26 @@ func (t *Textile) fileNode(file repo.File, dir uio.Directory, link string) error
 		return ErrFileNotFound
 	}
 
-	// include file as well
+	// remove locally indexed targets
+	file.Targets = nil
+
 	plaintext, err := json.Marshal(&file)
 	if err != nil {
 		return err
 	}
+
 	var reader *bytes.Reader
 	if file.Key != "" {
 		key, err := base58.Decode(file.Key)
 		if err != nil {
 			return err
 		}
+
 		ciphertext, err := crypto.EncryptAES(plaintext, key)
 		if err != nil {
 			return err
 		}
+
 		reader = bytes.NewReader(ciphertext)
 	} else {
 		reader = bytes.NewReader(plaintext)
@@ -280,6 +285,7 @@ func (t *Textile) fileNode(file repo.File, dir uio.Directory, link string) error
 	if _, err := ipfs.AddDataToDirectory(t.node, pair, FileLinkName, reader); err != nil {
 		return err
 	}
+
 	if err := ipfs.AddLinkToDirectory(t.node, pair, DataLinkName, file.Hash); err != nil {
 		return err
 	}
