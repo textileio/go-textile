@@ -17,4 +17,4 @@ mkdir -p ${ANDROID_DIR}
 curl -L -o textile-go_v${VER}_android-aar.tar.gz https://github.com/textileio/textile-go/releases/download/v${VER}/textile-go_v${VER}_android-aar.tar.gz
 tar xvfz textile-go_v${VER}_android-aar.tar.gz
 rm textile-go_v${VER}_android-aar.tar.gz
-mv textilego.aar ${ANDROID_DIR}
+mv mobile.aar ${ANDROID_DIR}
