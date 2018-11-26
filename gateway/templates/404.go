@@ -4,7 +4,7 @@ const NotFound = `
 <html>
     <head>
         <title>DAG-nammit.</title>
-        <link href="/css/style.css" rel="stylesheet">
+        <link href="/static/css/style.css" rel="stylesheet" type="text/css">
     </head>
     <body>
         <div class="aligner">
