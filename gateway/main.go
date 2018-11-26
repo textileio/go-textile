@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"time"
 
@@ -23,6 +21,7 @@ import (
 	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/crypto"
+	"github.com/textileio/textile-go/gateway/static/css"
 	"github.com/textileio/textile-go/gateway/templates"
 )
 
@@ -45,15 +44,8 @@ func (g *Gateway) Start(addr string) {
 	}
 
 	router := gin.Default()
-
-	// static takes an absolute path
-	_, root, _, ok := runtime.Caller(0)
-	if !ok {
-		panic("gateway failed to load static files")
-	}
-
-	router.Static("/static", filepath.Join(filepath.Dir(root), "static"))
 	router.SetHTMLTemplate(parseTemplates())
+
 	router.GET("/health", func(c *gin.Context) {
 		c.Writer.WriteHeader(http.StatusNoContent)
 	})
@@ -63,7 +55,13 @@ func (g *Gateway) Start(addr string) {
 			c.Writer.WriteHeader(http.StatusNotFound)
 			return
 		}
-		c.Render(200, render.Data{Data: img})
+		c.Header("Cache-Control", "public, max-age=172800")
+		c.Render(http.StatusOK, render.Data{Data: img})
+	})
+	router.GET("/static/css/style.css", func(c *gin.Context) {
+		c.Header("Content-Type", "text/css; charset=utf-8")
+		c.Header("Cache-Control", "public, max-age=172800")
+		c.String(http.StatusOK, css.Style)
 	})
 
 	router.GET("/ipfs/:root", g.gatewayHandler)

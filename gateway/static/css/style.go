@@ -1,3 +1,6 @@
+package css
+
+const Style = `
 html {
     box-sizing: border-box;
     margin: 0;
@@ -64,3 +67,4 @@ li:nth-child(odd) {
 .aligner-item {
     max-width: 50%;
 }
+`
