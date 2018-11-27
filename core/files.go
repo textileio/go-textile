@@ -45,10 +45,12 @@ func (t *Textile) AddFile(mill m.Mill, conf AddFileConfig) (*repo.File, error) {
 	if conf.Use != "" {
 		source = conf.Use
 	} else {
-		source = t.checksum(conf.Input)
+		source = t.checksum(conf.Input, conf.Plaintext)
 	}
 
-	opts, err := mill.Options()
+	opts, err := mill.Options(map[string]interface{}{
+		"plaintext": conf.Plaintext,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +64,7 @@ func (t *Textile) AddFile(mill m.Mill, conf AddFileConfig) (*repo.File, error) {
 		return nil, err
 	}
 
-	check := t.checksum(res.File)
+	check := t.checksum(res.File, conf.Plaintext)
 	if efile := t.datastore.Files().GetByPrimary(mill.ID(), check); efile != nil {
 		return efile, nil
 	}
@@ -312,7 +314,12 @@ func (t *Textile) fileForPair(pair ipld.Node) (*repo.File, error) {
 	return t.datastore.Files().Get(d.Cid.Hash().B58String()), nil
 }
 
-func (t *Textile) checksum(plaintext []byte) string {
+func (t *Textile) checksum(plaintext []byte, willEncrypt bool) string {
+	var add int
+	if willEncrypt {
+		add = 1
+	}
+	plaintext = append(plaintext, byte(add))
 	sum := sha256.Sum256(plaintext)
 	return base58.FastBase58Encoding(sum[:])
 }

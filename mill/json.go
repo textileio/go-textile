@@ -24,8 +24,8 @@ func (m *Json) AcceptMedia(media string) error {
 	}, media)
 }
 
-func (m *Json) Options() (string, error) {
-	return "", nil
+func (m *Json) Options(add map[string]interface{}) (string, error) {
+	return hashOpts(make(map[string]string), add)
 }
 
 func (m *Json) Mill(input []byte, name string) (*Result, error) {

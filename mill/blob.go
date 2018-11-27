@@ -18,8 +18,8 @@ func (m *Blob) AcceptMedia(media string) error {
 	return nil
 }
 
-func (m *Blob) Options() (string, error) {
-	return "", nil
+func (m *Blob) Options(add map[string]interface{}) (string, error) {
+	return hashOpts(make(map[string]string), add)
 }
 
 func (m *Blob) Mill(input []byte, name string) (*Result, error) {

@@ -44,8 +44,8 @@ func (m *ImageExif) AcceptMedia(media string) error {
 	}, media)
 }
 
-func (m *ImageExif) Options() (string, error) {
-	return "", nil
+func (m *ImageExif) Options(add map[string]interface{}) (string, error) {
+	return hashOpts(make(map[string]string), add)
 }
 
 func (m *ImageExif) Mill(input []byte, name string) (*Result, error) {
