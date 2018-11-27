@@ -147,7 +147,7 @@ func TestTextile_AddFile(t *testing.T) {
 	if file.Mill != "/image/resize" {
 		t.Error("wrong mill")
 	}
-	if file.Checksum != "6Em1qNFcc1B3mSToS2aVyubDi7R7w7QedY84eNbiWBW3" {
+	if file.Checksum != "3LLsrJ4zcF66d9r5pMnip243y2zZQpkKShhYVHn4Hk2j" {
 		t.Error("wrong checksum")
 	}
 }
