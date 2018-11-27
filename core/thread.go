@@ -203,6 +203,7 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 		Name:       t.Name,
 		Schema:     t.Schema,
 		SchemaId:   t.schemaId,
+		Initiator:  t.initiator,
 		Type:       mod.Type.Description(),
 		State:      state.Description(),
 		Head:       head,

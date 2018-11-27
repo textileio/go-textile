@@ -25,8 +25,8 @@ func (m *Schema) AcceptMedia(media string) error {
 	return accepts([]string{"application/json"}, media)
 }
 
-func (m *Schema) Options() (string, error) {
-	return "", nil
+func (m *Schema) Options(add map[string]interface{}) (string, error) {
+	return hashOpts(make(map[string]string), add)
 }
 
 func (m *Schema) Mill(input []byte, name string) (*Result, error) {
