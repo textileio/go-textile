@@ -49,8 +49,8 @@ func NewWallet(wordCount int) (string, error) {
 
 // WalletAccount represents a derived account in a wallet
 type WalletAccount struct {
-	Seed    string
-	Address string
+	Seed    string `json:"seed"`
+	Address string `json:"address"`
 }
 
 // WalletAccountAt derives the account at the given index

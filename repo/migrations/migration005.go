@@ -4,9 +4,10 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
-	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	"os"
 	"path"
+
+	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 
 	_ "github.com/mutecomm/go-sqlcipher"
 	"github.com/textileio/textile-go/crypto"
@@ -19,8 +20,9 @@ type thread struct {
 }
 
 type threadRow struct {
-	Name string `json:"name"`
-	Sk   string `json:"sk"`
+	Name  string   `json:"name"`
+	Sk    string   `json:"sk"`
+	Peers []string `json:"peers"`
 }
 
 type photoRow struct {
@@ -63,6 +65,22 @@ func (Major005) Up(repoPath string, pinCode string, testnet bool) error {
 		threads = append(threads, &thread{id: id, name: name, sk: sk})
 	}
 
+	// collect thread peers
+	threadPeers := make(map[string][]string)
+	for _, thread := range threads {
+		rows, err := db.Query("select id from peers where threadId='" + thread.id + "'")
+		if err != nil {
+			return err
+		}
+		for rows.Next() {
+			var id string
+			if err := rows.Scan(&id); err != nil {
+				return err
+			}
+			threadPeers[thread.id] = append(threadPeers[thread.id], id)
+		}
+	}
+
 	// write to file
 	tfile, err := os.Create(path.Join(repoPath, "migration005_threads.ndjson"))
 	if err != nil {
@@ -74,7 +92,15 @@ func (Major005) Up(repoPath string, pinCode string, testnet bool) error {
 			defaults = append(defaults, thrd)
 		}
 		sk64 := base64.StdEncoding.EncodeToString(thrd.sk)
-		row, err := json.Marshal(&threadRow{Name: thrd.name, Sk: sk64})
+		peers := threadPeers[thrd.id]
+		if len(peers) == 0 {
+			peers = make([]string, 0)
+		}
+		row, err := json.Marshal(&threadRow{
+			Name:  thrd.name,
+			Sk:    sk64,
+			Peers: peers,
+		})
 		if err != nil {
 			return err
 		}

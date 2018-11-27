@@ -5,12 +5,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	"io/ioutil"
 	"os"
 	"path"
 	"strings"
 	"testing"
+
+	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 
 	"github.com/textileio/textile-go/crypto"
 )
@@ -22,6 +23,7 @@ func initAt004(db *sql.DB, pin string) error {
 	}
 	sqlStmt += `
     create table threads (id text primary key not null, name text not null, sk blob not null, head text not null);
+    create table peers (row text primary key not null, id text not null, pk blob not null, threadId text not null);
     create table blocks (id text primary key not null, date integer not null, parents text not null, threadId text not null, authorPk text not null, type integer not null, dataId text, dataKeyCipher blob, dataCaptionCipher blob, dataUsernameCipher blob, dataMetadataCipher blob);
     create index block_dataId on blocks (dataId);
     create index block_threadId_type_date on blocks (threadId, type, date);
@@ -30,6 +32,7 @@ func initAt004(db *sql.DB, pin string) error {
 	if err != nil {
 		return err
 	}
+
 	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		return err
@@ -42,6 +45,16 @@ func initAt004(db *sql.DB, pin string) error {
 	if err != nil {
 		return err
 	}
+
+	_, err = db.Exec("insert into peers(row, id, pk, threadId) values(?,?,?,?)", "abc", "Qm123", []byte("foo"), "1")
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec("insert into peers(row, id, pk, threadId) values(?,?,?,?)", "def", "Qm456", []byte("bar"), "1")
+	if err != nil {
+		return err
+	}
+
 	keyc1, err := crypto.Encrypt(sk.GetPublic(), []byte("imakey"))
 	if err != nil {
 		return err
@@ -50,6 +63,7 @@ func initAt004(db *sql.DB, pin string) error {
 	if err != nil {
 		return err
 	}
+
 	keyc2, err := crypto.Encrypt(sk.GetPublic(), []byte("imakey2"))
 	if err != nil {
 		return err
@@ -104,6 +118,10 @@ func Test005(t *testing.T) {
 	}
 	if len(threads) != 1 {
 		t.Error(errors.New("saved wrong number of threads"))
+		return
+	}
+	if len(threads[0].Peers) != 2 {
+		t.Error(errors.New("saved wrong number of thread peers"))
 		return
 	}
 
