@@ -246,6 +246,26 @@ func (t *Thread) Decrypt(data []byte) ([]byte, error) {
 	return crypto.Decrypt(t.privKey, data)
 }
 
+// AddPeer directly adds a peer to a thread
+// Note: This is really just tmp here for the 1.0 migration
+func (t *Thread) AddPeer(id string) error {
+	pid, err := peer.IDB58Decode(id)
+	if err != nil {
+		return err
+	}
+
+	if err := t.datastore.ThreadPeers().Add(&repo.ThreadPeer{
+		Id:       pid.Pretty(),
+		ThreadId: t.Id,
+		Welcomed: true,
+	}); err != nil {
+		if !repo.ConflictError(err) {
+			return err
+		}
+	}
+	return nil
+}
+
 // followParents tries to follow a list of chains of block ids, processing along the way
 func (t *Thread) followParents(parents []string) error {
 	for _, parent := range parents {
@@ -317,14 +337,18 @@ func (t *Thread) followParent(parent mh.Multihash) error {
 
 // addOrUpdatePeer collects thread peers, saving them as contacts and
 // saving their cafe inboxes for offline message delivery
-func (t *Thread) addOrUpdatePeer(pid peer.ID, address string, username string, inboxes []string) {
-	t.datastore.ThreadPeers().Add(&repo.ThreadPeer{
+func (t *Thread) addOrUpdatePeer(pid peer.ID, address string, username string, inboxes []string) error {
+	if err := t.datastore.ThreadPeers().Add(&repo.ThreadPeer{
 		Id:       pid.Pretty(),
 		ThreadId: t.Id,
 		Welcomed: false,
-	})
+	}); err != nil {
+		if !repo.ConflictError(err) {
+			return err
+		}
+	}
 
-	t.datastore.Contacts().AddOrUpdate(&repo.Contact{
+	return t.datastore.Contacts().AddOrUpdate(&repo.Contact{
 		Id:       pid.Pretty(),
 		Address:  address,
 		Username: username,

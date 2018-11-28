@@ -31,6 +31,7 @@ func (m *Mobile) AddSchema(jsonstr string) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
+
 	added, err := m.addSchema(jsonstr)
 	if err != nil {
 		return "", err
@@ -41,6 +42,10 @@ func (m *Mobile) AddSchema(jsonstr string) (string, error) {
 
 // PrepareFiles processes a file by path for a thread, but does NOT share it
 func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
+	if !m.node.Started() {
+		return nil, core.ErrStopped
+	}
+
 	thrd := m.node.Thread(threadId)
 	if thrd == nil {
 		return nil, core.ErrThreadNotFound
@@ -293,6 +298,10 @@ type img struct {
 // handling this here doesn't feel right. We can eventually push this up to RN, Obj-C, Java.
 // Note: pth is <target>/<index>, e.g., "Qm.../0"
 func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) (string, error) {
+	if !m.node.Started() {
+		return "", core.ErrStopped
+	}
+
 	node, err := ipfs.NodeAtPath(m.node.Ipfs(), pth)
 	if err != nil {
 		return "", err

@@ -2,6 +2,7 @@ package repo
 
 import (
 	"database/sql"
+	"strings"
 	"time"
 
 	"github.com/textileio/textile-go/keypair"
@@ -53,6 +54,7 @@ type ProfileStore interface {
 
 type ContactStore interface {
 	Queryable
+	Add(device *Contact) error
 	AddOrUpdate(device *Contact) error
 	Get(id string) *Contact
 	List() []Contact
@@ -192,4 +194,8 @@ type CafeClientMessageStore interface {
 	CountByClient(clientId string) int
 	Delete(id string, clientId string) error
 	DeleteByClient(clientId string, limit int) error
+}
+
+func ConflictError(err error) bool {
+	return strings.Contains(err.Error(), "UNIQUE constraint failed")
 }

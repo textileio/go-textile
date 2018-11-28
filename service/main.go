@@ -140,6 +140,11 @@ func (s *Service) NewEnvelope(mtype pb.Message_Type, msg proto.Message, id *int3
 	if err != nil {
 		return nil, err
 	}
+	if s.Node.PrivateKey == nil {
+		if err := s.Node.LoadPrivateKey(); err != nil {
+			return nil, err
+		}
+	}
 	sig, err := s.Node.PrivateKey.Sign(ser)
 	if err != nil {
 		return nil, err

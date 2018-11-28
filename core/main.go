@@ -606,6 +606,9 @@ func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 		},
 		Datastore: t.datastore,
 		Service: func() *ThreadsService {
+			if t.threadsService == nil {
+				return NewDummyThreadsService(t.account, t.node)
+			}
 			return t.threadsService
 		},
 		ThreadsOutbox: t.threadsOutbox,

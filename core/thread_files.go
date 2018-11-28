@@ -165,7 +165,9 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 			log.Debugf("received file: %s", file.Hash)
 
 			if err := t.datastore.Files().Add(&file); err != nil {
-				// TODO: really need typed db errors to catch conflicts vs. real errors
+				if !repo.ConflictError(err) {
+					return nil, err
+				}
 				log.Debugf("file exists: %s", file.Hash)
 			}
 		}

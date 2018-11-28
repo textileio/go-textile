@@ -88,7 +88,9 @@ func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 	if err != nil {
 		return nil, err
 	}
-	t.addOrUpdatePeer(pid, block.Header.Address, msg.Username, msg.Inboxes)
+	if err := t.addOrUpdatePeer(pid, block.Header.Address, msg.Username, msg.Inboxes); err != nil {
+		return nil, err
+	}
 
 	return msg, nil
 }

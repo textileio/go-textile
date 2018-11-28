@@ -52,6 +52,12 @@ func NewThreadsService(
 	return handler
 }
 
+// NewDummyThreadsService is used to create message envelopes
+// _before_ the node is able to go online
+func NewDummyThreadsService(account *keypair.Full, node *core.IpfsNode) *ThreadsService {
+	return &ThreadsService{service: &service.Service{Account: account, Node: node}}
+}
+
 // Protocol returns the handler protocol
 func (h *ThreadsService) Protocol() protocol.ID {
 	return protocol.ID("/textile/threads/2.0.0")
@@ -187,7 +193,9 @@ func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope
 		Inviter: block.Header.Author,
 		Date:    date,
 	}); err != nil {
-		// TODO: ensure conflict error not normal error
+		if !repo.ConflictError(err) {
+			return err
+		}
 		// exists, abort
 		return nil
 	}
