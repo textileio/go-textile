@@ -362,7 +362,7 @@ func (t *Thread) validateJsonNode(inode ipld.Node, key string) error {
 func (t *Thread) indexFileNode(inode ipld.Node, target string) error {
 	links := inode.Links()
 
-	if len(links) == 1 {
+	if looksLikeFileNode(inode) {
 		return t.indexFileLink(inode, target)
 	}
 
@@ -394,7 +394,7 @@ func (t *Thread) indexFileLink(inode ipld.Node, target string) error {
 func (t *Thread) deIndexFileNode(inode ipld.Node, target string) error {
 	links := inode.Links()
 
-	if len(links) == 0 {
+	if looksLikeFileNode(inode) {
 		return t.deIndexFileLink(inode, target)
 	}
 

@@ -367,3 +367,17 @@ func (t *Textile) fileLinkKey(inode ipld.Node) (string, error) {
 	}
 	return file.Key, nil
 }
+
+// looksLikeFileNode returns whether or not a node appears to
+// be a textile node. It doesn't inspect the actual data.
+func looksLikeFileNode(node ipld.Node) bool {
+	links := node.Links()
+	if len(links) != 2 {
+		return false
+	}
+	if schema.LinkByName(links, FileLinkName) == nil ||
+		schema.LinkByName(links, DataLinkName) == nil {
+		return false
+	}
+	return true
+}
