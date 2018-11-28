@@ -79,6 +79,10 @@ func (t *Textile) DeregisterCafe(peerId string) error {
 		return err
 	}
 
+	// clean up
+	if err := t.datastore.CafeRequests().DeleteByCafe(session.CafeId); err != nil {
+		return err
+	}
 	if err := t.datastore.CafeSessions().Delete(peerId); err != nil {
 		return err
 	}

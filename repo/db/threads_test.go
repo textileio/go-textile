@@ -9,7 +9,7 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
-var tdb repo.ThreadStore
+var threadStore repo.ThreadStore
 
 func init() {
 	setupThreadDB()
@@ -18,11 +18,11 @@ func init() {
 func setupThreadDB() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
 	initDatabaseTables(conn, "")
-	tdb = NewThreadStore(conn, new(sync.Mutex))
+	threadStore = NewThreadStore(conn, new(sync.Mutex))
 }
 
 func TestThreadDB_Add(t *testing.T) {
-	err := tdb.Add(&repo.Thread{
+	err := threadStore.Add(&repo.Thread{
 		Id:        "Qmabc123",
 		Key:       ksuid.New().String(),
 		PrivKey:   make([]byte, 8),
@@ -35,7 +35,7 @@ func TestThreadDB_Add(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := tdb.PrepareQuery("select id from threads where id=?")
+	stmt, err := threadStore.PrepareQuery("select id from threads where id=?")
 	defer stmt.Close()
 	var id string
 	err = stmt.QueryRow("Qmabc123").Scan(&id)
@@ -49,7 +49,7 @@ func TestThreadDB_Add(t *testing.T) {
 
 func TestThreadDB_Get(t *testing.T) {
 	setupThreadDB()
-	err := tdb.Add(&repo.Thread{
+	err := threadStore.Add(&repo.Thread{
 		Id:        "Qmabc",
 		Key:       ksuid.New().String(),
 		PrivKey:   make([]byte, 8),
@@ -62,7 +62,7 @@ func TestThreadDB_Get(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	th := tdb.Get("Qmabc")
+	th := threadStore.Get("Qmabc")
 	if th == nil {
 		t.Error("could not get thread")
 	}
@@ -70,7 +70,7 @@ func TestThreadDB_Get(t *testing.T) {
 
 func TestThreadDB_List(t *testing.T) {
 	setupThreadDB()
-	err := tdb.Add(&repo.Thread{
+	err := threadStore.Add(&repo.Thread{
 		Id:        "Qm123",
 		Key:       ksuid.New().String(),
 		PrivKey:   make([]byte, 8),
@@ -83,7 +83,7 @@ func TestThreadDB_List(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	err = tdb.Add(&repo.Thread{
+	err = threadStore.Add(&repo.Thread{
 		Id:      "Qm456",
 		Key:     ksuid.New().String(),
 		PrivKey: make([]byte, 8),
@@ -95,7 +95,7 @@ func TestThreadDB_List(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	all := tdb.List()
+	all := threadStore.List()
 	if len(all) != 2 {
 		t.Error("returned incorrect number of threads")
 		return
@@ -104,7 +104,7 @@ func TestThreadDB_List(t *testing.T) {
 
 func TestThreadDB_Count(t *testing.T) {
 	setupThreadDB()
-	err := tdb.Add(&repo.Thread{
+	err := threadStore.Add(&repo.Thread{
 		Id:        "Qm123count",
 		Key:       ksuid.New().String(),
 		PrivKey:   make([]byte, 8),
@@ -117,7 +117,7 @@ func TestThreadDB_Count(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	cnt := tdb.Count()
+	cnt := threadStore.Count()
 	if cnt != 1 {
 		t.Error("returned incorrect count of threads")
 		return
@@ -126,7 +126,7 @@ func TestThreadDB_Count(t *testing.T) {
 
 func TestThreadDB_UpdateHead(t *testing.T) {
 	setupThreadDB()
-	err := tdb.Add(&repo.Thread{
+	err := threadStore.Add(&repo.Thread{
 		Id:        "Qmabc",
 		Key:       ksuid.New().String(),
 		PrivKey:   make([]byte, 8),
@@ -139,11 +139,11 @@ func TestThreadDB_UpdateHead(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	err = tdb.UpdateHead("Qmabc", "12345")
+	err = threadStore.UpdateHead("Qmabc", "12345")
 	if err != nil {
 		t.Error(err)
 	}
-	th := tdb.Get("Qmabc")
+	th := threadStore.Get("Qmabc")
 	if th == nil {
 		t.Error("could not get thread")
 	}
@@ -154,7 +154,7 @@ func TestThreadDB_UpdateHead(t *testing.T) {
 
 func TestThreadDB_Delete(t *testing.T) {
 	setupThreadDB()
-	err := tdb.Add(&repo.Thread{
+	err := threadStore.Add(&repo.Thread{
 		Id:        "Qm789",
 		Key:       ksuid.New().String(),
 		PrivKey:   make([]byte, 8),
@@ -167,16 +167,16 @@ func TestThreadDB_Delete(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	all := tdb.List()
+	all := threadStore.List()
 	if len(all) == 0 {
 		t.Error("returned incorrect number of threads")
 		return
 	}
-	err = tdb.Delete(all[0].Id)
+	err = threadStore.Delete(all[0].Id)
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := tdb.PrepareQuery("select id from threads where id=?")
+	stmt, err := threadStore.PrepareQuery("select id from threads where id=?")
 	defer stmt.Close()
 	var id string
 	err = stmt.QueryRow(all[0].Id).Scan(&id)

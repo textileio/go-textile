@@ -65,6 +65,7 @@ func (c *ContactDB) AddOrUpdate(contact *repo.Contact) error {
 		contact.Address,
 		contact.Username,
 		strings.Join(contact.Inboxes, ","),
+		contact.Id,
 		int(contact.Added.Unix()),
 	)
 	if err != nil {
