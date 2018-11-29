@@ -119,6 +119,14 @@ func PublicIPv4Addr(node *core.IpfsNode) (string, error) {
 	return pub, nil
 }
 
+// ShortenID returns the last 7 chars of a string
+func ShortenID(id string) string {
+	if len(id) < 7 {
+		return id
+	}
+	return id[len(id)-7:]
+}
+
 // parseAddresses is a function that takes in a slice of string peer addresses
 // (multiaddr + peerid) and returns slices of multiaddrs and peerids.
 func parseAddresses(addrs []string) (iaddrs []ipfsaddr.IPFSAddr, err error) {

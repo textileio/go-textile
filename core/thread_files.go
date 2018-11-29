@@ -263,8 +263,6 @@ func (t *Thread) processFileNode(node *schema.Node, inode ipld.Node, index int, 
 		}
 	}
 
-	go t.cafeOutbox.Flush()
-
 	return nil
 }
 
