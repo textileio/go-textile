@@ -82,6 +82,7 @@ func (q *CafeOutbox) InboxRequest(pid peer.ID, env *pb.Envelope, inboxes []strin
 func (q *CafeOutbox) Flush() {
 	q.mux.Lock()
 	defer q.mux.Unlock()
+	log.Debug("flushing cafe outbox")
 
 	if q.service() == nil {
 		return
@@ -95,6 +96,8 @@ func (q *CafeOutbox) Flush() {
 
 // add queues a single request
 func (q *CafeOutbox) add(pid peer.ID, target string, cafeId string, rtype repo.CafeRequestType) error {
+	log.Debugf("adding cafe %s request for %s to %s: %s",
+		rtype.Description(), ipfs.ShortenID(pid.Pretty()), ipfs.ShortenID(cafeId), target)
 	return q.datastore.CafeRequests().Add(&repo.CafeRequest{
 		Id:       ksuid.New().String(),
 		PeerId:   pid.Pretty(),
@@ -107,6 +110,7 @@ func (q *CafeOutbox) add(pid peer.ID, target string, cafeId string, rtype repo.C
 
 // batch flushes a batch of requests
 func (q *CafeOutbox) batch(reqs []repo.CafeRequest) error {
+	log.Debugf("handling %d cafe requests", len(reqs))
 	if len(reqs) == 0 {
 		return nil
 	}

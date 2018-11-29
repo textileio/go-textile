@@ -42,6 +42,7 @@ func NewThreadsOutbox(
 
 // Add adds an outbound message
 func (q *ThreadsOutbox) Add(pid peer.ID, env *pb.Envelope) error {
+	log.Debugf("adding thread message for %s", pid.Pretty())
 	return q.datastore.ThreadMessages().Add(&repo.ThreadMessage{
 		Id:       ksuid.New().String(),
 		PeerId:   pid.Pretty(),
@@ -54,6 +55,7 @@ func (q *ThreadsOutbox) Add(pid peer.ID, env *pb.Envelope) error {
 func (q *ThreadsOutbox) Flush() {
 	q.mux.Lock()
 	defer q.mux.Unlock()
+	log.Debug("flushing thread messages")
 
 	if q.service() == nil {
 		return
@@ -67,6 +69,7 @@ func (q *ThreadsOutbox) Flush() {
 
 // batch flushes a batch of messages
 func (q *ThreadsOutbox) batch(msgs []repo.ThreadMessage) error {
+	log.Debugf("handling %d thread messages", len(msgs))
 	if len(msgs) == 0 {
 		return nil
 	}
@@ -76,19 +79,19 @@ func (q *ThreadsOutbox) batch(msgs []repo.ThreadMessage) error {
 	wg := sync.WaitGroup{}
 	for _, msg := range msgs {
 		wg.Add(1)
-		go func(msg *repo.ThreadMessage) {
+		go func(msg repo.ThreadMessage) {
 			if err := q.handle(msg); err != nil {
 				berr = err
 				return
 			}
 			toDelete = append(toDelete, msg.Id)
 			wg.Done()
-		}(&msg)
+		}(msg)
 	}
 	wg.Wait()
 
 	// flush the outbox before starting a new batch
-	q.cafeOutbox.Flush()
+	go q.cafeOutbox.Flush()
 
 	// next batch
 	offset := msgs[len(msgs)-1].Id
@@ -112,7 +115,7 @@ func (q *ThreadsOutbox) batch(msgs []repo.ThreadMessage) error {
 }
 
 // handle handles a single message
-func (q *ThreadsOutbox) handle(msg *repo.ThreadMessage) error {
+func (q *ThreadsOutbox) handle(msg repo.ThreadMessage) error {
 	pid, err := peer.IDB58Decode(msg.PeerId)
 	if err != nil {
 		return err
