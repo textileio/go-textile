@@ -35,13 +35,13 @@ import (
 var log = logging.Logger("tex-core")
 
 // Version is the core version identifier
-const Version = "1.0.0-rc2"
+const Version = "1.0.0-rc3"
 
 // kQueueFlushFreq how often to flush the message queues
-const kQueueFlushFreq = time.Minute * 10
+const kQueueFlushFreq = time.Second * 60
 
 // kMobileQueueFlushFreq how often to flush the message queues on mobile
-const kMobileQueueFlush = time.Minute * 1
+const kMobileQueueFlush = time.Second * 20
 
 // Update is used to notify UI listeners of changes
 type Update struct {
@@ -568,9 +568,11 @@ func (t *Textile) flushQueues() {
 		return
 	}
 
-	go t.threadsOutbox.Flush()
-	go t.cafeOutbox.Flush()
-	go t.cafeInbox.CheckMessages()
+	go func() {
+		t.threadsOutbox.Flush()
+		t.cafeInbox.CheckMessages()
+		t.cafeOutbox.Flush()
+	}()
 }
 
 // threadByBlock returns the thread owning the given block

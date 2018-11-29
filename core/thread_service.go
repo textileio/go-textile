@@ -102,24 +102,34 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 
 	switch block.Type {
 	case pb.ThreadBlock_MERGE:
+		log.Debugf("handling MERGE from %s", block.Header.Author)
 		err = h.handleMerge(thrd, hash, block)
 	case pb.ThreadBlock_IGNORE:
+		log.Debugf("handling IGNORE from %s", block.Header.Author)
 		err = h.handleIgnore(thrd, hash, block)
 	case pb.ThreadBlock_FLAG:
+		log.Debugf("handling FLAG from %s", block.Header.Author)
 		err = h.handleFlag(thrd, hash, block)
 	case pb.ThreadBlock_JOIN:
+		log.Debugf("handling JOIN from %s", block.Header.Author)
 		err = h.handleJoin(thrd, hash, block)
 	case pb.ThreadBlock_ANNOUNCE:
+		log.Debugf("handling ANNOUNCE from %s", block.Header.Author)
 		err = h.handleAnnounce(thrd, hash, block)
 	case pb.ThreadBlock_LEAVE:
+		log.Debugf("handling LEAVE from %s", block.Header.Author)
 		err = h.handleLeave(thrd, hash, block)
 	case pb.ThreadBlock_MESSAGE:
+		log.Debugf("handling MESSAGE from %s", block.Header.Author)
 		err = h.handleMessage(thrd, hash, block)
 	case pb.ThreadBlock_FILES:
+		log.Debugf("handling FILES from %s", block.Header.Author)
 		err = h.handleFiles(thrd, hash, block)
 	case pb.ThreadBlock_COMMENT:
+		log.Debugf("handling COMMENT from %s", block.Header.Author)
 		err = h.handleComment(thrd, hash, block)
 	case pb.ThreadBlock_LIKE:
+		log.Debugf("handling LIKE from %s", block.Header.Author)
 		err = h.handleLike(thrd, hash, block)
 	default:
 		return nil, nil
@@ -180,6 +190,8 @@ func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope
 	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
 		return err
 	}
+
+	log.Debugf("handling THREAD_INVITE from %s", block.Header.Author)
 
 	date, err := ptypes.Timestamp(block.Header.Date)
 	if err != nil {

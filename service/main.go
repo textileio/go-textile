@@ -238,6 +238,7 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 		// check if the message is a response
 		if env.Message.IsResponse {
 			ms.requestMux.Lock()
+
 			ch, ok := ms.requests[env.Message.RequestId]
 			if ok {
 				// this is a request response
@@ -248,11 +249,13 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 					// in case ch is closed on the other end - the lock should prevent this happening
 					log.Debug("request id was not removed from map on timeout")
 				}
+
 				close(ch)
 				delete(ms.requests, env.Message.RequestId)
 			} else {
 				log.Debug("unknown request id: requesting function may have timed out")
 			}
+
 			ms.requestMux.Unlock()
 			stream.Reset()
 			return

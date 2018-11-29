@@ -614,6 +614,7 @@ func (t *Thread) post(commit *commitResult, peers []repo.ThreadPeer) error {
 		if err != nil {
 			return err
 		}
+
 		if err := t.threadsOutbox.Add(pid, env); err != nil {
 			return err
 		}

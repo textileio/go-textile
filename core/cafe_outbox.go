@@ -174,12 +174,14 @@ func (q *CafeOutbox) handle(reqs []repo.CafeRequest, rtype repo.CafeRequestType,
 	var handled []string
 	var herr error
 	switch rtype {
+
 	// store requests are handled in bulk
 	case repo.CafeStoreRequest:
 		var cids []string
 		for _, req := range reqs {
 			cids = append(cids, req.TargetId)
 		}
+
 		stored, err := q.service().Store(cids, cafe)
 		for _, s := range stored {
 			for _, r := range reqs {
@@ -192,6 +194,7 @@ func (q *CafeOutbox) handle(reqs []repo.CafeRequest, rtype repo.CafeRequestType,
 			log.Errorf("cafe %s request to %s failed: %s", rtype.Description(), cafe.Pretty(), err)
 			herr = err
 		}
+
 	case repo.CafeStoreThreadRequest:
 		for _, req := range reqs {
 			thrd := q.datastore.Threads().Get(req.TargetId)
@@ -201,6 +204,7 @@ func (q *CafeOutbox) handle(reqs []repo.CafeRequest, rtype repo.CafeRequestType,
 				herr = err
 				continue
 			}
+
 			if err := q.service().StoreThread(thrd, cafe); err != nil {
 				log.Errorf("cafe %s request to %s failed: %s", rtype.Description(), cafe.Pretty(), err)
 				herr = err
@@ -208,6 +212,7 @@ func (q *CafeOutbox) handle(reqs []repo.CafeRequest, rtype repo.CafeRequestType,
 			}
 			handled = append(handled, req.Id)
 		}
+
 	case repo.CafePeerInboxRequest:
 		for _, req := range reqs {
 			pid, err := peer.IDB58Decode(req.PeerId)
@@ -220,6 +225,7 @@ func (q *CafeOutbox) handle(reqs []repo.CafeRequest, rtype repo.CafeRequestType,
 				herr = err
 				continue
 			}
+
 			if err := q.service().DeliverMessage(req.TargetId, pid, cid); err != nil {
 				log.Errorf("cafe %s request to %s failed: %s", rtype.Description(), cafe.Pretty(), err)
 				herr = err
@@ -227,6 +233,7 @@ func (q *CafeOutbox) handle(reqs []repo.CafeRequest, rtype repo.CafeRequestType,
 			}
 			handled = append(handled, req.Id)
 		}
+
 	}
 	return handled, herr
 }
@@ -242,6 +249,7 @@ func (q *CafeOutbox) prepForInbox(pid peer.ID, env *pb.Envelope) (mh.Multihash, 
 	if err != nil {
 		return nil, err
 	}
+
 	ciphertext, err := crypto.Encrypt(pk, envb)
 	if err != nil {
 		return nil, err
