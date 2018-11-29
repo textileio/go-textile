@@ -1,33 +1,56 @@
 package mobile
 
 import (
+	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
 )
 
 // Notifications call core Notifications
 func (m *Mobile) Notifications(offset string, limit int) (string, error) {
-	notes := make([]repo.Notification, 0)
-	notes = m.node.Notifications(offset, limit)
+	if !m.node.Started() {
+		return "", core.ErrStopped
+	}
+
+	notes := m.node.Notifications(offset, limit)
+	if len(notes) == 0 {
+		notes = make([]repo.Notification, 0)
+	}
 	return toJSON(notes)
 }
 
 // CountUnreadNotifications calls core CountUnreadNotifications
 func (m *Mobile) CountUnreadNotifications() int {
+	if !m.node.Started() {
+		return 0
+	}
+
 	return m.node.CountUnreadNotifications()
 }
 
 // ReadNotification calls core ReadNotification
 func (m *Mobile) ReadNotification(id string) error {
+	if !m.node.Started() {
+		return core.ErrStopped
+	}
+
 	return m.node.ReadNotification(id)
 }
 
 // ReadAllNotifications calls core ReadAllNotifications
 func (m *Mobile) ReadAllNotifications() error {
+	if !m.node.Started() {
+		return core.ErrStopped
+	}
+
 	return m.node.ReadAllNotifications()
 }
 
 // AcceptThreadInviteViaNotification call core AcceptThreadInviteViaNotification
 func (m *Mobile) AcceptThreadInviteViaNotification(id string) (string, error) {
+	if !m.node.Online() {
+		return "", core.ErrOffline
+	}
+
 	addr, err := m.node.AcceptThreadInviteViaNotification(id)
 	if err != nil {
 		return "", err
@@ -37,5 +60,9 @@ func (m *Mobile) AcceptThreadInviteViaNotification(id string) (string, error) {
 
 // IgnoreThreadInviteViaNotification call core IgnoreThreadInviteViaNotification
 func (m *Mobile) IgnoreThreadInviteViaNotification(id string) error {
+	if !m.node.Started() {
+		return core.ErrStopped
+	}
+
 	return m.node.IgnoreThreadInviteViaNotification(id)
 }

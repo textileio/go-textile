@@ -8,7 +8,7 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
-var pdb repo.ProfileStore
+var profileStore repo.ProfileStore
 
 func init() {
 	setupProfileDB()
@@ -17,18 +17,18 @@ func init() {
 func setupProfileDB() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
 	initDatabaseTables(conn, "")
-	pdb = NewProfileStore(conn, new(sync.Mutex))
+	profileStore = NewProfileStore(conn, new(sync.Mutex))
 }
 
 func TestProfileDB_SetUsername(t *testing.T) {
-	if err := pdb.SetUsername("psyched_mike_79"); err != nil {
+	if err := profileStore.SetUsername("psyched_mike_79"); err != nil {
 		t.Error(err)
 		return
 	}
 }
 
 func TestProfileDB_GetUsername(t *testing.T) {
-	un, err := pdb.GetUsername()
+	un, err := profileStore.GetUsername()
 	if err != nil {
 		t.Error(err)
 		return
@@ -39,14 +39,14 @@ func TestProfileDB_GetUsername(t *testing.T) {
 }
 
 func TestProfileDB_SetAvatar(t *testing.T) {
-	if err := pdb.SetAvatar("/ipfs/Qm..."); err != nil {
+	if err := profileStore.SetAvatar("/ipfs/Qm..."); err != nil {
 		t.Error(err)
 		return
 	}
 }
 
 func TestProfileDB_GetAvatar(t *testing.T) {
-	av, err := pdb.GetAvatar()
+	av, err := profileStore.GetAvatar()
 	if err != nil {
 		t.Error(err)
 		return

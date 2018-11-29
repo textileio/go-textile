@@ -52,6 +52,12 @@ func NewThreadsService(
 	return handler
 }
 
+// NewDummyThreadsService is used to create message envelopes
+// _before_ the node is able to go online
+func NewDummyThreadsService(account *keypair.Full, node *core.IpfsNode) *ThreadsService {
+	return &ThreadsService{service: &service.Service{Account: account, Node: node}}
+}
+
 // Protocol returns the handler protocol
 func (h *ThreadsService) Protocol() protocol.ID {
 	return protocol.ID("/textile/threads/2.0.0")
@@ -96,24 +102,34 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 
 	switch block.Type {
 	case pb.ThreadBlock_MERGE:
+		log.Debugf("handling MERGE from %s", block.Header.Author)
 		err = h.handleMerge(thrd, hash, block)
 	case pb.ThreadBlock_IGNORE:
+		log.Debugf("handling IGNORE from %s", block.Header.Author)
 		err = h.handleIgnore(thrd, hash, block)
 	case pb.ThreadBlock_FLAG:
+		log.Debugf("handling FLAG from %s", block.Header.Author)
 		err = h.handleFlag(thrd, hash, block)
 	case pb.ThreadBlock_JOIN:
+		log.Debugf("handling JOIN from %s", block.Header.Author)
 		err = h.handleJoin(thrd, hash, block)
 	case pb.ThreadBlock_ANNOUNCE:
+		log.Debugf("handling ANNOUNCE from %s", block.Header.Author)
 		err = h.handleAnnounce(thrd, hash, block)
 	case pb.ThreadBlock_LEAVE:
+		log.Debugf("handling LEAVE from %s", block.Header.Author)
 		err = h.handleLeave(thrd, hash, block)
 	case pb.ThreadBlock_MESSAGE:
+		log.Debugf("handling MESSAGE from %s", block.Header.Author)
 		err = h.handleMessage(thrd, hash, block)
 	case pb.ThreadBlock_FILES:
+		log.Debugf("handling FILES from %s", block.Header.Author)
 		err = h.handleFiles(thrd, hash, block)
 	case pb.ThreadBlock_COMMENT:
+		log.Debugf("handling COMMENT from %s", block.Header.Author)
 		err = h.handleComment(thrd, hash, block)
 	case pb.ThreadBlock_LIKE:
+		log.Debugf("handling LIKE from %s", block.Header.Author)
 		err = h.handleLike(thrd, hash, block)
 	default:
 		return nil, nil
@@ -175,6 +191,8 @@ func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope
 		return err
 	}
 
+	log.Debugf("handling THREAD_INVITE from %s", block.Header.Author)
+
 	date, err := ptypes.Timestamp(block.Header.Date)
 	if err != nil {
 		return err
@@ -187,7 +205,9 @@ func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope
 		Inviter: block.Header.Author,
 		Date:    date,
 	}); err != nil {
-		// TODO: ensure conflict error not normal error
+		if !repo.ConflictError(err) {
+			return err
+		}
 		// exists, abort
 		return nil
 	}

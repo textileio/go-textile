@@ -165,7 +165,9 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 			log.Debugf("received file: %s", file.Hash)
 
 			if err := t.datastore.Files().Add(&file); err != nil {
-				// TODO: really need typed db errors to catch conflicts vs. real errors
+				if !repo.ConflictError(err) {
+					return nil, err
+				}
 				log.Debugf("file exists: %s", file.Hash)
 			}
 		}
@@ -360,7 +362,7 @@ func (t *Thread) validateJsonNode(inode ipld.Node, key string) error {
 func (t *Thread) indexFileNode(inode ipld.Node, target string) error {
 	links := inode.Links()
 
-	if len(links) == 0 {
+	if looksLikeFileNode(inode) {
 		return t.indexFileLink(inode, target)
 	}
 
@@ -392,7 +394,7 @@ func (t *Thread) indexFileLink(inode ipld.Node, target string) error {
 func (t *Thread) deIndexFileNode(inode ipld.Node, target string) error {
 	links := inode.Links()
 
-	if len(links) == 0 {
+	if looksLikeFileNode(inode) {
 		return t.deIndexFileLink(inode, target)
 	}
 

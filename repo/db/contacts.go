@@ -17,6 +17,35 @@ func NewContactStore(db *sql.DB, lock *sync.Mutex) repo.ContactStore {
 	return &ContactDB{modelStore{db, lock}}
 }
 
+func (c *ContactDB) Add(contact *repo.Contact) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	tx, err := c.db.Begin()
+	if err != nil {
+		return err
+	}
+	stm := `insert into contacts(id, address, username, inboxes, added) values(?,?,?,?,?)`
+	stmt, err := tx.Prepare(stm)
+	if err != nil {
+		log.Errorf("error in tx prepare: %s", err)
+		return err
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(
+		contact.Id,
+		contact.Address,
+		contact.Username,
+		strings.Join(contact.Inboxes, ","),
+		int(contact.Added.Unix()),
+	)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+	return nil
+}
+
 func (c *ContactDB) AddOrUpdate(contact *repo.Contact) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()

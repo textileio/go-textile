@@ -88,7 +88,7 @@ func (q *ThreadsOutbox) batch(msgs []repo.ThreadMessage) error {
 	wg.Wait()
 
 	// flush the outbox before starting a new batch
-	go q.cafeOutbox.Flush()
+	q.cafeOutbox.Flush()
 
 	// next batch
 	offset := msgs[len(msgs)-1].Id
