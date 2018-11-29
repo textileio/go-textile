@@ -97,8 +97,28 @@ func (x *addCmd) Shell() *ishell.Cmd {
 }
 
 func callAdd(args []string, opts map[string]string) error {
-	if len(args) == 0 {
-		return errMissingFilePath
+	var pth string
+	var fi os.FileInfo
+
+	var err error
+	fi, err = os.Stdin.Stat()
+	if err != nil {
+		return err
+	}
+	if fi.Size() == 0 {
+		if len(args) == 0 {
+			return errMissingFilePath
+		}
+
+		pth, err = homedir.Expand(args[0])
+		if err != nil {
+			pth = args[0]
+		}
+
+		fi, err = os.Stat(pth)
+		if err != nil {
+			return err
+		}
 	}
 
 	group := opts["group"] == "true"
@@ -116,16 +136,6 @@ func callAdd(args []string, opts map[string]string) error {
 
 	if thrd.Schema == nil {
 		return core.ErrThreadSchemaRequired
-	}
-
-	pth, err := homedir.Expand(args[0])
-	if err != nil {
-		pth = args[0]
-	}
-
-	fi, err := os.Stat(pth)
-	if err != nil {
-		return err
 	}
 
 	var pths []string
@@ -245,19 +255,25 @@ func add(dirs []core.Directory, threadId string, caption string, verbose bool) (
 }
 
 func mill(pth string, node *schema.Node, verbose bool) (core.Directory, error) {
-	f, err := os.Open(pth)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
+	var f *os.File
+	if pth == "" {
+		f = os.Stdin
+	} else {
+		var err error
+		f, err = os.Open(pth)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
 
-	fi, err := f.Stat()
-	if err != nil {
-		return nil, err
-	}
+		fi, err := f.Stat()
+		if err != nil {
+			return nil, err
+		}
 
-	if fi.IsDir() {
-		return nil, nil
+		if fi.IsDir() {
+			return nil, nil
+		}
 	}
 
 	var reader io.ReadSeeker
@@ -285,6 +301,7 @@ func mill(pth string, node *schema.Node, verbose bool) (core.Directory, error) {
 			ctype = ct
 		}
 
+		var err error
 		res, file, err = handleStep(node.Mill, reader, mopts, ctype)
 		if err != nil {
 			return nil, err
