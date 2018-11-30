@@ -163,35 +163,40 @@ func callAdd(args []string, opts map[string]string) error {
 
 		batches := batchPaths(pths, batchSize)
 		for i, batch := range batches {
-			res, err := millBatch(batch, thrd.Schema, verbose)
-			if err != nil {
-				return err
-			}
 
-			output(fmt.Sprintf("Milled batch %d/%d", i+1, len(batches)), nil)
+			ready := make(chan core.Directory, batchSize)
+			go millBatch(batch, thrd.Schema, ready, verbose)
 
-			if group {
-				for _, dir := range res {
-					if dir != nil {
-						dirs = append(dirs, dir)
-						count++
+			var cerr error
+		loop:
+			for {
+				select {
+				case dir, ok := <-ready:
+					if !ok {
+						break loop
 					}
-				}
-			} else {
-				for _, dir := range res {
-					if dir != nil {
+
+					if !group {
 						caption := strings.TrimSpace(fmt.Sprintf("%s (%d)", opts["caption"], count+1))
 						block, err := add([]core.Directory{dir}, threadId, caption, verbose)
 						if err != nil {
-							return err
+							cerr = err
+							break loop
 						}
 
 						output(fmt.Sprintf("File %d target: %s", count+1, block.Target), nil)
-
-						count++
+					} else {
+						dirs = append(dirs, dir)
 					}
+
+					count++
 				}
 			}
+			if cerr != nil {
+				return cerr
+			}
+
+			output(fmt.Sprintf("Milled batch %d/%d", i+1, len(batches)), nil)
 		}
 
 	} else {
@@ -378,27 +383,26 @@ func mill(pth string, node *schema.Node, verbose bool) (core.Directory, error) {
 	return dir, nil
 }
 
-func millBatch(pths []string, node *schema.Node, verbose bool) ([]core.Directory, error) {
-	tmp := make([]core.Directory, len(pths))
-
+func millBatch(pths []string, node *schema.Node, ready chan core.Directory, verbose bool) {
 	wg := sync.WaitGroup{}
-	for i, pth := range pths {
+
+	for _, pth := range pths {
 		wg.Add(1)
 
-		go func(i int, p string) {
+		go func(p string) {
 			dir, err := mill(p, node, verbose)
 			if err != nil {
 				output("mill error: "+err.Error(), nil)
 			} else {
-				tmp[i] = dir
+				ready <- dir
 			}
 			wg.Done()
-		}(i, pth)
+		}(pth)
 
 	}
-	wg.Wait()
 
-	return tmp, nil
+	wg.Wait()
+	close(ready)
 }
 
 func batchPaths(pths []string, size int) [][]string {
