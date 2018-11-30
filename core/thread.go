@@ -602,7 +602,7 @@ func (t *Thread) post(commit *commitResult, peers []repo.ThreadPeer) error {
 		// flush the storage queue—this is normally done in a thread
 		// via thread message queue handling, but that won't run if there's
 		// no peers to send the message to.
-		t.cafeOutbox.Flush()
+		go t.cafeOutbox.Flush()
 		return nil
 	}
 	env, err := t.service().NewEnvelope(t.Id, commit.hash, commit.ciphertext)

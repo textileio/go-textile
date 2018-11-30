@@ -105,7 +105,7 @@ func callAdd(args []string, opts map[string]string) error {
 	if err != nil {
 		return err
 	}
-	if fi.Size() == 0 {
+	if (fi.Mode() & os.ModeCharDevice) != 0 {
 		if len(args) == 0 {
 			return errMissingFilePath
 		}

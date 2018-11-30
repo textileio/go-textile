@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -77,6 +78,9 @@ func (t *Textile) Contacts() ([]ContactInfo, error) {
 
 // ContactUsername returns the username for the peer id if known
 func (t *Textile) ContactUsername(id string) string {
+	if id == t.node.Identity.Pretty() {
+		return ipfs.ShortenID(id)
+	}
 	return toUsername(t.datastore.Contacts().Get(id))
 }
 
