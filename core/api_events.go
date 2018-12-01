@@ -2,6 +2,7 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -16,7 +17,9 @@ func (a *api) getThreadsEvents(g *gin.Context) {
 		return
 	}
 
-	types := strings.Split(opts["type"], "|")
+	// Expects or'd list of event types (e.g., FILES|COMMENTS|LIKES).
+	types := strings.Split(strings.TrimSpace(opts["type"]), "|")
+	fmt.Println(types)
 	threadId := g.Param("id")
 	if threadId == "default" {
 		threadId = a.node.config.Threads.Defaults.ID

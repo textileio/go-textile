@@ -17,7 +17,7 @@ func init() {
 type eventsCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for all (default)."`
-	Type   string        `short:"k" long:"type" description:"Event type filter. Omit for all events (default)."`
+	Type   string        `short:"k" long:"type" description:"Comma-separated list of event types to include. Omit for all (default)."`
 }
 
 func (x *eventsCmd) Name() string {
@@ -31,8 +31,10 @@ func (x *eventsCmd) Short() string {
 func (x *eventsCmd) Long() string {
 	return `
 Subscribe to thread events/updates.
-Use the --thread option to subscribe to events for a specific thread.  
-Use the --type option to filter to specific event type(s).
+Use the --thread option to subscribe to events emmited from a specific thread.  
+Use the --type option to filter to specific event type(s). Omit for all
+events (default), otherwise, use a comma-separated list of event types 
+(e.g., FILES,COMMENTS,LIKES).
 `
 }
 
