@@ -2,12 +2,9 @@ package cmd
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
-	"io"
 	"io/ioutil"
 	"os"
-	"strconv"
 
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
@@ -29,7 +26,6 @@ type threadsCmd struct {
 	Get        getThreadsCmd        `command:"get"`
 	GetDefault getDefaultThreadsCmd `command:"default"`
 	Remove     rmThreadsCmd         `command:"rm"`
-	Stream     streamThreadsCmd     `command:"updates"`
 }
 
 func (x *threadsCmd) Name() string {
@@ -45,7 +41,6 @@ func (x *threadsCmd) Long() string {
 Threads are distributed sets of encrypted files between peers,
 governed by build-in or custom Schemas.
 Use this command to add, list, get, join, invite, and remove threads.
-You can also stream/subscribe to thread updates.
 
 Open threads are the most common thread type. Open threads allow 
 any member to invite new members.
@@ -292,71 +287,5 @@ func callRmThreads(args []string) error {
 		return err
 	}
 	output(res, nil)
-	return nil
-}
-
-type streamThreadsCmd struct {
-	Client ClientOptions `group:"Client Options"`
-	Events bool          `short:"e" long:"events" description:"Whether to return Server Sent Events (true) or JSON (default false)."`
-}
-
-func (x *streamThreadsCmd) Name() string {
-	return "updates"
-}
-
-func (x *streamThreadsCmd) Short() string {
-	return "Steam thread updates"
-}
-
-func (x *streamThreadsCmd) Long() string {
-	return `
-Streams all thread update types.
-Use the --events option to emit Server-Sent Events (SSEvent), otherwise, emit JSON responses. 
-SSEvents enable browsers/clients to consume the stream using EventSource.
-`
-}
-
-func (x *streamThreadsCmd) Execute(args []string) error {
-	setApi(x.Client)
-	opts := map[string]string{"events": strconv.FormatBool(x.Events)}
-	return callStreamThreads(args, opts, nil)
-}
-
-func (x *streamThreadsCmd) Shell() *ishell.Cmd {
-	return nil // Don't support streaming api via shell
-}
-
-func callStreamThreads(args []string, opts map[string]string, ctx *ishell.Context) error {
-	if len(args) == 0 {
-		return errMissingThreadId
-	}
-	req, err := request(GET, "threads/"+args[0]+"/updates", params{opts: opts})
-	if err != nil {
-		return err
-	}
-	defer req.Body.Close()
-	if req.StatusCode >= 400 {
-		res, err := unmarshalString(req.Body)
-		if err != nil {
-			return err
-		}
-		return errors.New(res)
-	}
-	decoder := json.NewDecoder(req.Body)
-	for {
-		var info core.ThreadUpdate
-		if err := decoder.Decode(&info); err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
-		data, err := json.MarshalIndent(info, "", "    ")
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
-		output(string(data), ctx)
-	}
 	return nil
 }

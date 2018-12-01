@@ -99,7 +99,10 @@ func (a *api) Start() {
 		threads.GET("/:id", a.getThreads)
 		threads.DELETE("/:id", a.rmThreads)
 		threads.POST("/:id/files", a.addThreadFiles)
-		threads.GET("/:id/updates", a.streamThreads)
+
+		events := v0.Group("/events")
+		events.GET("", a.getThreadsEvents)
+		events.GET("/:id", a.getThreadsEvents)
 
 		files := v0.Group("/files")
 		files.GET("", a.lsThreadFiles)
