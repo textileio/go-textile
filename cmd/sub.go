@@ -11,24 +11,24 @@ import (
 )
 
 func init() {
-	register(&eventsCmd{})
+	register(&subCmd{})
 }
 
-type eventsCmd struct {
+type subCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for all (default)."`
 	Type   string        `short:"k" long:"type" description:"Comma-separated list of event types to include. Omit for all (default)."`
 }
 
-func (x *eventsCmd) Name() string {
-	return "events"
+func (x *subCmd) Name() string {
+	return "sub"
 }
 
-func (x *eventsCmd) Short() string {
+func (x *subCmd) Short() string {
 	return "Subscribe to thread events/updates"
 }
 
-func (x *eventsCmd) Long() string {
+func (x *subCmd) Long() string {
 	return `
 Subscribe to thread events/updates.
 Use the --thread option to subscribe to events emmited from a specific thread.  
@@ -38,7 +38,7 @@ events (default), otherwise, use a comma-separated list of event types
 `
 }
 
-func (x *eventsCmd) Execute(args []string) error {
+func (x *subCmd) Execute(args []string) error {
 	setApi(x.Client)
 	opts := map[string]string{
 		"thread": x.Thread,
@@ -47,7 +47,7 @@ func (x *eventsCmd) Execute(args []string) error {
 	return callEvents(args, opts)
 }
 
-func (x *eventsCmd) Shell() *ishell.Cmd {
+func (x *subCmd) Shell() *ishell.Cmd {
 	return nil
 }
 
@@ -60,7 +60,7 @@ func callEvents(args []string, opts map[string]string) error {
 	// '|' doesn't work on cmdline, so use commas (',') and swap out for '|'
 	opts["type"] = strings.Join(strings.Split(opts["type"], ","), "|")
 
-	req, err := request(GET, "events"+threadId, params{opts: opts})
+	req, err := request(GET, "sub"+threadId, params{opts: opts})
 	if err != nil {
 		return err
 	}

@@ -100,9 +100,9 @@ func (a *api) Start() {
 		threads.DELETE("/:id", a.rmThreads)
 		threads.POST("/:id/files", a.addThreadFiles)
 
-		events := v0.Group("/events")
-		events.GET("", a.getThreadsEvents)
-		events.GET("/:id", a.getThreadsEvents)
+		sub := v0.Group("/sub")
+		sub.GET("", a.getThreadsSub)
+		sub.GET("/:id", a.getThreadsSub)
 
 		files := v0.Group("/files")
 		files.GET("", a.lsThreadFiles)
