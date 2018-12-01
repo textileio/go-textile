@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (a *api) getThreadsEvents(g *gin.Context) {
+func (a *api) getThreadsSub(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -17,7 +17,7 @@ func (a *api) getThreadsEvents(g *gin.Context) {
 	}
 
 	// Expects or'd list of event types (e.g., FILES|COMMENTS|LIKES).
-	types := strings.Split(strings.TrimSpace(opts["type"]), "|")
+	types := strings.Split(strings.TrimSpace(strings.ToUpper(opts["type"])), "|")
 	threadId := g.Param("id")
 	if threadId == "default" {
 		threadId = a.node.config.Threads.Defaults.ID
@@ -47,6 +47,7 @@ func (a *api) getThreadsEvents(g *gin.Context) {
 							g.SSEvent("update", info)
 						} else {
 							g.JSON(http.StatusOK, info)
+							g.Writer.Write([]byte("\n"))
 						}
 
 					}
