@@ -39,8 +39,8 @@ var ErrJsonSchemaRequired = errors.New("thread schema does not allow json files"
 // ErrInvalidFileNode indicates files where added via a nil ipld node
 var ErrInvalidFileNode = errors.New("invalid files node")
 
-// ErrBlockNotFile indicates a file was requested via a non-file block
-var ErrBlockNotFile = errors.New("block is not a file")
+// ErrBlockWrongType indicates a block was requested as a type other than its own
+var ErrBlockWrongType = errors.New("block type is not the type requested")
 
 // ThreadUpdate is used to notify listeners about updates in a thread
 type ThreadUpdate struct {

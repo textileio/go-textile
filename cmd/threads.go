@@ -46,7 +46,7 @@ Open threads are the most common thread type. Open threads allow
 any member to invite new members.
 
 Private threads are primarily used internally for backup/recovery 
-purpose and 1-to-1 communication channels.
+purposes and 1-to-1 communication channels.
 `
 }
 

@@ -23,7 +23,7 @@ import (
 )
 
 var errMissingFilePath = errors.New("missing file path")
-var errMissingFileBlockId = errors.New("missing file block id")
+var errMissingFileId = errors.New("missing file block ID")
 var errNothingToAdd = errors.New("nothing to add")
 var errMissingTarget = errors.New("missing file(s) target")
 
@@ -546,7 +546,7 @@ func (x *getCmd) Shell() *ishell.Cmd {
 
 func callGet(args []string) error {
 	if len(args) == 0 {
-		return errMissingFileBlockId
+		return errMissingFileId
 	}
 
 	var info core.ThreadFilesInfo

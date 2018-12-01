@@ -125,7 +125,6 @@ var ErrOffline = errors.New("node is offline")
 
 // InitRepo initializes a new node repo
 func InitRepo(conf InitConfig) error {
-
 	if fsrepo.IsInitialized(conf.RepoPath) {
 		return repo.ErrRepoExists
 	}
