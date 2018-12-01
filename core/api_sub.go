@@ -17,7 +17,14 @@ func (a *api) getThreadsSub(g *gin.Context) {
 	}
 
 	// Expects or'd list of event types (e.g., FILES|COMMENTS|LIKES).
+<<<<<<< HEAD:core/api_sub.go
 	types := strings.Split(strings.TrimSpace(strings.ToUpper(opts["type"])), "|")
+=======
+	types := strings.Split(strings.TrimSpace(opts["type"]), "|")
+<<<<<<< HEAD:core/api_sub.go
+>>>>>>> d40c3ac5... events: removes extraneous Println (which _is_ a valid debug technique):core/api_events.go
+=======
+>>>>>>> b97564b5... removes extraneous Println (which _is_ a valid debug technique):core/api_events.go
 	threadId := g.Param("id")
 	if threadId == "default" {
 		threadId = a.node.config.Threads.Defaults.ID
