@@ -72,6 +72,7 @@ func (q *CafeInbox) CheckMessages() error {
 
 // Add adds an inbound message
 func (q *CafeInbox) Add(msg *pb.CafeMessage) error {
+	log.Debugf("received cafe message from %s: %s", ipfs.ShortenID(msg.PeerId), msg.Id)
 	date, err := ptypes.Timestamp(msg.Date)
 	if err != nil {
 		return err
@@ -87,6 +88,7 @@ func (q *CafeInbox) Add(msg *pb.CafeMessage) error {
 func (q *CafeInbox) Flush() {
 	q.mux.Lock()
 	defer q.mux.Unlock()
+	log.Debug("flushing cafe inbox")
 
 	if q.threadsService() == nil || q.service() == nil {
 		return
@@ -100,6 +102,7 @@ func (q *CafeInbox) Flush() {
 
 // batch flushes a batch of messages
 func (q *CafeInbox) batch(msgs []repo.CafeMessage) error {
+	log.Debugf("handling %d cafe messages", len(msgs))
 	if len(msgs) == 0 {
 		return nil
 	}
@@ -109,14 +112,14 @@ func (q *CafeInbox) batch(msgs []repo.CafeMessage) error {
 	wg := sync.WaitGroup{}
 	for _, msg := range msgs {
 		wg.Add(1)
-		go func(msg *repo.CafeMessage) {
+		go func(msg repo.CafeMessage) {
 			if err := q.handle(msg); err != nil {
 				berr = err
 				return
 			}
 			toDelete = append(toDelete, msg.Id)
 			wg.Done()
-		}(&msg)
+		}(msg)
 	}
 	wg.Wait()
 
@@ -142,7 +145,7 @@ func (q *CafeInbox) batch(msgs []repo.CafeMessage) error {
 }
 
 // handle handles a single message
-func (q *CafeInbox) handle(msg *repo.CafeMessage) error {
+func (q *CafeInbox) handle(msg repo.CafeMessage) error {
 	pid, err := peer.IDB58Decode(msg.PeerId)
 	if err != nil {
 		return err

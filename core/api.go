@@ -82,47 +82,88 @@ func (a *api) Start() {
 		v0.GET("/ping", a.ping)
 
 		profile := v0.Group("/profile")
-		profile.GET("", a.getProfile)
-		profile.POST("/username", a.setUsername)
-		profile.POST("/avatar", a.setAvatar)
+		{
+			profile.GET("", a.getProfile)
+			profile.POST("/username", a.setUsername)
+			profile.POST("/avatar", a.setAvatar)
+		}
 
 		mills := v0.Group("/mills")
-		mills.POST("/schema", a.schemaMill)
-		mills.POST("/blob", a.blobMill)
-		mills.POST("/image/resize", a.imageResizeMill)
-		mills.POST("/image/exif", a.imageExifMill)
-		mills.POST("/json", a.jsonMill)
+		{
+			mills.POST("/schema", a.schemaMill)
+			mills.POST("/blob", a.blobMill)
+			mills.POST("/image/resize", a.imageResizeMill)
+			mills.POST("/image/exif", a.imageExifMill)
+			mills.POST("/json", a.jsonMill)
+		}
 
 		threads := v0.Group("/threads")
-		threads.POST("", a.addThreads)
-		threads.GET("", a.lsThreads)
-		threads.GET("/:id", a.getThreads)
-		threads.DELETE("/:id", a.rmThreads)
-		threads.POST("/:id/files", a.addThreadFiles)
+		{
+			threads.POST("", a.addThreads)
+			threads.GET("", a.lsThreads)
+			threads.GET("/:id", a.getThreads)
+			threads.DELETE("/:id", a.rmThreads)
+			threads.POST("/:id/files", a.addThreadFiles)
+		}
 
-		sub := v0.Group("/sub")
-		sub.GET("", a.getThreadsSub)
-		sub.GET("/:id", a.getThreadsSub)
+		blocks := v0.Group("/blocks")
+		{
+			blocks.GET("", a.lsBlocks)
+
+			block := blocks.Group("/:id")
+			{
+				block.GET("", a.getBlocks)
+				block.DELETE("", a.rmBlocks)
+
+				block.GET("/comment", a.getBlockComment)
+				comments := block.Group("/comments")
+				{
+					comments.POST("", a.addBlockComments)
+					comments.GET("", a.lsBlockComments)
+				}
+
+				block.GET("/like", a.getBlockLike)
+				likes := block.Group("/likes")
+				{
+					likes.POST("", a.addBlockLikes)
+					likes.GET("", a.lsBlockLikes)
+				}
+			}
+		}
 
 		files := v0.Group("/files")
-		files.GET("", a.lsThreadFiles)
-		files.GET("/:block", a.getThreadFiles)
+		{
+			files.GET("", a.lsThreadFiles)
+			files.GET("/:block", a.getThreadFiles)
+		}
 
 		keys := v0.Group("/keys")
-		keys.GET("/:target", a.lsThreadFileTargetKeys)
+		{
+			keys.GET("/:target", a.lsThreadFileTargetKeys)
+		}
+
+		sub := v0.Group("/sub")
+		{
+			sub.GET("", a.getThreadsSub)
+			sub.GET("/:id", a.getThreadsSub)
+		}
 
 		invites := v0.Group("/invites")
-		invites.POST("", a.createInvites)
-		invites.GET("", a.lsInvites)
-		invites.POST("/:id/accept", a.acceptInvites)
-		invites.POST("/:id/ignore", a.ignoreInvites)
+		{
+			invites.POST("", a.createInvites)
+			invites.GET("", a.lsInvites)
+			invites.POST("/:id/accept", a.acceptInvites)
+			invites.POST("/:id/ignore", a.ignoreInvites)
+		}
 
 		cafes := v0.Group("/cafes")
-		cafes.POST("", a.addCafes)
-		cafes.GET("", a.lsCafes)
-		cafes.GET("/:id", a.getCafes)
-		cafes.DELETE("/:id", a.rmCafes)
-		cafes.POST("/messages", a.checkCafeMessages)
+		{
+			cafes.POST("", a.addCafes)
+			cafes.GET("", a.lsCafes)
+			cafes.GET("/:id", a.getCafes)
+			cafes.DELETE("/:id", a.rmCafes)
+			cafes.POST("/messages", a.checkCafeMessages)
+		}
 	}
 	a.server = &http.Server{
 		Addr:    a.addr,

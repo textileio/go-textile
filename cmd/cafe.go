@@ -32,7 +32,7 @@ func (x *cafesCmd) Short() string {
 func (x *cafesCmd) Long() string {
 	return `
 Cafes are other peers on the network who offer pinning, backup, and inbox services. 
-Use this command to add, list, get, and remove cafes.
+Use this command to add, list, get, remove cafes and check messages.
 `
 }
 
@@ -101,7 +101,7 @@ func (x *lsCafesCmd) Shell() *ishell.Cmd {
 }
 
 func callLsCafes() error {
-	var list *[]repo.CafeSession
+	var list []repo.CafeSession
 	res, err := executeJsonCmd(GET, "cafes", params{}, &list)
 	if err != nil {
 		return err

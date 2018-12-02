@@ -325,10 +325,9 @@ func (t *Textile) checksum(plaintext []byte, willEncrypt bool) string {
 }
 
 func (t *Textile) fileNodeKeys(node ipld.Node, index int, keys *Keys) error {
-	links := node.Links()
 	vkeys := *keys
 
-	if len(links) == 0 {
+	if looksLikeFileNode(node) {
 		key, err := t.fileLinkKey(node)
 		if err != nil {
 			return err
@@ -336,7 +335,7 @@ func (t *Textile) fileNodeKeys(node ipld.Node, index int, keys *Keys) error {
 
 		vkeys["/"+strconv.Itoa(index)+"/"] = key
 	} else {
-		for _, link := range links {
+		for _, link := range node.Links() {
 			n, err := ipfs.NodeAtLink(t.node, link)
 			if err != nil {
 				return err

@@ -39,8 +39,8 @@ var ErrJsonSchemaRequired = errors.New("thread schema does not allow json files"
 // ErrInvalidFileNode indicates files where added via a nil ipld node
 var ErrInvalidFileNode = errors.New("invalid files node")
 
-// ErrBlockNotFile indicates a file was requested via a non-file block
-var ErrBlockNotFile = errors.New("block is not a file")
+// ErrBlockWrongType indicates a block was requested as a type other than its own
+var ErrBlockWrongType = errors.New("block type is not the type requested")
 
 // ThreadUpdate is used to notify listeners about updates in a thread
 type ThreadUpdate struct {
@@ -602,7 +602,7 @@ func (t *Thread) post(commit *commitResult, peers []repo.ThreadPeer) error {
 		// flush the storage queue—this is normally done in a thread
 		// via thread message queue handling, but that won't run if there's
 		// no peers to send the message to.
-		t.cafeOutbox.Flush()
+		go t.cafeOutbox.Flush()
 		return nil
 	}
 	env, err := t.service().NewEnvelope(t.Id, commit.hash, commit.ciphertext)

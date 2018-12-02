@@ -62,7 +62,7 @@ func (t *Textile) ThreadFiles(offset string, limit int, threadId string) ([]Thre
 	}
 
 	for _, block := range blocks {
-		file, err := t.threadFile(&block)
+		file, err := t.threadFile(block)
 		if err != nil {
 			return nil, err
 		}
@@ -78,7 +78,64 @@ func (t *Textile) ThreadFile(blockId string) (*ThreadFilesInfo, error) {
 		return nil, err
 	}
 
-	return t.threadFile(block)
+	return t.threadFile(*block)
+}
+
+func (t *Textile) ThreadComments(target string) ([]ThreadCommentInfo, error) {
+	comments := make([]ThreadCommentInfo, 0)
+
+	query := fmt.Sprintf("type=%d and target='%s'", repo.CommentBlock, target)
+	for _, block := range t.Blocks("", -1, query) {
+		info, err := t.ThreadComment(block)
+		if err != nil {
+			continue
+		}
+		comments = append(comments, *info)
+	}
+
+	return comments, nil
+}
+
+func (t *Textile) ThreadComment(block repo.Block) (*ThreadCommentInfo, error) {
+	if block.Type != repo.CommentBlock {
+		return nil, ErrBlockWrongType
+	}
+
+	return &ThreadCommentInfo{
+		Id:       block.Id,
+		Date:     block.Date,
+		AuthorId: block.AuthorId,
+		Username: t.ContactUsername(block.AuthorId),
+		Body:     block.Body,
+	}, nil
+}
+
+func (t *Textile) ThreadLikes(target string) ([]ThreadLikeInfo, error) {
+	likes := make([]ThreadLikeInfo, 0)
+
+	query := fmt.Sprintf("type=%d and target='%s'", repo.LikeBlock, target)
+	for _, block := range t.Blocks("", -1, query) {
+		info, err := t.ThreadLike(block)
+		if err != nil {
+			continue
+		}
+		likes = append(likes, *info)
+	}
+
+	return likes, nil
+}
+
+func (t *Textile) ThreadLike(block repo.Block) (*ThreadLikeInfo, error) {
+	if block.Type != repo.LikeBlock {
+		return nil, ErrBlockWrongType
+	}
+
+	return &ThreadLikeInfo{
+		Id:       block.Id,
+		Date:     block.Date,
+		AuthorId: block.AuthorId,
+		Username: t.ContactUsername(block.AuthorId),
+	}, nil
 }
 
 func (t *Textile) fileAtTarget(target string) ([]ThreadFileInfo, error) {
@@ -94,7 +151,6 @@ func (t *Textile) fileAtTarget(target string) ([]ThreadFileInfo, error) {
 		if err != nil {
 			return nil, err
 		}
-		fnames := node.Links()
 
 		i, err := strconv.Atoi(index.Name)
 		if err != nil {
@@ -102,8 +158,14 @@ func (t *Textile) fileAtTarget(target string) ([]ThreadFileInfo, error) {
 		}
 
 		info := ThreadFileInfo{Index: i}
-		if len(fnames) > 0 {
-			// directory of files
+		if looksLikeFileNode(node) {
+			file, err := t.fileForPair(node)
+			if err != nil {
+				return nil, err
+			}
+			info.File = file
+
+		} else {
 			info.Links = make(Directory)
 			for _, link := range node.Links() {
 				pair, err := ipfs.NodeAtLink(t.node, link)
@@ -118,13 +180,6 @@ func (t *Textile) fileAtTarget(target string) ([]ThreadFileInfo, error) {
 					info.Links[link.Name] = *file
 				}
 			}
-		} else {
-			// single file
-			file, err := t.fileForPair(node)
-			if err != nil {
-				return nil, err
-			}
-			info.File = file
 		}
 
 		files[i] = info
@@ -133,9 +188,9 @@ func (t *Textile) fileAtTarget(target string) ([]ThreadFileInfo, error) {
 	return files, nil
 }
 
-func (t *Textile) threadFile(block *repo.Block) (*ThreadFilesInfo, error) {
+func (t *Textile) threadFile(block repo.Block) (*ThreadFilesInfo, error) {
 	if block.Type != repo.FilesBlock {
-		return nil, ErrBlockNotFile
+		return nil, ErrBlockWrongType
 	}
 
 	files, err := t.fileAtTarget(block.Target)
@@ -143,12 +198,12 @@ func (t *Textile) threadFile(block *repo.Block) (*ThreadFilesInfo, error) {
 		return nil, err
 	}
 
-	comments, err := t.fileComments(block.Id)
+	comments, err := t.ThreadComments(block.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	likes, err := t.fileLikes(block.Id)
+	likes, err := t.ThreadLikes(block.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -168,41 +223,6 @@ func (t *Textile) threadFile(block *repo.Block) (*ThreadFilesInfo, error) {
 		Likes:    likes,
 		Threads:  threads,
 	}, nil
-}
-
-func (t *Textile) fileComments(target string) ([]ThreadCommentInfo, error) {
-	comments := make([]ThreadCommentInfo, 0)
-
-	query := fmt.Sprintf("type=%d and target='%s'", repo.CommentBlock, target)
-	for _, block := range t.Blocks("", -1, query) {
-		info := ThreadCommentInfo{
-			Id:       block.Id,
-			Date:     block.Date,
-			AuthorId: block.AuthorId,
-			Username: t.ContactUsername(block.AuthorId),
-			Body:     block.Body,
-		}
-		comments = append(comments, info)
-	}
-
-	return comments, nil
-}
-
-func (t *Textile) fileLikes(target string) ([]ThreadLikeInfo, error) {
-	likes := make([]ThreadLikeInfo, 0)
-
-	query := fmt.Sprintf("type=%d and target='%s'", repo.LikeBlock, target)
-	for _, block := range t.Blocks("", -1, query) {
-		info := ThreadLikeInfo{
-			Id:       block.Id,
-			Date:     block.Date,
-			AuthorId: block.AuthorId,
-			Username: t.ContactUsername(block.AuthorId),
-		}
-		likes = append(likes, info)
-	}
-
-	return likes, nil
 }
 
 // fileThreads lists threads that have blocks which target a file

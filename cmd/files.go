@@ -23,7 +23,7 @@ import (
 )
 
 var errMissingFilePath = errors.New("missing file path")
-var errMissingFileBlockId = errors.New("missing file block id")
+var errMissingFileId = errors.New("missing file block ID")
 var errNothingToAdd = errors.New("nothing to add")
 var errMissingTarget = errors.New("missing file(s) target")
 
@@ -31,6 +31,7 @@ func init() {
 	register(&addCmd{})
 	register(&lsCmd{})
 	register(&getCmd{})
+	register(&rmCmd{})
 	register(&keysCmd{})
 }
 
@@ -97,8 +98,28 @@ func (x *addCmd) Shell() *ishell.Cmd {
 }
 
 func callAdd(args []string, opts map[string]string) error {
-	if len(args) == 0 {
-		return errMissingFilePath
+	var pth string
+	var fi os.FileInfo
+
+	var err error
+	fi, err = os.Stdin.Stat()
+	if err != nil {
+		return err
+	}
+	if (fi.Mode() & os.ModeCharDevice) != 0 {
+		if len(args) == 0 {
+			return errMissingFilePath
+		}
+
+		pth, err = homedir.Expand(args[0])
+		if err != nil {
+			pth = args[0]
+		}
+
+		fi, err = os.Stat(pth)
+		if err != nil {
+			return err
+		}
 	}
 
 	group := opts["group"] == "true"
@@ -116,16 +137,6 @@ func callAdd(args []string, opts map[string]string) error {
 
 	if thrd.Schema == nil {
 		return core.ErrThreadSchemaRequired
-	}
-
-	pth, err := homedir.Expand(args[0])
-	if err != nil {
-		pth = args[0]
-	}
-
-	fi, err := os.Stat(pth)
-	if err != nil {
-		return err
 	}
 
 	var pths []string
@@ -153,35 +164,40 @@ func callAdd(args []string, opts map[string]string) error {
 
 		batches := batchPaths(pths, batchSize)
 		for i, batch := range batches {
-			res, err := millBatch(batch, thrd.Schema, verbose)
-			if err != nil {
-				return err
-			}
 
-			output(fmt.Sprintf("Milled batch %d/%d", i+1, len(batches)), nil)
+			ready := make(chan core.Directory, batchSize)
+			go millBatch(batch, thrd.Schema, ready, verbose)
 
-			if group {
-				for _, dir := range res {
-					if dir != nil {
-						dirs = append(dirs, dir)
-						count++
+			var cerr error
+		loop:
+			for {
+				select {
+				case dir, ok := <-ready:
+					if !ok {
+						break loop
 					}
-				}
-			} else {
-				for _, dir := range res {
-					if dir != nil {
+
+					if !group {
 						caption := strings.TrimSpace(fmt.Sprintf("%s (%d)", opts["caption"], count+1))
 						block, err := add([]core.Directory{dir}, threadId, caption, verbose)
 						if err != nil {
-							return err
+							cerr = err
+							break loop
 						}
 
 						output(fmt.Sprintf("File %d target: %s", count+1, block.Target), nil)
-
-						count++
+					} else {
+						dirs = append(dirs, dir)
 					}
+
+					count++
 				}
 			}
+			if cerr != nil {
+				return cerr
+			}
+
+			output(fmt.Sprintf("Milled batch %d/%d", i+1, len(batches)), nil)
 		}
 
 	} else {
@@ -245,19 +261,25 @@ func add(dirs []core.Directory, threadId string, caption string, verbose bool) (
 }
 
 func mill(pth string, node *schema.Node, verbose bool) (core.Directory, error) {
-	f, err := os.Open(pth)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
+	var f *os.File
+	if pth == "" {
+		f = os.Stdin
+	} else {
+		var err error
+		f, err = os.Open(pth)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
 
-	fi, err := f.Stat()
-	if err != nil {
-		return nil, err
-	}
+		fi, err := f.Stat()
+		if err != nil {
+			return nil, err
+		}
 
-	if fi.IsDir() {
-		return nil, nil
+		if fi.IsDir() {
+			return nil, nil
+		}
 	}
 
 	var reader io.ReadSeeker
@@ -285,6 +307,7 @@ func mill(pth string, node *schema.Node, verbose bool) (core.Directory, error) {
 			ctype = ct
 		}
 
+		var err error
 		res, file, err = handleStep(node.Mill, reader, mopts, ctype)
 		if err != nil {
 			return nil, err
@@ -361,27 +384,26 @@ func mill(pth string, node *schema.Node, verbose bool) (core.Directory, error) {
 	return dir, nil
 }
 
-func millBatch(pths []string, node *schema.Node, verbose bool) ([]core.Directory, error) {
-	tmp := make([]core.Directory, len(pths))
-
+func millBatch(pths []string, node *schema.Node, ready chan core.Directory, verbose bool) {
 	wg := sync.WaitGroup{}
-	for i, pth := range pths {
+
+	for _, pth := range pths {
 		wg.Add(1)
 
-		go func(i int, p string) {
+		go func(p string) {
 			dir, err := mill(p, node, verbose)
 			if err != nil {
 				output("mill error: "+err.Error(), nil)
 			} else {
-				tmp[i] = dir
+				ready <- dir
 			}
 			wg.Done()
-		}(i, pth)
+		}(pth)
 
 	}
-	wg.Wait()
 
-	return tmp, nil
+	wg.Wait()
+	close(ready)
 }
 
 func batchPaths(pths []string, size int) [][]string {
@@ -525,7 +547,7 @@ func (x *getCmd) Shell() *ishell.Cmd {
 
 func callGet(args []string) error {
 	if len(args) == 0 {
-		return errMissingFileBlockId
+		return errMissingFileId
 	}
 
 	var info core.ThreadFilesInfo
@@ -535,6 +557,35 @@ func callGet(args []string) error {
 	}
 
 	output(res, nil)
+	return nil
+}
+
+type rmCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
+
+func (x *rmCmd) Name() string {
+	return "ignore"
+}
+
+func (x *rmCmd) Short() string {
+	return "Ignore a thread file"
+}
+
+func (x *rmCmd) Long() string {
+	return `
+Ignores a thread file by its block ID.
+This adds an "ignore" thread block targeted at the file.
+Ignored blocks are by default not returned when listing. 
+`
+}
+
+func (x *rmCmd) Execute(args []string) error {
+	setApi(x.Client)
+	return callRmBlocks(args)
+}
+
+func (x *rmCmd) Shell() *ishell.Cmd {
 	return nil
 }
 

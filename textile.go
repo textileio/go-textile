@@ -431,6 +431,9 @@ func startNode() error {
 				}
 				date := note.Date.Format(time.RFC822)
 				username := node.ContactUsername(note.ActorId)
+				if username != "" {
+					username += " "
+				}
 
 				var subject string
 				if len(note.SubjectId) >= 7 {
