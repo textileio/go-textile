@@ -116,7 +116,7 @@ func (x *lsCommentsCmd) Shell() *ishell.Cmd {
 }
 
 func callLsComments(opts map[string]string) error {
-	var list *[]core.ThreadCommentInfo
+	var list []core.ThreadCommentInfo
 	res, err := executeJsonCmd(GET, "blocks/"+opts["block"]+"/comments", params{}, &list)
 	if err != nil {
 		return err

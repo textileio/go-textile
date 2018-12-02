@@ -1,7 +1,11 @@
 package cmd
 
 import (
+	"bufio"
 	"errors"
+	"fmt"
+	"os"
+	"strconv"
 
 	"github.com/textileio/textile-go/core"
 	"gopkg.in/abiosoft/ishell.v2"
@@ -57,6 +61,8 @@ func (x *blocksCmd) Shell() *ishell.Cmd {
 type lsBlocksCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
+	Offset string        `short:"o" long:"offset" description:"Offset ID to start listing from."`
+	Limit  string        `short:"l" long:"limit" description:"List page size." default:"5"`
 }
 
 func (x *lsBlocksCmd) Name() string {
@@ -64,17 +70,19 @@ func (x *lsBlocksCmd) Name() string {
 }
 
 func (x *lsBlocksCmd) Short() string {
-	return "List thread blocks"
+	return "Paginate thread blocks"
 }
 
 func (x *lsBlocksCmd) Long() string {
-	return "List blocks on a thread block."
+	return "Paginates blocks in a thread."
 }
 
 func (x *lsBlocksCmd) Execute(args []string) error {
 	setApi(x.Client)
 	opts := map[string]string{
 		"thread": x.Thread,
+		"offset": x.Offset,
+		"limit":  x.Limit,
 	}
 	return callLsBlocks(opts)
 }
@@ -88,13 +96,33 @@ func callLsBlocks(opts map[string]string) error {
 		opts["thread"] = "default"
 	}
 
-	var list *[]core.BlockInfo
+	var list []core.BlockInfo
 	res, err := executeJsonCmd(GET, "blocks", params{opts: opts}, &list)
 	if err != nil {
 		return err
 	}
+
 	output(res, nil)
-	return nil
+
+	limit, err := strconv.Atoi(opts["limit"])
+	if err != nil {
+		return err
+	}
+	if len(list) < limit {
+		return nil
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("next page...")
+	if _, err := reader.ReadString('\n'); err != nil {
+		return err
+	}
+
+	return callLsBlocks(map[string]string{
+		"thread": opts["thread"],
+		"offset": list[len(list)-1].Id,
+		"limit":  opts["limit"],
+	})
 }
 
 type getBlocksCmd struct {
@@ -110,7 +138,7 @@ func (x *getBlocksCmd) Short() string {
 }
 
 func (x *getBlocksCmd) Long() string {
-	return "Gets a thread block by its ID."
+	return "Gets a thread block by ID."
 }
 
 func (x *getBlocksCmd) Execute(args []string) error {

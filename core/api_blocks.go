@@ -39,15 +39,23 @@ func (a *api) lsBlocks(g *gin.Context) {
 		}
 	}
 
+	infos := make([]BlockInfo, 0)
 	query := fmt.Sprintf("threadId='%s'", thrd.Id)
-	list := a.node.datastore.Blocks().List(opts["offset"], limit, query)
+	for _, block := range a.node.datastore.Blocks().List(opts["offset"], limit, query) {
+		infos = append(infos, BlockInfo{
+			Id:       block.Id,
+			ThreadId: block.ThreadId,
+			AuthorId: block.AuthorId,
+			Username: a.node.ContactUsername(block.AuthorId),
+			Type:     block.Type.Description(),
+			Date:     block.Date,
+			Parents:  block.Parents,
+			Target:   block.Target,
+			Body:     block.Body,
+		})
+	}
 
-	//if err != nil {
-	//	g.String(http.StatusBadRequest, err.Error())
-	//	return
-	//}
-
-	g.JSON(http.StatusOK, list)
+	g.JSON(http.StatusOK, infos)
 }
 
 func (a *api) getBlocks(g *gin.Context) {

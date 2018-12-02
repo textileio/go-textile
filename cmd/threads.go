@@ -171,7 +171,7 @@ func (x *lsThreadsCmd) Shell() *ishell.Cmd {
 }
 
 func callLsThreads() error {
-	var list *[]core.ThreadInfo
+	var list []core.ThreadInfo
 	res, err := executeJsonCmd(GET, "threads", params{}, &list)
 	if err != nil {
 		return err

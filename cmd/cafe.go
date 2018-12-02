@@ -101,7 +101,7 @@ func (x *lsCafesCmd) Shell() *ishell.Cmd {
 }
 
 func callLsCafes() error {
-	var list *[]repo.CafeSession
+	var list []repo.CafeSession
 	res, err := executeJsonCmd(GET, "cafes", params{}, &list)
 	if err != nil {
 		return err

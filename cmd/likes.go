@@ -109,7 +109,7 @@ func (x *lsLikesCmd) Shell() *ishell.Cmd {
 }
 
 func callLsLikes(opts map[string]string) error {
-	var list *[]core.ThreadLikeInfo
+	var list []core.ThreadLikeInfo
 	res, err := executeJsonCmd(GET, "blocks/"+opts["block"]+"/likes", params{}, &list)
 	if err != nil {
 		return err
