@@ -30,7 +30,7 @@ func (x *likesCmd) Short() string {
 
 func (x *likesCmd) Long() string {
 	return `
-Likes are added as blocks in a thread which target
+Likes are added as blocks in a thread, which target
 another block, usually a file(s).
 Use this command to add, list, get, and ignore likes.
 `

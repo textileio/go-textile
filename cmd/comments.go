@@ -31,7 +31,7 @@ func (x *commentsCmd) Short() string {
 
 func (x *commentsCmd) Long() string {
 	return `
-Comments are added as blocks in a thread which target
+Comments are added as blocks in a thread, which target
 another block, usually a file(s).
 Use this command to add, list, get, and ignore comments.
 `

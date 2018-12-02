@@ -31,6 +31,7 @@ func init() {
 	register(&addCmd{})
 	register(&lsCmd{})
 	register(&getCmd{})
+	register(&rmCmd{})
 	register(&keysCmd{})
 }
 
@@ -556,6 +557,35 @@ func callGet(args []string) error {
 	}
 
 	output(res, nil)
+	return nil
+}
+
+type rmCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
+
+func (x *rmCmd) Name() string {
+	return "ignore"
+}
+
+func (x *rmCmd) Short() string {
+	return "Ignore a thread file"
+}
+
+func (x *rmCmd) Long() string {
+	return `
+Ignores a thread file by its block ID.
+This adds an "ignore" thread block targeted at the file.
+Ignored blocks are by default not returned when listing. 
+`
+}
+
+func (x *rmCmd) Execute(args []string) error {
+	setApi(x.Client)
+	return callRmBlocks(args)
+}
+
+func (x *rmCmd) Shell() *ishell.Cmd {
 	return nil
 }
 

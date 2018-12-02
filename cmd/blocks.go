@@ -165,7 +165,7 @@ func callGetBlocks(args []string) error {
 
 func callRmBlocks(args []string) error {
 	if len(args) == 0 {
-		return errMissingLikeId
+		return errMissingBlockId
 	}
 	var info *core.BlockInfo
 	res, err := executeJsonCmd(DEL, "blocks/"+args[0], params{}, &info)
