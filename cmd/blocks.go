@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/textileio/textile-go/core"
-	"gopkg.in/abiosoft/ishell.v2"
 )
 
 var errMissingBlockId = errors.New("missing block ID")
@@ -52,10 +51,6 @@ There are several thread types:
   
 Use this command to get and list blocks in a thread.
 `
-}
-
-func (x *blocksCmd) Shell() *ishell.Cmd {
-	return nil
 }
 
 type lsBlocksCmd struct {

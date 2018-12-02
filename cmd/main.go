@@ -45,7 +45,6 @@ type Cmd interface {
 	Name() string
 	Short() string
 	Long() string
-	Shell() *ishell.Cmd
 }
 
 func Cmds() []Cmd {

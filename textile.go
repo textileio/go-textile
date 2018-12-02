@@ -83,11 +83,7 @@ type daemonCmd struct {
 	RepoPath string `short:"r" long:"repo-dir" description:"Specify a custom repository path."`
 }
 
-type shellCmd struct {
-	Client cmd.ClientOptions `group:"Client Options"`
-}
-
-var shell *ishell.Shell
+//var shell *ishell.Shell
 var node *core.Textile
 
 var parser = flags.NewParser(&options{}, flags.Default)
@@ -110,10 +106,6 @@ func init() {
 		"Migrate the node repo and exit",
 		"Migrate the node repository and exit.",
 		&migrateCmd{})
-	parser.AddCommand("shell",
-		"Start a shell session",
-		"Start an interactive command shell session.",
-		&shellCmd{})
 	parser.AddCommand("daemon",
 		"Start the daemon",
 		"Start a node daemon session.",
@@ -301,30 +293,23 @@ func (x *daemonCmd) Execute(args []string) error {
 	return nil
 }
 
-func (x *shellCmd) Execute(args []string) error {
-	shell = ishell.New()
-	shell.SetHomeHistoryPath(".ishell_history")
-
-	// handle interrupt
-	shell.Interrupt(func(c *ishell.Context, count int, input string) {
-		if count == 1 {
-			shell.Println("input Ctrl-C once more to exit")
-			return
-		}
-		shell.Println("interrupted")
-		os.Exit(1)
-	})
-
-	// add all commands w/ shell counterparts
-	for _, c := range cmd.Cmds() {
-		if c.Shell() != nil {
-			shell.AddCmd(c.Shell())
-		}
-	}
-
-	cmd.RunShell(shell, x.Client)
-	return nil
-}
+//func (x *shellCmd) Execute(args []string) error {
+//	shell = ishell.New()
+//	shell.SetHomeHistoryPath(".ishell_history")
+//
+//	// handle interrupt
+//	shell.Interrupt(func(c *ishell.Context, count int, input string) {
+//		if count == 1 {
+//			shell.Println("input Ctrl-C once more to exit")
+//			return
+//		}
+//		shell.Println("interrupted")
+//		os.Exit(1)
+//	})
+//
+//	cmd.RunShell(shell, x.Client)
+//	return nil
+//}
 
 func getRepoPath(repoPath string) (string, error) {
 	if len(repoPath) == 0 {
