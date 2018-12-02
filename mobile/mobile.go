@@ -244,6 +244,10 @@ func (m *Mobile) OnlineCh() <-chan struct{} {
 
 // PeerId returns the ipfs peer id
 func (m *Mobile) PeerId() (string, error) {
+	if !m.node.Started() {
+		return "", core.ErrStopped
+	}
+
 	pid, err := m.node.PeerId()
 	if err != nil {
 		return "", err
@@ -253,8 +257,8 @@ func (m *Mobile) PeerId() (string, error) {
 
 // Overview calls core Overview
 func (m *Mobile) Overview() (string, error) {
-	if !m.node.Online() {
-		return "", core.ErrOffline
+	if !m.node.Started() {
+		return "", core.ErrStopped
 	}
 
 	stats, err := m.node.Overview()

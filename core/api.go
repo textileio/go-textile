@@ -164,6 +164,13 @@ func (a *api) Start() {
 			cafes.DELETE("/:id", a.rmCafes)
 			cafes.POST("/messages", a.checkCafeMessages)
 		}
+
+		swarm := v0.Group("/swarm")
+		{
+			swarm.POST("/connect", a.swarmConnect)
+			swarm.GET("/peers", a.swarmPeers)
+		}
+
 	}
 	a.server = &http.Server{
 		Addr:    a.addr,

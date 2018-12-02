@@ -63,33 +63,6 @@ func PrintSwarmAddrs(node *core.IpfsNode) error {
 	return nil
 }
 
-// PeersWithAddresses is a function that takes in a slice of string peer addresses
-// (multiaddr + peerid) and returns a slice of properly constructed peers
-func PeersWithAddresses(addrs []string) ([]pstore.PeerInfo, error) {
-	iaddrs, err := parseAddresses(addrs)
-	if err != nil {
-		return nil, err
-	}
-	peers := make(map[peer.ID][]ma.Multiaddr, len(iaddrs))
-	for _, iaddr := range iaddrs {
-		id := iaddr.ID()
-		current, ok := peers[id]
-		if tpt := iaddr.Transport(); tpt != nil {
-			peers[id] = append(current, tpt)
-		} else if !ok {
-			peers[id] = nil
-		}
-	}
-	pis := make([]pstore.PeerInfo, 0, len(peers))
-	for id, maddrs := range peers {
-		pis = append(pis, pstore.PeerInfo{
-			ID:    id,
-			Addrs: maddrs,
-		})
-	}
-	return pis, nil
-}
-
 // PublicIPv4Addr uses the ipfs NAT traveral result to locate a (possibly) public ipv4 address.
 // this method is used to inform cafe clients of the http api address
 func PublicIPv4Addr(node *core.IpfsNode) (string, error) {
@@ -138,6 +111,34 @@ func parseAddresses(addrs []string) (iaddrs []ipfsaddr.IPFSAddr, err error) {
 		}
 	}
 	return
+}
+
+// peersWithAddresses is a function that takes in a slice of string peer addresses
+// (multiaddr + peerid) and returns a slice of properly constructed peers
+func peersWithAddresses(addrs []string) ([]pstore.PeerInfo, error) {
+	iaddrs, err := parseAddresses(addrs)
+	if err != nil {
+		return nil, err
+	}
+
+	peers := make(map[peer.ID][]ma.Multiaddr, len(iaddrs))
+	for _, iaddr := range iaddrs {
+		id := iaddr.ID()
+		current, ok := peers[id]
+		if tpt := iaddr.Transport(); tpt != nil {
+			peers[id] = append(current, tpt)
+		} else if !ok {
+			peers[id] = nil
+		}
+	}
+	pis := make([]pstore.PeerInfo, 0, len(peers))
+	for id, maddrs := range peers {
+		pis = append(pis, pstore.PeerInfo{
+			ID:    id,
+			Addrs: maddrs,
+		})
+	}
+	return pis, nil
 }
 
 // publicIPv4 returns true if the given ip is not reserved for a private address.

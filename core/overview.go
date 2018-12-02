@@ -8,7 +8,6 @@ import (
 
 // Overview is a wallet overview object
 type Overview struct {
-	SwarmSize        int `json:"swarm_size"`
 	AccountPeerCount int `json:"account_peer_cnt"`
 	ThreadCount      int `json:"thread_cnt"`
 	FileCount        int `json:"file_cnt"`
@@ -17,17 +16,11 @@ type Overview struct {
 
 // Overview returns an overview object
 func (t *Textile) Overview() (*Overview, error) {
-	swarm, err := t.Peers()
-	if err != nil {
-		return nil, err
-	}
-
 	threads := t.datastore.Threads().Count()
 	files := t.datastore.Blocks().Count(fmt.Sprintf("type=%d", repo.FilesBlock))
 	contacts := t.datastore.Contacts().Count()
 
 	return &Overview{
-		SwarmSize:        len(swarm),
 		AccountPeerCount: 0,
 		ThreadCount:      threads,
 		FileCount:        files,

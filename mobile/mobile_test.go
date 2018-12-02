@@ -404,7 +404,6 @@ func TestMobile_PhotoDataForMinWidth(t *testing.T) {
 }
 
 func TestMobile_Overview(t *testing.T) {
-	<-mobile1.OnlineCh()
 	res, err := mobile1.Overview()
 	if err != nil {
 		t.Errorf("get overview failed: %s", err)
@@ -418,6 +417,7 @@ func TestMobile_Overview(t *testing.T) {
 }
 
 func TestMobile_SetUsername(t *testing.T) {
+	<-mobile1.OnlineCh()
 	if err := mobile1.SetUsername("boomer"); err != nil {
 		t.Errorf("set username failed: %s", err)
 		return
