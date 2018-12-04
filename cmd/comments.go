@@ -72,7 +72,7 @@ type lsCommentsCmd struct {
 func (x *lsCommentsCmd) Usage() string {
 	return `
 
-List comments on a thread block.`
+Lists comments on a thread block.`
 }
 
 func (x *lsCommentsCmd) Execute(args []string) error {

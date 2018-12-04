@@ -65,7 +65,7 @@ type lsLikesCmd struct {
 func (x *lsLikesCmd) Usage() string {
 	return `
 
-List likes on a thread block.`
+Lists likes on a thread block.`
 }
 
 func (x *lsLikesCmd) Execute(args []string) error {

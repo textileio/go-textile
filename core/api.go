@@ -157,6 +157,12 @@ func (a *api) Start() {
 			invites.POST("/:id/ignore", a.ignoreInvites)
 		}
 
+		notifs := v0.Group("/notifications")
+		{
+			notifs.GET("", a.lsNotifications)
+			notifs.POST("/:id/read", a.readNotifications)
+		}
+
 		cafes := v0.Group("/cafes")
 		{
 			cafes.POST("", a.addCafes)

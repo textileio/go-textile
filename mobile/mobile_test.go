@@ -16,7 +16,6 @@ import (
 	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
 type TestMessenger struct{}
@@ -493,7 +492,7 @@ func TestMobile_Notifications(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	var notes []repo.Notification
+	var notes []core.NotificationInfo
 	if err := json.Unmarshal([]byte(res), &notes); err != nil {
 		t.Error(err)
 		return
