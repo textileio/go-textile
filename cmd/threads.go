@@ -24,6 +24,7 @@ type threadsCmd struct {
 	List       lsThreadsCmd         `command:"ls" description:"List threads"`
 	Get        getThreadsCmd        `command:"get" description:"Get a thread"`
 	GetDefault getDefaultThreadsCmd `command:"default" description:"Get default thread"`
+	Peers      peersThreadsCmd      `command:"peers" description:"List thread peers"`
 	Remove     rmThreadsCmd         `command:"rm" description:"Remove a thread"`
 }
 
@@ -126,7 +127,7 @@ func callAddThreads(args []string, opts map[string]string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
 
@@ -147,7 +148,7 @@ func (x *lsThreadsCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
 
@@ -171,7 +172,7 @@ func (x *getThreadsCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
 
@@ -192,7 +193,34 @@ func (x *getDefaultThreadsCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
+	return nil
+}
+
+type peersThreadsCmd struct {
+	Client ClientOptions `group:"Client Options"`
+	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
+}
+
+func (x *peersThreadsCmd) Usage() string {
+	return `
+
+Lists all peers in a thread.
+Omit the --thread option to use the default thread (if selected).
+`
+}
+
+func (x *peersThreadsCmd) Execute(args []string) error {
+	setApi(x.Client)
+	if x.Thread == "" {
+		x.Thread = "default"
+	}
+	var result []core.ContactInfo
+	res, err := executeJsonCmd(GET, "threads/"+x.Thread+"/peers", params{}, &result)
+	if err != nil {
+		return err
+	}
+	output(res)
 	return nil
 }
 
@@ -215,6 +243,6 @@ func (x *rmThreadsCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }

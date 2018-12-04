@@ -53,7 +53,7 @@ func (x *addLikesCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
 
@@ -75,7 +75,7 @@ func (x *lsLikesCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
 
@@ -99,7 +99,7 @@ func (x *getLikesCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
 

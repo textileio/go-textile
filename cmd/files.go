@@ -155,7 +155,7 @@ func callAdd(args []string, opts map[string]string) error {
 		if len(pths) != 1 {
 			msg += "s"
 		}
-		output(msg, nil)
+		output(msg)
 
 		batches := batchPaths(pths, batchSize)
 		for i, batch := range batches {
@@ -180,7 +180,7 @@ func callAdd(args []string, opts map[string]string) error {
 							break loop
 						}
 
-						output(fmt.Sprintf("File %d target: %s", count+1, block.Target), nil)
+						output(fmt.Sprintf("File %d target: %s", count+1, block.Target))
 					} else {
 						dirs = append(dirs, dir)
 					}
@@ -192,7 +192,7 @@ func callAdd(args []string, opts map[string]string) error {
 				return cerr
 			}
 
-			output(fmt.Sprintf("Milled batch %d/%d", i+1, len(batches)), nil)
+			output(fmt.Sprintf("Milled batch %d/%d", i+1, len(batches)))
 		}
 
 	} else {
@@ -205,7 +205,7 @@ func callAdd(args []string, opts map[string]string) error {
 		if err != nil {
 			return err
 		}
-		output(fmt.Sprintf("File target: %s", block.Target), nil)
+		output(fmt.Sprintf("File target: %s", block.Target))
 
 		count++
 	}
@@ -215,7 +215,7 @@ func callAdd(args []string, opts map[string]string) error {
 		if err != nil {
 			return err
 		}
-		output(fmt.Sprintf("Group target: %s", block.Target), nil)
+		output(fmt.Sprintf("Group target: %s", block.Target))
 	}
 
 	dur := time.Now().Sub(start)
@@ -228,7 +228,7 @@ func callAdd(args []string, opts map[string]string) error {
 	if count != 1 {
 		msg += "s"
 	}
-	output(fmt.Sprintf("%s in %s", msg, dur.String()), nil)
+	output(fmt.Sprintf("%s in %s", msg, dur.String()))
 
 	return nil
 }
@@ -250,7 +250,7 @@ func add(dirs []core.Directory, threadId string, caption string, verbose bool) (
 	}
 
 	if verbose {
-		output(res, nil)
+		output(res)
 	}
 	return block, nil
 }
@@ -309,7 +309,7 @@ func mill(pth string, node *schema.Node, verbose bool) (core.Directory, error) {
 		}
 
 		if verbose {
-			output(res, nil)
+			output(res)
 		}
 
 		dir[schema.SingleFileTag] = *file
@@ -367,7 +367,7 @@ func mill(pth string, node *schema.Node, verbose bool) (core.Directory, error) {
 			}
 
 			if verbose {
-				output(res, nil)
+				output(res)
 			}
 
 			dir[step.Name] = *file
@@ -388,7 +388,7 @@ func millBatch(pths []string, node *schema.Node, ready chan core.Directory, verb
 		go func(p string) {
 			dir, err := mill(p, node, verbose)
 			if err != nil {
-				output("mill error: "+err.Error(), nil)
+				output("mill error: " + err.Error())
 			} else {
 				ready <- dir
 			}
@@ -486,7 +486,7 @@ func callLs(opts map[string]string) error {
 		return err
 	}
 
-	output(res, nil)
+	output(res)
 
 	limit, err := strconv.Atoi(opts["limit"])
 	if err != nil {
@@ -539,7 +539,7 @@ func (x *getCmd) Execute(args []string) error {
 		return err
 	}
 
-	output(res, nil)
+	output(res)
 	return nil
 }
 
@@ -598,6 +598,6 @@ func (x *keysCmd) Execute(args []string) error {
 		return err
 	}
 
-	output(res, nil)
+	output(res)
 	return nil
 }

@@ -109,6 +109,29 @@ func (a *api) getThreads(g *gin.Context) {
 	g.JSON(http.StatusOK, info)
 }
 
+func (a *api) peersThreads(g *gin.Context) {
+	id := g.Param("id")
+	if id == "default" {
+		id = a.node.config.Threads.Defaults.ID
+	}
+
+	thrd := a.node.Thread(id)
+	if thrd == nil {
+		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
+		return
+	}
+
+	contacts := make([]ContactInfo, 0)
+	for _, p := range thrd.Peers() {
+		contact := a.node.Contact(p.Id)
+		if contact != nil {
+			contacts = append(contacts, *contact)
+		}
+	}
+
+	g.JSON(http.StatusOK, contacts)
+}
+
 func (a *api) rmThreads(g *gin.Context) {
 	id := g.Param("id")
 	thrd := a.node.Thread(id)

@@ -58,7 +58,7 @@ func (x *swarmConnectCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
 
@@ -90,6 +90,6 @@ func (x *swarmPeersCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }

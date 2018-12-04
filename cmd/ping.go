@@ -26,6 +26,6 @@ func (x *pingCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }

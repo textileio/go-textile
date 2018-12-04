@@ -60,7 +60,7 @@ func (x *addCommentsCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
 
@@ -82,7 +82,7 @@ func (x *lsCommentsCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
 
@@ -106,7 +106,7 @@ func (x *getCommentsCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
 

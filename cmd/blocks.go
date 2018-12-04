@@ -88,7 +88,7 @@ func callLsBlocks(opts map[string]string) error {
 		return err
 	}
 
-	output(res, nil)
+	output(res)
 
 	limit, err := strconv.Atoi(opts["limit"])
 	if err != nil {
@@ -132,7 +132,7 @@ func (x *getBlocksCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
 
@@ -145,6 +145,6 @@ func callRmBlocks(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }

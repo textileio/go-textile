@@ -77,7 +77,7 @@ func (x *subCmd) Execute(args []string) error {
 		} else if err != nil {
 			return err
 		}
-		output(string(data), nil)
+		output(string(data))
 	}
 	return nil
 }

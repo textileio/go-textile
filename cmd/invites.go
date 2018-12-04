@@ -71,7 +71,7 @@ func (x *createInvitesCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
 
@@ -92,7 +92,7 @@ func (x *lsInvitesCmd) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
 
@@ -124,7 +124,7 @@ func (x *acceptInvitesCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
 
@@ -150,6 +150,6 @@ func (x *ignoreInvitesCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
