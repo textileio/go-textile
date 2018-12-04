@@ -19,7 +19,6 @@ import (
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema"
-	"gopkg.in/abiosoft/ishell.v2"
 )
 
 var errMissingFilePath = errors.New("missing file path")
@@ -91,10 +90,6 @@ func (x *addCmd) Execute(args []string) error {
 		"verbose": strconv.FormatBool(x.Verbose),
 	}
 	return callAdd(args, opts)
-}
-
-func (x *addCmd) Shell() *ishell.Cmd {
-	return nil
 }
 
 func callAdd(args []string, opts map[string]string) error {
@@ -455,7 +450,7 @@ type lsCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for all."`
 	Offset string        `short:"o" long:"offset" description:"Offset ID to start listing from."`
-	Limit  string        `short:"l" long:"limit" description:"List page size." default:"5"`
+	Limit  int           `short:"l" long:"limit" description:"List page size." default:"5"`
 }
 
 func (x *lsCmd) Name() string {
@@ -479,13 +474,9 @@ func (x *lsCmd) Execute(args []string) error {
 	opts := map[string]string{
 		"thread": x.Thread,
 		"offset": x.Offset,
-		"limit":  x.Limit,
+		"limit":  strconv.Itoa(x.Limit),
 	}
 	return callLs(opts)
-}
-
-func (x *lsCmd) Shell() *ishell.Cmd {
-	return nil
 }
 
 func callLs(opts map[string]string) error {
@@ -538,14 +529,6 @@ Gets a thread file by specifying a Thread Block ID.
 
 func (x *getCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callGet(args)
-}
-
-func (x *getCmd) Shell() *ishell.Cmd {
-	return nil
-}
-
-func callGet(args []string) error {
 	if len(args) == 0 {
 		return errMissingFileId
 	}
@@ -585,10 +568,6 @@ func (x *rmCmd) Execute(args []string) error {
 	return callRmBlocks(args)
 }
 
-func (x *rmCmd) Shell() *ishell.Cmd {
-	return nil
-}
-
 type keysCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
@@ -609,14 +588,6 @@ Shows file keys under the given target from an add.
 
 func (x *keysCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callKeys(args)
-}
-
-func (x *keysCmd) Shell() *ishell.Cmd {
-	return nil
-}
-
-func callKeys(args []string) error {
 	if len(args) == 0 {
 		return errMissingTarget
 	}

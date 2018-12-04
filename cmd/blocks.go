@@ -57,7 +57,7 @@ type lsBlocksCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
 	Offset string        `short:"o" long:"offset" description:"Offset ID to start listing from."`
-	Limit  string        `short:"l" long:"limit" description:"List page size." default:"5"`
+	Limit  int           `short:"l" long:"limit" description:"List page size." default:"5"`
 }
 
 func (x *lsBlocksCmd) Usage() string {
@@ -72,7 +72,7 @@ func (x *lsBlocksCmd) Execute(args []string) error {
 	opts := map[string]string{
 		"thread": x.Thread,
 		"offset": x.Offset,
-		"limit":  x.Limit,
+		"limit":  strconv.Itoa(x.Limit),
 	}
 	return callLsBlocks(opts)
 }

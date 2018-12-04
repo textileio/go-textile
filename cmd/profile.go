@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/textileio/textile-go/core"
-	"gopkg.in/abiosoft/ishell.v2"
 )
 
 var errMissingUsername = errors.New("missing username")
@@ -15,8 +14,8 @@ func init() {
 }
 
 type profileCmd struct {
-	Get getProfileCmd `command:"get"`
-	Set setProfileCmd `command:"set"`
+	Get getProfileCmd `command:"get" description:"Get profile"`
+	Set setProfileCmd `command:"set" description:"Set profile fields"`
 }
 
 func (x *profileCmd) Name() string {
@@ -36,37 +35,19 @@ i.e., mobile, desktop, etc.
 `
 }
 
-func (x *profileCmd) Shell() *ishell.Cmd {
-	return nil
-}
-
 type getProfileCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Peer   string        `short:"p" long:"peer" description:"Fetch a remote peer's public profile'."`
 }
 
-func (x *getProfileCmd) Name() string {
-	return "get"
-}
+func (x *getProfileCmd) Usage() string {
+	return `
 
-func (x *getProfileCmd) Short() string {
-	return "Get profile"
-}
-
-func (x *getProfileCmd) Long() string {
-	return "Gets the local node's public IPNS-based profile."
+Gets the local node's public IPNS-based profile.`
 }
 
 func (x *getProfileCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callGetProfile()
-}
-
-func (x *getProfileCmd) Shell() *ishell.Cmd {
-	return nil
-}
-
-func callGetProfile() error {
 	var profile *core.Profile
 	res, err := executeJsonCmd(GET, "profile", params{}, &profile)
 	if err != nil {
@@ -77,52 +58,28 @@ func callGetProfile() error {
 }
 
 type setProfileCmd struct {
-	Username setUsernameCmd `command:"username"`
-	Avatar   setAvatarCmd   `command:"avatar"`
+	Username setUsernameCmd `command:"username" description:"Set username"`
+	Avatar   setAvatarCmd   `command:"avatar" description:"Set avatar"`
 }
 
-func (x *setProfileCmd) Name() string {
-	return "set"
-}
+func (x *setProfileCmd) Usage() string {
+	return `
 
-func (x *setProfileCmd) Short() string {
-	return "Set profile fields"
-}
-
-func (x *setProfileCmd) Long() string {
-	return "Sets public profile username and avatar."
-}
-
-func (x *setProfileCmd) Shell() *ishell.Cmd {
-	return nil
+Sets public profile username and avatar.`
 }
 
 type setUsernameCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *setUsernameCmd) Name() string {
-	return "username"
-}
+func (x *setUsernameCmd) Usage() string {
+	return `
 
-func (x *setUsernameCmd) Short() string {
-	return "Set username"
-}
-
-func (x *setUsernameCmd) Long() string {
-	return "Sets public profile username."
+Sets public profile username.`
 }
 
 func (x *setUsernameCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callSetUsername(args)
-}
-
-func (x *setUsernameCmd) Shell() *ishell.Cmd {
-	return nil
-}
-
-func callSetUsername(args []string) error {
 	if len(args) == 0 {
 		return errMissingUsername
 	}
@@ -138,28 +95,14 @@ type setAvatarCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *setAvatarCmd) Name() string {
-	return "avatar"
-}
+func (x *setAvatarCmd) Usage() string {
+	return `
 
-func (x *setAvatarCmd) Short() string {
-	return "Set avatar"
-}
-
-func (x *setAvatarCmd) Long() string {
-	return "Sets public profile avatar by specifying an existing image file hash."
+Sets public profile avatar by specifying an existing image file hash.`
 }
 
 func (x *setAvatarCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callSetAvatar(args)
-}
-
-func (x *setAvatarCmd) Shell() *ishell.Cmd {
-	return nil
-}
-
-func callSetAvatar(args []string) error {
 	if len(args) == 0 {
 		return errMissingAvatar
 	}
