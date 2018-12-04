@@ -104,6 +104,7 @@ func (a *api) Start() {
 			threads.GET("/:id", a.getThreads)
 			threads.GET("/:id/peers", a.peersThreads)
 			threads.DELETE("/:id", a.rmThreads)
+			threads.POST("/:id/messages", a.addThreadMessages)
 			threads.POST("/:id/files", a.addThreadFiles)
 		}
 
@@ -130,6 +131,12 @@ func (a *api) Start() {
 					likes.GET("", a.lsBlockLikes)
 				}
 			}
+		}
+
+		messages := v0.Group("/messages")
+		{
+			messages.GET("", a.lsThreadMessages)
+			messages.GET("/:block", a.getThreadMessages)
 		}
 
 		files := v0.Group("/files")

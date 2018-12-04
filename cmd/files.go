@@ -518,12 +518,12 @@ func (x *getCmd) Name() string {
 }
 
 func (x *getCmd) Short() string {
-	return "Get a thread file"
+	return "Get a thread file by ID"
 }
 
 func (x *getCmd) Long() string {
 	return `
-Gets a thread file by specifying a Thread Block ID.
+Gets a thread file by block ID.
 `
 }
 
