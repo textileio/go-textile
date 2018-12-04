@@ -16,7 +16,6 @@ import (
 	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
 type TestMessenger struct{}
@@ -404,7 +403,6 @@ func TestMobile_PhotoDataForMinWidth(t *testing.T) {
 }
 
 func TestMobile_Overview(t *testing.T) {
-	<-mobile1.OnlineCh()
 	res, err := mobile1.Overview()
 	if err != nil {
 		t.Errorf("get overview failed: %s", err)
@@ -418,6 +416,7 @@ func TestMobile_Overview(t *testing.T) {
 }
 
 func TestMobile_SetUsername(t *testing.T) {
+	<-mobile1.OnlineCh()
 	if err := mobile1.SetUsername("boomer"); err != nil {
 		t.Errorf("set username failed: %s", err)
 		return
@@ -493,7 +492,7 @@ func TestMobile_Notifications(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	var notes []repo.Notification
+	var notes []core.NotificationInfo
 	if err := json.Unmarshal([]byte(res), &notes); err != nil {
 		t.Error(err)
 		return

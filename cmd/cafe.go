@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/textileio/textile-go/repo"
-	"gopkg.in/abiosoft/ishell.v2"
 )
 
 var errMissingCafeId = errors.New("missing cafe id")
@@ -14,11 +13,11 @@ func init() {
 }
 
 type cafesCmd struct {
-	Add      addCafesCmd          `command:"add"`
-	List     lsCafesCmd           `command:"ls"`
-	Get      getCafesCmd          `command:"get"`
-	Remove   rmCafesCmd           `command:"rm"`
-	Messages checkCafeMessagesCmd `command:"messages"`
+	Add      addCafesCmd          `command:"add" description:"Register with a cafe"`
+	List     lsCafesCmd           `command:"ls" description:"List cafes"`
+	Get      getCafesCmd          `command:"get" description:"Get a cafe"`
+	Remove   rmCafesCmd           `command:"rm" description:"Remove a cafe"`
+	Messages checkCafeMessagesCmd `command:"messages" description:"Checks cafe messages"`
 }
 
 func (x *cafesCmd) Name() string {
@@ -36,42 +35,24 @@ Use this command to add, list, get, remove cafes and check messages.
 `
 }
 
-func (x *cafesCmd) Shell() *ishell.Cmd {
-	return nil
-}
-
 type addCafesCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *addCafesCmd) Name() string {
-	return "add"
-}
+func (x *addCafesCmd) Usage() string {
+	return ` 
 
-func (x *addCafesCmd) Short() string {
-	return "Register with a cafe"
-}
-
-func (x *addCafesCmd) Long() string {
-	return "Registers with a cafe and saves an expiring service session token."
+Registers with a cafe and saves an expiring service session token.`
 }
 
 func (x *addCafesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callAddCafes(args)
-}
-
-func (x *addCafesCmd) Shell() *ishell.Cmd {
-	return nil
-}
-
-func callAddCafes(args []string) error {
 	var info *repo.CafeSession
 	res, err := executeJsonCmd(POST, "cafes", params{args: args}, &info)
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
 
@@ -79,34 +60,20 @@ type lsCafesCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *lsCafesCmd) Name() string {
-	return "ls"
-}
+func (x *lsCafesCmd) Usage() string {
+	return `
 
-func (x *lsCafesCmd) Short() string {
-	return "List cafes"
-}
-
-func (x *lsCafesCmd) Long() string {
-	return "List info about all active cafe sessions."
+List info about all active cafe sessions.`
 }
 
 func (x *lsCafesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callLsCafes()
-}
-
-func (x *lsCafesCmd) Shell() *ishell.Cmd {
-	return nil
-}
-
-func callLsCafes() error {
 	var list []repo.CafeSession
 	res, err := executeJsonCmd(GET, "cafes", params{}, &list)
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
 
@@ -114,28 +81,15 @@ type getCafesCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *getCafesCmd) Name() string {
-	return "get"
-}
+func (x *getCafesCmd) Usage() string {
+	return `
 
-func (x *getCafesCmd) Short() string {
-	return "Get a cafe"
-}
-
-func (x *getCafesCmd) Long() string {
-	return "Gets and displays info about a cafe session."
+Gets and displays info about a cafe session.
+`
 }
 
 func (x *getCafesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callGetCafes(args)
-}
-
-func (x *getCafesCmd) Shell() *ishell.Cmd {
-	return nil
-}
-
-func callGetCafes(args []string) error {
 	if len(args) == 0 {
 		return errMissingCafeId
 	}
@@ -144,7 +98,7 @@ func callGetCafes(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
 
@@ -152,28 +106,12 @@ type rmCafesCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *rmCafesCmd) Name() string {
-	return "rm"
-}
-
-func (x *rmCafesCmd) Short() string {
-	return "Remove a cafe"
-}
-
-func (x *rmCafesCmd) Long() string {
+func (x *rmCafesCmd) Usage() string {
 	return "Deregisters a cafe (content will expire based on the cafe's service rules)."
 }
 
 func (x *rmCafesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callRmCafes(args)
-}
-
-func (x *rmCafesCmd) Shell() *ishell.Cmd {
-	return nil
-}
-
-func callRmCafes(args []string) error {
 	if len(args) == 0 {
 		return errMissingCafeId
 	}
@@ -181,7 +119,7 @@ func callRmCafes(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
 
@@ -189,32 +127,19 @@ type checkCafeMessagesCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *checkCafeMessagesCmd) Name() string {
-	return "check-mail"
-}
+func (x *checkCafeMessagesCmd) Usage() string {
+	return `
 
-func (x *checkCafeMessagesCmd) Short() string {
-	return "Checks mail at all cafes"
-}
-
-func (x *checkCafeMessagesCmd) Long() string {
-	return "Check for mail at all cafes. New messages are downloaded and processed opportunistically."
+Check for messages at all cafes. New messages are downloaded and processed opportunistically.
+`
 }
 
 func (x *checkCafeMessagesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callCheckCafeMessages()
-}
-
-func (x *checkCafeMessagesCmd) Shell() *ishell.Cmd {
-	return nil
-}
-
-func callCheckCafeMessages() error {
 	res, err := executeStringCmd(POST, "cafes/messages", params{})
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }

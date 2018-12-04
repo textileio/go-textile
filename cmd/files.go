@@ -19,7 +19,6 @@ import (
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema"
-	"gopkg.in/abiosoft/ishell.v2"
 )
 
 var errMissingFilePath = errors.New("missing file path")
@@ -93,10 +92,6 @@ func (x *addCmd) Execute(args []string) error {
 	return callAdd(args, opts)
 }
 
-func (x *addCmd) Shell() *ishell.Cmd {
-	return nil
-}
-
 func callAdd(args []string, opts map[string]string) error {
 	var pth string
 	var fi os.FileInfo
@@ -160,7 +155,7 @@ func callAdd(args []string, opts map[string]string) error {
 		if len(pths) != 1 {
 			msg += "s"
 		}
-		output(msg, nil)
+		output(msg)
 
 		batches := batchPaths(pths, batchSize)
 		for i, batch := range batches {
@@ -185,7 +180,7 @@ func callAdd(args []string, opts map[string]string) error {
 							break loop
 						}
 
-						output(fmt.Sprintf("File %d target: %s", count+1, block.Target), nil)
+						output(fmt.Sprintf("File %d target: %s", count+1, block.Target))
 					} else {
 						dirs = append(dirs, dir)
 					}
@@ -197,7 +192,7 @@ func callAdd(args []string, opts map[string]string) error {
 				return cerr
 			}
 
-			output(fmt.Sprintf("Milled batch %d/%d", i+1, len(batches)), nil)
+			output(fmt.Sprintf("Milled batch %d/%d", i+1, len(batches)))
 		}
 
 	} else {
@@ -210,7 +205,7 @@ func callAdd(args []string, opts map[string]string) error {
 		if err != nil {
 			return err
 		}
-		output(fmt.Sprintf("File target: %s", block.Target), nil)
+		output(fmt.Sprintf("File target: %s", block.Target))
 
 		count++
 	}
@@ -220,7 +215,7 @@ func callAdd(args []string, opts map[string]string) error {
 		if err != nil {
 			return err
 		}
-		output(fmt.Sprintf("Group target: %s", block.Target), nil)
+		output(fmt.Sprintf("Group target: %s", block.Target))
 	}
 
 	dur := time.Now().Sub(start)
@@ -233,7 +228,7 @@ func callAdd(args []string, opts map[string]string) error {
 	if count != 1 {
 		msg += "s"
 	}
-	output(fmt.Sprintf("%s in %s", msg, dur.String()), nil)
+	output(fmt.Sprintf("%s in %s", msg, dur.String()))
 
 	return nil
 }
@@ -255,7 +250,7 @@ func add(dirs []core.Directory, threadId string, caption string, verbose bool) (
 	}
 
 	if verbose {
-		output(res, nil)
+		output(res)
 	}
 	return block, nil
 }
@@ -314,7 +309,7 @@ func mill(pth string, node *schema.Node, verbose bool) (core.Directory, error) {
 		}
 
 		if verbose {
-			output(res, nil)
+			output(res)
 		}
 
 		dir[schema.SingleFileTag] = *file
@@ -372,7 +367,7 @@ func mill(pth string, node *schema.Node, verbose bool) (core.Directory, error) {
 			}
 
 			if verbose {
-				output(res, nil)
+				output(res)
 			}
 
 			dir[step.Name] = *file
@@ -393,7 +388,7 @@ func millBatch(pths []string, node *schema.Node, ready chan core.Directory, verb
 		go func(p string) {
 			dir, err := mill(p, node, verbose)
 			if err != nil {
-				output("mill error: "+err.Error(), nil)
+				output("mill error: " + err.Error())
 			} else {
 				ready <- dir
 			}
@@ -455,7 +450,7 @@ type lsCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for all."`
 	Offset string        `short:"o" long:"offset" description:"Offset ID to start listing from."`
-	Limit  string        `short:"l" long:"limit" description:"List page size." default:"5"`
+	Limit  int           `short:"l" long:"limit" description:"List page size." default:"5"`
 }
 
 func (x *lsCmd) Name() string {
@@ -479,13 +474,9 @@ func (x *lsCmd) Execute(args []string) error {
 	opts := map[string]string{
 		"thread": x.Thread,
 		"offset": x.Offset,
-		"limit":  x.Limit,
+		"limit":  strconv.Itoa(x.Limit),
 	}
 	return callLs(opts)
-}
-
-func (x *lsCmd) Shell() *ishell.Cmd {
-	return nil
 }
 
 func callLs(opts map[string]string) error {
@@ -495,7 +486,7 @@ func callLs(opts map[string]string) error {
 		return err
 	}
 
-	output(res, nil)
+	output(res)
 
 	limit, err := strconv.Atoi(opts["limit"])
 	if err != nil {
@@ -538,14 +529,6 @@ Gets a thread file by specifying a Thread Block ID.
 
 func (x *getCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callGet(args)
-}
-
-func (x *getCmd) Shell() *ishell.Cmd {
-	return nil
-}
-
-func callGet(args []string) error {
 	if len(args) == 0 {
 		return errMissingFileId
 	}
@@ -556,7 +539,7 @@ func callGet(args []string) error {
 		return err
 	}
 
-	output(res, nil)
+	output(res)
 	return nil
 }
 
@@ -585,10 +568,6 @@ func (x *rmCmd) Execute(args []string) error {
 	return callRmBlocks(args)
 }
 
-func (x *rmCmd) Shell() *ishell.Cmd {
-	return nil
-}
-
 type keysCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
@@ -609,14 +588,6 @@ Shows file keys under the given target from an add.
 
 func (x *keysCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callKeys(args)
-}
-
-func (x *keysCmd) Shell() *ishell.Cmd {
-	return nil
-}
-
-func callKeys(args []string) error {
 	if len(args) == 0 {
 		return errMissingTarget
 	}
@@ -627,6 +598,6 @@ func callKeys(args []string) error {
 		return err
 	}
 
-	output(res, nil)
+	output(res)
 	return nil
 }

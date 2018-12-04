@@ -45,7 +45,6 @@ type Cmd interface {
 	Name() string
 	Short() string
 	Long() string
-	Shell() *ishell.Cmd
 }
 
 func Cmds() []Cmd {
@@ -147,12 +146,8 @@ func unmarshalJSON(body io.ReadCloser, target interface{}) error {
 	return json.Unmarshal(data, target)
 }
 
-func output(value interface{}, ctx *ishell.Context) {
-	if ctx != nil {
-		ctx.Println(Grey(value))
-	} else {
-		fmt.Println(value)
-	}
+func output(value interface{}) {
+	fmt.Println(value)
 }
 
 func trimQuotes(s string) string {

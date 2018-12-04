@@ -2,7 +2,6 @@ package mobile
 
 import (
 	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/repo"
 )
 
 // Notifications call core Notifications
@@ -13,7 +12,7 @@ func (m *Mobile) Notifications(offset string, limit int) (string, error) {
 
 	notes := m.node.Notifications(offset, limit)
 	if len(notes) == 0 {
-		notes = make([]repo.Notification, 0)
+		notes = make([]core.NotificationInfo, 0)
 	}
 	return toJSON(notes)
 }

@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/textileio/textile-go/core"
-	"gopkg.in/abiosoft/ishell.v2"
 )
 
 var errMissingBlockId = errors.New("missing block ID")
@@ -18,8 +17,8 @@ func init() {
 }
 
 type blocksCmd struct {
-	List lsBlocksCmd  `command:"ls"`
-	Get  getBlocksCmd `command:"get"`
+	List lsBlocksCmd  `command:"ls" description:"Paginate thread blocks"`
+	Get  getBlocksCmd `command:"get" description:"Get a thread block"`
 }
 
 func (x *blocksCmd) Name() string {
@@ -39,42 +38,33 @@ traversing the hash tree.
 
 There are several thread types:
 
-  JOIN:     Peer joined.
-  ANNOUNCE: Peer set username / inbox address
-  LEAVE:    Peer left.
-  FILES:    File(s) added.
-  MESSAGE:  Text message added.
-  COMMENT:  Comment added to another block.
-  LIKE:     Like added to another block.
-  MERGE:    3-way merge added.
-  IGNORE:   Another block was ignored.
-  FLAG:     A flag was added to another block.
+-  JOIN:     Peer joined.
+-  ANNOUNCE: Peer set username / inbox address
+-  LEAVE:    Peer left.
+-  FILES:    File(s) added.
+-  MESSAGE:  Text message added.
+-  COMMENT:  Comment added to another block.
+-  LIKE:     Like added to another block.
+-  MERGE:    3-way merge added.
+-  IGNORE:   Another block was ignored.
+-  FLAG:     A flag was added to another block.
   
 Use this command to get and list blocks in a thread.
 `
-}
-
-func (x *blocksCmd) Shell() *ishell.Cmd {
-	return nil
 }
 
 type lsBlocksCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
 	Offset string        `short:"o" long:"offset" description:"Offset ID to start listing from."`
-	Limit  string        `short:"l" long:"limit" description:"List page size." default:"5"`
+	Limit  int           `short:"l" long:"limit" description:"List page size." default:"5"`
 }
 
-func (x *lsBlocksCmd) Name() string {
-	return "ls"
-}
+func (x *lsBlocksCmd) Usage() string {
+	return `
 
-func (x *lsBlocksCmd) Short() string {
-	return "Paginate thread blocks"
-}
-
-func (x *lsBlocksCmd) Long() string {
-	return "Paginates blocks in a thread."
+Paginates blocks in a thread.
+`
 }
 
 func (x *lsBlocksCmd) Execute(args []string) error {
@@ -82,13 +72,9 @@ func (x *lsBlocksCmd) Execute(args []string) error {
 	opts := map[string]string{
 		"thread": x.Thread,
 		"offset": x.Offset,
-		"limit":  x.Limit,
+		"limit":  strconv.Itoa(x.Limit),
 	}
 	return callLsBlocks(opts)
-}
-
-func (x *lsBlocksCmd) Shell() *ishell.Cmd {
-	return nil
 }
 
 func callLsBlocks(opts map[string]string) error {
@@ -102,7 +88,7 @@ func callLsBlocks(opts map[string]string) error {
 		return err
 	}
 
-	output(res, nil)
+	output(res)
 
 	limit, err := strconv.Atoi(opts["limit"])
 	if err != nil {
@@ -129,28 +115,15 @@ type getBlocksCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *getBlocksCmd) Name() string {
-	return "get"
-}
+func (x *getBlocksCmd) Usage() string {
+	return `
 
-func (x *getBlocksCmd) Short() string {
-	return "Get a thread block"
-}
-
-func (x *getBlocksCmd) Long() string {
-	return "Gets a thread block by ID."
+Gets a thread block by ID.
+`
 }
 
 func (x *getBlocksCmd) Execute(args []string) error {
 	setApi(x.Client)
-	return callGetBlocks(args)
-}
-
-func (x *getBlocksCmd) Shell() *ishell.Cmd {
-	return nil
-}
-
-func callGetBlocks(args []string) error {
 	if len(args) == 0 {
 		return errMissingBlockId
 	}
@@ -159,7 +132,7 @@ func callGetBlocks(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
 
@@ -172,6 +145,6 @@ func callRmBlocks(args []string) error {
 	if err != nil {
 		return err
 	}
-	output(res, nil)
+	output(res)
 	return nil
 }
