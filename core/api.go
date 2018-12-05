@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/gin-gonic/gin"
 	m "github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/repo/config"
 )
 
 // apiVersion is the api version
@@ -66,13 +68,8 @@ func (a *api) Start() {
 		g.Writer.WriteHeader(http.StatusNoContent)
 	})
 
-	// Allows all origins
-	// TODO: Do not use this in production, needs to be configurable #355
-	config := cors.DefaultConfig()
-	config.AllowAllOrigins = true
-	config.AllowMethods = []string{"GET", "POST", "PUT", "HEAD", "PATCH", "OPTIONS"}
-	config.AllowHeaders = []string{"Content-Type", "Access-Control-Allow-Headers", "Authorization", "X-Requested-With", "X-Textile-Args", "X-Textile-Opts", "Method"}
-	router.Use(cors.New(config))
+	// Handle CORS config options
+	router.Use(cors.New(getCORSSettings(a.node.Config())))
 
 	// v0 routes
 	v0 := router.Group("/api/v0")
@@ -343,4 +340,47 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string, plaintext b
 
 func (a *api) abort500(g *gin.Context, err error) {
 	g.String(http.StatusInternalServerError, err.Error())
+}
+
+// getCORSSettings returns custom CORS settings given HTTPHeaders options
+func getCORSSettings(config *config.Config) cors.Config {
+	headers := config.API.HTTPHeaders
+	cconfig := cors.DefaultConfig()
+
+	control, ok := headers["Access-Control-Allow-Origin"]
+	if ok && len(control) > 0 {
+		cconfig.AllowOrigins = control
+		for _, origin := range control {
+			if origin == "*" {
+				cconfig.AllowAllOrigins = true
+				cconfig.AllowOrigins = nil
+			}
+		}
+	} else {
+		// By default use API origin host
+		defaultHost := config.Addresses.API
+		match, _ := regexp.MatchString("^https?://", defaultHost)
+		if !match {
+			defaultHost = "http://" + defaultHost
+		}
+		cconfig.AllowOrigins = []string{defaultHost}
+	}
+
+	control, ok = headers["Access-Control-Allow-Methods"]
+	if ok && len(control) > 0 {
+		cconfig.AllowMethods = control
+	} else {
+		cconfig.AllowMethods = []string{"GET", "POST", "DELETE", "OPTIONS"}
+	}
+
+	control, ok = headers["Access-Control-Allow-Headers"]
+	if ok && len(control) > 0 {
+		cconfig.AllowHeaders = control
+	} else {
+		// default already has "Origin", "Content-Length", "Content-Type"
+		textileHeaders := []string{"Method", "X-Textile-Args", "X-Textile-Opts", "X-Requested-With", "Access-Control-Allow-Headers"}
+		cconfig.AllowHeaders = append(cconfig.AllowHeaders, textileHeaders...)
+	}
+
+	return cconfig
 }
