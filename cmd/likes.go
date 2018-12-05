@@ -86,7 +86,7 @@ type getLikesCmd struct {
 func (x *getLikesCmd) Usage() string {
 	return `
 
-Gets a thread like by its block ID.`
+Gets a thread like by block ID.`
 }
 
 func (x *getLikesCmd) Execute(args []string) error {
