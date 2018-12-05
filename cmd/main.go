@@ -10,8 +10,6 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/textileio/textile-go/core"
-	"gopkg.in/abiosoft/ishell.v2"
 )
 
 type ClientOptions struct {
@@ -25,12 +23,6 @@ var (
 	Cyan   = color.New(color.FgHiCyan).SprintFunc()
 	Yellow = color.New(color.FgHiYellow).SprintFunc()
 )
-
-func RunShell(shell *ishell.Shell, opts ClientOptions) {
-	setApi(opts)
-	printSplash(core.Version)
-	shell.Run()
-}
 
 var apiAddr, apiVersion string
 

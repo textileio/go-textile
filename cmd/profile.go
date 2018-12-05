@@ -48,13 +48,21 @@ Gets the local node's public IPNS-based profile.`
 
 func (x *getProfileCmd) Execute(args []string) error {
 	setApi(x.Client)
-	var profile *core.Profile
-	res, err := executeJsonCmd(GET, "profile", params{}, &profile)
+	res, _, err := callGetProfile()
 	if err != nil {
 		return err
 	}
 	output(res)
 	return nil
+}
+
+func callGetProfile() (string, *core.Profile, error) {
+	var profile *core.Profile
+	res, err := executeJsonCmd(GET, "profile", params{}, &profile)
+	if err != nil {
+		return "", nil, err
+	}
+	return res, profile, err
 }
 
 type setProfileCmd struct {

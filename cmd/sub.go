@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"io"
 	"strings"
 
@@ -16,7 +15,7 @@ func init() {
 type subCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for all."`
-	Type   string        `short:"k" long:"type" description:"Comma-separated list of event types to include. Omit for all."`
+	Type   []string      `short:"k" long:"type" description:"An update type to filter for. Omit for all."`
 }
 
 func (x *subCmd) Name() string {
@@ -24,60 +23,103 @@ func (x *subCmd) Name() string {
 }
 
 func (x *subCmd) Short() string {
-	return "Subscribe to thread events/updates"
+	return "Subscribe to thread updates"
 }
 
 func (x *subCmd) Long() string {
 	return `
-Subscribe to thread events/updates.
-Use the --thread option to subscribe to events emmited from a specific thread.  
-Use the --type option to filter to specific event type(s),
-e.g., files,comments,likes. Omit for all.
+Subscribes to updates in a thread or all threads. An update is generated
+when a new block is added to a thread.
+
+There are several update types:
+
+-  JOIN
+-  ANNOUNCE
+-  LEAVE
+-  MESSAGE
+-  FILES
+-  COMMENT
+-  LIKE
+-  MERGE
+-  IGNORE
+-  FLAG
+
+Use the --thread option to subscribe to events emmited from a specific thread.
+
+Use the --type option to limit the output to specific update type(s).
+This option can be used multiple times, e.g., --type files --type comment.
 `
 }
 
 func (x *subCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	if x.Thread != "" {
-		x.Thread = "/" + x.Thread
-	}
-
-	// '|' doesn't work on cmdline, so use commas (',') and swap out for '|'
-	x.Type = strings.Join(strings.Split(x.Type, ","), "|")
-
-	req, err := request(GET, "sub"+x.Thread, params{
-		opts: map[string]string{
-			"thread": x.Thread,
-			"type":   x.Type,
-		},
-	})
+	updates, err := callSub(x.Thread, x.Type)
 	if err != nil {
 		return err
 	}
-	defer req.Body.Close()
-	if req.StatusCode >= 400 {
-		res, err := unmarshalString(req.Body)
-		if err != nil {
-			return err
-		}
-		return errors.New(res)
-	}
-	decoder := json.NewDecoder(req.Body)
+
 	for {
-		var info core.ThreadUpdate
-		if err := decoder.Decode(&info); err == io.EOF {
-			break
-		} else if err != nil {
-			return err
+		select {
+		case update, ok := <-updates:
+			if !ok {
+				return nil
+			}
+
+			data, err := json.MarshalIndent(update, "", "    ")
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				return nil
+			}
+
+			output(string(data))
 		}
-		data, err := json.MarshalIndent(info, "", "    ")
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
-		output(string(data))
 	}
 	return nil
+}
+
+func callSub(threadId string, types []string) (<-chan core.ThreadUpdate, error) {
+	if threadId != "" {
+		threadId = "/" + threadId
+	}
+
+	updates := make(chan core.ThreadUpdate, 10)
+	go func() {
+		req, err := request(GET, "sub"+threadId, params{
+			opts: map[string]string{"type": strings.Join(types, "|")},
+		})
+		if err != nil {
+			output(err.Error())
+			close(updates)
+			return
+		}
+
+		if req.StatusCode >= 400 {
+			res, err := unmarshalString(req.Body)
+			if err != nil {
+				output(err.Error())
+			} else {
+				output(res)
+			}
+			close(updates)
+			return
+		}
+
+		decoder := json.NewDecoder(req.Body)
+		for {
+			var info core.ThreadUpdate
+			if err := decoder.Decode(&info); err == io.EOF {
+				break
+			} else if err != nil {
+				output(err.Error())
+				close(updates)
+				return
+			}
+			updates <- info
+		}
+		req.Body.Close()
+	}()
+
+	return updates, nil
 }

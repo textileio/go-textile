@@ -62,15 +62,23 @@ func (x *addMessagesCmd) Execute(args []string) error {
 		x.Thread = "default"
 	}
 
-	var info *core.ThreadMessageInfo
-	res, err := executeJsonCmd(POST, "threads/"+x.Thread+"/messages", params{
-		args: args,
-	}, &info)
+	res, err := callAddMessages(x.Thread, args[0])
 	if err != nil {
 		return err
 	}
 	output(res)
 	return nil
+}
+
+func callAddMessages(threadId string, body string) (string, error) {
+	var info *core.ThreadMessageInfo
+	res, err := executeJsonCmd(POST, "threads/"+threadId+"/messages", params{
+		args: []string{body},
+	}, &info)
+	if err != nil {
+		return "", err
+	}
+	return res, nil
 }
 
 type lsMessagesCmd struct {
