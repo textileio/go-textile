@@ -349,7 +349,7 @@ func (a *api) abort500(g *gin.Context, err error) {
 	g.String(http.StatusInternalServerError, err.Error())
 }
 
-// getCORSSettings returns custom CORS settings given HTTPHeaders options
+// getCORSSettings returns custom CORS settings given HTTPHeaders config options
 func getCORSSettings(config *config.Config) cors.Config {
 	headers := config.API.HTTPHeaders
 	cconfig := cors.DefaultConfig()
@@ -361,10 +361,10 @@ func getCORSSettings(config *config.Config) cors.Config {
 			if origin == "*" {
 				cconfig.AllowAllOrigins = true
 				cconfig.AllowOrigins = nil
+				break
 			}
 		}
 	} else {
-		// By default use API origin host
 		defaultHost := config.Addresses.API
 		match, _ := regexp.MatchString("^https?://", defaultHost)
 		if !match {
@@ -376,17 +376,11 @@ func getCORSSettings(config *config.Config) cors.Config {
 	control, ok = headers["Access-Control-Allow-Methods"]
 	if ok && len(control) > 0 {
 		cconfig.AllowMethods = control
-	} else {
-		cconfig.AllowMethods = []string{"GET", "POST", "DELETE", "OPTIONS"}
 	}
 
 	control, ok = headers["Access-Control-Allow-Headers"]
 	if ok && len(control) > 0 {
 		cconfig.AllowHeaders = control
-	} else {
-		// default already has "Origin", "Content-Length", "Content-Type"
-		textileHeaders := []string{"Method", "X-Textile-Args", "X-Textile-Opts", "X-Requested-With", "Access-Control-Allow-Headers"}
-		cconfig.AllowHeaders = append(cconfig.AllowHeaders, textileHeaders...)
 	}
 
 	return cconfig
