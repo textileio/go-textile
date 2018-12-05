@@ -7,6 +7,7 @@ import (
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
+	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema/textile"
@@ -136,7 +137,7 @@ func (m *Mobile) AddExternalThreadInvite(threadId string) (string, error) {
 	username, _ := m.Username()
 	invite := ExternalInvite{
 		Id:      hash.B58String(),
-		Key:     string(key),
+		Key:     base58.FastBase58Encoding(key),
 		Inviter: username,
 	}
 
@@ -149,7 +150,12 @@ func (m *Mobile) AcceptExternalThreadInvite(id string, key string) (string, erro
 		return "", core.ErrOffline
 	}
 
-	hash, err := m.node.AcceptExternalThreadInvite(id, []byte(key))
+	keyb, err := base58.Decode(key)
+	if err != nil {
+		return "", err
+	}
+
+	hash, err := m.node.AcceptExternalThreadInvite(id, keyb)
 	if err != nil {
 		return "", err
 	}

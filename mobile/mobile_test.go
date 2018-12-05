@@ -48,6 +48,7 @@ var thrdId string
 var dir []byte
 var filesBlock core.BlockInfo
 var files []core.ThreadFilesInfo
+var invite ExternalInvite
 
 func TestNewWallet(t *testing.T) {
 	var err error
@@ -486,6 +487,33 @@ func TestMobile_AddThreadInvite(t *testing.T) {
 	}
 }
 
+func TestMobile_AddExternalThreadInvite(t *testing.T) {
+	res, err := mobile1.AddExternalThreadInvite(thrdId)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if err := json.Unmarshal([]byte(res), &invite); err != nil {
+		t.Error(err)
+		return
+	}
+	if invite.Key == "" {
+		t.Errorf("bad invite result: %s", res)
+	}
+}
+
+func TestMobile_AcceptExternalThreadInvite(t *testing.T) {
+	hash, err := mobile2.AcceptExternalThreadInvite(invite.Id, invite.Key)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if hash == "" {
+		t.Errorf("bad accept external invite result: %s", hash)
+	}
+}
+
 func TestMobile_Notifications(t *testing.T) {
 	res, err := mobile1.Notifications("", -1)
 	if err != nil {
@@ -497,14 +525,14 @@ func TestMobile_Notifications(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if len(notes) != 0 {
+	if len(notes) != 1 {
 		t.Error("get notifications bad result")
 		return
 	}
 }
 
 func TestMobile_CountUnreadNotifications(t *testing.T) {
-	if mobile1.CountUnreadNotifications() != 0 {
+	if mobile1.CountUnreadNotifications() != 1 {
 		t.Error("count unread notifications bad result")
 	}
 }
