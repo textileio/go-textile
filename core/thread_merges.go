@@ -46,7 +46,6 @@ func (t *Thread) merge(head mh.Multihash) (mh.Multihash, error) {
 	}
 	// add a small amount to date to keep it ahead of both parents
 	date = date.Add(time.Millisecond)
-	// set content
 	pdate, err := ptypes.TimestampProto(date)
 	if err != nil {
 		return nil, err

@@ -376,7 +376,11 @@ func startNode() error {
 					desc := update.Block.Type
 					thrd := update.ThreadId[len(update.ThreadId)-8:]
 
-					msg := cmd.Grey(date+"  "+update.Block.Username+" added ") +
+					if update.Block.Username != "" {
+						update.Block.Username += " "
+					}
+
+					msg := cmd.Grey(date+"  "+update.Block.Username+"added ") +
 						cmd.Green(desc) + cmd.Grey(" update to thread "+thrd)
 					fmt.Println(msg)
 				}
