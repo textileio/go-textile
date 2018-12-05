@@ -28,21 +28,26 @@ type NotificationInfo struct {
 func (t *Textile) Notifications(offset string, limit int) []NotificationInfo {
 	infos := make([]NotificationInfo, 0)
 	for _, note := range t.datastore.Notifications().List(offset, limit) {
-		infos = append(infos, NotificationInfo{
-			Id:        note.Id,
-			Date:      note.Date,
-			ActorId:   note.ActorId,
-			Username:  t.ContactUsername(note.ActorId),
-			Subject:   note.Subject,
-			SubjectId: note.SubjectId,
-			BlockId:   note.BlockId,
-			Target:    note.Target,
-			Type:      note.Type.Description(),
-			Body:      note.Body,
-			Read:      note.Read,
-		})
+		infos = append(infos, t.NotificationInfo(note))
 	}
 	return infos
+}
+
+// NotificationInfo returns the notification info object
+func (t *Textile) NotificationInfo(note repo.Notification) NotificationInfo {
+	return NotificationInfo{
+		Id:        note.Id,
+		Date:      note.Date,
+		ActorId:   note.ActorId,
+		Username:  t.ContactUsername(note.ActorId),
+		Subject:   note.Subject,
+		SubjectId: note.SubjectId,
+		BlockId:   note.BlockId,
+		Target:    note.Target,
+		Type:      note.Type.Description(),
+		Body:      note.Body,
+		Read:      note.Read,
+	}
 }
 
 // CountUnreadNotifications counts unread notifications

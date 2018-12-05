@@ -83,7 +83,6 @@ type daemonCmd struct {
 	RepoPath string `short:"r" long:"repo-dir" description:"Specify a custom repository path."`
 }
 
-//var shell *ishell.Shell
 var node *core.Textile
 
 var parser = flags.NewParser(&options{}, flags.Default)
@@ -293,24 +292,6 @@ func (x *daemonCmd) Execute(args []string) error {
 	return nil
 }
 
-//func (x *shellCmd) Execute(args []string) error {
-//	shell = ishell.New()
-//	shell.SetHomeHistoryPath(".ishell_history")
-//
-//	// handle interrupt
-//	shell.Interrupt(func(c *ishell.Context, count int, input string) {
-//		if count == 1 {
-//			shell.Println("input Ctrl-C once more to exit")
-//			return
-//		}
-//		shell.Println("interrupted")
-//		os.Exit(1)
-//	})
-//
-//	cmd.RunShell(shell, x.Client)
-//	return nil
-//}
-
 func getRepoPath(repoPath string) (string, error) {
 	if len(repoPath) == 0 {
 		// get homedir
@@ -393,12 +374,13 @@ func startNode() error {
 				if update, ok := value.(core.ThreadUpdate); ok {
 					date := update.Block.Date.Format(time.RFC822)
 					desc := update.Block.Type
-					username := node.ContactUsername(update.Block.AuthorId)
-					if username != "" {
-						username += " "
-					}
 					thrd := update.ThreadId[len(update.ThreadId)-8:]
-					msg := cmd.Grey(date+"  "+username+" added ") +
+
+					if update.Block.Username != "" {
+						update.Block.Username += " "
+					}
+
+					msg := cmd.Grey(date+"  "+update.Block.Username+"added ") +
 						cmd.Green(desc) + cmd.Grey(" update to thread "+thrd)
 					fmt.Println(msg)
 				}
@@ -414,18 +396,14 @@ func startNode() error {
 				if !ok {
 					return
 				}
-				date := note.Date.Format(time.RFC822)
-				username := node.ContactUsername(note.ActorId)
-				if username != "" {
-					username += " "
-				}
 
+				date := note.Date.Format(time.RFC822)
 				var subject string
 				if len(note.SubjectId) >= 7 {
 					subject = note.SubjectId[len(note.SubjectId)-7:]
 				}
 
-				msg := cmd.Grey(date+"  "+username+" ") + cmd.Cyan(note.Body) +
+				msg := cmd.Grey(date+"  "+note.Username+" ") + cmd.Cyan(note.Body) +
 					cmd.Grey(" "+subject)
 				fmt.Println(msg)
 			}

@@ -57,10 +57,6 @@ func (t *Textile) ThreadFiles(offset string, limit int, threadId string) ([]Thre
 	list := make([]ThreadFilesInfo, 0)
 
 	blocks := t.Blocks(offset, limit, query)
-	if len(blocks) == 0 {
-		return list, nil
-	}
-
 	for _, block := range blocks {
 		file, err := t.threadFile(block)
 		if err != nil {

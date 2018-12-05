@@ -22,10 +22,14 @@ func (x *peerCmd) Long() string {
 
 func (x *peerCmd) Execute(args []string) error {
 	setApi(x.Client)
-	res, err := executeStringCmd(GET, "peer", params{})
+	res, err := callPeer()
 	if err != nil {
 		return err
 	}
 	output(res)
 	return nil
+}
+
+func callPeer() (string, error) {
+	return executeStringCmd(GET, "peer", params{})
 }

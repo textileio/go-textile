@@ -36,7 +36,7 @@ append-only log of thread updates where each update is hash-linked
 to its parent(s). New / recovering peers can sync history by simply
 traversing the hash tree.
 
-There are several thread types:
+There are several block types:
 
 -  JOIN:     Peer joined.
 -  ANNOUNCE: Peer set username / inbox address

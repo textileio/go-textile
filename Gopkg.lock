@@ -93,6 +93,14 @@
   revision = "a0ff2567cfb70903282db057e799fd826784d41d"
 
 [[projects]]
+  branch = "master"
+  digest = "1:dc9639273af918022abda0ccfc02fea4d57cb01e5713ec53d807402df80be1ef"
+  name = "github.com/chzyer/readline"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "2972be24d48e78746da79ba8e24e8b488c9880de"
+
+[[projects]]
   digest = "1:9f42202ac457c462ad8bb9642806d275af9ab4850cf0b1960b9c6f083d4a309a"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
@@ -563,6 +571,7 @@
     "github.com/asticode/go-astilectron",
     "github.com/asticode/go-astilectron-bootstrap",
     "github.com/asticode/go-astilog",
+    "github.com/chzyer/readline",
     "github.com/dgrijalva/jwt-go",
     "github.com/disintegration/imaging",
     "github.com/fatih/color",

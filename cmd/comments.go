@@ -93,7 +93,7 @@ type getCommentsCmd struct {
 func (x *getCommentsCmd) Usage() string {
 	return `
 
-Gets a thread comment by its block ID.`
+Gets a thread comment by block ID.`
 }
 
 func (x *getCommentsCmd) Execute(args []string) error {

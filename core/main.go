@@ -35,7 +35,7 @@ import (
 var log = logging.Logger("tex-core")
 
 // Version is the core version identifier
-const Version = "1.0.0-rc4"
+const Version = "1.0.0-rc5"
 
 // kQueueFlushFreq how often to flush the message queues
 const kQueueFlushFreq = time.Second * 60
@@ -107,7 +107,7 @@ type Textile struct {
 	done           chan struct{}
 	updates        chan Update
 	threadUpdates  *broadcast.Broadcaster
-	notifications  chan repo.Notification
+	notifications  chan NotificationInfo
 	threadsService *ThreadsService
 	threadsOutbox  *ThreadsOutbox
 	cafeService    *CafeService
@@ -200,7 +200,7 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 		repoPath:      conf.RepoPath,
 		updates:       make(chan Update, 10),
 		threadUpdates: broadcast.NewBroadcaster(10),
-		notifications: make(chan repo.Notification, 10),
+		notifications: make(chan NotificationInfo, 10),
 	}
 
 	var err error
@@ -453,7 +453,7 @@ func (t *Textile) GetThreadUpdateListener() *broadcast.Listener {
 }
 
 // NotificationsCh returns the notifications channel
-func (t *Textile) NotificationCh() <-chan repo.Notification {
+func (t *Textile) NotificationCh() <-chan NotificationInfo {
 	return t.notifications
 }
 
@@ -642,7 +642,7 @@ func (t *Textile) sendNotification(notification *repo.Notification) error {
 		return err
 	}
 
-	t.notifications <- *notification
+	t.notifications <- t.NotificationInfo(*notification)
 	return nil
 }
 
