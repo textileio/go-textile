@@ -101,6 +101,13 @@ func Init(version string) (*Config, error) {
 		API: API{
 			HTTPHeaders: map[string][]string{
 				"Server": {"textile-go/" + version},
+				"Access-Control-Allow-Methods": []string{
+					"GET", "POST", "DELETE", "OPTIONS",
+				},
+				"Access-Control-Allow-Headers": []string{
+					"Content-Type", "Method", "X-Textile-Args", "X-Textile-Opts", "X-Requested-With",
+				},
+				"Access-Control-Allow-Origin": []string{},
 			},
 		},
 		Logs: Logs{
