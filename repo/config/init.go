@@ -70,7 +70,8 @@ type Cafe struct {
 
 // TODO: add some more knobs: max num. clients, max client msg age, inbox size, etc.
 type CafeHost struct {
-	Open bool // when true, other peers can register with this node for cafe services
+	Open     bool // when true, other peers can register with this node for cafe services
+	PublicIP string
 }
 
 // CafeClient settings
@@ -101,13 +102,20 @@ func Init(version string) (*Config, error) {
 		API: API{
 			HTTPHeaders: map[string][]string{
 				"Server": {"textile-go/" + version},
-				"Access-Control-Allow-Methods": []string{
-					"GET", "POST", "DELETE", "OPTIONS",
+				"Access-Control-Allow-Methods": {
+					"GET",
+					"POST",
+					"DELETE",
+					"OPTIONS",
 				},
-				"Access-Control-Allow-Headers": []string{
-					"Content-Type", "Method", "X-Textile-Args", "X-Textile-Opts", "X-Requested-With",
+				"Access-Control-Allow-Headers": {
+					"Content-Type",
+					"Method",
+					"X-Textile-Args",
+					"X-Textile-Opts",
+					"X-Requested-With",
 				},
-				"Access-Control-Allow-Origin": []string{},
+				"Access-Control-Allow-Origin": {},
 			},
 		},
 		Logs: Logs{
@@ -121,7 +129,8 @@ func Init(version string) (*Config, error) {
 		},
 		Cafe: Cafe{
 			Host: CafeHost{
-				Open: false,
+				PublicIP: "",
+				Open:     false,
 			},
 			Client: CafeClient{
 				Mobile: MobileCafeClient{

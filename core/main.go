@@ -66,18 +66,19 @@ const (
 
 // InitConfig is used to setup a textile node
 type InitConfig struct {
-	Account     *keypair.Full
-	PinCode     string
-	RepoPath    string
-	SwarmPorts  string
-	ApiAddr     string
-	CafeApiAddr string
-	GatewayAddr string
-	IsMobile    bool
-	IsServer    bool
-	LogLevel    logger.Level
-	LogToDisk   bool
-	CafeOpen    bool
+	Account      *keypair.Full
+	PinCode      string
+	RepoPath     string
+	SwarmPorts   string
+	ApiAddr      string
+	CafeApiAddr  string
+	GatewayAddr  string
+	IsMobile     bool
+	IsServer     bool
+	LogLevel     logger.Level
+	LogToDisk    bool
+	CafeOpen     bool
+	CafePublicIP string
 }
 
 // MigrateConfig is used to define options during a major migration
@@ -320,7 +321,7 @@ func (t *Textile) Start() error {
 		)
 
 		t.cafeService = NewCafeService(t.account, t.node, t.datastore, t.cafeInbox)
-		t.cafeService.setAddrs(t.config.Addresses.CafeAPI, *swarmPorts)
+		t.cafeService.setAddrs(t.config.Addresses.CafeAPI, t.config.Cafe.Host.PublicIP, *swarmPorts)
 		if t.config.Cafe.Host.Open {
 			t.cafeService.open = true
 			t.startCafeApi(t.config.Addresses.CafeAPI)

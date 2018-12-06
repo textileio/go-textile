@@ -20,18 +20,15 @@ lint:
 
 build:
 	go build -ldflags "-w" -i -o textile textile.go
-	mv textile dist/
 
 build_ios_framework:
 	gomobile bind -ldflags "-w" -target=ios github.com/textileio/textile-go/mobile
-	mv Mobile.framework dist/
 
 build_android_framework:
 	gomobile bind -ldflags "-w" -target=android -o mobile.aar github.com/textileio/textile-go/mobile
-	mv mobile.aar dist/
 
 install:
-	mv dist/textile /usr/local/bin
+	mv textile /usr/local/bin
 
 protos:
 	cd pb/protos && PATH=$(PATH):$(GOPATH)/bin protoc --go_out=$(PKGMAP):.. *.proto
