@@ -79,6 +79,10 @@ func (t *Textile) Contacts() ([]ContactInfo, error) {
 // ContactUsername returns the username for the peer id if known
 func (t *Textile) ContactUsername(id string) string {
 	if id == t.node.Identity.Pretty() {
+		username, err := t.Username()
+		if err == nil && username != nil && *username != "" {
+			return *username
+		}
 		return ipfs.ShortenID(id)
 	}
 	return toUsername(t.datastore.Contacts().Get(id))
