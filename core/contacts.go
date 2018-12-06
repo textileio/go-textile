@@ -80,7 +80,7 @@ func (t *Textile) Contacts() ([]ContactInfo, error) {
 func (t *Textile) ContactUsername(id string) string {
 	if id == t.node.Identity.Pretty() {
 		username, err := t.Username()
-		if err == nil && *username != "" {
+		if err == nil && username != nil && *username != "" {
 			return *username
 		}
 		return ipfs.ShortenID(id)
