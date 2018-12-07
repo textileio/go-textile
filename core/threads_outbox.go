@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -122,7 +123,9 @@ func (q *ThreadsOutbox) handle(msg repo.ThreadMessage) error {
 	}
 
 	// first, attempt to send the message directly to the recipient
-	if err := q.service().SendMessage(pid, msg.Envelope); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := q.service().SendMessage(ctx, pid, msg.Envelope); err != nil {
 		log.Debugf("send thread message direct to %s failed: %s", pid.Pretty(), err)
 
 		// peer is offline, queue an outbound cafe request for the peer's inbox(es)

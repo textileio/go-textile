@@ -36,7 +36,7 @@ var ReadMessageTimeout = time.Minute * 1
 var ErrReadTimeout = fmt.Errorf("timed out reading response")
 
 // messageSenderForPeer creates a sender for the given peer
-func (s *Service) messageSenderForPeer(pid peer.ID, proto protocol.ID) (*sender, error) {
+func (s *Service) messageSenderForPeer(ctx context.Context, pid peer.ID, proto protocol.ID) (*sender, error) {
 	s.senderMux.Lock()
 	ms, ok := s.sender[pid]
 	if ok {
@@ -52,7 +52,7 @@ func (s *Service) messageSenderForPeer(pid peer.ID, proto protocol.ID) (*sender,
 	s.sender[pid] = ms
 	s.senderMux.Unlock()
 
-	if err := ms.prepOrInvalidate(); err != nil {
+	if err := ms.prepOrInvalidate(ctx); err != nil {
 		s.senderMux.Lock()
 		defer s.senderMux.Unlock()
 		if msCur, ok := s.sender[pid]; ok {
@@ -84,10 +84,10 @@ func (ms *sender) invalidate() {
 }
 
 // prepOrInvalidate invalidates a sender if prep fails
-func (ms *sender) prepOrInvalidate() error {
+func (ms *sender) prepOrInvalidate(ctx context.Context) error {
 	ms.mux.Lock()
 	defer ms.mux.Unlock()
-	if err := ms.prep(); err != nil {
+	if err := ms.prep(ctx); err != nil {
 		ms.invalidate()
 		return err
 	}
@@ -95,14 +95,14 @@ func (ms *sender) prepOrInvalidate() error {
 }
 
 // prep creates a new stream, reader, and writer for a sender
-func (ms *sender) prep() error {
+func (ms *sender) prep(ctx context.Context) error {
 	if ms.invalid {
 		return fmt.Errorf("message sender has been invalidated")
 	}
 	if ms.stream != nil {
 		return nil
 	}
-	nstr, err := ms.service.Node.PeerHost.NewStream(ms.service.Node.Context(), ms.pid, ms.protocol)
+	nstr, err := ms.service.Node.PeerHost.NewStream(ctx, ms.pid, ms.protocol)
 	if err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func (ms *sender) SendMessage(ctx context.Context, pmes *pb.Envelope) error {
 	defer ms.mux.Unlock()
 	retry := false
 	for {
-		if err := ms.prep(); err != nil {
+		if err := ms.prep(ctx); err != nil {
 			return err
 		}
 		if err := ms.writer.WriteMsg(pmes); err != nil {
@@ -157,7 +157,7 @@ func (ms *sender) SendRequest(ctx context.Context, pmes *pb.Envelope) (*pb.Envel
 	defer ms.mux.Unlock()
 	retry := false
 	for {
-		if err := ms.prep(); err != nil {
+		if err := ms.prep(ctx); err != nil {
 			return nil, err
 		}
 		if err := ms.writer.WriteMsg(pmes); err != nil {

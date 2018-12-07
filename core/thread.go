@@ -280,7 +280,7 @@ func (t *Thread) followParents(parents []string) error {
 		}
 
 		if err := t.followParent(hash); err != nil {
-			log.Errorf("failed to follow parent %s: %s", parent, err)
+			log.Warningf("failed to follow parent %s: %s", parent, err)
 			continue
 		}
 	}
