@@ -73,7 +73,7 @@ func (t *Textile) SetAvatar(hash string) error {
 	}
 
 	// create a plaintext files thread for tracking avatars
-	thrd := t.ThreadByKey("avatar")
+	thrd := t.ThreadByKey("avatars")
 	if thrd == nil {
 		sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
 		if err != nil {

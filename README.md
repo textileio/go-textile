@@ -24,8 +24,6 @@ Download the [latest release](https://github.com/textileio/textile-go/releases/l
 
 ## Usage
 
-NOTE: The command line tool currently has limited access to the internal node APIs. We're quickly mapping everything over to a newly designed REST API and command line tool. Stay tuned for docs.
-
 ```
 ~ $ textile --help
 Usage:
@@ -35,22 +33,31 @@ Help Options:
   -h, --help  Show this help message
 
 Available commands:
-  add      Add file(s) to a thread
-  address  Show wallet address
-  cafes    Manage cafes
-  daemon   Start the daemon
-  get      Get a thread file
-  init     Init the node repo and exit
-  invite   Manage thread invites
-  ls       Paginate thread files
-  migrate  Migrate the node repo and exit
-  peer     Show peer ID
-  ping     Ping another peer
-  profile  Manage public profile
-  shell    Start a shell session
-  threads  Manage threads
-  version  Print version and exit
-  wallet   Manage or create an account wallet
+  add            Add file(s) to a thread
+  address        Show wallet address
+  blocks         View thread blocks
+  cafes          Manage cafes
+  chat           Start a thread chat
+  comments       Manage thread comments
+  daemon         Start the daemon
+  get            Get a thread file by ID
+  ignore         Ignore a thread file
+  init           Init the node repo and exit
+  invites        Manage thread invites
+  keys           Show file keys
+  likes          Manage thread likes
+  ls             Paginate thread files
+  messages       Manage thread messages
+  migrate        Migrate the node repo and exit
+  notifications  Manage notifications
+  peer           Show peer ID
+  ping           Ping another peer
+  profile        Manage public profile
+  sub            Subscribe to thread updates
+  swarm          Access IPFS swarm commands
+  threads        Manage threads
+  version        Print version and exit
+  wallet         Manage or create an account wallet
 ```
 
 Textile uses an HD Wallet as an account key manager. You may use the name derived account seed on multiple devices to sync wallet data. To get started, run:

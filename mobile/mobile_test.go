@@ -133,22 +133,6 @@ func TestMobile_Seed(t *testing.T) {
 	}
 }
 
-func TestMobile_CheckAccountThread(t *testing.T) {
-	res, err := mobile1.Threads()
-	if err != nil {
-		t.Errorf("get threads failed: %s", err)
-		return
-	}
-	var threads []core.ThreadInfo
-	if err := json.Unmarshal([]byte(res), &threads); err != nil {
-		t.Error(err)
-		return
-	}
-	if len(threads) != 1 {
-		t.Error("get threads bad result")
-	}
-}
-
 func TestMobile_AddThread(t *testing.T) {
 	res, err := mobile1.AddThread(ksuid.New().String(), "test")
 	if err != nil {
@@ -190,7 +174,7 @@ func TestMobile_Threads(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if len(threads) != 2 {
+	if len(threads) != 1 {
 		t.Error("get threads bad result")
 	}
 }

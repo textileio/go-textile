@@ -128,16 +128,15 @@ func (q *CafeOutbox) batch(reqs []repo.CafeRequest) error {
 	for cafeId, group := range groups {
 		cafe, err := peer.IDB58Decode(cafeId)
 		if err != nil {
-			berr = err
-			continue
-		}
-		// group reqs by type
-		types := make(map[repo.CafeRequestType][]repo.CafeRequest)
-		for _, req := range group {
-			types[req.Type] = append(types[req.Type], req)
+			return err
 		}
 		wg.Add(1)
-		go func(types map[repo.CafeRequestType][]repo.CafeRequest, cafe peer.ID) {
+		go func(cafe peer.ID, reqs []repo.CafeRequest) {
+			// group by type
+			types := make(map[repo.CafeRequestType][]repo.CafeRequest)
+			for _, req := range reqs {
+				types[req.Type] = append(types[req.Type], req)
+			}
 			for t, group := range types {
 				handled, err := q.handle(group, t, cafe)
 				if err != nil {
@@ -148,7 +147,7 @@ func (q *CafeOutbox) batch(reqs []repo.CafeRequest) error {
 				}
 			}
 			wg.Done()
-		}(types, cafe)
+		}(cafe, group)
 	}
 	wg.Wait()
 

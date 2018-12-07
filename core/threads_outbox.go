@@ -75,19 +75,31 @@ func (q *ThreadsOutbox) batch(msgs []repo.ThreadMessage) error {
 		return nil
 	}
 
+	// group by peer id
+	groups := make(map[string][]repo.ThreadMessage)
+	for _, msg := range msgs {
+		groups[msg.PeerId] = append(groups[msg.PeerId], msg)
+	}
+
 	var berr error
 	var toDelete []string
 	wg := sync.WaitGroup{}
-	for _, msg := range msgs {
+	for id, group := range groups {
+		pid, err := peer.IDB58Decode(id)
+		if err != nil {
+			return err
+		}
 		wg.Add(1)
-		go func(msg repo.ThreadMessage) {
-			if err := q.handle(msg); err != nil {
-				berr = err
-				return
+		go func(pid peer.ID, msgs []repo.ThreadMessage) {
+			for _, msg := range msgs {
+				if err := q.handle(pid, msg); err != nil {
+					berr = err
+					return
+				}
+				toDelete = append(toDelete, msg.Id)
 			}
-			toDelete = append(toDelete, msg.Id)
 			wg.Done()
-		}(msg)
+		}(pid, group)
 	}
 	wg.Wait()
 
@@ -116,12 +128,7 @@ func (q *ThreadsOutbox) batch(msgs []repo.ThreadMessage) error {
 }
 
 // handle handles a single message
-func (q *ThreadsOutbox) handle(msg repo.ThreadMessage) error {
-	pid, err := peer.IDB58Decode(msg.PeerId)
-	if err != nil {
-		return err
-	}
-
+func (q *ThreadsOutbox) handle(pid peer.ID, msg repo.ThreadMessage) error {
 	// first, attempt to send the message directly to the recipient
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
