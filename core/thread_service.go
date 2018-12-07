@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -158,8 +159,8 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 }
 
 // SendMessage sends a message to a peer
-func (h *ThreadsService) SendMessage(pid peer.ID, env *pb.Envelope) error {
-	return h.service.SendMessage(pid, env)
+func (h *ThreadsService) SendMessage(ctx context.Context, pid peer.ID, env *pb.Envelope) error {
+	return h.service.SendMessage(ctx, pid, env)
 }
 
 // NewEnvelope signs and wraps an encypted block for transport

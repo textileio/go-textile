@@ -68,29 +68,30 @@ func NewService(account *keypair.Full, handler Handler, node *core.IpfsNode) *Se
 }
 
 // SendMessage sends a message to a peer
-func (s *Service) SendMessage(pid peer.ID, env *pb.Envelope) error {
+func (s *Service) SendMessage(ctx context.Context, pid peer.ID, env *pb.Envelope) error {
 	log.Debugf("sending %s to %s", env.Message.Type.String(), pid.Pretty())
-	ms, err := s.messageSenderForPeer(pid, s.handler.Protocol())
+	if ctx == nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), defaultTimeout)
+		defer cancel()
+	}
+	ms, err := s.messageSenderForPeer(ctx, pid, s.handler.Protocol())
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
-	if err := ms.SendMessage(ctx, env); err != nil {
-		return err
-	}
-	return nil
+	return ms.SendMessage(ctx, env)
 }
 
 // SendRequest sends a request to a peer
 func (s *Service) SendRequest(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
 	log.Debugf("sending %s to %s", env.Message.Type.String(), pid.Pretty())
-	ms, err := s.messageSenderForPeer(pid, s.handler.Protocol())
+	ms, err := s.messageSenderForPeer(ctx, pid, s.handler.Protocol())
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
 	renv, err := ms.SendRequest(ctx, env)
 	if err != nil {
 		return nil, err
@@ -206,7 +207,7 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 
 	// get sender
 	rpid := stream.Conn().RemotePeer()
-	ms, err := s.messageSenderForPeer(rpid, s.handler.Protocol())
+	ms, err := s.messageSenderForPeer(s.Node.Context(), rpid, s.handler.Protocol())
 	if err != nil {
 		log.Errorf("error getting message sender: %s", err)
 		return

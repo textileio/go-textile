@@ -244,7 +244,7 @@ func (h *CafeService) DeliverMessage(mid string, pid peer.ID, cafe peer.ID) erro
 	if err != nil {
 		return err
 	}
-	return h.service.SendMessage(cafe, env)
+	return h.service.SendMessage(nil, cafe, env)
 }
 
 // CheckMessages asks each session's inbox for new messages
