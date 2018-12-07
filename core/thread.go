@@ -70,7 +70,7 @@ type ThreadInfo struct {
 type ThreadInviteInfo struct {
 	Id      string    `json:"id"`
 	Name    string    `json:"name"`
-	Inviter string    `json:"inviter"`
+	Inviter string    `json:"inviter,omitempty"`
 	Date    time.Time `json:"date"`
 }
 
