@@ -26,6 +26,9 @@ var ErrThreadInviteNotFound = errors.New("thread invite not found")
 // ErrThreadLoaded indicates the thread is already loaded from the datastore
 var ErrThreadLoaded = errors.New("thread is loaded")
 
+// internalThreadKeys lists keys used by internal threads
+var internalThreadKeys = []string{"avatars"}
+
 // AddThreadConfig is used to create a new thread model
 type AddThreadConfig struct {
 	Key       string          `json:"key"`
@@ -129,10 +132,17 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 // Threads lists loaded threads
 func (t *Textile) Threads() []Thread {
 	var threads []Thread
-	for _, t := range t.threads {
-		if t != nil {
-			threads = append(threads, *t)
+loop:
+	for _, i := range t.threads {
+		if i == nil || i.Key == t.account.Address() {
+			continue
 		}
+		for _, k := range internalThreadKeys {
+			if i.Key == k {
+				continue loop
+			}
+		}
+		threads = append(threads, *i)
 	}
 	return threads
 }
