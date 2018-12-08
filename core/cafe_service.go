@@ -712,6 +712,7 @@ func (h *CafeService) handleDeliverMessage(pid peer.ID, env *pb.Envelope) (*pb.E
 		log.Errorf("error adding message: %s", err)
 		return nil, nil
 	}
+
 	return nil, nil
 }
 

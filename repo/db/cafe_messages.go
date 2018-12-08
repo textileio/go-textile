@@ -24,7 +24,7 @@ func (c *CafeMessageDB) Add(req *repo.CafeMessage) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into cafe_messages(id, peerId, date) values(?,?,?)`
+	stm := `insert into cafe_messages(id, peerId, date, attempts) values(?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -35,6 +35,7 @@ func (c *CafeMessageDB) Add(req *repo.CafeMessage) error {
 		req.Id,
 		req.PeerId,
 		int(req.Date.Unix()),
+		req.Attempts,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -56,6 +57,13 @@ func (c *CafeMessageDB) List(offset string, limit int) []repo.CafeMessage {
 	return c.handleQuery(stm)
 }
 
+func (c *CafeMessageDB) AddAttempt(id string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("update cafe_messages set attempts=attempts+1 where id=?", id)
+	return err
+}
+
 func (c *CafeMessageDB) Delete(id string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -72,15 +80,16 @@ func (c *CafeMessageDB) handleQuery(stm string) []repo.CafeMessage {
 	}
 	for rows.Next() {
 		var id, peerId string
-		var dateInt int
-		if err := rows.Scan(&id, &peerId, &dateInt); err != nil {
+		var dateInt, attempts int
+		if err := rows.Scan(&id, &peerId, &dateInt, &attempts); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
 		ret = append(ret, repo.CafeMessage{
-			Id:     id,
-			PeerId: peerId,
-			Date:   time.Unix(int64(dateInt), 0),
+			Id:       id,
+			PeerId:   peerId,
+			Date:     time.Unix(int64(dateInt), 0),
+			Attempts: attempts,
 		})
 	}
 	return ret

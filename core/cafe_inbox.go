@@ -17,6 +17,9 @@ import (
 // cafeInFlushGroupSize is the size of concurrently processed messages
 const cafeInFlushGroupSize = 16
 
+// maxDownloadAttempts is the number of times a message can fail to download before being deleted
+const maxDownloadAttempts = 5
+
 // CafeInbox queues and processes outbound thread messages
 type CafeInbox struct {
 	service        func() *CafeService
@@ -107,41 +110,26 @@ func (q *CafeInbox) batch(msgs []repo.CafeMessage) error {
 		return nil
 	}
 
-	var berr error
-	var toDelete []string
-	wg := sync.WaitGroup{}
 	for _, msg := range msgs {
-		wg.Add(1)
 		go func(msg repo.CafeMessage) {
 			if err := q.handle(msg); err != nil {
-				berr = err
+				log.Warningf("unable to handle cafe message: %s", msg.Id)
 				return
 			}
-			toDelete = append(toDelete, msg.Id)
-			wg.Done()
+			if err := q.datastore.CafeMessages().Delete(msg.Id); err != nil {
+				log.Errorf("failed to delete cafe message %s: %s", msg.Id, err)
+			} else {
+				log.Debugf("handled cafe message %s", msg.Id)
+			}
 		}(msg)
 	}
-	wg.Wait()
 
 	// next batch
 	offset := msgs[len(msgs)-1].Id
 	next := q.datastore.CafeMessages().List(offset, cafeInFlushGroupSize)
 
-	var deleted []string
-	for _, id := range toDelete {
-		if err := q.datastore.CafeMessages().Delete(id); err != nil {
-			log.Errorf("failed to delete cafe message %s: %s", id, err)
-			continue
-		}
-		deleted = append(deleted, id)
-	}
-	log.Debugf("handled %d cafe messages", len(deleted))
-
-	// keep going unless an error occurred
-	if berr == nil {
-		return q.batch(next)
-	}
-	return berr
+	// keep going
+	return q.batch(next)
 }
 
 // handle handles a single message
@@ -154,6 +142,15 @@ func (q *CafeInbox) handle(msg repo.CafeMessage) error {
 	// download the actual message
 	ciphertext, err := ipfs.DataAtPath(q.node(), msg.Id)
 	if err != nil {
+		if msg.Attempts+1 >= maxDownloadAttempts {
+			if err := q.datastore.CafeMessages().Delete(msg.Id); err != nil {
+				return err
+			}
+		} else {
+			if err := q.datastore.CafeMessages().AddAttempt(msg.Id); err != nil {
+				return err
+			}
+		}
 		return err
 	}
 

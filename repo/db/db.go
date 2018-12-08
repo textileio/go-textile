@@ -240,7 +240,7 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index cafe_request_cafeId on cafe_requests (cafeId);
     create index cafe_request_date on cafe_requests (date);
 
-    create table cafe_messages (id text primary key not null, peerId text not null, date integer not null);
+    create table cafe_messages (id text primary key not null, peerId text not null, date integer not null, attempts integer not null);
     create index cafe_message_date on cafe_messages (date);
 
     create table cafe_client_nonces (value text primary key not null, address text not null, date integer not null);

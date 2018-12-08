@@ -10,13 +10,13 @@
 
 [![Throughput Graph](https://graphs.waffle.io/textileio/textile-go/throughput.svg)](https://waffle.io/textileio/textile-go/metrics/throughput)
 
+This repository contains the core Textile node and daemon, a command-line client, and a mobile client for building an iOS/Android application.
+
+See textile-mobile for the Textile Photos iOS/Android app.
+
 ## What is Textile?
 
 [Textile](https://www.textile.io) provides encrypted, recoverable, schema-based, and cross-application data storage built on [IPFS](https://github.com/ipfs) and [libp2p](https://github.com/libp2p). We like to think of it as a decentralized Firebase with built-in protocols for sharing and recovery.
-
-This repository contains the core Textile node and daemon, a CLI client, and a mobile client for building an iOS/Android application.
-
-See [textile-mobile](https://github.com/textileio/textile-mobile/) for the [Textile Photos](https://www.textile.photos) iOS/Android app.
 
 ## Install
 
