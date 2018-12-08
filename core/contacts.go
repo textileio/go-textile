@@ -85,7 +85,11 @@ func (t *Textile) ContactUsername(id string) string {
 		}
 		return ipfs.ShortenID(id)
 	}
-	return toUsername(t.datastore.Contacts().Get(id))
+	contact := t.datastore.Contacts().Get(id)
+	if contact == nil {
+		return ipfs.ShortenID(id)
+	}
+	return toUsername(contact)
 }
 
 // ContactThreads returns all threads with the given peer

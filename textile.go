@@ -148,8 +148,8 @@ func (x *walletInitCmd) Execute(args []string) error {
 		return err
 	}
 	fmt.Println("--- ACCOUNT 0 ---")
-	fmt.Println(fmt.Sprintf("PUBLIC ADDR: %s", kp.Address()))
-	fmt.Println(fmt.Sprintf("SECRET SEED: %s", kp.Seed()))
+	fmt.Println(kp.Address())
+	fmt.Println(kp.Seed())
 
 	return nil
 }

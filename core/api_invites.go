@@ -82,12 +82,16 @@ func (a *api) acceptInvites(g *gin.Context) {
 			return
 		}
 		hash, err = a.node.AcceptExternalThreadInvite(id, key)
+		if err != nil {
+			g.String(http.StatusBadRequest, err.Error())
+			return
+		}
 	} else {
 		hash, err = a.node.AcceptThreadInvite(id)
-	}
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
+		if err != nil {
+			g.String(http.StatusBadRequest, err.Error())
+			return
+		}
 	}
 	if hash == nil {
 		g.String(http.StatusConflict, "thread already exists")

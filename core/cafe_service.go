@@ -99,6 +99,8 @@ func (h *CafeService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error
 		return h.handleCheckMessages(pid, env)
 	case pb.Message_CAFE_DELETE_MESSAGES:
 		return h.handleDeleteMessages(pid, env)
+	case pb.Message_CAFE_YOU_HAVE_MAIL:
+		return h.handleNotifyClient(pid, env)
 	default:
 		return nil, nil
 	}
@@ -302,6 +304,17 @@ func (h *CafeService) DeleteMessages(cafe peer.ID) error {
 
 	// apparently there's more new messages waiting...
 	return h.CheckMessages(cafe)
+}
+
+// notifyClient attempts to ping a client that has messages waiting to download
+func (h *CafeService) notifyClient(pid peer.ID) error {
+	env, err := h.service.NewEnvelope(pb.Message_CAFE_YOU_HAVE_MAIL, nil, nil, false)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second) // fail fast
+	defer cancel()
+	return h.service.SendMessage(ctx, pid, env)
 }
 
 // sendCafeRequest sends an authenticated request, retrying once after a session refresh
@@ -712,6 +725,32 @@ func (h *CafeService) handleDeliverMessage(pid peer.ID, env *pb.Envelope) (*pb.E
 		log.Errorf("error adding message: %s", err)
 		return nil, nil
 	}
+
+	go func() {
+		pid, err := peer.IDB58Decode(client.Id)
+		if err != nil {
+			log.Errorf("error parsing client id %s: %s", client.Id, err)
+			return
+		}
+		if err := h.notifyClient(pid); err != nil {
+			log.Debugf("unable to notify offline client: %s", client.Id)
+		}
+	}()
+	return nil, nil
+}
+
+// handleDeliverMessage receives an inbox message for a client
+func (h *CafeService) handleNotifyClient(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	session := h.datastore.CafeSessions().Get(pid.Pretty())
+	if session == nil {
+		log.Warningf("received message from unknown cafe %s", pid.Pretty())
+		return nil, nil
+	}
+
+	if err := h.CheckMessages(pid); err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
 

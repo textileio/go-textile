@@ -31,10 +31,10 @@ type Profile struct {
 }
 
 // profileLifetime is the duration the ipns profile record will be considered valid
-var profileLifetime = time.Hour * 24 * 7
+var profileLifetime = time.Hour * 24 * 7 * 4
 
 // profileTTL is the duration the ipns profile record will be locally cached
-var profileTTL = time.Hour
+var profileTTL = time.Hour * 24 * 7
 
 // Username returns profile username
 func (t *Textile) Username() (*string, error) {

@@ -160,6 +160,7 @@ type CafeMessageStore interface {
 	Queryable
 	Add(msg *CafeMessage) error
 	List(offset string, limit int) []CafeMessage
+	AddAttempt(id string) error
 	Delete(id string) error
 }
 

@@ -100,7 +100,7 @@ func InitIpfs(identity native.Identity) (*native.Config, error) {
 			Libp2pStreamMounting: true,
 		},
 		Pubsub: native.PubsubConfig{
-			Router: "gossipsub",
+			Router: "floodsub",
 		},
 	}
 
