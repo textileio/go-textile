@@ -78,8 +78,8 @@ type ThreadInviteInfo struct {
 type BlockInfo struct {
 	Id       string    `json:"id"`
 	ThreadId string    `json:"thread_id"`
-	AuthorId string    `json:"author_id"`
-	Username string    `json:"username"`
+	AuthorId string    `json:"author_id,omitempty"`
+	Username string    `json:"username,omitempty"`
 	Type     string    `json:"type"`
 	Date     time.Time `json:"date"`
 	Parents  []string  `json:"parents"`

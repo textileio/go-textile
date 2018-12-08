@@ -30,6 +30,7 @@ message Message {
         CAFE_MESSAGES            = 62;
         CAFE_DELETE_MESSAGES     = 63;
         CAFE_DELETE_MESSAGES_ACK = 64;
+        CAFE_YOU_HAVE_MAIL       = 65;
 
         ERROR = 500;
     }
