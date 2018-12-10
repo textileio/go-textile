@@ -16,7 +16,7 @@ See textile-mobile for the Textile Photos iOS/Android app.
 
 ## What is Textile?
 
-Textile provides encrypted, recoverable, schema-based, and cross-application data storage built on IPFS and libp2p. We like to think of it as a decentralized data wallet with built-in protocols for sharing and recovery, or more simply: an iCloud that any user access and any developer can build on.
+[Textile](https://www.textile.io) provides encrypted, recoverable, schema-based, and cross-application data storage built on [IPFS](https://github.com/ipfs) and [libp2p](https://github.com/libp2p). We like to think of it as a decentralized data wallet with built-in protocols for sharing and recovery, or more simply: an iCloud that any user access and any developer can build on.
 
 #### With Textile you can:
 
@@ -71,7 +71,7 @@ Textile has big hopes for Filecoin. We’ll be working hard to integrate the Fil
 
 ## Install
 
-Download the latest release for your OS.
+Download the [latest release](https://github.com/textileio/textile-go/releases/latest) for your OS.
 
 ## Usage
 
@@ -279,8 +279,8 @@ There are various things to build…
 
 ## Acknowledgments
 
-While now almost entirely different, this project was jump-started from OpenBazaar. Thanks to @cpacia, @drwasho and the rest of the contributors for their work on openbazaar-go.
-And of course, thank you, Protocal Labs, for the incredible FOSS effort and constant inspiration.
+While now almost entirely different, this project was jump-started from [OpenBazaar](https://openbazaar.org/). Thanks to @cpacia, @drwasho and the rest of the contributors for their work on [openbazaar-go](https://github.com/OpenBazaar/openbazaar-go).
+And of course, thank you, [Protocal Labs](https://protocol.ai/), for the incredible FOSS effort and constant inspiration.
 
 ## License
 
