@@ -16,7 +16,7 @@ See textile-mobile for the Textile Photos iOS/Android app.
 
 ## What is Textile?
 
-[Textile](https://www.textile.io) provides encrypted, recoverable, schema-based, and cross-application data storage built on [IPFS](https://github.com/ipfs) and [libp2p](https://github.com/libp2p). We like to think of it as a decentralized data wallet with built-in protocols for sharing and recovery, or more simply: an iCloud that any user access and any developer can build on.
+[Textile](https://www.textile.io) provides encrypted, recoverable, schema-based, and cross-application data storage built on [IPFS](https://github.com/ipfs) and [libp2p](https://github.com/libp2p). We like to think of it as a decentralized data wallet with built-in protocols for sharing and recovery, or more simply, **a decentralized iCloud with open developer APIs**.
 
 #### With Textile you can:
 
@@ -109,6 +109,8 @@ Download the [latest release](https://github.com/textileio/textile-go/releases/l
       version        Print version and exit
       wallet         Manage or create an account wallet
 
+## Quick-start
+
 #### Initialize a new wallet.
 
     $ textile wallet init
@@ -133,7 +135,7 @@ Files are tracked by threads. So, let’s start there.
 
 #### Create a new thread.
 
-    $ textile threads add` `"``hello world" --photos
+    $ textile threads add "hello world" --photos
 
 This will create and join a thread backed by the built-in photos schema. Use the `--help` flag on any sub-command for more options and info.
 
