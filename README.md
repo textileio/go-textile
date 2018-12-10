@@ -41,7 +41,7 @@ The following is a brief overview of some of the core concepts in Textile. For m
 
 At the core of Textile is the user account wallet, which is backed by a mnemonic phrase for recovery. Each wallet can create any number of accounts, which are used to enter the network and sync your data between devices/apps.
 
-At a high level, a user account is a collection of operation-based CRDTs called threads. Threads are updated with messages called blocks. These blocks are hash-linked together, forming a traversable tree. Practically speaking, a thread represents a set of files and/or messages potentially shared between users.
+At a high level, a user account is a collection of operation-based [CRDTs](https://en.wikipedia.org/wiki/Conflict-free_replicated_data_type) called threads. Threads are updated with messages called blocks. These blocks are hash-linked together, forming a traversable tree. Practically speaking, a thread represents a set of files and/or messages potentially shared between users.
 
 You can create threads that only accept certain type of files (photos, videos, etc.) This is achieved by building or using a built-in file schema. Schemas provide a really power way to structure, encode, and encrypt your data.
 
@@ -67,7 +67,7 @@ See the wiki (in progress) for more about threads, blocks, file schemas, sharing
 
 ## Filecoin
 
-Textile has big hopes for Filecoin. We’ll be working hard to integrate the Filecoin node into Textile’s cafe mode as part of a more robust and flexible backup service.
+Textile has big hopes for [Filecoin](https://filecoin.io/). We’ll be working hard to integrate the Filecoin node into Textile’s cafe mode as part of a more robust and flexible backup service.
 
 ## Install
 
