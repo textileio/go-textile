@@ -109,6 +109,8 @@ Download the [latest release](https://github.com/textileio/textile-go/releases/l
       version        Print version and exit
       wallet         Manage or create an account wallet
 
+## Quick-start
+
 #### Initialize a new wallet.
 
     $ textile wallet init
@@ -133,7 +135,7 @@ Files are tracked by threads. So, let’s start there.
 
 #### Create a new thread.
 
-    $ textile threads add` `"``hello world" --photos
+    $ textile threads add "hello world" --photos
 
 This will create and join a thread backed by the built-in photos schema. Use the `--help` flag on any sub-command for more options and info.
 
