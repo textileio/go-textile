@@ -120,7 +120,6 @@ func Init(version string) (*Config, error) {
 		},
 		Logs: Logs{
 			LogToDisk: true,
-			LogLevel:  "error",
 		},
 		Threads: Threads{
 			Defaults: ThreadDefaults{

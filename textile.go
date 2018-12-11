@@ -80,8 +80,9 @@ type migrateCmd struct {
 }
 
 type daemonCmd struct {
-	PinCode  string `short:"p" long:"pin-code" description:"Specify the pin code for datastore encryption (omit of none was used during init)."`
-	RepoPath string `short:"r" long:"repo-dir" description:"Specify a custom repository path."`
+	PinCode  string   `short:"p" long:"pin-code" description:"Specify the pin code for datastore encryption (omit of none was used during init)."`
+	RepoPath string   `short:"r" long:"repo-dir" description:"Specify a custom repository path."`
+	Logs     []string `short:"l" long:"logs" description:"Control subcommand log level. e.g., --logs=\"tex-core: debug\" Can be used multiple times."`
 }
 
 var node *core.Textile

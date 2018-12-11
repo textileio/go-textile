@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -134,7 +133,7 @@ func InitRepo(conf InitConfig) error {
 		return ErrAccountRequired
 	}
 
-	setupLogging(conf.RepoPath, conf.LogLevel, conf.LogToDisk)
+	setupLogging(conf.RepoPath, conf.LogToDisk)
 
 	// init repo
 	if err := repo.Init(conf.RepoPath, Version); err != nil {
@@ -210,11 +209,7 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 		return nil, err
 	}
 
-	llevel, err := logger.LogLevel(strings.ToUpper(node.config.Logs.LogLevel))
-	if err != nil {
-		llevel = logger.ERROR
-	}
-	node.writer = setupLogging(conf.RepoPath, llevel, node.config.Logs.LogToDisk)
+	node.writer = setupLogging(conf.RepoPath, node.config.Logs.LogToDisk)
 
 	// run all minor repo migrations if needed
 	if err := repo.MigrateUp(conf.RepoPath, conf.PinCode, false); err != nil {
@@ -664,7 +659,7 @@ func (t *Textile) touchDatastore() error {
 }
 
 // setupLogging hijacks the ipfs logging system, putting output to files
-func setupLogging(repoPath string, level logger.Level, files bool) io.Writer {
+func setupLogging(repoPath string, files bool) io.Writer {
 	var writer io.Writer
 	if files {
 		writer = &lumberjack.Logger{
@@ -678,15 +673,7 @@ func setupLogging(repoPath string, level logger.Level, files bool) io.Writer {
 	}
 	backendFile := logger.NewLogBackend(writer, "", 0)
 	logger.SetBackend(backendFile)
-	logging.SetAllLoggers(level)
-
-	// tmp until we have a log command to alter subsystems
-	logging.SetLogLevel("tex-core", "debug")
-	logging.SetLogLevel("tex-service", "debug")
-	logging.SetLogLevel("tex-gateway", "debug")
-	logging.SetLogLevel("tex-ipfs", "debug")
-	logging.SetLogLevel("tex-mill", "debug")
-	logging.SetLogLevel("tex-mobile", "debug")
+	logging.SetAllLoggers(logger.ERROR)
 
 	return writer
 }
