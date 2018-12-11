@@ -6,11 +6,13 @@
 
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE) [![CircleCI](https://circleci.com/gh/textileio/textile-go/tree/master.svg?style=shield)](https://circleci.com/gh/textileio/textile-go/tree/master)
 
+This repository contains pre-built Textile mobile clients for iOS and Android.
+
+See [textile-mobile](https://github.com/textileio/textile-mobile/) for the [Textile Photos](https://www.textile.photos) iOS/Android app.
+
 ## What is Textile?
 
-Riding on [IPFS](https://github.com/ipfs) and [libp2p](https://github.com/libp2p), [Textile](https://www.textile.io) aims to provide a set of straightforward primitives for building decentralized mobile applications.
-
-This repository contains pre-built binary bindings for running a Textile Photos node on iOS and Android. See [textile-mobile](https://github.com/textileio/textile-mobile/) for the [Textile Photos](https://www.textile.photos) iOS/Android app.
+[Textile](https://www.textile.io) provides encrypted, recoverable, schema-based, and cross-application data storage built on [IPFS](https://github.com/ipfs) and [libp2p](https://github.com/libp2p). We like to think of it as a decentralized data wallet with built-in protocols for sharing and recovery, or more simply, **a decentralized iCloud with open developer APIs**.
 
 ## Install
 

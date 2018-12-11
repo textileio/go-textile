@@ -12,7 +12,7 @@
 
 This repository contains the core Textile node and daemon, a command-line client, and a mobile client for building an iOS/Android application.
 
-See textile-mobile for the Textile Photos iOS/Android app.
+See [textile-mobile](https://github.com/textileio/textile-mobile/) for the [Textile Photos](https://www.textile.photos) iOS/Android app.
 
 ## What is Textile?
 
@@ -45,7 +45,7 @@ At a high level, a user account is a collection of operation-based [CRDTs](https
 
 You can create threads that only accept certain type of files (photos, videos, etc.) This is achieved by building or using a built-in file schema. Schemas provide a really power way to structure, encode, and encrypt your data.
 
-The following show some threads within a (hypothetical) wallet’s first account:
+The following shows some threads within a (hypothetical) wallet’s first account.
 
     Account Wallet
     --------------
