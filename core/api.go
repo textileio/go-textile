@@ -182,6 +182,14 @@ func (a *api) Start() {
 			swarm.GET("/peers", a.swarmPeers)
 		}
 
+		logs := v0.Group("/logs")
+		{
+			logs.POST("", a.logsCall)
+			logs.GET("", a.logsCall)
+			logs.POST("/:subsystem", a.logsCall)
+			logs.GET("/:subsystem", a.logsCall)
+		}
+
 	}
 	a.server = &http.Server{
 		Addr:    a.addr,
