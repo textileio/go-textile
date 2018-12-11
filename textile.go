@@ -275,7 +275,15 @@ func (x *migrateCmd) Execute(args []string) error {
 }
 
 func (x *daemonCmd) Execute(args []string) error {
-	if err := buildNode(x.PinCode, x.RepoPath); err != nil {
+	logLevels := make(map[string]string)
+	for _, log := range x.Logs {
+		split := strings.SplitN(log, ":", 2)
+		key := strings.TrimSpace(split[0])
+		value := strings.ToUpper(strings.TrimSpace(split[1]))
+		logLevels[key] = value
+	}
+
+	if err := buildNode(x.PinCode, x.RepoPath, logLevels); err != nil {
 		return err
 	}
 	printSplash()
@@ -313,15 +321,16 @@ func getRepoPath(repoPath string) (string, error) {
 	return repoPath, nil
 }
 
-func buildNode(pinCode string, repoPath string) error {
+func buildNode(pinCode string, repoPath string, logLevels map[string]string) error {
 	repoPathf, err := getRepoPath(repoPath)
 	if err != nil {
 		return err
 	}
 
 	node, err = core.NewTextile(core.RunConfig{
-		PinCode:  pinCode,
-		RepoPath: repoPathf,
+		PinCode:   pinCode,
+		RepoPath:  repoPathf,
+		LogLevels: logLevels,
 	})
 	if err != nil {
 		return errors.New(fmt.Sprintf("create node failed: %s", err))

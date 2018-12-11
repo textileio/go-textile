@@ -88,8 +88,9 @@ type MigrateConfig struct {
 
 // RunConfig is used to define run options for a textile node
 type RunConfig struct {
-	PinCode  string
-	RepoPath string
+	PinCode   string
+	RepoPath  string
+	LogLevels map[string]string
 }
 
 // Textile is the main Textile node structure
@@ -133,7 +134,7 @@ func InitRepo(conf InitConfig) error {
 		return ErrAccountRequired
 	}
 
-	setupLogging(conf.RepoPath, conf.LogToDisk)
+	setupLogging(conf.RepoPath, map[string]string{}, conf.LogToDisk)
 
 	// init repo
 	if err := repo.Init(conf.RepoPath, Version); err != nil {
@@ -209,7 +210,7 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 		return nil, err
 	}
 
-	node.writer = setupLogging(conf.RepoPath, node.config.Logs.LogToDisk)
+	node.writer = setupLogging(conf.RepoPath, conf.LogLevels, node.config.Logs.LogToDisk)
 
 	// run all minor repo migrations if needed
 	if err := repo.MigrateUp(conf.RepoPath, conf.PinCode, false); err != nil {
@@ -659,7 +660,7 @@ func (t *Textile) touchDatastore() error {
 }
 
 // setupLogging hijacks the ipfs logging system, putting output to files
-func setupLogging(repoPath string, files bool) io.Writer {
+func setupLogging(repoPath string, logLevels map[string]string, files bool) io.Writer {
 	var writer io.Writer
 	if files {
 		writer = &lumberjack.Logger{
@@ -674,6 +675,10 @@ func setupLogging(repoPath string, files bool) io.Writer {
 	backendFile := logger.NewLogBackend(writer, "", 0)
 	logger.SetBackend(backendFile)
 	logging.SetAllLoggers(logger.ERROR)
+
+	for key, value := range logLevels {
+		logging.SetLogLevel(key, value)
+	}
 
 	return writer
 }
