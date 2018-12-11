@@ -8,7 +8,6 @@ import (
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	logger "gx/ipfs/QmcaSwFc5RBg8yCq54QURwEU4nwjfCpjbpmaAm4VbdGLKv/go-logging"
 
 	"github.com/segmentio/ksuid"
 	. "github.com/textileio/textile-go/core"
@@ -29,7 +28,6 @@ func TestInitRepo(t *testing.T) {
 	if err := InitRepo(InitConfig{
 		Account:  accnt,
 		RepoPath: repoPath,
-		LogLevel: logger.ERROR,
 	}); err != nil {
 		t.Errorf("init node failed: %s", err)
 	}

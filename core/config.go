@@ -60,7 +60,6 @@ func applyTextileConfigOptions(init InitConfig) error {
 
 	// log settings
 	conf.Logs.LogToDisk = init.LogToDisk
-	conf.Logs.LogLevel = strings.ToLower(init.LogLevel.String())
 
 	// profile settings
 	conf.IsServer = init.IsServer

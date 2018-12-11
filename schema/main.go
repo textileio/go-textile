@@ -10,7 +10,7 @@ import (
 var ErrFileValidationFailed = errors.New("file failed schema validation")
 
 // ErrEmptySchema indicates a schema is empty
-var ErrEmptySchema = errors.New("schema is does not create any files")
+var ErrEmptySchema = errors.New("schema does not create any files")
 
 // ErrLinkOrderNotSolvable
 var ErrLinkOrderNotSolvable = errors.New("link order is not solvable")

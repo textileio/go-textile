@@ -74,7 +74,6 @@ type InitConfig struct {
 	GatewayAddr  string
 	IsMobile     bool
 	IsServer     bool
-	LogLevel     logger.Level
 	LogToDisk    bool
 	CafeOpen     bool
 	CafePublicIP string

@@ -2,11 +2,9 @@ package mobile
 
 import (
 	"encoding/json"
-	"strings"
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
-	logger "gx/ipfs/QmcaSwFc5RBg8yCq54QURwEU4nwjfCpjbpmaAm4VbdGLKv/go-logging"
 
 	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/core"
@@ -70,7 +68,6 @@ func WalletAccountAt(phrase string, index int, password string) (string, error) 
 type InitConfig struct {
 	Seed      string
 	RepoPath  string
-	LogLevel  string
 	LogToDisk bool
 }
 
@@ -106,17 +103,10 @@ func InitRepo(config *InitConfig) error {
 		return keypair.ErrInvalidKey
 	}
 
-	// logLevel is one of: critical error warning notice info debug
-	logLevel, err := logger.LogLevel(strings.ToUpper(config.LogLevel))
-	if err != nil {
-		logLevel = logger.ERROR
-	}
-
 	return core.InitRepo(core.InitConfig{
 		Account:   accnt,
 		RepoPath:  config.RepoPath,
 		IsMobile:  true,
-		LogLevel:  logLevel,
 		LogToDisk: config.LogToDisk,
 	})
 }

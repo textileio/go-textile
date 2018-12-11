@@ -79,7 +79,6 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 		initc := core.InitConfig{
 			Account:   accnt,
 			RepoPath:  repoPath,
-			LogLevel:  logger.ERROR,
 			LogToDisk: true,
 		}
 		if err := core.InitRepo(initc); err != nil {

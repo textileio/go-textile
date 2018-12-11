@@ -48,8 +48,7 @@ type API struct {
 
 // Logs settings
 type Logs struct {
-	LogToDisk bool   // when true, sends all logs to rolling files on disk
-	LogLevel  string // one of: critical error warning notice info debug
+	LogToDisk bool // when true, sends all logs to rolling files on disk
 }
 
 // Thread settings
