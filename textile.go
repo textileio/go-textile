@@ -11,8 +11,6 @@ import (
 	"strings"
 	"time"
 
-	logger "gx/ipfs/QmcaSwFc5RBg8yCq54QURwEU4nwjfCpjbpmaAm4VbdGLKv/go-logging"
-
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/cmd"
@@ -230,11 +228,6 @@ func (x *initCmd) Execute(args []string) error {
 		return err
 	}
 
-	level, err := logger.LogLevel(strings.ToUpper(x.Logs.Level))
-	if err != nil {
-		return errors.New(fmt.Sprintf("failed to determine log level: %s", err))
-	}
-
 	config := core.InitConfig{
 		Account:      accnt,
 		PinCode:      x.PinCode,
@@ -245,7 +238,6 @@ func (x *initCmd) Execute(args []string) error {
 		GatewayAddr:  x.Addresses.GatewayBindAddr,
 		IsMobile:     false,
 		IsServer:     x.IPFS.ServerMode,
-		LogLevel:     level,
 		LogToDisk:    !x.Logs.NoFiles,
 		CafeOpen:     x.CafeOptions.Open,
 		CafePublicIP: x.CafeOptions.PublicIP,
