@@ -25,30 +25,31 @@ func (a *api) logsCall(g *gin.Context) {
 		return
 	}
 	level := strings.ToUpper(opts["level"])
-	all := opts["all"] == "true"
+	texOnly := opts["tex-only"] == "true"
 
-	var result []map[string]string
+	result := make(map[string]string)
 	for _, system := range subsystems {
-		if strings.HasPrefix(system, "tex") || all {
-			var llevel logger.Level
-			if level != "" && g.Request.Method == "POST" {
-				// validate log level
-				llevel, err = logger.LogLevel(level)
-				if err != nil {
-					g.String(http.StatusBadRequest, err.Error())
-					return
-				}
-			} else {
-				llevel = logger.GetLevel(system)
-			}
-			// validate subsystem + set log level
-			err = logging.SetLogLevel(system, llevel.String())
+		if texOnly && !strings.HasPrefix(system, "tex") {
+			continue
+		}
+		var llevel logger.Level
+		if level != "" && g.Request.Method == "POST" {
+			// validate log level
+			llevel, err = logger.LogLevel(level)
 			if err != nil {
 				g.String(http.StatusBadRequest, err.Error())
 				return
 			}
-			result = append(result, map[string]string{system: llevel.String()})
+		} else {
+			llevel = logger.GetLevel(system)
 		}
+		// validate subsystem + set log level
+		err = logging.SetLogLevel(system, llevel.String())
+		if err != nil {
+			g.String(http.StatusBadRequest, err.Error())
+			return
+		}
+		result[system] = llevel.String()
 	}
 	g.JSON(http.StatusOK, result)
 }
