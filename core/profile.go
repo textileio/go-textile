@@ -6,13 +6,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
-	"time"
 
 	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	"gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface"
 	uio "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/io"
 
 	"github.com/textileio/textile-go/ipfs"
@@ -29,12 +28,6 @@ type Profile struct {
 	Username  string   `json:"username,omitempty"`
 	AvatarUri string   `json:"avatar_uri,omitempty"`
 }
-
-// profileLifetime is the duration the ipns profile record will be considered valid
-var profileLifetime = time.Hour * 24 * 7 * 4
-
-// profileTTL is the duration the ipns profile record will be locally cached
-var profileTTL = time.Hour * 24 * 7
 
 // Username returns profile username
 func (t *Textile) Username() (*string, error) {
@@ -218,18 +211,18 @@ func (t *Textile) PublishProfile() error {
 			log.Errorf("error publishing profile: %s", err)
 			return
 		}
-		log.Debugf("published: %s -> %s", entry.Name, entry.Value)
+		log.Debugf("published: %s -> %s", entry.Name(), entry.Value())
 	}()
 	return nil
 }
 
 // ResolveProfile looks up a profile on ipns
-func (t *Textile) ResolveProfile(name peer.ID) (*path.Path, error) {
+func (t *Textile) ResolveProfile(name peer.ID) (iface.Path, error) {
 	return ipfs.Resolve(t.node, name)
 }
 
 // publishProfile publishes profile to ipns
-func (t *Textile) publishProfile(prof Profile) (*ipfs.IpnsEntry, error) {
+func (t *Textile) publishProfile(prof Profile) (iface.IpnsEntry, error) {
 	dir := uio.NewDirectory(t.node.DAG)
 
 	addressId, err := ipfs.AddDataToDirectory(t.node, dir, "address", bytes.NewReader([]byte(prof.Address)))
@@ -275,19 +268,29 @@ func (t *Textile) publishProfile(prof Profile) (*ipfs.IpnsEntry, error) {
 		return nil, err
 	}
 
-	t.cafeOutbox.Add(addressId.Hash().B58String(), repo.CafeStoreRequest)
+	if err := t.cafeOutbox.Add(addressId.Hash().B58String(), repo.CafeStoreRequest); err != nil {
+		return nil, err
+	}
 	if inboxesId != nil {
-		t.cafeOutbox.Add(inboxesId.Hash().B58String(), repo.CafeStoreRequest)
+		if err := t.cafeOutbox.Add(inboxesId.Hash().B58String(), repo.CafeStoreRequest); err != nil {
+			return nil, err
+		}
 	}
 	if usernameId != nil {
-		t.cafeOutbox.Add(usernameId.Hash().B58String(), repo.CafeStoreRequest)
+		if err := t.cafeOutbox.Add(usernameId.Hash().B58String(), repo.CafeStoreRequest); err != nil {
+			return nil, err
+		}
 	}
 	if avatarId != nil {
-		t.cafeOutbox.Add(avatarId.Hash().B58String(), repo.CafeStoreRequest)
+		if err := t.cafeOutbox.Add(avatarId.Hash().B58String(), repo.CafeStoreRequest); err != nil {
+			return nil, err
+		}
 	}
-	t.cafeOutbox.Add(node.Cid().Hash().B58String(), repo.CafeStoreRequest)
+	if err := t.cafeOutbox.Add(node.Cid().Hash().B58String(), repo.CafeStoreRequest); err != nil {
+		return nil, err
+	}
 	go t.cafeOutbox.Flush()
 
 	value := node.Cid().Hash().B58String()
-	return ipfs.Publish(t.node, t.node.PrivateKey, value, profileLifetime, profileTTL)
+	return ipfs.Publish(t.node, value)
 }
