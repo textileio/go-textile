@@ -43,8 +43,8 @@ type cafeOptions struct {
 type options struct{}
 
 type walletCmd struct {
-	Init     walletInitCmd     `command:"init"`
-	Accounts walletAccountsCmd `command:"accounts"`
+	Init     walletInitCmd     `command:"init" description:"Initialize a new wallet"`
+	Accounts walletAccountsCmd `command:"accounts" description:"Show derived accounts"`
 }
 
 type walletInitCmd struct {
@@ -52,10 +52,24 @@ type walletInitCmd struct {
 	Password  string `short:"p" long:"password" description:"Mnemonic recovery phrase password (omit if none)."`
 }
 
+func (x *walletInitCmd) Usage() string {
+	return `
+
+Initializes a new account wallet backed by a mnemonic recovery phrase.
+`
+}
+
 type walletAccountsCmd struct {
 	Password string `short:"p" long:"password" description:"Mnemonic recovery phrase password (omit if none)."`
 	Depth    int    `short:"d" long:"depth" description:"Number of accounts to show." default:"1"`
 	Offset   int    `short:"o" long:"offset" description:"Account depth to start from." default:"0"`
+}
+
+func (x *walletAccountsCmd) Usage() string {
+	return `
+
+Shows the derived accounts (address/seed pairs) in a wallet.
+`
 }
 
 type versionCmd struct{}
