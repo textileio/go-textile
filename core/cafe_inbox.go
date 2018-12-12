@@ -26,7 +26,8 @@ type CafeInbox struct {
 	threadsService func() *ThreadsService
 	node           func() *core.IpfsNode
 	datastore      repo.Datastore
-	mux            sync.Mutex
+	checking       bool
+	flushing       bool
 }
 
 // NewCafeInbox creates a new inbox queue
@@ -46,6 +47,14 @@ func NewCafeInbox(
 
 // CheckMessages asks each active cafe session for new messages
 func (q *CafeInbox) CheckMessages() error {
+	if q.checking {
+		return nil
+	}
+	q.checking = true
+	defer func() {
+		q.checking = false
+	}()
+
 	// get active cafe sessions
 	sessions := q.datastore.CafeSessions().List()
 	if len(sessions) == 0 {
@@ -89,8 +98,13 @@ func (q *CafeInbox) Add(msg *pb.CafeMessage) error {
 
 // Flush processes pending messages
 func (q *CafeInbox) Flush() {
-	q.mux.Lock()
-	defer q.mux.Unlock()
+	if q.flushing {
+		return
+	}
+	q.flushing = true
+	defer func() {
+		q.flushing = false
+	}()
 	log.Debug("flushing cafe inbox")
 
 	if q.threadsService() == nil || q.service() == nil {

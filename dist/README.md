@@ -1,6 +1,6 @@
-# textile commandline tool
+# Textile command-line tool
 
-This is the [textile](http://textile.io) commandline tool. It contains a full textile node, which is built on top of a full ipfs node.
+This is the [Textile](https://www.textile.io) command-line client and daemon.
 
 ## Install
 

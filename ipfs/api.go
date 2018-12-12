@@ -2,7 +2,6 @@ package ipfs
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,7 +10,6 @@ import (
 	"time"
 
 	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 	"gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
@@ -32,13 +30,8 @@ var log = logging.Logger("tex-ipfs")
 
 const pinTimeout = time.Minute
 const catTimeout = time.Second * 30
-const ipnsTimeout = time.Second * 10
+const ipnsTimeout = time.Second * 30
 const connectTimeout = time.Second * 10
-
-type IpnsEntry struct {
-	Name  string
-	Value string
-}
 
 // DataAtPath return bytes under an ipfs path
 func DataAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
@@ -55,7 +48,11 @@ func DataAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer reader.Close()
+	defer func() {
+		if err := reader.Close(); err != nil {
+			log.Error(err)
+		}
+	}()
 
 	return ioutil.ReadAll(reader)
 }
@@ -145,43 +142,6 @@ func AddData(node *core.IpfsNode, reader io.Reader, pin bool) (*cid.Cid, error) 
 	return &id, nil
 }
 
-// PinPath takes an ipfs path string and pins it
-func PinPath(node *core.IpfsNode, pth string, recursive bool) error {
-	ip, err := iface.ParsePath(pth)
-	if err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
-	defer cancel()
-
-	api := coreapi.NewCoreAPI(node)
-	if err := api.Pin().Add(ctx, ip, options.Pin.Recursive(recursive)); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// UnpinPath takes an ipfs path string and unpins it
-// Note: This is always recursive. Use UnpinNode for finer control.
-func UnpinPath(node *core.IpfsNode, pth string) error {
-	ip, err := iface.ParsePath(pth)
-	if err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
-	defer cancel()
-
-	api := coreapi.NewCoreAPI(node)
-	if err := api.Pin().Rm(ctx, ip); err != nil && err != pin.ErrNotPinned {
-		return err
-	}
-
-	return nil
-}
-
 // NodeAtLink returns the node behind an ipld link
 func NodeAtLink(node *core.IpfsNode, link *ipld.Link) (ipld.Node, error) {
 	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
@@ -238,48 +198,38 @@ func UnpinNode(node *core.IpfsNode, nd ipld.Node, recursive bool) error {
 }
 
 // Publish publishes a content id to ipns
-func Publish(node *core.IpfsNode, sk libp2pc.PrivKey, id string, dur time.Duration, cache time.Duration) (*IpnsEntry, error) {
-	if node.Mounts.Ipns != nil && node.Mounts.Ipns.IsActive() {
-		return nil, errors.New("cannot manually publish while IPNS is mounted")
+func Publish(node *core.IpfsNode, id string) (iface.IpnsEntry, error) {
+	opts := []options.NamePublishOption{
+		options.Name.AllowOffline(true),
+		options.Name.ValidTime(time.Hour * 24),
+		options.Name.TTL(time.Hour),
 	}
 
-	pth, err := path.ParsePath(id)
+	pth, err := iface.ParsePath(id)
 	if err != nil {
 		return nil, err
 	}
 
-	eol := time.Now().Add(dur)
 	ctx, cancel := context.WithTimeout(node.Context(), ipnsTimeout)
-	ctx = context.WithValue(ctx, "ipns-publish-ttl", cache)
 	defer cancel()
 
-	if err := node.Namesys.PublishWithEOL(ctx, sk, pth, eol); err != nil {
-		return nil, err
-	}
-
-	pid, err := peer.IDFromPrivateKey(sk)
-	if err != nil {
-		return nil, err
-	}
-
-	return &IpnsEntry{Name: pid.Pretty(), Value: pth.String()}, nil
+	return coreapi.NewCoreAPI(node).Name().Publish(ctx, pth, opts...)
 }
 
 // Resolve resolves an ipns path to an ipfs path
-func Resolve(node *core.IpfsNode, name peer.ID) (*path.Path, error) {
+func Resolve(node *core.IpfsNode, name peer.ID) (iface.Path, error) {
 	key := fmt.Sprintf("/ipns/%s", name.Pretty())
 
-	var ropts []nsopts.ResolveOpt
-	ropts = append(ropts, nsopts.Depth(1))
-	ropts = append(ropts, nsopts.DhtRecordCount(16))
-	ropts = append(ropts, nsopts.DhtTimeout(ipnsTimeout))
-
-	pth, err := node.Namesys.Resolve(node.Context(), key, ropts...)
-	if err != nil {
-		return nil, err
+	opts := []options.NameResolveOption{
+		options.Name.ResolveOption(nsopts.Depth(1)),
+		options.Name.ResolveOption(nsopts.DhtRecordCount(4)),
+		options.Name.ResolveOption(nsopts.DhtTimeout(ipnsTimeout)),
 	}
 
-	return &pth, nil
+	ctx, cancel := context.WithTimeout(node.Context(), ipnsTimeout)
+	defer cancel()
+
+	return coreapi.NewCoreAPI(node).Name().Resolve(ctx, key, opts...)
 }
 
 // SwarmConnect opens a direct connection to a list of peer multi addresses

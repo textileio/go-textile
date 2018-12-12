@@ -12,62 +12,13 @@
 
 This repository contains the core Textile node and daemon, a command-line client, and a mobile client for building an iOS/Android application.
 
-See textile-mobile for the Textile Photos iOS/Android app.
+See [textile-mobile](https://github.com/textileio/textile-mobile/) for the [Textile Photos](https://www.textile.photos) iOS/Android app.
 
 ## What is Textile?
 
-[Textile](https://www.textile.io) provides encrypted, recoverable, schema-based, and cross-application data storage built on [IPFS](https://github.com/ipfs) and [libp2p](https://github.com/libp2p). We like to think of it as a decentralized data wallet with built-in protocols for sharing and recovery, or more simply, **a decentralized iCloud with open developer APIs**.
+[Textile](https://www.textile.io) provides encrypted, recoverable, schema-based, and cross-application data storage built on [IPFS](https://github.com/ipfs) and [libp2p](https://github.com/libp2p). We like to think of it as a decentralized data wallet with built-in protocols for sharing and recovery, or more simply, **an open and programmable iCloud**.
 
-#### With Textile you can:
-
-- Securely store your photos, videos, documents, or any other type of file
-- Share and chat with friends and family
-- Access your files and messages on multiple devices/apps, without worrying about device storage
-
-#### Advanced users can:
-
-- Choose your level of data replication
-- Choose or federate your own backup nodes or cafes
-- Design new file and JSON schemas
-
-#### Application developers can:
-
-- Skip user management, authentication, data storage, and messaging by integrating one of the Textile SDKs
-- Request read and write access to your users’ files and messages
-
-## How does it work?
-
-The following is a brief overview of some of the core concepts in Textile. For more detail, refer to the wiki.
-
-At the core of Textile is the user account wallet, which is backed by a mnemonic phrase for recovery. Each wallet can create any number of accounts, which are used to enter the network and sync your data between devices/apps.
-
-At a high level, a user account is a collection of operation-based [CRDTs](https://en.wikipedia.org/wiki/Conflict-free_replicated_data_type) called threads. Threads are updated with messages called blocks. These blocks are hash-linked together, forming a traversable tree. Practically speaking, a thread represents a set of files and/or messages potentially shared between users.
-
-You can create threads that only accept certain type of files (photos, videos, etc.) This is achieved by building or using a built-in file schema. Schemas provide a really power way to structure, encode, and encrypt your data.
-
-The following show some threads within a (hypothetical) wallet’s first account:
-
-    Account Wallet
-    --------------
-    Account0 ---- Threads
-    Account1      -------
-    Account2      Account Peers (devices/apps): JOIN(ap1)<---JOIN(ap2)...
-    Account3      My Photos (private): JOIN(ap1,ap2)<---FILES(ap2)<---FILES(ap3)...
-    ...           Cat Videos (public): JOIN(p1,(ap1,ap2))<---FILES(p1)<---MESSAGE(ap1)...
-                  Team Chat (open): JOIN(p2,p3,(ap1,ap2)<---MESSAGE(p3)<---MESSAGE(p2)...
-
-`Account0` has a private thread for photos (perhaps a camera roll), some public (shared) videos, and an open team chat thread (read more about thread types in the wiki). Account devices/apps are synced with an internal private thread (in this case, account peers `ap1` and `ap2`).
-
-Account recovery is handled by a network of federated Textile nodes called cafes, which offer backup and offline inbox-ing services to other peers.
-
-See the wiki (in progress) for more about threads, blocks, file schemas, sharing, cafes, and more.
-
-## Major to-dos for version 1
-- [ ] Finish account recovery mechanism
-
-## Filecoin
-
-Textile has big hopes for [Filecoin](https://filecoin.io/). We’ll be working hard to integrate the Filecoin node into Textile’s cafe mode as part of a more robust and flexible backup service.
+**Please see the [Wiki](https://github.com/textileio/textile-go/wiki) for more**.
 
 ## Install
 

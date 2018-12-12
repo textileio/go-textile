@@ -11,6 +11,7 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/service"
 )
 
 // threadsFlushGroupSize is the size of concurrently processed messages
@@ -23,7 +24,7 @@ type ThreadsOutbox struct {
 	node       func() *core.IpfsNode
 	datastore  repo.Datastore
 	cafeOutbox *CafeOutbox
-	mux        sync.Mutex
+	flushing   bool
 }
 
 // NewThreadsOutbox creates a new outbox queue
@@ -54,8 +55,13 @@ func (q *ThreadsOutbox) Add(pid peer.ID, env *pb.Envelope) error {
 
 // Flush processes pending messages
 func (q *ThreadsOutbox) Flush() {
-	q.mux.Lock()
-	defer q.mux.Unlock()
+	if q.flushing {
+		return
+	}
+	q.flushing = true
+	defer func() {
+		q.flushing = false
+	}()
 	log.Debug("flushing thread messages")
 
 	if q.service() == nil {
@@ -130,7 +136,7 @@ func (q *ThreadsOutbox) batch(msgs []repo.ThreadMessage) error {
 // handle handles a single message
 func (q *ThreadsOutbox) handle(pid peer.ID, msg repo.ThreadMessage) error {
 	// first, attempt to send the message directly to the recipient
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), service.DirectTimeout)
 	defer cancel()
 	if err := q.service().SendMessage(ctx, pid, msg.Envelope); err != nil {
 		log.Debugf("send thread message direct to %s failed: %s", pid.Pretty(), err)

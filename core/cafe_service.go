@@ -29,7 +29,7 @@ import (
 const defaultSessionDuration = time.Hour * 24 * 7 * 4
 
 // blockTimeout is the context timeout for getting a local block
-const blockTimeout = time.Second * 5
+const blockTimeout = time.Second * 10
 
 // inboxMessagePageSize is the page size used when checking messages
 const inboxMessagePageSize = 10
@@ -312,7 +312,7 @@ func (h *CafeService) notifyClient(pid peer.ID) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second) // fail fast
+	ctx, cancel := context.WithTimeout(context.Background(), service.DirectTimeout) // fail fast
 	defer cancel()
 	return h.service.SendMessage(ctx, pid, env)
 }
