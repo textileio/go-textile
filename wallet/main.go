@@ -91,7 +91,7 @@ func (w *Wallet) AccountAt(index int, password string) (*keypair.Full, error) {
 	if err != nil {
 		return nil, err
 	}
-	key, err := masterKey.Derive(FirstHardenedIndex)
+	key, err := masterKey.Derive(FirstHardenedIndex + uint32(index))
 	if err != nil {
 		return nil, err
 	}
