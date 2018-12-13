@@ -3,14 +3,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:dc9639273af918022abda0ccfc02fea4d57cb01e5713ec53d807402df80be1ef"
-  name = "github.com/abiosoft/readline"
-  packages = ["."]
-  pruneopts = "T"
-  revision = "155bce2042db95a783081fab225e74dd879055b0"
-
-[[projects]]
-  branch = "master"
   digest = "1:7996950d6e7d367ff77af55a45a5f59aba0d15ecd4ae74697b1bda8e9f2e66ab"
   name = "github.com/agl/ed25519"
   packages = [
@@ -131,14 +123,6 @@
   pruneopts = "T"
   revision = "5b77d2a35fb0ede96d138fc9a99f5c9b6aef11b4"
   version = "v1.7.0"
-
-[[projects]]
-  branch = "master"
-  digest = "1:50a46ab1d5edbbdd55125b4d37f1bf503d0807c26461f9ad7b358d6006641d09"
-  name = "github.com/flynn-archive/go-shlex"
-  packages = ["."]
-  pruneopts = "T"
-  revision = "3f9db97f856818214da2e1057f8ad84803971cff"
 
 [[projects]]
   digest = "1:27ae17a75b17237a08129c9dcca244fa55c6855502ea2838a7a00c362ad76b91"
@@ -515,14 +499,6 @@
   version = "v0.3.0"
 
 [[projects]]
-  digest = "1:b422e7572a450b4b928b4ad16747e6e9c296887573c6ecf5d351e438683f5385"
-  name = "gopkg.in/abiosoft/ishell.v2"
-  packages = ["."]
-  pruneopts = "T"
-  revision = "0a6b1640e32638dd433ee7e57ec325a7bdd79561"
-  version = "v2.0.0"
-
-[[projects]]
   digest = "1:7fc160b460a6fc506b37fcca68332464c3f2cd57b6e3f111f26c5bbfd2d5518e"
   name = "gopkg.in/fsnotify.v1"
   packages = ["."]
@@ -600,7 +576,6 @@
     "github.com/xeipuuv/gojsonschema",
     "golang.org/x/crypto/ed25519",
     "golang.org/x/crypto/nacl/box",
-    "gopkg.in/abiosoft/ishell.v2",
     "gopkg.in/natefinch/lumberjack.v2",
   ]
   solver-name = "gps-cdcl"

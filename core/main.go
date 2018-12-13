@@ -34,13 +34,13 @@ import (
 var log = logging.Logger("tex-core")
 
 // Version is the core version identifier
-const Version = "1.0.0-rc8"
+const Version = "1.0.0-rc9"
 
 // kQueueFlushFreq how often to flush the message queues
 const kQueueFlushFreq = time.Second * 60
 
 // kMobileQueueFlushFreq how often to flush the message queues on mobile
-const kMobileQueueFlush = time.Second * 20
+const kMobileQueueFlush = time.Second * 40
 
 // Update is used to notify UI listeners of changes
 type Update struct {
@@ -145,7 +145,11 @@ func InitRepo(conf InitConfig) error {
 		log.Errorf("error opening repo: %s", err)
 		return err
 	}
-	defer rep.Close()
+	defer func() {
+		if err := rep.Close(); err != nil {
+			log.Error(err)
+		}
+	}()
 
 	// apply ipfs config opts
 	if err := applySwarmPortConfigOption(rep, conf.SwarmPorts); err != nil {
@@ -378,7 +382,8 @@ func (t *Textile) Stop() error {
 	// close db connection
 	t.datastore.Close()
 	dsLockFile := filepath.Join(t.repoPath, "datastore", "LOCK")
-	os.Remove(dsLockFile)
+	if err := os.Remove(dsLockFile); err != nil {
+	}
 
 	// wipe threads
 	t.threads = nil
@@ -565,7 +570,9 @@ func (t *Textile) flushQueues() {
 
 	go func() {
 		t.threadsOutbox.Flush()
-		t.cafeInbox.CheckMessages()
+		if err := t.cafeInbox.CheckMessages(); err != nil {
+			log.Errorf("error checking messages: %s", err)
+		}
 		t.cafeOutbox.Flush()
 	}()
 }
@@ -676,7 +683,9 @@ func setupLogging(repoPath string, logLevels map[string]string, files bool) io.W
 	logging.SetAllLoggers(logger.ERROR)
 
 	for key, value := range logLevels {
-		logging.SetLogLevel(key, value)
+		if err := logging.SetLogLevel(key, value); err != nil {
+			log.Error(err)
+		}
 	}
 
 	return writer
@@ -685,7 +694,9 @@ func setupLogging(repoPath string, logLevels map[string]string, files bool) io.W
 // removeLocks force deletes the IPFS repo and SQLite DB lock files
 func removeLocks(repoPath string) {
 	repoLockFile := filepath.Join(repoPath, fsrepo.LockFile)
-	os.Remove(repoLockFile)
+	if err := os.Remove(repoLockFile); err != nil {
+	}
 	dsLockFile := filepath.Join(repoPath, "datastore", "LOCK")
-	os.Remove(dsLockFile)
+	if err := os.Remove(dsLockFile); err != nil {
+	}
 }

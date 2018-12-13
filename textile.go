@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -18,7 +17,6 @@ import (
 	"github.com/textileio/textile-go/gateway"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/wallet"
-	"gopkg.in/abiosoft/ishell.v2"
 )
 
 type ipfsOptions struct {
@@ -45,8 +43,8 @@ type cafeOptions struct {
 type options struct{}
 
 type walletCmd struct {
-	Init     walletInitCmd     `command:"init"`
-	Accounts walletAccountsCmd `command:"accounts"`
+	Init     walletInitCmd     `command:"init" description:"Initialize a new wallet"`
+	Accounts walletAccountsCmd `command:"accounts" description:"Show derived accounts"`
 }
 
 type walletInitCmd struct {
@@ -54,10 +52,24 @@ type walletInitCmd struct {
 	Password  string `short:"p" long:"password" description:"Mnemonic recovery phrase password (omit if none)."`
 }
 
+func (x *walletInitCmd) Usage() string {
+	return `
+
+Initializes a new account wallet backed by a mnemonic recovery phrase.
+`
+}
+
 type walletAccountsCmd struct {
 	Password string `short:"p" long:"password" description:"Mnemonic recovery phrase password (omit if none)."`
 	Depth    int    `short:"d" long:"depth" description:"Number of accounts to show." default:"1"`
 	Offset   int    `short:"o" long:"offset" description:"Account depth to start from." default:"0"`
+}
+
+func (x *walletAccountsCmd) Usage() string {
+	return `
+
+Shows the derived accounts (address/seed pairs) in a wallet.
+`
 }
 
 type versionCmd struct{}
@@ -153,9 +165,11 @@ func (x *walletInitCmd) Execute(args []string) error {
 	return nil
 }
 
-var wordsRegexp = regexp.MustCompile(`^[a-z]+$`)
-
 func (x *walletAccountsCmd) Execute(args []string) error {
+	if len(args) == 0 {
+		return errors.New("missing recovery phrase")
+	}
+
 	if x.Depth < 1 || x.Depth > 100 {
 		return errors.New("depth must be greater than 0 and less than 100")
 	}
@@ -163,37 +177,7 @@ func (x *walletAccountsCmd) Execute(args []string) error {
 		return errors.New("offset must be greater than 0 and less than depth")
 	}
 
-	// create a shell for reading input
-	shell := ishell.New()
-
-	// determine word count
-	count := shell.MultiChoice([]string{"12", "15", "18", "21", "24"}, "How many words are in your mnemonic recovery phrase?")
-	var wcount wallet.WordCount
-	switch count {
-	case 0:
-		wcount = wallet.TwelveWords
-	case 1:
-		wcount = wallet.FifteenWords
-	case 2:
-		wcount = wallet.EighteenWords
-	case 3:
-		wcount = wallet.TwentyOneWords
-	case 4:
-		wcount = wallet.TwentyFourWords
-	default:
-		return wallet.ErrInvalidWordCount
-	}
-
-	words := make([]string, int(wcount))
-	for i := 0; i < int(wcount); i++ {
-		shell.Print(fmt.Sprintf("Enter word #%d: ", i+1))
-		words[i] = shell.ReadLine()
-		if !wordsRegexp.MatchString(words[i]) {
-			shell.Println("Invalid word, try again.")
-			i--
-		}
-	}
-	wall := wallet.NewWalletFromRecoveryPhrase(strings.Join(words, " "))
+	wall := wallet.NewWalletFromRecoveryPhrase(args[0])
 
 	for i := x.Offset; i < x.Offset+x.Depth; i++ {
 		kp, err := wall.AccountAt(i, x.Password)
@@ -201,8 +185,8 @@ func (x *walletAccountsCmd) Execute(args []string) error {
 			return err
 		}
 		fmt.Println(fmt.Sprintf("--- ACCOUNT %d ---", i))
-		fmt.Println(fmt.Sprintf("PUBLIC ADDR: %s", kp.Address()))
-		fmt.Println(fmt.Sprintf("SECRET SEED: %s", kp.Seed()))
+		fmt.Println(kp.Address())
+		fmt.Println(kp.Seed())
 	}
 	return nil
 }
@@ -268,8 +252,8 @@ func (x *migrateCmd) Execute(args []string) error {
 
 func (x *daemonCmd) Execute(args []string) error {
 	logLevels := make(map[string]string)
-	for _, log := range x.Logs {
-		split := strings.SplitN(log, ":", 2)
+	for _, l := range x.Logs {
+		split := strings.SplitN(l, ":", 2)
 		key := strings.TrimSpace(split[0])
 		value := strings.ToUpper(strings.TrimSpace(split[1]))
 		logLevels[key] = value

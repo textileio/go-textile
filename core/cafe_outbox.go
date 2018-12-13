@@ -28,7 +28,7 @@ type CafeOutbox struct {
 	service   func() *CafeService
 	node      func() *core.IpfsNode
 	datastore repo.Datastore
-	mux       sync.Mutex
+	flushing  bool
 }
 
 // NewCafeOutbox creates a new outbox queue
@@ -73,15 +73,22 @@ func (q *CafeOutbox) InboxRequest(pid peer.ID, env *pb.Envelope, inboxes []strin
 	}
 
 	for _, inbox := range inboxes {
-		q.add(pid, hash.B58String(), inbox, repo.CafePeerInboxRequest)
+		if err := q.add(pid, hash.B58String(), inbox, repo.CafePeerInboxRequest); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 // Flush processes pending requests
 func (q *CafeOutbox) Flush() {
-	q.mux.Lock()
-	defer q.mux.Unlock()
+	if q.flushing {
+		return
+	}
+	q.flushing = true
+	defer func() {
+		q.flushing = false
+	}()
 	log.Debug("flushing cafe outbox")
 
 	if q.service() == nil {
@@ -263,7 +270,9 @@ func (q *CafeOutbox) prepForInbox(pid peer.ID, env *pb.Envelope) (mh.Multihash, 
 		return nil, err
 	}
 
-	q.Add(id.Hash().B58String(), repo.CafeStoreRequest)
+	if err := q.Add(id.Hash().B58String(), repo.CafeStoreRequest); err != nil {
+		return nil, err
+	}
 
 	return id.Hash(), nil
 }

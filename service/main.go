@@ -37,7 +37,10 @@ type Service struct {
 }
 
 // defaultTimeout is the context timeout for sending / requesting messages
-const defaultTimeout = time.Second * 5
+const defaultTimeout = time.Second * 10
+
+// DirectTimeout is the context timeout used when we want to first try a direct p2p send but fail fast
+const DirectTimeout = time.Second * 1
 
 // PeerStatus is the possible results from pinging another peer
 type PeerStatus string
@@ -199,7 +202,11 @@ func (s *Service) handleNewStream(stream inet.Stream) {
 
 // handleNewMessage handles a p2p net stream
 func (s *Service) handleNewMessage(stream inet.Stream) {
-	defer stream.Close()
+	defer func() {
+		if err := stream.Close(); err != nil {
+			log.Error(err)
+		}
+	}()
 
 	// setup reader
 	ctxReader := ctxio.NewReader(s.Node.Context(), stream)
@@ -224,7 +231,9 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 
 		env := new(pb.Envelope)
 		if err := reader.ReadMsg(env); err != nil {
-			stream.Reset()
+			if err := stream.Reset(); err != nil {
+				log.Error(err)
+			}
 			if err == io.EOF {
 				log.Debugf("disconnected from peer %s", rpid.Pretty())
 			}
@@ -258,7 +267,9 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 			}
 
 			ms.requestMux.Unlock()
-			stream.Reset()
+			if err := stream.Reset(); err != nil {
+				log.Error(err)
+			}
 			return
 		}
 
@@ -280,7 +291,9 @@ func (s *Service) handleNewMessage(stream inet.Stream) {
 
 		log.Debugf("responding with %s to %s", renv.Message.Type.String(), rpid.Pretty())
 		if err := ms.SendMessage(s.Node.Context(), renv); err != nil {
-			stream.Reset()
+			if err := stream.Reset(); err != nil {
+				log.Error(err)
+			}
 			log.Errorf("send response error: %s", err)
 			return
 		}
