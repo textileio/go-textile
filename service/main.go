@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -29,11 +30,13 @@ var log = logging.Logger("tex-service")
 
 // service represents a libp2p service
 type Service struct {
-	Account   *keypair.Full
-	Node      *core.IpfsNode
-	handler   Handler
-	sender    map[peer.ID]*sender
-	senderMux sync.Mutex
+	Account *keypair.Full
+	Node    *core.IpfsNode
+
+	handler Handler
+
+	strmap map[peer.ID]*messageSender
+	smlk   sync.Mutex
 }
 
 // defaultTimeout is the context timeout for sending / requesting messages
@@ -63,68 +66,85 @@ func NewService(account *keypair.Full, handler Handler, node *core.IpfsNode) *Se
 		Account: account,
 		Node:    node,
 		handler: handler,
-		sender:  make(map[peer.ID]*sender),
+		strmap:  make(map[peer.ID]*messageSender),
 	}
 	node.PeerHost.SetStreamHandler(handler.Protocol(), service.handleNewStream)
+
 	log.Debugf("registered service: %s", handler.Protocol())
+
 	return service
 }
 
-// SendMessage sends a message to a peer
-func (s *Service) SendMessage(ctx context.Context, pid peer.ID, env *pb.Envelope) error {
-	log.Debugf("sending %s to %s", env.Message.Type.String(), pid.Pretty())
+// Ping pings another peer and returns status
+func (srv *Service) Ping(p peer.ID) (PeerStatus, error) {
+	id := rand.Int31()
+	env, err := srv.NewEnvelope(pb.Message_PING, nil, &id, false)
+	if err != nil {
+		return "", err
+	}
+
+	if _, err := srv.SendRequest(p, env); err != nil {
+		return PeerOffline, nil
+	}
+
+	return PeerOnline, nil
+}
+
+// SendRequest sends out a request, but also makes sure to
+// measure the RTT for latency measurements.
+func (srv *Service) SendRequest(p peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
+	log.Debugf("sending %s to %s", pmes.Message.Type.String(), p.Pretty())
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	ms, err := srv.messageSenderForPeer(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	rpmes, err := ms.SendRequest(ctx, pmes)
+	if err != nil {
+		return nil, err
+	}
+
+	if rpmes == nil {
+		log.Debugf("no response from %s", p.Pretty())
+		return nil, errors.New("no response from peer")
+	}
+
+	log.Debugf("received %s response from %s", rpmes.Message.Type.String(), p.Pretty())
+	if err := srv.handleError(rpmes); err != nil {
+		return nil, err
+	}
+
+	return rpmes, nil
+}
+
+// SendMessage sends out a message
+func (srv *Service) SendMessage(ctx context.Context, p peer.ID, pmes *pb.Envelope) error {
+	log.Debugf("sending %s to %s", pmes.Message.Type.String(), p.Pretty())
+
 	if ctx == nil {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(context.Background(), defaultTimeout)
 		defer cancel()
 	}
-	ms, err := s.messageSenderForPeer(ctx, pid, s.handler.Protocol())
+
+	ms, err := srv.messageSenderForPeer(ctx, p)
 	if err != nil {
 		return err
 	}
-	return ms.SendMessage(ctx, env)
-}
 
-// SendRequest sends a request to a peer
-func (s *Service) SendRequest(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
+	if err := ms.SendMessage(ctx, pmes); err != nil {
+		return err
+	}
 
-	log.Debugf("sending %s to %s", env.Message.Type.String(), pid.Pretty())
-	ms, err := s.messageSenderForPeer(ctx, pid, s.handler.Protocol())
-	if err != nil {
-		return nil, err
-	}
-	renv, err := ms.SendRequest(ctx, env)
-	if err != nil {
-		return nil, err
-	}
-	if renv == nil {
-		log.Debugf("no response from %s", pid.Pretty())
-		return nil, errors.New("no response from peer")
-	}
-	log.Debugf("received %s response from %s", renv.Message.Type.String(), pid.Pretty())
-	if err := s.handleError(renv); err != nil {
-		return nil, err
-	}
-	return renv, nil
-}
-
-// Ping pings another peer and returns status
-func (s *Service) Ping(pid peer.ID) (PeerStatus, error) {
-	id := rand.Int31()
-	env, err := s.NewEnvelope(pb.Message_PING, nil, &id, false)
-	if err != nil {
-		return "", err
-	}
-	if _, err := s.SendRequest(pid, env); err != nil {
-		return PeerOffline, nil
-	}
-	return PeerOnline, nil
+	return nil
 }
 
 // NewEnvelope returns a signed pb message for transport
-func (s *Service) NewEnvelope(mtype pb.Message_Type, msg proto.Message, id *int32, response bool) (*pb.Envelope, error) {
+func (srv *Service) NewEnvelope(mtype pb.Message_Type, msg proto.Message, id *int32, response bool) (*pb.Envelope, error) {
 	var payload *any.Any
 	if msg != nil {
 		var err error
@@ -134,56 +154,64 @@ func (s *Service) NewEnvelope(mtype pb.Message_Type, msg proto.Message, id *int3
 		}
 	}
 	message := &pb.Message{Type: mtype, Payload: payload}
+
 	if id != nil {
 		message.RequestId = *id
 	}
 	if response {
 		message.IsResponse = true
 	}
+
 	ser, err := proto.Marshal(message)
 	if err != nil {
 		return nil, err
 	}
-	if s.Node.PrivateKey == nil {
-		if err := s.Node.LoadPrivateKey(); err != nil {
+
+	if srv.Node.PrivateKey == nil {
+		if err := srv.Node.LoadPrivateKey(); err != nil {
 			return nil, err
 		}
 	}
-	sig, err := s.Node.PrivateKey.Sign(ser)
+
+	sig, err := srv.Node.PrivateKey.Sign(ser)
 	if err != nil {
 		return nil, err
 	}
+
 	return &pb.Envelope{Message: message, Sig: sig}, nil
 }
 
 // NewError returns a signed pb error message
-func (s *Service) NewError(code int, msg string, id int32) (*pb.Envelope, error) {
-	return s.NewEnvelope(pb.Message_ERROR, &pb.Error{
+func (srv *Service) NewError(code int, msg string, id int32) (*pb.Envelope, error) {
+	return srv.NewEnvelope(pb.Message_ERROR, &pb.Error{
 		Code:    uint32(code),
 		Message: msg,
 	}, &id, true)
 }
 
 // VerifyEnvelope verifies the authenticity of an envelope
-func (s *Service) VerifyEnvelope(env *pb.Envelope, pid peer.ID) error {
+func (srv *Service) VerifyEnvelope(env *pb.Envelope, pid peer.ID) error {
 	ser, err := proto.Marshal(env.Message)
 	if err != nil {
 		return err
 	}
+
 	pk, err := pid.ExtractPublicKey()
 	if err != nil {
 		return err
 	}
+
 	return crypto.Verify(pk, ser, env.Sig)
 }
 
 // handleError receives an error response
-func (s *Service) handleError(env *pb.Envelope) error {
+func (srv *Service) handleError(env *pb.Envelope) error {
 	if env.Message.Payload == nil && env.Message.Type != pb.Message_PONG {
 		err := fmt.Sprintf("message payload with type %s is nil", env.Message.Type.String())
 		log.Error(err)
 		return errors.New(err)
 	}
+
 	if env.Message.Type != pb.Message_ERROR {
 		return nil
 	} else {
@@ -195,123 +223,120 @@ func (s *Service) handleError(env *pb.Envelope) error {
 	}
 }
 
-// handleNewStream handles a p2p net stream in the background
-func (s *Service) handleNewStream(stream inet.Stream) {
-	go s.handleNewMessage(stream)
-}
-
-// handleNewMessage handles a p2p net stream
-func (s *Service) handleNewMessage(stream inet.Stream) {
-	defer func() {
-		if err := stream.Close(); err != nil {
-			log.Error(err)
-		}
-	}()
-
-	// setup reader
-	ctxReader := ctxio.NewReader(s.Node.Context(), stream)
-	reader := ggio.NewDelimitedReader(ctxReader, inet.MessageSizeMax)
-
-	// get sender
-	rpid := stream.Conn().RemotePeer()
-	ms, err := s.messageSenderForPeer(s.Node.Context(), rpid, s.handler.Protocol())
-	if err != nil {
-		log.Errorf("error getting message sender: %s", err)
-		return
-	}
-
-	// start listening for messages from this sender
-	for {
-		select {
-		// end loop on context close
-		case <-s.Node.Context().Done():
-			return
-		default:
-		}
-
-		env := new(pb.Envelope)
-		if err := reader.ReadMsg(env); err != nil {
-			if err := stream.Reset(); err != nil {
-				log.Error(err)
-			}
-			if err == io.EOF {
-				log.Debugf("disconnected from peer %s", rpid.Pretty())
-			}
-			return
-		}
-
-		if err := s.VerifyEnvelope(env, rpid); err != nil {
-			log.Warningf("error verifying message: %s", err)
-			continue
-		}
-
-		// check if the message is a response
-		if env.Message.IsResponse {
-			ms.requestMux.Lock()
-
-			ch, ok := ms.requests[env.Message.RequestId]
-			if ok {
-				// this is a request response
-				select {
-				case ch <- env:
-					// message returned to requester
-				case <-time.After(defaultTimeout):
-					// in case ch is closed on the other end - the lock should prevent this happening
-					log.Debug("request id was not removed from map on timeout")
-				}
-
-				close(ch)
-				delete(ms.requests, env.Message.RequestId)
-			} else {
-				log.Debug("unknown request id: requesting function may have timed out")
-			}
-
-			ms.requestMux.Unlock()
-			if err := stream.Reset(); err != nil {
-				log.Error(err)
-			}
-			return
-		}
-
-		// try a core handler for this msg type
-		handler := s.handleCore(env.Message.Type)
-		if handler == nil {
-			// get service specific handler
-			handler = s.handler.Handle
-		}
-
-		log.Debugf("received %s from %s", env.Message.Type.String(), rpid.Pretty())
-		renv, err := handler(rpid, env)
-		if err != nil {
-			log.Errorf("%s handle message error: %s", env.Message.Type.String(), err)
-		}
-		if renv == nil {
-			continue
-		}
-
-		log.Debugf("responding with %s to %s", renv.Message.Type.String(), rpid.Pretty())
-		if err := ms.SendMessage(s.Node.Context(), renv); err != nil {
-			if err := stream.Reset(); err != nil {
-				log.Error(err)
-			}
-			log.Errorf("send response error: %s", err)
-			return
-		}
-	}
-}
-
 // handleCore provides service level handlers for common message types
-func (s *Service) handleCore(mtype pb.Message_Type) func(peer.ID, *pb.Envelope) (*pb.Envelope, error) {
+func (srv *Service) handleCore(mtype pb.Message_Type) func(peer.ID, *pb.Envelope) (*pb.Envelope, error) {
 	switch mtype {
 	case pb.Message_PING:
-		return s.handlePing
+		return srv.handlePing
 	default:
 		return nil
 	}
 }
 
 // handlePing receives a PING message
-func (s *Service) handlePing(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	log.Debugf("received PING message from %s", pid.Pretty())
-	return s.NewEnvelope(pb.Message_PONG, nil, &env.Message.RequestId, true)
+func (srv *Service) handlePing(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	return srv.NewEnvelope(pb.Message_PONG, nil, &env.Message.RequestId, true)
+}
+
+var dhtReadMessageTimeout = time.Minute
+var ErrReadTimeout = fmt.Errorf("timed out reading response")
+
+type bufferedWriteCloser interface {
+	ggio.WriteCloser
+	Flush() error
+}
+
+// The Protobuf writer performs multiple small writes when writing a message.
+// We need to buffer those writes, to make sure that we're not sending a new
+// packet for every single write.
+type bufferedDelimitedWriter struct {
+	*bufio.Writer
+	ggio.WriteCloser
+}
+
+func newBufferedDelimitedWriter(str io.Writer) bufferedWriteCloser {
+	w := bufio.NewWriter(str)
+	return &bufferedDelimitedWriter{
+		Writer:      w,
+		WriteCloser: ggio.NewDelimitedWriter(w),
+	}
+}
+
+func (w *bufferedDelimitedWriter) Flush() error {
+	return w.Writer.Flush()
+}
+
+// handleNewStream implements the inet.StreamHandler
+func (srv *Service) handleNewStream(s inet.Stream) {
+	go srv.handleNewMessage(s)
+}
+
+func (srv *Service) handleNewMessage(s inet.Stream) {
+	ctx := srv.Node.Context()
+	cr := ctxio.NewReader(ctx, s) // ok to use. we defer close stream in this func
+	cw := ctxio.NewWriter(ctx, s) // ok to use. we defer close stream in this func
+	r := ggio.NewDelimitedReader(cr, inet.MessageSizeMax)
+	w := newBufferedDelimitedWriter(cw)
+	mPeer := s.Conn().RemotePeer()
+
+	for {
+		select {
+		// end loop on context close
+		case <-srv.Node.Context().Done():
+			return
+		default:
+		}
+
+		// receive msg
+		pmes := new(pb.Envelope)
+		switch err := r.ReadMsg(pmes); err {
+		case io.EOF:
+			s.Close()
+			return
+		case nil:
+		default:
+			s.Reset()
+			log.Debugf("error unmarshaling data: %s", err)
+			return
+		}
+
+		if err := srv.VerifyEnvelope(pmes, mPeer); err != nil {
+			log.Warningf("error verifying message: %s", err)
+			continue
+		}
+
+		// try a core handler for this msg type
+		handler := srv.handleCore(pmes.Message.Type)
+		if handler == nil {
+			// get service specific handler
+			handler = srv.handler.Handle
+		}
+
+		log.Debugf("received %s from %s", pmes.Message.Type.String(), mPeer.Pretty())
+		rpmes, err := handler(mPeer, pmes)
+		if err != nil {
+			s.Reset()
+			log.Errorf("%s handle message error: %s", pmes.Message.Type.String(), err)
+			return
+		}
+
+		// if nil response, return it before serializing
+		if rpmes == nil {
+			continue
+		}
+
+		// send out response msg
+		log.Debugf("responding with %s to %s", rpmes.Message.Type.String(), mPeer.Pretty())
+
+		// send out response msg
+		err = w.WriteMsg(rpmes)
+		if err == nil {
+			err = w.Flush()
+		}
+		if err != nil {
+			s.Reset()
+			log.Errorf("send response error: %s", err)
+			return
+		}
+	}
 }

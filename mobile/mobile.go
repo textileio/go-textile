@@ -122,6 +122,16 @@ func MigrateRepo(config *MigrateConfig) error {
 func NewTextile(config *RunConfig, messenger Messenger) (*Mobile, error) {
 	node, err := core.NewTextile(core.RunConfig{
 		RepoPath: config.RepoPath,
+		LogLevels: map[string]string{
+			"tex-broadcast":   "DEBUG",
+			"tex-core":        "DEBUG",
+			"tex-datastore":   "DEBUG",
+			"tex-ipfs":        "DEBUG",
+			"tex-mill":        "DEBUG",
+			"tex-repo":        "DEBUG",
+			"tex-repo-config": "DEBUG",
+			"tex-service":     "DEBUG",
+		},
 	})
 	if err != nil {
 		return nil, err
