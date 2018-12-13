@@ -78,8 +78,8 @@ type MigrateConfig struct {
 
 // RunConfig is used to define run options for a mobile node
 type RunConfig struct {
-	RepoPath string
-	LogLevel string
+	RepoPath  string
+	LogLevels map[string]string
 }
 
 // Mobile is the name of the framework (must match package name)
@@ -123,7 +123,7 @@ func MigrateRepo(config *MigrateConfig) error {
 func NewTextile(config *RunConfig, messenger Messenger) (*Mobile, error) {
 	node, err := core.NewTextile(core.RunConfig{
 		RepoPath:  config.RepoPath,
-		LogLevels: map[string]string{"*": config.LogLevel},
+		LogLevels: config.LogLevels,
 	})
 	if err != nil {
 		return nil, err
