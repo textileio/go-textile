@@ -21,6 +21,14 @@ lint:
 build:
 	go build -ldflags "-w" -i -o textile textile.go
 
+cross_build_linux:
+	export CGO_ENABLED=1
+	docker pull karalabe/xgo-latest
+	go get github.com/karalabe/xgo
+	mkdir dist && cd dist/
+	xgo --targets=linux/amd64 .
+	chmod +x *
+
 build_ios_framework:
 	gomobile bind -ldflags "-w" -target=ios github.com/textileio/textile-go/mobile
 
