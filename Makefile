@@ -26,7 +26,7 @@ cross_build_linux:
 	docker pull karalabe/xgo-latest
 	go get github.com/karalabe/xgo
 	mkdir dist && cd dist/
-	xgo --targets=linux/amd64 .
+	xgo -go 1.11.1 -ldflags "-w" --targets=linux/amd64 .
 	chmod +x *
 
 build_ios_framework:
