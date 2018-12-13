@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"net/url"
 	"strings"
 
 	"github.com/chzyer/readline"
@@ -88,7 +89,7 @@ func (x *chatCmd) Execute(args []string) error {
 
 func handleLine(line string, threadId string) error {
 	if strings.TrimSpace(line) != "" {
-		if _, err := callAddMessages(threadId, line); err != nil {
+		if _, err := callAddMessages(threadId, url.PathEscape(line)); err != nil {
 			return err
 		}
 	}
