@@ -123,13 +123,13 @@ func NewTextile(config *RunConfig, messenger Messenger) (*Mobile, error) {
 	node, err := core.NewTextile(core.RunConfig{
 		RepoPath: config.RepoPath,
 		LogLevels: map[string]string{
-			"tex-broadcast":   "ERROR",
-			"tex-core":        "ERROR",
-			"tex-datastore":   "ERROR",
-			"tex-ipfs":        "ERROR",
-			"tex-mill":        "ERROR",
-			"tex-repo":        "ERROR",
-			"tex-repo-config": "ERROR",
+			"tex-broadcast":   "DEBUG",
+			"tex-core":        "DEBUG",
+			"tex-datastore":   "DEBUG",
+			"tex-ipfs":        "DEBUG",
+			"tex-mill":        "DEBUG",
+			"tex-repo":        "DEBUG",
+			"tex-repo-config": "DEBUG",
 			"tex-service":     "DEBUG",
 		},
 	})
