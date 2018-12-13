@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -273,7 +274,10 @@ func (a *api) readArgs(g *gin.Context) ([]string, error) {
 	header := g.Request.Header.Get("X-Textile-Args")
 	var args []string
 	for _, a := range strings.Split(header, ",") {
-		arg := strings.TrimSpace(a)
+		arg, err := url.PathUnescape(strings.TrimSpace(a))
+		if err != nil {
+			return nil, err
+		}
 		if arg != "" {
 			args = append(args, arg)
 		}
@@ -289,7 +293,11 @@ func (a *api) readOpts(g *gin.Context) (map[string]string, error) {
 		if opt != "" {
 			parts := strings.Split(opt, "=")
 			if len(parts) == 2 {
-				opts[parts[0]] = parts[1]
+				v, err := url.PathUnescape(parts[1])
+				if err != nil {
+					return nil, err
+				}
+				opts[parts[0]] = v
 			}
 		}
 	}
