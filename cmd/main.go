@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/fatih/color"
@@ -100,18 +101,22 @@ func executeJsonCmd(meth method, pth string, pars params, target interface{}) (s
 }
 
 func request(meth method, pth string, pars params) (*http.Response, error) {
-	url := fmt.Sprintf("%s/api/%s/%s", apiAddr, apiVersion, pth)
-	req, err := http.NewRequest(string(meth), url, pars.payload)
+	apiUrl := fmt.Sprintf("%s/api/%s/%s", apiAddr, apiVersion, pth)
+	req, err := http.NewRequest(string(meth), apiUrl, pars.payload)
 	if err != nil {
 		return nil, err
 	}
 	if len(pars.args) > 0 {
-		req.Header.Set("X-Textile-Args", strings.Join(pars.args, ","))
+		var args []string
+		for _, arg := range pars.args {
+			args = append(args, url.PathEscape(arg))
+		}
+		req.Header.Set("X-Textile-Args", strings.Join(args, ","))
 	}
 	if len(pars.opts) > 0 {
 		var items []string
 		for k, v := range pars.opts {
-			items = append(items, k+"="+v)
+			items = append(items, k+"="+url.PathEscape(v))
 		}
 		req.Header.Set("X-Textile-Opts", strings.Join(items, ","))
 	}
