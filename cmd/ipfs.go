@@ -100,6 +100,7 @@ func (x *swarmPeersCmd) Execute(args []string) error {
 
 type ipfsCatCmd struct {
 	Client ClientOptions `group:"Client Options"`
+	Key    string        `short:"k" long:"key" description:"Encyrption key."`
 }
 
 func (x *ipfsCatCmd) Name() string {
@@ -119,7 +120,10 @@ func (x *ipfsCatCmd) Execute(args []string) error {
 	if len(args) == 0 {
 		return errMissingCID
 	}
-	req, err := request(GET, "ipfs/"+args[0], params{})
+
+	req, err := request(GET, "ipfs/"+args[0], params{
+		opts: map[string]string{"key": x.Key},
+	})
 	if err != nil {
 		return err
 	}
