@@ -684,7 +684,7 @@ func setupLogging(repoPath string, logLevels map[string]string, files bool) io.W
 
 	for key, value := range logLevels {
 		if err := logging.SetLogLevel(key, value); err != nil {
-			log.Error(err)
+			log.Errorf("error: %s (%s)", err, key)
 		}
 	}
 
