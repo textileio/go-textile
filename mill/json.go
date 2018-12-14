@@ -34,10 +34,6 @@ func (m *Json) Mill(input []byte, name string) (*Result, error) {
 		return nil, err
 	}
 
-	// if len(any) == 0 {
-	// 	return nil, ErrEmptyJsonFile
-	// }
-
 	data, err := json.Marshal(&any)
 	if err != nil {
 		return nil, err
