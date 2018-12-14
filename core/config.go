@@ -149,7 +149,6 @@ func applySwarmPortConfigOption(rep repo.Repo, ports string) error {
 	switch len(parts) {
 	case 1:
 		tcp = parts[0]
-		ws = GetRandomPort()
 	case 2:
 		tcp = parts[0]
 		ws = parts[1]
@@ -158,12 +157,16 @@ func applySwarmPortConfigOption(rep repo.Repo, ports string) error {
 		ws = GetRandomPort()
 	}
 
-	return config.UpdateIpfs(rep, "Addresses.Swarm", []string{
+	list := []string{
 		fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", tcp),
 		fmt.Sprintf("/ip6/::/tcp/%s", tcp),
-		fmt.Sprintf("/ip4/0.0.0.0/tcp/%s/ws", ws),
-		fmt.Sprintf("/ip6/::/tcp/%s/ws", ws),
-	})
+	}
+	if ws != "" {
+		list = append(list, fmt.Sprintf("/ip4/0.0.0.0/tcp/%s/ws", ws))
+		list = append(list, fmt.Sprintf("/ip6/::/tcp/%s/ws", ws))
+	}
+
+	return config.UpdateIpfs(rep, "Addresses.Swarm", list)
 }
 
 // applyServerConfigOption adds the IPFS server profile to the repo config
