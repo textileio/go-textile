@@ -183,6 +183,11 @@ func (a *api) Start() {
 			swarm.GET("/peers", a.swarmPeers)
 		}
 
+		ipfs := v0.Group("/ipfs")
+		{
+			ipfs.GET("/:cid", a.ipfsCat)
+		}
+
 		logs := v0.Group("/logs")
 		{
 			logs.POST("", a.logsCall)
