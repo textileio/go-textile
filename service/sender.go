@@ -14,48 +14,42 @@ import (
 	"github.com/textileio/textile-go/pb"
 )
 
-// sender is a reusable peer stream
-type sender struct {
-	protocol   protocol.ID
-	stream     inet.Stream
-	writer     ggio.WriteCloser
-	reader     ggio.ReadCloser
-	mux        sync.Mutex
-	pid        peer.ID
-	service    *Service
-	singleMsg  int
-	invalid    bool
-	requests   map[int32]chan *pb.Envelope
-	requestMux sync.Mutex
+type messageSender struct {
+	s  inet.Stream
+	r  ggio.ReadCloser
+	w  bufferedWriteCloser
+	lk sync.Mutex
+	p  peer.ID
+
+	srv  *Service
+	pt   protocol.ID
+	reqs map[int32]chan *pb.Envelope
+
+	invalid   bool
+	singleMes int
 }
 
-// ReadMessageTimeout specifies timeout for reading a response
-var ReadMessageTimeout = time.Minute * 1
-
-// ErrReadTimeout read response has timed out
-var ErrReadTimeout = fmt.Errorf("timed out reading response")
-
-// messageSenderForPeer creates a sender for the given peer
-func (s *Service) messageSenderForPeer(ctx context.Context, pid peer.ID, proto protocol.ID) (*sender, error) {
-	s.senderMux.Lock()
-	ms, ok := s.sender[pid]
+func (srv *Service) messageSenderForPeer(ctx context.Context, p peer.ID) (*messageSender, error) {
+	srv.smlk.Lock()
+	ms, ok := srv.strmap[p]
 	if ok {
-		s.senderMux.Unlock()
+		srv.smlk.Unlock()
 		return ms, nil
 	}
-	ms = &sender{
-		protocol: proto,
-		pid:      pid,
-		service:  s,
-		requests: make(map[int32]chan *pb.Envelope, 2),
+	ms = &messageSender{
+		p:    p,
+		srv:  srv,
+		pt:   srv.handler.Protocol(),
+		reqs: make(map[int32]chan *pb.Envelope, 2),
 	}
-	s.sender[pid] = ms
-	s.senderMux.Unlock()
+	srv.strmap[p] = ms
+	srv.smlk.Unlock()
 
 	if err := ms.prepOrInvalidate(ctx); err != nil {
-		s.senderMux.Lock()
-		defer s.senderMux.Unlock()
-		if msCur, ok := s.sender[pid]; ok {
+		srv.smlk.Lock()
+		defer srv.smlk.Unlock()
+
+		if msCur, ok := srv.strmap[p]; ok {
 			// Changed. Use the new one, old one is invalid and
 			// not in the map so we can just throw it away.
 			if ms != msCur {
@@ -63,30 +57,29 @@ func (s *Service) messageSenderForPeer(ctx context.Context, pid peer.ID, proto p
 			}
 			// Not changed, remove the now invalid stream from the
 			// map.
-			delete(s.sender, pid)
+			delete(srv.strmap, p)
 		}
 		// Invalid but not in map. Must have been removed by a disconnect.
 		return nil, err
 	}
-
+	// All ready to go.
 	return ms, nil
 }
 
-// invalidate is called before this sender is removed from the strmap.
-// It prevents the sender from being reused/reinitialized and then
+// invalidate is called before this messageSender is removed from the strmap.
+// It prevents the messageSender from being reused/reinitialized and then
 // forgotten (leaving the stream open).
-func (ms *sender) invalidate() {
+func (ms *messageSender) invalidate() {
 	ms.invalid = true
-	if ms.stream != nil {
-		ms.stream.Reset()
-		ms.stream = nil
+	if ms.s != nil {
+		ms.s.Reset()
+		ms.s = nil
 	}
 }
 
-// prepOrInvalidate invalidates a sender if prep fails
-func (ms *sender) prepOrInvalidate(ctx context.Context) error {
-	ms.mux.Lock()
-	defer ms.mux.Unlock()
+func (ms *messageSender) prepOrInvalidate(ctx context.Context) error {
+	ms.lk.Lock()
+	defer ms.lk.Unlock()
 	if err := ms.prep(ctx); err != nil {
 		ms.invalidate()
 		return err
@@ -94,21 +87,23 @@ func (ms *sender) prepOrInvalidate(ctx context.Context) error {
 	return nil
 }
 
-// prep creates a new stream, reader, and writer for a sender
-func (ms *sender) prep(ctx context.Context) error {
+func (ms *messageSender) prep(ctx context.Context) error {
 	if ms.invalid {
 		return fmt.Errorf("message sender has been invalidated")
 	}
-	if ms.stream != nil {
+	if ms.s != nil {
 		return nil
 	}
-	nstr, err := ms.service.Node.PeerHost.NewStream(ctx, ms.pid, ms.protocol)
+
+	nstr, err := ms.srv.Node.PeerHost.NewStream(ctx, ms.p, ms.pt)
 	if err != nil {
 		return err
 	}
-	ms.reader = ggio.NewDelimitedReader(nstr, inet.MessageSizeMax)
-	ms.writer = ggio.NewDelimitedWriter(nstr)
-	ms.stream = nstr
+
+	ms.r = ggio.NewDelimitedReader(nstr, inet.MessageSizeMax)
+	ms.w = newBufferedDelimitedWriter(nstr)
+	ms.s = nstr
+
 	return nil
 }
 
@@ -117,96 +112,111 @@ func (ms *sender) prep(ctx context.Context) error {
 // behaviour.
 const streamReuseTries = 3
 
-// SendMessage sends a message to a peer (a response is no expected)
-func (ms *sender) SendMessage(ctx context.Context, pmes *pb.Envelope) error {
-	ms.mux.Lock()
-	defer ms.mux.Unlock()
+func (ms *messageSender) SendMessage(ctx context.Context, pmes *pb.Envelope) error {
+	ms.lk.Lock()
+	defer ms.lk.Unlock()
 	retry := false
 	for {
 		if err := ms.prep(ctx); err != nil {
 			return err
 		}
-		if err := ms.writer.WriteMsg(pmes); err != nil {
-			ms.stream.Reset()
-			ms.stream = nil
+
+		if err := ms.writeMsg(pmes); err != nil {
+			ms.s.Reset()
+			ms.s = nil
+
 			if retry {
+				log.Info("error writing message, bailing: ", err)
 				return err
 			} else {
+				log.Info("error writing message, trying again: ", err)
 				retry = true
 				continue
 			}
 		}
-		if ms.singleMsg > streamReuseTries {
-			ms.stream.Close()
-			ms.stream = nil
+
+		if ms.singleMes > streamReuseTries {
+			go inet.FullClose(ms.s)
+			ms.s = nil
 		} else if retry {
-			ms.singleMsg++
+			ms.singleMes++
 		}
+
 		return nil
 	}
 }
 
-// SendRequest sends a message to a peer and expects a response
-func (ms *sender) SendRequest(ctx context.Context, pmes *pb.Envelope) (*pb.Envelope, error) {
-	returnChan := make(chan *pb.Envelope)
-	ms.requestMux.Lock()
-	ms.requests[pmes.Message.RequestId] = returnChan
-	ms.requestMux.Unlock()
-
-	ms.mux.Lock()
-	defer ms.mux.Unlock()
+func (ms *messageSender) SendRequest(ctx context.Context, pmes *pb.Envelope) (*pb.Envelope, error) {
+	ms.lk.Lock()
+	defer ms.lk.Unlock()
 	retry := false
 	for {
 		if err := ms.prep(ctx); err != nil {
 			return nil, err
 		}
-		if err := ms.writer.WriteMsg(pmes); err != nil {
-			ms.stream.Reset()
-			ms.stream = nil
+
+		if err := ms.writeMsg(pmes); err != nil {
+			ms.s.Reset()
+			ms.s = nil
+
 			if retry {
+				log.Info("error writing message, bailing: ", err)
 				return nil, err
 			} else {
+				log.Info("error writing message, trying again: ", err)
 				retry = true
 				continue
 			}
 		}
-		mes, err := ms.ctxReadMsg(ctx, returnChan)
-		if err != nil {
-			ms.stream.Reset()
-			ms.stream = nil
-			return nil, err
+
+		mes := new(pb.Envelope)
+		if err := ms.ctxReadMsg(ctx, mes); err != nil {
+			ms.s.Reset()
+			ms.s = nil
+
+			if retry {
+				log.Info("error reading message, bailing: ", err)
+				return nil, err
+			} else {
+				log.Info("error reading message, trying again: ", err)
+				retry = true
+				continue
+			}
 		}
-		if ms.singleMsg > streamReuseTries {
-			ms.stream.Close()
-			ms.stream = nil
+
+		if ms.singleMes > streamReuseTries {
+			go inet.FullClose(ms.s)
+			ms.s = nil
 		} else if retry {
-			ms.singleMsg++
+			ms.singleMes++
 		}
+
 		return mes, nil
 	}
 }
 
-// closeRequest stop listening for responses
-func (ms *sender) closeRequest(id int32) {
-	ms.requestMux.Lock()
-	ch, ok := ms.requests[id]
-	if ok {
-		close(ch)
-		delete(ms.requests, id)
+func (ms *messageSender) writeMsg(pmes *pb.Envelope) error {
+	if err := ms.w.WriteMsg(pmes); err != nil {
+		return err
 	}
-	ms.requestMux.Unlock()
+	return ms.w.Flush()
 }
 
-// ctxReadMsg reads a response
-func (ms *sender) ctxReadMsg(ctx context.Context, returnChan chan *pb.Envelope) (*pb.Envelope, error) {
-	t := time.NewTimer(ReadMessageTimeout)
+func (ms *messageSender) ctxReadMsg(ctx context.Context, mes *pb.Envelope) error {
+	errc := make(chan error, 1)
+	go func(r ggio.ReadCloser) {
+		errc <- r.ReadMsg(mes)
+	}(ms.r)
+
+	t := time.NewTimer(dhtReadMessageTimeout)
 	defer t.Stop()
+
 	select {
-	case mes := <-returnChan:
-		return mes, nil
+	case err := <-errc:
+		return err
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return ctx.Err()
 	case <-t.C:
-		return nil, ErrReadTimeout
+		return ErrReadTimeout
 	}
 }

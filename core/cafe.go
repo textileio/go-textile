@@ -2,7 +2,6 @@ package core
 
 import (
 	"errors"
-	"strings"
 
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
@@ -25,9 +24,7 @@ func (t *Textile) RegisterCafe(peerId string) (*repo.CafeSession, error) {
 	if session != nil {
 		var peers []string
 		for _, s := range session.SwarmAddrs {
-			if !strings.Contains(s, "/ws/") {
-				peers = append(peers, s+"/ipfs/"+session.CafeId)
-			}
+			peers = append(peers, s+"/ipfs/"+session.CafeId)
 		}
 		if err := updateBootstrapConfig(t.repoPath, peers, []string{}); err != nil {
 			return nil, err
