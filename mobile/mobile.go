@@ -123,7 +123,7 @@ func MigrateRepo(config *MigrateConfig) error {
 func NewTextile(config *RunConfig, messenger Messenger) (*Mobile, error) {
 	var logLevels map[string]string
 	if config.LogLevels != "" {
-		err := json.Unmarshal([]byte(config.LogLevels), logLevels)
+		err := json.Unmarshal([]byte(config.LogLevels), &logLevels)
 		if err != nil {
 			return nil, err
 		}
