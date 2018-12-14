@@ -2,15 +2,19 @@ package cmd
 
 import (
 	"errors"
+	"io"
+	"os"
 	"strconv"
 
 	"github.com/textileio/textile-go/ipfs"
 )
 
 var errMissingMultiAddress = errors.New("missing peer multi address")
+var errMissingCID = errors.New("missing IPFS CID")
 
 func init() {
 	register(&swarmCmd{})
+	register(&ipfsCatCmd{})
 }
 
 type swarmCmd struct {
@@ -91,5 +95,42 @@ func (x *swarmPeersCmd) Execute(args []string) error {
 		return err
 	}
 	output(res)
+	return nil
+}
+
+type ipfsCatCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
+
+func (x *ipfsCatCmd) Name() string {
+	return "cat"
+}
+
+func (x *ipfsCatCmd) Short() string {
+	return "Show IPFS object data."
+}
+
+func (x *ipfsCatCmd) Long() string {
+	return "Displays the data behind an IPFS CID (hash)."
+}
+
+func (x *ipfsCatCmd) Execute(args []string) error {
+	setApi(x.Client)
+	if len(args) == 0 {
+		return errMissingCID
+	}
+	req, err := request(GET, "ipfs/"+args[0], params{})
+	if err != nil {
+		return err
+	}
+	defer req.Body.Close()
+	if req.StatusCode >= 400 {
+		res, err := unmarshalString(req.Body)
+		if err != nil {
+			return err
+		}
+		return errors.New(res)
+	}
+	io.Copy(os.Stdout, req.Body)
 	return nil
 }

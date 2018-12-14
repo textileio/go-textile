@@ -46,3 +46,17 @@ func (a *api) swarmPeers(g *gin.Context) {
 
 	g.JSON(http.StatusOK, res)
 }
+
+func (a *api) ipfsCat(g *gin.Context) {
+	cid := g.Param("cid")
+	if cid == "" {
+		g.String(http.StatusBadRequest, "Missing IPFS CID")
+	}
+	res, err := ipfs.DataAtPath(a.node.node, cid)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	g.Data(http.StatusOK, "application/octet-stream", res)
+}
