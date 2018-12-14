@@ -122,9 +122,11 @@ func MigrateRepo(config *MigrateConfig) error {
 // Create a gomobile compatible wrapper around Textile
 func NewTextile(config *RunConfig, messenger Messenger) (*Mobile, error) {
 	var logLevels map[string]string
-	err := json.Unmarshal([]byte(config.LogLevels), logLevels)
-	if err != nil {
-		return nil, err
+	if config.LogLevels != "" {
+		err := json.Unmarshal([]byte(config.LogLevels), logLevels)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	node, err := core.NewTextile(core.RunConfig{
