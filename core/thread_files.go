@@ -45,7 +45,9 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys Keys) (mh.Multiha
 		}
 	}
 
-	t.cafeOutbox.Add(target, repo.CafeStoreRequest)
+	if err := t.cafeOutbox.Add(target, repo.CafeStoreRequest); err != nil {
+		return nil, err
+	}
 
 	msg := &pb.ThreadFiles{
 		Target: node.Cid().Hash().B58String(),
@@ -134,7 +136,9 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 			}
 		}
 
-		t.cafeOutbox.Add(msg.Target, repo.CafeStoreRequest)
+		if err := t.cafeOutbox.Add(msg.Target, repo.CafeStoreRequest); err != nil {
+			return nil, err
+		}
 
 		// use msg keys to decrypt each file
 		for pth, key := range msg.Keys {
@@ -231,7 +235,9 @@ func (t *Thread) removeFiles(node ipld.Node) error {
 // processFileNode walks a file node, validating and applying a dag schema
 func (t *Thread) processFileNode(node *schema.Node, inode ipld.Node, index int, keys Keys, inbound bool) error {
 	hash := inode.Cid().Hash().B58String()
-	t.cafeOutbox.Add(hash, repo.CafeStoreRequest)
+	if err := t.cafeOutbox.Add(hash, repo.CafeStoreRequest); err != nil {
+		return err
+	}
 
 	if len(node.Links) == 0 {
 		key := keys["/"+strconv.Itoa(index)+"/"]
@@ -269,7 +275,9 @@ func (t *Thread) processFileNode(node *schema.Node, inode ipld.Node, index int, 
 // processFileLink validates and pins file nodes
 func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key string, inbound bool) error {
 	hash := inode.Cid().Hash().B58String()
-	t.cafeOutbox.Add(hash, repo.CafeStoreRequest)
+	if err := t.cafeOutbox.Add(hash, repo.CafeStoreRequest); err != nil {
+		return err
+	}
 
 	if schema.LinkByName(inode.Links(), FileLinkName) == nil {
 		return ErrMissingFileLink
@@ -295,10 +303,14 @@ func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key stri
 
 	// remote pin leaf nodes if files originate locally
 	if !inbound {
-		t.cafeOutbox.Add(hash+"/"+FileLinkName, repo.CafeStoreRequest)
+		if err := t.cafeOutbox.Add(hash+"/"+FileLinkName, repo.CafeStoreRequest); err != nil {
+			return err
+		}
 
 		if !t.config.IsMobile || dlink.Size <= uint64(t.config.Cafe.Client.Mobile.P2PWireLimit) {
-			t.cafeOutbox.Add(hash+"/"+DataLinkName, repo.CafeStoreRequest)
+			if err := t.cafeOutbox.Add(hash+"/"+DataLinkName, repo.CafeStoreRequest); err != nil {
+				return err
+			}
 		}
 	}
 
