@@ -3,7 +3,6 @@ package core
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -209,9 +208,8 @@ func (q *CafeOutbox) handle(reqs []repo.CafeRequest, rtype repo.CafeRequestType,
 		for _, req := range reqs {
 			thrd := q.datastore.Threads().Get(req.TargetId)
 			if thrd == nil {
-				err := errors.New(fmt.Sprintf("could not find thread: %s", req.TargetId))
-				log.Error(err.Error())
-				herr = err
+				log.Warningf("could not find thread: %s", req.TargetId)
+				handled = append(handled, req.Id)
 				continue
 			}
 
