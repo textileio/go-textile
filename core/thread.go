@@ -426,7 +426,9 @@ func (t *Thread) addBlock(ciphertext []byte) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	t.cafeOutbox.Add(id.Hash().B58String(), repo.CafeStoreRequest)
+	if err := t.cafeOutbox.Add(id.Hash().B58String(), repo.CafeStoreRequest); err != nil {
+		return nil, err
+	}
 
 	return id.Hash(), nil
 }
@@ -535,9 +537,7 @@ func (t *Thread) updateHead(head mh.Multihash) error {
 		return err
 	}
 
-	t.cafeOutbox.Add(t.Id, repo.CafeStoreThreadRequest)
-
-	return nil
+	return t.cafeOutbox.Add(t.Id, repo.CafeStoreThreadRequest)
 }
 
 // sendWelcome sends the latest HEAD block to a set of peers
