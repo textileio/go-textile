@@ -46,6 +46,7 @@ func DataAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
 
 	reader, err := api.Unixfs().Get(ctx, ip)
 	if err != nil {
+		log.Errorf("failed to get data: %s", pth)
 		return nil, err
 	}
 	defer func() {

@@ -132,7 +132,7 @@ func Init(version string) (*Config, error) {
 			},
 			Client: CafeClient{
 				Mobile: MobileCafeClient{
-					P2PWireLimit: 20000,
+					P2PWireLimit: 0,
 				},
 			},
 		},
