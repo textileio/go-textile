@@ -166,20 +166,11 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 	if mod.Head != "" {
 		h := t.datastore.Blocks().Get(mod.Head)
 		if h != nil {
-			var username string
-			if len(h.AuthorId) >= 7 {
-				username = h.AuthorId[len(h.AuthorId)-7:]
-			}
-			contact := t.datastore.Contacts().Get(h.AuthorId)
-			if contact != nil && contact.Username != "" {
-				username = contact.Username
-			}
-
 			head = &BlockInfo{
 				Id:       h.Id,
 				ThreadId: h.ThreadId,
 				AuthorId: h.AuthorId,
-				Username: username,
+				Username: t.contactUsername(h.AuthorId),
 				Type:     h.Type.Description(),
 				Date:     h.Date,
 				Parents:  h.Parents,
@@ -435,7 +426,9 @@ func (t *Thread) addBlock(ciphertext []byte) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	t.cafeOutbox.Add(id.Hash().B58String(), repo.CafeStoreRequest)
+	if err := t.cafeOutbox.Add(id.Hash().B58String(), repo.CafeStoreRequest); err != nil {
+		return nil, err
+	}
 
 	return id.Hash(), nil
 }
@@ -491,20 +484,11 @@ func (t *Thread) indexBlock(commit *commitResult, blockType repo.BlockType, targ
 	if err := t.datastore.Blocks().Add(index); err != nil {
 		return err
 	}
-
-	var username string
-	if len(index.AuthorId) >= 7 {
-		username = index.AuthorId[len(index.AuthorId)-7:]
-	}
-	contact := t.datastore.Contacts().Get(index.AuthorId)
-	if contact != nil && contact.Username != "" {
-		username = contact.Username
-	}
 	t.pushUpdate(BlockInfo{
 		Id:       index.Id,
 		ThreadId: index.ThreadId,
 		AuthorId: index.AuthorId,
-		Username: username,
+		Username: t.contactUsername(index.AuthorId),
 		Type:     index.Type.Description(),
 		Date:     index.Date,
 		Parents:  index.Parents,
@@ -553,9 +537,7 @@ func (t *Thread) updateHead(head mh.Multihash) error {
 		return err
 	}
 
-	t.cafeOutbox.Add(t.Id, repo.CafeStoreThreadRequest)
-
-	return nil
+	return t.cafeOutbox.Add(t.Id, repo.CafeStoreThreadRequest)
 }
 
 // sendWelcome sends the latest HEAD block to a set of peers
@@ -647,4 +629,21 @@ func loadSchema(node *core.IpfsNode, id string) (*schema.Node, error) {
 		return nil, err
 	}
 	return &sch, nil
+}
+
+// contactUsername returns the username for the peer id if known
+// This is a near-exact port of the Textile version of this method
+func (t *Thread) contactUsername(id string) string {
+	if id == t.node().Identity.Pretty() {
+		username, err := t.datastore.Profile().GetUsername()
+		if err == nil && username != nil && *username != "" {
+			return *username
+		}
+		return ipfs.ShortenID(id)
+	}
+	contact := t.datastore.Contacts().Get(id)
+	if contact == nil {
+		return ipfs.ShortenID(id)
+	}
+	return toUsername(contact)
 }

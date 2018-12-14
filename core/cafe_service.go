@@ -866,7 +866,9 @@ func (h *CafeService) setAddrs(bindedHttpAddr string, publicIP string, swarmPort
 	// set the swarm multiaddress(es) where other peers can reach this cafe
 	h.swarmAddrs = []string{
 		fmt.Sprintf("/ip4/%s/tcp/%s", publicIP, swarmPorts.TCP),
-		fmt.Sprintf("/ip4/%s/tcp/%s/ws", publicIP, swarmPorts.WS),
 	}
-	log.Infof("cafe multiaddresses: %s, %s", h.swarmAddrs[0], h.swarmAddrs[1])
+	if swarmPorts.WS != "" {
+		h.swarmAddrs = append(h.swarmAddrs, fmt.Sprintf("/ip4/%s/tcp/%s/ws", publicIP, swarmPorts.WS))
+	}
+	log.Infof("cafe multiaddresses: %s", h.swarmAddrs)
 }

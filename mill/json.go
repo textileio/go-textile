@@ -29,13 +29,9 @@ func (m *Json) Options(add map[string]interface{}) (string, error) {
 }
 
 func (m *Json) Mill(input []byte, name string) (*Result, error) {
-	var any map[string]interface{}
+	var any interface{}
 	if err := json.Unmarshal(input, &any); err != nil {
 		return nil, err
-	}
-
-	if len(any) == 0 {
-		return nil, ErrEmptyJsonFile
 	}
 
 	data, err := json.Marshal(&any)
