@@ -68,7 +68,7 @@ func (Major005) Up(repoPath string, pinCode string, testnet bool) error {
 		return err
 	}
 
-	jsonValue := fmt.Sprintf("{\"peerid\":%s}", config.Identity.PeerID)
+	jsonValue := fmt.Sprintf("{\"peerid\":\"%s\"}\n", config.Identity.PeerID)
 	err = ioutil.WriteFile(path.Join(repoPath, "migration005_peerid.ndjson"), []byte(jsonValue), 0644)
 	if err != nil {
 		return err
