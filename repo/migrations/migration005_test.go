@@ -17,6 +17,21 @@ import (
 )
 
 func initAt004(db *sql.DB, pin string) error {
+	// Only need the Identity stub...
+	configStr := `
+	{
+		"Identity": {
+			"PeerID": "QmQA7swSsZKoayPHaTPgzZ1u3SCQjLvLyKcN6RRMmTbLau",
+			"PrivKey": "CAESYH1jZmeyepc6aWdAeOkLbkVDYt5FFHIvQramNAGglovRHSxkSGg54g2KJJ/9oqFXJuw2WL009Gap3XnFUxnvKGodLGRIaDniDYokn/2ioVcm7DZYvTT0ZqndecVTGe8oag=="
+		}
+	}
+	`
+
+	err := ioutil.WriteFile("./config", []byte(configStr), 0644)
+	if err != nil {
+		return err
+	}
+
 	var sqlStmt string
 	if pin != "" {
 		sqlStmt = "PRAGMA key = '" + pin + "';"
@@ -27,8 +42,9 @@ func initAt004(db *sql.DB, pin string) error {
     create table blocks (id text primary key not null, date integer not null, parents text not null, threadId text not null, authorPk text not null, type integer not null, dataId text, dataKeyCipher blob, dataCaptionCipher blob, dataUsernameCipher blob, dataMetadataCipher blob);
     create index block_dataId on blocks (dataId);
     create index block_threadId_type_date on blocks (threadId, type, date);
-    `
-	_, err := db.Exec(sqlStmt)
+	`
+
+	_, err = db.Exec(sqlStmt)
 	if err != nil {
 		return err
 	}
@@ -97,6 +113,18 @@ func Test005(t *testing.T) {
 		return
 	}
 
+	pfile, err := ioutil.ReadFile("./migration005_peerid.ndjson")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	profileInfo := string(pfile)
+	if !strings.HasPrefix(profileInfo, "{\"peerid\":\"Qm") {
+		t.Error(errors.New("no peer id saved"))
+		return
+	}
+
 	// check threads
 	tfile, err := ioutil.ReadFile("./migration005_threads.ndjson")
 	if err != nil {
@@ -150,6 +178,7 @@ func Test005(t *testing.T) {
 	}
 
 	os.RemoveAll("./migration005_threads.ndjson")
+	os.RemoveAll("./migration005_peerid.ndjson")
 	os.RemoveAll("./migration005_default_photos.ndjson")
 	os.RemoveAll("./datastore")
 	os.RemoveAll("./repover")

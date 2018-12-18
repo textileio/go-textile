@@ -4,9 +4,12 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 
+	native "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 
 	_ "github.com/mutecomm/go-sqlcipher"
@@ -47,6 +50,28 @@ func (Major005) Up(repoPath string, pinCode string, testnet bool) error {
 		if _, err := db.Exec("pragma key='" + pinCode + "';"); err != nil {
 			return err
 		}
+	}
+
+	// Get PeerId from IPFS config
+	configPath := path.Join(repoPath, "config")
+	jsonFile, err := os.Open(configPath)
+	if err != nil {
+		return err
+	}
+	defer jsonFile.Close()
+
+	var config native.Config
+
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	err = json.Unmarshal(byteValue, &config)
+	if err != nil {
+		return err
+	}
+
+	jsonValue := fmt.Sprintf("{\"peerid\":\"%s\"}\n", config.Identity.PeerID)
+	err = ioutil.WriteFile(path.Join(repoPath, "migration005_peerid.ndjson"), []byte(jsonValue), 0644)
+	if err != nil {
+		return err
 	}
 
 	// collect thread secrets
