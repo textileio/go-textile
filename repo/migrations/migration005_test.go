@@ -120,7 +120,7 @@ func Test005(t *testing.T) {
 	}
 
 	profileInfo := string(pfile)
-	if !strings.HasPrefix(profileInfo, "{\"peerid\":Qm") {
+	if !strings.HasPrefix(profileInfo, "{\"peerid\":\"Qm") {
 		t.Error(errors.New("no peer id saved"))
 		return
 	}
