@@ -183,6 +183,13 @@ func (a *api) Start() {
 			swarm.GET("/peers", a.swarmPeers)
 		}
 
+		contacts := v0.Group("/contacts")
+		{
+			// contacts.POST("", a.addContacts)
+			contacts.GET("/:id", a.getContacts)
+			contacts.GET("", a.lsContacts)
+		}
+
 		ipfs := v0.Group("/ipfs")
 		{
 			ipfs.GET("/:cid", a.ipfsCat)
