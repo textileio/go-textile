@@ -95,6 +95,9 @@ type daemonCmd struct {
 	Logs     []string `short:"l" long:"logs" description:"Control subcommand log level. e.g., --logs=\"tex-core: debug\" Can be used multiple times."`
 }
 
+type commandsCmd struct {
+}
+
 var node *core.Textile
 
 var parser = flags.NewParser(&options{}, flags.Default)
@@ -121,6 +124,10 @@ func init() {
 		"Start the daemon",
 		"Start a node daemon session.",
 		&daemonCmd{})
+	parser.AddCommand("commands",
+		"List available commands",
+		"List all available textile commands.",
+		&commandsCmd{})
 
 	// add cmd commands
 	for _, c := range cmd.Cmds() {
@@ -130,6 +137,18 @@ func init() {
 
 func main() {
 	parser.Parse()
+}
+
+func (x *commandsCmd) Execute(args []string) error {
+	for _, cmd := range parser.Commands() {
+		if len(cmd.Commands()) == 0 {
+			fmt.Println(fmt.Sprintf("textile %s", cmd.Name))
+		}
+		for _, sub := range cmd.Commands() {
+			fmt.Println(fmt.Sprintf("textile %s %s", cmd.Name, sub.Name))
+		}
+	}
+	return nil
 }
 
 func (x *walletInitCmd) Execute(args []string) error {
