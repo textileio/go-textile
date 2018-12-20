@@ -435,6 +435,13 @@ func TestMobile_AddContact(t *testing.T) {
 	}
 }
 
+func TestMobile_AddContactAgain(t *testing.T) {
+	if err := mobile1.AddContact("Qm123", "Pabc", "joe"); err == nil {
+		t.Errorf("adding duplicate contact should throw error")
+		return
+	}
+}
+
 func TestMobile_AddThreadInvite(t *testing.T) {
 	var err error
 	mobile2, err = createAndStartMobile(repoPath2, true)
