@@ -117,6 +117,14 @@
   version = "v1.5.0"
 
 [[projects]]
+  digest = "1:90171b862cb6ec187304a593e4d78bfcbcf0f4394870eb66e0eb62cc06b144ad"
+  name = "github.com/evanphx/json-patch"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "72bf35d0ff611848c1dc9df0f976c81192392fa5"
+  version = "v4.1.0"
+
+[[projects]]
   digest = "1:865079840386857c809b72ce300be7580cb50d3d3129ce11bf9aa6ca2bc1934a"
   name = "github.com/fatih/color"
   packages = ["."]
@@ -550,6 +558,7 @@
     "github.com/chzyer/readline",
     "github.com/dgrijalva/jwt-go",
     "github.com/disintegration/imaging",
+    "github.com/evanphx/json-patch",
     "github.com/fatih/color",
     "github.com/gin-contrib/cors",
     "github.com/gin-gonic/gin",
