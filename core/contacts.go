@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/textileio/textile-go/ipfs"
@@ -20,16 +19,12 @@ type ContactInfo struct {
 // AddContact adds a contact for the first time
 // Note: Existing contacts will not be overwritten
 func (t *Textile) AddContact(id string, address string, username string) error {
-	if err := t.datastore.Contacts().Add(&repo.Contact{
+	return t.datastore.Contacts().Add(&repo.Contact{
 		Id:       id,
 		Address:  address,
 		Username: username,
 		Added:    time.Now(),
-	}); err != nil {
-		fmt.Println(err.Error())
-		log.Error("contact exists")
-	}
-	return nil
+	})
 }
 
 // Contact looks up a contact by peer id
