@@ -51,10 +51,11 @@ func register(cmd Cmd) {
 type method string
 
 const (
-	GET  method = "GET"
-	POST method = "POST"
-	PUT  method = "PUT"
-	DEL  method = "DELETE"
+	GET   method = "GET"
+	POST  method = "POST"
+	PUT   method = "PUT"
+	DEL   method = "DELETE"
+	PATCH method = "PATCH"
 )
 
 type params struct {

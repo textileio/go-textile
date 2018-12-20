@@ -203,6 +203,14 @@ func (a *api) Start() {
 			logs.GET("/:subsystem", a.logsCall)
 		}
 
+		config := v0.Group("/config")
+		{
+			config.GET("", a.getConfig)
+			config.PUT("", a.setConfig)
+			config.GET("/*path", a.getConfig)
+			config.PATCH("", a.patchConfig)
+		}
+
 	}
 	a.server = &http.Server{
 		Addr:    a.addr,
