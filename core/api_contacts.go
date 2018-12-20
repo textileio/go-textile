@@ -68,12 +68,7 @@ func (a *api) addContacts(g *gin.Context) {
 	}
 
 	id := args[0]
-	username := opts["username"]
-	if username == "" {
-		username = id[len(id)-7:]
-	}
-
-	err = a.node.AddContact(id, args[1], username)
+	err = a.node.AddContact(id, args[1], opts["username"])
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
