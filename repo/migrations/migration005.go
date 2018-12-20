@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -68,8 +67,22 @@ func (Major005) Up(repoPath string, pinCode string, testnet bool) error {
 		return err
 	}
 
-	jsonValue := fmt.Sprintf("{\"peerid\":\"%s\"}\n", config.Identity.PeerID)
-	err = ioutil.WriteFile(path.Join(repoPath, "migration005_peerid.ndjson"), []byte(jsonValue), 0644)
+	// Get username
+	var username string
+	row := db.QueryRow("select value from profile where key='username';")
+	err = row.Scan(&username)
+	if err != nil {
+		return err
+	}
+	jsonData := map[string]string{
+		"peerid":   config.Identity.PeerID,
+		"username": username,
+	}
+	jsonBytes, err := json.Marshal(jsonData)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(path.Join(repoPath, "migration005_peerid.ndjson"), jsonBytes, 0644)
 	if err != nil {
 		return err
 	}
