@@ -25,9 +25,10 @@ cross_build_linux:
 	export CGO_ENABLED=1
 	docker pull karalabe/xgo-latest
 	go get github.com/karalabe/xgo
-	mkdir -p dist && cd dist/
 	xgo -go 1.11.1 -ldflags "-w" --targets=linux/amd64 .
-	chmod +x *
+	chmod +x textile-go-linux-amd64
+	mkdir -p dist
+	mv textile-go-linux-amd64 dist/
 
 build_ios_framework:
 	gomobile bind -ldflags "-w" -target=ios github.com/textileio/textile-go/mobile
