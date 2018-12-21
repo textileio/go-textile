@@ -2,6 +2,7 @@ package ipfs
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -139,6 +140,27 @@ func AddData(node *core.IpfsNode, reader io.Reader, pin bool) (*cid.Cid, error) 
 	return &id, nil
 }
 
+// AddObject takes a reader and adds it as a DAG node, optionally pins it
+func AddObject(node *core.IpfsNode, reader io.Reader, pin bool) (*cid.Cid, error) {
+	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
+	defer cancel()
+
+	api := coreapi.NewCoreAPI(node)
+	pth, err := api.Object().Put(ctx, reader)
+	if err != nil {
+		return nil, err
+	}
+
+	if pin {
+		if err := api.Pin().Add(ctx, pth, options.Pin.Recursive(false)); err != nil {
+			return nil, err
+		}
+	}
+	id := pth.Cid()
+
+	return &id, nil
+}
+
 // NodeAtLink returns the node behind an ipld link
 func NodeAtLink(node *core.IpfsNode, link *ipld.Link) (ipld.Node, error) {
 	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
@@ -166,25 +188,55 @@ func NodeAtPath(node *core.IpfsNode, pth string) (ipld.Node, error) {
 	return node.Resolver.ResolvePath(ctx, p)
 }
 
-// AddNode takes a reader and adds it as a DAG node, optionally pins it
-func AddNode(node *core.IpfsNode, reader io.Reader, pin bool) (*cid.Cid, error) {
-	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
+type Node struct {
+	Links []Link
+	Data  string
+}
+
+type Link struct {
+	Name, Hash string
+	Size       uint64
+}
+
+// GetObjectAtPath returns the DAG object at the given path
+func GetObjectAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
 
 	api := coreapi.NewCoreAPI(node)
-	pth, err := api.Dag().Put(ctx, reader, options.Dag.InputEnc("raw"))
+	ipth, err := iface.ParsePath(pth)
+	if err != nil {
+		return nil, err
+	}
+	nd, err := api.Object().Get(ctx, ipth)
 	if err != nil {
 		return nil, err
 	}
 
-	if pin {
-		if err := api.Pin().Add(ctx, pth, options.Pin.Recursive(false)); err != nil {
-			return nil, err
+	r, err := api.Object().Data(ctx, ipth)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+
+	out := &Node{
+		Links: make([]Link, len(nd.Links())),
+		Data:  string(data),
+	}
+
+	for i, link := range nd.Links() {
+		out.Links[i] = Link{
+			Hash: link.Cid.String(),
+			Name: link.Name,
+			Size: link.Size,
 		}
 	}
-	id := pth.Cid()
 
-	return &id, nil
+	return json.Marshal(out)
 }
 
 // PinNode pins an ipld node

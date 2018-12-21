@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	"gx/ipfs/QmRcHuYzAyswytBuMF78rj3LTChYszomRFXNg4685ZN1WM/go-block-format"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core"
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/pin"
@@ -31,9 +30,6 @@ import (
 
 // defaultSessionDuration after which session token expires
 const defaultSessionDuration = time.Hour * 24 * 7 * 4
-
-// blockTimeout is the context timeout for getting a local block
-const blockTimeout = time.Second * 10
 
 // inboxMessagePageSize is the page size used when checking messages
 const inboxMessagePageSize = 10
@@ -426,11 +422,11 @@ func (h *CafeService) sendBlock(id cid.Cid, pid peer.ID, token string) error {
 	data, err := ipfs.DataAtPath(h.service.Node, id.Hash().B58String())
 	if err != nil {
 		if err == files.ErrNotReader {
-			node, err := ipfs.NodeAtCid(h.service.Node, id)
+			data, err := ipfs.GetObjectAtPath(h.service.Node, id.Hash().B58String())
 			if err != nil {
 				return err
 			}
-			obj.Node = node.RawData()
+			obj.Node = data
 		} else {
 			return err
 		}
@@ -670,34 +666,28 @@ func (h *CafeService) handleObject(pid peer.ID, env *pb.Envelope) (*pb.Envelope,
 		return rerr, nil
 	}
 
-	var id *cid.Cid
+	var id string
 	if obj.Data != nil {
-		id, err = ipfs.AddData(h.service.Node, bytes.NewReader(obj.Data), true)
+		aid, err := ipfs.AddData(h.service.Node, bytes.NewReader(obj.Data), true)
 		if err != nil {
 			return nil, err
 		}
-		log.Debugf("pinned object %s", id.Hash().B58String())
+		id = aid.Hash().B58String()
 
-		if id.Hash().B58String() != obj.Cid {
-			log.Warningf("received and resolved cids do not match (received %s, resolved %s)",
-				obj.Cid, id.Hash().B58String())
-		}
+		log.Debugf("pinned object %s", id)
 
 	} else if obj.Node != nil {
-		id, err := cid.Decode(obj.Cid)
+		aid, err := ipfs.AddObject(h.service.Node, bytes.NewReader(obj.Node), true)
 		if err != nil {
 			return nil, err
 		}
+		id = aid.Hash().B58String()
 
-		bblock, err := blocks.NewBlockWithCid(obj.Node, id)
-		if err != nil {
-			return nil, err
-		}
-		if err := h.service.Node.Blocks.AddBlock(bblock); err != nil {
-			return nil, err
-		}
+		log.Debugf("pinned node %s", id)
+	}
 
-		log.Debugf("pinned node %s", id.Hash().B58String())
+	if id != obj.Cid {
+		log.Warningf("cids do not match (received %s, resolved %s)", obj.Cid, id)
 	}
 
 	res := &pb.CafeStored{Id: obj.Cid}
