@@ -49,11 +49,7 @@ func DataAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
 		log.Errorf("failed to get data: %s", pth)
 		return nil, err
 	}
-	defer func() {
-		if err := reader.Close(); err != nil {
-			log.Error(err)
-		}
-	}()
+	defer reader.Close()
 
 	return ioutil.ReadAll(reader)
 }
@@ -134,7 +130,7 @@ func AddData(node *core.IpfsNode, reader io.Reader, pin bool) (*cid.Cid, error) 
 	}
 
 	if pin {
-		if err := api.Pin().Add(ctx, pth); err != nil {
+		if err := api.Pin().Add(ctx, pth, options.Pin.Recursive(false)); err != nil {
 			return nil, err
 		}
 	}
@@ -151,10 +147,10 @@ func NodeAtLink(node *core.IpfsNode, link *ipld.Link) (ipld.Node, error) {
 }
 
 // NodeAtCid returns the node behind a cid
-func NodeAtCid(node *core.IpfsNode, id *cid.Cid) (ipld.Node, error) {
+func NodeAtCid(node *core.IpfsNode, id cid.Cid) (ipld.Node, error) {
 	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
-	return node.DAG.Get(ctx, *id)
+	return node.DAG.Get(ctx, id)
 }
 
 // NodeAtPath returns the last node under path
@@ -170,10 +166,33 @@ func NodeAtPath(node *core.IpfsNode, pth string) (ipld.Node, error) {
 	return node.Resolver.ResolvePath(ctx, p)
 }
 
+// AddNode takes a reader and adds it as a DAG node, optionally pins it
+func AddNode(node *core.IpfsNode, reader io.Reader, pin bool) (*cid.Cid, error) {
+	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
+	defer cancel()
+
+	api := coreapi.NewCoreAPI(node)
+	pth, err := api.Dag().Put(ctx, reader, options.Dag.InputEnc("raw"))
+	if err != nil {
+		return nil, err
+	}
+
+	if pin {
+		if err := api.Pin().Add(ctx, pth, options.Pin.Recursive(false)); err != nil {
+			return nil, err
+		}
+	}
+	id := pth.Cid()
+
+	return &id, nil
+}
+
 // PinNode pins an ipld node
 func PinNode(node *core.IpfsNode, nd ipld.Node, recursive bool) error {
 	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
 	defer cancel()
+
+	defer node.Blockstore.PinLock().Unlock()
 
 	if err := node.Pinning.Pin(ctx, nd, recursive); err != nil {
 		if strings.Contains(err.Error(), "already pinned recursively") {

@@ -117,7 +117,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 		if err != nil {
 			return nil, err
 		}
-		node, err = ipfs.NodeAtCid(t.node(), &target)
+		node, err = ipfs.NodeAtCid(t.node(), target)
 		if err != nil {
 			return nil, err
 		}
@@ -279,7 +279,8 @@ func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key stri
 		return err
 	}
 
-	if schema.LinkByName(inode.Links(), FileLinkName) == nil {
+	flink := schema.LinkByName(inode.Links(), FileLinkName)
+	if flink == nil {
 		return ErrMissingFileLink
 	}
 
@@ -303,12 +304,12 @@ func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key stri
 
 	// remote pin leaf nodes if files originate locally
 	if !inbound {
-		if err := t.cafeOutbox.Add(hash+"/"+FileLinkName, repo.CafeStoreRequest); err != nil {
+		if err := t.cafeOutbox.Add(flink.Cid.Hash().B58String(), repo.CafeStoreRequest); err != nil {
 			return err
 		}
 
 		if !t.config.IsMobile || dlink.Size <= uint64(t.config.Cafe.Client.Mobile.P2PWireLimit) {
-			if err := t.cafeOutbox.Add(hash+"/"+DataLinkName, repo.CafeStoreRequest); err != nil {
+			if err := t.cafeOutbox.Add(dlink.Cid.Hash().B58String(), repo.CafeStoreRequest); err != nil {
 				return err
 			}
 		}

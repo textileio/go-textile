@@ -25,7 +25,7 @@ cross_build_linux:
 	export CGO_ENABLED=1
 	docker pull karalabe/xgo-latest
 	go get github.com/karalabe/xgo
-	mkdir dist && cd dist/
+	mkdir -p dist && cd dist/
 	xgo -go 1.11.1 -ldflags "-w" --targets=linux/amd64 .
 	chmod +x *
 
