@@ -37,7 +37,7 @@ func (c *CafeRequestDB) Add(req *repo.CafeRequest) error {
 		req.TargetId,
 		req.CafeId,
 		req.Type,
-		int(req.Date.Unix()),
+		int(req.Date.UnixNano()),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -93,7 +93,7 @@ func (c *CafeRequestDB) handleQuery(stm string) []repo.CafeRequest {
 			TargetId: targetId,
 			CafeId:   cafeId,
 			Type:     repo.CafeRequestType(typeInt),
-			Date:     time.Unix(int64(dateInt), 0),
+			Date:     time.Unix(0, int64(dateInt)),
 		})
 	}
 	return ret

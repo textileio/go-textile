@@ -24,7 +24,7 @@ type ThreadsOutbox struct {
 	node       func() *core.IpfsNode
 	datastore  repo.Datastore
 	cafeOutbox *CafeOutbox
-	flushing   bool
+	mux        sync.Mutex
 }
 
 // NewThreadsOutbox creates a new outbox queue
@@ -55,13 +55,8 @@ func (q *ThreadsOutbox) Add(pid peer.ID, env *pb.Envelope) error {
 
 // Flush processes pending messages
 func (q *ThreadsOutbox) Flush() {
-	if q.flushing {
-		return
-	}
-	q.flushing = true
-	defer func() {
-		q.flushing = false
-	}()
+	q.mux.Lock()
+	defer q.mux.Unlock()
 	log.Debug("flushing thread messages")
 
 	if q.service() == nil {

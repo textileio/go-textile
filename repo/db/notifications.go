@@ -33,7 +33,7 @@ func (c *NotificationDB) Add(notification *repo.Notification) error {
 	defer stmt.Close()
 	_, err = stmt.Exec(
 		notification.Id,
-		int(notification.Date.Unix()),
+		int(notification.Date.UnixNano()),
 		notification.ActorId,
 		notification.Subject,
 		notification.SubjectId,
@@ -144,7 +144,7 @@ func (c *NotificationDB) handleQuery(stm string) []repo.Notification {
 		}
 		ret = append(ret, repo.Notification{
 			Id:        id,
-			Date:      time.Unix(int64(dateInt), 0),
+			Date:      time.Unix(0, int64(dateInt)),
 			ActorId:   actorId,
 			Subject:   subject,
 			SubjectId: subjectId,

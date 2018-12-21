@@ -187,6 +187,18 @@ func (h *CafeService) Store(cids []string, cafe peer.ID) ([]string, error) {
 		log.Debugf("peer %s requested zero objects", cafe.Pretty())
 		return cids, nil
 	}
+
+	// include not-requested (already stored) cids in result
+loop:
+	for _, i := range cids {
+		for _, j := range req.Cids {
+			if j == i {
+				continue loop
+			}
+		}
+		stored = append(stored, i)
+	}
+
 	log.Debugf("sending %d objects to %s", len(req.Cids), cafe.Pretty())
 
 	// send each object
