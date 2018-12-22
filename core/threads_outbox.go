@@ -139,7 +139,7 @@ func (q *ThreadsOutbox) handle(pid peer.ID, msg repo.ThreadMessage) error {
 		// peer is offline, queue an outbound cafe request for the peer's inbox(es)
 		contact := q.datastore.Contacts().Get(pid.Pretty())
 		if contact != nil && len(contact.Inboxes) > 0 {
-			log.Debugf("send thread message for %s to inbox(es)", pid.Pretty())
+			log.Debugf("sending thread message for %s to inbox(es)", pid.Pretty())
 
 			// add an inbox request for message delivery
 			if err := q.cafeOutbox.InboxRequest(pid, msg.Envelope, contact.Inboxes); err != nil {
