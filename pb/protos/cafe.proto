@@ -39,14 +39,15 @@ message CafeStore {
     repeated string cids = 2;
 }
 
-message CafeBlockList {
+message CafeObjectList {
     repeated string cids = 1;
 }
 
-message CafeBlock {
-    string token  = 1;
-    bytes rawData = 2;
-    string cid    = 3;
+message CafeObject {
+    string token = 1;
+    string cid   = 2;
+    bytes  data  = 3;
+    bytes  node  = 4;
 }
 
 message CafeStoreThread {

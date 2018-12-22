@@ -237,7 +237,7 @@ func (t *Textile) IgnoreThreadInvite(inviteId string) error {
 	return t.datastore.Notifications().DeleteByBlock(inviteId)
 }
 
-// handleThreadInvite
+// handleThreadInvite uses an invite block to join a thread
 func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 	block := new(pb.ThreadBlock)
 	if err := proto.Unmarshal(plaintext, block); err != nil {

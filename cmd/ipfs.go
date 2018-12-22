@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/util"
 )
 
 var errMissingMultiAddress = errors.New("missing peer multi address")
@@ -129,12 +130,14 @@ func (x *ipfsCatCmd) Execute(args []string) error {
 	}
 	defer req.Body.Close()
 	if req.StatusCode >= 400 {
-		res, err := unmarshalString(req.Body)
+		res, err := util.UnmarshalString(req.Body)
 		if err != nil {
 			return err
 		}
 		return errors.New(res)
 	}
-	io.Copy(os.Stdout, req.Body)
+	if _, err := io.Copy(os.Stdout, req.Body); err != nil {
+		return err
+	}
 	return nil
 }

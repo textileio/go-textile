@@ -4,6 +4,7 @@ desktop/bind_*.go
 desktop/vendor_astilectron_bundler/*
 node_modules/*
 dist/textile
+dist/textile-go-*
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out

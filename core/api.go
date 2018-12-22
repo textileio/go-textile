@@ -249,7 +249,6 @@ func (a *api) Start() {
 
 // Stop stops the http api
 func (a *api) Stop() error {
-	// Use timeout to force a deadline
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	if err := a.server.Shutdown(ctx); err != nil {

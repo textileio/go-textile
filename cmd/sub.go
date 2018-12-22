@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/util"
 )
 
 func init() {
@@ -76,7 +77,6 @@ func (x *subCmd) Execute(args []string) error {
 			output(string(data))
 		}
 	}
-	return nil
 }
 
 func callSub(threadId string, types []string) (<-chan core.ThreadUpdate, error) {
@@ -96,7 +96,7 @@ func callSub(threadId string, types []string) (<-chan core.ThreadUpdate, error) 
 		}
 
 		if req.StatusCode >= 400 {
-			res, err := unmarshalString(req.Body)
+			res, err := util.UnmarshalString(req.Body)
 			if err != nil {
 				output(err.Error())
 			} else {

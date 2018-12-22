@@ -34,7 +34,7 @@ func (c *CafeMessageDB) Add(req *repo.CafeMessage) error {
 	_, err = stmt.Exec(
 		req.Id,
 		req.PeerId,
-		int(req.Date.Unix()),
+		int(req.Date.UnixNano()),
 		req.Attempts,
 	)
 	if err != nil {
@@ -88,7 +88,7 @@ func (c *CafeMessageDB) handleQuery(stm string) []repo.CafeMessage {
 		ret = append(ret, repo.CafeMessage{
 			Id:       id,
 			PeerId:   peerId,
-			Date:     time.Unix(int64(dateInt), 0),
+			Date:     time.Unix(0, int64(dateInt)),
 			Attempts: attempts,
 		})
 	}
