@@ -30,7 +30,7 @@ import (
 var log = logging.Logger("tex-ipfs")
 
 const pinTimeout = time.Minute
-const catTimeout = time.Second * 30
+const catTimeout = time.Minute
 const ipnsTimeout = time.Second * 30
 const connectTimeout = time.Second * 10
 

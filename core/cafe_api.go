@@ -5,16 +5,22 @@ import (
 	"compress/gzip"
 	"context"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	uio "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/io"
 
 	njwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/render"
+	"github.com/golang/protobuf/proto"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/jwt"
+	"github.com/textileio/textile-go/pb"
 )
 
 // cafeApiVersion is the cafe api version
@@ -72,6 +78,7 @@ func (c *cafeApi) start() {
 	v0 := router.Group("/cafe/v0")
 	{
 		v0.POST("/pin", c.pin)
+		v0.POST("/service", c.service)
 	}
 	c.server = &http.Server{
 		Addr:    c.addr,
@@ -103,12 +110,12 @@ func (c *cafeApi) start() {
 
 // stop stops the cafe api
 func (c *cafeApi) stop() error {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 	if err := c.server.Shutdown(ctx); err != nil {
 		log.Errorf("error shutting down cafe api: %s", err)
 		return err
 	}
-	cancel()
 	return nil
 }
 
@@ -137,29 +144,14 @@ func (c *cafeApi) pin(g *gin.Context) {
 		})
 		return
 	}
-	var id cid.Cid
 
-	// get the auth token
-	auth := strings.Split(g.Request.Header.Get("Authorization"), " ")
-	if len(auth) < 2 {
-		g.AbortWithStatusJSON(http.StatusUnauthorized, unauthorizedResponse)
-		return
-	}
-	token := auth[1]
-
-	// validate token
-	proto := string(c.node.cafeService.Protocol())
-	if err := jwt.Validate(token, c.verifyKeyFunc, false, proto, nil); err != nil {
-		switch err {
-		case jwt.ErrNoToken, jwt.ErrExpired:
-			g.AbortWithStatusJSON(http.StatusUnauthorized, unauthorizedResponse)
-		case jwt.ErrInvalid:
-			g.AbortWithStatusJSON(http.StatusForbidden, forbiddenResponse)
-		}
+	// validate request token
+	if !c.tokenValid(g) {
 		return
 	}
 
 	// handle based on content type
+	var id cid.Cid
 	cType := g.Request.Header.Get("Content-Type")
 	switch cType {
 	case "application/gzip":
@@ -235,6 +227,91 @@ func (c *cafeApi) pin(g *gin.Context) {
 	g.JSON(http.StatusCreated, PinResponse{
 		Id: hash,
 	})
+}
+
+// service is an HTTP entry point for the cafe service
+func (c *cafeApi) service(g *gin.Context) {
+	if !c.node.Online() {
+		g.AbortWithStatusJSON(http.StatusInternalServerError, PinResponse{
+			Error: "node is offline",
+		})
+		return
+	}
+
+	body, err := ioutil.ReadAll(g.Request.Body)
+	if err != nil {
+		g.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// parse body as a service envelope
+	pmes := new(pb.Envelope)
+	if err := proto.Unmarshal(body, pmes); err != nil {
+		g.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	peerId := g.Request.Header.Get("X-Textile-Peer")
+	if peerId == "" {
+		g.AbortWithStatusJSON(http.StatusBadRequest, "missing peer ID")
+		return
+	}
+	mPeer, err := peer.IDB58Decode(peerId)
+	if err != nil {
+		g.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := c.node.cafeService.service.VerifyEnvelope(pmes, mPeer); err != nil {
+		g.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
+	}
+
+	// handle the message as normal
+	log.Debugf("received %s from %s", pmes.Message.Type.String(), mPeer.Pretty())
+	rpmes, err := c.node.cafeService.Handle(mPeer, pmes)
+	if err != nil {
+		g.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if rpmes == nil {
+		g.Status(200)
+		return
+	}
+
+	// send out response msg
+	log.Debugf("responding with %s to %s", rpmes.Message.Type.String(), mPeer.Pretty())
+
+	res, err := proto.Marshal(rpmes)
+	if err != nil {
+		g.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// ship it
+	g.Render(200, render.Data{Data: res})
+}
+
+// validToken aborts the request if the token is invalid
+func (c *cafeApi) tokenValid(g *gin.Context) bool {
+	auth := strings.Split(g.Request.Header.Get("Authorization"), " ")
+	if len(auth) < 2 {
+		g.AbortWithStatusJSON(http.StatusUnauthorized, unauthorizedResponse)
+		return false
+	}
+	token := auth[1]
+
+	protocol := string(c.node.cafeService.Protocol())
+	if err := jwt.Validate(token, c.verifyKeyFunc, false, protocol, nil); err != nil {
+		switch err {
+		case jwt.ErrNoToken, jwt.ErrExpired:
+			g.AbortWithStatusJSON(http.StatusUnauthorized, unauthorizedResponse)
+		case jwt.ErrInvalid:
+			g.AbortWithStatusJSON(http.StatusForbidden, forbiddenResponse)
+		}
+		return false
+	}
+	return true
 }
 
 // verifyKeyFunc returns the correct key for token verification

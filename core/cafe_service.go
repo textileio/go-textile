@@ -165,12 +165,14 @@ func (h *CafeService) Store(cids []string, cafe peer.ID) ([]string, error) {
 	var stored []string
 
 	var accessToken string
+	var addr string
 	renv, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
 		store := &pb.CafeStore{
 			Token: session.Access,
 			Cids:  cids,
 		}
 		accessToken = session.Access
+		addr = fmt.Sprintf("http://%s/cafe/%s/service", session.HttpAddr, cafeApiVersion)
 		return h.service.NewEnvelope(pb.Message_CAFE_STORE, store, nil, false)
 	})
 	if err != nil {
@@ -207,7 +209,7 @@ loop:
 		if err != nil {
 			return stored, err
 		}
-		if err := h.sendBlock(decoded, cafe, accessToken); err != nil {
+		if err := h.sendObject(decoded, addr, accessToken); err != nil {
 			return stored, err
 		}
 		stored = append(stored, id)
@@ -250,6 +252,11 @@ func (h *CafeService) StoreThread(thrd *repo.Thread, cafe peer.ID) error {
 // DeliverMessage delivers a message content id to a peer's cafe inbox
 // TODO: unpin message locally after it's delivered
 func (h *CafeService) DeliverMessage(mid string, pid peer.ID, cafe peer.ID) error {
+	session := h.datastore.CafeSessions().Get(cafe.Pretty())
+	if session == nil {
+		return errors.New(fmt.Sprintf("could not find session for cafe %s", cafe.Pretty()))
+	}
+
 	env, err := h.service.NewEnvelope(pb.Message_CAFE_DELIVER_MESSAGE, &pb.CafeDeliverMessage{
 		Id:       mid,
 		ClientId: pid.Pretty(),
@@ -257,7 +264,9 @@ func (h *CafeService) DeliverMessage(mid string, pid peer.ID, cafe peer.ID) erro
 	if err != nil {
 		return err
 	}
-	return h.service.SendMessage(nil, cafe, env)
+
+	addr := fmt.Sprintf("http://%s/cafe/%s/service", session.HttpAddr, cafeApiVersion)
+	return h.service.SendHTTPMessage(addr, env)
 }
 
 // CheckMessages asks each session's inbox for new messages
@@ -335,23 +344,28 @@ func (h *CafeService) sendCafeRequest(
 	if session == nil {
 		return nil, errors.New(fmt.Sprintf("could not find session for cafe %s", cafe.Pretty()))
 	}
+
 	env, err := envFactory(session)
 	if err != nil {
 		return nil, err
 	}
 
-	renv, err := h.service.SendRequest(cafe, env)
+	addr := fmt.Sprintf("http://%s/cafe/%s/service", session.HttpAddr, cafeApiVersion)
+	renv, err := h.service.SendHTTPRequest(addr, env)
 	if err != nil {
 		if err.Error() == errUnauthorized {
 			refreshed, err := h.refresh(session)
 			if err != nil {
 				return nil, err
 			}
+
 			env, err := envFactory(refreshed)
 			if err != nil {
 				return nil, err
 			}
-			renv, err = h.service.SendRequest(cafe, env)
+
+			addr := fmt.Sprintf("http://%s/cafe/%s/service", session.HttpAddr, cafeApiVersion)
+			renv, err = h.service.SendHTTPRequest(addr, env)
 			if err != nil {
 				return nil, err
 			}
@@ -424,8 +438,8 @@ func (h *CafeService) refresh(session *repo.CafeSession) (*repo.CafeSession, err
 	return refreshed, nil
 }
 
-// sendBlock sends data by cid to a peer
-func (h *CafeService) sendBlock(id cid.Cid, pid peer.ID, token string) error {
+// sendObject sends data or an object by cid to a peer
+func (h *CafeService) sendObject(id cid.Cid, addr string, token string) error {
 	obj := &pb.CafeObject{
 		Token: token,
 		Cid:   id.Hash().B58String(),
@@ -451,7 +465,7 @@ func (h *CafeService) sendBlock(id cid.Cid, pid peer.ID, token string) error {
 	if err != nil {
 		return err
 	}
-	if _, err := h.service.SendRequest(pid, env); err != nil {
+	if _, err := h.service.SendHTTPRequest(addr, env); err != nil {
 		return err
 	}
 	return nil

@@ -2,11 +2,14 @@ package service
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math/rand"
+	"net/http"
 	"sync"
 	"time"
 
@@ -24,6 +27,7 @@ import (
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/textile-go/util"
 )
 
 var log = logging.Logger("tex-service")
@@ -90,8 +94,7 @@ func (srv *Service) Ping(p peer.ID) (PeerStatus, error) {
 	return PeerOnline, nil
 }
 
-// SendRequest sends out a request, but also makes sure to
-// measure the RTT for latency measurements.
+// SendRequest sends out a request
 func (srv *Service) SendRequest(p peer.ID, pmes *pb.Envelope) (*pb.Envelope, error) {
 	log.Debugf("sending %s to %s", pmes.Message.Type.String(), p.Pretty())
 
@@ -121,6 +124,55 @@ func (srv *Service) SendRequest(p peer.ID, pmes *pb.Envelope) (*pb.Envelope, err
 	return rpmes, nil
 }
 
+// SendHTTPRequest sends a request over HTTP
+func (srv *Service) SendHTTPRequest(addr string, pmes *pb.Envelope) (*pb.Envelope, error) {
+	log.Debugf("sending %s to %s", pmes.Message.Type.String(), addr)
+
+	payload, err := proto.Marshal(pmes)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", addr, bytes.NewReader(payload))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-Textile-Peer", srv.Node.Identity.Pretty())
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode >= 400 {
+		res, err := util.UnmarshalString(req.Body)
+		if err != nil {
+			return nil, err
+		}
+		return nil, errors.New(res)
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if body == nil {
+		return nil, nil
+	}
+
+	rpmes := new(pb.Envelope)
+	if err := proto.Unmarshal(body, rpmes); err != nil {
+		return nil, err
+	}
+
+	log.Debugf("received %s response from %s", rpmes.Message.Type.String(), addr)
+
+	return rpmes, nil
+}
+
 // SendMessage sends out a message
 func (srv *Service) SendMessage(ctx context.Context, p peer.ID, pmes *pb.Envelope) error {
 	log.Debugf("sending %s to %s", pmes.Message.Type.String(), p.Pretty())
@@ -138,6 +190,39 @@ func (srv *Service) SendMessage(ctx context.Context, p peer.ID, pmes *pb.Envelop
 
 	if err := ms.SendMessage(ctx, pmes); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// SendHTTPMessage sends a message over HTTP
+func (srv *Service) SendHTTPMessage(addr string, pmes *pb.Envelope) error {
+	log.Debugf("sending %s to %s", pmes.Message.Type.String(), addr)
+
+	payload, err := proto.Marshal(pmes)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", addr, bytes.NewReader(payload))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("X-Textile-Peer", srv.Node.Identity.Pretty())
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode >= 400 {
+		res, err := util.UnmarshalString(req.Body)
+		if err != nil {
+			return err
+		}
+		return errors.New(res)
 	}
 
 	return nil
