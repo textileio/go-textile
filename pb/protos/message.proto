@@ -21,8 +21,8 @@ message Message {
         CAFE_SESSION             = 53;
         CAFE_REFRESH_SESSION     = 54;
         CAFE_STORE               = 55;
-        CAFE_BLOCK               = 56;
-        CAFE_BLOCKLIST           = 57;
+        CAFE_OBJECT              = 56;
+        CAFE_OBJECT_LIST         = 57;
         CAFE_STORE_THREAD        = 58;
         CAFE_STORED              = 59;
         CAFE_DELIVER_MESSAGE     = 60;

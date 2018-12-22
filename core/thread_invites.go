@@ -87,6 +87,8 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 		return nil, nil, err
 	}
 
+	go t.cafeOutbox.Flush()
+
 	log.Debugf("created external INVITE for %s", t.Id)
 
 	return res.hash, key, nil
