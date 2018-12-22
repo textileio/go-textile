@@ -4,24 +4,23 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin/render"
-	"github.com/golang/protobuf/proto"
-	"github.com/textileio/textile-go/pb"
-
 	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	uio "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/io"
 
 	njwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/render"
+	"github.com/golang/protobuf/proto"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/jwt"
+	"github.com/textileio/textile-go/pb"
 )
 
 // cafeApiVersion is the cafe api version

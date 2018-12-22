@@ -125,8 +125,10 @@ func (srv *Service) SendRequest(p peer.ID, pmes *pb.Envelope) (*pb.Envelope, err
 }
 
 // SendHTTPRequest sends a request over HTTP
-func (srv *Service) SendHTTPRequest(addr string, token string, env *pb.Envelope) (*pb.Envelope, error) {
-	payload, err := proto.Marshal(env)
+func (srv *Service) SendHTTPRequest(addr string, token string, pmes *pb.Envelope) (*pb.Envelope, error) {
+	log.Debugf("sending %s to %s", pmes.Message.Type.String(), addr)
+
+	payload, err := proto.Marshal(pmes)
 	if err != nil {
 		return nil, err
 	}
@@ -162,12 +164,14 @@ func (srv *Service) SendHTTPRequest(addr string, token string, env *pb.Envelope)
 		return nil, nil
 	}
 
-	renv := new(pb.Envelope)
-	if err := proto.Unmarshal(body, renv); err != nil {
+	rpmes := new(pb.Envelope)
+	if err := proto.Unmarshal(body, rpmes); err != nil {
 		return nil, err
 	}
 
-	return renv, nil
+	log.Debugf("received %s response from %s", rpmes.Message.Type.String(), addr)
+
+	return rpmes, nil
 }
 
 // SendMessage sends out a message

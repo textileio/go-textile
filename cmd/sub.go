@@ -5,9 +5,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/textileio/textile-go/util"
-
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/util"
 )
 
 func init() {
