@@ -229,16 +229,12 @@ func (c *cafeApi) pin(g *gin.Context) {
 	})
 }
 
+// service is an HTTP entry point for the cafe service
 func (c *cafeApi) service(g *gin.Context) {
 	if !c.node.Online() {
 		g.AbortWithStatusJSON(http.StatusInternalServerError, PinResponse{
 			Error: "node is offline",
 		})
-		return
-	}
-
-	// validate request token
-	if !c.tokenValid(g) {
 		return
 	}
 

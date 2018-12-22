@@ -125,7 +125,7 @@ func (srv *Service) SendRequest(p peer.ID, pmes *pb.Envelope) (*pb.Envelope, err
 }
 
 // SendHTTPRequest sends a request over HTTP
-func (srv *Service) SendHTTPRequest(addr string, token string, pmes *pb.Envelope) (*pb.Envelope, error) {
+func (srv *Service) SendHTTPRequest(addr string, pmes *pb.Envelope) (*pb.Envelope, error) {
 	log.Debugf("sending %s to %s", pmes.Message.Type.String(), addr)
 
 	payload, err := proto.Marshal(pmes)
@@ -138,7 +138,6 @@ func (srv *Service) SendHTTPRequest(addr string, token string, pmes *pb.Envelope
 		return nil, err
 	}
 	req.Header.Set("X-Textile-Peer", srv.Node.Identity.Pretty())
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	client := &http.Client{}
 	res, err := client.Do(req)
@@ -191,6 +190,39 @@ func (srv *Service) SendMessage(ctx context.Context, p peer.ID, pmes *pb.Envelop
 
 	if err := ms.SendMessage(ctx, pmes); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// SendHTTPMessage sends a message over HTTP
+func (srv *Service) SendHTTPMessage(addr string, pmes *pb.Envelope) error {
+	log.Debugf("sending %s to %s", pmes.Message.Type.String(), addr)
+
+	payload, err := proto.Marshal(pmes)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", addr, bytes.NewReader(payload))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("X-Textile-Peer", srv.Node.Identity.Pretty())
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode >= 400 {
+		res, err := util.UnmarshalString(req.Body)
+		if err != nil {
+			return err
+		}
+		return errors.New(res)
 	}
 
 	return nil
