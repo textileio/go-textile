@@ -335,23 +335,28 @@ func (h *CafeService) sendCafeRequest(
 	if session == nil {
 		return nil, errors.New(fmt.Sprintf("could not find session for cafe %s", cafe.Pretty()))
 	}
+
 	env, err := envFactory(session)
 	if err != nil {
 		return nil, err
 	}
 
-	renv, err := h.service.SendRequest(cafe, env)
+	addr := fmt.Sprintf("http://%s/cafe/%s/service", session.HttpAddr, cafeApiVersion)
+	renv, err := h.service.SendHTTPRequest(addr, session.Access, env)
 	if err != nil {
 		if err.Error() == errUnauthorized {
 			refreshed, err := h.refresh(session)
 			if err != nil {
 				return nil, err
 			}
+
 			env, err := envFactory(refreshed)
 			if err != nil {
 				return nil, err
 			}
-			renv, err = h.service.SendRequest(cafe, env)
+
+			addr := fmt.Sprintf("http://%s/cafe/%s/service", session.HttpAddr, cafeApiVersion)
+			renv, err = h.service.SendHTTPRequest(addr, session.Access, env)
 			if err != nil {
 				return nil, err
 			}

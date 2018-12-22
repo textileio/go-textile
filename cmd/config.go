@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/textileio/textile-go/util"
 )
 
 var errMissingReplacement = errors.New("missing replacement value")
@@ -80,7 +82,7 @@ func (x *configCmd) Execute(args []string) error {
 		}
 		defer res.Body.Close()
 		if res.StatusCode >= 400 {
-			res, err := unmarshalString(res.Body)
+			res, err := util.UnmarshalString(res.Body)
 			if err != nil {
 				return err
 			}
