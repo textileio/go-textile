@@ -134,7 +134,7 @@ func TestMobile_Seed(t *testing.T) {
 }
 
 func TestMobile_AddThread(t *testing.T) {
-	res, err := mobile1.AddThread(ksuid.New().String(), "test")
+	res, err := mobile1.AddThread(ksuid.New().String(), "test", true)
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
 		return
@@ -180,7 +180,7 @@ func TestMobile_Threads(t *testing.T) {
 }
 
 func TestMobile_RemoveThread(t *testing.T) {
-	res, err := mobile1.AddThread(ksuid.New().String(), "another")
+	res, err := mobile1.AddThread(ksuid.New().String(), "another", false)
 	if err != nil {
 		t.Errorf("remove thread failed: %s", err)
 		return
@@ -450,7 +450,7 @@ func TestMobile_AddThreadInvite(t *testing.T) {
 		return
 	}
 
-	res, err := mobile2.AddThread(ksuid.New().String(), "test2")
+	res, err := mobile2.AddThread(ksuid.New().String(), "test2", true)
 	if err != nil {
 		t.Error(err)
 		return
