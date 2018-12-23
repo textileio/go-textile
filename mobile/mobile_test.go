@@ -214,7 +214,7 @@ func TestMobile_PrepareFiles(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if len(pre.Dir.Files) != 6 {
+	if len(pre.Dir.Files) != 3 {
 		t.Error("wrong number of files")
 	}
 	dir, err = proto.Marshal(pre.Dir)
@@ -328,11 +328,6 @@ func TestMobile_PhotoDataForMinWidth(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	medium, err := mobile1.FileData(files[0].Files[0].Links["medium"].Hash)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 	small, err := mobile1.FileData(files[0].Files[0].Links["small"].Hash)
 	if err != nil {
 		t.Error(err)
@@ -361,7 +356,7 @@ func TestMobile_PhotoDataForMinWidth(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if d2 != medium {
+	if d2 != large {
 		t.Errorf("expected medium result")
 		return
 	}
