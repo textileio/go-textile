@@ -20,6 +20,7 @@ lint:
 
 build:
 	go build -ldflags "-w" -i -o textile textile.go
+	mv textile dist/
 
 cross_build_linux:
 	export CGO_ENABLED=1
@@ -32,12 +33,17 @@ cross_build_linux:
 
 build_ios_framework:
 	gomobile bind -ldflags "-w" -target=ios github.com/textileio/textile-go/mobile
+	mkdir -p dist
+	cp -r Mobile.framework dist/
+	rm -rf Mobile.framework
 
 build_android_framework:
 	gomobile bind -ldflags "-w" -target=android -o mobile.aar github.com/textileio/textile-go/mobile
+	mkdir -p dist
+	mv mobile.aar dist/
 
 install:
-	mv textile /usr/local/bin
+	mv dist/textile /usr/local/bin
 
 protos:
 	cd pb/protos && PATH=$(PATH):$(GOPATH)/bin protoc --go_out=$(PKGMAP):.. *.proto
