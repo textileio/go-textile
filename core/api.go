@@ -15,6 +15,7 @@ import (
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
 	"github.com/gin-contrib/cors"
+	limit "github.com/gin-contrib/size"
 	"github.com/gin-gonic/gin"
 	m "github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/repo"
@@ -69,8 +70,14 @@ func (a *api) Start() {
 		g.Writer.WriteHeader(http.StatusNoContent)
 	})
 
-	// Handle CORS config options
-	router.Use(cors.New(getCORSSettings(a.node.Config())))
+	// middleware
+	conf := a.node.Config()
+	// CORS
+	router.Use(cors.New(getCORSSettings(conf)))
+	// size limits
+	if conf.API.SizeLimit > 0 {
+		router.Use(limit.RequestSizeLimiter(conf.API.SizeLimit))
+	}
 
 	// v0 routes
 	v0 := router.Group("/api/v0")

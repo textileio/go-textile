@@ -15,6 +15,7 @@ import (
 	uio "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/io"
 
 	njwt "github.com/dgrijalva/jwt-go"
+	limit "github.com/gin-contrib/size"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
 	"github.com/golang/protobuf/proto"
@@ -73,6 +74,11 @@ func (c *cafeApi) start() {
 	router.GET("/health", func(g *gin.Context) {
 		g.Writer.WriteHeader(http.StatusNoContent)
 	})
+
+	conf := c.node.Config()
+	if conf.Cafe.Host.SizeLimit > 0 {
+		router.Use(limit.RequestSizeLimiter(conf.Cafe.Host.SizeLimit))
+	}
 
 	// v0 routes
 	v0 := router.Group("/cafe/v0")
