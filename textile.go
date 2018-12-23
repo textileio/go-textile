@@ -36,8 +36,8 @@ type addressOptions struct {
 }
 
 type cafeOptions struct {
-	PublicIP string `long:"public-ip" description:"Required with --cafe-open on an image / server with a public IP address."`
-	Open     bool   `long:"cafe-open" description:"Opens the p2p Cafe Service for other peers."`
+	PublicAddr string `long:"public-addr" description:"Required with --cafe-open on a server with a public IP address, e.g., https://<IP_ADDRESS>'"`
+	Open       bool   `long:"cafe-open" description:"Opens the p2p Cafe Service for other peers."`
 }
 
 type options struct{}
@@ -140,12 +140,12 @@ func main() {
 }
 
 func (x *commandsCmd) Execute(args []string) error {
-	for _, cmd := range parser.Commands() {
-		if len(cmd.Commands()) == 0 {
-			fmt.Println(fmt.Sprintf("textile %s", cmd.Name))
+	for _, c := range parser.Commands() {
+		if len(c.Commands()) == 0 {
+			fmt.Println(fmt.Sprintf("textile %s", c.Name))
 		}
-		for _, sub := range cmd.Commands() {
-			fmt.Println(fmt.Sprintf("textile %s %s", cmd.Name, sub.Name))
+		for _, sub := range c.Commands() {
+			fmt.Println(fmt.Sprintf("textile %s %s", c.Name, sub.Name))
 		}
 	}
 	return nil
@@ -232,18 +232,18 @@ func (x *initCmd) Execute(args []string) error {
 	}
 
 	config := core.InitConfig{
-		Account:      accnt,
-		PinCode:      x.PinCode,
-		RepoPath:     repoPath,
-		SwarmPorts:   x.IPFS.SwarmPorts,
-		ApiAddr:      x.Addresses.ApiBindAddr,
-		CafeApiAddr:  x.Addresses.CafeApiBindAddr,
-		GatewayAddr:  x.Addresses.GatewayBindAddr,
-		IsMobile:     false,
-		IsServer:     x.IPFS.ServerMode,
-		LogToDisk:    !x.Logs.NoFiles,
-		CafeOpen:     x.CafeOptions.Open,
-		CafePublicIP: x.CafeOptions.PublicIP,
+		Account:        accnt,
+		PinCode:        x.PinCode,
+		RepoPath:       repoPath,
+		SwarmPorts:     x.IPFS.SwarmPorts,
+		ApiAddr:        x.Addresses.ApiBindAddr,
+		CafeApiAddr:    x.Addresses.CafeApiBindAddr,
+		GatewayAddr:    x.Addresses.GatewayBindAddr,
+		IsMobile:       false,
+		IsServer:       x.IPFS.ServerMode,
+		LogToDisk:      !x.Logs.NoFiles,
+		CafeOpen:       x.CafeOptions.Open,
+		CafePublicAddr: x.CafeOptions.PublicAddr,
 	}
 
 	if err := core.InitRepo(config); err != nil {
