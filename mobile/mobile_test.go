@@ -357,7 +357,7 @@ func TestMobile_PhotoDataForMinWidth(t *testing.T) {
 		return
 	}
 	if d2 != large {
-		t.Errorf("expected medium result")
+		t.Errorf("expected large result")
 		return
 	}
 
