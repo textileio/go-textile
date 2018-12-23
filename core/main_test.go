@@ -79,7 +79,7 @@ func TestTextile_GetMedia(t *testing.T) {
 }
 
 func TestTextile_AddSchema(t *testing.T) {
-	file, err := node.AddSchema(textile.Photos, "test")
+	file, err := node.AddSchema(textile.Media, "test")
 	if err != nil {
 		t.Fatal(err)
 	}
