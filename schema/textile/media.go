@@ -1,28 +1,12 @@
 package textile
 
-var Photos = `
+var Media = `
 {
-  "name": "photo",
+  "name": "media",
   "pin": true,
   "links": {
-    "raw": {
-      "use": ":file",
-      "mill": "/blob"
-    },
-    "exif": {
-      "use": "raw",
-      "mill": "/image/exif"
-    },
     "large": {
-      "use": "raw",
-      "mill": "/image/resize",
-      "opts": {
-        "width": "1600",
-        "quality": "80"
-      }
-    },
-    "medium": {
-      "use": "raw",
+      "use": ":file",
       "mill": "/image/resize",
       "opts": {
         "width": "800",
@@ -30,7 +14,7 @@ var Photos = `
       }
     },
     "small": {
-      "use": "raw",
+      "use": ":file",
       "mill": "/image/resize",
       "opts": {
         "width": "320",
@@ -38,7 +22,7 @@ var Photos = `
       }
     },
     "thumb": {
-      "use": "raw",
+      "use": "large",
       "pin": true,
       "mill": "/image/resize",
       "opts": {

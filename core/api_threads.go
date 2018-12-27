@@ -75,6 +75,7 @@ func (a *api) addThreads(g *gin.Context) {
 		a.abort500(g, err)
 		return
 	}
+
 	g.JSON(http.StatusCreated, info)
 }
 
@@ -88,6 +89,7 @@ func (a *api) lsThreads(g *gin.Context) {
 		}
 		infos = append(infos, info)
 	}
+
 	g.JSON(http.StatusOK, infos)
 }
 
@@ -96,6 +98,7 @@ func (a *api) getThreads(g *gin.Context) {
 	if id == "default" {
 		id = a.node.config.Threads.Defaults.ID
 	}
+
 	thrd := a.node.Thread(id)
 	if thrd == nil {
 		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
@@ -106,6 +109,7 @@ func (a *api) getThreads(g *gin.Context) {
 		a.abort500(g, err)
 		return
 	}
+
 	g.JSON(http.StatusOK, info)
 }
 
@@ -139,9 +143,11 @@ func (a *api) rmThreads(g *gin.Context) {
 		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
 		return
 	}
+
 	if _, err := a.node.RemoveThread(id); err != nil {
 		a.abort500(g, err)
 		return
 	}
+
 	g.String(http.StatusOK, "ok")
 }

@@ -8,8 +8,10 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
+	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -55,6 +57,12 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 		return nil, core.ErrThreadSchemaRequired
 	}
 
+	var use string
+	if ref, err := iface.ParsePath(path); err == nil {
+		parts := strings.Split(ref.String(), "/")
+		use = parts[len(parts)-1]
+	}
+
 	mdir := &pb.MobilePreparedFiles{
 		Dir: &pb.Directory{
 			Files: make(map[string]*pb.File),
@@ -69,7 +77,7 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 		return nil, err
 	}
 	if mil != nil {
-		conf, err := m.getFileConfig(mil, path, "", thrd.Schema.Plaintext)
+		conf, err := m.getFileConfig(mil, path, use, thrd.Schema.Plaintext)
 		if err != nil {
 			return nil, err
 		}
@@ -106,7 +114,7 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 			var conf *core.AddFileConfig
 
 			if step.Link.Use == schema.FileTag {
-				conf, err = m.getFileConfig(mil, path, "", step.Link.Plaintext)
+				conf, err = m.getFileConfig(mil, path, use, step.Link.Plaintext)
 				if err != nil {
 					return nil, err
 				}

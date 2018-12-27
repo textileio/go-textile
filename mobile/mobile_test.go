@@ -134,7 +134,7 @@ func TestMobile_Seed(t *testing.T) {
 }
 
 func TestMobile_AddThread(t *testing.T) {
-	res, err := mobile1.AddThread(ksuid.New().String(), "test")
+	res, err := mobile1.AddThread(ksuid.New().String(), "test", true)
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
 		return
@@ -180,7 +180,7 @@ func TestMobile_Threads(t *testing.T) {
 }
 
 func TestMobile_RemoveThread(t *testing.T) {
-	res, err := mobile1.AddThread(ksuid.New().String(), "another")
+	res, err := mobile1.AddThread(ksuid.New().String(), "another", false)
 	if err != nil {
 		t.Errorf("remove thread failed: %s", err)
 		return
@@ -214,12 +214,26 @@ func TestMobile_PrepareFiles(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if len(pre.Dir.Files) != 6 {
+	if len(pre.Dir.Files) != 3 {
 		t.Error("wrong number of files")
 	}
 	dir, err = proto.Marshal(pre.Dir)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	res2, err := mobile1.PrepareFiles(pre.Dir.Files["large"].Hash, thrdId)
+	if err != nil {
+		t.Errorf("prepare files by existing hash failed: %s", err)
+		return
+	}
+	pre2 := new(pb.MobilePreparedFiles)
+	if err := proto.Unmarshal(res2, pre2); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(pre2.Dir.Files) != 3 {
+		t.Error("wrong number of files")
 	}
 }
 
@@ -328,11 +342,6 @@ func TestMobile_PhotoDataForMinWidth(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	medium, err := mobile1.FileData(files[0].Files[0].Links["medium"].Hash)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 	small, err := mobile1.FileData(files[0].Files[0].Links["small"].Hash)
 	if err != nil {
 		t.Error(err)
@@ -361,8 +370,8 @@ func TestMobile_PhotoDataForMinWidth(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if d2 != medium {
-		t.Errorf("expected medium result")
+	if d2 != large {
+		t.Errorf("expected large result")
 		return
 	}
 
@@ -450,7 +459,7 @@ func TestMobile_AddThreadInvite(t *testing.T) {
 		return
 	}
 
-	res, err := mobile2.AddThread(ksuid.New().String(), "test2")
+	res, err := mobile2.AddThread(ksuid.New().String(), "test2", true)
 	if err != nil {
 		t.Error(err)
 		return
