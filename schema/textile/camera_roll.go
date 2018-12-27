@@ -18,7 +18,7 @@ var CameraRoll = `
       "pin": true,
       "mill": "/image/resize",
       "opts": {
-        "width": "100",
+        "width": "320",
         "quality": "80"
       }
     }
