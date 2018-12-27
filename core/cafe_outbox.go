@@ -3,7 +3,6 @@ package core
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -28,7 +27,7 @@ type CafeOutbox struct {
 	service   func() *CafeService
 	node      func() *core.IpfsNode
 	datastore repo.Datastore
-	flushing  bool
+	mux       sync.Mutex
 }
 
 // NewCafeOutbox creates a new outbox queue
@@ -82,13 +81,8 @@ func (q *CafeOutbox) InboxRequest(pid peer.ID, env *pb.Envelope, inboxes []strin
 
 // Flush processes pending requests
 func (q *CafeOutbox) Flush() {
-	if q.flushing {
-		return
-	}
-	q.flushing = true
-	defer func() {
-		q.flushing = false
-	}()
+	q.mux.Lock()
+	defer q.mux.Unlock()
 	log.Debug("flushing cafe outbox")
 
 	if q.service() == nil {
@@ -209,9 +203,8 @@ func (q *CafeOutbox) handle(reqs []repo.CafeRequest, rtype repo.CafeRequestType,
 		for _, req := range reqs {
 			thrd := q.datastore.Threads().Get(req.TargetId)
 			if thrd == nil {
-				err := errors.New(fmt.Sprintf("could not find thread: %s", req.TargetId))
-				log.Error(err.Error())
-				herr = err
+				log.Warningf("could not find thread: %s", req.TargetId)
+				handled = append(handled, req.Id)
 				continue
 			}
 

@@ -17,6 +17,21 @@ import (
 )
 
 func initAt004(db *sql.DB, pin string) error {
+	// Only need the Identity stub...
+	configStr := `
+	{
+		"Identity": {
+			"PeerID": "QmQA7swSsZKoayPHaTPgzZ1u3SCQjLvLyKcN6RRMmTbLau",
+			"PrivKey": "CAESYH1jZmeyepc6aWdAeOkLbkVDYt5FFHIvQramNAGglovRHSxkSGg54g2KJJ/9oqFXJuw2WL009Gap3XnFUxnvKGodLGRIaDniDYokn/2ioVcm7DZYvTT0ZqndecVTGe8oag=="
+		}
+	}
+	`
+
+	err := ioutil.WriteFile("./config", []byte(configStr), 0644)
+	if err != nil {
+		return err
+	}
+
 	var sqlStmt string
 	if pin != "" {
 		sqlStmt = "PRAGMA key = '" + pin + "';"
@@ -25,10 +40,12 @@ func initAt004(db *sql.DB, pin string) error {
     create table threads (id text primary key not null, name text not null, sk blob not null, head text not null);
     create table peers (row text primary key not null, id text not null, pk blob not null, threadId text not null);
     create table blocks (id text primary key not null, date integer not null, parents text not null, threadId text not null, authorPk text not null, type integer not null, dataId text, dataKeyCipher blob, dataCaptionCipher blob, dataUsernameCipher blob, dataMetadataCipher blob);
+    create table profile (key text primary key not null, value blob);
     create index block_dataId on blocks (dataId);
     create index block_threadId_type_date on blocks (threadId, type, date);
-    `
-	_, err := db.Exec(sqlStmt)
+	`
+
+	_, err = db.Exec(sqlStmt)
 	if err != nil {
 		return err
 	}
@@ -42,6 +59,11 @@ func initAt004(db *sql.DB, pin string) error {
 		return err
 	}
 	_, err = db.Exec("insert into threads(id, name, sk, head) values(?,?,?,?)", "1", "default", skb, "")
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec("insert into profile(key, value) values(?,?)", "username", []byte("username"))
 	if err != nil {
 		return err
 	}
@@ -94,6 +116,26 @@ func Test005(t *testing.T) {
 	err = m.Up("./", "", false)
 	if err != nil {
 		t.Error(err)
+		return
+	}
+
+	pfile, err := ioutil.ReadFile("./migration005_peerid.ndjson")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	var profileInfo map[string]string
+	err = json.Unmarshal(pfile, &profileInfo)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if !strings.HasPrefix(profileInfo["peerid"], "Qm") {
+		t.Error(errors.New("invalid/no peer id saved"))
+		return
+	}
+	if profileInfo["username"] != "username" {
+		t.Error(errors.New("no username saved"))
 		return
 	}
 
@@ -150,6 +192,7 @@ func Test005(t *testing.T) {
 	}
 
 	os.RemoveAll("./migration005_threads.ndjson")
+	os.RemoveAll("./migration005_peerid.ndjson")
 	os.RemoveAll("./migration005_default_photos.ndjson")
 	os.RemoveAll("./datastore")
 	os.RemoveAll("./repover")

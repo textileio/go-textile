@@ -39,7 +39,7 @@ func (m *Mobile) Threads() (string, error) {
 }
 
 // AddThread adds a new thread with the given name
-func (m *Mobile) AddThread(key string, name string) (string, error) {
+func (m *Mobile) AddThread(key string, name string, shared bool) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
@@ -49,9 +49,18 @@ func (m *Mobile) AddThread(key string, name string) (string, error) {
 		return "", err
 	}
 
-	// tmp use the built-in photos schema for all mobile threads
-	// until we're ready to let the app define its own schema.
-	schema, err := m.addSchema(textile.Photos)
+	// tmp use the built-in schemas for all mobile threads
+	// until we're ready to let the app define its own schemas.
+	var sch string
+	var ttype repo.ThreadType
+	if shared {
+		sch = textile.Media
+		ttype = repo.OpenThread
+	} else {
+		sch = textile.CameraRoll
+		ttype = repo.PrivateThread
+	}
+	schema, err := m.addSchema(sch)
 	if err != nil {
 		return "", err
 	}
@@ -65,7 +74,7 @@ func (m *Mobile) AddThread(key string, name string) (string, error) {
 		Name:      name,
 		Schema:    shash,
 		Initiator: m.node.Account().Address(),
-		Type:      repo.OpenThread,
+		Type:      ttype,
 		Join:      true,
 	}
 	thrd, err := m.node.AddThread(sk, config)

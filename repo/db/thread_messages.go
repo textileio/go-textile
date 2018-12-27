@@ -42,7 +42,7 @@ func (c *ThreadMessageDB) Add(msg *repo.ThreadMessage) error {
 		msg.Id,
 		msg.PeerId,
 		env,
-		int(msg.Date.Unix()),
+		int(msg.Date.UnixNano()),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -96,7 +96,7 @@ func (c *ThreadMessageDB) handleQuery(stm string) []repo.ThreadMessage {
 			Id:       id,
 			PeerId:   peerId,
 			Envelope: env,
-			Date:     time.Unix(int64(dateInt), 0),
+			Date:     time.Unix(0, int64(dateInt)),
 		})
 	}
 	return ret

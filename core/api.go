@@ -15,6 +15,7 @@ import (
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
 	"github.com/gin-contrib/cors"
+	limit "github.com/gin-contrib/size"
 	"github.com/gin-gonic/gin"
 	m "github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/repo"
@@ -69,8 +70,14 @@ func (a *api) Start() {
 		g.Writer.WriteHeader(http.StatusNoContent)
 	})
 
-	// Handle CORS config options
-	router.Use(cors.New(getCORSSettings(a.node.Config())))
+	// middleware
+	conf := a.node.Config()
+	// CORS
+	router.Use(cors.New(getCORSSettings(conf)))
+	// size limits
+	if conf.API.SizeLimit > 0 {
+		router.Use(limit.RequestSizeLimiter(conf.API.SizeLimit))
+	}
 
 	// v0 routes
 	v0 := router.Group("/api/v0")
@@ -183,12 +190,32 @@ func (a *api) Start() {
 			swarm.GET("/peers", a.swarmPeers)
 		}
 
+		contacts := v0.Group("/contacts")
+		{
+			contacts.POST("", a.addContacts)
+			contacts.GET("", a.lsContacts)
+			contacts.GET("/:id", a.getContacts)
+		}
+
+		ipfs := v0.Group("/ipfs")
+		{
+			ipfs.GET("/:cid", a.ipfsCat)
+		}
+
 		logs := v0.Group("/logs")
 		{
 			logs.POST("", a.logsCall)
 			logs.GET("", a.logsCall)
 			logs.POST("/:subsystem", a.logsCall)
 			logs.GET("/:subsystem", a.logsCall)
+		}
+
+		conf := v0.Group("/config")
+		{
+			conf.GET("", a.getConfig)
+			conf.PUT("", a.setConfig)
+			conf.GET("/*path", a.getConfig)
+			conf.PATCH("", a.patchConfig)
 		}
 
 	}
@@ -222,7 +249,6 @@ func (a *api) Start() {
 
 // Stop stops the http api
 func (a *api) Stop() error {
-	// Use timeout to force a deadline
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	if err := a.server.Shutdown(ctx); err != nil {

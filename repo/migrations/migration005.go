@@ -4,9 +4,11 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"io/ioutil"
 	"os"
 	"path"
 
+	native "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 
 	_ "github.com/mutecomm/go-sqlcipher"
@@ -47,6 +49,42 @@ func (Major005) Up(repoPath string, pinCode string, testnet bool) error {
 		if _, err := db.Exec("pragma key='" + pinCode + "';"); err != nil {
 			return err
 		}
+	}
+
+	// Get PeerId from IPFS config
+	configPath := path.Join(repoPath, "config")
+	jsonFile, err := os.Open(configPath)
+	if err != nil {
+		return err
+	}
+	defer jsonFile.Close()
+
+	var config native.Config
+
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	err = json.Unmarshal(byteValue, &config)
+	if err != nil {
+		return err
+	}
+
+	// Get username
+	var username string
+	row := db.QueryRow("select value from profile where key='username';")
+	err = row.Scan(&username)
+	if err != nil {
+		return err
+	}
+	jsonData := map[string]string{
+		"peerid":   config.Identity.PeerID,
+		"username": username,
+	}
+	jsonBytes, err := json.Marshal(jsonData)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(path.Join(repoPath, "migration005_peerid.ndjson"), jsonBytes, 0644)
+	if err != nil {
+		return err
 	}
 
 	// collect thread secrets

@@ -5,12 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/fatih/color"
+
+	"github.com/textileio/textile-go/util"
 )
 
 type ClientOptions struct {
@@ -51,10 +52,11 @@ func register(cmd Cmd) {
 type method string
 
 const (
-	GET  method = "GET"
-	POST method = "POST"
-	PUT  method = "PUT"
-	DEL  method = "DELETE"
+	GET   method = "GET"
+	POST  method = "POST"
+	PUT   method = "PUT"
+	DEL   method = "DELETE"
+	PATCH method = "PATCH"
 )
 
 type params struct {
@@ -70,7 +72,7 @@ func executeStringCmd(meth method, pth string, pars params) (string, error) {
 		return "", err
 	}
 	defer req.Body.Close()
-	res, err := unmarshalString(req.Body)
+	res, err := util.UnmarshalString(req.Body)
 	if err != nil {
 		return "", err
 	}
@@ -84,13 +86,13 @@ func executeJsonCmd(meth method, pth string, pars params, target interface{}) (s
 	}
 	defer req.Body.Close()
 	if req.StatusCode >= 400 {
-		res, err := unmarshalString(req.Body)
+		res, err := util.UnmarshalString(req.Body)
 		if err != nil {
 			return "", err
 		}
 		return "", errors.New(res)
 	}
-	if err := unmarshalJSON(req.Body, target); err != nil {
+	if err := util.UnmarshalJSON(req.Body, target); err != nil {
 		return "", err
 	}
 	data, err := json.MarshalIndent(target, "", "    ")
@@ -127,39 +129,6 @@ func request(meth method, pth string, pars params) (*http.Response, error) {
 	return client.Do(req)
 }
 
-func unmarshalString(body io.ReadCloser) (string, error) {
-	data, err := ioutil.ReadAll(body)
-	if err != nil {
-		return "", err
-	}
-	return trimQuotes(string(data)), nil
-}
-
-func unmarshalJSON(body io.ReadCloser, target interface{}) error {
-	data, err := ioutil.ReadAll(body)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(data, target)
-}
-
 func output(value interface{}) {
 	fmt.Println(value)
-}
-
-func trimQuotes(s string) string {
-	if len(s) > 0 && s[0] == '"' {
-		s = s[1:]
-	}
-	if len(s) > 0 && s[len(s)-1] == '"' {
-		s = s[:len(s)-1]
-	}
-	return s
-}
-
-func printSplash(version string) {
-	url := fmt.Sprintf("%s/api/%s", apiAddr, apiVersion)
-	fmt.Println(Grey("Textile shell version v" + version))
-	fmt.Println(Grey("Textile API: " + url))
-	fmt.Println(Grey("type 'help' for available commands"))
 }

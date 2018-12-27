@@ -2,6 +2,7 @@ package ipfs
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -29,7 +30,7 @@ import (
 var log = logging.Logger("tex-ipfs")
 
 const pinTimeout = time.Minute
-const catTimeout = time.Second * 30
+const catTimeout = time.Minute
 const ipnsTimeout = time.Second * 30
 const connectTimeout = time.Second * 10
 
@@ -46,13 +47,10 @@ func DataAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
 
 	reader, err := api.Unixfs().Get(ctx, ip)
 	if err != nil {
+		log.Errorf("failed to get data: %s", pth)
 		return nil, err
 	}
-	defer func() {
-		if err := reader.Close(); err != nil {
-			log.Error(err)
-		}
-	}()
+	defer reader.Close()
 
 	return ioutil.ReadAll(reader)
 }
@@ -133,7 +131,28 @@ func AddData(node *core.IpfsNode, reader io.Reader, pin bool) (*cid.Cid, error) 
 	}
 
 	if pin {
-		if err := api.Pin().Add(ctx, pth); err != nil {
+		if err := api.Pin().Add(ctx, pth, options.Pin.Recursive(false)); err != nil {
+			return nil, err
+		}
+	}
+	id := pth.Cid()
+
+	return &id, nil
+}
+
+// AddObject takes a reader and adds it as a DAG node, optionally pins it
+func AddObject(node *core.IpfsNode, reader io.Reader, pin bool) (*cid.Cid, error) {
+	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
+	defer cancel()
+
+	api := coreapi.NewCoreAPI(node)
+	pth, err := api.Object().Put(ctx, reader)
+	if err != nil {
+		return nil, err
+	}
+
+	if pin {
+		if err := api.Pin().Add(ctx, pth, options.Pin.Recursive(false)); err != nil {
 			return nil, err
 		}
 	}
@@ -150,10 +169,10 @@ func NodeAtLink(node *core.IpfsNode, link *ipld.Link) (ipld.Node, error) {
 }
 
 // NodeAtCid returns the node behind a cid
-func NodeAtCid(node *core.IpfsNode, id *cid.Cid) (ipld.Node, error) {
+func NodeAtCid(node *core.IpfsNode, id cid.Cid) (ipld.Node, error) {
 	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
-	return node.DAG.Get(ctx, *id)
+	return node.DAG.Get(ctx, id)
 }
 
 // NodeAtPath returns the last node under path
@@ -169,10 +188,63 @@ func NodeAtPath(node *core.IpfsNode, pth string) (ipld.Node, error) {
 	return node.Resolver.ResolvePath(ctx, p)
 }
 
+type Node struct {
+	Links []Link
+	Data  string
+}
+
+type Link struct {
+	Name, Hash string
+	Size       uint64
+}
+
+// GetObjectAtPath returns the DAG object at the given path
+func GetObjectAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
+	defer cancel()
+
+	api := coreapi.NewCoreAPI(node)
+	ipth, err := iface.ParsePath(pth)
+	if err != nil {
+		return nil, err
+	}
+	nd, err := api.Object().Get(ctx, ipth)
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := api.Object().Data(ctx, ipth)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+
+	out := &Node{
+		Links: make([]Link, len(nd.Links())),
+		Data:  string(data),
+	}
+
+	for i, link := range nd.Links() {
+		out.Links[i] = Link{
+			Hash: link.Cid.String(),
+			Name: link.Name,
+			Size: link.Size,
+		}
+	}
+
+	return json.Marshal(out)
+}
+
 // PinNode pins an ipld node
 func PinNode(node *core.IpfsNode, nd ipld.Node, recursive bool) error {
 	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
 	defer cancel()
+
+	defer node.Blockstore.PinLock().Unlock()
 
 	if err := node.Pinning.Pin(ctx, nd, recursive); err != nil {
 		if strings.Contains(err.Error(), "already pinned recursively") {

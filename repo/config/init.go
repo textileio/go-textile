@@ -44,6 +44,7 @@ type SwarmPorts struct {
 // API settings
 type API struct {
 	HTTPHeaders map[string][]string // HTTP headers to return with the API.
+	SizeLimit   int64               // Maximum file size limit to accept for POST requests in bytes
 }
 
 // Logs settings
@@ -69,8 +70,9 @@ type Cafe struct {
 
 // TODO: add some more knobs: max num. clients, max client msg age, inbox size, etc.
 type CafeHost struct {
-	Open     bool // when true, other peers can register with this node for cafe services
-	PublicIP string
+	Open       bool // when true, other peers can register with this node for cafe services
+	PublicAddr string
+	SizeLimit  int64 // Maximum file size limit to accept for POST requests in bytes
 }
 
 // CafeClient settings
@@ -116,6 +118,7 @@ func Init(version string) (*Config, error) {
 				},
 				"Access-Control-Allow-Origin": {},
 			},
+			SizeLimit: 0,
 		},
 		Logs: Logs{
 			LogToDisk: true,
@@ -127,12 +130,13 @@ func Init(version string) (*Config, error) {
 		},
 		Cafe: Cafe{
 			Host: CafeHost{
-				PublicIP: "",
-				Open:     false,
+				PublicAddr: "",
+				Open:       false,
+				SizeLimit:  0,
 			},
 			Client: CafeClient{
 				Mobile: MobileCafeClient{
-					P2PWireLimit: 20000,
+					P2PWireLimit: 0,
 				},
 			},
 		},

@@ -36,8 +36,8 @@ type addressOptions struct {
 }
 
 type cafeOptions struct {
-	PublicIP string `long:"public-ip" description:"Required with --cafe-open on an image / server with a public IP address."`
-	Open     bool   `long:"cafe-open" description:"Opens the p2p Cafe Service for other peers."`
+	PublicAddr string `long:"public-addr" description:"Required with --cafe-open on a server with a public IP address, e.g., https://<IP_ADDRESS>'"`
+	Open       bool   `long:"cafe-open" description:"Opens the p2p Cafe Service for other peers."`
 }
 
 type options struct{}
@@ -95,6 +95,9 @@ type daemonCmd struct {
 	Logs     []string `short:"l" long:"logs" description:"Control subcommand log level. e.g., --logs=\"tex-core: debug\" Can be used multiple times."`
 }
 
+type commandsCmd struct {
+}
+
 var node *core.Textile
 
 var parser = flags.NewParser(&options{}, flags.Default)
@@ -121,6 +124,10 @@ func init() {
 		"Start the daemon",
 		"Start a node daemon session.",
 		&daemonCmd{})
+	parser.AddCommand("commands",
+		"List available commands",
+		"List all available textile commands.",
+		&commandsCmd{})
 
 	// add cmd commands
 	for _, c := range cmd.Cmds() {
@@ -130,6 +137,18 @@ func init() {
 
 func main() {
 	parser.Parse()
+}
+
+func (x *commandsCmd) Execute(args []string) error {
+	for _, c := range parser.Commands() {
+		if len(c.Commands()) == 0 {
+			fmt.Println(fmt.Sprintf("textile %s", c.Name))
+		}
+		for _, sub := range c.Commands() {
+			fmt.Println(fmt.Sprintf("textile %s %s", c.Name, sub.Name))
+		}
+	}
+	return nil
 }
 
 func (x *walletInitCmd) Execute(args []string) error {
@@ -213,18 +232,18 @@ func (x *initCmd) Execute(args []string) error {
 	}
 
 	config := core.InitConfig{
-		Account:      accnt,
-		PinCode:      x.PinCode,
-		RepoPath:     repoPath,
-		SwarmPorts:   x.IPFS.SwarmPorts,
-		ApiAddr:      x.Addresses.ApiBindAddr,
-		CafeApiAddr:  x.Addresses.CafeApiBindAddr,
-		GatewayAddr:  x.Addresses.GatewayBindAddr,
-		IsMobile:     false,
-		IsServer:     x.IPFS.ServerMode,
-		LogToDisk:    !x.Logs.NoFiles,
-		CafeOpen:     x.CafeOptions.Open,
-		CafePublicIP: x.CafeOptions.PublicIP,
+		Account:        accnt,
+		PinCode:        x.PinCode,
+		RepoPath:       repoPath,
+		SwarmPorts:     x.IPFS.SwarmPorts,
+		ApiAddr:        x.Addresses.ApiBindAddr,
+		CafeApiAddr:    x.Addresses.CafeApiBindAddr,
+		GatewayAddr:    x.Addresses.GatewayBindAddr,
+		IsMobile:       false,
+		IsServer:       x.IPFS.ServerMode,
+		LogToDisk:      !x.Logs.NoFiles,
+		CafeOpen:       x.CafeOptions.Open,
+		CafePublicAddr: x.CafeOptions.PublicAddr,
 	}
 
 	if err := core.InitRepo(config); err != nil {

@@ -53,7 +53,9 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, 
 	var schema string
 	if conf.Schema != nil {
 		schema = conf.Schema.B58String()
-		t.cafeOutbox.Add(schema, repo.CafeStoreRequest)
+		if err := t.cafeOutbox.Add(schema, repo.CafeStoreRequest); err != nil {
+			return nil, err
+		}
 	}
 
 	threadModel := &repo.Thread{
@@ -179,6 +181,7 @@ func (t *Textile) ThreadInfo(id string) (*ThreadInfo, error) {
 // ThreadInvites lists info on all pending invites
 func (t *Textile) ThreadInvites() []ThreadInviteInfo {
 	list := make([]ThreadInviteInfo, 0)
+
 	for _, invite := range t.datastore.ThreadInvites().List() {
 		list = append(list, ThreadInviteInfo{
 			Id:      invite.Id,
@@ -234,7 +237,7 @@ func (t *Textile) IgnoreThreadInvite(inviteId string) error {
 	return t.datastore.Notifications().DeleteByBlock(inviteId)
 }
 
-// handleThreadInvite
+// handleThreadInvite uses an invite block to join a thread
 func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 	block := new(pb.ThreadBlock)
 	if err := proto.Unmarshal(plaintext, block); err != nil {

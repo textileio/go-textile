@@ -24,7 +24,7 @@ type ThreadsOutbox struct {
 	node       func() *core.IpfsNode
 	datastore  repo.Datastore
 	cafeOutbox *CafeOutbox
-	flushing   bool
+	mux        sync.Mutex
 }
 
 // NewThreadsOutbox creates a new outbox queue
@@ -55,13 +55,8 @@ func (q *ThreadsOutbox) Add(pid peer.ID, env *pb.Envelope) error {
 
 // Flush processes pending messages
 func (q *ThreadsOutbox) Flush() {
-	if q.flushing {
-		return
-	}
-	q.flushing = true
-	defer func() {
-		q.flushing = false
-	}()
+	q.mux.Lock()
+	defer q.mux.Unlock()
 	log.Debug("flushing thread messages")
 
 	if q.service() == nil {
@@ -144,7 +139,7 @@ func (q *ThreadsOutbox) handle(pid peer.ID, msg repo.ThreadMessage) error {
 		// peer is offline, queue an outbound cafe request for the peer's inbox(es)
 		contact := q.datastore.Contacts().Get(pid.Pretty())
 		if contact != nil && len(contact.Inboxes) > 0 {
-			log.Debugf("send thread message for %s to inbox(es)", pid.Pretty())
+			log.Debugf("sending thread message for %s to inbox(es)", pid.Pretty())
 
 			// add an inbox request for message delivery
 			if err := q.cafeOutbox.InboxRequest(pid, msg.Envelope, contact.Inboxes); err != nil {

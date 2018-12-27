@@ -51,11 +51,12 @@ purposes and 1-to-1 communication channels.
 }
 
 type addThreadsCmd struct {
-	Client ClientOptions  `group:"Client Options"`
-	Key    string         `short:"k" long:"key" description:"A locally unique key used by an app to identify this thread on recovery."`
-	Open   bool           `short:"o" long:"open" description:"Set the thread type to open (default private)."`
-	Schema flags.Filename `short:"s" long:"schema" description:"Thread Schema filename. Superseded by built-in schema flags."`
-	Photos bool           `long:"photos" description:"Use the built-in photo Schema."`
+	Client     ClientOptions  `group:"Client Options"`
+	Key        string         `short:"k" long:"key" description:"A locally unique key used by an app to identify this thread on recovery."`
+	Open       bool           `short:"o" long:"open" description:"Set the thread type to open (default private)."`
+	Schema     flags.Filename `short:"s" long:"schema" description:"Thread Schema filename. Supersedes the built-in schema flags."`
+	Media      bool           `long:"media" description:"Use the built-in media Schema."`
+	CameraRoll bool           `long:"camera-roll" description:"Use the built-in camera roll Schema."`
 }
 
 func (x *addThreadsCmd) Usage() string {
@@ -72,9 +73,17 @@ func (x *addThreadsCmd) Execute(args []string) error {
 	}
 
 	var sch string
-	if x.Schema == "" && x.Photos {
-		sch = "photos"
-	} else {
+	switch x.Schema {
+	case "":
+		if x.Media {
+			sch = "media"
+			break
+		}
+		if x.CameraRoll {
+			sch = "camera_roll"
+			break
+		}
+	default:
 		sch = string(x.Schema)
 	}
 
@@ -90,24 +99,29 @@ func callAddThreads(args []string, opts map[string]string) error {
 	var body []byte
 
 	sch := opts["schema"]
-	if sch != "" && sch != "photos" {
-		path, err := homedir.Expand(sch)
-		if err != nil {
-			path = sch
-		}
+	switch sch {
+	case "media":
+		body = []byte(textile.Media)
+	case "camera_roll":
+		body = []byte(textile.CameraRoll)
+	default:
+		if sch != "" {
+			path, err := homedir.Expand(sch)
+			if err != nil {
+				path = sch
+			}
 
-		file, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
+			file, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
 
-		body, err = ioutil.ReadAll(file)
-		if err != nil {
-			return err
+			body, err = ioutil.ReadAll(file)
+			if err != nil {
+				return err
+			}
 		}
-	} else if sch == "photos" {
-		body = []byte(textile.Photos)
 	}
 
 	if body != nil {
