@@ -34,7 +34,7 @@ import (
 var log = logging.Logger("tex-core")
 
 // Version is the core version identifier
-const Version = "1.0.0-rc15"
+const Version = "1.0.0-rc16"
 
 // kQueueFlushFreq how often to flush the message queues
 const kQueueFlushFreq = time.Second * 60
@@ -65,18 +65,18 @@ const (
 
 // InitConfig is used to setup a textile node
 type InitConfig struct {
-	Account      *keypair.Full
-	PinCode      string
-	RepoPath     string
-	SwarmPorts   string
-	ApiAddr      string
-	CafeApiAddr  string
-	GatewayAddr  string
-	IsMobile     bool
-	IsServer     bool
-	LogToDisk    bool
-	CafeOpen     bool
-	CafePublicIP string
+	Account        *keypair.Full
+	PinCode        string
+	RepoPath       string
+	SwarmPorts     string
+	ApiAddr        string
+	CafeApiAddr    string
+	GatewayAddr    string
+	IsMobile       bool
+	IsServer       bool
+	LogToDisk      bool
+	CafeOpen       bool
+	CafePublicAddr string
 }
 
 // MigrateConfig is used to define options during a major migration
@@ -320,7 +320,7 @@ func (t *Textile) Start() error {
 		)
 
 		t.cafeService = NewCafeService(t.account, t.node, t.datastore, t.cafeInbox)
-		t.cafeService.setAddrs(t.config.Addresses.CafeAPI, t.config.Cafe.Host.PublicIP, *swarmPorts)
+		t.cafeService.setAddrs(t.config.Addresses.CafeAPI, t.config.Cafe.Host.PublicAddr, *swarmPorts)
 		if t.config.Cafe.Host.Open {
 			t.cafeService.open = true
 			t.startCafeApi(t.config.Addresses.CafeAPI)
