@@ -221,6 +221,20 @@ func TestMobile_PrepareFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	res2, err := mobile1.PrepareFiles(pre.Dir.Files["large"].Hash, thrdId)
+	if err != nil {
+		t.Errorf("prepare files by existing hash failed: %s", err)
+		return
+	}
+	pre2 := new(pb.MobilePreparedFiles)
+	if err := proto.Unmarshal(res2, pre2); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(pre2.Dir.Files) != 3 {
+		t.Error("wrong number of files")
+	}
 }
 
 func TestMobile_PrepareFilesAsync(t *testing.T) {

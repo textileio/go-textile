@@ -210,12 +210,12 @@ func (a *api) Start() {
 			logs.GET("/:subsystem", a.logsCall)
 		}
 
-		config := v0.Group("/config")
+		conf := v0.Group("/config")
 		{
-			config.GET("", a.getConfig)
-			config.PUT("", a.setConfig)
-			config.GET("/*path", a.getConfig)
-			config.PATCH("", a.patchConfig)
+			conf.GET("", a.getConfig)
+			conf.PUT("", a.setConfig)
+			conf.GET("/*path", a.getConfig)
+			conf.PATCH("", a.patchConfig)
 		}
 
 	}

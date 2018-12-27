@@ -15,6 +15,8 @@ import (
 	"sync"
 	"time"
 
+	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface"
+
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
@@ -61,7 +63,7 @@ type addCmd struct {
 	Thread  string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
 	Caption string        `short:"c" long:"caption" description:"File(s) caption."`
 	Group   bool          `short:"g" long:"group" description:"Group directory files."`
-	Verbose bool          `short:"v" long:"verbose" description:"Prints files as they are processed."`
+	Verbose bool          `short:"v" long:"verbose" description:"Prints files as they are milled."`
 }
 
 func (x *addCmd) Name() string {
@@ -76,6 +78,7 @@ func (x *addCmd) Long() string {
 	return `
 Adds a file or directory of files to a thread. Files not supported 
 by the thread schema are ignored. Nested directories are included.
+An existing file hash may also be used as input.
 Use the --group option to add directory files as a single object.  
 Omit the --thread option to use the default thread (if selected).
 `
@@ -106,14 +109,23 @@ func callAdd(args []string, opts map[string]string) error {
 			return errMissingFilePath
 		}
 
-		pth, err = homedir.Expand(args[0])
-		if err != nil {
-			pth = args[0]
-		}
-
-		fi, err = os.Stat(pth)
+		// check if path references a cid
+		ipth, err := iface.ParsePath(args[0])
 		if err != nil {
 			return err
+		}
+		if ipth != nil {
+			pth = ipth.String()
+		} else {
+			pth, err = homedir.Expand(args[0])
+			if err != nil {
+				pth = args[0]
+			}
+
+			fi, err = os.Stat(pth)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -140,7 +152,7 @@ func callAdd(args []string, opts map[string]string) error {
 
 	start := time.Now()
 
-	if fi.IsDir() {
+	if fi != nil && fi.IsDir() {
 		err := filepath.Walk(pth, func(pth string, fi os.FileInfo, err error) error {
 			if fi.IsDir() || fi.Name() == ".DS_Store" {
 				return nil
@@ -256,24 +268,32 @@ func add(dirs []core.Directory, threadId string, caption string, verbose bool) (
 }
 
 func mill(pth string, node *schema.Node, verbose bool) (core.Directory, error) {
+	ref, err := iface.ParsePath(pth)
+	if err == nil {
+		parts := strings.Split(ref.String(), "/")
+		pth = parts[len(parts)-1]
+	}
+
 	var f *os.File
-	if pth == "" {
-		f = os.Stdin
-	} else {
-		var err error
-		f, err = os.Open(pth)
-		if err != nil {
-			return nil, err
-		}
-		defer f.Close()
+	if ref == nil {
+		if pth == "" {
+			f = os.Stdin
+		} else {
+			var err error
+			f, err = os.Open(pth)
+			if err != nil {
+				return nil, err
+			}
+			defer f.Close()
 
-		fi, err := f.Stat()
-		if err != nil {
-			return nil, err
-		}
+			fi, err := f.Stat()
+			if err != nil {
+				return nil, err
+			}
 
-		if fi.IsDir() {
-			return nil, nil
+			if fi.IsDir() {
+				return nil, nil
+			}
 		}
 	}
 
@@ -293,6 +313,8 @@ func mill(pth string, node *schema.Node, verbose bool) (core.Directory, error) {
 		if node.Mill == "/json" {
 			reader = f
 			ctype = "application/json"
+		} else if ref != nil {
+			mopts.setUse(pth)
 		} else {
 			r, ct, err := multipartReader(f)
 			if err != nil {
@@ -337,6 +359,8 @@ func mill(pth string, node *schema.Node, verbose bool) (core.Directory, error) {
 					if step.Link.Mill == "/json" {
 						reader = f
 						ctype = "application/json"
+					} else if ref != nil {
+						mopts.setUse(pth)
 					} else {
 						r, ct, err := multipartReader(f)
 						if err != nil {
