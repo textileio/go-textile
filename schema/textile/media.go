@@ -14,11 +14,11 @@ var Media = `
       }
     },
     "small": {
-      "use": "large",
+      "use": ":file",
       "mill": "/image/resize",
       "opts": {
         "width": "320",
-        "quality": "100"
+        "quality": "80"
       }
     },
     "thumb": {
@@ -27,7 +27,7 @@ var Media = `
       "mill": "/image/resize",
       "opts": {
         "width": "100",
-        "quality": "100"
+        "quality": "80"
       }
     }
   }

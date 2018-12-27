@@ -111,10 +111,7 @@ func callAdd(args []string, opts map[string]string) error {
 
 		// check if path references a cid
 		ipth, err := iface.ParsePath(args[0])
-		if err != nil {
-			return err
-		}
-		if ipth != nil {
+		if err == nil {
 			pth = ipth.String()
 		} else {
 			pth, err = homedir.Expand(args[0])
