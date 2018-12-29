@@ -36,8 +36,9 @@ type addressOptions struct {
 }
 
 type cafeOptions struct {
-	PublicAddr string `long:"public-addr" description:"Required with --cafe-open on a server with a public IP address, e.g., https://<IP_ADDRESS>'"`
-	Open       bool   `long:"cafe-open" description:"Opens the p2p Cafe Service for other peers."`
+	Open     bool   `long:"cafe-open" description:"Opens the p2p Cafe Service for other peers."`
+	PublicIP string `long:"cafe-public-ip" description:"Required with --cafe-open on a server with a public IP address."`
+	HttpURL  string `long:"cafe-http-url" description:"Useful when providing the cafe API over HTTPS via a load balancer, e.g., https://mycafe.com'"`
 }
 
 type options struct{}
@@ -232,18 +233,19 @@ func (x *initCmd) Execute(args []string) error {
 	}
 
 	config := core.InitConfig{
-		Account:        accnt,
-		PinCode:        x.PinCode,
-		RepoPath:       repoPath,
-		SwarmPorts:     x.IPFS.SwarmPorts,
-		ApiAddr:        x.Addresses.ApiBindAddr,
-		CafeApiAddr:    x.Addresses.CafeApiBindAddr,
-		GatewayAddr:    x.Addresses.GatewayBindAddr,
-		IsMobile:       false,
-		IsServer:       x.IPFS.ServerMode,
-		LogToDisk:      !x.Logs.NoFiles,
-		CafeOpen:       x.CafeOptions.Open,
-		CafePublicAddr: x.CafeOptions.PublicAddr,
+		Account:      accnt,
+		PinCode:      x.PinCode,
+		RepoPath:     repoPath,
+		SwarmPorts:   x.IPFS.SwarmPorts,
+		ApiAddr:      x.Addresses.ApiBindAddr,
+		CafeApiAddr:  x.Addresses.CafeApiBindAddr,
+		GatewayAddr:  x.Addresses.GatewayBindAddr,
+		IsMobile:     false,
+		IsServer:     x.IPFS.ServerMode,
+		LogToDisk:    !x.Logs.NoFiles,
+		CafeOpen:     x.CafeOptions.Open,
+		CafePublicIP: x.CafeOptions.PublicIP,
+		CafeHttpURL:  x.CafeOptions.HttpURL,
 	}
 
 	if err := core.InitRepo(config); err != nil {
