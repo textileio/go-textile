@@ -78,7 +78,8 @@ type MigrateConfig struct {
 
 // RunConfig is used to define run options for a mobile node
 type RunConfig struct {
-	RepoPath string
+	RepoPath  string
+	LogLevels string
 }
 
 // Mobile is the name of the framework (must match package name)
@@ -120,18 +121,17 @@ func MigrateRepo(config *MigrateConfig) error {
 
 // Create a gomobile compatible wrapper around Textile
 func NewTextile(config *RunConfig, messenger Messenger) (*Mobile, error) {
+	var logLevels map[string]string
+	if config.LogLevels != "" {
+		err := json.Unmarshal([]byte(config.LogLevels), &logLevels)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	node, err := core.NewTextile(core.RunConfig{
-		RepoPath: config.RepoPath,
-		LogLevels: map[string]string{
-			"tex-broadcast":   "DEBUG",
-			"tex-core":        "DEBUG",
-			"tex-datastore":   "DEBUG",
-			"tex-ipfs":        "DEBUG",
-			"tex-mill":        "DEBUG",
-			"tex-repo":        "DEBUG",
-			"tex-repo-config": "DEBUG",
-			"tex-service":     "DEBUG",
-		},
+		RepoPath:  config.RepoPath,
+		LogLevels: logLevels,
 	})
 	if err != nil {
 		return nil, err
