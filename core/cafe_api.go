@@ -67,8 +67,11 @@ func (c *cafeApi) start() {
 	router := gin.Default()
 	router.GET("/", func(g *gin.Context) {
 		g.JSON(http.StatusOK, gin.H{
-			"cafe_version": cafeApiVersion,
-			"node_version": Version,
+			"peer_id":  c.node.node.Identity.Pretty(),
+			"address":  c.node.config.Account.Address,
+			"api":      cafeApiVersion,
+			"protocol": string(c.node.cafeService.Protocol()),
+			"node":     Version,
 		})
 	})
 	router.GET("/health", func(g *gin.Context) {
