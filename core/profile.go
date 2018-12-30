@@ -209,28 +209,26 @@ func (t *Textile) PublishProfile() error {
 
 	go func() {
 		<-t.OnlineCh()
-		entry, err := t.publishProfile(*prof)
-		if err != nil {
+		if err := t.publishProfile(*prof); err != nil {
 			log.Errorf("error publishing profile: %s", err)
 			return
 		}
-		log.Debugf("published: %s -> %s", entry.Name(), entry.Value())
 	}()
 	return nil
 }
 
 // ResolveProfile looks up a profile on ipns
 func (t *Textile) ResolveProfile(name peer.ID) (iface.Path, error) {
-	return ipfs.Resolve(t.node, name)
+	return ipfs.ResolveIPNS(t.node, name)
 }
 
 // publishProfile publishes profile to ipns
-func (t *Textile) publishProfile(prof Profile) (iface.IpnsEntry, error) {
+func (t *Textile) publishProfile(prof Profile) error {
 	dir := uio.NewDirectory(t.node.DAG)
 
 	addressId, err := ipfs.AddDataToDirectory(t.node, dir, "address", bytes.NewReader([]byte(prof.Address)))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	var inboxesId *cid.Cid
@@ -246,7 +244,7 @@ func (t *Textile) publishProfile(prof Profile) (iface.IpnsEntry, error) {
 		}
 		inboxesId, err = ipfs.AddDataToDirectory(t.node, dir, "inboxes", bytes.NewReader(inboxesb))
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
@@ -254,7 +252,7 @@ func (t *Textile) publishProfile(prof Profile) (iface.IpnsEntry, error) {
 	if prof.Username != "" {
 		usernameId, err = ipfs.AddDataToDirectory(t.node, dir, "username", bytes.NewReader([]byte(prof.Username)))
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
@@ -262,41 +260,40 @@ func (t *Textile) publishProfile(prof Profile) (iface.IpnsEntry, error) {
 	if prof.AvatarUri != "" {
 		avatarId, err = ipfs.AddDataToDirectory(t.node, dir, "avatar_uri", bytes.NewReader([]byte(prof.AvatarUri)))
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	node, err := dir.GetNode()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if err := ipfs.PinNode(t.node, node, false); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := t.cafeOutbox.Add(addressId.Hash().B58String(), repo.CafeStoreRequest); err != nil {
-		return nil, err
+		return err
 	}
 	if inboxesId != nil {
 		if err := t.cafeOutbox.Add(inboxesId.Hash().B58String(), repo.CafeStoreRequest); err != nil {
-			return nil, err
+			return err
 		}
 	}
 	if usernameId != nil {
 		if err := t.cafeOutbox.Add(usernameId.Hash().B58String(), repo.CafeStoreRequest); err != nil {
-			return nil, err
+			return err
 		}
 	}
 	if avatarId != nil {
 		if err := t.cafeOutbox.Add(avatarId.Hash().B58String(), repo.CafeStoreRequest); err != nil {
-			return nil, err
+			return err
 		}
 	}
 	if err := t.cafeOutbox.Add(node.Cid().Hash().B58String(), repo.CafeStoreRequest); err != nil {
-		return nil, err
+		return err
 	}
 	go t.cafeOutbox.Flush()
 
-	value := node.Cid().Hash().B58String()
-	return ipfs.Publish(t.node, value)
+	return t.cafeService.PublishContact(node.Cid().Hash().B58String())
 }

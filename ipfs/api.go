@@ -33,6 +33,7 @@ const pinTimeout = time.Minute
 const catTimeout = time.Minute
 const ipnsTimeout = time.Second * 30
 const connectTimeout = time.Second * 10
+const publishTimeout = time.Second * 5
 
 // DataAtPath return bytes under an ipfs path
 func DataAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
@@ -269,8 +270,38 @@ func UnpinNode(node *core.IpfsNode, nd ipld.Node, recursive bool) error {
 	return node.Pinning.Flush()
 }
 
-// Publish publishes a content id to ipns
-func Publish(node *core.IpfsNode, id string) (iface.IpnsEntry, error) {
+// Publish publishes data to a topic
+func Publish(node *core.IpfsNode, topic string, data []byte) error {
+	ctx, cancel := context.WithTimeout(node.Context(), publishTimeout)
+	defer cancel()
+
+	return coreapi.NewCoreAPI(node).PubSub().Publish(ctx, topic, data)
+}
+
+// Subscribe subscribes to a topic
+func Subscribe(node *core.IpfsNode, topic string) (<-chan iface.PubSubMessage, error) {
+	api := coreapi.NewCoreAPI(node)
+	sub, err := api.PubSub().Subscribe(node.Context(), topic)
+	if err != nil {
+		return nil, err
+	}
+	defer sub.Close()
+
+	msgs := make(chan iface.PubSubMessage, 10)
+	for {
+		msg, err := sub.Next(node.Context())
+		if err == io.EOF || err == context.Canceled {
+			return nil, nil
+		} else if err != nil {
+			return nil, err
+		}
+
+		msgs <- msg
+	}
+}
+
+// PublishIPNS publishes a content id to ipns
+func PublishIPNS(node *core.IpfsNode, id string) (iface.IpnsEntry, error) {
 	opts := []options.NamePublishOption{
 		options.Name.AllowOffline(true),
 		options.Name.ValidTime(time.Hour * 24),
@@ -288,8 +319,8 @@ func Publish(node *core.IpfsNode, id string) (iface.IpnsEntry, error) {
 	return coreapi.NewCoreAPI(node).Name().Publish(ctx, pth, opts...)
 }
 
-// Resolve resolves an ipns path to an ipfs path
-func Resolve(node *core.IpfsNode, name peer.ID) (iface.Path, error) {
+// ResolveIPNS resolves an ipns path to an ipfs path
+func ResolveIPNS(node *core.IpfsNode, name peer.ID) (iface.Path, error) {
 	key := fmt.Sprintf("/ipns/%s", name.Pretty())
 
 	opts := []options.NameResolveOption{

@@ -107,6 +107,33 @@ func (h *CafeService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error
 	}
 }
 
+// Listen subscribes to the protocol tag for network-wide requests
+func (h *CafeService) Listen() error {
+	msgs, err := ipfs.Subscribe(h.service.Node(), string(cafeServiceProtocol))
+	if err != nil {
+		return err
+	}
+
+	for {
+		select {
+		case msg, ok := <-msgs:
+			if !ok {
+				return nil
+			}
+			fmt.Println(string(msg.Data()))
+			//switch msg.Type {
+			//case ...:
+			//	break
+			//}
+		}
+	}
+}
+
+// PublishContact publishes the local peer's contact info
+func (h *CafeService) PublishContact(hash string) error {
+	return ipfs.Publish(h.service.Node(), string(cafeServiceProtocol), []byte(hash))
+}
+
 // Register creates a session with a cafe
 func (h *CafeService) Register(host string) (*repo.CafeSession, error) {
 	host = strings.TrimRight(host, "/")

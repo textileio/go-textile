@@ -293,6 +293,11 @@ func (t *Textile) Start() error {
 			}
 
 			t.cafe.open = true
+			go func() {
+				if err := t.cafe.Listen(); err != nil {
+					log.Errorf("error listening for contacts %s", err)
+				}
+			}()
 			t.startCafeApi(t.config.Addresses.CafeAPI)
 		}
 
