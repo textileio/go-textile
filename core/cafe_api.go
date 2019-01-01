@@ -24,6 +24,14 @@ import (
 	"github.com/textileio/textile-go/pb"
 )
 
+type CafeInfo struct {
+	Peer     string `json:"peer"`
+	Address  string `json:"address"`
+	API      string `json:"api"`
+	Protocol string `json:"protocol"`
+	Node     string `json:"node"`
+}
+
 // cafeApiVersion is the cafe api version
 const cafeApiVersion = "v0"
 
@@ -61,18 +69,23 @@ func (t *Textile) stopCafeApi() error {
 	return cafeApiHost.stop()
 }
 
+// CafeInfo returns info about this cafe
+func (t *Textile) CafeInfo() CafeInfo {
+	return CafeInfo{
+		Peer:     t.node.Identity.Pretty(),
+		Address:  t.config.Account.Address,
+		API:      cafeApiVersion,
+		Protocol: string(t.cafeService.Protocol()),
+		Node:     Version,
+	}
+}
+
 // start starts the cafe api
 func (c *cafeApi) start() {
 	// setup router
 	router := gin.Default()
 	router.GET("/", func(g *gin.Context) {
-		g.JSON(http.StatusOK, gin.H{
-			"peer":     c.node.node.Identity.Pretty(),
-			"address":  c.node.config.Account.Address,
-			"api":      cafeApiVersion,
-			"protocol": string(c.node.cafeService.Protocol()),
-			"node":     Version,
-		})
+		g.JSON(http.StatusOK, c.node.CafeInfo())
 	})
 	router.GET("/health", func(g *gin.Context) {
 		g.Writer.WriteHeader(http.StatusNoContent)

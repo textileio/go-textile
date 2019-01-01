@@ -70,10 +70,11 @@ type Cafe struct {
 
 // TODO: add some more knobs: max num. clients, max client msg age, inbox size, etc.
 type CafeHost struct {
-	Open      bool   // when true, other peers can register with this node for cafe services
-	PublicIP  string // useful with a server that has a public IP address
-	HttpURL   string // useful for providing the cafe service over HTTPS via a load balancer
-	SizeLimit int64  // Maximum file size limit to accept for POST requests in bytes
+	Open            bool   // when true, other peers can register with this node for cafe services
+	PublicIP        string // useful with a server that has a public IP address
+	HttpURL         string // useful for providing the cafe service over HTTPS via a load balancer
+	NeighborGateway string // useful for providing a cafe discovery mechanism to peers
+	SizeLimit       int64  // Maximum file size limit to accept for POST requests in bytes
 }
 
 // CafeClient settings
@@ -131,10 +132,11 @@ func Init(version string) (*Config, error) {
 		},
 		Cafe: Cafe{
 			Host: CafeHost{
-				Open:      false,
-				PublicIP:  "",
-				HttpURL:   "",
-				SizeLimit: 0,
+				Open:            false,
+				PublicIP:        "",
+				HttpURL:         "",
+				NeighborGateway: "",
+				SizeLimit:       0,
 			},
 			Client: CafeClient{
 				Mobile: MobileCafeClient{
