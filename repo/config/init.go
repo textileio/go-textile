@@ -133,7 +133,7 @@ func Init(version string) (*Config, error) {
 			Host: CafeHost{
 				Open:      false,
 				PublicIP:  "",
-				HttpURL:   "http://127.0.0.1",
+				HttpURL:   "",
 				SizeLimit: 0,
 			},
 			Client: CafeClient{
