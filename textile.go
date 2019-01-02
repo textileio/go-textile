@@ -36,10 +36,10 @@ type addressOptions struct {
 }
 
 type cafeOptions struct {
-	Open            bool   `long:"cafe-open" description:"Opens the p2p Cafe Service for other peers."`
-	PublicIP        string `long:"cafe-public-ip" description:"Required with --cafe-open on a server with a public IP address."`
-	HttpURL         string `long:"cafe-http-url" description:"Useful when providing the cafe API over HTTPS via a load balancer, e.g., https://mycafe.com'"`
-	NeighborGateway string `long:"cafe-neighbor-gateway" description:"Useful for providing peers with a cafe discovery mechanism, e.g., https://mygate.us-west-1.yolo.com'"`
+	Open        bool   `long:"cafe-open" description:"Opens the p2p Cafe Service for other peers."`
+	PublicIP    string `long:"cafe-public-ip" description:"Required with --cafe-open on a server with a public IP address."`
+	URL         string `long:"cafe-url" description:"Useful when providing the cafe API over HTTPS via a load balancer, e.g., https://mycafe.com'"`
+	NeighborURL string `long:"cafe-neighbor-url" description:"Specifies the URL of a secondary cafe. Must return cafe info, e.g., via a Gateway: https://my-gateway.yolo.com/cafe, or a Cafe API: https://my-cafe.yolo.com'"`
 }
 
 type options struct{}
@@ -234,20 +234,20 @@ func (x *initCmd) Execute(args []string) error {
 	}
 
 	config := core.InitConfig{
-		Account:             accnt,
-		PinCode:             x.PinCode,
-		RepoPath:            repoPath,
-		SwarmPorts:          x.IPFS.SwarmPorts,
-		ApiAddr:             x.Addresses.ApiBindAddr,
-		CafeApiAddr:         x.Addresses.CafeApiBindAddr,
-		GatewayAddr:         x.Addresses.GatewayBindAddr,
-		IsMobile:            false,
-		IsServer:            x.IPFS.ServerMode,
-		LogToDisk:           !x.Logs.NoFiles,
-		CafeOpen:            x.CafeOptions.Open,
-		CafePublicIP:        x.CafeOptions.PublicIP,
-		CafeHttpURL:         x.CafeOptions.HttpURL,
-		CafeNeighborGateway: x.CafeOptions.NeighborGateway,
+		Account:         accnt,
+		PinCode:         x.PinCode,
+		RepoPath:        repoPath,
+		SwarmPorts:      x.IPFS.SwarmPorts,
+		ApiAddr:         x.Addresses.ApiBindAddr,
+		CafeApiAddr:     x.Addresses.CafeApiBindAddr,
+		GatewayAddr:     x.Addresses.GatewayBindAddr,
+		IsMobile:        false,
+		IsServer:        x.IPFS.ServerMode,
+		LogToDisk:       !x.Logs.NoFiles,
+		CafeOpen:        x.CafeOptions.Open,
+		CafePublicIP:    x.CafeOptions.PublicIP,
+		CafeURL:         x.CafeOptions.URL,
+		CafeNeighborURL: x.CafeOptions.NeighborURL,
 	}
 
 	if err := core.InitRepo(config); err != nil {

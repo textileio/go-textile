@@ -275,14 +275,14 @@ func (g *Gateway) cafesHandler(c *gin.Context) {
 		return
 	}
 
-	if conf.Cafe.Host.NeighborGateway == "" {
+	if conf.Cafe.Host.NeighborURL == "" {
 		c.JSON(http.StatusOK, gin.H{
 			"primary": g.Node.CafeInfo(),
 		})
 		return
 	}
 
-	secondary, err := getCafeInfo(conf.Cafe.Host.NeighborGateway)
+	secondary, err := getCafeInfo(conf.Cafe.Host.NeighborURL)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -390,7 +390,7 @@ func byteCountDecimal(b int64) string {
 
 // getCafeInfo returns info about a fellow cafe
 func getCafeInfo(addr string) (*core.CafeInfo, error) {
-	req, err := http.NewRequest("GET", addr+"/cafe", nil)
+	req, err := http.NewRequest("GET", addr, nil)
 	if err != nil {
 		return nil, err
 	}

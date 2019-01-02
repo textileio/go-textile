@@ -65,20 +65,20 @@ const (
 
 // InitConfig is used to setup a textile node
 type InitConfig struct {
-	Account             *keypair.Full
-	PinCode             string
-	RepoPath            string
-	SwarmPorts          string
-	ApiAddr             string
-	CafeApiAddr         string
-	GatewayAddr         string
-	IsMobile            bool
-	IsServer            bool
-	LogToDisk           bool
-	CafeOpen            bool
-	CafePublicIP        string
-	CafeHttpURL         string
-	CafeNeighborGateway string
+	Account         *keypair.Full
+	PinCode         string
+	RepoPath        string
+	SwarmPorts      string
+	ApiAddr         string
+	CafeApiAddr     string
+	GatewayAddr     string
+	IsMobile        bool
+	IsServer        bool
+	LogToDisk       bool
+	CafeOpen        bool
+	CafePublicIP    string
+	CafeURL         string
+	CafeNeighborURL string
 }
 
 // MigrateConfig is used to define options during a major migration
