@@ -34,7 +34,7 @@ import (
 var log = logging.Logger("tex-core")
 
 // Version is the core version identifier
-const Version = "1.0.0-rc19"
+const Version = "1.0.0-rc20"
 
 // kQueueFlushFreq how often to flush the message queues
 const kQueueFlushFreq = time.Second * 60
@@ -65,19 +65,20 @@ const (
 
 // InitConfig is used to setup a textile node
 type InitConfig struct {
-	Account      *keypair.Full
-	PinCode      string
-	RepoPath     string
-	SwarmPorts   string
-	ApiAddr      string
-	CafeApiAddr  string
-	GatewayAddr  string
-	IsMobile     bool
-	IsServer     bool
-	LogToDisk    bool
-	CafeOpen     bool
-	CafePublicIP string
-	CafeHttpURL  string
+	Account         *keypair.Full
+	PinCode         string
+	RepoPath        string
+	SwarmPorts      string
+	ApiAddr         string
+	CafeApiAddr     string
+	GatewayAddr     string
+	IsMobile        bool
+	IsServer        bool
+	LogToDisk       bool
+	CafeOpen        bool
+	CafePublicIP    string
+	CafeURL         string
+	CafeNeighborURL string
 }
 
 // MigrateConfig is used to define options during a major migration

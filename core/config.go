@@ -68,7 +68,8 @@ func applyTextileConfigOptions(init InitConfig) error {
 	// cafe settings
 	conf.Cafe.Host.Open = init.CafeOpen
 	conf.Cafe.Host.PublicIP = init.CafePublicIP
-	conf.Cafe.Host.HttpURL = init.CafeHttpURL
+	conf.Cafe.Host.URL = init.CafeURL
+	conf.Cafe.Host.NeighborURL = init.CafeNeighborURL
 
 	// write to disk
 	return config.Write(init.RepoPath, conf)

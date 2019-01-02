@@ -3,8 +3,10 @@ package gateway
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strings"
@@ -68,6 +70,9 @@ func (g *Gateway) Start(addr string) {
 	router.GET("/ipfs/:root/*path", g.gatewayHandler)
 	router.GET("/ipns/:root", g.profileHandler)
 	router.GET("/ipns/:root/*path", g.profileHandler)
+
+	router.GET("/cafe", g.cafeHandler)
+	router.GET("/cafes", g.cafesHandler)
 
 	router.NoRoute(func(c *gin.Context) {
 		render404(c)
@@ -252,6 +257,43 @@ func (g *Gateway) profileHandler(c *gin.Context) {
 	c.Render(200, render.Data{Data: data})
 }
 
+// cafeHandler returns this peer's cafe info
+func (g *Gateway) cafeHandler(c *gin.Context) {
+	conf := g.Node.Config()
+	if !conf.Cafe.Host.Open {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+	c.JSON(http.StatusOK, g.Node.CafeInfo())
+}
+
+// cafesHandler returns this peer's and it's zone neighbor's cafe info
+func (g *Gateway) cafesHandler(c *gin.Context) {
+	conf := g.Node.Config()
+	if !conf.Cafe.Host.Open {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+
+	if conf.Cafe.Host.NeighborURL == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"primary": g.Node.CafeInfo(),
+		})
+		return
+	}
+
+	secondary, err := getCafeInfo(conf.Cafe.Host.NeighborURL)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"primary":   g.Node.CafeInfo(),
+		"secondary": secondary,
+	})
+}
+
 type link struct {
 	Path iface.Path
 	Link *ipld.Link
@@ -344,4 +386,38 @@ func byteCountDecimal(b int64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "kMGTPE"[exp])
+}
+
+// getCafeInfo returns info about a fellow cafe
+func getCafeInfo(addr string) (*core.CafeInfo, error) {
+	req, err := http.NewRequest("GET", addr, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode >= 400 {
+		return nil, fmt.Errorf("%s returned bad status: %d", addr, res.StatusCode)
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if body == nil {
+		return nil, fmt.Errorf("no response from %s", addr)
+	}
+
+	var info core.CafeInfo
+	if err := json.Unmarshal(body, &info); err != nil {
+		return nil, err
+	}
+	return &info, nil
 }
