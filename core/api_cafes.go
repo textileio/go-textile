@@ -14,7 +14,7 @@ func (a *api) addCafes(g *gin.Context) {
 		return
 	}
 	if len(args) == 0 {
-		g.String(http.StatusBadRequest, "missing cafe id")
+		g.String(http.StatusBadRequest, "missing cafe host")
 		return
 	}
 	session, err := a.node.RegisterCafe(args[0])

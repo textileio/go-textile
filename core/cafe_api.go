@@ -24,12 +24,14 @@ import (
 	"github.com/textileio/textile-go/pb"
 )
 
+// CafeInfo details info about this cafe
 type CafeInfo struct {
 	Peer     string `json:"peer"`
 	Address  string `json:"address"`
 	API      string `json:"api"`
 	Protocol string `json:"protocol"`
 	Node     string `json:"node"`
+	URL      string `json:"url"`
 }
 
 // cafeApiVersion is the cafe api version
@@ -77,6 +79,7 @@ func (t *Textile) CafeInfo() CafeInfo {
 		API:      cafeApiVersion,
 		Protocol: string(t.cafeService.Protocol()),
 		Node:     Version,
+		URL:      t.config.Cafe.Host.URL,
 	}
 }
 

@@ -32,7 +32,7 @@ const (
 	Refresh Scope = "refresh"
 )
 
-func NewSession(sk libp2pc.PrivKey, pid peer.ID, proto protocol.ID, duration time.Duration, httpAddr string, swarmAddr []string) (*pb.CafeSession, error) {
+func NewSession(sk libp2pc.PrivKey, pid peer.ID, proto protocol.ID, duration time.Duration, swarmAddr []string) (*pb.CafeSession, error) {
 	issuer, err := peer.IDFromPrivateKey(sk)
 	if err != nil {
 		return nil, err
@@ -86,13 +86,13 @@ func NewSession(sk libp2pc.PrivKey, pid peer.ID, proto protocol.ID, duration tim
 		return nil, err
 	}
 	return &pb.CafeSession{
+		Cafe:       issuer.Pretty(),
 		Access:     access,
 		Exp:        pexp,
 		Refresh:    refresh,
 		Rexp:       prexp,
 		Subject:    pid.Pretty(),
 		Type:       "JWT",
-		HttpAddr:   httpAddr,
 		SwarmAddrs: swarmAddr,
 	}, nil
 }
