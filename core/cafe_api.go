@@ -24,16 +24,6 @@ import (
 	"github.com/textileio/textile-go/pb"
 )
 
-// CafeInfo details info about this cafe
-type CafeInfo struct {
-	Peer     string `json:"peer"`
-	Address  string `json:"address"`
-	API      string `json:"api"`
-	Protocol string `json:"protocol"`
-	Node     string `json:"node"`
-	URL      string `json:"url"`
-}
-
 // cafeApiVersion is the cafe api version
 const cafeApiVersion = "v0"
 
@@ -77,7 +67,7 @@ func (t *Textile) CafeInfo() CafeInfo {
 		Peer:     t.node.Identity.Pretty(),
 		Address:  t.config.Account.Address,
 		API:      cafeApiVersion,
-		Protocol: string(t.cafeService.Protocol()),
+		Protocol: string(t.cafe.Protocol()),
 		Node:     Version,
 		URL:      t.config.Cafe.Host.URL,
 	}
@@ -257,45 +247,43 @@ func (c *cafeApi) pin(g *gin.Context) {
 // service is an HTTP entry point for the cafe service
 func (c *cafeApi) service(g *gin.Context) {
 	if !c.node.Online() {
-		g.AbortWithStatusJSON(http.StatusInternalServerError, PinResponse{
-			Error: "node is offline",
-		})
+		g.String(http.StatusInternalServerError, "node is offline")
 		return
 	}
 
 	body, err := ioutil.ReadAll(g.Request.Body)
 	if err != nil {
-		g.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
+		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	// parse body as a service envelope
 	pmes := new(pb.Envelope)
 	if err := proto.Unmarshal(body, pmes); err != nil {
-		g.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
+		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	peerId := g.Request.Header.Get("X-Textile-Peer")
 	if peerId == "" {
-		g.AbortWithStatusJSON(http.StatusBadRequest, "missing peer ID")
+		g.String(http.StatusBadRequest, "missing peer ID")
 		return
 	}
 	mPeer, err := peer.IDB58Decode(peerId)
 	if err != nil {
-		g.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
+		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if err := c.node.cafeService.service.VerifyEnvelope(pmes, mPeer); err != nil {
-		g.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
+	if err := c.node.cafe.service.VerifyEnvelope(pmes, mPeer); err != nil {
+		g.String(http.StatusBadRequest, err.Error())
 	}
 
 	// handle the message as normal
 	log.Debugf("received %s from %s", pmes.Message.Type.String(), mPeer.Pretty())
-	rpmes, err := c.node.cafeService.Handle(mPeer, pmes)
+	rpmes, err := c.node.cafe.Handle(mPeer, pmes)
 	if err != nil {
-		g.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
+		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -309,7 +297,7 @@ func (c *cafeApi) service(g *gin.Context) {
 
 	res, err := proto.Marshal(rpmes)
 	if err != nil {
-		g.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
+		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -326,7 +314,7 @@ func (c *cafeApi) tokenValid(g *gin.Context) bool {
 	}
 	token := auth[1]
 
-	protocol := string(c.node.cafeService.Protocol())
+	protocol := string(c.node.cafe.Protocol())
 	if err := jwt.Validate(token, c.verifyKeyFunc, false, protocol, nil); err != nil {
 		switch err {
 		case jwt.ErrNoToken, jwt.ErrExpired:

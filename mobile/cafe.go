@@ -51,7 +51,7 @@ func (m *Mobile) CafeSession(peerId string) (string, error) {
 
 // RefreshCafeSession calls core RefreshCafeSession
 func (m *Mobile) RefreshCafeSession(peerId string) (string, error) {
-	if !m.node.Online() {
+	if !m.node.Started() {
 		return "", core.ErrOffline
 	}
 
@@ -73,7 +73,7 @@ func (m *Mobile) DeregisterCafe(peerId string) error {
 
 // CheckCafeMessages calls core CheckCafeMessages
 func (m *Mobile) CheckCafeMessages() error {
-	if !m.node.Online() {
+	if !m.node.Started() {
 		return core.ErrOffline
 	}
 

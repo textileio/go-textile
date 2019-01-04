@@ -35,7 +35,7 @@ var log = logging.Logger("tex-service")
 // service represents a libp2p service
 type Service struct {
 	Account *keypair.Full
-	Node    *core.IpfsNode
+	Node    func() *core.IpfsNode
 
 	handler Handler
 
@@ -65,18 +65,19 @@ type Handler interface {
 }
 
 // NewService returns a service for the given config
-func NewService(account *keypair.Full, handler Handler, node *core.IpfsNode) *Service {
-	service := &Service{
+func NewService(account *keypair.Full, handler Handler, node func() *core.IpfsNode) *Service {
+	return &Service{
 		Account: account,
 		Node:    node,
 		handler: handler,
 		strmap:  make(map[peer.ID]*messageSender),
 	}
-	node.PeerHost.SetStreamHandler(handler.Protocol(), service.handleNewStream)
+}
 
-	log.Debugf("registered service: %s", handler.Protocol())
-
-	return service
+// SetHandler sets the peer host stream handler
+func (srv *Service) SetHandler() {
+	srv.Node().PeerHost.SetStreamHandler(srv.handler.Protocol(), srv.handleNewStream)
+	log.Debugf("registered service: %s", srv.handler.Protocol())
 }
 
 // Ping pings another peer and returns status
@@ -137,7 +138,7 @@ func (srv *Service) SendHTTPRequest(addr string, pmes *pb.Envelope) (*pb.Envelop
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("X-Textile-Peer", srv.Node.Identity.Pretty())
+	req.Header.Set("X-Textile-Peer", srv.Node().Identity.Pretty())
 
 	client := &http.Client{}
 	res, err := client.Do(req)
@@ -169,6 +170,9 @@ func (srv *Service) SendHTTPRequest(addr string, pmes *pb.Envelope) (*pb.Envelop
 	}
 
 	log.Debugf("received %s response from %s", rpmes.Message.Type.String(), addr)
+	if err := srv.handleError(rpmes); err != nil {
+		return nil, err
+	}
 
 	return rpmes, nil
 }
@@ -208,7 +212,7 @@ func (srv *Service) SendHTTPMessage(addr string, pmes *pb.Envelope) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("X-Textile-Peer", srv.Node.Identity.Pretty())
+	req.Header.Set("X-Textile-Peer", srv.Node().Identity.Pretty())
 
 	client := &http.Client{}
 	res, err := client.Do(req)
@@ -252,13 +256,13 @@ func (srv *Service) NewEnvelope(mtype pb.Message_Type, msg proto.Message, id *in
 		return nil, err
 	}
 
-	if srv.Node.PrivateKey == nil {
-		if err := srv.Node.LoadPrivateKey(); err != nil {
+	if srv.Node().PrivateKey == nil {
+		if err := srv.Node().LoadPrivateKey(); err != nil {
 			return nil, err
 		}
 	}
 
-	sig, err := srv.Node.PrivateKey.Sign(ser)
+	sig, err := srv.Node().PrivateKey.Sign(ser)
 	if err != nil {
 		return nil, err
 	}
@@ -357,7 +361,7 @@ func (srv *Service) handleNewStream(s inet.Stream) {
 }
 
 func (srv *Service) handleNewMessage(s inet.Stream) {
-	ctx := srv.Node.Context()
+	ctx := srv.Node().Context()
 	cr := ctxio.NewReader(ctx, s) // ok to use. we defer close stream in this func
 	cw := ctxio.NewWriter(ctx, s) // ok to use. we defer close stream in this func
 	r := ggio.NewDelimitedReader(cr, inet.MessageSizeMax)
@@ -367,7 +371,7 @@ func (srv *Service) handleNewMessage(s inet.Stream) {
 	for {
 		select {
 		// end loop on context close
-		case <-srv.Node.Context().Done():
+		case <-srv.Node().Context().Done():
 			return
 		default:
 		}

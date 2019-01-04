@@ -40,7 +40,7 @@ func (t *Textile) SetUsername(username string) error {
 		return err
 	}
 
-	for _, thrd := range t.threads {
+	for _, thrd := range t.loadedThreads {
 		if _, err := thrd.annouce(); err != nil {
 			return err
 		}

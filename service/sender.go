@@ -95,7 +95,7 @@ func (ms *messageSender) prep(ctx context.Context) error {
 		return nil
 	}
 
-	nstr, err := ms.srv.Node.PeerHost.NewStream(ctx, ms.p, ms.pt)
+	nstr, err := ms.srv.Node().PeerHost.NewStream(ctx, ms.p, ms.pt)
 	if err != nil {
 		return err
 	}

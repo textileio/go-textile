@@ -7,10 +7,20 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
+// CafeInfo details info about this cafe
+type CafeInfo struct {
+	Peer     string `json:"peer"`
+	Address  string `json:"address"`
+	API      string `json:"api"`
+	Protocol string `json:"protocol"`
+	Node     string `json:"node"`
+	URL      string `json:"url"`
+}
+
 // RegisterCafe registers this account with another peer (the "cafe"),
 // which provides a session token for the service
 func (t *Textile) RegisterCafe(host string) (*repo.CafeSession, error) {
-	session, err := t.cafeService.Register(host)
+	session, err := t.cafe.Register(host)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +38,7 @@ func (t *Textile) RegisterCafe(host string) (*repo.CafeSession, error) {
 		}
 	}
 
-	for _, thrd := range t.threads {
+	for _, thrd := range t.loadedThreads {
 		if _, err := thrd.annouce(); err != nil {
 			return nil, err
 		}
@@ -57,7 +67,7 @@ func (t *Textile) RefreshCafeSession(peerId string) (*repo.CafeSession, error) {
 	if session == nil {
 		return nil, errors.New("session not found")
 	}
-	return t.cafeService.refresh(session)
+	return t.cafe.refresh(session)
 }
 
 // DeregisterCafe removes the session associated with the given cafe
@@ -84,7 +94,7 @@ func (t *Textile) DeregisterCafe(peerId string) error {
 		return err
 	}
 
-	for _, thrd := range t.threads {
+	for _, thrd := range t.loadedThreads {
 		if _, err := thrd.annouce(); err != nil {
 			return err
 		}

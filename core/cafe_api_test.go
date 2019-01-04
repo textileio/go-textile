@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"testing"
-	"time"
 
 	. "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
@@ -66,10 +65,8 @@ func TestCafeApi_Setup(t *testing.T) {
 	}
 	node2.Start()
 
-	// wait for both
-	<-node1.OnlineCh()
+	// wait for cafe to be online
 	<-node2.OnlineCh()
-	time.Sleep(time.Second * 3)
 
 	// register cafe
 	if _, err := node1.RegisterCafe("http://127.0.0.1:5000"); err != nil {
