@@ -6,12 +6,12 @@ import (
 )
 
 // RegisterCafe calls core RegisterCafe
-func (m *Mobile) RegisterCafe(peerId string) error {
-	if !m.node.Online() {
-		return core.ErrOffline
+func (m *Mobile) RegisterCafe(host string) error {
+	if !m.node.Started() {
+		return core.ErrStopped
 	}
 
-	if _, err := m.node.RegisterCafe(peerId); err != nil {
+	if _, err := m.node.RegisterCafe(host); err != nil {
 		return err
 	}
 	return nil

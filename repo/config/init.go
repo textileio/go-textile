@@ -72,7 +72,7 @@ type Cafe struct {
 type CafeHost struct {
 	Open        bool   // When true, other peers can register with this node for cafe services.
 	PublicIP    string // Useful with a server that has a public IP address.
-	URL         string // Useful for providing the cafe service over HTTPS via a load balancer.
+	URL         string // Specifies the URL of this cafe.
 	NeighborURL string // Specifies the URL of a secondary cafe. Must return cafe info.
 	SizeLimit   int64  // Maximum file size limit to accept for POST requests in bytes.
 }
@@ -134,7 +134,7 @@ func Init(version string) (*Config, error) {
 			Host: CafeHost{
 				Open:        false,
 				PublicIP:    "",
-				URL:         "",
+				URL:         "http://127.0.0.1:40601",
 				NeighborURL: "",
 				SizeLimit:   0,
 			},

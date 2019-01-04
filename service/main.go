@@ -44,7 +44,7 @@ type Service struct {
 }
 
 // defaultTimeout is the context timeout for sending / requesting messages
-const defaultTimeout = time.Second * 10
+const defaultTimeout = time.Second * 30
 
 // DirectTimeout is the context timeout used when we want to first try a direct p2p send but fail fast
 const DirectTimeout = time.Second * 1

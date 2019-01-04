@@ -4,24 +4,18 @@ import (
 	"errors"
 	"strings"
 
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-
 	"github.com/textileio/textile-go/repo"
 )
 
 // RegisterCafe registers this account with another peer (the "cafe"),
 // which provides a session token for the service
-func (t *Textile) RegisterCafe(peerId string) (*repo.CafeSession, error) {
-	pid, err := peer.IDB58Decode(peerId)
+func (t *Textile) RegisterCafe(host string) (*repo.CafeSession, error) {
+	session, err := t.cafeService.Register(host)
 	if err != nil {
-		return nil, err
-	}
-	if err := t.cafeService.Register(pid); err != nil {
 		return nil, err
 	}
 
 	// add to bootstrap
-	session := t.datastore.CafeSessions().Get(pid.Pretty())
 	if session != nil {
 		var peers []string
 		for _, s := range session.SwarmAddrs {
