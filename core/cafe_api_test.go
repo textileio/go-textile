@@ -72,12 +72,7 @@ func TestCafeApi_Setup(t *testing.T) {
 	time.Sleep(time.Second * 3)
 
 	// register cafe
-	peerId2, err := node2.PeerId()
-	if err != nil {
-		t.Errorf(err.Error())
-		return
-	}
-	if _, err := node1.RegisterCafe(peerId2.Pretty()); err != nil {
+	if _, err := node1.RegisterCafe("http://127.0.0.1:5000"); err != nil {
 		t.Errorf("register node1 w/ node2 failed: %s", err)
 		return
 	}

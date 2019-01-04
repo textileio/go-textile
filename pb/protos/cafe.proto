@@ -19,13 +19,13 @@ message CafeRegistration {
 }
 
 message CafeSession {
-    string access                  = 1;
-    google.protobuf.Timestamp exp  = 2;
-    string refresh                 = 3;
-    google.protobuf.Timestamp rexp = 4;
-    string subject                 = 5;
-    string type                    = 6;
-    string httpAddr                = 7;
+    string cafe                    = 1;
+    string access                  = 2;
+    google.protobuf.Timestamp exp  = 3;
+    string refresh                 = 4;
+    google.protobuf.Timestamp rexp = 5;
+    string subject                 = 6;
+    string type                    = 7;
     repeated string swarmAddrs     = 8;
 }
 

@@ -34,7 +34,7 @@ import (
 var log = logging.Logger("tex-core")
 
 // Version is the core version identifier
-const Version = "1.0.0-rc20"
+const Version = "1.0.0-rc21"
 
 // kQueueFlushFreq how often to flush the message queues
 const kQueueFlushFreq = time.Second * 60
@@ -322,7 +322,7 @@ func (t *Textile) Start() error {
 		)
 
 		t.cafeService = NewCafeService(t.account, t.node, t.datastore, t.cafeInbox)
-		t.cafeService.setAddrs(t.config.Addresses.CafeAPI, t.config.Cafe.Host, *swarmPorts)
+		t.cafeService.setAddrs(t.config.Cafe.Host, *swarmPorts)
 		if t.config.Cafe.Host.Open {
 			t.cafeService.open = true
 			t.startCafeApi(t.config.Addresses.CafeAPI)
