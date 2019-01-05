@@ -26,9 +26,16 @@ func TestCafeRequestDB_Add(t *testing.T) {
 		Id:       "abcde",
 		PeerId:   "peer",
 		TargetId: "zxy",
-		CafeId:   "boom",
-		Type:     repo.CafeStoreRequest,
-		Date:     time.Now(),
+		Cafe: repo.Cafe{
+			Peer:     "peer",
+			Address:  "address",
+			API:      "v0",
+			Protocol: "/textile/cafe/1.0.0",
+			Node:     "v1.0.0",
+			URL:      "https://mycafe.com",
+		},
+		Type: repo.CafeStoreRequest,
+		Date: time.Now(),
 	})
 	if err != nil {
 		t.Error(err)
@@ -47,11 +54,19 @@ func TestCafeRequestDB_Add(t *testing.T) {
 
 func TestCafeRequestDB_List(t *testing.T) {
 	setupCafeRequestDB()
+	cafe := repo.Cafe{
+		Peer:     "peer",
+		Address:  "address",
+		API:      "v0",
+		Protocol: "/textile/cafe/1.0.0",
+		Node:     "v1.0.0",
+		URL:      "https://mycafe.com",
+	}
 	err := cafeRequestStore.Add(&repo.CafeRequest{
 		Id:       "abcde",
 		PeerId:   "peer",
 		TargetId: "zxy",
-		CafeId:   "boom",
+		Cafe:     cafe,
 		Type:     repo.CafeStoreThreadRequest,
 		Date:     time.Now(),
 	})
@@ -62,7 +77,7 @@ func TestCafeRequestDB_List(t *testing.T) {
 		Id:       "abcdef",
 		PeerId:   "peer",
 		TargetId: "zxy",
-		CafeId:   "boom",
+		Cafe:     cafe,
 		Type:     repo.CafeStoreRequest,
 		Date:     time.Now().Add(time.Minute),
 	})
@@ -105,9 +120,16 @@ func TestCafeRequestDB_DeleteByCafe(t *testing.T) {
 		Id:       "xyz",
 		PeerId:   "peer",
 		TargetId: "zxy",
-		CafeId:   "boom",
-		Type:     repo.CafeStoreRequest,
-		Date:     time.Now(),
+		Cafe: repo.Cafe{
+			Peer:     "peer",
+			Address:  "address",
+			API:      "v0",
+			Protocol: "/textile/cafe/1.0.0",
+			Node:     "v1.0.0",
+			URL:      "https://mycafe.com",
+		},
+		Type: repo.CafeStoreRequest,
+		Date: time.Now(),
 	})
 	if err != nil {
 		t.Error(err)

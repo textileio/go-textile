@@ -167,7 +167,7 @@ type Contact struct {
 	Id       string    `json:"id"`
 	Address  string    `json:"address"`
 	Username string    `json:"username"`
-	Inboxes  []string  `json:"inboxes"`
+	Inboxes  []Cafe    `json:"inboxes"`
 	Added    time.Time `json:"added"`
 }
 
@@ -220,13 +220,22 @@ func (n NotificationType) Description() string {
 	}
 }
 
+type Cafe struct {
+	Peer     string   `json:"peer"`
+	Address  string   `json:"address"`
+	API      string   `json:"api"`
+	Protocol string   `json:"protocol"`
+	Node     string   `json:"node"`
+	URL      string   `json:"url"`
+	Swarm    []string `json:"swarm"`
+}
+
 type CafeSession struct {
-	CafeId     string    `json:"cafe_id"`
-	Access     string    `json:"access"`
-	Refresh    string    `json:"refresh"`
-	Expiry     time.Time `json:"expiry"`
-	HttpAddr   string    `json:"http_addr"`
-	SwarmAddrs []string  `json:"swarm_addrs"`
+	Id      string    `json:"id"`
+	Access  string    `json:"access"`
+	Refresh string    `json:"refresh"`
+	Expiry  time.Time `json:"expiry"`
+	Cafe    Cafe      `json:"cafe"`
 }
 
 type CafeRequestType int
@@ -254,7 +263,7 @@ type CafeRequest struct {
 	Id       string          `json:"id"`
 	PeerId   string          `json:"peer_id"`
 	TargetId string          `json:"target_id"`
-	CafeId   string          `json:"cafe_id"`
+	Cafe     Cafe            `json:"cafe"`
 	Type     CafeRequestType `json:"type"`
 	Date     time.Time       `json:"date"`
 }

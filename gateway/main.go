@@ -25,6 +25,7 @@ import (
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/gateway/static/css"
 	"github.com/textileio/textile-go/gateway/templates"
+	"github.com/textileio/textile-go/repo"
 )
 
 var log = logging.Logger("tex-gateway")
@@ -389,7 +390,7 @@ func byteCountDecimal(b int64) string {
 }
 
 // getCafeInfo returns info about a fellow cafe
-func getCafeInfo(addr string) (*core.CafeInfo, error) {
+func getCafeInfo(addr string) (*repo.Cafe, error) {
 	req, err := http.NewRequest("GET", addr, nil)
 	if err != nil {
 		return nil, err
@@ -415,7 +416,7 @@ func getCafeInfo(addr string) (*core.CafeInfo, error) {
 		return nil, fmt.Errorf("no response from %s", addr)
 	}
 
-	var info core.CafeInfo
+	var info repo.Cafe
 	if err := json.Unmarshal(body, &info); err != nil {
 		return nil, err
 	}

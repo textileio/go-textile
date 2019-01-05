@@ -7,16 +7,6 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
-// CafeInfo details info about this cafe
-type CafeInfo struct {
-	Peer     string `json:"peer"`
-	Address  string `json:"address"`
-	API      string `json:"api"`
-	Protocol string `json:"protocol"`
-	Node     string `json:"node"`
-	URL      string `json:"url"`
-}
-
 // RegisterCafe registers this account with another peer (the "cafe"),
 // which provides a session token for the service
 func (t *Textile) RegisterCafe(host string) (*repo.CafeSession, error) {
@@ -28,9 +18,9 @@ func (t *Textile) RegisterCafe(host string) (*repo.CafeSession, error) {
 	// add to bootstrap
 	if session != nil {
 		var peers []string
-		for _, s := range session.SwarmAddrs {
+		for _, s := range session.Cafe.Swarm {
 			if !strings.Contains(s, "/ws/") {
-				peers = append(peers, s+"/ipfs/"+session.CafeId)
+				peers = append(peers, s+"/ipfs/"+session.Id)
 			}
 		}
 		if err := updateBootstrapConfig(t.repoPath, peers, []string{}); err != nil {
@@ -79,15 +69,15 @@ func (t *Textile) DeregisterCafe(peerId string) error {
 
 	// remove from bootstrap
 	var peers []string
-	for _, s := range session.SwarmAddrs {
-		peers = append(peers, s+"/ipfs/"+session.CafeId)
+	for _, s := range session.Cafe.Swarm {
+		peers = append(peers, s+"/ipfs/"+session.Id)
 	}
 	if err := updateBootstrapConfig(t.repoPath, []string{}, peers); err != nil {
 		return err
 	}
 
 	// clean up
-	if err := t.datastore.CafeRequests().DeleteByCafe(session.CafeId); err != nil {
+	if err := t.datastore.CafeRequests().DeleteByCafe(session.Id); err != nil {
 		return err
 	}
 	if err := t.datastore.CafeSessions().Delete(peerId); err != nil {

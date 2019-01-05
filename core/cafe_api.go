@@ -22,6 +22,7 @@ import (
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/jwt"
 	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/textile-go/repo"
 )
 
 // cafeApiVersion is the cafe api version
@@ -62,15 +63,8 @@ func (t *Textile) stopCafeApi() error {
 }
 
 // CafeInfo returns info about this cafe
-func (t *Textile) CafeInfo() CafeInfo {
-	return CafeInfo{
-		Peer:     t.node.Identity.Pretty(),
-		Address:  t.config.Account.Address,
-		API:      cafeApiVersion,
-		Protocol: string(t.cafe.Protocol()),
-		Node:     Version,
-		URL:      t.config.Cafe.Host.URL,
-	}
+func (t *Textile) CafeInfo() *repo.Cafe {
+	return t.cafe.info
 }
 
 // start starts the cafe api

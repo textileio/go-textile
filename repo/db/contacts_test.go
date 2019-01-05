@@ -43,11 +43,19 @@ func TestContactDB_Add(t *testing.T) {
 }
 
 func TestContactDB_AddOrUpdate(t *testing.T) {
+	cafe := repo.Cafe{
+		Peer:     "peer",
+		Address:  "address",
+		API:      "v0",
+		Protocol: "/textile/cafe/1.0.0",
+		Node:     "v1.0.0",
+		URL:      "https://mycafe.com",
+	}
 	err := contactStore.AddOrUpdate(&repo.Contact{
 		Id:       "abcde",
 		Address:  "address",
 		Username: "joe",
-		Inboxes:  []string{"Qm123"},
+		Inboxes:  []repo.Cafe{cafe},
 		Added:    time.Now(),
 	})
 	if err != nil {
@@ -74,11 +82,19 @@ func TestContactDB_Get(t *testing.T) {
 
 func TestContactDB_List(t *testing.T) {
 	setupContactDB()
+	cafe := repo.Cafe{
+		Peer:     "peer",
+		Address:  "address",
+		API:      "v0",
+		Protocol: "/textile/cafe/1.0.0",
+		Node:     "v1.0.0",
+		URL:      "https://mycafe.com",
+	}
 	err := contactStore.Add(&repo.Contact{
 		Id:       "abcde",
 		Address:  "address1",
 		Username: "joe",
-		Inboxes:  []string{"Qm123"},
+		Inboxes:  []repo.Cafe{cafe},
 		Added:    time.Now(),
 	})
 	if err != nil {
@@ -88,7 +104,7 @@ func TestContactDB_List(t *testing.T) {
 		Id:       "fghij",
 		Address:  "address2",
 		Username: "joe",
-		Inboxes:  []string{"Qm123"},
+		Inboxes:  []repo.Cafe{cafe, cafe},
 		Added:    time.Now(),
 	})
 	if err != nil {

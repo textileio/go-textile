@@ -3,6 +3,16 @@ option go_package = "pb";
 
 import "google/protobuf/timestamp.proto";
 
+message Cafe {
+    string peer           = 1;
+    string address        = 2;
+    string api            = 3;
+    string protocol       = 4;
+    string node           = 5;
+    string url            = 6;
+    repeated string swarm = 7;
+}
+
 message CafeChallenge {
     string address = 1;
 }
@@ -19,14 +29,14 @@ message CafeRegistration {
 }
 
 message CafeSession {
-    string cafe                    = 1;
+    string id                      = 1;
     string access                  = 2;
     google.protobuf.Timestamp exp  = 3;
     string refresh                 = 4;
     google.protobuf.Timestamp rexp = 5;
     string subject                 = 6;
     string type                    = 7;
-    repeated string swarmAddrs     = 8;
+    Cafe cafe                      = 8;
 }
 
 message CafeRefreshSession {

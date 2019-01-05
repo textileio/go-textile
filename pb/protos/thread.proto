@@ -3,6 +3,7 @@ option go_package = "pb";
 
 import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
+import "cafe.proto";
 
 // for wire transport
 message ThreadEnvelope {
@@ -54,14 +55,14 @@ message ThreadFlag {
 }
 
 message ThreadJoin {
-    string inviter          = 1;
-    string username         = 2;
-    repeated string inboxes = 3;
+    string inviter        = 1;
+    string username       = 2;
+    repeated Cafe inboxes = 3;
 }
 
 message ThreadAnnounce {
-    string username         = 1;
-    repeated string inboxes = 2;
+    string username       = 1;
+    repeated Cafe inboxes = 2;
 }
 
 message ThreadMessage {

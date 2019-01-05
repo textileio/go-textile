@@ -134,7 +134,7 @@ func Init(version string) (*Config, error) {
 			Host: CafeHost{
 				Open:        false,
 				PublicIP:    "",
-				URL:         "http://127.0.0.1:40601",
+				URL:         "",
 				NeighborURL: "",
 				SizeLimit:   0,
 			},

@@ -13,6 +13,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/textile-go/repo"
 )
 
 var ErrClaimsInvalid = errors.New("claims invalid")
@@ -32,7 +33,7 @@ const (
 	Refresh Scope = "refresh"
 )
 
-func NewSession(sk libp2pc.PrivKey, pid peer.ID, proto protocol.ID, duration time.Duration, swarmAddr []string) (*pb.CafeSession, error) {
+func NewSession(sk libp2pc.PrivKey, pid peer.ID, proto protocol.ID, duration time.Duration, cafe repo.Cafe) (*pb.CafeSession, error) {
 	issuer, err := peer.IDFromPrivateKey(sk)
 	if err != nil {
 		return nil, err
@@ -86,14 +87,22 @@ func NewSession(sk libp2pc.PrivKey, pid peer.ID, proto protocol.ID, duration tim
 		return nil, err
 	}
 	return &pb.CafeSession{
-		Cafe:       issuer.Pretty(),
-		Access:     access,
-		Exp:        pexp,
-		Refresh:    refresh,
-		Rexp:       prexp,
-		Subject:    pid.Pretty(),
-		Type:       "JWT",
-		SwarmAddrs: swarmAddr,
+		Id:      issuer.Pretty(),
+		Access:  access,
+		Exp:     pexp,
+		Refresh: refresh,
+		Rexp:    prexp,
+		Subject: pid.Pretty(),
+		Type:    "JWT",
+		Cafe: &pb.Cafe{
+			Peer:     cafe.Peer,
+			Address:  cafe.Address,
+			Api:      cafe.API,
+			Protocol: cafe.Protocol,
+			Node:     cafe.Node,
+			Url:      cafe.URL,
+			Swarm:    cafe.Swarm,
+		},
 	}, nil
 }
 

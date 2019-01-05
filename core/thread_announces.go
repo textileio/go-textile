@@ -60,7 +60,11 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 	if err != nil {
 		return nil, err
 	}
-	if err := t.addOrUpdatePeer(pid, block.Header.Address, msg.Username, msg.Inboxes); err != nil {
+	inboxes := make([]repo.Cafe, 0)
+	for _, i := range msg.Inboxes {
+		inboxes = append(inboxes, protoCafeToModel(*i))
+	}
+	if err := t.addOrUpdatePeer(pid, block.Header.Address, msg.Username, inboxes); err != nil {
 		return nil, err
 	}
 
@@ -78,7 +82,7 @@ func (t *Thread) buildAnnounce() (*pb.ThreadAnnounce, error) {
 		msg.Username = *username
 	}
 	for _, ses := range t.datastore.CafeSessions().List() {
-		msg.Inboxes = append(msg.Inboxes, ses.CafeId)
+		msg.Inboxes = append(msg.Inboxes, repoCafeToProto(ses.Cafe))
 	}
 	return msg, nil
 }

@@ -257,28 +257,13 @@ func (t *Textile) Start() error {
 		return err
 	}
 
-	swarmPorts, err := loadSwarmPorts(t.repoPath)
-	if err != nil {
-		return err
-	}
-	if swarmPorts == nil {
-		return errors.New("failed to load swarm ports")
-	}
-
 	t.online = make(chan struct{})
 
-	t.threadsOutbox = NewThreadsOutbox(t.threadsService, t.Ipfs, t.datastore, t.cafeOutbox)
 	t.threads = NewThreadsService(t.account, t.Ipfs, t.datastore, t.Thread, t.AddThread, t.sendNotification)
-
 	t.cafeInbox = NewCafeInbox(t.cafeService, t.threadsService, t.Ipfs, t.datastore)
 	t.cafeOutbox = NewCafeOutbox(t.cafeService, t.Ipfs, t.datastore)
-
+	t.threadsOutbox = NewThreadsOutbox(t.threadsService, t.Ipfs, t.datastore, t.cafeOutbox)
 	t.cafe = NewCafeService(t.account, t.Ipfs, t.datastore, t.cafeInbox)
-	t.cafe.setAddrs(t.config.Cafe.Host, *swarmPorts)
-	if t.config.Cafe.Host.Open {
-		t.cafe.open = true
-		t.startCafeApi(t.config.Addresses.CafeAPI)
-	}
 
 	// start the ipfs node
 	log.Debug("creating an ipfs node...")
@@ -295,6 +280,18 @@ func (t *Textile) Start() error {
 
 		t.threads.service.SetHandler()
 		t.cafe.service.SetHandler()
+
+		if t.config.Cafe.Host.Open {
+			swarmPorts, err := loadSwarmPorts(t.repoPath)
+			if err != nil {
+				log.Errorf("error loading swarm ports: %s", err)
+			} else {
+				t.cafe.setAddrs(t.config, *swarmPorts)
+			}
+
+			t.cafe.open = true
+			t.startCafeApi(t.config.Addresses.CafeAPI)
+		}
 
 		go t.runQueues()
 
