@@ -259,10 +259,10 @@ func (t *Textile) Start() error {
 
 	t.online = make(chan struct{})
 
-	t.threads = NewThreadsService(t.account, t.Ipfs, t.datastore, t.Thread, t.AddThread, t.sendNotification)
 	t.cafeInbox = NewCafeInbox(t.cafeService, t.threadsService, t.Ipfs, t.datastore)
 	t.cafeOutbox = NewCafeOutbox(t.cafeService, t.Ipfs, t.datastore)
 	t.threadsOutbox = NewThreadsOutbox(t.threadsService, t.Ipfs, t.datastore, t.cafeOutbox)
+	t.threads = NewThreadsService(t.account, t.Ipfs, t.datastore, t.Thread, t.AddThread, t.sendNotification)
 	t.cafe = NewCafeService(t.account, t.Ipfs, t.datastore, t.cafeInbox)
 
 	// start the ipfs node

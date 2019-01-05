@@ -94,7 +94,7 @@ func TestCafeApi_Pin(t *testing.T) {
 		return
 	}
 	defer block.Close()
-	res, err := pin(block, "application/octet-stream", session.Access, session.HttpAddr)
+	res, err := pin(block, "application/octet-stream", session.Access, session.Cafe.URL)
 	if err != nil {
 		t.Error(err)
 		return
@@ -125,7 +125,7 @@ func TestCafeApi_PinArchive(t *testing.T) {
 		return
 	}
 	defer archive.Close()
-	res, err := pin(archive, "application/gzip", session.Access, session.HttpAddr)
+	res, err := pin(archive, "application/gzip", session.Access, session.Cafe.URL)
 	if err != nil {
 		t.Error(err)
 		return
