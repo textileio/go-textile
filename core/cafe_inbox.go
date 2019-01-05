@@ -102,7 +102,7 @@ func (q *CafeInbox) Flush() {
 	defer q.mux.Unlock()
 	log.Debug("flushing cafe inbox")
 
-	if q.threadsService() == nil || q.service() == nil {
+	if q.threadsService() == nil || !q.threadsService().online || q.service() == nil {
 		return
 	}
 

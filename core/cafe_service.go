@@ -50,6 +50,7 @@ type CafeService struct {
 	datastore repo.Datastore
 	inbox     *CafeInbox
 	info      *repo.Cafe
+	online    bool
 	open      bool
 }
 

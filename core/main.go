@@ -279,7 +279,10 @@ func (t *Textile) Start() error {
 		}
 
 		t.threads.service.SetHandler()
+		t.threads.online = true
+
 		t.cafe.service.SetHandler()
+		t.cafe.online = true
 
 		if t.config.Cafe.Host.Open {
 			swarmPorts, err := loadSwarmPorts(t.repoPath)

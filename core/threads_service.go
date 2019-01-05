@@ -32,6 +32,7 @@ type ThreadsService struct {
 	getThread        func(id string) *Thread
 	addThread        func(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, error)
 	sendNotification func(note *repo.Notification) error
+	online           bool
 }
 
 // NewThreadsService returns a new threads service
