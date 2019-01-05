@@ -9,11 +9,12 @@ import (
 
 // ContactInfo display info about a contact
 type ContactInfo struct {
-	Id        string    `json:"id"`
-	Address   string    `json:"address"`
-	Username  string    `json:"username"`
-	ThreadIds []string  `json:"thread_ids"`
-	Added     time.Time `json:"added"`
+	Id        string      `json:"id"`
+	Address   string      `json:"address"`
+	Username  string      `json:"username"`
+	Inboxes   []repo.Cafe `json:"inboxes"`
+	Added     time.Time   `json:"added"`
+	ThreadIds []string    `json:"thread_ids"`
 }
 
 // AddContact adds a contact for the first time
@@ -43,8 +44,9 @@ func (t *Textile) Contact(id string) *ContactInfo {
 		Id:        model.Id,
 		Address:   model.Address,
 		Username:  toUsername(model),
-		ThreadIds: threads,
+		Inboxes:   model.Inboxes,
 		Added:     model.Added,
+		ThreadIds: threads,
 	}
 }
 
@@ -63,8 +65,9 @@ func (t *Textile) Contacts() ([]ContactInfo, error) {
 			Id:        model.Id,
 			Address:   model.Address,
 			Username:  toUsername(&model),
-			ThreadIds: threads,
+			Inboxes:   model.Inboxes,
 			Added:     model.Added,
+			ThreadIds: threads,
 		})
 	}
 
