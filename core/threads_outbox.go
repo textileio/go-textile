@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/service"
 )
 
 // threadsFlushGroupSize is the size of concurrently processed messages
@@ -129,21 +131,21 @@ func (q *ThreadsOutbox) batch(msgs []repo.ThreadMessage) error {
 // handle handles a single message
 func (q *ThreadsOutbox) handle(pid peer.ID, msg repo.ThreadMessage) error {
 	// first, attempt to send the message directly to the recipient
-	//ctx, cancel := context.WithTimeout(context.Background(), service.DirectTimeout)
-	//defer cancel()
-	//if err := q.service().SendMessage(ctx, pid, msg.Envelope); err != nil {
-	//	log.Debugf("send thread message direct to %s failed: %s", pid.Pretty(), err)
+	ctx, cancel := context.WithTimeout(context.Background(), service.DirectTimeout)
+	defer cancel()
+	if err := q.service().SendMessage(ctx, pid, msg.Envelope); err != nil {
+		log.Debugf("send thread message direct to %s failed: %s", pid.Pretty(), err)
 
-	// peer is offline, queue an outbound cafe request for the peer's inbox(es)
-	contact := q.datastore.Contacts().Get(pid.Pretty())
-	if contact != nil && len(contact.Inboxes) > 0 {
-		log.Debugf("sending thread message for %s to inbox(es)", pid.Pretty())
+		// peer is offline, queue an outbound cafe request for the peer's inbox(es)
+		contact := q.datastore.Contacts().Get(pid.Pretty())
+		if contact != nil && len(contact.Inboxes) > 0 {
+			log.Debugf("sending thread message for %s to inbox(es)", pid.Pretty())
 
-		// add an inbox request for message delivery
-		if err := q.cafeOutbox.InboxRequest(pid, msg.Envelope, contact.Inboxes); err != nil {
-			return err
+			// add an inbox request for message delivery
+			if err := q.cafeOutbox.InboxRequest(pid, msg.Envelope, contact.Inboxes); err != nil {
+				return err
+			}
 		}
 	}
-	//}
 	return nil
 }
