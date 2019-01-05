@@ -346,7 +346,7 @@ func buildNode(pinCode string, repoPath string, logLevels map[string]string) err
 }
 
 func startNode() error {
-	listener := node.GetThreadUpdateListener()
+	listener := node.ThreadUpdateListener()
 
 	if err := node.Start(); err != nil {
 		return err

@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"strconv"
 	"sync"
 	"time"
@@ -24,18 +25,25 @@ func (c *CafeRequestDB) Add(req *repo.CafeRequest) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into cafe_requests(id, peerId, targetId, cafeId, type, date) values(?,?,?,?,?,?)`
+	stm := `insert into cafe_requests(id, peerId, targetId, cafeId, cafe, type, date) values(?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
 		return err
 	}
 	defer stmt.Close()
+
+	cafe, err := json.Marshal(req.Cafe)
+	if err != nil {
+		return err
+	}
+
 	_, err = stmt.Exec(
 		req.Id,
 		req.PeerId,
 		req.TargetId,
-		req.CafeId,
+		req.Cafe.Peer,
+		cafe,
 		req.Type,
 		int(req.Date.UnixNano()),
 	)
@@ -83,15 +91,23 @@ func (c *CafeRequestDB) handleQuery(stm string) []repo.CafeRequest {
 	for rows.Next() {
 		var id, peerId, targetId, cafeId string
 		var typeInt, dateInt int
-		if err := rows.Scan(&id, &peerId, &targetId, &cafeId, &typeInt, &dateInt); err != nil {
+		var cafe []byte
+		if err := rows.Scan(&id, &peerId, &targetId, &cafeId, &cafe, &typeInt, &dateInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
+
+		var mod repo.Cafe
+		if err := json.Unmarshal(cafe, &mod); err != nil {
+			log.Errorf("error unmarshaling cafe: %s", err)
+			continue
+		}
+
 		ret = append(ret, repo.CafeRequest{
 			Id:       id,
 			PeerId:   peerId,
 			TargetId: targetId,
-			CafeId:   cafeId,
+			Cafe:     mod,
 			Type:     repo.CafeRequestType(typeInt),
 			Date:     time.Unix(0, int64(dateInt)),
 		})

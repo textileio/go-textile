@@ -99,7 +99,7 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, 
 func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	var thrd *Thread
 	var index int
-	for i, th := range t.threads {
+	for i, th := range t.loadedThreads {
 		if th.Id == id {
 			thrd = th
 			index = i
@@ -120,9 +120,9 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	copy(t.threads[index:], t.threads[index+1:])
-	t.threads[len(t.threads)-1] = nil
-	t.threads = t.threads[:len(t.threads)-1]
+	copy(t.loadedThreads[index:], t.loadedThreads[index+1:])
+	t.loadedThreads[len(t.loadedThreads)-1] = nil
+	t.loadedThreads = t.loadedThreads[:len(t.loadedThreads)-1]
 
 	t.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadRemoved})
 
@@ -135,7 +135,7 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 func (t *Textile) Threads() []Thread {
 	var threads []Thread
 loop:
-	for _, i := range t.threads {
+	for _, i := range t.loadedThreads {
 		if i == nil || i.Key == t.account.Address() {
 			continue
 		}
@@ -151,7 +151,7 @@ loop:
 
 // Thread get a thread by id from loaded threads
 func (t *Textile) Thread(id string) *Thread {
-	for _, thrd := range t.threads {
+	for _, thrd := range t.loadedThreads {
 		if thrd.Id == id {
 			return thrd
 		}
@@ -161,7 +161,7 @@ func (t *Textile) Thread(id string) *Thread {
 
 // ThreadByKey get a thread by key from loaded threads
 func (t *Textile) ThreadByKey(key string) *Thread {
-	for _, thrd := range t.threads {
+	for _, thrd := range t.loadedThreads {
 		if thrd.Key == key {
 			return thrd
 		}

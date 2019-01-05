@@ -53,7 +53,7 @@ func (q *CafeOutbox) Add(target string, rtype repo.CafeRequestType) error {
 	// for each session, add a req
 	for _, session := range sessions {
 		// all possible request types are for our own peer
-		if err := q.add(q.node().Identity, target, session.CafeId, rtype); err != nil {
+		if err := q.add(q.node().Identity, target, session.Cafe, rtype); err != nil {
 			return err
 		}
 	}
@@ -61,7 +61,7 @@ func (q *CafeOutbox) Add(target string, rtype repo.CafeRequestType) error {
 }
 
 // InboxRequest adds a request for a peer's inbox(es)
-func (q *CafeOutbox) InboxRequest(pid peer.ID, env *pb.Envelope, inboxes []string) error {
+func (q *CafeOutbox) InboxRequest(pid peer.ID, env *pb.Envelope, inboxes []repo.Cafe) error {
 	if len(inboxes) == 0 {
 		return nil
 	}
@@ -96,14 +96,14 @@ func (q *CafeOutbox) Flush() {
 }
 
 // add queues a single request
-func (q *CafeOutbox) add(pid peer.ID, target string, cafeId string, rtype repo.CafeRequestType) error {
+func (q *CafeOutbox) add(pid peer.ID, target string, cafe repo.Cafe, rtype repo.CafeRequestType) error {
 	log.Debugf("adding cafe %s request for %s to %s: %s",
-		rtype.Description(), ipfs.ShortenID(pid.Pretty()), ipfs.ShortenID(cafeId), target)
+		rtype.Description(), ipfs.ShortenID(pid.Pretty()), ipfs.ShortenID(cafe.Peer), target)
 	return q.datastore.CafeRequests().Add(&repo.CafeRequest{
 		Id:       ksuid.New().String(),
 		PeerId:   pid.Pretty(),
 		TargetId: target,
-		CafeId:   cafeId,
+		Cafe:     cafe,
 		Type:     rtype,
 		Date:     time.Now(),
 	})
@@ -119,7 +119,7 @@ func (q *CafeOutbox) batch(reqs []repo.CafeRequest) error {
 	// group reqs by cafe
 	groups := make(map[string][]repo.CafeRequest)
 	for _, req := range reqs {
-		groups[req.CafeId] = append(groups[req.CafeId], req)
+		groups[req.Cafe.Peer] = append(groups[req.Cafe.Peer], req)
 	}
 
 	// process each cafe group concurrently
@@ -223,13 +223,8 @@ func (q *CafeOutbox) handle(reqs []repo.CafeRequest, rtype repo.CafeRequestType,
 				herr = err
 				continue
 			}
-			cid, err := peer.IDB58Decode(req.CafeId)
-			if err != nil {
-				herr = err
-				continue
-			}
 
-			if err := q.service().DeliverMessage(req.TargetId, pid, cid); err != nil {
+			if err := q.service().DeliverMessage(req.TargetId, pid, req.Cafe); err != nil {
 				log.Errorf("cafe %s request to %s failed: %s", rtype.Description(), cafe.Pretty(), err)
 				herr = err
 				continue

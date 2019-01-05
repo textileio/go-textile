@@ -328,7 +328,7 @@ func (t *Thread) followParent(parent mh.Multihash) error {
 
 // addOrUpdatePeer collects thread peers, saving them as contacts and
 // saving their cafe inboxes for offline message delivery
-func (t *Thread) addOrUpdatePeer(pid peer.ID, address string, username string, inboxes []string) error {
+func (t *Thread) addOrUpdatePeer(pid peer.ID, address string, username string, inboxes []repo.Cafe) error {
 	if err := t.datastore.ThreadPeers().Add(&repo.ThreadPeer{
 		Id:       pid.Pretty(),
 		ThreadId: t.Id,
@@ -616,6 +616,22 @@ func (t *Thread) pushUpdate(index BlockInfo) {
 	})
 }
 
+// contactUsername returns the username for the peer id if known
+func (t *Thread) contactUsername(id string) string {
+	if id == t.node().Identity.Pretty() {
+		username, err := t.datastore.Profile().GetUsername()
+		if err == nil && username != nil && *username != "" {
+			return *username
+		}
+		return ipfs.ShortenID(id)
+	}
+	contact := t.datastore.Contacts().Get(id)
+	if contact == nil {
+		return ipfs.ShortenID(id)
+	}
+	return toUsername(contact)
+}
+
 // loadSchema loads a schema from a local file
 func loadSchema(node *core.IpfsNode, id string) (*schema.Node, error) {
 	data, err := ipfs.DataAtPath(node, id)
@@ -631,19 +647,28 @@ func loadSchema(node *core.IpfsNode, id string) (*schema.Node, error) {
 	return &sch, nil
 }
 
-// contactUsername returns the username for the peer id if known
-// This is a near-exact port of the Textile version of this method
-func (t *Thread) contactUsername(id string) string {
-	if id == t.node().Identity.Pretty() {
-		username, err := t.datastore.Profile().GetUsername()
-		if err == nil && username != nil && *username != "" {
-			return *username
-		}
-		return ipfs.ShortenID(id)
+// protoCafeToModel is a tmp method just converting proto cafe info to the repo version
+func protoCafeToModel(pro pb.Cafe) repo.Cafe {
+	return repo.Cafe{
+		Peer:     pro.Peer,
+		Address:  pro.Address,
+		API:      pro.Api,
+		Protocol: pro.Protocol,
+		Node:     pro.Node,
+		URL:      pro.Url,
+		Swarm:    pro.Swarm,
 	}
-	contact := t.datastore.Contacts().Get(id)
-	if contact == nil {
-		return ipfs.ShortenID(id)
+}
+
+// repoCafeToProto is a tmp method just converting repo cafe info to the proto version
+func repoCafeToProto(rep repo.Cafe) *pb.Cafe {
+	return &pb.Cafe{
+		Peer:     rep.Peer,
+		Address:  rep.Address,
+		Api:      rep.API,
+		Protocol: rep.Protocol,
+		Node:     rep.Node,
+		Url:      rep.URL,
+		Swarm:    rep.Swarm,
 	}
-	return toUsername(contact)
 }

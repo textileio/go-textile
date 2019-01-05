@@ -2,7 +2,7 @@ package db
 
 import (
 	"database/sql"
-	"strings"
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -24,20 +24,25 @@ func (c *CafeSessionDB) AddOrUpdate(session *repo.CafeSession) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert or replace into cafe_sessions(cafeId, access, refresh, expiry, httpAddr, swarmAddrs) values(?,?,?,?,?,?)`
+	stm := `insert or replace into cafe_sessions(cafeId, access, refresh, expiry, cafe) values(?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
 		return err
 	}
 	defer stmt.Close()
+
+	cafe, err := json.Marshal(session.Cafe)
+	if err != nil {
+		return err
+	}
+
 	_, err = stmt.Exec(
-		session.CafeId,
+		session.Id,
 		session.Access,
 		session.Refresh,
 		int(session.Expiry.Unix()),
-		session.HttpAddr,
-		strings.Join(session.SwarmAddrs, ","),
+		cafe,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -79,25 +84,26 @@ func (c *CafeSessionDB) handleQuery(stm string) []repo.CafeSession {
 		return nil
 	}
 	for rows.Next() {
-		var cafeId, access, refresh, httpAddr, swarmAddrs string
+		var cafeId, access, refresh string
 		var expiryInt int
-		if err := rows.Scan(&cafeId, &access, &refresh, &expiryInt, &httpAddr, &swarmAddrs); err != nil {
+		var cafe []byte
+		if err := rows.Scan(&cafeId, &access, &refresh, &expiryInt, &cafe); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		slist := make([]string, 0)
-		for _, p := range strings.Split(swarmAddrs, ",") {
-			if p != "" {
-				slist = append(slist, p)
-			}
+
+		var rcafe repo.Cafe
+		if err := json.Unmarshal(cafe, &rcafe); err != nil {
+			log.Errorf("error unmarshaling cafe: %s", err)
+			continue
 		}
+
 		ret = append(ret, repo.CafeSession{
-			CafeId:     cafeId,
-			Access:     access,
-			Refresh:    refresh,
-			Expiry:     time.Unix(int64(expiryInt), 0),
-			HttpAddr:   httpAddr,
-			SwarmAddrs: slist,
+			Id:      cafeId,
+			Access:  access,
+			Refresh: refresh,
+			Expiry:  time.Unix(int64(expiryInt), 0),
+			Cafe:    rcafe,
 		})
 	}
 	return ret

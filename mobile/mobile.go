@@ -141,7 +141,7 @@ func NewTextile(config *RunConfig, messenger Messenger) (*Mobile, error) {
 		RepoPath:  config.RepoPath,
 		node:      node,
 		messenger: messenger,
-		listener:  node.GetThreadUpdateListener(),
+		listener:  node.ThreadUpdateListener(),
 	}, nil
 }
 

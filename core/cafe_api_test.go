@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"testing"
-	"time"
 
 	. "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
@@ -66,10 +65,8 @@ func TestCafeApi_Setup(t *testing.T) {
 	}
 	node2.Start()
 
-	// wait for both
-	<-node1.OnlineCh()
+	// wait for cafe to be online
 	<-node2.OnlineCh()
-	time.Sleep(time.Second * 3)
 
 	// register cafe
 	if _, err := node1.RegisterCafe("http://127.0.0.1:5000"); err != nil {
@@ -97,7 +94,7 @@ func TestCafeApi_Pin(t *testing.T) {
 		return
 	}
 	defer block.Close()
-	res, err := pin(block, "application/octet-stream", session.Access, session.HttpAddr)
+	res, err := pin(block, "application/octet-stream", session.Access, session.Cafe.URL)
 	if err != nil {
 		t.Error(err)
 		return
@@ -128,7 +125,7 @@ func TestCafeApi_PinArchive(t *testing.T) {
 		return
 	}
 	defer archive.Close()
-	res, err := pin(archive, "application/gzip", session.Access, session.HttpAddr)
+	res, err := pin(archive, "application/gzip", session.Access, session.Cafe.URL)
 	if err != nil {
 		t.Error(err)
 		return

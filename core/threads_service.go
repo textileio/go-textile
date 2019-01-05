@@ -32,12 +32,13 @@ type ThreadsService struct {
 	getThread        func(id string) *Thread
 	addThread        func(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, error)
 	sendNotification func(note *repo.Notification) error
+	online           bool
 }
 
 // NewThreadsService returns a new threads service
 func NewThreadsService(
 	account *keypair.Full,
-	node *core.IpfsNode,
+	node func() *core.IpfsNode,
 	datastore repo.Datastore,
 	getThread func(id string) *Thread,
 	addThread func(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, error),
@@ -51,12 +52,6 @@ func NewThreadsService(
 	}
 	handler.service = service.NewService(account, handler, node)
 	return handler
-}
-
-// NewDummyThreadsService is used to create message envelopes
-// _before_ the node is able to go online
-func NewDummyThreadsService(account *keypair.Full, node *core.IpfsNode) *ThreadsService {
-	return &ThreadsService{service: &service.Service{Account: account, Node: node}}
 }
 
 // Protocol returns the handler protocol
@@ -175,7 +170,7 @@ func (h *ThreadsService) NewEnvelope(threadId string, hash mh.Multihash, ciphert
 
 // handleInvite receives an invite message
 func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope) error {
-	plaintext, err := crypto.Decrypt(h.service.Node.PrivateKey, tenv.Ciphertext)
+	plaintext, err := crypto.Decrypt(h.service.Node().PrivateKey, tenv.Ciphertext)
 	if err != nil {
 		// wasn't an invite, abort
 		return ErrInvalidThreadBlock
@@ -336,7 +331,7 @@ func (h *ThreadsService) handleComment(thrd *Thread, hash mh.Multihash, block *p
 		return nil
 	}
 	var desc string
-	if target.AuthorId == h.service.Node.Identity.Pretty() {
+	if target.AuthorId == h.service.Node().Identity.Pretty() {
 		desc = "your " + threadSubject(thrd.Schema.Name)
 	} else {
 		desc = "a " + threadSubject(thrd.Schema.Name)
@@ -365,7 +360,7 @@ func (h *ThreadsService) handleLike(thrd *Thread, hash mh.Multihash, block *pb.T
 		return nil
 	}
 	var desc string
-	if target.AuthorId == h.service.Node.Identity.Pretty() {
+	if target.AuthorId == h.service.Node().Identity.Pretty() {
 		desc = "your " + threadSubject(thrd.Schema.Name)
 	} else {
 		desc = "a " + threadSubject(thrd.Schema.Name)

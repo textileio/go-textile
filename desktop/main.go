@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/repo/fsrepo"
-	logger "gx/ipfs/QmcaSwFc5RBg8yCq54QURwEU4nwjfCpjbpmaAm4VbdGLKv/go-logging"
 
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
@@ -129,7 +128,7 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 	}()
 
 	// subscribe to thread updates
-	listener := node.GetThreadUpdateListener()
+	listener := node.ThreadUpdateListener()
 	go func() {
 		for {
 			select {

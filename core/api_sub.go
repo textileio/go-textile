@@ -23,7 +23,7 @@ func (a *api) getThreadsSub(g *gin.Context) {
 		threadId = a.node.config.Threads.Defaults.ID
 	} // If id wasn't supplied, it will be an empty string
 
-	listener := a.node.GetThreadUpdateListener()
+	listener := a.node.ThreadUpdateListener()
 	g.Stream(func(w io.Writer) bool {
 		select {
 		case update, ok := <-listener.Ch:

@@ -3,16 +3,15 @@ package core
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"strings"
-
 	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface"
 	uio "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/io"
+	"io/ioutil"
 
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/mill"
@@ -23,10 +22,10 @@ import (
 // Profile is an account-wide public profile
 // NOTE: any account peer can publish profile entries to the same IPNS key
 type Profile struct {
-	Address   string   `json:"address"`
-	Inboxes   []string `json:"inboxes,omitempty"`
-	Username  string   `json:"username,omitempty"`
-	AvatarUri string   `json:"avatar_uri,omitempty"`
+	Address   string      `json:"address"`
+	Inboxes   []repo.Cafe `json:"inboxes,omitempty"`
+	Username  string      `json:"username,omitempty"`
+	AvatarUri string      `json:"avatar_uri,omitempty"`
 }
 
 // Username returns profile username
@@ -40,7 +39,7 @@ func (t *Textile) SetUsername(username string) error {
 		return err
 	}
 
-	for _, thrd := range t.threads {
+	for _, thrd := range t.loadedThreads {
 		if _, err := thrd.annouce(); err != nil {
 			return err
 		}
@@ -149,7 +148,7 @@ func (t *Textile) Profile(pid peer.ID) (*Profile, error) {
 	if t.node.Identity.Pretty() == pid.Pretty() {
 		profile.Address = t.account.Address()
 		for _, ses := range t.datastore.CafeSessions().List() {
-			profile.Inboxes = append(profile.Inboxes, ses.CafeId)
+			profile.Inboxes = append(profile.Inboxes, ses.Cafe)
 		}
 		username, err := t.Username()
 		if err != nil {
@@ -181,7 +180,11 @@ func (t *Textile) Profile(pid peer.ID) (*Profile, error) {
 	}
 	inboxesb, _ = ipfs.DataAtPath(t.node, fmt.Sprintf("%s/%s", root, "inboxes"))
 	if inboxesb != nil && string(inboxesb) != "" {
-		profile.Inboxes = strings.Split(string(inboxesb), ",")
+		var list []repo.Cafe
+		if err := json.Unmarshal(inboxesb, &list); err != nil {
+			return nil, err
+		}
+		profile.Inboxes = list
 	}
 	usernameb, _ = ipfs.DataAtPath(t.node, fmt.Sprintf("%s/%s", root, "username"))
 	if usernameb != nil {
@@ -233,12 +236,15 @@ func (t *Textile) publishProfile(prof Profile) (iface.IpnsEntry, error) {
 	var inboxesId *cid.Cid
 	sessions := t.datastore.CafeSessions().List()
 	if len(sessions) > 0 {
-		var inboxes []string
+		var inboxes []repo.Cafe
 		for _, ses := range t.datastore.CafeSessions().List() {
-			inboxes = append(inboxes, ses.CafeId)
+			inboxes = append(inboxes, ses.Cafe)
 		}
-		inboxesStr := strings.Join(inboxes, ",")
-		inboxesId, err = ipfs.AddDataToDirectory(t.node, dir, "inboxes", bytes.NewReader([]byte(inboxesStr)))
+		inboxesb, err := json.Marshal(inboxes)
+		if err != nil {
+			return nil, err
+		}
+		inboxesId, err = ipfs.AddDataToDirectory(t.node, dir, "inboxes", bytes.NewReader(inboxesb))
 		if err != nil {
 			return nil, err
 		}

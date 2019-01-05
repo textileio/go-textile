@@ -41,21 +41,23 @@ const (
 	errForbidden      = "forbidden"
 )
 
-const CafeServiceProtocol = protocol.ID("/textile/cafe/1.0.0")
+// cafeServiceProtocol is the current protocol tag
+const cafeServiceProtocol = protocol.ID("/textile/cafe/1.0.0")
 
 // CafeService is a libp2p pinning and offline message service
 type CafeService struct {
-	service    *service.Service
-	datastore  repo.Datastore
-	inbox      *CafeInbox
-	swarmAddrs []string
-	open       bool
+	service   *service.Service
+	datastore repo.Datastore
+	inbox     *CafeInbox
+	info      *repo.Cafe
+	online    bool
+	open      bool
 }
 
 // NewCafeService returns a new threads service
 func NewCafeService(
 	account *keypair.Full,
-	node *core.IpfsNode,
+	node func() *core.IpfsNode,
 	datastore repo.Datastore,
 	inbox *CafeInbox,
 ) *CafeService {
@@ -69,7 +71,7 @@ func NewCafeService(
 
 // Protocol returns the handler protocol
 func (h *CafeService) Protocol() protocol.ID {
-	return CafeServiceProtocol
+	return cafeServiceProtocol
 }
 
 // Ping pings another peer
@@ -152,12 +154,19 @@ func (h *CafeService) Register(host string) (*repo.CafeSession, error) {
 		return nil, err
 	}
 	session := &repo.CafeSession{
-		CafeId:     res.Cafe,
-		Access:     res.Access,
-		Refresh:    res.Refresh,
-		Expiry:     exp,
-		HttpAddr:   host,
-		SwarmAddrs: res.SwarmAddrs,
+		Id:      res.Id,
+		Access:  res.Access,
+		Refresh: res.Refresh,
+		Expiry:  exp,
+		Cafe: repo.Cafe{
+			Peer:     res.Cafe.Peer,
+			Address:  res.Cafe.Address,
+			API:      res.Cafe.Api,
+			Protocol: res.Cafe.Protocol,
+			Node:     res.Cafe.Node,
+			URL:      res.Cafe.Url,
+			Swarm:    res.Cafe.Swarm,
+		},
 	}
 	if err := h.datastore.CafeSessions().AddOrUpdate(session); err != nil {
 		return nil, err
@@ -257,12 +266,7 @@ func (h *CafeService) StoreThread(thrd *repo.Thread, cafe peer.ID) error {
 
 // DeliverMessage delivers a message content id to a peer's cafe inbox
 // TODO: unpin message locally after it's delivered
-func (h *CafeService) DeliverMessage(mid string, pid peer.ID, cafe peer.ID) error {
-	session := h.datastore.CafeSessions().Get(cafe.Pretty())
-	if session == nil {
-		return errors.New(fmt.Sprintf("could not find session for cafe %s", cafe.Pretty()))
-	}
-
+func (h *CafeService) DeliverMessage(mid string, pid peer.ID, cafe repo.Cafe) error {
 	env, err := h.service.NewEnvelope(pb.Message_CAFE_DELIVER_MESSAGE, &pb.CafeDeliverMessage{
 		Id:       mid,
 		ClientId: pid.Pretty(),
@@ -271,7 +275,8 @@ func (h *CafeService) DeliverMessage(mid string, pid peer.ID, cafe peer.ID) erro
 		return err
 	}
 
-	return h.service.SendHTTPMessage(getCafeHTTPAddr(session), env)
+	addr := fmt.Sprintf("%s/cafe/%s/service", cafe.URL, cafe.API)
+	return h.service.SendHTTPMessage(addr, env)
 }
 
 // CheckMessages asks each session's inbox for new messages
@@ -381,7 +386,7 @@ func (h *CafeService) sendCafeRequest(
 
 // getCafeHTTPAddr returns the http address of a cafe from a session
 func getCafeHTTPAddr(session *repo.CafeSession) string {
-	return fmt.Sprintf("%s/cafe/%s/service", session.HttpAddr, cafeApiVersion)
+	return fmt.Sprintf("%s/cafe/%s/service", session.Cafe.URL, session.Cafe.API)
 }
 
 // challenge asks a fellow peer for a cafe challenge
@@ -413,11 +418,8 @@ func (h *CafeService) refresh(session *repo.CafeSession) (*repo.CafeSession, err
 	if err != nil {
 		return nil, err
 	}
-	pid, err := peer.IDB58Decode(session.CafeId)
-	if err != nil {
-		return nil, err
-	}
-	renv, err := h.service.SendRequest(pid, env)
+
+	renv, err := h.service.SendHTTPRequest(getCafeHTTPAddr(session), env)
 	if err != nil {
 		return nil, err
 	}
@@ -433,12 +435,19 @@ func (h *CafeService) refresh(session *repo.CafeSession) (*repo.CafeSession, err
 		return nil, err
 	}
 	refreshed := &repo.CafeSession{
-		CafeId:     session.CafeId,
-		Access:     res.Access,
-		Refresh:    res.Refresh,
-		Expiry:     exp,
-		HttpAddr:   session.HttpAddr,
-		SwarmAddrs: res.SwarmAddrs,
+		Id:      session.Id,
+		Access:  res.Access,
+		Refresh: res.Refresh,
+		Expiry:  exp,
+		Cafe: repo.Cafe{
+			Peer:     res.Cafe.Peer,
+			Address:  res.Cafe.Address,
+			API:      res.Cafe.Api,
+			Protocol: res.Cafe.Protocol,
+			Node:     res.Cafe.Node,
+			URL:      res.Cafe.Url,
+			Swarm:    res.Cafe.Swarm,
+		},
 	}
 	if err := h.datastore.CafeSessions().AddOrUpdate(refreshed); err != nil {
 		return nil, err
@@ -453,10 +462,10 @@ func (h *CafeService) sendObject(id cid.Cid, addr string, token string) error {
 		Cid:   id.Hash().B58String(),
 	}
 
-	data, err := ipfs.DataAtPath(h.service.Node, id.Hash().B58String())
+	data, err := ipfs.DataAtPath(h.service.Node(), id.Hash().B58String())
 	if err != nil {
 		if err == files.ErrNotReader {
-			data, err := ipfs.GetObjectAtPath(h.service.Node, id.Hash().B58String())
+			data, err := ipfs.GetObjectAtPath(h.service.Node(), id.Hash().B58String())
 			if err != nil {
 				return err
 			}
@@ -560,11 +569,11 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 	}
 
 	session, err := jwt.NewSession(
-		h.service.Node.PrivateKey,
+		h.service.Node().PrivateKey,
 		pid,
 		h.Protocol(),
 		defaultSessionDuration,
-		h.swarmAddrs,
+		*h.info,
 	)
 	if err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
@@ -627,11 +636,11 @@ func (h *CafeService) handleRefreshSession(pid peer.ID, env *pb.Envelope) (*pb.E
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
 	session, err := jwt.NewSession(
-		h.service.Node.PrivateKey,
+		h.service.Node().PrivateKey,
 		spid,
 		h.Protocol(),
 		defaultSessionDuration,
-		h.swarmAddrs,
+		*h.info,
 	)
 	if err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
@@ -666,7 +675,7 @@ func (h *CafeService) handleStore(pid peer.ID, env *pb.Envelope) (*pb.Envelope, 
 		decoded = append(decoded, dec)
 	}
 
-	pinned, err := h.service.Node.Pinning.CheckIfPinned(decoded...)
+	pinned, err := h.service.Node().Pinning.CheckIfPinned(decoded...)
 	if err != nil {
 		return nil, err
 	}
@@ -700,7 +709,7 @@ func (h *CafeService) handleObject(pid peer.ID, env *pb.Envelope) (*pb.Envelope,
 
 	var id string
 	if obj.Data != nil {
-		aid, err := ipfs.AddData(h.service.Node, bytes.NewReader(obj.Data), true)
+		aid, err := ipfs.AddData(h.service.Node(), bytes.NewReader(obj.Data), true)
 		if err != nil {
 			return nil, err
 		}
@@ -709,7 +718,7 @@ func (h *CafeService) handleObject(pid peer.ID, env *pb.Envelope) (*pb.Envelope,
 		log.Debugf("pinned object %s", id)
 
 	} else if obj.Node != nil {
-		aid, err := ipfs.AddObject(h.service.Node, bytes.NewReader(obj.Node), true)
+		aid, err := ipfs.AddObject(h.service.Node(), bytes.NewReader(obj.Node), true)
 		if err != nil {
 			return nil, err
 		}
@@ -906,21 +915,40 @@ func (h *CafeService) authToken(pid peer.ID, token string, refreshing bool, requ
 
 // verifyKeyFunc returns the correct key for token verification
 func (h *CafeService) verifyKeyFunc(token *njwt.Token) (interface{}, error) {
-	return h.service.Node.PrivateKey.GetPublic(), nil
+	return h.service.Node().PrivateKey.GetPublic(), nil
 }
 
 // setAddrs sets addresses used in sessions generated by this host
-func (h *CafeService) setAddrs(host config.CafeHost, swarmPorts config.SwarmPorts) {
-	// set the swarm multiaddress(es) where other peers can reach this cafe
-	publicIP := host.PublicIP
+func (h *CafeService) setAddrs(conf *config.Config, swarmPorts config.SwarmPorts) {
+	url := strings.TrimRight(conf.Cafe.Host.URL, "/")
+	if url == "" {
+		url = "http://127.0.0.1"
+		parts := strings.Split(conf.Addresses.CafeAPI, ":")
+		if len(parts) == 2 {
+			url += ":" + parts[1]
+		}
+	}
+	log.Infof("cafe url: %s", url)
+
+	publicIP := conf.Cafe.Host.PublicIP
 	if publicIP == "" {
 		publicIP = "127.0.0.1"
 	}
-	h.swarmAddrs = []string{
+	swarm := []string{
 		fmt.Sprintf("/ip4/%s/tcp/%s", publicIP, swarmPorts.TCP),
 	}
 	if swarmPorts.WS != "" {
-		h.swarmAddrs = append(h.swarmAddrs, fmt.Sprintf("/ip4/%s/tcp/%s/ws", publicIP, swarmPorts.WS))
+		swarm = append(swarm, fmt.Sprintf("/ip4/%s/tcp/%s/ws", publicIP, swarmPorts.WS))
 	}
-	log.Infof("cafe multiaddresses: %s", h.swarmAddrs)
+	log.Infof("cafe multiaddresses: %s", swarm)
+
+	h.info = &repo.Cafe{
+		Peer:     h.service.Node().Identity.Pretty(),
+		Address:  conf.Account.Address,
+		API:      cafeApiVersion,
+		Protocol: string(cafeServiceProtocol),
+		Node:     Version,
+		URL:      url,
+		Swarm:    swarm,
+	}
 }

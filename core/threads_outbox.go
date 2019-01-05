@@ -133,8 +133,15 @@ func (q *ThreadsOutbox) handle(pid peer.ID, msg repo.ThreadMessage) error {
 	// first, attempt to send the message directly to the recipient
 	ctx, cancel := context.WithTimeout(context.Background(), service.DirectTimeout)
 	defer cancel()
-	if err := q.service().SendMessage(ctx, pid, msg.Envelope); err != nil {
-		log.Debugf("send thread message direct to %s failed: %s", pid.Pretty(), err)
+
+	var err error
+	if q.service().online {
+		err = q.service().SendMessage(ctx, pid, msg.Envelope)
+	}
+	if !q.service().online || err != nil {
+		if err != nil {
+			log.Debugf("send thread message direct to %s failed: %s", pid.Pretty(), err)
+		}
 
 		// peer is offline, queue an outbound cafe request for the peer's inbox(es)
 		contact := q.datastore.Contacts().Get(pid.Pretty())

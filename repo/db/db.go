@@ -198,7 +198,7 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 
     create table profile (key text primary key not null, value blob);
 
-    create table contacts (id text primary key not null, address text not null, username text not null, inboxes text not null, added integer not null);
+    create table contacts (id text primary key not null, address text not null, username text not null, inboxes blob not null, added integer not null);
     create index contact_address on contacts (address);
     create index contact_username on contacts (username);
     create index contact_added on contacts (added);
@@ -234,9 +234,9 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index notification_blockId on notifications (blockId);
     create index notification_read on notifications (read);
 
-    create table cafe_sessions (cafeId text primary key not null, access text not null, refresh text not null, expiry integer not null, httpAddr text not null, swarmAddrs text not null);
+    create table cafe_sessions (cafeId text primary key not null, access text not null, refresh text not null, expiry integer not null, cafe blob not null);
 
-    create table cafe_requests (id text primary key not null, peerId text not null, targetId text not null, cafeId text not null, type integer not null, date integer not null);
+    create table cafe_requests (id text primary key not null, peerId text not null, targetId text not null, cafeId text not null, cafe blob not null, type integer not null, date integer not null);
     create index cafe_request_cafeId on cafe_requests (cafeId);
     create index cafe_request_date on cafe_requests (date);
 

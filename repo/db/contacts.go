@@ -2,7 +2,7 @@ package db
 
 import (
 	"database/sql"
-	"strings"
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -31,11 +31,17 @@ func (c *ContactDB) Add(contact *repo.Contact) error {
 		return err
 	}
 	defer stmt.Close()
+
+	inboxes, err := json.Marshal(contact.Inboxes)
+	if err != nil {
+		return err
+	}
+
 	_, err = stmt.Exec(
 		contact.Id,
 		contact.Address,
 		contact.Username,
-		strings.Join(contact.Inboxes, ","),
+		inboxes,
 		int(contact.Added.Unix()),
 	)
 	if err != nil {
@@ -60,11 +66,17 @@ func (c *ContactDB) AddOrUpdate(contact *repo.Contact) error {
 		return err
 	}
 	defer stmt.Close()
+
+	inboxes, err := json.Marshal(contact.Inboxes)
+	if err != nil {
+		return err
+	}
+
 	_, err = stmt.Exec(
 		contact.Id,
 		contact.Address,
 		contact.Username,
-		strings.Join(contact.Inboxes, ","),
+		inboxes,
 		contact.Id,
 		int(contact.Added.Unix()),
 	)
@@ -122,18 +134,20 @@ func (c *ContactDB) handleQuery(stm string) []repo.Contact {
 		return nil
 	}
 	for rows.Next() {
-		var id, address, username, inboxes string
+		var id, address, username string
+		var inboxes []byte
 		var addedInt int
 		if err := rows.Scan(&id, &address, &username, &inboxes, &addedInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		ilist := make([]string, 0)
-		for _, p := range strings.Split(inboxes, ",") {
-			if p != "" {
-				ilist = append(ilist, p)
-			}
+
+		ilist := make([]repo.Cafe, 0)
+		if err := json.Unmarshal(inboxes, &ilist); err != nil {
+			log.Errorf("error unmarshaling cafes: %s", err)
+			continue
 		}
+
 		ret = append(ret, repo.Contact{
 			Id:       id,
 			Address:  address,

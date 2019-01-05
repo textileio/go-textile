@@ -10,7 +10,7 @@ import (
 // RegisterCafe registers this account with another peer (the "cafe"),
 // which provides a session token for the service
 func (t *Textile) RegisterCafe(host string) (*repo.CafeSession, error) {
-	session, err := t.cafeService.Register(host)
+	session, err := t.cafe.Register(host)
 	if err != nil {
 		return nil, err
 	}
@@ -18,9 +18,9 @@ func (t *Textile) RegisterCafe(host string) (*repo.CafeSession, error) {
 	// add to bootstrap
 	if session != nil {
 		var peers []string
-		for _, s := range session.SwarmAddrs {
+		for _, s := range session.Cafe.Swarm {
 			if !strings.Contains(s, "/ws/") {
-				peers = append(peers, s+"/ipfs/"+session.CafeId)
+				peers = append(peers, s+"/ipfs/"+session.Id)
 			}
 		}
 		if err := updateBootstrapConfig(t.repoPath, peers, []string{}); err != nil {
@@ -28,7 +28,7 @@ func (t *Textile) RegisterCafe(host string) (*repo.CafeSession, error) {
 		}
 	}
 
-	for _, thrd := range t.threads {
+	for _, thrd := range t.loadedThreads {
 		if _, err := thrd.annouce(); err != nil {
 			return nil, err
 		}
@@ -57,7 +57,7 @@ func (t *Textile) RefreshCafeSession(peerId string) (*repo.CafeSession, error) {
 	if session == nil {
 		return nil, errors.New("session not found")
 	}
-	return t.cafeService.refresh(session)
+	return t.cafe.refresh(session)
 }
 
 // DeregisterCafe removes the session associated with the given cafe
@@ -69,22 +69,22 @@ func (t *Textile) DeregisterCafe(peerId string) error {
 
 	// remove from bootstrap
 	var peers []string
-	for _, s := range session.SwarmAddrs {
-		peers = append(peers, s+"/ipfs/"+session.CafeId)
+	for _, s := range session.Cafe.Swarm {
+		peers = append(peers, s+"/ipfs/"+session.Id)
 	}
 	if err := updateBootstrapConfig(t.repoPath, []string{}, peers); err != nil {
 		return err
 	}
 
 	// clean up
-	if err := t.datastore.CafeRequests().DeleteByCafe(session.CafeId); err != nil {
+	if err := t.datastore.CafeRequests().DeleteByCafe(session.Id); err != nil {
 		return err
 	}
 	if err := t.datastore.CafeSessions().Delete(peerId); err != nil {
 		return err
 	}
 
-	for _, thrd := range t.threads {
+	for _, thrd := range t.loadedThreads {
 		if _, err := thrd.annouce(); err != nil {
 			return err
 		}

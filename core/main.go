@@ -34,7 +34,7 @@ import (
 var log = logging.Logger("tex-core")
 
 // Version is the core version identifier
-const Version = "1.0.0-rc21"
+const Version = "1.0.0-rc22"
 
 // kQueueFlushFreq how often to flush the message queues
 const kQueueFlushFreq = time.Second * 60
@@ -96,27 +96,27 @@ type RunConfig struct {
 
 // Textile is the main Textile node structure
 type Textile struct {
-	context        oldcmds.Context
-	repoPath       string
-	config         *config.Config
-	account        *keypair.Full
-	cancel         context.CancelFunc
-	node           *core.IpfsNode
-	datastore      repo.Datastore
-	started        bool
-	threads        []*Thread
-	online         chan struct{}
-	done           chan struct{}
-	updates        chan Update
-	threadUpdates  *broadcast.Broadcaster
-	notifications  chan NotificationInfo
-	threadsService *ThreadsService
-	threadsOutbox  *ThreadsOutbox
-	cafeService    *CafeService
-	cafeOutbox     *CafeOutbox
-	cafeInbox      *CafeInbox
-	mux            sync.Mutex
-	writer         io.Writer
+	context       oldcmds.Context
+	repoPath      string
+	config        *config.Config
+	account       *keypair.Full
+	cancel        context.CancelFunc
+	node          *core.IpfsNode
+	datastore     repo.Datastore
+	started       bool
+	loadedThreads []*Thread
+	online        chan struct{}
+	done          chan struct{}
+	updates       chan Update
+	threadUpdates *broadcast.Broadcaster
+	notifications chan NotificationInfo
+	threads       *ThreadsService
+	threadsOutbox *ThreadsOutbox
+	cafe          *CafeService
+	cafeOutbox    *CafeOutbox
+	cafeInbox     *CafeInbox
+	mux           sync.Mutex
+	writer        io.Writer
 }
 
 // common errors
@@ -257,47 +257,13 @@ func (t *Textile) Start() error {
 		return err
 	}
 
-	swarmPorts, err := loadSwarmPorts(t.repoPath)
-	if err != nil {
-		return err
-	}
-	if swarmPorts == nil {
-		return errors.New("failed to load swarm ports")
-	}
-
 	t.online = make(chan struct{})
 
-	t.cafeInbox = NewCafeInbox(
-		func() *CafeService {
-			return t.cafeService
-		},
-		func() *ThreadsService {
-			return t.threadsService
-		},
-		func() *core.IpfsNode {
-			return t.node
-		},
-		t.datastore,
-	)
-	t.cafeOutbox = NewCafeOutbox(
-		func() *CafeService {
-			return t.cafeService
-		},
-		func() *core.IpfsNode {
-			return t.node
-		},
-		t.datastore,
-	)
-	t.threadsOutbox = NewThreadsOutbox(
-		func() *ThreadsService {
-			return t.threadsService
-		},
-		func() *core.IpfsNode {
-			return t.node
-		},
-		t.datastore,
-		t.cafeOutbox,
-	)
+	t.cafeInbox = NewCafeInbox(t.cafeService, t.threadsService, t.Ipfs, t.datastore)
+	t.cafeOutbox = NewCafeOutbox(t.cafeService, t.Ipfs, t.datastore)
+	t.threadsOutbox = NewThreadsOutbox(t.threadsService, t.Ipfs, t.datastore, t.cafeOutbox)
+	t.threads = NewThreadsService(t.account, t.Ipfs, t.datastore, t.Thread, t.AddThread, t.sendNotification)
+	t.cafe = NewCafeService(t.account, t.Ipfs, t.datastore, t.cafeInbox)
 
 	// start the ipfs node
 	log.Debug("creating an ipfs node...")
@@ -312,19 +278,21 @@ func (t *Textile) Start() error {
 			return
 		}
 
-		t.threadsService = NewThreadsService(
-			t.account,
-			t.node,
-			t.datastore,
-			t.Thread,
-			t.AddThread,
-			t.sendNotification,
-		)
+		t.threads.service.SetHandler()
+		t.threads.online = true
 
-		t.cafeService = NewCafeService(t.account, t.node, t.datastore, t.cafeInbox)
-		t.cafeService.setAddrs(t.config.Cafe.Host, *swarmPorts)
+		t.cafe.service.SetHandler()
+		t.cafe.online = true
+
 		if t.config.Cafe.Host.Open {
-			t.cafeService.open = true
+			swarmPorts, err := loadSwarmPorts(t.repoPath)
+			if err != nil {
+				log.Errorf("error loading swarm ports: %s", err)
+			} else {
+				t.cafe.setAddrs(t.config, *swarmPorts)
+			}
+
+			t.cafe.open = true
 			t.startCafeApi(t.config.Addresses.CafeAPI)
 		}
 
@@ -388,7 +356,7 @@ func (t *Textile) Stop() error {
 	}
 
 	// wipe threads
-	t.threads = nil
+	t.loadedThreads = nil
 
 	log.Info("node is stopped")
 
@@ -442,7 +410,7 @@ func (t *Textile) DoneCh() <-chan struct{} {
 
 // Ping pings another peer
 func (t *Textile) Ping(pid peer.ID) (service.PeerStatus, error) {
-	return t.cafeService.Ping(pid)
+	return t.cafe.Ping(pid)
 }
 
 // UpdateCh returns the node update channel
@@ -450,8 +418,8 @@ func (t *Textile) UpdateCh() <-chan Update {
 	return t.updates
 }
 
-// GetThreadUpdateListener returns the thread update channel
-func (t *Textile) GetThreadUpdateListener() *broadcast.Listener {
+// ThreadUpdateListener returns the thread update channel
+func (t *Textile) ThreadUpdateListener() *broadcast.Listener {
 	return t.threadUpdates.Listen()
 }
 
@@ -478,6 +446,16 @@ func (t *Textile) DataAtPath(path string) ([]byte, error) {
 // LinksAtPath returns ipld links behind an ipfs path
 func (t *Textile) LinksAtPath(path string) ([]*ipld.Link, error) {
 	return ipfs.LinksAtPath(t.node, path)
+}
+
+// threadsService returns the threads service
+func (t *Textile) threadsService() *ThreadsService {
+	return t.threads
+}
+
+// cafeService returns the cafe service
+func (t *Textile) cafeService() *CafeService {
+	return t.cafe
 }
 
 // createIPFS creates an IPFS node
@@ -586,7 +564,7 @@ func (t *Textile) threadByBlock(block *repo.Block) (*Thread, error) {
 	}
 
 	var thrd *Thread
-	for _, t := range t.threads {
+	for _, t := range t.loadedThreads {
 		if t.Id == block.ThreadId {
 			thrd = t
 			break
@@ -605,18 +583,11 @@ func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 	}
 
 	threadConfig := &ThreadConfig{
-		RepoPath: t.repoPath,
-		Config:   t.config,
-		Node: func() *core.IpfsNode {
-			return t.node
-		},
-		Datastore: t.datastore,
-		Service: func() *ThreadsService {
-			if t.threadsService == nil {
-				return NewDummyThreadsService(t.account, t.node)
-			}
-			return t.threadsService
-		},
+		RepoPath:      t.repoPath,
+		Config:        t.config,
+		Node:          t.Ipfs,
+		Datastore:     t.datastore,
+		Service:       t.threadsService,
 		ThreadsOutbox: t.threadsOutbox,
 		CafeOutbox:    t.cafeOutbox,
 		SendUpdate:    t.sendThreadUpdate,
@@ -626,7 +597,7 @@ func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 	if err != nil {
 		return nil, err
 	}
-	t.threads = append(t.threads, thrd)
+	t.loadedThreads = append(t.loadedThreads, thrd)
 
 	return thrd, nil
 }
