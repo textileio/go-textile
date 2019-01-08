@@ -585,7 +585,6 @@
     "github.com/onsi/ginkgo/extensions/table",
     "github.com/onsi/gomega",
     "github.com/onsi/gomega/types",
-    "github.com/pkg/errors",
     "github.com/rwcarlsen/goexif/exif",
     "github.com/segmentio/ksuid",
     "github.com/skip2/go-qrcode",

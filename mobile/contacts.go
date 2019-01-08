@@ -1,7 +1,8 @@
 package mobile
 
 import (
-	"github.com/pkg/errors"
+	"errors"
+
 	"github.com/textileio/textile-go/core"
 )
 
