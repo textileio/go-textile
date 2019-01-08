@@ -2,7 +2,6 @@ package core
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/textileio/textile-go/repo"
 )
@@ -15,18 +14,18 @@ func (t *Textile) RegisterCafe(host string) (*repo.CafeSession, error) {
 		return nil, err
 	}
 
-	// add to bootstrap
-	if session != nil {
-		var peers []string
-		for _, s := range session.Cafe.Swarm {
-			if !strings.Contains(s, "/ws/") {
-				peers = append(peers, s+"/ipfs/"+session.Id)
-			}
-		}
-		if err := updateBootstrapConfig(t.repoPath, peers, []string{}); err != nil {
-			return nil, err
-		}
-	}
+	//// add to bootstrap
+	//if session != nil {
+	//	var peers []string
+	//	for _, s := range session.Cafe.Swarm {
+	//		if !strings.Contains(s, "/ws/") {
+	//			peers = append(peers, s+"/ipfs/"+session.Id)
+	//		}
+	//	}
+	//	if err := updateBootstrapConfig(t.repoPath, peers, []string{}); err != nil {
+	//		return nil, err
+	//	}
+	//}
 
 	for _, thrd := range t.loadedThreads {
 		if _, err := thrd.annouce(); err != nil {
@@ -67,14 +66,14 @@ func (t *Textile) DeregisterCafe(peerId string) error {
 		return nil
 	}
 
-	// remove from bootstrap
-	var peers []string
-	for _, s := range session.Cafe.Swarm {
-		peers = append(peers, s+"/ipfs/"+session.Id)
-	}
-	if err := updateBootstrapConfig(t.repoPath, []string{}, peers); err != nil {
-		return err
-	}
+	//// remove from bootstrap
+	//var peers []string
+	//for _, s := range session.Cafe.Swarm {
+	//	peers = append(peers, s+"/ipfs/"+session.Id)
+	//}
+	//if err := updateBootstrapConfig(t.repoPath, []string{}, peers); err != nil {
+	//	return err
+	//}
 
 	// clean up
 	if err := t.datastore.CafeRequests().DeleteByCafe(session.Id); err != nil {
