@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/pb"
 )
 
 type Datastore interface {
@@ -142,9 +143,9 @@ type NotificationStore interface {
 // Cafe user-side stores
 
 type CafeSessionStore interface {
-	AddOrUpdate(session *CafeSession) error
-	Get(cafeId string) *CafeSession
-	List() []CafeSession
+	AddOrUpdate(session *pb.CafeSession) error
+	Get(cafeId string) *pb.CafeSession
+	List() []pb.CafeSession
 	Delete(cafeId string) error
 }
 

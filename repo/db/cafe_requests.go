@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -97,7 +98,7 @@ func (c *CafeRequestDB) handleQuery(stm string) []repo.CafeRequest {
 			continue
 		}
 
-		var mod repo.Cafe
+		var mod pb.Cafe
 		if err := json.Unmarshal(cafe, &mod); err != nil {
 			log.Errorf("error unmarshaling cafe: %s", err)
 			continue

@@ -4,8 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"sync"
-	"time"
 
+	timestamp "github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -17,7 +18,7 @@ func NewCafeSessionStore(db *sql.DB, lock *sync.Mutex) repo.CafeSessionStore {
 	return &CafeSessionDB{modelStore{db, lock}}
 }
 
-func (c *CafeSessionDB) AddOrUpdate(session *repo.CafeSession) error {
+func (c *CafeSessionDB) AddOrUpdate(session *pb.CafeSession) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -37,11 +38,12 @@ func (c *CafeSessionDB) AddOrUpdate(session *repo.CafeSession) error {
 		return err
 	}
 
+	// TODO: There are props on pb.CafeSession we're not persisting
 	_, err = stmt.Exec(
 		session.Id,
 		session.Access,
 		session.Refresh,
-		int(session.Expiry.Unix()),
+		int(session.Exp.Seconds),
 		cafe,
 	)
 	if err != nil {
@@ -52,7 +54,7 @@ func (c *CafeSessionDB) AddOrUpdate(session *repo.CafeSession) error {
 	return nil
 }
 
-func (c *CafeSessionDB) Get(cafeId string) *repo.CafeSession {
+func (c *CafeSessionDB) Get(cafeId string) *pb.CafeSession {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	ret := c.handleQuery("select * from cafe_sessions where cafeId='" + cafeId + "';")
@@ -62,7 +64,7 @@ func (c *CafeSessionDB) Get(cafeId string) *repo.CafeSession {
 	return &ret[0]
 }
 
-func (c *CafeSessionDB) List() []repo.CafeSession {
+func (c *CafeSessionDB) List() []pb.CafeSession {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stm := "select * from cafe_sessions order by expiry desc;"
@@ -76,8 +78,8 @@ func (c *CafeSessionDB) Delete(cafeId string) error {
 	return err
 }
 
-func (c *CafeSessionDB) handleQuery(stm string) []repo.CafeSession {
-	var ret []repo.CafeSession
+func (c *CafeSessionDB) handleQuery(stm string) []pb.CafeSession {
+	var ret []pb.CafeSession
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -92,17 +94,21 @@ func (c *CafeSessionDB) handleQuery(stm string) []repo.CafeSession {
 			continue
 		}
 
-		var rcafe repo.Cafe
+		var rcafe *pb.Cafe
 		if err := json.Unmarshal(cafe, &rcafe); err != nil {
 			log.Errorf("error unmarshaling cafe: %s", err)
 			continue
 		}
 
-		ret = append(ret, repo.CafeSession{
+		var timestamp *timestamp.Timestamp
+		timestamp.Seconds = int64(expiryInt)
+		timestamp.Nanos = 0
+
+		ret = append(ret, pb.CafeSession{
 			Id:      cafeId,
 			Access:  access,
 			Refresh: refresh,
-			Expiry:  time.Unix(int64(expiryInt), 0),
+			Exp:     timestamp,
 			Cafe:    rcafe,
 		})
 	}

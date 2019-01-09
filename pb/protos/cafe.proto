@@ -39,6 +39,10 @@ message CafeSession {
     Cafe cafe                      = 8;
 }
 
+message CafeSessions {
+    repeated CafeSession values = 1;
+}
+
 message CafeRefreshSession {
     string access  = 1;
     string refresh = 2;

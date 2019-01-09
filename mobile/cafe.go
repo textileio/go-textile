@@ -1,6 +1,7 @@
 package mobile
 
 import (
+	"github.com/golang/protobuf/proto"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
 )
@@ -18,19 +19,16 @@ func (m *Mobile) RegisterCafe(host string) error {
 }
 
 // CafeSessions calls core CafeSessions
-func (m *Mobile) CafeSessions() (string, error) {
+func (m *Mobile) CafeSessions() ([]byte, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
 
 	items, err := m.node.CafeSessions()
 	if err != nil {
-		return "", err
+		return [], err
 	}
-	if len(items) == 0 {
-		items = make([]repo.CafeSession, 0)
-	}
-	return toJSON(items)
+	return proto.Marshal(items)
 }
 
 // CafeSession calls core CafeSession

@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/pb"
 )
 
 func (a *api) addCafes(g *gin.Context) {
@@ -32,7 +32,7 @@ func (a *api) lsCafes(g *gin.Context) {
 		return
 	}
 	if len(sessions) == 0 {
-		sessions = make([]repo.CafeSession, 0)
+		sessions = make([]pb.CafeSession, 0)
 	}
 	g.JSON(http.StatusOK, sessions)
 }

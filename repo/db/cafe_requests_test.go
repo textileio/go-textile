@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -26,13 +27,13 @@ func TestCafeRequestDB_Add(t *testing.T) {
 		Id:       "abcde",
 		PeerId:   "peer",
 		TargetId: "zxy",
-		Cafe: repo.Cafe{
+		Cafe: pb.Cafe{
 			Peer:     "peer",
 			Address:  "address",
-			API:      "v0",
+			Api:      "v0",
 			Protocol: "/textile/cafe/1.0.0",
 			Node:     "v1.0.0",
-			URL:      "https://mycafe.com",
+			Url:      "https://mycafe.com",
 		},
 		Type: repo.CafeStoreRequest,
 		Date: time.Now(),
@@ -54,13 +55,13 @@ func TestCafeRequestDB_Add(t *testing.T) {
 
 func TestCafeRequestDB_List(t *testing.T) {
 	setupCafeRequestDB()
-	cafe := repo.Cafe{
+	cafe := pb.Cafe{
 		Peer:     "peer",
 		Address:  "address",
-		API:      "v0",
+		Api:      "v0",
 		Protocol: "/textile/cafe/1.0.0",
 		Node:     "v1.0.0",
-		URL:      "https://mycafe.com",
+		Url:      "https://mycafe.com",
 	}
 	err := cafeRequestStore.Add(&repo.CafeRequest{
 		Id:       "abcde",
@@ -120,13 +121,13 @@ func TestCafeRequestDB_DeleteByCafe(t *testing.T) {
 		Id:       "xyz",
 		PeerId:   "peer",
 		TargetId: "zxy",
-		Cafe: repo.Cafe{
+		Cafe: pb.Cafe{
 			Peer:     "peer",
 			Address:  "address",
-			API:      "v0",
+			Api:      "v0",
 			Protocol: "/textile/cafe/1.0.0",
 			Node:     "v1.0.0",
-			URL:      "https://mycafe.com",
+			Url:      "https://mycafe.com",
 		},
 		Type: repo.CafeStoreRequest,
 		Date: time.Now(),

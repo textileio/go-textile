@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -41,7 +42,7 @@ func (t *Textile) RegisterCafe(host string) (*repo.CafeSession, error) {
 }
 
 // CafeSessions lists active cafe sessions
-func (t *Textile) CafeSessions() ([]repo.CafeSession, error) {
+func (t *Textile) CafeSessions() ([]pb.CafeSession, error) {
 	return t.datastore.CafeSessions().List(), nil
 }
 

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core"
 
 	"github.com/golang/protobuf/proto"
@@ -96,7 +96,7 @@ func (q *CafeOutbox) Flush() {
 }
 
 // add queues a single request
-func (q *CafeOutbox) add(pid peer.ID, target string, cafe repo.Cafe, rtype repo.CafeRequestType) error {
+func (q *CafeOutbox) add(pid peer.ID, target string, cafe pb.Cafe, rtype repo.CafeRequestType) error {
 	log.Debugf("adding cafe %s request for %s to %s: %s",
 		rtype.Description(), ipfs.ShortenID(pid.Pretty()), ipfs.ShortenID(cafe.Peer), target)
 	return q.datastore.CafeRequests().Add(&repo.CafeRequest{

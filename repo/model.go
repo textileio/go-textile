@@ -230,14 +230,6 @@ type Cafe struct {
 	Swarm    []string `json:"swarm"`
 }
 
-type CafeSession struct {
-	Id      string    `json:"id"`
-	Access  string    `json:"access"`
-	Refresh string    `json:"refresh"`
-	Expiry  time.Time `json:"expiry"`
-	Cafe    Cafe      `json:"cafe"`
-}
-
 type CafeRequestType int
 
 const (
@@ -263,7 +255,7 @@ type CafeRequest struct {
 	Id       string          `json:"id"`
 	PeerId   string          `json:"peer_id"`
 	TargetId string          `json:"target_id"`
-	Cafe     Cafe            `json:"cafe"`
+	Cafe     pb.Cafe         `json:"cafe"`
 	Type     CafeRequestType `json:"type"`
 	Date     time.Time       `json:"date"`
 }
