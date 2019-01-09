@@ -5,11 +5,11 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	iface "gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface"
 	uio "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/io"
 	"io/ioutil"
 
@@ -148,7 +148,7 @@ func (t *Textile) Profile(pid peer.ID) (*Profile, error) {
 	if t.node.Identity.Pretty() == pid.Pretty() {
 		profile.Address = t.account.Address()
 		for _, ses := range t.datastore.CafeSessions().List() {
-			profile.Inboxes = append(profile.Inboxes, ses.Cafe)
+			profile.Inboxes = append(profile.Inboxes, protoCafeToRepo(*ses.Cafe))
 		}
 		username, err := t.Username()
 		if err != nil {
@@ -238,7 +238,7 @@ func (t *Textile) publishProfile(prof Profile) (iface.IpnsEntry, error) {
 	if len(sessions) > 0 {
 		var inboxes []repo.Cafe
 		for _, ses := range t.datastore.CafeSessions().List() {
-			inboxes = append(inboxes, ses.Cafe)
+			inboxes = append(inboxes, protoCafeToRepo(*ses.Cafe))
 		}
 		inboxesb, err := json.Marshal(inboxes)
 		if err != nil {

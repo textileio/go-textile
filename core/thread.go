@@ -11,7 +11,7 @@ import (
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core"
 
 	"github.com/golang/protobuf/proto"
@@ -661,14 +661,27 @@ func protoCafeToModel(pro pb.Cafe) repo.Cafe {
 }
 
 // repoCafeToProto is a tmp method just converting repo cafe info to the proto version
-func repoCafeToProto(rep repo.Cafe) *pb.Cafe {
-	return &pb.Cafe{
+func repoCafeToProto(rep repo.Cafe) pb.Cafe {
+	return pb.Cafe{
 		Peer:     rep.Peer,
 		Address:  rep.Address,
 		Api:      rep.API,
 		Protocol: rep.Protocol,
 		Node:     rep.Node,
 		Url:      rep.URL,
+		Swarm:    rep.Swarm,
+	}
+}
+
+// protoCafeToRepo is a tmp method just converting proto cafe info to the repo version
+func protoCafeToRepo(rep pb.Cafe) repo.Cafe {
+	return repo.Cafe{
+		Peer:     rep.Peer,
+		Address:  rep.Address,
+		API:      rep.Api,
+		Protocol: rep.Protocol,
+		Node:     rep.Node,
+		URL:      rep.Url,
 		Swarm:    rep.Swarm,
 	}
 }

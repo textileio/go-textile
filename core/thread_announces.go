@@ -2,7 +2,7 @@ package core
 
 import (
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/pb"
@@ -82,7 +82,7 @@ func (t *Thread) buildAnnounce() (*pb.ThreadAnnounce, error) {
 		msg.Username = *username
 	}
 	for _, ses := range t.datastore.CafeSessions().List() {
-		msg.Inboxes = append(msg.Inboxes, repoCafeToProto(ses.Cafe))
+		msg.Inboxes = append(msg.Inboxes, ses.Cafe)
 	}
 	return msg, nil
 }

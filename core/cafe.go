@@ -4,12 +4,11 @@ import (
 	"errors"
 
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
 // RegisterCafe registers this account with another peer (the "cafe"),
 // which provides a session token for the service
-func (t *Textile) RegisterCafe(host string) (*repo.CafeSession, error) {
+func (t *Textile) RegisterCafe(host string) (*pb.CafeSession, error) {
 	session, err := t.cafe.Register(host)
 	if err != nil {
 		return nil, err
@@ -47,12 +46,12 @@ func (t *Textile) CafeSessions() ([]pb.CafeSession, error) {
 }
 
 // CafeSession returns an active session by id
-func (t *Textile) CafeSession(peerId string) (*repo.CafeSession, error) {
+func (t *Textile) CafeSession(peerId string) (*pb.CafeSession, error) {
 	return t.datastore.CafeSessions().Get(peerId), nil
 }
 
 // RefreshCafeSession attempts to refresh a token with a cafe
-func (t *Textile) RefreshCafeSession(peerId string) (*repo.CafeSession, error) {
+func (t *Textile) RefreshCafeSession(peerId string) (*pb.CafeSession, error) {
 	session := t.datastore.CafeSessions().Get(peerId)
 	if session == nil {
 		return nil, errors.New("session not found")

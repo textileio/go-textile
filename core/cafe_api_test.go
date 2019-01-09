@@ -11,7 +11,7 @@ import (
 
 	. "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/pb"
 )
 
 var repoPath1 = "testdata/.textile1"
@@ -19,7 +19,7 @@ var node1 *Textile
 var repoPath2 = "testdata/.textile2"
 var node2 *Textile
 
-var session *repo.CafeSession
+var session *pb.CafeSession
 var blockHash = "QmbQ4K3vXNJ3DjCNdG2urCXs7BuHqWQG1iSjZ8fbnF8NMs"
 var photoHash = "QmSUnsZi9rGvPZLWy2v5N7fNxUWVNnA5nmppoM96FbLqLp"
 
@@ -94,7 +94,7 @@ func TestCafeApi_Pin(t *testing.T) {
 		return
 	}
 	defer block.Close()
-	res, err := pin(block, "application/octet-stream", session.Access, session.Cafe.URL)
+	res, err := pin(block, "application/octet-stream", session.Access, session.Cafe.Url)
 	if err != nil {
 		t.Error(err)
 		return
@@ -125,7 +125,7 @@ func TestCafeApi_PinArchive(t *testing.T) {
 		return
 	}
 	defer archive.Close()
-	res, err := pin(archive, "application/gzip", session.Access, session.Cafe.URL)
+	res, err := pin(archive, "application/gzip", session.Access, session.Cafe.Url)
 	if err != nil {
 		t.Error(err)
 		return
