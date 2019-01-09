@@ -6,7 +6,7 @@ import (
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -132,8 +132,8 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 }
 
 // Threads lists loaded threads
-func (t *Textile) Threads() []Thread {
-	var threads []Thread
+func (t *Textile) Threads() []*Thread {
+	var threads []*Thread
 loop:
 	for _, i := range t.loadedThreads {
 		if i == nil || i.Key == t.account.Address() {
@@ -144,7 +144,7 @@ loop:
 				continue loop
 			}
 		}
-		threads = append(threads, *i)
+		threads = append(threads, i)
 	}
 	return threads
 }

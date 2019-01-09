@@ -81,7 +81,7 @@ func TestCafeApi_Setup(t *testing.T) {
 		return
 	}
 	if len(sessions) > 0 {
-		session = &sessions[0]
+		session = sessions[0]
 	} else {
 		t.Errorf("no active sessions")
 	}
