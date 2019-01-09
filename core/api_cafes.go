@@ -32,7 +32,7 @@ func (a *api) lsCafes(g *gin.Context) {
 		return
 	}
 	if len(sessions) == 0 {
-		sessions = make([]pb.CafeSession, 0)
+		sessions = make([]*pb.CafeSession, 0)
 	}
 	g.JSON(http.StatusOK, sessions)
 }

@@ -61,10 +61,10 @@ func (c *CafeSessionDB) Get(cafeId string) *pb.CafeSession {
 	if len(ret) == 0 {
 		return nil
 	}
-	return &ret[0]
+	return ret[0]
 }
 
-func (c *CafeSessionDB) List() []pb.CafeSession {
+func (c *CafeSessionDB) List() []*pb.CafeSession {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stm := "select * from cafe_sessions order by expiry desc;"
@@ -78,8 +78,8 @@ func (c *CafeSessionDB) Delete(cafeId string) error {
 	return err
 }
 
-func (c *CafeSessionDB) handleQuery(stm string) []pb.CafeSession {
-	var ret []pb.CafeSession
+func (c *CafeSessionDB) handleQuery(stm string) []*pb.CafeSession {
+	var ret []*pb.CafeSession
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -104,7 +104,7 @@ func (c *CafeSessionDB) handleQuery(stm string) []pb.CafeSession {
 		timestamp.Seconds = int64(expiryInt)
 		timestamp.Nanos = 0
 
-		ret = append(ret, pb.CafeSession{
+		ret = append(ret, &pb.CafeSession{
 			Id:      cafeId,
 			Access:  access,
 			Refresh: refresh,

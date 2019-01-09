@@ -145,7 +145,7 @@ type NotificationStore interface {
 type CafeSessionStore interface {
 	AddOrUpdate(session *pb.CafeSession) error
 	Get(cafeId string) *pb.CafeSession
-	List() []pb.CafeSession
+	List() []*pb.CafeSession
 	Delete(cafeId string) error
 }
 

@@ -41,7 +41,7 @@ func (t *Textile) RegisterCafe(host string) (*pb.CafeSession, error) {
 }
 
 // CafeSessions lists active cafe sessions
-func (t *Textile) CafeSessions() ([]pb.CafeSession, error) {
+func (t *Textile) CafeSessions() ([]*pb.CafeSession, error) {
 	return t.datastore.CafeSessions().List(), nil
 }
 
