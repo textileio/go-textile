@@ -55,6 +55,7 @@ func TestContactDB_AddOrUpdate(t *testing.T) {
 		Id:       "abcde",
 		Address:  "address",
 		Username: "joe",
+		Avatar:   "Qm123",
 		Inboxes:  []repo.Cafe{cafe},
 		Added:    time.Now(),
 	})
@@ -94,6 +95,7 @@ func TestContactDB_List(t *testing.T) {
 		Id:       "abcde",
 		Address:  "address1",
 		Username: "joe",
+		Avatar:   "Qm123",
 		Inboxes:  []repo.Cafe{cafe},
 		Added:    time.Now(),
 	})
@@ -104,6 +106,7 @@ func TestContactDB_List(t *testing.T) {
 		Id:       "fghij",
 		Address:  "address2",
 		Username: "joe",
+		Avatar:   "Qm123",
 		Inboxes:  []repo.Cafe{cafe, cafe},
 		Added:    time.Now(),
 	})

@@ -24,7 +24,7 @@ func (c *ContactDB) Add(contact *repo.Contact) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into contacts(id, address, username, inboxes, added) values(?,?,?,?,?)`
+	stm := `insert into contacts(id, address, username, avatar, inboxes, added) values(?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -41,6 +41,7 @@ func (c *ContactDB) Add(contact *repo.Contact) error {
 		contact.Id,
 		contact.Address,
 		contact.Username,
+		contact.Avatar,
 		inboxes,
 		int(contact.Added.Unix()),
 	)
@@ -59,7 +60,7 @@ func (c *ContactDB) AddOrUpdate(contact *repo.Contact) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert or replace into contacts(id, address, username, inboxes, added) values(?,?,?,?,coalesce((select added from contacts where id=?),?))`
+	stm := `insert or replace into contacts(id, address, username, avatar, inboxes, added) values(?,?,?,?,?,coalesce((select added from contacts where id=?),?))`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -76,6 +77,7 @@ func (c *ContactDB) AddOrUpdate(contact *repo.Contact) error {
 		contact.Id,
 		contact.Address,
 		contact.Username,
+		contact.Avatar,
 		inboxes,
 		contact.Id,
 		int(contact.Added.Unix()),
@@ -134,10 +136,10 @@ func (c *ContactDB) handleQuery(stm string) []repo.Contact {
 		return nil
 	}
 	for rows.Next() {
-		var id, address, username string
+		var id, address, username, avatar string
 		var inboxes []byte
 		var addedInt int
-		if err := rows.Scan(&id, &address, &username, &inboxes, &addedInt); err != nil {
+		if err := rows.Scan(&id, &address, &username, &avatar, &inboxes, &addedInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -152,6 +154,7 @@ func (c *ContactDB) handleQuery(stm string) []repo.Contact {
 			Id:       id,
 			Address:  address,
 			Username: username,
+			Avatar:   avatar,
 			Inboxes:  ilist,
 			Added:    time.Unix(int64(addedInt), 0),
 		})

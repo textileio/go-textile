@@ -31,6 +31,9 @@ message Message {
         CAFE_DELETE_MESSAGES     = 63;
         CAFE_DELETE_MESSAGES_ACK = 64;
         CAFE_YOU_HAVE_MAIL       = 65;
+        CAFE_PUBLISH_CONTACT     = 66;
+        CAFE_PUBLISH_CONTACT_ACK = 67;
+        CAFE_CONTACT_SEARCH      = 68;
 
         ERROR = 500;
     }

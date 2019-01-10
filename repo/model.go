@@ -167,6 +167,7 @@ type Contact struct {
 	Id       string    `json:"id"`
 	Address  string    `json:"address"`
 	Username string    `json:"username"`
+	Avatar   string    `json:"avatar"`
 	Inboxes  []Cafe    `json:"inboxes"`
 	Added    time.Time `json:"added"`
 }

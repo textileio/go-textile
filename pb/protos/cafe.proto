@@ -44,6 +44,25 @@ message CafeRefreshSession {
     string refresh = 2;
 }
 
+message CafeContact {
+    string token                    = 1;
+    string address                  = 2;
+    string username                 = 3;
+    string avatar                   = 4;
+    repeated Cafe inboxes           = 5;
+    google.protobuf.Timestamp added = 6;
+}
+
+message CafeContactAck {}
+
+message CafeContactSearch {
+    string token    = 1;
+    string address  = 2;
+    string username = 3;
+}
+
+message CafeContactSearchResult {}
+
 message CafeStore {
     string token         = 1;
     repeated string cids = 2;
