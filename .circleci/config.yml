@@ -470,7 +470,7 @@ jobs:
           gomobile init -ndk /opt/android/sdk/ndk-bundle
           gomobile bind -ldflags "-w" -v -target=android -o mobile.aar github.com/textileio/textile-go/mobile
     - run:
-        name: build obj c protobuf bindings
+        name: build java protobuf bindings
         command: |
             mkdir protobuf_gen
             protoc --proto_path=./pb/protos --java_out=./protobuf_gen ./pb/protos/*
