@@ -1025,7 +1025,10 @@ loop:
 			if r, ok := value.(*pb.CafePubSubContactQueryResult); ok && r.Id == psId {
 				res.Contacts = append(res.Contacts, r.Contacts...)
 				if query.Lucky || len(res.Contacts) >= int(query.Limit) {
-					timer.Stop()
+					if timer.Stop() {
+						listener.Close()
+						close(doneCh)
+					}
 				}
 			}
 		}
