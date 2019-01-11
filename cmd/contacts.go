@@ -8,6 +8,7 @@ import (
 
 var errMissingPeerId = errors.New("missing peer id")
 var errMissingPeerAddress = errors.New("missing peer address")
+var errMissingSearchInfo = errors.New("missing search info")
 
 func init() {
 	register(&contactsCmd{})
@@ -38,9 +39,11 @@ type lsContactsCmd struct {
 }
 
 func (x *lsContactsCmd) Usage() string {
-	return `List known contacts.
-	
-	Include the --thread flag to list contacts for a given thread.`
+	return `
+
+List known contacts.
+
+Include the --thread flag to list contacts for a given thread.`
 }
 
 func (x *lsContactsCmd) Execute(args []string) error {
@@ -63,7 +66,9 @@ type getContactsCmd struct {
 }
 
 func (x *getContactsCmd) Usage() string {
-	return `Get contact information.`
+	return `
+
+Get contact information.`
 }
 
 func (x *getContactsCmd) Execute(args []string) error {
@@ -82,13 +87,15 @@ func (x *getContactsCmd) Execute(args []string) error {
 
 type addContactsCmd struct {
 	Client   ClientOptions `group:"Client Options"`
-	Username string        `short:"n" long:"username" description:"New contact's username. Omit to use peer id."`
+	Username string        `short:"u" long:"username" description:"New contact's username. Omit to use peer id."`
 }
 
 func (x *addContactsCmd) Usage() string {
-	return `Add a new contact.
-	
-	Use the --username flag to specify a username.`
+	return `
+
+Add a new contact.
+
+Use the --username flag to specify a username.`
 }
 
 func (x *addContactsCmd) Execute(args []string) error {
@@ -114,21 +121,23 @@ func (x *addContactsCmd) Execute(args []string) error {
 
 type findContactsCmd struct {
 	Client   ClientOptions `group:"Client Options"`
-	Username string        `short:"n" long:"username" description:"A username to use in the search."`
+	Username string        `short:"u" long:"username" description:"A username to use in the search."`
 	Peer     string        `short:"p" long:"peer" description:"A Peer ID use in the search."`
 	Address  string        `short:"a" long:"address" description:"An account address to use in the search."`
 }
 
 func (x *findContactsCmd) Usage() string {
-	return `Find contact information.`
+	return `
+
+Find contact information.`
 }
 
 func (x *findContactsCmd) Execute(args []string) error {
 	setApi(x.Client)
-	if len(args) == 0 {
-		return errMissingPeerId
+	if x.Username == "" && x.Peer == "" && x.Address == "" {
+		return errMissingSearchInfo
 	}
-	var infos []core.FindContactInfoResult
+	var infos core.FindContactInfoResult
 	res, err := executeJsonCmd(POST, "contacts/search", params{
 		opts: map[string]string{
 			"username": x.Username,
