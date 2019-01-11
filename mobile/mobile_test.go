@@ -9,7 +9,7 @@ import (
 	"time"
 
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/segmentio/ksuid"
@@ -92,10 +92,6 @@ func TestMigrateRepo(t *testing.T) {
 func TestNewTextile(t *testing.T) {
 	config := &RunConfig{
 		RepoPath: repoPath1,
-		LogLevels: `{
-			"tex-core":   "debug",
-			"tex-mobile": "debug"
-		}`,
 	}
 	var err error
 	mobile1, err = NewTextile(config, &TestMessenger{})
@@ -105,16 +101,8 @@ func TestNewTextile(t *testing.T) {
 }
 
 func TestNewTextileAgain(t *testing.T) {
-	logLevels, err := json.Marshal(map[string]string{
-		"tex-core":   "debug",
-		"tex-mobile": "debug",
-	})
-	if err != nil {
-		t.Errorf("unable to marshal test map")
-	}
 	config := &RunConfig{
-		RepoPath:  repoPath1,
-		LogLevels: string(logLevels),
+		RepoPath: repoPath1,
 	}
 	if _, err := NewTextile(config, &TestMessenger{}); err != nil {
 		t.Errorf("create mobile node failed: %s", err)
