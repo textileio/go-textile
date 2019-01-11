@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/textileio/textile-go/repo"
+
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
@@ -442,7 +444,7 @@ func TestMobile_Profile(t *testing.T) {
 		t.Errorf("get profile failed: %s", err)
 		return
 	}
-	prof := core.Profile{}
+	prof := repo.Contact{}
 	if err := json.Unmarshal([]byte(profs), &prof); err != nil {
 		t.Error(err)
 		return

@@ -169,6 +169,11 @@ func (srv *Service) SendHTTPRequest(addr string, pmes *pb.Envelope) (*pb.Envelop
 		return nil, err
 	}
 
+	if rpmes == nil {
+		log.Debugf("no response from %s", addr)
+		return nil, errors.New("no response from peer")
+	}
+
 	log.Debugf("received %s response from %s", rpmes.Message.Type.String(), addr)
 	if err := srv.handleError(rpmes); err != nil {
 		return nil, err
