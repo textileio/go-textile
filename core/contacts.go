@@ -16,17 +16,28 @@ import (
 type ContactInfo struct {
 	Id        string      `json:"id"`
 	Address   string      `json:"address"`
-	Username  string      `json:"username"`
-	Avatar    string      `json:"avatar"`
-	Inboxes   []repo.Cafe `json:"inboxes"`
+	Username  string      `json:"username,omitempty"`
+	Avatar    string      `json:"avatar,omitempty"`
+	Inboxes   []repo.Cafe `json:"inboxes,omitempty"`
 	Added     time.Time   `json:"added"`
-	ThreadIds []string    `json:"thread_ids"`
+	ThreadIds []string    `json:"thread_ids,omitempty"`
 }
 
-// FindContactInfoResult displays info about a contact search result
-type FindContactInfoResult struct {
-	Local  []ContactInfo `json:"local"`
-	Remote []ContactInfo `json:"remote"`
+// ContactInfoQuery describes a contact search query
+type ContactInfoQuery struct {
+	Id       string
+	Address  string
+	Username string
+	Local    bool
+	Lucky    bool
+	Limit    int
+	Wait     int
+}
+
+// ContactInfoQueryResult displays info about a contact search result
+type ContactInfoQueryResult struct {
+	Local  []ContactInfo `json:"local,omitempty"`
+	Remote []ContactInfo `json:"remote,omitempty"`
 }
 
 // AddContact adds a contact for the first time
@@ -123,20 +134,20 @@ func (t *Textile) UpdateContactInboxes() error {
 	return t.datastore.Contacts().UpdateInboxes(t.node.Identity.Pretty(), inboxes)
 }
 
-// FindContactByUsername searches the network for a contact by username
-func (t *Textile) FindContactByUsername(username string) (*FindContactInfoResult, error) {
+// FindContact searches the network for contacts
+func (t *Textile) FindContact(query *ContactInfoQuery) (*ContactInfoQueryResult, error) {
 	sessions := t.datastore.CafeSessions().List()
 	if len(sessions) == 0 {
 		return nil, nil
 	}
 
-	result := &FindContactInfoResult{
+	result := &ContactInfoQueryResult{
 		Local:  make([]ContactInfo, 0),
 		Remote: make([]ContactInfo, 0),
 	}
 
-	// find results already in local contacts
-	for _, c := range t.datastore.Contacts().ListByUsername(username) {
+	// find local contacts
+	for _, c := range t.datastore.Contacts().ListByUsername(query.Username) {
 		i := t.contactInfo(&c)
 		if i != nil {
 			result.Local = append(result.Local, *i)
@@ -144,19 +155,21 @@ func (t *Textile) FindContactByUsername(username string) (*FindContactInfoResult
 	}
 
 	// search the network
-	for _, session := range sessions {
-		pid, err := peer.IDB58Decode(session.Id)
-		if err != nil {
-			return result, err
-		}
-		res, err := t.cafe.FindContactByUsername(username, pid)
-		if err != nil {
-			return result, err
-		}
-		for _, c := range res {
-			i := t.contactInfo(&c)
-			if i != nil {
-				result.Remote = append(result.Remote, *i)
+	if !query.Local {
+		for _, session := range sessions {
+			pid, err := peer.IDB58Decode(session.Id)
+			if err != nil {
+				return result, err
+			}
+			res, err := t.cafe.FindContact(query, pid)
+			if err != nil {
+				return result, err
+			}
+			for _, c := range res {
+				i := t.contactInfo(&c)
+				if i != nil {
+					result.Remote = append(result.Remote, *i)
+				}
 			}
 		}
 	}

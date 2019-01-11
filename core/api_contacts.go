@@ -2,6 +2,7 @@ package core
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -89,7 +90,33 @@ func (a *api) searchContacts(g *gin.Context) {
 		return
 	}
 
-	infos, err := a.node.FindContactByUsername(opts["username"])
+	local, err := strconv.ParseBool(opts["local"])
+	if err != nil {
+		local = false
+	}
+	lucky, err := strconv.ParseBool(opts["lucky"])
+	if err != nil {
+		lucky = false
+	}
+	limit, err := strconv.Atoi(opts["limit"])
+	if err != nil {
+		limit = 5
+	}
+	wait, err := strconv.Atoi(opts["wait"])
+	if err != nil {
+		wait = 5
+	}
+	query := &ContactInfoQuery{
+		Id:       opts["peer"],
+		Address:  opts["address"],
+		Username: opts["username"],
+		Local:    local,
+		Lucky:    lucky,
+		Limit:    limit,
+		Wait:     wait,
+	}
+
+	infos, err := a.node.FindContact(query)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

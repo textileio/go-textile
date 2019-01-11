@@ -44,14 +44,17 @@ message CafePublishContactAck {
     string id = 1;
 }
 
-message CafeFindContact {
+message CafeContactQuery {
     string token        = 1;
     string findId       = 2;
     string findAddress  = 3;
     string findUsername = 4;
+    bool lucky          = 5;
+    int32 limit         = 6;
+    int32 wait          = 7;
 }
 
-message CafeFindContactResult {
+message CafeContactQueryResult {
     repeated Contact contacts = 1;
 }
 
