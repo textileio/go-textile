@@ -126,7 +126,6 @@ type findContactsCmd struct {
 	Peer     string        `short:"p" long:"peer" description:"A Peer ID use in the search."`
 	Address  string        `short:"a" long:"address" description:"An account address to use in the search."`
 	Local    bool          `long:"local" description:"Only search local contacts."`
-	Lucky    bool          `long:"lucky" description:"Stop searching when a single result is found."`
 	Limit    int           `long:"limit" description:"Stops searching after limit results are found." default:"5"`
 	Wait     int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed." default:"5"`
 }
@@ -149,7 +148,6 @@ func (x *findContactsCmd) Execute(args []string) error {
 			"peer":     x.Peer,
 			"address":  x.Address,
 			"local":    strconv.FormatBool(x.Local),
-			"lucky":    strconv.FormatBool(x.Lucky),
 			"limit":    strconv.Itoa(x.Limit),
 			"wait":     strconv.Itoa(x.Wait),
 		},

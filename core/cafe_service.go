@@ -140,7 +140,6 @@ func (h *CafeService) FindContact(query *ContactInfoQuery, cafe peer.ID) ([]repo
 			FindId:       query.Id,
 			FindAddress:  query.Address,
 			FindUsername: query.Username,
-			Lucky:        query.Lucky,
 			Limit:        int32(query.Limit),
 			Wait:         int32(query.Wait),
 		}, nil, false)
@@ -1024,7 +1023,7 @@ loop:
 			}
 			if r, ok := value.(*pb.CafePubSubContactQueryResult); ok && r.Id == psId {
 				res.Contacts = append(res.Contacts, r.Contacts...)
-				if query.Lucky || len(res.Contacts) >= int(query.Limit) {
+				if len(res.Contacts) >= int(query.Limit) {
 					if timer.Stop() {
 						listener.Close()
 						close(doneCh)

@@ -29,7 +29,6 @@ type ContactInfoQuery struct {
 	Address  string
 	Username string
 	Local    bool
-	Lucky    bool
 	Limit    int
 	Wait     int
 }

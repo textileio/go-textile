@@ -94,10 +94,6 @@ func (a *api) searchContacts(g *gin.Context) {
 	if err != nil {
 		local = false
 	}
-	lucky, err := strconv.ParseBool(opts["lucky"])
-	if err != nil {
-		lucky = false
-	}
 	limit, err := strconv.Atoi(opts["limit"])
 	if err != nil {
 		limit = 5
@@ -111,7 +107,6 @@ func (a *api) searchContacts(g *gin.Context) {
 		Address:  opts["address"],
 		Username: opts["username"],
 		Local:    local,
-		Lucky:    lucky,
 		Limit:    limit,
 		Wait:     wait,
 	}

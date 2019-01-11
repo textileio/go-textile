@@ -49,9 +49,8 @@ message CafeContactQuery {
     string findId       = 2;
     string findAddress  = 3;
     string findUsername = 4;
-    bool lucky          = 5;
-    int32 limit         = 6;
-    int32 wait          = 7;
+    int32 limit         = 5;
+    int32 wait          = 6;
 }
 
 message CafeContactQueryResult {
