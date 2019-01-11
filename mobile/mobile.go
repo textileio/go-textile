@@ -144,7 +144,9 @@ func (m *Mobile) SetLogLevels(logLevelsString string, files bool) error {
 			return err
 		}
 	}
-	m.node.SetLogLevels(logLevels, files)
+	if err := m.node.SetLogLevels(logLevels, files); err != nil {
+		return err
+	}
 	return nil
 }
 

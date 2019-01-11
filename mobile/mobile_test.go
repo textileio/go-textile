@@ -109,6 +109,19 @@ func TestNewTextileAgain(t *testing.T) {
 	}
 }
 
+func TestSetLogLevels(t *testing.T) {
+	logLevels, err := json.Marshal(map[string]string{
+		"tex-core":   "debug",
+		"tex-mobile": "debug",
+	})
+	if err != nil {
+		t.Errorf("unable to marshal test map")
+	}
+	if err := mobile1.SetLogLevels(string(logLevels), true); err != nil {
+		t.Errorf("attempt to set log levels failed: %s", err)
+	}
+}
+
 func TestMobile_Start(t *testing.T) {
 	if err := mobile1.Start(); err != nil {
 		t.Errorf("start mobile node failed: %s", err)

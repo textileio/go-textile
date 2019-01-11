@@ -636,7 +636,7 @@ func (t *Textile) touchDatastore() error {
 }
 
 // SetLogLevels hijacks the ipfs logging system, putting output to files
-func (t *Textile) SetLogLevels(logLevels map[string]string, files bool) {
+func (t *Textile) SetLogLevels(logLevels map[string]string, files bool) error {
 	var writer io.Writer
 	if files {
 		writer = &lumberjack.Logger{
@@ -655,9 +655,11 @@ func (t *Textile) SetLogLevels(logLevels map[string]string, files bool) {
 	for key, value := range logLevels {
 		if err := logging.SetLogLevel(key, value); err != nil {
 			log.Errorf("error: %s (%s)", err, key)
+			return err
 		}
 	}
 	t.writer = writer
+	return nil
 }
 
 // removeLocks force deletes the IPFS repo and SQLite DB lock files
