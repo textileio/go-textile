@@ -51,6 +51,7 @@ type ContactStore interface {
 	Get(id string) *Contact
 	List() []Contact
 	ListByAddress(address string) []Contact
+	ListByUsername(username string) []Contact
 	Count() int
 	UpdateUsername(id string, username string) error
 	UpdateAvatar(id string, avatar string) error

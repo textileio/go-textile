@@ -25,6 +25,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/textileio/textile-go/crypto"
+	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/util"
@@ -431,6 +432,63 @@ func (srv *Service) handleNewMessage(s inet.Stream) {
 			s.Reset()
 			log.Errorf("send response error: %s", err)
 			return
+		}
+	}
+}
+
+// listen subscribes to the protocol tag for network-wide requests
+func (srv *Service) listen() error {
+	msgs, err := ipfs.Subscribe(srv.Node(), string(srv.handler.Protocol()))
+	if err != nil {
+		return err
+	}
+
+	for {
+		select {
+		case msg, ok := <-msgs:
+			if !ok {
+				return nil
+			}
+
+			mPeer := msg.From()
+			pmes := new(pb.Envelope)
+			if err := proto.Unmarshal(msg.Data(), pmes); err != nil {
+				log.Errorf("error unmarshaling pubsub message data from %s: %s", mPeer.Pretty(), err)
+				continue
+			}
+
+			if err := srv.VerifyEnvelope(pmes, mPeer); err != nil {
+				log.Warningf("error verifying message: %s", err)
+				continue
+			}
+
+			// try a core handler for this msg type
+			handler := srv.handleCore(pmes.Message.Type)
+			if handler == nil {
+				// get service specific handler
+				handler = srv.handler.Handle
+			}
+
+			log.Debugf("received pubsub %s from %s", pmes.Message.Type.String(), mPeer.Pretty())
+			rpmes, err := handler(mPeer, pmes)
+			if err != nil {
+				log.Errorf("%s handle message error: %s", pmes.Message.Type.String(), err)
+				continue
+			}
+
+			// if nil response, return it before serializing
+			if rpmes == nil {
+				continue
+			}
+
+			// send out response msg
+			log.Debugf("responding with %s to %s", rpmes.Message.Type.String(), mPeer.Pretty())
+
+			ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+			if err := srv.SendMessage(ctx, mPeer, rpmes); err != nil {
+				log.Errorf("error sending message response to %s: %s", mPeer, err)
+			}
+			cancel()
 		}
 	}
 }

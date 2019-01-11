@@ -14,9 +14,10 @@ func init() {
 }
 
 type contactsCmd struct {
-	Ls  lsContactsCmd  `command:"ls" description:"List known contacts"`
-	Get getContactsCmd `command:"get" description:"Get contact information"`
-	Add addContactsCmd `command:"add" description:"Add a new contact"`
+	Ls   lsContactsCmd   `command:"ls" description:"List known contacts"`
+	Get  getContactsCmd  `command:"get" description:"Get contact information"`
+	Add  addContactsCmd  `command:"add" description:"Add a new contact"`
+	Find findContactsCmd `command:"find" description:"Find a contact on the network"`
 }
 
 func (x *contactsCmd) Name() string {
@@ -104,6 +105,37 @@ func (x *addContactsCmd) Execute(args []string) error {
 			"username": x.Username,
 		},
 	}, &info)
+	if err != nil {
+		return err
+	}
+	output(res)
+	return nil
+}
+
+type findContactsCmd struct {
+	Client   ClientOptions `group:"Client Options"`
+	Username string        `short:"n" long:"username" description:"A username to use in the search."`
+	Peer     string        `short:"p" long:"peer" description:"A Peer ID use in the search."`
+	Address  string        `short:"a" long:"address" description:"An account address to use in the search."`
+}
+
+func (x *findContactsCmd) Usage() string {
+	return `Find contact information.`
+}
+
+func (x *findContactsCmd) Execute(args []string) error {
+	setApi(x.Client)
+	if len(args) == 0 {
+		return errMissingPeerId
+	}
+	var infos []core.FindContactInfoResult
+	res, err := executeJsonCmd(POST, "contacts/search", params{
+		opts: map[string]string{
+			"username": x.Username,
+			"peer":     x.Peer,
+			"address":  x.Address,
+		},
+	}, &infos)
 	if err != nil {
 		return err
 	}

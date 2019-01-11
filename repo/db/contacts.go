@@ -112,6 +112,12 @@ func (c *ContactDB) ListByAddress(address string) []repo.Contact {
 	return c.handleQuery("select * from contacts where address='" + address + "' order by added desc;")
 }
 
+func (c *ContactDB) ListByUsername(username string) []repo.Contact {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	return c.handleQuery("select * from contacts where username='" + username + "' order by added desc;")
+}
+
 func (c *ContactDB) Count() int {
 	c.lock.Lock()
 	defer c.lock.Unlock()

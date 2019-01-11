@@ -104,8 +104,8 @@ func (h *CafeService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error
 		return h.handleNotifyClient(pid, env)
 	case pb.Message_CAFE_PUBLISH_CONTACT:
 		return h.handlePublishContact(pid, env)
-	case pb.Message_CAFE_CONTACT_SEARCH:
-		return h.handleContactSearch(pid, env)
+	case pb.Message_CAFE_FIND_CONTACT:
+		return h.handleFindContact(pid, env)
 	default:
 		return nil, nil
 	}
@@ -145,6 +145,34 @@ func (h *CafeService) PublishContact(contact *repo.Contact, cafe peer.ID) error 
 		return err
 	}
 	return nil
+}
+
+// FindContactByUsername asks a cafe for a contact match by username
+func (h *CafeService) FindContactByUsername(username string, cafe peer.ID) ([]repo.Contact, error) {
+	if _, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
+		return h.service.NewEnvelope(pb.Message_CAFE_FIND_CONTACT, &pb.CafeFindContact{
+			Token:    session.Access,
+			Username: username,
+		}, nil, false)
+	}); err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
+// PublishFindContactByUsername relays a client find contact request to the whole network
+func (h *CafeService) PublishFindContactByUsername(username string, forContact *pb.Contact) error {
+	search := &pb.CafeFindContact{Username: username}
+	env, err := h.service.NewEnvelope(pb.Message_CAFE_FIND_CONTACT, search, nil, false)
+	if err != nil {
+		return err
+	}
+
+	payload, err := proto.Marshal(env)
+	if err != nil {
+		return err
+	}
+	return ipfs.Publish(h.service.Node(), string(cafeServiceProtocol), payload)
 }
 
 // Register creates a session with a cafe
@@ -946,13 +974,27 @@ func (h *CafeService) handlePublishContact(pid peer.ID, env *pb.Envelope) (*pb.E
 		return nil, err
 	}
 
-	res := &pb.CafePublishContactAck{}
+	res := &pb.CafePublishContactAck{
+		Id: pub.Contact.Id,
+	}
 	return h.service.NewEnvelope(pb.Message_CAFE_PUBLISH_CONTACT_ACK, res, &env.Message.RequestId, true)
 }
 
-// handleContactSearch searches the cafe network for a contact by username
-func (h *CafeService) handleContactSearch(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	return nil, nil
+// handleFindContact searches the local contact index for a match
+func (h *CafeService) handleFindContact(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	search := new(pb.CafeFindContact)
+	if err := ptypes.UnmarshalAny(env.Message.Payload, search); err != nil {
+		return nil, err
+	}
+
+	res := &pb.CafeFindContactResult{}
+	if search.Username != "" {
+		for _, c := range h.datastore.Contacts().ListByUsername(search.Username) {
+			res.Contacts = append(res.Contacts, repoContactToProto(&c))
+		}
+	}
+
+	return h.service.NewEnvelope(pb.Message_CAFE_FIND_CONTACT_RESULT, res, &env.Message.RequestId, true)
 }
 
 // authToken verifies a request token from a peer

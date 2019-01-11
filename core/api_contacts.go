@@ -68,8 +68,7 @@ func (a *api) addContacts(g *gin.Context) {
 	}
 
 	id := args[0]
-	err = a.node.AddContact(id, args[1], opts["username"])
-	if err != nil {
+	if err := a.node.AddContact(id, args[1], opts["username"]); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
@@ -81,5 +80,20 @@ func (a *api) addContacts(g *gin.Context) {
 	}
 
 	g.JSON(http.StatusCreated, info)
+}
 
+func (a *api) searchContacts(g *gin.Context) {
+	opts, err := a.readOpts(g)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+
+	infos, err := a.node.FindContactByUsername(opts["username"])
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	g.JSON(http.StatusOK, infos)
 }
