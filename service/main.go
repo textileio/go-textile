@@ -16,6 +16,7 @@ import (
 	"gx/ipfs/QmTKsRYeY4simJyf37K93juSq75Lo8MVCDJ7owjmf46u8W/go-context/io"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core"
+	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface"
 	inet "gx/ipfs/QmXuRkCR7BNQa9uqfpTiFWsTQLzmTWYg91Ja1w95gnqb6u/go-libp2p-net"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
@@ -75,9 +76,10 @@ func NewService(account *keypair.Full, handler Handler, node func() *core.IpfsNo
 	}
 }
 
-// SetHandler sets the peer host stream handler
-func (srv *Service) SetHandler() {
+// Start sets the peer host stream handler
+func (srv *Service) Start() {
 	srv.Node().PeerHost.SetStreamHandler(srv.handler.Protocol(), srv.handleNewStream)
+	go srv.listen()
 	log.Debugf("registered service: %s", srv.handler.Protocol())
 }
 
@@ -437,17 +439,25 @@ func (srv *Service) handleNewMessage(s inet.Stream) {
 }
 
 // listen subscribes to the protocol tag for network-wide requests
-func (srv *Service) listen() error {
-	msgs, err := ipfs.Subscribe(srv.Node(), string(srv.handler.Protocol()))
-	if err != nil {
-		return err
-	}
+func (srv *Service) listen() {
+	msgs := make(chan iface.PubSubMessage, 10)
+	go func() {
+		if err := ipfs.Subscribe(srv.Node(), string(srv.handler.Protocol()), msgs); err != nil {
+			close(msgs)
+			log.Errorf("pubsub service listener stopped with error: %s")
+			return
+		}
+	}()
+	log.Infof("pubsub service listener started for %s", string(srv.handler.Protocol()))
 
 	for {
 		select {
+		// end loop on context close
+		case <-srv.Node().Context().Done():
+			return
 		case msg, ok := <-msgs:
 			if !ok {
-				return nil
+				return
 			}
 
 			mPeer := msg.From()

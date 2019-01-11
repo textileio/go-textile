@@ -106,30 +106,12 @@ func (h *CafeService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error
 		return h.handlePublishContact(pid, env)
 	case pb.Message_CAFE_FIND_CONTACT:
 		return h.handleFindContact(pid, env)
+	case pb.Message_CAFE_PUBSUB_CONTACT_REQ:
+		return h.handlePubSubContactRequest(pid, env)
+	case pb.Message_CAFE_PUBSUB_CONTACT_RES:
+		return h.handlePubSubContactResponse(pid, env)
 	default:
 		return nil, nil
-	}
-}
-
-// Listen subscribes to the protocol tag for network-wide requests
-func (h *CafeService) Listen() error {
-	msgs, err := ipfs.Subscribe(h.service.Node(), string(cafeServiceProtocol))
-	if err != nil {
-		return err
-	}
-
-	for {
-		select {
-		case msg, ok := <-msgs:
-			if !ok {
-				return nil
-			}
-			fmt.Println(string(msg.Data()))
-			//switch msg.Type {
-			//case ...:
-			//	break
-			//}
-		}
 	}
 }
 
@@ -151,8 +133,8 @@ func (h *CafeService) PublishContact(contact *repo.Contact, cafe peer.ID) error 
 func (h *CafeService) FindContactByUsername(username string, cafe peer.ID) ([]repo.Contact, error) {
 	if _, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_FIND_CONTACT, &pb.CafeFindContact{
-			Token:    session.Access,
-			Username: username,
+			Token:        session.Access,
+			FindUsername: username,
 		}, nil, false)
 	}); err != nil {
 		return nil, err
@@ -160,10 +142,9 @@ func (h *CafeService) FindContactByUsername(username string, cafe peer.ID) ([]re
 	return nil, nil
 }
 
-// PublishFindContactByUsername relays a client find contact request to the whole network
-func (h *CafeService) PublishFindContactByUsername(username string, forContact *pb.Contact) error {
-	search := &pb.CafeFindContact{Username: username}
-	env, err := h.service.NewEnvelope(pb.Message_CAFE_FIND_CONTACT, search, nil, false)
+// PublishContactRequest publishes a contact request to the network
+func (h *CafeService) PublishContactRequest(req *pb.CafePubSubContactRequest) error {
+	env, err := h.service.NewEnvelope(pb.Message_CAFE_PUBSUB_CONTACT_REQ, req, nil, false)
 	if err != nil {
 		return err
 	}
@@ -988,13 +969,69 @@ func (h *CafeService) handleFindContact(pid peer.ID, env *pb.Envelope) (*pb.Enve
 	}
 
 	res := &pb.CafeFindContactResult{}
-	if search.Username != "" {
-		for _, c := range h.datastore.Contacts().ListByUsername(search.Username) {
+	if search.FindUsername != "" {
+		// look up local results
+		for _, c := range h.datastore.Contacts().ListByUsername(search.FindUsername) {
+			res.Contacts = append(res.Contacts, repoContactToProto(&c))
+		}
+
+		// request network results
+		preq := &pb.CafePubSubContactRequest{
+			Id:           ksuid.New().String(),
+			FindId:       search.FindId,
+			FindUsername: search.FindUsername,
+			FindAddress:  search.FindAddress,
+		}
+		if err := h.PublishContactRequest(preq); err != nil {
+			return nil, err
+		}
+	}
+
+	// todo, wait for results for t time
+
+	return h.service.NewEnvelope(pb.Message_CAFE_FIND_CONTACT_RES, res, &env.Message.RequestId, true)
+}
+
+// handlePubSubContactRequest receives a contact request over pubsub and responds with a direct message
+func (h *CafeService) handlePubSubContactRequest(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	req := new(pb.CafePubSubContactRequest)
+	if err := ptypes.UnmarshalAny(env.Message.Payload, req); err != nil {
+		return nil, err
+	}
+
+	// return local results, if any
+	res := &pb.CafePubSubContactResult{
+		Id: req.Id,
+	}
+	if req.FindUsername != "" {
+		for _, c := range h.datastore.Contacts().ListByUsername(req.FindUsername) {
 			res.Contacts = append(res.Contacts, repoContactToProto(&c))
 		}
 	}
 
-	return h.service.NewEnvelope(pb.Message_CAFE_FIND_CONTACT_RESULT, res, &env.Message.RequestId, true)
+	if len(res.Contacts) == 0 {
+		return nil, nil
+	}
+
+	return h.service.NewEnvelope(pb.Message_CAFE_PUBSUB_CONTACT_RES, res, nil, false)
+}
+
+// handlePubSubContactResponse handles direct contact request results
+func (h *CafeService) handlePubSubContactResponse(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	res := new(pb.CafePubSubContactResult)
+	if err := ptypes.UnmarshalAny(env.Message.Payload, res); err != nil {
+		return nil, err
+	}
+
+	for _, r := range res.Contacts {
+		if r != nil {
+			fmt.Println("--- got one ---")
+			fmt.Println(r.Id)
+			fmt.Println("---------------")
+		}
+	}
+
+	return nil, nil
 }
 
 // authToken verifies a request token from a peer

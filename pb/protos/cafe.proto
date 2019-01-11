@@ -46,10 +46,9 @@ message CafePublishContactAck {
 
 message CafeFindContact {
     string token        = 1;
-    Contact recipient   = 2;
-    string findId       = 3;
-    string findAddress  = 4;
-    string findUsername = 5;
+    string findId       = 2;
+    string findAddress  = 3;
+    string findUsername = 4;
 }
 
 message CafeFindContactResult {

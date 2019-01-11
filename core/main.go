@@ -291,10 +291,10 @@ func (t *Textile) Start() error {
 			return
 		}
 
-		t.threads.service.SetHandler()
+		t.threads.service.Start()
 		t.threads.online = true
 
-		t.cafe.service.SetHandler()
+		t.cafe.service.Start()
 		t.cafe.online = true
 
 		if t.config.Cafe.Host.Open {
@@ -306,11 +306,6 @@ func (t *Textile) Start() error {
 			}
 
 			t.cafe.open = true
-			go func() {
-				if err := t.cafe.Listen(); err != nil {
-					log.Errorf("error listening for contacts %s", err)
-				}
-			}()
 			t.startCafeApi(t.config.Addresses.CafeAPI)
 		}
 

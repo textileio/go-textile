@@ -279,23 +279,21 @@ func Publish(node *core.IpfsNode, topic string, data []byte) error {
 }
 
 // Subscribe subscribes to a topic
-func Subscribe(node *core.IpfsNode, topic string) (<-chan iface.PubSubMessage, error) {
+func Subscribe(node *core.IpfsNode, topic string, msgs chan iface.PubSubMessage) error {
 	api := coreapi.NewCoreAPI(node)
 	sub, err := api.PubSub().Subscribe(node.Context(), topic)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer sub.Close()
 
-	msgs := make(chan iface.PubSubMessage, 10)
 	for {
 		msg, err := sub.Next(node.Context())
 		if err == io.EOF || err == context.Canceled {
-			return nil, nil
+			return nil
 		} else if err != nil {
-			return nil, err
+			return err
 		}
-
 		msgs <- msg
 	}
 }
