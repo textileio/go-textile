@@ -111,8 +111,8 @@ func TestNewTextileAgain(t *testing.T) {
 
 func TestSetLogLevels(t *testing.T) {
 	logLevels, err := json.Marshal(map[string]string{
-		"tex-core":   "debug",
-		"tex-mobile": "debug",
+		"tex-core":      "DEBUG",
+		"tex-datastore": "DEBUG",
 	})
 	if err != nil {
 		t.Errorf("unable to marshal test map")
