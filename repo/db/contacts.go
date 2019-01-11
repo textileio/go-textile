@@ -121,6 +121,31 @@ func (c *ContactDB) Count() int {
 	return count
 }
 
+func (c *ContactDB) UpdateUsername(id string, username string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("update contacts set username=? where id=?", username, id)
+	return err
+}
+
+func (c *ContactDB) UpdateAvatar(id string, avatar string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("update contacts set avatar=? where id=?", avatar, id)
+	return err
+}
+
+func (c *ContactDB) UpdateInboxes(id string, inboxes []repo.Cafe) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	inboxesb, err := json.Marshal(inboxes)
+	if err != nil {
+		return err
+	}
+	_, err = c.db.Exec("update contacts set inboxes=? where id=?", inboxesb, id)
+	return err
+}
+
 func (c *ContactDB) Delete(id string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()

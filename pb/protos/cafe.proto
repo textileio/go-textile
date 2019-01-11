@@ -2,16 +2,7 @@ syntax = "proto3";
 option go_package = "pb";
 
 import "google/protobuf/timestamp.proto";
-
-message Cafe {
-    string peer           = 1;
-    string address        = 2;
-    string api            = 3;
-    string protocol       = 4;
-    string node           = 5;
-    string url            = 6;
-    repeated string swarm = 7;
-}
+import "model.proto";
 
 message CafeChallenge {
     string address = 1;
@@ -44,24 +35,24 @@ message CafeRefreshSession {
     string refresh = 2;
 }
 
-message CafeContact {
-    string token                    = 1;
-    string address                  = 2;
-    string username                 = 3;
-    string avatar                   = 4;
-    repeated Cafe inboxes           = 5;
-    google.protobuf.Timestamp added = 6;
+message CafePublishContact {
+    string token    = 1;
+    Contact contact = 2;
 }
 
-message CafeContactAck {}
+message CafePublishContactAck {
+    string id = 1;
+}
 
 message CafeContactSearch {
     string token    = 1;
-    string address  = 2;
+    string id       = 2;
     string username = 3;
 }
 
-message CafeContactSearchResult {}
+message CafeContactSearchResult {
+    repeated Contact contacts = 1;
+}
 
 message CafeStore {
     string token         = 1;

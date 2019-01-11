@@ -56,16 +56,14 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 	}
 
 	// update author info
-	pid, err := peer.IDB58Decode(block.Header.Author)
-	if err != nil {
-		return nil, err
-	}
-	inboxes := make([]repo.Cafe, 0)
-	for _, i := range msg.Inboxes {
-		inboxes = append(inboxes, protoCafeToModel(*i))
-	}
-	if err := t.addOrUpdatePeer(pid, block.Header.Address, msg.Username, inboxes); err != nil {
-		return nil, err
+	if msg.Contact != nil {
+		pid, err := peer.IDB58Decode(block.Header.Author)
+		if err != nil {
+			return nil, err
+		}
+		if err := t.addOrUpdatePeer(pid, protoContactToModel(msg.Contact)); err != nil {
+			return nil, err
+		}
 	}
 
 	return msg, nil
@@ -74,15 +72,9 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 // buildAnnounce builds up a Announce block
 func (t *Thread) buildAnnounce() (*pb.ThreadAnnounce, error) {
 	msg := &pb.ThreadAnnounce{}
-	username, err := t.datastore.Profile().GetUsername()
-	if err != nil {
-		return nil, err
-	}
-	if username != nil {
-		msg.Username = *username
-	}
-	for _, ses := range t.datastore.CafeSessions().List() {
-		msg.Inboxes = append(msg.Inboxes, repoCafeToProto(ses.Cafe))
+	contact := t.datastore.Contacts().Get(t.node().Identity.Pretty())
+	if contact != nil {
+		msg.Contact = repoContactToProto(contact)
 	}
 	return msg, nil
 }

@@ -328,7 +328,7 @@ func (t *Thread) followParent(parent mh.Multihash) error {
 
 // addOrUpdatePeer collects thread peers, saving them as contacts and
 // saving their cafe inboxes for offline message delivery
-func (t *Thread) addOrUpdatePeer(pid peer.ID, address string, username string, inboxes []repo.Cafe) error {
+func (t *Thread) addOrUpdatePeer(pid peer.ID, contact *repo.Contact) error {
 	if err := t.datastore.ThreadPeers().Add(&repo.ThreadPeer{
 		Id:       pid.Pretty(),
 		ThreadId: t.Id,
@@ -339,13 +339,7 @@ func (t *Thread) addOrUpdatePeer(pid peer.ID, address string, username string, i
 		}
 	}
 
-	return t.datastore.Contacts().AddOrUpdate(&repo.Contact{
-		Id:       pid.Pretty(),
-		Address:  address,
-		Username: username,
-		Inboxes:  inboxes,
-		Added:    time.Now(),
-	})
+	return t.datastore.Contacts().AddOrUpdate(contact)
 }
 
 // newBlockHeader creates a new header
@@ -618,13 +612,6 @@ func (t *Thread) pushUpdate(index BlockInfo) {
 
 // contactUsername returns the username for the peer id if known
 func (t *Thread) contactUsername(id string) string {
-	if id == t.node().Identity.Pretty() {
-		username, err := t.datastore.Profile().GetUsername()
-		if err == nil && username != nil && *username != "" {
-			return *username
-		}
-		return ipfs.ShortenID(id)
-	}
 	contact := t.datastore.Contacts().Get(id)
 	if contact == nil {
 		return ipfs.ShortenID(id)

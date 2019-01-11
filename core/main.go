@@ -172,6 +172,19 @@ func InitRepo(conf InitConfig) error {
 		return err
 	}
 
+	// add self as a contact
+	ipfsConf, err := rep.Config()
+	if err != nil {
+		return err
+	}
+	if err := sqliteDb.Contacts().Add(&repo.Contact{
+		Id:      ipfsConf.Identity.PeerID,
+		Address: conf.Account.Address(),
+		Added:   time.Now(),
+	}); err != nil {
+		return err
+	}
+
 	return applyTextileConfigOptions(conf)
 }
 

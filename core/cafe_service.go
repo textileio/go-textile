@@ -134,24 +134,12 @@ func (h *CafeService) Listen() error {
 }
 
 // PublishContact publishes the local peer's contact info
-func (h *CafeService) PublishContact(contact repo.Contact, cafe peer.ID) error {
+func (h *CafeService) PublishContact(contact *repo.Contact, cafe peer.ID) error {
 	//return ipfs.Publish(h.service.Node(), string(cafeServiceProtocol), []byte(hash))
 	if _, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
-		var inboxes []*pb.Cafe
-		for _, i := range contact.Inboxes {
-			inboxes = append(inboxes, repoCafeToProto(i))
-		}
-		added, err := ptypes.TimestampProto(contact.Added)
-		if err != nil {
-			return nil, err
-		}
-		return h.service.NewEnvelope(pb.Message_CAFE_PUBLISH_CONTACT, &pb.CafeContact{
-			Token:    session.Access,
-			Address:  contact.Address,
-			Username: contact.Username,
-			Avatar:   contact.Avatar,
-			Inboxes:  inboxes,
-			Added:    added,
+		return h.service.NewEnvelope(pb.Message_CAFE_PUBLISH_CONTACT, &pb.CafePublishContact{
+			Token:   session.Access,
+			Contact: repoContactToProto(contact),
 		}, nil, false)
 	}); err != nil {
 		return err
@@ -488,7 +476,7 @@ func (h *CafeService) refresh(session *repo.CafeSession) (*repo.CafeSession, err
 		Access:  res.Access,
 		Refresh: res.Refresh,
 		Expiry:  exp,
-		Cafe:    protoCafeToModel(*res.Cafe),
+		Cafe:    protoCafeToModel(res.Cafe),
 	}
 	if err := h.datastore.CafeSessions().AddOrUpdate(refreshed); err != nil {
 		return nil, err
@@ -936,12 +924,12 @@ func (h *CafeService) handleNotifyClient(pid peer.ID, env *pb.Envelope) (*pb.Env
 
 // handlePublishContact indexes a client's contact info for others to search
 func (h *CafeService) handlePublishContact(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	contact := new(pb.CafeContact)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, contact); err != nil {
+	pub := new(pb.CafePublishContact)
+	if err := ptypes.UnmarshalAny(env.Message.Payload, pub); err != nil {
 		return nil, err
 	}
 
-	rerr, err := h.authToken(pid, contact.Token, false, env.Message.RequestId)
+	rerr, err := h.authToken(pid, pub.Token, false, env.Message.RequestId)
 	if err != nil {
 		return nil, err
 	}
@@ -954,9 +942,11 @@ func (h *CafeService) handlePublishContact(pid peer.ID, env *pb.Envelope) (*pb.E
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
 
-	// TODO: save to db
+	if err := h.datastore.Contacts().AddOrUpdate(protoContactToModel(pub.Contact)); err != nil {
+		return nil, err
+	}
 
-	res := &pb.CafeContactAck{}
+	res := &pb.CafePublishContactAck{}
 	return h.service.NewEnvelope(pb.Message_CAFE_PUBLISH_CONTACT_ACK, res, &env.Message.RequestId, true)
 }
 
@@ -1016,31 +1006,5 @@ func (h *CafeService) setAddrs(conf *config.Config, swarmPorts config.SwarmPorts
 		Node:     Version,
 		URL:      url,
 		Swarm:    swarm,
-	}
-}
-
-// protoCafeToModel is a tmp method just converting proto cafe info to the repo version
-func protoCafeToModel(pro pb.Cafe) repo.Cafe {
-	return repo.Cafe{
-		Peer:     pro.Peer,
-		Address:  pro.Address,
-		API:      pro.Api,
-		Protocol: pro.Protocol,
-		Node:     pro.Node,
-		URL:      pro.Url,
-		Swarm:    pro.Swarm,
-	}
-}
-
-// repoCafeToProto is a tmp method just converting repo cafe info to the proto version
-func repoCafeToProto(rep repo.Cafe) *pb.Cafe {
-	return &pb.Cafe{
-		Peer:     rep.Peer,
-		Address:  rep.Address,
-		Api:      rep.API,
-		Protocol: rep.Protocol,
-		Node:     rep.Node,
-		Url:      rep.URL,
-		Swarm:    rep.Swarm,
 	}
 }

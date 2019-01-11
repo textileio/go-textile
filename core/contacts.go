@@ -3,6 +3,11 @@ package core
 import (
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
+	"github.com/textileio/textile-go/pb"
+
+	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/repo"
 )
@@ -12,6 +17,7 @@ type ContactInfo struct {
 	Id        string      `json:"id"`
 	Address   string      `json:"address"`
 	Username  string      `json:"username"`
+	Avatar    string      `json:"avatar"`
 	Inboxes   []repo.Cafe `json:"inboxes"`
 	Added     time.Time   `json:"added"`
 	ThreadIds []string    `json:"thread_ids"`
@@ -36,14 +42,15 @@ func (t *Textile) Contact(id string) *ContactInfo {
 	}
 
 	threads := make([]string, 0)
-	for _, peer := range t.datastore.ThreadPeers().ListById(id) {
-		threads = append(threads, peer.ThreadId)
+	for _, p := range t.datastore.ThreadPeers().ListById(id) {
+		threads = append(threads, p.ThreadId)
 	}
 
 	return &ContactInfo{
 		Id:        model.Id,
 		Address:   model.Address,
 		Username:  toUsername(model),
+		Avatar:    model.Avatar,
 		Inboxes:   model.Inboxes,
 		Added:     model.Added,
 		ThreadIds: threads,
@@ -54,17 +61,22 @@ func (t *Textile) Contact(id string) *ContactInfo {
 func (t *Textile) Contacts() ([]ContactInfo, error) {
 	contacts := make([]ContactInfo, 0)
 
+	self := t.node.Identity.Pretty()
 	for _, model := range t.datastore.Contacts().List() {
+		if model.Id == self {
+			continue
+		}
 
 		threads := make([]string, 0)
-		for _, peer := range t.datastore.ThreadPeers().ListById(model.Id) {
-			threads = append(threads, peer.ThreadId)
+		for _, p := range t.datastore.ThreadPeers().ListById(model.Id) {
+			threads = append(threads, p.ThreadId)
 		}
 
 		contacts = append(contacts, ContactInfo{
 			Id:        model.Id,
 			Address:   model.Address,
 			Username:  toUsername(&model),
+			Avatar:    model.Avatar,
 			Inboxes:   model.Inboxes,
 			Added:     model.Added,
 			ThreadIds: threads,
@@ -76,13 +88,6 @@ func (t *Textile) Contacts() ([]ContactInfo, error) {
 
 // ContactUsername returns the username for the peer id if known
 func (t *Textile) ContactUsername(id string) string {
-	if id == t.node.Identity.Pretty() {
-		username, err := t.Username()
-		if err == nil && username != nil && *username != "" {
-			return *username
-		}
-		return ipfs.ShortenID(id)
-	}
 	contact := t.datastore.Contacts().Get(id)
 	if contact == nil {
 		return ipfs.ShortenID(id)
@@ -98,8 +103,8 @@ func (t *Textile) ContactThreads(id string) ([]ThreadInfo, error) {
 	}
 
 	var infos []ThreadInfo
-	for _, peer := range peers {
-		info, err := t.ThreadInfo(peer.ThreadId)
+	for _, p := range peers {
+		info, err := t.ThreadInfo(p.ThreadId)
 		if err != nil {
 			return nil, err
 		}
@@ -107,6 +112,38 @@ func (t *Textile) ContactThreads(id string) ([]ThreadInfo, error) {
 	}
 
 	return infos, nil
+}
+
+// PublishContact publishes this peer's contact info to the cafe network
+func (t *Textile) PublishContact() error {
+	self := t.datastore.Contacts().Get(t.node.Identity.Pretty())
+	if self == nil {
+		return nil
+	}
+
+	sessions := t.datastore.CafeSessions().List()
+	if len(sessions) == 0 {
+		return nil
+	}
+	for _, session := range sessions {
+		pid, err := peer.IDB58Decode(session.Id)
+		if err != nil {
+			return err
+		}
+		if err := t.cafe.PublishContact(self, pid); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// UpdateContactInboxes sets this node's own contact's inboxes from the current cafe sessions
+func (t *Textile) UpdateContactInboxes() error {
+	var inboxes []repo.Cafe
+	for _, session := range t.datastore.CafeSessions().List() {
+		inboxes = append(inboxes, session.Cafe)
+	}
+	return t.datastore.Contacts().UpdateInboxes(t.node.Identity.Pretty(), inboxes)
 }
 
 // toUsername returns a contact's username or trimmed peer id
@@ -121,4 +158,46 @@ func toUsername(contact *repo.Contact) string {
 		return contact.Id[len(contact.Id)-7:]
 	}
 	return ""
+}
+
+// protoContactToModel is a tmp method just converting proto contact to the repo version
+func protoContactToModel(pro *pb.Contact) *repo.Contact {
+	if pro == nil {
+		return nil
+	}
+	var inboxes []repo.Cafe
+	for _, i := range pro.Inboxes {
+		if i != nil {
+			inboxes = append(inboxes, protoCafeToModel(i))
+		}
+	}
+	added, _ := ptypes.Timestamp(pro.Added)
+	return &repo.Contact{
+		Id:       pro.Id,
+		Address:  pro.Address,
+		Username: pro.Username,
+		Avatar:   pro.Avatar,
+		Inboxes:  inboxes,
+		Added:    added,
+	}
+}
+
+// repoContactToProto is a tmp method just converting repo contact to the proto version
+func repoContactToProto(rep *repo.Contact) *pb.Contact {
+	if rep == nil {
+		return nil
+	}
+	var inboxes []*pb.Cafe
+	for _, i := range rep.Inboxes {
+		inboxes = append(inboxes, repoCafeToProto(i))
+	}
+	added, _ := ptypes.TimestampProto(rep.Added)
+	return &pb.Contact{
+		Id:       rep.Id,
+		Address:  rep.Address,
+		Username: rep.Username,
+		Avatar:   rep.Avatar,
+		Inboxes:  inboxes,
+		Added:    added,
+	}
 }
