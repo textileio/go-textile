@@ -81,7 +81,7 @@ func (c *ContactDB) AddOrUpdate(contact *repo.Contact) error {
 		contact.Avatar,
 		inboxes,
 		contact.Id,
-		int(contact.Created.Unix()),
+		int(contact.Created.UnixNano()),
 		int(time.Now().UnixNano()),
 	)
 	if err != nil {
@@ -212,7 +212,7 @@ func (c *ContactDB) handleQuery(stm string) []repo.Contact {
 			Username: username,
 			Avatar:   avatar,
 			Inboxes:  ilist,
-			Created:  time.Unix(int64(createdInt), 0),
+			Created:  time.Unix(0, int64(createdInt)),
 			Updated:  time.Unix(0, int64(updatedInt)),
 		})
 	}
