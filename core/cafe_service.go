@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	njwt "github.com/dgrijalva/jwt-go"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/ipfs"
@@ -133,7 +135,7 @@ func (h *CafeService) PublishContact(contact *repo.Contact, cafe peer.ID) error 
 }
 
 // FindContactByUsername asks a cafe for a contact match by username
-func (h *CafeService) FindContact(query *ContactInfoQuery, cafe peer.ID) ([]repo.Contact, error) {
+func (h *CafeService) FindContact(query *ContactInfoQuery, cafe peer.ID) ([]*pb.Contact, error) {
 	renv, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_CONTACT_QUERY, &pb.CafeContactQuery{
 			Token:        session.Access,
@@ -153,14 +155,7 @@ func (h *CafeService) FindContact(query *ContactInfoQuery, cafe peer.ID) ([]repo
 		return nil, err
 	}
 
-	var found []repo.Contact
-	for _, c := range res.Contacts {
-		contact := protoContactToModel(c)
-		if contact != nil {
-			found = append(found, *contact)
-		}
-	}
-	return found, nil
+	return res.Contacts, nil
 }
 
 // PublishContactRequest publishes a contact request to the network
@@ -984,11 +979,9 @@ func (h *CafeService) handleContactQuery(pid peer.ID, env *pb.Envelope) (*pb.Env
 	psId := ksuid.New().String()
 	res := &pb.CafeContactQueryResult{}
 
-	if query.FindUsername != "" {
-		// look up local results
-		for _, c := range h.datastore.Contacts().ListByUsername(query.FindUsername) {
-			res.Contacts = append(res.Contacts, repoContactToProto(&c))
-		}
+	// search local
+	for _, c := range h.datastore.Contacts().Find(query.FindId, query.FindAddress, query.FindUsername) {
+		res.Contacts = append(res.Contacts, repoContactToProto(&c))
 	}
 
 	// request network results
@@ -1022,7 +1015,7 @@ loop:
 				break loop
 			}
 			if r, ok := value.(*pb.CafePubSubContactQueryResult); ok && r.Id == psId {
-				res.Contacts = append(res.Contacts, r.Contacts...)
+				res.Contacts = deduplicateContactResults(append(res.Contacts, r.Contacts...))
 				if len(res.Contacts) >= int(query.Limit) {
 					if timer.Stop() {
 						listener.Close()
@@ -1038,19 +1031,17 @@ loop:
 
 // handlePubSubContactQuery receives a contact request over pubsub and responds with a direct message
 func (h *CafeService) handlePubSubContactQuery(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	req := new(pb.CafePubSubContactQuery)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, req); err != nil {
+	query := new(pb.CafePubSubContactQuery)
+	if err := ptypes.UnmarshalAny(env.Message.Payload, query); err != nil {
 		return nil, err
 	}
 
 	// return local results, if any
 	res := &pb.CafePubSubContactQueryResult{
-		Id: req.Id,
+		Id: query.Id,
 	}
-	if req.FindUsername != "" {
-		for _, c := range h.datastore.Contacts().ListByUsername(req.FindUsername) {
-			res.Contacts = append(res.Contacts, repoContactToProto(&c))
-		}
+	for _, c := range h.datastore.Contacts().Find(query.FindId, query.FindAddress, query.FindUsername) {
+		res.Contacts = append(res.Contacts, repoContactToProto(&c))
 	}
 
 	if len(res.Contacts) == 0 {
@@ -1123,4 +1114,30 @@ func (h *CafeService) setAddrs(conf *config.Config, swarmPorts config.SwarmPorts
 		URL:      url,
 		Swarm:    swarm,
 	}
+}
+
+// deduplicateContactResults remove duplicates based on Contact.Id,
+// keeping the most recently updated version.
+// https://github.com/golang/go/wiki/SliceTricks#in-place-deduplicate-comparable
+func deduplicateContactResults(in []*pb.Contact) []*pb.Contact {
+	sort.Slice(in, func(i, j int) bool {
+		return protoTimeToNano(in[i].Updated) > protoTimeToNano(in[j].Updated)
+	})
+	j := 0
+	for i := 1; i < len(in); i++ {
+		if in[j].Id == in[i].Id {
+			continue
+		}
+		j++
+		// preserve the original data
+		// in[i], in[j] = in[j], in[i]
+		// only set what is required
+		in[j] = in[i]
+	}
+	return in[:j+1]
+}
+
+// protoTimeToNano returns nano secs from a proto time object
+func protoTimeToNano(t *timestamp.Timestamp) int {
+	return int(t.Nanos) + int(t.Seconds*1e9)
 }

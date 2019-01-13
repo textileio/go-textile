@@ -108,6 +108,29 @@ func (c *ContactDB) List() []repo.Contact {
 	return c.handleQuery("select * from contacts order by username asc;")
 }
 
+func (c *ContactDB) Find(id string, address string, username string) []repo.Contact {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if id != "" {
+		return c.handleQuery("select * from contacts where id='" + id + "';")
+	}
+	if address == "" && username == "" {
+		return nil
+	}
+	stm := "select * from contacts where"
+	if address != "" {
+		stm += " address='" + address + "'"
+		if username != "" {
+			stm += " and"
+		}
+	}
+	if username != "" {
+		stm += " username='" + username + "'"
+	}
+	stm += " order by updated desc;"
+	return c.handleQuery(stm)
+}
+
 func (c *ContactDB) ListByAddress(address string) []repo.Contact {
 	c.lock.Lock()
 	defer c.lock.Unlock()

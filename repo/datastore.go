@@ -50,6 +50,7 @@ type ContactStore interface {
 	AddOrUpdate(contact *Contact) error
 	Get(id string) *Contact
 	List() []Contact
+	Find(id string, address string, username string) []Contact
 	ListByAddress(address string) []Contact
 	ListByUsername(username string) []Contact
 	Count() int

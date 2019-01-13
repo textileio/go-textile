@@ -51,7 +51,7 @@ func (t *Textile) AddContact(id string, address string, username string) error {
 
 // Contact looks up a contact by peer id
 func (t *Textile) Contact(id string) *ContactInfo {
-	return t.contactInfo(t.datastore.Contacts().Get(id))
+	return t.contactInfo(t.datastore.Contacts().Get(id), true)
 }
 
 // Contacts returns all contacts this peer has interacted with
@@ -63,7 +63,7 @@ func (t *Textile) Contacts() ([]ContactInfo, error) {
 		if model.Id == self {
 			continue
 		}
-		info := t.contactInfo(t.datastore.Contacts().Get(model.Id))
+		info := t.contactInfo(t.datastore.Contacts().Get(model.Id), true)
 		if info != nil {
 			contacts = append(contacts, *info)
 		}
@@ -144,9 +144,9 @@ func (t *Textile) FindContact(query *ContactInfoQuery) (*ContactInfoQueryResult,
 		Remote: make([]ContactInfo, 0),
 	}
 
-	// find local contacts
-	for _, c := range t.datastore.Contacts().ListByUsername(query.Username) {
-		i := t.contactInfo(&c)
+	// search local
+	for _, c := range t.datastore.Contacts().Find(query.Id, query.Address, query.Username) {
+		i := t.contactInfo(&c, true)
 		if i != nil {
 			result.Local = append(result.Local, *i)
 		}
@@ -154,6 +154,8 @@ func (t *Textile) FindContact(query *ContactInfoQuery) (*ContactInfoQueryResult,
 
 	// search the network
 	if !query.Local {
+		// TODO: do this in parallel
+		var inbound []*pb.Contact
 		for _, session := range sessions {
 			pid, err := peer.IDB58Decode(session.Id)
 			if err != nil {
@@ -163,11 +165,13 @@ func (t *Textile) FindContact(query *ContactInfoQuery) (*ContactInfoQueryResult,
 			if err != nil {
 				return result, err
 			}
-			for _, c := range res {
-				i := t.contactInfo(&c)
-				if i != nil {
-					result.Remote = append(result.Remote, *i)
-				}
+			inbound = deduplicateContactResults(append(inbound, res...))
+		}
+
+		for _, c := range inbound {
+			i := t.contactInfo(protoContactToModel(c), false)
+			if i != nil {
+				result.Remote = append(result.Remote, *i)
 			}
 		}
 	}
@@ -176,14 +180,17 @@ func (t *Textile) FindContact(query *ContactInfoQuery) (*ContactInfoQueryResult,
 }
 
 // contactInfo expands a contact into a more detailed view
-func (t *Textile) contactInfo(model *repo.Contact) *ContactInfo {
+func (t *Textile) contactInfo(model *repo.Contact, addThreads bool) *ContactInfo {
 	if model == nil {
 		return nil
 	}
 
-	threads := make([]string, 0)
-	for _, p := range t.datastore.ThreadPeers().ListById(model.Id) {
-		threads = append(threads, p.ThreadId)
+	var threads []string
+	if addThreads {
+		threads = make([]string, 0)
+		for _, p := range t.datastore.ThreadPeers().ListById(model.Id) {
+			threads = append(threads, p.ThreadId)
+		}
 	}
 
 	return &ContactInfo{
