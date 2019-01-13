@@ -169,7 +169,8 @@ type Contact struct {
 	Username string    `json:"username,omitempty"`
 	Avatar   string    `json:"avatar,omitempty"`
 	Inboxes  []Cafe    `json:"inboxes,omitempty"`
-	Added    time.Time `json:"added"`
+	Created  time.Time `json:"created"`
+	Updated  time.Time `json:"updated"`
 }
 
 type Notification struct {

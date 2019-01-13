@@ -5,12 +5,13 @@ import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
 
 message Contact {
-    string id                       = 1;
-    string address                  = 2;
-    string username                 = 3;
-    string avatar                   = 4;
-    repeated Cafe inboxes           = 5;
-    google.protobuf.Timestamp added = 6;
+    string id                         = 1;
+    string address                    = 2;
+    string username                   = 3;
+    string avatar                     = 4;
+    repeated Cafe inboxes             = 5;
+    google.protobuf.Timestamp created = 6;
+    google.protobuf.Timestamp updated = 7;
 }
 
 message File {

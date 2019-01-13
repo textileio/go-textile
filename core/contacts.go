@@ -3,12 +3,11 @@ package core
 import (
 	"time"
 
-	"github.com/golang/protobuf/ptypes"
-	"github.com/textileio/textile-go/pb"
-
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -19,7 +18,8 @@ type ContactInfo struct {
 	Username  string      `json:"username,omitempty"`
 	Avatar    string      `json:"avatar,omitempty"`
 	Inboxes   []repo.Cafe `json:"inboxes,omitempty"`
-	Added     time.Time   `json:"added"`
+	Created   time.Time   `json:"created"`
+	Updated   time.Time   `json:"updated"`
 	ThreadIds []string    `json:"thread_ids,omitempty"`
 }
 
@@ -46,7 +46,6 @@ func (t *Textile) AddContact(id string, address string, username string) error {
 		Id:       id,
 		Address:  address,
 		Username: username,
-		Added:    time.Now(),
 	})
 }
 
@@ -193,7 +192,8 @@ func (t *Textile) contactInfo(model *repo.Contact) *ContactInfo {
 		Username:  toUsername(model),
 		Avatar:    model.Avatar,
 		Inboxes:   model.Inboxes,
-		Added:     model.Added,
+		Created:   model.Created,
+		Updated:   model.Updated,
 		ThreadIds: threads,
 	}
 }
@@ -223,14 +223,22 @@ func protoContactToModel(pro *pb.Contact) *repo.Contact {
 			inboxes = append(inboxes, protoCafeToModel(i))
 		}
 	}
-	added, _ := ptypes.Timestamp(pro.Added)
+	created, err := ptypes.Timestamp(pro.Created)
+	if err != nil {
+		created = time.Now()
+	}
+	updated, err := ptypes.Timestamp(pro.Updated)
+	if err != nil {
+		updated = time.Now()
+	}
 	return &repo.Contact{
 		Id:       pro.Id,
 		Address:  pro.Address,
 		Username: pro.Username,
 		Avatar:   pro.Avatar,
 		Inboxes:  inboxes,
-		Added:    added,
+		Created:  created,
+		Updated:  updated,
 	}
 }
 
@@ -243,13 +251,21 @@ func repoContactToProto(rep *repo.Contact) *pb.Contact {
 	for _, i := range rep.Inboxes {
 		inboxes = append(inboxes, repoCafeToProto(i))
 	}
-	added, _ := ptypes.TimestampProto(rep.Added)
+	created, err := ptypes.TimestampProto(rep.Created)
+	if err != nil {
+		created = ptypes.TimestampNow()
+	}
+	updated, err := ptypes.TimestampProto(rep.Updated)
+	if err != nil {
+		updated = ptypes.TimestampNow()
+	}
 	return &pb.Contact{
 		Id:       rep.Id,
 		Address:  rep.Address,
 		Username: rep.Username,
 		Avatar:   rep.Avatar,
 		Inboxes:  inboxes,
-		Added:    added,
+		Created:  created,
+		Updated:  updated,
 	}
 }

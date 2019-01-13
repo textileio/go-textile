@@ -180,7 +180,6 @@ func InitRepo(conf InitConfig) error {
 	if err := sqliteDb.Contacts().Add(&repo.Contact{
 		Id:      ipfsConf.Identity.PeerID,
 		Address: conf.Account.Address(),
-		Added:   time.Now(),
 	}); err != nil {
 		return err
 	}
