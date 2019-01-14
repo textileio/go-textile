@@ -3,6 +3,9 @@ package core
 import (
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
+	"github.com/textileio/textile-go/pb"
+
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/repo"
 )
@@ -121,4 +124,62 @@ func toUsername(contact *repo.Contact) string {
 		return contact.Id[len(contact.Id)-7:]
 	}
 	return ""
+}
+
+// protoContactToModel is a tmp method just converting proto contact to the repo version
+func protoContactToModel(pro *pb.Contact) *repo.Contact {
+	if pro == nil {
+		return nil
+	}
+	var inboxes []repo.Cafe
+	for _, i := range pro.Inboxes {
+		if i != nil {
+			inboxes = append(inboxes, protoCafeToModel(i))
+		}
+	}
+	created, err := ptypes.Timestamp(pro.Created)
+	if err != nil {
+		created = time.Now()
+	}
+	updated, err := ptypes.Timestamp(pro.Updated)
+	if err != nil {
+		updated = time.Now()
+	}
+	return &repo.Contact{
+		Id:       pro.Id,
+		Address:  pro.Address,
+		Username: pro.Username,
+		Avatar:   pro.Avatar,
+		Inboxes:  inboxes,
+		Created:  created,
+		Updated:  updated,
+	}
+}
+
+// repoContactToProto is a tmp method just converting repo contact to the proto version
+func repoContactToProto(rep *repo.Contact) *pb.Contact {
+	if rep == nil {
+		return nil
+	}
+	var inboxes []*pb.Cafe
+	for _, i := range rep.Inboxes {
+		inboxes = append(inboxes, repoCafeToProto(i))
+	}
+	created, err := ptypes.TimestampProto(rep.Created)
+	if err != nil {
+		created = ptypes.TimestampNow()
+	}
+	updated, err := ptypes.TimestampProto(rep.Updated)
+	if err != nil {
+		updated = ptypes.TimestampNow()
+	}
+	return &pb.Contact{
+		Id:       rep.Id,
+		Address:  rep.Address,
+		Username: rep.Username,
+		Avatar:   rep.Avatar,
+		Inboxes:  inboxes,
+		Created:  created,
+		Updated:  updated,
+	}
 }

@@ -328,7 +328,7 @@ func (t *Thread) followParent(parent mh.Multihash) error {
 
 // addOrUpdatePeer collects thread peers, saving them as contacts and
 // saving their cafe inboxes for offline message delivery
-func (t *Thread) addOrUpdatePeer(pid peer.ID, address string, username string, inboxes []repo.Cafe) error {
+func (t *Thread) addOrUpdatePeer(pid peer.ID, contact *repo.Contact) error {
 	if err := t.datastore.ThreadPeers().Add(&repo.ThreadPeer{
 		Id:       pid.Pretty(),
 		ThreadId: t.Id,
@@ -339,12 +339,7 @@ func (t *Thread) addOrUpdatePeer(pid peer.ID, address string, username string, i
 		}
 	}
 
-	return t.datastore.Contacts().AddOrUpdate(&repo.Contact{
-		Id:       pid.Pretty(),
-		Address:  address,
-		Username: username,
-		Inboxes:  inboxes,
-	})
+	return t.datastore.Contacts().AddOrUpdate(contact)
 }
 
 // newBlockHeader creates a new header
@@ -644,30 +639,4 @@ func loadSchema(node *core.IpfsNode, id string) (*schema.Node, error) {
 		return nil, err
 	}
 	return &sch, nil
-}
-
-// protoCafeToModel is a tmp method just converting proto cafe info to the repo version
-func protoCafeToModel(pro pb.Cafe) repo.Cafe {
-	return repo.Cafe{
-		Peer:     pro.Peer,
-		Address:  pro.Address,
-		API:      pro.Api,
-		Protocol: pro.Protocol,
-		Node:     pro.Node,
-		URL:      pro.Url,
-		Swarm:    pro.Swarm,
-	}
-}
-
-// repoCafeToProto is a tmp method just converting repo cafe info to the proto version
-func repoCafeToProto(rep repo.Cafe) *pb.Cafe {
-	return &pb.Cafe{
-		Peer:     rep.Peer,
-		Address:  rep.Address,
-		Api:      rep.API,
-		Protocol: rep.Protocol,
-		Node:     rep.Node,
-		Url:      rep.URL,
-		Swarm:    rep.Swarm,
-	}
 }
