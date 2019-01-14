@@ -24,7 +24,7 @@ func (c *ContactDB) Add(contact *repo.Contact) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into contacts(id, address, username, inboxes, added) values(?,?,?,?,?)`
+	stm := `insert into contacts(id, address, username, avatar, inboxes, created, updated) values(?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -41,8 +41,10 @@ func (c *ContactDB) Add(contact *repo.Contact) error {
 		contact.Id,
 		contact.Address,
 		contact.Username,
+		contact.Avatar,
 		inboxes,
-		int(contact.Added.Unix()),
+		int(time.Now().UnixNano()),
+		int(time.Now().UnixNano()),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -59,7 +61,7 @@ func (c *ContactDB) AddOrUpdate(contact *repo.Contact) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert or replace into contacts(id, address, username, inboxes, added) values(?,?,?,?,coalesce((select added from contacts where id=?),?))`
+	stm := `insert or replace into contacts(id, address, username, avatar, inboxes, created, updated) values(?,?,?,?,?,coalesce((select created from contacts where id=?),?),?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -76,9 +78,11 @@ func (c *ContactDB) AddOrUpdate(contact *repo.Contact) error {
 		contact.Id,
 		contact.Address,
 		contact.Username,
+		contact.Avatar,
 		inboxes,
 		contact.Id,
-		int(contact.Added.Unix()),
+		int(contact.Created.UnixNano()),
+		int(time.Now().UnixNano()),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -101,13 +105,42 @@ func (c *ContactDB) Get(id string) *repo.Contact {
 func (c *ContactDB) List() []repo.Contact {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	return c.handleQuery("select * from contacts order by added desc;")
+	return c.handleQuery("select * from contacts order by username asc;")
+}
+
+func (c *ContactDB) Find(id string, address string, username string) []repo.Contact {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if id != "" {
+		return c.handleQuery("select * from contacts where id='" + id + "';")
+	}
+	if address == "" && username == "" {
+		return nil
+	}
+	stm := "select * from contacts where"
+	if address != "" {
+		stm += " address='" + address + "'"
+		if username != "" {
+			stm += " and"
+		}
+	}
+	if username != "" {
+		stm += " username='" + username + "'"
+	}
+	stm += " order by updated desc;"
+	return c.handleQuery(stm)
 }
 
 func (c *ContactDB) ListByAddress(address string) []repo.Contact {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	return c.handleQuery("select * from contacts where address='" + address + "' order by added desc;")
+	return c.handleQuery("select * from contacts where address='" + address + "' order by updated desc;")
+}
+
+func (c *ContactDB) ListByUsername(username string) []repo.Contact {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	return c.handleQuery("select * from contacts where username='" + username + "' order by updated desc;")
 }
 
 func (c *ContactDB) Count() int {
@@ -117,6 +150,31 @@ func (c *ContactDB) Count() int {
 	var count int
 	row.Scan(&count)
 	return count
+}
+
+func (c *ContactDB) UpdateUsername(id string, username string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("update contacts set username=? where id=?", username, id)
+	return err
+}
+
+func (c *ContactDB) UpdateAvatar(id string, avatar string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("update contacts set avatar=? where id=?", avatar, id)
+	return err
+}
+
+func (c *ContactDB) UpdateInboxes(id string, inboxes []repo.Cafe) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	inboxesb, err := json.Marshal(inboxes)
+	if err != nil {
+		return err
+	}
+	_, err = c.db.Exec("update contacts set inboxes=? where id=?", inboxesb, id)
+	return err
 }
 
 func (c *ContactDB) Delete(id string) error {
@@ -134,10 +192,10 @@ func (c *ContactDB) handleQuery(stm string) []repo.Contact {
 		return nil
 	}
 	for rows.Next() {
-		var id, address, username string
+		var id, address, username, avatar string
 		var inboxes []byte
-		var addedInt int
-		if err := rows.Scan(&id, &address, &username, &inboxes, &addedInt); err != nil {
+		var createdInt, updatedInt int
+		if err := rows.Scan(&id, &address, &username, &avatar, &inboxes, &createdInt, &updatedInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -152,8 +210,10 @@ func (c *ContactDB) handleQuery(stm string) []repo.Contact {
 			Id:       id,
 			Address:  address,
 			Username: username,
+			Avatar:   avatar,
 			Inboxes:  ilist,
-			Added:    time.Unix(int64(addedInt), 0),
+			Created:  time.Unix(0, int64(createdInt)),
+			Updated:  time.Unix(0, int64(updatedInt)),
 		})
 	}
 	return ret

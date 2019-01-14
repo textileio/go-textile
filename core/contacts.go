@@ -11,64 +11,38 @@ import (
 type ContactInfo struct {
 	Id        string      `json:"id"`
 	Address   string      `json:"address"`
-	Username  string      `json:"username"`
-	Inboxes   []repo.Cafe `json:"inboxes"`
-	Added     time.Time   `json:"added"`
-	ThreadIds []string    `json:"thread_ids"`
+	Username  string      `json:"username,omitempty"`
+	Avatar    string      `json:"avatar,omitempty"`
+	Inboxes   []repo.Cafe `json:"inboxes,omitempty"`
+	Created   time.Time   `json:"created"`
+	Updated   time.Time   `json:"updated"`
+	ThreadIds []string    `json:"thread_ids,omitempty"`
 }
 
 // AddContact adds a contact for the first time
 // Note: Existing contacts will not be overwritten
-func (t *Textile) AddContact(id string, address string, username string) error {
-	return t.datastore.Contacts().Add(&repo.Contact{
-		Id:       id,
-		Address:  address,
-		Username: username,
-		Added:    time.Now(),
-	})
+func (t *Textile) AddContact(contact *repo.Contact) error {
+	return t.datastore.Contacts().Add(contact)
 }
 
 // Contact looks up a contact by peer id
 func (t *Textile) Contact(id string) *ContactInfo {
-	model := t.datastore.Contacts().Get(id)
-	if model == nil {
-		return nil
-	}
-
-	threads := make([]string, 0)
-	for _, peer := range t.datastore.ThreadPeers().ListById(id) {
-		threads = append(threads, peer.ThreadId)
-	}
-
-	return &ContactInfo{
-		Id:        model.Id,
-		Address:   model.Address,
-		Username:  toUsername(model),
-		Inboxes:   model.Inboxes,
-		Added:     model.Added,
-		ThreadIds: threads,
-	}
+	return t.contactInfo(t.datastore.Contacts().Get(id), true)
 }
 
 // Contacts returns all contacts this peer has interacted with
 func (t *Textile) Contacts() ([]ContactInfo, error) {
 	contacts := make([]ContactInfo, 0)
 
+	self := t.node.Identity.Pretty()
 	for _, model := range t.datastore.Contacts().List() {
-
-		threads := make([]string, 0)
-		for _, peer := range t.datastore.ThreadPeers().ListById(model.Id) {
-			threads = append(threads, peer.ThreadId)
+		if model.Id == self {
+			continue
 		}
-
-		contacts = append(contacts, ContactInfo{
-			Id:        model.Id,
-			Address:   model.Address,
-			Username:  toUsername(&model),
-			Inboxes:   model.Inboxes,
-			Added:     model.Added,
-			ThreadIds: threads,
-		})
+		info := t.contactInfo(t.datastore.Contacts().Get(model.Id), true)
+		if info != nil {
+			contacts = append(contacts, *info)
+		}
 	}
 
 	return contacts, nil
@@ -107,6 +81,32 @@ func (t *Textile) ContactThreads(id string) ([]ThreadInfo, error) {
 	}
 
 	return infos, nil
+}
+
+// contactInfo expands a contact into a more detailed view
+func (t *Textile) contactInfo(model *repo.Contact, addThreads bool) *ContactInfo {
+	if model == nil {
+		return nil
+	}
+
+	var threads []string
+	if addThreads {
+		threads = make([]string, 0)
+		for _, p := range t.datastore.ThreadPeers().ListById(model.Id) {
+			threads = append(threads, p.ThreadId)
+		}
+	}
+
+	return &ContactInfo{
+		Id:        model.Id,
+		Address:   model.Address,
+		Username:  toUsername(model),
+		Avatar:    model.Avatar,
+		Inboxes:   model.Inboxes,
+		Created:   model.Created,
+		Updated:   model.Updated,
+		ThreadIds: threads,
+	}
 }
 
 // toUsername returns a contact's username or trimmed peer id

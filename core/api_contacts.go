@@ -50,36 +50,3 @@ func (a *api) getContacts(g *gin.Context) {
 
 	g.JSON(http.StatusOK, info)
 }
-
-func (a *api) addContacts(g *gin.Context) {
-	args, err := a.readArgs(g)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-	if len(args) < 2 {
-		g.String(http.StatusBadRequest, "missing peer id or address")
-		return
-	}
-	opts, err := a.readOpts(g)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-
-	id := args[0]
-	err = a.node.AddContact(id, args[1], opts["username"])
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	info := a.node.Contact(id)
-	if info == nil {
-		g.String(http.StatusNotFound, "contact not created")
-		return
-	}
-
-	g.JSON(http.StatusCreated, info)
-
-}

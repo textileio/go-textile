@@ -344,7 +344,6 @@ func (t *Thread) addOrUpdatePeer(pid peer.ID, address string, username string, i
 		Address:  address,
 		Username: username,
 		Inboxes:  inboxes,
-		Added:    time.Now(),
 	})
 }
 

@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+
 	"os"
 	"testing"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
 	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/textile-go/repo"
 )
 
 type TestMessenger struct{}
@@ -49,6 +51,21 @@ var dir []byte
 var filesBlock core.BlockInfo
 var files []core.ThreadFilesInfo
 var invite ExternalInvite
+
+var contact = &repo.Contact{
+	Id:       "abcde",
+	Address:  "address1",
+	Username: "joe",
+	Avatar:   "Qm123",
+	Inboxes: []repo.Cafe{{
+		Peer:     "peer",
+		Address:  "address",
+		API:      "v0",
+		Protocol: "/textile/cafe/1.0.0",
+		Node:     "v1.0.0",
+		URL:      "https://mycafe.com",
+	}},
+}
 
 func TestNewWallet(t *testing.T) {
 	var err error
@@ -450,14 +467,24 @@ func TestMobile_Profile(t *testing.T) {
 }
 
 func TestMobile_AddContact(t *testing.T) {
-	if err := mobile1.AddContact("Qm123", "Pabc", "joe"); err != nil {
+	payload, err := json.Marshal(contact)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if err := mobile1.AddContact(string(payload)); err != nil {
 		t.Errorf("add contact failed: %s", err)
 		return
 	}
 }
 
 func TestMobile_AddContactAgain(t *testing.T) {
-	if err := mobile1.AddContact("Qm123", "Pabc", "joe"); err == nil {
+	payload, err := json.Marshal(contact)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if err := mobile1.AddContact(string(payload)); err == nil {
 		t.Errorf("adding duplicate contact should throw error")
 		return
 	}
