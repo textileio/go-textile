@@ -2,8 +2,8 @@ package mobile
 
 import (
 	"encoding/json"
+	"errors"
 
-	"github.com/pkg/errors"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
 )
@@ -24,7 +24,10 @@ func (m *Mobile) Contact(id string) (string, error) {
 		return "", core.ErrStopped
 	}
 
-	contact := m.node.Contact(id)
+	contact, err := m.node.Contact(id)
+	if err != nil {
+		return "", err
+	}
 	if contact != nil {
 		return toJSON(contact)
 	}

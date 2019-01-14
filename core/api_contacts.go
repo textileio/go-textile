@@ -27,7 +27,11 @@ func (a *api) lsContacts(g *gin.Context) {
 		}
 		contacts = make([]ContactInfo, 0)
 		for _, p := range thrd.Peers() {
-			contact := a.node.Contact(p.Id)
+			contact, err := a.node.Contact(p.Id)
+			if err != nil {
+				a.abort500(g, err)
+				return
+			}
 			if contact != nil {
 				contacts = append(contacts, *contact)
 			}
@@ -42,7 +46,11 @@ func (a *api) lsContacts(g *gin.Context) {
 func (a *api) getContacts(g *gin.Context) {
 	id := g.Param("id")
 
-	info := a.node.Contact(id)
+	info, err := a.node.Contact(id)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
 	if info == nil {
 		g.String(http.StatusNotFound, "contact not found")
 		return

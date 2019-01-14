@@ -1,6 +1,7 @@
 package core
 
 import (
+	"strings"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -29,8 +30,26 @@ func (t *Textile) AddContact(contact *repo.Contact) error {
 }
 
 // Contact looks up a contact by peer id
-func (t *Textile) Contact(id string) *ContactInfo {
-	return t.contactInfo(t.datastore.Contacts().Get(id), true)
+func (t *Textile) Contact(id string) (*ContactInfo, error) {
+	self := t.node.Identity.Pretty()
+	if id == self {
+		prof, err := t.Profile(t.node.Identity)
+		if err != nil || prof == nil {
+			return nil, err
+		}
+
+		return &ContactInfo{
+			Id:       self,
+			Address:  prof.Address,
+			Username: prof.Username,
+			Avatar:   strings.Replace(prof.AvatarUri, "/ipfs/", "", 1),
+			Inboxes:  prof.Inboxes,
+			Created:  time.Now(),
+			Updated:  time.Now(),
+		}, nil
+	}
+
+	return t.contactInfo(t.datastore.Contacts().Get(id), true), nil
 }
 
 // Contacts returns all contacts this peer has interacted with
