@@ -127,7 +127,11 @@ func (a *api) peersThreads(g *gin.Context) {
 
 	contacts := make([]ContactInfo, 0)
 	for _, p := range thrd.Peers() {
-		contact := a.node.Contact(p.Id)
+		contact, err := a.node.Contact(p.Id)
+		if err != nil {
+			a.abort500(g, err)
+			return
+		}
 		if contact != nil {
 			contacts = append(contacts, *contact)
 		}
