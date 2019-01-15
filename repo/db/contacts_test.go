@@ -71,14 +71,14 @@ func TestContactDB_AddOrUpdate(t *testing.T) {
 	}
 	defer stmt.Close()
 	var username string
-	var updated int
+	var updated int64
 	if err := stmt.QueryRow("abcde").Scan(&username, &updated); err != nil {
 		t.Error(err)
 	}
 	if username != "joe" {
 		t.Errorf(`expected "joe" got %s`, username)
 	}
-	old := int(testContact.Updated.UnixNano())
+	old := testContact.Updated.UnixNano()
 	if updated <= old {
 		t.Errorf("updated was not updated (old: %d, new: %d)", old, updated)
 	}

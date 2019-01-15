@@ -33,7 +33,7 @@ func (c *NotificationDB) Add(notification *repo.Notification) error {
 	defer stmt.Close()
 	_, err = stmt.Exec(
 		notification.Id,
-		int(notification.Date.UnixNano()),
+		notification.Date.UnixNano(),
 		notification.ActorId,
 		notification.Subject,
 		notification.SubjectId,
@@ -133,7 +133,8 @@ func (c *NotificationDB) handleQuery(stm string) []repo.Notification {
 	}
 	for rows.Next() {
 		var id, actorId, subject, subjectId, blockId, target, body string
-		var dateInt, typeInt, readInt int
+		var dateInt int64
+		var typeInt, readInt int
 		if err := rows.Scan(&id, &dateInt, &actorId, &subject, &subjectId, &blockId, &target, &typeInt, &body, &readInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
@@ -144,7 +145,7 @@ func (c *NotificationDB) handleQuery(stm string) []repo.Notification {
 		}
 		ret = append(ret, repo.Notification{
 			Id:        id,
-			Date:      time.Unix(0, int64(dateInt)),
+			Date:      time.Unix(0, dateInt),
 			ActorId:   actorId,
 			Subject:   subject,
 			SubjectId: subjectId,
