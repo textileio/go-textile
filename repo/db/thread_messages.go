@@ -42,7 +42,7 @@ func (c *ThreadMessageDB) Add(msg *repo.ThreadMessage) error {
 		msg.Id,
 		msg.PeerId,
 		env,
-		int(msg.Date.UnixNano()),
+		msg.Date.UnixNano(),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -80,7 +80,7 @@ func (c *ThreadMessageDB) handleQuery(stm string) []repo.ThreadMessage {
 	}
 	for rows.Next() {
 		var id, peerId string
-		var dateInt int
+		var dateInt int64
 		var envelopeb []byte
 		if err := rows.Scan(&id, &peerId, &envelopeb, &dateInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
@@ -96,7 +96,7 @@ func (c *ThreadMessageDB) handleQuery(stm string) []repo.ThreadMessage {
 			Id:       id,
 			PeerId:   peerId,
 			Envelope: env,
-			Date:     time.Unix(0, int64(dateInt)),
+			Date:     time.Unix(0, dateInt),
 		})
 	}
 	return ret
