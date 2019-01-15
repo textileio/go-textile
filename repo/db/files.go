@@ -58,7 +58,7 @@ func (c *FileDB) Add(file *repo.File) error {
 		file.Media,
 		file.Name,
 		file.Size,
-		int(file.Added.Unix()),
+		file.Added.UnixNano(),
 		meta,
 		targets,
 	)
@@ -178,7 +178,8 @@ func (c *FileDB) handleQuery(stm string) []repo.File {
 	}
 	for rows.Next() {
 		var mill, checksum, source, opts, hash, key, media, name string
-		var size, addedInt int
+		var size int
+		var addedInt int64
 		var metab []byte
 		var targets *string
 
@@ -214,7 +215,7 @@ func (c *FileDB) handleQuery(stm string) []repo.File {
 			Media:    media,
 			Name:     name,
 			Size:     size,
-			Added:    time.Unix(int64(addedInt), 0),
+			Added:    time.Unix(0, addedInt),
 			Meta:     meta,
 			Targets:  tlist,
 		})

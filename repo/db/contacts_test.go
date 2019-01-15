@@ -4,12 +4,13 @@ import (
 	"database/sql"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/textileio/textile-go/repo"
 )
 
 var contactStore repo.ContactStore
+
+var testContact *repo.Contact
 
 func init() {
 	setupContactDB()
@@ -22,23 +23,30 @@ func setupContactDB() {
 }
 
 func TestContactDB_Add(t *testing.T) {
-	err := contactStore.Add(&repo.Contact{
+	if err := contactStore.Add(&repo.Contact{
 		Id:      "abcde",
 		Address: "address",
-		Added:   time.Now(),
-	})
-	if err != nil {
+	}); err != nil {
 		t.Error(err)
 	}
 	stmt, err := contactStore.PrepareQuery("select id from contacts where id=?")
+	if err != nil {
+		t.Error(err)
+	}
 	defer stmt.Close()
 	var id string
-	err = stmt.QueryRow("abcde").Scan(&id)
-	if err != nil {
+	if err := stmt.QueryRow("abcde").Scan(&id); err != nil {
 		t.Error(err)
 	}
 	if id != "abcde" {
 		t.Errorf(`expected "abcde" got %s`, id)
+	}
+}
+
+func TestContactDB_Get(t *testing.T) {
+	testContact = contactStore.Get("abcde")
+	if testContact == nil {
+		t.Error("could not get contact")
 	}
 }
 
@@ -51,32 +59,28 @@ func TestContactDB_AddOrUpdate(t *testing.T) {
 		Node:     "v1.0.0",
 		URL:      "https://mycafe.com",
 	}
-	err := contactStore.AddOrUpdate(&repo.Contact{
-		Id:       "abcde",
-		Address:  "address",
-		Username: "joe",
-		Inboxes:  []repo.Cafe{cafe},
-		Added:    time.Now(),
-	})
+	testContact.Username = "joe"
+	testContact.Avatar = "Qm123"
+	testContact.Inboxes = []repo.Cafe{cafe}
+	if err := contactStore.AddOrUpdate(testContact); err != nil {
+		t.Error(err)
+	}
+	stmt, err := contactStore.PrepareQuery("select username, updated from contacts where id=?")
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := contactStore.PrepareQuery("select username from contacts where id=?")
 	defer stmt.Close()
 	var username string
-	err = stmt.QueryRow("abcde").Scan(&username)
-	if err != nil {
+	var updated int64
+	if err := stmt.QueryRow("abcde").Scan(&username, &updated); err != nil {
 		t.Error(err)
 	}
 	if username != "joe" {
 		t.Errorf(`expected "joe" got %s`, username)
 	}
-}
-
-func TestContactDB_Get(t *testing.T) {
-	block := contactStore.Get("abcde")
-	if block == nil {
-		t.Error("could not get contact")
+	old := testContact.Updated.UnixNano()
+	if updated <= old {
+		t.Errorf("updated was not updated (old: %d, new: %d)", old, updated)
 	}
 }
 
@@ -90,24 +94,22 @@ func TestContactDB_List(t *testing.T) {
 		Node:     "v1.0.0",
 		URL:      "https://mycafe.com",
 	}
-	err := contactStore.Add(&repo.Contact{
+	if err := contactStore.Add(&repo.Contact{
 		Id:       "abcde",
 		Address:  "address1",
 		Username: "joe",
+		Avatar:   "Qm123",
 		Inboxes:  []repo.Cafe{cafe},
-		Added:    time.Now(),
-	})
-	if err != nil {
+	}); err != nil {
 		t.Error(err)
 	}
-	err = contactStore.Add(&repo.Contact{
+	if err := contactStore.Add(&repo.Contact{
 		Id:       "fghij",
 		Address:  "address2",
 		Username: "joe",
+		Avatar:   "Qm123",
 		Inboxes:  []repo.Cafe{cafe, cafe},
-		Added:    time.Now(),
-	})
-	if err != nil {
+	}); err != nil {
 		t.Error(err)
 	}
 	list := contactStore.List()
@@ -132,15 +134,16 @@ func TestContactDB_Count(t *testing.T) {
 }
 
 func TestContactDB_Delete(t *testing.T) {
-	err := contactStore.Delete("abcde")
-	if err != nil {
+	if err := contactStore.Delete("abcde"); err != nil {
 		t.Error(err)
 	}
 	stmt, err := contactStore.PrepareQuery("select id from contacts where id=?")
+	if err != nil {
+		t.Error(err)
+	}
 	defer stmt.Close()
 	var id string
-	err = stmt.QueryRow("abcde").Scan(&id)
-	if err == nil {
+	if err = stmt.QueryRow("abcde").Scan(&id); err == nil {
 		t.Error("delete failed")
 	}
 }

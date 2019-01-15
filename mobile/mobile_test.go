@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+
 	"os"
 	"testing"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
 	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/textile-go/repo"
 )
 
 type TestMessenger struct{}
@@ -49,6 +51,21 @@ var dir []byte
 var filesBlock core.BlockInfo
 var files []core.ThreadFilesInfo
 var invite ExternalInvite
+
+var contact = &repo.Contact{
+	Id:       "abcde",
+	Address:  "address1",
+	Username: "joe",
+	Avatar:   "Qm123",
+	Inboxes: []repo.Cafe{{
+		Peer:     "peer",
+		Address:  "address",
+		API:      "v0",
+		Protocol: "/textile/cafe/1.0.0",
+		Node:     "v1.0.0",
+		URL:      "https://mycafe.com",
+	}},
+}
 
 func TestNewWallet(t *testing.T) {
 	var err error
@@ -171,7 +188,6 @@ func TestMobile_AddPeerToThread(t *testing.T) {
 
 	if err := mobile1.AddPeerToThread(id.Pretty(), thrdId); err != nil {
 		t.Errorf("add peer to thread failed: %s", err)
-		return
 	}
 }
 
@@ -404,7 +420,6 @@ func TestMobile_PhotoDataForMinWidth(t *testing.T) {
 	}
 	if d4 != thumb {
 		t.Errorf("expected thumb result")
-		return
 	}
 }
 
@@ -417,7 +432,6 @@ func TestMobile_Overview(t *testing.T) {
 	stats := core.Overview{}
 	if err := json.Unmarshal([]byte(res), &stats); err != nil {
 		t.Error(err)
-		return
 	}
 }
 
@@ -425,14 +439,12 @@ func TestMobile_SetUsername(t *testing.T) {
 	<-mobile1.OnlineCh()
 	if err := mobile1.SetUsername("boomer"); err != nil {
 		t.Errorf("set username failed: %s", err)
-		return
 	}
 }
 
 func TestMobile_SetAvatar(t *testing.T) {
 	if err := mobile1.SetAvatar(files[0].Files[0].Links["large"].Hash); err != nil {
 		t.Errorf("set avatar failed: %s", err)
-		return
 	}
 }
 
@@ -445,21 +457,45 @@ func TestMobile_Profile(t *testing.T) {
 	prof := core.Profile{}
 	if err := json.Unmarshal([]byte(profs), &prof); err != nil {
 		t.Error(err)
-		return
 	}
 }
 
 func TestMobile_AddContact(t *testing.T) {
-	if err := mobile1.AddContact("Qm123", "Pabc", "joe"); err != nil {
-		t.Errorf("add contact failed: %s", err)
+	payload, err := json.Marshal(contact)
+	if err != nil {
+		t.Error(err)
 		return
+	}
+	if err := mobile1.AddContact(string(payload)); err != nil {
+		t.Errorf("add contact failed: %s", err)
 	}
 }
 
 func TestMobile_AddContactAgain(t *testing.T) {
-	if err := mobile1.AddContact("Qm123", "Pabc", "joe"); err == nil {
-		t.Errorf("adding duplicate contact should throw error")
+	payload, err := json.Marshal(contact)
+	if err != nil {
+		t.Error(err)
 		return
+	}
+	if err := mobile1.AddContact(string(payload)); err == nil {
+		t.Errorf("adding duplicate contact should throw error")
+	}
+}
+
+func TestMobile_Contact(t *testing.T) {
+	// tmp test get own _virtual_ contact while profile still exists
+	pid, err := mobile1.PeerId()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	self, err := mobile1.Contact(pid)
+	if err != nil {
+		t.Errorf("get own contact failed: %s", err)
+	}
+	var info *core.ContactInfo
+	if err := json.Unmarshal([]byte(self), &info); err != nil {
+		t.Error(err)
 	}
 }
 
@@ -535,7 +571,6 @@ func TestMobile_Notifications(t *testing.T) {
 	var notes []core.NotificationInfo
 	if err := json.Unmarshal([]byte(res), &notes); err != nil {
 		t.Error(err)
-		return
 	}
 }
 
