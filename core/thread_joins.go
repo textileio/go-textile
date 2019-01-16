@@ -102,7 +102,10 @@ func (t *Thread) buildJoin(inviterId string) (*pb.ThreadJoin, error) {
 	msg := &pb.ThreadJoin{
 		Inviter: inviterId,
 	}
-	contact := t.datastore.Contacts().Get(t.node().Identity.Pretty())
+	contact, err := t.getContact(t.node().Identity.Pretty())
+	if err != nil {
+		return nil, err
+	}
 	if contact != nil {
 		msg.Contact = repoContactToProto(contact)
 	}

@@ -54,8 +54,8 @@ type ProfileStore interface {
 
 type ContactStore interface {
 	Queryable
-	Add(device *Contact) error
-	AddOrUpdate(device *Contact) error
+	Add(contact *Contact) error
+	AddOrUpdate(contact *Contact) error
 	Get(id string) *Contact
 	List() []Contact
 	ListByAddress(address string) []Contact

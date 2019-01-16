@@ -72,7 +72,10 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 // buildAnnounce builds up a Announce block
 func (t *Thread) buildAnnounce() (*pb.ThreadAnnounce, error) {
 	msg := &pb.ThreadAnnounce{}
-	contact := t.datastore.Contacts().Get(t.node().Identity.Pretty())
+	contact, err := t.getContact(t.node().Identity.Pretty())
+	if err != nil {
+		return nil, err
+	}
 	if contact != nil {
 		msg.Contact = repoContactToProto(contact)
 	}
