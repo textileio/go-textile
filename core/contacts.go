@@ -79,8 +79,8 @@ func (t *Textile) ContactUsername(id string) string {
 		}
 		return ipfs.ShortenID(id)
 	}
-	contact := t.datastore.Contacts().Get(id)
-	if contact == nil {
+	contact, err := t.contact(id)
+	if contact == nil || err != nil {
 		return ipfs.ShortenID(id)
 	}
 	return toUsername(contact)
@@ -201,4 +201,27 @@ func repoContactToProto(rep *repo.Contact) *pb.Contact {
 		Created:  created,
 		Updated:  updated,
 	}
+}
+
+// tmp
+func (t *Textile) contact(id string) (*repo.Contact, error) {
+	self := t.node.Identity.Pretty()
+	if id == self {
+		prof, err := t.Profile(t.node.Identity)
+		if err != nil || prof == nil {
+			return nil, err
+		}
+
+		return &repo.Contact{
+			Id:       self,
+			Address:  prof.Address,
+			Username: prof.Username,
+			Avatar:   strings.Replace(prof.AvatarUri, "/ipfs/", "", 1),
+			Inboxes:  prof.Inboxes,
+			Created:  time.Now(),
+			Updated:  time.Now(),
+		}, nil
+	}
+
+	return t.datastore.Contacts().Get(id), nil
 }

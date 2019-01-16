@@ -97,6 +97,7 @@ type ThreadConfig struct {
 	ThreadsOutbox *ThreadsOutbox
 	CafeOutbox    *CafeOutbox
 	SendUpdate    func(update ThreadUpdate)
+	GetContact    func(id string) (*repo.Contact, error)
 }
 
 // Thread is the primary mechanism representing a collecion of data / files / photos
@@ -117,6 +118,7 @@ type Thread struct {
 	threadsOutbox *ThreadsOutbox
 	cafeOutbox    *CafeOutbox
 	sendUpdate    func(update ThreadUpdate)
+	getContact    func(id string) (*repo.Contact, error)
 	mux           sync.Mutex
 }
 
@@ -152,6 +154,7 @@ func NewThread(model *repo.Thread, conf *ThreadConfig) (*Thread, error) {
 		threadsOutbox: conf.ThreadsOutbox,
 		cafeOutbox:    conf.CafeOutbox,
 		sendUpdate:    conf.SendUpdate,
+		getContact:    conf.GetContact,
 	}, nil
 }
 
@@ -619,8 +622,8 @@ func (t *Thread) contactUsername(id string) string {
 		}
 		return ipfs.ShortenID(id)
 	}
-	contact := t.datastore.Contacts().Get(id)
-	if contact == nil {
+	contact, err := t.getContact(id)
+	if contact == nil || err != nil {
 		return ipfs.ShortenID(id)
 	}
 	return toUsername(contact)
