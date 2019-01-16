@@ -24,9 +24,6 @@ import (
 	"github.com/textileio/textile-go/schema"
 )
 
-// errReloadFailed indicates an error occurred during thread reload
-var errThreadReload = errors.New("could not re-load thread")
-
 // ErrInvitesNotAllowed indicates an invite was attempted on a private thread
 var ErrInvitesNotAllowed = errors.New("invites not allowed to private thread")
 
@@ -41,6 +38,9 @@ var ErrInvalidFileNode = errors.New("invalid files node")
 
 // ErrBlockWrongType indicates a block was requested as a type other than its own
 var ErrBlockWrongType = errors.New("block type is not the type requested")
+
+// errReloadFailed indicates an error occurred during thread reload
+var errThreadReload = errors.New("could not re-load thread")
 
 // ThreadUpdate is used to notify listeners about updates in a thread
 type ThreadUpdate struct {

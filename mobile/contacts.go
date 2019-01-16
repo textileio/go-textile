@@ -1,14 +1,21 @@
 package mobile
 
 import (
+	"encoding/json"
 	"errors"
 
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/repo"
 )
 
 // AddContact calls core AddContact
-func (m *Mobile) AddContact(id string, address string, username string) error {
-	return m.node.AddContact(id, address, username)
+func (m *Mobile) AddContact(contact string) error {
+	var model *repo.Contact
+	if err := json.Unmarshal([]byte(contact), &model); err != nil {
+		return err
+	}
+
+	return m.node.AddContact(model)
 }
 
 // Contact calls core Contact

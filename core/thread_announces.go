@@ -1,6 +1,8 @@
 package core
 
 import (
+	"fmt"
+
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
@@ -73,8 +75,9 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 func (t *Thread) buildAnnounce() (*pb.ThreadAnnounce, error) {
 	msg := &pb.ThreadAnnounce{}
 	contact := t.datastore.Contacts().Get(t.node().Identity.Pretty())
-	if contact != nil {
-		msg.Contact = repoContactToProto(contact)
+	if contact == nil {
+		return nil, fmt.Errorf("unable to announce, not contact for self")
 	}
+	msg.Contact = repoContactToProto(contact)
 	return msg, nil
 }

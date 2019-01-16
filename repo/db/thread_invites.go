@@ -35,7 +35,7 @@ func (c *ThreadInviteDB) Add(invite *repo.ThreadInvite) error {
 		invite.Block,
 		invite.Name,
 		invite.Inviter,
-		int(invite.Date.Unix()),
+		invite.Date.UnixNano(),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -78,7 +78,7 @@ func (c *ThreadInviteDB) handleQuery(stm string) []repo.ThreadInvite {
 	for rows.Next() {
 		var id, name, inviter string
 		var block []byte
-		var dateInt int
+		var dateInt int64
 		if err := rows.Scan(&id, &block, &name, &inviter, &dateInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
@@ -88,7 +88,7 @@ func (c *ThreadInviteDB) handleQuery(stm string) []repo.ThreadInvite {
 			Block:   block,
 			Name:    name,
 			Inviter: inviter,
-			Date:    time.Unix(int64(dateInt), 0),
+			Date:    time.Unix(0, dateInt),
 		})
 	}
 	return ret

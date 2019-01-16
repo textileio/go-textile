@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
@@ -103,8 +104,9 @@ func (t *Thread) buildJoin(inviterId string) (*pb.ThreadJoin, error) {
 		Inviter: inviterId,
 	}
 	contact := t.datastore.Contacts().Get(t.node().Identity.Pretty())
-	if contact != nil {
-		msg.Contact = repoContactToProto(contact)
+	if contact == nil {
+		return nil, fmt.Errorf("unable to join, not contact for self")
 	}
+	msg.Contact = repoContactToProto(contact)
 	return msg, nil
 }

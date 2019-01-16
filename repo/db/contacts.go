@@ -43,8 +43,8 @@ func (c *ContactDB) Add(contact *repo.Contact) error {
 		contact.Username,
 		contact.Avatar,
 		inboxes,
-		int(time.Now().UnixNano()),
-		int(time.Now().UnixNano()),
+		time.Now().UnixNano(),
+		time.Now().UnixNano(),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -81,8 +81,8 @@ func (c *ContactDB) AddOrUpdate(contact *repo.Contact) error {
 		contact.Avatar,
 		inboxes,
 		contact.Id,
-		int(contact.Created.UnixNano()),
-		int(time.Now().UnixNano()),
+		contact.Created.UnixNano(),
+		time.Now().UnixNano(),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -194,7 +194,7 @@ func (c *ContactDB) handleQuery(stm string) []repo.Contact {
 	for rows.Next() {
 		var id, address, username, avatar string
 		var inboxes []byte
-		var createdInt, updatedInt int
+		var createdInt, updatedInt int64
 		if err := rows.Scan(&id, &address, &username, &avatar, &inboxes, &createdInt, &updatedInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
@@ -212,8 +212,8 @@ func (c *ContactDB) handleQuery(stm string) []repo.Contact {
 			Username: username,
 			Avatar:   avatar,
 			Inboxes:  ilist,
-			Created:  time.Unix(0, int64(createdInt)),
-			Updated:  time.Unix(0, int64(updatedInt)),
+			Created:  time.Unix(0, createdInt),
+			Updated:  time.Unix(0, updatedInt),
 		})
 	}
 	return ret

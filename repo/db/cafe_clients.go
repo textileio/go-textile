@@ -33,8 +33,8 @@ func (c *CafeClientDB) Add(client *repo.CafeClient) error {
 	_, err = stmt.Exec(
 		client.Id,
 		client.Address,
-		int(client.Created.Unix()),
-		int(client.LastSeen.Unix()),
+		client.Created.UnixNano(),
+		client.LastSeen.UnixNano(),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -80,7 +80,7 @@ func (c *CafeClientDB) ListByAddress(address string) []repo.CafeClient {
 func (c *CafeClientDB) UpdateLastSeen(id string, date time.Time) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("update cafe_clients set lastSeen=? where id=?", int(date.Unix()), id)
+	_, err := c.db.Exec("update cafe_clients set lastSeen=? where id=?", int64(date.UnixNano()), id)
 	return err
 }
 
@@ -100,7 +100,7 @@ func (c *CafeClientDB) handleQuery(stm string) []repo.CafeClient {
 	}
 	for rows.Next() {
 		var id, address string
-		var createdInt, lastSeenInt int
+		var createdInt, lastSeenInt int64
 		if err := rows.Scan(&id, &address, &createdInt, &lastSeenInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
@@ -108,8 +108,8 @@ func (c *CafeClientDB) handleQuery(stm string) []repo.CafeClient {
 		ret = append(ret, repo.CafeClient{
 			Id:       id,
 			Address:  address,
-			Created:  time.Unix(int64(createdInt), 0),
-			LastSeen: time.Unix(int64(lastSeenInt), 0),
+			Created:  time.Unix(0, createdInt),
+			LastSeen: time.Unix(0, lastSeenInt),
 		})
 	}
 	return ret

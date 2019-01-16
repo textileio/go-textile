@@ -41,12 +41,8 @@ type ContactInfoQueryResult struct {
 
 // AddContact adds a contact for the first time
 // Note: Existing contacts will not be overwritten
-func (t *Textile) AddContact(id string, address string, username string) error {
-	return t.datastore.Contacts().Add(&repo.Contact{
-		Id:       id,
-		Address:  address,
-		Username: username,
-	})
+func (t *Textile) AddContact(contact *repo.Contact) error {
+	return t.datastore.Contacts().Add(contact)
 }
 
 // Contact looks up a contact by peer id
