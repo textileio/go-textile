@@ -8,10 +8,12 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
+	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 	"gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
@@ -23,6 +25,7 @@ import (
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/gateway/static/css"
 	"github.com/textileio/textile-go/gateway/templates"
+	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -67,8 +70,8 @@ func (g *Gateway) Start(addr string) {
 
 	router.GET("/ipfs/:root", g.gatewayHandler)
 	router.GET("/ipfs/:root/*path", g.gatewayHandler)
-	//router.GET("/ipns/:root", g.profileHandler)
-	//router.GET("/ipns/:root/*path", g.profileHandler)
+	router.GET("/ipns/:root", g.profileHandler)
+	router.GET("/ipns/:root/*path", g.profileHandler)
 
 	router.GET("/cafe", g.cafeHandler)
 	router.GET("/cafes", g.cafesHandler)
@@ -148,113 +151,114 @@ func (g *Gateway) gatewayHandler(c *gin.Context) {
 	c.Render(200, render.Data{Data: data})
 }
 
-//var avatarRx = regexp.MustCompile(`/avatar($|/small$|/large$)`)
+var avatarRx = regexp.MustCompile(`/avatar($|/small$|/large$)`)
 
 // profileHandler handles requests for profile info hosted on ipns
 // NOTE: avatar is a magic path, will return data behind link at avatar_uri
-//func (g *Gateway) profileHandler(c *gin.Context) {
-//	pathp := c.Param("path")
-//	if len(pathp) > 0 && pathp[len(pathp)-1] == '/' {
-//		pathp = pathp[:len(pathp)-1]
-//	}
-//	var isAvatar bool
-//	var avatarSize string
-//
-//	matches := avatarRx.FindStringSubmatch(pathp)
-//	if len(matches) == 2 {
-//		pathp = "/avatar_uri"
-//		isAvatar = true
-//
-//		switch matches[1] {
-//		case "/large":
-//			avatarSize = "large"
-//		default:
-//			avatarSize = "small"
-//		}
-//	}
-//
-//	rootId, err := peer.IDB58Decode(c.Param("root"))
-//	if err != nil {
-//		log.Errorf("error decoding root %s: %s", c.Param("root"), err)
-//		render404(c)
-//		return
-//	}
-//
-//	pth, err := g.Node.ResolveProfile(rootId)
-//	if err != nil {
-//		log.Errorf("error resolving profile %s: %s", c.Param("root"), err)
-//		render404(c)
-//		return
-//	}
-//
-//	contentPath := pth.String() + pathp
-//	data := g.getDataAtPath(c, contentPath)
-//
-//	// if this is an avatar request, fetch and return the linked image
-//	if isAvatar {
-//		location := string(data)
-//		if location == "" {
-//			fallback, _ := c.GetQuery("fallback")
-//			if fallback == "true" {
-//				location = fmt.Sprintf("https://avatars.dicebear.com/v2/identicon/%s.svg", c.Param("root"))
-//				c.Redirect(307, location)
-//				return
-//			} else {
-//				render404(c)
-//				return
-//			}
-//		}
-//
-//		// old style w/ key
-//		parsed := strings.Split(location, "?key=")
-//		if len(parsed) == 2 {
-//			keyb, err := base58.Decode(parsed[1])
-//			if err != nil {
-//				log.Errorf("error decoding key %s: %s", parsed[1], err)
-//				render404(c)
-//				return
-//			}
-//
-//			ciphertext, err := g.Node.DataAtPath(parsed[0])
-//			if err != nil {
-//				render404(c)
-//				return
-//			}
-//
-//			data, err = crypto.DecryptAES(ciphertext, keyb)
-//			if err != nil {
-//				log.Errorf("error decrypting %s: %s", parsed[0], err)
-//				render404(c)
-//				return
-//			}
-//
-//			c.Header("Content-Type", "image/jpeg")
-//
-//		} else {
-//			pth := fmt.Sprintf("%s/0/%s/d", location, avatarSize)
-//			data, err = g.Node.DataAtPath(pth)
-//			if err != nil {
-//				render404(c)
-//				return
-//			}
-//
-//			var stop int
-//			if len(data) < 512 {
-//				stop = len(data)
-//			} else {
-//				stop = 512
-//			}
-//			media := http.DetectContentType(data[:stop])
-//			if media != "" {
-//				c.Header("Content-Type", media)
-//			}
-//		}
-//
-//		c.Header("Cache-Control", "public, max-age=172800") // 2 days
-//	}
-//
-//	c.Render(200, render.Data{Data: data})
-//}
+// NOTICE: This method has been deprecated and is only here temporarily for backward compatibility
+func (g *Gateway) profileHandler(c *gin.Context) {
+	pathp := c.Param("path")
+	if len(pathp) > 0 && pathp[len(pathp)-1] == '/' {
+		pathp = pathp[:len(pathp)-1]
+	}
+	var isAvatar bool
+	var avatarSize string
+
+	matches := avatarRx.FindStringSubmatch(pathp)
+	if len(matches) == 2 {
+		pathp = "/avatar_uri"
+		isAvatar = true
+
+		switch matches[1] {
+		case "/large":
+			avatarSize = "large"
+		default:
+			avatarSize = "small"
+		}
+	}
+
+	rootId, err := peer.IDB58Decode(c.Param("root"))
+	if err != nil {
+		log.Errorf("error decoding root %s: %s", c.Param("root"), err)
+		render404(c)
+		return
+	}
+
+	pth, err := ipfs.ResolveIPNS(g.Node.Ipfs(), rootId)
+	if err != nil {
+		log.Errorf("error resolving profile %s: %s", c.Param("root"), err)
+		render404(c)
+		return
+	}
+
+	contentPath := pth.String() + pathp
+	data := g.getDataAtPath(c, contentPath)
+
+	// if this is an avatar request, fetch and return the linked image
+	if isAvatar {
+		location := string(data)
+		if location == "" {
+			fallback, _ := c.GetQuery("fallback")
+			if fallback == "true" {
+				location = fmt.Sprintf("https://avatars.dicebear.com/v2/identicon/%s.svg", c.Param("root"))
+				c.Redirect(307, location)
+				return
+			} else {
+				render404(c)
+				return
+			}
+		}
+
+		// old style w/ key
+		parsed := strings.Split(location, "?key=")
+		if len(parsed) == 2 {
+			keyb, err := base58.Decode(parsed[1])
+			if err != nil {
+				log.Errorf("error decoding key %s: %s", parsed[1], err)
+				render404(c)
+				return
+			}
+
+			ciphertext, err := g.Node.DataAtPath(parsed[0])
+			if err != nil {
+				render404(c)
+				return
+			}
+
+			data, err = crypto.DecryptAES(ciphertext, keyb)
+			if err != nil {
+				log.Errorf("error decrypting %s: %s", parsed[0], err)
+				render404(c)
+				return
+			}
+
+			c.Header("Content-Type", "image/jpeg")
+
+		} else {
+			pth := fmt.Sprintf("%s/0/%s/d", location, avatarSize)
+			data, err = g.Node.DataAtPath(pth)
+			if err != nil {
+				render404(c)
+				return
+			}
+
+			var stop int
+			if len(data) < 512 {
+				stop = len(data)
+			} else {
+				stop = 512
+			}
+			media := http.DetectContentType(data[:stop])
+			if media != "" {
+				c.Header("Content-Type", media)
+			}
+		}
+
+		c.Header("Cache-Control", "public, max-age=172800") // 2 days
+	}
+
+	c.Render(200, render.Data{Data: data})
+}
 
 // cafeHandler returns this peer's cafe info
 func (g *Gateway) cafeHandler(c *gin.Context) {
