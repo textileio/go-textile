@@ -265,6 +265,7 @@ func (t *Textile) Start() error {
 	}
 	log.Debugf("fd limit: %d (changed %t)", limit, changed)
 
+	// open db
 	if err := t.touchDatastore(); err != nil {
 		return err
 	}
@@ -314,6 +315,13 @@ func (t *Textile) Start() error {
 			log.Errorf(err.Error())
 		}
 		log.Info("node is online")
+
+		// tmp. publish contact for migrated users.
+		// this normally only happens when contact details are changed,
+		// will be removed at some point in the future.
+		if err := t.PublishContact(); err != nil {
+			log.Errorf(err.Error())
+		}
 	}()
 
 	for _, mod := range t.datastore.Threads().List() {
