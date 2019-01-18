@@ -76,7 +76,7 @@ func (t *Thread) buildAnnounce() (*pb.ThreadAnnounce, error) {
 	msg := &pb.ThreadAnnounce{}
 	contact := t.datastore.Contacts().Get(t.node().Identity.Pretty())
 	if contact == nil {
-		return nil, fmt.Errorf("unable to announce, not contact for self")
+		return nil, fmt.Errorf("unable to announce, no contact for self")
 	}
 	msg.Contact = repoContactToProto(contact)
 	return msg, nil

@@ -105,7 +105,7 @@ func (t *Thread) buildJoin(inviterId string) (*pb.ThreadJoin, error) {
 	}
 	contact := t.datastore.Contacts().Get(t.node().Identity.Pretty())
 	if contact == nil {
-		return nil, fmt.Errorf("unable to join, not contact for self")
+		return nil, fmt.Errorf("unable to join, no contact for self")
 	}
 	msg.Contact = repoContactToProto(contact)
 	return msg, nil

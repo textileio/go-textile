@@ -58,20 +58,16 @@ func (Major005) Up(repoPath string, pinCode string, testnet bool) error {
 		return err
 	}
 	defer jsonFile.Close()
-
 	var config native.Config
-
 	byteValue, _ := ioutil.ReadAll(jsonFile)
-	err = json.Unmarshal(byteValue, &config)
-	if err != nil {
+	if err := json.Unmarshal(byteValue, &config); err != nil {
 		return err
 	}
 
 	// Get username
 	var username string
 	row := db.QueryRow("select value from profile where key='username';")
-	err = row.Scan(&username)
-	if err != nil {
+	if err := row.Scan(&username); err != nil {
 		return err
 	}
 	jsonData := map[string]string{
@@ -82,8 +78,7 @@ func (Major005) Up(repoPath string, pinCode string, testnet bool) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(path.Join(repoPath, "migration005_peerid.ndjson"), jsonBytes, 0644)
-	if err != nil {
+	if err := ioutil.WriteFile(path.Join(repoPath, "migration005_peerid.ndjson"), jsonBytes, 0644); err != nil {
 		return err
 	}
 
