@@ -154,13 +154,13 @@ func (Minor006) Up(repoPath string, pinCode string, testnet bool) error {
 		time.Now().UnixNano(),
 		time.Now().UnixNano(),
 	); err != nil {
-		return err
+		if !conflictError(err) {
+			return err
+		}
 	}
 
 	// delete profile table
-	if _, err := db.Exec("drop table profile;"); err != nil {
-		return err
-	}
+	db.Exec("drop table profile;")
 
 	// update version
 	f7, err := os.Create(path.Join(repoPath, "repover"))

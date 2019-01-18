@@ -237,26 +237,6 @@ func (t *Thread) Decrypt(data []byte) ([]byte, error) {
 	return crypto.Decrypt(t.privKey, data)
 }
 
-// AddPeer directly adds a peer to a thread
-// Note: This is really just tmp here for the 1.0 migration
-func (t *Thread) AddPeer(id string) error {
-	pid, err := peer.IDB58Decode(id)
-	if err != nil {
-		return err
-	}
-
-	if err := t.datastore.ThreadPeers().Add(&repo.ThreadPeer{
-		Id:       pid.Pretty(),
-		ThreadId: t.Id,
-		Welcomed: true,
-	}); err != nil {
-		if !repo.ConflictError(err) {
-			return err
-		}
-	}
-	return nil
-}
-
 // followParents tries to follow a list of chains of block ids, processing along the way
 func (t *Thread) followParents(parents []string) error {
 	for _, parent := range parents {
