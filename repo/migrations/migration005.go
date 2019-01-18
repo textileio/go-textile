@@ -65,11 +65,9 @@ func (Major005) Up(repoPath string, pinCode string, testnet bool) error {
 	}
 
 	// Get username
-	var username string
+	username := config.Identity.PeerID[len(config.Identity.PeerID)-7:]
 	row := db.QueryRow("select value from profile where key='username';")
-	if err := row.Scan(&username); err != nil {
-		return err
-	}
+	row.Scan(&username)
 	jsonData := map[string]string{
 		"peerid":   config.Identity.PeerID,
 		"username": username,

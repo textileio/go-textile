@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -81,7 +82,7 @@ func (Minor006) Up(repoPath string, pinCode string, testnet bool) error {
 	var seed string
 	row := db.QueryRow("select value from config where key='seed';")
 	if err := row.Scan(&seed); err != nil {
-		return err
+		return fmt.Errorf("error getting address: %s", err)
 	}
 	if _, err = strkey.Decode(strkey.VersionByteSeed, seed); err != nil {
 		return err
@@ -96,19 +97,16 @@ func (Minor006) Up(repoPath string, pinCode string, testnet bool) error {
 	}
 
 	// get username
-	var username string
+	username := config.Identity.PeerID[len(config.Identity.PeerID)-7:]
 	row1 := db.QueryRow("select value from profile where key='username';")
-	if err := row1.Scan(&username); err != nil {
-		return err
-	}
+	row1.Scan(&username)
 
 	// get avatar
 	var avatar string
 	row2 := db.QueryRow("select value from profile where key='avatar';")
-	if err := row2.Scan(&avatar); err != nil {
-		return err
+	if err := row2.Scan(&avatar); err == nil {
+		avatar = strings.Replace(avatar, "/ipfs/", "", 1)
 	}
-	avatar = strings.Replace(avatar, "/ipfs/", "", 1)
 
 	// get inboxes
 	var sessions []cafeSession
@@ -123,12 +121,10 @@ func (Minor006) Up(repoPath string, pinCode string, testnet bool) error {
 		if err := rows.Scan(&cafeId, &access, &refresh, &expiryInt, &c); err != nil {
 			return err
 		}
-
 		var rcafe cafe
 		if err := json.Unmarshal(c, &rcafe); err != nil {
 			return err
 		}
-
 		sessions = append(sessions, cafeSession{
 			Id:      cafeId,
 			Access:  access,
