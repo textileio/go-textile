@@ -45,6 +45,7 @@ const kMobileQueueFlush = time.Second * 40
 // Update is used to notify UI listeners of changes
 type Update struct {
 	Id   string     `json:"id"`
+	Key  string     `json:"key"`
 	Name string     `json:"name"`
 	Type UpdateType `json:"type"`
 }
@@ -624,11 +625,21 @@ func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 
 // sendUpdate adds an update to the update channel
 func (t *Textile) sendUpdate(update Update) {
+	for _, k := range internalThreadKeys {
+		if update.Key == k {
+			return
+		}
+	}
 	t.updates <- update
 }
 
 // sendThreadUpdate adds a thread update to the update channel
 func (t *Textile) sendThreadUpdate(update ThreadUpdate) {
+	for _, k := range internalThreadKeys {
+		if update.ThreadKey == k {
+			return
+		}
+	}
 	t.threadUpdates.Send(update)
 }
 

@@ -46,6 +46,7 @@ var errThreadReload = errors.New("could not re-load thread")
 type ThreadUpdate struct {
 	Block      BlockInfo   `json:"block"`
 	ThreadId   string      `json:"thread_id"`
+	ThreadKey  string      `json:"thread_key"`
 	ThreadName string      `json:"thread_name"`
 	Info       interface{} `json:"info,omitempty"`
 }
@@ -586,6 +587,7 @@ func (t *Thread) pushUpdate(index BlockInfo) {
 	t.sendUpdate(ThreadUpdate{
 		Block:      index,
 		ThreadId:   t.Id,
+		ThreadKey:  t.Key,
 		ThreadName: t.Name,
 	})
 }
