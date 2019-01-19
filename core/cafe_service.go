@@ -985,41 +985,43 @@ func (h *CafeService) handleContactQuery(pid peer.ID, env *pb.Envelope) (*pb.Env
 	}
 
 	// request network results
-	preq := &pb.CafePubSubContactQuery{
-		Id:           psId,
-		FindId:       query.FindId,
-		FindUsername: query.FindUsername,
-		FindAddress:  query.FindAddress,
-	}
-	if err := h.PublishContactRequest(preq); err != nil {
-		return nil, err
-	}
+	if len(res.Contacts) < int(query.Limit) {
+		preq := &pb.CafePubSubContactQuery{
+			Id:           psId,
+			FindId:       query.FindId,
+			FindUsername: query.FindUsername,
+			FindAddress:  query.FindAddress,
+		}
+		if err := h.PublishContactRequest(preq); err != nil {
+			return nil, err
+		}
 
-	// wait for results
-	timer := time.NewTimer(time.Second * time.Duration(query.Wait))
-	listener := h.contactResults.Listen()
-	doneCh := make(chan struct{})
-	go func() {
-		<-timer.C
-		listener.Close()
-		close(doneCh)
-	}()
+		// wait for results
+		timer := time.NewTimer(time.Second * time.Duration(query.Wait))
+		listener := h.contactResults.Listen()
+		doneCh := make(chan struct{})
+		go func() {
+			<-timer.C
+			listener.Close()
+			close(doneCh)
+		}()
 
-loop:
-	for {
-		select {
-		case <-doneCh:
-			break loop
-		case value, ok := <-listener.Ch:
-			if !ok {
+	loop:
+		for {
+			select {
+			case <-doneCh:
 				break loop
-			}
-			if r, ok := value.(*pb.CafePubSubContactQueryResult); ok && r.Id == psId {
-				res.Contacts = deduplicateContactResults(append(res.Contacts, r.Contacts...))
-				if len(res.Contacts) >= int(query.Limit) {
-					if timer.Stop() {
-						listener.Close()
-						close(doneCh)
+			case value, ok := <-listener.Ch:
+				if !ok {
+					break loop
+				}
+				if r, ok := value.(*pb.CafePubSubContactQueryResult); ok && r.Id == psId {
+					res.Contacts = deduplicateContactResults(append(res.Contacts, r.Contacts...))
+					if len(res.Contacts) >= int(query.Limit) {
+						if timer.Stop() {
+							listener.Close()
+							close(doneCh)
+						}
 					}
 				}
 			}

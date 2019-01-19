@@ -461,6 +461,10 @@ func (srv *Service) listen() {
 			}
 
 			mPeer := msg.From()
+			if mPeer.Pretty() == srv.Node().Identity.Pretty() {
+				continue
+			}
+
 			pmes := new(pb.Envelope)
 			if err := proto.Unmarshal(msg.Data(), pmes); err != nil {
 				log.Errorf("error unmarshaling pubsub message data from %s: %s", mPeer.Pretty(), err)

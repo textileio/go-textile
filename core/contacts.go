@@ -149,7 +149,7 @@ func (t *Textile) FindContact(query *ContactInfoQuery) (*ContactInfoQueryResult,
 	}
 
 	// search the network
-	if !query.Local {
+	if !query.Local && len(result.Local) < query.Limit {
 		// TODO: do this in parallel
 		var inbound []*pb.Contact
 		for _, session := range sessions {
