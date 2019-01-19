@@ -47,15 +47,6 @@ func (m *Mobile) Contacts() (string, error) {
 	return toJSON(contacts)
 }
 
-// ContactUsername calls core ContactUsername
-func (m *Mobile) ContactUsername(id string) string {
-	if !m.node.Started() {
-		return ""
-	}
-
-	return m.node.ContactUsername(id)
-}
-
 // ContactThreads calls core ContactThreads
 func (m *Mobile) ContactThreads(id string) (string, error) {
 	if !m.node.Started() {
