@@ -1,15 +1,11 @@
 package mobile_test
 
 import (
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
 	"time"
-
-	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/segmentio/ksuid"
@@ -173,21 +169,6 @@ func TestMobile_AddThread(t *testing.T) {
 		return
 	}
 	thrdId = thrd.Id
-}
-
-func TestMobile_AddPeerToThread(t *testing.T) {
-	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	id, err := peer.IDFromPrivateKey(sk)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := mobile1.AddPeerToThread(id.Pretty(), thrdId); err != nil {
-		t.Errorf("add peer to thread failed: %s", err)
-	}
 }
 
 func TestMobile_Threads(t *testing.T) {
