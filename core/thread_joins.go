@@ -1,7 +1,9 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
+
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
@@ -86,6 +88,10 @@ func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 
 	// collect author as an unwelcomed peer
 	if msg.Contact != nil {
+		if cjson, err := json.Marshal(msg.Contact); err == nil {
+			log.Debugf("found contact: %s", string(cjson))
+		}
+
 		pid, err := peer.IDB58Decode(block.Header.Author)
 		if err != nil {
 			return nil, err
