@@ -184,10 +184,13 @@ func (t *Textile) ThreadInvites() []ThreadInviteInfo {
 	list := make([]ThreadInviteInfo, 0)
 
 	for _, invite := range t.datastore.ThreadInvites().List() {
+		username, avatar := t.ContactDisplayInfo(invite.Inviter)
+
 		list = append(list, ThreadInviteInfo{
 			Id:      invite.Id,
 			Name:    invite.Name,
-			Inviter: t.ContactUsername(invite.Inviter),
+			Inviter: username,
+			Avatar:  avatar,
 			Date:    invite.Date,
 		})
 	}

@@ -34,7 +34,7 @@ import (
 var log = logging.Logger("tex-core")
 
 // Version is the core version identifier
-const Version = "1.0.0-rc26"
+const Version = "1.0.0-rc27"
 
 // kQueueFlushFreq how often to flush the message queues
 const kQueueFlushFreq = time.Second * 60
@@ -604,14 +604,15 @@ func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 	}
 
 	threadConfig := &ThreadConfig{
-		RepoPath:      t.repoPath,
-		Config:        t.config,
-		Node:          t.Ipfs,
-		Datastore:     t.datastore,
-		Service:       t.threadsService,
-		ThreadsOutbox: t.threadsOutbox,
-		CafeOutbox:    t.cafeOutbox,
-		SendUpdate:    t.sendThreadUpdate,
+		RepoPath:           t.repoPath,
+		Config:             t.config,
+		Node:               t.Ipfs,
+		Datastore:          t.datastore,
+		Service:            t.threadsService,
+		ThreadsOutbox:      t.threadsOutbox,
+		CafeOutbox:         t.cafeOutbox,
+		SendUpdate:         t.sendThreadUpdate,
+		ContactDisplayInfo: t.ContactDisplayInfo,
 	}
 
 	thrd, err := NewThread(mod, threadConfig)

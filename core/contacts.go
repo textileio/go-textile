@@ -68,13 +68,13 @@ func (t *Textile) Contacts() ([]ContactInfo, error) {
 	return contacts, nil
 }
 
-// ContactUsername returns the username for the peer id if known
-func (t *Textile) ContactUsername(id string) string {
+// ContactDisplayInfo returns the username and avatar for the peer id if known
+func (t *Textile) ContactDisplayInfo(id string) (string, string) {
 	contact := t.datastore.Contacts().Get(id)
 	if contact == nil {
-		return ipfs.ShortenID(id)
+		return ipfs.ShortenID(id), ""
 	}
-	return toUsername(contact)
+	return toUsername(contact), contact.Avatar
 }
 
 // ContactThreads returns all threads with the given peer
