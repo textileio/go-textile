@@ -439,10 +439,10 @@ jobs:
         paths:
         - ~/go/src/gx
     - run:
-        name: install ndk-bundle
+        name: install tools
         command: |
-          sdkmanager --install "ndk-bundle"
-          sdkmanager --licenses
+          sdkmanager "build-tools;28.0.3"
+          yes | sdkmanager "platforms;android-28"
     - run:
         name: install gomobile
         command: |
@@ -454,7 +454,7 @@ jobs:
           export PATH=$PATH:/usr/local/go/bin
           export GOPATH=~/go
           export PATH=$PATH:$GOPATH/bin
-          gomobile init -ndk /opt/android/sdk/ndk-bundle
+          gomobile init -ndk /opt/android/android-ndk-r17b
           gomobile bind -ldflags "-w" -v -target=android -o mobile.aar github.com/textileio/textile-go/mobile
     - run:
         name: collect artifacts
