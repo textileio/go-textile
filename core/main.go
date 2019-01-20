@@ -34,7 +34,7 @@ import (
 var log = logging.Logger("tex-core")
 
 // Version is the core version identifier
-const Version = "1.0.0-rc26"
+const Version = "1.0.0-rc27"
 
 // kQueueFlushFreq how often to flush the message queues
 const kQueueFlushFreq = time.Second * 60
@@ -45,6 +45,7 @@ const kMobileQueueFlush = time.Second * 40
 // Update is used to notify UI listeners of changes
 type Update struct {
 	Id   string     `json:"id"`
+	Key  string     `json:"key"`
 	Name string     `json:"name"`
 	Type UpdateType `json:"type"`
 }
@@ -172,6 +173,18 @@ func InitRepo(conf InitConfig) error {
 		return err
 	}
 
+	// add self as a contact
+	ipfsConf, err := rep.Config()
+	if err != nil {
+		return err
+	}
+	if err := sqliteDb.Contacts().Add(&repo.Contact{
+		Id:      ipfsConf.Identity.PeerID,
+		Address: conf.Account.Address(),
+	}); err != nil {
+		return err
+	}
+
 	return applyTextileConfigOptions(conf)
 }
 
@@ -253,6 +266,7 @@ func (t *Textile) Start() error {
 	}
 	log.Debugf("fd limit: %d (changed %t)", limit, changed)
 
+	// open db
 	if err := t.touchDatastore(); err != nil {
 		return err
 	}
@@ -278,10 +292,10 @@ func (t *Textile) Start() error {
 			return
 		}
 
-		t.threads.service.SetHandler()
+		t.threads.service.Start()
 		t.threads.online = true
 
-		t.cafe.service.SetHandler()
+		t.cafe.service.Start()
 		t.cafe.online = true
 
 		if t.config.Cafe.Host.Open {
@@ -302,6 +316,13 @@ func (t *Textile) Start() error {
 			log.Errorf(err.Error())
 		}
 		log.Info("node is online")
+
+		// tmp. publish contact for migrated users.
+		// this normally only happens when contact details are changed,
+		// will be removed at some point in the future.
+		if err := t.PublishContact(); err != nil {
+			log.Errorf(err.Error())
+		}
 	}()
 
 	for _, mod := range t.datastore.Threads().List() {
@@ -583,15 +604,15 @@ func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 	}
 
 	threadConfig := &ThreadConfig{
-		RepoPath:      t.repoPath,
-		Config:        t.config,
-		Node:          t.Ipfs,
-		Datastore:     t.datastore,
-		Service:       t.threadsService,
-		ThreadsOutbox: t.threadsOutbox,
-		CafeOutbox:    t.cafeOutbox,
-		SendUpdate:    t.sendThreadUpdate,
-		GetContact:    t.contact,
+		RepoPath:           t.repoPath,
+		Config:             t.config,
+		Node:               t.Ipfs,
+		Datastore:          t.datastore,
+		Service:            t.threadsService,
+		ThreadsOutbox:      t.threadsOutbox,
+		CafeOutbox:         t.cafeOutbox,
+		SendUpdate:         t.sendThreadUpdate,
+		ContactDisplayInfo: t.ContactDisplayInfo,
 	}
 
 	thrd, err := NewThread(mod, threadConfig)
@@ -605,11 +626,21 @@ func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 
 // sendUpdate adds an update to the update channel
 func (t *Textile) sendUpdate(update Update) {
+	for _, k := range internalThreadKeys {
+		if update.Key == k {
+			return
+		}
+	}
 	t.updates <- update
 }
 
 // sendThreadUpdate adds a thread update to the update channel
 func (t *Textile) sendThreadUpdate(update ThreadUpdate) {
+	for _, k := range internalThreadKeys {
+		if update.ThreadKey == k {
+			return
+		}
+	}
 	t.threadUpdates.Send(update)
 }
 

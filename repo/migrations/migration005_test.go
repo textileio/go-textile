@@ -26,12 +26,9 @@ func initAt004(db *sql.DB, pin string) error {
 		}
 	}
 	`
-
-	err := ioutil.WriteFile("./config", []byte(configStr), 0644)
-	if err != nil {
+	if err := ioutil.WriteFile("./config", []byte(configStr), 0644); err != nil {
 		return err
 	}
-
 	var sqlStmt string
 	if pin != "" {
 		sqlStmt = "PRAGMA key = '" + pin + "';"
@@ -44,12 +41,10 @@ func initAt004(db *sql.DB, pin string) error {
     create index block_dataId on blocks (dataId);
     create index block_threadId_type_date on blocks (threadId, type, date);
 	`
-
-	_, err = db.Exec(sqlStmt)
+	_, err := db.Exec(sqlStmt)
 	if err != nil {
 		return err
 	}
-
 	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		return err
@@ -62,12 +57,10 @@ func initAt004(db *sql.DB, pin string) error {
 	if err != nil {
 		return err
 	}
-
 	_, err = db.Exec("insert into profile(key, value) values(?,?)", "username", []byte("username"))
 	if err != nil {
 		return err
 	}
-
 	_, err = db.Exec("insert into peers(row, id, pk, threadId) values(?,?,?,?)", "abc", "Qm123", []byte("foo"), "1")
 	if err != nil {
 		return err
@@ -76,7 +69,6 @@ func initAt004(db *sql.DB, pin string) error {
 	if err != nil {
 		return err
 	}
-
 	keyc1, err := crypto.Encrypt(sk.GetPublic(), []byte("imakey"))
 	if err != nil {
 		return err
@@ -85,7 +77,6 @@ func initAt004(db *sql.DB, pin string) error {
 	if err != nil {
 		return err
 	}
-
 	keyc2, err := crypto.Encrypt(sk.GetPublic(), []byte("imakey2"))
 	if err != nil {
 		return err
@@ -113,8 +104,7 @@ func Test005(t *testing.T) {
 
 	// go up
 	var m Major005
-	err = m.Up("./", "", false)
-	if err != nil {
+	if err := m.Up("./", "", false); err != nil {
 		t.Error(err)
 		return
 	}
@@ -125,8 +115,7 @@ func Test005(t *testing.T) {
 		return
 	}
 	var profileInfo map[string]string
-	err = json.Unmarshal(pfile, &profileInfo)
-	if err != nil {
+	if err := json.Unmarshal(pfile, &profileInfo); err != nil {
 		t.Error(err)
 		return
 	}
@@ -196,4 +185,5 @@ func Test005(t *testing.T) {
 	os.RemoveAll("./migration005_default_photos.ndjson")
 	os.RemoveAll("./datastore")
 	os.RemoveAll("./repover")
+	os.RemoveAll("./config")
 }

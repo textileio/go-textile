@@ -24,10 +24,7 @@ func (m *Mobile) Contact(id string) (string, error) {
 		return "", core.ErrStopped
 	}
 
-	contact, err := m.node.Contact(id)
-	if err != nil {
-		return "", err
-	}
+	contact := m.node.Contact(id)
 	if contact != nil {
 		return toJSON(contact)
 	}
@@ -50,15 +47,6 @@ func (m *Mobile) Contacts() (string, error) {
 	return toJSON(contacts)
 }
 
-// ContactUsername calls core ContactUsername
-func (m *Mobile) ContactUsername(id string) string {
-	if !m.node.Started() {
-		return ""
-	}
-
-	return m.node.ContactUsername(id)
-}
-
 // ContactThreads calls core ContactThreads
 func (m *Mobile) ContactThreads(id string) (string, error) {
 	if !m.node.Started() {
@@ -73,4 +61,19 @@ func (m *Mobile) ContactThreads(id string) (string, error) {
 		infos = make([]core.ThreadInfo, 0)
 	}
 	return toJSON(infos)
+}
+
+// FindContact calls core FindContact
+// NOTE: this is currently limited to username queries only
+func (m *Mobile) FindContact(username string, limit int, wait int) (string, error) {
+	res, err := m.node.FindContact(&core.ContactInfoQuery{
+		Username: username,
+		Limit:    limit,
+		Wait:     wait,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return toJSON(res)
 }

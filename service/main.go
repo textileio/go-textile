@@ -16,6 +16,7 @@ import (
 	"gx/ipfs/QmTKsRYeY4simJyf37K93juSq75Lo8MVCDJ7owjmf46u8W/go-context/io"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core"
+	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface"
 	inet "gx/ipfs/QmXuRkCR7BNQa9uqfpTiFWsTQLzmTWYg91Ja1w95gnqb6u/go-libp2p-net"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
@@ -25,6 +26,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/textileio/textile-go/crypto"
+	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/util"
@@ -74,9 +76,10 @@ func NewService(account *keypair.Full, handler Handler, node func() *core.IpfsNo
 	}
 }
 
-// SetHandler sets the peer host stream handler
-func (srv *Service) SetHandler() {
+// Start sets the peer host stream handler
+func (srv *Service) Start() {
 	srv.Node().PeerHost.SetStreamHandler(srv.handler.Protocol(), srv.handleNewStream)
+	go srv.listen()
 	log.Debugf("registered service: %s", srv.handler.Protocol())
 }
 
@@ -167,6 +170,11 @@ func (srv *Service) SendHTTPRequest(addr string, pmes *pb.Envelope) (*pb.Envelop
 	rpmes := new(pb.Envelope)
 	if err := proto.Unmarshal(body, rpmes); err != nil {
 		return nil, err
+	}
+
+	if rpmes == nil {
+		log.Debugf("no response from %s", addr)
+		return nil, errors.New("no response from peer")
 	}
 
 	log.Debugf("received %s response from %s", rpmes.Message.Type.String(), addr)
@@ -426,6 +434,75 @@ func (srv *Service) handleNewMessage(s inet.Stream) {
 			s.Reset()
 			log.Errorf("send response error: %s", err)
 			return
+		}
+	}
+}
+
+// listen subscribes to the protocol tag for network-wide requests
+func (srv *Service) listen() {
+	msgs := make(chan iface.PubSubMessage, 10)
+	go func() {
+		if err := ipfs.Subscribe(srv.Node(), string(srv.handler.Protocol()), msgs); err != nil {
+			close(msgs)
+			log.Errorf("pubsub service listener stopped with error: %s")
+			return
+		}
+	}()
+	log.Infof("pubsub service listener started for %s", string(srv.handler.Protocol()))
+
+	for {
+		select {
+		// end loop on context close
+		case <-srv.Node().Context().Done():
+			return
+		case msg, ok := <-msgs:
+			if !ok {
+				return
+			}
+
+			mPeer := msg.From()
+			if mPeer.Pretty() == srv.Node().Identity.Pretty() {
+				continue
+			}
+
+			pmes := new(pb.Envelope)
+			if err := proto.Unmarshal(msg.Data(), pmes); err != nil {
+				log.Errorf("error unmarshaling pubsub message data from %s: %s", mPeer.Pretty(), err)
+				continue
+			}
+
+			if err := srv.VerifyEnvelope(pmes, mPeer); err != nil {
+				log.Warningf("error verifying message: %s", err)
+				continue
+			}
+
+			// try a core handler for this msg type
+			handler := srv.handleCore(pmes.Message.Type)
+			if handler == nil {
+				// get service specific handler
+				handler = srv.handler.Handle
+			}
+
+			log.Debugf("received pubsub %s from %s", pmes.Message.Type.String(), mPeer.Pretty())
+			rpmes, err := handler(mPeer, pmes)
+			if err != nil {
+				log.Errorf("%s handle message error: %s", pmes.Message.Type.String(), err)
+				continue
+			}
+
+			// if nil response, return it before serializing
+			if rpmes == nil {
+				continue
+			}
+
+			// send out response msg
+			log.Debugf("responding with %s to %s", rpmes.Message.Type.String(), mPeer.Pretty())
+
+			ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+			if err := srv.SendMessage(ctx, mPeer, rpmes); err != nil {
+				log.Errorf("error sending message response to %s: %s", mPeer, err)
+			}
+			cancel()
 		}
 	}
 }

@@ -3,7 +3,7 @@ package cmd
 import (
 	"errors"
 
-	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/repo"
 )
 
 var errMissingUsername = errors.New("missing username")
@@ -28,7 +28,7 @@ func (x *profileCmd) Short() string {
 
 func (x *profileCmd) Long() string {
 	return `
-Every node has a public IPNS-based profile. 
+Every node has a public profile. 
 Use this command to get and set profile username and avatar.
 A Textile Account will have different profiles for each of its nodes,
 i.e., mobile, desktop, etc.
@@ -37,13 +37,12 @@ i.e., mobile, desktop, etc.
 
 type getProfileCmd struct {
 	Client ClientOptions `group:"Client Options"`
-	Peer   string        `short:"p" long:"peer" description:"Fetch a remote peer's public profile'."`
 }
 
 func (x *getProfileCmd) Usage() string {
 	return `
 
-Gets the local node's public IPNS-based profile.`
+Gets the local node's public profile.`
 }
 
 func (x *getProfileCmd) Execute(args []string) error {
@@ -56,8 +55,8 @@ func (x *getProfileCmd) Execute(args []string) error {
 	return nil
 }
 
-func callGetProfile() (string, *core.Profile, error) {
-	var profile *core.Profile
+func callGetProfile() (string, *repo.Contact, error) {
+	var profile *repo.Contact
 	res, err := executeJsonCmd(GET, "profile", params{}, &profile)
 	if err != nil {
 		return "", nil, err

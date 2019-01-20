@@ -46,8 +46,7 @@ func Test004(t *testing.T) {
 
 	// go up
 	var m Minor004
-	err = m.Up("./", "", false)
-	if err != nil {
+	if err := m.Up("./", "", false); err != nil {
 		t.Error(err)
 		return
 	}

@@ -15,7 +15,6 @@ var log = logging.Logger("tex-datastore")
 
 type SQLiteDatastore struct {
 	config             repo.ConfigStore
-	profile            repo.ProfileStore
 	contacts           repo.ContactStore
 	files              repo.FileStore
 	threads            repo.ThreadStore
@@ -49,7 +48,6 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 	mux := new(sync.Mutex)
 	sqliteDB := &SQLiteDatastore{
 		config:             NewConfigStore(conn, mux, dbPath),
-		profile:            NewProfileStore(conn, mux),
 		contacts:           NewContactStore(conn, mux),
 		files:              NewFileStore(conn, mux),
 		threads:            NewThreadStore(conn, mux),
@@ -82,10 +80,6 @@ func (d *SQLiteDatastore) Close() {
 
 func (d *SQLiteDatastore) Config() repo.ConfigStore {
 	return d.config
-}
-
-func (d *SQLiteDatastore) Profile() repo.ProfileStore {
-	return d.profile
 }
 
 func (d *SQLiteDatastore) Contacts() repo.ContactStore {
@@ -195,8 +189,6 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 	}
 	sqlStmt += `
     create table config (key text primary key not null, value blob);
-
-    create table profile (key text primary key not null, value blob);
 
     create table contacts (id text primary key not null, address text not null, username text not null, avatar text not null, inboxes blob not null, created integer not null, updated integer not null);
     create index contact_address on contacts (address);
