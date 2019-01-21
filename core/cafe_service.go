@@ -1122,6 +1122,9 @@ func (h *CafeService) setAddrs(conf *config.Config, swarmPorts config.SwarmPorts
 // keeping the most recently updated version.
 // https://github.com/golang/go/wiki/SliceTricks#in-place-deduplicate-comparable
 func deduplicateContactResults(in []*pb.Contact) []*pb.Contact {
+	if len(in) < 2 {
+		return in
+	}
 	sort.Slice(in, func(i, j int) bool {
 		return protoTimeToNano(in[i].Updated) > protoTimeToNano(in[j].Updated)
 	})
