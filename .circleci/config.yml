@@ -50,6 +50,10 @@ jobs:
         key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
         paths:
         - /go/src/gx
+    - run: build
+        name: build the binary
+        command: |
+            go build -i -o textile textile.go
     - run:
         name: run tests
         command: |
