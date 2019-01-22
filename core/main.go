@@ -13,7 +13,7 @@ import (
 
 	ipfsconfig "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	utilmain "gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/commands"
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core"
@@ -28,7 +28,7 @@ import (
 	"github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/service"
-	"gopkg.in/natefinch/lumberjack.v2"
+	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 )
 
 var log = logging.Logger("tex-core")
@@ -90,9 +90,8 @@ type MigrateConfig struct {
 
 // RunConfig is used to define run options for a textile node
 type RunConfig struct {
-	PinCode   string
-	RepoPath  string
-	LogLevels map[string]string
+	PinCode  string
+	RepoPath string
 }
 
 // Textile is the main Textile node structure
@@ -135,8 +134,6 @@ func InitRepo(conf InitConfig) error {
 	if conf.Account == nil {
 		return ErrAccountRequired
 	}
-
-	setupLogging(conf.RepoPath, map[string]string{}, conf.LogToDisk)
 
 	// init repo
 	if err := repo.Init(conf.RepoPath, Version); err != nil {
@@ -228,7 +225,7 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 		return nil, err
 	}
 
-	node.writer = setupLogging(conf.RepoPath, conf.LogLevels, node.config.Logs.LogToDisk)
+	node.SetLogLevels(map[string]string{}, node.config.Logs.LogToDisk)
 
 	// run all minor repo migrations if needed
 	if err := repo.MigrateUp(conf.RepoPath, conf.PinCode, false); err != nil {
@@ -670,12 +667,12 @@ func (t *Textile) touchDatastore() error {
 	return nil
 }
 
-// setupLogging hijacks the ipfs logging system, putting output to files
-func setupLogging(repoPath string, logLevels map[string]string, files bool) io.Writer {
+// SetLogLevels hijacks the ipfs logging system, putting output to files
+func (t *Textile) SetLogLevels(logLevels map[string]string, files bool) error {
 	var writer io.Writer
 	if files {
 		writer = &lumberjack.Logger{
-			Filename:   path.Join(repoPath, "logs", "textile.log"),
+			Filename:   path.Join(t.repoPath, "logs", "textile.log"),
 			MaxSize:    10, // megabytes
 			MaxBackups: 3,
 			MaxAge:     30, // days
@@ -690,10 +687,11 @@ func setupLogging(repoPath string, logLevels map[string]string, files bool) io.W
 	for key, value := range logLevels {
 		if err := logging.SetLogLevel(key, value); err != nil {
 			log.Errorf("error: %s (%s)", err, key)
+			return err
 		}
 	}
-
-	return writer
+	t.writer = writer
+	return nil
 }
 
 // removeLocks force deletes the IPFS repo and SQLite DB lock files

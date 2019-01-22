@@ -43,6 +43,16 @@ func TestNewTextile(t *testing.T) {
 	}
 }
 
+func TestSetLogLevels(t *testing.T) {
+	logLevels := map[string]string{
+		"tex-core":      "DEBUG",
+		"tex-datastore": "DEBUG",
+	}
+	if err := node.SetLogLevels(logLevels, true); err != nil {
+		t.Errorf("set log levels failed: %s", err)
+	}
+}
+
 func TestTextile_Start(t *testing.T) {
 	if err := node.Start(); err != nil {
 		t.Errorf("start node failed: %s", err)

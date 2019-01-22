@@ -104,10 +104,6 @@ func TestMigrateRepo(t *testing.T) {
 func TestNewTextile(t *testing.T) {
 	config := &RunConfig{
 		RepoPath: repoPath1,
-		LogLevels: `{
-			"tex-core":   "debug",
-			"tex-mobile": "debug"
-		}`,
 	}
 	var err error
 	mobile1, err = NewTextile(config, &TestMessenger{})
@@ -117,19 +113,24 @@ func TestNewTextile(t *testing.T) {
 }
 
 func TestNewTextileAgain(t *testing.T) {
+	config := &RunConfig{
+		RepoPath: repoPath1,
+	}
+	if _, err := NewTextile(config, &TestMessenger{}); err != nil {
+		t.Errorf("create mobile node failed: %s", err)
+	}
+}
+
+func TestSetLogLevels(t *testing.T) {
 	logLevels, err := json.Marshal(map[string]string{
-		"tex-core":   "debug",
-		"tex-mobile": "debug",
+		"tex-core":      "DEBUG",
+		"tex-datastore": "DEBUG",
 	})
 	if err != nil {
 		t.Errorf("unable to marshal test map")
 	}
-	config := &RunConfig{
-		RepoPath:  repoPath1,
-		LogLevels: string(logLevels),
-	}
-	if _, err := NewTextile(config, &TestMessenger{}); err != nil {
-		t.Errorf("create mobile node failed: %s", err)
+	if err := mobile1.SetLogLevels(string(logLevels), true); err != nil {
+		t.Errorf("attempt to set log levels failed: %s", err)
 	}
 }
 
