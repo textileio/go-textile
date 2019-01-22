@@ -51,6 +51,10 @@ jobs:
         paths:
         - /go/src/gx
     - run:
+        name: build the binary
+        command: |
+            go build -i -o textile textile.go
+    - run:
         name: run tests
         command: |
           ./test_compile.sh
@@ -432,7 +436,10 @@ jobs:
     - run:
         name: install protobuf
         command: |
-            brew install protobuf
+            curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.6.1/protoc-3.6.1-linux-x86_64.zip
+            unzip protoc-3.6.1-linux-x86_64.zip -d protoc3
+            sudo mv protoc3/bin/* /usr/local/bin/
+            sudo mv protoc3/include/* /usr/local/include/
     - restore_cache:
         key: dep-v1-android-{{ checksum "Gopkg.lock" }}-{{ arch }}
     - restore_cache:
