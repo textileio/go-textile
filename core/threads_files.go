@@ -21,6 +21,7 @@ type ThreadFilesInfo struct {
 	Date     time.Time           `json:"date"`
 	AuthorId string              `json:"author_id"`
 	Username string              `json:"username,omitempty"`
+	Avatar   string              `json:"avatar,omitempty"`
 	Caption  string              `json:"caption,omitempty"`
 	Files    []ThreadFileInfo    `json:"files"`
 	Comments []ThreadCommentInfo `json:"comments"`
@@ -33,6 +34,7 @@ type ThreadCommentInfo struct {
 	Date     time.Time `json:"date"`
 	AuthorId string    `json:"author_id"`
 	Username string    `json:"username,omitempty"`
+	Avatar   string    `json:"avatar,omitempty"`
 	Body     string    `json:"body"`
 }
 
@@ -41,6 +43,7 @@ type ThreadLikeInfo struct {
 	Date     time.Time `json:"date"`
 	AuthorId string    `json:"author_id"`
 	Username string    `json:"username,omitempty"`
+	Avatar   string    `json:"avatar,omitempty"`
 }
 
 func (t *Textile) ThreadFiles(offset string, limit int, threadId string) ([]ThreadFilesInfo, error) {
@@ -97,11 +100,14 @@ func (t *Textile) ThreadComment(block repo.Block) (*ThreadCommentInfo, error) {
 		return nil, ErrBlockWrongType
 	}
 
+	username, avatar := t.ContactDisplayInfo(block.AuthorId)
+
 	return &ThreadCommentInfo{
 		Id:       block.Id,
 		Date:     block.Date,
 		AuthorId: block.AuthorId,
-		Username: t.ContactUsername(block.AuthorId),
+		Username: username,
+		Avatar:   avatar,
 		Body:     block.Body,
 	}, nil
 }
@@ -126,11 +132,14 @@ func (t *Textile) ThreadLike(block repo.Block) (*ThreadLikeInfo, error) {
 		return nil, ErrBlockWrongType
 	}
 
+	username, avatar := t.ContactDisplayInfo(block.AuthorId)
+
 	return &ThreadLikeInfo{
 		Id:       block.Id,
 		Date:     block.Date,
 		AuthorId: block.AuthorId,
-		Username: t.ContactUsername(block.AuthorId),
+		Username: username,
+		Avatar:   avatar,
 	}, nil
 }
 
@@ -207,12 +216,15 @@ func (t *Textile) threadFile(block repo.Block) (*ThreadFilesInfo, error) {
 	threads := make([]string, 0)
 	threads = t.fileThreads(block.Target)
 
+	username, avatar := t.ContactDisplayInfo(block.AuthorId)
+
 	return &ThreadFilesInfo{
 		Block:    block.Id,
 		Target:   block.Target,
 		Date:     block.Date,
 		AuthorId: block.AuthorId,
-		Username: t.ContactUsername(block.AuthorId),
+		Username: username,
+		Avatar:   avatar,
 		Caption:  block.Body,
 		Files:    files,
 		Comments: comments,

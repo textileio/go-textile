@@ -192,9 +192,9 @@ func (a *api) Start() {
 
 		contacts := v0.Group("/contacts")
 		{
-			contacts.POST("", a.addContacts)
 			contacts.GET("", a.lsContacts)
 			contacts.GET("/:id", a.getContacts)
+			contacts.POST("/search", a.searchContacts)
 		}
 
 		ipfs := v0.Group("/ipfs")

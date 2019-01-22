@@ -2,10 +2,10 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/strkey"

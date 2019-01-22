@@ -198,7 +198,6 @@ func (m *Mobile) AddThreadFiles(dir []byte, threadId string, caption string) (st
 		if err != nil {
 			return "", err
 		}
-
 	} else {
 
 		rdir := make(core.Directory)

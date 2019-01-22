@@ -159,13 +159,13 @@ func start(a *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.M
 				})
 
 				// tmp auto-accept thread invites
-				if note.Type == repo.InviteReceivedNotification {
-					go func(tid string) {
-						if _, err := node.AcceptThreadInvite(tid); err != nil {
-							astilog.Error(err)
-						}
-					}(note.BlockId)
-				}
+				//if note.Type == repo.InviteReceivedNotification {
+				//	go func(tid string) {
+				//		if _, err := node.AcceptThreadInvite(tid); err != nil {
+				//			astilog.Error(err)
+				//		}
+				//	}(note.BlockId)
+				//}
 
 				// show notification
 				go func(n *astilectron.Notification) {

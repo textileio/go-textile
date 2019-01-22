@@ -37,7 +37,7 @@ func (c *BlockDB) Add(block *repo.Block) error {
 		block.ThreadId,
 		block.AuthorId,
 		int(block.Type),
-		int(block.Date.UnixNano()),
+		block.Date.UnixNano(),
 		strings.Join(block.Parents, ","),
 		block.Target,
 		block.Body,
@@ -114,7 +114,8 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 	}
 	for rows.Next() {
 		var id, threadId, authorId, parents, target, body string
-		var dateInt, typeInt int
+		var typeInt int
+		var dateInt int64
 		if err := rows.Scan(&id, &threadId, &authorId, &typeInt, &dateInt, &parents, &target, &body); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
@@ -130,7 +131,7 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 			ThreadId: threadId,
 			AuthorId: authorId,
 			Type:     repo.BlockType(typeInt),
-			Date:     time.Unix(0, int64(dateInt)),
+			Date:     time.Unix(0, dateInt),
 			Parents:  plist,
 			Target:   target,
 			Body:     body,

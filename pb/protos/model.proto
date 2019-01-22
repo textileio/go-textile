@@ -4,6 +4,16 @@ option go_package = "pb";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
 
+message Contact {
+    string id                         = 1;
+    string address                    = 2;
+    string username                   = 3;
+    string avatar                     = 4;
+    repeated Cafe inboxes             = 5;
+    google.protobuf.Timestamp created = 6;
+    google.protobuf.Timestamp updated = 7;
+}
+
 message File {
     string mill                     = 1;
     string checksum                 = 2;
@@ -16,4 +26,14 @@ message File {
     int64 size                      = 9;
     google.protobuf.Timestamp added = 10;
     google.protobuf.Struct meta     = 11;
+}
+
+message Cafe {
+    string peer           = 1;
+    string address        = 2;
+    string api            = 3;
+    string protocol       = 4;
+    string node           = 5;
+    string url            = 6;
+    repeated string swarm = 7;
 }

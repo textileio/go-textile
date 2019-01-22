@@ -2,21 +2,22 @@ package cmd
 
 import (
 	"errors"
+	"strconv"
 
 	"github.com/textileio/textile-go/core"
 )
 
 var errMissingPeerId = errors.New("missing peer id")
-var errMissingPeerAddress = errors.New("missing peer address")
+var errMissingSearchInfo = errors.New("missing search info")
 
 func init() {
 	register(&contactsCmd{})
 }
 
 type contactsCmd struct {
-	Ls  lsContactsCmd  `command:"ls" description:"List known contacts"`
-	Get getContactsCmd `command:"get" description:"Get contact information"`
-	Add addContactsCmd `command:"add" description:"Add a new contact"`
+	Ls   lsContactsCmd   `command:"ls" description:"List known contacts"`
+	Get  getContactsCmd  `command:"get" description:"Get contact information"`
+	Find findContactsCmd `command:"find" description:"Find a contact on the network"`
 }
 
 func (x *contactsCmd) Name() string {
@@ -37,9 +38,11 @@ type lsContactsCmd struct {
 }
 
 func (x *lsContactsCmd) Usage() string {
-	return `List known contacts.
-	
-	Include the --thread flag to list contacts for a given thread.`
+	return `
+
+List known contacts.
+
+Include the --thread flag to list contacts for a given thread.`
 }
 
 func (x *lsContactsCmd) Execute(args []string) error {
@@ -62,7 +65,9 @@ type getContactsCmd struct {
 }
 
 func (x *getContactsCmd) Usage() string {
-	return `Get contact information.`
+	return `
+
+Get contact information.`
 }
 
 func (x *getContactsCmd) Execute(args []string) error {
@@ -79,31 +84,38 @@ func (x *getContactsCmd) Execute(args []string) error {
 	return nil
 }
 
-type addContactsCmd struct {
+type findContactsCmd struct {
 	Client   ClientOptions `group:"Client Options"`
-	Username string        `short:"n" long:"username" description:"New contact's username. Omit to use peer id."`
+	Username string        `short:"u" long:"username" description:"A username to use in the search."`
+	Peer     string        `short:"p" long:"peer" description:"A Peer ID use in the search."`
+	Address  string        `short:"a" long:"address" description:"An account address to use in the search."`
+	Local    bool          `long:"local" description:"Only search local contacts."`
+	Limit    int           `long:"limit" description:"Stops searching after limit results are found." default:"5"`
+	Wait     int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed." default:"5"`
 }
 
-func (x *addContactsCmd) Usage() string {
-	return `Add a new contact.
-	
-	Use the --username flag to specify a username.`
+func (x *findContactsCmd) Usage() string {
+	return `
+
+Find contact information.`
 }
 
-func (x *addContactsCmd) Execute(args []string) error {
+func (x *findContactsCmd) Execute(args []string) error {
 	setApi(x.Client)
-	if len(args) < 2 {
-		return errMissingPeerAddress
-	} else if len(args) < 1 {
-		return errMissingPeerId
+	if x.Username == "" && x.Peer == "" && x.Address == "" {
+		return errMissingSearchInfo
 	}
-	var info core.ContactInfo
-	res, err := executeJsonCmd(POST, "contacts", params{
-		args: args,
+	var infos core.ContactInfoQueryResult
+	res, err := executeJsonCmd(POST, "contacts/search", params{
 		opts: map[string]string{
 			"username": x.Username,
+			"peer":     x.Peer,
+			"address":  x.Address,
+			"local":    strconv.FormatBool(x.Local),
+			"limit":    strconv.Itoa(x.Limit),
+			"wait":     strconv.Itoa(x.Wait),
 		},
-	}, &info)
+	}, &infos)
 	if err != nil {
 		return err
 	}

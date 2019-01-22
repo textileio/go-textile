@@ -33,7 +33,7 @@ func (c *CafeClientNonceDB) Add(nonce *repo.CafeClientNonce) error {
 	_, err = stmt.Exec(
 		nonce.Value,
 		nonce.Address,
-		int(nonce.Date.Unix()),
+		nonce.Date.UnixNano(),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -69,7 +69,7 @@ func (c *CafeClientNonceDB) handleQuery(stm string) []repo.CafeClientNonce {
 	}
 	for rows.Next() {
 		var value, address string
-		var dateInt int
+		var dateInt int64
 		if err := rows.Scan(&value, &address, &dateInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
@@ -77,7 +77,7 @@ func (c *CafeClientNonceDB) handleQuery(stm string) []repo.CafeClientNonce {
 		ret = append(ret, repo.CafeClientNonce{
 			Value:   value,
 			Address: address,
-			Date:    time.Unix(int64(dateInt), 0),
+			Date:    time.Unix(0, dateInt),
 		})
 	}
 	return ret

@@ -41,7 +41,7 @@ func (c *CafeSessionDB) AddOrUpdate(session *repo.CafeSession) error {
 		session.Id,
 		session.Access,
 		session.Refresh,
-		int(session.Expiry.Unix()),
+		session.Expiry.UnixNano(),
 		cafe,
 	)
 	if err != nil {
@@ -85,7 +85,7 @@ func (c *CafeSessionDB) handleQuery(stm string) []repo.CafeSession {
 	}
 	for rows.Next() {
 		var cafeId, access, refresh string
-		var expiryInt int
+		var expiryInt int64
 		var cafe []byte
 		if err := rows.Scan(&cafeId, &access, &refresh, &expiryInt, &cafe); err != nil {
 			log.Errorf("error in db scan: %s", err)
@@ -102,7 +102,7 @@ func (c *CafeSessionDB) handleQuery(stm string) []repo.CafeSession {
 			Id:      cafeId,
 			Access:  access,
 			Refresh: refresh,
-			Expiry:  time.Unix(int64(expiryInt), 0),
+			Expiry:  time.Unix(0, expiryInt),
 			Cafe:    rcafe,
 		})
 	}

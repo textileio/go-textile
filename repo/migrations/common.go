@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 )
 
 // ErrorCannotMigrateDown is thrown if migrate down is called on a major migration
@@ -28,4 +29,9 @@ func blastRepo(repoPath string) error {
 		}
 	}
 	return nil
+}
+
+// conflictError checks if a db error is from a conflict
+func conflictError(err error) bool {
+	return strings.Contains(err.Error(), "UNIQUE constraint failed")
 }
