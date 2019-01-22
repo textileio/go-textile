@@ -136,7 +136,7 @@ func NewTextile(config *RunConfig, messenger Messenger) (*Mobile, error) {
 }
 
 // SetLogLevels provides access to the underlying node's setLogLevels method
-func (m *Mobile) SetLogLevels(logLevelsString string, files bool) error {
+func (m *Mobile) SetLogLevels(logLevelsString string) error {
 	var logLevels map[string]string
 	if logLevelsString != "" {
 		err := json.Unmarshal([]byte(logLevelsString), &logLevels)
@@ -144,7 +144,7 @@ func (m *Mobile) SetLogLevels(logLevelsString string, files bool) error {
 			return err
 		}
 	}
-	if err := m.node.SetLogLevels(logLevels, files); err != nil {
+	if err := m.node.SetLogLevels(logLevels); err != nil {
 		return err
 	}
 	return nil

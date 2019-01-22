@@ -129,7 +129,7 @@ func TestSetLogLevels(t *testing.T) {
 	if err != nil {
 		t.Errorf("unable to marshal test map")
 	}
-	if err := mobile1.SetLogLevels(string(logLevels), true); err != nil {
+	if err := mobile1.SetLogLevels(string(logLevels)); err != nil {
 		t.Errorf("attempt to set log levels failed: %s", err)
 	}
 }
