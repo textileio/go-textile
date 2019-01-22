@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/textileio/textile-go/pb"
-
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -22,7 +21,11 @@ func (t *Textile) RegisterCafe(host string) (*repo.CafeSession, error) {
 		}
 	}
 
-	if err := t.PublishProfile(); err != nil {
+	if err := t.UpdateContactInboxes(); err != nil {
+		return nil, err
+	}
+
+	if err := t.PublishContact(); err != nil {
 		return nil, err
 	}
 
@@ -69,7 +72,11 @@ func (t *Textile) DeregisterCafe(peerId string) error {
 		}
 	}
 
-	return t.PublishProfile()
+	if err := t.UpdateContactInboxes(); err != nil {
+		return err
+	}
+
+	return t.PublishContact()
 }
 
 // CheckCafeMessages fetches new messages from registered cafes

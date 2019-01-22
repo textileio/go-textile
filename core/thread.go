@@ -24,9 +24,6 @@ import (
 	"github.com/textileio/textile-go/schema"
 )
 
-// errReloadFailed indicates an error occurred during thread reload
-var errThreadReload = errors.New("could not re-load thread")
-
 // ErrInvitesNotAllowed indicates an invite was attempted on a private thread
 var ErrInvitesNotAllowed = errors.New("invites not allowed to private thread")
 
@@ -42,10 +39,14 @@ var ErrInvalidFileNode = errors.New("invalid files node")
 // ErrBlockWrongType indicates a block was requested as a type other than its own
 var ErrBlockWrongType = errors.New("block type is not the type requested")
 
+// errReloadFailed indicates an error occurred during thread reload
+var errThreadReload = errors.New("could not re-load thread")
+
 // ThreadUpdate is used to notify listeners about updates in a thread
 type ThreadUpdate struct {
 	Block      BlockInfo   `json:"block"`
 	ThreadId   string      `json:"thread_id"`
+	ThreadKey  string      `json:"thread_key"`
 	ThreadName string      `json:"thread_name"`
 	Info       interface{} `json:"info,omitempty"`
 }
@@ -66,11 +67,12 @@ type ThreadInfo struct {
 	FileCount  int          `json:"file_cnt"`
 }
 
-// ThreadInviteInfo reports info about a thread
+// ThreadInviteInfo reports info about a thread invite
 type ThreadInviteInfo struct {
 	Id      string    `json:"id"`
 	Name    string    `json:"name"`
 	Inviter string    `json:"inviter,omitempty"`
+	Avatar  string    `json:"avatar,omitempty"`
 	Date    time.Time `json:"date"`
 }
 
@@ -80,6 +82,7 @@ type BlockInfo struct {
 	ThreadId string    `json:"thread_id"`
 	AuthorId string    `json:"author_id,omitempty"`
 	Username string    `json:"username,omitempty"`
+	Avatar   string    `json:"avatar,omitempty"`
 	Type     string    `json:"type"`
 	Date     time.Time `json:"date"`
 	Parents  []string  `json:"parents"`
@@ -89,37 +92,37 @@ type BlockInfo struct {
 
 // ThreadConfig is used to construct a Thread
 type ThreadConfig struct {
-	RepoPath      string
-	Config        *config.Config
-	Node          func() *core.IpfsNode
-	Datastore     repo.Datastore
-	Service       func() *ThreadsService
-	ThreadsOutbox *ThreadsOutbox
-	CafeOutbox    *CafeOutbox
-	SendUpdate    func(update ThreadUpdate)
-	GetContact    func(id string) (*repo.Contact, error)
+	RepoPath           string
+	Config             *config.Config
+	Node               func() *core.IpfsNode
+	Datastore          repo.Datastore
+	Service            func() *ThreadsService
+	ThreadsOutbox      *ThreadsOutbox
+	CafeOutbox         *CafeOutbox
+	SendUpdate         func(update ThreadUpdate)
+	ContactDisplayInfo func(id string) (string, string)
 }
 
 // Thread is the primary mechanism representing a collecion of data / files / photos
 type Thread struct {
-	Id            string
-	Key           string // app key, usually UUID
-	Name          string
-	Type          repo.ThreadType
-	Schema        *schema.Node
-	schemaId      string
-	initiator     string
-	privKey       libp2pc.PrivKey
-	repoPath      string
-	config        *config.Config
-	node          func() *core.IpfsNode
-	datastore     repo.Datastore
-	service       func() *ThreadsService
-	threadsOutbox *ThreadsOutbox
-	cafeOutbox    *CafeOutbox
-	sendUpdate    func(update ThreadUpdate)
-	getContact    func(id string) (*repo.Contact, error)
-	mux           sync.Mutex
+	Id                 string
+	Key                string // app key, usually UUID
+	Name               string
+	Type               repo.ThreadType
+	Schema             *schema.Node
+	schemaId           string
+	initiator          string
+	privKey            libp2pc.PrivKey
+	repoPath           string
+	config             *config.Config
+	node               func() *core.IpfsNode
+	datastore          repo.Datastore
+	service            func() *ThreadsService
+	threadsOutbox      *ThreadsOutbox
+	cafeOutbox         *CafeOutbox
+	sendUpdate         func(update ThreadUpdate)
+	contactDisplayInfo func(id string) (string, string)
+	mux                sync.Mutex
 }
 
 // NewThread create a new Thread from a repo model and config
@@ -138,23 +141,23 @@ func NewThread(model *repo.Thread, conf *ThreadConfig) (*Thread, error) {
 	}
 
 	return &Thread{
-		Id:            model.Id,
-		Key:           model.Key,
-		Name:          model.Name,
-		Type:          model.Type,
-		Schema:        sch,
-		schemaId:      model.Schema,
-		initiator:     model.Initiator,
-		privKey:       sk,
-		repoPath:      conf.RepoPath,
-		config:        conf.Config,
-		node:          conf.Node,
-		datastore:     conf.Datastore,
-		service:       conf.Service,
-		threadsOutbox: conf.ThreadsOutbox,
-		cafeOutbox:    conf.CafeOutbox,
-		sendUpdate:    conf.SendUpdate,
-		getContact:    conf.GetContact,
+		Id:                 model.Id,
+		Key:                model.Key,
+		Name:               model.Name,
+		Type:               model.Type,
+		Schema:             sch,
+		schemaId:           model.Schema,
+		initiator:          model.Initiator,
+		privKey:            sk,
+		repoPath:           conf.RepoPath,
+		config:             conf.Config,
+		node:               conf.Node,
+		datastore:          conf.Datastore,
+		service:            conf.Service,
+		threadsOutbox:      conf.ThreadsOutbox,
+		cafeOutbox:         conf.CafeOutbox,
+		sendUpdate:         conf.SendUpdate,
+		contactDisplayInfo: conf.ContactDisplayInfo,
 	}, nil
 }
 
@@ -169,11 +172,15 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 	if mod.Head != "" {
 		h := t.datastore.Blocks().Get(mod.Head)
 		if h != nil {
+
+			username, avatar := t.contactDisplayInfo(h.AuthorId)
+
 			head = &BlockInfo{
 				Id:       h.Id,
 				ThreadId: h.ThreadId,
 				AuthorId: h.AuthorId,
-				Username: t.contactUsername(h.AuthorId),
+				Username: username,
+				Avatar:   avatar,
 				Type:     h.Type.Description(),
 				Date:     h.Date,
 				Parents:  h.Parents,
@@ -238,26 +245,6 @@ func (t *Thread) Encrypt(data []byte) ([]byte, error) {
 // Decrypt data with thread secret key
 func (t *Thread) Decrypt(data []byte) ([]byte, error) {
 	return crypto.Decrypt(t.privKey, data)
-}
-
-// AddPeer directly adds a peer to a thread
-// Note: This is really just tmp here for the 1.0 migration
-func (t *Thread) AddPeer(id string) error {
-	pid, err := peer.IDB58Decode(id)
-	if err != nil {
-		return err
-	}
-
-	if err := t.datastore.ThreadPeers().Add(&repo.ThreadPeer{
-		Id:       pid.Pretty(),
-		ThreadId: t.Id,
-		Welcomed: true,
-	}); err != nil {
-		if !repo.ConflictError(err) {
-			return err
-		}
-	}
-	return nil
 }
 
 // followParents tries to follow a list of chains of block ids, processing along the way
@@ -481,11 +468,15 @@ func (t *Thread) indexBlock(commit *commitResult, blockType repo.BlockType, targ
 	if err := t.datastore.Blocks().Add(index); err != nil {
 		return err
 	}
+
+	username, avatar := t.contactDisplayInfo(index.AuthorId)
+
 	t.pushUpdate(BlockInfo{
 		Id:       index.Id,
 		ThreadId: index.ThreadId,
 		AuthorId: index.AuthorId,
-		Username: t.contactUsername(index.AuthorId),
+		Username: username,
+		Avatar:   avatar,
 		Type:     index.Type.Description(),
 		Date:     index.Date,
 		Parents:  index.Parents,
@@ -609,24 +600,9 @@ func (t *Thread) pushUpdate(index BlockInfo) {
 	t.sendUpdate(ThreadUpdate{
 		Block:      index,
 		ThreadId:   t.Id,
+		ThreadKey:  t.Key,
 		ThreadName: t.Name,
 	})
-}
-
-// contactUsername returns the username for the peer id if known
-func (t *Thread) contactUsername(id string) string {
-	if id == t.node().Identity.Pretty() {
-		username, err := t.datastore.Profile().GetUsername()
-		if err == nil && username != nil && *username != "" {
-			return *username
-		}
-		return ipfs.ShortenID(id)
-	}
-	contact, err := t.getContact(id)
-	if contact == nil || err != nil {
-		return ipfs.ShortenID(id)
-	}
-	return toUsername(contact)
 }
 
 // loadSchema loads a schema from a local file

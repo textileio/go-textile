@@ -35,6 +35,28 @@ message CafeRefreshSession {
     string refresh = 2;
 }
 
+message CafePublishContact {
+    string token    = 1;
+    Contact contact = 2;
+}
+
+message CafePublishContactAck {
+    string id = 1;
+}
+
+message CafeContactQuery {
+    string token        = 1;
+    string findId       = 2;
+    string findAddress  = 3;
+    string findUsername = 4;
+    int32 limit         = 5;
+    int32 wait          = 6;
+}
+
+message CafeContactQueryResult {
+    repeated Contact contacts = 1;
+}
+
 message CafeStore {
     string token         = 1;
     repeated string cids = 2;

@@ -42,11 +42,14 @@ func (a *api) lsBlocks(g *gin.Context) {
 	infos := make([]BlockInfo, 0)
 	query := fmt.Sprintf("threadId='%s'", thrd.Id)
 	for _, block := range a.node.datastore.Blocks().List(opts["offset"], limit, query) {
+		username, avatar := a.node.ContactDisplayInfo(block.AuthorId)
+
 		infos = append(infos, BlockInfo{
 			Id:       block.Id,
 			ThreadId: block.ThreadId,
 			AuthorId: block.AuthorId,
-			Username: a.node.ContactUsername(block.AuthorId),
+			Username: username,
+			Avatar:   avatar,
 			Type:     block.Type.Description(),
 			Date:     block.Date,
 			Parents:  block.Parents,

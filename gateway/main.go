@@ -25,6 +25,7 @@ import (
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/gateway/static/css"
 	"github.com/textileio/textile-go/gateway/templates"
+	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -154,6 +155,7 @@ var avatarRx = regexp.MustCompile(`/avatar($|/small$|/large$)`)
 
 // profileHandler handles requests for profile info hosted on ipns
 // NOTE: avatar is a magic path, will return data behind link at avatar_uri
+// NOTICE: This method has been deprecated and is only here temporarily for backward compatibility
 func (g *Gateway) profileHandler(c *gin.Context) {
 	pathp := c.Param("path")
 	if len(pathp) > 0 && pathp[len(pathp)-1] == '/' {
@@ -182,7 +184,7 @@ func (g *Gateway) profileHandler(c *gin.Context) {
 		return
 	}
 
-	pth, err := g.Node.ResolveProfile(rootId)
+	pth, err := ipfs.ResolveIPNS(g.Node.Ipfs(), rootId)
 	if err != nil {
 		log.Errorf("error resolving profile %s: %s", c.Param("root"), err)
 		render404(c)

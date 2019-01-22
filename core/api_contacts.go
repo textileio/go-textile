@@ -2,6 +2,7 @@ package core
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,11 +28,7 @@ func (a *api) lsContacts(g *gin.Context) {
 		}
 		contacts = make([]ContactInfo, 0)
 		for _, p := range thrd.Peers() {
-			contact, err := a.node.Contact(p.Id)
-			if err != nil {
-				a.abort500(g, err)
-				return
-			}
+			contact := a.node.Contact(p.Id)
 			if contact != nil {
 				contacts = append(contacts, *contact)
 			}
@@ -46,15 +43,48 @@ func (a *api) lsContacts(g *gin.Context) {
 func (a *api) getContacts(g *gin.Context) {
 	id := g.Param("id")
 
-	info, err := a.node.Contact(id)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
+	info := a.node.Contact(id)
 	if info == nil {
 		g.String(http.StatusNotFound, "contact not found")
 		return
 	}
 
 	g.JSON(http.StatusOK, info)
+}
+
+func (a *api) searchContacts(g *gin.Context) {
+	opts, err := a.readOpts(g)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+
+	local, err := strconv.ParseBool(opts["local"])
+	if err != nil {
+		local = false
+	}
+	limit, err := strconv.Atoi(opts["limit"])
+	if err != nil {
+		limit = 5
+	}
+	wait, err := strconv.Atoi(opts["wait"])
+	if err != nil {
+		wait = 5
+	}
+	query := &ContactInfoQuery{
+		Id:       opts["peer"],
+		Address:  opts["address"],
+		Username: opts["username"],
+		Local:    local,
+		Limit:    limit,
+		Wait:     wait,
+	}
+
+	infos, err := a.node.FindContact(query)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	g.JSON(http.StatusOK, infos)
 }

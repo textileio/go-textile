@@ -10,7 +10,6 @@ import (
 
 type Datastore interface {
 	Config() ConfigStore
-	Profile() ProfileStore
 	Contacts() ContactStore
 	Files() FileStore
 	Threads() ThreadStore
@@ -45,21 +44,19 @@ type ConfigStore interface {
 	IsEncrypted() bool
 }
 
-type ProfileStore interface {
-	SetUsername(username string) error
-	GetUsername() (*string, error)
-	SetAvatar(uri string) error
-	GetAvatar() (*string, error)
-}
-
 type ContactStore interface {
 	Queryable
 	Add(contact *Contact) error
 	AddOrUpdate(contact *Contact) error
 	Get(id string) *Contact
 	List() []Contact
+	Find(id string, address string, username string) []Contact
 	ListByAddress(address string) []Contact
+	ListByUsername(username string) []Contact
 	Count() int
+	UpdateUsername(id string, username string) error
+	UpdateAvatar(id string, avatar string) error
+	UpdateInboxes(id string, inboxes []Cafe) error
 	Delete(id string) error
 }
 

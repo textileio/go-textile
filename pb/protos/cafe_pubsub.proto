@@ -1,0 +1,16 @@
+syntax = "proto3";
+option go_package = "pb";
+
+import "model.proto";
+
+message CafePubSubContactQuery {
+    string id           = 1;
+    string findId       = 2;
+    string findAddress  = 3;
+    string findUsername = 4;
+}
+
+message CafePubSubContactQueryResult {
+    string id                 = 1;
+    repeated Contact contacts = 2;
+}

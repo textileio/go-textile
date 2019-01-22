@@ -185,17 +185,3 @@ func (m *Mobile) RemoveThread(id string) (string, error) {
 
 	return hash.B58String(), nil
 }
-
-// AddPeerToThread call thread AddPeer
-func (m *Mobile) AddPeerToThread(id string, threadId string) error {
-	if !m.node.Started() {
-		return core.ErrStopped
-	}
-
-	thrd := m.node.Thread(threadId)
-	if thrd == nil {
-		return core.ErrThreadNotFound
-	}
-
-	return thrd.AddPeer(id)
-}

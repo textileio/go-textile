@@ -58,22 +58,16 @@ func (Major005) Up(repoPath string, pinCode string, testnet bool) error {
 		return err
 	}
 	defer jsonFile.Close()
-
 	var config native.Config
-
 	byteValue, _ := ioutil.ReadAll(jsonFile)
-	err = json.Unmarshal(byteValue, &config)
-	if err != nil {
+	if err := json.Unmarshal(byteValue, &config); err != nil {
 		return err
 	}
 
 	// Get username
-	var username string
+	username := config.Identity.PeerID[len(config.Identity.PeerID)-7:]
 	row := db.QueryRow("select value from profile where key='username';")
-	err = row.Scan(&username)
-	if err != nil {
-		return err
-	}
+	row.Scan(&username)
 	jsonData := map[string]string{
 		"peerid":   config.Identity.PeerID,
 		"username": username,
@@ -82,8 +76,7 @@ func (Major005) Up(repoPath string, pinCode string, testnet bool) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(path.Join(repoPath, "migration005_peerid.ndjson"), jsonBytes, 0644)
-	if err != nil {
+	if err := ioutil.WriteFile(path.Join(repoPath, "migration005_peerid.ndjson"), jsonBytes, 0644); err != nil {
 		return err
 	}
 

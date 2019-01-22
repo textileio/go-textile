@@ -1,6 +1,9 @@
 package core
 
 import (
+	"encoding/json"
+	"fmt"
+
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
@@ -85,6 +88,10 @@ func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 
 	// collect author as an unwelcomed peer
 	if msg.Contact != nil {
+		if cjson, err := json.Marshal(msg.Contact); err == nil {
+			log.Debugf("found contact: %s", string(cjson))
+		}
+
 		pid, err := peer.IDB58Decode(block.Header.Author)
 		if err != nil {
 			return nil, err
@@ -102,12 +109,10 @@ func (t *Thread) buildJoin(inviterId string) (*pb.ThreadJoin, error) {
 	msg := &pb.ThreadJoin{
 		Inviter: inviterId,
 	}
-	contact, err := t.getContact(t.node().Identity.Pretty())
-	if err != nil {
-		return nil, err
+	contact := t.datastore.Contacts().Get(t.node().Identity.Pretty())
+	if contact == nil {
+		return nil, fmt.Errorf("unable to join, no contact for self")
 	}
-	if contact != nil {
-		msg.Contact = repoContactToProto(contact)
-	}
+	msg.Contact = repoContactToProto(contact)
 	return msg, nil
 }
