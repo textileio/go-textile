@@ -225,7 +225,7 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 		return nil, err
 	}
 
-	node.SetLogLevels(map[string]string{}, node.config.Logs.LogToDisk)
+	node.SetLogLevels(map[string]string{})
 
 	// run all minor repo migrations if needed
 	if err := repo.MigrateUp(conf.RepoPath, conf.PinCode, false); err != nil {
@@ -668,9 +668,9 @@ func (t *Textile) touchDatastore() error {
 }
 
 // SetLogLevels hijacks the ipfs logging system, putting output to files
-func (t *Textile) SetLogLevels(logLevels map[string]string, files bool) error {
+func (t *Textile) SetLogLevels(logLevels map[string]string) error {
 	var writer io.Writer
-	if files {
+	if t.config.Logs.LogToDisk {
 		writer = &lumberjack.Logger{
 			Filename:   path.Join(t.repoPath, "logs", "textile.log"),
 			MaxSize:    10, // megabytes

@@ -48,7 +48,7 @@ func TestSetLogLevels(t *testing.T) {
 		"tex-core":      "DEBUG",
 		"tex-datastore": "DEBUG",
 	}
-	if err := node.SetLogLevels(logLevels, true); err != nil {
+	if err := node.SetLogLevels(logLevels); err != nil {
 		t.Errorf("set log levels failed: %s", err)
 	}
 }

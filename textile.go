@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jessevdk/go-flags"
-	"github.com/mitchellh/go-homedir"
+	flags "github.com/jessevdk/go-flags"
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/cmd"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/gateway"
@@ -327,13 +327,14 @@ func buildNode(pinCode string, repoPath string, logLevels map[string]string) err
 	}
 
 	node, err = core.NewTextile(core.RunConfig{
-		PinCode:   pinCode,
-		RepoPath:  repoPathf,
-		LogLevels: logLevels,
+		PinCode:  pinCode,
+		RepoPath: repoPathf,
 	})
 	if err != nil {
 		return errors.New(fmt.Sprintf("create node failed: %s", err))
 	}
+
+	node.SetLogLevels(logLevels)
 
 	gateway.Host = &gateway.Gateway{
 		Node: node,
