@@ -138,6 +138,7 @@ func (a *api) peersThreads(g *gin.Context) {
 
 func (a *api) rmThreads(g *gin.Context) {
 	id := g.Param("id")
+
 	thrd := a.node.Thread(id)
 	if thrd == nil {
 		g.String(http.StatusNotFound, ErrThreadNotFound.Error())

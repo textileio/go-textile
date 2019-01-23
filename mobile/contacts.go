@@ -47,6 +47,11 @@ func (m *Mobile) Contacts() (string, error) {
 	return toJSON(contacts)
 }
 
+// RemoveContact calls core RemoveContact
+func (m *Mobile) RemoveContact(id string) error {
+	return m.node.RemoveContact(id)
+}
+
 // ContactThreads calls core ContactThreads
 func (m *Mobile) ContactThreads(id string) (string, error) {
 	if !m.node.Started() {

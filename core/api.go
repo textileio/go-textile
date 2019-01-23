@@ -194,6 +194,7 @@ func (a *api) Start() {
 		{
 			contacts.GET("", a.lsContacts)
 			contacts.GET("/:id", a.getContacts)
+			contacts.DELETE("/:id", a.rmContacts)
 			contacts.POST("/search", a.searchContacts)
 		}
 

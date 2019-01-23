@@ -67,6 +67,11 @@ func (t *Textile) Contacts() ([]ContactInfo, error) {
 	return contacts, nil
 }
 
+// RemoveContact removes a contact
+func (t *Textile) RemoveContact(id string) error {
+	return t.datastore.Contacts().Delete(id)
+}
+
 // ContactDisplayInfo returns the username and avatar for the peer id if known
 func (t *Textile) ContactDisplayInfo(id string) (string, string) {
 	contact := t.datastore.Contacts().Get(id)
