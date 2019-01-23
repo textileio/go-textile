@@ -9,7 +9,7 @@ import (
 
 // RegisterCafe registers this account with another peer (the "cafe"),
 // which provides a session token for the service
-func (t *Textile) RegisterCafe(host string) (*repo.CafeSession, error) {
+func (t *Textile) RegisterCafe(host string) (*pb.CafeSession, error) {
 	session, err := t.cafe.Register(host)
 	if err != nil {
 		return nil, err
@@ -33,17 +33,17 @@ func (t *Textile) RegisterCafe(host string) (*repo.CafeSession, error) {
 }
 
 // CafeSessions lists active cafe sessions
-func (t *Textile) CafeSessions() ([]repo.CafeSession, error) {
+func (t *Textile) CafeSessions() ([]*pb.CafeSession, error) {
 	return t.datastore.CafeSessions().List(), nil
 }
 
 // CafeSession returns an active session by id
-func (t *Textile) CafeSession(peerId string) (*repo.CafeSession, error) {
+func (t *Textile) CafeSession(peerId string) (*pb.CafeSession, error) {
 	return t.datastore.CafeSessions().Get(peerId), nil
 }
 
 // RefreshCafeSession attempts to refresh a token with a cafe
-func (t *Textile) RefreshCafeSession(peerId string) (*repo.CafeSession, error) {
+func (t *Textile) RefreshCafeSession(peerId string) (*pb.CafeSession, error) {
 	session := t.datastore.CafeSessions().Get(peerId)
 	if session == nil {
 		return nil, errors.New("session not found")
@@ -84,8 +84,8 @@ func (t *Textile) CheckCafeMessages() error {
 	return t.cafeInbox.CheckMessages()
 }
 
-// protoCafeToModel is a tmp method just converting proto cafe info to the repo version
-func protoCafeToModel(pro *pb.Cafe) repo.Cafe {
+// protoCafeToRepo is a tmp method just converting proto cafe info to the repo version
+func protoCafeToRepo(pro *pb.Cafe) repo.Cafe {
 	return repo.Cafe{
 		Peer:     pro.Peer,
 		Address:  pro.Address,

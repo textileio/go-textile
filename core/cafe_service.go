@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core"
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/pin"
-	"gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
-	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	files "gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
+	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 
 	njwt "github.com/dgrijalva/jwt-go"
 	"github.com/golang/protobuf/proto"
@@ -123,7 +123,7 @@ func (h *CafeService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error
 // PublishContact publishes the local peer's contact info
 func (h *CafeService) PublishContact(contact *repo.Contact, cafe peer.ID) error {
 	//return ipfs.Publish(h.service.Node(), string(cafeServiceProtocol), []byte(hash))
-	if _, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
+	if _, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_PUBLISH_CONTACT, &pb.CafePublishContact{
 			Token:   session.Access,
 			Contact: repoContactToProto(contact),
@@ -136,7 +136,7 @@ func (h *CafeService) PublishContact(contact *repo.Contact, cafe peer.ID) error 
 
 // FindContactByUsername asks a cafe for a contact match by username
 func (h *CafeService) FindContact(query *ContactInfoQuery, cafe peer.ID) ([]*pb.Contact, error) {
-	renv, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
+	renv, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_CONTACT_QUERY, &pb.CafeContactQuery{
 			Token:        session.Access,
 			FindId:       query.Id,
@@ -173,7 +173,7 @@ func (h *CafeService) PublishContactRequest(req *pb.CafePubSubContactQuery) erro
 }
 
 // Register creates a session with a cafe
-func (h *CafeService) Register(host string) (*repo.CafeSession, error) {
+func (h *CafeService) Register(host string) (*pb.CafeSession, error) {
 	host = strings.TrimRight(host, "/")
 	addr := fmt.Sprintf("%s/cafe/%s/service", host, cafeApiVersion)
 
@@ -208,23 +208,11 @@ func (h *CafeService) Register(host string) (*repo.CafeSession, error) {
 		return nil, err
 	}
 
-	res := new(pb.CafeSession)
-	if err := ptypes.UnmarshalAny(renv.Message.Payload, res); err != nil {
+	session := new(pb.CafeSession)
+	if err := ptypes.UnmarshalAny(renv.Message.Payload, session); err != nil {
 		return nil, err
 	}
 
-	// local login
-	exp, err := ptypes.Timestamp(res.Exp)
-	if err != nil {
-		return nil, err
-	}
-	session := &repo.CafeSession{
-		Id:      res.Id,
-		Access:  res.Access,
-		Refresh: res.Refresh,
-		Expiry:  exp,
-		Cafe:    protoCafeToModel(res.Cafe),
-	}
 	if err := h.datastore.CafeSessions().AddOrUpdate(session); err != nil {
 		return nil, err
 	}
@@ -238,7 +226,7 @@ func (h *CafeService) Store(cids []string, cafe peer.ID) ([]string, error) {
 
 	var accessToken string
 	var addr string
-	renv, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
+	renv, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		store := &pb.CafeStore{
 			Token: session.Access,
 			Cids:  cids,
@@ -308,7 +296,7 @@ func (h *CafeService) StoreThread(thrd *repo.Thread, cafe peer.ID) error {
 		return err
 	}
 
-	if _, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
+	if _, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_STORE_THREAD, &pb.CafeStoreThread{
 			Token:      session.Access,
 			Id:         thrd.Id,
@@ -337,7 +325,7 @@ func (h *CafeService) DeliverMessage(mid string, pid peer.ID, cafe repo.Cafe) er
 
 // CheckMessages asks each session's inbox for new messages
 func (h *CafeService) CheckMessages(cafe peer.ID) error {
-	renv, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
+	renv, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_CHECK_MESSAGES, &pb.CafeCheckMessages{
 			Token: session.Access,
 		}, nil, false)
@@ -369,7 +357,7 @@ func (h *CafeService) CheckMessages(cafe peer.ID) error {
 
 // DeleteMessages deletes a page of messages from a cafe
 func (h *CafeService) DeleteMessages(cafe peer.ID) error {
-	renv, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
+	renv, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_DELETE_MESSAGES, &pb.CafeDeleteMessages{
 			Token: session.Access,
 		}, nil, false)
@@ -403,7 +391,7 @@ func (h *CafeService) notifyClient(pid peer.ID) error {
 
 // sendCafeRequest sends an authenticated request, retrying once after a session refresh
 func (h *CafeService) sendCafeRequest(
-	cafe peer.ID, envFactory func(*repo.CafeSession) (*pb.Envelope, error)) (*pb.Envelope, error) {
+	cafe peer.ID, envFactory func(*pb.CafeSession) (*pb.Envelope, error)) (*pb.Envelope, error) {
 	session := h.datastore.CafeSessions().Get(cafe.Pretty())
 	if session == nil {
 		return nil, errors.New(fmt.Sprintf("could not find session for cafe %s", cafe.Pretty()))
@@ -439,8 +427,8 @@ func (h *CafeService) sendCafeRequest(
 }
 
 // getCafeHTTPAddr returns the http address of a cafe from a session
-func getCafeHTTPAddr(session *repo.CafeSession) string {
-	return fmt.Sprintf("%s/cafe/%s/service", session.Cafe.URL, session.Cafe.API)
+func getCafeHTTPAddr(session *pb.CafeSession) string {
+	return fmt.Sprintf("%s/cafe/%s/service", session.Cafe.Url, session.Cafe.Api)
 }
 
 // challenge asks a fellow peer for a cafe challenge
@@ -463,7 +451,7 @@ func (h *CafeService) challenge(cafeAddr string, kp *keypair.Full) (*pb.CafeNonc
 }
 
 // refresh refreshes a session with a cafe
-func (h *CafeService) refresh(session *repo.CafeSession) (*repo.CafeSession, error) {
+func (h *CafeService) refresh(session *pb.CafeSession) (*pb.CafeSession, error) {
 	refresh := &pb.CafeRefreshSession{
 		Access:  session.Access,
 		Refresh: session.Refresh,
@@ -478,23 +466,11 @@ func (h *CafeService) refresh(session *repo.CafeSession) (*repo.CafeSession, err
 		return nil, err
 	}
 
-	res := new(pb.CafeSession)
-	if err := ptypes.UnmarshalAny(renv.Message.Payload, res); err != nil {
+	refreshed := new(pb.CafeSession)
+	if err := ptypes.UnmarshalAny(renv.Message.Payload, refreshed); err != nil {
 		return nil, err
 	}
 
-	// local login
-	exp, err := ptypes.Timestamp(res.Exp)
-	if err != nil {
-		return nil, err
-	}
-	refreshed := &repo.CafeSession{
-		Id:      session.Id,
-		Access:  res.Access,
-		Refresh: res.Refresh,
-		Expiry:  exp,
-		Cafe:    protoCafeToModel(res.Cafe),
-	}
 	if err := h.datastore.CafeSessions().AddOrUpdate(refreshed); err != nil {
 		return nil, err
 	}

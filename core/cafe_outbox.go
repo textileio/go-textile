@@ -7,7 +7,7 @@ import (
 	"time"
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core"
 
 	"github.com/golang/protobuf/proto"
@@ -53,7 +53,7 @@ func (q *CafeOutbox) Add(target string, rtype repo.CafeRequestType) error {
 	// for each session, add a req
 	for _, session := range sessions {
 		// all possible request types are for our own peer
-		if err := q.add(q.node().Identity, target, session.Cafe, rtype); err != nil {
+		if err := q.add(q.node().Identity, target, *session.Cafe, rtype); err != nil {
 			return err
 		}
 	}
@@ -72,7 +72,8 @@ func (q *CafeOutbox) InboxRequest(pid peer.ID, env *pb.Envelope, inboxes []repo.
 	}
 
 	for _, inbox := range inboxes {
-		if err := q.add(pid, hash.B58String(), inbox, repo.CafePeerInboxRequest); err != nil {
+		cafe := repoCafeToProto(inbox)
+		if err := q.add(pid, hash.B58String(), *cafe, repo.CafePeerInboxRequest); err != nil {
 			return err
 		}
 	}
@@ -96,7 +97,7 @@ func (q *CafeOutbox) Flush() {
 }
 
 // add queues a single request
-func (q *CafeOutbox) add(pid peer.ID, target string, cafe repo.Cafe, rtype repo.CafeRequestType) error {
+func (q *CafeOutbox) add(pid peer.ID, target string, cafe pb.Cafe, rtype repo.CafeRequestType) error {
 	log.Debugf("adding cafe %s request for %s to %s: %s",
 		rtype.Description(), ipfs.ShortenID(pid.Pretty()), ipfs.ShortenID(cafe.Peer), target)
 	return q.datastore.CafeRequests().Add(&repo.CafeRequest{
@@ -224,7 +225,7 @@ func (q *CafeOutbox) handle(reqs []repo.CafeRequest, rtype repo.CafeRequestType,
 				continue
 			}
 
-			if err := q.service().DeliverMessage(req.TargetId, pid, req.Cafe); err != nil {
+			if err := q.service().DeliverMessage(req.TargetId, pid, protoCafeToRepo(&req.Cafe)); err != nil {
 				log.Errorf("cafe %s request to %s failed: %s", rtype.Description(), cafe.Pretty(), err)
 				herr = err
 				continue

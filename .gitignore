@@ -70,3 +70,6 @@ _testmain.go
 
 # Swarm
 docker-compose.swarm.yml
+
+# VSCode
+launch.json

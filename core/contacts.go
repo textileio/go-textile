@@ -1,9 +1,8 @@
 package core
 
 import (
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"time"
-
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/ipfs"
@@ -123,7 +122,7 @@ func (t *Textile) PublishContact() error {
 func (t *Textile) UpdateContactInboxes() error {
 	var inboxes []repo.Cafe
 	for _, session := range t.datastore.CafeSessions().List() {
-		inboxes = append(inboxes, session.Cafe)
+		inboxes = append(inboxes, protoCafeToRepo(session.Cafe))
 	}
 	return t.datastore.Contacts().UpdateInboxes(t.node.Identity.Pretty(), inboxes)
 }
@@ -223,7 +222,7 @@ func protoContactToModel(pro *pb.Contact) *repo.Contact {
 	var inboxes []repo.Cafe
 	for _, i := range pro.Inboxes {
 		if i != nil {
-			inboxes = append(inboxes, protoCafeToModel(i))
+			inboxes = append(inboxes, protoCafeToRepo(i))
 		}
 	}
 	created, err := ptypes.Timestamp(pro.Created)

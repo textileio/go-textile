@@ -1,8 +1,9 @@
 package mobile
 
 import (
+	"github.com/golang/protobuf/proto"
 	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/pb"
 )
 
 // RegisterCafe calls core RegisterCafe
@@ -18,48 +19,60 @@ func (m *Mobile) RegisterCafe(host string) error {
 }
 
 // CafeSessions calls core CafeSessions
-func (m *Mobile) CafeSessions() (string, error) {
+func (m *Mobile) CafeSessions() ([]byte, error) {
 	if !m.node.Started() {
-		return "", core.ErrStopped
+		return nil, core.ErrStopped
 	}
 
-	items, err := m.node.CafeSessions()
+	sessions, err := m.node.CafeSessions()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	if len(items) == 0 {
-		items = make([]repo.CafeSession, 0)
+	cafeSessions := &pb.CafeSessions{
+		Values: sessions,
 	}
-	return toJSON(items)
+	bytes, err := proto.Marshal(cafeSessions)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
 }
 
 // CafeSession calls core CafeSession
-func (m *Mobile) CafeSession(peerId string) (string, error) {
+func (m *Mobile) CafeSession(peerId string) ([]byte, error) {
 	if !m.node.Started() {
-		return "", core.ErrStopped
+		return nil, core.ErrStopped
 	}
 
 	session, err := m.node.CafeSession(peerId)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if session == nil {
-		return "", nil
+		return nil, nil
 	}
-	return toJSON(session)
+	bytes, err := proto.Marshal(session)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
 }
 
 // RefreshCafeSession calls core RefreshCafeSession
-func (m *Mobile) RefreshCafeSession(peerId string) (string, error) {
+func (m *Mobile) RefreshCafeSession(peerId string) ([]byte, error) {
 	if !m.node.Started() {
-		return "", core.ErrOffline
+		return nil, core.ErrStopped
 	}
 
 	session, err := m.node.RefreshCafeSession(peerId)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return toJSON(session)
+	bytes, err := proto.Marshal(session)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
 }
 
 // DeegisterCafe calls core DeregisterCafe
