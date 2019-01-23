@@ -164,7 +164,7 @@ func (t *Textile) FindContact(query *ContactInfoQuery) (*ContactInfoQueryResult,
 		}
 
 		for _, c := range inbound {
-			i := t.contactInfo(protoContactToModel(c), false)
+			i := t.contactInfo(protoContactToRepo(c), false)
 			if i != nil {
 				result.Remote = append(result.Remote, *i)
 			}
@@ -214,8 +214,8 @@ func toUsername(contact *repo.Contact) string {
 	return ""
 }
 
-// protoContactToModel is a tmp method just converting proto contact to the repo version
-func protoContactToModel(pro *pb.Contact) *repo.Contact {
+// protoContactToRepo is a tmp method just converting proto contact to the repo version
+func protoContactToRepo(pro *pb.Contact) *repo.Contact {
 	if pro == nil {
 		return nil
 	}

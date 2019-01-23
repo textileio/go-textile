@@ -93,7 +93,7 @@ type ThreadInvite struct {
 	Id      string    `json:"id"`
 	Block   []byte    `json:"block"`
 	Name    string    `json:"name"`
-	Inviter string    `json:"inviter"`
+	Contact *Contact  `json:"contact"`
 	Date    time.Time `json:"date"`
 }
 

@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -23,18 +24,24 @@ func (c *ThreadInviteDB) Add(invite *repo.ThreadInvite) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into thread_invites(id, block, name, inviter, date) values(?,?,?,?,?)`
+	stm := `insert into thread_invites(id, block, name, contact, date) values(?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
 		return err
 	}
 	defer stmt.Close()
+
+	contact, err := json.Marshal(invite.Contact)
+	if err != nil {
+		return err
+	}
+
 	_, err = stmt.Exec(
 		invite.Id,
 		invite.Block,
 		invite.Name,
-		invite.Inviter,
+		contact,
 		invite.Date.UnixNano(),
 	)
 	if err != nil {
@@ -76,18 +83,25 @@ func (c *ThreadInviteDB) handleQuery(stm string) []repo.ThreadInvite {
 		return nil
 	}
 	for rows.Next() {
-		var id, name, inviter string
-		var block []byte
+		var id, name string
+		var block, contactb []byte
 		var dateInt int64
-		if err := rows.Scan(&id, &block, &name, &inviter, &dateInt); err != nil {
+		if err := rows.Scan(&id, &block, &name, &contactb, &dateInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
+
+		var contact *repo.Contact
+		if err := json.Unmarshal(contactb, &contact); err != nil {
+			log.Errorf("error unmarshaling contact: %s", err)
+			continue
+		}
+
 		ret = append(ret, repo.ThreadInvite{
 			Id:      id,
 			Block:   block,
 			Name:    name,
-			Inviter: inviter,
+			Contact: contact,
 			Date:    time.Unix(0, dateInt),
 		})
 	}

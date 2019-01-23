@@ -131,18 +131,6 @@ func (c *ContactDB) Find(id string, address string, username string) []repo.Cont
 	return c.handleQuery(stm)
 }
 
-func (c *ContactDB) ListByAddress(address string) []repo.Contact {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	return c.handleQuery("select * from contacts where address='" + address + "' order by updated desc;")
-}
-
-func (c *ContactDB) ListByUsername(username string) []repo.Contact {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	return c.handleQuery("select * from contacts where username='" + username + "' order by updated desc;")
-}
-
 func (c *ContactDB) Count() int {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -155,14 +143,14 @@ func (c *ContactDB) Count() int {
 func (c *ContactDB) UpdateUsername(id string, username string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("update contacts set username=? where id=?", username, id)
+	_, err := c.db.Exec("update contacts set username=?, updated=? where id=?", username, time.Now().UnixNano(), id)
 	return err
 }
 
 func (c *ContactDB) UpdateAvatar(id string, avatar string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("update contacts set avatar=? where id=?", avatar, id)
+	_, err := c.db.Exec("update contacts set avatar=?, updated=? where id=?", avatar, time.Now().UnixNano(), id)
 	return err
 }
 
@@ -173,7 +161,7 @@ func (c *ContactDB) UpdateInboxes(id string, inboxes []repo.Cafe) error {
 	if err != nil {
 		return err
 	}
-	_, err = c.db.Exec("update contacts set inboxes=? where id=?", inboxesb, id)
+	_, err = c.db.Exec("update contacts set inboxes=?, updated=? where id=?", inboxesb, time.Now().UnixNano(), id)
 	return err
 }
 

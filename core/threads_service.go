@@ -198,7 +198,7 @@ func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope
 		Id:      hash.B58String(),
 		Block:   plaintext,
 		Name:    msg.Name,
-		Inviter: block.Header.Author,
+		Contact: protoContactToRepo(msg.Contact),
 		Date:    date,
 	}); err != nil {
 		if !repo.ConflictError(err) {

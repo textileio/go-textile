@@ -63,7 +63,7 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 		if err != nil {
 			return nil, err
 		}
-		if err := t.addOrUpdatePeer(pid, protoContactToModel(msg.Contact)); err != nil {
+		if err := t.addOrUpdatePeer(pid, protoContactToRepo(msg.Contact)); err != nil {
 			return nil, err
 		}
 	}

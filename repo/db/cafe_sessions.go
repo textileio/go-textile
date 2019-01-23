@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
-
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
@@ -40,7 +39,7 @@ func (c *CafeSessionDB) AddOrUpdate(session *pb.CafeSession) error {
 		return err
 	}
 
-	time, err := ptypes.Timestamp(session.Exp)
+	exp, err := ptypes.Timestamp(session.Exp)
 	if err != nil {
 		return err
 	}
@@ -49,7 +48,7 @@ func (c *CafeSessionDB) AddOrUpdate(session *pb.CafeSession) error {
 		session.Id,
 		session.Access,
 		session.Refresh,
-		time.UnixNano(),
+		exp.UnixNano(),
 		cafe,
 	)
 	if err != nil {
@@ -106,11 +105,11 @@ func (c *CafeSessionDB) handleQuery(stm string) []*pb.CafeSession {
 			continue
 		}
 
-		time := time.Unix(0, expiryInt)
-		timestamp, err := ptypes.TimestampProto(time)
+		exp := time.Unix(0, expiryInt)
+		timestamp, err := ptypes.TimestampProto(exp)
 		if err != nil {
 			log.Errorf("error in db query: %s", err)
-			return nil
+			continue
 		}
 
 		ret = append(ret, &pb.CafeSession{
