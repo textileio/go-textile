@@ -296,6 +296,10 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 		return nil, err
 	}
 
+	if err := thrd.addOrUpdateContact(protoContactToRepo(msg.Contact)); err != nil {
+		return nil, err
+	}
+
 	// follow parents, update head
 	if err := thrd.handleInviteMessage(block); err != nil {
 		return nil, err

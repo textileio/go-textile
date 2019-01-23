@@ -316,11 +316,10 @@ func (t *Thread) followParent(parent mh.Multihash) error {
 	return t.followParents(block.Header.Parents)
 }
 
-// addOrUpdatePeer collects thread peers, saving them as contacts and
-// saving their cafe inboxes for offline message delivery
-func (t *Thread) addOrUpdatePeer(pid peer.ID, contact *repo.Contact) error {
+// addOrUpdateContact collects thread peers and saves them as contacts
+func (t *Thread) addOrUpdateContact(contact *repo.Contact) error {
 	if err := t.datastore.ThreadPeers().Add(&repo.ThreadPeer{
-		Id:       pid.Pretty(),
+		Id:       contact.Id,
 		ThreadId: t.Id,
 		Welcomed: false,
 	}); err != nil {
@@ -329,7 +328,11 @@ func (t *Thread) addOrUpdatePeer(pid peer.ID, contact *repo.Contact) error {
 		}
 	}
 
-	return t.datastore.Contacts().AddOrUpdate(contact)
+	ex := t.datastore.Contacts().Get(contact.Id)
+	if ex != nil && contact.Updated.UnixNano() >= ex.Updated.UnixNano() {
+		return t.datastore.Contacts().AddOrUpdate(contact)
+	}
+	return nil
 }
 
 // newBlockHeader creates a new header
