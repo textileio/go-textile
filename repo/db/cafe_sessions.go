@@ -100,15 +100,16 @@ func (c *CafeSessionDB) handleQuery(stm string) []*pb.CafeSession {
 			continue
 		}
 
-		var timestamp *timestamp.Timestamp
-		timestamp.Seconds = int64(expiryInt)
-		timestamp.Nanos = 0
+		timestamp := timestamp.Timestamp{
+			Seconds: expiryInt,
+			Nanos:   0,
+		}
 
 		ret = append(ret, &pb.CafeSession{
 			Id:      cafeId,
 			Access:  access,
 			Refresh: refresh,
-			Exp:     timestamp,
+			Exp:     &timestamp,
 			Cafe:    rcafe,
 		})
 	}

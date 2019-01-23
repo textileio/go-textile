@@ -123,7 +123,7 @@ func (h *CafeService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error
 // PublishContact publishes the local peer's contact info
 func (h *CafeService) PublishContact(contact *repo.Contact, cafe peer.ID) error {
 	//return ipfs.Publish(h.service.Node(), string(cafeServiceProtocol), []byte(hash))
-	if _, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
+	if _, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_PUBLISH_CONTACT, &pb.CafePublishContact{
 			Token:   session.Access,
 			Contact: repoContactToProto(contact),
@@ -136,7 +136,7 @@ func (h *CafeService) PublishContact(contact *repo.Contact, cafe peer.ID) error 
 
 // FindContactByUsername asks a cafe for a contact match by username
 func (h *CafeService) FindContact(query *ContactInfoQuery, cafe peer.ID) ([]*pb.Contact, error) {
-	renv, err := h.sendCafeRequest(cafe, func(session *repo.CafeSession) (*pb.Envelope, error) {
+	renv, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_CONTACT_QUERY, &pb.CafeContactQuery{
 			Token:        session.Access,
 			FindId:       query.Id,

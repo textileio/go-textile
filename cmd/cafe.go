@@ -3,7 +3,7 @@ package cmd
 import (
 	"errors"
 
-	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/pb"
 )
 
 var errMissingCafeId = errors.New("missing cafe id")
@@ -30,7 +30,7 @@ func (x *cafesCmd) Short() string {
 
 func (x *cafesCmd) Long() string {
 	return `
-Cafes are other peers on the network who offer pinning, backup, and inbox services. 
+Cafes are other peers on the network who offer pinning, backup, and inbox services.
 Use this command to add, list, get, remove cafes and check messages.
 `
 }
@@ -40,14 +40,14 @@ type addCafesCmd struct {
 }
 
 func (x *addCafesCmd) Usage() string {
-	return ` 
+	return `
 
 Registers with a cafe and saves an expiring service session token.`
 }
 
 func (x *addCafesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	var info *repo.CafeSession
+	var info *pb.CafeSession
 	res, err := executeJsonCmd(POST, "cafes", params{args: args}, &info)
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ List info about all active cafe sessions.`
 
 func (x *lsCafesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	var list []repo.CafeSession
+	var list []pb.CafeSession
 	res, err := executeJsonCmd(GET, "cafes", params{}, &list)
 	if err != nil {
 		return err
@@ -93,7 +93,7 @@ func (x *getCafesCmd) Execute(args []string) error {
 	if len(args) == 0 {
 		return errMissingCafeId
 	}
-	var info *repo.CafeSession
+	var info *pb.CafeSession
 	res, err := executeJsonCmd(GET, "cafes/"+args[0], params{}, &info)
 	if err != nil {
 		return err

@@ -122,7 +122,7 @@ func (t *Textile) PublishContact() error {
 func (t *Textile) UpdateContactInboxes() error {
 	var inboxes []repo.Cafe
 	for _, session := range t.datastore.CafeSessions().List() {
-		inboxes = append(inboxes, session.Cafe)
+		inboxes = append(inboxes, protoCafeToRepo(session.Cafe))
 	}
 	return t.datastore.Contacts().UpdateInboxes(t.node.Identity.Pretty(), inboxes)
 }

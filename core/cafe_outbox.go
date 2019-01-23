@@ -72,7 +72,8 @@ func (q *CafeOutbox) InboxRequest(pid peer.ID, env *pb.Envelope, inboxes []repo.
 	}
 
 	for _, inbox := range inboxes {
-		if err := q.add(pid, hash.B58String(), repoCafeToProto(inbox), repo.CafePeerInboxRequest); err != nil {
+		cafe := repoCafeToProto(inbox)
+		if err := q.add(pid, hash.B58String(), *cafe, repo.CafePeerInboxRequest); err != nil {
 			return err
 		}
 	}
