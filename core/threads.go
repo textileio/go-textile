@@ -194,11 +194,11 @@ func (t *Textile) ThreadInvites() []ThreadInviteInfo {
 		}
 
 		list = append(list, ThreadInviteInfo{
-			Id:      invite.Id,
-			Name:    invite.Name,
-			Inviter: username,
-			Avatar:  avatar,
-			Date:    invite.Date,
+			Id:       invite.Id,
+			Name:     invite.Name,
+			Username: username,
+			Avatar:   avatar,
+			Date:     invite.Date,
 		})
 	}
 

@@ -69,11 +69,11 @@ type ThreadInfo struct {
 
 // ThreadInviteInfo reports info about a thread invite
 type ThreadInviteInfo struct {
-	Id      string    `json:"id"`
-	Name    string    `json:"name"`
-	Inviter string    `json:"inviter,omitempty"`
-	Avatar  string    `json:"avatar,omitempty"`
-	Date    time.Time `json:"date"`
+	Id       string    `json:"id"`
+	Name     string    `json:"name"`
+	Username string    `json:"username,omitempty"`
+	Avatar   string    `json:"avatar,omitempty"`
+	Date     time.Time `json:"date"`
 }
 
 // BlockInfo is a more readable version of repo.Block
