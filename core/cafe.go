@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/textile-go/repo"
 )
 
 // RegisterCafe registers this account with another peer (the "cafe"),
@@ -14,26 +15,17 @@ func (t *Textile) RegisterCafe(host string) (*pb.CafeSession, error) {
 		return nil, err
 	}
 
-	//// add to bootstrap
-	//if session != nil {
-	//	var peers []string
-	//	for _, s := range session.Cafe.Swarm {
-	//		if !strings.Contains(s, "/ws/") {
-	//			peers = append(peers, s+"/ipfs/"+session.Id)
-	//		}
-	//	}
-	//	if err := updateBootstrapConfig(t.repoPath, peers, []string{}); err != nil {
-	//		return nil, err
-	//	}
-	//}
-
 	for _, thrd := range t.loadedThreads {
 		if _, err := thrd.annouce(); err != nil {
 			return nil, err
 		}
 	}
 
-	if err := t.PublishProfile(); err != nil {
+	if err := t.UpdateContactInboxes(); err != nil {
+		return nil, err
+	}
+
+	if err := t.PublishContact(); err != nil {
 		return nil, err
 	}
 
@@ -66,15 +58,6 @@ func (t *Textile) DeregisterCafe(peerId string) error {
 		return nil
 	}
 
-	//// remove from bootstrap
-	//var peers []string
-	//for _, s := range session.Cafe.Swarm {
-	//	peers = append(peers, s+"/ipfs/"+session.Id)
-	//}
-	//if err := updateBootstrapConfig(t.repoPath, []string{}, peers); err != nil {
-	//	return err
-	//}
-
 	// clean up
 	if err := t.datastore.CafeRequests().DeleteByCafe(session.Id); err != nil {
 		return err
@@ -89,10 +72,40 @@ func (t *Textile) DeregisterCafe(peerId string) error {
 		}
 	}
 
-	return t.PublishProfile()
+	if err := t.UpdateContactInboxes(); err != nil {
+		return err
+	}
+
+	return t.PublishContact()
 }
 
 // CheckCafeMessages fetches new messages from registered cafes
 func (t *Textile) CheckCafeMessages() error {
 	return t.cafeInbox.CheckMessages()
+}
+
+// protoCafeToRepo is a tmp method just converting proto cafe info to the repo version
+func protoCafeToRepo(pro *pb.Cafe) repo.Cafe {
+	return repo.Cafe{
+		Peer:     pro.Peer,
+		Address:  pro.Address,
+		API:      pro.Api,
+		Protocol: pro.Protocol,
+		Node:     pro.Node,
+		URL:      pro.Url,
+		Swarm:    pro.Swarm,
+	}
+}
+
+// repoCafeToProto is a tmp method just converting repo cafe info to the proto version
+func repoCafeToProto(rep repo.Cafe) *pb.Cafe {
+	return &pb.Cafe{
+		Peer:     rep.Peer,
+		Address:  rep.Address,
+		Api:      rep.API,
+		Protocol: rep.Protocol,
+		Node:     rep.Node,
+		Url:      rep.URL,
+		Swarm:    rep.Swarm,
+	}
 }

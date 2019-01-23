@@ -2,6 +2,7 @@ package core
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -51,35 +52,39 @@ func (a *api) getContacts(g *gin.Context) {
 	g.JSON(http.StatusOK, info)
 }
 
-func (a *api) addContacts(g *gin.Context) {
-	args, err := a.readArgs(g)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-	if len(args) < 2 {
-		g.String(http.StatusBadRequest, "missing peer id or address")
-		return
-	}
+func (a *api) searchContacts(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
 		a.abort500(g, err)
 		return
 	}
 
-	id := args[0]
-	err = a.node.AddContact(id, args[1], opts["username"])
+	local, err := strconv.ParseBool(opts["local"])
+	if err != nil {
+		local = false
+	}
+	limit, err := strconv.Atoi(opts["limit"])
+	if err != nil {
+		limit = 5
+	}
+	wait, err := strconv.Atoi(opts["wait"])
+	if err != nil {
+		wait = 5
+	}
+	query := &ContactInfoQuery{
+		Id:       opts["peer"],
+		Address:  opts["address"],
+		Username: opts["username"],
+		Local:    local,
+		Limit:    limit,
+		Wait:     wait,
+	}
+
+	infos, err := a.node.FindContact(query)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	info := a.node.Contact(id)
-	if info == nil {
-		g.String(http.StatusNotFound, "contact not created")
-		return
-	}
-
-	g.JSON(http.StatusCreated, info)
-
+	g.JSON(http.StatusOK, infos)
 }

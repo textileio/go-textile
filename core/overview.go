@@ -24,6 +24,6 @@ func (t *Textile) Overview() (*Overview, error) {
 		AccountPeerCount: 0,
 		ThreadCount:      threads,
 		FileCount:        files,
-		ContactCount:     contacts,
+		ContactCount:     contacts - 1, // remove the contact for self
 	}, nil
 }

@@ -1,21 +1,18 @@
 package mobile_test
 
 import (
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
 	"time"
 
-	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-
 	"github.com/golang/protobuf/proto"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
 	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/textile-go/repo"
 )
 
 type TestMessenger struct{}
@@ -49,6 +46,21 @@ var dir []byte
 var filesBlock core.BlockInfo
 var files []core.ThreadFilesInfo
 var invite ExternalInvite
+
+var contact = &repo.Contact{
+	Id:       "abcde",
+	Address:  "address1",
+	Username: "joe",
+	Avatar:   "Qm123",
+	Inboxes: []repo.Cafe{{
+		Peer:     "peer",
+		Address:  "address",
+		API:      "v0",
+		Protocol: "/textile/cafe/1.0.0",
+		Node:     "v1.0.0",
+		URL:      "https://mycafe.com",
+	}},
+}
 
 func TestNewWallet(t *testing.T) {
 	var err error
@@ -92,10 +104,6 @@ func TestMigrateRepo(t *testing.T) {
 func TestNewTextile(t *testing.T) {
 	config := &RunConfig{
 		RepoPath: repoPath1,
-		LogLevels: `{
-			"tex-core":   "debug",
-			"tex-mobile": "debug"
-		}`,
 	}
 	var err error
 	mobile1, err = NewTextile(config, &TestMessenger{})
@@ -105,19 +113,24 @@ func TestNewTextile(t *testing.T) {
 }
 
 func TestNewTextileAgain(t *testing.T) {
+	config := &RunConfig{
+		RepoPath: repoPath1,
+	}
+	if _, err := NewTextile(config, &TestMessenger{}); err != nil {
+		t.Errorf("create mobile node failed: %s", err)
+	}
+}
+
+func TestSetLogLevels(t *testing.T) {
 	logLevels, err := json.Marshal(map[string]string{
-		"tex-core":   "debug",
-		"tex-mobile": "debug",
+		"tex-core":      "DEBUG",
+		"tex-datastore": "DEBUG",
 	})
 	if err != nil {
 		t.Errorf("unable to marshal test map")
 	}
-	config := &RunConfig{
-		RepoPath:  repoPath1,
-		LogLevels: string(logLevels),
-	}
-	if _, err := NewTextile(config, &TestMessenger{}); err != nil {
-		t.Errorf("create mobile node failed: %s", err)
+	if err := mobile1.SetLogLevels(string(logLevels)); err != nil {
+		t.Errorf("attempt to set log levels failed: %s", err)
 	}
 }
 
@@ -157,22 +170,6 @@ func TestMobile_AddThread(t *testing.T) {
 		return
 	}
 	thrdId = thrd.Id
-}
-
-func TestMobile_AddPeerToThread(t *testing.T) {
-	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	id, err := peer.IDFromPrivateKey(sk)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := mobile1.AddPeerToThread(id.Pretty(), thrdId); err != nil {
-		t.Errorf("add peer to thread failed: %s", err)
-		return
-	}
 }
 
 func TestMobile_Threads(t *testing.T) {
@@ -404,7 +401,6 @@ func TestMobile_PhotoDataForMinWidth(t *testing.T) {
 	}
 	if d4 != thumb {
 		t.Errorf("expected thumb result")
-		return
 	}
 }
 
@@ -417,7 +413,6 @@ func TestMobile_Overview(t *testing.T) {
 	stats := core.Overview{}
 	if err := json.Unmarshal([]byte(res), &stats); err != nil {
 		t.Error(err)
-		return
 	}
 }
 
@@ -425,14 +420,12 @@ func TestMobile_SetUsername(t *testing.T) {
 	<-mobile1.OnlineCh()
 	if err := mobile1.SetUsername("boomer"); err != nil {
 		t.Errorf("set username failed: %s", err)
-		return
 	}
 }
 
 func TestMobile_SetAvatar(t *testing.T) {
 	if err := mobile1.SetAvatar(files[0].Files[0].Links["large"].Hash); err != nil {
 		t.Errorf("set avatar failed: %s", err)
-		return
 	}
 }
 
@@ -442,24 +435,48 @@ func TestMobile_Profile(t *testing.T) {
 		t.Errorf("get profile failed: %s", err)
 		return
 	}
-	prof := core.Profile{}
+	prof := repo.Contact{}
 	if err := json.Unmarshal([]byte(profs), &prof); err != nil {
 		t.Error(err)
-		return
 	}
 }
 
 func TestMobile_AddContact(t *testing.T) {
-	if err := mobile1.AddContact("Qm123", "Pabc", "joe"); err != nil {
-		t.Errorf("add contact failed: %s", err)
+	payload, err := json.Marshal(contact)
+	if err != nil {
+		t.Error(err)
 		return
+	}
+	if err := mobile1.AddContact(string(payload)); err != nil {
+		t.Errorf("add contact failed: %s", err)
 	}
 }
 
 func TestMobile_AddContactAgain(t *testing.T) {
-	if err := mobile1.AddContact("Qm123", "Pabc", "joe"); err == nil {
-		t.Errorf("adding duplicate contact should throw error")
+	payload, err := json.Marshal(contact)
+	if err != nil {
+		t.Error(err)
 		return
+	}
+	if err := mobile1.AddContact(string(payload)); err == nil {
+		t.Errorf("adding duplicate contact should throw error")
+	}
+}
+
+func TestMobile_Contact(t *testing.T) {
+	// tmp test get own _virtual_ contact while profile still exists
+	pid, err := mobile1.PeerId()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	self, err := mobile1.Contact(pid)
+	if err != nil {
+		t.Errorf("get own contact failed: %s", err)
+	}
+	var info *core.ContactInfo
+	if err := json.Unmarshal([]byte(self), &info); err != nil {
+		t.Error(err)
 	}
 }
 
@@ -535,7 +552,6 @@ func TestMobile_Notifications(t *testing.T) {
 	var notes []core.NotificationInfo
 	if err := json.Unmarshal([]byte(res), &notes); err != nil {
 		t.Error(err)
-		return
 	}
 }
 

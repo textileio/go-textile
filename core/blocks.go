@@ -44,11 +44,14 @@ func (t *Textile) BlockInfo(id string) (*BlockInfo, error) {
 		return nil, err
 	}
 
+	username, avatar := t.ContactDisplayInfo(block.AuthorId)
+
 	return &BlockInfo{
 		Id:       block.Id,
 		ThreadId: block.ThreadId,
 		AuthorId: block.AuthorId,
-		Username: t.ContactUsername(block.AuthorId),
+		Username: username,
+		Avatar:   avatar,
 		Type:     block.Type.Description(),
 		Date:     block.Date,
 		Parents:  block.Parents,

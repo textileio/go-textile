@@ -35,7 +35,7 @@ func (c *CafeClientMessagesDB) AddOrUpdate(message *repo.CafeClientMessage) erro
 		message.Id,
 		message.PeerId,
 		message.ClientId,
-		int(message.Date.Unix()),
+		message.Date.UnixNano(),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -86,7 +86,7 @@ func (c *CafeClientMessagesDB) handleQuery(stm string) []repo.CafeClientMessage 
 	}
 	for rows.Next() {
 		var id, peerId, clientId string
-		var dateInt int
+		var dateInt int64
 		if err := rows.Scan(&id, &peerId, &clientId, &dateInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
@@ -95,7 +95,7 @@ func (c *CafeClientMessagesDB) handleQuery(stm string) []repo.CafeClientMessage 
 			Id:       id,
 			PeerId:   peerId,
 			ClientId: clientId,
-			Date:     time.Unix(int64(dateInt), 0),
+			Date:     time.Unix(0, dateInt),
 		})
 	}
 	return ret

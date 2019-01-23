@@ -15,7 +15,6 @@ var log = logging.Logger("tex-datastore")
 
 type SQLiteDatastore struct {
 	config             repo.ConfigStore
-	profile            repo.ProfileStore
 	contacts           repo.ContactStore
 	files              repo.FileStore
 	threads            repo.ThreadStore
@@ -49,7 +48,6 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 	mux := new(sync.Mutex)
 	sqliteDB := &SQLiteDatastore{
 		config:             NewConfigStore(conn, mux, dbPath),
-		profile:            NewProfileStore(conn, mux),
 		contacts:           NewContactStore(conn, mux),
 		files:              NewFileStore(conn, mux),
 		threads:            NewThreadStore(conn, mux),
@@ -82,10 +80,6 @@ func (d *SQLiteDatastore) Close() {
 
 func (d *SQLiteDatastore) Config() repo.ConfigStore {
 	return d.config
-}
-
-func (d *SQLiteDatastore) Profile() repo.ProfileStore {
-	return d.profile
 }
 
 func (d *SQLiteDatastore) Contacts() repo.ContactStore {
@@ -196,12 +190,10 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 	sqlStmt += `
     create table config (key text primary key not null, value blob);
 
-    create table profile (key text primary key not null, value blob);
-
-    create table contacts (id text primary key not null, address text not null, username text not null, inboxes blob not null, added integer not null);
+    create table contacts (id text primary key not null, address text not null, username text not null, avatar text not null, inboxes blob not null, created integer not null, updated integer not null);
     create index contact_address on contacts (address);
     create index contact_username on contacts (username);
-    create index contact_added on contacts (added);
+    create index contact_updated on contacts (updated);
 
     create table files (mill text not null, checksum text not null, source text not null, opts text not null, hash text not null, key text not null, media text not null, name text not null, size integer not null, added integer not null, meta blob, targets text, primary key (mill, checksum));
     create index file_hash on files (hash);

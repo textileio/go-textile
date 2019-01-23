@@ -12,6 +12,7 @@ type ThreadMessageInfo struct {
 	Date     time.Time `json:"date"`
 	AuthorId string    `json:"author_id"`
 	Username string    `json:"username,omitempty"`
+	Avatar   string    `json:"avatar,omitempty"`
 	Body     string    `json:"body"`
 }
 
@@ -45,11 +46,14 @@ func (t *Textile) ThreadMessage(block repo.Block) (*ThreadMessageInfo, error) {
 		return nil, ErrBlockWrongType
 	}
 
+	username, avatar := t.ContactDisplayInfo(block.AuthorId)
+
 	return &ThreadMessageInfo{
 		Id:       block.Id,
 		Date:     block.Date,
 		AuthorId: block.AuthorId,
-		Username: t.ContactUsername(block.AuthorId),
+		Username: username,
+		Avatar:   avatar,
 		Body:     block.Body,
 	}, nil
 }

@@ -46,7 +46,7 @@ func (c *CafeRequestDB) Add(req *repo.CafeRequest) error {
 		req.Cafe.Peer,
 		cafe,
 		req.Type,
-		int(req.Date.UnixNano()),
+		req.Date.UnixNano(),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -91,7 +91,8 @@ func (c *CafeRequestDB) handleQuery(stm string) []repo.CafeRequest {
 	}
 	for rows.Next() {
 		var id, peerId, targetId, cafeId string
-		var typeInt, dateInt int
+		var typeInt int
+		var dateInt int64
 		var cafe []byte
 		if err := rows.Scan(&id, &peerId, &targetId, &cafeId, &cafe, &typeInt, &dateInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
@@ -110,7 +111,7 @@ func (c *CafeRequestDB) handleQuery(stm string) []repo.CafeRequest {
 			TargetId: targetId,
 			Cafe:     mod,
 			Type:     repo.CafeRequestType(typeInt),
-			Date:     time.Unix(0, int64(dateInt)),
+			Date:     time.Unix(0, dateInt),
 		})
 	}
 	return ret

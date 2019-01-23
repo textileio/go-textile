@@ -13,7 +13,7 @@ import (
 
 	ipfsconfig "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	utilmain "gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/commands"
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core"
@@ -28,13 +28,13 @@ import (
 	"github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/service"
-	"gopkg.in/natefinch/lumberjack.v2"
+	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 )
 
 var log = logging.Logger("tex-core")
 
 // Version is the core version identifier
-const Version = "1.0.0-rc23"
+const Version = "1.0.0-rc27"
 
 // kQueueFlushFreq how often to flush the message queues
 const kQueueFlushFreq = time.Second * 60
@@ -45,6 +45,7 @@ const kMobileQueueFlush = time.Second * 40
 // Update is used to notify UI listeners of changes
 type Update struct {
 	Id   string     `json:"id"`
+	Key  string     `json:"key"`
 	Name string     `json:"name"`
 	Type UpdateType `json:"type"`
 }
@@ -89,9 +90,8 @@ type MigrateConfig struct {
 
 // RunConfig is used to define run options for a textile node
 type RunConfig struct {
-	PinCode   string
-	RepoPath  string
-	LogLevels map[string]string
+	PinCode  string
+	RepoPath string
 }
 
 // Textile is the main Textile node structure
@@ -135,8 +135,6 @@ func InitRepo(conf InitConfig) error {
 		return ErrAccountRequired
 	}
 
-	setupLogging(conf.RepoPath, map[string]string{}, conf.LogToDisk)
-
 	// init repo
 	if err := repo.Init(conf.RepoPath, Version); err != nil {
 		return err
@@ -169,6 +167,18 @@ func InitRepo(conf InitConfig) error {
 		return err
 	}
 	if err := sqliteDb.Config().Configure(conf.Account, time.Now()); err != nil {
+		return err
+	}
+
+	// add self as a contact
+	ipfsConf, err := rep.Config()
+	if err != nil {
+		return err
+	}
+	if err := sqliteDb.Contacts().Add(&repo.Contact{
+		Id:      ipfsConf.Identity.PeerID,
+		Address: conf.Account.Address(),
+	}); err != nil {
 		return err
 	}
 
@@ -215,7 +225,7 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 		return nil, err
 	}
 
-	node.writer = setupLogging(conf.RepoPath, conf.LogLevels, node.config.Logs.LogToDisk)
+	node.SetLogLevels(map[string]string{})
 
 	// run all minor repo migrations if needed
 	if err := repo.MigrateUp(conf.RepoPath, conf.PinCode, false); err != nil {
@@ -253,6 +263,7 @@ func (t *Textile) Start() error {
 	}
 	log.Debugf("fd limit: %d (changed %t)", limit, changed)
 
+	// open db
 	if err := t.touchDatastore(); err != nil {
 		return err
 	}
@@ -278,10 +289,10 @@ func (t *Textile) Start() error {
 			return
 		}
 
-		t.threads.service.SetHandler()
+		t.threads.service.Start()
 		t.threads.online = true
 
-		t.cafe.service.SetHandler()
+		t.cafe.service.Start()
 		t.cafe.online = true
 
 		if t.config.Cafe.Host.Open {
@@ -302,6 +313,13 @@ func (t *Textile) Start() error {
 			log.Errorf(err.Error())
 		}
 		log.Info("node is online")
+
+		// tmp. publish contact for migrated users.
+		// this normally only happens when contact details are changed,
+		// will be removed at some point in the future.
+		if err := t.PublishContact(); err != nil {
+			log.Errorf(err.Error())
+		}
 	}()
 
 	for _, mod := range t.datastore.Threads().List() {
@@ -583,14 +601,15 @@ func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 	}
 
 	threadConfig := &ThreadConfig{
-		RepoPath:      t.repoPath,
-		Config:        t.config,
-		Node:          t.Ipfs,
-		Datastore:     t.datastore,
-		Service:       t.threadsService,
-		ThreadsOutbox: t.threadsOutbox,
-		CafeOutbox:    t.cafeOutbox,
-		SendUpdate:    t.sendThreadUpdate,
+		RepoPath:           t.repoPath,
+		Config:             t.config,
+		Node:               t.Ipfs,
+		Datastore:          t.datastore,
+		Service:            t.threadsService,
+		ThreadsOutbox:      t.threadsOutbox,
+		CafeOutbox:         t.cafeOutbox,
+		SendUpdate:         t.sendThreadUpdate,
+		ContactDisplayInfo: t.ContactDisplayInfo,
 	}
 
 	thrd, err := NewThread(mod, threadConfig)
@@ -604,11 +623,21 @@ func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 
 // sendUpdate adds an update to the update channel
 func (t *Textile) sendUpdate(update Update) {
+	for _, k := range internalThreadKeys {
+		if update.Key == k {
+			return
+		}
+	}
 	t.updates <- update
 }
 
 // sendThreadUpdate adds a thread update to the update channel
 func (t *Textile) sendThreadUpdate(update ThreadUpdate) {
+	for _, k := range internalThreadKeys {
+		if update.ThreadKey == k {
+			return
+		}
+	}
 	t.threadUpdates.Send(update)
 }
 
@@ -638,12 +667,12 @@ func (t *Textile) touchDatastore() error {
 	return nil
 }
 
-// setupLogging hijacks the ipfs logging system, putting output to files
-func setupLogging(repoPath string, logLevels map[string]string, files bool) io.Writer {
+// SetLogLevels hijacks the ipfs logging system, putting output to files
+func (t *Textile) SetLogLevels(logLevels map[string]string) error {
 	var writer io.Writer
-	if files {
+	if t.config.Logs.LogToDisk {
 		writer = &lumberjack.Logger{
-			Filename:   path.Join(repoPath, "logs", "textile.log"),
+			Filename:   path.Join(t.repoPath, "logs", "textile.log"),
 			MaxSize:    10, // megabytes
 			MaxBackups: 3,
 			MaxAge:     30, // days
@@ -658,10 +687,11 @@ func setupLogging(repoPath string, logLevels map[string]string, files bool) io.W
 	for key, value := range logLevels {
 		if err := logging.SetLogLevel(key, value); err != nil {
 			log.Errorf("error: %s (%s)", err, key)
+			return err
 		}
 	}
-
-	return writer
+	t.writer = writer
+	return nil
 }
 
 // removeLocks force deletes the IPFS repo and SQLite DB lock files

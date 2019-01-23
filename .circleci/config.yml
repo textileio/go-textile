@@ -51,6 +51,10 @@ jobs:
         paths:
         - /go/src/gx
     - run:
+        name: build the binary
+        command: |
+            go build -i -o textile textile.go
+    - run:
         name: run tests
         command: |
           ./test_compile.sh
@@ -350,6 +354,10 @@ jobs:
           export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           go get -u github.com/whyrusleeping/gx
           go get -u github.com/whyrusleeping/gx-go
+    - run:
+        name: install protobuf
+        command: |
+            brew install protobuf
     - restore_cache:
         key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
     - restore_cache:
@@ -380,6 +388,11 @@ jobs:
           gomobile init
           gomobile bind -ldflags "-w" -v -target=ios github.com/textileio/textile-go/mobile
     - run:
+        name: build obj c protobuf bindings
+        command: |
+            mkdir protobuf_gen
+            protoc --proto_path=./pb/protos --objc_out=./protobuf_gen ./pb/protos/*
+    - run:
         name: collect artifacts
         command: |
           VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
@@ -388,7 +401,7 @@ jobs:
           fi
           OUT=~/dist/ios_framework
           mkdir -p ${OUT}
-          tar -czvf textile-go_${VERSION}_ios-framework.tar.gz Mobile.framework
+          tar -czvf textile-go_${VERSION}_ios-framework.tar.gz Mobile.framework protobuf_gen
           mv textile-go_${VERSION}_ios-framework.tar.gz ${OUT}/
     - persist_to_workspace:
         root: ~/dist
@@ -399,7 +412,7 @@ jobs:
 
   build-android-aar:
     docker:
-    - image: circleci/android:api-26-alpha
+    - image: circleci/android:api-28-ndk
     working_directory: ~/go/src/github.com/textileio/textile-go
     steps:
     - checkout
@@ -420,6 +433,13 @@ jobs:
           export PATH=$PATH:/usr/local/go/bin
           go get -u github.com/whyrusleeping/gx
           go get -u github.com/whyrusleeping/gx-go
+    - run:
+        name: install protobuf
+        command: |
+            curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.6.1/protoc-3.6.1-linux-x86_64.zip
+            unzip protoc-3.6.1-linux-x86_64.zip -d protoc3
+            sudo mv protoc3/bin/* /usr/local/bin/
+            sudo mv protoc3/include/* /usr/local/include/
     - restore_cache:
         key: dep-v1-android-{{ checksum "Gopkg.lock" }}-{{ arch }}
     - restore_cache:
@@ -439,10 +459,11 @@ jobs:
         paths:
         - ~/go/src/gx
     - run:
-        name: install ndk-bundle
+        name: install tools
         command: |
-          sdkmanager --install "ndk-bundle"
           sdkmanager --licenses
+          echo y | sdkmanager "build-tools;28.0.3"
+          echo y | sdkmanager "platforms;android-28"
     - run:
         name: install gomobile
         command: |
@@ -454,8 +475,13 @@ jobs:
           export PATH=$PATH:/usr/local/go/bin
           export GOPATH=~/go
           export PATH=$PATH:$GOPATH/bin
-          gomobile init -ndk /opt/android/sdk/ndk-bundle
+          gomobile init -ndk /opt/android/android-ndk-r17b
           gomobile bind -ldflags "-w" -v -target=android -o mobile.aar github.com/textileio/textile-go/mobile
+    - run:
+        name: build java protobuf bindings
+        command: |
+            mkdir protobuf_gen
+            protoc --proto_path=./pb/protos --java_out=./protobuf_gen ./pb/protos/*
     - run:
         name: collect artifacts
         command: |
@@ -465,7 +491,7 @@ jobs:
           fi
           OUT=~/dist/android_aar
           mkdir -p ${OUT}
-          tar -czvf textile-go_${VERSION}_android-aar.tar.gz mobile.aar
+          tar -czvf textile-go_${VERSION}_android-aar.tar.gz mobile.aar protobuf_gen
           mv textile-go_${VERSION}_android-aar.tar.gz ${OUT}/
     - persist_to_workspace:
         root: ~/dist

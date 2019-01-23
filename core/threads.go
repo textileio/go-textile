@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
@@ -62,7 +63,7 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, 
 		Id:        id.Pretty(),
 		Key:       conf.Key,
 		PrivKey:   skb,
-		Name:      conf.Name,
+		Name:      strings.TrimSpace(conf.Name),
 		Schema:    conf.Schema.B58String(),
 		Initiator: conf.Initiator,
 		Type:      conf.Type,
@@ -88,7 +89,7 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, 
 		go t.cafeOutbox.Flush()
 	}
 
-	t.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadAdded})
+	t.sendUpdate(Update{Id: thrd.Id, Key: thrd.Key, Name: thrd.Name, Type: ThreadAdded})
 
 	log.Debugf("added a new thread %s with name %s", thrd.Id, conf.Name)
 
@@ -124,7 +125,7 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	t.loadedThreads[len(t.loadedThreads)-1] = nil
 	t.loadedThreads = t.loadedThreads[:len(t.loadedThreads)-1]
 
-	t.sendUpdate(Update{Id: thrd.Id, Name: thrd.Name, Type: ThreadRemoved})
+	t.sendUpdate(Update{Id: thrd.Id, Key: thrd.Key, Name: thrd.Name, Type: ThreadRemoved})
 
 	log.Infof("removed thread %s with name %s", thrd.Id, thrd.Name)
 
@@ -183,10 +184,13 @@ func (t *Textile) ThreadInvites() []ThreadInviteInfo {
 	list := make([]ThreadInviteInfo, 0)
 
 	for _, invite := range t.datastore.ThreadInvites().List() {
+		username, avatar := t.ContactDisplayInfo(invite.Inviter)
+
 		list = append(list, ThreadInviteInfo{
 			Id:      invite.Id,
 			Name:    invite.Name,
-			Inviter: t.ContactUsername(invite.Inviter),
+			Inviter: username,
+			Avatar:  avatar,
 			Date:    invite.Date,
 		})
 	}

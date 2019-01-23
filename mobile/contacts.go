@@ -1,13 +1,21 @@
 package mobile
 
 import (
-	"github.com/pkg/errors"
+	"encoding/json"
+	"errors"
+
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/repo"
 )
 
 // AddContact calls core AddContact
-func (m *Mobile) AddContact(id string, address string, username string) error {
-	return m.node.AddContact(id, address, username)
+func (m *Mobile) AddContact(contact string) error {
+	var model *repo.Contact
+	if err := json.Unmarshal([]byte(contact), &model); err != nil {
+		return err
+	}
+
+	return m.node.AddContact(model)
 }
 
 // Contact calls core Contact
@@ -39,15 +47,6 @@ func (m *Mobile) Contacts() (string, error) {
 	return toJSON(contacts)
 }
 
-// ContactUsername calls core ContactUsername
-func (m *Mobile) ContactUsername(id string) string {
-	if !m.node.Started() {
-		return ""
-	}
-
-	return m.node.ContactUsername(id)
-}
-
 // ContactThreads calls core ContactThreads
 func (m *Mobile) ContactThreads(id string) (string, error) {
 	if !m.node.Started() {
@@ -62,4 +61,19 @@ func (m *Mobile) ContactThreads(id string) (string, error) {
 		infos = make([]core.ThreadInfo, 0)
 	}
 	return toJSON(infos)
+}
+
+// FindContact calls core FindContact
+// NOTE: this is currently limited to username queries only
+func (m *Mobile) FindContact(username string, limit int, wait int) (string, error) {
+	res, err := m.node.FindContact(&core.ContactInfoQuery{
+		Username: username,
+		Limit:    limit,
+		Wait:     wait,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return toJSON(res)
 }

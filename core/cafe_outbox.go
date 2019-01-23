@@ -224,7 +224,7 @@ func (q *CafeOutbox) handle(reqs []repo.CafeRequest, rtype repo.CafeRequestType,
 				continue
 			}
 
-			if err := q.service().DeliverMessage(req.TargetId, pid, protoCafeToRepo(req.Cafe)); err != nil {
+			if err := q.service().DeliverMessage(req.TargetId, pid, protoCafeToRepo(&req.Cafe)); err != nil {
 				log.Errorf("cafe %s request to %s failed: %s", rtype.Description(), cafe.Pretty(), err)
 				herr = err
 				continue

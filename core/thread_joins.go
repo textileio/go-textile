@@ -1,6 +1,9 @@
 package core
 
 import (
+	"encoding/json"
+	"fmt"
+
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
@@ -84,16 +87,18 @@ func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 	}
 
 	// collect author as an unwelcomed peer
-	pid, err := peer.IDB58Decode(block.Header.Author)
-	if err != nil {
-		return nil, err
-	}
-	inboxes := make([]repo.Cafe, 0)
-	for _, i := range msg.Inboxes {
-		inboxes = append(inboxes, protoCafeToModel(*i))
-	}
-	if err := t.addOrUpdatePeer(pid, block.Header.Address, msg.Username, inboxes); err != nil {
-		return nil, err
+	if msg.Contact != nil {
+		if cjson, err := json.Marshal(msg.Contact); err == nil {
+			log.Debugf("found contact: %s", string(cjson))
+		}
+
+		pid, err := peer.IDB58Decode(block.Header.Author)
+		if err != nil {
+			return nil, err
+		}
+		if err := t.addOrUpdatePeer(pid, protoContactToModel(msg.Contact)); err != nil {
+			return nil, err
+		}
 	}
 
 	return msg, nil
@@ -104,15 +109,10 @@ func (t *Thread) buildJoin(inviterId string) (*pb.ThreadJoin, error) {
 	msg := &pb.ThreadJoin{
 		Inviter: inviterId,
 	}
-	username, err := t.datastore.Profile().GetUsername()
-	if err != nil {
-		return nil, err
+	contact := t.datastore.Contacts().Get(t.node().Identity.Pretty())
+	if contact == nil {
+		return nil, fmt.Errorf("unable to join, no contact for self")
 	}
-	if username != nil {
-		msg.Username = *username
-	}
-	for _, ses := range t.datastore.CafeSessions().List() {
-		msg.Inboxes = append(msg.Inboxes, ses.Cafe)
-	}
+	msg.Contact = repoContactToProto(contact)
 	return msg, nil
 }

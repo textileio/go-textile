@@ -43,7 +43,7 @@ func (c *CafeSessionDB) AddOrUpdate(session *pb.CafeSession) error {
 		session.Id,
 		session.Access,
 		session.Refresh,
-		int(session.Exp.Seconds),
+		int(session.Exp.Nanos), // Nanos or Seconds?
 		cafe,
 	)
 	if err != nil {
@@ -87,7 +87,7 @@ func (c *CafeSessionDB) handleQuery(stm string) []*pb.CafeSession {
 	}
 	for rows.Next() {
 		var cafeId, access, refresh string
-		var expiryInt int
+		var expiryInt int64
 		var cafe []byte
 		if err := rows.Scan(&cafeId, &access, &refresh, &expiryInt, &cafe); err != nil {
 			log.Errorf("error in db scan: %s", err)

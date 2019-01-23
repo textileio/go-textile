@@ -122,7 +122,7 @@ func (q *CafeInbox) batch(msgs []repo.CafeMessage) error {
 	for _, msg := range msgs {
 		go func(msg repo.CafeMessage) {
 			if err := q.handle(msg); err != nil {
-				log.Warningf("unable to handle cafe message: %s", msg.Id)
+				log.Warningf("handle attempt failed for cafe message %s: %s", msg.Id, err)
 				return
 			}
 			if err := q.datastore.CafeMessages().Delete(msg.Id); err != nil {
@@ -145,41 +145,45 @@ func (q *CafeInbox) batch(msgs []repo.CafeMessage) error {
 func (q *CafeInbox) handle(msg repo.CafeMessage) error {
 	pid, err := peer.IDB58Decode(msg.PeerId)
 	if err != nil {
-		return err
+		return q.handleErr(err, msg)
 	}
 
 	// download the actual message
 	ciphertext, err := ipfs.DataAtPath(q.node(), msg.Id)
 	if err != nil {
-		if msg.Attempts+1 >= maxDownloadAttempts {
-			if err := q.datastore.CafeMessages().Delete(msg.Id); err != nil {
-				return err
-			}
-		} else {
-			if err := q.datastore.CafeMessages().AddAttempt(msg.Id); err != nil {
-				return err
-			}
-		}
-		return err
+		return q.handleErr(err, msg)
 	}
 
 	envb, err := crypto.Decrypt(q.node().PrivateKey, ciphertext)
 	if err != nil {
-		return err
+		return q.handleErr(err, msg)
 	}
 	env := new(pb.Envelope)
 	if err := proto.Unmarshal(envb, env); err != nil {
-		return err
+		return q.handleErr(err, msg)
 	}
 
 	if err := q.threadsService().service.VerifyEnvelope(env, pid); err != nil {
-		log.Warningf("error verifying cafe message: %s", err)
-		return nil
+		return q.handleErr(err, msg)
 	}
 
 	// pass to thread service for normal handling
 	if _, err := q.threadsService().Handle(pid, env); err != nil {
-		return err
+		return q.handleErr(err, msg)
 	}
 	return nil
+}
+
+// handleErr deletes or adds an attempt to a message processing error
+func (q *CafeInbox) handleErr(herr error, msg repo.CafeMessage) error {
+	if msg.Attempts+1 >= maxDownloadAttempts {
+		if err := q.datastore.CafeMessages().Delete(msg.Id); err != nil {
+			return err
+		}
+	} else {
+		if err := q.datastore.CafeMessages().AddAttempt(msg.Id); err != nil {
+			return err
+		}
+	}
+	return herr
 }
