@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -76,6 +77,7 @@ type InitConfig struct {
 	IsMobile        bool
 	IsServer        bool
 	LogToDisk       bool
+	Debug           bool
 	CafeOpen        bool
 	CafePublicIP    string
 	CafeURL         string
@@ -92,6 +94,7 @@ type MigrateConfig struct {
 type RunConfig struct {
 	PinCode  string
 	RepoPath string
+	Debug    bool
 }
 
 // Textile is the main Textile node structure
@@ -133,6 +136,14 @@ func InitRepo(conf InitConfig) error {
 
 	if conf.Account == nil {
 		return ErrAccountRequired
+	}
+
+	logLevels := map[string]string{}
+	if conf.Debug {
+		logLevels = getTextileDebugLevels()
+	}
+	if _, err := setLogLevels(conf.RepoPath, logLevels, conf.LogToDisk); err != nil {
+		return err
 	}
 
 	// init repo
@@ -225,7 +236,12 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 		return nil, err
 	}
 
-	if err := node.SetLogLevels(map[string]string{}); err != nil {
+	logLevels := map[string]string{}
+	if conf.Debug {
+		logLevels = getTextileDebugLevels()
+	}
+	node.writer, err = setLogLevels(conf.RepoPath, logLevels, node.config.Logs.LogToDisk)
+	if err != nil {
 		return nil, err
 	}
 
@@ -468,30 +484,11 @@ func (t *Textile) LinksAtPath(path string) ([]*ipld.Link, error) {
 	return ipfs.LinksAtPath(t.node, path)
 }
 
-// SetLogLevels hijacks the ipfs logging system, putting output to files
+// SetLogLevels provides node scoped access to the logging system
 func (t *Textile) SetLogLevels(logLevels map[string]string) error {
-	var writer io.Writer
-	if t.config.Logs.LogToDisk {
-		writer = &lumberjack.Logger{
-			Filename:   path.Join(t.repoPath, "logs", "textile.log"),
-			MaxSize:    10, // megabytes
-			MaxBackups: 3,
-			MaxAge:     30, // days
-		}
-	} else {
-		writer = os.Stdout
+	if _, err := setLogLevels(t.repoPath, logLevels, t.config.Logs.LogToDisk); err != nil {
+		return err
 	}
-	backendFile := logger.NewLogBackend(writer, "", 0)
-	logger.SetBackend(backendFile)
-	logging.SetAllLoggers(logger.ERROR)
-
-	for key, value := range logLevels {
-		if err := logging.SetLogLevel(key, value); err != nil {
-			log.Errorf("error: %s (%s)", err, key)
-			return err
-		}
-	}
-	t.writer = writer
 	return nil
 }
 
@@ -694,6 +691,42 @@ func (t *Textile) touchDatastore() error {
 	}
 
 	return nil
+}
+
+// setLogLevels hijacks the ipfs logging system, putting output to files
+func setLogLevels(repoPath string, logLevels map[string]string, disk bool) (io.Writer, error) {
+	var writer io.Writer
+	if disk {
+		writer = &lumberjack.Logger{
+			Filename:   path.Join(repoPath, "logs", "textile.log"),
+			MaxSize:    10, // megabytes
+			MaxBackups: 3,
+			MaxAge:     30, // days
+		}
+	} else {
+		writer = os.Stdout
+	}
+	backendFile := logger.NewLogBackend(writer, "", 0)
+	logger.SetBackend(backendFile)
+	logging.SetAllLoggers(logger.ERROR)
+
+	for key, value := range logLevels {
+		if err := logging.SetLogLevel(key, value); err != nil {
+			return nil, err
+		}
+	}
+	return writer, nil
+}
+
+// getTextileDebugLevels returns a map of textile's logging subsystems set to debug
+func getTextileDebugLevels() map[string]string {
+	levels := make(map[string]string)
+	for _, system := range logging.GetSubsystems() {
+		if strings.HasPrefix(system, "tex") {
+			levels[system] = "DEBUG"
+		}
+	}
+	return levels
 }
 
 // removeLocks force deletes the IPFS repo and SQLite DB lock files

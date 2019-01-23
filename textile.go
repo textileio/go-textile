@@ -25,8 +25,8 @@ type ipfsOptions struct {
 }
 
 type logOptions struct {
-	Level   string `short:"l" long:"log-level" description:"Set the logging level [debug, info, notice, warning, error, critical]." default:"error"`
-	NoFiles bool   `short:"n" long:"no-log-files" description:"Write logs to stdout instead of rolling files."`
+	NoFiles bool `short:"n" long:"no-log-files" description:"Write logs to stdout instead of rolling files."`
+	Debug   bool `short:"d" long:"debug" description:"Set the logging level to debug."`
 }
 
 type addressOptions struct {
@@ -36,10 +36,10 @@ type addressOptions struct {
 }
 
 type cafeOptions struct {
-	Open        bool   `long:"cafe-open" description:"Opens the p2p Cafe Service for other peers."`
+	Open        bool   `long:"cafe-open" description:"Open the p2p Cafe Service for other peers."`
 	PublicIP    string `long:"cafe-public-ip" description:"Required with --cafe-open on a server with a public IP address."`
-	URL         string `long:"cafe-url" description:"Specifies the URL of this cafe, e.g., https://mycafe.com'"`
-	NeighborURL string `long:"cafe-neighbor-url" description:"Specifies the URL of a secondary cafe. Must return cafe info, e.g., via a Gateway: https://my-gateway.yolo.com/cafe, or a Cafe API: https://my-cafe.yolo.com'"`
+	URL         string `long:"cafe-url" description:"Specify the URL of this cafe, e.g., https://mycafe.com'"`
+	NeighborURL string `long:"cafe-neighbor-url" description:"Specify the URL of a secondary cafe. Must return cafe info, e.g., via a Gateway: https://my-gateway.yolo.com/cafe, or a Cafe API: https://my-cafe.yolo.com'"`
 }
 
 type options struct{}
@@ -92,9 +92,9 @@ type migrateCmd struct {
 }
 
 type daemonCmd struct {
-	PinCode  string   `short:"p" long:"pin-code" description:"Specify the pin code for datastore encryption (omit of none was used during init)."`
-	RepoPath string   `short:"r" long:"repo-dir" description:"Specify a custom repository path."`
-	Logs     []string `short:"l" long:"logs" description:"Control subcommand log level. e.g., --logs=\"tex-core: debug\" Can be used multiple times."`
+	PinCode  string `short:"p" long:"pin-code" description:"Specify the pin code for datastore encryption (omit of none was used during init)."`
+	RepoPath string `short:"r" long:"repo-dir" description:"Specify a custom repository path."`
+	Debug    bool   `short:"d" long:"debug" description:"Set the logging level to debug."`
 }
 
 type commandsCmd struct {
@@ -244,6 +244,7 @@ func (x *initCmd) Execute(args []string) error {
 		IsMobile:        false,
 		IsServer:        x.IPFS.ServerMode,
 		LogToDisk:       !x.Logs.NoFiles,
+		Debug:           x.Logs.Debug,
 		CafeOpen:        x.CafeOptions.Open,
 		CafePublicIP:    x.CafeOptions.PublicIP,
 		CafeURL:         x.CafeOptions.URL,
@@ -274,16 +275,26 @@ func (x *migrateCmd) Execute(args []string) error {
 }
 
 func (x *daemonCmd) Execute(args []string) error {
-	logLevels := make(map[string]string)
-	for _, l := range x.Logs {
-		split := strings.SplitN(l, ":", 2)
-		key := strings.TrimSpace(split[0])
-		value := strings.ToUpper(strings.TrimSpace(split[1]))
-		logLevels[key] = value
+	repoPathf, err := getRepoPath(x.RepoPath)
+	if err != nil {
+		return err
 	}
 
-	if err := buildNode(x.PinCode, x.RepoPath, logLevels); err != nil {
-		return err
+	node, err = core.NewTextile(core.RunConfig{
+		PinCode:  x.PinCode,
+		RepoPath: repoPathf,
+		Debug:    x.Debug,
+	})
+	if err != nil {
+		return errors.New(fmt.Sprintf("create node failed: %s", err))
+	}
+
+	gateway.Host = &gateway.Gateway{
+		Node: node,
+	}
+
+	if err := startNode(); err != nil {
+		return errors.New(fmt.Sprintf("start node failed: %s", err))
 	}
 	printSplash()
 
@@ -318,34 +329,6 @@ func getRepoPath(repoPath string) (string, error) {
 		repoPath = filepath.Join(appDir, "repo")
 	}
 	return repoPath, nil
-}
-
-func buildNode(pinCode string, repoPath string, logLevels map[string]string) error {
-	repoPathf, err := getRepoPath(repoPath)
-	if err != nil {
-		return err
-	}
-
-	node, err = core.NewTextile(core.RunConfig{
-		PinCode:  pinCode,
-		RepoPath: repoPathf,
-	})
-	if err != nil {
-		return errors.New(fmt.Sprintf("create node failed: %s", err))
-	}
-
-	if err := node.SetLogLevels(logLevels); err != nil {
-		return err
-	}
-
-	gateway.Host = &gateway.Gateway{
-		Node: node,
-	}
-
-	if err := startNode(); err != nil {
-		return errors.New(fmt.Sprintf("start node failed: %s", err))
-	}
-	return nil
 }
 
 func startNode() error {
