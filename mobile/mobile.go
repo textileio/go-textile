@@ -144,10 +144,7 @@ func (m *Mobile) SetLogLevels(logLevelsString string) error {
 			return err
 		}
 	}
-	if err := m.node.SetLogLevels(logLevels); err != nil {
-		return err
-	}
-	return nil
+	return m.node.SetLogLevels(logLevels)
 }
 
 // Start the mobile node

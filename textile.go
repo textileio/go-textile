@@ -334,7 +334,9 @@ func buildNode(pinCode string, repoPath string, logLevels map[string]string) err
 		return errors.New(fmt.Sprintf("create node failed: %s", err))
 	}
 
-	node.SetLogLevels(logLevels)
+	if err := node.SetLogLevels(logLevels); err != nil {
+		return err
+	}
 
 	gateway.Host = &gateway.Gateway{
 		Node: node,

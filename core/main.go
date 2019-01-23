@@ -225,7 +225,9 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 		return nil, err
 	}
 
-	node.SetLogLevels(map[string]string{})
+	if err := node.SetLogLevels(map[string]string{}); err != nil {
+		return nil, err
+	}
 
 	// run all minor repo migrations if needed
 	if err := repo.MigrateUp(conf.RepoPath, conf.PinCode, false); err != nil {
@@ -466,6 +468,33 @@ func (t *Textile) LinksAtPath(path string) ([]*ipld.Link, error) {
 	return ipfs.LinksAtPath(t.node, path)
 }
 
+// SetLogLevels hijacks the ipfs logging system, putting output to files
+func (t *Textile) SetLogLevels(logLevels map[string]string) error {
+	var writer io.Writer
+	if t.config.Logs.LogToDisk {
+		writer = &lumberjack.Logger{
+			Filename:   path.Join(t.repoPath, "logs", "textile.log"),
+			MaxSize:    10, // megabytes
+			MaxBackups: 3,
+			MaxAge:     30, // days
+		}
+	} else {
+		writer = os.Stdout
+	}
+	backendFile := logger.NewLogBackend(writer, "", 0)
+	logger.SetBackend(backendFile)
+	logging.SetAllLoggers(logger.ERROR)
+
+	for key, value := range logLevels {
+		if err := logging.SetLogLevel(key, value); err != nil {
+			log.Errorf("error: %s (%s)", err, key)
+			return err
+		}
+	}
+	t.writer = writer
+	return nil
+}
+
 // threadsService returns the threads service
 func (t *Textile) threadsService() *ThreadsService {
 	return t.threads
@@ -664,33 +693,6 @@ func (t *Textile) touchDatastore() error {
 		t.datastore = sqliteDB
 	}
 
-	return nil
-}
-
-// SetLogLevels hijacks the ipfs logging system, putting output to files
-func (t *Textile) SetLogLevels(logLevels map[string]string) error {
-	var writer io.Writer
-	if t.config.Logs.LogToDisk {
-		writer = &lumberjack.Logger{
-			Filename:   path.Join(t.repoPath, "logs", "textile.log"),
-			MaxSize:    10, // megabytes
-			MaxBackups: 3,
-			MaxAge:     30, // days
-		}
-	} else {
-		writer = os.Stdout
-	}
-	backendFile := logger.NewLogBackend(writer, "", 0)
-	logger.SetBackend(backendFile)
-	logging.SetAllLoggers(logger.ERROR)
-
-	for key, value := range logLevels {
-		if err := logging.SetLogLevel(key, value); err != nil {
-			log.Errorf("error: %s (%s)", err, key)
-			return err
-		}
-	}
-	t.writer = writer
 	return nil
 }
 
