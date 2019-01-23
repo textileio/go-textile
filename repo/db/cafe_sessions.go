@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"sync"
+	"time"
 
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/textileio/textile-go/pb"
@@ -38,12 +39,11 @@ func (c *CafeSessionDB) AddOrUpdate(session *pb.CafeSession) error {
 		return err
 	}
 
-	// TODO: There are props on pb.CafeSession we're not persisting
 	_, err = stmt.Exec(
 		session.Id,
 		session.Access,
 		session.Refresh,
-		int(session.Exp.Nanos), // Nanos or Seconds?
+		time.Unix(session.Exp.Seconds, int64(session.Exp.Nanos)).UnixNano(),
 		cafe,
 	)
 	if err != nil {
@@ -100,9 +100,11 @@ func (c *CafeSessionDB) handleQuery(stm string) []*pb.CafeSession {
 			continue
 		}
 
+		time := time.Unix(0, expiryInt)
+
 		timestamp := timestamp.Timestamp{
-			Seconds: expiryInt,
-			Nanos:   0,
+			Seconds: time.Unix(),
+			Nanos:   int32(time.Nanosecond()),
 		}
 
 		ret = append(ret, &pb.CafeSession{
