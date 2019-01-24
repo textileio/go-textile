@@ -935,7 +935,7 @@ func (h *CafeService) handlePublishContact(pid peer.ID, env *pb.Envelope) (*pb.E
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
 
-	if err := h.datastore.Contacts().AddOrUpdate(protoContactToModel(pub.Contact)); err != nil {
+	if err := h.datastore.Contacts().AddOrUpdate(protoContactToRepo(pub.Contact)); err != nil {
 		return nil, err
 	}
 

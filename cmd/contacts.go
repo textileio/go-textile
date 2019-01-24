@@ -15,9 +15,10 @@ func init() {
 }
 
 type contactsCmd struct {
-	Ls   lsContactsCmd   `command:"ls" description:"List known contacts"`
-	Get  getContactsCmd  `command:"get" description:"Get contact information"`
-	Find findContactsCmd `command:"find" description:"Find a contact on the network"`
+	Ls     lsContactsCmd   `command:"ls" description:"List known contacts"`
+	Get    getContactsCmd  `command:"get" description:"Get a known contact"`
+	Remove rmContactsCmd   `command:"rm" description:"Remove a known contact"`
+	Find   findContactsCmd `command:"find" description:"Find contacts"`
 }
 
 func (x *contactsCmd) Name() string {
@@ -40,7 +41,7 @@ type lsContactsCmd struct {
 func (x *lsContactsCmd) Usage() string {
 	return `
 
-List known contacts.
+Lists known contacts.
 
 Include the --thread flag to list contacts for a given thread.`
 }
@@ -67,7 +68,7 @@ type getContactsCmd struct {
 func (x *getContactsCmd) Usage() string {
 	return `
 
-Get contact information.`
+Gets a known contact.`
 }
 
 func (x *getContactsCmd) Execute(args []string) error {
@@ -77,6 +78,29 @@ func (x *getContactsCmd) Execute(args []string) error {
 	}
 	var info core.ContactInfo
 	res, err := executeJsonCmd(GET, "contacts/"+args[0], params{}, &info)
+	if err != nil {
+		return err
+	}
+	output(res)
+	return nil
+}
+
+type rmContactsCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
+
+func (x *rmContactsCmd) Usage() string {
+	return `
+
+Removes a known contact.`
+}
+
+func (x *rmContactsCmd) Execute(args []string) error {
+	setApi(x.Client)
+	if len(args) == 0 {
+		return errMissingPeerId
+	}
+	res, err := executeStringCmd(DEL, "contacts/"+args[0], params{})
 	if err != nil {
 		return err
 	}
@@ -97,7 +121,7 @@ type findContactsCmd struct {
 func (x *findContactsCmd) Usage() string {
 	return `
 
-Find contact information.`
+Finds contacts known locally and on the network.`
 }
 
 func (x *findContactsCmd) Execute(args []string) error {

@@ -69,6 +69,7 @@ type InitConfig struct {
 	Seed      string
 	RepoPath  string
 	LogToDisk bool
+	Debug     bool
 }
 
 // MigrateConfig is used to define options during a major migration
@@ -79,6 +80,7 @@ type MigrateConfig struct {
 // RunConfig is used to define run options for a mobile node
 type RunConfig struct {
 	RepoPath string
+	Debug    bool
 }
 
 // Mobile is the name of the framework (must match package name)
@@ -108,6 +110,7 @@ func InitRepo(config *InitConfig) error {
 		RepoPath:  config.RepoPath,
 		IsMobile:  true,
 		LogToDisk: config.LogToDisk,
+		Debug:     config.Debug,
 	})
 }
 
@@ -122,6 +125,7 @@ func MigrateRepo(config *MigrateConfig) error {
 func NewTextile(config *RunConfig, messenger Messenger) (*Mobile, error) {
 	node, err := core.NewTextile(core.RunConfig{
 		RepoPath: config.RepoPath,
+		Debug:    config.Debug,
 	})
 	if err != nil {
 		return nil, err
@@ -144,10 +148,7 @@ func (m *Mobile) SetLogLevels(logLevelsString string) error {
 			return err
 		}
 	}
-	if err := m.node.SetLogLevels(logLevels); err != nil {
-		return err
-	}
-	return nil
+	return m.node.SetLogLevels(logLevels)
 }
 
 // Start the mobile node

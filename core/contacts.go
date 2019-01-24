@@ -67,6 +67,11 @@ func (t *Textile) Contacts() ([]ContactInfo, error) {
 	return contacts, nil
 }
 
+// RemoveContact removes a contact
+func (t *Textile) RemoveContact(id string) error {
+	return t.datastore.Contacts().Delete(id)
+}
+
 // ContactDisplayInfo returns the username and avatar for the peer id if known
 func (t *Textile) ContactDisplayInfo(id string) (string, string) {
 	contact := t.datastore.Contacts().Get(id)
@@ -164,7 +169,7 @@ func (t *Textile) FindContact(query *ContactInfoQuery) (*ContactInfoQueryResult,
 		}
 
 		for _, c := range inbound {
-			i := t.contactInfo(protoContactToModel(c), false)
+			i := t.contactInfo(protoContactToRepo(c), false)
 			if i != nil {
 				result.Remote = append(result.Remote, *i)
 			}
@@ -214,8 +219,8 @@ func toUsername(contact *repo.Contact) string {
 	return ""
 }
 
-// protoContactToModel is a tmp method just converting proto contact to the repo version
-func protoContactToModel(pro *pb.Contact) *repo.Contact {
+// protoContactToRepo is a tmp method just converting proto contact to the repo version
+func protoContactToRepo(pro *pb.Contact) *repo.Contact {
 	if pro == nil {
 		return nil
 	}

@@ -44,6 +44,7 @@ message ThreadInvite {
     string name      = 2;
     string schema    = 3;
     string initiator = 4;
+    Contact contact  = 5;
 }
 
 message ThreadIgnore {

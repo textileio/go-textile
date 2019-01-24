@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,7 +35,7 @@ import (
 var log = logging.Logger("tex-core")
 
 // Version is the core version identifier
-const Version = "1.0.0-rc27"
+const Version = "1.0.0-rc28"
 
 // kQueueFlushFreq how often to flush the message queues
 const kQueueFlushFreq = time.Second * 60
@@ -76,6 +77,7 @@ type InitConfig struct {
 	IsMobile        bool
 	IsServer        bool
 	LogToDisk       bool
+	Debug           bool
 	CafeOpen        bool
 	CafePublicIP    string
 	CafeURL         string
@@ -92,6 +94,7 @@ type MigrateConfig struct {
 type RunConfig struct {
 	PinCode  string
 	RepoPath string
+	Debug    bool
 }
 
 // Textile is the main Textile node structure
@@ -133,6 +136,14 @@ func InitRepo(conf InitConfig) error {
 
 	if conf.Account == nil {
 		return ErrAccountRequired
+	}
+
+	logLevels := map[string]string{}
+	if conf.Debug {
+		logLevels = getTextileDebugLevels()
+	}
+	if _, err := setLogLevels(conf.RepoPath, logLevels, conf.LogToDisk); err != nil {
+		return err
 	}
 
 	// init repo
@@ -225,7 +236,14 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 		return nil, err
 	}
 
-	node.SetLogLevels(map[string]string{})
+	logLevels := map[string]string{}
+	if conf.Debug {
+		logLevels = getTextileDebugLevels()
+	}
+	node.writer, err = setLogLevels(conf.RepoPath, logLevels, node.config.Logs.LogToDisk)
+	if err != nil {
+		return nil, err
+	}
 
 	// run all minor repo migrations if needed
 	if err := repo.MigrateUp(conf.RepoPath, conf.PinCode, false); err != nil {
@@ -466,6 +484,14 @@ func (t *Textile) LinksAtPath(path string) ([]*ipld.Link, error) {
 	return ipfs.LinksAtPath(t.node, path)
 }
 
+// SetLogLevels provides node scoped access to the logging system
+func (t *Textile) SetLogLevels(logLevels map[string]string) error {
+	if _, err := setLogLevels(t.repoPath, logLevels, t.config.Logs.LogToDisk); err != nil {
+		return err
+	}
+	return nil
+}
+
 // threadsService returns the threads service
 func (t *Textile) threadsService() *ThreadsService {
 	return t.threads
@@ -667,12 +693,12 @@ func (t *Textile) touchDatastore() error {
 	return nil
 }
 
-// SetLogLevels hijacks the ipfs logging system, putting output to files
-func (t *Textile) SetLogLevels(logLevels map[string]string) error {
+// setLogLevels hijacks the ipfs logging system, putting output to files
+func setLogLevels(repoPath string, logLevels map[string]string, disk bool) (io.Writer, error) {
 	var writer io.Writer
-	if t.config.Logs.LogToDisk {
+	if disk {
 		writer = &lumberjack.Logger{
-			Filename:   path.Join(t.repoPath, "logs", "textile.log"),
+			Filename:   path.Join(repoPath, "logs", "textile.log"),
 			MaxSize:    10, // megabytes
 			MaxBackups: 3,
 			MaxAge:     30, // days
@@ -686,12 +712,21 @@ func (t *Textile) SetLogLevels(logLevels map[string]string) error {
 
 	for key, value := range logLevels {
 		if err := logging.SetLogLevel(key, value); err != nil {
-			log.Errorf("error: %s (%s)", err, key)
-			return err
+			return nil, err
 		}
 	}
-	t.writer = writer
-	return nil
+	return writer, nil
+}
+
+// getTextileDebugLevels returns a map of textile's logging subsystems set to debug
+func getTextileDebugLevels() map[string]string {
+	levels := make(map[string]string)
+	for _, system := range logging.GetSubsystems() {
+		if strings.HasPrefix(system, "tex") {
+			levels[system] = "DEBUG"
+		}
+	}
+	return levels
 }
 
 // removeLocks force deletes the IPFS repo and SQLite DB lock files

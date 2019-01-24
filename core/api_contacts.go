@@ -52,6 +52,23 @@ func (a *api) getContacts(g *gin.Context) {
 	g.JSON(http.StatusOK, info)
 }
 
+func (a *api) rmContacts(g *gin.Context) {
+	id := g.Param("id")
+
+	info := a.node.Contact(id)
+	if info == nil {
+		g.String(http.StatusNotFound, "contact not found")
+		return
+	}
+
+	if err := a.node.RemoveContact(id); err != nil {
+		a.abort500(g, err)
+		return
+	}
+
+	g.String(http.StatusOK, "ok")
+}
+
 func (a *api) searchContacts(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {

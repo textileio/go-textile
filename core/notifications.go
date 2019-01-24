@@ -36,7 +36,19 @@ func (t *Textile) Notifications(offset string, limit int) []NotificationInfo {
 
 // NotificationInfo returns the notification info object
 func (t *Textile) NotificationInfo(note repo.Notification) NotificationInfo {
-	username, avatar := t.ContactDisplayInfo(note.ActorId)
+	var username, avatar string
+	switch note.Type {
+	case repo.InviteReceivedNotification:
+		invite := t.ThreadInvite(t.datastore.ThreadInvites().Get(note.BlockId))
+		if invite != nil {
+			username = invite.Username
+			avatar = invite.Avatar
+		} else {
+			username, avatar = t.ContactDisplayInfo(note.ActorId)
+		}
+	default:
+		username, avatar = t.ContactDisplayInfo(note.ActorId)
+	}
 
 	return NotificationInfo{
 		Id:        note.Id,

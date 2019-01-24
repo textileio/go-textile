@@ -91,12 +91,7 @@ func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 		if cjson, err := json.Marshal(msg.Contact); err == nil {
 			log.Debugf("found contact: %s", string(cjson))
 		}
-
-		pid, err := peer.IDB58Decode(block.Header.Author)
-		if err != nil {
-			return nil, err
-		}
-		if err := t.addOrUpdatePeer(pid, protoContactToModel(msg.Contact)); err != nil {
+		if err := t.addOrUpdateContact(protoContactToRepo(msg.Contact)); err != nil {
 			return nil, err
 		}
 	}
