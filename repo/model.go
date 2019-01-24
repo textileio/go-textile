@@ -31,6 +31,7 @@ type Thread struct {
 	Schema    string      `json:"schema"`
 	Initiator string      `json:"initiator"`
 	Type      ThreadType  `json:"type"`
+	Members   []string    `json:"members"`
 	State     ThreadState `json:"state"`
 	Head      string      `json:"head"`
 }
@@ -64,6 +65,10 @@ func ThreadTypeFromString(desc string) (ThreadType, error) {
 	switch strings.ToUpper(strings.TrimSpace(desc)) {
 	case "PRIVATE":
 		return PrivateThread, nil
+	case "READONLY":
+		return ReadOnlyThread, nil
+	case "PUBLIC":
+		return PublicThread, nil
 	case "OPEN":
 		return OpenThread, nil
 	default:

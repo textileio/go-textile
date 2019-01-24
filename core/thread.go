@@ -60,6 +60,7 @@ type ThreadInfo struct {
 	SchemaId   string       `json:"schema_id,omitempty"`
 	Initiator  string       `json:"initiator"`
 	Type       string       `json:"type"`
+	Members    []string     `json:"members,omitempty"`
 	State      string       `json:"state"`
 	Head       *BlockInfo   `json:"head,omitempty"`
 	PeerCount  int          `json:"peer_cnt"`
@@ -206,6 +207,7 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 		SchemaId:   t.schemaId,
 		Initiator:  t.initiator,
 		Type:       mod.Type.Description(),
+		Members:    mod.Members,
 		State:      state.Description(),
 		Head:       head,
 		PeerCount:  len(t.Peers()) + 1,

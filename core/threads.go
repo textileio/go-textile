@@ -37,6 +37,7 @@ type AddThreadConfig struct {
 	Schema    mh.Multihash    `json:"schema"`
 	Initiator string          `json:"initiator"`
 	Type      repo.ThreadType `json:"type"`
+	Members   []string        `json:"members"`
 	Join      bool            `json:"join"`
 }
 
