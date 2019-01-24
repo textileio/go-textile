@@ -179,27 +179,37 @@ func (t *Textile) ThreadInfo(id string) (*ThreadInfo, error) {
 	return thrd.Info()
 }
 
+// ThreadInvite get a pending invite
+func (t *Textile) ThreadInvite(invite *repo.ThreadInvite) *ThreadInviteInfo {
+	if invite == nil {
+		return nil
+	}
+
+	var username, avatar string
+	contact := t.datastore.Contacts().Get(invite.Contact.Id)
+	if contact != nil && (invite.Contact == nil || invite.Contact.Updated.Before(contact.Updated)) {
+		username = toUsername(contact)
+		avatar = contact.Avatar
+	} else if invite.Contact != nil {
+		username, avatar = t.ContactDisplayInfo(invite.Contact.Id)
+	}
+
+	return &ThreadInviteInfo{
+		Id:       invite.Id,
+		Name:     invite.Name,
+		Username: username,
+		Avatar:   avatar,
+		Date:     invite.Date,
+	}
+}
+
 // ThreadInvites lists info on all pending invites
 func (t *Textile) ThreadInvites() []ThreadInviteInfo {
 	list := make([]ThreadInviteInfo, 0)
 
 	for _, invite := range t.datastore.ThreadInvites().List() {
-		var username, avatar string
-		contact := t.datastore.Contacts().Get(invite.Contact.Id)
-		if contact != nil && (invite.Contact == nil || invite.Contact.Updated.Before(contact.Updated)) {
-			username = toUsername(contact)
-			avatar = contact.Avatar
-		} else if invite.Contact != nil {
-			username, avatar = t.ContactDisplayInfo(invite.Contact.Id)
-		}
-
-		list = append(list, ThreadInviteInfo{
-			Id:       invite.Id,
-			Name:     invite.Name,
-			Username: username,
-			Avatar:   avatar,
-			Date:     invite.Date,
-		})
+		info := t.ThreadInvite(&invite)
+		list = append(list, *info)
 	}
 
 	return list
