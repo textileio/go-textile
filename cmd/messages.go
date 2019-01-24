@@ -120,14 +120,9 @@ func callLsMessages(opts map[string]string) error {
 	if err != nil {
 		return err
 	}
-	if len(list) <= limit {
+	if len(list) < limit {
 		return nil
 	}
-	callLs(map[string]string{
-		"thread": opts["thread"],
-		"offset": list[len(list)].Id,
-		"limit":  opts["limit"],
-	})
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("next page...")
 	if _, err := reader.ReadString('\n'); err != nil {
