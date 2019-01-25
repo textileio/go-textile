@@ -28,6 +28,7 @@ type SQLiteDatastore struct {
 	cafeMessages       repo.CafeMessageStore
 	cafeClientNonces   repo.CafeClientNonceStore
 	cafeClients        repo.CafeClientStore
+	cafeDevTokens      repo.CafeDevTokenStore
 	cafeClientThreads  repo.CafeClientThreadStore
 	cafeClientMessages repo.CafeClientMessageStore
 	db                 *sql.DB
@@ -61,6 +62,7 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 		cafeMessages:       NewCafeMessageStore(conn, mux),
 		cafeClientNonces:   NewCafeClientNonceStore(conn, mux),
 		cafeClients:        NewCafeClientStore(conn, mux),
+		cafeDevTokens:      NewCafeDevTokenStore(conn, mux),
 		cafeClientThreads:  NewCafeClientThreadStore(conn, mux),
 		cafeClientMessages: NewCafeClientMessageStore(conn, mux),
 		db:                 conn,
@@ -134,6 +136,10 @@ func (d *SQLiteDatastore) CafeClients() repo.CafeClientStore {
 	return d.cafeClients
 }
 
+func (d *SQLiteDatastore) CafeDevTokens() repo.CafeDevTokenStore {
+	return d.cafeDevTokens
+}
+
 func (d *SQLiteDatastore) CafeClientThreads() repo.CafeClientThreadStore {
 	return d.cafeClientThreads
 }
@@ -187,6 +193,7 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 	if pin != "" {
 		sqlStmt = "PRAGMA key = '" + pin + "';"
 	}
+	// TODO: also add field to cafe_clients to link to cafe_dev_tokens
 	sqlStmt += `
     create table config (key text primary key not null, value blob);
 
@@ -246,7 +253,9 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 
     create table cafe_client_messages (id text not null, peerId text not null, clientId text not null, date integer not null, primary key (id, clientId));
     create index cafe_client_message_clientId on cafe_client_messages (clientId);
-    create index cafe_client_message_date on cafe_client_messages (date);
+		create index cafe_client_message_date on cafe_client_messages (date);
+		
+		create table cafe_dev_tokens (id text primary key not null, token blob not null, created integer not null);
     `
 	if _, err := db.Exec(sqlStmt); err != nil {
 		return err

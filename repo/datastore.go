@@ -24,6 +24,7 @@ type Datastore interface {
 	CafeMessages() CafeMessageStore
 	CafeClientNonces() CafeClientNonceStore
 	CafeClients() CafeClientStore
+	CafeDevTokens() CafeDevTokenStore
 	CafeClientThreads() CafeClientThreadStore
 	CafeClientMessages() CafeClientMessageStore
 	Ping() error
@@ -191,6 +192,15 @@ type CafeClientMessageStore interface {
 	CountByClient(clientId string) int
 	Delete(id string, clientId string) error
 	DeleteByClient(clientId string, limit int) error
+}
+
+type CafeDevTokenStore interface {
+	Create() (*CafeDevToken, error)
+	Get(id string) *CafeDevToken
+	Count() int
+	List() []CafeDevToken
+	// ListByClient(clientId string) []*pb.CafeDevToken
+	Delete(id string) error
 }
 
 func ConflictError(err error) bool {
