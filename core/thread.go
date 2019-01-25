@@ -696,7 +696,7 @@ func (t *Thread) shareable(from string, to string) bool {
 	case repo.InviteOnlyThread:
 		return from == t.initiator && t.member(to)
 	case repo.SharedThread:
-		return t.member(to)
+		return t.member(from) && t.member(to)
 	default:
 		return false
 	}

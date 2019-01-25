@@ -2,6 +2,7 @@ package migrations
 
 import (
 	"database/sql"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -22,6 +23,10 @@ func initAt007(db *sql.DB, pin string) error {
 		return err
 	}
 	_, err = db.Exec("insert into threads(id, key, sk, name, schema, initiator, type, state, head) values(?,?,?,?,?,?,?,?,?)", "id", "key", []byte("sk"), "name", "schema", "initiator", 0, 1, "head")
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec("insert into threads(id, key, sk, name, schema, initiator, type, state, head) values(?,?,?,?,?,?,?,?,?)", "id2", "key2", []byte("sk"), "name", "schema", "initiator", 3, 1, "head")
 	if err != nil {
 		return err
 	}
@@ -50,9 +55,24 @@ func Test008(t *testing.T) {
 	}
 
 	// test new field
-	_, err = db.Exec("update threads set members=? where id=?", "you,me", "boom")
+	_, err = db.Exec("update threads set members=? where id=?", "you,me", "id")
 	if err != nil {
 		t.Error(err)
+		return
+	}
+
+	// test new field
+	_, err = db.Exec("update threads set sharing=? where id=?", 1, "id")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	row := db.QueryRow("select Count(*) from threads where sharing=1;")
+	var count int
+	row.Scan(&count)
+	if count != 1 {
+		fmt.Println(count)
+		t.Error("wrong number of threads")
 		return
 	}
 

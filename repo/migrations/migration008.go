@@ -27,8 +27,16 @@ func (Minor008) Up(repoPath string, pinCode string, testnet bool) error {
 		}
 	}
 
-	// add column for members
+	// add column for members and sharing
 	if _, err := db.Exec("alter table threads add column members text not null default '';"); err != nil {
+		return err
+	}
+	if _, err := db.Exec("alter table threads add column sharing integer not null default 0;"); err != nil {
+		return err
+	}
+
+	// update existing threads to have sharing == 2 (shared), where type == 3 (open)
+	if _, err := db.Exec("update threads set sharing=2 where type=3;"); err != nil {
 		return err
 	}
 
