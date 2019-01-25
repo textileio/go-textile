@@ -15,6 +15,10 @@ func (t *Thread) annouce() (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
+	if !t.readable(t.config.Account.Address) {
+		return nil, ErrNotReadable
+	}
+
 	msg, err := t.buildAnnounce()
 	if err != nil {
 		return nil, err
@@ -47,6 +51,13 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 	msg := new(pb.ThreadAnnounce)
 	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
 		return nil, err
+	}
+
+	if !t.readable(t.config.Account.Address) {
+		return nil, ErrNotReadable
+	}
+	if !t.readable(block.Header.Address) {
+		return nil, ErrNotReadable
 	}
 
 	if err := t.indexBlock(&commitResult{

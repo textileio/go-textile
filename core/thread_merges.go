@@ -18,6 +18,10 @@ func (t *Thread) merge(head mh.Multihash) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
+	if !t.readable(t.config.Account.Address) {
+		return nil, ErrNotReadable
+	}
+
 	// build custom merge header
 	header, err := t.newBlockHeader()
 	if err != nil {
@@ -85,6 +89,13 @@ func (t *Thread) merge(head mh.Multihash) (mh.Multihash, error) {
 
 // handleMergeBlock handles an incoming merge block
 func (t *Thread) handleMergeBlock(hash mh.Multihash, block *pb.ThreadBlock) error {
+	if !t.readable(t.config.Account.Address) {
+		return ErrNotReadable
+	}
+	if !t.readable(block.Header.Address) {
+		return ErrNotReadable
+	}
+
 	return t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,

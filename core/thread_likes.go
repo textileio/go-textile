@@ -13,6 +13,10 @@ func (t *Thread) AddLike(target string) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
+	if !t.annotatable(t.config.Account.Address) {
+		return nil, ErrNotAnnotatable
+	}
+
 	msg := &pb.ThreadLike{
 		Target: target,
 	}
@@ -44,6 +48,13 @@ func (t *Thread) handleLikeBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 	msg := new(pb.ThreadLike)
 	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
 		return nil, err
+	}
+
+	if !t.readable(t.config.Account.Address) {
+		return nil, ErrNotReadable
+	}
+	if !t.annotatable(block.Header.Address) {
+		return nil, ErrNotAnnotatable
 	}
 
 	if err := t.indexBlock(&commitResult{

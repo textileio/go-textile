@@ -32,13 +32,14 @@ var internalThreadKeys = []string{"avatars"}
 
 // AddThreadConfig is used to create a new thread model
 type AddThreadConfig struct {
-	Key       string          `json:"key"`
-	Name      string          `json:"name"`
-	Schema    mh.Multihash    `json:"schema"`
-	Initiator string          `json:"initiator"`
-	Type      repo.ThreadType `json:"type"`
-	Members   []string        `json:"members"`
-	Join      bool            `json:"join"`
+	Key       string             `json:"key"`
+	Name      string             `json:"name"`
+	Schema    mh.Multihash       `json:"schema"`
+	Initiator string             `json:"initiator"`
+	Type      repo.ThreadType    `json:"type"`
+	Sharing   repo.ThreadSharing `json:"sharing"`
+	Members   []string           `json:"members"`
+	Join      bool               `json:"join"`
 }
 
 // AddThread adds a thread with a given name and secret key
@@ -68,6 +69,8 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, 
 		Schema:    conf.Schema.B58String(),
 		Initiator: conf.Initiator,
 		Type:      conf.Type,
+		Sharing:   conf.Sharing,
+		Members:   conf.Members,
 		State:     repo.ThreadLoaded,
 	}
 	if err := t.datastore.Threads().Add(threadModel); err != nil {
@@ -273,6 +276,19 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 		return nil, err
 	}
 
+	// check if we're allowed to get an invite
+	// Note: just using a dummy thread here because having these access+sharing
+	// methods on Thread is very nice elsewhere.
+	dummy := &Thread{
+		initiator: msg.Initiator,
+		ttype:     repo.ThreadType(msg.Type),
+		sharing:   repo.ThreadSharing(msg.Sharing),
+		members:   msg.Members,
+	}
+	if !dummy.shareable(msg.Contact.Address, t.config.Account.Address) {
+		return nil, ErrNotShareable
+	}
+
 	sk, err := libp2pc.UnmarshalPrivateKey(msg.Sk)
 	if err != nil {
 		return nil, err
@@ -299,7 +315,9 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 		Name:      msg.Name,
 		Schema:    sch,
 		Initiator: msg.Initiator,
-		Type:      repo.OpenThread,
+		Type:      repo.ThreadType(msg.Type),
+		Sharing:   repo.ThreadSharing(msg.Sharing),
+		Members:   msg.Members,
 		Join:      false,
 	}
 	thrd, err := t.AddThread(sk, config)

@@ -15,6 +15,10 @@ func (t *Thread) AddFlag(block string) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
+	if !t.annotatable(t.config.Account.Address) {
+		return nil, ErrNotAnnotatable
+	}
+
 	// adding a flag specific prefix here to ensure future flexibility
 	target := fmt.Sprintf("flag-%s", block)
 
@@ -49,6 +53,13 @@ func (t *Thread) handleFlagBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 	msg := new(pb.ThreadFlag)
 	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
 		return nil, err
+	}
+
+	if !t.readable(t.config.Account.Address) {
+		return nil, ErrNotReadable
+	}
+	if !t.annotatable(block.Header.Address) {
+		return nil, ErrNotAnnotatable
 	}
 
 	// TODO: how do we want to handle flags? making visible to UIs would be a good start

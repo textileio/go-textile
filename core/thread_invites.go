@@ -2,7 +2,7 @@ package core
 
 import (
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/pb"
@@ -15,21 +15,29 @@ func (t *Thread) AddInvite(inviteeId peer.ID) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	if t.Type == repo.PrivateThread {
-		return nil, ErrInvitesNotAllowed
+	contact := t.datastore.Contacts().Get(inviteeId.Pretty())
+	if contact == nil {
+		return nil, ErrContactNotFound
+	}
+
+	if !t.shareable(t.config.Account.Address, contact.Address) {
+		return nil, ErrNotShareable
 	}
 
 	threadSk, err := t.privKey.Bytes()
 	if err != nil {
 		return nil, err
 	}
-	contact := t.datastore.Contacts().Get(t.node().Identity.Pretty())
+	self := t.datastore.Contacts().Get(t.node().Identity.Pretty())
 	msg := &pb.ThreadInvite{
 		Sk:        threadSk,
 		Name:      t.Name,
 		Schema:    t.schemaId,
 		Initiator: t.initiator,
-		Contact:   repoContactToProto(contact),
+		Contact:   repoContactToProto(self),
+		Type:      int32(t.ttype),
+		Sharing:   int32(t.sharing),
+		Members:   t.members,
 	}
 
 	inviteePk, err := inviteeId.ExtractPublicKey()
@@ -62,8 +70,8 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	if t.Type == repo.PrivateThread {
-		return nil, nil, ErrInvitesNotAllowed
+	if !t.shareable(t.config.Account.Address, "") {
+		return nil, nil, ErrNotShareable
 	}
 
 	threadSk, err := t.privKey.Bytes()
@@ -77,6 +85,9 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 		Schema:    t.schemaId,
 		Initiator: t.initiator,
 		Contact:   repoContactToProto(contact),
+		Type:      int32(t.ttype),
+		Sharing:   int32(t.sharing),
+		Members:   t.members,
 	}
 
 	key, err := crypto.GenerateAESKey()
