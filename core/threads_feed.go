@@ -8,6 +8,7 @@ import (
 )
 
 type ThreadFeedItem struct {
+	Block   string             `json:"block"`
 	Join    *ThreadJoinInfo    `json:"join,omitempty"`
 	Leave   *ThreadLeaveInfo   `json:"leave,omitempty"`
 	Files   *ThreadFilesInfo   `json:"files,omitempty"`
@@ -23,7 +24,7 @@ func (t *Textile) ThreadFeed(offset string, limit int, threadId string) ([]Threa
 		stm := "(threadId='%s') and (type=%d or type=%d or type=%d or type=%d)"
 		query = fmt.Sprintf(stm, threadId, repo.JoinBlock, repo.LeaveBlock, repo.FilesBlock, repo.MessageBlock)
 	} else {
-		stm := "type=%d or type=%d or type=%d or type=%d"
+		stm := "(type=%d or type=%d or type=%d or type=%d)"
 		query = fmt.Sprintf(stm, repo.JoinBlock, repo.LeaveBlock, repo.FilesBlock, repo.MessageBlock)
 	}
 
@@ -31,7 +32,9 @@ func (t *Textile) ThreadFeed(offset string, limit int, threadId string) ([]Threa
 
 	blocks := t.Blocks(offset, limit, query)
 	for _, block := range blocks {
-		var item ThreadFeedItem
+		item := ThreadFeedItem{
+			Block: block.Id,
+		}
 		var err error
 		switch block.Type {
 		case repo.JoinBlock:

@@ -29,11 +29,31 @@ var errNothingToAdd = errors.New("nothing to add")
 var errMissingTarget = errors.New("missing file(s) target")
 
 func init() {
-	register(&addCmd{})
-	register(&lsCmd{})
-	register(&getCmd{})
-	register(&rmCmd{})
-	register(&keysCmd{})
+	register(&filesCmd{})
+}
+
+type filesCmd struct {
+	Add    addFilesCmd `command:"add" description:"Add file(s) to a thread"`
+	List   lsFilesCmd  `command:"ls" description:"Paginate thread files"`
+	Get    getFilesCmd `command:"get" description:"Get a thread file by ID"`
+	Ignore rmFilesCmd  `command:"ignore" description:"Ignore thread files"`
+	Keys   keysCmd     `command:"keys" description:"Show file keys"`
+}
+
+func (x *filesCmd) Name() string {
+	return "files"
+}
+
+func (x *filesCmd) Short() string {
+	return "Manage thread files"
+}
+
+func (x *filesCmd) Long() string {
+	return `
+Files are added as blocks in a thread.
+Use this command to add, list, get, and ignore files.
+The 'key' command provides access to file encryption keys. 
+`
 }
 
 const batchSize = 10
@@ -58,7 +78,7 @@ func (m millOpts) setUse(v string) {
 	m.val["use"] = v
 }
 
-type addCmd struct {
+type addFilesCmd struct {
 	Client  ClientOptions `group:"Client Options"`
 	Thread  string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
 	Caption string        `short:"c" long:"caption" description:"File(s) caption."`
@@ -66,16 +86,9 @@ type addCmd struct {
 	Verbose bool          `short:"v" long:"verbose" description:"Prints files as they are milled."`
 }
 
-func (x *addCmd) Name() string {
-	return "add"
-}
-
-func (x *addCmd) Short() string {
-	return "Add file(s) to a thread"
-}
-
-func (x *addCmd) Long() string {
+func (x *addFilesCmd) Usage() string {
 	return `
+
 Adds a file or directory of files to a thread. Files not supported 
 by the thread schema are ignored. Nested directories are included.
 An existing file hash may also be used as input.
@@ -84,7 +97,7 @@ Omit the --thread option to use the default thread (if selected).
 `
 }
 
-func (x *addCmd) Execute(args []string) error {
+func (x *addFilesCmd) Execute(args []string) error {
 	setApi(x.Client)
 	opts := map[string]string{
 		"thread":  x.Thread,
@@ -92,10 +105,10 @@ func (x *addCmd) Execute(args []string) error {
 		"group":   strconv.FormatBool(x.Group),
 		"verbose": strconv.FormatBool(x.Verbose),
 	}
-	return callAdd(args, opts)
+	return callAddFiles(args, opts)
 }
 
-func callAdd(args []string, opts map[string]string) error {
+func callAddFiles(args []string, opts map[string]string) error {
 	var pth string
 	var fi os.FileInfo
 
@@ -467,40 +480,33 @@ func multipartReader(f *os.File) (io.ReadSeeker, string, error) {
 	return bytes.NewReader(body.Bytes()), writer.FormDataContentType(), nil
 }
 
-type lsCmd struct {
+type lsFilesCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for all."`
 	Offset string        `short:"o" long:"offset" description:"Offset ID to start listing from."`
 	Limit  int           `short:"l" long:"limit" description:"List page size." default:"5"`
 }
 
-func (x *lsCmd) Name() string {
-	return "ls"
-}
-
-func (x *lsCmd) Short() string {
-	return "Paginate thread files"
-}
-
-func (x *lsCmd) Long() string {
+func (x *lsFilesCmd) Usage() string {
 	return `
+
 Paginates thread files.
 Omit the --thread option to paginate all files.
 Specify "default" to use the default thread (if selected).
 `
 }
 
-func (x *lsCmd) Execute(args []string) error {
+func (x *lsFilesCmd) Execute(args []string) error {
 	setApi(x.Client)
 	opts := map[string]string{
 		"thread": x.Thread,
 		"offset": x.Offset,
 		"limit":  strconv.Itoa(x.Limit),
 	}
-	return callLs(opts)
+	return callLsFiles(opts)
 }
 
-func callLs(opts map[string]string) error {
+func callLsFiles(opts map[string]string) error {
 	var list []core.ThreadFilesInfo
 	res, err := executeJsonCmd(GET, "files", params{opts: opts}, &list)
 	if err != nil {
@@ -523,32 +529,25 @@ func callLs(opts map[string]string) error {
 		return err
 	}
 
-	return callLs(map[string]string{
+	return callLsFiles(map[string]string{
 		"thread": opts["thread"],
 		"offset": list[len(list)-1].Block,
 		"limit":  opts["limit"],
 	})
 }
 
-type getCmd struct {
+type getFilesCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *getCmd) Name() string {
-	return "get"
-}
-
-func (x *getCmd) Short() string {
-	return "Get a thread file by ID"
-}
-
-func (x *getCmd) Long() string {
+func (x *getFilesCmd) Usage() string {
 	return `
+
 Gets a thread file by block ID.
 `
 }
 
-func (x *getCmd) Execute(args []string) error {
+func (x *getFilesCmd) Execute(args []string) error {
 	setApi(x.Client)
 	if len(args) == 0 {
 		return errMissingFileId
@@ -564,27 +563,20 @@ func (x *getCmd) Execute(args []string) error {
 	return nil
 }
 
-type rmCmd struct {
+type rmFilesCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *rmCmd) Name() string {
-	return "ignore"
-}
-
-func (x *rmCmd) Short() string {
-	return "Ignore a thread file"
-}
-
-func (x *rmCmd) Long() string {
+func (x *rmFilesCmd) Usage() string {
 	return `
+
 Ignores a thread file by its block ID.
 This adds an "ignore" thread block targeted at the file.
 Ignored blocks are by default not returned when listing. 
 `
 }
 
-func (x *rmCmd) Execute(args []string) error {
+func (x *rmFilesCmd) Execute(args []string) error {
 	setApi(x.Client)
 	return callRmBlocks(args)
 }
@@ -593,16 +585,9 @@ type keysCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *keysCmd) Name() string {
-	return "keys"
-}
-
-func (x *keysCmd) Short() string {
-	return "Show file keys"
-}
-
-func (x *keysCmd) Long() string {
+func (x *keysCmd) Usage() string {
 	return `
+
 Shows file keys under the given target from an add.
 `
 }
