@@ -131,7 +131,7 @@ func callLsMessages(opts map[string]string) error {
 
 	return callLsMessages(map[string]string{
 		"thread": opts["thread"],
-		"offset": list[len(list)-1].Id,
+		"offset": list[len(list)-1].Block,
 		"limit":  opts["limit"],
 	})
 }

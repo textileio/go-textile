@@ -68,7 +68,7 @@ func (c *BlockDB) List(offset string, limit int, query string) []repo.Block {
 		if query != "" {
 			q = query + " and "
 		}
-		stm = "select * from blocks where " + q + "date<(select date from blocks where id='" + offset + "') order by date desc limit " + strconv.Itoa(limit) + ";"
+		stm = "select * from blocks where " + q + "(date<(select date from blocks where id='" + offset + "')) order by date desc limit " + strconv.Itoa(limit) + ";"
 	} else {
 		if query != "" {
 			q = "where " + query + " "
