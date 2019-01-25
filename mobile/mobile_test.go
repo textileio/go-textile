@@ -505,6 +505,17 @@ func TestMobile_AddThreadInvite(t *testing.T) {
 		return
 	}
 
+	contact1, err := mobile1.Contact(pid)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if err := mobile2.AddContact(contact1); err != nil {
+		t.Error(err)
+		return
+	}
+
 	hash, err := mobile2.AddThreadInvite(thrd.Id, pid)
 	if err != nil {
 		t.Error(err)
