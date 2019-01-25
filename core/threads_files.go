@@ -29,23 +29,6 @@ type ThreadFilesInfo struct {
 	Threads  []string            `json:"threads"`
 }
 
-type ThreadCommentInfo struct {
-	Id       string    `json:"id"`
-	Date     time.Time `json:"date"`
-	AuthorId string    `json:"author_id"`
-	Username string    `json:"username,omitempty"`
-	Avatar   string    `json:"avatar,omitempty"`
-	Body     string    `json:"body"`
-}
-
-type ThreadLikeInfo struct {
-	Id       string    `json:"id"`
-	Date     time.Time `json:"date"`
-	AuthorId string    `json:"author_id"`
-	Username string    `json:"username,omitempty"`
-	Avatar   string    `json:"avatar,omitempty"`
-}
-
 func (t *Textile) ThreadFiles(offset string, limit int, threadId string) ([]ThreadFilesInfo, error) {
 	var query string
 	if threadId != "" {
@@ -78,69 +61,6 @@ func (t *Textile) ThreadFile(blockId string) (*ThreadFilesInfo, error) {
 	}
 
 	return t.threadFile(*block)
-}
-
-func (t *Textile) ThreadComments(target string) ([]ThreadCommentInfo, error) {
-	comments := make([]ThreadCommentInfo, 0)
-
-	query := fmt.Sprintf("type=%d and target='%s'", repo.CommentBlock, target)
-	for _, block := range t.Blocks("", -1, query) {
-		info, err := t.ThreadComment(block)
-		if err != nil {
-			continue
-		}
-		comments = append(comments, *info)
-	}
-
-	return comments, nil
-}
-
-func (t *Textile) ThreadComment(block repo.Block) (*ThreadCommentInfo, error) {
-	if block.Type != repo.CommentBlock {
-		return nil, ErrBlockWrongType
-	}
-
-	username, avatar := t.ContactDisplayInfo(block.AuthorId)
-
-	return &ThreadCommentInfo{
-		Id:       block.Id,
-		Date:     block.Date,
-		AuthorId: block.AuthorId,
-		Username: username,
-		Avatar:   avatar,
-		Body:     block.Body,
-	}, nil
-}
-
-func (t *Textile) ThreadLikes(target string) ([]ThreadLikeInfo, error) {
-	likes := make([]ThreadLikeInfo, 0)
-
-	query := fmt.Sprintf("type=%d and target='%s'", repo.LikeBlock, target)
-	for _, block := range t.Blocks("", -1, query) {
-		info, err := t.ThreadLike(block)
-		if err != nil {
-			continue
-		}
-		likes = append(likes, *info)
-	}
-
-	return likes, nil
-}
-
-func (t *Textile) ThreadLike(block repo.Block) (*ThreadLikeInfo, error) {
-	if block.Type != repo.LikeBlock {
-		return nil, ErrBlockWrongType
-	}
-
-	username, avatar := t.ContactDisplayInfo(block.AuthorId)
-
-	return &ThreadLikeInfo{
-		Id:       block.Id,
-		Date:     block.Date,
-		AuthorId: block.AuthorId,
-		Username: username,
-		Avatar:   avatar,
-	}, nil
 }
 
 func (t *Textile) fileAtTarget(target string) ([]ThreadFileInfo, error) {
