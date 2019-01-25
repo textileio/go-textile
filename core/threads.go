@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/textileio/textile-go/keypair"
+
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
@@ -61,6 +63,24 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, 
 		}
 	}
 
+	// ensure members is unique
+	set := make(map[string]struct{})
+	var members []string
+	for _, m := range conf.Members {
+		if _, ok := set[m]; !ok {
+			kp, err := keypair.Parse(m)
+			if err != nil {
+				return nil, fmt.Errorf("error parsing member: %s", err)
+			}
+			if _, err := kp.Sign([]byte{0x00}); err == nil {
+				// we don't want to handle account seeds, just addresses
+				return nil, fmt.Errorf("member is an account seed, not address")
+			}
+			members = append(members, m)
+		}
+		set[m] = struct{}{}
+	}
+
 	threadModel := &repo.Thread{
 		Id:        id.Pretty(),
 		Key:       conf.Key,
@@ -70,7 +90,7 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, 
 		Initiator: conf.Initiator,
 		Type:      conf.Type,
 		Sharing:   conf.Sharing,
-		Members:   conf.Members,
+		Members:   members,
 		State:     repo.ThreadLoaded,
 	}
 	if err := t.datastore.Threads().Add(threadModel); err != nil {
@@ -367,6 +387,7 @@ func (t *Textile) addAccountThread() error {
 		Name:      "account",
 		Initiator: t.account.Address(),
 		Type:      repo.PrivateThread,
+		Sharing:   repo.NotSharedThread,
 		Join:      true,
 	}
 	if _, err := t.AddThread(sk, config); err != nil {

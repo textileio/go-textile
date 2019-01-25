@@ -3,6 +3,7 @@ package core
 import (
 	"crypto/rand"
 	"net/http"
+	"strings"
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
@@ -58,6 +59,27 @@ func (a *api) addThreads(g *gin.Context) {
 		config.Type = repo.OpenThread
 	}
 
+	if opts["sharing"] != "" {
+		var err error
+		config.Sharing, err = repo.ThreadSharingFromString(opts["sharing"])
+		if err != nil {
+			g.String(http.StatusBadRequest, "invalid thread sharing")
+			return
+		}
+	} else {
+		config.Sharing = repo.NotSharedThread
+	}
+
+	if opts["members"] != "" {
+		mlist := make([]string, 0)
+		for _, m := range strings.Split(opts["members"], ",") {
+			if m != "" {
+				mlist = append(mlist, m)
+			}
+		}
+		config.Members = mlist
+	}
+
 	// make a new secret
 	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
@@ -67,7 +89,7 @@ func (a *api) addThreads(g *gin.Context) {
 
 	thrd, err := a.node.AddThread(sk, config)
 	if err != nil {
-		a.abort500(g, err)
+		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 	info, err := thrd.Info()

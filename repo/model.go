@@ -78,7 +78,7 @@ func ThreadTypeFromString(desc string) (ThreadType, error) {
 	}
 }
 
-// ThreadSharing controls if and how a thread can be shared
+// ThreadSharing controls if (Y/N) a thread can be shared
 type ThreadSharing int
 
 const (

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
@@ -42,19 +43,28 @@ Threads are distributed sets of encrypted files between peers,
 governed by build-in or custom Schemas.
 Use this command to add, list, get, join, invite, and remove threads.
 
-Open threads are the most common thread type. Open threads allow 
-any member to invite new members.
+Thread type controls read (R), annotate (A), and write (W) access:
 
-Private threads are primarily used internally for backup/recovery 
-purposes and 1-to-1 communication channels.
+private   --> initiator: RAW, members:
+read-only --> initiator: RAW, members: R
+public    --> initiator: RAW, members: RA
+open      --> initiator: RAW, members: RAW
+
+Thread sharing style controls if (Y/N) a thread can be shared:
+
+not-shared  --> initiator: N, members: N
+invite-only --> initiator: Y, members: N
+shared      --> initiator: Y, members: Y
 `
 }
 
 type addThreadsCmd struct {
 	Client     ClientOptions  `group:"Client Options"`
 	Key        string         `short:"k" long:"key" description:"A locally unique key used by an app to identify this thread on recovery."`
-	Open       bool           `short:"o" long:"open" description:"Set the thread type to open (default private)."`
-	Schema     flags.Filename `short:"s" long:"schema" description:"Thread Schema filename. Supersedes the built-in schema flags."`
+	Type       string         `short:"t" long:"type" description:"Set the thread type to one of 'private', 'read_only', 'public', or 'open'." default:"private"`
+	Sharing    string         `short:"s" long:"sharing" description:"Set the thread sharing style to one of 'not_shared', 'invite_only', or 'shared'." default:"not_shared"`
+	Member     []string       `short:"m" long:"member" description:"A contact address. When supplied, the thread will not allow additional peers, useful for 1-1 chat/file sharing. Can be used multiple times to include multiple contacts.'"`
+	Schema     flags.Filename `long:"schema" description:"Thread Schema filename. Supersedes the built-in schema flags."`
 	Media      bool           `long:"media" description:"Use the built-in media Schema."`
 	CameraRoll bool           `long:"camera-roll" description:"Use the built-in camera roll Schema."`
 }
@@ -67,10 +77,6 @@ Adds and joins a new thread.`
 
 func (x *addThreadsCmd) Execute(args []string) error {
 	setApi(x.Client)
-	ttype := "private"
-	if x.Open {
-		ttype = "open"
-	}
 
 	var sch string
 	switch x.Schema {
@@ -88,9 +94,11 @@ func (x *addThreadsCmd) Execute(args []string) error {
 	}
 
 	opts := map[string]string{
-		"key":    x.Key,
-		"type":   ttype,
-		"schema": sch,
+		"key":     x.Key,
+		"type":    x.Type,
+		"sharing": x.Sharing,
+		"members": strings.Join(x.Member, ","),
+		"schema":  sch,
 	}
 	return callAddThreads(args, opts)
 }
