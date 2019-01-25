@@ -371,6 +371,22 @@ func TestMobile_AddThreadIgnore(t *testing.T) {
 	}
 }
 
+func TestMobile_ThreadFeed(t *testing.T) {
+	res, err := mobile1.ThreadFeed("", -1, thrdId)
+	if err != nil {
+		t.Errorf("get thread feed failed: %s", err)
+		return
+	}
+	var feed []core.ThreadFeedItem
+	if err := json.Unmarshal([]byte(res), &feed); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(feed) != 3 {
+		t.Errorf("get thread feed bad result")
+	}
+}
+
 func TestMobile_PhotoDataForMinWidth(t *testing.T) {
 	large, err := mobile1.FileData(files[0].Files[0].Links["large"].Hash)
 	if err != nil {
