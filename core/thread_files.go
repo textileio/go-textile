@@ -25,6 +25,10 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys Keys) (mh.Multiha
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
+	if !t.writable(t.config.Account.Address) {
+		return nil, ErrNotWritable
+	}
+
 	if t.Schema == nil {
 		return nil, ErrThreadSchemaRequired
 	}
@@ -92,6 +96,13 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 	msg := new(pb.ThreadFiles)
 	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
 		return nil, err
+	}
+
+	if !t.readable(t.config.Account.Address) {
+		return nil, ErrNotReadable
+	}
+	if !t.writable(block.Header.Address) {
+		return nil, ErrNotWritable
 	}
 
 	if t.Schema == nil {

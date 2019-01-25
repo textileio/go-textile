@@ -13,6 +13,10 @@ func (t *Thread) leave() (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
+	if !t.readable(t.config.Account.Address) {
+		return nil, ErrNotReadable
+	}
+
 	res, err := t.commitBlock(nil, pb.ThreadBlock_LEAVE, nil)
 	if err != nil {
 		return nil, err
@@ -54,7 +58,13 @@ func (t *Thread) leave() (mh.Multihash, error) {
 
 // handleLeaveBlock handles an incoming leave block
 func (t *Thread) handleLeaveBlock(hash mh.Multihash, block *pb.ThreadBlock) error {
-	// remove peer
+	if !t.readable(t.config.Account.Address) {
+		return ErrNotReadable
+	}
+	if !t.readable(block.Header.Address) {
+		return ErrNotReadable
+	}
+
 	if err := t.datastore.ThreadPeers().Delete(block.Header.Author, t.Id); err != nil {
 		return err
 	}

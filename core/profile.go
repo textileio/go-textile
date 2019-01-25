@@ -91,6 +91,7 @@ func (t *Textile) SetAvatar(hash string) error {
 			Schema:    shash,
 			Initiator: t.account.Address(),
 			Type:      repo.PrivateThread,
+			Sharing:   repo.NotSharedThread,
 			Join:      true,
 		})
 		if err != nil {

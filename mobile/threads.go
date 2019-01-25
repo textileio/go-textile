@@ -53,12 +53,15 @@ func (m *Mobile) AddThread(key string, name string, shared bool) (string, error)
 	// until we're ready to let the app define its own schemas.
 	var sch string
 	var ttype repo.ThreadType
+	var sharing repo.ThreadSharing
 	if shared {
 		sch = textile.Media
 		ttype = repo.OpenThread
+		sharing = repo.SharedThread
 	} else {
 		sch = textile.CameraRoll
 		ttype = repo.PrivateThread
+		sharing = repo.NotSharedThread
 	}
 	schema, err := m.addSchema(sch)
 	if err != nil {
@@ -75,6 +78,7 @@ func (m *Mobile) AddThread(key string, name string, shared bool) (string, error)
 		Schema:    shash,
 		Initiator: m.node.Account().Address(),
 		Type:      ttype,
+		Sharing:   sharing,
 		Join:      true,
 	}
 	thrd, err := m.node.AddThread(sk, config)

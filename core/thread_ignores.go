@@ -18,6 +18,10 @@ func (t *Thread) AddIgnore(block string) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
+	if !t.annotatable(t.config.Account.Address) {
+		return nil, ErrNotAnnotatable
+	}
+
 	// adding an ignore specific prefix here to ensure future flexibility
 	target := fmt.Sprintf("ignore-%s", block)
 
@@ -62,6 +66,13 @@ func (t *Thread) handleIgnoreBlock(hash mh.Multihash, block *pb.ThreadBlock) (*p
 	msg := new(pb.ThreadIgnore)
 	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
 		return nil, err
+	}
+
+	if !t.readable(t.config.Account.Address) {
+		return nil, ErrNotReadable
+	}
+	if !t.annotatable(block.Header.Address) {
+		return nil, ErrNotAnnotatable
 	}
 
 	// cleanup

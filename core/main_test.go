@@ -110,6 +110,8 @@ func TestTextile_AddThread(t *testing.T) {
 		Schema:    schemaHash,
 		Initiator: node.Account().Address(),
 		Type:      repo.OpenThread,
+		Sharing:   repo.SharedThread,
+		Members:   []string{},
 		Join:      true,
 	}
 	thrd, err := node.AddThread(sk, config)

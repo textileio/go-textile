@@ -199,7 +199,7 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index file_hash on files (hash);
     create unique index file_mill_source_opts on files (mill, source, opts);
 
-    create table threads (id text primary key not null, key text not null, sk blob not null, name text not null, schema text not null, initiator text not null, type integer not null, state integer not null, head text not null);
+    create table threads (id text primary key not null, key text not null, sk blob not null, name text not null, schema text not null, initiator text not null, type integer not null, state integer not null, head text not null, members text not null, sharing integer not null);
     create unique index thread_key on threads (key);
 
     create table thread_invites (id text primary key not null, block blob not null, name text not null, contact blob not null, date integer not null);

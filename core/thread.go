@@ -24,8 +24,20 @@ import (
 	"github.com/textileio/textile-go/schema"
 )
 
-// ErrInvitesNotAllowed indicates an invite was attempted on a private thread
-var ErrInvitesNotAllowed = errors.New("invites not allowed to private thread")
+// ErrContactNotFound indicates a local contact was not found
+var ErrContactNotFound = errors.New("contact not found")
+
+// ErrNotShareable indicates the thread does not allow invites, at least for _you_
+var ErrNotShareable = errors.New("thread is not shareable")
+
+// ErrNotReadable indicates the thread is not readable
+var ErrNotReadable = errors.New("thread is not readable")
+
+// ErrNotAnnotatable indicates the thread is not annotatable (comments/likes)
+var ErrNotAnnotatable = errors.New("thread is not annotatable")
+
+// ErrNotWritable indicates the thread is not writable (files/messages)
+var ErrNotWritable = errors.New("thread is not writable")
 
 // ErrThreadSchemaRequired indicates files where added without a thread schema
 var ErrThreadSchemaRequired = errors.New("thread schema required to add files")
@@ -60,6 +72,8 @@ type ThreadInfo struct {
 	SchemaId   string       `json:"schema_id,omitempty"`
 	Initiator  string       `json:"initiator"`
 	Type       string       `json:"type"`
+	Sharing    string       `json:"sharing"`
+	Members    []string     `json:"members,omitempty"`
 	State      string       `json:"state"`
 	Head       *BlockInfo   `json:"head,omitempty"`
 	PeerCount  int          `json:"peer_cnt"`
@@ -108,10 +122,12 @@ type Thread struct {
 	Id                 string
 	Key                string // app key, usually UUID
 	Name               string
-	Type               repo.ThreadType
 	Schema             *schema.Node
 	schemaId           string
 	initiator          string
+	ttype              repo.ThreadType
+	sharing            repo.ThreadSharing
+	members            []string
 	privKey            libp2pc.PrivKey
 	repoPath           string
 	config             *config.Config
@@ -144,10 +160,12 @@ func NewThread(model *repo.Thread, conf *ThreadConfig) (*Thread, error) {
 		Id:                 model.Id,
 		Key:                model.Key,
 		Name:               model.Name,
-		Type:               model.Type,
 		Schema:             sch,
 		schemaId:           model.Schema,
 		initiator:          model.Initiator,
+		ttype:              model.Type,
+		sharing:            model.Sharing,
+		members:            model.Members,
 		privKey:            sk,
 		repoPath:           conf.RepoPath,
 		config:             conf.Config,
@@ -206,6 +224,8 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 		SchemaId:   t.schemaId,
 		Initiator:  t.initiator,
 		Type:       mod.Type.Description(),
+		Sharing:    mod.Sharing.Description(),
+		Members:    mod.Members,
 		State:      state.Description(),
 		Head:       head,
 		PeerCount:  len(t.Peers()) + 1,
@@ -606,6 +626,95 @@ func (t *Thread) pushUpdate(index BlockInfo) {
 		ThreadKey:  t.Key,
 		ThreadName: t.Name,
 	})
+}
+
+// readable returns whether or not this thread is readable from the
+// perspective of the given address
+func (t *Thread) readable(addr string) bool {
+	if addr == t.initiator {
+		return true
+	}
+	switch t.ttype {
+	case repo.PrivateThread:
+		return false // should not happen
+	case repo.ReadOnlyThread:
+		return t.member(addr)
+	case repo.PublicThread:
+		return t.member(addr)
+	case repo.OpenThread:
+		return t.member(addr)
+	default:
+		return false
+	}
+}
+
+// annotatable returns whether or not this thread is annotatable from the
+// perspective of the given address
+func (t *Thread) annotatable(addr string) bool {
+	if addr == t.initiator {
+		return true
+	}
+	switch t.ttype {
+	case repo.PrivateThread:
+		return false // should not happen
+	case repo.ReadOnlyThread:
+		return false
+	case repo.PublicThread:
+		return t.member(addr)
+	case repo.OpenThread:
+		return t.member(addr)
+	default:
+		return false
+	}
+}
+
+// writable returns whether or not this thread can accept files from the
+// perspective of the given address
+func (t *Thread) writable(addr string) bool {
+	if addr == t.initiator {
+		return true
+	}
+	switch t.ttype {
+	case repo.PrivateThread:
+		return false // should not happen
+	case repo.ReadOnlyThread:
+		return false
+	case repo.PublicThread:
+		return false
+	case repo.OpenThread:
+		return t.member(addr)
+	default:
+		return false
+	}
+}
+
+// shareable returns whether or not this thread is shareable from one address to another
+func (t *Thread) shareable(from string, to string) bool {
+	switch t.sharing {
+	case repo.NotSharedThread:
+		return false
+	case repo.InviteOnlyThread:
+		return from == t.initiator && t.member(to)
+	case repo.SharedThread:
+		return t.member(from) && t.member(to)
+	default:
+		return false
+	}
+}
+
+// member returns whether or not the given address is a thread member
+// NOTE: Thread members are a fixed set of textile addresses specified
+// when a thread is created. If empty, _everyone_ is a member.
+func (t *Thread) member(address string) bool {
+	if len(t.members) == 0 {
+		return true
+	}
+	for _, m := range t.members {
+		if m == address {
+			return true
+		}
+	}
+	return false
 }
 
 // loadSchema loads a schema from a local file

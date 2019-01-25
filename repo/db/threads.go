@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"strings"
 	"sync"
 
 	"github.com/textileio/textile-go/repo"
@@ -22,7 +23,7 @@ func (c *ThreadDB) Add(thread *repo.Thread) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into threads(id, key, sk, name, schema, initiator, type, state, head) values(?,?,?,?,?,?,?,?,?)`
+	stm := `insert into threads(id, key, sk, name, schema, initiator, type, state, head, members, sharing) values(?,?,?,?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -39,6 +40,8 @@ func (c *ThreadDB) Add(thread *repo.Thread) error {
 		int(thread.Type),
 		int(thread.State),
 		thread.Head,
+		strings.Join(thread.Members, ","),
+		int(thread.Sharing),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -105,12 +108,18 @@ func (c *ThreadDB) handleQuery(stm string) []repo.Thread {
 		return nil
 	}
 	for rows.Next() {
-		var id, key, name, schema, initiator, head string
+		var id, key, name, schema, initiator, head, members string
 		var skb []byte
-		var typeInt, stateInt int
-		if err := rows.Scan(&id, &key, &skb, &name, &schema, &initiator, &typeInt, &stateInt, &head); err != nil {
+		var typeInt, stateInt, sharingInt int
+		if err := rows.Scan(&id, &key, &skb, &name, &schema, &initiator, &typeInt, &stateInt, &head, &members, &sharingInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
+		}
+		mlist := make([]string, 0)
+		for _, m := range strings.Split(members, ",") {
+			if m != "" {
+				mlist = append(mlist, m)
+			}
 		}
 		ret = append(ret, repo.Thread{
 			Id:        id,
@@ -120,6 +129,8 @@ func (c *ThreadDB) handleQuery(stm string) []repo.Thread {
 			Schema:    schema,
 			Initiator: initiator,
 			Type:      repo.ThreadType(typeInt),
+			Sharing:   repo.ThreadSharing(sharingInt),
+			Members:   mlist,
 			State:     repo.ThreadState(stateInt),
 			Head:      head,
 		})

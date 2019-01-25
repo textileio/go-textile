@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/textileio/textile-go/keypair"
+
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
@@ -32,12 +34,14 @@ var internalThreadKeys = []string{"avatars"}
 
 // AddThreadConfig is used to create a new thread model
 type AddThreadConfig struct {
-	Key       string          `json:"key"`
-	Name      string          `json:"name"`
-	Schema    mh.Multihash    `json:"schema"`
-	Initiator string          `json:"initiator"`
-	Type      repo.ThreadType `json:"type"`
-	Join      bool            `json:"join"`
+	Key       string             `json:"key"`
+	Name      string             `json:"name"`
+	Schema    mh.Multihash       `json:"schema"`
+	Initiator string             `json:"initiator"`
+	Type      repo.ThreadType    `json:"type"`
+	Sharing   repo.ThreadSharing `json:"sharing"`
+	Members   []string           `json:"members"`
+	Join      bool               `json:"join"`
 }
 
 // AddThread adds a thread with a given name and secret key
@@ -59,6 +63,24 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, 
 		}
 	}
 
+	// ensure members is unique
+	set := make(map[string]struct{})
+	var members []string
+	for _, m := range conf.Members {
+		if _, ok := set[m]; !ok {
+			kp, err := keypair.Parse(m)
+			if err != nil {
+				return nil, fmt.Errorf("error parsing member: %s", err)
+			}
+			if _, err := kp.Sign([]byte{0x00}); err == nil {
+				// we don't want to handle account seeds, just addresses
+				return nil, fmt.Errorf("member is an account seed, not address")
+			}
+			members = append(members, m)
+		}
+		set[m] = struct{}{}
+	}
+
 	threadModel := &repo.Thread{
 		Id:        id.Pretty(),
 		Key:       conf.Key,
@@ -67,6 +89,8 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, 
 		Schema:    conf.Schema.B58String(),
 		Initiator: conf.Initiator,
 		Type:      conf.Type,
+		Sharing:   conf.Sharing,
+		Members:   members,
 		State:     repo.ThreadLoaded,
 	}
 	if err := t.datastore.Threads().Add(threadModel); err != nil {
@@ -272,6 +296,19 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 		return nil, err
 	}
 
+	// check if we're allowed to get an invite
+	// Note: just using a dummy thread here because having these access+sharing
+	// methods on Thread is very nice elsewhere.
+	dummy := &Thread{
+		initiator: msg.Initiator,
+		ttype:     repo.ThreadType(msg.Type),
+		sharing:   repo.ThreadSharing(msg.Sharing),
+		members:   msg.Members,
+	}
+	if !dummy.shareable(msg.Contact.Address, t.config.Account.Address) {
+		return nil, ErrNotShareable
+	}
+
 	sk, err := libp2pc.UnmarshalPrivateKey(msg.Sk)
 	if err != nil {
 		return nil, err
@@ -298,7 +335,9 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 		Name:      msg.Name,
 		Schema:    sch,
 		Initiator: msg.Initiator,
-		Type:      repo.OpenThread,
+		Type:      repo.ThreadType(msg.Type),
+		Sharing:   repo.ThreadSharing(msg.Sharing),
+		Members:   msg.Members,
 		Join:      false,
 	}
 	thrd, err := t.AddThread(sk, config)
@@ -348,6 +387,7 @@ func (t *Textile) addAccountThread() error {
 		Name:      "account",
 		Initiator: t.account.Address(),
 		Type:      repo.PrivateThread,
+		Sharing:   repo.NotSharedThread,
 		Join:      true,
 	}
 	if _, err := t.AddThread(sk, config); err != nil {
