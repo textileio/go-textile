@@ -349,7 +349,7 @@ func (t *Thread) addOrUpdateContact(contact *repo.Contact) error {
 	}
 
 	ex := t.datastore.Contacts().Get(contact.Id)
-	if ex != nil && contact.Updated.UnixNano() >= ex.Updated.UnixNano() {
+	if ex == nil || ex.Updated.UnixNano() < contact.Updated.UnixNano() {
 		return t.datastore.Contacts().AddOrUpdate(contact)
 	}
 	return nil

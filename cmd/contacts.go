@@ -116,12 +116,15 @@ type findContactsCmd struct {
 	Local    bool          `long:"local" description:"Only search local contacts."`
 	Limit    int           `long:"limit" description:"Stops searching after limit results are found." default:"5"`
 	Wait     int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed." default:"5"`
+	Add      bool          `long:"add" description:"Add results to local contacts. Not allowed when searching by username."`
 }
 
 func (x *findContactsCmd) Usage() string {
 	return `
 
-Finds contacts known locally and on the network.`
+Finds contacts known locally and on the network.
+Use the --add option to save remote results as local contacts.
+`
 }
 
 func (x *findContactsCmd) Execute(args []string) error {
@@ -138,6 +141,7 @@ func (x *findContactsCmd) Execute(args []string) error {
 			"local":    strconv.FormatBool(x.Local),
 			"limit":    strconv.Itoa(x.Limit),
 			"wait":     strconv.Itoa(x.Wait),
+			"add":      strconv.FormatBool(x.Add),
 		},
 	}, &infos)
 	if err != nil {
