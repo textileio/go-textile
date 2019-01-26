@@ -4,10 +4,16 @@ option go_package = "pb";
 import "model.proto";
 
 message CafePubSubContactQuery {
-    string id           = 1;
-    string findId       = 2;
-    string findAddress  = 3;
-    string findUsername = 4;
+    string id                 = 1;
+    string findId             = 2;
+    string findAddress        = 3;
+    string findUsername       = 4;
+    ResponseType responseType = 5;
+
+    enum ResponseType {
+        P2P    = 0;
+        PUBSUB = 1;
+    }
 }
 
 message CafePubSubContactQueryResult {

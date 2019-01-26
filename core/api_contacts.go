@@ -88,6 +88,11 @@ func (a *api) searchContacts(g *gin.Context) {
 	if err != nil {
 		wait = 5
 	}
+	add, err := strconv.ParseBool(opts["add"])
+	if err != nil {
+		add = false
+	}
+
 	query := &ContactInfoQuery{
 		Id:       opts["peer"],
 		Address:  opts["address"],
@@ -95,6 +100,7 @@ func (a *api) searchContacts(g *gin.Context) {
 		Local:    local,
 		Limit:    limit,
 		Wait:     wait,
+		Add:      add,
 	}
 
 	infos, err := a.node.FindContact(query)
