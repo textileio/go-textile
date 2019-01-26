@@ -7,8 +7,18 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
+type ThreadFeedItemType string
+
+const (
+	JoinThreadFeedItem    ThreadFeedItemType = "join"
+	LeaveThreadFeedItem   ThreadFeedItemType = "leave"
+	FilesThreadFeedItem   ThreadFeedItemType = "files"
+	MessageThreadFeedItem ThreadFeedItemType = "message"
+)
+
 type ThreadFeedItem struct {
 	Block   string             `json:"block"`
+	Type    ThreadFeedItemType `json:"type"`
 	Join    *ThreadJoinInfo    `json:"join,omitempty"`
 	Leave   *ThreadLeaveInfo   `json:"leave,omitempty"`
 	Files   *ThreadFilesInfo   `json:"files,omitempty"`
@@ -38,12 +48,16 @@ func (t *Textile) ThreadFeed(offset string, limit int, threadId string) ([]Threa
 		var err error
 		switch block.Type {
 		case repo.JoinBlock:
+			item.Type = JoinThreadFeedItem
 			item.Join, err = t.ThreadJoin(block)
 		case repo.LeaveBlock:
+			item.Type = LeaveThreadFeedItem
 			item.Leave, err = t.ThreadLeave(block)
 		case repo.FilesBlock:
+			item.Type = FilesThreadFeedItem
 			item.Files, err = t.threadFile(block)
 		case repo.MessageBlock:
+			item.Type = MessageThreadFeedItem
 			item.Message, err = t.ThreadMessage(block)
 		default:
 			continue
