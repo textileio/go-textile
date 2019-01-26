@@ -132,11 +132,11 @@ func (t *Textile) UpdateContactInboxes() error {
 	return t.datastore.Contacts().UpdateInboxes(t.node.Identity.Pretty(), inboxes)
 }
 
-// FindContact searches the network for contacts
+// FindContact searches the network for contacts via cafe sessions
 func (t *Textile) FindContact(query *ContactInfoQuery) (*ContactInfoQueryResult, error) {
 	sessions := t.datastore.CafeSessions().List()
 	if len(sessions) == 0 {
-		return nil, nil
+		return t.findContactPubSub(query)
 	}
 
 	result := &ContactInfoQueryResult{
@@ -169,6 +169,46 @@ func (t *Textile) FindContact(query *ContactInfoQuery) (*ContactInfoQueryResult,
 		}
 
 		for _, c := range inbound {
+			i := t.contactInfo(protoContactToRepo(c), false)
+			if i != nil {
+				result.Remote = append(result.Remote, *i)
+			}
+		}
+	}
+
+	return result, nil
+}
+
+// findContactPubSub searches the network for contacts
+func (t *Textile) findContactPubSub(query *ContactInfoQuery) (*ContactInfoQueryResult, error) {
+	result := &ContactInfoQueryResult{
+		Local:  make([]ContactInfo, 0),
+		Remote: make([]ContactInfo, 0),
+	}
+
+	// search local
+	for _, c := range t.datastore.Contacts().Find(query.Id, query.Address, query.Username) {
+		i := t.contactInfo(&c, true)
+		if i != nil {
+			result.Local = append(result.Local, *i)
+		}
+	}
+
+	// search the network
+	if !query.Local && len(result.Local) < query.Limit {
+		pquery := &pb.CafeContactQuery{
+			FindId:       query.Id,
+			FindAddress:  query.Address,
+			FindUsername: query.Username,
+			Limit:        int32(query.Limit),
+			Wait:         int32(query.Wait),
+		}
+		res, err := t.cafe.FindContactPubSub(pquery)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, c := range res.Contacts {
 			i := t.contactInfo(protoContactToRepo(c), false)
 			if i != nil {
 				result.Remote = append(result.Remote, *i)
