@@ -158,7 +158,7 @@ func (h *CafeService) FindContact(query *ContactInfoQuery, cafe peer.ID) ([]*pb.
 }
 
 // FindContactPubSub searches the local contact index for a match
-func (h *CafeService) FindContactPubSub(query *pb.CafeContactQuery) (*pb.CafeContactQueryResult, error) {
+func (h *CafeService) FindContactPubSub(query *pb.CafeContactQuery, fromCafe bool) (*pb.CafeContactQueryResult, error) {
 	psId := ksuid.New().String()
 	res := &pb.CafeContactQueryResult{}
 
@@ -169,11 +169,25 @@ func (h *CafeService) FindContactPubSub(query *pb.CafeContactQuery) (*pb.CafeCon
 
 	// request network results
 	if len(res.Contacts) < int(query.Limit) {
+
+		// start a tmp subscription if caller needs results over pubsub
+		var rtype pb.CafePubSubContactQuery_ResponseType
+		var psCancel context.CancelFunc
+		if fromCafe {
+			rtype = pb.CafePubSubContactQuery_P2P
+		} else {
+			rtype = pb.CafePubSubContactQuery_PUBSUB
+			go func() {
+				psCancel = h.service.ListenFor(psId, h.handlePubSubContactQueryResult)
+			}()
+		}
+
 		preq := &pb.CafePubSubContactQuery{
 			Id:           psId,
 			FindId:       query.FindId,
 			FindUsername: query.FindUsername,
 			FindAddress:  query.FindAddress,
+			ResponseType: rtype,
 		}
 		if err := h.publishContactRequest(preq); err != nil {
 			return nil, err
@@ -186,6 +200,9 @@ func (h *CafeService) FindContactPubSub(query *pb.CafeContactQuery) (*pb.CafeCon
 		go func() {
 			<-timer.C
 			listener.Close()
+			if psCancel != nil {
+				psCancel()
+			}
 			close(doneCh)
 		}()
 
@@ -203,6 +220,9 @@ func (h *CafeService) FindContactPubSub(query *pb.CafeContactQuery) (*pb.CafeCon
 					if len(res.Contacts) >= int(query.Limit) {
 						if timer.Stop() {
 							listener.Close()
+							if psCancel != nil {
+								psCancel()
+							}
 							close(doneCh)
 						}
 					}
@@ -1002,7 +1022,7 @@ func (h *CafeService) handleContactQuery(pid peer.ID, env *pb.Envelope) (*pb.Env
 		return rerr, nil
 	}
 
-	res, err := h.FindContactPubSub(query)
+	res, err := h.FindContactPubSub(query, true)
 	if err != nil {
 		return nil, err
 	}
@@ -1043,7 +1063,24 @@ func (h *CafeService) handlePubSubContactQuery(pid peer.ID, env *pb.Envelope) (*
 		return nil, nil
 	}
 
-	return h.service.NewEnvelope(pb.Message_CAFE_PUBSUB_CONTACT_QUERY_RES, res, nil, false)
+	renv, err := h.service.NewEnvelope(pb.Message_CAFE_PUBSUB_CONTACT_QUERY_RES, res, nil, false)
+	if err != nil {
+		return nil, err
+	}
+
+	switch query.ResponseType {
+	case pb.CafePubSubContactQuery_P2P:
+		return renv, nil
+	case pb.CafePubSubContactQuery_PUBSUB:
+		payload, err := proto.Marshal(renv)
+		if err != nil {
+			return nil, err
+		}
+		if err := ipfs.Publish(h.service.Node(), query.Id, payload); err != nil {
+			return nil, err
+		}
+	}
+	return nil, nil
 }
 
 // handlePubSubContactQueryResult handles direct contact request results

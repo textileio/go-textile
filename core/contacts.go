@@ -171,7 +171,7 @@ func (t *Textile) FindContact(query *ContactInfoQuery) (*ContactInfoQueryResult,
 			FindUsername: query.Username,
 			Limit:        int32(query.Limit),
 			Wait:         int32(query.Wait),
-		})
+		}, false)
 		if err != nil {
 			return nil, err
 		}
