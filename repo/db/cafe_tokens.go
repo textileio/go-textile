@@ -53,15 +53,6 @@ func (c *CafeDevTokenDB) Get(id string) *repo.CafeDevToken {
 	return &ret[0]
 }
 
-func (c *CafeDevTokenDB) Count() int {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	row := c.db.QueryRow("select Count(*) from cafe_dev_tokens;")
-	var count int
-	row.Scan(&count)
-	return count
-}
-
 func (c *CafeDevTokenDB) List() []repo.CafeDevToken {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -92,7 +83,7 @@ func (c *CafeDevTokenDB) handleQuery(stm string) []repo.CafeDevToken {
 	}
 	for rows.Next() {
 		var id string
-		var token []byte
+		var token string
 		var createdInt int64
 		if err := rows.Scan(&id, &token, &createdInt); err != nil {
 			log.Errorf("error in db scan: %s", err)

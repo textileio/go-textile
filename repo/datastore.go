@@ -195,9 +195,8 @@ type CafeClientMessageStore interface {
 }
 
 type CafeDevTokenStore interface {
-	Create() (*CafeDevToken, error)
+	Add(token *CafeDevToken) error
 	Get(id string) *CafeDevToken
-	Count() int
 	List() []CafeDevToken
 	// ListByClient(clientId string) []*pb.CafeDevToken
 	Delete(id string) error

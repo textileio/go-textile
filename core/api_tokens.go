@@ -5,54 +5,63 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mr-tron/base58/base58"
+	"github.com/textileio/textile-go/repo"
 )
 
-func (a *api) addTokens(g *gin.Context) {
+func (a *api) createTokens(g *gin.Context) {
 	token, err := a.node.CreateCafeToken()
 	if err != nil {
 		a.abort500(g, err)
 		return
 	}
-
-	result := make(map[string]string)
-	result["id"] = token.Id
-	result["created"] = token.Created
-	result["token"] = base58.FastBase58Encoding(token.Token)
-
-	g.JSON(http.StatusCreated, result)
+	g.JSON(http.StatusCreated, token)
 }
 
 func (a *api) lsTokens(g *gin.Context) {
-	tokens, err := a.node.CafeTokens()
+	tokens, err := a.node.CafeDevTokens()
 	if err != nil {
 		a.abort500(g, err)
 		return
 	}
 	if len(tokens) == 0 {
-		tokens = make([]*TokenInfo, 0)
+		tokens = make([]repo.CafeDevToken, 0)
+	} else {
+		for _, token := range tokens {
+			token.Token = base58.FastBase58Encoding([]byte(token.Token))
+		}
 	}
 	g.JSON(http.StatusOK, tokens)
 }
 
-// func (a *api) getCafes(g *gin.Context) {
-// 	id := g.Param("id")
-// 	session, err := a.node.CafeSession(id)
-// 	if err != nil {
-// 		a.abort500(g, err)
-// 		return
-// 	}
-// 	if session == nil {
-// 		g.String(http.StatusNotFound, "cafe not found")
-// 		return
-// 	}
-// 	g.JSON(http.StatusOK, session)
-// }
+func (a *api) compareTokens(g *gin.Context) {
+	id := g.Param("id")
 
-// func (a *api) rmCafes(g *gin.Context) {
-// 	id := g.Param("id")
-// 	if err := a.node.DeregisterCafe(id); err != nil {
-// 		a.abort500(g, err)
-// 		return
-// 	}
-// 	g.String(http.StatusOK, "ok")
-// }
+	args, err := a.readArgs(g)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+	if len(args) == 0 {
+		g.String(http.StatusBadRequest, "missing dev token")
+		return
+	}
+	ok, err := a.node.CompareCafeDevToken(id, args[0])
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+	if !ok {
+		g.String(http.StatusUnauthorized, "invlaid credentials")
+		return
+	}
+	g.String(http.StatusOK, "ok")
+}
+
+func (a *api) rmTokens(g *gin.Context) {
+	id := g.Param("id")
+	if err := a.node.RemoveCafeDevToken(id); err != nil {
+		a.abort500(g, err)
+		return
+	}
+	g.String(http.StatusOK, "ok")
+}

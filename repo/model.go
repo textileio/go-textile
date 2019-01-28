@@ -325,7 +325,7 @@ type CafeClient struct {
 	// TOOD: Add field to link to CafeDevTokenStore?
 }
 
-type CafeTokenToken struct {
+type CafeDevToken struct {
 	Id      string    `json:"id"`
 	Token   string    `json:"token"`
 	Created time.Time `json:"created"`

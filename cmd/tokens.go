@@ -1,18 +1,24 @@
 package cmd
 
 import (
+	"errors"
+
 	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/textile-go/repo"
 )
 
-// func init() {
-// 	register(&tokensCmd{})
-// }
+var errMissingTokenId = errors.New("missing token id")
+var errMissingToken = errors.New("missing token")
+
+func init() {
+	register(&tokensCmd{})
+}
 
 type tokensCmd struct {
-	Add    addTokensCmd `command:"add" description:"Create a new access token"`
-	List   lsTokensCmd  `command:"ls" description:"List available access tokens"`
-	Get    getTokensCmd `command:"get" description:"Get a specific access token"`
-	Remove rmTokensCmd  `command:"rm" description:"Remove a specific access token"`
+	Create  createTokensCmd  `command:"create" description:"Create a new access token"`
+	List    lsTokensCmd      `command:"ls" description:"List available access tokens"`
+	Compare compareTokensCmd `command:"compare" description:"Check if access token is valid"`
+	Remove  rmTokensCmd      `command:"rm" description:"Remove a specific access token"`
 }
 
 func (x *tokensCmd) Name() string {
@@ -20,32 +26,32 @@ func (x *tokensCmd) Name() string {
 }
 
 func (x *tokensCmd) Short() string {
-	return "Manage Cafe access tokens"
+	return "Manage Cafe developer access tokens"
 }
 
 func (x *tokensCmd) Long() string {
 	return `
 Tokens allow other peers to register with a Cafe peer.
-Use this command to add, list, get, and remove tokens required for access to this peer's Cafe.
+Use this command to create, list, compare, and remove tokens required for access to this peer's Cafe.
 `
 }
 
-type addCafesCmd struct {
+type createTokensCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *addTokensCmd) Usage() string {
+func (x *createTokensCmd) Usage() string {
 	return `
 
-Generates an access token and saves a salted and encrypted version for future lookup.
+Generates an access token (32 random bytes) and saves bcrypt encrypted version for future lookup.
 The response contains a base58 encoded version of the random bytes token.
 `
 }
 
-func (x *addTokensCmd) Execute(args []string) error {
+func (x *createTokensCmd) Execute(args []string) error {
 	setApi(x.Client)
-	var info *pb.CafeSession
-	res, err := executeJsonCmd(POST, "cafes", params{args: args}, &info)
+	var info *repo.CafeDevToken
+	res, err := executeJsonCmd(POST, "tokens", params{}, &info)
 	if err != nil {
 		return err
 	}
@@ -53,20 +59,20 @@ func (x *addTokensCmd) Execute(args []string) error {
 	return nil
 }
 
-type lsCafesCmd struct {
+type lsTokensCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *lsCafesCmd) Usage() string {
+func (x *lsTokensCmd) Usage() string {
 	return `
 
-List info about all active cafe sessions.`
+List info about all stored cafe developer tokens.`
 }
 
-func (x *lsCafesCmd) Execute(args []string) error {
+func (x *lsTokensCmd) Execute(args []string) error {
 	setApi(x.Client)
 	var list []pb.CafeSession
-	res, err := executeJsonCmd(GET, "cafes", params{}, &list)
+	res, err := executeJsonCmd(GET, "tokens", params{}, &list)
 	if err != nil {
 		return err
 	}
@@ -74,24 +80,30 @@ func (x *lsCafesCmd) Execute(args []string) error {
 	return nil
 }
 
-type getCafesCmd struct {
+type compareTokensCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *getCafesCmd) Usage() string {
+func (x *compareTokensCmd) Usage() string {
 	return `
 
-Gets and displays info about a cafe session.
+Check validity of existing cafe developer access token.
+Requires a token id and the base58-encoded token itself.
 `
 }
 
-func (x *getCafesCmd) Execute(args []string) error {
+func (x *compareTokensCmd) Execute(args []string) error {
 	setApi(x.Client)
-	if len(args) == 0 {
-		return errMissingCafeId
+	if len(args) < 1 {
+		return errMissingTokenId
 	}
-	var info *pb.CafeSession
-	res, err := executeJsonCmd(GET, "cafes/"+args[0], params{}, &info)
+	if len(args) < 2 {
+		return errMissingToken
+	}
+	var info string
+	res, err := executeJsonCmd(GET, "tokens/"+args[0], params{
+		args: []string{args[1]},
+	}, &info)
 	if err != nil {
 		return err
 	}
@@ -99,41 +111,22 @@ func (x *getCafesCmd) Execute(args []string) error {
 	return nil
 }
 
-type rmCafesCmd struct {
+type rmTokensCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *rmCafesCmd) Usage() string {
-	return "Deregisters a cafe (content will expire based on the cafe's service rules)."
-}
-
-func (x *rmCafesCmd) Execute(args []string) error {
-	setApi(x.Client)
-	if len(args) == 0 {
-		return errMissingCafeId
-	}
-	res, err := executeStringCmd(DEL, "cafes/"+args[0], params{})
-	if err != nil {
-		return err
-	}
-	output(res)
-	return nil
-}
-
-type checkCafeMessagesCmd struct {
-	Client ClientOptions `group:"Client Options"`
-}
-
-func (x *checkCafeMessagesCmd) Usage() string {
+func (x *rmTokensCmd) Usage() string {
 	return `
-
-Check for messages at all cafes. New messages are downloaded and processed opportunistically.
-`
+	
+	Removes an existing cafe developer token.`
 }
 
-func (x *checkCafeMessagesCmd) Execute(args []string) error {
+func (x *rmTokensCmd) Execute(args []string) error {
 	setApi(x.Client)
-	res, err := executeStringCmd(POST, "cafes/messages", params{})
+	if len(args) == 0 {
+		return errMissingTokenId
+	}
+	res, err := executeStringCmd(DEL, "tokens/"+args[0], params{})
 	if err != nil {
 		return err
 	}

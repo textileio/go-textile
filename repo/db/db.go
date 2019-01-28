@@ -253,9 +253,9 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 
     create table cafe_client_messages (id text not null, peerId text not null, clientId text not null, date integer not null, primary key (id, clientId));
     create index cafe_client_message_clientId on cafe_client_messages (clientId);
-		create index cafe_client_message_date on cafe_client_messages (date);
+	create index cafe_client_message_date on cafe_client_messages (date);
 		
-		create table cafe_dev_tokens (id text primary key not null, token blob not null, created integer not null);
+	create table cafe_dev_tokens (id text primary key not null, token text not null, created integer not null);
     `
 	if _, err := db.Exec(sqlStmt); err != nil {
 		return err
