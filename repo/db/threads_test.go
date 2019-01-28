@@ -30,6 +30,8 @@ func TestThreadDB_Add(t *testing.T) {
 		Schema:    "Qm...",
 		Initiator: "123",
 		Type:      repo.OpenThread,
+		Members:   []string{"P1,P2"},
+		Sharing:   repo.SharedThread,
 		State:     repo.ThreadLoaded,
 	})
 	if err != nil {
@@ -57,6 +59,8 @@ func TestThreadDB_Get(t *testing.T) {
 		Schema:    "Qm...",
 		Initiator: "123",
 		Type:      repo.OpenThread,
+		Members:   []string{},
+		Sharing:   repo.SharedThread,
 		State:     repo.ThreadLoaded,
 	})
 	if err != nil {
@@ -78,6 +82,8 @@ func TestThreadDB_List(t *testing.T) {
 		Schema:    "Qm...",
 		Initiator: "123",
 		Type:      repo.PrivateThread,
+		Members:   []string{},
+		Sharing:   repo.NotSharedThread,
 		State:     repo.ThreadLoaded,
 	})
 	if err != nil {
@@ -90,6 +96,8 @@ func TestThreadDB_List(t *testing.T) {
 		Name:    "boom",
 		Schema:  "Qm...",
 		Type:    repo.PrivateThread,
+		Members: []string{},
+		Sharing: repo.NotSharedThread,
 		State:   repo.ThreadLoaded,
 	})
 	if err != nil {
@@ -112,6 +120,8 @@ func TestThreadDB_Count(t *testing.T) {
 		Schema:    "Qm...",
 		Initiator: "123",
 		Type:      repo.PrivateThread,
+		Members:   []string{},
+		Sharing:   repo.NotSharedThread,
 		State:     repo.ThreadLoading,
 	})
 	if err != nil {
@@ -134,6 +144,8 @@ func TestThreadDB_UpdateHead(t *testing.T) {
 		Schema:    "Qm...",
 		Initiator: "123",
 		Type:      repo.PrivateThread,
+		Members:   []string{},
+		Sharing:   repo.NotSharedThread,
 		State:     repo.ThreadLoading,
 	})
 	if err != nil {
@@ -162,6 +174,8 @@ func TestThreadDB_Delete(t *testing.T) {
 		Schema:    "Qm...",
 		Initiator: "123",
 		Type:      repo.PrivateThread,
+		Members:   []string{},
+		Sharing:   repo.NotSharedThread,
 		State:     repo.ThreadLoaded,
 	})
 	if err != nil {

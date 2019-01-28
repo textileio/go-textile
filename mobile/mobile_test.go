@@ -128,6 +128,7 @@ func TestSetLogLevels(t *testing.T) {
 	})
 	if err != nil {
 		t.Errorf("unable to marshal test map")
+		return
 	}
 	if err := mobile1.SetLogLevels(string(logLevels)); err != nil {
 		t.Errorf("attempt to set log levels failed: %s", err)
@@ -212,6 +213,28 @@ func TestMobile_RemoveThread(t *testing.T) {
 	}
 }
 
+func TestMobile_AddThreadMessage(t *testing.T) {
+	if _, err := mobile1.AddThreadMessage(thrdId, "ping pong"); err != nil {
+		t.Errorf("add thread message failed: %s", err)
+	}
+}
+
+func TestMobile_ThreadMessages(t *testing.T) {
+	res, err := mobile1.ThreadMessages("", -1, thrdId)
+	if err != nil {
+		t.Errorf("thread messages failed: %s", err)
+		return
+	}
+	var msgs []core.ThreadMessageInfo
+	if err := json.Unmarshal([]byte(res), &msgs); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(msgs) != 1 {
+		t.Error("wrong number of messages")
+	}
+}
+
 func TestMobile_PrepareFiles(t *testing.T) {
 	res, err := mobile1.PrepareFiles("../mill/testdata/image.jpeg", thrdId)
 	if err != nil {
@@ -228,7 +251,8 @@ func TestMobile_PrepareFiles(t *testing.T) {
 	}
 	dir, err = proto.Marshal(pre.Dir)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
+		return
 	}
 
 	res2, err := mobile1.PrepareFiles(pre.Dir.Files["large"].Hash, thrdId)
@@ -259,6 +283,7 @@ func TestMobile_AddThreadFiles(t *testing.T) {
 	info := core.BlockInfo{}
 	if err := json.Unmarshal([]byte(res), &info); err != nil {
 		t.Error(err)
+		return
 	}
 	filesBlock = info
 	time.Sleep(time.Second)
@@ -329,6 +354,7 @@ func TestMobile_FileData(t *testing.T) {
 func TestMobile_AddThreadIgnore(t *testing.T) {
 	if _, err := mobile1.AddThreadIgnore(filesBlock.Id); err != nil {
 		t.Errorf("add thread ignore failed: %s", err)
+		return
 	}
 	res, err := mobile1.ThreadFiles("", -1, thrdId)
 	if err != nil {
@@ -342,6 +368,22 @@ func TestMobile_AddThreadIgnore(t *testing.T) {
 	}
 	if len(files) != 1 {
 		t.Errorf("thread ignore bad result")
+	}
+}
+
+func TestMobile_ThreadFeed(t *testing.T) {
+	res, err := mobile1.ThreadFeed("", -1, thrdId)
+	if err != nil {
+		t.Errorf("get thread feed failed: %s", err)
+		return
+	}
+	var feed []core.ThreadFeedItem
+	if err := json.Unmarshal([]byte(res), &feed); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(feed) != 3 {
+		t.Errorf("get thread feed bad result")
 	}
 }
 
@@ -473,6 +515,7 @@ func TestMobile_Contact(t *testing.T) {
 	self, err := mobile1.Contact(pid)
 	if err != nil {
 		t.Errorf("get own contact failed: %s", err)
+		return
 	}
 	var info *core.ContactInfo
 	if err := json.Unmarshal([]byte(self), &info); err != nil {
@@ -501,6 +544,17 @@ func TestMobile_AddThreadInvite(t *testing.T) {
 
 	pid, err := mobile1.PeerId()
 	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	contact1, err := mobile1.Contact(pid)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if err := mobile2.AddContact(contact1); err != nil {
 		t.Error(err)
 		return
 	}
@@ -562,6 +616,7 @@ func TestMobile_CountUnreadNotifications(t *testing.T) {
 func TestMobile_ReadAllNotifications(t *testing.T) {
 	if err := mobile1.ReadAllNotifications(); err != nil {
 		t.Error(err)
+		return
 	}
 	if mobile1.CountUnreadNotifications() != 0 {
 		t.Error("read all notifications bad result")

@@ -27,12 +27,16 @@ func (Minor008) Up(repoPath string, pinCode string, testnet bool) error {
 		}
 	}
 
-	// add missing cafe_dev_token table
-	// TODO: should we also edit the cafe_client table to add a field linking to cafe_dev_token?
-	query := `
-		create table cafe_dev_tokens (id text primary key not null, token blob not null, created integer not null);
-		`
-	if _, err := db.Exec(query); err != nil {
+	// add column for members and sharing
+	if _, err := db.Exec("alter table threads add column members text not null default '';"); err != nil {
+		return err
+	}
+	if _, err := db.Exec("alter table threads add column sharing integer not null default 0;"); err != nil {
+		return err
+	}
+
+	// update existing threads to have sharing == 2 (shared), where type == 3 (open)
+	if _, err := db.Exec("update threads set sharing=2 where type=3;"); err != nil {
 		return err
 	}
 
@@ -48,12 +52,10 @@ func (Minor008) Up(repoPath string, pinCode string, testnet bool) error {
 	return nil
 }
 
-// Down is for a migration downgrade (not implemented)
 func (Minor008) Down(repoPath string, pinCode string, testnet bool) error {
 	return nil
 }
 
-// Major is for a major version migration change (not implemented)
 func (Minor008) Major() bool {
 	return false
 }

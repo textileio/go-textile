@@ -1,8 +1,11 @@
 package core
 
 import (
-	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	"fmt"
+	"sync"
 	"time"
+
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/ipfs"
@@ -30,6 +33,7 @@ type ContactInfoQuery struct {
 	Local    bool
 	Limit    int
 	Wait     int
+	Add      bool
 }
 
 // ContactInfoQueryResult displays info about a contact search result
@@ -132,11 +136,10 @@ func (t *Textile) UpdateContactInboxes() error {
 	return t.datastore.Contacts().UpdateInboxes(t.node.Identity.Pretty(), inboxes)
 }
 
-// FindContact searches the network for contacts
+// FindContact searches the network for contacts via cafe sessions
 func (t *Textile) FindContact(query *ContactInfoQuery) (*ContactInfoQueryResult, error) {
-	sessions := t.datastore.CafeSessions().List()
-	if len(sessions) == 0 {
-		return nil, nil
+	if query.Add && query.Username != "" {
+		return nil, fmt.Errorf("add not allowed when searching by username")
 	}
 
 	result := &ContactInfoQueryResult{
@@ -152,27 +155,72 @@ func (t *Textile) FindContact(query *ContactInfoQuery) (*ContactInfoQueryResult,
 		}
 	}
 
-	// search the network
-	if !query.Local && len(result.Local) < query.Limit {
-		// TODO: do this in parallel
-		var inbound []*pb.Contact
-		for _, session := range sessions {
-			pid, err := peer.IDB58Decode(session.Id)
+	if query.Local || len(result.Local) >= query.Limit {
+		return result, nil
+	}
+
+	// search the network via cafe if present
+	var inbound []*pb.Contact
+	sessions := t.datastore.CafeSessions().List()
+	if len(sessions) == 0 {
+
+		// search via pubsub directly
+		res, err := t.cafe.FindContactPubSub(&pb.CafeContactQuery{
+			FindId:       query.Id,
+			FindAddress:  query.Address,
+			FindUsername: query.Username,
+			Limit:        int32(query.Limit),
+			Wait:         int32(query.Wait),
+		}, false)
+		if err != nil {
+			return nil, err
+		}
+		inbound = res.Contacts
+
+	} else {
+		groups := make([][]*pb.Contact, len(sessions))
+		wg := sync.WaitGroup{}
+		var ferr error
+		for i, session := range sessions {
+			cafe, err := peer.IDB58Decode(session.Id)
 			if err != nil {
 				return result, err
 			}
-			res, err := t.cafe.FindContact(query, pid)
-			if err != nil {
-				return result, err
-			}
-			inbound = deduplicateContactResults(append(inbound, res...))
+			wg.Add(1)
+			go func(i int, cafe peer.ID) {
+				defer wg.Done()
+				res, err := t.cafe.FindContact(query, cafe)
+				if err != nil {
+					ferr = err
+					return
+				}
+				groups[i] = res
+			}(i, cafe)
+		}
+		wg.Wait()
+		if ferr != nil {
+			return result, ferr
 		}
 
-		for _, c := range inbound {
-			i := t.contactInfo(protoContactToRepo(c), false)
-			if i != nil {
-				result.Remote = append(result.Remote, *i)
+		for _, g := range groups {
+			inbound = deduplicateContactResults(append(inbound, g...))
+		}
+	}
+
+	for _, i := range inbound {
+		contact := protoContactToRepo(i)
+		if query.Add {
+			ex := t.datastore.Contacts().Get(contact.Id)
+			if ex == nil || ex.Updated.UnixNano() < contact.Updated.UnixNano() {
+				if err := t.datastore.Contacts().AddOrUpdate(contact); err != nil {
+					return nil, err
+				}
 			}
+		}
+
+		info := t.contactInfo(contact, false)
+		if info != nil {
+			result.Remote = append(result.Remote, *info)
 		}
 	}
 

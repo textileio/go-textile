@@ -17,6 +17,10 @@ func (t *Thread) joinInitial() (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
+	if !t.readable(t.config.Account.Address) {
+		return nil, ErrNotReadable
+	}
+
 	msg, err := t.buildJoin(t.node().Identity.Pretty())
 	if err != nil {
 		return nil, err
@@ -44,6 +48,10 @@ func (t *Thread) joinInitial() (mh.Multihash, error) {
 func (t *Thread) join(inviterId peer.ID) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
+
+	if !t.readable(t.config.Account.Address) {
+		return nil, ErrNotReadable
+	}
 
 	msg, err := t.buildJoin(inviterId.Pretty())
 	if err != nil {
@@ -77,6 +85,13 @@ func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 	msg := new(pb.ThreadJoin)
 	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
 		return nil, err
+	}
+
+	if !t.readable(t.config.Account.Address) {
+		return nil, ErrNotReadable
+	}
+	if !t.readable(block.Header.Address) {
+		return nil, ErrNotReadable
 	}
 
 	if err := t.indexBlock(&commitResult{

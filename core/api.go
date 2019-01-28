@@ -138,6 +138,11 @@ func (a *api) Start() {
 			}
 		}
 
+		feed := v0.Group("/feed")
+		{
+			feed.GET("", a.lsThreadFeed)
+		}
+
 		messages := v0.Group("/messages")
 		{
 			messages.GET("", a.lsThreadMessages)

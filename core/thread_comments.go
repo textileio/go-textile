@@ -13,6 +13,10 @@ func (t *Thread) AddComment(target string, body string) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
+	if !t.annotatable(t.config.Account.Address) {
+		return nil, ErrNotAnnotatable
+	}
+
 	msg := &pb.ThreadComment{
 		Target: target,
 		Body:   body,
@@ -45,6 +49,13 @@ func (t *Thread) handleCommentBlock(hash mh.Multihash, block *pb.ThreadBlock) (*
 	msg := new(pb.ThreadComment)
 	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
 		return nil, err
+	}
+
+	if !t.readable(t.config.Account.Address) {
+		return nil, ErrNotReadable
+	}
+	if !t.annotatable(block.Header.Address) {
+		return nil, ErrNotAnnotatable
 	}
 
 	if err := t.indexBlock(&commitResult{
