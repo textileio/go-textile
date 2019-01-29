@@ -2,6 +2,7 @@ package core_test
 
 import (
 	"crypto/rand"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -159,6 +160,39 @@ func TestTextile_AddFile(t *testing.T) {
 	}
 	if file.Checksum != "3LLsrJ4zcF66d9r5pMnip243y2zZQpkKShhYVHn4Hk2j" {
 		t.Error("wrong checksum")
+	}
+}
+
+func TestTextile_CafeDevTokens(t *testing.T) {
+	token, err := node.CreateCafeToken()
+	if err != nil {
+		t.Error(fmt.Errorf("error creating cafe token: %s", err))
+		return
+	}
+	if len(token.Token) == 0 {
+		t.Error("invalid token created")
+	}
+
+	tokens, _ := node.CafeDevTokens()
+	if len(tokens) < 1 {
+		t.Error("token database not updated (should be length 1)")
+	}
+
+	if ok, err := node.CompareCafeDevToken(token.Id, "blah"); err == nil || ok {
+		t.Error("expected token comparison with 'blah' to be invalid")
+	}
+
+	if ok, err := node.CompareCafeDevToken(token.Id, token.Token); err != nil || !ok {
+		t.Error("expected token comparison to be valid")
+	}
+
+	if err = node.RemoveCafeDevToken(token.Id); err != nil {
+		t.Error("expected be remove dev token cleanly")
+	}
+
+	tokens, _ = node.CafeDevTokens()
+	if len(tokens) > 0 {
+		t.Error("token database not updated (should be zero length)")
 	}
 }
 

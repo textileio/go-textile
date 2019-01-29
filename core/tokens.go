@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/mr-tron/base58/base58"
@@ -28,12 +27,10 @@ func (t *Textile) CreateCafeToken() (*repo.CafeDevToken, error) {
 		return nil, err
 	}
 
-	fmt.Println(t.datastore)
-
 	err = t.datastore.CafeDevTokens().Add(
 		&repo.CafeDevToken{
 			Id:      id,
-			Token:   string(safeToken),
+			Token:   base58.FastBase58Encoding(safeToken),
 			Created: created,
 		})
 	if err != nil {
@@ -49,7 +46,8 @@ func (t *Textile) CreateCafeToken() (*repo.CafeDevToken, error) {
 
 // CafeDevTokens lists all stored (bcrypt encrypted) dev tokens
 func (t *Textile) CafeDevTokens() ([]repo.CafeDevToken, error) {
-	return t.datastore.CafeDevTokens().List(), nil
+	tokens := t.datastore.CafeDevTokens().List()
+	return tokens, nil
 }
 
 // CheckCafeDevToken checks whether a supplied base58 encoded dev token matches the stored
@@ -60,12 +58,16 @@ func (t *Textile) CompareCafeDevToken(id string, token string) (bool, error) {
 		return false, err
 	}
 
-	hashedToken := t.datastore.CafeDevTokens().Get(id)
-	if hashedToken == nil {
+	encodedToken := t.datastore.CafeDevTokens().Get(id)
+	if encodedToken == nil {
 		return false, err
 	}
 
-	hashBytes := []byte(hashedToken.Token)
+	hashBytes, err := base58.FastBase58Decoding(encodedToken.Token)
+	if err != nil {
+		return false, err
+	}
+
 	err = bcrypt.CompareHashAndPassword(hashBytes, plainBytes)
 	if err != nil {
 		return false, err

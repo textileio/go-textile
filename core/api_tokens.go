@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -25,10 +24,6 @@ func (a *api) lsTokens(g *gin.Context) {
 	}
 	if len(tokens) == 0 {
 		tokens = make([]repo.CafeDevToken, 0)
-	} else {
-		for _, token := range tokens {
-			token.Token = base58.FastBase58Encoding([]byte(token.Token))
-		}
 	}
 	g.JSON(http.StatusOK, tokens)
 }
@@ -47,7 +42,7 @@ func (a *api) compareTokens(g *gin.Context) {
 	}
 	ok, err := a.node.CompareCafeDevToken(id, args[0])
 	if err != nil {
-		a.abort500(g, err)
+		g.String(http.StatusUnauthorized, "invlaid credentials")
 		return
 	}
 	if !ok {

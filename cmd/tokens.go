@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 
-	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -71,7 +70,7 @@ List info about all stored cafe developer tokens.`
 
 func (x *lsTokensCmd) Execute(args []string) error {
 	setApi(x.Client)
-	var list []pb.CafeSession
+	var list []repo.CafeDevToken
 	res, err := executeJsonCmd(GET, "tokens", params{}, &list)
 	if err != nil {
 		return err
@@ -100,10 +99,9 @@ func (x *compareTokensCmd) Execute(args []string) error {
 	if len(args) < 2 {
 		return errMissingToken
 	}
-	var info string
-	res, err := executeJsonCmd(GET, "tokens/"+args[0], params{
+	res, err := executeStringCmd(GET, "tokens/"+args[0], params{
 		args: []string{args[1]},
-	}, &info)
+	})
 	if err != nil {
 		return err
 	}

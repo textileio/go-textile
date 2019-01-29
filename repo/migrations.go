@@ -27,6 +27,7 @@ var migrations = []Migration{
 	m.Minor006{},
 	m.Minor007{},
 	m.Minor008{},
+	m.Minor009{},
 }
 
 // Stat returns whether or not there's a major migration ahead of the current repover
@@ -76,7 +77,7 @@ func version(repoPath string) (int, error) {
 	} else if err != nil && os.IsNotExist(err) {
 		version = []byte("0")
 	}
-	v, err := strconv.Atoi(string(version[0]))
+	v, err := strconv.Atoi(string(version[:]))
 	if err != nil {
 		return 0, err
 	}
