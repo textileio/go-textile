@@ -11,10 +11,10 @@ func init() {
 }
 
 type tokensCmd struct {
-	Create  createTokensCmd  `command:"create" description:"Create a new access token"`
-	List    lsTokensCmd      `command:"ls" description:"List available access tokens"`
-	Compare compareTokensCmd `command:"compare" description:"Check if access token is valid"`
-	Remove  rmTokensCmd      `command:"rm" description:"Remove a specific access token"`
+	Create   createTokensCmd   `command:"create" description:"Create a new access token"`
+	List     lsTokensCmd       `command:"ls" description:"List available access tokens"`
+	Validate validateTokensCmd `command:"validate" description:"Check if access token is valid"`
+	Remove   rmTokensCmd       `command:"rm" description:"Remove a specific access token"`
 }
 
 func (x *tokensCmd) Name() string {
@@ -22,7 +22,7 @@ func (x *tokensCmd) Name() string {
 }
 
 func (x *tokensCmd) Short() string {
-	return "Manage Cafe developer access tokens"
+	return "Manage Cafe access tokens"
 }
 
 func (x *tokensCmd) Long() string {
@@ -39,7 +39,7 @@ type createTokensCmd struct {
 func (x *createTokensCmd) Usage() string {
 	return `
 
-Generates an access token (32 random bytes) and saves bcrypt encrypted version for future lookup.
+Generates an access token (44 random bytes) and saves a bcrypt hashed version for future lookup.
 The response contains a base58 encoded version of the random bytes token.
 `
 }
@@ -61,7 +61,7 @@ type lsTokensCmd struct {
 func (x *lsTokensCmd) Usage() string {
 	return `
 
-List info about all stored cafe developer tokens.`
+List info about all stored cafe tokens.`
 }
 
 func (x *lsTokensCmd) Execute(args []string) error {
@@ -75,19 +75,18 @@ func (x *lsTokensCmd) Execute(args []string) error {
 	return nil
 }
 
-type compareTokensCmd struct {
+type validateTokensCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *compareTokensCmd) Usage() string {
+func (x *validateTokensCmd) Usage() string {
 	return `
 
-Check validity of existing cafe developer access token.
-Requires a token id and the base58-encoded token itself.
+Check validity of existing cafe access token.
 `
 }
 
-func (x *compareTokensCmd) Execute(args []string) error {
+func (x *validateTokensCmd) Execute(args []string) error {
 	setApi(x.Client)
 	if len(args) < 1 {
 		return errMissingToken
@@ -107,7 +106,7 @@ type rmTokensCmd struct {
 func (x *rmTokensCmd) Usage() string {
 	return `
 	
-	Removes an existing cafe developer token.`
+	Removes an existing cafe token.`
 }
 
 func (x *rmTokensCmd) Execute(args []string) error {

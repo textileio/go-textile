@@ -24,7 +24,7 @@ type Datastore interface {
 	CafeMessages() CafeMessageStore
 	CafeClientNonces() CafeClientNonceStore
 	CafeClients() CafeClientStore
-	CafeDevTokens() CafeDevTokenStore
+	CafeTokens() CafeTokenStore
 	CafeClientThreads() CafeClientThreadStore
 	CafeClientMessages() CafeClientMessageStore
 	Ping() error
@@ -194,10 +194,10 @@ type CafeClientMessageStore interface {
 	DeleteByClient(clientId string, limit int) error
 }
 
-type CafeDevTokenStore interface {
-	Add(token *CafeDevToken) error
-	Get(id string) *CafeDevToken
-	List() []CafeDevToken
+type CafeTokenStore interface {
+	Add(token *CafeToken) error
+	Get(id string) *CafeToken
+	List() []CafeToken
 	Delete(id string) error
 }
 

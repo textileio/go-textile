@@ -30,8 +30,9 @@ func (Minor009) Up(repoPath string, pinCode string, testnet bool) error {
 	// add missing cafe_dev_token table
 	// TODO: should we also edit the cafe_client table to add a field linking to cafe_dev_token?
 	query := `
-		create table cafe_dev_tokens (id text primary key not null, token blob not null, created integer not null);
-		`
+    create table cafe_tokens (id text primary key not null, token blob not null, date integer not null);
+    alter table cafe_clients add column tokenId text not null default '';
+    `
 	if _, err := db.Exec(query); err != nil {
 		return err
 	}

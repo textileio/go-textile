@@ -9,7 +9,21 @@ import (
 )
 
 func initAt008(db *sql.DB, pin string) error {
-	// nothing to do here
+	var sqlStmt string
+	if pin != "" {
+		sqlStmt = "PRAGMA key = '" + pin + "';"
+	}
+	sqlStmt += `
+    create table cafe_clients (id text primary key not null, address text not null, created integer not null, lastSeen integer not null);
+`
+	_, err := db.Exec(sqlStmt)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec("insert into cafe_clients(id, address, created, lastSeen) values(?,?,?,?)", "test", "address", 0, 0)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -34,8 +48,15 @@ func Test009(t *testing.T) {
 		return
 	}
 
+	// test new field
+	_, err = db.Exec("update cafe_clients set tokenId=? where id=?", "token", "test")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
 	// test new table
-	_, err = db.Exec("insert into cafe_dev_tokens(id, token, created) values(?,?,?)", "id", []byte("token"), 0)
+	_, err = db.Exec("insert into cafe_tokens(id, token, date) values(?,?,?)", "id", []byte("token"), 0)
 	if err != nil {
 		t.Error(err)
 		return

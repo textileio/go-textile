@@ -193,7 +193,7 @@ func (a *api) Start() {
 		{
 			tokens.POST("", a.createTokens)
 			tokens.GET("", a.lsTokens)
-			tokens.GET("/:id", a.compareTokens)
+			tokens.GET("/:id", a.validateTokens)
 			tokens.DELETE("/:id", a.rmTokens)
 		}
 

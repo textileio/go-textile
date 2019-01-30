@@ -8,22 +8,22 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
-type CafeDevTokenDB struct {
+type CafeTokenDB struct {
 	modelStore
 }
 
-func NewCafeDevTokenStore(db *sql.DB, lock *sync.Mutex) repo.CafeDevTokenStore {
-	return &CafeDevTokenDB{modelStore{db, lock}}
+func NewCafeTokenStore(db *sql.DB, lock *sync.Mutex) repo.CafeTokenStore {
+	return &CafeTokenDB{modelStore{db, lock}}
 }
 
-func (c *CafeDevTokenDB) Add(token *repo.CafeDevToken) error {
+func (c *CafeTokenDB) Add(token *repo.CafeToken) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
 	if err != nil {
 		return err
 	}
-	stm := `insert into cafe_dev_tokens(id, token, created) values(?,?,?)`
+	stm := `insert into cafe_tokens(id, token, date) values(?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -33,7 +33,7 @@ func (c *CafeDevTokenDB) Add(token *repo.CafeDevToken) error {
 	_, err = stmt.Exec(
 		token.Id,
 		token.Token,
-		token.Created.UnixNano(),
+		token.Date.UnixNano(),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -43,32 +43,32 @@ func (c *CafeDevTokenDB) Add(token *repo.CafeDevToken) error {
 	return nil
 }
 
-func (c *CafeDevTokenDB) Get(id string) *repo.CafeDevToken {
+func (c *CafeTokenDB) Get(id string) *repo.CafeToken {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from cafe_dev_tokens where id='" + id + "';")
+	ret := c.handleQuery("select * from cafe_tokens where id='" + id + "';")
 	if len(ret) == 0 {
 		return nil
 	}
 	return &ret[0]
 }
 
-func (c *CafeDevTokenDB) List() []repo.CafeDevToken {
+func (c *CafeTokenDB) List() []repo.CafeToken {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	stm := "select * from cafe_dev_tokens order by id desc;"
+	stm := "select * from cafe_tokens order by id desc;"
 	return c.handleQuery(stm)
 }
 
-func (c *CafeDevTokenDB) Delete(id string) error {
+func (c *CafeTokenDB) Delete(id string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from cafe_dev_tokens where id=?", id)
+	_, err := c.db.Exec("delete from cafe_tokens where id=?", id)
 	return err
 }
 
-func (c *CafeDevTokenDB) handleQuery(stm string) []repo.CafeDevToken {
-	var ret []repo.CafeDevToken
+func (c *CafeTokenDB) handleQuery(stm string) []repo.CafeToken {
+	var ret []repo.CafeToken
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -77,15 +77,15 @@ func (c *CafeDevTokenDB) handleQuery(stm string) []repo.CafeDevToken {
 	for rows.Next() {
 		var id string
 		var token []byte
-		var createdInt int64
-		if err := rows.Scan(&id, &token, &createdInt); err != nil {
+		var dateInt int64
+		if err := rows.Scan(&id, &token, &dateInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		ret = append(ret, repo.CafeDevToken{
-			Id:      id,
-			Token:   token,
-			Created: time.Unix(0, createdInt),
+		ret = append(ret, repo.CafeToken{
+			Id:    id,
+			Token: token,
+			Date:  time.Unix(0, dateInt),
 		})
 	}
 	return ret

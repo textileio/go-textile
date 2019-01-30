@@ -123,7 +123,7 @@ func TestTextile_Online(t *testing.T) {
 	}
 }
 
-func TestTextile_CafeDevTokens(t *testing.T) {
+func TestTextile_CafeTokens(t *testing.T) {
 	var err error
 	token, err = other.CreateCafeToken()
 	if err != nil {
@@ -134,21 +134,27 @@ func TestTextile_CafeDevTokens(t *testing.T) {
 		t.Error("invalid token created")
 	}
 
-	tokens, _ := other.CafeDevTokens()
+	tokens, _ := other.CafeTokens()
 	if len(tokens) < 1 {
 		t.Error("token database not updated (should be length 1)")
 	}
 
-	if ok, err := other.CompareCafeDevToken("blah"); err == nil || ok {
+	if ok, err := other.ValidateCafeToken("blah"); err == nil || ok {
 		t.Error("expected token comparison with 'blah' to be invalid")
 	}
 
-	if ok, err := other.CompareCafeDevToken(token); err != nil || !ok {
+	if ok, err := other.ValidateCafeToken(token); err != nil || !ok {
 		t.Error("expected token comparison to be valid")
 	}
 }
 
 func TestTextile_CafeRegistration(t *testing.T) {
+	// register w/ wrong credentials
+	if _, err := node.RegisterCafe("http://127.0.0.1:5000", "blah"); err == nil {
+		t.Error("register node w/ other should have failed")
+		return
+	}
+
 	// register cafe
 	if _, err := node.RegisterCafe("http://127.0.0.1:5000", token); err != nil {
 		t.Errorf("register node w/ other failed: %s", err)
@@ -165,6 +171,18 @@ func TestTextile_CafeRegistration(t *testing.T) {
 		session = sessions[0]
 	} else {
 		t.Errorf("no active sessions")
+	}
+}
+
+func TestTextile_AddContact(t *testing.T) {
+	if err := node.AddContact(contact); err != nil {
+		t.Errorf("add contact failed: %s", err)
+	}
+}
+
+func TestTextile_AddContactAgain(t *testing.T) {
+	if err := node.AddContact(contact); err == nil {
+		t.Errorf("adding duplicate contact should throw error")
 	}
 }
 
@@ -258,12 +276,12 @@ func TestTextile_AddFile(t *testing.T) {
 	}
 }
 
-func TestTextile_RemoveCafeDevToken(t *testing.T) {
-	if err := other.RemoveCafeDevToken(token); err != nil {
-		t.Error("expected be remove dev token cleanly")
+func TestTextile_RemoveCafeToken(t *testing.T) {
+	if err := other.RemoveCafeToken(token); err != nil {
+		t.Error("expected be remove token cleanly")
 	}
 
-	tokens, _ := node.CafeDevTokens()
+	tokens, _ := other.CafeTokens()
 	if len(tokens) > 0 {
 		t.Error("token database not updated (should be zero length)")
 	}
@@ -273,21 +291,32 @@ func TestTextile_Stop(t *testing.T) {
 	if err := node.Stop(); err != nil {
 		t.Errorf("stop node failed: %s", err)
 	}
+	if err := other.Stop(); err != nil {
+		t.Errorf("stop other failed: %s", err)
+	}
 }
 
 func TestTextile_StartedAgain(t *testing.T) {
 	if node.Started() {
-		t.Errorf("should report stopped")
+		t.Errorf("node should report stopped")
+	}
+	if other.Started() {
+		t.Errorf("other should report stopped")
 	}
 }
 
 func TestTextile_OnlineAgain(t *testing.T) {
 	if node.Online() {
-		t.Errorf("should report offline")
+		t.Errorf("node should report offline")
+	}
+	if other.Online() {
+		t.Errorf("other should report offline")
 	}
 }
 
 func TestTextile_Teardown(t *testing.T) {
 	node = nil
 	os.RemoveAll(repoPath)
+	other = nil
+	os.RemoveAll(otherPath)
 }

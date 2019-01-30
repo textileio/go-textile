@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sort"
@@ -619,22 +620,18 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 	}
 
 	// does the provided token match?
-	s := strings.Split(reg.Token, "+")
-	if len(s) != 2 {
-		h.service.NewError(403, errForbidden, env.Message.RequestId)
-	}
-	id, token := s[0], s[1]
-	plainBytes, err := base58.FastBase58Decoding(token)
-	if err != nil {
+	// dev tokens are actually base58(id+token)
+	plainBytes, err := base58.FastBase58Decoding(reg.Token)
+	if err != nil || len(plainBytes) < 44 {
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
 
-	encodedToken := h.datastore.CafeDevTokens().Get(id)
+	encodedToken := h.datastore.CafeTokens().Get(hex.EncodeToString(plainBytes[:12]))
 	if encodedToken == nil {
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(encodedToken.Token), plainBytes)
+	err = bcrypt.CompareHashAndPassword(encodedToken.Token, plainBytes[12:])
 	if err != nil {
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
@@ -668,6 +665,7 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 		Address:  reg.Address,
 		Created:  now,
 		LastSeen: now,
+		TokenId:  encodedToken.Id,
 	}
 	if err := h.datastore.CafeClients().Add(client); err != nil {
 		// check if already exists

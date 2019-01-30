@@ -23,7 +23,7 @@ func (c *CafeClientDB) Add(client *repo.CafeClient) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into cafe_clients(id, address, created, lastSeen) values(?,?,?,?)`
+	stm := `insert into cafe_clients(id, address, created, lastSeen, tokenId) values(?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -35,6 +35,7 @@ func (c *CafeClientDB) Add(client *repo.CafeClient) error {
 		client.Address,
 		client.Created.UnixNano(),
 		client.LastSeen.UnixNano(),
+		client.TokenId,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -99,9 +100,9 @@ func (c *CafeClientDB) handleQuery(stm string) []repo.CafeClient {
 		return nil
 	}
 	for rows.Next() {
-		var id, address string
+		var id, address, tokenId string
 		var createdInt, lastSeenInt int64
-		if err := rows.Scan(&id, &address, &createdInt, &lastSeenInt); err != nil {
+		if err := rows.Scan(&id, &address, &createdInt, &lastSeenInt, &tokenId); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -110,6 +111,7 @@ func (c *CafeClientDB) handleQuery(stm string) []repo.CafeClient {
 			Address:  address,
 			Created:  time.Unix(0, createdInt),
 			LastSeen: time.Unix(0, lastSeenInt),
+			TokenId:  tokenId,
 		})
 	}
 	return ret

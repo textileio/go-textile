@@ -28,7 +28,7 @@ type SQLiteDatastore struct {
 	cafeMessages       repo.CafeMessageStore
 	cafeClientNonces   repo.CafeClientNonceStore
 	cafeClients        repo.CafeClientStore
-	cafeDevTokens      repo.CafeDevTokenStore
+	cafeTokens         repo.CafeTokenStore
 	cafeClientThreads  repo.CafeClientThreadStore
 	cafeClientMessages repo.CafeClientMessageStore
 	db                 *sql.DB
@@ -62,7 +62,7 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 		cafeMessages:       NewCafeMessageStore(conn, mux),
 		cafeClientNonces:   NewCafeClientNonceStore(conn, mux),
 		cafeClients:        NewCafeClientStore(conn, mux),
-		cafeDevTokens:      NewCafeDevTokenStore(conn, mux),
+		cafeTokens:         NewCafeTokenStore(conn, mux),
 		cafeClientThreads:  NewCafeClientThreadStore(conn, mux),
 		cafeClientMessages: NewCafeClientMessageStore(conn, mux),
 		db:                 conn,
@@ -136,8 +136,8 @@ func (d *SQLiteDatastore) CafeClients() repo.CafeClientStore {
 	return d.cafeClients
 }
 
-func (d *SQLiteDatastore) CafeDevTokens() repo.CafeDevTokenStore {
-	return d.cafeDevTokens
+func (d *SQLiteDatastore) CafeTokens() repo.CafeTokenStore {
+	return d.cafeTokens
 }
 
 func (d *SQLiteDatastore) CafeClientThreads() repo.CafeClientThreadStore {
@@ -193,7 +193,6 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 	if pin != "" {
 		sqlStmt = "PRAGMA key = '" + pin + "';"
 	}
-	// TODO: also add field to cafe_clients to link to cafe_dev_tokens
 	sqlStmt += `
     create table config (key text primary key not null, value blob);
 
@@ -244,7 +243,7 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 
     create table cafe_client_nonces (value text primary key not null, address text not null, date integer not null);
 
-    create table cafe_clients (id text primary key not null, address text not null, created integer not null, lastSeen integer not null);
+    create table cafe_clients (id text primary key not null, address text not null, created integer not null, lastSeen integer not null, tokenId text not null);
     create index cafe_client_address on cafe_clients (address);
     create index cafe_client_lastSeen on cafe_clients (lastSeen);
 
@@ -253,9 +252,9 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 
     create table cafe_client_messages (id text not null, peerId text not null, clientId text not null, date integer not null, primary key (id, clientId));
     create index cafe_client_message_clientId on cafe_client_messages (clientId);
-	create index cafe_client_message_date on cafe_client_messages (date);
-		
-	create table cafe_dev_tokens (id text primary key not null, token text not null, created integer not null);
+    create index cafe_client_message_date on cafe_client_messages (date);
+
+    create table cafe_tokens (id text primary key not null, token text not null, date integer not null);
     `
 	if _, err := db.Exec(sqlStmt); err != nil {
 		return err

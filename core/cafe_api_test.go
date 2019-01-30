@@ -75,7 +75,7 @@ func TestCafeApi_Setup(t *testing.T) {
 		return
 	}
 
-	ok, err := node2.CompareCafeDevToken(token)
+	ok, err := node2.ValidateCafeToken(token)
 	if !ok || err != nil {
 		t.Error(fmt.Errorf("error checking token: %s", err))
 		return

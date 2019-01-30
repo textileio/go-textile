@@ -44,8 +44,7 @@ func (x *addCafesCmd) Usage() string {
 	return `
 
 Registers with a cafe and saves an expiring service session token.
-Unless explicitly disabled by the Cafe, an access token is required to register.
-This should be obtained separately from the target Cafe.
+An access token is required to register, and should be obtained separately from the target Cafe.
 `
 }
 

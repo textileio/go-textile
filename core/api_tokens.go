@@ -16,7 +16,7 @@ func (a *api) createTokens(g *gin.Context) {
 }
 
 func (a *api) lsTokens(g *gin.Context) {
-	tokens, err := a.node.CafeDevTokens()
+	tokens, err := a.node.CafeTokens()
 	if err != nil {
 		a.abort500(g, err)
 		return
@@ -27,9 +27,9 @@ func (a *api) lsTokens(g *gin.Context) {
 	g.JSON(http.StatusOK, tokens)
 }
 
-func (a *api) compareTokens(g *gin.Context) {
+func (a *api) validateTokens(g *gin.Context) {
 	token := g.Param("id")
-	ok, err := a.node.CompareCafeDevToken(token)
+	ok, err := a.node.ValidateCafeToken(token)
 	if err != nil || !ok {
 		g.String(http.StatusUnauthorized, "invlaid credentials")
 		return
@@ -39,7 +39,7 @@ func (a *api) compareTokens(g *gin.Context) {
 
 func (a *api) rmTokens(g *gin.Context) {
 	token := g.Param("id")
-	if err := a.node.RemoveCafeDevToken(token); err != nil {
+	if err := a.node.RemoveCafeToken(token); err != nil {
 		a.abort500(g, err)
 		return
 	}

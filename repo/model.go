@@ -322,13 +322,13 @@ type CafeClient struct {
 	Address  string    `json:"address"`
 	Created  time.Time `json:"created"`
 	LastSeen time.Time `json:"last_seen"`
-	// TOOD: Add field to link to CafeDevTokenStore?
+	TokenId  string    `json:"token_id,omitempty"`
 }
 
-type CafeDevToken struct {
-	Id      string    `json:"id"`
-	Token   []byte    `json:"token"`
-	Created time.Time `json:"created"`
+type CafeToken struct {
+	Id    string    `json:"id"`
+	Token []byte    `json:"token"`
+	Date  time.Time `json:"date"`
 }
 
 type CafeClientThread struct {
