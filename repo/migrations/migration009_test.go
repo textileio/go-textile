@@ -35,7 +35,7 @@ func Test009(t *testing.T) {
 	}
 
 	// test new table
-	_, err = db.Exec("insert into cafe_dev_tokens(id, token, created) values(?,?,?)", "id", "token", 0)
+	_, err = db.Exec("insert into cafe_dev_tokens(id, token, created) values(?,?,?)", "id", []byte("token"), 0)
 	if err != nil {
 		t.Error(err)
 		return

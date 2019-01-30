@@ -2,11 +2,8 @@ package cmd
 
 import (
 	"errors"
-
-	"github.com/textileio/textile-go/repo"
 )
 
-var errMissingTokenId = errors.New("missing token id")
 var errMissingToken = errors.New("missing token")
 
 func init() {
@@ -49,8 +46,7 @@ The response contains a base58 encoded version of the random bytes token.
 
 func (x *createTokensCmd) Execute(args []string) error {
 	setApi(x.Client)
-	var info *repo.CafeDevToken
-	res, err := executeJsonCmd(POST, "tokens", params{}, &info)
+	res, err := executeStringCmd(POST, "tokens", params{})
 	if err != nil {
 		return err
 	}
@@ -70,7 +66,7 @@ List info about all stored cafe developer tokens.`
 
 func (x *lsTokensCmd) Execute(args []string) error {
 	setApi(x.Client)
-	var list []repo.CafeDevToken
+	var list []string
 	res, err := executeJsonCmd(GET, "tokens", params{}, &list)
 	if err != nil {
 		return err
@@ -94,14 +90,9 @@ Requires a token id and the base58-encoded token itself.
 func (x *compareTokensCmd) Execute(args []string) error {
 	setApi(x.Client)
 	if len(args) < 1 {
-		return errMissingTokenId
-	}
-	if len(args) < 2 {
 		return errMissingToken
 	}
-	res, err := executeStringCmd(GET, "tokens/"+args[0], params{
-		args: []string{args[1]},
-	})
+	res, err := executeStringCmd(GET, "tokens/"+args[0], params{})
 	if err != nil {
 		return err
 	}
@@ -121,8 +112,8 @@ func (x *rmTokensCmd) Usage() string {
 
 func (x *rmTokensCmd) Execute(args []string) error {
 	setApi(x.Client)
-	if len(args) == 0 {
-		return errMissingTokenId
+	if len(args) < 1 {
+		return errMissingToken
 	}
 	res, err := executeStringCmd(DEL, "tokens/"+args[0], params{})
 	if err != nil {

@@ -60,13 +60,6 @@ func (c *CafeDevTokenDB) List() []repo.CafeDevToken {
 	return c.handleQuery(stm)
 }
 
-// func (c *CafeDevTokenDB) ListByClient(clientId string) []repo.CafeDevToken {
-// 	c.lock.Lock()
-// 	defer c.lock.Unlock()
-// 	stm := "select * from cafe_dev_tokens where client='" + clientId + "' order by id desc;"
-// 	return c.handleQuery(stm)
-// }
-
 func (c *CafeDevTokenDB) Delete(id string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -83,7 +76,7 @@ func (c *CafeDevTokenDB) handleQuery(stm string) []repo.CafeDevToken {
 	}
 	for rows.Next() {
 		var id string
-		var token string
+		var token []byte
 		var createdInt int64
 		if err := rows.Scan(&id, &token, &createdInt); err != nil {
 			log.Errorf("error in db scan: %s", err)

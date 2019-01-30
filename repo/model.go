@@ -327,7 +327,7 @@ type CafeClient struct {
 
 type CafeDevToken struct {
 	Id      string    `json:"id"`
-	Token   string    `json:"token"`
+	Token   []byte    `json:"token"`
 	Created time.Time `json:"created"`
 }
 

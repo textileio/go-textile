@@ -1,6 +1,8 @@
 package core
 
 import (
+	"errors"
+	"strings"
 	"time"
 
 	"github.com/mr-tron/base58/base58"
@@ -12,10 +14,10 @@ import (
 
 // CreateCafeToken creates a random developer access token, returns a base58 encoded version,
 // and stores a bcrypt hashed version for later comparison
-func (t *Textile) CreateCafeToken() (*repo.CafeDevToken, error) {
+func (t *Textile) CreateCafeToken() (string, error) {
 	key, err := crypto.GenerateAESKey()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	id := ksuid.New().String()
@@ -24,35 +26,42 @@ func (t *Textile) CreateCafeToken() (*repo.CafeDevToken, error) {
 
 	safeToken, err := bcrypt.GenerateFromPassword(rawToken, bcrypt.DefaultCost)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	err = t.datastore.CafeDevTokens().Add(
 		&repo.CafeDevToken{
 			Id:      id,
-			Token:   base58.FastBase58Encoding(safeToken),
+			Token:   safeToken,
 			Created: created,
 		})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return &repo.CafeDevToken{
-		Id:      id,
-		Token:   base58.FastBase58Encoding(rawToken),
-		Created: created,
-	}, nil
+	return id + "+" + base58.FastBase58Encoding(rawToken), nil
 }
 
 // CafeDevTokens lists all stored (bcrypt encrypted) dev tokens
-func (t *Textile) CafeDevTokens() ([]repo.CafeDevToken, error) {
+func (t *Textile) CafeDevTokens() ([]string, error) {
 	tokens := t.datastore.CafeDevTokens().List()
-	return tokens, nil
+	strings := make([]string, len(tokens))
+	for i, token := range tokens {
+		strings[i] = token.Id + "+" + base58.FastBase58Encoding(token.Token)
+	}
+	return strings, nil
 }
 
-// CheckCafeDevToken checks whether a supplied base58 encoded dev token matches the stored
+// CompareCafeDevToken checks whether a supplied base58 encoded dev token matches the stored
 // bcrypt hashed equivalent
-func (t *Textile) CompareCafeDevToken(id string, token string) (bool, error) {
+func (t *Textile) CompareCafeDevToken(token string) (bool, error) {
+	// dev tokens are actually ksuid+base58(token)
+	s := strings.Split(token, "+")
+	if len(s) != 2 {
+		return false, errors.New("invalid token format")
+	}
+	id, token := s[0], s[1]
+
 	plainBytes, err := base58.FastBase58Decoding(token)
 	if err != nil {
 		return false, err
@@ -63,12 +72,7 @@ func (t *Textile) CompareCafeDevToken(id string, token string) (bool, error) {
 		return false, err
 	}
 
-	hashBytes, err := base58.FastBase58Decoding(encodedToken.Token)
-	if err != nil {
-		return false, err
-	}
-
-	err = bcrypt.CompareHashAndPassword(hashBytes, plainBytes)
+	err = bcrypt.CompareHashAndPassword(encodedToken.Token, plainBytes)
 	if err != nil {
 		return false, err
 	}
@@ -76,7 +80,12 @@ func (t *Textile) CompareCafeDevToken(id string, token string) (bool, error) {
 	return true, nil
 }
 
-// RemoveDevToken removes a given cafe dev token by id
-func (t *Textile) RemoveCafeDevToken(id string) error {
-	return t.datastore.CafeDevTokens().Delete(id)
+// RemoveCafeDevToken removes a given cafe dev token by id
+func (t *Textile) RemoveCafeDevToken(token string) error {
+	// dev tokens are actually ksuid+base58(token)
+	s := strings.Split(token, "+")
+	if len(s) != 2 {
+		return errors.New("invalid token format")
+	}
+	return t.datastore.CafeDevTokens().Delete(s[0])
 }

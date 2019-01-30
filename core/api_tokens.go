@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/textileio/textile-go/repo"
 )
 
 func (a *api) createTokens(g *gin.Context) {
@@ -13,7 +12,7 @@ func (a *api) createTokens(g *gin.Context) {
 		a.abort500(g, err)
 		return
 	}
-	g.JSON(http.StatusCreated, token)
+	g.String(http.StatusCreated, token)
 }
 
 func (a *api) lsTokens(g *gin.Context) {
@@ -23,29 +22,15 @@ func (a *api) lsTokens(g *gin.Context) {
 		return
 	}
 	if len(tokens) == 0 {
-		tokens = make([]repo.CafeDevToken, 0)
+		tokens = make([]string, 0)
 	}
 	g.JSON(http.StatusOK, tokens)
 }
 
 func (a *api) compareTokens(g *gin.Context) {
-	id := g.Param("id")
-
-	args, err := a.readArgs(g)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-	if len(args) == 0 {
-		g.String(http.StatusBadRequest, "missing dev token")
-		return
-	}
-	ok, err := a.node.CompareCafeDevToken(id, args[0])
-	if err != nil {
-		g.String(http.StatusUnauthorized, "invlaid credentials")
-		return
-	}
-	if !ok {
+	token := g.Param("id")
+	ok, err := a.node.CompareCafeDevToken(token)
+	if err != nil || !ok {
 		g.String(http.StatusUnauthorized, "invlaid credentials")
 		return
 	}
@@ -53,8 +38,8 @@ func (a *api) compareTokens(g *gin.Context) {
 }
 
 func (a *api) rmTokens(g *gin.Context) {
-	id := g.Param("id")
-	if err := a.node.RemoveCafeDevToken(id); err != nil {
+	token := g.Param("id")
+	if err := a.node.RemoveCafeDevToken(token); err != nil {
 		a.abort500(g, err)
 		return
 	}

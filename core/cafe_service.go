@@ -20,6 +20,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/mr-tron/base58/base58"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/ipfs"
@@ -29,6 +30,7 @@ import (
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/service"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // defaultSessionDuration after which session token expires
@@ -235,7 +237,7 @@ func (h *CafeService) FindContactPubSub(query *pb.CafeContactQuery, fromCafe boo
 }
 
 // Register creates a session with a cafe
-func (h *CafeService) Register(host string) (*pb.CafeSession, error) {
+func (h *CafeService) Register(host string, token string) (*pb.CafeSession, error) {
 	host = strings.TrimRight(host, "/")
 	addr := fmt.Sprintf("%s/cafe/%s/service", host, cafeApiVersion)
 
@@ -259,6 +261,7 @@ func (h *CafeService) Register(host string) (*pb.CafeSession, error) {
 		Value:   challenge.Value,
 		Nonce:   cnonce,
 		Sig:     sig,
+		Token:   token,
 	}
 
 	env, err := h.service.NewEnvelope(pb.Message_CAFE_REGISTRATION, reg, nil, false)
@@ -615,6 +618,28 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
 
+	// does the provided token match?
+	s := strings.Split(reg.Token, "+")
+	if len(s) != 2 {
+		h.service.NewError(403, errForbidden, env.Message.RequestId)
+	}
+	id, token := s[0], s[1]
+	plainBytes, err := base58.FastBase58Decoding(token)
+	if err != nil {
+		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+	}
+
+	encodedToken := h.datastore.CafeDevTokens().Get(id)
+	if encodedToken == nil {
+		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(encodedToken.Token), plainBytes)
+	if err != nil {
+		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+	}
+
+	// check nonce
 	snonce := h.datastore.CafeClientNonces().Get(reg.Value)
 	if snonce == nil {
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)

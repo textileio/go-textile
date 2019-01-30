@@ -37,18 +37,25 @@ Use this command to add, list, get, remove cafes and check messages.
 
 type addCafesCmd struct {
 	Client ClientOptions `group:"Client Options"`
+	Token  string        `required:"true" short:"t" long:"token" description:"An access token supplied by the Cafe."`
 }
 
 func (x *addCafesCmd) Usage() string {
 	return `
 
-Registers with a cafe and saves an expiring service session token.`
+Registers with a cafe and saves an expiring service session token.
+Unless explicitly disabled by the Cafe, an access token is required to register.
+This should be obtained separately from the target Cafe.
+`
 }
 
 func (x *addCafesCmd) Execute(args []string) error {
 	setApi(x.Client)
 	var info *pb.CafeSession
-	res, err := executeJsonCmd(POST, "cafes", params{args: args}, &info)
+	res, err := executeJsonCmd(POST, "cafes", params{
+		args: args,
+		opts: map[string]string{"token": x.Token},
+	}, &info)
 	if err != nil {
 		return err
 	}

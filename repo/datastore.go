@@ -198,7 +198,6 @@ type CafeDevTokenStore interface {
 	Add(token *CafeDevToken) error
 	Get(id string) *CafeDevToken
 	List() []CafeDevToken
-	// ListByClient(clientId string) []*pb.CafeDevToken
 	Delete(id string) error
 }
 
