@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core"
+	"gx/ipfs/Qma6jKpzcMFqrX8YKpjaYJSmkf2BDe4DDseQeqU3tNz7zS/go-ipfs/core"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"

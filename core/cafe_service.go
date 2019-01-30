@@ -11,10 +11,10 @@ import (
 
 	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core"
-	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/pin"
 	"gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	"gx/ipfs/Qma6jKpzcMFqrX8YKpjaYJSmkf2BDe4DDseQeqU3tNz7zS/go-ipfs/core"
+	"gx/ipfs/Qma6jKpzcMFqrX8YKpjaYJSmkf2BDe4DDseQeqU3tNz7zS/go-ipfs/pin"
 
 	njwt "github.com/dgrijalva/jwt-go"
 	"github.com/golang/protobuf/proto"
@@ -1072,6 +1072,8 @@ func (h *CafeService) handlePubSubContactQuery(pid peer.ID, env *pb.Envelope) (*
 	case pb.CafePubSubContactQuery_P2P:
 		return renv, nil
 	case pb.CafePubSubContactQuery_PUBSUB:
+		log.Debugf("responding with %s to %s", renv.Message.Type.String(), pid.Pretty())
+
 		payload, err := proto.Marshal(renv)
 		if err != nil {
 			return nil, err
