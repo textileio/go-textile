@@ -35,8 +35,8 @@ Use this command to create, list, compare, and remove tokens required for access
 
 type createTokensCmd struct {
 	Client  ClientOptions `group:"Client Options"`
-	NoStore bool          `short:"n" long:"no-store" description:"Generate token only, do not store in local db." default:"false"`
-	Token   string        `short:"t" long:"token" description:"Use existing token, rather than creating a new one"`
+	NoStore bool          `short:"n" long:"no-store" description:"Generate token only, do not store in local db."`
+	Token   string        `short:"t" long:"token" description:"Use existing token, rather than creating a new one."`
 }
 
 func (x *createTokensCmd) Usage() string {
