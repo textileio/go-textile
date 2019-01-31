@@ -69,7 +69,7 @@ func TestCafeApi_Setup(t *testing.T) {
 	<-node2.OnlineCh()
 
 	// create token on cafe
-	token, err := node2.CreateCafeToken()
+	token, err := node2.CreateCafeToken("", true)
 	if err != nil {
 		t.Error(fmt.Errorf("error creating cafe token: %s", err))
 		return

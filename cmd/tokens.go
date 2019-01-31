@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"strconv"
 )
 
 var errMissingToken = errors.New("missing token")
@@ -33,20 +34,28 @@ Use this command to create, list, compare, and remove tokens required for access
 }
 
 type createTokensCmd struct {
-	Client ClientOptions `group:"Client Options"`
+	Client  ClientOptions `group:"Client Options"`
+	NoStore bool          `short:"n" long:"no-store" description:"Generate token only, do not store in local db." default:"false"`
+	Token   string        `short:"t" long:"token" description:"Use existing token, rather than creating a new one"`
 }
 
 func (x *createTokensCmd) Usage() string {
 	return `
 
 Generates an access token (44 random bytes) and saves a bcrypt hashed version for future lookup.
-The response contains a base58 encoded version of the random bytes token.
+The response contains a base58 encoded version of the random bytes token. If '--no-store' is used,
+the token is generated, but not stored in the local Cafe db. Alternatively, an existing token
+can be added using the '--token' flag.
 `
 }
 
 func (x *createTokensCmd) Execute(args []string) error {
 	setApi(x.Client)
-	res, err := executeStringCmd(POST, "tokens", params{})
+	opts := map[string]string{
+		"token": x.Token,
+		"store": strconv.FormatBool(!x.NoStore),
+	}
+	res, err := executeStringCmd(POST, "tokens", params{opts: opts})
 	if err != nil {
 		return err
 	}

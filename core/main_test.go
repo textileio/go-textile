@@ -125,7 +125,7 @@ func TestTextile_Online(t *testing.T) {
 
 func TestTextile_CafeTokens(t *testing.T) {
 	var err error
-	token, err = other.CreateCafeToken()
+	token, err = other.CreateCafeToken("", true)
 	if err != nil {
 		t.Error(fmt.Errorf("error creating cafe token: %s", err))
 		return
