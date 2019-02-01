@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	iface "gx/ipfs/QmX9YciaxRii8TARoEbmavzaeTUAe7BozeAgydsThNcTpy/go-ipfs/core/coreapi/interface"
+	iface "gx/ipfs/QmbNaKjrRpw8Qb12bTDiihUSF2T73cFHeVUBW4Zm861xE6/go-ipfs/core/coreapi/interface"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
