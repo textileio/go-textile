@@ -29,7 +29,7 @@ func (x *tokensCmd) Short() string {
 func (x *tokensCmd) Long() string {
 	return `
 Tokens allow other peers to register with a Cafe peer.
-Use this command to create, list, compare, and remove tokens required for access to this peer's Cafe.
+Use this command to create, list, validate, and remove tokens required for access to this peer's Cafe.
 `
 }
 

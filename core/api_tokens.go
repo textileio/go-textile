@@ -36,7 +36,7 @@ func (a *api) validateTokens(g *gin.Context) {
 	token := g.Param("id")
 	ok, err := a.node.ValidateCafeToken(token)
 	if err != nil || !ok {
-		g.String(http.StatusUnauthorized, "invlaid credentials")
+		g.String(http.StatusUnauthorized, "invalid credentials")
 		return
 	}
 	g.String(http.StatusOK, "ok")
