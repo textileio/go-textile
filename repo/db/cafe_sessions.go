@@ -84,7 +84,7 @@ func (c *CafeSessionDB) Delete(cafeId string) error {
 }
 
 func (c *CafeSessionDB) handleQuery(stm string) []*pb.CafeSession {
-	var ret []*pb.CafeSession
+	ret := make([]*pb.CafeSession, 0)
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
