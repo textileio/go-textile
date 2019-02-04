@@ -49,7 +49,6 @@ func (a *api) getThreadsSub(g *gin.Context) {
 							g.JSON(http.StatusOK, info)
 							g.Writer.Write([]byte("\n"))
 						}
-
 					}
 				}
 			}

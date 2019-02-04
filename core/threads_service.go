@@ -149,6 +149,26 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 	return nil, nil
 }
 
+// HandleStream is called by the underlying service handler method
+func (h *ThreadsService) HandleStream(pid peer.ID, env *pb.Envelope) (chan *pb.Envelope, chan error) {
+	renvCh := make(chan *pb.Envelope)
+	errCh := make(chan error)
+
+	go func() {
+		defer close(renvCh)
+
+		var err error
+		switch env.Message.Type {
+		// no-op
+		}
+		if err != nil {
+			errCh <- err
+		}
+	}()
+
+	return renvCh, errCh
+}
+
 // SendMessage sends a message to a peer
 func (h *ThreadsService) SendMessage(ctx context.Context, pid peer.ID, env *pb.Envelope) error {
 	return h.service.SendMessage(ctx, pid, env)

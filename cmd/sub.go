@@ -86,14 +86,16 @@ func callSub(threadId string, types []string) (<-chan core.ThreadUpdate, error) 
 
 	updates := make(chan core.ThreadUpdate, 10)
 	go func() {
+		defer close(updates)
+
 		req, err := request(GET, "sub"+threadId, params{
 			opts: map[string]string{"type": strings.Join(types, "|")},
 		})
 		if err != nil {
 			output(err.Error())
-			close(updates)
 			return
 		}
+		defer req.Body.Close()
 
 		if req.StatusCode >= 400 {
 			res, err := util.UnmarshalString(req.Body)
@@ -102,7 +104,6 @@ func callSub(threadId string, types []string) (<-chan core.ThreadUpdate, error) 
 			} else {
 				output(res)
 			}
-			close(updates)
 			return
 		}
 
@@ -113,12 +114,10 @@ func callSub(threadId string, types []string) (<-chan core.ThreadUpdate, error) 
 				break
 			} else if err != nil {
 				output(err.Error())
-				close(updates)
 				return
 			}
 			updates <- info
 		}
-		req.Body.Close()
 	}()
 
 	return updates, nil

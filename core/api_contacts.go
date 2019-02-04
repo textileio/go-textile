@@ -1,6 +1,7 @@
 package core
 
 import (
+	"io"
 	"net/http"
 	"strconv"
 
@@ -88,26 +89,44 @@ func (a *api) searchContacts(g *gin.Context) {
 	if err != nil {
 		wait = 5
 	}
-	add, err := strconv.ParseBool(opts["add"])
-	if err != nil {
-		add = false
-	}
 
-	query := &ContactInfoQuery{
+	query := &ContactQuery{
 		Id:       opts["peer"],
 		Address:  opts["address"],
 		Username: opts["username"],
 		Local:    local,
 		Limit:    limit,
 		Wait:     wait,
-		Add:      add,
 	}
 
-	infos, err := a.node.FindContact(query)
+	resCh, errCh, err := a.node.FindContacts(query)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	g.JSON(http.StatusOK, infos)
+	g.Stream(func(w io.Writer) bool {
+		select {
+		case err := <-errCh:
+			if opts["events"] == "true" {
+				g.SSEvent("error", err.Error())
+			} else {
+				g.String(http.StatusBadRequest, err.Error())
+			}
+			return false
+
+		case res, ok := <-resCh:
+			if !ok {
+				g.Status(http.StatusOK)
+				return false
+			}
+			if opts["events"] == "true" {
+				g.SSEvent("contact", res)
+			} else {
+				g.JSON(http.StatusOK, res)
+				g.Writer.Write([]byte("\n"))
+			}
+		}
+		return true
+	})
 }

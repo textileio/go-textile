@@ -232,7 +232,6 @@ func (c *cafeApi) pin(g *gin.Context) {
 
 	log.Debugf("pinned request with content type %s: %s", cType, hash)
 
-	// ship it
 	g.JSON(http.StatusCreated, PinResponse{
 		Id: hash,
 	})
@@ -271,6 +270,7 @@ func (c *cafeApi) service(g *gin.Context) {
 
 	if err := c.node.cafe.service.VerifyEnvelope(pmes, mPeer); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
+		return
 	}
 
 	// handle the message as normal
@@ -280,23 +280,36 @@ func (c *cafeApi) service(g *gin.Context) {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
+	if rpmes != nil {
+		res, err := proto.Marshal(rpmes)
+		if err != nil {
+			g.String(http.StatusBadRequest, err.Error())
+			return
+		}
 
-	if rpmes == nil {
-		g.Status(200)
-		return
+		g.Render(http.StatusOK, render.Data{Data: res})
 	}
 
-	// send out response msg
-	log.Debugf("responding with %s to %s", rpmes.Message.Type.String(), mPeer.Pretty())
+	// handle the message as a JSON stream
+	rpmesCh, errCh := c.node.cafe.HandleStream(mPeer, pmes)
+	g.Stream(func(w io.Writer) bool {
+		select {
+		case err := <-errCh:
+			g.String(http.StatusBadRequest, err.Error())
+			return false
 
-	res, err := proto.Marshal(rpmes)
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
+		case rpmes, ok := <-rpmesCh:
+			if !ok {
+				g.Status(http.StatusOK)
+				return false
+			}
+			log.Debugf("responding with %s to %s", rpmes.Message.Type.String(), mPeer.Pretty())
 
-	// ship it
-	g.Render(200, render.Data{Data: res})
+			g.JSON(http.StatusOK, rpmes)
+			g.Writer.Write([]byte("\n"))
+		}
+		return true
+	})
 }
 
 // validToken aborts the request if the token is invalid

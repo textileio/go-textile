@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -19,7 +20,7 @@ import (
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmbNaKjrRpw8Qb12bTDiihUSF2T73cFHeVUBW4Zm861xE6/go-ipfs/core"
-	iface "gx/ipfs/QmbNaKjrRpw8Qb12bTDiihUSF2T73cFHeVUBW4Zm861xE6/go-ipfs/core/coreapi/interface"
+	"gx/ipfs/QmbNaKjrRpw8Qb12bTDiihUSF2T73cFHeVUBW4Zm861xE6/go-ipfs/core/coreapi/interface"
 	ggio "gx/ipfs/QmdxUuburamoF6zF9qjeQC4WYcWGbWuRmdLacMEsW8ioD8/gogo-protobuf/io"
 
 	"github.com/golang/protobuf/proto"
@@ -64,6 +65,7 @@ type Handler interface {
 	Protocol() protocol.ID
 	Ping(pid peer.ID) (PeerStatus, error)
 	Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error)
+	HandleStream(pid peer.ID, env *pb.Envelope) (chan *pb.Envelope, chan error)
 }
 
 // NewService returns a service for the given config
@@ -151,7 +153,7 @@ func (srv *Service) SendHTTPRequest(addr string, pmes *pb.Envelope) (*pb.Envelop
 	defer res.Body.Close()
 
 	if res.StatusCode >= 400 {
-		res, err := util.UnmarshalString(req.Body)
+		res, err := util.UnmarshalString(res.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -183,6 +185,74 @@ func (srv *Service) SendHTTPRequest(addr string, pmes *pb.Envelope) (*pb.Envelop
 	}
 
 	return rpmes, nil
+}
+
+// SendHTTPStreamRequest sends a request over HTTP
+func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan *pb.Envelope, chan error, error) {
+	log.Debugf("sending %s to %s", pmes.Message.Type.String(), addr)
+
+	payload, err := proto.Marshal(pmes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	rpmesCh := make(chan *pb.Envelope)
+	errCh := make(chan error)
+	go func() {
+		defer close(rpmesCh)
+
+		req, err := http.NewRequest("POST", addr, bytes.NewReader(payload))
+		if err != nil {
+			errCh <- err
+			return
+		}
+		req.Header.Set("X-Textile-Peer", srv.Node().Identity.Pretty())
+
+		client := &http.Client{}
+		res, err := client.Do(req)
+		if err != nil {
+			errCh <- err
+			return
+		}
+		defer res.Body.Close()
+
+		if res.StatusCode >= 400 {
+			res, err := util.UnmarshalString(res.Body)
+			if err != nil {
+				errCh <- err
+			} else {
+				errCh <- errors.New(res)
+			}
+			return
+		}
+
+		decoder := json.NewDecoder(res.Body)
+		for {
+			var rpmes *pb.Envelope
+			if err := decoder.Decode(&rpmes); err == io.EOF {
+				return
+			} else if err != nil {
+				errCh <- err
+				return
+			}
+
+			if rpmes == nil || rpmes.Message == nil {
+				log.Debugf("no response from %s", addr)
+				errCh <- errors.New("no response from peer")
+				return
+			}
+
+			log.Debugf("received %s response from %s", rpmes.Message.Type.String(), addr)
+			if err := srv.handleError(rpmes); err != nil {
+				errCh <- err
+				return
+			}
+
+			rpmesCh <- rpmes
+		}
+	}()
+
+	return rpmesCh, errCh, nil
 }
 
 // SendMessage sends out a message
@@ -407,6 +477,7 @@ func (srv *Service) handleNewMessage(s inet.Stream) {
 		if handler == nil {
 			// get service specific handler
 			handler = srv.handler.Handle
+			// TODO: handle stream requests over p2p?
 		}
 
 		log.Debugf("received %s from %s", pmes.Message.Type.String(), mPeer.Pretty())
@@ -514,20 +585,22 @@ func (srv *Service) ListenFor(topic string, handler func(pid peer.ID, env *pb.En
 	go func() {
 		if err := ipfs.Subscribe(srv.Node(), ctx, topic, msgs); err != nil {
 			close(msgs)
-			log.Errorf("pubsub listener stopped with error: %s")
+			log.Errorf("pubsub listener stopped with error: %s", err)
 			return
 		}
 	}()
-	log.Infof("pubsub tmp listener started for %s", topic)
+	log.Debugf("pubsub tmp listener started for %s", topic)
 
 	go func() {
 		for {
 			select {
 			// end loop on context close
 			case <-ctx.Done():
+				log.Debugf("pubsub tmp listener shutdown for %s", topic)
 				return
 			case msg, ok := <-msgs:
 				if !ok {
+					log.Debugf("pubsub tmp listener shutdown for %s", topic)
 					return
 				}
 

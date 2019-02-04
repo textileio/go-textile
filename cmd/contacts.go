@@ -1,10 +1,13 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
+	"io"
 	"strconv"
 
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/util"
 )
 
 var errMissingPeerId = errors.New("missing peer id")
@@ -15,6 +18,7 @@ func init() {
 }
 
 type contactsCmd struct {
+	Add    addContactsCmd  `command:"add" description:"Add a contact"`
 	Ls     lsContactsCmd   `command:"ls" description:"List known contacts"`
 	Get    getContactsCmd  `command:"get" description:"Get a known contact"`
 	Remove rmContactsCmd   `command:"rm" description:"Remove a known contact"`
@@ -26,11 +30,35 @@ func (x *contactsCmd) Name() string {
 }
 
 func (x *contactsCmd) Short() string {
-	return "Get, add, and list local contacts"
+	return "Manage contacts"
 }
 
 func (x *contactsCmd) Long() string {
-	return "Get, add, and list local contacts."
+	return `
+Use this command to add, list, get, and remove local contacts and find other contacts on the network.
+`
+}
+
+// TODO: make this work
+type addContactsCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
+
+func (x *addContactsCmd) Usage() string {
+	return `
+
+Add to known contacts.
+`
+}
+
+func (x *addContactsCmd) Execute(args []string) error {
+	setApi(x.Client)
+	res, err := executeStringCmd(PUT, "contacts", params{})
+	if err != nil {
+		return err
+	}
+	output(res)
+	return nil
 }
 
 type lsContactsCmd struct {
@@ -42,7 +70,6 @@ func (x *lsContactsCmd) Usage() string {
 	return `
 
 Lists known contacts.
-
 Include the --thread flag to list contacts for a given thread.`
 }
 
@@ -116,14 +143,12 @@ type findContactsCmd struct {
 	Local    bool          `long:"local" description:"Only search local contacts."`
 	Limit    int           `long:"limit" description:"Stops searching after limit results are found." default:"5"`
 	Wait     int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed." default:"5"`
-	Add      bool          `long:"add" description:"Add results to local contacts. Not allowed when searching by username."`
 }
 
 func (x *findContactsCmd) Usage() string {
 	return `
 
 Finds contacts known locally and on the network.
-Use the --add option to save remote results as local contacts.
 `
 }
 
@@ -132,21 +157,65 @@ func (x *findContactsCmd) Execute(args []string) error {
 	if x.Username == "" && x.Peer == "" && x.Address == "" {
 		return errMissingSearchInfo
 	}
-	var infos core.ContactInfoQueryResult
-	res, err := executeJsonCmd(POST, "contacts/search", params{
-		opts: map[string]string{
-			"username": x.Username,
-			"peer":     x.Peer,
-			"address":  x.Address,
-			"local":    strconv.FormatBool(x.Local),
-			"limit":    strconv.Itoa(x.Limit),
-			"wait":     strconv.Itoa(x.Wait),
-			"add":      strconv.FormatBool(x.Add),
-		},
-	}, &infos)
-	if err != nil {
-		return err
+
+	results := make(chan core.ContactQueryResult)
+	go func() {
+		defer close(results)
+
+		req, err := request(POST, "contacts/search", params{
+			opts: map[string]string{
+				"username": x.Username,
+				"peer":     x.Peer,
+				"address":  x.Address,
+				"local":    strconv.FormatBool(x.Local),
+				"limit":    strconv.Itoa(x.Limit),
+				"wait":     strconv.Itoa(x.Wait),
+			},
+		})
+		if err != nil {
+			output(err.Error())
+			return
+		}
+		defer req.Body.Close()
+
+		if req.StatusCode >= 400 {
+			res, err := util.UnmarshalString(req.Body)
+			if err != nil {
+				output(err.Error())
+			} else {
+				output(res)
+			}
+			return
+		}
+
+		decoder := json.NewDecoder(req.Body)
+		for {
+			var res core.ContactQueryResult
+			if err := decoder.Decode(&res); err == io.EOF {
+				return
+			} else if err != nil {
+				output(err.Error())
+				return
+			}
+			results <- res
+		}
+	}()
+
+	for {
+		select {
+		case res, ok := <-results:
+			if !ok {
+				return nil
+			}
+
+			data, err := json.MarshalIndent(res, "", "    ")
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				return nil
+			}
+
+			output(string(data))
+		}
 	}
-	output(res)
-	return nil
 }

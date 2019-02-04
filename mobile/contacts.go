@@ -71,7 +71,7 @@ func (m *Mobile) ContactThreads(id string) (string, error) {
 // FindContact calls core FindContact
 // NOTE: this is currently limited to username queries only
 func (m *Mobile) FindContact(username string, limit int, wait int) (string, error) {
-	res, err := m.node.FindContact(&core.ContactInfoQuery{
+	res, err := m.node.FindContact(&core.ContactQuery{
 		Username: username,
 		Limit:    limit,
 		Wait:     wait,
