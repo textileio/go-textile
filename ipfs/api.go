@@ -279,9 +279,9 @@ func Publish(node *core.IpfsNode, topic string, data []byte) error {
 }
 
 // Subscribe subscribes to a topic
-func Subscribe(node *core.IpfsNode, ctx context.Context, topic string, msgs chan iface.PubSubMessage) error {
+func Subscribe(node *core.IpfsNode, ctx context.Context, topic string, discover bool, msgs chan iface.PubSubMessage) error {
 	api := coreapi.NewCoreAPI(node)
-	sub, err := api.PubSub().Subscribe(ctx, topic)
+	sub, err := api.PubSub().Subscribe(ctx, topic, options.PubSub.Discover(discover))
 	if err != nil {
 		return err
 	}

@@ -40,6 +40,35 @@ type ContactQueryResult struct {
 	Contact ContactInfo `json:"contact"`
 }
 
+// contactSet holds a unique set of contact search results
+type contactSet struct {
+	items map[string]*pb.Contact
+	mux   sync.Mutex
+}
+
+func newContactSet() *contactSet {
+	return &contactSet{
+		items: make(map[string]*pb.Contact, 0),
+	}
+}
+
+// Add only adds a contact to the set if it's newer than last
+func (s *contactSet) Add(items ...*pb.Contact) []*pb.Contact {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+
+	var added []*pb.Contact
+	for _, contact := range items {
+		last := s.items[contact.Id]
+		if last == nil || protoTimeToNano(contact.Updated) > protoTimeToNano(last.Updated) {
+			s.items[contact.Id] = contact
+			added = append(added, contact)
+		}
+	}
+
+	return added
+}
+
 // AddContact adds a contact for the first time
 // Note: Existing contacts will not be overwritten
 func (t *Textile) AddContact(contact *repo.Contact) error {
@@ -136,7 +165,7 @@ func (t *Textile) UpdateContactInboxes() error {
 
 // FindContacts searches the network for contacts via cafe sessions
 func (t *Textile) FindContacts(query *ContactQuery) (<-chan *ContactQueryResult, <-chan error, error) {
-	var count int
+	set := newContactSet()
 	var searchChs []chan *ContactQueryResult
 
 	// local results channel
@@ -168,17 +197,18 @@ func (t *Textile) FindContacts(query *ContactQuery) (<-chan *ContactQueryResult,
 		}()
 
 		// search local
-		var local []*pb.Contact
 		for _, c := range t.datastore.Contacts().Find(query.Id, query.Address, query.Username) {
-			local = append(local, repoContactToProto(&c))
+			added := set.Add(repoContactToProto(&c))
+			if len(added) == 0 {
+				continue
+			}
 			info := t.contactInfo(&c, true)
 			if info != nil {
 				localCh <- &ContactQueryResult{Local: true, Contact: *info}
-				count++
 			}
 		}
 
-		if query.Local || count >= query.Limit {
+		if query.Local || len(set.items) >= query.Limit {
 			return
 		}
 
@@ -192,7 +222,7 @@ func (t *Textile) FindContacts(query *ContactQuery) (<-chan *ContactQueryResult,
 				FindUsername: query.Username,
 				Limit:        int32(query.Limit),
 				Wait:         int32(query.Wait),
-			}, local, func(res *pb.CafeContactQueryResult) {
+			}, set, func(res *pb.CafeContactQueryResult) {
 				for _, c := range res.Contacts {
 					contact := t.contactInfo(protoContactToRepo(c), false)
 					if contact != nil {
@@ -218,7 +248,8 @@ func (t *Textile) FindContacts(query *ContactQuery) (<-chan *ContactQueryResult,
 				go func(i int, cafe peer.ID) {
 					defer wg.Done()
 					if err := t.cafe.FindContact(query, cafe, func(res *pb.CafeContactQueryResult) {
-						for _, c := range res.Contacts {
+						added := set.Add(res.Contacts...)
+						for _, c := range added {
 							contact := t.contactInfo(protoContactToRepo(c), false)
 							if contact != nil {
 								cafeChs[i] <- &ContactQueryResult{Contact: *contact}

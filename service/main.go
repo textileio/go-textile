@@ -513,7 +513,7 @@ func (srv *Service) handleNewMessage(s inet.Stream) {
 func (srv *Service) listen() {
 	msgs := make(chan iface.PubSubMessage, 10)
 	go func() {
-		if err := ipfs.Subscribe(srv.Node(), srv.Node().Context(), string(srv.handler.Protocol()), msgs); err != nil {
+		if err := ipfs.Subscribe(srv.Node(), srv.Node().Context(), string(srv.handler.Protocol()), true, msgs); err != nil {
 			close(msgs)
 			log.Errorf("pubsub service listener stopped with error: %s")
 			return
@@ -583,7 +583,7 @@ func (srv *Service) ListenFor(topic string, handler func(pid peer.ID, env *pb.En
 	msgs := make(chan iface.PubSubMessage, 10)
 	ctx, cancel := context.WithCancel(srv.Node().Context())
 	go func() {
-		if err := ipfs.Subscribe(srv.Node(), ctx, topic, msgs); err != nil {
+		if err := ipfs.Subscribe(srv.Node(), ctx, topic, false, msgs); err != nil {
 			close(msgs)
 			log.Errorf("pubsub listener stopped with error: %s", err)
 			return

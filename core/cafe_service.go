@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -220,7 +219,7 @@ func (h *CafeService) FindContact(query *ContactQuery, cafe peer.ID, reply func(
 
 // FindContactPubSub searches the local contact index for a match
 func (h *CafeService) FindContactPubSub(
-	query *pb.CafeContactQuery, exclude []*pb.Contact, reply func(*pb.CafeContactQueryResult), fromCafe bool) error {
+	query *pb.CafeContactQuery, set *contactSet, reply func(*pb.CafeContactQueryResult), fromCafe bool) error {
 
 	// start a tmp subscription if caller needs results over pubsub
 	psId := ksuid.New().String()
@@ -247,7 +246,6 @@ func (h *CafeService) FindContactPubSub(
 	}
 
 	// wait for results
-	count := len(exclude)
 	timer := time.NewTimer(time.Second * time.Duration(query.Wait))
 	listener := h.contactResults.Listen()
 	doneCh := make(chan struct{})
@@ -270,12 +268,14 @@ loop:
 				break loop
 			}
 			if r, ok := value.(*pb.CafePubSubContactQueryResult); ok && r.Id == psId {
-				r.Contacts = removeOldContactResults(r.Contacts, exclude)
-				exclude = deduplicateContactResults(append(exclude, r.Contacts...))
-				reply(&pb.CafeContactQueryResult{Contacts: r.Contacts})
+				added := set.Add(r.Contacts...)
+				if len(added) > 0 {
+					reply(&pb.CafeContactQueryResult{
+						Contacts: added,
+					})
+				}
 
-				count += len(r.Contacts)
-				if count >= int(query.Limit) {
+				if len(set.items) >= int(query.Limit) {
 					if timer.Stop() {
 						listener.Close()
 						if psCancel != nil {
@@ -1101,6 +1101,7 @@ func (h *CafeService) handleContactQuery(pid peer.ID, env *pb.Envelope, renvs ch
 		return nil
 	}
 
+	set := newContactSet()
 	reply := func(res *pb.CafeContactQueryResult) {
 		renv, err := h.service.NewEnvelope(pb.Message_CAFE_CONTACT_QUERY_RES, res, &env.Message.RequestId, true)
 		if err != nil {
@@ -1112,15 +1113,17 @@ func (h *CafeService) handleContactQuery(pid peer.ID, env *pb.Envelope, renvs ch
 	// search local
 	res := &pb.CafeContactQueryResult{}
 	for _, c := range h.datastore.Contacts().Find(query.FindId, query.FindAddress, query.FindUsername) {
-		res.Contacts = append(res.Contacts, repoContactToProto(&c))
+		res.Contacts = append(res.Contacts, set.Add(repoContactToProto(&c))...)
 	}
-	reply(res)
+	if len(res.Contacts) > 0 {
+		reply(res)
+	}
 
 	// search network
 	// TODO: Remove limit? This could cause newer contact records for the same peer
 	//  from different cafes to never be found.
-	if len(res.Contacts) < int(query.Limit) {
-		if err := h.FindContactPubSub(query, res.Contacts, reply, true); err != nil {
+	if len(set.items) < int(query.Limit) {
+		if err := h.FindContactPubSub(query, set, reply, true); err != nil {
 			return err
 		}
 	}
@@ -1246,71 +1249,6 @@ func (h *CafeService) setAddrs(conf *config.Config, swarmPorts config.SwarmPorts
 		URL:      url,
 		Swarm:    swarm,
 	}
-}
-
-// deduplicateContactResults remove duplicates based on Contact.Id,
-// keeping the most recently updated version.
-// https://github.com/golang/go/wiki/SliceTricks#in-place-deduplicate-comparable
-func deduplicateContactResults(in []*pb.Contact) []*pb.Contact {
-	in = removeNilContactResults(in)
-	if len(in) < 2 {
-		return in
-	}
-	sort.Slice(in, func(i, j int) bool {
-		return protoTimeToNano(in[i].Updated) > protoTimeToNano(in[j].Updated)
-	})
-	j := 0
-	for i := 1; i < len(in); i++ {
-		if in[j].Id == in[i].Id {
-			continue
-		}
-		j++
-		// preserve the original data
-		// in[i], in[j] = in[j], in[i]
-		// only set what is required
-		in[j] = in[i]
-	}
-	return in[:j+1]
-}
-
-// removeOldContactResults returns a slice of results exluding those in old,
-// so long as they are not newer.
-// NOTE: assumes that old is pre-deduplicated
-func removeOldContactResults(new []*pb.Contact, old []*pb.Contact) []*pb.Contact {
-	var final []*pb.Contact
-	if len(new) == 0 {
-		return final
-	}
-outer:
-	for _, n := range new {
-		if n == nil {
-			continue
-		}
-		for _, o := range old {
-			if o == nil {
-				continue
-			}
-			if n.Id == o.Id {
-				if protoTimeToNano(n.Updated) > protoTimeToNano(o.Updated) {
-					final = append(final, n)
-				}
-				continue outer
-			}
-		}
-		final = append(final, n)
-	}
-	return final
-}
-
-// removeNilContactResults removes nil results
-func removeNilContactResults(in []*pb.Contact) []*pb.Contact {
-	var out []*pb.Contact
-	for _, i := range in {
-		if i != nil {
-			out = append(out, i)
-		}
-	}
-	return out
 }
 
 // protoTimeToNano returns nano secs from a proto time object
