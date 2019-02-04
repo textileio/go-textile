@@ -17,6 +17,7 @@ message CafeRegistration {
     string value   = 2;
     string nonce   = 3;
     bytes sig      = 4;
+    string token   = 5;
 }
 
 message CafeSession {

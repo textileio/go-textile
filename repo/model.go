@@ -322,6 +322,13 @@ type CafeClient struct {
 	Address  string    `json:"address"`
 	Created  time.Time `json:"created"`
 	LastSeen time.Time `json:"last_seen"`
+	TokenId  string    `json:"token_id,omitempty"`
+}
+
+type CafeToken struct {
+	Id    string    `json:"id"`
+	Token []byte    `json:"token"`
+	Date  time.Time `json:"date"`
 }
 
 type CafeClientThread struct {

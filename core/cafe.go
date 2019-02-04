@@ -9,8 +9,8 @@ import (
 
 // RegisterCafe registers this account with another peer (the "cafe"),
 // which provides a session token for the service
-func (t *Textile) RegisterCafe(host string) (*pb.CafeSession, error) {
-	session, err := t.cafe.Register(host)
+func (t *Textile) RegisterCafe(host string, token string) (*pb.CafeSession, error) {
+	session, err := t.cafe.Register(host, token)
 	if err != nil {
 		return nil, err
 	}

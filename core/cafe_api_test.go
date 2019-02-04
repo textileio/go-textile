@@ -68,8 +68,21 @@ func TestCafeApi_Setup(t *testing.T) {
 	// wait for cafe to be online
 	<-node2.OnlineCh()
 
-	// register cafe
-	if _, err := node1.RegisterCafe("http://127.0.0.1:5000"); err != nil {
+	// create token on cafe
+	token, err := node2.CreateCafeToken("", true)
+	if err != nil {
+		t.Error(fmt.Errorf("error creating cafe token: %s", err))
+		return
+	}
+
+	ok, err := node2.ValidateCafeToken(token)
+	if !ok || err != nil {
+		t.Error(fmt.Errorf("error checking token: %s", err))
+		return
+	}
+
+	// register with cafe
+	if _, err := node1.RegisterCafe("http://127.0.0.1:5000", token); err != nil {
 		t.Errorf("register node1 w/ node2 failed: %s", err)
 		return
 	}

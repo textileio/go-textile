@@ -189,6 +189,14 @@ func (a *api) Start() {
 			cafes.POST("/messages", a.checkCafeMessages)
 		}
 
+		tokens := v0.Group("/tokens")
+		{
+			tokens.POST("", a.createTokens)
+			tokens.GET("", a.lsTokens)
+			tokens.GET("/:id", a.validateTokens)
+			tokens.DELETE("/:id", a.rmTokens)
+		}
+
 		swarm := v0.Group("/swarm")
 		{
 			swarm.POST("/connect", a.swarmConnect)

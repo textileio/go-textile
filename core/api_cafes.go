@@ -17,7 +17,17 @@ func (a *api) addCafes(g *gin.Context) {
 		g.String(http.StatusBadRequest, "missing cafe host")
 		return
 	}
-	session, err := a.node.RegisterCafe(args[0])
+	opts, err := a.readOpts(g)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+	token := opts["token"]
+	if token == "" {
+		g.String(http.StatusBadRequest, "missing access token")
+		return
+	}
+	session, err := a.node.RegisterCafe(args[0], token)
 	if err != nil {
 		a.abort500(g, err)
 		return

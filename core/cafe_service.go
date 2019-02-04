@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sort"
@@ -20,6 +21,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/mr-tron/base58/base58"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/ipfs"
@@ -29,6 +31,7 @@ import (
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/service"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // defaultSessionDuration after which session token expires
@@ -235,7 +238,7 @@ func (h *CafeService) FindContactPubSub(query *pb.CafeContactQuery, fromCafe boo
 }
 
 // Register creates a session with a cafe
-func (h *CafeService) Register(host string) (*pb.CafeSession, error) {
+func (h *CafeService) Register(host string, token string) (*pb.CafeSession, error) {
 	host = strings.TrimRight(host, "/")
 	addr := fmt.Sprintf("%s/cafe/%s/service", host, cafeApiVersion)
 
@@ -259,6 +262,7 @@ func (h *CafeService) Register(host string) (*pb.CafeSession, error) {
 		Value:   challenge.Value,
 		Nonce:   cnonce,
 		Sig:     sig,
+		Token:   token,
 	}
 
 	env, err := h.service.NewEnvelope(pb.Message_CAFE_REGISTRATION, reg, nil, false)
@@ -615,6 +619,24 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
 
+	// does the provided token match?
+	// dev tokens are actually base58(id+token)
+	plainBytes, err := base58.FastBase58Decoding(reg.Token)
+	if err != nil || len(plainBytes) < 44 {
+		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+	}
+
+	encodedToken := h.datastore.CafeTokens().Get(hex.EncodeToString(plainBytes[:12]))
+	if encodedToken == nil {
+		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+	}
+
+	err = bcrypt.CompareHashAndPassword(encodedToken.Token, plainBytes[12:])
+	if err != nil {
+		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+	}
+
+	// check nonce
 	snonce := h.datastore.CafeClientNonces().Get(reg.Value)
 	if snonce == nil {
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
@@ -643,6 +665,7 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 		Address:  reg.Address,
 		Created:  now,
 		LastSeen: now,
+		TokenId:  encodedToken.Id,
 	}
 	if err := h.datastore.CafeClients().Add(client); err != nil {
 		// check if already exists
