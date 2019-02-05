@@ -55,6 +55,11 @@ func (h *ThreadsService) Protocol() protocol.ID {
 	return protocol.ID("/textile/threads/2.0.0")
 }
 
+// Start begins online services
+func (h *ThreadsService) Start() {
+	h.service.Start()
+}
+
 // Ping pings another peer
 func (h *ThreadsService) Ping(pid peer.ID) (service.PeerStatus, error) {
 	return h.service.Ping(pid)

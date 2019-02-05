@@ -307,10 +307,10 @@ func (t *Textile) Start() error {
 			return
 		}
 
-		t.threads.service.Start()
+		t.threads.Start()
 		t.threads.online = true
 
-		t.cafe.service.Start()
+		t.cafe.Start()
 		t.cafe.online = true
 
 		if t.config.Cafe.Host.Open {

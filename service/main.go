@@ -63,6 +63,7 @@ const (
 // Handler is used to handle messages for a specific protocol
 type Handler interface {
 	Protocol() protocol.ID
+	Start()
 	Ping(pid peer.ID) (PeerStatus, error)
 	Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error)
 	HandleStream(pid peer.ID, env *pb.Envelope) (chan *pb.Envelope, chan error, chan interface{})
@@ -585,28 +586,28 @@ func (srv *Service) listen() {
 }
 
 // ListenFor opens a tmp subscription to a topic and passes results to handler
-func (srv *Service) ListenFor(topic string, handler func(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error)) context.CancelFunc {
+func (srv *Service) ListenFor(topic string, discover bool, handler func(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error)) context.CancelFunc {
 	msgs := make(chan iface.PubSubMessage, 10)
 	ctx, cancel := context.WithCancel(srv.Node().Context())
 	go func() {
-		if err := ipfs.Subscribe(srv.Node(), ctx, topic, false, msgs); err != nil {
+		if err := ipfs.Subscribe(srv.Node(), ctx, topic, discover, msgs); err != nil {
 			close(msgs)
 			log.Errorf("pubsub listener stopped with error: %s", err)
 			return
 		}
 	}()
-	log.Debugf("pubsub tmp listener started for %s", topic)
+	log.Debugf("pubsub listener started for %s", topic)
 
 	go func() {
 		for {
 			select {
 			// end loop on context close
 			case <-ctx.Done():
-				log.Debugf("pubsub tmp listener shutdown for %s", topic)
+				log.Debugf("pubsub listener shutdown for %s", topic)
 				return
 			case msg, ok := <-msgs:
 				if !ok {
-					log.Debugf("pubsub tmp listener shutdown for %s", topic)
+					log.Debugf("pubsub listener shutdown for %s", topic)
 					return
 				}
 

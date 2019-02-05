@@ -81,6 +81,13 @@ func (h *CafeService) Protocol() protocol.ID {
 	return cafeServiceProtocol
 }
 
+// Start begins online services
+func (h *CafeService) Start() {
+	h.service.Start()
+	clientTopic := string(cafeServiceProtocol) + "/" + h.service.Node().Identity.Pretty()
+	go h.service.ListenFor(clientTopic, true, h.handleNotifyClient)
+}
+
 // Ping pings another peer
 func (h *CafeService) Ping(pid peer.ID) (service.PeerStatus, error) {
 	return h.service.Ping(pid)
@@ -223,7 +230,7 @@ func (h *CafeService) FindContactPubSub(
 	} else {
 		rtype = pb.CafePubSubContactQuery_PUBSUB
 		go func() {
-			psCancel = h.service.ListenFor(psId, h.handlePubSubContactQueryResult)
+			psCancel = h.service.ListenFor(psId, false, h.handlePubSubContactQueryResult)
 		}()
 	}
 
@@ -499,9 +506,14 @@ func (h *CafeService) notifyClient(pid peer.ID) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), service.DirectTimeout) // fail fast
-	defer cancel()
-	return h.service.SendMessage(ctx, pid, env)
+
+	payload, err := proto.Marshal(env)
+	if err != nil {
+		return err
+	}
+
+	client := string(cafeServiceProtocol) + "/" + pid.Pretty()
+	return ipfs.Publish(h.service.Node(), client, payload)
 }
 
 // sendCafeRequest sends an authenticated request, retrying once after a session refresh
