@@ -93,7 +93,7 @@ func (m *Mobile) FindContacts(query *core.ContactQuery, cb StringCallback) (func
 		}))
 	}
 	cancelFn := func() {
-		cancel.Send(true)
+		cancel.Close()
 		doneFn()
 	}
 

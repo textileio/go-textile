@@ -121,9 +121,10 @@ func (h *CafeService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error
 }
 
 // HandleStream is called by the underlying service handler method
-func (h *CafeService) HandleStream(pid peer.ID, env *pb.Envelope, cancelCh <-chan interface{}) (chan *pb.Envelope, chan error) {
+func (h *CafeService) HandleStream(pid peer.ID, env *pb.Envelope) (chan *pb.Envelope, chan error, chan interface{}) {
 	renvCh := make(chan *pb.Envelope)
 	errCh := make(chan error)
+	cancelCh := make(chan interface{})
 
 	go func() {
 		defer close(renvCh)
@@ -138,7 +139,7 @@ func (h *CafeService) HandleStream(pid peer.ID, env *pb.Envelope, cancelCh <-cha
 		}
 	}()
 
-	return renvCh, errCh
+	return renvCh, errCh, cancelCh
 }
 
 // PublishContact publishes the local peer's contact info
@@ -179,12 +180,15 @@ func (h *CafeService) FindContact(
 		return err
 	}
 
-	renvCh, errCh, err := h.service.SendHTTPStreamRequest(getCafeHTTPAddr(session), env, cancelCh)
-	if err != nil {
-		return err
-	}
+	renvCh, errCh, cancel := h.service.SendHTTPStreamRequest(getCafeHTTPAddr(session), env)
 	for {
 		select {
+		case <-cancelCh:
+			if cancel != nil {
+				fn := *cancel
+				fn()
+			}
+			return nil
 		case err := <-errCh:
 			return err
 		case renv, ok := <-renvCh:
@@ -209,9 +213,9 @@ func (h *CafeService) FindContactPubSub(
 	cancelCh <-chan interface{},
 	fromCafe bool,
 ) error {
+	psId := ksuid.New().String()
 
 	// start a tmp subscription if caller needs results over pubsub
-	psId := ksuid.New().String()
 	var rtype pb.CafePubSubContactQuery_ResponseType
 	var psCancel context.CancelFunc
 	if fromCafe {

@@ -292,12 +292,11 @@ func (c *cafeApi) service(g *gin.Context) {
 	}
 
 	// handle the message as a JSON stream
-	cancelCh := make(chan interface{})
-	rpmesCh, errCh := c.node.cafe.HandleStream(mPeer, pmes, cancelCh)
+	rpmesCh, errCh, cancel := c.node.cafe.HandleStream(mPeer, pmes)
 	g.Stream(func(w io.Writer) bool {
 		select {
 		case <-g.Request.Context().Done():
-			cancelCh <- true
+			close(cancel)
 
 		case err := <-errCh:
 			g.String(http.StatusBadRequest, err.Error())

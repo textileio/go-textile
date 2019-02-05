@@ -150,15 +150,9 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 }
 
 // HandleStream is called by the underlying service handler method
-func (h *ThreadsService) HandleStream(
-	pid peer.ID, env *pb.Envelope, cancelCh <-chan interface{}) (chan *pb.Envelope, chan error) {
-
-	renvCh := make(chan *pb.Envelope)
-	errCh := make(chan error)
-
+func (h *ThreadsService) HandleStream(pid peer.ID, env *pb.Envelope) (chan *pb.Envelope, chan error, chan interface{}) {
 	// no-op
-
-	return renvCh, errCh
+	return make(chan *pb.Envelope), make(chan error), make(chan interface{})
 }
 
 // SendMessage sends a message to a peer

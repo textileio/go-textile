@@ -248,11 +248,15 @@ func (t *Textile) FindContacts(query *ContactQuery) (<-chan *ContactQueryResult,
 					errCh <- err
 					return
 				}
+				canceler := cancel.Listen()
+
 				wg.Add(1)
 				go func(i int, cafe peer.ID) {
-					defer wg.Done()
-					canceler := cancel.Listen()
-					defer canceler.Close()
+					defer func() {
+						canceler.Close()
+						wg.Done()
+					}()
+
 					if err := t.cafe.FindContact(query, cafe, func(res *pb.CafeContactQueryResult) {
 						added := set.Add(res.Contacts...)
 						for _, c := range added {
@@ -267,6 +271,7 @@ func (t *Textile) FindContacts(query *ContactQuery) (<-chan *ContactQueryResult,
 					}
 				}(i, cafe)
 			}
+
 			wg.Wait()
 		}
 	}()

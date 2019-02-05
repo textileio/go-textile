@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -163,15 +164,21 @@ func (x *findContactsCmd) Execute(args []string) error {
 
 	resultsCh := make(chan core.ContactQueryResult)
 	outputCh := make(chan interface{})
-	doneCh := make(chan struct{})
 
+	cancel := func() {}
 	quit := make(chan os.Signal)
 	signal.Notify(quit, os.Interrupt)
 
 	go func() {
-		defer close(resultsCh)
+		defer func() {
+			cancel()
+			close(resultsCh)
+			os.Exit(1)
+		}()
 
-		res, cancel, err := request(POST, "contacts/search", params{
+		var res *http.Response
+		var err error
+		res, cancel, err = request(POST, "contacts/search", params{
 			opts: map[string]string{
 				"username": x.Username,
 				"peer":     x.Peer,
@@ -198,24 +205,15 @@ func (x *findContactsCmd) Execute(args []string) error {
 		}
 
 		decoder := json.NewDecoder(res.Body)
-		for {
-			select {
-			case <-doneCh:
-				outputCh <- ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
-				cancel()
+		for decoder.More() {
+			var result core.ContactQueryResult
+			if err := decoder.Decode(&result); err == io.EOF {
 				return
-			default:
-				var result core.ContactQueryResult
-				if err := decoder.Decode(&result); err == io.EOF {
-					outputCh <- ">>>sdfvadsfo;v;odfnvo;dfnv>"
-					quit <- os.Interrupt
-					break
-				} else if err != nil {
-					outputCh <- err.Error()
-					return
-				}
-				resultsCh <- result
+			} else if err != nil {
+				outputCh <- err.Error()
+				return
 			}
+			resultsCh <- result
 		}
 	}()
 
@@ -245,8 +243,10 @@ func (x *findContactsCmd) Execute(args []string) error {
 
 		case <-quit:
 			fmt.Println("Interrupted")
-			fmt.Printf("Canceling...")
-			doneCh <- struct{}{}
+			if cancel != nil {
+				fmt.Printf("Canceling...")
+				cancel()
+			}
 			fmt.Print("done\n")
 			os.Exit(1)
 			return nil
