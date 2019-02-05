@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -99,9 +100,13 @@ func (a *api) searchContacts(g *gin.Context) {
 		Wait:     wait,
 	}
 
-	resCh, errCh, _ := a.node.FindContacts(query)
+	resCh, errCh, cancel := a.node.FindContacts(query)
 	g.Stream(func(w io.Writer) bool {
 		select {
+		case <-g.Request.Context().Done():
+			fmt.Println("?????????????????????????????????????????????")
+			cancel.Send(true)
+
 		case err := <-errCh:
 			if opts["events"] == "true" {
 				g.SSEvent("error", err.Error())

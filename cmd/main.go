@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-
 	"github.com/textileio/textile-go/util"
 )
 
@@ -67,32 +66,32 @@ type params struct {
 }
 
 func executeStringCmd(meth method, pth string, pars params) (string, error) {
-	req, err := request(meth, pth, pars)
+	res, _, err := request(meth, pth, pars)
 	if err != nil {
 		return "", err
 	}
-	defer req.Body.Close()
-	res, err := util.UnmarshalString(req.Body)
+	defer res.Body.Close()
+	body, err := util.UnmarshalString(res.Body)
 	if err != nil {
 		return "", err
 	}
-	return res, nil
+	return body, nil
 }
 
 func executeJsonCmd(meth method, pth string, pars params, target interface{}) (string, error) {
-	req, err := request(meth, pth, pars)
+	res, _, err := request(meth, pth, pars)
 	if err != nil {
 		return "", err
 	}
-	defer req.Body.Close()
-	if req.StatusCode >= 400 {
-		res, err := util.UnmarshalString(req.Body)
+	defer res.Body.Close()
+	if res.StatusCode >= 400 {
+		body, err := util.UnmarshalString(res.Body)
 		if err != nil {
 			return "", err
 		}
-		return "", errors.New(res)
+		return "", errors.New(body)
 	}
-	if err := util.UnmarshalJSON(req.Body, target); err != nil {
+	if err := util.UnmarshalJSON(res.Body, target); err != nil {
 		return "", err
 	}
 	data, err := json.MarshalIndent(target, "", "    ")
@@ -102,11 +101,11 @@ func executeJsonCmd(meth method, pth string, pars params, target interface{}) (s
 	return string(data), nil
 }
 
-func request(meth method, pth string, pars params) (*http.Response, error) {
+func request(meth method, pth string, pars params) (*http.Response, func(), error) {
 	apiUrl := fmt.Sprintf("%s/api/%s/%s", apiAddr, apiVersion, pth)
 	req, err := http.NewRequest(string(meth), apiUrl, pars.payload)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(pars.args) > 0 {
 		var args []string
@@ -125,8 +124,13 @@ func request(meth method, pth string, pars params) (*http.Response, error) {
 	if pars.ctype != "" {
 		req.Header.Set("Content-Type", pars.ctype)
 	}
-	client := &http.Client{}
-	return client.Do(req)
+	tr := &http.Transport{}
+	client := &http.Client{Transport: tr}
+	res, err := client.Do(req)
+	cancel := func() {
+		tr.CancelRequest(req)
+	}
+	return res, cancel, err
 }
 
 func output(value interface{}) {

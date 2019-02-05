@@ -121,7 +121,7 @@ func (h *CafeService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error
 }
 
 // HandleStream is called by the underlying service handler method
-func (h *CafeService) HandleStream(pid peer.ID, env *pb.Envelope) (chan *pb.Envelope, chan error) {
+func (h *CafeService) HandleStream(pid peer.ID, env *pb.Envelope, cancelCh <-chan interface{}) (chan *pb.Envelope, chan error) {
 	renvCh := make(chan *pb.Envelope)
 	errCh := make(chan error)
 
@@ -131,7 +131,7 @@ func (h *CafeService) HandleStream(pid peer.ID, env *pb.Envelope) (chan *pb.Enve
 		var err error
 		switch env.Message.Type {
 		case pb.Message_CAFE_CONTACT_QUERY:
-			err = h.handleContactQuery(pid, env, renvCh)
+			err = h.handleContactQuery(pid, env, renvCh, cancelCh)
 		}
 		if err != nil {
 			errCh <- err
@@ -179,33 +179,14 @@ func (h *CafeService) FindContact(
 		return err
 	}
 
-	renvCh, errCh, err := h.service.SendHTTPStreamRequest(getCafeHTTPAddr(session), env)
+	renvCh, errCh, err := h.service.SendHTTPStreamRequest(getCafeHTTPAddr(session), env, cancelCh)
 	if err != nil {
 		return err
 	}
 	for {
 		select {
-		case <-cancelCh:
-			close(renvCh)
 		case err := <-errCh:
-			if err.Error() == errUnauthorized {
-				refreshed, err := h.refresh(session)
-				if err != nil {
-					return err
-				}
-
-				env, err := envFactory(refreshed)
-				if err != nil {
-					return err
-				}
-
-				renvCh, errCh, err = h.service.SendHTTPStreamRequest(getCafeHTTPAddr(refreshed), env)
-				if err != nil {
-					return err
-				}
-			} else {
-				return err
-			}
+			return err
 		case renv, ok := <-renvCh:
 			if !ok {
 				return nil
@@ -215,7 +196,6 @@ func (h *CafeService) FindContact(
 			if err := ptypes.UnmarshalAny(renv.Message.Payload, res); err != nil {
 				return err
 			}
-
 			reply(res)
 		}
 	}
@@ -272,7 +252,6 @@ func (h *CafeService) FindContactPubSub(
 		done()
 	}()
 
-loop:
 	for {
 		select {
 		case <-cancelCh:
@@ -280,10 +259,10 @@ loop:
 				done()
 			}
 		case <-doneCh:
-			break loop
+			return nil
 		case value, ok := <-listener.Ch:
 			if !ok {
-				break loop
+				return nil
 			}
 			if r, ok := value.(*pb.CafePubSubContactQueryResult); ok && r.Id == psId {
 				added := set.Add(r.Contacts...)
@@ -301,8 +280,6 @@ loop:
 			}
 		}
 	}
-
-	return nil
 }
 
 // Register creates a session with a cafe
@@ -1100,7 +1077,7 @@ func (h *CafeService) handlePublishContact(pid peer.ID, env *pb.Envelope) (*pb.E
 }
 
 // handleContactQuery searches the cafe network for contacts
-func (h *CafeService) handleContactQuery(pid peer.ID, env *pb.Envelope, renvs chan *pb.Envelope) error {
+func (h *CafeService) handleContactQuery(pid peer.ID, env *pb.Envelope, renvs chan *pb.Envelope, cancelCh <-chan interface{}) error {
 	query := new(pb.CafeContactQuery)
 	if err := ptypes.UnmarshalAny(env.Message.Payload, query); err != nil {
 		return err
@@ -1134,10 +1111,8 @@ func (h *CafeService) handleContactQuery(pid peer.ID, env *pb.Envelope, renvs ch
 	}
 
 	// search network
-	// TODO: Remove limit? This could cause newer contact records for the same peer
-	//  from different cafes to never be found.
 	if len(set.items) < int(query.Limit) {
-		if err := h.FindContactPubSub(query, set, reply, nil, true); err != nil {
+		if err := h.FindContactPubSub(query, set, reply, cancelCh, true); err != nil {
 			return err
 		}
 	}

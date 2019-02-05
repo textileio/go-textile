@@ -3,7 +3,10 @@ package cmd
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"os"
+	"os/signal"
 	"strconv"
 
 	"github.com/textileio/textile-go/core"
@@ -158,11 +161,17 @@ func (x *findContactsCmd) Execute(args []string) error {
 		return errMissingSearchInfo
 	}
 
-	results := make(chan core.ContactQueryResult)
-	go func() {
-		defer close(results)
+	resultsCh := make(chan core.ContactQueryResult)
+	outputCh := make(chan interface{})
+	doneCh := make(chan struct{})
 
-		req, err := request(POST, "contacts/search", params{
+	quit := make(chan os.Signal)
+	signal.Notify(quit, os.Interrupt)
+
+	go func() {
+		defer close(resultsCh)
+
+		res, cancel, err := request(POST, "contacts/search", params{
 			opts: map[string]string{
 				"username": x.Username,
 				"peer":     x.Peer,
@@ -173,49 +182,74 @@ func (x *findContactsCmd) Execute(args []string) error {
 			},
 		})
 		if err != nil {
-			output(err.Error())
+			outputCh <- err.Error()
 			return
 		}
-		defer req.Body.Close()
+		defer res.Body.Close()
 
-		if req.StatusCode >= 400 {
-			res, err := util.UnmarshalString(req.Body)
+		if res.StatusCode >= 400 {
+			body, err := util.UnmarshalString(res.Body)
 			if err != nil {
-				output(err.Error())
+				outputCh <- err.Error()
 			} else {
-				output(res)
+				outputCh <- body
 			}
 			return
 		}
 
-		decoder := json.NewDecoder(req.Body)
+		decoder := json.NewDecoder(res.Body)
 		for {
-			var res core.ContactQueryResult
-			if err := decoder.Decode(&res); err == io.EOF {
+			select {
+			case <-doneCh:
+				outputCh <- ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+				cancel()
 				return
-			} else if err != nil {
-				output(err.Error())
-				return
+			default:
+				var result core.ContactQueryResult
+				if err := decoder.Decode(&result); err == io.EOF {
+					outputCh <- ">>>sdfvadsfo;v;odfnvo;dfnv>"
+					quit <- os.Interrupt
+					break
+				} else if err != nil {
+					outputCh <- err.Error()
+					return
+				}
+				resultsCh <- result
 			}
-			results <- res
+		}
+	}()
+
+	go func() {
+		for {
+			select {
+			case res, ok := <-resultsCh:
+				if !ok {
+					return
+				}
+
+				data, err := json.MarshalIndent(res, "", "    ")
+				if err == io.EOF {
+					break
+				} else if err != nil {
+					return
+				}
+				outputCh <- string(data)
+			}
 		}
 	}()
 
 	for {
 		select {
-		case res, ok := <-results:
-			if !ok {
-				return nil
-			}
+		case val := <-outputCh:
+			output(val)
 
-			data, err := json.MarshalIndent(res, "", "    ")
-			if err == io.EOF {
-				break
-			} else if err != nil {
-				return nil
-			}
-
-			output(string(data))
+		case <-quit:
+			fmt.Println("Interrupted")
+			fmt.Printf("Canceling...")
+			doneCh <- struct{}{}
+			fmt.Print("done\n")
+			os.Exit(1)
+			return nil
 		}
 	}
 }

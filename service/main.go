@@ -65,7 +65,7 @@ type Handler interface {
 	Protocol() protocol.ID
 	Ping(pid peer.ID) (PeerStatus, error)
 	Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error)
-	HandleStream(pid peer.ID, env *pb.Envelope) (chan *pb.Envelope, chan error)
+	HandleStream(pid peer.ID, env *pb.Envelope, cancelCh <-chan interface{}) (chan *pb.Envelope, chan error)
 }
 
 // NewService returns a service for the given config
@@ -188,9 +188,10 @@ func (srv *Service) SendHTTPRequest(addr string, pmes *pb.Envelope) (*pb.Envelop
 }
 
 // SendHTTPStreamRequest sends a request over HTTP
-func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan *pb.Envelope, chan error, error) {
-	log.Debugf("sending %s to %s", pmes.Message.Type.String(), addr)
+func (srv *Service) SendHTTPStreamRequest(
+	addr string, pmes *pb.Envelope, cancelCh <-chan interface{}) (chan *pb.Envelope, chan error, error) {
 
+	log.Debugf("sending %s to %s", pmes.Message.Type.String(), addr)
 	payload, err := proto.Marshal(pmes)
 	if err != nil {
 		return nil, nil, err
@@ -199,6 +200,8 @@ func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan 
 	rpmesCh := make(chan *pb.Envelope)
 	errCh := make(chan error)
 	go func() {
+		defer close(rpmesCh)
+
 		req, err := http.NewRequest("POST", addr, bytes.NewReader(payload))
 		if err != nil {
 			errCh <- err
@@ -206,7 +209,8 @@ func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan 
 		}
 		req.Header.Set("X-Textile-Peer", srv.Node().Identity.Pretty())
 
-		client := &http.Client{}
+		tr := &http.Transport{}
+		client := &http.Client{Transport: tr}
 		res, err := client.Do(req)
 		if err != nil {
 			errCh <- err
@@ -226,27 +230,33 @@ func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan 
 
 		decoder := json.NewDecoder(res.Body)
 		for {
-			var rpmes *pb.Envelope
-			if err := decoder.Decode(&rpmes); err == io.EOF {
+			select {
+			case <-cancelCh:
+				tr.CancelRequest(req)
 				return
-			} else if err != nil {
-				errCh <- err
-				return
-			}
 
-			if rpmes == nil || rpmes.Message == nil {
-				log.Debugf("no response from %s", addr)
-				errCh <- errors.New("no response from peer")
-				return
-			}
+			default:
+				var rpmes *pb.Envelope
+				if err := decoder.Decode(&rpmes); err == io.EOF {
+					return
+				} else if err != nil {
+					errCh <- err
+					return
+				}
 
-			log.Debugf("received %s response from %s", rpmes.Message.Type.String(), addr)
-			if err := srv.handleError(rpmes); err != nil {
-				errCh <- err
-				return
-			}
+				if rpmes == nil || rpmes.Message == nil {
+					log.Debugf("no response from %s", addr)
+					errCh <- errors.New("no response from peer")
+					return
+				}
 
-			rpmesCh <- rpmes
+				log.Debugf("received %s response from %s", rpmes.Message.Type.String(), addr)
+				if err := srv.handleError(rpmes); err != nil {
+					errCh <- err
+					return
+				}
+				rpmesCh <- rpmes
+			}
 		}
 	}()
 
