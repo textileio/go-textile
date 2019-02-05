@@ -218,6 +218,8 @@ func (t *Textile) FindContacts(query *ContactQuery) (<-chan *ContactQueryResult,
 		if len(sessions) == 0 {
 
 			// search via pubsub directly
+			canceler := cancel.Listen()
+			defer canceler.Close()
 			if err := t.cafe.FindContactPubSub(&pb.CafeContactQuery{
 				FindId:       query.Id,
 				FindAddress:  query.Address,
@@ -231,7 +233,7 @@ func (t *Textile) FindContacts(query *ContactQuery) (<-chan *ContactQueryResult,
 						clientCh <- &ContactQueryResult{Contact: *contact}
 					}
 				}
-			}, false); err != nil {
+			}, canceler.Ch, false); err != nil {
 				errCh <- err
 				return
 			}

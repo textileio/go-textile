@@ -223,7 +223,12 @@ func (h *CafeService) FindContact(
 
 // FindContactPubSub searches the local contact index for a match
 func (h *CafeService) FindContactPubSub(
-	query *pb.CafeContactQuery, set *contactSet, reply func(*pb.CafeContactQueryResult), fromCafe bool) error {
+	query *pb.CafeContactQuery,
+	set *contactSet,
+	reply func(*pb.CafeContactQueryResult),
+	cancelCh <-chan interface{},
+	fromCafe bool,
+) error {
 
 	// start a tmp subscription if caller needs results over pubsub
 	psId := ksuid.New().String()
@@ -253,18 +258,27 @@ func (h *CafeService) FindContactPubSub(
 	timer := time.NewTimer(time.Second * time.Duration(query.Wait))
 	listener := h.contactResults.Listen()
 	doneCh := make(chan struct{})
-	go func() {
-		<-timer.C
+
+	done := func() {
 		listener.Close()
 		if psCancel != nil {
 			psCancel()
 		}
 		close(doneCh)
+	}
+
+	go func() {
+		<-timer.C
+		done()
 	}()
 
 loop:
 	for {
 		select {
+		case <-cancelCh:
+			if timer.Stop() {
+				done()
+			}
 		case <-doneCh:
 			break loop
 		case value, ok := <-listener.Ch:
@@ -281,11 +295,7 @@ loop:
 
 				if len(set.items) >= int(query.Limit) {
 					if timer.Stop() {
-						listener.Close()
-						if psCancel != nil {
-							psCancel()
-						}
-						close(doneCh)
+						done()
 					}
 				}
 			}
@@ -1127,7 +1137,7 @@ func (h *CafeService) handleContactQuery(pid peer.ID, env *pb.Envelope, renvs ch
 	// TODO: Remove limit? This could cause newer contact records for the same peer
 	//  from different cafes to never be found.
 	if len(set.items) < int(query.Limit) {
-		if err := h.FindContactPubSub(query, set, reply, true); err != nil {
+		if err := h.FindContactPubSub(query, set, reply, nil, true); err != nil {
 			return err
 		}
 	}
