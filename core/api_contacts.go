@@ -99,12 +99,7 @@ func (a *api) searchContacts(g *gin.Context) {
 		Wait:     wait,
 	}
 
-	resCh, errCh, err := a.node.FindContacts(query)
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
+	resCh, errCh, _ := a.node.FindContacts(query)
 	g.Stream(func(w io.Writer) bool {
 		select {
 		case err := <-errCh:

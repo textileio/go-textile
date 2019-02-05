@@ -199,8 +199,6 @@ func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan 
 	rpmesCh := make(chan *pb.Envelope)
 	errCh := make(chan error)
 	go func() {
-		defer close(rpmesCh)
-
 		req, err := http.NewRequest("POST", addr, bytes.NewReader(payload))
 		if err != nil {
 			errCh <- err

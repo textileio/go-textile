@@ -7,6 +7,7 @@ import (
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
 	"github.com/golang/protobuf/ptypes"
+	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
@@ -163,8 +164,8 @@ func (t *Textile) UpdateContactInboxes() error {
 	return t.datastore.Contacts().UpdateInboxes(t.node.Identity.Pretty(), inboxes)
 }
 
-// FindContacts searches the network for contacts via cafe sessions
-func (t *Textile) FindContacts(query *ContactQuery) (<-chan *ContactQueryResult, <-chan error, error) {
+// FindContacts searches the network for contacts
+func (t *Textile) FindContacts(query *ContactQuery) (<-chan *ContactQueryResult, <-chan error, *broadcast.Broadcaster) {
 	set := newContactSet()
 	var searchChs []chan *ContactQueryResult
 
@@ -188,6 +189,7 @@ func (t *Textile) FindContacts(query *ContactQuery) (<-chan *ContactQueryResult,
 
 	resultCh := mergeContactQueryResults(searchChs)
 	errCh := make(chan error)
+	cancel := broadcast.NewBroadcaster(0)
 
 	go func() {
 		defer func() {
@@ -235,8 +237,8 @@ func (t *Textile) FindContacts(query *ContactQuery) (<-chan *ContactQueryResult,
 			}
 
 		} else {
-			//var inbound []*pb.Contact
 
+			// search via cafes
 			wg := sync.WaitGroup{}
 			for i, session := range sessions {
 				cafe, err := peer.IDB58Decode(session.Id)
@@ -247,6 +249,8 @@ func (t *Textile) FindContacts(query *ContactQuery) (<-chan *ContactQueryResult,
 				wg.Add(1)
 				go func(i int, cafe peer.ID) {
 					defer wg.Done()
+					canceler := cancel.Listen()
+					defer canceler.Close()
 					if err := t.cafe.FindContact(query, cafe, func(res *pb.CafeContactQueryResult) {
 						added := set.Add(res.Contacts...)
 						for _, c := range added {
@@ -255,7 +259,7 @@ func (t *Textile) FindContacts(query *ContactQuery) (<-chan *ContactQueryResult,
 								cafeChs[i] <- &ContactQueryResult{Contact: *contact}
 							}
 						}
-					}); err != nil {
+					}, canceler.Ch); err != nil {
 						errCh <- err
 						return
 					}
@@ -265,7 +269,7 @@ func (t *Textile) FindContacts(query *ContactQuery) (<-chan *ContactQueryResult,
 		}
 	}()
 
-	return resultCh, errCh, nil
+	return resultCh, errCh, cancel
 }
 
 // contactInfo expands a contact into a more detailed view

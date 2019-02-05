@@ -155,7 +155,9 @@ func (h *CafeService) PublishContact(contact *repo.Contact, cafe peer.ID) error 
 }
 
 // FindContact performs a contact query via a cafe
-func (h *CafeService) FindContact(query *ContactQuery, cafe peer.ID, reply func(*pb.CafeContactQueryResult)) error {
+func (h *CafeService) FindContact(
+	query *ContactQuery, cafe peer.ID, reply func(*pb.CafeContactQueryResult), cancelCh <-chan interface{}) error {
+
 	envFactory := func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_CONTACT_QUERY, &pb.CafeContactQuery{
 			Token:        session.Access,
@@ -183,6 +185,8 @@ func (h *CafeService) FindContact(query *ContactQuery, cafe peer.ID, reply func(
 	}
 	for {
 		select {
+		case <-cancelCh:
+			close(renvCh)
 		case err := <-errCh:
 			if err.Error() == errUnauthorized {
 				refreshed, err := h.refresh(session)
