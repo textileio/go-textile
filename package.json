@@ -1,7 +1,7 @@
 {
   "name": "textile-go",
   "description": "Encrypted, recoverable, schema-based, cross-application data storage built on IPFS and LibP2P.",
-  "version": "1.0.0-rc32",
+  "version": "1.0.0-rc33-dev",
   "author": "textile.io",
   "license": "MIT",
   "repository": {
@@ -20,7 +20,7 @@
   },
   "gxDependencies": [
     {
-      "hash": "QmbNaKjrRpw8Qb12bTDiihUSF2T73cFHeVUBW4Zm861xE6",
+      "hash": "QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi",
       "name": "go-ipfs",
       "version": "0.4.18"
     }

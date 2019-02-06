@@ -73,7 +73,6 @@ func (x *subCmd) Execute(args []string) error {
 			} else if err != nil {
 				return nil
 			}
-
 			output(string(data))
 		}
 	}
@@ -86,39 +85,39 @@ func callSub(threadId string, types []string) (<-chan core.ThreadUpdate, error) 
 
 	updates := make(chan core.ThreadUpdate, 10)
 	go func() {
-		req, err := request(GET, "sub"+threadId, params{
+		defer close(updates)
+
+		res, cancel, err := request(GET, "sub"+threadId, params{
 			opts: map[string]string{"type": strings.Join(types, "|")},
 		})
 		if err != nil {
 			output(err.Error())
-			close(updates)
 			return
 		}
+		defer res.Body.Close()
+		defer cancel()
 
-		if req.StatusCode >= 400 {
-			res, err := util.UnmarshalString(req.Body)
+		if res.StatusCode >= 400 {
+			body, err := util.UnmarshalString(res.Body)
 			if err != nil {
 				output(err.Error())
 			} else {
-				output(res)
+				output(body)
 			}
-			close(updates)
 			return
 		}
 
-		decoder := json.NewDecoder(req.Body)
-		for {
+		decoder := json.NewDecoder(res.Body)
+		for decoder.More() {
 			var info core.ThreadUpdate
 			if err := decoder.Decode(&info); err == io.EOF {
-				break
+				return
 			} else if err != nil {
 				output(err.Error())
-				close(updates)
 				return
 			}
 			updates <- info
 		}
-		req.Body.Close()
 	}()
 
 	return updates, nil

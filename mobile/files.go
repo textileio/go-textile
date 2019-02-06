@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
-	iface "gx/ipfs/QmbNaKjrRpw8Qb12bTDiihUSF2T73cFHeVUBW4Zm861xE6/go-ipfs/core/coreapi/interface"
+	iface "gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core/coreapi/interface"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -159,7 +159,7 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 }
 
 // PrepareFilesAsync is the async flavor of PrepareFiles
-func (m *Mobile) PrepareFilesAsync(path string, threadId string, cb Callback) {
+func (m *Mobile) PrepareFilesAsync(path string, threadId string, cb ProtoCallback) {
 	go func() {
 		cb.Call(m.PrepareFiles(path, threadId))
 	}()

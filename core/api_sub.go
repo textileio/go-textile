@@ -26,6 +26,9 @@ func (a *api) getThreadsSub(g *gin.Context) {
 	listener := a.node.ThreadUpdateListener()
 	g.Stream(func(w io.Writer) bool {
 		select {
+		case <-g.Request.Context().Done():
+			return false
+
 		case update, ok := <-listener.Ch:
 			if !ok {
 				return false
@@ -49,7 +52,6 @@ func (a *api) getThreadsSub(g *gin.Context) {
 							g.JSON(http.StatusOK, info)
 							g.Writer.Write([]byte("\n"))
 						}
-
 					}
 				}
 			}

@@ -25,9 +25,14 @@ type Messenger interface {
 	Notify(event *Event)
 }
 
-// Callback is used for asyc methods (payload is a protobuf)
-type Callback interface {
+// ProtoCallback is used for asyc methods (payload is a protobuf)
+type ProtoCallback interface {
 	Call(payload []byte, err error)
+}
+
+// StringCallback is used for asyc methods (payload is a string)
+type StringCallback interface {
+	Call(payload string, err error)
 }
 
 // NewWallet creates a brand new wallet and returns its recovery phrase

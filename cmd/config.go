@@ -74,28 +74,33 @@ func (x *configCmd) Execute(args []string) error {
 		patch := []byte(fmt.Sprintf(`[
   {"op": "replace", "path": "%s", "value": %s}
 ]`, path, args[1]))
-		res, err := request(PATCH, "config", params{
+
+		res, _, err := request(PATCH, "config", params{
 			payload: bytes.NewBuffer(patch),
 		})
 		if err != nil {
 			return err
 		}
 		defer res.Body.Close()
+
 		if res.StatusCode >= 400 {
-			res, err := util.UnmarshalString(res.Body)
+			body, err := util.UnmarshalString(res.Body)
 			if err != nil {
 				return err
 			}
-			return errors.New(res)
+			return errors.New(body)
 		}
+
 		output("Updated! Restart daemon for changes to take effect.")
 		return nil
 	}
+
 	var info interface{}
 	res, err := executeJsonCmd(GET, "config"+path, params{}, &info)
 	if err != nil {
 		return err
 	}
+
 	output(res)
 	return nil
 }

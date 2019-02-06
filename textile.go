@@ -218,7 +218,6 @@ func (x *versionCmd) Execute(args []string) error {
 }
 
 func (x *initCmd) Execute(args []string) error {
-	// build keypair from provided seed
 	kp, err := keypair.Parse(x.AccountSeed)
 	if err != nil {
 		return errors.New(fmt.Sprintf("parse account seed failed: %s", err))

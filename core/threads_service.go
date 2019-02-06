@@ -7,8 +7,8 @@ import (
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	"gx/ipfs/QmbNaKjrRpw8Qb12bTDiihUSF2T73cFHeVUBW4Zm861xE6/go-ipfs/core"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -53,6 +53,11 @@ func NewThreadsService(
 // Protocol returns the handler protocol
 func (h *ThreadsService) Protocol() protocol.ID {
 	return protocol.ID("/textile/threads/2.0.0")
+}
+
+// Start begins online services
+func (h *ThreadsService) Start() {
+	h.service.Start()
 }
 
 // Ping pings another peer
@@ -147,6 +152,12 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 	go thrd.cafeOutbox.Flush()
 
 	return nil, nil
+}
+
+// HandleStream is called by the underlying service handler method
+func (h *ThreadsService) HandleStream(pid peer.ID, env *pb.Envelope) (chan *pb.Envelope, chan error, chan interface{}) {
+	// no-op
+	return make(chan *pb.Envelope), make(chan error), make(chan interface{})
 }
 
 // SendMessage sends a message to a peer

@@ -122,22 +122,25 @@ func (x *ipfsCatCmd) Execute(args []string) error {
 		return errMissingCID
 	}
 
-	req, err := request(GET, "ipfs/"+args[0], params{
+	res, _, err := request(GET, "ipfs/"+args[0], params{
 		opts: map[string]string{"key": x.Key},
 	})
 	if err != nil {
 		return err
 	}
-	defer req.Body.Close()
-	if req.StatusCode >= 400 {
-		res, err := util.UnmarshalString(req.Body)
+	defer res.Body.Close()
+
+	if res.StatusCode >= 400 {
+		body, err := util.UnmarshalString(res.Body)
 		if err != nil {
 			return err
 		}
-		return errors.New(res)
+		return errors.New(body)
 	}
-	if _, err := io.Copy(os.Stdout, req.Body); err != nil {
+
+	if _, err := io.Copy(os.Stdout, res.Body); err != nil {
 		return err
 	}
+
 	return nil
 }
