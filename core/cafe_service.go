@@ -506,13 +506,15 @@ func (h *CafeService) notifyClient(pid peer.ID) error {
 	if err != nil {
 		return err
 	}
+	client := string(cafeServiceProtocol) + "/" + pid.Pretty()
+
+	log.Debugf("sending pubsub %s to %s", env.Message.Type.String(), client)
 
 	payload, err := proto.Marshal(env)
 	if err != nil {
 		return err
 	}
 
-	client := string(cafeServiceProtocol) + "/" + pid.Pretty()
 	return ipfs.Publish(h.service.Node(), client, payload)
 }
 
@@ -1142,12 +1144,15 @@ func (h *CafeService) publishContactRequest(req *pb.CafePubSubContactQuery) erro
 	if err != nil {
 		return err
 	}
+	topic := string(cafeServiceProtocol)
+
+	log.Debugf("sending pubsub %s to %s", env.Message.Type.String(), topic)
 
 	payload, err := proto.Marshal(env)
 	if err != nil {
 		return err
 	}
-	return ipfs.Publish(h.service.Node(), string(cafeServiceProtocol), payload)
+	return ipfs.Publish(h.service.Node(), topic, payload)
 }
 
 // handlePubSubContactQuery receives a contact request over pubsub and responds with a direct message

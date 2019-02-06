@@ -1,19 +1,24 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
 
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/util"
 )
 
+var errMissingStdin = errors.New("missing stdin")
+var errInvalidContact = errors.New("invalid contact format")
 var errMissingPeerId = errors.New("missing peer id")
 var errMissingSearchInfo = errors.New("missing search info")
 
@@ -43,7 +48,6 @@ Use this command to add, list, get, and remove local contacts and find other con
 `
 }
 
-// TODO: make this work
 type addContactsCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
@@ -57,7 +61,46 @@ Add to known contacts.
 
 func (x *addContactsCmd) Execute(args []string) error {
 	setApi(x.Client)
-	res, err := executeStringCmd(PUT, "contacts", params{})
+
+	fi, err := os.Stdin.Stat()
+	if err != nil {
+		return err
+	}
+	if (fi.Mode() & os.ModeCharDevice) != 0 {
+		return errMissingStdin
+	}
+
+	input, err := ioutil.ReadAll(os.Stdin)
+	if err != nil {
+		return err
+	}
+
+	var body []byte
+	var contact repo.Contact
+	if err := json.Unmarshal(input, &contact); err != nil {
+		return errInvalidContact
+	}
+	if contact.Id != "" {
+		body = input
+	} else {
+		var result core.ContactQueryResult
+		if err := json.Unmarshal(input, &result); err != nil {
+			return errInvalidContact
+		}
+		if result.Contact.Id == "" {
+			return errInvalidContact
+		}
+		data, err := json.Marshal(result.Contact)
+		if err != nil {
+			return err
+		}
+		body = data
+	}
+
+	res, err := executeStringCmd(POST, "contacts", params{
+		payload: bytes.NewReader(body),
+		ctype:   "application/json",
+	})
 	if err != nil {
 		return err
 	}

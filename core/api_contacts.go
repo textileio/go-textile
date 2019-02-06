@@ -6,7 +6,27 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/textileio/textile-go/repo"
 )
+
+func (a *api) addContacts(g *gin.Context) {
+	var contact *repo.Contact
+	if err := g.BindJSON(&contact); err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	if contact == nil {
+		g.String(http.StatusBadRequest, "missing contact")
+		return
+	}
+
+	if err := a.node.AddContact(contact); err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	g.String(http.StatusOK, "ok")
+}
 
 func (a *api) lsContacts(g *gin.Context) {
 	opts, err := a.readOpts(g)

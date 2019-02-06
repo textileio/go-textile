@@ -39,14 +39,14 @@ func (a *api) createInvites(g *gin.Context) {
 	if pid != "" {
 		hash, err := thrd.AddInvite(pid)
 		if err != nil {
-			a.abort500(g, err)
+			g.String(http.StatusBadRequest, err.Error())
 			return
 		}
 		result["invite"] = hash.B58String()
 	} else {
 		hash, key, err := thrd.AddExternalInvite()
 		if err != nil {
-			a.abort500(g, err)
+			g.String(http.StatusBadRequest, err.Error())
 			return
 		}
 		result["invite"] = hash.B58String()
