@@ -9,10 +9,10 @@ import (
 	"path"
 
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core"
+	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/namesys"
+	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/repo/fsrepo"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
-	"gx/ipfs/QmbNaKjrRpw8Qb12bTDiihUSF2T73cFHeVUBW4Zm861xE6/go-ipfs/core"
-	"gx/ipfs/QmbNaKjrRpw8Qb12bTDiihUSF2T73cFHeVUBW4Zm861xE6/go-ipfs/namesys"
-	"gx/ipfs/QmbNaKjrRpw8Qb12bTDiihUSF2T73cFHeVUBW4Zm861xE6/go-ipfs/repo/fsrepo"
 
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/repo/config"

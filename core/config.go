@@ -9,8 +9,8 @@ import (
 	"time"
 
 	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-	"gx/ipfs/QmbNaKjrRpw8Qb12bTDiihUSF2T73cFHeVUBW4Zm861xE6/go-ipfs/repo"
-	"gx/ipfs/QmbNaKjrRpw8Qb12bTDiihUSF2T73cFHeVUBW4Zm861xE6/go-ipfs/repo/fsrepo"
+	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/repo"
+	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/repo/fsrepo"
 
 	"github.com/textileio/textile-go/repo/config"
 )
