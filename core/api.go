@@ -58,7 +58,6 @@ func (t *Textile) ApiAddr() string {
 
 // Start starts the http api
 func (a *api) Start() {
-	// setup router
 	router := gin.Default()
 	router.GET("/", func(g *gin.Context) {
 		g.JSON(http.StatusOK, gin.H{

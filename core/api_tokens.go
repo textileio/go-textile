@@ -14,7 +14,7 @@ func (a *api) createTokens(g *gin.Context) {
 	}
 	token, err := a.node.CreateCafeToken(opts["token"], opts["store"] == "true")
 	if err != nil {
-		a.abort500(g, err)
+		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 	g.String(http.StatusCreated, token)
