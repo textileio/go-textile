@@ -3,6 +3,7 @@ P_ANY=Mgoogle/protobuf/any.proto=github.com/golang/protobuf/ptypes/any
 PKGMAP=$(P_TIMESTAMP),$(P_ANY)
 
 $(eval FLAGS := $(shell govvv -flags -pkg github.com/textileio/textile-go/common))
+$(eval VERSION := $(shell ggrep -oP 'const Version = "\K[^"]+' common/version.go))
 
 clean:
 	rm -rf vendor
@@ -46,6 +47,10 @@ build_android_framework:
 
 install:
 	mv dist/textile /usr/local/bin
+
+publish_mobile:
+	cd mobile; jq '.version = "$(VERSION)"' package.json > package.json.tmp && mv package.json.tmp package.json
+	cd mobile; npm publish
 
 protos:
 	cd pb/protos && PATH=$(PATH):$(GOPATH)/bin protoc --go_out=$(PKGMAP):.. *.proto

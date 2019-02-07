@@ -11,8 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/textileio/textile-go/repo"
-
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/cmd"
@@ -20,6 +18,7 @@ import (
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/gateway"
 	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/wallet"
 )
 
