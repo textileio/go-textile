@@ -7,12 +7,16 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
-	flags "github.com/jessevdk/go-flags"
-	homedir "github.com/mitchellh/go-homedir"
+	"github.com/textileio/textile-go/repo"
+
+	"github.com/jessevdk/go-flags"
+	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/cmd"
+	"github.com/textileio/textile-go/common"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/gateway"
 	"github.com/textileio/textile-go/keypair"
@@ -213,7 +217,7 @@ func (x *walletAccountsCmd) Execute(args []string) error {
 }
 
 func (x *versionCmd) Execute(args []string) error {
-	fmt.Println(core.Version)
+	fmt.Println("textile version " + common.Version)
 	return nil
 }
 
@@ -435,13 +439,16 @@ func printSplash() {
 	if err != nil {
 		log.Fatalf("get peer id failed: %s", err)
 	}
-	fmt.Println(cmd.Grey("Textile daemon version v" + core.Version))
-	fmt.Println(cmd.Grey("Repo:    ") + cmd.Grey(node.RepoPath()))
-	fmt.Println(cmd.Grey("API:     ") + cmd.Grey(node.ApiAddr()))
-	fmt.Println(cmd.Grey("Gateway: ") + cmd.Grey(gateway.Host.Addr()))
+	fmt.Println(cmd.Grey("textile-go version: " + common.GitSummary))
+	fmt.Println(cmd.Grey("Repo version: ") + cmd.Grey(repo.Repover))
+	fmt.Println(cmd.Grey("Repo path: ") + cmd.Grey(node.RepoPath()))
+	fmt.Println(cmd.Grey("API address: ") + cmd.Grey(node.ApiAddr()))
+	fmt.Println(cmd.Grey("Gateway address: ") + cmd.Grey(gateway.Host.Addr()))
 	if node.CafeApiAddr() != "" {
-		fmt.Println(cmd.Grey("Cafe:    ") + cmd.Grey(node.CafeApiAddr()))
+		fmt.Println(cmd.Grey("Cafe address: ") + cmd.Grey(node.CafeApiAddr()))
 	}
+	fmt.Println(cmd.Grey("System version: ") + cmd.Grey(runtime.GOARCH+"/"+runtime.GOOS))
+	fmt.Println(cmd.Grey("Golang version: ") + cmd.Grey(runtime.Version()))
 	fmt.Println(cmd.Grey("PeerID:  ") + cmd.Green(pid.Pretty()))
 	fmt.Println(cmd.Grey("Account: ") + cmd.Cyan(node.Account().Address()))
 }

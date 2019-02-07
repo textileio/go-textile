@@ -74,10 +74,11 @@ jobs:
         name: install gox
         command: |
           go get github.com/mitchellh/gox
+          go get github.com/ahmetb/govvv
     - run:
         name: compile
         command: |
-          gox -ldflags "-w" -osarch="linux/amd64 linux/386 linux/arm" -output="{{.OS}}-{{.Arch}}"
+          gox -ldflags "-w $(govvv -flags -pkg github.com/textileio/textile-go/common)" -osarch="linux/amd64 linux/386 linux/arm" -output="{{.OS}}-{{.Arch}}"
     - run:
         name: collect artifacts
         command: |
@@ -162,6 +163,7 @@ jobs:
         command: |
           export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           go get github.com/mitchellh/gox
+          go get github.com/ahmetb/govvv
     - run:
         name: install mingw-w64
         command: |
@@ -170,8 +172,8 @@ jobs:
         name: cross-compile
         command: |
           export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
-          gox -ldflags "-w" -osarch="darwin/amd64" -output="{{.OS}}-{{.Arch}}"
-          CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -ldflags "-w" -cgo -osarch="windows/amd64" -output="{{.OS}}-{{.Arch}}"
+          gox -ldflags "-w $(govvv -flags -pkg github.com/textileio/textile-go/common)" -osarch="darwin/amd64" -output="{{.OS}}-{{.Arch}}"
+          CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -ldflags "-w $(govvv -flags -pkg github.com/textileio/textile-go/common)" -cgo -osarch="windows/amd64" -output="{{.OS}}-{{.Arch}}"
     - run:
         name: collect artifacts
         command: |
@@ -381,12 +383,13 @@ jobs:
         command: |
           export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           go get golang.org/x/mobile/cmd/gomobile
+          go get github.com/ahmetb/govvv
     - run:
         name: build ios framework
         command: |
           export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           gomobile init
-          gomobile bind -ldflags "-w" -v -target=ios github.com/textileio/textile-go/mobile
+          gomobile bind -ldflags "-w $(govvv -flags -pkg github.com/textileio/textile-go/common)" -v -target=ios github.com/textileio/textile-go/mobile
     - run:
         name: build obj c protobuf bindings
         command: |
@@ -469,6 +472,7 @@ jobs:
         command: |
           export PATH=$PATH:/usr/local/go/bin
           go get golang.org/x/mobile/cmd/gomobile
+          go get github.com/ahmetb/govvv
     - run:
         name: build android framework
         command: |
@@ -476,7 +480,7 @@ jobs:
           export GOPATH=~/go
           export PATH=$PATH:$GOPATH/bin
           gomobile init -ndk /opt/android/android-ndk-r17b
-          gomobile bind -ldflags "-w" -v -target=android -o mobile.aar github.com/textileio/textile-go/mobile
+          gomobile bind -ldflags "-w $(govvv -flags -pkg github.com/textileio/textile-go/common)" -v -target=android -o mobile.aar github.com/textileio/textile-go/mobile
     - run:
         name: build java protobuf bindings
         command: |

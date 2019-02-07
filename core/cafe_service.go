@@ -23,6 +23,7 @@ import (
 	"github.com/mr-tron/base58/base58"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/broadcast"
+	"github.com/textileio/textile-go/common"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/jwt"
 	"github.com/textileio/textile-go/keypair"
@@ -1256,7 +1257,7 @@ func (h *CafeService) setAddrs(conf *config.Config, swarmPorts config.SwarmPorts
 		Address:  conf.Account.Address,
 		API:      cafeApiVersion,
 		Protocol: string(cafeServiceProtocol),
-		Node:     Version,
+		Node:     common.Version,
 		URL:      url,
 		Swarm:    swarm,
 	}

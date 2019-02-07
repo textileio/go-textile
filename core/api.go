@@ -17,6 +17,7 @@ import (
 	"github.com/gin-contrib/cors"
 	limit "github.com/gin-contrib/size"
 	"github.com/gin-gonic/gin"
+	"github.com/textileio/textile-go/common"
 	m "github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/config"
@@ -62,7 +63,7 @@ func (a *api) Start() {
 	router.GET("/", func(g *gin.Context) {
 		g.JSON(http.StatusOK, gin.H{
 			"cafe_version": apiVersion,
-			"node_version": Version,
+			"node_version": common.Version,
 		})
 	})
 	router.GET("/health", func(g *gin.Context) {
