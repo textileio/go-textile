@@ -24,6 +24,14 @@ var errInvalidContact = errors.New("invalid contact format")
 var errMissingPeerId = errors.New("missing peer id")
 var errMissingSearchInfo = errors.New("missing search info")
 
+var contactsMarshaler = jsonpb.Marshaler{
+	EmitDefaults: true,
+	Indent:       "    ",
+}
+var contactsUnmarshaler = jsonpb.Unmarshaler{
+	AllowUnknownFields: true,
+}
+
 func init() {
 	register(&contactsCmd{})
 }
@@ -78,25 +86,25 @@ func (x *addContactsCmd) Execute(args []string) error {
 	}
 
 	var body []byte
-	var contact repo.Contact
+	var contact *repo.Contact
 	if err := json.Unmarshal(input, &contact); err != nil {
 		return errInvalidContact
 	}
-	if contact.Id != "" {
+	if contact.Address != "" {
 		body = input
 	} else {
 		var result pb.QueryResult
-		if err := json.Unmarshal(input, &result); err != nil {
+		if err := contactsUnmarshaler.Unmarshal(bytes.NewReader(input), &result); err != nil {
 			return errInvalidContact
 		}
-		if result.Id == "" {
+		if result.Value == nil {
 			return errInvalidContact
 		}
-		data, err := json.Marshal(result.Value)
+		data, err := contactsMarshaler.MarshalToString(result.Value)
 		if err != nil {
 			return err
 		}
-		body = data
+		body = []byte(data)
 	}
 
 	res, err := executeStringCmd(POST, "contacts", params{
@@ -207,7 +215,6 @@ func (x *findContactsCmd) Execute(args []string) error {
 		return errMissingSearchInfo
 	}
 
-	resultsCh := make(chan pb.QueryResult)
 	outputCh := make(chan interface{})
 
 	cancel := func() {}
@@ -217,7 +224,6 @@ func (x *findContactsCmd) Execute(args []string) error {
 	go func() {
 		defer func() {
 			cancel()
-			close(resultsCh)
 			os.Exit(1)
 		}()
 
@@ -251,7 +257,7 @@ func (x *findContactsCmd) Execute(args []string) error {
 
 		decoder := json.NewDecoder(res.Body)
 		for decoder.More() {
-			var result pb.QueryResult
+			var result *pb.QueryResult
 			if err := decoder.Decode(&result); err == io.EOF {
 				return
 			} else if err != nil {
@@ -259,27 +265,12 @@ func (x *findContactsCmd) Execute(args []string) error {
 				return
 			}
 
-			resultsCh <- result
-		}
-	}()
-
-	go func() {
-		marshaler := jsonpb.Marshaler{Indent: "    "}
-		for {
-			select {
-			case res, ok := <-resultsCh:
-				if !ok {
-					return
-				}
-
-				data, err := marshaler.MarshalToString(&res)
-				if err == io.EOF {
-					break
-				} else if err != nil {
-					return
-				}
-				outputCh <- string(data)
+			data, err := contactsMarshaler.MarshalToString(result)
+			if err != nil {
+				outputCh <- err.Error()
+				return
 			}
+			outputCh <- data
 		}
 	}()
 

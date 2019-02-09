@@ -41,6 +41,15 @@ const defaultSessionDuration = time.Hour * 24 * 7 * 4
 // inboxMessagePageSize is the page size used when checking messages
 const inboxMessagePageSize = 10
 
+// maxQueryWaitSeconds is used to limit a query request's max wait time
+const maxQueryWaitSeconds = 10
+
+// defaultQueryWaitSeconds is a query request's default wait time
+const defaultQueryWaitSeconds = 5
+
+// defaultQueryResultsLimit is a query request's default results limit
+const defaultQueryResultsLimit = 5
+
 // validation errors
 const (
 	errInvalidAddress = "invalid address"
@@ -50,9 +59,6 @@ const (
 
 // cafeServiceProtocol is the current protocol tag
 const cafeServiceProtocol = protocol.ID("/textile/cafe/1.0.0")
-
-// typePrefix is appended to proto any type URLs
-const typePrefix = "textile.io/"
 
 // CafeService is a libp2p pinning and offline message service
 type CafeService struct {
@@ -599,7 +605,7 @@ func (h *CafeService) searchLocal(qtype pb.QueryType, payload *any.Any, local bo
 				Date:  pc.Updated,
 				Local: local,
 				Value: &any.Any{
-					TypeUrl: typePrefix + "Contact",
+					TypeUrl: "Contact",
 					Value:   value,
 				},
 			})
@@ -634,7 +640,22 @@ func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults)
 		return err
 	}
 
+	if query.Options == nil {
+		query.Options = &pb.QueryOptions{
+			Wait:  defaultQueryWaitSeconds,
+			Limit: defaultQueryResultsLimit,
+		}
+	}
+
 	// wait for results
+	if query.Options.Limit <= 0 {
+		query.Options.Limit = defaultQueryResultsLimit
+	}
+	if query.Options.Wait <= 0 {
+		query.Options.Wait = defaultQueryWaitSeconds
+	} else if query.Options.Wait > maxQueryWaitSeconds {
+		query.Options.Wait = maxQueryWaitSeconds
+	}
 	timer := time.NewTimer(time.Second * time.Duration(query.Options.Wait))
 	listener := h.searchResults.Listen()
 	doneCh := make(chan struct{})
@@ -1336,6 +1357,14 @@ func (h *CafeService) findContactPubSub(query *pb.CafeContactQuery, results *con
 	}
 
 	// wait for results
+	if query.Limit <= 0 {
+		query.Limit = defaultQueryResultsLimit
+	}
+	if query.Wait <= 0 {
+		query.Wait = defaultQueryWaitSeconds
+	} else if query.Wait > maxQueryWaitSeconds {
+		query.Wait = maxQueryWaitSeconds
+	}
 	timer := time.NewTimer(time.Second * time.Duration(query.Wait))
 	listener := h.searchResults.Listen()
 	doneCh := make(chan struct{})
