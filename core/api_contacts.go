@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/textileio/textile-go/pb"
+
 	"github.com/gin-gonic/gin"
 	"github.com/textileio/textile-go/repo"
 )
@@ -110,16 +112,23 @@ func (a *api) searchContacts(g *gin.Context) {
 		wait = 5
 	}
 
-	query := &ContactQuery{
+	query := &pb.ContactQuery{
 		Id:       opts["peer"],
 		Address:  opts["address"],
 		Username: opts["username"],
-		Local:    local,
-		Limit:    limit,
-		Wait:     wait,
+	}
+	options := &pb.QueryOptions{
+		Local: local,
+		Limit: int32(limit),
+		Wait:  int32(wait),
 	}
 
-	resCh, errCh, cancel := a.node.FindContacts(query)
+	resCh, errCh, cancel, err := a.node.SearchContacts(query, options)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
 	g.Stream(func(w io.Writer) bool {
 		select {
 		case <-g.Request.Context().Done():

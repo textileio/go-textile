@@ -50,6 +50,7 @@ message CafePublishContactAck {
 }
 
 message CafeContactQuery {
+    option deprecated   = true;
     string token        = 1;
     string findId       = 2;
     string findAddress  = 3;
@@ -59,6 +60,7 @@ message CafeContactQuery {
 }
 
 message CafeContactQueryResult {
+    option deprecated         = true;
     repeated Contact contacts = 1;
 }
 
@@ -85,14 +87,16 @@ message CafeStoreThread {
 }
 
 message CafeThread {
-    string key       = 1;
-    bytes sk         = 2;
-    string name      = 3;
-    string schema    = 4;
-    string initiator = 5;
-    int32 type       = 6;
-    int32 state      = 7;
-    string head      = 8;
+    string key              = 1;
+    bytes sk                = 2;
+    string name             = 3;
+    string schema           = 4;
+    string initiator        = 5;
+    int32 type              = 6;
+    int32 state             = 7;
+    string head             = 8;
+    int32 sharing           = 9;
+    repeated string members = 10;
 }
 
 message CafeStored {

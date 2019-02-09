@@ -4,6 +4,7 @@ option go_package = "pb";
 import "model.proto";
 
 message CafePubSubContactQuery {
+    option deprecated         = true;
     string id                 = 1;
     string findId             = 2;
     string findAddress        = 3;
@@ -17,6 +18,7 @@ message CafePubSubContactQuery {
 }
 
 message CafePubSubContactQueryResult {
+    option deprecated         = true;
     string id                 = 1;
     repeated Contact contacts = 2;
 }

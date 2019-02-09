@@ -13,6 +13,7 @@ import (
 	"strconv"
 
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/util"
 )
@@ -83,14 +84,14 @@ func (x *addContactsCmd) Execute(args []string) error {
 	if contact.Id != "" {
 		body = input
 	} else {
-		var result core.ContactQueryResult
+		var result pb.QueryResult
 		if err := json.Unmarshal(input, &result); err != nil {
 			return errInvalidContact
 		}
-		if result.Contact.Id == "" {
+		if result.Id == "" {
 			return errInvalidContact
 		}
-		data, err := json.Marshal(result.Contact)
+		data, err := json.Marshal(result.Value)
 		if err != nil {
 			return err
 		}
@@ -205,7 +206,7 @@ func (x *findContactsCmd) Execute(args []string) error {
 		return errMissingSearchInfo
 	}
 
-	resultsCh := make(chan core.ContactQueryResult)
+	resultsCh := make(chan pb.QueryResult)
 	outputCh := make(chan interface{})
 
 	cancel := func() {}
@@ -249,7 +250,7 @@ func (x *findContactsCmd) Execute(args []string) error {
 
 		decoder := json.NewDecoder(res.Body)
 		for decoder.More() {
-			var result core.ContactQueryResult
+			var result pb.QueryResult
 			if err := decoder.Decode(&result); err == io.EOF {
 				return
 			} else if err != nil {
