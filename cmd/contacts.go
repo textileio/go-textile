@@ -66,7 +66,8 @@ func (x *addContactsCmd) Usage() string {
 	return `
 
 Add to known contacts.
-Note: This command only accepts input from stdin.
+
+NOTE: This command only accepts input from stdin.
 A common workflow is to pipe 'textile contacts find' into 'textile contacts add',
 just be sure you know what the results of the find are before adding.
 `

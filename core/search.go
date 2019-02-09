@@ -54,6 +54,8 @@ func (s *queryResultSet) List() []*pb.QueryResult {
 
 // Search searches the network based on the given query
 func (t *Textile) search(query *pb.Query) (<-chan *pb.QueryResult, <-chan error, *broadcast.Broadcaster) {
+	query = applyQueryDefaults(query)
+
 	var searchChs []chan *pb.QueryResult
 
 	// local results channel

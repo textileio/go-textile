@@ -640,22 +640,6 @@ func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults)
 		return err
 	}
 
-	if query.Options == nil {
-		query.Options = &pb.QueryOptions{
-			Wait:  defaultQueryWaitSeconds,
-			Limit: defaultQueryResultsLimit,
-		}
-	}
-
-	// wait for results
-	if query.Options.Limit <= 0 {
-		query.Options.Limit = defaultQueryResultsLimit
-	}
-	if query.Options.Wait <= 0 {
-		query.Options.Wait = defaultQueryWaitSeconds
-	} else if query.Options.Wait > maxQueryWaitSeconds {
-		query.Options.Wait = maxQueryWaitSeconds
-	}
 	timer := time.NewTimer(time.Second * time.Duration(query.Options.Wait))
 	listener := h.searchResults.Listen()
 	doneCh := make(chan struct{})
@@ -1173,6 +1157,7 @@ func (h *CafeService) handleQuery(pid peer.ID, env *pb.Envelope, renvs chan *pb.
 	if err := ptypes.UnmarshalAny(env.Message.Payload, query); err != nil {
 		return err
 	}
+	query = applyQueryDefaults(query)
 
 	rerr, err := h.authToken(pid, query.Token, false, env.Message.RequestId)
 	if err != nil {
@@ -1183,27 +1168,30 @@ func (h *CafeService) handleQuery(pid peer.ID, env *pb.Envelope, renvs chan *pb.
 		return nil
 	}
 
-	var results *queryResultSet
+	results := newQueryResultSet()
 	reply := func(res *pb.QueryResults) bool {
-		if len(res.Items) == 0 {
+		added := results.Add(res.Items...)
+		if len(added) == 0 {
 			return false
 		}
+
 		renv, err := h.service.NewEnvelope(pb.Message_CAFE_QUERY_RES, res, &env.Message.RequestId, true)
 		if err != nil {
 			log.Errorf("error replying with query results: %s", err)
 		}
 		renvs <- renv
+
 		return len(results.items) >= int(query.Options.Limit)
 	}
 
 	// search local
-	results, err = h.searchLocal(query.Type, query.Payload, false)
+	localResults, err := h.searchLocal(query.Type, query.Payload, false)
 	if err != nil {
 		return err
 	}
 	if reply(&pb.QueryResults{
 		Type:  query.Type,
-		Items: results.List(),
+		Items: localResults.List(),
 	}) {
 		return nil
 	}
@@ -1326,6 +1314,28 @@ func (h *CafeService) setAddrs(conf *config.Config, swarmPorts config.SwarmPorts
 // protoTimeToNano returns nano secs from a proto time object
 func protoTimeToNano(t *timestamp.Timestamp) int {
 	return int(t.Nanos) + int(t.Seconds*1e9)
+}
+
+// applyQueryDefaults ensures the query is within the expected bounds
+func applyQueryDefaults(query *pb.Query) *pb.Query {
+	if query.Options == nil {
+		query.Options = &pb.QueryOptions{
+			Wait:  defaultQueryWaitSeconds,
+			Limit: defaultQueryResultsLimit,
+		}
+	}
+
+	if query.Options.Limit <= 0 {
+		query.Options.Limit = defaultQueryResultsLimit
+	}
+
+	if query.Options.Wait <= 0 {
+		query.Options.Wait = defaultQueryWaitSeconds
+	} else if query.Options.Wait > maxQueryWaitSeconds {
+		query.Options.Wait = maxQueryWaitSeconds
+	}
+
+	return query
 }
 
 // findContactPubSub searches the local contact index for a match
