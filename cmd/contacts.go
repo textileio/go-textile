@@ -66,6 +66,9 @@ func (x *addContactsCmd) Usage() string {
 	return `
 
 Add to known contacts.
+Note: This command only accepts input from stdin.
+A common workflow is to pipe 'textile contacts find' into 'textile contacts add',
+just be sure you know what the results of the find are before adding.
 `
 }
 
@@ -199,7 +202,7 @@ type findContactsCmd struct {
 	Address  string        `short:"a" long:"address" description:"An account address to use in the search."`
 	Local    bool          `long:"local" description:"Only search local contacts."`
 	Limit    int           `long:"limit" description:"Stops searching after limit results are found." default:"5"`
-	Wait     int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed." default:"5"`
+	Wait     int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"5"`
 }
 
 func (x *findContactsCmd) Usage() string {
