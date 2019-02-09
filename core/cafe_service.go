@@ -51,6 +51,9 @@ const (
 // cafeServiceProtocol is the current protocol tag
 const cafeServiceProtocol = protocol.ID("/textile/cafe/1.0.0")
 
+// typePrefix is appended to proto any type URLs
+const typePrefix = "textile.io/"
+
 // CafeService is a libp2p pinning and offline message service
 type CafeService struct {
 	service       *service.Service
@@ -406,7 +409,9 @@ func (h *CafeService) Search(query *pb.Query, cafe peer.ID, reply func(*pb.Query
 		case <-cancelCh:
 			if cancel != nil {
 				fn := *cancel
-				fn()
+				if fn != nil {
+					fn()
+				}
 			}
 			return nil
 		case err := <-errCh:
@@ -584,7 +589,8 @@ func (h *CafeService) searchLocal(qtype pb.QueryType, payload *any.Any, local bo
 		for _, c := range contacts {
 			pc := repoContactToProto(&c)
 			pc.Username = toUsername(&c)
-			value, err := ptypes.MarshalAny(pc)
+
+			value, err := proto.Marshal(pc)
 			if err != nil {
 				return nil, err
 			}
@@ -592,7 +598,10 @@ func (h *CafeService) searchLocal(qtype pb.QueryType, payload *any.Any, local bo
 				Id:    pc.Id,
 				Date:  pc.Updated,
 				Local: local,
-				Value: value,
+				Value: &any.Any{
+					TypeUrl: typePrefix + "Contact",
+					Value:   value,
+				},
 			})
 		}
 	}

@@ -77,7 +77,9 @@ Shows the derived accounts (address/seed pairs) in a wallet.
 `
 }
 
-type versionCmd struct{}
+type versionCmd struct {
+	Git bool `short:"g" long:"git" description:"Show full git version summary."`
+}
 
 type initCmd struct {
 	AccountSeed string         `required:"true" short:"s" long:"seed" description:"Account seed (run 'wallet' command to generate new seeds)."`
@@ -216,7 +218,11 @@ func (x *walletAccountsCmd) Execute(args []string) error {
 }
 
 func (x *versionCmd) Execute(args []string) error {
-	fmt.Println("textile version " + common.Version)
+	if x.Git {
+		fmt.Println("textile-go version " + common.GitSummary)
+	} else {
+		fmt.Println("textile-go version v" + common.Version)
+	}
 	return nil
 }
 

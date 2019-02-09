@@ -12,6 +12,7 @@ import (
 	"os/signal"
 	"strconv"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
@@ -257,11 +258,13 @@ func (x *findContactsCmd) Execute(args []string) error {
 				outputCh <- err.Error()
 				return
 			}
+
 			resultsCh <- result
 		}
 	}()
 
 	go func() {
+		marshaler := jsonpb.Marshaler{Indent: "    "}
 		for {
 			select {
 			case res, ok := <-resultsCh:
@@ -269,7 +272,7 @@ func (x *findContactsCmd) Execute(args []string) error {
 					return
 				}
 
-				data, err := json.MarshalIndent(res, "", "    ")
+				data, err := marshaler.MarshalToString(&res)
 				if err == io.EOF {
 					break
 				} else if err != nil {
