@@ -605,7 +605,7 @@ func (h *CafeService) searchLocal(qtype pb.QueryType, payload *any.Any, local bo
 				Date:  pc.Updated,
 				Local: local,
 				Value: &any.Any{
-					TypeUrl: "Contact",
+					TypeUrl: "/Contact",
 					Value:   value,
 				},
 			})

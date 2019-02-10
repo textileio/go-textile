@@ -1,13 +1,11 @@
 package core
 
 import (
-	"io"
 	"net/http"
 	"strconv"
 
-	"github.com/textileio/textile-go/pb"
-
 	"github.com/gin-gonic/gin"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -129,31 +127,5 @@ func (a *api) searchContacts(g *gin.Context) {
 		return
 	}
 
-	g.Stream(func(w io.Writer) bool {
-		select {
-		case <-g.Request.Context().Done():
-			cancel.Close()
-
-		case err := <-errCh:
-			if opts["events"] == "true" {
-				g.SSEvent("error", err.Error())
-			} else {
-				g.String(http.StatusBadRequest, err.Error())
-			}
-			return false
-
-		case res, ok := <-resCh:
-			if !ok {
-				g.Status(http.StatusOK)
-				return false
-			}
-			if opts["events"] == "true" {
-				g.SSEvent("contact", res)
-			} else {
-				g.JSON(http.StatusOK, res)
-				g.Writer.Write([]byte("\n"))
-			}
-		}
-		return true
-	})
+	handleSearchStream(g, resCh, errCh, cancel, opts["events"] == "true")
 }

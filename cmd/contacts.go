@@ -4,19 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
-	"os/signal"
 	"strconv"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/util"
 )
 
 var errMissingStdin = errors.New("missing stdin")
@@ -219,79 +214,15 @@ func (x *findContactsCmd) Execute(args []string) error {
 		return errMissingSearchInfo
 	}
 
-	outputCh := make(chan interface{})
-
-	cancel := func() {}
-	quit := make(chan os.Signal)
-	signal.Notify(quit, os.Interrupt)
-
-	go func() {
-		defer func() {
-			cancel()
-			os.Exit(1)
-		}()
-
-		var res *http.Response
-		var err error
-		res, cancel, err = request(POST, "contacts/search", params{
-			opts: map[string]string{
-				"username": x.Username,
-				"peer":     x.Peer,
-				"address":  x.Address,
-				"local":    strconv.FormatBool(x.Local),
-				"limit":    strconv.Itoa(x.Limit),
-				"wait":     strconv.Itoa(x.Wait),
-			},
-		})
-		if err != nil {
-			outputCh <- err.Error()
-			return
-		}
-		defer res.Body.Close()
-
-		if res.StatusCode >= 400 {
-			body, err := util.UnmarshalString(res.Body)
-			if err != nil {
-				outputCh <- err.Error()
-			} else {
-				outputCh <- body
-			}
-			return
-		}
-
-		decoder := json.NewDecoder(res.Body)
-		for decoder.More() {
-			var result *pb.QueryResult
-			if err := decoder.Decode(&result); err == io.EOF {
-				return
-			} else if err != nil {
-				outputCh <- err.Error()
-				return
-			}
-
-			data, err := contactsMarshaler.MarshalToString(result)
-			if err != nil {
-				outputCh <- err.Error()
-				return
-			}
-			outputCh <- data
-		}
-	}()
-
-	for {
-		select {
-		case val := <-outputCh:
-			output(val)
-
-		case <-quit:
-			fmt.Println("Interrupted")
-			if cancel != nil {
-				fmt.Printf("Canceling...")
-				cancel()
-			}
-			fmt.Print("done\n")
-			os.Exit(1)
-			return nil
-		}
-	}
+	handleSearchStream("contacts/search", params{
+		opts: map[string]string{
+			"username": x.Username,
+			"peer":     x.Peer,
+			"address":  x.Address,
+			"local":    strconv.FormatBool(x.Local),
+			"limit":    strconv.Itoa(x.Limit),
+			"wait":     strconv.Itoa(x.Wait),
+		},
+	})
+	return nil
 }

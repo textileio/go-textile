@@ -4,10 +4,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/proto"
-
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/textileio/textile-go/broadcast"
@@ -154,9 +153,7 @@ func (t *Textile) UpdateContactInboxes() error {
 }
 
 // SearchContacts searches the network for contacts
-func (t *Textile) SearchContacts(query *pb.ContactQuery, options *pb.QueryOptions) (
-	<-chan *pb.QueryResult, <-chan error, *broadcast.Broadcaster, error) {
-
+func (t *Textile) SearchContacts(query *pb.ContactQuery, options *pb.QueryOptions) (<-chan *pb.QueryResult, <-chan error, *broadcast.Broadcaster, error) {
 	payload, err := proto.Marshal(query)
 	if err != nil {
 		return nil, nil, nil, err
@@ -166,7 +163,7 @@ func (t *Textile) SearchContacts(query *pb.ContactQuery, options *pb.QueryOption
 		Type:    pb.QueryType_CONTACTS,
 		Options: options,
 		Payload: &any.Any{
-			TypeUrl: "Query",
+			TypeUrl: "/ContactQuery",
 			Value:   payload,
 		},
 	})

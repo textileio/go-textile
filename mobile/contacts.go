@@ -76,5 +76,5 @@ func (m *Mobile) SearchContacts(query *pb.ContactQuery, options *pb.QueryOptions
 		return nil, err
 	}
 
-	return handleSearch(resCh, errCh, cancel, cb)
+	return handleSearchStream(resCh, errCh, cancel, cb)
 }

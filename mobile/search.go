@@ -6,8 +6,8 @@ import (
 	"github.com/textileio/textile-go/pb"
 )
 
-// handleSearch handles the response channels from a search
-func handleSearch(resultCh <-chan *pb.QueryResult, errCh <-chan error, cancel *broadcast.Broadcaster, cb Callback) (func(), error) {
+// handleSearchStream handles the response channels from a search
+func handleSearchStream(resultCh <-chan *pb.QueryResult, errCh <-chan error, cancel *broadcast.Broadcaster, cb Callback) (func(), error) {
 	doneFn := func() {
 		cb.Call(proto.Marshal(&pb.QueryEvent{
 			Type: pb.QueryEvent_DONE,
