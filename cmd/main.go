@@ -11,6 +11,8 @@ import (
 	"os/signal"
 	"strings"
 
+	"github.com/golang/protobuf/jsonpb"
+
 	"github.com/fatih/color"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/util"
@@ -147,6 +149,16 @@ func request(meth method, pth string, pars params) (*http.Response, func(), erro
 	return res, cancel, err
 }
 
+var errMissingSearchInfo = errors.New("missing search info")
+
+var pbMarshaler = jsonpb.Marshaler{
+	EmitDefaults: true,
+	Indent:       "    ",
+}
+var pbUnmarshaler = jsonpb.Unmarshaler{
+	AllowUnknownFields: true,
+}
+
 func handleSearchStream(pth string, param params) {
 	outputCh := make(chan interface{})
 
@@ -189,7 +201,7 @@ func handleSearchStream(pth string, param params) {
 				return
 			}
 
-			data, err := contactsMarshaler.MarshalToString(result)
+			data, err := pbMarshaler.MarshalToString(result)
 			if err != nil {
 				outputCh <- err.Error()
 				return

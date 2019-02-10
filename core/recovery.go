@@ -7,18 +7,18 @@ import (
 	"github.com/textileio/textile-go/pb"
 )
 
-// SearchBackups searches the network for backups
-func (t *Textile) SearchBackups(query *pb.BackupQuery, options *pb.QueryOptions) (<-chan *pb.QueryResult, <-chan error, *broadcast.Broadcaster, error) {
+// FindThreadBackups searches the network for backups
+func (t *Textile) FindThreadBackups(query *pb.ThreadBackupQuery, options *pb.QueryOptions) (<-chan *pb.QueryResult, <-chan error, *broadcast.Broadcaster, error) {
 	payload, err := proto.Marshal(query)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	resCh, errCh, cancel := t.search(&pb.Query{
-		Type:    pb.QueryType_BACKUPS,
+		Type:    pb.QueryType_THREAD_BACKUPS,
 		Options: options,
 		Payload: &any.Any{
-			TypeUrl: "/BackupQuery",
+			TypeUrl: "/ThreadBackupQuery",
 			Value:   payload,
 		},
 	})

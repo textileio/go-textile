@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -583,8 +584,40 @@ func (h *CafeService) searchLocal(qtype pb.QueryType, payload *any.Any, local bo
 	results := newQueryResultSet()
 
 	switch qtype {
-	case pb.QueryType_BACKUPS:
-		break
+	case pb.QueryType_THREAD_BACKUPS:
+		q := new(pb.ThreadBackupQuery)
+		if err := ptypes.UnmarshalAny(payload, q); err != nil {
+			return nil, err
+		}
+
+		clients := h.datastore.CafeClients().ListByAddress(q.Address)
+		for _, client := range clients {
+			backups := h.datastore.CafeClientThreads().ListByClient(client.Id)
+			for _, b := range backups {
+				value, err := proto.Marshal(&pb.CafeClientThread{
+					Id:         b.Id,
+					ClientId:   b.ClientId,
+					Ciphertext: b.Ciphertext,
+				})
+				if err != nil {
+					return nil, err
+				}
+				date, err := ptypes.TimestampProto(client.LastSeen)
+				if err != nil {
+					return nil, err
+				}
+				results.Add(&pb.QueryResult{
+					Id:    b.Id,
+					Date:  date,
+					Local: local,
+					Value: &any.Any{
+						TypeUrl: "/CafeClientThread",
+						Value:   value,
+					},
+				})
+			}
+		}
+
 	case pb.QueryType_CONTACTS:
 		q := new(pb.ContactQuery)
 		if err := ptypes.UnmarshalAny(payload, q); err != nil {
@@ -1326,7 +1359,7 @@ func applyQueryDefaults(query *pb.Query) *pb.Query {
 	}
 
 	if query.Options.Limit <= 0 {
-		query.Options.Limit = defaultQueryResultsLimit
+		query.Options.Limit = math.MaxInt32
 	}
 
 	if query.Options.Wait <= 0 {

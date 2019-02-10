@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/jessevdk/go-flags"
@@ -21,12 +22,13 @@ func init() {
 }
 
 type threadsCmd struct {
-	Add        addThreadsCmd        `command:"add" description:"Add a new thread"`
-	List       lsThreadsCmd         `command:"ls" description:"List threads"`
-	Get        getThreadsCmd        `command:"get" description:"Get a thread"`
-	GetDefault getDefaultThreadsCmd `command:"default" description:"Get default thread"`
-	Peers      peersThreadsCmd      `command:"peers" description:"List thread peers"`
-	Remove     rmThreadsCmd         `command:"rm" description:"Remove a thread"`
+	Add        addThreadsCmd         `command:"add" description:"Add a new thread"`
+	List       lsThreadsCmd          `command:"ls" description:"List threads"`
+	Get        getThreadsCmd         `command:"get" description:"Get a thread"`
+	GetDefault getDefaultThreadsCmd  `command:"default" description:"Get default thread"`
+	Peers      peersThreadsCmd       `command:"peers" description:"List thread peers"`
+	Remove     rmThreadsCmd          `command:"rm" description:"Remove a thread"`
+	Backups    findThreadsBackupsCmd `command:"backups" description:"Find backups on the network"`
 }
 
 func (x *threadsCmd) Name() string {
@@ -266,5 +268,28 @@ func (x *rmThreadsCmd) Execute(args []string) error {
 		return err
 	}
 	output(res)
+	return nil
+}
+
+type findThreadsBackupsCmd struct {
+	Client ClientOptions `group:"Client Options"`
+	Wait   int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"5"`
+}
+
+func (x *findThreadsBackupsCmd) Usage() string {
+	return `
+
+Finds thread backups on the network.
+`
+}
+
+func (x *findThreadsBackupsCmd) Execute(args []string) error {
+	setApi(x.Client)
+
+	handleSearchStream("cafes/backups", params{
+		opts: map[string]string{
+			"wait": strconv.Itoa(x.Wait),
+		},
+	})
 	return nil
 }

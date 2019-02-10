@@ -99,6 +99,12 @@ message CafeThread {
     repeated string members = 10;
 }
 
+message CafeClientThread {
+    string id        = 1;
+    string clientId  = 2;
+    bytes ciphertext = 3; // encrypted CafeThread
+}
+
 message CafeStored {
     string id = 1;
 }

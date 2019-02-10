@@ -187,6 +187,7 @@ func (a *api) Start() {
 			cafes.GET("/:id", a.getCafes)
 			cafes.DELETE("/:id", a.rmCafes)
 			cafes.POST("/messages", a.checkCafeMessages)
+			cafes.POST("/backups", a.searchThreadBackups)
 		}
 
 		tokens := v0.Group("/tokens")

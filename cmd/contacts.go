@@ -8,7 +8,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
@@ -17,15 +16,6 @@ import (
 var errMissingStdin = errors.New("missing stdin")
 var errInvalidContact = errors.New("invalid contact format")
 var errMissingPeerId = errors.New("missing peer id")
-var errMissingSearchInfo = errors.New("missing search info")
-
-var contactsMarshaler = jsonpb.Marshaler{
-	EmitDefaults: true,
-	Indent:       "    ",
-}
-var contactsUnmarshaler = jsonpb.Unmarshaler{
-	AllowUnknownFields: true,
-}
 
 func init() {
 	register(&contactsCmd{})
@@ -93,13 +83,13 @@ func (x *addContactsCmd) Execute(args []string) error {
 		body = input
 	} else {
 		var result pb.QueryResult
-		if err := contactsUnmarshaler.Unmarshal(bytes.NewReader(input), &result); err != nil {
+		if err := pbUnmarshaler.Unmarshal(bytes.NewReader(input), &result); err != nil {
 			return errInvalidContact
 		}
 		if result.Value == nil {
 			return errInvalidContact
 		}
-		data, err := contactsMarshaler.MarshalToString(result.Value)
+		data, err := pbMarshaler.MarshalToString(result.Value)
 		if err != nil {
 			return err
 		}
