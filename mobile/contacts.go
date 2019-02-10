@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/textileio/textile-go/pb"
-
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -71,39 +70,11 @@ func (m *Mobile) ContactThreads(id string) (string, error) {
 }
 
 // SearchContacts calls core SearchContacts
-func (m *Mobile) SearchContacts(query *pb.ContactQuery, options *pb.QueryOptions, cb StringCallback) (func(), error) {
+func (m *Mobile) SearchContacts(query *pb.ContactQuery, options *pb.QueryOptions, cb Callback) (func(), error) {
 	resCh, errCh, cancel, err := m.node.SearchContacts(query, options)
 	if err != nil {
 		return nil, err
 	}
 
-	doneFn := func() {
-		cb.Call(toJSON(QueryEvent{
-			Type: QueryDone,
-		}))
-	}
-	cancelFn := func() {
-		cancel.Close()
-		doneFn()
-	}
-
-	go func() {
-		select {
-		case err := <-errCh:
-			cb.Call("", err)
-			return
-
-		case res, ok := <-resCh:
-			if !ok {
-				doneFn()
-				return
-			}
-			cb.Call(toJSON(QueryEvent{
-				Type: QueryData,
-				Data: res,
-			}))
-		}
-	}()
-
-	return cancelFn, nil
+	return handleSearch(resCh, errCh, cancel, cb)
 }

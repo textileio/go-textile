@@ -51,6 +51,16 @@ message PubSubQueryResults {
     QueryResults results = 2;
 }
 
+message QueryEvent {
+    Type type        = 1;
+    QueryResult data = 2;
+
+    enum Type {
+        DATA = 0;
+        DONE = 1;
+    }
+}
+
 message ContactQuery {
     string id       = 1;
     string address  = 2;
