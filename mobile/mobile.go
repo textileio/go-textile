@@ -7,6 +7,7 @@ import (
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 
 	"github.com/textileio/textile-go/broadcast"
+	"github.com/textileio/textile-go/common"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/wallet"
@@ -25,14 +26,9 @@ type Messenger interface {
 	Notify(event *Event)
 }
 
-// ProtoCallback is used for asyc methods (payload is a protobuf)
-type ProtoCallback interface {
+// Callback is used for asyc methods (payload is a protobuf)
+type Callback interface {
 	Call(payload []byte, err error)
-}
-
-// StringCallback is used for asyc methods (payload is a string)
-type StringCallback interface {
-	Call(payload string, err error)
 }
 
 // NewWallet creates a brand new wallet and returns its recovery phrase
@@ -243,9 +239,14 @@ func (m *Mobile) Stop() error {
 	return nil
 }
 
-// Version returns core Version
+// Version returns common Version
 func (m *Mobile) Version() string {
-	return core.Version
+	return "v" + common.Version
+}
+
+// GitSummary returns common GitSummary
+func (m *Mobile) GitSummary() string {
+	return common.GitSummary
 }
 
 // OnlineCh returns core OnlineCh

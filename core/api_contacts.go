@@ -1,11 +1,11 @@
 package core
 
 import (
-	"io"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -110,41 +110,22 @@ func (a *api) searchContacts(g *gin.Context) {
 		wait = 5
 	}
 
-	query := &ContactQuery{
+	query := &pb.ContactQuery{
 		Id:       opts["peer"],
 		Address:  opts["address"],
 		Username: opts["username"],
-		Local:    local,
-		Limit:    limit,
-		Wait:     wait,
+	}
+	options := &pb.QueryOptions{
+		Local: local,
+		Limit: int32(limit),
+		Wait:  int32(wait),
 	}
 
-	resCh, errCh, cancel := a.node.FindContacts(query)
-	g.Stream(func(w io.Writer) bool {
-		select {
-		case <-g.Request.Context().Done():
-			cancel.Close()
+	resCh, errCh, cancel, err := a.node.SearchContacts(query, options)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
 
-		case err := <-errCh:
-			if opts["events"] == "true" {
-				g.SSEvent("error", err.Error())
-			} else {
-				g.String(http.StatusBadRequest, err.Error())
-			}
-			return false
-
-		case res, ok := <-resCh:
-			if !ok {
-				g.Status(http.StatusOK)
-				return false
-			}
-			if opts["events"] == "true" {
-				g.SSEvent("contact", res)
-			} else {
-				g.JSON(http.StatusOK, res)
-				g.Writer.Write([]byte("\n"))
-			}
-		}
-		return true
-	})
+	handleSearchStream(g, resCh, errCh, cancel, opts["events"] == "true")
 }

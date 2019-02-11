@@ -25,9 +25,9 @@ var ErrRepoDoesNotExist = errors.New("repo does not exist, initialization is req
 var ErrMigrationRequired = errors.New("repo needs migration")
 var ErrRepoCorrupted = errors.New("repo is corrupted")
 
-const repover = "10"
+const Repover = "10"
 
-func Init(repoPath string, version string) error {
+func Init(repoPath string) error {
 	if err := checkWriteable(repoPath); err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func Init(repoPath string, version string) error {
 	}
 
 	// write default textile config
-	tconf, err := config.Init(version)
+	tconf, err := config.Init()
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func Init(repoPath string, version string) error {
 		return err
 	}
 	defer repoverFile.Close()
-	if _, err := repoverFile.Write([]byte(repover)); err != nil {
+	if _, err := repoverFile.Write([]byte(Repover)); err != nil {
 		return err
 	}
 

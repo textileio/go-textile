@@ -69,7 +69,6 @@ func (t *Textile) CafeInfo() *repo.Cafe {
 
 // start starts the cafe api
 func (c *cafeApi) start() {
-	// setup router
 	router := gin.Default()
 	router.GET("/", func(g *gin.Context) {
 		g.JSON(http.StatusOK, c.node.CafeInfo())

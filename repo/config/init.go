@@ -7,6 +7,8 @@ import (
 	"path"
 
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
+
+	"github.com/textileio/textile-go/common"
 )
 
 var log = logging.Logger("tex-repo-config")
@@ -91,7 +93,7 @@ type MobileCafeClient struct {
 }
 
 // Init returns the default textile config
-func Init(version string) (*Config, error) {
+func Init() (*Config, error) {
 	return &Config{
 		Account: Account{
 			Address: "",
@@ -104,7 +106,7 @@ func Init(version string) (*Config, error) {
 		},
 		API: API{
 			HTTPHeaders: map[string][]string{
-				"Server": {"textile-go/" + version},
+				"Server": {"textile-go/" + common.Version},
 				"Access-Control-Allow-Methods": {
 					"GET",
 					"POST",

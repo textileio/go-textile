@@ -33,13 +33,18 @@ message Message {
         CAFE_YOU_HAVE_MAIL       = 65;
         CAFE_PUBLISH_CONTACT     = 66;
         CAFE_PUBLISH_CONTACT_ACK = 67;
-        CAFE_CONTACT_QUERY       = 68;
-        CAFE_CONTACT_QUERY_RES   = 69;
+        CAFE_QUERY               = 70;
+        CAFE_QUERY_RES           = 71;
 
-        CAFE_PUBSUB_CONTACT_QUERY     = 100;
-        CAFE_PUBSUB_CONTACT_QUERY_RES = 101;
+        CAFE_PUBSUB_QUERY     = 102;
+        CAFE_PUBSUB_QUERY_RES = 103;
 
         ERROR = 500;
+
+        CAFE_CONTACT_QUERY            = 68 [deprecated = true];
+        CAFE_CONTACT_QUERY_RES        = 69 [deprecated = true];
+        CAFE_PUBSUB_CONTACT_QUERY     = 100 [deprecated = true];
+        CAFE_PUBSUB_CONTACT_QUERY_RES = 101 [deprecated = true];
     }
 }
 

@@ -17,6 +17,7 @@ import (
 	"github.com/gin-contrib/cors"
 	limit "github.com/gin-contrib/size"
 	"github.com/gin-gonic/gin"
+	"github.com/textileio/textile-go/common"
 	m "github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/config"
@@ -58,12 +59,11 @@ func (t *Textile) ApiAddr() string {
 
 // Start starts the http api
 func (a *api) Start() {
-	// setup router
 	router := gin.Default()
 	router.GET("/", func(g *gin.Context) {
 		g.JSON(http.StatusOK, gin.H{
 			"cafe_version": apiVersion,
-			"node_version": Version,
+			"node_version": common.Version,
 		})
 	})
 	router.GET("/health", func(g *gin.Context) {
@@ -187,6 +187,7 @@ func (a *api) Start() {
 			cafes.GET("/:id", a.getCafes)
 			cafes.DELETE("/:id", a.rmCafes)
 			cafes.POST("/messages", a.checkCafeMessages)
+			cafes.POST("/backups", a.searchThreadBackups)
 		}
 
 		tokens := v0.Group("/tokens")
