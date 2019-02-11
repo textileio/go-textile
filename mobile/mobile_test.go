@@ -159,8 +159,40 @@ func TestMobile_Seed(t *testing.T) {
 	}
 }
 
+func TestMobile_AddThreadWithSchema(t *testing.T) {
+	res, err := mobile1.AddThread(&MobileThreadConfig{
+		Key: ksuid.New().String(),
+		Name: "test",
+		Type: repo.ReadOnlyThread,
+		Sharing: repo.InviteOnlyThread,
+		Members: nil,
+		Schema: "{\"pin\":true,\"mill\":\"/json\",\"json_schema\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"$ref\":\"#/definitions/Log\",\"definitions\":{\"Log\":{\"required\":[\"priority\",\"timestamp\",\"hostname\",\"application\",\"pid\",\"message\"],\"properties\":{\"application\":{\"type\":\"string\"},\"hostname\":{\"type\":\"string\"},\"message\":{\"type\":\"string\"},\"pid\":{\"type\":\"integer\"},\"priority\":{\"type\":\"integer\"},\"timestamp\":{\"type\":\"string\"}},\"additionalProperties\":false,\"type\":\"object\"}}}}",
+		Media: false,
+		CameraRoll: false,
+	})
+	if err != nil {
+		t.Errorf("add thread failed: %s", err)
+		return
+	}
+	var thrd *core.ThreadInfo
+	if err := json.Unmarshal([]byte(res), &thrd); err != nil {
+		t.Error(err)
+		return
+	}
+	thrdId = thrd.Id
+}
+
 func TestMobile_AddThread(t *testing.T) {
-	res, err := mobile1.AddThread(ksuid.New().String(), "test", true)
+	res, err := mobile1.AddThread(&MobileThreadConfig{
+		ksuid.New().String(),
+		"test",
+		repo.OpenThread,
+		repo.SharedThread,
+		nil,
+		"",
+		true,
+		false,
+	})
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
 		return
@@ -190,7 +222,16 @@ func TestMobile_Threads(t *testing.T) {
 }
 
 func TestMobile_RemoveThread(t *testing.T) {
-	res, err := mobile1.AddThread(ksuid.New().String(), "another", false)
+	res, err := mobile1.AddThread(&MobileThreadConfig{
+		ksuid.New().String(),
+		"another",
+		repo.PrivateThread,
+		repo.NotSharedThread,
+		nil,
+		"",
+		false,
+		true,
+	})
 	if err != nil {
 		t.Errorf("remove thread failed: %s", err)
 		return
@@ -531,7 +572,16 @@ func TestMobile_AddThreadInvite(t *testing.T) {
 		return
 	}
 
-	res, err := mobile2.AddThread(ksuid.New().String(), "test2", true)
+	res, err := mobile2.AddThread(&MobileThreadConfig{
+		ksuid.New().String(),
+		"test2",
+		repo.OpenThread,
+		repo.SharedThread,
+		nil,
+		"",
+		true,
+		false,
+	})
 	if err != nil {
 		t.Error(err)
 		return
