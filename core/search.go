@@ -11,14 +11,16 @@ import (
 
 // queryResultSet holds a unique set of search results
 type queryResultSet struct {
-	items map[string]*pb.QueryResult
-	mux   sync.Mutex
+	filter pb.QueryOptions_FilterType
+	items  map[string]*pb.QueryResult
+	mux    sync.Mutex
 }
 
 // newQueryResultSet returns a new queryResultSet
-func newQueryResultSet() *queryResultSet {
+func newQueryResultSet(filter pb.QueryOptions_FilterType) *queryResultSet {
 	return &queryResultSet{
-		items: make(map[string]*pb.QueryResult, 0),
+		filter: filter,
+		items:  make(map[string]*pb.QueryResult, 0),
 	}
 }
 
@@ -30,10 +32,16 @@ func (s *queryResultSet) Add(items ...*pb.QueryResult) []*pb.QueryResult {
 	var added []*pb.QueryResult
 	for _, i := range items {
 		last := s.items[i.Id]
-		if last == nil || protoTimeToNano(i.Date) > protoTimeToNano(last.Date) {
-			s.items[i.Id] = i
-			added = append(added, i)
+		switch s.filter {
+		case pb.QueryOptions_NO_FILTER:
+			break
+		case pb.QueryOptions_HIDE_OLDER:
+			if last != nil && protoTimeToNano(i.Date) < protoTimeToNano(last.Date) {
+				continue
+			}
 		}
+		s.items[i.Id] = i
+		added = append(added, i)
 	}
 
 	return added
@@ -88,7 +96,7 @@ func (t *Textile) search(query *pb.Query) (<-chan *pb.QueryResult, <-chan error,
 		}()
 
 		// search local
-		results, err := t.cafe.searchLocal(query.Type, query.Payload, true)
+		results, err := t.cafe.searchLocal(query.Type, query.Options.Filter, query.Payload, true)
 		if err != nil {
 			errCh <- err
 			return
@@ -105,7 +113,6 @@ func (t *Textile) search(query *pb.Query) (<-chan *pb.QueryResult, <-chan error,
 
 			// search via pubsub directly
 			canceler := cancel.Listen()
-			defer canceler.Close()
 			if err := t.cafe.searchPubSub(query, func(res *pb.QueryResults) bool {
 				for _, n := range results.Add(res.Items...) {
 					clientCh <- n
@@ -130,10 +137,7 @@ func (t *Textile) search(query *pb.Query) (<-chan *pb.QueryResult, <-chan error,
 
 				wg.Add(1)
 				go func(i int, cafe peer.ID) {
-					defer func() {
-						canceler.Close()
-						wg.Done()
-					}()
+					defer wg.Done()
 
 					// token must be attached per cafe session, use a new query
 					q := &pb.Query{}

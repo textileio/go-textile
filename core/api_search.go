@@ -5,11 +5,16 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/pb"
 )
 
 func handleSearchStream(g *gin.Context, resultCh <-chan *pb.QueryResult, errCh <-chan error, cancel *broadcast.Broadcaster, events bool) {
+	var marshaler = jsonpb.Marshaler{
+		EnumsAsInts: false,
+	}
+
 	g.Stream(func(w io.Writer) bool {
 		select {
 		case <-g.Request.Context().Done():
@@ -28,10 +33,17 @@ func handleSearchStream(g *gin.Context, resultCh <-chan *pb.QueryResult, errCh <
 				g.Status(http.StatusOK)
 				return false
 			}
+
+			str, err := marshaler.MarshalToString(res)
+			if err != nil {
+				g.String(http.StatusBadRequest, err.Error())
+				break
+			}
+
 			if events {
-				g.SSEvent("result", res)
+				g.SSEvent("result", str)
 			} else {
-				g.JSON(http.StatusOK, res)
+				g.Data(http.StatusOK, "application/json", []byte(str))
 				g.Writer.Write([]byte("\n"))
 			}
 		}
