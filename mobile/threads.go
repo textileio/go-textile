@@ -24,8 +24,8 @@ type ExternalInvite struct {
 type MobileThreadConfig struct {
 	Key      	string `json:"key"`
 	Name  	 	string `json:"name"`
-	Type  	 	repo.ThreadType `json:"type"`
-	Sharing  	repo.ThreadSharing `json:"sharing"`
+	Type  	 	string `json:"type"`
+	Sharing  	string `json:"sharing"`
 	Members   	[]string `json:"members"`
 	Schema	 	string `json:"schema"`
 	Media	 	bool `json:"media"`
@@ -54,6 +54,16 @@ func (m *Mobile) Threads() (string, error) {
 func (m *Mobile) AddThread(config *MobileThreadConfig) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
+	}
+
+	threadType, err := repo.ThreadTypeFromString(config.Type)
+	if err != nil {
+		return "", err
+	}
+
+	sharingType, err := repo.ThreadSharingFromString(config.Sharing)
+	if err != nil {
+		return "", err
 	}
 
 	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
@@ -86,8 +96,8 @@ func (m *Mobile) AddThread(config *MobileThreadConfig) (string, error) {
 		Name:      config.Name,
 		Schema:    shash,
 		Initiator: m.node.Account().Address(),
-		Type:      config.Type,
-		Sharing:   config.Sharing,
+		Type:      threadType,
+		Sharing:   sharingType,
 		Members:   config.Members,
 		Join:      true,
 	}
