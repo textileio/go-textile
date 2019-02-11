@@ -4,23 +4,18 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
-	"os/signal"
 	"strconv"
 
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/util"
 )
 
 var errMissingStdin = errors.New("missing stdin")
 var errInvalidContact = errors.New("invalid contact format")
 var errMissingPeerId = errors.New("missing peer id")
-var errMissingSearchInfo = errors.New("missing search info")
 
 func init() {
 	register(&contactsCmd{})
@@ -56,6 +51,10 @@ func (x *addContactsCmd) Usage() string {
 	return `
 
 Add to known contacts.
+
+NOTE: This command only accepts input from stdin.
+A common workflow is to pipe 'textile contacts find' into 'textile contacts add',
+just be sure you know what the results of the find are before adding.
 `
 }
 
@@ -76,25 +75,25 @@ func (x *addContactsCmd) Execute(args []string) error {
 	}
 
 	var body []byte
-	var contact repo.Contact
+	var contact *repo.Contact
 	if err := json.Unmarshal(input, &contact); err != nil {
 		return errInvalidContact
 	}
-	if contact.Id != "" {
+	if contact.Address != "" {
 		body = input
 	} else {
-		var result core.ContactQueryResult
-		if err := json.Unmarshal(input, &result); err != nil {
+		var result pb.QueryResult
+		if err := pbUnmarshaler.Unmarshal(bytes.NewReader(input), &result); err != nil {
 			return errInvalidContact
 		}
-		if result.Contact.Id == "" {
+		if result.Value == nil {
 			return errInvalidContact
 		}
-		data, err := json.Marshal(result.Contact)
+		data, err := pbMarshaler.MarshalToString(result.Value)
 		if err != nil {
 			return err
 		}
-		body = data
+		body = []byte(data)
 	}
 
 	res, err := executeStringCmd(POST, "contacts", params{
@@ -189,7 +188,7 @@ type findContactsCmd struct {
 	Address  string        `short:"a" long:"address" description:"An account address to use in the search."`
 	Local    bool          `long:"local" description:"Only search local contacts."`
 	Limit    int           `long:"limit" description:"Stops searching after limit results are found." default:"5"`
-	Wait     int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed." default:"5"`
+	Wait     int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"5"`
 }
 
 func (x *findContactsCmd) Usage() string {
@@ -205,94 +204,15 @@ func (x *findContactsCmd) Execute(args []string) error {
 		return errMissingSearchInfo
 	}
 
-	resultsCh := make(chan core.ContactQueryResult)
-	outputCh := make(chan interface{})
-
-	cancel := func() {}
-	quit := make(chan os.Signal)
-	signal.Notify(quit, os.Interrupt)
-
-	go func() {
-		defer func() {
-			cancel()
-			close(resultsCh)
-			os.Exit(1)
-		}()
-
-		var res *http.Response
-		var err error
-		res, cancel, err = request(POST, "contacts/search", params{
-			opts: map[string]string{
-				"username": x.Username,
-				"peer":     x.Peer,
-				"address":  x.Address,
-				"local":    strconv.FormatBool(x.Local),
-				"limit":    strconv.Itoa(x.Limit),
-				"wait":     strconv.Itoa(x.Wait),
-			},
-		})
-		if err != nil {
-			outputCh <- err.Error()
-			return
-		}
-		defer res.Body.Close()
-
-		if res.StatusCode >= 400 {
-			body, err := util.UnmarshalString(res.Body)
-			if err != nil {
-				outputCh <- err.Error()
-			} else {
-				outputCh <- body
-			}
-			return
-		}
-
-		decoder := json.NewDecoder(res.Body)
-		for decoder.More() {
-			var result core.ContactQueryResult
-			if err := decoder.Decode(&result); err == io.EOF {
-				return
-			} else if err != nil {
-				outputCh <- err.Error()
-				return
-			}
-			resultsCh <- result
-		}
-	}()
-
-	go func() {
-		for {
-			select {
-			case res, ok := <-resultsCh:
-				if !ok {
-					return
-				}
-
-				data, err := json.MarshalIndent(res, "", "    ")
-				if err == io.EOF {
-					break
-				} else if err != nil {
-					return
-				}
-				outputCh <- string(data)
-			}
-		}
-	}()
-
-	for {
-		select {
-		case val := <-outputCh:
-			output(val)
-
-		case <-quit:
-			fmt.Println("Interrupted")
-			if cancel != nil {
-				fmt.Printf("Canceling...")
-				cancel()
-			}
-			fmt.Print("done\n")
-			os.Exit(1)
-			return nil
-		}
-	}
+	handleSearchStream("contacts/search", params{
+		opts: map[string]string{
+			"username": x.Username,
+			"peer":     x.Peer,
+			"address":  x.Address,
+			"local":    strconv.FormatBool(x.Local),
+			"limit":    strconv.Itoa(x.Limit),
+			"wait":     strconv.Itoa(x.Wait),
+		},
+	})
+	return nil
 }

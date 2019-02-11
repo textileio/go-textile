@@ -1,0 +1,72 @@
+syntax = "proto3";
+option go_package = "pb";
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+enum QueryType {
+    THREAD_BACKUPS  = 0;
+    CONTACTS = 1;
+}
+
+message QueryOptions {
+    bool local  = 1;
+    int32 limit = 2;
+    int32 wait  = 3;
+}
+
+message Query {
+    string token                = 1;
+    QueryType type              = 2;
+    QueryOptions options        = 3;
+    google.protobuf.Any payload = 4;
+}
+
+message PubSubQuery {
+    string id                   = 1;
+    QueryType type              = 2;
+    google.protobuf.Any payload = 3;
+    ResponseType responseType   = 4;
+
+    enum ResponseType {
+        P2P    = 0;
+        PUBSUB = 1;
+    }
+}
+
+message QueryResult {
+    string id                      = 1;
+    google.protobuf.Timestamp date = 2;
+    bool local                     = 3;
+    google.protobuf.Any value      = 4;
+}
+
+message QueryResults {
+    QueryType type             = 1;
+    repeated QueryResult items = 2;
+}
+
+message PubSubQueryResults {
+    string id            = 1;
+    QueryResults results = 2;
+}
+
+message QueryEvent {
+    Type type        = 1;
+    QueryResult data = 2;
+
+    enum Type {
+        DATA = 0;
+        DONE = 1;
+    }
+}
+
+message ContactQuery {
+    string id       = 1;
+    string address  = 2;
+    string username = 3;
+}
+
+message ThreadBackupQuery {
+    string address  = 1;
+}

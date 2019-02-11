@@ -159,7 +159,7 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 }
 
 // PrepareFilesAsync is the async flavor of PrepareFiles
-func (m *Mobile) PrepareFilesAsync(path string, threadId string, cb ProtoCallback) {
+func (m *Mobile) PrepareFilesAsync(path string, threadId string, cb Callback) {
 	go func() {
 		cb.Call(m.PrepareFiles(path, threadId))
 	}()

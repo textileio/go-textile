@@ -30,6 +30,7 @@ func (t *Textile) CreateCafeToken(token string, store bool) (string, error) {
 			return "", err
 		}
 	}
+
 	date := time.Now()
 	id := hex.EncodeToString(key[:12])
 	rawToken := key[12:]
@@ -37,17 +38,17 @@ func (t *Textile) CreateCafeToken(token string, store bool) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	if store {
-		err = t.datastore.CafeTokens().Add(
-			&repo.CafeToken{
-				Id:    id,
-				Token: safeToken,
-				Date:  date,
-			})
-		if err != nil {
+		if err := t.datastore.CafeTokens().Add(&repo.CafeToken{
+			Id:    id,
+			Token: safeToken,
+			Date:  date,
+		}); err != nil {
 			return "", err
 		}
 	}
+
 	return base58.FastBase58Encoding(key), nil
 }
 
@@ -55,6 +56,7 @@ func (t *Textile) CreateCafeToken(token string, store bool) (string, error) {
 func (t *Textile) CafeTokens() ([]string, error) {
 	tokens := t.datastore.CafeTokens().List()
 	strings := make([]string, len(tokens))
+
 	for i, token := range tokens {
 		id, err := hex.DecodeString(token.Id)
 		if err != nil {
@@ -62,6 +64,7 @@ func (t *Textile) CafeTokens() ([]string, error) {
 		}
 		strings[i] = base58.FastBase58Encoding(append(id, token.Token...))
 	}
+
 	return strings, nil
 }
 
@@ -76,12 +79,12 @@ func (t *Textile) ValidateCafeToken(token string) (bool, error) {
 	if len(plainBytes) < 44 {
 		return false, errors.New("invalid token format")
 	}
+
 	encodedToken := t.datastore.CafeTokens().Get(hex.EncodeToString(plainBytes[:12]))
 	if encodedToken == nil {
 		return false, err
 	}
-	err = bcrypt.CompareHashAndPassword(encodedToken.Token, plainBytes[12:])
-	if err != nil {
+	if err := bcrypt.CompareHashAndPassword(encodedToken.Token, plainBytes[12:]); err != nil {
 		return false, err
 	}
 	return true, nil

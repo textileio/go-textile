@@ -173,6 +173,7 @@
   digest = "1:a2ecb56e5053d942aafc86738915fb94c9131bac848c543b8b6764365fd69080"
   name = "github.com/golang/protobuf"
   packages = [
+    "jsonpb",
     "proto",
     "ptypes",
     "ptypes/any",
@@ -574,6 +575,7 @@
     "github.com/gin-contrib/size",
     "github.com/gin-gonic/gin",
     "github.com/gin-gonic/gin/render",
+    "github.com/golang/protobuf/jsonpb",
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/ptypes",
     "github.com/golang/protobuf/ptypes/any",
