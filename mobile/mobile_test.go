@@ -202,6 +202,14 @@ func TestMobile_AddThreadWithSchema(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	res2, err := mobile1.RemoveThread(thrd.Id)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if res2 == "" {
+		t.Errorf("remove thread bad result: %s", err)
+	}
 }
 
 func TestMobile_Threads(t *testing.T) {
