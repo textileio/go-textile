@@ -8,7 +8,7 @@ func (m *Mobile) ThreadFeed(offset string, limit int, threadId string) (string, 
 		return "", core.ErrStopped
 	}
 
-	items, err := m.node.ThreadFeed(offset, limit, threadId)
+	items, err := m.node.ThreadFeed(offset, limit, threadId, false)
 	if err != nil {
 		return "", err
 	}

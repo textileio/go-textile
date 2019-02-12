@@ -36,7 +36,7 @@ func (a *api) addBlockComments(g *gin.Context) {
 		return
 	}
 
-	info, err := a.node.ThreadComment(*block)
+	info, err := a.node.ThreadComment(block, true)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -69,7 +69,7 @@ func (a *api) getBlockComment(g *gin.Context) {
 		return
 	}
 
-	info, err := a.node.ThreadComment(*block)
+	info, err := a.node.ThreadComment(block, true)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

@@ -81,15 +81,7 @@ func (a *api) lsThreadMessages(g *gin.Context) {
 }
 
 func (a *api) getThreadMessages(g *gin.Context) {
-	id := g.Param("block")
-
-	block, err := a.node.Block(id)
-	if err != nil {
-		g.String(http.StatusNotFound, "block not found")
-		return
-	}
-
-	info, err := a.node.ThreadMessage(*block)
+	info, err := a.node.ThreadMessage(g.Param("block"))
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

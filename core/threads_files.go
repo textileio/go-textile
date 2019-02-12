@@ -44,7 +44,7 @@ func (t *Textile) ThreadFiles(offset string, limit int, threadId string) ([]Thre
 
 	blocks := t.Blocks(offset, limit, query)
 	for _, block := range blocks {
-		file, err := t.threadFile(block)
+		file, err := t.threadFile(&block, true)
 		if err != nil {
 			return nil, err
 		}
@@ -60,7 +60,7 @@ func (t *Textile) ThreadFile(blockId string) (*ThreadFilesInfo, error) {
 		return nil, err
 	}
 
-	return t.threadFile(*block)
+	return t.threadFile(block, true)
 }
 
 func (t *Textile) fileAtTarget(target string) ([]ThreadFileInfo, error) {
@@ -113,24 +113,9 @@ func (t *Textile) fileAtTarget(target string) ([]ThreadFileInfo, error) {
 	return files, nil
 }
 
-func (t *Textile) threadFile(block repo.Block) (*ThreadFilesInfo, error) {
+func (t *Textile) threadFile(block *repo.Block, annotated bool) (*ThreadFilesInfo, error) {
 	if block.Type != repo.FilesBlock {
 		return nil, ErrBlockWrongType
-	}
-
-	files, err := t.fileAtTarget(block.Target)
-	if err != nil {
-		return nil, err
-	}
-
-	comments, err := t.ThreadComments(block.Id)
-	if err != nil {
-		return nil, err
-	}
-
-	likes, err := t.ThreadLikes(block.Id)
-	if err != nil {
-		return nil, err
 	}
 
 	threads := make([]string, 0)
@@ -138,7 +123,12 @@ func (t *Textile) threadFile(block repo.Block) (*ThreadFilesInfo, error) {
 
 	username, avatar := t.ContactDisplayInfo(block.AuthorId)
 
-	return &ThreadFilesInfo{
+	files, err := t.fileAtTarget(block.Target)
+	if err != nil {
+		return nil, err
+	}
+
+	info := &ThreadFilesInfo{
 		Block:    block.Id,
 		Target:   block.Target,
 		Date:     block.Date,
@@ -147,10 +137,24 @@ func (t *Textile) threadFile(block repo.Block) (*ThreadFilesInfo, error) {
 		Avatar:   avatar,
 		Caption:  block.Body,
 		Files:    files,
-		Comments: comments,
-		Likes:    likes,
 		Threads:  threads,
-	}, nil
+	}
+
+	if annotated {
+		comments, err := t.ThreadComments(block.Id)
+		if err != nil {
+			return nil, err
+		}
+		info.Comments = comments
+
+		likes, err := t.ThreadLikes(block.Id)
+		if err != nil {
+			return nil, err
+		}
+		info.Likes = likes
+	}
+
+	return info, nil
 }
 
 // fileThreads lists threads that have blocks which target a file

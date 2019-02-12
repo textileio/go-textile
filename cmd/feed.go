@@ -14,10 +14,11 @@ func init() {
 }
 
 type lsCmd struct {
-	Client ClientOptions `group:"Client Options"`
-	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for all."`
-	Offset string        `short:"o" long:"offset" description:"Offset ID to start listing from."`
-	Limit  int           `short:"l" long:"limit" description:"List page size." default:"5"`
+	Client    ClientOptions `group:"Client Options"`
+	Thread    string        `short:"t" long:"thread" description:"Thread ID. Omit for all."`
+	Offset    string        `short:"o" long:"offset" description:"Offset ID to start listing from."`
+	Limit     int           `short:"l" long:"limit" description:"List page size." default:"5"`
+	Annotated bool          `short:"a" long:"annotated" description:"Nest thread annotations under their targets."`
 }
 
 func (x *lsCmd) Name() string {
@@ -39,9 +40,10 @@ Specify "default" to use the default thread (if selected).
 func (x *lsCmd) Execute(args []string) error {
 	setApi(x.Client)
 	opts := map[string]string{
-		"thread": x.Thread,
-		"offset": x.Offset,
-		"limit":  strconv.Itoa(x.Limit),
+		"thread":    x.Thread,
+		"offset":    x.Offset,
+		"limit":     strconv.Itoa(x.Limit),
+		"annotated": strconv.FormatBool(x.Annotated),
 	}
 	return callLs(opts)
 }
@@ -70,8 +72,9 @@ func callLs(opts map[string]string) error {
 	}
 
 	return callLs(map[string]string{
-		"thread": opts["thread"],
-		"offset": list[len(list)-1].Block,
-		"limit":  opts["limit"],
+		"thread":    opts["thread"],
+		"offset":    list[len(list)-1].Block,
+		"limit":     opts["limit"],
+		"annotated": opts["annotated"],
 	})
 }
