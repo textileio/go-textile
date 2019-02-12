@@ -2,7 +2,6 @@ package mobile
 
 import (
 	"crypto/rand"
-
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
@@ -11,6 +10,7 @@ import (
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema/textile"
+	"github.com/textileio/textile-go/util"
 )
 
 // ExternalInvite is a wrapper around an invite id and key
@@ -22,14 +22,14 @@ type ExternalInvite struct {
 
 // AddThreadConfig is the mobile-client specific config for creating a new thread
 type AddThreadConfig struct {
-	Key        string   `json:"key"`
-	Name       string   `json:"name"`
-	Type       string   `json:"type"`
-	Sharing    string   `json:"sharing"`
-	Members    []string `json:"members"`
-	Schema     string   `json:"schema"`
-	Media      bool     `json:"media"`
-	CameraRoll bool     `json:"cameraRoll"`
+	Key        string `json:"key"`
+	Name       string `json:"name"`
+	Type       string `json:"type"`
+	Sharing    string `json:"sharing"`
+	Members    string `json:"members"`
+	Schema     string `json:"schema"`
+	Media      bool   `json:"media"`
+	CameraRoll bool   `json:"cameraRoll"`
 }
 
 // Threads lists all threads
@@ -96,7 +96,7 @@ func (m *Mobile) AddThread(config *AddThreadConfig) (string, error) {
 		Initiator: m.node.Account().Address(),
 		Type:      threadType,
 		Sharing:   sharingType,
-		Members:   config.Members,
+		Members:   util.SplitString(config.Members, ","),
 		Join:      true,
 	}
 

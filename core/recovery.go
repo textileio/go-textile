@@ -56,17 +56,10 @@ func (t *Textile) FindThreadBackups(query *pb.ThreadBackupQuery, options *pb.Que
 					break
 				}
 
-				//cthrd := new(pb.CafeThread)
-				//if err := proto.Unmarshal(plaintext, cthrd); err != nil {
-				//	terrCh <- err
-				//	break
-				//}
-
 				res.Value = &any.Any{
 					TypeUrl: "/CafeThread",
 					Value:   plaintext,
 				}
-
 				tresCh <- res
 
 			case err := <-errCh:

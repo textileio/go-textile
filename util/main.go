@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
+	"strings"
 )
 
 func UnmarshalString(body io.ReadCloser) (string, error) {
@@ -20,6 +21,17 @@ func UnmarshalJSON(body io.ReadCloser, target interface{}) error {
 		return err
 	}
 	return json.Unmarshal(data, target)
+}
+
+func SplitString(in string, sep string) []string {
+	list := make([]string, 0)
+	for _, s := range strings.Split(in, sep) {
+		t := strings.TrimSpace(s)
+		if t != "" {
+			list = append(list, t)
+		}
+	}
+	return list
 }
 
 func trimQuotes(s string) string {
