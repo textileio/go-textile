@@ -20,16 +20,16 @@ type ExternalInvite struct {
 	Inviter string `json:"inviter"`
 }
 
-// MobileThreadConfig is the mobile-client specific config for creating a new thread
-type MobileThreadConfig struct {
-	Key      	string `json:"key"`
-	Name  	 	string `json:"name"`
-	Type  	 	string `json:"type"`
-	Sharing  	string `json:"sharing"`
-	Members   	[]string `json:"members"`
-	Schema	 	string `json:"schema"`
-	Media	 	bool `json:"media"`
-	CameraRoll	bool `json:"cameraRoll"`
+// AddThreadConfig is the mobile-client specific config for creating a new thread
+type AddThreadConfig struct {
+	Key        string   `json:"key"`
+	Name       string   `json:"name"`
+	Type       string   `json:"type"`
+	Sharing    string   `json:"sharing"`
+	Members    []string `json:"members"`
+	Schema     string   `json:"schema"`
+	Media      bool     `json:"media"`
+	CameraRoll bool     `json:"cameraRoll"`
 }
 
 // Threads lists all threads
@@ -51,7 +51,7 @@ func (m *Mobile) Threads() (string, error) {
 }
 
 // AddThread adds a new thread with the given name
-func (m *Mobile) AddThread(config *MobileThreadConfig) (string, error) {
+func (m *Mobile) AddThread(config *AddThreadConfig) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
@@ -71,8 +71,6 @@ func (m *Mobile) AddThread(config *MobileThreadConfig) (string, error) {
 		return "", err
 	}
 
-	// tmp use the built-in schemas for all mobile threads
-	// until we're ready to let the app define its own schemas.
 	var sch string
 	if config.Media {
 		sch = textile.Media
