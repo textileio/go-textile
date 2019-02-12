@@ -8,12 +8,13 @@ import (
 )
 
 type ThreadCommentInfo struct {
-	Id       string    `json:"id"`
-	Date     time.Time `json:"date"`
-	AuthorId string    `json:"author_id"`
-	Username string    `json:"username,omitempty"`
-	Avatar   string    `json:"avatar,omitempty"`
-	Body     string    `json:"body"`
+	Id       string          `json:"id"`
+	Date     time.Time       `json:"date"`
+	AuthorId string          `json:"author_id"`
+	Username string          `json:"username,omitempty"`
+	Avatar   string          `json:"avatar,omitempty"`
+	Body     string          `json:"body"`
+	Target   *ThreadFeedItem `json:"target"`
 }
 
 func (t *Textile) ThreadComments(target string) ([]ThreadCommentInfo, error) {
@@ -21,7 +22,7 @@ func (t *Textile) ThreadComments(target string) ([]ThreadCommentInfo, error) {
 
 	query := fmt.Sprintf("type=%d and target='%s'", repo.CommentBlock, target)
 	for _, block := range t.Blocks("", -1, query) {
-		info, err := t.ThreadComment(block)
+		info, err := t.ThreadComment(&block, true)
 		if err != nil {
 			continue
 		}
@@ -31,19 +32,29 @@ func (t *Textile) ThreadComments(target string) ([]ThreadCommentInfo, error) {
 	return comments, nil
 }
 
-func (t *Textile) ThreadComment(block repo.Block) (*ThreadCommentInfo, error) {
+func (t *Textile) ThreadComment(block *repo.Block, annotation bool) (*ThreadCommentInfo, error) {
 	if block.Type != repo.CommentBlock {
 		return nil, ErrBlockWrongType
 	}
 
 	username, avatar := t.ContactDisplayInfo(block.AuthorId)
 
-	return &ThreadCommentInfo{
+	info := &ThreadCommentInfo{
 		Id:       block.Id,
 		Date:     block.Date,
 		AuthorId: block.AuthorId,
 		Username: username,
 		Avatar:   avatar,
 		Body:     block.Body,
-	}, nil
+	}
+
+	if !annotation {
+		target, err := t.threadItem(t.datastore.Blocks().Get(block.Target), false)
+		if err != nil {
+			return nil, err
+		}
+		info.Target = target
+	}
+
+	return info, nil
 }

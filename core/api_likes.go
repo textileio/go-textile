@@ -26,7 +26,7 @@ func (a *api) addBlockLikes(g *gin.Context) {
 		return
 	}
 
-	info, err := a.node.ThreadLike(*block)
+	info, err := a.node.ThreadLike(block, true)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -59,7 +59,7 @@ func (a *api) getBlockLike(g *gin.Context) {
 		return
 	}
 
-	info, err := a.node.ThreadLike(*block)
+	info, err := a.node.ThreadLike(block, true)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

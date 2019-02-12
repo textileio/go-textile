@@ -3,12 +3,12 @@ package mobile
 import "github.com/textileio/textile-go/core"
 
 // ThreadFeed calls core ThreadFeed
-func (m *Mobile) ThreadFeed(offset string, limit int, threadId string) (string, error) {
+func (m *Mobile) ThreadFeed(offset string, limit int, threadId string, annotated bool) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
 
-	items, err := m.node.ThreadFeed(offset, limit, threadId)
+	items, err := m.node.ThreadFeed(offset, limit, threadId, annotated)
 	if err != nil {
 		return "", err
 	}

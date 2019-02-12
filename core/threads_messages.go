@@ -33,7 +33,7 @@ func (t *Textile) ThreadMessages(offset string, limit int, threadId string) ([]T
 
 	blocks := t.Blocks(offset, limit, query)
 	for _, block := range blocks {
-		msg, err := t.ThreadMessage(block)
+		msg, err := t.threadMessage(&block, true)
 		if err != nil {
 			return nil, err
 		}
@@ -42,32 +42,44 @@ func (t *Textile) ThreadMessages(offset string, limit int, threadId string) ([]T
 
 	return list, nil
 }
+func (t *Textile) ThreadMessage(blockId string) (*ThreadMessageInfo, error) {
+	block, err := t.Block(blockId)
+	if err != nil {
+		return nil, err
+	}
 
-func (t *Textile) ThreadMessage(block repo.Block) (*ThreadMessageInfo, error) {
+	return t.threadMessage(block, true)
+}
+
+func (t *Textile) threadMessage(block *repo.Block, annotated bool) (*ThreadMessageInfo, error) {
 	if block.Type != repo.MessageBlock {
 		return nil, ErrBlockWrongType
 	}
 
-	comments, err := t.ThreadComments(block.Id)
-	if err != nil {
-		return nil, err
-	}
-
-	likes, err := t.ThreadLikes(block.Id)
-	if err != nil {
-		return nil, err
-	}
-
 	username, avatar := t.ContactDisplayInfo(block.AuthorId)
 
-	return &ThreadMessageInfo{
+	info := &ThreadMessageInfo{
 		Block:    block.Id,
 		Date:     block.Date,
 		AuthorId: block.AuthorId,
 		Username: username,
 		Avatar:   avatar,
 		Body:     block.Body,
-		Comments: comments,
-		Likes:    likes,
-	}, nil
+	}
+
+	if annotated {
+		comments, err := t.ThreadComments(block.Id)
+		if err != nil {
+			return nil, err
+		}
+		info.Comments = comments
+
+		likes, err := t.ThreadLikes(block.Id)
+		if err != nil {
+			return nil, err
+		}
+		info.Likes = likes
+	}
+
+	return info, nil
 }

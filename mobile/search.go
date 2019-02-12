@@ -6,11 +6,13 @@ import (
 	"github.com/textileio/textile-go/pb"
 )
 
+// CancelFn is used to cancel an async request
 type CancelFn struct {
 	cancel *broadcast.Broadcaster
 	done   func()
 }
 
+// Call is used to invoke the cancel
 func (c *CancelFn) Call() {
 	c.cancel.Close()
 	c.done()
