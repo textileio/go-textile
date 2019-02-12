@@ -6,6 +6,8 @@ package pb
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
+import any "github.com/golang/protobuf/ptypes/any"
+import timestamp "github.com/golang/protobuf/ptypes/timestamp"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -18,6 +20,32 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
+type FeedType int32
+
+const (
+	FeedType_FLAT      FeedType = 0
+	FeedType_ANNOTATED FeedType = 1
+	FeedType_HYBRID    FeedType = 2
+)
+
+var FeedType_name = map[int32]string{
+	0: "FLAT",
+	1: "ANNOTATED",
+	2: "HYBRID",
+}
+var FeedType_value = map[string]int32{
+	"FLAT":      0,
+	"ANNOTATED": 1,
+	"HYBRID":    2,
+}
+
+func (x FeedType) String() string {
+	return proto.EnumName(FeedType_name, int32(x))
+}
+func (FeedType) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_view_964d7678ce5a109b, []int{0}
+}
+
 type Directory struct {
 	Files                map[string]*File `protobuf:"bytes,1,rep,name=files,proto3" json:"files,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
@@ -29,7 +57,7 @@ func (m *Directory) Reset()         { *m = Directory{} }
 func (m *Directory) String() string { return proto.CompactTextString(m) }
 func (*Directory) ProtoMessage()    {}
 func (*Directory) Descriptor() ([]byte, []int) {
-	return fileDescriptor_view_5419c27765a82837, []int{0}
+	return fileDescriptor_view_964d7678ce5a109b, []int{0}
 }
 func (m *Directory) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Directory.Unmarshal(m, b)
@@ -56,48 +84,634 @@ func (m *Directory) GetFiles() map[string]*File {
 	return nil
 }
 
-type MobilePreparedFiles struct {
-	Dir                  *Directory        `protobuf:"bytes,1,opt,name=dir,proto3" json:"dir,omitempty"`
-	Pin                  map[string]string `protobuf:"bytes,2,rep,name=pin,proto3" json:"pin,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
-	XXX_unrecognized     []byte            `json:"-"`
-	XXX_sizecache        int32             `json:"-"`
+type FeedItem struct {
+	Block                string   `protobuf:"bytes,1,opt,name=block,proto3" json:"block,omitempty"`
+	Body                 *any.Any `protobuf:"bytes,2,opt,name=body,proto3" json:"body,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *MobilePreparedFiles) Reset()         { *m = MobilePreparedFiles{} }
-func (m *MobilePreparedFiles) String() string { return proto.CompactTextString(m) }
-func (*MobilePreparedFiles) ProtoMessage()    {}
-func (*MobilePreparedFiles) Descriptor() ([]byte, []int) {
-	return fileDescriptor_view_5419c27765a82837, []int{1}
+func (m *FeedItem) Reset()         { *m = FeedItem{} }
+func (m *FeedItem) String() string { return proto.CompactTextString(m) }
+func (*FeedItem) ProtoMessage()    {}
+func (*FeedItem) Descriptor() ([]byte, []int) {
+	return fileDescriptor_view_964d7678ce5a109b, []int{1}
 }
-func (m *MobilePreparedFiles) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_MobilePreparedFiles.Unmarshal(m, b)
+func (m *FeedItem) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_FeedItem.Unmarshal(m, b)
 }
-func (m *MobilePreparedFiles) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_MobilePreparedFiles.Marshal(b, m, deterministic)
+func (m *FeedItem) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_FeedItem.Marshal(b, m, deterministic)
 }
-func (dst *MobilePreparedFiles) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MobilePreparedFiles.Merge(dst, src)
+func (dst *FeedItem) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FeedItem.Merge(dst, src)
 }
-func (m *MobilePreparedFiles) XXX_Size() int {
-	return xxx_messageInfo_MobilePreparedFiles.Size(m)
+func (m *FeedItem) XXX_Size() int {
+	return xxx_messageInfo_FeedItem.Size(m)
 }
-func (m *MobilePreparedFiles) XXX_DiscardUnknown() {
-	xxx_messageInfo_MobilePreparedFiles.DiscardUnknown(m)
+func (m *FeedItem) XXX_DiscardUnknown() {
+	xxx_messageInfo_FeedItem.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_MobilePreparedFiles proto.InternalMessageInfo
+var xxx_messageInfo_FeedItem proto.InternalMessageInfo
 
-func (m *MobilePreparedFiles) GetDir() *Directory {
+func (m *FeedItem) GetBlock() string {
 	if m != nil {
-		return m.Dir
+		return m.Block
+	}
+	return ""
+}
+
+func (m *FeedItem) GetBody() *any.Any {
+	if m != nil {
+		return m.Body
 	}
 	return nil
 }
 
-func (m *MobilePreparedFiles) GetPin() map[string]string {
+type FeedJoin struct {
+	Block                string               `protobuf:"bytes,1,opt,name=block,proto3" json:"block,omitempty"`
+	Date                 *timestamp.Timestamp `protobuf:"bytes,2,opt,name=date,proto3" json:"date,omitempty"`
+	Author               string               `protobuf:"bytes,3,opt,name=author,proto3" json:"author,omitempty"`
+	Username             string               `protobuf:"bytes,4,opt,name=username,proto3" json:"username,omitempty"`
+	Avatar               string               `protobuf:"bytes,5,opt,name=avatar,proto3" json:"avatar,omitempty"`
+	Likes                []*FeedLike          `protobuf:"bytes,6,rep,name=likes,proto3" json:"likes,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
+	XXX_unrecognized     []byte               `json:"-"`
+	XXX_sizecache        int32                `json:"-"`
+}
+
+func (m *FeedJoin) Reset()         { *m = FeedJoin{} }
+func (m *FeedJoin) String() string { return proto.CompactTextString(m) }
+func (*FeedJoin) ProtoMessage()    {}
+func (*FeedJoin) Descriptor() ([]byte, []int) {
+	return fileDescriptor_view_964d7678ce5a109b, []int{2}
+}
+func (m *FeedJoin) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_FeedJoin.Unmarshal(m, b)
+}
+func (m *FeedJoin) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_FeedJoin.Marshal(b, m, deterministic)
+}
+func (dst *FeedJoin) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FeedJoin.Merge(dst, src)
+}
+func (m *FeedJoin) XXX_Size() int {
+	return xxx_messageInfo_FeedJoin.Size(m)
+}
+func (m *FeedJoin) XXX_DiscardUnknown() {
+	xxx_messageInfo_FeedJoin.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_FeedJoin proto.InternalMessageInfo
+
+func (m *FeedJoin) GetBlock() string {
 	if m != nil {
-		return m.Pin
+		return m.Block
+	}
+	return ""
+}
+
+func (m *FeedJoin) GetDate() *timestamp.Timestamp {
+	if m != nil {
+		return m.Date
+	}
+	return nil
+}
+
+func (m *FeedJoin) GetAuthor() string {
+	if m != nil {
+		return m.Author
+	}
+	return ""
+}
+
+func (m *FeedJoin) GetUsername() string {
+	if m != nil {
+		return m.Username
+	}
+	return ""
+}
+
+func (m *FeedJoin) GetAvatar() string {
+	if m != nil {
+		return m.Avatar
+	}
+	return ""
+}
+
+func (m *FeedJoin) GetLikes() []*FeedLike {
+	if m != nil {
+		return m.Likes
+	}
+	return nil
+}
+
+type FeedLeave struct {
+	Block                string               `protobuf:"bytes,1,opt,name=block,proto3" json:"block,omitempty"`
+	Date                 *timestamp.Timestamp `protobuf:"bytes,2,opt,name=date,proto3" json:"date,omitempty"`
+	Author               string               `protobuf:"bytes,3,opt,name=author,proto3" json:"author,omitempty"`
+	Username             string               `protobuf:"bytes,4,opt,name=username,proto3" json:"username,omitempty"`
+	Avatar               string               `protobuf:"bytes,5,opt,name=avatar,proto3" json:"avatar,omitempty"`
+	Likes                []*FeedLike          `protobuf:"bytes,6,rep,name=likes,proto3" json:"likes,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
+	XXX_unrecognized     []byte               `json:"-"`
+	XXX_sizecache        int32                `json:"-"`
+}
+
+func (m *FeedLeave) Reset()         { *m = FeedLeave{} }
+func (m *FeedLeave) String() string { return proto.CompactTextString(m) }
+func (*FeedLeave) ProtoMessage()    {}
+func (*FeedLeave) Descriptor() ([]byte, []int) {
+	return fileDescriptor_view_964d7678ce5a109b, []int{3}
+}
+func (m *FeedLeave) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_FeedLeave.Unmarshal(m, b)
+}
+func (m *FeedLeave) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_FeedLeave.Marshal(b, m, deterministic)
+}
+func (dst *FeedLeave) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FeedLeave.Merge(dst, src)
+}
+func (m *FeedLeave) XXX_Size() int {
+	return xxx_messageInfo_FeedLeave.Size(m)
+}
+func (m *FeedLeave) XXX_DiscardUnknown() {
+	xxx_messageInfo_FeedLeave.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_FeedLeave proto.InternalMessageInfo
+
+func (m *FeedLeave) GetBlock() string {
+	if m != nil {
+		return m.Block
+	}
+	return ""
+}
+
+func (m *FeedLeave) GetDate() *timestamp.Timestamp {
+	if m != nil {
+		return m.Date
+	}
+	return nil
+}
+
+func (m *FeedLeave) GetAuthor() string {
+	if m != nil {
+		return m.Author
+	}
+	return ""
+}
+
+func (m *FeedLeave) GetUsername() string {
+	if m != nil {
+		return m.Username
+	}
+	return ""
+}
+
+func (m *FeedLeave) GetAvatar() string {
+	if m != nil {
+		return m.Avatar
+	}
+	return ""
+}
+
+func (m *FeedLeave) GetLikes() []*FeedLike {
+	if m != nil {
+		return m.Likes
+	}
+	return nil
+}
+
+type FeedFiles struct {
+	Block                string               `protobuf:"bytes,1,opt,name=block,proto3" json:"block,omitempty"`
+	Target               string               `protobuf:"bytes,2,opt,name=target,proto3" json:"target,omitempty"`
+	Date                 *timestamp.Timestamp `protobuf:"bytes,3,opt,name=date,proto3" json:"date,omitempty"`
+	Author               string               `protobuf:"bytes,4,opt,name=author,proto3" json:"author,omitempty"`
+	Username             string               `protobuf:"bytes,5,opt,name=username,proto3" json:"username,omitempty"`
+	Avatar               string               `protobuf:"bytes,6,opt,name=avatar,proto3" json:"avatar,omitempty"`
+	Caption              string               `protobuf:"bytes,7,opt,name=caption,proto3" json:"caption,omitempty"`
+	Files                []*FeedFile          `protobuf:"bytes,8,rep,name=files,proto3" json:"files,omitempty"`
+	Comments             []*FeedComment       `protobuf:"bytes,9,rep,name=comments,proto3" json:"comments,omitempty"`
+	Likes                []*FeedLike          `protobuf:"bytes,10,rep,name=likes,proto3" json:"likes,omitempty"`
+	Threads              []string             `protobuf:"bytes,11,rep,name=threads,proto3" json:"threads,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
+	XXX_unrecognized     []byte               `json:"-"`
+	XXX_sizecache        int32                `json:"-"`
+}
+
+func (m *FeedFiles) Reset()         { *m = FeedFiles{} }
+func (m *FeedFiles) String() string { return proto.CompactTextString(m) }
+func (*FeedFiles) ProtoMessage()    {}
+func (*FeedFiles) Descriptor() ([]byte, []int) {
+	return fileDescriptor_view_964d7678ce5a109b, []int{4}
+}
+func (m *FeedFiles) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_FeedFiles.Unmarshal(m, b)
+}
+func (m *FeedFiles) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_FeedFiles.Marshal(b, m, deterministic)
+}
+func (dst *FeedFiles) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FeedFiles.Merge(dst, src)
+}
+func (m *FeedFiles) XXX_Size() int {
+	return xxx_messageInfo_FeedFiles.Size(m)
+}
+func (m *FeedFiles) XXX_DiscardUnknown() {
+	xxx_messageInfo_FeedFiles.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_FeedFiles proto.InternalMessageInfo
+
+func (m *FeedFiles) GetBlock() string {
+	if m != nil {
+		return m.Block
+	}
+	return ""
+}
+
+func (m *FeedFiles) GetTarget() string {
+	if m != nil {
+		return m.Target
+	}
+	return ""
+}
+
+func (m *FeedFiles) GetDate() *timestamp.Timestamp {
+	if m != nil {
+		return m.Date
+	}
+	return nil
+}
+
+func (m *FeedFiles) GetAuthor() string {
+	if m != nil {
+		return m.Author
+	}
+	return ""
+}
+
+func (m *FeedFiles) GetUsername() string {
+	if m != nil {
+		return m.Username
+	}
+	return ""
+}
+
+func (m *FeedFiles) GetAvatar() string {
+	if m != nil {
+		return m.Avatar
+	}
+	return ""
+}
+
+func (m *FeedFiles) GetCaption() string {
+	if m != nil {
+		return m.Caption
+	}
+	return ""
+}
+
+func (m *FeedFiles) GetFiles() []*FeedFile {
+	if m != nil {
+		return m.Files
+	}
+	return nil
+}
+
+func (m *FeedFiles) GetComments() []*FeedComment {
+	if m != nil {
+		return m.Comments
+	}
+	return nil
+}
+
+func (m *FeedFiles) GetLikes() []*FeedLike {
+	if m != nil {
+		return m.Likes
+	}
+	return nil
+}
+
+func (m *FeedFiles) GetThreads() []string {
+	if m != nil {
+		return m.Threads
+	}
+	return nil
+}
+
+type FeedFile struct {
+	Index                int32      `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
+	File                 *File      `protobuf:"bytes,2,opt,name=file,proto3" json:"file,omitempty"`
+	Links                *Directory `protobuf:"bytes,3,opt,name=links,proto3" json:"links,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
+	XXX_unrecognized     []byte     `json:"-"`
+	XXX_sizecache        int32      `json:"-"`
+}
+
+func (m *FeedFile) Reset()         { *m = FeedFile{} }
+func (m *FeedFile) String() string { return proto.CompactTextString(m) }
+func (*FeedFile) ProtoMessage()    {}
+func (*FeedFile) Descriptor() ([]byte, []int) {
+	return fileDescriptor_view_964d7678ce5a109b, []int{5}
+}
+func (m *FeedFile) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_FeedFile.Unmarshal(m, b)
+}
+func (m *FeedFile) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_FeedFile.Marshal(b, m, deterministic)
+}
+func (dst *FeedFile) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FeedFile.Merge(dst, src)
+}
+func (m *FeedFile) XXX_Size() int {
+	return xxx_messageInfo_FeedFile.Size(m)
+}
+func (m *FeedFile) XXX_DiscardUnknown() {
+	xxx_messageInfo_FeedFile.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_FeedFile proto.InternalMessageInfo
+
+func (m *FeedFile) GetIndex() int32 {
+	if m != nil {
+		return m.Index
+	}
+	return 0
+}
+
+func (m *FeedFile) GetFile() *File {
+	if m != nil {
+		return m.File
+	}
+	return nil
+}
+
+func (m *FeedFile) GetLinks() *Directory {
+	if m != nil {
+		return m.Links
+	}
+	return nil
+}
+
+type FeedMessage struct {
+	Block                string               `protobuf:"bytes,1,opt,name=block,proto3" json:"block,omitempty"`
+	Date                 *timestamp.Timestamp `protobuf:"bytes,2,opt,name=date,proto3" json:"date,omitempty"`
+	Author               string               `protobuf:"bytes,3,opt,name=author,proto3" json:"author,omitempty"`
+	Username             string               `protobuf:"bytes,4,opt,name=username,proto3" json:"username,omitempty"`
+	Avatar               string               `protobuf:"bytes,5,opt,name=avatar,proto3" json:"avatar,omitempty"`
+	Body                 string               `protobuf:"bytes,6,opt,name=body,proto3" json:"body,omitempty"`
+	Comments             []*FeedComment       `protobuf:"bytes,7,rep,name=comments,proto3" json:"comments,omitempty"`
+	Likes                []*FeedLike          `protobuf:"bytes,8,rep,name=likes,proto3" json:"likes,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
+	XXX_unrecognized     []byte               `json:"-"`
+	XXX_sizecache        int32                `json:"-"`
+}
+
+func (m *FeedMessage) Reset()         { *m = FeedMessage{} }
+func (m *FeedMessage) String() string { return proto.CompactTextString(m) }
+func (*FeedMessage) ProtoMessage()    {}
+func (*FeedMessage) Descriptor() ([]byte, []int) {
+	return fileDescriptor_view_964d7678ce5a109b, []int{6}
+}
+func (m *FeedMessage) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_FeedMessage.Unmarshal(m, b)
+}
+func (m *FeedMessage) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_FeedMessage.Marshal(b, m, deterministic)
+}
+func (dst *FeedMessage) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FeedMessage.Merge(dst, src)
+}
+func (m *FeedMessage) XXX_Size() int {
+	return xxx_messageInfo_FeedMessage.Size(m)
+}
+func (m *FeedMessage) XXX_DiscardUnknown() {
+	xxx_messageInfo_FeedMessage.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_FeedMessage proto.InternalMessageInfo
+
+func (m *FeedMessage) GetBlock() string {
+	if m != nil {
+		return m.Block
+	}
+	return ""
+}
+
+func (m *FeedMessage) GetDate() *timestamp.Timestamp {
+	if m != nil {
+		return m.Date
+	}
+	return nil
+}
+
+func (m *FeedMessage) GetAuthor() string {
+	if m != nil {
+		return m.Author
+	}
+	return ""
+}
+
+func (m *FeedMessage) GetUsername() string {
+	if m != nil {
+		return m.Username
+	}
+	return ""
+}
+
+func (m *FeedMessage) GetAvatar() string {
+	if m != nil {
+		return m.Avatar
+	}
+	return ""
+}
+
+func (m *FeedMessage) GetBody() string {
+	if m != nil {
+		return m.Body
+	}
+	return ""
+}
+
+func (m *FeedMessage) GetComments() []*FeedComment {
+	if m != nil {
+		return m.Comments
+	}
+	return nil
+}
+
+func (m *FeedMessage) GetLikes() []*FeedLike {
+	if m != nil {
+		return m.Likes
+	}
+	return nil
+}
+
+type FeedLike struct {
+	Id                   string               `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Date                 *timestamp.Timestamp `protobuf:"bytes,2,opt,name=date,proto3" json:"date,omitempty"`
+	Author               string               `protobuf:"bytes,3,opt,name=author,proto3" json:"author,omitempty"`
+	Username             string               `protobuf:"bytes,4,opt,name=username,proto3" json:"username,omitempty"`
+	Avatar               string               `protobuf:"bytes,5,opt,name=avatar,proto3" json:"avatar,omitempty"`
+	Target               *FeedItem            `protobuf:"bytes,6,opt,name=target,proto3" json:"target,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
+	XXX_unrecognized     []byte               `json:"-"`
+	XXX_sizecache        int32                `json:"-"`
+}
+
+func (m *FeedLike) Reset()         { *m = FeedLike{} }
+func (m *FeedLike) String() string { return proto.CompactTextString(m) }
+func (*FeedLike) ProtoMessage()    {}
+func (*FeedLike) Descriptor() ([]byte, []int) {
+	return fileDescriptor_view_964d7678ce5a109b, []int{7}
+}
+func (m *FeedLike) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_FeedLike.Unmarshal(m, b)
+}
+func (m *FeedLike) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_FeedLike.Marshal(b, m, deterministic)
+}
+func (dst *FeedLike) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FeedLike.Merge(dst, src)
+}
+func (m *FeedLike) XXX_Size() int {
+	return xxx_messageInfo_FeedLike.Size(m)
+}
+func (m *FeedLike) XXX_DiscardUnknown() {
+	xxx_messageInfo_FeedLike.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_FeedLike proto.InternalMessageInfo
+
+func (m *FeedLike) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *FeedLike) GetDate() *timestamp.Timestamp {
+	if m != nil {
+		return m.Date
+	}
+	return nil
+}
+
+func (m *FeedLike) GetAuthor() string {
+	if m != nil {
+		return m.Author
+	}
+	return ""
+}
+
+func (m *FeedLike) GetUsername() string {
+	if m != nil {
+		return m.Username
+	}
+	return ""
+}
+
+func (m *FeedLike) GetAvatar() string {
+	if m != nil {
+		return m.Avatar
+	}
+	return ""
+}
+
+func (m *FeedLike) GetTarget() *FeedItem {
+	if m != nil {
+		return m.Target
+	}
+	return nil
+}
+
+type FeedComment struct {
+	Id                   string               `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Date                 *timestamp.Timestamp `protobuf:"bytes,2,opt,name=date,proto3" json:"date,omitempty"`
+	Author               string               `protobuf:"bytes,3,opt,name=author,proto3" json:"author,omitempty"`
+	Username             string               `protobuf:"bytes,4,opt,name=username,proto3" json:"username,omitempty"`
+	Avatar               string               `protobuf:"bytes,5,opt,name=avatar,proto3" json:"avatar,omitempty"`
+	Body                 string               `protobuf:"bytes,6,opt,name=body,proto3" json:"body,omitempty"`
+	Target               *FeedItem            `protobuf:"bytes,7,opt,name=target,proto3" json:"target,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
+	XXX_unrecognized     []byte               `json:"-"`
+	XXX_sizecache        int32                `json:"-"`
+}
+
+func (m *FeedComment) Reset()         { *m = FeedComment{} }
+func (m *FeedComment) String() string { return proto.CompactTextString(m) }
+func (*FeedComment) ProtoMessage()    {}
+func (*FeedComment) Descriptor() ([]byte, []int) {
+	return fileDescriptor_view_964d7678ce5a109b, []int{8}
+}
+func (m *FeedComment) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_FeedComment.Unmarshal(m, b)
+}
+func (m *FeedComment) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_FeedComment.Marshal(b, m, deterministic)
+}
+func (dst *FeedComment) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FeedComment.Merge(dst, src)
+}
+func (m *FeedComment) XXX_Size() int {
+	return xxx_messageInfo_FeedComment.Size(m)
+}
+func (m *FeedComment) XXX_DiscardUnknown() {
+	xxx_messageInfo_FeedComment.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_FeedComment proto.InternalMessageInfo
+
+func (m *FeedComment) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *FeedComment) GetDate() *timestamp.Timestamp {
+	if m != nil {
+		return m.Date
+	}
+	return nil
+}
+
+func (m *FeedComment) GetAuthor() string {
+	if m != nil {
+		return m.Author
+	}
+	return ""
+}
+
+func (m *FeedComment) GetUsername() string {
+	if m != nil {
+		return m.Username
+	}
+	return ""
+}
+
+func (m *FeedComment) GetAvatar() string {
+	if m != nil {
+		return m.Avatar
+	}
+	return ""
+}
+
+func (m *FeedComment) GetBody() string {
+	if m != nil {
+		return m.Body
+	}
+	return ""
+}
+
+func (m *FeedComment) GetTarget() *FeedItem {
+	if m != nil {
+		return m.Target
 	}
 	return nil
 }
@@ -105,27 +719,56 @@ func (m *MobilePreparedFiles) GetPin() map[string]string {
 func init() {
 	proto.RegisterType((*Directory)(nil), "Directory")
 	proto.RegisterMapType((map[string]*File)(nil), "Directory.FilesEntry")
-	proto.RegisterType((*MobilePreparedFiles)(nil), "MobilePreparedFiles")
-	proto.RegisterMapType((map[string]string)(nil), "MobilePreparedFiles.PinEntry")
+	proto.RegisterType((*FeedItem)(nil), "FeedItem")
+	proto.RegisterType((*FeedJoin)(nil), "FeedJoin")
+	proto.RegisterType((*FeedLeave)(nil), "FeedLeave")
+	proto.RegisterType((*FeedFiles)(nil), "FeedFiles")
+	proto.RegisterType((*FeedFile)(nil), "FeedFile")
+	proto.RegisterType((*FeedMessage)(nil), "FeedMessage")
+	proto.RegisterType((*FeedLike)(nil), "FeedLike")
+	proto.RegisterType((*FeedComment)(nil), "FeedComment")
+	proto.RegisterEnum("FeedType", FeedType_name, FeedType_value)
 }
 
-func init() { proto.RegisterFile("view.proto", fileDescriptor_view_5419c27765a82837) }
+func init() { proto.RegisterFile("view.proto", fileDescriptor_view_964d7678ce5a109b) }
 
-var fileDescriptor_view_5419c27765a82837 = []byte{
-	// 226 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x90, 0x41, 0x4b, 0x04, 0x21,
-	0x1c, 0x47, 0x51, 0x9b, 0x68, 0xfe, 0x5e, 0xc2, 0x0a, 0x64, 0x2a, 0x18, 0xf6, 0x34, 0x10, 0x18,
-	0x4c, 0x10, 0xd1, 0x25, 0x88, 0xea, 0x16, 0x2c, 0x1e, 0xbb, 0xed, 0x34, 0xff, 0x40, 0xb2, 0x51,
-	0x6c, 0xda, 0xf0, 0xbb, 0xf4, 0x61, 0x43, 0xa5, 0x76, 0x0f, 0x7b, 0xd3, 0xe7, 0x8f, 0xc7, 0x43,
-	0x80, 0xb5, 0xc1, 0x6f, 0xe5, 0x83, 0x9b, 0x5d, 0xc3, 0x3f, 0xdc, 0x88, 0xb6, 0x5c, 0x16, 0x11,
-	0xea, 0x07, 0x13, 0xf0, 0x75, 0x76, 0x21, 0x8a, 0x0b, 0xa8, 0xde, 0x8c, 0xc5, 0x4f, 0x49, 0x5a,
-	0xd6, 0xf1, 0xfe, 0x44, 0xfd, 0x3f, 0xa9, 0xa7, 0xc4, 0x1f, 0xa7, 0x39, 0x44, 0x5d, 0x36, 0xcd,
-	0x1d, 0xc0, 0x06, 0x8a, 0x43, 0x60, 0xef, 0x18, 0x25, 0x69, 0x49, 0x57, 0xeb, 0x74, 0x14, 0xa7,
-	0x50, 0xad, 0x57, 0xf6, 0x0b, 0x25, 0x6d, 0x49, 0xc7, 0xfb, 0x2a, 0x2b, 0x74, 0x61, 0xb7, 0xf4,
-	0x86, 0x2c, 0x7e, 0x08, 0x1c, 0x3d, 0xbb, 0xc1, 0x58, 0x5c, 0x06, 0xf4, 0xab, 0x80, 0x63, 0xf6,
-	0x89, 0x33, 0x60, 0xa3, 0x09, 0x59, 0xc5, 0x7b, 0xd8, 0x34, 0xe8, 0x84, 0xc5, 0x25, 0x30, 0x6f,
-	0x26, 0x49, 0x73, 0xe1, 0xb9, 0xda, 0x21, 0x50, 0x4b, 0x33, 0x95, 0xd2, 0xb4, 0x6c, 0xae, 0xe1,
-	0xe0, 0x0f, 0xec, 0xa8, 0x3c, 0xde, 0xae, 0xac, 0xb7, 0xf2, 0xee, 0xf7, 0x5e, 0xa8, 0x1f, 0x86,
-	0xfd, 0xfc, 0x4d, 0x57, 0xbf, 0x01, 0x00, 0x00, 0xff, 0xff, 0x7c, 0x85, 0x7d, 0xef, 0x41, 0x01,
-	0x00, 0x00,
+var fileDescriptor_view_964d7678ce5a109b = []byte{
+	// 590 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xd4, 0x94, 0xcd, 0x6e, 0xd3, 0x40,
+	0x10, 0xc7, 0xb1, 0x63, 0x3b, 0xf6, 0x04, 0x50, 0xb4, 0x2a, 0x95, 0x1b, 0x0e, 0x0d, 0x3e, 0x45,
+	0x20, 0xb9, 0x52, 0xb9, 0x20, 0x2e, 0x28, 0xa5, 0xad, 0x68, 0x55, 0x8a, 0x64, 0xe5, 0x02, 0x12,
+	0x87, 0x4d, 0x3c, 0x4d, 0x57, 0xb1, 0xbd, 0x91, 0xbd, 0x09, 0xf8, 0xd1, 0x38, 0xc0, 0x33, 0x70,
+	0xe1, 0x75, 0x10, 0xda, 0x8f, 0x24, 0x04, 0x6a, 0x09, 0x4e, 0x94, 0x9b, 0xff, 0x33, 0xe3, 0xd9,
+	0xf9, 0xcd, 0xce, 0x2c, 0xc0, 0x92, 0xe1, 0x87, 0x78, 0x5e, 0x72, 0xc1, 0x7b, 0x7b, 0x53, 0xce,
+	0xa7, 0x19, 0x1e, 0x28, 0x35, 0x5e, 0x5c, 0x1d, 0xd0, 0xa2, 0x36, 0xae, 0xfd, 0x5f, 0x5d, 0x82,
+	0xe5, 0x58, 0x09, 0x9a, 0xcf, 0x4d, 0x40, 0x27, 0xe7, 0x29, 0x66, 0x5a, 0x44, 0x35, 0x04, 0xc7,
+	0xac, 0xc4, 0x89, 0xe0, 0x65, 0x4d, 0x9e, 0x80, 0x7b, 0xc5, 0x32, 0xac, 0x42, 0xab, 0xdf, 0x1a,
+	0x74, 0x0e, 0x1f, 0xc4, 0x6b, 0x57, 0x7c, 0x2a, 0xed, 0x27, 0x85, 0x28, 0xeb, 0x44, 0xc7, 0xf4,
+	0x5e, 0x00, 0x6c, 0x8c, 0xa4, 0x0b, 0xad, 0x19, 0xd6, 0xa1, 0xd5, 0xb7, 0x06, 0x41, 0x22, 0x3f,
+	0xc9, 0x43, 0x70, 0x97, 0x34, 0x5b, 0x60, 0x68, 0xf7, 0xad, 0x41, 0xe7, 0xd0, 0x55, 0x29, 0x12,
+	0x6d, 0x7b, 0x6e, 0x3f, 0xb3, 0xa2, 0x73, 0xf0, 0x4f, 0x11, 0xd3, 0x33, 0x81, 0x39, 0xd9, 0x01,
+	0x77, 0x9c, 0xf1, 0xc9, 0xcc, 0x24, 0xd0, 0x82, 0x0c, 0xc0, 0x19, 0xf3, 0xb4, 0x36, 0x19, 0x76,
+	0x62, 0x4d, 0x16, 0xaf, 0xc8, 0xe2, 0x61, 0x51, 0x27, 0x2a, 0x22, 0xfa, 0x6c, 0xe9, 0x64, 0xe7,
+	0x9c, 0x15, 0x0d, 0xc9, 0x62, 0x70, 0x52, 0x2a, 0x56, 0xe5, 0xf4, 0x7e, 0x4b, 0x36, 0x5a, 0xb5,
+	0x29, 0x51, 0x71, 0x64, 0x17, 0x3c, 0xba, 0x10, 0xd7, 0xbc, 0x0c, 0x5b, 0x2a, 0x8d, 0x51, 0xa4,
+	0x07, 0xfe, 0xa2, 0xc2, 0xb2, 0xa0, 0x39, 0x86, 0x8e, 0xf2, 0xac, 0xb5, 0xfa, 0x67, 0x49, 0x05,
+	0x2d, 0x43, 0xd7, 0xfc, 0xa3, 0x14, 0xd9, 0x07, 0x37, 0x63, 0x33, 0xac, 0x42, 0x4f, 0x35, 0x36,
+	0x88, 0x65, 0xad, 0x17, 0x6c, 0x86, 0x89, 0xb6, 0x47, 0x5f, 0x2c, 0x08, 0x94, 0x0d, 0xe9, 0x12,
+	0xff, 0x47, 0x80, 0x6f, 0xb6, 0x06, 0x50, 0x23, 0xd1, 0x00, 0xb0, 0x0b, 0x9e, 0xa0, 0xe5, 0x14,
+	0x85, 0x42, 0x08, 0x12, 0xa3, 0xd6, 0x60, 0xad, 0xbf, 0x06, 0x73, 0x1a, 0xc1, 0xdc, 0x46, 0x30,
+	0x6f, 0x0b, 0x2c, 0x84, 0xf6, 0x84, 0xce, 0x05, 0xe3, 0x45, 0xd8, 0x56, 0x8e, 0x95, 0x94, 0xc8,
+	0x7a, 0x19, 0xfc, 0x9f, 0x90, 0xf5, 0x0c, 0x2b, 0x3b, 0x19, 0x80, 0x3f, 0xe1, 0x79, 0x8e, 0x85,
+	0xa8, 0xc2, 0x40, 0xc5, 0xdc, 0x55, 0x31, 0x2f, 0xb5, 0x31, 0x59, 0x7b, 0x37, 0xdd, 0x83, 0x9b,
+	0xbb, 0x27, 0xab, 0x10, 0xd7, 0x25, 0xd2, 0xb4, 0x0a, 0x3b, 0xfd, 0x96, 0xac, 0xc2, 0xc8, 0xe8,
+	0xbd, 0x9e, 0x6b, 0x79, 0xae, 0xec, 0x2a, 0x2b, 0x52, 0xfc, 0xa8, 0xba, 0xea, 0x26, 0x5a, 0x90,
+	0x3d, 0x70, 0x64, 0x3d, 0xdb, 0x6b, 0xa6, 0x4c, 0xa4, 0x2f, 0xcf, 0x2d, 0x66, 0x95, 0xe9, 0x2c,
+	0x6c, 0xf6, 0x39, 0xd1, 0x8e, 0xe8, 0xbb, 0x05, 0x1d, 0x99, 0xff, 0x35, 0x56, 0x15, 0x9d, 0xde,
+	0xc6, 0xc9, 0x23, 0xe6, 0x0d, 0xd0, 0xd7, 0xa6, 0xbe, 0xb7, 0x3a, 0xdf, 0xfe, 0xb3, 0xce, 0xfb,
+	0x0d, 0x73, 0xfb, 0xc9, 0x3c, 0x1c, 0xd2, 0x46, 0xee, 0x83, 0xcd, 0x52, 0x83, 0x6e, 0xb3, 0xf4,
+	0x9f, 0x72, 0x3f, 0x5a, 0x2f, 0x8b, 0xa7, 0x4e, 0xd7, 0xa5, 0xcb, 0xc7, 0x72, 0xb5, 0x37, 0xd1,
+	0x57, 0x73, 0x79, 0x06, 0xfb, 0x56, 0x95, 0x7f, 0xd3, 0xb5, 0x6d, 0x90, 0xda, 0x0d, 0x48, 0x8f,
+	0x0f, 0xf4, 0x6d, 0x8c, 0xea, 0x39, 0x12, 0x1f, 0x9c, 0xd3, 0x8b, 0xe1, 0xa8, 0x7b, 0x87, 0xdc,
+	0x83, 0x60, 0x78, 0x79, 0xf9, 0x66, 0x34, 0x1c, 0x9d, 0x1c, 0x77, 0x2d, 0x02, 0xe0, 0xbd, 0x7a,
+	0x7b, 0x94, 0x9c, 0x1d, 0x77, 0xed, 0x23, 0xe7, 0x9d, 0x3d, 0x1f, 0x8f, 0x3d, 0xc5, 0xf4, 0xf4,
+	0x47, 0x00, 0x00, 0x00, 0xff, 0xff, 0x52, 0xdc, 0x78, 0x43, 0x23, 0x07, 0x00, 0x00,
 }

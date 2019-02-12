@@ -1,13 +1,89 @@
 syntax = "proto3";
 option go_package = "pb";
 
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
 import "model.proto";
 
 message Directory {
     map<string, File> files = 1;
 }
 
-message MobilePreparedFiles {
-    Directory dir = 1;
-    map<string, string> pin = 2;
+enum FeedType {
+    FLAT      = 0;
+    ANNOTATED = 1;
+    HYBRID    = 2;
+}
+
+message FeedItem {
+    string block             = 1;
+    google.protobuf.Any body = 2;
+}
+
+message FeedJoin {
+    string block                   = 1;
+    google.protobuf.Timestamp date = 2;
+    string author                  = 3;
+    string username                = 4;
+    string avatar                  = 5;
+    repeated FeedLike likes        = 6;
+}
+
+message FeedLeave {
+    string block                   = 1;
+    google.protobuf.Timestamp date = 2;
+    string author                  = 3;
+    string username                = 4;
+    string avatar                  = 5;
+    repeated FeedLike likes        = 6;
+}
+
+message FeedFiles {
+    string block                   = 1;
+    string target                  = 2;
+    google.protobuf.Timestamp date = 3;
+    string author                  = 4;
+    string username                = 5;
+    string avatar                  = 6;
+    string caption                 = 7;
+    repeated FeedFile files        = 8;
+    repeated FeedComment comments  = 9;
+    repeated FeedLike likes        = 10;
+    repeated string threads        = 11;
+}
+
+message FeedFile {
+    int32 index     = 1;
+    File file       = 2;
+    Directory links = 3;
+}
+
+message FeedMessage {
+    string block                   = 1;
+    google.protobuf.Timestamp date = 2;
+    string author                  = 3;
+    string username                = 4;
+    string avatar                  = 5;
+    string body                    = 6;
+    repeated FeedComment comments  = 7;
+    repeated FeedLike likes        = 8;
+}
+
+message FeedLike {
+    string id                      = 1;
+    google.protobuf.Timestamp date = 2;
+    string author                  = 3;
+    string username                = 4;
+    string avatar                  = 5;
+    FeedItem target                = 6;
+}
+
+message FeedComment {
+    string id                      = 1;
+    google.protobuf.Timestamp date = 2;
+    string author                  = 3;
+    string username                = 4;
+    string avatar                  = 5;
+    string body                    = 6;
+    FeedItem target                = 7;
 }
