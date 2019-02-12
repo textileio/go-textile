@@ -284,10 +284,10 @@ func (h *CafeService) StoreThread(thrd *repo.Thread, cafe peer.ID) error {
 		Name:      thrd.Name,
 		Schema:    thrd.Schema,
 		Initiator: thrd.Initiator,
-		Type:      int32(thrd.Type),
-		Sharing:   int32(thrd.Sharing),
+		Type:      pb.CafeThread_Type(thrd.Type),
+		Sharing:   pb.CafeThread_Sharing(thrd.Sharing),
 		Members:   thrd.Members,
-		State:     int32(thrd.State),
+		State:     pb.CafeThread_State(thrd.State),
 		Head:      thrd.Head,
 	})
 	if err != nil {
@@ -580,8 +580,8 @@ func (h *CafeService) sendObject(id cid.Cid, addr string, token string) error {
 }
 
 // searchLocal searches the local index based on the given query
-func (h *CafeService) searchLocal(qtype pb.QueryType, payload *any.Any, local bool) (*queryResultSet, error) {
-	results := newQueryResultSet()
+func (h *CafeService) searchLocal(qtype pb.QueryType, filter pb.QueryOptions_FilterType, payload *any.Any, local bool) (*queryResultSet, error) {
+	results := newQueryResultSet(filter)
 
 	switch qtype {
 	case pb.QueryType_THREAD_BACKUPS:
@@ -602,13 +602,8 @@ func (h *CafeService) searchLocal(qtype pb.QueryType, payload *any.Any, local bo
 				if err != nil {
 					return nil, err
 				}
-				date, err := ptypes.TimestampProto(client.LastSeen)
-				if err != nil {
-					return nil, err
-				}
 				results.Add(&pb.QueryResult{
 					Id:    b.Id,
-					Date:  date,
 					Local: local,
 					Value: &any.Any{
 						TypeUrl: "/CafeClientThread",
@@ -1201,7 +1196,7 @@ func (h *CafeService) handleQuery(pid peer.ID, env *pb.Envelope, renvs chan *pb.
 		return nil
 	}
 
-	results := newQueryResultSet()
+	results := newQueryResultSet(query.Options.Filter)
 	reply := func(res *pb.QueryResults) bool {
 		added := results.Add(res.Items...)
 		if len(added) == 0 {
@@ -1218,7 +1213,7 @@ func (h *CafeService) handleQuery(pid peer.ID, env *pb.Envelope, renvs chan *pb.
 	}
 
 	// search local
-	localResults, err := h.searchLocal(query.Type, query.Payload, false)
+	localResults, err := h.searchLocal(query.Type, query.Options.Filter, query.Payload, false)
 	if err != nil {
 		return err
 	}
@@ -1241,7 +1236,7 @@ func (h *CafeService) handlePubSubQuery(pid peer.ID, env *pb.Envelope) (*pb.Enve
 	}
 
 	// return results, if any
-	results, err := h.searchLocal(query.Type, query.Payload, false)
+	results, err := h.searchLocal(query.Type, pb.QueryOptions_NO_FILTER, query.Payload, false)
 	if err != nil {
 		return nil, err
 	}
@@ -1353,8 +1348,10 @@ func protoTimeToNano(t *timestamp.Timestamp) int {
 func applyQueryDefaults(query *pb.Query) *pb.Query {
 	if query.Options == nil {
 		query.Options = &pb.QueryOptions{
-			Wait:  defaultQueryWaitSeconds,
-			Limit: defaultQueryResultsLimit,
+			Local:  false,
+			Wait:   defaultQueryWaitSeconds,
+			Limit:  defaultQueryResultsLimit,
+			Filter: pb.QueryOptions_NO_FILTER,
 		}
 	}
 

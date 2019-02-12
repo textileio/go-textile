@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/golang/protobuf/proto"
+
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
@@ -70,8 +72,17 @@ func (m *Mobile) ContactThreads(id string) (string, error) {
 }
 
 // SearchContacts calls core SearchContacts
-func (m *Mobile) SearchContacts(query *pb.ContactQuery, options *pb.QueryOptions, cb Callback) (func(), error) {
-	resCh, errCh, cancel, err := m.node.SearchContacts(query, options)
+func (m *Mobile) SearchContacts(query []byte, options []byte, cb Callback) (*CancelFn, error) {
+	mquery := new(pb.ContactQuery)
+	if err := proto.Unmarshal(query, mquery); err != nil {
+		return nil, err
+	}
+	moptions := new(pb.QueryOptions)
+	if err := proto.Unmarshal(options, moptions); err != nil {
+		return nil, err
+	}
+
+	resCh, errCh, cancel, err := m.node.SearchContacts(mquery, moptions)
 	if err != nil {
 		return nil, err
 	}

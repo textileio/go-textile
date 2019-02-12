@@ -14,7 +14,6 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 
 	"github.com/fatih/color"
-	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/util"
 )
 
@@ -152,6 +151,7 @@ func request(meth method, pth string, pars params) (*http.Response, func(), erro
 var errMissingSearchInfo = errors.New("missing search info")
 
 var pbMarshaler = jsonpb.Marshaler{
+	EnumsAsInts:  false,
 	EmitDefaults: true,
 	Indent:       "    ",
 }
@@ -193,7 +193,7 @@ func handleSearchStream(pth string, param params) {
 
 		decoder := json.NewDecoder(res.Body)
 		for decoder.More() {
-			var result *pb.QueryResult
+			var result interface{}
 			if err := decoder.Decode(&result); err == io.EOF {
 				return
 			} else if err != nil {
@@ -201,12 +201,12 @@ func handleSearchStream(pth string, param params) {
 				return
 			}
 
-			data, err := pbMarshaler.MarshalToString(result)
+			data, err := json.MarshalIndent(result, "", "    ")
 			if err != nil {
 				outputCh <- err.Error()
 				return
 			}
-			outputCh <- data
+			outputCh <- string(data)
 		}
 	}()
 

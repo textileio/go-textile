@@ -5,14 +5,20 @@ import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 
 enum QueryType {
-    THREAD_BACKUPS  = 0;
-    CONTACTS = 1;
+    THREAD_BACKUPS = 0;
+    CONTACTS       = 1;
 }
 
 message QueryOptions {
-    bool local  = 1;
-    int32 limit = 2;
-    int32 wait  = 3;
+    bool local        = 1;
+    int32 limit       = 2;
+    int32 wait        = 3;
+    FilterType filter = 4;
+
+    enum FilterType {
+        NO_FILTER  = 0; // show all results
+        HIDE_OLDER = 1; // hide older results for the same id
+    }
 }
 
 message Query {

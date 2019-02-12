@@ -6,17 +6,24 @@ import (
 	"github.com/textileio/textile-go/pb"
 )
 
+type CancelFn struct {
+	cancel *broadcast.Broadcaster
+	done   func()
+}
+
+func (c *CancelFn) Call() {
+	c.cancel.Close()
+	c.done()
+}
+
 // handleSearchStream handles the response channels from a search
-func handleSearchStream(resultCh <-chan *pb.QueryResult, errCh <-chan error, cancel *broadcast.Broadcaster, cb Callback) (func(), error) {
+func handleSearchStream(resultCh <-chan *pb.QueryResult, errCh <-chan error, cancel *broadcast.Broadcaster, cb Callback) (*CancelFn, error) {
 	doneFn := func() {
 		cb.Call(proto.Marshal(&pb.QueryEvent{
 			Type: pb.QueryEvent_DONE,
 		}))
 	}
-	cancelFn := func() {
-		cancel.Close()
-		doneFn()
-	}
+	cancelFn := &CancelFn{cancel: cancel, done: doneFn}
 
 	go func() {
 		select {

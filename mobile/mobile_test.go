@@ -62,6 +62,51 @@ var contact = &repo.Contact{
 	}},
 }
 
+var schema = `
+{
+  "pin": true,
+  "mill": "/json",
+  "json_schema": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$ref": "#/definitions/Log",
+    "definitions": {
+      "Log": {
+        "required": [
+          "priority",
+          "timestamp",
+          "hostname",
+          "application",
+          "pid",
+          "message"
+        ],
+        "properties": {
+          "application": {
+            "type": "string"
+          },
+          "hostname": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "pid": {
+            "type": "integer"
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object"
+      }
+    }
+  }
+}
+`
+
 func TestNewWallet(t *testing.T) {
 	var err error
 	recovery, err = NewWallet(12)
@@ -160,15 +205,12 @@ func TestMobile_Seed(t *testing.T) {
 }
 
 func TestMobile_AddThread(t *testing.T) {
-	res, err := mobile1.AddThread(&MobileThreadConfig{
-		ksuid.New().String(),
-		"test",
-		"OPEN",
-		"SHARED",
-		nil,
-		"",
-		true,
-		false,
+	res, err := mobile1.AddThread(&AddThreadConfig{
+		Key:     ksuid.New().String(),
+		Name:    "test",
+		Type:    "OPEN",
+		Sharing: "SHARED",
+		Media:   true,
 	})
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
@@ -183,15 +225,12 @@ func TestMobile_AddThread(t *testing.T) {
 }
 
 func TestMobile_AddThreadWithSchema(t *testing.T) {
-	res, err := mobile1.AddThread(&MobileThreadConfig{
-		Key: ksuid.New().String(),
-		Name: "test",
-		Type: "READ_ONLY",
+	res, err := mobile1.AddThread(&AddThreadConfig{
+		Key:     ksuid.New().String(),
+		Name:    "test",
+		Type:    "READ_ONLY",
 		Sharing: "INVITE_ONLY",
-		Members: nil,
-		Schema: "{\"pin\":true,\"mill\":\"/json\",\"json_schema\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"$ref\":\"#/definitions/Log\",\"definitions\":{\"Log\":{\"required\":[\"priority\",\"timestamp\",\"hostname\",\"application\",\"pid\",\"message\"],\"properties\":{\"application\":{\"type\":\"string\"},\"hostname\":{\"type\":\"string\"},\"message\":{\"type\":\"string\"},\"pid\":{\"type\":\"integer\"},\"priority\":{\"type\":\"integer\"},\"timestamp\":{\"type\":\"string\"}},\"additionalProperties\":false,\"type\":\"object\"}}}}",
-		Media: false,
-		CameraRoll: false,
+		Schema:  schema,
 	})
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
@@ -229,15 +268,12 @@ func TestMobile_Threads(t *testing.T) {
 }
 
 func TestMobile_RemoveThread(t *testing.T) {
-	res, err := mobile1.AddThread(&MobileThreadConfig{
-		ksuid.New().String(),
-		"another",
-		"PRIVATE",
-		"NOT_SHARED",
-		nil,
-		"",
-		false,
-		true,
+	res, err := mobile1.AddThread(&AddThreadConfig{
+		Key:        ksuid.New().String(),
+		Name:       "another",
+		Type:       "PRIVATE",
+		Sharing:    "NOT_SHARED",
+		CameraRoll: true,
 	})
 	if err != nil {
 		t.Errorf("remove thread failed: %s", err)
@@ -579,15 +615,12 @@ func TestMobile_AddThreadInvite(t *testing.T) {
 		return
 	}
 
-	res, err := mobile2.AddThread(&MobileThreadConfig{
-		ksuid.New().String(),
-		"test2",
-		"OPEN",
-		"SHARED",
-		nil,
-		"",
-		true,
-		false,
+	res, err := mobile2.AddThread(&AddThreadConfig{
+		Key:     ksuid.New().String(),
+		Name:    "test2",
+		Type:    "OPEN",
+		Sharing: "SHARED",
+		Media:   true,
 	})
 	if err != nil {
 		t.Error(err)
