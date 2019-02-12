@@ -20,6 +20,18 @@ type ExternalInvite struct {
 	Inviter string `json:"inviter"`
 }
 
+// MobileThreadConfig is the mobile-client specific config for creating a new thread
+type MobileThreadConfig struct {
+	Key      	string `json:"key"`
+	Name  	 	string `json:"name"`
+	Type  	 	string `json:"type"`
+	Sharing  	string `json:"sharing"`
+	Members   	[]string `json:"members"`
+	Schema	 	string `json:"schema"`
+	Media	 	bool `json:"media"`
+	CameraRoll	bool `json:"cameraRoll"`
+}
+
 // Threads lists all threads
 func (m *Mobile) Threads() (string, error) {
 	if !m.node.Started() {
@@ -39,9 +51,19 @@ func (m *Mobile) Threads() (string, error) {
 }
 
 // AddThread adds a new thread with the given name
-func (m *Mobile) AddThread(key string, name string, shared bool) (string, error) {
+func (m *Mobile) AddThread(config *MobileThreadConfig) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
+	}
+
+	threadType, err := repo.ThreadTypeFromString(config.Type)
+	if err != nil {
+		return "", err
+	}
+
+	sharingType, err := repo.ThreadSharingFromString(config.Sharing)
+	if err != nil {
+		return "", err
 	}
 
 	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
@@ -52,17 +74,14 @@ func (m *Mobile) AddThread(key string, name string, shared bool) (string, error)
 	// tmp use the built-in schemas for all mobile threads
 	// until we're ready to let the app define its own schemas.
 	var sch string
-	var ttype repo.ThreadType
-	var sharing repo.ThreadSharing
-	if shared {
+	if config.Media {
 		sch = textile.Media
-		ttype = repo.OpenThread
-		sharing = repo.SharedThread
-	} else {
+	} else if config.CameraRoll {
 		sch = textile.CameraRoll
-		ttype = repo.PrivateThread
-		sharing = repo.NotSharedThread
+	} else {
+		sch = config.Schema
 	}
+
 	schema, err := m.addSchema(sch)
 	if err != nil {
 		return "", err
@@ -72,16 +91,18 @@ func (m *Mobile) AddThread(key string, name string, shared bool) (string, error)
 		return "", err
 	}
 
-	config := core.AddThreadConfig{
-		Key:       key,
-		Name:      name,
+	conf := core.AddThreadConfig{
+		Key:       config.Key,
+		Name:      config.Name,
 		Schema:    shash,
 		Initiator: m.node.Account().Address(),
-		Type:      ttype,
-		Sharing:   sharing,
+		Type:      threadType,
+		Sharing:   sharingType,
+		Members:   config.Members,
 		Join:      true,
 	}
-	thrd, err := m.node.AddThread(sk, config)
+
+	thrd, err := m.node.AddThread(sk, conf)
 	if err != nil {
 		return "", err
 	}
