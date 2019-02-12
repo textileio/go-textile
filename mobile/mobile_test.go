@@ -466,7 +466,7 @@ func TestMobile_ThreadFeed(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if len(feed) != 3 {
+	if len(feed) != 5 {
 		t.Errorf("get thread feed bad result")
 	}
 }

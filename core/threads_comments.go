@@ -51,8 +51,9 @@ func (t *Textile) ThreadComment(block *repo.Block, annotation bool) (*ThreadComm
 	if !annotation {
 		target, err := t.threadItem(t.datastore.Blocks().Get(block.Target), false)
 		if err != nil {
-			info.Target = target
+			return nil, err
 		}
+		info.Target = target
 	}
 
 	return info, nil

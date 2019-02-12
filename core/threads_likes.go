@@ -49,8 +49,9 @@ func (t *Textile) ThreadLike(block *repo.Block, annotation bool) (*ThreadLikeInf
 	if !annotation {
 		target, err := t.threadItem(t.datastore.Blocks().Get(block.Target), false)
 		if err != nil {
-			info.Target = target
+			return nil, err
 		}
+		info.Target = target
 	}
 
 	return info, nil

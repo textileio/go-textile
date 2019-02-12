@@ -95,10 +95,10 @@ func (t *Textile) threadItem(block *repo.Block, annotated bool) (*ThreadFeedItem
 		item.Message, err = t.threadMessage(block, annotated)
 	case repo.CommentBlock:
 		item.Type = CommentThreadFeedItem
-		item.Comment, err = t.ThreadComment(block, !annotated)
+		item.Comment, err = t.ThreadComment(block, annotated)
 	case repo.LikeBlock:
 		item.Type = LikeThreadFeedItem
-		item.Like, err = t.ThreadLike(block, !annotated)
+		item.Like, err = t.ThreadLike(block, annotated)
 	default:
 		return nil, nil
 	}
