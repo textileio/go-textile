@@ -1,7 +1,6 @@
 package util
 
 import (
-	"encoding/json"
 	"io"
 	"io/ioutil"
 	"strings"
@@ -13,14 +12,6 @@ func UnmarshalString(body io.ReadCloser) (string, error) {
 		return "", err
 	}
 	return trimQuotes(string(data)), nil
-}
-
-func UnmarshalJSON(body io.ReadCloser, target interface{}) error {
-	data, err := ioutil.ReadAll(body)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(data, target)
 }
 
 func SplitString(in string, sep string) []string {

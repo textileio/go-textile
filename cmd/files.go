@@ -508,8 +508,8 @@ func (x *lsFilesCmd) Execute(args []string) error {
 }
 
 func callLsFiles(opts map[string]string) error {
-	var list []pb.FeedFiles
-	res, err := executeJsonCmd(GET, "files", params{opts: opts}, &list)
+	var list pb.FeedFilesList
+	res, err := executeJsonPbCmd(GET, "files", params{opts: opts}, &list)
 	if err != nil {
 		return err
 	}
@@ -520,7 +520,7 @@ func callLsFiles(opts map[string]string) error {
 	if err != nil {
 		return err
 	}
-	if len(list) < limit {
+	if len(list.Items) < limit {
 		return nil
 	}
 
@@ -532,7 +532,7 @@ func callLsFiles(opts map[string]string) error {
 
 	return callLsFiles(map[string]string{
 		"thread": opts["thread"],
-		"offset": list[len(list)-1].Block,
+		"offset": list.Items[len(list.Items)-1].Block,
 		"limit":  opts["limit"],
 	})
 }
@@ -554,8 +554,7 @@ func (x *getFilesCmd) Execute(args []string) error {
 		return errMissingFileId
 	}
 
-	var info pb.FeedFiles
-	res, err := executeJsonCmd(GET, "files/"+args[0], params{}, &info)
+	res, err := executeJsonCmd(GET, "files/"+args[0], params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -599,12 +598,10 @@ func (x *keysCmd) Execute(args []string) error {
 		return errMissingTarget
 	}
 
-	var keys core.Keys
-	res, err := executeJsonCmd(GET, "keys/"+args[0], params{}, &keys)
+	res, err := executeJsonCmd(GET, "keys/"+args[0], params{}, nil)
 	if err != nil {
 		return err
 	}
-
 	output(res)
 	return nil
 }

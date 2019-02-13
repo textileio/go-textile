@@ -32,7 +32,7 @@ func (a *api) addBlockLikes(g *gin.Context) {
 		return
 	}
 
-	g.JSON(http.StatusCreated, info)
+	pbJSON(g, http.StatusCreated, info)
 }
 
 func (a *api) lsBlockLikes(g *gin.Context) {
@@ -44,7 +44,7 @@ func (a *api) lsBlockLikes(g *gin.Context) {
 		return
 	}
 
-	pbJSON(g, likes)
+	pbJSON(g, http.StatusOK, likes)
 }
 
 func (a *api) getBlockLike(g *gin.Context) {
@@ -62,5 +62,5 @@ func (a *api) getBlockLike(g *gin.Context) {
 		return
 	}
 
-	pbJSON(g, info)
+	pbJSON(g, http.StatusOK, info)
 }

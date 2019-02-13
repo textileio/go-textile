@@ -49,8 +49,8 @@ func (x *lsCmd) Execute(args []string) error {
 }
 
 func callLs(opts map[string]string) error {
-	var list []pb.FeedItem
-	res, err := executeJsonCmd(GET, "feed", params{opts: opts}, &list)
+	var list pb.FeedItemList
+	res, err := executeJsonPbCmd(GET, "feed", params{opts: opts}, &list)
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func callLs(opts map[string]string) error {
 	if err != nil {
 		return err
 	}
-	if len(list) < limit {
+	if len(list.Items) < limit {
 		return nil
 	}
 
@@ -73,7 +73,7 @@ func callLs(opts map[string]string) error {
 
 	return callLs(map[string]string{
 		"thread":    opts["thread"],
-		"offset":    list[len(list)-1].Block,
+		"offset":    list.Items[len(list.Items)-1].Block,
 		"limit":     opts["limit"],
 		"annotated": opts["annotated"],
 	})

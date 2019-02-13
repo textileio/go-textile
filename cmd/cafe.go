@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"errors"
-
-	"github.com/textileio/textile-go/pb"
 )
 
 var errMissingCafeId = errors.New("missing cafe id")
@@ -50,11 +48,11 @@ An access token is required to register, and should be obtained separately from 
 
 func (x *addCafesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	var info *pb.CafeSession
+
 	res, err := executeJsonCmd(POST, "cafes", params{
 		args: args,
 		opts: map[string]string{"token": x.Token},
-	}, &info)
+	}, nil)
 	if err != nil {
 		return err
 	}
@@ -74,8 +72,8 @@ List info about all active cafe sessions.`
 
 func (x *lsCafesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	var list []pb.CafeSession
-	res, err := executeJsonCmd(GET, "cafes", params{}, &list)
+
+	res, err := executeJsonCmd(GET, "cafes", params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -99,8 +97,8 @@ func (x *getCafesCmd) Execute(args []string) error {
 	if len(args) == 0 {
 		return errMissingCafeId
 	}
-	var info *pb.CafeSession
-	res, err := executeJsonCmd(GET, "cafes/"+args[0], params{}, &info)
+
+	res, err := executeJsonCmd(GET, "cafes/"+args[0], params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -121,6 +119,7 @@ func (x *rmCafesCmd) Execute(args []string) error {
 	if len(args) == 0 {
 		return errMissingCafeId
 	}
+
 	res, err := executeStringCmd(DEL, "cafes/"+args[0], params{})
 	if err != nil {
 		return err
@@ -142,6 +141,7 @@ Check for messages at all cafes. New messages are downloaded and processed oppor
 
 func (x *checkCafeMessagesCmd) Execute(args []string) error {
 	setApi(x.Client)
+
 	res, err := executeStringCmd(POST, "cafes/messages", params{})
 	if err != nil {
 		return err

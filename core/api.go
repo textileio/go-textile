@@ -453,11 +453,11 @@ func getCORSSettings(config *config.Config) cors.Config {
 }
 
 // pbJSON responds with a JSON rendered protobuf message
-func pbJSON(g *gin.Context, msg proto.Message) {
+func pbJSON(g *gin.Context, status int, msg proto.Message) {
 	str, err := pbMarshaler.MarshalToString(msg)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
-	g.Data(http.StatusOK, "application/json", []byte(str))
+	g.Data(status, "application/json", []byte(str))
 }

@@ -51,8 +51,8 @@ func callLogs(opts map[string]string) error {
 	if opts["level"] != "" {
 		method = POST
 	}
-	var info map[string]string
-	res, err := executeJsonCmd(method, "logs"+subsystem, params{opts: opts}, &info)
+
+	res, err := executeJsonCmd(method, "logs"+subsystem, params{opts: opts}, nil)
 	if err != nil {
 		return err
 	}

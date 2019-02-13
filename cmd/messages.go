@@ -71,10 +71,9 @@ func (x *addMessagesCmd) Execute(args []string) error {
 }
 
 func callAddMessages(threadId string, body string) (string, error) {
-	var info *pb.FeedMessage
 	res, err := executeJsonCmd(POST, "threads/"+threadId+"/messages", params{
 		args: []string{body},
-	}, &info)
+	}, nil)
 	if err != nil {
 		return "", err
 	}
@@ -108,8 +107,8 @@ func (x *lsMessagesCmd) Execute(args []string) error {
 }
 
 func callLsMessages(opts map[string]string) error {
-	var list []pb.FeedMessage
-	res, err := executeJsonCmd(GET, "messages", params{opts: opts}, &list)
+	var list pb.FeedMessageList
+	res, err := executeJsonPbCmd(GET, "messages", params{opts: opts}, &list)
 	if err != nil {
 		return err
 	}
@@ -120,7 +119,7 @@ func callLsMessages(opts map[string]string) error {
 	if err != nil {
 		return err
 	}
-	if len(list) < limit {
+	if len(list.Items) < limit {
 		return nil
 	}
 	reader := bufio.NewReader(os.Stdin)
@@ -131,7 +130,7 @@ func callLsMessages(opts map[string]string) error {
 
 	return callLsMessages(map[string]string{
 		"thread": opts["thread"],
-		"offset": list[len(list)-1].Block,
+		"offset": list.Items[len(list.Items)-1].Block,
 		"limit":  opts["limit"],
 	})
 }
@@ -151,8 +150,8 @@ func (x *getMessagesCmd) Execute(args []string) error {
 	if len(args) == 0 {
 		return errMissingMessageId
 	}
-	var info *pb.FeedMessage
-	res, err := executeJsonCmd(GET, "messages/"+args[0], params{}, &info)
+
+	res, err := executeJsonCmd(GET, "messages/"+args[0], params{}, nil)
 	if err != nil {
 		return err
 	}

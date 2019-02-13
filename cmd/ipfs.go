@@ -6,7 +6,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/util"
 )
 
@@ -56,10 +55,9 @@ func (x *swarmConnectCmd) Execute(args []string) error {
 		return errMissingMultiAddress
 	}
 
-	var info []string
 	res, err := executeJsonCmd(POST, "swarm/connect", params{
 		args: args,
-	}, &info)
+	}, nil)
 	if err != nil {
 		return err
 	}
@@ -83,7 +81,7 @@ Lists the set of peers this node is connected to.`
 
 func (x *swarmPeersCmd) Execute(args []string) error {
 	setApi(x.Client)
-	var info *ipfs.ConnInfos
+
 	res, err := executeJsonCmd(GET, "swarm/peers", params{
 		opts: map[string]string{
 			"verbose":   strconv.FormatBool(x.Verbose),
@@ -91,7 +89,7 @@ func (x *swarmPeersCmd) Execute(args []string) error {
 			"latency":   strconv.FormatBool(x.Latency),
 			"direction": strconv.FormatBool(x.Direction),
 		},
-	}, &info)
+	}, nil)
 	if err != nil {
 		return err
 	}

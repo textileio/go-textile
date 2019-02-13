@@ -116,7 +116,7 @@ func (a *api) lsThreadFiles(g *gin.Context) {
 		return
 	}
 
-	pbJSON(g, list)
+	pbJSON(g, http.StatusOK, list)
 }
 
 func (a *api) getThreadFiles(g *gin.Context) {
@@ -126,7 +126,7 @@ func (a *api) getThreadFiles(g *gin.Context) {
 		return
 	}
 
-	pbJSON(g, info)
+	pbJSON(g, http.StatusOK, info)
 }
 
 func (a *api) lsThreadFileTargetKeys(g *gin.Context) {

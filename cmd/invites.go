@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"errors"
-
-	"github.com/textileio/textile-go/core"
 )
 
 func init() {
@@ -61,13 +59,13 @@ func (x *createInvitesCmd) Execute(args []string) error {
 	if x.Thread == "" {
 		x.Thread = "default"
 	}
-	var result map[string]string
+
 	res, err := executeJsonCmd(POST, "invites", params{
 		opts: map[string]string{
 			"thread": x.Thread,
 			"peer":   x.Peer,
 		},
-	}, &result)
+	}, nil)
 	if err != nil {
 		return err
 	}
@@ -87,8 +85,8 @@ Lists all pending thread invites.`
 
 func (x *lsInvitesCmd) Execute(_ []string) error {
 	setApi(x.Client)
-	var list []core.ThreadInviteInfo
-	res, err := executeJsonCmd(GET, "invites", params{}, &list)
+
+	res, err := executeJsonCmd(GET, "invites", params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -114,13 +112,13 @@ func (x *acceptInvitesCmd) Execute(args []string) error {
 	if len(args) == 0 {
 		return errMissingInviteId
 	}
-	var info core.BlockInfo
+
 	res, err := executeJsonCmd(POST, "invites/"+args[0]+"/accept", params{
 		args: args,
 		opts: map[string]string{
 			"key": x.Key,
 		},
-	}, &info)
+	}, nil)
 	if err != nil {
 		return err
 	}
@@ -144,6 +142,7 @@ func (x *ignoreInvitesCmd) Execute(args []string) error {
 	if len(args) == 0 {
 		return errMissingInviteId
 	}
+
 	res, err := executeStringCmd(POST, "invites/"+args[0]+"/ignore", params{
 		args: args,
 	})

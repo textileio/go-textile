@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 	"github.com/textileio/textile-go/util"
 )
 
@@ -98,16 +101,52 @@ func executeJsonCmd(meth method, pth string, pars params, target interface{}) (s
 		return "", errors.New(body)
 	}
 
-	if err := util.UnmarshalJSON(res.Body, target); err != nil {
+	if target == nil {
+		target = new(interface{})
+	}
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
 		return "", err
 	}
-
-	data, err := json.MarshalIndent(target, "", "    ")
+	if err := json.Unmarshal(data, target); err != nil {
+		return "", err
+	}
+	jsn, err := json.MarshalIndent(target, "", "    ")
 	if err != nil {
 		return "", err
 	}
 
-	return string(data), nil
+	return string(jsn), nil
+}
+
+func executeJsonPbCmd(meth method, pth string, pars params, target proto.Message) (string, error) {
+	res, _, err := request(meth, pth, pars)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode >= 400 {
+		body, err := util.UnmarshalString(res.Body)
+		if err != nil {
+			return "", err
+		}
+		return "", errors.New(body)
+	}
+
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+	if err := pbUnmarshaler.Unmarshal(bytes.NewReader(data), target); err != nil {
+		return "", err
+	}
+	jsn, err := pbMarshaler.MarshalToString(target)
+	if err != nil {
+		return "", err
+	}
+
+	return jsn, nil
 }
 
 func request(meth method, pth string, pars params) (*http.Response, func(), error) {

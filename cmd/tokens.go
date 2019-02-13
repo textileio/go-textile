@@ -55,6 +55,7 @@ func (x *createTokensCmd) Execute(args []string) error {
 		"token": x.Token,
 		"store": strconv.FormatBool(!x.NoStore),
 	}
+
 	res, err := executeStringCmd(POST, "tokens", params{opts: opts})
 	if err != nil {
 		return err
@@ -75,8 +76,8 @@ List info about all stored cafe tokens.`
 
 func (x *lsTokensCmd) Execute(args []string) error {
 	setApi(x.Client)
-	var list []string
-	res, err := executeJsonCmd(GET, "tokens", params{}, &list)
+
+	res, err := executeJsonCmd(GET, "tokens", params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -100,6 +101,7 @@ func (x *validateTokensCmd) Execute(args []string) error {
 	if len(args) < 1 {
 		return errMissingToken
 	}
+
 	res, err := executeStringCmd(GET, "tokens/"+args[0], params{})
 	if err != nil {
 		return err
@@ -123,6 +125,7 @@ func (x *rmTokensCmd) Execute(args []string) error {
 	if len(args) < 1 {
 		return errMissingToken
 	}
+
 	res, err := executeStringCmd(DEL, "tokens/"+args[0], params{})
 	if err != nil {
 		return err

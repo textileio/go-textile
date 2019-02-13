@@ -167,8 +167,8 @@ func TestTextile_CafeRegistration(t *testing.T) {
 		t.Errorf(err.Error())
 		return
 	}
-	if len(sessions) > 0 {
-		session = sessions[0]
+	if len(sessions.Values) > 0 {
+		session = sessions.Values[0]
 	} else {
 		t.Errorf("no active sessions")
 	}

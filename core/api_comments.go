@@ -42,7 +42,7 @@ func (a *api) addBlockComments(g *gin.Context) {
 		return
 	}
 
-	g.JSON(http.StatusCreated, info)
+	pbJSON(g, http.StatusCreated, info)
 }
 
 func (a *api) lsBlockComments(g *gin.Context) {
@@ -54,7 +54,7 @@ func (a *api) lsBlockComments(g *gin.Context) {
 		return
 	}
 
-	pbJSON(g, comments)
+	pbJSON(g, http.StatusOK, comments)
 }
 
 func (a *api) getBlockComment(g *gin.Context) {
@@ -72,5 +72,5 @@ func (a *api) getBlockComment(g *gin.Context) {
 		return
 	}
 
-	pbJSON(g, info)
+	pbJSON(g, http.StatusOK, info)
 }
