@@ -31,7 +31,7 @@ func (t *Textile) FeedJoin(block *repo.Block, annotated bool) (*pb.FeedJoin, err
 		if err != nil {
 			return nil, err
 		}
-		info.Likes = likes
+		info.Likes = likes.Items
 	}
 
 	return info, nil

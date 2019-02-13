@@ -77,7 +77,7 @@ func (a *api) lsThreadMessages(g *gin.Context) {
 		return
 	}
 
-	g.JSON(http.StatusOK, list)
+	pbJSON(g, list)
 }
 
 func (a *api) getThreadMessages(g *gin.Context) {
@@ -87,5 +87,5 @@ func (a *api) getThreadMessages(g *gin.Context) {
 		return
 	}
 
-	g.JSON(http.StatusOK, info)
+	pbJSON(g, info)
 }

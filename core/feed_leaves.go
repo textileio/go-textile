@@ -31,7 +31,7 @@ func (t *Textile) FeedLeave(block *repo.Block, annotated bool) (*pb.FeedLeave, e
 		if err != nil {
 			return nil, err
 		}
-		info.Likes = likes
+		info.Likes = likes.Items
 	}
 
 	return info, nil

@@ -266,7 +266,7 @@ func (m *Mobile) Files(offset string, limit int, threadId string) ([]byte, error
 		return nil, err
 	}
 
-	return proto.Marshal(&pb.FeedFilesList{Items: files})
+	return proto.Marshal(files)
 }
 
 // FileData returns a data url of a raw file under a path

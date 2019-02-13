@@ -41,5 +41,5 @@ func (a *api) lsThreadFeed(g *gin.Context) {
 		return
 	}
 
-	g.JSON(http.StatusOK, list)
+	pbJSON(g, list)
 }

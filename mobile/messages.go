@@ -3,7 +3,6 @@ package mobile
 import (
 	"github.com/golang/protobuf/proto"
 	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/pb"
 )
 
 // AddThreadMessage adds a message to a thread
@@ -36,5 +35,5 @@ func (m *Mobile) Messages(offset string, limit int, threadId string) ([]byte, er
 		return nil, err
 	}
 
-	return proto.Marshal(&pb.FeedMessageList{Items: msgs})
+	return proto.Marshal(msgs)
 }

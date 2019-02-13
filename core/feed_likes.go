@@ -8,7 +8,7 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
-func (t *Textile) Likes(target string) ([]*pb.FeedLike, error) {
+func (t *Textile) Likes(target string) (*pb.FeedLikeList, error) {
 	likes := make([]*pb.FeedLike, 0)
 
 	query := fmt.Sprintf("type=%d and target='%s'", repo.LikeBlock, target)
@@ -20,7 +20,7 @@ func (t *Textile) Likes(target string) ([]*pb.FeedLike, error) {
 		likes = append(likes, info)
 	}
 
-	return likes, nil
+	return &pb.FeedLikeList{Items: likes}, nil
 }
 
 func (t *Textile) FeedLike(block *repo.Block, annotation bool) (*pb.FeedLike, error) {

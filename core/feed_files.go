@@ -10,7 +10,7 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
-func (t *Textile) Files(offset string, limit int, threadId string) ([]*pb.FeedFiles, error) {
+func (t *Textile) Files(offset string, limit int, threadId string) (*pb.FeedFilesList, error) {
 	var query string
 	if threadId != "" {
 		if t.Thread(threadId) == nil {
@@ -32,7 +32,7 @@ func (t *Textile) Files(offset string, limit int, threadId string) ([]*pb.FeedFi
 		list = append(list, file)
 	}
 
-	return list, nil
+	return &pb.FeedFilesList{Items: list}, nil
 }
 
 func (t *Textile) FeedFile(blockId string) (*pb.FeedFiles, error) {
@@ -131,13 +131,13 @@ func (t *Textile) feedFile(block *repo.Block, annotated bool) (*pb.FeedFiles, er
 		if err != nil {
 			return nil, err
 		}
-		info.Comments = comments
+		info.Comments = comments.Items
 
 		likes, err := t.Likes(block.Id)
 		if err != nil {
 			return nil, err
 		}
-		info.Likes = likes
+		info.Likes = likes.Items
 	}
 
 	return info, nil

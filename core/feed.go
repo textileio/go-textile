@@ -17,7 +17,7 @@ var annotatedFeedTypes = []repo.BlockType{
 	repo.JoinBlock, repo.LeaveBlock, repo.FilesBlock, repo.MessageBlock,
 }
 
-func (t *Textile) Feed(offset string, limit int, threadId string, annotated bool) ([]*pb.FeedItem, error) {
+func (t *Textile) Feed(offset string, limit int, threadId string, annotated bool) (*pb.FeedItemList, error) {
 	var types []repo.BlockType
 	if annotated {
 		types = annotatedFeedTypes
@@ -51,7 +51,7 @@ func (t *Textile) Feed(offset string, limit int, threadId string, annotated bool
 		list = append(list, item)
 	}
 
-	return list, nil
+	return &pb.FeedItemList{Items: list}, nil
 }
 
 func (t *Textile) feedItem(block *repo.Block, annotated bool) (*pb.FeedItem, error) {

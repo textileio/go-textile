@@ -8,7 +8,7 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
-func (t *Textile) Messages(offset string, limit int, threadId string) ([]*pb.FeedMessage, error) {
+func (t *Textile) Messages(offset string, limit int, threadId string) (*pb.FeedMessageList, error) {
 	var query string
 	if threadId != "" {
 		if t.Thread(threadId) == nil {
@@ -30,7 +30,7 @@ func (t *Textile) Messages(offset string, limit int, threadId string) ([]*pb.Fee
 		list = append(list, msg)
 	}
 
-	return list, nil
+	return &pb.FeedMessageList{Items: list}, nil
 }
 
 func (t *Textile) FeedMessage(blockId string) (*pb.FeedMessage, error) {
@@ -68,13 +68,13 @@ func (t *Textile) feedMessage(block *repo.Block, annotated bool) (*pb.FeedMessag
 		if err != nil {
 			return nil, err
 		}
-		info.Comments = comments
+		info.Comments = comments.Items
 
 		likes, err := t.Likes(block.Id)
 		if err != nil {
 			return nil, err
 		}
-		info.Likes = likes
+		info.Likes = likes.Items
 	}
 
 	return info, nil

@@ -8,7 +8,7 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
-func (t *Textile) Comments(target string) ([]*pb.FeedComment, error) {
+func (t *Textile) Comments(target string) (*pb.FeedCommentList, error) {
 	comments := make([]*pb.FeedComment, 0)
 
 	query := fmt.Sprintf("type=%d and target='%s'", repo.CommentBlock, target)
@@ -20,7 +20,7 @@ func (t *Textile) Comments(target string) ([]*pb.FeedComment, error) {
 		comments = append(comments, info)
 	}
 
-	return comments, nil
+	return &pb.FeedCommentList{Items: comments}, nil
 }
 
 func (t *Textile) FeedComment(block *repo.Block, annotation bool) (*pb.FeedComment, error) {
