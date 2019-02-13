@@ -256,17 +256,17 @@ func (m *Mobile) AddThreadFilesByTarget(target string, threadId string, caption 
 }
 
 // Files calls core Files
-func (m *Mobile) Files(offset string, limit int, threadId string) (string, error) {
+func (m *Mobile) Files(offset string, limit int, threadId string) ([]byte, error) {
 	if !m.node.Started() {
-		return "", core.ErrStopped
+		return nil, core.ErrStopped
 	}
 
 	files, err := m.node.Files(offset, limit, threadId)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return toJSON(files)
+	return proto.Marshal(&pb.FeedFilesList{Items: files})
 }
 
 // FileData returns a data url of a raw file under a path

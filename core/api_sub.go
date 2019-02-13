@@ -21,7 +21,7 @@ func (a *api) getThreadsSub(g *gin.Context) {
 	threadId := g.Param("id")
 	if threadId == "default" {
 		threadId = a.node.config.Threads.Defaults.ID
-	} // If id wasn't supplied, it will be an empty string
+	}
 
 	listener := a.node.ThreadUpdateListener()
 	g.Stream(func(w io.Writer) bool {
@@ -75,7 +75,7 @@ func addBlockInfo(a *api, update ThreadUpdate) (ThreadUpdate, error) {
 			ThreadName: update.ThreadName,
 			Info:       info,
 		}, nil
-	default: // For everything else... we've already go block info
+	default:
 		return update, nil
 	}
 }

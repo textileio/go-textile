@@ -20,6 +20,10 @@ message FeedItem {
     google.protobuf.Any body = 2;
 }
 
+message FeedItemList {
+    repeated FeedItem items = 1;
+}
+
 message FeedJoin {
     string block                   = 1;
     google.protobuf.Timestamp date = 2;
@@ -29,6 +33,10 @@ message FeedJoin {
     repeated FeedLike likes        = 6;
 }
 
+message FeedJoinList {
+    repeated FeedJoin items = 1;
+}
+
 message FeedLeave {
     string block                   = 1;
     google.protobuf.Timestamp date = 2;
@@ -36,6 +44,10 @@ message FeedLeave {
     string username                = 4;
     string avatar                  = 5;
     repeated FeedLike likes        = 6;
+}
+
+message FeedLeaveList {
+    repeated FeedLeave items = 1;
 }
 
 message FeedFiles {
@@ -50,6 +62,10 @@ message FeedFiles {
     repeated FeedComment comments  = 9;
     repeated FeedLike likes        = 10;
     repeated string threads        = 11;
+}
+
+message FeedFilesList {
+    repeated FeedFiles items = 1;
 }
 
 message FeedFile {
@@ -69,6 +85,10 @@ message FeedMessage {
     repeated FeedLike likes        = 8;
 }
 
+message FeedMessageList {
+    repeated FeedMessage items = 1;
+}
+
 message FeedLike {
     string id                      = 1;
     google.protobuf.Timestamp date = 2;
@@ -76,6 +96,10 @@ message FeedLike {
     string username                = 4;
     string avatar                  = 5;
     FeedItem target                = 6;
+}
+
+message FeedLikeList {
+    repeated FeedLike items = 1;
 }
 
 message FeedComment {
@@ -86,4 +110,8 @@ message FeedComment {
     string avatar                  = 5;
     string body                    = 6;
     FeedItem target                = 7;
+}
+
+message FeedCommentList {
+    repeated FeedComment items = 1;
 }

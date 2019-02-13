@@ -1,6 +1,10 @@
 package mobile
 
-import "github.com/textileio/textile-go/core"
+import (
+	"github.com/golang/protobuf/proto"
+	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/pb"
+)
 
 // AddThreadMessage adds a message to a thread
 func (m *Mobile) AddThreadMessage(threadId string, body string) (string, error) {
@@ -22,15 +26,15 @@ func (m *Mobile) AddThreadMessage(threadId string, body string) (string, error) 
 }
 
 // Messages calls core Messages
-func (m *Mobile) Messages(offset string, limit int, threadId string) (string, error) {
+func (m *Mobile) Messages(offset string, limit int, threadId string) ([]byte, error) {
 	if !m.node.Started() {
-		return "", core.ErrStopped
+		return nil, core.ErrStopped
 	}
 
 	msgs, err := m.node.Messages(offset, limit, threadId)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return toJSON(msgs)
+	return proto.Marshal(&pb.FeedMessageList{Items: msgs})
 }

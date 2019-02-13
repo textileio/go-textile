@@ -44,7 +44,7 @@ var mobile2 *Mobile
 var thrdId string
 var dir []byte
 var filesBlock core.BlockInfo
-var files []pb.FeedFiles
+var files []*pb.FeedFiles
 var invite ExternalInvite
 
 var contact = &repo.Contact{
@@ -303,18 +303,18 @@ func TestMobile_AddThreadMessage(t *testing.T) {
 	}
 }
 
-func TestMobile_ThreadMessages(t *testing.T) {
+func TestMobile_Messages(t *testing.T) {
 	res, err := mobile1.Messages("", -1, thrdId)
 	if err != nil {
 		t.Errorf("thread messages failed: %s", err)
 		return
 	}
-	var msgs []pb.FeedMessage
-	if err := json.Unmarshal([]byte(res), &msgs); err != nil {
+	list := new(pb.FeedMessageList)
+	if err := proto.Unmarshal(res, list); err != nil {
 		t.Error(err)
 		return
 	}
-	if len(msgs) != 1 {
+	if len(list.Items) != 1 {
 		t.Error("wrong number of messages")
 	}
 }
@@ -397,16 +397,18 @@ func TestMobile_AddThreadLike(t *testing.T) {
 	}
 }
 
-func TestMobile_ThreadFiles(t *testing.T) {
+func TestMobile_Files(t *testing.T) {
 	res, err := mobile1.Files("", -1, thrdId)
 	if err != nil {
 		t.Errorf("get thread files failed: %s", err)
 		return
 	}
-	if err := json.Unmarshal([]byte(res), &files); err != nil {
+	list := new(pb.FeedFilesList)
+	if err := proto.Unmarshal(res, list); err != nil {
 		t.Error(err)
 		return
 	}
+	files = list.Items
 	if len(files) != 2 {
 		t.Errorf("get thread files bad result")
 	}
@@ -445,28 +447,28 @@ func TestMobile_AddThreadIgnore(t *testing.T) {
 		t.Errorf("get thread files failed: %s", err)
 		return
 	}
-	var files []pb.FeedFiles
-	if err := json.Unmarshal([]byte(res), &files); err != nil {
+	list := new(pb.FeedFilesList)
+	if err := proto.Unmarshal(res, list); err != nil {
 		t.Error(err)
 		return
 	}
-	if len(files) != 1 {
+	if len(list.Items) != 1 {
 		t.Errorf("thread ignore bad result")
 	}
 }
 
-func TestMobile_ThreadFeed(t *testing.T) {
+func TestMobile_Feed(t *testing.T) {
 	res, err := mobile1.Feed("", -1, thrdId, false)
 	if err != nil {
 		t.Errorf("get thread feed failed: %s", err)
 		return
 	}
-	var feed []pb.FeedItem
-	if err := json.Unmarshal([]byte(res), &feed); err != nil {
+	list := new(pb.FeedItemList)
+	if err := proto.Unmarshal(res, list); err != nil {
 		t.Error(err)
 		return
 	}
-	if len(feed) != 5 {
+	if len(list.Items) != 5 {
 		t.Errorf("get thread feed bad result")
 	}
 }
@@ -590,7 +592,6 @@ func TestMobile_AddContactAgain(t *testing.T) {
 }
 
 func TestMobile_Contact(t *testing.T) {
-	// tmp test get own _virtual_ contact while profile still exists
 	pid, err := mobile1.PeerId()
 	if err != nil {
 		t.Error(err)
