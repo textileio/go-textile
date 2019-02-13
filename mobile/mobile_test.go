@@ -44,7 +44,7 @@ var mobile2 *Mobile
 var thrdId string
 var dir []byte
 var filesBlock core.BlockInfo
-var files []core.ThreadFilesInfo
+var files []pb.FeedFiles
 var invite ExternalInvite
 
 var contact = &repo.Contact{
@@ -304,12 +304,12 @@ func TestMobile_AddThreadMessage(t *testing.T) {
 }
 
 func TestMobile_ThreadMessages(t *testing.T) {
-	res, err := mobile1.ThreadMessages("", -1, thrdId)
+	res, err := mobile1.Messages("", -1, thrdId)
 	if err != nil {
 		t.Errorf("thread messages failed: %s", err)
 		return
 	}
-	var msgs []core.ThreadMessageInfo
+	var msgs []pb.FeedMessage
 	if err := json.Unmarshal([]byte(res), &msgs); err != nil {
 		t.Error(err)
 		return
@@ -398,7 +398,7 @@ func TestMobile_AddThreadLike(t *testing.T) {
 }
 
 func TestMobile_ThreadFiles(t *testing.T) {
-	res, err := mobile1.ThreadFiles("", -1, thrdId)
+	res, err := mobile1.Files("", -1, thrdId)
 	if err != nil {
 		t.Errorf("get thread files failed: %s", err)
 		return
@@ -419,13 +419,13 @@ func TestMobile_ThreadFiles(t *testing.T) {
 }
 
 func TestMobile_ThreadFilesBadThread(t *testing.T) {
-	if _, err := mobile1.ThreadFiles("", -1, "empty"); err == nil {
+	if _, err := mobile1.Files("", -1, "empty"); err == nil {
 		t.Error("get thread files from bad thread should fail")
 	}
 }
 
 func TestMobile_FileData(t *testing.T) {
-	res, err := mobile1.FileData(files[0].Files[0].Links["small"].Hash)
+	res, err := mobile1.FileData(files[0].Files[0].Links.Files["small"].Hash)
 	if err != nil {
 		t.Errorf("get file data failed: %s", err)
 		return
@@ -440,12 +440,12 @@ func TestMobile_AddThreadIgnore(t *testing.T) {
 		t.Errorf("add thread ignore failed: %s", err)
 		return
 	}
-	res, err := mobile1.ThreadFiles("", -1, thrdId)
+	res, err := mobile1.Files("", -1, thrdId)
 	if err != nil {
 		t.Errorf("get thread files failed: %s", err)
 		return
 	}
-	var files []core.ThreadFilesInfo
+	var files []pb.FeedFiles
 	if err := json.Unmarshal([]byte(res), &files); err != nil {
 		t.Error(err)
 		return
@@ -456,12 +456,12 @@ func TestMobile_AddThreadIgnore(t *testing.T) {
 }
 
 func TestMobile_ThreadFeed(t *testing.T) {
-	res, err := mobile1.ThreadFeed("", -1, thrdId, false)
+	res, err := mobile1.Feed("", -1, thrdId, false)
 	if err != nil {
 		t.Errorf("get thread feed failed: %s", err)
 		return
 	}
-	var feed []core.ThreadFeedItem
+	var feed []pb.FeedItem
 	if err := json.Unmarshal([]byte(res), &feed); err != nil {
 		t.Error(err)
 		return
@@ -472,17 +472,17 @@ func TestMobile_ThreadFeed(t *testing.T) {
 }
 
 func TestMobile_PhotoDataForMinWidth(t *testing.T) {
-	large, err := mobile1.FileData(files[0].Files[0].Links["large"].Hash)
+	large, err := mobile1.FileData(files[0].Files[0].Links.Files["large"].Hash)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	small, err := mobile1.FileData(files[0].Files[0].Links["small"].Hash)
+	small, err := mobile1.FileData(files[0].Files[0].Links.Files["small"].Hash)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	thumb, err := mobile1.FileData(files[0].Files[0].Links["thumb"].Hash)
+	thumb, err := mobile1.FileData(files[0].Files[0].Links.Files["thumb"].Hash)
 	if err != nil {
 		t.Error(err)
 		return
@@ -550,7 +550,7 @@ func TestMobile_SetUsername(t *testing.T) {
 }
 
 func TestMobile_SetAvatar(t *testing.T) {
-	if err := mobile1.SetAvatar(files[0].Files[0].Links["large"].Hash); err != nil {
+	if err := mobile1.SetAvatar(files[0].Files[0].Links.Files["large"].Hash); err != nil {
 		t.Errorf("set avatar failed: %s", err)
 	}
 }

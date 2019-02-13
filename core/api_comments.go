@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/textileio/textile-go/pb"
 )
 
 func (a *api) addBlockComments(g *gin.Context) {
@@ -36,7 +37,7 @@ func (a *api) addBlockComments(g *gin.Context) {
 		return
 	}
 
-	info, err := a.node.ThreadComment(block, true)
+	info, err := a.node.FeedComment(block, true)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -48,13 +49,13 @@ func (a *api) addBlockComments(g *gin.Context) {
 func (a *api) lsBlockComments(g *gin.Context) {
 	id := g.Param("id")
 
-	comments, err := a.node.ThreadComments(id)
+	comments, err := a.node.Comments(id)
 	if err != nil {
 		a.abort500(g, err)
 		return
 	}
 	if len(comments) == 0 {
-		comments = make([]ThreadCommentInfo, 0)
+		comments = make([]*pb.FeedComment, 0)
 	}
 
 	g.JSON(http.StatusOK, comments)
@@ -69,7 +70,7 @@ func (a *api) getBlockComment(g *gin.Context) {
 		return
 	}
 
-	info, err := a.node.ThreadComment(block, true)
+	info, err := a.node.FeedComment(block, true)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

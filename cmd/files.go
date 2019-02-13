@@ -19,6 +19,7 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema"
 )
@@ -507,7 +508,7 @@ func (x *lsFilesCmd) Execute(args []string) error {
 }
 
 func callLsFiles(opts map[string]string) error {
-	var list []core.ThreadFilesInfo
+	var list []pb.FeedFiles
 	res, err := executeJsonCmd(GET, "files", params{opts: opts}, &list)
 	if err != nil {
 		return err
@@ -553,7 +554,7 @@ func (x *getFilesCmd) Execute(args []string) error {
 		return errMissingFileId
 	}
 
-	var info core.ThreadFilesInfo
+	var info pb.FeedFiles
 	res, err := executeJsonCmd(GET, "files/"+args[0], params{}, &info)
 	if err != nil {
 		return err

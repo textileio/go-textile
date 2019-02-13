@@ -6,7 +6,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/pb"
 )
 
 func init() {
@@ -49,7 +49,7 @@ func (x *lsCmd) Execute(args []string) error {
 }
 
 func callLs(opts map[string]string) error {
-	var list []core.ThreadFeedItem
+	var list []pb.FeedItem
 	res, err := executeJsonCmd(GET, "feed", params{opts: opts}, &list)
 	if err != nil {
 		return err

@@ -3,7 +3,7 @@ package cmd
 import (
 	"errors"
 
-	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/pb"
 )
 
 var errMissingLikeId = errors.New("missing like block ID")
@@ -48,7 +48,7 @@ Adds a like to a thread block.`
 
 func (x *addLikesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	var info *core.ThreadLikeInfo
+	var info *pb.FeedLike
 	res, err := executeJsonCmd(POST, "blocks/"+x.Block+"/likes", params{}, &info)
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ Lists likes on a thread block.`
 
 func (x *lsLikesCmd) Execute(args []string) error {
 	setApi(x.Client)
-	var list []core.ThreadLikeInfo
+	var list []pb.FeedLike
 	res, err := executeJsonCmd(GET, "blocks/"+x.Block+"/likes", params{}, &list)
 	if err != nil {
 		return err
@@ -94,7 +94,7 @@ func (x *getLikesCmd) Execute(args []string) error {
 	if len(args) == 0 {
 		return errMissingLikeId
 	}
-	var info *core.ThreadLikeInfo
+	var info *pb.FeedLike
 	res, err := executeJsonCmd(GET, "blocks/"+args[0]+"/like", params{}, &info)
 	if err != nil {
 		return err

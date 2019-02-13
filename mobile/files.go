@@ -14,7 +14,6 @@ import (
 	iface "gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core/coreapi/interface"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/mill"
@@ -87,7 +86,7 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 			return nil, err
 		}
 
-		file, err := toProtoFile(added)
+		file, err := core.RepoFileToProto(added)
 		if err != nil {
 			return nil, err
 		}
@@ -135,7 +134,7 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 				return nil, err
 			}
 
-			file, err := toProtoFile(added)
+			file, err := core.RepoFileToProto(added)
 			if err != nil {
 				return nil, err
 			}
@@ -189,7 +188,7 @@ func (m *Mobile) AddThreadFiles(dir []byte, threadId string, caption string) (st
 
 	var err error
 	if mdir.Files[schema.SingleFileTag] != nil {
-		file, err := toRepoFile(mdir.Files[schema.SingleFileTag])
+		file, err := core.ProtoFileToRepo(mdir.Files[schema.SingleFileTag])
 		if err != nil {
 			return "", err
 		}
@@ -202,7 +201,7 @@ func (m *Mobile) AddThreadFiles(dir []byte, threadId string, caption string) (st
 
 		rdir := make(core.Directory)
 		for k, v := range mdir.Files {
-			file, err := toRepoFile(v)
+			file, err := core.ProtoFileToRepo(v)
 			if err != nil {
 				return "", err
 			}
@@ -256,13 +255,13 @@ func (m *Mobile) AddThreadFilesByTarget(target string, threadId string, caption 
 	return m.blockInfo(hash)
 }
 
-// ThreadFiles calls core ThreadFiles
-func (m *Mobile) ThreadFiles(offset string, limit int, threadId string) (string, error) {
+// Files calls core Files
+func (m *Mobile) Files(offset string, limit int, threadId string) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
 
-	files, err := m.node.ThreadFiles(offset, limit, threadId)
+	files, err := m.node.Files(offset, limit, threadId)
 	if err != nil {
 		return "", err
 	}
@@ -456,46 +455,4 @@ func getMill(id string, opts map[string]string) (mill.Mill, error) {
 	default:
 		return nil, nil
 	}
-}
-
-func toProtoFile(file *repo.File) (*pb.File, error) {
-	added, err := ptypes.TimestampProto(file.Added)
-	if err != nil {
-		return nil, err
-	}
-
-	return &pb.File{
-		Mill:     file.Mill,
-		Checksum: file.Checksum,
-		Source:   file.Source,
-		Opts:     file.Opts,
-		Hash:     file.Hash,
-		Key:      file.Key,
-		Media:    file.Media,
-		Name:     file.Name,
-		Size:     int64(file.Size),
-		Added:    added,
-		Meta:     pb.ToStruct(file.Meta),
-	}, nil
-}
-
-func toRepoFile(file *pb.File) (*repo.File, error) {
-	added, err := ptypes.Timestamp(file.Added)
-	if err != nil {
-		return nil, err
-	}
-
-	return &repo.File{
-		Mill:     file.Mill,
-		Checksum: file.Checksum,
-		Source:   file.Source,
-		Opts:     file.Opts,
-		Hash:     file.Hash,
-		Key:      file.Key,
-		Media:    file.Media,
-		Name:     file.Name,
-		Size:     int(file.Size),
-		Added:    added,
-		Meta:     pb.ToMap(file.Meta),
-	}, nil
 }

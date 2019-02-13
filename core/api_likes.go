@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/textileio/textile-go/pb"
 )
 
 func (a *api) addBlockLikes(g *gin.Context) {
@@ -26,7 +27,7 @@ func (a *api) addBlockLikes(g *gin.Context) {
 		return
 	}
 
-	info, err := a.node.ThreadLike(block, true)
+	info, err := a.node.FeedLike(block, true)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -38,13 +39,13 @@ func (a *api) addBlockLikes(g *gin.Context) {
 func (a *api) lsBlockLikes(g *gin.Context) {
 	id := g.Param("id")
 
-	likes, err := a.node.ThreadLikes(id)
+	likes, err := a.node.Likes(id)
 	if err != nil {
 		a.abort500(g, err)
 		return
 	}
 	if len(likes) == 0 {
-		likes = make([]ThreadLikeInfo, 0)
+		likes = make([]*pb.FeedLike, 0)
 	}
 
 	g.JSON(http.StatusOK, likes)
@@ -59,7 +60,7 @@ func (a *api) getBlockLike(g *gin.Context) {
 		return
 	}
 
-	info, err := a.node.ThreadLike(block, true)
+	info, err := a.node.FeedLike(block, true)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

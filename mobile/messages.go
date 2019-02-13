@@ -21,13 +21,13 @@ func (m *Mobile) AddThreadMessage(threadId string, body string) (string, error) 
 	return hash.B58String(), nil
 }
 
-// ThreadMessages calls core ThreadMessages
-func (m *Mobile) ThreadMessages(offset string, limit int, threadId string) (string, error) {
+// Messages calls core Messages
+func (m *Mobile) Messages(offset string, limit int, threadId string) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
 
-	msgs, err := m.node.ThreadMessages(offset, limit, threadId)
+	msgs, err := m.node.Messages(offset, limit, threadId)
 	if err != nil {
 		return "", err
 	}

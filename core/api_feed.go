@@ -35,7 +35,7 @@ func (a *api) lsThreadFeed(g *gin.Context) {
 		}
 	}
 
-	list, err := a.node.ThreadFeed(opts["offset"], limit, threadId, opts["annotated"] == "true")
+	list, err := a.node.Feed(opts["offset"], limit, threadId, opts["annotated"] == "true")
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

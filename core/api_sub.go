@@ -65,7 +65,7 @@ func (a *api) getThreadsSub(g *gin.Context) {
 func addBlockInfo(a *api, update ThreadUpdate) (ThreadUpdate, error) {
 	switch update.Block.Type {
 	case "FILES":
-		info, err := a.node.ThreadFile(update.Block.Id)
+		info, err := a.node.FeedFile(update.Block.Id)
 		if err != nil {
 			return update, errors.New("error getting thread file: " + err.Error())
 		}
