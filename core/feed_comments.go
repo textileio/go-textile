@@ -52,14 +52,14 @@ func (t *Textile) feedComment(block *repo.Block, opts feedItemOpts) (*pb.FeedCom
 		Body:     block.Body,
 	}
 
-	if !opts.annotations {
+	if opts.target != nil {
+		info.Target = opts.target
+	} else if !opts.annotations {
 		target, err := t.feedItem(t.datastore.Blocks().Get(block.Target), feedItemOpts{})
 		if err != nil {
 			return nil, err
 		}
 		info.Target = target
-	} else {
-		info.Target = opts.target
 	}
 
 	return info, nil

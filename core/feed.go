@@ -149,9 +149,9 @@ func (t *Textile) feedStackItem(stack hybridStack) (*pb.FeedItem, error) {
 	var comments []*pb.FeedComment
 	var likes []*pb.FeedLike
 
-	// does the stack contain the initial target,
-	// or is it a continuation stack of annotations?
-	// we'll need to load the target in the latter case.
+	// Does the stack contain the initial target,
+	// or is it a continuation stack of just annotations?
+	// We'll need to load the target in the latter case.
 	var target *repo.Block
 	var targetId string
 	for _, child := range stack.children {
@@ -198,14 +198,14 @@ func (t *Textile) feedStackItem(stack hybridStack) (*pb.FeedItem, error) {
 		return nil, err
 	}
 
-	if initial {
-		return targetItem, nil
-	} else {
+	if !initial {
 		// target gets wrapped with the top block
 		return t.feedItem(&stack.top, feedItemOpts{
 			target: targetItem,
 		})
 	}
+
+	return targetItem, nil
 }
 
 func getTargetId(block repo.Block) string {
