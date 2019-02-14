@@ -81,7 +81,7 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 			return nil, err
 		}
 
-		added, err := m.node.AddFile(mil, *conf)
+		added, err := m.node.AddFileIndex(mil, *conf)
 		if err != nil {
 			return nil, err
 		}
@@ -129,7 +129,7 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 				}
 			}
 
-			added, err := m.node.AddFile(mil, *conf)
+			added, err := m.node.AddFileIndex(mil, *conf)
 			if err != nil {
 				return nil, err
 			}
@@ -164,8 +164,8 @@ func (m *Mobile) PrepareFilesAsync(path string, threadId string, cb Callback) {
 	}()
 }
 
-// AddThreadFiles adds a prepared file to a thread
-func (m *Mobile) AddThreadFiles(dir []byte, threadId string, caption string) (string, error) {
+// AddFiles adds a prepared file to a thread
+func (m *Mobile) AddFiles(dir []byte, threadId string, caption string) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
@@ -226,8 +226,8 @@ func (m *Mobile) AddThreadFiles(dir []byte, threadId string, caption string) (st
 	return m.blockInfo(hash)
 }
 
-// AddThreadFilesByTarget adds a prepared file to a thread by referencing its top level hash
-func (m *Mobile) AddThreadFilesByTarget(target string, threadId string, caption string) (string, error) {
+// AddFilesByTarget adds a prepared file to a thread by referencing its top level hash
+func (m *Mobile) AddFilesByTarget(target string, threadId string, caption string) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
@@ -325,7 +325,7 @@ func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) (string, err
 			continue
 		}
 
-		file, err := m.node.File(dlink.Cid.Hash().B58String())
+		file, err := m.node.FileIndex(dlink.Cid.Hash().B58String())
 		if err != nil {
 			return "", err
 		}
@@ -365,7 +365,7 @@ func (m *Mobile) addSchema(jsonstr string) (*repo.File, error) {
 		Media: "application/json",
 	}
 
-	return m.node.AddFile(&mill.Schema{}, conf)
+	return m.node.AddFileIndex(&mill.Schema{}, conf)
 }
 
 func (m *Mobile) getFileConfig(mil mill.Mill, path string, use string, plaintext bool) (*core.AddFileConfig, error) {

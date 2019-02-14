@@ -126,8 +126,8 @@ func (m *Mobile) ThreadInfo(threadId string) (string, error) {
 	return toJSON(info)
 }
 
-// AddThreadInvite adds a new invite to a thread
-func (m *Mobile) AddThreadInvite(threadId string, inviteeId string) (string, error) {
+// AddInvite adds a new invite to a thread
+func (m *Mobile) AddInvite(threadId string, inviteeId string) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
@@ -150,8 +150,8 @@ func (m *Mobile) AddThreadInvite(threadId string, inviteeId string) (string, err
 	return hash.B58String(), nil
 }
 
-// AddExternalThreadInvite generates a new external invite link to a thread
-func (m *Mobile) AddExternalThreadInvite(threadId string) (string, error) {
+// AddExternalInvite generates a new external invite link to a thread
+func (m *Mobile) AddExternalInvite(threadId string) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
@@ -176,8 +176,8 @@ func (m *Mobile) AddExternalThreadInvite(threadId string) (string, error) {
 	return toJSON(invite)
 }
 
-// AcceptExternalThreadInvite notifies the thread of a join
-func (m *Mobile) AcceptExternalThreadInvite(id string, key string) (string, error) {
+// AcceptExternalInvite notifies the thread of a join
+func (m *Mobile) AcceptExternalInvite(id string, key string) (string, error) {
 	if !m.node.Online() {
 		return "", core.ErrOffline
 	}
@@ -187,7 +187,7 @@ func (m *Mobile) AcceptExternalThreadInvite(id string, key string) (string, erro
 		return "", err
 	}
 
-	hash, err := m.node.AcceptExternalThreadInvite(id, keyb)
+	hash, err := m.node.AcceptExternalInvite(id, keyb)
 	if err != nil {
 		return "", err
 	}

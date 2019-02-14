@@ -203,8 +203,8 @@ func (t *Textile) ThreadInfo(id string) (*ThreadInfo, error) {
 	return thrd.Info()
 }
 
-// ThreadInvite get a pending invite
-func (t *Textile) ThreadInvite(invite *repo.ThreadInvite) *ThreadInviteInfo {
+// Invite get a pending invite
+func (t *Textile) Invite(invite *repo.ThreadInvite) *ThreadInviteInfo {
 	if invite == nil {
 		return nil
 	}
@@ -227,12 +227,12 @@ func (t *Textile) ThreadInvite(invite *repo.ThreadInvite) *ThreadInviteInfo {
 	}
 }
 
-// ThreadInvites lists info on all pending invites
-func (t *Textile) ThreadInvites() []ThreadInviteInfo {
+// Invites lists info on all pending invites
+func (t *Textile) Invites() []ThreadInviteInfo {
 	list := make([]ThreadInviteInfo, 0)
 
 	for _, invite := range t.datastore.ThreadInvites().List() {
-		info := t.ThreadInvite(&invite)
+		info := t.Invite(&invite)
 		list = append(list, *info)
 	}
 
@@ -251,16 +251,16 @@ func (t *Textile) AcceptThreadInvite(inviteId string) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	if err := t.IgnoreThreadInvite(inviteId); err != nil {
+	if err := t.IgnoreInvite(inviteId); err != nil {
 		return nil, err
 	}
 
 	return hash, nil
 }
 
-// AcceptExternalThreadInvite attemps to download an encrypted thread key from an external invite,
+// AcceptExternalInvite attemps to download an encrypted thread key from an external invite,
 // adds a new thread, and notifies the inviter of the join
-func (t *Textile) AcceptExternalThreadInvite(inviteId string, key []byte) (mh.Multihash, error) {
+func (t *Textile) AcceptExternalInvite(inviteId string, key []byte) (mh.Multihash, error) {
 	ciphertext, err := ipfs.DataAtPath(t.node, fmt.Sprintf("%s", inviteId))
 	if err != nil {
 		return nil, err
@@ -274,8 +274,8 @@ func (t *Textile) AcceptExternalThreadInvite(inviteId string, key []byte) (mh.Mu
 	return t.handleThreadInvite(plaintext)
 }
 
-// IgnoreThreadInvite deletes the invite and removes the associated notification.
-func (t *Textile) IgnoreThreadInvite(inviteId string) error {
+// IgnoreInvite deletes the invite and removes the associated notification.
+func (t *Textile) IgnoreInvite(inviteId string) error {
 	if err := t.datastore.ThreadInvites().Delete(inviteId); err != nil {
 		return err
 	}

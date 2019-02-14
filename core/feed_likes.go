@@ -13,7 +13,7 @@ func (t *Textile) Likes(target string) (*pb.FeedLikeList, error) {
 
 	query := fmt.Sprintf("type=%d and target='%s'", repo.LikeBlock, target)
 	for _, block := range t.Blocks("", -1, query) {
-		info, err := t.feedLike(&block, feedItemOpts{annotations: true})
+		info, err := t.like(&block, feedItemOpts{annotations: true})
 		if err != nil {
 			continue
 		}
@@ -23,16 +23,16 @@ func (t *Textile) Likes(target string) (*pb.FeedLikeList, error) {
 	return &pb.FeedLikeList{Items: likes}, nil
 }
 
-func (t *Textile) FeedLike(blockId string) (*pb.FeedLike, error) {
+func (t *Textile) Like(blockId string) (*pb.FeedLike, error) {
 	block, err := t.Block(blockId)
 	if err != nil {
 		return nil, err
 	}
 
-	return t.feedLike(block, feedItemOpts{annotations: true})
+	return t.like(block, feedItemOpts{annotations: true})
 }
 
-func (t *Textile) feedLike(block *repo.Block, opts feedItemOpts) (*pb.FeedLike, error) {
+func (t *Textile) like(block *repo.Block, opts feedItemOpts) (*pb.FeedLike, error) {
 	if block.Type != repo.LikeBlock {
 		return nil, ErrBlockWrongType
 	}

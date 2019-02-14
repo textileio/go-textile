@@ -23,7 +23,7 @@ func (t *Textile) Messages(offset string, limit int, threadId string) (*pb.FeedM
 
 	blocks := t.Blocks(offset, limit, query)
 	for _, block := range blocks {
-		msg, err := t.feedMessage(&block, feedItemOpts{annotations: true})
+		msg, err := t.message(&block, feedItemOpts{annotations: true})
 		if err != nil {
 			return nil, err
 		}
@@ -33,16 +33,16 @@ func (t *Textile) Messages(offset string, limit int, threadId string) (*pb.FeedM
 	return &pb.FeedMessageList{Items: list}, nil
 }
 
-func (t *Textile) FeedMessage(blockId string) (*pb.FeedMessage, error) {
+func (t *Textile) Message(blockId string) (*pb.FeedMessage, error) {
 	block, err := t.Block(blockId)
 	if err != nil {
 		return nil, err
 	}
 
-	return t.feedMessage(block, feedItemOpts{annotations: true})
+	return t.message(block, feedItemOpts{annotations: true})
 }
 
-func (t *Textile) feedMessage(block *repo.Block, opts feedItemOpts) (*pb.FeedMessage, error) {
+func (t *Textile) message(block *repo.Block, opts feedItemOpts) (*pb.FeedMessage, error) {
 	if block.Type != repo.MessageBlock {
 		return nil, ErrBlockWrongType
 	}

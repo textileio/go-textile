@@ -120,7 +120,7 @@ func (a *api) lsThreadFiles(g *gin.Context) {
 }
 
 func (a *api) getThreadFiles(g *gin.Context) {
-	info, err := a.node.FeedFile(g.Param("block"))
+	info, err := a.node.File(g.Param("block"))
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

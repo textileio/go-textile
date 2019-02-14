@@ -42,7 +42,7 @@ type AddFileConfig struct {
 	Plaintext bool   `json:"plaintext"`
 }
 
-func (t *Textile) AddFile(mill m.Mill, conf AddFileConfig) (*repo.File, error) {
+func (t *Textile) AddFileIndex(mill m.Mill, conf AddFileConfig) (*repo.File, error) {
 	var source string
 	if conf.Use != "" {
 		source = conf.Use
@@ -136,7 +136,7 @@ func (t *Textile) AddSchema(jsonstr string, name string) (*repo.File, error) {
 		return nil, err
 	}
 
-	return t.AddFile(&m.Schema{}, AddFileConfig{
+	return t.AddFileIndex(&m.Schema{}, AddFileConfig{
 		Input: data,
 		Media: "application/json",
 		Name:  name,
@@ -204,7 +204,7 @@ func (t *Textile) AddNodeFromDirs(dirs []Directory) (ipld.Node, Keys, error) {
 	return node, keys, nil
 }
 
-func (t *Textile) File(hash string) (*repo.File, error) {
+func (t *Textile) FileIndex(hash string) (*repo.File, error) {
 	file := t.datastore.Files().Get(hash)
 	if file == nil {
 		return nil, ErrFileNotFound
@@ -383,6 +383,7 @@ func looksLikeFileNode(node ipld.Node) bool {
 	return true
 }
 
+// tmp
 func RepoFileToProto(file *repo.File) (*pb.File, error) {
 	added, err := ptypes.TimestampProto(file.Added)
 	if err != nil {
@@ -405,6 +406,7 @@ func RepoFileToProto(file *repo.File) (*pb.File, error) {
 	}, nil
 }
 
+// tmp
 func ProtoFileToRepo(file *pb.File) (*repo.File, error) {
 	added, err := ptypes.Timestamp(file.Added)
 	if err != nil {

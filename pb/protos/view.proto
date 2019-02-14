@@ -72,9 +72,9 @@ message FeedFilesList {
 }
 
 message FeedFile {
-    int32 index     = 1;
-    File file       = 2;
-    Directory links = 3;
+    int32 index             = 1;
+    File file               = 2;
+    map<string, File> links = 3;
 }
 
 message FeedMessage {

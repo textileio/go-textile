@@ -5,8 +5,8 @@ import (
 	"github.com/textileio/textile-go/core"
 )
 
-// AddThreadMessage adds a message to a thread
-func (m *Mobile) AddThreadMessage(threadId string, body string) (string, error) {
+// AddMessage adds a message to a thread
+func (m *Mobile) AddMessage(threadId string, body string) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}

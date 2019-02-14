@@ -297,8 +297,8 @@ func TestMobile_RemoveThread(t *testing.T) {
 	}
 }
 
-func TestMobile_AddThreadMessage(t *testing.T) {
-	if _, err := mobile1.AddThreadMessage(thrdId, "ping pong"); err != nil {
+func TestMobile_AddMessage(t *testing.T) {
+	if _, err := mobile1.AddMessage(thrdId, "ping pong"); err != nil {
 		t.Errorf("add thread message failed: %s", err)
 	}
 }
@@ -358,8 +358,8 @@ func TestMobile_PrepareFilesAsync(t *testing.T) {
 	mobile1.PrepareFilesAsync("../mill/testdata/image.jpeg", thrdId, &TestCallback{})
 }
 
-func TestMobile_AddThreadFiles(t *testing.T) {
-	res, err := mobile1.AddThreadFiles(dir, thrdId, "hello")
+func TestMobile_AddFiles(t *testing.T) {
+	res, err := mobile1.AddFiles(dir, thrdId, "hello")
 	if err != nil {
 		t.Errorf("add thread files failed: %s", err)
 		return
@@ -373,8 +373,8 @@ func TestMobile_AddThreadFiles(t *testing.T) {
 	time.Sleep(time.Second)
 }
 
-func TestMobile_AddThreadFilesByTarget(t *testing.T) {
-	res, err := mobile1.AddThreadFilesByTarget(filesBlock.Target, thrdId, "hello again")
+func TestMobile_AddFilesByTarget(t *testing.T) {
+	res, err := mobile1.AddFilesByTarget(filesBlock.Target, thrdId, "hello again")
 	if err != nil {
 		t.Errorf("add thread files by target failed: %s", err)
 		return
@@ -385,14 +385,14 @@ func TestMobile_AddThreadFilesByTarget(t *testing.T) {
 	}
 }
 
-func TestMobile_AddThreadComment(t *testing.T) {
-	if _, err := mobile1.AddThreadComment(filesBlock.Id, "hell yeah"); err != nil {
+func TestMobile_AddComment(t *testing.T) {
+	if _, err := mobile1.AddComment(filesBlock.Id, "hell yeah"); err != nil {
 		t.Errorf("add thread comment failed: %s", err)
 	}
 }
 
-func TestMobile_AddThreadLike(t *testing.T) {
-	if _, err := mobile1.AddThreadLike(filesBlock.Id); err != nil {
+func TestMobile_AddLike(t *testing.T) {
+	if _, err := mobile1.AddLike(filesBlock.Id); err != nil {
 		t.Errorf("add thread like failed: %s", err)
 	}
 }
@@ -420,14 +420,14 @@ func TestMobile_Files(t *testing.T) {
 	}
 }
 
-func TestMobile_ThreadFilesBadThread(t *testing.T) {
+func TestMobile_FilesBadThread(t *testing.T) {
 	if _, err := mobile1.Files("", -1, "empty"); err == nil {
 		t.Error("get thread files from bad thread should fail")
 	}
 }
 
 func TestMobile_FileData(t *testing.T) {
-	res, err := mobile1.FileData(files[0].Files[0].Links.Files["small"].Hash)
+	res, err := mobile1.FileData(files[0].Files[0].Links["small"].Hash)
 	if err != nil {
 		t.Errorf("get file data failed: %s", err)
 		return
@@ -437,8 +437,8 @@ func TestMobile_FileData(t *testing.T) {
 	}
 }
 
-func TestMobile_AddThreadIgnore(t *testing.T) {
-	if _, err := mobile1.AddThreadIgnore(filesBlock.Id); err != nil {
+func TestMobile_AddIgnore(t *testing.T) {
+	if _, err := mobile1.AddIgnore(filesBlock.Id); err != nil {
 		t.Errorf("add thread ignore failed: %s", err)
 		return
 	}
@@ -474,17 +474,17 @@ func TestMobile_Feed(t *testing.T) {
 }
 
 func TestMobile_PhotoDataForMinWidth(t *testing.T) {
-	large, err := mobile1.FileData(files[0].Files[0].Links.Files["large"].Hash)
+	large, err := mobile1.FileData(files[0].Files[0].Links["large"].Hash)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	small, err := mobile1.FileData(files[0].Files[0].Links.Files["small"].Hash)
+	small, err := mobile1.FileData(files[0].Files[0].Links["small"].Hash)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	thumb, err := mobile1.FileData(files[0].Files[0].Links.Files["thumb"].Hash)
+	thumb, err := mobile1.FileData(files[0].Files[0].Links["thumb"].Hash)
 	if err != nil {
 		t.Error(err)
 		return
@@ -552,7 +552,7 @@ func TestMobile_SetUsername(t *testing.T) {
 }
 
 func TestMobile_SetAvatar(t *testing.T) {
-	if err := mobile1.SetAvatar(files[0].Files[0].Links.Files["large"].Hash); err != nil {
+	if err := mobile1.SetAvatar(files[0].Files[0].Links["large"].Hash); err != nil {
 		t.Errorf("set avatar failed: %s", err)
 	}
 }
@@ -608,7 +608,7 @@ func TestMobile_Contact(t *testing.T) {
 	}
 }
 
-func TestMobile_AddThreadInvite(t *testing.T) {
+func TestMobile_AddInvite(t *testing.T) {
 	var err error
 	mobile2, err = createAndStartMobile(repoPath2, true)
 	if err != nil {
@@ -650,7 +650,7 @@ func TestMobile_AddThreadInvite(t *testing.T) {
 		return
 	}
 
-	hash, err := mobile2.AddThreadInvite(thrd.Id, pid)
+	hash, err := mobile2.AddInvite(thrd.Id, pid)
 	if err != nil {
 		t.Error(err)
 		return
@@ -661,8 +661,8 @@ func TestMobile_AddThreadInvite(t *testing.T) {
 	}
 }
 
-func TestMobile_AddExternalThreadInvite(t *testing.T) {
-	res, err := mobile1.AddExternalThreadInvite(thrdId)
+func TestMobile_AddExternalInvite(t *testing.T) {
+	res, err := mobile1.AddExternalInvite(thrdId)
 	if err != nil {
 		t.Error(err)
 		return
@@ -676,8 +676,8 @@ func TestMobile_AddExternalThreadInvite(t *testing.T) {
 	}
 }
 
-func TestMobile_AcceptExternalThreadInvite(t *testing.T) {
-	hash, err := mobile2.AcceptExternalThreadInvite(invite.Id, invite.Key)
+func TestMobile_AcceptExternalInvite(t *testing.T) {
+	hash, err := mobile2.AcceptExternalInvite(invite.Id, invite.Key)
 	if err != nil {
 		t.Error(err)
 		return

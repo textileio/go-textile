@@ -34,7 +34,7 @@ func (a *api) addThreadMessages(g *gin.Context) {
 		return
 	}
 
-	info, err := a.node.FeedMessage(hash.B58String())
+	info, err := a.node.Message(hash.B58String())
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -81,7 +81,7 @@ func (a *api) lsThreadMessages(g *gin.Context) {
 }
 
 func (a *api) getThreadMessages(g *gin.Context) {
-	info, err := a.node.FeedMessage(g.Param("block"))
+	info, err := a.node.Message(g.Param("block"))
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

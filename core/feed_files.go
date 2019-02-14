@@ -25,7 +25,7 @@ func (t *Textile) Files(offset string, limit int, threadId string) (*pb.FeedFile
 
 	blocks := t.Blocks(offset, limit, query)
 	for _, block := range blocks {
-		file, err := t.feedFile(&block, feedItemOpts{annotations: true})
+		file, err := t.file(&block, feedItemOpts{annotations: true})
 		if err != nil {
 			return nil, err
 		}
@@ -35,13 +35,13 @@ func (t *Textile) Files(offset string, limit int, threadId string) (*pb.FeedFile
 	return &pb.FeedFilesList{Items: list}, nil
 }
 
-func (t *Textile) FeedFile(blockId string) (*pb.FeedFiles, error) {
+func (t *Textile) File(blockId string) (*pb.FeedFiles, error) {
 	block, err := t.Block(blockId)
 	if err != nil {
 		return nil, err
 	}
 
-	return t.feedFile(block, feedItemOpts{annotations: true})
+	return t.file(block, feedItemOpts{annotations: true})
 }
 
 func (t *Textile) fileAtTarget(target string) ([]*pb.FeedFile, error) {
@@ -72,7 +72,7 @@ func (t *Textile) fileAtTarget(target string) ([]*pb.FeedFile, error) {
 			info.File = file
 
 		} else {
-			info.Links = &pb.Directory{Files: make(map[string]*pb.File)}
+			info.Links = make(map[string]*pb.File)
 			for _, link := range node.Links() {
 				pair, err := ipfs.NodeAtLink(t.node, link)
 				if err != nil {
@@ -83,7 +83,7 @@ func (t *Textile) fileAtTarget(target string) ([]*pb.FeedFile, error) {
 					return nil, err
 				}
 				if file != nil {
-					info.Links.Files[link.Name] = file
+					info.Links[link.Name] = file
 				}
 			}
 		}
@@ -94,7 +94,7 @@ func (t *Textile) fileAtTarget(target string) ([]*pb.FeedFile, error) {
 	return files, nil
 }
 
-func (t *Textile) feedFile(block *repo.Block, opts feedItemOpts) (*pb.FeedFiles, error) {
+func (t *Textile) file(block *repo.Block, opts feedItemOpts) (*pb.FeedFiles, error) {
 	if block.Type != repo.FilesBlock {
 		return nil, ErrBlockWrongType
 	}

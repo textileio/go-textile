@@ -262,7 +262,7 @@ func TestTextile_AddFile(t *testing.T) {
 		Media: "image/jpeg",
 	}
 
-	file, err := node.AddFile(m, conf)
+	file, err := node.AddFileIndex(m, conf)
 	if err != nil {
 		t.Errorf("add file failed: %s", err)
 		return

@@ -126,22 +126,22 @@ func (t *Textile) feedItem(block *repo.Block, opts feedItemOpts) (*pb.FeedItem, 
 	switch block.Type {
 	case repo.JoinBlock:
 		item.Payload.TypeUrl = "/FeedJoin"
-		payload, err = t.feedJoin(block, opts)
+		payload, err = t.join(block, opts)
 	case repo.LeaveBlock:
 		item.Payload.TypeUrl = "/FeedLeave"
-		payload, err = t.feedLeave(block, opts)
+		payload, err = t.leave(block, opts)
 	case repo.FilesBlock:
 		item.Payload.TypeUrl = "/FeedFiles"
-		payload, err = t.feedFile(block, opts)
+		payload, err = t.file(block, opts)
 	case repo.MessageBlock:
 		item.Payload.TypeUrl = "/FeedMessage"
-		payload, err = t.feedMessage(block, opts)
+		payload, err = t.message(block, opts)
 	case repo.CommentBlock:
 		item.Payload.TypeUrl = "/FeedComment"
-		payload, err = t.feedComment(block, opts)
+		payload, err = t.comment(block, opts)
 	case repo.LikeBlock:
 		item.Payload.TypeUrl = "/FeedLike"
-		payload, err = t.feedLike(block, opts)
+		payload, err = t.like(block, opts)
 	default:
 		return nil, nil
 	}
@@ -169,13 +169,13 @@ func (t *Textile) feedStackItem(stack hybridStack) (*pb.FeedItem, error) {
 	handleChild := func(child *repo.Block) error {
 		switch child.Type {
 		case repo.CommentBlock:
-			comment, err := t.feedComment(child, feedItemOpts{annotations: true})
+			comment, err := t.comment(child, feedItemOpts{annotations: true})
 			if err != nil {
 				return err
 			}
 			comments = append(comments, comment)
 		case repo.LikeBlock:
-			like, err := t.feedLike(child, feedItemOpts{annotations: true})
+			like, err := t.like(child, feedItemOpts{annotations: true})
 			if err != nil {
 				return err
 			}
