@@ -9,7 +9,7 @@ message Directory {
     map<string, File> files = 1;
 }
 
-enum FeedType {
+enum FeedMode {
     FLAT      = 0;
     ANNOTATED = 1;
     HYBRID    = 2;

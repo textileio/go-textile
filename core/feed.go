@@ -30,12 +30,12 @@ type feedItemOpts struct {
 	target      *pb.FeedItem
 }
 
-func (t *Textile) Feed(offset string, limit int, threadId string, feedType pb.FeedType) (*pb.FeedItemList, error) {
+func (t *Textile) Feed(offset string, limit int, threadId string, mode pb.FeedMode) (*pb.FeedItemList, error) {
 	var types []repo.BlockType
-	switch feedType {
-	case pb.FeedType_FLAT, pb.FeedType_HYBRID:
+	switch mode {
+	case pb.FeedMode_FLAT, pb.FeedMode_HYBRID:
 		types = flatFeedTypes
-	case pb.FeedType_ANNOTATED:
+	case pb.FeedMode_ANNOTATED:
 		types = annotatedFeedTypes
 	}
 
@@ -57,11 +57,11 @@ func (t *Textile) Feed(offset string, limit int, threadId string, feedType pb.Fe
 	blocks := t.Blocks(offset, limit, query)
 	list := make([]*pb.FeedItem, 0)
 
-	switch feedType {
-	case pb.FeedType_FLAT, pb.FeedType_ANNOTATED:
+	switch mode {
+	case pb.FeedMode_FLAT, pb.FeedMode_ANNOTATED:
 		for _, block := range blocks {
 			item, err := t.feedItem(&block, feedItemOpts{
-				annotations: feedType == pb.FeedType_ANNOTATED,
+				annotations: mode == pb.FeedMode_ANNOTATED,
 			})
 			if err != nil {
 				return nil, err
@@ -69,7 +69,7 @@ func (t *Textile) Feed(offset string, limit int, threadId string, feedType pb.Fe
 			list = append(list, item)
 		}
 
-	case pb.FeedType_HYBRID:
+	case pb.FeedMode_HYBRID:
 		stacks := make([]hybridStack, 0)
 		var last *hybridStack
 		for _, block := range blocks {

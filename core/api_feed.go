@@ -37,8 +37,8 @@ func (a *api) lsThreadFeed(g *gin.Context) {
 		}
 	}
 
-	feedType := pb.FeedType_value[strings.ToUpper(opts["type"])]
-	list, err := a.node.Feed(opts["offset"], limit, threadId, pb.FeedType(feedType))
+	feedMode := pb.FeedMode_value[strings.ToUpper(opts["mode"])]
+	list, err := a.node.Feed(opts["offset"], limit, threadId, pb.FeedMode(feedMode))
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

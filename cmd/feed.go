@@ -18,7 +18,7 @@ type lsCmd struct {
 	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for all."`
 	Offset string        `short:"o" long:"offset" description:"Offset ID to start listing from."`
 	Limit  int           `short:"l" long:"limit" description:"List page size." default:"5"`
-	Type   string        `long:"type" description:"Feed type. One of: flat, annotated, hybrid (default: annotated)"`
+	Mode   string        `short:"m" long:"mode" description:"Feed mode. One of: flat, annotated, hybrid (default: annotated)"`
 }
 
 func (x *lsCmd) Name() string {
@@ -32,7 +32,7 @@ func (x *lsCmd) Short() string {
 func (x *lsCmd) Long() string {
 	return `
 Paginates top-level (joins, leaves, files, and messages) and annotation (comments and likes) block types.
-The --type option dictates how the feed is displayed.
+The --mode option dictates how the feed is displayed.
 
 -  FLAT: All feed types are listed. Annotation types include their top-level target, e.g., thing thing a comment is about.
 -  ANNOTATED: Annotation types are nested under top-level targets.
@@ -46,15 +46,15 @@ Specify "default" to use the default thread (if selected).
 
 func (x *lsCmd) Execute(args []string) error {
 	setApi(x.Client)
-	if x.Type == "" {
-		x.Type = "annotated"
+	if x.Mode == "" {
+		x.Mode = "annotated"
 	}
 
 	opts := map[string]string{
 		"thread": x.Thread,
 		"offset": x.Offset,
 		"limit":  strconv.Itoa(x.Limit),
-		"type":   x.Type,
+		"mode":   x.Mode,
 	}
 	return callLs(opts)
 }
@@ -83,6 +83,6 @@ func callLs(opts map[string]string) error {
 		"thread": opts["thread"],
 		"offset": list.Next,
 		"limit":  opts["limit"],
-		"type":   opts["type"],
+		"mode":   opts["mode"],
 	})
 }
