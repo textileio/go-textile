@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/textileio/textile-go/keypair"
-
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
@@ -16,6 +14,7 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
@@ -239,8 +238,8 @@ func (t *Textile) Invites() []ThreadInviteInfo {
 	return list
 }
 
-// AcceptThreadInvite adds a new thread, and notifies the inviter of the join
-func (t *Textile) AcceptThreadInvite(inviteId string) (mh.Multihash, error) {
+// AcceptInvite adds a new thread, and notifies the inviter of the join
+func (t *Textile) AcceptInvite(inviteId string) (mh.Multihash, error) {
 	invite := t.datastore.ThreadInvites().Get(inviteId)
 	if invite == nil {
 		return nil, ErrThreadInviteNotFound

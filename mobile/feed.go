@@ -7,12 +7,12 @@ import (
 )
 
 // Feed calls core Feed
-func (m *Mobile) Feed(offset string, limit int, threadId string, mode pb.FeedMode) ([]byte, error) {
+func (m *Mobile) Feed(offset string, limit int, threadId string, mode int32) ([]byte, error) {
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
 
-	items, err := m.node.Feed(offset, limit, threadId, mode)
+	items, err := m.node.Feed(offset, limit, threadId, pb.FeedMode(mode))
 	if err != nil {
 		return nil, err
 	}

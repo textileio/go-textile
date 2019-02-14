@@ -81,8 +81,8 @@ func (t *Textile) ReadAllNotifications() error {
 	return t.datastore.Notifications().ReadAll()
 }
 
-// AcceptThreadInviteViaNotification uses an invite notification to accept an invite to a thread
-func (t *Textile) AcceptThreadInviteViaNotification(id string) (mh.Multihash, error) {
+// AcceptInviteViaNotification uses an invite notification to accept an invite to a thread
+func (t *Textile) AcceptInviteViaNotification(id string) (mh.Multihash, error) {
 	notification := t.datastore.Notifications().Get(id)
 	if notification == nil {
 		return nil, errors.New(fmt.Sprintf("could not find notification: %s", id))
@@ -91,7 +91,7 @@ func (t *Textile) AcceptThreadInviteViaNotification(id string) (mh.Multihash, er
 		return nil, errors.New(fmt.Sprintf("notification not type invite"))
 	}
 
-	hash, err := t.AcceptThreadInvite(notification.BlockId)
+	hash, err := t.AcceptInvite(notification.BlockId)
 	if err != nil {
 		return nil, err
 	}
@@ -99,8 +99,8 @@ func (t *Textile) AcceptThreadInviteViaNotification(id string) (mh.Multihash, er
 	return hash, t.datastore.Notifications().Delete(id)
 }
 
-// IgnoreThreadInviteViaNotification uses an invite notification to ignore an invite to a thread
-func (t *Textile) IgnoreThreadInviteViaNotification(id string) error {
+// IgnoreInviteViaNotification uses an invite notification to ignore an invite to a thread
+func (t *Textile) IgnoreInviteViaNotification(id string) error {
 	notification := t.datastore.Notifications().Get(id)
 	if notification == nil {
 		return errors.New(fmt.Sprintf("could not find notification: %s", id))

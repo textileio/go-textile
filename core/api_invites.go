@@ -87,7 +87,7 @@ func (a *api) acceptInvites(g *gin.Context) {
 			return
 		}
 	} else {
-		hash, err = a.node.AcceptThreadInvite(id)
+		hash, err = a.node.AcceptInvite(id)
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return
