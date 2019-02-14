@@ -87,8 +87,9 @@ func callLsBlocks(opts map[string]string) error {
 	if err != nil {
 		return err
 	}
-
-	output(res)
+	if len(list) > 0 {
+		output(res)
+	}
 
 	limit, err := strconv.Atoi(opts["limit"])
 	if err != nil {

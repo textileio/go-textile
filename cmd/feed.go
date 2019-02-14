@@ -65,14 +65,11 @@ func callLs(opts map[string]string) error {
 	if err != nil {
 		return err
 	}
-
-	output(res)
-
-	limit, err := strconv.Atoi(opts["limit"])
-	if err != nil {
-		return err
+	if list.Count > 0 {
+		output(res)
 	}
-	if len(list.Items) < limit {
+
+	if list.Next == "" {
 		return nil
 	}
 
@@ -84,7 +81,7 @@ func callLs(opts map[string]string) error {
 
 	return callLs(map[string]string{
 		"thread":    opts["thread"],
-		"offset":    list.Items[len(list.Items)-1].Block,
+		"offset":    list.Next,
 		"limit":     opts["limit"],
 		"annotated": opts["annotated"],
 	})

@@ -90,7 +90,16 @@ func (t *Textile) Feed(offset string, limit int, threadId string, feedType pb.Fe
 		}
 	}
 
-	return &pb.FeedItemList{Items: list}, nil
+	var nextOffset string
+	if len(blocks) > 0 {
+		nextOffset = blocks[len(blocks)-1].Id
+	}
+
+	return &pb.FeedItemList{
+		Items: list,
+		Count: int32(len(blocks)),
+		Next:  nextOffset,
+	}, nil
 }
 
 func (t *Textile) feedItem(block *repo.Block, opts feedItemOpts) (*pb.FeedItem, error) {

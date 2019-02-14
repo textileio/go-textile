@@ -1,6 +1,8 @@
 package core
 
 import (
+	"strings"
+
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 
 	"github.com/golang/protobuf/ptypes"
@@ -17,6 +19,7 @@ func (t *Thread) AddComment(target string, body string) (mh.Multihash, error) {
 		return nil, ErrNotAnnotatable
 	}
 
+	body = strings.TrimSpace(body)
 	msg := &pb.ThreadComment{
 		Target: target,
 		Body:   body,
