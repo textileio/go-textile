@@ -64,7 +64,7 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 
 	mdir := &pb.MobilePreparedFiles{
 		Dir: &pb.Directory{
-			Files: make(map[string]*pb.File),
+			Files: make(map[string]*pb.FileIndex),
 		},
 		Pin: make(map[string]string),
 	}

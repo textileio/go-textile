@@ -6,7 +6,7 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
-func (t *Textile) join(block *repo.Block, opts feedItemOpts) (*pb.FeedJoin, error) {
+func (t *Textile) join(block *repo.Block, opts feedItemOpts) (*pb.Join, error) {
 	if block.Type != repo.JoinBlock {
 		return nil, ErrBlockWrongType
 	}
@@ -17,7 +17,7 @@ func (t *Textile) join(block *repo.Block, opts feedItemOpts) (*pb.FeedJoin, erro
 		return nil, err
 	}
 
-	info := &pb.FeedJoin{
+	info := &pb.Join{
 		Block:    block.Id,
 		Date:     date,
 		Author:   block.AuthorId,

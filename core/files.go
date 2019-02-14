@@ -109,9 +109,9 @@ func (t *Textile) AddFileIndex(mill m.Mill, conf AddFileConfig) (*repo.File, err
 		return nil, err
 	}
 
-	// return the model fetched from the datastore to ensure
+	// Return the model fetched from the datastore to ensure
 	// consistent date formatting and therefore consistent
-	// directory hashes
+	// directory hashes.
 	return t.datastore.Files().Get(model.Hash), nil
 }
 
@@ -305,7 +305,7 @@ func (t *Textile) fileNode(file repo.File, dir uio.Directory, link string) error
 	return ipfs.AddLinkToDirectory(t.node, dir, link, node.Cid().Hash().B58String())
 }
 
-func (t *Textile) fileForPair(pair ipld.Node) (*pb.File, error) {
+func (t *Textile) fileIndexForPair(pair ipld.Node) (*pb.FileIndex, error) {
 	d, _, err := pair.ResolveLink([]string{DataLinkName})
 	if err != nil {
 		return nil, err
@@ -384,13 +384,13 @@ func looksLikeFileNode(node ipld.Node) bool {
 }
 
 // tmp
-func RepoFileToProto(file *repo.File) (*pb.File, error) {
+func RepoFileToProto(file *repo.File) (*pb.FileIndex, error) {
 	added, err := ptypes.TimestampProto(file.Added)
 	if err != nil {
 		return nil, err
 	}
 
-	return &pb.File{
+	return &pb.FileIndex{
 		Mill:     file.Mill,
 		Checksum: file.Checksum,
 		Source:   file.Source,
@@ -407,7 +407,7 @@ func RepoFileToProto(file *repo.File) (*pb.File, error) {
 }
 
 // tmp
-func ProtoFileToRepo(file *pb.File) (*repo.File, error) {
+func ProtoFileToRepo(file *pb.FileIndex) (*repo.File, error) {
 	added, err := ptypes.Timestamp(file.Added)
 	if err != nil {
 		return nil, err

@@ -107,7 +107,7 @@ func (x *lsMessagesCmd) Execute(args []string) error {
 }
 
 func callLsMessages(opts map[string]string) error {
-	var list pb.FeedMessageList
+	var list pb.TextList
 	res, err := executeJsonPbCmd(GET, "messages", params{opts: opts}, &list)
 	if err != nil {
 		return err

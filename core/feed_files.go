@@ -10,7 +10,7 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
-func (t *Textile) Files(offset string, limit int, threadId string) (*pb.FeedFilesList, error) {
+func (t *Textile) Files(offset string, limit int, threadId string) (*pb.FilesList, error) {
 	var query string
 	if threadId != "" {
 		if t.Thread(threadId) == nil {
@@ -21,7 +21,7 @@ func (t *Textile) Files(offset string, limit int, threadId string) (*pb.FeedFile
 		query = fmt.Sprintf("type=%d", repo.FilesBlock)
 	}
 
-	list := make([]*pb.FeedFiles, 0)
+	list := make([]*pb.Files, 0)
 
 	blocks := t.Blocks(offset, limit, query)
 	for _, block := range blocks {
@@ -32,10 +32,10 @@ func (t *Textile) Files(offset string, limit int, threadId string) (*pb.FeedFile
 		list = append(list, file)
 	}
 
-	return &pb.FeedFilesList{Items: list}, nil
+	return &pb.FilesList{Items: list}, nil
 }
 
-func (t *Textile) File(blockId string) (*pb.FeedFiles, error) {
+func (t *Textile) File(blockId string) (*pb.Files, error) {
 	block, err := t.Block(blockId)
 	if err != nil {
 		return nil, err
@@ -44,13 +44,13 @@ func (t *Textile) File(blockId string) (*pb.FeedFiles, error) {
 	return t.file(block, feedItemOpts{annotations: true})
 }
 
-func (t *Textile) fileAtTarget(target string) ([]*pb.FeedFile, error) {
+func (t *Textile) fileAtTarget(target string) ([]*pb.File, error) {
 	links, err := ipfs.LinksAtPath(t.node, target)
 	if err != nil {
 		return nil, err
 	}
 
-	files := make([]*pb.FeedFile, len(links))
+	files := make([]*pb.File, len(links))
 
 	for _, index := range links {
 		node, err := ipfs.NodeAtLink(t.node, index)
@@ -63,22 +63,22 @@ func (t *Textile) fileAtTarget(target string) ([]*pb.FeedFile, error) {
 			return nil, err
 		}
 
-		info := &pb.FeedFile{Index: int32(i)}
+		info := &pb.File{Index: int32(i)}
 		if looksLikeFileNode(node) {
-			file, err := t.fileForPair(node)
+			file, err := t.fileIndexForPair(node)
 			if err != nil {
 				return nil, err
 			}
 			info.File = file
 
 		} else {
-			info.Links = make(map[string]*pb.File)
+			info.Links = make(map[string]*pb.FileIndex)
 			for _, link := range node.Links() {
 				pair, err := ipfs.NodeAtLink(t.node, link)
 				if err != nil {
 					return nil, err
 				}
-				file, err := t.fileForPair(pair)
+				file, err := t.fileIndexForPair(pair)
 				if err != nil {
 					return nil, err
 				}
@@ -94,7 +94,7 @@ func (t *Textile) fileAtTarget(target string) ([]*pb.FeedFile, error) {
 	return files, nil
 }
 
-func (t *Textile) file(block *repo.Block, opts feedItemOpts) (*pb.FeedFiles, error) {
+func (t *Textile) file(block *repo.Block, opts feedItemOpts) (*pb.Files, error) {
 	if block.Type != repo.FilesBlock {
 		return nil, ErrBlockWrongType
 	}
@@ -113,7 +113,7 @@ func (t *Textile) file(block *repo.Block, opts feedItemOpts) (*pb.FeedFiles, err
 		return nil, err
 	}
 
-	info := &pb.FeedFiles{
+	info := &pb.Files{
 		Block:    block.Id,
 		Target:   block.Target,
 		Date:     date,

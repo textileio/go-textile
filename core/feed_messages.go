@@ -8,7 +8,7 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
-func (t *Textile) Messages(offset string, limit int, threadId string) (*pb.FeedMessageList, error) {
+func (t *Textile) Messages(offset string, limit int, threadId string) (*pb.TextList, error) {
 	var query string
 	if threadId != "" {
 		if t.Thread(threadId) == nil {
@@ -19,7 +19,7 @@ func (t *Textile) Messages(offset string, limit int, threadId string) (*pb.FeedM
 		query = fmt.Sprintf("type=%d", repo.MessageBlock)
 	}
 
-	list := make([]*pb.FeedMessage, 0)
+	list := make([]*pb.Text, 0)
 
 	blocks := t.Blocks(offset, limit, query)
 	for _, block := range blocks {
@@ -30,10 +30,10 @@ func (t *Textile) Messages(offset string, limit int, threadId string) (*pb.FeedM
 		list = append(list, msg)
 	}
 
-	return &pb.FeedMessageList{Items: list}, nil
+	return &pb.TextList{Items: list}, nil
 }
 
-func (t *Textile) Message(blockId string) (*pb.FeedMessage, error) {
+func (t *Textile) Message(blockId string) (*pb.Text, error) {
 	block, err := t.Block(blockId)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func (t *Textile) Message(blockId string) (*pb.FeedMessage, error) {
 	return t.message(block, feedItemOpts{annotations: true})
 }
 
-func (t *Textile) message(block *repo.Block, opts feedItemOpts) (*pb.FeedMessage, error) {
+func (t *Textile) message(block *repo.Block, opts feedItemOpts) (*pb.Text, error) {
 	if block.Type != repo.MessageBlock {
 		return nil, ErrBlockWrongType
 	}
@@ -53,7 +53,7 @@ func (t *Textile) message(block *repo.Block, opts feedItemOpts) (*pb.FeedMessage
 		return nil, err
 	}
 
-	info := &pb.FeedMessage{
+	info := &pb.Text{
 		Block:    block.Id,
 		Date:     date,
 		Author:   block.AuthorId,

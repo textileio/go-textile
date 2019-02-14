@@ -8,8 +8,8 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
-func (t *Textile) Comments(target string) (*pb.FeedCommentList, error) {
-	comments := make([]*pb.FeedComment, 0)
+func (t *Textile) Comments(target string) (*pb.CommentList, error) {
+	comments := make([]*pb.Comment, 0)
 
 	query := fmt.Sprintf("type=%d and target='%s'", repo.CommentBlock, target)
 	for _, block := range t.Blocks("", -1, query) {
@@ -20,10 +20,10 @@ func (t *Textile) Comments(target string) (*pb.FeedCommentList, error) {
 		comments = append(comments, info)
 	}
 
-	return &pb.FeedCommentList{Items: comments}, nil
+	return &pb.CommentList{Items: comments}, nil
 }
 
-func (t *Textile) Comment(blockId string) (*pb.FeedComment, error) {
+func (t *Textile) Comment(blockId string) (*pb.Comment, error) {
 	block, err := t.Block(blockId)
 	if err != nil {
 		return nil, err
@@ -32,7 +32,7 @@ func (t *Textile) Comment(blockId string) (*pb.FeedComment, error) {
 	return t.comment(block, feedItemOpts{annotations: true})
 }
 
-func (t *Textile) comment(block *repo.Block, opts feedItemOpts) (*pb.FeedComment, error) {
+func (t *Textile) comment(block *repo.Block, opts feedItemOpts) (*pb.Comment, error) {
 	if block.Type != repo.CommentBlock {
 		return nil, ErrBlockWrongType
 	}
@@ -43,7 +43,7 @@ func (t *Textile) comment(block *repo.Block, opts feedItemOpts) (*pb.FeedComment
 		return nil, err
 	}
 
-	info := &pb.FeedComment{
+	info := &pb.Comment{
 		Id:       block.Id,
 		Date:     date,
 		Author:   block.AuthorId,

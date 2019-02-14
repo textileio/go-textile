@@ -14,7 +14,7 @@ message Contact {
     google.protobuf.Timestamp updated = 7;
 }
 
-message File {
+message FileIndex {
     string mill                     = 1;
     string checksum                 = 2;
     string source                   = 3;

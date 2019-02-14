@@ -25,8 +25,8 @@ type hybridStack struct {
 
 type feedItemOpts struct {
 	annotations bool
-	comments    []*pb.FeedComment
-	likes       []*pb.FeedLike
+	comments    []*pb.Comment
+	likes       []*pb.Like
 	target      *pb.FeedItem
 }
 
@@ -125,22 +125,22 @@ func (t *Textile) feedItem(block *repo.Block, opts feedItemOpts) (*pb.FeedItem, 
 	var err error
 	switch block.Type {
 	case repo.JoinBlock:
-		item.Payload.TypeUrl = "/FeedJoin"
+		item.Payload.TypeUrl = "/Join"
 		payload, err = t.join(block, opts)
 	case repo.LeaveBlock:
-		item.Payload.TypeUrl = "/FeedLeave"
+		item.Payload.TypeUrl = "/Leave"
 		payload, err = t.leave(block, opts)
 	case repo.FilesBlock:
-		item.Payload.TypeUrl = "/FeedFiles"
+		item.Payload.TypeUrl = "/Files"
 		payload, err = t.file(block, opts)
 	case repo.MessageBlock:
-		item.Payload.TypeUrl = "/FeedMessage"
+		item.Payload.TypeUrl = "/Text"
 		payload, err = t.message(block, opts)
 	case repo.CommentBlock:
-		item.Payload.TypeUrl = "/FeedComment"
+		item.Payload.TypeUrl = "/Comment"
 		payload, err = t.comment(block, opts)
 	case repo.LikeBlock:
-		item.Payload.TypeUrl = "/FeedLike"
+		item.Payload.TypeUrl = "/Like"
 		payload, err = t.like(block, opts)
 	default:
 		return nil, nil
@@ -159,8 +159,8 @@ func (t *Textile) feedItem(block *repo.Block, opts feedItemOpts) (*pb.FeedItem, 
 }
 
 func (t *Textile) feedStackItem(stack hybridStack) (*pb.FeedItem, error) {
-	var comments []*pb.FeedComment
-	var likes []*pb.FeedLike
+	var comments []*pb.Comment
+	var likes []*pb.Like
 
 	// Does the stack contain the initial target,
 	// or is it a continuation stack of just annotations?

@@ -6,7 +6,7 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
-func (t *Textile) leave(block *repo.Block, opts feedItemOpts) (*pb.FeedLeave, error) {
+func (t *Textile) leave(block *repo.Block, opts feedItemOpts) (*pb.Leave, error) {
 	if block.Type != repo.LeaveBlock {
 		return nil, ErrBlockWrongType
 	}
@@ -17,7 +17,7 @@ func (t *Textile) leave(block *repo.Block, opts feedItemOpts) (*pb.FeedLeave, er
 		return nil, err
 	}
 
-	info := &pb.FeedLeave{
+	info := &pb.Leave{
 		Block:    block.Id,
 		Date:     date,
 		Author:   block.AuthorId,

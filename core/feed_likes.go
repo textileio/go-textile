@@ -8,8 +8,8 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
-func (t *Textile) Likes(target string) (*pb.FeedLikeList, error) {
-	likes := make([]*pb.FeedLike, 0)
+func (t *Textile) Likes(target string) (*pb.LikeList, error) {
+	likes := make([]*pb.Like, 0)
 
 	query := fmt.Sprintf("type=%d and target='%s'", repo.LikeBlock, target)
 	for _, block := range t.Blocks("", -1, query) {
@@ -20,10 +20,10 @@ func (t *Textile) Likes(target string) (*pb.FeedLikeList, error) {
 		likes = append(likes, info)
 	}
 
-	return &pb.FeedLikeList{Items: likes}, nil
+	return &pb.LikeList{Items: likes}, nil
 }
 
-func (t *Textile) Like(blockId string) (*pb.FeedLike, error) {
+func (t *Textile) Like(blockId string) (*pb.Like, error) {
 	block, err := t.Block(blockId)
 	if err != nil {
 		return nil, err
@@ -32,7 +32,7 @@ func (t *Textile) Like(blockId string) (*pb.FeedLike, error) {
 	return t.like(block, feedItemOpts{annotations: true})
 }
 
-func (t *Textile) like(block *repo.Block, opts feedItemOpts) (*pb.FeedLike, error) {
+func (t *Textile) like(block *repo.Block, opts feedItemOpts) (*pb.Like, error) {
 	if block.Type != repo.LikeBlock {
 		return nil, ErrBlockWrongType
 	}
@@ -43,7 +43,7 @@ func (t *Textile) like(block *repo.Block, opts feedItemOpts) (*pb.FeedLike, erro
 		return nil, err
 	}
 
-	info := &pb.FeedLike{
+	info := &pb.Like{
 		Id:       block.Id,
 		Date:     date,
 		Author:   block.AuthorId,

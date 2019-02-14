@@ -508,7 +508,7 @@ func (x *lsFilesCmd) Execute(args []string) error {
 }
 
 func callLsFiles(opts map[string]string) error {
-	var list pb.FeedFilesList
+	var list pb.FilesList
 	res, err := executeJsonPbCmd(GET, "files", params{opts: opts}, &list)
 	if err != nil {
 		return err

@@ -44,7 +44,7 @@ var mobile2 *Mobile
 var thrdId string
 var dir []byte
 var filesBlock core.BlockInfo
-var files []*pb.FeedFiles
+var files []*pb.Files
 var invite ExternalInvite
 
 var contact = &repo.Contact{
@@ -309,7 +309,7 @@ func TestMobile_Messages(t *testing.T) {
 		t.Errorf("thread messages failed: %s", err)
 		return
 	}
-	list := new(pb.FeedMessageList)
+	list := new(pb.TextList)
 	if err := proto.Unmarshal(res, list); err != nil {
 		t.Error(err)
 		return
@@ -403,7 +403,7 @@ func TestMobile_Files(t *testing.T) {
 		t.Errorf("get thread files failed: %s", err)
 		return
 	}
-	list := new(pb.FeedFilesList)
+	list := new(pb.FilesList)
 	if err := proto.Unmarshal(res, list); err != nil {
 		t.Error(err)
 		return
@@ -447,7 +447,7 @@ func TestMobile_AddIgnore(t *testing.T) {
 		t.Errorf("get thread files failed: %s", err)
 		return
 	}
-	list := new(pb.FeedFilesList)
+	list := new(pb.FilesList)
 	if err := proto.Unmarshal(res, list); err != nil {
 		t.Error(err)
 		return

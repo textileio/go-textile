@@ -6,7 +6,7 @@ import "google/protobuf/timestamp.proto";
 import "model.proto";
 
 message Directory {
-    map<string, File> files = 1;
+    map<string, FileIndex> files = 1;
 }
 
 enum FeedMode {
@@ -27,33 +27,33 @@ message FeedItemList {
     string next             = 3;
 }
 
-message FeedJoin {
+message Join {
     string block                   = 1;
     google.protobuf.Timestamp date = 2;
     string author                  = 3;
     string username                = 4;
     string avatar                  = 5;
-    repeated FeedLike likes        = 6;
+    repeated Like likes            = 6;
 }
 
-message FeedJoinList {
-    repeated FeedJoin items = 1;
+message JoinList {
+    repeated Join items = 1;
 }
 
-message FeedLeave {
+message Leave {
     string block                   = 1;
     google.protobuf.Timestamp date = 2;
     string author                  = 3;
     string username                = 4;
     string avatar                  = 5;
-    repeated FeedLike likes        = 6;
+    repeated Like likes            = 6;
 }
 
-message FeedLeaveList {
-    repeated FeedLeave items = 1;
+message LeaveList {
+    repeated Leave items = 1;
 }
 
-message FeedFiles {
+message Files {
     string block                   = 1;
     string target                  = 2;
     google.protobuf.Timestamp date = 3;
@@ -61,38 +61,38 @@ message FeedFiles {
     string username                = 5;
     string avatar                  = 6;
     string caption                 = 7;
-    repeated FeedFile files        = 8;
-    repeated FeedComment comments  = 9;
-    repeated FeedLike likes        = 10;
+    repeated File files            = 8;
+    repeated Comment comments      = 9;
+    repeated Like likes            = 10;
     repeated string threads        = 11;
 }
 
-message FeedFilesList {
-    repeated FeedFiles items = 1;
+message FilesList {
+    repeated Files items = 1;
 }
 
-message FeedFile {
-    int32 index             = 1;
-    File file               = 2;
-    map<string, File> links = 3;
+message File {
+    int32 index                  = 1;
+    FileIndex file               = 2;
+    map<string, FileIndex> links = 3;
 }
 
-message FeedMessage {
+message Text {
     string block                   = 1;
     google.protobuf.Timestamp date = 2;
     string author                  = 3;
     string username                = 4;
     string avatar                  = 5;
     string body                    = 6;
-    repeated FeedComment comments  = 7;
-    repeated FeedLike likes        = 8;
+    repeated Comment comments      = 7;
+    repeated Like likes            = 8;
 }
 
-message FeedMessageList {
-    repeated FeedMessage items = 1;
+message TextList {
+    repeated Text items = 1;
 }
 
-message FeedLike {
+message Like {
     string id                      = 1;
     google.protobuf.Timestamp date = 2;
     string author                  = 3;
@@ -101,11 +101,11 @@ message FeedLike {
     FeedItem target                = 6;
 }
 
-message FeedLikeList {
-    repeated FeedLike items = 1;
+message LikeList {
+    repeated Like items = 1;
 }
 
-message FeedComment {
+message Comment {
     string id                      = 1;
     google.protobuf.Timestamp date = 2;
     string author                  = 3;
@@ -115,6 +115,6 @@ message FeedComment {
     FeedItem target                = 7;
 }
 
-message FeedCommentList {
-    repeated FeedComment items = 1;
+message CommentList {
+    repeated Comment items = 1;
 }
