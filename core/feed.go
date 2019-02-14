@@ -18,6 +18,7 @@ var annotatedFeedTypes = []repo.BlockType{
 }
 
 type hybridStack struct {
+	id       string
 	top      repo.Block
 	children []repo.Block
 }
@@ -70,14 +71,19 @@ func (t *Textile) Feed(offset string, limit int, threadId string, feedType pb.Fe
 
 	case pb.FeedType_HYBRID:
 		stacks := make([]hybridStack, 0)
+		var last *hybridStack
 		for _, block := range blocks {
+			if len(stacks) > 0 {
+				last = &stacks[len(stacks)-1]
+			}
 			targetId := getTargetId(block)
-			if len(stacks) == 0 || targetId != getTargetId(stacks[len(stacks)-1].top) {
+
+			if len(stacks) == 0 || targetId != getTargetId(last.top) {
 				// start a new stack
-				stacks = append(stacks, hybridStack{top: block})
+				stacks = append(stacks, hybridStack{id: targetId, top: block})
 			} else {
 				// append to last
-				stacks[len(stacks)-1].children = append(stacks[len(stacks)-1].children, block)
+				last.children = append(last.children, block)
 			}
 		}
 
@@ -153,38 +159,42 @@ func (t *Textile) feedStackItem(stack hybridStack) (*pb.FeedItem, error) {
 	// or is it a continuation stack of just annotations?
 	// We'll need to load the target in the latter case.
 	var target *repo.Block
-	var targetId string
-	for _, child := range stack.children {
+	handleChild := func(child *repo.Block) error {
 		switch child.Type {
 		case repo.CommentBlock:
-			targetId = child.Target
-			comment, err := t.feedComment(&child, feedItemOpts{annotations: true})
+			comment, err := t.feedComment(child, feedItemOpts{annotations: true})
 			if err != nil {
-				return nil, err
+				return err
 			}
 			comments = append(comments, comment)
-
 		case repo.LikeBlock:
-			targetId = child.Target
-			like, err := t.feedLike(&child, feedItemOpts{annotations: true})
+			like, err := t.feedLike(child, feedItemOpts{annotations: true})
 			if err != nil {
-				return nil, err
+				return err
 			}
 			likes = append(likes, like)
-
 		default:
-			target = &child
+			target = child
+		}
+		return nil
+	}
+	for _, child := range stack.children {
+		if err := handleChild(&child); err != nil {
+			return nil, err
 		}
 	}
 
 	var initial bool
-	if target != nil { // target was in children
+	if target != nil { // target was in children, newer annotations may exist, make target top
 		initial = true
-	} else if !isAnnotation(stack.top) { // top is target
+		if err := handleChild(&stack.top); err != nil {
+			return nil, err
+		}
+	} else if !isAnnotation(stack.top) { // target is top, newer annotations may exist
 		initial = true
 		target = &stack.top
-	} else { // target is not in the stack, load it
-		target = t.datastore.Blocks().Get(targetId)
+	} else { // target needs to be loaded, older annotations may exist
+		target = t.datastore.Blocks().Get(stack.id)
 		if target == nil {
 			return nil, nil
 		}

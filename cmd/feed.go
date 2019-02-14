@@ -80,9 +80,9 @@ func callLs(opts map[string]string) error {
 	}
 
 	return callLs(map[string]string{
-		"thread":    opts["thread"],
-		"offset":    list.Next,
-		"limit":     opts["limit"],
-		"annotated": opts["annotated"],
+		"thread": opts["thread"],
+		"offset": list.Next,
+		"limit":  opts["limit"],
+		"type":   opts["type"],
 	})
 }
