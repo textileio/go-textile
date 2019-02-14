@@ -105,6 +105,11 @@ func (t *Textile) Feed(offset string, limit int, threadId string, mode pb.FeedMo
 	var nextOffset string
 	if len(blocks) > 0 {
 		nextOffset = blocks[len(blocks)-1].Id
+
+		// see if there's actually more
+		if len(t.datastore.Blocks().List(nextOffset, 1, query)) == 0 {
+			nextOffset = ""
+		}
 	}
 
 	return &pb.FeedItemList{
