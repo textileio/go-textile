@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"errors"
-
-	"github.com/textileio/textile-go/core"
 )
 
 var errMissingCommentBody = errors.New("missing comment body")
@@ -53,10 +51,7 @@ func (x *addCommentsCmd) Execute(args []string) error {
 		return errMissingCommentBody
 	}
 
-	var info *core.ThreadCommentInfo
-	res, err := executeJsonCmd(POST, "blocks/"+x.Block+"/comments", params{
-		args: args,
-	}, &info)
+	res, err := executeJsonCmd(POST, "blocks/"+x.Block+"/comments", params{args: args}, nil)
 	if err != nil {
 		return err
 	}
@@ -77,8 +72,8 @@ Lists comments on a thread block.`
 
 func (x *lsCommentsCmd) Execute(args []string) error {
 	setApi(x.Client)
-	var list []core.ThreadCommentInfo
-	res, err := executeJsonCmd(GET, "blocks/"+x.Block+"/comments", params{}, &list)
+
+	res, err := executeJsonCmd(GET, "blocks/"+x.Block+"/comments", params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -101,8 +96,8 @@ func (x *getCommentsCmd) Execute(args []string) error {
 	if len(args) == 0 {
 		return errMissingCommentId
 	}
-	var info *core.ThreadCommentInfo
-	res, err := executeJsonCmd(GET, "blocks/"+args[0]+"/comment", params{}, &info)
+
+	res, err := executeJsonCmd(GET, "blocks/"+args[0]+"/comment", params{}, nil)
 	if err != nil {
 		return err
 	}

@@ -8,7 +8,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
@@ -121,12 +120,12 @@ Include the --thread flag to list contacts for a given thread.`
 
 func (x *lsContactsCmd) Execute(args []string) error {
 	setApi(x.Client)
-	var list []core.ContactInfo
+
 	res, err := executeJsonCmd(GET, "contacts", params{
 		opts: map[string]string{
 			"thread": x.Thread,
 		},
-	}, &list)
+	}, nil)
 	if err != nil {
 		return err
 	}
@@ -149,8 +148,8 @@ func (x *getContactsCmd) Execute(args []string) error {
 	if len(args) == 0 {
 		return errMissingPeerId
 	}
-	var info core.ContactInfo
-	res, err := executeJsonCmd(GET, "contacts/"+args[0], params{}, &info)
+
+	res, err := executeJsonCmd(GET, "contacts/"+args[0], params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -173,6 +172,7 @@ func (x *rmContactsCmd) Execute(args []string) error {
 	if len(args) == 0 {
 		return errMissingPeerId
 	}
+
 	res, err := executeStringCmd(DEL, "contacts/"+args[0], params{})
 	if err != nil {
 		return err

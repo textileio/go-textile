@@ -1,17 +1,21 @@
 package mobile
 
-import "github.com/textileio/textile-go/core"
+import (
+	"github.com/golang/protobuf/proto"
+	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/pb"
+)
 
-// ThreadFeed calls core ThreadFeed
-func (m *Mobile) ThreadFeed(offset string, limit int, threadId string, annotated bool) (string, error) {
+// Feed calls core Feed
+func (m *Mobile) Feed(offset string, limit int, threadId string, mode pb.FeedMode) ([]byte, error) {
 	if !m.node.Started() {
-		return "", core.ErrStopped
+		return nil, core.ErrStopped
 	}
 
-	items, err := m.node.ThreadFeed(offset, limit, threadId, annotated)
+	items, err := m.node.Feed(offset, limit, threadId, mode)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return toJSON(items)
+	return proto.Marshal(items)
 }

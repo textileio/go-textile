@@ -3,8 +3,10 @@ package core
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/textileio/textile-go/pb"
 )
 
 func (a *api) lsThreadFeed(g *gin.Context) {
@@ -35,11 +37,12 @@ func (a *api) lsThreadFeed(g *gin.Context) {
 		}
 	}
 
-	list, err := a.node.ThreadFeed(opts["offset"], limit, threadId, opts["annotated"] == "true")
+	feedMode := pb.FeedMode_value[strings.ToUpper(opts["mode"])]
+	list, err := a.node.Feed(opts["offset"], limit, threadId, pb.FeedMode(feedMode))
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	g.JSON(http.StatusOK, list)
+	pbJSON(g, http.StatusOK, list)
 }

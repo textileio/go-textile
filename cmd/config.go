@@ -66,14 +66,16 @@ Set the value of the 'Addresses.API' key:
 func (x *configCmd) Execute(args []string) error {
 	setApi(x.Client)
 
+	patchFmt := `[
+  {"op": "replace", "path": "%s", "value": %s}
+]`
+
 	var path string
 	if len(args) > 0 {
 		path = "/" + strings.Replace(args[0], ".", "/", -1)
 	}
 	if len(args) > 1 {
-		patch := []byte(fmt.Sprintf(`[
-  {"op": "replace", "path": "%s", "value": %s}
-]`, path, args[1]))
+		patch := []byte(fmt.Sprintf(patchFmt, path, args[1]))
 
 		res, _, err := request(PATCH, "config", params{
 			payload: bytes.NewBuffer(patch),
@@ -95,8 +97,7 @@ func (x *configCmd) Execute(args []string) error {
 		return nil
 	}
 
-	var info interface{}
-	res, err := executeJsonCmd(GET, "config"+path, params{}, &info)
+	res, err := executeJsonCmd(GET, "config"+path, params{}, nil)
 	if err != nil {
 		return err
 	}

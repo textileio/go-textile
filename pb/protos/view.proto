@@ -1,13 +1,120 @@
 syntax = "proto3";
 option go_package = "pb";
 
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
 import "model.proto";
 
 message Directory {
-    map<string, File> files = 1;
+    map<string, FileIndex> files = 1;
 }
 
-message MobilePreparedFiles {
-    Directory dir = 1;
-    map<string, string> pin = 2;
+enum FeedMode {
+    CHRONO    = 0;
+    ANNOTATED = 1;
+    STACKS    = 2;
+}
+
+message FeedItem {
+    string block                = 1;
+    string thread               = 2;
+    google.protobuf.Any payload = 3;
+}
+
+message FeedItemList {
+    repeated FeedItem items = 1;
+    int32 count             = 2;
+    string next             = 3;
+}
+
+message Join {
+    string block                   = 1;
+    google.protobuf.Timestamp date = 2;
+    string author                  = 3;
+    string username                = 4;
+    string avatar                  = 5;
+    repeated Like likes            = 6;
+}
+
+message JoinList {
+    repeated Join items = 1;
+}
+
+message Leave {
+    string block                   = 1;
+    google.protobuf.Timestamp date = 2;
+    string author                  = 3;
+    string username                = 4;
+    string avatar                  = 5;
+    repeated Like likes            = 6;
+}
+
+message LeaveList {
+    repeated Leave items = 1;
+}
+
+message Files {
+    string block                   = 1;
+    string target                  = 2;
+    google.protobuf.Timestamp date = 3;
+    string author                  = 4;
+    string username                = 5;
+    string avatar                  = 6;
+    string caption                 = 7;
+    repeated File files            = 8;
+    repeated Comment comments      = 9;
+    repeated Like likes            = 10;
+    repeated string threads        = 11;
+}
+
+message FilesList {
+    repeated Files items = 1;
+}
+
+message File {
+    int32 index                  = 1;
+    FileIndex file               = 2;
+    map<string, FileIndex> links = 3;
+}
+
+message Text {
+    string block                   = 1;
+    google.protobuf.Timestamp date = 2;
+    string author                  = 3;
+    string username                = 4;
+    string avatar                  = 5;
+    string body                    = 6;
+    repeated Comment comments      = 7;
+    repeated Like likes            = 8;
+}
+
+message TextList {
+    repeated Text items = 1;
+}
+
+message Like {
+    string id                      = 1;
+    google.protobuf.Timestamp date = 2;
+    string author                  = 3;
+    string username                = 4;
+    string avatar                  = 5;
+    FeedItem target                = 6;
+}
+
+message LikeList {
+    repeated Like items = 1;
+}
+
+message Comment {
+    string id                      = 1;
+    google.protobuf.Timestamp date = 2;
+    string author                  = 3;
+    string username                = 4;
+    string avatar                  = 5;
+    string body                    = 6;
+    FeedItem target                = 7;
+}
+
+message CommentList {
+    repeated Comment items = 1;
 }

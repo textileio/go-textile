@@ -167,8 +167,8 @@ func TestTextile_CafeRegistration(t *testing.T) {
 		t.Errorf(err.Error())
 		return
 	}
-	if len(sessions) > 0 {
-		session = sessions[0]
+	if len(sessions.Values) > 0 {
+		session = sessions.Values[0]
 	} else {
 		t.Errorf("no active sessions")
 	}
@@ -262,7 +262,7 @@ func TestTextile_AddFile(t *testing.T) {
 		Media: "image/jpeg",
 	}
 
-	file, err := node.AddFile(m, conf)
+	file, err := node.AddFileIndex(m, conf)
 	if err != nil {
 		t.Errorf("add file failed: %s", err)
 		return

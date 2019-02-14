@@ -110,23 +110,23 @@ func (a *api) lsThreadFiles(g *gin.Context) {
 		}
 	}
 
-	list, err := a.node.ThreadFiles(opts["offset"], limit, threadId)
+	list, err := a.node.Files(opts["offset"], limit, threadId)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	g.JSON(http.StatusOK, list)
+	pbJSON(g, http.StatusOK, list)
 }
 
 func (a *api) getThreadFiles(g *gin.Context) {
-	info, err := a.node.ThreadFile(g.Param("block"))
+	info, err := a.node.File(g.Param("block"))
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	g.JSON(http.StatusOK, info)
+	pbJSON(g, http.StatusOK, info)
 }
 
 func (a *api) lsThreadFileTargetKeys(g *gin.Context) {

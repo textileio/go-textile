@@ -87,8 +87,9 @@ func callLsBlocks(opts map[string]string) error {
 	if err != nil {
 		return err
 	}
-
-	output(res)
+	if len(list) > 0 {
+		output(res)
+	}
 
 	limit, err := strconv.Atoi(opts["limit"])
 	if err != nil {
@@ -127,8 +128,8 @@ func (x *getBlocksCmd) Execute(args []string) error {
 	if len(args) == 0 {
 		return errMissingBlockId
 	}
-	var info *core.BlockInfo
-	res, err := executeJsonCmd(GET, "blocks/"+args[0], params{}, &info)
+
+	res, err := executeJsonCmd(GET, "blocks/"+args[0], params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -140,8 +141,8 @@ func callRmBlocks(args []string) error {
 	if len(args) == 0 {
 		return errMissingBlockId
 	}
-	var info *core.BlockInfo
-	res, err := executeJsonCmd(DEL, "blocks/"+args[0], params{}, &info)
+
+	res, err := executeJsonCmd(DEL, "blocks/"+args[0], params{}, nil)
 	if err != nil {
 		return err
 	}

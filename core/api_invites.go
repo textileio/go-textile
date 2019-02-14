@@ -58,7 +58,7 @@ func (a *api) createInvites(g *gin.Context) {
 
 func (a *api) lsInvites(g *gin.Context) {
 	list := make([]ThreadInviteInfo, 0)
-	res := a.node.ThreadInvites()
+	res := a.node.Invites()
 	if len(res) > 0 {
 		list = res
 	}
@@ -81,7 +81,7 @@ func (a *api) acceptInvites(g *gin.Context) {
 			g.String(http.StatusBadRequest, err.Error())
 			return
 		}
-		hash, err = a.node.AcceptExternalThreadInvite(id, key)
+		hash, err = a.node.AcceptExternalInvite(id, key)
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return
@@ -110,7 +110,7 @@ func (a *api) acceptInvites(g *gin.Context) {
 func (a *api) ignoreInvites(g *gin.Context) {
 	id := g.Param("id")
 
-	if err := a.node.IgnoreThreadInvite(id); err != nil {
+	if err := a.node.IgnoreInvite(id); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}

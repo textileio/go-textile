@@ -39,7 +39,7 @@ func (t *Textile) NotificationInfo(note repo.Notification) NotificationInfo {
 	var username, avatar string
 	switch note.Type {
 	case repo.InviteReceivedNotification:
-		invite := t.ThreadInvite(t.datastore.ThreadInvites().Get(note.BlockId))
+		invite := t.Invite(t.datastore.ThreadInvites().Get(note.BlockId))
 		if invite != nil {
 			username = invite.Username
 			avatar = invite.Avatar
@@ -109,7 +109,7 @@ func (t *Textile) IgnoreThreadInviteViaNotification(id string) error {
 		return errors.New(fmt.Sprintf("notification not type invite"))
 	}
 
-	if err := t.IgnoreThreadInvite(notification.BlockId); err != nil {
+	if err := t.IgnoreInvite(notification.BlockId); err != nil {
 		return err
 	}
 
