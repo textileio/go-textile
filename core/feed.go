@@ -56,6 +56,7 @@ func (t *Textile) Feed(offset string, limit int, threadId string, mode pb.FeedMo
 
 	blocks := t.Blocks(offset, limit, query)
 	list := make([]*pb.FeedItem, 0)
+	var count int
 
 	switch mode {
 	case pb.FeedMode_FLAT, pb.FeedMode_ANNOTATED:
@@ -67,6 +68,7 @@ func (t *Textile) Feed(offset string, limit int, threadId string, mode pb.FeedMo
 				return nil, err
 			}
 			list = append(list, item)
+			count++
 		}
 
 	case pb.FeedMode_HYBRID:
@@ -92,7 +94,11 @@ func (t *Textile) Feed(offset string, limit int, threadId string, mode pb.FeedMo
 			if err != nil {
 				return nil, err
 			}
+			if item == nil {
+				continue
+			}
 			list = append(list, item)
+			count += len(stack.children) + 1
 		}
 	}
 
@@ -103,7 +109,7 @@ func (t *Textile) Feed(offset string, limit int, threadId string, mode pb.FeedMo
 
 	return &pb.FeedItemList{
 		Items: list,
-		Count: int32(len(blocks)),
+		Count: int32(count),
 		Next:  nextOffset,
 	}, nil
 }
@@ -194,6 +200,9 @@ func (t *Textile) feedStackItem(stack hybridStack) (*pb.FeedItem, error) {
 		initial = true
 		target = &stack.top
 	} else { // target needs to be loaded, older annotations may exist
+		if t.blockIgnored(stack.id) {
+			return nil, nil
+		}
 		target = t.datastore.Blocks().Get(stack.id)
 		if target == nil {
 			return nil, nil
@@ -216,6 +225,10 @@ func (t *Textile) feedStackItem(stack hybridStack) (*pb.FeedItem, error) {
 	}
 
 	return targetItem, nil
+}
+
+func (t *Textile) blockIgnored(blockId string) bool {
+	return len(t.datastore.Blocks().List("", -1, "target='ignore-"+blockId+"'")) > 0
 }
 
 func getTargetId(block repo.Block) string {

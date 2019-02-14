@@ -189,9 +189,8 @@ func request(meth method, pth string, pars params) (*http.Response, func(), erro
 var errMissingSearchInfo = errors.New("missing search info")
 
 var pbMarshaler = jsonpb.Marshaler{
-	EnumsAsInts:  false,
-	EmitDefaults: true,
-	Indent:       "    ",
+	EnumsAsInts: false,
+	Indent:      "    ",
 }
 var pbUnmarshaler = jsonpb.Unmarshaler{
 	AllowUnknownFields: true,

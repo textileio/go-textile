@@ -458,18 +458,17 @@ func TestMobile_AddThreadIgnore(t *testing.T) {
 }
 
 func TestMobile_Feed(t *testing.T) {
-	res, err := mobile1.Feed("", -1, thrdId, pb.FeedMode_HYBRID)
+	res, err := mobile1.Feed("", 20, thrdId, pb.FeedMode_HYBRID)
 	if err != nil {
 		t.Errorf("get thread feed failed: %s", err)
 		return
 	}
 	list := new(pb.FeedItemList)
-
 	if err := proto.Unmarshal(res, list); err != nil {
 		t.Error(err)
 		return
 	}
-	if list.Count != 5 {
+	if list.Count != 3 {
 		t.Errorf("get thread feed bad result")
 	}
 }
