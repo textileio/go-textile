@@ -17,7 +17,8 @@ enum FeedMode {
 
 message FeedItem {
     string block                = 1;
-    google.protobuf.Any payload = 2;
+    string thread               = 2;
+    google.protobuf.Any payload = 3;
 }
 
 message FeedItemList {

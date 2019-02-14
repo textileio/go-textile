@@ -117,6 +117,7 @@ func (t *Textile) Feed(offset string, limit int, threadId string, mode pb.FeedMo
 func (t *Textile) feedItem(block *repo.Block, opts feedItemOpts) (*pb.FeedItem, error) {
 	item := &pb.FeedItem{
 		Block:   block.Id,
+		Thread:  block.ThreadId,
 		Payload: &any.Any{},
 	}
 
