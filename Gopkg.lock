@@ -2,6 +2,22 @@
 
 
 [[projects]]
+  digest = "1:352fc094dbd1438593b64251de6788bffdf30f9925cf763c7f62e1fd27142b76"
+  name = "github.com/PuerkitoBio/purell"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "0bcb03f4b4d0a9428594752bd2a3b9aa0a9d4bd4"
+  version = "v1.1.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:c739832d67eb1e9cc478a19cc1a1ccd78df0397bf8a32978b759152e205f644b"
+  name = "github.com/PuerkitoBio/urlesc"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "de5bf2ad457846296e2031421a34e2568e304e35"
+
+[[projects]]
   branch = "master"
   digest = "1:7996950d6e7d367ff77af55a45a5f59aba0d15ecd4ae74697b1bda8e9f2e66ab"
   name = "github.com/agl/ed25519"
@@ -25,6 +41,17 @@
   ]
   pruneopts = "T"
   revision = "f6a15ece2cfd2560077c556499f19340ddc768e9"
+
+[[projects]]
+  branch = "master"
+  digest = "1:95197dfe44157a59ca91bffb8faa59a14f220806a3ed394d35a39c72180f8e36"
+  name = "github.com/alecthomas/template"
+  packages = [
+    ".",
+    "parse",
+  ]
+  pruneopts = "T"
+  revision = "a0175ee3bccc567396460bf5acd36800cb10c49c"
 
 [[projects]]
   branch = "master"
@@ -170,6 +197,38 @@
   version = "v1.3.0"
 
 [[projects]]
+  digest = "1:701ec53dfa0182bf25e5c09e664906f11d697e779b59461a2607dbd4dc75a4f9"
+  name = "github.com/go-openapi/jsonpointer"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "ef5f0afec364d3b9396b7b77b43dbe26bf1f8004"
+  version = "v0.18.0"
+
+[[projects]]
+  digest = "1:3f17ebd557845adeb347c9e398394e96ebc18e0ec94cc04972be87851a4679e0"
+  name = "github.com/go-openapi/jsonreference"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "8483a886a90412cd6858df4ea3483dce9c8e35a3"
+  version = "v0.18.0"
+
+[[projects]]
+  digest = "1:aab0bf9ea37838fc396fa23a503c51f12335e3f571fe78e0025d35e498bf7689"
+  name = "github.com/go-openapi/spec"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "5b6cdde3200976e3ecceb2868706ee39b6aff3e4"
+  version = "v0.18.0"
+
+[[projects]]
+  digest = "1:1b0d6468099d6a5b331ce46f5a398ef368abc6220d79825baf03a672f9d4e816"
+  name = "github.com/go-openapi/swag"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "1d29f06aebd59ccdf11ae04aa0334ded96e2d909"
+  version = "v0.18.0"
+
+[[projects]]
   digest = "1:a2ecb56e5053d942aafc86738915fb94c9131bac848c543b8b6764365fd69080"
   name = "github.com/golang/protobuf"
   packages = [
@@ -222,6 +281,18 @@
   pruneopts = "T"
   revision = "8c199fb6259ffc1af525cc3ad52ee60ba8359669"
   version = "v1.1"
+
+[[projects]]
+  branch = "master"
+  digest = "1:4be65cb3a11626a0d89fc72b34f62a8768040512d45feb086184ac30fdfbef65"
+  name = "github.com/mailru/easyjson"
+  packages = [
+    "buffer",
+    "jlexer",
+    "jwriter",
+  ]
+  pruneopts = "T"
+  revision = "60711f1a8329503b04e1c88535f419d0bb440bff"
 
 [[projects]]
   digest = "1:b168836ecd85a2d138391dbc464d2442ea9400c29cc0636f2c6056b996692e29"
@@ -392,6 +463,22 @@
   version = "v1.2.2"
 
 [[projects]]
+  digest = "1:51130cc36d802c5499eb3108d5c21adf484c40e2eb70b435a1bcb6e840a6adc5"
+  name = "github.com/swaggo/gin-swagger"
+  packages = ["swaggerFiles"]
+  pruneopts = "T"
+  revision = "8cf3fa9932e247205d1cf2be6fd13a9d09ceb9a4"
+  version = "v1.0.0"
+
+[[projects]]
+  digest = "1:ed0989053bb14935e53bbae3e0fea379f1dc46b7f1a0f0876fd3baa1668af2e3"
+  name = "github.com/swaggo/swag"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "e8c6d12e2c12a510070257ad5f2cecd937cbe76a"
+  version = "v1.4.0"
+
+[[projects]]
   branch = "master"
   digest = "1:bdc3f44533dbd81b8536fb037792d8aa2597744ab3a57a5f57fd297267b40e7e"
   name = "github.com/tyler-smith/go-bip39"
@@ -476,6 +563,9 @@
     "html",
     "html/atom",
     "html/charset",
+    "idna",
+    "webdav",
+    "webdav/internal/xml",
   ]
   pruneopts = "T"
   revision = "26e67e76b6c3f6ce91f7c52def5af501b4e0f3a2"
@@ -495,6 +585,8 @@
   digest = "1:6164911cb5e94e8d8d5131d646613ff82c14f5a8ce869de2f6d80d9889df8c5a"
   name = "golang.org/x/text"
   packages = [
+    "collate",
+    "collate/build",
     "encoding",
     "encoding/charmap",
     "encoding/htmlindex",
@@ -505,17 +597,38 @@
     "encoding/simplifiedchinese",
     "encoding/traditionalchinese",
     "encoding/unicode",
+    "internal/colltab",
     "internal/gen",
     "internal/tag",
+    "internal/triegen",
+    "internal/ucd",
     "internal/utf8internal",
     "language",
     "runes",
+    "secure/bidirule",
     "transform",
+    "unicode/bidi",
     "unicode/cldr",
+    "unicode/norm",
+    "unicode/rangetable",
+    "width",
   ]
   pruneopts = "T"
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
   version = "v0.3.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:3575aeab381039466d445ceff8695e92544ba47e257b5008bb37e437047d9d04"
+  name = "golang.org/x/tools"
+  packages = [
+    "go/ast/astutil",
+    "go/buildutil",
+    "go/internal/cgo",
+    "go/loader",
+  ]
+  pruneopts = "T"
+  revision = "740235f6c0d8f7dfb8e225ffed588731060a3617"
 
 [[projects]]
   digest = "1:7fc160b460a6fc506b37fcca68332464c3f2cd57b6e3f111f26c5bbfd2d5518e"
@@ -563,6 +676,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/agl/ed25519/extra25519",
+    "github.com/alecthomas/template",
     "github.com/asticode/go-astilectron",
     "github.com/asticode/go-astilectron-bootstrap",
     "github.com/asticode/go-astilog",
@@ -593,6 +707,8 @@
     "github.com/segmentio/ksuid",
     "github.com/skip2/go-qrcode",
     "github.com/stretchr/testify/assert",
+    "github.com/swaggo/gin-swagger/swaggerFiles",
+    "github.com/swaggo/swag",
     "github.com/tyler-smith/go-bip39",
     "github.com/xeipuuv/gojsonschema",
     "golang.org/x/crypto/bcrypt",

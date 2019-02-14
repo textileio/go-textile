@@ -1,0 +1,507 @@
+basePath: /api/v0
+definitions:
+  core.BlockInfo:
+    properties:
+      author_id:
+        type: string
+      avatar:
+        type: string
+      body:
+        type: string
+      date:
+        type: string
+      id:
+        type: string
+      parents:
+        items:
+          type: string
+        type: array
+      target:
+        type: string
+      thread_id:
+        type: string
+      type:
+        type: string
+      username:
+        type: string
+    type: object
+  core.ThreadInfo:
+    properties:
+      block_cnt:
+        type: integer
+      file_cnt:
+        type: integer
+      head:
+        $ref: '#/definitions/core.BlockInfo'
+        type: object
+      id:
+        type: string
+      initiator:
+        type: string
+      key:
+        type: string
+      members:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      peer_cnt:
+        type: integer
+      schema:
+        $ref: '#/definitions/schema.Node'
+        type: object
+      schema_id:
+        type: string
+      sharing:
+        type: string
+      state:
+        type: string
+      type:
+        type: string
+    type: object
+  repo.Cafe:
+    properties:
+      address:
+        type: string
+      api:
+        type: string
+      node:
+        type: string
+      peer:
+        type: string
+      protocol:
+        type: string
+      swarm:
+        items:
+          type: string
+        type: array
+      url:
+        type: string
+    type: object
+  repo.Contact:
+    properties:
+      address:
+        type: string
+      avatar:
+        type: string
+      created:
+        type: string
+      id:
+        type: string
+      inboxes:
+        items:
+          $ref: '#/definitions/repo.Cafe'
+        type: array
+      updated:
+        type: string
+      username:
+        type: string
+    type: object
+  repo.File:
+    properties:
+      added:
+        type: string
+      checksum:
+        type: string
+      hash:
+        type: string
+      key:
+        type: string
+      media:
+        type: string
+      meta:
+        type: object
+      mill:
+        type: string
+      name:
+        type: string
+      opts:
+        type: string
+      size:
+        type: integer
+      source:
+        type: string
+      targets:
+        items:
+          type: string
+        type: array
+    type: object
+  schema.Node:
+    properties:
+      json_schema:
+        type: object
+      links:
+        type: object
+      mill:
+        type: string
+      name:
+        type: string
+      opts:
+        type: object
+      pin:
+        type: boolean
+      plaintext:
+        type: boolean
+    type: object
+host: 127.0.0.1:40600
+info:
+  contact:
+    email: contact@textile.io
+    name: Textile
+    url: https://textile.io/
+  description: |-
+    Shows the local node's peer ID
+    Shows the local node's wallet address
+    Pings another peer on the network, returning online|offline.
+  license:
+    name: MIT License
+    url: https://github.com/textileio/textile-go/blob/master/LICENSE
+  termsOfService: https://github.com/textileio/textile-go/blob/master/TERMS
+  title: Textile Node API
+  version: "0.0"
+paths:
+  /address:
+    get:
+      description: Shows the local node's wallet address
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: address
+          schema:
+            type: string
+      summary: Show peer address
+      tags:
+      - peer
+  /mills/blob:
+    post:
+      consumes:
+      - multipart/form-data
+      description: |-
+        Takes a binary data blob, and optionally encrypts it, before adding to IPFS,
+        and returns a file object
+      parameters:
+      - description: multipart/form-data file
+        in: formData
+        name: file
+        type: file
+      - default: plaintext=false,use=""
+        description: 'plaintext: whether to leave unencrypted)use: if empty, assumes
+          body contains multipart form file data, otherwise, will attempt to fetch
+          given CID from IPFS'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: file
+          schema:
+            $ref: '#/definitions/repo.File'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Process raw data blobs
+      tags:
+      - mills
+  /mills/image/exif:
+    post:
+      consumes:
+      - multipart/form-data
+      description: |-
+        Takes an input image, and extracts its EXIF data (optionally encrypting output),
+        before adding to IPFS, and returns a file object
+      parameters:
+      - description: multipart/form-data file
+        in: formData
+        name: file
+        type: file
+      - default: plaintext=false,use=""
+        description: 'plaintext: whether to leave unencrypted, use: if empty, assumes
+          body contains multipart form file data, otherwise, will attempt to fetch
+          given CID from IPFS'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: file
+          schema:
+            $ref: '#/definitions/repo.File'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Extract EXIF data from image
+      tags:
+      - mills
+  /mills/image/resize:
+    post:
+      consumes:
+      - multipart/form-data
+      description: |-
+        Takes an input image, and resizes/resamples it (optionally encrypting output),
+        before adding to IPFS, and returns a file object
+      parameters:
+      - description: multipart/form-data file
+        in: formData
+        name: file
+        type: file
+      - default: plaintext=false,use="",quality=75,width=100
+        description: 'plaintext: whether to leave unencrypted, use: if empty, assumes
+          body contains multipart form file data, otherwise, will attempt to fetch
+          given CID from IPFS, width: the requested image width (required), quality:
+          the requested JPEG image quality'
+        in: header
+        name: X-Textile-Opts
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: file
+          schema:
+            $ref: '#/definitions/repo.File'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Resize an image
+      tags:
+      - mills
+  /mills/schema:
+    post:
+      consumes:
+      - application/json
+      description: Takes a JSON-based Schema, validates it, adds it to IPFS, and returns
+        a file object
+      parameters:
+      - description: schema
+        in: body
+        name: schema
+        required: true
+        schema:
+          $ref: '#/definitions/schema.Node'
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: file
+          schema:
+            $ref: '#/definitions/repo.File'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Validate, add, and pin a new Schema
+      tags:
+      - mills
+  /peer:
+    get:
+      description: Shows the local node's peer ID
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: peerid
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Show peer ID
+      tags:
+      - peer
+  /ping:
+    get:
+      description: Pings another peer on the network, returning online|offline.
+      parameters:
+      - description: name search by q
+        format: email
+        in: query
+        name: q
+        type: string
+      - description: peerid
+        in: header
+        name: X-Textile-Args
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: One of online|offline
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Ping a network peer
+      tags:
+      - peer
+  /profile:
+    get:
+      description: Gets the local node's public profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Contact info
+          schema:
+            $ref: '#/definitions/repo.Contact'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Get public profile
+      tags:
+      - profile
+  /profile/avatar:
+    post:
+      description: Sets public profile avatar by specifying an existing image file
+        hash
+      parameters:
+      - description: hash
+        in: header
+        name: X-Textile-Args
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "201":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Set avatar
+      tags:
+      - profile
+  /profile/username:
+    post:
+      description: Sets public profile username to given string
+      parameters:
+      - description: username
+        in: header
+        name: X-Textile-Args
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "201":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Set username
+      tags:
+      - profile
+  /threads:
+    get:
+      description: Lists all local threads, returning an array of ThreadInfo objects
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: threads
+          schema:
+            items:
+              $ref: '#/definitions/core.ThreadInfo'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Lists info on all threads
+      tags:
+      - threads
+    post:
+      description: |-
+        Adds a new Thread with given name, type, and sharing and members options, returning
+        a ThreadInfo object
+      parameters:
+      - description: name
+        in: header
+        name: X-Textile-Args
+        required: true
+        type: string
+      - default: type=private,sharing=not_shared,members=
+        description: 'key: A locally unique key used by an app to identify this thread
+          on recovery, schema: Existing Thread Schema IPFS CID, type: Set the thread
+          type to one of ''private'', ''read_only'', ''public'', or ''open'', sharing:
+          Set the thread sharing style to one of ''not_shared'',''invite_only'', or
+          ''shared'', members: An array of contact addresses. When supplied, the thread
+          will not allow additional peers beyond those in array, useful for 1-1 chat/file
+          sharing'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: thread
+          schema:
+            $ref: '#/definitions/ThreadInfo'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Adds and joins a new thread
+      tags:
+      - threads
+swagger: "2.0"

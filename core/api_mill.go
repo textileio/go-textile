@@ -10,6 +10,16 @@ import (
 	m "github.com/textileio/textile-go/mill"
 )
 
+// schemaMill godoc
+// @Summary Validate, add, and pin a new Schema
+// @Description Takes a JSON-based Schema, validates it, adds it to IPFS, and returns a file object
+// @Tags mills
+// @Accept application/json
+// @Produce application/json
+// @Param schema body schema.Node true "schema"
+// @Success 201 {object} repo.File "file"
+// @Failure 400 {string} string "Bad Request"
+// @Router /mills/schema [post]
 func (a *api) schemaMill(g *gin.Context) {
 	body, err := ioutil.ReadAll(g.Request.Body)
 	if err != nil {
@@ -34,6 +44,19 @@ func (a *api) schemaMill(g *gin.Context) {
 	g.JSON(http.StatusCreated, added)
 }
 
+// blobMill godoc
+// @Summary Process raw data blobs
+// @Description Takes a binary data blob, and optionally encrypts it, before adding to IPFS,
+// @Description and returns a file object
+// @Tags mills
+// @Accept multipart/form-data
+// @Produce application/json
+// @Param file formData file false "multipart/form-data file"
+// @Param X-Textile-Opts header string false "plaintext: whether to leave unencrypted)use: if empty, assumes body contains multipart form file data, otherwise, will attempt to fetch given CID from IPFS" default(plaintext=false,use="")
+// @Success 201 {object} repo.File "file"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /mills/blob [post]
 func (a *api) blobMill(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
@@ -59,6 +82,19 @@ func (a *api) blobMill(g *gin.Context) {
 	g.JSON(http.StatusCreated, added)
 }
 
+// imageResizeMill godoc
+// @Summary Resize an image
+// @Description Takes an input image, and resizes/resamples it (optionally encrypting output),
+// @Description before adding to IPFS, and returns a file object
+// @Tags mills
+// @Accept multipart/form-data
+// @Produce application/json
+// @Param file formData file false "multipart/form-data file"
+// @Param X-Textile-Opts header string true "plaintext: whether to leave unencrypted, use: if empty, assumes body contains multipart form file data, otherwise, will attempt to fetch given CID from IPFS, width: the requested image width (required), quality: the requested JPEG image quality" default(plaintext=false,use="",quality=75,width=100)
+// @Success 201 {object} repo.File "file"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /mills/image/resize [post]
 func (a *api) imageResizeMill(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
@@ -100,6 +136,19 @@ func (a *api) imageResizeMill(g *gin.Context) {
 	g.JSON(http.StatusCreated, added)
 }
 
+// imageExifMill godoc
+// @Summary Extract EXIF data from image
+// @Description Takes an input image, and extracts its EXIF data (optionally encrypting output),
+// @Description before adding to IPFS, and returns a file object
+// @Tags mills
+// @Accept multipart/form-data
+// @Produce application/json
+// @Param file formData file false "multipart/form-data file"
+// @Param X-Textile-Opts header string false "plaintext: whether to leave unencrypted, use: if empty, assumes body contains multipart form file data, otherwise, will attempt to fetch given CID from IPFS" default(plaintext=false,use="")
+// @Success 201 {object} repo.File "file"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /mills/image/exif [post]
 func (a *api) imageExifMill(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {

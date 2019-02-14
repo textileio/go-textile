@@ -22,6 +22,7 @@ lint:
 	golint `go list ./... | grep -v /vendor/`
 
 build:
+	swag init -g core/api.go
 	go build -ldflags "-w $(FLAGS)" -i -o textile textile.go
 	mv textile dist/
 
