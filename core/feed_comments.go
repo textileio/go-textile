@@ -13,7 +13,7 @@ func (t *Textile) Comments(target string) (*pb.FeedCommentList, error) {
 
 	query := fmt.Sprintf("type=%d and target='%s'", repo.CommentBlock, target)
 	for _, block := range t.Blocks("", -1, query) {
-		info, err := t.FeedComment(&block, true)
+		info, err := t.feedComment(&block, feedItemOpts{annotations: true})
 		if err != nil {
 			continue
 		}
@@ -23,13 +23,21 @@ func (t *Textile) Comments(target string) (*pb.FeedCommentList, error) {
 	return &pb.FeedCommentList{Items: comments}, nil
 }
 
-func (t *Textile) FeedComment(block *repo.Block, annotation bool) (*pb.FeedComment, error) {
+func (t *Textile) FeedComment(blockId string) (*pb.FeedComment, error) {
+	block, err := t.Block(blockId)
+	if err != nil {
+		return nil, err
+	}
+
+	return t.feedComment(block, feedItemOpts{annotations: true})
+}
+
+func (t *Textile) feedComment(block *repo.Block, opts feedItemOpts) (*pb.FeedComment, error) {
 	if block.Type != repo.CommentBlock {
 		return nil, ErrBlockWrongType
 	}
 
 	username, avatar := t.ContactDisplayInfo(block.AuthorId)
-
 	date, err := ptypes.TimestampProto(block.Date)
 	if err != nil {
 		return nil, err
@@ -44,12 +52,14 @@ func (t *Textile) FeedComment(block *repo.Block, annotation bool) (*pb.FeedComme
 		Body:     block.Body,
 	}
 
-	if !annotation {
-		target, err := t.feedItem(t.datastore.Blocks().Get(block.Target), false)
+	if !opts.annotations {
+		target, err := t.feedItem(t.datastore.Blocks().Get(block.Target), feedItemOpts{})
 		if err != nil {
 			return nil, err
 		}
 		info.Target = target
+	} else {
+		info.Target = opts.target
 	}
 
 	return info, nil

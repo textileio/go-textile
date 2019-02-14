@@ -30,13 +30,7 @@ func (a *api) addBlockComments(g *gin.Context) {
 		return
 	}
 
-	block, err := a.node.Block(hash.B58String())
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	info, err := a.node.FeedComment(block, true)
+	info, err := a.node.FeedComment(hash.B58String())
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -58,15 +52,7 @@ func (a *api) lsBlockComments(g *gin.Context) {
 }
 
 func (a *api) getBlockComment(g *gin.Context) {
-	id := g.Param("id")
-
-	block, err := a.node.Block(id)
-	if err != nil {
-		g.String(http.StatusNotFound, "block not found")
-		return
-	}
-
-	info, err := a.node.FeedComment(block, true)
+	info, err := a.node.FeedComment(g.Param("id"))
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

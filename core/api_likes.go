@@ -20,13 +20,7 @@ func (a *api) addBlockLikes(g *gin.Context) {
 		return
 	}
 
-	block, err := a.node.Block(hash.B58String())
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	info, err := a.node.FeedLike(block, true)
+	info, err := a.node.FeedLike(hash.B58String())
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -48,15 +42,7 @@ func (a *api) lsBlockLikes(g *gin.Context) {
 }
 
 func (a *api) getBlockLike(g *gin.Context) {
-	id := g.Param("id")
-
-	block, err := a.node.Block(id)
-	if err != nil {
-		g.String(http.StatusNotFound, "block not found")
-		return
-	}
-
-	info, err := a.node.FeedLike(block, true)
+	info, err := a.node.FeedLike(g.Param("id"))
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

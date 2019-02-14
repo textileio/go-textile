@@ -23,7 +23,7 @@ func (t *Textile) Messages(offset string, limit int, threadId string) (*pb.FeedM
 
 	blocks := t.Blocks(offset, limit, query)
 	for _, block := range blocks {
-		msg, err := t.feedMessage(&block, true)
+		msg, err := t.feedMessage(&block, feedItemOpts{annotations: true})
 		if err != nil {
 			return nil, err
 		}
@@ -39,16 +39,15 @@ func (t *Textile) FeedMessage(blockId string) (*pb.FeedMessage, error) {
 		return nil, err
 	}
 
-	return t.feedMessage(block, true)
+	return t.feedMessage(block, feedItemOpts{annotations: true})
 }
 
-func (t *Textile) feedMessage(block *repo.Block, annotated bool) (*pb.FeedMessage, error) {
+func (t *Textile) feedMessage(block *repo.Block, opts feedItemOpts) (*pb.FeedMessage, error) {
 	if block.Type != repo.MessageBlock {
 		return nil, ErrBlockWrongType
 	}
 
 	username, avatar := t.ContactDisplayInfo(block.AuthorId)
-
 	date, err := ptypes.TimestampProto(block.Date)
 	if err != nil {
 		return nil, err
@@ -63,7 +62,7 @@ func (t *Textile) feedMessage(block *repo.Block, annotated bool) (*pb.FeedMessag
 		Body:     block.Body,
 	}
 
-	if annotated {
+	if opts.annotations {
 		comments, err := t.Comments(block.Id)
 		if err != nil {
 			return nil, err
@@ -75,6 +74,9 @@ func (t *Textile) feedMessage(block *repo.Block, annotated bool) (*pb.FeedMessag
 			return nil, err
 		}
 		info.Likes = likes.Items
+	} else {
+		info.Comments = opts.comments
+		info.Likes = opts.likes
 	}
 
 	return info, nil

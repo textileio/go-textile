@@ -16,8 +16,8 @@ enum FeedType {
 }
 
 message FeedItem {
-    string block             = 1;
-    google.protobuf.Any body = 2;
+    string block                = 1;
+    google.protobuf.Any payload = 2;
 }
 
 message FeedItemList {

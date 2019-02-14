@@ -458,7 +458,7 @@ func TestMobile_AddThreadIgnore(t *testing.T) {
 }
 
 func TestMobile_Feed(t *testing.T) {
-	res, err := mobile1.Feed("", -1, thrdId, false)
+	res, err := mobile1.Feed("", -1, thrdId, pb.FeedType_HYBRID)
 	if err != nil {
 		t.Errorf("get thread feed failed: %s", err)
 		return

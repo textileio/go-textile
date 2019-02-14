@@ -6,13 +6,12 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
-func (t *Textile) FeedJoin(block *repo.Block, annotated bool) (*pb.FeedJoin, error) {
+func (t *Textile) feedJoin(block *repo.Block, opts feedItemOpts) (*pb.FeedJoin, error) {
 	if block.Type != repo.JoinBlock {
 		return nil, ErrBlockWrongType
 	}
 
 	username, avatar := t.ContactDisplayInfo(block.AuthorId)
-
 	date, err := ptypes.TimestampProto(block.Date)
 	if err != nil {
 		return nil, err
@@ -26,12 +25,14 @@ func (t *Textile) FeedJoin(block *repo.Block, annotated bool) (*pb.FeedJoin, err
 		Avatar:   avatar,
 	}
 
-	if annotated {
+	if opts.annotations {
 		likes, err := t.Likes(block.Id)
 		if err != nil {
 			return nil, err
 		}
 		info.Likes = likes.Items
+	} else {
+		info.Likes = opts.likes
 	}
 
 	return info, nil

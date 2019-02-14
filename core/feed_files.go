@@ -25,7 +25,7 @@ func (t *Textile) Files(offset string, limit int, threadId string) (*pb.FeedFile
 
 	blocks := t.Blocks(offset, limit, query)
 	for _, block := range blocks {
-		file, err := t.feedFile(&block, true)
+		file, err := t.feedFile(&block, feedItemOpts{annotations: true})
 		if err != nil {
 			return nil, err
 		}
@@ -41,7 +41,7 @@ func (t *Textile) FeedFile(blockId string) (*pb.FeedFiles, error) {
 		return nil, err
 	}
 
-	return t.feedFile(block, true)
+	return t.feedFile(block, feedItemOpts{annotations: true})
 }
 
 func (t *Textile) fileAtTarget(target string) ([]*pb.FeedFile, error) {
@@ -94,7 +94,7 @@ func (t *Textile) fileAtTarget(target string) ([]*pb.FeedFile, error) {
 	return files, nil
 }
 
-func (t *Textile) feedFile(block *repo.Block, annotated bool) (*pb.FeedFiles, error) {
+func (t *Textile) feedFile(block *repo.Block, opts feedItemOpts) (*pb.FeedFiles, error) {
 	if block.Type != repo.FilesBlock {
 		return nil, ErrBlockWrongType
 	}
@@ -102,13 +102,12 @@ func (t *Textile) feedFile(block *repo.Block, annotated bool) (*pb.FeedFiles, er
 	threads := make([]string, 0)
 	threads = t.fileThreads(block.Target)
 
-	username, avatar := t.ContactDisplayInfo(block.AuthorId)
-
 	files, err := t.fileAtTarget(block.Target)
 	if err != nil {
 		return nil, err
 	}
 
+	username, avatar := t.ContactDisplayInfo(block.AuthorId)
 	date, err := ptypes.TimestampProto(block.Date)
 	if err != nil {
 		return nil, err
@@ -126,7 +125,7 @@ func (t *Textile) feedFile(block *repo.Block, annotated bool) (*pb.FeedFiles, er
 		Threads:  threads,
 	}
 
-	if annotated {
+	if opts.annotations {
 		comments, err := t.Comments(block.Id)
 		if err != nil {
 			return nil, err
@@ -138,6 +137,9 @@ func (t *Textile) feedFile(block *repo.Block, annotated bool) (*pb.FeedFiles, er
 			return nil, err
 		}
 		info.Likes = likes.Items
+	} else {
+		info.Comments = opts.comments
+		info.Likes = opts.likes
 	}
 
 	return info, nil
