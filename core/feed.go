@@ -17,7 +17,7 @@ var annotatedFeedTypes = []repo.BlockType{
 	repo.JoinBlock, repo.LeaveBlock, repo.FilesBlock, repo.MessageBlock,
 }
 
-type hybridStack struct {
+type feedStack struct {
 	id       string
 	top      repo.Block
 	children []repo.Block
@@ -33,7 +33,7 @@ type feedItemOpts struct {
 func (t *Textile) Feed(offset string, limit int, threadId string, mode pb.FeedMode) (*pb.FeedItemList, error) {
 	var types []repo.BlockType
 	switch mode {
-	case pb.FeedMode_FLAT, pb.FeedMode_HYBRID:
+	case pb.FeedMode_CHRONO, pb.FeedMode_STACKS:
 		types = flatFeedTypes
 	case pb.FeedMode_ANNOTATED:
 		types = annotatedFeedTypes
@@ -59,7 +59,7 @@ func (t *Textile) Feed(offset string, limit int, threadId string, mode pb.FeedMo
 	var count int
 
 	switch mode {
-	case pb.FeedMode_FLAT, pb.FeedMode_ANNOTATED:
+	case pb.FeedMode_CHRONO, pb.FeedMode_ANNOTATED:
 		for _, block := range blocks {
 			item, err := t.feedItem(&block, feedItemOpts{
 				annotations: mode == pb.FeedMode_ANNOTATED,
@@ -71,9 +71,9 @@ func (t *Textile) Feed(offset string, limit int, threadId string, mode pb.FeedMo
 			count++
 		}
 
-	case pb.FeedMode_HYBRID:
-		stacks := make([]hybridStack, 0)
-		var last *hybridStack
+	case pb.FeedMode_STACKS:
+		stacks := make([]feedStack, 0)
+		var last *feedStack
 		for _, block := range blocks {
 			if len(stacks) > 0 {
 				last = &stacks[len(stacks)-1]
@@ -82,7 +82,7 @@ func (t *Textile) Feed(offset string, limit int, threadId string, mode pb.FeedMo
 
 			if len(stacks) == 0 || targetId != getTargetId(last.top) {
 				// start a new stack
-				stacks = append(stacks, hybridStack{id: targetId, top: block})
+				stacks = append(stacks, feedStack{id: targetId, top: block})
 			} else {
 				// append to last
 				last.children = append(last.children, block)
@@ -163,7 +163,7 @@ func (t *Textile) feedItem(block *repo.Block, opts feedItemOpts) (*pb.FeedItem, 
 	return item, nil
 }
 
-func (t *Textile) feedStackItem(stack hybridStack) (*pb.FeedItem, error) {
+func (t *Textile) feedStackItem(stack feedStack) (*pb.FeedItem, error) {
 	var comments []*pb.Comment
 	var likes []*pb.Like
 

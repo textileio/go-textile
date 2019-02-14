@@ -10,9 +10,9 @@ message Directory {
 }
 
 enum FeedMode {
-    FLAT      = 0;
+    CHRONO    = 0;
     ANNOTATED = 1;
-    HYBRID    = 2;
+    STACKS    = 2;
 }
 
 message FeedItem {
