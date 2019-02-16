@@ -88,7 +88,7 @@ func (x *addContactsCmd) Execute(args []string) error {
 	}
 
 	for _, result := range results {
-		data, err := json.Marshal(result)
+		data, err := json.Marshal(result.Value)
 		if err != nil {
 			return err
 		}

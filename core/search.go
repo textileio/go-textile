@@ -5,6 +5,7 @@ import (
 
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
+	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/pb"
 )
@@ -71,6 +72,7 @@ func (s *queryResultSet) Full() bool {
 // Search searches the network based on the given query
 func (t *Textile) search(query *pb.Query) (<-chan *pb.QueryResult, <-chan error, *broadcast.Broadcaster) {
 	query = queryDefaults(query)
+	query.Id = ksuid.New().String()
 
 	var searchChs []chan *pb.QueryResult
 

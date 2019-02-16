@@ -63,13 +63,14 @@ const cafeServiceProtocol = protocol.ID("/textile/cafe/1.0.0")
 
 // CafeService is a libp2p pinning and offline message service
 type CafeService struct {
-	service       *service.Service
-	datastore     repo.Datastore
-	inbox         *CafeInbox
-	info          *repo.Cafe
-	online        bool
-	open          bool
-	searchResults *broadcast.Broadcaster
+	service         *service.Service
+	datastore       repo.Datastore
+	inbox           *CafeInbox
+	info            *repo.Cafe
+	online          bool
+	open            bool
+	queryResults    *broadcast.Broadcaster
+	inFlightQueries map[string]bool
 }
 
 // NewCafeService returns a new threads service
@@ -80,9 +81,10 @@ func NewCafeService(
 	inbox *CafeInbox,
 ) *CafeService {
 	handler := &CafeService{
-		datastore:     datastore,
-		inbox:         inbox,
-		searchResults: broadcast.NewBroadcaster(10),
+		datastore:       datastore,
+		inbox:           inbox,
+		queryResults:    broadcast.NewBroadcaster(10),
+		inFlightQueries: make(map[string]bool),
 	}
 	handler.service = service.NewService(account, handler, node)
 	return handler
@@ -649,7 +651,10 @@ func (h *CafeService) searchLocal(qtype pb.QueryType, options *pb.QueryOptions, 
 
 // searchPubSub performs a network-wide search for the given query
 func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults) bool, cancelCh <-chan interface{}, fromCafe bool) error {
-	psId := ksuid.New().String()
+	h.inFlightQueries[query.Id] = true
+	defer func() {
+		delete(h.inFlightQueries, query.Id)
+	}()
 
 	// if caller needs results over pubsub, start a tmp subscription
 	var rtype pb.PubSubQuery_ResponseType
@@ -659,12 +664,12 @@ func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults)
 	} else {
 		rtype = pb.PubSubQuery_PUBSUB
 		go func() {
-			psCancel = h.service.ListenFor(psId, false, h.handlePubSubQueryResults)
+			psCancel = h.service.ListenFor(query.Id, false, h.handlePubSubQueryResults)
 		}()
 	}
 
 	if err := h.publishQuery(&pb.PubSubQuery{
-		Id:           psId,
+		Id:           query.Id,
 		Type:         query.Type,
 		Payload:      query.Payload,
 		ResponseType: rtype,
@@ -673,7 +678,7 @@ func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults)
 	}
 
 	timer := time.NewTimer(time.Second * time.Duration(query.Options.Wait))
-	listener := h.searchResults.Listen()
+	listener := h.queryResults.Listen()
 	doneCh := make(chan struct{})
 
 	done := func() {
@@ -701,7 +706,7 @@ func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults)
 			if !ok {
 				return nil
 			}
-			if r, ok := value.(*pb.PubSubQueryResults); ok && r.Id == psId && r.Results.Type == query.Type {
+			if r, ok := value.(*pb.PubSubQueryResults); ok && r.Id == query.Id && r.Results.Type == query.Type {
 				if reply(r.Results) {
 					if timer.Stop() {
 						done()
@@ -1240,6 +1245,10 @@ func (h *CafeService) handlePubSubQuery(pid peer.ID, env *pb.Envelope) (*pb.Enve
 		return nil, err
 	}
 
+	if h.inFlightQueries[query.Id] {
+		return nil, nil
+	}
+
 	// return results, if any
 	options := &pb.QueryOptions{Filter: pb.QueryOptions_NO_FILTER}
 	results, err := h.searchLocal(query.Type, options, query.Payload, false)
@@ -1286,7 +1295,7 @@ func (h *CafeService) handlePubSubQueryResults(pid peer.ID, env *pb.Envelope) (*
 		return nil, err
 	}
 
-	h.searchResults.Send(res)
+	h.queryResults.Send(res)
 	return nil, nil
 }
 
@@ -1412,7 +1421,7 @@ func (h *CafeService) findContactPubSub(query *pb.CafeContactQuery, results *con
 		query.Wait = maxQueryWaitSeconds
 	}
 	timer := time.NewTimer(time.Second * time.Duration(query.Wait))
-	listener := h.searchResults.Listen()
+	listener := h.queryResults.Listen()
 	doneCh := make(chan struct{})
 
 	done := func() {
@@ -1572,6 +1581,6 @@ func (h *CafeService) handlePubSubContactQueryResult(pid peer.ID, env *pb.Envelo
 		return nil, err
 	}
 
-	h.searchResults.Send(res)
+	h.queryResults.Send(res)
 	return nil, nil
 }

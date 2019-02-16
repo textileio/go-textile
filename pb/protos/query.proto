@@ -22,10 +22,11 @@ message QueryOptions {
 }
 
 message Query {
-    string token                = 1;
-    QueryType type              = 2;
-    QueryOptions options        = 3;
-    google.protobuf.Any payload = 4;
+    string id                   = 1;
+    string token                = 2;
+    QueryType type              = 3;
+    QueryOptions options        = 4;
+    google.protobuf.Any payload = 5;
 }
 
 message PubSubQuery {
