@@ -411,15 +411,19 @@ func (h *CafeService) Search(query *pb.Query, cafe peer.ID, reply func(*pb.Query
 	}
 
 	renvCh, errCh, cancel := h.service.SendHTTPStreamRequest(getCafeHTTPAddr(session), env)
+	cancelFn := func() {
+		if cancel != nil {
+			fn := *cancel
+			if fn != nil {
+				fn()
+			}
+		}
+	}
+
 	for {
 		select {
 		case <-cancelCh:
-			if cancel != nil {
-				fn := *cancel
-				if fn != nil {
-					fn()
-				}
-			}
+			cancelFn()
 			return nil
 		case err := <-errCh:
 			return err
@@ -580,8 +584,8 @@ func (h *CafeService) sendObject(id cid.Cid, addr string, token string) error {
 }
 
 // searchLocal searches the local index based on the given query
-func (h *CafeService) searchLocal(qtype pb.QueryType, filter pb.QueryOptions_FilterType, payload *any.Any, local bool) (*queryResultSet, error) {
-	results := newQueryResultSet(filter)
+func (h *CafeService) searchLocal(qtype pb.QueryType, options *pb.QueryOptions, payload *any.Any, local bool) (*queryResultSet, error) {
+	results := newQueryResultSet(options)
 
 	switch qtype {
 	case pb.QueryType_THREAD_BACKUPS:
@@ -1185,7 +1189,7 @@ func (h *CafeService) handleQuery(pid peer.ID, env *pb.Envelope, renvs chan *pb.
 	if err := ptypes.UnmarshalAny(env.Message.Payload, query); err != nil {
 		return err
 	}
-	query = applyQueryDefaults(query)
+	query = queryDefaults(query)
 
 	rerr, err := h.authToken(pid, query.Token, false, env.Message.RequestId)
 	if err != nil {
@@ -1196,7 +1200,7 @@ func (h *CafeService) handleQuery(pid peer.ID, env *pb.Envelope, renvs chan *pb.
 		return nil
 	}
 
-	results := newQueryResultSet(query.Options.Filter)
+	results := newQueryResultSet(query.Options)
 	reply := func(res *pb.QueryResults) bool {
 		added := results.Add(res.Items...)
 		if len(added) == 0 {
@@ -1206,14 +1210,15 @@ func (h *CafeService) handleQuery(pid peer.ID, env *pb.Envelope, renvs chan *pb.
 		renv, err := h.service.NewEnvelope(pb.Message_CAFE_QUERY_RES, res, &env.Message.RequestId, true)
 		if err != nil {
 			log.Errorf("error replying with query results: %s", err)
+			return false
 		}
 		renvs <- renv
 
-		return len(results.items) >= int(query.Options.Limit)
+		return results.Full()
 	}
 
 	// search local
-	localResults, err := h.searchLocal(query.Type, query.Options.Filter, query.Payload, false)
+	localResults, err := h.searchLocal(query.Type, query.Options, query.Payload, false)
 	if err != nil {
 		return err
 	}
@@ -1236,7 +1241,8 @@ func (h *CafeService) handlePubSubQuery(pid peer.ID, env *pb.Envelope) (*pb.Enve
 	}
 
 	// return results, if any
-	results, err := h.searchLocal(query.Type, pb.QueryOptions_NO_FILTER, query.Payload, false)
+	options := &pb.QueryOptions{Filter: pb.QueryOptions_NO_FILTER}
+	results, err := h.searchLocal(query.Type, options, query.Payload, false)
 	if err != nil {
 		return nil, err
 	}
@@ -1344,13 +1350,13 @@ func protoTimeToNano(t *timestamp.Timestamp) int {
 	return int(t.Nanos) + int(t.Seconds*1e9)
 }
 
-// applyQueryDefaults ensures the query is within the expected bounds
-func applyQueryDefaults(query *pb.Query) *pb.Query {
+// queryDefaults ensures the query is within the expected bounds
+func queryDefaults(query *pb.Query) *pb.Query {
 	if query.Options == nil {
 		query.Options = &pb.QueryOptions{
 			Local:  false,
-			Wait:   defaultQueryWaitSeconds,
 			Limit:  defaultQueryResultsLimit,
+			Wait:   defaultQueryWaitSeconds,
 			Filter: pb.QueryOptions_NO_FILTER,
 		}
 	}
@@ -1492,6 +1498,7 @@ func (h *CafeService) handleContactQuery(pid peer.ID, env *pb.Envelope, renvs ch
 		renv, err := h.service.NewEnvelope(pb.Message_CAFE_CONTACT_QUERY_RES, res, &env.Message.RequestId, true)
 		if err != nil {
 			log.Errorf("error replying with query result: %s", err)
+			return
 		}
 		renvs <- renv
 	}
