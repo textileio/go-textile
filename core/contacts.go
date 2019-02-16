@@ -161,6 +161,11 @@ func (t *Textile) SearchContacts(query *pb.ContactQuery, options *pb.QueryOption
 
 	options.Filter = pb.QueryOptions_HIDE_OLDER
 
+	self := t.Profile()
+	if self != nil {
+		options.Exclude = append(options.Exclude, self.Id)
+	}
+
 	resCh, errCh, cancel := t.search(&pb.Query{
 		Type:    pb.QueryType_CONTACTS,
 		Options: options,

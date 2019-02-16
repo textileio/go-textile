@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+
+	"github.com/textileio/textile-go/pb"
 )
 
 var errMissingAddInfo = errors.New("missing peer id or account address")
@@ -70,7 +72,7 @@ func (x *addContactsCmd) Execute(args []string) error {
 			"peer":     x.Peer,
 			"address":  x.Address,
 			"limit":    strconv.Itoa(limit),
-			"wait":     "3",
+			"wait":     "2",
 		},
 	})
 
@@ -79,15 +81,26 @@ func (x *addContactsCmd) Execute(args []string) error {
 		return nil
 	}
 
-	var postfix string
-	if len(results) > 1 {
-		postfix = "s"
+	var remote []pb.QueryResult
+	for _, res := range results {
+		if !res.Local {
+			remote = append(remote, res)
+		}
 	}
-	if !confirm(fmt.Sprintf("Add %d contact%s?", len(results), postfix)) {
+	if len(remote) == 0 {
+		output("No new contacts were found")
 		return nil
 	}
 
-	for _, result := range results {
+	var postfix string
+	if len(remote) > 1 {
+		postfix = "s"
+	}
+	if !confirm(fmt.Sprintf("Add %d contact%s?", len(remote), postfix)) {
+		return nil
+	}
+
+	for _, result := range remote {
 		data, err := json.Marshal(result.Value)
 		if err != nil {
 			return err

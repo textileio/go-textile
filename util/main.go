@@ -25,6 +25,15 @@ func SplitString(in string, sep string) []string {
 	return list
 }
 
+func ListContainsString(list []string, i string) bool {
+	for _, v := range list {
+		if v == i {
+			return true
+		}
+	}
+	return false
+}
+
 func trimQuotes(s string) string {
 	if len(s) > 0 && s[0] == '"' {
 		s = s[1:]

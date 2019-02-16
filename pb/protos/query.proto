@@ -10,10 +10,11 @@ enum QueryType {
 }
 
 message QueryOptions {
-    bool local        = 1;
-    int32 limit       = 2;
-    int32 wait        = 3;
-    FilterType filter = 4;
+    bool local              = 1;
+    int32 limit             = 2;
+    int32 wait              = 3;
+    FilterType filter       = 4;
+    repeated string exclude = 5;
 
     enum FilterType {
         NO_FILTER  = 0; // show all results

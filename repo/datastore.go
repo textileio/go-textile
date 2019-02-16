@@ -52,7 +52,7 @@ type ContactStore interface {
 	AddOrUpdate(contact *Contact) error
 	Get(id string) *Contact
 	List() []Contact
-	Find(id string, address string, username string) []Contact
+	Find(id string, address string, username string, exclude []string) []Contact
 	Count() int
 	UpdateUsername(id string, username string) error
 	UpdateAvatar(id string, avatar string) error

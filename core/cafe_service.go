@@ -625,7 +625,7 @@ func (h *CafeService) searchLocal(qtype pb.QueryType, options *pb.QueryOptions, 
 			return nil, err
 		}
 
-		contacts := h.datastore.Contacts().Find(q.Id, q.Address, q.Username)
+		contacts := h.datastore.Contacts().Find(q.Id, q.Address, q.Username, options.Exclude)
 		for _, c := range contacts {
 			pc := repoContactToProto(&c)
 			pc.Username = toUsername(&c)
@@ -1514,7 +1514,7 @@ func (h *CafeService) handleContactQuery(pid peer.ID, env *pb.Envelope, renvs ch
 
 	// search local
 	res := &pb.CafeContactQueryResult{}
-	for _, c := range h.datastore.Contacts().Find(query.FindId, query.FindAddress, query.FindUsername) {
+	for _, c := range h.datastore.Contacts().Find(query.FindId, query.FindAddress, query.FindUsername, []string{}) {
 		res.Contacts = append(res.Contacts, results.Add(repoContactToProto(&c))...)
 	}
 	if len(res.Contacts) > 0 {
@@ -1543,7 +1543,7 @@ func (h *CafeService) handlePubSubContactQuery(pid peer.ID, env *pb.Envelope) (*
 	res := &pb.CafePubSubContactQueryResult{
 		Id: query.Id,
 	}
-	for _, c := range h.datastore.Contacts().Find(query.FindId, query.FindAddress, query.FindUsername) {
+	for _, c := range h.datastore.Contacts().Find(query.FindId, query.FindAddress, query.FindUsername, []string{}) {
 		res.Contacts = append(res.Contacts, repoContactToProto(&c))
 	}
 
