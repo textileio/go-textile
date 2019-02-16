@@ -36,7 +36,7 @@ func (s *queryResultSet) Add(items ...*pb.QueryResult) []*pb.QueryResult {
 		case pb.QueryOptions_NO_FILTER:
 			break
 		case pb.QueryOptions_HIDE_OLDER:
-			if last != nil && protoTimeToNano(i.Date) < protoTimeToNano(last.Date) {
+			if last != nil && protoTimeToNano(i.Date) <= protoTimeToNano(last.Date) {
 				continue
 			}
 		}
