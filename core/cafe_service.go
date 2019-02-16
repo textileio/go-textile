@@ -397,6 +397,11 @@ func (h *CafeService) PublishContact(contact *repo.Contact, cafe peer.ID) error 
 
 // Search performs a query via a cafe
 func (h *CafeService) Search(query *pb.Query, cafe peer.ID, reply func(*pb.QueryResult), cancelCh <-chan interface{}) error {
+	h.inFlightQueries[query.Id] = true
+	defer func() {
+		delete(h.inFlightQueries, query.Id)
+	}()
+
 	envFactory := func(session *pb.CafeSession) (*pb.Envelope, error) {
 		query.Token = session.Access
 		return h.service.NewEnvelope(pb.Message_CAFE_QUERY, query, nil, false)
