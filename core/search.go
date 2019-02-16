@@ -136,7 +136,7 @@ func (t *Textile) search(query *pb.Query) (<-chan *pb.QueryResult, <-chan error,
 				canceler := cancel.Listen()
 
 				wg.Add(1)
-				go func(i int, cafe peer.ID) {
+				go func(i int, cafe peer.ID, canceler *broadcast.Listener) {
 					defer wg.Done()
 
 					// token must be attached per cafe session, use a new query
@@ -150,7 +150,7 @@ func (t *Textile) search(query *pb.Query) (<-chan *pb.QueryResult, <-chan error,
 						errCh <- err
 						return
 					}
-				}(i, cafe)
+				}(i, cafe, canceler)
 			}
 
 			wg.Wait()
