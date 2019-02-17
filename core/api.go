@@ -90,7 +90,6 @@ func (a *api) Start() {
 	// v0 routes
 	v0 := router.Group("/api/v0")
 	{
-		v0.GET("/peer", a.peer)
 		v0.GET("/address", a.address)
 		v0.GET("/ping", a.ping)
 
@@ -206,12 +205,6 @@ func (a *api) Start() {
 			tokens.DELETE("/:id", a.rmTokens)
 		}
 
-		swarm := v0.Group("/swarm")
-		{
-			swarm.POST("/connect", a.swarmConnect)
-			swarm.GET("/peers", a.swarmPeers)
-		}
-
 		contacts := v0.Group("/contacts")
 		{
 			contacts.POST("", a.addContacts)
@@ -223,7 +216,14 @@ func (a *api) Start() {
 
 		ipfs := v0.Group("/ipfs")
 		{
-			ipfs.GET("/:cid", a.ipfsCat)
+			ipfs.GET("/id", a.ipfsId)
+			ipfs.GET("/cat/:cid", a.ipfsCat)
+
+			swarm := ipfs.Group("/swarm")
+			{
+				swarm.POST("/connect", a.ipfsSwarmConnect)
+				swarm.GET("/peers", a.ipfsSwarmPeers)
+			}
 		}
 
 		logs := v0.Group("/logs")
@@ -283,15 +283,6 @@ func (a *api) Stop() error {
 }
 
 // -- UTILITY ENDPOINTS -- //
-
-func (a *api) peer(g *gin.Context) {
-	pid, err := a.node.PeerId()
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-	g.String(http.StatusOK, pid.Pretty())
-}
 
 func (a *api) address(g *gin.Context) {
 	g.String(http.StatusOK, a.node.account.Address())

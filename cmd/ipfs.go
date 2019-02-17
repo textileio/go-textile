@@ -17,8 +17,9 @@ func init() {
 }
 
 type ipfsCmd struct {
-	Swarm swarmCmd `command:"swarm" description:"Access some IPFS swarm commands"`
-	Cat   catCmd   `command:"cat" description:"Show IPFS object data"`
+	Id    ipfsIdCmd    `command:"id" description:"Show IPFS peer ID"`
+	Swarm ipfsSwarmCmd `command:"swarm" description:"Access some IPFS swarm commands"`
+	Cat   ipfsCatCmd   `command:"cat" description:"Show IPFS object data"`
 }
 
 func (x *ipfsCmd) Name() string {
@@ -33,26 +34,47 @@ func (x *ipfsCmd) Long() string {
 	return "Provides access to some IPFS commands."
 }
 
-type swarmCmd struct {
-	Connect swarmConnectCmd `command:"connect" description:"Open connection to a given address"`
-	Peers   swarmPeersCmd   `command:"peers" description:"List peers with open connections"`
-}
-
-func (x *swarmCmd) Usage() string {
-	return `
-
-Opens a new direct connection to a peer address.
-The address format is an IPFS multiaddr:
-
-textile ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
-`
-}
-
-type swarmConnectCmd struct {
+type ipfsIdCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *swarmConnectCmd) Usage() string {
+func (x *ipfsIdCmd) Usage() string {
+	return `
+
+Shows the local node's IPFS peer ID.`
+}
+
+func (x *ipfsIdCmd) Execute(args []string) error {
+	setApi(x.Client)
+	res, err := callId()
+	if err != nil {
+		return err
+	}
+	output(res)
+	return nil
+}
+
+func callId() (string, error) {
+	return executeStringCmd(GET, "ipfs/id", params{})
+}
+
+type ipfsSwarmCmd struct {
+	Connect ipfsSwarmConnectCmd `command:"connect" description:"Open connection to a given address"`
+	Peers   ipfsSwarmPeersCmd   `command:"peers" description:"List peers with open connections"`
+}
+
+func (x *ipfsSwarmCmd) Usage() string {
+	return `
+
+Provides access to a limited set of IPFS swarm commands.
+`
+}
+
+type ipfsSwarmConnectCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
+
+func (x *ipfsSwarmConnectCmd) Usage() string {
 	return `
 
 Opens a new direct connection to a peer address.
@@ -63,13 +85,13 @@ textile ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERU
 `
 }
 
-func (x *swarmConnectCmd) Execute(args []string) error {
+func (x *ipfsSwarmConnectCmd) Execute(args []string) error {
 	setApi(x.Client)
 	if len(args) == 0 {
 		return errMissingMultiAddress
 	}
 
-	res, err := executeJsonCmd(POST, "swarm/connect", params{
+	res, err := executeJsonCmd(POST, "ipfs/swarm/connect", params{
 		args: args,
 	}, nil)
 	if err != nil {
@@ -79,7 +101,7 @@ func (x *swarmConnectCmd) Execute(args []string) error {
 	return nil
 }
 
-type swarmPeersCmd struct {
+type ipfsSwarmPeersCmd struct {
 	Client    ClientOptions `group:"Client Options"`
 	Verbose   bool          `short:"v" long:"verbose" description:"Display all extra information."`
 	Streams   bool          `short:"s" long:"streams" description:"Also list information about open streams for each peer."`
@@ -87,16 +109,16 @@ type swarmPeersCmd struct {
 	Direction bool          `short:"d" long:"direction" description:"Also list information about the direction of connection."`
 }
 
-func (x *swarmPeersCmd) Usage() string {
+func (x *ipfsSwarmPeersCmd) Usage() string {
 	return `
 
 Lists the set of peers this node is connected to.`
 }
 
-func (x *swarmPeersCmd) Execute(args []string) error {
+func (x *ipfsSwarmPeersCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	res, err := executeJsonCmd(GET, "swarm/peers", params{
+	res, err := executeJsonCmd(GET, "ipfs/swarm/peers", params{
 		opts: map[string]string{
 			"verbose":   strconv.FormatBool(x.Verbose),
 			"streams":   strconv.FormatBool(x.Streams),
@@ -111,24 +133,24 @@ func (x *swarmPeersCmd) Execute(args []string) error {
 	return nil
 }
 
-type catCmd struct {
+type ipfsCatCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Key    string        `short:"k" long:"key" description:"Encyrption key."`
 }
 
-func (x *catCmd) Usage() string {
+func (x *ipfsCatCmd) Usage() string {
 	return `
 
 Displays the data behind an IPFS CID (hash).`
 }
 
-func (x *catCmd) Execute(args []string) error {
+func (x *ipfsCatCmd) Execute(args []string) error {
 	setApi(x.Client)
 	if len(args) == 0 {
 		return errMissingCID
 	}
 
-	res, _, err := request(GET, "ipfs/"+args[0], params{
+	res, _, err := request(GET, "ipfs/cat/"+args[0], params{
 		opts: map[string]string{"key": x.Key},
 	})
 	if err != nil {
