@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -74,10 +75,7 @@ func (t *Textile) Contacts() ([]ContactInfo, error) {
 	contacts := make([]ContactInfo, 0)
 
 	self := t.node.Identity.Pretty()
-	for _, model := range t.datastore.Contacts().List() {
-		if model.Id == self {
-			continue
-		}
+	for _, model := range t.datastore.Contacts().List(fmt.Sprintf("id!='%s'", self)) {
 		info := t.contactInfo(t.datastore.Contacts().Get(model.Id), true)
 		if info != nil {
 			contacts = append(contacts, *info)

@@ -280,16 +280,16 @@ loop:
 
 // StoreThread pushes a thread to a cafe backup
 func (h *CafeService) StoreThread(thrd *repo.Thread, cafe peer.ID) error {
-	plaintext, err := proto.Marshal(&pb.CafeThread{
+	plaintext, err := proto.Marshal(&pb.Thread{
 		Key:       thrd.Key,
 		Sk:        thrd.PrivKey,
 		Name:      thrd.Name,
 		Schema:    thrd.Schema,
 		Initiator: thrd.Initiator,
-		Type:      pb.CafeThread_Type(thrd.Type),
-		Sharing:   pb.CafeThread_Sharing(thrd.Sharing),
+		Type:      pb.Thread_Type(thrd.Type),
+		Sharing:   pb.Thread_Sharing(thrd.Sharing),
 		Members:   thrd.Members,
-		State:     pb.CafeThread_State(thrd.State),
+		State:     pb.Thread_State(thrd.State),
 		Head:      thrd.Head,
 	})
 	if err != nil {

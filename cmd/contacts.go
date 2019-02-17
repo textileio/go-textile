@@ -1,12 +1,12 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/pb"
 )
 
@@ -44,12 +44,13 @@ type addContactsCmd struct {
 	Username string        `short:"u" long:"username" description:"Add by username."`
 	Peer     string        `short:"p" long:"peer" description:"Add by peer ID."`
 	Address  string        `short:"a" long:"address" description:"Add by account address."`
+	Wait     int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"2"`
 }
 
 func (x *addContactsCmd) Usage() string {
 	return `
 
-Adds a contact by peer ID or account address to known contacts.
+Adds a contact by username, peer ID, or account address to known contacts.
 `
 }
 
@@ -72,7 +73,7 @@ func (x *addContactsCmd) Execute(args []string) error {
 			"peer":     x.Peer,
 			"address":  x.Address,
 			"limit":    strconv.Itoa(limit),
-			"wait":     "2",
+			"wait":     strconv.Itoa(x.Wait),
 		},
 	})
 
@@ -101,13 +102,17 @@ func (x *addContactsCmd) Execute(args []string) error {
 	}
 
 	for _, result := range remote {
-		data, err := json.Marshal(result.Value)
+		contact := new(pb.Contact)
+		if err := ptypes.UnmarshalAny(result.Value, contact); err != nil {
+			return err
+		}
+		data, err := pbMarshaler.MarshalToString(result.Value)
 		if err != nil {
 			return err
 		}
 
 		res, err := executeStringCmd(POST, "contacts", params{
-			payload: bytes.NewReader(data),
+			payload: strings.NewReader(data),
 			ctype:   "application/json",
 		})
 		if err != nil {
@@ -205,7 +210,7 @@ type searchContactsCmd struct {
 	Address  string        `short:"a" long:"address" description:"Search by account address."`
 	Local    bool          `long:"local" description:"Only search local contacts."`
 	Limit    int           `long:"limit" description:"Stops searching after limit results are found." default:"5"`
-	Wait     int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"5"`
+	Wait     int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"2"`
 }
 
 func (x *searchContactsCmd) Usage() string {

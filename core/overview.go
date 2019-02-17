@@ -16,14 +16,18 @@ type Overview struct {
 
 // Overview returns an overview object
 func (t *Textile) Overview() (*Overview, error) {
+	selfId := t.node.Identity.Pretty()
+	selfAddress := t.account.Address()
+
+	peers := t.datastore.Contacts().Count(fmt.Sprintf("address!='%s'", selfAddress))
 	threads := t.datastore.Threads().Count()
 	files := t.datastore.Blocks().Count(fmt.Sprintf("type=%d", repo.FilesBlock))
-	contacts := t.datastore.Contacts().Count()
+	contacts := t.datastore.Contacts().Count(fmt.Sprintf("id!='%s'", selfId))
 
 	return &Overview{
-		AccountPeerCount: 0,
+		AccountPeerCount: peers,
 		ThreadCount:      threads,
 		FileCount:        files,
-		ContactCount:     contacts - 1, // remove the contact for self
+		ContactCount:     contacts,
 	}, nil
 }

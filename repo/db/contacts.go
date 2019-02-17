@@ -104,10 +104,15 @@ func (c *ContactDB) Get(id string) *repo.Contact {
 	return &ret[0]
 }
 
-func (c *ContactDB) List() []repo.Contact {
+func (c *ContactDB) List(query string) []repo.Contact {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	return c.handleQuery("select * from contacts order by username asc;")
+	q := "select * from contacts"
+	if query != "" {
+		q += " where " + query
+	}
+	q += " order by username asc;"
+	return c.handleQuery(q)
 }
 
 func (c *ContactDB) Find(id string, address string, username string, exclude []string) []repo.Contact {
@@ -145,10 +150,15 @@ func (c *ContactDB) Find(id string, address string, username string, exclude []s
 	return c.handleQuery("select * from contacts where " + q + " order by updated desc;")
 }
 
-func (c *ContactDB) Count() int {
+func (c *ContactDB) Count(query string) int {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	row := c.db.QueryRow("select Count(*) from contacts;")
+	q := "select Count(*) from contacts"
+	if query != "" {
+		q += " where " + query
+	}
+	q += ";"
+	row := c.db.QueryRow(q)
 	var count int
 	row.Scan(&count)
 	return count

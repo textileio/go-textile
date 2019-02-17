@@ -92,7 +92,9 @@ func (a *api) Start() {
 		account := v0.Group("/account")
 		{
 			account.GET("/address", a.accountAddress)
+			account.GET("/peers", a.accountPeers)
 			account.POST("/backups", a.accountBackups)
+			account.POST("/sync", a.accountSync)
 		}
 
 		profile := v0.Group("/profile")
