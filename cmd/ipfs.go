@@ -13,8 +13,24 @@ var errMissingMultiAddress = errors.New("missing peer multi address")
 var errMissingCID = errors.New("missing IPFS CID")
 
 func init() {
-	register(&swarmCmd{})
-	register(&ipfsCatCmd{})
+	register(&ipfsCmd{})
+}
+
+type ipfsCmd struct {
+	Swarm swarmCmd `command:"swarm" description:"Access some IPFS swarm commands"`
+	Cat   catCmd   `command:"cat" description:"Show IPFS object data"`
+}
+
+func (x *ipfsCmd) Name() string {
+	return "ipfs"
+}
+
+func (x *ipfsCmd) Short() string {
+	return "Access IPFS commands"
+}
+
+func (x *ipfsCmd) Long() string {
+	return "Provides access to some IPFS commands."
 }
 
 type swarmCmd struct {
@@ -22,16 +38,14 @@ type swarmCmd struct {
 	Peers   swarmPeersCmd   `command:"peers" description:"List peers with open connections"`
 }
 
-func (x *swarmCmd) Name() string {
-	return "swarm"
-}
+func (x *swarmCmd) Usage() string {
+	return `
 
-func (x *swarmCmd) Short() string {
-	return "Access IPFS swarm commands"
-}
+Opens a new direct connection to a peer address.
+The address format is an IPFS multiaddr:
 
-func (x *swarmCmd) Long() string {
-	return "Provides access to some IPFS swarm commands."
+textile ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
+`
 }
 
 type swarmConnectCmd struct {
@@ -45,7 +59,7 @@ Opens a new direct connection to a peer address.
 
 The address format is an IPFS multiaddr:
 
-ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
+textile ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
 `
 }
 
@@ -97,24 +111,18 @@ func (x *swarmPeersCmd) Execute(args []string) error {
 	return nil
 }
 
-type ipfsCatCmd struct {
+type catCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Key    string        `short:"k" long:"key" description:"Encyrption key."`
 }
 
-func (x *ipfsCatCmd) Name() string {
-	return "cat"
+func (x *catCmd) Usage() string {
+	return `
+
+Displays the data behind an IPFS CID (hash).`
 }
 
-func (x *ipfsCatCmd) Short() string {
-	return "Show IPFS object data."
-}
-
-func (x *ipfsCatCmd) Long() string {
-	return "Displays the data behind an IPFS CID (hash)."
-}
-
-func (x *ipfsCatCmd) Execute(args []string) error {
+func (x *catCmd) Execute(args []string) error {
 	setApi(x.Client)
 	if len(args) == 0 {
 		return errMissingCID
