@@ -161,32 +161,35 @@ func (t *Textile) ApplyThreadBackup(backup *pb.Thread) error {
 	if err != nil {
 		return err
 	}
-	if thrd := t.Thread(id.Pretty()); thrd != nil {
-		// thread exists, aborting
-		return nil
-	}
 
-	var sch mh.Multihash
-	if backup.Schema != "" {
-		sch, err = mh.FromB58String(backup.Schema)
+	thrd := t.Thread(id.Pretty())
+	if thrd == nil {
+
+		var sch mh.Multihash
+		if backup.Schema != "" {
+			sch, err = mh.FromB58String(backup.Schema)
+			if err != nil {
+				return err
+			}
+
+		}
+
+		config := AddThreadConfig{
+			Key:       ksuid.New().String(),
+			Name:      backup.Name,
+			Schema:    sch,
+			Initiator: backup.Initiator,
+			Type:      repo.ThreadType(backup.Type),
+			Sharing:   repo.ThreadSharing(backup.Sharing),
+			Members:   backup.Members,
+			Join:      false,
+		}
+
+		var err error
+		thrd, err = t.AddThread(sk, config)
 		if err != nil {
 			return err
 		}
-
-	}
-	config := AddThreadConfig{
-		Key:       ksuid.New().String(),
-		Name:      backup.Name,
-		Schema:    sch,
-		Initiator: backup.Initiator,
-		Type:      repo.ThreadType(backup.Type),
-		Sharing:   repo.ThreadSharing(backup.Sharing),
-		Members:   backup.Members,
-		Join:      false,
-	}
-	thrd, err := t.AddThread(sk, config)
-	if err != nil {
-		return err
 	}
 
 	if err := thrd.followParents([]string{backup.Head}); err != nil {

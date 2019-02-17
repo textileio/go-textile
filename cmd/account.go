@@ -155,9 +155,9 @@ func (x *accountSyncCmd) Execute(args []string) error {
 			return err
 		}
 		if res == "ok" {
-			output("added " + result.Id)
+			output("applied " + result.Id)
 		} else {
-			output("error adding " + result.Id + ": " + res)
+			output("error applying " + result.Id + ": " + res)
 		}
 	}
 

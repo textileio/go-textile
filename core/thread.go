@@ -705,12 +705,12 @@ func (t *Thread) shareable(from string, to string) bool {
 // member returns whether or not the given address is a thread member
 // NOTE: Thread members are a fixed set of textile addresses specified
 // when a thread is created. If empty, _everyone_ is a member.
-func (t *Thread) member(address string) bool {
-	if len(t.members) == 0 {
+func (t *Thread) member(addr string) bool {
+	if len(t.members) == 0 || addr == t.initiator {
 		return true
 	}
 	for _, m := range t.members {
-		if m == address {
+		if m == addr {
 			return true
 		}
 	}
