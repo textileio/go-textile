@@ -92,6 +92,7 @@ func (a *api) Start() {
 		account := v0.Group("/account")
 		{
 			account.GET("/address", a.accountAddress)
+			account.POST("/backups", a.accountBackups)
 		}
 
 		profile := v0.Group("/profile")
@@ -195,7 +196,6 @@ func (a *api) Start() {
 			cafes.GET("/:id", a.getCafes)
 			cafes.DELETE("/:id", a.rmCafes)
 			cafes.POST("/messages", a.checkCafeMessages)
-			cafes.POST("/backups", a.searchThreadBackups)
 		}
 
 		tokens := v0.Group("/tokens")

@@ -3,7 +3,6 @@ package core
 import (
 	"crypto/rand"
 	"net/http"
-	"strconv"
 	"strings"
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
@@ -11,7 +10,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -175,34 +173,4 @@ func (a *api) rmThreads(g *gin.Context) {
 	}
 
 	g.String(http.StatusOK, "ok")
-}
-
-func (a *api) searchThreadBackups(g *gin.Context) {
-	opts, err := a.readOpts(g)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-
-	wait, err := strconv.Atoi(opts["wait"])
-	if err != nil {
-		wait = 5
-	}
-
-	query := &pb.ThreadBackupQuery{
-		Address: a.node.account.Address(),
-	}
-	options := &pb.QueryOptions{
-		Local: false,
-		Limit: -1,
-		Wait:  int32(wait),
-	}
-
-	resCh, errCh, cancel, err := a.node.FindThreadBackups(query, options)
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	handleSearchStream(g, resCh, errCh, cancel, opts["events"] == "true")
 }
