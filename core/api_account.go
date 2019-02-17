@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -68,12 +67,10 @@ func (a *api) accountSync(g *gin.Context) {
 		return
 	}
 
-	fmt.Println(backup)
-	//
-	//if err := a.node.ApplyThreadBackup(backup); err != nil {
-	//	g.String(http.StatusBadRequest, err.Error())
-	//	return
-	//}
+	if err := a.node.ApplyThreadBackup(backup); err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
 
 	g.String(http.StatusOK, "ok")
 }

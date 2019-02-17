@@ -76,7 +76,7 @@ func (x *accountAddressCmd) Execute(args []string) error {
 
 type accountBackupsCmd struct {
 	Client ClientOptions `group:"Client Options"`
-	Wait   int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"5"`
+	Wait   int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"2"`
 }
 
 func (x *accountBackupsCmd) Usage() string {
@@ -99,7 +99,7 @@ func (x *accountBackupsCmd) Execute(args []string) error {
 
 type accountSyncCmd struct {
 	Client ClientOptions `group:"Client Options"`
-	Wait   int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"5"`
+	Wait   int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"2"`
 }
 
 func (x *accountSyncCmd) Usage() string {
