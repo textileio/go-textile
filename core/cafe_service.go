@@ -70,7 +70,7 @@ type CafeService struct {
 	online          bool
 	open            bool
 	queryResults    *broadcast.Broadcaster
-	inFlightQueries map[string]bool
+	inFlightQueries map[string]struct{}
 }
 
 // NewCafeService returns a new threads service
@@ -84,7 +84,7 @@ func NewCafeService(
 		datastore:       datastore,
 		inbox:           inbox,
 		queryResults:    broadcast.NewBroadcaster(10),
-		inFlightQueries: make(map[string]bool),
+		inFlightQueries: make(map[string]struct{}),
 	}
 	handler.service = service.NewService(account, handler, node)
 	return handler
@@ -281,6 +281,7 @@ loop:
 // StoreThread pushes a thread to a cafe backup
 func (h *CafeService) StoreThread(thrd *repo.Thread, cafe peer.ID) error {
 	plaintext, err := proto.Marshal(&pb.Thread{
+		Id:        thrd.Id,
 		Key:       thrd.Key,
 		Sk:        thrd.PrivKey,
 		Name:      thrd.Name,
@@ -397,7 +398,7 @@ func (h *CafeService) PublishContact(contact *repo.Contact, cafe peer.ID) error 
 
 // Search performs a query via a cafe
 func (h *CafeService) Search(query *pb.Query, cafe peer.ID, reply func(*pb.QueryResult), cancelCh <-chan interface{}) error {
-	h.inFlightQueries[query.Id] = true
+	h.inFlightQueries[query.Id] = struct{}{}
 	defer func() {
 		delete(h.inFlightQueries, query.Id)
 	}()
@@ -656,7 +657,7 @@ func (h *CafeService) searchLocal(qtype pb.QueryType, options *pb.QueryOptions, 
 
 // searchPubSub performs a network-wide search for the given query
 func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults) bool, cancelCh <-chan interface{}, fromCafe bool) error {
-	h.inFlightQueries[query.Id] = true
+	h.inFlightQueries[query.Id] = struct{}{}
 	defer func() {
 		delete(h.inFlightQueries, query.Id)
 	}()
@@ -1250,7 +1251,7 @@ func (h *CafeService) handlePubSubQuery(pid peer.ID, env *pb.Envelope) (*pb.Enve
 		return nil, err
 	}
 
-	if h.inFlightQueries[query.Id] {
+	if _, ok := h.inFlightQueries[query.Id]; ok {
 		return nil, nil
 	}
 

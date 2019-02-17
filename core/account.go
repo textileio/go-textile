@@ -85,7 +85,8 @@ func (t *Textile) FindThreadBackups(query *pb.ThreadBackupQuery, options *pb.Que
 		},
 	})
 
-	// transform results by decrypting
+	// transform and filter results by decrypting
+	backups := make(map[string]struct{})
 	tresCh := make(chan *pb.QueryResult)
 	terrCh := make(chan error)
 	go func() {
@@ -108,6 +109,18 @@ func (t *Textile) FindThreadBackups(query *pb.ThreadBackupQuery, options *pb.Que
 					terrCh <- err
 					break
 				}
+
+				thrd := new(pb.Thread)
+				if err := proto.Unmarshal(plaintext, thrd); err != nil {
+					terrCh <- err
+					break
+				}
+
+				res.Id += ":" + thrd.Head
+				if _, ok := backups[res.Id]; ok {
+					continue
+				}
+				backups[res.Id] = struct{}{}
 
 				res.Value = &any.Any{
 					TypeUrl: "/Thread",

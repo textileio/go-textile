@@ -41,6 +41,11 @@ var pbMarshaler = jsonpb.Marshaler{
 	EnumsAsInts: false,
 }
 
+// pbUnmarshaler is used to unmarshal JSON protobufs
+var pbUnmarshaler = jsonpb.Unmarshaler{
+	AllowUnknownFields: true,
+}
+
 // StartApi starts the host instance
 func (t *Textile) StartApi(addr string) {
 	gin.SetMode(gin.ReleaseMode)

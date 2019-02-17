@@ -53,13 +53,9 @@ func (a *api) accountBackups(g *gin.Context) {
 }
 
 func (a *api) accountSync(g *gin.Context) {
-	backup := new(pb.Thread)
-	if err := g.BindJSON(&backup); err != nil {
+	var backup pb.Thread
+	if err := pbUnmarshaler.Unmarshal(g.Request.Body, &backup); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-	if backup == nil {
-		g.String(http.StatusBadRequest, "missing backup")
 		return
 	}
 	if backup.Id == "" || len(backup.Sk) == 0 {
@@ -67,7 +63,7 @@ func (a *api) accountSync(g *gin.Context) {
 		return
 	}
 
-	if err := a.node.ApplyThreadBackup(backup); err != nil {
+	if err := a.node.ApplyThreadBackup(&backup); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
