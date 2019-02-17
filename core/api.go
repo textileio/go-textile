@@ -12,14 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/proto"
-
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-
 	"github.com/gin-contrib/cors"
 	limit "github.com/gin-contrib/size"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 	"github.com/textileio/textile-go/common"
 	m "github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/repo"
@@ -90,8 +87,12 @@ func (a *api) Start() {
 	// v0 routes
 	v0 := router.Group("/api/v0")
 	{
-		v0.GET("/address", a.address)
 		v0.GET("/ping", a.ping)
+
+		account := v0.Group("/account")
+		{
+			account.GET("/address", a.accountAddress)
+		}
 
 		profile := v0.Group("/profile")
 		{
@@ -241,7 +242,6 @@ func (a *api) Start() {
 			conf.GET("/*path", a.getConfig)
 			conf.PATCH("", a.patchConfig)
 		}
-
 	}
 	a.server = &http.Server{
 		Addr:    a.addr,
@@ -280,35 +280,6 @@ func (a *api) Stop() error {
 		return err
 	}
 	return nil
-}
-
-// -- UTILITY ENDPOINTS -- //
-
-func (a *api) address(g *gin.Context) {
-	g.String(http.StatusOK, a.node.account.Address())
-}
-
-func (a *api) ping(g *gin.Context) {
-	args, err := a.readArgs(g)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-	if len(args) == 0 {
-		g.String(http.StatusBadRequest, "missing peer id")
-		return
-	}
-	pid, err := peer.IDB58Decode(args[0])
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-	status, err := a.node.Ping(pid)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-	g.String(http.StatusOK, string(status))
 }
 
 func (a *api) readArgs(g *gin.Context) ([]string, error) {
