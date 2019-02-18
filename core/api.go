@@ -215,7 +215,7 @@ func (a *api) Start() {
 
 		contacts := v0.Group("/contacts")
 		{
-			contacts.POST("", a.addContacts)
+			contacts.PUT(":id", a.addContacts)
 			contacts.GET("", a.lsContacts)
 			contacts.GET("/:id", a.getContacts)
 			contacts.DELETE("/:id", a.rmContacts)

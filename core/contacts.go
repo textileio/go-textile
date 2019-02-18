@@ -59,10 +59,14 @@ func (s *contactSet) Add(items ...*pb.Contact) []*pb.Contact {
 	return added
 }
 
-// AddContact adds a contact for the first time
-// Note: Existing contacts will not be overwritten
+// AddContact adds or updates a contact
 func (t *Textile) AddContact(contact *repo.Contact) error {
-	return t.datastore.Contacts().Add(contact)
+	ex := t.datastore.Contacts().Get(contact.Id)
+	if ex != nil && ex.Updated.UnixNano() > contact.Updated.UnixNano() {
+		return nil
+	}
+
+	return t.datastore.Contacts().AddOrUpdate(contact)
 }
 
 // Contact looks up a contact by peer id
