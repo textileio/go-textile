@@ -52,7 +52,7 @@ func (a *api) accountBackups(g *gin.Context) {
 	handleSearchStream(g, resCh, errCh, cancel, opts["events"] == "true")
 }
 
-func (a *api) accountSync(g *gin.Context) {
+func (a *api) accountApplyBackup(g *gin.Context) {
 	var backup pb.Thread
 	if err := pbUnmarshaler.Unmarshal(g.Request.Body, &backup); err != nil {
 		g.String(http.StatusBadRequest, err.Error())

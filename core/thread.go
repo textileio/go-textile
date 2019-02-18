@@ -338,6 +338,10 @@ func (t *Thread) followParent(parent mh.Multihash) error {
 
 // addOrUpdateContact collects thread peers and saves them as contacts
 func (t *Thread) addOrUpdateContact(contact *repo.Contact) error {
+	if contact.Id == t.node().Identity.Pretty() {
+		return nil
+	}
+
 	if err := t.datastore.ThreadPeers().Add(&repo.ThreadPeer{
 		Id:       contact.Id,
 		ThreadId: t.Id,

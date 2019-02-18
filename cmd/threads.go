@@ -259,6 +259,7 @@ func (x *rmThreadsCmd) Execute(args []string) error {
 	if len(args) == 0 {
 		return errMissingThreadId
 	}
+
 	res, err := executeStringCmd(DEL, "threads/"+args[0], params{})
 	if err != nil {
 		return err
