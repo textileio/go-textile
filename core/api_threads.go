@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/textileio/textile-go/pb"
+
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 
@@ -99,6 +101,25 @@ func (a *api) addThreads(g *gin.Context) {
 	}
 
 	g.JSON(http.StatusCreated, info)
+}
+
+func (a *api) addOrUpdateThreads(g *gin.Context) {
+	var thrd pb.Thread
+	if err := pbUnmarshaler.Unmarshal(g.Request.Body, &thrd); err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	if thrd.Id == "" || len(thrd.Sk) == 0 {
+		g.String(http.StatusBadRequest, "invalid thread")
+		return
+	}
+
+	if err := a.node.AddOrUpdateThread(&thrd); err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	g.String(http.StatusOK, "ok")
 }
 
 func (a *api) lsThreads(g *gin.Context) {

@@ -214,7 +214,7 @@ func applyBackup(result *pb.QueryResult) error {
 		return err
 	}
 
-	res, err := executeStringCmd(POST, "account/backups/apply", params{
+	res, err := executeStringCmd(PUT, "threads/"+backup.Id, params{
 		payload: strings.NewReader(data),
 		ctype:   "application/json",
 	})

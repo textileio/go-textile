@@ -99,7 +99,6 @@ func (a *api) Start() {
 			account.GET("/address", a.accountAddress)
 			account.GET("/peers", a.accountPeers)
 			account.POST("/backups", a.accountBackups)
-			account.POST("/backups/apply", a.accountApplyBackup)
 		}
 
 		profile := v0.Group("/profile")
@@ -121,6 +120,7 @@ func (a *api) Start() {
 		threads := v0.Group("/threads")
 		{
 			threads.POST("", a.addThreads)
+			threads.PUT(":id", a.addOrUpdateThreads)
 			threads.GET("", a.lsThreads)
 			threads.GET("/:id", a.getThreads)
 			threads.GET("/:id/peers", a.peersThreads)

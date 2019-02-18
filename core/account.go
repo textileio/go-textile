@@ -2,19 +2,14 @@ package core
 
 import (
 	"fmt"
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
-	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
 // Account returns account keypair
@@ -135,70 +130,4 @@ func (t *Textile) FindThreadBackups(query *pb.ThreadBackupQuery, options *pb.Que
 	}()
 
 	return tresCh, terrCh, cancel, nil
-}
-
-// ApplyThreadBackup dencrypts and adds a thread from a backup
-func (t *Textile) ApplyThreadBackup(backup *pb.Thread) error {
-	// check if we're allowed to get an invite
-	// Note: just using a dummy thread here because having these access+sharing
-	// methods on Thread is very nice elsewhere.
-	dummy := &Thread{
-		initiator: backup.Initiator,
-		ttype:     repo.ThreadType(backup.Type),
-		sharing:   repo.ThreadSharing(backup.Sharing),
-		members:   backup.Members,
-	}
-	if !dummy.shareable(t.config.Account.Address, t.config.Account.Address) {
-		return ErrNotShareable
-	}
-
-	sk, err := libp2pc.UnmarshalPrivateKey(backup.Sk)
-	if err != nil {
-		return err
-	}
-
-	id, err := peer.IDFromPrivateKey(sk)
-	if err != nil {
-		return err
-	}
-
-	thrd := t.Thread(id.Pretty())
-	if thrd == nil {
-
-		var sch mh.Multihash
-		if backup.Schema != "" {
-			sch, err = mh.FromB58String(backup.Schema)
-			if err != nil {
-				return err
-			}
-
-		}
-
-		config := AddThreadConfig{
-			Key:       ksuid.New().String(),
-			Name:      backup.Name,
-			Schema:    sch,
-			Initiator: backup.Initiator,
-			Type:      repo.ThreadType(backup.Type),
-			Sharing:   repo.ThreadSharing(backup.Sharing),
-			Members:   backup.Members,
-			Join:      false,
-		}
-
-		var err error
-		thrd, err = t.AddThread(sk, config)
-		if err != nil {
-			return err
-		}
-	}
-
-	if err := thrd.followParents([]string{backup.Head}); err != nil {
-		return err
-	}
-	hash, err := mh.FromB58String(backup.Head)
-	if err != nil {
-		return err
-	}
-
-	return thrd.updateHead(hash)
 }

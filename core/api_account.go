@@ -51,22 +51,3 @@ func (a *api) accountBackups(g *gin.Context) {
 
 	handleSearchStream(g, resCh, errCh, cancel, opts["events"] == "true")
 }
-
-func (a *api) accountApplyBackup(g *gin.Context) {
-	var backup pb.Thread
-	if err := pbUnmarshaler.Unmarshal(g.Request.Body, &backup); err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-	if backup.Id == "" || len(backup.Sk) == 0 {
-		g.String(http.StatusBadRequest, "invalid backup")
-		return
-	}
-
-	if err := a.node.ApplyThreadBackup(&backup); err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	g.String(http.StatusOK, "ok")
-}
