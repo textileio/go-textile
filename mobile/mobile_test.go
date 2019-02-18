@@ -586,8 +586,8 @@ func TestMobile_AddContactAgain(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if err := mobile1.AddContact(string(payload)); err == nil {
-		t.Errorf("adding duplicate contact should throw error")
+	if err := mobile1.AddContact(string(payload)); err != nil {
+		t.Errorf("adding duplicate contact should not throw error")
 	}
 }
 
