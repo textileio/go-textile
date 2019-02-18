@@ -256,14 +256,14 @@ func callAddFiles(args []string, opts map[string]string) error {
 	return nil
 }
 
-func add(dirs []core.Directory, threadId string, caption string, verbose bool) (*core.BlockInfo, error) {
+func add(dirs []core.Directory, threadId string, caption string, verbose bool) (*pb.Block, error) {
 	data, err := json.Marshal(&dirs)
 	if err != nil {
 		return nil, err
 	}
 
-	var block *core.BlockInfo
-	res, err := executeJsonCmd(POST, "threads/"+threadId+"/files", params{
+	var block pb.Block
+	res, err := executeJsonPbCmd(POST, "threads/"+threadId+"/files", params{
 		opts:    map[string]string{"caption": caption},
 		payload: bytes.NewReader(data),
 		ctype:   "application/json",
@@ -275,7 +275,7 @@ func add(dirs []core.Directory, threadId string, caption string, verbose bool) (
 	if verbose {
 		output(res)
 	}
-	return block, nil
+	return &block, nil
 }
 
 func mill(pth string, node *schema.Node, verbose bool) (core.Directory, error) {

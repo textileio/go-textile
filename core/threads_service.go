@@ -98,34 +98,34 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 	}
 
 	switch block.Type {
-	case pb.ThreadBlock_MERGE:
+	case pb.Block_MERGE:
 		log.Debugf("handling MERGE from %s", block.Header.Author)
 		err = h.handleMerge(thrd, hash, block)
-	case pb.ThreadBlock_IGNORE:
+	case pb.Block_IGNORE:
 		log.Debugf("handling IGNORE from %s", block.Header.Author)
 		err = h.handleIgnore(thrd, hash, block)
-	case pb.ThreadBlock_FLAG:
+	case pb.Block_FLAG:
 		log.Debugf("handling FLAG from %s", block.Header.Author)
 		err = h.handleFlag(thrd, hash, block)
-	case pb.ThreadBlock_JOIN:
+	case pb.Block_JOIN:
 		log.Debugf("handling JOIN from %s", block.Header.Author)
 		err = h.handleJoin(thrd, hash, block)
-	case pb.ThreadBlock_ANNOUNCE:
+	case pb.Block_ANNOUNCE:
 		log.Debugf("handling ANNOUNCE from %s", block.Header.Author)
 		err = h.handleAnnounce(thrd, hash, block)
-	case pb.ThreadBlock_LEAVE:
+	case pb.Block_LEAVE:
 		log.Debugf("handling LEAVE from %s", block.Header.Author)
 		err = h.handleLeave(thrd, hash, block)
-	case pb.ThreadBlock_MESSAGE:
+	case pb.Block_MESSAGE:
 		log.Debugf("handling MESSAGE from %s", block.Header.Author)
 		err = h.handleMessage(thrd, hash, block)
-	case pb.ThreadBlock_FILES:
+	case pb.Block_FILES:
 		log.Debugf("handling FILES from %s", block.Header.Author)
 		err = h.handleFiles(thrd, hash, block)
-	case pb.ThreadBlock_COMMENT:
+	case pb.Block_COMMENT:
 		log.Debugf("handling COMMENT from %s", block.Header.Author)
 		err = h.handleComment(thrd, hash, block)
-	case pb.ThreadBlock_LIKE:
+	case pb.Block_LIKE:
 		log.Debugf("handling LIKE from %s", block.Header.Author)
 		err = h.handleLike(thrd, hash, block)
 	default:
@@ -186,7 +186,7 @@ func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope
 	if err := proto.Unmarshal(plaintext, block); err != nil {
 		return err
 	}
-	if block.Type != pb.ThreadBlock_INVITE {
+	if block.Type != pb.Block_INVITE {
 		return ErrInvalidThreadBlock
 	}
 	msg := new(pb.ThreadInvite)
@@ -338,7 +338,7 @@ func (h *ThreadsService) handleComment(thrd *Thread, hash mh.Multihash, block *p
 		return nil
 	}
 	var desc string
-	if target.AuthorId == h.service.Node().Identity.Pretty() {
+	if target.Author == h.service.Node().Identity.Pretty() {
 		desc = "your " + threadSubject(thrd.Schema.Name)
 	} else {
 		desc = "a " + threadSubject(thrd.Schema.Name)
@@ -367,7 +367,7 @@ func (h *ThreadsService) handleLike(thrd *Thread, hash mh.Multihash, block *pb.T
 		return nil
 	}
 	var desc string
-	if target.AuthorId == h.service.Node().Identity.Pretty() {
+	if target.Author == h.service.Node().Identity.Pretty() {
 		desc = "your " + threadSubject(thrd.Schema.Name)
 	} else {
 		desc = "a " + threadSubject(thrd.Schema.Name)

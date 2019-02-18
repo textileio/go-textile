@@ -25,6 +25,7 @@ import (
 	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/repo/db"
@@ -599,20 +600,20 @@ func (t *Textile) flushQueues() {
 }
 
 // threadByBlock returns the thread owning the given block
-func (t *Textile) threadByBlock(block *repo.Block) (*Thread, error) {
+func (t *Textile) threadByBlock(block *pb.Block) (*Thread, error) {
 	if block == nil {
 		return nil, errors.New("block is empty")
 	}
 
 	var thrd *Thread
 	for _, t := range t.loadedThreads {
-		if t.Id == block.ThreadId {
+		if t.Id == block.Thread {
 			thrd = t
 			break
 		}
 	}
 	if thrd == nil {
-		return nil, errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadId))
+		return nil, errors.New(fmt.Sprintf("could not find thread: %s", block.Thread))
 	}
 	return thrd, nil
 }

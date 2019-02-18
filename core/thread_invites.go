@@ -45,7 +45,7 @@ func (t *Thread) AddInvite(inviteeId peer.ID) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	res, err := t.commitBlock(msg, pb.ThreadBlock_INVITE, func(plaintext []byte) ([]byte, error) {
+	res, err := t.commitBlock(msg, pb.Block_INVITE, func(plaintext []byte) ([]byte, error) {
 		return crypto.Encrypt(inviteePk, plaintext)
 	})
 	if err != nil {
@@ -95,7 +95,7 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 		return nil, nil, err
 	}
 
-	res, err := t.commitBlock(msg, pb.ThreadBlock_INVITE, func(plaintext []byte) ([]byte, error) {
+	res, err := t.commitBlock(msg, pb.Block_INVITE, func(plaintext []byte) ([]byte, error) {
 		return crypto.EncryptAES(plaintext, key)
 	})
 	if err != nil {

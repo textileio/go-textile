@@ -4,11 +4,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"sync"
-	"time"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 )
 
 type CafeSessionDB struct {
@@ -39,16 +38,11 @@ func (c *CafeSessionDB) AddOrUpdate(session *pb.CafeSession) error {
 		return err
 	}
 
-	exp, err := ptypes.Timestamp(session.Exp)
-	if err != nil {
-		return err
-	}
-
 	_, err = stmt.Exec(
 		session.Id,
 		session.Access,
 		session.Refresh,
-		exp.UnixNano(),
+		util.ProtoNanos(session.Exp),
 		cafe,
 	)
 	if err != nil {
@@ -62,14 +56,14 @@ func (c *CafeSessionDB) AddOrUpdate(session *pb.CafeSession) error {
 func (c *CafeSessionDB) Get(cafeId string) *pb.CafeSession {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from cafe_sessions where cafeId='" + cafeId + "';")
-	if len(ret) == 0 {
+	res := c.handleQuery("select * from cafe_sessions where cafeId='" + cafeId + "';")
+	if len(res.Items) == 0 {
 		return nil
 	}
-	return ret[0]
+	return res.Items[0]
 }
 
-func (c *CafeSessionDB) List() []*pb.CafeSession {
+func (c *CafeSessionDB) List() *pb.CafeSessionList {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stm := "select * from cafe_sessions order by expiry desc;"
@@ -83,8 +77,8 @@ func (c *CafeSessionDB) Delete(cafeId string) error {
 	return err
 }
 
-func (c *CafeSessionDB) handleQuery(stm string) []*pb.CafeSession {
-	ret := make([]*pb.CafeSession, 0)
+func (c *CafeSessionDB) handleQuery(stm string) *pb.CafeSessionList {
+	list := &pb.CafeSessionList{Items: make([]*pb.CafeSession, 0)}
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -105,20 +99,13 @@ func (c *CafeSessionDB) handleQuery(stm string) []*pb.CafeSession {
 			continue
 		}
 
-		exp := time.Unix(0, expiryInt)
-		timestamp, err := ptypes.TimestampProto(exp)
-		if err != nil {
-			log.Errorf("error in db query: %s", err)
-			continue
-		}
-
-		ret = append(ret, &pb.CafeSession{
+		list.Items = append(list.Items, &pb.CafeSession{
 			Id:      cafeId,
 			Access:  access,
 			Refresh: refresh,
-			Exp:     timestamp,
+			Exp:     util.ProtoTs(expiryInt),
 			Cafe:    rcafe,
 		})
 	}
-	return ret
+	return list
 }

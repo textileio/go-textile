@@ -61,13 +61,7 @@ func (a *api) addCafes(g *gin.Context) {
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /cafes [get]
 func (a *api) lsCafes(g *gin.Context) {
-	sessions, err := a.node.CafeSessions()
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-
-	pbJSON(g, http.StatusOK, sessions)
+	pbJSON(g, http.StatusOK, a.node.CafeSessions())
 }
 
 // getCafes godoc

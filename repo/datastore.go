@@ -114,9 +114,9 @@ type ThreadMessageStore interface {
 
 type BlockStore interface {
 	Queryable
-	Add(block *Block) error
-	Get(id string) *Block
-	List(offset string, limit int, query string) []Block
+	Add(block *pb.Block) error
+	Get(id string) *pb.Block
+	List(offset string, limit int, query string) *pb.BlockList
 	Count(query string) int
 	Delete(id string) error
 	DeleteByThread(threadId string) error
@@ -141,7 +141,7 @@ type NotificationStore interface {
 type CafeSessionStore interface {
 	AddOrUpdate(session *pb.CafeSession) error
 	Get(cafeId string) *pb.CafeSession
-	List() []*pb.CafeSession
+	List() *pb.CafeSessionList
 	Delete(cafeId string) error
 }
 

@@ -353,7 +353,7 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 	if err := proto.Unmarshal(plaintext, block); err != nil {
 		return nil, err
 	}
-	if block.Type != pb.ThreadBlock_INVITE {
+	if block.Type != pb.Block_INVITE {
 		return nil, ErrInvalidThreadBlock
 	}
 	msg := new(pb.ThreadInvite)

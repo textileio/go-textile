@@ -7,7 +7,6 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
 // announce creates an outgoing announce block
@@ -24,12 +23,12 @@ func (t *Thread) annouce() (mh.Multihash, error) {
 		return nil, err
 	}
 
-	res, err := t.commitBlock(msg, pb.ThreadBlock_ANNOUNCE, nil)
+	res, err := t.commitBlock(msg, pb.Block_ANNOUNCE, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := t.indexBlock(res, repo.AnnounceBlock, "", ""); err != nil {
+	if err := t.indexBlock(res, pb.Block_ANNOUNCE, "", ""); err != nil {
 		return nil, err
 	}
 
@@ -63,7 +62,7 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 	if err := t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,
-	}, repo.AnnounceBlock, "", ""); err != nil {
+	}, pb.Block_ANNOUNCE, "", ""); err != nil {
 		return nil, err
 	}
 

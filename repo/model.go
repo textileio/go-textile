@@ -152,59 +152,6 @@ type ThreadMessage struct {
 	Date     time.Time    `json:"date"`
 }
 
-type Block struct {
-	Id       string    `json:"id"`
-	ThreadId string    `json:"thread_id"`
-	AuthorId string    `json:"author_id"`
-	Type     BlockType `json:"type"`
-	Date     time.Time `json:"date"`
-	Parents  []string  `json:"parents"`
-	Target   string    `json:"target,omitempty"`
-	Body     string    `json:"body,omitempty"`
-}
-
-type BlockType int
-
-const (
-	MergeBlock BlockType = iota
-	IgnoreBlock
-	FlagBlock
-	JoinBlock
-	AnnounceBlock
-	LeaveBlock
-	MessageBlock
-	FilesBlock
-	CommentBlock
-	LikeBlock
-)
-
-func (b BlockType) Description() string {
-	switch b {
-	case MergeBlock:
-		return "MERGE"
-	case IgnoreBlock:
-		return "IGNORE"
-	case FlagBlock:
-		return "FLAG"
-	case JoinBlock:
-		return "JOIN"
-	case AnnounceBlock:
-		return "ANNOUNCE"
-	case LeaveBlock:
-		return "LEAVE"
-	case MessageBlock:
-		return "MESSAGE"
-	case FilesBlock:
-		return "FILES"
-	case CommentBlock:
-		return "COMMENT"
-	case LikeBlock:
-		return "LIKE"
-	default:
-		return "INVALID"
-	}
-}
-
 type Contact struct {
 	Id       string    `json:"id"`
 	Address  string    `json:"address"`

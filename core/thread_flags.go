@@ -7,7 +7,6 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
 // AddFlag adds an outgoing flag block targeted at another block to flag
@@ -26,12 +25,12 @@ func (t *Thread) AddFlag(block string) (mh.Multihash, error) {
 		Target: target,
 	}
 
-	res, err := t.commitBlock(msg, pb.ThreadBlock_FLAG, nil)
+	res, err := t.commitBlock(msg, pb.Block_FLAG, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := t.indexBlock(res, repo.FlagBlock, target, ""); err != nil {
+	if err := t.indexBlock(res, pb.Block_FLAG, target, ""); err != nil {
 		return nil, err
 	}
 
@@ -67,7 +66,7 @@ func (t *Thread) handleFlagBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 	if err := t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,
-	}, repo.FlagBlock, msg.Target, ""); err != nil {
+	}, pb.Block_FLAG, msg.Target, ""); err != nil {
 		return nil, err
 	}
 

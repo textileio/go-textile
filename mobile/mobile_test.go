@@ -43,7 +43,7 @@ var mobile2 *Mobile
 
 var thrdId string
 var dir []byte
-var filesBlock core.BlockInfo
+var filesBlock *pb.Block
 var files []*pb.Files
 var invite ExternalInvite
 
@@ -364,12 +364,12 @@ func TestMobile_AddFiles(t *testing.T) {
 		t.Errorf("add thread files failed: %s", err)
 		return
 	}
-	info := core.BlockInfo{}
-	if err := json.Unmarshal([]byte(res), &info); err != nil {
+	var block pb.Block
+	if err := json.Unmarshal([]byte(res), &block); err != nil {
 		t.Error(err)
 		return
 	}
-	filesBlock = info
+	filesBlock = &block
 	time.Sleep(time.Second)
 }
 
@@ -379,8 +379,8 @@ func TestMobile_AddFilesByTarget(t *testing.T) {
 		t.Errorf("add thread files by target failed: %s", err)
 		return
 	}
-	info := &core.BlockInfo{}
-	if err := json.Unmarshal([]byte(res), &info); err != nil {
+	var block pb.Block
+	if err := json.Unmarshal([]byte(res), &block); err != nil {
 		t.Error(err)
 	}
 }

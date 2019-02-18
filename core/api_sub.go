@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/textileio/textile-go/pb"
 )
 
 // getThreadsSub godoc
@@ -50,7 +51,7 @@ func (a *api) getThreadsSub(g *gin.Context) {
 					break
 				}
 				for _, t := range types {
-					if t == "" || data.Block.Type == t {
+					if t == "" || data.Block.Type.String() == t {
 						info, err := addBlockInfo(a, data)
 						if err != nil {
 							log.Error(err)
@@ -76,7 +77,7 @@ func (a *api) getThreadsSub(g *gin.Context) {
 
 func addBlockInfo(a *api, update ThreadUpdate) (ThreadUpdate, error) {
 	switch update.Block.Type {
-	case "FILES":
+	case pb.Block_FILES:
 		info, err := a.node.File(update.Block.Id)
 		if err != nil {
 			return update, errors.New("error getting thread file: " + err.Error())

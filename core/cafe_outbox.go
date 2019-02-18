@@ -45,7 +45,7 @@ func (q *CafeOutbox) Add(target string, rtype repo.CafeRequestType) error {
 		return errors.New("inbox request to own inbox, aborting")
 	}
 
-	sessions := q.datastore.CafeSessions().List()
+	sessions := q.datastore.CafeSessions().List().Items
 	if len(sessions) == 0 {
 		return nil
 	}

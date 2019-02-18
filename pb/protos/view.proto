@@ -118,3 +118,11 @@ message Comment {
 message CommentList {
     repeated Comment items = 1;
 }
+
+message CafeSessionList {
+    repeated CafeSession items = 1;
+}
+
+message BlockList {
+    repeated Block items = 1;
+}

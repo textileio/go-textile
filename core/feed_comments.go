@@ -3,17 +3,15 @@ package core
 import (
 	"fmt"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
 func (t *Textile) Comments(target string) (*pb.CommentList, error) {
 	comments := make([]*pb.Comment, 0)
 
-	query := fmt.Sprintf("type=%d and target='%s'", repo.CommentBlock, target)
-	for _, block := range t.Blocks("", -1, query) {
-		info, err := t.comment(&block, feedItemOpts{annotations: true})
+	query := fmt.Sprintf("type=%d and target='%s'", pb.Block_COMMENT, target)
+	for _, block := range t.Blocks("", -1, query).Items {
+		info, err := t.comment(block, feedItemOpts{annotations: true})
 		if err != nil {
 			continue
 		}
@@ -32,35 +30,30 @@ func (t *Textile) Comment(blockId string) (*pb.Comment, error) {
 	return t.comment(block, feedItemOpts{annotations: true})
 }
 
-func (t *Textile) comment(block *repo.Block, opts feedItemOpts) (*pb.Comment, error) {
-	if block.Type != repo.CommentBlock {
+func (t *Textile) comment(block *pb.Block, opts feedItemOpts) (*pb.Comment, error) {
+	if block.Type != pb.Block_COMMENT {
 		return nil, ErrBlockWrongType
 	}
 
-	username, avatar := t.ContactDisplayInfo(block.AuthorId)
-	date, err := ptypes.TimestampProto(block.Date)
-	if err != nil {
-		return nil, err
-	}
-
-	info := &pb.Comment{
+	username, avatar := t.ContactDisplayInfo(block.Author)
+	item := &pb.Comment{
 		Id:       block.Id,
-		Date:     date,
-		Author:   block.AuthorId,
+		Date:     block.Date,
+		Author:   block.Author,
 		Username: username,
 		Avatar:   avatar,
 		Body:     block.Body,
 	}
 
 	if opts.target != nil {
-		info.Target = opts.target
+		item.Target = opts.target
 	} else if !opts.annotations {
 		target, err := t.feedItem(t.datastore.Blocks().Get(block.Target), feedItemOpts{})
 		if err != nil {
 			return nil, err
 		}
-		info.Target = target
+		item.Target = target
 	}
 
-	return info, nil
+	return item, nil
 }

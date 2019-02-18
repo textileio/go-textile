@@ -3,7 +3,7 @@ package core
 import (
 	"fmt"
 
-	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/pb"
 )
 
 // Summary is a wallet summary object
@@ -21,7 +21,7 @@ func (t *Textile) Summary() (*Summary, error) {
 
 	peers := t.datastore.Contacts().Count(fmt.Sprintf("address!='%s'", selfAddress))
 	threads := t.datastore.Threads().Count()
-	files := t.datastore.Blocks().Count(fmt.Sprintf("type=%d", repo.FilesBlock))
+	files := t.datastore.Blocks().Count(fmt.Sprintf("type=%d", pb.Block_FILES))
 	contacts := t.datastore.Contacts().Count(fmt.Sprintf("id!='%s'", selfId))
 
 	return &Summary{

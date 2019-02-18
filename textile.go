@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/textileio/textile-go/util"
+
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/cmd"
@@ -378,7 +380,7 @@ func startNode(serveDocs bool) error {
 					return
 				}
 				if update, ok := value.(core.ThreadUpdate); ok {
-					date := update.Block.Date.Format(time.RFC822)
+					date := time.Unix(0, util.ProtoNanos(update.Block.Date)).Format(time.RFC822)
 					desc := update.Block.Type
 					thrd := update.ThreadId[len(update.ThreadId)-8:]
 

@@ -21,7 +21,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/mr-tron/base58/base58"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/broadcast"
@@ -1360,11 +1359,6 @@ func (h *CafeService) setAddrs(conf *config.Config, swarmPorts config.SwarmPorts
 		URL:      url,
 		Swarm:    swarm,
 	}
-}
-
-// protoTimeToNano returns nano secs from a proto time object
-func protoTimeToNano(t *timestamp.Timestamp) int {
-	return int(t.Nanos) + int(t.Seconds*1e9)
 }
 
 // queryDefaults ensures the query is within the expected bounds

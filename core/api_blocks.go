@@ -53,26 +53,13 @@ func (a *api) lsBlocks(g *gin.Context) {
 		}
 	}
 
-	infos := make([]BlockInfo, 0)
 	query := fmt.Sprintf("threadId='%s'", thrd.Id)
-	for _, block := range a.node.datastore.Blocks().List(opts["offset"], limit, query) {
-		username, avatar := a.node.ContactDisplayInfo(block.AuthorId)
-
-		infos = append(infos, BlockInfo{
-			Id:       block.Id,
-			ThreadId: block.ThreadId,
-			AuthorId: block.AuthorId,
-			Username: username,
-			Avatar:   avatar,
-			Type:     block.Type.Description(),
-			Date:     block.Date,
-			Parents:  block.Parents,
-			Target:   block.Target,
-			Body:     block.Body,
-		})
+	blocks := a.node.datastore.Blocks().List(opts["offset"], limit, query)
+	for _, block := range blocks.Items {
+		block.Username, block.Avatar = a.node.ContactDisplayInfo(block.Author)
 	}
 
-	g.JSON(http.StatusOK, infos)
+	pbJSON(g, http.StatusOK, blocks)
 }
 
 // getBlocks godoc
@@ -87,13 +74,13 @@ func (a *api) lsBlocks(g *gin.Context) {
 func (a *api) getBlocks(g *gin.Context) {
 	id := g.Param("id")
 
-	info, err := a.node.BlockInfo(id)
+	block, err := a.node.BlockInfo(id)
 	if err != nil {
 		g.String(http.StatusNotFound, "block not found")
 		return
 	}
 
-	g.JSON(http.StatusOK, info)
+	pbJSON(g, http.StatusOK, block)
 }
 
 // rmBlocks godoc
@@ -121,13 +108,13 @@ func (a *api) rmBlocks(g *gin.Context) {
 		return
 	}
 
-	info, err := a.node.BlockInfo(hash.B58String())
+	block, err := a.node.BlockInfo(hash.B58String())
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	g.JSON(http.StatusCreated, info)
+	pbJSON(g, http.StatusCreated, block)
 }
 
 func (a *api) getBlockThread(g *gin.Context, id string) *Thread {
@@ -136,7 +123,7 @@ func (a *api) getBlockThread(g *gin.Context, id string) *Thread {
 		g.String(http.StatusNotFound, "block not found")
 		return nil
 	}
-	thrd := a.node.Thread(block.ThreadId)
+	thrd := a.node.Thread(block.Thread)
 	if thrd == nil {
 		g.String(http.StatusNotFound, "thread not found")
 		return nil

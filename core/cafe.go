@@ -33,8 +33,8 @@ func (t *Textile) RegisterCafe(host string, token string) (*pb.CafeSession, erro
 }
 
 // CafeSessions lists active cafe sessions
-func (t *Textile) CafeSessions() (*pb.CafeSessions, error) {
-	return &pb.CafeSessions{Values: t.datastore.CafeSessions().List()}, nil
+func (t *Textile) CafeSessions() *pb.CafeSessionList {
+	return t.datastore.CafeSessions().List()
 }
 
 // CafeSession returns an active session by id

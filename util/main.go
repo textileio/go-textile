@@ -4,6 +4,8 @@ import (
 	"io"
 	"io/ioutil"
 	"strings"
+
+	"github.com/golang/protobuf/ptypes/timestamp"
 )
 
 func UnmarshalString(body io.ReadCloser) (string, error) {
@@ -32,6 +34,25 @@ func ListContainsString(list []string, i string) bool {
 		}
 	}
 	return false
+}
+
+func ProtoNanos(ts *timestamp.Timestamp) int64 {
+	return int64(ts.Nanos) + ts.Seconds*1e9
+}
+
+func ProtoTs(nsec int64) *timestamp.Timestamp {
+	n := nsec / 1e9
+	sec := n
+	nsec -= n * 1e9
+	if nsec < 0 {
+		nsec += 1e9
+		sec--
+	}
+
+	return &timestamp.Timestamp{
+		Seconds: sec,
+		Nanos:   int32(nsec),
+	}
 }
 
 func trimQuotes(s string) string {

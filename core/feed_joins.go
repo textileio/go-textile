@@ -1,26 +1,19 @@
 package core
 
 import (
-	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
-func (t *Textile) join(block *repo.Block, opts feedItemOpts) (*pb.Join, error) {
-	if block.Type != repo.JoinBlock {
+func (t *Textile) join(block *pb.Block, opts feedItemOpts) (*pb.Join, error) {
+	if block.Type != pb.Block_JOIN {
 		return nil, ErrBlockWrongType
 	}
 
-	username, avatar := t.ContactDisplayInfo(block.AuthorId)
-	date, err := ptypes.TimestampProto(block.Date)
-	if err != nil {
-		return nil, err
-	}
-
-	info := &pb.Join{
+	username, avatar := t.ContactDisplayInfo(block.Author)
+	item := &pb.Join{
 		Block:    block.Id,
-		Date:     date,
-		Author:   block.AuthorId,
+		Date:     block.Date,
+		Author:   block.Author,
 		Username: username,
 		Avatar:   avatar,
 	}
@@ -30,10 +23,10 @@ func (t *Textile) join(block *repo.Block, opts feedItemOpts) (*pb.Join, error) {
 		if err != nil {
 			return nil, err
 		}
-		info.Likes = likes.Items
+		item.Likes = likes.Items
 	} else {
-		info.Likes = opts.likes
+		item.Likes = opts.likes
 	}
 
-	return info, nil
+	return item, nil
 }

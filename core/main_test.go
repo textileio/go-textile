@@ -162,13 +162,9 @@ func TestTextile_CafeRegistration(t *testing.T) {
 	}
 
 	// get sessions
-	sessions, err := node.CafeSessions()
-	if err != nil {
-		t.Errorf(err.Error())
-		return
-	}
-	if len(sessions.Values) > 0 {
-		session = sessions.Values[0]
+	sessions := node.CafeSessions()
+	if len(sessions.Items) > 0 {
+		session = sessions.Items[0]
 	} else {
 		t.Errorf("no active sessions")
 	}

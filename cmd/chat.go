@@ -61,7 +61,7 @@ func (x *chatCmd) Execute(args []string) error {
 				if !ok {
 					return
 				}
-				if update.Block.AuthorId != pid {
+				if update.Block.Author != pid {
 					if last {
 						println()
 					}

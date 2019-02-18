@@ -56,7 +56,7 @@ var errThreadReload = errors.New("could not re-load thread")
 
 // ThreadUpdate is used to notify listeners about updates in a thread
 type ThreadUpdate struct {
-	Block      BlockInfo   `json:"block"`
+	Block      *pb.Block   `json:"block"`
 	ThreadId   string      `json:"thread_id"`
 	ThreadKey  string      `json:"thread_key"`
 	ThreadName string      `json:"thread_name"`
@@ -75,7 +75,7 @@ type ThreadInfo struct {
 	Sharing    string       `json:"sharing"`
 	Members    []string     `json:"members,omitempty"`
 	State      string       `json:"state"`
-	Head       *BlockInfo   `json:"head,omitempty"`
+	Head       *pb.Block    `json:"head,omitempty"`
 	PeerCount  int          `json:"peer_cnt"`
 	BlockCount int          `json:"block_cnt"`
 	FileCount  int          `json:"file_cnt"`
@@ -88,20 +88,6 @@ type ThreadInviteInfo struct {
 	Username string    `json:"username,omitempty"`
 	Avatar   string    `json:"avatar,omitempty"`
 	Date     time.Time `json:"date"`
-}
-
-// BlockInfo is a more readable version of repo.Block
-type BlockInfo struct {
-	Id       string    `json:"id"`
-	ThreadId string    `json:"thread_id"`
-	AuthorId string    `json:"author_id,omitempty"`
-	Username string    `json:"username,omitempty"`
-	Avatar   string    `json:"avatar,omitempty"`
-	Type     string    `json:"type"`
-	Date     time.Time `json:"date"`
-	Parents  []string  `json:"parents"`
-	Target   string    `json:"target,omitempty"`
-	Body     string    `json:"body,omitempty"`
 }
 
 // ThreadConfig is used to construct a Thread
@@ -186,25 +172,11 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 		return nil, errThreadReload
 	}
 
-	var head *BlockInfo
+	var head *pb.Block
 	if mod.Head != "" {
-		h := t.datastore.Blocks().Get(mod.Head)
-		if h != nil {
-
-			username, avatar := t.contactDisplayInfo(h.AuthorId)
-
-			head = &BlockInfo{
-				Id:       h.Id,
-				ThreadId: h.ThreadId,
-				AuthorId: h.AuthorId,
-				Username: username,
-				Avatar:   avatar,
-				Type:     h.Type.Description(),
-				Date:     h.Date,
-				Parents:  h.Parents,
-				Target:   h.Target,
-				Body:     h.Body,
-			}
+		head := t.datastore.Blocks().Get(mod.Head)
+		if head != nil {
+			head.Username, head.Avatar = t.contactDisplayInfo(head.Author)
 		}
 	}
 
@@ -214,7 +186,7 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 	}
 
 	blocks := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s'", t.Id))
-	files := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s' and type=%d", t.Id, repo.FilesBlock))
+	files := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s' and type=%d", t.Id, pb.Block_FILES))
 
 	return &ThreadInfo{
 		Id:         t.Id,
@@ -306,25 +278,25 @@ func (t *Thread) followParent(parent mh.Multihash) error {
 	}
 
 	switch block.Type {
-	case pb.ThreadBlock_MERGE:
+	case pb.Block_MERGE:
 		err = t.handleMergeBlock(parent, block)
-	case pb.ThreadBlock_IGNORE:
+	case pb.Block_IGNORE:
 		_, err = t.handleIgnoreBlock(parent, block)
-	case pb.ThreadBlock_FLAG:
+	case pb.Block_FLAG:
 		_, err = t.handleFlagBlock(parent, block)
-	case pb.ThreadBlock_JOIN:
+	case pb.Block_JOIN:
 		_, err = t.handleJoinBlock(parent, block)
-	case pb.ThreadBlock_ANNOUNCE:
+	case pb.Block_ANNOUNCE:
 		_, err = t.handleAnnounceBlock(parent, block)
-	case pb.ThreadBlock_LEAVE:
+	case pb.Block_LEAVE:
 		err = t.handleLeaveBlock(parent, block)
-	case pb.ThreadBlock_MESSAGE:
+	case pb.Block_MESSAGE:
 		_, err = t.handleMessageBlock(parent, block)
-	case pb.ThreadBlock_FILES:
+	case pb.Block_FILES:
 		_, err = t.handleFilesBlock(parent, block)
-	case pb.ThreadBlock_COMMENT:
+	case pb.Block_COMMENT:
 		_, err = t.handleCommentBlock(parent, block)
-	case pb.ThreadBlock_LIKE:
+	case pb.Block_LIKE:
 		_, err = t.handleLikeBlock(parent, block)
 	default:
 		return errors.New(fmt.Sprintf("invalid message type: %s", block.Type))
@@ -392,7 +364,7 @@ type commitResult struct {
 }
 
 // commitBlock encrypts a block with thread key (or custom method if provided) and adds it to ipfs
-func (t *Thread) commitBlock(msg proto.Message, mtype pb.ThreadBlock_Type, encrypt func(plaintext []byte) ([]byte, error)) (*commitResult, error) {
+func (t *Thread) commitBlock(msg proto.Message, mtype pb.Block_BlockType, encrypt func(plaintext []byte) ([]byte, error)) (*commitResult, error) {
 	header, err := t.newBlockHeader()
 	if err != nil {
 		return nil, err
@@ -456,7 +428,7 @@ func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBl
 	if err != nil {
 		// might be a merge block
 		err2 := proto.Unmarshal(ciphertext, block)
-		if err2 != nil || block.Type != pb.ThreadBlock_MERGE {
+		if err2 != nil || block.Type != pb.Block_MERGE {
 			return nil, err
 		}
 	} else {
@@ -466,7 +438,7 @@ func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBl
 	}
 
 	// nil payload only allowed for some types
-	if block.Payload == nil && block.Type != pb.ThreadBlock_MERGE && block.Type != pb.ThreadBlock_LEAVE {
+	if block.Payload == nil && block.Type != pb.Block_MERGE && block.Type != pb.Block_LEAVE {
 		return nil, errors.New("nil message payload")
 	}
 
@@ -477,39 +449,23 @@ func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBl
 }
 
 // indexBlock stores off index info for this block type
-func (t *Thread) indexBlock(commit *commitResult, blockType repo.BlockType, target string, body string) error {
-	date, err := ptypes.Timestamp(commit.header.Date)
-	if err != nil {
-		return err
+func (t *Thread) indexBlock(commit *commitResult, blockType pb.Block_BlockType, target string, body string) error {
+	block := &pb.Block{
+		Id:      commit.hash.B58String(),
+		Type:    blockType,
+		Date:    commit.header.Date,
+		Parents: commit.header.Parents,
+		Thread:  t.Id,
+		Author:  commit.header.Author,
+		Target:  target,
+		Body:    body,
 	}
-	index := &repo.Block{
-		Id:       commit.hash.B58String(),
-		Type:     blockType,
-		Date:     date,
-		Parents:  commit.header.Parents,
-		ThreadId: t.Id,
-		AuthorId: commit.header.Author,
-		Target:   target,
-		Body:     body,
-	}
-	if err := t.datastore.Blocks().Add(index); err != nil {
+	if err := t.datastore.Blocks().Add(block); err != nil {
 		return err
 	}
 
-	username, avatar := t.contactDisplayInfo(index.AuthorId)
-
-	t.pushUpdate(BlockInfo{
-		Id:       index.Id,
-		ThreadId: index.ThreadId,
-		AuthorId: index.AuthorId,
-		Username: username,
-		Avatar:   avatar,
-		Type:     index.Type.Description(),
-		Date:     index.Date,
-		Parents:  index.Parents,
-		Target:   index.Target,
-		Body:     index.Body,
-	})
+	block.Username, block.Avatar = t.contactDisplayInfo(block.Author)
+	t.pushUpdate(block)
 
 	return nil
 }
@@ -623,9 +579,9 @@ func (t *Thread) post(commit *commitResult, peers []repo.ThreadPeer) error {
 }
 
 // pushUpdate pushes thread updates to UI listeners
-func (t *Thread) pushUpdate(index BlockInfo) {
+func (t *Thread) pushUpdate(block *pb.Block) {
 	t.sendUpdate(ThreadUpdate{
-		Block:      index,
+		Block:      block,
 		ThreadId:   t.Id,
 		ThreadKey:  t.Key,
 		ThreadName: t.Name,

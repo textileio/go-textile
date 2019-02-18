@@ -14,6 +14,7 @@ import (
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 )
 
 // ContactInfo displays info about a contact
@@ -50,7 +51,7 @@ func (s *contactSet) Add(items ...*pb.Contact) []*pb.Contact {
 	var added []*pb.Contact
 	for _, contact := range items {
 		last := s.items[contact.Id]
-		if last == nil || protoTimeToNano(contact.Updated) > protoTimeToNano(last.Updated) {
+		if last == nil || util.ProtoNanos(contact.Updated) > util.ProtoNanos(last.Updated) {
 			s.items[contact.Id] = contact
 			added = append(added, contact)
 		}
@@ -129,7 +130,7 @@ func (t *Textile) PublishContact() error {
 		return nil
 	}
 
-	sessions := t.datastore.CafeSessions().List()
+	sessions := t.datastore.CafeSessions().List().Items
 	if len(sessions) == 0 {
 		return nil
 	}
@@ -148,7 +149,7 @@ func (t *Textile) PublishContact() error {
 // UpdateContactInboxes sets this node's own contact's inboxes from the current cafe sessions
 func (t *Textile) UpdateContactInboxes() error {
 	var inboxes []repo.Cafe
-	for _, session := range t.datastore.CafeSessions().List() {
+	for _, session := range t.datastore.CafeSessions().List().Items {
 		inboxes = append(inboxes, protoCafeToRepo(session.Cafe))
 	}
 	return t.datastore.Contacts().UpdateInboxes(t.node.Identity.Pretty(), inboxes)

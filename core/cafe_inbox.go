@@ -56,7 +56,7 @@ func (q *CafeInbox) CheckMessages() error {
 	}()
 
 	// get active cafe sessions
-	sessions := q.datastore.CafeSessions().List()
+	sessions := q.datastore.CafeSessions().List().Items
 	if len(sessions) == 0 {
 		return nil
 	}

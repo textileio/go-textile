@@ -1,26 +1,19 @@
 package core
 
 import (
-	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
-func (t *Textile) leave(block *repo.Block, opts feedItemOpts) (*pb.Leave, error) {
-	if block.Type != repo.LeaveBlock {
+func (t *Textile) leave(block *pb.Block, opts feedItemOpts) (*pb.Leave, error) {
+	if block.Type != pb.Block_LEAVE {
 		return nil, ErrBlockWrongType
 	}
 
-	username, avatar := t.ContactDisplayInfo(block.AuthorId)
-	date, err := ptypes.TimestampProto(block.Date)
-	if err != nil {
-		return nil, err
-	}
-
-	info := &pb.Leave{
+	username, avatar := t.ContactDisplayInfo(block.Author)
+	item := &pb.Leave{
 		Block:    block.Id,
-		Date:     date,
-		Author:   block.AuthorId,
+		Date:     block.Date,
+		Author:   block.Author,
 		Username: username,
 		Avatar:   avatar,
 	}
@@ -30,10 +23,10 @@ func (t *Textile) leave(block *repo.Block, opts feedItemOpts) (*pb.Leave, error)
 		if err != nil {
 			return nil, err
 		}
-		info.Likes = likes.Items
+		item.Likes = likes.Items
 	} else {
-		info.Likes = opts.likes
+		item.Likes = opts.likes
 	}
 
-	return info, nil
+	return item, nil
 }

@@ -3,9 +3,7 @@ package core
 import (
 	"fmt"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
 func (t *Textile) Messages(offset string, limit int, threadId string) (*pb.TextList, error) {
@@ -14,16 +12,16 @@ func (t *Textile) Messages(offset string, limit int, threadId string) (*pb.TextL
 		if t.Thread(threadId) == nil {
 			return nil, ErrThreadNotFound
 		}
-		query = fmt.Sprintf("threadId='%s' and type=%d", threadId, repo.MessageBlock)
+		query = fmt.Sprintf("threadId='%s' and type=%d", threadId, pb.Block_MESSAGE)
 	} else {
-		query = fmt.Sprintf("type=%d", repo.MessageBlock)
+		query = fmt.Sprintf("type=%d", pb.Block_MESSAGE)
 	}
 
 	list := make([]*pb.Text, 0)
 
 	blocks := t.Blocks(offset, limit, query)
-	for _, block := range blocks {
-		msg, err := t.message(&block, feedItemOpts{annotations: true})
+	for _, block := range blocks.Items {
+		msg, err := t.message(block, feedItemOpts{annotations: true})
 		if err != nil {
 			return nil, err
 		}
@@ -42,21 +40,16 @@ func (t *Textile) Message(blockId string) (*pb.Text, error) {
 	return t.message(block, feedItemOpts{annotations: true})
 }
 
-func (t *Textile) message(block *repo.Block, opts feedItemOpts) (*pb.Text, error) {
-	if block.Type != repo.MessageBlock {
+func (t *Textile) message(block *pb.Block, opts feedItemOpts) (*pb.Text, error) {
+	if block.Type != pb.Block_MESSAGE {
 		return nil, ErrBlockWrongType
 	}
 
-	username, avatar := t.ContactDisplayInfo(block.AuthorId)
-	date, err := ptypes.TimestampProto(block.Date)
-	if err != nil {
-		return nil, err
-	}
-
-	info := &pb.Text{
+	username, avatar := t.ContactDisplayInfo(block.Author)
+	item := &pb.Text{
 		Block:    block.Id,
-		Date:     date,
-		Author:   block.AuthorId,
+		Date:     block.Date,
+		Author:   block.Author,
 		Username: username,
 		Avatar:   avatar,
 		Body:     block.Body,
@@ -67,17 +60,17 @@ func (t *Textile) message(block *repo.Block, opts feedItemOpts) (*pb.Text, error
 		if err != nil {
 			return nil, err
 		}
-		info.Comments = comments.Items
+		item.Comments = comments.Items
 
 		likes, err := t.Likes(block.Id)
 		if err != nil {
 			return nil, err
 		}
-		info.Likes = likes.Items
+		item.Likes = likes.Items
 	} else {
-		info.Comments = opts.comments
-		info.Likes = opts.likes
+		item.Comments = opts.comments
+		item.Likes = opts.likes
 	}
 
-	return info, nil
+	return item, nil
 }

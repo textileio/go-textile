@@ -18,6 +18,7 @@ import (
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema"
+	"github.com/textileio/textile-go/util"
 	"github.com/xeipuuv/gojsonschema"
 )
 
@@ -61,12 +62,12 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys Keys) (mh.Multiha
 		Keys:   keys,
 	}
 
-	res, err := t.commitBlock(msg, pb.ThreadBlock_FILES, nil)
+	res, err := t.commitBlock(msg, pb.Block_FILES, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := t.indexBlock(res, repo.FilesBlock, msg.Target, msg.Body); err != nil {
+	if err := t.indexBlock(res, pb.Block_FILES, msg.Target, msg.Body); err != nil {
 		return nil, err
 	}
 
@@ -114,14 +115,10 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 	var node ipld.Node
 
 	var ignore bool
-	ignored := t.datastore.Blocks().List("", -1, "target='ignore-"+hash.B58String()+"'")
+	ignored := t.datastore.Blocks().List("", -1, "target='ignore-"+hash.B58String()+"'").Items
 	if len(ignored) > 0 {
-		date, err := ptypes.Timestamp(block.Header.Date)
-		if err != nil {
-			return nil, err
-		}
 		// ignore if the first (latest) ignore came after (could happen during back prop)
-		if ignored[0].Date.After(date) {
+		if util.ProtoNanos(ignored[0].Date) > util.ProtoNanos(block.Header.Date) {
 			ignore = true
 		}
 	}
@@ -193,7 +190,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 	if err := t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,
-	}, repo.FilesBlock, msg.Target, msg.Body); err != nil {
+	}, pb.Block_FILES, msg.Target, msg.Body); err != nil {
 		return nil, err
 	}
 
@@ -222,7 +219,7 @@ func (t *Thread) removeFiles(node ipld.Node) error {
 
 	target := node.Cid().Hash().B58String()
 
-	blocks := t.datastore.Blocks().List("", -1, "target='"+target+"'")
+	blocks := t.datastore.Blocks().List("", -1, "target='"+target+"'").Items
 	if len(blocks) == 1 {
 		// safe to unpin target node
 

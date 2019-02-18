@@ -50,6 +50,35 @@ message Thread {
     }
 }
 
+message Block {
+    string id                      = 1;
+    string thread                  = 2;
+    string author                  = 3;
+    BlockType type                 = 4;
+    google.protobuf.Timestamp date = 5;
+    repeated string parents        = 6;
+    string target                  = 7;
+    string body                    = 8;
+
+    enum BlockType {
+        MERGE    = 0; // block is stored in plaintext, no payload
+        IGNORE   = 1;
+        FLAG     = 2;
+        JOIN     = 3;
+        ANNOUNCE = 4;
+        LEAVE    = 5; // no payload
+        MESSAGE  = 6;
+        FILES    = 7;
+        COMMENT  = 8;
+        LIKE     = 9;
+        INVITE   = 50;
+    }
+
+    // view info
+    string username = 101;
+    string avatar   = 102;
+}
+
 message FileIndex {
     string mill                     = 1;
     string checksum                 = 2;
@@ -73,4 +102,15 @@ message Cafe {
     string node           = 5;
     string url            = 6;
     repeated string swarm = 7;
+}
+
+message CafeSession {
+    string id                      = 1;
+    string access                  = 2;
+    google.protobuf.Timestamp exp  = 3;
+    string refresh                 = 4;
+    google.protobuf.Timestamp rexp = 5;
+    string subject                 = 6;
+    string type                    = 7;
+    Cafe cafe                      = 8;
 }
