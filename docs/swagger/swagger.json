@@ -1,7 +1,7 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "Shows the local node's peer ID\nShows the local node's wallet address\nPings another peer on the network, returning online|offline.",
+        "description": "{{.Description}}",
         "title": "Textile Node API",
         "termsOfService": "https://github.com/textileio/textile-go/blob/master/TERMS",
         "contact": {
@@ -18,19 +18,90 @@
     "host": "127.0.0.1:40600",
     "basePath": "/api/v0",
     "paths": {
-        "/address": {
+        "/account/address": {
             "get": {
-                "description": "Shows the local node's wallet address",
+                "description": "Shows the local node's account address",
                 "produces": [
                     "text/plain"
                 ],
                 "tags": [
-                    "peer"
+                    "account"
                 ],
-                "summary": "Show peer address",
+                "summary": "Show account address",
                 "responses": {
                     "200": {
                         "description": "address",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/account/backups": {
+            "post": {
+                "description": "Shows all known account peers",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "account"
+                ],
+                "summary": "Show account peers",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "wait=5,events=\"false\"",
+                        "description": "wait: Stops searching after 'wait' seconds have elapsed (max 10s), events: Whether to emit Server-Sent Events (SSEvent) or plain JSON",
+                        "name": "X-Textile-Opts",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "backup stream",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/object"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/account/peers": {
+            "get": {
+                "description": "Shows all known account peers",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "account"
+                ],
+                "summary": "Show account peers",
+                "responses": {
+                    "200": {
+                        "description": "peers",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/core.ContactInfo"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "string"
                         }
@@ -321,29 +392,29 @@
                 }
             },
             "post": {
-                "description": "Creates a direct peer-to-peer or external invite to a thread",
+                "description": "Adds a like to a thread block",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "invites"
+                    "blocks"
                 ],
-                "summary": "Create an invite to a thread",
+                "summary": "Add a like",
                 "parameters": [
                     {
                         "type": "string",
-                        "default": "thread=,peer=",
-                        "description": "thread: Thread ID (can also use 'default'), peer: Peer ID (omit to create an external invite)",
-                        "name": "X-Textile-Opts",
-                        "in": "header"
+                        "description": "block id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "invite",
+                        "description": "like",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/map"
+                            "$ref": "#/definitions/pb.Like"
                         }
                     },
                     "400": {
@@ -550,6 +621,48 @@
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/contacts/search": {
+            "post": {
+                "description": "Search for contacts known locally and on the network",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contacts"
+                ],
+                "summary": "Search for contacts",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "local=\"false\",limit=5,wait=5,peer=,address=,username=,events=\"false\"",
+                        "description": "local: Whether to only search local contacts, limit: Stops searching after limit results are found, wait: Stops searching after 'wait' seconds have elapsed (max 10s), username: search by username string, peer: search by peer id string, address: search by account address string, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON",
+                        "name": "X-Textile-Opts",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "contact stream",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/object"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "string"
                         }
@@ -1324,32 +1437,6 @@
                 }
             }
         },
-        "/peer": {
-            "get": {
-                "description": "Shows the local node's peer ID",
-                "produces": [
-                    "text/plain"
-                ],
-                "tags": [
-                    "peer"
-                ],
-                "summary": "Show peer ID",
-                "responses": {
-                    "200": {
-                        "description": "peerid",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
         "/ping": {
             "get": {
                 "description": "Pings another peer on the network, returning online|offline.",
@@ -1361,13 +1448,6 @@
                 ],
                 "summary": "Ping a network peer",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "format": "email",
-                        "description": "name search by q",
-                        "name": "q",
-                        "in": "query"
-                    },
                     {
                         "type": "string",
                         "description": "peerid",

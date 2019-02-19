@@ -470,10 +470,7 @@ info:
     email: contact@textile.io
     name: Textile
     url: https://textile.io/
-  description: |-
-    Shows the local node's peer ID
-    Shows the local node's wallet address
-    Pings another peer on the network, returning online|offline.
+  description: '{{.Description}}'
   license:
     name: MIT License
     url: https://github.com/textileio/textile-go/blob/master/LICENSE
@@ -481,9 +478,9 @@ info:
   title: Textile Node API
   version: "0.0"
 paths:
-  /address:
+  /account/address:
     get:
-      description: Shows the local node's wallet address
+      description: Shows the local node's account address
       produces:
       - text/plain
       responses:
@@ -491,9 +488,57 @@ paths:
           description: address
           schema:
             type: string
-      summary: Show peer address
+      summary: Show account address
       tags:
-      - peer
+      - account
+  /account/backups:
+    post:
+      description: Shows all known account peers
+      parameters:
+      - default: wait=5,events="false"
+        description: 'wait: Stops searching after ''wait'' seconds have elapsed (max
+          10s), events: Whether to emit Server-Sent Events (SSEvent) or plain JSON'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: backup stream
+          schema:
+            $ref: '#/definitions/object'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Show account peers
+      tags:
+      - account
+  /account/peers:
+    get:
+      description: Shows all known account peers
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: peers
+          schema:
+            items:
+              $ref: '#/definitions/core.ContactInfo'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Show account peers
+      tags:
+      - account
   /blocks:
     get:
       description: |-
@@ -690,21 +735,20 @@ paths:
       tags:
       - blocks
     post:
-      description: Creates a direct peer-to-peer or external invite to a thread
+      description: Adds a like to a thread block
       parameters:
-      - default: thread=,peer=
-        description: 'thread: Thread ID (can also use ''default''), peer: Peer ID
-          (omit to create an external invite)'
-        in: header
-        name: X-Textile-Opts
+      - description: block id
+        in: path
+        name: id
+        required: true
         type: string
       produces:
       - application/json
       responses:
         "201":
-          description: invite
+          description: like
           schema:
-            $ref: '#/definitions/map'
+            $ref: '#/definitions/pb.Like'
             type: object
         "400":
           description: Bad Request
@@ -718,9 +762,9 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      summary: Create an invite to a thread
+      summary: Add a like
       tags:
-      - invites
+      - blocks
   /config:
     patch:
       consumes:
@@ -860,6 +904,38 @@ paths:
       tags:
       - contacts
   /contacts/{id}: {}
+  /contacts/search:
+    post:
+      description: Search for contacts known locally and on the network
+      parameters:
+      - default: local="false",limit=5,wait=5,peer=,address=,username=,events="false"
+        description: 'local: Whether to only search local contacts, limit: Stops searching
+          after limit results are found, wait: Stops searching after ''wait'' seconds
+          have elapsed (max 10s), username: search by username string, peer: search
+          by peer id string, address: search by account address string, events: Whether
+          to emit Server-Sent Events (SSEvent) or plain JSON'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: contact stream
+          schema:
+            $ref: '#/definitions/object'
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Search for contacts
+      tags:
+      - contacts
   /contacts{id}:
     get:
       description: Gets information about a known contact
@@ -1410,32 +1486,10 @@ paths:
       summary: Mark notifiction as read
       tags:
       - notifications
-  /peer:
-    get:
-      description: Shows the local node's peer ID
-      produces:
-      - text/plain
-      responses:
-        "200":
-          description: peerid
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Show peer ID
-      tags:
-      - peer
   /ping:
     get:
       description: Pings another peer on the network, returning online|offline.
       parameters:
-      - description: name search by q
-        format: email
-        in: query
-        name: q
-        type: string
       - description: peerid
         in: header
         name: X-Textile-Args
