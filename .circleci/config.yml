@@ -506,7 +506,7 @@ jobs:
 
   build-js-types:
     docker:
-      - image: circleci/node:5.6.0
+      - image: circleci/node
     working_directory: ~/go/src/github.com/textileio/textile-go
     steps:
     - checkout
