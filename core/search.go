@@ -5,22 +5,23 @@ import (
 
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
+	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/pb"
 )
 
 // queryResultSet holds a unique set of search results
 type queryResultSet struct {
-	filter pb.QueryOptions_FilterType
-	items  map[string]*pb.QueryResult
-	mux    sync.Mutex
+	options *pb.QueryOptions
+	items   map[string]*pb.QueryResult
+	mux     sync.Mutex
 }
 
 // newQueryResultSet returns a new queryResultSet
-func newQueryResultSet(filter pb.QueryOptions_FilterType) *queryResultSet {
+func newQueryResultSet(options *pb.QueryOptions) *queryResultSet {
 	return &queryResultSet{
-		filter: filter,
-		items:  make(map[string]*pb.QueryResult, 0),
+		options: options,
+		items:   make(map[string]*pb.QueryResult, 0),
 	}
 }
 
@@ -32,11 +33,11 @@ func (s *queryResultSet) Add(items ...*pb.QueryResult) []*pb.QueryResult {
 	var added []*pb.QueryResult
 	for _, i := range items {
 		last := s.items[i.Id]
-		switch s.filter {
+		switch s.options.Filter {
 		case pb.QueryOptions_NO_FILTER:
 			break
 		case pb.QueryOptions_HIDE_OLDER:
-			if last != nil && protoTimeToNano(i.Date) < protoTimeToNano(last.Date) {
+			if last != nil && protoTimeToNano(i.Date) <= protoTimeToNano(last.Date) {
 				continue
 			}
 		}
@@ -60,9 +61,18 @@ func (s *queryResultSet) List() []*pb.QueryResult {
 	return list
 }
 
+// Full returns whether or not the number of results meets or exceeds the
+func (s *queryResultSet) Full() bool {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+
+	return len(s.items) >= int(s.options.Limit)
+}
+
 // Search searches the network based on the given query
 func (t *Textile) search(query *pb.Query) (<-chan *pb.QueryResult, <-chan error, *broadcast.Broadcaster) {
-	query = applyQueryDefaults(query)
+	query = queryDefaults(query)
+	query.Id = ksuid.New().String()
 
 	var searchChs []chan *pb.QueryResult
 
@@ -96,7 +106,7 @@ func (t *Textile) search(query *pb.Query) (<-chan *pb.QueryResult, <-chan error,
 		}()
 
 		// search local
-		results, err := t.cafe.searchLocal(query.Type, query.Options.Filter, query.Payload, true)
+		results, err := t.cafe.searchLocal(query.Type, query.Options, query.Payload, true)
 		if err != nil {
 			errCh <- err
 			return
@@ -104,7 +114,7 @@ func (t *Textile) search(query *pb.Query) (<-chan *pb.QueryResult, <-chan error,
 		for _, res := range results.items {
 			localCh <- res
 		}
-		if query.Options.Local || len(results.items) >= int(query.Options.Limit) {
+		if query.Options.Local || results.Full() {
 			return
 		}
 
@@ -117,7 +127,7 @@ func (t *Textile) search(query *pb.Query) (<-chan *pb.QueryResult, <-chan error,
 				for _, n := range results.Add(res.Items...) {
 					clientCh <- n
 				}
-				return len(results.items) >= int(query.Options.Limit)
+				return results.Full()
 			}, canceler.Ch, false); err != nil {
 				errCh <- err
 				return
@@ -136,7 +146,7 @@ func (t *Textile) search(query *pb.Query) (<-chan *pb.QueryResult, <-chan error,
 				canceler := cancel.Listen()
 
 				wg.Add(1)
-				go func(i int, cafe peer.ID) {
+				go func(i int, cafe peer.ID, canceler *broadcast.Listener) {
 					defer wg.Done()
 
 					// token must be attached per cafe session, use a new query
@@ -146,11 +156,14 @@ func (t *Textile) search(query *pb.Query) (<-chan *pb.QueryResult, <-chan error,
 						for _, n := range results.Add(res) {
 							cafeChs[i] <- n
 						}
+						if results.Full() {
+							cancel.Close()
+						}
 					}, canceler.Ch); err != nil {
 						errCh <- err
 						return
 					}
-				}(i, cafe)
+				}(i, cafe, canceler)
 			}
 
 			wg.Wait()

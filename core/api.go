@@ -14,11 +14,8 @@ import (
 
 	"github.com/golang/protobuf/proto"
 
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-
-	"github.com/gin-contrib/cors"       // gin cors middleware
-	limit "github.com/gin-contrib/size" // gin size limiter middleware
-
+	"github.com/gin-contrib/cors"
+	limit "github.com/gin-contrib/size"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/jsonpb"
 	swagger "github.com/swaggo/gin-swagger"             // gin-swagger middleware
@@ -47,6 +44,11 @@ type api struct {
 // pbMarshaler is used to marshal protobufs to JSON
 var pbMarshaler = jsonpb.Marshaler{
 	EnumsAsInts: false,
+}
+
+// pbUnmarshaler is used to unmarshal JSON protobufs
+var pbUnmarshaler = jsonpb.Unmarshaler{
+	AllowUnknownFields: true,
 }
 
 // StartApi starts the host instance
@@ -110,9 +112,14 @@ func (a *api) Start() {
 	// v0 routes
 	v0 := router.Group("/api/v0")
 	{
-		v0.GET("/peer", a.peer)
-		v0.GET("/address", a.address)
 		v0.GET("/ping", a.ping)
+
+		account := v0.Group("/account")
+		{
+			account.GET("/address", a.accountAddress)
+			account.GET("/peers", a.accountPeers)
+			account.POST("/backups", a.accountBackups)
+		}
 
 		profile := v0.Group("/profile")
 		{
@@ -133,6 +140,7 @@ func (a *api) Start() {
 		threads := v0.Group("/threads")
 		{
 			threads.POST("", a.addThreads)
+			threads.PUT(":id", a.addOrUpdateThreads)
 			threads.GET("", a.lsThreads)
 			threads.GET("/:id", a.getThreads)
 			threads.GET("/:id/peers", a.peersThreads)
@@ -215,7 +223,6 @@ func (a *api) Start() {
 			cafes.GET("/:id", a.getCafes)
 			cafes.DELETE("/:id", a.rmCafes)
 			cafes.POST("/messages", a.checkCafeMessages)
-			cafes.POST("/backups", a.searchThreadBackups)
 		}
 
 		tokens := v0.Group("/tokens")
@@ -226,15 +233,9 @@ func (a *api) Start() {
 			tokens.DELETE("/:token", a.rmTokens)
 		}
 
-		swarm := v0.Group("/swarm")
-		{
-			swarm.POST("/connect", a.swarmConnect)
-			swarm.GET("/peers", a.swarmPeers)
-		}
-
 		contacts := v0.Group("/contacts")
 		{
-			contacts.POST("", a.addContacts)
+			contacts.PUT(":id", a.addContacts)
 			contacts.GET("", a.lsContacts)
 			contacts.GET("/:id", a.getContacts)
 			contacts.DELETE("/:id", a.rmContacts)
@@ -243,7 +244,14 @@ func (a *api) Start() {
 
 		ipfs := v0.Group("/ipfs")
 		{
-			ipfs.GET("/:cid", a.ipfsCat)
+			ipfs.GET("/id", a.ipfsId)
+			ipfs.GET("/cat/:cid", a.ipfsCat)
+
+			swarm := ipfs.Group("/swarm")
+			{
+				swarm.POST("/connect", a.ipfsSwarmConnect)
+				swarm.GET("/peers", a.ipfsSwarmPeers)
+			}
 		}
 
 		logs := v0.Group("/logs")
@@ -261,7 +269,6 @@ func (a *api) Start() {
 			conf.GET("/*path", a.getConfig)
 			conf.PATCH("", a.patchConfig)
 		}
-
 	}
 	a.server = &http.Server{
 		Addr:    a.addr,
@@ -300,70 +307,6 @@ func (a *api) Stop() error {
 		return err
 	}
 	return nil
-}
-
-// -- UTILITY ENDPOINTS -- //
-
-// peer godoc
-// @Summary Show peer ID
-// @Description Shows the local node's peer ID
-// @Tags peer
-// @Produce text/plain
-// @Success 200 {string} string "peerid"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /peer [get]
-func (a *api) peer(g *gin.Context) {
-	pid, err := a.node.PeerId()
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-	g.String(http.StatusOK, pid.Pretty())
-}
-
-// address godoc
-// @Summary Show peer address
-// @Description Shows the local node's wallet address
-// @Tags peer
-// @Produce text/plain
-// @Success 200 {string} string "address"
-// @Router /address [get]
-func (a *api) address(g *gin.Context) {
-	g.String(http.StatusOK, a.node.account.Address())
-}
-
-// @Param q query string false "name search by q" Format(email)
-// ping godoc
-// @Summary Ping a network peer
-// @Description Pings another peer on the network, returning online|offline.
-// @Tags peer
-// @Produce text/plain
-// @Param X-Textile-Args header string true "peerid"
-// @Success 200 {string} string "One of online|offline"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /ping [get]
-func (a *api) ping(g *gin.Context) {
-	args, err := a.readArgs(g)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-	if len(args) == 0 {
-		g.String(http.StatusBadRequest, "missing peer id")
-		return
-	}
-	pid, err := peer.IDB58Decode(args[0])
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-	status, err := a.node.Ping(pid)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-	g.String(http.StatusOK, string(status))
 }
 
 func (a *api) readArgs(g *gin.Context) ([]string, error) {

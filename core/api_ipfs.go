@@ -9,7 +9,16 @@ import (
 	"github.com/textileio/textile-go/ipfs"
 )
 
-// swarmConnect godoc
+func (a *api) ipfsId(g *gin.Context) {
+	pid, err := a.node.PeerId()
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+	g.String(http.StatusOK, pid.Pretty())
+}
+
+// ipfsSwarmConnect godoc
 // @Summary Opens a new direct connection to a peer address
 // @Description Opens a new direct connection to a peer using an IPFS multiaddr
 // @Tags ipfs
@@ -19,7 +28,7 @@ import (
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /swarm/connect [get]
-func (a *api) swarmConnect(g *gin.Context) {
+func (a *api) ipfsSwarmConnect(g *gin.Context) {
 	args, err := a.readArgs(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -39,7 +48,7 @@ func (a *api) swarmConnect(g *gin.Context) {
 	g.JSON(http.StatusOK, res)
 }
 
-// swarmPeers godoc
+// ipfsSwarmPeers godoc
 // @Summary List swarm peers
 // @Description Lists the set of peers this node is connected to
 // @Tags ipfs
@@ -49,7 +58,7 @@ func (a *api) swarmConnect(g *gin.Context) {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /swarm/peers [get]
-func (a *api) swarmPeers(g *gin.Context) {
+func (a *api) ipfsSwarmPeers(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
 		a.abort500(g, err)

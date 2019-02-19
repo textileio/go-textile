@@ -2,12 +2,15 @@ package mobile
 
 import (
 	"crypto/rand"
+
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema/textile"
 	"github.com/textileio/textile-go/util"
@@ -113,6 +116,34 @@ func (m *Mobile) AddThread(config *AddThreadConfig) (string, error) {
 	return toJSON(info)
 }
 
+// AddOrUpdateThread calls core AddOrUpdateThread
+func (m *Mobile) AddOrUpdateThread(thrd []byte) error {
+	if !m.node.Online() {
+		return core.ErrOffline
+	}
+
+	mthrd := new(pb.Thread)
+	if err := proto.Unmarshal(thrd, mthrd); err != nil {
+		return err
+	}
+
+	return m.node.AddOrUpdateThread(mthrd)
+}
+
+// RemoveThread call core RemoveThread
+func (m *Mobile) RemoveThread(id string) (string, error) {
+	if !m.node.Started() {
+		return "", core.ErrStopped
+	}
+
+	hash, err := m.node.RemoveThread(id)
+	if err != nil {
+		return "", err
+	}
+
+	return hash.B58String(), nil
+}
+
 // ThreadInfo calls core ThreadInfo
 func (m *Mobile) ThreadInfo(threadId string) (string, error) {
 	if !m.node.Started() {
@@ -188,20 +219,6 @@ func (m *Mobile) AcceptExternalInvite(id string, key string) (string, error) {
 	}
 
 	hash, err := m.node.AcceptExternalInvite(id, keyb)
-	if err != nil {
-		return "", err
-	}
-
-	return hash.B58String(), nil
-}
-
-// RemoveThread call core RemoveThread
-func (m *Mobile) RemoveThread(id string) (string, error) {
-	if !m.node.Started() {
-		return "", core.ErrStopped
-	}
-
-	hash, err := m.node.RemoveThread(id)
 	if err != nil {
 		return "", err
 	}

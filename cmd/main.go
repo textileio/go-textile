@@ -1,17 +1,21 @@
 package cmd
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
 	"strings"
+
+	"github.com/textileio/textile-go/pb"
 
 	"github.com/fatih/color"
 	"github.com/golang/protobuf/jsonpb"
@@ -196,17 +200,19 @@ var pbUnmarshaler = jsonpb.Unmarshaler{
 	AllowUnknownFields: true,
 }
 
-func handleSearchStream(pth string, param params) {
+func handleSearchStream(pth string, param params) []pb.QueryResult {
+	var results []pb.QueryResult
 	outputCh := make(chan interface{})
 
 	cancel := func() {}
+	done := make(chan struct{})
 	quit := make(chan os.Signal)
 	signal.Notify(quit, os.Interrupt)
 
 	go func() {
 		defer func() {
 			cancel()
-			os.Exit(1)
+			done <- struct{}{}
 		}()
 
 		var res *http.Response
@@ -230,20 +236,21 @@ func handleSearchStream(pth string, param params) {
 
 		decoder := json.NewDecoder(res.Body)
 		for decoder.More() {
-			var result interface{}
-			if err := decoder.Decode(&result); err == io.EOF {
+			var result pb.QueryResult
+			if err := pbUnmarshaler.UnmarshalNext(decoder, &result); err == io.EOF {
 				return
 			} else if err != nil {
 				outputCh <- err.Error()
 				return
 			}
+			results = append(results, result)
 
-			data, err := json.MarshalIndent(result, "", "    ")
+			out, err := pbMarshaler.MarshalToString(&result)
 			if err != nil {
 				outputCh <- err.Error()
 				return
 			}
-			outputCh <- string(data)
+			outputCh <- out
 		}
 	}()
 
@@ -260,7 +267,30 @@ func handleSearchStream(pth string, param params) {
 			}
 			fmt.Print("done\n")
 			os.Exit(1)
-			return
+
+		case <-done:
+			return results
+		}
+	}
+}
+
+// https://gist.github.com/r0l1/3dcbb0c8f6cfe9c66ab8008f55f8f28b
+func confirm(q string) bool {
+	reader := bufio.NewReader(os.Stdin)
+
+	for {
+		fmt.Printf("%s [y/n]: ", q)
+
+		response, err := reader.ReadString('\n')
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		response = strings.ToLower(strings.TrimSpace(response))
+		if response == "y" || response == "yes" {
+			return true
+		} else if response == "n" || response == "no" {
+			return false
 		}
 	}
 }

@@ -3,15 +3,15 @@ package core
 import (
 	"crypto/rand"
 	"net/http"
-	"strconv"
 	"strings"
+
+	"github.com/textileio/textile-go/pb"
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 
 	"github.com/gin-gonic/gin"
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -113,6 +113,25 @@ func (a *api) addThreads(g *gin.Context) {
 	}
 
 	g.JSON(http.StatusCreated, info)
+}
+
+func (a *api) addOrUpdateThreads(g *gin.Context) {
+	var thrd pb.Thread
+	if err := pbUnmarshaler.Unmarshal(g.Request.Body, &thrd); err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	if thrd.Id == "" || len(thrd.Sk) == 0 {
+		g.String(http.StatusBadRequest, "invalid thread")
+		return
+	}
+
+	if err := a.node.AddOrUpdateThread(&thrd); err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	g.String(http.StatusOK, "ok")
 }
 
 // lsThreads godoc
@@ -225,34 +244,4 @@ func (a *api) rmThreads(g *gin.Context) {
 	}
 
 	g.String(http.StatusOK, "ok")
-}
-
-func (a *api) searchThreadBackups(g *gin.Context) {
-	opts, err := a.readOpts(g)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-
-	wait, err := strconv.Atoi(opts["wait"])
-	if err != nil {
-		wait = 5
-	}
-
-	query := &pb.ThreadBackupQuery{
-		Address: a.node.account.Address(),
-	}
-	options := &pb.QueryOptions{
-		Local: false,
-		Limit: -1,
-		Wait:  int32(wait),
-	}
-
-	resCh, errCh, cancel, err := a.node.FindThreadBackups(query, options)
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	handleSearchStream(g, resCh, errCh, cancel, opts["events"] == "true")
 }

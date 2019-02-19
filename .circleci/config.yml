@@ -415,7 +415,7 @@ jobs:
 
   build-android-aar:
     docker:
-    - image: circleci/android:api-28-ndk
+      - image: circleci/android:api-28-ndk
     working_directory: ~/go/src/github.com/textileio/textile-go
     steps:
     - checkout
@@ -504,6 +504,47 @@ jobs:
     - store_artifacts:
         path: ~/dist/android_aar
 
+  build-js-types:
+    docker:
+      - image: circleci/node
+    working_directory: ~/go/src/github.com/textileio/textile-go
+    steps:
+    - checkout
+    - run:
+        name: install protoc
+        command: |
+            npm install protoc
+    - run:
+        name: install google-protobuf
+        command: |
+            npm install google-protobuf
+    - run:
+        name: install ts-protoc-gen
+        command: |
+            npm install ts-protoc-gen
+    - run:
+        name: build js types
+        command: |
+            mkdir protobuf_gen
+            ./node_modules/protoc/protoc/bin/protoc --plugin="protoc-gen-ts=./node_modules/.bin/protoc-gen-ts" --proto_path=./pb/protos --js_out="import_style=commonjs,binary:./protobuf_gen" --ts_out="./protobuf_gen" ./pb/protos/*
+    - run:
+        name: collect artifacts
+        command: |
+          VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
+          if [ "${CIRCLE_TAG}" != "" ]; then
+              VERSION=${CIRCLE_TAG}
+          fi
+          OUT=~/dist/js_types
+          mkdir -p ${OUT}
+          tar -czvf textile-go_${VERSION}_js-types.tar.gz protobuf_gen
+          mv textile-go_${VERSION}_js-types.tar.gz ${OUT}/
+    - persist_to_workspace:
+        root: ~/dist
+        paths:
+        - js_types
+    - store_artifacts:
+        path: ~/dist/js_types
+
   release:
     docker:
     - image: cibuilds/github:0.10
@@ -517,6 +558,7 @@ jobs:
           # mv ~/desktop/* ~/dist/
           mv ~/ios_framework/* ~/dist/
           mv ~/android_aar/* ~/dist/
+          mv ~/js_types/* ~/dist/
           ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ~/dist/
 
 workflows:
@@ -565,12 +607,21 @@ workflows:
             only: master
           tags:
             only: /.*/
+    - build-js-types:
+        requires:
+        - unit-test
+        filters:
+          branches:
+            only: master
+          tags:
+            only: /.*/
     - release:
         requires:
         - build-cli-darwin-windows
         - build-cli-linux
         - build-ios-framework
         - build-android-aar
+        - build-js-types
         filters:
           branches:
             ignore: /.*/

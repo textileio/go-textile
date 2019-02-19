@@ -119,6 +119,72 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, 
 	return thrd, nil
 }
 
+// AddOrUpdateThread add or updates a thread directly, usually from a backup
+func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
+	// check if we're allowed to get an invite
+	// Note: just using a dummy thread here because having these access+sharing
+	// methods on Thread is very nice elsewhere.
+	dummy := &Thread{
+		initiator: thrd.Initiator,
+		ttype:     repo.ThreadType(thrd.Type),
+		sharing:   repo.ThreadSharing(thrd.Sharing),
+		members:   thrd.Members,
+	}
+	if !dummy.shareable(t.config.Account.Address, t.config.Account.Address) {
+		return ErrNotShareable
+	}
+
+	sk, err := libp2pc.UnmarshalPrivateKey(thrd.Sk)
+	if err != nil {
+		return err
+	}
+
+	id, err := peer.IDFromPrivateKey(sk)
+	if err != nil {
+		return err
+	}
+
+	nthrd := t.Thread(id.Pretty())
+	if nthrd == nil {
+
+		var sch mh.Multihash
+		if thrd.Schema != "" {
+			sch, err = mh.FromB58String(thrd.Schema)
+			if err != nil {
+				return err
+			}
+
+		}
+
+		config := AddThreadConfig{
+			Key:       ksuid.New().String(),
+			Name:      thrd.Name,
+			Schema:    sch,
+			Initiator: thrd.Initiator,
+			Type:      repo.ThreadType(thrd.Type),
+			Sharing:   repo.ThreadSharing(thrd.Sharing),
+			Members:   thrd.Members,
+			Join:      false,
+		}
+
+		var err error
+		nthrd, err = t.AddThread(sk, config)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := nthrd.followParents([]string{thrd.Head}); err != nil {
+		return err
+	}
+	hash, err := mh.FromB58String(thrd.Head)
+	if err != nil {
+		return err
+	}
+
+	return nthrd.updateHead(hash)
+}
+
 // RemoveThread removes a thread
 func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	var thrd *Thread

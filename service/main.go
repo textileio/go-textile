@@ -119,8 +119,9 @@ func (srv *Service) SendRequest(p peer.ID, pmes *pb.Envelope) (*pb.Envelope, err
 	}
 
 	if rpmes == nil {
-		log.Debugf("no response from %s", p.Pretty())
-		return nil, errors.New("no response from peer")
+		err := fmt.Errorf("no response from %s", p.Pretty())
+		log.Debug(err)
+		return nil, err
 	}
 
 	log.Debugf("received %s response from %s", rpmes.Message.Type.String(), p.Pretty())
@@ -176,8 +177,9 @@ func (srv *Service) SendHTTPRequest(addr string, pmes *pb.Envelope) (*pb.Envelop
 	}
 
 	if rpmes == nil {
-		log.Debugf("no response from %s", addr)
-		return nil, errors.New("no response from peer")
+		err := fmt.Errorf("no response from %s", addr)
+		log.Debug(err)
+		return nil, err
 	}
 
 	log.Debugf("received %s response from %s", rpmes.Message.Type.String(), addr)
@@ -213,16 +215,17 @@ func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan 
 
 		tr := &http.Transport{}
 		client := &http.Client{Transport: tr}
+
+		cancel = func() {
+			tr.CancelRequest(req)
+		}
+
 		res, err := client.Do(req)
 		if err != nil {
 			errCh <- err
 			return
 		}
 		defer res.Body.Close()
-
-		cancel = func() {
-			tr.CancelRequest(req)
-		}
 
 		if res.StatusCode >= 400 {
 			res, err := util.UnmarshalString(res.Body)
@@ -245,8 +248,9 @@ func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan 
 			}
 
 			if rpmes == nil || rpmes.Message == nil {
-				log.Debugf("no response from %s", addr)
-				errCh <- errors.New("no response from peer")
+				err := fmt.Errorf("no response from %s", addr)
+				log.Debug(err)
+				errCh <- err
 				return
 			}
 

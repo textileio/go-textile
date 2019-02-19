@@ -31,6 +31,10 @@ func (a *api) addContacts(g *gin.Context) {
 		g.String(http.StatusBadRequest, "missing contact")
 		return
 	}
+	if contact.Id == "" || contact.Address == "" {
+		g.String(http.StatusBadRequest, "invalid contact")
+		return
+	}
 
 	if err := a.node.AddContact(contact); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
@@ -78,6 +82,10 @@ func (a *api) lsContacts(g *gin.Context) {
 		}
 	} else {
 		contacts, err = a.node.Contacts()
+		if err != nil {
+			g.String(http.StatusBadRequest, err.Error())
+			return
+		}
 	}
 
 	g.JSON(http.StatusOK, contacts)
@@ -108,7 +116,7 @@ func (a *api) getContacts(g *gin.Context) {
 // @Summary Remove a contact
 // @Description Removes a known contact
 // @Tags contacts
-// @Produce application/json
+// @Produce text/plain
 // @Param id path string true "contact id"
 // @Success 200 {string} string "ok"
 // @Failure 404 {string} string "Not Found"
@@ -136,11 +144,11 @@ func (a *api) rmContacts(g *gin.Context) {
 // @Description Search for contacts known locally and on the network
 // @Tags contacts
 // @Produce application/json
-// @Param X-Textile-Opts header string false "local: Whether to only search local contacts, limit: Stops searching after limit results are found, wait: Stops searching after 'wait' seconds have elapsed (max 10s), username: search by username string, peer: search by peer id string, address: search by account address string" default(local="false",limit=5,wait=5,peer=,address=,username=)
+// @Param X-Textile-Opts header string false "local: Whether to only search local contacts, limit: Stops searching after limit results are found, wait: Stops searching after 'wait' seconds have elapsed (max 10s), username: search by username string, peer: search by peer id string, address: search by account address string, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON" default(local="false",limit=5,wait=5,peer=,address=,username=,events="false")
 // @Success 200 {object} object "contact stream"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /contacts/{id} [del]
+// @Router /contacts/search [post]
 func (a *api) searchContacts(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
