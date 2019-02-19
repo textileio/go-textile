@@ -415,7 +415,7 @@ jobs:
 
   build-android-aar:
     docker:
-    - image: circleci/android:api-28-ndk
+      - image: circleci/android:api-28-ndk
     working_directory: ~/go/src/github.com/textileio/textile-go
     steps:
     - checkout
@@ -506,7 +506,7 @@ jobs:
 
   build-js-types:
     docker:
-      - image: textile/builder:1.11.2
+      - image: circleci/android:api-28-ndk
     working_directory: ~/go/src/github.com/textileio/textile-go
     steps:
     - checkout
