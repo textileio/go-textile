@@ -13,6 +13,10 @@ import (
 
 // AddContact calls core AddContact
 func (m *Mobile) AddContact(contact string) error {
+	if !m.node.Started() {
+		return core.ErrStopped
+	}
+
 	var model *repo.Contact
 	if err := json.Unmarshal([]byte(contact), &model); err != nil {
 		return err
@@ -52,6 +56,10 @@ func (m *Mobile) Contacts() (string, error) {
 
 // RemoveContact calls core RemoveContact
 func (m *Mobile) RemoveContact(id string) error {
+	if !m.node.Started() {
+		return core.ErrStopped
+	}
+
 	return m.node.RemoveContact(id)
 }
 

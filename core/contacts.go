@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -58,10 +59,14 @@ func (s *contactSet) Add(items ...*pb.Contact) []*pb.Contact {
 	return added
 }
 
-// AddContact adds a contact for the first time
-// Note: Existing contacts will not be overwritten
+// AddContact adds or updates a contact
 func (t *Textile) AddContact(contact *repo.Contact) error {
-	return t.datastore.Contacts().Add(contact)
+	ex := t.datastore.Contacts().Get(contact.Id)
+	if ex != nil && ex.Updated.UnixNano() > contact.Updated.UnixNano() {
+		return nil
+	}
+
+	return t.datastore.Contacts().AddOrUpdate(contact)
 }
 
 // Contact looks up a contact by peer id
@@ -74,10 +79,7 @@ func (t *Textile) Contacts() ([]ContactInfo, error) {
 	contacts := make([]ContactInfo, 0)
 
 	self := t.node.Identity.Pretty()
-	for _, model := range t.datastore.Contacts().List() {
-		if model.Id == self {
-			continue
-		}
+	for _, model := range t.datastore.Contacts().List(fmt.Sprintf("id!='%s'", self)) {
 		info := t.contactInfo(t.datastore.Contacts().Get(model.Id), true)
 		if info != nil {
 			contacts = append(contacts, *info)
@@ -160,6 +162,11 @@ func (t *Textile) SearchContacts(query *pb.ContactQuery, options *pb.QueryOption
 	}
 
 	options.Filter = pb.QueryOptions_HIDE_OLDER
+
+	self := t.Profile()
+	if self != nil {
+		options.Exclude = append(options.Exclude, self.Id)
+	}
 
 	resCh, errCh, cancel := t.search(&pb.Query{
 		Type:    pb.QueryType_CONTACTS,

@@ -102,7 +102,7 @@ func getUsername() (string, string, error) {
 	}
 	username := prof.Username
 
-	pid, err := callPeer()
+	pid, err := callId()
 	if err != nil {
 		return "", "", err
 	}

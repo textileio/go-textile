@@ -113,14 +113,14 @@ func TestContactDB_List(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	list := contactStore.List()
+	list := contactStore.List("")
 	if len(list) != 2 {
 		t.Error("returned incorrect number of contacts")
 	}
 }
 
 func TestContactDB_Count(t *testing.T) {
-	if contactStore.Count() != 2 {
+	if contactStore.Count("") != 2 {
 		t.Error("returned incorrect count of contacts")
 	}
 }

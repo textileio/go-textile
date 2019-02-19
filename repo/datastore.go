@@ -51,9 +51,9 @@ type ContactStore interface {
 	Add(contact *Contact) error
 	AddOrUpdate(contact *Contact) error
 	Get(id string) *Contact
-	List() []Contact
-	Find(id string, address string, username string) []Contact
-	Count() int
+	List(query string) []Contact
+	Find(id string, address string, username string, exclude []string) []Contact
+	Count(query string) int
 	UpdateUsername(id string, username string) error
 	UpdateAvatar(id string, avatar string) error
 	UpdateInboxes(id string, inboxes []Cafe) error

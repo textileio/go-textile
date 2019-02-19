@@ -9,7 +9,16 @@ import (
 	"github.com/textileio/textile-go/ipfs"
 )
 
-func (a *api) swarmConnect(g *gin.Context) {
+func (a *api) ipfsId(g *gin.Context) {
+	pid, err := a.node.PeerId()
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+	g.String(http.StatusOK, pid.Pretty())
+}
+
+func (a *api) ipfsSwarmConnect(g *gin.Context) {
 	args, err := a.readArgs(g)
 	if err != nil {
 		a.abort500(g, err)
@@ -29,7 +38,7 @@ func (a *api) swarmConnect(g *gin.Context) {
 	g.JSON(http.StatusOK, res)
 }
 
-func (a *api) swarmPeers(g *gin.Context) {
+func (a *api) ipfsSwarmPeers(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
 		a.abort500(g, err)

@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/textileio/textile-go/util"
+
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -102,39 +104,61 @@ func (c *ContactDB) Get(id string) *repo.Contact {
 	return &ret[0]
 }
 
-func (c *ContactDB) List() []repo.Contact {
+func (c *ContactDB) List(query string) []repo.Contact {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	return c.handleQuery("select * from contacts order by username asc;")
+	q := "select * from contacts"
+	if query != "" {
+		q += " where " + query
+	}
+	q += " order by username asc;"
+	return c.handleQuery(q)
 }
 
-func (c *ContactDB) Find(id string, address string, username string) []repo.Contact {
+func (c *ContactDB) Find(id string, address string, username string, exclude []string) []repo.Contact {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if id != "" {
+		if util.ListContainsString(exclude, id) {
+			return nil
+		}
 		return c.handleQuery("select * from contacts where id='" + id + "';")
 	}
 	if address == "" && username == "" {
 		return nil
 	}
-	stm := "select * from contacts where"
+	var q string
 	if address != "" {
-		stm += " address='" + address + "'"
-		if username != "" {
-			stm += " and"
-		}
+		q += "address='" + address + "'"
 	}
 	if username != "" {
-		stm += " username='" + username + "'"
+		if len(q) > 0 {
+			q += " and "
+		}
+		q += "username like '%" + username + "%'"
 	}
-	stm += " order by updated desc;"
-	return c.handleQuery(stm)
+	if len(exclude) > 0 {
+		q += " and id not in ("
+		for i, e := range exclude {
+			q += "'" + e + "'"
+			if i != len(exclude)-1 {
+				q += ","
+			}
+		}
+		q += ")"
+	}
+	return c.handleQuery("select * from contacts where " + q + " order by updated desc;")
 }
 
-func (c *ContactDB) Count() int {
+func (c *ContactDB) Count(query string) int {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	row := c.db.QueryRow("select Count(*) from contacts;")
+	q := "select Count(*) from contacts"
+	if query != "" {
+		q += " where " + query
+	}
+	q += ";"
+	row := c.db.QueryRow(q)
 	var count int
 	row.Scan(&count)
 	return count

@@ -19,6 +19,10 @@ func (a *api) addContacts(g *gin.Context) {
 		g.String(http.StatusBadRequest, "missing contact")
 		return
 	}
+	if contact.Id == "" || contact.Address == "" {
+		g.String(http.StatusBadRequest, "invalid contact")
+		return
+	}
 
 	if err := a.node.AddContact(contact); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
@@ -56,6 +60,10 @@ func (a *api) lsContacts(g *gin.Context) {
 		}
 	} else {
 		contacts, err = a.node.Contacts()
+		if err != nil {
+			g.String(http.StatusBadRequest, err.Error())
+			return
+		}
 	}
 
 	g.JSON(http.StatusOK, contacts)

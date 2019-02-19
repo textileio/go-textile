@@ -14,6 +14,42 @@ message Contact {
     google.protobuf.Timestamp updated = 7;
 }
 
+message Thread {
+    string id               = 1;
+    string key              = 2;
+    bytes sk                = 3;
+    string name             = 4;
+    string schema           = 5;
+    string initiator        = 6;
+    Type type               = 7;
+    Sharing sharing         = 8;
+    repeated string members = 9;
+    State state             = 10;
+    string head             = 11;
+
+    // Type controls read (R), annotate (A), and write (W) access
+    enum Type {
+        Private  = 0; // initiator: RAW, members:
+        ReadOnly = 1; // initiator: RAW, members: R
+        Public   = 2; // initiator: RAW, members: RA
+        Open     = 3; // initiator: RAW, members: RAW
+    }
+
+    // Sharing controls if (Y/N) a thread can be shared
+    enum Sharing {
+        NotShared  = 0; // initiator: N, members: N
+        InviteOnly = 1; // initiator: Y, members: N
+        Shared     = 2; // initiator: Y, members: Y
+    }
+
+    // State indicates the loading state
+    enum State {
+        LoadingBehind = 0; // blocks are behind loaded behind head
+        Loaded        = 1; // blocks are all loaded
+        LoadingAhead  = 2; // blocks are being loaded ahead
+    }
+}
+
 message FileIndex {
     string mill                     = 1;
     string checksum                 = 2;
