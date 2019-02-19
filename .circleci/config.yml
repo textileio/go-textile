@@ -513,15 +513,15 @@ jobs:
     - run:
         name: install protoc
         command: |
-            sudo npm install -g protoc
+            npm install -g protoc
     - run:
         name: install google-protobuf
         command: |
-            sudo npm install -g google-protobuf
+            npm install -g google-protobuf
     - run:
         name: install ts-protoc-gen
         command: |
-            sudo npm install -g ts-protoc-gen
+            npm install -g ts-protoc-gen
     - run:
         name: build js types
         command: |
