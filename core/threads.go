@@ -277,7 +277,7 @@ func (t *Textile) Invite(invite *repo.ThreadInvite) *ThreadInviteInfo {
 	var username, avatar string
 	contact := t.datastore.Contacts().Get(invite.Contact.Id)
 	if contact != nil && (invite.Contact == nil || invite.Contact.Updated.Before(contact.Updated)) {
-		username = toUsername(contact)
+		username = toName(contact)
 		avatar = contact.Avatar
 	} else if invite.Contact != nil {
 		username, avatar = t.ContactDisplayInfo(invite.Contact.Id)

@@ -45,14 +45,11 @@ func (t *Textile) message(block *pb.Block, opts feedItemOpts) (*pb.Text, error) 
 		return nil, ErrBlockWrongType
 	}
 
-	username, avatar := t.ContactDisplayInfo(block.Author)
 	item := &pb.Text{
-		Block:    block.Id,
-		Date:     block.Date,
-		Author:   block.Author,
-		Username: username,
-		Avatar:   avatar,
-		Body:     block.Body,
+		Block: block.Id,
+		Date:  block.Date,
+		User:  t.User(block.Author),
+		Body:  block.Body,
 	}
 
 	if opts.annotations {

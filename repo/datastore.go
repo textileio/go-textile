@@ -51,6 +51,7 @@ type ContactStore interface {
 	Add(contact *Contact) error
 	AddOrUpdate(contact *Contact) error
 	Get(id string) *Contact
+	GetBest(id string) *Contact
 	List(query string) []Contact
 	Find(id string, address string, username string, exclude []string) []Contact
 	Count(query string) int

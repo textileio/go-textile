@@ -62,7 +62,7 @@ func (s *queryResultSet) List() []*pb.QueryResult {
 	return list
 }
 
-// Full returns whether or not the number of results meets or exceeds the
+// Full returns whether or not the number of results meets or exceeds limit
 func (s *queryResultSet) Full() bool {
 	s.mux.Lock()
 	defer s.mux.Unlock()

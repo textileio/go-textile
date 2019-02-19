@@ -101,7 +101,22 @@ func (t *Textile) ContactDisplayInfo(id string) (string, string) {
 	if contact == nil {
 		return ipfs.ShortenID(id), ""
 	}
-	return toUsername(contact), contact.Avatar
+	return toName(contact), contact.Avatar
+}
+
+// User returns a user object by finding the most recently updated contact for the given id
+func (t *Textile) User(id string) *pb.User {
+	contact := t.datastore.Contacts().GetBest(id)
+	if contact == nil {
+		return &pb.User{
+			Name: ipfs.ShortenID(id),
+		}
+	}
+	return &pb.User{
+		Address: contact.Address,
+		Name:    toName(contact),
+		Avatar:  contact.Avatar,
+	}
 }
 
 // ContactThreads returns all threads with the given peer
@@ -197,7 +212,7 @@ func (t *Textile) contactInfo(model *repo.Contact, addThreads bool) *ContactInfo
 	return &ContactInfo{
 		Id:        model.Id,
 		Address:   model.Address,
-		Username:  toUsername(model),
+		Username:  toName(model),
 		Avatar:    model.Avatar,
 		Inboxes:   model.Inboxes,
 		Created:   model.Created,
@@ -206,16 +221,16 @@ func (t *Textile) contactInfo(model *repo.Contact, addThreads bool) *ContactInfo
 	}
 }
 
-// toUsername returns a contact's username or trimmed peer id
-func toUsername(contact *repo.Contact) string {
-	if contact == nil || contact.Id == "" {
+// toName returns a contact's name or trimmed address
+func toName(contact *repo.Contact) string {
+	if contact == nil || contact.Address == "" {
 		return ""
 	}
 	if contact.Username != "" {
 		return contact.Username
 	}
-	if len(contact.Id) >= 7 {
-		return contact.Id[len(contact.Id)-7:]
+	if len(contact.Address) >= 7 {
+		return contact.Address[len(contact.Address)-7:]
 	}
 	return ""
 }

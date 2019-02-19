@@ -105,17 +105,14 @@ func (t *Textile) file(block *pb.Block, opts feedItemOpts) (*pb.Files, error) {
 		return nil, err
 	}
 
-	username, avatar := t.ContactDisplayInfo(block.Author)
 	item := &pb.Files{
-		Block:    block.Id,
-		Target:   block.Target,
-		Date:     block.Date,
-		Author:   block.Author,
-		Username: username,
-		Avatar:   avatar,
-		Caption:  block.Body,
-		Files:    files,
-		Threads:  threads,
+		Block:   block.Id,
+		Target:  block.Target,
+		Date:    block.Date,
+		User:    t.User(block.Author),
+		Caption: block.Body,
+		Files:   files,
+		Threads: threads,
 	}
 
 	if opts.annotations {

@@ -35,13 +35,10 @@ func (t *Textile) like(block *pb.Block, opts feedItemOpts) (*pb.Like, error) {
 		return nil, ErrBlockWrongType
 	}
 
-	username, avatar := t.ContactDisplayInfo(block.Author)
 	item := &pb.Like{
-		Id:       block.Id,
-		Date:     block.Date,
-		Author:   block.Author,
-		Username: username,
-		Avatar:   avatar,
+		Id:   block.Id,
+		Date: block.Date,
+		User: t.User(block.Author),
 	}
 
 	if opts.target != nil {

@@ -104,6 +104,21 @@ func (c *ContactDB) Get(id string) *repo.Contact {
 	return &ret[0]
 }
 
+func (c *ContactDB) GetBest(id string) *repo.Contact {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	stm := "select *, (select address from contacts where id='" + id + "') as addr from contacts where address=addr order by updated desc limit 1;"
+	row := c.db.QueryRow(stm)
+	var _id, address, username, avatar, addr string
+	var inboxes []byte
+	var createdInt, updatedInt int64
+	if err := row.Scan(&_id, &address, &username, &avatar, &inboxes, &createdInt, &updatedInt, &addr); err != nil {
+		log.Errorf("error in db scan: %s", err)
+		return nil
+	}
+	return c.handleRow(id, address, username, avatar, inboxes, createdInt, updatedInt)
+}
+
 func (c *ContactDB) List(query string) []repo.Contact {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -197,7 +212,7 @@ func (c *ContactDB) Delete(id string) error {
 }
 
 func (c *ContactDB) handleQuery(stm string) []repo.Contact {
-	var ret []repo.Contact
+	var list []repo.Contact
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -211,22 +226,28 @@ func (c *ContactDB) handleQuery(stm string) []repo.Contact {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-
-		ilist := make([]repo.Cafe, 0)
-		if err := json.Unmarshal(inboxes, &ilist); err != nil {
-			log.Errorf("error unmarshaling cafes: %s", err)
-			continue
+		row := c.handleRow(id, address, username, avatar, inboxes, createdInt, updatedInt)
+		if row != nil {
+			list = append(list, *row)
 		}
-
-		ret = append(ret, repo.Contact{
-			Id:       id,
-			Address:  address,
-			Username: username,
-			Avatar:   avatar,
-			Inboxes:  ilist,
-			Created:  time.Unix(0, createdInt),
-			Updated:  time.Unix(0, updatedInt),
-		})
 	}
-	return ret
+	return list
+}
+
+func (c *ContactDB) handleRow(id string, address string, username string, avatar string, inboxes []byte, createdInt int64, updatedInt int64) *repo.Contact {
+	cafes := make([]repo.Cafe, 0)
+	if err := json.Unmarshal(inboxes, &cafes); err != nil {
+		log.Errorf("error unmarshaling cafes: %s", err)
+		return nil
+	}
+
+	return &repo.Contact{
+		Id:       id,
+		Address:  address,
+		Username: username,
+		Avatar:   avatar,
+		Inboxes:  cafes,
+		Created:  time.Unix(0, createdInt),
+		Updated:  time.Unix(0, updatedInt),
+	}
 }

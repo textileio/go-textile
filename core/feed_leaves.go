@@ -9,13 +9,10 @@ func (t *Textile) leave(block *pb.Block, opts feedItemOpts) (*pb.Leave, error) {
 		return nil, ErrBlockWrongType
 	}
 
-	username, avatar := t.ContactDisplayInfo(block.Author)
 	item := &pb.Leave{
-		Block:    block.Id,
-		Date:     block.Date,
-		Author:   block.Author,
-		Username: username,
-		Avatar:   avatar,
+		Block: block.Id,
+		Date:  block.Date,
+		User:  t.User(block.Author),
 	}
 
 	if opts.annotations {

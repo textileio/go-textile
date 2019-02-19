@@ -92,39 +92,39 @@ type ThreadInviteInfo struct {
 
 // ThreadConfig is used to construct a Thread
 type ThreadConfig struct {
-	RepoPath           string
-	Config             *config.Config
-	Node               func() *core.IpfsNode
-	Datastore          repo.Datastore
-	Service            func() *ThreadsService
-	ThreadsOutbox      *ThreadsOutbox
-	CafeOutbox         *CafeOutbox
-	SendUpdate         func(update ThreadUpdate)
-	ContactDisplayInfo func(id string) (string, string)
+	RepoPath      string
+	Config        *config.Config
+	Node          func() *core.IpfsNode
+	Datastore     repo.Datastore
+	Service       func() *ThreadsService
+	ThreadsOutbox *ThreadsOutbox
+	CafeOutbox    *CafeOutbox
+	SendUpdate    func(update ThreadUpdate)
+	User          func(id string) *pb.User
 }
 
 // Thread is the primary mechanism representing a collecion of data / files / photos
 type Thread struct {
-	Id                 string
-	Key                string // app key, usually UUID
-	Name               string
-	Schema             *schema.Node
-	schemaId           string
-	initiator          string
-	ttype              repo.ThreadType
-	sharing            repo.ThreadSharing
-	members            []string
-	privKey            libp2pc.PrivKey
-	repoPath           string
-	config             *config.Config
-	node               func() *core.IpfsNode
-	datastore          repo.Datastore
-	service            func() *ThreadsService
-	threadsOutbox      *ThreadsOutbox
-	cafeOutbox         *CafeOutbox
-	sendUpdate         func(update ThreadUpdate)
-	contactDisplayInfo func(id string) (string, string)
-	mux                sync.Mutex
+	Id            string
+	Key           string // app key, usually UUID
+	Name          string
+	Schema        *schema.Node
+	schemaId      string
+	initiator     string
+	ttype         repo.ThreadType
+	sharing       repo.ThreadSharing
+	members       []string
+	privKey       libp2pc.PrivKey
+	repoPath      string
+	config        *config.Config
+	node          func() *core.IpfsNode
+	datastore     repo.Datastore
+	service       func() *ThreadsService
+	threadsOutbox *ThreadsOutbox
+	cafeOutbox    *CafeOutbox
+	sendUpdate    func(update ThreadUpdate)
+	user          func(id string) *pb.User
+	mux           sync.Mutex
 }
 
 // NewThread create a new Thread from a repo model and config
@@ -143,25 +143,25 @@ func NewThread(model *repo.Thread, conf *ThreadConfig) (*Thread, error) {
 	}
 
 	return &Thread{
-		Id:                 model.Id,
-		Key:                model.Key,
-		Name:               model.Name,
-		Schema:             sch,
-		schemaId:           model.Schema,
-		initiator:          model.Initiator,
-		ttype:              model.Type,
-		sharing:            model.Sharing,
-		members:            model.Members,
-		privKey:            sk,
-		repoPath:           conf.RepoPath,
-		config:             conf.Config,
-		node:               conf.Node,
-		datastore:          conf.Datastore,
-		service:            conf.Service,
-		threadsOutbox:      conf.ThreadsOutbox,
-		cafeOutbox:         conf.CafeOutbox,
-		sendUpdate:         conf.SendUpdate,
-		contactDisplayInfo: conf.ContactDisplayInfo,
+		Id:            model.Id,
+		Key:           model.Key,
+		Name:          model.Name,
+		Schema:        sch,
+		schemaId:      model.Schema,
+		initiator:     model.Initiator,
+		ttype:         model.Type,
+		sharing:       model.Sharing,
+		members:       model.Members,
+		privKey:       sk,
+		repoPath:      conf.RepoPath,
+		config:        conf.Config,
+		node:          conf.Node,
+		datastore:     conf.Datastore,
+		service:       conf.Service,
+		threadsOutbox: conf.ThreadsOutbox,
+		cafeOutbox:    conf.CafeOutbox,
+		sendUpdate:    conf.SendUpdate,
+		user:          conf.User,
 	}, nil
 }
 
@@ -176,7 +176,7 @@ func (t *Thread) Info() (*ThreadInfo, error) {
 	if mod.Head != "" {
 		head := t.datastore.Blocks().Get(mod.Head)
 		if head != nil {
-			head.Username, head.Avatar = t.contactDisplayInfo(head.Author)
+			head.User = t.user(head.Author)
 		}
 	}
 
@@ -464,7 +464,7 @@ func (t *Thread) indexBlock(commit *commitResult, blockType pb.Block_BlockType, 
 		return err
 	}
 
-	block.Username, block.Avatar = t.contactDisplayInfo(block.Author)
+	block.User = t.user(block.Author)
 	t.pushUpdate(block)
 
 	return nil

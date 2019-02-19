@@ -44,6 +44,6 @@ func (t *Textile) BlockInfo(id string) (*pb.Block, error) {
 		return nil, err
 	}
 
-	block.Username, block.Avatar = t.ContactDisplayInfo(block.Author)
+	block.User = t.User(block.Author)
 	return block, nil
 }

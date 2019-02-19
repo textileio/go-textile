@@ -61,6 +61,13 @@ func TestContactDB_Get(t *testing.T) {
 	}
 }
 
+func TestContactDB_GetBest(t *testing.T) {
+	testContact = contactStore.GetBest("abcde")
+	if testContact == nil {
+		t.Error("could not get best contact")
+	}
+}
+
 func TestContactDB_AddOrUpdate(t *testing.T) {
 	testContact.Username = "joe"
 	testContact.Avatar = "Qm123"

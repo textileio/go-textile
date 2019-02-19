@@ -65,7 +65,7 @@ func (x *chatCmd) Execute(args []string) error {
 					if last {
 						println()
 					}
-					println(Cyan(update.Block.Username) + "  " + Grey(update.Block.Body))
+					println(Cyan(update.Block.User.Name) + "  " + Grey(update.Block.Body))
 					last = false
 				}
 			}

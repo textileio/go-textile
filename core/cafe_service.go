@@ -635,7 +635,7 @@ func (h *CafeService) searchLocal(qtype pb.QueryType, options *pb.QueryOptions, 
 		contacts := h.datastore.Contacts().Find(q.Id, q.Address, q.Username, options.Exclude)
 		for _, c := range contacts {
 			pc := repoContactToProto(&c)
-			pc.Username = toUsername(&c)
+			pc.Username = toName(&c)
 
 			value, err := proto.Marshal(pc)
 			if err != nil {

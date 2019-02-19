@@ -384,11 +384,11 @@ func startNode(serveDocs bool) error {
 					desc := update.Block.Type
 					thrd := update.ThreadId[len(update.ThreadId)-8:]
 
-					if update.Block.Username != "" {
-						update.Block.Username += " "
+					if update.Block.User.Name != "" {
+						update.Block.User.Name += " "
 					}
 
-					msg := cmd.Grey(date+"  "+update.Block.Username+"added ") +
+					msg := cmd.Grey(date+"  "+update.Block.User.Name+"added ") +
 						cmd.Green(desc) + cmd.Grey(" update to thread "+thrd)
 					fmt.Println(msg)
 				}

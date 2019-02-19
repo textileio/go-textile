@@ -4,6 +4,12 @@ option go_package = "pb";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
 
+message User {
+    string address  = 1;
+    string name     = 2;
+    string avatar   = 3;
+}
+
 message Contact {
     string id                         = 1;
     string address                    = 2;
@@ -75,8 +81,7 @@ message Block {
     }
 
     // view info
-    string username = 101;
-    string avatar   = 102;
+    User user = 101;
 }
 
 message FileIndex {

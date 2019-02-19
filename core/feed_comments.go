@@ -35,14 +35,11 @@ func (t *Textile) comment(block *pb.Block, opts feedItemOpts) (*pb.Comment, erro
 		return nil, ErrBlockWrongType
 	}
 
-	username, avatar := t.ContactDisplayInfo(block.Author)
 	item := &pb.Comment{
-		Id:       block.Id,
-		Date:     block.Date,
-		Author:   block.Author,
-		Username: username,
-		Avatar:   avatar,
-		Body:     block.Body,
+		Id:   block.Id,
+		Date: block.Date,
+		User: t.User(block.Author),
+		Body: block.Body,
 	}
 
 	if opts.target != nil {

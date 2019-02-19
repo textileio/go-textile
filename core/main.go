@@ -625,15 +625,15 @@ func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 	}
 
 	threadConfig := &ThreadConfig{
-		RepoPath:           t.repoPath,
-		Config:             t.config,
-		Node:               t.Ipfs,
-		Datastore:          t.datastore,
-		Service:            t.threadsService,
-		ThreadsOutbox:      t.threadsOutbox,
-		CafeOutbox:         t.cafeOutbox,
-		SendUpdate:         t.sendThreadUpdate,
-		ContactDisplayInfo: t.ContactDisplayInfo,
+		RepoPath:      t.repoPath,
+		Config:        t.config,
+		Node:          t.Ipfs,
+		Datastore:     t.datastore,
+		Service:       t.threadsService,
+		ThreadsOutbox: t.threadsOutbox,
+		CafeOutbox:    t.cafeOutbox,
+		SendUpdate:    t.sendThreadUpdate,
+		User:          t.User,
 	}
 
 	thrd, err := NewThread(mod, threadConfig)
