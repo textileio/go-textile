@@ -532,13 +532,13 @@ func TestMobile_PhotoDataForMinWidth(t *testing.T) {
 	}
 }
 
-func TestMobile_Overview(t *testing.T) {
-	res, err := mobile1.Overview()
+func TestMobile_Summary(t *testing.T) {
+	res, err := mobile1.Summary()
 	if err != nil {
-		t.Errorf("get overview failed: %s", err)
+		t.Errorf("get summary failed: %s", err)
 		return
 	}
-	stats := core.Overview{}
+	stats := core.Summary{}
 	if err := json.Unmarshal([]byte(res), &stats); err != nil {
 		t.Error(err)
 	}
@@ -586,8 +586,8 @@ func TestMobile_AddContactAgain(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if err := mobile1.AddContact(string(payload)); err == nil {
-		t.Errorf("adding duplicate contact should throw error")
+	if err := mobile1.AddContact(string(payload)); err != nil {
+		t.Errorf("adding duplicate contact should not throw error")
 	}
 }
 

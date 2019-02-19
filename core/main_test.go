@@ -181,8 +181,8 @@ func TestTextile_AddContact(t *testing.T) {
 }
 
 func TestTextile_AddContactAgain(t *testing.T) {
-	if err := node.AddContact(contact); err == nil {
-		t.Errorf("adding duplicate contact should throw error")
+	if err := node.AddContact(contact); err != nil {
+		t.Errorf("adding duplicate contact should not throw error")
 	}
 }
 

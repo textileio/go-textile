@@ -63,13 +63,14 @@ const cafeServiceProtocol = protocol.ID("/textile/cafe/1.0.0")
 
 // CafeService is a libp2p pinning and offline message service
 type CafeService struct {
-	service       *service.Service
-	datastore     repo.Datastore
-	inbox         *CafeInbox
-	info          *repo.Cafe
-	online        bool
-	open          bool
-	searchResults *broadcast.Broadcaster
+	service         *service.Service
+	datastore       repo.Datastore
+	inbox           *CafeInbox
+	info            *repo.Cafe
+	online          bool
+	open            bool
+	queryResults    *broadcast.Broadcaster
+	inFlightQueries map[string]struct{}
 }
 
 // NewCafeService returns a new threads service
@@ -80,9 +81,10 @@ func NewCafeService(
 	inbox *CafeInbox,
 ) *CafeService {
 	handler := &CafeService{
-		datastore:     datastore,
-		inbox:         inbox,
-		searchResults: broadcast.NewBroadcaster(10),
+		datastore:       datastore,
+		inbox:           inbox,
+		queryResults:    broadcast.NewBroadcaster(10),
+		inFlightQueries: make(map[string]struct{}),
 	}
 	handler.service = service.NewService(account, handler, node)
 	return handler
@@ -278,16 +280,17 @@ loop:
 
 // StoreThread pushes a thread to a cafe backup
 func (h *CafeService) StoreThread(thrd *repo.Thread, cafe peer.ID) error {
-	plaintext, err := proto.Marshal(&pb.CafeThread{
+	plaintext, err := proto.Marshal(&pb.Thread{
+		Id:        thrd.Id,
 		Key:       thrd.Key,
 		Sk:        thrd.PrivKey,
 		Name:      thrd.Name,
 		Schema:    thrd.Schema,
 		Initiator: thrd.Initiator,
-		Type:      pb.CafeThread_Type(thrd.Type),
-		Sharing:   pb.CafeThread_Sharing(thrd.Sharing),
+		Type:      pb.Thread_Type(thrd.Type),
+		Sharing:   pb.Thread_Sharing(thrd.Sharing),
 		Members:   thrd.Members,
-		State:     pb.CafeThread_State(thrd.State),
+		State:     pb.Thread_State(thrd.State),
 		Head:      thrd.Head,
 	})
 	if err != nil {
@@ -395,6 +398,11 @@ func (h *CafeService) PublishContact(contact *repo.Contact, cafe peer.ID) error 
 
 // Search performs a query via a cafe
 func (h *CafeService) Search(query *pb.Query, cafe peer.ID, reply func(*pb.QueryResult), cancelCh <-chan interface{}) error {
+	h.inFlightQueries[query.Id] = struct{}{}
+	defer func() {
+		delete(h.inFlightQueries, query.Id)
+	}()
+
 	envFactory := func(session *pb.CafeSession) (*pb.Envelope, error) {
 		query.Token = session.Access
 		return h.service.NewEnvelope(pb.Message_CAFE_QUERY, query, nil, false)
@@ -411,15 +419,19 @@ func (h *CafeService) Search(query *pb.Query, cafe peer.ID, reply func(*pb.Query
 	}
 
 	renvCh, errCh, cancel := h.service.SendHTTPStreamRequest(getCafeHTTPAddr(session), env)
+	cancelFn := func() {
+		if cancel != nil {
+			fn := *cancel
+			if fn != nil {
+				fn()
+			}
+		}
+	}
+
 	for {
 		select {
 		case <-cancelCh:
-			if cancel != nil {
-				fn := *cancel
-				if fn != nil {
-					fn()
-				}
-			}
+			cancelFn()
 			return nil
 		case err := <-errCh:
 			return err
@@ -580,8 +592,8 @@ func (h *CafeService) sendObject(id cid.Cid, addr string, token string) error {
 }
 
 // searchLocal searches the local index based on the given query
-func (h *CafeService) searchLocal(qtype pb.QueryType, filter pb.QueryOptions_FilterType, payload *any.Any, local bool) (*queryResultSet, error) {
-	results := newQueryResultSet(filter)
+func (h *CafeService) searchLocal(qtype pb.QueryType, options *pb.QueryOptions, payload *any.Any, local bool) (*queryResultSet, error) {
+	results := newQueryResultSet(options)
 
 	switch qtype {
 	case pb.QueryType_THREAD_BACKUPS:
@@ -619,7 +631,7 @@ func (h *CafeService) searchLocal(qtype pb.QueryType, filter pb.QueryOptions_Fil
 			return nil, err
 		}
 
-		contacts := h.datastore.Contacts().Find(q.Id, q.Address, q.Username)
+		contacts := h.datastore.Contacts().Find(q.Id, q.Address, q.Username, options.Exclude)
 		for _, c := range contacts {
 			pc := repoContactToProto(&c)
 			pc.Username = toUsername(&c)
@@ -645,7 +657,10 @@ func (h *CafeService) searchLocal(qtype pb.QueryType, filter pb.QueryOptions_Fil
 
 // searchPubSub performs a network-wide search for the given query
 func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults) bool, cancelCh <-chan interface{}, fromCafe bool) error {
-	psId := ksuid.New().String()
+	h.inFlightQueries[query.Id] = struct{}{}
+	defer func() {
+		delete(h.inFlightQueries, query.Id)
+	}()
 
 	// if caller needs results over pubsub, start a tmp subscription
 	var rtype pb.PubSubQuery_ResponseType
@@ -655,12 +670,12 @@ func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults)
 	} else {
 		rtype = pb.PubSubQuery_PUBSUB
 		go func() {
-			psCancel = h.service.ListenFor(psId, false, h.handlePubSubQueryResults)
+			psCancel = h.service.ListenFor(query.Id, false, h.handlePubSubQueryResults)
 		}()
 	}
 
 	if err := h.publishQuery(&pb.PubSubQuery{
-		Id:           psId,
+		Id:           query.Id,
 		Type:         query.Type,
 		Payload:      query.Payload,
 		ResponseType: rtype,
@@ -669,7 +684,7 @@ func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults)
 	}
 
 	timer := time.NewTimer(time.Second * time.Duration(query.Options.Wait))
-	listener := h.searchResults.Listen()
+	listener := h.queryResults.Listen()
 	doneCh := make(chan struct{})
 
 	done := func() {
@@ -697,7 +712,7 @@ func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults)
 			if !ok {
 				return nil
 			}
-			if r, ok := value.(*pb.PubSubQueryResults); ok && r.Id == psId && r.Results.Type == query.Type {
+			if r, ok := value.(*pb.PubSubQueryResults); ok && r.Id == query.Id && r.Results.Type == query.Type {
 				if reply(r.Results) {
 					if timer.Stop() {
 						done()
@@ -1185,7 +1200,7 @@ func (h *CafeService) handleQuery(pid peer.ID, env *pb.Envelope, renvs chan *pb.
 	if err := ptypes.UnmarshalAny(env.Message.Payload, query); err != nil {
 		return err
 	}
-	query = applyQueryDefaults(query)
+	query = queryDefaults(query)
 
 	rerr, err := h.authToken(pid, query.Token, false, env.Message.RequestId)
 	if err != nil {
@@ -1196,7 +1211,7 @@ func (h *CafeService) handleQuery(pid peer.ID, env *pb.Envelope, renvs chan *pb.
 		return nil
 	}
 
-	results := newQueryResultSet(query.Options.Filter)
+	results := newQueryResultSet(query.Options)
 	reply := func(res *pb.QueryResults) bool {
 		added := results.Add(res.Items...)
 		if len(added) == 0 {
@@ -1206,14 +1221,15 @@ func (h *CafeService) handleQuery(pid peer.ID, env *pb.Envelope, renvs chan *pb.
 		renv, err := h.service.NewEnvelope(pb.Message_CAFE_QUERY_RES, res, &env.Message.RequestId, true)
 		if err != nil {
 			log.Errorf("error replying with query results: %s", err)
+			return false
 		}
 		renvs <- renv
 
-		return len(results.items) >= int(query.Options.Limit)
+		return results.Full()
 	}
 
 	// search local
-	localResults, err := h.searchLocal(query.Type, query.Options.Filter, query.Payload, false)
+	localResults, err := h.searchLocal(query.Type, query.Options, query.Payload, false)
 	if err != nil {
 		return err
 	}
@@ -1235,8 +1251,13 @@ func (h *CafeService) handlePubSubQuery(pid peer.ID, env *pb.Envelope) (*pb.Enve
 		return nil, err
 	}
 
+	if _, ok := h.inFlightQueries[query.Id]; ok {
+		return nil, nil
+	}
+
 	// return results, if any
-	results, err := h.searchLocal(query.Type, pb.QueryOptions_NO_FILTER, query.Payload, false)
+	options := &pb.QueryOptions{Filter: pb.QueryOptions_NO_FILTER}
+	results, err := h.searchLocal(query.Type, options, query.Payload, false)
 	if err != nil {
 		return nil, err
 	}
@@ -1280,7 +1301,7 @@ func (h *CafeService) handlePubSubQueryResults(pid peer.ID, env *pb.Envelope) (*
 		return nil, err
 	}
 
-	h.searchResults.Send(res)
+	h.queryResults.Send(res)
 	return nil, nil
 }
 
@@ -1344,13 +1365,13 @@ func protoTimeToNano(t *timestamp.Timestamp) int {
 	return int(t.Nanos) + int(t.Seconds*1e9)
 }
 
-// applyQueryDefaults ensures the query is within the expected bounds
-func applyQueryDefaults(query *pb.Query) *pb.Query {
+// queryDefaults ensures the query is within the expected bounds
+func queryDefaults(query *pb.Query) *pb.Query {
 	if query.Options == nil {
 		query.Options = &pb.QueryOptions{
 			Local:  false,
-			Wait:   defaultQueryWaitSeconds,
 			Limit:  defaultQueryResultsLimit,
+			Wait:   defaultQueryWaitSeconds,
 			Filter: pb.QueryOptions_NO_FILTER,
 		}
 	}
@@ -1406,7 +1427,7 @@ func (h *CafeService) findContactPubSub(query *pb.CafeContactQuery, results *con
 		query.Wait = maxQueryWaitSeconds
 	}
 	timer := time.NewTimer(time.Second * time.Duration(query.Wait))
-	listener := h.searchResults.Listen()
+	listener := h.queryResults.Listen()
 	doneCh := make(chan struct{})
 
 	done := func() {
@@ -1492,13 +1513,14 @@ func (h *CafeService) handleContactQuery(pid peer.ID, env *pb.Envelope, renvs ch
 		renv, err := h.service.NewEnvelope(pb.Message_CAFE_CONTACT_QUERY_RES, res, &env.Message.RequestId, true)
 		if err != nil {
 			log.Errorf("error replying with query result: %s", err)
+			return
 		}
 		renvs <- renv
 	}
 
 	// search local
 	res := &pb.CafeContactQueryResult{}
-	for _, c := range h.datastore.Contacts().Find(query.FindId, query.FindAddress, query.FindUsername) {
+	for _, c := range h.datastore.Contacts().Find(query.FindId, query.FindAddress, query.FindUsername, []string{}) {
 		res.Contacts = append(res.Contacts, results.Add(repoContactToProto(&c))...)
 	}
 	if len(res.Contacts) > 0 {
@@ -1527,7 +1549,7 @@ func (h *CafeService) handlePubSubContactQuery(pid peer.ID, env *pb.Envelope) (*
 	res := &pb.CafePubSubContactQueryResult{
 		Id: query.Id,
 	}
-	for _, c := range h.datastore.Contacts().Find(query.FindId, query.FindAddress, query.FindUsername) {
+	for _, c := range h.datastore.Contacts().Find(query.FindId, query.FindAddress, query.FindUsername, []string{}) {
 		res.Contacts = append(res.Contacts, repoContactToProto(&c))
 	}
 
@@ -1565,6 +1587,6 @@ func (h *CafeService) handlePubSubContactQueryResult(pid peer.ID, env *pb.Envelo
 		return nil, err
 	}
 
-	h.searchResults.Send(res)
+	h.queryResults.Send(res)
 	return nil, nil
 }

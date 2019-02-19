@@ -1,8 +1,15 @@
 package core
 
 import (
+	"fmt"
+
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
+	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/pb"
 )
 
 // Account returns account keypair
@@ -36,4 +43,91 @@ func (t *Textile) Decrypt(input []byte) ([]byte, error) {
 		return nil, err
 	}
 	return crypto.Decrypt(sk, input)
+}
+
+// AccountPeers returns all known account peers
+func (t *Textile) AccountPeers() ([]ContactInfo, error) {
+	peers := make([]ContactInfo, 0)
+
+	peerId := t.node.Identity.Pretty()
+	address := t.account.Address()
+	query := fmt.Sprintf("address='%s' and id!='%s'", address, peerId)
+	for _, model := range t.datastore.Contacts().List(query) {
+		info := t.contactInfo(t.datastore.Contacts().Get(model.Id), false)
+		if info != nil {
+			peers = append(peers, *info)
+		}
+	}
+
+	return peers, nil
+}
+
+// FindThreadBackups searches the network for backups
+func (t *Textile) FindThreadBackups(query *pb.ThreadBackupQuery, options *pb.QueryOptions) (<-chan *pb.QueryResult, <-chan error, *broadcast.Broadcaster, error) {
+	payload, err := proto.Marshal(query)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	options.Filter = pb.QueryOptions_NO_FILTER
+
+	resCh, errCh, cancel := t.search(&pb.Query{
+		Type:    pb.QueryType_THREAD_BACKUPS,
+		Options: options,
+		Payload: &any.Any{
+			TypeUrl: "/ThreadBackupQuery",
+			Value:   payload,
+		},
+	})
+
+	// transform and filter results by decrypting
+	backups := make(map[string]struct{})
+	tresCh := make(chan *pb.QueryResult)
+	terrCh := make(chan error)
+	go func() {
+		for {
+			select {
+			case res, ok := <-resCh:
+				if !ok {
+					close(tresCh)
+					return
+				}
+
+				backup := new(pb.CafeClientThread)
+				if err := ptypes.UnmarshalAny(res.Value, backup); err != nil {
+					terrCh <- err
+					break
+				}
+
+				plaintext, err := t.account.Decrypt(backup.Ciphertext)
+				if err != nil {
+					terrCh <- err
+					break
+				}
+
+				thrd := new(pb.Thread)
+				if err := proto.Unmarshal(plaintext, thrd); err != nil {
+					terrCh <- err
+					break
+				}
+
+				res.Id += ":" + thrd.Head
+				if _, ok := backups[res.Id]; ok {
+					continue
+				}
+				backups[res.Id] = struct{}{}
+
+				res.Value = &any.Any{
+					TypeUrl: "/Thread",
+					Value:   plaintext,
+				}
+				tresCh <- res
+
+			case err := <-errCh:
+				terrCh <- err
+			}
+		}
+	}()
+
+	return tresCh, terrCh, cancel, nil
 }

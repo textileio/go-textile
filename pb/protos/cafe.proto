@@ -83,48 +83,13 @@ message CafeObject {
 message CafeStoreThread {
     string token     = 1;
     string id        = 2;
-    bytes ciphertext = 3; // encrypted CafeThread
-}
-
-message CafeThread {
-    string key              = 1;
-    bytes sk                = 2;
-    string name             = 3;
-    string schema           = 4;
-    string initiator        = 5;
-    Type type               = 6;
-    State state             = 7;
-    string head             = 8;
-    Sharing sharing         = 9;
-    repeated string members = 10;
-
-    // Type controls read (R), annotate (A), and write (W) access
-    enum Type {
-        Private  = 0; // initiator: RAW, members:
-        ReadOnly = 1; // initiator: RAW, members: R
-        Public   = 2; // initiator: RAW, members: RA
-        Open     = 3; // initiator: RAW, members: RAW
-    }
-
-    // Sharing controls if (Y/N) a thread can be shared
-    enum Sharing {
-        NotShared  = 0; // initiator: N, members: N
-        InviteOnly = 1; // initiator: Y, members: N
-        Shared     = 2; // initiator: Y, members: Y
-    }
-
-    // State indicates the loading state
-    enum State {
-        LoadingBehind = 0; // blocks are behind loaded behind head
-        Loaded        = 1; // blocks are all loaded
-        LoadingAhead  = 2; // blocks are being loaded ahead
-    }
+    bytes ciphertext = 3; // encrypted Thread
 }
 
 message CafeClientThread {
     string id        = 1;
     string clientId  = 2;
-    bytes ciphertext = 3; // encrypted CafeThread
+    bytes ciphertext = 3; // encrypted Thread
 }
 
 message CafeStored {

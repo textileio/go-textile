@@ -7,7 +7,6 @@ import (
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 
 	"github.com/textileio/textile-go/broadcast"
-	"github.com/textileio/textile-go/common"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/wallet"
@@ -239,45 +238,9 @@ func (m *Mobile) Stop() error {
 	return nil
 }
 
-// Version returns common Version
-func (m *Mobile) Version() string {
-	return "v" + common.Version
-}
-
-// GitSummary returns common GitSummary
-func (m *Mobile) GitSummary() string {
-	return common.GitSummary
-}
-
 // OnlineCh returns core OnlineCh
 func (m *Mobile) OnlineCh() <-chan struct{} {
 	return m.node.OnlineCh()
-}
-
-// PeerId returns the ipfs peer id
-func (m *Mobile) PeerId() (string, error) {
-	if !m.node.Started() {
-		return "", core.ErrStopped
-	}
-
-	pid, err := m.node.PeerId()
-	if err != nil {
-		return "", err
-	}
-	return pid.Pretty(), nil
-}
-
-// Overview calls core Overview
-func (m *Mobile) Overview() (string, error) {
-	if !m.node.Started() {
-		return "", core.ErrStopped
-	}
-
-	stats, err := m.node.Overview()
-	if err != nil {
-		return "", err
-	}
-	return toJSON(stats)
 }
 
 // blockInfo returns json info view of a block
