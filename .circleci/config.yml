@@ -513,20 +513,20 @@ jobs:
     - run:
         name: install protoc
         command: |
-            npm install -g protoc
+            npm install protoc
     - run:
         name: install google-protobuf
         command: |
-            npm install -g google-protobuf
+            npm install google-protobuf
     - run:
         name: install ts-protoc-gen
         command: |
-            npm install -g ts-protoc-gen
+            npm install ts-protoc-gen
     - run:
         name: build js types
         command: |
             mkdir protobuf_gen
-            protoc --plugin="protoc-gen-ts=/usr/local/bin/protoc-gen-ts" --proto_path=./pb/protos --js_out="import_style=commonjs,binary:./protobuf_gen" --ts_out="./protobuf_gen" ./pb/protos/*
+            ./node_modules/protoc/protoc/bin/protoc --plugin="protoc-gen-ts=./node_modules/.bin/protoc-gen-ts" --proto_path=./pb/protos --js_out="import_style=commonjs,binary:./protobuf_gen" --ts_out="./protobuf_gen" ./pb/protos/*
     - run:
         name: collect artifacts
         command: |
