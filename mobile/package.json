@@ -29,5 +29,8 @@
   ],
   "scripts": {
     "postinstall": "./scripts/fetch_release.sh $npm_package_version"
+  },
+  "dependencies": {
+    "google-protobuf": "^3.7.0-rc.2"
   }
 }
