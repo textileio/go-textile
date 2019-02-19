@@ -120,7 +120,7 @@ func (a *api) addThreads(g *gin.Context) {
 // @Description Lists all local threads, returning an array of ThreadInfo objects
 // @Tags threads
 // @Produce application/json
-// @Success 201 {array} core.ThreadInfo "threads"
+// @Success 200 {array} core.ThreadInfo "threads"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /threads [get]
@@ -144,10 +144,10 @@ func (a *api) lsThreads(g *gin.Context) {
 // @Tags threads
 // @Produce application/json
 // @Param id path string true "thread id")
-// @Success 201 {object} core.ThreadInfo "thread"
+// @Success 200 {object} core.ThreadInfo "thread"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /threads [post]
+// @Router /threads/{id} [get]
 func (a *api) getThreads(g *gin.Context) {
 	id := g.Param("id")
 	if id == "default" {
@@ -168,6 +168,15 @@ func (a *api) getThreads(g *gin.Context) {
 	g.JSON(http.StatusOK, info)
 }
 
+// peersThreads godoc
+// @Summary List all thread peers
+// @Description Lists all peers in a thread, optionally listing peers in the default thread
+// @Tags threads
+// @Produce application/json
+// @Param id path string true "thread id")
+// @Success 200 {array} core.ContactInfo "contacts"
+// @Failure 404 {string} string "Not Found"
+// @Router /threads/{id}/peers [get]
 func (a *api) peersThreads(g *gin.Context) {
 	id := g.Param("id")
 	if id == "default" {
@@ -191,6 +200,16 @@ func (a *api) peersThreads(g *gin.Context) {
 	g.JSON(http.StatusOK, contacts)
 }
 
+// rmThreads godoc
+// @Summary Leave and remove a thread
+// @Description Leaves and removes a thread
+// @Tags threads
+// @Produce application/json
+// @Param id path string true "thread id")
+// @Success 200 {string} string "ok"
+// @Failure 404 {string} string "Not Found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /threads/{id} [del]
 func (a *api) rmThreads(g *gin.Context) {
 	id := g.Param("id")
 

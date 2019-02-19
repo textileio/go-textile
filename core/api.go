@@ -222,8 +222,8 @@ func (a *api) Start() {
 		{
 			tokens.POST("", a.createTokens)
 			tokens.GET("", a.lsTokens)
-			tokens.GET("/:id", a.validateTokens)
-			tokens.DELETE("/:id", a.rmTokens)
+			tokens.GET("/:token", a.validateTokens)
+			tokens.DELETE("/:token", a.rmTokens)
 		}
 
 		swarm := v0.Group("/swarm")

@@ -9,6 +9,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// getThreadsSub godoc
+// @Summary Subscribe to thread updates
+// @Description Subscribes to updates in a thread or all threads. An update is generated
+// @Description when a new block is added to a thread. There are several update types:
+// @Description JOIN, ANNOUNCE, LEAVE, MESSAGE, FILES, COMMENT, LIKE, MERGE, IGNORE, FLAG
+// @Tags sub
+// @Produce application/json
+// @Param id path string false "thread id, omit to stream all events"
+// @Param X-Textile-Opts header string false "type: Or'd list of event types (e.g., FILES|COMMENTS|LIKES) or empty to include all types, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON" default(type=,events="false")
+// @Success 200 {object} core.ThreadUpdate "stream of updates"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /sub/{id} [get]
 func (a *api) getThreadsSub(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {

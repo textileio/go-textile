@@ -10,6 +10,17 @@ import (
 	"github.com/mr-tron/base58/base58"
 )
 
+// createInvites godoc
+// @Summary Create an invite to a thread
+// @Description Creates a direct peer-to-peer or external invite to a thread
+// @Tags invites
+// @Produce application/json
+// @Param X-Textile-Opts header string false "thread: Thread ID (can also use 'default'), peer: Peer ID (omit to create an external invite)" default(thread=,peer=)
+// @Success 201 {object} map[string]string "invite"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 404 {string} string "Not Found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /blocks/{id}/likes [post]
 func (a *api) createInvites(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
@@ -56,6 +67,13 @@ func (a *api) createInvites(g *gin.Context) {
 	g.JSON(http.StatusCreated, result)
 }
 
+// lsInvites godoc
+// @Summary List invites
+// @Description Lists all pending thread invites
+// @Tags invites
+// @Produce application/json
+// @Success 200 {array} core.ThreadInviteInfo "invites"
+// @Router /invites [get]
 func (a *api) lsInvites(g *gin.Context) {
 	list := make([]ThreadInviteInfo, 0)
 	res := a.node.Invites()
@@ -66,6 +84,19 @@ func (a *api) lsInvites(g *gin.Context) {
 	g.JSON(http.StatusOK, list)
 }
 
+// acceptInvites godoc
+// @Summary Accept a thread invite
+// @Description Accepts a direct peer-to-peer or external invite to a thread. Use the key option
+// @Description with an external invite
+// @Tags invites
+// @Produce application/json
+// @Param id path string true "invite id"
+// @Param X-Textile-Opts header string false "key: key for an external invite" default(key=)
+// @Success 201 {object} core.BlockInfo "join block"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 409 {string} string "Conflict"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /invites/{id}/accept [post]
 func (a *api) acceptInvites(g *gin.Context) {
 	id := g.Param("id")
 	opts, err := a.readOpts(g)
@@ -107,6 +138,15 @@ func (a *api) acceptInvites(g *gin.Context) {
 	g.JSON(http.StatusCreated, info)
 }
 
+// ignoreInvites godoc
+// @Summary Ignore a thread invite
+// @Description Ignores a direct peer-to-peer invite to a thread
+// @Tags invites
+// @Produce application/json
+// @Param id path string true "invite id"
+// @Success 200 {string} string "ok"
+// @Failure 400 {string} string "Bad Request"
+// @Router /invites/{id}/ignore [post]
 func (a *api) ignoreInvites(g *gin.Context) {
 	id := g.Param("id")
 

@@ -52,7 +52,7 @@ func (a *api) schemaMill(g *gin.Context) {
 // @Accept multipart/form-data
 // @Produce application/json
 // @Param file formData file false "multipart/form-data file"
-// @Param X-Textile-Opts header string false "plaintext: whether to leave unencrypted)use: if empty, assumes body contains multipart form file data, otherwise, will attempt to fetch given CID from IPFS" default(plaintext=false,use="")
+// @Param X-Textile-Opts header string false "plaintext: whether to leave unencrypted), use: if empty, assumes body contains multipart form file data, otherwise, will attempt to fetch given CID from IPFS" default(plaintext=false,use="")
 // @Success 201 {object} repo.File "file"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"

@@ -25,6 +25,93 @@ definitions:
       username:
         type: string
     type: object
+  core.ContactInfo:
+    properties:
+      address:
+        type: string
+      avatar:
+        type: string
+      created:
+        type: string
+      id:
+        type: string
+      inboxes:
+        items:
+          $ref: '#/definitions/repo.Cafe'
+        type: array
+      thread_ids:
+        items:
+          type: string
+        type: array
+      updated:
+        type: string
+      username:
+        type: string
+    type: object
+  core.Directory:
+    additionalProperties:
+      properties:
+        added:
+          type: string
+        checksum:
+          type: string
+        hash:
+          type: string
+        key:
+          type: string
+        media:
+          type: string
+        meta:
+          type: object
+        mill:
+          type: string
+        name:
+          type: string
+        opts:
+          type: string
+        size:
+          type: integer
+        source:
+          type: string
+        targets:
+          items:
+            type: string
+          type: array
+      type: object
+    type: object
+  core.Keys:
+    additionalProperties: {}
+    type: object
+  core.NotificationInfo:
+    properties:
+      actor_id:
+        type: string
+      avatar:
+        type: string
+      block_id:
+        type: string
+      body:
+        type: string
+      date:
+        type: string
+      id:
+        type: string
+      read:
+        type: boolean
+      subject:
+        type: string
+      subject_id:
+        type: string
+      target:
+        type: string
+      type:
+        type: string
+      username:
+        type: string
+    type: object
+  core.SubsystemInfo:
+    additionalProperties: {}
+    type: object
   core.ThreadInfo:
     properties:
       block_cnt:
@@ -59,6 +146,239 @@ definitions:
         type: string
       type:
         type: string
+    type: object
+  core.ThreadInviteInfo:
+    properties:
+      avatar:
+        type: string
+      date:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      username:
+        type: string
+    type: object
+  core.ThreadUpdate:
+    properties:
+      block:
+        $ref: '#/definitions/core.BlockInfo'
+        type: object
+      info:
+        type: object
+      thread_id:
+        type: string
+      thread_key:
+        type: string
+      thread_name:
+        type: string
+    type: object
+  ipfs.ConnInfos:
+    properties:
+      peers:
+        items:
+          $ref: '#/definitions/ipfs.connInfo'
+        type: array
+    type: object
+  ipfs.connInfo:
+    properties:
+      addr:
+        type: string
+      direction:
+        type: string
+      latency:
+        type: string
+      muxer:
+        type: string
+      peer:
+        type: string
+      streams:
+        items:
+          $ref: '#/definitions/ipfs.streamInfo'
+        type: array
+    type: object
+  ipfs.streamInfo:
+    properties:
+      protocol:
+        type: string
+    type: object
+  pb.Comment:
+    properties:
+      author:
+        type: string
+      avatar:
+        type: string
+      body:
+        type: string
+      date:
+        type: string
+      id:
+        type: string
+      target:
+        $ref: '#/definitions/pb.FeedItem'
+        type: object
+      username:
+        type: string
+    type: object
+  pb.CommentList:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/pb.Comment'
+        type: array
+    type: object
+  pb.FeedItem:
+    properties:
+      block:
+        type: string
+      payload:
+        type: string
+      thread:
+        type: string
+    type: object
+  pb.FeedItemList:
+    properties:
+      count:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/pb.FeedItem'
+        type: array
+      next:
+        type: string
+    type: object
+  pb.File:
+    properties:
+      file:
+        $ref: '#/definitions/pb.FileIndex'
+        type: object
+      index:
+        type: integer
+      links:
+        type: object
+    type: object
+  pb.FileIndex:
+    properties:
+      added:
+        type: string
+      checksum:
+        type: string
+      hash:
+        type: string
+      key:
+        type: string
+      media:
+        type: string
+      meta:
+        type: string
+      mill:
+        type: string
+      name:
+        type: string
+      opts:
+        type: string
+      size:
+        type: integer
+      source:
+        type: string
+      targets:
+        items:
+          type: string
+        type: array
+    type: object
+  pb.Files:
+    properties:
+      author:
+        type: string
+      avatar:
+        type: string
+      block:
+        type: string
+      caption:
+        type: string
+      comments:
+        items:
+          $ref: '#/definitions/pb.Comment'
+        type: array
+      date:
+        type: string
+      files:
+        items:
+          $ref: '#/definitions/pb.File'
+        type: array
+      likes:
+        items:
+          $ref: '#/definitions/pb.Like'
+        type: array
+      target:
+        type: string
+      threads:
+        items:
+          type: string
+        type: array
+      username:
+        type: string
+    type: object
+  pb.FilesList:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/pb.Files'
+        type: array
+    type: object
+  pb.Like:
+    properties:
+      author:
+        type: string
+      avatar:
+        type: string
+      date:
+        type: string
+      id:
+        type: string
+      target:
+        $ref: '#/definitions/pb.FeedItem'
+        type: object
+      username:
+        type: string
+    type: object
+  pb.LikeList:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/pb.Like'
+        type: array
+    type: object
+  pb.Text:
+    properties:
+      author:
+        type: string
+      avatar:
+        type: string
+      block:
+        type: string
+      body:
+        type: string
+      comments:
+        items:
+          $ref: '#/definitions/pb.Comment'
+        type: array
+      date:
+        type: string
+      likes:
+        items:
+          $ref: '#/definitions/pb.Like'
+        type: array
+      username:
+        type: string
+    type: object
+  pb.TextList:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/pb.Text'
+        type: array
     type: object
   repo.Cafe:
     properties:
@@ -174,6 +494,739 @@ paths:
       summary: Show peer address
       tags:
       - peer
+  /blocks:
+    get:
+      description: |-
+        Paginates blocks in a thread. Blocks are the raw components in a thread.
+        Think of them as an append-only log of thread updates where each update is
+        hash-linked to its parent(s). New / recovering peers can sync history by simply
+        traversing the hash tree.
+      parameters:
+      - default: thread=,offset=,limit=5
+        description: 'thread: Thread ID (can also use ''default''), offset: Offset
+          ID to start listing from (omit for latest), limit: List page size (default:
+          5)'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: blocks
+          schema:
+            items:
+              $ref: '#/definitions/core.BlockInfo'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Paginates blocks in a thread
+      tags:
+      - blocks
+  /blocks/{id}:
+    get:
+      description: Gets a thread block by ID
+      parameters:
+      - description: block id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: block
+          schema:
+            $ref: '#/definitions/core.BlockInfo'
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Gets thread block
+      tags:
+      - blocks
+  /blocks/{id}/comment:
+    get:
+      description: Gets a thread comment by block ID
+      parameters:
+      - description: block id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: comment
+          schema:
+            $ref: '#/definitions/pb.Comment'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Get thread comment
+      tags:
+      - blocks
+  /blocks/{id}/comments:
+    get:
+      description: Lists comments on a thread block
+      parameters:
+      - description: block id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: comments
+          schema:
+            $ref: '#/definitions/pb.CommentList'
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: List comments
+      tags:
+      - blocks
+    post:
+      description: Adds a comment to a thread block
+      parameters:
+      - description: block id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: urlescaped comment body
+        in: header
+        name: X-Textile-Args
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: comment
+          schema:
+            $ref: '#/definitions/pb.Comment'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Add a comment
+      tags:
+      - blocks
+  /blocks/{id}/like:
+    get:
+      description: Gets a thread like by block ID
+      parameters:
+      - description: block id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: like
+          schema:
+            $ref: '#/definitions/pb.Like'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Get thread like
+      tags:
+      - blocks
+  /blocks/{id}/likes:
+    get:
+      description: Lists likes on a thread block
+      parameters:
+      - description: block id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: likes
+          schema:
+            $ref: '#/definitions/pb.LikeList'
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: List likes
+      tags:
+      - blocks
+    post:
+      description: Creates a direct peer-to-peer or external invite to a thread
+      parameters:
+      - default: thread=,peer=
+        description: 'thread: Thread ID (can also use ''default''), peer: Peer ID
+          (omit to create an external invite)'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: invite
+          schema:
+            $ref: '#/definitions/map'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Create an invite to a thread
+      tags:
+      - invites
+  /config:
+    patch:
+      consumes:
+      - application/json
+      description: |-
+        When patching config values, valid JSON types must be used. For example, a string
+        should be escaped or wrapped in single quotes (e.g., \"127.0.0.1:40600\") and
+        arrays and objects work fine (e.g. '{"API": "127.0.0.1:40600"}') but should be
+        wrapped in single quotes. Be sure to restart the daemon for changes to take effect.
+        See https://tools.ietf.org/html/rfc6902 for details on RFC6902 JSON patch format.
+      parameters:
+      - description: An RFC6902 JSON patch (array of ops)
+        in: body
+        name: patch
+        required: true
+        schema:
+          type: object
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Get active config settings
+      tags:
+      - config
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Replace entire config file contents. The config command controls configuration
+        variables. It works much like 'git config'. The configuration values are stored
+        in a config file inside the Textile repository.
+      parameters:
+      - description: JSON document
+        in: body
+        name: config
+        required: true
+        schema:
+          type: object
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Replce config settings.
+      tags:
+      - config
+  /config/{path}:
+    get:
+      description: |-
+        Report the currently active config settings, which may differ from the values
+        specifed when setting/patching values.
+      parameters:
+      - description: config path (e.g., Addresses/API)
+        in: path
+        name: path
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: new config value
+          schema:
+            $ref: '#/definitions/object'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Get active config settings
+      tags:
+      - config
+  /contacts:
+    get:
+      description: Lists all, or thread-based, contacts.
+      parameters:
+      - default: thread=
+        description: 'thread: Thread ID (omit for all known contacts)'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: contacts
+          schema:
+            items:
+              $ref: '#/definitions/core.ContactInfo'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: List known contacts
+      tags:
+      - contacts
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Adds a contact to list of known local contacts. A common workflow is to pipe
+        /contact/search results into this endpoint, just be sure you know what the results
+        of the search are before adding!
+      parameters:
+      - description: contact
+        in: body
+        name: contact
+        required: true
+        schema:
+          $ref: '#/definitions/repo.Contact'
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Add to known contacts
+      tags:
+      - contacts
+  /contacts/{id}: {}
+  /contacts{id}:
+    get:
+      description: Gets information about a known contact
+      parameters:
+      - description: contact id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: contacts
+          schema:
+            $ref: '#/definitions/core.ContactInfo'
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Get a known contact
+      tags:
+      - contacts
+  /feed:
+    get:
+      description: |-
+        Paginates post (join|leave|files|message) and annotation (comment|like) block types
+        The mode option dictates how the feed is displayed:
+        "chrono": All feed block types are shown. Annotations always nest their target post,
+        i.e., the post a comment is about.
+        "annotated": Annotations are nested under post targets, but are not shown in the
+        top-level feed.
+        "stacks": Related blocks are chronologically grouped into "stacks". A new stack is
+        started if an unrelated block breaks continuity. This mode is used by Textile
+        Photos. Stacks may include:
+        * The initial post with some nested annotations. Newer annotations may have already
+        been listed.
+        * One or more annotations about a post. The newest annotation assumes the "top"
+        position in the stack. Additional annotations are nested under the target.
+        Newer annotations may have already been listed in the case as well.
+      parameters:
+      - default: thread=,offset=,limit=5,mode="chrono"
+        description: 'thread: Thread ID (can also use ''default''), offset: Offset
+          ID to start listing from (omit for latest), limit: List page size (default:
+          5), mode: Feed mode (one of ''chrono'', ''annotated'', or ''stacks'')'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: feed
+          schema:
+            $ref: '#/definitions/pb.FeedItemList'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Paginates post and annotation block types
+      tags:
+      - feed
+  /files:
+    get:
+      description: |-
+        Paginates thread files. If thread id not provided, paginate all files. Specify
+        "default" to use the default thread (if set).
+      parameters:
+      - default: thread=,offset=,limit=5
+        description: 'thread: Thread ID. Omit for all, offset: Offset ID to start
+          listing from. Omit for latest, limit: List page size. (default: 5)'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: files
+          schema:
+            $ref: '#/definitions/pb.FilesList'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Paginates thread files
+      tags:
+      - files
+  /files/{block}:
+    get:
+      description: Gets a thread file by block ID
+      parameters:
+      - description: block id
+        in: path
+        name: block
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: file
+          schema:
+            $ref: '#/definitions/pb.Files'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Get thread file
+      tags:
+      - files
+  /invites:
+    get:
+      description: Lists all pending thread invites
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: invites
+          schema:
+            items:
+              $ref: '#/definitions/core.ThreadInviteInfo'
+            type: array
+      summary: List invites
+      tags:
+      - invites
+  /invites/{id}/accept:
+    post:
+      description: |-
+        Accepts a direct peer-to-peer or external invite to a thread. Use the key option
+        with an external invite
+      parameters:
+      - description: invite id
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: key=
+        description: 'key: key for an external invite'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: join block
+          schema:
+            $ref: '#/definitions/core.BlockInfo'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "409":
+          description: Conflict
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Accept a thread invite
+      tags:
+      - invites
+  /invites/{id}/ignore:
+    post:
+      description: Ignores a direct peer-to-peer invite to a thread
+      parameters:
+      - description: invite id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Ignore a thread invite
+      tags:
+      - invites
+  /ipfs:
+    get:
+      description: Displays the data behind an IPFS CID (hash)
+      parameters:
+      - description: ipfs/ipns cid
+        in: path
+        name: cid
+        required: true
+        type: string
+      - default: key=
+        description: 'key: Key to decrypt data on-the-fly'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: data
+          schema:
+            items:
+              type: integer
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Cat IPFS data
+      tags:
+      - ipfs
+  /keys/{target}:
+    get:
+      description: Shows file keys under the given target from an add
+      parameters:
+      - description: target id
+        in: path
+        name: blotargetck
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: keys
+          schema:
+            $ref: '#/definitions/core.Keys'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Show file keys
+      tags:
+      - files
+  /logs/{subsystem}:
+    post:
+      description: |-
+        List or change the verbosity of one or all subsystems log output. Textile logs
+        piggyback on the IPFS event logs
+      parameters:
+      - description: subsystem logging identifier (omit for all)
+        in: path
+        name: subsystem
+        type: string
+      - default: level=,tex-only="false"
+        description: 'level: Log-level (one of: debug, info, warning, error, critical,
+          or '
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: subsystems
+          schema:
+            $ref: '#/definitions/core.SubsystemInfo'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Access subsystem logs
+      tags:
+      - logs
+  /messages:
+    get:
+      description: Paginates thread messages
+      parameters:
+      - default: thread=,offset=,limit=10
+        description: 'thread: Thread ID (can also use ''default'', omit for all),
+          offset: Offset ID to start listing from (omit for latest), limit: List page
+          size (default: 5)'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: messages
+          schema:
+            $ref: '#/definitions/pb.TextList'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Paginates thread messages
+      tags:
+      - messages
+  /messages/{block}:
+    get:
+      description: Gets a thread message by block ID
+      parameters:
+      - description: block id
+        in: path
+        name: block
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message
+          schema:
+            $ref: '#/definitions/pb.Text'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Get thread message
+      tags:
+      - messages
   /mills/blob:
     post:
       consumes:
@@ -187,7 +1240,7 @@ paths:
         name: file
         type: file
       - default: plaintext=false,use=""
-        description: 'plaintext: whether to leave unencrypted)use: if empty, assumes
+        description: 'plaintext: whether to leave unencrypted), use: if empty, assumes
           body contains multipart form file data, otherwise, will attempt to fetch
           given CID from IPFS'
         in: header
@@ -319,6 +1372,44 @@ paths:
       summary: Validate, add, and pin a new Schema
       tags:
       - mills
+  /notifications:
+    get:
+      description: Lists all notifications generated by thread and account activity.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: notifications
+          schema:
+            items:
+              $ref: '#/definitions/core.NotificationInfo'
+            type: array
+      summary: List notifications
+      tags:
+      - notifications
+  /notifications/{id}/read:
+    post:
+      description: Marks a notifiction as read by ID. Use 'all' to mark all as read.
+      parameters:
+      - description: notification id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Mark notifiction as read
+      tags:
+      - notifications
   /peer:
     get:
       description: Shows the local node's peer ID
@@ -441,13 +1532,105 @@ paths:
       summary: Set username
       tags:
       - profile
+  /sub/{id}:
+    get:
+      description: |-
+        Subscribes to updates in a thread or all threads. An update is generated
+        when a new block is added to a thread. There are several update types:
+        JOIN, ANNOUNCE, LEAVE, MESSAGE, FILES, COMMENT, LIKE, MERGE, IGNORE, FLAG
+      parameters:
+      - description: thread id, omit to stream all events
+        in: path
+        name: id
+        type: string
+      - default: type=,events="false"
+        description: 'type: Or''d list of event types (e.g., FILES|COMMENTS|LIKES)
+          or empty to include all types, events: Whether to emit Server-Sent Events
+          (SSEvent) or plain JSON'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: stream of updates
+          schema:
+            $ref: '#/definitions/core.ThreadUpdate'
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Subscribe to thread updates
+      tags:
+      - sub
+  /swarm/connect:
+    get:
+      description: Opens a new direct connection to a peer using an IPFS multiaddr
+      parameters:
+      - description: peer address
+        in: header
+        name: X-Textile-Args
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            items:
+              type: string
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Opens a new direct connection to a peer address
+      tags:
+      - ipfs
+  /swarm/peers:
+    get:
+      description: Lists the set of peers this node is connected to
+      parameters:
+      - default: verbose="false",latency="false",streams="false",direction="false"
+        description: 'verbose: Display all extra information, latency: Also list information
+          about latency to each peer, streams: Also list information about open streams
+          for each peer, direction: Also list information about the direction of connection'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: connection
+          schema:
+            $ref: '#/definitions/ipfs.ConnInfos'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: List swarm peers
+      tags:
+      - ipfs
   /threads:
     get:
       description: Lists all local threads, returning an array of ThreadInfo objects
       produces:
       - application/json
       responses:
-        "201":
+        "200":
           description: threads
           schema:
             items:
@@ -491,7 +1674,7 @@ paths:
         "201":
           description: thread
           schema:
-            $ref: '#/definitions/ThreadInfo'
+            $ref: '#/definitions/core.ThreadInfo'
             type: object
         "400":
           description: Bad Request
@@ -504,4 +1687,209 @@ paths:
       summary: Adds and joins a new thread
       tags:
       - threads
+  /threads/{id}:
+    get:
+      description: Gets and displays info about a thread
+      parameters:
+      - description: thread id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: thread
+          schema:
+            $ref: '#/definitions/core.ThreadInfo'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Gets a thread
+      tags:
+      - threads
+  /threads/{id}/files:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Adds a file or directory of files to a thread. Files not supported by the thread
+        schema are ignored. Nested directories are included. An existing file hash may
+        also be used as input.
+      parameters:
+      - description: milled dir (output from mill endpoint)
+        in: body
+        name: dir
+        required: true
+        schema:
+          $ref: '#/definitions/core.Directory'
+          type: object
+      - default: caption=
+        description: 'caption: Caption to add to file(s)'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: block
+          schema:
+            $ref: '#/definitions/core.BlockInfo'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Adds a file or directory of files to a thread
+      tags:
+      - threads
+  /threads/{id}/messages:
+    post:
+      description: Adds a message to a thread
+      parameters:
+      - description: urlescaped message body
+        in: header
+        name: X-Textile-Args
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message
+          schema:
+            $ref: '#/definitions/pb.Text'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Add a message
+      tags:
+      - threads
+  /threads/{id}/peers:
+    get:
+      description: Lists all peers in a thread, optionally listing peers in the default
+        thread
+      parameters:
+      - description: thread id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: contacts
+          schema:
+            items:
+              $ref: '#/definitions/core.ContactInfo'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: List all thread peers
+      tags:
+      - threads
+  /tokens:
+    get:
+      description: List info about all stored cafe tokens
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: tokens
+          schema:
+            items:
+              type: string
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: List local tokens
+      tags:
+      - tokens
+    post:
+      description: |-
+        Generates an access token (44 random bytes) and saves a bcrypt hashed version for
+        future lookup. The response contains a base58 encoded version of the random bytes
+        token. If the 'store' option is set to false, the token is generated, but not
+        stored in the local Cafe db. Alternatively, an existing token can be added using
+        by specifying the 'token' option.
+        Tokens allow other peers to register with a Cafe peer.
+      parameters:
+      - default: token=,store="true"
+        description: 'token: Use existing token, rather than creating a new one, store:
+          Whether to store the added/generated token to the local db'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: token
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Create an access token
+      tags:
+      - tokens
+  /tokens/{id}:
+    get:
+      description: Check validity of existing cafe access token
+      parameters:
+      - description: invite id
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: Check token validity
+      tags:
+      - tokens
 swagger: "2.0"
