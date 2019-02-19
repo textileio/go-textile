@@ -1,4 +1,4 @@
-version: 2
+version: 2.1
 
 checkout-linux: &checkout-linux
   attach_workspace:

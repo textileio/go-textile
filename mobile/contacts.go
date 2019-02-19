@@ -73,6 +73,10 @@ func (m *Mobile) ContactThreads(id string) (string, error) {
 
 // SearchContacts calls core SearchContacts
 func (m *Mobile) SearchContacts(query []byte, options []byte, cb Callback) (*CancelFn, error) {
+	if !m.node.Online() {
+		return nil, core.ErrOffline
+	}
+
 	mquery := new(pb.ContactQuery)
 	if err := proto.Unmarshal(query, mquery); err != nil {
 		return nil, err

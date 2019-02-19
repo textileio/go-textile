@@ -44,7 +44,7 @@ var mobile2 *Mobile
 var thrdId string
 var dir []byte
 var filesBlock core.BlockInfo
-var files []core.ThreadFilesInfo
+var files []*pb.Files
 var invite ExternalInvite
 
 var contact = &repo.Contact{
@@ -297,24 +297,24 @@ func TestMobile_RemoveThread(t *testing.T) {
 	}
 }
 
-func TestMobile_AddThreadMessage(t *testing.T) {
-	if _, err := mobile1.AddThreadMessage(thrdId, "ping pong"); err != nil {
+func TestMobile_AddMessage(t *testing.T) {
+	if _, err := mobile1.AddMessage(thrdId, "ping pong"); err != nil {
 		t.Errorf("add thread message failed: %s", err)
 	}
 }
 
-func TestMobile_ThreadMessages(t *testing.T) {
-	res, err := mobile1.ThreadMessages("", -1, thrdId)
+func TestMobile_Messages(t *testing.T) {
+	res, err := mobile1.Messages("", -1, thrdId)
 	if err != nil {
 		t.Errorf("thread messages failed: %s", err)
 		return
 	}
-	var msgs []core.ThreadMessageInfo
-	if err := json.Unmarshal([]byte(res), &msgs); err != nil {
+	list := new(pb.TextList)
+	if err := proto.Unmarshal(res, list); err != nil {
 		t.Error(err)
 		return
 	}
-	if len(msgs) != 1 {
+	if len(list.Items) != 1 {
 		t.Error("wrong number of messages")
 	}
 }
@@ -358,8 +358,8 @@ func TestMobile_PrepareFilesAsync(t *testing.T) {
 	mobile1.PrepareFilesAsync("../mill/testdata/image.jpeg", thrdId, &TestCallback{})
 }
 
-func TestMobile_AddThreadFiles(t *testing.T) {
-	res, err := mobile1.AddThreadFiles(dir, thrdId, "hello")
+func TestMobile_AddFiles(t *testing.T) {
+	res, err := mobile1.AddFiles(dir, thrdId, "hello")
 	if err != nil {
 		t.Errorf("add thread files failed: %s", err)
 		return
@@ -373,8 +373,8 @@ func TestMobile_AddThreadFiles(t *testing.T) {
 	time.Sleep(time.Second)
 }
 
-func TestMobile_AddThreadFilesByTarget(t *testing.T) {
-	res, err := mobile1.AddThreadFilesByTarget(filesBlock.Target, thrdId, "hello again")
+func TestMobile_AddFilesByTarget(t *testing.T) {
+	res, err := mobile1.AddFilesByTarget(filesBlock.Target, thrdId, "hello again")
 	if err != nil {
 		t.Errorf("add thread files by target failed: %s", err)
 		return
@@ -385,28 +385,30 @@ func TestMobile_AddThreadFilesByTarget(t *testing.T) {
 	}
 }
 
-func TestMobile_AddThreadComment(t *testing.T) {
-	if _, err := mobile1.AddThreadComment(filesBlock.Id, "hell yeah"); err != nil {
+func TestMobile_AddComment(t *testing.T) {
+	if _, err := mobile1.AddComment(filesBlock.Id, "hell yeah"); err != nil {
 		t.Errorf("add thread comment failed: %s", err)
 	}
 }
 
-func TestMobile_AddThreadLike(t *testing.T) {
-	if _, err := mobile1.AddThreadLike(filesBlock.Id); err != nil {
+func TestMobile_AddLike(t *testing.T) {
+	if _, err := mobile1.AddLike(filesBlock.Id); err != nil {
 		t.Errorf("add thread like failed: %s", err)
 	}
 }
 
-func TestMobile_ThreadFiles(t *testing.T) {
-	res, err := mobile1.ThreadFiles("", -1, thrdId)
+func TestMobile_Files(t *testing.T) {
+	res, err := mobile1.Files("", -1, thrdId)
 	if err != nil {
 		t.Errorf("get thread files failed: %s", err)
 		return
 	}
-	if err := json.Unmarshal([]byte(res), &files); err != nil {
+	list := new(pb.FilesList)
+	if err := proto.Unmarshal(res, list); err != nil {
 		t.Error(err)
 		return
 	}
+	files = list.Items
 	if len(files) != 2 {
 		t.Errorf("get thread files bad result")
 	}
@@ -418,8 +420,8 @@ func TestMobile_ThreadFiles(t *testing.T) {
 	}
 }
 
-func TestMobile_ThreadFilesBadThread(t *testing.T) {
-	if _, err := mobile1.ThreadFiles("", -1, "empty"); err == nil {
+func TestMobile_FilesBadThread(t *testing.T) {
+	if _, err := mobile1.Files("", -1, "empty"); err == nil {
 		t.Error("get thread files from bad thread should fail")
 	}
 }
@@ -435,38 +437,38 @@ func TestMobile_FileData(t *testing.T) {
 	}
 }
 
-func TestMobile_AddThreadIgnore(t *testing.T) {
-	if _, err := mobile1.AddThreadIgnore(filesBlock.Id); err != nil {
+func TestMobile_AddIgnore(t *testing.T) {
+	if _, err := mobile1.AddIgnore(filesBlock.Id); err != nil {
 		t.Errorf("add thread ignore failed: %s", err)
 		return
 	}
-	res, err := mobile1.ThreadFiles("", -1, thrdId)
+	res, err := mobile1.Files("", -1, thrdId)
 	if err != nil {
 		t.Errorf("get thread files failed: %s", err)
 		return
 	}
-	var files []core.ThreadFilesInfo
-	if err := json.Unmarshal([]byte(res), &files); err != nil {
+	list := new(pb.FilesList)
+	if err := proto.Unmarshal(res, list); err != nil {
 		t.Error(err)
 		return
 	}
-	if len(files) != 1 {
+	if len(list.Items) != 1 {
 		t.Errorf("thread ignore bad result")
 	}
 }
 
-func TestMobile_ThreadFeed(t *testing.T) {
-	res, err := mobile1.ThreadFeed("", -1, thrdId, false)
+func TestMobile_Feed(t *testing.T) {
+	res, err := mobile1.Feed("", 20, thrdId, int32(pb.FeedMode_STACKS))
 	if err != nil {
 		t.Errorf("get thread feed failed: %s", err)
 		return
 	}
-	var feed []core.ThreadFeedItem
-	if err := json.Unmarshal([]byte(res), &feed); err != nil {
+	list := new(pb.FeedItemList)
+	if err := proto.Unmarshal(res, list); err != nil {
 		t.Error(err)
 		return
 	}
-	if len(feed) != 5 {
+	if list.Count != 3 {
 		t.Errorf("get thread feed bad result")
 	}
 }
@@ -590,7 +592,6 @@ func TestMobile_AddContactAgain(t *testing.T) {
 }
 
 func TestMobile_Contact(t *testing.T) {
-	// tmp test get own _virtual_ contact while profile still exists
 	pid, err := mobile1.PeerId()
 	if err != nil {
 		t.Error(err)
@@ -607,7 +608,7 @@ func TestMobile_Contact(t *testing.T) {
 	}
 }
 
-func TestMobile_AddThreadInvite(t *testing.T) {
+func TestMobile_AddInvite(t *testing.T) {
 	var err error
 	mobile2, err = createAndStartMobile(repoPath2, true)
 	if err != nil {
@@ -649,7 +650,7 @@ func TestMobile_AddThreadInvite(t *testing.T) {
 		return
 	}
 
-	hash, err := mobile2.AddThreadInvite(thrd.Id, pid)
+	hash, err := mobile2.AddInvite(thrd.Id, pid)
 	if err != nil {
 		t.Error(err)
 		return
@@ -660,8 +661,8 @@ func TestMobile_AddThreadInvite(t *testing.T) {
 	}
 }
 
-func TestMobile_AddExternalThreadInvite(t *testing.T) {
-	res, err := mobile1.AddExternalThreadInvite(thrdId)
+func TestMobile_AddExternalInvite(t *testing.T) {
+	res, err := mobile1.AddExternalInvite(thrdId)
 	if err != nil {
 		t.Error(err)
 		return
@@ -675,8 +676,8 @@ func TestMobile_AddExternalThreadInvite(t *testing.T) {
 	}
 }
 
-func TestMobile_AcceptExternalThreadInvite(t *testing.T) {
-	hash, err := mobile2.AcceptExternalThreadInvite(invite.Id, invite.Key)
+func TestMobile_AcceptExternalInvite(t *testing.T) {
+	hash, err := mobile2.AcceptExternalInvite(invite.Id, invite.Key)
 	if err != nil {
 		t.Error(err)
 		return

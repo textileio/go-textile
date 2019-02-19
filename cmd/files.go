@@ -19,6 +19,7 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema"
 )
@@ -507,19 +508,20 @@ func (x *lsFilesCmd) Execute(args []string) error {
 }
 
 func callLsFiles(opts map[string]string) error {
-	var list []core.ThreadFilesInfo
-	res, err := executeJsonCmd(GET, "files", params{opts: opts}, &list)
+	var list pb.FilesList
+	res, err := executeJsonPbCmd(GET, "files", params{opts: opts}, &list)
 	if err != nil {
 		return err
 	}
-
-	output(res)
+	if len(list.Items) > 0 {
+		output(res)
+	}
 
 	limit, err := strconv.Atoi(opts["limit"])
 	if err != nil {
 		return err
 	}
-	if len(list) < limit {
+	if len(list.Items) < limit {
 		return nil
 	}
 
@@ -531,7 +533,7 @@ func callLsFiles(opts map[string]string) error {
 
 	return callLsFiles(map[string]string{
 		"thread": opts["thread"],
-		"offset": list[len(list)-1].Block,
+		"offset": list.Items[len(list.Items)-1].Block,
 		"limit":  opts["limit"],
 	})
 }
@@ -553,8 +555,7 @@ func (x *getFilesCmd) Execute(args []string) error {
 		return errMissingFileId
 	}
 
-	var info core.ThreadFilesInfo
-	res, err := executeJsonCmd(GET, "files/"+args[0], params{}, &info)
+	res, err := executeJsonCmd(GET, "files/"+args[0], params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -598,12 +599,10 @@ func (x *keysCmd) Execute(args []string) error {
 		return errMissingTarget
 	}
 
-	var keys core.Keys
-	res, err := executeJsonCmd(GET, "keys/"+args[0], params{}, &keys)
+	res, err := executeJsonCmd(GET, "keys/"+args[0], params{}, nil)
 	if err != nil {
 		return err
 	}
-
 	output(res)
 	return nil
 }

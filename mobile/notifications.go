@@ -44,24 +44,24 @@ func (m *Mobile) ReadAllNotifications() error {
 	return m.node.ReadAllNotifications()
 }
 
-// AcceptThreadInviteViaNotification call core AcceptThreadInviteViaNotification
-func (m *Mobile) AcceptThreadInviteViaNotification(id string) (string, error) {
+// AcceptInviteViaNotification call core AcceptInviteViaNotification
+func (m *Mobile) AcceptInviteViaNotification(id string) (string, error) {
 	if !m.node.Online() {
 		return "", core.ErrOffline
 	}
 
-	addr, err := m.node.AcceptThreadInviteViaNotification(id)
+	addr, err := m.node.AcceptInviteViaNotification(id)
 	if err != nil {
 		return "", err
 	}
 	return addr.B58String(), nil
 }
 
-// IgnoreThreadInviteViaNotification call core IgnoreThreadInviteViaNotification
-func (m *Mobile) IgnoreThreadInviteViaNotification(id string) error {
+// IgnoreInviteViaNotification call core IgnoreInviteViaNotification
+func (m *Mobile) IgnoreInviteViaNotification(id string) error {
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
 
-	return m.node.IgnoreThreadInviteViaNotification(id)
+	return m.node.IgnoreInviteViaNotification(id)
 }

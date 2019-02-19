@@ -39,7 +39,7 @@ func (t *Textile) NotificationInfo(note repo.Notification) NotificationInfo {
 	var username, avatar string
 	switch note.Type {
 	case repo.InviteReceivedNotification:
-		invite := t.ThreadInvite(t.datastore.ThreadInvites().Get(note.BlockId))
+		invite := t.Invite(t.datastore.ThreadInvites().Get(note.BlockId))
 		if invite != nil {
 			username = invite.Username
 			avatar = invite.Avatar
@@ -81,8 +81,8 @@ func (t *Textile) ReadAllNotifications() error {
 	return t.datastore.Notifications().ReadAll()
 }
 
-// AcceptThreadInviteViaNotification uses an invite notification to accept an invite to a thread
-func (t *Textile) AcceptThreadInviteViaNotification(id string) (mh.Multihash, error) {
+// AcceptInviteViaNotification uses an invite notification to accept an invite to a thread
+func (t *Textile) AcceptInviteViaNotification(id string) (mh.Multihash, error) {
 	notification := t.datastore.Notifications().Get(id)
 	if notification == nil {
 		return nil, errors.New(fmt.Sprintf("could not find notification: %s", id))
@@ -91,7 +91,7 @@ func (t *Textile) AcceptThreadInviteViaNotification(id string) (mh.Multihash, er
 		return nil, errors.New(fmt.Sprintf("notification not type invite"))
 	}
 
-	hash, err := t.AcceptThreadInvite(notification.BlockId)
+	hash, err := t.AcceptInvite(notification.BlockId)
 	if err != nil {
 		return nil, err
 	}
@@ -99,8 +99,8 @@ func (t *Textile) AcceptThreadInviteViaNotification(id string) (mh.Multihash, er
 	return hash, t.datastore.Notifications().Delete(id)
 }
 
-// IgnoreThreadInviteViaNotification uses an invite notification to ignore an invite to a thread
-func (t *Textile) IgnoreThreadInviteViaNotification(id string) error {
+// IgnoreInviteViaNotification uses an invite notification to ignore an invite to a thread
+func (t *Textile) IgnoreInviteViaNotification(id string) error {
 	notification := t.datastore.Notifications().Get(id)
 	if notification == nil {
 		return errors.New(fmt.Sprintf("could not find notification: %s", id))
@@ -109,7 +109,7 @@ func (t *Textile) IgnoreThreadInviteViaNotification(id string) error {
 		return errors.New(fmt.Sprintf("notification not type invite"))
 	}
 
-	if err := t.IgnoreThreadInvite(notification.BlockId); err != nil {
+	if err := t.IgnoreInvite(notification.BlockId); err != nil {
 		return err
 	}
 

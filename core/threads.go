@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/textileio/textile-go/keypair"
-
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
@@ -16,6 +14,7 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
@@ -203,8 +202,8 @@ func (t *Textile) ThreadInfo(id string) (*ThreadInfo, error) {
 	return thrd.Info()
 }
 
-// ThreadInvite get a pending invite
-func (t *Textile) ThreadInvite(invite *repo.ThreadInvite) *ThreadInviteInfo {
+// Invite get a pending invite
+func (t *Textile) Invite(invite *repo.ThreadInvite) *ThreadInviteInfo {
 	if invite == nil {
 		return nil
 	}
@@ -227,20 +226,20 @@ func (t *Textile) ThreadInvite(invite *repo.ThreadInvite) *ThreadInviteInfo {
 	}
 }
 
-// ThreadInvites lists info on all pending invites
-func (t *Textile) ThreadInvites() []ThreadInviteInfo {
+// Invites lists info on all pending invites
+func (t *Textile) Invites() []ThreadInviteInfo {
 	list := make([]ThreadInviteInfo, 0)
 
 	for _, invite := range t.datastore.ThreadInvites().List() {
-		info := t.ThreadInvite(&invite)
+		info := t.Invite(&invite)
 		list = append(list, *info)
 	}
 
 	return list
 }
 
-// AcceptThreadInvite adds a new thread, and notifies the inviter of the join
-func (t *Textile) AcceptThreadInvite(inviteId string) (mh.Multihash, error) {
+// AcceptInvite adds a new thread, and notifies the inviter of the join
+func (t *Textile) AcceptInvite(inviteId string) (mh.Multihash, error) {
 	invite := t.datastore.ThreadInvites().Get(inviteId)
 	if invite == nil {
 		return nil, ErrThreadInviteNotFound
@@ -251,16 +250,16 @@ func (t *Textile) AcceptThreadInvite(inviteId string) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	if err := t.IgnoreThreadInvite(inviteId); err != nil {
+	if err := t.IgnoreInvite(inviteId); err != nil {
 		return nil, err
 	}
 
 	return hash, nil
 }
 
-// AcceptExternalThreadInvite attemps to download an encrypted thread key from an external invite,
+// AcceptExternalInvite attemps to download an encrypted thread key from an external invite,
 // adds a new thread, and notifies the inviter of the join
-func (t *Textile) AcceptExternalThreadInvite(inviteId string, key []byte) (mh.Multihash, error) {
+func (t *Textile) AcceptExternalInvite(inviteId string, key []byte) (mh.Multihash, error) {
 	ciphertext, err := ipfs.DataAtPath(t.node, fmt.Sprintf("%s", inviteId))
 	if err != nil {
 		return nil, err
@@ -274,8 +273,8 @@ func (t *Textile) AcceptExternalThreadInvite(inviteId string, key []byte) (mh.Mu
 	return t.handleThreadInvite(plaintext)
 }
 
-// IgnoreThreadInvite deletes the invite and removes the associated notification.
-func (t *Textile) IgnoreThreadInvite(inviteId string) error {
+// IgnoreInvite deletes the invite and removes the associated notification.
+func (t *Textile) IgnoreInvite(inviteId string) error {
 	if err := t.datastore.ThreadInvites().Delete(inviteId); err != nil {
 		return err
 	}

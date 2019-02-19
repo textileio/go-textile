@@ -10,7 +10,6 @@ import (
 
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
-	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema/textile"
 )
@@ -146,8 +145,7 @@ func callAddThreads(args []string, opts map[string]string) error {
 		opts["schema"] = schemaf.Hash
 	}
 
-	var info *core.ThreadInfo
-	res, err := executeJsonCmd(POST, "threads", params{args: args, opts: opts}, &info)
+	res, err := executeJsonCmd(POST, "threads", params{args: args, opts: opts}, nil)
 	if err != nil {
 		return err
 	}
@@ -167,8 +165,8 @@ Lists info on all threads.`
 
 func (x *lsThreadsCmd) Execute(args []string) error {
 	setApi(x.Client)
-	var list []core.ThreadInfo
-	res, err := executeJsonCmd(GET, "threads", params{}, &list)
+
+	res, err := executeJsonCmd(GET, "threads", params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -191,8 +189,8 @@ func (x *getThreadsCmd) Execute(args []string) error {
 	if len(args) == 0 {
 		return errMissingThreadId
 	}
-	var info *core.ThreadInfo
-	res, err := executeJsonCmd(GET, "threads/"+args[0], params{}, &info)
+
+	res, err := executeJsonCmd(GET, "threads/"+args[0], params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -212,8 +210,8 @@ Gets and displays info about the default thread (if selected).`
 
 func (x *getDefaultThreadsCmd) Execute(args []string) error {
 	setApi(x.Client)
-	var info *core.ThreadInfo
-	res, err := executeJsonCmd(GET, "threads/default", params{}, &info)
+
+	res, err := executeJsonCmd(GET, "threads/default", params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -239,8 +237,8 @@ func (x *peersThreadsCmd) Execute(args []string) error {
 	if x.Thread == "" {
 		x.Thread = "default"
 	}
-	var result []core.ContactInfo
-	res, err := executeJsonCmd(GET, "threads/"+x.Thread+"/peers", params{}, &result)
+
+	res, err := executeJsonCmd(GET, "threads/"+x.Thread+"/peers", params{}, nil)
 	if err != nil {
 		return err
 	}

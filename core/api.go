@@ -12,12 +12,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/protobuf/proto"
+
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
 	"github.com/gin-contrib/cors"       // gin cors middleware
 	limit "github.com/gin-contrib/size" // gin size limiter middleware
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang/protobuf/jsonpb"
 	swagger "github.com/swaggo/gin-swagger"             // gin-swagger middleware
 	sfiles "github.com/swaggo/gin-swagger/swaggerFiles" // swagger embed files
 	"github.com/textileio/textile-go/common"
@@ -39,6 +42,11 @@ type api struct {
 	addr   string
 	server *http.Server
 	node   *Textile
+}
+
+// pbMarshaler is used to marshal protobufs to JSON
+var pbMarshaler = jsonpb.Marshaler{
+	EnumsAsInts: false,
 }
 
 // StartApi starts the host instance
@@ -488,4 +496,14 @@ func getCORSSettings(config *config.Config) cors.Config {
 	}
 
 	return cconfig
+}
+
+// pbJSON responds with a JSON rendered protobuf message
+func pbJSON(g *gin.Context, status int, msg proto.Message) {
+	str, err := pbMarshaler.MarshalToString(msg)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	g.Data(status, "application/json", []byte(str))
 }

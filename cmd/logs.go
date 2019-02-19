@@ -9,7 +9,7 @@ func init() {
 type logsCmd struct {
 	Client    ClientOptions `group:"Client Options"`
 	Subsystem string        `short:"s" long:"subsystem" description:"The subsystem logging identifier. Omit for all."`
-	Level     string        `short:"l" long:"level" description:"The log level, with 'debug' the most verbose and 'critical' the least verbose."`
+	Level     string        `short:"l" long:"level" description:"One of: debug, info, warning, error, critical. Omit to get current level."`
 	TexOnly   bool          `short:"t" long:"tex-only" description:"Whether to list/change only Textile subsystems, or all available subsystems."`
 }
 
@@ -22,13 +22,9 @@ func (x *logsCmd) Short() string {
 }
 
 func (x *logsCmd) Long() string {
-	return `List or change the verbosity of one or all subsystems log output.
-
-Use the --subsystem option to control a given subsystem's log level. Omit to list/change all subsystems.
-Use the --level option to control the log level. One of: debug, info, warning, error, critical. Omit to get current level.
-Use the --tex-only flag to list/edit Textile subsystems only, otherwise, include all available subsystems.
-
-Textile logs piggyback on the IPFS event logs, so this command allows users to control specific subsystem logs for finer control.
+	return `
+List or change the verbosity of one or all subsystems log output.
+Textile logs piggyback on the IPFS event logs.
 `
 }
 
@@ -51,8 +47,8 @@ func callLogs(opts map[string]string) error {
 	if opts["level"] != "" {
 		method = POST
 	}
-	var info map[string]string
-	res, err := executeJsonCmd(method, "logs"+subsystem, params{opts: opts}, &info)
+
+	res, err := executeJsonCmd(method, "logs"+subsystem, params{opts: opts}, nil)
 	if err != nil {
 		return err
 	}

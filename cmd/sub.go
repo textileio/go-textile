@@ -46,9 +46,7 @@ There are several update types:
 -  FLAG
 
 Use the --thread option to subscribe to events emmited from a specific thread.
-
-Use the --type option to limit the output to specific update type(s).
-This option can be used multiple times, e.g., --type files --type comment.
+The --type option can be used multiple times, e.g., --type files --type comment.
 `
 }
 

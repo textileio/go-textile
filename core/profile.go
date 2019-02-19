@@ -99,7 +99,7 @@ func (t *Textile) SetAvatar(hash string) error {
 		}
 	}
 
-	large, err := t.AddFile(&mill.ImageResize{
+	large, err := t.AddFileIndex(&mill.ImageResize{
 		Opts: mill.ImageResizeOpts{
 			Width:   thrd.Schema.Links["large"].Opts["width"],
 			Quality: thrd.Schema.Links["large"].Opts["quality"],
@@ -113,7 +113,7 @@ func (t *Textile) SetAvatar(hash string) error {
 		return err
 	}
 
-	small, err := t.AddFile(&mill.ImageResize{
+	small, err := t.AddFileIndex(&mill.ImageResize{
 		Opts: mill.ImageResizeOpts{
 			Width:   thrd.Schema.Links["small"].Opts["width"],
 			Quality: thrd.Schema.Links["small"].Opts["quality"],

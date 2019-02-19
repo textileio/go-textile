@@ -2,8 +2,8 @@ package mobile
 
 import "github.com/textileio/textile-go/core"
 
-// AddThreadComment adds a comment targeted at the given block
-func (m *Mobile) AddThreadComment(blockId string, body string) (string, error) {
+// AddComment adds a comment targeted at the given block
+func (m *Mobile) AddComment(blockId string, body string) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}

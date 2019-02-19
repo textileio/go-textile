@@ -3,33 +3,14 @@ package core
 import (
 	"fmt"
 	"strconv"
-	"time"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
 
-type ThreadFileInfo struct {
-	Index int        `json:"index"`
-	File  *repo.File `json:"file,omitempty"`
-	Links Directory  `json:"links,omitempty"`
-}
-
-type ThreadFilesInfo struct {
-	Block    string              `json:"block"`
-	Target   string              `json:"target"`
-	Date     time.Time           `json:"date"`
-	AuthorId string              `json:"author_id"`
-	Username string              `json:"username,omitempty"`
-	Avatar   string              `json:"avatar,omitempty"`
-	Caption  string              `json:"caption,omitempty"`
-	Files    []ThreadFileInfo    `json:"files"`
-	Comments []ThreadCommentInfo `json:"comments"`
-	Likes    []ThreadLikeInfo    `json:"likes"`
-	Threads  []string            `json:"threads"`
-}
-
-func (t *Textile) ThreadFiles(offset string, limit int, threadId string) ([]ThreadFilesInfo, error) {
+func (t *Textile) Files(offset string, limit int, threadId string) (*pb.FilesList, error) {
 	var query string
 	if threadId != "" {
 		if t.Thread(threadId) == nil {
@@ -40,36 +21,36 @@ func (t *Textile) ThreadFiles(offset string, limit int, threadId string) ([]Thre
 		query = fmt.Sprintf("type=%d", repo.FilesBlock)
 	}
 
-	list := make([]ThreadFilesInfo, 0)
+	list := make([]*pb.Files, 0)
 
 	blocks := t.Blocks(offset, limit, query)
 	for _, block := range blocks {
-		file, err := t.threadFile(&block, true)
+		file, err := t.file(&block, feedItemOpts{annotations: true})
 		if err != nil {
 			return nil, err
 		}
-		list = append(list, *file)
+		list = append(list, file)
 	}
 
-	return list, nil
+	return &pb.FilesList{Items: list}, nil
 }
 
-func (t *Textile) ThreadFile(blockId string) (*ThreadFilesInfo, error) {
+func (t *Textile) File(blockId string) (*pb.Files, error) {
 	block, err := t.Block(blockId)
 	if err != nil {
 		return nil, err
 	}
 
-	return t.threadFile(block, true)
+	return t.file(block, feedItemOpts{annotations: true})
 }
 
-func (t *Textile) fileAtTarget(target string) ([]ThreadFileInfo, error) {
+func (t *Textile) fileAtTarget(target string) ([]*pb.File, error) {
 	links, err := ipfs.LinksAtPath(t.node, target)
 	if err != nil {
 		return nil, err
 	}
 
-	files := make([]ThreadFileInfo, len(links))
+	files := make([]*pb.File, len(links))
 
 	for _, index := range links {
 		node, err := ipfs.NodeAtLink(t.node, index)
@@ -82,27 +63,27 @@ func (t *Textile) fileAtTarget(target string) ([]ThreadFileInfo, error) {
 			return nil, err
 		}
 
-		info := ThreadFileInfo{Index: i}
+		info := &pb.File{Index: int32(i)}
 		if looksLikeFileNode(node) {
-			file, err := t.fileForPair(node)
+			file, err := t.fileIndexForPair(node)
 			if err != nil {
 				return nil, err
 			}
 			info.File = file
 
 		} else {
-			info.Links = make(Directory)
+			info.Links = make(map[string]*pb.FileIndex)
 			for _, link := range node.Links() {
 				pair, err := ipfs.NodeAtLink(t.node, link)
 				if err != nil {
 					return nil, err
 				}
-				file, err := t.fileForPair(pair)
+				file, err := t.fileIndexForPair(pair)
 				if err != nil {
 					return nil, err
 				}
 				if file != nil {
-					info.Links[link.Name] = *file
+					info.Links[link.Name] = file
 				}
 			}
 		}
@@ -113,7 +94,7 @@ func (t *Textile) fileAtTarget(target string) ([]ThreadFileInfo, error) {
 	return files, nil
 }
 
-func (t *Textile) threadFile(block *repo.Block, annotated bool) (*ThreadFilesInfo, error) {
+func (t *Textile) file(block *repo.Block, opts feedItemOpts) (*pb.Files, error) {
 	if block.Type != repo.FilesBlock {
 		return nil, ErrBlockWrongType
 	}
@@ -121,18 +102,22 @@ func (t *Textile) threadFile(block *repo.Block, annotated bool) (*ThreadFilesInf
 	threads := make([]string, 0)
 	threads = t.fileThreads(block.Target)
 
-	username, avatar := t.ContactDisplayInfo(block.AuthorId)
-
 	files, err := t.fileAtTarget(block.Target)
 	if err != nil {
 		return nil, err
 	}
 
-	info := &ThreadFilesInfo{
+	username, avatar := t.ContactDisplayInfo(block.AuthorId)
+	date, err := ptypes.TimestampProto(block.Date)
+	if err != nil {
+		return nil, err
+	}
+
+	info := &pb.Files{
 		Block:    block.Id,
 		Target:   block.Target,
-		Date:     block.Date,
-		AuthorId: block.AuthorId,
+		Date:     date,
+		Author:   block.AuthorId,
 		Username: username,
 		Avatar:   avatar,
 		Caption:  block.Body,
@@ -140,18 +125,21 @@ func (t *Textile) threadFile(block *repo.Block, annotated bool) (*ThreadFilesInf
 		Threads:  threads,
 	}
 
-	if annotated {
-		comments, err := t.ThreadComments(block.Id)
+	if opts.annotations {
+		comments, err := t.Comments(block.Id)
 		if err != nil {
 			return nil, err
 		}
-		info.Comments = comments
+		info.Comments = comments.Items
 
-		likes, err := t.ThreadLikes(block.Id)
+		likes, err := t.Likes(block.Id)
 		if err != nil {
 			return nil, err
 		}
-		info.Likes = likes
+		info.Likes = likes.Items
+	} else {
+		info.Comments = opts.comments
+		info.Likes = opts.likes
 	}
 
 	return info, nil

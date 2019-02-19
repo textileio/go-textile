@@ -1,6 +1,8 @@
 package core
 
 import (
+	"strings"
+
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 
 	"github.com/golang/protobuf/ptypes"
@@ -17,6 +19,7 @@ func (t *Thread) AddMessage(body string) (mh.Multihash, error) {
 		return nil, ErrNotWritable
 	}
 
+	body = strings.TrimSpace(body)
 	msg := &pb.ThreadMessage{
 		Body: body,
 	}

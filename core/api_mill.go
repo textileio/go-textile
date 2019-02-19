@@ -35,7 +35,7 @@ func (a *api) schemaMill(g *gin.Context) {
 		Media: "application/json",
 	}
 
-	added, err := a.node.AddFile(mill, conf)
+	added, err := a.node.AddFileIndex(mill, conf)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -73,7 +73,7 @@ func (a *api) blobMill(g *gin.Context) {
 		return
 	}
 
-	added, err := a.node.AddFile(mill, *conf)
+	added, err := a.node.AddFileIndex(mill, *conf)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -127,7 +127,7 @@ func (a *api) imageResizeMill(g *gin.Context) {
 		return
 	}
 
-	added, err := a.node.AddFile(mill, *conf)
+	added, err := a.node.AddFileIndex(mill, *conf)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -166,7 +166,7 @@ func (a *api) imageExifMill(g *gin.Context) {
 	}
 	conf.Media = "application/json"
 
-	added, err := a.node.AddFile(mill, *conf)
+	added, err := a.node.AddFileIndex(mill, *conf)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -219,7 +219,7 @@ func (a *api) jsonMill(g *gin.Context) {
 		}
 	}
 
-	added, err := a.node.AddFile(mill, conf)
+	added, err := a.node.AddFileIndex(mill, conf)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
