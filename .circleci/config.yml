@@ -506,7 +506,7 @@ jobs:
 
   build-js-types:
     docker:
-      - image: circleci/node:4.8.2
+      - image: circleci/node:5.6.0
     working_directory: ~/go/src/github.com/textileio/textile-go
     steps:
     - checkout
@@ -520,7 +520,7 @@ jobs:
     - run:
         name: install ts-protoc-gen
         command: |
-            npm install -g ts-protoc-gen
+            sudo npm install -g ts-protoc-gen
     - run:
         name: build js types
         command: |
