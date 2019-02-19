@@ -505,15 +505,18 @@ jobs:
         path: ~/dist/android_aar
 
   build-js-types:
-    macos:
-      xcode: "9.4.0"
+    docker:
+      - image: textile/builder:1.11.2
     working_directory: ~/go/src/github.com/textileio/textile-go
     steps:
     - checkout
     - run:
         name: install protobuf
         command: |
-            brew install protobuf
+            curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.6.1/protoc-3.6.1-linux-x86_64.zip
+            unzip protoc-3.6.1-linux-x86_64.zip -d protoc3
+            sudo mv protoc3/bin/* /usr/local/bin/
+            sudo mv protoc3/include/* /usr/local/include/
     - run:
         name: install ts-protoc-gen
         command: |
@@ -522,7 +525,7 @@ jobs:
         name: build js types
         command: |
             mkdir protobuf_gen
-            protoc --plugin="protoc-gen-ts=/usr/local/bin/protoc-gen-ts" --proto_path=./pb/protos --js_out="import_style=commonjs,binary:./protobuf_gen" ./pb/protos/*
+            protoc --plugin="protoc-gen-ts=/usr/local/bin/protoc-gen-ts" --proto_path=./pb/protos --js_out="import_style=commonjs,binary:./protobuf_gen" --ts_out="./protobuf_gen" ./pb/protos/*
     - run:
         name: collect artifacts
         command: |
