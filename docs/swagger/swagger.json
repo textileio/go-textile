@@ -13,7 +13,7 @@
             "name": "MIT License",
             "url": "https://github.com/textileio/textile-go/blob/master/LICENSE"
         },
-        "version": "0.0"
+        "version": "0"
     },
     "host": "127.0.0.1:40600",
     "basePath": "/api/v0",

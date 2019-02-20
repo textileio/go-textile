@@ -556,7 +556,7 @@ info:
     url: https://github.com/textileio/textile-go/blob/master/LICENSE
   termsOfService: https://github.com/textileio/textile-go/blob/master/TERMS
   title: Textile Node API
-  version: "0.0"
+  version: "0"
 paths:
   /account/address:
     get:

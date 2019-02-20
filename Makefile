@@ -22,9 +22,11 @@ lint:
 	golint `go list ./... | grep -v /vendor/`
 
 build:
-	swag init -g core/api.go
 	go build -ldflags "-w $(FLAGS)" -i -o textile textile.go
 	mv textile dist/
+
+build_docs:
+	swag init -g core/api.go
 
 cross_build_linux:
 	export CGO_ENABLED=1
