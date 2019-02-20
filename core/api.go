@@ -74,6 +74,7 @@ func (t *Textile) ApiAddr() string {
 
 // @title Textile Node API
 // @version 0.0
+// @description Textile Node Local REST API Documentation
 // @termsOfService https://github.com/textileio/textile-go/blob/master/TERMS
 
 // @contact.name Textile

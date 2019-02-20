@@ -115,6 +115,15 @@ func (a *api) addThreads(g *gin.Context) {
 	g.JSON(http.StatusCreated, info)
 }
 
+// addOrUpdateThreads godoc
+// @Summary Add or update a thread directly
+// @Description Adds or updates a thread directly, usually from a backup
+// @Tags threads
+// @Produce application/json
+// @Param thread body pb.Thread true "thread")
+// @Success 200 {string} string "ok"
+// @Failure 400 {string} string "Bad Request"
+// @Router /threads/{id} [put]
 func (a *api) addOrUpdateThreads(g *gin.Context) {
 	var thrd pb.Thread
 	if err := pbUnmarshaler.Unmarshal(g.Request.Body, &thrd); err != nil {
@@ -123,6 +132,11 @@ func (a *api) addOrUpdateThreads(g *gin.Context) {
 	}
 	if thrd.Id == "" || len(thrd.Sk) == 0 {
 		g.String(http.StatusBadRequest, "invalid thread")
+		return
+	}
+
+	if thrd.Id != g.Param("id") {
+		g.String(http.StatusBadRequest, "thread id mismatch")
 		return
 	}
 
@@ -228,7 +242,7 @@ func (a *api) peersThreads(g *gin.Context) {
 // @Success 200 {string} string "ok"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /threads/{id} [del]
+// @Router /threads/{id} [delete]
 func (a *api) rmThreads(g *gin.Context) {
 	id := g.Param("id")
 

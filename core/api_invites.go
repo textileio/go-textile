@@ -10,17 +10,19 @@ import (
 	"github.com/mr-tron/base58/base58"
 )
 
+type InviteInfo map[string]string
+
 // createInvites godoc
 // @Summary Create an invite to a thread
 // @Description Creates a direct peer-to-peer or external invite to a thread
 // @Tags invites
 // @Produce application/json
 // @Param X-Textile-Opts header string false "thread: Thread ID (can also use 'default'), peer: Peer ID (omit to create an external invite)" default(thread=,peer=)
-// @Success 201 {object} map[string]string "invite"
+// @Success 201 {object} core.InviteInfo "invite"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /blocks/{id}/likes [post]
+// @Router /invites [post]
 func (a *api) createInvites(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {

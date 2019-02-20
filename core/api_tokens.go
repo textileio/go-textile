@@ -82,7 +82,7 @@ func (a *api) validateTokens(g *gin.Context) {
 // @Param token path string true "token"
 // @Success 200 {string} string "ok"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /tokens/{id} [del]
+// @Router /tokens/{id} [delete]
 func (a *api) rmTokens(g *gin.Context) {
 	token := g.Param("token")
 	if err := a.node.RemoveCafeToken(token); err != nil {

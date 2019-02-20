@@ -11,7 +11,7 @@ import (
 // ping godoc
 // @Summary Ping a network peer
 // @Description Pings another peer on the network, returning online|offline.
-// @Tags peer
+// @Tags utils
 // @Produce text/plain
 // @Param X-Textile-Args header string true "peerid"
 // @Success 200 {string} string "One of online|offline"

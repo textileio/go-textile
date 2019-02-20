@@ -106,7 +106,7 @@ func (a *api) getBlocks(g *gin.Context) {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /blocks/{id} [del]
+// @Router /blocks/{id} [delete]
 func (a *api) rmBlocks(g *gin.Context) {
 	id := g.Param("id")
 

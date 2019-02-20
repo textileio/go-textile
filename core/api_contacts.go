@@ -17,10 +17,11 @@ import (
 // @Tags contacts
 // @Accept application/json
 // @Produce application/json
+// @Param id path string true "contact id"
 // @Param contact body repo.Contact true "contact"
 // @Success 200 {string} string "ok"
 // @Failure 400 {string} string "Bad Request"
-// @Router /contacts [post]
+// @Router /contacts/{id} [put]
 func (a *api) addContacts(g *gin.Context) {
 	var contact *repo.Contact
 	if err := g.BindJSON(&contact); err != nil {
@@ -33,6 +34,10 @@ func (a *api) addContacts(g *gin.Context) {
 	}
 	if contact.Id == "" || contact.Address == "" {
 		g.String(http.StatusBadRequest, "invalid contact")
+		return
+	}
+	if contact.Id != g.Param("id") {
+		g.String(http.StatusBadRequest, "contact id mismatch")
 		return
 	}
 
@@ -99,7 +104,7 @@ func (a *api) lsContacts(g *gin.Context) {
 // @Param id path string true "contact id"
 // @Success 200 {object} core.ContactInfo "contacts"
 // @Failure 404 {string} string "Not Found"
-// @Router /contacts{id} [get]
+// @Router /contacts/{id} [get]
 func (a *api) getContacts(g *gin.Context) {
 	id := g.Param("id")
 
@@ -121,7 +126,7 @@ func (a *api) getContacts(g *gin.Context) {
 // @Success 200 {string} string "ok"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /contacts/{id} [del]
+// @Router /contacts/{id} [delete]
 func (a *api) rmContacts(g *gin.Context) {
 	id := g.Param("id")
 
@@ -145,7 +150,7 @@ func (a *api) rmContacts(g *gin.Context) {
 // @Tags contacts
 // @Produce application/json
 // @Param X-Textile-Opts header string false "local: Whether to only search local contacts, limit: Stops searching after limit results are found, wait: Stops searching after 'wait' seconds have elapsed (max 10s), username: search by username string, peer: search by peer id string, address: search by account address string, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON" default(local="false",limit=5,wait=5,peer=,address=,username=,events="false")
-// @Success 200 {object} object "contact stream"
+// @Success 200 {object} mill.Json "contact stream"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /contacts/search [post]

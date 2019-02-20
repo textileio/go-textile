@@ -9,6 +9,14 @@ import (
 	"github.com/textileio/textile-go/ipfs"
 )
 
+// ipfsId godoc
+// @Summary Get IPFS peer ID
+// @Description Displays underlying IPFS peer ID
+// @Tags ipfs
+// @Produce text/plain
+// @Success 200 {string} string "peer id"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /ipfs/id [get]
 func (a *api) ipfsId(g *gin.Context) {
 	pid, err := a.node.PeerId()
 	if err != nil {
@@ -27,7 +35,7 @@ func (a *api) ipfsId(g *gin.Context) {
 // @Success 200 {array} string "ok"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /swarm/connect [get]
+// @Router /ipfs/swarm/connect [post]
 func (a *api) ipfsSwarmConnect(g *gin.Context) {
 	args, err := a.readArgs(g)
 	if err != nil {
@@ -57,7 +65,7 @@ func (a *api) ipfsSwarmConnect(g *gin.Context) {
 // @Success 200 {object} ipfs.ConnInfos "connection"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /swarm/peers [get]
+// @Router /ipfs/swarm/peers [get]
 func (a *api) ipfsSwarmPeers(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
@@ -90,7 +98,7 @@ func (a *api) ipfsSwarmPeers(g *gin.Context) {
 // @Failure 401 {string} string "Unauthorized"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /ipfs [get]
+// @Router /ipfs/cat/{cid} [get]
 func (a *api) ipfsCat(g *gin.Context) {
 	cid := g.Param("cid")
 	if cid == "" {

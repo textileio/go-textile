@@ -175,6 +175,19 @@ func (a *api) imageExifMill(g *gin.Context) {
 	g.JSON(http.StatusCreated, added)
 }
 
+// jsonMill godoc
+// @Summary Process input JSON data
+// @Description Takes an input JSON document, validates it according to its schema.org definition,
+// @Description optionally encrypts the output before adding to IPFS, and returns a file object
+// @Tags mills
+// @Accept multipart/form-data
+// @Produce application/json
+// @Param file formData file false "multipart/form-data file"
+// @Param X-Textile-Opts header string false "plaintext: whether to leave unencrypted, use: if empty, assumes body contains multipart form file data, otherwise, will attempt to fetch given CID from IPFS" default(plaintext="false",use="")
+// @Success 201 {object} repo.File "file"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /mills/json [post]
 func (a *api) jsonMill(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {

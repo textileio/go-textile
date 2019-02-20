@@ -1,7 +1,7 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "{{.Description}}",
+        "description": "Textile Node Local REST API Documentation",
         "title": "Textile Node API",
         "termsOfService": "https://github.com/textileio/textile-go/blob/master/TERMS",
         "contact": {
@@ -61,8 +61,10 @@
                     "200": {
                         "description": "backup stream",
                         "schema": {
-                            "type": "object",
-                            "$ref": "#/definitions/object"
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
                         }
                     },
                     "400": {
@@ -188,6 +190,52 @@
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Removes a thread block by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "blocks"
+                ],
+                "summary": "Remove thread block",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "block id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "block",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/core.BlockInfo"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "string"
                         }
@@ -438,6 +486,181 @@
                 }
             }
         },
+        "/cafes": {
+            "get": {
+                "description": "List info about all active cafe sessions. Cafes are other peers on the network\nwho offer pinning, backup, and inbox services",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cafes"
+                ],
+                "summary": "List info about all active cafe sessions",
+                "responses": {
+                    "200": {
+                        "description": "cafe sessions",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/pb.CafeSessions"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Registers with a cafe and saves an expiring service session token. An access\ntoken is required to register, and should be obtained separately from the target\nCafe",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cafes"
+                ],
+                "summary": "Register with a Cafe",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "cafe host",
+                        "name": "X-Textile-Args",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "token=",
+                        "description": "token: An access token supplied by the Cafe",
+                        "name": "X-Textile-Opts",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "cafe session",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/pb.CafeSession"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/cafes/messages": {
+            "post": {
+                "description": "Check for messages at all cafes. New messages are downloaded and processed\nopportunistically.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cafes"
+                ],
+                "summary": "Check for messages at all cafes",
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/cafes/{id}": {
+            "get": {
+                "description": "Gets and displays info about a cafe session. Cafes are other peers on the network\nwho offer pinning, backup, and inbox services",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cafes"
+                ],
+                "summary": "Gets and displays info about a cafe session",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "cafe id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "cafe session",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/pb.CafeSession"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deregisters with a cafe (content will expire based on the cafe's service rules)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cafes"
+                ],
+                "summary": "Deregisters a cafe",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "cafe id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/config": {
             "put": {
                 "description": "Replace entire config file contents. The config command controls configuration\nvariables. It works much like 'git config'. The configuration values are stored\nin a config file inside the Textile repository.",
@@ -455,7 +678,8 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "type": "object",
+                            "$ref": "#/definitions/mill.Json"
                         }
                     }
                 ],
@@ -490,7 +714,8 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "type": "object",
+                            "$ref": "#/definitions/mill.Json"
                         }
                     }
                 ],
@@ -533,7 +758,7 @@
                         "description": "new config value",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/object"
+                            "$ref": "#/definitions/mill.Json"
                         }
                     },
                     "400": {
@@ -587,45 +812,6 @@
                         }
                     }
                 }
-            },
-            "post": {
-                "description": "Adds a contact to list of known local contacts. A common workflow is to pipe\n/contact/search results into this endpoint, just be sure you know what the results\nof the search are before adding!",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "contacts"
-                ],
-                "summary": "Add to known contacts",
-                "parameters": [
-                    {
-                        "description": "contact",
-                        "name": "contact",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "$ref": "#/definitions/repo.Contact"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "ok",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
             }
         },
         "/contacts/search": {
@@ -652,7 +838,7 @@
                         "description": "contact stream",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/object"
+                            "$ref": "#/definitions/mill.Json"
                         }
                     },
                     "404": {
@@ -670,8 +856,7 @@
                 }
             }
         },
-        "/contacts/{id}": {},
-        "/contacts{id}": {
+        "/contacts/{id}": {
             "get": {
                 "description": "Gets information about a known contact",
                 "produces": [
@@ -700,6 +885,91 @@
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Adds a contact to list of known local contacts. A common workflow is to pipe\n/contact/search results into this endpoint, just be sure you know what the results\nof the search are before adding!",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contacts"
+                ],
+                "summary": "Add to known contacts",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "contact id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "contact",
+                        "name": "contact",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/repo.Contact"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Removes a known contact",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "contacts"
+                ],
+                "summary": "Remove a contact",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "contact id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "string"
                         }
@@ -860,6 +1130,52 @@
                         }
                     }
                 }
+            },
+            "post": {
+                "description": "Creates a direct peer-to-peer or external invite to a thread",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "invites"
+                ],
+                "summary": "Create an invite to a thread",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "thread=,peer=",
+                        "description": "thread: Thread ID (can also use 'default'), peer: Peer ID (omit to create an external invite)",
+                        "name": "X-Textile-Opts",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "invite",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/core.InviteInfo"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
             }
         },
         "/invites/{id}/accept": {
@@ -952,7 +1268,7 @@
                 }
             }
         },
-        "/ipfs": {
+        "/ipfs/cat/{cid}": {
             "get": {
                 "description": "Displays the data behind an IPFS CID (hash)",
                 "produces": [
@@ -1015,6 +1331,118 @@
                 }
             }
         },
+        "/ipfs/id": {
+            "get": {
+                "description": "Displays underlying IPFS peer ID",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "ipfs"
+                ],
+                "summary": "Get IPFS peer ID",
+                "responses": {
+                    "200": {
+                        "description": "peer id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/ipfs/swarm/connect": {
+            "post": {
+                "description": "Opens a new direct connection to a peer using an IPFS multiaddr",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ipfs"
+                ],
+                "summary": "Opens a new direct connection to a peer address",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "peer address",
+                        "name": "X-Textile-Args",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/ipfs/swarm/peers": {
+            "get": {
+                "description": "Lists the set of peers this node is connected to",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ipfs"
+                ],
+                "summary": "List swarm peers",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "verbose=\"false\",latency=\"false\",streams=\"false\",direction=\"false\"",
+                        "description": "verbose: Display all extra information, latency: Also list information about latency to each peer, streams: Also list information about open streams for each peer, direction: Also list information about the direction of connection",
+                        "name": "X-Textile-Opts",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "connection",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/ipfs.ConnInfos"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/keys/{target}": {
             "get": {
                 "description": "Shows file keys under the given target from an add",
@@ -1058,7 +1486,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "logs"
+                    "utils"
                 ],
                 "summary": "Access subsystem logs",
                 "parameters": [
@@ -1337,6 +1765,57 @@
                 }
             }
         },
+        "/mills/json": {
+            "post": {
+                "description": "Takes an input JSON document, validates it according to its schema.org definition,\noptionally encrypts the output before adding to IPFS, and returns a file object",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "mills"
+                ],
+                "summary": "Process input JSON data",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "multipart/form-data file",
+                        "name": "file",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "default": "plaintext=\"false\",use=\"\"",
+                        "description": "plaintext: whether to leave unencrypted, use: if empty, assumes body contains multipart form file data, otherwise, will attempt to fetch given CID from IPFS",
+                        "name": "X-Textile-Opts",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "file",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/repo.File"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/mills/schema": {
             "post": {
                 "description": "Takes a JSON-based Schema, validates it, adds it to IPFS, and returns a file object",
@@ -1444,7 +1923,7 @@
                     "text/plain"
                 ],
                 "tags": [
-                    "peer"
+                    "utils"
                 ],
                 "summary": "Ping a network peer",
                 "parameters": [
@@ -1629,92 +2108,6 @@
                 }
             }
         },
-        "/swarm/connect": {
-            "get": {
-                "description": "Opens a new direct connection to a peer using an IPFS multiaddr",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "ipfs"
-                ],
-                "summary": "Opens a new direct connection to a peer address",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "peer address",
-                        "name": "X-Textile-Args",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "ok",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/swarm/peers": {
-            "get": {
-                "description": "Lists the set of peers this node is connected to",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "ipfs"
-                ],
-                "summary": "List swarm peers",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "default": "verbose=\"false\",latency=\"false\",streams=\"false\",direction=\"false\"",
-                        "description": "verbose: Display all extra information, latency: Also list information about latency to each peer, streams: Also list information about open streams for each peer, direction: Also list information about the direction of connection",
-                        "name": "X-Textile-Opts",
-                        "in": "header"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "connection",
-                        "schema": {
-                            "type": "object",
-                            "$ref": "#/definitions/ipfs.ConnInfos"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
         "/threads": {
             "get": {
                 "description": "Lists all local threads, returning an array of ThreadInfo objects",
@@ -1826,6 +2219,81 @@
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Adds or updates a thread directly, usually from a backup",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "threads"
+                ],
+                "summary": "Add or update a thread directly",
+                "parameters": [
+                    {
+                        "description": "thread",
+                        "name": "thread",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/pb.Thread"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Leaves and removes a thread",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "threads"
+                ],
+                "summary": "Leave and remove a thread",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "thread id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "string"
                         }
@@ -2087,6 +2555,39 @@
                         }
                     }
                 }
+            },
+            "delete": {
+                "description": "Removes an existing cafe token",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tokens"
+                ],
+                "summary": "Removes a cafe token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "token",
+                        "name": "token",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
             }
         }
     },
@@ -2210,6 +2711,10 @@
                     }
                 }
             }
+        },
+        "core.InviteInfo": {
+            "type": "object",
+            "additionalProperties": {}
         },
         "core.Keys": {
             "type": "object",
@@ -2395,6 +2900,79 @@
             "properties": {
                 "protocol": {
                     "type": "string"
+                }
+            }
+        },
+        "mill.Json": {
+            "type": "object"
+        },
+        "pb.Cafe": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "api": {
+                    "type": "string"
+                },
+                "node": {
+                    "type": "string"
+                },
+                "peer": {
+                    "type": "string"
+                },
+                "protocol": {
+                    "type": "string"
+                },
+                "swarm": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "pb.CafeSession": {
+            "type": "object",
+            "properties": {
+                "access": {
+                    "type": "string"
+                },
+                "cafe": {
+                    "type": "object",
+                    "$ref": "#/definitions/pb.Cafe"
+                },
+                "exp": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "refresh": {
+                    "type": "string"
+                },
+                "rexp": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "pb.CafeSessions": {
+            "type": "object",
+            "properties": {
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pb.CafeSession"
+                    }
                 }
             }
         },
@@ -2665,6 +3243,50 @@
                     "items": {
                         "$ref": "#/definitions/pb.Text"
                     }
+                }
+            }
+        },
+        "pb.Thread": {
+            "type": "object",
+            "properties": {
+                "head": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "initiator": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "members": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "schema": {
+                    "type": "string"
+                },
+                "sharing": {
+                    "type": "integer"
+                },
+                "sk": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "state": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "integer"
                 }
             }
         },

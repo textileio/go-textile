@@ -37,7 +37,7 @@ func getKeyValue(path string, object interface{}) (interface{}, error) {
 // @Tags config
 // @Produce application/json
 // @Param path path string false "config path (e.g., Addresses/API)"
-// @Success 200 {object} object "new config value"
+// @Success 200 {object} mill.Json "new config value"
 // @Failure 400 {string} string "Bad Request"
 // @Router /config/{path} [get]
 func (a *api) getConfig(g *gin.Context) {
@@ -65,7 +65,7 @@ func (a *api) getConfig(g *gin.Context) {
 // @Description See https://tools.ietf.org/html/rfc6902 for details on RFC6902 JSON patch format.
 // @Tags config
 // @Accept application/json
-// @Param patch body object true "An RFC6902 JSON patch (array of ops)"
+// @Param patch body mill.Json true "An RFC6902 JSON patch (array of ops)"
 // @Success 204 {string} string "No Content"
 // @Failure 400 {string} string "Bad Request"
 // @Router /config [patch]
@@ -129,7 +129,7 @@ func (a *api) patchConfig(g *gin.Context) {
 // @Description in a config file inside the Textile repository.
 // @Tags config
 // @Accept application/json
-// @Param config body object true "JSON document"
+// @Param config body mill.Json true "JSON document"
 // @Success 204 {string} string "No Content"
 // @Failure 400 {string} string "Bad Request"
 // @Router /config [put]

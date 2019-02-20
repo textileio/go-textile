@@ -79,6 +79,9 @@ definitions:
           type: array
       type: object
     type: object
+  core.InviteInfo:
+    additionalProperties: {}
+    type: object
   core.Keys:
     additionalProperties: {}
     type: object
@@ -202,6 +205,54 @@ definitions:
     properties:
       protocol:
         type: string
+    type: object
+  mill.Json:
+    type: object
+  pb.Cafe:
+    properties:
+      address:
+        type: string
+      api:
+        type: string
+      node:
+        type: string
+      peer:
+        type: string
+      protocol:
+        type: string
+      swarm:
+        items:
+          type: string
+        type: array
+      url:
+        type: string
+    type: object
+  pb.CafeSession:
+    properties:
+      access:
+        type: string
+      cafe:
+        $ref: '#/definitions/pb.Cafe'
+        type: object
+      exp:
+        type: string
+      id:
+        type: string
+      refresh:
+        type: string
+      rexp:
+        type: string
+      subject:
+        type: string
+      type:
+        type: string
+    type: object
+  pb.CafeSessions:
+    properties:
+      values:
+        items:
+          $ref: '#/definitions/pb.CafeSession'
+        type: array
     type: object
   pb.Comment:
     properties:
@@ -380,6 +431,35 @@ definitions:
           $ref: '#/definitions/pb.Text'
         type: array
     type: object
+  pb.Thread:
+    properties:
+      head:
+        type: string
+      id:
+        type: string
+      initiator:
+        type: string
+      key:
+        type: string
+      members:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      schema:
+        type: string
+      sharing:
+        type: integer
+      sk:
+        items:
+          type: integer
+        type: array
+      state:
+        type: integer
+      type:
+        type: integer
+    type: object
   repo.Cafe:
     properties:
       address:
@@ -470,7 +550,7 @@ info:
     email: contact@textile.io
     name: Textile
     url: https://textile.io/
-  description: '{{.Description}}'
+  description: Textile Node Local REST API Documentation
   license:
     name: MIT License
     url: https://github.com/textileio/textile-go/blob/master/LICENSE
@@ -507,8 +587,9 @@ paths:
         "200":
           description: backup stream
           schema:
-            $ref: '#/definitions/object'
-            type: object
+            items:
+              type: integer
+            type: array
         "400":
           description: Bad Request
           schema:
@@ -579,6 +660,37 @@ paths:
       tags:
       - blocks
   /blocks/{id}:
+    delete:
+      description: Removes a thread block by ID
+      parameters:
+      - description: block id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: block
+          schema:
+            $ref: '#/definitions/core.BlockInfo'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Remove thread block
+      tags:
+      - blocks
     get:
       description: Gets a thread block by ID
       parameters:
@@ -765,6 +877,133 @@ paths:
       summary: Add a like
       tags:
       - blocks
+  /cafes:
+    get:
+      description: |-
+        List info about all active cafe sessions. Cafes are other peers on the network
+        who offer pinning, backup, and inbox services
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: cafe sessions
+          schema:
+            $ref: '#/definitions/pb.CafeSessions'
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: List info about all active cafe sessions
+      tags:
+      - cafes
+    post:
+      description: |-
+        Registers with a cafe and saves an expiring service session token. An access
+        token is required to register, and should be obtained separately from the target
+        Cafe
+      parameters:
+      - description: cafe host
+        in: header
+        name: X-Textile-Args
+        required: true
+        type: string
+      - default: token=
+        description: 'token: An access token supplied by the Cafe'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: cafe session
+          schema:
+            $ref: '#/definitions/pb.CafeSession'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Register with a Cafe
+      tags:
+      - cafes
+  /cafes/{id}:
+    delete:
+      description: Deregisters with a cafe (content will expire based on the cafe's
+        service rules)
+      parameters:
+      - description: cafe id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Deregisters a cafe
+      tags:
+      - cafes
+    get:
+      description: |-
+        Gets and displays info about a cafe session. Cafes are other peers on the network
+        who offer pinning, backup, and inbox services
+      parameters:
+      - description: cafe id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: cafe session
+          schema:
+            $ref: '#/definitions/pb.CafeSession'
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Gets and displays info about a cafe session
+      tags:
+      - cafes
+  /cafes/messages:
+    post:
+      description: |-
+        Check for messages at all cafes. New messages are downloaded and processed
+        opportunistically.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Check for messages at all cafes
+      tags:
+      - cafes
   /config:
     patch:
       consumes:
@@ -781,6 +1020,7 @@ paths:
         name: patch
         required: true
         schema:
+          $ref: '#/definitions/mill.Json'
           type: object
       responses:
         "204":
@@ -807,6 +1047,7 @@ paths:
         name: config
         required: true
         schema:
+          $ref: '#/definitions/mill.Json'
           type: object
       responses:
         "204":
@@ -836,7 +1077,7 @@ paths:
         "200":
           description: new config value
           schema:
-            $ref: '#/definitions/object'
+            $ref: '#/definitions/mill.Json'
             type: object
         "400":
           description: Bad Request
@@ -874,57 +1115,22 @@ paths:
       summary: List known contacts
       tags:
       - contacts
-    post:
-      consumes:
-      - application/json
-      description: |-
-        Adds a contact to list of known local contacts. A common workflow is to pipe
-        /contact/search results into this endpoint, just be sure you know what the results
-        of the search are before adding!
+  /contacts/{id}:
+    delete:
+      description: Removes a known contact
       parameters:
-      - description: contact
-        in: body
-        name: contact
+      - description: contact id
+        in: path
+        name: id
         required: true
-        schema:
-          $ref: '#/definitions/repo.Contact'
-          type: object
+        type: string
       produces:
-      - application/json
+      - text/plain
       responses:
         "200":
           description: ok
           schema:
             type: string
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-      summary: Add to known contacts
-      tags:
-      - contacts
-  /contacts/{id}: {}
-  /contacts/search:
-    post:
-      description: Search for contacts known locally and on the network
-      parameters:
-      - default: local="false",limit=5,wait=5,peer=,address=,username=,events="false"
-        description: 'local: Whether to only search local contacts, limit: Stops searching
-          after limit results are found, wait: Stops searching after ''wait'' seconds
-          have elapsed (max 10s), username: search by username string, peer: search
-          by peer id string, address: search by account address string, events: Whether
-          to emit Server-Sent Events (SSEvent) or plain JSON'
-        in: header
-        name: X-Textile-Opts
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: contact stream
-          schema:
-            $ref: '#/definitions/object'
-            type: object
         "404":
           description: Not Found
           schema:
@@ -933,10 +1139,9 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      summary: Search for contacts
+      summary: Remove a contact
       tags:
       - contacts
-  /contacts{id}:
     get:
       description: Gets information about a known contact
       parameters:
@@ -958,6 +1163,72 @@ paths:
           schema:
             type: string
       summary: Get a known contact
+      tags:
+      - contacts
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Adds a contact to list of known local contacts. A common workflow is to pipe
+        /contact/search results into this endpoint, just be sure you know what the results
+        of the search are before adding!
+      parameters:
+      - description: contact id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: contact
+        in: body
+        name: contact
+        required: true
+        schema:
+          $ref: '#/definitions/repo.Contact'
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Add to known contacts
+      tags:
+      - contacts
+  /contacts/search:
+    post:
+      description: Search for contacts known locally and on the network
+      parameters:
+      - default: local="false",limit=5,wait=5,peer=,address=,username=,events="false"
+        description: 'local: Whether to only search local contacts, limit: Stops searching
+          after limit results are found, wait: Stops searching after ''wait'' seconds
+          have elapsed (max 10s), username: search by username string, peer: search
+          by peer id string, address: search by account address string, events: Whether
+          to emit Server-Sent Events (SSEvent) or plain JSON'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: contact stream
+          schema:
+            $ref: '#/definitions/mill.Json'
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Search for contacts
       tags:
       - contacts
   /feed:
@@ -1082,6 +1353,38 @@ paths:
       summary: List invites
       tags:
       - invites
+    post:
+      description: Creates a direct peer-to-peer or external invite to a thread
+      parameters:
+      - default: thread=,peer=
+        description: 'thread: Thread ID (can also use ''default''), peer: Peer ID
+          (omit to create an external invite)'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: invite
+          schema:
+            $ref: '#/definitions/core.InviteInfo'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Create an invite to a thread
+      tags:
+      - invites
   /invites/{id}/accept:
     post:
       description: |-
@@ -1144,7 +1447,7 @@ paths:
       summary: Ignore a thread invite
       tags:
       - invites
-  /ipfs:
+  /ipfs/cat/{cid}:
     get:
       description: Displays the data behind an IPFS CID (hash)
       parameters:
@@ -1184,6 +1487,82 @@ paths:
           schema:
             type: string
       summary: Cat IPFS data
+      tags:
+      - ipfs
+  /ipfs/id:
+    get:
+      description: Displays underlying IPFS peer ID
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: peer id
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get IPFS peer ID
+      tags:
+      - ipfs
+  /ipfs/swarm/connect:
+    post:
+      description: Opens a new direct connection to a peer using an IPFS multiaddr
+      parameters:
+      - description: peer address
+        in: header
+        name: X-Textile-Args
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            items:
+              type: string
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Opens a new direct connection to a peer address
+      tags:
+      - ipfs
+  /ipfs/swarm/peers:
+    get:
+      description: Lists the set of peers this node is connected to
+      parameters:
+      - default: verbose="false",latency="false",streams="false",direction="false"
+        description: 'verbose: Display all extra information, latency: Also list information
+          about latency to each peer, streams: Also list information about open streams
+          for each peer, direction: Also list information about the direction of connection'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: connection
+          schema:
+            $ref: '#/definitions/ipfs.ConnInfos'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: List swarm peers
       tags:
       - ipfs
   /keys/{target}:
@@ -1244,7 +1623,7 @@ paths:
             type: string
       summary: Access subsystem logs
       tags:
-      - logs
+      - utils
   /messages:
     get:
       description: Paginates thread messages
@@ -1419,6 +1798,44 @@ paths:
       summary: Resize an image
       tags:
       - mills
+  /mills/json:
+    post:
+      consumes:
+      - multipart/form-data
+      description: |-
+        Takes an input JSON document, validates it according to its schema.org definition,
+        optionally encrypts the output before adding to IPFS, and returns a file object
+      parameters:
+      - description: multipart/form-data file
+        in: formData
+        name: file
+        type: file
+      - default: plaintext="false",use=""
+        description: 'plaintext: whether to leave unencrypted, use: if empty, assumes
+          body contains multipart form file data, otherwise, will attempt to fetch
+          given CID from IPFS'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: file
+          schema:
+            $ref: '#/definitions/repo.File'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Process input JSON data
+      tags:
+      - mills
   /mills/schema:
     post:
       consumes:
@@ -1512,7 +1929,7 @@ paths:
             type: string
       summary: Ping a network peer
       tags:
-      - peer
+      - utils
   /profile:
     get:
       description: Gets the local node's public profile
@@ -1619,65 +2036,6 @@ paths:
       summary: Subscribe to thread updates
       tags:
       - sub
-  /swarm/connect:
-    get:
-      description: Opens a new direct connection to a peer using an IPFS multiaddr
-      parameters:
-      - description: peer address
-        in: header
-        name: X-Textile-Args
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: ok
-          schema:
-            items:
-              type: string
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Opens a new direct connection to a peer address
-      tags:
-      - ipfs
-  /swarm/peers:
-    get:
-      description: Lists the set of peers this node is connected to
-      parameters:
-      - default: verbose="false",latency="false",streams="false",direction="false"
-        description: 'verbose: Display all extra information, latency: Also list information
-          about latency to each peer, streams: Also list information about open streams
-          for each peer, direction: Also list information about the direction of connection'
-        in: header
-        name: X-Textile-Opts
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: connection
-          schema:
-            $ref: '#/definitions/ipfs.ConnInfos'
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: List swarm peers
-      tags:
-      - ipfs
   /threads:
     get:
       description: Lists all local threads, returning an array of ThreadInfo objects
@@ -1742,6 +2100,32 @@ paths:
       tags:
       - threads
   /threads/{id}:
+    delete:
+      description: Leaves and removes a thread
+      parameters:
+      - description: thread id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Leave and remove a thread
+      tags:
+      - threads
     get:
       description: Gets and displays info about a thread
       parameters:
@@ -1767,6 +2151,30 @@ paths:
           schema:
             type: string
       summary: Gets a thread
+      tags:
+      - threads
+    put:
+      description: Adds or updates a thread directly, usually from a backup
+      parameters:
+      - description: thread
+        in: body
+        name: thread
+        required: true
+        schema:
+          $ref: '#/definitions/pb.Thread'
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Add or update a thread directly
       tags:
       - threads
   /threads/{id}/files:
@@ -1924,6 +2332,28 @@ paths:
       tags:
       - tokens
   /tokens/{id}:
+    delete:
+      description: Removes an existing cafe token
+      parameters:
+      - description: token
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Removes a cafe token
+      tags:
+      - tokens
     get:
       description: Check validity of existing cafe access token
       parameters:
