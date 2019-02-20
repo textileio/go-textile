@@ -39,6 +39,7 @@ type api struct {
 	addr   string
 	server *http.Server
 	node   *Textile
+	docs   bool
 }
 
 // pbMarshaler is used to marshal protobufs to JSON
@@ -52,10 +53,10 @@ var pbUnmarshaler = jsonpb.Unmarshaler{
 }
 
 // StartApi starts the host instance
-func (t *Textile) StartApi(addr string) {
+func (t *Textile) StartApi(addr string, serveDocs bool) {
 	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = t.writer
-	apiHost = &api{addr: addr, node: t}
+	apiHost = &api{addr: addr, node: t, docs: serveDocs}
 	apiHost.Start()
 }
 
@@ -108,7 +109,9 @@ func (a *api) Start() {
 	}
 
 	// API docs
-	router.GET("/docs/*any", swagger.WrapHandler(sfiles.Handler))
+	if a.docs {
+		router.GET("/docs/*any", swagger.WrapHandler(sfiles.Handler))
+	}
 
 	// v0 routes
 	v0 := router.Group("/api/v0")
