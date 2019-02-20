@@ -3,7 +3,7 @@
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 IOS_DIR="${DIR}/../ios"
 ANDROID_DIR="${DIR}/../android"
-JS_DIR="${DIR}/../"
+JS_DIR="${DIR}/../src"
 VER=$1
 
 # fetch iOS framework
