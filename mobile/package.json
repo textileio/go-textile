@@ -25,7 +25,8 @@
     "android"
   ],
   "files": [
-    "scripts"
+    "scripts",
+    "src"
   ],
   "scripts": {
     "postinstall": "./scripts/fetch_release.sh $npm_package_version"
