@@ -30,6 +30,8 @@
   "scripts": {
     "postinstall": "./scripts/fetch_release.sh $npm_package_version"
   },
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
   "dependencies": {
     "google-protobuf": "^3.7.0-rc.2"
   }
