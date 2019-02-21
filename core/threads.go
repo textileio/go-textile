@@ -14,8 +14,10 @@ import (
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/schema/textile"
 )
 
 // ErrThreadNotFound indicates thread is not found in the loaded list
@@ -30,20 +32,8 @@ var ErrThreadLoaded = errors.New("thread is loaded")
 // internalThreadKeys lists keys used by internal threads
 var internalThreadKeys = []string{"avatars"}
 
-// AddThreadConfig is used to create a new thread model
-type AddThreadConfig struct {
-	Key       string            `json:"key"`
-	Name      string            `json:"name"`
-	Schema    mh.Multihash      `json:"schema"`
-	Initiator string            `json:"initiator"`
-	Type      pb.Thread_Type    `json:"type"`
-	Sharing   pb.Thread_Sharing `json:"sharing"`
-	Members   []string          `json:"members"`
-	Join      bool              `json:"join"`
-}
-
 // AddThread adds a thread with a given name and secret key
-func (t *Textile) AddThread(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, error) {
+func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiator string, join bool) (*Thread, error) {
 	id, err := peer.IDFromPrivateKey(sk)
 	if err != nil {
 		return nil, err
@@ -55,9 +45,40 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, 
 
 	var schema string
 	if conf.Schema != nil {
-		schema = conf.Schema.B58String()
-		if err := t.cafeOutbox.Add(schema, repo.CafeStoreRequest); err != nil {
-			return nil, err
+		var sjson string
+
+		if conf.Schema.Id != "" {
+			// ensure schema id is a multi hash
+			if _, err := mh.FromB58String(conf.Schema.Id); err != nil {
+				return nil, err
+			}
+			schema = conf.Schema.Id
+		} else if conf.Schema.Json != "" {
+			sjson = conf.Schema.Json
+		} else {
+			switch conf.Schema.Preset {
+			case pb.AddThreadConfig_Schema_CAMERA_ROLL:
+				sjson = textile.CameraRoll
+			case pb.AddThreadConfig_Schema_MEDIA:
+				sjson = textile.Media
+			}
+		}
+
+		if sjson != "" {
+			sfile, err := t.AddFileIndex(&mill.Schema{}, AddFileConfig{
+				Input: []byte(sjson),
+				Media: "application/json",
+			})
+			if err != nil {
+				return nil, err
+			}
+			schema = sfile.Hash
+		}
+
+		if schema != "" {
+			if err := t.cafeOutbox.Add(schema, repo.CafeStoreRequest); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -84,8 +105,8 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, 
 		Key:       conf.Key,
 		Sk:        skb,
 		Name:      strings.TrimSpace(conf.Name),
-		Schema:    conf.Schema.B58String(),
-		Initiator: conf.Initiator,
+		Schema:    schema,
+		Initiator: initiator,
 		Type:      conf.Type,
 		Sharing:   conf.Sharing,
 		Members:   members,
@@ -101,7 +122,7 @@ func (t *Textile) AddThread(sk libp2pc.PrivKey, conf AddThreadConfig) (*Thread, 
 	}
 
 	// we join here if we're the creator
-	if conf.Join {
+	if join {
 		if _, err := thrd.joinInitial(); err != nil {
 			return nil, err
 		}
@@ -145,29 +166,19 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 
 	nthrd := t.Thread(id.Pretty())
 	if nthrd == nil {
-
-		var sch mh.Multihash
-		if thrd.Schema != "" {
-			sch, err = mh.FromB58String(thrd.Schema)
-			if err != nil {
-				return err
-			}
-
-		}
-
-		config := AddThreadConfig{
-			Key:       thrd.Key,
-			Name:      thrd.Name,
-			Schema:    sch,
-			Initiator: thrd.Initiator,
-			Type:      thrd.Type,
-			Sharing:   thrd.Sharing,
-			Members:   thrd.Members,
-			Join:      false,
+		config := pb.AddThreadConfig{
+			Key:  thrd.Key,
+			Name: thrd.Name,
+			Schema: &pb.AddThreadConfig_Schema{
+				Id: thrd.Schema,
+			},
+			Type:    thrd.Type,
+			Sharing: thrd.Sharing,
+			Members: thrd.Members,
 		}
 
 		var err error
-		nthrd, err = t.AddThread(sk, config)
+		nthrd, err = t.AddThread(config, sk, thrd.Initiator, false)
 		if err != nil {
 			return err
 		}
@@ -407,24 +418,17 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 		return nil, nil
 	}
 
-	var sch mh.Multihash
-	if msg.Thread.Schema != "" {
-		sch, err = mh.FromB58String(msg.Thread.Schema)
-		if err != nil {
-			return nil, err
-		}
+	config := pb.AddThreadConfig{
+		Key:  msg.Thread.Key, // TODO: auto bump with _1,2,3 etc. if not unique
+		Name: msg.Thread.Name,
+		Schema: &pb.AddThreadConfig_Schema{
+			Id: msg.Thread.Schema,
+		},
+		Type:    msg.Thread.Type,
+		Sharing: msg.Thread.Sharing,
+		Members: msg.Thread.Members,
 	}
-	config := AddThreadConfig{
-		Key:       msg.Thread.Key, // TODO: auto bump with _1,2,3 etc. if not unique
-		Name:      msg.Thread.Name,
-		Schema:    sch,
-		Initiator: msg.Thread.Initiator,
-		Type:      msg.Thread.Type,
-		Sharing:   msg.Thread.Sharing,
-		Members:   msg.Thread.Members,
-		Join:      false,
-	}
-	thrd, err := t.AddThread(sk, config)
+	thrd, err := t.AddThread(config, sk, msg.Thread.Initiator, false)
 	if err != nil {
 		return nil, err
 	}
@@ -466,15 +470,13 @@ func (t *Textile) addAccountThread() error {
 		return err
 	}
 
-	config := AddThreadConfig{
-		Key:       t.account.Address(),
-		Name:      "account",
-		Initiator: t.account.Address(),
-		Type:      pb.Thread_Private,
-		Sharing:   pb.Thread_NotShared,
-		Join:      true,
+	config := pb.AddThreadConfig{
+		Key:     t.account.Address(),
+		Name:    "account",
+		Type:    pb.Thread_Private,
+		Sharing: pb.Thread_NotShared,
 	}
-	if _, err := t.AddThread(sk, config); err != nil {
+	if _, err := t.AddThread(config, sk, t.account.Address(), true); err != nil {
 		return err
 	}
 	return nil

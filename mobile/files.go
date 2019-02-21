@@ -33,7 +33,10 @@ func (m *Mobile) AddSchema(jsonstr string) (string, error) {
 		return "", core.ErrStopped
 	}
 
-	added, err := m.addSchema(jsonstr)
+	added, err := m.node.AddFileIndex(&mill.Schema{}, core.AddFileConfig{
+		Input: []byte(jsonstr),
+		Media: "application/json",
+	})
 	if err != nil {
 		return "", err
 	}
@@ -357,15 +360,6 @@ func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) (string, err
 	}
 
 	return m.FileData(hash)
-}
-
-func (m *Mobile) addSchema(jsonstr string) (*repo.File, error) {
-	conf := core.AddFileConfig{
-		Input: []byte(jsonstr),
-		Media: "application/json",
-	}
-
-	return m.node.AddFileIndex(&mill.Schema{}, conf)
 }
 
 func (m *Mobile) getFileConfig(mil mill.Mill, path string, use string, plaintext bool) (*core.AddFileConfig, error) {

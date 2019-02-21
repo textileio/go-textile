@@ -7,6 +7,27 @@ import "model.proto";
 
 // THREADS //
 
+message AddThreadConfig {
+    string key                 = 1;
+    string name                = 2;
+    Schema schema              = 3;
+    Thread.Type type           = 4;
+    Thread.Sharing sharing     = 5;
+    repeated string members    = 6;
+
+    message Schema {
+        string id     = 1;
+        string json   = 2;
+        Preset preset = 3;
+
+        enum Preset {
+            NONE        = 0;
+            CAMERA_ROLL = 1;
+            MEDIA       = 2;
+        }
+    }
+}
+
 message ThreadList {
     repeated Thread items = 1;
 }
@@ -24,6 +45,14 @@ message Directory {
 message Step {
     string Name = 1;
     Link link   = 2;
+}
+
+// INVITES
+
+message ExternalInvite {
+    string id      = 1;
+    string key     = 2;
+    string inviter = 3;
 }
 
 // FEED //
