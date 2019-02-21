@@ -9,6 +9,19 @@ import (
 	"github.com/textileio/textile-go/repo"
 )
 
+// addContacts godoc
+// @Summary Add to known contacts
+// @Description Adds a contact to list of known local contacts. A common workflow is to pipe
+// @Description /contact/search results into this endpoint, just be sure you know what the results
+// @Description of the search are before adding!
+// @Tags contacts
+// @Accept application/json
+// @Produce application/json
+// @Param id path string true "contact id"
+// @Param contact body repo.Contact true "contact"
+// @Success 200 {string} string "ok"
+// @Failure 400 {string} string "Bad Request"
+// @Router /contacts/{id} [put]
 func (a *api) addContacts(g *gin.Context) {
 	var contact *repo.Contact
 	if err := g.BindJSON(&contact); err != nil {
@@ -23,6 +36,10 @@ func (a *api) addContacts(g *gin.Context) {
 		g.String(http.StatusBadRequest, "invalid contact")
 		return
 	}
+	if contact.Id != g.Param("id") {
+		g.String(http.StatusBadRequest, "contact id mismatch")
+		return
+	}
 
 	if err := a.node.AddContact(contact); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
@@ -32,6 +49,16 @@ func (a *api) addContacts(g *gin.Context) {
 	g.String(http.StatusOK, "ok")
 }
 
+// lsContacts godoc
+// @Summary List known contacts
+// @Description Lists all, or thread-based, contacts.
+// @Tags contacts
+// @Produce application/json
+// @Param X-Textile-Opts header string false "thread: Thread ID (omit for all known contacts)" default(thread=)
+// @Success 200 {array} core.ContactInfo "contacts"
+// @Failure 404 {string} string "Not Found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /contacts [get]
 func (a *api) lsContacts(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
@@ -69,6 +96,15 @@ func (a *api) lsContacts(g *gin.Context) {
 	g.JSON(http.StatusOK, contacts)
 }
 
+// getContacts godoc
+// @Summary Get a known contact
+// @Description Gets information about a known contact
+// @Tags contacts
+// @Produce application/json
+// @Param id path string true "contact id"
+// @Success 200 {object} core.ContactInfo "contacts"
+// @Failure 404 {string} string "Not Found"
+// @Router /contacts/{id} [get]
 func (a *api) getContacts(g *gin.Context) {
 	id := g.Param("id")
 
@@ -81,6 +117,16 @@ func (a *api) getContacts(g *gin.Context) {
 	g.JSON(http.StatusOK, info)
 }
 
+// rmContacts godoc
+// @Summary Remove a contact
+// @Description Removes a known contact
+// @Tags contacts
+// @Produce text/plain
+// @Param id path string true "contact id"
+// @Success 200 {string} string "ok"
+// @Failure 404 {string} string "Not Found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /contacts/{id} [delete]
 func (a *api) rmContacts(g *gin.Context) {
 	id := g.Param("id")
 
@@ -98,6 +144,16 @@ func (a *api) rmContacts(g *gin.Context) {
 	g.String(http.StatusOK, "ok")
 }
 
+// searchContacts godoc
+// @Summary Search for contacts
+// @Description Search for contacts known locally and on the network
+// @Tags contacts
+// @Produce application/json
+// @Param X-Textile-Opts header string false "local: Whether to only search local contacts, limit: Stops searching after limit results are found, wait: Stops searching after 'wait' seconds have elapsed (max 10s), username: search by username string, peer: search by peer id string, address: search by account address string, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON" default(local="false",limit=5,wait=5,peer=,address=,username=,events="false")
+// @Success 200 {object} mill.Json "contact stream"
+// @Failure 404 {string} string "Not Found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /contacts/search [post]
 func (a *api) searchContacts(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {

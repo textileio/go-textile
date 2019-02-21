@@ -9,6 +9,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type SubsystemInfo map[string]string
+
+// logsCall godoc
+// @Summary Access subsystem logs
+// @Description List or change the verbosity of one or all subsystems log output. Textile logs
+// @Description piggyback on the IPFS event logs
+// @Tags utils
+// @Produce application/json
+// @Param subsystem path string false "subsystem logging identifier (omit for all)"
+// @Param X-Textile-Opts header string false "level: Log-level (one of: debug, info, warning, error, critical, or "" to get current), tex-only: Whether to list/change only Textile subsystems, or all available subsystems" default(level=,tex-only="false")
+// @Success 200 {object} core.SubsystemInfo "subsystems"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /logs/{subsystem} [post]
 func (a *api) logsCall(g *gin.Context) {
 
 	subsystem := g.Param("subsystem")

@@ -30,6 +30,16 @@ func getKeyValue(path string, object interface{}) (interface{}, error) {
 	return v.Interface(), nil
 }
 
+// getConfig godoc
+// @Summary Get active config settings
+// @Description Report the currently active config settings, which may differ from the values
+// @Description specifed when setting/patching values.
+// @Tags config
+// @Produce application/json
+// @Param path path string false "config path (e.g., Addresses/API)"
+// @Success 200 {object} mill.Json "new config value"
+// @Failure 400 {string} string "Bad Request"
+// @Router /config/{path} [get]
 func (a *api) getConfig(g *gin.Context) {
 	path := g.Param("path")
 	conf := a.node.Config()
@@ -46,6 +56,19 @@ func (a *api) getConfig(g *gin.Context) {
 	}
 }
 
+// patchConfig godoc
+// @Summary Get active config settings
+// @Description When patching config values, valid JSON types must be used. For example, a string
+// @Description should be escaped or wrapped in single quotes (e.g., \"127.0.0.1:40600\") and
+// @Description arrays and objects work fine (e.g. '{"API": "127.0.0.1:40600"}') but should be
+// @Description wrapped in single quotes. Be sure to restart the daemon for changes to take effect.
+// @Description See https://tools.ietf.org/html/rfc6902 for details on RFC6902 JSON patch format.
+// @Tags config
+// @Accept application/json
+// @Param patch body mill.Json true "An RFC6902 JSON patch (array of ops)"
+// @Success 204 {string} string "No Content"
+// @Failure 400 {string} string "Bad Request"
+// @Router /config [patch]
 func (a *api) patchConfig(g *gin.Context) {
 	body, err := ioutil.ReadAll(g.Request.Body)
 	if err != nil {
@@ -99,6 +122,17 @@ func (a *api) patchConfig(g *gin.Context) {
 	g.Writer.WriteHeader(http.StatusNoContent)
 }
 
+// setConfig godoc
+// @Summary Replce config settings.
+// @Description Replace entire config file contents. The config command controls configuration
+// @Description variables. It works much like 'git config'. The configuration values are stored
+// @Description in a config file inside the Textile repository.
+// @Tags config
+// @Accept application/json
+// @Param config body mill.Json true "JSON document"
+// @Success 204 {string} string "No Content"
+// @Failure 400 {string} string "Bad Request"
+// @Router /config [put]
 func (a *api) setConfig(g *gin.Context) {
 	configPath := path.Join(a.node.repoPath, "textile")
 

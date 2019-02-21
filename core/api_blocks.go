@@ -8,6 +8,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// lsBlocks godoc
+// @Summary Paginates blocks in a thread
+// @Description Paginates blocks in a thread. Blocks are the raw components in a thread.
+// @Description Think of them as an append-only log of thread updates where each update is
+// @Description hash-linked to its parent(s). New / recovering peers can sync history by simply
+// @Description traversing the hash tree.
+// @Tags blocks
+// @Produce application/json
+// @Param X-Textile-Opts header string false "thread: Thread ID (can also use 'default'), offset: Offset ID to start listing from (omit for latest), limit: List page size (default: 5)" default(thread=,offset=,limit=5)
+// @Success 200 {array} core.BlockInfo "blocks"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 404 {string} string "Not Found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /blocks [get]
 func (a *api) lsBlocks(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
@@ -61,6 +75,15 @@ func (a *api) lsBlocks(g *gin.Context) {
 	g.JSON(http.StatusOK, infos)
 }
 
+// getBlocks godoc
+// @Summary Gets thread block
+// @Description Gets a thread block by ID
+// @Tags blocks
+// @Produce application/json
+// @Param id path string true "block id"
+// @Success 200 {object} core.BlockInfo "block"
+// @Failure 404 {string} string "Not Found"
+// @Router /blocks/{id} [get]
 func (a *api) getBlocks(g *gin.Context) {
 	id := g.Param("id")
 
@@ -73,6 +96,17 @@ func (a *api) getBlocks(g *gin.Context) {
 	g.JSON(http.StatusOK, info)
 }
 
+// rmBlocks godoc
+// @Summary Remove thread block
+// @Description Removes a thread block by ID
+// @Tags blocks
+// @Produce application/json
+// @Param id path string true "block id"
+// @Success 201 {object} core.BlockInfo "block"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 404 {string} string "Not Found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /blocks/{id} [delete]
 func (a *api) rmBlocks(g *gin.Context) {
 	id := g.Param("id")
 

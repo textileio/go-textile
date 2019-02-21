@@ -6,6 +6,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// getProfile godoc
+// @Summary Get public profile
+// @Description Gets the local node's public profile
+// @Tags profile
+// @Produce application/json
+// @Success 200 {object} repo.Contact "Contact info"
+// @Failure 400 {string} string "Bad Request"
+// @Router /profile [get]
 func (a *api) getProfile(g *gin.Context) {
 	profile := a.node.Profile()
 	if profile == nil {
@@ -15,6 +23,16 @@ func (a *api) getProfile(g *gin.Context) {
 	g.JSON(http.StatusOK, profile)
 }
 
+// setUsername godoc
+// @Summary Set username
+// @Description Sets public profile username to given string
+// @Tags profile
+// @Produce text/plain
+// @Param X-Textile-Args header string true "username"
+// @Success 201 {string} string "ok"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /profile/username [post]
 func (a *api) setUsername(g *gin.Context) {
 	args, err := a.readArgs(g)
 	if err != nil {
@@ -32,6 +50,16 @@ func (a *api) setUsername(g *gin.Context) {
 	g.JSON(http.StatusCreated, "ok")
 }
 
+// setAvatar godoc
+// @Summary Set avatar
+// @Description Sets public profile avatar by specifying an existing image file hash
+// @Tags profile
+// @Produce text/plain
+// @Param X-Textile-Args header string true "hash"
+// @Success 201 {string} string "ok"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /profile/avatar [post]
 func (a *api) setAvatar(g *gin.Context) {
 	args, err := a.readArgs(g)
 	if err != nil {

@@ -3,7 +3,6 @@ P_ANY=Mgoogle/protobuf/any.proto=github.com/golang/protobuf/ptypes/any
 PKGMAP=$(P_TIMESTAMP),$(P_ANY)
 
 $(eval FLAGS := $(shell govvv -flags -pkg github.com/textileio/textile-go/common))
-$(eval VERSION := $(shell ggrep -oP 'const Version = "\K[^"]+' common/version.go))
 
 clean:
 	rm -rf vendor
@@ -24,6 +23,9 @@ lint:
 build:
 	go build -ldflags "-w $(FLAGS)" -i -o textile textile.go
 	mv textile dist/
+
+build_docs:
+	swag init -g core/api.go
 
 cross_build_linux:
 	export CGO_ENABLED=1
@@ -49,6 +51,8 @@ install:
 	mv dist/textile /usr/local/bin
 
 publish_mobile:
+	# Also need to brew install jq before calling publish_mobile
+	$(eval VERSION := $(shell ggrep -oP 'const Version = "\K[^"]+' common/version.go))
 	cd mobile; jq '.version = "$(VERSION)"' package.json > package.json.tmp && mv package.json.tmp package.json
 	cd mobile; npm publish
 	cd mobile; jq '.version = "0.0.0"' package.json > package.json.tmp && mv package.json.tmp package.json

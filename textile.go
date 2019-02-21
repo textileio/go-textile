@@ -100,6 +100,7 @@ type daemonCmd struct {
 	PinCode  string `short:"p" long:"pin-code" description:"Specify the pin code for datastore encryption (omit of none was used during init)."`
 	RepoPath string `short:"r" long:"repo-dir" description:"Specify a custom repository path."`
 	Debug    bool   `short:"d" long:"debug" description:"Set the logging level to debug."`
+	Docs     bool   `short:"s" long:"serve-docs" description:"Whether to serve the local REST API docs."`
 }
 
 type commandsCmd struct {
@@ -301,7 +302,7 @@ func (x *daemonCmd) Execute(args []string) error {
 		Node: node,
 	}
 
-	if err := startNode(); err != nil {
+	if err := startNode(x.Docs); err != nil {
 		return errors.New(fmt.Sprintf("start node failed: %s", err))
 	}
 	printSplash()
@@ -339,7 +340,7 @@ func getRepoPath(repoPath string) (string, error) {
 	return repoPath, nil
 }
 
-func startNode() error {
+func startNode(serveDocs bool) error {
 	listener := node.ThreadUpdateListener()
 
 	if err := node.Start(); err != nil {
@@ -416,7 +417,7 @@ func startNode() error {
 	}()
 
 	// start apis
-	node.StartApi(node.Config().Addresses.API)
+	node.StartApi(node.Config().Addresses.API, serveDocs)
 	gateway.Host.Start(node.Config().Addresses.Gateway)
 
 	<-node.OnlineCh()

@@ -8,10 +8,25 @@ import (
 	"github.com/textileio/textile-go/pb"
 )
 
+// accountAddress godoc
+// @Summary Show account address
+// @Description Shows the local node's account address
+// @Tags account
+// @Produce text/plain
+// @Success 200 {string} string "address"
+// @Router /account/address [get]
 func (a *api) accountAddress(g *gin.Context) {
 	g.String(http.StatusOK, a.node.account.Address())
 }
 
+// accountPeers godoc
+// @Summary Show account peers
+// @Description Shows all known account peers
+// @Tags account
+// @Produce application/json
+// @Success 200 {array} core.ContactInfo "peers"
+// @Failure 400 {string} string "Bad Request"
+// @Router /account/peers [get]
 func (a *api) accountPeers(g *gin.Context) {
 	peers, err := a.node.AccountPeers()
 	if err != nil {
@@ -22,6 +37,16 @@ func (a *api) accountPeers(g *gin.Context) {
 	g.JSON(http.StatusOK, peers)
 }
 
+// accountPeers godoc
+// @Summary Show account peers
+// @Description Shows all known account peers
+// @Tags account
+// @Produce application/json
+// @Param X-Textile-Opts header string false "wait: Stops searching after 'wait' seconds have elapsed (max 10s), events: Whether to emit Server-Sent Events (SSEvent) or plain JSON" default(wait=5,events="false")
+// @Success 200 {array} byte "backup stream"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /account/backups [post]
 func (a *api) accountBackups(g *gin.Context) {
 	opts, err := a.readOpts(g)
 	if err != nil {
