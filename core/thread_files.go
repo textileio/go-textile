@@ -243,7 +243,7 @@ func (t *Thread) removeFiles(node ipld.Node) error {
 }
 
 // processFileNode walks a file node, validating and applying a dag schema
-func (t *Thread) processFileNode(node *schema.Node, inode ipld.Node, index int, keys Keys, inbound bool) error {
+func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys Keys, inbound bool) error {
 	hash := inode.Cid().Hash().B58String()
 	if err := t.cafeOutbox.Add(hash, repo.CafeStoreRequest); err != nil {
 		return err

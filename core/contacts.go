@@ -120,19 +120,19 @@ func (t *Textile) User(id string) *pb.User {
 }
 
 // ContactThreads returns all threads with the given peer
-func (t *Textile) ContactThreads(id string) ([]ThreadInfo, error) {
+func (t *Textile) ContactThreads(id string) ([]pb.Thread, error) {
 	peers := t.datastore.ThreadPeers().ListById(id)
 	if len(peers) == 0 {
 		return nil, nil
 	}
 
-	var infos []ThreadInfo
+	var infos []pb.Thread
 	for _, p := range peers {
-		info, err := t.ThreadInfo(p.ThreadId)
+		view, err := t.ThreadView(p.ThreadId)
 		if err != nil {
 			return nil, err
 		}
-		infos = append(infos, *info)
+		infos = append(infos, *view)
 	}
 
 	return infos, nil

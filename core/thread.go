@@ -2,16 +2,17 @@ package core
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/golang/protobuf/jsonpb"
+
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core"
 
 	"github.com/golang/protobuf/proto"
@@ -21,7 +22,6 @@ import (
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/config"
-	"github.com/textileio/textile-go/schema"
 )
 
 // ErrContactNotFound indicates a local contact was not found
@@ -63,24 +63,6 @@ type ThreadUpdate struct {
 	Info       interface{} `json:"info,omitempty"`
 }
 
-// ThreadInfo reports info about a thread
-type ThreadInfo struct {
-	Id         string       `json:"id"`
-	Key        string       `json:"key"`
-	Name       string       `json:"name"`
-	Schema     *schema.Node `json:"schema,omitempty"`
-	SchemaId   string       `json:"schema_id,omitempty"`
-	Initiator  string       `json:"initiator"`
-	Type       string       `json:"type"`
-	Sharing    string       `json:"sharing"`
-	Members    []string     `json:"members,omitempty"`
-	State      string       `json:"state"`
-	Head       *pb.Block    `json:"head,omitempty"`
-	PeerCount  int          `json:"peer_cnt"`
-	BlockCount int          `json:"block_cnt"`
-	FileCount  int          `json:"file_cnt"`
-}
-
 // ThreadInviteInfo reports info about a thread invite
 type ThreadInviteInfo struct {
 	Id       string    `json:"id"`
@@ -100,7 +82,6 @@ type ThreadConfig struct {
 	ThreadsOutbox *ThreadsOutbox
 	CafeOutbox    *CafeOutbox
 	SendUpdate    func(update ThreadUpdate)
-	User          func(id string) *pb.User
 }
 
 // Thread is the primary mechanism representing a collecion of data / files / photos
@@ -108,11 +89,11 @@ type Thread struct {
 	Id            string
 	Key           string // app key, usually UUID
 	Name          string
-	Schema        *schema.Node
+	Schema        *pb.Node
 	schemaId      string
 	initiator     string
-	ttype         repo.ThreadType
-	sharing       repo.ThreadSharing
+	ttype         pb.Thread_Type
+	sharing       pb.Thread_Sharing
 	members       []string
 	privKey       libp2pc.PrivKey
 	repoPath      string
@@ -123,18 +104,17 @@ type Thread struct {
 	threadsOutbox *ThreadsOutbox
 	cafeOutbox    *CafeOutbox
 	sendUpdate    func(update ThreadUpdate)
-	user          func(id string) *pb.User
 	mux           sync.Mutex
 }
 
 // NewThread create a new Thread from a repo model and config
-func NewThread(model *repo.Thread, conf *ThreadConfig) (*Thread, error) {
-	sk, err := libp2pc.UnmarshalPrivateKey(model.PrivKey)
+func NewThread(model *pb.Thread, conf *ThreadConfig) (*Thread, error) {
+	sk, err := libp2pc.UnmarshalPrivateKey(model.Sk)
 	if err != nil {
 		return nil, err
 	}
 
-	var sch *schema.Node
+	var sch *pb.Node
 	if model.Schema != "" {
 		sch, err = loadSchema(conf.Node(), model.Schema)
 		if err != nil {
@@ -161,58 +141,7 @@ func NewThread(model *repo.Thread, conf *ThreadConfig) (*Thread, error) {
 		threadsOutbox: conf.ThreadsOutbox,
 		cafeOutbox:    conf.CafeOutbox,
 		sendUpdate:    conf.SendUpdate,
-		user:          conf.User,
 	}, nil
-}
-
-// Info returns thread info
-func (t *Thread) Info() (*ThreadInfo, error) {
-	mod := t.datastore.Threads().Get(t.Id)
-	if mod == nil {
-		return nil, errThreadReload
-	}
-
-	var head *pb.Block
-	if mod.Head != "" {
-		head := t.datastore.Blocks().Get(mod.Head)
-		if head != nil {
-			head.User = t.user(head.Author)
-		}
-	}
-
-	state, err := t.State()
-	if err != nil {
-		return nil, err
-	}
-
-	blocks := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s'", t.Id))
-	files := t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s' and type=%d", t.Id, pb.Block_FILES))
-
-	return &ThreadInfo{
-		Id:         t.Id,
-		Key:        t.Key,
-		Name:       t.Name,
-		Schema:     t.Schema,
-		SchemaId:   t.schemaId,
-		Initiator:  t.initiator,
-		Type:       mod.Type.Description(),
-		Sharing:    mod.Sharing.Description(),
-		Members:    mod.Members,
-		State:      state.Description(),
-		Head:       head,
-		PeerCount:  len(t.Peers()) + 1,
-		BlockCount: blocks,
-		FileCount:  files,
-	}, nil
-}
-
-// State returns the current thread state
-func (t *Thread) State() (repo.ThreadState, error) {
-	mod := t.datastore.Threads().Get(t.Id)
-	if mod == nil {
-		return -1, errThreadReload
-	}
-	return mod.State, nil
 }
 
 // Head returns content id of the latest update
@@ -464,9 +393,7 @@ func (t *Thread) indexBlock(commit *commitResult, blockType pb.Block_BlockType, 
 		return err
 	}
 
-	block.User = t.user(block.Author)
 	t.pushUpdate(block)
-
 	return nil
 }
 
@@ -595,13 +522,13 @@ func (t *Thread) readable(addr string) bool {
 		return true
 	}
 	switch t.ttype {
-	case repo.PrivateThread:
+	case pb.Thread_Private:
 		return false // should not happen
-	case repo.ReadOnlyThread:
+	case pb.Thread_ReadOnly:
 		return t.member(addr)
-	case repo.PublicThread:
+	case pb.Thread_Public:
 		return t.member(addr)
-	case repo.OpenThread:
+	case pb.Thread_Open:
 		return t.member(addr)
 	default:
 		return false
@@ -615,13 +542,13 @@ func (t *Thread) annotatable(addr string) bool {
 		return true
 	}
 	switch t.ttype {
-	case repo.PrivateThread:
+	case pb.Thread_Private:
 		return false // should not happen
-	case repo.ReadOnlyThread:
+	case pb.Thread_ReadOnly:
 		return false
-	case repo.PublicThread:
+	case pb.Thread_Public:
 		return t.member(addr)
-	case repo.OpenThread:
+	case pb.Thread_Open:
 		return t.member(addr)
 	default:
 		return false
@@ -635,13 +562,13 @@ func (t *Thread) writable(addr string) bool {
 		return true
 	}
 	switch t.ttype {
-	case repo.PrivateThread:
+	case pb.Thread_Private:
 		return false // should not happen
-	case repo.ReadOnlyThread:
+	case pb.Thread_ReadOnly:
 		return false
-	case repo.PublicThread:
+	case pb.Thread_Public:
 		return false
-	case repo.OpenThread:
+	case pb.Thread_Open:
 		return t.member(addr)
 	default:
 		return false
@@ -651,11 +578,11 @@ func (t *Thread) writable(addr string) bool {
 // shareable returns whether or not this thread is shareable from one address to another
 func (t *Thread) shareable(from string, to string) bool {
 	switch t.sharing {
-	case repo.NotSharedThread:
+	case pb.Thread_NotShared:
 		return false
-	case repo.InviteOnlyThread:
+	case pb.Thread_InviteOnly:
 		return from == t.initiator && t.member(to)
-	case repo.SharedThread:
+	case pb.Thread_Shared:
 		return t.member(from) && t.member(to)
 	default:
 		return false
@@ -678,14 +605,14 @@ func (t *Thread) member(addr string) bool {
 }
 
 // loadSchema loads a schema from a local file
-func loadSchema(node *core.IpfsNode, id string) (*schema.Node, error) {
+func loadSchema(node *core.IpfsNode, id string) (*pb.Node, error) {
 	data, err := ipfs.DataAtPath(node, id)
 	if err != nil {
 		return nil, err
 	}
 
-	var sch schema.Node
-	if err := json.Unmarshal(data, &sch); err != nil {
+	var sch pb.Node
+	if err := jsonpb.UnmarshalString(string(data), &sch); err != nil {
 		log.Errorf("failed to unmarshal thread schema %s: %s", id, err)
 		return nil, err
 	}

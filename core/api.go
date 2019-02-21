@@ -454,3 +454,13 @@ func pbJSON(g *gin.Context, status int, msg proto.Message) {
 	}
 	g.Data(status, "application/json", []byte(str))
 }
+
+// pbValForEnumString returns the int value of a case-insensitive string representation of a pb enum
+func pbValForEnumString(vals map[string]int32, str string) int32 {
+	for v, i := range vals {
+		if strings.ToLower(v) == strings.ToLower(str) {
+			return i
+		}
+	}
+	return 0
+}

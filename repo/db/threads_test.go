@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -22,17 +23,17 @@ func setupThreadDB() {
 }
 
 func TestThreadDB_Add(t *testing.T) {
-	err := threadStore.Add(&repo.Thread{
+	err := threadStore.Add(&pb.Thread{
 		Id:        "Qmabc123",
 		Key:       ksuid.New().String(),
-		PrivKey:   make([]byte, 8),
+		Sk:        make([]byte, 8),
 		Name:      "boom",
 		Schema:    "Qm...",
 		Initiator: "123",
-		Type:      repo.OpenThread,
+		Type:      pb.Thread_Open,
 		Members:   []string{"P1,P2"},
-		Sharing:   repo.SharedThread,
-		State:     repo.ThreadLoaded,
+		Sharing:   pb.Thread_Shared,
+		State:     pb.Thread_Loaded,
 	})
 	if err != nil {
 		t.Error(err)
@@ -51,17 +52,17 @@ func TestThreadDB_Add(t *testing.T) {
 
 func TestThreadDB_Get(t *testing.T) {
 	setupThreadDB()
-	err := threadStore.Add(&repo.Thread{
+	err := threadStore.Add(&pb.Thread{
 		Id:        "Qmabc",
 		Key:       ksuid.New().String(),
-		PrivKey:   make([]byte, 8),
+		Sk:        make([]byte, 8),
 		Name:      "boom",
 		Schema:    "Qm...",
 		Initiator: "123",
-		Type:      repo.OpenThread,
+		Type:      pb.Thread_Open,
 		Members:   []string{},
-		Sharing:   repo.SharedThread,
-		State:     repo.ThreadLoaded,
+		Sharing:   pb.Thread_Shared,
+		State:     pb.Thread_Loaded,
 	})
 	if err != nil {
 		t.Error(err)
@@ -74,37 +75,37 @@ func TestThreadDB_Get(t *testing.T) {
 
 func TestThreadDB_List(t *testing.T) {
 	setupThreadDB()
-	err := threadStore.Add(&repo.Thread{
+	err := threadStore.Add(&pb.Thread{
 		Id:        "Qm123",
 		Key:       ksuid.New().String(),
-		PrivKey:   make([]byte, 8),
+		Sk:        make([]byte, 8),
 		Name:      "boom",
 		Schema:    "Qm...",
 		Initiator: "123",
-		Type:      repo.PrivateThread,
+		Type:      pb.Thread_Private,
 		Members:   []string{},
-		Sharing:   repo.NotSharedThread,
-		State:     repo.ThreadLoaded,
+		Sharing:   pb.Thread_NotShared,
+		State:     pb.Thread_Loaded,
 	})
 	if err != nil {
 		t.Error(err)
 	}
-	err = threadStore.Add(&repo.Thread{
+	err = threadStore.Add(&pb.Thread{
 		Id:      "Qm456",
 		Key:     ksuid.New().String(),
-		PrivKey: make([]byte, 8),
+		Sk:      make([]byte, 8),
 		Name:    "boom",
 		Schema:  "Qm...",
-		Type:    repo.PrivateThread,
+		Type:    pb.Thread_Private,
 		Members: []string{},
-		Sharing: repo.NotSharedThread,
-		State:   repo.ThreadLoaded,
+		Sharing: pb.Thread_NotShared,
+		State:   pb.Thread_Loaded,
 	})
 	if err != nil {
 		t.Error(err)
 	}
 	all := threadStore.List()
-	if len(all) != 2 {
+	if len(all.Items) != 2 {
 		t.Error("returned incorrect number of threads")
 		return
 	}
@@ -112,17 +113,17 @@ func TestThreadDB_List(t *testing.T) {
 
 func TestThreadDB_Count(t *testing.T) {
 	setupThreadDB()
-	err := threadStore.Add(&repo.Thread{
+	err := threadStore.Add(&pb.Thread{
 		Id:        "Qm123count",
 		Key:       ksuid.New().String(),
-		PrivKey:   make([]byte, 8),
+		Sk:        make([]byte, 8),
 		Name:      "boom",
 		Schema:    "Qm...",
 		Initiator: "123",
-		Type:      repo.PrivateThread,
+		Type:      pb.Thread_Private,
 		Members:   []string{},
-		Sharing:   repo.NotSharedThread,
-		State:     repo.ThreadLoading,
+		Sharing:   pb.Thread_NotShared,
+		State:     pb.Thread_Loaded,
 	})
 	if err != nil {
 		t.Error(err)
@@ -136,17 +137,17 @@ func TestThreadDB_Count(t *testing.T) {
 
 func TestThreadDB_UpdateHead(t *testing.T) {
 	setupThreadDB()
-	err := threadStore.Add(&repo.Thread{
+	err := threadStore.Add(&pb.Thread{
 		Id:        "Qmabc",
 		Key:       ksuid.New().String(),
-		PrivKey:   make([]byte, 8),
+		Sk:        make([]byte, 8),
 		Name:      "boom",
 		Schema:    "Qm...",
 		Initiator: "123",
-		Type:      repo.PrivateThread,
+		Type:      pb.Thread_Private,
 		Members:   []string{},
-		Sharing:   repo.NotSharedThread,
-		State:     repo.ThreadLoading,
+		Sharing:   pb.Thread_NotShared,
+		State:     pb.Thread_Loaded,
 	})
 	if err != nil {
 		t.Error(err)
@@ -166,34 +167,34 @@ func TestThreadDB_UpdateHead(t *testing.T) {
 
 func TestThreadDB_Delete(t *testing.T) {
 	setupThreadDB()
-	err := threadStore.Add(&repo.Thread{
+	err := threadStore.Add(&pb.Thread{
 		Id:        "Qm789",
 		Key:       ksuid.New().String(),
-		PrivKey:   make([]byte, 8),
+		Sk:        make([]byte, 8),
 		Name:      "boom",
 		Schema:    "Qm...",
 		Initiator: "123",
-		Type:      repo.PrivateThread,
+		Type:      pb.Thread_Private,
 		Members:   []string{},
-		Sharing:   repo.NotSharedThread,
-		State:     repo.ThreadLoaded,
+		Sharing:   pb.Thread_NotShared,
+		State:     pb.Thread_Loaded,
 	})
 	if err != nil {
 		t.Error(err)
 	}
 	all := threadStore.List()
-	if len(all) == 0 {
+	if len(all.Items) == 0 {
 		t.Error("returned incorrect number of threads")
 		return
 	}
-	err = threadStore.Delete(all[0].Id)
+	err = threadStore.Delete(all.Items[0].Id)
 	if err != nil {
 		t.Error(err)
 	}
 	stmt, err := threadStore.PrepareQuery("select id from threads where id=?")
 	defer stmt.Close()
 	var id string
-	err = stmt.QueryRow(all[0].Id).Scan(&id)
+	err = stmt.QueryRow(all.Items[0].Id).Scan(&id)
 	if err == nil {
 		t.Error("Delete failed")
 	}

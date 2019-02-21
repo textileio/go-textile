@@ -4,6 +4,8 @@ import (
 	"crypto/rand"
 	"io/ioutil"
 
+	"github.com/textileio/textile-go/pb"
+
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 
@@ -90,8 +92,8 @@ func (t *Textile) SetAvatar(hash string) error {
 			Name:      "avatars",
 			Schema:    shash,
 			Initiator: t.account.Address(),
-			Type:      repo.PrivateThread,
-			Sharing:   repo.NotSharedThread,
+			Type:      pb.Thread_Private,
+			Sharing:   pb.Thread_NotShared,
 			Join:      true,
 		})
 		if err != nil {

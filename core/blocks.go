@@ -37,8 +37,8 @@ func (t *Textile) BlocksByTarget(target string) *pb.BlockList {
 	return t.datastore.Blocks().List("", -1, "target='"+target+"'")
 }
 
-// BlockInfo returns block info with id
-func (t *Textile) BlockInfo(id string) (*pb.Block, error) {
+// BlockView returns block with expanded view properties
+func (t *Textile) BlockView(id string) (*pb.Block, error) {
 	block, err := t.Block(id)
 	if err != nil {
 		return nil, err

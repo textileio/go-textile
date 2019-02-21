@@ -131,7 +131,7 @@ func (a *api) acceptInvites(g *gin.Context) {
 		return
 	}
 
-	info, err := a.node.BlockInfo(hash.B58String())
+	info, err := a.node.BlockView(hash.B58String())
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

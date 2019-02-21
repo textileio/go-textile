@@ -338,8 +338,8 @@ func (t *Textile) Start() error {
 		}
 	}()
 
-	for _, mod := range t.datastore.Threads().List() {
-		if _, err := t.loadThread(&mod); err == ErrThreadLoaded {
+	for _, mod := range t.datastore.Threads().List().Items {
+		if _, err := t.loadThread(mod); err == ErrThreadLoaded {
 			continue
 		}
 		if err != nil {
@@ -619,7 +619,7 @@ func (t *Textile) threadByBlock(block *pb.Block) (*Thread, error) {
 }
 
 // loadThread loads a thread into memory from the given on-disk model
-func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
+func (t *Textile) loadThread(mod *pb.Thread) (*Thread, error) {
 	if loaded := t.Thread(mod.Id); loaded != nil {
 		return nil, ErrThreadLoaded
 	}
@@ -633,7 +633,6 @@ func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 		ThreadsOutbox: t.threadsOutbox,
 		CafeOutbox:    t.cafeOutbox,
 		SendUpdate:    t.sendThreadUpdate,
-		User:          t.User,
 	}
 
 	thrd, err := NewThread(mod, threadConfig)
@@ -662,6 +661,7 @@ func (t *Textile) sendThreadUpdate(update ThreadUpdate) {
 			return
 		}
 	}
+	update.Block.User = t.User(update.Block.Author)
 	t.threadUpdates.Send(update)
 }
 

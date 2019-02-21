@@ -35,24 +35,6 @@ type AddThreadConfig struct {
 	CameraRoll bool   `json:"cameraRoll"`
 }
 
-// Threads lists all threads
-func (m *Mobile) Threads() (string, error) {
-	if !m.node.Started() {
-		return "", core.ErrStopped
-	}
-
-	infos := make([]core.ThreadInfo, 0)
-	for _, thrd := range m.node.Threads() {
-		info, err := thrd.Info()
-		if err != nil {
-			return "", err
-		}
-		infos = append(infos, *info)
-	}
-
-	return toJSON(infos)
-}
-
 // AddThread adds a new thread with the given name
 func (m *Mobile) AddThread(config *AddThreadConfig) (string, error) {
 	if !m.node.Started() {
@@ -108,7 +90,7 @@ func (m *Mobile) AddThread(config *AddThreadConfig) (string, error) {
 		return "", err
 	}
 
-	info, err := thrd.Info()
+	info, err := thrd.View()
 	if err != nil {
 		return "", err
 	}
@@ -144,13 +126,31 @@ func (m *Mobile) RemoveThread(id string) (string, error) {
 	return hash.B58String(), nil
 }
 
-// ThreadInfo calls core ThreadInfo
-func (m *Mobile) ThreadInfo(threadId string) (string, error) {
+// Threads lists all threads
+func (m *Mobile) Threads() (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
 
-	info, err := m.node.ThreadInfo(threadId)
+	infos := make([]core.ThreadInfo, 0)
+	for _, thrd := range m.node.Threads() {
+		info, err := thrd.View()
+		if err != nil {
+			return "", err
+		}
+		infos = append(infos, *info)
+	}
+
+	return toJSON(infos)
+}
+
+// Thread calls core Thread
+func (m *Mobile) Thread(threadId string) (string, error) {
+	if !m.node.Started() {
+		return "", core.ErrStopped
+	}
+
+	info, err := m.node.ThreadView(threadId)
 	if err != nil {
 		return "", err
 	}

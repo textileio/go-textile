@@ -13,6 +13,7 @@ import (
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 	uio "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/io"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/crypto"
@@ -127,17 +128,19 @@ func (t *Textile) GetMedia(reader io.Reader, mill m.Mill) (string, error) {
 }
 
 func (t *Textile) AddSchema(jsonstr string, name string) (*repo.File, error) {
-	var node schema.Node
-	if err := json.Unmarshal([]byte(jsonstr), &node); err != nil {
+	var node pb.Node
+	if err := jsonpb.UnmarshalString(jsonstr, &node); err != nil {
 		return nil, err
 	}
-	data, err := json.Marshal(&node)
+
+	marshaler := jsonpb.Marshaler{}
+	data, err := marshaler.MarshalToString(&node)
 	if err != nil {
 		return nil, err
 	}
 
 	return t.AddFileIndex(&m.Schema{}, AddFileConfig{
-		Input: data,
+		Input: []byte(data),
 		Media: "application/json",
 		Name:  name,
 	})

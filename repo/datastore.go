@@ -75,10 +75,10 @@ type FileStore interface {
 
 type ThreadStore interface {
 	Queryable
-	Add(thread *Thread) error
-	Get(id string) *Thread
-	GetByKey(key string) *Thread
-	List() []Thread
+	Add(thread *pb.Thread) error
+	Get(id string) *pb.Thread
+	GetByKey(key string) *pb.Thread
+	List() *pb.ThreadList
 	Count() int
 	UpdateHead(id string, head string) error
 	Delete(id string) error

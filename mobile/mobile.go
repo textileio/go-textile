@@ -245,7 +245,7 @@ func (m *Mobile) OnlineCh() <-chan struct{} {
 
 // blockInfo returns json info view of a block
 func (m *Mobile) blockInfo(hash mh.Multihash) (string, error) {
-	info, err := m.node.BlockInfo(hash.B58String())
+	info, err := m.node.BlockView(hash.B58String())
 	if err != nil {
 		return "", err
 	}

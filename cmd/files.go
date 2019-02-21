@@ -148,12 +148,12 @@ func callAddFiles(args []string, opts map[string]string) error {
 	if threadId == "" {
 		threadId = "default"
 	}
-	var thrd *core.ThreadInfo
-	if _, err := executeJsonCmd(GET, "threads/"+threadId, params{}, &thrd); err != nil {
+	var thrd pb.Thread
+	if _, err := executeJsonPbCmd(GET, "threads/"+threadId, params{}, &thrd); err != nil {
 		return err
 	}
 
-	if thrd.Schema == nil {
+	if thrd.SchemaNode == nil {
 		return core.ErrThreadSchemaRequired
 	}
 
@@ -184,7 +184,7 @@ func callAddFiles(args []string, opts map[string]string) error {
 		for i, batch := range batches {
 
 			ready := make(chan core.Directory, batchSize)
-			go millBatch(batch, thrd.Schema, ready, verbose)
+			go millBatch(batch, thrd.SchemaNode, ready, verbose)
 
 			var cerr error
 		loop:
@@ -219,7 +219,7 @@ func callAddFiles(args []string, opts map[string]string) error {
 		}
 
 	} else {
-		dir, err := mill(pth, thrd.Schema, verbose)
+		dir, err := mill(pth, thrd.SchemaNode, verbose)
 		if err != nil {
 			return err
 		}
@@ -278,7 +278,7 @@ func add(dirs []core.Directory, threadId string, caption string, verbose bool) (
 	return &block, nil
 }
 
-func mill(pth string, node *schema.Node, verbose bool) (core.Directory, error) {
+func mill(pth string, node *pb.Node, verbose bool) (core.Directory, error) {
 	ref, err := iface.ParsePath(pth)
 	if err == nil {
 		parts := strings.Split(ref.String(), "/")
@@ -414,7 +414,7 @@ func mill(pth string, node *schema.Node, verbose bool) (core.Directory, error) {
 	return dir, nil
 }
 
-func millBatch(pths []string, node *schema.Node, ready chan core.Directory, verbose bool) {
+func millBatch(pths []string, node *pb.Node, ready chan core.Directory, verbose bool) {
 	wg := sync.WaitGroup{}
 
 	for _, pth := range pths {

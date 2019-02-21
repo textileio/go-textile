@@ -20,6 +20,25 @@ message Contact {
     google.protobuf.Timestamp updated = 7;
 }
 
+message Node {
+    string name                        = 1;
+    bool pin                           = 2;
+    bool plaintext                     = 3;
+    string mill                        = 4;
+    map<string, string> opts           = 5;
+    google.protobuf.Struct json_schema = 6;
+    map<string, Link> links            = 8;
+}
+
+message Link {
+    string use                         = 1;
+    bool pin                           = 2;
+    bool plaintext                     = 3;
+    string mill                        = 4;
+    map<string, string> opts           = 5;
+    google.protobuf.Struct json_schema = 6;
+}
+
 message Thread {
     string id               = 1;
     string key              = 2;
@@ -54,6 +73,12 @@ message Thread {
         Loaded        = 1; // blocks are all loaded
         LoadingAhead  = 2; // blocks are being loaded ahead
     }
+
+    // view info
+    Block head_block  = 101;
+    Node schema_node  = 102;
+    int32 block_count = 103;
+    int32 peer_count  = 104;
 }
 
 message Block {

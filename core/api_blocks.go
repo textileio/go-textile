@@ -74,7 +74,7 @@ func (a *api) lsBlocks(g *gin.Context) {
 func (a *api) getBlocks(g *gin.Context) {
 	id := g.Param("id")
 
-	block, err := a.node.BlockInfo(id)
+	block, err := a.node.BlockView(id)
 	if err != nil {
 		g.String(http.StatusNotFound, "block not found")
 		return
@@ -108,7 +108,7 @@ func (a *api) rmBlocks(g *gin.Context) {
 		return
 	}
 
-	block, err := a.node.BlockInfo(hash.B58String())
+	block, err := a.node.BlockView(hash.B58String())
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

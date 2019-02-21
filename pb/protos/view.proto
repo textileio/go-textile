@@ -21,6 +21,11 @@ message Directory {
     map<string, FileIndex> files = 1;
 }
 
+message Step {
+    string Name = 1;
+    Link link   = 2;
+}
+
 // FEED //
 
 enum FeedMode {

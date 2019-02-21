@@ -44,24 +44,24 @@ Use this command to add, list, get, join, invite, and remove threads.
 
 Thread type controls read (R), annotate (A), and write (W) access:
 
-private   --> initiator: RAW, members:
-read-only --> initiator: RAW, members: R
-public    --> initiator: RAW, members: RA
-open      --> initiator: RAW, members: RAW
+private  --> initiator: RAW, members:
+readonly --> initiator: RAW, members: R
+public   --> initiator: RAW, members: RA
+open     --> initiator: RAW, members: RAW
 
 Thread sharing style controls if (Y/N) a thread can be shared:
 
-not-shared  --> initiator: N, members: N
-invite-only --> initiator: Y, members: N
-shared      --> initiator: Y, members: Y
+notshared  --> initiator: N, members: N
+inviteonly --> initiator: Y, members: N
+shared     --> initiator: Y, members: Y
 `
 }
 
 type addThreadsCmd struct {
 	Client     ClientOptions  `group:"Client Options"`
 	Key        string         `short:"k" long:"key" description:"A locally unique key used by an app to identify this thread on recovery."`
-	Type       string         `short:"t" long:"type" description:"Set the thread type to one of 'private', 'read_only', 'public', or 'open'." default:"private"`
-	Sharing    string         `short:"s" long:"sharing" description:"Set the thread sharing style to one of 'not_shared', 'invite_only', or 'shared'." default:"not_shared"`
+	Type       string         `short:"t" long:"type" description:"Set the thread type to one of 'private', 'readonly', 'public', or 'open'." default:"private"`
+	Sharing    string         `short:"s" long:"sharing" description:"Set the thread sharing style to one of 'notshared', 'inviteonly', or 'shared'." default:"notshared"`
 	Member     []string       `short:"m" long:"member" description:"A contact address. When supplied, the thread will not allow additional peers, useful for 1-1 chat/file sharing. Can be used multiple times to include multiple contacts.'"`
 	Schema     flags.Filename `long:"schema" description:"Thread Schema filename. Supersedes the built-in schema flags."`
 	Media      bool           `long:"media" description:"Use the built-in media Schema."`
@@ -143,7 +143,7 @@ func callAddThreads(args []string, opts map[string]string) error {
 		opts["schema"] = schemaf.Hash
 	}
 
-	res, err := executeJsonCmd(POST, "threads", params{args: args, opts: opts}, nil)
+	res, err := executeJsonPbCmd(POST, "threads", params{args: args, opts: opts}, nil)
 	if err != nil {
 		return err
 	}
@@ -164,7 +164,7 @@ Lists info on all threads.`
 func (x *lsThreadsCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	res, err := executeJsonCmd(GET, "threads", params{}, nil)
+	res, err := executeJsonPbCmd(GET, "threads", params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -188,7 +188,7 @@ func (x *getThreadsCmd) Execute(args []string) error {
 		return errMissingThreadId
 	}
 
-	res, err := executeJsonCmd(GET, "threads/"+args[0], params{}, nil)
+	res, err := executeJsonPbCmd(GET, "threads/"+args[0], params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -209,7 +209,7 @@ Gets and displays info about the default thread (if selected).`
 func (x *getDefaultThreadsCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	res, err := executeJsonCmd(GET, "threads/default", params{}, nil)
+	res, err := executeJsonPbCmd(GET, "threads/default", params{}, nil)
 	if err != nil {
 		return err
 	}

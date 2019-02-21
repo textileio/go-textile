@@ -1,8 +1,6 @@
 package repo
 
 import (
-	"errors"
-	"strings"
 	"time"
 
 	"github.com/textileio/textile-go/pb"
@@ -21,114 +19,6 @@ type File struct {
 	Added    time.Time              `json:"added"`
 	Meta     map[string]interface{} `json:"meta,omitempty"`
 	Targets  []string               `json:"targets,omitempty"`
-}
-
-type Thread struct {
-	Id        string        `json:"id"`
-	Key       string        `json:"key"`
-	PrivKey   []byte        `json:"sk"`
-	Name      string        `json:"name"`
-	Schema    string        `json:"schema"`
-	Initiator string        `json:"initiator"`
-	Type      ThreadType    `json:"type"`
-	Sharing   ThreadSharing `json:"sharing"`
-	Members   []string      `json:"members"` // if empty, _everyone_ is a member
-	State     ThreadState   `json:"state"`
-	Head      string        `json:"head"`
-}
-
-// ThreadType controls read (R), annotate (A), and write (W) access
-type ThreadType int
-
-// in order of decreasing privacy
-const (
-	PrivateThread  ThreadType = iota // initiator: RAW, members:
-	ReadOnlyThread                   // initiator: RAW, members: R
-	PublicThread                     // initiator: RAW, members: RA
-	OpenThread                       // initiator: RAW, members: RAW
-)
-
-func (tt ThreadType) Description() string {
-	switch tt {
-	case PrivateThread:
-		return "PRIVATE"
-	case ReadOnlyThread:
-		return "READ_ONLY"
-	case PublicThread:
-		return "PUBLIC"
-	case OpenThread:
-		return "OPEN"
-	default:
-		return "INVALID"
-	}
-}
-
-func ThreadTypeFromString(desc string) (ThreadType, error) {
-	switch strings.ToUpper(strings.TrimSpace(desc)) {
-	case "PRIVATE":
-		return PrivateThread, nil
-	case "READ_ONLY":
-		return ReadOnlyThread, nil
-	case "PUBLIC":
-		return PublicThread, nil
-	case "OPEN":
-		return OpenThread, nil
-	default:
-		return -1, errors.New("could not parse thread type")
-	}
-}
-
-// ThreadSharing controls if (Y/N) a thread can be shared
-type ThreadSharing int
-
-const (
-	NotSharedThread  ThreadSharing = iota // initiator: N, members: N
-	InviteOnlyThread                      // initiator: Y, members: N
-	SharedThread                          // initiator: Y, members: Y
-)
-
-func (ts ThreadSharing) Description() string {
-	switch ts {
-	case NotSharedThread:
-		return "NOT_SHARED"
-	case InviteOnlyThread:
-		return "INVITE_ONLY"
-	case SharedThread:
-		return "SHARED"
-	default:
-		return "INVALID"
-	}
-}
-
-func ThreadSharingFromString(desc string) (ThreadSharing, error) {
-	switch strings.ToUpper(strings.TrimSpace(desc)) {
-	case "NOT_SHARED":
-		return NotSharedThread, nil
-	case "INVITE_ONLY":
-		return InviteOnlyThread, nil
-	case "SHARED":
-		return SharedThread, nil
-	default:
-		return -1, errors.New("could not parse thread sharing")
-	}
-}
-
-type ThreadState int
-
-const (
-	ThreadLoading ThreadState = iota
-	ThreadLoaded
-)
-
-func (ts ThreadState) Description() string {
-	switch ts {
-	case ThreadLoading:
-		return "LOADING"
-	case ThreadLoaded:
-		return "LOADED"
-	default:
-		return "INVALID"
-	}
 }
 
 type ThreadInvite struct {

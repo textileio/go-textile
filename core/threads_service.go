@@ -204,8 +204,8 @@ func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope
 	if err := h.datastore.ThreadInvites().Add(&repo.ThreadInvite{
 		Id:      hash.B58String(),
 		Block:   plaintext,
-		Name:    msg.Name,
-		Contact: protoContactToRepo(msg.Contact),
+		Name:    msg.Thread.Name,
+		Contact: protoContactToRepo(msg.Inviter),
 		Date:    date,
 	}); err != nil {
 		if !repo.ConflictError(err) {
@@ -219,7 +219,7 @@ func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope
 	if err != nil {
 		return err
 	}
-	notification.Subject = msg.Name
+	notification.Subject = msg.Thread.Name
 	notification.SubjectId = tenv.Thread
 	notification.BlockId = hash.B58String() // invite block
 	notification.Body = "invited you to join"

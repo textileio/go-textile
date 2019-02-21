@@ -26,14 +26,8 @@ message ThreadBlockHeader {
 }
 
 message ThreadInvite {
-    bytes sk                = 1;
-    string name             = 2;
-    string schema           = 3;
-    string initiator        = 4;
-    Contact contact         = 5;
-    int32 type              = 6;
-    int32 sharing           = 7;
-    repeated string members = 8;
+    Contact inviter         = 1;
+    Thread thread           = 2;
 }
 
 message ThreadIgnore {
