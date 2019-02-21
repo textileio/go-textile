@@ -63,59 +63,27 @@ type addThreadsCmd struct {
 	Type       string         `short:"t" long:"type" description:"Set the thread type to one of 'private', 'readonly', 'public', or 'open'." default:"private"`
 	Sharing    string         `short:"s" long:"sharing" description:"Set the thread sharing style to one of 'notshared', 'inviteonly', or 'shared'." default:"notshared"`
 	Member     []string       `short:"m" long:"member" description:"A contact address. When supplied, the thread will not allow additional peers, useful for 1-1 chat/file sharing. Can be used multiple times to include multiple contacts.'"`
-	Schema     flags.Filename `long:"schema" description:"Thread Schema filename. Supersedes the built-in schema flags."`
-	Media      bool           `long:"media" description:"Use the built-in media Schema."`
+	Schema     string         `long:"schema" description:"Thread schema ID. Supersedes schema filename."`
+	SchemaFile flags.Filename `long:"schema-file" description:"Thread schema filename. Supersedes the built-in schema flags."`
 	CameraRoll bool           `long:"camera-roll" description:"Use the built-in camera roll Schema."`
+	Media      bool           `long:"media" description:"Use the built-in media Schema."`
 }
 
 func (x *addThreadsCmd) Usage() string {
 	return `
 
-Adds and joins a new thread.`
+Adds and joins a new thread. See 'textile threads --help' for more about threads.`
 }
 
 func (x *addThreadsCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	var sch string
-	switch x.Schema {
-	case "":
-		if x.Media {
-			sch = "media"
-			break
-		}
-		if x.CameraRoll {
-			sch = "camera_roll"
-			break
-		}
-	default:
-		sch = string(x.Schema)
-	}
-
-	opts := map[string]string{
-		"key":     x.Key,
-		"type":    x.Type,
-		"sharing": x.Sharing,
-		"members": strings.Join(x.Member, ","),
-		"schema":  sch,
-	}
-	return callAddThreads(args, opts)
-}
-
-func callAddThreads(args []string, opts map[string]string) error {
 	var body []byte
-
-	sch := opts["schema"]
-	switch sch {
-	case "media":
-		body = []byte(textile.Media)
-	case "camera_roll":
-		body = []byte(textile.CameraRoll)
-	default:
-		if sch != "" {
-			path, err := homedir.Expand(sch)
+	if x.Schema != "" {
+		if x.SchemaFile != "" {
+			path, err := homedir.Expand(string(x.SchemaFile))
 			if err != nil {
-				path = sch
+				return err
 			}
 
 			file, err := os.Open(path)
@@ -128,6 +96,10 @@ func callAddThreads(args []string, opts map[string]string) error {
 			if err != nil {
 				return err
 			}
+		} else if x.CameraRoll {
+			body = []byte(textile.CameraRoll)
+		} else if x.Media {
+			body = []byte(textile.Media)
 		}
 	}
 
@@ -139,11 +111,19 @@ func callAddThreads(args []string, opts map[string]string) error {
 		}, &schemaf); err != nil {
 			return err
 		}
-
-		opts["schema"] = schemaf.Hash
+		x.Schema = schemaf.Hash
 	}
 
-	res, err := executeJsonPbCmd(POST, "threads", params{args: args, opts: opts}, nil)
+	res, err := executeJsonPbCmd(POST, "threads", params{
+		args: args,
+		opts: map[string]string{
+			"key":     x.Key,
+			"type":    x.Type,
+			"sharing": x.Sharing,
+			"members": strings.Join(x.Member, ","),
+			"schema":  x.Schema,
+		},
+	}, nil)
 	if err != nil {
 		return err
 	}

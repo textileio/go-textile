@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"net/http"
 
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 
 	"github.com/gin-gonic/gin"
@@ -41,10 +40,8 @@ func (a *api) addThreads(g *gin.Context) {
 		return
 	}
 
-	config := AddThreadConfig{
-		Name:      args[0],
-		Join:      true,
-		Initiator: a.node.account.Address(),
+	config := pb.AddThreadConfig{
+		Name: args[0],
 	}
 
 	if opts["key"] != "" {
@@ -54,10 +51,7 @@ func (a *api) addThreads(g *gin.Context) {
 	}
 
 	if opts["schema"] != "" {
-		config.Schema, err = mh.FromB58String(opts["schema"])
-		if err != nil {
-			g.String(http.StatusBadRequest, err.Error())
-		}
+		config.Schema.Id = opts["schema"]
 	}
 
 	config.Type = pb.Thread_Type(pbValForEnumString(pb.Thread_Type_value, opts["type"]))
@@ -71,7 +65,7 @@ func (a *api) addThreads(g *gin.Context) {
 		return
 	}
 
-	thrd, err := a.node.AddThread(sk, config)
+	thrd, err := a.node.AddThread(config, sk, a.node.account.Address(), true)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
