@@ -45,7 +45,7 @@ var thrdId string
 var dir []byte
 var filesBlock *pb.Block
 var files []*pb.Files
-var invite ExternalInvite
+var invite *pb.ExternalInvite
 
 var contact = &repo.Contact{
 	Id:       "abcde",
@@ -205,39 +205,54 @@ func TestMobile_Seed(t *testing.T) {
 }
 
 func TestMobile_AddThread(t *testing.T) {
-	res, err := mobile1.AddThread(&AddThreadConfig{
-		Key:     ksuid.New().String(),
-		Name:    "test",
-		Type:    "OPEN",
-		Sharing: "SHARED",
-		Media:   true,
-	})
+	conf := &pb.AddThreadConfig{
+		Key:  ksuid.New().String(),
+		Name: "test",
+		Schema: &pb.AddThreadConfig_Schema{
+			Preset: pb.AddThreadConfig_Schema_MEDIA,
+		},
+		Type:    pb.Thread_Open,
+		Sharing: pb.Thread_Shared,
+	}
+	mconf, err := proto.Marshal(conf)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	res, err := mobile1.AddThread(mconf)
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
 		return
 	}
-	var thrd *core.ThreadInfo
-	if err := json.Unmarshal([]byte(res), &thrd); err != nil {
+	thrd := new(pb.Thread)
+	if err := proto.Unmarshal(res, thrd); err != nil {
 		t.Error(err)
-		return
 	}
 	thrdId = thrd.Id
 }
 
-func TestMobile_AddThreadWithSchema(t *testing.T) {
-	res, err := mobile1.AddThread(&AddThreadConfig{
-		Key:     ksuid.New().String(),
-		Name:    "test",
-		Type:    "READ_ONLY",
-		Sharing: "INVITE_ONLY",
-		Schema:  schema,
-	})
+func TestMobile_AddThreadWithSchemaJson(t *testing.T) {
+	conf := &pb.AddThreadConfig{
+		Key:  ksuid.New().String(),
+		Name: "test",
+		Schema: &pb.AddThreadConfig_Schema{
+			Json: schema,
+		},
+		Type:    pb.Thread_ReadOnly,
+		Sharing: pb.Thread_InviteOnly,
+	}
+	mconf, err := proto.Marshal(conf)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	res, err := mobile1.AddThread(mconf)
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
 		return
 	}
-	var thrd *core.ThreadInfo
-	if err := json.Unmarshal([]byte(res), &thrd); err != nil {
+	thrd := new(pb.Thread)
+	if err := proto.Unmarshal(res, thrd); err != nil {
 		t.Error(err)
 		return
 	}
@@ -257,30 +272,38 @@ func TestMobile_Threads(t *testing.T) {
 		t.Errorf("get threads failed: %s", err)
 		return
 	}
-	var threads []core.ThreadInfo
-	if err := json.Unmarshal([]byte(res), &threads); err != nil {
+	list := new(pb.ThreadList)
+	if err := proto.Unmarshal(res, list); err != nil {
 		t.Error(err)
 		return
 	}
-	if len(threads) != 1 {
+	if len(list.Items) != 1 {
 		t.Error("get threads bad result")
 	}
 }
 
 func TestMobile_RemoveThread(t *testing.T) {
-	res, err := mobile1.AddThread(&AddThreadConfig{
-		Key:        ksuid.New().String(),
-		Name:       "another",
-		Type:       "PRIVATE",
-		Sharing:    "NOT_SHARED",
-		CameraRoll: true,
-	})
+	conf := &pb.AddThreadConfig{
+		Key:  ksuid.New().String(),
+		Name: "another",
+		Schema: &pb.AddThreadConfig_Schema{
+			Preset: pb.AddThreadConfig_Schema_CAMERA_ROLL,
+		},
+		Type:    pb.Thread_Private,
+		Sharing: pb.Thread_NotShared,
+	}
+	mconf, err := proto.Marshal(conf)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	res, err := mobile1.AddThread(mconf)
 	if err != nil {
 		t.Errorf("remove thread failed: %s", err)
 		return
 	}
-	var thrd *core.ThreadInfo
-	if err := json.Unmarshal([]byte(res), &thrd); err != nil {
+	thrd := new(pb.Thread)
+	if err := proto.Unmarshal(res, thrd); err != nil {
 		t.Error(err)
 		return
 	}
@@ -616,19 +639,27 @@ func TestMobile_AddInvite(t *testing.T) {
 		return
 	}
 
-	res, err := mobile2.AddThread(&AddThreadConfig{
-		Key:     ksuid.New().String(),
-		Name:    "test2",
-		Type:    "OPEN",
-		Sharing: "SHARED",
-		Media:   true,
-	})
+	conf := &pb.AddThreadConfig{
+		Key:  ksuid.New().String(),
+		Name: "test2",
+		Schema: &pb.AddThreadConfig_Schema{
+			Preset: pb.AddThreadConfig_Schema_MEDIA,
+		},
+		Type:    pb.Thread_Open,
+		Sharing: pb.Thread_Shared,
+	}
+	mconf, err := proto.Marshal(conf)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	var thrd *core.ThreadInfo
-	if err := json.Unmarshal([]byte(res), &thrd); err != nil {
+	res, err := mobile2.AddThread(mconf)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	thrd := new(pb.Thread)
+	if err := proto.Unmarshal([]byte(res), thrd); err != nil {
 		t.Error(err)
 		return
 	}
@@ -667,7 +698,8 @@ func TestMobile_AddExternalInvite(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if err := json.Unmarshal([]byte(res), &invite); err != nil {
+	invite = new(pb.ExternalInvite)
+	if err := proto.Unmarshal(res, invite); err != nil {
 		t.Error(err)
 		return
 	}

@@ -64,19 +64,17 @@ func (m *Mobile) RemoveContact(id string) error {
 }
 
 // ContactThreads calls core ContactThreads
-func (m *Mobile) ContactThreads(id string) (string, error) {
+func (m *Mobile) ContactThreads(id string) ([]byte, error) {
 	if !m.node.Started() {
-		return "", core.ErrStopped
+		return nil, core.ErrStopped
 	}
 
-	infos, err := m.node.ContactThreads(id)
+	thrds, err := m.node.ContactThreads(id)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	if len(infos) == 0 {
-		infos = make([]core.ThreadInfo, 0)
-	}
-	return toJSON(infos)
+
+	return proto.Marshal(thrds)
 }
 
 // SearchContacts calls core SearchContacts

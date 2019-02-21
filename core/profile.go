@@ -6,7 +6,6 @@ import (
 
 	"github.com/textileio/textile-go/pb"
 
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 
 	"github.com/textileio/textile-go/mill"
@@ -82,20 +81,16 @@ func (t *Textile) SetAvatar(hash string) error {
 		if err != nil {
 			return err
 		}
-		shash, err := mh.FromB58String(sf.Hash)
-		if err != nil {
-			return err
-		}
 
-		thrd, err = t.AddThread(sk, AddThreadConfig{
-			Key:       "avatars",
-			Name:      "avatars",
-			Schema:    shash,
-			Initiator: t.account.Address(),
-			Type:      pb.Thread_Private,
-			Sharing:   pb.Thread_NotShared,
-			Join:      true,
-		})
+		thrd, err = t.AddThread(pb.AddThreadConfig{
+			Key:  "avatars",
+			Name: "avatars",
+			Schema: &pb.AddThreadConfig_Schema{
+				Id: sf.Hash,
+			},
+			Type:    pb.Thread_Private,
+			Sharing: pb.Thread_NotShared,
+		}, sk, t.account.Address(), true)
 		if err != nil {
 			return err
 		}

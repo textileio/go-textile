@@ -7,7 +7,8 @@ import (
 	"os"
 	"testing"
 
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	"github.com/textileio/textile-go/pb"
+
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 
 	"github.com/segmentio/ksuid"
@@ -38,7 +39,7 @@ var contact = &repo.Contact{
 	}},
 }
 
-var schemaHash mh.Multihash
+var schemaHash string
 
 func TestInitRepo(t *testing.T) {
 	os.RemoveAll(repoPath)
@@ -132,6 +133,7 @@ func TestTextile_CafeTokens(t *testing.T) {
 	}
 	if len(token) == 0 {
 		t.Error("invalid token created")
+		return
 	}
 
 	tokens, _ := other.CafeTokens()
@@ -203,10 +205,7 @@ func TestTextile_AddSchema(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	schemaHash, err = mh.FromB58String(file.Hash)
-	if err != nil {
-		t.Fatal(err)
-	}
+	schemaHash = file.Hash
 }
 
 func TestTextile_AddThread(t *testing.T) {
@@ -214,17 +213,15 @@ func TestTextile_AddThread(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	config := AddThreadConfig{
-		Key:       ksuid.New().String(),
-		Name:      "test",
-		Schema:    schemaHash,
-		Initiator: node.Account().Address(),
-		Type:      repo.OpenThread,
-		Sharing:   repo.SharedThread,
-		Members:   []string{},
-		Join:      true,
+	config := pb.AddThreadConfig{
+		Key:     ksuid.New().String(),
+		Name:    "test",
+		Schema:  &pb.AddThreadConfig_Schema{Id: schemaHash},
+		Type:    pb.Thread_Open,
+		Sharing: pb.Thread_Shared,
+		Members: []string{},
 	}
-	thrd, err := node.AddThread(sk, config)
+	thrd, err := node.AddThread(config, sk, node.Account().Address(), true)
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
 		return

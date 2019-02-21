@@ -120,22 +120,22 @@ func (t *Textile) User(id string) *pb.User {
 }
 
 // ContactThreads returns all threads with the given peer
-func (t *Textile) ContactThreads(id string) ([]pb.Thread, error) {
+func (t *Textile) ContactThreads(id string) (*pb.ThreadList, error) {
 	peers := t.datastore.ThreadPeers().ListById(id)
 	if len(peers) == 0 {
 		return nil, nil
 	}
 
-	var infos []pb.Thread
+	list := &pb.ThreadList{Items: make([]*pb.Thread, 0)}
 	for _, p := range peers {
 		view, err := t.ThreadView(p.ThreadId)
 		if err != nil {
 			return nil, err
 		}
-		infos = append(infos, *view)
+		list.Items = append(list.Items, view)
 	}
 
-	return infos, nil
+	return list, nil
 }
 
 // PublishContact publishes this peer's contact info to the cafe network
