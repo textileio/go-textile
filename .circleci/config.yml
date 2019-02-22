@@ -603,11 +603,11 @@ workflows:
     - build-js-types:
         requires:
         - unit-test
-        # filters:
-        #   branches:
-        #     only: master
-        #   tags:
-        #     only: /.*/
+        filters:
+          branches:
+            only: master
+          tags:
+            only: /.*/
     - release:
         requires:
         - build-cli-darwin-windows

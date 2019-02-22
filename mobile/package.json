@@ -33,5 +33,7 @@
   },
   "main": "src/index.js",
   "types": "src/index.d.ts",
-  "dependencies": {}
+  "dependencies": {
+    "@textile/protobufjs": "^6.8.8"
+  }
 }
