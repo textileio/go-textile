@@ -12,7 +12,6 @@ import (
 	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
 type TestMessenger struct{}
@@ -47,18 +46,18 @@ var filesBlock *pb.Block
 var files []*pb.Files
 var invite *pb.ExternalInvite
 
-var contact = &repo.Contact{
+var contact = &pb.Contact{
 	Id:       "abcde",
 	Address:  "address1",
 	Username: "joe",
 	Avatar:   "Qm123",
-	Inboxes: []repo.Cafe{{
+	Inboxes: []*pb.Cafe{{
 		Peer:     "peer",
 		Address:  "address",
-		API:      "v0",
+		Api:      "v0",
 		Protocol: "/textile/cafe/1.0.0",
 		Node:     "v1.0.0",
-		URL:      "https://mycafe.com",
+		Url:      "https://mycafe.com",
 	}},
 }
 
@@ -586,8 +585,8 @@ func TestMobile_Profile(t *testing.T) {
 		t.Errorf("get profile failed: %s", err)
 		return
 	}
-	prof := repo.Contact{}
-	if err := json.Unmarshal([]byte(profs), &prof); err != nil {
+	prof := new(pb.Contact)
+	if err := proto.Unmarshal(profs, prof); err != nil {
 		t.Error(err)
 	}
 }

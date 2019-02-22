@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/textileio/textile-go/util"
-
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 )
 
 type ContactDB struct {
@@ -19,7 +19,7 @@ func NewContactStore(db *sql.DB, lock *sync.Mutex) repo.ContactStore {
 	return &ContactDB{modelStore{db, lock}}
 }
 
-func (c *ContactDB) Add(contact *repo.Contact) error {
+func (c *ContactDB) Add(contact *pb.Contact) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -56,7 +56,7 @@ func (c *ContactDB) Add(contact *repo.Contact) error {
 	return nil
 }
 
-func (c *ContactDB) AddOrUpdate(contact *repo.Contact) error {
+func (c *ContactDB) AddOrUpdate(contact *pb.Contact) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -83,7 +83,7 @@ func (c *ContactDB) AddOrUpdate(contact *repo.Contact) error {
 		contact.Avatar,
 		inboxes,
 		contact.Id,
-		contact.Created.UnixNano(),
+		util.ProtoNanos(contact.Created),
 		time.Now().UnixNano(),
 	)
 	if err != nil {
@@ -94,17 +94,17 @@ func (c *ContactDB) AddOrUpdate(contact *repo.Contact) error {
 	return nil
 }
 
-func (c *ContactDB) Get(id string) *repo.Contact {
+func (c *ContactDB) Get(id string) *pb.Contact {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from contacts where id='" + id + "';")
-	if len(ret) == 0 {
+	res := c.handleQuery("select * from contacts where id='" + id + "';")
+	if len(res.Items) == 0 {
 		return nil
 	}
-	return &ret[0]
+	return res.Items[0]
 }
 
-func (c *ContactDB) GetBest(id string) *repo.Contact {
+func (c *ContactDB) GetBest(id string) *pb.Contact {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stm := "select *, (select address from contacts where id='" + id + "') as addr from contacts where address=addr order by updated desc limit 1;"
@@ -119,7 +119,7 @@ func (c *ContactDB) GetBest(id string) *repo.Contact {
 	return c.handleRow(id, address, username, avatar, inboxes, createdInt, updatedInt)
 }
 
-func (c *ContactDB) List(query string) []repo.Contact {
+func (c *ContactDB) List(query string) *pb.ContactList {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	q := "select * from contacts"
@@ -130,7 +130,7 @@ func (c *ContactDB) List(query string) []repo.Contact {
 	return c.handleQuery(q)
 }
 
-func (c *ContactDB) Find(id string, address string, username string, exclude []string) []repo.Contact {
+func (c *ContactDB) Find(id string, address string, username string, exclude []string) *pb.ContactList {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if id != "" {
@@ -193,7 +193,7 @@ func (c *ContactDB) UpdateAvatar(id string, avatar string) error {
 	return err
 }
 
-func (c *ContactDB) UpdateInboxes(id string, inboxes []repo.Cafe) error {
+func (c *ContactDB) UpdateInboxes(id string, inboxes []*pb.Cafe) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	inboxesb, err := json.Marshal(inboxes)
@@ -211,8 +211,8 @@ func (c *ContactDB) Delete(id string) error {
 	return err
 }
 
-func (c *ContactDB) handleQuery(stm string) []repo.Contact {
-	var list []repo.Contact
+func (c *ContactDB) handleQuery(stm string) *pb.ContactList {
+	list := &pb.ContactList{Items: make([]*pb.Contact, 0)}
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -228,26 +228,26 @@ func (c *ContactDB) handleQuery(stm string) []repo.Contact {
 		}
 		row := c.handleRow(id, address, username, avatar, inboxes, createdInt, updatedInt)
 		if row != nil {
-			list = append(list, *row)
+			list.Items = append(list.Items, row)
 		}
 	}
 	return list
 }
 
-func (c *ContactDB) handleRow(id string, address string, username string, avatar string, inboxes []byte, createdInt int64, updatedInt int64) *repo.Contact {
-	cafes := make([]repo.Cafe, 0)
+func (c *ContactDB) handleRow(id string, address string, username string, avatar string, inboxes []byte, createdInt int64, updatedInt int64) *pb.Contact {
+	cafes := make([]*pb.Cafe, 0)
 	if err := json.Unmarshal(inboxes, &cafes); err != nil {
 		log.Errorf("error unmarshaling cafes: %s", err)
 		return nil
 	}
 
-	return &repo.Contact{
+	return &pb.Contact{
 		Id:       id,
 		Address:  address,
 		Username: username,
 		Avatar:   avatar,
 		Inboxes:  cafes,
-		Created:  time.Unix(0, createdInt),
-		Updated:  time.Unix(0, updatedInt),
+		Created:  util.ProtoTs(createdInt),
+		Updated:  util.ProtoTs(updatedInt),
 	}
 }

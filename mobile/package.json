@@ -26,14 +26,14 @@
   ],
   "files": [
     "scripts",
-    "src"
+    "dist"
   ],
   "scripts": {
     "postinstall": "./scripts/fetch_release.sh $npm_package_version"
   },
-  "main": "src/index.js",
-  "types": "src/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "dependencies": {
-    "protobufjs": "^6.8.8"
+    "@textile/protobufjs": "^6.8.8"
   }
 }

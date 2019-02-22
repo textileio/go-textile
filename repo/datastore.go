@@ -14,10 +14,10 @@ type Datastore interface {
 	Contacts() ContactStore
 	Files() FileStore
 	Threads() ThreadStore
-	ThreadInvites() ThreadInviteStore
 	ThreadPeers() ThreadPeerStore
 	ThreadMessages() ThreadMessageStore
 	Blocks() BlockStore
+	Invites() InviteStore
 	Notifications() NotificationStore
 	CafeSessions() CafeSessionStore
 	CafeRequests() CafeRequestStore
@@ -48,16 +48,16 @@ type ConfigStore interface {
 
 type ContactStore interface {
 	Queryable
-	Add(contact *Contact) error
-	AddOrUpdate(contact *Contact) error
-	Get(id string) *Contact
-	GetBest(id string) *Contact
-	List(query string) []Contact
-	Find(id string, address string, username string, exclude []string) []Contact
+	Add(contact *pb.Contact) error
+	AddOrUpdate(contact *pb.Contact) error
+	Get(id string) *pb.Contact
+	GetBest(id string) *pb.Contact
+	List(query string) *pb.ContactList
+	Find(id string, address string, username string, exclude []string) *pb.ContactList
 	Count(query string) int
 	UpdateUsername(id string, username string) error
 	UpdateAvatar(id string, avatar string) error
-	UpdateInboxes(id string, inboxes []Cafe) error
+	UpdateInboxes(id string, inboxes []*pb.Cafe) error
 	Delete(id string) error
 }
 
@@ -81,14 +81,6 @@ type ThreadStore interface {
 	List() *pb.ThreadList
 	Count() int
 	UpdateHead(id string, head string) error
-	Delete(id string) error
-}
-
-type ThreadInviteStore interface {
-	Queryable
-	Add(invite *ThreadInvite) error
-	Get(id string) *ThreadInvite
-	List() []ThreadInvite
 	Delete(id string) error
 }
 
@@ -121,6 +113,14 @@ type BlockStore interface {
 	Count(query string) int
 	Delete(id string) error
 	DeleteByThread(threadId string) error
+}
+
+type InviteStore interface {
+	Queryable
+	Add(invite *pb.Invite) error
+	Get(id string) *pb.Invite
+	List() *pb.InviteList
+	Delete(id string) error
 }
 
 type NotificationStore interface {

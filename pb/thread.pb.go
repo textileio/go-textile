@@ -34,7 +34,7 @@ func (m *ThreadEnvelope) Reset()         { *m = ThreadEnvelope{} }
 func (m *ThreadEnvelope) String() string { return proto.CompactTextString(m) }
 func (*ThreadEnvelope) ProtoMessage()    {}
 func (*ThreadEnvelope) Descriptor() ([]byte, []int) {
-	return fileDescriptor_thread_fea751881932b6df, []int{0}
+	return fileDescriptor_thread_591bfd4d6430d6f4, []int{0}
 }
 func (m *ThreadEnvelope) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadEnvelope.Unmarshal(m, b)
@@ -88,7 +88,7 @@ func (m *ThreadBlock) Reset()         { *m = ThreadBlock{} }
 func (m *ThreadBlock) String() string { return proto.CompactTextString(m) }
 func (*ThreadBlock) ProtoMessage()    {}
 func (*ThreadBlock) Descriptor() ([]byte, []int) {
-	return fileDescriptor_thread_fea751881932b6df, []int{1}
+	return fileDescriptor_thread_591bfd4d6430d6f4, []int{1}
 }
 func (m *ThreadBlock) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadBlock.Unmarshal(m, b)
@@ -143,7 +143,7 @@ func (m *ThreadBlockHeader) Reset()         { *m = ThreadBlockHeader{} }
 func (m *ThreadBlockHeader) String() string { return proto.CompactTextString(m) }
 func (*ThreadBlockHeader) ProtoMessage()    {}
 func (*ThreadBlockHeader) Descriptor() ([]byte, []int) {
-	return fileDescriptor_thread_fea751881932b6df, []int{2}
+	return fileDescriptor_thread_591bfd4d6430d6f4, []int{2}
 }
 func (m *ThreadBlockHeader) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadBlockHeader.Unmarshal(m, b)
@@ -203,7 +203,7 @@ func (m *ThreadInvite) Reset()         { *m = ThreadInvite{} }
 func (m *ThreadInvite) String() string { return proto.CompactTextString(m) }
 func (*ThreadInvite) ProtoMessage()    {}
 func (*ThreadInvite) Descriptor() ([]byte, []int) {
-	return fileDescriptor_thread_fea751881932b6df, []int{3}
+	return fileDescriptor_thread_591bfd4d6430d6f4, []int{3}
 }
 func (m *ThreadInvite) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadInvite.Unmarshal(m, b)
@@ -248,7 +248,7 @@ func (m *ThreadIgnore) Reset()         { *m = ThreadIgnore{} }
 func (m *ThreadIgnore) String() string { return proto.CompactTextString(m) }
 func (*ThreadIgnore) ProtoMessage()    {}
 func (*ThreadIgnore) Descriptor() ([]byte, []int) {
-	return fileDescriptor_thread_fea751881932b6df, []int{4}
+	return fileDescriptor_thread_591bfd4d6430d6f4, []int{4}
 }
 func (m *ThreadIgnore) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadIgnore.Unmarshal(m, b)
@@ -286,7 +286,7 @@ func (m *ThreadFlag) Reset()         { *m = ThreadFlag{} }
 func (m *ThreadFlag) String() string { return proto.CompactTextString(m) }
 func (*ThreadFlag) ProtoMessage()    {}
 func (*ThreadFlag) Descriptor() ([]byte, []int) {
-	return fileDescriptor_thread_fea751881932b6df, []int{5}
+	return fileDescriptor_thread_591bfd4d6430d6f4, []int{5}
 }
 func (m *ThreadFlag) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadFlag.Unmarshal(m, b)
@@ -325,7 +325,7 @@ func (m *ThreadJoin) Reset()         { *m = ThreadJoin{} }
 func (m *ThreadJoin) String() string { return proto.CompactTextString(m) }
 func (*ThreadJoin) ProtoMessage()    {}
 func (*ThreadJoin) Descriptor() ([]byte, []int) {
-	return fileDescriptor_thread_fea751881932b6df, []int{6}
+	return fileDescriptor_thread_591bfd4d6430d6f4, []int{6}
 }
 func (m *ThreadJoin) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadJoin.Unmarshal(m, b)
@@ -370,7 +370,7 @@ func (m *ThreadAnnounce) Reset()         { *m = ThreadAnnounce{} }
 func (m *ThreadAnnounce) String() string { return proto.CompactTextString(m) }
 func (*ThreadAnnounce) ProtoMessage()    {}
 func (*ThreadAnnounce) Descriptor() ([]byte, []int) {
-	return fileDescriptor_thread_fea751881932b6df, []int{7}
+	return fileDescriptor_thread_591bfd4d6430d6f4, []int{7}
 }
 func (m *ThreadAnnounce) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadAnnounce.Unmarshal(m, b)
@@ -408,7 +408,7 @@ func (m *ThreadMessage) Reset()         { *m = ThreadMessage{} }
 func (m *ThreadMessage) String() string { return proto.CompactTextString(m) }
 func (*ThreadMessage) ProtoMessage()    {}
 func (*ThreadMessage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_thread_fea751881932b6df, []int{8}
+	return fileDescriptor_thread_591bfd4d6430d6f4, []int{8}
 }
 func (m *ThreadMessage) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadMessage.Unmarshal(m, b)
@@ -448,7 +448,7 @@ func (m *ThreadFiles) Reset()         { *m = ThreadFiles{} }
 func (m *ThreadFiles) String() string { return proto.CompactTextString(m) }
 func (*ThreadFiles) ProtoMessage()    {}
 func (*ThreadFiles) Descriptor() ([]byte, []int) {
-	return fileDescriptor_thread_fea751881932b6df, []int{9}
+	return fileDescriptor_thread_591bfd4d6430d6f4, []int{9}
 }
 func (m *ThreadFiles) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadFiles.Unmarshal(m, b)
@@ -501,7 +501,7 @@ func (m *ThreadComment) Reset()         { *m = ThreadComment{} }
 func (m *ThreadComment) String() string { return proto.CompactTextString(m) }
 func (*ThreadComment) ProtoMessage()    {}
 func (*ThreadComment) Descriptor() ([]byte, []int) {
-	return fileDescriptor_thread_fea751881932b6df, []int{10}
+	return fileDescriptor_thread_591bfd4d6430d6f4, []int{10}
 }
 func (m *ThreadComment) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadComment.Unmarshal(m, b)
@@ -546,7 +546,7 @@ func (m *ThreadLike) Reset()         { *m = ThreadLike{} }
 func (m *ThreadLike) String() string { return proto.CompactTextString(m) }
 func (*ThreadLike) ProtoMessage()    {}
 func (*ThreadLike) Descriptor() ([]byte, []int) {
-	return fileDescriptor_thread_fea751881932b6df, []int{11}
+	return fileDescriptor_thread_591bfd4d6430d6f4, []int{11}
 }
 func (m *ThreadLike) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadLike.Unmarshal(m, b)
@@ -589,9 +589,9 @@ func init() {
 	proto.RegisterType((*ThreadLike)(nil), "ThreadLike")
 }
 
-func init() { proto.RegisterFile("thread.proto", fileDescriptor_thread_fea751881932b6df) }
+func init() { proto.RegisterFile("thread.proto", fileDescriptor_thread_591bfd4d6430d6f4) }
 
-var fileDescriptor_thread_fea751881932b6df = []byte{
+var fileDescriptor_thread_591bfd4d6430d6f4 = []byte{
 	// 518 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x52, 0x4d, 0x6f, 0xd3, 0x40,
 	0x10, 0x95, 0x1d, 0x93, 0x90, 0x49, 0xa8, 0xca, 0xaa, 0xaa, 0x4c, 0x0e, 0x34, 0x32, 0x15, 0x8a,

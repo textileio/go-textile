@@ -28,14 +28,6 @@ message AddThreadConfig {
     }
 }
 
-message ThreadList {
-    repeated Thread items = 1;
-}
-
-message BlockList {
-    repeated Block items = 1;
-}
-
 // FILES //
 
 message Directory {
@@ -53,6 +45,13 @@ message ExternalInvite {
     string id      = 1;
     string key     = 2;
     string inviter = 3;
+}
+
+message InviteView {
+    string id                      = 1;
+    string name                    = 2;
+    User inviter                   = 3;
+    google.protobuf.Timestamp date = 4;
 }
 
 // FEED //
@@ -172,10 +171,4 @@ message Like {
 
 message LikeList {
     repeated Like items = 1;
-}
-
-// CAFE //
-
-message CafeSessionList {
-    repeated CafeSession items = 1;
 }

@@ -53,7 +53,7 @@ func (t *Textile) AccountPeers() ([]ContactInfo, error) {
 	address := t.account.Address()
 	query := fmt.Sprintf("address='%s' and id!='%s'", address, peerId)
 	for _, model := range t.datastore.Contacts().List(query) {
-		info := t.contactInfo(t.datastore.Contacts().Get(model.Id), false)
+		info := t.contactView(t.datastore.Contacts().Get(model.Id), false)
 		if info != nil {
 			peers = append(peers, *info)
 		}

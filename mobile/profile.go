@@ -1,20 +1,22 @@
 package mobile
 
 import (
+	"github.com/golang/protobuf/proto"
 	"github.com/textileio/textile-go/core"
 )
 
 // Profile calls core Profile
-func (m *Mobile) Profile() (string, error) {
+func (m *Mobile) Profile() ([]byte, error) {
 	if !m.node.Started() {
-		return "", core.ErrStopped
+		return nil, core.ErrStopped
 	}
 
 	self := m.node.Profile()
 	if self == nil {
-		return "", nil
+		return nil, nil
 	}
-	return toJSON(self)
+
+	return proto.Marshal(self)
 }
 
 // Username calls core Username

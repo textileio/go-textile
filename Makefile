@@ -53,14 +53,21 @@ build_android_framework:
 install:
 	mv dist/textile /usr/local/bin
 
+protos:
+	cd pb/protos && PATH=$(PATH):$(GOPATH)/bin protoc --go_out=$(PKGMAP):.. *.proto
+
+protos_ts:
+	mkdir -p mobile/dist
+	cd mobile; yarn install --ignore-scripts
+	cd mobile; ./node_modules/.bin/pbjs -t static-module -w es6 -o dist/index.js ../pb/protos/*
+	cd mobile; ./node_modules/.bin/pbts -o dist/index.d.ts dist/index.js
+
 # Additional dependencies needed:
 # $ brew install jq
 # $ brew install grep
 publish_mobile:
+	make protos_ts
 	$(eval VERSION := $$(shell ggrep -oP 'const Version = "\K[^"]+' common/version.go))
 	cd mobile; jq '.version = "$(VERSION)"' package.json > package.json.tmp && mv package.json.tmp package.json
 	cd mobile; npm publish
 	cd mobile; jq '.version = "0.0.0"' package.json > package.json.tmp && mv package.json.tmp package.json
-
-protos:
-	cd pb/protos && PATH=$(PATH):$(GOPATH)/bin protoc --go_out=$(PKGMAP):.. *.proto

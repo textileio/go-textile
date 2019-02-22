@@ -26,8 +26,8 @@ message ThreadBlockHeader {
 }
 
 message ThreadInvite {
-    Contact inviter         = 1;
-    Thread thread           = 2;
+    Contact inviter = 1;
+    Thread thread   = 2;
 }
 
 message ThreadIgnore {

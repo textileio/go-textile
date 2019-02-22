@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/textileio/textile-go/util"
+
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
@@ -295,18 +297,19 @@ func (t *Textile) ThreadView(id string) (*pb.Thread, error) {
 	return mod, nil
 }
 
-// Invite get a pending invite
-func (t *Textile) Invite(invite *repo.ThreadInvite) *ThreadInviteInfo {
+// Invite gets a pending invite
+func (t *Textile) Invite(invite *pb.Invite) *ThreadInviteInfo {
 	if invite == nil {
 		return nil
 	}
 
 	var username, avatar string
-	contact := t.datastore.Contacts().Get(invite.Contact.Id)
-	if contact != nil && (invite.Contact == nil || invite.Contact.Updated.Before(contact.Updated)) {
+	contact := t.datastore.Contacts().Get(invite.Inviter.Id)
+	if contact != nil && (invite.Inviter == nil || util.ProtoNanos(invite.Inviter.Updated) < util.ProtoNanos(contact.Updated)) {
 		username = toName(contact)
 		avatar = contact.Avatar
-	} else if invite.Contact != nil {
+	} else if invite.Inviter != nil {
+		//invite.Inviter = t.Us
 		username, avatar = t.ContactDisplayInfo(invite.Contact.Id)
 	}
 

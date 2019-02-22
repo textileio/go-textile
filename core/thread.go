@@ -63,15 +63,6 @@ type ThreadUpdate struct {
 	Info       interface{} `json:"info,omitempty"`
 }
 
-// ThreadInviteInfo reports info about a thread invite
-type ThreadInviteInfo struct {
-	Id       string    `json:"id"`
-	Name     string    `json:"name"`
-	Username string    `json:"username,omitempty"`
-	Avatar   string    `json:"avatar,omitempty"`
-	Date     time.Time `json:"date"`
-}
-
 // ThreadConfig is used to construct a Thread
 type ThreadConfig struct {
 	RepoPath      string

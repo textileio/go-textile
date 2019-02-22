@@ -21,14 +21,6 @@ type File struct {
 	Targets  []string               `json:"targets,omitempty"`
 }
 
-type ThreadInvite struct {
-	Id      string    `json:"id"`
-	Block   []byte    `json:"block"`
-	Name    string    `json:"name"`
-	Contact *Contact  `json:"contact"`
-	Date    time.Time `json:"date"`
-}
-
 type ThreadPeer struct {
 	Id       string `json:"id"`
 	ThreadId string `json:"thread_id"`
@@ -40,16 +32,6 @@ type ThreadMessage struct {
 	PeerId   string       `json:"peer_id"`
 	Envelope *pb.Envelope `json:"envelope"`
 	Date     time.Time    `json:"date"`
-}
-
-type Contact struct {
-	Id       string    `json:"id"`
-	Address  string    `json:"address"`
-	Username string    `json:"username,omitempty"`
-	Avatar   string    `json:"avatar,omitempty"`
-	Inboxes  []Cafe    `json:"inboxes,omitempty"`
-	Created  time.Time `json:"created"`
-	Updated  time.Time `json:"updated"`
 }
 
 type Notification struct {
@@ -99,16 +81,6 @@ func (n NotificationType) Description() string {
 	default:
 		return "INVALID"
 	}
-}
-
-type Cafe struct {
-	Peer     string   `json:"peer"`
-	Address  string   `json:"address"`
-	API      string   `json:"api"`
-	Protocol string   `json:"protocol"`
-	Node     string   `json:"node"`
-	URL      string   `json:"url"`
-	Swarm    []string `json:"swarm"`
 }
 
 type CafeRequestType int

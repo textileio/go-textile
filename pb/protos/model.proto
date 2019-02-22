@@ -4,11 +4,7 @@ option go_package = "pb";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
 
-message User {
-    string address  = 1;
-    string name     = 2;
-    string avatar   = 3;
-}
+// CONTACTS //
 
 message Contact {
     string id                         = 1;
@@ -18,26 +14,22 @@ message Contact {
     repeated Cafe inboxes             = 5;
     google.protobuf.Timestamp created = 6;
     google.protobuf.Timestamp updated = 7;
+
+    // view info
+    repeated string threads = 8;
 }
 
-message Node {
-    string name                        = 1;
-    bool pin                           = 2;
-    bool plaintext                     = 3;
-    string mill                        = 4;
-    map<string, string> opts           = 5;
-    google.protobuf.Struct json_schema = 6;
-    map<string, Link> links            = 8;
+message ContactList {
+    repeated Contact items = 1;
 }
 
-message Link {
-    string use                         = 1;
-    bool pin                           = 2;
-    bool plaintext                     = 3;
-    string mill                        = 4;
-    map<string, string> opts           = 5;
-    google.protobuf.Struct json_schema = 6;
+message User {
+    string address  = 1;
+    string name     = 2;
+    string avatar   = 3;
 }
+
+// THREADS //
 
 message Thread {
     string id               = 1;
@@ -81,6 +73,10 @@ message Thread {
     int32 peer_count  = 104;
 }
 
+message ThreadList {
+    repeated Thread items = 1;
+}
+
 message Block {
     string id                      = 1;
     string thread                  = 2;
@@ -109,6 +105,26 @@ message Block {
     User user = 101;
 }
 
+message BlockList {
+    repeated Block items = 1;
+}
+
+// INVITES //
+
+message Invite {
+    string id                      = 1;
+    bytes block                    = 2;
+    string name                    = 3;
+    Contact inviter                = 4;
+    google.protobuf.Timestamp date = 5;
+}
+
+message InviteList {
+    repeated Invite items = 1;
+}
+
+// FILES //
+
 message FileIndex {
     string mill                     = 1;
     string checksum                 = 2;
@@ -123,6 +139,27 @@ message FileIndex {
     google.protobuf.Struct meta     = 11;
     repeated string targets         = 12;
 }
+
+message Node {
+    string name                        = 1;
+    bool pin                           = 2;
+    bool plaintext                     = 3;
+    string mill                        = 4;
+    map<string, string> opts           = 5;
+    google.protobuf.Struct json_schema = 6;
+    map<string, Link> links            = 8;
+}
+
+message Link {
+    string use                         = 1;
+    bool pin                           = 2;
+    bool plaintext                     = 3;
+    string mill                        = 4;
+    map<string, string> opts           = 5;
+    google.protobuf.Struct json_schema = 6;
+}
+
+// CAFES //
 
 message Cafe {
     string peer           = 1;
@@ -143,4 +180,8 @@ message CafeSession {
     string subject                 = 6;
     string type                    = 7;
     Cafe cafe                      = 8;
+}
+
+message CafeSessionList {
+    repeated CafeSession items = 1;
 }
