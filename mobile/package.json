@@ -34,6 +34,6 @@
   "main": "src/index.js",
   "types": "src/index.d.ts",
   "dependencies": {
-    "google-protobuf": "^3.7.0-rc.2"
+    "protobufjs": "^6.8.8"
   }
 }
