@@ -10,6 +10,18 @@ move-linux-src: &move-linux-src
     command: |
       mv ~/project/* /go/src/github.com/textileio/textile-go/
 
+ldflags: &ldflags
+  run:
+    name: get ldflags
+    command: |
+      COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
+      SUMMARY=$CIRCLE_SHA1
+      if [ "${CIRCLE_TAG}" != "" ]; then
+          SUMMARY=${CIRCLE_TAG}
+      fi
+      DATE=$(date --iso-8601=seconds)
+      FLAGS="-X github.com/textileio/textile-go/common.GitSummary=${SUMMARY} -X github.com/textileio/textile-go/common.BuildDate=${DATE} -X github.com/textileio/textile-go/common.GitCommit=${COMMIT} -X github.com/textileio/textile-go/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/textile-go/common.GitState=clean"
+
 jobs:
 
   persist-checkout:
@@ -71,14 +83,20 @@ jobs:
     - restore_cache:
         key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
     - run:
+        name: install deps
+        command: |
+          dep ensure
+          gx install
+    - run:
         name: install gox
         command: |
           go get github.com/mitchellh/gox
-          go get github.com/ahmetb/govvv
+    - *ldflags
     - run:
         name: compile
         command: |
-          gox -ldflags "-w $(govvv -flags -pkg github.com/textileio/textile-go/common)" -osarch="linux/amd64 linux/386 linux/arm" -output="{{.OS}}-{{.Arch}}"
+          echo $FLAGS
+          gox -ldflags "-w ${FLAGS}" -osarch="linux/amd64 linux/386 linux/arm" -output="{{.OS}}-{{.Arch}}"
     - run:
         name: collect artifacts
         command: |
@@ -163,17 +181,17 @@ jobs:
         command: |
           export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           go get github.com/mitchellh/gox
-          go get github.com/ahmetb/govvv
     - run:
         name: install mingw-w64
         command: |
           brew install mingw-w64
+    - *ldflags
     - run:
         name: cross-compile
         command: |
           export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
-          gox -ldflags "-w $(govvv -flags -pkg github.com/textileio/textile-go/common)" -osarch="darwin/amd64" -output="{{.OS}}-{{.Arch}}"
-          CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -ldflags "-w $(govvv -flags -pkg github.com/textileio/textile-go/common)" -cgo -osarch="windows/amd64" -output="{{.OS}}-{{.Arch}}"
+          gox -ldflags "-w ${FLAGS}" -osarch="darwin/amd64" -output="{{.OS}}-{{.Arch}}"
+          CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -ldflags "-w ${FLAGS}" -cgo -osarch="windows/amd64" -output="{{.OS}}-{{.Arch}}"
     - run:
         name: collect artifacts
         command: |
@@ -221,6 +239,11 @@ jobs:
         key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
     - restore_cache:
         key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
+    - run:
+        name: install deps
+        command: |
+          dep ensure
+          gx install
     - run:
         name: install astilectron-bundler
         command: |
@@ -383,13 +406,13 @@ jobs:
         command: |
           export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           go get golang.org/x/mobile/cmd/gomobile
-          go get github.com/ahmetb/govvv
+    - *ldflags
     - run:
         name: build ios framework
         command: |
           export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           gomobile init
-          gomobile bind -ldflags "-w $(govvv -flags -pkg github.com/textileio/textile-go/common)" -v -target=ios github.com/textileio/textile-go/mobile
+          gomobile bind -ldflags "-w ${FLAGS}" -v -target=ios github.com/textileio/textile-go/mobile
     - run:
         name: build obj c protobuf bindings
         command: |
@@ -472,7 +495,7 @@ jobs:
         command: |
           export PATH=$PATH:/usr/local/go/bin
           go get golang.org/x/mobile/cmd/gomobile
-          go get github.com/ahmetb/govvv
+    - *ldflags
     - run:
         name: build android framework
         command: |
@@ -480,7 +503,7 @@ jobs:
           export GOPATH=~/go
           export PATH=$PATH:$GOPATH/bin
           gomobile init -ndk /opt/android/android-ndk-r17b
-          gomobile bind -ldflags "-w $(govvv -flags -pkg github.com/textileio/textile-go/common)" -v -target=android -o mobile.aar github.com/textileio/textile-go/mobile
+          gomobile bind -ldflags "-w ${FLAGS}" -v -target=android -o mobile.aar github.com/textileio/textile-go/mobile
     - run:
         name: build java protobuf bindings
         command: |
