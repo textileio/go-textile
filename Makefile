@@ -24,8 +24,8 @@ build:
 	go build -ldflags "-w $(FLAGS)" -i -o textile textile.go
 	mv textile dist/
 
-build_docs:
-	swag init -g core/api.go
+install:
+	mv dist/textile /usr/local/bin
 
 cross_build_linux:
 	$(eval FLAGS := $$(shell govvv -flags -pkg github.com/textileio/textile-go/common))
@@ -40,34 +40,35 @@ cross_build_linux:
 build_ios_framework:
 	$(eval FLAGS := $$(shell govvv -flags -pkg github.com/textileio/textile-go/common))
 	gomobile bind -ldflags "-w $(FLAGS)" -target=ios github.com/textileio/textile-go/mobile
-	mkdir -p dist
-	cp -r Mobile.framework dist/
+	cp -r Mobile.framework mobile/dist/
 	rm -rf Mobile.framework
 
-build_android_framework:
+build_android_aar:
 	$(eval FLAGS := $$(shell govvv -flags -pkg github.com/textileio/textile-go/common))
 	gomobile bind -ldflags "-w $(FLAGS)" -target=android -o mobile.aar github.com/textileio/textile-go/mobile
-	mkdir -p dist
-	mv mobile.aar dist/
+	mv mobile.aar mobile/dist/
 
-install:
-	mv dist/textile /usr/local/bin
-
-protos:
-	cd pb/protos && PATH=$(PATH):$(GOPATH)/bin protoc --go_out=$(PKGMAP):.. *.proto
-
-protos_ts:
-	mkdir -p mobile/dist
-	cd mobile; yarn install --ignore-scripts
-	cd mobile; ./node_modules/.bin/pbjs -t static-module -w es6 -o dist/index.js ../pb/protos/*
-	cd mobile; ./node_modules/.bin/pbts -o dist/index.d.ts dist/index.js
+build_mobile:
+	make build_ios_framework
+	build_android_aar
+	make protos_ts
 
 # Additional dependencies needed:
 # $ brew install jq
 # $ brew install grep
 publish_mobile:
-	make protos_ts
-	$(eval VERSION := $$(shell ggrep -oP 'const Version = "\K[^"]+' common/version.go))
-	cd mobile; jq '.version = "$(VERSION)"' package.json > package.json.tmp && mv package.json.tmp package.json
-	cd mobile; npm publish
-	cd mobile; jq '.version = "0.0.0"' package.json > package.json.tmp && mv package.json.tmp package.json
+	#$(eval VERSION := $$(shell ggrep -oP 'const Version = "\K[^"]+' common/version.go))
+	#cd mobile; jq '.version = "$(VERSION)"' package.json > package.json.tmp && mv package.json.tmp package.json
+	#cd mobile; npm publish
+	#cd mobile; jq '.version = "0.0.0"' package.json > package.json.tmp && mv package.json.tmp package.json
+
+protos:
+	cd pb/protos && PATH=$(PATH):$(GOPATH)/bin protoc --go_out=$(PKGMAP):.. *.proto
+
+protos_ts:
+	cd mobile; yarn install --ignore-scripts
+	cd mobile; node node_modules/@textile/protobufjs/cli/bin/pbjs -t static-module -w es6 -o dist/index.js ../pb/protos/*
+	cd mobile; node node_modules/@textile/protobufjs/cli/bin/pbts -o dist/index.d.ts dist/index.js
+
+build_docs:
+	swag init -g core/api.go
