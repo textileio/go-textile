@@ -187,7 +187,7 @@ jobs:
           if [ "${CIRCLE_TAG}" != "" ]; then
               SUMMARY=${CIRCLE_TAG}
           fi
-          DATE=$(date --iso-8601=seconds)
+          DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           FLAGS="-X github.com/textileio/textile-go/common.GitSummary=${SUMMARY} -X github.com/textileio/textile-go/common.BuildDate=${DATE} -X github.com/textileio/textile-go/common.GitCommit=${COMMIT} -X github.com/textileio/textile-go/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/textile-go/common.GitState=clean"
           gox -ldflags "-w ${FLAGS}" -osarch="darwin/amd64" -output="{{.OS}}-{{.Arch}}"
           CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -ldflags "-w ${FLAGS}" -cgo -osarch="windows/amd64" -output="{{.OS}}-{{.Arch}}"
@@ -414,7 +414,7 @@ jobs:
           if [ "${CIRCLE_TAG}" != "" ]; then
               SUMMARY=${CIRCLE_TAG}
           fi
-          DATE=$(date --iso-8601=seconds)
+          DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           FLAGS="-X github.com/textileio/textile-go/common.GitSummary=${SUMMARY} -X github.com/textileio/textile-go/common.BuildDate=${DATE} -X github.com/textileio/textile-go/common.GitCommit=${COMMIT} -X github.com/textileio/textile-go/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/textile-go/common.GitState=clean"
           gomobile init
           gomobile bind -ldflags "-w ${FLAGS}" -v -target=ios github.com/textileio/textile-go/mobile
@@ -443,7 +443,7 @@ jobs:
 
   build-android-aar:
     docker:
-      - image: circleci/android:api-28-ndk
+    - image: circleci/android:api-28-ndk
     working_directory: ~/go/src/github.com/textileio/textile-go
     steps:
     - checkout
@@ -541,7 +541,7 @@ jobs:
 
   build-js-types:
     docker:
-      - image: circleci/node
+    - image: circleci/node
     working_directory: ~/go/src/github.com/textileio/textile-go
     steps:
     - checkout
