@@ -34,6 +34,6 @@
   "main": "src/index.js",
   "types": "src/index.d.ts",
   "dependencies": {
-    "@textile/protobufjs": "^6.8.8"
+    "protobufjs": "^6.8.8"
   }
 }
