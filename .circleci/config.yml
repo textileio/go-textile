@@ -10,18 +10,6 @@ move-linux-src: &move-linux-src
     command: |
       mv ~/project/* /go/src/github.com/textileio/textile-go/
 
-ldflags: &ldflags
-  run:
-    name: get ldflags
-    command: |
-      COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
-      SUMMARY=$CIRCLE_SHA1
-      if [ "${CIRCLE_TAG}" != "" ]; then
-          SUMMARY=${CIRCLE_TAG}
-      fi
-      DATE=$(date --iso-8601=seconds)
-      FLAGS="-X github.com/textileio/textile-go/common.GitSummary=${SUMMARY} -X github.com/textileio/textile-go/common.BuildDate=${DATE} -X github.com/textileio/textile-go/common.GitCommit=${COMMIT} -X github.com/textileio/textile-go/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/textile-go/common.GitState=clean"
-
 jobs:
 
   persist-checkout:
@@ -91,11 +79,16 @@ jobs:
         name: install gox
         command: |
           go get github.com/mitchellh/gox
-    - *ldflags
     - run:
         name: compile
         command: |
-          echo $FLAGS
+          COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
+          SUMMARY=$CIRCLE_SHA1
+          if [ "${CIRCLE_TAG}" != "" ]; then
+              SUMMARY=${CIRCLE_TAG}
+          fi
+          DATE=$(date --iso-8601=seconds)
+          FLAGS="-X github.com/textileio/textile-go/common.GitSummary=${SUMMARY} -X github.com/textileio/textile-go/common.BuildDate=${DATE} -X github.com/textileio/textile-go/common.GitCommit=${COMMIT} -X github.com/textileio/textile-go/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/textile-go/common.GitState=clean"
           gox -ldflags "-w ${FLAGS}" -osarch="linux/amd64 linux/386 linux/arm" -output="{{.OS}}-{{.Arch}}"
     - run:
         name: collect artifacts
@@ -185,11 +178,17 @@ jobs:
         name: install mingw-w64
         command: |
           brew install mingw-w64
-    - *ldflags
     - run:
         name: cross-compile
         command: |
           export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
+          COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
+          SUMMARY=$CIRCLE_SHA1
+          if [ "${CIRCLE_TAG}" != "" ]; then
+              SUMMARY=${CIRCLE_TAG}
+          fi
+          DATE=$(date --iso-8601=seconds)
+          FLAGS="-X github.com/textileio/textile-go/common.GitSummary=${SUMMARY} -X github.com/textileio/textile-go/common.BuildDate=${DATE} -X github.com/textileio/textile-go/common.GitCommit=${COMMIT} -X github.com/textileio/textile-go/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/textile-go/common.GitState=clean"
           gox -ldflags "-w ${FLAGS}" -osarch="darwin/amd64" -output="{{.OS}}-{{.Arch}}"
           CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -ldflags "-w ${FLAGS}" -cgo -osarch="windows/amd64" -output="{{.OS}}-{{.Arch}}"
     - run:
@@ -406,11 +405,17 @@ jobs:
         command: |
           export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
           go get golang.org/x/mobile/cmd/gomobile
-    - *ldflags
     - run:
         name: build ios framework
         command: |
           export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
+          COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
+          SUMMARY=$CIRCLE_SHA1
+          if [ "${CIRCLE_TAG}" != "" ]; then
+              SUMMARY=${CIRCLE_TAG}
+          fi
+          DATE=$(date --iso-8601=seconds)
+          FLAGS="-X github.com/textileio/textile-go/common.GitSummary=${SUMMARY} -X github.com/textileio/textile-go/common.BuildDate=${DATE} -X github.com/textileio/textile-go/common.GitCommit=${COMMIT} -X github.com/textileio/textile-go/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/textile-go/common.GitState=clean"
           gomobile init
           gomobile bind -ldflags "-w ${FLAGS}" -v -target=ios github.com/textileio/textile-go/mobile
     - run:
@@ -490,19 +495,26 @@ jobs:
           sdkmanager --licenses
           echo y | sdkmanager "build-tools;28.0.3"
           echo y | sdkmanager "platforms;android-28"
+          sdkmanager 'ndk-bundle'
     - run:
         name: install gomobile
         command: |
           export PATH=$PATH:/usr/local/go/bin
           go get golang.org/x/mobile/cmd/gomobile
-    - *ldflags
     - run:
         name: build android framework
         command: |
           export PATH=$PATH:/usr/local/go/bin
           export GOPATH=~/go
           export PATH=$PATH:$GOPATH/bin
-          gomobile init -ndk /opt/android/android-ndk-r17b
+          COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
+          SUMMARY=$CIRCLE_SHA1
+          if [ "${CIRCLE_TAG}" != "" ]; then
+              SUMMARY=${CIRCLE_TAG}
+          fi
+          DATE=$(date --iso-8601=seconds)
+          FLAGS="-X github.com/textileio/textile-go/common.GitSummary=${SUMMARY} -X github.com/textileio/textile-go/common.BuildDate=${DATE} -X github.com/textileio/textile-go/common.GitCommit=${COMMIT} -X github.com/textileio/textile-go/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/textile-go/common.GitState=clean"
+          gomobile init
           gomobile bind -ldflags "-w ${FLAGS}" -v -target=android -o mobile.aar github.com/textileio/textile-go/mobile
     - run:
         name: build java protobuf bindings
