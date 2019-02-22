@@ -511,22 +511,15 @@ jobs:
     steps:
     - checkout
     - run:
-        name: install protoc
+        name: install @textile/protobufjs
         command: |
-            npm install protoc
-    - run:
-        name: install google-protobuf
-        command: |
-            npm install google-protobuf
-    - run:
-        name: install ts-protoc-gen
-        command: |
-            npm install ts-protoc-gen
+            npm install @textile/protobufjs
     - run:
         name: build js types
         command: |
             mkdir protobuf_gen
-            ./node_modules/protoc/protoc/bin/protoc --plugin="protoc-gen-ts=./node_modules/.bin/protoc-gen-ts" --proto_path=./pb/protos --js_out="import_style=commonjs,binary:./protobuf_gen" --ts_out="./protobuf_gen" ./pb/protos/*
+            ./node_modules/@textile/protobufjs/bin/pbjs -t static-module -w es6 -o protobuf_gen/index.js ./pb/protos/*
+            ./node_modules/@textile/protobufjs/bin/pbts -o protobuf_gen/index.d.ts protobuf_gen/index.js
     - run:
         name: collect artifacts
         command: |
@@ -610,11 +603,11 @@ workflows:
     - build-js-types:
         requires:
         - unit-test
-        filters:
-          branches:
-            only: master
-          tags:
-            only: /.*/
+        # filters:
+        #   branches:
+        #     only: master
+        #   tags:
+        #     only: /.*/
     - release:
         requires:
         - build-cli-darwin-windows

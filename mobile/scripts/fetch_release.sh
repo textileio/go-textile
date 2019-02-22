@@ -26,4 +26,5 @@ mv protobuf_gen ${ANDROID_DIR}
 curl -L -o textile-go_v${VER}_js-types.tar.gz https://github.com/textileio/textile-go/releases/download/v${VER}/textile-go_v${VER}_js-types.tar.gz
 tar xvfz textile-go_v${VER}_js-types.tar.gz
 rm textile-go_v${VER}_js-types.tar.gz
-mv protobuf_gen ${JS_DIR}
+mv protobuf_gen/* ${JS_DIR}
+rm -rf protobuf_gen
