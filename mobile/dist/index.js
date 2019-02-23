@@ -1278,512 +1278,6 @@ export const CafePublishContactAck = $root.CafePublishContactAck = (() => {
     return CafePublishContactAck;
 })();
 
-export const CafeContactQuery = $root.CafeContactQuery = (() => {
-
-    /**
-     * Properties of a CafeContactQuery.
-     * @exports ICafeContactQuery
-     * @interface ICafeContactQuery
-     * @property {string} token CafeContactQuery token
-     * @property {string} findId CafeContactQuery findId
-     * @property {string} findAddress CafeContactQuery findAddress
-     * @property {string} findUsername CafeContactQuery findUsername
-     * @property {number} limit CafeContactQuery limit
-     * @property {number} wait CafeContactQuery wait
-     */
-
-    /**
-     * Constructs a new CafeContactQuery.
-     * @exports CafeContactQuery
-     * @classdesc Represents a CafeContactQuery.
-     * @implements ICafeContactQuery
-     * @constructor
-     * @param {ICafeContactQuery=} [properties] Properties to set
-     */
-    function CafeContactQuery(properties) {
-        if (properties)
-            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                if (properties[keys[i]] != null)
-                    this[keys[i]] = properties[keys[i]];
-    }
-
-    /**
-     * CafeContactQuery token.
-     * @member {string} token
-     * @memberof CafeContactQuery
-     * @instance
-     */
-    CafeContactQuery.prototype.token = "";
-
-    /**
-     * CafeContactQuery findId.
-     * @member {string} findId
-     * @memberof CafeContactQuery
-     * @instance
-     */
-    CafeContactQuery.prototype.findId = "";
-
-    /**
-     * CafeContactQuery findAddress.
-     * @member {string} findAddress
-     * @memberof CafeContactQuery
-     * @instance
-     */
-    CafeContactQuery.prototype.findAddress = "";
-
-    /**
-     * CafeContactQuery findUsername.
-     * @member {string} findUsername
-     * @memberof CafeContactQuery
-     * @instance
-     */
-    CafeContactQuery.prototype.findUsername = "";
-
-    /**
-     * CafeContactQuery limit.
-     * @member {number} limit
-     * @memberof CafeContactQuery
-     * @instance
-     */
-    CafeContactQuery.prototype.limit = 0;
-
-    /**
-     * CafeContactQuery wait.
-     * @member {number} wait
-     * @memberof CafeContactQuery
-     * @instance
-     */
-    CafeContactQuery.prototype.wait = 0;
-
-    /**
-     * Creates a new CafeContactQuery instance using the specified properties.
-     * @function create
-     * @memberof CafeContactQuery
-     * @static
-     * @param {ICafeContactQuery=} [properties] Properties to set
-     * @returns {CafeContactQuery} CafeContactQuery instance
-     */
-    CafeContactQuery.create = function create(properties) {
-        return new CafeContactQuery(properties);
-    };
-
-    /**
-     * Encodes the specified CafeContactQuery message. Does not implicitly {@link CafeContactQuery.verify|verify} messages.
-     * @function encode
-     * @memberof CafeContactQuery
-     * @static
-     * @param {ICafeContactQuery} message CafeContactQuery message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    CafeContactQuery.encode = function encode(message, writer) {
-        if (!writer)
-            writer = $Writer.create();
-        if (message.token != null && message.hasOwnProperty("token"))
-            writer.uint32(/* id 1, wireType 2 =*/10).string(message.token);
-        if (message.findId != null && message.hasOwnProperty("findId"))
-            writer.uint32(/* id 2, wireType 2 =*/18).string(message.findId);
-        if (message.findAddress != null && message.hasOwnProperty("findAddress"))
-            writer.uint32(/* id 3, wireType 2 =*/26).string(message.findAddress);
-        if (message.findUsername != null && message.hasOwnProperty("findUsername"))
-            writer.uint32(/* id 4, wireType 2 =*/34).string(message.findUsername);
-        if (message.limit != null && message.hasOwnProperty("limit"))
-            writer.uint32(/* id 5, wireType 0 =*/40).int32(message.limit);
-        if (message.wait != null && message.hasOwnProperty("wait"))
-            writer.uint32(/* id 6, wireType 0 =*/48).int32(message.wait);
-        return writer;
-    };
-
-    /**
-     * Encodes the specified CafeContactQuery message, length delimited. Does not implicitly {@link CafeContactQuery.verify|verify} messages.
-     * @function encodeDelimited
-     * @memberof CafeContactQuery
-     * @static
-     * @param {ICafeContactQuery} message CafeContactQuery message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    CafeContactQuery.encodeDelimited = function encodeDelimited(message, writer) {
-        return this.encode(message, writer).ldelim();
-    };
-
-    /**
-     * Decodes a CafeContactQuery message from the specified reader or buffer.
-     * @function decode
-     * @memberof CafeContactQuery
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @param {number} [length] Message length if known beforehand
-     * @returns {CafeContactQuery} CafeContactQuery
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    CafeContactQuery.decode = function decode(reader, length) {
-        if (!(reader instanceof $Reader))
-            reader = $Reader.create(reader);
-        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.CafeContactQuery();
-        while (reader.pos < end) {
-            let tag = reader.uint32();
-            switch (tag >>> 3) {
-            case 1:
-                message.token = reader.string();
-                break;
-            case 2:
-                message.findId = reader.string();
-                break;
-            case 3:
-                message.findAddress = reader.string();
-                break;
-            case 4:
-                message.findUsername = reader.string();
-                break;
-            case 5:
-                message.limit = reader.int32();
-                break;
-            case 6:
-                message.wait = reader.int32();
-                break;
-            default:
-                reader.skipType(tag & 7);
-                break;
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Decodes a CafeContactQuery message from the specified reader or buffer, length delimited.
-     * @function decodeDelimited
-     * @memberof CafeContactQuery
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @returns {CafeContactQuery} CafeContactQuery
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    CafeContactQuery.decodeDelimited = function decodeDelimited(reader) {
-        if (!(reader instanceof $Reader))
-            reader = new $Reader(reader);
-        return this.decode(reader, reader.uint32());
-    };
-
-    /**
-     * Verifies a CafeContactQuery message.
-     * @function verify
-     * @memberof CafeContactQuery
-     * @static
-     * @param {Object.<string,*>} message Plain object to verify
-     * @returns {string|null} `null` if valid, otherwise the reason why it is not
-     */
-    CafeContactQuery.verify = function verify(message) {
-        if (typeof message !== "object" || message === null)
-            return "object expected";
-        if (message.token != null && message.hasOwnProperty("token"))
-            if (!$util.isString(message.token))
-                return "token: string expected";
-        if (message.findId != null && message.hasOwnProperty("findId"))
-            if (!$util.isString(message.findId))
-                return "findId: string expected";
-        if (message.findAddress != null && message.hasOwnProperty("findAddress"))
-            if (!$util.isString(message.findAddress))
-                return "findAddress: string expected";
-        if (message.findUsername != null && message.hasOwnProperty("findUsername"))
-            if (!$util.isString(message.findUsername))
-                return "findUsername: string expected";
-        if (message.limit != null && message.hasOwnProperty("limit"))
-            if (!$util.isInteger(message.limit))
-                return "limit: integer expected";
-        if (message.wait != null && message.hasOwnProperty("wait"))
-            if (!$util.isInteger(message.wait))
-                return "wait: integer expected";
-        return null;
-    };
-
-    /**
-     * Creates a CafeContactQuery message from a plain object. Also converts values to their respective internal types.
-     * @function fromObject
-     * @memberof CafeContactQuery
-     * @static
-     * @param {Object.<string,*>} object Plain object
-     * @returns {CafeContactQuery} CafeContactQuery
-     */
-    CafeContactQuery.fromObject = function fromObject(object) {
-        if (object instanceof $root.CafeContactQuery)
-            return object;
-        let message = new $root.CafeContactQuery();
-        if (object.token != null)
-            message.token = String(object.token);
-        if (object.findId != null)
-            message.findId = String(object.findId);
-        if (object.findAddress != null)
-            message.findAddress = String(object.findAddress);
-        if (object.findUsername != null)
-            message.findUsername = String(object.findUsername);
-        if (object.limit != null)
-            message.limit = object.limit | 0;
-        if (object.wait != null)
-            message.wait = object.wait | 0;
-        return message;
-    };
-
-    /**
-     * Creates a plain object from a CafeContactQuery message. Also converts values to other types if specified.
-     * @function toObject
-     * @memberof CafeContactQuery
-     * @static
-     * @param {CafeContactQuery} message CafeContactQuery
-     * @param {$protobuf.IConversionOptions} [options] Conversion options
-     * @returns {Object.<string,*>} Plain object
-     */
-    CafeContactQuery.toObject = function toObject(message, options) {
-        if (!options)
-            options = {};
-        let object = {};
-        if (options.defaults) {
-            object.token = "";
-            object.findId = "";
-            object.findAddress = "";
-            object.findUsername = "";
-            object.limit = 0;
-            object.wait = 0;
-        }
-        if (message.token != null && message.hasOwnProperty("token"))
-            object.token = message.token;
-        if (message.findId != null && message.hasOwnProperty("findId"))
-            object.findId = message.findId;
-        if (message.findAddress != null && message.hasOwnProperty("findAddress"))
-            object.findAddress = message.findAddress;
-        if (message.findUsername != null && message.hasOwnProperty("findUsername"))
-            object.findUsername = message.findUsername;
-        if (message.limit != null && message.hasOwnProperty("limit"))
-            object.limit = message.limit;
-        if (message.wait != null && message.hasOwnProperty("wait"))
-            object.wait = message.wait;
-        return object;
-    };
-
-    /**
-     * Converts this CafeContactQuery to JSON.
-     * @function toJSON
-     * @memberof CafeContactQuery
-     * @instance
-     * @returns {Object.<string,*>} JSON object
-     */
-    CafeContactQuery.prototype.toJSON = function toJSON() {
-        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-    };
-
-    return CafeContactQuery;
-})();
-
-export const CafeContactQueryResult = $root.CafeContactQueryResult = (() => {
-
-    /**
-     * Properties of a CafeContactQueryResult.
-     * @exports ICafeContactQueryResult
-     * @interface ICafeContactQueryResult
-     * @property {Array.<IContact>} contacts CafeContactQueryResult contacts
-     */
-
-    /**
-     * Constructs a new CafeContactQueryResult.
-     * @exports CafeContactQueryResult
-     * @classdesc Represents a CafeContactQueryResult.
-     * @implements ICafeContactQueryResult
-     * @constructor
-     * @param {ICafeContactQueryResult=} [properties] Properties to set
-     */
-    function CafeContactQueryResult(properties) {
-        this.contacts = [];
-        if (properties)
-            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                if (properties[keys[i]] != null)
-                    this[keys[i]] = properties[keys[i]];
-    }
-
-    /**
-     * CafeContactQueryResult contacts.
-     * @member {Array.<IContact>} contacts
-     * @memberof CafeContactQueryResult
-     * @instance
-     */
-    CafeContactQueryResult.prototype.contacts = $util.emptyArray;
-
-    /**
-     * Creates a new CafeContactQueryResult instance using the specified properties.
-     * @function create
-     * @memberof CafeContactQueryResult
-     * @static
-     * @param {ICafeContactQueryResult=} [properties] Properties to set
-     * @returns {CafeContactQueryResult} CafeContactQueryResult instance
-     */
-    CafeContactQueryResult.create = function create(properties) {
-        return new CafeContactQueryResult(properties);
-    };
-
-    /**
-     * Encodes the specified CafeContactQueryResult message. Does not implicitly {@link CafeContactQueryResult.verify|verify} messages.
-     * @function encode
-     * @memberof CafeContactQueryResult
-     * @static
-     * @param {ICafeContactQueryResult} message CafeContactQueryResult message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    CafeContactQueryResult.encode = function encode(message, writer) {
-        if (!writer)
-            writer = $Writer.create();
-        if (message.contacts != null && message.contacts.length)
-            for (let i = 0; i < message.contacts.length; ++i)
-                $root.Contact.encode(message.contacts[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
-        return writer;
-    };
-
-    /**
-     * Encodes the specified CafeContactQueryResult message, length delimited. Does not implicitly {@link CafeContactQueryResult.verify|verify} messages.
-     * @function encodeDelimited
-     * @memberof CafeContactQueryResult
-     * @static
-     * @param {ICafeContactQueryResult} message CafeContactQueryResult message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    CafeContactQueryResult.encodeDelimited = function encodeDelimited(message, writer) {
-        return this.encode(message, writer).ldelim();
-    };
-
-    /**
-     * Decodes a CafeContactQueryResult message from the specified reader or buffer.
-     * @function decode
-     * @memberof CafeContactQueryResult
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @param {number} [length] Message length if known beforehand
-     * @returns {CafeContactQueryResult} CafeContactQueryResult
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    CafeContactQueryResult.decode = function decode(reader, length) {
-        if (!(reader instanceof $Reader))
-            reader = $Reader.create(reader);
-        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.CafeContactQueryResult();
-        while (reader.pos < end) {
-            let tag = reader.uint32();
-            switch (tag >>> 3) {
-            case 1:
-                if (!(message.contacts && message.contacts.length))
-                    message.contacts = [];
-                message.contacts.push($root.Contact.decode(reader, reader.uint32()));
-                break;
-            default:
-                reader.skipType(tag & 7);
-                break;
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Decodes a CafeContactQueryResult message from the specified reader or buffer, length delimited.
-     * @function decodeDelimited
-     * @memberof CafeContactQueryResult
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @returns {CafeContactQueryResult} CafeContactQueryResult
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    CafeContactQueryResult.decodeDelimited = function decodeDelimited(reader) {
-        if (!(reader instanceof $Reader))
-            reader = new $Reader(reader);
-        return this.decode(reader, reader.uint32());
-    };
-
-    /**
-     * Verifies a CafeContactQueryResult message.
-     * @function verify
-     * @memberof CafeContactQueryResult
-     * @static
-     * @param {Object.<string,*>} message Plain object to verify
-     * @returns {string|null} `null` if valid, otherwise the reason why it is not
-     */
-    CafeContactQueryResult.verify = function verify(message) {
-        if (typeof message !== "object" || message === null)
-            return "object expected";
-        if (message.contacts != null && message.hasOwnProperty("contacts")) {
-            if (!Array.isArray(message.contacts))
-                return "contacts: array expected";
-            for (let i = 0; i < message.contacts.length; ++i) {
-                let error = $root.Contact.verify(message.contacts[i]);
-                if (error)
-                    return "contacts." + error;
-            }
-        }
-        return null;
-    };
-
-    /**
-     * Creates a CafeContactQueryResult message from a plain object. Also converts values to their respective internal types.
-     * @function fromObject
-     * @memberof CafeContactQueryResult
-     * @static
-     * @param {Object.<string,*>} object Plain object
-     * @returns {CafeContactQueryResult} CafeContactQueryResult
-     */
-    CafeContactQueryResult.fromObject = function fromObject(object) {
-        if (object instanceof $root.CafeContactQueryResult)
-            return object;
-        let message = new $root.CafeContactQueryResult();
-        if (object.contacts) {
-            if (!Array.isArray(object.contacts))
-                throw TypeError(".CafeContactQueryResult.contacts: array expected");
-            message.contacts = [];
-            for (let i = 0; i < object.contacts.length; ++i) {
-                if (typeof object.contacts[i] !== "object")
-                    throw TypeError(".CafeContactQueryResult.contacts: object expected");
-                message.contacts[i] = $root.Contact.fromObject(object.contacts[i]);
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Creates a plain object from a CafeContactQueryResult message. Also converts values to other types if specified.
-     * @function toObject
-     * @memberof CafeContactQueryResult
-     * @static
-     * @param {CafeContactQueryResult} message CafeContactQueryResult
-     * @param {$protobuf.IConversionOptions} [options] Conversion options
-     * @returns {Object.<string,*>} Plain object
-     */
-    CafeContactQueryResult.toObject = function toObject(message, options) {
-        if (!options)
-            options = {};
-        let object = {};
-        if (options.arrays || options.defaults)
-            object.contacts = [];
-        if (message.contacts && message.contacts.length) {
-            object.contacts = [];
-            for (let j = 0; j < message.contacts.length; ++j)
-                object.contacts[j] = $root.Contact.toObject(message.contacts[j], options);
-        }
-        return object;
-    };
-
-    /**
-     * Converts this CafeContactQueryResult to JSON.
-     * @function toJSON
-     * @memberof CafeContactQueryResult
-     * @instance
-     * @returns {Object.<string,*>} JSON object
-     */
-    CafeContactQueryResult.prototype.toJSON = function toJSON() {
-        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-    };
-
-    return CafeContactQueryResult;
-})();
-
 export const CafeStore = $root.CafeStore = (() => {
 
     /**
@@ -9315,540 +8809,6 @@ export const CafeSessionList = $root.CafeSessionList = (() => {
     return CafeSessionList;
 })();
 
-export const CafePubSubContactQuery = $root.CafePubSubContactQuery = (() => {
-
-    /**
-     * Properties of a CafePubSubContactQuery.
-     * @exports ICafePubSubContactQuery
-     * @interface ICafePubSubContactQuery
-     * @property {string} id CafePubSubContactQuery id
-     * @property {string} findId CafePubSubContactQuery findId
-     * @property {string} findAddress CafePubSubContactQuery findAddress
-     * @property {string} findUsername CafePubSubContactQuery findUsername
-     * @property {CafePubSubContactQuery.ResponseType} responseType CafePubSubContactQuery responseType
-     */
-
-    /**
-     * Constructs a new CafePubSubContactQuery.
-     * @exports CafePubSubContactQuery
-     * @classdesc Represents a CafePubSubContactQuery.
-     * @implements ICafePubSubContactQuery
-     * @constructor
-     * @param {ICafePubSubContactQuery=} [properties] Properties to set
-     */
-    function CafePubSubContactQuery(properties) {
-        if (properties)
-            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                if (properties[keys[i]] != null)
-                    this[keys[i]] = properties[keys[i]];
-    }
-
-    /**
-     * CafePubSubContactQuery id.
-     * @member {string} id
-     * @memberof CafePubSubContactQuery
-     * @instance
-     */
-    CafePubSubContactQuery.prototype.id = "";
-
-    /**
-     * CafePubSubContactQuery findId.
-     * @member {string} findId
-     * @memberof CafePubSubContactQuery
-     * @instance
-     */
-    CafePubSubContactQuery.prototype.findId = "";
-
-    /**
-     * CafePubSubContactQuery findAddress.
-     * @member {string} findAddress
-     * @memberof CafePubSubContactQuery
-     * @instance
-     */
-    CafePubSubContactQuery.prototype.findAddress = "";
-
-    /**
-     * CafePubSubContactQuery findUsername.
-     * @member {string} findUsername
-     * @memberof CafePubSubContactQuery
-     * @instance
-     */
-    CafePubSubContactQuery.prototype.findUsername = "";
-
-    /**
-     * CafePubSubContactQuery responseType.
-     * @member {CafePubSubContactQuery.ResponseType} responseType
-     * @memberof CafePubSubContactQuery
-     * @instance
-     */
-    CafePubSubContactQuery.prototype.responseType = 0;
-
-    /**
-     * Creates a new CafePubSubContactQuery instance using the specified properties.
-     * @function create
-     * @memberof CafePubSubContactQuery
-     * @static
-     * @param {ICafePubSubContactQuery=} [properties] Properties to set
-     * @returns {CafePubSubContactQuery} CafePubSubContactQuery instance
-     */
-    CafePubSubContactQuery.create = function create(properties) {
-        return new CafePubSubContactQuery(properties);
-    };
-
-    /**
-     * Encodes the specified CafePubSubContactQuery message. Does not implicitly {@link CafePubSubContactQuery.verify|verify} messages.
-     * @function encode
-     * @memberof CafePubSubContactQuery
-     * @static
-     * @param {ICafePubSubContactQuery} message CafePubSubContactQuery message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    CafePubSubContactQuery.encode = function encode(message, writer) {
-        if (!writer)
-            writer = $Writer.create();
-        if (message.id != null && message.hasOwnProperty("id"))
-            writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
-        if (message.findId != null && message.hasOwnProperty("findId"))
-            writer.uint32(/* id 2, wireType 2 =*/18).string(message.findId);
-        if (message.findAddress != null && message.hasOwnProperty("findAddress"))
-            writer.uint32(/* id 3, wireType 2 =*/26).string(message.findAddress);
-        if (message.findUsername != null && message.hasOwnProperty("findUsername"))
-            writer.uint32(/* id 4, wireType 2 =*/34).string(message.findUsername);
-        if (message.responseType != null && message.hasOwnProperty("responseType"))
-            writer.uint32(/* id 5, wireType 0 =*/40).int32(message.responseType);
-        return writer;
-    };
-
-    /**
-     * Encodes the specified CafePubSubContactQuery message, length delimited. Does not implicitly {@link CafePubSubContactQuery.verify|verify} messages.
-     * @function encodeDelimited
-     * @memberof CafePubSubContactQuery
-     * @static
-     * @param {ICafePubSubContactQuery} message CafePubSubContactQuery message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    CafePubSubContactQuery.encodeDelimited = function encodeDelimited(message, writer) {
-        return this.encode(message, writer).ldelim();
-    };
-
-    /**
-     * Decodes a CafePubSubContactQuery message from the specified reader or buffer.
-     * @function decode
-     * @memberof CafePubSubContactQuery
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @param {number} [length] Message length if known beforehand
-     * @returns {CafePubSubContactQuery} CafePubSubContactQuery
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    CafePubSubContactQuery.decode = function decode(reader, length) {
-        if (!(reader instanceof $Reader))
-            reader = $Reader.create(reader);
-        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.CafePubSubContactQuery();
-        while (reader.pos < end) {
-            let tag = reader.uint32();
-            switch (tag >>> 3) {
-            case 1:
-                message.id = reader.string();
-                break;
-            case 2:
-                message.findId = reader.string();
-                break;
-            case 3:
-                message.findAddress = reader.string();
-                break;
-            case 4:
-                message.findUsername = reader.string();
-                break;
-            case 5:
-                message.responseType = reader.int32();
-                break;
-            default:
-                reader.skipType(tag & 7);
-                break;
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Decodes a CafePubSubContactQuery message from the specified reader or buffer, length delimited.
-     * @function decodeDelimited
-     * @memberof CafePubSubContactQuery
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @returns {CafePubSubContactQuery} CafePubSubContactQuery
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    CafePubSubContactQuery.decodeDelimited = function decodeDelimited(reader) {
-        if (!(reader instanceof $Reader))
-            reader = new $Reader(reader);
-        return this.decode(reader, reader.uint32());
-    };
-
-    /**
-     * Verifies a CafePubSubContactQuery message.
-     * @function verify
-     * @memberof CafePubSubContactQuery
-     * @static
-     * @param {Object.<string,*>} message Plain object to verify
-     * @returns {string|null} `null` if valid, otherwise the reason why it is not
-     */
-    CafePubSubContactQuery.verify = function verify(message) {
-        if (typeof message !== "object" || message === null)
-            return "object expected";
-        if (message.id != null && message.hasOwnProperty("id"))
-            if (!$util.isString(message.id))
-                return "id: string expected";
-        if (message.findId != null && message.hasOwnProperty("findId"))
-            if (!$util.isString(message.findId))
-                return "findId: string expected";
-        if (message.findAddress != null && message.hasOwnProperty("findAddress"))
-            if (!$util.isString(message.findAddress))
-                return "findAddress: string expected";
-        if (message.findUsername != null && message.hasOwnProperty("findUsername"))
-            if (!$util.isString(message.findUsername))
-                return "findUsername: string expected";
-        if (message.responseType != null && message.hasOwnProperty("responseType"))
-            switch (message.responseType) {
-            default:
-                return "responseType: enum value expected";
-            case 0:
-            case 1:
-                break;
-            }
-        return null;
-    };
-
-    /**
-     * Creates a CafePubSubContactQuery message from a plain object. Also converts values to their respective internal types.
-     * @function fromObject
-     * @memberof CafePubSubContactQuery
-     * @static
-     * @param {Object.<string,*>} object Plain object
-     * @returns {CafePubSubContactQuery} CafePubSubContactQuery
-     */
-    CafePubSubContactQuery.fromObject = function fromObject(object) {
-        if (object instanceof $root.CafePubSubContactQuery)
-            return object;
-        let message = new $root.CafePubSubContactQuery();
-        if (object.id != null)
-            message.id = String(object.id);
-        if (object.findId != null)
-            message.findId = String(object.findId);
-        if (object.findAddress != null)
-            message.findAddress = String(object.findAddress);
-        if (object.findUsername != null)
-            message.findUsername = String(object.findUsername);
-        switch (object.responseType) {
-        case "P2P":
-        case 0:
-            message.responseType = 0;
-            break;
-        case "PUBSUB":
-        case 1:
-            message.responseType = 1;
-            break;
-        }
-        return message;
-    };
-
-    /**
-     * Creates a plain object from a CafePubSubContactQuery message. Also converts values to other types if specified.
-     * @function toObject
-     * @memberof CafePubSubContactQuery
-     * @static
-     * @param {CafePubSubContactQuery} message CafePubSubContactQuery
-     * @param {$protobuf.IConversionOptions} [options] Conversion options
-     * @returns {Object.<string,*>} Plain object
-     */
-    CafePubSubContactQuery.toObject = function toObject(message, options) {
-        if (!options)
-            options = {};
-        let object = {};
-        if (options.defaults) {
-            object.id = "";
-            object.findId = "";
-            object.findAddress = "";
-            object.findUsername = "";
-            object.responseType = options.enums === String ? "P2P" : 0;
-        }
-        if (message.id != null && message.hasOwnProperty("id"))
-            object.id = message.id;
-        if (message.findId != null && message.hasOwnProperty("findId"))
-            object.findId = message.findId;
-        if (message.findAddress != null && message.hasOwnProperty("findAddress"))
-            object.findAddress = message.findAddress;
-        if (message.findUsername != null && message.hasOwnProperty("findUsername"))
-            object.findUsername = message.findUsername;
-        if (message.responseType != null && message.hasOwnProperty("responseType"))
-            object.responseType = options.enums === String ? $root.CafePubSubContactQuery.ResponseType[message.responseType] : message.responseType;
-        return object;
-    };
-
-    /**
-     * Converts this CafePubSubContactQuery to JSON.
-     * @function toJSON
-     * @memberof CafePubSubContactQuery
-     * @instance
-     * @returns {Object.<string,*>} JSON object
-     */
-    CafePubSubContactQuery.prototype.toJSON = function toJSON() {
-        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-    };
-
-    /**
-     * ResponseType enum.
-     * @name CafePubSubContactQuery.ResponseType
-     * @enum {string}
-     * @property {number} P2P=0 P2P value
-     * @property {number} PUBSUB=1 PUBSUB value
-     */
-    CafePubSubContactQuery.ResponseType = (function() {
-        const valuesById = {}, values = Object.create(valuesById);
-        values[valuesById[0] = "P2P"] = 0;
-        values[valuesById[1] = "PUBSUB"] = 1;
-        return values;
-    })();
-
-    return CafePubSubContactQuery;
-})();
-
-export const CafePubSubContactQueryResult = $root.CafePubSubContactQueryResult = (() => {
-
-    /**
-     * Properties of a CafePubSubContactQueryResult.
-     * @exports ICafePubSubContactQueryResult
-     * @interface ICafePubSubContactQueryResult
-     * @property {string} id CafePubSubContactQueryResult id
-     * @property {Array.<IContact>} contacts CafePubSubContactQueryResult contacts
-     */
-
-    /**
-     * Constructs a new CafePubSubContactQueryResult.
-     * @exports CafePubSubContactQueryResult
-     * @classdesc Represents a CafePubSubContactQueryResult.
-     * @implements ICafePubSubContactQueryResult
-     * @constructor
-     * @param {ICafePubSubContactQueryResult=} [properties] Properties to set
-     */
-    function CafePubSubContactQueryResult(properties) {
-        this.contacts = [];
-        if (properties)
-            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                if (properties[keys[i]] != null)
-                    this[keys[i]] = properties[keys[i]];
-    }
-
-    /**
-     * CafePubSubContactQueryResult id.
-     * @member {string} id
-     * @memberof CafePubSubContactQueryResult
-     * @instance
-     */
-    CafePubSubContactQueryResult.prototype.id = "";
-
-    /**
-     * CafePubSubContactQueryResult contacts.
-     * @member {Array.<IContact>} contacts
-     * @memberof CafePubSubContactQueryResult
-     * @instance
-     */
-    CafePubSubContactQueryResult.prototype.contacts = $util.emptyArray;
-
-    /**
-     * Creates a new CafePubSubContactQueryResult instance using the specified properties.
-     * @function create
-     * @memberof CafePubSubContactQueryResult
-     * @static
-     * @param {ICafePubSubContactQueryResult=} [properties] Properties to set
-     * @returns {CafePubSubContactQueryResult} CafePubSubContactQueryResult instance
-     */
-    CafePubSubContactQueryResult.create = function create(properties) {
-        return new CafePubSubContactQueryResult(properties);
-    };
-
-    /**
-     * Encodes the specified CafePubSubContactQueryResult message. Does not implicitly {@link CafePubSubContactQueryResult.verify|verify} messages.
-     * @function encode
-     * @memberof CafePubSubContactQueryResult
-     * @static
-     * @param {ICafePubSubContactQueryResult} message CafePubSubContactQueryResult message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    CafePubSubContactQueryResult.encode = function encode(message, writer) {
-        if (!writer)
-            writer = $Writer.create();
-        if (message.id != null && message.hasOwnProperty("id"))
-            writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
-        if (message.contacts != null && message.contacts.length)
-            for (let i = 0; i < message.contacts.length; ++i)
-                $root.Contact.encode(message.contacts[i], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
-        return writer;
-    };
-
-    /**
-     * Encodes the specified CafePubSubContactQueryResult message, length delimited. Does not implicitly {@link CafePubSubContactQueryResult.verify|verify} messages.
-     * @function encodeDelimited
-     * @memberof CafePubSubContactQueryResult
-     * @static
-     * @param {ICafePubSubContactQueryResult} message CafePubSubContactQueryResult message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    CafePubSubContactQueryResult.encodeDelimited = function encodeDelimited(message, writer) {
-        return this.encode(message, writer).ldelim();
-    };
-
-    /**
-     * Decodes a CafePubSubContactQueryResult message from the specified reader or buffer.
-     * @function decode
-     * @memberof CafePubSubContactQueryResult
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @param {number} [length] Message length if known beforehand
-     * @returns {CafePubSubContactQueryResult} CafePubSubContactQueryResult
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    CafePubSubContactQueryResult.decode = function decode(reader, length) {
-        if (!(reader instanceof $Reader))
-            reader = $Reader.create(reader);
-        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.CafePubSubContactQueryResult();
-        while (reader.pos < end) {
-            let tag = reader.uint32();
-            switch (tag >>> 3) {
-            case 1:
-                message.id = reader.string();
-                break;
-            case 2:
-                if (!(message.contacts && message.contacts.length))
-                    message.contacts = [];
-                message.contacts.push($root.Contact.decode(reader, reader.uint32()));
-                break;
-            default:
-                reader.skipType(tag & 7);
-                break;
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Decodes a CafePubSubContactQueryResult message from the specified reader or buffer, length delimited.
-     * @function decodeDelimited
-     * @memberof CafePubSubContactQueryResult
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @returns {CafePubSubContactQueryResult} CafePubSubContactQueryResult
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    CafePubSubContactQueryResult.decodeDelimited = function decodeDelimited(reader) {
-        if (!(reader instanceof $Reader))
-            reader = new $Reader(reader);
-        return this.decode(reader, reader.uint32());
-    };
-
-    /**
-     * Verifies a CafePubSubContactQueryResult message.
-     * @function verify
-     * @memberof CafePubSubContactQueryResult
-     * @static
-     * @param {Object.<string,*>} message Plain object to verify
-     * @returns {string|null} `null` if valid, otherwise the reason why it is not
-     */
-    CafePubSubContactQueryResult.verify = function verify(message) {
-        if (typeof message !== "object" || message === null)
-            return "object expected";
-        if (message.id != null && message.hasOwnProperty("id"))
-            if (!$util.isString(message.id))
-                return "id: string expected";
-        if (message.contacts != null && message.hasOwnProperty("contacts")) {
-            if (!Array.isArray(message.contacts))
-                return "contacts: array expected";
-            for (let i = 0; i < message.contacts.length; ++i) {
-                let error = $root.Contact.verify(message.contacts[i]);
-                if (error)
-                    return "contacts." + error;
-            }
-        }
-        return null;
-    };
-
-    /**
-     * Creates a CafePubSubContactQueryResult message from a plain object. Also converts values to their respective internal types.
-     * @function fromObject
-     * @memberof CafePubSubContactQueryResult
-     * @static
-     * @param {Object.<string,*>} object Plain object
-     * @returns {CafePubSubContactQueryResult} CafePubSubContactQueryResult
-     */
-    CafePubSubContactQueryResult.fromObject = function fromObject(object) {
-        if (object instanceof $root.CafePubSubContactQueryResult)
-            return object;
-        let message = new $root.CafePubSubContactQueryResult();
-        if (object.id != null)
-            message.id = String(object.id);
-        if (object.contacts) {
-            if (!Array.isArray(object.contacts))
-                throw TypeError(".CafePubSubContactQueryResult.contacts: array expected");
-            message.contacts = [];
-            for (let i = 0; i < object.contacts.length; ++i) {
-                if (typeof object.contacts[i] !== "object")
-                    throw TypeError(".CafePubSubContactQueryResult.contacts: object expected");
-                message.contacts[i] = $root.Contact.fromObject(object.contacts[i]);
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Creates a plain object from a CafePubSubContactQueryResult message. Also converts values to other types if specified.
-     * @function toObject
-     * @memberof CafePubSubContactQueryResult
-     * @static
-     * @param {CafePubSubContactQueryResult} message CafePubSubContactQueryResult
-     * @param {$protobuf.IConversionOptions} [options] Conversion options
-     * @returns {Object.<string,*>} Plain object
-     */
-    CafePubSubContactQueryResult.toObject = function toObject(message, options) {
-        if (!options)
-            options = {};
-        let object = {};
-        if (options.arrays || options.defaults)
-            object.contacts = [];
-        if (options.defaults)
-            object.id = "";
-        if (message.id != null && message.hasOwnProperty("id"))
-            object.id = message.id;
-        if (message.contacts && message.contacts.length) {
-            object.contacts = [];
-            for (let j = 0; j < message.contacts.length; ++j)
-                object.contacts[j] = $root.Contact.toObject(message.contacts[j], options);
-        }
-        return object;
-    };
-
-    /**
-     * Converts this CafePubSubContactQueryResult to JSON.
-     * @function toJSON
-     * @memberof CafePubSubContactQueryResult
-     * @instance
-     * @returns {Object.<string,*>} JSON object
-     */
-    CafePubSubContactQueryResult.prototype.toJSON = function toJSON() {
-        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-    };
-
-    return CafePubSubContactQueryResult;
-})();
-
 export const Message = $root.Message = (() => {
 
     /**
@@ -12268,6 +11228,193 @@ export const MobilePreparedFiles = $root.MobilePreparedFiles = (() => {
     return MobilePreparedFiles;
 })();
 
+export const MobileFileData = $root.MobileFileData = (() => {
+
+    /**
+     * Properties of a MobileFileData.
+     * @exports IMobileFileData
+     * @interface IMobileFileData
+     * @property {string} url MobileFileData url
+     */
+
+    /**
+     * Constructs a new MobileFileData.
+     * @exports MobileFileData
+     * @classdesc Represents a MobileFileData.
+     * @implements IMobileFileData
+     * @constructor
+     * @param {IMobileFileData=} [properties] Properties to set
+     */
+    function MobileFileData(properties) {
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * MobileFileData url.
+     * @member {string} url
+     * @memberof MobileFileData
+     * @instance
+     */
+    MobileFileData.prototype.url = "";
+
+    /**
+     * Creates a new MobileFileData instance using the specified properties.
+     * @function create
+     * @memberof MobileFileData
+     * @static
+     * @param {IMobileFileData=} [properties] Properties to set
+     * @returns {MobileFileData} MobileFileData instance
+     */
+    MobileFileData.create = function create(properties) {
+        return new MobileFileData(properties);
+    };
+
+    /**
+     * Encodes the specified MobileFileData message. Does not implicitly {@link MobileFileData.verify|verify} messages.
+     * @function encode
+     * @memberof MobileFileData
+     * @static
+     * @param {IMobileFileData} message MobileFileData message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    MobileFileData.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.url != null && message.hasOwnProperty("url"))
+            writer.uint32(/* id 1, wireType 2 =*/10).string(message.url);
+        return writer;
+    };
+
+    /**
+     * Encodes the specified MobileFileData message, length delimited. Does not implicitly {@link MobileFileData.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof MobileFileData
+     * @static
+     * @param {IMobileFileData} message MobileFileData message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    MobileFileData.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a MobileFileData message from the specified reader or buffer.
+     * @function decode
+     * @memberof MobileFileData
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {MobileFileData} MobileFileData
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    MobileFileData.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.MobileFileData();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.url = reader.string();
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a MobileFileData message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof MobileFileData
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {MobileFileData} MobileFileData
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    MobileFileData.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a MobileFileData message.
+     * @function verify
+     * @memberof MobileFileData
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    MobileFileData.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.url != null && message.hasOwnProperty("url"))
+            if (!$util.isString(message.url))
+                return "url: string expected";
+        return null;
+    };
+
+    /**
+     * Creates a MobileFileData message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof MobileFileData
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {MobileFileData} MobileFileData
+     */
+    MobileFileData.fromObject = function fromObject(object) {
+        if (object instanceof $root.MobileFileData)
+            return object;
+        let message = new $root.MobileFileData();
+        if (object.url != null)
+            message.url = String(object.url);
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a MobileFileData message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof MobileFileData
+     * @static
+     * @param {MobileFileData} message MobileFileData
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    MobileFileData.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.defaults)
+            object.url = "";
+        if (message.url != null && message.hasOwnProperty("url"))
+            object.url = message.url;
+        return object;
+    };
+
+    /**
+     * Converts this MobileFileData to JSON.
+     * @function toJSON
+     * @memberof MobileFileData
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    MobileFileData.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return MobileFileData;
+})();
+
 export const AddThreadConfig = $root.AddThreadConfig = (() => {
 
     /**
@@ -12895,221 +12042,6 @@ export const AddThreadConfig = $root.AddThreadConfig = (() => {
     return AddThreadConfig;
 })();
 
-export const Directory = $root.Directory = (() => {
-
-    /**
-     * Properties of a Directory.
-     * @exports IDirectory
-     * @interface IDirectory
-     * @property {Object.<string,IFileIndex>} files Directory files
-     */
-
-    /**
-     * Constructs a new Directory.
-     * @exports Directory
-     * @classdesc Represents a Directory.
-     * @implements IDirectory
-     * @constructor
-     * @param {IDirectory=} [properties] Properties to set
-     */
-    function Directory(properties) {
-        this.files = {};
-        if (properties)
-            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                if (properties[keys[i]] != null)
-                    this[keys[i]] = properties[keys[i]];
-    }
-
-    /**
-     * Directory files.
-     * @member {Object.<string,IFileIndex>} files
-     * @memberof Directory
-     * @instance
-     */
-    Directory.prototype.files = $util.emptyObject;
-
-    /**
-     * Creates a new Directory instance using the specified properties.
-     * @function create
-     * @memberof Directory
-     * @static
-     * @param {IDirectory=} [properties] Properties to set
-     * @returns {Directory} Directory instance
-     */
-    Directory.create = function create(properties) {
-        return new Directory(properties);
-    };
-
-    /**
-     * Encodes the specified Directory message. Does not implicitly {@link Directory.verify|verify} messages.
-     * @function encode
-     * @memberof Directory
-     * @static
-     * @param {IDirectory} message Directory message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    Directory.encode = function encode(message, writer) {
-        if (!writer)
-            writer = $Writer.create();
-        if (message.files != null && message.hasOwnProperty("files"))
-            for (let keys = Object.keys(message.files), i = 0; i < keys.length; ++i) {
-                writer.uint32(/* id 1, wireType 2 =*/10).fork().uint32(/* id 1, wireType 2 =*/10).string(keys[i]);
-                $root.FileIndex.encode(message.files[keys[i]], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim().ldelim();
-            }
-        return writer;
-    };
-
-    /**
-     * Encodes the specified Directory message, length delimited. Does not implicitly {@link Directory.verify|verify} messages.
-     * @function encodeDelimited
-     * @memberof Directory
-     * @static
-     * @param {IDirectory} message Directory message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    Directory.encodeDelimited = function encodeDelimited(message, writer) {
-        return this.encode(message, writer).ldelim();
-    };
-
-    /**
-     * Decodes a Directory message from the specified reader or buffer.
-     * @function decode
-     * @memberof Directory
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @param {number} [length] Message length if known beforehand
-     * @returns {Directory} Directory
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    Directory.decode = function decode(reader, length) {
-        if (!(reader instanceof $Reader))
-            reader = $Reader.create(reader);
-        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.Directory(), key;
-        while (reader.pos < end) {
-            let tag = reader.uint32();
-            switch (tag >>> 3) {
-            case 1:
-                reader.skip().pos++;
-                if (message.files === $util.emptyObject)
-                    message.files = {};
-                key = reader.string();
-                reader.pos++;
-                message.files[key] = $root.FileIndex.decode(reader, reader.uint32());
-                break;
-            default:
-                reader.skipType(tag & 7);
-                break;
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Decodes a Directory message from the specified reader or buffer, length delimited.
-     * @function decodeDelimited
-     * @memberof Directory
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @returns {Directory} Directory
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    Directory.decodeDelimited = function decodeDelimited(reader) {
-        if (!(reader instanceof $Reader))
-            reader = new $Reader(reader);
-        return this.decode(reader, reader.uint32());
-    };
-
-    /**
-     * Verifies a Directory message.
-     * @function verify
-     * @memberof Directory
-     * @static
-     * @param {Object.<string,*>} message Plain object to verify
-     * @returns {string|null} `null` if valid, otherwise the reason why it is not
-     */
-    Directory.verify = function verify(message) {
-        if (typeof message !== "object" || message === null)
-            return "object expected";
-        if (message.files != null && message.hasOwnProperty("files")) {
-            if (!$util.isObject(message.files))
-                return "files: object expected";
-            let key = Object.keys(message.files);
-            for (let i = 0; i < key.length; ++i) {
-                let error = $root.FileIndex.verify(message.files[key[i]]);
-                if (error)
-                    return "files." + error;
-            }
-        }
-        return null;
-    };
-
-    /**
-     * Creates a Directory message from a plain object. Also converts values to their respective internal types.
-     * @function fromObject
-     * @memberof Directory
-     * @static
-     * @param {Object.<string,*>} object Plain object
-     * @returns {Directory} Directory
-     */
-    Directory.fromObject = function fromObject(object) {
-        if (object instanceof $root.Directory)
-            return object;
-        let message = new $root.Directory();
-        if (object.files) {
-            if (typeof object.files !== "object")
-                throw TypeError(".Directory.files: object expected");
-            message.files = {};
-            for (let keys = Object.keys(object.files), i = 0; i < keys.length; ++i) {
-                if (typeof object.files[keys[i]] !== "object")
-                    throw TypeError(".Directory.files: object expected");
-                message.files[keys[i]] = $root.FileIndex.fromObject(object.files[keys[i]]);
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Creates a plain object from a Directory message. Also converts values to other types if specified.
-     * @function toObject
-     * @memberof Directory
-     * @static
-     * @param {Directory} message Directory
-     * @param {$protobuf.IConversionOptions} [options] Conversion options
-     * @returns {Object.<string,*>} Plain object
-     */
-    Directory.toObject = function toObject(message, options) {
-        if (!options)
-            options = {};
-        let object = {};
-        if (options.objects || options.defaults)
-            object.files = {};
-        let keys2;
-        if (message.files && (keys2 = Object.keys(message.files)).length) {
-            object.files = {};
-            for (let j = 0; j < keys2.length; ++j)
-                object.files[keys2[j]] = $root.FileIndex.toObject(message.files[keys2[j]], options);
-        }
-        return object;
-    };
-
-    /**
-     * Converts this Directory to JSON.
-     * @function toJSON
-     * @memberof Directory
-     * @instance
-     * @returns {Object.<string,*>} JSON object
-     */
-    Directory.prototype.toJSON = function toJSON() {
-        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-    };
-
-    return Directory;
-})();
-
 export const Step = $root.Step = (() => {
 
     /**
@@ -13325,26 +12257,25 @@ export const Step = $root.Step = (() => {
     return Step;
 })();
 
-export const ExternalInvite = $root.ExternalInvite = (() => {
+export const Directory = $root.Directory = (() => {
 
     /**
-     * Properties of an ExternalInvite.
-     * @exports IExternalInvite
-     * @interface IExternalInvite
-     * @property {string} id ExternalInvite id
-     * @property {string} key ExternalInvite key
-     * @property {string} inviter ExternalInvite inviter
+     * Properties of a Directory.
+     * @exports IDirectory
+     * @interface IDirectory
+     * @property {Object.<string,IFileIndex>} files Directory files
      */
 
     /**
-     * Constructs a new ExternalInvite.
-     * @exports ExternalInvite
-     * @classdesc Represents an ExternalInvite.
-     * @implements IExternalInvite
+     * Constructs a new Directory.
+     * @exports Directory
+     * @classdesc Represents a Directory.
+     * @implements IDirectory
      * @constructor
-     * @param {IExternalInvite=} [properties] Properties to set
+     * @param {IDirectory=} [properties] Properties to set
      */
-    function ExternalInvite(properties) {
+    function Directory(properties) {
+        this.files = {};
         if (properties)
             for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                 if (properties[keys[i]] != null)
@@ -13352,51 +12283,683 @@ export const ExternalInvite = $root.ExternalInvite = (() => {
     }
 
     /**
-     * ExternalInvite id.
-     * @member {string} id
-     * @memberof ExternalInvite
+     * Directory files.
+     * @member {Object.<string,IFileIndex>} files
+     * @memberof Directory
      * @instance
      */
-    ExternalInvite.prototype.id = "";
+    Directory.prototype.files = $util.emptyObject;
 
     /**
-     * ExternalInvite key.
-     * @member {string} key
-     * @memberof ExternalInvite
-     * @instance
-     */
-    ExternalInvite.prototype.key = "";
-
-    /**
-     * ExternalInvite inviter.
-     * @member {string} inviter
-     * @memberof ExternalInvite
-     * @instance
-     */
-    ExternalInvite.prototype.inviter = "";
-
-    /**
-     * Creates a new ExternalInvite instance using the specified properties.
+     * Creates a new Directory instance using the specified properties.
      * @function create
-     * @memberof ExternalInvite
+     * @memberof Directory
      * @static
-     * @param {IExternalInvite=} [properties] Properties to set
-     * @returns {ExternalInvite} ExternalInvite instance
+     * @param {IDirectory=} [properties] Properties to set
+     * @returns {Directory} Directory instance
      */
-    ExternalInvite.create = function create(properties) {
-        return new ExternalInvite(properties);
+    Directory.create = function create(properties) {
+        return new Directory(properties);
     };
 
     /**
-     * Encodes the specified ExternalInvite message. Does not implicitly {@link ExternalInvite.verify|verify} messages.
+     * Encodes the specified Directory message. Does not implicitly {@link Directory.verify|verify} messages.
      * @function encode
-     * @memberof ExternalInvite
+     * @memberof Directory
      * @static
-     * @param {IExternalInvite} message ExternalInvite message or plain object to encode
+     * @param {IDirectory} message Directory message or plain object to encode
      * @param {$protobuf.Writer} [writer] Writer to encode to
      * @returns {$protobuf.Writer} Writer
      */
-    ExternalInvite.encode = function encode(message, writer) {
+    Directory.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.files != null && message.hasOwnProperty("files"))
+            for (let keys = Object.keys(message.files), i = 0; i < keys.length; ++i) {
+                writer.uint32(/* id 1, wireType 2 =*/10).fork().uint32(/* id 1, wireType 2 =*/10).string(keys[i]);
+                $root.FileIndex.encode(message.files[keys[i]], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim().ldelim();
+            }
+        return writer;
+    };
+
+    /**
+     * Encodes the specified Directory message, length delimited. Does not implicitly {@link Directory.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof Directory
+     * @static
+     * @param {IDirectory} message Directory message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    Directory.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a Directory message from the specified reader or buffer.
+     * @function decode
+     * @memberof Directory
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {Directory} Directory
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    Directory.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.Directory(), key;
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                reader.skip().pos++;
+                if (message.files === $util.emptyObject)
+                    message.files = {};
+                key = reader.string();
+                reader.pos++;
+                message.files[key] = $root.FileIndex.decode(reader, reader.uint32());
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a Directory message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof Directory
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {Directory} Directory
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    Directory.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a Directory message.
+     * @function verify
+     * @memberof Directory
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    Directory.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.files != null && message.hasOwnProperty("files")) {
+            if (!$util.isObject(message.files))
+                return "files: object expected";
+            let key = Object.keys(message.files);
+            for (let i = 0; i < key.length; ++i) {
+                let error = $root.FileIndex.verify(message.files[key[i]]);
+                if (error)
+                    return "files." + error;
+            }
+        }
+        return null;
+    };
+
+    /**
+     * Creates a Directory message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof Directory
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {Directory} Directory
+     */
+    Directory.fromObject = function fromObject(object) {
+        if (object instanceof $root.Directory)
+            return object;
+        let message = new $root.Directory();
+        if (object.files) {
+            if (typeof object.files !== "object")
+                throw TypeError(".Directory.files: object expected");
+            message.files = {};
+            for (let keys = Object.keys(object.files), i = 0; i < keys.length; ++i) {
+                if (typeof object.files[keys[i]] !== "object")
+                    throw TypeError(".Directory.files: object expected");
+                message.files[keys[i]] = $root.FileIndex.fromObject(object.files[keys[i]]);
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a Directory message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof Directory
+     * @static
+     * @param {Directory} message Directory
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    Directory.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.objects || options.defaults)
+            object.files = {};
+        let keys2;
+        if (message.files && (keys2 = Object.keys(message.files)).length) {
+            object.files = {};
+            for (let j = 0; j < keys2.length; ++j)
+                object.files[keys2[j]] = $root.FileIndex.toObject(message.files[keys2[j]], options);
+        }
+        return object;
+    };
+
+    /**
+     * Converts this Directory to JSON.
+     * @function toJSON
+     * @memberof Directory
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    Directory.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return Directory;
+})();
+
+export const DirectoryList = $root.DirectoryList = (() => {
+
+    /**
+     * Properties of a DirectoryList.
+     * @exports IDirectoryList
+     * @interface IDirectoryList
+     * @property {Array.<IDirectory>} items DirectoryList items
+     */
+
+    /**
+     * Constructs a new DirectoryList.
+     * @exports DirectoryList
+     * @classdesc Represents a DirectoryList.
+     * @implements IDirectoryList
+     * @constructor
+     * @param {IDirectoryList=} [properties] Properties to set
+     */
+    function DirectoryList(properties) {
+        this.items = [];
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * DirectoryList items.
+     * @member {Array.<IDirectory>} items
+     * @memberof DirectoryList
+     * @instance
+     */
+    DirectoryList.prototype.items = $util.emptyArray;
+
+    /**
+     * Creates a new DirectoryList instance using the specified properties.
+     * @function create
+     * @memberof DirectoryList
+     * @static
+     * @param {IDirectoryList=} [properties] Properties to set
+     * @returns {DirectoryList} DirectoryList instance
+     */
+    DirectoryList.create = function create(properties) {
+        return new DirectoryList(properties);
+    };
+
+    /**
+     * Encodes the specified DirectoryList message. Does not implicitly {@link DirectoryList.verify|verify} messages.
+     * @function encode
+     * @memberof DirectoryList
+     * @static
+     * @param {IDirectoryList} message DirectoryList message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    DirectoryList.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.items != null && message.items.length)
+            for (let i = 0; i < message.items.length; ++i)
+                $root.Directory.encode(message.items[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+        return writer;
+    };
+
+    /**
+     * Encodes the specified DirectoryList message, length delimited. Does not implicitly {@link DirectoryList.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof DirectoryList
+     * @static
+     * @param {IDirectoryList} message DirectoryList message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    DirectoryList.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a DirectoryList message from the specified reader or buffer.
+     * @function decode
+     * @memberof DirectoryList
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {DirectoryList} DirectoryList
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    DirectoryList.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.DirectoryList();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                if (!(message.items && message.items.length))
+                    message.items = [];
+                message.items.push($root.Directory.decode(reader, reader.uint32()));
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a DirectoryList message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof DirectoryList
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {DirectoryList} DirectoryList
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    DirectoryList.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a DirectoryList message.
+     * @function verify
+     * @memberof DirectoryList
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    DirectoryList.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.items != null && message.hasOwnProperty("items")) {
+            if (!Array.isArray(message.items))
+                return "items: array expected";
+            for (let i = 0; i < message.items.length; ++i) {
+                let error = $root.Directory.verify(message.items[i]);
+                if (error)
+                    return "items." + error;
+            }
+        }
+        return null;
+    };
+
+    /**
+     * Creates a DirectoryList message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof DirectoryList
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {DirectoryList} DirectoryList
+     */
+    DirectoryList.fromObject = function fromObject(object) {
+        if (object instanceof $root.DirectoryList)
+            return object;
+        let message = new $root.DirectoryList();
+        if (object.items) {
+            if (!Array.isArray(object.items))
+                throw TypeError(".DirectoryList.items: array expected");
+            message.items = [];
+            for (let i = 0; i < object.items.length; ++i) {
+                if (typeof object.items[i] !== "object")
+                    throw TypeError(".DirectoryList.items: object expected");
+                message.items[i] = $root.Directory.fromObject(object.items[i]);
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a DirectoryList message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof DirectoryList
+     * @static
+     * @param {DirectoryList} message DirectoryList
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    DirectoryList.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.arrays || options.defaults)
+            object.items = [];
+        if (message.items && message.items.length) {
+            object.items = [];
+            for (let j = 0; j < message.items.length; ++j)
+                object.items[j] = $root.Directory.toObject(message.items[j], options);
+        }
+        return object;
+    };
+
+    /**
+     * Converts this DirectoryList to JSON.
+     * @function toJSON
+     * @memberof DirectoryList
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    DirectoryList.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return DirectoryList;
+})();
+
+export const Keys = $root.Keys = (() => {
+
+    /**
+     * Properties of a Keys.
+     * @exports IKeys
+     * @interface IKeys
+     * @property {Object.<string,string>} files Keys files
+     */
+
+    /**
+     * Constructs a new Keys.
+     * @exports Keys
+     * @classdesc Represents a Keys.
+     * @implements IKeys
+     * @constructor
+     * @param {IKeys=} [properties] Properties to set
+     */
+    function Keys(properties) {
+        this.files = {};
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * Keys files.
+     * @member {Object.<string,string>} files
+     * @memberof Keys
+     * @instance
+     */
+    Keys.prototype.files = $util.emptyObject;
+
+    /**
+     * Creates a new Keys instance using the specified properties.
+     * @function create
+     * @memberof Keys
+     * @static
+     * @param {IKeys=} [properties] Properties to set
+     * @returns {Keys} Keys instance
+     */
+    Keys.create = function create(properties) {
+        return new Keys(properties);
+    };
+
+    /**
+     * Encodes the specified Keys message. Does not implicitly {@link Keys.verify|verify} messages.
+     * @function encode
+     * @memberof Keys
+     * @static
+     * @param {IKeys} message Keys message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    Keys.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.files != null && message.hasOwnProperty("files"))
+            for (let keys = Object.keys(message.files), i = 0; i < keys.length; ++i)
+                writer.uint32(/* id 1, wireType 2 =*/10).fork().uint32(/* id 1, wireType 2 =*/10).string(keys[i]).uint32(/* id 2, wireType 2 =*/18).string(message.files[keys[i]]).ldelim();
+        return writer;
+    };
+
+    /**
+     * Encodes the specified Keys message, length delimited. Does not implicitly {@link Keys.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof Keys
+     * @static
+     * @param {IKeys} message Keys message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    Keys.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a Keys message from the specified reader or buffer.
+     * @function decode
+     * @memberof Keys
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {Keys} Keys
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    Keys.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.Keys(), key;
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                reader.skip().pos++;
+                if (message.files === $util.emptyObject)
+                    message.files = {};
+                key = reader.string();
+                reader.pos++;
+                message.files[key] = reader.string();
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a Keys message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof Keys
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {Keys} Keys
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    Keys.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a Keys message.
+     * @function verify
+     * @memberof Keys
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    Keys.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.files != null && message.hasOwnProperty("files")) {
+            if (!$util.isObject(message.files))
+                return "files: object expected";
+            let key = Object.keys(message.files);
+            for (let i = 0; i < key.length; ++i)
+                if (!$util.isString(message.files[key[i]]))
+                    return "files: string{k:string} expected";
+        }
+        return null;
+    };
+
+    /**
+     * Creates a Keys message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof Keys
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {Keys} Keys
+     */
+    Keys.fromObject = function fromObject(object) {
+        if (object instanceof $root.Keys)
+            return object;
+        let message = new $root.Keys();
+        if (object.files) {
+            if (typeof object.files !== "object")
+                throw TypeError(".Keys.files: object expected");
+            message.files = {};
+            for (let keys = Object.keys(object.files), i = 0; i < keys.length; ++i)
+                message.files[keys[i]] = String(object.files[keys[i]]);
+        }
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a Keys message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof Keys
+     * @static
+     * @param {Keys} message Keys
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    Keys.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.objects || options.defaults)
+            object.files = {};
+        let keys2;
+        if (message.files && (keys2 = Object.keys(message.files)).length) {
+            object.files = {};
+            for (let j = 0; j < keys2.length; ++j)
+                object.files[keys2[j]] = message.files[keys2[j]];
+        }
+        return object;
+    };
+
+    /**
+     * Converts this Keys to JSON.
+     * @function toJSON
+     * @memberof Keys
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    Keys.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return Keys;
+})();
+
+export const NewInvite = $root.NewInvite = (() => {
+
+    /**
+     * Properties of a NewInvite.
+     * @exports INewInvite
+     * @interface INewInvite
+     * @property {string} id NewInvite id
+     * @property {string} key NewInvite key
+     * @property {string} inviter NewInvite inviter
+     */
+
+    /**
+     * Constructs a new NewInvite.
+     * @exports NewInvite
+     * @classdesc Represents a NewInvite.
+     * @implements INewInvite
+     * @constructor
+     * @param {INewInvite=} [properties] Properties to set
+     */
+    function NewInvite(properties) {
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * NewInvite id.
+     * @member {string} id
+     * @memberof NewInvite
+     * @instance
+     */
+    NewInvite.prototype.id = "";
+
+    /**
+     * NewInvite key.
+     * @member {string} key
+     * @memberof NewInvite
+     * @instance
+     */
+    NewInvite.prototype.key = "";
+
+    /**
+     * NewInvite inviter.
+     * @member {string} inviter
+     * @memberof NewInvite
+     * @instance
+     */
+    NewInvite.prototype.inviter = "";
+
+    /**
+     * Creates a new NewInvite instance using the specified properties.
+     * @function create
+     * @memberof NewInvite
+     * @static
+     * @param {INewInvite=} [properties] Properties to set
+     * @returns {NewInvite} NewInvite instance
+     */
+    NewInvite.create = function create(properties) {
+        return new NewInvite(properties);
+    };
+
+    /**
+     * Encodes the specified NewInvite message. Does not implicitly {@link NewInvite.verify|verify} messages.
+     * @function encode
+     * @memberof NewInvite
+     * @static
+     * @param {INewInvite} message NewInvite message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    NewInvite.encode = function encode(message, writer) {
         if (!writer)
             writer = $Writer.create();
         if (message.id != null && message.hasOwnProperty("id"))
@@ -13409,33 +12972,33 @@ export const ExternalInvite = $root.ExternalInvite = (() => {
     };
 
     /**
-     * Encodes the specified ExternalInvite message, length delimited. Does not implicitly {@link ExternalInvite.verify|verify} messages.
+     * Encodes the specified NewInvite message, length delimited. Does not implicitly {@link NewInvite.verify|verify} messages.
      * @function encodeDelimited
-     * @memberof ExternalInvite
+     * @memberof NewInvite
      * @static
-     * @param {IExternalInvite} message ExternalInvite message or plain object to encode
+     * @param {INewInvite} message NewInvite message or plain object to encode
      * @param {$protobuf.Writer} [writer] Writer to encode to
      * @returns {$protobuf.Writer} Writer
      */
-    ExternalInvite.encodeDelimited = function encodeDelimited(message, writer) {
+    NewInvite.encodeDelimited = function encodeDelimited(message, writer) {
         return this.encode(message, writer).ldelim();
     };
 
     /**
-     * Decodes an ExternalInvite message from the specified reader or buffer.
+     * Decodes a NewInvite message from the specified reader or buffer.
      * @function decode
-     * @memberof ExternalInvite
+     * @memberof NewInvite
      * @static
      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
      * @param {number} [length] Message length if known beforehand
-     * @returns {ExternalInvite} ExternalInvite
+     * @returns {NewInvite} NewInvite
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    ExternalInvite.decode = function decode(reader, length) {
+    NewInvite.decode = function decode(reader, length) {
         if (!(reader instanceof $Reader))
             reader = $Reader.create(reader);
-        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.ExternalInvite();
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.NewInvite();
         while (reader.pos < end) {
             let tag = reader.uint32();
             switch (tag >>> 3) {
@@ -13457,30 +13020,30 @@ export const ExternalInvite = $root.ExternalInvite = (() => {
     };
 
     /**
-     * Decodes an ExternalInvite message from the specified reader or buffer, length delimited.
+     * Decodes a NewInvite message from the specified reader or buffer, length delimited.
      * @function decodeDelimited
-     * @memberof ExternalInvite
+     * @memberof NewInvite
      * @static
      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @returns {ExternalInvite} ExternalInvite
+     * @returns {NewInvite} NewInvite
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    ExternalInvite.decodeDelimited = function decodeDelimited(reader) {
+    NewInvite.decodeDelimited = function decodeDelimited(reader) {
         if (!(reader instanceof $Reader))
             reader = new $Reader(reader);
         return this.decode(reader, reader.uint32());
     };
 
     /**
-     * Verifies an ExternalInvite message.
+     * Verifies a NewInvite message.
      * @function verify
-     * @memberof ExternalInvite
+     * @memberof NewInvite
      * @static
      * @param {Object.<string,*>} message Plain object to verify
      * @returns {string|null} `null` if valid, otherwise the reason why it is not
      */
-    ExternalInvite.verify = function verify(message) {
+    NewInvite.verify = function verify(message) {
         if (typeof message !== "object" || message === null)
             return "object expected";
         if (message.id != null && message.hasOwnProperty("id"))
@@ -13496,17 +13059,17 @@ export const ExternalInvite = $root.ExternalInvite = (() => {
     };
 
     /**
-     * Creates an ExternalInvite message from a plain object. Also converts values to their respective internal types.
+     * Creates a NewInvite message from a plain object. Also converts values to their respective internal types.
      * @function fromObject
-     * @memberof ExternalInvite
+     * @memberof NewInvite
      * @static
      * @param {Object.<string,*>} object Plain object
-     * @returns {ExternalInvite} ExternalInvite
+     * @returns {NewInvite} NewInvite
      */
-    ExternalInvite.fromObject = function fromObject(object) {
-        if (object instanceof $root.ExternalInvite)
+    NewInvite.fromObject = function fromObject(object) {
+        if (object instanceof $root.NewInvite)
             return object;
-        let message = new $root.ExternalInvite();
+        let message = new $root.NewInvite();
         if (object.id != null)
             message.id = String(object.id);
         if (object.key != null)
@@ -13517,15 +13080,15 @@ export const ExternalInvite = $root.ExternalInvite = (() => {
     };
 
     /**
-     * Creates a plain object from an ExternalInvite message. Also converts values to other types if specified.
+     * Creates a plain object from a NewInvite message. Also converts values to other types if specified.
      * @function toObject
-     * @memberof ExternalInvite
+     * @memberof NewInvite
      * @static
-     * @param {ExternalInvite} message ExternalInvite
+     * @param {NewInvite} message NewInvite
      * @param {$protobuf.IConversionOptions} [options] Conversion options
      * @returns {Object.<string,*>} Plain object
      */
-    ExternalInvite.toObject = function toObject(message, options) {
+    NewInvite.toObject = function toObject(message, options) {
         if (!options)
             options = {};
         let object = {};
@@ -13544,17 +13107,17 @@ export const ExternalInvite = $root.ExternalInvite = (() => {
     };
 
     /**
-     * Converts this ExternalInvite to JSON.
+     * Converts this NewInvite to JSON.
      * @function toJSON
-     * @memberof ExternalInvite
+     * @memberof NewInvite
      * @instance
      * @returns {Object.<string,*>} JSON object
      */
-    ExternalInvite.prototype.toJSON = function toJSON() {
+    NewInvite.prototype.toJSON = function toJSON() {
         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
     };
 
-    return ExternalInvite;
+    return NewInvite;
 })();
 
 export const InviteView = $root.InviteView = (() => {
@@ -13819,6 +13382,214 @@ export const InviteView = $root.InviteView = (() => {
     };
 
     return InviteView;
+})();
+
+export const InviteViewList = $root.InviteViewList = (() => {
+
+    /**
+     * Properties of an InviteViewList.
+     * @exports IInviteViewList
+     * @interface IInviteViewList
+     * @property {Array.<IInviteView>} items InviteViewList items
+     */
+
+    /**
+     * Constructs a new InviteViewList.
+     * @exports InviteViewList
+     * @classdesc Represents an InviteViewList.
+     * @implements IInviteViewList
+     * @constructor
+     * @param {IInviteViewList=} [properties] Properties to set
+     */
+    function InviteViewList(properties) {
+        this.items = [];
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * InviteViewList items.
+     * @member {Array.<IInviteView>} items
+     * @memberof InviteViewList
+     * @instance
+     */
+    InviteViewList.prototype.items = $util.emptyArray;
+
+    /**
+     * Creates a new InviteViewList instance using the specified properties.
+     * @function create
+     * @memberof InviteViewList
+     * @static
+     * @param {IInviteViewList=} [properties] Properties to set
+     * @returns {InviteViewList} InviteViewList instance
+     */
+    InviteViewList.create = function create(properties) {
+        return new InviteViewList(properties);
+    };
+
+    /**
+     * Encodes the specified InviteViewList message. Does not implicitly {@link InviteViewList.verify|verify} messages.
+     * @function encode
+     * @memberof InviteViewList
+     * @static
+     * @param {IInviteViewList} message InviteViewList message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    InviteViewList.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.items != null && message.items.length)
+            for (let i = 0; i < message.items.length; ++i)
+                $root.InviteView.encode(message.items[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+        return writer;
+    };
+
+    /**
+     * Encodes the specified InviteViewList message, length delimited. Does not implicitly {@link InviteViewList.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof InviteViewList
+     * @static
+     * @param {IInviteViewList} message InviteViewList message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    InviteViewList.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes an InviteViewList message from the specified reader or buffer.
+     * @function decode
+     * @memberof InviteViewList
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {InviteViewList} InviteViewList
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    InviteViewList.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.InviteViewList();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                if (!(message.items && message.items.length))
+                    message.items = [];
+                message.items.push($root.InviteView.decode(reader, reader.uint32()));
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes an InviteViewList message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof InviteViewList
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {InviteViewList} InviteViewList
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    InviteViewList.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies an InviteViewList message.
+     * @function verify
+     * @memberof InviteViewList
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    InviteViewList.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.items != null && message.hasOwnProperty("items")) {
+            if (!Array.isArray(message.items))
+                return "items: array expected";
+            for (let i = 0; i < message.items.length; ++i) {
+                let error = $root.InviteView.verify(message.items[i]);
+                if (error)
+                    return "items." + error;
+            }
+        }
+        return null;
+    };
+
+    /**
+     * Creates an InviteViewList message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof InviteViewList
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {InviteViewList} InviteViewList
+     */
+    InviteViewList.fromObject = function fromObject(object) {
+        if (object instanceof $root.InviteViewList)
+            return object;
+        let message = new $root.InviteViewList();
+        if (object.items) {
+            if (!Array.isArray(object.items))
+                throw TypeError(".InviteViewList.items: array expected");
+            message.items = [];
+            for (let i = 0; i < object.items.length; ++i) {
+                if (typeof object.items[i] !== "object")
+                    throw TypeError(".InviteViewList.items: object expected");
+                message.items[i] = $root.InviteView.fromObject(object.items[i]);
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Creates a plain object from an InviteViewList message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof InviteViewList
+     * @static
+     * @param {InviteViewList} message InviteViewList
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    InviteViewList.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.arrays || options.defaults)
+            object.items = [];
+        if (message.items && message.items.length) {
+            object.items = [];
+            for (let j = 0; j < message.items.length; ++j)
+                object.items[j] = $root.InviteView.toObject(message.items[j], options);
+        }
+        return object;
+    };
+
+    /**
+     * Converts this InviteViewList to JSON.
+     * @function toJSON
+     * @memberof InviteViewList
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    InviteViewList.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return InviteViewList;
 })();
 
 /**
@@ -18429,6 +18200,260 @@ export const LikeList = $root.LikeList = (() => {
     };
 
     return LikeList;
+})();
+
+export const Summary = $root.Summary = (() => {
+
+    /**
+     * Properties of a Summary.
+     * @exports ISummary
+     * @interface ISummary
+     * @property {number} accountPeerCount Summary accountPeerCount
+     * @property {number} threadCount Summary threadCount
+     * @property {number} fileCount Summary fileCount
+     * @property {number} contactCount Summary contactCount
+     */
+
+    /**
+     * Constructs a new Summary.
+     * @exports Summary
+     * @classdesc Represents a Summary.
+     * @implements ISummary
+     * @constructor
+     * @param {ISummary=} [properties] Properties to set
+     */
+    function Summary(properties) {
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * Summary accountPeerCount.
+     * @member {number} accountPeerCount
+     * @memberof Summary
+     * @instance
+     */
+    Summary.prototype.accountPeerCount = 0;
+
+    /**
+     * Summary threadCount.
+     * @member {number} threadCount
+     * @memberof Summary
+     * @instance
+     */
+    Summary.prototype.threadCount = 0;
+
+    /**
+     * Summary fileCount.
+     * @member {number} fileCount
+     * @memberof Summary
+     * @instance
+     */
+    Summary.prototype.fileCount = 0;
+
+    /**
+     * Summary contactCount.
+     * @member {number} contactCount
+     * @memberof Summary
+     * @instance
+     */
+    Summary.prototype.contactCount = 0;
+
+    /**
+     * Creates a new Summary instance using the specified properties.
+     * @function create
+     * @memberof Summary
+     * @static
+     * @param {ISummary=} [properties] Properties to set
+     * @returns {Summary} Summary instance
+     */
+    Summary.create = function create(properties) {
+        return new Summary(properties);
+    };
+
+    /**
+     * Encodes the specified Summary message. Does not implicitly {@link Summary.verify|verify} messages.
+     * @function encode
+     * @memberof Summary
+     * @static
+     * @param {ISummary} message Summary message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    Summary.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.accountPeerCount != null && message.hasOwnProperty("accountPeerCount"))
+            writer.uint32(/* id 1, wireType 0 =*/8).int32(message.accountPeerCount);
+        if (message.threadCount != null && message.hasOwnProperty("threadCount"))
+            writer.uint32(/* id 2, wireType 0 =*/16).int32(message.threadCount);
+        if (message.fileCount != null && message.hasOwnProperty("fileCount"))
+            writer.uint32(/* id 3, wireType 0 =*/24).int32(message.fileCount);
+        if (message.contactCount != null && message.hasOwnProperty("contactCount"))
+            writer.uint32(/* id 4, wireType 0 =*/32).int32(message.contactCount);
+        return writer;
+    };
+
+    /**
+     * Encodes the specified Summary message, length delimited. Does not implicitly {@link Summary.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof Summary
+     * @static
+     * @param {ISummary} message Summary message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    Summary.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a Summary message from the specified reader or buffer.
+     * @function decode
+     * @memberof Summary
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {Summary} Summary
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    Summary.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.Summary();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.accountPeerCount = reader.int32();
+                break;
+            case 2:
+                message.threadCount = reader.int32();
+                break;
+            case 3:
+                message.fileCount = reader.int32();
+                break;
+            case 4:
+                message.contactCount = reader.int32();
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a Summary message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof Summary
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {Summary} Summary
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    Summary.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a Summary message.
+     * @function verify
+     * @memberof Summary
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    Summary.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.accountPeerCount != null && message.hasOwnProperty("accountPeerCount"))
+            if (!$util.isInteger(message.accountPeerCount))
+                return "accountPeerCount: integer expected";
+        if (message.threadCount != null && message.hasOwnProperty("threadCount"))
+            if (!$util.isInteger(message.threadCount))
+                return "threadCount: integer expected";
+        if (message.fileCount != null && message.hasOwnProperty("fileCount"))
+            if (!$util.isInteger(message.fileCount))
+                return "fileCount: integer expected";
+        if (message.contactCount != null && message.hasOwnProperty("contactCount"))
+            if (!$util.isInteger(message.contactCount))
+                return "contactCount: integer expected";
+        return null;
+    };
+
+    /**
+     * Creates a Summary message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof Summary
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {Summary} Summary
+     */
+    Summary.fromObject = function fromObject(object) {
+        if (object instanceof $root.Summary)
+            return object;
+        let message = new $root.Summary();
+        if (object.accountPeerCount != null)
+            message.accountPeerCount = object.accountPeerCount | 0;
+        if (object.threadCount != null)
+            message.threadCount = object.threadCount | 0;
+        if (object.fileCount != null)
+            message.fileCount = object.fileCount | 0;
+        if (object.contactCount != null)
+            message.contactCount = object.contactCount | 0;
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a Summary message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof Summary
+     * @static
+     * @param {Summary} message Summary
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    Summary.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.defaults) {
+            object.accountPeerCount = 0;
+            object.threadCount = 0;
+            object.fileCount = 0;
+            object.contactCount = 0;
+        }
+        if (message.accountPeerCount != null && message.hasOwnProperty("accountPeerCount"))
+            object.accountPeerCount = message.accountPeerCount;
+        if (message.threadCount != null && message.hasOwnProperty("threadCount"))
+            object.threadCount = message.threadCount;
+        if (message.fileCount != null && message.hasOwnProperty("fileCount"))
+            object.fileCount = message.fileCount;
+        if (message.contactCount != null && message.hasOwnProperty("contactCount"))
+            object.contactCount = message.contactCount;
+        return object;
+    };
+
+    /**
+     * Converts this Summary to JSON.
+     * @function toJSON
+     * @memberof Summary
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    Summary.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return Summary;
 })();
 
 /**

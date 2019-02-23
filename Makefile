@@ -51,7 +51,7 @@ build_android_aar:
 build_mobile:
 	make build_ios_framework
 	build_android_aar
-	make protos_ts
+	make protos_js
 
 # Additional dependencies needed:
 # $ brew install jq
@@ -65,7 +65,7 @@ publish_mobile:
 protos:
 	cd pb/protos && PATH=$(PATH):$(GOPATH)/bin protoc --go_out=$(PKGMAP):.. *.proto
 
-protos_ts:
+protos_js:
 	cd mobile; yarn install --ignore-scripts
 	cd mobile; node node_modules/@textile/protobufjs/cli/bin/pbjs -t static-module -w es6 -o dist/index.js ../pb/protos/*
 	cd mobile; node node_modules/@textile/protobufjs/cli/bin/pbts -o dist/index.d.ts dist/index.js

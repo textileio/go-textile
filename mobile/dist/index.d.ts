@@ -575,216 +575,6 @@ export class CafePublishContactAck implements ICafePublishContactAck {
     public toJSON(): { [k: string]: any };
 }
 
-/** Properties of a CafeContactQuery. */
-export interface ICafeContactQuery {
-
-    /** CafeContactQuery token */
-    token: string;
-
-    /** CafeContactQuery findId */
-    findId: string;
-
-    /** CafeContactQuery findAddress */
-    findAddress: string;
-
-    /** CafeContactQuery findUsername */
-    findUsername: string;
-
-    /** CafeContactQuery limit */
-    limit: number;
-
-    /** CafeContactQuery wait */
-    wait: number;
-}
-
-/** Represents a CafeContactQuery. */
-export class CafeContactQuery implements ICafeContactQuery {
-
-    /**
-     * Constructs a new CafeContactQuery.
-     * @param [properties] Properties to set
-     */
-    constructor(properties?: ICafeContactQuery);
-
-    /** CafeContactQuery token. */
-    public token: string;
-
-    /** CafeContactQuery findId. */
-    public findId: string;
-
-    /** CafeContactQuery findAddress. */
-    public findAddress: string;
-
-    /** CafeContactQuery findUsername. */
-    public findUsername: string;
-
-    /** CafeContactQuery limit. */
-    public limit: number;
-
-    /** CafeContactQuery wait. */
-    public wait: number;
-
-    /**
-     * Creates a new CafeContactQuery instance using the specified properties.
-     * @param [properties] Properties to set
-     * @returns CafeContactQuery instance
-     */
-    public static create(properties?: ICafeContactQuery): CafeContactQuery;
-
-    /**
-     * Encodes the specified CafeContactQuery message. Does not implicitly {@link CafeContactQuery.verify|verify} messages.
-     * @param message CafeContactQuery message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encode(message: ICafeContactQuery, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Encodes the specified CafeContactQuery message, length delimited. Does not implicitly {@link CafeContactQuery.verify|verify} messages.
-     * @param message CafeContactQuery message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encodeDelimited(message: ICafeContactQuery, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Decodes a CafeContactQuery message from the specified reader or buffer.
-     * @param reader Reader or buffer to decode from
-     * @param [length] Message length if known beforehand
-     * @returns CafeContactQuery
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): CafeContactQuery;
-
-    /**
-     * Decodes a CafeContactQuery message from the specified reader or buffer, length delimited.
-     * @param reader Reader or buffer to decode from
-     * @returns CafeContactQuery
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): CafeContactQuery;
-
-    /**
-     * Verifies a CafeContactQuery message.
-     * @param message Plain object to verify
-     * @returns `null` if valid, otherwise the reason why it is not
-     */
-    public static verify(message: { [k: string]: any }): (string|null);
-
-    /**
-     * Creates a CafeContactQuery message from a plain object. Also converts values to their respective internal types.
-     * @param object Plain object
-     * @returns CafeContactQuery
-     */
-    public static fromObject(object: { [k: string]: any }): CafeContactQuery;
-
-    /**
-     * Creates a plain object from a CafeContactQuery message. Also converts values to other types if specified.
-     * @param message CafeContactQuery
-     * @param [options] Conversion options
-     * @returns Plain object
-     */
-    public static toObject(message: CafeContactQuery, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-    /**
-     * Converts this CafeContactQuery to JSON.
-     * @returns JSON object
-     */
-    public toJSON(): { [k: string]: any };
-}
-
-/** Properties of a CafeContactQueryResult. */
-export interface ICafeContactQueryResult {
-
-    /** CafeContactQueryResult contacts */
-    contacts: IContact[];
-}
-
-/** Represents a CafeContactQueryResult. */
-export class CafeContactQueryResult implements ICafeContactQueryResult {
-
-    /**
-     * Constructs a new CafeContactQueryResult.
-     * @param [properties] Properties to set
-     */
-    constructor(properties?: ICafeContactQueryResult);
-
-    /** CafeContactQueryResult contacts. */
-    public contacts: IContact[];
-
-    /**
-     * Creates a new CafeContactQueryResult instance using the specified properties.
-     * @param [properties] Properties to set
-     * @returns CafeContactQueryResult instance
-     */
-    public static create(properties?: ICafeContactQueryResult): CafeContactQueryResult;
-
-    /**
-     * Encodes the specified CafeContactQueryResult message. Does not implicitly {@link CafeContactQueryResult.verify|verify} messages.
-     * @param message CafeContactQueryResult message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encode(message: ICafeContactQueryResult, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Encodes the specified CafeContactQueryResult message, length delimited. Does not implicitly {@link CafeContactQueryResult.verify|verify} messages.
-     * @param message CafeContactQueryResult message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encodeDelimited(message: ICafeContactQueryResult, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Decodes a CafeContactQueryResult message from the specified reader or buffer.
-     * @param reader Reader or buffer to decode from
-     * @param [length] Message length if known beforehand
-     * @returns CafeContactQueryResult
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): CafeContactQueryResult;
-
-    /**
-     * Decodes a CafeContactQueryResult message from the specified reader or buffer, length delimited.
-     * @param reader Reader or buffer to decode from
-     * @returns CafeContactQueryResult
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): CafeContactQueryResult;
-
-    /**
-     * Verifies a CafeContactQueryResult message.
-     * @param message Plain object to verify
-     * @returns `null` if valid, otherwise the reason why it is not
-     */
-    public static verify(message: { [k: string]: any }): (string|null);
-
-    /**
-     * Creates a CafeContactQueryResult message from a plain object. Also converts values to their respective internal types.
-     * @param object Plain object
-     * @returns CafeContactQueryResult
-     */
-    public static fromObject(object: { [k: string]: any }): CafeContactQueryResult;
-
-    /**
-     * Creates a plain object from a CafeContactQueryResult message. Also converts values to other types if specified.
-     * @param message CafeContactQueryResult
-     * @param [options] Conversion options
-     * @returns Plain object
-     */
-    public static toObject(message: CafeContactQueryResult, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-    /**
-     * Converts this CafeContactQueryResult to JSON.
-     * @returns JSON object
-     */
-    public toJSON(): { [k: string]: any };
-}
-
 /** Properties of a CafeStore. */
 export interface ICafeStore {
 
@@ -3744,225 +3534,6 @@ export class CafeSessionList implements ICafeSessionList {
     public toJSON(): { [k: string]: any };
 }
 
-/** Properties of a CafePubSubContactQuery. */
-export interface ICafePubSubContactQuery {
-
-    /** CafePubSubContactQuery id */
-    id: string;
-
-    /** CafePubSubContactQuery findId */
-    findId: string;
-
-    /** CafePubSubContactQuery findAddress */
-    findAddress: string;
-
-    /** CafePubSubContactQuery findUsername */
-    findUsername: string;
-
-    /** CafePubSubContactQuery responseType */
-    responseType: CafePubSubContactQuery.ResponseType;
-}
-
-/** Represents a CafePubSubContactQuery. */
-export class CafePubSubContactQuery implements ICafePubSubContactQuery {
-
-    /**
-     * Constructs a new CafePubSubContactQuery.
-     * @param [properties] Properties to set
-     */
-    constructor(properties?: ICafePubSubContactQuery);
-
-    /** CafePubSubContactQuery id. */
-    public id: string;
-
-    /** CafePubSubContactQuery findId. */
-    public findId: string;
-
-    /** CafePubSubContactQuery findAddress. */
-    public findAddress: string;
-
-    /** CafePubSubContactQuery findUsername. */
-    public findUsername: string;
-
-    /** CafePubSubContactQuery responseType. */
-    public responseType: CafePubSubContactQuery.ResponseType;
-
-    /**
-     * Creates a new CafePubSubContactQuery instance using the specified properties.
-     * @param [properties] Properties to set
-     * @returns CafePubSubContactQuery instance
-     */
-    public static create(properties?: ICafePubSubContactQuery): CafePubSubContactQuery;
-
-    /**
-     * Encodes the specified CafePubSubContactQuery message. Does not implicitly {@link CafePubSubContactQuery.verify|verify} messages.
-     * @param message CafePubSubContactQuery message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encode(message: ICafePubSubContactQuery, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Encodes the specified CafePubSubContactQuery message, length delimited. Does not implicitly {@link CafePubSubContactQuery.verify|verify} messages.
-     * @param message CafePubSubContactQuery message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encodeDelimited(message: ICafePubSubContactQuery, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Decodes a CafePubSubContactQuery message from the specified reader or buffer.
-     * @param reader Reader or buffer to decode from
-     * @param [length] Message length if known beforehand
-     * @returns CafePubSubContactQuery
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): CafePubSubContactQuery;
-
-    /**
-     * Decodes a CafePubSubContactQuery message from the specified reader or buffer, length delimited.
-     * @param reader Reader or buffer to decode from
-     * @returns CafePubSubContactQuery
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): CafePubSubContactQuery;
-
-    /**
-     * Verifies a CafePubSubContactQuery message.
-     * @param message Plain object to verify
-     * @returns `null` if valid, otherwise the reason why it is not
-     */
-    public static verify(message: { [k: string]: any }): (string|null);
-
-    /**
-     * Creates a CafePubSubContactQuery message from a plain object. Also converts values to their respective internal types.
-     * @param object Plain object
-     * @returns CafePubSubContactQuery
-     */
-    public static fromObject(object: { [k: string]: any }): CafePubSubContactQuery;
-
-    /**
-     * Creates a plain object from a CafePubSubContactQuery message. Also converts values to other types if specified.
-     * @param message CafePubSubContactQuery
-     * @param [options] Conversion options
-     * @returns Plain object
-     */
-    public static toObject(message: CafePubSubContactQuery, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-    /**
-     * Converts this CafePubSubContactQuery to JSON.
-     * @returns JSON object
-     */
-    public toJSON(): { [k: string]: any };
-}
-
-export namespace CafePubSubContactQuery {
-
-    /** ResponseType enum. */
-    enum ResponseType {
-        P2P = 0,
-        PUBSUB = 1
-    }
-}
-
-/** Properties of a CafePubSubContactQueryResult. */
-export interface ICafePubSubContactQueryResult {
-
-    /** CafePubSubContactQueryResult id */
-    id: string;
-
-    /** CafePubSubContactQueryResult contacts */
-    contacts: IContact[];
-}
-
-/** Represents a CafePubSubContactQueryResult. */
-export class CafePubSubContactQueryResult implements ICafePubSubContactQueryResult {
-
-    /**
-     * Constructs a new CafePubSubContactQueryResult.
-     * @param [properties] Properties to set
-     */
-    constructor(properties?: ICafePubSubContactQueryResult);
-
-    /** CafePubSubContactQueryResult id. */
-    public id: string;
-
-    /** CafePubSubContactQueryResult contacts. */
-    public contacts: IContact[];
-
-    /**
-     * Creates a new CafePubSubContactQueryResult instance using the specified properties.
-     * @param [properties] Properties to set
-     * @returns CafePubSubContactQueryResult instance
-     */
-    public static create(properties?: ICafePubSubContactQueryResult): CafePubSubContactQueryResult;
-
-    /**
-     * Encodes the specified CafePubSubContactQueryResult message. Does not implicitly {@link CafePubSubContactQueryResult.verify|verify} messages.
-     * @param message CafePubSubContactQueryResult message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encode(message: ICafePubSubContactQueryResult, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Encodes the specified CafePubSubContactQueryResult message, length delimited. Does not implicitly {@link CafePubSubContactQueryResult.verify|verify} messages.
-     * @param message CafePubSubContactQueryResult message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encodeDelimited(message: ICafePubSubContactQueryResult, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Decodes a CafePubSubContactQueryResult message from the specified reader or buffer.
-     * @param reader Reader or buffer to decode from
-     * @param [length] Message length if known beforehand
-     * @returns CafePubSubContactQueryResult
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): CafePubSubContactQueryResult;
-
-    /**
-     * Decodes a CafePubSubContactQueryResult message from the specified reader or buffer, length delimited.
-     * @param reader Reader or buffer to decode from
-     * @returns CafePubSubContactQueryResult
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): CafePubSubContactQueryResult;
-
-    /**
-     * Verifies a CafePubSubContactQueryResult message.
-     * @param message Plain object to verify
-     * @returns `null` if valid, otherwise the reason why it is not
-     */
-    public static verify(message: { [k: string]: any }): (string|null);
-
-    /**
-     * Creates a CafePubSubContactQueryResult message from a plain object. Also converts values to their respective internal types.
-     * @param object Plain object
-     * @returns CafePubSubContactQueryResult
-     */
-    public static fromObject(object: { [k: string]: any }): CafePubSubContactQueryResult;
-
-    /**
-     * Creates a plain object from a CafePubSubContactQueryResult message. Also converts values to other types if specified.
-     * @param message CafePubSubContactQueryResult
-     * @param [options] Conversion options
-     * @returns Plain object
-     */
-    public static toObject(message: CafePubSubContactQueryResult, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-    /**
-     * Converts this CafePubSubContactQueryResult to JSON.
-     * @returns JSON object
-     */
-    public toJSON(): { [k: string]: any };
-}
-
 /** Properties of a Message. */
 export interface IMessage {
 
@@ -4904,6 +4475,96 @@ export class MobilePreparedFiles implements IMobilePreparedFiles {
     public toJSON(): { [k: string]: any };
 }
 
+/** Properties of a MobileFileData. */
+export interface IMobileFileData {
+
+    /** MobileFileData url */
+    url: string;
+}
+
+/** Represents a MobileFileData. */
+export class MobileFileData implements IMobileFileData {
+
+    /**
+     * Constructs a new MobileFileData.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: IMobileFileData);
+
+    /** MobileFileData url. */
+    public url: string;
+
+    /**
+     * Creates a new MobileFileData instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns MobileFileData instance
+     */
+    public static create(properties?: IMobileFileData): MobileFileData;
+
+    /**
+     * Encodes the specified MobileFileData message. Does not implicitly {@link MobileFileData.verify|verify} messages.
+     * @param message MobileFileData message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: IMobileFileData, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified MobileFileData message, length delimited. Does not implicitly {@link MobileFileData.verify|verify} messages.
+     * @param message MobileFileData message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: IMobileFileData, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a MobileFileData message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns MobileFileData
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): MobileFileData;
+
+    /**
+     * Decodes a MobileFileData message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns MobileFileData
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): MobileFileData;
+
+    /**
+     * Verifies a MobileFileData message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a MobileFileData message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns MobileFileData
+     */
+    public static fromObject(object: { [k: string]: any }): MobileFileData;
+
+    /**
+     * Creates a plain object from a MobileFileData message. Also converts values to other types if specified.
+     * @param message MobileFileData
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: MobileFileData, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this MobileFileData to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
 /** Properties of an AddThreadConfig. */
 export interface IAddThreadConfig {
 
@@ -5139,96 +4800,6 @@ export namespace AddThreadConfig {
     }
 }
 
-/** Properties of a Directory. */
-export interface IDirectory {
-
-    /** Directory files */
-    files: { [k: string]: IFileIndex };
-}
-
-/** Represents a Directory. */
-export class Directory implements IDirectory {
-
-    /**
-     * Constructs a new Directory.
-     * @param [properties] Properties to set
-     */
-    constructor(properties?: IDirectory);
-
-    /** Directory files. */
-    public files: { [k: string]: IFileIndex };
-
-    /**
-     * Creates a new Directory instance using the specified properties.
-     * @param [properties] Properties to set
-     * @returns Directory instance
-     */
-    public static create(properties?: IDirectory): Directory;
-
-    /**
-     * Encodes the specified Directory message. Does not implicitly {@link Directory.verify|verify} messages.
-     * @param message Directory message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encode(message: IDirectory, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Encodes the specified Directory message, length delimited. Does not implicitly {@link Directory.verify|verify} messages.
-     * @param message Directory message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encodeDelimited(message: IDirectory, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Decodes a Directory message from the specified reader or buffer.
-     * @param reader Reader or buffer to decode from
-     * @param [length] Message length if known beforehand
-     * @returns Directory
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): Directory;
-
-    /**
-     * Decodes a Directory message from the specified reader or buffer, length delimited.
-     * @param reader Reader or buffer to decode from
-     * @returns Directory
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): Directory;
-
-    /**
-     * Verifies a Directory message.
-     * @param message Plain object to verify
-     * @returns `null` if valid, otherwise the reason why it is not
-     */
-    public static verify(message: { [k: string]: any }): (string|null);
-
-    /**
-     * Creates a Directory message from a plain object. Also converts values to their respective internal types.
-     * @param object Plain object
-     * @returns Directory
-     */
-    public static fromObject(object: { [k: string]: any }): Directory;
-
-    /**
-     * Creates a plain object from a Directory message. Also converts values to other types if specified.
-     * @param message Directory
-     * @param [options] Conversion options
-     * @returns Plain object
-     */
-    public static toObject(message: Directory, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-    /**
-     * Converts this Directory to JSON.
-     * @returns JSON object
-     */
-    public toJSON(): { [k: string]: any };
-}
-
 /** Properties of a Step. */
 export interface IStep {
 
@@ -5325,103 +4896,373 @@ export class Step implements IStep {
     public toJSON(): { [k: string]: any };
 }
 
-/** Properties of an ExternalInvite. */
-export interface IExternalInvite {
+/** Properties of a Directory. */
+export interface IDirectory {
 
-    /** ExternalInvite id */
-    id: string;
-
-    /** ExternalInvite key */
-    key: string;
-
-    /** ExternalInvite inviter */
-    inviter: string;
+    /** Directory files */
+    files: { [k: string]: IFileIndex };
 }
 
-/** Represents an ExternalInvite. */
-export class ExternalInvite implements IExternalInvite {
+/** Represents a Directory. */
+export class Directory implements IDirectory {
 
     /**
-     * Constructs a new ExternalInvite.
+     * Constructs a new Directory.
      * @param [properties] Properties to set
      */
-    constructor(properties?: IExternalInvite);
+    constructor(properties?: IDirectory);
 
-    /** ExternalInvite id. */
-    public id: string;
-
-    /** ExternalInvite key. */
-    public key: string;
-
-    /** ExternalInvite inviter. */
-    public inviter: string;
+    /** Directory files. */
+    public files: { [k: string]: IFileIndex };
 
     /**
-     * Creates a new ExternalInvite instance using the specified properties.
+     * Creates a new Directory instance using the specified properties.
      * @param [properties] Properties to set
-     * @returns ExternalInvite instance
+     * @returns Directory instance
      */
-    public static create(properties?: IExternalInvite): ExternalInvite;
+    public static create(properties?: IDirectory): Directory;
 
     /**
-     * Encodes the specified ExternalInvite message. Does not implicitly {@link ExternalInvite.verify|verify} messages.
-     * @param message ExternalInvite message or plain object to encode
+     * Encodes the specified Directory message. Does not implicitly {@link Directory.verify|verify} messages.
+     * @param message Directory message or plain object to encode
      * @param [writer] Writer to encode to
      * @returns Writer
      */
-    public static encode(message: IExternalInvite, writer?: $protobuf.Writer): $protobuf.Writer;
+    public static encode(message: IDirectory, writer?: $protobuf.Writer): $protobuf.Writer;
 
     /**
-     * Encodes the specified ExternalInvite message, length delimited. Does not implicitly {@link ExternalInvite.verify|verify} messages.
-     * @param message ExternalInvite message or plain object to encode
+     * Encodes the specified Directory message, length delimited. Does not implicitly {@link Directory.verify|verify} messages.
+     * @param message Directory message or plain object to encode
      * @param [writer] Writer to encode to
      * @returns Writer
      */
-    public static encodeDelimited(message: IExternalInvite, writer?: $protobuf.Writer): $protobuf.Writer;
+    public static encodeDelimited(message: IDirectory, writer?: $protobuf.Writer): $protobuf.Writer;
 
     /**
-     * Decodes an ExternalInvite message from the specified reader or buffer.
+     * Decodes a Directory message from the specified reader or buffer.
      * @param reader Reader or buffer to decode from
      * @param [length] Message length if known beforehand
-     * @returns ExternalInvite
+     * @returns Directory
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): ExternalInvite;
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): Directory;
 
     /**
-     * Decodes an ExternalInvite message from the specified reader or buffer, length delimited.
+     * Decodes a Directory message from the specified reader or buffer, length delimited.
      * @param reader Reader or buffer to decode from
-     * @returns ExternalInvite
+     * @returns Directory
      * @throws {Error} If the payload is not a reader or valid buffer
      * @throws {$protobuf.util.ProtocolError} If required fields are missing
      */
-    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): ExternalInvite;
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): Directory;
 
     /**
-     * Verifies an ExternalInvite message.
+     * Verifies a Directory message.
      * @param message Plain object to verify
      * @returns `null` if valid, otherwise the reason why it is not
      */
     public static verify(message: { [k: string]: any }): (string|null);
 
     /**
-     * Creates an ExternalInvite message from a plain object. Also converts values to their respective internal types.
+     * Creates a Directory message from a plain object. Also converts values to their respective internal types.
      * @param object Plain object
-     * @returns ExternalInvite
+     * @returns Directory
      */
-    public static fromObject(object: { [k: string]: any }): ExternalInvite;
+    public static fromObject(object: { [k: string]: any }): Directory;
 
     /**
-     * Creates a plain object from an ExternalInvite message. Also converts values to other types if specified.
-     * @param message ExternalInvite
+     * Creates a plain object from a Directory message. Also converts values to other types if specified.
+     * @param message Directory
      * @param [options] Conversion options
      * @returns Plain object
      */
-    public static toObject(message: ExternalInvite, options?: $protobuf.IConversionOptions): { [k: string]: any };
+    public static toObject(message: Directory, options?: $protobuf.IConversionOptions): { [k: string]: any };
 
     /**
-     * Converts this ExternalInvite to JSON.
+     * Converts this Directory to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+/** Properties of a DirectoryList. */
+export interface IDirectoryList {
+
+    /** DirectoryList items */
+    items: IDirectory[];
+}
+
+/** Represents a DirectoryList. */
+export class DirectoryList implements IDirectoryList {
+
+    /**
+     * Constructs a new DirectoryList.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: IDirectoryList);
+
+    /** DirectoryList items. */
+    public items: IDirectory[];
+
+    /**
+     * Creates a new DirectoryList instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns DirectoryList instance
+     */
+    public static create(properties?: IDirectoryList): DirectoryList;
+
+    /**
+     * Encodes the specified DirectoryList message. Does not implicitly {@link DirectoryList.verify|verify} messages.
+     * @param message DirectoryList message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: IDirectoryList, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified DirectoryList message, length delimited. Does not implicitly {@link DirectoryList.verify|verify} messages.
+     * @param message DirectoryList message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: IDirectoryList, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a DirectoryList message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns DirectoryList
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): DirectoryList;
+
+    /**
+     * Decodes a DirectoryList message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns DirectoryList
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): DirectoryList;
+
+    /**
+     * Verifies a DirectoryList message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a DirectoryList message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns DirectoryList
+     */
+    public static fromObject(object: { [k: string]: any }): DirectoryList;
+
+    /**
+     * Creates a plain object from a DirectoryList message. Also converts values to other types if specified.
+     * @param message DirectoryList
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: DirectoryList, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this DirectoryList to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+/** Properties of a Keys. */
+export interface IKeys {
+
+    /** Keys files */
+    files: { [k: string]: string };
+}
+
+/** Represents a Keys. */
+export class Keys implements IKeys {
+
+    /**
+     * Constructs a new Keys.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: IKeys);
+
+    /** Keys files. */
+    public files: { [k: string]: string };
+
+    /**
+     * Creates a new Keys instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns Keys instance
+     */
+    public static create(properties?: IKeys): Keys;
+
+    /**
+     * Encodes the specified Keys message. Does not implicitly {@link Keys.verify|verify} messages.
+     * @param message Keys message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: IKeys, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified Keys message, length delimited. Does not implicitly {@link Keys.verify|verify} messages.
+     * @param message Keys message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: IKeys, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a Keys message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns Keys
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): Keys;
+
+    /**
+     * Decodes a Keys message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns Keys
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): Keys;
+
+    /**
+     * Verifies a Keys message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a Keys message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns Keys
+     */
+    public static fromObject(object: { [k: string]: any }): Keys;
+
+    /**
+     * Creates a plain object from a Keys message. Also converts values to other types if specified.
+     * @param message Keys
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: Keys, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this Keys to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+/** Properties of a NewInvite. */
+export interface INewInvite {
+
+    /** NewInvite id */
+    id: string;
+
+    /** NewInvite key */
+    key: string;
+
+    /** NewInvite inviter */
+    inviter: string;
+}
+
+/** Represents a NewInvite. */
+export class NewInvite implements INewInvite {
+
+    /**
+     * Constructs a new NewInvite.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: INewInvite);
+
+    /** NewInvite id. */
+    public id: string;
+
+    /** NewInvite key. */
+    public key: string;
+
+    /** NewInvite inviter. */
+    public inviter: string;
+
+    /**
+     * Creates a new NewInvite instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns NewInvite instance
+     */
+    public static create(properties?: INewInvite): NewInvite;
+
+    /**
+     * Encodes the specified NewInvite message. Does not implicitly {@link NewInvite.verify|verify} messages.
+     * @param message NewInvite message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: INewInvite, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified NewInvite message, length delimited. Does not implicitly {@link NewInvite.verify|verify} messages.
+     * @param message NewInvite message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: INewInvite, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a NewInvite message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns NewInvite
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): NewInvite;
+
+    /**
+     * Decodes a NewInvite message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns NewInvite
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): NewInvite;
+
+    /**
+     * Verifies a NewInvite message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a NewInvite message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns NewInvite
+     */
+    public static fromObject(object: { [k: string]: any }): NewInvite;
+
+    /**
+     * Creates a plain object from a NewInvite message. Also converts values to other types if specified.
+     * @param message NewInvite
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: NewInvite, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this NewInvite to JSON.
      * @returns JSON object
      */
     public toJSON(): { [k: string]: any };
@@ -5530,6 +5371,96 @@ export class InviteView implements IInviteView {
 
     /**
      * Converts this InviteView to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+/** Properties of an InviteViewList. */
+export interface IInviteViewList {
+
+    /** InviteViewList items */
+    items: IInviteView[];
+}
+
+/** Represents an InviteViewList. */
+export class InviteViewList implements IInviteViewList {
+
+    /**
+     * Constructs a new InviteViewList.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: IInviteViewList);
+
+    /** InviteViewList items. */
+    public items: IInviteView[];
+
+    /**
+     * Creates a new InviteViewList instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns InviteViewList instance
+     */
+    public static create(properties?: IInviteViewList): InviteViewList;
+
+    /**
+     * Encodes the specified InviteViewList message. Does not implicitly {@link InviteViewList.verify|verify} messages.
+     * @param message InviteViewList message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: IInviteViewList, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified InviteViewList message, length delimited. Does not implicitly {@link InviteViewList.verify|verify} messages.
+     * @param message InviteViewList message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: IInviteViewList, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes an InviteViewList message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns InviteViewList
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): InviteViewList;
+
+    /**
+     * Decodes an InviteViewList message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns InviteViewList
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): InviteViewList;
+
+    /**
+     * Verifies an InviteViewList message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates an InviteViewList message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns InviteViewList
+     */
+    public static fromObject(object: { [k: string]: any }): InviteViewList;
+
+    /**
+     * Creates a plain object from an InviteViewList message. Also converts values to other types if specified.
+     * @param message InviteViewList
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: InviteViewList, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this InviteViewList to JSON.
      * @returns JSON object
      */
     public toJSON(): { [k: string]: any };
@@ -7325,6 +7256,114 @@ export class LikeList implements ILikeList {
 
     /**
      * Converts this LikeList to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+/** Properties of a Summary. */
+export interface ISummary {
+
+    /** Summary accountPeerCount */
+    accountPeerCount: number;
+
+    /** Summary threadCount */
+    threadCount: number;
+
+    /** Summary fileCount */
+    fileCount: number;
+
+    /** Summary contactCount */
+    contactCount: number;
+}
+
+/** Represents a Summary. */
+export class Summary implements ISummary {
+
+    /**
+     * Constructs a new Summary.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: ISummary);
+
+    /** Summary accountPeerCount. */
+    public accountPeerCount: number;
+
+    /** Summary threadCount. */
+    public threadCount: number;
+
+    /** Summary fileCount. */
+    public fileCount: number;
+
+    /** Summary contactCount. */
+    public contactCount: number;
+
+    /**
+     * Creates a new Summary instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns Summary instance
+     */
+    public static create(properties?: ISummary): Summary;
+
+    /**
+     * Encodes the specified Summary message. Does not implicitly {@link Summary.verify|verify} messages.
+     * @param message Summary message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: ISummary, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified Summary message, length delimited. Does not implicitly {@link Summary.verify|verify} messages.
+     * @param message Summary message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: ISummary, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a Summary message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns Summary
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): Summary;
+
+    /**
+     * Decodes a Summary message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns Summary
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): Summary;
+
+    /**
+     * Verifies a Summary message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a Summary message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns Summary
+     */
+    public static fromObject(object: { [k: string]: any }): Summary;
+
+    /**
+     * Creates a plain object from a Summary message. Also converts values to other types if specified.
+     * @param message Summary
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: Summary, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this Summary to JSON.
      * @returns JSON object
      */
     public toJSON(): { [k: string]: any };
