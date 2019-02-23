@@ -15,8 +15,8 @@ type Datastore interface {
 	Files() FileStore
 	Threads() ThreadStore
 	ThreadPeers() ThreadPeerStore
-	ThreadMessages() ThreadMessageStore
 	Blocks() BlockStore
+	BlockMessages() BlockMessageStore
 	Invites() InviteStore
 	Notifications() NotificationStore
 	CafeSessions() CafeSessionStore
@@ -86,23 +86,16 @@ type ThreadStore interface {
 
 type ThreadPeerStore interface {
 	Queryable
-	Add(peer *ThreadPeer) error
-	List() []ThreadPeer
-	ListById(id string) []ThreadPeer
-	ListByThread(threadId string) []ThreadPeer
-	ListUnwelcomedByThread(threadId string) []ThreadPeer
+	Add(peer *pb.ThreadPeer) error
+	List() []pb.ThreadPeer
+	ListById(id string) []pb.ThreadPeer
+	ListByThread(threadId string) []pb.ThreadPeer
+	ListUnwelcomedByThread(threadId string) []pb.ThreadPeer
 	WelcomeByThread(thread string) error
 	Count(distinct bool) int
 	Delete(id string, thread string) error
 	DeleteById(id string) error
 	DeleteByThread(thread string) error
-}
-
-type ThreadMessageStore interface {
-	Queryable
-	Add(msg *ThreadMessage) error
-	List(offset string, limit int) []ThreadMessage
-	Delete(id string) error
 }
 
 type BlockStore interface {
@@ -115,6 +108,13 @@ type BlockStore interface {
 	DeleteByThread(threadId string) error
 }
 
+type BlockMessageStore interface {
+	Queryable
+	Add(msg *pb.BlockMessage) error
+	List(offset string, limit int) []pb.BlockMessage
+	Delete(id string) error
+}
+
 type InviteStore interface {
 	Queryable
 	Add(invite *pb.Invite) error
@@ -125,11 +125,11 @@ type InviteStore interface {
 
 type NotificationStore interface {
 	Queryable
-	Add(notification *Notification) error
-	Get(id string) *Notification
+	Add(notification *pb.Notification) error
+	Get(id string) *pb.Notification
 	Read(id string) error
 	ReadAll() error
-	List(offset string, limit int) []Notification
+	List(offset string, limit int) *pb.NotificationList
 	CountUnread() int
 	Delete(id string) error
 	DeleteByActor(actorId string) error
@@ -148,16 +148,16 @@ type CafeSessionStore interface {
 
 type CafeRequestStore interface {
 	Queryable
-	Add(req *CafeRequest) error
-	List(offset string, limit int) []CafeRequest
+	Add(req *pb.CafeRequest) error
+	List(offset string, limit int) []pb.CafeRequest
 	Delete(id string) error
 	DeleteByCafe(cafeId string) error
 }
 
 type CafeMessageStore interface {
 	Queryable
-	Add(msg *CafeMessage) error
-	List(offset string, limit int) []CafeMessage
+	Add(msg *pb.CafeMessage) error
+	List(offset string, limit int) []pb.CafeMessage
 	AddAttempt(id string) error
 	Delete(id string) error
 }
@@ -165,40 +165,40 @@ type CafeMessageStore interface {
 // Cafe host-side stores
 
 type CafeClientNonceStore interface {
-	Add(nonce *CafeClientNonce) error
-	Get(value string) *CafeClientNonce
+	Add(nonce *pb.CafeClientNonce) error
+	Get(value string) *pb.CafeClientNonce
 	Delete(value string) error
 }
 
 type CafeClientStore interface {
-	Add(account *CafeClient) error
-	Get(id string) *CafeClient
+	Add(account *pb.CafeClient) error
+	Get(id string) *pb.CafeClient
 	Count() int
-	List() []CafeClient
-	ListByAddress(address string) []CafeClient
+	List() []pb.CafeClient
+	ListByAddress(address string) []pb.CafeClient
 	UpdateLastSeen(id string, date time.Time) error
 	Delete(id string) error
 }
 
 type CafeClientThreadStore interface {
-	AddOrUpdate(thrd *CafeClientThread) error
-	ListByClient(clientId string) []CafeClientThread
+	AddOrUpdate(thrd *pb.CafeClientThread) error
+	ListByClient(clientId string) []pb.CafeClientThread
 	Delete(id string, clientId string) error
 	DeleteByClient(clientId string) error
 }
 
 type CafeClientMessageStore interface {
-	AddOrUpdate(message *CafeClientMessage) error
-	ListByClient(clientId string, limit int) []CafeClientMessage
+	AddOrUpdate(message *pb.CafeClientMessage) error
+	ListByClient(clientId string, limit int) []pb.CafeClientMessage
 	CountByClient(clientId string) int
 	Delete(id string, clientId string) error
 	DeleteByClient(clientId string, limit int) error
 }
 
 type CafeTokenStore interface {
-	Add(token *CafeToken) error
-	Get(id string) *CafeToken
-	List() []CafeToken
+	Add(token *pb.CafeToken) error
+	Get(id string) *pb.CafeToken
+	List() []pb.CafeToken
 	Delete(id string) error
 }
 

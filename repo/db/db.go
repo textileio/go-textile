@@ -19,8 +19,8 @@ type SQLiteDatastore struct {
 	files              repo.FileStore
 	threads            repo.ThreadStore
 	threadPeers        repo.ThreadPeerStore
-	threadMessages     repo.ThreadMessageStore
 	blocks             repo.BlockStore
+	blockMessages      repo.BlockMessageStore
 	invites            repo.InviteStore
 	notifications      repo.NotificationStore
 	cafeSessions       repo.CafeSessionStore
@@ -53,8 +53,8 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 		files:              NewFileStore(conn, mux),
 		threads:            NewThreadStore(conn, mux),
 		threadPeers:        NewThreadPeerStore(conn, mux),
-		threadMessages:     NewThreadMessageStore(conn, mux),
 		blocks:             NewBlockStore(conn, mux),
+		blockMessages:      NewBlockMessageStore(conn, mux),
 		invites:            NewInviteStore(conn, mux),
 		notifications:      NewNotificationStore(conn, mux),
 		cafeSessions:       NewCafeSessionStore(conn, mux),
@@ -100,12 +100,12 @@ func (d *SQLiteDatastore) ThreadPeers() repo.ThreadPeerStore {
 	return d.threadPeers
 }
 
-func (d *SQLiteDatastore) ThreadMessages() repo.ThreadMessageStore {
-	return d.threadMessages
-}
-
 func (d *SQLiteDatastore) Blocks() repo.BlockStore {
 	return d.blocks
+}
+
+func (d *SQLiteDatastore) BlockMessages() repo.BlockMessageStore {
+	return d.blockMessages
 }
 
 func (d *SQLiteDatastore) Invites() repo.InviteStore {
@@ -213,14 +213,14 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index thread_peer_threadId on thread_peers (threadId);
     create index thread_peer_welcomed on thread_peers (welcomed);
 
-    create table thread_messages (id text primary key not null, peerId text not null, envelope blob not null, date integer not null);
-    create index thread_message_date on thread_messages (date);
-
     create table blocks (id text primary key not null, threadId text not null, authorId text not null, type integer not null, date integer not null, parents text not null, target text not null, body text not null);
     create index block_threadId on blocks (threadId);
     create index block_type on blocks (type);
     create index block_date on blocks (date);
     create index block_target on blocks (target);
+
+    create table block_messages (id text primary key not null, peerId text not null, envelope blob not null, date integer not null);
+    create index block_message_date on block_messages (date);
 
     create table invites (id text primary key not null, block blob not null, name text not null, inviter blob not null, date integer not null);
     create index invite_date on invites (date);

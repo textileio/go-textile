@@ -6,8 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 )
 
 var notificationStore repo.NotificationStore
@@ -23,14 +26,14 @@ func setupNotificationDB() {
 }
 
 func TestNotificationDB_Add(t *testing.T) {
-	err := notificationStore.Add(&repo.Notification{
-		Id:        "abcde",
-		Date:      time.Now(),
-		ActorId:   ksuid.New().String(),
-		Subject:   "test",
-		SubjectId: ksuid.New().String(),
-		BlockId:   ksuid.New().String(),
-		Type:      repo.InviteReceivedNotification,
+	err := notificationStore.Add(&pb.Notification{
+		Id:          "abcde",
+		Date:        ptypes.TimestampNow(),
+		Actor:       ksuid.New().String(),
+		SubjectDesc: "test",
+		Subject:     ksuid.New().String(),
+		Block:       ksuid.New().String(),
+		Type:        pb.Notification_INVITE_RECEIVED,
 	})
 	if err != nil {
 		t.Error(err)
@@ -61,33 +64,33 @@ func TestNotificationDB_Read(t *testing.T) {
 		return
 	}
 	notifs := notificationStore.List("", 1)
-	if len(notifs) == 0 || !notifs[0].Read {
+	if len(notifs.Items) == 0 || !notifs.Items[0].Read {
 		t.Error("notification read bad result")
 	}
 }
 
 func TestNotificationDB_ReadAll(t *testing.T) {
 	setupNotificationDB()
-	err := notificationStore.Add(&repo.Notification{
-		Id:        "abcde",
-		Date:      time.Now(),
-		ActorId:   ksuid.New().String(),
-		Subject:   "test",
-		SubjectId: ksuid.New().String(),
-		BlockId:   ksuid.New().String(),
-		Type:      repo.InviteReceivedNotification,
+	err := notificationStore.Add(&pb.Notification{
+		Id:          "abcde",
+		Date:        ptypes.TimestampNow(),
+		Actor:       ksuid.New().String(),
+		SubjectDesc: "test",
+		Subject:     ksuid.New().String(),
+		Block:       ksuid.New().String(),
+		Type:        pb.Notification_INVITE_RECEIVED,
 	})
 	if err != nil {
 		t.Error(err)
 	}
-	err = notificationStore.Add(&repo.Notification{
-		Id:        "abcdef",
-		Date:      time.Now(),
-		ActorId:   ksuid.New().String(),
-		Subject:   "test",
-		SubjectId: ksuid.New().String(),
-		BlockId:   ksuid.New().String(),
-		Type:      repo.PeerJoinedNotification,
+	err = notificationStore.Add(&pb.Notification{
+		Id:          "abcdef",
+		Date:        ptypes.TimestampNow(),
+		Actor:       ksuid.New().String(),
+		SubjectDesc: "test",
+		Subject:     ksuid.New().String(),
+		Block:       ksuid.New().String(),
+		Type:        pb.Notification_PEER_JOINED,
 	})
 	if err != nil {
 		t.Error(err)
@@ -98,74 +101,74 @@ func TestNotificationDB_ReadAll(t *testing.T) {
 		return
 	}
 	notifs := notificationStore.List("", -1)
-	if len(notifs) != 2 || !notifs[0].Read || !notifs[1].Read {
+	if len(notifs.Items) != 2 || !notifs.Items[0].Read || !notifs.Items[1].Read {
 		t.Error("notification read all bad result")
 	}
 }
 
 func TestNotificationDB_List(t *testing.T) {
 	setupNotificationDB()
-	err := notificationStore.Add(&repo.Notification{
-		Id:        "abc",
-		Date:      time.Now(),
-		ActorId:   "actor1",
-		Subject:   "test",
-		SubjectId: ksuid.New().String(),
-		BlockId:   "block1",
-		Type:      repo.InviteReceivedNotification,
+	err := notificationStore.Add(&pb.Notification{
+		Id:          "abc",
+		Date:        ptypes.TimestampNow(),
+		Actor:       "actor1",
+		SubjectDesc: "test",
+		Subject:     ksuid.New().String(),
+		Block:       "block1",
+		Type:        pb.Notification_INVITE_RECEIVED,
 	})
 	if err != nil {
 		t.Error(err)
 	}
-	err = notificationStore.Add(&repo.Notification{
-		Id:        "def",
-		Date:      time.Now().Add(time.Minute),
-		ActorId:   "actor1",
-		Subject:   "test",
-		SubjectId: ksuid.New().String(),
-		BlockId:   "block2",
-		Type:      repo.PeerJoinedNotification,
+	err = notificationStore.Add(&pb.Notification{
+		Id:          "def",
+		Date:        util.ProtoTs(time.Now().Add(time.Minute).UnixNano()),
+		Actor:       "actor1",
+		SubjectDesc: "test",
+		Subject:     ksuid.New().String(),
+		Block:       "block2",
+		Type:        pb.Notification_PEER_JOINED,
 	})
 	if err != nil {
 		t.Error(err)
 	}
-	err = notificationStore.Add(&repo.Notification{
-		Id:        "ghi",
-		Date:      time.Now().Add(time.Minute * 2),
-		ActorId:   "actor2",
-		Subject:   "test",
-		SubjectId: ksuid.New().String(),
-		BlockId:   "block2",
-		Type:      repo.CommentAddedNotification,
+	err = notificationStore.Add(&pb.Notification{
+		Id:          "ghi",
+		Date:        util.ProtoTs(time.Now().Add(time.Minute * 2).UnixNano()),
+		Actor:       "actor2",
+		SubjectDesc: "test",
+		Subject:     ksuid.New().String(),
+		Block:       "block2",
+		Type:        pb.Notification_COMMENT_ADDED,
 	})
 	if err != nil {
 		t.Error(err)
 	}
-	err = notificationStore.Add(&repo.Notification{
-		Id:        "jkl",
-		Date:      time.Now().Add(time.Minute * 3),
-		ActorId:   "actor3",
-		Subject:   "test",
-		SubjectId: "subject1",
-		BlockId:   "block3",
-		Target:    "target",
-		Type:      repo.FilesAddedNotification,
+	err = notificationStore.Add(&pb.Notification{
+		Id:          "jkl",
+		Date:        util.ProtoTs(time.Now().Add(time.Minute * 3).UnixNano()),
+		Actor:       "actor3",
+		SubjectDesc: "test",
+		Subject:     "subject1",
+		Block:       "block3",
+		Target:      "target",
+		Type:        pb.Notification_FILES_ADDED,
 	})
 	if err != nil {
 		t.Error(err)
 	}
 	all := notificationStore.List("", -1)
-	if len(all) != 4 {
+	if len(all.Items) != 4 {
 		t.Error("returned incorrect number of notifications")
 		return
 	}
 	limited := notificationStore.List("", 1)
-	if len(limited) != 1 {
+	if len(limited.Items) != 1 {
 		t.Error("returned incorrect number of notifications")
 		return
 	}
-	offset := notificationStore.List(limited[0].Id, -1)
-	if len(offset) != 3 {
+	offset := notificationStore.List(limited.Items[0].Id, -1)
+	if len(offset.Items) != 3 {
 		t.Error("returned incorrect number of notifications")
 		return
 	}

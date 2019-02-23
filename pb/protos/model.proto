@@ -120,7 +120,7 @@ message BlockList {
 
 message BlockMessage {
     string id                      = 1;
-    string thread                  = 2;
+    string peer                    = 2;
     Envelope env                   = 3;
     google.protobuf.Timestamp date = 4;
 }
@@ -199,6 +199,10 @@ message Notification {
         COMMENT_ADDED       = 6;
         LIKE_ADDED          = 7;
     }
+}
+
+message NotificationList {
+    repeated Notification items = 1;
 }
 
 // CAFE CLIENT //

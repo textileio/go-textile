@@ -2484,8 +2484,8 @@ export interface IBlockMessage {
     /** BlockMessage id */
     id: string;
 
-    /** BlockMessage thread */
-    thread: string;
+    /** BlockMessage peer */
+    peer: string;
 
     /** BlockMessage env */
     env: IEnvelope;
@@ -2506,8 +2506,8 @@ export class BlockMessage implements IBlockMessage {
     /** BlockMessage id. */
     public id: string;
 
-    /** BlockMessage thread. */
-    public thread: string;
+    /** BlockMessage peer. */
+    public peer: string;
 
     /** BlockMessage env. */
     public env: IEnvelope;
@@ -3349,6 +3349,96 @@ export namespace Notification {
         COMMENT_ADDED = 6,
         LIKE_ADDED = 7
     }
+}
+
+/** Properties of a NotificationList. */
+export interface INotificationList {
+
+    /** NotificationList items */
+    items: INotification[];
+}
+
+/** Represents a NotificationList. */
+export class NotificationList implements INotificationList {
+
+    /**
+     * Constructs a new NotificationList.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: INotificationList);
+
+    /** NotificationList items. */
+    public items: INotification[];
+
+    /**
+     * Creates a new NotificationList instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns NotificationList instance
+     */
+    public static create(properties?: INotificationList): NotificationList;
+
+    /**
+     * Encodes the specified NotificationList message. Does not implicitly {@link NotificationList.verify|verify} messages.
+     * @param message NotificationList message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: INotificationList, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified NotificationList message, length delimited. Does not implicitly {@link NotificationList.verify|verify} messages.
+     * @param message NotificationList message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: INotificationList, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a NotificationList message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns NotificationList
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): NotificationList;
+
+    /**
+     * Decodes a NotificationList message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns NotificationList
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): NotificationList;
+
+    /**
+     * Verifies a NotificationList message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a NotificationList message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns NotificationList
+     */
+    public static fromObject(object: { [k: string]: any }): NotificationList;
+
+    /**
+     * Creates a plain object from a NotificationList message. Also converts values to other types if specified.
+     * @param message NotificationList
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: NotificationList, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this NotificationList to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
 }
 
 /** Properties of a Cafe. */

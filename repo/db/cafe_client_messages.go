@@ -4,9 +4,10 @@ import (
 	"database/sql"
 	"strconv"
 	"sync"
-	"time"
 
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 )
 
 type CafeClientMessagesDB struct {
@@ -17,7 +18,7 @@ func NewCafeClientMessageStore(db *sql.DB, lock *sync.Mutex) repo.CafeClientMess
 	return &CafeClientMessagesDB{modelStore{db, lock}}
 }
 
-func (c *CafeClientMessagesDB) AddOrUpdate(message *repo.CafeClientMessage) error {
+func (c *CafeClientMessagesDB) AddOrUpdate(message *pb.CafeClientMessage) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -33,9 +34,9 @@ func (c *CafeClientMessagesDB) AddOrUpdate(message *repo.CafeClientMessage) erro
 	defer stmt.Close()
 	_, err = stmt.Exec(
 		message.Id,
-		message.PeerId,
-		message.ClientId,
-		message.Date.UnixNano(),
+		message.Peer,
+		message.Client,
+		util.ProtoNanos(message.Date),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -45,7 +46,7 @@ func (c *CafeClientMessagesDB) AddOrUpdate(message *repo.CafeClientMessage) erro
 	return nil
 }
 
-func (c *CafeClientMessagesDB) ListByClient(clientId string, limit int) []repo.CafeClientMessage {
+func (c *CafeClientMessagesDB) ListByClient(clientId string, limit int) []pb.CafeClientMessage {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stm := "select * from cafe_client_messages where clientId='" + clientId + "' order by date asc limit " + strconv.Itoa(limit) + ";"
@@ -77,8 +78,8 @@ func (c *CafeClientMessagesDB) DeleteByClient(clientId string, limit int) error 
 	return err
 }
 
-func (c *CafeClientMessagesDB) handleQuery(stm string) []repo.CafeClientMessage {
-	var ret []repo.CafeClientMessage
+func (c *CafeClientMessagesDB) handleQuery(stm string) []pb.CafeClientMessage {
+	var list []pb.CafeClientMessage
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -91,12 +92,12 @@ func (c *CafeClientMessagesDB) handleQuery(stm string) []repo.CafeClientMessage 
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		ret = append(ret, repo.CafeClientMessage{
-			Id:       id,
-			PeerId:   peerId,
-			ClientId: clientId,
-			Date:     time.Unix(0, dateInt),
+		list = append(list, pb.CafeClientMessage{
+			Id:     id,
+			Peer:   peerId,
+			Client: clientId,
+			Date:   util.ProtoTs(dateInt),
 		})
 	}
-	return ret
+	return list
 }

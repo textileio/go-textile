@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"sync"
 
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -15,7 +16,7 @@ func NewCafeClientThreadStore(db *sql.DB, lock *sync.Mutex) repo.CafeClientThrea
 	return &CafeClientThreadDB{modelStore{db, lock}}
 }
 
-func (c *CafeClientThreadDB) AddOrUpdate(thrd *repo.CafeClientThread) error {
+func (c *CafeClientThreadDB) AddOrUpdate(thrd *pb.CafeClientThread) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -31,7 +32,7 @@ func (c *CafeClientThreadDB) AddOrUpdate(thrd *repo.CafeClientThread) error {
 	defer stmt.Close()
 	_, err = stmt.Exec(
 		thrd.Id,
-		thrd.ClientId,
+		thrd.Client,
 		thrd.Ciphertext,
 	)
 	if err != nil {
@@ -42,7 +43,7 @@ func (c *CafeClientThreadDB) AddOrUpdate(thrd *repo.CafeClientThread) error {
 	return nil
 }
 
-func (c *CafeClientThreadDB) ListByClient(clientId string) []repo.CafeClientThread {
+func (c *CafeClientThreadDB) ListByClient(clientId string) []pb.CafeClientThread {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stm := "select * from cafe_client_threads where clientId='" + clientId + "';"
@@ -63,8 +64,8 @@ func (c *CafeClientThreadDB) DeleteByClient(clientId string) error {
 	return err
 }
 
-func (c *CafeClientThreadDB) handleQuery(stm string) []repo.CafeClientThread {
-	var ret []repo.CafeClientThread
+func (c *CafeClientThreadDB) handleQuery(stm string) []pb.CafeClientThread {
+	var list []pb.CafeClientThread
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -77,11 +78,11 @@ func (c *CafeClientThreadDB) handleQuery(stm string) []repo.CafeClientThread {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		ret = append(ret, repo.CafeClientThread{
+		list = append(list, pb.CafeClientThread{
 			Id:         id,
-			ClientId:   clientId,
+			Client:     clientId,
 			Ciphertext: ciphertext,
 		})
 	}
-	return ret
+	return list
 }

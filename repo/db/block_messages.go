@@ -4,45 +4,46 @@ import (
 	"database/sql"
 	"strconv"
 	"sync"
-	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 )
 
-type ThreadMessageDB struct {
+type BlockMessageDB struct {
 	modelStore
 }
 
-func NewThreadMessageStore(db *sql.DB, lock *sync.Mutex) repo.ThreadMessageStore {
-	return &ThreadMessageDB{modelStore{db, lock}}
+func NewBlockMessageStore(db *sql.DB, lock *sync.Mutex) repo.BlockMessageStore {
+	return &BlockMessageDB{modelStore{db, lock}}
 }
 
-func (c *ThreadMessageDB) Add(msg *repo.ThreadMessage) error {
+func (c *BlockMessageDB) Add(msg *pb.BlockMessage) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
 	if err != nil {
 		return err
 	}
-	stm := `insert into thread_messages(id, peerId, envelope, date) values(?,?,?,?)`
+	stm := `insert into block_messages(id, peerId, envelope, date) values(?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
 		return err
 	}
 	defer stmt.Close()
-	// marshal envelope
-	env, err := proto.Marshal(msg.Envelope)
+
+	env, err := proto.Marshal(msg.Env)
 	if err != nil {
 		return err
 	}
+
 	_, err = stmt.Exec(
 		msg.Id,
-		msg.PeerId,
+		msg.Peer,
 		env,
-		msg.Date.UnixNano(),
+		util.ProtoNanos(msg.Date),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -52,27 +53,27 @@ func (c *ThreadMessageDB) Add(msg *repo.ThreadMessage) error {
 	return nil
 }
 
-func (c *ThreadMessageDB) List(offset string, limit int) []repo.ThreadMessage {
+func (c *BlockMessageDB) List(offset string, limit int) []pb.BlockMessage {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	var stm string
 	if offset != "" {
-		stm = "select * from thread_messages where date>(select date from thread_messages where id='" + offset + "') order by date asc limit " + strconv.Itoa(limit) + ";"
+		stm = "select * from block_messages where date>(select date from block_messages where id='" + offset + "') order by date asc limit " + strconv.Itoa(limit) + ";"
 	} else {
-		stm = "select * from thread_messages order by date asc limit " + strconv.Itoa(limit) + ";"
+		stm = "select * from block_messages order by date asc limit " + strconv.Itoa(limit) + ";"
 	}
 	return c.handleQuery(stm)
 }
 
-func (c *ThreadMessageDB) Delete(id string) error {
+func (c *BlockMessageDB) Delete(id string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from thread_messages where id=?", id)
+	_, err := c.db.Exec("delete from block_messages where id=?", id)
 	return err
 }
 
-func (c *ThreadMessageDB) handleQuery(stm string) []repo.ThreadMessage {
-	var ret []repo.ThreadMessage
+func (c *BlockMessageDB) handleQuery(stm string) []pb.BlockMessage {
+	var list []pb.BlockMessage
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -86,18 +87,19 @@ func (c *ThreadMessageDB) handleQuery(stm string) []repo.ThreadMessage {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		// unmarshal envelope
+
 		env := new(pb.Envelope)
 		if err := proto.Unmarshal(envelopeb, env); err != nil {
 			log.Errorf("error unmarshaling envelope: %s", err)
 			continue
 		}
-		ret = append(ret, repo.ThreadMessage{
-			Id:       id,
-			PeerId:   peerId,
-			Envelope: env,
-			Date:     time.Unix(0, dateInt),
+
+		list = append(list, pb.BlockMessage{
+			Id:   id,
+			Peer: peerId,
+			Env:  env,
+			Date: util.ProtoTs(dateInt),
 		})
 	}
-	return ret
+	return list
 }

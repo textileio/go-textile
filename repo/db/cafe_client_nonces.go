@@ -3,9 +3,10 @@ package db
 import (
 	"database/sql"
 	"sync"
-	"time"
 
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 )
 
 type CafeClientNonceDB struct {
@@ -16,7 +17,7 @@ func NewCafeClientNonceStore(db *sql.DB, lock *sync.Mutex) repo.CafeClientNonceS
 	return &CafeClientNonceDB{modelStore{db, lock}}
 }
 
-func (c *CafeClientNonceDB) Add(nonce *repo.CafeClientNonce) error {
+func (c *CafeClientNonceDB) Add(nonce *pb.CafeClientNonce) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -33,7 +34,7 @@ func (c *CafeClientNonceDB) Add(nonce *repo.CafeClientNonce) error {
 	_, err = stmt.Exec(
 		nonce.Value,
 		nonce.Address,
-		nonce.Date.UnixNano(),
+		util.ProtoNanos(nonce.Date),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -43,14 +44,14 @@ func (c *CafeClientNonceDB) Add(nonce *repo.CafeClientNonce) error {
 	return nil
 }
 
-func (c *CafeClientNonceDB) Get(value string) *repo.CafeClientNonce {
+func (c *CafeClientNonceDB) Get(value string) *pb.CafeClientNonce {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from cafe_client_nonces where value='" + value + "';")
-	if len(ret) == 0 {
+	res := c.handleQuery("select * from cafe_client_nonces where value='" + value + "';")
+	if len(res) == 0 {
 		return nil
 	}
-	return &ret[0]
+	return &res[0]
 }
 
 func (c *CafeClientNonceDB) Delete(value string) error {
@@ -60,8 +61,8 @@ func (c *CafeClientNonceDB) Delete(value string) error {
 	return err
 }
 
-func (c *CafeClientNonceDB) handleQuery(stm string) []repo.CafeClientNonce {
-	var ret []repo.CafeClientNonce
+func (c *CafeClientNonceDB) handleQuery(stm string) []pb.CafeClientNonce {
+	var list []pb.CafeClientNonce
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -74,11 +75,11 @@ func (c *CafeClientNonceDB) handleQuery(stm string) []repo.CafeClientNonce {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		ret = append(ret, repo.CafeClientNonce{
+		list = append(list, pb.CafeClientNonce{
 			Value:   value,
 			Address: address,
-			Date:    time.Unix(0, dateInt),
+			Date:    util.ProtoTs(dateInt),
 		})
 	}
-	return ret
+	return list
 }

@@ -87,31 +87,31 @@ func (c *FileDB) Add(file *pb.FileIndex) error {
 func (c *FileDB) Get(hash string) *pb.FileIndex {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from files where hash='" + hash + "';")
-	if len(ret) == 0 {
+	res := c.handleQuery("select * from files where hash='" + hash + "';")
+	if len(res) == 0 {
 		return nil
 	}
-	return &ret[0]
+	return &res[0]
 }
 
 func (c *FileDB) GetByPrimary(mill string, checksum string) *pb.FileIndex {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from files where mill='" + mill + "' and checksum='" + checksum + "';")
-	if len(ret) == 0 {
+	res := c.handleQuery("select * from files where mill='" + mill + "' and checksum='" + checksum + "';")
+	if len(res) == 0 {
 		return nil
 	}
-	return &ret[0]
+	return &res[0]
 }
 
 func (c *FileDB) GetBySource(mill string, source string, opts string) *pb.FileIndex {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from files where mill='" + mill + "' and source='" + source + "' and opts='" + opts + "';")
-	if len(ret) == 0 {
+	res := c.handleQuery("select * from files where mill='" + mill + "' and source='" + source + "' and opts='" + opts + "';")
+	if len(res) == 0 {
 		return nil
 	}
-	return &ret[0]
+	return &res[0]
 }
 
 func (c *FileDB) AddTarget(hash string, target string) error {

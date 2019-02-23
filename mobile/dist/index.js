@@ -5994,7 +5994,7 @@ export const BlockMessage = $root.BlockMessage = (() => {
      * @exports IBlockMessage
      * @interface IBlockMessage
      * @property {string} id BlockMessage id
-     * @property {string} thread BlockMessage thread
+     * @property {string} peer BlockMessage peer
      * @property {IEnvelope} env BlockMessage env
      * @property {google.protobuf.ITimestamp} date BlockMessage date
      */
@@ -6023,12 +6023,12 @@ export const BlockMessage = $root.BlockMessage = (() => {
     BlockMessage.prototype.id = "";
 
     /**
-     * BlockMessage thread.
-     * @member {string} thread
+     * BlockMessage peer.
+     * @member {string} peer
      * @memberof BlockMessage
      * @instance
      */
-    BlockMessage.prototype.thread = "";
+    BlockMessage.prototype.peer = "";
 
     /**
      * BlockMessage env.
@@ -6072,8 +6072,8 @@ export const BlockMessage = $root.BlockMessage = (() => {
             writer = $Writer.create();
         if (message.id != null && message.hasOwnProperty("id"))
             writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
-        if (message.thread != null && message.hasOwnProperty("thread"))
-            writer.uint32(/* id 2, wireType 2 =*/18).string(message.thread);
+        if (message.peer != null && message.hasOwnProperty("peer"))
+            writer.uint32(/* id 2, wireType 2 =*/18).string(message.peer);
         if (message.env != null && message.hasOwnProperty("env"))
             $root.Envelope.encode(message.env, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
         if (message.date != null && message.hasOwnProperty("date"))
@@ -6116,7 +6116,7 @@ export const BlockMessage = $root.BlockMessage = (() => {
                 message.id = reader.string();
                 break;
             case 2:
-                message.thread = reader.string();
+                message.peer = reader.string();
                 break;
             case 3:
                 message.env = $root.Envelope.decode(reader, reader.uint32());
@@ -6162,9 +6162,9 @@ export const BlockMessage = $root.BlockMessage = (() => {
         if (message.id != null && message.hasOwnProperty("id"))
             if (!$util.isString(message.id))
                 return "id: string expected";
-        if (message.thread != null && message.hasOwnProperty("thread"))
-            if (!$util.isString(message.thread))
-                return "thread: string expected";
+        if (message.peer != null && message.hasOwnProperty("peer"))
+            if (!$util.isString(message.peer))
+                return "peer: string expected";
         if (message.env != null && message.hasOwnProperty("env")) {
             let error = $root.Envelope.verify(message.env);
             if (error)
@@ -6192,8 +6192,8 @@ export const BlockMessage = $root.BlockMessage = (() => {
         let message = new $root.BlockMessage();
         if (object.id != null)
             message.id = String(object.id);
-        if (object.thread != null)
-            message.thread = String(object.thread);
+        if (object.peer != null)
+            message.peer = String(object.peer);
         if (object.env != null) {
             if (typeof object.env !== "object")
                 throw TypeError(".BlockMessage.env: object expected");
@@ -6222,14 +6222,14 @@ export const BlockMessage = $root.BlockMessage = (() => {
         let object = {};
         if (options.defaults) {
             object.id = "";
-            object.thread = "";
+            object.peer = "";
             object.env = null;
             object.date = null;
         }
         if (message.id != null && message.hasOwnProperty("id"))
             object.id = message.id;
-        if (message.thread != null && message.hasOwnProperty("thread"))
-            object.thread = message.thread;
+        if (message.peer != null && message.hasOwnProperty("peer"))
+            object.peer = message.peer;
         if (message.env != null && message.hasOwnProperty("env"))
             object.env = $root.Envelope.toObject(message.env, options);
         if (message.date != null && message.hasOwnProperty("date"))
@@ -8383,6 +8383,214 @@ export const Notification = $root.Notification = (() => {
     })();
 
     return Notification;
+})();
+
+export const NotificationList = $root.NotificationList = (() => {
+
+    /**
+     * Properties of a NotificationList.
+     * @exports INotificationList
+     * @interface INotificationList
+     * @property {Array.<INotification>} items NotificationList items
+     */
+
+    /**
+     * Constructs a new NotificationList.
+     * @exports NotificationList
+     * @classdesc Represents a NotificationList.
+     * @implements INotificationList
+     * @constructor
+     * @param {INotificationList=} [properties] Properties to set
+     */
+    function NotificationList(properties) {
+        this.items = [];
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * NotificationList items.
+     * @member {Array.<INotification>} items
+     * @memberof NotificationList
+     * @instance
+     */
+    NotificationList.prototype.items = $util.emptyArray;
+
+    /**
+     * Creates a new NotificationList instance using the specified properties.
+     * @function create
+     * @memberof NotificationList
+     * @static
+     * @param {INotificationList=} [properties] Properties to set
+     * @returns {NotificationList} NotificationList instance
+     */
+    NotificationList.create = function create(properties) {
+        return new NotificationList(properties);
+    };
+
+    /**
+     * Encodes the specified NotificationList message. Does not implicitly {@link NotificationList.verify|verify} messages.
+     * @function encode
+     * @memberof NotificationList
+     * @static
+     * @param {INotificationList} message NotificationList message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    NotificationList.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.items != null && message.items.length)
+            for (let i = 0; i < message.items.length; ++i)
+                $root.Notification.encode(message.items[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+        return writer;
+    };
+
+    /**
+     * Encodes the specified NotificationList message, length delimited. Does not implicitly {@link NotificationList.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof NotificationList
+     * @static
+     * @param {INotificationList} message NotificationList message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    NotificationList.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a NotificationList message from the specified reader or buffer.
+     * @function decode
+     * @memberof NotificationList
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {NotificationList} NotificationList
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    NotificationList.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.NotificationList();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                if (!(message.items && message.items.length))
+                    message.items = [];
+                message.items.push($root.Notification.decode(reader, reader.uint32()));
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a NotificationList message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof NotificationList
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {NotificationList} NotificationList
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    NotificationList.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a NotificationList message.
+     * @function verify
+     * @memberof NotificationList
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    NotificationList.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.items != null && message.hasOwnProperty("items")) {
+            if (!Array.isArray(message.items))
+                return "items: array expected";
+            for (let i = 0; i < message.items.length; ++i) {
+                let error = $root.Notification.verify(message.items[i]);
+                if (error)
+                    return "items." + error;
+            }
+        }
+        return null;
+    };
+
+    /**
+     * Creates a NotificationList message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof NotificationList
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {NotificationList} NotificationList
+     */
+    NotificationList.fromObject = function fromObject(object) {
+        if (object instanceof $root.NotificationList)
+            return object;
+        let message = new $root.NotificationList();
+        if (object.items) {
+            if (!Array.isArray(object.items))
+                throw TypeError(".NotificationList.items: array expected");
+            message.items = [];
+            for (let i = 0; i < object.items.length; ++i) {
+                if (typeof object.items[i] !== "object")
+                    throw TypeError(".NotificationList.items: object expected");
+                message.items[i] = $root.Notification.fromObject(object.items[i]);
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a NotificationList message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof NotificationList
+     * @static
+     * @param {NotificationList} message NotificationList
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    NotificationList.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.arrays || options.defaults)
+            object.items = [];
+        if (message.items && message.items.length) {
+            object.items = [];
+            for (let j = 0; j < message.items.length; ++j)
+                object.items[j] = $root.Notification.toObject(message.items[j], options);
+        }
+        return object;
+    };
+
+    /**
+     * Converts this NotificationList to JSON.
+     * @function toJSON
+     * @memberof NotificationList
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    NotificationList.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return NotificationList;
 })();
 
 export const Cafe = $root.Cafe = (() => {

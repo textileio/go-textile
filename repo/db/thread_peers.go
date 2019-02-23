@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"sync"
 
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -15,7 +16,7 @@ func NewThreadPeerStore(db *sql.DB, lock *sync.Mutex) repo.ThreadPeerStore {
 	return &ThreadPeerDB{modelStore{db, lock}}
 }
 
-func (c *ThreadPeerDB) Add(peer *repo.ThreadPeer) error {
+func (c *ThreadPeerDB) Add(peer *pb.ThreadPeer) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -31,7 +32,7 @@ func (c *ThreadPeerDB) Add(peer *repo.ThreadPeer) error {
 	defer stmt.Close()
 	_, err = stmt.Exec(
 		peer.Id,
-		peer.ThreadId,
+		peer.Thread,
 		false,
 	)
 	if err != nil {
@@ -42,28 +43,28 @@ func (c *ThreadPeerDB) Add(peer *repo.ThreadPeer) error {
 	return nil
 }
 
-func (c *ThreadPeerDB) List() []repo.ThreadPeer {
+func (c *ThreadPeerDB) List() []pb.ThreadPeer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stm := "select * from thread_peers;"
 	return c.handleQuery(stm)
 }
 
-func (c *ThreadPeerDB) ListById(id string) []repo.ThreadPeer {
+func (c *ThreadPeerDB) ListById(id string) []pb.ThreadPeer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stm := "select * from thread_peers where id='" + id + "';"
 	return c.handleQuery(stm)
 }
 
-func (c *ThreadPeerDB) ListByThread(threadId string) []repo.ThreadPeer {
+func (c *ThreadPeerDB) ListByThread(threadId string) []pb.ThreadPeer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stm := "select * from thread_peers where threadId='" + threadId + "';"
 	return c.handleQuery(stm)
 }
 
-func (c *ThreadPeerDB) ListUnwelcomedByThread(threadId string) []repo.ThreadPeer {
+func (c *ThreadPeerDB) ListUnwelcomedByThread(threadId string) []pb.ThreadPeer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stm := "select * from thread_peers where threadId='" + threadId + "' and welcomed=0;"
@@ -113,8 +114,8 @@ func (c *ThreadPeerDB) DeleteByThread(threadId string) error {
 	return err
 }
 
-func (c *ThreadPeerDB) handleQuery(stm string) []repo.ThreadPeer {
-	var ret []repo.ThreadPeer
+func (c *ThreadPeerDB) handleQuery(stm string) []pb.ThreadPeer {
+	var list []pb.ThreadPeer
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -131,11 +132,11 @@ func (c *ThreadPeerDB) handleQuery(stm string) []repo.ThreadPeer {
 		if welcomedInt == 1 {
 			welcomed = true
 		}
-		ret = append(ret, repo.ThreadPeer{
+		list = append(list, pb.ThreadPeer{
 			Id:       id,
-			ThreadId: threadId,
+			Thread:   threadId,
 			Welcomed: welcomed,
 		})
 	}
-	return ret
+	return list
 }
