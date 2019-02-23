@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/textileio/textile-go/util"
+
 	"github.com/golang/protobuf/jsonpb"
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
@@ -229,7 +231,7 @@ func (t *Thread) followParent(parent mh.Multihash) error {
 }
 
 // addOrUpdateContact collects thread peers and saves them as contacts
-func (t *Thread) addOrUpdateContact(contact *repo.Contact) error {
+func (t *Thread) addOrUpdateContact(contact *pb.Contact) error {
 	if contact.Id == t.node().Identity.Pretty() {
 		return nil
 	}
@@ -245,10 +247,10 @@ func (t *Thread) addOrUpdateContact(contact *repo.Contact) error {
 	}
 
 	ex := t.datastore.Contacts().Get(contact.Id)
-	if ex == nil || ex.Updated.UnixNano() < contact.Updated.UnixNano() {
-		return t.datastore.Contacts().AddOrUpdate(contact)
+	if ex != nil && (contact.Updated == nil || util.ProtoTsIsNewer(ex.Updated, contact.Updated)) {
+		return nil
 	}
-	return nil
+	return t.datastore.Contacts().AddOrUpdate(contact)
 }
 
 // newBlockHeader creates a new header

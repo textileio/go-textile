@@ -3,8 +3,6 @@ package core
 import (
 	"fmt"
 
-	"github.com/textileio/textile-go/util"
-
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
 	"github.com/golang/protobuf/proto"
@@ -12,12 +10,13 @@ import (
 	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/textile-go/util"
 )
 
 // AddContact adds or updates a contact
 func (t *Textile) AddContact(contact *pb.Contact) error {
 	ex := t.datastore.Contacts().Get(contact.Id)
-	if ex != nil && util.ProtoNanos(ex.Updated) > util.ProtoNanos(contact.Updated) {
+	if ex != nil && (contact.Updated == nil || util.ProtoTsIsNewer(ex.Updated, contact.Updated)) {
 		return nil
 	}
 
@@ -116,7 +115,7 @@ func (t *Textile) PublishContact() error {
 func (t *Textile) UpdateContactInboxes() error {
 	var inboxes []*pb.Cafe
 	for _, session := range t.datastore.CafeSessions().List().Items {
-		inboxes = append(inboxes, protoCafeToRepo(session.Cafe))
+		inboxes = append(inboxes, session.Cafe)
 	}
 	return t.datastore.Contacts().UpdateInboxes(t.node.Identity.Pretty(), inboxes)
 }

@@ -76,6 +76,13 @@ func (c *ContactDB) AddOrUpdate(contact *pb.Contact) error {
 		return err
 	}
 
+	var created int64
+	if contact.Created == nil {
+		created = time.Now().UnixNano()
+	} else {
+		created = util.ProtoNanos(contact.Created)
+	}
+
 	_, err = stmt.Exec(
 		contact.Id,
 		contact.Address,
@@ -83,7 +90,7 @@ func (c *ContactDB) AddOrUpdate(contact *pb.Contact) error {
 		contact.Avatar,
 		inboxes,
 		contact.Id,
-		util.ProtoNanos(contact.Created),
+		created,
 		time.Now().UnixNano(),
 	)
 	if err != nil {

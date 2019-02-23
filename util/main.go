@@ -55,6 +55,10 @@ func ProtoTs(nsec int64) *timestamp.Timestamp {
 	}
 }
 
+func ProtoTsIsNewer(ts1 *timestamp.Timestamp, ts2 *timestamp.Timestamp) bool {
+	return ProtoNanos(ts1) > ProtoNanos(ts2)
+}
+
 func trimQuotes(s string) string {
 	if len(s) > 0 && s[0] == '"' {
 		s = s[1:]

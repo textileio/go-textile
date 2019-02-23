@@ -53,7 +53,7 @@ func (q *CafeOutbox) Add(target string, rtype repo.CafeRequestType) error {
 	// for each session, add a req
 	for _, session := range sessions {
 		// all possible request types are for our own peer
-		if err := q.add(q.node().Identity, target, *session.Cafe, rtype); err != nil {
+		if err := q.add(q.node().Identity, target, session.Cafe, rtype); err != nil {
 			return err
 		}
 	}
@@ -61,7 +61,7 @@ func (q *CafeOutbox) Add(target string, rtype repo.CafeRequestType) error {
 }
 
 // InboxRequest adds a request for a peer's inbox(es)
-func (q *CafeOutbox) InboxRequest(pid peer.ID, env *pb.Envelope, inboxes []repo.Cafe) error {
+func (q *CafeOutbox) InboxRequest(pid peer.ID, env *pb.Envelope, inboxes []*pb.Cafe) error {
 	if len(inboxes) == 0 {
 		return nil
 	}
@@ -72,8 +72,7 @@ func (q *CafeOutbox) InboxRequest(pid peer.ID, env *pb.Envelope, inboxes []repo.
 	}
 
 	for _, inbox := range inboxes {
-		cafe := repoCafeToProto(inbox)
-		if err := q.add(pid, hash.B58String(), *cafe, repo.CafePeerInboxRequest); err != nil {
+		if err := q.add(pid, hash.B58String(), inbox, repo.CafePeerInboxRequest); err != nil {
 			return err
 		}
 	}
@@ -97,14 +96,14 @@ func (q *CafeOutbox) Flush() {
 }
 
 // add queues a single request
-func (q *CafeOutbox) add(pid peer.ID, target string, cafe pb.Cafe, rtype repo.CafeRequestType) error {
+func (q *CafeOutbox) add(pid peer.ID, target string, cafe *pb.Cafe, rtype repo.CafeRequestType) error {
 	log.Debugf("adding cafe %s request for %s to %s: %s",
 		rtype.Description(), ipfs.ShortenID(pid.Pretty()), ipfs.ShortenID(cafe.Peer), target)
 	return q.datastore.CafeRequests().Add(&repo.CafeRequest{
 		Id:       ksuid.New().String(),
 		PeerId:   pid.Pretty(),
 		TargetId: target,
-		Cafe:     cafe,
+		Cafe:     *cafe,
 		Type:     rtype,
 		Date:     time.Now(),
 	})
@@ -225,7 +224,7 @@ func (q *CafeOutbox) handle(reqs []repo.CafeRequest, rtype repo.CafeRequestType,
 				continue
 			}
 
-			if err := q.service().DeliverMessage(req.TargetId, pid, protoCafeToRepo(&req.Cafe)); err != nil {
+			if err := q.service().DeliverMessage(req.TargetId, pid, &req.Cafe); err != nil {
 				log.Errorf("cafe %s request to %s failed: %s", rtype.Description(), cafe.Pretty(), err)
 				herr = err
 				continue

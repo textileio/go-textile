@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
 // RegisterCafe registers this account with another peer (the "cafe"),
@@ -82,30 +81,4 @@ func (t *Textile) DeregisterCafe(peerId string) error {
 // CheckCafeMessages fetches new messages from registered cafes
 func (t *Textile) CheckCafeMessages() error {
 	return t.cafeInbox.CheckMessages()
-}
-
-// protoCafeToRepo is a tmp method just converting proto cafe info to the repo version
-func protoCafeToRepo(pro *pb.Cafe) repo.Cafe {
-	return repo.Cafe{
-		Peer:     pro.Peer,
-		Address:  pro.Address,
-		API:      pro.Api,
-		Protocol: pro.Protocol,
-		Node:     pro.Node,
-		URL:      pro.Url,
-		Swarm:    pro.Swarm,
-	}
-}
-
-// repoCafeToProto is a tmp method just converting repo cafe info to the proto version
-func repoCafeToProto(rep repo.Cafe) *pb.Cafe {
-	return &pb.Cafe{
-		Peer:     rep.Peer,
-		Address:  rep.Address,
-		Api:      rep.API,
-		Protocol: rep.Protocol,
-		Node:     rep.Node,
-		Url:      rep.URL,
-		Swarm:    rep.Swarm,
-	}
 }

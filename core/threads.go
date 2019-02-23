@@ -297,38 +297,39 @@ func (t *Textile) ThreadView(id string) (*pb.Thread, error) {
 	return mod, nil
 }
 
-// Invite gets a pending invite
-func (t *Textile) Invite(invite *pb.Invite) *ThreadInviteInfo {
+// InviteView gets a pending invite as a view object, which does not include the block payload
+func (t *Textile) InviteView(invite *pb.Invite) *pb.InviteView {
 	if invite == nil {
 		return nil
 	}
 
-	var username, avatar string
-	contact := t.datastore.Contacts().Get(invite.Inviter.Id)
-	if contact != nil && (invite.Inviter == nil || util.ProtoNanos(invite.Inviter.Updated) < util.ProtoNanos(contact.Updated)) {
-		username = toName(contact)
-		avatar = contact.Avatar
-	} else if invite.Inviter != nil {
-		//invite.Inviter = t.Us
-		username, avatar = t.ContactDisplayInfo(invite.Contact.Id)
+	view := &pb.InviteView{
+		Id:   invite.Id,
+		Name: invite.Name,
+		Date: invite.Date,
 	}
 
-	return &ThreadInviteInfo{
-		Id:       invite.Id,
-		Name:     invite.Name,
-		Username: username,
-		Avatar:   avatar,
-		Date:     invite.Date,
+	ex := t.datastore.Contacts().Get(invite.Inviter.Id)
+	if ex != nil && (invite.Inviter == nil || util.ProtoTsIsNewer(ex.Updated, invite.Inviter.Updated)) {
+		view.Inviter = t.User(ex.Id)
+	} else if invite.Inviter != nil {
+		view.Inviter = &pb.User{
+			Address: invite.Inviter.Address,
+			Name:    invite.Inviter.Username,
+			Avatar:  invite.Inviter.Avatar,
+		}
 	}
+
+	return view
 }
 
 // Invites lists info on all pending invites
-func (t *Textile) Invites() []ThreadInviteInfo {
-	list := make([]ThreadInviteInfo, 0)
+func (t *Textile) Invites() *pb.InviteViewList {
+	list := &pb.InviteViewList{Items: make([]*pb.InviteView, 0)}
 
-	for _, invite := range t.datastore.ThreadInvites().List() {
-		info := t.Invite(&invite)
-		list = append(list, *info)
+	for _, invite := range t.datastore.Invites().List().Items {
+		view := t.InviteView(invite)
+		list.Items = append(list.Items, view)
 	}
 
 	return list
@@ -336,7 +337,7 @@ func (t *Textile) Invites() []ThreadInviteInfo {
 
 // AcceptInvite adds a new thread, and notifies the inviter of the join
 func (t *Textile) AcceptInvite(inviteId string) (mh.Multihash, error) {
-	invite := t.datastore.ThreadInvites().Get(inviteId)
+	invite := t.datastore.Invites().Get(inviteId)
 	if invite == nil {
 		return nil, ErrThreadInviteNotFound
 	}
@@ -371,7 +372,7 @@ func (t *Textile) AcceptExternalInvite(inviteId string, key []byte) (mh.Multihas
 
 // IgnoreInvite deletes the invite and removes the associated notification.
 func (t *Textile) IgnoreInvite(inviteId string) error {
-	if err := t.datastore.ThreadInvites().Delete(inviteId); err != nil {
+	if err := t.datastore.Invites().Delete(inviteId); err != nil {
 		return err
 	}
 	return t.datastore.Notifications().DeleteByBlock(inviteId)
@@ -436,7 +437,7 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	if err := thrd.addOrUpdateContact(protoContactToRepo(msg.Inviter)); err != nil {
+	if err := thrd.addOrUpdateContact(msg.Inviter); err != nil {
 		return nil, err
 	}
 

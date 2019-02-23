@@ -27,7 +27,7 @@ func (t *Thread) AddInvite(inviteeId peer.ID) (mh.Multihash, error) {
 	self := t.datastore.Contacts().Get(t.node().Identity.Pretty())
 	msg := &pb.ThreadInvite{
 		Thread:  t.datastore.Threads().Get(t.Id),
-		Inviter: repoContactToProto(self),
+		Inviter: self,
 	}
 
 	inviteePk, err := inviteeId.ExtractPublicKey()
@@ -67,7 +67,7 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 	self := t.datastore.Contacts().Get(t.node().Identity.Pretty())
 	msg := &pb.ThreadInvite{
 		Thread:  t.datastore.Threads().Get(t.Id),
-		Inviter: repoContactToProto(self),
+		Inviter: self,
 	}
 
 	key, err := crypto.GenerateAESKey()

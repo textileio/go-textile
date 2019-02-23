@@ -41,7 +41,7 @@ message Step {
 
 // INVITES
 
-message ExternalInvite {
+message NewInvite {
     string id      = 1;
     string key     = 2;
     string inviter = 3;
@@ -52,6 +52,10 @@ message InviteView {
     string name                    = 2;
     User inviter                   = 3;
     google.protobuf.Timestamp date = 4;
+}
+
+message InviteViewList {
+    repeated InviteView items = 1;
 }
 
 // FEED //

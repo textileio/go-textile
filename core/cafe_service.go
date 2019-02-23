@@ -65,7 +65,7 @@ type CafeService struct {
 	service         *service.Service
 	datastore       repo.Datastore
 	inbox           *CafeInbox
-	info            *repo.Cafe
+	info            *pb.Cafe
 	online          bool
 	open            bool
 	queryResults    *broadcast.Broadcaster
@@ -135,12 +135,6 @@ func (h *CafeService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error
 		return h.handlePubSubQuery(pid, env)
 	case pb.Message_CAFE_PUBSUB_QUERY_RES:
 		return h.handlePubSubQueryResults(pid, env)
-
-	// deprecated
-	case pb.Message_CAFE_PUBSUB_CONTACT_QUERY:
-		return h.handlePubSubContactQuery(pid, env)
-	case pb.Message_CAFE_PUBSUB_CONTACT_QUERY_RES:
-		return h.handlePubSubContactQueryResult(pid, env)
 	default:
 		return nil, nil
 	}
@@ -159,10 +153,6 @@ func (h *CafeService) HandleStream(pid peer.ID, env *pb.Envelope) (chan *pb.Enve
 		switch env.Message.Type {
 		case pb.Message_CAFE_QUERY:
 			err = h.handleQuery(pid, env, renvCh, cancelCh)
-
-		// deprecated
-		case pb.Message_CAFE_CONTACT_QUERY:
-			err = h.handleContactQuery(pid, env, renvCh, cancelCh)
 		}
 		if err != nil {
 			errCh <- err
@@ -302,7 +292,7 @@ func (h *CafeService) StoreThread(thrd *pb.Thread, cafe peer.ID) error {
 
 // DeliverMessage delivers a message content id to a peer's cafe inbox
 // TODO: unpin message locally after it's delivered
-func (h *CafeService) DeliverMessage(mid string, pid peer.ID, cafe repo.Cafe) error {
+func (h *CafeService) DeliverMessage(mid string, pid peer.ID, cafe *pb.Cafe) error {
 	env, err := h.service.NewEnvelope(pb.Message_CAFE_DELIVER_MESSAGE, &pb.CafeDeliverMessage{
 		Id:       mid,
 		ClientId: pid.Pretty(),
@@ -311,7 +301,7 @@ func (h *CafeService) DeliverMessage(mid string, pid peer.ID, cafe repo.Cafe) er
 		return err
 	}
 
-	addr := fmt.Sprintf("%s/cafe/%s/service", cafe.URL, cafe.API)
+	addr := fmt.Sprintf("%s/cafe/%s/service", cafe.Url, cafe.Api)
 	return h.service.SendHTTPMessage(addr, env)
 }
 
@@ -373,11 +363,11 @@ func (h *CafeService) DeleteMessages(cafe peer.ID) error {
 }
 
 // PublishContact publishes the local peer's contact info
-func (h *CafeService) PublishContact(contact *repo.Contact, cafe peer.ID) error {
+func (h *CafeService) PublishContact(contact *pb.Contact, cafe peer.ID) error {
 	if _, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_PUBLISH_CONTACT, &pb.CafePublishContact{
 			Token:   session.Access,
-			Contact: repoContactToProto(contact),
+			Contact: contact,
 		}, nil, false)
 	}); err != nil {
 		return err
@@ -620,18 +610,17 @@ func (h *CafeService) searchLocal(qtype pb.QueryType, options *pb.QueryOptions, 
 			return nil, err
 		}
 
-		contacts := h.datastore.Contacts().Find(q.Id, q.Address, q.Username, options.Exclude)
+		contacts := h.datastore.Contacts().Find(q.Id, q.Address, q.Username, options.Exclude).Items
 		for _, c := range contacts {
-			pc := repoContactToProto(&c)
-			pc.Username = toName(&c)
+			c.Username = toName(c)
 
-			value, err := proto.Marshal(pc)
+			value, err := proto.Marshal(c)
 			if err != nil {
 				return nil, err
 			}
 			results.Add(&pb.QueryResult{
-				Id:    pc.Id,
-				Date:  pc.Updated,
+				Id:    c.Id,
+				Date:  c.Updated,
 				Local: local,
 				Value: &any.Any{
 					TypeUrl: "/Contact",
@@ -833,7 +822,7 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 		pid,
 		h.Protocol(),
 		defaultSessionDuration,
-		*h.info,
+		h.info,
 	)
 	if err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
@@ -900,7 +889,7 @@ func (h *CafeService) handleRefreshSession(pid peer.ID, env *pb.Envelope) (*pb.E
 		spid,
 		h.Protocol(),
 		defaultSessionDuration,
-		*h.info,
+		h.info,
 	)
 	if err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
@@ -1173,7 +1162,7 @@ func (h *CafeService) handlePublishContact(pid peer.ID, env *pb.Envelope) (*pb.E
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
 
-	if err := h.datastore.Contacts().AddOrUpdate(protoContactToRepo(pub.Contact)); err != nil {
+	if err := h.datastore.Contacts().AddOrUpdate(pub.Contact); err != nil {
 		return nil, err
 	}
 
@@ -1338,13 +1327,13 @@ func (h *CafeService) setAddrs(conf *config.Config, swarmPorts config.SwarmPorts
 	}
 	log.Infof("cafe multiaddresses: %s", swarm)
 
-	h.info = &repo.Cafe{
+	h.info = &pb.Cafe{
 		Peer:     h.service.Node().Identity.Pretty(),
 		Address:  conf.Account.Address,
-		API:      cafeApiVersion,
+		Api:      cafeApiVersion,
 		Protocol: string(cafeServiceProtocol),
 		Node:     common.Version,
-		URL:      url,
+		Url:      url,
 		Swarm:    swarm,
 	}
 }
@@ -1371,206 +1360,4 @@ func queryDefaults(query *pb.Query) *pb.Query {
 	}
 
 	return query
-}
-
-// findContactPubSub searches the local contact index for a match
-// Deprecated: This has been replaced by the more generic search mechanism
-func (h *CafeService) findContactPubSub(query *pb.CafeContactQuery, results *contactSet, reply func(*pb.CafeContactQueryResult), cancelCh <-chan interface{}, fromCafe bool) error {
-	psId := ksuid.New().String()
-
-	// start a tmp subscription if caller needs results over pubsub
-	var rtype pb.CafePubSubContactQuery_ResponseType
-	var psCancel context.CancelFunc
-	if fromCafe {
-		rtype = pb.CafePubSubContactQuery_P2P
-	} else {
-		rtype = pb.CafePubSubContactQuery_PUBSUB
-		go func() {
-			psCancel = h.service.ListenFor(psId, false, h.handlePubSubContactQueryResult)
-		}()
-	}
-
-	preq := &pb.CafePubSubContactQuery{
-		Id:           psId,
-		FindId:       query.FindId,
-		FindUsername: query.FindUsername,
-		FindAddress:  query.FindAddress,
-		ResponseType: rtype,
-	}
-	if err := h.publishContactRequest(preq); err != nil {
-		return err
-	}
-
-	// wait for results
-	if query.Limit <= 0 {
-		query.Limit = defaultQueryResultsLimit
-	}
-	if query.Wait <= 0 {
-		query.Wait = defaultQueryWaitSeconds
-	} else if query.Wait > maxQueryWaitSeconds {
-		query.Wait = maxQueryWaitSeconds
-	}
-	timer := time.NewTimer(time.Second * time.Duration(query.Wait))
-	listener := h.queryResults.Listen()
-	doneCh := make(chan struct{})
-
-	done := func() {
-		listener.Close()
-		if psCancel != nil {
-			psCancel()
-		}
-		close(doneCh)
-	}
-
-	go func() {
-		<-timer.C
-		done()
-	}()
-
-	for {
-		select {
-		case <-cancelCh:
-			if timer.Stop() {
-				done()
-			}
-		case <-doneCh:
-			return nil
-		case value, ok := <-listener.Ch:
-			if !ok {
-				return nil
-			}
-			if r, ok := value.(*pb.CafePubSubContactQueryResult); ok && r.Id == psId {
-				added := results.Add(r.Contacts...)
-				if len(added) > 0 {
-					reply(&pb.CafeContactQueryResult{
-						Contacts: added,
-					})
-				}
-
-				if len(results.items) >= int(query.Limit) {
-					if timer.Stop() {
-						done()
-					}
-				}
-			}
-		}
-	}
-}
-
-// publishContactRequest publishes a contact request to the network
-// Deprecated: This has been replaced by the more generic search mechanism
-func (h *CafeService) publishContactRequest(req *pb.CafePubSubContactQuery) error {
-	env, err := h.service.NewEnvelope(pb.Message_CAFE_PUBSUB_CONTACT_QUERY, req, nil, false)
-	if err != nil {
-		return err
-	}
-	topic := string(cafeServiceProtocol)
-
-	log.Debugf("sending pubsub %s to %s", env.Message.Type.String(), topic)
-
-	payload, err := proto.Marshal(env)
-	if err != nil {
-		return err
-	}
-	return ipfs.Publish(h.service.Node(), topic, payload)
-}
-
-// handleContactQuery searches the cafe network for contacts
-// Deprecated: This has been replaced by the more generic search mechanism
-func (h *CafeService) handleContactQuery(pid peer.ID, env *pb.Envelope, renvs chan *pb.Envelope, cancelCh <-chan interface{}) error {
-	query := new(pb.CafeContactQuery)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, query); err != nil {
-		return err
-	}
-
-	rerr, err := h.authToken(pid, query.Token, false, env.Message.RequestId)
-	if err != nil {
-		return err
-	}
-	if rerr != nil {
-		renvs <- rerr
-		return nil
-	}
-
-	results := newContactSet()
-	reply := func(res *pb.CafeContactQueryResult) {
-		renv, err := h.service.NewEnvelope(pb.Message_CAFE_CONTACT_QUERY_RES, res, &env.Message.RequestId, true)
-		if err != nil {
-			log.Errorf("error replying with query result: %s", err)
-			return
-		}
-		renvs <- renv
-	}
-
-	// search local
-	res := &pb.CafeContactQueryResult{}
-	for _, c := range h.datastore.Contacts().Find(query.FindId, query.FindAddress, query.FindUsername, []string{}) {
-		res.Contacts = append(res.Contacts, results.Add(repoContactToProto(&c))...)
-	}
-	if len(res.Contacts) > 0 {
-		reply(res)
-	}
-
-	// search network
-	if len(results.items) < int(query.Limit) {
-		if err := h.findContactPubSub(query, results, reply, cancelCh, true); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// handlePubSubContactQuery receives a contact request over pubsub and responds with a direct message
-// Deprecated: This has been replaced by the more generic search mechanism
-func (h *CafeService) handlePubSubContactQuery(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	query := new(pb.CafePubSubContactQuery)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, query); err != nil {
-		return nil, err
-	}
-
-	// return local results, if any
-	res := &pb.CafePubSubContactQueryResult{
-		Id: query.Id,
-	}
-	for _, c := range h.datastore.Contacts().Find(query.FindId, query.FindAddress, query.FindUsername, []string{}) {
-		res.Contacts = append(res.Contacts, repoContactToProto(&c))
-	}
-
-	if len(res.Contacts) == 0 {
-		return nil, nil
-	}
-
-	renv, err := h.service.NewEnvelope(pb.Message_CAFE_PUBSUB_CONTACT_QUERY_RES, res, nil, false)
-	if err != nil {
-		return nil, err
-	}
-
-	switch query.ResponseType {
-	case pb.CafePubSubContactQuery_P2P:
-		return renv, nil
-	case pb.CafePubSubContactQuery_PUBSUB:
-		log.Debugf("responding with %s to %s", renv.Message.Type.String(), pid.Pretty())
-
-		payload, err := proto.Marshal(renv)
-		if err != nil {
-			return nil, err
-		}
-		if err := ipfs.Publish(h.service.Node(), query.Id, payload); err != nil {
-			return nil, err
-		}
-	}
-	return nil, nil
-}
-
-// handlePubSubContactQueryResult handles contact search results received from a pubsub query
-// Deprecated: This has been replaced by the more generic search mechanism
-func (h *CafeService) handlePubSubContactQueryResult(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	res := new(pb.CafePubSubContactQueryResult)
-	if err := ptypes.UnmarshalAny(env.Message.Payload, res); err != nil {
-		return nil, err
-	}
-
-	h.queryResults.Send(res)
-	return nil, nil
 }

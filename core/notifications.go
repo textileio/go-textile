@@ -39,11 +39,8 @@ func (t *Textile) NotificationInfo(note repo.Notification) NotificationInfo {
 	var username, avatar string
 	switch note.Type {
 	case repo.InviteReceivedNotification:
-		invite := t.Invite(t.datastore.ThreadInvites().Get(note.BlockId))
-		if invite != nil {
-			username = invite.Username
-			avatar = invite.Avatar
-		} else {
+		invite := t.InviteView(t.datastore.Invites().Get(note.BlockId))
+		if invite == nil {
 			username, avatar = t.ContactDisplayInfo(note.ActorId)
 		}
 	default:

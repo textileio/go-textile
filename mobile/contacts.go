@@ -1,24 +1,21 @@
 package mobile
 
 import (
-	"encoding/json"
 	"errors"
 
 	"github.com/golang/protobuf/proto"
-
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
 // AddContact calls core AddContact
-func (m *Mobile) AddContact(contact string) error {
+func (m *Mobile) AddContact(contact []byte) error {
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
 
-	var model *repo.Contact
-	if err := json.Unmarshal([]byte(contact), &model); err != nil {
+	model := new(pb.Contact)
+	if err := proto.Unmarshal(contact, model); err != nil {
 		return err
 	}
 
@@ -26,32 +23,26 @@ func (m *Mobile) AddContact(contact string) error {
 }
 
 // Contact calls core Contact
-func (m *Mobile) Contact(id string) (string, error) {
+func (m *Mobile) Contact(id string) ([]byte, error) {
 	if !m.node.Started() {
-		return "", core.ErrStopped
+		return nil, core.ErrStopped
 	}
 
 	contact := m.node.Contact(id)
-	if contact != nil {
-		return toJSON(contact)
+	if contact == nil {
+		return nil, errors.New("contact not found")
 	}
-	return "", errors.New("contact not found")
+
+	return proto.Marshal(contact)
 }
 
 // Contacts calls core Contacts
-func (m *Mobile) Contacts() (string, error) {
+func (m *Mobile) Contacts() ([]byte, error) {
 	if !m.node.Started() {
-		return "", core.ErrStopped
+		return nil, core.ErrStopped
 	}
 
-	contacts, err := m.node.Contacts()
-	if err != nil {
-		return "", err
-	}
-	if len(contacts) == 0 {
-		contacts = make([]core.ContactInfo, 0)
-	}
-	return toJSON(contacts)
+	return proto.Marshal(m.node.Contacts())
 }
 
 // RemoveContact calls core RemoveContact

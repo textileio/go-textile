@@ -15,12 +15,12 @@ import (
 // addThreads godoc
 // @Summary Adds and joins a new thread
 // @Description Adds a new Thread with given name, type, and sharing and members options, returning
-// @Description a ThreadInfo object
+// @Description a Thread object
 // @Tags threads
 // @Produce application/json
 // @Param X-Textile-Args header string true "name")
 // @Param X-Textile-Opts header string false "key: A locally unique key used by an app to identify this thread on recovery, schema: Existing Thread Schema IPFS CID, type: Set the thread type to one of 'private', 'read_only', 'public', or 'open', sharing: Set the thread sharing style to one of 'not_shared','invite_only', or 'shared', members: An array of contact addresses. When supplied, the thread will not allow additional peers beyond those in array, useful for 1-1 chat/file sharing" default(type=private,sharing=not_shared,members=)
-// @Success 201 {object} core.ThreadInfo "thread"
+// @Success 201 {object} pb.Thread "thread"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /threads [post]
@@ -114,10 +114,10 @@ func (a *api) addOrUpdateThreads(g *gin.Context) {
 
 // lsThreads godoc
 // @Summary Lists info on all threads
-// @Description Lists all local threads, returning an array of ThreadInfo objects
+// @Description Lists all local threads, returning a ThreadList object
 // @Tags threads
 // @Produce application/json
-// @Success 200 {array} core.ThreadInfo "threads"
+// @Success 200 {object} pb.ThreadList "threads"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /threads [get]
@@ -143,7 +143,7 @@ func (a *api) lsThreads(g *gin.Context) {
 // @Tags threads
 // @Produce application/json
 // @Param id path string true "thread id")
-// @Success 200 {object} core.ThreadInfo "thread"
+// @Success 200 {object} pb.Thread "thread"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /threads/{id} [get]
@@ -168,7 +168,7 @@ func (a *api) getThreads(g *gin.Context) {
 // @Tags threads
 // @Produce application/json
 // @Param id path string true "thread id")
-// @Success 200 {array} core.ContactInfo "contacts"
+// @Success 200 {object} pb.ContactList "contacts"
 // @Failure 404 {string} string "Not Found"
 // @Router /threads/{id}/peers [get]
 func (a *api) peersThreads(g *gin.Context) {
@@ -183,15 +183,15 @@ func (a *api) peersThreads(g *gin.Context) {
 		return
 	}
 
-	contacts := make([]ContactInfo, 0)
+	contacts := &pb.ContactList{Items: make([]*pb.Contact, 0)}
 	for _, p := range thrd.Peers() {
 		contact := a.node.Contact(p.Id)
 		if contact != nil {
-			contacts = append(contacts, *contact)
+			contacts.Items = append(contacts.Items, contact)
 		}
 	}
 
-	g.JSON(http.StatusOK, contacts)
+	pbJSON(g, http.StatusOK, contacts)
 }
 
 // rmThreads godoc

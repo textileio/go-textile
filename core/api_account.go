@@ -28,13 +28,7 @@ func (a *api) accountAddress(g *gin.Context) {
 // @Failure 400 {string} string "Bad Request"
 // @Router /account/peers [get]
 func (a *api) accountPeers(g *gin.Context) {
-	peers, err := a.node.AccountPeers()
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	g.JSON(http.StatusOK, peers)
+	pbJSON(g, http.StatusOK, a.node.AccountPeers())
 }
 
 // accountPeers godoc

@@ -34,21 +34,6 @@ message CafePublishContactAck {
     string id = 1;
 }
 
-message CafeContactQuery {
-    option deprecated   = true;
-    string token        = 1;
-    string findId       = 2;
-    string findAddress  = 3;
-    string findUsername = 4;
-    int32 limit         = 5;
-    int32 wait          = 6;
-}
-
-message CafeContactQueryResult {
-    option deprecated         = true;
-    repeated Contact contacts = 1;
-}
-
 message CafeStore {
     string token         = 1;
     repeated string cids = 2;

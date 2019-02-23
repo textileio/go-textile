@@ -184,7 +184,7 @@ func InitRepo(conf InitConfig) error {
 	if err != nil {
 		return err
 	}
-	if err := sqliteDb.Contacts().Add(&repo.Contact{
+	if err := sqliteDb.Contacts().Add(&pb.Contact{
 		Id:      ipfsConf.Identity.PeerID,
 		Address: conf.Account.Address(),
 	}); err != nil {

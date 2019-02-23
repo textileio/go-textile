@@ -68,7 +68,7 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 
 	// update author info
 	if msg.Contact != nil {
-		if err := t.addOrUpdateContact(protoContactToRepo(msg.Contact)); err != nil {
+		if err := t.addOrUpdateContact(msg.Contact); err != nil {
 			return nil, err
 		}
 	}
@@ -83,6 +83,6 @@ func (t *Thread) buildAnnounce() (*pb.ThreadAnnounce, error) {
 	if contact == nil {
 		return nil, fmt.Errorf("unable to announce, no contact for self")
 	}
-	msg.Contact = repoContactToProto(contact)
+	msg.Contact = contact
 	return msg, nil
 }

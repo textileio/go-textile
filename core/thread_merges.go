@@ -42,7 +42,7 @@ func (t *Thread) merge(head mh.Multihash) (mh.Multihash, error) {
 		return nil, errors.New("second merge parent not found")
 	}
 	var date *timestamp.Timestamp
-	if util.ProtoNanos(p1b.Date) < util.ProtoNanos(p2b.Date) {
+	if util.ProtoTsIsNewer(p2b.Date, p1b.Date) {
 		date = p2b.Date
 	} else {
 		date = p1b.Date

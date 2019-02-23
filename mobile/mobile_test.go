@@ -44,7 +44,7 @@ var thrdId string
 var dir []byte
 var filesBlock *pb.Block
 var files []*pb.Files
-var invite *pb.ExternalInvite
+var invite *pb.NewInvite
 
 var contact = &pb.Contact{
 	Id:       "abcde",
@@ -592,23 +592,23 @@ func TestMobile_Profile(t *testing.T) {
 }
 
 func TestMobile_AddContact(t *testing.T) {
-	payload, err := json.Marshal(contact)
+	payload, err := proto.Marshal(contact)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if err := mobile1.AddContact(string(payload)); err != nil {
+	if err := mobile1.AddContact(payload); err != nil {
 		t.Errorf("add contact failed: %s", err)
 	}
 }
 
 func TestMobile_AddContactAgain(t *testing.T) {
-	payload, err := json.Marshal(contact)
+	payload, err := proto.Marshal(contact)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if err := mobile1.AddContact(string(payload)); err != nil {
+	if err := mobile1.AddContact(payload); err != nil {
 		t.Errorf("adding duplicate contact should not throw error")
 	}
 }
@@ -624,8 +624,8 @@ func TestMobile_Contact(t *testing.T) {
 		t.Errorf("get own contact failed: %s", err)
 		return
 	}
-	var info *core.ContactInfo
-	if err := json.Unmarshal([]byte(self), &info); err != nil {
+	contact := new(pb.Contact)
+	if err := proto.Unmarshal(self, contact); err != nil {
 		t.Error(err)
 	}
 }
@@ -697,7 +697,7 @@ func TestMobile_AddExternalInvite(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	invite = new(pb.ExternalInvite)
+	invite = new(pb.NewInvite)
 	if err := proto.Unmarshal(res, invite); err != nil {
 		t.Error(err)
 		return

@@ -7,15 +7,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/textileio/textile-go/pb"
-
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 
 	"github.com/segmentio/ksuid"
 	. "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/mill"
-	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/schema/textile"
 )
 
@@ -24,18 +22,18 @@ var otherPath = "testdata/.textile2"
 var node *Textile
 var other *Textile
 var token string
-var contact = &repo.Contact{
+var contact = &pb.Contact{
 	Id:       "abcde",
 	Address:  "address1",
 	Username: "joe",
 	Avatar:   "Qm123",
-	Inboxes: []repo.Cafe{{
+	Inboxes: []*pb.Cafe{{
 		Peer:     "peer",
 		Address:  "address",
-		API:      "v0",
+		Api:      "v0",
 		Protocol: "/textile/cafe/1.0.0",
 		Node:     "v1.0.0",
-		URL:      "https://mycafe.com",
+		Url:      "https://mycafe.com",
 	}},
 }
 

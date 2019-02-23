@@ -118,7 +118,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 	ignored := t.datastore.Blocks().List("", -1, "target='ignore-"+hash.B58String()+"'").Items
 	if len(ignored) > 0 {
 		// ignore if the first (latest) ignore came after (could happen during back prop)
-		if util.ProtoNanos(ignored[0].Date) > util.ProtoNanos(block.Header.Date) {
+		if util.ProtoTsIsNewer(ignored[0].Date, block.Header.Date) {
 			ignore = true
 		}
 	}

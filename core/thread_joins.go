@@ -105,7 +105,7 @@ func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 		if cjson, err := json.Marshal(msg.Contact); err == nil {
 			log.Debugf("found contact: %s", string(cjson))
 		}
-		if err := t.addOrUpdateContact(protoContactToRepo(msg.Contact)); err != nil {
+		if err := t.addOrUpdateContact(msg.Contact); err != nil {
 			return nil, err
 		}
 	}
@@ -122,6 +122,6 @@ func (t *Thread) buildJoin(inviterId string) (*pb.ThreadJoin, error) {
 	if contact == nil {
 		return nil, fmt.Errorf("unable to join, no contact for self")
 	}
-	msg.Contact = repoContactToProto(contact)
+	msg.Contact = contact
 	return msg, nil
 }

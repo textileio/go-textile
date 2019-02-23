@@ -196,17 +196,12 @@ func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope
 
 	log.Debugf("handling THREAD_INVITE from %s", block.Header.Author)
 
-	date, err := ptypes.Timestamp(block.Header.Date)
-	if err != nil {
-		return err
-	}
-
-	if err := h.datastore.ThreadInvites().Add(&repo.ThreadInvite{
+	if err := h.datastore.Invites().Add(&pb.Invite{
 		Id:      hash.B58String(),
 		Block:   plaintext,
 		Name:    msg.Thread.Name,
-		Contact: protoContactToRepo(msg.Inviter),
-		Date:    date,
+		Inviter: msg.Inviter,
+		Date:    block.Header.Date,
 	}); err != nil {
 		if !repo.ConflictError(err) {
 			return err
