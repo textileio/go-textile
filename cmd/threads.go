@@ -7,9 +7,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/textileio/textile-go/pb"
+
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
-	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema/textile"
 )
 
@@ -104,8 +105,8 @@ func (x *addThreadsCmd) Execute(args []string) error {
 	}
 
 	if body != nil {
-		var schemaf *repo.File
-		if _, err := executeJsonCmd(POST, "mills/schema", params{
+		var schemaf pb.FileIndex
+		if _, err := executeJsonPbCmd(POST, "mills/schema", params{
 			payload: bytes.NewReader(body),
 			ctype:   "application/json",
 		}, &schemaf); err != nil {
@@ -216,7 +217,7 @@ func (x *peersThreadsCmd) Execute(args []string) error {
 		x.Thread = "default"
 	}
 
-	res, err := executeJsonCmd(GET, "threads/"+x.Thread+"/peers", params{}, nil)
+	res, err := executeJsonPbCmd(GET, "threads/"+x.Thread+"/peers", params{}, nil)
 	if err != nil {
 		return err
 	}

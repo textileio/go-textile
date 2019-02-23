@@ -122,13 +122,14 @@ func (t *Textile) SetAvatar(hash string) error {
 		return err
 	}
 
-	dir := Directory{"large": *large, "small": *small}
-	node, keys, err := t.AddNodeFromDirs([]Directory{dir})
+	dir := map[string]*pb.FileIndex{"large": large, "small": small}
+	dirs := &pb.DirectoryList{Items: []*pb.Directory{{Files: dir}}}
+	node, keys, err := t.AddNodeFromDirs(dirs)
 	if err != nil {
 		return err
 	}
 
-	if _, err := thrd.AddFiles(node, "", keys); err != nil {
+	if _, err := thrd.AddFiles(node, "", keys.Files); err != nil {
 		return err
 	}
 

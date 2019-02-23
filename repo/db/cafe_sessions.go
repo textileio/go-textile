@@ -1,10 +1,11 @@
 package db
 
 import (
+	"bytes"
 	"database/sql"
-	"encoding/json"
 	"sync"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/util"
@@ -33,7 +34,8 @@ func (c *CafeSessionDB) AddOrUpdate(session *pb.CafeSession) error {
 	}
 	defer stmt.Close()
 
-	cafe, err := json.Marshal(session.Cafe)
+	marshaler := jsonpb.Marshaler{}
+	cafe, err := marshaler.MarshalToString(session.Cafe)
 	if err != nil {
 		return err
 	}
@@ -43,7 +45,7 @@ func (c *CafeSessionDB) AddOrUpdate(session *pb.CafeSession) error {
 		session.Access,
 		session.Refresh,
 		util.ProtoNanos(session.Exp),
-		cafe,
+		[]byte(cafe),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -93,8 +95,8 @@ func (c *CafeSessionDB) handleQuery(stm string) *pb.CafeSessionList {
 			continue
 		}
 
-		var rcafe *pb.Cafe
-		if err := json.Unmarshal(cafe, &rcafe); err != nil {
+		rcafe := new(pb.Cafe)
+		if err := jsonpb.Unmarshal(bytes.NewReader(cafe), rcafe); err != nil {
 			log.Errorf("error unmarshaling cafe: %s", err)
 			continue
 		}

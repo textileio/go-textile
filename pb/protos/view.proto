@@ -30,13 +30,21 @@ message AddThreadConfig {
 
 // FILES //
 
+message Step {
+    string Name = 1;
+    Link link   = 2;
+}
+
 message Directory {
     map<string, FileIndex> files = 1;
 }
 
-message Step {
-    string Name = 1;
-    Link link   = 2;
+message DirectoryList {
+    repeated Directory items = 1;
+}
+
+message Keys {
+    map<string, string> files = 1;
 }
 
 // INVITES

@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"time"
 
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 	uio "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/io"
@@ -20,17 +19,12 @@ import (
 	"github.com/textileio/textile-go/ipfs"
 	m "github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema"
 )
 
 var ErrFileNotFound = errors.New("file not found")
 var ErrMissingFileLink = errors.New("file link not in node")
 var ErrMissingDataLink = errors.New("data link not in node")
-
-type Keys map[string]string
-
-type Directory map[string]repo.File
 
 const FileLinkName = "f"
 const DataLinkName = "d"
@@ -43,7 +37,7 @@ type AddFileConfig struct {
 	Plaintext bool   `json:"plaintext"`
 }
 
-func (t *Textile) AddFileIndex(mill m.Mill, conf AddFileConfig) (*repo.File, error) {
+func (t *Textile) AddFileIndex(mill m.Mill, conf AddFileConfig) (*pb.FileIndex, error) {
 	var source string
 	if conf.Use != "" {
 		source = conf.Use
@@ -72,16 +66,16 @@ func (t *Textile) AddFileIndex(mill m.Mill, conf AddFileConfig) (*repo.File, err
 		return efile, nil
 	}
 
-	model := &repo.File{
+	model := &pb.FileIndex{
 		Mill:     mill.ID(),
 		Checksum: check,
 		Source:   source,
 		Opts:     opts,
 		Media:    conf.Media,
 		Name:     conf.Name,
-		Size:     len(res.File),
-		Added:    time.Now(),
-		Meta:     res.Meta,
+		Size:     int64(len(res.File)),
+		Added:    ptypes.TimestampNow(),
+		Meta:     pb.ToStruct(res.Meta),
 	}
 
 	var reader *bytes.Reader
@@ -127,7 +121,7 @@ func (t *Textile) GetMedia(reader io.Reader, mill m.Mill) (string, error) {
 	return media, mill.AcceptMedia(media)
 }
 
-func (t *Textile) AddSchema(jsonstr string, name string) (*repo.File, error) {
+func (t *Textile) AddSchema(jsonstr string, name string) (*pb.FileIndex, error) {
 	var node pb.Node
 	if err := jsonpb.UnmarshalString(jsonstr, &node); err != nil {
 		return nil, err
@@ -146,8 +140,8 @@ func (t *Textile) AddSchema(jsonstr string, name string) (*repo.File, error) {
 	})
 }
 
-func (t *Textile) AddNodeFromFiles(files []repo.File) (ipld.Node, Keys, error) {
-	keys := make(Keys)
+func (t *Textile) AddNodeFromFiles(files []*pb.FileIndex) (ipld.Node, *pb.Keys, error) {
+	keys := &pb.Keys{Files: make(map[string]string)}
 	outer := uio.NewDirectory(t.node.DAG)
 
 	for i, file := range files {
@@ -155,7 +149,7 @@ func (t *Textile) AddNodeFromFiles(files []repo.File) (ipld.Node, Keys, error) {
 		if err := t.fileNode(file, outer, link); err != nil {
 			return nil, nil, err
 		}
-		keys["/"+link+"/"] = file.Key
+		keys.Files["/"+link+"/"] = file.Key
 	}
 
 	node, err := outer.GetNode()
@@ -168,19 +162,19 @@ func (t *Textile) AddNodeFromFiles(files []repo.File) (ipld.Node, Keys, error) {
 	return node, keys, nil
 }
 
-func (t *Textile) AddNodeFromDirs(dirs []Directory) (ipld.Node, Keys, error) {
-	keys := make(Keys)
+func (t *Textile) AddNodeFromDirs(dirs *pb.DirectoryList) (ipld.Node, *pb.Keys, error) {
+	keys := &pb.Keys{Files: make(map[string]string)}
 	outer := uio.NewDirectory(t.node.DAG)
 
-	for i, dir := range dirs {
+	for i, dir := range dirs.Items {
 		inner := uio.NewDirectory(t.node.DAG)
 		olink := strconv.Itoa(i)
 
-		for link, file := range dir {
+		for link, file := range dir.Files {
 			if err := t.fileNode(file, inner, link); err != nil {
 				return nil, nil, err
 			}
-			keys["/"+olink+"/"+link+"/"] = file.Key
+			keys.Files["/"+olink+"/"+link+"/"] = file.Key
 		}
 
 		node, err := inner.GetNode()
@@ -207,7 +201,7 @@ func (t *Textile) AddNodeFromDirs(dirs []Directory) (ipld.Node, Keys, error) {
 	return node, keys, nil
 }
 
-func (t *Textile) FileIndex(hash string) (*repo.File, error) {
+func (t *Textile) FileIndex(hash string) (*pb.FileIndex, error) {
 	file := t.datastore.Files().Get(hash)
 	if file == nil {
 		return nil, ErrFileNotFound
@@ -215,7 +209,7 @@ func (t *Textile) FileIndex(hash string) (*repo.File, error) {
 	return file, nil
 }
 
-func (t *Textile) FileData(hash string) (io.ReadSeeker, *repo.File, error) {
+func (t *Textile) FileData(hash string) (io.ReadSeeker, *pb.FileIndex, error) {
 	file := t.datastore.Files().Get(hash)
 	if file == nil {
 		return nil, nil, ErrFileNotFound
@@ -242,15 +236,15 @@ func (t *Textile) FileData(hash string) (io.ReadSeeker, *repo.File, error) {
 	return bytes.NewReader(plaintext), file, nil
 }
 
-func (t *Textile) TargetNodeKeys(node ipld.Node) (Keys, error) {
-	keys := make(Keys)
+func (t *Textile) TargetNodeKeys(node ipld.Node) (*pb.Keys, error) {
+	keys := &pb.Keys{Files: make(map[string]string)}
 
 	for i, link := range node.Links() {
 		fn, err := ipfs.NodeAtLink(t.node, link)
 		if err != nil {
 			return nil, err
 		}
-		if err := t.fileNodeKeys(fn, i, &keys); err != nil {
+		if err := t.fileNodeKeys(fn, i, &keys.Files); err != nil {
 			return nil, err
 		}
 	}
@@ -258,7 +252,7 @@ func (t *Textile) TargetNodeKeys(node ipld.Node) (Keys, error) {
 	return keys, nil
 }
 
-func (t *Textile) fileNode(file repo.File, dir uio.Directory, link string) error {
+func (t *Textile) fileNode(file *pb.FileIndex, dir uio.Directory, link string) error {
 	if t.datastore.Files().Get(file.Hash) == nil {
 		return ErrFileNotFound
 	}
@@ -316,7 +310,7 @@ func (t *Textile) fileIndexForPair(pair ipld.Node) (*pb.FileIndex, error) {
 	if d == nil {
 		return nil, nil
 	}
-	return RepoFileToProto(t.datastore.Files().Get(d.Cid.Hash().B58String()))
+	return t.datastore.Files().Get(d.Cid.Hash().B58String()), nil
 }
 
 func (t *Textile) checksum(plaintext []byte, willEncrypt bool) string {
@@ -329,7 +323,7 @@ func (t *Textile) checksum(plaintext []byte, willEncrypt bool) string {
 	return base58.FastBase58Encoding(sum[:])
 }
 
-func (t *Textile) fileNodeKeys(node ipld.Node, index int, keys *Keys) error {
+func (t *Textile) fileNodeKeys(node ipld.Node, index int, keys *map[string]string) error {
 	vkeys := *keys
 
 	if looksLikeFileNode(node) {
@@ -384,50 +378,4 @@ func looksLikeFileNode(node ipld.Node) bool {
 		return false
 	}
 	return true
-}
-
-// tmp
-func RepoFileToProto(file *repo.File) (*pb.FileIndex, error) {
-	added, err := ptypes.TimestampProto(file.Added)
-	if err != nil {
-		return nil, err
-	}
-
-	return &pb.FileIndex{
-		Mill:     file.Mill,
-		Checksum: file.Checksum,
-		Source:   file.Source,
-		Opts:     file.Opts,
-		Hash:     file.Hash,
-		Key:      file.Key,
-		Media:    file.Media,
-		Name:     file.Name,
-		Size:     int64(file.Size),
-		Added:    added,
-		Meta:     pb.ToStruct(file.Meta),
-		Targets:  file.Targets,
-	}, nil
-}
-
-// tmp
-func ProtoFileToRepo(file *pb.FileIndex) (*repo.File, error) {
-	added, err := ptypes.Timestamp(file.Added)
-	if err != nil {
-		return nil, err
-	}
-
-	return &repo.File{
-		Mill:     file.Mill,
-		Checksum: file.Checksum,
-		Source:   file.Source,
-		Opts:     file.Opts,
-		Hash:     file.Hash,
-		Key:      file.Key,
-		Media:    file.Media,
-		Name:     file.Name,
-		Size:     int(file.Size),
-		Added:    added,
-		Meta:     pb.ToMap(file.Meta),
-		Targets:  file.Targets,
-	}, nil
 }

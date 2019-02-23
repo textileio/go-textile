@@ -7,3 +7,7 @@ message MobilePreparedFiles {
     Directory dir           = 1;
     map<string, string> pin = 2;
 }
+
+message MobileFileData {
+    string url = 1;
+}

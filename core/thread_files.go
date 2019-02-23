@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/crypto"
@@ -23,7 +25,7 @@ import (
 )
 
 // AddFile adds an outgoing files block
-func (t *Thread) AddFiles(node ipld.Node, caption string, keys Keys) (mh.Multihash, error) {
+func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
@@ -171,8 +173,8 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 				plaintext = fd
 			}
 
-			var file repo.File
-			if err := json.Unmarshal(plaintext, &file); err != nil {
+			var file pb.FileIndex
+			if err := jsonpb.Unmarshal(bytes.NewReader(plaintext), &file); err != nil {
 				return nil, err
 			}
 
@@ -243,7 +245,7 @@ func (t *Thread) removeFiles(node ipld.Node) error {
 }
 
 // processFileNode walks a file node, validating and applying a dag schema
-func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys Keys, inbound bool) error {
+func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys map[string]string, inbound bool) error {
 	hash := inode.Cid().Hash().B58String()
 	if err := t.cafeOutbox.Add(hash, repo.CafeStoreRequest); err != nil {
 		return err

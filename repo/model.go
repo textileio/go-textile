@@ -6,21 +6,6 @@ import (
 	"github.com/textileio/textile-go/pb"
 )
 
-type File struct {
-	Mill     string                 `json:"mill"`
-	Checksum string                 `json:"checksum"`
-	Source   string                 `json:"source"`
-	Opts     string                 `json:"opts,omitempty"`
-	Hash     string                 `json:"hash"`
-	Key      string                 `json:"key,omitempty"`
-	Media    string                 `json:"media"`
-	Name     string                 `json:"name,omitempty"`
-	Size     int                    `json:"size"`
-	Added    time.Time              `json:"added"`
-	Meta     map[string]interface{} `json:"meta,omitempty"`
-	Targets  []string               `json:"targets,omitempty"`
-}
-
 type ThreadPeer struct {
 	Id       string `json:"id"`
 	ThreadId string `json:"thread_id"`

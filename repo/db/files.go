@@ -1,14 +1,18 @@
 package db
 
 import (
+	"bytes"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/ptypes/struct"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 )
 
 type FileDB struct {
@@ -19,7 +23,7 @@ func NewFileStore(db *sql.DB, lock *sync.Mutex) repo.FileStore {
 	return &FileDB{modelStore{db, lock}}
 }
 
-func (c *FileDB) Add(file *repo.File) error {
+func (c *FileDB) Add(file *pb.FileIndex) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -34,9 +38,11 @@ func (c *FileDB) Add(file *repo.File) error {
 	}
 	defer stmt.Close()
 
-	var meta []byte
+	var meta string
+	marshaler := jsonpb.Marshaler{}
 	if file.Meta != nil {
-		meta, err = json.Marshal(file.Meta)
+		var err error
+		meta, err = marshaler.MarshalToString(file.Meta)
 		if err != nil {
 			return err
 		}
@@ -46,6 +52,13 @@ func (c *FileDB) Add(file *repo.File) error {
 	if len(file.Targets) > 0 {
 		tmp := strings.Join(file.Targets, ",")
 		targets = &tmp
+	}
+
+	var added int64
+	if file.Added == nil {
+		added = time.Now().UnixNano()
+	} else {
+		added = util.ProtoNanos(file.Added)
 	}
 
 	_, err = stmt.Exec(
@@ -58,8 +71,8 @@ func (c *FileDB) Add(file *repo.File) error {
 		file.Media,
 		file.Name,
 		file.Size,
-		file.Added.UnixNano(),
-		meta,
+		added,
+		[]byte(meta),
 		targets,
 	)
 	if err != nil {
@@ -71,7 +84,7 @@ func (c *FileDB) Add(file *repo.File) error {
 	return nil
 }
 
-func (c *FileDB) Get(hash string) *repo.File {
+func (c *FileDB) Get(hash string) *pb.FileIndex {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	ret := c.handleQuery("select * from files where hash='" + hash + "';")
@@ -81,7 +94,7 @@ func (c *FileDB) Get(hash string) *repo.File {
 	return &ret[0]
 }
 
-func (c *FileDB) GetByPrimary(mill string, checksum string) *repo.File {
+func (c *FileDB) GetByPrimary(mill string, checksum string) *pb.FileIndex {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	ret := c.handleQuery("select * from files where mill='" + mill + "' and checksum='" + checksum + "';")
@@ -91,7 +104,7 @@ func (c *FileDB) GetByPrimary(mill string, checksum string) *repo.File {
 	return &ret[0]
 }
 
-func (c *FileDB) GetBySource(mill string, source string, opts string) *repo.File {
+func (c *FileDB) GetBySource(mill string, source string, opts string) *pb.FileIndex {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	ret := c.handleQuery("select * from files where mill='" + mill + "' and source='" + source + "' and opts='" + opts + "';")
@@ -169,8 +182,8 @@ func (c *FileDB) Delete(hash string) error {
 	return err
 }
 
-func (c *FileDB) handleQuery(stm string) []repo.File {
-	var res []repo.File
+func (c *FileDB) handleQuery(stm string) []pb.FileIndex {
+	var list []pb.FileIndex
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -178,7 +191,7 @@ func (c *FileDB) handleQuery(stm string) []repo.File {
 	}
 	for rows.Next() {
 		var mill, checksum, source, opts, hash, key, media, name string
-		var size int
+		var size int64
 		var addedInt int64
 		var metab []byte
 		var targets *string
@@ -188,9 +201,9 @@ func (c *FileDB) handleQuery(stm string) []repo.File {
 			continue
 		}
 
-		var meta map[string]interface{}
+		meta := &structpb.Struct{}
 		if metab != nil {
-			if err := json.Unmarshal(metab, &meta); err != nil {
+			if err := jsonpb.Unmarshal(bytes.NewReader(metab), meta); err != nil {
 				log.Errorf("failed to unmarshal file meta: %s", err)
 				continue
 			}
@@ -198,14 +211,10 @@ func (c *FileDB) handleQuery(stm string) []repo.File {
 
 		tlist := make([]string, 0)
 		if targets != nil {
-			for _, t := range strings.Split(*targets, ",") {
-				if t != "" {
-					tlist = append(tlist, t)
-				}
-			}
+			tlist = util.SplitString(*targets, ",")
 		}
 
-		res = append(res, repo.File{
+		list = append(list, pb.FileIndex{
 			Mill:     mill,
 			Checksum: checksum,
 			Source:   source,
@@ -215,17 +224,17 @@ func (c *FileDB) handleQuery(stm string) []repo.File {
 			Media:    media,
 			Name:     name,
 			Size:     size,
-			Added:    time.Unix(0, addedInt),
+			Added:    util.ProtoTs(addedInt),
 			Meta:     meta,
 			Targets:  tlist,
 		})
 	}
 
-	return res
+	return list
 }
 
 func (c *FileDB) handleTargetsQuery(stm string) [][]string {
-	var res [][]string
+	var list [][]string
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -241,17 +250,13 @@ func (c *FileDB) handleTargetsQuery(stm string) [][]string {
 
 		tlist := make([]string, 0)
 		if targets != nil {
-			for _, t := range strings.Split(*targets, ",") {
-				if t != "" {
-					tlist = append(tlist, t)
-				}
-			}
+			tlist = util.SplitString(*targets, ",")
 		}
 
-		res = append(res, tlist)
+		list = append(list, tlist)
 	}
 
-	return res
+	return list
 }
 
 func targetExists(t string, list []string) bool {

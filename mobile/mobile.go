@@ -6,6 +6,7 @@ import (
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
@@ -243,13 +244,13 @@ func (m *Mobile) OnlineCh() <-chan struct{} {
 	return m.node.OnlineCh()
 }
 
-// blockInfo returns json info view of a block
-func (m *Mobile) blockInfo(hash mh.Multihash) (string, error) {
-	info, err := m.node.BlockView(hash.B58String())
+// blockView returns marshaled view of a block
+func (m *Mobile) blockView(hash mh.Multihash) ([]byte, error) {
+	view, err := m.node.BlockView(hash.B58String())
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return toJSON(info)
+	return proto.Marshal(view)
 }
 
 // toJSON returns a json string and logs errors
