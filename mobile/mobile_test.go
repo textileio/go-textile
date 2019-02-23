@@ -560,8 +560,8 @@ func TestMobile_Summary(t *testing.T) {
 		t.Errorf("get summary failed: %s", err)
 		return
 	}
-	stats := core.Summary{}
-	if err := json.Unmarshal([]byte(res), &stats); err != nil {
+	summary := new(pb.Summary)
+	if err := proto.Unmarshal(res, summary); err != nil {
 		t.Error(err)
 	}
 }

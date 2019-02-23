@@ -11,7 +11,7 @@ import (
 // @Description Gets the local node's public profile
 // @Tags profile
 // @Produce application/json
-// @Success 200 {object} repo.Contact "Contact info"
+// @Success 200 {object} pb.Contact "contact"
 // @Failure 400 {string} string "Bad Request"
 // @Router /profile [get]
 func (a *api) getProfile(g *gin.Context) {
@@ -20,7 +20,7 @@ func (a *api) getProfile(g *gin.Context) {
 		g.String(http.StatusBadRequest, "profile is not set")
 		return
 	}
-	g.JSON(http.StatusOK, profile)
+	pbJSON(g, http.StatusOK, profile)
 }
 
 // setUsername godoc

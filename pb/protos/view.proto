@@ -184,3 +184,12 @@ message Like {
 message LikeList {
     repeated Like items = 1;
 }
+
+// SUMMARY //
+
+message Summary {
+    int32 account_peer_count = 1;
+    int32 thread_count = 2;
+    int32 file_count = 3;
+    int32 contact_count = 4;
+}

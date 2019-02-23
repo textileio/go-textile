@@ -57,7 +57,7 @@ func (a *api) addCafes(g *gin.Context) {
 // @Description who offer pinning, backup, and inbox services
 // @Tags cafes
 // @Produce application/json
-// @Success 200 {object} pb.CafeSessions "cafe sessions"
+// @Success 200 {object} pb.CafeSessionList "cafe sessions"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /cafes [get]
 func (a *api) lsCafes(g *gin.Context) {

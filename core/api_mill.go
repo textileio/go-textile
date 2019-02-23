@@ -16,7 +16,7 @@ import (
 // @Accept application/json
 // @Produce application/json
 // @Param schema body pb.Node true "schema"
-// @Success 201 {object} repo.File "file"
+// @Success 201 {object} pb.FileIndex "file"
 // @Failure 400 {string} string "Bad Request"
 // @Router /mills/schema [post]
 func (a *api) schemaMill(g *gin.Context) {

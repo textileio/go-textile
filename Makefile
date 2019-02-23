@@ -71,4 +71,5 @@ protos_ts:
 	cd mobile; node node_modules/@textile/protobufjs/cli/bin/pbts -o dist/index.d.ts dist/index.js
 
 build_docs:
+	go get github.com/swaggo/swag/cmd/swag
 	swag init -g core/api.go

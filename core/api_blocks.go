@@ -17,7 +17,7 @@ import (
 // @Tags blocks
 // @Produce application/json
 // @Param X-Textile-Opts header string false "thread: Thread ID (can also use 'default'), offset: Offset ID to start listing from (omit for latest), limit: List page size (default: 5)" default(thread=,offset=,limit=5)
-// @Success 200 {array} core.BlockInfo "blocks"
+// @Success 200 {object} pb.BlockList "blocks"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
@@ -68,7 +68,7 @@ func (a *api) lsBlocks(g *gin.Context) {
 // @Tags blocks
 // @Produce application/json
 // @Param id path string true "block id"
-// @Success 200 {object} core.BlockInfo "block"
+// @Success 200 {object} pb.Block "block"
 // @Failure 404 {string} string "Not Found"
 // @Router /blocks/{id} [get]
 func (a *api) getBlocks(g *gin.Context) {
@@ -89,7 +89,7 @@ func (a *api) getBlocks(g *gin.Context) {
 // @Tags blocks
 // @Produce application/json
 // @Param id path string true "block id"
-// @Success 201 {object} core.BlockInfo "block"
+// @Success 201 {object} pb.Block "block"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"

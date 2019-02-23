@@ -153,7 +153,7 @@ func (a *api) lsThreadFiles(g *gin.Context) {
 // @Tags files
 // @Produce application/json
 // @Param block path string true "block id"
-// @Success 200 {object} pb.FileList "file"
+// @Success 200 {object} pb.FileIndex "file"
 // @Failure 400 {string} string "Bad Request"
 // @Router /files/{block} [get]
 func (a *api) getThreadFiles(g *gin.Context) {

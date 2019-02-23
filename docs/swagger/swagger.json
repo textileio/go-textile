@@ -61,10 +61,8 @@
                     "200": {
                         "description": "backup stream",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "integer"
-                            }
+                            "type": "object",
+                            "$ref": "#/definitions/pb.QueryResult"
                         }
                     },
                     "400": {
@@ -96,10 +94,8 @@
                     "200": {
                         "description": "peers",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/core.ContactInfo"
-                            }
+                            "type": "object",
+                            "$ref": "#/definitions/pb.ContactList"
                         }
                     },
                     "400": {
@@ -134,10 +130,8 @@
                     "200": {
                         "description": "blocks",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/core.BlockInfo"
-                            }
+                            "type": "object",
+                            "$ref": "#/definitions/pb.BlockList"
                         }
                     },
                     "400": {
@@ -185,7 +179,7 @@
                         "description": "block",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/core.BlockInfo"
+                            "$ref": "#/definitions/pb.Block"
                         }
                     },
                     "404": {
@@ -219,7 +213,7 @@
                         "description": "block",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/core.BlockInfo"
+                            "$ref": "#/definitions/pb.Block"
                         }
                     },
                     "400": {
@@ -501,7 +495,7 @@
                         "description": "cafe sessions",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/pb.CafeSessions"
+                            "$ref": "#/definitions/pb.CafeSessionList"
                         }
                     },
                     "500": {
@@ -793,10 +787,8 @@
                     "200": {
                         "description": "contacts",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/core.ContactInfo"
-                            }
+                            "type": "object",
+                            "$ref": "#/definitions/pb.ContactList"
                         }
                     },
                     "404": {
@@ -835,10 +827,10 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "contact stream",
+                        "description": "results stream",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/mill.Json"
+                            "$ref": "#/definitions/pb.QueryResult"
                         }
                     },
                     "404": {
@@ -877,10 +869,10 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "contacts",
+                        "description": "contact",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/core.ContactInfo"
+                            "$ref": "#/definitions/pb.Contact"
                         }
                     },
                     "404": {
@@ -918,7 +910,7 @@
                         "required": true,
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/repo.Contact"
+                            "$ref": "#/definitions/pb.Contact"
                         }
                     }
                 ],
@@ -1097,7 +1089,7 @@
                         "description": "file",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/pb.Files"
+                            "$ref": "#/definitions/pb.FileIndex"
                         }
                     },
                     "400": {
@@ -1123,10 +1115,8 @@
                     "200": {
                         "description": "invites",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/core.ThreadInviteInfo"
-                            }
+                            "type": "object",
+                            "$ref": "#/definitions/pb.InviteViewList"
                         }
                     }
                 }
@@ -1154,7 +1144,7 @@
                         "description": "invite",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/core.InviteInfo"
+                            "$ref": "#/definitions/pb.NewInvite"
                         }
                     },
                     "400": {
@@ -1209,7 +1199,7 @@
                         "description": "join block",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/core.BlockInfo"
+                            "$ref": "#/definitions/pb.Block"
                         }
                     },
                     "400": {
@@ -1467,7 +1457,7 @@
                         "description": "keys",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/core.Keys"
+                            "$ref": "#/definitions/pb.Keys"
                         }
                     },
                     "400": {
@@ -1644,7 +1634,7 @@
                         "description": "file",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/repo.File"
+                            "$ref": "#/definitions/pb.FileIndex"
                         }
                     },
                     "400": {
@@ -1695,7 +1685,7 @@
                         "description": "file",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/repo.File"
+                            "$ref": "#/definitions/pb.FileIndex"
                         }
                     },
                     "400": {
@@ -1747,7 +1737,7 @@
                         "description": "file",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/repo.File"
+                            "$ref": "#/definitions/pb.FileIndex"
                         }
                     },
                     "400": {
@@ -1798,7 +1788,7 @@
                         "description": "file",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/repo.File"
+                            "$ref": "#/definitions/pb.FileIndex"
                         }
                     },
                     "400": {
@@ -1837,7 +1827,7 @@
                         "required": true,
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/schema.Node"
+                            "$ref": "#/definitions/pb.Node"
                         }
                     }
                 ],
@@ -1846,7 +1836,7 @@
                         "description": "file",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/repo.File"
+                            "$ref": "#/definitions/pb.FileIndex"
                         }
                     },
                     "400": {
@@ -1969,10 +1959,10 @@
                 "summary": "Get public profile",
                 "responses": {
                     "200": {
-                        "description": "Contact info",
+                        "description": "contact",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/repo.Contact"
+                            "$ref": "#/definitions/pb.Contact"
                         }
                     },
                     "400": {
@@ -2110,7 +2100,7 @@
         },
         "/threads": {
             "get": {
-                "description": "Lists all local threads, returning an array of ThreadInfo objects",
+                "description": "Lists all local threads, returning a ThreadList object",
                 "produces": [
                     "application/json"
                 ],
@@ -2122,10 +2112,8 @@
                     "200": {
                         "description": "threads",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/core.ThreadInfo"
-                            }
+                            "type": "object",
+                            "$ref": "#/definitions/pb.ThreadList"
                         }
                     },
                     "400": {
@@ -2143,7 +2131,7 @@
                 }
             },
             "post": {
-                "description": "Adds a new Thread with given name, type, and sharing and members options, returning\na ThreadInfo object",
+                "description": "Adds a new Thread with given name, type, and sharing and members options, returning\na Thread object",
                 "produces": [
                     "application/json"
                 ],
@@ -2172,7 +2160,7 @@
                         "description": "thread",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/core.ThreadInfo"
+                            "$ref": "#/definitions/pb.Thread"
                         }
                     },
                     "400": {
@@ -2214,7 +2202,7 @@
                         "description": "thread",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/core.ThreadInfo"
+                            "$ref": "#/definitions/pb.Thread"
                         }
                     },
                     "400": {
@@ -2328,7 +2316,7 @@
                         "required": true,
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/core.Directory"
+                            "$ref": "#/definitions/pb.Directory"
                         }
                     },
                     {
@@ -2344,7 +2332,7 @@
                         "description": "block",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/core.BlockInfo"
+                            "$ref": "#/definitions/pb.Block"
                         }
                     },
                     "400": {
@@ -2439,10 +2427,8 @@
                     "200": {
                         "description": "contacts",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/core.ContactInfo"
-                            }
+                            "type": "object",
+                            "$ref": "#/definitions/pb.ContactList"
                         }
                     },
                     "404": {
@@ -2592,134 +2578,6 @@
         }
     },
     "definitions": {
-        "core.BlockInfo": {
-            "type": "object",
-            "properties": {
-                "author_id": {
-                    "type": "string"
-                },
-                "avatar": {
-                    "type": "string"
-                },
-                "body": {
-                    "type": "string"
-                },
-                "date": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "parents": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "target": {
-                    "type": "string"
-                },
-                "thread_id": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "core.ContactInfo": {
-            "type": "object",
-            "properties": {
-                "address": {
-                    "type": "string"
-                },
-                "avatar": {
-                    "type": "string"
-                },
-                "created": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "inboxes": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/repo.Cafe"
-                    }
-                },
-                "thread_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "updated": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "core.Directory": {
-            "type": "object",
-            "additionalProperties": {
-                "type": "object",
-                "properties": {
-                    "added": {
-                        "type": "string"
-                    },
-                    "checksum": {
-                        "type": "string"
-                    },
-                    "hash": {
-                        "type": "string"
-                    },
-                    "key": {
-                        "type": "string"
-                    },
-                    "media": {
-                        "type": "string"
-                    },
-                    "meta": {
-                        "type": "object"
-                    },
-                    "mill": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "opts": {
-                        "type": "string"
-                    },
-                    "size": {
-                        "type": "integer"
-                    },
-                    "source": {
-                        "type": "string"
-                    },
-                    "targets": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "core.InviteInfo": {
-            "type": "object",
-            "additionalProperties": {}
-        },
-        "core.Keys": {
-            "type": "object",
-            "additionalProperties": {}
-        },
         "core.NotificationInfo": {
             "type": "object",
             "properties": {
@@ -2765,84 +2623,12 @@
             "type": "object",
             "additionalProperties": {}
         },
-        "core.ThreadInfo": {
-            "type": "object",
-            "properties": {
-                "block_cnt": {
-                    "type": "integer"
-                },
-                "file_cnt": {
-                    "type": "integer"
-                },
-                "head": {
-                    "type": "object",
-                    "$ref": "#/definitions/core.BlockInfo"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "initiator": {
-                    "type": "string"
-                },
-                "key": {
-                    "type": "string"
-                },
-                "members": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "name": {
-                    "type": "string"
-                },
-                "peer_cnt": {
-                    "type": "integer"
-                },
-                "schema": {
-                    "type": "object",
-                    "$ref": "#/definitions/schema.Node"
-                },
-                "schema_id": {
-                    "type": "string"
-                },
-                "sharing": {
-                    "type": "string"
-                },
-                "state": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                }
-            }
-        },
-        "core.ThreadInviteInfo": {
-            "type": "object",
-            "properties": {
-                "avatar": {
-                    "type": "string"
-                },
-                "date": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
         "core.ThreadUpdate": {
             "type": "object",
             "properties": {
                 "block": {
                     "type": "object",
-                    "$ref": "#/definitions/core.BlockInfo"
+                    "$ref": "#/definitions/pb.Block"
                 },
                 "info": {
                     "type": "object"
@@ -2906,6 +2692,54 @@
         "mill.Json": {
             "type": "object"
         },
+        "pb.Block": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "type": "string"
+                },
+                "body": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "parents": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "target": {
+                    "type": "string"
+                },
+                "thread": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "integer"
+                },
+                "user": {
+                    "description": "view info",
+                    "type": "object",
+                    "$ref": "#/definitions/pb.User"
+                }
+            }
+        },
+        "pb.BlockList": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pb.Block"
+                    }
+                }
+            }
+        },
         "pb.Cafe": {
             "type": "object",
             "properties": {
@@ -2965,10 +2799,10 @@
                 }
             }
         },
-        "pb.CafeSessions": {
+        "pb.CafeSessionList": {
             "type": "object",
             "properties": {
-                "values": {
+                "items": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/pb.CafeSession"
@@ -2979,12 +2813,6 @@
         "pb.Comment": {
             "type": "object",
             "properties": {
-                "author": {
-                    "type": "string"
-                },
-                "avatar": {
-                    "type": "string"
-                },
                 "body": {
                     "type": "string"
                 },
@@ -2998,8 +2826,9 @@
                     "type": "object",
                     "$ref": "#/definitions/pb.FeedItem"
                 },
-                "username": {
-                    "type": "string"
+                "user": {
+                    "type": "object",
+                    "$ref": "#/definitions/pb.User"
                 }
             }
         },
@@ -3011,6 +2840,61 @@
                     "items": {
                         "$ref": "#/definitions/pb.Comment"
                     }
+                }
+            }
+        },
+        "pb.Contact": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "avatar": {
+                    "type": "string"
+                },
+                "created": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "inboxes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pb.Cafe"
+                    }
+                },
+                "threads": {
+                    "description": "view info",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "updated": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "pb.ContactList": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pb.Contact"
+                    }
+                }
+            }
+        },
+        "pb.Directory": {
+            "type": "object",
+            "properties": {
+                "files": {
+                    "type": "object"
                 }
             }
         },
@@ -3107,12 +2991,6 @@
         "pb.Files": {
             "type": "object",
             "properties": {
-                "author": {
-                    "type": "string"
-                },
-                "avatar": {
-                    "type": "string"
-                },
                 "block": {
                     "type": "string"
                 },
@@ -3149,8 +3027,9 @@
                         "type": "string"
                     }
                 },
-                "username": {
-                    "type": "string"
+                "user": {
+                    "type": "object",
+                    "$ref": "#/definitions/pb.User"
                 }
             }
         },
@@ -3165,15 +3044,46 @@
                 }
             }
         },
+        "pb.InviteView": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "inviter": {
+                    "type": "object",
+                    "$ref": "#/definitions/pb.User"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "pb.InviteViewList": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pb.InviteView"
+                    }
+                }
+            }
+        },
+        "pb.Keys": {
+            "type": "object",
+            "properties": {
+                "files": {
+                    "type": "object"
+                }
+            }
+        },
         "pb.Like": {
             "type": "object",
             "properties": {
-                "author": {
-                    "type": "string"
-                },
-                "avatar": {
-                    "type": "string"
-                },
                 "date": {
                     "type": "string"
                 },
@@ -3184,8 +3094,9 @@
                     "type": "object",
                     "$ref": "#/definitions/pb.FeedItem"
                 },
-                "username": {
-                    "type": "string"
+                "user": {
+                    "type": "object",
+                    "$ref": "#/definitions/pb.User"
                 }
             }
         },
@@ -3200,15 +3111,66 @@
                 }
             }
         },
+        "pb.NewInvite": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "inviter": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                }
+            }
+        },
+        "pb.Node": {
+            "type": "object",
+            "properties": {
+                "json_schema": {
+                    "type": "string"
+                },
+                "links": {
+                    "type": "object"
+                },
+                "mill": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "opts": {
+                    "type": "object"
+                },
+                "pin": {
+                    "type": "boolean"
+                },
+                "plaintext": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "pb.QueryResult": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "local": {
+                    "type": "boolean"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
         "pb.Text": {
             "type": "object",
             "properties": {
-                "author": {
-                    "type": "string"
-                },
-                "avatar": {
-                    "type": "string"
-                },
                 "block": {
                     "type": "string"
                 },
@@ -3230,8 +3192,9 @@
                         "$ref": "#/definitions/pb.Like"
                     }
                 },
-                "username": {
-                    "type": "string"
+                "user": {
+                    "type": "object",
+                    "$ref": "#/definitions/pb.User"
                 }
             }
         },
@@ -3249,8 +3212,16 @@
         "pb.Thread": {
             "type": "object",
             "properties": {
+                "block_count": {
+                    "type": "integer"
+                },
                 "head": {
                     "type": "string"
+                },
+                "head_block": {
+                    "description": "view info",
+                    "type": "object",
+                    "$ref": "#/definitions/pb.Block"
                 },
                 "id": {
                     "type": "string"
@@ -3270,8 +3241,15 @@
                 "name": {
                     "type": "string"
                 },
+                "peer_count": {
+                    "type": "integer"
+                },
                 "schema": {
                     "type": "string"
+                },
+                "schema_node": {
+                    "type": "object",
+                    "$ref": "#/definitions/pb.Node"
                 },
                 "sharing": {
                     "type": "integer"
@@ -3290,36 +3268,18 @@
                 }
             }
         },
-        "repo.Cafe": {
+        "pb.ThreadList": {
             "type": "object",
             "properties": {
-                "address": {
-                    "type": "string"
-                },
-                "api": {
-                    "type": "string"
-                },
-                "node": {
-                    "type": "string"
-                },
-                "peer": {
-                    "type": "string"
-                },
-                "protocol": {
-                    "type": "string"
-                },
-                "swarm": {
+                "items": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/pb.Thread"
                     }
-                },
-                "url": {
-                    "type": "string"
                 }
             }
         },
-        "repo.Contact": {
+        "pb.User": {
             "type": "object",
             "properties": {
                 "address": {
@@ -3328,93 +3288,8 @@
                 "avatar": {
                     "type": "string"
                 },
-                "created": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "inboxes": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/repo.Cafe"
-                    }
-                },
-                "updated": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "repo.File": {
-            "type": "object",
-            "properties": {
-                "added": {
-                    "type": "string"
-                },
-                "checksum": {
-                    "type": "string"
-                },
-                "hash": {
-                    "type": "string"
-                },
-                "key": {
-                    "type": "string"
-                },
-                "media": {
-                    "type": "string"
-                },
-                "meta": {
-                    "type": "object"
-                },
-                "mill": {
-                    "type": "string"
-                },
                 "name": {
                     "type": "string"
-                },
-                "opts": {
-                    "type": "string"
-                },
-                "size": {
-                    "type": "integer"
-                },
-                "source": {
-                    "type": "string"
-                },
-                "targets": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "schema.Node": {
-            "type": "object",
-            "properties": {
-                "json_schema": {
-                    "type": "object"
-                },
-                "links": {
-                    "type": "object"
-                },
-                "mill": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "opts": {
-                    "type": "object"
-                },
-                "pin": {
-                    "type": "boolean"
-                },
-                "plaintext": {
-                    "type": "boolean"
                 }
             }
         }
