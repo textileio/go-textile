@@ -3,6 +3,7 @@ option go_package = "pb";
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
+import "message.proto";
 
 // CONTACTS //
 
@@ -77,6 +78,14 @@ message ThreadList {
     repeated Thread items = 1;
 }
 
+message ThreadPeer {
+    string id     = 1;
+    string thread = 2;
+    bool welcomed = 3;
+}
+
+// BLOCKS //
+
 message Block {
     string id                      = 1;
     string thread                  = 2;
@@ -107,6 +116,13 @@ message Block {
 
 message BlockList {
     repeated Block items = 1;
+}
+
+message BlockMessage {
+    string id                      = 1;
+    string thread                  = 2;
+    Envelope env                   = 3;
+    google.protobuf.Timestamp date = 4;
 }
 
 // INVITES //
@@ -159,7 +175,33 @@ message Link {
     google.protobuf.Struct json_schema = 6;
 }
 
-// CAFES //
+// NOTIFICATIONS
+
+message Notification {
+    string id                      = 1;
+    google.protobuf.Timestamp date = 2;
+    string actor                   = 3;
+    string subject                 = 4;
+    string subject_desc            = 5;
+    string block                   = 6;
+    string target                  = 7;
+    Type type                      = 8;
+    string body                    = 9;
+    bool read                      = 10;
+
+    enum Type {
+        INVITE_RECEIVED     = 0;
+        ACCOUNT_PEER_JOINED = 1;
+        PEER_JOINED         = 2;
+        PEER_LEFT           = 3;
+        MESSAGE_ADDED       = 4;
+        FILES_ADDED         = 5;
+        COMMENT_ADDED       = 6;
+        LIKE_ADDED          = 7;
+    }
+}
+
+// CAFE CLIENT //
 
 message Cafe {
     string peer           = 1;
@@ -184,4 +226,61 @@ message CafeSession {
 
 message CafeSessionList {
     repeated CafeSession items = 1;
+}
+
+// CAFE HOST //
+
+message CafeRequest {
+    string id                      = 1;
+    string peer                    = 2;
+    string target                  = 3;
+    Cafe cafe                      = 4;
+    Type type                      = 5;
+    google.protobuf.Timestamp date = 6;
+
+    enum Type {
+        STORE        = 0;
+        STORE_THREAD = 1;
+        INBOX        = 2;
+    }
+}
+
+message CafeMessage {
+    string id                      = 1;
+    string peer                    = 2;
+    google.protobuf.Timestamp date = 3;
+    int32 attempts                 = 4;
+}
+
+message CafeClientNonce {
+    string value                   = 1;
+    string address                 = 2;
+    google.protobuf.Timestamp date = 3;
+}
+
+message CafeClient {
+    string id                         = 1;
+    string address                    = 2;
+    google.protobuf.Timestamp created = 3;
+    google.protobuf.Timestamp seen    = 4;
+    string token                      = 5;
+}
+
+message CafeToken {
+    string id                      = 1;
+    bytes value                    = 2;
+    google.protobuf.Timestamp date = 3;
+}
+
+message CafeClientThread {
+    string id        = 1;
+    string client  = 2;
+    bytes ciphertext = 3; // encrypted Thread
+}
+
+message CafeClientMessage {
+    string id                      = 1;
+    string peer                    = 2;
+    string client                  = 3;
+    google.protobuf.Timestamp date = 4;
 }

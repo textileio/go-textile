@@ -2220,247 +2220,6 @@ export const CafeStoreThread = $root.CafeStoreThread = (() => {
     return CafeStoreThread;
 })();
 
-export const CafeClientThread = $root.CafeClientThread = (() => {
-
-    /**
-     * Properties of a CafeClientThread.
-     * @exports ICafeClientThread
-     * @interface ICafeClientThread
-     * @property {string} id CafeClientThread id
-     * @property {string} clientId CafeClientThread clientId
-     * @property {Uint8Array} ciphertext CafeClientThread ciphertext
-     */
-
-    /**
-     * Constructs a new CafeClientThread.
-     * @exports CafeClientThread
-     * @classdesc Represents a CafeClientThread.
-     * @implements ICafeClientThread
-     * @constructor
-     * @param {ICafeClientThread=} [properties] Properties to set
-     */
-    function CafeClientThread(properties) {
-        if (properties)
-            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                if (properties[keys[i]] != null)
-                    this[keys[i]] = properties[keys[i]];
-    }
-
-    /**
-     * CafeClientThread id.
-     * @member {string} id
-     * @memberof CafeClientThread
-     * @instance
-     */
-    CafeClientThread.prototype.id = "";
-
-    /**
-     * CafeClientThread clientId.
-     * @member {string} clientId
-     * @memberof CafeClientThread
-     * @instance
-     */
-    CafeClientThread.prototype.clientId = "";
-
-    /**
-     * CafeClientThread ciphertext.
-     * @member {Uint8Array} ciphertext
-     * @memberof CafeClientThread
-     * @instance
-     */
-    CafeClientThread.prototype.ciphertext = $util.newBuffer([]);
-
-    /**
-     * Creates a new CafeClientThread instance using the specified properties.
-     * @function create
-     * @memberof CafeClientThread
-     * @static
-     * @param {ICafeClientThread=} [properties] Properties to set
-     * @returns {CafeClientThread} CafeClientThread instance
-     */
-    CafeClientThread.create = function create(properties) {
-        return new CafeClientThread(properties);
-    };
-
-    /**
-     * Encodes the specified CafeClientThread message. Does not implicitly {@link CafeClientThread.verify|verify} messages.
-     * @function encode
-     * @memberof CafeClientThread
-     * @static
-     * @param {ICafeClientThread} message CafeClientThread message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    CafeClientThread.encode = function encode(message, writer) {
-        if (!writer)
-            writer = $Writer.create();
-        if (message.id != null && message.hasOwnProperty("id"))
-            writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
-        if (message.clientId != null && message.hasOwnProperty("clientId"))
-            writer.uint32(/* id 2, wireType 2 =*/18).string(message.clientId);
-        if (message.ciphertext != null && message.hasOwnProperty("ciphertext"))
-            writer.uint32(/* id 3, wireType 2 =*/26).bytes(message.ciphertext);
-        return writer;
-    };
-
-    /**
-     * Encodes the specified CafeClientThread message, length delimited. Does not implicitly {@link CafeClientThread.verify|verify} messages.
-     * @function encodeDelimited
-     * @memberof CafeClientThread
-     * @static
-     * @param {ICafeClientThread} message CafeClientThread message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    CafeClientThread.encodeDelimited = function encodeDelimited(message, writer) {
-        return this.encode(message, writer).ldelim();
-    };
-
-    /**
-     * Decodes a CafeClientThread message from the specified reader or buffer.
-     * @function decode
-     * @memberof CafeClientThread
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @param {number} [length] Message length if known beforehand
-     * @returns {CafeClientThread} CafeClientThread
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    CafeClientThread.decode = function decode(reader, length) {
-        if (!(reader instanceof $Reader))
-            reader = $Reader.create(reader);
-        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.CafeClientThread();
-        while (reader.pos < end) {
-            let tag = reader.uint32();
-            switch (tag >>> 3) {
-            case 1:
-                message.id = reader.string();
-                break;
-            case 2:
-                message.clientId = reader.string();
-                break;
-            case 3:
-                message.ciphertext = reader.bytes();
-                break;
-            default:
-                reader.skipType(tag & 7);
-                break;
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Decodes a CafeClientThread message from the specified reader or buffer, length delimited.
-     * @function decodeDelimited
-     * @memberof CafeClientThread
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @returns {CafeClientThread} CafeClientThread
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    CafeClientThread.decodeDelimited = function decodeDelimited(reader) {
-        if (!(reader instanceof $Reader))
-            reader = new $Reader(reader);
-        return this.decode(reader, reader.uint32());
-    };
-
-    /**
-     * Verifies a CafeClientThread message.
-     * @function verify
-     * @memberof CafeClientThread
-     * @static
-     * @param {Object.<string,*>} message Plain object to verify
-     * @returns {string|null} `null` if valid, otherwise the reason why it is not
-     */
-    CafeClientThread.verify = function verify(message) {
-        if (typeof message !== "object" || message === null)
-            return "object expected";
-        if (message.id != null && message.hasOwnProperty("id"))
-            if (!$util.isString(message.id))
-                return "id: string expected";
-        if (message.clientId != null && message.hasOwnProperty("clientId"))
-            if (!$util.isString(message.clientId))
-                return "clientId: string expected";
-        if (message.ciphertext != null && message.hasOwnProperty("ciphertext"))
-            if (!(message.ciphertext && typeof message.ciphertext.length === "number" || $util.isString(message.ciphertext)))
-                return "ciphertext: buffer expected";
-        return null;
-    };
-
-    /**
-     * Creates a CafeClientThread message from a plain object. Also converts values to their respective internal types.
-     * @function fromObject
-     * @memberof CafeClientThread
-     * @static
-     * @param {Object.<string,*>} object Plain object
-     * @returns {CafeClientThread} CafeClientThread
-     */
-    CafeClientThread.fromObject = function fromObject(object) {
-        if (object instanceof $root.CafeClientThread)
-            return object;
-        let message = new $root.CafeClientThread();
-        if (object.id != null)
-            message.id = String(object.id);
-        if (object.clientId != null)
-            message.clientId = String(object.clientId);
-        if (object.ciphertext != null)
-            if (typeof object.ciphertext === "string")
-                $util.base64.decode(object.ciphertext, message.ciphertext = $util.newBuffer($util.base64.length(object.ciphertext)), 0);
-            else if (object.ciphertext.length)
-                message.ciphertext = object.ciphertext;
-        return message;
-    };
-
-    /**
-     * Creates a plain object from a CafeClientThread message. Also converts values to other types if specified.
-     * @function toObject
-     * @memberof CafeClientThread
-     * @static
-     * @param {CafeClientThread} message CafeClientThread
-     * @param {$protobuf.IConversionOptions} [options] Conversion options
-     * @returns {Object.<string,*>} Plain object
-     */
-    CafeClientThread.toObject = function toObject(message, options) {
-        if (!options)
-            options = {};
-        let object = {};
-        if (options.defaults) {
-            object.id = "";
-            object.clientId = "";
-            if (options.bytes === String)
-                object.ciphertext = "";
-            else {
-                object.ciphertext = [];
-                if (options.bytes !== Array)
-                    object.ciphertext = $util.newBuffer(object.ciphertext);
-            }
-        }
-        if (message.id != null && message.hasOwnProperty("id"))
-            object.id = message.id;
-        if (message.clientId != null && message.hasOwnProperty("clientId"))
-            object.clientId = message.clientId;
-        if (message.ciphertext != null && message.hasOwnProperty("ciphertext"))
-            object.ciphertext = options.bytes === String ? $util.base64.encode(message.ciphertext, 0, message.ciphertext.length) : options.bytes === Array ? Array.prototype.slice.call(message.ciphertext) : message.ciphertext;
-        return object;
-    };
-
-    /**
-     * Converts this CafeClientThread to JSON.
-     * @function toJSON
-     * @memberof CafeClientThread
-     * @instance
-     * @returns {Object.<string,*>} JSON object
-     */
-    CafeClientThread.prototype.toJSON = function toJSON() {
-        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-    };
-
-    return CafeClientThread;
-})();
-
 export const CafeStored = $root.CafeStored = (() => {
 
     /**
@@ -2655,7 +2414,7 @@ export const CafeDeliverMessage = $root.CafeDeliverMessage = (() => {
      * @exports ICafeDeliverMessage
      * @interface ICafeDeliverMessage
      * @property {string} id CafeDeliverMessage id
-     * @property {string} clientId CafeDeliverMessage clientId
+     * @property {string} client CafeDeliverMessage client
      */
 
     /**
@@ -2682,12 +2441,12 @@ export const CafeDeliverMessage = $root.CafeDeliverMessage = (() => {
     CafeDeliverMessage.prototype.id = "";
 
     /**
-     * CafeDeliverMessage clientId.
-     * @member {string} clientId
+     * CafeDeliverMessage client.
+     * @member {string} client
      * @memberof CafeDeliverMessage
      * @instance
      */
-    CafeDeliverMessage.prototype.clientId = "";
+    CafeDeliverMessage.prototype.client = "";
 
     /**
      * Creates a new CafeDeliverMessage instance using the specified properties.
@@ -2715,8 +2474,8 @@ export const CafeDeliverMessage = $root.CafeDeliverMessage = (() => {
             writer = $Writer.create();
         if (message.id != null && message.hasOwnProperty("id"))
             writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
-        if (message.clientId != null && message.hasOwnProperty("clientId"))
-            writer.uint32(/* id 2, wireType 2 =*/18).string(message.clientId);
+        if (message.client != null && message.hasOwnProperty("client"))
+            writer.uint32(/* id 2, wireType 2 =*/18).string(message.client);
         return writer;
     };
 
@@ -2755,7 +2514,7 @@ export const CafeDeliverMessage = $root.CafeDeliverMessage = (() => {
                 message.id = reader.string();
                 break;
             case 2:
-                message.clientId = reader.string();
+                message.client = reader.string();
                 break;
             default:
                 reader.skipType(tag & 7);
@@ -2795,9 +2554,9 @@ export const CafeDeliverMessage = $root.CafeDeliverMessage = (() => {
         if (message.id != null && message.hasOwnProperty("id"))
             if (!$util.isString(message.id))
                 return "id: string expected";
-        if (message.clientId != null && message.hasOwnProperty("clientId"))
-            if (!$util.isString(message.clientId))
-                return "clientId: string expected";
+        if (message.client != null && message.hasOwnProperty("client"))
+            if (!$util.isString(message.client))
+                return "client: string expected";
         return null;
     };
 
@@ -2815,8 +2574,8 @@ export const CafeDeliverMessage = $root.CafeDeliverMessage = (() => {
         let message = new $root.CafeDeliverMessage();
         if (object.id != null)
             message.id = String(object.id);
-        if (object.clientId != null)
-            message.clientId = String(object.clientId);
+        if (object.client != null)
+            message.client = String(object.client);
         return message;
     };
 
@@ -2835,12 +2594,12 @@ export const CafeDeliverMessage = $root.CafeDeliverMessage = (() => {
         let object = {};
         if (options.defaults) {
             object.id = "";
-            object.clientId = "";
+            object.client = "";
         }
         if (message.id != null && message.hasOwnProperty("id"))
             object.id = message.id;
-        if (message.clientId != null && message.hasOwnProperty("clientId"))
-            object.clientId = message.clientId;
+        if (message.client != null && message.hasOwnProperty("client"))
+            object.client = message.client;
         return object;
     };
 
@@ -3043,243 +2802,6 @@ export const CafeCheckMessages = $root.CafeCheckMessages = (() => {
     };
 
     return CafeCheckMessages;
-})();
-
-export const CafeMessage = $root.CafeMessage = (() => {
-
-    /**
-     * Properties of a CafeMessage.
-     * @exports ICafeMessage
-     * @interface ICafeMessage
-     * @property {string} id CafeMessage id
-     * @property {string} peerId CafeMessage peerId
-     * @property {google.protobuf.ITimestamp} date CafeMessage date
-     */
-
-    /**
-     * Constructs a new CafeMessage.
-     * @exports CafeMessage
-     * @classdesc Represents a CafeMessage.
-     * @implements ICafeMessage
-     * @constructor
-     * @param {ICafeMessage=} [properties] Properties to set
-     */
-    function CafeMessage(properties) {
-        if (properties)
-            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                if (properties[keys[i]] != null)
-                    this[keys[i]] = properties[keys[i]];
-    }
-
-    /**
-     * CafeMessage id.
-     * @member {string} id
-     * @memberof CafeMessage
-     * @instance
-     */
-    CafeMessage.prototype.id = "";
-
-    /**
-     * CafeMessage peerId.
-     * @member {string} peerId
-     * @memberof CafeMessage
-     * @instance
-     */
-    CafeMessage.prototype.peerId = "";
-
-    /**
-     * CafeMessage date.
-     * @member {google.protobuf.ITimestamp} date
-     * @memberof CafeMessage
-     * @instance
-     */
-    CafeMessage.prototype.date = null;
-
-    /**
-     * Creates a new CafeMessage instance using the specified properties.
-     * @function create
-     * @memberof CafeMessage
-     * @static
-     * @param {ICafeMessage=} [properties] Properties to set
-     * @returns {CafeMessage} CafeMessage instance
-     */
-    CafeMessage.create = function create(properties) {
-        return new CafeMessage(properties);
-    };
-
-    /**
-     * Encodes the specified CafeMessage message. Does not implicitly {@link CafeMessage.verify|verify} messages.
-     * @function encode
-     * @memberof CafeMessage
-     * @static
-     * @param {ICafeMessage} message CafeMessage message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    CafeMessage.encode = function encode(message, writer) {
-        if (!writer)
-            writer = $Writer.create();
-        if (message.id != null && message.hasOwnProperty("id"))
-            writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
-        if (message.peerId != null && message.hasOwnProperty("peerId"))
-            writer.uint32(/* id 2, wireType 2 =*/18).string(message.peerId);
-        if (message.date != null && message.hasOwnProperty("date"))
-            $root.google.protobuf.Timestamp.encode(message.date, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
-        return writer;
-    };
-
-    /**
-     * Encodes the specified CafeMessage message, length delimited. Does not implicitly {@link CafeMessage.verify|verify} messages.
-     * @function encodeDelimited
-     * @memberof CafeMessage
-     * @static
-     * @param {ICafeMessage} message CafeMessage message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    CafeMessage.encodeDelimited = function encodeDelimited(message, writer) {
-        return this.encode(message, writer).ldelim();
-    };
-
-    /**
-     * Decodes a CafeMessage message from the specified reader or buffer.
-     * @function decode
-     * @memberof CafeMessage
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @param {number} [length] Message length if known beforehand
-     * @returns {CafeMessage} CafeMessage
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    CafeMessage.decode = function decode(reader, length) {
-        if (!(reader instanceof $Reader))
-            reader = $Reader.create(reader);
-        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.CafeMessage();
-        while (reader.pos < end) {
-            let tag = reader.uint32();
-            switch (tag >>> 3) {
-            case 1:
-                message.id = reader.string();
-                break;
-            case 2:
-                message.peerId = reader.string();
-                break;
-            case 3:
-                message.date = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
-                break;
-            default:
-                reader.skipType(tag & 7);
-                break;
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Decodes a CafeMessage message from the specified reader or buffer, length delimited.
-     * @function decodeDelimited
-     * @memberof CafeMessage
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @returns {CafeMessage} CafeMessage
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    CafeMessage.decodeDelimited = function decodeDelimited(reader) {
-        if (!(reader instanceof $Reader))
-            reader = new $Reader(reader);
-        return this.decode(reader, reader.uint32());
-    };
-
-    /**
-     * Verifies a CafeMessage message.
-     * @function verify
-     * @memberof CafeMessage
-     * @static
-     * @param {Object.<string,*>} message Plain object to verify
-     * @returns {string|null} `null` if valid, otherwise the reason why it is not
-     */
-    CafeMessage.verify = function verify(message) {
-        if (typeof message !== "object" || message === null)
-            return "object expected";
-        if (message.id != null && message.hasOwnProperty("id"))
-            if (!$util.isString(message.id))
-                return "id: string expected";
-        if (message.peerId != null && message.hasOwnProperty("peerId"))
-            if (!$util.isString(message.peerId))
-                return "peerId: string expected";
-        if (message.date != null && message.hasOwnProperty("date")) {
-            let error = $root.google.protobuf.Timestamp.verify(message.date);
-            if (error)
-                return "date." + error;
-        }
-        return null;
-    };
-
-    /**
-     * Creates a CafeMessage message from a plain object. Also converts values to their respective internal types.
-     * @function fromObject
-     * @memberof CafeMessage
-     * @static
-     * @param {Object.<string,*>} object Plain object
-     * @returns {CafeMessage} CafeMessage
-     */
-    CafeMessage.fromObject = function fromObject(object) {
-        if (object instanceof $root.CafeMessage)
-            return object;
-        let message = new $root.CafeMessage();
-        if (object.id != null)
-            message.id = String(object.id);
-        if (object.peerId != null)
-            message.peerId = String(object.peerId);
-        if (object.date != null) {
-            if (typeof object.date !== "object")
-                throw TypeError(".CafeMessage.date: object expected");
-            message.date = $root.google.protobuf.Timestamp.fromObject(object.date);
-        }
-        return message;
-    };
-
-    /**
-     * Creates a plain object from a CafeMessage message. Also converts values to other types if specified.
-     * @function toObject
-     * @memberof CafeMessage
-     * @static
-     * @param {CafeMessage} message CafeMessage
-     * @param {$protobuf.IConversionOptions} [options] Conversion options
-     * @returns {Object.<string,*>} Plain object
-     */
-    CafeMessage.toObject = function toObject(message, options) {
-        if (!options)
-            options = {};
-        let object = {};
-        if (options.defaults) {
-            object.id = "";
-            object.peerId = "";
-            object.date = null;
-        }
-        if (message.id != null && message.hasOwnProperty("id"))
-            object.id = message.id;
-        if (message.peerId != null && message.hasOwnProperty("peerId"))
-            object.peerId = message.peerId;
-        if (message.date != null && message.hasOwnProperty("date"))
-            object.date = $root.google.protobuf.Timestamp.toObject(message.date, options);
-        return object;
-    };
-
-    /**
-     * Converts this CafeMessage to JSON.
-     * @function toJSON
-     * @memberof CafeMessage
-     * @instance
-     * @returns {Object.<string,*>} JSON object
-     */
-    CafeMessage.prototype.toJSON = function toJSON() {
-        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-    };
-
-    return CafeMessage;
 })();
 
 export const CafeMessages = $root.CafeMessages = (() => {
@@ -5544,6 +5066,238 @@ export const ThreadList = $root.ThreadList = (() => {
     return ThreadList;
 })();
 
+export const ThreadPeer = $root.ThreadPeer = (() => {
+
+    /**
+     * Properties of a ThreadPeer.
+     * @exports IThreadPeer
+     * @interface IThreadPeer
+     * @property {string} id ThreadPeer id
+     * @property {string} thread ThreadPeer thread
+     * @property {boolean} welcomed ThreadPeer welcomed
+     */
+
+    /**
+     * Constructs a new ThreadPeer.
+     * @exports ThreadPeer
+     * @classdesc Represents a ThreadPeer.
+     * @implements IThreadPeer
+     * @constructor
+     * @param {IThreadPeer=} [properties] Properties to set
+     */
+    function ThreadPeer(properties) {
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * ThreadPeer id.
+     * @member {string} id
+     * @memberof ThreadPeer
+     * @instance
+     */
+    ThreadPeer.prototype.id = "";
+
+    /**
+     * ThreadPeer thread.
+     * @member {string} thread
+     * @memberof ThreadPeer
+     * @instance
+     */
+    ThreadPeer.prototype.thread = "";
+
+    /**
+     * ThreadPeer welcomed.
+     * @member {boolean} welcomed
+     * @memberof ThreadPeer
+     * @instance
+     */
+    ThreadPeer.prototype.welcomed = false;
+
+    /**
+     * Creates a new ThreadPeer instance using the specified properties.
+     * @function create
+     * @memberof ThreadPeer
+     * @static
+     * @param {IThreadPeer=} [properties] Properties to set
+     * @returns {ThreadPeer} ThreadPeer instance
+     */
+    ThreadPeer.create = function create(properties) {
+        return new ThreadPeer(properties);
+    };
+
+    /**
+     * Encodes the specified ThreadPeer message. Does not implicitly {@link ThreadPeer.verify|verify} messages.
+     * @function encode
+     * @memberof ThreadPeer
+     * @static
+     * @param {IThreadPeer} message ThreadPeer message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    ThreadPeer.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.id != null && message.hasOwnProperty("id"))
+            writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
+        if (message.thread != null && message.hasOwnProperty("thread"))
+            writer.uint32(/* id 2, wireType 2 =*/18).string(message.thread);
+        if (message.welcomed != null && message.hasOwnProperty("welcomed"))
+            writer.uint32(/* id 3, wireType 0 =*/24).bool(message.welcomed);
+        return writer;
+    };
+
+    /**
+     * Encodes the specified ThreadPeer message, length delimited. Does not implicitly {@link ThreadPeer.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof ThreadPeer
+     * @static
+     * @param {IThreadPeer} message ThreadPeer message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    ThreadPeer.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a ThreadPeer message from the specified reader or buffer.
+     * @function decode
+     * @memberof ThreadPeer
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {ThreadPeer} ThreadPeer
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    ThreadPeer.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.ThreadPeer();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.id = reader.string();
+                break;
+            case 2:
+                message.thread = reader.string();
+                break;
+            case 3:
+                message.welcomed = reader.bool();
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a ThreadPeer message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof ThreadPeer
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {ThreadPeer} ThreadPeer
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    ThreadPeer.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a ThreadPeer message.
+     * @function verify
+     * @memberof ThreadPeer
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    ThreadPeer.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.id != null && message.hasOwnProperty("id"))
+            if (!$util.isString(message.id))
+                return "id: string expected";
+        if (message.thread != null && message.hasOwnProperty("thread"))
+            if (!$util.isString(message.thread))
+                return "thread: string expected";
+        if (message.welcomed != null && message.hasOwnProperty("welcomed"))
+            if (typeof message.welcomed !== "boolean")
+                return "welcomed: boolean expected";
+        return null;
+    };
+
+    /**
+     * Creates a ThreadPeer message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof ThreadPeer
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {ThreadPeer} ThreadPeer
+     */
+    ThreadPeer.fromObject = function fromObject(object) {
+        if (object instanceof $root.ThreadPeer)
+            return object;
+        let message = new $root.ThreadPeer();
+        if (object.id != null)
+            message.id = String(object.id);
+        if (object.thread != null)
+            message.thread = String(object.thread);
+        if (object.welcomed != null)
+            message.welcomed = Boolean(object.welcomed);
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a ThreadPeer message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof ThreadPeer
+     * @static
+     * @param {ThreadPeer} message ThreadPeer
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    ThreadPeer.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.defaults) {
+            object.id = "";
+            object.thread = "";
+            object.welcomed = false;
+        }
+        if (message.id != null && message.hasOwnProperty("id"))
+            object.id = message.id;
+        if (message.thread != null && message.hasOwnProperty("thread"))
+            object.thread = message.thread;
+        if (message.welcomed != null && message.hasOwnProperty("welcomed"))
+            object.welcomed = message.welcomed;
+        return object;
+    };
+
+    /**
+     * Converts this ThreadPeer to JSON.
+     * @function toJSON
+     * @memberof ThreadPeer
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    ThreadPeer.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return ThreadPeer;
+})();
+
 export const Block = $root.Block = (() => {
 
     /**
@@ -6231,6 +5985,270 @@ export const BlockList = $root.BlockList = (() => {
     };
 
     return BlockList;
+})();
+
+export const BlockMessage = $root.BlockMessage = (() => {
+
+    /**
+     * Properties of a BlockMessage.
+     * @exports IBlockMessage
+     * @interface IBlockMessage
+     * @property {string} id BlockMessage id
+     * @property {string} thread BlockMessage thread
+     * @property {IEnvelope} env BlockMessage env
+     * @property {google.protobuf.ITimestamp} date BlockMessage date
+     */
+
+    /**
+     * Constructs a new BlockMessage.
+     * @exports BlockMessage
+     * @classdesc Represents a BlockMessage.
+     * @implements IBlockMessage
+     * @constructor
+     * @param {IBlockMessage=} [properties] Properties to set
+     */
+    function BlockMessage(properties) {
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * BlockMessage id.
+     * @member {string} id
+     * @memberof BlockMessage
+     * @instance
+     */
+    BlockMessage.prototype.id = "";
+
+    /**
+     * BlockMessage thread.
+     * @member {string} thread
+     * @memberof BlockMessage
+     * @instance
+     */
+    BlockMessage.prototype.thread = "";
+
+    /**
+     * BlockMessage env.
+     * @member {IEnvelope} env
+     * @memberof BlockMessage
+     * @instance
+     */
+    BlockMessage.prototype.env = null;
+
+    /**
+     * BlockMessage date.
+     * @member {google.protobuf.ITimestamp} date
+     * @memberof BlockMessage
+     * @instance
+     */
+    BlockMessage.prototype.date = null;
+
+    /**
+     * Creates a new BlockMessage instance using the specified properties.
+     * @function create
+     * @memberof BlockMessage
+     * @static
+     * @param {IBlockMessage=} [properties] Properties to set
+     * @returns {BlockMessage} BlockMessage instance
+     */
+    BlockMessage.create = function create(properties) {
+        return new BlockMessage(properties);
+    };
+
+    /**
+     * Encodes the specified BlockMessage message. Does not implicitly {@link BlockMessage.verify|verify} messages.
+     * @function encode
+     * @memberof BlockMessage
+     * @static
+     * @param {IBlockMessage} message BlockMessage message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    BlockMessage.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.id != null && message.hasOwnProperty("id"))
+            writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
+        if (message.thread != null && message.hasOwnProperty("thread"))
+            writer.uint32(/* id 2, wireType 2 =*/18).string(message.thread);
+        if (message.env != null && message.hasOwnProperty("env"))
+            $root.Envelope.encode(message.env, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
+        if (message.date != null && message.hasOwnProperty("date"))
+            $root.google.protobuf.Timestamp.encode(message.date, writer.uint32(/* id 4, wireType 2 =*/34).fork()).ldelim();
+        return writer;
+    };
+
+    /**
+     * Encodes the specified BlockMessage message, length delimited. Does not implicitly {@link BlockMessage.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof BlockMessage
+     * @static
+     * @param {IBlockMessage} message BlockMessage message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    BlockMessage.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a BlockMessage message from the specified reader or buffer.
+     * @function decode
+     * @memberof BlockMessage
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {BlockMessage} BlockMessage
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    BlockMessage.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.BlockMessage();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.id = reader.string();
+                break;
+            case 2:
+                message.thread = reader.string();
+                break;
+            case 3:
+                message.env = $root.Envelope.decode(reader, reader.uint32());
+                break;
+            case 4:
+                message.date = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a BlockMessage message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof BlockMessage
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {BlockMessage} BlockMessage
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    BlockMessage.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a BlockMessage message.
+     * @function verify
+     * @memberof BlockMessage
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    BlockMessage.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.id != null && message.hasOwnProperty("id"))
+            if (!$util.isString(message.id))
+                return "id: string expected";
+        if (message.thread != null && message.hasOwnProperty("thread"))
+            if (!$util.isString(message.thread))
+                return "thread: string expected";
+        if (message.env != null && message.hasOwnProperty("env")) {
+            let error = $root.Envelope.verify(message.env);
+            if (error)
+                return "env." + error;
+        }
+        if (message.date != null && message.hasOwnProperty("date")) {
+            let error = $root.google.protobuf.Timestamp.verify(message.date);
+            if (error)
+                return "date." + error;
+        }
+        return null;
+    };
+
+    /**
+     * Creates a BlockMessage message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof BlockMessage
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {BlockMessage} BlockMessage
+     */
+    BlockMessage.fromObject = function fromObject(object) {
+        if (object instanceof $root.BlockMessage)
+            return object;
+        let message = new $root.BlockMessage();
+        if (object.id != null)
+            message.id = String(object.id);
+        if (object.thread != null)
+            message.thread = String(object.thread);
+        if (object.env != null) {
+            if (typeof object.env !== "object")
+                throw TypeError(".BlockMessage.env: object expected");
+            message.env = $root.Envelope.fromObject(object.env);
+        }
+        if (object.date != null) {
+            if (typeof object.date !== "object")
+                throw TypeError(".BlockMessage.date: object expected");
+            message.date = $root.google.protobuf.Timestamp.fromObject(object.date);
+        }
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a BlockMessage message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof BlockMessage
+     * @static
+     * @param {BlockMessage} message BlockMessage
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    BlockMessage.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.defaults) {
+            object.id = "";
+            object.thread = "";
+            object.env = null;
+            object.date = null;
+        }
+        if (message.id != null && message.hasOwnProperty("id"))
+            object.id = message.id;
+        if (message.thread != null && message.hasOwnProperty("thread"))
+            object.thread = message.thread;
+        if (message.env != null && message.hasOwnProperty("env"))
+            object.env = $root.Envelope.toObject(message.env, options);
+        if (message.date != null && message.hasOwnProperty("date"))
+            object.date = $root.google.protobuf.Timestamp.toObject(message.date, options);
+        return object;
+    };
+
+    /**
+     * Converts this BlockMessage to JSON.
+     * @function toJSON
+     * @memberof BlockMessage
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    BlockMessage.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return BlockMessage;
 })();
 
 export const Invite = $root.Invite = (() => {
@@ -7907,6 +7925,466 @@ export const Link = $root.Link = (() => {
     return Link;
 })();
 
+export const Notification = $root.Notification = (() => {
+
+    /**
+     * Properties of a Notification.
+     * @exports INotification
+     * @interface INotification
+     * @property {string} id Notification id
+     * @property {google.protobuf.ITimestamp} date Notification date
+     * @property {string} actor Notification actor
+     * @property {string} subject Notification subject
+     * @property {string} subjectDesc Notification subjectDesc
+     * @property {string} block Notification block
+     * @property {string} target Notification target
+     * @property {Notification.Type} type Notification type
+     * @property {string} body Notification body
+     * @property {boolean} read Notification read
+     */
+
+    /**
+     * Constructs a new Notification.
+     * @exports Notification
+     * @classdesc Represents a Notification.
+     * @implements INotification
+     * @constructor
+     * @param {INotification=} [properties] Properties to set
+     */
+    function Notification(properties) {
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * Notification id.
+     * @member {string} id
+     * @memberof Notification
+     * @instance
+     */
+    Notification.prototype.id = "";
+
+    /**
+     * Notification date.
+     * @member {google.protobuf.ITimestamp} date
+     * @memberof Notification
+     * @instance
+     */
+    Notification.prototype.date = null;
+
+    /**
+     * Notification actor.
+     * @member {string} actor
+     * @memberof Notification
+     * @instance
+     */
+    Notification.prototype.actor = "";
+
+    /**
+     * Notification subject.
+     * @member {string} subject
+     * @memberof Notification
+     * @instance
+     */
+    Notification.prototype.subject = "";
+
+    /**
+     * Notification subjectDesc.
+     * @member {string} subjectDesc
+     * @memberof Notification
+     * @instance
+     */
+    Notification.prototype.subjectDesc = "";
+
+    /**
+     * Notification block.
+     * @member {string} block
+     * @memberof Notification
+     * @instance
+     */
+    Notification.prototype.block = "";
+
+    /**
+     * Notification target.
+     * @member {string} target
+     * @memberof Notification
+     * @instance
+     */
+    Notification.prototype.target = "";
+
+    /**
+     * Notification type.
+     * @member {Notification.Type} type
+     * @memberof Notification
+     * @instance
+     */
+    Notification.prototype.type = 0;
+
+    /**
+     * Notification body.
+     * @member {string} body
+     * @memberof Notification
+     * @instance
+     */
+    Notification.prototype.body = "";
+
+    /**
+     * Notification read.
+     * @member {boolean} read
+     * @memberof Notification
+     * @instance
+     */
+    Notification.prototype.read = false;
+
+    /**
+     * Creates a new Notification instance using the specified properties.
+     * @function create
+     * @memberof Notification
+     * @static
+     * @param {INotification=} [properties] Properties to set
+     * @returns {Notification} Notification instance
+     */
+    Notification.create = function create(properties) {
+        return new Notification(properties);
+    };
+
+    /**
+     * Encodes the specified Notification message. Does not implicitly {@link Notification.verify|verify} messages.
+     * @function encode
+     * @memberof Notification
+     * @static
+     * @param {INotification} message Notification message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    Notification.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.id != null && message.hasOwnProperty("id"))
+            writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
+        if (message.date != null && message.hasOwnProperty("date"))
+            $root.google.protobuf.Timestamp.encode(message.date, writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+        if (message.actor != null && message.hasOwnProperty("actor"))
+            writer.uint32(/* id 3, wireType 2 =*/26).string(message.actor);
+        if (message.subject != null && message.hasOwnProperty("subject"))
+            writer.uint32(/* id 4, wireType 2 =*/34).string(message.subject);
+        if (message.subjectDesc != null && message.hasOwnProperty("subjectDesc"))
+            writer.uint32(/* id 5, wireType 2 =*/42).string(message.subjectDesc);
+        if (message.block != null && message.hasOwnProperty("block"))
+            writer.uint32(/* id 6, wireType 2 =*/50).string(message.block);
+        if (message.target != null && message.hasOwnProperty("target"))
+            writer.uint32(/* id 7, wireType 2 =*/58).string(message.target);
+        if (message.type != null && message.hasOwnProperty("type"))
+            writer.uint32(/* id 8, wireType 0 =*/64).int32(message.type);
+        if (message.body != null && message.hasOwnProperty("body"))
+            writer.uint32(/* id 9, wireType 2 =*/74).string(message.body);
+        if (message.read != null && message.hasOwnProperty("read"))
+            writer.uint32(/* id 10, wireType 0 =*/80).bool(message.read);
+        return writer;
+    };
+
+    /**
+     * Encodes the specified Notification message, length delimited. Does not implicitly {@link Notification.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof Notification
+     * @static
+     * @param {INotification} message Notification message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    Notification.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a Notification message from the specified reader or buffer.
+     * @function decode
+     * @memberof Notification
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {Notification} Notification
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    Notification.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.Notification();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.id = reader.string();
+                break;
+            case 2:
+                message.date = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
+                break;
+            case 3:
+                message.actor = reader.string();
+                break;
+            case 4:
+                message.subject = reader.string();
+                break;
+            case 5:
+                message.subjectDesc = reader.string();
+                break;
+            case 6:
+                message.block = reader.string();
+                break;
+            case 7:
+                message.target = reader.string();
+                break;
+            case 8:
+                message.type = reader.int32();
+                break;
+            case 9:
+                message.body = reader.string();
+                break;
+            case 10:
+                message.read = reader.bool();
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a Notification message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof Notification
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {Notification} Notification
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    Notification.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a Notification message.
+     * @function verify
+     * @memberof Notification
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    Notification.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.id != null && message.hasOwnProperty("id"))
+            if (!$util.isString(message.id))
+                return "id: string expected";
+        if (message.date != null && message.hasOwnProperty("date")) {
+            let error = $root.google.protobuf.Timestamp.verify(message.date);
+            if (error)
+                return "date." + error;
+        }
+        if (message.actor != null && message.hasOwnProperty("actor"))
+            if (!$util.isString(message.actor))
+                return "actor: string expected";
+        if (message.subject != null && message.hasOwnProperty("subject"))
+            if (!$util.isString(message.subject))
+                return "subject: string expected";
+        if (message.subjectDesc != null && message.hasOwnProperty("subjectDesc"))
+            if (!$util.isString(message.subjectDesc))
+                return "subjectDesc: string expected";
+        if (message.block != null && message.hasOwnProperty("block"))
+            if (!$util.isString(message.block))
+                return "block: string expected";
+        if (message.target != null && message.hasOwnProperty("target"))
+            if (!$util.isString(message.target))
+                return "target: string expected";
+        if (message.type != null && message.hasOwnProperty("type"))
+            switch (message.type) {
+            default:
+                return "type: enum value expected";
+            case 0:
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+                break;
+            }
+        if (message.body != null && message.hasOwnProperty("body"))
+            if (!$util.isString(message.body))
+                return "body: string expected";
+        if (message.read != null && message.hasOwnProperty("read"))
+            if (typeof message.read !== "boolean")
+                return "read: boolean expected";
+        return null;
+    };
+
+    /**
+     * Creates a Notification message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof Notification
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {Notification} Notification
+     */
+    Notification.fromObject = function fromObject(object) {
+        if (object instanceof $root.Notification)
+            return object;
+        let message = new $root.Notification();
+        if (object.id != null)
+            message.id = String(object.id);
+        if (object.date != null) {
+            if (typeof object.date !== "object")
+                throw TypeError(".Notification.date: object expected");
+            message.date = $root.google.protobuf.Timestamp.fromObject(object.date);
+        }
+        if (object.actor != null)
+            message.actor = String(object.actor);
+        if (object.subject != null)
+            message.subject = String(object.subject);
+        if (object.subjectDesc != null)
+            message.subjectDesc = String(object.subjectDesc);
+        if (object.block != null)
+            message.block = String(object.block);
+        if (object.target != null)
+            message.target = String(object.target);
+        switch (object.type) {
+        case "INVITE_RECEIVED":
+        case 0:
+            message.type = 0;
+            break;
+        case "ACCOUNT_PEER_JOINED":
+        case 1:
+            message.type = 1;
+            break;
+        case "PEER_JOINED":
+        case 2:
+            message.type = 2;
+            break;
+        case "PEER_LEFT":
+        case 3:
+            message.type = 3;
+            break;
+        case "MESSAGE_ADDED":
+        case 4:
+            message.type = 4;
+            break;
+        case "FILES_ADDED":
+        case 5:
+            message.type = 5;
+            break;
+        case "COMMENT_ADDED":
+        case 6:
+            message.type = 6;
+            break;
+        case "LIKE_ADDED":
+        case 7:
+            message.type = 7;
+            break;
+        }
+        if (object.body != null)
+            message.body = String(object.body);
+        if (object.read != null)
+            message.read = Boolean(object.read);
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a Notification message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof Notification
+     * @static
+     * @param {Notification} message Notification
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    Notification.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.defaults) {
+            object.id = "";
+            object.date = null;
+            object.actor = "";
+            object.subject = "";
+            object.subjectDesc = "";
+            object.block = "";
+            object.target = "";
+            object.type = options.enums === String ? "INVITE_RECEIVED" : 0;
+            object.body = "";
+            object.read = false;
+        }
+        if (message.id != null && message.hasOwnProperty("id"))
+            object.id = message.id;
+        if (message.date != null && message.hasOwnProperty("date"))
+            object.date = $root.google.protobuf.Timestamp.toObject(message.date, options);
+        if (message.actor != null && message.hasOwnProperty("actor"))
+            object.actor = message.actor;
+        if (message.subject != null && message.hasOwnProperty("subject"))
+            object.subject = message.subject;
+        if (message.subjectDesc != null && message.hasOwnProperty("subjectDesc"))
+            object.subjectDesc = message.subjectDesc;
+        if (message.block != null && message.hasOwnProperty("block"))
+            object.block = message.block;
+        if (message.target != null && message.hasOwnProperty("target"))
+            object.target = message.target;
+        if (message.type != null && message.hasOwnProperty("type"))
+            object.type = options.enums === String ? $root.Notification.Type[message.type] : message.type;
+        if (message.body != null && message.hasOwnProperty("body"))
+            object.body = message.body;
+        if (message.read != null && message.hasOwnProperty("read"))
+            object.read = message.read;
+        return object;
+    };
+
+    /**
+     * Converts this Notification to JSON.
+     * @function toJSON
+     * @memberof Notification
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    Notification.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    /**
+     * Type enum.
+     * @name Notification.Type
+     * @enum {string}
+     * @property {number} INVITE_RECEIVED=0 INVITE_RECEIVED value
+     * @property {number} ACCOUNT_PEER_JOINED=1 ACCOUNT_PEER_JOINED value
+     * @property {number} PEER_JOINED=2 PEER_JOINED value
+     * @property {number} PEER_LEFT=3 PEER_LEFT value
+     * @property {number} MESSAGE_ADDED=4 MESSAGE_ADDED value
+     * @property {number} FILES_ADDED=5 FILES_ADDED value
+     * @property {number} COMMENT_ADDED=6 COMMENT_ADDED value
+     * @property {number} LIKE_ADDED=7 LIKE_ADDED value
+     */
+    Notification.Type = (function() {
+        const valuesById = {}, values = Object.create(valuesById);
+        values[valuesById[0] = "INVITE_RECEIVED"] = 0;
+        values[valuesById[1] = "ACCOUNT_PEER_JOINED"] = 1;
+        values[valuesById[2] = "PEER_JOINED"] = 2;
+        values[valuesById[3] = "PEER_LEFT"] = 3;
+        values[valuesById[4] = "MESSAGE_ADDED"] = 4;
+        values[valuesById[5] = "FILES_ADDED"] = 5;
+        values[valuesById[6] = "COMMENT_ADDED"] = 6;
+        values[valuesById[7] = "LIKE_ADDED"] = 7;
+        return values;
+    })();
+
+    return Notification;
+})();
+
 export const Cafe = $root.Cafe = (() => {
 
     /**
@@ -8807,6 +9285,1876 @@ export const CafeSessionList = $root.CafeSessionList = (() => {
     };
 
     return CafeSessionList;
+})();
+
+export const CafeRequest = $root.CafeRequest = (() => {
+
+    /**
+     * Properties of a CafeRequest.
+     * @exports ICafeRequest
+     * @interface ICafeRequest
+     * @property {string} id CafeRequest id
+     * @property {string} peer CafeRequest peer
+     * @property {string} target CafeRequest target
+     * @property {ICafe} cafe CafeRequest cafe
+     * @property {CafeRequest.Type} type CafeRequest type
+     * @property {google.protobuf.ITimestamp} date CafeRequest date
+     */
+
+    /**
+     * Constructs a new CafeRequest.
+     * @exports CafeRequest
+     * @classdesc Represents a CafeRequest.
+     * @implements ICafeRequest
+     * @constructor
+     * @param {ICafeRequest=} [properties] Properties to set
+     */
+    function CafeRequest(properties) {
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * CafeRequest id.
+     * @member {string} id
+     * @memberof CafeRequest
+     * @instance
+     */
+    CafeRequest.prototype.id = "";
+
+    /**
+     * CafeRequest peer.
+     * @member {string} peer
+     * @memberof CafeRequest
+     * @instance
+     */
+    CafeRequest.prototype.peer = "";
+
+    /**
+     * CafeRequest target.
+     * @member {string} target
+     * @memberof CafeRequest
+     * @instance
+     */
+    CafeRequest.prototype.target = "";
+
+    /**
+     * CafeRequest cafe.
+     * @member {ICafe} cafe
+     * @memberof CafeRequest
+     * @instance
+     */
+    CafeRequest.prototype.cafe = null;
+
+    /**
+     * CafeRequest type.
+     * @member {CafeRequest.Type} type
+     * @memberof CafeRequest
+     * @instance
+     */
+    CafeRequest.prototype.type = 0;
+
+    /**
+     * CafeRequest date.
+     * @member {google.protobuf.ITimestamp} date
+     * @memberof CafeRequest
+     * @instance
+     */
+    CafeRequest.prototype.date = null;
+
+    /**
+     * Creates a new CafeRequest instance using the specified properties.
+     * @function create
+     * @memberof CafeRequest
+     * @static
+     * @param {ICafeRequest=} [properties] Properties to set
+     * @returns {CafeRequest} CafeRequest instance
+     */
+    CafeRequest.create = function create(properties) {
+        return new CafeRequest(properties);
+    };
+
+    /**
+     * Encodes the specified CafeRequest message. Does not implicitly {@link CafeRequest.verify|verify} messages.
+     * @function encode
+     * @memberof CafeRequest
+     * @static
+     * @param {ICafeRequest} message CafeRequest message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    CafeRequest.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.id != null && message.hasOwnProperty("id"))
+            writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
+        if (message.peer != null && message.hasOwnProperty("peer"))
+            writer.uint32(/* id 2, wireType 2 =*/18).string(message.peer);
+        if (message.target != null && message.hasOwnProperty("target"))
+            writer.uint32(/* id 3, wireType 2 =*/26).string(message.target);
+        if (message.cafe != null && message.hasOwnProperty("cafe"))
+            $root.Cafe.encode(message.cafe, writer.uint32(/* id 4, wireType 2 =*/34).fork()).ldelim();
+        if (message.type != null && message.hasOwnProperty("type"))
+            writer.uint32(/* id 5, wireType 0 =*/40).int32(message.type);
+        if (message.date != null && message.hasOwnProperty("date"))
+            $root.google.protobuf.Timestamp.encode(message.date, writer.uint32(/* id 6, wireType 2 =*/50).fork()).ldelim();
+        return writer;
+    };
+
+    /**
+     * Encodes the specified CafeRequest message, length delimited. Does not implicitly {@link CafeRequest.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof CafeRequest
+     * @static
+     * @param {ICafeRequest} message CafeRequest message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    CafeRequest.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a CafeRequest message from the specified reader or buffer.
+     * @function decode
+     * @memberof CafeRequest
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {CafeRequest} CafeRequest
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    CafeRequest.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.CafeRequest();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.id = reader.string();
+                break;
+            case 2:
+                message.peer = reader.string();
+                break;
+            case 3:
+                message.target = reader.string();
+                break;
+            case 4:
+                message.cafe = $root.Cafe.decode(reader, reader.uint32());
+                break;
+            case 5:
+                message.type = reader.int32();
+                break;
+            case 6:
+                message.date = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a CafeRequest message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof CafeRequest
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {CafeRequest} CafeRequest
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    CafeRequest.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a CafeRequest message.
+     * @function verify
+     * @memberof CafeRequest
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    CafeRequest.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.id != null && message.hasOwnProperty("id"))
+            if (!$util.isString(message.id))
+                return "id: string expected";
+        if (message.peer != null && message.hasOwnProperty("peer"))
+            if (!$util.isString(message.peer))
+                return "peer: string expected";
+        if (message.target != null && message.hasOwnProperty("target"))
+            if (!$util.isString(message.target))
+                return "target: string expected";
+        if (message.cafe != null && message.hasOwnProperty("cafe")) {
+            let error = $root.Cafe.verify(message.cafe);
+            if (error)
+                return "cafe." + error;
+        }
+        if (message.type != null && message.hasOwnProperty("type"))
+            switch (message.type) {
+            default:
+                return "type: enum value expected";
+            case 0:
+            case 1:
+            case 2:
+                break;
+            }
+        if (message.date != null && message.hasOwnProperty("date")) {
+            let error = $root.google.protobuf.Timestamp.verify(message.date);
+            if (error)
+                return "date." + error;
+        }
+        return null;
+    };
+
+    /**
+     * Creates a CafeRequest message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof CafeRequest
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {CafeRequest} CafeRequest
+     */
+    CafeRequest.fromObject = function fromObject(object) {
+        if (object instanceof $root.CafeRequest)
+            return object;
+        let message = new $root.CafeRequest();
+        if (object.id != null)
+            message.id = String(object.id);
+        if (object.peer != null)
+            message.peer = String(object.peer);
+        if (object.target != null)
+            message.target = String(object.target);
+        if (object.cafe != null) {
+            if (typeof object.cafe !== "object")
+                throw TypeError(".CafeRequest.cafe: object expected");
+            message.cafe = $root.Cafe.fromObject(object.cafe);
+        }
+        switch (object.type) {
+        case "STORE":
+        case 0:
+            message.type = 0;
+            break;
+        case "STORE_THREAD":
+        case 1:
+            message.type = 1;
+            break;
+        case "INBOX":
+        case 2:
+            message.type = 2;
+            break;
+        }
+        if (object.date != null) {
+            if (typeof object.date !== "object")
+                throw TypeError(".CafeRequest.date: object expected");
+            message.date = $root.google.protobuf.Timestamp.fromObject(object.date);
+        }
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a CafeRequest message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof CafeRequest
+     * @static
+     * @param {CafeRequest} message CafeRequest
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    CafeRequest.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.defaults) {
+            object.id = "";
+            object.peer = "";
+            object.target = "";
+            object.cafe = null;
+            object.type = options.enums === String ? "STORE" : 0;
+            object.date = null;
+        }
+        if (message.id != null && message.hasOwnProperty("id"))
+            object.id = message.id;
+        if (message.peer != null && message.hasOwnProperty("peer"))
+            object.peer = message.peer;
+        if (message.target != null && message.hasOwnProperty("target"))
+            object.target = message.target;
+        if (message.cafe != null && message.hasOwnProperty("cafe"))
+            object.cafe = $root.Cafe.toObject(message.cafe, options);
+        if (message.type != null && message.hasOwnProperty("type"))
+            object.type = options.enums === String ? $root.CafeRequest.Type[message.type] : message.type;
+        if (message.date != null && message.hasOwnProperty("date"))
+            object.date = $root.google.protobuf.Timestamp.toObject(message.date, options);
+        return object;
+    };
+
+    /**
+     * Converts this CafeRequest to JSON.
+     * @function toJSON
+     * @memberof CafeRequest
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    CafeRequest.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    /**
+     * Type enum.
+     * @name CafeRequest.Type
+     * @enum {string}
+     * @property {number} STORE=0 STORE value
+     * @property {number} STORE_THREAD=1 STORE_THREAD value
+     * @property {number} INBOX=2 INBOX value
+     */
+    CafeRequest.Type = (function() {
+        const valuesById = {}, values = Object.create(valuesById);
+        values[valuesById[0] = "STORE"] = 0;
+        values[valuesById[1] = "STORE_THREAD"] = 1;
+        values[valuesById[2] = "INBOX"] = 2;
+        return values;
+    })();
+
+    return CafeRequest;
+})();
+
+export const CafeMessage = $root.CafeMessage = (() => {
+
+    /**
+     * Properties of a CafeMessage.
+     * @exports ICafeMessage
+     * @interface ICafeMessage
+     * @property {string} id CafeMessage id
+     * @property {string} peer CafeMessage peer
+     * @property {google.protobuf.ITimestamp} date CafeMessage date
+     * @property {number} attempts CafeMessage attempts
+     */
+
+    /**
+     * Constructs a new CafeMessage.
+     * @exports CafeMessage
+     * @classdesc Represents a CafeMessage.
+     * @implements ICafeMessage
+     * @constructor
+     * @param {ICafeMessage=} [properties] Properties to set
+     */
+    function CafeMessage(properties) {
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * CafeMessage id.
+     * @member {string} id
+     * @memberof CafeMessage
+     * @instance
+     */
+    CafeMessage.prototype.id = "";
+
+    /**
+     * CafeMessage peer.
+     * @member {string} peer
+     * @memberof CafeMessage
+     * @instance
+     */
+    CafeMessage.prototype.peer = "";
+
+    /**
+     * CafeMessage date.
+     * @member {google.protobuf.ITimestamp} date
+     * @memberof CafeMessage
+     * @instance
+     */
+    CafeMessage.prototype.date = null;
+
+    /**
+     * CafeMessage attempts.
+     * @member {number} attempts
+     * @memberof CafeMessage
+     * @instance
+     */
+    CafeMessage.prototype.attempts = 0;
+
+    /**
+     * Creates a new CafeMessage instance using the specified properties.
+     * @function create
+     * @memberof CafeMessage
+     * @static
+     * @param {ICafeMessage=} [properties] Properties to set
+     * @returns {CafeMessage} CafeMessage instance
+     */
+    CafeMessage.create = function create(properties) {
+        return new CafeMessage(properties);
+    };
+
+    /**
+     * Encodes the specified CafeMessage message. Does not implicitly {@link CafeMessage.verify|verify} messages.
+     * @function encode
+     * @memberof CafeMessage
+     * @static
+     * @param {ICafeMessage} message CafeMessage message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    CafeMessage.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.id != null && message.hasOwnProperty("id"))
+            writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
+        if (message.peer != null && message.hasOwnProperty("peer"))
+            writer.uint32(/* id 2, wireType 2 =*/18).string(message.peer);
+        if (message.date != null && message.hasOwnProperty("date"))
+            $root.google.protobuf.Timestamp.encode(message.date, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
+        if (message.attempts != null && message.hasOwnProperty("attempts"))
+            writer.uint32(/* id 4, wireType 0 =*/32).int32(message.attempts);
+        return writer;
+    };
+
+    /**
+     * Encodes the specified CafeMessage message, length delimited. Does not implicitly {@link CafeMessage.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof CafeMessage
+     * @static
+     * @param {ICafeMessage} message CafeMessage message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    CafeMessage.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a CafeMessage message from the specified reader or buffer.
+     * @function decode
+     * @memberof CafeMessage
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {CafeMessage} CafeMessage
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    CafeMessage.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.CafeMessage();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.id = reader.string();
+                break;
+            case 2:
+                message.peer = reader.string();
+                break;
+            case 3:
+                message.date = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
+                break;
+            case 4:
+                message.attempts = reader.int32();
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a CafeMessage message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof CafeMessage
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {CafeMessage} CafeMessage
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    CafeMessage.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a CafeMessage message.
+     * @function verify
+     * @memberof CafeMessage
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    CafeMessage.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.id != null && message.hasOwnProperty("id"))
+            if (!$util.isString(message.id))
+                return "id: string expected";
+        if (message.peer != null && message.hasOwnProperty("peer"))
+            if (!$util.isString(message.peer))
+                return "peer: string expected";
+        if (message.date != null && message.hasOwnProperty("date")) {
+            let error = $root.google.protobuf.Timestamp.verify(message.date);
+            if (error)
+                return "date." + error;
+        }
+        if (message.attempts != null && message.hasOwnProperty("attempts"))
+            if (!$util.isInteger(message.attempts))
+                return "attempts: integer expected";
+        return null;
+    };
+
+    /**
+     * Creates a CafeMessage message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof CafeMessage
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {CafeMessage} CafeMessage
+     */
+    CafeMessage.fromObject = function fromObject(object) {
+        if (object instanceof $root.CafeMessage)
+            return object;
+        let message = new $root.CafeMessage();
+        if (object.id != null)
+            message.id = String(object.id);
+        if (object.peer != null)
+            message.peer = String(object.peer);
+        if (object.date != null) {
+            if (typeof object.date !== "object")
+                throw TypeError(".CafeMessage.date: object expected");
+            message.date = $root.google.protobuf.Timestamp.fromObject(object.date);
+        }
+        if (object.attempts != null)
+            message.attempts = object.attempts | 0;
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a CafeMessage message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof CafeMessage
+     * @static
+     * @param {CafeMessage} message CafeMessage
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    CafeMessage.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.defaults) {
+            object.id = "";
+            object.peer = "";
+            object.date = null;
+            object.attempts = 0;
+        }
+        if (message.id != null && message.hasOwnProperty("id"))
+            object.id = message.id;
+        if (message.peer != null && message.hasOwnProperty("peer"))
+            object.peer = message.peer;
+        if (message.date != null && message.hasOwnProperty("date"))
+            object.date = $root.google.protobuf.Timestamp.toObject(message.date, options);
+        if (message.attempts != null && message.hasOwnProperty("attempts"))
+            object.attempts = message.attempts;
+        return object;
+    };
+
+    /**
+     * Converts this CafeMessage to JSON.
+     * @function toJSON
+     * @memberof CafeMessage
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    CafeMessage.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return CafeMessage;
+})();
+
+export const CafeClientNonce = $root.CafeClientNonce = (() => {
+
+    /**
+     * Properties of a CafeClientNonce.
+     * @exports ICafeClientNonce
+     * @interface ICafeClientNonce
+     * @property {string} value CafeClientNonce value
+     * @property {string} address CafeClientNonce address
+     * @property {google.protobuf.ITimestamp} date CafeClientNonce date
+     */
+
+    /**
+     * Constructs a new CafeClientNonce.
+     * @exports CafeClientNonce
+     * @classdesc Represents a CafeClientNonce.
+     * @implements ICafeClientNonce
+     * @constructor
+     * @param {ICafeClientNonce=} [properties] Properties to set
+     */
+    function CafeClientNonce(properties) {
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * CafeClientNonce value.
+     * @member {string} value
+     * @memberof CafeClientNonce
+     * @instance
+     */
+    CafeClientNonce.prototype.value = "";
+
+    /**
+     * CafeClientNonce address.
+     * @member {string} address
+     * @memberof CafeClientNonce
+     * @instance
+     */
+    CafeClientNonce.prototype.address = "";
+
+    /**
+     * CafeClientNonce date.
+     * @member {google.protobuf.ITimestamp} date
+     * @memberof CafeClientNonce
+     * @instance
+     */
+    CafeClientNonce.prototype.date = null;
+
+    /**
+     * Creates a new CafeClientNonce instance using the specified properties.
+     * @function create
+     * @memberof CafeClientNonce
+     * @static
+     * @param {ICafeClientNonce=} [properties] Properties to set
+     * @returns {CafeClientNonce} CafeClientNonce instance
+     */
+    CafeClientNonce.create = function create(properties) {
+        return new CafeClientNonce(properties);
+    };
+
+    /**
+     * Encodes the specified CafeClientNonce message. Does not implicitly {@link CafeClientNonce.verify|verify} messages.
+     * @function encode
+     * @memberof CafeClientNonce
+     * @static
+     * @param {ICafeClientNonce} message CafeClientNonce message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    CafeClientNonce.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.value != null && message.hasOwnProperty("value"))
+            writer.uint32(/* id 1, wireType 2 =*/10).string(message.value);
+        if (message.address != null && message.hasOwnProperty("address"))
+            writer.uint32(/* id 2, wireType 2 =*/18).string(message.address);
+        if (message.date != null && message.hasOwnProperty("date"))
+            $root.google.protobuf.Timestamp.encode(message.date, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
+        return writer;
+    };
+
+    /**
+     * Encodes the specified CafeClientNonce message, length delimited. Does not implicitly {@link CafeClientNonce.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof CafeClientNonce
+     * @static
+     * @param {ICafeClientNonce} message CafeClientNonce message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    CafeClientNonce.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a CafeClientNonce message from the specified reader or buffer.
+     * @function decode
+     * @memberof CafeClientNonce
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {CafeClientNonce} CafeClientNonce
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    CafeClientNonce.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.CafeClientNonce();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.value = reader.string();
+                break;
+            case 2:
+                message.address = reader.string();
+                break;
+            case 3:
+                message.date = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a CafeClientNonce message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof CafeClientNonce
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {CafeClientNonce} CafeClientNonce
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    CafeClientNonce.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a CafeClientNonce message.
+     * @function verify
+     * @memberof CafeClientNonce
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    CafeClientNonce.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.value != null && message.hasOwnProperty("value"))
+            if (!$util.isString(message.value))
+                return "value: string expected";
+        if (message.address != null && message.hasOwnProperty("address"))
+            if (!$util.isString(message.address))
+                return "address: string expected";
+        if (message.date != null && message.hasOwnProperty("date")) {
+            let error = $root.google.protobuf.Timestamp.verify(message.date);
+            if (error)
+                return "date." + error;
+        }
+        return null;
+    };
+
+    /**
+     * Creates a CafeClientNonce message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof CafeClientNonce
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {CafeClientNonce} CafeClientNonce
+     */
+    CafeClientNonce.fromObject = function fromObject(object) {
+        if (object instanceof $root.CafeClientNonce)
+            return object;
+        let message = new $root.CafeClientNonce();
+        if (object.value != null)
+            message.value = String(object.value);
+        if (object.address != null)
+            message.address = String(object.address);
+        if (object.date != null) {
+            if (typeof object.date !== "object")
+                throw TypeError(".CafeClientNonce.date: object expected");
+            message.date = $root.google.protobuf.Timestamp.fromObject(object.date);
+        }
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a CafeClientNonce message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof CafeClientNonce
+     * @static
+     * @param {CafeClientNonce} message CafeClientNonce
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    CafeClientNonce.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.defaults) {
+            object.value = "";
+            object.address = "";
+            object.date = null;
+        }
+        if (message.value != null && message.hasOwnProperty("value"))
+            object.value = message.value;
+        if (message.address != null && message.hasOwnProperty("address"))
+            object.address = message.address;
+        if (message.date != null && message.hasOwnProperty("date"))
+            object.date = $root.google.protobuf.Timestamp.toObject(message.date, options);
+        return object;
+    };
+
+    /**
+     * Converts this CafeClientNonce to JSON.
+     * @function toJSON
+     * @memberof CafeClientNonce
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    CafeClientNonce.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return CafeClientNonce;
+})();
+
+export const CafeClient = $root.CafeClient = (() => {
+
+    /**
+     * Properties of a CafeClient.
+     * @exports ICafeClient
+     * @interface ICafeClient
+     * @property {string} id CafeClient id
+     * @property {string} address CafeClient address
+     * @property {google.protobuf.ITimestamp} created CafeClient created
+     * @property {google.protobuf.ITimestamp} seen CafeClient seen
+     * @property {string} token CafeClient token
+     */
+
+    /**
+     * Constructs a new CafeClient.
+     * @exports CafeClient
+     * @classdesc Represents a CafeClient.
+     * @implements ICafeClient
+     * @constructor
+     * @param {ICafeClient=} [properties] Properties to set
+     */
+    function CafeClient(properties) {
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * CafeClient id.
+     * @member {string} id
+     * @memberof CafeClient
+     * @instance
+     */
+    CafeClient.prototype.id = "";
+
+    /**
+     * CafeClient address.
+     * @member {string} address
+     * @memberof CafeClient
+     * @instance
+     */
+    CafeClient.prototype.address = "";
+
+    /**
+     * CafeClient created.
+     * @member {google.protobuf.ITimestamp} created
+     * @memberof CafeClient
+     * @instance
+     */
+    CafeClient.prototype.created = null;
+
+    /**
+     * CafeClient seen.
+     * @member {google.protobuf.ITimestamp} seen
+     * @memberof CafeClient
+     * @instance
+     */
+    CafeClient.prototype.seen = null;
+
+    /**
+     * CafeClient token.
+     * @member {string} token
+     * @memberof CafeClient
+     * @instance
+     */
+    CafeClient.prototype.token = "";
+
+    /**
+     * Creates a new CafeClient instance using the specified properties.
+     * @function create
+     * @memberof CafeClient
+     * @static
+     * @param {ICafeClient=} [properties] Properties to set
+     * @returns {CafeClient} CafeClient instance
+     */
+    CafeClient.create = function create(properties) {
+        return new CafeClient(properties);
+    };
+
+    /**
+     * Encodes the specified CafeClient message. Does not implicitly {@link CafeClient.verify|verify} messages.
+     * @function encode
+     * @memberof CafeClient
+     * @static
+     * @param {ICafeClient} message CafeClient message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    CafeClient.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.id != null && message.hasOwnProperty("id"))
+            writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
+        if (message.address != null && message.hasOwnProperty("address"))
+            writer.uint32(/* id 2, wireType 2 =*/18).string(message.address);
+        if (message.created != null && message.hasOwnProperty("created"))
+            $root.google.protobuf.Timestamp.encode(message.created, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
+        if (message.seen != null && message.hasOwnProperty("seen"))
+            $root.google.protobuf.Timestamp.encode(message.seen, writer.uint32(/* id 4, wireType 2 =*/34).fork()).ldelim();
+        if (message.token != null && message.hasOwnProperty("token"))
+            writer.uint32(/* id 5, wireType 2 =*/42).string(message.token);
+        return writer;
+    };
+
+    /**
+     * Encodes the specified CafeClient message, length delimited. Does not implicitly {@link CafeClient.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof CafeClient
+     * @static
+     * @param {ICafeClient} message CafeClient message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    CafeClient.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a CafeClient message from the specified reader or buffer.
+     * @function decode
+     * @memberof CafeClient
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {CafeClient} CafeClient
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    CafeClient.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.CafeClient();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.id = reader.string();
+                break;
+            case 2:
+                message.address = reader.string();
+                break;
+            case 3:
+                message.created = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
+                break;
+            case 4:
+                message.seen = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
+                break;
+            case 5:
+                message.token = reader.string();
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a CafeClient message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof CafeClient
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {CafeClient} CafeClient
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    CafeClient.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a CafeClient message.
+     * @function verify
+     * @memberof CafeClient
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    CafeClient.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.id != null && message.hasOwnProperty("id"))
+            if (!$util.isString(message.id))
+                return "id: string expected";
+        if (message.address != null && message.hasOwnProperty("address"))
+            if (!$util.isString(message.address))
+                return "address: string expected";
+        if (message.created != null && message.hasOwnProperty("created")) {
+            let error = $root.google.protobuf.Timestamp.verify(message.created);
+            if (error)
+                return "created." + error;
+        }
+        if (message.seen != null && message.hasOwnProperty("seen")) {
+            let error = $root.google.protobuf.Timestamp.verify(message.seen);
+            if (error)
+                return "seen." + error;
+        }
+        if (message.token != null && message.hasOwnProperty("token"))
+            if (!$util.isString(message.token))
+                return "token: string expected";
+        return null;
+    };
+
+    /**
+     * Creates a CafeClient message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof CafeClient
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {CafeClient} CafeClient
+     */
+    CafeClient.fromObject = function fromObject(object) {
+        if (object instanceof $root.CafeClient)
+            return object;
+        let message = new $root.CafeClient();
+        if (object.id != null)
+            message.id = String(object.id);
+        if (object.address != null)
+            message.address = String(object.address);
+        if (object.created != null) {
+            if (typeof object.created !== "object")
+                throw TypeError(".CafeClient.created: object expected");
+            message.created = $root.google.protobuf.Timestamp.fromObject(object.created);
+        }
+        if (object.seen != null) {
+            if (typeof object.seen !== "object")
+                throw TypeError(".CafeClient.seen: object expected");
+            message.seen = $root.google.protobuf.Timestamp.fromObject(object.seen);
+        }
+        if (object.token != null)
+            message.token = String(object.token);
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a CafeClient message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof CafeClient
+     * @static
+     * @param {CafeClient} message CafeClient
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    CafeClient.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.defaults) {
+            object.id = "";
+            object.address = "";
+            object.created = null;
+            object.seen = null;
+            object.token = "";
+        }
+        if (message.id != null && message.hasOwnProperty("id"))
+            object.id = message.id;
+        if (message.address != null && message.hasOwnProperty("address"))
+            object.address = message.address;
+        if (message.created != null && message.hasOwnProperty("created"))
+            object.created = $root.google.protobuf.Timestamp.toObject(message.created, options);
+        if (message.seen != null && message.hasOwnProperty("seen"))
+            object.seen = $root.google.protobuf.Timestamp.toObject(message.seen, options);
+        if (message.token != null && message.hasOwnProperty("token"))
+            object.token = message.token;
+        return object;
+    };
+
+    /**
+     * Converts this CafeClient to JSON.
+     * @function toJSON
+     * @memberof CafeClient
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    CafeClient.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return CafeClient;
+})();
+
+export const CafeToken = $root.CafeToken = (() => {
+
+    /**
+     * Properties of a CafeToken.
+     * @exports ICafeToken
+     * @interface ICafeToken
+     * @property {string} id CafeToken id
+     * @property {Uint8Array} value CafeToken value
+     * @property {google.protobuf.ITimestamp} date CafeToken date
+     */
+
+    /**
+     * Constructs a new CafeToken.
+     * @exports CafeToken
+     * @classdesc Represents a CafeToken.
+     * @implements ICafeToken
+     * @constructor
+     * @param {ICafeToken=} [properties] Properties to set
+     */
+    function CafeToken(properties) {
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * CafeToken id.
+     * @member {string} id
+     * @memberof CafeToken
+     * @instance
+     */
+    CafeToken.prototype.id = "";
+
+    /**
+     * CafeToken value.
+     * @member {Uint8Array} value
+     * @memberof CafeToken
+     * @instance
+     */
+    CafeToken.prototype.value = $util.newBuffer([]);
+
+    /**
+     * CafeToken date.
+     * @member {google.protobuf.ITimestamp} date
+     * @memberof CafeToken
+     * @instance
+     */
+    CafeToken.prototype.date = null;
+
+    /**
+     * Creates a new CafeToken instance using the specified properties.
+     * @function create
+     * @memberof CafeToken
+     * @static
+     * @param {ICafeToken=} [properties] Properties to set
+     * @returns {CafeToken} CafeToken instance
+     */
+    CafeToken.create = function create(properties) {
+        return new CafeToken(properties);
+    };
+
+    /**
+     * Encodes the specified CafeToken message. Does not implicitly {@link CafeToken.verify|verify} messages.
+     * @function encode
+     * @memberof CafeToken
+     * @static
+     * @param {ICafeToken} message CafeToken message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    CafeToken.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.id != null && message.hasOwnProperty("id"))
+            writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
+        if (message.value != null && message.hasOwnProperty("value"))
+            writer.uint32(/* id 2, wireType 2 =*/18).bytes(message.value);
+        if (message.date != null && message.hasOwnProperty("date"))
+            $root.google.protobuf.Timestamp.encode(message.date, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
+        return writer;
+    };
+
+    /**
+     * Encodes the specified CafeToken message, length delimited. Does not implicitly {@link CafeToken.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof CafeToken
+     * @static
+     * @param {ICafeToken} message CafeToken message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    CafeToken.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a CafeToken message from the specified reader or buffer.
+     * @function decode
+     * @memberof CafeToken
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {CafeToken} CafeToken
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    CafeToken.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.CafeToken();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.id = reader.string();
+                break;
+            case 2:
+                message.value = reader.bytes();
+                break;
+            case 3:
+                message.date = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a CafeToken message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof CafeToken
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {CafeToken} CafeToken
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    CafeToken.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a CafeToken message.
+     * @function verify
+     * @memberof CafeToken
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    CafeToken.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.id != null && message.hasOwnProperty("id"))
+            if (!$util.isString(message.id))
+                return "id: string expected";
+        if (message.value != null && message.hasOwnProperty("value"))
+            if (!(message.value && typeof message.value.length === "number" || $util.isString(message.value)))
+                return "value: buffer expected";
+        if (message.date != null && message.hasOwnProperty("date")) {
+            let error = $root.google.protobuf.Timestamp.verify(message.date);
+            if (error)
+                return "date." + error;
+        }
+        return null;
+    };
+
+    /**
+     * Creates a CafeToken message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof CafeToken
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {CafeToken} CafeToken
+     */
+    CafeToken.fromObject = function fromObject(object) {
+        if (object instanceof $root.CafeToken)
+            return object;
+        let message = new $root.CafeToken();
+        if (object.id != null)
+            message.id = String(object.id);
+        if (object.value != null)
+            if (typeof object.value === "string")
+                $util.base64.decode(object.value, message.value = $util.newBuffer($util.base64.length(object.value)), 0);
+            else if (object.value.length)
+                message.value = object.value;
+        if (object.date != null) {
+            if (typeof object.date !== "object")
+                throw TypeError(".CafeToken.date: object expected");
+            message.date = $root.google.protobuf.Timestamp.fromObject(object.date);
+        }
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a CafeToken message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof CafeToken
+     * @static
+     * @param {CafeToken} message CafeToken
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    CafeToken.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.defaults) {
+            object.id = "";
+            if (options.bytes === String)
+                object.value = "";
+            else {
+                object.value = [];
+                if (options.bytes !== Array)
+                    object.value = $util.newBuffer(object.value);
+            }
+            object.date = null;
+        }
+        if (message.id != null && message.hasOwnProperty("id"))
+            object.id = message.id;
+        if (message.value != null && message.hasOwnProperty("value"))
+            object.value = options.bytes === String ? $util.base64.encode(message.value, 0, message.value.length) : options.bytes === Array ? Array.prototype.slice.call(message.value) : message.value;
+        if (message.date != null && message.hasOwnProperty("date"))
+            object.date = $root.google.protobuf.Timestamp.toObject(message.date, options);
+        return object;
+    };
+
+    /**
+     * Converts this CafeToken to JSON.
+     * @function toJSON
+     * @memberof CafeToken
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    CafeToken.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return CafeToken;
+})();
+
+export const CafeClientThread = $root.CafeClientThread = (() => {
+
+    /**
+     * Properties of a CafeClientThread.
+     * @exports ICafeClientThread
+     * @interface ICafeClientThread
+     * @property {string} id CafeClientThread id
+     * @property {string} client CafeClientThread client
+     * @property {Uint8Array} ciphertext CafeClientThread ciphertext
+     */
+
+    /**
+     * Constructs a new CafeClientThread.
+     * @exports CafeClientThread
+     * @classdesc Represents a CafeClientThread.
+     * @implements ICafeClientThread
+     * @constructor
+     * @param {ICafeClientThread=} [properties] Properties to set
+     */
+    function CafeClientThread(properties) {
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * CafeClientThread id.
+     * @member {string} id
+     * @memberof CafeClientThread
+     * @instance
+     */
+    CafeClientThread.prototype.id = "";
+
+    /**
+     * CafeClientThread client.
+     * @member {string} client
+     * @memberof CafeClientThread
+     * @instance
+     */
+    CafeClientThread.prototype.client = "";
+
+    /**
+     * CafeClientThread ciphertext.
+     * @member {Uint8Array} ciphertext
+     * @memberof CafeClientThread
+     * @instance
+     */
+    CafeClientThread.prototype.ciphertext = $util.newBuffer([]);
+
+    /**
+     * Creates a new CafeClientThread instance using the specified properties.
+     * @function create
+     * @memberof CafeClientThread
+     * @static
+     * @param {ICafeClientThread=} [properties] Properties to set
+     * @returns {CafeClientThread} CafeClientThread instance
+     */
+    CafeClientThread.create = function create(properties) {
+        return new CafeClientThread(properties);
+    };
+
+    /**
+     * Encodes the specified CafeClientThread message. Does not implicitly {@link CafeClientThread.verify|verify} messages.
+     * @function encode
+     * @memberof CafeClientThread
+     * @static
+     * @param {ICafeClientThread} message CafeClientThread message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    CafeClientThread.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.id != null && message.hasOwnProperty("id"))
+            writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
+        if (message.client != null && message.hasOwnProperty("client"))
+            writer.uint32(/* id 2, wireType 2 =*/18).string(message.client);
+        if (message.ciphertext != null && message.hasOwnProperty("ciphertext"))
+            writer.uint32(/* id 3, wireType 2 =*/26).bytes(message.ciphertext);
+        return writer;
+    };
+
+    /**
+     * Encodes the specified CafeClientThread message, length delimited. Does not implicitly {@link CafeClientThread.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof CafeClientThread
+     * @static
+     * @param {ICafeClientThread} message CafeClientThread message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    CafeClientThread.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a CafeClientThread message from the specified reader or buffer.
+     * @function decode
+     * @memberof CafeClientThread
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {CafeClientThread} CafeClientThread
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    CafeClientThread.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.CafeClientThread();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.id = reader.string();
+                break;
+            case 2:
+                message.client = reader.string();
+                break;
+            case 3:
+                message.ciphertext = reader.bytes();
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a CafeClientThread message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof CafeClientThread
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {CafeClientThread} CafeClientThread
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    CafeClientThread.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a CafeClientThread message.
+     * @function verify
+     * @memberof CafeClientThread
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    CafeClientThread.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.id != null && message.hasOwnProperty("id"))
+            if (!$util.isString(message.id))
+                return "id: string expected";
+        if (message.client != null && message.hasOwnProperty("client"))
+            if (!$util.isString(message.client))
+                return "client: string expected";
+        if (message.ciphertext != null && message.hasOwnProperty("ciphertext"))
+            if (!(message.ciphertext && typeof message.ciphertext.length === "number" || $util.isString(message.ciphertext)))
+                return "ciphertext: buffer expected";
+        return null;
+    };
+
+    /**
+     * Creates a CafeClientThread message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof CafeClientThread
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {CafeClientThread} CafeClientThread
+     */
+    CafeClientThread.fromObject = function fromObject(object) {
+        if (object instanceof $root.CafeClientThread)
+            return object;
+        let message = new $root.CafeClientThread();
+        if (object.id != null)
+            message.id = String(object.id);
+        if (object.client != null)
+            message.client = String(object.client);
+        if (object.ciphertext != null)
+            if (typeof object.ciphertext === "string")
+                $util.base64.decode(object.ciphertext, message.ciphertext = $util.newBuffer($util.base64.length(object.ciphertext)), 0);
+            else if (object.ciphertext.length)
+                message.ciphertext = object.ciphertext;
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a CafeClientThread message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof CafeClientThread
+     * @static
+     * @param {CafeClientThread} message CafeClientThread
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    CafeClientThread.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.defaults) {
+            object.id = "";
+            object.client = "";
+            if (options.bytes === String)
+                object.ciphertext = "";
+            else {
+                object.ciphertext = [];
+                if (options.bytes !== Array)
+                    object.ciphertext = $util.newBuffer(object.ciphertext);
+            }
+        }
+        if (message.id != null && message.hasOwnProperty("id"))
+            object.id = message.id;
+        if (message.client != null && message.hasOwnProperty("client"))
+            object.client = message.client;
+        if (message.ciphertext != null && message.hasOwnProperty("ciphertext"))
+            object.ciphertext = options.bytes === String ? $util.base64.encode(message.ciphertext, 0, message.ciphertext.length) : options.bytes === Array ? Array.prototype.slice.call(message.ciphertext) : message.ciphertext;
+        return object;
+    };
+
+    /**
+     * Converts this CafeClientThread to JSON.
+     * @function toJSON
+     * @memberof CafeClientThread
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    CafeClientThread.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return CafeClientThread;
+})();
+
+export const CafeClientMessage = $root.CafeClientMessage = (() => {
+
+    /**
+     * Properties of a CafeClientMessage.
+     * @exports ICafeClientMessage
+     * @interface ICafeClientMessage
+     * @property {string} id CafeClientMessage id
+     * @property {string} peer CafeClientMessage peer
+     * @property {string} client CafeClientMessage client
+     * @property {google.protobuf.ITimestamp} date CafeClientMessage date
+     */
+
+    /**
+     * Constructs a new CafeClientMessage.
+     * @exports CafeClientMessage
+     * @classdesc Represents a CafeClientMessage.
+     * @implements ICafeClientMessage
+     * @constructor
+     * @param {ICafeClientMessage=} [properties] Properties to set
+     */
+    function CafeClientMessage(properties) {
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * CafeClientMessage id.
+     * @member {string} id
+     * @memberof CafeClientMessage
+     * @instance
+     */
+    CafeClientMessage.prototype.id = "";
+
+    /**
+     * CafeClientMessage peer.
+     * @member {string} peer
+     * @memberof CafeClientMessage
+     * @instance
+     */
+    CafeClientMessage.prototype.peer = "";
+
+    /**
+     * CafeClientMessage client.
+     * @member {string} client
+     * @memberof CafeClientMessage
+     * @instance
+     */
+    CafeClientMessage.prototype.client = "";
+
+    /**
+     * CafeClientMessage date.
+     * @member {google.protobuf.ITimestamp} date
+     * @memberof CafeClientMessage
+     * @instance
+     */
+    CafeClientMessage.prototype.date = null;
+
+    /**
+     * Creates a new CafeClientMessage instance using the specified properties.
+     * @function create
+     * @memberof CafeClientMessage
+     * @static
+     * @param {ICafeClientMessage=} [properties] Properties to set
+     * @returns {CafeClientMessage} CafeClientMessage instance
+     */
+    CafeClientMessage.create = function create(properties) {
+        return new CafeClientMessage(properties);
+    };
+
+    /**
+     * Encodes the specified CafeClientMessage message. Does not implicitly {@link CafeClientMessage.verify|verify} messages.
+     * @function encode
+     * @memberof CafeClientMessage
+     * @static
+     * @param {ICafeClientMessage} message CafeClientMessage message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    CafeClientMessage.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.id != null && message.hasOwnProperty("id"))
+            writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
+        if (message.peer != null && message.hasOwnProperty("peer"))
+            writer.uint32(/* id 2, wireType 2 =*/18).string(message.peer);
+        if (message.client != null && message.hasOwnProperty("client"))
+            writer.uint32(/* id 3, wireType 2 =*/26).string(message.client);
+        if (message.date != null && message.hasOwnProperty("date"))
+            $root.google.protobuf.Timestamp.encode(message.date, writer.uint32(/* id 4, wireType 2 =*/34).fork()).ldelim();
+        return writer;
+    };
+
+    /**
+     * Encodes the specified CafeClientMessage message, length delimited. Does not implicitly {@link CafeClientMessage.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof CafeClientMessage
+     * @static
+     * @param {ICafeClientMessage} message CafeClientMessage message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    CafeClientMessage.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a CafeClientMessage message from the specified reader or buffer.
+     * @function decode
+     * @memberof CafeClientMessage
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {CafeClientMessage} CafeClientMessage
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    CafeClientMessage.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.CafeClientMessage();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.id = reader.string();
+                break;
+            case 2:
+                message.peer = reader.string();
+                break;
+            case 3:
+                message.client = reader.string();
+                break;
+            case 4:
+                message.date = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a CafeClientMessage message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof CafeClientMessage
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {CafeClientMessage} CafeClientMessage
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    CafeClientMessage.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a CafeClientMessage message.
+     * @function verify
+     * @memberof CafeClientMessage
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    CafeClientMessage.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.id != null && message.hasOwnProperty("id"))
+            if (!$util.isString(message.id))
+                return "id: string expected";
+        if (message.peer != null && message.hasOwnProperty("peer"))
+            if (!$util.isString(message.peer))
+                return "peer: string expected";
+        if (message.client != null && message.hasOwnProperty("client"))
+            if (!$util.isString(message.client))
+                return "client: string expected";
+        if (message.date != null && message.hasOwnProperty("date")) {
+            let error = $root.google.protobuf.Timestamp.verify(message.date);
+            if (error)
+                return "date." + error;
+        }
+        return null;
+    };
+
+    /**
+     * Creates a CafeClientMessage message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof CafeClientMessage
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {CafeClientMessage} CafeClientMessage
+     */
+    CafeClientMessage.fromObject = function fromObject(object) {
+        if (object instanceof $root.CafeClientMessage)
+            return object;
+        let message = new $root.CafeClientMessage();
+        if (object.id != null)
+            message.id = String(object.id);
+        if (object.peer != null)
+            message.peer = String(object.peer);
+        if (object.client != null)
+            message.client = String(object.client);
+        if (object.date != null) {
+            if (typeof object.date !== "object")
+                throw TypeError(".CafeClientMessage.date: object expected");
+            message.date = $root.google.protobuf.Timestamp.fromObject(object.date);
+        }
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a CafeClientMessage message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof CafeClientMessage
+     * @static
+     * @param {CafeClientMessage} message CafeClientMessage
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    CafeClientMessage.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.defaults) {
+            object.id = "";
+            object.peer = "";
+            object.client = "";
+            object.date = null;
+        }
+        if (message.id != null && message.hasOwnProperty("id"))
+            object.id = message.id;
+        if (message.peer != null && message.hasOwnProperty("peer"))
+            object.peer = message.peer;
+        if (message.client != null && message.hasOwnProperty("client"))
+            object.client = message.client;
+        if (message.date != null && message.hasOwnProperty("date"))
+            object.date = $root.google.protobuf.Timestamp.toObject(message.date, options);
+        return object;
+    };
+
+    /**
+     * Converts this CafeClientMessage to JSON.
+     * @function toJSON
+     * @memberof CafeClientMessage
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    CafeClientMessage.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return CafeClientMessage;
 })();
 
 export const Message = $root.Message = (() => {

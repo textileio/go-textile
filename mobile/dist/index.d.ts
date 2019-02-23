@@ -971,108 +971,6 @@ export class CafeStoreThread implements ICafeStoreThread {
     public toJSON(): { [k: string]: any };
 }
 
-/** Properties of a CafeClientThread. */
-export interface ICafeClientThread {
-
-    /** CafeClientThread id */
-    id: string;
-
-    /** CafeClientThread clientId */
-    clientId: string;
-
-    /** CafeClientThread ciphertext */
-    ciphertext: Uint8Array;
-}
-
-/** Represents a CafeClientThread. */
-export class CafeClientThread implements ICafeClientThread {
-
-    /**
-     * Constructs a new CafeClientThread.
-     * @param [properties] Properties to set
-     */
-    constructor(properties?: ICafeClientThread);
-
-    /** CafeClientThread id. */
-    public id: string;
-
-    /** CafeClientThread clientId. */
-    public clientId: string;
-
-    /** CafeClientThread ciphertext. */
-    public ciphertext: Uint8Array;
-
-    /**
-     * Creates a new CafeClientThread instance using the specified properties.
-     * @param [properties] Properties to set
-     * @returns CafeClientThread instance
-     */
-    public static create(properties?: ICafeClientThread): CafeClientThread;
-
-    /**
-     * Encodes the specified CafeClientThread message. Does not implicitly {@link CafeClientThread.verify|verify} messages.
-     * @param message CafeClientThread message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encode(message: ICafeClientThread, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Encodes the specified CafeClientThread message, length delimited. Does not implicitly {@link CafeClientThread.verify|verify} messages.
-     * @param message CafeClientThread message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encodeDelimited(message: ICafeClientThread, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Decodes a CafeClientThread message from the specified reader or buffer.
-     * @param reader Reader or buffer to decode from
-     * @param [length] Message length if known beforehand
-     * @returns CafeClientThread
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): CafeClientThread;
-
-    /**
-     * Decodes a CafeClientThread message from the specified reader or buffer, length delimited.
-     * @param reader Reader or buffer to decode from
-     * @returns CafeClientThread
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): CafeClientThread;
-
-    /**
-     * Verifies a CafeClientThread message.
-     * @param message Plain object to verify
-     * @returns `null` if valid, otherwise the reason why it is not
-     */
-    public static verify(message: { [k: string]: any }): (string|null);
-
-    /**
-     * Creates a CafeClientThread message from a plain object. Also converts values to their respective internal types.
-     * @param object Plain object
-     * @returns CafeClientThread
-     */
-    public static fromObject(object: { [k: string]: any }): CafeClientThread;
-
-    /**
-     * Creates a plain object from a CafeClientThread message. Also converts values to other types if specified.
-     * @param message CafeClientThread
-     * @param [options] Conversion options
-     * @returns Plain object
-     */
-    public static toObject(message: CafeClientThread, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-    /**
-     * Converts this CafeClientThread to JSON.
-     * @returns JSON object
-     */
-    public toJSON(): { [k: string]: any };
-}
-
 /** Properties of a CafeStored. */
 export interface ICafeStored {
 
@@ -1169,8 +1067,8 @@ export interface ICafeDeliverMessage {
     /** CafeDeliverMessage id */
     id: string;
 
-    /** CafeDeliverMessage clientId */
-    clientId: string;
+    /** CafeDeliverMessage client */
+    client: string;
 }
 
 /** Represents a CafeDeliverMessage. */
@@ -1185,8 +1083,8 @@ export class CafeDeliverMessage implements ICafeDeliverMessage {
     /** CafeDeliverMessage id. */
     public id: string;
 
-    /** CafeDeliverMessage clientId. */
-    public clientId: string;
+    /** CafeDeliverMessage client. */
+    public client: string;
 
     /**
      * Creates a new CafeDeliverMessage instance using the specified properties.
@@ -1344,108 +1242,6 @@ export class CafeCheckMessages implements ICafeCheckMessages {
 
     /**
      * Converts this CafeCheckMessages to JSON.
-     * @returns JSON object
-     */
-    public toJSON(): { [k: string]: any };
-}
-
-/** Properties of a CafeMessage. */
-export interface ICafeMessage {
-
-    /** CafeMessage id */
-    id: string;
-
-    /** CafeMessage peerId */
-    peerId: string;
-
-    /** CafeMessage date */
-    date: google.protobuf.ITimestamp;
-}
-
-/** Represents a CafeMessage. */
-export class CafeMessage implements ICafeMessage {
-
-    /**
-     * Constructs a new CafeMessage.
-     * @param [properties] Properties to set
-     */
-    constructor(properties?: ICafeMessage);
-
-    /** CafeMessage id. */
-    public id: string;
-
-    /** CafeMessage peerId. */
-    public peerId: string;
-
-    /** CafeMessage date. */
-    public date: google.protobuf.ITimestamp;
-
-    /**
-     * Creates a new CafeMessage instance using the specified properties.
-     * @param [properties] Properties to set
-     * @returns CafeMessage instance
-     */
-    public static create(properties?: ICafeMessage): CafeMessage;
-
-    /**
-     * Encodes the specified CafeMessage message. Does not implicitly {@link CafeMessage.verify|verify} messages.
-     * @param message CafeMessage message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encode(message: ICafeMessage, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Encodes the specified CafeMessage message, length delimited. Does not implicitly {@link CafeMessage.verify|verify} messages.
-     * @param message CafeMessage message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encodeDelimited(message: ICafeMessage, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Decodes a CafeMessage message from the specified reader or buffer.
-     * @param reader Reader or buffer to decode from
-     * @param [length] Message length if known beforehand
-     * @returns CafeMessage
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): CafeMessage;
-
-    /**
-     * Decodes a CafeMessage message from the specified reader or buffer, length delimited.
-     * @param reader Reader or buffer to decode from
-     * @returns CafeMessage
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): CafeMessage;
-
-    /**
-     * Verifies a CafeMessage message.
-     * @param message Plain object to verify
-     * @returns `null` if valid, otherwise the reason why it is not
-     */
-    public static verify(message: { [k: string]: any }): (string|null);
-
-    /**
-     * Creates a CafeMessage message from a plain object. Also converts values to their respective internal types.
-     * @param object Plain object
-     * @returns CafeMessage
-     */
-    public static fromObject(object: { [k: string]: any }): CafeMessage;
-
-    /**
-     * Creates a plain object from a CafeMessage message. Also converts values to other types if specified.
-     * @param message CafeMessage
-     * @param [options] Conversion options
-     * @returns Plain object
-     */
-    public static toObject(message: CafeMessage, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-    /**
-     * Converts this CafeMessage to JSON.
      * @returns JSON object
      */
     public toJSON(): { [k: string]: any };
@@ -2334,6 +2130,108 @@ export class ThreadList implements IThreadList {
     public toJSON(): { [k: string]: any };
 }
 
+/** Properties of a ThreadPeer. */
+export interface IThreadPeer {
+
+    /** ThreadPeer id */
+    id: string;
+
+    /** ThreadPeer thread */
+    thread: string;
+
+    /** ThreadPeer welcomed */
+    welcomed: boolean;
+}
+
+/** Represents a ThreadPeer. */
+export class ThreadPeer implements IThreadPeer {
+
+    /**
+     * Constructs a new ThreadPeer.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: IThreadPeer);
+
+    /** ThreadPeer id. */
+    public id: string;
+
+    /** ThreadPeer thread. */
+    public thread: string;
+
+    /** ThreadPeer welcomed. */
+    public welcomed: boolean;
+
+    /**
+     * Creates a new ThreadPeer instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns ThreadPeer instance
+     */
+    public static create(properties?: IThreadPeer): ThreadPeer;
+
+    /**
+     * Encodes the specified ThreadPeer message. Does not implicitly {@link ThreadPeer.verify|verify} messages.
+     * @param message ThreadPeer message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: IThreadPeer, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified ThreadPeer message, length delimited. Does not implicitly {@link ThreadPeer.verify|verify} messages.
+     * @param message ThreadPeer message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: IThreadPeer, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a ThreadPeer message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns ThreadPeer
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): ThreadPeer;
+
+    /**
+     * Decodes a ThreadPeer message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns ThreadPeer
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): ThreadPeer;
+
+    /**
+     * Verifies a ThreadPeer message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a ThreadPeer message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns ThreadPeer
+     */
+    public static fromObject(object: { [k: string]: any }): ThreadPeer;
+
+    /**
+     * Creates a plain object from a ThreadPeer message. Also converts values to other types if specified.
+     * @param message ThreadPeer
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: ThreadPeer, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this ThreadPeer to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
 /** Properties of a Block. */
 export interface IBlock {
 
@@ -2575,6 +2473,114 @@ export class BlockList implements IBlockList {
 
     /**
      * Converts this BlockList to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+/** Properties of a BlockMessage. */
+export interface IBlockMessage {
+
+    /** BlockMessage id */
+    id: string;
+
+    /** BlockMessage thread */
+    thread: string;
+
+    /** BlockMessage env */
+    env: IEnvelope;
+
+    /** BlockMessage date */
+    date: google.protobuf.ITimestamp;
+}
+
+/** Represents a BlockMessage. */
+export class BlockMessage implements IBlockMessage {
+
+    /**
+     * Constructs a new BlockMessage.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: IBlockMessage);
+
+    /** BlockMessage id. */
+    public id: string;
+
+    /** BlockMessage thread. */
+    public thread: string;
+
+    /** BlockMessage env. */
+    public env: IEnvelope;
+
+    /** BlockMessage date. */
+    public date: google.protobuf.ITimestamp;
+
+    /**
+     * Creates a new BlockMessage instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns BlockMessage instance
+     */
+    public static create(properties?: IBlockMessage): BlockMessage;
+
+    /**
+     * Encodes the specified BlockMessage message. Does not implicitly {@link BlockMessage.verify|verify} messages.
+     * @param message BlockMessage message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: IBlockMessage, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified BlockMessage message, length delimited. Does not implicitly {@link BlockMessage.verify|verify} messages.
+     * @param message BlockMessage message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: IBlockMessage, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a BlockMessage message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns BlockMessage
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): BlockMessage;
+
+    /**
+     * Decodes a BlockMessage message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns BlockMessage
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): BlockMessage;
+
+    /**
+     * Verifies a BlockMessage message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a BlockMessage message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns BlockMessage
+     */
+    public static fromObject(object: { [k: string]: any }): BlockMessage;
+
+    /**
+     * Creates a plain object from a BlockMessage message. Also converts values to other types if specified.
+     * @param message BlockMessage
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: BlockMessage, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this BlockMessage to JSON.
      * @returns JSON object
      */
     public toJSON(): { [k: string]: any };
@@ -3186,6 +3192,165 @@ export class Link implements ILink {
     public toJSON(): { [k: string]: any };
 }
 
+/** Properties of a Notification. */
+export interface INotification {
+
+    /** Notification id */
+    id: string;
+
+    /** Notification date */
+    date: google.protobuf.ITimestamp;
+
+    /** Notification actor */
+    actor: string;
+
+    /** Notification subject */
+    subject: string;
+
+    /** Notification subjectDesc */
+    subjectDesc: string;
+
+    /** Notification block */
+    block: string;
+
+    /** Notification target */
+    target: string;
+
+    /** Notification type */
+    type: Notification.Type;
+
+    /** Notification body */
+    body: string;
+
+    /** Notification read */
+    read: boolean;
+}
+
+/** Represents a Notification. */
+export class Notification implements INotification {
+
+    /**
+     * Constructs a new Notification.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: INotification);
+
+    /** Notification id. */
+    public id: string;
+
+    /** Notification date. */
+    public date: google.protobuf.ITimestamp;
+
+    /** Notification actor. */
+    public actor: string;
+
+    /** Notification subject. */
+    public subject: string;
+
+    /** Notification subjectDesc. */
+    public subjectDesc: string;
+
+    /** Notification block. */
+    public block: string;
+
+    /** Notification target. */
+    public target: string;
+
+    /** Notification type. */
+    public type: Notification.Type;
+
+    /** Notification body. */
+    public body: string;
+
+    /** Notification read. */
+    public read: boolean;
+
+    /**
+     * Creates a new Notification instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns Notification instance
+     */
+    public static create(properties?: INotification): Notification;
+
+    /**
+     * Encodes the specified Notification message. Does not implicitly {@link Notification.verify|verify} messages.
+     * @param message Notification message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: INotification, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified Notification message, length delimited. Does not implicitly {@link Notification.verify|verify} messages.
+     * @param message Notification message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: INotification, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a Notification message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns Notification
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): Notification;
+
+    /**
+     * Decodes a Notification message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns Notification
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): Notification;
+
+    /**
+     * Verifies a Notification message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a Notification message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns Notification
+     */
+    public static fromObject(object: { [k: string]: any }): Notification;
+
+    /**
+     * Creates a plain object from a Notification message. Also converts values to other types if specified.
+     * @param message Notification
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: Notification, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this Notification to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+export namespace Notification {
+
+    /** Type enum. */
+    enum Type {
+        INVITE_RECEIVED = 0,
+        ACCOUNT_PEER_JOINED = 1,
+        PEER_JOINED = 2,
+        PEER_LEFT = 3,
+        MESSAGE_ADDED = 4,
+        FILES_ADDED = 5,
+        COMMENT_ADDED = 6,
+        LIKE_ADDED = 7
+    }
+}
+
 /** Properties of a Cafe. */
 export interface ICafe {
 
@@ -3529,6 +3694,772 @@ export class CafeSessionList implements ICafeSessionList {
 
     /**
      * Converts this CafeSessionList to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+/** Properties of a CafeRequest. */
+export interface ICafeRequest {
+
+    /** CafeRequest id */
+    id: string;
+
+    /** CafeRequest peer */
+    peer: string;
+
+    /** CafeRequest target */
+    target: string;
+
+    /** CafeRequest cafe */
+    cafe: ICafe;
+
+    /** CafeRequest type */
+    type: CafeRequest.Type;
+
+    /** CafeRequest date */
+    date: google.protobuf.ITimestamp;
+}
+
+/** Represents a CafeRequest. */
+export class CafeRequest implements ICafeRequest {
+
+    /**
+     * Constructs a new CafeRequest.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: ICafeRequest);
+
+    /** CafeRequest id. */
+    public id: string;
+
+    /** CafeRequest peer. */
+    public peer: string;
+
+    /** CafeRequest target. */
+    public target: string;
+
+    /** CafeRequest cafe. */
+    public cafe: ICafe;
+
+    /** CafeRequest type. */
+    public type: CafeRequest.Type;
+
+    /** CafeRequest date. */
+    public date: google.protobuf.ITimestamp;
+
+    /**
+     * Creates a new CafeRequest instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns CafeRequest instance
+     */
+    public static create(properties?: ICafeRequest): CafeRequest;
+
+    /**
+     * Encodes the specified CafeRequest message. Does not implicitly {@link CafeRequest.verify|verify} messages.
+     * @param message CafeRequest message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: ICafeRequest, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified CafeRequest message, length delimited. Does not implicitly {@link CafeRequest.verify|verify} messages.
+     * @param message CafeRequest message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: ICafeRequest, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a CafeRequest message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns CafeRequest
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): CafeRequest;
+
+    /**
+     * Decodes a CafeRequest message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns CafeRequest
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): CafeRequest;
+
+    /**
+     * Verifies a CafeRequest message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a CafeRequest message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns CafeRequest
+     */
+    public static fromObject(object: { [k: string]: any }): CafeRequest;
+
+    /**
+     * Creates a plain object from a CafeRequest message. Also converts values to other types if specified.
+     * @param message CafeRequest
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: CafeRequest, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this CafeRequest to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+export namespace CafeRequest {
+
+    /** Type enum. */
+    enum Type {
+        STORE = 0,
+        STORE_THREAD = 1,
+        INBOX = 2
+    }
+}
+
+/** Properties of a CafeMessage. */
+export interface ICafeMessage {
+
+    /** CafeMessage id */
+    id: string;
+
+    /** CafeMessage peer */
+    peer: string;
+
+    /** CafeMessage date */
+    date: google.protobuf.ITimestamp;
+
+    /** CafeMessage attempts */
+    attempts: number;
+}
+
+/** Represents a CafeMessage. */
+export class CafeMessage implements ICafeMessage {
+
+    /**
+     * Constructs a new CafeMessage.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: ICafeMessage);
+
+    /** CafeMessage id. */
+    public id: string;
+
+    /** CafeMessage peer. */
+    public peer: string;
+
+    /** CafeMessage date. */
+    public date: google.protobuf.ITimestamp;
+
+    /** CafeMessage attempts. */
+    public attempts: number;
+
+    /**
+     * Creates a new CafeMessage instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns CafeMessage instance
+     */
+    public static create(properties?: ICafeMessage): CafeMessage;
+
+    /**
+     * Encodes the specified CafeMessage message. Does not implicitly {@link CafeMessage.verify|verify} messages.
+     * @param message CafeMessage message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: ICafeMessage, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified CafeMessage message, length delimited. Does not implicitly {@link CafeMessage.verify|verify} messages.
+     * @param message CafeMessage message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: ICafeMessage, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a CafeMessage message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns CafeMessage
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): CafeMessage;
+
+    /**
+     * Decodes a CafeMessage message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns CafeMessage
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): CafeMessage;
+
+    /**
+     * Verifies a CafeMessage message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a CafeMessage message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns CafeMessage
+     */
+    public static fromObject(object: { [k: string]: any }): CafeMessage;
+
+    /**
+     * Creates a plain object from a CafeMessage message. Also converts values to other types if specified.
+     * @param message CafeMessage
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: CafeMessage, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this CafeMessage to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+/** Properties of a CafeClientNonce. */
+export interface ICafeClientNonce {
+
+    /** CafeClientNonce value */
+    value: string;
+
+    /** CafeClientNonce address */
+    address: string;
+
+    /** CafeClientNonce date */
+    date: google.protobuf.ITimestamp;
+}
+
+/** Represents a CafeClientNonce. */
+export class CafeClientNonce implements ICafeClientNonce {
+
+    /**
+     * Constructs a new CafeClientNonce.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: ICafeClientNonce);
+
+    /** CafeClientNonce value. */
+    public value: string;
+
+    /** CafeClientNonce address. */
+    public address: string;
+
+    /** CafeClientNonce date. */
+    public date: google.protobuf.ITimestamp;
+
+    /**
+     * Creates a new CafeClientNonce instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns CafeClientNonce instance
+     */
+    public static create(properties?: ICafeClientNonce): CafeClientNonce;
+
+    /**
+     * Encodes the specified CafeClientNonce message. Does not implicitly {@link CafeClientNonce.verify|verify} messages.
+     * @param message CafeClientNonce message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: ICafeClientNonce, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified CafeClientNonce message, length delimited. Does not implicitly {@link CafeClientNonce.verify|verify} messages.
+     * @param message CafeClientNonce message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: ICafeClientNonce, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a CafeClientNonce message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns CafeClientNonce
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): CafeClientNonce;
+
+    /**
+     * Decodes a CafeClientNonce message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns CafeClientNonce
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): CafeClientNonce;
+
+    /**
+     * Verifies a CafeClientNonce message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a CafeClientNonce message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns CafeClientNonce
+     */
+    public static fromObject(object: { [k: string]: any }): CafeClientNonce;
+
+    /**
+     * Creates a plain object from a CafeClientNonce message. Also converts values to other types if specified.
+     * @param message CafeClientNonce
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: CafeClientNonce, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this CafeClientNonce to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+/** Properties of a CafeClient. */
+export interface ICafeClient {
+
+    /** CafeClient id */
+    id: string;
+
+    /** CafeClient address */
+    address: string;
+
+    /** CafeClient created */
+    created: google.protobuf.ITimestamp;
+
+    /** CafeClient seen */
+    seen: google.protobuf.ITimestamp;
+
+    /** CafeClient token */
+    token: string;
+}
+
+/** Represents a CafeClient. */
+export class CafeClient implements ICafeClient {
+
+    /**
+     * Constructs a new CafeClient.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: ICafeClient);
+
+    /** CafeClient id. */
+    public id: string;
+
+    /** CafeClient address. */
+    public address: string;
+
+    /** CafeClient created. */
+    public created: google.protobuf.ITimestamp;
+
+    /** CafeClient seen. */
+    public seen: google.protobuf.ITimestamp;
+
+    /** CafeClient token. */
+    public token: string;
+
+    /**
+     * Creates a new CafeClient instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns CafeClient instance
+     */
+    public static create(properties?: ICafeClient): CafeClient;
+
+    /**
+     * Encodes the specified CafeClient message. Does not implicitly {@link CafeClient.verify|verify} messages.
+     * @param message CafeClient message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: ICafeClient, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified CafeClient message, length delimited. Does not implicitly {@link CafeClient.verify|verify} messages.
+     * @param message CafeClient message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: ICafeClient, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a CafeClient message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns CafeClient
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): CafeClient;
+
+    /**
+     * Decodes a CafeClient message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns CafeClient
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): CafeClient;
+
+    /**
+     * Verifies a CafeClient message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a CafeClient message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns CafeClient
+     */
+    public static fromObject(object: { [k: string]: any }): CafeClient;
+
+    /**
+     * Creates a plain object from a CafeClient message. Also converts values to other types if specified.
+     * @param message CafeClient
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: CafeClient, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this CafeClient to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+/** Properties of a CafeToken. */
+export interface ICafeToken {
+
+    /** CafeToken id */
+    id: string;
+
+    /** CafeToken value */
+    value: Uint8Array;
+
+    /** CafeToken date */
+    date: google.protobuf.ITimestamp;
+}
+
+/** Represents a CafeToken. */
+export class CafeToken implements ICafeToken {
+
+    /**
+     * Constructs a new CafeToken.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: ICafeToken);
+
+    /** CafeToken id. */
+    public id: string;
+
+    /** CafeToken value. */
+    public value: Uint8Array;
+
+    /** CafeToken date. */
+    public date: google.protobuf.ITimestamp;
+
+    /**
+     * Creates a new CafeToken instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns CafeToken instance
+     */
+    public static create(properties?: ICafeToken): CafeToken;
+
+    /**
+     * Encodes the specified CafeToken message. Does not implicitly {@link CafeToken.verify|verify} messages.
+     * @param message CafeToken message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: ICafeToken, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified CafeToken message, length delimited. Does not implicitly {@link CafeToken.verify|verify} messages.
+     * @param message CafeToken message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: ICafeToken, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a CafeToken message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns CafeToken
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): CafeToken;
+
+    /**
+     * Decodes a CafeToken message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns CafeToken
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): CafeToken;
+
+    /**
+     * Verifies a CafeToken message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a CafeToken message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns CafeToken
+     */
+    public static fromObject(object: { [k: string]: any }): CafeToken;
+
+    /**
+     * Creates a plain object from a CafeToken message. Also converts values to other types if specified.
+     * @param message CafeToken
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: CafeToken, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this CafeToken to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+/** Properties of a CafeClientThread. */
+export interface ICafeClientThread {
+
+    /** CafeClientThread id */
+    id: string;
+
+    /** CafeClientThread client */
+    client: string;
+
+    /** CafeClientThread ciphertext */
+    ciphertext: Uint8Array;
+}
+
+/** Represents a CafeClientThread. */
+export class CafeClientThread implements ICafeClientThread {
+
+    /**
+     * Constructs a new CafeClientThread.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: ICafeClientThread);
+
+    /** CafeClientThread id. */
+    public id: string;
+
+    /** CafeClientThread client. */
+    public client: string;
+
+    /** CafeClientThread ciphertext. */
+    public ciphertext: Uint8Array;
+
+    /**
+     * Creates a new CafeClientThread instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns CafeClientThread instance
+     */
+    public static create(properties?: ICafeClientThread): CafeClientThread;
+
+    /**
+     * Encodes the specified CafeClientThread message. Does not implicitly {@link CafeClientThread.verify|verify} messages.
+     * @param message CafeClientThread message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: ICafeClientThread, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified CafeClientThread message, length delimited. Does not implicitly {@link CafeClientThread.verify|verify} messages.
+     * @param message CafeClientThread message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: ICafeClientThread, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a CafeClientThread message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns CafeClientThread
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): CafeClientThread;
+
+    /**
+     * Decodes a CafeClientThread message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns CafeClientThread
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): CafeClientThread;
+
+    /**
+     * Verifies a CafeClientThread message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a CafeClientThread message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns CafeClientThread
+     */
+    public static fromObject(object: { [k: string]: any }): CafeClientThread;
+
+    /**
+     * Creates a plain object from a CafeClientThread message. Also converts values to other types if specified.
+     * @param message CafeClientThread
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: CafeClientThread, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this CafeClientThread to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+/** Properties of a CafeClientMessage. */
+export interface ICafeClientMessage {
+
+    /** CafeClientMessage id */
+    id: string;
+
+    /** CafeClientMessage peer */
+    peer: string;
+
+    /** CafeClientMessage client */
+    client: string;
+
+    /** CafeClientMessage date */
+    date: google.protobuf.ITimestamp;
+}
+
+/** Represents a CafeClientMessage. */
+export class CafeClientMessage implements ICafeClientMessage {
+
+    /**
+     * Constructs a new CafeClientMessage.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: ICafeClientMessage);
+
+    /** CafeClientMessage id. */
+    public id: string;
+
+    /** CafeClientMessage peer. */
+    public peer: string;
+
+    /** CafeClientMessage client. */
+    public client: string;
+
+    /** CafeClientMessage date. */
+    public date: google.protobuf.ITimestamp;
+
+    /**
+     * Creates a new CafeClientMessage instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns CafeClientMessage instance
+     */
+    public static create(properties?: ICafeClientMessage): CafeClientMessage;
+
+    /**
+     * Encodes the specified CafeClientMessage message. Does not implicitly {@link CafeClientMessage.verify|verify} messages.
+     * @param message CafeClientMessage message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: ICafeClientMessage, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified CafeClientMessage message, length delimited. Does not implicitly {@link CafeClientMessage.verify|verify} messages.
+     * @param message CafeClientMessage message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: ICafeClientMessage, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a CafeClientMessage message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns CafeClientMessage
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): CafeClientMessage;
+
+    /**
+     * Decodes a CafeClientMessage message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns CafeClientMessage
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): CafeClientMessage;
+
+    /**
+     * Verifies a CafeClientMessage message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a CafeClientMessage message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns CafeClientMessage
+     */
+    public static fromObject(object: { [k: string]: any }): CafeClientMessage;
+
+    /**
+     * Creates a plain object from a CafeClientMessage message. Also converts values to other types if specified.
+     * @param message CafeClientMessage
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: CafeClientMessage, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this CafeClientMessage to JSON.
      * @returns JSON object
      */
     public toJSON(): { [k: string]: any };

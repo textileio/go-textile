@@ -1,7 +1,6 @@
 syntax = "proto3";
 option go_package = "pb";
 
-import "google/protobuf/timestamp.proto";
 import "model.proto";
 
 message CafeChallenge {
@@ -56,29 +55,17 @@ message CafeStoreThread {
     bytes ciphertext = 3; // encrypted Thread
 }
 
-message CafeClientThread {
-    string id        = 1;
-    string clientId  = 2;
-    bytes ciphertext = 3; // encrypted Thread
-}
-
 message CafeStored {
     string id = 1;
 }
 
 message CafeDeliverMessage {
     string id       = 1;
-    string clientId = 2;
+    string client = 2;
 }
 
 message CafeCheckMessages {
     string token = 1;
-}
-
-message CafeMessage {
-    string id                      = 1;
-    string peerId                  = 2;
-    google.protobuf.Timestamp date = 3;
 }
 
 message CafeMessages {
