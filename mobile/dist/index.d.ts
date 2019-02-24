@@ -2380,7 +2380,7 @@ export namespace Block {
         JOIN = 3,
         ANNOUNCE = 4,
         LEAVE = 5,
-        MESSAGE = 6,
+        TEXT = 6,
         FILES = 7,
         COMMENT = 8,
         LIKE = 9,
@@ -5682,6 +5682,116 @@ export class MobileFileData implements IMobileFileData {
     public toJSON(): { [k: string]: any };
 }
 
+/** Properties of a MobileEvent. */
+export interface IMobileEvent {
+
+    /** MobileEvent name */
+    name: string;
+
+    /** MobileEvent data */
+    data: Uint8Array;
+}
+
+/** Represents a MobileEvent. */
+export class MobileEvent implements IMobileEvent {
+
+    /**
+     * Constructs a new MobileEvent.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: IMobileEvent);
+
+    /** MobileEvent name. */
+    public name: string;
+
+    /** MobileEvent data. */
+    public data: Uint8Array;
+
+    /**
+     * Creates a new MobileEvent instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns MobileEvent instance
+     */
+    public static create(properties?: IMobileEvent): MobileEvent;
+
+    /**
+     * Encodes the specified MobileEvent message. Does not implicitly {@link MobileEvent.verify|verify} messages.
+     * @param message MobileEvent message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: IMobileEvent, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified MobileEvent message, length delimited. Does not implicitly {@link MobileEvent.verify|verify} messages.
+     * @param message MobileEvent message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: IMobileEvent, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a MobileEvent message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns MobileEvent
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): MobileEvent;
+
+    /**
+     * Decodes a MobileEvent message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns MobileEvent
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): MobileEvent;
+
+    /**
+     * Verifies a MobileEvent message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a MobileEvent message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns MobileEvent
+     */
+    public static fromObject(object: { [k: string]: any }): MobileEvent;
+
+    /**
+     * Creates a plain object from a MobileEvent message. Also converts values to other types if specified.
+     * @param message MobileEvent
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: MobileEvent, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this MobileEvent to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+export namespace MobileEvent {
+
+    /** Type enum. */
+    enum Type {
+        NODE_START = 0,
+        NODE_ONLINE = 1,
+        NODE_STOP = 2,
+        WALLET_UPDATE = 10,
+        THREAD_UPDATE = 11,
+        NOTIFICATION = 12,
+        QUERY_RESPONSE = 20
+    }
+}
+
 /** Properties of an AddThreadConfig. */
 export interface IAddThreadConfig {
 
@@ -6803,6 +6913,9 @@ export interface IMerge {
     /** Merge date */
     date: google.protobuf.ITimestamp;
 
+    /** Merge user */
+    user: IUser;
+
     /** Merge targets */
     targets: IFeedItem[];
 }
@@ -6821,6 +6934,9 @@ export class Merge implements IMerge {
 
     /** Merge date. */
     public date: google.protobuf.ITimestamp;
+
+    /** Merge user. */
+    public user: IUser;
 
     /** Merge targets. */
     public targets: IFeedItem[];
@@ -7112,114 +7228,6 @@ export class Flag implements IFlag {
     public toJSON(): { [k: string]: any };
 }
 
-/** Properties of an Announce. */
-export interface IAnnounce {
-
-    /** Announce block */
-    block: string;
-
-    /** Announce date */
-    date: google.protobuf.ITimestamp;
-
-    /** Announce user */
-    user: IUser;
-
-    /** Announce target */
-    target: IFeedItem;
-}
-
-/** Represents an Announce. */
-export class Announce implements IAnnounce {
-
-    /**
-     * Constructs a new Announce.
-     * @param [properties] Properties to set
-     */
-    constructor(properties?: IAnnounce);
-
-    /** Announce block. */
-    public block: string;
-
-    /** Announce date. */
-    public date: google.protobuf.ITimestamp;
-
-    /** Announce user. */
-    public user: IUser;
-
-    /** Announce target. */
-    public target: IFeedItem;
-
-    /**
-     * Creates a new Announce instance using the specified properties.
-     * @param [properties] Properties to set
-     * @returns Announce instance
-     */
-    public static create(properties?: IAnnounce): Announce;
-
-    /**
-     * Encodes the specified Announce message. Does not implicitly {@link Announce.verify|verify} messages.
-     * @param message Announce message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encode(message: IAnnounce, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Encodes the specified Announce message, length delimited. Does not implicitly {@link Announce.verify|verify} messages.
-     * @param message Announce message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encodeDelimited(message: IAnnounce, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Decodes an Announce message from the specified reader or buffer.
-     * @param reader Reader or buffer to decode from
-     * @param [length] Message length if known beforehand
-     * @returns Announce
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): Announce;
-
-    /**
-     * Decodes an Announce message from the specified reader or buffer, length delimited.
-     * @param reader Reader or buffer to decode from
-     * @returns Announce
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): Announce;
-
-    /**
-     * Verifies an Announce message.
-     * @param message Plain object to verify
-     * @returns `null` if valid, otherwise the reason why it is not
-     */
-    public static verify(message: { [k: string]: any }): (string|null);
-
-    /**
-     * Creates an Announce message from a plain object. Also converts values to their respective internal types.
-     * @param object Plain object
-     * @returns Announce
-     */
-    public static fromObject(object: { [k: string]: any }): Announce;
-
-    /**
-     * Creates a plain object from an Announce message. Also converts values to other types if specified.
-     * @param message Announce
-     * @param [options] Conversion options
-     * @returns Plain object
-     */
-    public static toObject(message: Announce, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-    /**
-     * Converts this Announce to JSON.
-     * @returns JSON object
-     */
-    public toJSON(): { [k: string]: any };
-}
-
 /** Properties of a Join. */
 export interface IJoin {
 
@@ -7323,6 +7331,108 @@ export class Join implements IJoin {
 
     /**
      * Converts this Join to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+/** Properties of an Announce. */
+export interface IAnnounce {
+
+    /** Announce block */
+    block: string;
+
+    /** Announce date */
+    date: google.protobuf.ITimestamp;
+
+    /** Announce user */
+    user: IUser;
+}
+
+/** Represents an Announce. */
+export class Announce implements IAnnounce {
+
+    /**
+     * Constructs a new Announce.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: IAnnounce);
+
+    /** Announce block. */
+    public block: string;
+
+    /** Announce date. */
+    public date: google.protobuf.ITimestamp;
+
+    /** Announce user. */
+    public user: IUser;
+
+    /**
+     * Creates a new Announce instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns Announce instance
+     */
+    public static create(properties?: IAnnounce): Announce;
+
+    /**
+     * Encodes the specified Announce message. Does not implicitly {@link Announce.verify|verify} messages.
+     * @param message Announce message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: IAnnounce, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified Announce message, length delimited. Does not implicitly {@link Announce.verify|verify} messages.
+     * @param message Announce message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: IAnnounce, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes an Announce message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns Announce
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): Announce;
+
+    /**
+     * Decodes an Announce message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns Announce
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): Announce;
+
+    /**
+     * Verifies an Announce message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates an Announce message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns Announce
+     */
+    public static fromObject(object: { [k: string]: any }): Announce;
+
+    /**
+     * Creates a plain object from an Announce message. Also converts values to other types if specified.
+     * @param message Announce
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: Announce, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this Announce to JSON.
      * @returns JSON object
      */
     public toJSON(): { [k: string]: any };
@@ -8376,6 +8486,119 @@ export class LikeList implements ILikeList {
      * @returns JSON object
      */
     public toJSON(): { [k: string]: any };
+}
+
+/** Properties of a WalletUpdate. */
+export interface IWalletUpdate {
+
+    /** WalletUpdate id */
+    id: string;
+
+    /** WalletUpdate key */
+    key: string;
+
+    /** WalletUpdate type */
+    type: WalletUpdate.Type;
+}
+
+/** Represents a WalletUpdate. */
+export class WalletUpdate implements IWalletUpdate {
+
+    /**
+     * Constructs a new WalletUpdate.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: IWalletUpdate);
+
+    /** WalletUpdate id. */
+    public id: string;
+
+    /** WalletUpdate key. */
+    public key: string;
+
+    /** WalletUpdate type. */
+    public type: WalletUpdate.Type;
+
+    /**
+     * Creates a new WalletUpdate instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns WalletUpdate instance
+     */
+    public static create(properties?: IWalletUpdate): WalletUpdate;
+
+    /**
+     * Encodes the specified WalletUpdate message. Does not implicitly {@link WalletUpdate.verify|verify} messages.
+     * @param message WalletUpdate message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: IWalletUpdate, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified WalletUpdate message, length delimited. Does not implicitly {@link WalletUpdate.verify|verify} messages.
+     * @param message WalletUpdate message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: IWalletUpdate, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a WalletUpdate message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns WalletUpdate
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): WalletUpdate;
+
+    /**
+     * Decodes a WalletUpdate message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns WalletUpdate
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): WalletUpdate;
+
+    /**
+     * Verifies a WalletUpdate message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a WalletUpdate message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns WalletUpdate
+     */
+    public static fromObject(object: { [k: string]: any }): WalletUpdate;
+
+    /**
+     * Creates a plain object from a WalletUpdate message. Also converts values to other types if specified.
+     * @param message WalletUpdate
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: WalletUpdate, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this WalletUpdate to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+export namespace WalletUpdate {
+
+    /** Type enum. */
+    enum Type {
+        THREAD_ADDED = 0,
+        THREAD_REMOVED = 1,
+        ACCOUNT_PEER_ADDED = 2,
+        ACCOUNT_PEER_REMOVED = 3
+    }
 }
 
 /** Properties of a Summary. */

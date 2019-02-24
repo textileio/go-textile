@@ -5639,7 +5639,7 @@ export const Block = $root.Block = (() => {
         case 5:
             message.type = 5;
             break;
-        case "MESSAGE":
+        case "TEXT":
         case 6:
             message.type = 6;
             break;
@@ -5754,7 +5754,7 @@ export const Block = $root.Block = (() => {
      * @property {number} JOIN=3 JOIN value
      * @property {number} ANNOUNCE=4 ANNOUNCE value
      * @property {number} LEAVE=5 LEAVE value
-     * @property {number} MESSAGE=6 MESSAGE value
+     * @property {number} TEXT=6 TEXT value
      * @property {number} FILES=7 FILES value
      * @property {number} COMMENT=8 COMMENT value
      * @property {number} LIKE=9 LIKE value
@@ -5768,7 +5768,7 @@ export const Block = $root.Block = (() => {
         values[valuesById[3] = "JOIN"] = 3;
         values[valuesById[4] = "ANNOUNCE"] = 4;
         values[valuesById[5] = "LEAVE"] = 5;
-        values[valuesById[6] = "MESSAGE"] = 6;
+        values[valuesById[6] = "TEXT"] = 6;
         values[valuesById[7] = "FILES"] = 7;
         values[valuesById[8] = "COMMENT"] = 8;
         values[valuesById[9] = "LIKE"] = 9;
@@ -14206,6 +14206,249 @@ export const MobileFileData = $root.MobileFileData = (() => {
     return MobileFileData;
 })();
 
+export const MobileEvent = $root.MobileEvent = (() => {
+
+    /**
+     * Properties of a MobileEvent.
+     * @exports IMobileEvent
+     * @interface IMobileEvent
+     * @property {string} name MobileEvent name
+     * @property {Uint8Array} data MobileEvent data
+     */
+
+    /**
+     * Constructs a new MobileEvent.
+     * @exports MobileEvent
+     * @classdesc Represents a MobileEvent.
+     * @implements IMobileEvent
+     * @constructor
+     * @param {IMobileEvent=} [properties] Properties to set
+     */
+    function MobileEvent(properties) {
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * MobileEvent name.
+     * @member {string} name
+     * @memberof MobileEvent
+     * @instance
+     */
+    MobileEvent.prototype.name = "";
+
+    /**
+     * MobileEvent data.
+     * @member {Uint8Array} data
+     * @memberof MobileEvent
+     * @instance
+     */
+    MobileEvent.prototype.data = $util.newBuffer([]);
+
+    /**
+     * Creates a new MobileEvent instance using the specified properties.
+     * @function create
+     * @memberof MobileEvent
+     * @static
+     * @param {IMobileEvent=} [properties] Properties to set
+     * @returns {MobileEvent} MobileEvent instance
+     */
+    MobileEvent.create = function create(properties) {
+        return new MobileEvent(properties);
+    };
+
+    /**
+     * Encodes the specified MobileEvent message. Does not implicitly {@link MobileEvent.verify|verify} messages.
+     * @function encode
+     * @memberof MobileEvent
+     * @static
+     * @param {IMobileEvent} message MobileEvent message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    MobileEvent.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.name != null && message.hasOwnProperty("name"))
+            writer.uint32(/* id 1, wireType 2 =*/10).string(message.name);
+        if (message.data != null && message.hasOwnProperty("data"))
+            writer.uint32(/* id 2, wireType 2 =*/18).bytes(message.data);
+        return writer;
+    };
+
+    /**
+     * Encodes the specified MobileEvent message, length delimited. Does not implicitly {@link MobileEvent.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof MobileEvent
+     * @static
+     * @param {IMobileEvent} message MobileEvent message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    MobileEvent.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a MobileEvent message from the specified reader or buffer.
+     * @function decode
+     * @memberof MobileEvent
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {MobileEvent} MobileEvent
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    MobileEvent.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.MobileEvent();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.name = reader.string();
+                break;
+            case 2:
+                message.data = reader.bytes();
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a MobileEvent message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof MobileEvent
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {MobileEvent} MobileEvent
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    MobileEvent.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a MobileEvent message.
+     * @function verify
+     * @memberof MobileEvent
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    MobileEvent.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.name != null && message.hasOwnProperty("name"))
+            if (!$util.isString(message.name))
+                return "name: string expected";
+        if (message.data != null && message.hasOwnProperty("data"))
+            if (!(message.data && typeof message.data.length === "number" || $util.isString(message.data)))
+                return "data: buffer expected";
+        return null;
+    };
+
+    /**
+     * Creates a MobileEvent message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof MobileEvent
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {MobileEvent} MobileEvent
+     */
+    MobileEvent.fromObject = function fromObject(object) {
+        if (object instanceof $root.MobileEvent)
+            return object;
+        let message = new $root.MobileEvent();
+        if (object.name != null)
+            message.name = String(object.name);
+        if (object.data != null)
+            if (typeof object.data === "string")
+                $util.base64.decode(object.data, message.data = $util.newBuffer($util.base64.length(object.data)), 0);
+            else if (object.data.length)
+                message.data = object.data;
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a MobileEvent message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof MobileEvent
+     * @static
+     * @param {MobileEvent} message MobileEvent
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    MobileEvent.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.defaults) {
+            object.name = "";
+            if (options.bytes === String)
+                object.data = "";
+            else {
+                object.data = [];
+                if (options.bytes !== Array)
+                    object.data = $util.newBuffer(object.data);
+            }
+        }
+        if (message.name != null && message.hasOwnProperty("name"))
+            object.name = message.name;
+        if (message.data != null && message.hasOwnProperty("data"))
+            object.data = options.bytes === String ? $util.base64.encode(message.data, 0, message.data.length) : options.bytes === Array ? Array.prototype.slice.call(message.data) : message.data;
+        return object;
+    };
+
+    /**
+     * Converts this MobileEvent to JSON.
+     * @function toJSON
+     * @memberof MobileEvent
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    MobileEvent.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    /**
+     * Type enum.
+     * @name MobileEvent.Type
+     * @enum {string}
+     * @property {number} NODE_START=0 NODE_START value
+     * @property {number} NODE_ONLINE=1 NODE_ONLINE value
+     * @property {number} NODE_STOP=2 NODE_STOP value
+     * @property {number} WALLET_UPDATE=10 WALLET_UPDATE value
+     * @property {number} THREAD_UPDATE=11 THREAD_UPDATE value
+     * @property {number} NOTIFICATION=12 NOTIFICATION value
+     * @property {number} QUERY_RESPONSE=20 QUERY_RESPONSE value
+     */
+    MobileEvent.Type = (function() {
+        const valuesById = {}, values = Object.create(valuesById);
+        values[valuesById[0] = "NODE_START"] = 0;
+        values[valuesById[1] = "NODE_ONLINE"] = 1;
+        values[valuesById[2] = "NODE_STOP"] = 2;
+        values[valuesById[10] = "WALLET_UPDATE"] = 10;
+        values[valuesById[11] = "THREAD_UPDATE"] = 11;
+        values[valuesById[12] = "NOTIFICATION"] = 12;
+        values[valuesById[20] = "QUERY_RESPONSE"] = 20;
+        return values;
+    })();
+
+    return MobileEvent;
+})();
+
 export const AddThreadConfig = $root.AddThreadConfig = (() => {
 
     /**
@@ -16898,6 +17141,7 @@ export const Merge = $root.Merge = (() => {
      * @interface IMerge
      * @property {string} block Merge block
      * @property {google.protobuf.ITimestamp} date Merge date
+     * @property {IUser} user Merge user
      * @property {Array.<IFeedItem>} targets Merge targets
      */
 
@@ -16932,6 +17176,14 @@ export const Merge = $root.Merge = (() => {
      * @instance
      */
     Merge.prototype.date = null;
+
+    /**
+     * Merge user.
+     * @member {IUser} user
+     * @memberof Merge
+     * @instance
+     */
+    Merge.prototype.user = null;
 
     /**
      * Merge targets.
@@ -16969,9 +17221,11 @@ export const Merge = $root.Merge = (() => {
             writer.uint32(/* id 1, wireType 2 =*/10).string(message.block);
         if (message.date != null && message.hasOwnProperty("date"))
             $root.google.protobuf.Timestamp.encode(message.date, writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+        if (message.user != null && message.hasOwnProperty("user"))
+            $root.User.encode(message.user, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
         if (message.targets != null && message.targets.length)
             for (let i = 0; i < message.targets.length; ++i)
-                $root.FeedItem.encode(message.targets[i], writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
+                $root.FeedItem.encode(message.targets[i], writer.uint32(/* id 4, wireType 2 =*/34).fork()).ldelim();
         return writer;
     };
 
@@ -17013,6 +17267,9 @@ export const Merge = $root.Merge = (() => {
                 message.date = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
                 break;
             case 3:
+                message.user = $root.User.decode(reader, reader.uint32());
+                break;
+            case 4:
                 if (!(message.targets && message.targets.length))
                     message.targets = [];
                 message.targets.push($root.FeedItem.decode(reader, reader.uint32()));
@@ -17060,6 +17317,11 @@ export const Merge = $root.Merge = (() => {
             if (error)
                 return "date." + error;
         }
+        if (message.user != null && message.hasOwnProperty("user")) {
+            let error = $root.User.verify(message.user);
+            if (error)
+                return "user." + error;
+        }
         if (message.targets != null && message.hasOwnProperty("targets")) {
             if (!Array.isArray(message.targets))
                 return "targets: array expected";
@@ -17090,6 +17352,11 @@ export const Merge = $root.Merge = (() => {
             if (typeof object.date !== "object")
                 throw TypeError(".Merge.date: object expected");
             message.date = $root.google.protobuf.Timestamp.fromObject(object.date);
+        }
+        if (object.user != null) {
+            if (typeof object.user !== "object")
+                throw TypeError(".Merge.user: object expected");
+            message.user = $root.User.fromObject(object.user);
         }
         if (object.targets) {
             if (!Array.isArray(object.targets))
@@ -17122,11 +17389,14 @@ export const Merge = $root.Merge = (() => {
         if (options.defaults) {
             object.block = "";
             object.date = null;
+            object.user = null;
         }
         if (message.block != null && message.hasOwnProperty("block"))
             object.block = message.block;
         if (message.date != null && message.hasOwnProperty("date"))
             object.date = $root.google.protobuf.Timestamp.toObject(message.date, options);
+        if (message.user != null && message.hasOwnProperty("user"))
+            object.user = $root.User.toObject(message.user, options);
         if (message.targets && message.targets.length) {
             object.targets = [];
             for (let j = 0; j < message.targets.length; ++j)
@@ -17687,275 +17957,6 @@ export const Flag = $root.Flag = (() => {
     return Flag;
 })();
 
-export const Announce = $root.Announce = (() => {
-
-    /**
-     * Properties of an Announce.
-     * @exports IAnnounce
-     * @interface IAnnounce
-     * @property {string} block Announce block
-     * @property {google.protobuf.ITimestamp} date Announce date
-     * @property {IUser} user Announce user
-     * @property {IFeedItem} target Announce target
-     */
-
-    /**
-     * Constructs a new Announce.
-     * @exports Announce
-     * @classdesc Represents an Announce.
-     * @implements IAnnounce
-     * @constructor
-     * @param {IAnnounce=} [properties] Properties to set
-     */
-    function Announce(properties) {
-        if (properties)
-            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                if (properties[keys[i]] != null)
-                    this[keys[i]] = properties[keys[i]];
-    }
-
-    /**
-     * Announce block.
-     * @member {string} block
-     * @memberof Announce
-     * @instance
-     */
-    Announce.prototype.block = "";
-
-    /**
-     * Announce date.
-     * @member {google.protobuf.ITimestamp} date
-     * @memberof Announce
-     * @instance
-     */
-    Announce.prototype.date = null;
-
-    /**
-     * Announce user.
-     * @member {IUser} user
-     * @memberof Announce
-     * @instance
-     */
-    Announce.prototype.user = null;
-
-    /**
-     * Announce target.
-     * @member {IFeedItem} target
-     * @memberof Announce
-     * @instance
-     */
-    Announce.prototype.target = null;
-
-    /**
-     * Creates a new Announce instance using the specified properties.
-     * @function create
-     * @memberof Announce
-     * @static
-     * @param {IAnnounce=} [properties] Properties to set
-     * @returns {Announce} Announce instance
-     */
-    Announce.create = function create(properties) {
-        return new Announce(properties);
-    };
-
-    /**
-     * Encodes the specified Announce message. Does not implicitly {@link Announce.verify|verify} messages.
-     * @function encode
-     * @memberof Announce
-     * @static
-     * @param {IAnnounce} message Announce message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    Announce.encode = function encode(message, writer) {
-        if (!writer)
-            writer = $Writer.create();
-        if (message.block != null && message.hasOwnProperty("block"))
-            writer.uint32(/* id 1, wireType 2 =*/10).string(message.block);
-        if (message.date != null && message.hasOwnProperty("date"))
-            $root.google.protobuf.Timestamp.encode(message.date, writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
-        if (message.user != null && message.hasOwnProperty("user"))
-            $root.User.encode(message.user, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
-        if (message.target != null && message.hasOwnProperty("target"))
-            $root.FeedItem.encode(message.target, writer.uint32(/* id 4, wireType 2 =*/34).fork()).ldelim();
-        return writer;
-    };
-
-    /**
-     * Encodes the specified Announce message, length delimited. Does not implicitly {@link Announce.verify|verify} messages.
-     * @function encodeDelimited
-     * @memberof Announce
-     * @static
-     * @param {IAnnounce} message Announce message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    Announce.encodeDelimited = function encodeDelimited(message, writer) {
-        return this.encode(message, writer).ldelim();
-    };
-
-    /**
-     * Decodes an Announce message from the specified reader or buffer.
-     * @function decode
-     * @memberof Announce
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @param {number} [length] Message length if known beforehand
-     * @returns {Announce} Announce
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    Announce.decode = function decode(reader, length) {
-        if (!(reader instanceof $Reader))
-            reader = $Reader.create(reader);
-        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.Announce();
-        while (reader.pos < end) {
-            let tag = reader.uint32();
-            switch (tag >>> 3) {
-            case 1:
-                message.block = reader.string();
-                break;
-            case 2:
-                message.date = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
-                break;
-            case 3:
-                message.user = $root.User.decode(reader, reader.uint32());
-                break;
-            case 4:
-                message.target = $root.FeedItem.decode(reader, reader.uint32());
-                break;
-            default:
-                reader.skipType(tag & 7);
-                break;
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Decodes an Announce message from the specified reader or buffer, length delimited.
-     * @function decodeDelimited
-     * @memberof Announce
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @returns {Announce} Announce
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    Announce.decodeDelimited = function decodeDelimited(reader) {
-        if (!(reader instanceof $Reader))
-            reader = new $Reader(reader);
-        return this.decode(reader, reader.uint32());
-    };
-
-    /**
-     * Verifies an Announce message.
-     * @function verify
-     * @memberof Announce
-     * @static
-     * @param {Object.<string,*>} message Plain object to verify
-     * @returns {string|null} `null` if valid, otherwise the reason why it is not
-     */
-    Announce.verify = function verify(message) {
-        if (typeof message !== "object" || message === null)
-            return "object expected";
-        if (message.block != null && message.hasOwnProperty("block"))
-            if (!$util.isString(message.block))
-                return "block: string expected";
-        if (message.date != null && message.hasOwnProperty("date")) {
-            let error = $root.google.protobuf.Timestamp.verify(message.date);
-            if (error)
-                return "date." + error;
-        }
-        if (message.user != null && message.hasOwnProperty("user")) {
-            let error = $root.User.verify(message.user);
-            if (error)
-                return "user." + error;
-        }
-        if (message.target != null && message.hasOwnProperty("target")) {
-            let error = $root.FeedItem.verify(message.target);
-            if (error)
-                return "target." + error;
-        }
-        return null;
-    };
-
-    /**
-     * Creates an Announce message from a plain object. Also converts values to their respective internal types.
-     * @function fromObject
-     * @memberof Announce
-     * @static
-     * @param {Object.<string,*>} object Plain object
-     * @returns {Announce} Announce
-     */
-    Announce.fromObject = function fromObject(object) {
-        if (object instanceof $root.Announce)
-            return object;
-        let message = new $root.Announce();
-        if (object.block != null)
-            message.block = String(object.block);
-        if (object.date != null) {
-            if (typeof object.date !== "object")
-                throw TypeError(".Announce.date: object expected");
-            message.date = $root.google.protobuf.Timestamp.fromObject(object.date);
-        }
-        if (object.user != null) {
-            if (typeof object.user !== "object")
-                throw TypeError(".Announce.user: object expected");
-            message.user = $root.User.fromObject(object.user);
-        }
-        if (object.target != null) {
-            if (typeof object.target !== "object")
-                throw TypeError(".Announce.target: object expected");
-            message.target = $root.FeedItem.fromObject(object.target);
-        }
-        return message;
-    };
-
-    /**
-     * Creates a plain object from an Announce message. Also converts values to other types if specified.
-     * @function toObject
-     * @memberof Announce
-     * @static
-     * @param {Announce} message Announce
-     * @param {$protobuf.IConversionOptions} [options] Conversion options
-     * @returns {Object.<string,*>} Plain object
-     */
-    Announce.toObject = function toObject(message, options) {
-        if (!options)
-            options = {};
-        let object = {};
-        if (options.defaults) {
-            object.block = "";
-            object.date = null;
-            object.user = null;
-            object.target = null;
-        }
-        if (message.block != null && message.hasOwnProperty("block"))
-            object.block = message.block;
-        if (message.date != null && message.hasOwnProperty("date"))
-            object.date = $root.google.protobuf.Timestamp.toObject(message.date, options);
-        if (message.user != null && message.hasOwnProperty("user"))
-            object.user = $root.User.toObject(message.user, options);
-        if (message.target != null && message.hasOwnProperty("target"))
-            object.target = $root.FeedItem.toObject(message.target, options);
-        return object;
-    };
-
-    /**
-     * Converts this Announce to JSON.
-     * @function toJSON
-     * @memberof Announce
-     * @instance
-     * @returns {Object.<string,*>} JSON object
-     */
-    Announce.prototype.toJSON = function toJSON() {
-        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-    };
-
-    return Announce;
-})();
-
 export const Join = $root.Join = (() => {
 
     /**
@@ -18240,6 +18241,248 @@ export const Join = $root.Join = (() => {
     };
 
     return Join;
+})();
+
+export const Announce = $root.Announce = (() => {
+
+    /**
+     * Properties of an Announce.
+     * @exports IAnnounce
+     * @interface IAnnounce
+     * @property {string} block Announce block
+     * @property {google.protobuf.ITimestamp} date Announce date
+     * @property {IUser} user Announce user
+     */
+
+    /**
+     * Constructs a new Announce.
+     * @exports Announce
+     * @classdesc Represents an Announce.
+     * @implements IAnnounce
+     * @constructor
+     * @param {IAnnounce=} [properties] Properties to set
+     */
+    function Announce(properties) {
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * Announce block.
+     * @member {string} block
+     * @memberof Announce
+     * @instance
+     */
+    Announce.prototype.block = "";
+
+    /**
+     * Announce date.
+     * @member {google.protobuf.ITimestamp} date
+     * @memberof Announce
+     * @instance
+     */
+    Announce.prototype.date = null;
+
+    /**
+     * Announce user.
+     * @member {IUser} user
+     * @memberof Announce
+     * @instance
+     */
+    Announce.prototype.user = null;
+
+    /**
+     * Creates a new Announce instance using the specified properties.
+     * @function create
+     * @memberof Announce
+     * @static
+     * @param {IAnnounce=} [properties] Properties to set
+     * @returns {Announce} Announce instance
+     */
+    Announce.create = function create(properties) {
+        return new Announce(properties);
+    };
+
+    /**
+     * Encodes the specified Announce message. Does not implicitly {@link Announce.verify|verify} messages.
+     * @function encode
+     * @memberof Announce
+     * @static
+     * @param {IAnnounce} message Announce message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    Announce.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.block != null && message.hasOwnProperty("block"))
+            writer.uint32(/* id 1, wireType 2 =*/10).string(message.block);
+        if (message.date != null && message.hasOwnProperty("date"))
+            $root.google.protobuf.Timestamp.encode(message.date, writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+        if (message.user != null && message.hasOwnProperty("user"))
+            $root.User.encode(message.user, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
+        return writer;
+    };
+
+    /**
+     * Encodes the specified Announce message, length delimited. Does not implicitly {@link Announce.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof Announce
+     * @static
+     * @param {IAnnounce} message Announce message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    Announce.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes an Announce message from the specified reader or buffer.
+     * @function decode
+     * @memberof Announce
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {Announce} Announce
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    Announce.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.Announce();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.block = reader.string();
+                break;
+            case 2:
+                message.date = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
+                break;
+            case 3:
+                message.user = $root.User.decode(reader, reader.uint32());
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes an Announce message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof Announce
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {Announce} Announce
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    Announce.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies an Announce message.
+     * @function verify
+     * @memberof Announce
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    Announce.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.block != null && message.hasOwnProperty("block"))
+            if (!$util.isString(message.block))
+                return "block: string expected";
+        if (message.date != null && message.hasOwnProperty("date")) {
+            let error = $root.google.protobuf.Timestamp.verify(message.date);
+            if (error)
+                return "date." + error;
+        }
+        if (message.user != null && message.hasOwnProperty("user")) {
+            let error = $root.User.verify(message.user);
+            if (error)
+                return "user." + error;
+        }
+        return null;
+    };
+
+    /**
+     * Creates an Announce message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof Announce
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {Announce} Announce
+     */
+    Announce.fromObject = function fromObject(object) {
+        if (object instanceof $root.Announce)
+            return object;
+        let message = new $root.Announce();
+        if (object.block != null)
+            message.block = String(object.block);
+        if (object.date != null) {
+            if (typeof object.date !== "object")
+                throw TypeError(".Announce.date: object expected");
+            message.date = $root.google.protobuf.Timestamp.fromObject(object.date);
+        }
+        if (object.user != null) {
+            if (typeof object.user !== "object")
+                throw TypeError(".Announce.user: object expected");
+            message.user = $root.User.fromObject(object.user);
+        }
+        return message;
+    };
+
+    /**
+     * Creates a plain object from an Announce message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof Announce
+     * @static
+     * @param {Announce} message Announce
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    Announce.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.defaults) {
+            object.block = "";
+            object.date = null;
+            object.user = null;
+        }
+        if (message.block != null && message.hasOwnProperty("block"))
+            object.block = message.block;
+        if (message.date != null && message.hasOwnProperty("date"))
+            object.date = $root.google.protobuf.Timestamp.toObject(message.date, options);
+        if (message.user != null && message.hasOwnProperty("user"))
+            object.user = $root.User.toObject(message.user, options);
+        return object;
+    };
+
+    /**
+     * Converts this Announce to JSON.
+     * @function toJSON
+     * @memberof Announce
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    Announce.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return Announce;
 })();
 
 export const Leave = $root.Leave = (() => {
@@ -20991,6 +21234,279 @@ export const LikeList = $root.LikeList = (() => {
     };
 
     return LikeList;
+})();
+
+export const WalletUpdate = $root.WalletUpdate = (() => {
+
+    /**
+     * Properties of a WalletUpdate.
+     * @exports IWalletUpdate
+     * @interface IWalletUpdate
+     * @property {string} id WalletUpdate id
+     * @property {string} key WalletUpdate key
+     * @property {WalletUpdate.Type} type WalletUpdate type
+     */
+
+    /**
+     * Constructs a new WalletUpdate.
+     * @exports WalletUpdate
+     * @classdesc Represents a WalletUpdate.
+     * @implements IWalletUpdate
+     * @constructor
+     * @param {IWalletUpdate=} [properties] Properties to set
+     */
+    function WalletUpdate(properties) {
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * WalletUpdate id.
+     * @member {string} id
+     * @memberof WalletUpdate
+     * @instance
+     */
+    WalletUpdate.prototype.id = "";
+
+    /**
+     * WalletUpdate key.
+     * @member {string} key
+     * @memberof WalletUpdate
+     * @instance
+     */
+    WalletUpdate.prototype.key = "";
+
+    /**
+     * WalletUpdate type.
+     * @member {WalletUpdate.Type} type
+     * @memberof WalletUpdate
+     * @instance
+     */
+    WalletUpdate.prototype.type = 0;
+
+    /**
+     * Creates a new WalletUpdate instance using the specified properties.
+     * @function create
+     * @memberof WalletUpdate
+     * @static
+     * @param {IWalletUpdate=} [properties] Properties to set
+     * @returns {WalletUpdate} WalletUpdate instance
+     */
+    WalletUpdate.create = function create(properties) {
+        return new WalletUpdate(properties);
+    };
+
+    /**
+     * Encodes the specified WalletUpdate message. Does not implicitly {@link WalletUpdate.verify|verify} messages.
+     * @function encode
+     * @memberof WalletUpdate
+     * @static
+     * @param {IWalletUpdate} message WalletUpdate message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    WalletUpdate.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.id != null && message.hasOwnProperty("id"))
+            writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
+        if (message.key != null && message.hasOwnProperty("key"))
+            writer.uint32(/* id 2, wireType 2 =*/18).string(message.key);
+        if (message.type != null && message.hasOwnProperty("type"))
+            writer.uint32(/* id 3, wireType 0 =*/24).int32(message.type);
+        return writer;
+    };
+
+    /**
+     * Encodes the specified WalletUpdate message, length delimited. Does not implicitly {@link WalletUpdate.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof WalletUpdate
+     * @static
+     * @param {IWalletUpdate} message WalletUpdate message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    WalletUpdate.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a WalletUpdate message from the specified reader or buffer.
+     * @function decode
+     * @memberof WalletUpdate
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {WalletUpdate} WalletUpdate
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    WalletUpdate.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.WalletUpdate();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.id = reader.string();
+                break;
+            case 2:
+                message.key = reader.string();
+                break;
+            case 3:
+                message.type = reader.int32();
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a WalletUpdate message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof WalletUpdate
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {WalletUpdate} WalletUpdate
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    WalletUpdate.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a WalletUpdate message.
+     * @function verify
+     * @memberof WalletUpdate
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    WalletUpdate.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.id != null && message.hasOwnProperty("id"))
+            if (!$util.isString(message.id))
+                return "id: string expected";
+        if (message.key != null && message.hasOwnProperty("key"))
+            if (!$util.isString(message.key))
+                return "key: string expected";
+        if (message.type != null && message.hasOwnProperty("type"))
+            switch (message.type) {
+            default:
+                return "type: enum value expected";
+            case 0:
+            case 1:
+            case 2:
+            case 3:
+                break;
+            }
+        return null;
+    };
+
+    /**
+     * Creates a WalletUpdate message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof WalletUpdate
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {WalletUpdate} WalletUpdate
+     */
+    WalletUpdate.fromObject = function fromObject(object) {
+        if (object instanceof $root.WalletUpdate)
+            return object;
+        let message = new $root.WalletUpdate();
+        if (object.id != null)
+            message.id = String(object.id);
+        if (object.key != null)
+            message.key = String(object.key);
+        switch (object.type) {
+        case "THREAD_ADDED":
+        case 0:
+            message.type = 0;
+            break;
+        case "THREAD_REMOVED":
+        case 1:
+            message.type = 1;
+            break;
+        case "ACCOUNT_PEER_ADDED":
+        case 2:
+            message.type = 2;
+            break;
+        case "ACCOUNT_PEER_REMOVED":
+        case 3:
+            message.type = 3;
+            break;
+        }
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a WalletUpdate message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof WalletUpdate
+     * @static
+     * @param {WalletUpdate} message WalletUpdate
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    WalletUpdate.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.defaults) {
+            object.id = "";
+            object.key = "";
+            object.type = options.enums === String ? "THREAD_ADDED" : 0;
+        }
+        if (message.id != null && message.hasOwnProperty("id"))
+            object.id = message.id;
+        if (message.key != null && message.hasOwnProperty("key"))
+            object.key = message.key;
+        if (message.type != null && message.hasOwnProperty("type"))
+            object.type = options.enums === String ? $root.WalletUpdate.Type[message.type] : message.type;
+        return object;
+    };
+
+    /**
+     * Converts this WalletUpdate to JSON.
+     * @function toJSON
+     * @memberof WalletUpdate
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    WalletUpdate.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    /**
+     * Type enum.
+     * @name WalletUpdate.Type
+     * @enum {string}
+     * @property {number} THREAD_ADDED=0 THREAD_ADDED value
+     * @property {number} THREAD_REMOVED=1 THREAD_REMOVED value
+     * @property {number} ACCOUNT_PEER_ADDED=2 ACCOUNT_PEER_ADDED value
+     * @property {number} ACCOUNT_PEER_REMOVED=3 ACCOUNT_PEER_REMOVED value
+     */
+    WalletUpdate.Type = (function() {
+        const valuesById = {}, values = Object.create(valuesById);
+        values[valuesById[0] = "THREAD_ADDED"] = 0;
+        values[valuesById[1] = "THREAD_REMOVED"] = 1;
+        values[valuesById[2] = "ACCOUNT_PEER_ADDED"] = 2;
+        values[valuesById[3] = "ACCOUNT_PEER_REMOVED"] = 3;
+        return values;
+    })();
+
+    return WalletUpdate;
 })();
 
 export const Summary = $root.Summary = (() => {
@@ -24034,7 +24550,7 @@ export const ThreadBlock = $root.ThreadBlock = (() => {
         case 5:
             message.type = 5;
             break;
-        case "MESSAGE":
+        case "TEXT":
         case 6:
             message.type = 6;
             break;

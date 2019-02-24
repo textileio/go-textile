@@ -112,7 +112,7 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 		err = h.handleAnnounce(thrd, hash, block)
 	case pb.Block_LEAVE:
 		err = h.handleLeave(thrd, hash, block)
-	case pb.Block_MESSAGE:
+	case pb.Block_TEXT:
 		err = h.handleMessage(thrd, hash, block)
 	case pb.Block_FILES:
 		err = h.handleFiles(thrd, hash, block)

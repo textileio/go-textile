@@ -56,15 +56,6 @@ var ErrBlockWrongType = errors.New("block type is not the type requested")
 // errReloadFailed indicates an error occurred during thread reload
 var errThreadReload = errors.New("could not re-load thread")
 
-// ThreadUpdate is used to notify listeners about updates in a thread
-type ThreadUpdate struct {
-	Block      *pb.Block   `json:"block"`
-	ThreadId   string      `json:"thread_id"`
-	ThreadKey  string      `json:"thread_key"`
-	ThreadName string      `json:"thread_name"`
-	Info       interface{} `json:"info,omitempty"`
-}
-
 // ThreadConfig is used to construct a Thread
 type ThreadConfig struct {
 	RepoPath      string
@@ -74,7 +65,7 @@ type ThreadConfig struct {
 	Service       func() *ThreadsService
 	ThreadsOutbox *BlockOutbox
 	CafeOutbox    *CafeOutbox
-	SendUpdate    func(update ThreadUpdate)
+	PushUpdate    func(*pb.Block, string)
 }
 
 // Thread is the primary mechanism representing a collecion of data / files / photos
@@ -96,7 +87,7 @@ type Thread struct {
 	service       func() *ThreadsService
 	threadsOutbox *BlockOutbox
 	cafeOutbox    *CafeOutbox
-	sendUpdate    func(update ThreadUpdate)
+	pushUpdate    func(*pb.Block, string)
 	mux           sync.Mutex
 }
 
@@ -133,7 +124,7 @@ func NewThread(model *pb.Thread, conf *ThreadConfig) (*Thread, error) {
 		service:       conf.Service,
 		threadsOutbox: conf.ThreadsOutbox,
 		cafeOutbox:    conf.CafeOutbox,
-		sendUpdate:    conf.SendUpdate,
+		pushUpdate:    conf.PushUpdate,
 	}, nil
 }
 
@@ -215,7 +206,7 @@ func (t *Thread) followParent(parent mh.Multihash) error {
 		_, err = t.handleAnnounceBlock(parent, block)
 	case pb.Block_LEAVE:
 		err = t.handleLeaveBlock(parent, block)
-	case pb.Block_MESSAGE:
+	case pb.Block_TEXT:
 		_, err = t.handleMessageBlock(parent, block)
 	case pb.Block_FILES:
 		_, err = t.handleFilesBlock(parent, block)
@@ -389,7 +380,7 @@ func (t *Thread) indexBlock(commit *commitResult, blockType pb.Block_BlockType, 
 		return err
 	}
 
-	t.pushUpdate(block)
+	t.pushUpdate(block, t.Key)
 	return nil
 }
 
@@ -499,16 +490,6 @@ func (t *Thread) post(commit *commitResult, peers []pb.ThreadPeer) error {
 	go t.threadsOutbox.Flush()
 
 	return nil
-}
-
-// pushUpdate pushes thread updates to UI listeners
-func (t *Thread) pushUpdate(block *pb.Block) {
-	t.sendUpdate(ThreadUpdate{
-		Block:      block,
-		ThreadId:   t.Id,
-		ThreadKey:  t.Key,
-		ThreadName: t.Name,
-	})
 }
 
 // readable returns whether or not this thread is readable from the

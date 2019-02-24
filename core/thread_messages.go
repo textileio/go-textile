@@ -23,12 +23,12 @@ func (t *Thread) AddMessage(body string) (mh.Multihash, error) {
 		Body: body,
 	}
 
-	res, err := t.commitBlock(msg, pb.Block_MESSAGE, nil)
+	res, err := t.commitBlock(msg, pb.Block_TEXT, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := t.indexBlock(res, pb.Block_MESSAGE, "", body); err != nil {
+	if err := t.indexBlock(res, pb.Block_TEXT, "", body); err != nil {
 		return nil, err
 	}
 
@@ -62,7 +62,7 @@ func (t *Thread) handleMessageBlock(hash mh.Multihash, block *pb.ThreadBlock) (*
 	if err := t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,
-	}, pb.Block_MESSAGE, "", msg.Body); err != nil {
+	}, pb.Block_TEXT, "", msg.Body); err != nil {
 		return nil, err
 	}
 	return msg, nil

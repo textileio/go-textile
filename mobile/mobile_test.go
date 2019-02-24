@@ -15,7 +15,7 @@ import (
 
 type TestMessenger struct{}
 
-func (tm *TestMessenger) Notify(event *Event) {}
+func (tm *TestMessenger) Notify(event []byte) {}
 
 type TestCallback struct{}
 
@@ -114,14 +114,9 @@ func TestNewWallet(t *testing.T) {
 }
 
 func TestWalletAccountAt(t *testing.T) {
-	res, err := WalletAccountAt(recovery, 0, "")
+	accnt, err := WalletAccountAt(recovery, 0, "")
 	if err != nil {
 		t.Errorf("get mobile wallet account at failed: %s", err)
-	}
-	accnt := WalletAccount{}
-	if err := json.Unmarshal([]byte(res), &accnt); err != nil {
-		t.Error(err)
-		return
 	}
 	seed = accnt.Seed
 }
@@ -772,12 +767,8 @@ func createAndStartMobile(repoPath string, waitForOnline bool) (*Mobile, error) 
 		return nil, err
 	}
 
-	res, err := WalletAccountAt(recovery, 0, "")
+	accnt, err := WalletAccountAt(recovery, 0, "")
 	if err != nil {
-		return nil, err
-	}
-	accnt := WalletAccount{}
-	if err := json.Unmarshal([]byte(res), &accnt); err != nil {
 		return nil, err
 	}
 

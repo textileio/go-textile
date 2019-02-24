@@ -161,7 +161,7 @@ func toName(contact *pb.Contact) string {
 		return contact.Username
 	}
 	if len(contact.Address) >= 7 {
-		return contact.Address[len(contact.Address)-7:]
+		return contact.Address[:7]
 	}
 	return ""
 }

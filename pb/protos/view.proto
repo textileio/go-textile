@@ -89,7 +89,8 @@ message FeedItemList {
 message Merge {
     string block                   = 1;
     google.protobuf.Timestamp date = 2;
-    repeated FeedItem targets      = 3;
+    User user                      = 3;
+    repeated FeedItem targets      = 4;
 }
 
 message Ignore {
@@ -106,18 +107,17 @@ message Flag {
     FeedItem target                = 4;
 }
 
-message Announce {
-    string block                   = 1;
-    google.protobuf.Timestamp date = 2;
-    User user                      = 3;
-    FeedItem target                = 4;
-}
-
 message Join {
     string block                   = 1;
     google.protobuf.Timestamp date = 2;
     User user                      = 3;
     repeated Like likes            = 4;
+}
+
+message Announce {
+    string block                   = 1;
+    google.protobuf.Timestamp date = 2;
+    User user                      = 3;
 }
 
 message Leave {
@@ -183,6 +183,21 @@ message Like {
 
 message LikeList {
     repeated Like items = 1;
+}
+
+// UPDATES //
+
+message WalletUpdate {
+    string id  = 1;
+    string key = 2;
+    Type type  = 3;
+
+    enum Type {
+        THREAD_ADDED         = 0;
+        THREAD_REMOVED       = 1;
+        ACCOUNT_PEER_ADDED   = 2;
+        ACCOUNT_PEER_REMOVED = 3;
+    }
 }
 
 // SUMMARY //

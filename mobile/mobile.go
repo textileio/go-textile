@@ -10,20 +10,15 @@ import (
 	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/wallet"
 )
 
 var log = logging.Logger("tex-mobile")
 
-// Message is a generic go -> bridge message structure
-type Event struct {
-	Name    string `json:"name"`
-	Payload string `json:"payload"`
-}
-
 // Messenger is used to inform the bridge layer of new data waiting to be queried
 type Messenger interface {
-	Notify(event *Event)
+	Notify(event []byte)
 }
 
 // Callback is used for asyc methods (payload is a protobuf)
@@ -53,16 +48,16 @@ type WalletAccount struct {
 }
 
 // WalletAccountAt derives the account at the given index
-func WalletAccountAt(phrase string, index int, password string) (string, error) {
+func WalletAccountAt(phrase string, index int, password string) (*WalletAccount, error) {
 	w := wallet.NewWalletFromRecoveryPhrase(phrase)
 	accnt, err := w.AccountAt(index, password)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return toJSON(WalletAccount{
+	return &WalletAccount{
 		Seed:    accnt.Seed(),
 		Address: accnt.Address(),
-	})
+	}, nil
 }
 
 // InitConfig is used to setup a textile node
@@ -172,22 +167,15 @@ func (m *Mobile) Start() error {
 					if !ok {
 						return
 					}
-					payload, err := toJSON(update)
+					data, err := proto.Marshal(update)
 					if err != nil {
-						return
+						log.Errorf("error marshaling event data: %s", err)
+						continue
 					}
-					var name string
-					switch update.Type {
-					case core.ThreadAdded:
-						name = "onThreadAdded"
-					case core.ThreadRemoved:
-						name = "onThreadRemoved"
-					case core.AccountPeerAdded:
-						name = "onAccountPeerAdded"
-					case core.AccountPeerRemoved:
-						name = "onAccountPeerRemoved"
-					}
-					m.messenger.Notify(&Event{Name: name, Payload: payload})
+					m.notify(&pb.MobileEvent{
+						Name: pb.MobileEvent_WALLET_UPDATE.String(),
+						Data: data,
+					})
 				}
 			}
 		}()
@@ -196,13 +184,20 @@ func (m *Mobile) Start() error {
 		go func() {
 			for {
 				select {
-				case update, ok := <-m.listener.Ch:
+				case value, ok := <-m.listener.Ch:
 					if !ok {
 						return
 					}
-					payload, err := toJSON(update)
-					if err == nil {
-						m.messenger.Notify(&Event{Name: "onThreadUpdate", Payload: payload})
+					if update, ok := value.(*pb.FeedItem); ok {
+						data, err := proto.Marshal(update)
+						if err != nil {
+							log.Errorf("error marshaling event data: %s", err)
+							continue
+						}
+						m.notify(&pb.MobileEvent{
+							Name: pb.MobileEvent_THREAD_UPDATE.String(),
+							Data: data,
+						})
 					}
 				}
 			}
@@ -212,20 +207,27 @@ func (m *Mobile) Start() error {
 		go func() {
 			for {
 				select {
-				case notification, ok := <-m.node.NotificationCh():
+				case note, ok := <-m.node.NotificationCh():
 					if !ok {
 						return
 					}
-					payload, err := toJSON(notification)
-					if err == nil {
-						m.messenger.Notify(&Event{Name: "onNotification", Payload: payload})
+					data, err := proto.Marshal(note)
+					if err != nil {
+						log.Errorf("error marshaling event data: %s", err)
+						continue
 					}
+					m.notify(&pb.MobileEvent{
+						Name: pb.MobileEvent_NOTIFICATION.String(),
+						Data: data,
+					})
 				}
 			}
 		}()
 
-		// notify UI we're ready
-		m.messenger.Notify(&Event{Name: "onOnline", Payload: "{}"})
+		// ready
+		m.notify(&pb.MobileEvent{
+			Name: pb.MobileEvent_NODE_ONLINE.String(),
+		})
 	}()
 
 	return nil
@@ -253,12 +255,12 @@ func (m *Mobile) blockView(hash mh.Multihash) ([]byte, error) {
 	return proto.Marshal(view)
 }
 
-// toJSON returns a json string and logs errors
-func toJSON(any interface{}) (string, error) {
-	jsonb, err := json.Marshal(any)
+func (m *Mobile) notify(event *pb.MobileEvent) {
+	payload, err := proto.Marshal(event)
 	if err != nil {
-		log.Errorf("error marshaling json: %s", err)
-		return "", err
+		log.Errorf("error marshaling event: %s", err)
+		return
 	}
-	return string(jsonb), nil
+
+	m.messenger.Notify(payload)
 }

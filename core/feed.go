@@ -2,9 +2,12 @@ package core
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/textileio/textile-go/pb"
 )
 
@@ -12,7 +15,7 @@ var flatFeedTypes = []pb.Block_BlockType{
 	pb.Block_JOIN,
 	pb.Block_LEAVE,
 	pb.Block_FILES,
-	pb.Block_MESSAGE,
+	pb.Block_TEXT,
 	pb.Block_COMMENT,
 	pb.Block_LIKE,
 }
@@ -21,7 +24,7 @@ var annotatedFeedTypes = []pb.Block_BlockType{
 	pb.Block_JOIN,
 	pb.Block_LEAVE,
 	pb.Block_FILES,
-	pb.Block_MESSAGE,
+	pb.Block_TEXT,
 }
 
 type feedStack struct {
@@ -126,33 +129,91 @@ func (t *Textile) Feed(offset string, limit int, threadId string, mode pb.FeedMo
 	}, nil
 }
 
+func (t *Textile) FeedItemType(item *pb.FeedItem) (pb.Block_BlockType, error) {
+	if i, ok := pb.Block_BlockType_value[strings.ToUpper(item.Payload.TypeUrl[1:])]; ok {
+		return pb.Block_BlockType(i), nil
+	} else {
+		return 0, fmt.Errorf("unable to determine block type")
+	}
+}
+
+type FeedItemPayload interface {
+	GetUser() *pb.User
+	GetDate() *timestamp.Timestamp
+	Reset()
+	String() string
+	ProtoMessage()
+}
+
+func (t *Textile) FeedItemPayload(item *pb.FeedItem) (FeedItemPayload, error) {
+	blockType, err := t.FeedItemType(item)
+	if err != nil {
+		return nil, err
+	}
+
+	var payload FeedItemPayload
+	switch blockType {
+	case pb.Block_MERGE:
+		payload = new(pb.Merge)
+	case pb.Block_IGNORE:
+		payload = new(pb.Ignore)
+	case pb.Block_FLAG:
+		payload = new(pb.Flag)
+	case pb.Block_JOIN:
+		payload = new(pb.Join)
+	case pb.Block_ANNOUNCE:
+		payload = new(pb.Announce)
+	case pb.Block_LEAVE:
+		payload = new(pb.Leave)
+	case pb.Block_TEXT:
+		payload = new(pb.Text)
+	case pb.Block_FILES:
+		payload = new(pb.Files)
+	case pb.Block_COMMENT:
+		payload = new(pb.Comment)
+	case pb.Block_LIKE:
+		payload = new(pb.Like)
+	default:
+		return nil, fmt.Errorf("unable to parse payload")
+	}
+
+	if err := ptypes.UnmarshalAny(item.Payload, payload); err != nil {
+		return nil, err
+	}
+	return payload, nil
+}
+
 func (t *Textile) feedItem(block *pb.Block, opts feedItemOpts) (*pb.FeedItem, error) {
 	item := &pb.FeedItem{
-		Block:   block.Id,
-		Thread:  block.Thread,
-		Payload: &any.Any{},
+		Block:  block.Id,
+		Thread: block.Thread,
+		Payload: &any.Any{
+			TypeUrl: "/" + strings.Title(strings.ToLower(block.Type.String())),
+		},
 	}
 
 	var payload proto.Message
 	var err error
 	switch block.Type {
+	case pb.Block_MERGE:
+		payload, err = t.merge(block, opts)
+	case pb.Block_IGNORE:
+		payload, err = t.ignore(block, opts)
+	case pb.Block_FLAG:
+		payload, err = t.flag(block, opts)
 	case pb.Block_JOIN:
-		item.Payload.TypeUrl = "/Join"
 		payload, err = t.join(block, opts)
+	case pb.Block_ANNOUNCE:
+		payload, err = t.announce(block, opts)
 	case pb.Block_LEAVE:
-		item.Payload.TypeUrl = "/Leave"
 		payload, err = t.leave(block, opts)
-	case pb.Block_FILES:
-		item.Payload.TypeUrl = "/Files"
-		payload, err = t.file(block, opts)
-	case pb.Block_MESSAGE:
-		item.Payload.TypeUrl = "/Text"
+	case pb.Block_TEXT:
 		payload, err = t.message(block, opts)
+	case pb.Block_FILES:
+		payload, err = t.file(block, opts)
 	case pb.Block_COMMENT:
-		item.Payload.TypeUrl = "/Comment"
 		payload, err = t.comment(block, opts)
 	case pb.Block_LIKE:
-		item.Payload.TypeUrl = "/Like"
 		payload, err = t.like(block, opts)
 	default:
 		return nil, nil

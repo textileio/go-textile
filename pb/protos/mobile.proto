@@ -11,3 +11,20 @@ message MobilePreparedFiles {
 message MobileFileData {
     string url = 1;
 }
+
+message MobileEvent {
+    string name = 1;
+    bytes data = 2;
+
+    enum Type {
+        NODE_START  = 0;
+        NODE_ONLINE = 1;
+        NODE_STOP   = 2;
+
+        WALLET_UPDATE = 10;
+        THREAD_UPDATE = 11;
+        NOTIFICATION  = 12;
+
+        QUERY_RESPONSE = 20;
+    }
+}

@@ -103,7 +103,7 @@ message Block {
         JOIN     = 3;
         ANNOUNCE = 4;
         LEAVE    = 5; // no payload
-        MESSAGE  = 6;
+        TEXT     = 6;
         FILES    = 7;
         COMMENT  = 8;
         LIKE     = 9;

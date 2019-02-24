@@ -12,9 +12,9 @@ func (t *Textile) Messages(offset string, limit int, threadId string) (*pb.TextL
 		if t.Thread(threadId) == nil {
 			return nil, ErrThreadNotFound
 		}
-		query = fmt.Sprintf("threadId='%s' and type=%d", threadId, pb.Block_MESSAGE)
+		query = fmt.Sprintf("threadId='%s' and type=%d", threadId, pb.Block_TEXT)
 	} else {
-		query = fmt.Sprintf("type=%d", pb.Block_MESSAGE)
+		query = fmt.Sprintf("type=%d", pb.Block_TEXT)
 	}
 
 	list := make([]*pb.Text, 0)
@@ -41,7 +41,7 @@ func (t *Textile) Message(blockId string) (*pb.Text, error) {
 }
 
 func (t *Textile) message(block *pb.Block, opts feedItemOpts) (*pb.Text, error) {
-	if block.Type != pb.Block_MESSAGE {
+	if block.Type != pb.Block_TEXT {
 		return nil, ErrBlockWrongType
 	}
 

@@ -41,28 +41,6 @@ const kQueueFlushFreq = time.Second * 60
 // kMobileQueueFlushFreq how often to flush the message queues on mobile
 const kMobileQueueFlush = time.Second * 40
 
-// Update is used to notify UI listeners of changes
-type Update struct {
-	Id   string     `json:"id"`
-	Key  string     `json:"key"`
-	Name string     `json:"name"`
-	Type UpdateType `json:"type"`
-}
-
-// UpdateType indicates a type of node update
-type UpdateType int
-
-const (
-	// ThreadAdded is emitted when a thread is added
-	ThreadAdded UpdateType = iota
-	// ThreadRemoved is emitted when a thread is removed
-	ThreadRemoved
-	// AccountPeerAdded is emitted when an account peer (device) is added
-	AccountPeerAdded
-	// AccountPeerRemoved is emitted when an account peer (device) is removed
-	AccountPeerRemoved
-)
-
 // InitConfig is used to setup a textile node
 type InitConfig struct {
 	Account         *keypair.Full
@@ -108,7 +86,7 @@ type Textile struct {
 	loadedThreads []*Thread
 	online        chan struct{}
 	done          chan struct{}
-	updates       chan Update
+	updates       chan *pb.WalletUpdate
 	threadUpdates *broadcast.Broadcaster
 	notifications chan *pb.Notification
 	threads       *ThreadsService
@@ -223,7 +201,7 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 
 	node := &Textile{
 		repoPath:      conf.RepoPath,
-		updates:       make(chan Update, 10),
+		updates:       make(chan *pb.WalletUpdate, 10),
 		threadUpdates: broadcast.NewBroadcaster(10),
 		notifications: make(chan *pb.Notification, 10),
 	}
@@ -448,7 +426,7 @@ func (t *Textile) Ping(pid peer.ID) (service.PeerStatus, error) {
 }
 
 // UpdateCh returns the node update channel
-func (t *Textile) UpdateCh() <-chan Update {
+func (t *Textile) UpdateCh() <-chan *pb.WalletUpdate {
 	return t.updates
 }
 
@@ -632,7 +610,7 @@ func (t *Textile) loadThread(mod *pb.Thread) (*Thread, error) {
 		Service:       t.threadsService,
 		ThreadsOutbox: t.threadsOutbox,
 		CafeOutbox:    t.cafeOutbox,
-		SendUpdate:    t.sendThreadUpdate,
+		PushUpdate:    t.sendThreadUpdate,
 	}
 
 	thrd, err := NewThread(mod, threadConfig)
@@ -644,8 +622,8 @@ func (t *Textile) loadThread(mod *pb.Thread) (*Thread, error) {
 	return thrd, nil
 }
 
-// sendUpdate adds an update to the update channel
-func (t *Textile) sendUpdate(update Update) {
+// sendUpdate sends an update to the update channel
+func (t *Textile) sendUpdate(update *pb.WalletUpdate) {
 	for _, k := range internalThreadKeys {
 		if update.Key == k {
 			return
@@ -654,14 +632,20 @@ func (t *Textile) sendUpdate(update Update) {
 	t.updates <- update
 }
 
-// sendThreadUpdate adds a thread update to the update channel
-func (t *Textile) sendThreadUpdate(update ThreadUpdate) {
+// sendThreadUpdate sends a feed item to the update channel
+func (t *Textile) sendThreadUpdate(block *pb.Block, key string) {
 	for _, k := range internalThreadKeys {
-		if update.ThreadKey == k {
+		if key == k {
 			return
 		}
 	}
-	update.Block.User = t.User(update.Block.Author)
+
+	update, err := t.feedItem(block, feedItemOpts{})
+	if err != nil {
+		log.Errorf("error building thread update: %s", err)
+		return
+	}
+
 	t.threadUpdates.Send(update)
 }
 

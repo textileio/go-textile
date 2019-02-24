@@ -132,7 +132,11 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 		go t.cafeOutbox.Flush()
 	}
 
-	t.sendUpdate(Update{Id: thrd.Id, Key: thrd.Key, Name: thrd.Name, Type: ThreadAdded})
+	t.sendUpdate(&pb.WalletUpdate{
+		Id:   thrd.Id,
+		Key:  thrd.Key,
+		Type: pb.WalletUpdate_THREAD_ADDED,
+	})
 
 	log.Debugf("added a new thread %s with name %s", thrd.Id, conf.Name)
 
@@ -224,7 +228,11 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	t.loadedThreads[len(t.loadedThreads)-1] = nil
 	t.loadedThreads = t.loadedThreads[:len(t.loadedThreads)-1]
 
-	t.sendUpdate(Update{Id: thrd.Id, Key: thrd.Key, Name: thrd.Name, Type: ThreadRemoved})
+	t.sendUpdate(&pb.WalletUpdate{
+		Id:   thrd.Id,
+		Key:  thrd.Key,
+		Type: pb.WalletUpdate_THREAD_REMOVED,
+	})
 
 	log.Infof("removed thread %s with name %s", thrd.Id, thrd.Name)
 
