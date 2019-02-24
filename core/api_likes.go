@@ -31,13 +31,13 @@ func (a *api) addBlockLikes(g *gin.Context) {
 		return
 	}
 
-	info, err := a.node.Like(hash.B58String())
+	like, err := a.node.Like(hash.B58String())
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	pbJSON(g, http.StatusCreated, info)
+	pbJSON(g, http.StatusCreated, like)
 }
 
 // lsBlockLikes godoc

@@ -1089,7 +1089,7 @@
                         "description": "file",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/pb.FileIndex"
+                            "$ref": "#/definitions/pb.Files"
                         }
                     },
                     "400": {
@@ -2327,10 +2327,10 @@
                 ],
                 "responses": {
                     "201": {
-                        "description": "block",
+                        "description": "file",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/pb.Block"
+                            "$ref": "#/definitions/pb.Files"
                         }
                     },
                     "400": {

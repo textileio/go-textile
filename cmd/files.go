@@ -196,13 +196,13 @@ func callAddFiles(args []string, opts map[string]string) error {
 
 					if !group {
 						caption := strings.TrimSpace(fmt.Sprintf("%s (%d)", opts["caption"], count+1))
-						block, err := add([]*pb.Directory{dir}, threadId, caption, verbose)
+						files, err := add([]*pb.Directory{dir}, threadId, caption, verbose)
 						if err != nil {
 							cerr = err
 							break loop
 						}
 
-						output(fmt.Sprintf("File %d target: %s", count+1, block.Target))
+						output(fmt.Sprintf("File %d target: %s", count+1, files.Target))
 					} else {
 						dirs = append(dirs, dir)
 					}
@@ -223,21 +223,21 @@ func callAddFiles(args []string, opts map[string]string) error {
 			return err
 		}
 
-		block, err := add([]*pb.Directory{dir}, threadId, opts["caption"], verbose)
+		files, err := add([]*pb.Directory{dir}, threadId, opts["caption"], verbose)
 		if err != nil {
 			return err
 		}
-		output(fmt.Sprintf("File target: %s", block.Target))
+		output(fmt.Sprintf("File target: %s", files.Target))
 
 		count++
 	}
 
 	if group && len(dirs) > 0 {
-		block, err := add(dirs, threadId, opts["caption"], verbose)
+		files, err := add(dirs, threadId, opts["caption"], verbose)
 		if err != nil {
 			return err
 		}
-		output(fmt.Sprintf("Group target: %s", block.Target))
+		output(fmt.Sprintf("Group target: %s", files.Target))
 	}
 
 	dur := time.Now().Sub(start)
@@ -255,18 +255,18 @@ func callAddFiles(args []string, opts map[string]string) error {
 	return nil
 }
 
-func add(dirs []*pb.Directory, threadId string, caption string, verbose bool) (*pb.Block, error) {
+func add(dirs []*pb.Directory, threadId string, caption string, verbose bool) (*pb.Files, error) {
 	data, err := json.Marshal(&dirs)
 	if err != nil {
 		return nil, err
 	}
 
-	var block pb.Block
+	files := new(pb.Files)
 	res, err := executeJsonPbCmd(POST, "threads/"+threadId+"/files", params{
 		opts:    map[string]string{"caption": caption},
 		payload: bytes.NewReader(data),
 		ctype:   "application/json",
-	}, &block)
+	}, files)
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +274,7 @@ func add(dirs []*pb.Directory, threadId string, caption string, verbose bool) (*
 	if verbose {
 		output(res)
 	}
-	return &block, nil
+	return files, nil
 }
 
 func mill(pth string, node *pb.Node, verbose bool) (*pb.Directory, error) {

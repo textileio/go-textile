@@ -23,7 +23,7 @@ import (
 // @Produce application/json
 // @Param dir body pb.Directory true "milled dir (output from mill endpoint)"
 // @Param X-Textile-Opts header string false "caption: Caption to add to file(s)" default(caption=)
-// @Success 201 {object} pb.Block "block"
+// @Success 201 {object} pb.Files "file"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
@@ -89,13 +89,13 @@ func (a *api) addThreadFiles(g *gin.Context) {
 		return
 	}
 
-	block, err := a.node.BlockView(hash.B58String())
+	files, err := a.node.File(hash.B58String())
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	pbJSON(g, http.StatusCreated, block)
+	pbJSON(g, http.StatusCreated, files)
 }
 
 // lsThreadFiles godoc
@@ -153,17 +153,17 @@ func (a *api) lsThreadFiles(g *gin.Context) {
 // @Tags files
 // @Produce application/json
 // @Param block path string true "block id"
-// @Success 200 {object} pb.FileIndex "file"
+// @Success 200 {object} pb.Files "file"
 // @Failure 400 {string} string "Bad Request"
 // @Router /files/{block} [get]
 func (a *api) getThreadFiles(g *gin.Context) {
-	info, err := a.node.File(g.Param("block"))
+	files, err := a.node.File(g.Param("block"))
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	pbJSON(g, http.StatusOK, info)
+	pbJSON(g, http.StatusOK, files)
 }
 
 // lsThreadFileTargetKeys godoc

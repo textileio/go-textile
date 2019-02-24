@@ -42,13 +42,13 @@ func (a *api) addBlockComments(g *gin.Context) {
 		return
 	}
 
-	info, err := a.node.Comment(hash.B58String())
+	comment, err := a.node.Comment(hash.B58String())
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	pbJSON(g, http.StatusCreated, info)
+	pbJSON(g, http.StatusCreated, comment)
 }
 
 // lsBlockComments godoc

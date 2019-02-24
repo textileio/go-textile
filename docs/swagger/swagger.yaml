@@ -1259,7 +1259,7 @@ paths:
         "200":
           description: file
           schema:
-            $ref: '#/definitions/pb.FileIndex'
+            $ref: '#/definitions/pb.Files'
             type: object
         "400":
           description: Bad Request
@@ -2129,9 +2129,9 @@ paths:
       - application/json
       responses:
         "201":
-          description: block
+          description: file
           schema:
-            $ref: '#/definitions/pb.Block'
+            $ref: '#/definitions/pb.Files'
             type: object
         "400":
           description: Bad Request
