@@ -7941,6 +7941,7 @@ export const Notification = $root.Notification = (() => {
      * @property {Notification.Type} type Notification type
      * @property {string} body Notification body
      * @property {boolean} read Notification read
+     * @property {IUser} user Notification user
      */
 
     /**
@@ -8039,6 +8040,14 @@ export const Notification = $root.Notification = (() => {
     Notification.prototype.read = false;
 
     /**
+     * Notification user.
+     * @member {IUser} user
+     * @memberof Notification
+     * @instance
+     */
+    Notification.prototype.user = null;
+
+    /**
      * Creates a new Notification instance using the specified properties.
      * @function create
      * @memberof Notification
@@ -8082,6 +8091,8 @@ export const Notification = $root.Notification = (() => {
             writer.uint32(/* id 9, wireType 2 =*/74).string(message.body);
         if (message.read != null && message.hasOwnProperty("read"))
             writer.uint32(/* id 10, wireType 0 =*/80).bool(message.read);
+        if (message.user != null && message.hasOwnProperty("user"))
+            $root.User.encode(message.user, writer.uint32(/* id 101, wireType 2 =*/810).fork()).ldelim();
         return writer;
     };
 
@@ -8145,6 +8156,9 @@ export const Notification = $root.Notification = (() => {
                 break;
             case 10:
                 message.read = reader.bool();
+                break;
+            case 101:
+                message.user = $root.User.decode(reader, reader.uint32());
                 break;
             default:
                 reader.skipType(tag & 7);
@@ -8224,6 +8238,11 @@ export const Notification = $root.Notification = (() => {
         if (message.read != null && message.hasOwnProperty("read"))
             if (typeof message.read !== "boolean")
                 return "read: boolean expected";
+        if (message.user != null && message.hasOwnProperty("user")) {
+            let error = $root.User.verify(message.user);
+            if (error)
+                return "user." + error;
+        }
         return null;
     };
 
@@ -8294,6 +8313,11 @@ export const Notification = $root.Notification = (() => {
             message.body = String(object.body);
         if (object.read != null)
             message.read = Boolean(object.read);
+        if (object.user != null) {
+            if (typeof object.user !== "object")
+                throw TypeError(".Notification.user: object expected");
+            message.user = $root.User.fromObject(object.user);
+        }
         return message;
     };
 
@@ -8321,6 +8345,7 @@ export const Notification = $root.Notification = (() => {
             object.type = options.enums === String ? "INVITE_RECEIVED" : 0;
             object.body = "";
             object.read = false;
+            object.user = null;
         }
         if (message.id != null && message.hasOwnProperty("id"))
             object.id = message.id;
@@ -8342,6 +8367,8 @@ export const Notification = $root.Notification = (() => {
             object.body = message.body;
         if (message.read != null && message.hasOwnProperty("read"))
             object.read = message.read;
+        if (message.user != null && message.hasOwnProperty("user"))
+            object.user = $root.User.toObject(message.user, options);
         return object;
     };
 
@@ -10617,6 +10644,214 @@ export const CafeClient = $root.CafeClient = (() => {
     };
 
     return CafeClient;
+})();
+
+export const CafeClientList = $root.CafeClientList = (() => {
+
+    /**
+     * Properties of a CafeClientList.
+     * @exports ICafeClientList
+     * @interface ICafeClientList
+     * @property {Array.<ICafeClient>} items CafeClientList items
+     */
+
+    /**
+     * Constructs a new CafeClientList.
+     * @exports CafeClientList
+     * @classdesc Represents a CafeClientList.
+     * @implements ICafeClientList
+     * @constructor
+     * @param {ICafeClientList=} [properties] Properties to set
+     */
+    function CafeClientList(properties) {
+        this.items = [];
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * CafeClientList items.
+     * @member {Array.<ICafeClient>} items
+     * @memberof CafeClientList
+     * @instance
+     */
+    CafeClientList.prototype.items = $util.emptyArray;
+
+    /**
+     * Creates a new CafeClientList instance using the specified properties.
+     * @function create
+     * @memberof CafeClientList
+     * @static
+     * @param {ICafeClientList=} [properties] Properties to set
+     * @returns {CafeClientList} CafeClientList instance
+     */
+    CafeClientList.create = function create(properties) {
+        return new CafeClientList(properties);
+    };
+
+    /**
+     * Encodes the specified CafeClientList message. Does not implicitly {@link CafeClientList.verify|verify} messages.
+     * @function encode
+     * @memberof CafeClientList
+     * @static
+     * @param {ICafeClientList} message CafeClientList message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    CafeClientList.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.items != null && message.items.length)
+            for (let i = 0; i < message.items.length; ++i)
+                $root.CafeClient.encode(message.items[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+        return writer;
+    };
+
+    /**
+     * Encodes the specified CafeClientList message, length delimited. Does not implicitly {@link CafeClientList.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof CafeClientList
+     * @static
+     * @param {ICafeClientList} message CafeClientList message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    CafeClientList.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a CafeClientList message from the specified reader or buffer.
+     * @function decode
+     * @memberof CafeClientList
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {CafeClientList} CafeClientList
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    CafeClientList.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.CafeClientList();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                if (!(message.items && message.items.length))
+                    message.items = [];
+                message.items.push($root.CafeClient.decode(reader, reader.uint32()));
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a CafeClientList message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof CafeClientList
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {CafeClientList} CafeClientList
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    CafeClientList.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a CafeClientList message.
+     * @function verify
+     * @memberof CafeClientList
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    CafeClientList.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.items != null && message.hasOwnProperty("items")) {
+            if (!Array.isArray(message.items))
+                return "items: array expected";
+            for (let i = 0; i < message.items.length; ++i) {
+                let error = $root.CafeClient.verify(message.items[i]);
+                if (error)
+                    return "items." + error;
+            }
+        }
+        return null;
+    };
+
+    /**
+     * Creates a CafeClientList message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof CafeClientList
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {CafeClientList} CafeClientList
+     */
+    CafeClientList.fromObject = function fromObject(object) {
+        if (object instanceof $root.CafeClientList)
+            return object;
+        let message = new $root.CafeClientList();
+        if (object.items) {
+            if (!Array.isArray(object.items))
+                throw TypeError(".CafeClientList.items: array expected");
+            message.items = [];
+            for (let i = 0; i < object.items.length; ++i) {
+                if (typeof object.items[i] !== "object")
+                    throw TypeError(".CafeClientList.items: object expected");
+                message.items[i] = $root.CafeClient.fromObject(object.items[i]);
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a CafeClientList message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof CafeClientList
+     * @static
+     * @param {CafeClientList} message CafeClientList
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    CafeClientList.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.arrays || options.defaults)
+            object.items = [];
+        if (message.items && message.items.length) {
+            object.items = [];
+            for (let j = 0; j < message.items.length; ++j)
+                object.items[j] = $root.CafeClient.toObject(message.items[j], options);
+        }
+        return object;
+    };
+
+    /**
+     * Converts this CafeClientList to JSON.
+     * @function toJSON
+     * @memberof CafeClientList
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    CafeClientList.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return CafeClientList;
 })();
 
 export const CafeToken = $root.CafeToken = (() => {

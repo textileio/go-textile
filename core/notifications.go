@@ -3,64 +3,33 @@ package core
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 
-	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/pb"
 )
 
-type NotificationInfo struct {
-	Id        string    `json:"id"`
-	Date      time.Time `json:"date"`
-	ActorId   string    `json:"actor_id"`
-	Username  string    `json:"username,omitempty"`
-	Avatar    string    `json:"avatar,omitempty"`
-	Subject   string    `json:"subject"`
-	SubjectId string    `json:"subject_id"`
-	BlockId   string    `json:"block_id,omitempty"`
-	Target    string    `json:"target,omitempty"`
-	Type      string    `json:"type"`
-	Body      string    `json:"body"`
-	Read      bool      `json:"read"`
-}
-
 // Notifications lists notifications
-func (t *Textile) Notifications(offset string, limit int) []NotificationInfo {
-	infos := make([]NotificationInfo, 0)
-	for _, note := range t.datastore.Notifications().List(offset, limit) {
-		infos = append(infos, t.NotificationInfo(note))
+func (t *Textile) Notifications(offset string, limit int) *pb.NotificationList {
+	list := t.datastore.Notifications().List(offset, limit)
+	for i, note := range list.Items {
+		list.Items[i] = t.NotificationView(note)
 	}
-	return infos
+	return list
 }
 
-// NotificationInfo returns the notification info object
-func (t *Textile) NotificationInfo(note repo.Notification) NotificationInfo {
-	var username, avatar string
+// NotificationView returns a notification with expanded view info
+func (t *Textile) NotificationView(note *pb.Notification) *pb.Notification {
 	switch note.Type {
-	case repo.InviteReceivedNotification:
-		invite := t.InviteView(t.datastore.Invites().Get(note.BlockId))
-		if invite == nil {
-			username, avatar = t.ContactDisplayInfo(note.ActorId)
+	case pb.Notification_INVITE_RECEIVED:
+		invite := t.InviteView(t.datastore.Invites().Get(note.Block))
+		if invite != nil {
+			note.User = invite.Inviter
 		}
 	default:
-		username, avatar = t.ContactDisplayInfo(note.ActorId)
+		note.User = t.User(note.Actor)
 	}
-
-	return NotificationInfo{
-		Id:        note.Id,
-		Date:      note.Date,
-		ActorId:   note.ActorId,
-		Username:  username,
-		Avatar:    avatar,
-		Subject:   note.Subject,
-		SubjectId: note.SubjectId,
-		BlockId:   note.BlockId,
-		Target:    note.Target,
-		Type:      note.Type.Description(),
-		Body:      note.Body,
-		Read:      note.Read,
-	}
+	return note
 }
 
 // CountUnreadNotifications counts unread notifications
@@ -84,11 +53,11 @@ func (t *Textile) AcceptInviteViaNotification(id string) (mh.Multihash, error) {
 	if notification == nil {
 		return nil, errors.New(fmt.Sprintf("could not find notification: %s", id))
 	}
-	if notification.Type != repo.InviteReceivedNotification {
-		return nil, errors.New(fmt.Sprintf("notification not type invite"))
+	if notification.Type != pb.Notification_INVITE_RECEIVED {
+		return nil, errors.New(fmt.Sprintf("notification type is not invite"))
 	}
 
-	hash, err := t.AcceptInvite(notification.BlockId)
+	hash, err := t.AcceptInvite(notification.Block)
 	if err != nil {
 		return nil, err
 	}
@@ -102,11 +71,11 @@ func (t *Textile) IgnoreInviteViaNotification(id string) error {
 	if notification == nil {
 		return errors.New(fmt.Sprintf("could not find notification: %s", id))
 	}
-	if notification.Type != repo.InviteReceivedNotification {
-		return errors.New(fmt.Sprintf("notification not type invite"))
+	if notification.Type != pb.Notification_INVITE_RECEIVED {
+		return errors.New(fmt.Sprintf("notification type is not invite"))
 	}
 
-	if err := t.IgnoreInvite(notification.BlockId); err != nil {
+	if err := t.IgnoreInvite(notification.Block); err != nil {
 		return err
 	}
 

@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/textileio/textile-go/util"
-
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
@@ -18,8 +16,8 @@ import (
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema/textile"
+	"github.com/textileio/textile-go/util"
 )
 
 // ErrThreadNotFound indicates thread is not found in the loaded list
@@ -78,7 +76,7 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 		}
 
 		if schema != "" {
-			if err := t.cafeOutbox.Add(schema, repo.CafeStoreRequest); err != nil {
+			if err := t.cafeOutbox.Add(schema, pb.CafeRequest_STORE); err != nil {
 				return nil, err
 			}
 		}

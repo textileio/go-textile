@@ -294,8 +294,8 @@ func (h *CafeService) StoreThread(thrd *pb.Thread, cafe peer.ID) error {
 // TODO: unpin message locally after it's delivered
 func (h *CafeService) DeliverMessage(mid string, pid peer.ID, cafe *pb.Cafe) error {
 	env, err := h.service.NewEnvelope(pb.Message_CAFE_DELIVER_MESSAGE, &pb.CafeDeliverMessage{
-		Id:       mid,
-		ClientId: pid.Pretty(),
+		Id:     mid,
+		Client: pid.Pretty(),
 	}, nil, false)
 	if err != nil {
 		return err
@@ -587,7 +587,7 @@ func (h *CafeService) searchLocal(qtype pb.QueryType, options *pb.QueryOptions, 
 			for _, b := range backups {
 				value, err := proto.Marshal(&pb.CafeClientThread{
 					Id:         b.Id,
-					ClientId:   b.ClientId,
+					Client:     b.Client,
 					Ciphertext: b.Ciphertext,
 				})
 				if err != nil {
@@ -735,10 +735,10 @@ func (h *CafeService) handleChallenge(pid peer.ID, env *pb.Envelope) (*pb.Envelo
 	}
 
 	// generate a new random nonce
-	nonce := &repo.CafeClientNonce{
+	nonce := &pb.CafeClientNonce{
 		Value:   ksuid.New().String(),
 		Address: req.Address,
-		Date:    time.Now(),
+		Date:    ptypes.TimestampNow(),
 	}
 	if err := h.datastore.CafeClientNonces().Add(nonce); err != nil {
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
@@ -773,7 +773,7 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
 
-	err = bcrypt.CompareHashAndPassword(encodedToken.Token, plainBytes[12:])
+	err = bcrypt.CompareHashAndPassword(encodedToken.Value, plainBytes[12:])
 	if err != nil {
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
@@ -801,13 +801,13 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
 
-	now := time.Now()
-	client := &repo.CafeClient{
-		Id:       pid.Pretty(),
-		Address:  reg.Address,
-		Created:  now,
-		LastSeen: now,
-		TokenId:  encodedToken.Id,
+	now := ptypes.TimestampNow()
+	client := &pb.CafeClient{
+		Id:      pid.Pretty(),
+		Address: reg.Address,
+		Created: now,
+		Seen:    now,
+		Token:   encodedToken.Id,
 	}
 	if err := h.datastore.CafeClients().Add(client); err != nil {
 		// check if already exists
@@ -1002,9 +1002,9 @@ func (h *CafeService) handleStoreThread(pid peer.ID, env *pb.Envelope) (*pb.Enve
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
 
-	thrd := &repo.CafeClientThread{
+	thrd := &pb.CafeClientThread{
 		Id:         store.Id,
-		ClientId:   client.Id,
+		Client:     client.Id,
 		Ciphertext: store.Ciphertext,
 	}
 	if err := h.datastore.CafeClientThreads().AddOrUpdate(thrd); err != nil {
@@ -1022,17 +1022,17 @@ func (h *CafeService) handleDeliverMessage(pid peer.ID, env *pb.Envelope) (*pb.E
 		return nil, err
 	}
 
-	client := h.datastore.CafeClients().Get(msg.ClientId)
+	client := h.datastore.CafeClients().Get(msg.Client)
 	if client == nil {
-		log.Warningf("received message from %s for unknown client %s", pid.Pretty(), msg.ClientId)
+		log.Warningf("received message from %s for unknown client %s", pid.Pretty(), msg.Client)
 		return nil, nil
 	}
 
-	message := &repo.CafeClientMessage{
-		Id:       msg.Id,
-		PeerId:   pid.Pretty(),
-		ClientId: client.Id,
-		Date:     time.Now(),
+	message := &pb.CafeClientMessage{
+		Id:     msg.Id,
+		Peer:   pid.Pretty(),
+		Client: client.Id,
+		Date:   ptypes.TimestampNow(),
 	}
 	if err := h.datastore.CafeClientMessages().AddOrUpdate(message); err != nil {
 		log.Errorf("error adding message: %s", err)
@@ -1081,14 +1081,10 @@ func (h *CafeService) handleCheckMessages(pid peer.ID, env *pb.Envelope) (*pb.En
 	}
 	msgs := h.datastore.CafeClientMessages().ListByClient(client.Id, inboxMessagePageSize)
 	for _, msg := range msgs {
-		date, err := ptypes.TimestampProto(msg.Date)
-		if err != nil {
-			return h.service.NewError(500, err.Error(), env.Message.RequestId)
-		}
 		res.Messages = append(res.Messages, &pb.CafeMessage{
-			Id:     msg.Id,
-			PeerId: msg.PeerId,
-			Date:   date,
+			Id:   msg.Id,
+			Peer: msg.Peer,
+			Date: msg.Date,
 		})
 	}
 

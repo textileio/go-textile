@@ -2,11 +2,10 @@ package core
 
 import (
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
 // AddInvite creates an outgoing invite block, which is sent directly to the recipient
@@ -43,9 +42,9 @@ func (t *Thread) AddInvite(inviteeId peer.ID) (mh.Multihash, error) {
 	}
 
 	// create new peer for posting (it will get added if+when they accept)
-	target := repo.ThreadPeer{Id: contact.Id}
+	target := pb.ThreadPeer{Id: contact.Id}
 
-	if err := t.post(res, []repo.ThreadPeer{target}); err != nil {
+	if err := t.post(res, []pb.ThreadPeer{target}); err != nil {
 		return nil, err
 	}
 

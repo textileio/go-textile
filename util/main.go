@@ -4,6 +4,7 @@ import (
 	"io"
 	"io/ioutil"
 	"strings"
+	"time"
 
 	"github.com/golang/protobuf/ptypes"
 
@@ -36,6 +37,10 @@ func ListContainsString(list []string, i string) bool {
 		}
 	}
 	return false
+}
+
+func ProtoTime(ts *timestamp.Timestamp) time.Time {
+	return time.Unix(ts.Seconds, int64(ts.Nanos))
 }
 
 func ProtoNanos(ts *timestamp.Timestamp) int64 {

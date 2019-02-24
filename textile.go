@@ -405,13 +405,13 @@ func startNode(serveDocs bool) error {
 					return
 				}
 
-				date := note.Date.Format(time.RFC822)
+				date := util.ProtoTime(note.Date).Format(time.RFC822)
 				var subject string
-				if len(note.SubjectId) >= 7 {
-					subject = note.SubjectId[len(note.SubjectId)-7:]
+				if len(note.Subject) >= 7 {
+					subject = note.Subject[len(note.Subject)-7:]
 				}
 
-				msg := cmd.Grey(date+"  "+note.Username+" ") + cmd.Cyan(note.Body) +
+				msg := cmd.Grey(date+"  "+note.User.Name+" ") + cmd.Cyan(note.Body) +
 					cmd.Grey(" "+subject)
 				fmt.Println(msg)
 			}

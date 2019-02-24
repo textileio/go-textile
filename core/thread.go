@@ -72,7 +72,7 @@ type ThreadConfig struct {
 	Node          func() *core.IpfsNode
 	Datastore     repo.Datastore
 	Service       func() *ThreadsService
-	ThreadsOutbox *ThreadsOutbox
+	ThreadsOutbox *BlockOutbox
 	CafeOutbox    *CafeOutbox
 	SendUpdate    func(update ThreadUpdate)
 }
@@ -94,7 +94,7 @@ type Thread struct {
 	node          func() *core.IpfsNode
 	datastore     repo.Datastore
 	service       func() *ThreadsService
-	threadsOutbox *ThreadsOutbox
+	threadsOutbox *BlockOutbox
 	cafeOutbox    *CafeOutbox
 	sendUpdate    func(update ThreadUpdate)
 	mux           sync.Mutex
@@ -147,7 +147,7 @@ func (t *Thread) Head() (string, error) {
 }
 
 // Peers returns locally known peers in this thread
-func (t *Thread) Peers() []repo.ThreadPeer {
+func (t *Thread) Peers() []pb.ThreadPeer {
 	return t.datastore.ThreadPeers().ListByThread(t.Id)
 }
 
@@ -196,8 +196,11 @@ func (t *Thread) followParent(parent mh.Multihash) error {
 	}
 	if block == nil {
 		// exists, abort
+		log.Debugf("%s from %s exists, aborting", block.Type.String(), block.Header.Author)
 		return nil
 	}
+
+	log.Debugf("handling %s from %s", block.Type.String(), block.Header.Author)
 
 	switch block.Type {
 	case pb.Block_MERGE:
@@ -236,9 +239,9 @@ func (t *Thread) addOrUpdateContact(contact *pb.Contact) error {
 		return nil
 	}
 
-	if err := t.datastore.ThreadPeers().Add(&repo.ThreadPeer{
+	if err := t.datastore.ThreadPeers().Add(&pb.ThreadPeer{
 		Id:       contact.Id,
-		ThreadId: t.Id,
+		Thread:   t.Id,
 		Welcomed: false,
 	}); err != nil {
 		if !repo.ConflictError(err) {
@@ -331,7 +334,7 @@ func (t *Thread) addBlock(ciphertext []byte) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	if err := t.cafeOutbox.Add(id.Hash().B58String(), repo.CafeStoreRequest); err != nil {
+	if err := t.cafeOutbox.Add(id.Hash().B58String(), pb.CafeRequest_STORE); err != nil {
 		return nil, err
 	}
 
@@ -428,7 +431,7 @@ func (t *Thread) updateHead(head mh.Multihash) error {
 		return err
 	}
 
-	return t.cafeOutbox.Add(t.Id, repo.CafeStoreThreadRequest)
+	return t.cafeOutbox.Add(t.Id, pb.CafeRequest_STORE_THREAD)
 }
 
 // sendWelcome sends the latest HEAD block to a set of peers
@@ -470,7 +473,7 @@ func (t *Thread) sendWelcome() error {
 }
 
 // post publishes an encrypted message to thread peers
-func (t *Thread) post(commit *commitResult, peers []repo.ThreadPeer) error {
+func (t *Thread) post(commit *commitResult, peers []pb.ThreadPeer) error {
 	if len(peers) == 0 {
 		// flush the storage queue—this is normally done in a thread
 		// via thread message queue handling, but that won't run if there's

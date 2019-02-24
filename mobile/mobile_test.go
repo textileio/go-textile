@@ -9,7 +9,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
 	"github.com/textileio/textile-go/pb"
 )
@@ -725,8 +724,8 @@ func TestMobile_Notifications(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	var notes []core.NotificationInfo
-	if err := json.Unmarshal([]byte(res), &notes); err != nil {
+	notes := new(pb.NotificationList)
+	if err := proto.Unmarshal(res, notes); err != nil {
 		t.Error(err)
 	}
 }

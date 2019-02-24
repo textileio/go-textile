@@ -3224,6 +3224,9 @@ export interface INotification {
 
     /** Notification read */
     read: boolean;
+
+    /** Notification user */
+    user: IUser;
 }
 
 /** Represents a Notification. */
@@ -3264,6 +3267,9 @@ export class Notification implements INotification {
 
     /** Notification read. */
     public read: boolean;
+
+    /** Notification user. */
+    public user: IUser;
 
     /**
      * Creates a new Notification instance using the specified properties.
@@ -4238,6 +4244,96 @@ export class CafeClient implements ICafeClient {
 
     /**
      * Converts this CafeClient to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+/** Properties of a CafeClientList. */
+export interface ICafeClientList {
+
+    /** CafeClientList items */
+    items: ICafeClient[];
+}
+
+/** Represents a CafeClientList. */
+export class CafeClientList implements ICafeClientList {
+
+    /**
+     * Constructs a new CafeClientList.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: ICafeClientList);
+
+    /** CafeClientList items. */
+    public items: ICafeClient[];
+
+    /**
+     * Creates a new CafeClientList instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns CafeClientList instance
+     */
+    public static create(properties?: ICafeClientList): CafeClientList;
+
+    /**
+     * Encodes the specified CafeClientList message. Does not implicitly {@link CafeClientList.verify|verify} messages.
+     * @param message CafeClientList message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: ICafeClientList, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified CafeClientList message, length delimited. Does not implicitly {@link CafeClientList.verify|verify} messages.
+     * @param message CafeClientList message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: ICafeClientList, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a CafeClientList message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns CafeClientList
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): CafeClientList;
+
+    /**
+     * Decodes a CafeClientList message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns CafeClientList
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): CafeClientList;
+
+    /**
+     * Verifies a CafeClientList message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a CafeClientList message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns CafeClientList
+     */
+    public static fromObject(object: { [k: string]: any }): CafeClientList;
+
+    /**
+     * Creates a plain object from a CafeClientList message. Also converts values to other types if specified.
+     * @param message CafeClientList
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: CafeClientList, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this CafeClientList to JSON.
      * @returns JSON object
      */
     public toJSON(): { [k: string]: any };

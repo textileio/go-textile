@@ -110,9 +110,9 @@ type Textile struct {
 	done          chan struct{}
 	updates       chan Update
 	threadUpdates *broadcast.Broadcaster
-	notifications chan NotificationInfo
+	notifications chan *pb.Notification
 	threads       *ThreadsService
-	threadsOutbox *ThreadsOutbox
+	threadsOutbox *BlockOutbox
 	cafe          *CafeService
 	cafeOutbox    *CafeOutbox
 	cafeInbox     *CafeInbox
@@ -225,7 +225,7 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 		repoPath:      conf.RepoPath,
 		updates:       make(chan Update, 10),
 		threadUpdates: broadcast.NewBroadcaster(10),
-		notifications: make(chan NotificationInfo, 10),
+		notifications: make(chan *pb.Notification, 10),
 	}
 
 	var err error
@@ -458,7 +458,7 @@ func (t *Textile) ThreadUpdateListener() *broadcast.Listener {
 }
 
 // NotificationsCh returns the notifications channel
-func (t *Textile) NotificationCh() <-chan NotificationInfo {
+func (t *Textile) NotificationCh() <-chan *pb.Notification {
 	return t.notifications
 }
 
@@ -666,12 +666,12 @@ func (t *Textile) sendThreadUpdate(update ThreadUpdate) {
 }
 
 // sendNotification adds a notification to the notification channel
-func (t *Textile) sendNotification(notification *repo.Notification) error {
-	if err := t.datastore.Notifications().Add(notification); err != nil {
+func (t *Textile) sendNotification(note *pb.Notification) error {
+	if err := t.datastore.Notifications().Add(note); err != nil {
 		return err
 	}
 
-	t.notifications <- t.NotificationInfo(*notification)
+	t.notifications <- t.NotificationView(note)
 	return nil
 }
 

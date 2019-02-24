@@ -45,15 +45,6 @@ func (t *Textile) RemoveContact(id string) error {
 	return t.datastore.Contacts().Delete(id)
 }
 
-// ContactDisplayInfo returns the username and avatar for the peer id if known
-func (t *Textile) ContactDisplayInfo(id string) (string, string) {
-	contact := t.datastore.Contacts().Get(id)
-	if contact == nil {
-		return ipfs.ShortenID(id), ""
-	}
-	return toName(contact), contact.Avatar
-}
-
 // User returns a user object by finding the most recently updated contact for the given id
 func (t *Textile) User(id string) *pb.User {
 	contact := t.datastore.Contacts().GetBest(id)
@@ -78,7 +69,7 @@ func (t *Textile) ContactThreads(id string) (*pb.ThreadList, error) {
 
 	list := &pb.ThreadList{Items: make([]*pb.Thread, 0)}
 	for _, p := range peers {
-		view, err := t.ThreadView(p.ThreadId)
+		view, err := t.ThreadView(p.Thread)
 		if err != nil {
 			return nil, err
 		}
@@ -154,7 +145,7 @@ func (t *Textile) contactView(model *pb.Contact, addThreads bool) *pb.Contact {
 	if addThreads {
 		model.Threads = make([]string, 0)
 		for _, p := range t.datastore.ThreadPeers().ListById(model.Id) {
-			model.Threads = append(model.Threads, p.ThreadId)
+			model.Threads = append(model.Threads, p.Thread)
 		}
 	}
 

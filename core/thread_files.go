@@ -53,7 +53,7 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 		}
 	}
 
-	if err := t.cafeOutbox.Add(target, repo.CafeStoreRequest); err != nil {
+	if err := t.cafeOutbox.Add(target, pb.CafeRequest_STORE); err != nil {
 		return nil, err
 	}
 
@@ -148,7 +148,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 			}
 		}
 
-		if err := t.cafeOutbox.Add(msg.Target, repo.CafeStoreRequest); err != nil {
+		if err := t.cafeOutbox.Add(msg.Target, pb.CafeRequest_STORE); err != nil {
 			return nil, err
 		}
 
@@ -247,7 +247,7 @@ func (t *Thread) removeFiles(node ipld.Node) error {
 // processFileNode walks a file node, validating and applying a dag schema
 func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys map[string]string, inbound bool) error {
 	hash := inode.Cid().Hash().B58String()
-	if err := t.cafeOutbox.Add(hash, repo.CafeStoreRequest); err != nil {
+	if err := t.cafeOutbox.Add(hash, pb.CafeRequest_STORE); err != nil {
 		return err
 	}
 
@@ -287,7 +287,7 @@ func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys
 // processFileLink validates and pins file nodes
 func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key string, inbound bool) error {
 	hash := inode.Cid().Hash().B58String()
-	if err := t.cafeOutbox.Add(hash, repo.CafeStoreRequest); err != nil {
+	if err := t.cafeOutbox.Add(hash, pb.CafeRequest_STORE); err != nil {
 		return err
 	}
 
@@ -316,12 +316,12 @@ func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key stri
 
 	// remote pin leaf nodes if files originate locally
 	if !inbound {
-		if err := t.cafeOutbox.Add(flink.Cid.Hash().B58String(), repo.CafeStoreRequest); err != nil {
+		if err := t.cafeOutbox.Add(flink.Cid.Hash().B58String(), pb.CafeRequest_STORE); err != nil {
 			return err
 		}
 
 		if !t.config.IsMobile || dlink.Size <= uint64(t.config.Cafe.Client.Mobile.P2PWireLimit) {
-			if err := t.cafeOutbox.Add(dlink.Cid.Hash().B58String(), repo.CafeStoreRequest); err != nil {
+			if err := t.cafeOutbox.Add(dlink.Cid.Hash().B58String(), pb.CafeRequest_STORE); err != nil {
 				return err
 			}
 		}

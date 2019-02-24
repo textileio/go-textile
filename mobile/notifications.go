@@ -1,20 +1,17 @@
 package mobile
 
 import (
+	"github.com/golang/protobuf/proto"
 	"github.com/textileio/textile-go/core"
 )
 
 // Notifications call core Notifications
-func (m *Mobile) Notifications(offset string, limit int) (string, error) {
+func (m *Mobile) Notifications(offset string, limit int) ([]byte, error) {
 	if !m.node.Started() {
-		return "", core.ErrStopped
+		return nil, core.ErrStopped
 	}
 
-	notes := m.node.Notifications(offset, limit)
-	if len(notes) == 0 {
-		notes = make([]core.NotificationInfo, 0)
-	}
-	return toJSON(notes)
+	return proto.Marshal(m.node.Notifications(offset, limit))
 }
 
 // CountUnreadNotifications calls core CountUnreadNotifications

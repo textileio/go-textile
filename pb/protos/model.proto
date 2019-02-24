@@ -199,6 +199,9 @@ message Notification {
         COMMENT_ADDED       = 6;
         LIKE_ADDED          = 7;
     }
+
+    // view info
+    User user = 101;
 }
 
 message NotificationList {
@@ -268,6 +271,10 @@ message CafeClient {
     google.protobuf.Timestamp created = 3;
     google.protobuf.Timestamp seen    = 4;
     string token                      = 5;
+}
+
+message CafeClientList {
+    repeated CafeClient items = 1;
 }
 
 message CafeToken {

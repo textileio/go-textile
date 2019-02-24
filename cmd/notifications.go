@@ -43,7 +43,7 @@ Lists notifications.`
 func (x *lsNotificationsCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	res, err := executeJsonCmd(GET, "notifications", params{}, nil)
+	res, err := executeJsonPbCmd(GET, "notifications", params{}, nil)
 	if err != nil {
 		return err
 	}
