@@ -58,7 +58,7 @@ protos:
 	cd mobile; node node_modules/@textile/protobufjs/cli/bin/pbjs -t static-module -w es6 -o dist/index.js ../pb/protos/*
 	cd mobile; node node_modules/@textile/protobufjs/cli/bin/pbts -o dist/index.d.ts dist/index.js
 
-docs:
+swag:
 	go get github.com/swaggo/swag/cmd/swag
 	swag init -g core/api.go
 

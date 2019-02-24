@@ -1862,10 +1862,8 @@
                     "200": {
                         "description": "notifications",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/core.NotificationInfo"
-                            }
+                            "type": "object",
+                            "$ref": "#/definitions/pb.NotificationList"
                         }
                     }
                 }
@@ -2578,47 +2576,6 @@
         }
     },
     "definitions": {
-        "core.NotificationInfo": {
-            "type": "object",
-            "properties": {
-                "actor_id": {
-                    "type": "string"
-                },
-                "avatar": {
-                    "type": "string"
-                },
-                "block_id": {
-                    "type": "string"
-                },
-                "body": {
-                    "type": "string"
-                },
-                "date": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "read": {
-                    "type": "boolean"
-                },
-                "subject": {
-                    "type": "string"
-                },
-                "subject_id": {
-                    "type": "string"
-                },
-                "target": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
         "core.SubsystemInfo": {
             "type": "object",
             "additionalProperties": {}
@@ -3148,6 +3105,57 @@
                 },
                 "plaintext": {
                     "type": "boolean"
+                }
+            }
+        },
+        "pb.Notification": {
+            "type": "object",
+            "properties": {
+                "actor": {
+                    "type": "string"
+                },
+                "block": {
+                    "type": "string"
+                },
+                "body": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "read": {
+                    "type": "boolean"
+                },
+                "subject": {
+                    "type": "string"
+                },
+                "subject_desc": {
+                    "type": "string"
+                },
+                "target": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "integer"
+                },
+                "user": {
+                    "description": "view info",
+                    "type": "object",
+                    "$ref": "#/definitions/pb.User"
+                }
+            }
+        },
+        "pb.NotificationList": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pb.Notification"
+                    }
                 }
             }
         },

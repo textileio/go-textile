@@ -1,32 +1,5 @@
 basePath: /api/v0
 definitions:
-  core.NotificationInfo:
-    properties:
-      actor_id:
-        type: string
-      avatar:
-        type: string
-      block_id:
-        type: string
-      body:
-        type: string
-      date:
-        type: string
-      id:
-        type: string
-      read:
-        type: boolean
-      subject:
-        type: string
-      subject_id:
-        type: string
-      target:
-        type: string
-      type:
-        type: string
-      username:
-        type: string
-    type: object
   core.SubsystemInfo:
     additionalProperties: {}
     type: object
@@ -376,6 +349,40 @@ definitions:
         type: boolean
       plaintext:
         type: boolean
+    type: object
+  pb.Notification:
+    properties:
+      actor:
+        type: string
+      block:
+        type: string
+      body:
+        type: string
+      date:
+        type: string
+      id:
+        type: string
+      read:
+        type: boolean
+      subject:
+        type: string
+      subject_desc:
+        type: string
+      target:
+        type: string
+      type:
+        type: integer
+      user:
+        $ref: '#/definitions/pb.User'
+        description: view info
+        type: object
+    type: object
+  pb.NotificationList:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/pb.Notification'
+        type: array
     type: object
   pb.QueryResult:
     properties:
@@ -1796,9 +1803,8 @@ paths:
         "200":
           description: notifications
           schema:
-            items:
-              $ref: '#/definitions/core.NotificationInfo'
-            type: array
+            $ref: '#/definitions/pb.NotificationList'
+            type: object
       summary: List notifications
       tags:
       - notifications
