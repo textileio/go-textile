@@ -49,7 +49,7 @@ An access token is required to register, and should be obtained separately from 
 func (x *addCafesCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	res, err := executeJsonCmd(POST, "cafes", params{
+	res, err := executeJsonPbCmd(POST, "cafes", params{
 		args: args,
 		opts: map[string]string{"token": x.Token},
 	}, nil)
@@ -73,7 +73,7 @@ List info about all active cafe sessions.`
 func (x *lsCafesCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	res, err := executeJsonCmd(GET, "cafes", params{}, nil)
+	res, err := executeJsonPbCmd(GET, "cafes", params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (x *getCafesCmd) Execute(args []string) error {
 		return errMissingCafeId
 	}
 
-	res, err := executeJsonCmd(GET, "cafes/"+args[0], params{}, nil)
+	res, err := executeJsonPbCmd(GET, "cafes/"+args[0], params{}, nil)
 	if err != nil {
 		return err
 	}

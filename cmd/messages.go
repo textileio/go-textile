@@ -71,7 +71,7 @@ func (x *addMessagesCmd) Execute(args []string) error {
 }
 
 func callAddMessages(threadId string, body string) (string, error) {
-	res, err := executeJsonCmd(POST, "threads/"+threadId+"/messages", params{
+	res, err := executeJsonPbCmd(POST, "threads/"+threadId+"/messages", params{
 		args: []string{body},
 	}, nil)
 	if err != nil {
@@ -152,7 +152,7 @@ func (x *getMessagesCmd) Execute(args []string) error {
 		return errMissingMessageId
 	}
 
-	res, err := executeJsonCmd(GET, "messages/"+args[0], params{}, nil)
+	res, err := executeJsonPbCmd(GET, "messages/"+args[0], params{}, nil)
 	if err != nil {
 		return err
 	}

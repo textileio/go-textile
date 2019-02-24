@@ -69,7 +69,8 @@ Lists all known wallet account peers.`
 
 func (x *accountPeersCmd) Execute(args []string) error {
 	setApi(x.Client)
-	res, err := executeJsonCmd(GET, "account/peers", params{}, nil)
+
+	res, err := executeJsonPbCmd(GET, "account/peers", params{}, nil)
 	if err != nil {
 		return err
 	}
