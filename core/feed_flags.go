@@ -1,6 +1,8 @@
 package core
 
 import (
+	"strings"
+
 	"github.com/textileio/textile-go/pb"
 )
 
@@ -9,7 +11,8 @@ func (t *Textile) flag(block *pb.Block, opts feedItemOpts) (*pb.Flag, error) {
 		return nil, ErrBlockWrongType
 	}
 
-	target, err := t.feedItem(t.datastore.Blocks().Get(block.Target), feedItemOpts{})
+	targetId := strings.TrimPrefix(block.Target, "flag-")
+	target, err := t.feedItem(t.datastore.Blocks().Get(targetId), feedItemOpts{})
 	if err != nil {
 		return nil, err
 	}

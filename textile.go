@@ -383,13 +383,13 @@ func startNode(serveDocs bool) error {
 				if update, ok := value.(*pb.FeedItem); ok {
 					thrd := update.Thread[len(update.Thread)-8:]
 
-					btype, err := node.FeedItemType(update)
+					btype, err := core.FeedItemType(update)
 					if err != nil {
 						log.Error(err)
 						continue
 					}
 
-					payload, err := node.FeedItemPayload(update)
+					payload, err := core.GetFeedItemPayload(update)
 					if err != nil {
 						log.Error(err)
 						continue

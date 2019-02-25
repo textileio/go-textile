@@ -169,7 +169,7 @@ func (m *Mobile) Start() error {
 					}
 					data, err := proto.Marshal(update)
 					if err != nil {
-						log.Errorf("error marshaling event data: %s", err)
+						log.Error(err)
 						continue
 					}
 					m.notify(&pb.MobileEvent{
@@ -191,7 +191,7 @@ func (m *Mobile) Start() error {
 					if update, ok := value.(*pb.FeedItem); ok {
 						data, err := proto.Marshal(update)
 						if err != nil {
-							log.Errorf("error marshaling event data: %s", err)
+							log.Error(err)
 							continue
 						}
 						m.notify(&pb.MobileEvent{
@@ -213,7 +213,7 @@ func (m *Mobile) Start() error {
 					}
 					data, err := proto.Marshal(note)
 					if err != nil {
-						log.Errorf("error marshaling event data: %s", err)
+						log.Error(err)
 						continue
 					}
 					m.notify(&pb.MobileEvent{

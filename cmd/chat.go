@@ -1,9 +1,14 @@
 package cmd
 
 import (
+	"fmt"
 	"strings"
 
+	"github.com/golang/protobuf/ptypes"
+	"github.com/textileio/textile-go/core"
+
 	"github.com/chzyer/readline"
+	"github.com/textileio/textile-go/pb"
 )
 
 func init() {
@@ -37,12 +42,12 @@ func (x *chatCmd) Execute(args []string) error {
 		x.Thread = "default"
 	}
 
-	pid, username, err := getUsername()
+	profile, err := getProfile()
 	if err != nil {
 		return err
 	}
 
-	rl, err := readline.New(Green(username + "  "))
+	rl, err := readline.New(Green(profile.Username + "  "))
 	if err != nil {
 		panic(err)
 	}
@@ -61,11 +66,28 @@ func (x *chatCmd) Execute(args []string) error {
 				if !ok {
 					return
 				}
-				if update.Block.Author != pid {
+
+				btype, err := core.FeedItemType(update)
+				if err != nil {
+					fmt.Println(err.Error())
+					continue
+				}
+
+				if btype != pb.Block_TEXT {
+					continue
+				}
+
+				payload := new(pb.Text)
+				if err := ptypes.UnmarshalAny(update.Payload, payload); err != nil {
+					fmt.Println(err.Error())
+					continue
+				}
+
+				if payload.User.Address != profile.Address {
 					if last {
 						println()
 					}
-					println(Cyan(update.Block.User.Name) + "  " + Grey(update.Block.Body))
+					println(Cyan(payload.User.Name) + "  " + Grey(payload.Body))
 					last = false
 				}
 			}
@@ -95,24 +117,19 @@ func handleLine(line string, threadId string) error {
 	return nil
 }
 
-func getUsername() (string, string, error) {
+func getProfile() (*pb.Contact, error) {
 	_, prof, err := callGetProfile()
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
-	username := prof.Username
 
-	pid, err := callId()
-	if err != nil {
-		return "", "", err
-	}
-	if username == "" {
-		if len(pid) >= 7 {
-			username = pid[len(pid)-7:]
+	if prof.Username == "" {
+		if len(prof.Address) >= 7 {
+			prof.Username = prof.Address[:7]
 		} else {
-			username = pid
+			prof.Username = prof.Address
 		}
 	}
 
-	return pid, username, nil
+	return prof, nil
 }
