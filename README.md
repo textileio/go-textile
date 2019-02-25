@@ -205,6 +205,7 @@ You can ignore the `gx` package errors. You'll need two package managers to get 
 #### Install the dependencies managed by `dep` and `gx`.
 
     $ go get github.com/ahmetb/govvv
+    $ cd $GOPATH/src/github.com/textileio/textile-go
     $ make setup
 
 #### Run the tests.
