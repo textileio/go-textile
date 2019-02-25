@@ -35,8 +35,7 @@ func (c *CafeRequestDB) Add(req *pb.CafeRequest) error {
 	}
 	defer stmt.Close()
 
-	marshaler := jsonpb.Marshaler{}
-	cafe, err := marshaler.MarshalToString(req.Cafe)
+	cafe, err := pbMarshaler.MarshalToString(req.Cafe)
 	if err != nil {
 		return err
 	}

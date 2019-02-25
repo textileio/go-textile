@@ -2,7 +2,6 @@ package core
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -357,12 +356,12 @@ func (t *Thread) validateJsonNode(inode ipld.Node, key string) error {
 		plaintext = data
 	}
 
-	jschema, err := json.Marshal(&t.Schema.JsonSchema)
+	jschema, err := pbMarshaler.MarshalToString(t.Schema.JsonSchema)
 	if err != nil {
 		return err
 	}
 
-	sch := gojsonschema.NewStringLoader(string(jschema))
+	sch := gojsonschema.NewStringLoader(jschema)
 	doc := gojsonschema.NewStringLoader(string(plaintext))
 
 	result, err := gojsonschema.Validate(sch, doc)

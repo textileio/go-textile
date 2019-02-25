@@ -34,8 +34,7 @@ func (c *CafeSessionDB) AddOrUpdate(session *pb.CafeSession) error {
 	}
 	defer stmt.Close()
 
-	marshaler := jsonpb.Marshaler{}
-	cafe, err := marshaler.MarshalToString(session.Cafe)
+	cafe, err := pbMarshaler.MarshalToString(session.Cafe)
 	if err != nil {
 		return err
 	}

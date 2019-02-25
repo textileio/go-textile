@@ -58,7 +58,7 @@ func (a *api) addThreadFiles(g *gin.Context) {
 		return
 	}
 
-	if dirs.Items[0].Files[schema.SingleFileTag].Hash != "" {
+	if dirs.Items[0].Files[schema.SingleFileTag] != nil {
 		var files []*pb.FileIndex
 		for _, dir := range dirs.Items {
 			if len(dir.Files) > 0 && dir.Files[schema.SingleFileTag].Hash != "" {

@@ -39,10 +39,9 @@ func (c *FileDB) Add(file *pb.FileIndex) error {
 	defer stmt.Close()
 
 	var meta string
-	marshaler := jsonpb.Marshaler{}
 	if file.Meta != nil {
 		var err error
-		meta, err = marshaler.MarshalToString(file.Meta)
+		meta, err = pbMarshaler.MarshalToString(file.Meta)
 		if err != nil {
 			return err
 		}

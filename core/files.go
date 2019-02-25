@@ -3,11 +3,11 @@ package core
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 	uio "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/io"
@@ -127,8 +127,7 @@ func (t *Textile) AddSchema(jsonstr string, name string) (*pb.FileIndex, error) 
 		return nil, err
 	}
 
-	marshaler := jsonpb.Marshaler{}
-	data, err := marshaler.MarshalToString(&node)
+	data, err := pbMarshaler.MarshalToString(&node)
 	if err != nil {
 		return nil, err
 	}
@@ -260,26 +259,26 @@ func (t *Textile) fileNode(file *pb.FileIndex, dir uio.Directory, link string) e
 	// remove locally indexed targets
 	file.Targets = nil
 
-	plaintext, err := json.Marshal(&file)
+	plaintext, err := pbMarshaler.MarshalToString(file)
 	if err != nil {
 		return err
 	}
 
-	var reader *bytes.Reader
+	var reader io.Reader
 	if file.Key != "" {
 		key, err := base58.Decode(file.Key)
 		if err != nil {
 			return err
 		}
 
-		ciphertext, err := crypto.EncryptAES(plaintext, key)
+		ciphertext, err := crypto.EncryptAES([]byte(plaintext), key)
 		if err != nil {
 			return err
 		}
 
 		reader = bytes.NewReader(ciphertext)
 	} else {
-		reader = bytes.NewReader(plaintext)
+		reader = strings.NewReader(plaintext)
 	}
 
 	pair := uio.NewDirectory(t.node.DAG)

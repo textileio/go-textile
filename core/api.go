@@ -45,7 +45,7 @@ type api struct {
 
 // pbMarshaler is used to marshal protobufs to JSON
 var pbMarshaler = jsonpb.Marshaler{
-	EnumsAsInts: false,
+	OrigName: true,
 }
 
 // pbUnmarshaler is used to unmarshal JSON protobufs

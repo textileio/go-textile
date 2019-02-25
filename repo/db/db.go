@@ -7,11 +7,16 @@ import (
 
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 
+	"github.com/golang/protobuf/jsonpb"
 	_ "github.com/mutecomm/go-sqlcipher"
 	"github.com/textileio/textile-go/repo"
 )
 
 var log = logging.Logger("tex-datastore")
+
+var pbMarshaler = jsonpb.Marshaler{
+	OrigName: true,
+}
 
 type SQLiteDatastore struct {
 	config             repo.ConfigStore

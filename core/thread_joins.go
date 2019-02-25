@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/json"
 	"fmt"
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
@@ -102,8 +101,8 @@ func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 
 	// collect author as an unwelcomed peer
 	if msg.Contact != nil {
-		if cjson, err := json.Marshal(msg.Contact); err == nil {
-			log.Debugf("found contact: %s", string(cjson))
+		if cjson, err := pbMarshaler.MarshalToString(msg.Contact); err == nil {
+			log.Debugf("found contact: %s", cjson)
 		}
 		if err := t.addOrUpdateContact(msg.Contact); err != nil {
 			return nil, err

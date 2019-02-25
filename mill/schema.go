@@ -10,6 +10,10 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
+var pbMarshaler = jsonpb.Marshaler{
+	OrigName: true,
+}
+
 type Schema struct{}
 
 func (m *Schema) ID() string {
@@ -80,8 +84,7 @@ func (m *Schema) Mill(input []byte, name string) (*Result, error) {
 		}
 	}
 
-	var marshaler = jsonpb.Marshaler{}
-	data, err := marshaler.MarshalToString(&node)
+	data, err := pbMarshaler.MarshalToString(&node)
 	if err != nil {
 		return nil, err
 	}

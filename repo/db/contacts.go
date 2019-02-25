@@ -120,7 +120,6 @@ func (c *ContactDB) GetBest(id string) *pb.Contact {
 	var inboxes []byte
 	var createdInt, updatedInt int64
 	if err := row.Scan(&_id, &address, &username, &avatar, &inboxes, &createdInt, &updatedInt, &addr); err != nil {
-		log.Errorf("error in db scan: %s", err)
 		return nil
 	}
 	return c.handleRow(id, address, username, avatar, inboxes, createdInt, updatedInt)

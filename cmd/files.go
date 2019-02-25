@@ -3,7 +3,6 @@ package cmd
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -256,7 +255,7 @@ func callAddFiles(args []string, opts map[string]string) error {
 }
 
 func add(dirs []*pb.Directory, threadId string, caption string, verbose bool) (*pb.Files, error) {
-	data, err := json.Marshal(&dirs)
+	data, err := pbMarshaler.MarshalToString(&pb.DirectoryList{Items: dirs})
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +263,7 @@ func add(dirs []*pb.Directory, threadId string, caption string, verbose bool) (*
 	files := new(pb.Files)
 	res, err := executeJsonPbCmd(POST, "threads/"+threadId+"/files", params{
 		opts:    map[string]string{"caption": caption},
-		payload: bytes.NewReader(data),
+		payload: strings.NewReader(data),
 		ctype:   "application/json",
 	}, files)
 	if err != nil {
