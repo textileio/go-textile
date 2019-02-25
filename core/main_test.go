@@ -60,12 +60,12 @@ func TestNewTextile(t *testing.T) {
 	}
 }
 
-func TestSetLogLevels(t *testing.T) {
-	logLevels := map[string]string{
-		"tex-core":      "DEBUG",
-		"tex-datastore": "DEBUG",
-	}
-	if err := node.SetLogLevels(logLevels); err != nil {
+func TestSetLogLevel(t *testing.T) {
+	logLevel := &pb.LogLevel{Systems: map[string]pb.LogLevel_Level{
+		"tex-core":      pb.LogLevel_DEBUG,
+		"tex-datastore": pb.LogLevel_INFO,
+	}}
+	if err := node.SetLogLevel(logLevel); err != nil {
 		t.Errorf("set log levels failed: %s", err)
 	}
 }

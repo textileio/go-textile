@@ -3,6 +3,11 @@ option go_package = "pb";
 
 import "view.proto";
 
+message MobileWalletAccount {
+    string seed    = 1;
+    string address = 2;
+}
+
 message MobilePreparedFiles {
     Directory dir           = 1;
     map<string, string> pin = 2;

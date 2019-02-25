@@ -1,8 +1,6 @@
 package mobile
 
 import (
-	"encoding/json"
-
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 
@@ -18,12 +16,12 @@ var log = logging.Logger("tex-mobile")
 
 // Messenger is used to inform the bridge layer of new data waiting to be queried
 type Messenger interface {
-	Notify(event []byte)
+	Notify(event *pb.MobileEvent)
 }
 
-// Callback is used for asyc methods (payload is a protobuf)
+// Callback is used for asyc methods (data is a protobuf)
 type Callback interface {
-	Call(payload []byte, err error)
+	Call(data []byte, err error)
 }
 
 // NewWallet creates a brand new wallet and returns its recovery phrase
@@ -41,23 +39,17 @@ func NewWallet(wordCount int) (string, error) {
 	return w.RecoveryPhrase, nil
 }
 
-// WalletAccount represents a derived account in a wallet
-type WalletAccount struct {
-	Seed    string `json:"seed"`
-	Address string `json:"address"`
-}
-
 // WalletAccountAt derives the account at the given index
-func WalletAccountAt(phrase string, index int, password string) (*WalletAccount, error) {
+func WalletAccountAt(phrase string, index int, password string) ([]byte, error) {
 	w := wallet.NewWalletFromRecoveryPhrase(phrase)
 	accnt, err := w.AccountAt(index, password)
 	if err != nil {
 		return nil, err
 	}
-	return &WalletAccount{
+	return proto.Marshal(&pb.MobileWalletAccount{
 		Seed:    accnt.Seed(),
 		Address: accnt.Address(),
-	}, nil
+	})
 }
 
 // InitConfig is used to setup a textile node
@@ -135,16 +127,14 @@ func NewTextile(config *RunConfig, messenger Messenger) (*Mobile, error) {
 	}, nil
 }
 
-// SetLogLevels provides access to the underlying node's setLogLevels method
-func (m *Mobile) SetLogLevels(logLevelsString string) error {
-	var logLevels map[string]string
-	if logLevelsString != "" {
-		err := json.Unmarshal([]byte(logLevelsString), &logLevels)
-		if err != nil {
-			return err
-		}
+// SetLogLevel calls core SetLogLevel
+func (m *Mobile) SetLogLevel(level []byte) error {
+	mlevel := new(pb.LogLevel)
+	if err := proto.Unmarshal(level, mlevel); err != nil {
+		return err
 	}
-	return m.node.SetLogLevels(logLevels)
+
+	return m.node.SetLogLevel(mlevel)
 }
 
 // Start the mobile node
@@ -172,7 +162,7 @@ func (m *Mobile) Start() error {
 						log.Error(err)
 						continue
 					}
-					m.notify(&pb.MobileEvent{
+					m.messenger.Notify(&pb.MobileEvent{
 						Name: pb.MobileEvent_WALLET_UPDATE.String(),
 						Data: data,
 					})
@@ -194,7 +184,7 @@ func (m *Mobile) Start() error {
 							log.Error(err)
 							continue
 						}
-						m.notify(&pb.MobileEvent{
+						m.messenger.Notify(&pb.MobileEvent{
 							Name: pb.MobileEvent_THREAD_UPDATE.String(),
 							Data: data,
 						})
@@ -216,7 +206,7 @@ func (m *Mobile) Start() error {
 						log.Error(err)
 						continue
 					}
-					m.notify(&pb.MobileEvent{
+					m.messenger.Notify(&pb.MobileEvent{
 						Name: pb.MobileEvent_NOTIFICATION.String(),
 						Data: data,
 					})
@@ -225,7 +215,7 @@ func (m *Mobile) Start() error {
 		}()
 
 		// ready
-		m.notify(&pb.MobileEvent{
+		m.messenger.Notify(&pb.MobileEvent{
 			Name: pb.MobileEvent_NODE_ONLINE.String(),
 		})
 	}()
@@ -253,14 +243,4 @@ func (m *Mobile) blockView(hash mh.Multihash) ([]byte, error) {
 		return nil, err
 	}
 	return proto.Marshal(view)
-}
-
-func (m *Mobile) notify(event *pb.MobileEvent) {
-	payload, err := proto.Marshal(event)
-	if err != nil {
-		log.Errorf("error marshaling event: %s", err)
-		return
-	}
-
-	m.messenger.Notify(payload)
 }

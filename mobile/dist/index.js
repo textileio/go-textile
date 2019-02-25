@@ -13783,6 +13783,216 @@ export const google = $root.google = (() => {
     return google;
 })();
 
+export const MobileWalletAccount = $root.MobileWalletAccount = (() => {
+
+    /**
+     * Properties of a MobileWalletAccount.
+     * @exports IMobileWalletAccount
+     * @interface IMobileWalletAccount
+     * @property {string} seed MobileWalletAccount seed
+     * @property {string} address MobileWalletAccount address
+     */
+
+    /**
+     * Constructs a new MobileWalletAccount.
+     * @exports MobileWalletAccount
+     * @classdesc Represents a MobileWalletAccount.
+     * @implements IMobileWalletAccount
+     * @constructor
+     * @param {IMobileWalletAccount=} [properties] Properties to set
+     */
+    function MobileWalletAccount(properties) {
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * MobileWalletAccount seed.
+     * @member {string} seed
+     * @memberof MobileWalletAccount
+     * @instance
+     */
+    MobileWalletAccount.prototype.seed = "";
+
+    /**
+     * MobileWalletAccount address.
+     * @member {string} address
+     * @memberof MobileWalletAccount
+     * @instance
+     */
+    MobileWalletAccount.prototype.address = "";
+
+    /**
+     * Creates a new MobileWalletAccount instance using the specified properties.
+     * @function create
+     * @memberof MobileWalletAccount
+     * @static
+     * @param {IMobileWalletAccount=} [properties] Properties to set
+     * @returns {MobileWalletAccount} MobileWalletAccount instance
+     */
+    MobileWalletAccount.create = function create(properties) {
+        return new MobileWalletAccount(properties);
+    };
+
+    /**
+     * Encodes the specified MobileWalletAccount message. Does not implicitly {@link MobileWalletAccount.verify|verify} messages.
+     * @function encode
+     * @memberof MobileWalletAccount
+     * @static
+     * @param {IMobileWalletAccount} message MobileWalletAccount message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    MobileWalletAccount.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.seed != null && message.hasOwnProperty("seed"))
+            writer.uint32(/* id 1, wireType 2 =*/10).string(message.seed);
+        if (message.address != null && message.hasOwnProperty("address"))
+            writer.uint32(/* id 2, wireType 2 =*/18).string(message.address);
+        return writer;
+    };
+
+    /**
+     * Encodes the specified MobileWalletAccount message, length delimited. Does not implicitly {@link MobileWalletAccount.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof MobileWalletAccount
+     * @static
+     * @param {IMobileWalletAccount} message MobileWalletAccount message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    MobileWalletAccount.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a MobileWalletAccount message from the specified reader or buffer.
+     * @function decode
+     * @memberof MobileWalletAccount
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {MobileWalletAccount} MobileWalletAccount
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    MobileWalletAccount.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.MobileWalletAccount();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.seed = reader.string();
+                break;
+            case 2:
+                message.address = reader.string();
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a MobileWalletAccount message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof MobileWalletAccount
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {MobileWalletAccount} MobileWalletAccount
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    MobileWalletAccount.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a MobileWalletAccount message.
+     * @function verify
+     * @memberof MobileWalletAccount
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    MobileWalletAccount.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.seed != null && message.hasOwnProperty("seed"))
+            if (!$util.isString(message.seed))
+                return "seed: string expected";
+        if (message.address != null && message.hasOwnProperty("address"))
+            if (!$util.isString(message.address))
+                return "address: string expected";
+        return null;
+    };
+
+    /**
+     * Creates a MobileWalletAccount message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof MobileWalletAccount
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {MobileWalletAccount} MobileWalletAccount
+     */
+    MobileWalletAccount.fromObject = function fromObject(object) {
+        if (object instanceof $root.MobileWalletAccount)
+            return object;
+        let message = new $root.MobileWalletAccount();
+        if (object.seed != null)
+            message.seed = String(object.seed);
+        if (object.address != null)
+            message.address = String(object.address);
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a MobileWalletAccount message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof MobileWalletAccount
+     * @static
+     * @param {MobileWalletAccount} message MobileWalletAccount
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    MobileWalletAccount.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.defaults) {
+            object.seed = "";
+            object.address = "";
+        }
+        if (message.seed != null && message.hasOwnProperty("seed"))
+            object.seed = message.seed;
+        if (message.address != null && message.hasOwnProperty("address"))
+            object.address = message.address;
+        return object;
+    };
+
+    /**
+     * Converts this MobileWalletAccount to JSON.
+     * @function toJSON
+     * @memberof MobileWalletAccount
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    MobileWalletAccount.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    return MobileWalletAccount;
+})();
+
 export const MobilePreparedFiles = $root.MobilePreparedFiles = (() => {
 
     /**
@@ -22033,6 +22243,270 @@ export const Summary = $root.Summary = (() => {
     };
 
     return Summary;
+})();
+
+export const LogLevel = $root.LogLevel = (() => {
+
+    /**
+     * Properties of a LogLevel.
+     * @exports ILogLevel
+     * @interface ILogLevel
+     * @property {Object.<string,LogLevel.Level>} systems LogLevel systems
+     */
+
+    /**
+     * Constructs a new LogLevel.
+     * @exports LogLevel
+     * @classdesc Represents a LogLevel.
+     * @implements ILogLevel
+     * @constructor
+     * @param {ILogLevel=} [properties] Properties to set
+     */
+    function LogLevel(properties) {
+        this.systems = {};
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * LogLevel systems.
+     * @member {Object.<string,LogLevel.Level>} systems
+     * @memberof LogLevel
+     * @instance
+     */
+    LogLevel.prototype.systems = $util.emptyObject;
+
+    /**
+     * Creates a new LogLevel instance using the specified properties.
+     * @function create
+     * @memberof LogLevel
+     * @static
+     * @param {ILogLevel=} [properties] Properties to set
+     * @returns {LogLevel} LogLevel instance
+     */
+    LogLevel.create = function create(properties) {
+        return new LogLevel(properties);
+    };
+
+    /**
+     * Encodes the specified LogLevel message. Does not implicitly {@link LogLevel.verify|verify} messages.
+     * @function encode
+     * @memberof LogLevel
+     * @static
+     * @param {ILogLevel} message LogLevel message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    LogLevel.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.systems != null && message.hasOwnProperty("systems"))
+            for (let keys = Object.keys(message.systems), i = 0; i < keys.length; ++i)
+                writer.uint32(/* id 1, wireType 2 =*/10).fork().uint32(/* id 1, wireType 2 =*/10).string(keys[i]).uint32(/* id 2, wireType 0 =*/16).int32(message.systems[keys[i]]).ldelim();
+        return writer;
+    };
+
+    /**
+     * Encodes the specified LogLevel message, length delimited. Does not implicitly {@link LogLevel.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof LogLevel
+     * @static
+     * @param {ILogLevel} message LogLevel message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    LogLevel.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a LogLevel message from the specified reader or buffer.
+     * @function decode
+     * @memberof LogLevel
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {LogLevel} LogLevel
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    LogLevel.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.LogLevel(), key;
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                reader.skip().pos++;
+                if (message.systems === $util.emptyObject)
+                    message.systems = {};
+                key = reader.string();
+                reader.pos++;
+                message.systems[key] = reader.int32();
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a LogLevel message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof LogLevel
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {LogLevel} LogLevel
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    LogLevel.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a LogLevel message.
+     * @function verify
+     * @memberof LogLevel
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    LogLevel.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.systems != null && message.hasOwnProperty("systems")) {
+            if (!$util.isObject(message.systems))
+                return "systems: object expected";
+            let key = Object.keys(message.systems);
+            for (let i = 0; i < key.length; ++i)
+                switch (message.systems[key[i]]) {
+                default:
+                    return "systems: enum value{k:string} expected";
+                case 0:
+                case 1:
+                case 2:
+                case 3:
+                case 4:
+                case 5:
+                    break;
+                }
+        }
+        return null;
+    };
+
+    /**
+     * Creates a LogLevel message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof LogLevel
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {LogLevel} LogLevel
+     */
+    LogLevel.fromObject = function fromObject(object) {
+        if (object instanceof $root.LogLevel)
+            return object;
+        let message = new $root.LogLevel();
+        if (object.systems) {
+            if (typeof object.systems !== "object")
+                throw TypeError(".LogLevel.systems: object expected");
+            message.systems = {};
+            for (let keys = Object.keys(object.systems), i = 0; i < keys.length; ++i)
+                switch (object.systems[keys[i]]) {
+                case "CRITICAL":
+                case 0:
+                    message.systems[keys[i]] = 0;
+                    break;
+                case "ERROR":
+                case 1:
+                    message.systems[keys[i]] = 1;
+                    break;
+                case "WARNING":
+                case 2:
+                    message.systems[keys[i]] = 2;
+                    break;
+                case "NOTICE":
+                case 3:
+                    message.systems[keys[i]] = 3;
+                    break;
+                case "INFO":
+                case 4:
+                    message.systems[keys[i]] = 4;
+                    break;
+                case "DEBUG":
+                case 5:
+                    message.systems[keys[i]] = 5;
+                    break;
+                }
+        }
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a LogLevel message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof LogLevel
+     * @static
+     * @param {LogLevel} message LogLevel
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    LogLevel.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.objects || options.defaults)
+            object.systems = {};
+        let keys2;
+        if (message.systems && (keys2 = Object.keys(message.systems)).length) {
+            object.systems = {};
+            for (let j = 0; j < keys2.length; ++j)
+                object.systems[keys2[j]] = options.enums === String ? $root.LogLevel.Level[message.systems[keys2[j]]] : message.systems[keys2[j]];
+        }
+        return object;
+    };
+
+    /**
+     * Converts this LogLevel to JSON.
+     * @function toJSON
+     * @memberof LogLevel
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    LogLevel.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    /**
+     * Level enum.
+     * @name LogLevel.Level
+     * @enum {string}
+     * @property {number} CRITICAL=0 CRITICAL value
+     * @property {number} ERROR=1 ERROR value
+     * @property {number} WARNING=2 WARNING value
+     * @property {number} NOTICE=3 NOTICE value
+     * @property {number} INFO=4 INFO value
+     * @property {number} DEBUG=5 DEBUG value
+     */
+    LogLevel.Level = (function() {
+        const valuesById = {}, values = Object.create(valuesById);
+        values[valuesById[0] = "CRITICAL"] = 0;
+        values[valuesById[1] = "ERROR"] = 1;
+        values[valuesById[2] = "WARNING"] = 2;
+        values[valuesById[3] = "NOTICE"] = 3;
+        values[valuesById[4] = "INFO"] = 4;
+        values[valuesById[5] = "DEBUG"] = 5;
+        return values;
+    })();
+
+    return LogLevel;
 })();
 
 /**

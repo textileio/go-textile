@@ -114,11 +114,13 @@ func InitRepo(conf InitConfig) error {
 		return ErrAccountRequired
 	}
 
-	logLevels := map[string]string{}
-	if conf.Debug {
-		logLevels = getTextileDebugLevels()
+	logLevel := &pb.LogLevel{
+		Systems: make(map[string]pb.LogLevel_Level),
 	}
-	if _, err := setLogLevels(conf.RepoPath, logLevels, conf.LogToDisk); err != nil {
+	if conf.Debug {
+		logLevel = getTextileDebugLevels()
+	}
+	if _, err := setLogLevels(conf.RepoPath, logLevel, conf.LogToDisk); err != nil {
 		return err
 	}
 
@@ -212,11 +214,13 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 		return nil, err
 	}
 
-	logLevels := map[string]string{}
-	if conf.Debug {
-		logLevels = getTextileDebugLevels()
+	logLevel := &pb.LogLevel{
+		Systems: make(map[string]pb.LogLevel_Level),
 	}
-	node.writer, err = setLogLevels(conf.RepoPath, logLevels, node.config.Logs.LogToDisk)
+	if conf.Debug {
+		logLevel = getTextileDebugLevels()
+	}
+	node.writer, err = setLogLevels(conf.RepoPath, logLevel, node.config.Logs.LogToDisk)
 	if err != nil {
 		return nil, err
 	}
@@ -460,9 +464,9 @@ func (t *Textile) LinksAtPath(path string) ([]*ipld.Link, error) {
 	return ipfs.LinksAtPath(t.node, path)
 }
 
-// SetLogLevels provides node scoped access to the logging system
-func (t *Textile) SetLogLevels(logLevels map[string]string) error {
-	if _, err := setLogLevels(t.repoPath, logLevels, t.config.Logs.LogToDisk); err != nil {
+// SetLogLevel provides node scoped access to the logging system
+func (t *Textile) SetLogLevel(level *pb.LogLevel) error {
+	if _, err := setLogLevels(t.repoPath, level, t.config.Logs.LogToDisk); err != nil {
 		return err
 	}
 	return nil
@@ -676,7 +680,7 @@ func (t *Textile) touchDatastore() error {
 }
 
 // setLogLevels hijacks the ipfs logging system, putting output to files
-func setLogLevels(repoPath string, logLevels map[string]string, disk bool) (io.Writer, error) {
+func setLogLevels(repoPath string, level *pb.LogLevel, disk bool) (io.Writer, error) {
 	var writer io.Writer
 	if disk {
 		writer = &lumberjack.Logger{
@@ -692,8 +696,8 @@ func setLogLevels(repoPath string, logLevels map[string]string, disk bool) (io.W
 	logger.SetBackend(backendFile)
 	logging.SetAllLoggers(logger.ERROR)
 
-	for key, value := range logLevels {
-		if err := logging.SetLogLevel(key, value); err != nil {
+	for key, value := range level.Systems {
+		if err := logging.SetLogLevel(key, value.String()); err != nil {
 			return nil, err
 		}
 	}
@@ -701,14 +705,14 @@ func setLogLevels(repoPath string, logLevels map[string]string, disk bool) (io.W
 }
 
 // getTextileDebugLevels returns a map of textile's logging subsystems set to debug
-func getTextileDebugLevels() map[string]string {
-	levels := make(map[string]string)
+func getTextileDebugLevels() *pb.LogLevel {
+	levels := make(map[string]pb.LogLevel_Level)
 	for _, system := range logging.GetSubsystems() {
 		if strings.HasPrefix(system, "tex") {
-			levels[system] = "DEBUG"
+			levels[system] = pb.LogLevel_DEBUG
 		}
 	}
-	return levels
+	return &pb.LogLevel{Systems: levels}
 }
 
 // removeLocks force deletes the IPFS repo and SQLite DB lock files

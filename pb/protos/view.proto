@@ -215,3 +215,18 @@ message Summary {
     int32 file_count = 3;
     int32 contact_count = 4;
 }
+
+// LOGS //
+
+message LogLevel {
+    map<string, Level> systems = 1;
+
+    enum Level {
+        CRITICAL = 0;
+        ERROR    = 1;
+        WARNING  = 2;
+        NOTICE   = 3;
+        INFO     = 4;
+        DEBUG    = 5;
+    }
+}

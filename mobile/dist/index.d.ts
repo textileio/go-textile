@@ -5496,6 +5496,102 @@ export namespace google {
     }
 }
 
+/** Properties of a MobileWalletAccount. */
+export interface IMobileWalletAccount {
+
+    /** MobileWalletAccount seed */
+    seed: string;
+
+    /** MobileWalletAccount address */
+    address: string;
+}
+
+/** Represents a MobileWalletAccount. */
+export class MobileWalletAccount implements IMobileWalletAccount {
+
+    /**
+     * Constructs a new MobileWalletAccount.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: IMobileWalletAccount);
+
+    /** MobileWalletAccount seed. */
+    public seed: string;
+
+    /** MobileWalletAccount address. */
+    public address: string;
+
+    /**
+     * Creates a new MobileWalletAccount instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns MobileWalletAccount instance
+     */
+    public static create(properties?: IMobileWalletAccount): MobileWalletAccount;
+
+    /**
+     * Encodes the specified MobileWalletAccount message. Does not implicitly {@link MobileWalletAccount.verify|verify} messages.
+     * @param message MobileWalletAccount message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: IMobileWalletAccount, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified MobileWalletAccount message, length delimited. Does not implicitly {@link MobileWalletAccount.verify|verify} messages.
+     * @param message MobileWalletAccount message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: IMobileWalletAccount, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a MobileWalletAccount message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns MobileWalletAccount
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): MobileWalletAccount;
+
+    /**
+     * Decodes a MobileWalletAccount message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns MobileWalletAccount
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): MobileWalletAccount;
+
+    /**
+     * Verifies a MobileWalletAccount message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a MobileWalletAccount message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns MobileWalletAccount
+     */
+    public static fromObject(object: { [k: string]: any }): MobileWalletAccount;
+
+    /**
+     * Creates a plain object from a MobileWalletAccount message. Also converts values to other types if specified.
+     * @param message MobileWalletAccount
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: MobileWalletAccount, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this MobileWalletAccount to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
 /** Properties of a MobilePreparedFiles. */
 export interface IMobilePreparedFiles {
 
@@ -8818,6 +8914,109 @@ export class Summary implements ISummary {
      * @returns JSON object
      */
     public toJSON(): { [k: string]: any };
+}
+
+/** Properties of a LogLevel. */
+export interface ILogLevel {
+
+    /** LogLevel systems */
+    systems: { [k: string]: LogLevel.Level };
+}
+
+/** Represents a LogLevel. */
+export class LogLevel implements ILogLevel {
+
+    /**
+     * Constructs a new LogLevel.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: ILogLevel);
+
+    /** LogLevel systems. */
+    public systems: { [k: string]: LogLevel.Level };
+
+    /**
+     * Creates a new LogLevel instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns LogLevel instance
+     */
+    public static create(properties?: ILogLevel): LogLevel;
+
+    /**
+     * Encodes the specified LogLevel message. Does not implicitly {@link LogLevel.verify|verify} messages.
+     * @param message LogLevel message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: ILogLevel, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified LogLevel message, length delimited. Does not implicitly {@link LogLevel.verify|verify} messages.
+     * @param message LogLevel message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: ILogLevel, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a LogLevel message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns LogLevel
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): LogLevel;
+
+    /**
+     * Decodes a LogLevel message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns LogLevel
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): LogLevel;
+
+    /**
+     * Verifies a LogLevel message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a LogLevel message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns LogLevel
+     */
+    public static fromObject(object: { [k: string]: any }): LogLevel;
+
+    /**
+     * Creates a plain object from a LogLevel message. Also converts values to other types if specified.
+     * @param message LogLevel
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: LogLevel, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this LogLevel to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+export namespace LogLevel {
+
+    /** Level enum. */
+    enum Level {
+        CRITICAL = 0,
+        ERROR = 1,
+        WARNING = 2,
+        NOTICE = 3,
+        INFO = 4,
+        DEBUG = 5
+    }
 }
 
 /** QueryType enum. */

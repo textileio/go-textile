@@ -1,7 +1,6 @@
 package mobile_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
@@ -15,7 +14,7 @@ import (
 
 type TestMessenger struct{}
 
-func (tm *TestMessenger) Notify(event []byte) {}
+func (tm *TestMessenger) Notify(event *pb.MobileEvent) {}
 
 type TestCallback struct{}
 
@@ -114,9 +113,14 @@ func TestNewWallet(t *testing.T) {
 }
 
 func TestWalletAccountAt(t *testing.T) {
-	accnt, err := WalletAccountAt(recovery, 0, "")
+	res, err := WalletAccountAt(recovery, 0, "")
 	if err != nil {
 		t.Errorf("get mobile wallet account at failed: %s", err)
+	}
+	accnt := new(pb.MobileWalletAccount)
+	if err := proto.Unmarshal(res, accnt); err != nil {
+		t.Error(err)
+		return
 	}
 	seed = accnt.Seed
 }
@@ -160,16 +164,18 @@ func TestNewTextileAgain(t *testing.T) {
 }
 
 func TestSetLogLevels(t *testing.T) {
-	logLevels, err := json.Marshal(map[string]string{
-		"tex-core":      "DEBUG",
-		"tex-datastore": "DEBUG",
+	logLevel, err := proto.Marshal(&pb.LogLevel{
+		Systems: map[string]pb.LogLevel_Level{
+			"tex-core":      pb.LogLevel_DEBUG,
+			"tex-datastore": pb.LogLevel_INFO,
+		},
 	})
 	if err != nil {
 		t.Errorf("unable to marshal test map")
 		return
 	}
-	if err := mobile1.SetLogLevels(string(logLevels)); err != nil {
-		t.Errorf("attempt to set log levels failed: %s", err)
+	if err := mobile1.SetLogLevel(logLevel); err != nil {
+		t.Errorf("attempt to set log level failed: %s", err)
 	}
 }
 
@@ -777,8 +783,12 @@ func createAndStartMobile(repoPath string, waitForOnline bool) (*Mobile, error) 
 		return nil, err
 	}
 
-	accnt, err := WalletAccountAt(recovery, 0, "")
+	res, err := WalletAccountAt(recovery, 0, "")
 	if err != nil {
+		return nil, err
+	}
+	accnt := new(pb.MobileWalletAccount)
+	if err := proto.Unmarshal(res, accnt); err != nil {
 		return nil, err
 	}
 
