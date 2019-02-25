@@ -474,7 +474,17 @@ func TestMobile_AddIgnore(t *testing.T) {
 }
 
 func TestMobile_Feed(t *testing.T) {
-	res, err := mobile1.Feed("", 20, thrdId, int32(pb.FeedMode_STACKS))
+	req, err := proto.Marshal(&pb.FeedRequest{
+		Thread: thrdId,
+		Limit:  20,
+		Mode:   pb.FeedRequest_STACKS,
+	})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	res, err := mobile1.Feed(req)
 	if err != nil {
 		t.Errorf("get thread feed failed: %s", err)
 		return

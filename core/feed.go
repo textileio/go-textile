@@ -40,12 +40,12 @@ type feedItemOpts struct {
 	target      *pb.FeedItem
 }
 
-func (t *Textile) Feed(offset string, limit int, threadId string, mode pb.FeedMode) (*pb.FeedItemList, error) {
+func (t *Textile) Feed(req *pb.FeedRequest) (*pb.FeedItemList, error) {
 	var types []pb.Block_BlockType
-	switch mode {
-	case pb.FeedMode_CHRONO, pb.FeedMode_STACKS:
+	switch req.Mode {
+	case pb.FeedRequest_CHRONO, pb.FeedRequest_STACKS:
 		types = flatFeedTypes
-	case pb.FeedMode_ANNOTATED:
+	case pb.FeedRequest_ANNOTATED:
 		types = annotatedFeedTypes
 	}
 
@@ -57,22 +57,22 @@ func (t *Textile) Feed(offset string, limit int, threadId string, mode pb.FeedMo
 		}
 	}
 	query = "(" + query + ")"
-	if threadId != "" {
-		if t.Thread(threadId) == nil {
+	if req.Thread != "" {
+		if t.Thread(req.Thread) == nil {
 			return nil, ErrThreadNotFound
 		}
-		query = fmt.Sprintf("(threadId='%s') and %s", threadId, query)
+		query = fmt.Sprintf("(threadId='%s') and %s", req.Thread, query)
 	}
 
-	blocks := t.Blocks(offset, limit, query)
+	blocks := t.Blocks(req.Offset, int(req.Limit), query)
 	list := make([]*pb.FeedItem, 0)
 	var count int
 
-	switch mode {
-	case pb.FeedMode_CHRONO, pb.FeedMode_ANNOTATED:
+	switch req.Mode {
+	case pb.FeedRequest_CHRONO, pb.FeedRequest_ANNOTATED:
 		for _, block := range blocks.Items {
 			item, err := t.feedItem(block, feedItemOpts{
-				annotations: mode == pb.FeedMode_ANNOTATED,
+				annotations: req.Mode == pb.FeedRequest_ANNOTATED,
 			})
 			if err != nil {
 				return nil, err
@@ -81,7 +81,7 @@ func (t *Textile) Feed(offset string, limit int, threadId string, mode pb.FeedMo
 			count++
 		}
 
-	case pb.FeedMode_STACKS:
+	case pb.FeedRequest_STACKS:
 		stacks := make([]feedStack, 0)
 		var last *feedStack
 		for _, block := range blocks.Items {

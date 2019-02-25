@@ -68,10 +68,17 @@ message InviteViewList {
 
 // FEED //
 
-enum FeedMode {
-    CHRONO    = 0;
-    ANNOTATED = 1;
-    STACKS    = 2;
+message FeedRequest {
+    string thread = 1;
+    string offset = 2;
+    int32 limit   = 3;
+    Mode mode     = 4;
+
+    enum Mode {
+        CHRONO    = 0;
+        ANNOTATED = 1;
+        STACKS    = 2;
+    }
 }
 
 message FeedItem {

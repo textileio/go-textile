@@ -6693,11 +6693,122 @@ export class InviteViewList implements IInviteViewList {
     public toJSON(): { [k: string]: any };
 }
 
-/** FeedMode enum. */
-export enum FeedMode {
-    CHRONO = 0,
-    ANNOTATED = 1,
-    STACKS = 2
+/** Properties of a FeedRequest. */
+export interface IFeedRequest {
+
+    /** FeedRequest thread */
+    thread: string;
+
+    /** FeedRequest offset */
+    offset: string;
+
+    /** FeedRequest limit */
+    limit: number;
+
+    /** FeedRequest mode */
+    mode: FeedRequest.Mode;
+}
+
+/** Represents a FeedRequest. */
+export class FeedRequest implements IFeedRequest {
+
+    /**
+     * Constructs a new FeedRequest.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: IFeedRequest);
+
+    /** FeedRequest thread. */
+    public thread: string;
+
+    /** FeedRequest offset. */
+    public offset: string;
+
+    /** FeedRequest limit. */
+    public limit: number;
+
+    /** FeedRequest mode. */
+    public mode: FeedRequest.Mode;
+
+    /**
+     * Creates a new FeedRequest instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns FeedRequest instance
+     */
+    public static create(properties?: IFeedRequest): FeedRequest;
+
+    /**
+     * Encodes the specified FeedRequest message. Does not implicitly {@link FeedRequest.verify|verify} messages.
+     * @param message FeedRequest message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: IFeedRequest, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified FeedRequest message, length delimited. Does not implicitly {@link FeedRequest.verify|verify} messages.
+     * @param message FeedRequest message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: IFeedRequest, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a FeedRequest message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns FeedRequest
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): FeedRequest;
+
+    /**
+     * Decodes a FeedRequest message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns FeedRequest
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): FeedRequest;
+
+    /**
+     * Verifies a FeedRequest message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a FeedRequest message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns FeedRequest
+     */
+    public static fromObject(object: { [k: string]: any }): FeedRequest;
+
+    /**
+     * Creates a plain object from a FeedRequest message. Also converts values to other types if specified.
+     * @param message FeedRequest
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: FeedRequest, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this FeedRequest to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+export namespace FeedRequest {
+
+    /** Mode enum. */
+    enum Mode {
+        CHRONO = 0,
+        ANNOTATED = 1,
+        STACKS = 2
+    }
 }
 
 /** Properties of a FeedItem. */

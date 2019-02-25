@@ -187,7 +187,7 @@ func (t *Thread) followParent(parent mh.Multihash) error {
 	}
 	if block == nil {
 		// exists, abort
-		log.Debugf("%s from %s exists, aborting", block.Type.String(), block.Header.Author)
+		log.Debugf("%s exists, aborting", parent)
 		return nil
 	}
 

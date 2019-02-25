@@ -16626,20 +16626,292 @@ export const InviteViewList = $root.InviteViewList = (() => {
     return InviteViewList;
 })();
 
-/**
- * FeedMode enum.
- * @exports FeedMode
- * @enum {string}
- * @property {number} CHRONO=0 CHRONO value
- * @property {number} ANNOTATED=1 ANNOTATED value
- * @property {number} STACKS=2 STACKS value
- */
-$root.FeedMode = (function() {
-    const valuesById = {}, values = Object.create(valuesById);
-    values[valuesById[0] = "CHRONO"] = 0;
-    values[valuesById[1] = "ANNOTATED"] = 1;
-    values[valuesById[2] = "STACKS"] = 2;
-    return values;
+export const FeedRequest = $root.FeedRequest = (() => {
+
+    /**
+     * Properties of a FeedRequest.
+     * @exports IFeedRequest
+     * @interface IFeedRequest
+     * @property {string} thread FeedRequest thread
+     * @property {string} offset FeedRequest offset
+     * @property {number} limit FeedRequest limit
+     * @property {FeedRequest.Mode} mode FeedRequest mode
+     */
+
+    /**
+     * Constructs a new FeedRequest.
+     * @exports FeedRequest
+     * @classdesc Represents a FeedRequest.
+     * @implements IFeedRequest
+     * @constructor
+     * @param {IFeedRequest=} [properties] Properties to set
+     */
+    function FeedRequest(properties) {
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * FeedRequest thread.
+     * @member {string} thread
+     * @memberof FeedRequest
+     * @instance
+     */
+    FeedRequest.prototype.thread = "";
+
+    /**
+     * FeedRequest offset.
+     * @member {string} offset
+     * @memberof FeedRequest
+     * @instance
+     */
+    FeedRequest.prototype.offset = "";
+
+    /**
+     * FeedRequest limit.
+     * @member {number} limit
+     * @memberof FeedRequest
+     * @instance
+     */
+    FeedRequest.prototype.limit = 0;
+
+    /**
+     * FeedRequest mode.
+     * @member {FeedRequest.Mode} mode
+     * @memberof FeedRequest
+     * @instance
+     */
+    FeedRequest.prototype.mode = 0;
+
+    /**
+     * Creates a new FeedRequest instance using the specified properties.
+     * @function create
+     * @memberof FeedRequest
+     * @static
+     * @param {IFeedRequest=} [properties] Properties to set
+     * @returns {FeedRequest} FeedRequest instance
+     */
+    FeedRequest.create = function create(properties) {
+        return new FeedRequest(properties);
+    };
+
+    /**
+     * Encodes the specified FeedRequest message. Does not implicitly {@link FeedRequest.verify|verify} messages.
+     * @function encode
+     * @memberof FeedRequest
+     * @static
+     * @param {IFeedRequest} message FeedRequest message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    FeedRequest.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.thread != null && message.hasOwnProperty("thread"))
+            writer.uint32(/* id 1, wireType 2 =*/10).string(message.thread);
+        if (message.offset != null && message.hasOwnProperty("offset"))
+            writer.uint32(/* id 2, wireType 2 =*/18).string(message.offset);
+        if (message.limit != null && message.hasOwnProperty("limit"))
+            writer.uint32(/* id 3, wireType 0 =*/24).int32(message.limit);
+        if (message.mode != null && message.hasOwnProperty("mode"))
+            writer.uint32(/* id 4, wireType 0 =*/32).int32(message.mode);
+        return writer;
+    };
+
+    /**
+     * Encodes the specified FeedRequest message, length delimited. Does not implicitly {@link FeedRequest.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof FeedRequest
+     * @static
+     * @param {IFeedRequest} message FeedRequest message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    FeedRequest.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a FeedRequest message from the specified reader or buffer.
+     * @function decode
+     * @memberof FeedRequest
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {FeedRequest} FeedRequest
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    FeedRequest.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.FeedRequest();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.thread = reader.string();
+                break;
+            case 2:
+                message.offset = reader.string();
+                break;
+            case 3:
+                message.limit = reader.int32();
+                break;
+            case 4:
+                message.mode = reader.int32();
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a FeedRequest message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof FeedRequest
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {FeedRequest} FeedRequest
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    FeedRequest.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a FeedRequest message.
+     * @function verify
+     * @memberof FeedRequest
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    FeedRequest.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.thread != null && message.hasOwnProperty("thread"))
+            if (!$util.isString(message.thread))
+                return "thread: string expected";
+        if (message.offset != null && message.hasOwnProperty("offset"))
+            if (!$util.isString(message.offset))
+                return "offset: string expected";
+        if (message.limit != null && message.hasOwnProperty("limit"))
+            if (!$util.isInteger(message.limit))
+                return "limit: integer expected";
+        if (message.mode != null && message.hasOwnProperty("mode"))
+            switch (message.mode) {
+            default:
+                return "mode: enum value expected";
+            case 0:
+            case 1:
+            case 2:
+                break;
+            }
+        return null;
+    };
+
+    /**
+     * Creates a FeedRequest message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof FeedRequest
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {FeedRequest} FeedRequest
+     */
+    FeedRequest.fromObject = function fromObject(object) {
+        if (object instanceof $root.FeedRequest)
+            return object;
+        let message = new $root.FeedRequest();
+        if (object.thread != null)
+            message.thread = String(object.thread);
+        if (object.offset != null)
+            message.offset = String(object.offset);
+        if (object.limit != null)
+            message.limit = object.limit | 0;
+        switch (object.mode) {
+        case "CHRONO":
+        case 0:
+            message.mode = 0;
+            break;
+        case "ANNOTATED":
+        case 1:
+            message.mode = 1;
+            break;
+        case "STACKS":
+        case 2:
+            message.mode = 2;
+            break;
+        }
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a FeedRequest message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof FeedRequest
+     * @static
+     * @param {FeedRequest} message FeedRequest
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    FeedRequest.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.defaults) {
+            object.thread = "";
+            object.offset = "";
+            object.limit = 0;
+            object.mode = options.enums === String ? "CHRONO" : 0;
+        }
+        if (message.thread != null && message.hasOwnProperty("thread"))
+            object.thread = message.thread;
+        if (message.offset != null && message.hasOwnProperty("offset"))
+            object.offset = message.offset;
+        if (message.limit != null && message.hasOwnProperty("limit"))
+            object.limit = message.limit;
+        if (message.mode != null && message.hasOwnProperty("mode"))
+            object.mode = options.enums === String ? $root.FeedRequest.Mode[message.mode] : message.mode;
+        return object;
+    };
+
+    /**
+     * Converts this FeedRequest to JSON.
+     * @function toJSON
+     * @memberof FeedRequest
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    FeedRequest.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    /**
+     * Mode enum.
+     * @name FeedRequest.Mode
+     * @enum {string}
+     * @property {number} CHRONO=0 CHRONO value
+     * @property {number} ANNOTATED=1 ANNOTATED value
+     * @property {number} STACKS=2 STACKS value
+     */
+    FeedRequest.Mode = (function() {
+        const valuesById = {}, values = Object.create(valuesById);
+        values[valuesById[0] = "CHRONO"] = 0;
+        values[valuesById[1] = "ANNOTATED"] = 1;
+        values[valuesById[2] = "STACKS"] = 2;
+        return values;
+    })();
+
+    return FeedRequest;
 })();
 
 export const FeedItem = $root.FeedItem = (() => {

@@ -94,6 +94,7 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 	}
 	if block == nil {
 		// exists, abort
+		log.Debugf("%s exists, aborting", hash.B58String())
 		return nil, nil
 	}
 
