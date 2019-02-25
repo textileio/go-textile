@@ -347,7 +347,9 @@ func (h *CafeService) CheckMessages(cafe peer.ID) error {
 	// save messages to inbox
 	for _, msg := range res.Messages {
 		if err := h.inbox.Add(msg); err != nil {
-			return err
+			if !repo.ConflictError(err) {
+				return err
+			}
 		}
 	}
 
