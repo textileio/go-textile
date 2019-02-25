@@ -126,7 +126,7 @@ func (t *Textile) SearchContacts(query *pb.ContactQuery, options *pb.QueryOption
 	}
 
 	resCh, errCh, cancel := t.search(&pb.Query{
-		Type:    pb.QueryType_CONTACTS,
+		Type:    pb.Query_CONTACTS,
 		Options: options,
 		Payload: &any.Any{
 			TypeUrl: "/ContactQuery",

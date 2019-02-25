@@ -5888,6 +5888,124 @@ export namespace MobileEvent {
     }
 }
 
+/** Properties of a MobileQueryEvent. */
+export interface IMobileQueryEvent {
+
+    /** MobileQueryEvent id */
+    id: string;
+
+    /** MobileQueryEvent type */
+    type: MobileQueryEvent.Type;
+
+    /** MobileQueryEvent data */
+    data: IQueryResult;
+
+    /** MobileQueryEvent error */
+    error: IError;
+}
+
+/** Represents a MobileQueryEvent. */
+export class MobileQueryEvent implements IMobileQueryEvent {
+
+    /**
+     * Constructs a new MobileQueryEvent.
+     * @param [properties] Properties to set
+     */
+    constructor(properties?: IMobileQueryEvent);
+
+    /** MobileQueryEvent id. */
+    public id: string;
+
+    /** MobileQueryEvent type. */
+    public type: MobileQueryEvent.Type;
+
+    /** MobileQueryEvent data. */
+    public data: IQueryResult;
+
+    /** MobileQueryEvent error. */
+    public error: IError;
+
+    /**
+     * Creates a new MobileQueryEvent instance using the specified properties.
+     * @param [properties] Properties to set
+     * @returns MobileQueryEvent instance
+     */
+    public static create(properties?: IMobileQueryEvent): MobileQueryEvent;
+
+    /**
+     * Encodes the specified MobileQueryEvent message. Does not implicitly {@link MobileQueryEvent.verify|verify} messages.
+     * @param message MobileQueryEvent message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encode(message: IMobileQueryEvent, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Encodes the specified MobileQueryEvent message, length delimited. Does not implicitly {@link MobileQueryEvent.verify|verify} messages.
+     * @param message MobileQueryEvent message or plain object to encode
+     * @param [writer] Writer to encode to
+     * @returns Writer
+     */
+    public static encodeDelimited(message: IMobileQueryEvent, writer?: $protobuf.Writer): $protobuf.Writer;
+
+    /**
+     * Decodes a MobileQueryEvent message from the specified reader or buffer.
+     * @param reader Reader or buffer to decode from
+     * @param [length] Message length if known beforehand
+     * @returns MobileQueryEvent
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): MobileQueryEvent;
+
+    /**
+     * Decodes a MobileQueryEvent message from the specified reader or buffer, length delimited.
+     * @param reader Reader or buffer to decode from
+     * @returns MobileQueryEvent
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): MobileQueryEvent;
+
+    /**
+     * Verifies a MobileQueryEvent message.
+     * @param message Plain object to verify
+     * @returns `null` if valid, otherwise the reason why it is not
+     */
+    public static verify(message: { [k: string]: any }): (string|null);
+
+    /**
+     * Creates a MobileQueryEvent message from a plain object. Also converts values to their respective internal types.
+     * @param object Plain object
+     * @returns MobileQueryEvent
+     */
+    public static fromObject(object: { [k: string]: any }): MobileQueryEvent;
+
+    /**
+     * Creates a plain object from a MobileQueryEvent message. Also converts values to other types if specified.
+     * @param message MobileQueryEvent
+     * @param [options] Conversion options
+     * @returns Plain object
+     */
+    public static toObject(message: MobileQueryEvent, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+    /**
+     * Converts this MobileQueryEvent to JSON.
+     * @returns JSON object
+     */
+    public toJSON(): { [k: string]: any };
+}
+
+export namespace MobileQueryEvent {
+
+    /** Type enum. */
+    enum Type {
+        DATA = 0,
+        DONE = 1,
+        ERROR = 2
+    }
+}
+
 /** Properties of an AddThreadConfig. */
 export interface IAddThreadConfig {
 
@@ -9019,12 +9137,6 @@ export namespace LogLevel {
     }
 }
 
-/** QueryType enum. */
-export enum QueryType {
-    THREAD_BACKUPS = 0,
-    CONTACTS = 1
-}
-
 /** Properties of a QueryOptions. */
 export interface IQueryOptions {
 
@@ -9158,7 +9270,7 @@ export interface IQuery {
     token: string;
 
     /** Query type */
-    type: QueryType;
+    type: Query.Type;
 
     /** Query options */
     options: IQueryOptions;
@@ -9183,7 +9295,7 @@ export class Query implements IQuery {
     public token: string;
 
     /** Query type. */
-    public type: QueryType;
+    public type: Query.Type;
 
     /** Query options. */
     public options: IQueryOptions;
@@ -9262,6 +9374,15 @@ export class Query implements IQuery {
     public toJSON(): { [k: string]: any };
 }
 
+export namespace Query {
+
+    /** Type enum. */
+    enum Type {
+        THREAD_BACKUPS = 0,
+        CONTACTS = 1
+    }
+}
+
 /** Properties of a PubSubQuery. */
 export interface IPubSubQuery {
 
@@ -9269,7 +9390,7 @@ export interface IPubSubQuery {
     id: string;
 
     /** PubSubQuery type */
-    type: QueryType;
+    type: Query.Type;
 
     /** PubSubQuery payload */
     payload: google.protobuf.IAny;
@@ -9291,7 +9412,7 @@ export class PubSubQuery implements IPubSubQuery {
     public id: string;
 
     /** PubSubQuery type. */
-    public type: QueryType;
+    public type: Query.Type;
 
     /** PubSubQuery payload. */
     public payload: google.protobuf.IAny;
@@ -9491,7 +9612,7 @@ export class QueryResult implements IQueryResult {
 export interface IQueryResults {
 
     /** QueryResults type */
-    type: QueryType;
+    type: Query.Type;
 
     /** QueryResults items */
     items: IQueryResult[];
@@ -9507,7 +9628,7 @@ export class QueryResults implements IQueryResults {
     constructor(properties?: IQueryResults);
 
     /** QueryResults type. */
-    public type: QueryType;
+    public type: Query.Type;
 
     /** QueryResults items. */
     public items: IQueryResult[];
@@ -9677,111 +9798,6 @@ export class PubSubQueryResults implements IPubSubQueryResults {
      * @returns JSON object
      */
     public toJSON(): { [k: string]: any };
-}
-
-/** Properties of a QueryEvent. */
-export interface IQueryEvent {
-
-    /** QueryEvent type */
-    type: QueryEvent.Type;
-
-    /** QueryEvent data */
-    data: IQueryResult;
-}
-
-/** Represents a QueryEvent. */
-export class QueryEvent implements IQueryEvent {
-
-    /**
-     * Constructs a new QueryEvent.
-     * @param [properties] Properties to set
-     */
-    constructor(properties?: IQueryEvent);
-
-    /** QueryEvent type. */
-    public type: QueryEvent.Type;
-
-    /** QueryEvent data. */
-    public data: IQueryResult;
-
-    /**
-     * Creates a new QueryEvent instance using the specified properties.
-     * @param [properties] Properties to set
-     * @returns QueryEvent instance
-     */
-    public static create(properties?: IQueryEvent): QueryEvent;
-
-    /**
-     * Encodes the specified QueryEvent message. Does not implicitly {@link QueryEvent.verify|verify} messages.
-     * @param message QueryEvent message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encode(message: IQueryEvent, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Encodes the specified QueryEvent message, length delimited. Does not implicitly {@link QueryEvent.verify|verify} messages.
-     * @param message QueryEvent message or plain object to encode
-     * @param [writer] Writer to encode to
-     * @returns Writer
-     */
-    public static encodeDelimited(message: IQueryEvent, writer?: $protobuf.Writer): $protobuf.Writer;
-
-    /**
-     * Decodes a QueryEvent message from the specified reader or buffer.
-     * @param reader Reader or buffer to decode from
-     * @param [length] Message length if known beforehand
-     * @returns QueryEvent
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): QueryEvent;
-
-    /**
-     * Decodes a QueryEvent message from the specified reader or buffer, length delimited.
-     * @param reader Reader or buffer to decode from
-     * @returns QueryEvent
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): QueryEvent;
-
-    /**
-     * Verifies a QueryEvent message.
-     * @param message Plain object to verify
-     * @returns `null` if valid, otherwise the reason why it is not
-     */
-    public static verify(message: { [k: string]: any }): (string|null);
-
-    /**
-     * Creates a QueryEvent message from a plain object. Also converts values to their respective internal types.
-     * @param object Plain object
-     * @returns QueryEvent
-     */
-    public static fromObject(object: { [k: string]: any }): QueryEvent;
-
-    /**
-     * Creates a plain object from a QueryEvent message. Also converts values to other types if specified.
-     * @param message QueryEvent
-     * @param [options] Conversion options
-     * @returns Plain object
-     */
-    public static toObject(message: QueryEvent, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-    /**
-     * Converts this QueryEvent to JSON.
-     * @returns JSON object
-     */
-    public toJSON(): { [k: string]: any };
-}
-
-export namespace QueryEvent {
-
-    /** Type enum. */
-    enum Type {
-        DATA = 0,
-        DONE = 1
-    }
 }
 
 /** Properties of a ContactQuery. */

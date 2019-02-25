@@ -69,7 +69,7 @@ func (t *Textile) FindThreadBackups(query *pb.ThreadBackupQuery, options *pb.Que
 	options.Filter = pb.QueryOptions_NO_FILTER
 
 	resCh, errCh, cancel := t.search(&pb.Query{
-		Type:    pb.QueryType_THREAD_BACKUPS,
+		Type:    pb.Query_THREAD_BACKUPS,
 		Options: options,
 		Payload: &any.Any{
 			TypeUrl: "/ThreadBackupQuery",

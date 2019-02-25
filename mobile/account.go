@@ -48,7 +48,7 @@ func (m *Mobile) AccountPeers(input []byte) ([]byte, error) {
 }
 
 // FindThreadBackups calls core FindThreadBackups
-func (m *Mobile) FindThreadBackups(query []byte, options []byte, cb Callback) (*CancelFn, error) {
+func (m *Mobile) FindThreadBackups(query []byte, options []byte) (*SearchHandle, error) {
 	if !m.node.Online() {
 		return nil, core.ErrOffline
 	}
@@ -67,5 +67,5 @@ func (m *Mobile) FindThreadBackups(query []byte, options []byte, cb Callback) (*
 		return nil, err
 	}
 
-	return handleSearchStream(resCh, errCh, cancel, cb)
+	return m.handleSearchStream(resCh, errCh, cancel)
 }

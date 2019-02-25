@@ -571,11 +571,11 @@ func (h *CafeService) sendObject(id cid.Cid, addr string, token string) error {
 }
 
 // searchLocal searches the local index based on the given query
-func (h *CafeService) searchLocal(qtype pb.QueryType, options *pb.QueryOptions, payload *any.Any, local bool) (*queryResultSet, error) {
+func (h *CafeService) searchLocal(qtype pb.Query_Type, options *pb.QueryOptions, payload *any.Any, local bool) (*queryResultSet, error) {
 	results := newQueryResultSet(options)
 
 	switch qtype {
-	case pb.QueryType_THREAD_BACKUPS:
+	case pb.Query_THREAD_BACKUPS:
 		q := new(pb.ThreadBackupQuery)
 		if err := ptypes.UnmarshalAny(payload, q); err != nil {
 			return nil, err
@@ -604,7 +604,7 @@ func (h *CafeService) searchLocal(qtype pb.QueryType, options *pb.QueryOptions, 
 			}
 		}
 
-	case pb.QueryType_CONTACTS:
+	case pb.Query_CONTACTS:
 		q := new(pb.ContactQuery)
 		if err := ptypes.UnmarshalAny(payload, q); err != nil {
 			return nil, err

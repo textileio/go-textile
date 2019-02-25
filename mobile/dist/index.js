@@ -14659,6 +14659,304 @@ export const MobileEvent = $root.MobileEvent = (() => {
     return MobileEvent;
 })();
 
+export const MobileQueryEvent = $root.MobileQueryEvent = (() => {
+
+    /**
+     * Properties of a MobileQueryEvent.
+     * @exports IMobileQueryEvent
+     * @interface IMobileQueryEvent
+     * @property {string} id MobileQueryEvent id
+     * @property {MobileQueryEvent.Type} type MobileQueryEvent type
+     * @property {IQueryResult} data MobileQueryEvent data
+     * @property {IError} error MobileQueryEvent error
+     */
+
+    /**
+     * Constructs a new MobileQueryEvent.
+     * @exports MobileQueryEvent
+     * @classdesc Represents a MobileQueryEvent.
+     * @implements IMobileQueryEvent
+     * @constructor
+     * @param {IMobileQueryEvent=} [properties] Properties to set
+     */
+    function MobileQueryEvent(properties) {
+        if (properties)
+            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                if (properties[keys[i]] != null)
+                    this[keys[i]] = properties[keys[i]];
+    }
+
+    /**
+     * MobileQueryEvent id.
+     * @member {string} id
+     * @memberof MobileQueryEvent
+     * @instance
+     */
+    MobileQueryEvent.prototype.id = "";
+
+    /**
+     * MobileQueryEvent type.
+     * @member {MobileQueryEvent.Type} type
+     * @memberof MobileQueryEvent
+     * @instance
+     */
+    MobileQueryEvent.prototype.type = 0;
+
+    /**
+     * MobileQueryEvent data.
+     * @member {IQueryResult} data
+     * @memberof MobileQueryEvent
+     * @instance
+     */
+    MobileQueryEvent.prototype.data = null;
+
+    /**
+     * MobileQueryEvent error.
+     * @member {IError} error
+     * @memberof MobileQueryEvent
+     * @instance
+     */
+    MobileQueryEvent.prototype.error = null;
+
+    /**
+     * Creates a new MobileQueryEvent instance using the specified properties.
+     * @function create
+     * @memberof MobileQueryEvent
+     * @static
+     * @param {IMobileQueryEvent=} [properties] Properties to set
+     * @returns {MobileQueryEvent} MobileQueryEvent instance
+     */
+    MobileQueryEvent.create = function create(properties) {
+        return new MobileQueryEvent(properties);
+    };
+
+    /**
+     * Encodes the specified MobileQueryEvent message. Does not implicitly {@link MobileQueryEvent.verify|verify} messages.
+     * @function encode
+     * @memberof MobileQueryEvent
+     * @static
+     * @param {IMobileQueryEvent} message MobileQueryEvent message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    MobileQueryEvent.encode = function encode(message, writer) {
+        if (!writer)
+            writer = $Writer.create();
+        if (message.id != null && message.hasOwnProperty("id"))
+            writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
+        if (message.type != null && message.hasOwnProperty("type"))
+            writer.uint32(/* id 2, wireType 0 =*/16).int32(message.type);
+        if (message.data != null && message.hasOwnProperty("data"))
+            $root.QueryResult.encode(message.data, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
+        if (message.error != null && message.hasOwnProperty("error"))
+            $root.Error.encode(message.error, writer.uint32(/* id 4, wireType 2 =*/34).fork()).ldelim();
+        return writer;
+    };
+
+    /**
+     * Encodes the specified MobileQueryEvent message, length delimited. Does not implicitly {@link MobileQueryEvent.verify|verify} messages.
+     * @function encodeDelimited
+     * @memberof MobileQueryEvent
+     * @static
+     * @param {IMobileQueryEvent} message MobileQueryEvent message or plain object to encode
+     * @param {$protobuf.Writer} [writer] Writer to encode to
+     * @returns {$protobuf.Writer} Writer
+     */
+    MobileQueryEvent.encodeDelimited = function encodeDelimited(message, writer) {
+        return this.encode(message, writer).ldelim();
+    };
+
+    /**
+     * Decodes a MobileQueryEvent message from the specified reader or buffer.
+     * @function decode
+     * @memberof MobileQueryEvent
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @param {number} [length] Message length if known beforehand
+     * @returns {MobileQueryEvent} MobileQueryEvent
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    MobileQueryEvent.decode = function decode(reader, length) {
+        if (!(reader instanceof $Reader))
+            reader = $Reader.create(reader);
+        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.MobileQueryEvent();
+        while (reader.pos < end) {
+            let tag = reader.uint32();
+            switch (tag >>> 3) {
+            case 1:
+                message.id = reader.string();
+                break;
+            case 2:
+                message.type = reader.int32();
+                break;
+            case 3:
+                message.data = $root.QueryResult.decode(reader, reader.uint32());
+                break;
+            case 4:
+                message.error = $root.Error.decode(reader, reader.uint32());
+                break;
+            default:
+                reader.skipType(tag & 7);
+                break;
+            }
+        }
+        return message;
+    };
+
+    /**
+     * Decodes a MobileQueryEvent message from the specified reader or buffer, length delimited.
+     * @function decodeDelimited
+     * @memberof MobileQueryEvent
+     * @static
+     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+     * @returns {MobileQueryEvent} MobileQueryEvent
+     * @throws {Error} If the payload is not a reader or valid buffer
+     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+     */
+    MobileQueryEvent.decodeDelimited = function decodeDelimited(reader) {
+        if (!(reader instanceof $Reader))
+            reader = new $Reader(reader);
+        return this.decode(reader, reader.uint32());
+    };
+
+    /**
+     * Verifies a MobileQueryEvent message.
+     * @function verify
+     * @memberof MobileQueryEvent
+     * @static
+     * @param {Object.<string,*>} message Plain object to verify
+     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+     */
+    MobileQueryEvent.verify = function verify(message) {
+        if (typeof message !== "object" || message === null)
+            return "object expected";
+        if (message.id != null && message.hasOwnProperty("id"))
+            if (!$util.isString(message.id))
+                return "id: string expected";
+        if (message.type != null && message.hasOwnProperty("type"))
+            switch (message.type) {
+            default:
+                return "type: enum value expected";
+            case 0:
+            case 1:
+            case 2:
+                break;
+            }
+        if (message.data != null && message.hasOwnProperty("data")) {
+            let error = $root.QueryResult.verify(message.data);
+            if (error)
+                return "data." + error;
+        }
+        if (message.error != null && message.hasOwnProperty("error")) {
+            let error = $root.Error.verify(message.error);
+            if (error)
+                return "error." + error;
+        }
+        return null;
+    };
+
+    /**
+     * Creates a MobileQueryEvent message from a plain object. Also converts values to their respective internal types.
+     * @function fromObject
+     * @memberof MobileQueryEvent
+     * @static
+     * @param {Object.<string,*>} object Plain object
+     * @returns {MobileQueryEvent} MobileQueryEvent
+     */
+    MobileQueryEvent.fromObject = function fromObject(object) {
+        if (object instanceof $root.MobileQueryEvent)
+            return object;
+        let message = new $root.MobileQueryEvent();
+        if (object.id != null)
+            message.id = String(object.id);
+        switch (object.type) {
+        case "DATA":
+        case 0:
+            message.type = 0;
+            break;
+        case "DONE":
+        case 1:
+            message.type = 1;
+            break;
+        case "ERROR":
+        case 2:
+            message.type = 2;
+            break;
+        }
+        if (object.data != null) {
+            if (typeof object.data !== "object")
+                throw TypeError(".MobileQueryEvent.data: object expected");
+            message.data = $root.QueryResult.fromObject(object.data);
+        }
+        if (object.error != null) {
+            if (typeof object.error !== "object")
+                throw TypeError(".MobileQueryEvent.error: object expected");
+            message.error = $root.Error.fromObject(object.error);
+        }
+        return message;
+    };
+
+    /**
+     * Creates a plain object from a MobileQueryEvent message. Also converts values to other types if specified.
+     * @function toObject
+     * @memberof MobileQueryEvent
+     * @static
+     * @param {MobileQueryEvent} message MobileQueryEvent
+     * @param {$protobuf.IConversionOptions} [options] Conversion options
+     * @returns {Object.<string,*>} Plain object
+     */
+    MobileQueryEvent.toObject = function toObject(message, options) {
+        if (!options)
+            options = {};
+        let object = {};
+        if (options.defaults) {
+            object.id = "";
+            object.type = options.enums === String ? "DATA" : 0;
+            object.data = null;
+            object.error = null;
+        }
+        if (message.id != null && message.hasOwnProperty("id"))
+            object.id = message.id;
+        if (message.type != null && message.hasOwnProperty("type"))
+            object.type = options.enums === String ? $root.MobileQueryEvent.Type[message.type] : message.type;
+        if (message.data != null && message.hasOwnProperty("data"))
+            object.data = $root.QueryResult.toObject(message.data, options);
+        if (message.error != null && message.hasOwnProperty("error"))
+            object.error = $root.Error.toObject(message.error, options);
+        return object;
+    };
+
+    /**
+     * Converts this MobileQueryEvent to JSON.
+     * @function toJSON
+     * @memberof MobileQueryEvent
+     * @instance
+     * @returns {Object.<string,*>} JSON object
+     */
+    MobileQueryEvent.prototype.toJSON = function toJSON() {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+    };
+
+    /**
+     * Type enum.
+     * @name MobileQueryEvent.Type
+     * @enum {string}
+     * @property {number} DATA=0 DATA value
+     * @property {number} DONE=1 DONE value
+     * @property {number} ERROR=2 ERROR value
+     */
+    MobileQueryEvent.Type = (function() {
+        const valuesById = {}, values = Object.create(valuesById);
+        values[valuesById[0] = "DATA"] = 0;
+        values[valuesById[1] = "DONE"] = 1;
+        values[valuesById[2] = "ERROR"] = 2;
+        return values;
+    })();
+
+    return MobileQueryEvent;
+})();
+
 export const AddThreadConfig = $root.AddThreadConfig = (() => {
 
     /**
@@ -22509,20 +22807,6 @@ export const LogLevel = $root.LogLevel = (() => {
     return LogLevel;
 })();
 
-/**
- * QueryType enum.
- * @exports QueryType
- * @enum {string}
- * @property {number} THREAD_BACKUPS=0 THREAD_BACKUPS value
- * @property {number} CONTACTS=1 CONTACTS value
- */
-$root.QueryType = (function() {
-    const valuesById = {}, values = Object.create(valuesById);
-    values[valuesById[0] = "THREAD_BACKUPS"] = 0;
-    values[valuesById[1] = "CONTACTS"] = 1;
-    return values;
-})();
-
 export const QueryOptions = $root.QueryOptions = (() => {
 
     /**
@@ -22851,7 +23135,7 @@ export const Query = $root.Query = (() => {
      * @interface IQuery
      * @property {string} id Query id
      * @property {string} token Query token
-     * @property {QueryType} type Query type
+     * @property {Query.Type} type Query type
      * @property {IQueryOptions} options Query options
      * @property {google.protobuf.IAny} payload Query payload
      */
@@ -22889,7 +23173,7 @@ export const Query = $root.Query = (() => {
 
     /**
      * Query type.
-     * @member {QueryType} type
+     * @member {Query.Type} type
      * @memberof Query
      * @instance
      */
@@ -23120,7 +23404,7 @@ export const Query = $root.Query = (() => {
         if (message.token != null && message.hasOwnProperty("token"))
             object.token = message.token;
         if (message.type != null && message.hasOwnProperty("type"))
-            object.type = options.enums === String ? $root.QueryType[message.type] : message.type;
+            object.type = options.enums === String ? $root.Query.Type[message.type] : message.type;
         if (message.options != null && message.hasOwnProperty("options"))
             object.options = $root.QueryOptions.toObject(message.options, options);
         if (message.payload != null && message.hasOwnProperty("payload"))
@@ -23139,6 +23423,20 @@ export const Query = $root.Query = (() => {
         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
     };
 
+    /**
+     * Type enum.
+     * @name Query.Type
+     * @enum {string}
+     * @property {number} THREAD_BACKUPS=0 THREAD_BACKUPS value
+     * @property {number} CONTACTS=1 CONTACTS value
+     */
+    Query.Type = (function() {
+        const valuesById = {}, values = Object.create(valuesById);
+        values[valuesById[0] = "THREAD_BACKUPS"] = 0;
+        values[valuesById[1] = "CONTACTS"] = 1;
+        return values;
+    })();
+
     return Query;
 })();
 
@@ -23149,7 +23447,7 @@ export const PubSubQuery = $root.PubSubQuery = (() => {
      * @exports IPubSubQuery
      * @interface IPubSubQuery
      * @property {string} id PubSubQuery id
-     * @property {QueryType} type PubSubQuery type
+     * @property {Query.Type} type PubSubQuery type
      * @property {google.protobuf.IAny} payload PubSubQuery payload
      * @property {PubSubQuery.ResponseType} responseType PubSubQuery responseType
      */
@@ -23179,7 +23477,7 @@ export const PubSubQuery = $root.PubSubQuery = (() => {
 
     /**
      * PubSubQuery type.
-     * @member {QueryType} type
+     * @member {Query.Type} type
      * @memberof PubSubQuery
      * @instance
      */
@@ -23405,7 +23703,7 @@ export const PubSubQuery = $root.PubSubQuery = (() => {
         if (message.id != null && message.hasOwnProperty("id"))
             object.id = message.id;
         if (message.type != null && message.hasOwnProperty("type"))
-            object.type = options.enums === String ? $root.QueryType[message.type] : message.type;
+            object.type = options.enums === String ? $root.Query.Type[message.type] : message.type;
         if (message.payload != null && message.hasOwnProperty("payload"))
             object.payload = $root.google.protobuf.Any.toObject(message.payload, options);
         if (message.responseType != null && message.hasOwnProperty("responseType"))
@@ -23711,7 +24009,7 @@ export const QueryResults = $root.QueryResults = (() => {
      * Properties of a QueryResults.
      * @exports IQueryResults
      * @interface IQueryResults
-     * @property {QueryType} type QueryResults type
+     * @property {Query.Type} type QueryResults type
      * @property {Array.<IQueryResult>} items QueryResults items
      */
 
@@ -23733,7 +24031,7 @@ export const QueryResults = $root.QueryResults = (() => {
 
     /**
      * QueryResults type.
-     * @member {QueryType} type
+     * @member {Query.Type} type
      * @memberof QueryResults
      * @instance
      */
@@ -23926,7 +24224,7 @@ export const QueryResults = $root.QueryResults = (() => {
         if (options.defaults)
             object.type = options.enums === String ? "THREAD_BACKUPS" : 0;
         if (message.type != null && message.hasOwnProperty("type"))
-            object.type = options.enums === String ? $root.QueryType[message.type] : message.type;
+            object.type = options.enums === String ? $root.Query.Type[message.type] : message.type;
         if (message.items && message.items.length) {
             object.items = [];
             for (let j = 0; j < message.items.length; ++j)
@@ -24162,248 +24460,6 @@ export const PubSubQueryResults = $root.PubSubQueryResults = (() => {
     };
 
     return PubSubQueryResults;
-})();
-
-export const QueryEvent = $root.QueryEvent = (() => {
-
-    /**
-     * Properties of a QueryEvent.
-     * @exports IQueryEvent
-     * @interface IQueryEvent
-     * @property {QueryEvent.Type} type QueryEvent type
-     * @property {IQueryResult} data QueryEvent data
-     */
-
-    /**
-     * Constructs a new QueryEvent.
-     * @exports QueryEvent
-     * @classdesc Represents a QueryEvent.
-     * @implements IQueryEvent
-     * @constructor
-     * @param {IQueryEvent=} [properties] Properties to set
-     */
-    function QueryEvent(properties) {
-        if (properties)
-            for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                if (properties[keys[i]] != null)
-                    this[keys[i]] = properties[keys[i]];
-    }
-
-    /**
-     * QueryEvent type.
-     * @member {QueryEvent.Type} type
-     * @memberof QueryEvent
-     * @instance
-     */
-    QueryEvent.prototype.type = 0;
-
-    /**
-     * QueryEvent data.
-     * @member {IQueryResult} data
-     * @memberof QueryEvent
-     * @instance
-     */
-    QueryEvent.prototype.data = null;
-
-    /**
-     * Creates a new QueryEvent instance using the specified properties.
-     * @function create
-     * @memberof QueryEvent
-     * @static
-     * @param {IQueryEvent=} [properties] Properties to set
-     * @returns {QueryEvent} QueryEvent instance
-     */
-    QueryEvent.create = function create(properties) {
-        return new QueryEvent(properties);
-    };
-
-    /**
-     * Encodes the specified QueryEvent message. Does not implicitly {@link QueryEvent.verify|verify} messages.
-     * @function encode
-     * @memberof QueryEvent
-     * @static
-     * @param {IQueryEvent} message QueryEvent message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    QueryEvent.encode = function encode(message, writer) {
-        if (!writer)
-            writer = $Writer.create();
-        if (message.type != null && message.hasOwnProperty("type"))
-            writer.uint32(/* id 1, wireType 0 =*/8).int32(message.type);
-        if (message.data != null && message.hasOwnProperty("data"))
-            $root.QueryResult.encode(message.data, writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
-        return writer;
-    };
-
-    /**
-     * Encodes the specified QueryEvent message, length delimited. Does not implicitly {@link QueryEvent.verify|verify} messages.
-     * @function encodeDelimited
-     * @memberof QueryEvent
-     * @static
-     * @param {IQueryEvent} message QueryEvent message or plain object to encode
-     * @param {$protobuf.Writer} [writer] Writer to encode to
-     * @returns {$protobuf.Writer} Writer
-     */
-    QueryEvent.encodeDelimited = function encodeDelimited(message, writer) {
-        return this.encode(message, writer).ldelim();
-    };
-
-    /**
-     * Decodes a QueryEvent message from the specified reader or buffer.
-     * @function decode
-     * @memberof QueryEvent
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @param {number} [length] Message length if known beforehand
-     * @returns {QueryEvent} QueryEvent
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    QueryEvent.decode = function decode(reader, length) {
-        if (!(reader instanceof $Reader))
-            reader = $Reader.create(reader);
-        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.QueryEvent();
-        while (reader.pos < end) {
-            let tag = reader.uint32();
-            switch (tag >>> 3) {
-            case 1:
-                message.type = reader.int32();
-                break;
-            case 2:
-                message.data = $root.QueryResult.decode(reader, reader.uint32());
-                break;
-            default:
-                reader.skipType(tag & 7);
-                break;
-            }
-        }
-        return message;
-    };
-
-    /**
-     * Decodes a QueryEvent message from the specified reader or buffer, length delimited.
-     * @function decodeDelimited
-     * @memberof QueryEvent
-     * @static
-     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-     * @returns {QueryEvent} QueryEvent
-     * @throws {Error} If the payload is not a reader or valid buffer
-     * @throws {$protobuf.util.ProtocolError} If required fields are missing
-     */
-    QueryEvent.decodeDelimited = function decodeDelimited(reader) {
-        if (!(reader instanceof $Reader))
-            reader = new $Reader(reader);
-        return this.decode(reader, reader.uint32());
-    };
-
-    /**
-     * Verifies a QueryEvent message.
-     * @function verify
-     * @memberof QueryEvent
-     * @static
-     * @param {Object.<string,*>} message Plain object to verify
-     * @returns {string|null} `null` if valid, otherwise the reason why it is not
-     */
-    QueryEvent.verify = function verify(message) {
-        if (typeof message !== "object" || message === null)
-            return "object expected";
-        if (message.type != null && message.hasOwnProperty("type"))
-            switch (message.type) {
-            default:
-                return "type: enum value expected";
-            case 0:
-            case 1:
-                break;
-            }
-        if (message.data != null && message.hasOwnProperty("data")) {
-            let error = $root.QueryResult.verify(message.data);
-            if (error)
-                return "data." + error;
-        }
-        return null;
-    };
-
-    /**
-     * Creates a QueryEvent message from a plain object. Also converts values to their respective internal types.
-     * @function fromObject
-     * @memberof QueryEvent
-     * @static
-     * @param {Object.<string,*>} object Plain object
-     * @returns {QueryEvent} QueryEvent
-     */
-    QueryEvent.fromObject = function fromObject(object) {
-        if (object instanceof $root.QueryEvent)
-            return object;
-        let message = new $root.QueryEvent();
-        switch (object.type) {
-        case "DATA":
-        case 0:
-            message.type = 0;
-            break;
-        case "DONE":
-        case 1:
-            message.type = 1;
-            break;
-        }
-        if (object.data != null) {
-            if (typeof object.data !== "object")
-                throw TypeError(".QueryEvent.data: object expected");
-            message.data = $root.QueryResult.fromObject(object.data);
-        }
-        return message;
-    };
-
-    /**
-     * Creates a plain object from a QueryEvent message. Also converts values to other types if specified.
-     * @function toObject
-     * @memberof QueryEvent
-     * @static
-     * @param {QueryEvent} message QueryEvent
-     * @param {$protobuf.IConversionOptions} [options] Conversion options
-     * @returns {Object.<string,*>} Plain object
-     */
-    QueryEvent.toObject = function toObject(message, options) {
-        if (!options)
-            options = {};
-        let object = {};
-        if (options.defaults) {
-            object.type = options.enums === String ? "DATA" : 0;
-            object.data = null;
-        }
-        if (message.type != null && message.hasOwnProperty("type"))
-            object.type = options.enums === String ? $root.QueryEvent.Type[message.type] : message.type;
-        if (message.data != null && message.hasOwnProperty("data"))
-            object.data = $root.QueryResult.toObject(message.data, options);
-        return object;
-    };
-
-    /**
-     * Converts this QueryEvent to JSON.
-     * @function toJSON
-     * @memberof QueryEvent
-     * @instance
-     * @returns {Object.<string,*>} JSON object
-     */
-    QueryEvent.prototype.toJSON = function toJSON() {
-        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-    };
-
-    /**
-     * Type enum.
-     * @name QueryEvent.Type
-     * @enum {string}
-     * @property {number} DATA=0 DATA value
-     * @property {number} DONE=1 DONE value
-     */
-    QueryEvent.Type = (function() {
-        const valuesById = {}, values = Object.create(valuesById);
-        values[valuesById[0] = "DATA"] = 0;
-        values[valuesById[1] = "DONE"] = 1;
-        return values;
-    })();
-
-    return QueryEvent;
 })();
 
 export const ContactQuery = $root.ContactQuery = (() => {

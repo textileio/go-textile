@@ -69,7 +69,7 @@ func (m *Mobile) ContactThreads(id string) ([]byte, error) {
 }
 
 // SearchContacts calls core SearchContacts
-func (m *Mobile) SearchContacts(query []byte, options []byte, cb Callback) (*CancelFn, error) {
+func (m *Mobile) SearchContacts(query []byte, options []byte) (*SearchHandle, error) {
 	if !m.node.Online() {
 		return nil, core.ErrOffline
 	}
@@ -88,5 +88,5 @@ func (m *Mobile) SearchContacts(query []byte, options []byte, cb Callback) (*Can
 		return nil, err
 	}
 
-	return handleSearchStream(resCh, errCh, cancel, cb)
+	return m.handleSearchStream(resCh, errCh, cancel)
 }

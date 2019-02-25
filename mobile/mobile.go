@@ -157,15 +157,7 @@ func (m *Mobile) Start() error {
 					if !ok {
 						return
 					}
-					data, err := proto.Marshal(update)
-					if err != nil {
-						log.Error(err)
-						continue
-					}
-					m.messenger.Notify(&pb.MobileEvent{
-						Name: pb.MobileEvent_WALLET_UPDATE.String(),
-						Data: data,
-					})
+					m.notify(pb.MobileEvent_WALLET_UPDATE, update)
 				}
 			}
 		}()
@@ -179,15 +171,7 @@ func (m *Mobile) Start() error {
 						return
 					}
 					if update, ok := value.(*pb.FeedItem); ok {
-						data, err := proto.Marshal(update)
-						if err != nil {
-							log.Error(err)
-							continue
-						}
-						m.messenger.Notify(&pb.MobileEvent{
-							Name: pb.MobileEvent_THREAD_UPDATE.String(),
-							Data: data,
-						})
+						m.notify(pb.MobileEvent_THREAD_UPDATE, update)
 					}
 				}
 			}
@@ -201,23 +185,13 @@ func (m *Mobile) Start() error {
 					if !ok {
 						return
 					}
-					data, err := proto.Marshal(note)
-					if err != nil {
-						log.Error(err)
-						continue
-					}
-					m.messenger.Notify(&pb.MobileEvent{
-						Name: pb.MobileEvent_NOTIFICATION.String(),
-						Data: data,
-					})
+					m.notify(pb.MobileEvent_NOTIFICATION, note)
 				}
 			}
 		}()
 
 		// ready
-		m.messenger.Notify(&pb.MobileEvent{
-			Name: pb.MobileEvent_NODE_ONLINE.String(),
-		})
+		m.notify(pb.MobileEvent_NODE_ONLINE, nil)
 	}()
 
 	return nil
@@ -243,4 +217,20 @@ func (m *Mobile) blockView(hash mh.Multihash) ([]byte, error) {
 		return nil, err
 	}
 	return proto.Marshal(view)
+}
+
+func (m *Mobile) notify(name pb.MobileEvent_Type, msg proto.Message) {
+	var data []byte
+	if msg != nil {
+		var err error
+		data, err = proto.Marshal(msg)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+	}
+	m.messenger.Notify(&pb.MobileEvent{
+		Name: name.String(),
+		Data: data,
+	})
 }

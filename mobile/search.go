@@ -1,42 +1,57 @@
 package mobile
 
 import (
-	"github.com/golang/protobuf/proto"
+	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/pb"
 )
 
-// CancelFn is used to cancel an async request
-type CancelFn struct {
+// SearchHandle is used to cancel an async search request
+type SearchHandle struct {
+	Id     string
 	cancel *broadcast.Broadcaster
 	done   func()
 }
 
-// Call is used to invoke the cancel
-func (c *CancelFn) Call() {
-	c.cancel.Close()
-	c.done()
+// Cancel is used to cancel the request
+func (h *SearchHandle) Cancel() {
+	h.cancel.Close()
+	h.done()
 }
 
 // handleSearchStream handles the response channels from a search
-func handleSearchStream(resultCh <-chan *pb.QueryResult, errCh <-chan error, cancel *broadcast.Broadcaster, cb Callback) (*CancelFn, error) {
+func (m *Mobile) handleSearchStream(resultCh <-chan *pb.QueryResult, errCh <-chan error, cancel *broadcast.Broadcaster) (*SearchHandle, error) {
+	id := ksuid.New().String()
+
 	var done bool
 	doneFn := func() {
 		if done {
 			return
 		}
 		done = true
-		cb.Call(proto.Marshal(&pb.QueryEvent{
-			Type: pb.QueryEvent_DONE,
-		}))
+		m.notify(pb.MobileEvent_QUERY_RESPONSE, &pb.MobileQueryEvent{
+			Id:   id,
+			Type: pb.MobileQueryEvent_DONE,
+		})
 	}
-	cancelFn := &CancelFn{cancel: cancel, done: doneFn}
+	handle := &SearchHandle{
+		Id:     id,
+		cancel: cancel,
+		done:   doneFn,
+	}
 
 	go func() {
 		for {
 			select {
 			case err := <-errCh:
-				cb.Call(nil, err)
+				m.notify(pb.MobileEvent_QUERY_RESPONSE, &pb.MobileQueryEvent{
+					Id:   id,
+					Type: pb.MobileQueryEvent_ERROR,
+					Error: &pb.Error{
+						Code:    500,
+						Message: err.Error(),
+					},
+				})
 				return
 
 			case res, ok := <-resultCh:
@@ -44,13 +59,14 @@ func handleSearchStream(resultCh <-chan *pb.QueryResult, errCh <-chan error, can
 					doneFn()
 					return
 				}
-				cb.Call(proto.Marshal(&pb.QueryEvent{
-					Type: pb.QueryEvent_DATA,
+				m.notify(pb.MobileEvent_QUERY_RESPONSE, &pb.MobileQueryEvent{
+					Id:   id,
+					Type: pb.MobileQueryEvent_DATA,
 					Data: res,
-				}))
+				})
 			}
 		}
 	}()
 
-	return cancelFn, nil
+	return handle, nil
 }
