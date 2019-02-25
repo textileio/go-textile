@@ -20,7 +20,12 @@ func (c *CancelFn) Call() {
 
 // handleSearchStream handles the response channels from a search
 func handleSearchStream(resultCh <-chan *pb.QueryResult, errCh <-chan error, cancel *broadcast.Broadcaster, cb Callback) (*CancelFn, error) {
+	var done bool
 	doneFn := func() {
+		if done {
+			return
+		}
+		done = true
 		cb.Call(proto.Marshal(&pb.QueryEvent{
 			Type: pb.QueryEvent_DONE,
 		}))
@@ -28,20 +33,22 @@ func handleSearchStream(resultCh <-chan *pb.QueryResult, errCh <-chan error, can
 	cancelFn := &CancelFn{cancel: cancel, done: doneFn}
 
 	go func() {
-		select {
-		case err := <-errCh:
-			cb.Call(nil, err)
-			return
-
-		case res, ok := <-resultCh:
-			if !ok {
-				doneFn()
+		for {
+			select {
+			case err := <-errCh:
+				cb.Call(nil, err)
 				return
+
+			case res, ok := <-resultCh:
+				if !ok {
+					doneFn()
+					return
+				}
+				cb.Call(proto.Marshal(&pb.QueryEvent{
+					Type: pb.QueryEvent_DATA,
+					Data: res,
+				}))
 			}
-			cb.Call(proto.Marshal(&pb.QueryEvent{
-				Type: pb.QueryEvent_DATA,
-				Data: res,
-			}))
 		}
 	}()
 
