@@ -129,7 +129,7 @@ func (x *getBlocksCmd) Execute(args []string) error {
 		return errMissingBlockId
 	}
 
-	res, err := executeJsonPbCmd(GET, "blocks/"+args[0], params{}, nil)
+	res, err := executeJsonCmd(GET, "blocks/"+args[0], params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ func callRmBlocks(args []string) error {
 		return errMissingBlockId
 	}
 
-	res, err := executeJsonPbCmd(DEL, "blocks/"+args[0], params{}, nil)
+	res, err := executeJsonCmd(DEL, "blocks/"+args[0], params{}, nil)
 	if err != nil {
 		return err
 	}

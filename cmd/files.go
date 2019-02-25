@@ -554,7 +554,7 @@ func (x *getFilesCmd) Execute(args []string) error {
 		return errMissingFileId
 	}
 
-	res, err := executeJsonPbCmd(GET, "files/"+args[0], params{}, nil)
+	res, err := executeJsonCmd(GET, "files/"+args[0], params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -598,7 +598,7 @@ func (x *keysCmd) Execute(args []string) error {
 		return errMissingTarget
 	}
 
-	res, err := executeJsonPbCmd(GET, "keys/"+args[0], params{}, nil)
+	res, err := executeJsonCmd(GET, "keys/"+args[0], params{}, nil)
 	if err != nil {
 		return err
 	}

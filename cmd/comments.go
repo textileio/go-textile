@@ -51,7 +51,7 @@ func (x *addCommentsCmd) Execute(args []string) error {
 		return errMissingCommentBody
 	}
 
-	res, err := executeJsonPbCmd(POST, "blocks/"+x.Block+"/comments", params{args: args}, nil)
+	res, err := executeJsonCmd(POST, "blocks/"+x.Block+"/comments", params{args: args}, nil)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ Lists comments on a thread block.`
 func (x *lsCommentsCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	res, err := executeJsonPbCmd(GET, "blocks/"+x.Block+"/comments", params{}, nil)
+	res, err := executeJsonCmd(GET, "blocks/"+x.Block+"/comments", params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func (x *getCommentsCmd) Execute(args []string) error {
 		return errMissingCommentId
 	}
 
-	res, err := executeJsonPbCmd(GET, "blocks/"+args[0]+"/comment", params{}, nil)
+	res, err := executeJsonCmd(GET, "blocks/"+args[0]+"/comment", params{}, nil)
 	if err != nil {
 		return err
 	}

@@ -115,7 +115,7 @@ func (x *addThreadsCmd) Execute(args []string) error {
 		x.Schema = schemaf.Hash
 	}
 
-	res, err := executeJsonPbCmd(POST, "threads", params{
+	res, err := executeJsonCmd(POST, "threads", params{
 		args: args,
 		opts: map[string]string{
 			"key":     x.Key,
@@ -145,7 +145,7 @@ Lists info on all threads.`
 func (x *lsThreadsCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	res, err := executeJsonPbCmd(GET, "threads", params{}, nil)
+	res, err := executeJsonCmd(GET, "threads", params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func (x *getThreadsCmd) Execute(args []string) error {
 		return errMissingThreadId
 	}
 
-	res, err := executeJsonPbCmd(GET, "threads/"+args[0], params{}, nil)
+	res, err := executeJsonCmd(GET, "threads/"+args[0], params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -190,7 +190,7 @@ Gets and displays info about the default thread (if selected).`
 func (x *getDefaultThreadsCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	res, err := executeJsonPbCmd(GET, "threads/default", params{}, nil)
+	res, err := executeJsonCmd(GET, "threads/default", params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -217,7 +217,7 @@ func (x *peersThreadsCmd) Execute(args []string) error {
 		x.Thread = "default"
 	}
 
-	res, err := executeJsonPbCmd(GET, "threads/"+x.Thread+"/peers", params{}, nil)
+	res, err := executeJsonCmd(GET, "threads/"+x.Thread+"/peers", params{}, nil)
 	if err != nil {
 		return err
 	}

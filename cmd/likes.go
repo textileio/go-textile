@@ -47,7 +47,7 @@ Adds a like to a thread block.`
 func (x *addLikesCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	res, err := executeJsonPbCmd(POST, "blocks/"+x.Block+"/likes", params{}, nil)
+	res, err := executeJsonCmd(POST, "blocks/"+x.Block+"/likes", params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ Lists likes on a thread block.`
 func (x *lsLikesCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	res, err := executeJsonPbCmd(GET, "blocks/"+x.Block+"/likes", params{}, nil)
+	res, err := executeJsonCmd(GET, "blocks/"+x.Block+"/likes", params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func (x *getLikesCmd) Execute(args []string) error {
 		return errMissingLikeId
 	}
 
-	res, err := executeJsonPbCmd(GET, "blocks/"+args[0]+"/like", params{}, nil)
+	res, err := executeJsonCmd(GET, "blocks/"+args[0]+"/like", params{}, nil)
 	if err != nil {
 		return err
 	}

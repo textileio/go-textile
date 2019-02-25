@@ -105,12 +105,13 @@ func executeJsonCmd(meth method, pth string, pars params, target interface{}) (s
 		return "", errors.New(body)
 	}
 
-	if target == nil {
-		target = new(interface{})
-	}
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return "", err
+	}
+
+	if target == nil {
+		target = new(interface{})
 	}
 	if err := json.Unmarshal(data, target); err != nil {
 		return "", err

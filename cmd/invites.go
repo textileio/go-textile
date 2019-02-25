@@ -60,7 +60,7 @@ func (x *createInvitesCmd) Execute(args []string) error {
 		x.Thread = "default"
 	}
 
-	res, err := executeJsonPbCmd(POST, "invites", params{
+	res, err := executeJsonCmd(POST, "invites", params{
 		opts: map[string]string{
 			"thread": x.Thread,
 			"peer":   x.Peer,
@@ -86,7 +86,7 @@ Lists all pending thread invites.`
 func (x *lsInvitesCmd) Execute(_ []string) error {
 	setApi(x.Client)
 
-	res, err := executeJsonPbCmd(GET, "invites", params{}, nil)
+	res, err := executeJsonCmd(GET, "invites", params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func (x *acceptInvitesCmd) Execute(args []string) error {
 		return errMissingInviteId
 	}
 
-	res, err := executeJsonPbCmd(POST, "invites/"+args[0]+"/accept", params{
+	res, err := executeJsonCmd(POST, "invites/"+args[0]+"/accept", params{
 		args: args,
 		opts: map[string]string{
 			"key": x.Key,

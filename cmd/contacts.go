@@ -143,7 +143,7 @@ Include the --thread flag to list contacts for a given thread.`
 func (x *lsContactsCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	res, err := executeJsonPbCmd(GET, "contacts", params{
+	res, err := executeJsonCmd(GET, "contacts", params{
 		opts: map[string]string{
 			"thread": x.Thread,
 		},
@@ -171,7 +171,7 @@ func (x *getContactsCmd) Execute(args []string) error {
 		return errMissingPeerId
 	}
 
-	res, err := executeJsonPbCmd(GET, "contacts/"+args[0], params{}, nil)
+	res, err := executeJsonCmd(GET, "contacts/"+args[0], params{}, nil)
 	if err != nil {
 		return err
 	}
