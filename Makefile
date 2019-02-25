@@ -44,6 +44,7 @@ android:
 	gomobile bind -ldflags "-w $(FLAGS)" -target=android -o mobile.aar github.com/textileio/textile-go/mobile
 	mv mobile.aar mobile/dist/
 
+.PHONY: mobile
 mobile:
 	make protos
 	make ios
@@ -58,7 +59,8 @@ protos:
 	cd mobile; node node_modules/@textile/protobufjs/cli/bin/pbjs -t static-module -w es6 -o dist/index.js ../pb/protos/*
 	cd mobile; node node_modules/@textile/protobufjs/cli/bin/pbts -o dist/index.d.ts dist/index.js
 
-swag:
+.PHONY: docs
+docs:
 	go get github.com/swaggo/swag/cmd/swag
 	swag init -g core/api.go
 

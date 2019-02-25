@@ -14,9 +14,16 @@ import (
 
 var log = logging.Logger("tex-mobile")
 
-// Messenger is used to inform the bridge layer of new data waiting to be queried
+// Messenger is a push mechanism to the bridge
 type Messenger interface {
-	Notify(event *pb.MobileEvent)
+	Notify(event *Event)
+}
+
+// Event is sent by Messenger to the bridge (data is a protobuf,
+// name is the string value of a pb.MobileEvent_Type)
+type Event struct {
+	Name string
+	Data []byte
 }
 
 // Callback is used for asyc methods (data is a protobuf)
@@ -230,8 +237,5 @@ func (m *Mobile) notify(name pb.MobileEvent_Type, msg proto.Message) {
 			return
 		}
 	}
-	m.messenger.Notify(&pb.MobileEvent{
-		Name: name.String(),
-		Data: data,
-	})
+	m.messenger.Notify(&Event{Name: name.String(), Data: data})
 }

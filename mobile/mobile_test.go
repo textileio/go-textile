@@ -15,7 +15,7 @@ import (
 
 type TestMessenger struct{}
 
-func (tm *TestMessenger) Notify(event *pb.MobileEvent) {
+func (tm *TestMessenger) Notify(event *Event) {
 	eventt := pb.MobileEvent_Type(pb.MobileEvent_Type_value[event.Name])
 	fmt.Println(fmt.Sprintf("+++ MOBILE EVENT: %s", eventt.String()))
 

@@ -5780,12 +5780,6 @@ export class MobileFileData implements IMobileFileData {
 
 /** Properties of a MobileEvent. */
 export interface IMobileEvent {
-
-    /** MobileEvent name */
-    name: string;
-
-    /** MobileEvent data */
-    data: Uint8Array;
 }
 
 /** Represents a MobileEvent. */
@@ -5796,12 +5790,6 @@ export class MobileEvent implements IMobileEvent {
      * @param [properties] Properties to set
      */
     constructor(properties?: IMobileEvent);
-
-    /** MobileEvent name. */
-    public name: string;
-
-    /** MobileEvent data. */
-    public data: Uint8Array;
 
     /**
      * Creates a new MobileEvent instance using the specified properties.

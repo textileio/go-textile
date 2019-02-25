@@ -14422,8 +14422,6 @@ export const MobileEvent = $root.MobileEvent = (() => {
      * Properties of a MobileEvent.
      * @exports IMobileEvent
      * @interface IMobileEvent
-     * @property {string} name MobileEvent name
-     * @property {Uint8Array} data MobileEvent data
      */
 
     /**
@@ -14440,22 +14438,6 @@ export const MobileEvent = $root.MobileEvent = (() => {
                 if (properties[keys[i]] != null)
                     this[keys[i]] = properties[keys[i]];
     }
-
-    /**
-     * MobileEvent name.
-     * @member {string} name
-     * @memberof MobileEvent
-     * @instance
-     */
-    MobileEvent.prototype.name = "";
-
-    /**
-     * MobileEvent data.
-     * @member {Uint8Array} data
-     * @memberof MobileEvent
-     * @instance
-     */
-    MobileEvent.prototype.data = $util.newBuffer([]);
 
     /**
      * Creates a new MobileEvent instance using the specified properties.
@@ -14481,10 +14463,6 @@ export const MobileEvent = $root.MobileEvent = (() => {
     MobileEvent.encode = function encode(message, writer) {
         if (!writer)
             writer = $Writer.create();
-        if (message.name != null && message.hasOwnProperty("name"))
-            writer.uint32(/* id 1, wireType 2 =*/10).string(message.name);
-        if (message.data != null && message.hasOwnProperty("data"))
-            writer.uint32(/* id 2, wireType 2 =*/18).bytes(message.data);
         return writer;
     };
 
@@ -14519,12 +14497,6 @@ export const MobileEvent = $root.MobileEvent = (() => {
         while (reader.pos < end) {
             let tag = reader.uint32();
             switch (tag >>> 3) {
-            case 1:
-                message.name = reader.string();
-                break;
-            case 2:
-                message.data = reader.bytes();
-                break;
             default:
                 reader.skipType(tag & 7);
                 break;
@@ -14560,12 +14532,6 @@ export const MobileEvent = $root.MobileEvent = (() => {
     MobileEvent.verify = function verify(message) {
         if (typeof message !== "object" || message === null)
             return "object expected";
-        if (message.name != null && message.hasOwnProperty("name"))
-            if (!$util.isString(message.name))
-                return "name: string expected";
-        if (message.data != null && message.hasOwnProperty("data"))
-            if (!(message.data && typeof message.data.length === "number" || $util.isString(message.data)))
-                return "data: buffer expected";
         return null;
     };
 
@@ -14580,15 +14546,7 @@ export const MobileEvent = $root.MobileEvent = (() => {
     MobileEvent.fromObject = function fromObject(object) {
         if (object instanceof $root.MobileEvent)
             return object;
-        let message = new $root.MobileEvent();
-        if (object.name != null)
-            message.name = String(object.name);
-        if (object.data != null)
-            if (typeof object.data === "string")
-                $util.base64.decode(object.data, message.data = $util.newBuffer($util.base64.length(object.data)), 0);
-            else if (object.data.length)
-                message.data = object.data;
-        return message;
+        return new $root.MobileEvent();
     };
 
     /**
@@ -14600,25 +14558,8 @@ export const MobileEvent = $root.MobileEvent = (() => {
      * @param {$protobuf.IConversionOptions} [options] Conversion options
      * @returns {Object.<string,*>} Plain object
      */
-    MobileEvent.toObject = function toObject(message, options) {
-        if (!options)
-            options = {};
-        let object = {};
-        if (options.defaults) {
-            object.name = "";
-            if (options.bytes === String)
-                object.data = "";
-            else {
-                object.data = [];
-                if (options.bytes !== Array)
-                    object.data = $util.newBuffer(object.data);
-            }
-        }
-        if (message.name != null && message.hasOwnProperty("name"))
-            object.name = message.name;
-        if (message.data != null && message.hasOwnProperty("data"))
-            object.data = options.bytes === String ? $util.base64.encode(message.data, 0, message.data.length) : options.bytes === Array ? Array.prototype.slice.call(message.data) : message.data;
-        return object;
+    MobileEvent.toObject = function toObject() {
+        return {};
     };
 
     /**

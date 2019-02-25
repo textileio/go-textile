@@ -20,9 +20,6 @@ message MobileFileData {
 }
 
 message MobileEvent {
-    string name = 1;
-    bytes data  = 2;
-
     enum Type {
         NODE_START  = 0;
         NODE_ONLINE = 1;
