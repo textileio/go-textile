@@ -3,20 +3,6 @@ definitions:
   core.SubsystemInfo:
     additionalProperties: {}
     type: object
-  core.ThreadUpdate:
-    properties:
-      block:
-        $ref: '#/definitions/pb.Block'
-        type: object
-      info:
-        type: object
-      thread_id:
-        type: string
-      thread_key:
-        type: string
-      thread_name:
-        type: string
-    type: object
   ipfs.ConnInfos:
     properties:
       peers:
@@ -1955,7 +1941,7 @@ paths:
         "200":
           description: stream of updates
           schema:
-            $ref: '#/definitions/core.ThreadUpdate'
+            $ref: '#/definitions/pb.FeedItem'
             type: object
         "500":
           description: Internal Server Error

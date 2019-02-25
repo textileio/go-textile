@@ -2084,7 +2084,7 @@
                         "description": "stream of updates",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/core.ThreadUpdate"
+                            "$ref": "#/definitions/pb.FeedItem"
                         }
                     },
                     "500": {
@@ -2579,27 +2579,6 @@
         "core.SubsystemInfo": {
             "type": "object",
             "additionalProperties": {}
-        },
-        "core.ThreadUpdate": {
-            "type": "object",
-            "properties": {
-                "block": {
-                    "type": "object",
-                    "$ref": "#/definitions/pb.Block"
-                },
-                "info": {
-                    "type": "object"
-                },
-                "thread_id": {
-                    "type": "string"
-                },
-                "thread_key": {
-                    "type": "string"
-                },
-                "thread_name": {
-                    "type": "string"
-                }
-            }
         },
         "ipfs.ConnInfos": {
             "type": "object",
