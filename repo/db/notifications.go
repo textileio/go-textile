@@ -130,7 +130,7 @@ func (c *NotificationDB) handleQuery(stm string) *pb.NotificationList {
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
-		return nil
+		return list
 	}
 	for rows.Next() {
 		var id, actorId, subject, subjectId, blockId, target, body string

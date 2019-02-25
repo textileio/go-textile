@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
 	. "github.com/textileio/textile-go/mobile"
 	"github.com/textileio/textile-go/pb"
@@ -14,7 +15,51 @@ import (
 
 type TestMessenger struct{}
 
-func (tm *TestMessenger) Notify(event *pb.MobileEvent) {}
+func (tm *TestMessenger) Notify(event *pb.MobileEvent) {
+	eventt := pb.MobileEvent_Type(pb.MobileEvent_Type_value[event.Name])
+	fmt.Println(fmt.Sprintf("+++ MOBILE EVENT: %s", eventt.String()))
+
+	switch eventt {
+	case pb.MobileEvent_NODE_START:
+	case pb.MobileEvent_NODE_ONLINE:
+	case pb.MobileEvent_NODE_STOP:
+	case pb.MobileEvent_WALLET_UPDATE:
+	case pb.MobileEvent_THREAD_UPDATE:
+	case pb.MobileEvent_NOTIFICATION:
+	case pb.MobileEvent_QUERY_RESPONSE:
+		res := new(pb.MobileQueryEvent)
+		if err := proto.Unmarshal(event.Data, res); err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+		fmt.Println(fmt.Sprintf("+++ MOBILE QUERY EVENT: %s", res.Type.String()))
+
+		switch res.Type {
+		case pb.MobileQueryEvent_DATA:
+			switch res.Data.Value.TypeUrl {
+			case "/CafeClientThread":
+				val := new(pb.CafeClientThread)
+				if err := ptypes.UnmarshalAny(res.Data.Value, val); err != nil {
+					fmt.Println(err.Error())
+					return
+				}
+				fmt.Println(fmt.Sprintf("+++ FOUND CLIENT THREAD (qid=%s): %s", res.Id, val.Id))
+
+			case "/Contact":
+				val := new(pb.Contact)
+				if err := ptypes.UnmarshalAny(res.Data.Value, val); err != nil {
+					fmt.Println(err.Error())
+					return
+				}
+				fmt.Println(fmt.Sprintf("+++ FOUND CONTACT (qid=%s): %s", res.Id, val.Id))
+			}
+		case pb.MobileQueryEvent_DONE:
+			fmt.Println(fmt.Sprintf("+++ DONE (qid=%s)", res.Id))
+		case pb.MobileQueryEvent_ERROR:
+			fmt.Println(fmt.Sprintf("+++ ERROR (%d) (qid=%s): %s", res.Error.Code, res.Id, res.Error.Message))
+		}
+	}
+}
 
 type TestCallback struct{}
 
@@ -753,6 +798,31 @@ func TestMobile_ReadAllNotifications(t *testing.T) {
 	if mobile1.CountUnreadNotifications() != 0 {
 		t.Error("read all notifications bad result")
 	}
+}
+
+func TestMobile_SearchContacts(t *testing.T) {
+	query, err := proto.Marshal(&pb.ContactQuery{Address: mobile2.Address()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	opts, err := proto.Marshal(&pb.QueryOptions{
+		Wait:  10,
+		Limit: 10,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	handle, err := mobile1.SearchContacts(query, opts)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	fmt.Println(fmt.Sprintf("query ID: %s", handle.Id))
+
+	timer := time.NewTimer(3 * time.Second)
+	<-timer.C
+
+	handle.Cancel()
 }
 
 func TestMobile_Stop(t *testing.T) {

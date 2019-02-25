@@ -81,7 +81,7 @@ func (c *InviteDB) handleQuery(stm string) *pb.InviteList {
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
-		return nil
+		return list
 	}
 	for rows.Next() {
 		var id, name string

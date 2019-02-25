@@ -190,10 +190,10 @@ func (m *Mobile) Start() error {
 			}
 		}()
 
-		// ready
 		m.notify(pb.MobileEvent_NODE_ONLINE, nil)
 	}()
 
+	m.notify(pb.MobileEvent_NODE_START, nil)
 	return nil
 }
 
@@ -202,6 +202,7 @@ func (m *Mobile) Stop() error {
 	if err := m.node.Stop(); err != nil && err != core.ErrStopped {
 		return err
 	}
+	m.notify(pb.MobileEvent_NODE_STOP, nil)
 	return nil
 }
 

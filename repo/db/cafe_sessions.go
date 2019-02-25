@@ -83,7 +83,7 @@ func (c *CafeSessionDB) handleQuery(stm string) *pb.CafeSessionList {
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
-		return nil
+		return list
 	}
 	for rows.Next() {
 		var cafeId, access, refresh string

@@ -107,7 +107,7 @@ func (c *ThreadDB) handleQuery(stm string) *pb.ThreadList {
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
-		return nil
+		return list
 	}
 	for rows.Next() {
 		var id, key, name, schema, initiator, head, members string

@@ -112,7 +112,7 @@ func (c *BlockDB) handleQuery(stm string) *pb.BlockList {
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
-		return nil
+		return list
 	}
 	for rows.Next() {
 		var id, threadId, authorId, parents, target, body string
