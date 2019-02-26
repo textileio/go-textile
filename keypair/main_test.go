@@ -11,7 +11,7 @@ import (
 
 func TestBuild(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Package: github.com/textileio/textile-go/keypair")
+	RunSpecs(t, "Package: github.com/textileio/go-textile/keypair")
 }
 
 var (

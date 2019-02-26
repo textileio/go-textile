@@ -6,10 +6,10 @@ import (
 	"sort"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/textileio/textile-go/util"
+	"github.com/textileio/go-textile/util"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/pb"
 )
 
 // merge adds a merge block, which are kept local until subsequent updates, avoiding possibly endless echoes

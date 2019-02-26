@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/textileio/textile-go/broadcast"
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/broadcast"
+	"github.com/textileio/go-textile/pb"
 )
 
 func handleSearchStream(g *gin.Context, resultCh <-chan *pb.QueryResult, errCh <-chan error, cancel *broadcast.Broadcaster, events bool) {

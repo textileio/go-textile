@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	m "github.com/textileio/textile-go/mill"
-	"github.com/textileio/textile-go/pb"
+	m "github.com/textileio/go-textile/mill"
+	"github.com/textileio/go-textile/pb"
 )
 
 // schemaMill godoc

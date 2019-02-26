@@ -7,7 +7,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/pb"
 )
 
 var errMissingMessageBody = errors.New("missing message body")

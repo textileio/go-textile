@@ -5,11 +5,11 @@ import (
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/textileio/textile-go/broadcast"
-	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/wallet"
+	"github.com/textileio/go-textile/broadcast"
+	"github.com/textileio/go-textile/core"
+	"github.com/textileio/go-textile/keypair"
+	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/wallet"
 )
 
 var log = logging.Logger("tex-mobile")

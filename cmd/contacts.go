@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/ptypes"
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/pb"
 )
 
 var errMissingAddInfo = errors.New("missing peer id or account address")

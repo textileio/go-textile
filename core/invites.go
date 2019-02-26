@@ -10,10 +10,10 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/textileio/textile-go/crypto"
-	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/util"
+	"github.com/textileio/go-textile/crypto"
+	"github.com/textileio/go-textile/ipfs"
+	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/util"
 )
 
 // ErrThreadInviteNotFound indicates thread invite is not found

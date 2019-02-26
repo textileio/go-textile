@@ -9,8 +9,8 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
-	. "github.com/textileio/textile-go/mobile"
-	"github.com/textileio/textile-go/pb"
+	. "github.com/textileio/go-textile/mobile"
+	"github.com/textileio/go-textile/pb"
 )
 
 type TestMessenger struct{}

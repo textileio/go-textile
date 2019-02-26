@@ -5,10 +5,10 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/ptypes"
-	"github.com/textileio/textile-go/core"
+	"github.com/textileio/go-textile/core"
 
 	"github.com/chzyer/readline"
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/pb"
 )
 
 func init() {

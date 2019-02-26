@@ -11,7 +11,7 @@ import (
 
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/gin-gonic/gin"
-	"github.com/textileio/textile-go/repo/config"
+	"github.com/textileio/go-textile/repo/config"
 )
 
 func getKeyValue(path string, object interface{}) (interface{}, error) {

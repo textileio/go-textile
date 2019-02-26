@@ -14,8 +14,8 @@ import (
 	native "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
 
 	_ "github.com/mutecomm/go-sqlcipher"
-	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/strkey"
+	"github.com/textileio/go-textile/keypair"
+	"github.com/textileio/go-textile/strkey"
 )
 
 type contact struct {

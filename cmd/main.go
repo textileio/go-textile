@@ -18,8 +18,8 @@ import (
 	"github.com/fatih/color"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
-	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/util"
+	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/util"
 )
 
 type ClientOptions struct {

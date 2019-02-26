@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/textileio/textile-go/util"
+	"github.com/textileio/go-textile/util"
 )
 
 var errMissingReplacement = errors.New("missing replacement value")

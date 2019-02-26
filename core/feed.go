@@ -8,7 +8,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/pb"
 )
 
 var flatFeedTypes = []pb.Block_BlockType{

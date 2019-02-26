@@ -6,7 +6,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/textileio/textile-go/util"
+	"github.com/textileio/go-textile/util"
 )
 
 var errMissingMultiAddress = errors.New("missing peer multi address")

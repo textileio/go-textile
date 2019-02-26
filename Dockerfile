@@ -1,23 +1,23 @@
 FROM golang:1.11-stretch
 MAINTAINER Sander Pick <sander@textile.io>
 
-# replace shell with bash so we can source files
-RUN rm /bin/sh && ln -s /bin/bash /bin/sh
+# This is (in large part) copied (with love) from
+# https://hub.docker.com/r/ipfs/go-ipfs/dockerfile
 
 # install dependencies
 RUN apt-get update \
-    && apt-get install -y curl \
-    && apt-get -y autoclean
+  && apt-get install -y curl \
+  && apt-get -y autoclean
 
-# install dep
+# Install dep
 RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
-# install gx
+# Install gx
 RUN go get -u github.com/whyrusleeping/gx \
-    && go get -u github.com/whyrusleeping/gx-go
+  && go get -u github.com/whyrusleeping/gx-go
 
-# get source
-ENV SRC_DIR /go/src/github.com/textileio/textile-go
+# Get source
+ENV SRC_DIR /go/src/github.com/textileio/go-textile
 COPY . $SRC_DIR
 
 # build source
@@ -46,10 +46,10 @@ RUN apt-get update && apt-get install -y ca-certificates
 FROM busybox:1-glibc
 MAINTAINER Sander Pick <sander@textile.io>
 
-# Get the textile binary, entrypoint script, and TLS CAs from the build container.
-ENV SRC_DIR /go/src/github.com/textileio/textile-go
-COPY --from=0 $SRC_DIR/textile /usr/local/bin/textile
-#COPY --from=0 $SRC_DIR/bin/container_daemon /usr/local/bin/start_ipfs
+# Get the ipfs binary, entrypoint script, and TLS CAs from the build container.
+ENV SRC_DIR /go/src/github.com/textileio/go-textile
+COPY --from=0 $SRC_DIR/dist/textile /usr/local/bin/textile
+COPY --from=0 $SRC_DIR/bin/container_daemon /usr/local/bin/start_textile
 COPY --from=0 /tmp/su-exec/su-exec /sbin/su-exec
 COPY --from=0 /tmp/tini /sbin/tini
 COPY --from=0 /etc/ssl/certs /etc/ssl/certs
@@ -59,31 +59,36 @@ COPY --from=0 /lib/x86_64-linux-gnu/libdl-2.24.so /lib/libdl.so.2
 
 # Swarm TCP; should be exposed to the public
 EXPOSE 4001
-# Daemon API; must not be exposed publicly but to client services under you control
-EXPOSE 40600
-# Web Gateway; can be exposed publicly with a proxy, e.g. as https://ipfs.example.org
-EXPOSE 5050
 # Swarm Websockets; must be exposed publicly when the node is listening using the websocket transport (/ipX/.../tcp/8081/ws).
 EXPOSE 8081
+# Daemon API; must not be exposed publicly but to client services under you control
+EXPOSE 40600
+# Cafe API; should be exposed to the public
+EXPOSE 40601
+# Web Gateway;
+EXPOSE 5050
 
-# Create the fs-repo directory and switch to a non-privileged user.
+# Create the fs-repo directory
 ENV TEXTILE_PATH /data/textile
 RUN mkdir -p $TEXTILE_PATH \
   && adduser -D -h $TEXTILE_PATH -u 1000 -G users textile \
   && chown textile:users $TEXTILE_PATH
 
+# Switch to a non-privileged user
+USER textile
+
 # Expose the fs-repo as a volume.
-# start_ipfs initializes an fs-repo if none is mounted.
+# start_textile initializes an fs-repo if none is mounted.
 # Important this happens after the USER directive so permission are correct.
 VOLUME $TEXTILE_PATH
 
-# The default logging level
-#ENV IPFS_LOGGING ""
+# The default init opts
+ENV INIT_ARGS --repo-dir=$TEXTILE_PATH --swarm-ports=4001,8081 --api-bind-addr=0.0.0.0:40600 --cafe-bind-addr=0.0.0.0:40601 --gateway-bind-addr=0.0.0.0:5050 --no-log-files --debug
 
 # This just makes sure that:
 # 1. There's an fs-repo, and initializes one if there isn't.
 # 2. The API and Gateway are accessible from outside the container.
-#ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/start_ipfs"]
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/start_textile"]
 
 # Execute the daemon subcommand by default
-CMD ["daemon"]
+CMD ["daemon", "--repo-dir=/data/textile", "--debug"]

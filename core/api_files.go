@@ -4,13 +4,13 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/pb"
 
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 
 	"github.com/gin-gonic/gin"
-	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/schema"
+	"github.com/textileio/go-textile/ipfs"
+	"github.com/textileio/go-textile/schema"
 )
 
 // addThreadFiles godoc

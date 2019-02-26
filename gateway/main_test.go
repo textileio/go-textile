@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/textileio/textile-go/core"
-	. "github.com/textileio/textile-go/gateway"
+	"github.com/textileio/go-textile/core"
+	. "github.com/textileio/go-textile/gateway"
 )
 
 func TestNewGateway(t *testing.T) {

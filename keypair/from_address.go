@@ -5,8 +5,8 @@ import (
 	pb "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto/pb"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
-	"github.com/textileio/textile-go/crypto"
-	"github.com/textileio/textile-go/strkey"
+	"github.com/textileio/go-textile/crypto"
+	"github.com/textileio/go-textile/strkey"
 	"golang.org/x/crypto/ed25519"
 )
 

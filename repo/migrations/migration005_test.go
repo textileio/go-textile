@@ -13,7 +13,7 @@ import (
 
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 
-	"github.com/textileio/textile-go/crypto"
+	"github.com/textileio/go-textile/crypto"
 )
 
 func initAt004(db *sql.DB, pin string) error {

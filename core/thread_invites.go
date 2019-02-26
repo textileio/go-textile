@@ -4,8 +4,8 @@ import (
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
-	"github.com/textileio/textile-go/crypto"
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/crypto"
+	"github.com/textileio/go-textile/pb"
 )
 
 // AddInvite creates an outgoing invite block, which is sent directly to the recipient

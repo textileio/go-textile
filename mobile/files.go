@@ -14,11 +14,11 @@ import (
 	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core/coreapi/interface"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/mill"
-	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/schema"
+	"github.com/textileio/go-textile/core"
+	"github.com/textileio/go-textile/ipfs"
+	"github.com/textileio/go-textile/mill"
+	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/schema"
 )
 
 // AddSchema adds a new schema via schema mill

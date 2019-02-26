@@ -7,10 +7,10 @@ import (
 	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/textileio/textile-go/crypto"
-	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/go-textile/crypto"
+	"github.com/textileio/go-textile/ipfs"
+	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/repo"
 )
 
 // cafeInFlushGroupSize is the size of concurrently processed messages

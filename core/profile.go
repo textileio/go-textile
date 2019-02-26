@@ -6,9 +6,9 @@ import (
 
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 
-	"github.com/textileio/textile-go/mill"
-	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/schema/textile"
+	"github.com/textileio/go-textile/mill"
+	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/schema/textile"
 )
 
 // Profile returns this node's own contact info

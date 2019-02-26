@@ -3,7 +3,7 @@ package cmd
 import (
 	"errors"
 
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/pb"
 )
 
 var errMissingUsername = errors.New("missing username")

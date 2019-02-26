@@ -6,7 +6,7 @@ import (
 
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 
-	. "github.com/textileio/textile-go/crypto"
+	. "github.com/textileio/go-textile/crypto"
 )
 
 func TestEncryptCurve25519(t *testing.T) {

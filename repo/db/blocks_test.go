@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
-	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/util"
+	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/repo"
+	"github.com/textileio/go-textile/util"
 )
 
 var blockStore repo.BlockStore

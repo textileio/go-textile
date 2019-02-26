@@ -3,7 +3,7 @@ package crypto_test
 import (
 	"testing"
 
-	. "github.com/textileio/textile-go/crypto"
+	. "github.com/textileio/go-textile/crypto"
 )
 
 var symmetricTestData = struct {
