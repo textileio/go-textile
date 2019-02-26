@@ -5,7 +5,6 @@ setup:
 	go get github.com/ahmetb/govvv
 	dep ensure
 	gx install
-	cd mobile; rm -rf node_modules && npm i @textile/protobufjs --no-save
 
 test:
 	./test.sh
@@ -19,6 +18,7 @@ lint:
 build:
 	$(eval FLAGS := $$(shell govvv -flags -pkg github.com/textileio/textile-go/common))
 	go build -ldflags "-w $(FLAGS)" -i -o textile textile.go
+	mkdir -p dist
 	mv textile dist/
 
 install:
@@ -54,6 +54,12 @@ protos:
 	cd mobile; ./node_modules/.bin/pbjs -t static-module -w es6 -o dist/index.js ../pb/protos/*
 	cd mobile; ./node_modules/.bin/pbts -o dist/index.d.ts dist/index.js
 
+protos_js:
+	mkdir -p mobile/dist
+	cd mobile; rm -rf node_modules && npm i @textile/protobufjs --no-save
+	cd mobile; ./node_modules/.bin/pbjs -t static-module -w es6 -o dist/index.js ../pb/protos/*
+	cd mobile; ./node_modules/.bin/pbts -o dist/index.d.ts dist/index.js
+
 .PHONY: docs
 docs:
 	go get github.com/swaggo/swag/cmd/swag
@@ -64,7 +70,7 @@ docs:
 # $ brew install grep
 .PHONY: publish
 publish:
-	make protos
+	make protos_js
 	$(eval VERSION := $$(shell ggrep -oP 'const Version = "\K[^"]+' common/version.go))
 	cd mobile; jq '.version = "$(VERSION)"' package.json > package.json.tmp && mv package.json.tmp package.json
 	cd mobile; npm publish
