@@ -227,6 +227,43 @@ func TestTextile_AddThread(t *testing.T) {
 	if thrd == nil {
 		t.Error("add thread didn't return thread")
 	}
+
+	// add again w/ same key
+	sk2, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Error(err)
+	}
+	if _, err := node.AddThread(pb.AddThreadConfig{
+		Key:     config.Key,
+		Name:    "test2",
+		Type:    pb.Thread_Public,
+		Sharing: pb.Thread_NotShared,
+		Members: []string{},
+	}, sk2, node.Account().Address(), true); err == nil {
+		t.Error("add thread with same key should fail")
+		return
+	}
+
+	// add again w/ same key but force true
+	sk3, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Error(err)
+	}
+	forced, err := node.AddThread(pb.AddThreadConfig{
+		Key:     config.Key,
+		Force:   true,
+		Name:    "test3",
+		Type:    pb.Thread_Public,
+		Sharing: pb.Thread_NotShared,
+		Members: []string{},
+	}, sk3, node.Account().Address(), true)
+	if err != nil {
+		t.Errorf("add thread with same key and force should not fail: %s", err)
+		return
+	}
+	if forced.Key != config.Key+"_1" {
+		t.Errorf("add thread with same key and force resulted in bad key")
+	}
 }
 
 func TestTextile_AddFile(t *testing.T) {

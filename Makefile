@@ -5,6 +5,7 @@ setup:
 	go get github.com/ahmetb/govvv
 	dep ensure
 	gx install
+	cd mobile; rm -rf node_modules && npm i @textile/protobufjs --no-save
 
 test:
 	./test.sh
@@ -50,7 +51,6 @@ protos:
 	$(eval PKGMAP := $$(P_TIMESTAMP),$$(P_ANY))
 	cd pb/protos; protoc --go_out=$(PKGMAP):.. *.proto
 	mkdir -p mobile/dist
-	cd mobile; rm -rf node_modules && npm i @textile/protobufjs --no-save
 	cd mobile; ./node_modules/.bin/pbjs -t static-module -w es6 -o dist/index.js ../pb/protos/*
 	cd mobile; ./node_modules/.bin/pbts -o dist/index.d.ts dist/index.js
 

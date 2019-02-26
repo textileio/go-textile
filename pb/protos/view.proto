@@ -14,6 +14,7 @@ message AddThreadConfig {
     Thread.Type type           = 4;
     Thread.Sharing sharing     = 5;
     repeated string members    = 6;
+    bool force                 = 7; // force key by auto-incrementing
 
     message Schema {
         string id     = 1;

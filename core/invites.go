@@ -145,7 +145,7 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 	}
 
 	config := pb.AddThreadConfig{
-		Key:  msg.Thread.Key, // TODO: auto bump with _1,2,3 etc. if not unique
+		Key:  msg.Thread.Key,
 		Name: msg.Thread.Name,
 		Schema: &pb.AddThreadConfig_Schema{
 			Id: msg.Thread.Schema,
@@ -153,6 +153,7 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 		Type:    msg.Thread.Type,
 		Sharing: msg.Thread.Sharing,
 		Members: msg.Thread.Members,
+		Force:   true,
 	}
 	thrd, err := t.AddThread(config, sk, msg.Thread.Initiator, false)
 	if err != nil {

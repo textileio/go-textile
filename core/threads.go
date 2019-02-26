@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
@@ -12,6 +13,7 @@ import (
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema/textile"
 )
 
@@ -21,11 +23,19 @@ var ErrThreadNotFound = errors.New("thread not found")
 // ErrThreadLoaded indicates the thread is already loaded from the datastore
 var ErrThreadLoaded = errors.New("thread is loaded")
 
+// emptyThreadKey indicates "" was used for a thread key
+var emptyThreadKey = errors.New("thread key cannot by empty")
+
 // internalThreadKeys lists keys used by internal threads
 var internalThreadKeys = []string{"avatars"}
 
 // AddThread adds a thread with a given name and secret key
 func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiator string, join bool) (*Thread, error) {
+	conf.Key = strings.TrimSpace(conf.Key)
+	if conf.Key == "" {
+		return nil, emptyThreadKey
+	}
+
 	id, err := peer.IDFromPrivateKey(sk)
 	if err != nil {
 		return nil, err
@@ -92,7 +102,7 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 		set[m] = struct{}{}
 	}
 
-	threadModel := &pb.Thread{
+	model := &pb.Thread{
 		Id:        id.Pretty(),
 		Key:       conf.Key,
 		Sk:        skb,
@@ -104,11 +114,15 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 		Members:   members,
 		State:     pb.Thread_Loaded,
 	}
-	if err := t.datastore.Threads().Add(threadModel); err != nil {
+	if err := t.datastore.Threads().Add(model); err != nil {
+		if conf.Force && repo.ConflictError(err) && strings.Contains(err.Error(), ".key") {
+			conf.Key = incrementKey(conf.Key)
+			return t.AddThread(conf, sk, initiator, join)
+		}
 		return nil, err
 	}
 
-	thrd, err := t.loadThread(threadModel)
+	thrd, err := t.loadThread(model)
 	if err != nil {
 		return nil, err
 	}
@@ -315,4 +329,19 @@ func (t *Textile) addAccountThread() error {
 		return err
 	}
 	return nil
+}
+
+// incrementKey add "_xxx" to the end of a key
+func incrementKey(key string) string {
+	if _, err := strconv.Atoi(key); err == nil {
+		return key + "_1"
+	}
+	a := strings.Split(key, "_")
+	var x string
+	x, a = a[len(a)-1], a[:len(a)-1]
+	i, err := strconv.Atoi(x)
+	if err != nil {
+		return key + "_1"
+	}
+	return strings.Join(append(a, strconv.Itoa(i+1)), "_")
 }
