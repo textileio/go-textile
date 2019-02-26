@@ -45,13 +45,13 @@ func (a *api) addThreadMessages(g *gin.Context) {
 		return
 	}
 
-	info, err := a.node.Message(hash.B58String())
+	msg, err := a.node.Message(hash.B58String())
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	pbJSON(g, http.StatusCreated, info)
+	pbJSON(g, http.StatusCreated, msg)
 }
 
 // lsThreadMessages godoc

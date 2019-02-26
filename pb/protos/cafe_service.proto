@@ -1,7 +1,6 @@
 syntax = "proto3";
 option go_package = "pb";
 
-import "google/protobuf/timestamp.proto";
 import "model.proto";
 
 message CafeChallenge {
@@ -20,21 +19,6 @@ message CafeRegistration {
     string token   = 5;
 }
 
-message CafeSession {
-    string id                      = 1;
-    string access                  = 2;
-    google.protobuf.Timestamp exp  = 3;
-    string refresh                 = 4;
-    google.protobuf.Timestamp rexp = 5;
-    string subject                 = 6;
-    string type                    = 7;
-    Cafe cafe                      = 8;
-}
-
-message CafeSessions {
-    repeated CafeSession values = 1;
-}
-
 message CafeRefreshSession {
     string access  = 1;
     string refresh = 2;
@@ -47,21 +31,6 @@ message CafePublishContact {
 
 message CafePublishContactAck {
     string id = 1;
-}
-
-message CafeContactQuery {
-    option deprecated   = true;
-    string token        = 1;
-    string findId       = 2;
-    string findAddress  = 3;
-    string findUsername = 4;
-    int32 limit         = 5;
-    int32 wait          = 6;
-}
-
-message CafeContactQueryResult {
-    option deprecated         = true;
-    repeated Contact contacts = 1;
 }
 
 message CafeStore {
@@ -86,29 +55,17 @@ message CafeStoreThread {
     bytes ciphertext = 3; // encrypted Thread
 }
 
-message CafeClientThread {
-    string id        = 1;
-    string clientId  = 2;
-    bytes ciphertext = 3; // encrypted Thread
-}
-
 message CafeStored {
     string id = 1;
 }
 
 message CafeDeliverMessage {
     string id       = 1;
-    string clientId = 2;
+    string client = 2;
 }
 
 message CafeCheckMessages {
     string token = 1;
-}
-
-message CafeMessage {
-    string id                      = 1;
-    string peerId                  = 2;
-    google.protobuf.Timestamp date = 3;
 }
 
 message CafeMessages {

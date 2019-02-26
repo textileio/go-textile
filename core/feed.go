@@ -2,25 +2,35 @@ package core
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
-var flatFeedTypes = []repo.BlockType{
-	repo.JoinBlock, repo.LeaveBlock, repo.FilesBlock, repo.MessageBlock, repo.CommentBlock, repo.LikeBlock,
+var flatFeedTypes = []pb.Block_BlockType{
+	pb.Block_JOIN,
+	pb.Block_LEAVE,
+	pb.Block_FILES,
+	pb.Block_TEXT,
+	pb.Block_COMMENT,
+	pb.Block_LIKE,
 }
 
-var annotatedFeedTypes = []repo.BlockType{
-	repo.JoinBlock, repo.LeaveBlock, repo.FilesBlock, repo.MessageBlock,
+var annotatedFeedTypes = []pb.Block_BlockType{
+	pb.Block_JOIN,
+	pb.Block_LEAVE,
+	pb.Block_FILES,
+	pb.Block_TEXT,
 }
 
 type feedStack struct {
 	id       string
-	top      repo.Block
-	children []repo.Block
+	top      *pb.Block
+	children []*pb.Block
 }
 
 type feedItemOpts struct {
@@ -30,12 +40,12 @@ type feedItemOpts struct {
 	target      *pb.FeedItem
 }
 
-func (t *Textile) Feed(offset string, limit int, threadId string, mode pb.FeedMode) (*pb.FeedItemList, error) {
-	var types []repo.BlockType
-	switch mode {
-	case pb.FeedMode_CHRONO, pb.FeedMode_STACKS:
+func (t *Textile) Feed(req *pb.FeedRequest) (*pb.FeedItemList, error) {
+	var types []pb.Block_BlockType
+	switch req.Mode {
+	case pb.FeedRequest_CHRONO, pb.FeedRequest_STACKS:
 		types = flatFeedTypes
-	case pb.FeedMode_ANNOTATED:
+	case pb.FeedRequest_ANNOTATED:
 		types = annotatedFeedTypes
 	}
 
@@ -47,22 +57,22 @@ func (t *Textile) Feed(offset string, limit int, threadId string, mode pb.FeedMo
 		}
 	}
 	query = "(" + query + ")"
-	if threadId != "" {
-		if t.Thread(threadId) == nil {
+	if req.Thread != "" {
+		if t.Thread(req.Thread) == nil {
 			return nil, ErrThreadNotFound
 		}
-		query = fmt.Sprintf("(threadId='%s') and %s", threadId, query)
+		query = fmt.Sprintf("(threadId='%s') and %s", req.Thread, query)
 	}
 
-	blocks := t.Blocks(offset, limit, query)
+	blocks := t.Blocks(req.Offset, int(req.Limit), query)
 	list := make([]*pb.FeedItem, 0)
 	var count int
 
-	switch mode {
-	case pb.FeedMode_CHRONO, pb.FeedMode_ANNOTATED:
-		for _, block := range blocks {
-			item, err := t.feedItem(&block, feedItemOpts{
-				annotations: mode == pb.FeedMode_ANNOTATED,
+	switch req.Mode {
+	case pb.FeedRequest_CHRONO, pb.FeedRequest_ANNOTATED:
+		for _, block := range blocks.Items {
+			item, err := t.feedItem(block, feedItemOpts{
+				annotations: req.Mode == pb.FeedRequest_ANNOTATED,
 			})
 			if err != nil {
 				return nil, err
@@ -71,10 +81,10 @@ func (t *Textile) Feed(offset string, limit int, threadId string, mode pb.FeedMo
 			count++
 		}
 
-	case pb.FeedMode_STACKS:
+	case pb.FeedRequest_STACKS:
 		stacks := make([]feedStack, 0)
 		var last *feedStack
-		for _, block := range blocks {
+		for _, block := range blocks.Items {
 			if len(stacks) > 0 {
 				last = &stacks[len(stacks)-1]
 			}
@@ -103,11 +113,11 @@ func (t *Textile) Feed(offset string, limit int, threadId string, mode pb.FeedMo
 	}
 
 	var nextOffset string
-	if len(blocks) > 0 {
-		nextOffset = blocks[len(blocks)-1].Id
+	if len(blocks.Items) > 0 {
+		nextOffset = blocks.Items[len(blocks.Items)-1].Id
 
 		// see if there's actually more
-		if len(t.datastore.Blocks().List(nextOffset, 1, query)) == 0 {
+		if len(t.datastore.Blocks().List(nextOffset, 1, query).Items) == 0 {
 			nextOffset = ""
 		}
 	}
@@ -119,33 +129,41 @@ func (t *Textile) Feed(offset string, limit int, threadId string, mode pb.FeedMo
 	}, nil
 }
 
-func (t *Textile) feedItem(block *repo.Block, opts feedItemOpts) (*pb.FeedItem, error) {
+func (t *Textile) feedItem(block *pb.Block, opts feedItemOpts) (*pb.FeedItem, error) {
+	if block == nil {
+		return nil, nil
+	}
+
 	item := &pb.FeedItem{
-		Block:   block.Id,
-		Thread:  block.ThreadId,
-		Payload: &any.Any{},
+		Block:  block.Id,
+		Thread: block.Thread,
+		Payload: &any.Any{
+			TypeUrl: "/" + strings.Title(strings.ToLower(block.Type.String())),
+		},
 	}
 
 	var payload proto.Message
 	var err error
 	switch block.Type {
-	case repo.JoinBlock:
-		item.Payload.TypeUrl = "/Join"
+	case pb.Block_MERGE:
+		payload, err = t.merge(block, opts)
+	case pb.Block_IGNORE:
+		payload, err = t.ignore(block, opts)
+	case pb.Block_FLAG:
+		payload, err = t.flag(block, opts)
+	case pb.Block_JOIN:
 		payload, err = t.join(block, opts)
-	case repo.LeaveBlock:
-		item.Payload.TypeUrl = "/Leave"
+	case pb.Block_ANNOUNCE:
+		payload, err = t.announce(block, opts)
+	case pb.Block_LEAVE:
 		payload, err = t.leave(block, opts)
-	case repo.FilesBlock:
-		item.Payload.TypeUrl = "/Files"
-		payload, err = t.file(block, opts)
-	case repo.MessageBlock:
-		item.Payload.TypeUrl = "/Text"
+	case pb.Block_TEXT:
 		payload, err = t.message(block, opts)
-	case repo.CommentBlock:
-		item.Payload.TypeUrl = "/Comment"
+	case pb.Block_FILES:
+		payload, err = t.file(block, opts)
+	case pb.Block_COMMENT:
 		payload, err = t.comment(block, opts)
-	case repo.LikeBlock:
-		item.Payload.TypeUrl = "/Like"
+	case pb.Block_LIKE:
 		payload, err = t.like(block, opts)
 	default:
 		return nil, nil
@@ -170,16 +188,16 @@ func (t *Textile) feedStackItem(stack feedStack) (*pb.FeedItem, error) {
 	// Does the stack contain the initial target,
 	// or is it a continuation stack of just annotations?
 	// We'll need to load the target in the latter case.
-	var target *repo.Block
-	handleChild := func(child *repo.Block) error {
+	var target *pb.Block
+	handleChild := func(child *pb.Block) error {
 		switch child.Type {
-		case repo.CommentBlock:
+		case pb.Block_COMMENT:
 			comment, err := t.comment(child, feedItemOpts{annotations: true})
 			if err != nil {
 				return err
 			}
 			comments = append(comments, comment)
-		case repo.LikeBlock:
+		case pb.Block_LIKE:
 			like, err := t.like(child, feedItemOpts{annotations: true})
 			if err != nil {
 				return err
@@ -191,7 +209,7 @@ func (t *Textile) feedStackItem(stack feedStack) (*pb.FeedItem, error) {
 		return nil
 	}
 	for _, child := range stack.children {
-		if err := handleChild(&child); err != nil {
+		if err := handleChild(child); err != nil {
 			return nil, err
 		}
 	}
@@ -199,12 +217,12 @@ func (t *Textile) feedStackItem(stack feedStack) (*pb.FeedItem, error) {
 	var initial bool
 	if target != nil { // target was in children, newer annotations may exist, make target top
 		initial = true
-		if err := handleChild(&stack.top); err != nil {
+		if err := handleChild(stack.top); err != nil {
 			return nil, err
 		}
 	} else if !isAnnotation(stack.top) { // target is top, newer annotations may exist
 		initial = true
-		target = &stack.top
+		target = stack.top
 	} else { // target needs to be loaded, older annotations may exist
 		if t.blockIgnored(stack.id) {
 			return nil, nil
@@ -225,7 +243,7 @@ func (t *Textile) feedStackItem(stack feedStack) (*pb.FeedItem, error) {
 
 	if !initial {
 		// target gets wrapped with the top block
-		return t.feedItem(&stack.top, feedItemOpts{
+		return t.feedItem(stack.top, feedItemOpts{
 			target: targetItem,
 		})
 	}
@@ -234,21 +252,76 @@ func (t *Textile) feedStackItem(stack feedStack) (*pb.FeedItem, error) {
 }
 
 func (t *Textile) blockIgnored(blockId string) bool {
-	return len(t.datastore.Blocks().List("", -1, "target='ignore-"+blockId+"'")) > 0
+	query := "target='ignore-" + blockId + "'"
+	return len(t.datastore.Blocks().List("", -1, query).Items) > 0
 }
 
-func getTargetId(block repo.Block) string {
+func FeedItemType(item *pb.FeedItem) (pb.Block_BlockType, error) {
+	if i, ok := pb.Block_BlockType_value[strings.ToUpper(item.Payload.TypeUrl[1:])]; ok {
+		return pb.Block_BlockType(i), nil
+	} else {
+		return 0, fmt.Errorf("unable to determine block type")
+	}
+}
+
+type FeedItemPayload interface {
+	GetUser() *pb.User
+	GetDate() *timestamp.Timestamp
+	Reset()
+	String() string
+	ProtoMessage()
+}
+
+func GetFeedItemPayload(item *pb.FeedItem) (FeedItemPayload, error) {
+	blockType, err := FeedItemType(item)
+	if err != nil {
+		return nil, err
+	}
+
+	var payload FeedItemPayload
+	switch blockType {
+	case pb.Block_MERGE:
+		payload = new(pb.Merge)
+	case pb.Block_IGNORE:
+		payload = new(pb.Ignore)
+	case pb.Block_FLAG:
+		payload = new(pb.Flag)
+	case pb.Block_JOIN:
+		payload = new(pb.Join)
+	case pb.Block_ANNOUNCE:
+		payload = new(pb.Announce)
+	case pb.Block_LEAVE:
+		payload = new(pb.Leave)
+	case pb.Block_TEXT:
+		payload = new(pb.Text)
+	case pb.Block_FILES:
+		payload = new(pb.Files)
+	case pb.Block_COMMENT:
+		payload = new(pb.Comment)
+	case pb.Block_LIKE:
+		payload = new(pb.Like)
+	default:
+		return nil, fmt.Errorf("unable to parse payload")
+	}
+
+	if err := ptypes.UnmarshalAny(item.Payload, payload); err != nil {
+		return nil, err
+	}
+	return payload, nil
+}
+
+func getTargetId(block *pb.Block) string {
 	switch block.Type {
-	case repo.CommentBlock, repo.LikeBlock:
+	case pb.Block_COMMENT, pb.Block_LIKE:
 		return block.Target
 	default:
 		return block.Id
 	}
 }
 
-func isAnnotation(block repo.Block) bool {
+func isAnnotation(block *pb.Block) bool {
 	switch block.Type {
-	case repo.CommentBlock, repo.LikeBlock:
+	case pb.Block_COMMENT, pb.Block_LIKE:
 		return true
 	default:
 		return false

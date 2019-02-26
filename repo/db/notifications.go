@@ -4,9 +4,10 @@ import (
 	"database/sql"
 	"strconv"
 	"sync"
-	"time"
 
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 )
 
 type NotificationDB struct {
@@ -17,7 +18,7 @@ func NewNotificationStore(db *sql.DB, lock *sync.Mutex) repo.NotificationStore {
 	return &NotificationDB{modelStore{db, lock}}
 }
 
-func (c *NotificationDB) Add(notification *repo.Notification) error {
+func (c *NotificationDB) Add(notification *pb.Notification) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -33,13 +34,13 @@ func (c *NotificationDB) Add(notification *repo.Notification) error {
 	defer stmt.Close()
 	_, err = stmt.Exec(
 		notification.Id,
-		notification.Date.UnixNano(),
-		notification.ActorId,
+		util.ProtoNanos(notification.Date),
+		notification.Actor,
+		notification.SubjectDesc,
 		notification.Subject,
-		notification.SubjectId,
-		notification.BlockId,
+		notification.Block,
 		notification.Target,
-		int(notification.Type),
+		int32(notification.Type),
 		notification.Body,
 		false,
 	)
@@ -51,14 +52,14 @@ func (c *NotificationDB) Add(notification *repo.Notification) error {
 	return nil
 }
 
-func (c *NotificationDB) Get(id string) *repo.Notification {
+func (c *NotificationDB) Get(id string) *pb.Notification {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from notifications where id='" + id + "';")
-	if len(ret) == 0 {
+	res := c.handleQuery("select * from notifications where id='" + id + "';")
+	if len(res.Items) == 0 {
 		return nil
 	}
-	return &ret[0]
+	return res.Items[0]
 }
 
 func (c *NotificationDB) Read(id string) error {
@@ -75,7 +76,7 @@ func (c *NotificationDB) ReadAll() error {
 	return err
 }
 
-func (c *NotificationDB) List(offset string, limit int) []repo.Notification {
+func (c *NotificationDB) List(offset string, limit int) *pb.NotificationList {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	var stm string
@@ -124,12 +125,12 @@ func (c *NotificationDB) DeleteByBlock(blockId string) error {
 	return err
 }
 
-func (c *NotificationDB) handleQuery(stm string) []repo.Notification {
-	var ret []repo.Notification
+func (c *NotificationDB) handleQuery(stm string) *pb.NotificationList {
+	list := &pb.NotificationList{Items: make([]*pb.Notification, 0)}
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
-		return nil
+		return list
 	}
 	for rows.Next() {
 		var id, actorId, subject, subjectId, blockId, target, body string
@@ -143,18 +144,18 @@ func (c *NotificationDB) handleQuery(stm string) []repo.Notification {
 		if readInt == 1 {
 			read = true
 		}
-		ret = append(ret, repo.Notification{
-			Id:        id,
-			Date:      time.Unix(0, dateInt),
-			ActorId:   actorId,
-			Subject:   subject,
-			SubjectId: subjectId,
-			BlockId:   blockId,
-			Target:    target,
-			Type:      repo.NotificationType(typeInt),
-			Body:      body,
-			Read:      read,
+		list.Items = append(list.Items, &pb.Notification{
+			Id:          id,
+			Date:        util.ProtoTs(dateInt),
+			Actor:       actorId,
+			SubjectDesc: subject,
+			Subject:     subjectId,
+			Block:       blockId,
+			Target:      target,
+			Type:        pb.Notification_Type(typeInt),
+			Body:        body,
+			Read:        read,
 		})
 	}
-	return ret
+	return list
 }

@@ -3,18 +3,19 @@ package gateway
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/textileio/textile-go/pb"
+
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-	iface "gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core/coreapi/interface"
+	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core/coreapi/interface"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 	"gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
 
@@ -26,7 +27,6 @@ import (
 	"github.com/textileio/textile-go/gateway/static/css"
 	"github.com/textileio/textile-go/gateway/templates"
 	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/repo"
 )
 
 var log = logging.Logger("tex-gateway")
@@ -392,7 +392,7 @@ func byteCountDecimal(b int64) string {
 }
 
 // getCafeInfo returns info about a fellow cafe
-func getCafeInfo(addr string) (*repo.Cafe, error) {
+func getCafeInfo(addr string) (*pb.Cafe, error) {
 	req, err := http.NewRequest("GET", addr, nil)
 	if err != nil {
 		return nil, err
@@ -409,17 +409,8 @@ func getCafeInfo(addr string) (*repo.Cafe, error) {
 		return nil, fmt.Errorf("%s returned bad status: %d", addr, res.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if body == nil {
-		return nil, fmt.Errorf("no response from %s", addr)
-	}
-
-	var info repo.Cafe
-	if err := json.Unmarshal(body, &info); err != nil {
+	var info pb.Cafe
+	if err := jsonpb.Unmarshal(res.Body, &info); err != nil {
 		return nil, err
 	}
 	return &info, nil

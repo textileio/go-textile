@@ -13,7 +13,7 @@ func (m *Mobile) AddComment(blockId string, body string) (string, error) {
 		return "", err
 	}
 
-	thrd := m.node.Thread(block.ThreadId)
+	thrd := m.node.Thread(block.Thread)
 	if thrd == nil {
 		return "", core.ErrThreadNotFound
 	}

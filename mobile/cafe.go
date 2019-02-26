@@ -23,12 +23,7 @@ func (m *Mobile) CafeSessions() ([]byte, error) {
 		return nil, core.ErrStopped
 	}
 
-	sessions, err := m.node.CafeSessions()
-	if err != nil {
-		return nil, err
-	}
-
-	bytes, err := proto.Marshal(sessions)
+	bytes, err := proto.Marshal(m.node.CafeSessions())
 	if err != nil {
 		return nil, err
 	}

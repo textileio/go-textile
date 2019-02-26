@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
 func (t *Textile) Files(offset string, limit int, threadId string) (*pb.FilesList, error) {
@@ -16,16 +14,16 @@ func (t *Textile) Files(offset string, limit int, threadId string) (*pb.FilesLis
 		if t.Thread(threadId) == nil {
 			return nil, ErrThreadNotFound
 		}
-		query = fmt.Sprintf("threadId='%s' and type=%d", threadId, repo.FilesBlock)
+		query = fmt.Sprintf("threadId='%s' and type=%d", threadId, pb.Block_FILES)
 	} else {
-		query = fmt.Sprintf("type=%d", repo.FilesBlock)
+		query = fmt.Sprintf("type=%d", pb.Block_FILES)
 	}
 
 	list := make([]*pb.Files, 0)
 
 	blocks := t.Blocks(offset, limit, query)
-	for _, block := range blocks {
-		file, err := t.file(&block, feedItemOpts{annotations: true})
+	for _, block := range blocks.Items {
+		file, err := t.file(block, feedItemOpts{annotations: true})
 		if err != nil {
 			return nil, err
 		}
@@ -94,8 +92,8 @@ func (t *Textile) fileAtTarget(target string) ([]*pb.File, error) {
 	return files, nil
 }
 
-func (t *Textile) file(block *repo.Block, opts feedItemOpts) (*pb.Files, error) {
-	if block.Type != repo.FilesBlock {
+func (t *Textile) file(block *pb.Block, opts feedItemOpts) (*pb.Files, error) {
+	if block.Type != pb.Block_FILES {
 		return nil, ErrBlockWrongType
 	}
 
@@ -107,22 +105,14 @@ func (t *Textile) file(block *repo.Block, opts feedItemOpts) (*pb.Files, error) 
 		return nil, err
 	}
 
-	username, avatar := t.ContactDisplayInfo(block.AuthorId)
-	date, err := ptypes.TimestampProto(block.Date)
-	if err != nil {
-		return nil, err
-	}
-
-	info := &pb.Files{
-		Block:    block.Id,
-		Target:   block.Target,
-		Date:     date,
-		Author:   block.AuthorId,
-		Username: username,
-		Avatar:   avatar,
-		Caption:  block.Body,
-		Files:    files,
-		Threads:  threads,
+	item := &pb.Files{
+		Block:   block.Id,
+		Target:  block.Target,
+		Date:    block.Date,
+		User:    t.User(block.Author),
+		Caption: block.Body,
+		Files:   files,
+		Threads: threads,
 	}
 
 	if opts.annotations {
@@ -130,19 +120,19 @@ func (t *Textile) file(block *repo.Block, opts feedItemOpts) (*pb.Files, error) 
 		if err != nil {
 			return nil, err
 		}
-		info.Comments = comments.Items
+		item.Comments = comments.Items
 
 		likes, err := t.Likes(block.Id)
 		if err != nil {
 			return nil, err
 		}
-		info.Likes = likes.Items
+		item.Likes = likes.Items
 	} else {
-		info.Comments = opts.comments
-		info.Likes = opts.likes
+		item.Comments = opts.comments
+		item.Likes = opts.likes
 	}
 
-	return info, nil
+	return item, nil
 }
 
 // fileThreads lists threads that have blocks which target a file
@@ -151,13 +141,13 @@ func (t *Textile) fileThreads(target string) []string {
 
 	blocks := t.datastore.Blocks().List("", -1, "target='"+target+"'")
 outer:
-	for _, b := range blocks {
+	for _, b := range blocks.Items {
 		for _, f := range unique {
-			if f == b.ThreadId {
+			if f == b.Thread {
 				break outer
 			}
 		}
-		unique = append(unique, b.ThreadId)
+		unique = append(unique, b.Thread)
 	}
 
 	return unique

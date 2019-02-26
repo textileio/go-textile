@@ -1,23 +1,65 @@
 package mobile_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/core"
 	. "github.com/textileio/textile-go/mobile"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
 type TestMessenger struct{}
 
-func (tm *TestMessenger) Notify(event *Event) {}
+func (tm *TestMessenger) Notify(event *Event) {
+	eventt := pb.MobileEvent_Type(pb.MobileEvent_Type_value[event.Name])
+	fmt.Println(fmt.Sprintf("+++ MOBILE EVENT: %s", eventt.String()))
+
+	switch eventt {
+	case pb.MobileEvent_NODE_START:
+	case pb.MobileEvent_NODE_ONLINE:
+	case pb.MobileEvent_NODE_STOP:
+	case pb.MobileEvent_WALLET_UPDATE:
+	case pb.MobileEvent_THREAD_UPDATE:
+	case pb.MobileEvent_NOTIFICATION:
+	case pb.MobileEvent_QUERY_RESPONSE:
+		res := new(pb.MobileQueryEvent)
+		if err := proto.Unmarshal(event.Data, res); err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+		fmt.Println(fmt.Sprintf("+++ MOBILE QUERY EVENT: %s", res.Type.String()))
+
+		switch res.Type {
+		case pb.MobileQueryEvent_DATA:
+			switch res.Data.Value.TypeUrl {
+			case "/CafeClientThread":
+				val := new(pb.CafeClientThread)
+				if err := ptypes.UnmarshalAny(res.Data.Value, val); err != nil {
+					fmt.Println(err.Error())
+					return
+				}
+				fmt.Println(fmt.Sprintf("+++ FOUND CLIENT THREAD (qid=%s): %s", res.Id, val.Id))
+
+			case "/Contact":
+				val := new(pb.Contact)
+				if err := ptypes.UnmarshalAny(res.Data.Value, val); err != nil {
+					fmt.Println(err.Error())
+					return
+				}
+				fmt.Println(fmt.Sprintf("+++ FOUND CONTACT (qid=%s): %s", res.Id, val.Id))
+			}
+		case pb.MobileQueryEvent_DONE:
+			fmt.Println(fmt.Sprintf("+++ DONE (qid=%s)", res.Id))
+		case pb.MobileQueryEvent_ERROR:
+			fmt.Println(fmt.Sprintf("+++ ERROR (%d) (qid=%s): %s", res.Error.Code, res.Id, res.Error.Message))
+		}
+	}
+}
 
 type TestCallback struct{}
 
@@ -43,22 +85,22 @@ var mobile2 *Mobile
 
 var thrdId string
 var dir []byte
-var filesBlock core.BlockInfo
+var filesBlock *pb.Block
 var files []*pb.Files
-var invite ExternalInvite
+var invite *pb.NewInvite
 
-var contact = &repo.Contact{
+var contact = &pb.Contact{
 	Id:       "abcde",
 	Address:  "address1",
 	Username: "joe",
 	Avatar:   "Qm123",
-	Inboxes: []repo.Cafe{{
+	Inboxes: []*pb.Cafe{{
 		Peer:     "peer",
 		Address:  "address",
-		API:      "v0",
+		Api:      "v0",
 		Protocol: "/textile/cafe/1.0.0",
 		Node:     "v1.0.0",
-		URL:      "https://mycafe.com",
+		Url:      "https://mycafe.com",
 	}},
 }
 
@@ -120,8 +162,8 @@ func TestWalletAccountAt(t *testing.T) {
 	if err != nil {
 		t.Errorf("get mobile wallet account at failed: %s", err)
 	}
-	accnt := WalletAccount{}
-	if err := json.Unmarshal([]byte(res), &accnt); err != nil {
+	accnt := new(pb.MobileWalletAccount)
+	if err := proto.Unmarshal(res, accnt); err != nil {
 		t.Error(err)
 		return
 	}
@@ -167,16 +209,18 @@ func TestNewTextileAgain(t *testing.T) {
 }
 
 func TestSetLogLevels(t *testing.T) {
-	logLevels, err := json.Marshal(map[string]string{
-		"tex-core":      "DEBUG",
-		"tex-datastore": "DEBUG",
+	logLevel, err := proto.Marshal(&pb.LogLevel{
+		Systems: map[string]pb.LogLevel_Level{
+			"tex-core":      pb.LogLevel_DEBUG,
+			"tex-datastore": pb.LogLevel_INFO,
+		},
 	})
 	if err != nil {
 		t.Errorf("unable to marshal test map")
 		return
 	}
-	if err := mobile1.SetLogLevels(string(logLevels)); err != nil {
-		t.Errorf("attempt to set log levels failed: %s", err)
+	if err := mobile1.SetLogLevel(logLevel); err != nil {
+		t.Errorf("attempt to set log level failed: %s", err)
 	}
 }
 
@@ -205,39 +249,54 @@ func TestMobile_Seed(t *testing.T) {
 }
 
 func TestMobile_AddThread(t *testing.T) {
-	res, err := mobile1.AddThread(&AddThreadConfig{
-		Key:     ksuid.New().String(),
-		Name:    "test",
-		Type:    "OPEN",
-		Sharing: "SHARED",
-		Media:   true,
-	})
+	conf := &pb.AddThreadConfig{
+		Key:  ksuid.New().String(),
+		Name: "test",
+		Schema: &pb.AddThreadConfig_Schema{
+			Preset: pb.AddThreadConfig_Schema_MEDIA,
+		},
+		Type:    pb.Thread_Open,
+		Sharing: pb.Thread_Shared,
+	}
+	mconf, err := proto.Marshal(conf)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	res, err := mobile1.AddThread(mconf)
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
 		return
 	}
-	var thrd *core.ThreadInfo
-	if err := json.Unmarshal([]byte(res), &thrd); err != nil {
+	thrd := new(pb.Thread)
+	if err := proto.Unmarshal(res, thrd); err != nil {
 		t.Error(err)
-		return
 	}
 	thrdId = thrd.Id
 }
 
-func TestMobile_AddThreadWithSchema(t *testing.T) {
-	res, err := mobile1.AddThread(&AddThreadConfig{
-		Key:     ksuid.New().String(),
-		Name:    "test",
-		Type:    "READ_ONLY",
-		Sharing: "INVITE_ONLY",
-		Schema:  schema,
-	})
+func TestMobile_AddThreadWithSchemaJson(t *testing.T) {
+	conf := &pb.AddThreadConfig{
+		Key:  ksuid.New().String(),
+		Name: "test",
+		Schema: &pb.AddThreadConfig_Schema{
+			Json: schema,
+		},
+		Type:    pb.Thread_ReadOnly,
+		Sharing: pb.Thread_InviteOnly,
+	}
+	mconf, err := proto.Marshal(conf)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	res, err := mobile1.AddThread(mconf)
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
 		return
 	}
-	var thrd *core.ThreadInfo
-	if err := json.Unmarshal([]byte(res), &thrd); err != nil {
+	thrd := new(pb.Thread)
+	if err := proto.Unmarshal(res, thrd); err != nil {
 		t.Error(err)
 		return
 	}
@@ -257,30 +316,38 @@ func TestMobile_Threads(t *testing.T) {
 		t.Errorf("get threads failed: %s", err)
 		return
 	}
-	var threads []core.ThreadInfo
-	if err := json.Unmarshal([]byte(res), &threads); err != nil {
+	list := new(pb.ThreadList)
+	if err := proto.Unmarshal(res, list); err != nil {
 		t.Error(err)
 		return
 	}
-	if len(threads) != 1 {
+	if len(list.Items) != 1 {
 		t.Error("get threads bad result")
 	}
 }
 
 func TestMobile_RemoveThread(t *testing.T) {
-	res, err := mobile1.AddThread(&AddThreadConfig{
-		Key:        ksuid.New().String(),
-		Name:       "another",
-		Type:       "PRIVATE",
-		Sharing:    "NOT_SHARED",
-		CameraRoll: true,
-	})
+	conf := &pb.AddThreadConfig{
+		Key:  ksuid.New().String(),
+		Name: "another",
+		Schema: &pb.AddThreadConfig_Schema{
+			Preset: pb.AddThreadConfig_Schema_CAMERA_ROLL,
+		},
+		Type:    pb.Thread_Private,
+		Sharing: pb.Thread_NotShared,
+	}
+	mconf, err := proto.Marshal(conf)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	res, err := mobile1.AddThread(mconf)
 	if err != nil {
 		t.Errorf("remove thread failed: %s", err)
 		return
 	}
-	var thrd *core.ThreadInfo
-	if err := json.Unmarshal([]byte(res), &thrd); err != nil {
+	thrd := new(pb.Thread)
+	if err := proto.Unmarshal(res, thrd); err != nil {
 		t.Error(err)
 		return
 	}
@@ -364,12 +431,12 @@ func TestMobile_AddFiles(t *testing.T) {
 		t.Errorf("add thread files failed: %s", err)
 		return
 	}
-	info := core.BlockInfo{}
-	if err := json.Unmarshal([]byte(res), &info); err != nil {
+	block := new(pb.Block)
+	if err := proto.Unmarshal(res, block); err != nil {
 		t.Error(err)
 		return
 	}
-	filesBlock = info
+	filesBlock = block
 	time.Sleep(time.Second)
 }
 
@@ -379,8 +446,8 @@ func TestMobile_AddFilesByTarget(t *testing.T) {
 		t.Errorf("add thread files by target failed: %s", err)
 		return
 	}
-	info := &core.BlockInfo{}
-	if err := json.Unmarshal([]byte(res), &info); err != nil {
+	block := new(pb.Block)
+	if err := proto.Unmarshal(res, block); err != nil {
 		t.Error(err)
 	}
 }
@@ -458,7 +525,17 @@ func TestMobile_AddIgnore(t *testing.T) {
 }
 
 func TestMobile_Feed(t *testing.T) {
-	res, err := mobile1.Feed("", 20, thrdId, int32(pb.FeedMode_STACKS))
+	req, err := proto.Marshal(&pb.FeedRequest{
+		Thread: thrdId,
+		Limit:  20,
+		Mode:   pb.FeedRequest_STACKS,
+	})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	res, err := mobile1.Feed(req)
 	if err != nil {
 		t.Errorf("get thread feed failed: %s", err)
 		return
@@ -473,18 +550,18 @@ func TestMobile_Feed(t *testing.T) {
 	}
 }
 
-func TestMobile_PhotoDataForMinWidth(t *testing.T) {
-	large, err := mobile1.FileData(files[0].Files[0].Links["large"].Hash)
+func TestMobile_ImageFileDataForMinWidth(t *testing.T) {
+	large, err := fileDataUnmarshaled(mobile1, files[0].Files[0].Links["large"].Hash)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	small, err := mobile1.FileData(files[0].Files[0].Links["small"].Hash)
+	small, err := fileDataUnmarshaled(mobile1, files[0].Files[0].Links["small"].Hash)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	thumb, err := mobile1.FileData(files[0].Files[0].Links["thumb"].Hash)
+	thumb, err := fileDataUnmarshaled(mobile1, files[0].Files[0].Links["thumb"].Hash)
 	if err != nil {
 		t.Error(err)
 		return
@@ -492,42 +569,42 @@ func TestMobile_PhotoDataForMinWidth(t *testing.T) {
 
 	pth := files[0].Target + "/0"
 
-	d1, err := mobile1.ImageFileDataForMinWidth(pth, 2000)
+	d1, err := imageFileDataForMinWidthUnmarshaled(mobile1, pth, 2000)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if d1 != large {
+	if d1.Url != large.Url {
 		t.Errorf("expected large result")
 		return
 	}
 
-	d2, err := mobile1.ImageFileDataForMinWidth(pth, 600)
+	d2, err := imageFileDataForMinWidthUnmarshaled(mobile1, pth, 600)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if d2 != large {
+	if d2.Url != large.Url {
 		t.Errorf("expected large result")
 		return
 	}
 
-	d3, err := mobile1.ImageFileDataForMinWidth(pth, 320)
+	d3, err := imageFileDataForMinWidthUnmarshaled(mobile1, pth, 320)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if d3 != small {
+	if d3.Url != small.Url {
 		t.Errorf("expected small result")
 		return
 	}
 
-	d4, err := mobile1.ImageFileDataForMinWidth(pth, 80)
+	d4, err := imageFileDataForMinWidthUnmarshaled(mobile1, pth, 80)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if d4 != thumb {
+	if d4.Url != thumb.Url {
 		t.Errorf("expected thumb result")
 	}
 }
@@ -538,8 +615,8 @@ func TestMobile_Summary(t *testing.T) {
 		t.Errorf("get summary failed: %s", err)
 		return
 	}
-	stats := core.Summary{}
-	if err := json.Unmarshal([]byte(res), &stats); err != nil {
+	summary := new(pb.Summary)
+	if err := proto.Unmarshal(res, summary); err != nil {
 		t.Error(err)
 	}
 }
@@ -563,30 +640,30 @@ func TestMobile_Profile(t *testing.T) {
 		t.Errorf("get profile failed: %s", err)
 		return
 	}
-	prof := repo.Contact{}
-	if err := json.Unmarshal([]byte(profs), &prof); err != nil {
+	prof := new(pb.Contact)
+	if err := proto.Unmarshal(profs, prof); err != nil {
 		t.Error(err)
 	}
 }
 
 func TestMobile_AddContact(t *testing.T) {
-	payload, err := json.Marshal(contact)
+	payload, err := proto.Marshal(contact)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if err := mobile1.AddContact(string(payload)); err != nil {
+	if err := mobile1.AddContact(payload); err != nil {
 		t.Errorf("add contact failed: %s", err)
 	}
 }
 
 func TestMobile_AddContactAgain(t *testing.T) {
-	payload, err := json.Marshal(contact)
+	payload, err := proto.Marshal(contact)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if err := mobile1.AddContact(string(payload)); err != nil {
+	if err := mobile1.AddContact(payload); err != nil {
 		t.Errorf("adding duplicate contact should not throw error")
 	}
 }
@@ -602,8 +679,8 @@ func TestMobile_Contact(t *testing.T) {
 		t.Errorf("get own contact failed: %s", err)
 		return
 	}
-	var info *core.ContactInfo
-	if err := json.Unmarshal([]byte(self), &info); err != nil {
+	contact := new(pb.Contact)
+	if err := proto.Unmarshal(self, contact); err != nil {
 		t.Error(err)
 	}
 }
@@ -616,19 +693,27 @@ func TestMobile_AddInvite(t *testing.T) {
 		return
 	}
 
-	res, err := mobile2.AddThread(&AddThreadConfig{
-		Key:     ksuid.New().String(),
-		Name:    "test2",
-		Type:    "OPEN",
-		Sharing: "SHARED",
-		Media:   true,
-	})
+	conf := &pb.AddThreadConfig{
+		Key:  ksuid.New().String(),
+		Name: "test2",
+		Schema: &pb.AddThreadConfig_Schema{
+			Preset: pb.AddThreadConfig_Schema_MEDIA,
+		},
+		Type:    pb.Thread_Open,
+		Sharing: pb.Thread_Shared,
+	}
+	mconf, err := proto.Marshal(conf)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	var thrd *core.ThreadInfo
-	if err := json.Unmarshal([]byte(res), &thrd); err != nil {
+	res, err := mobile2.AddThread(mconf)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	thrd := new(pb.Thread)
+	if err := proto.Unmarshal([]byte(res), thrd); err != nil {
 		t.Error(err)
 		return
 	}
@@ -667,7 +752,8 @@ func TestMobile_AddExternalInvite(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if err := json.Unmarshal([]byte(res), &invite); err != nil {
+	invite = new(pb.NewInvite)
+	if err := proto.Unmarshal(res, invite); err != nil {
 		t.Error(err)
 		return
 	}
@@ -694,8 +780,8 @@ func TestMobile_Notifications(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	var notes []core.NotificationInfo
-	if err := json.Unmarshal([]byte(res), &notes); err != nil {
+	notes := new(pb.NotificationList)
+	if err := proto.Unmarshal(res, notes); err != nil {
 		t.Error(err)
 	}
 }
@@ -712,6 +798,31 @@ func TestMobile_ReadAllNotifications(t *testing.T) {
 	if mobile1.CountUnreadNotifications() != 0 {
 		t.Error("read all notifications bad result")
 	}
+}
+
+func TestMobile_SearchContacts(t *testing.T) {
+	query, err := proto.Marshal(&pb.ContactQuery{Address: mobile2.Address()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	opts, err := proto.Marshal(&pb.QueryOptions{
+		Wait:  10,
+		Limit: 10,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	handle, err := mobile1.SearchContacts(query, opts)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	fmt.Println(fmt.Sprintf("query ID: %s", handle.Id))
+
+	timer := time.NewTimer(3 * time.Second)
+	<-timer.C
+
+	handle.Cancel()
 }
 
 func TestMobile_Stop(t *testing.T) {
@@ -746,8 +857,8 @@ func createAndStartMobile(repoPath string, waitForOnline bool) (*Mobile, error) 
 	if err != nil {
 		return nil, err
 	}
-	accnt := WalletAccount{}
-	if err := json.Unmarshal([]byte(res), &accnt); err != nil {
+	accnt := new(pb.MobileWalletAccount)
+	if err := proto.Unmarshal(res, accnt); err != nil {
 		return nil, err
 	}
 
@@ -772,4 +883,28 @@ func createAndStartMobile(repoPath string, waitForOnline bool) (*Mobile, error) 
 	}
 
 	return mobile, nil
+}
+
+func fileDataUnmarshaled(m *Mobile, hash string) (*pb.MobileFileData, error) {
+	data, err := m.FileData(hash)
+	if err != nil {
+		return nil, err
+	}
+	fd := new(pb.MobileFileData)
+	if err := proto.Unmarshal(data, fd); err != nil {
+		return nil, err
+	}
+	return fd, nil
+}
+
+func imageFileDataForMinWidthUnmarshaled(m *Mobile, pth string, minWidth int) (*pb.MobileFileData, error) {
+	data, err := m.ImageFileDataForMinWidth(pth, minWidth)
+	if err != nil {
+		return nil, err
+	}
+	fd := new(pb.MobileFileData)
+	if err := proto.Unmarshal(data, fd); err != nil {
+		return nil, err
+	}
+	return fd, nil
 }

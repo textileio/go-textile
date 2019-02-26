@@ -7,7 +7,6 @@ import (
 	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/pb"
@@ -56,7 +55,7 @@ func (q *CafeInbox) CheckMessages() error {
 	}()
 
 	// get active cafe sessions
-	sessions := q.datastore.CafeSessions().List()
+	sessions := q.datastore.CafeSessions().List().Items
 	if len(sessions) == 0 {
 		return nil
 	}
@@ -84,15 +83,13 @@ func (q *CafeInbox) CheckMessages() error {
 
 // Add adds an inbound message
 func (q *CafeInbox) Add(msg *pb.CafeMessage) error {
-	log.Debugf("received cafe message from %s: %s", ipfs.ShortenID(msg.PeerId), msg.Id)
-	date, err := ptypes.Timestamp(msg.Date)
-	if err != nil {
-		return err
-	}
-	return q.datastore.CafeMessages().Add(&repo.CafeMessage{
-		Id:     msg.Id,
-		PeerId: msg.PeerId,
-		Date:   date,
+	log.Debugf("received cafe message from %s: %s", ipfs.ShortenID(msg.Peer), msg.Id)
+
+	// reset attempts
+	return q.datastore.CafeMessages().Add(&pb.CafeMessage{
+		Id:   msg.Id,
+		Peer: msg.Peer,
+		Date: msg.Date,
 	})
 }
 
@@ -113,14 +110,14 @@ func (q *CafeInbox) Flush() {
 }
 
 // batch flushes a batch of messages
-func (q *CafeInbox) batch(msgs []repo.CafeMessage) error {
+func (q *CafeInbox) batch(msgs []pb.CafeMessage) error {
 	log.Debugf("handling %d cafe messages", len(msgs))
 	if len(msgs) == 0 {
 		return nil
 	}
 
 	for _, msg := range msgs {
-		go func(msg repo.CafeMessage) {
+		go func(msg pb.CafeMessage) {
 			if err := q.handle(msg); err != nil {
 				log.Warningf("handle attempt failed for cafe message %s: %s", msg.Id, err)
 				return
@@ -142,8 +139,8 @@ func (q *CafeInbox) batch(msgs []repo.CafeMessage) error {
 }
 
 // handle handles a single message
-func (q *CafeInbox) handle(msg repo.CafeMessage) error {
-	pid, err := peer.IDB58Decode(msg.PeerId)
+func (q *CafeInbox) handle(msg pb.CafeMessage) error {
+	pid, err := peer.IDB58Decode(msg.Peer)
 	if err != nil {
 		return q.handleErr(err, msg)
 	}
@@ -175,7 +172,7 @@ func (q *CafeInbox) handle(msg repo.CafeMessage) error {
 }
 
 // handleErr deletes or adds an attempt to a message processing error
-func (q *CafeInbox) handleErr(herr error, msg repo.CafeMessage) error {
+func (q *CafeInbox) handleErr(herr error, msg pb.CafeMessage) error {
 	if msg.Attempts+1 >= maxDownloadAttempts {
 		if err := q.datastore.CafeMessages().Delete(msg.Id); err != nil {
 			return err

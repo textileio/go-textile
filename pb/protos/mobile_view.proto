@@ -1,9 +1,0 @@
-syntax = "proto3";
-option go_package = "pb";
-
-import "view.proto";
-
-message MobilePreparedFiles {
-    Directory dir           = 1;
-    map<string, string> pin = 2;
-}

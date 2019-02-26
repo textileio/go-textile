@@ -2,11 +2,10 @@ package core
 
 import (
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
 // AddInvite creates an outgoing invite block, which is sent directly to the recipient
@@ -24,20 +23,10 @@ func (t *Thread) AddInvite(inviteeId peer.ID) (mh.Multihash, error) {
 		return nil, ErrNotShareable
 	}
 
-	threadSk, err := t.privKey.Bytes()
-	if err != nil {
-		return nil, err
-	}
 	self := t.datastore.Contacts().Get(t.node().Identity.Pretty())
 	msg := &pb.ThreadInvite{
-		Sk:        threadSk,
-		Name:      t.Name,
-		Schema:    t.schemaId,
-		Initiator: t.initiator,
-		Contact:   repoContactToProto(self),
-		Type:      int32(t.ttype),
-		Sharing:   int32(t.sharing),
-		Members:   t.members,
+		Thread:  t.datastore.Threads().Get(t.Id),
+		Inviter: self,
 	}
 
 	inviteePk, err := inviteeId.ExtractPublicKey()
@@ -45,7 +34,7 @@ func (t *Thread) AddInvite(inviteeId peer.ID) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	res, err := t.commitBlock(msg, pb.ThreadBlock_INVITE, func(plaintext []byte) ([]byte, error) {
+	res, err := t.commitBlock(msg, pb.Block_INVITE, func(plaintext []byte) ([]byte, error) {
 		return crypto.Encrypt(inviteePk, plaintext)
 	})
 	if err != nil {
@@ -53,13 +42,13 @@ func (t *Thread) AddInvite(inviteeId peer.ID) (mh.Multihash, error) {
 	}
 
 	// create new peer for posting (it will get added if+when they accept)
-	target := repo.ThreadPeer{Id: inviteeId.Pretty()}
+	target := pb.ThreadPeer{Id: contact.Id}
 
-	if err := t.post(res, []repo.ThreadPeer{target}); err != nil {
+	if err := t.post(res, []pb.ThreadPeer{target}); err != nil {
 		return nil, err
 	}
 
-	log.Debugf("sent INVITE to %s for %s", inviteeId.Pretty(), t.Id)
+	log.Debugf("sent INVITE to %s for %s", contact.Id, t.Id)
 
 	return res.hash, nil
 }
@@ -74,20 +63,10 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 		return nil, nil, ErrNotShareable
 	}
 
-	threadSk, err := t.privKey.Bytes()
-	if err != nil {
-		return nil, nil, err
-	}
-	contact := t.datastore.Contacts().Get(t.node().Identity.Pretty())
+	self := t.datastore.Contacts().Get(t.node().Identity.Pretty())
 	msg := &pb.ThreadInvite{
-		Sk:        threadSk,
-		Name:      t.Name,
-		Schema:    t.schemaId,
-		Initiator: t.initiator,
-		Contact:   repoContactToProto(contact),
-		Type:      int32(t.ttype),
-		Sharing:   int32(t.sharing),
-		Members:   t.members,
+		Thread:  t.datastore.Threads().Get(t.Id),
+		Inviter: self,
 	}
 
 	key, err := crypto.GenerateAESKey()
@@ -95,7 +74,7 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 		return nil, nil, err
 	}
 
-	res, err := t.commitBlock(msg, pb.ThreadBlock_INVITE, func(plaintext []byte) ([]byte, error) {
+	res, err := t.commitBlock(msg, pb.Block_INVITE, func(plaintext []byte) ([]byte, error) {
 		return crypto.EncryptAES(plaintext, key)
 	})
 	if err != nil {

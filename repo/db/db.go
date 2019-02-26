@@ -7,21 +7,26 @@ import (
 
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 
+	"github.com/golang/protobuf/jsonpb"
 	_ "github.com/mutecomm/go-sqlcipher"
 	"github.com/textileio/textile-go/repo"
 )
 
 var log = logging.Logger("tex-datastore")
 
+var pbMarshaler = jsonpb.Marshaler{
+	OrigName: true,
+}
+
 type SQLiteDatastore struct {
 	config             repo.ConfigStore
 	contacts           repo.ContactStore
 	files              repo.FileStore
 	threads            repo.ThreadStore
-	threadInvites      repo.ThreadInviteStore
 	threadPeers        repo.ThreadPeerStore
-	threadMessages     repo.ThreadMessageStore
 	blocks             repo.BlockStore
+	blockMessages      repo.BlockMessageStore
+	invites            repo.InviteStore
 	notifications      repo.NotificationStore
 	cafeSessions       repo.CafeSessionStore
 	cafeRequests       repo.CafeRequestStore
@@ -52,10 +57,10 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 		contacts:           NewContactStore(conn, mux),
 		files:              NewFileStore(conn, mux),
 		threads:            NewThreadStore(conn, mux),
-		threadInvites:      NewThreadInviteStore(conn, mux),
 		threadPeers:        NewThreadPeerStore(conn, mux),
-		threadMessages:     NewThreadMessageStore(conn, mux),
 		blocks:             NewBlockStore(conn, mux),
+		blockMessages:      NewBlockMessageStore(conn, mux),
+		invites:            NewInviteStore(conn, mux),
 		notifications:      NewNotificationStore(conn, mux),
 		cafeSessions:       NewCafeSessionStore(conn, mux),
 		cafeRequests:       NewCafeRequestStore(conn, mux),
@@ -96,20 +101,20 @@ func (d *SQLiteDatastore) Threads() repo.ThreadStore {
 	return d.threads
 }
 
-func (d *SQLiteDatastore) ThreadInvites() repo.ThreadInviteStore {
-	return d.threadInvites
-}
-
 func (d *SQLiteDatastore) ThreadPeers() repo.ThreadPeerStore {
 	return d.threadPeers
 }
 
-func (d *SQLiteDatastore) ThreadMessages() repo.ThreadMessageStore {
-	return d.threadMessages
-}
-
 func (d *SQLiteDatastore) Blocks() repo.BlockStore {
 	return d.blocks
+}
+
+func (d *SQLiteDatastore) BlockMessages() repo.BlockMessageStore {
+	return d.blockMessages
+}
+
+func (d *SQLiteDatastore) Invites() repo.InviteStore {
+	return d.invites
 }
 
 func (d *SQLiteDatastore) Notifications() repo.NotificationStore {
@@ -208,9 +213,6 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create table threads (id text primary key not null, key text not null, sk blob not null, name text not null, schema text not null, initiator text not null, type integer not null, state integer not null, head text not null, members text not null, sharing integer not null);
     create unique index thread_key on threads (key);
 
-    create table thread_invites (id text primary key not null, block blob not null, name text not null, contact blob not null, date integer not null);
-    create index thread_invite_date on thread_invites (date);
-
     create table thread_peers (id text not null, threadId text not null, welcomed integer not null, primary key (id, threadId));
     create index thread_peer_id on thread_peers (id);
     create index thread_peer_threadId on thread_peers (threadId);
@@ -222,8 +224,11 @@ func initDatabaseTables(db *sql.DB, pin string) error {
     create index block_date on blocks (date);
     create index block_target on blocks (target);
 
-    create table thread_messages (id text primary key not null, peerId text not null, envelope blob not null, date integer not null);
-    create index thread_message_date on thread_messages (date);
+    create table block_messages (id text primary key not null, peerId text not null, envelope blob not null, date integer not null);
+    create index block_message_date on block_messages (date);
+
+    create table invites (id text primary key not null, block blob not null, name text not null, inviter blob not null, date integer not null);
+    create index invite_date on invites (date);
 
     create table notifications (id text primary key not null, date integer not null, actorId text not null, subject text not null, subjectId text not null, blockId text, target text, type integer not null, body text not null, read integer not null);
     create index notification_date on notifications (date);

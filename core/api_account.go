@@ -24,17 +24,11 @@ func (a *api) accountAddress(g *gin.Context) {
 // @Description Shows all known account peers
 // @Tags account
 // @Produce application/json
-// @Success 200 {array} core.ContactInfo "peers"
+// @Success 200 {object} pb.ContactList "peers"
 // @Failure 400 {string} string "Bad Request"
 // @Router /account/peers [get]
 func (a *api) accountPeers(g *gin.Context) {
-	peers, err := a.node.AccountPeers()
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	g.JSON(http.StatusOK, peers)
+	pbJSON(g, http.StatusOK, a.node.AccountPeers())
 }
 
 // accountPeers godoc
@@ -43,7 +37,7 @@ func (a *api) accountPeers(g *gin.Context) {
 // @Tags account
 // @Produce application/json
 // @Param X-Textile-Opts header string false "wait: Stops searching after 'wait' seconds have elapsed (max 10s), events: Whether to emit Server-Sent Events (SSEvent) or plain JSON" default(wait=5,events="false")
-// @Success 200 {array} byte "backup stream"
+// @Success 200 {object} pb.QueryResult "results stream"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /account/backups [post]

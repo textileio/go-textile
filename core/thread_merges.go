@@ -2,15 +2,14 @@ package core
 
 import (
 	"errors"
-	"sort"
-	"time"
-
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	"sort"
+
+	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/textileio/textile-go/util"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
 // merge adds a merge block, which are kept local until subsequent updates, avoiding possibly endless echoes
@@ -42,23 +41,19 @@ func (t *Thread) merge(head mh.Multihash) (mh.Multihash, error) {
 	if p2b == nil {
 		return nil, errors.New("second merge parent not found")
 	}
-	var date time.Time
-	if p1b.Date.Before(p2b.Date) {
+	var date *timestamp.Timestamp
+	if util.ProtoTsIsNewer(p2b.Date, p1b.Date) {
 		date = p2b.Date
 	} else {
 		date = p1b.Date
 	}
 	// add a small amount to date to keep it ahead of both parents
-	date = date.Add(time.Millisecond)
-	pdate, err := ptypes.TimestampProto(date)
-	if err != nil {
-		return nil, err
-	}
-	header.Date = pdate
+	date.Nanos += 1e6
+	header.Date = date
 
 	block := &pb.ThreadBlock{
 		Header: header,
-		Type:   pb.ThreadBlock_MERGE,
+		Type:   pb.Block_MERGE,
 	}
 	plaintext, err := proto.Marshal(block)
 	if err != nil {
@@ -74,7 +69,7 @@ func (t *Thread) merge(head mh.Multihash) (mh.Multihash, error) {
 	if err := t.indexBlock(&commitResult{
 		hash:   hash,
 		header: header,
-	}, repo.MergeBlock, "", ""); err != nil {
+	}, pb.Block_MERGE, "", ""); err != nil {
 		return nil, err
 	}
 
@@ -99,5 +94,5 @@ func (t *Thread) handleMergeBlock(hash mh.Multihash, block *pb.ThreadBlock) erro
 	return t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,
-	}, repo.MergeBlock, "", "")
+	}, pb.Block_MERGE, "", "")
 }

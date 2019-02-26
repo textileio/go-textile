@@ -15,11 +15,10 @@ import (
 	"os/signal"
 	"strings"
 
-	"github.com/textileio/textile-go/pb"
-
 	"github.com/fatih/color"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/util"
 )
 
@@ -105,12 +104,13 @@ func executeJsonCmd(meth method, pth string, pars params, target interface{}) (s
 		return "", errors.New(body)
 	}
 
-	if target == nil {
-		target = new(interface{})
-	}
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return "", err
+	}
+
+	if target == nil {
+		target = new(interface{})
 	}
 	if err := json.Unmarshal(data, target); err != nil {
 		return "", err
@@ -193,9 +193,10 @@ func request(meth method, pth string, pars params) (*http.Response, func(), erro
 var errMissingSearchInfo = errors.New("missing search info")
 
 var pbMarshaler = jsonpb.Marshaler{
-	EnumsAsInts: false,
-	Indent:      "    ",
+	OrigName: true,
+	Indent:   "    ",
 }
+
 var pbUnmarshaler = jsonpb.Unmarshaler{
 	AllowUnknownFields: true,
 }

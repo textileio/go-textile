@@ -10,7 +10,6 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
 // AddIgnore adds an outgoing ignore block targeted at another block to ignore
@@ -29,12 +28,12 @@ func (t *Thread) AddIgnore(block string) (mh.Multihash, error) {
 		Target: target,
 	}
 
-	res, err := t.commitBlock(msg, pb.ThreadBlock_IGNORE, nil)
+	res, err := t.commitBlock(msg, pb.Block_IGNORE, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := t.indexBlock(res, repo.IgnoreBlock, target, ""); err != nil {
+	if err := t.indexBlock(res, pb.Block_IGNORE, target, ""); err != nil {
 		return nil, err
 	}
 
@@ -84,7 +83,7 @@ func (t *Thread) handleIgnoreBlock(hash mh.Multihash, block *pb.ThreadBlock) (*p
 	if err := t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,
-	}, repo.IgnoreBlock, msg.Target, ""); err != nil {
+	}, pb.Block_IGNORE, msg.Target, ""); err != nil {
 		return nil, err
 	}
 
@@ -97,13 +96,13 @@ func (t *Thread) handleIgnoreBlock(hash mh.Multihash, block *pb.ThreadBlock) (*p
 }
 
 // ignoreBlockTarget conditionally removes block target and files
-func (t *Thread) ignoreBlockTarget(block *repo.Block) error {
+func (t *Thread) ignoreBlockTarget(block *pb.Block) error {
 	if block == nil || block.Target == "" {
 		return nil
 	}
 
 	switch block.Type {
-	case repo.FilesBlock:
+	case pb.Block_FILES:
 		node, err := ipfs.NodeAtPath(t.node(), block.Target)
 		if err != nil {
 			return err

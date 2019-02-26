@@ -46,16 +46,12 @@ Shows the local node's IPFS peer ID.`
 
 func (x *ipfsIdCmd) Execute(args []string) error {
 	setApi(x.Client)
-	res, err := callId()
+	res, err := executeStringCmd(GET, "ipfs/id", params{})
 	if err != nil {
 		return err
 	}
 	output(res)
 	return nil
-}
-
-func callId() (string, error) {
-	return executeStringCmd(GET, "ipfs/id", params{})
 }
 
 type ipfsSwarmCmd struct {

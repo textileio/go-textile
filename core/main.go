@@ -14,7 +14,7 @@ import (
 
 	ipfsconfig "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
-	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	utilmain "gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/commands"
 	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core"
@@ -25,11 +25,12 @@ import (
 	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/repo/db"
 	"github.com/textileio/textile-go/service"
-	lumberjack "gopkg.in/natefinch/lumberjack.v2"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var log = logging.Logger("tex-core")
@@ -39,28 +40,6 @@ const kQueueFlushFreq = time.Second * 60
 
 // kMobileQueueFlushFreq how often to flush the message queues on mobile
 const kMobileQueueFlush = time.Second * 40
-
-// Update is used to notify UI listeners of changes
-type Update struct {
-	Id   string     `json:"id"`
-	Key  string     `json:"key"`
-	Name string     `json:"name"`
-	Type UpdateType `json:"type"`
-}
-
-// UpdateType indicates a type of node update
-type UpdateType int
-
-const (
-	// ThreadAdded is emitted when a thread is added
-	ThreadAdded UpdateType = iota
-	// ThreadRemoved is emitted when a thread is removed
-	ThreadRemoved
-	// AccountPeerAdded is emitted when an account peer (device) is added
-	AccountPeerAdded
-	// AccountPeerRemoved is emitted when an account peer (device) is removed
-	AccountPeerRemoved
-)
 
 // InitConfig is used to setup a textile node
 type InitConfig struct {
@@ -107,11 +86,11 @@ type Textile struct {
 	loadedThreads []*Thread
 	online        chan struct{}
 	done          chan struct{}
-	updates       chan Update
+	updates       chan *pb.WalletUpdate
 	threadUpdates *broadcast.Broadcaster
-	notifications chan NotificationInfo
+	notifications chan *pb.Notification
 	threads       *ThreadsService
-	threadsOutbox *ThreadsOutbox
+	threadsOutbox *BlockOutbox
 	cafe          *CafeService
 	cafeOutbox    *CafeOutbox
 	cafeInbox     *CafeInbox
@@ -135,11 +114,13 @@ func InitRepo(conf InitConfig) error {
 		return ErrAccountRequired
 	}
 
-	logLevels := map[string]string{}
-	if conf.Debug {
-		logLevels = getTextileDebugLevels()
+	logLevel := &pb.LogLevel{
+		Systems: make(map[string]pb.LogLevel_Level),
 	}
-	if _, err := setLogLevels(conf.RepoPath, logLevels, conf.LogToDisk); err != nil {
+	if conf.Debug {
+		logLevel = getTextileDebugLevels()
+	}
+	if _, err := setLogLevels(conf.RepoPath, logLevel, conf.LogToDisk); err != nil {
 		return err
 	}
 
@@ -183,7 +164,7 @@ func InitRepo(conf InitConfig) error {
 	if err != nil {
 		return err
 	}
-	if err := sqliteDb.Contacts().Add(&repo.Contact{
+	if err := sqliteDb.Contacts().Add(&pb.Contact{
 		Id:      ipfsConf.Identity.PeerID,
 		Address: conf.Account.Address(),
 	}); err != nil {
@@ -222,9 +203,9 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 
 	node := &Textile{
 		repoPath:      conf.RepoPath,
-		updates:       make(chan Update, 10),
+		updates:       make(chan *pb.WalletUpdate, 10),
 		threadUpdates: broadcast.NewBroadcaster(10),
-		notifications: make(chan NotificationInfo, 10),
+		notifications: make(chan *pb.Notification, 10),
 	}
 
 	var err error
@@ -233,11 +214,13 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 		return nil, err
 	}
 
-	logLevels := map[string]string{}
-	if conf.Debug {
-		logLevels = getTextileDebugLevels()
+	logLevel := &pb.LogLevel{
+		Systems: make(map[string]pb.LogLevel_Level),
 	}
-	node.writer, err = setLogLevels(conf.RepoPath, logLevels, node.config.Logs.LogToDisk)
+	if conf.Debug {
+		logLevel = getTextileDebugLevels()
+	}
+	node.writer, err = setLogLevels(conf.RepoPath, logLevel, node.config.Logs.LogToDisk)
 	if err != nil {
 		return nil, err
 	}
@@ -337,8 +320,8 @@ func (t *Textile) Start() error {
 		}
 	}()
 
-	for _, mod := range t.datastore.Threads().List() {
-		if _, err := t.loadThread(&mod); err == ErrThreadLoaded {
+	for _, mod := range t.datastore.Threads().List().Items {
+		if _, err := t.loadThread(mod); err == ErrThreadLoaded {
 			continue
 		}
 		if err != nil {
@@ -447,7 +430,7 @@ func (t *Textile) Ping(pid peer.ID) (service.PeerStatus, error) {
 }
 
 // UpdateCh returns the node update channel
-func (t *Textile) UpdateCh() <-chan Update {
+func (t *Textile) UpdateCh() <-chan *pb.WalletUpdate {
 	return t.updates
 }
 
@@ -457,7 +440,7 @@ func (t *Textile) ThreadUpdateListener() *broadcast.Listener {
 }
 
 // NotificationsCh returns the notifications channel
-func (t *Textile) NotificationCh() <-chan NotificationInfo {
+func (t *Textile) NotificationCh() <-chan *pb.Notification {
 	return t.notifications
 }
 
@@ -481,9 +464,9 @@ func (t *Textile) LinksAtPath(path string) ([]*ipld.Link, error) {
 	return ipfs.LinksAtPath(t.node, path)
 }
 
-// SetLogLevels provides node scoped access to the logging system
-func (t *Textile) SetLogLevels(logLevels map[string]string) error {
-	if _, err := setLogLevels(t.repoPath, logLevels, t.config.Logs.LogToDisk); err != nil {
+// SetLogLevel provides node scoped access to the logging system
+func (t *Textile) SetLogLevel(level *pb.LogLevel) error {
+	if _, err := setLogLevels(t.repoPath, level, t.config.Logs.LogToDisk); err != nil {
 		return err
 	}
 	return nil
@@ -599,40 +582,39 @@ func (t *Textile) flushQueues() {
 }
 
 // threadByBlock returns the thread owning the given block
-func (t *Textile) threadByBlock(block *repo.Block) (*Thread, error) {
+func (t *Textile) threadByBlock(block *pb.Block) (*Thread, error) {
 	if block == nil {
 		return nil, errors.New("block is empty")
 	}
 
 	var thrd *Thread
 	for _, t := range t.loadedThreads {
-		if t.Id == block.ThreadId {
+		if t.Id == block.Thread {
 			thrd = t
 			break
 		}
 	}
 	if thrd == nil {
-		return nil, errors.New(fmt.Sprintf("could not find thread: %s", block.ThreadId))
+		return nil, errors.New(fmt.Sprintf("could not find thread: %s", block.Thread))
 	}
 	return thrd, nil
 }
 
 // loadThread loads a thread into memory from the given on-disk model
-func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
+func (t *Textile) loadThread(mod *pb.Thread) (*Thread, error) {
 	if loaded := t.Thread(mod.Id); loaded != nil {
 		return nil, ErrThreadLoaded
 	}
 
 	threadConfig := &ThreadConfig{
-		RepoPath:           t.repoPath,
-		Config:             t.config,
-		Node:               t.Ipfs,
-		Datastore:          t.datastore,
-		Service:            t.threadsService,
-		ThreadsOutbox:      t.threadsOutbox,
-		CafeOutbox:         t.cafeOutbox,
-		SendUpdate:         t.sendThreadUpdate,
-		ContactDisplayInfo: t.ContactDisplayInfo,
+		RepoPath:      t.repoPath,
+		Config:        t.config,
+		Node:          t.Ipfs,
+		Datastore:     t.datastore,
+		Service:       t.threadsService,
+		ThreadsOutbox: t.threadsOutbox,
+		CafeOutbox:    t.cafeOutbox,
+		PushUpdate:    t.sendThreadUpdate,
 	}
 
 	thrd, err := NewThread(mod, threadConfig)
@@ -644,8 +626,8 @@ func (t *Textile) loadThread(mod *repo.Thread) (*Thread, error) {
 	return thrd, nil
 }
 
-// sendUpdate adds an update to the update channel
-func (t *Textile) sendUpdate(update Update) {
+// sendUpdate sends an update to the update channel
+func (t *Textile) sendUpdate(update *pb.WalletUpdate) {
 	for _, k := range internalThreadKeys {
 		if update.Key == k {
 			return
@@ -654,23 +636,30 @@ func (t *Textile) sendUpdate(update Update) {
 	t.updates <- update
 }
 
-// sendThreadUpdate adds a thread update to the update channel
-func (t *Textile) sendThreadUpdate(update ThreadUpdate) {
+// sendThreadUpdate sends a feed item to the update channel
+func (t *Textile) sendThreadUpdate(block *pb.Block, key string) {
 	for _, k := range internalThreadKeys {
-		if update.ThreadKey == k {
+		if key == k {
 			return
 		}
 	}
+
+	update, err := t.feedItem(block, feedItemOpts{})
+	if err != nil {
+		log.Errorf("error building thread update: %s", err)
+		return
+	}
+
 	t.threadUpdates.Send(update)
 }
 
 // sendNotification adds a notification to the notification channel
-func (t *Textile) sendNotification(notification *repo.Notification) error {
-	if err := t.datastore.Notifications().Add(notification); err != nil {
+func (t *Textile) sendNotification(note *pb.Notification) error {
+	if err := t.datastore.Notifications().Add(note); err != nil {
 		return err
 	}
 
-	t.notifications <- t.NotificationInfo(*notification)
+	t.notifications <- t.NotificationView(note)
 	return nil
 }
 
@@ -691,7 +680,7 @@ func (t *Textile) touchDatastore() error {
 }
 
 // setLogLevels hijacks the ipfs logging system, putting output to files
-func setLogLevels(repoPath string, logLevels map[string]string, disk bool) (io.Writer, error) {
+func setLogLevels(repoPath string, level *pb.LogLevel, disk bool) (io.Writer, error) {
 	var writer io.Writer
 	if disk {
 		writer = &lumberjack.Logger{
@@ -707,8 +696,8 @@ func setLogLevels(repoPath string, logLevels map[string]string, disk bool) (io.W
 	logger.SetBackend(backendFile)
 	logging.SetAllLoggers(logger.ERROR)
 
-	for key, value := range logLevels {
-		if err := logging.SetLogLevel(key, value); err != nil {
+	for key, value := range level.Systems {
+		if err := logging.SetLogLevel(key, value.String()); err != nil {
 			return nil, err
 		}
 	}
@@ -716,14 +705,14 @@ func setLogLevels(repoPath string, logLevels map[string]string, disk bool) (io.W
 }
 
 // getTextileDebugLevels returns a map of textile's logging subsystems set to debug
-func getTextileDebugLevels() map[string]string {
-	levels := make(map[string]string)
+func getTextileDebugLevels() *pb.LogLevel {
+	levels := make(map[string]pb.LogLevel_Level)
 	for _, system := range logging.GetSubsystems() {
 		if strings.HasPrefix(system, "tex") {
-			levels[system] = "DEBUG"
+			levels[system] = pb.LogLevel_DEBUG
 		}
 	}
-	return levels
+	return &pb.LogLevel{Systems: levels}
 }
 
 // removeLocks force deletes the IPFS repo and SQLite DB lock files

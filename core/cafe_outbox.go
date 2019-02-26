@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"sync"
-	"time"
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/crypto"
 	"github.com/textileio/textile-go/ipfs"
@@ -40,12 +40,12 @@ func NewCafeOutbox(service func() *CafeService, node func() *core.IpfsNode, data
 }
 
 // Add adds a request for each active cafe session
-func (q *CafeOutbox) Add(target string, rtype repo.CafeRequestType) error {
-	if rtype == repo.CafePeerInboxRequest {
+func (q *CafeOutbox) Add(target string, rtype pb.CafeRequest_Type) error {
+	if rtype == pb.CafeRequest_INBOX {
 		return errors.New("inbox request to own inbox, aborting")
 	}
 
-	sessions := q.datastore.CafeSessions().List()
+	sessions := q.datastore.CafeSessions().List().Items
 	if len(sessions) == 0 {
 		return nil
 	}
@@ -53,7 +53,7 @@ func (q *CafeOutbox) Add(target string, rtype repo.CafeRequestType) error {
 	// for each session, add a req
 	for _, session := range sessions {
 		// all possible request types are for our own peer
-		if err := q.add(q.node().Identity, target, *session.Cafe, rtype); err != nil {
+		if err := q.add(q.node().Identity, target, session.Cafe, rtype); err != nil {
 			return err
 		}
 	}
@@ -61,7 +61,7 @@ func (q *CafeOutbox) Add(target string, rtype repo.CafeRequestType) error {
 }
 
 // InboxRequest adds a request for a peer's inbox(es)
-func (q *CafeOutbox) InboxRequest(pid peer.ID, env *pb.Envelope, inboxes []repo.Cafe) error {
+func (q *CafeOutbox) InboxRequest(pid peer.ID, env *pb.Envelope, inboxes []*pb.Cafe) error {
 	if len(inboxes) == 0 {
 		return nil
 	}
@@ -72,8 +72,7 @@ func (q *CafeOutbox) InboxRequest(pid peer.ID, env *pb.Envelope, inboxes []repo.
 	}
 
 	for _, inbox := range inboxes {
-		cafe := repoCafeToProto(inbox)
-		if err := q.add(pid, hash.B58String(), *cafe, repo.CafePeerInboxRequest); err != nil {
+		if err := q.add(pid, hash.B58String(), inbox, pb.CafeRequest_INBOX); err != nil {
 			return err
 		}
 	}
@@ -97,28 +96,28 @@ func (q *CafeOutbox) Flush() {
 }
 
 // add queues a single request
-func (q *CafeOutbox) add(pid peer.ID, target string, cafe pb.Cafe, rtype repo.CafeRequestType) error {
+func (q *CafeOutbox) add(pid peer.ID, target string, cafe *pb.Cafe, rtype pb.CafeRequest_Type) error {
 	log.Debugf("adding cafe %s request for %s to %s: %s",
-		rtype.Description(), ipfs.ShortenID(pid.Pretty()), ipfs.ShortenID(cafe.Peer), target)
-	return q.datastore.CafeRequests().Add(&repo.CafeRequest{
-		Id:       ksuid.New().String(),
-		PeerId:   pid.Pretty(),
-		TargetId: target,
-		Cafe:     cafe,
-		Type:     rtype,
-		Date:     time.Now(),
+		rtype.String(), ipfs.ShortenID(pid.Pretty()), ipfs.ShortenID(cafe.Peer), target)
+	return q.datastore.CafeRequests().Add(&pb.CafeRequest{
+		Id:     ksuid.New().String(),
+		Peer:   pid.Pretty(),
+		Target: target,
+		Cafe:   cafe,
+		Type:   rtype,
+		Date:   ptypes.TimestampNow(),
 	})
 }
 
 // batch flushes a batch of requests
-func (q *CafeOutbox) batch(reqs []repo.CafeRequest) error {
+func (q *CafeOutbox) batch(reqs []pb.CafeRequest) error {
 	log.Debugf("handling %d cafe requests", len(reqs))
 	if len(reqs) == 0 {
 		return nil
 	}
 
 	// group reqs by cafe
-	groups := make(map[string][]repo.CafeRequest)
+	groups := make(map[string][]pb.CafeRequest)
 	for _, req := range reqs {
 		groups[req.Cafe.Peer] = append(groups[req.Cafe.Peer], req)
 	}
@@ -133,9 +132,9 @@ func (q *CafeOutbox) batch(reqs []repo.CafeRequest) error {
 			return err
 		}
 		wg.Add(1)
-		go func(cafe peer.ID, reqs []repo.CafeRequest) {
+		go func(cafe peer.ID, reqs []pb.CafeRequest) {
 			// group by type
-			types := make(map[repo.CafeRequestType][]repo.CafeRequest)
+			types := make(map[pb.CafeRequest_Type][]pb.CafeRequest)
 			for _, req := range reqs {
 				types[req.Type] = append(types[req.Type], req)
 			}
@@ -175,58 +174,58 @@ func (q *CafeOutbox) batch(reqs []repo.CafeRequest) error {
 }
 
 // handle handles a group of requests for a single cafe
-func (q *CafeOutbox) handle(reqs []repo.CafeRequest, rtype repo.CafeRequestType, cafe peer.ID) ([]string, error) {
+func (q *CafeOutbox) handle(reqs []pb.CafeRequest, rtype pb.CafeRequest_Type, cafe peer.ID) ([]string, error) {
 	var handled []string
 	var herr error
 	switch rtype {
 
 	// store requests are handled in bulk
-	case repo.CafeStoreRequest:
+	case pb.CafeRequest_STORE:
 		var cids []string
 		for _, req := range reqs {
-			cids = append(cids, req.TargetId)
+			cids = append(cids, req.Target)
 		}
 
 		stored, err := q.service().Store(cids, cafe)
 		for _, s := range stored {
 			for _, r := range reqs {
-				if r.TargetId == s {
+				if r.Target == s {
 					handled = append(handled, r.Id)
 				}
 			}
 		}
 		if err != nil {
-			log.Errorf("cafe %s request to %s failed: %s", rtype.Description(), cafe.Pretty(), err)
+			log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafe.Pretty(), err)
 			herr = err
 		}
 
-	case repo.CafeStoreThreadRequest:
+	case pb.CafeRequest_STORE_THREAD:
 		for _, req := range reqs {
-			thrd := q.datastore.Threads().Get(req.TargetId)
+			thrd := q.datastore.Threads().Get(req.Target)
 			if thrd == nil {
-				log.Warningf("could not find thread: %s", req.TargetId)
+				log.Warningf("could not find thread: %s", req.Target)
 				handled = append(handled, req.Id)
 				continue
 			}
 
 			if err := q.service().StoreThread(thrd, cafe); err != nil {
-				log.Errorf("cafe %s request to %s failed: %s", rtype.Description(), cafe.Pretty(), err)
+				log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafe.Pretty(), err)
 				herr = err
 				continue
 			}
 			handled = append(handled, req.Id)
 		}
 
-	case repo.CafePeerInboxRequest:
+	case pb.CafeRequest_INBOX:
 		for _, req := range reqs {
-			pid, err := peer.IDB58Decode(req.PeerId)
+			pid, err := peer.IDB58Decode(req.Peer)
 			if err != nil {
 				herr = err
 				continue
 			}
 
-			if err := q.service().DeliverMessage(req.TargetId, pid, protoCafeToRepo(&req.Cafe)); err != nil {
-				log.Errorf("cafe %s request to %s failed: %s", rtype.Description(), cafe.Pretty(), err)
+			if err := q.service().DeliverMessage(req.Target, pid, req.Cafe); err != nil {
+				log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafe.Pretty(), err)
 				herr = err
 				continue
 			}
@@ -259,7 +258,7 @@ func (q *CafeOutbox) prepForInbox(pid peer.ID, env *pb.Envelope) (mh.Multihash, 
 		return nil, err
 	}
 
-	if err := q.Add(id.Hash().B58String(), repo.CafeStoreRequest); err != nil {
+	if err := q.Add(id.Hash().B58String(), pb.CafeRequest_STORE); err != nil {
 		return nil, err
 	}
 

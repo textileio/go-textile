@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/textileio/textile-go/core"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/util"
 )
 
@@ -34,16 +34,16 @@ when a new block is added to a thread.
 
 There are several update types:
 
--  JOIN
--  ANNOUNCE
--  LEAVE
--  MESSAGE
--  FILES
--  COMMENT
--  LIKE
 -  MERGE
 -  IGNORE
 -  FLAG
+-  JOIN
+-  ANNOUNCE
+-  LEAVE
+-  TEXT
+-  FILES
+-  COMMENT
+-  LIKE
 
 Use the --thread option to subscribe to events emmited from a specific thread.
 The --type option can be used multiple times, e.g., --type files --type comment.
@@ -65,23 +65,23 @@ func (x *subCmd) Execute(args []string) error {
 				return nil
 			}
 
-			data, err := json.MarshalIndent(update, "", "    ")
+			out, err := pbMarshaler.MarshalToString(update)
 			if err == io.EOF {
 				break
 			} else if err != nil {
-				return nil
+				return err
 			}
-			output(string(data))
+			output(out)
 		}
 	}
 }
 
-func callSub(threadId string, types []string) (<-chan core.ThreadUpdate, error) {
+func callSub(threadId string, types []string) (<-chan *pb.FeedItem, error) {
 	if threadId != "" {
 		threadId = "/" + threadId
 	}
 
-	updates := make(chan core.ThreadUpdate, 10)
+	updates := make(chan *pb.FeedItem, 10)
 	go func() {
 		defer close(updates)
 
@@ -107,14 +107,14 @@ func callSub(threadId string, types []string) (<-chan core.ThreadUpdate, error) 
 
 		decoder := json.NewDecoder(res.Body)
 		for decoder.More() {
-			var info core.ThreadUpdate
-			if err := decoder.Decode(&info); err == io.EOF {
+			var update pb.FeedItem
+			if err := pbUnmarshaler.UnmarshalNext(decoder, &update); err == io.EOF {
 				return
 			} else if err != nil {
 				output(err.Error())
 				return
 			}
-			updates <- info
+			updates <- &update
 		}
 	}()
 

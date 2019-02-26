@@ -39,21 +39,16 @@ func (m *Mobile) Decrypt(input []byte) ([]byte, error) {
 }
 
 // AccountPeers calls core AccountPeers
-func (m *Mobile) AccountPeers(input []byte) (string, error) {
+func (m *Mobile) AccountPeers(input []byte) ([]byte, error) {
 	if !m.node.Started() {
-		return "", core.ErrStopped
+		return nil, core.ErrStopped
 	}
 
-	peers, err := m.node.AccountPeers()
-	if err != nil {
-		return "", err
-	}
-
-	return toJSON(peers)
+	return proto.Marshal(m.node.AccountPeers())
 }
 
 // FindThreadBackups calls core FindThreadBackups
-func (m *Mobile) FindThreadBackups(query []byte, options []byte, cb Callback) (*CancelFn, error) {
+func (m *Mobile) FindThreadBackups(query []byte, options []byte) (*SearchHandle, error) {
 	if !m.node.Online() {
 		return nil, core.ErrOffline
 	}
@@ -72,5 +67,5 @@ func (m *Mobile) FindThreadBackups(query []byte, options []byte, cb Callback) (*
 		return nil, err
 	}
 
-	return handleSearchStream(resCh, errCh, cancel, cb)
+	return m.handleSearchStream(resCh, errCh, cancel)
 }

@@ -4,10 +4,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/textileio/textile-go/repo"
-
 	"github.com/gin-gonic/gin"
 	m "github.com/textileio/textile-go/mill"
+	"github.com/textileio/textile-go/pb"
 )
 
 // schemaMill godoc
@@ -16,8 +15,8 @@ import (
 // @Tags mills
 // @Accept application/json
 // @Produce application/json
-// @Param schema body schema.Node true "schema"
-// @Success 201 {object} repo.File "file"
+// @Param schema body pb.Node true "schema"
+// @Success 201 {object} pb.FileIndex "file"
 // @Failure 400 {string} string "Bad Request"
 // @Router /mills/schema [post]
 func (a *api) schemaMill(g *gin.Context) {
@@ -41,7 +40,7 @@ func (a *api) schemaMill(g *gin.Context) {
 		return
 	}
 
-	g.JSON(http.StatusCreated, added)
+	pbJSON(g, http.StatusCreated, added)
 }
 
 // blobMill godoc
@@ -53,7 +52,7 @@ func (a *api) schemaMill(g *gin.Context) {
 // @Produce application/json
 // @Param file formData file false "multipart/form-data file"
 // @Param X-Textile-Opts header string false "plaintext: whether to leave unencrypted), use: if empty, assumes body contains multipart form file data, otherwise, will attempt to fetch given CID from IPFS" default(plaintext=false,use="")
-// @Success 201 {object} repo.File "file"
+// @Success 201 {object} pb.FileIndex "file"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /mills/blob [post]
@@ -79,7 +78,7 @@ func (a *api) blobMill(g *gin.Context) {
 		return
 	}
 
-	g.JSON(http.StatusCreated, added)
+	pbJSON(g, http.StatusCreated, added)
 }
 
 // imageResizeMill godoc
@@ -91,7 +90,7 @@ func (a *api) blobMill(g *gin.Context) {
 // @Produce application/json
 // @Param file formData file false "multipart/form-data file"
 // @Param X-Textile-Opts header string true "plaintext: whether to leave unencrypted, use: if empty, assumes body contains multipart form file data, otherwise, will attempt to fetch given CID from IPFS, width: the requested image width (required), quality: the requested JPEG image quality" default(plaintext=false,use="",quality=75,width=100)
-// @Success 201 {object} repo.File "file"
+// @Success 201 {object} pb.FileIndex "file"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /mills/image/resize [post]
@@ -133,7 +132,7 @@ func (a *api) imageResizeMill(g *gin.Context) {
 		return
 	}
 
-	g.JSON(http.StatusCreated, added)
+	pbJSON(g, http.StatusCreated, added)
 }
 
 // imageExifMill godoc
@@ -145,7 +144,7 @@ func (a *api) imageResizeMill(g *gin.Context) {
 // @Produce application/json
 // @Param file formData file false "multipart/form-data file"
 // @Param X-Textile-Opts header string false "plaintext: whether to leave unencrypted, use: if empty, assumes body contains multipart form file data, otherwise, will attempt to fetch given CID from IPFS" default(plaintext=false,use="")
-// @Success 201 {object} repo.File "file"
+// @Success 201 {object} pb.FileIndex "file"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /mills/image/exif [post]
@@ -172,7 +171,7 @@ func (a *api) imageExifMill(g *gin.Context) {
 		return
 	}
 
-	g.JSON(http.StatusCreated, added)
+	pbJSON(g, http.StatusCreated, added)
 }
 
 // jsonMill godoc
@@ -184,7 +183,7 @@ func (a *api) imageExifMill(g *gin.Context) {
 // @Produce application/json
 // @Param file formData file false "multipart/form-data file"
 // @Param X-Textile-Opts header string false "plaintext: whether to leave unencrypted, use: if empty, assumes body contains multipart form file data, otherwise, will attempt to fetch given CID from IPFS" default(plaintext="false",use="")
-// @Success 201 {object} repo.File "file"
+// @Success 201 {object} pb.FileIndex "file"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /mills/json [post]
@@ -217,7 +216,7 @@ func (a *api) jsonMill(g *gin.Context) {
 		conf.Input = body
 
 	} else {
-		var file *repo.File
+		var file *pb.FileIndex
 		reader, file, err := a.node.FileData(opts["use"])
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
@@ -238,5 +237,5 @@ func (a *api) jsonMill(g *gin.Context) {
 		return
 	}
 
-	g.JSON(http.StatusCreated, added)
+	pbJSON(g, http.StatusCreated, added)
 }

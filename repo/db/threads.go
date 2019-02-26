@@ -5,7 +5,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 )
 
 type ThreadDB struct {
@@ -16,7 +18,7 @@ func NewThreadStore(db *sql.DB, lock *sync.Mutex) repo.ThreadStore {
 	return &ThreadDB{modelStore{db, lock}}
 }
 
-func (c *ThreadDB) Add(thread *repo.Thread) error {
+func (c *ThreadDB) Add(thread *pb.Thread) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -33,7 +35,7 @@ func (c *ThreadDB) Add(thread *repo.Thread) error {
 	_, err = stmt.Exec(
 		thread.Id,
 		thread.Key,
-		thread.PrivKey,
+		thread.Sk,
 		thread.Name,
 		thread.Schema,
 		thread.Initiator,
@@ -51,27 +53,27 @@ func (c *ThreadDB) Add(thread *repo.Thread) error {
 	return nil
 }
 
-func (c *ThreadDB) Get(id string) *repo.Thread {
+func (c *ThreadDB) Get(id string) *pb.Thread {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from threads where id='" + id + "';")
-	if len(ret) == 0 {
+	res := c.handleQuery("select * from threads where id='" + id + "';")
+	if len(res.Items) == 0 {
 		return nil
 	}
-	return &ret[0]
+	return res.Items[0]
 }
 
-func (c *ThreadDB) GetByKey(key string) *repo.Thread {
+func (c *ThreadDB) GetByKey(key string) *pb.Thread {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from threads where key='" + key + "';")
-	if len(ret) == 0 {
+	res := c.handleQuery("select * from threads where key='" + key + "';")
+	if len(res.Items) == 0 {
 		return nil
 	}
-	return &ret[0]
+	return res.Items[0]
 }
 
-func (c *ThreadDB) List() []repo.Thread {
+func (c *ThreadDB) List() *pb.ThreadList {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	return c.handleQuery("select * from threads;")
@@ -100,12 +102,12 @@ func (c *ThreadDB) Delete(id string) error {
 	return err
 }
 
-func (c *ThreadDB) handleQuery(stm string) []repo.Thread {
-	var ret []repo.Thread
+func (c *ThreadDB) handleQuery(stm string) *pb.ThreadList {
+	list := &pb.ThreadList{Items: make([]*pb.Thread, 0)}
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
-		return nil
+		return list
 	}
 	for rows.Next() {
 		var id, key, name, schema, initiator, head, members string
@@ -115,25 +117,19 @@ func (c *ThreadDB) handleQuery(stm string) []repo.Thread {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		mlist := make([]string, 0)
-		for _, m := range strings.Split(members, ",") {
-			if m != "" {
-				mlist = append(mlist, m)
-			}
-		}
-		ret = append(ret, repo.Thread{
+		list.Items = append(list.Items, &pb.Thread{
 			Id:        id,
 			Key:       key,
-			PrivKey:   skb,
+			Sk:        skb,
 			Name:      name,
 			Schema:    schema,
 			Initiator: initiator,
-			Type:      repo.ThreadType(typeInt),
-			Sharing:   repo.ThreadSharing(sharingInt),
-			Members:   mlist,
-			State:     repo.ThreadState(stateInt),
+			Type:      pb.Thread_Type(typeInt),
+			Sharing:   pb.Thread_Sharing(sharingInt),
+			Members:   util.SplitString(members, ","),
+			State:     pb.Thread_State(stateInt),
 			Head:      head,
 		})
 	}
-	return ret
+	return list
 }

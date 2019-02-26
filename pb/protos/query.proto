@@ -4,11 +4,6 @@ option go_package = "pb";
 import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 
-enum QueryType {
-    THREAD_BACKUPS = 0;
-    CONTACTS       = 1;
-}
-
 message QueryOptions {
     bool local              = 1;
     int32 limit             = 2;
@@ -25,14 +20,19 @@ message QueryOptions {
 message Query {
     string id                   = 1;
     string token                = 2;
-    QueryType type              = 3;
+    Type type                   = 3;
     QueryOptions options        = 4;
     google.protobuf.Any payload = 5;
+
+    enum Type {
+        THREAD_BACKUPS = 0;
+        CONTACTS       = 1;
+    }
 }
 
 message PubSubQuery {
     string id                   = 1;
-    QueryType type              = 2;
+    Query.Type type             = 2;
     google.protobuf.Any payload = 3;
     ResponseType responseType   = 4;
 
@@ -50,23 +50,13 @@ message QueryResult {
 }
 
 message QueryResults {
-    QueryType type             = 1;
+    Query.Type type            = 1;
     repeated QueryResult items = 2;
 }
 
 message PubSubQueryResults {
     string id            = 1;
     QueryResults results = 2;
-}
-
-message QueryEvent {
-    Type type        = 1;
-    QueryResult data = 2;
-
-    enum Type {
-        DATA = 0;
-        DONE = 1;
-    }
 }
 
 message ContactQuery {

@@ -8,6 +8,7 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/textile-go/broadcast"
 	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/textile-go/util"
 )
 
 // queryResultSet holds a unique set of search results
@@ -37,7 +38,7 @@ func (s *queryResultSet) Add(items ...*pb.QueryResult) []*pb.QueryResult {
 		case pb.QueryOptions_NO_FILTER:
 			break
 		case pb.QueryOptions_HIDE_OLDER:
-			if last != nil && protoTimeToNano(i.Date) <= protoTimeToNano(last.Date) {
+			if last != nil && util.ProtoNanos(i.Date) <= util.ProtoNanos(last.Date) {
 				continue
 			}
 		}
@@ -61,7 +62,7 @@ func (s *queryResultSet) List() []*pb.QueryResult {
 	return list
 }
 
-// Full returns whether or not the number of results meets or exceeds the
+// Full returns whether or not the number of results meets or exceeds limit
 func (s *queryResultSet) Full() bool {
 	s.mux.Lock()
 	defer s.mux.Unlock()
@@ -83,7 +84,7 @@ func (t *Textile) search(query *pb.Query) (<-chan *pb.QueryResult, <-chan error,
 	// remote results channel(s)
 	var cafeChs []chan *pb.QueryResult
 	clientCh := make(chan *pb.QueryResult)
-	sessions := t.datastore.CafeSessions().List()
+	sessions := t.datastore.CafeSessions().List().Items
 	if len(sessions) > 0 {
 		for range sessions {
 			cafeCh := make(chan *pb.QueryResult)

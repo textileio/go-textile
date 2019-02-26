@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
 // addContacts godoc
@@ -18,13 +17,13 @@ import (
 // @Accept application/json
 // @Produce application/json
 // @Param id path string true "contact id"
-// @Param contact body repo.Contact true "contact"
+// @Param contact body pb.Contact true "contact"
 // @Success 200 {string} string "ok"
 // @Failure 400 {string} string "Bad Request"
 // @Router /contacts/{id} [put]
 func (a *api) addContacts(g *gin.Context) {
-	var contact *repo.Contact
-	if err := g.BindJSON(&contact); err != nil {
+	var contact *pb.Contact
+	if err := pbUnmarshaler.Unmarshal(g.Request.Body, contact); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
@@ -55,7 +54,7 @@ func (a *api) addContacts(g *gin.Context) {
 // @Tags contacts
 // @Produce application/json
 // @Param X-Textile-Opts header string false "thread: Thread ID (omit for all known contacts)" default(thread=)
-// @Success 200 {array} core.ContactInfo "contacts"
+// @Success 200 {object} pb.ContactList "contacts"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /contacts [get]
@@ -66,7 +65,7 @@ func (a *api) lsContacts(g *gin.Context) {
 		return
 	}
 
-	var contacts []ContactInfo
+	contacts := &pb.ContactList{Items: make([]*pb.Contact, 0)}
 
 	threadId := opts["thread"]
 	if threadId == "default" {
@@ -78,22 +77,19 @@ func (a *api) lsContacts(g *gin.Context) {
 			g.String(http.StatusNotFound, ErrThreadNotFound.Error())
 			return
 		}
-		contacts = make([]ContactInfo, 0)
+
 		for _, p := range thrd.Peers() {
 			contact := a.node.Contact(p.Id)
 			if contact != nil {
-				contacts = append(contacts, *contact)
+				contacts.Items = append(contacts.Items, contact)
 			}
 		}
+
 	} else {
-		contacts, err = a.node.Contacts()
-		if err != nil {
-			g.String(http.StatusBadRequest, err.Error())
-			return
-		}
+		contacts = a.node.Contacts()
 	}
 
-	g.JSON(http.StatusOK, contacts)
+	pbJSON(g, http.StatusOK, contacts)
 }
 
 // getContacts godoc
@@ -102,7 +98,7 @@ func (a *api) lsContacts(g *gin.Context) {
 // @Tags contacts
 // @Produce application/json
 // @Param id path string true "contact id"
-// @Success 200 {object} core.ContactInfo "contacts"
+// @Success 200 {object} pb.Contact "contact"
 // @Failure 404 {string} string "Not Found"
 // @Router /contacts/{id} [get]
 func (a *api) getContacts(g *gin.Context) {
@@ -114,7 +110,7 @@ func (a *api) getContacts(g *gin.Context) {
 		return
 	}
 
-	g.JSON(http.StatusOK, info)
+	pbJSON(g, http.StatusOK, info)
 }
 
 // rmContacts godoc
@@ -150,7 +146,7 @@ func (a *api) rmContacts(g *gin.Context) {
 // @Tags contacts
 // @Produce application/json
 // @Param X-Textile-Opts header string false "local: Whether to only search local contacts, limit: Stops searching after limit results are found, wait: Stops searching after 'wait' seconds have elapsed (max 10s), username: search by username string, peer: search by peer id string, address: search by account address string, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON" default(local="false",limit=5,wait=5,peer=,address=,username=,events="false")
-// @Success 200 {object} mill.Json "contact stream"
+// @Success 200 {object} pb.QueryResult "results stream"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /contacts/search [post]

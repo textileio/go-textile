@@ -40,29 +40,35 @@ func (a *api) lsThreadFeed(g *gin.Context) {
 		return
 	}
 
-	threadId := opts["thread"]
-	if threadId == "default" {
-		threadId = a.node.config.Threads.Defaults.ID
+	mode := strings.ToUpper(opts["mode"])
+
+	req := &pb.FeedRequest{
+		Offset: opts["offset"],
+		Thread: opts["thread"],
+		Mode:   pb.FeedRequest_Mode(pb.FeedRequest_Mode_value[mode]),
+		Limit:  5,
 	}
-	if threadId != "" {
-		thrd := a.node.Thread(threadId)
+	if req.Thread == "default" {
+		req.Thread = a.node.config.Threads.Defaults.ID
+	}
+	if req.Thread != "" {
+		thrd := a.node.Thread(req.Thread)
 		if thrd == nil {
 			g.String(http.StatusNotFound, ErrThreadNotFound.Error())
 			return
 		}
 	}
 
-	limit := 5
 	if opts["limit"] != "" {
-		limit, err = strconv.Atoi(opts["limit"])
+		limit, err := strconv.Atoi(opts["limit"])
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return
 		}
+		req.Limit = int32(limit)
 	}
 
-	feedMode := pb.FeedMode_value[strings.ToUpper(opts["mode"])]
-	list, err := a.node.Feed(opts["offset"], limit, threadId, pb.FeedMode(feedMode))
+	list, err := a.node.Feed(req)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

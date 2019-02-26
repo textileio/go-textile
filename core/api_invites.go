@@ -8,9 +8,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mr-tron/base58/base58"
+	"github.com/textileio/textile-go/pb"
 )
-
-type InviteInfo map[string]string
 
 // createInvites godoc
 // @Summary Create an invite to a thread
@@ -18,7 +17,7 @@ type InviteInfo map[string]string
 // @Tags invites
 // @Produce application/json
 // @Param X-Textile-Opts header string false "thread: Thread ID (can also use 'default'), peer: Peer ID (omit to create an external invite)" default(thread=,peer=)
-// @Success 201 {object} core.InviteInfo "invite"
+// @Success 201 {object} pb.NewInvite "invite"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
@@ -48,25 +47,25 @@ func (a *api) createInvites(g *gin.Context) {
 		return
 	}
 
-	result := make(map[string]string)
+	result := &pb.NewInvite{}
 	if pid != "" {
 		hash, err := thrd.AddInvite(pid)
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return
 		}
-		result["invite"] = hash.B58String()
+		result.Id = hash.B58String()
 	} else {
 		hash, key, err := thrd.AddExternalInvite()
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return
 		}
-		result["invite"] = hash.B58String()
-		result["key"] = base58.FastBase58Encoding(key)
+		result.Id = hash.B58String()
+		result.Key = base58.FastBase58Encoding(key)
 	}
 
-	g.JSON(http.StatusCreated, result)
+	pbJSON(g, http.StatusCreated, result)
 }
 
 // lsInvites godoc
@@ -74,16 +73,10 @@ func (a *api) createInvites(g *gin.Context) {
 // @Description Lists all pending thread invites
 // @Tags invites
 // @Produce application/json
-// @Success 200 {array} core.ThreadInviteInfo "invites"
+// @Success 200 {object} pb.InviteViewList "invites"
 // @Router /invites [get]
 func (a *api) lsInvites(g *gin.Context) {
-	list := make([]ThreadInviteInfo, 0)
-	res := a.node.Invites()
-	if len(res) > 0 {
-		list = res
-	}
-
-	g.JSON(http.StatusOK, list)
+	pbJSON(g, http.StatusOK, a.node.Invites())
 }
 
 // acceptInvites godoc
@@ -94,7 +87,7 @@ func (a *api) lsInvites(g *gin.Context) {
 // @Produce application/json
 // @Param id path string true "invite id"
 // @Param X-Textile-Opts header string false "key: key for an external invite" default(key=)
-// @Success 201 {object} core.BlockInfo "join block"
+// @Success 201 {object} pb.Block "join block"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 409 {string} string "Conflict"
 // @Failure 500 {string} string "Internal Server Error"
@@ -131,13 +124,13 @@ func (a *api) acceptInvites(g *gin.Context) {
 		return
 	}
 
-	info, err := a.node.BlockInfo(hash.B58String())
+	block, err := a.node.BlockView(hash.B58String())
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	g.JSON(http.StatusCreated, info)
+	pbJSON(g, http.StatusCreated, block)
 }
 
 // ignoreInvites godoc

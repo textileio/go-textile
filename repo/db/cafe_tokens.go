@@ -3,9 +3,10 @@ package db
 import (
 	"database/sql"
 	"sync"
-	"time"
 
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 )
 
 type CafeTokenDB struct {
@@ -16,7 +17,7 @@ func NewCafeTokenStore(db *sql.DB, lock *sync.Mutex) repo.CafeTokenStore {
 	return &CafeTokenDB{modelStore{db, lock}}
 }
 
-func (c *CafeTokenDB) Add(token *repo.CafeToken) error {
+func (c *CafeTokenDB) Add(token *pb.CafeToken) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -32,8 +33,8 @@ func (c *CafeTokenDB) Add(token *repo.CafeToken) error {
 	defer stmt.Close()
 	_, err = stmt.Exec(
 		token.Id,
-		token.Token,
-		token.Date.UnixNano(),
+		token.Value,
+		util.ProtoNanos(token.Date),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -43,17 +44,17 @@ func (c *CafeTokenDB) Add(token *repo.CafeToken) error {
 	return nil
 }
 
-func (c *CafeTokenDB) Get(id string) *repo.CafeToken {
+func (c *CafeTokenDB) Get(id string) *pb.CafeToken {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from cafe_tokens where id='" + id + "';")
-	if len(ret) == 0 {
+	res := c.handleQuery("select * from cafe_tokens where id='" + id + "';")
+	if len(res) == 0 {
 		return nil
 	}
-	return &ret[0]
+	return &res[0]
 }
 
-func (c *CafeTokenDB) List() []repo.CafeToken {
+func (c *CafeTokenDB) List() []pb.CafeToken {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stm := "select * from cafe_tokens order by id desc;"
@@ -67,8 +68,8 @@ func (c *CafeTokenDB) Delete(id string) error {
 	return err
 }
 
-func (c *CafeTokenDB) handleQuery(stm string) []repo.CafeToken {
-	var ret []repo.CafeToken
+func (c *CafeTokenDB) handleQuery(stm string) []pb.CafeToken {
+	var list []pb.CafeToken
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -82,11 +83,11 @@ func (c *CafeTokenDB) handleQuery(stm string) []repo.CafeToken {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		ret = append(ret, repo.CafeToken{
+		list = append(list, pb.CafeToken{
 			Id:    id,
-			Token: token,
-			Date:  time.Unix(0, dateInt),
+			Value: token,
+			Date:  util.ProtoTs(dateInt),
 		})
 	}
-	return ret
+	return list
 }

@@ -1,11 +1,18 @@
 package mill
 
 import (
+	"bytes"
 	"encoding/json"
 
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/schema"
 	"github.com/xeipuuv/gojsonschema"
 )
+
+var pbMarshaler = jsonpb.Marshaler{
+	OrigName: true,
+}
 
 type Schema struct{}
 
@@ -30,8 +37,8 @@ func (m *Schema) Options(add map[string]interface{}) (string, error) {
 }
 
 func (m *Schema) Mill(input []byte, name string) (*Result, error) {
-	var node schema.Node
-	if err := json.Unmarshal(input, &node); err != nil {
+	var node pb.Node
+	if err := jsonpb.Unmarshal(bytes.NewReader(input), &node); err != nil {
 		return nil, err
 	}
 
@@ -50,7 +57,7 @@ func (m *Schema) Mill(input []byte, name string) (*Result, error) {
 				if link.JsonSchema == nil {
 					return nil, schema.ErrMissingJsonSchema
 				}
-				if err := validateJsonSchema(link.JsonSchema); err != nil {
+				if err := validateJsonSchema(pb.ToMap(link.JsonSchema)); err != nil {
 					return nil, err
 				}
 			}
@@ -71,18 +78,18 @@ func (m *Schema) Mill(input []byte, name string) (*Result, error) {
 			if node.JsonSchema == nil {
 				return nil, schema.ErrMissingJsonSchema
 			}
-			if err := validateJsonSchema(node.JsonSchema); err != nil {
+			if err := validateJsonSchema(pb.ToMap(node.JsonSchema)); err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	data, err := json.Marshal(&node)
+	data, err := pbMarshaler.MarshalToString(&node)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Result{File: data}, nil
+	return &Result{File: []byte(data)}, nil
 }
 
 func validateJsonSchema(jschema map[string]interface{}) error {

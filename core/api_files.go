@@ -4,11 +4,12 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/textileio/textile-go/pb"
+
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 
 	"github.com/gin-gonic/gin"
 	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema"
 )
 
@@ -20,9 +21,9 @@ import (
 // @Tags threads
 // @Accept application/json
 // @Produce application/json
-// @Param dir body core.Directory true "milled dir (output from mill endpoint)"
+// @Param dir body pb.Directory true "milled dir (output from mill endpoint)"
 // @Param X-Textile-Opts header string false "caption: Caption to add to file(s)" default(caption=)
-// @Success 201 {object} core.BlockInfo "block"
+// @Success 201 {object} pb.Files "file"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
@@ -45,23 +46,23 @@ func (a *api) addThreadFiles(g *gin.Context) {
 	}
 
 	var node ipld.Node
-	var keys Keys
+	var keys *pb.Keys
 
-	var dirs []Directory
-	if err := g.BindJSON(&dirs); err != nil {
+	dirs := new(pb.DirectoryList)
+	if err := pbUnmarshaler.Unmarshal(g.Request.Body, dirs); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
-	if len(dirs) == 0 {
+	if len(dirs.Items) == 0 {
 		g.String(http.StatusBadRequest, "no files found")
 		return
 	}
 
-	if dirs[0][schema.SingleFileTag].Hash != "" {
-		var files []repo.File
-		for _, dir := range dirs {
-			if len(dir) > 0 && dir[schema.SingleFileTag].Hash != "" {
-				files = append(files, dir[schema.SingleFileTag])
+	if dirs.Items[0].Files[schema.SingleFileTag] != nil {
+		var files []*pb.FileIndex
+		for _, dir := range dirs.Items {
+			if len(dir.Files) > 0 && dir.Files[schema.SingleFileTag].Hash != "" {
+				files = append(files, dir.Files[schema.SingleFileTag])
 			}
 		}
 		node, keys, err = a.node.AddNodeFromFiles(files)
@@ -82,19 +83,19 @@ func (a *api) addThreadFiles(g *gin.Context) {
 		return
 	}
 
-	hash, err := thrd.AddFiles(node, opts["caption"], keys)
+	hash, err := thrd.AddFiles(node, opts["caption"], keys.Files)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	info, err := a.node.BlockInfo(hash.B58String())
+	files, err := a.node.File(hash.B58String())
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	g.JSON(http.StatusCreated, info)
+	pbJSON(g, http.StatusCreated, files)
 }
 
 // lsThreadFiles godoc
@@ -156,13 +157,13 @@ func (a *api) lsThreadFiles(g *gin.Context) {
 // @Failure 400 {string} string "Bad Request"
 // @Router /files/{block} [get]
 func (a *api) getThreadFiles(g *gin.Context) {
-	info, err := a.node.File(g.Param("block"))
+	files, err := a.node.File(g.Param("block"))
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	pbJSON(g, http.StatusOK, info)
+	pbJSON(g, http.StatusOK, files)
 }
 
 // lsThreadFileTargetKeys godoc
@@ -171,7 +172,7 @@ func (a *api) getThreadFiles(g *gin.Context) {
 // @Tags files
 // @Produce application/json
 // @Param blotargetck path string true "target id"
-// @Success 200 {object} core.Keys "keys"
+// @Success 200 {object} pb.Keys "keys"
 // @Failure 400 {string} string "Bad Request"
 // @Router /keys/{target} [get]
 func (a *api) lsThreadFileTargetKeys(g *gin.Context) {
@@ -189,5 +190,5 @@ func (a *api) lsThreadFileTargetKeys(g *gin.Context) {
 		return
 	}
 
-	g.JSON(http.StatusOK, keys)
+	pbJSON(g, http.StatusOK, keys)
 }

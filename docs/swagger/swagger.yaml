@@ -1,181 +1,7 @@
 basePath: /api/v0
 definitions:
-  core.BlockInfo:
-    properties:
-      author_id:
-        type: string
-      avatar:
-        type: string
-      body:
-        type: string
-      date:
-        type: string
-      id:
-        type: string
-      parents:
-        items:
-          type: string
-        type: array
-      target:
-        type: string
-      thread_id:
-        type: string
-      type:
-        type: string
-      username:
-        type: string
-    type: object
-  core.ContactInfo:
-    properties:
-      address:
-        type: string
-      avatar:
-        type: string
-      created:
-        type: string
-      id:
-        type: string
-      inboxes:
-        items:
-          $ref: '#/definitions/repo.Cafe'
-        type: array
-      thread_ids:
-        items:
-          type: string
-        type: array
-      updated:
-        type: string
-      username:
-        type: string
-    type: object
-  core.Directory:
-    additionalProperties:
-      properties:
-        added:
-          type: string
-        checksum:
-          type: string
-        hash:
-          type: string
-        key:
-          type: string
-        media:
-          type: string
-        meta:
-          type: object
-        mill:
-          type: string
-        name:
-          type: string
-        opts:
-          type: string
-        size:
-          type: integer
-        source:
-          type: string
-        targets:
-          items:
-            type: string
-          type: array
-      type: object
-    type: object
-  core.InviteInfo:
-    additionalProperties: {}
-    type: object
-  core.Keys:
-    additionalProperties: {}
-    type: object
-  core.NotificationInfo:
-    properties:
-      actor_id:
-        type: string
-      avatar:
-        type: string
-      block_id:
-        type: string
-      body:
-        type: string
-      date:
-        type: string
-      id:
-        type: string
-      read:
-        type: boolean
-      subject:
-        type: string
-      subject_id:
-        type: string
-      target:
-        type: string
-      type:
-        type: string
-      username:
-        type: string
-    type: object
   core.SubsystemInfo:
     additionalProperties: {}
-    type: object
-  core.ThreadInfo:
-    properties:
-      block_cnt:
-        type: integer
-      file_cnt:
-        type: integer
-      head:
-        $ref: '#/definitions/core.BlockInfo'
-        type: object
-      id:
-        type: string
-      initiator:
-        type: string
-      key:
-        type: string
-      members:
-        items:
-          type: string
-        type: array
-      name:
-        type: string
-      peer_cnt:
-        type: integer
-      schema:
-        $ref: '#/definitions/schema.Node'
-        type: object
-      schema_id:
-        type: string
-      sharing:
-        type: string
-      state:
-        type: string
-      type:
-        type: string
-    type: object
-  core.ThreadInviteInfo:
-    properties:
-      avatar:
-        type: string
-      date:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-      username:
-        type: string
-    type: object
-  core.ThreadUpdate:
-    properties:
-      block:
-        $ref: '#/definitions/core.BlockInfo'
-        type: object
-      info:
-        type: object
-      thread_id:
-        type: string
-      thread_key:
-        type: string
-      thread_name:
-        type: string
     type: object
   ipfs.ConnInfos:
     properties:
@@ -207,6 +33,38 @@ definitions:
         type: string
     type: object
   mill.Json:
+    type: object
+  pb.Block:
+    properties:
+      author:
+        type: string
+      body:
+        type: string
+      date:
+        type: string
+      id:
+        type: string
+      parents:
+        items:
+          type: string
+        type: array
+      target:
+        type: string
+      thread:
+        type: string
+      type:
+        type: integer
+      user:
+        $ref: '#/definitions/pb.User'
+        description: view info
+        type: object
+    type: object
+  pb.BlockList:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/pb.Block'
+        type: array
     type: object
   pb.Cafe:
     properties:
@@ -247,19 +105,15 @@ definitions:
       type:
         type: string
     type: object
-  pb.CafeSessions:
+  pb.CafeSessionList:
     properties:
-      values:
+      items:
         items:
           $ref: '#/definitions/pb.CafeSession'
         type: array
     type: object
   pb.Comment:
     properties:
-      author:
-        type: string
-      avatar:
-        type: string
       body:
         type: string
       date:
@@ -269,8 +123,9 @@ definitions:
       target:
         $ref: '#/definitions/pb.FeedItem'
         type: object
-      username:
-        type: string
+      user:
+        $ref: '#/definitions/pb.User'
+        type: object
     type: object
   pb.CommentList:
     properties:
@@ -278,6 +133,42 @@ definitions:
         items:
           $ref: '#/definitions/pb.Comment'
         type: array
+    type: object
+  pb.Contact:
+    properties:
+      address:
+        type: string
+      avatar:
+        type: string
+      created:
+        type: string
+      id:
+        type: string
+      inboxes:
+        items:
+          $ref: '#/definitions/pb.Cafe'
+        type: array
+      threads:
+        description: view info
+        items:
+          type: string
+        type: array
+      updated:
+        type: string
+      username:
+        type: string
+    type: object
+  pb.ContactList:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/pb.Contact'
+        type: array
+    type: object
+  pb.Directory:
+    properties:
+      files:
+        type: object
     type: object
   pb.FeedItem:
     properties:
@@ -340,10 +231,6 @@ definitions:
     type: object
   pb.Files:
     properties:
-      author:
-        type: string
-      avatar:
-        type: string
       block:
         type: string
       caption:
@@ -368,8 +255,9 @@ definitions:
         items:
           type: string
         type: array
-      username:
-        type: string
+      user:
+        $ref: '#/definitions/pb.User'
+        type: object
     type: object
   pb.FilesList:
     properties:
@@ -378,12 +266,32 @@ definitions:
           $ref: '#/definitions/pb.Files'
         type: array
     type: object
+  pb.InviteView:
+    properties:
+      date:
+        type: string
+      id:
+        type: string
+      inviter:
+        $ref: '#/definitions/pb.User'
+        type: object
+      name:
+        type: string
+    type: object
+  pb.InviteViewList:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/pb.InviteView'
+        type: array
+    type: object
+  pb.Keys:
+    properties:
+      files:
+        type: object
+    type: object
   pb.Like:
     properties:
-      author:
-        type: string
-      avatar:
-        type: string
       date:
         type: string
       id:
@@ -391,8 +299,9 @@ definitions:
       target:
         $ref: '#/definitions/pb.FeedItem'
         type: object
-      username:
-        type: string
+      user:
+        $ref: '#/definitions/pb.User'
+        type: object
     type: object
   pb.LikeList:
     properties:
@@ -401,12 +310,79 @@ definitions:
           $ref: '#/definitions/pb.Like'
         type: array
     type: object
+  pb.NewInvite:
+    properties:
+      id:
+        type: string
+      inviter:
+        type: string
+      key:
+        type: string
+    type: object
+  pb.Node:
+    properties:
+      json_schema:
+        type: string
+      links:
+        type: object
+      mill:
+        type: string
+      name:
+        type: string
+      opts:
+        type: object
+      pin:
+        type: boolean
+      plaintext:
+        type: boolean
+    type: object
+  pb.Notification:
+    properties:
+      actor:
+        type: string
+      block:
+        type: string
+      body:
+        type: string
+      date:
+        type: string
+      id:
+        type: string
+      read:
+        type: boolean
+      subject:
+        type: string
+      subject_desc:
+        type: string
+      target:
+        type: string
+      type:
+        type: integer
+      user:
+        $ref: '#/definitions/pb.User'
+        description: view info
+        type: object
+    type: object
+  pb.NotificationList:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/pb.Notification'
+        type: array
+    type: object
+  pb.QueryResult:
+    properties:
+      date:
+        type: string
+      id:
+        type: string
+      local:
+        type: boolean
+      value:
+        type: string
+    type: object
   pb.Text:
     properties:
-      author:
-        type: string
-      avatar:
-        type: string
       block:
         type: string
       body:
@@ -421,8 +397,9 @@ definitions:
         items:
           $ref: '#/definitions/pb.Like'
         type: array
-      username:
-        type: string
+      user:
+        $ref: '#/definitions/pb.User'
+        type: object
     type: object
   pb.TextList:
     properties:
@@ -433,8 +410,14 @@ definitions:
     type: object
   pb.Thread:
     properties:
+      block_count:
+        type: integer
       head:
         type: string
+      head_block:
+        $ref: '#/definitions/pb.Block'
+        description: view info
+        type: object
       id:
         type: string
       initiator:
@@ -447,8 +430,13 @@ definitions:
         type: array
       name:
         type: string
+      peer_count:
+        type: integer
       schema:
         type: string
+      schema_node:
+        $ref: '#/definitions/pb.Node'
+        type: object
       sharing:
         type: integer
       sk:
@@ -460,89 +448,21 @@ definitions:
       type:
         type: integer
     type: object
-  repo.Cafe:
+  pb.ThreadList:
     properties:
-      address:
-        type: string
-      api:
-        type: string
-      node:
-        type: string
-      peer:
-        type: string
-      protocol:
-        type: string
-      swarm:
+      items:
         items:
-          type: string
+          $ref: '#/definitions/pb.Thread'
         type: array
-      url:
-        type: string
     type: object
-  repo.Contact:
+  pb.User:
     properties:
       address:
         type: string
       avatar:
         type: string
-      created:
-        type: string
-      id:
-        type: string
-      inboxes:
-        items:
-          $ref: '#/definitions/repo.Cafe'
-        type: array
-      updated:
-        type: string
-      username:
-        type: string
-    type: object
-  repo.File:
-    properties:
-      added:
-        type: string
-      checksum:
-        type: string
-      hash:
-        type: string
-      key:
-        type: string
-      media:
-        type: string
-      meta:
-        type: object
-      mill:
-        type: string
       name:
         type: string
-      opts:
-        type: string
-      size:
-        type: integer
-      source:
-        type: string
-      targets:
-        items:
-          type: string
-        type: array
-    type: object
-  schema.Node:
-    properties:
-      json_schema:
-        type: object
-      links:
-        type: object
-      mill:
-        type: string
-      name:
-        type: string
-      opts:
-        type: object
-      pin:
-        type: boolean
-      plaintext:
-        type: boolean
     type: object
 host: 127.0.0.1:40600
 info:
@@ -585,11 +505,10 @@ paths:
       - application/json
       responses:
         "200":
-          description: backup stream
+          description: results stream
           schema:
-            items:
-              type: integer
-            type: array
+            $ref: '#/definitions/pb.QueryResult'
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -610,9 +529,8 @@ paths:
         "200":
           description: peers
           schema:
-            items:
-              $ref: '#/definitions/core.ContactInfo'
-            type: array
+            $ref: '#/definitions/pb.ContactList'
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -641,9 +559,8 @@ paths:
         "200":
           description: blocks
           schema:
-            items:
-              $ref: '#/definitions/core.BlockInfo'
-            type: array
+            $ref: '#/definitions/pb.BlockList'
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -674,7 +591,7 @@ paths:
         "201":
           description: block
           schema:
-            $ref: '#/definitions/core.BlockInfo'
+            $ref: '#/definitions/pb.Block'
             type: object
         "400":
           description: Bad Request
@@ -705,7 +622,7 @@ paths:
         "200":
           description: block
           schema:
-            $ref: '#/definitions/core.BlockInfo'
+            $ref: '#/definitions/pb.Block'
             type: object
         "404":
           description: Not Found
@@ -888,7 +805,7 @@ paths:
         "200":
           description: cafe sessions
           schema:
-            $ref: '#/definitions/pb.CafeSessions'
+            $ref: '#/definitions/pb.CafeSessionList'
             type: object
         "500":
           description: Internal Server Error
@@ -1101,9 +1018,8 @@ paths:
         "200":
           description: contacts
           schema:
-            items:
-              $ref: '#/definitions/core.ContactInfo'
-            type: array
+            $ref: '#/definitions/pb.ContactList'
+            type: object
         "404":
           description: Not Found
           schema:
@@ -1154,9 +1070,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: contacts
+          description: contact
           schema:
-            $ref: '#/definitions/core.ContactInfo'
+            $ref: '#/definitions/pb.Contact'
             type: object
         "404":
           description: Not Found
@@ -1183,7 +1099,7 @@ paths:
         name: contact
         required: true
         schema:
-          $ref: '#/definitions/repo.Contact'
+          $ref: '#/definitions/pb.Contact'
           type: object
       produces:
       - application/json
@@ -1216,9 +1132,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: contact stream
+          description: results stream
           schema:
-            $ref: '#/definitions/mill.Json'
+            $ref: '#/definitions/pb.QueryResult'
             type: object
         "404":
           description: Not Found
@@ -1347,9 +1263,8 @@ paths:
         "200":
           description: invites
           schema:
-            items:
-              $ref: '#/definitions/core.ThreadInviteInfo'
-            type: array
+            $ref: '#/definitions/pb.InviteViewList'
+            type: object
       summary: List invites
       tags:
       - invites
@@ -1368,7 +1283,7 @@ paths:
         "201":
           description: invite
           schema:
-            $ref: '#/definitions/core.InviteInfo'
+            $ref: '#/definitions/pb.NewInvite'
             type: object
         "400":
           description: Bad Request
@@ -1407,7 +1322,7 @@ paths:
         "201":
           description: join block
           schema:
-            $ref: '#/definitions/core.BlockInfo'
+            $ref: '#/definitions/pb.Block'
             type: object
         "400":
           description: Bad Request
@@ -1580,7 +1495,7 @@ paths:
         "200":
           description: keys
           schema:
-            $ref: '#/definitions/core.Keys'
+            $ref: '#/definitions/pb.Keys'
             type: object
         "400":
           description: Bad Request
@@ -1707,7 +1622,7 @@ paths:
         "201":
           description: file
           schema:
-            $ref: '#/definitions/repo.File'
+            $ref: '#/definitions/pb.FileIndex'
             type: object
         "400":
           description: Bad Request
@@ -1745,7 +1660,7 @@ paths:
         "201":
           description: file
           schema:
-            $ref: '#/definitions/repo.File'
+            $ref: '#/definitions/pb.FileIndex'
             type: object
         "400":
           description: Bad Request
@@ -1785,7 +1700,7 @@ paths:
         "201":
           description: file
           schema:
-            $ref: '#/definitions/repo.File'
+            $ref: '#/definitions/pb.FileIndex'
             type: object
         "400":
           description: Bad Request
@@ -1823,7 +1738,7 @@ paths:
         "201":
           description: file
           schema:
-            $ref: '#/definitions/repo.File'
+            $ref: '#/definitions/pb.FileIndex'
             type: object
         "400":
           description: Bad Request
@@ -1848,7 +1763,7 @@ paths:
         name: schema
         required: true
         schema:
-          $ref: '#/definitions/schema.Node'
+          $ref: '#/definitions/pb.Node'
           type: object
       produces:
       - application/json
@@ -1856,7 +1771,7 @@ paths:
         "201":
           description: file
           schema:
-            $ref: '#/definitions/repo.File'
+            $ref: '#/definitions/pb.FileIndex'
             type: object
         "400":
           description: Bad Request
@@ -1874,9 +1789,8 @@ paths:
         "200":
           description: notifications
           schema:
-            items:
-              $ref: '#/definitions/core.NotificationInfo'
-            type: array
+            $ref: '#/definitions/pb.NotificationList'
+            type: object
       summary: List notifications
       tags:
       - notifications
@@ -1937,9 +1851,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: Contact info
+          description: contact
           schema:
-            $ref: '#/definitions/repo.Contact'
+            $ref: '#/definitions/pb.Contact'
             type: object
         "400":
           description: Bad Request
@@ -2027,7 +1941,7 @@ paths:
         "200":
           description: stream of updates
           schema:
-            $ref: '#/definitions/core.ThreadUpdate'
+            $ref: '#/definitions/pb.FeedItem'
             type: object
         "500":
           description: Internal Server Error
@@ -2038,16 +1952,15 @@ paths:
       - sub
   /threads:
     get:
-      description: Lists all local threads, returning an array of ThreadInfo objects
+      description: Lists all local threads, returning a ThreadList object
       produces:
       - application/json
       responses:
         "200":
           description: threads
           schema:
-            items:
-              $ref: '#/definitions/core.ThreadInfo'
-            type: array
+            $ref: '#/definitions/pb.ThreadList'
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -2062,7 +1975,7 @@ paths:
     post:
       description: |-
         Adds a new Thread with given name, type, and sharing and members options, returning
-        a ThreadInfo object
+        a Thread object
       parameters:
       - description: name
         in: header
@@ -2086,7 +1999,7 @@ paths:
         "201":
           description: thread
           schema:
-            $ref: '#/definitions/core.ThreadInfo'
+            $ref: '#/definitions/pb.Thread'
             type: object
         "400":
           description: Bad Request
@@ -2140,7 +2053,7 @@ paths:
         "200":
           description: thread
           schema:
-            $ref: '#/definitions/core.ThreadInfo'
+            $ref: '#/definitions/pb.Thread'
             type: object
         "400":
           description: Bad Request
@@ -2191,7 +2104,7 @@ paths:
         name: dir
         required: true
         schema:
-          $ref: '#/definitions/core.Directory'
+          $ref: '#/definitions/pb.Directory'
           type: object
       - default: caption=
         description: 'caption: Caption to add to file(s)'
@@ -2202,9 +2115,9 @@ paths:
       - application/json
       responses:
         "201":
-          description: block
+          description: file
           schema:
-            $ref: '#/definitions/core.BlockInfo'
+            $ref: '#/definitions/pb.Files'
             type: object
         "400":
           description: Bad Request
@@ -2269,9 +2182,8 @@ paths:
         "200":
           description: contacts
           schema:
-            items:
-              $ref: '#/definitions/core.ContactInfo'
-            type: array
+            $ref: '#/definitions/pb.ContactList'
+            type: object
         "404":
           description: Not Found
           schema:

@@ -1,7 +1,7 @@
 package core
 
 import (
-	"encoding/json"
+	"bytes"
 	"errors"
 	"fmt"
 	"strconv"
@@ -11,6 +11,7 @@ import (
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/textile-go/crypto"
@@ -18,11 +19,12 @@ import (
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema"
+	"github.com/textileio/textile-go/util"
 	"github.com/xeipuuv/gojsonschema"
 )
 
 // AddFile adds an outgoing files block
-func (t *Thread) AddFiles(node ipld.Node, caption string, keys Keys) (mh.Multihash, error) {
+func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
@@ -50,7 +52,7 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys Keys) (mh.Multiha
 		}
 	}
 
-	if err := t.cafeOutbox.Add(target, repo.CafeStoreRequest); err != nil {
+	if err := t.cafeOutbox.Add(target, pb.CafeRequest_STORE); err != nil {
 		return nil, err
 	}
 
@@ -61,12 +63,12 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys Keys) (mh.Multiha
 		Keys:   keys,
 	}
 
-	res, err := t.commitBlock(msg, pb.ThreadBlock_FILES, nil)
+	res, err := t.commitBlock(msg, pb.Block_FILES, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := t.indexBlock(res, repo.FilesBlock, msg.Target, msg.Body); err != nil {
+	if err := t.indexBlock(res, pb.Block_FILES, msg.Target, msg.Body); err != nil {
 		return nil, err
 	}
 
@@ -114,14 +116,10 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 	var node ipld.Node
 
 	var ignore bool
-	ignored := t.datastore.Blocks().List("", -1, "target='ignore-"+hash.B58String()+"'")
+	ignored := t.datastore.Blocks().List("", -1, "target='ignore-"+hash.B58String()+"'").Items
 	if len(ignored) > 0 {
-		date, err := ptypes.Timestamp(block.Header.Date)
-		if err != nil {
-			return nil, err
-		}
 		// ignore if the first (latest) ignore came after (could happen during back prop)
-		if ignored[0].Date.After(date) {
+		if util.ProtoTsIsNewer(ignored[0].Date, block.Header.Date) {
 			ignore = true
 		}
 	}
@@ -149,7 +147,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 			}
 		}
 
-		if err := t.cafeOutbox.Add(msg.Target, repo.CafeStoreRequest); err != nil {
+		if err := t.cafeOutbox.Add(msg.Target, pb.CafeRequest_STORE); err != nil {
 			return nil, err
 		}
 
@@ -174,8 +172,8 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 				plaintext = fd
 			}
 
-			var file repo.File
-			if err := json.Unmarshal(plaintext, &file); err != nil {
+			var file pb.FileIndex
+			if err := jsonpb.Unmarshal(bytes.NewReader(plaintext), &file); err != nil {
 				return nil, err
 			}
 
@@ -193,7 +191,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 	if err := t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,
-	}, repo.FilesBlock, msg.Target, msg.Body); err != nil {
+	}, pb.Block_FILES, msg.Target, msg.Body); err != nil {
 		return nil, err
 	}
 
@@ -222,7 +220,7 @@ func (t *Thread) removeFiles(node ipld.Node) error {
 
 	target := node.Cid().Hash().B58String()
 
-	blocks := t.datastore.Blocks().List("", -1, "target='"+target+"'")
+	blocks := t.datastore.Blocks().List("", -1, "target='"+target+"'").Items
 	if len(blocks) == 1 {
 		// safe to unpin target node
 
@@ -246,9 +244,9 @@ func (t *Thread) removeFiles(node ipld.Node) error {
 }
 
 // processFileNode walks a file node, validating and applying a dag schema
-func (t *Thread) processFileNode(node *schema.Node, inode ipld.Node, index int, keys Keys, inbound bool) error {
+func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys map[string]string, inbound bool) error {
 	hash := inode.Cid().Hash().B58String()
-	if err := t.cafeOutbox.Add(hash, repo.CafeStoreRequest); err != nil {
+	if err := t.cafeOutbox.Add(hash, pb.CafeRequest_STORE); err != nil {
 		return err
 	}
 
@@ -288,7 +286,7 @@ func (t *Thread) processFileNode(node *schema.Node, inode ipld.Node, index int, 
 // processFileLink validates and pins file nodes
 func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key string, inbound bool) error {
 	hash := inode.Cid().Hash().B58String()
-	if err := t.cafeOutbox.Add(hash, repo.CafeStoreRequest); err != nil {
+	if err := t.cafeOutbox.Add(hash, pb.CafeRequest_STORE); err != nil {
 		return err
 	}
 
@@ -317,12 +315,12 @@ func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key stri
 
 	// remote pin leaf nodes if files originate locally
 	if !inbound {
-		if err := t.cafeOutbox.Add(flink.Cid.Hash().B58String(), repo.CafeStoreRequest); err != nil {
+		if err := t.cafeOutbox.Add(flink.Cid.Hash().B58String(), pb.CafeRequest_STORE); err != nil {
 			return err
 		}
 
 		if !t.config.IsMobile || dlink.Size <= uint64(t.config.Cafe.Client.Mobile.P2PWireLimit) {
-			if err := t.cafeOutbox.Add(dlink.Cid.Hash().B58String(), repo.CafeStoreRequest); err != nil {
+			if err := t.cafeOutbox.Add(dlink.Cid.Hash().B58String(), pb.CafeRequest_STORE); err != nil {
 				return err
 			}
 		}
@@ -358,12 +356,12 @@ func (t *Thread) validateJsonNode(inode ipld.Node, key string) error {
 		plaintext = data
 	}
 
-	jschema, err := json.Marshal(&t.Schema.JsonSchema)
+	jschema, err := pbMarshaler.MarshalToString(t.Schema.JsonSchema)
 	if err != nil {
 		return err
 	}
 
-	sch := gojsonschema.NewStringLoader(string(jschema))
+	sch := gojsonschema.NewStringLoader(jschema)
 	doc := gojsonschema.NewStringLoader(string(plaintext))
 
 	result, err := gojsonschema.Validate(sch, doc)

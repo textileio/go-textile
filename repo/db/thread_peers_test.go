@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/segmentio/ksuid"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -22,9 +23,9 @@ func setupThreadPeerDB() {
 }
 
 func TestThreadPeerDB_Add(t *testing.T) {
-	err := threadPeerStore.Add(&repo.ThreadPeer{
+	err := threadPeerStore.Add(&pb.ThreadPeer{
 		Id:       "abc",
-		ThreadId: ksuid.New().String(),
+		Thread:   ksuid.New().String(),
 		Welcomed: false,
 	})
 	if err != nil {
@@ -44,17 +45,17 @@ func TestThreadPeerDB_Add(t *testing.T) {
 
 func TestThreadPeerDB_ListById(t *testing.T) {
 	setupThreadPeerDB()
-	err := threadPeerStore.Add(&repo.ThreadPeer{
+	err := threadPeerStore.Add(&pb.ThreadPeer{
 		Id:       ksuid.New().String(),
-		ThreadId: ksuid.New().String(),
+		Thread:   ksuid.New().String(),
 		Welcomed: false,
 	})
 	if err != nil {
 		t.Error(err)
 	}
-	err = threadPeerStore.Add(&repo.ThreadPeer{
+	err = threadPeerStore.Add(&pb.ThreadPeer{
 		Id:       "boo",
-		ThreadId: ksuid.New().String(),
+		Thread:   ksuid.New().String(),
 		Welcomed: false,
 	})
 	if err != nil {
@@ -69,17 +70,17 @@ func TestThreadPeerDB_ListById(t *testing.T) {
 
 func TestThreadPeerDB_ListByThread(t *testing.T) {
 	setupThreadPeerDB()
-	err := threadPeerStore.Add(&repo.ThreadPeer{
+	err := threadPeerStore.Add(&pb.ThreadPeer{
 		Id:       ksuid.New().String(),
-		ThreadId: "foo",
+		Thread:   "foo",
 		Welcomed: false,
 	})
 	if err != nil {
 		t.Error(err)
 	}
-	err = threadPeerStore.Add(&repo.ThreadPeer{
+	err = threadPeerStore.Add(&pb.ThreadPeer{
 		Id:       ksuid.New().String(),
-		ThreadId: "boo",
+		Thread:   "boo",
 		Welcomed: false,
 	})
 	if err != nil {
@@ -94,25 +95,25 @@ func TestThreadPeerDB_ListByThread(t *testing.T) {
 
 func TestThreadPeerDB_Count(t *testing.T) {
 	setupThreadPeerDB()
-	err := threadPeerStore.Add(&repo.ThreadPeer{
+	err := threadPeerStore.Add(&pb.ThreadPeer{
 		Id:       "bar",
-		ThreadId: "1",
+		Thread:   "1",
 		Welcomed: false,
 	})
 	if err != nil {
 		t.Error(err)
 	}
-	err = threadPeerStore.Add(&repo.ThreadPeer{
+	err = threadPeerStore.Add(&pb.ThreadPeer{
 		Id:       "bar",
-		ThreadId: "2",
+		Thread:   "2",
 		Welcomed: false,
 	})
 	if err != nil {
 		t.Error(err)
 	}
-	err = threadPeerStore.Add(&repo.ThreadPeer{
+	err = threadPeerStore.Add(&pb.ThreadPeer{
 		Id:       "bar2",
-		ThreadId: "2",
+		Thread:   "2",
 		Welcomed: false,
 	})
 	if err != nil {
@@ -131,9 +132,9 @@ func TestThreadPeerDB_Count(t *testing.T) {
 }
 
 func TestThreadPeerDB_Delete(t *testing.T) {
-	err := threadPeerStore.Add(&repo.ThreadPeer{
+	err := threadPeerStore.Add(&pb.ThreadPeer{
 		Id:       "car",
-		ThreadId: "3",
+		Thread:   "3",
 		Welcomed: false,
 	})
 	if err != nil {

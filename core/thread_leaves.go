@@ -5,7 +5,6 @@ import (
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 )
 
 // leave creates an outgoing leave block
@@ -17,12 +16,12 @@ func (t *Thread) leave() (mh.Multihash, error) {
 		return nil, ErrNotReadable
 	}
 
-	res, err := t.commitBlock(nil, pb.ThreadBlock_LEAVE, nil)
+	res, err := t.commitBlock(nil, pb.Block_LEAVE, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := t.indexBlock(res, repo.LeaveBlock, "", ""); err != nil {
+	if err := t.indexBlock(res, pb.Block_LEAVE, "", ""); err != nil {
 		return nil, err
 	}
 
@@ -36,8 +35,8 @@ func (t *Thread) leave() (mh.Multihash, error) {
 
 	// cleanup
 	query := fmt.Sprintf("threadId='%s'", t.Id)
-	for _, block := range t.datastore.Blocks().List("", -1, query) {
-		if err := t.ignoreBlockTarget(&block); err != nil {
+	for _, block := range t.datastore.Blocks().List("", -1, query).Items {
+		if err := t.ignoreBlockTarget(block); err != nil {
 			return nil, err
 		}
 	}
@@ -75,5 +74,5 @@ func (t *Thread) handleLeaveBlock(hash mh.Multihash, block *pb.ThreadBlock) erro
 	return t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,
-	}, repo.LeaveBlock, "", "")
+	}, pb.Block_LEAVE, "", "")
 }

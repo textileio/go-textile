@@ -29,7 +29,7 @@ type ThreadsService struct {
 	service          *service.Service
 	datastore        repo.Datastore
 	getThread        func(id string) *Thread
-	sendNotification func(note *repo.Notification) error
+	sendNotification func(note *pb.Notification) error
 	online           bool
 }
 
@@ -39,7 +39,7 @@ func NewThreadsService(
 	node func() *core.IpfsNode,
 	datastore repo.Datastore,
 	getThread func(id string) *Thread,
-	sendNotification func(note *repo.Notification) error,
+	sendNotification func(note *pb.Notification) error,
 ) *ThreadsService {
 	handler := &ThreadsService{
 		datastore:        datastore,
@@ -94,39 +94,32 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 	}
 	if block == nil {
 		// exists, abort
+		log.Debugf("%s exists, aborting", hash.B58String())
 		return nil, nil
 	}
 
+	log.Debugf("handling %s from %s", block.Type.String(), block.Header.Author)
+
 	switch block.Type {
-	case pb.ThreadBlock_MERGE:
-		log.Debugf("handling MERGE from %s", block.Header.Author)
+	case pb.Block_MERGE:
 		err = h.handleMerge(thrd, hash, block)
-	case pb.ThreadBlock_IGNORE:
-		log.Debugf("handling IGNORE from %s", block.Header.Author)
+	case pb.Block_IGNORE:
 		err = h.handleIgnore(thrd, hash, block)
-	case pb.ThreadBlock_FLAG:
-		log.Debugf("handling FLAG from %s", block.Header.Author)
+	case pb.Block_FLAG:
 		err = h.handleFlag(thrd, hash, block)
-	case pb.ThreadBlock_JOIN:
-		log.Debugf("handling JOIN from %s", block.Header.Author)
+	case pb.Block_JOIN:
 		err = h.handleJoin(thrd, hash, block)
-	case pb.ThreadBlock_ANNOUNCE:
-		log.Debugf("handling ANNOUNCE from %s", block.Header.Author)
+	case pb.Block_ANNOUNCE:
 		err = h.handleAnnounce(thrd, hash, block)
-	case pb.ThreadBlock_LEAVE:
-		log.Debugf("handling LEAVE from %s", block.Header.Author)
+	case pb.Block_LEAVE:
 		err = h.handleLeave(thrd, hash, block)
-	case pb.ThreadBlock_MESSAGE:
-		log.Debugf("handling MESSAGE from %s", block.Header.Author)
+	case pb.Block_TEXT:
 		err = h.handleMessage(thrd, hash, block)
-	case pb.ThreadBlock_FILES:
-		log.Debugf("handling FILES from %s", block.Header.Author)
+	case pb.Block_FILES:
 		err = h.handleFiles(thrd, hash, block)
-	case pb.ThreadBlock_COMMENT:
-		log.Debugf("handling COMMENT from %s", block.Header.Author)
+	case pb.Block_COMMENT:
 		err = h.handleComment(thrd, hash, block)
-	case pb.ThreadBlock_LIKE:
-		log.Debugf("handling LIKE from %s", block.Header.Author)
+	case pb.Block_LIKE:
 		err = h.handleLike(thrd, hash, block)
 	default:
 		return nil, nil
@@ -186,7 +179,7 @@ func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope
 	if err := proto.Unmarshal(plaintext, block); err != nil {
 		return err
 	}
-	if block.Type != pb.ThreadBlock_INVITE {
+	if block.Type != pb.Block_INVITE {
 		return ErrInvalidThreadBlock
 	}
 	msg := new(pb.ThreadInvite)
@@ -196,17 +189,12 @@ func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope
 
 	log.Debugf("handling THREAD_INVITE from %s", block.Header.Author)
 
-	date, err := ptypes.Timestamp(block.Header.Date)
-	if err != nil {
-		return err
-	}
-
-	if err := h.datastore.ThreadInvites().Add(&repo.ThreadInvite{
+	if err := h.datastore.Invites().Add(&pb.Invite{
 		Id:      hash.B58String(),
 		Block:   plaintext,
-		Name:    msg.Name,
-		Contact: protoContactToRepo(msg.Contact),
-		Date:    date,
+		Name:    msg.Thread.Name,
+		Inviter: msg.Inviter,
+		Date:    block.Header.Date,
 	}); err != nil {
 		if !repo.ConflictError(err) {
 			return err
@@ -215,15 +203,13 @@ func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope
 		return nil
 	}
 
-	notification, err := h.newNotification(block.Header, repo.InviteReceivedNotification)
-	if err != nil {
-		return err
-	}
-	notification.Subject = msg.Name
-	notification.SubjectId = tenv.Thread
-	notification.BlockId = hash.B58String() // invite block
-	notification.Body = "invited you to join"
-	return h.sendNotification(notification)
+	note := h.newNotification(block.Header, pb.Notification_INVITE_RECEIVED)
+	note.SubjectDesc = msg.Thread.Name
+	note.Subject = tenv.Thread
+	note.Block = hash.B58String() // invite block
+	note.Body = "invited you to join"
+
+	return h.sendNotification(note)
 }
 
 // handleMerge receives a merge message
@@ -253,15 +239,13 @@ func (h *ThreadsService) handleJoin(thrd *Thread, hash mh.Multihash, block *pb.T
 		return err
 	}
 
-	notification, err := h.newNotification(block.Header, repo.PeerJoinedNotification)
-	if err != nil {
-		return err
-	}
-	notification.Subject = thrd.Name
-	notification.SubjectId = thrd.Id
-	notification.BlockId = hash.B58String()
-	notification.Body = "joined"
-	return h.sendNotification(notification)
+	note := h.newNotification(block.Header, pb.Notification_PEER_JOINED)
+	note.SubjectDesc = thrd.Name
+	note.Subject = thrd.Id
+	note.Block = hash.B58String()
+	note.Body = "joined"
+
+	return h.sendNotification(note)
 }
 
 // handleAnnounce receives an announce message
@@ -278,15 +262,13 @@ func (h *ThreadsService) handleLeave(thrd *Thread, hash mh.Multihash, block *pb.
 		return err
 	}
 
-	notification, err := h.newNotification(block.Header, repo.PeerLeftNotification)
-	if err != nil {
-		return err
-	}
-	notification.Subject = thrd.Name
-	notification.SubjectId = thrd.Id
-	notification.BlockId = hash.B58String()
-	notification.Body = "left"
-	return h.sendNotification(notification)
+	note := h.newNotification(block.Header, pb.Notification_PEER_LEFT)
+	note.SubjectDesc = thrd.Name
+	note.Subject = thrd.Id
+	note.Block = hash.B58String()
+	note.Body = "left"
+
+	return h.sendNotification(note)
 }
 
 // handleMessage receives a message message
@@ -296,15 +278,13 @@ func (h *ThreadsService) handleMessage(thrd *Thread, hash mh.Multihash, block *p
 		return err
 	}
 
-	notification, err := h.newNotification(block.Header, repo.MessageAddedNotification)
-	if err != nil {
-		return err
-	}
-	notification.Body = msg.Body
-	notification.BlockId = hash.B58String()
-	notification.Subject = thrd.Name
-	notification.SubjectId = thrd.Id
-	return h.sendNotification(notification)
+	note := h.newNotification(block.Header, pb.Notification_MESSAGE_ADDED)
+	note.Body = msg.Body
+	note.Block = hash.B58String()
+	note.SubjectDesc = thrd.Name
+	note.Subject = thrd.Id
+
+	return h.sendNotification(note)
 }
 
 // handleData receives a files message
@@ -314,16 +294,14 @@ func (h *ThreadsService) handleFiles(thrd *Thread, hash mh.Multihash, block *pb.
 		return err
 	}
 
-	notification, err := h.newNotification(block.Header, repo.FilesAddedNotification)
-	if err != nil {
-		return err
-	}
-	notification.Target = msg.Target
-	notification.Body = "added a " + threadSubject(thrd.Schema.Name)
-	notification.BlockId = hash.B58String()
-	notification.Subject = thrd.Name
-	notification.SubjectId = thrd.Id
-	return h.sendNotification(notification)
+	note := h.newNotification(block.Header, pb.Notification_FILES_ADDED)
+	note.Target = msg.Target
+	note.Body = "added a " + threadSubject(thrd.Schema.Name)
+	note.Block = hash.B58String()
+	note.SubjectDesc = thrd.Name
+	note.Subject = thrd.Id
+
+	return h.sendNotification(note)
 }
 
 // handleComment receives a comment message
@@ -338,21 +316,20 @@ func (h *ThreadsService) handleComment(thrd *Thread, hash mh.Multihash, block *p
 		return nil
 	}
 	var desc string
-	if target.AuthorId == h.service.Node().Identity.Pretty() {
+	if target.Author == h.service.Node().Identity.Pretty() {
 		desc = "your " + threadSubject(thrd.Schema.Name)
 	} else {
 		desc = "a " + threadSubject(thrd.Schema.Name)
 	}
-	notification, err := h.newNotification(block.Header, repo.CommentAddedNotification)
-	if err != nil {
-		return err
-	}
-	notification.Body = fmt.Sprintf("commented on %s: \"%s\"", desc, msg.Body)
-	notification.BlockId = hash.B58String()
-	notification.Target = target.Target
-	notification.Subject = thrd.Name
-	notification.SubjectId = thrd.Id
-	return h.sendNotification(notification)
+
+	note := h.newNotification(block.Header, pb.Notification_COMMENT_ADDED)
+	note.Body = fmt.Sprintf("commented on %s: \"%s\"", desc, msg.Body)
+	note.Block = hash.B58String()
+	note.Target = target.Target
+	note.SubjectDesc = thrd.Name
+	note.Subject = thrd.Id
+
+	return h.sendNotification(note)
 }
 
 // handleLike receives a like message
@@ -367,35 +344,30 @@ func (h *ThreadsService) handleLike(thrd *Thread, hash mh.Multihash, block *pb.T
 		return nil
 	}
 	var desc string
-	if target.AuthorId == h.service.Node().Identity.Pretty() {
+	if target.Author == h.service.Node().Identity.Pretty() {
 		desc = "your " + threadSubject(thrd.Schema.Name)
 	} else {
 		desc = "a " + threadSubject(thrd.Schema.Name)
 	}
-	notification, err := h.newNotification(block.Header, repo.LikeAddedNotification)
-	if err != nil {
-		return err
-	}
-	notification.Body = "liked " + desc
-	notification.BlockId = hash.B58String()
-	notification.Target = target.Target
-	notification.Subject = thrd.Name
-	notification.SubjectId = thrd.Id
-	return h.sendNotification(notification)
+
+	note := h.newNotification(block.Header, pb.Notification_LIKE_ADDED)
+	note.Body = "liked " + desc
+	note.Block = hash.B58String()
+	note.Target = target.Target
+	note.SubjectDesc = thrd.Name
+	note.Subject = thrd.Id
+
+	return h.sendNotification(note)
 }
 
 // newNotification returns new thread notification
-func (h *ThreadsService) newNotification(header *pb.ThreadBlockHeader, ntype repo.NotificationType) (*repo.Notification, error) {
-	date, err := ptypes.Timestamp(header.Date)
-	if err != nil {
-		return nil, err
+func (h *ThreadsService) newNotification(header *pb.ThreadBlockHeader, ntype pb.Notification_Type) *pb.Notification {
+	return &pb.Notification{
+		Id:    ksuid.New().String(),
+		Date:  header.Date,
+		Actor: header.Author,
+		Type:  ntype,
 	}
-	return &repo.Notification{
-		Id:      ksuid.New().String(),
-		Date:    date,
-		ActorId: header.Author,
-		Type:    ntype,
-	}, nil
 }
 
 // threadSubject returns the thread subject

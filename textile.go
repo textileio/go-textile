@@ -3,13 +3,14 @@ package main
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
+
+	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
@@ -18,7 +19,9 @@ import (
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/gateway"
 	"github.com/textileio/textile-go/keypair"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 	"github.com/textileio/textile-go/wallet"
 )
 
@@ -107,7 +110,7 @@ type commandsCmd struct {
 }
 
 var node *core.Textile
-
+var log = logging.Logger("tex-main")
 var parser = flags.NewParser(&options{}, flags.Default)
 
 func init() {
@@ -356,13 +359,13 @@ func startNode(serveDocs bool) error {
 					return
 				}
 				switch update.Type {
-				case core.ThreadAdded:
+				case pb.WalletUpdate_THREAD_ADDED:
 					break
-				case core.ThreadRemoved:
+				case pb.WalletUpdate_THREAD_REMOVED:
 					break
-				case core.AccountPeerAdded:
+				case pb.WalletUpdate_ACCOUNT_PEER_ADDED:
 					break
-				case core.AccountPeerRemoved:
+				case pb.WalletUpdate_ACCOUNT_PEER_REMOVED:
 					break
 				}
 			}
@@ -377,17 +380,39 @@ func startNode(serveDocs bool) error {
 				if !ok {
 					return
 				}
-				if update, ok := value.(core.ThreadUpdate); ok {
-					date := update.Block.Date.Format(time.RFC822)
-					desc := update.Block.Type
-					thrd := update.ThreadId[len(update.ThreadId)-8:]
+				if update, ok := value.(*pb.FeedItem); ok {
+					thrd := update.Thread[len(update.Thread)-8:]
 
-					if update.Block.Username != "" {
-						update.Block.Username += " "
+					btype, err := core.FeedItemType(update)
+					if err != nil {
+						log.Error(err)
+						continue
 					}
 
-					msg := cmd.Grey(date+"  "+update.Block.Username+"added ") +
-						cmd.Green(desc) + cmd.Grey(" update to thread "+thrd)
+					payload, err := core.GetFeedItemPayload(update)
+					if err != nil {
+						log.Error(err)
+						continue
+					}
+					user := payload.GetUser()
+					date := payload.GetDate()
+
+					var txt string
+					txt += time.Unix(0, util.ProtoNanos(date)).Format(time.RFC822)
+					txt += "  "
+
+					if user != nil {
+						var name string
+						if user.Name != "" {
+							name = user.Name
+						} else {
+							name = user.Address[:7]
+						}
+						txt += name + " "
+					}
+					txt += "added "
+
+					msg := cmd.Grey(txt) + cmd.Green(btype.String()) + cmd.Grey(" update to "+thrd)
 					fmt.Println(msg)
 				}
 			}
@@ -403,13 +428,13 @@ func startNode(serveDocs bool) error {
 					return
 				}
 
-				date := note.Date.Format(time.RFC822)
+				date := util.ProtoTime(note.Date).Format(time.RFC822)
 				var subject string
-				if len(note.SubjectId) >= 7 {
-					subject = note.SubjectId[len(note.SubjectId)-7:]
+				if len(note.Subject) >= 7 {
+					subject = note.Subject[len(note.Subject)-7:]
 				}
 
-				msg := cmd.Grey(date+"  "+note.Username+" ") + cmd.Cyan(note.Body) +
+				msg := cmd.Grey(date+"  "+note.User.Name+" ") + cmd.Cyan(note.Body) +
 					cmd.Grey(" "+subject)
 				fmt.Println(msg)
 			}

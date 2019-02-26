@@ -1,14 +1,15 @@
 package db
 
 import (
+	"bytes"
 	"database/sql"
-	"encoding/json"
 	"strconv"
 	"sync"
-	"time"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 )
 
 type CafeRequestDB struct {
@@ -19,7 +20,7 @@ func NewCafeRequestStore(db *sql.DB, lock *sync.Mutex) repo.CafeRequestStore {
 	return &CafeRequestDB{modelStore{db, lock}}
 }
 
-func (c *CafeRequestDB) Add(req *repo.CafeRequest) error {
+func (c *CafeRequestDB) Add(req *pb.CafeRequest) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -34,19 +35,19 @@ func (c *CafeRequestDB) Add(req *repo.CafeRequest) error {
 	}
 	defer stmt.Close()
 
-	cafe, err := json.Marshal(req.Cafe)
+	cafe, err := pbMarshaler.MarshalToString(req.Cafe)
 	if err != nil {
 		return err
 	}
 
 	_, err = stmt.Exec(
 		req.Id,
-		req.PeerId,
-		req.TargetId,
+		req.Peer,
+		req.Target,
 		req.Cafe.Peer,
-		cafe,
-		req.Type,
-		req.Date.UnixNano(),
+		[]byte(cafe),
+		int32(req.Type),
+		util.ProtoNanos(req.Date),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -56,7 +57,7 @@ func (c *CafeRequestDB) Add(req *repo.CafeRequest) error {
 	return nil
 }
 
-func (c *CafeRequestDB) List(offset string, limit int) []repo.CafeRequest {
+func (c *CafeRequestDB) List(offset string, limit int) []pb.CafeRequest {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	var stm string
@@ -82,8 +83,8 @@ func (c *CafeRequestDB) DeleteByCafe(cafeId string) error {
 	return err
 }
 
-func (c *CafeRequestDB) handleQuery(stm string) []repo.CafeRequest {
-	var ret []repo.CafeRequest
+func (c *CafeRequestDB) handleQuery(stm string) []pb.CafeRequest {
+	var list []pb.CafeRequest
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -99,20 +100,20 @@ func (c *CafeRequestDB) handleQuery(stm string) []repo.CafeRequest {
 			continue
 		}
 
-		var mod pb.Cafe
-		if err := json.Unmarshal(cafe, &mod); err != nil {
+		mod := new(pb.Cafe)
+		if err := jsonpb.Unmarshal(bytes.NewReader(cafe), mod); err != nil {
 			log.Errorf("error unmarshaling cafe: %s", err)
 			continue
 		}
 
-		ret = append(ret, repo.CafeRequest{
-			Id:       id,
-			PeerId:   peerId,
-			TargetId: targetId,
-			Cafe:     mod,
-			Type:     repo.CafeRequestType(typeInt),
-			Date:     time.Unix(0, dateInt),
+		list = append(list, pb.CafeRequest{
+			Id:     id,
+			Peer:   peerId,
+			Target: targetId,
+			Cafe:   mod,
+			Type:   pb.CafeRequest_Type(typeInt),
+			Date:   util.ProtoTs(dateInt),
 		})
 	}
-	return ret
+	return list
 }

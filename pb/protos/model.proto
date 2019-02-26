@@ -3,6 +3,9 @@ option go_package = "pb";
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
+import "message.proto";
+
+// CONTACTS //
 
 message Contact {
     string id                         = 1;
@@ -12,7 +15,22 @@ message Contact {
     repeated Cafe inboxes             = 5;
     google.protobuf.Timestamp created = 6;
     google.protobuf.Timestamp updated = 7;
+
+    // view info
+    repeated string threads = 8;
 }
+
+message ContactList {
+    repeated Contact items = 1;
+}
+
+message User {
+    string address  = 1;
+    string name     = 2;
+    string avatar   = 3;
+}
+
+// THREADS //
 
 message Thread {
     string id               = 1;
@@ -48,7 +66,80 @@ message Thread {
         Loaded        = 1; // blocks are all loaded
         LoadingAhead  = 2; // blocks are being loaded ahead
     }
+
+    // view info
+    Block head_block  = 101;
+    Node schema_node  = 102;
+    int32 block_count = 103;
+    int32 peer_count  = 104;
 }
+
+message ThreadList {
+    repeated Thread items = 1;
+}
+
+message ThreadPeer {
+    string id     = 1;
+    string thread = 2;
+    bool welcomed = 3;
+}
+
+// BLOCKS //
+
+message Block {
+    string id                      = 1;
+    string thread                  = 2;
+    string author                  = 3;
+    BlockType type                 = 4;
+    google.protobuf.Timestamp date = 5;
+    repeated string parents        = 6;
+    string target                  = 7;
+    string body                    = 8;
+
+    enum BlockType {
+        MERGE    = 0; // block is stored in plaintext, no payload
+        IGNORE   = 1;
+        FLAG     = 2;
+        JOIN     = 3;
+        ANNOUNCE = 4;
+        LEAVE    = 5; // no payload
+        TEXT     = 6;
+        FILES    = 7;
+        COMMENT  = 8;
+        LIKE     = 9;
+        INVITE   = 50;
+    }
+
+    // view info
+    User user = 101;
+}
+
+message BlockList {
+    repeated Block items = 1;
+}
+
+message BlockMessage {
+    string id                      = 1;
+    string peer                    = 2;
+    Envelope env                   = 3;
+    google.protobuf.Timestamp date = 4;
+}
+
+// INVITES //
+
+message Invite {
+    string id                      = 1;
+    bytes block                    = 2;
+    string name                    = 3;
+    Contact inviter                = 4;
+    google.protobuf.Timestamp date = 5;
+}
+
+message InviteList {
+    repeated Invite items = 1;
+}
+
+// FILES //
 
 message FileIndex {
     string mill                     = 1;
@@ -65,6 +156,60 @@ message FileIndex {
     repeated string targets         = 12;
 }
 
+message Node {
+    string name                        = 1;
+    bool pin                           = 2;
+    bool plaintext                     = 3;
+    string mill                        = 4;
+    map<string, string> opts           = 5;
+    google.protobuf.Struct json_schema = 6;
+    map<string, Link> links            = 8;
+}
+
+message Link {
+    string use                         = 1;
+    bool pin                           = 2;
+    bool plaintext                     = 3;
+    string mill                        = 4;
+    map<string, string> opts           = 5;
+    google.protobuf.Struct json_schema = 6;
+}
+
+// NOTIFICATIONS
+
+message Notification {
+    string id                      = 1;
+    google.protobuf.Timestamp date = 2;
+    string actor                   = 3;
+    string subject                 = 4;
+    string subject_desc            = 5;
+    string block                   = 6;
+    string target                  = 7;
+    Type type                      = 8;
+    string body                    = 9;
+    bool read                      = 10;
+
+    enum Type {
+        INVITE_RECEIVED     = 0;
+        ACCOUNT_PEER_JOINED = 1;
+        PEER_JOINED         = 2;
+        PEER_LEFT           = 3;
+        MESSAGE_ADDED       = 4;
+        FILES_ADDED         = 5;
+        COMMENT_ADDED       = 6;
+        LIKE_ADDED          = 7;
+    }
+
+    // view info
+    User user = 101;
+}
+
+message NotificationList {
+    repeated Notification items = 1;
+}
+
+// CAFE CLIENT //
+
 message Cafe {
     string peer           = 1;
     string address        = 2;
@@ -73,4 +218,80 @@ message Cafe {
     string node           = 5;
     string url            = 6;
     repeated string swarm = 7;
+}
+
+message CafeSession {
+    string id                      = 1;
+    string access                  = 2;
+    google.protobuf.Timestamp exp  = 3;
+    string refresh                 = 4;
+    google.protobuf.Timestamp rexp = 5;
+    string subject                 = 6;
+    string type                    = 7;
+    Cafe cafe                      = 8;
+}
+
+message CafeSessionList {
+    repeated CafeSession items = 1;
+}
+
+// CAFE HOST //
+
+message CafeRequest {
+    string id                      = 1;
+    string peer                    = 2;
+    string target                  = 3;
+    Cafe cafe                      = 4;
+    Type type                      = 5;
+    google.protobuf.Timestamp date = 6;
+
+    enum Type {
+        STORE        = 0;
+        STORE_THREAD = 1;
+        INBOX        = 2;
+    }
+}
+
+message CafeMessage {
+    string id                      = 1;
+    string peer                    = 2;
+    google.protobuf.Timestamp date = 3;
+    int32 attempts                 = 4;
+}
+
+message CafeClientNonce {
+    string value                   = 1;
+    string address                 = 2;
+    google.protobuf.Timestamp date = 3;
+}
+
+message CafeClient {
+    string id                         = 1;
+    string address                    = 2;
+    google.protobuf.Timestamp created = 3;
+    google.protobuf.Timestamp seen    = 4;
+    string token                      = 5;
+}
+
+message CafeClientList {
+    repeated CafeClient items = 1;
+}
+
+message CafeToken {
+    string id                      = 1;
+    bytes value                    = 2;
+    google.protobuf.Timestamp date = 3;
+}
+
+message CafeClientThread {
+    string id        = 1;
+    string client  = 2;
+    bytes ciphertext = 3; // encrypted Thread
+}
+
+message CafeClientMessage {
+    string id                      = 1;
+    string peer                    = 2;
+    string client                  = 3;
+    google.protobuf.Timestamp date = 4;
 }

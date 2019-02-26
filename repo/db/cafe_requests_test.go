@@ -6,8 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 )
 
 var cafeRequestStore repo.CafeRequestStore
@@ -23,11 +25,11 @@ func setupCafeRequestDB() {
 }
 
 func TestCafeRequestDB_Add(t *testing.T) {
-	err := cafeRequestStore.Add(&repo.CafeRequest{
-		Id:       "abcde",
-		PeerId:   "peer",
-		TargetId: "zxy",
-		Cafe: pb.Cafe{
+	err := cafeRequestStore.Add(&pb.CafeRequest{
+		Id:     "abcde",
+		Peer:   "peer",
+		Target: "zxy",
+		Cafe: &pb.Cafe{
 			Peer:     "peer",
 			Address:  "address",
 			Api:      "v0",
@@ -35,8 +37,8 @@ func TestCafeRequestDB_Add(t *testing.T) {
 			Node:     "v1.0.0",
 			Url:      "https://mycafe.com",
 		},
-		Type: repo.CafeStoreRequest,
-		Date: time.Now(),
+		Type: pb.CafeRequest_STORE,
+		Date: ptypes.TimestampNow(),
 	})
 	if err != nil {
 		t.Error(err)
@@ -55,7 +57,7 @@ func TestCafeRequestDB_Add(t *testing.T) {
 
 func TestCafeRequestDB_List(t *testing.T) {
 	setupCafeRequestDB()
-	cafe := pb.Cafe{
+	cafe := &pb.Cafe{
 		Peer:     "peer",
 		Address:  "address",
 		Api:      "v0",
@@ -63,24 +65,24 @@ func TestCafeRequestDB_List(t *testing.T) {
 		Node:     "v1.0.0",
 		Url:      "https://mycafe.com",
 	}
-	err := cafeRequestStore.Add(&repo.CafeRequest{
-		Id:       "abcde",
-		PeerId:   "peer",
-		TargetId: "zxy",
-		Cafe:     cafe,
-		Type:     repo.CafeStoreThreadRequest,
-		Date:     time.Now(),
+	err := cafeRequestStore.Add(&pb.CafeRequest{
+		Id:     "abcde",
+		Peer:   "peer",
+		Target: "zxy",
+		Cafe:   cafe,
+		Type:   pb.CafeRequest_STORE_THREAD,
+		Date:   ptypes.TimestampNow(),
 	})
 	if err != nil {
 		t.Error(err)
 	}
-	err = cafeRequestStore.Add(&repo.CafeRequest{
-		Id:       "abcdef",
-		PeerId:   "peer",
-		TargetId: "zxy",
-		Cafe:     cafe,
-		Type:     repo.CafeStoreRequest,
-		Date:     time.Now().Add(time.Minute),
+	err = cafeRequestStore.Add(&pb.CafeRequest{
+		Id:     "abcdef",
+		Peer:   "peer",
+		Target: "zxy",
+		Cafe:   cafe,
+		Type:   pb.CafeRequest_STORE,
+		Date:   util.ProtoTs(time.Now().Add(time.Minute).UnixNano()),
 	})
 	if err != nil {
 		t.Error(err)
@@ -117,11 +119,11 @@ func TestCafeRequestDB_Delete(t *testing.T) {
 
 func TestCafeRequestDB_DeleteByCafe(t *testing.T) {
 	setupCafeRequestDB()
-	err := cafeRequestStore.Add(&repo.CafeRequest{
-		Id:       "xyz",
-		PeerId:   "peer",
-		TargetId: "zxy",
-		Cafe: pb.Cafe{
+	err := cafeRequestStore.Add(&pb.CafeRequest{
+		Id:     "xyz",
+		Peer:   "peer",
+		Target: "zxy",
+		Cafe: &pb.Cafe{
 			Peer:     "peer",
 			Address:  "address",
 			Api:      "v0",
@@ -129,8 +131,8 @@ func TestCafeRequestDB_DeleteByCafe(t *testing.T) {
 			Node:     "v1.0.0",
 			Url:      "https://mycafe.com",
 		},
-		Type: repo.CafeStoreRequest,
-		Date: time.Now(),
+		Type: pb.CafeRequest_STORE,
+		Date: ptypes.TimestampNow(),
 	})
 	if err != nil {
 		t.Error(err)

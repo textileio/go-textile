@@ -5,8 +5,10 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
+	"github.com/textileio/textile-go/util"
+
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
 )
 
@@ -18,7 +20,7 @@ func NewBlockStore(db *sql.DB, lock *sync.Mutex) repo.BlockStore {
 	return &BlockDB{modelStore{db, lock}}
 }
 
-func (c *BlockDB) Add(block *repo.Block) error {
+func (c *BlockDB) Add(block *pb.Block) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -34,10 +36,10 @@ func (c *BlockDB) Add(block *repo.Block) error {
 	defer stmt.Close()
 	_, err = stmt.Exec(
 		block.Id,
-		block.ThreadId,
-		block.AuthorId,
+		block.Thread,
+		block.Author,
 		int(block.Type),
-		block.Date.UnixNano(),
+		util.ProtoNanos(block.Date),
 		strings.Join(block.Parents, ","),
 		block.Target,
 		block.Body,
@@ -50,17 +52,17 @@ func (c *BlockDB) Add(block *repo.Block) error {
 	return nil
 }
 
-func (c *BlockDB) Get(id string) *repo.Block {
+func (c *BlockDB) Get(id string) *pb.Block {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from blocks where id='" + id + "';")
-	if len(ret) == 0 {
+	res := c.handleQuery("select * from blocks where id='" + id + "';")
+	if len(res.Items) == 0 {
 		return nil
 	}
-	return &ret[0]
+	return res.Items[0]
 }
 
-func (c *BlockDB) List(offset string, limit int, query string) []repo.Block {
+func (c *BlockDB) List(offset string, limit int, query string) *pb.BlockList {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	var stm, q string
@@ -105,12 +107,12 @@ func (c *BlockDB) DeleteByThread(threadId string) error {
 	return err
 }
 
-func (c *BlockDB) handleQuery(stm string) []repo.Block {
-	var ret []repo.Block
+func (c *BlockDB) handleQuery(stm string) *pb.BlockList {
+	list := &pb.BlockList{Items: make([]*pb.Block, 0)}
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
-		return nil
+		return list
 	}
 	for rows.Next() {
 		var id, threadId, authorId, parents, target, body string
@@ -120,22 +122,16 @@ func (c *BlockDB) handleQuery(stm string) []repo.Block {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		plist := make([]string, 0)
-		for _, p := range strings.Split(parents, ",") {
-			if p != "" {
-				plist = append(plist, p)
-			}
-		}
-		ret = append(ret, repo.Block{
-			Id:       id,
-			ThreadId: threadId,
-			AuthorId: authorId,
-			Type:     repo.BlockType(typeInt),
-			Date:     time.Unix(0, dateInt),
-			Parents:  plist,
-			Target:   target,
-			Body:     body,
+		list.Items = append(list.Items, &pb.Block{
+			Id:      id,
+			Thread:  threadId,
+			Author:  authorId,
+			Type:    pb.Block_BlockType(typeInt),
+			Date:    util.ProtoTs(dateInt),
+			Parents: util.SplitString(parents, ","),
+			Target:  target,
+			Body:    body,
 		})
 	}
-	return ret
+	return list
 }

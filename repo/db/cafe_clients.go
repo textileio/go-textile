@@ -5,7 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 )
 
 type CafeClientDB struct {
@@ -16,7 +18,7 @@ func NewCafeClientStore(db *sql.DB, lock *sync.Mutex) repo.CafeClientStore {
 	return &CafeClientDB{modelStore{db, lock}}
 }
 
-func (c *CafeClientDB) Add(client *repo.CafeClient) error {
+func (c *CafeClientDB) Add(client *pb.CafeClient) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -33,9 +35,9 @@ func (c *CafeClientDB) Add(client *repo.CafeClient) error {
 	_, err = stmt.Exec(
 		client.Id,
 		client.Address,
-		client.Created.UnixNano(),
-		client.LastSeen.UnixNano(),
-		client.TokenId,
+		util.ProtoNanos(client.Created),
+		util.ProtoNanos(client.Seen),
+		client.Token,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -45,14 +47,14 @@ func (c *CafeClientDB) Add(client *repo.CafeClient) error {
 	return nil
 }
 
-func (c *CafeClientDB) Get(id string) *repo.CafeClient {
+func (c *CafeClientDB) Get(id string) *pb.CafeClient {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	ret := c.handleQuery("select * from cafe_clients where id='" + id + "';")
-	if len(ret) == 0 {
+	res := c.handleQuery("select * from cafe_clients where id='" + id + "';")
+	if len(res) == 0 {
 		return nil
 	}
-	return &ret[0]
+	return &res[0]
 }
 
 func (c *CafeClientDB) Count() int {
@@ -64,14 +66,14 @@ func (c *CafeClientDB) Count() int {
 	return count
 }
 
-func (c *CafeClientDB) List() []repo.CafeClient {
+func (c *CafeClientDB) List() []pb.CafeClient {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stm := "select * from cafe_clients order by lastSeen desc;"
 	return c.handleQuery(stm)
 }
 
-func (c *CafeClientDB) ListByAddress(address string) []repo.CafeClient {
+func (c *CafeClientDB) ListByAddress(address string) []pb.CafeClient {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stm := "select * from cafe_clients where address='" + address + "' order by lastSeen desc;"
@@ -92,8 +94,8 @@ func (c *CafeClientDB) Delete(id string) error {
 	return err
 }
 
-func (c *CafeClientDB) handleQuery(stm string) []repo.CafeClient {
-	var ret []repo.CafeClient
+func (c *CafeClientDB) handleQuery(stm string) []pb.CafeClient {
+	var list []pb.CafeClient
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -106,13 +108,13 @@ func (c *CafeClientDB) handleQuery(stm string) []repo.CafeClient {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		ret = append(ret, repo.CafeClient{
-			Id:       id,
-			Address:  address,
-			Created:  time.Unix(0, createdInt),
-			LastSeen: time.Unix(0, lastSeenInt),
-			TokenId:  tokenId,
+		list = append(list, pb.CafeClient{
+			Id:      id,
+			Address: address,
+			Created: util.ProtoTs(createdInt),
+			Seen:    util.ProtoTs(lastSeenInt),
+			Token:   tokenId,
 		})
 	}
-	return ret
+	return list
 }

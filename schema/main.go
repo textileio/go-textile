@@ -4,6 +4,8 @@ import (
 	"errors"
 
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
+
+	"github.com/textileio/textile-go/pb"
 )
 
 // ErrFileValidationFailed indicates dag schema validation failed
@@ -30,33 +32,6 @@ const FileTag = ":file"
 // SingleFileTag is a magic key indicating that a directory is actually a single file
 const SingleFileTag = ":single"
 
-// Node describes a DAG node
-type Node struct {
-	Name       string                 `json:"name,omitempty"`
-	Pin        bool                   `json:"pin"`
-	Plaintext  bool                   `json:"plaintext"`
-	Mill       string                 `json:"mill,omitempty"`
-	Opts       map[string]string      `json:"opts,omitempty"`
-	JsonSchema map[string]interface{} `json:"json_schema,omitempty"`
-	Links      map[string]*Link       `json:"links,omitempty"`
-}
-
-// Link is a sub-node which can "use" input from other sub-nodes
-type Link struct {
-	Use        string                 `json:"use,omitempty"`
-	Pin        bool                   `json:"pin"`
-	Plaintext  bool                   `json:"plaintext"`
-	Mill       string                 `json:"mill,omitempty"`
-	Opts       map[string]string      `json:"opts,omitempty"`
-	JsonSchema map[string]interface{} `json:"json_schema,omitempty"`
-}
-
-// Step is an ordered name-link pair
-type Step struct {
-	Name string
-	Link *Link
-}
-
 // ValidateMill is false if mill is not one of the built in tags
 func ValidateMill(mill string) bool {
 	switch mill {
@@ -82,8 +57,8 @@ func LinkByName(links []*ipld.Link, name string) *ipld.Link {
 }
 
 // Steps returns link steps in the order they should be processed
-func Steps(links map[string]*Link) ([]Step, error) {
-	var steps []Step
+func Steps(links map[string]*pb.Link) ([]pb.Step, error) {
+	var steps []pb.Step
 	run := links
 	i := 0
 	for {
@@ -102,11 +77,11 @@ func Steps(links map[string]*Link) ([]Step, error) {
 
 // orderLinks attempts to place all links in steps, returning any unused
 // whose source is not yet in steps
-func orderLinks(links map[string]*Link, steps *[]Step) map[string]*Link {
-	unused := make(map[string]*Link)
+func orderLinks(links map[string]*pb.Link, steps *[]pb.Step) map[string]*pb.Link {
+	unused := make(map[string]*pb.Link)
 	for name, link := range links {
 		if link.Use == FileTag {
-			*steps = append([]Step{{Name: name, Link: link}}, *steps...)
+			*steps = append([]pb.Step{{Name: name, Link: link}}, *steps...)
 		} else {
 			useAt := -1
 			for i, s := range *steps {
@@ -116,7 +91,7 @@ func orderLinks(links map[string]*Link, steps *[]Step) map[string]*Link {
 				}
 			}
 			if useAt >= 0 {
-				*steps = append(*steps, Step{Name: name, Link: link})
+				*steps = append(*steps, pb.Step{Name: name, Link: link})
 			} else {
 				unused[name] = link
 			}

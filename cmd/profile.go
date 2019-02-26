@@ -3,7 +3,7 @@ package cmd
 import (
 	"errors"
 
-	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/pb"
 )
 
 var errMissingUsername = errors.New("missing username")
@@ -55,13 +55,13 @@ func (x *getProfileCmd) Execute(args []string) error {
 	return nil
 }
 
-func callGetProfile() (string, *repo.Contact, error) {
-	var profile *repo.Contact
-	res, err := executeJsonCmd(GET, "profile", params{}, &profile)
+func callGetProfile() (string, *pb.Contact, error) {
+	var profile pb.Contact
+	res, err := executeJsonPbCmd(GET, "profile", params{}, &profile)
 	if err != nil {
 		return "", nil, err
 	}
-	return res, profile, err
+	return res, &profile, err
 }
 
 type setProfileCmd struct {

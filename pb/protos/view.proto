@@ -5,14 +5,81 @@ import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 import "model.proto";
 
+// THREADS //
+
+message AddThreadConfig {
+    string key                 = 1;
+    string name                = 2;
+    Schema schema              = 3;
+    Thread.Type type           = 4;
+    Thread.Sharing sharing     = 5;
+    repeated string members    = 6;
+    bool force                 = 7; // force key by auto-incrementing
+
+    message Schema {
+        string id     = 1;
+        string json   = 2;
+        Preset preset = 3;
+
+        enum Preset {
+            NONE        = 0;
+            CAMERA_ROLL = 1;
+            MEDIA       = 2;
+        }
+    }
+}
+
+// FILES //
+
+message Step {
+    string Name = 1;
+    Link link   = 2;
+}
+
 message Directory {
     map<string, FileIndex> files = 1;
 }
 
-enum FeedMode {
-    CHRONO    = 0;
-    ANNOTATED = 1;
-    STACKS    = 2;
+message DirectoryList {
+    repeated Directory items = 1;
+}
+
+message Keys {
+    map<string, string> files = 1;
+}
+
+// INVITES
+
+message NewInvite {
+    string id      = 1;
+    string key     = 2;
+    string inviter = 3;
+}
+
+message InviteView {
+    string id                      = 1;
+    string name                    = 2;
+    User inviter                   = 3;
+    google.protobuf.Timestamp date = 4;
+}
+
+message InviteViewList {
+    repeated InviteView items = 1;
+}
+
+// FEED //
+
+message FeedRequest {
+    string thread = 1;
+    string offset = 2;
+    int32 limit   = 3;
+    Mode mode     = 4;
+
+    enum Mode {
+        CHRONO    = 0;
+        ANNOTATED = 1;
+        STACKS    = 2;
+    }
 }
 
 message FeedItem {
@@ -27,48 +94,58 @@ message FeedItemList {
     string next             = 3;
 }
 
+message Merge {
+    string block                   = 1;
+    google.protobuf.Timestamp date = 2;
+    User user                      = 3;
+    repeated FeedItem targets      = 4;
+}
+
+message Ignore {
+    string block                   = 1;
+    google.protobuf.Timestamp date = 2;
+    User user                      = 3;
+    FeedItem target                = 4;
+}
+
+message Flag {
+    string block                   = 1;
+    google.protobuf.Timestamp date = 2;
+    User user                      = 3;
+    FeedItem target                = 4;
+}
+
 message Join {
     string block                   = 1;
     google.protobuf.Timestamp date = 2;
-    string author                  = 3;
-    string username                = 4;
-    string avatar                  = 5;
-    repeated Like likes            = 6;
+    User user                      = 3;
+    repeated Like likes            = 4;
 }
 
-message JoinList {
-    repeated Join items = 1;
+message Announce {
+    string block                   = 1;
+    google.protobuf.Timestamp date = 2;
+    User user                      = 3;
 }
 
 message Leave {
     string block                   = 1;
     google.protobuf.Timestamp date = 2;
-    string author                  = 3;
-    string username                = 4;
-    string avatar                  = 5;
+    User user                      = 3;
+    repeated Like likes            = 4;
+}
+
+message Text {
+    string block                   = 1;
+    google.protobuf.Timestamp date = 2;
+    User user                      = 3;
+    string body                    = 4;
+    repeated Comment comments      = 5;
     repeated Like likes            = 6;
 }
 
-message LeaveList {
-    repeated Leave items = 1;
-}
-
-message Files {
-    string block                   = 1;
-    string target                  = 2;
-    google.protobuf.Timestamp date = 3;
-    string author                  = 4;
-    string username                = 5;
-    string avatar                  = 6;
-    string caption                 = 7;
-    repeated File files            = 8;
-    repeated Comment comments      = 9;
-    repeated Like likes            = 10;
-    repeated string threads        = 11;
-}
-
-message FilesList {
-    repeated Files items = 1;
+message TextList {
+    repeated Text items = 1;
 }
 
 message File {
@@ -77,44 +154,80 @@ message File {
     map<string, FileIndex> links = 3;
 }
 
-message Text {
+message Files {
     string block                   = 1;
-    google.protobuf.Timestamp date = 2;
-    string author                  = 3;
-    string username                = 4;
-    string avatar                  = 5;
-    string body                    = 6;
+    string target                  = 2;
+    google.protobuf.Timestamp date = 3;
+    User user                      = 4;
+    string caption                 = 5;
+    repeated File files            = 6;
     repeated Comment comments      = 7;
     repeated Like likes            = 8;
+    repeated string threads        = 9;
 }
 
-message TextList {
-    repeated Text items = 1;
+message FilesList {
+    repeated Files items = 1;
+}
+
+message Comment {
+    string id                      = 1;
+    google.protobuf.Timestamp date = 2;
+    User user                      = 3;
+    string body                    = 4;
+    FeedItem target                = 5;
+}
+
+message CommentList {
+    repeated Comment items = 1;
 }
 
 message Like {
     string id                      = 1;
     google.protobuf.Timestamp date = 2;
-    string author                  = 3;
-    string username                = 4;
-    string avatar                  = 5;
-    FeedItem target                = 6;
+    User user                      = 3;
+    FeedItem target                = 4;
 }
 
 message LikeList {
     repeated Like items = 1;
 }
 
-message Comment {
-    string id                      = 1;
-    google.protobuf.Timestamp date = 2;
-    string author                  = 3;
-    string username                = 4;
-    string avatar                  = 5;
-    string body                    = 6;
-    FeedItem target                = 7;
+// UPDATES //
+
+message WalletUpdate {
+    string id  = 1;
+    string key = 2;
+    Type type  = 3;
+
+    enum Type {
+        THREAD_ADDED         = 0;
+        THREAD_REMOVED       = 1;
+        ACCOUNT_PEER_ADDED   = 2;
+        ACCOUNT_PEER_REMOVED = 3;
+    }
 }
 
-message CommentList {
-    repeated Comment items = 1;
+// SUMMARY //
+
+message Summary {
+    int32 account_peer_count = 1;
+    int32 thread_count = 2;
+    int32 file_count = 3;
+    int32 contact_count = 4;
+}
+
+// LOGS //
+
+message LogLevel {
+    map<string, Level> systems = 1;
+
+    enum Level {
+        CRITICAL = 0;
+        ERROR    = 1;
+        WARNING  = 2;
+        NOTICE   = 3;
+        INFO     = 4;
+        DEBUG    = 5;
+    }
 }

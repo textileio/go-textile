@@ -7,14 +7,13 @@ import (
 	"os"
 	"testing"
 
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 
 	"github.com/segmentio/ksuid"
 	. "github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/keypair"
 	"github.com/textileio/textile-go/mill"
-	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/schema/textile"
 )
 
@@ -23,22 +22,22 @@ var otherPath = "testdata/.textile2"
 var node *Textile
 var other *Textile
 var token string
-var contact = &repo.Contact{
+var contact = &pb.Contact{
 	Id:       "abcde",
 	Address:  "address1",
 	Username: "joe",
 	Avatar:   "Qm123",
-	Inboxes: []repo.Cafe{{
+	Inboxes: []*pb.Cafe{{
 		Peer:     "peer",
 		Address:  "address",
-		API:      "v0",
+		Api:      "v0",
 		Protocol: "/textile/cafe/1.0.0",
 		Node:     "v1.0.0",
-		URL:      "https://mycafe.com",
+		Url:      "https://mycafe.com",
 	}},
 }
 
-var schemaHash mh.Multihash
+var schemaHash string
 
 func TestInitRepo(t *testing.T) {
 	os.RemoveAll(repoPath)
@@ -61,12 +60,12 @@ func TestNewTextile(t *testing.T) {
 	}
 }
 
-func TestSetLogLevels(t *testing.T) {
-	logLevels := map[string]string{
-		"tex-core":      "DEBUG",
-		"tex-datastore": "DEBUG",
-	}
-	if err := node.SetLogLevels(logLevels); err != nil {
+func TestSetLogLevel(t *testing.T) {
+	logLevel := &pb.LogLevel{Systems: map[string]pb.LogLevel_Level{
+		"tex-core":      pb.LogLevel_DEBUG,
+		"tex-datastore": pb.LogLevel_INFO,
+	}}
+	if err := node.SetLogLevel(logLevel); err != nil {
 		t.Errorf("set log levels failed: %s", err)
 	}
 }
@@ -132,6 +131,7 @@ func TestTextile_CafeTokens(t *testing.T) {
 	}
 	if len(token) == 0 {
 		t.Error("invalid token created")
+		return
 	}
 
 	tokens, _ := other.CafeTokens()
@@ -162,13 +162,9 @@ func TestTextile_CafeRegistration(t *testing.T) {
 	}
 
 	// get sessions
-	sessions, err := node.CafeSessions()
-	if err != nil {
-		t.Errorf(err.Error())
-		return
-	}
-	if len(sessions.Values) > 0 {
-		session = sessions.Values[0]
+	sessions := node.CafeSessions()
+	if len(sessions.Items) > 0 {
+		session = sessions.Items[0]
 	} else {
 		t.Errorf("no active sessions")
 	}
@@ -207,10 +203,7 @@ func TestTextile_AddSchema(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	schemaHash, err = mh.FromB58String(file.Hash)
-	if err != nil {
-		t.Fatal(err)
-	}
+	schemaHash = file.Hash
 }
 
 func TestTextile_AddThread(t *testing.T) {
@@ -218,23 +211,58 @@ func TestTextile_AddThread(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	config := AddThreadConfig{
-		Key:       ksuid.New().String(),
-		Name:      "test",
-		Schema:    schemaHash,
-		Initiator: node.Account().Address(),
-		Type:      repo.OpenThread,
-		Sharing:   repo.SharedThread,
-		Members:   []string{},
-		Join:      true,
+	config := pb.AddThreadConfig{
+		Key:     ksuid.New().String(),
+		Name:    "test",
+		Schema:  &pb.AddThreadConfig_Schema{Id: schemaHash},
+		Type:    pb.Thread_Open,
+		Sharing: pb.Thread_Shared,
+		Members: []string{},
 	}
-	thrd, err := node.AddThread(sk, config)
+	thrd, err := node.AddThread(config, sk, node.Account().Address(), true)
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
 		return
 	}
 	if thrd == nil {
 		t.Error("add thread didn't return thread")
+	}
+
+	// add again w/ same key
+	sk2, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Error(err)
+	}
+	if _, err := node.AddThread(pb.AddThreadConfig{
+		Key:     config.Key,
+		Name:    "test2",
+		Type:    pb.Thread_Public,
+		Sharing: pb.Thread_NotShared,
+		Members: []string{},
+	}, sk2, node.Account().Address(), true); err == nil {
+		t.Error("add thread with same key should fail")
+		return
+	}
+
+	// add again w/ same key but force true
+	sk3, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Error(err)
+	}
+	forced, err := node.AddThread(pb.AddThreadConfig{
+		Key:     config.Key,
+		Force:   true,
+		Name:    "test3",
+		Type:    pb.Thread_Public,
+		Sharing: pb.Thread_NotShared,
+		Members: []string{},
+	}, sk3, node.Account().Address(), true)
+	if err != nil {
+		t.Errorf("add thread with same key and force should not fail: %s", err)
+		return
+	}
+	if forced.Key != config.Key+"_1" {
+		t.Errorf("add thread with same key and force resulted in bad key")
 	}
 }
 

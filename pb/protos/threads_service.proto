@@ -14,22 +14,8 @@ message ThreadEnvelope {
 
 message ThreadBlock {
     ThreadBlockHeader header    = 1;
-    Type type                   = 2;
+    Block.BlockType type        = 2;
     google.protobuf.Any payload = 3; // nil for some types
-
-    enum Type {
-        MERGE    = 0; // block is stored in plaintext, no payload
-        IGNORE   = 1;
-        FLAG     = 2;
-        JOIN     = 3;
-        ANNOUNCE = 4;
-        LEAVE    = 5; // no payload
-        MESSAGE  = 6;
-        FILES    = 7;
-        COMMENT  = 8;
-        LIKE     = 9;
-        INVITE   = 50;
-    }
 }
 
 message ThreadBlockHeader {
@@ -40,14 +26,8 @@ message ThreadBlockHeader {
 }
 
 message ThreadInvite {
-    bytes sk                = 1;
-    string name             = 2;
-    string schema           = 3;
-    string initiator        = 4;
-    Contact contact         = 5;
-    int32 type              = 6;
-    int32 sharing           = 7;
-    repeated string members = 8;
+    Contact inviter = 1;
+    Thread thread   = 2;
 }
 
 message ThreadIgnore {

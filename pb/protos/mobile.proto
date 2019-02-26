@@ -1,0 +1,47 @@
+syntax = "proto3";
+option go_package = "pb";
+
+import "view.proto";
+import "query.proto";
+import "message.proto";
+
+message MobileWalletAccount {
+    string seed    = 1;
+    string address = 2;
+}
+
+message MobilePreparedFiles {
+    Directory dir           = 1;
+    map<string, string> pin = 2;
+}
+
+message MobileFileData {
+    string url = 1;
+}
+
+message MobileEvent {
+    enum Type {
+        NODE_START  = 0;
+        NODE_ONLINE = 1;
+        NODE_STOP   = 2;
+
+        WALLET_UPDATE = 10;
+        THREAD_UPDATE = 11;
+        NOTIFICATION  = 12;
+
+        QUERY_RESPONSE = 20;
+    }
+}
+
+message MobileQueryEvent {
+    string id        = 1;
+    Type type        = 2;
+    QueryResult data = 3;
+    Error error      = 4;
+
+    enum Type {
+        DATA  = 0;
+        DONE  = 1;
+        ERROR = 2;
+    }
+}

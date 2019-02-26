@@ -11,34 +11,31 @@ import (
 	"strings"
 
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
-	iface "gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core/coreapi/interface"
+	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core/coreapi/interface"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/ipfs"
 	"github.com/textileio/textile-go/mill"
 	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
 	"github.com/textileio/textile-go/schema"
 )
 
-// FileData is a wrapper around a file data url
-type FileData struct {
-	Url string `json:"url"`
-}
-
 // AddSchema adds a new schema via schema mill
-func (m *Mobile) AddSchema(jsonstr string) (string, error) {
+func (m *Mobile) AddSchema(jsonstr string) ([]byte, error) {
 	if !m.node.Started() {
-		return "", core.ErrStopped
+		return nil, core.ErrStopped
 	}
 
-	added, err := m.addSchema(jsonstr)
+	added, err := m.node.AddFileIndex(&mill.Schema{}, core.AddFileConfig{
+		Input: []byte(jsonstr),
+		Media: "application/json",
+	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return toJSON(added)
+	return proto.Marshal(added)
 }
 
 // PrepareFiles processes a file by path for a thread, but does NOT share it
@@ -85,14 +82,9 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+		mdir.Dir.Files[schema.SingleFileTag] = added
 
-		file, err := core.RepoFileToProto(added)
-		if err != nil {
-			return nil, err
-		}
-		mdir.Dir.Files[schema.SingleFileTag] = file
-
-		if added.Size >= m.node.Config().Cafe.Client.Mobile.P2PWireLimit {
+		if added.Size >= int64(m.node.Config().Cafe.Client.Mobile.P2PWireLimit) {
 			mdir.Pin[added.Hash] = writeDir + added.Hash
 		}
 
@@ -133,14 +125,9 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
+			mdir.Dir.Files[step.Name] = added
 
-			file, err := core.RepoFileToProto(added)
-			if err != nil {
-				return nil, err
-			}
-			mdir.Dir.Files[step.Name] = file
-
-			if added.Size >= m.node.Config().Cafe.Client.Mobile.P2PWireLimit {
+			if added.Size >= int64(m.node.Config().Cafe.Client.Mobile.P2PWireLimit) {
 				mdir.Pin[added.Hash] = writeDir + added.Hash
 			}
 		}
@@ -165,94 +152,88 @@ func (m *Mobile) PrepareFilesAsync(path string, threadId string, cb Callback) {
 }
 
 // AddFiles adds a prepared file to a thread
-func (m *Mobile) AddFiles(dir []byte, threadId string, caption string) (string, error) {
+func (m *Mobile) AddFiles(dir []byte, threadId string, caption string) ([]byte, error) {
 	if !m.node.Started() {
-		return "", core.ErrStopped
+		return nil, core.ErrStopped
 	}
 
 	thrd := m.node.Thread(threadId)
 	if thrd == nil {
-		return "", core.ErrThreadNotFound
+		return nil, core.ErrThreadNotFound
 	}
 
 	var node ipld.Node
-	var keys core.Keys
+	var keys *pb.Keys
 
 	mdir := new(pb.Directory)
 	if err := proto.Unmarshal(dir, mdir); err != nil {
-		return "", err
+		return nil, err
 	}
 	if len(mdir.Files) == 0 {
-		return "", errors.New("no files found")
+		return nil, errors.New("no files found")
 	}
 
 	var err error
-	if mdir.Files[schema.SingleFileTag] != nil {
-		file, err := core.ProtoFileToRepo(mdir.Files[schema.SingleFileTag])
+	file := mdir.Files[schema.SingleFileTag]
+	if file != nil {
+
+		node, keys, err = m.node.AddNodeFromFiles([]*pb.FileIndex{file})
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
-		node, keys, err = m.node.AddNodeFromFiles([]repo.File{*file})
-		if err != nil {
-			return "", err
-		}
 	} else {
 
-		rdir := make(core.Directory)
-		for k, v := range mdir.Files {
-			file, err := core.ProtoFileToRepo(v)
-			if err != nil {
-				return "", err
-			}
-			rdir[k] = *file
+		rdir := &pb.Directory{Files: make(map[string]*pb.FileIndex)}
+		for k, file := range mdir.Files {
+			rdir.Files[k] = file
 		}
 
-		node, keys, err = m.node.AddNodeFromDirs([]core.Directory{rdir})
+		node, keys, err = m.node.AddNodeFromDirs(&pb.DirectoryList{Items: []*pb.Directory{rdir}})
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 	}
 
 	if node == nil {
-		return "", errors.New("no files found")
+		return nil, errors.New("no files found")
 	}
 
-	hash, err := thrd.AddFiles(node, caption, keys)
+	hash, err := thrd.AddFiles(node, caption, keys.Files)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return m.blockInfo(hash)
+	return m.blockView(hash)
 }
 
 // AddFilesByTarget adds a prepared file to a thread by referencing its top level hash
-func (m *Mobile) AddFilesByTarget(target string, threadId string, caption string) (string, error) {
+func (m *Mobile) AddFilesByTarget(target string, threadId string, caption string) ([]byte, error) {
 	if !m.node.Started() {
-		return "", core.ErrStopped
+		return nil, core.ErrStopped
 	}
 
 	thrd := m.node.Thread(threadId)
 	if thrd == nil {
-		return "", core.ErrThreadNotFound
+		return nil, core.ErrThreadNotFound
 	}
 
 	node, err := ipfs.NodeAtPath(m.node.Ipfs(), target)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	keys, err := m.node.TargetNodeKeys(node)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	hash, err := thrd.AddFiles(node, caption, keys)
+	hash, err := thrd.AddFiles(node, caption, keys.Files)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return m.blockInfo(hash)
+	return m.blockView(hash)
 }
 
 // Files calls core Files
@@ -270,27 +251,27 @@ func (m *Mobile) Files(offset string, limit int, threadId string) ([]byte, error
 }
 
 // FileData returns a data url of a raw file under a path
-func (m *Mobile) FileData(hash string) (string, error) {
+func (m *Mobile) FileData(hash string) ([]byte, error) {
 	if !m.node.Started() {
-		return "", core.ErrStopped
+		return nil, core.ErrStopped
 	}
 
 	reader, file, err := m.node.FileData(hash)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	data, err := ioutil.ReadAll(reader)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	prefix := "data:" + file.Media + ";base64,"
-	img := &FileData{
+	img := &pb.MobileFileData{
 		Url: prefix + base64.StdEncoding.EncodeToString(data),
 	}
 
-	return toJSON(img)
+	return proto.Marshal(img)
 }
 
 type img struct {
@@ -303,21 +284,21 @@ type img struct {
 // Note: Now that consumers are in control of image sizes via schemas,
 // handling this here doesn't feel right. We can eventually push this up to RN, Obj-C, Java.
 // Note: pth is <target>/<index>, e.g., "Qm.../0"
-func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) (string, error) {
+func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) ([]byte, error) {
 	if !m.node.Started() {
-		return "", core.ErrStopped
+		return nil, core.ErrStopped
 	}
 
 	node, err := ipfs.NodeAtPath(m.node.Ipfs(), pth)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	var imgs []img
 	for _, link := range node.Links() {
 		nd, err := ipfs.NodeAtLink(m.node.Ipfs(), link)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		dlink := schema.LinkByName(nd.Links(), core.DataLinkName)
@@ -327,18 +308,22 @@ func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) (string, err
 
 		file, err := m.node.FileIndex(dlink.Cid.Hash().B58String())
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		if file.Mill == "/image/resize" {
-			if width, ok := file.Meta["width"].(float64); ok {
-				imgs = append(imgs, img{hash: file.Hash, width: int(width)})
+			width := file.Meta.Fields["width"]
+			if width != nil {
+				imgs = append(imgs, img{
+					hash:  file.Hash,
+					width: int(width.GetNumberValue()),
+				})
 			}
 		}
 	}
 
 	if len(imgs) == 0 {
-		return "", errors.New("no image files found")
+		return nil, errors.New("no image files found")
 	}
 
 	sort.SliceStable(imgs, func(i, j int) bool {
@@ -359,15 +344,6 @@ func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) (string, err
 	return m.FileData(hash)
 }
 
-func (m *Mobile) addSchema(jsonstr string) (*repo.File, error) {
-	conf := core.AddFileConfig{
-		Input: []byte(jsonstr),
-		Media: "application/json",
-	}
-
-	return m.node.AddFileIndex(&mill.Schema{}, conf)
-}
-
 func (m *Mobile) getFileConfig(mil mill.Mill, path string, use string, plaintext bool) (*core.AddFileConfig, error) {
 	var reader io.ReadSeeker
 	conf := &core.AddFileConfig{}
@@ -384,7 +360,7 @@ func (m *Mobile) getFileConfig(mil mill.Mill, path string, use string, plaintext
 		conf.Name = file
 
 	} else {
-		var file *repo.File
+		var file *pb.FileIndex
 		var err error
 		reader, file, err = m.node.FileData(use)
 		if err != nil {

@@ -1,12 +1,12 @@
 package core
 
 import (
-	"errors"
 	"io"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/textileio/textile-go/pb"
 )
 
 // getThreadsSub godoc
@@ -18,7 +18,7 @@ import (
 // @Produce application/json
 // @Param id path string false "thread id, omit to stream all events"
 // @Param X-Textile-Opts header string false "type: Or'd list of event types (e.g., FILES|COMMENTS|LIKES) or empty to include all types, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON" default(type=,events="false")
-// @Success 200 {object} core.ThreadUpdate "stream of updates"
+// @Success 200 {object} pb.FeedItem "stream of updates"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /sub/{id} [get]
 func (a *api) getThreadsSub(g *gin.Context) {
@@ -41,29 +41,38 @@ func (a *api) getThreadsSub(g *gin.Context) {
 		case <-g.Request.Context().Done():
 			return false
 
-		case update, ok := <-listener.Ch:
+		case value, ok := <-listener.Ch:
 			if !ok {
 				return false
 			}
-			if data, ok := update.(ThreadUpdate); ok {
-				if threadId != "" && data.ThreadId != threadId {
+			if update, ok := value.(*pb.FeedItem); ok {
+				if threadId != "" && update.Thread != threadId {
 					break
 				}
+
+				btype, err := FeedItemType(update)
+				if err != nil {
+					log.Error(err)
+					break
+				}
+
 				for _, t := range types {
-					if t == "" || data.Block.Type == t {
-						info, err := addBlockInfo(a, data)
+					if t == "" || btype.String() == t {
+
+						str, err := pbMarshaler.MarshalToString(update)
 						if err != nil {
-							log.Error(err)
+							g.String(http.StatusBadRequest, err.Error())
+							break
 						}
+
 						if opts["events"] == "true" {
-							// Support events option to emit Server-Sent Events (SSEvent),
-							// otherwise, emit JSON responses. SSEvents enable browsers/clients
-							// to consume the stream using EventSource.
-							g.SSEvent("update", info)
+							g.SSEvent("update", str)
 						} else {
-							g.JSON(http.StatusOK, info)
+							g.Data(http.StatusOK, "application/json", []byte(str))
 							g.Writer.Write([]byte("\n"))
 						}
+
+						break
 					}
 				}
 			}
@@ -72,22 +81,4 @@ func (a *api) getThreadsSub(g *gin.Context) {
 	})
 
 	listener.Close()
-}
-
-func addBlockInfo(a *api, update ThreadUpdate) (ThreadUpdate, error) {
-	switch update.Block.Type {
-	case "FILES":
-		info, err := a.node.File(update.Block.Id)
-		if err != nil {
-			return update, errors.New("error getting thread file: " + err.Error())
-		}
-		return ThreadUpdate{
-			Block:      update.Block,
-			ThreadId:   update.ThreadId,
-			ThreadName: update.ThreadName,
-			Info:       info,
-		}, nil
-	default:
-		return update, nil
-	}
 }

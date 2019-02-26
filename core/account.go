@@ -46,20 +46,17 @@ func (t *Textile) Decrypt(input []byte) ([]byte, error) {
 }
 
 // AccountPeers returns all known account peers
-func (t *Textile) AccountPeers() ([]ContactInfo, error) {
-	peers := make([]ContactInfo, 0)
-
+func (t *Textile) AccountPeers() *pb.ContactList {
 	peerId := t.node.Identity.Pretty()
 	address := t.account.Address()
+
 	query := fmt.Sprintf("address='%s' and id!='%s'", address, peerId)
-	for _, model := range t.datastore.Contacts().List(query) {
-		info := t.contactInfo(t.datastore.Contacts().Get(model.Id), false)
-		if info != nil {
-			peers = append(peers, *info)
-		}
+	list := t.datastore.Contacts().List(query)
+	for i, model := range list.Items {
+		list.Items[i] = t.contactView(model, false)
 	}
 
-	return peers, nil
+	return list
 }
 
 // FindThreadBackups searches the network for backups
@@ -72,7 +69,7 @@ func (t *Textile) FindThreadBackups(query *pb.ThreadBackupQuery, options *pb.Que
 	options.Filter = pb.QueryOptions_NO_FILTER
 
 	resCh, errCh, cancel := t.search(&pb.Query{
-		Type:    pb.QueryType_THREAD_BACKUPS,
+		Type:    pb.Query_THREAD_BACKUPS,
 		Options: options,
 		Payload: &any.Any{
 			TypeUrl: "/ThreadBackupQuery",

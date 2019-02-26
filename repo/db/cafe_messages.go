@@ -4,9 +4,10 @@ import (
 	"database/sql"
 	"strconv"
 	"sync"
-	"time"
 
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/util"
 )
 
 type CafeMessageDB struct {
@@ -17,7 +18,7 @@ func NewCafeMessageStore(db *sql.DB, lock *sync.Mutex) repo.CafeMessageStore {
 	return &CafeMessageDB{modelStore{db, lock}}
 }
 
-func (c *CafeMessageDB) Add(req *repo.CafeMessage) error {
+func (c *CafeMessageDB) Add(req *pb.CafeMessage) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -33,8 +34,8 @@ func (c *CafeMessageDB) Add(req *repo.CafeMessage) error {
 	defer stmt.Close()
 	_, err = stmt.Exec(
 		req.Id,
-		req.PeerId,
-		req.Date.UnixNano(),
+		req.Peer,
+		util.ProtoNanos(req.Date),
 		req.Attempts,
 	)
 	if err != nil {
@@ -45,7 +46,7 @@ func (c *CafeMessageDB) Add(req *repo.CafeMessage) error {
 	return nil
 }
 
-func (c *CafeMessageDB) List(offset string, limit int) []repo.CafeMessage {
+func (c *CafeMessageDB) List(offset string, limit int) []pb.CafeMessage {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	var stm string
@@ -71,8 +72,8 @@ func (c *CafeMessageDB) Delete(id string) error {
 	return err
 }
 
-func (c *CafeMessageDB) handleQuery(stm string) []repo.CafeMessage {
-	var ret []repo.CafeMessage
+func (c *CafeMessageDB) handleQuery(stm string) []pb.CafeMessage {
+	var list []pb.CafeMessage
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -86,12 +87,12 @@ func (c *CafeMessageDB) handleQuery(stm string) []repo.CafeMessage {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		ret = append(ret, repo.CafeMessage{
+		list = append(list, pb.CafeMessage{
 			Id:       id,
-			PeerId:   peerId,
-			Date:     time.Unix(0, dateInt),
-			Attempts: attempts,
+			Peer:     peerId,
+			Date:     util.ProtoTs(dateInt),
+			Attempts: int32(attempts),
 		})
 	}
-	return ret
+	return list
 }

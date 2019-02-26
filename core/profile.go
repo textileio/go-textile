@@ -4,16 +4,15 @@ import (
 	"crypto/rand"
 	"io/ioutil"
 
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 
 	"github.com/textileio/textile-go/mill"
-	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/textile-go/pb"
 	"github.com/textileio/textile-go/schema/textile"
 )
 
 // Profile returns this node's own contact info
-func (t *Textile) Profile() *repo.Contact {
+func (t *Textile) Profile() *pb.Contact {
 	return t.datastore.Contacts().Get(t.node.Identity.Pretty())
 }
 
@@ -80,20 +79,16 @@ func (t *Textile) SetAvatar(hash string) error {
 		if err != nil {
 			return err
 		}
-		shash, err := mh.FromB58String(sf.Hash)
-		if err != nil {
-			return err
-		}
 
-		thrd, err = t.AddThread(sk, AddThreadConfig{
-			Key:       "avatars",
-			Name:      "avatars",
-			Schema:    shash,
-			Initiator: t.account.Address(),
-			Type:      repo.PrivateThread,
-			Sharing:   repo.NotSharedThread,
-			Join:      true,
-		})
+		thrd, err = t.AddThread(pb.AddThreadConfig{
+			Key:  "avatars",
+			Name: "avatars",
+			Schema: &pb.AddThreadConfig_Schema{
+				Id: sf.Hash,
+			},
+			Type:    pb.Thread_Private,
+			Sharing: pb.Thread_NotShared,
+		}, sk, t.account.Address(), true)
 		if err != nil {
 			return err
 		}
@@ -127,13 +122,14 @@ func (t *Textile) SetAvatar(hash string) error {
 		return err
 	}
 
-	dir := Directory{"large": *large, "small": *small}
-	node, keys, err := t.AddNodeFromDirs([]Directory{dir})
+	dir := map[string]*pb.FileIndex{"large": large, "small": small}
+	dirs := &pb.DirectoryList{Items: []*pb.Directory{{Files: dir}}}
+	node, keys, err := t.AddNodeFromDirs(dirs)
 	if err != nil {
 		return err
 	}
 
-	if _, err := thrd.AddFiles(node, "", keys); err != nil {
+	if _, err := thrd.AddFiles(node, "", keys.Files); err != nil {
 		return err
 	}
 
