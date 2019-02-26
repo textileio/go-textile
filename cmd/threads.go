@@ -7,11 +7,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/pb"
 
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
-	"github.com/textileio/textile-go/schema/textile"
+	"github.com/textileio/go-textile/schema/textile"
 )
 
 var errMissingThreadId = errors.New("missing thread id")

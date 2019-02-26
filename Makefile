@@ -16,7 +16,7 @@ lint:
 	golint `go list ./... | grep -v /vendor/`
 
 build:
-	$(eval FLAGS := $$(shell govvv -flags -pkg github.com/textileio/textile-go/common))
+	$(eval FLAGS := $$(shell govvv -flags -pkg github.com/textileio/go-textile/common))
 	go build -ldflags "-w $(FLAGS)" -i -o textile textile.go
 	mkdir -p dist
 	mv textile dist/
@@ -25,24 +25,24 @@ install:
 	mv dist/textile /usr/local/bin
 
 linux:
-	$(eval FLAGS := $$(shell govvv -flags -pkg github.com/textileio/textile-go/common))
+	$(eval FLAGS := $$(shell govvv -flags -pkg github.com/textileio/go-textile/common))
 	export CGO_ENABLED=1
 	docker pull karalabe/xgo-latest
 	go get github.com/karalabe/xgo
 	xgo -go 1.11.1 -ldflags "-w $(FLAGS)" --targets=linux/amd64 .
-	chmod +x textile-go-linux-amd64
+	chmod +x go-textile-linux-amd64
 	mkdir -p dist
-	mv textile-go-linux-amd64 dist/
+	mv go-textile-linux-amd64 dist/
 
 ios:
-	$(eval FLAGS := $$(shell govvv -flags -pkg github.com/textileio/textile-go/common))
-	gomobile bind -ldflags "-w $(FLAGS)" -target=ios github.com/textileio/textile-go/mobile
+	$(eval FLAGS := $$(shell govvv -flags -pkg github.com/textileio/go-textile/common))
+	gomobile bind -ldflags "-w $(FLAGS)" -target=ios github.com/textileio/go-textile/mobile
 	cp -r Mobile.framework mobile/dist/
 	rm -rf Mobile.framework
 
 android:
-	$(eval FLAGS := $$(shell govvv -flags -pkg github.com/textileio/textile-go/common))
-	gomobile bind -ldflags "-w $(FLAGS)" -target=android -o mobile.aar github.com/textileio/textile-go/mobile
+	$(eval FLAGS := $$(shell govvv -flags -pkg github.com/textileio/go-textile/common))
+	gomobile bind -ldflags "-w $(FLAGS)" -target=android -o mobile.aar github.com/textileio/go-textile/mobile
 	mv mobile.aar mobile/dist/
 
 protos:

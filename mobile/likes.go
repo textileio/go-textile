@@ -1,6 +1,6 @@
 package mobile
 
-import "github.com/textileio/textile-go/core"
+import "github.com/textileio/go-textile/core"
 
 // AddLike adds a like targeted at the given block
 func (m *Mobile) AddLike(blockId string) (string, error) {

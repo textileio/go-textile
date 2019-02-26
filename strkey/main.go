@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/mr-tron/base58/base58"
-	"github.com/textileio/textile-go/crc16"
+	"github.com/textileio/go-textile/crc16"
 )
 
 // ErrInvalidVersionByte is returned when the version byte from a provided

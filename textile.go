@@ -14,15 +14,15 @@ import (
 
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
-	"github.com/textileio/textile-go/cmd"
-	"github.com/textileio/textile-go/common"
-	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/gateway"
-	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/util"
-	"github.com/textileio/textile-go/wallet"
+	"github.com/textileio/go-textile/cmd"
+	"github.com/textileio/go-textile/common"
+	"github.com/textileio/go-textile/core"
+	"github.com/textileio/go-textile/gateway"
+	"github.com/textileio/go-textile/keypair"
+	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/repo"
+	"github.com/textileio/go-textile/util"
+	"github.com/textileio/go-textile/wallet"
 )
 
 type ipfsOptions struct {
@@ -223,9 +223,9 @@ func (x *walletAccountsCmd) Execute(args []string) error {
 
 func (x *versionCmd) Execute(args []string) error {
 	if x.Git {
-		fmt.Println("textile-go version " + common.GitSummary)
+		fmt.Println("go-textile version " + common.GitSummary)
 	} else {
-		fmt.Println("textile-go version v" + common.Version)
+		fmt.Println("go-textile version v" + common.Version)
 	}
 	return nil
 }
@@ -470,7 +470,7 @@ func printSplash() {
 	if err != nil {
 		log.Fatalf("get peer id failed: %s", err)
 	}
-	fmt.Println(cmd.Grey("textile-go version: " + common.GitSummary))
+	fmt.Println(cmd.Grey("go-textile version: " + common.GitSummary))
 	fmt.Println(cmd.Grey("Repo version: ") + cmd.Grey(repo.Repover))
 	fmt.Println(cmd.Grey("Repo path: ") + cmd.Grey(node.RepoPath()))
 	fmt.Println(cmd.Grey("API address: ") + cmd.Grey(node.ApiAddr()))

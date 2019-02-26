@@ -17,7 +17,7 @@ RUN go get -u github.com/whyrusleeping/gx \
   && go get -u github.com/whyrusleeping/gx-go
 
 # Get source
-ENV SRC_DIR /go/src/github.com/textileio/textile-go
+ENV SRC_DIR /go/src/github.com/textileio/go-textile
 COPY . $SRC_DIR
 
 # build source
@@ -47,7 +47,7 @@ FROM busybox:1-glibc
 MAINTAINER Sander Pick <sander@textile.io>
 
 # Get the ipfs binary, entrypoint script, and TLS CAs from the build container.
-ENV SRC_DIR /go/src/github.com/textileio/textile-go
+ENV SRC_DIR /go/src/github.com/textileio/go-textile
 COPY --from=0 $SRC_DIR/dist/textile /usr/local/bin/textile
 COPY --from=0 $SRC_DIR/bin/container_daemon /usr/local/bin/start_textile
 COPY --from=0 /tmp/su-exec/su-exec /sbin/su-exec

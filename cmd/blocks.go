@@ -7,7 +7,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/pb"
 )
 
 var errMissingBlockId = errors.New("missing block ID")

@@ -9,9 +9,9 @@ import (
 	"os"
 	"testing"
 
-	. "github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/pb"
+	. "github.com/textileio/go-textile/core"
+	"github.com/textileio/go-textile/keypair"
+	"github.com/textileio/go-textile/pb"
 )
 
 var repoPath1 = "testdata/.textile1"

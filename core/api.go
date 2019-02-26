@@ -19,11 +19,11 @@ import (
 	"github.com/golang/protobuf/proto"
 	swagger "github.com/swaggo/gin-swagger"
 	sfiles "github.com/swaggo/gin-swagger/swaggerFiles"
-	"github.com/textileio/textile-go/common"
-	_ "github.com/textileio/textile-go/docs"
-	m "github.com/textileio/textile-go/mill"
-	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo/config"
+	"github.com/textileio/go-textile/common"
+	_ "github.com/textileio/go-textile/docs"
+	m "github.com/textileio/go-textile/mill"
+	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/repo/config"
 )
 
 // apiVersion is the api version
@@ -74,14 +74,14 @@ func (t *Textile) ApiAddr() string {
 // @title Textile Node API
 // @version 0
 // @description Textile Node Local REST API Documentation
-// @termsOfService https://github.com/textileio/textile-go/blob/master/TERMS
+// @termsOfService https://github.com/textileio/go-textile/blob/master/TERMS
 
 // @contact.name Textile
 // @contact.url https://textile.io/
 // @contact.email contact@textile.io
 
 // @license.name MIT License
-// @license.url https://github.com/textileio/textile-go/blob/master/LICENSE
+// @license.url https://github.com/textileio/go-textile/blob/master/LICENSE
 
 // @host 127.0.0.1:40600
 // @BasePath /api/v0

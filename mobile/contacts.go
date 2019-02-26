@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/core"
+	"github.com/textileio/go-textile/pb"
 )
 
 // AddContact calls core AddContact

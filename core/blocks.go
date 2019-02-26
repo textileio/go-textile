@@ -3,7 +3,7 @@ package core
 import (
 	"errors"
 
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/pb"
 )
 
 // ErrBlockNotFound indicates a block was not found in the index

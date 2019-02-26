@@ -19,9 +19,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
 	"github.com/golang/protobuf/proto"
-	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/jwt"
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/ipfs"
+	"github.com/textileio/go-textile/jwt"
+	"github.com/textileio/go-textile/pb"
 )
 
 // cafeApiVersion is the cafe api version

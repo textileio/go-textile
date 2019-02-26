@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/pb"
 )
 
 func (t *Textile) leave(block *pb.Block, opts feedItemOpts) (*pb.Leave, error) {

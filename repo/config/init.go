@@ -8,7 +8,7 @@ import (
 
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 
-	"github.com/textileio/textile-go/common"
+	"github.com/textileio/go-textile/common"
 )
 
 var log = logging.Logger("tex-repo-config")
@@ -106,7 +106,7 @@ func Init() (*Config, error) {
 		},
 		API: API{
 			HTTPHeaders: map[string][]string{
-				"Server": {"textile-go/" + common.Version},
+				"Server": {"go-textile/" + common.Version},
 				"Access-Control-Allow-Methods": {
 					"GET",
 					"POST",

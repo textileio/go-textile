@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/rwcarlsen/goexif/exif"
-	"github.com/textileio/textile-go/mill/testdata"
+	"github.com/textileio/go-textile/mill/testdata"
 )
 
 var errFailedToFindExifMarker = errors.New("exif: failed to find exif intro marker")

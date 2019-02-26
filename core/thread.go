@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/textileio/textile-go/util"
+	"github.com/textileio/go-textile/util"
 
 	"github.com/golang/protobuf/jsonpb"
 
@@ -19,11 +19,11 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/textileio/textile-go/crypto"
-	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/repo/config"
+	"github.com/textileio/go-textile/crypto"
+	"github.com/textileio/go-textile/ipfs"
+	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/repo"
+	"github.com/textileio/go-textile/repo/config"
 )
 
 // ErrContactNotFound indicates a local contact was not found

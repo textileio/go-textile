@@ -1,6 +1,6 @@
 package mobile
 
-import "github.com/textileio/textile-go/core"
+import "github.com/textileio/go-textile/core"
 
 // PeerId returns the ipfs peer id
 func (m *Mobile) PeerId() (string, error) {

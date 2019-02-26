@@ -4,7 +4,7 @@
 
 ---
 
-[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE) [![CircleCI](https://circleci.com/gh/textileio/textile-go/tree/master.svg?style=shield)](https://circleci.com/gh/textileio/textile-go/tree/master)
+[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE) [![CircleCI](https://circleci.com/gh/textileio/go-textile/tree/master.svg?style=shield)](https://circleci.com/gh/textileio/go-textile/tree/master)
 
 This repository contains pre-built Textile mobile clients for iOS and Android.
 

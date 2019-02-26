@@ -14,8 +14,8 @@ import (
 	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/repo/fsrepo"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 
-	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/repo/config"
+	"github.com/textileio/go-textile/ipfs"
+	"github.com/textileio/go-textile/repo/config"
 )
 
 var log = logging.Logger("tex-repo")
