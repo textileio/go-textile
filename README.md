@@ -1,14 +1,14 @@
-# textile-go
+# go-textile
 
 ![banner](https://s3.amazonaws.com/textile.public/Textile_Logo_Horizontal.png)
 
 ---
 
-[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/textileio/textile-go)](https://goreportcard.com/report/github.com/textileio/textile-go) [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/) [![CircleCI](https://circleci.com/gh/textileio/textile-go/tree/master.svg?style=shield)](https://circleci.com/gh/textileio/textile-go/tree/master)
+[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/textileio/go-textile)](https://goreportcard.com/report/github.com/textileio/go-textile) [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/) [![CircleCI](https://circleci.com/gh/textileio/go-textile/tree/master.svg?style=shield)](https://circleci.com/gh/textileio/go-textile/tree/master)
 
 ## Status
 
-[![Throughput Graph](https://graphs.waffle.io/textileio/textile-go/throughput.svg)](https://waffle.io/textileio/textile-go/metrics/throughput)
+[![Throughput Graph](https://graphs.waffle.io/textileio/go-textile/throughput.svg)](https://waffle.io/textileio/go-textile/metrics/throughput)
 
 This repository contains the core Textile node and daemon, a command-line client, and a mobile client for building an iOS/Android application.
 
@@ -18,63 +18,64 @@ See [textile-mobile](https://github.com/textileio/textile-mobile/) for the [Text
 
 [Textile](https://www.textile.io) provides encrypted, recoverable, schema-based, and cross-application data storage built on [IPFS](https://github.com/ipfs) and [libp2p](https://github.com/libp2p). We like to think of it as a decentralized data wallet with built-in protocols for sharing and recovery, or more simply, **an open and programmable iCloud**.
 
-**Please see the [Wiki](https://github.com/textileio/textile-go/wiki) for more**.
+**Please see the [Wiki](https://github.com/textileio/go-textile/wiki) for more**.
 
 ## Install
 
-Download the [latest release](https://github.com/textileio/textile-go/releases/latest) for your OS.
+Download the [latest release](https://github.com/textileio/go-textile/releases/latest) for your OS.
 
 ## Usage
 
     ~ $ textile --help
     Usage:
       textile [OPTIONS] <command>
-    
+
     Help Options:
       -h, --help  Show this help message
-    
+
     Available commands:
-      add            Add file(s) to a thread
-      address        Show wallet address
+      account        Manage a wallet account
       blocks         View thread blocks
       cafes          Manage cafes
       chat           Start a thread chat
+      commands       List available commands
       comments       Manage thread comments
+      config         Get and set config values
+      contacts       Manage contacts
       daemon         Start the daemon
-      get            Get a thread file by ID
-      ignore         Ignore a thread file
+      files          Manage thread files
       init           Init the node repo and exit
       invites        Manage thread invites
-      keys           Show file keys
+      ipfs           Access IPFS commands
       likes          Manage thread likes
-      ls             Paginate thread files
+      logs           List and control Textile subsystem logs.
+      ls             Paginate thread content
       messages       Manage thread messages
       migrate        Migrate the node repo and exit
       notifications  Manage notifications
-      peer           Show peer ID
       ping           Ping another peer
       profile        Manage public profile
       sub            Subscribe to thread updates
-      swarm          Access IPFS swarm commands
       threads        Manage threads
+      tokens         Manage Cafe access tokens
       version        Print version and exit
       wallet         Manage or create an account wallet
 
 ## Quick-start
 
-#### Initialize a new wallet.
+#### Initialize a new wallet
 
     $ textile wallet init
 
-This will generate a mnemonic phrase for accessing / recovering derived accounts. You may specify a word count and password as well (run with `--help` for usage).
+This will generate a mnemonic phrase for accessing/recovering derived accounts. You may specify a word count and password as well (run with `--help` for usage).
 
-#### Initialize a peer with an account.
+#### Initialize a peer with an account
 
 Next, use an account seed from your wallet to initialize a new peer. First time users should just use the first account’s (Account 0) seed, which is printed out by the `wallet init` sub-command. The private seed begins with “S”. The public address begins with “P”. Use the `accounts` sub-command to access deeper derived wallet accounts.
 
     $ textile init -s <account_seed>
 
-#### Start the daemon.
+#### Start the daemon
 
     $ textile daemon
 
@@ -84,47 +85,46 @@ You can now use the command-line client to interact with your running peer.
 
 Files are tracked by threads. So, let’s start there.
 
-#### Create a new thread.
+#### Create a new thread
 
-    $ textile threads add "hello world" --photos
+    $ textile threads add "hello world" --media
 
-This will create and join a thread backed by the built-in photos schema. Use the `--help` flag on any sub-command for more options and info.
+This will create and join a thread backed by the built-in media schema. Use the `--help` flag on any sub-command for more options and info.
 
-#### Add a file to the thread.
+#### Add a file
 
-    $ textile add <image path> --caption "beautiful"
+    $ textile files add <image path> --caption "beautiful"
 
 The thread schema encodes the image at various width and extracts exif data. The resulting files are added to the thread under one directory. You also add an entire directory.
 
-    $ textile add <dir path> --caption "more beauty"
+    $ textile files add <dir path> --caption "more beauty"
 
-#### Browse files.
+#### Browse a thread feed
 
-The command-line client is not really meant to provide a great UX for browsing account files. However, you can easily paginate through them with `ls`.
-Note: A file’s ID is just its block (update) ID.
+The command-line client is not really meant to provide a great UX for browsing thread content. However, you can easily paginate the feed with `ls`.
 
     $ textile ls --thread <thread ID>
 
-#### Comment on a file.
+#### Comment on a file
 
     $ textile comments add "good eye" --block <block ID>
 
-#### Like a file.
+#### Like a file
 
     $ textile likes add --block <block ID>
 
 ## Sharing files / chatting
 
-In order to start sharing or chatting with someone else, you’ll first need an open thread. Open threads allow invites to other peers.
+In order to start sharing or chatting with someone else, you’ll first need an open and shared thread. An `open` threads allows other to read and write, while `shared` means anyone can join via an invite. See `textile threads --help` for much more about threads, access control types, and share settings.
 
-    $ textile threads add "dog photos" --photos --open
+    $ textile threads add "dog photos" --media --type=open --sharing=shared
 
-Again, we used the built-in photos schema, but this time we’ve opened the thread to invites. Invites allow other peers to join threads. There are two types of invites: direct peer-to-peer and external.
+There are two types of invites: direct peer-to-peer and external.
 
 - Peer-to-peer invites are encrypted with the invitee's public key.
-- External invites are encrypted with a single-use key and are useful for on-boarding new users. Once an external invite and its key are shared, you should considered it public, since any number of peers can use it to join.
+- External invites are encrypted with a single-use key and are useful for on-boarding new users.
 
-#### Create a direct peer-to-peer thread invite.
+#### Create a direct peer-to-peer thread invite
 
     $ textile invites create --thread <thread ID> --peer <peer ID>
 
@@ -143,11 +143,11 @@ The result is something like:
         }
     ]
 
-#### Accept a direct peer-to-peer invite.
+#### Accept a direct peer-to-peer invite
 
     $ textile invites accept QmUv8783yptknBHCSSnscWNLZdz5K8uhpHZYaWnPkMxu4i
 
-#### Create an “external” thread invite.
+#### Create an “external” thread invite
 
 This is done by simply omitting the `--peer` flag with the `invites create` command.
 
@@ -164,13 +164,13 @@ Your friend can use the resulting address and key to accept the invite and join 
 
     $ textile invites accept QmcDmpmBr6qB5QGvsUaTZZtwpGpevGgiSEa7C3AJE9EZiU --key aKrQmYCMiCQvkyjnm4sFhxdZaFH8g9h7EaLxdBGsZCVjsoyMPzQJQUyPrn7G
 
-At this point, both of you can add and receive files via this thread. You can also exchange plain text messages.
+At this point, both of you can add and receive files via this thread. You can also exchange text messages (chat).
 
-#### Add a text message to a thread.
+#### Add a text message to a thread
 
     $ textile messages add "nice photos" --thread <thread ID>
 
-#### Start a chat in a thread.
+#### Start a chat in a thread
 
     $ textile chat --thread <thread ID>
 
@@ -187,30 +187,29 @@ To-do.
 
 ## Contributing
 
-#### Go get the source code.
+#### Go get the source code
 
-    $ go get github.com/textileio/textile-go
+    $ go get github.com/textileio/go-textile
 
 You can ignore the `gx` package errors. You'll need two package managers to get setup…
 
-#### Install the golang package manager, `dep`.
+#### Install the golang package manager, `dep`
 
     $ brew install dep
 
-#### Install the IPFS package manager, `gx`.
+#### Install the IPFS package manager, `gx`
 
     $ go get -u github.com/whyrusleeping/gx
     $ go get -u github.com/whyrusleeping/gx-go
 
-#### Install the dependencies managed by `dep` and `gx`.
+#### Install the dependencies managed by `dep` and `gx`
 
-    $ go get github.com/ahmetb/govvv
-    $ cd $GOPATH/src/github.com/textileio/textile-go
+    $ cd $GOPATH/src/github.com/textileio/go-textile
     $ make setup
 
-#### Run the tests.
+#### Run the tests
 
-    $ make test_compile
+    $ make test
 
 ## Building
 
@@ -224,18 +223,17 @@ There are various things to build…
 
     $ go get golang.org/x/mobile/cmd/gomobile
     $ gomobile init
-    $ make ios_framework
+    $ make ios
 
 #### Android Framework
 
     $ go get golang.org/x/mobile/cmd/gomobile
     $ gomobile init
-    $ make android_framework
+    $ make android
 
 #### Docs
 
-    $ go get -u github.com/swaggo/swag/cmd/swag
-    $ make build_docs
+    $ make docs
 
 ## Acknowledgments
 
