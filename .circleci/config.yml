@@ -421,8 +421,8 @@ jobs:
     - run:
         name: build obj c protobuf bindings
         command: |
-            mkdir protobuf_gen
-            protoc --proto_path=./pb/protos --objc_out=./protobuf_gen ./pb/protos/*
+            mkdir protos
+            protoc --proto_path=./pb/protos --objc_out=./protos ./pb/protos/*
     - run:
         name: collect artifacts
         command: |
@@ -432,7 +432,7 @@ jobs:
           fi
           OUT=~/dist/ios_framework
           mkdir -p ${OUT}
-          tar -czvf textile-go_${VERSION}_ios-framework.tar.gz Mobile.framework protobuf_gen
+          tar -czvf textile-go_${VERSION}_ios-framework.tar.gz Mobile.framework protos
           mv textile-go_${VERSION}_ios-framework.tar.gz ${OUT}/
     - persist_to_workspace:
         root: ~/dist
@@ -519,8 +519,8 @@ jobs:
     - run:
         name: build java protobuf bindings
         command: |
-            mkdir protobuf_gen
-            protoc --proto_path=./pb/protos --java_out=./protobuf_gen ./pb/protos/*
+            mkdir protos
+            protoc --proto_path=./pb/protos --java_out=./protos ./pb/protos/*
     - run:
         name: collect artifacts
         command: |
@@ -530,7 +530,7 @@ jobs:
           fi
           OUT=~/dist/android_aar
           mkdir -p ${OUT}
-          tar -czvf textile-go_${VERSION}_android-aar.tar.gz mobile.aar protobuf_gen
+          tar -czvf textile-go_${VERSION}_android-aar.tar.gz mobile.aar protos
           mv textile-go_${VERSION}_android-aar.tar.gz ${OUT}/
     - persist_to_workspace:
         root: ~/dist
@@ -552,9 +552,9 @@ jobs:
     - run:
         name: build js types
         command: |
-            mkdir protobuf_gen
-            ./node_modules/@textile/protobufjs/bin/pbjs -t static-module -w es6 -o protobuf_gen/index.js ./pb/protos/*
-            ./node_modules/@textile/protobufjs/bin/pbts -o protobuf_gen/index.d.ts protobuf_gen/index.js
+            mkdir protos
+            ./node_modules/@textile/protobufjs/bin/pbjs -t static-module -w es6 -o protos/index.js ./pb/protos/*
+            ./node_modules/@textile/protobufjs/bin/pbts -o protos/index.d.ts protos/index.js
     - run:
         name: collect artifacts
         command: |
@@ -564,7 +564,7 @@ jobs:
           fi
           OUT=~/dist/js_types
           mkdir -p ${OUT}
-          tar -czvf textile-go_${VERSION}_js-types.tar.gz protobuf_gen
+          tar -czvf textile-go_${VERSION}_js-types.tar.gz protos
           mv textile-go_${VERSION}_js-types.tar.gz ${OUT}/
     - persist_to_workspace:
         root: ~/dist
