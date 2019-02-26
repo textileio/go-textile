@@ -64,6 +64,7 @@ _testmain.go
 *.aar
 *.jar
 *.framework
+mobile/dist
 
 # keys
 *.pem

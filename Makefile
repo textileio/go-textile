@@ -55,9 +55,14 @@ protos:
 	$(eval P_ANY := Mgoogle/protobuf/any.proto=github.com/golang/protobuf/ptypes/any)
 	$(eval PKGMAP := $$(P_TIMESTAMP),$$(P_ANY))
 	cd pb/protos; protoc --go_out=$(PKGMAP):.. *.proto
+	mkdir -p mobile/dist/ios/protos
+	cd pb/protos; protoc --objc_out=../../mobile/dist/ios/protos *.proto
+	mkdir -p mobile/dist/android/protos
+	cd pb/protos; protoc --java_out=../../mobile/dist/android/protos *.proto
+	mkdir -p mobile/dist/js/protos
 	cd mobile; yarn install --ignore-scripts
-	cd mobile; node node_modules/@textile/protobufjs/cli/bin/pbjs -t static-module -w es6 -o dist/index.js ../pb/protos/*
-	cd mobile; node node_modules/@textile/protobufjs/cli/bin/pbts -o dist/index.d.ts dist/index.js
+	cd mobile; node node_modules/@textile/protobufjs/cli/bin/pbjs -t static-module -w es6 -o dist/js/protos/index.js ../pb/protos/*
+	cd mobile; node node_modules/@textile/protobufjs/cli/bin/pbts -o dist/js/protos/index.d.ts dist/js/protos/index.js
 
 .PHONY: docs
 docs:
