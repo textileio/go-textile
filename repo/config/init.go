@@ -120,7 +120,10 @@ func Init() (*Config, error) {
 					"X-Textile-Opts",
 					"X-Requested-With",
 				},
-				"Access-Control-Allow-Origin": {},
+				"Access-Control-Allow-Origin": {
+					"http://localhost:*",
+					"http://127.0.0.1:*",
+				},
 			},
 			SizeLimit: 0,
 		},
