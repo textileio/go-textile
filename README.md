@@ -22,7 +22,7 @@ See [textile-mobile](https://github.com/textileio/textile-mobile/) for the [Text
 
 ## Install
 
-Download the [latest release](https://github.com/textileio/go-textile/releases/latest) for your OS.
+Download the [latest release](https://github.com/textileio/go-textile/releases/latest) for your OS or jump to [Docker](https://github.com/textileio/go-textile#docker).
 
 ## Usage
 
@@ -176,14 +176,24 @@ At this point, both of you can add and receive files via this thread. You can al
 
 This will start an interactive chat session with other thread peers.
 
-## Building File Schemas
-To-do.
+## Docker
 
-## Using a Cafe
-To-do.
+See available tags [here](https://hub.docker.com/r/textile/go-textile/tags).
 
-## Hosting a Cafe
-To-do.
+#### Run a Textile node
+
+    $ docker run -it --name textile-node \
+      -p 4001:4001 -p 8081:8081 -p 5050:5050 -p 127.0.0.1:40600:40600 \
+      textile/go-textile:latest
+
+#### Run a Textile node as a _cafe_
+
+    $ docker run -it --name textile-cafe-node \
+      -p 4001:4001 -p 8081:8081 -p 5050:5050 -p 127.0.0.1:40600:40600 -p 40601:40601 \
+      -e CAFE_HOST_URL=<public_URL> -e CAFE_HOST_PUBLIC_IP=<public_IP> \
+      textile/go-textile:latest-cafe
+
+A cafe node can issue client sessions (JWTs) to other nodes. In order to issue valid sessions, the cafe must know its public IP address and the machine's public facing URL. The `CAFE_HOST_PUBLIC_IP` and `CAFE_HOST_URL` environment variable values are written to the textile config file. Read more about cafe host config settings [here](https://github.com/textileio/go-textile/wiki/Config-File#cafe).
 
 ## Contributing
 
