@@ -65,9 +65,10 @@ docs:
 	go get github.com/swaggo/swag/cmd/swag
 	swag init -g core/api.go
 
-# Additional dependencies needed:
+# Additional dependencies needed below:
 # $ brew install jq
 # $ brew install grep
+
 .PHONY: publish
 publish:
 	make protos_js
@@ -75,3 +76,11 @@ publish:
 	cd mobile; jq '.version = "$(VERSION)"' package.json > package.json.tmp && mv package.json.tmp package.json
 	cd mobile; npm publish
 	cd mobile; jq '.version = "0.0.0"' package.json > package.json.tmp && mv package.json.tmp package.json
+
+docker:
+	$(eval VERSION := $$(shell ggrep -oP 'const Version = "\K[^"]+' common/version.go))
+	docker build -t go-textile:$(VERSION) .
+
+docker_cafe:
+	$(eval VERSION := $$(shell ggrep -oP 'const Version = "\K[^"]+' common/version.go))
+	docker build -t go-textile:$(VERSION)-cafe -f Dockerfile.cafe .
