@@ -18,8 +18,8 @@ if [ -e "$repo/config" ]; then
   echo "Found IPFS fs-repo at $repo"
 else
   wallet=$(textile wallet init)
-  echo $wallet
-  textile init -s $(echo $wallet | tail -n1) $INIT_ARGS
+  echo "$wallet"
+  textile init -s $(echo "$wallet" | tail -n1) $INIT_ARGS
 fi
 
 # if the first argument is daemon
