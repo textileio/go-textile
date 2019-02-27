@@ -258,9 +258,9 @@ func (x *initCmd) Execute(args []string) error {
 		LogToDisk:       !x.Logs.NoFiles,
 		Debug:           x.Logs.Debug,
 		CafeOpen:        x.CafeOptions.Open,
-		CafePublicIP:    x.CafeOptions.PublicIP,
-		CafeURL:         x.CafeOptions.URL,
-		CafeNeighborURL: x.CafeOptions.NeighborURL,
+		CafePublicIP:    envOrFlag("CAFE_HOST_PUBLIC_IP", x.CafeOptions.PublicIP),
+		CafeURL:         envOrFlag("CAFE_HOST_URL", x.CafeOptions.URL),
+		CafeNeighborURL: envOrFlag("CAFE_HOST_NEIGHBOR_URL", x.CafeOptions.NeighborURL),
 	}
 
 	if err := core.InitRepo(config); err != nil {
@@ -482,4 +482,11 @@ func printSplash() {
 	fmt.Println(cmd.Grey("Golang version: ") + cmd.Grey(runtime.Version()))
 	fmt.Println(cmd.Grey("PeerID:  ") + cmd.Green(pid.Pretty()))
 	fmt.Println(cmd.Grey("Account: ") + cmd.Cyan(node.Account().Address()))
+}
+
+func envOrFlag(env string, flag string) string {
+	if os.Getenv(env) != "" {
+		return os.Getenv(env)
+	}
+	return flag
 }
