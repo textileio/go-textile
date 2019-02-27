@@ -58,7 +58,7 @@ func startNode() error {
 				var uinote = app.NewNotification(&astilectron.NotificationOptions{
 					Title: note.Subject,
 					Body:  fmt.Sprintf("%s: %s.", user.Name, note.Body),
-					Icon:  user.Avatar,
+					Icon:  fmt.Sprintf("%s/ipfs/%s/0/small/d", gateway.Host.Addr(), user.Avatar),
 				})
 
 				// tmp auto-accept thread invites
