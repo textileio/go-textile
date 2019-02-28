@@ -80,7 +80,7 @@ func (x *addThreadsCmd) Execute(args []string) error {
 	setApi(x.Client)
 
 	var body []byte
-	if x.Schema != "" {
+	if x.Schema == "" {
 		if x.SchemaFile != "" {
 			path, err := homedir.Expand(string(x.SchemaFile))
 			if err != nil {
