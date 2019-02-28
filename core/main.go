@@ -22,14 +22,14 @@ import (
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 	logger "gx/ipfs/QmcaSwFc5RBg8yCq54QURwEU4nwjfCpjbpmaAm4VbdGLKv/go-logging"
 
-	"github.com/textileio/textile-go/broadcast"
-	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/repo/config"
-	"github.com/textileio/textile-go/repo/db"
-	"github.com/textileio/textile-go/service"
+	"github.com/textileio/go-textile/broadcast"
+	"github.com/textileio/go-textile/ipfs"
+	"github.com/textileio/go-textile/keypair"
+	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/repo"
+	"github.com/textileio/go-textile/repo/config"
+	"github.com/textileio/go-textile/repo/db"
+	"github.com/textileio/go-textile/service"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 

@@ -7,10 +7,10 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/any"
-	"github.com/textileio/textile-go/broadcast"
-	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/util"
+	"github.com/textileio/go-textile/broadcast"
+	"github.com/textileio/go-textile/ipfs"
+	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/util"
 )
 
 // AddContact adds or updates a contact

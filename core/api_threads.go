@@ -8,8 +8,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/util"
+	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/util"
 )
 
 // addThreads godoc
@@ -51,7 +51,9 @@ func (a *api) addThreads(g *gin.Context) {
 	}
 
 	if opts["schema"] != "" {
-		config.Schema.Id = opts["schema"]
+		config.Schema = &pb.AddThreadConfig_Schema{
+			Id: opts["schema"],
+		}
 	}
 
 	config.Type = pb.Thread_Type(pbValForEnumString(pb.Thread_Type_value, opts["type"]))

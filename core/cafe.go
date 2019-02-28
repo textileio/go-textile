@@ -3,7 +3,7 @@ package core
 import (
 	"errors"
 
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/pb"
 )
 
 // RegisterCafe registers this account with another peer (the "cafe"),

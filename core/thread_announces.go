@@ -6,7 +6,7 @@ import (
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 
 	"github.com/golang/protobuf/ptypes"
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/pb"
 )
 
 // announce creates an outgoing announce block

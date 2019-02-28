@@ -63,6 +63,8 @@ EXPOSE 4001
 EXPOSE 8081
 # Daemon API; must not be exposed publicly but to client services under you control
 EXPOSE 40600
+# Cafe API; should be exposed to the public
+EXPOSE 40601
 # Web Gateway;
 EXPOSE 5050
 
@@ -80,13 +82,19 @@ USER textile
 # Important this happens after the USER directive so permission are correct.
 VOLUME $TEXTILE_PATH
 
+# Bump swarm limit
+ENV LIBP2P_SWARM_FD_LIMIT 5000
+
 # Init opts
 ENV INIT_ARGS \
-  --repo-dir=$TEXTILE_PATH \
+  --repo-dir="$TEXTILE_PATH" \
   --swarm-ports=4001,8081 \
   --api-bind-addr=0.0.0.0:40600 \
   --gateway-bind-addr=0.0.0.0:5050 \
+  --cafe-bind-addr=0.0.0.0:40601 \
   --no-log-files \
+  --server \
+  --cafe-open \
   --debug
 
 # This just makes sure that:

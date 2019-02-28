@@ -1,6 +1,6 @@
 package mobile
 
-import "github.com/textileio/textile-go/common"
+import "github.com/textileio/go-textile/common"
 
 // Version returns common Version
 func (m *Mobile) Version() string {

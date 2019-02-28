@@ -17,9 +17,9 @@ import (
 	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core/coreapi/interface"
 
 	"github.com/mitchellh/go-homedir"
-	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/schema"
+	"github.com/textileio/go-textile/core"
+	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/schema"
 )
 
 var errMissingFilePath = errors.New("missing file path")

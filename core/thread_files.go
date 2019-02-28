@@ -14,12 +14,12 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/mr-tron/base58/base58"
-	"github.com/textileio/textile-go/crypto"
-	"github.com/textileio/textile-go/ipfs"
-	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/schema"
-	"github.com/textileio/textile-go/util"
+	"github.com/textileio/go-textile/crypto"
+	"github.com/textileio/go-textile/ipfs"
+	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/repo"
+	"github.com/textileio/go-textile/schema"
+	"github.com/textileio/go-textile/util"
 	"github.com/xeipuuv/gojsonschema"
 )
 

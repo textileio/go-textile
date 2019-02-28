@@ -1,21 +1,21 @@
 {
-  "name": "textile-go",
+  "name": "go-textile",
   "description": "Encrypted, recoverable, schema-based, cross-application data storage built on IPFS and LibP2P.",
   "version": "0.0.0",
   "author": "textile.io",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/textileio/textile-go"
+    "url": "https://github.com/textileio/go-textile"
   },
   "bugs": {
-    "url": "https://github.com/textileio/textile-go"
+    "url": "https://github.com/textileio/go-textile"
   },
   "homepage": "https://www.textile.io/",
   "language": "go",
   "gxVersion": "0.12.1",
   "gx": {
-    "dvcsimport": "github.com/textileio/textile-go",
+    "dvcsimport": "github.com/textileio/go-textile",
     "goversion": "1.11"
   },
   "gxDependencies": [

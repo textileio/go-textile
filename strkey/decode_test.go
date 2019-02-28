@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	. "github.com/textileio/textile-go/strkey"
+	. "github.com/textileio/go-textile/strkey"
 )
 
 func TestDecode(t *testing.T) {

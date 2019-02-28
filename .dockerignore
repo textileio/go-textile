@@ -1,8 +1,11 @@
+Dockerfile
+
+.github
 .circleci
 dist
-docs
-node_modules
+desktop
+mobile
+
 *.aar
 *.jar
 *.framework
-desktop

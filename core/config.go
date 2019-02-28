@@ -12,7 +12,7 @@ import (
 	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/repo"
 	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/repo/fsrepo"
 
-	"github.com/textileio/textile-go/repo/config"
+	"github.com/textileio/go-textile/repo/config"
 )
 
 const minPort = 1024

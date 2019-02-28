@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/jsonpb"
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/pb"
 
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
@@ -22,11 +22,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
 	"github.com/mr-tron/base58/base58"
-	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/crypto"
-	"github.com/textileio/textile-go/gateway/static/css"
-	"github.com/textileio/textile-go/gateway/templates"
-	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/go-textile/core"
+	"github.com/textileio/go-textile/crypto"
+	"github.com/textileio/go-textile/gateway/static/css"
+	"github.com/textileio/go-textile/gateway/templates"
+	"github.com/textileio/go-textile/ipfs"
 )
 
 var log = logging.Logger("tex-gateway")

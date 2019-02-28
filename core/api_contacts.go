@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/pb"
 )
 
 // addContacts godoc
@@ -22,13 +22,9 @@ import (
 // @Failure 400 {string} string "Bad Request"
 // @Router /contacts/{id} [put]
 func (a *api) addContacts(g *gin.Context) {
-	var contact *pb.Contact
-	if err := pbUnmarshaler.Unmarshal(g.Request.Body, contact); err != nil {
+	var contact pb.Contact
+	if err := pbUnmarshaler.Unmarshal(g.Request.Body, &contact); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
-		return
-	}
-	if contact == nil {
-		g.String(http.StatusBadRequest, "missing contact")
 		return
 	}
 	if contact.Id == "" || contact.Address == "" {
@@ -40,7 +36,7 @@ func (a *api) addContacts(g *gin.Context) {
 		return
 	}
 
-	if err := a.node.AddContact(contact); err != nil {
+	if err := a.node.AddContact(&contact); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}

@@ -473,8 +473,8 @@ info:
   description: Textile Node Local REST API Documentation
   license:
     name: MIT License
-    url: https://github.com/textileio/textile-go/blob/master/LICENSE
-  termsOfService: https://github.com/textileio/textile-go/blob/master/TERMS
+    url: https://github.com/textileio/go-textile/blob/master/LICENSE
+  termsOfService: https://github.com/textileio/go-textile/blob/master/TERMS
   title: Textile Node API
   version: "0"
 paths:

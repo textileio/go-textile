@@ -6,10 +6,10 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
-	"github.com/textileio/textile-go/broadcast"
-	"github.com/textileio/textile-go/crypto"
-	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/broadcast"
+	"github.com/textileio/go-textile/crypto"
+	"github.com/textileio/go-textile/keypair"
+	"github.com/textileio/go-textile/pb"
 )
 
 // Account returns account keypair

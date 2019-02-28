@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
+	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/repo"
 )
 
 var threadPeerStore repo.ThreadPeerStore

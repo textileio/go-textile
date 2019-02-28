@@ -3,7 +3,7 @@ package core
 import (
 	"fmt"
 
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/pb"
 )
 
 // Summary returns a summary of node data

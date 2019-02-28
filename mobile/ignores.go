@@ -1,6 +1,6 @@
 package mobile
 
-import "github.com/textileio/textile-go/core"
+import "github.com/textileio/go-textile/core"
 
 // AddIgnore adds an ignore targeted at the given block and unpins any associated target data
 func (m *Mobile) AddIgnore(blockId string) (string, error) {

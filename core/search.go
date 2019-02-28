@@ -6,9 +6,9 @@ import (
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
 	"github.com/segmentio/ksuid"
-	"github.com/textileio/textile-go/broadcast"
-	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/util"
+	"github.com/textileio/go-textile/broadcast"
+	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/util"
 )
 
 // queryResultSet holds a unique set of search results

@@ -8,8 +8,8 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/mr-tron/base58/base58"
-	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/core"
+	"github.com/textileio/go-textile/pb"
 )
 
 // AddThread adds a new thread with the given name

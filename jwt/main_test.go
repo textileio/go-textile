@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/textileio/textile-go/ipfs"
-	. "github.com/textileio/textile-go/jwt"
+	"github.com/textileio/go-textile/ipfs"
+	. "github.com/textileio/go-textile/jwt"
 )
 
 var publicKey = "CAESIP1G8uGFpX+iduqgJfKLt0nw870MI9ydHcKg9gDIr5Tb"

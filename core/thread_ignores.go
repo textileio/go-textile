@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/textileio/textile-go/ipfs"
+	"github.com/textileio/go-textile/ipfs"
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 
 	"github.com/golang/protobuf/ptypes"
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/pb"
 )
 
 // AddIgnore adds an outgoing ignore block targeted at another block to ignore

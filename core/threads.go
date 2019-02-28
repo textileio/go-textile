@@ -10,11 +10,11 @@ import (
 	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
-	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/mill"
-	"github.com/textileio/textile-go/pb"
-	"github.com/textileio/textile-go/repo"
-	"github.com/textileio/textile-go/schema/textile"
+	"github.com/textileio/go-textile/keypair"
+	"github.com/textileio/go-textile/mill"
+	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/repo"
+	"github.com/textileio/go-textile/schema/textile"
 )
 
 // ErrThreadNotFound indicates thread is not found in the loaded list
