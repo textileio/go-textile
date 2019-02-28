@@ -18,7 +18,6 @@ import (
 	"github.com/textileio/textile-go/core"
 	"github.com/textileio/textile-go/gateway"
 	"github.com/textileio/textile-go/keypair"
-	// "github.com/textileio/textile-go/repo/config"
 	"github.com/textileio/textile-go/pb"
 )
 
@@ -70,6 +69,8 @@ func startNode() error {
 					}(note.Block)
 				}
 
+				fmt.Println(fmt.Sprintf("%s: %s.", user.Name, note.Body))
+
 				// show notification
 				go func(n *astilectron.Notification) {
 					if err := n.Create(); err != nil {
@@ -117,6 +118,10 @@ func stopNode() error {
 }
 
 func start(app *astilectron.Astilectron, _ []*astilectron.Window, _ *astilectron.Menu, t *astilectron.Tray, m *astilectron.Menu) error {
+	// remove the dock icon
+	var d = app.Dock()
+	d.Hide()
+
 	// get homedir
 	home, err := homedir.Dir()
 	if err != nil {
@@ -126,7 +131,7 @@ func start(app *astilectron.Astilectron, _ []*astilectron.Window, _ *astilectron
 	// ensure app support folder is created
 	var appDir string
 	if runtime.GOOS == "darwin" {
-		appDir = filepath.Join(home, "Library/Application Support/Textile")
+		appDir = filepath.Join(home, "Library", "Application Support", "Textile")
 	} else {
 		appDir = filepath.Join(home, ".textile")
 	}
@@ -142,8 +147,8 @@ func start(app *astilectron.Astilectron, _ []*astilectron.Window, _ *astilectron
 			Account:   accnt,
 			RepoPath:  repoPath,
 			LogToDisk: true,
-			GatewayAddr: fmt.Sprintf("127.0.0.1:%s", core.GetRandomPort()),
-			ApiAddr: fmt.Sprintf("127.0.0.1:%s", core.GetRandomPort()),
+			GatewayAddr: fmt.Sprintf("127.0.0.1:5052"),
+			ApiAddr: fmt.Sprintf("127.0.0.1:40602"),
 
 		}
 		if err := core.InitRepo(initc); err != nil {
