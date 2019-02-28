@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/pb"
 
 	"github.com/golang/protobuf/proto"
 
@@ -21,12 +21,12 @@ import (
 	cors "github.com/rs/cors/wrapper/gin"
 	swagger "github.com/swaggo/gin-swagger"
 	sfiles "github.com/swaggo/gin-swagger/swaggerFiles"
-	"github.com/textileio/textile-go/common"
-	m "github.com/textileio/textile-go/mill"
-	"github.com/textileio/textile-go/repo/config"
+	"github.com/textileio/go-textile/common"
+	m "github.com/textileio/go-textile/mill"
+	"github.com/textileio/go-textile/repo/config"
 
 	// blank import for server api docs
-	_ "github.com/textileio/textile-go/docs"
+	_ "github.com/textileio/go-textile/docs"
 )
 
 // apiVersion is the api version

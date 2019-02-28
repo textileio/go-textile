@@ -15,10 +15,10 @@ import (
 	"github.com/asticode/go-astilectron-bootstrap"
 	"github.com/asticode/go-astilog"
 	"github.com/mitchellh/go-homedir"
-	"github.com/textileio/textile-go/core"
-	"github.com/textileio/textile-go/gateway"
-	"github.com/textileio/textile-go/keypair"
-	"github.com/textileio/textile-go/pb"
+	"github.com/textileio/go-textile/core"
+	"github.com/textileio/go-textile/gateway"
+	"github.com/textileio/go-textile/keypair"
+	"github.com/textileio/go-textile/pb"
 )
 
 var (
