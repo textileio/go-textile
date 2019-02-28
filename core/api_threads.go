@@ -51,7 +51,9 @@ func (a *api) addThreads(g *gin.Context) {
 	}
 
 	if opts["schema"] != "" {
-		config.Schema.Id = opts["schema"]
+		config.Schema = &pb.AddThreadConfig_Schema{
+			Id: opts["schema"],
+		}
 	}
 
 	config.Type = pb.Thread_Type(pbValForEnumString(pb.Thread_Type_value, opts["type"]))
