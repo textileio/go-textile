@@ -272,6 +272,10 @@ You can also build the architecture-specific versions with:
 astilectron-bundle -v -c bundler.{darwin,linux,windows}.json
 ```
 
+##### Linux
+
+On Linux, you also have to `apt-get install libappindicator1 xclip libgconf-2-4` due to an issue with building Electron-based apps.
+
 ## Acknowledgments
 
 While now almost entirely different, this project was jump-started from [OpenBazaar](https://openbazaar.org/). Thanks to @cpacia, @drwasho and the rest of the contributors for their work on [openbazaar-go](https://github.com/OpenBazaar/openbazaar-go).
