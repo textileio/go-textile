@@ -16,17 +16,17 @@ import (
 type TestMessenger struct{}
 
 func (tm *TestMessenger) Notify(event *Event) {
-	eventt := pb.MobileEvent_Type(pb.MobileEvent_Type_value[event.Name])
+	eventt := pb.MobileEventType(pb.MobileEventType_value[event.Name])
 	fmt.Println(fmt.Sprintf("+++ MOBILE EVENT: %s", eventt.String()))
 
 	switch eventt {
-	case pb.MobileEvent_NODE_START:
-	case pb.MobileEvent_NODE_ONLINE:
-	case pb.MobileEvent_NODE_STOP:
-	case pb.MobileEvent_WALLET_UPDATE:
-	case pb.MobileEvent_THREAD_UPDATE:
-	case pb.MobileEvent_NOTIFICATION:
-	case pb.MobileEvent_QUERY_RESPONSE:
+	case pb.MobileEventType_NODE_START:
+	case pb.MobileEventType_NODE_ONLINE:
+	case pb.MobileEventType_NODE_STOP:
+	case pb.MobileEventType_WALLET_UPDATE:
+	case pb.MobileEventType_THREAD_UPDATE:
+	case pb.MobileEventType_NOTIFICATION:
+	case pb.MobileEventType_QUERY_RESPONSE:
 		res := new(pb.MobileQueryEvent)
 		if err := proto.Unmarshal(event.Data, res); err != nil {
 			fmt.Println(err.Error())

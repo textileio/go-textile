@@ -17,19 +17,6 @@ func (m *Mobile) RegisterCafe(host string, token string) error {
 	return nil
 }
 
-// CafeSessions calls core CafeSessions
-func (m *Mobile) CafeSessions() ([]byte, error) {
-	if !m.node.Started() {
-		return nil, core.ErrStopped
-	}
-
-	bytes, err := proto.Marshal(m.node.CafeSessions())
-	if err != nil {
-		return nil, err
-	}
-	return bytes, nil
-}
-
 // CafeSession calls core CafeSession
 func (m *Mobile) CafeSession(peerId string) ([]byte, error) {
 	if !m.node.Started() {
@@ -45,6 +32,19 @@ func (m *Mobile) CafeSession(peerId string) ([]byte, error) {
 	}
 
 	bytes, err := proto.Marshal(session)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
+}
+
+// CafeSessions calls core CafeSessions
+func (m *Mobile) CafeSessions() ([]byte, error) {
+	if !m.node.Started() {
+		return nil, core.ErrStopped
+	}
+
+	bytes, err := proto.Marshal(m.node.CafeSessions())
 	if err != nil {
 		return nil, err
 	}
