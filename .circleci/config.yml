@@ -583,7 +583,7 @@ jobs:
         command: |
           mkdir -p ~/dist
           mv ~/cli/* ~/dist/
-          # mv ~/desktop/* ~/dist/
+          mv ~/desktop/* ~/dist/
           mv ~/ios_framework/* ~/dist/
           mv ~/android_aar/* ~/dist/
           mv ~/js_types/* ~/dist/

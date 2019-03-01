@@ -112,6 +112,14 @@
   revision = "a0ff2567cfb70903282db057e799fd826784d41d"
 
 [[projects]]
+  digest = "1:bae860d15d1884966613498e844ab95f434c7f7f16058918223490c145d46040"
+  name = "github.com/atotto/clipboard"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "aa9549103943c05f3e8951009cdb6a0bec2c8949"
+  version = "v0.1.1"
+
+[[projects]]
   branch = "master"
   digest = "1:dc9639273af918022abda0ccfc02fea4d57cb01e5713ec53d807402df80be1ef"
   name = "github.com/chzyer/readline"
@@ -158,14 +166,6 @@
   pruneopts = "T"
   revision = "5b77d2a35fb0ede96d138fc9a99f5c9b6aef11b4"
   version = "v1.7.0"
-
-[[projects]]
-  digest = "1:27ae17a75b17237a08129c9dcca244fa55c6855502ea2838a7a00c362ad76b91"
-  name = "github.com/gin-contrib/cors"
-  packages = ["."]
-  pruneopts = "T"
-  revision = "cf4846e6a636a76237a28d9286f163c132e841bc"
-  version = "v1.2"
 
 [[projects]]
   branch = "master"
@@ -400,6 +400,14 @@
   version = "v1.4.2"
 
 [[projects]]
+  branch = "master"
+  digest = "1:2927f1c0d0d1817b2735d1c74c5e89ea2c5f2ae50b41126bbd17502bd7ae2b0f"
+  name = "github.com/pkg/browser"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "0a3d74bf9ce488f035cf5bc36f753a711bc74334"
+
+[[projects]]
   digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
   name = "github.com/pkg/errors"
   packages = ["."]
@@ -414,6 +422,17 @@
   pruneopts = "T"
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
   version = "v1.0.0"
+
+[[projects]]
+  digest = "1:a8a03bca5a81878daa4958136f3372af00437c61129ca088a430b0b786b9378a"
+  name = "github.com/rs/cors"
+  packages = [
+    ".",
+    "wrapper/gin",
+  ]
+  pruneopts = "T"
+  revision = "9a47f48565a795472d43519dd49aac781f3034fb"
+  version = "v1.6.0"
 
 [[projects]]
   branch = "go1"
@@ -441,18 +460,6 @@
   pruneopts = "T"
   revision = "3e01752db0189b9157070a0e1668a620f9a85da2"
   version = "v1.0.6"
-
-[[projects]]
-  branch = "master"
-  digest = "1:b64a5af1be52475e6599c7a84385fd93428b5ef391f1d9c2ace8b07d8a7f107a"
-  name = "github.com/skip2/go-qrcode"
-  packages = [
-    ".",
-    "bitset",
-    "reedsolomon",
-  ]
-  pruneopts = "T"
-  revision = "cf5f9fa2f0d847edb8e038db7ed975e239095e1a"
 
 [[projects]]
   digest = "1:e95496462101745805bd4e041a5b841e108c7cf761264d53648246308de2761e"
@@ -683,12 +690,12 @@
     "github.com/asticode/go-astilectron",
     "github.com/asticode/go-astilectron-bootstrap",
     "github.com/asticode/go-astilog",
+    "github.com/atotto/clipboard",
     "github.com/chzyer/readline",
     "github.com/dgrijalva/jwt-go",
     "github.com/disintegration/imaging",
     "github.com/evanphx/json-patch",
     "github.com/fatih/color",
-    "github.com/gin-contrib/cors",
     "github.com/gin-contrib/size",
     "github.com/gin-gonic/gin",
     "github.com/gin-gonic/gin/render",
@@ -706,9 +713,11 @@
     "github.com/onsi/ginkgo/extensions/table",
     "github.com/onsi/gomega",
     "github.com/onsi/gomega/types",
+    "github.com/pkg/browser",
+    "github.com/pkg/errors",
+    "github.com/rs/cors/wrapper/gin",
     "github.com/rwcarlsen/goexif/exif",
     "github.com/segmentio/ksuid",
-    "github.com/skip2/go-qrcode",
     "github.com/stretchr/testify/assert",
     "github.com/swaggo/gin-swagger",
     "github.com/swaggo/gin-swagger/swaggerFiles",

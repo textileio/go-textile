@@ -245,6 +245,37 @@ There are various things to build…
 
     $ make docs
 
+#### Desktop
+
+The build is made by a vendored version of `go-astilectron-bundler`. Due to Go's painful package management, you'll want to delete any `go-astilectron`-related binaries and source code you have installed from `github.com/asticode` in your `$GOPATH`. Then you can install the vendored `go-astilectron-bundler`:
+
+```
+go install ./vendor/github.com/asticode/go-astilectron-bundler/astilectron-bundler
+```
+
+Change into the desktop folder and build the app:
+
+```
+cd desktop
+astilectron-bundler -v
+```
+
+Double-click the built app in `desktop/output/{darwin,linux,windows}-amd64`, or run it directly:
+
+```
+go run *.go
+```
+
+You can also build the architecture-specific versions with:
+
+```
+astilectron-bundle -v -c bundler.{darwin,linux,windows}.json
+```
+
+##### Linux
+
+On Linux, you also have to `apt-get install libappindicator1 xclip libgconf-2-4` due to an issue with building Electron-based apps.
+
 ## Acknowledgments
 
 While now almost entirely different, this project was jump-started from [OpenBazaar](https://openbazaar.org/). Thanks to @cpacia, @drwasho and the rest of the contributors for their work on [openbazaar-go](https://github.com/OpenBazaar/openbazaar-go).

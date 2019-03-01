@@ -8,22 +8,25 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 
-	"github.com/gin-contrib/cors"
+	"github.com/textileio/go-textile/pb"
+
+	"github.com/golang/protobuf/proto"
+
 	limit "github.com/gin-contrib/size"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
+	cors "github.com/rs/cors/wrapper/gin"
 	swagger "github.com/swaggo/gin-swagger"
 	sfiles "github.com/swaggo/gin-swagger/swaggerFiles"
 	"github.com/textileio/go-textile/common"
-	_ "github.com/textileio/go-textile/docs"
 	m "github.com/textileio/go-textile/mill"
-	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo/config"
+
+	// blank import for server api docs
+	_ "github.com/textileio/go-textile/docs"
 )
 
 // apiVersion is the api version
@@ -407,37 +410,23 @@ func (a *api) abort500(g *gin.Context, err error) {
 }
 
 // getCORSSettings returns custom CORS settings given HTTPHeaders config options
-func getCORSSettings(config *config.Config) cors.Config {
+func getCORSSettings(config *config.Config) cors.Options {
 	headers := config.API.HTTPHeaders
-	cconfig := cors.DefaultConfig()
+	cconfig := cors.Options{}
 
 	control, ok := headers["Access-Control-Allow-Origin"]
 	if ok && len(control) > 0 {
-		cconfig.AllowOrigins = control
-		for _, origin := range control {
-			if origin == "*" {
-				cconfig.AllowAllOrigins = true
-				cconfig.AllowOrigins = nil
-				break
-			}
-		}
-	} else {
-		defaultHost := config.Addresses.API
-		match, _ := regexp.MatchString("^https?://", defaultHost)
-		if !match {
-			defaultHost = "http://" + defaultHost
-		}
-		cconfig.AllowOrigins = []string{defaultHost}
+		cconfig.AllowedOrigins = control
 	}
 
 	control, ok = headers["Access-Control-Allow-Methods"]
 	if ok && len(control) > 0 {
-		cconfig.AllowMethods = control
+		cconfig.AllowedMethods = control
 	}
 
 	control, ok = headers["Access-Control-Allow-Headers"]
 	if ok && len(control) > 0 {
-		cconfig.AllowHeaders = control
+		cconfig.AllowedHeaders = control
 	}
 
 	return cconfig
