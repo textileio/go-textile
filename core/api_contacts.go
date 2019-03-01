@@ -100,13 +100,13 @@ func (a *api) lsContacts(g *gin.Context) {
 func (a *api) getContacts(g *gin.Context) {
 	id := g.Param("id")
 
-	info := a.node.Contact(id)
-	if info == nil {
+	contact := a.node.Contact(id)
+	if contact == nil {
 		g.String(http.StatusNotFound, "contact not found")
 		return
 	}
 
-	pbJSON(g, http.StatusOK, info)
+	pbJSON(g, http.StatusOK, contact)
 }
 
 // rmContacts godoc
@@ -122,8 +122,8 @@ func (a *api) getContacts(g *gin.Context) {
 func (a *api) rmContacts(g *gin.Context) {
 	id := g.Param("id")
 
-	info := a.node.Contact(id)
-	if info == nil {
+	contact := a.node.Contact(id)
+	if contact == nil {
 		g.String(http.StatusNotFound, "contact not found")
 		return
 	}

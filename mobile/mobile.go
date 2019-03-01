@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/textileio/go-textile/broadcast"
+	"github.com/textileio/go-textile/common"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
@@ -134,16 +135,6 @@ func NewTextile(config *RunConfig, messenger Messenger) (*Mobile, error) {
 	}, nil
 }
 
-// SetLogLevel calls core SetLogLevel
-func (m *Mobile) SetLogLevel(level []byte) error {
-	mlevel := new(pb.LogLevel)
-	if err := proto.Unmarshal(level, mlevel); err != nil {
-		return err
-	}
-
-	return m.node.SetLogLevel(mlevel)
-}
-
 // Start the mobile node
 func (m *Mobile) Start() error {
 	if err := m.node.Start(); err != nil {
@@ -164,7 +155,7 @@ func (m *Mobile) Start() error {
 					if !ok {
 						return
 					}
-					m.notify(pb.MobileEvent_WALLET_UPDATE, update)
+					m.notify(pb.MobileEventType_WALLET_UPDATE, update)
 				}
 			}
 		}()
@@ -178,7 +169,7 @@ func (m *Mobile) Start() error {
 						return
 					}
 					if update, ok := value.(*pb.FeedItem); ok {
-						m.notify(pb.MobileEvent_THREAD_UPDATE, update)
+						m.notify(pb.MobileEventType_THREAD_UPDATE, update)
 					}
 				}
 			}
@@ -192,15 +183,15 @@ func (m *Mobile) Start() error {
 					if !ok {
 						return
 					}
-					m.notify(pb.MobileEvent_NOTIFICATION, note)
+					m.notify(pb.MobileEventType_NOTIFICATION, note)
 				}
 			}
 		}()
 
-		m.notify(pb.MobileEvent_NODE_ONLINE, nil)
+		m.notify(pb.MobileEventType_NODE_ONLINE, nil)
 	}()
 
-	m.notify(pb.MobileEvent_NODE_START, nil)
+	m.notify(pb.MobileEventType_NODE_START, nil)
 	return nil
 }
 
@@ -209,13 +200,32 @@ func (m *Mobile) Stop() error {
 	if err := m.node.Stop(); err != nil && err != core.ErrStopped {
 		return err
 	}
-	m.notify(pb.MobileEvent_NODE_STOP, nil)
+	m.notify(pb.MobileEventType_NODE_STOP, nil)
 	return nil
 }
 
 // OnlineCh returns core OnlineCh
 func (m *Mobile) OnlineCh() <-chan struct{} {
 	return m.node.OnlineCh()
+}
+
+// Version returns common Version
+func (m *Mobile) Version() string {
+	return "v" + common.Version
+}
+
+// GitSummary returns common GitSummary
+func (m *Mobile) GitSummary() string {
+	return common.GitSummary
+}
+
+// Summary calls core Summary
+func (m *Mobile) Summary() ([]byte, error) {
+	if !m.node.Started() {
+		return nil, core.ErrStopped
+	}
+
+	return proto.Marshal(m.node.Summary())
 }
 
 // blockView returns marshaled view of a block
@@ -227,7 +237,7 @@ func (m *Mobile) blockView(hash mh.Multihash) ([]byte, error) {
 	return proto.Marshal(view)
 }
 
-func (m *Mobile) notify(name pb.MobileEvent_Type, msg proto.Message) {
+func (m *Mobile) notify(name pb.MobileEventType, msg proto.Message) {
 	var data []byte
 	if msg != nil {
 		var err error

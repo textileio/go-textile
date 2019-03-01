@@ -29,7 +29,7 @@ func (m *Mobile) handleSearchStream(resultCh <-chan *pb.QueryResult, errCh <-cha
 			return
 		}
 		done = true
-		m.notify(pb.MobileEvent_QUERY_RESPONSE, &pb.MobileQueryEvent{
+		m.notify(pb.MobileEventType_QUERY_RESPONSE, &pb.MobileQueryEvent{
 			Id:   id,
 			Type: pb.MobileQueryEvent_DONE,
 		})
@@ -44,7 +44,7 @@ func (m *Mobile) handleSearchStream(resultCh <-chan *pb.QueryResult, errCh <-cha
 		for {
 			select {
 			case err := <-errCh:
-				m.notify(pb.MobileEvent_QUERY_RESPONSE, &pb.MobileQueryEvent{
+				m.notify(pb.MobileEventType_QUERY_RESPONSE, &pb.MobileQueryEvent{
 					Id:   id,
 					Type: pb.MobileQueryEvent_ERROR,
 					Error: &pb.Error{
@@ -59,7 +59,7 @@ func (m *Mobile) handleSearchStream(resultCh <-chan *pb.QueryResult, errCh <-cha
 					doneFn()
 					return
 				}
-				m.notify(pb.MobileEvent_QUERY_RESPONSE, &pb.MobileQueryEvent{
+				m.notify(pb.MobileEventType_QUERY_RESPONSE, &pb.MobileQueryEvent{
 					Id:   id,
 					Type: pb.MobileQueryEvent_DATA,
 					Data: res,
