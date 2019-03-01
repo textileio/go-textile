@@ -50,9 +50,6 @@ protos:
 	$(eval P_ANY := Mgoogle/protobuf/any.proto=github.com/golang/protobuf/ptypes/any)
 	$(eval PKGMAP := $$(P_TIMESTAMP),$$(P_ANY))
 	cd pb/protos; protoc --go_out=$(PKGMAP):.. *.proto
-	mkdir -p mobile/dist
-	cd mobile; ./node_modules/.bin/pbjs -t static-module -w es6 -o dist/index.js ../pb/protos/*
-	cd mobile; ./node_modules/.bin/pbts -o dist/index.d.ts dist/index.js
 
 protos_js:
 	mkdir -p mobile/dist

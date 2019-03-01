@@ -31,14 +31,14 @@ func (t *Textile) RegisterCafe(host string, token string) (*pb.CafeSession, erro
 	return session, nil
 }
 
-// CafeSessions lists active cafe sessions
-func (t *Textile) CafeSessions() *pb.CafeSessionList {
-	return t.datastore.CafeSessions().List()
-}
-
 // CafeSession returns an active session by id
 func (t *Textile) CafeSession(peerId string) (*pb.CafeSession, error) {
 	return t.datastore.CafeSessions().Get(peerId), nil
+}
+
+// CafeSessions lists active cafe sessions
+func (t *Textile) CafeSessions() *pb.CafeSessionList {
+	return t.datastore.CafeSessions().List()
 }
 
 // RefreshCafeSession attempts to refresh a token with a cafe

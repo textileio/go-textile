@@ -39,7 +39,7 @@ func (m *Mobile) Decrypt(input []byte) ([]byte, error) {
 }
 
 // AccountPeers calls core AccountPeers
-func (m *Mobile) AccountPeers(input []byte) ([]byte, error) {
+func (m *Mobile) AccountPeers() ([]byte, error) {
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}

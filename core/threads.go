@@ -205,6 +205,34 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 	return nthrd.updateHead(hash)
 }
 
+// Thread get a thread by id from loaded threads
+func (t *Textile) Thread(id string) *Thread {
+	for _, thrd := range t.loadedThreads {
+		if thrd.Id == id {
+			return thrd
+		}
+	}
+	return nil
+}
+
+// Threads lists loaded threads
+func (t *Textile) Threads() []*Thread {
+	var threads []*Thread
+loop:
+	for _, i := range t.loadedThreads {
+		if i == nil || i.Key == t.account.Address() {
+			continue
+		}
+		for _, k := range internalThreadKeys {
+			if i.Key == k {
+				continue loop
+			}
+		}
+		threads = append(threads, i)
+	}
+	return threads
+}
+
 // RemoveThread removes a thread
 func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	var thrd *Thread
@@ -243,34 +271,6 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	log.Infof("removed thread %s with name %s", thrd.Id, thrd.Name)
 
 	return addr, nil
-}
-
-// Threads lists loaded threads
-func (t *Textile) Threads() []*Thread {
-	var threads []*Thread
-loop:
-	for _, i := range t.loadedThreads {
-		if i == nil || i.Key == t.account.Address() {
-			continue
-		}
-		for _, k := range internalThreadKeys {
-			if i.Key == k {
-				continue loop
-			}
-		}
-		threads = append(threads, i)
-	}
-	return threads
-}
-
-// Thread get a thread by id from loaded threads
-func (t *Textile) Thread(id string) *Thread {
-	for _, thrd := range t.loadedThreads {
-		if thrd.Id == id {
-			return thrd
-		}
-	}
-	return nil
 }
 
 // ThreadByKey get a thread by key from loaded threads
