@@ -255,8 +255,8 @@ func TestMobile_AddThread(t *testing.T) {
 		Schema: &pb.AddThreadConfig_Schema{
 			Preset: pb.AddThreadConfig_Schema_MEDIA,
 		},
-		Type:    pb.Thread_Open,
-		Sharing: pb.Thread_Shared,
+		Type:    pb.Thread_OPEN,
+		Sharing: pb.Thread_SHARED,
 	}
 	mconf, err := proto.Marshal(conf)
 	if err != nil {
@@ -282,8 +282,8 @@ func TestMobile_AddThreadWithSchemaJson(t *testing.T) {
 		Schema: &pb.AddThreadConfig_Schema{
 			Json: schema,
 		},
-		Type:    pb.Thread_ReadOnly,
-		Sharing: pb.Thread_InviteOnly,
+		Type:    pb.Thread_READ_ONLY,
+		Sharing: pb.Thread_INVITE_ONLY,
 	}
 	mconf, err := proto.Marshal(conf)
 	if err != nil {
@@ -333,8 +333,8 @@ func TestMobile_RemoveThread(t *testing.T) {
 		Schema: &pb.AddThreadConfig_Schema{
 			Preset: pb.AddThreadConfig_Schema_CAMERA_ROLL,
 		},
-		Type:    pb.Thread_Private,
-		Sharing: pb.Thread_NotShared,
+		Type:    pb.Thread_PRIVATE,
+		Sharing: pb.Thread_NOT_SHARED,
 	}
 	mconf, err := proto.Marshal(conf)
 	if err != nil {
@@ -699,8 +699,8 @@ func TestMobile_AddInvite(t *testing.T) {
 		Schema: &pb.AddThreadConfig_Schema{
 			Preset: pb.AddThreadConfig_Schema_MEDIA,
 		},
-		Type:    pb.Thread_Open,
-		Sharing: pb.Thread_Shared,
+		Type:    pb.Thread_OPEN,
+		Sharing: pb.Thread_SHARED,
 	}
 	mconf, err := proto.Marshal(conf)
 	if err != nil {

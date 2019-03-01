@@ -112,7 +112,7 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 		Type:      conf.Type,
 		Sharing:   conf.Sharing,
 		Members:   members,
-		State:     pb.Thread_Loaded,
+		State:     pb.Thread_LOADED,
 	}
 	if err := t.datastore.Threads().Add(model); err != nil {
 		if conf.Force && repo.ConflictError(err) && strings.Contains(err.Error(), ".key") {
@@ -322,8 +322,8 @@ func (t *Textile) addAccountThread() error {
 	config := pb.AddThreadConfig{
 		Key:     t.account.Address(),
 		Name:    "account",
-		Type:    pb.Thread_Private,
-		Sharing: pb.Thread_NotShared,
+		Type:    pb.Thread_PRIVATE,
+		Sharing: pb.Thread_NOT_SHARED,
 	}
 	if _, err := t.AddThread(config, sk, t.account.Address(), true); err != nil {
 		return err

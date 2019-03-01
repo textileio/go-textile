@@ -61,8 +61,8 @@ shared     --> initiator: Y, members: Y
 type addThreadsCmd struct {
 	Client     ClientOptions  `group:"Client Options"`
 	Key        string         `short:"k" long:"key" description:"A locally unique key used by an app to identify this thread on recovery."`
-	Type       string         `short:"t" long:"type" description:"Set the thread type to one of 'private', 'readonly', 'public', or 'open'." default:"private"`
-	Sharing    string         `short:"s" long:"sharing" description:"Set the thread sharing style to one of 'notshared', 'inviteonly', or 'shared'." default:"notshared"`
+	Type       string         `short:"t" long:"type" description:"Set the thread type to one of 'private', 'read_only', 'public', or 'open'." default:"private"`
+	Sharing    string         `short:"s" long:"sharing" description:"Set the thread sharing style to one of 'not_shared', 'invite_only', or 'shared'." default:"not_shared"`
 	Member     []string       `short:"m" long:"member" description:"A contact address. When supplied, the thread will not allow additional peers, useful for 1-1 chat/file sharing. Can be used multiple times to include multiple contacts.'"`
 	Schema     string         `long:"schema" description:"Thread schema ID. Supersedes schema filename."`
 	SchemaFile flags.Filename `long:"schema-file" description:"Thread schema filename. Supersedes the built-in schema flags."`

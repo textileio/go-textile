@@ -215,8 +215,8 @@ func TestTextile_AddThread(t *testing.T) {
 		Key:     ksuid.New().String(),
 		Name:    "test",
 		Schema:  &pb.AddThreadConfig_Schema{Id: schemaHash},
-		Type:    pb.Thread_Open,
-		Sharing: pb.Thread_Shared,
+		Type:    pb.Thread_OPEN,
+		Sharing: pb.Thread_SHARED,
 		Members: []string{},
 	}
 	thrd, err := node.AddThread(config, sk, node.Account().Address(), true)
@@ -236,8 +236,8 @@ func TestTextile_AddThread(t *testing.T) {
 	if _, err := node.AddThread(pb.AddThreadConfig{
 		Key:     config.Key,
 		Name:    "test2",
-		Type:    pb.Thread_Public,
-		Sharing: pb.Thread_NotShared,
+		Type:    pb.Thread_PUBLIC,
+		Sharing: pb.Thread_NOT_SHARED,
 		Members: []string{},
 	}, sk2, node.Account().Address(), true); err == nil {
 		t.Error("add thread with same key should fail")
@@ -253,8 +253,8 @@ func TestTextile_AddThread(t *testing.T) {
 		Key:     config.Key,
 		Force:   true,
 		Name:    "test3",
-		Type:    pb.Thread_Public,
-		Sharing: pb.Thread_NotShared,
+		Type:    pb.Thread_PUBLIC,
+		Sharing: pb.Thread_NOT_SHARED,
 		Members: []string{},
 	}, sk3, node.Account().Address(), true)
 	if err != nil {
