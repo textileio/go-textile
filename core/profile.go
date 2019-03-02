@@ -86,8 +86,8 @@ func (t *Textile) SetAvatar(hash string) error {
 			Schema: &pb.AddThreadConfig_Schema{
 				Id: sf.Hash,
 			},
-			Type:    pb.Thread_Private,
-			Sharing: pb.Thread_NotShared,
+			Type:    pb.Thread_PRIVATE,
+			Sharing: pb.Thread_NOT_SHARED,
 		}, sk, t.account.Address(), true)
 		if err != nil {
 			return err

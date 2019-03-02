@@ -11,18 +11,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/textileio/go-textile/pb"
-
-	"github.com/golang/protobuf/proto"
-
 	limit "github.com/gin-contrib/size"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 	cors "github.com/rs/cors/wrapper/gin"
 	swagger "github.com/swaggo/gin-swagger"
 	sfiles "github.com/swaggo/gin-swagger/swaggerFiles"
 	"github.com/textileio/go-textile/common"
 	m "github.com/textileio/go-textile/mill"
+	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo/config"
 
 	// blank import for server api docs

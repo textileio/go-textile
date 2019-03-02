@@ -14,3 +14,12 @@ func (m *Mobile) PeerId() (string, error) {
 	}
 	return pid.Pretty(), nil
 }
+
+// DataAtPath calls core DataAtPath
+func (m *Mobile) DataAtPath(pth string) ([]byte, error) {
+	if !m.node.Online() {
+		return nil, core.ErrOffline
+	}
+
+	return m.node.DataAtPath(pth)
+}

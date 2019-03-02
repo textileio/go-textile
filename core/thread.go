@@ -499,13 +499,13 @@ func (t *Thread) readable(addr string) bool {
 		return true
 	}
 	switch t.ttype {
-	case pb.Thread_Private:
+	case pb.Thread_PRIVATE:
 		return false // should not happen
-	case pb.Thread_ReadOnly:
+	case pb.Thread_READ_ONLY:
 		return t.member(addr)
-	case pb.Thread_Public:
+	case pb.Thread_PUBLIC:
 		return t.member(addr)
-	case pb.Thread_Open:
+	case pb.Thread_OPEN:
 		return t.member(addr)
 	default:
 		return false
@@ -519,13 +519,13 @@ func (t *Thread) annotatable(addr string) bool {
 		return true
 	}
 	switch t.ttype {
-	case pb.Thread_Private:
+	case pb.Thread_PRIVATE:
 		return false // should not happen
-	case pb.Thread_ReadOnly:
+	case pb.Thread_READ_ONLY:
 		return false
-	case pb.Thread_Public:
+	case pb.Thread_PUBLIC:
 		return t.member(addr)
-	case pb.Thread_Open:
+	case pb.Thread_OPEN:
 		return t.member(addr)
 	default:
 		return false
@@ -539,13 +539,13 @@ func (t *Thread) writable(addr string) bool {
 		return true
 	}
 	switch t.ttype {
-	case pb.Thread_Private:
+	case pb.Thread_PRIVATE:
 		return false // should not happen
-	case pb.Thread_ReadOnly:
+	case pb.Thread_READ_ONLY:
 		return false
-	case pb.Thread_Public:
+	case pb.Thread_PUBLIC:
 		return false
-	case pb.Thread_Open:
+	case pb.Thread_OPEN:
 		return t.member(addr)
 	default:
 		return false
@@ -555,11 +555,11 @@ func (t *Thread) writable(addr string) bool {
 // shareable returns whether or not this thread is shareable from one address to another
 func (t *Thread) shareable(from string, to string) bool {
 	switch t.sharing {
-	case pb.Thread_NotShared:
+	case pb.Thread_NOT_SHARED:
 		return false
-	case pb.Thread_InviteOnly:
+	case pb.Thread_INVITE_ONLY:
 		return from == t.initiator && t.member(to)
-	case pb.Thread_Shared:
+	case pb.Thread_SHARED:
 		return t.member(from) && t.member(to)
 	default:
 		return false
