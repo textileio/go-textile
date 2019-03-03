@@ -115,6 +115,10 @@ func (a *api) Start() {
 	// v0 routes
 	v0 := router.Group("/api/v0")
 	{
+		v0.GET("/summary", func(g *gin.Context) {
+			pbJSON(g, http.StatusOK, a.node.Summary())
+		})
+
 		v0.GET("/ping", a.ping)
 
 		account := v0.Group("/account")
