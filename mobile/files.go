@@ -21,23 +21,6 @@ import (
 	"github.com/textileio/go-textile/schema"
 )
 
-// AddSchema adds a new schema via schema mill
-func (m *Mobile) AddSchema(jsonstr string) ([]byte, error) {
-	if !m.node.Started() {
-		return nil, core.ErrStopped
-	}
-
-	added, err := m.node.AddFileIndex(&mill.Schema{}, core.AddFileConfig{
-		Input: []byte(jsonstr),
-		Media: "application/json",
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return proto.Marshal(added)
-}
-
 // PrepareFiles processes a file by path for a thread, but does NOT share it
 func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 	if !m.node.Started() {
