@@ -381,6 +381,17 @@ definitions:
       value:
         type: string
     type: object
+  pb.Summary:
+    properties:
+      account_peer_count:
+        type: integer
+      contact_count:
+        type: integer
+      file_count:
+        type: integer
+      thread_count:
+        type: integer
+    type: object
   pb.Text:
     properties:
       block:
@@ -1950,6 +1961,19 @@ paths:
       summary: Subscribe to thread updates
       tags:
       - sub
+  /summary:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: summary
+          schema:
+            $ref: '#/definitions/pb.Summary'
+            type: object
+      summary: Get a summary of node data
+      tags:
+      - utils
   /threads:
     get:
       description: Lists all local threads, returning a ThreadList object
