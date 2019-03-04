@@ -16,10 +16,10 @@ import (
 type TestMessenger struct{}
 
 func (tm *TestMessenger) Notify(event *Event) {
-	eventt := pb.MobileEventType(pb.MobileEventType_value[event.Name])
-	fmt.Println(fmt.Sprintf("+++ MOBILE EVENT: %s", eventt.String()))
+	etype := pb.MobileEventType(event.Type)
+	fmt.Println(fmt.Sprintf("+++ MOBILE EVENT: %s", event.Name))
 
-	switch eventt {
+	switch etype {
 	case pb.MobileEventType_NODE_START:
 	case pb.MobileEventType_NODE_ONLINE:
 	case pb.MobileEventType_NODE_STOP:
