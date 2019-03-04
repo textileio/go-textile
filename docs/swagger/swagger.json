@@ -664,7 +664,7 @@
                 "tags": [
                     "config"
                 ],
-                "summary": "Replce config settings.",
+                "summary": "Replace config settings.",
                 "parameters": [
                     {
                         "description": "JSON document",
@@ -700,7 +700,7 @@
                 "tags": [
                     "config"
                 ],
-                "summary": "Get active config settings",
+                "summary": "Set/update config settings",
                 "parameters": [
                     {
                         "description": "An RFC6902 JSON patch (array of ops)",
@@ -1447,7 +1447,7 @@
                     {
                         "type": "string",
                         "description": "target id",
-                        "name": "blotargetck",
+                        "name": "target",
                         "in": "path",
                         "required": true
                     }
@@ -2227,6 +2227,13 @@
                 ],
                 "summary": "Add or update a thread directly",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "description": "thread",
                         "name": "thread",
