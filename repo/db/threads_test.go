@@ -30,10 +30,10 @@ func TestThreadDB_Add(t *testing.T) {
 		Name:      "boom",
 		Schema:    "Qm...",
 		Initiator: "123",
-		Type:      pb.Thread_Open,
+		Type:      pb.Thread_OPEN,
 		Members:   []string{"P1,P2"},
-		Sharing:   pb.Thread_Shared,
-		State:     pb.Thread_Loaded,
+		Sharing:   pb.Thread_SHARED,
+		State:     pb.Thread_LOADED,
 	})
 	if err != nil {
 		t.Error(err)
@@ -59,10 +59,10 @@ func TestThreadDB_Get(t *testing.T) {
 		Name:      "boom",
 		Schema:    "Qm...",
 		Initiator: "123",
-		Type:      pb.Thread_Open,
+		Type:      pb.Thread_OPEN,
 		Members:   []string{},
-		Sharing:   pb.Thread_Shared,
-		State:     pb.Thread_Loaded,
+		Sharing:   pb.Thread_SHARED,
+		State:     pb.Thread_LOADED,
 	})
 	if err != nil {
 		t.Error(err)
@@ -82,10 +82,10 @@ func TestThreadDB_List(t *testing.T) {
 		Name:      "boom",
 		Schema:    "Qm...",
 		Initiator: "123",
-		Type:      pb.Thread_Private,
+		Type:      pb.Thread_PRIVATE,
 		Members:   []string{},
-		Sharing:   pb.Thread_NotShared,
-		State:     pb.Thread_Loaded,
+		Sharing:   pb.Thread_NOT_SHARED,
+		State:     pb.Thread_LOADED,
 	})
 	if err != nil {
 		t.Error(err)
@@ -96,10 +96,10 @@ func TestThreadDB_List(t *testing.T) {
 		Sk:      make([]byte, 8),
 		Name:    "boom",
 		Schema:  "Qm...",
-		Type:    pb.Thread_Private,
+		Type:    pb.Thread_PRIVATE,
 		Members: []string{},
-		Sharing: pb.Thread_NotShared,
-		State:   pb.Thread_Loaded,
+		Sharing: pb.Thread_NOT_SHARED,
+		State:   pb.Thread_LOADED,
 	})
 	if err != nil {
 		t.Error(err)
@@ -120,10 +120,10 @@ func TestThreadDB_Count(t *testing.T) {
 		Name:      "boom",
 		Schema:    "Qm...",
 		Initiator: "123",
-		Type:      pb.Thread_Private,
+		Type:      pb.Thread_PRIVATE,
 		Members:   []string{},
-		Sharing:   pb.Thread_NotShared,
-		State:     pb.Thread_Loaded,
+		Sharing:   pb.Thread_NOT_SHARED,
+		State:     pb.Thread_LOADED,
 	})
 	if err != nil {
 		t.Error(err)
@@ -144,10 +144,10 @@ func TestThreadDB_UpdateHead(t *testing.T) {
 		Name:      "boom",
 		Schema:    "Qm...",
 		Initiator: "123",
-		Type:      pb.Thread_Private,
+		Type:      pb.Thread_PRIVATE,
 		Members:   []string{},
-		Sharing:   pb.Thread_NotShared,
-		State:     pb.Thread_Loaded,
+		Sharing:   pb.Thread_NOT_SHARED,
+		State:     pb.Thread_LOADED,
 	})
 	if err != nil {
 		t.Error(err)
@@ -174,10 +174,10 @@ func TestThreadDB_Delete(t *testing.T) {
 		Name:      "boom",
 		Schema:    "Qm...",
 		Initiator: "123",
-		Type:      pb.Thread_Private,
+		Type:      pb.Thread_PRIVATE,
 		Members:   []string{},
-		Sharing:   pb.Thread_NotShared,
-		State:     pb.Thread_Loaded,
+		Sharing:   pb.Thread_NOT_SHARED,
+		State:     pb.Thread_LOADED,
 	})
 	if err != nil {
 		t.Error(err)

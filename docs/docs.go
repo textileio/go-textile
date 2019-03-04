@@ -2109,6 +2109,26 @@ var doc = `{
                 }
             }
         },
+        "/summary": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "utils"
+                ],
+                "summary": "Get a summary of node data",
+                "responses": {
+                    "200": {
+                        "description": "summary",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/pb.Summary"
+                        }
+                    }
+                }
+            }
+        },
         "/threads": {
             "get": {
                 "description": "Lists all local threads, returning a ThreadList object",
@@ -3172,6 +3192,23 @@ var doc = `{
                 },
                 "value": {
                     "type": "string"
+                }
+            }
+        },
+        "pb.Summary": {
+            "type": "object",
+            "properties": {
+                "account_peer_count": {
+                    "type": "integer"
+                },
+                "contact_count": {
+                    "type": "integer"
+                },
+                "file_count": {
+                    "type": "integer"
+                },
+                "thread_count": {
+                    "type": "integer"
                 }
             }
         },

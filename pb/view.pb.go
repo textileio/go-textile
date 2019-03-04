@@ -198,14 +198,14 @@ func (m *AddThreadConfig) GetType() Thread_Type {
 	if m != nil {
 		return m.Type
 	}
-	return Thread_Private
+	return Thread_PRIVATE
 }
 
 func (m *AddThreadConfig) GetSharing() Thread_Sharing {
 	if m != nil {
 		return m.Sharing
 	}
-	return Thread_NotShared
+	return Thread_NOT_SHARED
 }
 
 func (m *AddThreadConfig) GetMembers() []string {

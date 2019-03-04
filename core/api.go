@@ -11,18 +11,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/textileio/go-textile/pb"
-
-	"github.com/golang/protobuf/proto"
-
 	limit "github.com/gin-contrib/size"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 	cors "github.com/rs/cors/wrapper/gin"
 	swagger "github.com/swaggo/gin-swagger"
 	sfiles "github.com/swaggo/gin-swagger/swaggerFiles"
 	"github.com/textileio/go-textile/common"
 	m "github.com/textileio/go-textile/mill"
+	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo/config"
 
 	// blank import for server api docs
@@ -117,6 +115,8 @@ func (a *api) Start() {
 	// v0 routes
 	v0 := router.Group("/api/v0")
 	{
+		v0.GET("/summary", a.nodeSummary)
+
 		v0.GET("/ping", a.ping)
 
 		account := v0.Group("/account")
@@ -327,6 +327,16 @@ func (a *api) readArgs(g *gin.Context) ([]string, error) {
 		}
 	}
 	return args, nil
+}
+
+// summary godoc
+// @Summary Get a summary of node data
+// @Tags utils
+// @Produce application/json
+// @Success 200 {object} pb.Summary "summary"
+// @Router /summary [get]
+func (a *api) nodeSummary(g *gin.Context) {
+	pbJSON(g, http.StatusOK, a.node.Summary())
 }
 
 func (a *api) readOpts(g *gin.Context) (map[string]string, error) {

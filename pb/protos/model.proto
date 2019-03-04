@@ -47,24 +47,24 @@ message Thread {
 
     // Type controls read (R), annotate (A), and write (W) access
     enum Type {
-        Private  = 0; // initiator: RAW, members:
-        ReadOnly = 1; // initiator: RAW, members: R
-        Public   = 2; // initiator: RAW, members: RA
-        Open     = 3; // initiator: RAW, members: RAW
+        PRIVATE   = 0; // initiator: RAW, members:
+        READ_ONLY = 1; // initiator: RAW, members: R
+        PUBLIC    = 2; // initiator: RAW, members: RA
+        OPEN      = 3; // initiator: RAW, members: RAW
     }
 
     // Sharing controls if (Y/N) a thread can be shared
     enum Sharing {
-        NotShared  = 0; // initiator: N, members: N
-        InviteOnly = 1; // initiator: Y, members: N
-        Shared     = 2; // initiator: Y, members: Y
+        NOT_SHARED  = 0; // initiator: N, members: N
+        INVITE_ONLY = 1; // initiator: Y, members: N
+        SHARED      = 2; // initiator: Y, members: Y
     }
 
     // State indicates the loading state
     enum State {
-        LoadingBehind = 0; // blocks are behind loaded behind head
-        Loaded        = 1; // blocks are all loaded
-        LoadingAhead  = 2; // blocks are being loaded ahead
+        LOADING_TAIL = 0; // tail blocks are being loaded
+        LOADED       = 1; // blocks are all loaded / paused
+        LOADING_HEAD = 2; // head block is being loaded
     }
 
     // view info
@@ -285,7 +285,7 @@ message CafeToken {
 
 message CafeClientThread {
     string id        = 1;
-    string client  = 2;
+    string client    = 2;
     bytes ciphertext = 3; // encrypted Thread
 }
 
