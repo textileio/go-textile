@@ -115,6 +115,8 @@ func (a *api) Start() {
 	// v0 routes
 	v0 := router.Group("/api/v0")
 	{
+		v0.GET("/summary", a.nodeSummary)
+
 		v0.GET("/ping", a.ping)
 
 		account := v0.Group("/account")
@@ -325,6 +327,16 @@ func (a *api) readArgs(g *gin.Context) ([]string, error) {
 		}
 	}
 	return args, nil
+}
+
+// summary godoc
+// @Summary Get a summary of node data
+// @Tags utils
+// @Produce application/json
+// @Success 200 {object} pb.Summary "summary"
+// @Router /summary [get]
+func (a *api) nodeSummary(g *gin.Context) {
+	pbJSON(g, http.StatusOK, a.node.Summary())
 }
 
 func (a *api) readOpts(g *gin.Context) (map[string]string, error) {
