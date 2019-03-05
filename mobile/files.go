@@ -234,27 +234,23 @@ func (m *Mobile) Files(offset string, limit int, threadId string) ([]byte, error
 }
 
 // FileData returns a data url of a raw file under a path
-func (m *Mobile) FileData(hash string) ([]byte, error) {
+func (m *Mobile) FileData(hash string) (string, error) {
 	if !m.node.Started() {
-		return nil, core.ErrStopped
+		return "", core.ErrStopped
 	}
 
 	reader, file, err := m.node.FileData(hash)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	data, err := ioutil.ReadAll(reader)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	prefix := "data:" + file.Media + ";base64,"
-	img := &pb.MobileFileData{
-		Url: prefix + base64.StdEncoding.EncodeToString(data),
-	}
-
-	return proto.Marshal(img)
+	return prefix + base64.StdEncoding.EncodeToString(data), nil
 }
 
 type img struct {
@@ -267,21 +263,21 @@ type img struct {
 // Note: Now that consumers are in control of image sizes via schemas,
 // handling this here doesn't feel right. We can eventually push this up to RN, Obj-C, Java.
 // Note: pth is <target>/<index>, e.g., "Qm.../0"
-func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) ([]byte, error) {
+func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) (string, error) {
 	if !m.node.Started() {
-		return nil, core.ErrStopped
+		return "", core.ErrStopped
 	}
 
 	node, err := ipfs.NodeAtPath(m.node.Ipfs(), pth)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	var imgs []img
 	for _, link := range node.Links() {
 		nd, err := ipfs.NodeAtLink(m.node.Ipfs(), link)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 
 		dlink := schema.LinkByName(nd.Links(), core.DataLinkName)
@@ -291,7 +287,7 @@ func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) ([]byte, err
 
 		file, err := m.node.FileIndex(dlink.Cid.Hash().B58String())
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 
 		if file.Mill == "/image/resize" {
@@ -306,7 +302,7 @@ func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) ([]byte, err
 	}
 
 	if len(imgs) == 0 {
-		return nil, errors.New("no image files found")
+		return "", errors.New("no image files found")
 	}
 
 	sort.SliceStable(imgs, func(i, j int) bool {

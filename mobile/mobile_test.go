@@ -551,17 +551,17 @@ func TestMobile_Feed(t *testing.T) {
 }
 
 func TestMobile_ImageFileDataForMinWidth(t *testing.T) {
-	large, err := fileDataUnmarshaled(mobile1, files[0].Files[0].Links["large"].Hash)
+	large, err := mobile1.FileData(files[0].Files[0].Links["large"].Hash)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	small, err := fileDataUnmarshaled(mobile1, files[0].Files[0].Links["small"].Hash)
+	small, err := mobile1.FileData(files[0].Files[0].Links["small"].Hash)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	thumb, err := fileDataUnmarshaled(mobile1, files[0].Files[0].Links["thumb"].Hash)
+	thumb, err := mobile1.FileData(files[0].Files[0].Links["thumb"].Hash)
 	if err != nil {
 		t.Error(err)
 		return
@@ -569,42 +569,42 @@ func TestMobile_ImageFileDataForMinWidth(t *testing.T) {
 
 	pth := files[0].Target + "/0"
 
-	d1, err := imageFileDataForMinWidthUnmarshaled(mobile1, pth, 2000)
+	d1, err := mobile1.ImageFileDataForMinWidth(pth, 2000)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if d1.Url != large.Url {
+	if d1 != large {
 		t.Errorf("expected large result")
 		return
 	}
 
-	d2, err := imageFileDataForMinWidthUnmarshaled(mobile1, pth, 600)
+	d2, err := mobile1.ImageFileDataForMinWidth(pth, 600)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if d2.Url != large.Url {
+	if d2 != large {
 		t.Errorf("expected large result")
 		return
 	}
 
-	d3, err := imageFileDataForMinWidthUnmarshaled(mobile1, pth, 320)
+	d3, err := mobile1.ImageFileDataForMinWidth(pth, 320)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if d3.Url != small.Url {
+	if d3 != small {
 		t.Errorf("expected small result")
 		return
 	}
 
-	d4, err := imageFileDataForMinWidthUnmarshaled(mobile1, pth, 80)
+	d4, err := mobile1.ImageFileDataForMinWidth(pth, 80)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if d4.Url != thumb.Url {
+	if d4 != thumb {
 		t.Errorf("expected thumb result")
 	}
 }
@@ -883,28 +883,4 @@ func createAndStartMobile(repoPath string, waitForOnline bool) (*Mobile, error) 
 	}
 
 	return mobile, nil
-}
-
-func fileDataUnmarshaled(m *Mobile, hash string) (*pb.MobileFileData, error) {
-	data, err := m.FileData(hash)
-	if err != nil {
-		return nil, err
-	}
-	fd := new(pb.MobileFileData)
-	if err := proto.Unmarshal(data, fd); err != nil {
-		return nil, err
-	}
-	return fd, nil
-}
-
-func imageFileDataForMinWidthUnmarshaled(m *Mobile, pth string, minWidth int) (*pb.MobileFileData, error) {
-	data, err := m.ImageFileDataForMinWidth(pth, minWidth)
-	if err != nil {
-		return nil, err
-	}
-	fd := new(pb.MobileFileData)
-	if err := proto.Unmarshal(data, fd); err != nil {
-		return nil, err
-	}
-	return fd, nil
 }
