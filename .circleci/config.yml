@@ -227,7 +227,7 @@ jobs:
     - store_artifacts:
         path: ~/dist/cli
 
-  buil-tray-linux:
+  build-tray-linux:
     docker:
     - image: textile/builder:1.11.2
     working_directory: /go/src/github.com/textileio/go-textile
@@ -643,6 +643,22 @@ workflows:
             only: master
           tags:
             only: /.*/
+    - build-tray-linux:
+        requires:
+        - unit-test
+        filters:
+          branches:
+            only: master
+          tags:
+            only: /.*/
+    - build-tray-darwin-windows:
+        requires:
+        - unit-test
+        filters:
+          branches:
+            only: master
+          tags:
+            only: /.*/
     - release:
         requires:
         - build-cli-darwin-windows
@@ -650,6 +666,8 @@ workflows:
         - build-ios-framework
         - build-android-aar
         - build-js-types
+        - build-tray-linux
+        - build-tray-darwin-windows
         filters:
           branches:
             ignore: /.*/
