@@ -88,6 +88,16 @@ func (t *Textile) ApiAddr() string {
 // @BasePath /api/v0
 func (a *api) Start() {
 	router := gin.Default()
+
+	conf := a.node.Config()
+	// middleware setup
+	// CORS
+	router.Use(cors.New(getCORSSettings(conf)))
+	// size limits
+	if conf.API.SizeLimit > 0 {
+		router.Use(limit.RequestSizeLimiter(conf.API.SizeLimit))
+	}
+
 	router.GET("/", func(g *gin.Context) {
 		g.JSON(http.StatusOK, gin.H{
 			"cafe_version": apiVersion,
@@ -97,15 +107,6 @@ func (a *api) Start() {
 	router.GET("/health", func(g *gin.Context) {
 		g.Writer.WriteHeader(http.StatusNoContent)
 	})
-
-	// middleware
-	conf := a.node.Config()
-	// CORS
-	router.Use(cors.New(getCORSSettings(conf)))
-	// size limits
-	if conf.API.SizeLimit > 0 {
-		router.Use(limit.RequestSizeLimiter(conf.API.SizeLimit))
-	}
 
 	// API docs
 	if a.docs {
