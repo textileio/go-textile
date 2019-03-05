@@ -22,7 +22,7 @@ See [textile-mobile](https://github.com/textileio/textile-mobile/) for the [Text
 
 ## Install
 
-Download the [latest release](https://github.com/textileio/go-textile/releases/latest) for your OS or jump to [Docker](https://github.com/textileio/go-textile#docker). You can also install the Textile [desktop tray app](https://github.com/textileio/go-textile/releases/latest) to run local desktop apps that leverage Textile tools.
+Download the [latest release](https://github.com/textileio/go-textile/releases/latest) for your OS or jump to [Docker](https://github.com/textileio/go-textile#docker). You can also install the Textile [desktop tray app](https://github.com/textileio/go-textile/releases/latest) to run local web/desktop apps that leverage Textile tools.
 
 ## Usage
 
