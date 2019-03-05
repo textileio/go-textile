@@ -227,7 +227,7 @@ jobs:
     - store_artifacts:
         path: ~/dist/cli
 
-  build-desktop-linux:
+  build-tray-linux:
     docker:
     - image: textile/builder:1.11.2
     working_directory: /go/src/github.com/textileio/go-textile
@@ -250,7 +250,7 @@ jobs:
     - run:
         name: compile
         command: |
-          cd desktop && astilectron-bundler -v -c bundler.linux.json
+          cd tray && astilectron-bundler -v -c bundler.linux.json
     - run:
         name: collect artifacts
         command: |
@@ -258,20 +258,20 @@ jobs:
           if [ "${CIRCLE_TAG}" != "" ]; then
               VERSION=${CIRCLE_TAG}
           fi
-          OUT=~/dist/desktop
+          OUT=~/dist/tray
           mkdir -p ${OUT}
           WD=/go/src/github.com/textileio/go-textile
-          cd ${WD}/desktop/output/linux-amd64
+          cd ${WD}/tray/output/linux-amd64
           tar -czvf Textile_${VERSION}_linux-amd64.tar.gz Textile
           mv Textile_${VERSION}_linux-amd64.tar.gz ${OUT}/
     - persist_to_workspace:
         root: ~/dist
         paths:
-        - desktop
+        - tray
     - store_artifacts:
-        path: ~/dist/desktop
+        path: ~/dist/tray
 
-  build-desktop-darwin-windows:
+  build-tray-darwin-windows:
     macos:
       xcode: "9.4.0"
     environment:
@@ -327,7 +327,7 @@ jobs:
         name: compile
         command: |
           export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
-          cd desktop
+          cd tray
           astilectron-bundler -v -c bundler.darwin.json
           astilectron-bundler -v -c bundler.windows.json
     - run:
@@ -337,21 +337,21 @@ jobs:
           if [ "${CIRCLE_TAG}" != "" ]; then
               VERSION=${CIRCLE_TAG}
           fi
-          OUT=~/dist/desktop
+          OUT=~/dist/tray
           mkdir -p ${OUT}
           WD=~/go/src/github.com/textileio/go-textile
-          cd ${WD}/desktop/output/darwin-amd64
+          cd ${WD}/tray/output/darwin-amd64
           tar -czvf Textile_${VERSION}_darwin-amd64.tar.gz Textile.app
           mv Textile_${VERSION}_darwin-amd64.tar.gz ${OUT}/
-          cd ${WD}/desktop/output/windows-amd64
+          cd ${WD}/tray/output/windows-amd64
           zip Textile_${VERSION}_windows-amd64.zip Textile.exe
           mv Textile_${VERSION}_windows-amd64.zip ${OUT}/
     - persist_to_workspace:
         root: ~/dist
         paths:
-        - desktop
+        - tray
     - store_artifacts:
-        path: ~/dist/desktop
+        path: ~/dist/tray
 
   build-ios-framework:
     macos:
@@ -583,7 +583,7 @@ jobs:
         command: |
           mkdir -p ~/dist
           mv ~/cli/* ~/dist/
-          mv ~/desktop/* ~/dist/
+          mv ~/tray/* ~/dist/
           mv ~/ios_framework/* ~/dist/
           mv ~/android_aar/* ~/dist/
           mv ~/js_types/* ~/dist/
@@ -643,6 +643,22 @@ workflows:
             only: master
           tags:
             only: /.*/
+    - build-tray-linux:
+        requires:
+        - unit-test
+        filters:
+          branches:
+            only: master
+          tags:
+            only: /.*/
+    - build-tray-darwin-windows:
+        requires:
+        - unit-test
+        filters:
+          branches:
+            only: master
+          tags:
+            only: /.*/
     - release:
         requires:
         - build-cli-darwin-windows
@@ -650,6 +666,8 @@ workflows:
         - build-ios-framework
         - build-android-aar
         - build-js-types
+        - build-tray-linux
+        - build-tray-darwin-windows
         filters:
           branches:
             ignore: /.*/

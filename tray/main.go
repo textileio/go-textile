@@ -8,8 +8,9 @@ import (
 	"runtime"
 
 	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/repo/fsrepo"
-	"github.com/pkg/browser"
+
 	"github.com/atotto/clipboard"
+	"github.com/pkg/browser"
 
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
@@ -144,12 +145,11 @@ func start(app *astilectron.Astilectron, _ []*astilectron.Window, _ *astilectron
 	if !fsrepo.IsInitialized(repoPath) {
 		accnt := keypair.Random()
 		initc := core.InitConfig{
-			Account:   accnt,
-			RepoPath:  repoPath,
-			LogToDisk: true,
+			Account:     accnt,
+			RepoPath:    repoPath,
+			LogToDisk:   true,
 			GatewayAddr: fmt.Sprintf("127.0.0.1:5052"),
-			ApiAddr: fmt.Sprintf("127.0.0.1:40602"),
-
+			ApiAddr:     fmt.Sprintf("127.0.0.1:40602"),
 		}
 		if err := core.InitRepo(initc); err != nil {
 			astilog.Fatal(fmt.Errorf("create repo failed: %s", err))
@@ -186,8 +186,15 @@ func start(app *astilectron.Astilectron, _ []*astilectron.Window, _ *astilectron
 				}
 				return
 			},
-			Type: astilectron.MenuItemTypeCheckbox,
+			Type:    astilectron.MenuItemTypeCheckbox,
 			Checked: astilectron.PtrBool(true),
+		},
+		{
+			Label: astilectron.PtrStr("View docs"),
+			OnClick: func(e astilectron.Event) (deleteListener bool) {
+				browser.OpenURL(fmt.Sprintf("http://%s/docs/index.html", node.ApiAddr()))
+				return
+			},
 		},
 		{
 			Label: astilectron.PtrStr("Check Messages"),
@@ -202,15 +209,15 @@ func start(app *astilectron.Astilectron, _ []*astilectron.Window, _ *astilectron
 		{
 			Label: astilectron.PtrStr("Peer"),
 			SubMenu: []*astilectron.MenuItemOptions{
-        {
-					Label:   astilectron.PtrStr("Copy Peer ID"),
+				{
+					Label: astilectron.PtrStr("Copy Peer ID"),
 					OnClick: func(e astilectron.Event) (deleteListener bool) {
 						clipboard.WriteAll(pid.Pretty())
 						return
 					},
 				},
 				{
-					Label:   astilectron.PtrStr("Copy Peer Address"),
+					Label: astilectron.PtrStr("Copy Peer Address"),
 					OnClick: func(e astilectron.Event) (deleteListener bool) {
 						clipboard.WriteAll(node.Account().Address())
 						return
@@ -222,30 +229,23 @@ func start(app *astilectron.Astilectron, _ []*astilectron.Window, _ *astilectron
 			Label: astilectron.PtrStr("API"),
 			SubMenu: []*astilectron.MenuItemOptions{
 				{
-					Label:   astilectron.PtrStr(fmt.Sprintf("Copy URL (%s)", node.ApiAddr())),
+					Label: astilectron.PtrStr(fmt.Sprintf("Copy URL (%s)", node.ApiAddr())),
 					OnClick: func(e astilectron.Event) (deleteListener bool) {
 						clipboard.WriteAll(fmt.Sprintf("http://%s/api/v0", node.ApiAddr()))
 						return
 					},
 				},
 				{
-					Label:   astilectron.PtrStr(fmt.Sprintf("Copy gateway (%s)", gateway.Host.Addr())),
+					Label: astilectron.PtrStr(fmt.Sprintf("Copy gateway (%s)", gateway.Host.Addr())),
 					OnClick: func(e astilectron.Event) (deleteListener bool) {
 						clipboard.WriteAll(fmt.Sprintf("http://%s", gateway.Host.Addr()))
-						return
-					},
-				},
-				{
-					Label: astilectron.PtrStr("View docs"),
-					OnClick: func(e astilectron.Event) (deleteListener bool) {
-						browser.OpenURL(fmt.Sprintf("http://%s/docs/index.html", node.ApiAddr()))
 						return
 					},
 				},
 			},
 		},
 		{
-			Label:   astilectron.PtrStr("Repo"),
+			Label: astilectron.PtrStr("Repo"),
 			SubMenu: []*astilectron.MenuItemOptions{
 				{
 					Label: astilectron.PtrStr("View/edit config file"),
@@ -255,7 +255,7 @@ func start(app *astilectron.Astilectron, _ []*astilectron.Window, _ *astilectron
 					},
 				},
 				{
-					Label:   astilectron.PtrStr("Open repo folder"),
+					Label: astilectron.PtrStr("Open repo folder"),
 					OnClick: func(e astilectron.Event) (deleteListener bool) {
 						browser.OpenFile(repoPath)
 						return

@@ -22,7 +22,7 @@ See [textile-mobile](https://github.com/textileio/textile-mobile/) for the [Text
 
 ## Install
 
-Download the [latest release](https://github.com/textileio/go-textile/releases/latest) for your OS or jump to [Docker](https://github.com/textileio/go-textile#docker).
+Download the [latest release](https://github.com/textileio/go-textile/releases/latest) for your OS or jump to [Docker](https://github.com/textileio/go-textile#docker). You can also install the Textile [desktop tray app](https://github.com/textileio/go-textile/releases/latest) to run local web/desktop apps that leverage Textile tools.
 
 ## Usage
 
@@ -245,7 +245,7 @@ There are various things to build…
 
     $ make docs
 
-#### Desktop
+#### Tray app
 
 The build is made by a vendored version of `go-astilectron-bundler`. Due to Go's painful package management, you'll want to delete any `go-astilectron`-related binaries and source code you have installed from `github.com/asticode` in your `$GOPATH`. Then you can install the vendored `go-astilectron-bundler`:
 
@@ -253,14 +253,14 @@ The build is made by a vendored version of `go-astilectron-bundler`. Due to Go's
 go install ./vendor/github.com/asticode/go-astilectron-bundler/astilectron-bundler
 ```
 
-Change into the desktop folder and build the app:
+Change into the `tray` folder and build the app:
 
 ```
-cd desktop
+cd tray
 astilectron-bundler -v
 ```
 
-Double-click the built app in `desktop/output/{darwin,linux,windows}-amd64`, or run it directly:
+Double-click the built app in `tray/output/{darwin,linux,windows}-amd64`, or run it directly:
 
 ```
 go run *.go

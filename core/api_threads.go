@@ -86,7 +86,8 @@ func (a *api) addThreads(g *gin.Context) {
 // @Description Adds or updates a thread directly, usually from a backup
 // @Tags threads
 // @Produce application/json
-// @Param thread body pb.Thread true "thread")
+// @Param id path string true "id"
+// @Param thread body pb.Thread true "thread"
 // @Success 200 {string} string "ok"
 // @Failure 400 {string} string "Bad Request"
 // @Router /threads/{id} [put]

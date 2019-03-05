@@ -1,7 +1,7 @@
-# Desktop build
-desktop/output/
-desktop/bind_*.go
-desktop/vendor_astilectron_bundler/*
+# Tray app build
+tray/output/
+tray/bind_*.go
+tray/vendor_astilectron_bundler/*
 **/node_modules/*
 dist/textile
 dist/go-textile-*

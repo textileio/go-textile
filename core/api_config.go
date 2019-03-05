@@ -57,7 +57,7 @@ func (a *api) getConfig(g *gin.Context) {
 }
 
 // patchConfig godoc
-// @Summary Get active config settings
+// @Summary Set/update config settings
 // @Description When patching config values, valid JSON types must be used. For example, a string
 // @Description should be escaped or wrapped in single quotes (e.g., \"127.0.0.1:40600\") and
 // @Description arrays and objects work fine (e.g. '{"API": "127.0.0.1:40600"}') but should be
@@ -123,7 +123,7 @@ func (a *api) patchConfig(g *gin.Context) {
 }
 
 // setConfig godoc
-// @Summary Replce config settings.
+// @Summary Replace config settings.
 // @Description Replace entire config file contents. The config command controls configuration
 // @Description variables. It works much like 'git config'. The configuration values are stored
 // @Description in a config file inside the Textile repository.

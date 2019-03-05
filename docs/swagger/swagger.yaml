@@ -959,7 +959,7 @@ paths:
           description: Bad Request
           schema:
             type: string
-      summary: Get active config settings
+      summary: Set/update config settings
       tags:
       - config
     put:
@@ -986,7 +986,7 @@ paths:
           description: Bad Request
           schema:
             type: string
-      summary: Replce config settings.
+      summary: Replace config settings.
       tags:
       - config
   /config/{path}:
@@ -1497,7 +1497,7 @@ paths:
       parameters:
       - description: target id
         in: path
-        name: blotargetck
+        name: target
         required: true
         type: string
       produces:
@@ -2093,6 +2093,11 @@ paths:
     put:
       description: Adds or updates a thread directly, usually from a backup
       parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: string
       - description: thread
         in: body
         name: thread

@@ -171,7 +171,7 @@ func (a *api) getThreadFiles(g *gin.Context) {
 // @Description Shows file keys under the given target from an add
 // @Tags files
 // @Produce application/json
-// @Param blotargetck path string true "target id"
+// @Param target path string true "target id"
 // @Success 200 {object} pb.Keys "keys"
 // @Failure 400 {string} string "Bad Request"
 // @Router /keys/{target} [get]
