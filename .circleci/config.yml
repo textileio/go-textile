@@ -327,6 +327,7 @@ jobs:
         name: compile
         command: |
           export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
+          export GOCACHE=/tmp/.cache
           cd tray
           astilectron-bundler -v -c bundler.darwin.json
           astilectron-bundler -v -c bundler.windows.json
