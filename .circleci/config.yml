@@ -277,6 +277,7 @@ jobs:
     environment:
       GOPATH: /Users/distiller/go
       GOROOT: /usr/local/opt/go/libexec
+      GOCACHE: /Users/distiller/Library/Caches/go-build
     working_directory: ~/go/src/github.com/textileio/go-textile
     steps:
     - checkout
