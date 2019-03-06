@@ -113,6 +113,8 @@ func (h *CafeService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error
 		return h.handleChallenge(pid, env)
 	case pb.Message_CAFE_REGISTRATION:
 		return h.handleRegistration(pid, env)
+	case pb.Message_CAFE_DEREGISTRATION:
+		return h.handleDeregistration(pid, env)
 	case pb.Message_CAFE_REFRESH_SESSION:
 		return h.handleRefreshSession(pid, env)
 	case pb.Message_CAFE_STORE:
@@ -209,6 +211,27 @@ func (h *CafeService) Register(host string, token string) (*pb.CafeSession, erro
 	}
 
 	return session, nil
+}
+
+// Deregister removes this peer from a cafe
+func (h *CafeService) Deregister(cafe peer.ID) error {
+	if _, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
+		return h.service.NewEnvelope(pb.Message_CAFE_STORE_THREAD, &pb.CafeDeregistration{
+			Token: session.Access,
+		}, nil, false)
+	}); err != nil {
+		return err
+	}
+
+	// cleanup
+	if err := h.datastore.CafeRequests().DeleteByCafe(cafe.Pretty()); err != nil {
+		return err
+	}
+	if err := h.datastore.CafeSessions().Delete(cafe.Pretty()); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Store stores (pins) content on a cafe and returns a list of successful cids
@@ -835,6 +858,30 @@ func (h *CafeService) handleRegistration(pid peer.ID, env *pb.Envelope) (*pb.Env
 	return h.service.NewEnvelope(pb.Message_CAFE_SESSION, session, &env.Message.RequestId, true)
 }
 
+// handleDeregistration receives a deregistration request
+func (h *CafeService) handleDeregistration(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	dreg := new(pb.CafeDeregistration)
+	if err := ptypes.UnmarshalAny(env.Message.Payload, dreg); err != nil {
+		return nil, err
+	}
+
+	// cleanup
+	if err := h.datastore.CafeClientThreads().DeleteByClient(pid.Pretty()); err != nil {
+		return h.service.NewError(500, "delete client threads failed", env.Message.RequestId)
+	}
+	if err := h.datastore.CafeClientMessages().DeleteByClient(pid.Pretty(), -1); err != nil {
+		return h.service.NewError(500, "delete client messages failed", env.Message.RequestId)
+	}
+	if err := h.datastore.CafeClients().Delete(pid.Pretty()); err != nil {
+		return h.service.NewError(500, "delete client failed", env.Message.RequestId)
+	}
+
+	res := &pb.CafeDeregistrationAck{
+		Id: pid.Pretty(),
+	}
+	return h.service.NewEnvelope(pb.Message_CAFE_DEREGISTRATION_ACK, res, &env.Message.RequestId, true)
+}
+
 // handleRefreshSession receives a refresh session request
 func (h *CafeService) handleRefreshSession(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
 	ref := new(pb.CafeRefreshSession)
@@ -978,8 +1025,8 @@ func (h *CafeService) handleObject(pid peer.ID, env *pb.Envelope) (*pb.Envelope,
 		log.Warningf("cids do not match (received %s, resolved %s)", obj.Cid, id)
 	}
 
-	res := &pb.CafeStored{Id: obj.Cid}
-	return h.service.NewEnvelope(pb.Message_CAFE_STORED, res, &env.Message.RequestId, true)
+	res := &pb.CafeStoredAck{Id: obj.Cid}
+	return h.service.NewEnvelope(pb.Message_CAFE_STORED_ACK, res, &env.Message.RequestId, true)
 }
 
 // handleStoreThread receives a thread store request
@@ -1011,8 +1058,8 @@ func (h *CafeService) handleStoreThread(pid peer.ID, env *pb.Envelope) (*pb.Enve
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
 
-	res := &pb.CafeStored{Id: store.Id}
-	return h.service.NewEnvelope(pb.Message_CAFE_STORED, res, &env.Message.RequestId, true)
+	res := &pb.CafeStoredAck{Id: store.Id}
+	return h.service.NewEnvelope(pb.Message_CAFE_STORED_ACK, res, &env.Message.RequestId, true)
 }
 
 // handleDeliverMessage receives an inbox message for a client

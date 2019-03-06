@@ -18,13 +18,15 @@ message Message {
         CAFE_CHALLENGE           = 50;
         CAFE_NONCE               = 51;
         CAFE_REGISTRATION        = 52;
+        CAFE_DEREGISTRATION      = 72;
+        CAFE_DEREGISTRATION_ACK  = 73;
         CAFE_SESSION             = 53;
         CAFE_REFRESH_SESSION     = 54;
         CAFE_STORE               = 55;
         CAFE_OBJECT              = 56;
         CAFE_OBJECT_LIST         = 57;
         CAFE_STORE_THREAD        = 58;
-        CAFE_STORED              = 59;
+        CAFE_STORED_ACK          = 59;
         CAFE_DELIVER_MESSAGE     = 60;
         CAFE_CHECK_MESSAGES      = 61;
         CAFE_MESSAGES            = 62;

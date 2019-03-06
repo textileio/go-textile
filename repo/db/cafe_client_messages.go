@@ -72,7 +72,10 @@ func (c *CafeClientMessagesDB) Delete(id string, clientId string) error {
 func (c *CafeClientMessagesDB) DeleteByClient(clientId string, limit int) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	sel := "select id from cafe_client_messages where clientId='" + clientId + "' order by date asc limit " + strconv.Itoa(limit)
+	sel := "select id from cafe_client_messages where clientId='" + clientId + "'"
+	if limit > 0 {
+		sel += " order by date asc limit " + strconv.Itoa(limit)
+	}
 	query := "delete from cafe_client_messages where id in (" + sel + ");"
 	_, err := c.db.Exec(query)
 	return err
