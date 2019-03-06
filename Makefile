@@ -37,13 +37,13 @@ linux:
 ios:
 	$(eval FLAGS := $$(shell govvv -flags -pkg github.com/textileio/go-textile/common))
 	gomobile bind -ldflags "-w $(FLAGS)" -target=ios github.com/textileio/go-textile/mobile
-	cp -r Mobile.framework mobile/dist/
+	mkdir -p mobile/dist/ios/ && cp -r Mobile.framework mobile/dist/ios/
 	rm -rf Mobile.framework
 
 android:
 	$(eval FLAGS := $$(shell govvv -flags -pkg github.com/textileio/go-textile/common))
 	gomobile bind -ldflags "-w $(FLAGS)" -target=android -o mobile.aar github.com/textileio/go-textile/mobile
-	mv mobile.aar mobile/dist/
+	mkdir -p mobile/dist/android/ && mv mobile.aar mobile/dist/android/
 
 protos:
 	$(eval P_TIMESTAMP := Mgoogle/protobuf/timestamp.proto=github.com/golang/protobuf/ptypes/timestamp)

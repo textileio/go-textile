@@ -24,6 +24,7 @@ type Messenger interface {
 // name is the string value of a pb.MobileEvent_Type)
 type Event struct {
 	Name string
+	Type int32
 	Data []byte
 }
 
@@ -237,7 +238,7 @@ func (m *Mobile) blockView(hash mh.Multihash) ([]byte, error) {
 	return proto.Marshal(view)
 }
 
-func (m *Mobile) notify(name pb.MobileEventType, msg proto.Message) {
+func (m *Mobile) notify(etype pb.MobileEventType, msg proto.Message) {
 	var data []byte
 	if msg != nil {
 		var err error
@@ -247,5 +248,9 @@ func (m *Mobile) notify(name pb.MobileEventType, msg proto.Message) {
 			return
 		}
 	}
-	m.messenger.Notify(&Event{Name: name.String(), Data: data})
+	m.messenger.Notify(&Event{
+		Name: etype.String(),
+		Type: int32(etype),
+		Data: data,
+	})
 }
