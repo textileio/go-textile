@@ -9,9 +9,6 @@ import (
 	"github.com/textileio/go-textile/util"
 )
 
-var errMissingReplacement = errors.New("missing replacement value")
-var errMissingPath = errors.New("missing key path")
-
 func init() {
 	register(&configCmd{})
 }

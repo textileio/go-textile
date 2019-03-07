@@ -10,21 +10,20 @@ import (
 	"strings"
 	"time"
 
-	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
-	"gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core"
-	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core/coreapi"
-	iface "gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core/coreapi/interface"
-	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core/coreapi/interface/options"
-	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core/coreunix"
-	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/namesys/opts"
-	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/pin"
-	inet "gx/ipfs/QmXuRkCR7BNQa9uqfpTiFWsTQLzmTWYg91Ja1w95gnqb6u/go-libp2p-net"
-	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
-	"gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
-	uio "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/io"
+	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core"
+	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core/coreapi"
+	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/pin"
+	"gx/ipfs/QmQAgv6Gaoe2tQpcabqwKXKChp2MZ7i3UXv9DqTTaxCaTR/go-path"
+	"gx/ipfs/QmQmhotPUzVrMEWNK3x1R5jQ5ZHWyL7tVUrmRPjrBrvyCb/go-ipfs-files"
+	"gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
+	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options"
+	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options/namesys"
+	inet "gx/ipfs/QmY3ArotKMKaL7YGfbQfyDrib6RVraLqZYWXZvVgZktBxp/go-libp2p-net"
+	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	ipld "gx/ipfs/QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy/go-ipld-format"
+	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
+	uio "gx/ipfs/QmcYUTQ7tBZeH1CLsZM2S3xhMEZdvUgXvbjhpMsLDpk3oJ/go-unixfs/io"
 )
 
 var log = logging.Logger("tex-ipfs")
@@ -42,18 +41,31 @@ func DataAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
 		return nil, err
 	}
 
-	api := coreapi.NewCoreAPI(node)
+	api, err := coreapi.NewCoreAPI(node)
+	if err != nil {
+		return nil, err
+	}
 	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
 
-	reader, err := api.Unixfs().Get(ctx, ip)
+	f, err := api.Unixfs().Get(ctx, ip)
 	if err != nil {
 		log.Errorf("failed to get data: %s", pth)
 		return nil, err
 	}
-	defer reader.Close()
+	defer f.Close()
 
-	return ioutil.ReadAll(reader)
+	var file files.File
+	switch f := f.(type) {
+	case files.File:
+		file = f
+	case files.Directory:
+		return nil, iface.ErrIsDir
+	default:
+		return nil, iface.ErrNotSupported
+	}
+
+	return ioutil.ReadAll(file)
 }
 
 // LinksAtPath return ipld links under a path
@@ -63,13 +75,21 @@ func LinksAtPath(node *core.IpfsNode, pth string) ([]*ipld.Link, error) {
 		return nil, err
 	}
 
-	api := coreapi.NewCoreAPI(node)
+	api, err := coreapi.NewCoreAPI(node)
+	if err != nil {
+		return nil, err
+	}
 	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
 
-	links, err := api.Unixfs().Ls(ctx, ip)
+	res, err := api.Unixfs().Ls(ctx, ip)
 	if err != nil {
 		return nil, err
+	}
+
+	links := make([]*ipld.Link, 0)
+	for link := range res {
+		links = append(links, link.Link)
 	}
 
 	return links, nil
@@ -77,17 +97,12 @@ func LinksAtPath(node *core.IpfsNode, pth string) ([]*ipld.Link, error) {
 
 // AddDataToDirectory adds reader bytes to a virtual dir
 func AddDataToDirectory(node *core.IpfsNode, dir uio.Directory, fname string, reader io.Reader) (*cid.Cid, error) {
-	str, err := coreunix.Add(node, reader)
+	id, err := AddData(node, reader, false)
 	if err != nil {
 		return nil, err
 	}
 
-	id, err := cid.Decode(str)
-	if err != nil {
-		return nil, err
-	}
-
-	n, err := node.DAG.Get(node.Context(), id)
+	n, err := node.DAG.Get(node.Context(), *id)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +111,7 @@ func AddDataToDirectory(node *core.IpfsNode, dir uio.Directory, fname string, re
 		return nil, err
 	}
 
-	return &id, nil
+	return id, nil
 }
 
 // AddLinkToDirectory adds a link to a virtual dir
@@ -125,8 +140,11 @@ func AddData(node *core.IpfsNode, reader io.Reader, pin bool) (*cid.Cid, error) 
 	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
 	defer cancel()
 
-	api := coreapi.NewCoreAPI(node)
-	pth, err := api.Unixfs().Add(ctx, dataFile(reader)())
+	api, err := coreapi.NewCoreAPI(node)
+	if err != nil {
+		return nil, err
+	}
+	pth, err := api.Unixfs().Add(ctx, files.NewReaderFile(reader))
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +164,10 @@ func AddObject(node *core.IpfsNode, reader io.Reader, pin bool) (*cid.Cid, error
 	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
 	defer cancel()
 
-	api := coreapi.NewCoreAPI(node)
+	api, err := coreapi.NewCoreAPI(node)
+	if err != nil {
+		return nil, err
+	}
 	pth, err := api.Object().Put(ctx, reader)
 	if err != nil {
 		return nil, err
@@ -204,7 +225,10 @@ func GetObjectAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
 
-	api := coreapi.NewCoreAPI(node)
+	api, err := coreapi.NewCoreAPI(node)
+	if err != nil {
+		return nil, err
+	}
 	ipth, err := iface.ParsePath(pth)
 	if err != nil {
 		return nil, err
@@ -275,12 +299,20 @@ func Publish(node *core.IpfsNode, topic string, data []byte) error {
 	ctx, cancel := context.WithTimeout(node.Context(), publishTimeout)
 	defer cancel()
 
-	return coreapi.NewCoreAPI(node).PubSub().Publish(ctx, topic, data)
+	api, err := coreapi.NewCoreAPI(node)
+	if err != nil {
+		return err
+	}
+
+	return api.PubSub().Publish(ctx, topic, data)
 }
 
 // Subscribe subscribes to a topic
 func Subscribe(node *core.IpfsNode, ctx context.Context, topic string, discover bool, msgs chan iface.PubSubMessage) error {
-	api := coreapi.NewCoreAPI(node)
+	api, err := coreapi.NewCoreAPI(node)
+	if err != nil {
+		return err
+	}
 	sub, err := api.PubSub().Subscribe(ctx, topic, options.PubSub.Discover(discover))
 	if err != nil {
 		return err
@@ -314,7 +346,12 @@ func PublishIPNS(node *core.IpfsNode, id string) (iface.IpnsEntry, error) {
 	ctx, cancel := context.WithTimeout(node.Context(), ipnsTimeout)
 	defer cancel()
 
-	return coreapi.NewCoreAPI(node).Name().Publish(ctx, pth, opts...)
+	api, err := coreapi.NewCoreAPI(node)
+	if err != nil {
+		return nil, err
+	}
+
+	return api.Name().Publish(ctx, pth, opts...)
 }
 
 // ResolveIPNS resolves an ipns path to an ipfs path
@@ -330,7 +367,12 @@ func ResolveIPNS(node *core.IpfsNode, name peer.ID) (iface.Path, error) {
 	ctx, cancel := context.WithTimeout(node.Context(), ipnsTimeout)
 	defer cancel()
 
-	return coreapi.NewCoreAPI(node).Name().Resolve(ctx, key, opts...)
+	api, err := coreapi.NewCoreAPI(node)
+	if err != nil {
+		return nil, err
+	}
+
+	return api.Name().Resolve(ctx, key, opts...)
 }
 
 // SwarmConnect opens a direct connection to a list of peer multi addresses
@@ -340,7 +382,10 @@ func SwarmConnect(node *core.IpfsNode, addrs []string) ([]string, error) {
 		return nil, err
 	}
 
-	api := coreapi.NewCoreAPI(node)
+	api, err := coreapi.NewCoreAPI(node)
+	if err != nil {
+		return nil, err
+	}
 	ctx, cancel := context.WithTimeout(node.Context(), connectTimeout)
 	defer cancel()
 
@@ -401,7 +446,10 @@ func (ci ConnInfos) Swap(i, j int) {
 
 // SwarmPeers lists the set of peers this node is connected to
 func SwarmPeers(node *core.IpfsNode, verbose bool, latency bool, streams bool, direction bool) (*ConnInfos, error) {
-	api := coreapi.NewCoreAPI(node)
+	api, err := coreapi.NewCoreAPI(node)
+	if err != nil {
+		return nil, err
+	}
 	ctx, cancel := context.WithTimeout(node.Context(), connectTimeout)
 	defer cancel()
 
@@ -450,10 +498,4 @@ func SwarmPeers(node *core.IpfsNode, verbose bool, latency bool, streams bool, d
 
 	sort.Sort(&out)
 	return &out, nil
-}
-
-func dataFile(reader io.Reader) func() files.File {
-	return func() files.File {
-		return files.NewReaderFile("", "", ioutil.NopCloser(reader), nil)
-	}
 }

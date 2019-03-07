@@ -4,7 +4,8 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
-	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
+
+	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
 
 	"github.com/mr-tron/base58/base58"
 )

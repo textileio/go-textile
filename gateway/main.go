@@ -10,23 +10,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/textileio/go-textile/pb"
-
-	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core/coreapi/interface"
-	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
-	"gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
+	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
+	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	ipld "gx/ipfs/QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy/go-ipld-format"
+	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/gateway/static/css"
 	"github.com/textileio/go-textile/gateway/templates"
 	"github.com/textileio/go-textile/ipfs"
+	"github.com/textileio/go-textile/pb"
 )
 
 var log = logging.Logger("tex-gateway")
@@ -307,7 +305,7 @@ type link struct {
 func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 	data, err := g.Node.DataAtPath(pth)
 	if err != nil {
-		if err == files.ErrNotReader {
+		if err == iface.ErrIsDir {
 			root, err := iface.ParsePath(pth)
 			if err != nil {
 				log.Errorf("error parsing path %s: %s", pth, err)

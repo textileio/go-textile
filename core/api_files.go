@@ -4,12 +4,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/textileio/go-textile/pb"
-
-	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
+	ipld "gx/ipfs/QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy/go-ipld-format"
 
 	"github.com/gin-gonic/gin"
 	"github.com/textileio/go-textile/ipfs"
+	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/schema"
 )
 

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	native "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
+	native "gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
 
 	_ "github.com/mutecomm/go-sqlcipher"
 	"github.com/textileio/go-textile/keypair"
