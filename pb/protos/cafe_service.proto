@@ -19,6 +19,14 @@ message CafeRegistration {
     string token   = 5;
 }
 
+message CafeDeregistration {
+    string token = 1;
+}
+
+message CafeDeregistrationAck {
+    string id = 1;
+}
+
 message CafeRefreshSession {
     string access  = 1;
     string refresh = 2;
@@ -55,7 +63,7 @@ message CafeStoreThread {
     bytes ciphertext = 3; // encrypted Thread
 }
 
-message CafeStored {
+message CafeStoredAck {
     string id = 1;
 }
 

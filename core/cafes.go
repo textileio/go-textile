@@ -3,6 +3,8 @@ package core
 import (
 	"errors"
 
+	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+
 	"github.com/textileio/go-textile/pb"
 )
 
@@ -52,16 +54,11 @@ func (t *Textile) RefreshCafeSession(peerId string) (*pb.CafeSession, error) {
 
 // DeregisterCafe removes the session associated with the given cafe
 func (t *Textile) DeregisterCafe(peerId string) error {
-	session := t.datastore.CafeSessions().Get(peerId)
-	if session == nil {
-		return nil
-	}
-
-	// clean up
-	if err := t.datastore.CafeRequests().DeleteByCafe(session.Id); err != nil {
+	cafe, err := peer.IDB58Decode(peerId)
+	if err != nil {
 		return err
 	}
-	if err := t.datastore.CafeSessions().Delete(peerId); err != nil {
+	if err := t.cafe.Deregister(cafe); err != nil {
 		return err
 	}
 
