@@ -5,11 +5,11 @@ import (
 
 	libp2pc "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
 	pb "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto/pb"
+	"gx/ipfs/QmW7VUmSvhvSGbYbdsh7uRjhGmsYkc9fL8aJ5CorxxrU5N/go-crypto/ed25519"
 	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/strkey"
-	"golang.org/x/crypto/ed25519"
 )
 
 type Full struct {
@@ -38,9 +38,9 @@ func (kp *Full) Id() (peer.ID, error) {
 }
 
 func (kp *Full) LibP2PPrivKey() (*libp2pc.Ed25519PrivateKey, error) {
-	buf := make([]byte, 96)
+	buf := make([]byte, ed25519.PrivateKeySize)
 	copy(buf, kp.rawSeed()[:])
-	copy(buf[64:], kp.publicKey()[:])
+	copy(buf[ed25519.PrivateKeySize:], kp.publicKey()[:])
 	pmes := new(pb.PrivateKey)
 	pmes.Data = buf
 	sk, err := libp2pc.UnmarshalEd25519PrivateKey(pmes.GetData())
@@ -69,10 +69,10 @@ func (kp *Full) LibP2PPubKey() (*libp2pc.Ed25519PublicKey, error) {
 }
 
 func (kp *Full) Verify(input []byte, sig []byte) error {
-	if len(sig) != 64 {
+	if len(sig) != ed25519.PrivateKeySize {
 		return ErrInvalidSignature
 	}
-	var asig [64]byte
+	var asig [ed25519.PrivateKeySize]byte
 	copy(asig[:], sig[:])
 
 	if !ed25519.Verify(kp.publicKey(), input, asig[:]) {
