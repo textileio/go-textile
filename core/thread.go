@@ -8,15 +8,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/textileio/go-textile/util"
+	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core"
+	libp2pc "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
+	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 
 	"github.com/golang/protobuf/jsonpb"
-
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core"
-
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/go-textile/crypto"
@@ -24,6 +21,7 @@ import (
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo"
 	"github.com/textileio/go-textile/repo/config"
+	"github.com/textileio/go-textile/util"
 )
 
 // ErrContactNotFound indicates a local contact was not found
@@ -93,7 +91,7 @@ type Thread struct {
 
 // NewThread create a new Thread from a repo model and config
 func NewThread(model *pb.Thread, conf *ThreadConfig) (*Thread, error) {
-	sk, err := libp2pc.UnmarshalPrivateKey(model.Sk)
+	sk, err := ipfs.UnmarshalPrivateKey(model.Sk)
 	if err != nil {
 		return nil, err
 	}

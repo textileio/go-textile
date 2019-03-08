@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"net/http"
 
-	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	libp2pc "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
 
 	"github.com/gin-gonic/gin"
 	"github.com/segmentio/ksuid"

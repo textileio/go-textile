@@ -539,8 +539,6 @@
     "bcrypt",
     "blowfish",
     "curve25519",
-    "ed25519",
-    "ed25519/internal/edwards25519",
     "internal/subtle",
     "nacl/box",
     "nacl/secretbox",
@@ -725,7 +723,6 @@
     "github.com/tyler-smith/go-bip39",
     "github.com/xeipuuv/gojsonschema",
     "golang.org/x/crypto/bcrypt",
-    "golang.org/x/crypto/ed25519",
     "golang.org/x/crypto/nacl/box",
     "gopkg.in/natefinch/lumberjack.v2",
   ]

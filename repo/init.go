@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 
-	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core"
-	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/namesys"
-	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/repo/fsrepo"
-	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
+	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core"
+	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/namesys"
+	loader "gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/plugin/loader"
+	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/repo/fsrepo"
+	libp2pc "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
+	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
 
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/repo/config"
@@ -52,6 +54,11 @@ func Init(repoPath string) error {
 	if err != nil {
 		return err
 	}
+
+	if _, err := LoadPlugins(repoPath); err != nil {
+		return err
+	}
+
 	if err := fsrepo.Init(repoPath, conf); err != nil {
 		return err
 	}
@@ -76,6 +83,33 @@ func Init(repoPath string) error {
 	}
 
 	return initializeIpnsKeyspace(repoPath)
+}
+
+func LoadPlugins(repoPath string) (*loader.PluginLoader, error) {
+	pluginpath := filepath.Join(repoPath, "plugins")
+
+	// check if repo is accessible before loading plugins
+	var plugins *loader.PluginLoader
+	ok, err := checkPermissions(repoPath)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		pluginpath = ""
+	}
+	plugins, err = loader.NewPluginLoader(pluginpath)
+	if err != nil {
+		log.Error("error loading plugins: ", err)
+	}
+
+	if err := plugins.Initialize(); err != nil {
+		log.Error("error initializing plugins: ", err)
+	}
+
+	if err := plugins.Inject(); err != nil {
+		log.Error("error running plugins: ", err)
+	}
+	return plugins, nil
 }
 
 func checkWriteable(dir string) error {
@@ -121,10 +155,19 @@ func initializeIpnsKeyspace(repoRoot string) error {
 	}
 	defer nd.Close()
 
-	err = nd.SetupOfflineRouting()
-	if err != nil {
-		return err
+	return namesys.InitializeKeyspace(ctx, nd.Namesys, nd.Pinning, nd.PrivateKey)
+}
+
+func checkPermissions(path string) (bool, error) {
+	_, err := os.Open(path)
+	if os.IsNotExist(err) {
+		// repo does not exist yet - don't load plugins, but also don't fail
+		return false, nil
+	}
+	if os.IsPermission(err) {
+		// repo is not accessible. error out.
+		return false, fmt.Errorf("error opening repository at %s: permission denied", path)
 	}
 
-	return namesys.InitializeKeyspace(ctx, nd.Namesys, nd.Pinning, nd.PrivateKey)
+	return true, nil
 }

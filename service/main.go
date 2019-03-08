@@ -14,14 +14,14 @@ import (
 	"sync"
 	"time"
 
+	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core"
 	"gx/ipfs/QmTKsRYeY4simJyf37K93juSq75Lo8MVCDJ7owjmf46u8W/go-context/io"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core"
-	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core/coreapi/interface"
-	inet "gx/ipfs/QmXuRkCR7BNQa9uqfpTiFWsTQLzmTWYg91Ja1w95gnqb6u/go-libp2p-net"
-	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
-	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	ggio "gx/ipfs/QmdxUuburamoF6zF9qjeQC4WYcWGbWuRmdLacMEsW8ioD8/gogo-protobuf/io"
+	iface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
+	inet "gx/ipfs/QmY3ArotKMKaL7YGfbQfyDrib6RVraLqZYWXZvVgZktBxp/go-libp2p-net"
+	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
+	ggio "gx/ipfs/QmddjPSGZb3ieihSseFeCfVRpZzcqczPNsD2DvarSwnjJB/gogo-protobuf/io"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -38,7 +38,9 @@ var log = logging.Logger("tex-service")
 // service represents a libp2p service
 type Service struct {
 	Account *keypair.Full
+
 	Node    func() *core.IpfsNode
+	NodeApi func() iface.CoreAPI
 
 	handler Handler
 
@@ -346,9 +348,7 @@ func (srv *Service) NewEnvelope(mtype pb.Message_Type, msg proto.Message, id *in
 	}
 
 	if srv.Node().PrivateKey == nil {
-		if err := srv.Node().LoadPrivateKey(); err != nil {
-			return nil, err
-		}
+		return nil, fmt.Errorf("peer private key not available")
 	}
 
 	sig, err := srv.Node().PrivateKey.Sign(ser)
@@ -523,8 +523,9 @@ func (srv *Service) handleNewMessage(s inet.Stream) {
 // listen subscribes to the protocol tag for network-wide requests
 func (srv *Service) listen() {
 	msgs := make(chan iface.PubSubMessage, 10)
+	ctx := srv.Node().Context()
 	go func() {
-		if err := ipfs.Subscribe(srv.Node(), srv.Node().Context(), string(srv.handler.Protocol()), true, msgs); err != nil {
+		if err := ipfs.Subscribe(srv.Node(), ctx, string(srv.handler.Protocol()), true, msgs); err != nil {
 			close(msgs)
 			log.Errorf("pubsub service listener stopped with error: %s")
 			return

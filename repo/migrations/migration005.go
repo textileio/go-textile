@@ -8,11 +8,11 @@ import (
 	"os"
 	"path"
 
-	native "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
-	libp2pc "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	native "gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
 
 	_ "github.com/mutecomm/go-sqlcipher"
 	"github.com/textileio/go-textile/crypto"
+	"github.com/textileio/go-textile/ipfs"
 )
 
 type thread struct {
@@ -143,7 +143,7 @@ func (Major005) Up(repoPath string, pinCode string, testnet bool) error {
 	// collect default thread photo blocks
 	var photos []*photoRow
 	for _, thread := range defaults {
-		sk, err := libp2pc.UnmarshalPrivateKey(thread.sk)
+		sk, err := ipfs.UnmarshalPrivateKey(thread.sk)
 		if err != nil {
 			return err
 		}

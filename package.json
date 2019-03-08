@@ -20,9 +20,9 @@
   },
   "gxDependencies": [
     {
-      "hash": "QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi",
+      "hash": "QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL",
       "name": "go-ipfs",
-      "version": "0.4.18"
+      "version": "0.4.19"
     }
   ],
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\""

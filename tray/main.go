@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/repo/fsrepo"
+	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/repo/fsrepo"
 
 	"github.com/atotto/clipboard"
 	"github.com/pkg/browser"

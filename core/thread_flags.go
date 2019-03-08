@@ -3,7 +3,7 @@ package core
 import (
 	"fmt"
 
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/go-textile/pb"

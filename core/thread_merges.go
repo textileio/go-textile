@@ -2,14 +2,14 @@ package core
 
 import (
 	"errors"
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"sort"
 
-	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/textileio/go-textile/util"
+	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/util"
 )
 
 // merge adds a merge block, which are kept local until subsequent updates, avoiding possibly endless echoes

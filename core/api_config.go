@@ -41,13 +41,13 @@ func getKeyValue(path string, object interface{}) (interface{}, error) {
 // @Failure 400 {string} string "Bad Request"
 // @Router /config/{path} [get]
 func (a *api) getConfig(g *gin.Context) {
-	path := g.Param("path")
+	pth := g.Param("path")
 	conf := a.node.Config()
 
-	if path == "" {
+	if pth == "" {
 		g.JSON(http.StatusOK, conf)
 	} else {
-		value, err := getKeyValue(path[1:], conf)
+		value, err := getKeyValue(pth[1:], conf)
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return
@@ -107,14 +107,13 @@ func (a *api) patchConfig(g *gin.Context) {
 		return
 	}
 
-	json, err := json.MarshalIndent(conf, "", "    ")
+	jsn, err := json.MarshalIndent(conf, "", "    ")
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	err = ioutil.WriteFile(configPath, json, 0666)
-	if err != nil {
+	if err := ioutil.WriteFile(configPath, jsn, 0666); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
@@ -150,14 +149,13 @@ func (a *api) setConfig(g *gin.Context) {
 		return
 	}
 
-	json, err := json.MarshalIndent(conf, "", "    ")
+	jsn, err := json.MarshalIndent(conf, "", "    ")
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	err = ioutil.WriteFile(configPath, json, 0666)
-	if err != nil {
+	if err := ioutil.WriteFile(configPath, jsn, 0666); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}

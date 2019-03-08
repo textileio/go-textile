@@ -12,14 +12,15 @@ import (
 	"sync"
 	"time"
 
-	ipfsconfig "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
-	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-	utilmain "gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/cmd/ipfs/util"
-	oldcmds "gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/commands"
-	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/core"
-	"gx/ipfs/QmUf5i9YncsDbikKC5wWBmPeLVxz35yKSQwbp11REBGFGi/go-ipfs/repo/fsrepo"
-	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
+	utilmain "gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/cmd/ipfs/util"
+	oldcmds "gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/commands"
+	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core"
+	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/plugin/loader"
+	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/repo/fsrepo"
+	ipfsconfig "gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
+	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	ipld "gx/ipfs/QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy/go-ipld-format"
+	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
 	logger "gx/ipfs/QmcaSwFc5RBg8yCq54QURwEU4nwjfCpjbpmaAm4VbdGLKv/go-logging"
 
 	"github.com/textileio/go-textile/broadcast"
@@ -274,15 +275,20 @@ func (t *Textile) Start() error {
 	t.threads = NewThreadsService(t.account, t.Ipfs, t.datastore, t.Thread, t.sendNotification)
 	t.cafe = NewCafeService(t.account, t.Ipfs, t.datastore, t.cafeInbox)
 
+	plugins, err := repo.LoadPlugins(t.repoPath)
+	if err != nil {
+		return err
+	}
+
 	// start the ipfs node
 	log.Debug("creating an ipfs node...")
-	if err := t.createIPFS(false); err != nil {
+	if err := t.createIPFS(plugins, false); err != nil {
 		log.Errorf("error creating offline ipfs node: %s", err)
 		return err
 	}
 	go func() {
 		defer close(t.online)
-		if err := t.createIPFS(true); err != nil {
+		if err := t.createIPFS(plugins, true); err != nil {
 			log.Errorf("error creating online ipfs node: %s", err)
 			return
 		}
@@ -321,11 +327,12 @@ func (t *Textile) Start() error {
 	}()
 
 	for _, mod := range t.datastore.Threads().List().Items {
-		if _, err := t.loadThread(mod); err == ErrThreadLoaded {
-			continue
-		}
-		if err != nil {
-			return err
+		if _, err := t.loadThread(mod); err != nil {
+			if err == ErrThreadLoaded {
+				continue
+			} else {
+				return err
+			}
 		}
 	}
 
@@ -358,12 +365,12 @@ func (t *Textile) Stop() error {
 	}
 
 	// close ipfs node
-	t.context.Close()
-	t.cancel()
 	if err := t.node.Close(); err != nil {
 		log.Errorf("error closing ipfs node: %s", err)
 		return err
 	}
+	t.context.Close()
+	t.cancel()
 
 	// close db connection
 	t.datastore.Close()
@@ -483,7 +490,7 @@ func (t *Textile) cafeService() *CafeService {
 }
 
 // createIPFS creates an IPFS node
-func (t *Textile) createIPFS(online bool) error {
+func (t *Textile) createIPFS(plugins *loader.PluginLoader, online bool) error {
 	rep, err := fsrepo.Open(t.repoPath)
 	if err != nil {
 		log.Errorf("error opening repo: %s", err)
@@ -523,17 +530,18 @@ func (t *Textile) createIPFS(online bool) error {
 	ctx.ConstructNode = func() (*core.IpfsNode, error) {
 		return nd, nil
 	}
+	ctx.Plugins = plugins
 
-	// attach to textile node
-	if t.cancel != nil {
-		t.cancel()
-	}
 	if t.node != nil {
 		if err := t.node.Close(); err != nil {
 			log.Errorf("error closing prev ipfs node: %s", err)
 			return err
 		}
 	}
+	if t.cancel != nil {
+		t.cancel()
+	}
+
 	t.context = ctx
 	t.cancel = cancel
 	t.node = nd
