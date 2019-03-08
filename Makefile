@@ -54,7 +54,7 @@ protos:
 protos_js:
 	mkdir -p mobile/dist
 	cd mobile; rm -rf node_modules && npm i @textile/protobufjs --no-save
-	cd mobile; ./node_modules/.bin/pbjs -t static-module -w es6 -o dist/index.js ../pb/protos/*
+	cd mobile; ./node_modules/.bin/pbjs -t static-module -o dist/index.js ../pb/protos/*
 	cd mobile; ./node_modules/.bin/pbts -o dist/index.d.ts dist/index.js
 
 .PHONY: docs

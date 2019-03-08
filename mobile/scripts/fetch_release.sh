@@ -6,7 +6,8 @@ ANDROID_DIR="${DIR}/../dist/android"
 VER=$1
 
 # fetch iOS framework
-mkdir -p ${IOS_DIR}
+rm -rf ${IOS_DIR}
+mkdir ${IOS_DIR}
 curl -L -o go-textile_v${VER}_ios-framework.tar.gz https://github.com/textileio/go-textile/releases/download/v${VER}/go-textile_v${VER}_ios-framework.tar.gz
 tar xvfz go-textile_v${VER}_ios-framework.tar.gz
 rm go-textile_v${VER}_ios-framework.tar.gz
@@ -14,7 +15,8 @@ mv Mobile.framework ${IOS_DIR}
 mv protos ${IOS_DIR}
 
 # fetch Android framework
-mkdir -p ${ANDROID_DIR}
+rm -rf ${ANDROID_DIR}
+mkdir ${ANDROID_DIR}
 curl -L -o go-textile_v${VER}_android-aar.tar.gz https://github.com/textileio/go-textile/releases/download/v${VER}/go-textile_v${VER}_android-aar.tar.gz
 tar xvfz go-textile_v${VER}_android-aar.tar.gz
 rm go-textile_v${VER}_android-aar.tar.gz
