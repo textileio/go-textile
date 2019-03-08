@@ -12,11 +12,10 @@ import (
 
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core"
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/pin"
-	files "gx/ipfs/QmQmhotPUzVrMEWNK3x1R5jQ5ZHWyL7tVUrmRPjrBrvyCb/go-ipfs-files"
-	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
-	iface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
-	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	"gx/ipfs/QmQmhotPUzVrMEWNK3x1R5jQ5ZHWyL7tVUrmRPjrBrvyCb/go-ipfs-files"
+	"gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 
 	njwt "github.com/dgrijalva/jwt-go"
 	"github.com/golang/protobuf/proto"
@@ -77,7 +76,6 @@ type CafeService struct {
 func NewCafeService(
 	account *keypair.Full,
 	node func() *core.IpfsNode,
-	nodeApi func() iface.CoreAPI,
 	datastore repo.Datastore,
 	inbox *CafeInbox,
 ) *CafeService {
@@ -87,7 +85,7 @@ func NewCafeService(
 		queryResults:    broadcast.NewBroadcaster(10),
 		inFlightQueries: make(map[string]struct{}),
 	}
-	handler.service = service.NewService(account, handler, node, nodeApi)
+	handler.service = service.NewService(account, handler, node)
 	return handler
 }
 
@@ -470,7 +468,7 @@ func (h *CafeService) notifyClient(pid peer.ID) error {
 		return err
 	}
 
-	return ipfs.Publish(h.service.Node().Context(), h.service.NodeApi(), client, payload)
+	return ipfs.Publish(h.service.Node(), client, payload)
 }
 
 // sendCafeRequest sends an authenticated request, retrying once after a session refresh
@@ -569,10 +567,10 @@ func (h *CafeService) sendObject(id cid.Cid, addr string, token string) error {
 		Cid:   id.Hash().B58String(),
 	}
 
-	data, err := ipfs.DataAtPath(h.service.Node().Context(), h.service.NodeApi(), id.Hash().B58String())
+	data, err := ipfs.DataAtPath(h.service.Node(), id.Hash().B58String())
 	if err != nil {
 		if err == files.ErrNotReader {
-			data, err := ipfs.GetObjectAtPath(h.service.Node().Context(), h.service.NodeApi(), id.Hash().B58String())
+			data, err := ipfs.GetObjectAtPath(h.service.Node(), id.Hash().B58String())
 			if err != nil {
 				return err
 			}
@@ -740,7 +738,7 @@ func (h *CafeService) publishQuery(req *pb.PubSubQuery) error {
 	if err != nil {
 		return err
 	}
-	return ipfs.Publish(h.service.Node().Context(), h.service.NodeApi(), topic, payload)
+	return ipfs.Publish(h.service.Node(), topic, payload)
 }
 
 // handleChallenge receives a challenge request
@@ -1005,7 +1003,7 @@ func (h *CafeService) handleObject(pid peer.ID, env *pb.Envelope) (*pb.Envelope,
 
 	var id string
 	if obj.Data != nil {
-		aid, err := ipfs.AddData(h.service.Node().Context(), h.service.NodeApi(), bytes.NewReader(obj.Data), true)
+		aid, err := ipfs.AddData(h.service.Node(), bytes.NewReader(obj.Data), true)
 		if err != nil {
 			return nil, err
 		}
@@ -1014,7 +1012,7 @@ func (h *CafeService) handleObject(pid peer.ID, env *pb.Envelope) (*pb.Envelope,
 		log.Debugf("pinned object %s", id)
 
 	} else if obj.Node != nil {
-		aid, err := ipfs.AddObject(h.service.Node().Context(), h.service.NodeApi(), bytes.NewReader(obj.Node), true)
+		aid, err := ipfs.AddObject(h.service.Node(), bytes.NewReader(obj.Node), true)
 		if err != nil {
 			return nil, err
 		}
@@ -1310,7 +1308,7 @@ func (h *CafeService) handlePubSubQuery(pid peer.ID, env *pb.Envelope) (*pb.Enve
 		if err != nil {
 			return nil, err
 		}
-		if err := ipfs.Publish(h.service.Node().Context(), h.service.NodeApi(), query.Id, payload); err != nil {
+		if err := ipfs.Publish(h.service.Node(), query.Id, payload); err != nil {
 			return nil, err
 		}
 	}

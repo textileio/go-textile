@@ -2,7 +2,6 @@ package core
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -11,7 +10,6 @@ import (
 
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core"
 	libp2pc "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
-	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
 	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 
@@ -61,7 +59,6 @@ type ThreadConfig struct {
 	RepoPath      string
 	Config        *config.Config
 	Node          func() *core.IpfsNode
-	NodeApi       func() iface.CoreAPI
 	Datastore     repo.Datastore
 	Service       func() *ThreadsService
 	ThreadsOutbox *BlockOutbox
@@ -84,7 +81,6 @@ type Thread struct {
 	repoPath      string
 	config        *config.Config
 	node          func() *core.IpfsNode
-	nodeApi       func() iface.CoreAPI
 	datastore     repo.Datastore
 	service       func() *ThreadsService
 	threadsOutbox *BlockOutbox
@@ -102,7 +98,7 @@ func NewThread(model *pb.Thread, conf *ThreadConfig) (*Thread, error) {
 
 	var sch *pb.Node
 	if model.Schema != "" {
-		sch, err = loadSchema(conf.Node().Context(), conf.NodeApi(), model.Schema)
+		sch, err = loadSchema(conf.Node(), model.Schema)
 		if err != nil {
 			return nil, err
 		}
@@ -122,7 +118,6 @@ func NewThread(model *pb.Thread, conf *ThreadConfig) (*Thread, error) {
 		repoPath:      conf.RepoPath,
 		config:        conf.Config,
 		node:          conf.Node,
-		nodeApi:       conf.NodeApi,
 		datastore:     conf.Datastore,
 		service:       conf.Service,
 		threadsOutbox: conf.ThreadsOutbox,
@@ -179,7 +174,7 @@ func (t *Thread) followParents(parents []string) error {
 
 // followParent tries to follow a chain of block ids, processing along the way
 func (t *Thread) followParent(parent mh.Multihash) error {
-	ciphertext, err := ipfs.DataAtPath(t.node().Context(), t.nodeApi(), parent.B58String())
+	ciphertext, err := ipfs.DataAtPath(t.node(), parent.B58String())
 	if err != nil {
 		return err
 	}
@@ -323,7 +318,7 @@ func (t *Thread) commitBlock(msg proto.Message, mtype pb.Block_BlockType, encryp
 
 // addBlock adds to ipfs
 func (t *Thread) addBlock(ciphertext []byte) (mh.Multihash, error) {
-	id, err := ipfs.AddData(t.node().Context(), t.nodeApi(), bytes.NewReader(ciphertext), true)
+	id, err := ipfs.AddData(t.node(), bytes.NewReader(ciphertext), true)
 	if err != nil {
 		return nil, err
 	}
@@ -443,7 +438,7 @@ func (t *Thread) sendWelcome() error {
 		return nil
 	}
 
-	ciphertext, err := ipfs.DataAtPath(t.node().Context(), t.nodeApi(), head)
+	ciphertext, err := ipfs.DataAtPath(t.node(), head)
 	if err != nil {
 		return err
 	}
@@ -585,8 +580,8 @@ func (t *Thread) member(addr string) bool {
 }
 
 // loadSchema loads a schema from a local file
-func loadSchema(ctx context.Context, nodeApi iface.CoreAPI, id string) (*pb.Node, error) {
-	data, err := ipfs.DataAtPath(ctx, nodeApi, id)
+func loadSchema(node *core.IpfsNode, id string) (*pb.Node, error) {
+	data, err := ipfs.DataAtPath(node, id)
 	if err != nil {
 		return nil, err
 	}

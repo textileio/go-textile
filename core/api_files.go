@@ -177,7 +177,7 @@ func (a *api) getThreadFiles(g *gin.Context) {
 func (a *api) lsThreadFileTargetKeys(g *gin.Context) {
 	target := g.Param("target")
 
-	node, err := ipfs.NodeAtPath(a.node.Ipfs().Context(), a.node.IpfsApi(), target)
+	node, err := ipfs.NodeAtPath(a.node.Ipfs(), target)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

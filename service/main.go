@@ -72,11 +72,10 @@ type Handler interface {
 }
 
 // NewService returns a service for the given config
-func NewService(account *keypair.Full, handler Handler, node func() *core.IpfsNode, nodeApi func() iface.CoreAPI) *Service {
+func NewService(account *keypair.Full, handler Handler, node func() *core.IpfsNode) *Service {
 	return &Service{
 		Account: account,
 		Node:    node,
-		NodeApi: nodeApi,
 		handler: handler,
 		strmap:  make(map[peer.ID]*messageSender),
 	}
@@ -526,7 +525,7 @@ func (srv *Service) listen() {
 	msgs := make(chan iface.PubSubMessage, 10)
 	ctx := srv.Node().Context()
 	go func() {
-		if err := ipfs.Subscribe(ctx, srv.NodeApi(), ctx, string(srv.handler.Protocol()), true, msgs); err != nil {
+		if err := ipfs.Subscribe(srv.Node(), ctx, string(srv.handler.Protocol()), true, msgs); err != nil {
 			close(msgs)
 			log.Errorf("pubsub service listener stopped with error: %s")
 			return
@@ -596,7 +595,7 @@ func (srv *Service) ListenFor(topic string, discover bool, handler func(pid peer
 	msgs := make(chan iface.PubSubMessage, 10)
 	ctx, cancel := context.WithCancel(srv.Node().Context())
 	go func() {
-		if err := ipfs.Subscribe(srv.Node().Context(), srv.NodeApi(), ctx, topic, discover, msgs); err != nil {
+		if err := ipfs.Subscribe(srv.Node(), ctx, topic, discover, msgs); err != nil {
 			close(msgs)
 			log.Errorf("pubsub listener stopped with error: %s", err)
 			return

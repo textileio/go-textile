@@ -6,9 +6,8 @@ import (
 	"fmt"
 
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core"
-	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
-	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 
 	"github.com/golang/protobuf/proto"
@@ -38,7 +37,6 @@ type ThreadsService struct {
 func NewThreadsService(
 	account *keypair.Full,
 	node func() *core.IpfsNode,
-	nodeApi func() iface.CoreAPI,
 	datastore repo.Datastore,
 	getThread func(id string) *Thread,
 	sendNotification func(note *pb.Notification) error,
@@ -48,7 +46,7 @@ func NewThreadsService(
 		getThread:        getThread,
 		sendNotification: sendNotification,
 	}
-	handler.service = service.NewService(account, handler, node, nodeApi)
+	handler.service = service.NewService(account, handler, node)
 	return handler
 }
 

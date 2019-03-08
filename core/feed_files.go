@@ -43,7 +43,7 @@ func (t *Textile) File(blockId string) (*pb.Files, error) {
 }
 
 func (t *Textile) fileAtTarget(target string) ([]*pb.File, error) {
-	links, err := ipfs.LinksAtPath(t.node.Context(), t.nodeApi, target)
+	links, err := ipfs.LinksAtPath(t.node, target)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (t *Textile) fileAtTarget(target string) ([]*pb.File, error) {
 	files := make([]*pb.File, len(links))
 
 	for _, index := range links {
-		node, err := ipfs.NodeAtLink(t.node.Context(), t.nodeApi, index)
+		node, err := ipfs.NodeAtLink(t.node, index)
 		if err != nil {
 			return nil, err
 		}
@@ -72,7 +72,7 @@ func (t *Textile) fileAtTarget(target string) ([]*pb.File, error) {
 		} else {
 			info.Links = make(map[string]*pb.FileIndex)
 			for _, link := range node.Links() {
-				pair, err := ipfs.NodeAtLink(t.node.Context(), t.nodeApi, link)
+				pair, err := ipfs.NodeAtLink(t.node, link)
 				if err != nil {
 					return nil, err
 				}

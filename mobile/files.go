@@ -201,7 +201,7 @@ func (m *Mobile) AddFilesByTarget(target string, threadId string, caption string
 		return nil, core.ErrThreadNotFound
 	}
 
-	node, err := ipfs.NodeAtPath(m.node.Ipfs().Context(), m.node.IpfsApi(), target)
+	node, err := ipfs.NodeAtPath(m.node.Ipfs(), target)
 	if err != nil {
 		return nil, err
 	}
@@ -268,14 +268,14 @@ func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) (string, err
 		return "", core.ErrStopped
 	}
 
-	node, err := ipfs.NodeAtPath(m.node.Ipfs().Context(), m.node.IpfsApi(), pth)
+	node, err := ipfs.NodeAtPath(m.node.Ipfs(), pth)
 	if err != nil {
 		return "", err
 	}
 
 	var imgs []img
 	for _, link := range node.Links() {
-		nd, err := ipfs.NodeAtLink(m.node.Ipfs().Context(), m.node.IpfsApi(), link)
+		nd, err := ipfs.NodeAtLink(m.node.Ipfs(), link)
 		if err != nil {
 			return "", err
 		}

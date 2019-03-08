@@ -6,8 +6,7 @@ import (
 	"sync"
 
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core"
-	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
-	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 
 	"github.com/golang/protobuf/proto"
@@ -27,7 +26,6 @@ const cafeOutFlushGroupSize = 16
 type CafeOutbox struct {
 	service   func() *CafeService
 	node      func() *core.IpfsNode
-	nodeApi   func() iface.CoreAPI
 	datastore repo.Datastore
 	mux       sync.Mutex
 }
@@ -36,13 +34,11 @@ type CafeOutbox struct {
 func NewCafeOutbox(
 	service func() *CafeService,
 	node func() *core.IpfsNode,
-	nodeApi func() iface.CoreAPI,
 	datastore repo.Datastore,
 ) *CafeOutbox {
 	return &CafeOutbox{
 		service:   service,
 		node:      node,
-		nodeApi:   nodeApi,
 		datastore: datastore,
 	}
 }
@@ -261,7 +257,7 @@ func (q *CafeOutbox) prepForInbox(pid peer.ID, env *pb.Envelope) (mh.Multihash, 
 		return nil, err
 	}
 
-	id, err := ipfs.AddData(q.node().Context(), q.nodeApi(), bytes.NewReader(ciphertext), true)
+	id, err := ipfs.AddData(q.node(), bytes.NewReader(ciphertext), true)
 	if err != nil {
 		return nil, err
 	}

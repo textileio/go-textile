@@ -4,8 +4,7 @@ import (
 	"sync"
 
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core"
-	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
-	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/textileio/go-textile/crypto"
@@ -25,7 +24,6 @@ type CafeInbox struct {
 	service        func() *CafeService
 	threadsService func() *ThreadsService
 	node           func() *core.IpfsNode
-	nodeApi        func() iface.CoreAPI
 	datastore      repo.Datastore
 	checking       bool
 	mux            sync.Mutex
@@ -36,14 +34,12 @@ func NewCafeInbox(
 	service func() *CafeService,
 	threadsService func() *ThreadsService,
 	node func() *core.IpfsNode,
-	nodeApi func() iface.CoreAPI,
 	datastore repo.Datastore,
 ) *CafeInbox {
 	return &CafeInbox{
 		service:        service,
 		threadsService: threadsService,
 		node:           node,
-		nodeApi:        nodeApi,
 		datastore:      datastore,
 	}
 }
@@ -150,7 +146,7 @@ func (q *CafeInbox) handle(msg pb.CafeMessage) error {
 	}
 
 	// download the actual message
-	ciphertext, err := ipfs.DataAtPath(q.node().Context(), q.nodeApi(), msg.Id)
+	ciphertext, err := ipfs.DataAtPath(q.node(), msg.Id)
 	if err != nil {
 		return q.handleErr(err, msg)
 	}

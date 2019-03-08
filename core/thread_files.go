@@ -43,7 +43,7 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 
 	// each link should point to a dag described by the thread schema
 	for i, link := range node.Links() {
-		nd, err := ipfs.NodeAtLink(t.node().Context(), t.nodeApi(), link)
+		nd, err := ipfs.NodeAtLink(t.node(), link)
 		if err != nil {
 			return nil, err
 		}
@@ -73,7 +73,7 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 	}
 
 	for _, link := range node.Links() {
-		nd, err := ipfs.NodeAtLink(t.node().Context(), t.nodeApi(), link)
+		nd, err := ipfs.NodeAtLink(t.node(), link)
 		if err != nil {
 			return nil, err
 		}
@@ -128,7 +128,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 		if err != nil {
 			return nil, err
 		}
-		node, err = ipfs.NodeAtCid(t.node().Context(), t.nodeApi(), target)
+		node, err = ipfs.NodeAtCid(t.node(), target)
 		if err != nil {
 			return nil, err
 		}
@@ -138,7 +138,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 
 		// each link should point to a dag described by the thread schema
 		for i, link := range node.Links() {
-			nd, err := ipfs.NodeAtLink(t.node().Context(), t.nodeApi(), link)
+			nd, err := ipfs.NodeAtLink(t.node(), link)
 			if err != nil {
 				return nil, err
 			}
@@ -153,7 +153,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 
 		// use msg keys to decrypt each file
 		for pth, key := range msg.Keys {
-			fd, err := ipfs.DataAtPath(t.node().Context(), t.nodeApi(), msg.Target+pth+FileLinkName)
+			fd, err := ipfs.DataAtPath(t.node(), msg.Target+pth+FileLinkName)
 			if err != nil {
 				return nil, err
 			}
@@ -197,7 +197,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 
 	if !ignore {
 		for _, link := range node.Links() {
-			nd, err := ipfs.NodeAtLink(t.node().Context(), t.nodeApi(), link)
+			nd, err := ipfs.NodeAtLink(t.node(), link)
 			if err != nil {
 				return nil, err
 			}
@@ -230,7 +230,7 @@ func (t *Thread) removeFiles(node ipld.Node) error {
 
 		// safe to dig deeper, check for other targets which contain the files
 		for _, link := range node.Links() {
-			nd, err := ipfs.NodeAtLink(t.node().Context(), t.nodeApi(), link)
+			nd, err := ipfs.NodeAtLink(t.node(), link)
 			if err != nil {
 				return err
 			}
@@ -262,7 +262,7 @@ func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys
 			return schema.ErrFileValidationFailed
 		}
 
-		n, err := ipfs.NodeAtLink(t.node().Context(), t.nodeApi(), link)
+		n, err := ipfs.NodeAtLink(t.node(), link)
 		if err != nil {
 			return err
 		}
@@ -337,7 +337,7 @@ func (t *Thread) validateJsonNode(inode ipld.Node, key string) error {
 
 	hash := inode.Cid().Hash().B58String()
 
-	data, err := ipfs.DataAtPath(t.node().Context(), t.nodeApi(), hash+"/"+DataLinkName)
+	data, err := ipfs.DataAtPath(t.node(), hash+"/"+DataLinkName)
 	if err != nil {
 		return err
 	}
@@ -389,7 +389,7 @@ func (t *Thread) indexFileNode(inode ipld.Node, target string) error {
 	}
 
 	for _, link := range links {
-		n, err := ipfs.NodeAtLink(t.node().Context(), t.nodeApi(), link)
+		n, err := ipfs.NodeAtLink(t.node(), link)
 		if err != nil {
 			return err
 		}
@@ -421,7 +421,7 @@ func (t *Thread) deIndexFileNode(inode ipld.Node, target string) error {
 	}
 
 	for _, link := range links {
-		n, err := ipfs.NodeAtLink(t.node().Context(), t.nodeApi(), link)
+		n, err := ipfs.NodeAtLink(t.node(), link)
 		if err != nil {
 			return err
 		}
