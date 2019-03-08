@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	libp2pc "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
 	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 
@@ -79,7 +78,7 @@ func (t *Textile) AcceptInvite(inviteId string) (mh.Multihash, error) {
 // AcceptExternalInvite attemps to download an encrypted thread key from an external invite,
 // adds a new thread, and notifies the inviter of the join
 func (t *Textile) AcceptExternalInvite(inviteId string, key []byte) (mh.Multihash, error) {
-	ciphertext, err := ipfs.DataAtPath(t.node, fmt.Sprintf("%s", inviteId))
+	ciphertext, err := ipfs.DataAtPath(t.node.Context(), t.nodeApi, fmt.Sprintf("%s", inviteId))
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +129,7 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 		return nil, ErrNotShareable
 	}
 
-	sk, err := libp2pc.UnmarshalPrivateKey(msg.Thread.Sk)
+	sk, err := ipfs.UnmarshalPrivateKey(msg.Thread.Sk)
 	if err != nil {
 		return nil, err
 	}

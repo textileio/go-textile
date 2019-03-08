@@ -94,7 +94,7 @@ func (t *Textile) AddFileIndex(mill m.Mill, conf AddFileConfig) (*pb.FileIndex, 
 		reader = bytes.NewReader(res.File)
 	}
 
-	hash, err := ipfs.AddData(t.node, reader, mill.Pin())
+	hash, err := ipfs.AddData(t.node.Context(), t.nodeApi, reader, mill.Pin())
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +185,7 @@ func (t *Textile) AddNodeFromDirs(dirs *pb.DirectoryList) (ipld.Node, *pb.Keys, 
 		}
 
 		id := node.Cid().Hash().B58String()
-		if err := ipfs.AddLinkToDirectory(t.node, outer, olink, id); err != nil {
+		if err := ipfs.AddLinkToDirectory(t.node.Context(), t.nodeApi, outer, olink, id); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -213,7 +213,7 @@ func (t *Textile) FileData(hash string) (io.ReadSeeker, *pb.FileIndex, error) {
 	if file == nil {
 		return nil, nil, ErrFileNotFound
 	}
-	fd, err := ipfs.DataAtPath(t.node, file.Hash)
+	fd, err := ipfs.DataAtPath(t.node.Context(), t.nodeApi, file.Hash)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -239,7 +239,7 @@ func (t *Textile) TargetNodeKeys(node ipld.Node) (*pb.Keys, error) {
 	keys := &pb.Keys{Files: make(map[string]string)}
 
 	for i, link := range node.Links() {
-		fn, err := ipfs.NodeAtLink(t.node, link)
+		fn, err := ipfs.NodeAtLink(t.node.Context(), t.nodeApi, link)
 		if err != nil {
 			return nil, err
 		}
@@ -282,11 +282,11 @@ func (t *Textile) fileNode(file *pb.FileIndex, dir uio.Directory, link string) e
 	}
 
 	pair := uio.NewDirectory(t.node.DAG)
-	if _, err := ipfs.AddDataToDirectory(t.node, pair, FileLinkName, reader); err != nil {
+	if _, err := ipfs.AddDataToDirectory(t.node.Context(), t.nodeApi, pair, FileLinkName, reader); err != nil {
 		return err
 	}
 
-	if err := ipfs.AddLinkToDirectory(t.node, pair, DataLinkName, file.Hash); err != nil {
+	if err := ipfs.AddLinkToDirectory(t.node.Context(), t.nodeApi, pair, DataLinkName, file.Hash); err != nil {
 		return err
 	}
 
@@ -298,7 +298,7 @@ func (t *Textile) fileNode(file *pb.FileIndex, dir uio.Directory, link string) e
 		return err
 	}
 
-	return ipfs.AddLinkToDirectory(t.node, dir, link, node.Cid().Hash().B58String())
+	return ipfs.AddLinkToDirectory(t.node.Context(), t.nodeApi, dir, link, node.Cid().Hash().B58String())
 }
 
 func (t *Textile) fileIndexForPair(pair ipld.Node) (*pb.FileIndex, error) {
@@ -334,7 +334,7 @@ func (t *Textile) fileNodeKeys(node ipld.Node, index int, keys *map[string]strin
 		vkeys["/"+strconv.Itoa(index)+"/"] = key
 	} else {
 		for _, link := range node.Links() {
-			n, err := ipfs.NodeAtLink(t.node, link)
+			n, err := ipfs.NodeAtLink(t.node.Context(), t.nodeApi, link)
 			if err != nil {
 				return err
 			}

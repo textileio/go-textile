@@ -9,33 +9,11 @@ import (
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core"
 	"gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
 	ma "gx/ipfs/QmTZBfrPJmjWsCvHEtX5FE6KimVJhsJg5sBbqEFYf4UZtL/go-multiaddr"
-	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 	pstore "gx/ipfs/QmaCTz9RkrU13bm9kMB54f7atgqM4qkjDZpRwRoJiWXEqs/go-libp2p-peerstore"
-	record "gx/ipfs/QmbeHtaBy9nZsW4cHRcvgVY4CnDhXudE2Dr6qDxS7yg9rX/go-libp2p-record"
+	"gx/ipfs/QmbeHtaBy9nZsW4cHRcvgVY4CnDhXudE2Dr6qDxS7yg9rX/go-libp2p-record"
 	"gx/ipfs/Qmdf1djucJ1jX5RMF1bDbFg5ybZnupmSAeETQQ3ZV7z6dU/go-ipfs-addr"
 )
-
-// IpnsSubs shows current name subscriptions
-func IpnsSubs(node *core.IpfsNode) ([]string, error) {
-	if node.PSRouter == nil {
-		return nil, errors.New("IPNS pubsub subsystem is not enabled")
-	}
-	var paths []string
-	for _, key := range node.PSRouter.GetSubscriptions() {
-		ns, k, err := record.SplitKey(key)
-		if err != nil || ns != "ipns" {
-			// not necessarily an error.
-			continue
-		}
-		pid, err := peer.IDFromString(k)
-		if err != nil {
-			log.Errorf("ipns key not a valid peer ID: %s", err)
-			continue
-		}
-		paths = append(paths, "/ipns/"+peer.IDB58Encode(pid))
-	}
-	return paths, nil
-}
 
 // PrintSwarmAddrs prints the addresses of the host
 func PrintSwarmAddrs(node *core.IpfsNode) error {
@@ -98,6 +76,28 @@ func ShortenID(id string) string {
 		return id
 	}
 	return id[len(id)-7:]
+}
+
+// IpnsSubs shows current name subscriptions
+func IpnsSubs(node *core.IpfsNode) ([]string, error) {
+	if node.PSRouter == nil {
+		return nil, errors.New("IPNS pubsub subsystem is not enabled")
+	}
+	var paths []string
+	for _, key := range node.PSRouter.GetSubscriptions() {
+		ns, k, err := record.SplitKey(key)
+		if err != nil || ns != "ipns" {
+			// not necessarily an error.
+			continue
+		}
+		pid, err := peer.IDFromString(k)
+		if err != nil {
+			log.Errorf("ipns key not a valid peer ID: %s", err)
+			continue
+		}
+		paths = append(paths, "/ipns/"+peer.IDB58Encode(pid))
+	}
+	return paths, nil
 }
 
 // parseAddresses is a function that takes in a slice of string peer addresses

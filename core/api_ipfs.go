@@ -47,7 +47,7 @@ func (a *api) ipfsSwarmConnect(g *gin.Context) {
 		return
 	}
 
-	res, err := ipfs.SwarmConnect(a.node.node, []string{args[0]})
+	res, err := ipfs.SwarmConnect(a.node.node.Context(), a.node.nodeApi, []string{args[0]})
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -77,7 +77,7 @@ func (a *api) ipfsSwarmPeers(g *gin.Context) {
 	streams := opts["streams"] == "true"
 	direction := opts["direction"] == "true"
 
-	res, err := ipfs.SwarmPeers(a.node.node, verbose, latency, streams, direction)
+	res, err := ipfs.SwarmPeers(a.node.node.Context(), a.node.nodeApi, verbose, latency, streams, direction)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
@@ -111,7 +111,7 @@ func (a *api) ipfsCat(g *gin.Context) {
 		return
 	}
 
-	data, err := ipfs.DataAtPath(a.node.node, cid)
+	data, err := ipfs.DataAtPath(a.node.node.Context(), a.node.nodeApi, cid)
 	if err != nil {
 		g.String(http.StatusNotFound, err.Error())
 		return

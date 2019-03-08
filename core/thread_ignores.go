@@ -102,7 +102,7 @@ func (t *Thread) ignoreBlockTarget(block *pb.Block) error {
 
 	switch block.Type {
 	case pb.Block_FILES:
-		node, err := ipfs.NodeAtPath(t.node(), block.Target)
+		node, err := ipfs.NodeAtPath(t.node().Context(), t.nodeApi(), block.Target)
 		if err != nil {
 			return err
 		}

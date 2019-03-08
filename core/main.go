@@ -15,9 +15,12 @@ import (
 	utilmain "gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/cmd/ipfs/util"
 	oldcmds "gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/commands"
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core"
+	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core/coreapi"
+	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/plugin/loader"
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/repo/fsrepo"
 	ipfsconfig "gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
-	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
+	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 	ipld "gx/ipfs/QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy/go-ipld-format"
 	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
 	logger "gx/ipfs/QmcaSwFc5RBg8yCq54QURwEU4nwjfCpjbpmaAm4VbdGLKv/go-logging"
@@ -81,6 +84,7 @@ type Textile struct {
 	account       *keypair.Full
 	cancel        context.CancelFunc
 	node          *core.IpfsNode
+	nodeApi       iface.CoreAPI
 	datastore     repo.Datastore
 	started       bool
 	loadedThreads []*Thread
@@ -268,21 +272,26 @@ func (t *Textile) Start() error {
 
 	t.online = make(chan struct{})
 
-	t.cafeInbox = NewCafeInbox(t.cafeService, t.threadsService, t.Ipfs, t.datastore)
-	t.cafeOutbox = NewCafeOutbox(t.cafeService, t.Ipfs, t.datastore)
+	t.cafeInbox = NewCafeInbox(t.cafeService, t.threadsService, t.Ipfs, t.IpfsApi, t.datastore)
+	t.cafeOutbox = NewCafeOutbox(t.cafeService, t.Ipfs, t.IpfsApi, t.datastore)
 	t.threadsOutbox = NewThreadsOutbox(t.threadsService, t.Ipfs, t.datastore, t.cafeOutbox)
-	t.threads = NewThreadsService(t.account, t.Ipfs, t.datastore, t.Thread, t.sendNotification)
-	t.cafe = NewCafeService(t.account, t.Ipfs, t.datastore, t.cafeInbox)
+	t.threads = NewThreadsService(t.account, t.Ipfs, t.IpfsApi, t.datastore, t.Thread, t.sendNotification)
+	t.cafe = NewCafeService(t.account, t.Ipfs, t.IpfsApi, t.datastore, t.cafeInbox)
+
+	plugins, err := repo.LoadPlugins(t.repoPath)
+	if err != nil {
+		return err
+	}
 
 	// start the ipfs node
 	log.Debug("creating an ipfs node...")
-	if err := t.createIPFS(false); err != nil {
+	if err := t.createIPFS(plugins, false); err != nil {
 		log.Errorf("error creating offline ipfs node: %s", err)
 		return err
 	}
 	go func() {
 		defer close(t.online)
-		if err := t.createIPFS(true); err != nil {
+		if err := t.createIPFS(plugins, true); err != nil {
 			log.Errorf("error creating online ipfs node: %s", err)
 			return
 		}
@@ -321,11 +330,12 @@ func (t *Textile) Start() error {
 	}()
 
 	for _, mod := range t.datastore.Threads().List().Items {
-		if _, err := t.loadThread(mod); err == ErrThreadLoaded {
-			continue
-		}
-		if err != nil {
-			return err
+		if _, err := t.loadThread(mod); err != nil {
+			if err == ErrThreadLoaded {
+				continue
+			} else {
+				return err
+			}
 		}
 	}
 
@@ -358,12 +368,12 @@ func (t *Textile) Stop() error {
 	}
 
 	// close ipfs node
-	t.context.Close()
-	t.cancel()
 	if err := t.node.Close(); err != nil {
 		log.Errorf("error closing ipfs node: %s", err)
 		return err
 	}
+	t.context.Close()
+	t.cancel()
 
 	// close db connection
 	t.datastore.Close()
@@ -414,6 +424,11 @@ func (t *Textile) Ipfs() *core.IpfsNode {
 	return t.node
 }
 
+// IpfsApi returns the underlying ipfs node's core API
+func (t *Textile) IpfsApi() iface.CoreAPI {
+	return t.nodeApi
+}
+
 // OnlineCh returns the online channel
 func (t *Textile) OnlineCh() <-chan struct{} {
 	return t.online
@@ -456,12 +471,12 @@ func (t *Textile) RepoPath() string {
 
 // DataAtPath returns raw data behind an ipfs path
 func (t *Textile) DataAtPath(path string) ([]byte, error) {
-	return ipfs.DataAtPath(t.node, path)
+	return ipfs.DataAtPath(t.node.Context(), t.nodeApi, path)
 }
 
 // LinksAtPath returns ipld links behind an ipfs path
 func (t *Textile) LinksAtPath(path string) ([]*ipld.Link, error) {
-	return ipfs.LinksAtPath(t.node, path)
+	return ipfs.LinksAtPath(t.node.Context(), t.nodeApi, path)
 }
 
 // SetLogLevel provides node scoped access to the logging system
@@ -483,7 +498,7 @@ func (t *Textile) cafeService() *CafeService {
 }
 
 // createIPFS creates an IPFS node
-func (t *Textile) createIPFS(online bool) error {
+func (t *Textile) createIPFS(plugins *loader.PluginLoader, online bool) error {
 	rep, err := fsrepo.Open(t.repoPath)
 	if err != nil {
 		log.Errorf("error opening repo: %s", err)
@@ -523,20 +538,27 @@ func (t *Textile) createIPFS(online bool) error {
 	ctx.ConstructNode = func() (*core.IpfsNode, error) {
 		return nd, nil
 	}
+	ctx.Plugins = plugins
 
-	// attach to textile node
-	if t.cancel != nil {
-		t.cancel()
+	api, err := coreapi.NewCoreAPI(nd)
+	if err != nil {
+		return err
 	}
+
 	if t.node != nil {
 		if err := t.node.Close(); err != nil {
 			log.Errorf("error closing prev ipfs node: %s", err)
 			return err
 		}
 	}
+	if t.cancel != nil {
+		t.cancel()
+	}
+
 	t.context = ctx
 	t.cancel = cancel
 	t.node = nd
+	t.nodeApi = api
 
 	return nil
 }
@@ -610,6 +632,7 @@ func (t *Textile) loadThread(mod *pb.Thread) (*Thread, error) {
 		RepoPath:      t.repoPath,
 		Config:        t.config,
 		Node:          t.Ipfs,
+		NodeApi:       t.IpfsApi,
 		Datastore:     t.datastore,
 		Service:       t.threadsService,
 		ThreadsOutbox: t.threadsOutbox,

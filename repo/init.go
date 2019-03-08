@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core"
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/namesys"
+	loader "gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/plugin/loader"
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/repo/fsrepo"
 	libp2pc "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
 	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
@@ -52,6 +54,11 @@ func Init(repoPath string) error {
 	if err != nil {
 		return err
 	}
+
+	if _, err := LoadPlugins(repoPath); err != nil {
+		return err
+	}
+
 	if err := fsrepo.Init(repoPath, conf); err != nil {
 		return err
 	}
@@ -76,6 +83,33 @@ func Init(repoPath string) error {
 	}
 
 	return initializeIpnsKeyspace(repoPath)
+}
+
+func LoadPlugins(repoPath string) (*loader.PluginLoader, error) {
+	pluginpath := filepath.Join(repoPath, "plugins")
+
+	// check if repo is accessible before loading plugins
+	var plugins *loader.PluginLoader
+	ok, err := checkPermissions(repoPath)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		pluginpath = ""
+	}
+	plugins, err = loader.NewPluginLoader(pluginpath)
+	if err != nil {
+		log.Error("error loading plugins: ", err)
+	}
+
+	if err := plugins.Initialize(); err != nil {
+		log.Error("error initializing plugins: ", err)
+	}
+
+	if err := plugins.Inject(); err != nil {
+		log.Error("error running plugins: ", err)
+	}
+	return plugins, nil
 }
 
 func checkWriteable(dir string) error {
@@ -122,4 +156,18 @@ func initializeIpnsKeyspace(repoRoot string) error {
 	defer nd.Close()
 
 	return namesys.InitializeKeyspace(ctx, nd.Namesys, nd.Pinning, nd.PrivateKey)
+}
+
+func checkPermissions(path string) (bool, error) {
+	_, err := os.Open(path)
+	if os.IsNotExist(err) {
+		// repo does not exist yet - don't load plugins, but also don't fail
+		return false, nil
+	}
+	if os.IsPermission(err) {
+		// repo is not accessible. error out.
+		return false, fmt.Errorf("error opening repository at %s: permission denied", path)
+	}
+
+	return true, nil
 }

@@ -189,7 +189,8 @@ func (c *cafeApi) pin(g *gin.Context) {
 				g.JSON(http.StatusBadRequest, gin.H{"error": "directories are not supported"})
 				return
 			case tar.TypeReg:
-				if _, err := ipfs.AddDataToDirectory(c.node.Ipfs(), dirb, header.Name, tr); err != nil {
+				ctx := c.node.Ipfs().Context()
+				if _, err := ipfs.AddDataToDirectory(ctx, c.node.IpfsApi(), dirb, header.Name, tr); err != nil {
 					log.Errorf("error adding file to dir %s", err)
 					g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
@@ -214,7 +215,8 @@ func (c *cafeApi) pin(g *gin.Context) {
 		id = dir.Cid()
 
 	case "application/octet-stream":
-		idp, err := ipfs.AddData(c.node.Ipfs(), g.Request.Body, true)
+		ctx := c.node.Ipfs().Context()
+		idp, err := ipfs.AddData(ctx, c.node.IpfsApi(), g.Request.Body, true)
 		if err != nil {
 			log.Errorf("error pinning raw body %s", err)
 			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

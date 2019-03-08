@@ -10,6 +10,7 @@ import (
 	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 
+	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/mill"
 	"github.com/textileio/go-textile/pb"
@@ -164,7 +165,7 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 		return ErrNotShareable
 	}
 
-	sk, err := libp2pc.UnmarshalPrivateKey(thrd.Sk)
+	sk, err := ipfs.UnmarshalPrivateKey(thrd.Sk)
 	if err != nil {
 		return err
 	}
