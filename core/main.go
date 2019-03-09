@@ -91,7 +91,7 @@ type Textile struct {
 	threadUpdates *broadcast.Broadcaster
 	notifications chan *pb.Notification
 	threads       *ThreadsService
-	threadsOutbox *BlockOutbox
+	blockOutbox   *BlockOutbox
 	cafe          *CafeService
 	cafeOutbox    *CafeOutbox
 	cafeInbox     *CafeInbox
@@ -255,6 +255,9 @@ func (t *Textile) Start() error {
 	}
 	log.Info("starting node...")
 
+	t.online = make(chan struct{})
+	t.done = make(chan struct{})
+
 	// raise file descriptor limit
 	changed, limit, err := utilmain.ManageFdLimit()
 	if err != nil {
@@ -267,21 +270,40 @@ func (t *Textile) Start() error {
 		return err
 	}
 
-	t.online = make(chan struct{})
-
-	t.cafeInbox = NewCafeInbox(t.cafeService, t.threadsService, t.Ipfs, t.datastore)
+	// create queues
+	t.cafeInbox = NewCafeInbox(
+		t.cafeService,
+		t.threadsService,
+		t.Ipfs,
+		t.datastore)
 	t.cafeOutbox = NewCafeOutbox(t.cafeService, t.Ipfs, t.datastore)
-	t.threadsOutbox = NewThreadsOutbox(t.threadsService, t.Ipfs, t.datastore, t.cafeOutbox)
-	t.threads = NewThreadsService(t.account, t.Ipfs, t.datastore, t.Thread, t.sendNotification)
-	t.cafe = NewCafeService(t.account, t.Ipfs, t.datastore, t.cafeInbox)
+	t.blockOutbox = NewBlockOutbox(
+		t.threadsService,
+		t.Ipfs,
+		t.datastore,
+		t.cafeOutbox)
 
+	// create services
+	t.threads = NewThreadsService(
+		t.account,
+		t.Ipfs,
+		t.datastore,
+		t.Thread,
+		t.handleThreadAdd,
+		t.RemoveThread,
+		t.sendNotification)
+	t.cafe = NewCafeService(
+		t.account,
+		t.Ipfs,
+		t.datastore,
+		t.cafeInbox)
+
+	// start the ipfs node
+	log.Debug("creating an ipfs node...")
 	plugins, err := repo.LoadPlugins(t.repoPath)
 	if err != nil {
 		return err
 	}
-
-	// start the ipfs node
-	log.Debug("creating an ipfs node...")
 	if err := t.createIPFS(plugins, false); err != nil {
 		log.Errorf("error creating offline ipfs node: %s", err)
 		return err
@@ -336,7 +358,6 @@ func (t *Textile) Start() error {
 		}
 	}
 
-	t.done = make(chan struct{})
 	t.started = true
 
 	log.Info("node is started")
@@ -581,7 +602,7 @@ func (t *Textile) flushQueues() {
 	}
 
 	go func() {
-		t.threadsOutbox.Flush()
+		t.blockOutbox.Flush()
 		if err := t.cafeInbox.CheckMessages(); err != nil {
 			log.Errorf("error checking messages: %s", err)
 		}
@@ -615,14 +636,15 @@ func (t *Textile) loadThread(mod *pb.Thread) (*Thread, error) {
 	}
 
 	threadConfig := &ThreadConfig{
-		RepoPath:      t.repoPath,
-		Config:        t.config,
-		Node:          t.Ipfs,
-		Datastore:     t.datastore,
-		Service:       t.threadsService,
-		ThreadsOutbox: t.threadsOutbox,
-		CafeOutbox:    t.cafeOutbox,
-		PushUpdate:    t.sendThreadUpdate,
+		RepoPath:    t.repoPath,
+		Config:      t.config,
+		Account:     t.account,
+		Node:        t.Ipfs,
+		Datastore:   t.datastore,
+		Service:     t.threadsService,
+		BlockOutbox: t.blockOutbox,
+		CafeOutbox:  t.cafeOutbox,
+		PushUpdate:  t.sendThreadUpdate,
 	}
 
 	thrd, err := NewThread(mod, threadConfig)

@@ -10,6 +10,7 @@ message ThreadEnvelope {
     string thread    = 1;
     string hash      = 2; // hash of encrypted block
     bytes ciphertext = 3; // encrypted ThreadBlock, also stored on ipfs for recovery
+    bytes sig        = 4; // account signature
 }
 
 message ThreadBlock {
@@ -25,7 +26,7 @@ message ThreadBlockHeader {
     string address                 = 4;
 }
 
-message ThreadInvite {
+message ThreadAdd { // not kept on-chain
     Contact inviter = 1;
     Thread thread   = 2;
 }

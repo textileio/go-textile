@@ -27,8 +27,8 @@ type BlockOutbox struct {
 	mux        sync.Mutex
 }
 
-// NewThreadsOutbox creates a new outbox queue
-func NewThreadsOutbox(
+// NewBlockOutbox creates a new outbox queue
+func NewBlockOutbox(
 	service func() *ThreadsService,
 	node func() *core.IpfsNode,
 	datastore repo.Datastore,

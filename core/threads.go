@@ -135,15 +135,24 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 		}
 	}
 
-	if thrd.Schema != nil {
-		go t.cafeOutbox.Flush()
-	}
+	go t.cafeOutbox.Flush()
 
 	t.sendUpdate(&pb.WalletUpdate{
 		Id:   thrd.Id,
 		Key:  thrd.Key,
 		Type: pb.WalletUpdate_THREAD_ADDED,
 	})
+
+	// invite account peers
+	for _, p := range t.AccountPeers().Items {
+		pid, err := peer.IDB58Decode(p.Id)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := thrd.AddInvite(pid); err != nil {
+			return nil, err
+		}
+	}
 
 	log.Debugf("added a new thread %s with name %s", thrd.Id, conf.Name)
 

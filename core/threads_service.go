@@ -28,8 +28,10 @@ var ErrInvalidThreadBlock = errors.New("invalid thread block")
 type ThreadsService struct {
 	service          *service.Service
 	datastore        repo.Datastore
-	getThread        func(id string) *Thread
-	sendNotification func(note *pb.Notification) error
+	getThread        func(string) *Thread
+	addThread        func([]byte) (mh.Multihash, error)
+	removeThread     func(string) (mh.Multihash, error)
+	sendNotification func(*pb.Notification) error
 	online           bool
 }
 
@@ -38,12 +40,16 @@ func NewThreadsService(
 	account *keypair.Full,
 	node func() *core.IpfsNode,
 	datastore repo.Datastore,
-	getThread func(id string) *Thread,
-	sendNotification func(note *pb.Notification) error,
+	getThread func(string) *Thread,
+	addThread func([]byte) (mh.Multihash, error),
+	removeThread func(string) (mh.Multihash, error),
+	sendNotification func(*pb.Notification) error,
 ) *ThreadsService {
 	handler := &ThreadsService{
 		datastore:        datastore,
 		getThread:        getThread,
+		addThread:        addThread,
+		removeThread:     removeThread,
 		sendNotification: sendNotification,
 	}
 	handler.service = service.NewService(account, handler, node)
@@ -74,6 +80,15 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 	if err := ptypes.UnmarshalAny(env.Message.Payload, tenv); err != nil {
 		return nil, err
 	}
+
+	// check for an account signature
+	var accountPeer bool
+	if tenv.Sig != nil {
+		if err := h.service.Account.Verify(tenv.Ciphertext, tenv.Sig); err == nil {
+			accountPeer = true
+		}
+	}
+
 	hash, err := mh.FromB58String(tenv.Hash)
 	if err != nil {
 		return nil, err
@@ -82,7 +97,7 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 	thrd := h.getThread(tenv.Thread)
 	if thrd == nil {
 		// this might be a direct invite
-		if err := h.handleInvite(hash, tenv); err != nil {
+		if err := h.handleAdd(hash, tenv, accountPeer); err != nil {
 			return nil, err
 		}
 		return nil, nil
@@ -98,7 +113,11 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 		return nil, nil
 	}
 
-	log.Debugf("handling %s from %s", block.Type.String(), block.Header.Author)
+	if accountPeer {
+		log.Debugf("handling %s from account peer %s", block.Type.String(), block.Header.Author)
+	} else {
+		log.Debugf("handling %s from %s", block.Type.String(), block.Header.Author)
+	}
 
 	switch block.Type {
 	case pb.Block_MERGE:
@@ -112,7 +131,7 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 	case pb.Block_ANNOUNCE:
 		err = h.handleAnnounce(thrd, hash, block)
 	case pb.Block_LEAVE:
-		err = h.handleLeave(thrd, hash, block)
+		err = h.handleLeave(thrd, hash, block, accountPeer)
 	case pb.Block_TEXT:
 		err = h.handleMessage(thrd, hash, block)
 	case pb.Block_FILES:
@@ -168,26 +187,36 @@ func (h *ThreadsService) NewEnvelope(threadId string, hash mh.Multihash, ciphert
 	return h.service.NewEnvelope(pb.Message_THREAD_ENVELOPE, tenv, nil, false)
 }
 
-// handleInvite receives an invite message
-func (h *ThreadsService) handleInvite(hash mh.Multihash, tenv *pb.ThreadEnvelope) error {
+// handleAdd receives an invite message
+func (h *ThreadsService) handleAdd(hash mh.Multihash, tenv *pb.ThreadEnvelope, accountPeer bool) error {
 	plaintext, err := crypto.Decrypt(h.service.Node().PrivateKey, tenv.Ciphertext)
 	if err != nil {
 		// wasn't an invite, abort
-		return ErrInvalidThreadBlock
+		return nil
 	}
 	block := new(pb.ThreadBlock)
 	if err := proto.Unmarshal(plaintext, block); err != nil {
 		return err
 	}
-	if block.Type != pb.Block_INVITE {
+	if block.Type != pb.Block_ADD {
 		return ErrInvalidThreadBlock
 	}
-	msg := new(pb.ThreadInvite)
+	msg := new(pb.ThreadAdd)
 	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
 		return err
 	}
 
-	log.Debugf("handling THREAD_INVITE from %s", block.Header.Author)
+	if accountPeer {
+		log.Debugf("handling %s from account peer %s", block.Type.String(), block.Header.Author)
+
+		// can auto-join
+		if _, err := h.addThread(plaintext); err != nil {
+			return err
+		}
+		return nil
+	} else {
+		log.Debugf("handling %s from %s", block.Type.String(), block.Header.Author)
+	}
 
 	if err := h.datastore.Invites().Add(&pb.Invite{
 		Id:      hash.B58String(),
@@ -257,9 +286,17 @@ func (h *ThreadsService) handleAnnounce(thrd *Thread, hash mh.Multihash, block *
 }
 
 // handleLeave receives a leave message
-func (h *ThreadsService) handleLeave(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
+func (h *ThreadsService) handleLeave(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, accountPeer bool) error {
 	if err := thrd.handleLeaveBlock(hash, block); err != nil {
 		return err
+	}
+
+	if accountPeer {
+		// can auto-leave
+		if _, err := h.removeThread(thrd.Id); err != nil {
+			return err
+		}
+		return nil
 	}
 
 	note := h.newNotification(block.Header, pb.Notification_PEER_LEFT)

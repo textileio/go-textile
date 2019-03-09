@@ -63,7 +63,7 @@ func (t *Textile) AcceptInvite(inviteId string) (mh.Multihash, error) {
 		return nil, ErrThreadInviteNotFound
 	}
 
-	hash, err := t.handleThreadInvite(invite.Block)
+	hash, err := t.handleThreadAdd(invite.Block)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (t *Textile) AcceptExternalInvite(inviteId string, key []byte) (mh.Multihas
 	if err != nil {
 		return nil, ErrInvalidThreadBlock
 	}
-	return t.handleThreadInvite(plaintext)
+	return t.handleThreadAdd(plaintext)
 }
 
 // IgnoreInvite deletes the invite and removes the associated notification.
@@ -99,16 +99,16 @@ func (t *Textile) IgnoreInvite(inviteId string) error {
 	return t.datastore.Notifications().DeleteByBlock(inviteId)
 }
 
-// handleThreadInvite uses an invite block to join a thread
-func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
+// handleThreadAdd uses an add block to join a thread
+func (t *Textile) handleThreadAdd(plaintext []byte) (mh.Multihash, error) {
 	block := new(pb.ThreadBlock)
 	if err := proto.Unmarshal(plaintext, block); err != nil {
 		return nil, err
 	}
-	if block.Type != pb.Block_INVITE {
+	if block.Type != pb.Block_ADD {
 		return nil, ErrInvalidThreadBlock
 	}
-	msg := new(pb.ThreadInvite)
+	msg := new(pb.ThreadAdd)
 	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
 		return nil, err
 	}
@@ -164,7 +164,7 @@ func (t *Textile) handleThreadInvite(plaintext []byte) (mh.Multihash, error) {
 	}
 
 	// follow parents, update head
-	if err := thrd.handleInviteMessage(block); err != nil {
+	if err := thrd.handleAddBlock(block); err != nil {
 		return nil, err
 	}
 

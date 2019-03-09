@@ -8,13 +8,13 @@ import (
 	"github.com/textileio/go-textile/pb"
 )
 
-// AddInvite creates an outgoing invite block, which is sent directly to the recipient
+// AddInvite creates an outgoing add block, which is sent directly to the recipient
 // and does not become part of the hash chain
-func (t *Thread) AddInvite(inviteeId peer.ID) (mh.Multihash, error) {
+func (t *Thread) AddInvite(peerId peer.ID) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	contact := t.datastore.Contacts().Get(inviteeId.Pretty())
+	contact := t.datastore.Contacts().Get(peerId.Pretty())
 	if contact == nil {
 		return nil, ErrContactNotFound
 	}
@@ -24,36 +24,36 @@ func (t *Thread) AddInvite(inviteeId peer.ID) (mh.Multihash, error) {
 	}
 
 	self := t.datastore.Contacts().Get(t.node().Identity.Pretty())
-	msg := &pb.ThreadInvite{
+	msg := &pb.ThreadAdd{
 		Thread:  t.datastore.Threads().Get(t.Id),
 		Inviter: self,
 	}
 
-	inviteePk, err := inviteeId.ExtractPublicKey()
+	pk, err := peerId.ExtractPublicKey()
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := t.commitBlock(msg, pb.Block_INVITE, func(plaintext []byte) ([]byte, error) {
-		return crypto.Encrypt(inviteePk, plaintext)
+	res, err := t.commitBlock(msg, pb.Block_ADD, func(plaintext []byte) ([]byte, error) {
+		return crypto.Encrypt(pk, plaintext)
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	// create new peer for posting (it will get added if+when they accept)
+	// Create new peer for posting (it will get added if+when they accept).
 	target := pb.ThreadPeer{Id: contact.Id}
 
 	if err := t.post(res, []pb.ThreadPeer{target}); err != nil {
 		return nil, err
 	}
 
-	log.Debugf("sent INVITE to %s for %s", contact.Id, t.Id)
+	log.Debugf("sent ADD to %s for %s", contact.Id, t.Id)
 
 	return res.hash, nil
 }
 
-// AddExternalInvite creates an external invite, which can be retrieved by any peer
+// AddExternalInvite creates an add block, which can be retrieved by any peer
 // and does not become part of the hash chain
 func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 	t.mux.Lock()
@@ -64,7 +64,7 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 	}
 
 	self := t.datastore.Contacts().Get(t.node().Identity.Pretty())
-	msg := &pb.ThreadInvite{
+	msg := &pb.ThreadAdd{
 		Thread:  t.datastore.Threads().Get(t.Id),
 		Inviter: self,
 	}
@@ -74,7 +74,7 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 		return nil, nil, err
 	}
 
-	res, err := t.commitBlock(msg, pb.Block_INVITE, func(plaintext []byte) ([]byte, error) {
+	res, err := t.commitBlock(msg, pb.Block_ADD, func(plaintext []byte) ([]byte, error) {
 		return crypto.EncryptAES(plaintext, key)
 	})
 	if err != nil {
@@ -83,20 +83,20 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 
 	go t.cafeOutbox.Flush()
 
-	log.Debugf("created external INVITE for %s", t.Id)
+	log.Debugf("created external ADD for %s", t.Id)
 
 	return res.hash, key, nil
 }
 
-// handleInviteMessage handles an incoming invite.
+// handleAddBlock handles an incoming add.
 // This happens right before a join. The invite is not kept on-chain,
 // so we only need to follow parents and update HEAD.
-func (t *Thread) handleInviteMessage(block *pb.ThreadBlock) error {
+func (t *Thread) handleAddBlock(block *pb.ThreadBlock) error {
 	if err := t.followParents(block.Header.Parents); err != nil {
 		return err
 	}
 
-	// update HEAD if parents of the invite are actual updates
+	// Update HEAD if parents of the invite are actual updates.
 	if len(block.Header.Parents) > 0 {
 		hash, err := mh.FromB58String(block.Header.Parents[0])
 		if err != nil {
