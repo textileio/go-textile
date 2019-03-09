@@ -17,7 +17,7 @@ func (t *Textile) RegisterCafe(host string, token string) (*pb.CafeSession, erro
 	}
 
 	for _, thrd := range t.loadedThreads {
-		if _, err := thrd.annouce(); err != nil {
+		if _, err := thrd.annouce(nil); err != nil {
 			return nil, err
 		}
 	}
@@ -63,7 +63,7 @@ func (t *Textile) DeregisterCafe(peerId string) error {
 	}
 
 	for _, thrd := range t.loadedThreads {
-		if _, err := thrd.annouce(); err != nil {
+		if _, err := thrd.annouce(nil); err != nil {
 			return err
 		}
 	}

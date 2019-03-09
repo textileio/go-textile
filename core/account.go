@@ -45,6 +45,11 @@ func (t *Textile) Decrypt(input []byte) ([]byte, error) {
 	return crypto.Decrypt(sk, input)
 }
 
+// AccountThread returns the account private thread
+func (t *Textile) AccountThread() *Thread {
+	return t.ThreadByKey(t.config.Account.Address)
+}
+
 // AccountPeers returns all known account peers
 func (t *Textile) AccountPeers() *pb.ContactList {
 	peerId := t.node.Identity.Pretty()

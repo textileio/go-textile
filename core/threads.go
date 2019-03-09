@@ -321,7 +321,7 @@ func (t *Textile) ThreadView(id string) (*pb.Thread, error) {
 
 // addAccountThread adds a thread with seed representing the state of the account
 func (t *Textile) addAccountThread() error {
-	if t.ThreadByKey(t.config.Account.Address) != nil {
+	if t.AccountThread() != nil {
 		return nil
 	}
 	sk, err := t.account.LibP2PPrivKey()

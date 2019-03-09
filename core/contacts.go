@@ -20,7 +20,27 @@ func (t *Textile) AddContact(contact *pb.Contact) error {
 		return nil
 	}
 
-	return t.datastore.Contacts().AddOrUpdate(contact)
+	// contact is new / newer, update
+	if err := t.datastore.Contacts().AddOrUpdate(contact); err != nil {
+		return err
+	}
+
+	// ensure new update is actually different before announcing to account
+	if ex != nil {
+		if contactsEqual(ex, contact) {
+			return nil
+		}
+	}
+
+	thrd := t.AccountThread()
+	if thrd == nil {
+		return fmt.Errorf("account thread not found")
+	}
+
+	if _, err := thrd.annouce(&pb.ThreadAnnounce{Contact: contact}); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Contact looks up a contact by peer id
@@ -164,4 +184,74 @@ func toName(contact *pb.Contact) string {
 		return contact.Address[:7]
 	}
 	return ""
+}
+
+// contactsEqual returns whether or not the two contacts are identical
+// Note: this does not consider Contact.Created or Contact.Updated
+func contactsEqual(a *pb.Contact, b *pb.Contact) bool {
+	if a.Id != b.Id {
+		return false
+	}
+	if a.Address != b.Address {
+		return false
+	}
+	if a.Username != b.Username {
+		return false
+	}
+	if a.Avatar != b.Avatar {
+		return false
+	}
+	if len(a.Inboxes) != len(b.Inboxes) {
+		return false
+	}
+	ac := make(map[string]*pb.Cafe)
+	for _, c := range a.Inboxes {
+		ac[c.Peer] = c
+	}
+	for _, j := range b.Inboxes {
+		i, ok := ac[j.Peer]
+		if !ok {
+			return false
+		}
+		if !cafesEqual(i, j) {
+			return false
+		}
+	}
+	return true
+}
+
+// cafesEqual returns whether or not the two cafes are identical
+// Note: swarms are allowed to be in different order and still be "equal"
+func cafesEqual(a *pb.Cafe, b *pb.Cafe) bool {
+	if a.Peer != b.Peer {
+		return false
+	}
+	if a.Address != b.Address {
+		return false
+	}
+	if a.Api != b.Api {
+		return false
+	}
+	if a.Protocol != b.Protocol {
+		return false
+	}
+	if a.Node != b.Node {
+		return false
+	}
+	if a.Url != b.Url {
+		return false
+	}
+	if len(a.Swarm) != len(b.Swarm) {
+		return false
+	}
+	as := make(map[string]struct{})
+	for _, s := range a.Swarm {
+		as[s] = struct{}{}
+	}
+	for _, s := range b.Swarm {
+		if _, ok := as[s]; !ok {
+			return false
+		}
+	}
+	return true
 }

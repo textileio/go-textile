@@ -10,7 +10,7 @@ import (
 )
 
 // announce creates an outgoing announce block
-func (t *Thread) annouce() (mh.Multihash, error) {
+func (t *Thread) annouce(msg *pb.ThreadAnnounce) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
@@ -18,9 +18,12 @@ func (t *Thread) annouce() (mh.Multihash, error) {
 		return nil, ErrNotReadable
 	}
 
-	msg, err := t.buildAnnounce()
-	if err != nil {
-		return nil, err
+	if msg == nil {
+		var err error
+		msg, err = t.buildAnnounce()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	res, err := t.commitBlock(msg, pb.Block_ANNOUNCE, nil)
@@ -57,6 +60,11 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 	}
 	if !t.readable(block.Header.Address) {
 		return nil, ErrNotReadable
+	}
+
+	// unless this is our account thread, announce's contact _must_ match the sender
+	if t.Id != t.config.Account.Thread && msg.Contact.Id != block.Header.Author {
+		return nil, ErrInvalidThreadBlock
 	}
 
 	if err := t.indexBlock(&commitResult{

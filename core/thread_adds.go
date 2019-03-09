@@ -41,7 +41,7 @@ func (t *Thread) AddInvite(peerId peer.ID) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	// Create new peer for posting (it will get added if+when they accept).
+	// create new peer for posting (it will get added if+when they accept)
 	target := pb.ThreadPeer{Id: contact.Id}
 
 	if err := t.post(res, []pb.ThreadPeer{target}); err != nil {
@@ -96,7 +96,7 @@ func (t *Thread) handleAddBlock(block *pb.ThreadBlock) error {
 		return err
 	}
 
-	// Update HEAD if parents of the invite are actual updates.
+	// update HEAD if parents of the invite are actual updates
 	if len(block.Header.Parents) > 0 {
 		hash, err := mh.FromB58String(block.Header.Parents[0])
 		if err != nil {

@@ -644,6 +644,7 @@ func (t *Textile) loadThread(mod *pb.Thread) (*Thread, error) {
 		Service:     t.threadsService,
 		BlockOutbox: t.blockOutbox,
 		CafeOutbox:  t.cafeOutbox,
+		AddContact:  t.AddContact,
 		PushUpdate:  t.sendThreadUpdate,
 	}
 

@@ -22,7 +22,6 @@ import (
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo"
 	"github.com/textileio/go-textile/repo/config"
-	"github.com/textileio/go-textile/util"
 )
 
 // ErrContactNotFound indicates a local contact was not found
@@ -65,6 +64,7 @@ type ThreadConfig struct {
 	Service     func() *ThreadsService
 	BlockOutbox *BlockOutbox
 	CafeOutbox  *CafeOutbox
+	AddContact  func(*pb.Contact) error
 	PushUpdate  func(*pb.Block, string)
 }
 
@@ -88,6 +88,7 @@ type Thread struct {
 	service     func() *ThreadsService
 	blockOutbox *BlockOutbox
 	cafeOutbox  *CafeOutbox
+	addContact  func(*pb.Contact) error
 	pushUpdate  func(*pb.Block, string)
 	mux         sync.Mutex
 }
@@ -126,6 +127,7 @@ func NewThread(model *pb.Thread, conf *ThreadConfig) (*Thread, error) {
 		service:     conf.Service,
 		blockOutbox: conf.BlockOutbox,
 		cafeOutbox:  conf.CafeOutbox,
+		addContact:  conf.AddContact,
 		pushUpdate:  conf.PushUpdate,
 	}, nil
 }
@@ -242,11 +244,7 @@ func (t *Thread) addOrUpdateContact(contact *pb.Contact) error {
 		}
 	}
 
-	ex := t.datastore.Contacts().Get(contact.Id)
-	if ex != nil && (contact.Updated == nil || util.ProtoTsIsNewer(ex.Updated, contact.Updated)) {
-		return nil
-	}
-	return t.datastore.Contacts().AddOrUpdate(contact)
+	return t.addContact(contact)
 }
 
 // newBlockHeader creates a new header
