@@ -53,7 +53,7 @@ type ContactStore interface {
 	Get(id string) *pb.Contact
 	GetBest(id string) *pb.Contact
 	List(query string) *pb.ContactList
-	Find(id string, address string, username string, exclude []string) *pb.ContactList
+	Find(address string, username string, exclude []string) *pb.ContactList
 	Count(query string) int
 	UpdateUsername(id string, username string) error
 	UpdateAvatar(id string, avatar string) error

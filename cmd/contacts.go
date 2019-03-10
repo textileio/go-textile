@@ -42,7 +42,6 @@ Use this command to add, list, get, and remove local contacts and find other con
 type addContactsCmd struct {
 	Client   ClientOptions `group:"Client Options"`
 	Username string        `short:"u" long:"username" description:"Add by username."`
-	Peer     string        `short:"p" long:"peer" description:"Add by peer ID."`
 	Address  string        `short:"a" long:"address" description:"Add by account address."`
 	Wait     int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"2"`
 }
@@ -56,23 +55,15 @@ Adds a contact by username, peer ID, or account address to known contacts.
 
 func (x *addContactsCmd) Execute(args []string) error {
 	setApi(x.Client)
-	if x.Username == "" && x.Peer == "" && x.Address == "" {
+	if x.Username == "" && x.Address == "" {
 		return errMissingAddInfo
-	}
-
-	var limit int
-	if x.Peer != "" {
-		limit = 1
-	} else if x.Username != "" || x.Address != "" {
-		limit = 10
 	}
 
 	results := handleSearchStream("contacts/search", params{
 		opts: map[string]string{
 			"username": x.Username,
-			"peer":     x.Peer,
 			"address":  x.Address,
-			"limit":    strconv.Itoa(limit),
+			"limit":    strconv.Itoa(10),
 			"wait":     strconv.Itoa(x.Wait),
 		},
 	})
@@ -206,7 +197,6 @@ func (x *rmContactsCmd) Execute(args []string) error {
 type searchContactsCmd struct {
 	Client   ClientOptions `group:"Client Options"`
 	Username string        `short:"u" long:"username" description:"Search by username."`
-	Peer     string        `short:"p" long:"peer" description:"Search by peer ID."`
 	Address  string        `short:"a" long:"address" description:"Search by account address."`
 	Local    bool          `long:"local" description:"Only search local contacts."`
 	Limit    int           `long:"limit" description:"Stops searching after limit results are found." default:"5"`
@@ -222,14 +212,13 @@ Searches locally and on the network for contacts.
 
 func (x *searchContactsCmd) Execute(args []string) error {
 	setApi(x.Client)
-	if x.Username == "" && x.Peer == "" && x.Address == "" {
+	if x.Username == "" && x.Address == "" {
 		return errMissingSearchInfo
 	}
 
 	handleSearchStream("contacts/search", params{
 		opts: map[string]string{
 			"username": x.Username,
-			"peer":     x.Peer,
 			"address":  x.Address,
 			"local":    strconv.FormatBool(x.Local),
 			"limit":    strconv.Itoa(x.Limit),
