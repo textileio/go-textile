@@ -13,7 +13,7 @@ import (
 // @Summary Subscribe to thread updates
 // @Description Subscribes to updates in a thread or all threads. An update is generated
 // @Description when a new block is added to a thread. There are several update types:
-// @Description JOIN, ANNOUNCE, LEAVE, MESSAGE, FILES, COMMENT, LIKE, MERGE, IGNORE, FLAG
+// @Description MERGE, IGNORE, FLAG, JOIN, ANNOUNCE, LEAVE, TEXT, FILES, COMMENT, LIKE
 // @Tags sub
 // @Produce application/json
 // @Param id path string false "thread id, omit to stream all events"

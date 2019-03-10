@@ -81,6 +81,7 @@ type ThreadStore interface {
 	List() *pb.ThreadList
 	Count() int
 	UpdateHead(id string, head string) error
+	UpdateName(id string, name string) error
 	Delete(id string) error
 }
 

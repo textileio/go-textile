@@ -95,6 +95,13 @@ func (c *ThreadDB) UpdateHead(id string, head string) error {
 	return err
 }
 
+func (c *ThreadDB) UpdateName(id string, name string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("update threads set name=? where id=?", name, id)
+	return err
+}
+
 func (c *ThreadDB) Delete(id string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()

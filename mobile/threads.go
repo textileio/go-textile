@@ -53,6 +53,11 @@ func (m *Mobile) AddOrUpdateThread(thrd []byte) error {
 	return m.node.AddOrUpdateThread(mthrd)
 }
 
+// RenameThread call core RenameThread
+func (m *Mobile) RenameThread(id string, name string) error {
+	return m.node.RenameThread(id, name)
+}
+
 // Thread calls core Thread
 func (m *Mobile) Thread(threadId string) ([]byte, error) {
 	if !m.node.Started() {

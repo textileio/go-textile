@@ -2056,7 +2056,7 @@
         },
         "/sub/{id}": {
             "get": {
-                "description": "Subscribes to updates in a thread or all threads. An update is generated\nwhen a new block is added to a thread. There are several update types:\nJOIN, ANNOUNCE, LEAVE, MESSAGE, FILES, COMMENT, LIKE, MERGE, IGNORE, FLAG",
+                "description": "Subscribes to updates in a thread or all threads. An update is generated\nwhen a new block is added to a thread. There are several update types:\nMERGE, IGNORE, FLAG, JOIN, ANNOUNCE, LEAVE, TEXT, FILES, COMMENT, LIKE",
                 "produces": [
                     "application/json"
                 ],
@@ -2422,6 +2422,48 @@
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/threads/{id}/name": {
+            "put": {
+                "description": "Renames a thread. Only initiators can rename a thread.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "threads"
+                ],
+                "summary": "Rename a thread",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "name",
+                        "name": "X-Textile-Args",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "string"
                         }

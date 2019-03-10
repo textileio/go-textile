@@ -18,7 +18,7 @@ import (
 // @Description a Thread object
 // @Tags threads
 // @Produce application/json
-// @Param X-Textile-Args header string true "name")
+// @Param X-Textile-Args header string true "name"
 // @Param X-Textile-Opts header string false "key: A locally unique key used by an app to identify this thread on recovery, schema: Existing Thread Schema IPFS CID, type: Set the thread type to one of 'private', 'read_only', 'public', or 'open', sharing: Set the thread sharing style to one of 'not_shared','invite_only', or 'shared', members: An array of contact addresses. When supplied, the thread will not allow additional peers beyond those in array, useful for 1-1 chat/file sharing" default(type=private,sharing=not_shared,members=)
 // @Success 201 {object} pb.Thread "thread"
 // @Failure 400 {string} string "Bad Request"
@@ -115,6 +115,35 @@ func (a *api) addOrUpdateThreads(g *gin.Context) {
 	g.String(http.StatusOK, "ok")
 }
 
+// renameThreads godoc
+// @Summary Rename a thread
+// @Description Renames a thread. Only initiators can rename a thread.
+// @Tags threads
+// @Produce application/json
+// @Param id path string true "id"
+// @Param X-Textile-Args header string true "name"
+// @Success 200 {string} string "ok"
+// @Failure 400 {string} string "Bad Request"
+// @Router /threads/{id}/name [put]
+func (a *api) renameThreads(g *gin.Context) {
+	args, err := a.readArgs(g)
+	if err != nil {
+		a.abort500(g, err)
+		return
+	}
+	if len(args) == 0 {
+		g.String(http.StatusBadRequest, "missing thread name")
+		return
+	}
+
+	if err := a.node.RenameThread(g.Param("id"), args[0]); err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	g.String(http.StatusOK, "ok")
+}
+
 // lsThreads godoc
 // @Summary Lists info on all threads
 // @Description Lists all local threads, returning a ThreadList object
@@ -145,7 +174,7 @@ func (a *api) lsThreads(g *gin.Context) {
 // @Description Gets and displays info about a thread
 // @Tags threads
 // @Produce application/json
-// @Param id path string true "thread id")
+// @Param id path string true "thread id"
 // @Success 200 {object} pb.Thread "thread"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
@@ -170,7 +199,7 @@ func (a *api) getThreads(g *gin.Context) {
 // @Description Lists all peers in a thread, optionally listing peers in the default thread
 // @Tags threads
 // @Produce application/json
-// @Param id path string true "thread id")
+// @Param id path string true "thread id"
 // @Success 200 {object} pb.ContactList "contacts"
 // @Failure 404 {string} string "Not Found"
 // @Router /threads/{id}/peers [get]
@@ -202,7 +231,7 @@ func (a *api) peersThreads(g *gin.Context) {
 // @Description Leaves and removes a thread
 // @Tags threads
 // @Produce application/json
-// @Param id path string true "thread id")
+// @Param id path string true "thread id"
 // @Success 200 {string} string "ok"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"

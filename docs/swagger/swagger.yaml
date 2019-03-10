@@ -1933,7 +1933,7 @@ paths:
       description: |-
         Subscribes to updates in a thread or all threads. An update is generated
         when a new block is added to a thread. There are several update types:
-        JOIN, ANNOUNCE, LEAVE, MESSAGE, FILES, COMMENT, LIKE, MERGE, IGNORE, FLAG
+        MERGE, IGNORE, FLAG, JOIN, ANNOUNCE, LEAVE, TEXT, FILES, COMMENT, LIKE
       parameters:
       - description: thread id, omit to stream all events
         in: path
@@ -2193,6 +2193,34 @@ paths:
           schema:
             type: string
       summary: Add a message
+      tags:
+      - threads
+  /threads/{id}/name:
+    put:
+      description: Renames a thread. Only initiators can rename a thread.
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: name
+        in: header
+        name: X-Textile-Args
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Rename a thread
       tags:
       - threads
   /threads/{id}/peers:

@@ -215,6 +215,33 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 	return nthrd.updateHead(hash)
 }
 
+// RenameThread adds an announce block to the thread w/ a new name
+// Note: Only thread initiators can update the thread's name
+func (t *Textile) RenameThread(id string, name string) error {
+	thrd := t.Thread(id)
+	if thrd == nil {
+		return ErrThreadNotFound
+	}
+	if thrd.initiator != t.account.Address() {
+		return fmt.Errorf("thread name is not writable")
+	}
+
+	trimmed := strings.TrimSpace(name)
+	if trimmed == "" {
+		return nil
+	}
+
+	thrd.Name = trimmed
+	if err := t.datastore.Threads().UpdateName(thrd.Id, trimmed); err != nil {
+		return err
+	}
+
+	if _, err := thrd.annouce(&pb.ThreadAnnounce{Name: trimmed}); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Thread get a thread by id from loaded threads
 func (t *Textile) Thread(id string) *Thread {
 	for _, thrd := range t.loadedThreads {

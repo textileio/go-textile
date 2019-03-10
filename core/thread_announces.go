@@ -63,8 +63,17 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 	}
 
 	// unless this is our account thread, announce's contact _must_ match the sender
-	if t.Id != t.config.Account.Thread && msg.Contact.Id != block.Header.Author {
-		return nil, ErrInvalidThreadBlock
+	if msg.Contact != nil {
+		if t.Id != t.config.Account.Thread && msg.Contact.Id != block.Header.Author {
+			return nil, ErrInvalidThreadBlock
+		}
+	}
+
+	// only initiators can change a thread's name
+	if msg.Name != "" {
+		if t.initiator != block.Header.Address {
+			return nil, ErrInvalidThreadBlock
+		}
 	}
 
 	if err := t.indexBlock(&commitResult{
@@ -77,6 +86,14 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 	// update author info
 	if msg.Contact != nil {
 		if err := t.addOrUpdateContact(msg.Contact); err != nil {
+			return nil, err
+		}
+	}
+
+	// update thread name
+	if msg.Name != "" {
+		t.Name = msg.Name
+		if err := t.datastore.Threads().UpdateName(t.Id, msg.Name); err != nil {
 			return nil, err
 		}
 	}
