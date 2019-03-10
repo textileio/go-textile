@@ -209,21 +209,13 @@ func (a *api) peersThreads(g *gin.Context) {
 		id = a.node.config.Threads.Defaults.ID
 	}
 
-	thrd := a.node.Thread(id)
-	if thrd == nil {
-		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
+	peers, err := a.node.ThreadPeers(id)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	contacts := &pb.ContactList{Items: make([]*pb.Contact, 0)}
-	for _, p := range thrd.Peers() {
-		contact := a.node.Contact(p.Id)
-		if contact != nil {
-			contacts.Items = append(contacts.Items, contact)
-		}
-	}
-
-	pbJSON(g, http.StatusOK, contacts)
+	pbJSON(g, http.StatusOK, peers)
 }
 
 // rmThreads godoc

@@ -270,6 +270,24 @@ loop:
 	return threads
 }
 
+// ThreadPeers returns a contact list of thread peers
+func (t *Textile) ThreadPeers(id string) (*pb.ContactList, error) {
+	thrd := t.Thread(id)
+	if thrd == nil {
+		return nil, ErrThreadNotFound
+	}
+
+	contacts := &pb.ContactList{Items: make([]*pb.Contact, 0)}
+	for _, p := range thrd.Peers() {
+		contact := t.Contact(p.Id)
+		if contact != nil {
+			contacts.Items = append(contacts.Items, contact)
+		}
+	}
+
+	return contacts, nil
+}
+
 // RemoveThread removes a thread
 func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	var thrd *Thread

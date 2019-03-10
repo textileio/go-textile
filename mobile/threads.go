@@ -2,7 +2,6 @@ package mobile
 
 import (
 	"crypto/rand"
-
 	libp2pc "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
 
 	"github.com/golang/protobuf/proto"
@@ -89,6 +88,16 @@ func (m *Mobile) Threads() ([]byte, error) {
 	}
 
 	return proto.Marshal(views)
+}
+
+// ThreadPeers calls core ThreadPeers
+func (m *Mobile) ThreadPeers(id string) ([]byte, error) {
+	peers, err := m.node.ThreadPeers(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return proto.Marshal(peers)
 }
 
 // RemoveThread call core RemoveThread
