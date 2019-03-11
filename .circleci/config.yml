@@ -405,7 +405,7 @@ jobs:
         name: install gomobile
         command: |
           export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
-          go get golang.org/x/mobile/cmd/gomobile
+          go get -u golang.org/x/mobile/cmd/gomobile
     - run:
         name: build ios framework
         command: |
@@ -501,7 +501,7 @@ jobs:
         name: install gomobile
         command: |
           export PATH=$PATH:/usr/local/go/bin
-          go get golang.org/x/mobile/cmd/gomobile
+          go get -u golang.org/x/mobile/cmd/gomobile
     - run:
         name: build android framework
         command: |
