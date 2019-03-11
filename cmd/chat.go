@@ -47,7 +47,7 @@ func (x *chatCmd) Execute(args []string) error {
 		return err
 	}
 
-	rl, err := readline.New(Green(profile.Username + "  "))
+	rl, err := readline.New(Green(profile.Name + "  "))
 	if err != nil {
 		panic(err)
 	}
@@ -123,11 +123,11 @@ func getProfile() (*pb.Contact, error) {
 		return nil, err
 	}
 
-	if prof.Username == "" {
+	if prof.Name == "" {
 		if len(prof.Address) >= 7 {
-			prof.Username = prof.Address[:7]
+			prof.Name = prof.Address[:7]
 		} else {
-			prof.Username = prof.Address
+			prof.Name = prof.Address
 		}
 	}
 

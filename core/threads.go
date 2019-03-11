@@ -144,7 +144,7 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 	})
 
 	// invite account peers
-	for _, p := range t.AccountPeers().Items {
+	for _, p := range t.accountPeers() {
 		pid, err := peer.IDB58Decode(p.Id)
 		if err != nil {
 			return nil, err
@@ -270,14 +270,14 @@ loop:
 	return threads
 }
 
-// ThreadPeers returns a contact list of thread peers
-func (t *Textile) ThreadPeers(id string) (*pb.ContactList, error) {
+// ThreadPeers returns a contact card list of thread peers
+func (t *Textile) ThreadPeers(id string) (*pb.ContactCardList, error) {
 	thrd := t.Thread(id)
 	if thrd == nil {
 		return nil, ErrThreadNotFound
 	}
 
-	contacts := &pb.ContactList{Items: make([]*pb.Contact, 0)}
+	contacts := &pb.ContactCardList{Items: make([]*pb.ContactCard, 0)}
 	for _, p := range thrd.Peers() {
 		contact := t.Contact(p.Id)
 		if contact != nil {

@@ -343,7 +343,7 @@ func (t *Textile) Start() error {
 		// tmp. publish contact for migrated users.
 		// this normally only happens when contact details are changed,
 		// will be removed at some point in the future.
-		if err := t.PublishContact(); err != nil {
+		if err := t.publishContact(); err != nil {
 			log.Errorf(err.Error())
 		}
 	}()
@@ -644,7 +644,7 @@ func (t *Textile) loadThread(mod *pb.Thread) (*Thread, error) {
 		Service:     t.threadsService,
 		BlockOutbox: t.blockOutbox,
 		CafeOutbox:  t.cafeOutbox,
-		AddContact:  t.AddContact,
+		AddContact:  t.addContact,
 		PushUpdate:  t.sendThreadUpdate,
 	}
 

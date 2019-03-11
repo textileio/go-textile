@@ -10,8 +10,8 @@ import (
 	"github.com/textileio/go-textile/pb"
 )
 
-var errMissingAddInfo = errors.New("missing peer id or account address")
-var errMissingPeerId = errors.New("missing peer id")
+var errMissingAddInfo = errors.New("missing username or account address")
+var errMissingAddress = errors.New("missing account address")
 
 func init() {
 	register(&contactsCmd{})
@@ -49,7 +49,7 @@ type addContactsCmd struct {
 func (x *addContactsCmd) Usage() string {
 	return `
 
-Adds a contact by username, peer ID, or account address to known contacts.
+Adds a contact by username or account address to known contacts.
 `
 }
 
@@ -121,24 +121,18 @@ func (x *addContactsCmd) Execute(args []string) error {
 
 type lsContactsCmd struct {
 	Client ClientOptions `group:"Client Options"`
-	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for all known contacts."`
 }
 
 func (x *lsContactsCmd) Usage() string {
 	return `
 
-Lists known contacts.
-Include the --thread flag to list contacts for a given thread.`
+Lists known contacts.`
 }
 
 func (x *lsContactsCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	res, err := executeJsonCmd(GET, "contacts", params{
-		opts: map[string]string{
-			"thread": x.Thread,
-		},
-	}, nil)
+	res, err := executeJsonCmd(GET, "contacts", params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -159,10 +153,14 @@ Gets a known contact.`
 func (x *getContactsCmd) Execute(args []string) error {
 	setApi(x.Client)
 	if len(args) == 0 {
-		return errMissingPeerId
+		return errMissingAddress
 	}
 
-	res, err := executeJsonCmd(GET, "contacts/"+args[0], params{}, nil)
+	return callGetContacts(args[0])
+}
+
+func callGetContacts(address string) error {
+	res, err := executeJsonCmd(GET, "contacts/"+address, params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -183,7 +181,7 @@ Removes a known contact.`
 func (x *rmContactsCmd) Execute(args []string) error {
 	setApi(x.Client)
 	if len(args) == 0 {
-		return errMissingPeerId
+		return errMissingAddress
 	}
 
 	res, err := executeStringCmd(DEL, "contacts/"+args[0], params{})

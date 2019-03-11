@@ -90,19 +90,28 @@ var filesBlock *pb.Block
 var files []*pb.Files
 var invite *pb.NewInvite
 
-var contact = &pb.Contact{
-	Id:       "abcde",
-	Address:  "address1",
-	Username: "joe",
-	Avatar:   "Qm123",
-	Inboxes: []*pb.Cafe{{
-		Peer:     "peer",
-		Address:  "address",
-		Api:      "v0",
-		Protocol: "/textile/cafe/1.0.0",
-		Node:     "v1.0.0",
-		Url:      "https://mycafe.com",
-	}},
+var card = &pb.ContactCard{
+	User: &pb.User{
+		Address: "address1",
+		Name:    "joe",
+		Avatar:  "Qm123",
+	},
+	Contacts: []*pb.Contact{
+		{
+			Id:      "abcde",
+			Address: "address1",
+			Name:    "joe",
+			Avatar:  "Qm123",
+			Inboxes: []*pb.Cafe{{
+				Peer:     "peer",
+				Address:  "address",
+				Api:      "v0",
+				Protocol: "/textile/cafe/1.0.0",
+				Node:     "v1.0.0",
+				Url:      "https://mycafe.com",
+			}},
+		},
+	},
 }
 
 var schema = `
@@ -654,7 +663,7 @@ func TestMobile_Summary(t *testing.T) {
 
 func TestMobile_SetUsername(t *testing.T) {
 	<-mobile1.OnlineCh()
-	if err := mobile1.SetUsername("boomer"); err != nil {
+	if err := mobile1.SetName("boomer"); err != nil {
 		t.Errorf("set username failed: %s", err)
 	}
 }
@@ -678,7 +687,7 @@ func TestMobile_Profile(t *testing.T) {
 }
 
 func TestMobile_AddContact(t *testing.T) {
-	payload, err := proto.Marshal(contact)
+	payload, err := proto.Marshal(card)
 	if err != nil {
 		t.Error(err)
 		return
@@ -689,7 +698,7 @@ func TestMobile_AddContact(t *testing.T) {
 }
 
 func TestMobile_AddContactAgain(t *testing.T) {
-	payload, err := proto.Marshal(contact)
+	payload, err := proto.Marshal(card)
 	if err != nil {
 		t.Error(err)
 		return

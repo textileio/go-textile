@@ -19,22 +19,22 @@ func (m *Mobile) Profile() ([]byte, error) {
 	return proto.Marshal(self)
 }
 
-// Username calls core Username
-func (m *Mobile) Username() (string, error) {
+// Name calls core Name
+func (m *Mobile) Name() (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
 
-	return m.node.Username(), nil
+	return m.node.Name(), nil
 }
 
-// SetUsername calls core SetUsername
-func (m *Mobile) SetUsername(username string) error {
+// SetName calls core SetName
+func (m *Mobile) SetName(username string) error {
 	if !m.node.Online() {
 		return core.ErrOffline
 	}
 
-	return m.node.SetUsername(username)
+	return m.node.SetName(username)
 }
 
 // Avatar calls core Avatar

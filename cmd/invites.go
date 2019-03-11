@@ -28,28 +28,24 @@ func (x *invitesCmd) Short() string {
 func (x *invitesCmd) Long() string {
 	return `
 Invites allow other peers to join threads. There are two types of
-invites: direct peer-to-peer and external.
+invites, direct peer-to-peer and external:
 
-Peer-to-peer invites are encrypted with the invitee's public key.
-
-External invites are encrypted with a single-use key and are useful for 
-onboarding new users. Careful though. Once an external invite and its key are
-shared, the thread should be considered public, since any number of peers
-can use it to join.
+- Peer-to-peer invites are encrypted with the invitee's account address (public key).
+- External invites are encrypted with a single-use key and are useful for onboarding new users.
 `
 }
 
 type createInvitesCmd struct {
-	Client ClientOptions `group:"Client Options"`
-	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
-	Peer   string        `short:"p" long:"peer" description:"Peer ID. Omit to create an external invite."`
+	Client  ClientOptions `group:"Client Options"`
+	Thread  string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
+	Address string        `short:"a" long:"address" description:"Account address. Omit to create an external invite."`
 }
 
 func (x *createInvitesCmd) Usage() string {
 	return `
 
 Creates a direct peer-to-peer or external invite to a thread.
-Omit the --peer option to create an external invite.
+Omit the --address option to create an external invite.
 Omit the --thread option to use the default thread (if selected).
 `
 }
@@ -60,12 +56,18 @@ func (x *createInvitesCmd) Execute(args []string) error {
 		x.Thread = "default"
 	}
 
-	res, err := executeJsonCmd(POST, "invites", params{
-		opts: map[string]string{
-			"thread": x.Thread,
-			"peer":   x.Peer,
-		},
-	}, nil)
+	if x.Address != "" {
+
+	}
+
+	return callCreateInvites(map[string]string{
+		"thread":  x.Thread,
+		"address": x.Address,
+	})
+}
+
+func callCreateInvites(opts map[string]string) error {
+	res, err := executeJsonCmd(POST, "invites", params{opts: opts}, nil)
 	if err != nil {
 		return err
 	}

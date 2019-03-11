@@ -42,7 +42,7 @@ func (c *ContactDB) Add(contact *pb.Contact) error {
 	_, err = stmt.Exec(
 		contact.Id,
 		contact.Address,
-		contact.Username,
+		contact.Name,
 		contact.Avatar,
 		inboxes,
 		time.Now().UnixNano(),
@@ -86,7 +86,7 @@ func (c *ContactDB) AddOrUpdate(contact *pb.Contact) error {
 	_, err = stmt.Exec(
 		contact.Id,
 		contact.Address,
-		contact.Username,
+		contact.Name,
 		contact.Avatar,
 		inboxes,
 		contact.Id,
@@ -105,10 +105,10 @@ func (c *ContactDB) Get(id string) *pb.Contact {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	res := c.handleQuery("select * from contacts where id='" + id + "';")
-	if len(res.Items) == 0 {
+	if len(res) == 0 {
 		return nil
 	}
-	return res.Items[0]
+	return res[0]
 }
 
 func (c *ContactDB) GetBest(id string) *pb.Contact {
@@ -125,32 +125,32 @@ func (c *ContactDB) GetBest(id string) *pb.Contact {
 	return c.handleRow(id, address, username, avatar, inboxes, createdInt, updatedInt)
 }
 
-func (c *ContactDB) List(query string) *pb.ContactList {
+func (c *ContactDB) List(query string) []*pb.Contact {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	q := "select * from contacts"
 	if query != "" {
 		q += " where " + query
 	}
-	q += " order by username asc;"
+	q += " order by updated desc;"
 	return c.handleQuery(q)
 }
 
-func (c *ContactDB) Find(address string, username string, exclude []string) *pb.ContactList {
+func (c *ContactDB) Find(address string, name string, exclude []string) []*pb.Contact {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	if address == "" && username == "" {
+	if address == "" && name == "" {
 		return nil
 	}
 	var q string
 	if address != "" {
 		q += "address='" + address + "'"
 	}
-	if username != "" {
+	if name != "" {
 		if len(q) > 0 {
 			q += " and "
 		}
-		q += "username like '%" + username + "%'"
+		q += "username like '%" + name + "%'"
 	}
 	if len(exclude) > 0 {
 		q += " and id not in ("
@@ -179,10 +179,10 @@ func (c *ContactDB) Count(query string) int {
 	return count
 }
 
-func (c *ContactDB) UpdateUsername(id string, username string) error {
+func (c *ContactDB) UpdateName(id string, name string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("update contacts set username=?, updated=? where id=?", username, time.Now().UnixNano(), id)
+	_, err := c.db.Exec("update contacts set username=?, updated=? where id=?", name, time.Now().UnixNano(), id)
 	return err
 }
 
@@ -211,30 +211,37 @@ func (c *ContactDB) Delete(id string) error {
 	return err
 }
 
-func (c *ContactDB) handleQuery(stm string) *pb.ContactList {
-	list := &pb.ContactList{Items: make([]*pb.Contact, 0)}
+func (c *ContactDB) DeleteByAddress(address string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("delete from contacts where address=?", address)
+	return err
+}
+
+func (c *ContactDB) handleQuery(stm string) []*pb.Contact {
+	list := make([]*pb.Contact, 0)
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
 		return list
 	}
 	for rows.Next() {
-		var id, address, username, avatar string
+		var id, address, name, avatar string
 		var inboxes []byte
 		var createdInt, updatedInt int64
-		if err := rows.Scan(&id, &address, &username, &avatar, &inboxes, &createdInt, &updatedInt); err != nil {
+		if err := rows.Scan(&id, &address, &name, &avatar, &inboxes, &createdInt, &updatedInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		row := c.handleRow(id, address, username, avatar, inboxes, createdInt, updatedInt)
+		row := c.handleRow(id, address, name, avatar, inboxes, createdInt, updatedInt)
 		if row != nil {
-			list.Items = append(list.Items, row)
+			list = append(list, row)
 		}
 	}
 	return list
 }
 
-func (c *ContactDB) handleRow(id string, address string, username string, avatar string, inboxes []byte, createdInt int64, updatedInt int64) *pb.Contact {
+func (c *ContactDB) handleRow(id string, address string, name string, avatar string, inboxes []byte, createdInt int64, updatedInt int64) *pb.Contact {
 	cafes := make([]*pb.Cafe, 0)
 	if err := json.Unmarshal(inboxes, &cafes); err != nil {
 		log.Errorf("error unmarshaling cafes: %s", err)
@@ -242,12 +249,12 @@ func (c *ContactDB) handleRow(id string, address string, username string, avatar
 	}
 
 	return &pb.Contact{
-		Id:       id,
-		Address:  address,
-		Username: username,
-		Avatar:   avatar,
-		Inboxes:  cafes,
-		Created:  util.ProtoTs(createdInt),
-		Updated:  util.ProtoTs(updatedInt),
+		Id:      id,
+		Address: address,
+		Name:    name,
+		Avatar:  avatar,
+		Inboxes: cafes,
+		Created: util.ProtoTs(createdInt),
+		Updated: util.ProtoTs(updatedInt),
 	}
 }

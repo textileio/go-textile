@@ -36,7 +36,7 @@ func (t *Textile) InviteView(invite *pb.Invite) *pb.InviteView {
 	} else if invite.Inviter != nil {
 		view.Inviter = &pb.User{
 			Address: invite.Inviter.Address,
-			Name:    invite.Inviter.Username,
+			Name:    invite.Inviter.Name,
 			Avatar:  invite.Inviter.Avatar,
 		}
 	}

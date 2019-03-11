@@ -17,20 +17,20 @@ func (t *Textile) Profile() *pb.Contact {
 }
 
 // Username returns profile username
-func (t *Textile) Username() string {
+func (t *Textile) Name() string {
 	self := t.Profile()
 	if self == nil {
 		return ""
 	}
-	return self.Username
+	return self.Name
 }
 
-// SetUsername updates profile with a new username
-func (t *Textile) SetUsername(username string) error {
-	if username == t.Username() {
+// SetName updates profile with a new username
+func (t *Textile) SetName(name string) error {
+	if name == t.Name() {
 		return nil
 	}
-	if err := t.datastore.Contacts().UpdateUsername(t.node.Identity.Pretty(), username); err != nil {
+	if err := t.datastore.Contacts().UpdateName(t.node.Identity.Pretty(), name); err != nil {
 		return err
 	}
 
@@ -40,7 +40,7 @@ func (t *Textile) SetUsername(username string) error {
 		}
 	}
 
-	return t.PublishContact()
+	return t.publishContact()
 }
 
 // Avatar returns profile avatar
@@ -138,5 +138,5 @@ func (t *Textile) SetAvatar(hash string) error {
 		return err
 	}
 
-	return t.PublishContact()
+	return t.publishContact()
 }

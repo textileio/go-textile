@@ -71,7 +71,7 @@ func TestContactDB_GetBest(t *testing.T) {
 }
 
 func TestContactDB_AddOrUpdate(t *testing.T) {
-	testContact.Username = "joe"
+	testContact.Name = "joe"
 	testContact.Avatar = "Qm123"
 	testContact.Inboxes = []*pb.Cafe{testCafe}
 	if err := contactStore.AddOrUpdate(testContact); err != nil {
@@ -103,27 +103,27 @@ func TestContactDB_AddOrUpdate(t *testing.T) {
 func TestContactDB_List(t *testing.T) {
 	setupContactDB()
 	if err := contactStore.Add(&pb.Contact{
-		Id:       "abcde",
-		Address:  "address1",
-		Username: "joe",
-		Avatar:   "Qm123",
-		Inboxes:  []*pb.Cafe{testCafe},
+		Id:      "abcde",
+		Address: "address1",
+		Name:    "joe",
+		Avatar:  "Qm123",
+		Inboxes: []*pb.Cafe{testCafe},
 	}); err != nil {
 		t.Error(err)
 		return
 	}
 	if err := contactStore.Add(&pb.Contact{
-		Id:       "fghij",
-		Address:  "address2",
-		Username: "joe",
-		Avatar:   "Qm123",
-		Inboxes:  []*pb.Cafe{testCafe, testCafe},
+		Id:      "fghij",
+		Address: "address2",
+		Name:    "joe",
+		Avatar:  "Qm123",
+		Inboxes: []*pb.Cafe{testCafe, testCafe},
 	}); err != nil {
 		t.Error(err)
 		return
 	}
 	list := contactStore.List("")
-	if len(list.Items) != 2 {
+	if len(list) != 2 {
 		t.Error("returned incorrect number of contacts")
 	}
 }
@@ -134,13 +134,13 @@ func TestContactDB_Count(t *testing.T) {
 	}
 }
 
-func TestContactDB_UpdateUsername(t *testing.T) {
-	if err := contactStore.UpdateUsername(testContact.Id, "mike"); err != nil {
+func TestContactDB_UpdateName(t *testing.T) {
+	if err := contactStore.UpdateName(testContact.Id, "mike"); err != nil {
 		t.Error(err)
 		return
 	}
 	updated := contactStore.Get(testContact.Id)
-	if updated.Username != "mike" {
+	if updated.Name != "mike" {
 		t.Error("update username failed")
 		return
 	}

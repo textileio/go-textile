@@ -13,8 +13,8 @@ import (
 	"github.com/textileio/go-textile/util"
 )
 
-// AddContact adds or updates a contact
-func (t *Textile) AddContact(contact *pb.Contact) error {
+// addContact adds or updates a contact
+func (t *Textile) addContact(contact *pb.Contact) error {
 	ex := t.datastore.Contacts().Get(contact.Id)
 	if ex != nil && (contact.Updated == nil || util.ProtoTsIsNewer(ex.Updated, contact.Updated)) {
 		return nil
@@ -43,64 +43,8 @@ func (t *Textile) AddContact(contact *pb.Contact) error {
 	return nil
 }
 
-// Contact looks up a contact by peer id
-func (t *Textile) Contact(id string) *pb.Contact {
-	return t.contactView(t.datastore.Contacts().Get(id), true)
-}
-
-// Contacts returns all contacts this peer has interacted with
-func (t *Textile) Contacts() *pb.ContactList {
-	self := t.node.Identity.Pretty()
-	list := t.datastore.Contacts().List(fmt.Sprintf("id!='%s'", self))
-
-	for i, model := range list.Items {
-		list.Items[i] = t.contactView(model, true)
-	}
-
-	return list
-}
-
-// RemoveContact removes a contact
-func (t *Textile) RemoveContact(id string) error {
-	return t.datastore.Contacts().Delete(id)
-}
-
-// User returns a user object by finding the most recently updated contact for the given id
-func (t *Textile) User(id string) *pb.User {
-	contact := t.datastore.Contacts().GetBest(id)
-	if contact == nil {
-		return &pb.User{
-			Name: ipfs.ShortenID(id),
-		}
-	}
-	return &pb.User{
-		Address: contact.Address,
-		Name:    toName(contact),
-		Avatar:  contact.Avatar,
-	}
-}
-
-// ContactThreads returns all threads with the given peer
-func (t *Textile) ContactThreads(id string) (*pb.ThreadList, error) {
-	peers := t.datastore.ThreadPeers().ListById(id)
-	if len(peers) == 0 {
-		return nil, nil
-	}
-
-	list := &pb.ThreadList{Items: make([]*pb.Thread, 0)}
-	for _, p := range peers {
-		view, err := t.ThreadView(p.Thread)
-		if err != nil {
-			return nil, err
-		}
-		list.Items = append(list.Items, view)
-	}
-
-	return list, nil
-}
-
-// PublishContact publishes this peer's contact info to the cafe network
-func (t *Textile) PublishContact() error {
+// publishContact publishes this peer's contact info to the cafe network
+func (t *Textile) publishContact() error {
 	self := t.datastore.Contacts().Get(t.node.Identity.Pretty())
 	if self == nil {
 		return nil
@@ -122,13 +66,102 @@ func (t *Textile) PublishContact() error {
 	return nil
 }
 
-// UpdateContactInboxes sets this node's own contact's inboxes from the current cafe sessions
-func (t *Textile) UpdateContactInboxes() error {
+// updateContactInboxes sets this node's own contact's inboxes from the current cafe sessions
+func (t *Textile) updateContactInboxes() error {
 	var inboxes []*pb.Cafe
 	for _, session := range t.datastore.CafeSessions().List().Items {
 		inboxes = append(inboxes, session.Cafe)
 	}
 	return t.datastore.Contacts().UpdateInboxes(t.node.Identity.Pretty(), inboxes)
+}
+
+// contactView adds view info fields to a contact
+func (t *Textile) contactView(model *pb.Contact, addThreads bool) *pb.Contact {
+	if model == nil {
+		return nil
+	}
+
+	if addThreads {
+		model.Threads = make([]string, 0)
+		for _, p := range t.datastore.ThreadPeers().ListById(model.Id) {
+			model.Threads = append(model.Threads, p.Thread)
+		}
+	}
+
+	return model
+}
+
+// toUserName returns a contact's name or trimmed address
+func toUserName(contact *pb.Contact) string {
+	if contact == nil || contact.Address == "" {
+		return ""
+	}
+	if contact.Name != "" {
+		return contact.Name
+	}
+	if len(contact.Address) >= 7 {
+		return contact.Address[:7]
+	}
+	return ""
+}
+
+// contactsEqual returns whether or not the two contacts are identical
+// Note: this does not consider Contact.Created or Contact.Updated
+func contactsEqual(a *pb.Contact, b *pb.Contact) bool {
+	if a.Id != b.Id {
+		return false
+	}
+	if a.Address != b.Address {
+		return false
+	}
+	if a.Name != b.Name {
+		return false
+	}
+	if a.Avatar != b.Avatar {
+		return false
+	}
+	if len(a.Inboxes) != len(b.Inboxes) {
+		return false
+	}
+	ac := make(map[string]*pb.Cafe)
+	for _, c := range a.Inboxes {
+		ac[c.Peer] = c
+	}
+	for _, j := range b.Inboxes {
+		i, ok := ac[j.Peer]
+		if !ok {
+			return false
+		}
+		if !cafesEqual(i, j) {
+			return false
+		}
+	}
+	return true
+}
+
+// AddContact adds or updates a card
+func (t *Textile) AddContact(card *pb.ContactCard) error {
+	for _, contact := range card.Contacts {
+		if err := t.addContact(contact); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Contact looks up a card by address
+func (t *Textile) Contact(address string) *pb.ContactCard {
+	return t.contact(address, true)
+}
+
+// Contacts returns all known contacts as cards (grouped by address)
+func (t *Textile) Contacts() *pb.ContactCardList {
+	return t.contacts(fmt.Sprintf("address!='%s'", t.account.Address()), true)
+}
+
+// RemoveContact removes all contacts that share the given address
+func (t *Textile) RemoveContact(address string) error {
+	return t.datastore.Contacts().DeleteByAddress(address)
 }
 
 // SearchContacts searches the network for contacts
@@ -156,102 +189,93 @@ func (t *Textile) SearchContacts(query *pb.ContactQuery, options *pb.QueryOption
 	return resCh, errCh, cancel, nil
 }
 
-// contactView adds view info fields to a contact
-func (t *Textile) contactView(model *pb.Contact, addThreads bool) *pb.Contact {
-	if model == nil {
+// contact looks up a card by address, optionally listing threads the address is part of
+func (t *Textile) contact(address string, addThreads bool) *pb.ContactCard {
+	list := t.datastore.Contacts().List(fmt.Sprintf("address='%s'", address))
+	if len(list) == 0 {
 		return nil
 	}
 
-	if addThreads {
-		model.Threads = make([]string, 0)
-		for _, p := range t.datastore.ThreadPeers().ListById(model.Id) {
-			model.Threads = append(model.Threads, p.Thread)
+	card := &pb.ContactCard{
+		User: &pb.User{
+			Address: address,
+		},
+		Contacts: make([]*pb.Contact, len(list)),
+	}
+	for i := 0; i < len(card.Contacts); i++ {
+		if i == 0 {
+			card.User.Name = list[i].Name
+			card.User.Avatar = list[i].Avatar
 		}
+		card.Contacts[i] = t.contactView(list[i], addThreads)
 	}
 
-	return model
+	return card
 }
 
-// toName returns a contact's name or trimmed address
-func toName(contact *pb.Contact) string {
-	if contact == nil || contact.Address == "" {
-		return ""
+// contacts returns a list of contacts matching the given query
+func (t *Textile) contacts(query string, addThreads bool) *pb.ContactCardList {
+	groups := make(map[string]*pb.ContactCard)
+	for _, model := range t.datastore.Contacts().List(query) {
+		if groups[model.Address] == nil {
+			groups[model.Address] = &pb.ContactCard{
+				User: &pb.User{
+					Address: model.Address,
+					Name:    model.Name,
+					Avatar:  model.Avatar,
+				},
+			}
+		}
+		groups[model.Address].Contacts = append(
+			groups[model.Address].Contacts, t.contactView(model, addThreads))
 	}
-	if contact.Username != "" {
-		return contact.Username
+
+	cards := &pb.ContactCardList{
+		Items: make([]*pb.ContactCard, 0),
 	}
-	if len(contact.Address) >= 7 {
-		return contact.Address[:7]
+	for _, card := range groups {
+		cards.Items = append(cards.Items, card)
 	}
-	return ""
+
+	return cards
 }
 
-// contactsEqual returns whether or not the two contacts are identical
-// Note: this does not consider Contact.Created or Contact.Updated
-func contactsEqual(a *pb.Contact, b *pb.Contact) bool {
-	if a.Id != b.Id {
-		return false
-	}
-	if a.Address != b.Address {
-		return false
-	}
-	if a.Username != b.Username {
-		return false
-	}
-	if a.Avatar != b.Avatar {
-		return false
-	}
-	if len(a.Inboxes) != len(b.Inboxes) {
-		return false
-	}
-	ac := make(map[string]*pb.Cafe)
-	for _, c := range a.Inboxes {
-		ac[c.Peer] = c
-	}
-	for _, j := range b.Inboxes {
-		i, ok := ac[j.Peer]
-		if !ok {
-			return false
-		}
-		if !cafesEqual(i, j) {
-			return false
+// User returns a user object with the most recently updated contact for the given id
+// Note: If no underlying contact is found, this will return an blank object w/ a
+// generic user name for display-only purposes.
+func (t *Textile) User(id string) *pb.User {
+	contact := t.datastore.Contacts().GetBest(id)
+	if contact == nil {
+		return &pb.User{
+			Name: ipfs.ShortenID(id),
 		}
 	}
-	return true
+	return &pb.User{
+		Address: contact.Address,
+		Name:    toUserName(contact),
+		Avatar:  contact.Avatar,
+	}
 }
 
-// cafesEqual returns whether or not the two cafes are identical
-// Note: swarms are allowed to be in different order and still be "equal"
-func cafesEqual(a *pb.Cafe, b *pb.Cafe) bool {
-	if a.Peer != b.Peer {
-		return false
-	}
-	if a.Address != b.Address {
-		return false
-	}
-	if a.Api != b.Api {
-		return false
-	}
-	if a.Protocol != b.Protocol {
-		return false
-	}
-	if a.Node != b.Node {
-		return false
-	}
-	if a.Url != b.Url {
-		return false
-	}
-	if len(a.Swarm) != len(b.Swarm) {
-		return false
-	}
-	as := make(map[string]struct{})
-	for _, s := range a.Swarm {
-		as[s] = struct{}{}
-	}
-	for _, s := range b.Swarm {
-		if _, ok := as[s]; !ok {
-			return false
+// UserThreads returns all threads with the given address
+func (t *Textile) UserThreads(address string) (*pb.ThreadList, error) {
+	threads := make(map[string]struct{})
+
+	list := &pb.ThreadList{Items: make([]*pb.Thread, 0)}
+	for _, contact := range t.datastore.Contacts().List(fmt.Sprintf("address='%s'", address)) {
+		peers := t.datastore.ThreadPeers().ListById(contact.Id)
+		for _, p := range peers {
+			if _, ok := threads[p.Thread]; ok {
+				continue
+			}
+			view, err := t.ThreadView(p.Thread)
+			if err != nil {
+				return nil, err
+			}
+			list.Items = append(list.Items, view)
+			threads[p.Thread] = struct{}{}
 		}
 	}
-	return true
+
+	return list, nil
 }

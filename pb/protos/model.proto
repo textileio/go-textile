@@ -11,7 +11,7 @@ import "message.proto";
 message Contact {
     string id                         = 1;
     string address                    = 2;
-    string username                   = 3;
+    string name                       = 3;
     string avatar                     = 4;
     repeated Cafe inboxes             = 5;
     google.protobuf.Timestamp created = 6;
@@ -21,14 +21,19 @@ message Contact {
     repeated string threads = 8;
 }
 
-message ContactList {
-    repeated Contact items = 1;
+message User {
+    string address = 1;
+    string name    = 2;
+    string avatar  = 3;
 }
 
-message User {
-    string address  = 1;
-    string name     = 2;
-    string avatar   = 3;
+message ContactCard {
+    User user                 = 1;
+    repeated Contact contacts = 2;
+}
+
+message ContactCardList {
+    repeated ContactCard items = 1;
 }
 
 // THREADS //

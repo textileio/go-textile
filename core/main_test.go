@@ -19,22 +19,34 @@ import (
 
 var repoPath = "testdata/.textile"
 var otherPath = "testdata/.textile2"
+
 var node *Textile
 var other *Textile
+
 var token string
-var contact = &pb.Contact{
-	Id:       "abcde",
-	Address:  "address1",
-	Username: "joe",
-	Avatar:   "Qm123",
-	Inboxes: []*pb.Cafe{{
-		Peer:     "peer",
-		Address:  "address",
-		Api:      "v0",
-		Protocol: "/textile/cafe/1.0.0",
-		Node:     "v1.0.0",
-		Url:      "https://mycafe.com",
-	}},
+
+var card = &pb.ContactCard{
+	User: &pb.User{
+		Address: "address1",
+		Name:    "joe",
+		Avatar:  "Qm123",
+	},
+	Contacts: []*pb.Contact{
+		{
+			Id:      "abcde",
+			Address: "address1",
+			Name:    "joe",
+			Avatar:  "Qm123",
+			Inboxes: []*pb.Cafe{{
+				Peer:     "peer",
+				Address:  "address",
+				Api:      "v0",
+				Protocol: "/textile/cafe/1.0.0",
+				Node:     "v1.0.0",
+				Url:      "https://mycafe.com",
+			}},
+		},
+	},
 }
 
 var schemaHash string
@@ -171,14 +183,14 @@ func TestTextile_CafeRegistration(t *testing.T) {
 }
 
 func TestTextile_AddContact(t *testing.T) {
-	if err := node.AddContact(contact); err != nil {
-		t.Errorf("add contact failed: %s", err)
+	if err := node.AddContact(card); err != nil {
+		t.Errorf("add contact card failed: %s", err)
 	}
 }
 
 func TestTextile_AddContactAgain(t *testing.T) {
-	if err := node.AddContact(contact); err != nil {
-		t.Errorf("adding duplicate contact should not throw error")
+	if err := node.AddContact(card); err != nil {
+		t.Errorf("adding duplicate contact card should not throw error")
 	}
 }
 

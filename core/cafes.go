@@ -22,11 +22,11 @@ func (t *Textile) RegisterCafe(host string, token string) (*pb.CafeSession, erro
 		}
 	}
 
-	if err := t.UpdateContactInboxes(); err != nil {
+	if err := t.updateContactInboxes(); err != nil {
 		return nil, err
 	}
 
-	if err := t.PublishContact(); err != nil {
+	if err := t.publishContact(); err != nil {
 		return nil, err
 	}
 
@@ -68,14 +68,50 @@ func (t *Textile) DeregisterCafe(peerId string) error {
 		}
 	}
 
-	if err := t.UpdateContactInboxes(); err != nil {
+	if err := t.updateContactInboxes(); err != nil {
 		return err
 	}
 
-	return t.PublishContact()
+	return t.publishContact()
 }
 
 // CheckCafeMessages fetches new messages from registered cafes
 func (t *Textile) CheckCafeMessages() error {
 	return t.cafeInbox.CheckMessages()
+}
+
+// cafesEqual returns whether or not the two cafes are identical
+// Note: swarms are allowed to be in different order and still be "equal"
+func cafesEqual(a *pb.Cafe, b *pb.Cafe) bool {
+	if a.Peer != b.Peer {
+		return false
+	}
+	if a.Address != b.Address {
+		return false
+	}
+	if a.Api != b.Api {
+		return false
+	}
+	if a.Protocol != b.Protocol {
+		return false
+	}
+	if a.Node != b.Node {
+		return false
+	}
+	if a.Url != b.Url {
+		return false
+	}
+	if len(a.Swarm) != len(b.Swarm) {
+		return false
+	}
+	as := make(map[string]struct{})
+	for _, s := range a.Swarm {
+		as[s] = struct{}{}
+	}
+	for _, s := range b.Swarm {
+		if _, ok := as[s]; !ok {
+			return false
+		}
+	}
+	return true
 }

@@ -52,13 +52,14 @@ type ContactStore interface {
 	AddOrUpdate(contact *pb.Contact) error
 	Get(id string) *pb.Contact
 	GetBest(id string) *pb.Contact
-	List(query string) *pb.ContactList
-	Find(address string, username string, exclude []string) *pb.ContactList
+	List(query string) []*pb.Contact
+	Find(address string, username string, exclude []string) []*pb.Contact
 	Count(query string) int
-	UpdateUsername(id string, username string) error
+	UpdateName(id string, name string) error
 	UpdateAvatar(id string, avatar string) error
 	UpdateInboxes(id string, inboxes []*pb.Cafe) error
 	Delete(id string) error
+	DeleteByAddress(address string) error
 }
 
 type FileStore interface {

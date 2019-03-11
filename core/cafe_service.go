@@ -633,9 +633,9 @@ func (h *CafeService) searchLocal(qtype pb.Query_Type, options *pb.QueryOptions,
 			return nil, err
 		}
 
-		contacts := h.datastore.Contacts().Find(q.Address, q.Username, options.Exclude).Items
+		contacts := h.datastore.Contacts().Find(q.Address, q.Username, options.Exclude)
 		for _, c := range contacts {
-			c.Username = toName(c)
+			c.Name = toUserName(c)
 
 			value, err := proto.Marshal(c)
 			if err != nil {
