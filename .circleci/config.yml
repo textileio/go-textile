@@ -128,7 +128,7 @@ jobs:
 
   build-cli-darwin-windows:
     macos:
-      xcode: "9.4.0"
+      xcode: "10.1.0"
     environment:
       GOPATH: /Users/distiller/go
       GOROOT: /usr/local/opt/go/libexec
@@ -273,7 +273,7 @@ jobs:
 
   build-tray-darwin-windows:
     macos:
-      xcode: "9.4.0"
+      xcode: "10.1.0"
     environment:
       GOPATH: /Users/distiller/go
       GOROOT: /usr/local/opt/go/libexec
@@ -356,7 +356,7 @@ jobs:
 
   build-ios-framework:
     macos:
-      xcode: "9.4.0"
+      xcode: "10.1.0"
     environment:
       GOPATH: /Users/distiller/go
       GOROOT: /usr/local/opt/go/libexec
