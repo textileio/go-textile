@@ -89,7 +89,7 @@ jobs:
           fi
           DATE=$(date --iso-8601=seconds)
           FLAGS="-X github.com/textileio/go-textile/common.GitSummary=${SUMMARY} -X github.com/textileio/go-textile/common.BuildDate=${DATE} -X github.com/textileio/go-textile/common.GitCommit=${COMMIT} -X github.com/textileio/go-textile/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/go-textile/common.GitState=clean"
-          gox -ldflags "-w ${FLAGS}" -osarch="linux/amd64 linux/386 linux/arm" -output="{{.OS}}-{{.Arch}}"
+          gox -ldflags="-w ${FLAGS}" -osarch="linux/amd64 linux/386 linux/arm" -output="{{.OS}}-{{.Arch}}"
     - run:
         name: collect artifacts
         command: |
@@ -189,8 +189,8 @@ jobs:
           fi
           DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           FLAGS="-X github.com/textileio/go-textile/common.GitSummary=${SUMMARY} -X github.com/textileio/go-textile/common.BuildDate=${DATE} -X github.com/textileio/go-textile/common.GitCommit=${COMMIT} -X github.com/textileio/go-textile/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/go-textile/common.GitState=clean"
-          gox -ldflags "-w ${FLAGS}" -osarch="darwin/amd64" -output="{{.OS}}-{{.Arch}}"
-          CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -ldflags "-w ${FLAGS}" -cgo -osarch="windows/amd64" -output="{{.OS}}-{{.Arch}}"
+          gox -ldflags="-w ${FLAGS}" -osarch="darwin/amd64" -output="{{.OS}}-{{.Arch}}"
+          CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -ldflags="-w ${FLAGS}" -cgo -osarch="windows/amd64" -output="{{.OS}}-{{.Arch}}"
     - run:
         name: collect artifacts
         command: |
@@ -418,7 +418,7 @@ jobs:
           DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           FLAGS="-X github.com/textileio/go-textile/common.GitSummary=${SUMMARY} -X github.com/textileio/go-textile/common.BuildDate=${DATE} -X github.com/textileio/go-textile/common.GitCommit=${COMMIT} -X github.com/textileio/go-textile/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/go-textile/common.GitState=clean"
           gomobile init
-          gomobile bind -ldflags "-w ${FLAGS}" -v -target=ios github.com/textileio/go-textile/mobile
+          gomobile bind -v -ldflags="-w ${FLAGS}" -target=ios github.com/textileio/go-textile/mobile
     - run:
         name: build obj c protobuf bindings
         command: |
@@ -516,7 +516,7 @@ jobs:
           DATE=$(date --iso-8601=seconds)
           FLAGS="-X github.com/textileio/go-textile/common.GitSummary=${SUMMARY} -X github.com/textileio/go-textile/common.BuildDate=${DATE} -X github.com/textileio/go-textile/common.GitCommit=${COMMIT} -X github.com/textileio/go-textile/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/go-textile/common.GitState=clean"
           gomobile init
-          gomobile bind -ldflags "-w ${FLAGS}" -v -target=android -o mobile.aar github.com/textileio/go-textile/mobile
+          gomobile bind -v -ldflags="-w ${FLAGS}" -target=android -o=mobile.aar github.com/textileio/go-textile/mobile
     - run:
         name: build java protobuf bindings
         command: |
