@@ -141,7 +141,7 @@ func (c *ContactDB) Find(id string, address string, username string, exclude []s
 	defer c.lock.Unlock()
 	if id != "" {
 		if util.ListContainsString(exclude, id) {
-			return nil
+			return &pb.ContactList{}
 		}
 		return c.handleQuery("select * from contacts where id='" + id + "';")
 	}
