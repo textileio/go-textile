@@ -466,6 +466,7 @@ jobs:
     - run:
         name: install dep
         command: |
+          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
           curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
     - run:
         name: install gx
