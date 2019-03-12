@@ -451,9 +451,9 @@ jobs:
   build-android-aar:
     docker:
     - image: circleci/android:api-28-ndk
-    - environment:
-        GOROOT: /usr/local/go
-        GOPATH: /home/circleci/go
+    environment:
+      GOROOT: /usr/local/go
+      GOPATH: /home/circleci/go
     working_directory: ~/go/src/github.com/textileio/go-textile
     steps:
     - checkout
