@@ -679,6 +679,7 @@ func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults)
 		Id:           query.Id,
 		Type:         query.Type,
 		Payload:      query.Payload,
+		Exclude:      query.Options.Exclude,
 		ResponseType: rtype,
 	}); err != nil {
 		return err
@@ -1277,7 +1278,10 @@ func (h *CafeService) handlePubSubQuery(pid peer.ID, env *pb.Envelope) (*pb.Enve
 	}
 
 	// return results, if any
-	options := &pb.QueryOptions{Filter: pb.QueryOptions_NO_FILTER}
+	options := &pb.QueryOptions{
+		Filter:  pb.QueryOptions_NO_FILTER,
+		Exclude: query.Exclude,
+	}
 	results, err := h.searchLocal(query.Type, options, query.Payload, false)
 	if err != nil {
 		return nil, err

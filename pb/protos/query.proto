@@ -35,6 +35,7 @@ message PubSubQuery {
     Query.Type type             = 2;
     google.protobuf.Any payload = 3;
     ResponseType responseType   = 4;
+    repeated string exclude     = 5;
 
     enum ResponseType {
         P2P    = 0;
