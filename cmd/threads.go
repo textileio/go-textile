@@ -15,6 +15,7 @@ import (
 )
 
 var errMissingThreadId = errors.New("missing thread id")
+var errMissingThreadName = errors.New("missing thread name")
 
 func init() {
 	register(&threadsCmd{})
@@ -26,6 +27,7 @@ type threadsCmd struct {
 	Get        getThreadsCmd        `command:"get" description:"Get a thread"`
 	GetDefault getDefaultThreadsCmd `command:"default" description:"Get default thread"`
 	Peers      peersThreadsCmd      `command:"peers" description:"List thread peers"`
+	Rename     renameThreadsCmd     `command:"rename" description:"Rename thread"`
 	Remove     rmThreadsCmd         `command:"rm" description:"Remove a thread"`
 }
 
@@ -218,6 +220,36 @@ func (x *peersThreadsCmd) Execute(args []string) error {
 	}
 
 	res, err := executeJsonCmd(GET, "threads/"+x.Thread+"/peers", params{}, nil)
+	if err != nil {
+		return err
+	}
+	output(res)
+	return nil
+}
+
+type renameThreadsCmd struct {
+	Client ClientOptions `group:"Client Options"`
+	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
+}
+
+func (x *renameThreadsCmd) Usage() string {
+	return `
+
+Renames a thread. Only the initiator can rename a thread.
+Omit the --thread option to use the default thread (if selected).
+`
+}
+
+func (x *renameThreadsCmd) Execute(args []string) error {
+	setApi(x.Client)
+	if len(args) == 0 {
+		return errMissingThreadName
+	}
+	if x.Thread == "" {
+		x.Thread = "default"
+	}
+
+	res, err := executeStringCmd(PUT, "threads/"+x.Thread+"/name", params{args: args})
 	if err != nil {
 		return err
 	}

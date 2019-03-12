@@ -10,7 +10,7 @@ import (
 )
 
 // announce creates an outgoing announce block
-func (t *Thread) annouce() (mh.Multihash, error) {
+func (t *Thread) annouce(msg *pb.ThreadAnnounce) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
@@ -18,9 +18,12 @@ func (t *Thread) annouce() (mh.Multihash, error) {
 		return nil, ErrNotReadable
 	}
 
-	msg, err := t.buildAnnounce()
-	if err != nil {
-		return nil, err
+	if msg == nil {
+		var err error
+		msg, err = t.buildAnnounce()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	res, err := t.commitBlock(msg, pb.Block_ANNOUNCE, nil)
@@ -59,6 +62,20 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 		return nil, ErrNotReadable
 	}
 
+	// unless this is our account thread, announce's contact _must_ match the sender
+	if msg.Contact != nil {
+		if t.Id != t.config.Account.Thread && msg.Contact.Id != block.Header.Author {
+			return nil, ErrInvalidThreadBlock
+		}
+	}
+
+	// only initiators can change a thread's name
+	if msg.Name != "" {
+		if t.initiator != block.Header.Address {
+			return nil, ErrInvalidThreadBlock
+		}
+	}
+
 	if err := t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,
@@ -69,6 +86,14 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 	// update author info
 	if msg.Contact != nil {
 		if err := t.addOrUpdateContact(msg.Contact); err != nil {
+			return nil, err
+		}
+	}
+
+	// update thread name
+	if msg.Name != "" {
+		t.Name = msg.Name
+		if err := t.datastore.Threads().UpdateName(t.Id, msg.Name); err != nil {
 			return nil, err
 		}
 	}

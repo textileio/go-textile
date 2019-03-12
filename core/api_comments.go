@@ -12,7 +12,7 @@ import (
 // @Tags blocks
 // @Produce application/json
 // @Param id path string true "block id"
-// @Param X-Textile-Args header string true "urlescaped comment body")
+// @Param X-Textile-Args header string true "urlescaped comment body"
 // @Success 201 {object} pb.Comment "comment"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"

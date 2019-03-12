@@ -31,7 +31,7 @@ func (a *api) ipfsId(g *gin.Context) {
 // @Description Opens a new direct connection to a peer using an IPFS multiaddr
 // @Tags ipfs
 // @Produce application/json
-// @Param X-Textile-Args header string true "peer address")
+// @Param X-Textile-Args header string true "peer address"
 // @Success 200 {array} string "ok"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"

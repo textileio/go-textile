@@ -147,6 +147,7 @@ func (a *api) Start() {
 		{
 			threads.POST("", a.addThreads)
 			threads.PUT(":id", a.addOrUpdateThreads)
+			threads.PUT(":id/name", a.renameThreads)
 			threads.GET("", a.lsThreads)
 			threads.GET("/:id", a.getThreads)
 			threads.GET("/:id/peers", a.peersThreads)

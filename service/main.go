@@ -38,9 +38,7 @@ var log = logging.Logger("tex-service")
 // service represents a libp2p service
 type Service struct {
 	Account *keypair.Full
-
 	Node    func() *core.IpfsNode
-	NodeApi func() iface.CoreAPI
 
 	handler Handler
 

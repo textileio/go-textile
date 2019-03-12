@@ -135,15 +135,24 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 		}
 	}
 
-	if thrd.Schema != nil {
-		go t.cafeOutbox.Flush()
-	}
+	go t.cafeOutbox.Flush()
 
 	t.sendUpdate(&pb.WalletUpdate{
 		Id:   thrd.Id,
 		Key:  thrd.Key,
 		Type: pb.WalletUpdate_THREAD_ADDED,
 	})
+
+	// invite account peers
+	for _, p := range t.AccountPeers().Items {
+		pid, err := peer.IDB58Decode(p.Id)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := thrd.AddInvite(pid); err != nil {
+			return nil, err
+		}
+	}
 
 	log.Debugf("added a new thread %s with name %s", thrd.Id, conf.Name)
 
@@ -206,6 +215,33 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 	return nthrd.updateHead(hash)
 }
 
+// RenameThread adds an announce block to the thread w/ a new name
+// Note: Only thread initiators can update the thread's name
+func (t *Textile) RenameThread(id string, name string) error {
+	thrd := t.Thread(id)
+	if thrd == nil {
+		return ErrThreadNotFound
+	}
+	if thrd.initiator != t.account.Address() {
+		return fmt.Errorf("thread name is not writable")
+	}
+
+	trimmed := strings.TrimSpace(name)
+	if trimmed == "" {
+		return nil
+	}
+
+	thrd.Name = trimmed
+	if err := t.datastore.Threads().UpdateName(thrd.Id, trimmed); err != nil {
+		return err
+	}
+
+	if _, err := thrd.annouce(&pb.ThreadAnnounce{Name: trimmed}); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Thread get a thread by id from loaded threads
 func (t *Textile) Thread(id string) *Thread {
 	for _, thrd := range t.loadedThreads {
@@ -232,6 +268,24 @@ loop:
 		threads = append(threads, i)
 	}
 	return threads
+}
+
+// ThreadPeers returns a contact list of thread peers
+func (t *Textile) ThreadPeers(id string) (*pb.ContactList, error) {
+	thrd := t.Thread(id)
+	if thrd == nil {
+		return nil, ErrThreadNotFound
+	}
+
+	contacts := &pb.ContactList{Items: make([]*pb.Contact, 0)}
+	for _, p := range thrd.Peers() {
+		contact := t.Contact(p.Id)
+		if contact != nil {
+			contacts.Items = append(contacts.Items, contact)
+		}
+	}
+
+	return contacts, nil
 }
 
 // RemoveThread removes a thread
@@ -312,7 +366,7 @@ func (t *Textile) ThreadView(id string) (*pb.Thread, error) {
 
 // addAccountThread adds a thread with seed representing the state of the account
 func (t *Textile) addAccountThread() error {
-	if t.ThreadByKey(t.config.Account.Address) != nil {
+	if t.AccountThread() != nil {
 		return nil
 	}
 	sk, err := t.account.LibP2PPrivKey()

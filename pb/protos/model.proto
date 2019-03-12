@@ -107,7 +107,8 @@ message Block {
         FILES    = 7;
         COMMENT  = 8;
         LIKE     = 9;
-        INVITE   = 50;
+
+        ADD = 50;
     }
 
     // view info

@@ -92,6 +92,11 @@ func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 		return nil, ErrNotReadable
 	}
 
+	// join's contact _must_ match the sender
+	if msg.Contact.Id != block.Header.Author {
+		return nil, ErrInvalidThreadBlock
+	}
+
 	if err := t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,

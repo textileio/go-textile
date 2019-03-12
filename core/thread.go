@@ -18,10 +18,10 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/ipfs"
+	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo"
 	"github.com/textileio/go-textile/repo/config"
-	"github.com/textileio/go-textile/util"
 )
 
 // ErrContactNotFound indicates a local contact was not found
@@ -56,37 +56,41 @@ var errThreadReload = errors.New("could not re-load thread")
 
 // ThreadConfig is used to construct a Thread
 type ThreadConfig struct {
-	RepoPath      string
-	Config        *config.Config
-	Node          func() *core.IpfsNode
-	Datastore     repo.Datastore
-	Service       func() *ThreadsService
-	ThreadsOutbox *BlockOutbox
-	CafeOutbox    *CafeOutbox
-	PushUpdate    func(*pb.Block, string)
+	RepoPath    string
+	Config      *config.Config
+	Account     *keypair.Full
+	Node        func() *core.IpfsNode
+	Datastore   repo.Datastore
+	Service     func() *ThreadsService
+	BlockOutbox *BlockOutbox
+	CafeOutbox  *CafeOutbox
+	AddContact  func(*pb.Contact) error
+	PushUpdate  func(*pb.Block, string)
 }
 
 // Thread is the primary mechanism representing a collecion of data / files / photos
 type Thread struct {
-	Id            string
-	Key           string // app key, usually UUID
-	Name          string
-	Schema        *pb.Node
-	schemaId      string
-	initiator     string
-	ttype         pb.Thread_Type
-	sharing       pb.Thread_Sharing
-	members       []string
-	privKey       libp2pc.PrivKey
-	repoPath      string
-	config        *config.Config
-	node          func() *core.IpfsNode
-	datastore     repo.Datastore
-	service       func() *ThreadsService
-	threadsOutbox *BlockOutbox
-	cafeOutbox    *CafeOutbox
-	pushUpdate    func(*pb.Block, string)
-	mux           sync.Mutex
+	Id          string
+	Key         string // app key, usually UUID
+	Name        string
+	Schema      *pb.Node
+	schemaId    string
+	initiator   string
+	ttype       pb.Thread_Type
+	sharing     pb.Thread_Sharing
+	members     []string
+	privKey     libp2pc.PrivKey
+	repoPath    string
+	config      *config.Config
+	account     *keypair.Full
+	node        func() *core.IpfsNode
+	datastore   repo.Datastore
+	service     func() *ThreadsService
+	blockOutbox *BlockOutbox
+	cafeOutbox  *CafeOutbox
+	addContact  func(*pb.Contact) error
+	pushUpdate  func(*pb.Block, string)
+	mux         sync.Mutex
 }
 
 // NewThread create a new Thread from a repo model and config
@@ -105,24 +109,26 @@ func NewThread(model *pb.Thread, conf *ThreadConfig) (*Thread, error) {
 	}
 
 	return &Thread{
-		Id:            model.Id,
-		Key:           model.Key,
-		Name:          model.Name,
-		Schema:        sch,
-		schemaId:      model.Schema,
-		initiator:     model.Initiator,
-		ttype:         model.Type,
-		sharing:       model.Sharing,
-		members:       model.Members,
-		privKey:       sk,
-		repoPath:      conf.RepoPath,
-		config:        conf.Config,
-		node:          conf.Node,
-		datastore:     conf.Datastore,
-		service:       conf.Service,
-		threadsOutbox: conf.ThreadsOutbox,
-		cafeOutbox:    conf.CafeOutbox,
-		pushUpdate:    conf.PushUpdate,
+		Id:          model.Id,
+		Key:         model.Key,
+		Name:        model.Name,
+		Schema:      sch,
+		schemaId:    model.Schema,
+		initiator:   model.Initiator,
+		ttype:       model.Type,
+		sharing:     model.Sharing,
+		members:     model.Members,
+		privKey:     sk,
+		repoPath:    conf.RepoPath,
+		config:      conf.Config,
+		account:     conf.Account,
+		node:        conf.Node,
+		datastore:   conf.Datastore,
+		service:     conf.Service,
+		blockOutbox: conf.BlockOutbox,
+		cafeOutbox:  conf.CafeOutbox,
+		addContact:  conf.AddContact,
+		pushUpdate:  conf.PushUpdate,
 	}, nil
 }
 
@@ -238,11 +244,7 @@ func (t *Thread) addOrUpdateContact(contact *pb.Contact) error {
 		}
 	}
 
-	ex := t.datastore.Contacts().Get(contact.Id)
-	if ex != nil && (contact.Updated == nil || util.ProtoTsIsNewer(ex.Updated, contact.Updated)) {
-		return nil
-	}
-	return t.datastore.Contacts().AddOrUpdate(contact)
+	return t.addContact(contact)
 }
 
 // newBlockHeader creates a new header
@@ -266,7 +268,7 @@ func (t *Thread) newBlockHeader() (*pb.ThreadBlockHeader, error) {
 		Date:    pdate,
 		Parents: parents,
 		Author:  t.node().Identity.Pretty(),
-		Address: t.config.Account.Address,
+		Address: t.account.Address(),
 	}, nil
 }
 
@@ -278,7 +280,11 @@ type commitResult struct {
 }
 
 // commitBlock encrypts a block with thread key (or custom method if provided) and adds it to ipfs
-func (t *Thread) commitBlock(msg proto.Message, mtype pb.Block_BlockType, encrypt func(plaintext []byte) ([]byte, error)) (*commitResult, error) {
+func (t *Thread) commitBlock(
+	msg proto.Message,
+	mtype pb.Block_BlockType,
+	encrypt func(plaintext []byte) ([]byte, error)) (*commitResult, error) {
+
 	header, err := t.newBlockHeader()
 	if err != nil {
 		return nil, err
@@ -474,18 +480,25 @@ func (t *Thread) post(commit *commitResult, peers []pb.ThreadPeer) error {
 	if err != nil {
 		return err
 	}
+
+	// add account signature
+	env.Sig, err = t.account.Sign(commit.ciphertext)
+	if err != nil {
+		return err
+	}
+
 	for _, tp := range peers {
 		pid, err := peer.IDB58Decode(tp.Id)
 		if err != nil {
 			return err
 		}
 
-		if err := t.threadsOutbox.Add(pid, env); err != nil {
+		if err := t.blockOutbox.Add(pid, env); err != nil {
 			return err
 		}
 	}
 
-	go t.threadsOutbox.Flush()
+	go t.blockOutbox.Flush()
 
 	return nil
 }
@@ -552,6 +565,9 @@ func (t *Thread) writable(addr string) bool {
 
 // shareable returns whether or not this thread is shareable from one address to another
 func (t *Thread) shareable(from string, to string) bool {
+	if from == to {
+		return true
+	}
 	switch t.sharing {
 	case pb.Thread_NOT_SHARED:
 		return false

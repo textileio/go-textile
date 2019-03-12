@@ -12,7 +12,7 @@ import (
 // @Description Adds a message to a thread
 // @Tags threads
 // @Produce application/json
-// @Param X-Textile-Args header string true "urlescaped message body")
+// @Param X-Textile-Args header string true "urlescaped message body"
 // @Success 200 {object} pb.Text "message"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"

@@ -41,8 +41,7 @@ func TestThreadDB_Add(t *testing.T) {
 	stmt, err := threadStore.PrepareQuery("select id from threads where id=?")
 	defer stmt.Close()
 	var id string
-	err = stmt.QueryRow("Qmabc123").Scan(&id)
-	if err != nil {
+	if err := stmt.QueryRow("Qmabc123").Scan(&id); err != nil {
 		t.Error(err)
 	}
 	if id != "Qmabc123" {
@@ -162,6 +161,19 @@ func TestThreadDB_UpdateHead(t *testing.T) {
 	}
 	if th.Head != "12345" {
 		t.Error("update head failed")
+	}
+}
+
+func TestThreadDB_UpdateName(t *testing.T) {
+	if err := threadStore.UpdateName("Qmabc", "boom2"); err != nil {
+		t.Error(err)
+	}
+	th := threadStore.Get("Qmabc")
+	if th == nil {
+		t.Error("could not get thread")
+	}
+	if th.Name != "boom2" {
+		t.Error("update name failed")
 	}
 }
 
