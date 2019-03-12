@@ -28,7 +28,7 @@ jobs:
 
   unit-test:
     docker:
-    - image: textile/builder:1.11.2
+    - image: textile/builder:1.11.5
     working_directory: /go/src/github.com/textileio/go-textile
     steps:
     - *checkout-linux
@@ -53,7 +53,7 @@ jobs:
     - run:
         name: build the binary
         command: |
-            go build -i -o textile textile.go
+          go build -i -o textile textile.go
     - run:
         name: run tests
         command: |
@@ -61,7 +61,7 @@ jobs:
 
   build-cli-linux:
     docker:
-    - image: textile/builder:1.11.2
+    - image: textile/builder:1.11.5
     working_directory: /go/src/github.com/textileio/go-textile
     steps:
     - *checkout-linux
@@ -89,7 +89,7 @@ jobs:
           fi
           DATE=$(date --iso-8601=seconds)
           FLAGS="-X github.com/textileio/go-textile/common.GitSummary=${SUMMARY} -X github.com/textileio/go-textile/common.BuildDate=${DATE} -X github.com/textileio/go-textile/common.GitCommit=${COMMIT} -X github.com/textileio/go-textile/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/go-textile/common.GitState=clean"
-          gox -ldflags "-w ${FLAGS}" -osarch="linux/amd64 linux/386 linux/arm" -output="{{.OS}}-{{.Arch}}"
+          gox -ldflags="-w $FLAGS" -osarch="linux/amd64 linux/386 linux/arm" -output="{{.OS}}-{{.Arch}}"
     - run:
         name: collect artifacts
         command: |
@@ -128,17 +128,19 @@ jobs:
 
   build-cli-darwin-windows:
     macos:
-      xcode: "9.4.0"
+      xcode: "10.1.0"
     environment:
       GOPATH: /Users/distiller/go
-      GOROOT: /usr/local/opt/go/libexec
+      GOROOT: /usr/local/go
+      BREWBIN: /usr/local/opt/go/bin
     working_directory: ~/go/src/github.com/textileio/go-textile
     steps:
     - checkout
     - run:
         name: install golang
         command: |
-          brew install go
+          curl -L -o go1.11.5.darwin-amd64.tar.gz https://dl.google.com/go/go1.11.5.darwin-amd64.tar.gz
+          sudo tar -C /usr/local -xzf go1.11.5.darwin-amd64.tar.gz
     - run:
         name: install dep
         command: |
@@ -148,7 +150,7 @@ jobs:
     - run:
         name: install gx
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
+          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
           go get -u github.com/whyrusleeping/gx
           go get -u github.com/whyrusleeping/gx-go
     - restore_cache:
@@ -158,7 +160,7 @@ jobs:
     - run:
         name: install deps
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
+          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
           dep ensure
           gx install
     - save_cache:
@@ -172,7 +174,7 @@ jobs:
     - run:
         name: install gox
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
+          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
           go get github.com/mitchellh/gox
     - run:
         name: install mingw-w64
@@ -181,7 +183,7 @@ jobs:
     - run:
         name: cross-compile
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
+          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
           COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
           SUMMARY=$CIRCLE_SHA1
           if [ "${CIRCLE_TAG}" != "" ]; then
@@ -189,8 +191,8 @@ jobs:
           fi
           DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           FLAGS="-X github.com/textileio/go-textile/common.GitSummary=${SUMMARY} -X github.com/textileio/go-textile/common.BuildDate=${DATE} -X github.com/textileio/go-textile/common.GitCommit=${COMMIT} -X github.com/textileio/go-textile/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/go-textile/common.GitState=clean"
-          gox -ldflags "-w ${FLAGS}" -osarch="darwin/amd64" -output="{{.OS}}-{{.Arch}}"
-          CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -ldflags "-w ${FLAGS}" -cgo -osarch="windows/amd64" -output="{{.OS}}-{{.Arch}}"
+          gox -ldflags="-w $FLAGS" -osarch="darwin/amd64" -output="{{.OS}}-{{.Arch}}"
+          CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -ldflags="-w $FLAGS" -cgo -osarch="windows/amd64" -output="{{.OS}}-{{.Arch}}"
     - run:
         name: collect artifacts
         command: |
@@ -229,7 +231,7 @@ jobs:
 
   build-tray-linux:
     docker:
-    - image: textile/builder:1.11.2
+    - image: textile/builder:1.11.5
     working_directory: /go/src/github.com/textileio/go-textile
     steps:
     - *checkout-linux
@@ -273,17 +275,20 @@ jobs:
 
   build-tray-darwin-windows:
     macos:
-      xcode: "9.4.0"
+      xcode: "10.1.0"
     environment:
       GOPATH: /Users/distiller/go
-      GOROOT: /usr/local/opt/go/libexec
+      GOROOT: /usr/local/go
+      BREWBIN: /usr/local/opt/go/bin
+      GOCACHE: /tmp/.cache
     working_directory: ~/go/src/github.com/textileio/go-textile
     steps:
     - checkout
     - run:
         name: install golang
         command: |
-          brew install go
+          curl -L -o go1.11.5.darwin-amd64.tar.gz https://dl.google.com/go/go1.11.5.darwin-amd64.tar.gz
+          sudo tar -C /usr/local -xzf go1.11.5.darwin-amd64.tar.gz
     - run:
         name: install dep
         command: |
@@ -293,7 +298,7 @@ jobs:
     - run:
         name: install gx
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
+          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
           go get -u github.com/whyrusleeping/gx
           go get -u github.com/whyrusleeping/gx-go
     - restore_cache:
@@ -303,7 +308,7 @@ jobs:
     - run:
         name: install deps
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
+          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
           dep ensure
           gx install
     - save_cache:
@@ -321,13 +326,12 @@ jobs:
     - run:
         name: install astilectron-bundler
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
+          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
           go install ./vendor/github.com/asticode/go-astilectron-bundler/astilectron-bundler
     - run:
         name: compile
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
-          export GOCACHE=/tmp/.cache
+          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
           cd tray
           astilectron-bundler -v -c bundler.darwin.json
           astilectron-bundler -v -c bundler.windows.json
@@ -356,17 +360,19 @@ jobs:
 
   build-ios-framework:
     macos:
-      xcode: "9.4.0"
+      xcode: "10.1.0"
     environment:
       GOPATH: /Users/distiller/go
-      GOROOT: /usr/local/opt/go/libexec
+      GOROOT: /usr/local/go
+      BREWBIN: /usr/local/opt/go/bin
     working_directory: ~/go/src/github.com/textileio/go-textile
     steps:
     - checkout
     - run:
         name: install golang
         command: |
-          brew install go
+          curl -L -o go1.11.5.darwin-amd64.tar.gz https://dl.google.com/go/go1.11.5.darwin-amd64.tar.gz
+          sudo tar -C /usr/local -xzf go1.11.5.darwin-amd64.tar.gz
     - run:
         name: install dep
         command: |
@@ -376,13 +382,13 @@ jobs:
     - run:
         name: install gx
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
+          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
           go get -u github.com/whyrusleeping/gx
           go get -u github.com/whyrusleeping/gx-go
     - run:
         name: install protobuf
         command: |
-            brew install protobuf
+          brew install protobuf
     - restore_cache:
         key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
     - restore_cache:
@@ -390,7 +396,7 @@ jobs:
     - run:
         name: install deps
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
+          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
           dep ensure
           gx install
     - save_cache:
@@ -404,12 +410,12 @@ jobs:
     - run:
         name: install gomobile
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
-          go get golang.org/x/mobile/cmd/gomobile
+          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
+          go get -u golang.org/x/mobile/cmd/gomobile
     - run:
         name: build ios framework
         command: |
-          export PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/opt/go/bin:$PATH
+          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
           COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
           SUMMARY=$CIRCLE_SHA1
           if [ "${CIRCLE_TAG}" != "" ]; then
@@ -418,12 +424,12 @@ jobs:
           DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           FLAGS="-X github.com/textileio/go-textile/common.GitSummary=${SUMMARY} -X github.com/textileio/go-textile/common.BuildDate=${DATE} -X github.com/textileio/go-textile/common.GitCommit=${COMMIT} -X github.com/textileio/go-textile/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/go-textile/common.GitState=clean"
           gomobile init
-          gomobile bind -ldflags "-w ${FLAGS}" -v -target=ios github.com/textileio/go-textile/mobile
+          gomobile bind -v -ldflags="-w $FLAGS" -target=ios github.com/textileio/go-textile/mobile
     - run:
         name: build obj c protobuf bindings
         command: |
-            mkdir protos
-            protoc --proto_path=./pb/protos --objc_out=./protos ./pb/protos/*
+          mkdir protos
+          protoc --proto_path=./pb/protos --objc_out=./protos ./pb/protos/*
     - run:
         name: collect artifacts
         command: |
@@ -445,33 +451,36 @@ jobs:
   build-android-aar:
     docker:
     - image: circleci/android:api-28-ndk
+    environment:
+      GOROOT: /usr/local/go
+      GOPATH: /home/circleci/go
     working_directory: ~/go/src/github.com/textileio/go-textile
     steps:
     - checkout
     - run:
         name: install golang
         command: |
-          wget https://dl.google.com/go/go1.11.2.linux-amd64.tar.gz
-          sudo tar -C /usr/local -xzf go1.11.2.linux-amd64.tar.gz
+          wget https://dl.google.com/go/go1.11.5.linux-amd64.tar.gz
+          sudo tar -C /usr/local -xzf go1.11.5.linux-amd64.tar.gz
+          mkdir -p $GOPATH/bin
     - run:
         name: install dep
         command: |
-          export PATH=$PATH:/usr/local/go/bin
-          mkdir -p ~/go/bin
+          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
           curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
     - run:
         name: install gx
         command: |
-          export PATH=$PATH:/usr/local/go/bin
+          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
           go get -u github.com/whyrusleeping/gx
           go get -u github.com/whyrusleeping/gx-go
     - run:
         name: install protobuf
         command: |
-            curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.6.1/protoc-3.6.1-linux-x86_64.zip
-            unzip protoc-3.6.1-linux-x86_64.zip -d protoc3
-            sudo mv protoc3/bin/* /usr/local/bin/
-            sudo mv protoc3/include/* /usr/local/include/
+          curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.6.1/protoc-3.6.1-linux-x86_64.zip
+          unzip protoc-3.6.1-linux-x86_64.zip -d protoc3
+          sudo mv protoc3/bin/* /usr/local/bin/
+          sudo mv protoc3/include/* /usr/local/include/
     - restore_cache:
         key: dep-v1-android-{{ checksum "Gopkg.lock" }}-{{ arch }}
     - restore_cache:
@@ -479,9 +488,9 @@ jobs:
     - run:
         name: install deps
         command: |
-          export PATH=$PATH:/usr/local/go/bin
-          ~/go/bin/dep ensure
-          ~/go/bin/gx install
+          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+          dep ensure
+          gx install
     - save_cache:
         key: dep-v1-android-{{ checksum "Gopkg.lock" }}-{{ arch }}
         paths:
@@ -500,14 +509,12 @@ jobs:
     - run:
         name: install gomobile
         command: |
-          export PATH=$PATH:/usr/local/go/bin
-          go get golang.org/x/mobile/cmd/gomobile
+          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+          go get -u golang.org/x/mobile/cmd/gomobile
     - run:
         name: build android framework
         command: |
-          export PATH=$PATH:/usr/local/go/bin
-          export GOPATH=~/go
-          export PATH=$PATH:$GOPATH/bin
+          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
           COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
           SUMMARY=$CIRCLE_SHA1
           if [ "${CIRCLE_TAG}" != "" ]; then
@@ -516,12 +523,12 @@ jobs:
           DATE=$(date --iso-8601=seconds)
           FLAGS="-X github.com/textileio/go-textile/common.GitSummary=${SUMMARY} -X github.com/textileio/go-textile/common.BuildDate=${DATE} -X github.com/textileio/go-textile/common.GitCommit=${COMMIT} -X github.com/textileio/go-textile/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/go-textile/common.GitState=clean"
           gomobile init
-          gomobile bind -ldflags "-w ${FLAGS}" -v -target=android -o mobile.aar github.com/textileio/go-textile/mobile
+          gomobile bind -v -ldflags="-w $FLAGS" -target=android -o=mobile.aar github.com/textileio/go-textile/mobile
     - run:
         name: build java protobuf bindings
         command: |
-            mkdir protos
-            protoc --proto_path=./pb/protos --java_out=./protos ./pb/protos/*
+          mkdir protos
+          protoc --proto_path=./pb/protos --java_out=./protos ./pb/protos/*
     - run:
         name: collect artifacts
         command: |
@@ -549,13 +556,13 @@ jobs:
     - run:
         name: install @textile/protobufjs
         command: |
-            npm install @textile/protobufjs
+          npm install @textile/protobufjs
     - run:
         name: build js types
         command: |
-            mkdir protos
-            ./node_modules/@textile/protobufjs/bin/pbjs -t static-module -w es6 -o protos/index.js ./pb/protos/*
-            ./node_modules/@textile/protobufjs/bin/pbts -o protos/index.d.ts protos/index.js
+          mkdir protos
+          ./node_modules/@textile/protobufjs/bin/pbjs -t static-module -w es6 -o protos/index.js ./pb/protos/*
+          ./node_modules/@textile/protobufjs/bin/pbts -o protos/index.d.ts protos/index.js
     - run:
         name: collect artifacts
         command: |
