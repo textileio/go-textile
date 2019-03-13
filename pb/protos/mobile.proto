@@ -1,4 +1,6 @@
 syntax = "proto3";
+package textile;
+option java_package = "io.textile.pb";
 option go_package = "pb";
 
 import "view.proto";
