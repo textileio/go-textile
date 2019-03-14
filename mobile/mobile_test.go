@@ -88,7 +88,7 @@ var thrdId string
 var dir []byte
 var filesBlock *pb.Block
 var files []*pb.Files
-var invite *pb.NewInvite
+var invite *pb.ExternalInvite
 
 var contact = &pb.Contact{
 	Address: "address1",
@@ -678,7 +678,7 @@ func TestMobile_Profile(t *testing.T) {
 		t.Errorf("get profile failed: %s", err)
 		return
 	}
-	prof := new(pb.Contact)
+	prof := new(pb.Peer)
 	if err := proto.Unmarshal(profs, prof); err != nil {
 		t.Error(err)
 	}
@@ -707,12 +707,7 @@ func TestMobile_AddContactAgain(t *testing.T) {
 }
 
 func TestMobile_Contact(t *testing.T) {
-	pid, err := mobile1.PeerId()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	self, err := mobile1.Contact(pid)
+	self, err := mobile1.Contact(mobile1.Address())
 	if err != nil {
 		t.Errorf("get own contact failed: %s", err)
 		return
@@ -756,13 +751,7 @@ func TestMobile_AddInvite(t *testing.T) {
 		return
 	}
 
-	pid, err := mobile1.PeerId()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	contact1, err := mobile1.Contact(pid)
+	contact1, err := mobile1.Contact(mobile1.Address())
 	if err != nil {
 		t.Error(err)
 		return
@@ -773,14 +762,9 @@ func TestMobile_AddInvite(t *testing.T) {
 		return
 	}
 
-	hash, err := mobile2.AddInvite(thrd.Id, pid)
-	if err != nil {
+	if err := mobile2.AddInvite(thrd.Id, mobile1.Address()); err != nil {
 		t.Error(err)
 		return
-	}
-
-	if hash == "" {
-		t.Errorf("bad invite result: %s", hash)
 	}
 }
 
@@ -790,7 +774,7 @@ func TestMobile_AddExternalInvite(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	invite = new(pb.NewInvite)
+	invite = new(pb.ExternalInvite)
 	if err := proto.Unmarshal(res, invite); err != nil {
 		t.Error(err)
 		return

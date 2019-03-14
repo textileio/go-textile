@@ -145,11 +145,7 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 
 	// invite account peers
 	for _, p := range t.accountPeers() {
-		pid, err := peer.IDB58Decode(p.Id)
-		if err != nil {
-			return nil, err
-		}
-		if _, err := thrd.AddInvite(pid); err != nil {
+		if _, err := thrd.AddInvite(p); err != nil {
 			return nil, err
 		}
 	}

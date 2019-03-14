@@ -9,14 +9,57 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/util"
 )
 
+// ErrContactNotFound indicates a local contact was not found
+var ErrContactNotFound = errors.New("contact not found")
+
 // ErrThreadInviteNotFound indicates thread invite is not found
 var ErrThreadInviteNotFound = errors.New("thread invite not found")
+
+// AddInvite creates an invite for each of the target address's peers
+func (t *Textile) AddInvite(threadId string, address string) error {
+	thrd := t.Thread(threadId)
+	if thrd == nil {
+		return ErrThreadNotFound
+	}
+
+	peers := t.datastore.Peers().List(fmt.Sprintf("address='%s'", address))
+	if len(peers) == 0 {
+		return ErrContactNotFound
+	}
+
+	for _, p := range peers {
+		if _, err := thrd.AddInvite(p); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// AddExternalInvite generates a new external invite link to a thread
+func (t *Textile) AddExternalInvite(threadId string) (*pb.ExternalInvite, error) {
+	thrd := t.Thread(threadId)
+	if thrd == nil {
+		return nil, ErrThreadNotFound
+	}
+
+	hash, key, err := thrd.AddExternalInvite()
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.ExternalInvite{
+		Id:      hash.B58String(),
+		Key:     base58.FastBase58Encoding(key),
+		Inviter: t.account.Address(),
+	}, nil
+}
 
 // InviteView gets a pending invite as a view object, which does not include the block payload
 func (t *Textile) InviteView(invite *pb.Invite) *pb.InviteView {
@@ -30,9 +73,9 @@ func (t *Textile) InviteView(invite *pb.Invite) *pb.InviteView {
 		Date: invite.Date,
 	}
 
-	ex := t.datastore.Peers().Get(invite.Inviter.Id)
-	if ex != nil && (invite.Inviter == nil || util.ProtoTsIsNewer(ex.Updated, invite.Inviter.Updated)) {
-		view.Inviter = t.PeerUser(ex.Id)
+	x := t.datastore.Peers().Get(invite.Inviter.Id)
+	if x != nil && (invite.Inviter == nil || util.ProtoTsIsNewer(x.Updated, invite.Inviter.Updated)) {
+		view.Inviter = t.PeerUser(x.Id)
 	} else if invite.Inviter != nil {
 		view.Inviter = &pb.User{
 			Address: invite.Inviter.Address,

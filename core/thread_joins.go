@@ -107,7 +107,7 @@ func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 	// collect author as an unwelcomed peer
 	if msg.Peer != nil {
 		if cjson, err := pbMarshaler.MarshalToString(msg.Peer); err == nil {
-			log.Debugf("found contact: %s", cjson)
+			log.Debugf("found peer: %s", cjson)
 		}
 		if err := t.addOrUpdatePeer(msg.Peer); err != nil {
 			return nil, err

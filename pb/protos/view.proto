@@ -51,12 +51,6 @@ message Keys {
 
 // INVITES
 
-message NewInvite {
-    string id      = 1;
-    string key     = 2;
-    string inviter = 3;
-}
-
 message InviteView {
     string id                      = 1;
     string name                    = 2;
@@ -66,6 +60,12 @@ message InviteView {
 
 message InviteViewList {
     repeated InviteView items = 1;
+}
+
+message ExternalInvite {
+    string id      = 1;
+    string key     = 2;
+    string inviter = 3;
 }
 
 // FEED //

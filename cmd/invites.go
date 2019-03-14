@@ -11,7 +11,7 @@ func init() {
 var errMissingInviteId = errors.New("missing invite id")
 
 type invitesCmd struct {
-	Create createInvitesCmd `command:"create" description:"Create peer-to-peer or external invites to a thread"`
+	Create createInvitesCmd `command:"create" description:"Create account-to-account or external invites to a thread"`
 	List   lsInvitesCmd     `command:"ls" description:"List thread invites"`
 	Accept acceptInvitesCmd `command:"accept" description:"Accept an invite to a thread"`
 	Ignore ignoreInvitesCmd `command:"ignore" description:"Ignore direct invite to a thread"`
@@ -27,10 +27,10 @@ func (x *invitesCmd) Short() string {
 
 func (x *invitesCmd) Long() string {
 	return `
-Invites allow other peers to join threads. There are two types of
-invites, direct peer-to-peer and external:
+Invites allow other users to join threads. There are two types of
+invites, direct account-to-account and external:
 
-- Peer-to-peer invites are encrypted with the invitee's account address (public key).
+- Account-to-account invites are encrypted with the invitee's account address (public key).
 - External invites are encrypted with a single-use key and are useful for onboarding new users.
 `
 }
@@ -44,7 +44,7 @@ type createInvitesCmd struct {
 func (x *createInvitesCmd) Usage() string {
 	return `
 
-Creates a direct peer-to-peer or external invite to a thread.
+Creates a direct account-to-account or external invite to a thread.
 Omit the --address option to create an external invite.
 Omit the --thread option to use the default thread (if selected).
 `
@@ -60,18 +60,20 @@ func (x *createInvitesCmd) Execute(args []string) error {
 
 	}
 
-	return callCreateInvites(map[string]string{
-		"thread":  x.Thread,
-		"address": x.Address,
-	})
-}
-
-func callCreateInvites(opts map[string]string) error {
-	res, err := executeJsonCmd(POST, "invites", params{opts: opts}, nil)
+	res, err := executeJsonCmd(POST, "invites", params{
+		opts: map[string]string{
+			"thread":  x.Thread,
+			"address": x.Address,
+		},
+	}, nil)
 	if err != nil {
 		return err
 	}
-	output(res)
+	if res != "" {
+		output(res)
+	} else {
+		output("ok")
+	}
 	return nil
 }
 
@@ -104,7 +106,7 @@ type acceptInvitesCmd struct {
 func (x *acceptInvitesCmd) Usage() string {
 	return `
 
-Accepts a direct peer-to-peer or external invite to a thread.
+Accepts a direct account-to-account or external invite to a thread.
 Use the --key option with an external invite.
 `
 }
@@ -135,7 +137,7 @@ type ignoreInvitesCmd struct {
 func (x *ignoreInvitesCmd) Usage() string {
 	return `
 
-Ignores a direct peer-to-peer invite to a thread.
+Ignores a direct account-to-account invite to a thread.
 `
 }
 

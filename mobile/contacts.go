@@ -23,12 +23,12 @@ func (m *Mobile) AddContact(contact []byte) error {
 }
 
 // Contact calls core Contact
-func (m *Mobile) Contact(id string) ([]byte, error) {
+func (m *Mobile) Contact(address string) ([]byte, error) {
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
 
-	contact := m.node.Contact(id)
+	contact := m.node.Contact(address)
 	if contact == nil {
 		return nil, errors.New("contact not found")
 	}
@@ -46,21 +46,21 @@ func (m *Mobile) Contacts() ([]byte, error) {
 }
 
 // RemoveContact calls core RemoveContact
-func (m *Mobile) RemoveContact(id string) error {
+func (m *Mobile) RemoveContact(address string) error {
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
 
-	return m.node.RemoveContact(id)
+	return m.node.RemoveContact(address)
 }
 
 // ContactThreads calls core ContactThreads
-func (m *Mobile) ContactThreads(id string) ([]byte, error) {
+func (m *Mobile) ContactThreads(address string) ([]byte, error) {
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
 
-	thrds, err := m.node.ContactThreads(id)
+	thrds, err := m.node.ContactThreads(address)
 	if err != nil {
 		return nil, err
 	}
