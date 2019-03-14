@@ -38,7 +38,7 @@ func (t *Textile) comment(block *pb.Block, opts feedItemOpts) (*pb.Comment, erro
 	item := &pb.Comment{
 		Id:   block.Id,
 		Date: block.Date,
-		User: t.User(block.Author),
+		User: t.PeerUser(block.Author),
 		Body: block.Body,
 	}
 

@@ -27,7 +27,7 @@ func (t *Textile) NotificationView(note *pb.Notification) *pb.Notification {
 			note.User = invite.Inviter
 		}
 	default:
-		note.User = t.User(note.Actor)
+		note.User = t.PeerUser(note.Actor)
 	}
 	return note
 }

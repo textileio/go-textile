@@ -22,11 +22,11 @@ func (t *Textile) RegisterCafe(host string, token string) (*pb.CafeSession, erro
 		}
 	}
 
-	if err := t.updateContactInboxes(); err != nil {
+	if err := t.updatePeerInboxes(); err != nil {
 		return nil, err
 	}
 
-	if err := t.publishContact(); err != nil {
+	if err := t.publishPeer(); err != nil {
 		return nil, err
 	}
 
@@ -68,11 +68,11 @@ func (t *Textile) DeregisterCafe(peerId string) error {
 		}
 	}
 
-	if err := t.updateContactInboxes(); err != nil {
+	if err := t.updatePeerInboxes(); err != nil {
 		return err
 	}
 
-	return t.publishContact()
+	return t.publishPeer()
 }
 
 // CheckCafeMessages fetches new messages from registered cafes

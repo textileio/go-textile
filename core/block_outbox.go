@@ -144,7 +144,7 @@ func (q *BlockOutbox) handle(pid peer.ID, msg pb.BlockMessage) error {
 		}
 
 		// peer is offline, queue an outbound cafe request for the peer's inbox(es)
-		contact := q.datastore.Contacts().Get(pid.Pretty())
+		contact := q.datastore.Peers().Get(pid.Pretty())
 		if contact != nil && len(contact.Inboxes) > 0 {
 			log.Debugf("sending thread message for %s to inbox(es)", pid.Pretty())
 

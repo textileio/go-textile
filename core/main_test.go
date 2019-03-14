@@ -25,13 +25,11 @@ var other *Textile
 
 var token string
 
-var card = &pb.ContactCard{
-	User: &pb.User{
-		Address: "address1",
-		Name:    "joe",
-		Avatar:  "Qm123",
-	},
-	Contacts: []*pb.Contact{
+var contact = &pb.Contact{
+	Address: "address1",
+	Name:    "joe",
+	Avatar:  "Qm123",
+	Peers: []*pb.Peer{
 		{
 			Id:      "abcde",
 			Address: "address1",
@@ -183,14 +181,14 @@ func TestTextile_CafeRegistration(t *testing.T) {
 }
 
 func TestTextile_AddContact(t *testing.T) {
-	if err := node.AddContact(card); err != nil {
-		t.Errorf("add contact card failed: %s", err)
+	if err := node.AddContact(contact); err != nil {
+		t.Errorf("add contact failed: %s", err)
 	}
 }
 
 func TestTextile_AddContactAgain(t *testing.T) {
-	if err := node.AddContact(card); err != nil {
-		t.Errorf("adding duplicate contact card should not throw error")
+	if err := node.AddContact(contact); err != nil {
+		t.Errorf("adding duplicate contact should not throw error")
 	}
 }
 

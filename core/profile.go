@@ -11,9 +11,9 @@ import (
 	"github.com/textileio/go-textile/schema/textile"
 )
 
-// Profile returns this node's own contact info
-func (t *Textile) Profile() *pb.Contact {
-	return t.datastore.Contacts().Get(t.node.Identity.Pretty())
+// Profile returns this node's own peer
+func (t *Textile) Profile() *pb.Peer {
+	return t.datastore.Peers().Get(t.node.Identity.Pretty())
 }
 
 // Username returns profile username
@@ -30,7 +30,7 @@ func (t *Textile) SetName(name string) error {
 	if name == t.Name() {
 		return nil
 	}
-	if err := t.datastore.Contacts().UpdateName(t.node.Identity.Pretty(), name); err != nil {
+	if err := t.datastore.Peers().UpdateName(t.node.Identity.Pretty(), name); err != nil {
 		return err
 	}
 
@@ -40,7 +40,7 @@ func (t *Textile) SetName(name string) error {
 		}
 	}
 
-	return t.publishContact()
+	return t.publishPeer()
 }
 
 // Avatar returns profile avatar
@@ -134,9 +134,9 @@ func (t *Textile) SetAvatar(hash string) error {
 	}
 
 	avatar := node.Cid().Hash().B58String()
-	if err := t.datastore.Contacts().UpdateAvatar(t.node.Identity.Pretty(), avatar); err != nil {
+	if err := t.datastore.Peers().UpdateAvatar(t.node.Identity.Pretty(), avatar); err != nil {
 		return err
 	}
 
-	return t.publishContact()
+	return t.publishPeer()
 }

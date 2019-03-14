@@ -15,26 +15,26 @@ import (
 // @Accept application/json
 // @Produce application/json
 // @Param address path string true "address"
-// @Param contact body pb.ContactCard true "contact card"
+// @Param contact body pb.Contact true "contact"
 // @Success 200 {string} string "ok"
 // @Failure 400 {string} string "Bad Request"
 // @Router /contacts/{address} [put]
 func (a *api) addContacts(g *gin.Context) {
-	var card pb.ContactCard
-	if err := pbUnmarshaler.Unmarshal(g.Request.Body, &card); err != nil {
+	var contact pb.Contact
+	if err := pbUnmarshaler.Unmarshal(g.Request.Body, &contact); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
-	if card.User == nil || len(card.Contacts) == 0 {
+	if contact.Address == "" || len(contact.Peers) == 0 {
 		g.String(http.StatusBadRequest, "invalid contact")
 		return
 	}
-	if card.User.Address != g.Param("address") {
+	if contact.Address != g.Param("address") {
 		g.String(http.StatusBadRequest, "contact address mismatch")
 		return
 	}
 
-	if err := a.node.AddContact(&card); err != nil {
+	if err := a.node.AddContact(&contact); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
@@ -47,7 +47,7 @@ func (a *api) addContacts(g *gin.Context) {
 // @Description Lists known contacts.
 // @Tags contacts
 // @Produce application/json
-// @Success 200 {object} pb.ContactCardList "contact cards"
+// @Success 200 {object} pb.ContactList "contacts"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /contacts [get]
@@ -61,7 +61,7 @@ func (a *api) lsContacts(g *gin.Context) {
 // @Tags contacts
 // @Produce application/json
 // @Param address path string true "address"
-// @Success 200 {object} pb.ContactCard "contact card"
+// @Success 200 {object} pb.Contact "contact"
 // @Failure 404 {string} string "Not Found"
 // @Router /contacts/{address} [get]
 func (a *api) getContacts(g *gin.Context) {

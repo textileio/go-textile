@@ -14,16 +14,16 @@ func (t *Thread) AddInvite(peerId peer.ID) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	contact := t.datastore.Contacts().Get(peerId.Pretty())
+	contact := t.datastore.Peers().Get(peerId.Pretty())
 	if contact == nil {
-		return nil, ErrContactNotFound
+		return nil, ErrPeerNotFound
 	}
 
 	if !t.shareable(t.config.Account.Address, contact.Address) {
 		return nil, ErrNotShareable
 	}
 
-	self := t.datastore.Contacts().Get(t.node().Identity.Pretty())
+	self := t.datastore.Peers().Get(t.node().Identity.Pretty())
 	msg := &pb.ThreadAdd{
 		Thread:  t.datastore.Threads().Get(t.Id),
 		Inviter: self,
@@ -63,7 +63,7 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 		return nil, nil, ErrNotShareable
 	}
 
-	self := t.datastore.Contacts().Get(t.node().Identity.Pretty())
+	self := t.datastore.Peers().Get(t.node().Identity.Pretty())
 	msg := &pb.ThreadAdd{
 		Thread:  t.datastore.Threads().Get(t.Id),
 		Inviter: self,

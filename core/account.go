@@ -50,10 +50,9 @@ func (t *Textile) AccountThread() *Thread {
 	return t.ThreadByKey(t.config.Account.Address)
 }
 
-// AccountCard returns a contact card with all known account peers
-func (t *Textile) AccountCard() *pb.ContactCard {
-	query := fmt.Sprintf("address='%s'", t.account.Address())
-	return t.contact(query, false)
+// AccountContact returns a contact for this account
+func (t *Textile) AccountContact() *pb.Contact {
+	return t.contact(t.account.Address(), false)
 }
 
 // FindThreadBackups searches the network for backups
@@ -127,7 +126,7 @@ func (t *Textile) FindThreadBackups(query *pb.ThreadBackupQuery, options *pb.Que
 }
 
 // accountPeers returns all known account peers
-func (t *Textile) accountPeers() []*pb.Contact {
+func (t *Textile) accountPeers() []*pb.Peer {
 	query := fmt.Sprintf("address='%s' and id!='%s'", t.account.Address(), t.node.Identity.Pretty())
-	return t.datastore.Contacts().List(query)
+	return t.datastore.Peers().List(query)
 }

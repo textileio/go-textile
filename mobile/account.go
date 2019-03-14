@@ -38,13 +38,13 @@ func (m *Mobile) Decrypt(input []byte) ([]byte, error) {
 	return m.node.Decrypt(input)
 }
 
-// AccountPeers calls core AccountPeers
-func (m *Mobile) AccountPeers() ([]byte, error) {
+// AccountContact calls core AccountContact
+func (m *Mobile) AccountContact() ([]byte, error) {
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
 
-	return proto.Marshal(m.node.AccountPeers())
+	return proto.Marshal(m.node.AccountContact())
 }
 
 // FindThreadBackups calls core FindThreadBackups

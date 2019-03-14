@@ -24,8 +24,8 @@ import (
 	"github.com/textileio/go-textile/repo/config"
 )
 
-// ErrContactNotFound indicates a local contact was not found
-var ErrContactNotFound = errors.New("contact not found")
+// ErrPeerNotFound indicates a local peer was not found
+var ErrPeerNotFound = errors.New("peer not found")
 
 // ErrNotShareable indicates the thread does not allow invites, at least for _you_
 var ErrNotShareable = errors.New("thread is not shareable")
@@ -64,7 +64,7 @@ type ThreadConfig struct {
 	Service     func() *ThreadsService
 	BlockOutbox *BlockOutbox
 	CafeOutbox  *CafeOutbox
-	AddContact  func(*pb.Contact) error
+	AddPeer     func(*pb.Peer) error
 	PushUpdate  func(*pb.Block, string)
 }
 
@@ -88,7 +88,7 @@ type Thread struct {
 	service     func() *ThreadsService
 	blockOutbox *BlockOutbox
 	cafeOutbox  *CafeOutbox
-	addContact  func(*pb.Contact) error
+	addPeer     func(*pb.Peer) error
 	pushUpdate  func(*pb.Block, string)
 	mux         sync.Mutex
 }
@@ -127,7 +127,7 @@ func NewThread(model *pb.Thread, conf *ThreadConfig) (*Thread, error) {
 		service:     conf.Service,
 		blockOutbox: conf.BlockOutbox,
 		cafeOutbox:  conf.CafeOutbox,
-		addContact:  conf.AddContact,
+		addPeer:     conf.AddPeer,
 		pushUpdate:  conf.PushUpdate,
 	}, nil
 }
@@ -228,14 +228,14 @@ func (t *Thread) followParent(parent mh.Multihash) error {
 	return t.followParents(block.Header.Parents)
 }
 
-// addOrUpdateContact collects thread peers and saves them as contacts
-func (t *Thread) addOrUpdateContact(contact *pb.Contact) error {
-	if contact.Id == t.node().Identity.Pretty() {
+// addOrUpdatePeer collects and saves thread peers
+func (t *Thread) addOrUpdatePeer(peer *pb.Peer) error {
+	if peer.Id == t.node().Identity.Pretty() {
 		return nil
 	}
 
 	if err := t.datastore.ThreadPeers().Add(&pb.ThreadPeer{
-		Id:       contact.Id,
+		Id:       peer.Id,
 		Thread:   t.Id,
 		Welcomed: false,
 	}); err != nil {
@@ -244,7 +244,7 @@ func (t *Thread) addOrUpdateContact(contact *pb.Contact) error {
 		}
 	}
 
-	return t.addContact(contact)
+	return t.addPeer(peer)
 }
 
 // newBlockHeader creates a new header

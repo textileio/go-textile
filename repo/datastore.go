@@ -11,7 +11,7 @@ import (
 
 type Datastore interface {
 	Config() ConfigStore
-	Contacts() ContactStore
+	Peers() PeerStore
 	Files() FileStore
 	Threads() ThreadStore
 	ThreadPeers() ThreadPeerStore
@@ -46,14 +46,14 @@ type ConfigStore interface {
 	IsEncrypted() bool
 }
 
-type ContactStore interface {
+type PeerStore interface {
 	Queryable
-	Add(contact *pb.Contact) error
-	AddOrUpdate(contact *pb.Contact) error
-	Get(id string) *pb.Contact
-	GetBest(id string) *pb.Contact
-	List(query string) []*pb.Contact
-	Find(address string, username string, exclude []string) []*pb.Contact
+	Add(peer *pb.Peer) error
+	AddOrUpdate(peer *pb.Peer) error
+	Get(id string) *pb.Peer
+	GetBest(id string) *pb.Peer
+	List(query string) []*pb.Peer
+	Find(address string, username string, exclude []string) []*pb.Peer
 	Count(query string) int
 	UpdateName(id string, name string) error
 	UpdateAvatar(id string, avatar string) error

@@ -102,7 +102,7 @@ func (x *addContactsCmd) Execute(args []string) error {
 			return err
 		}
 
-		res, err := executeStringCmd(PUT, "contacts/"+contact.Id, params{
+		res, err := executeStringCmd(PUT, "contacts/"+contact.Address, params{
 			payload: strings.NewReader(data),
 			ctype:   "application/json",
 		})

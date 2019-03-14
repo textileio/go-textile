@@ -54,7 +54,7 @@ func startNode() error {
 				if !ok {
 					return
 				}
-				user := node.User(note.Actor)
+				user := node.PeerUser(note.Actor)
 				var uinote = app.NewNotification(&astilectron.NotificationOptions{
 					Title: note.Subject,
 					Body:  fmt.Sprintf("%s: %s.", user.Name, note.Body),

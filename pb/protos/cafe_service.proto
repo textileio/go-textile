@@ -34,12 +34,12 @@ message CafeRefreshSession {
     string refresh = 2;
 }
 
-message CafePublishContact {
-    string token    = 1;
-    Contact contact = 2;
+message CafePublishPeer {
+    string token = 1;
+    Peer peer    = 2;
 }
 
-message CafePublishContactAck {
+message CafePublishPeerAck {
     string id = 1;
 }
 

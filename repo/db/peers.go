@@ -11,15 +11,15 @@ import (
 	"github.com/textileio/go-textile/util"
 )
 
-type ContactDB struct {
+type PeerDB struct {
 	modelStore
 }
 
-func NewContactStore(db *sql.DB, lock *sync.Mutex) repo.ContactStore {
-	return &ContactDB{modelStore{db, lock}}
+func NewPeerStore(db *sql.DB, lock *sync.Mutex) repo.PeerStore {
+	return &PeerDB{modelStore{db, lock}}
 }
 
-func (c *ContactDB) Add(contact *pb.Contact) error {
+func (c *PeerDB) Add(peer *pb.Peer) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -34,16 +34,16 @@ func (c *ContactDB) Add(contact *pb.Contact) error {
 	}
 	defer stmt.Close()
 
-	inboxes, err := json.Marshal(contact.Inboxes)
+	inboxes, err := json.Marshal(peer.Inboxes)
 	if err != nil {
 		return err
 	}
 
 	_, err = stmt.Exec(
-		contact.Id,
-		contact.Address,
-		contact.Name,
-		contact.Avatar,
+		peer.Id,
+		peer.Address,
+		peer.Name,
+		peer.Avatar,
 		inboxes,
 		time.Now().UnixNano(),
 		time.Now().UnixNano(),
@@ -56,7 +56,7 @@ func (c *ContactDB) Add(contact *pb.Contact) error {
 	return nil
 }
 
-func (c *ContactDB) AddOrUpdate(contact *pb.Contact) error {
+func (c *PeerDB) AddOrUpdate(peer *pb.Peer) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	tx, err := c.db.Begin()
@@ -71,25 +71,25 @@ func (c *ContactDB) AddOrUpdate(contact *pb.Contact) error {
 	}
 	defer stmt.Close()
 
-	inboxes, err := json.Marshal(contact.Inboxes)
+	inboxes, err := json.Marshal(peer.Inboxes)
 	if err != nil {
 		return err
 	}
 
 	var created int64
-	if contact.Created == nil {
+	if peer.Created == nil {
 		created = time.Now().UnixNano()
 	} else {
-		created = util.ProtoNanos(contact.Created)
+		created = util.ProtoNanos(peer.Created)
 	}
 
 	_, err = stmt.Exec(
-		contact.Id,
-		contact.Address,
-		contact.Name,
-		contact.Avatar,
+		peer.Id,
+		peer.Address,
+		peer.Name,
+		peer.Avatar,
 		inboxes,
-		contact.Id,
+		peer.Id,
 		created,
 		time.Now().UnixNano(),
 	)
@@ -101,7 +101,7 @@ func (c *ContactDB) AddOrUpdate(contact *pb.Contact) error {
 	return nil
 }
 
-func (c *ContactDB) Get(id string) *pb.Contact {
+func (c *PeerDB) Get(id string) *pb.Peer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	res := c.handleQuery("select * from contacts where id='" + id + "';")
@@ -111,7 +111,7 @@ func (c *ContactDB) Get(id string) *pb.Contact {
 	return res[0]
 }
 
-func (c *ContactDB) GetBest(id string) *pb.Contact {
+func (c *PeerDB) GetBest(id string) *pb.Peer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	stm := "select *, (select address from contacts where id='" + id + "') as addr from contacts where address=addr order by updated desc limit 1;"
@@ -125,7 +125,7 @@ func (c *ContactDB) GetBest(id string) *pb.Contact {
 	return c.handleRow(id, address, username, avatar, inboxes, createdInt, updatedInt)
 }
 
-func (c *ContactDB) List(query string) []*pb.Contact {
+func (c *PeerDB) List(query string) []*pb.Peer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	q := "select * from contacts"
@@ -136,7 +136,7 @@ func (c *ContactDB) List(query string) []*pb.Contact {
 	return c.handleQuery(q)
 }
 
-func (c *ContactDB) Find(address string, name string, exclude []string) []*pb.Contact {
+func (c *PeerDB) Find(address string, name string, exclude []string) []*pb.Peer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if address == "" && name == "" {
@@ -165,7 +165,7 @@ func (c *ContactDB) Find(address string, name string, exclude []string) []*pb.Co
 	return c.handleQuery("select * from contacts where " + q + " order by updated desc;")
 }
 
-func (c *ContactDB) Count(query string) int {
+func (c *PeerDB) Count(query string) int {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	q := "select Count(*) from contacts"
@@ -179,21 +179,21 @@ func (c *ContactDB) Count(query string) int {
 	return count
 }
 
-func (c *ContactDB) UpdateName(id string, name string) error {
+func (c *PeerDB) UpdateName(id string, name string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	_, err := c.db.Exec("update contacts set username=?, updated=? where id=?", name, time.Now().UnixNano(), id)
 	return err
 }
 
-func (c *ContactDB) UpdateAvatar(id string, avatar string) error {
+func (c *PeerDB) UpdateAvatar(id string, avatar string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	_, err := c.db.Exec("update contacts set avatar=?, updated=? where id=?", avatar, time.Now().UnixNano(), id)
 	return err
 }
 
-func (c *ContactDB) UpdateInboxes(id string, inboxes []*pb.Cafe) error {
+func (c *PeerDB) UpdateInboxes(id string, inboxes []*pb.Cafe) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	inboxesb, err := json.Marshal(inboxes)
@@ -204,22 +204,22 @@ func (c *ContactDB) UpdateInboxes(id string, inboxes []*pb.Cafe) error {
 	return err
 }
 
-func (c *ContactDB) Delete(id string) error {
+func (c *PeerDB) Delete(id string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	_, err := c.db.Exec("delete from contacts where id=?", id)
 	return err
 }
 
-func (c *ContactDB) DeleteByAddress(address string) error {
+func (c *PeerDB) DeleteByAddress(address string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	_, err := c.db.Exec("delete from contacts where address=?", address)
 	return err
 }
 
-func (c *ContactDB) handleQuery(stm string) []*pb.Contact {
-	list := make([]*pb.Contact, 0)
+func (c *PeerDB) handleQuery(stm string) []*pb.Peer {
+	list := make([]*pb.Peer, 0)
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -241,14 +241,14 @@ func (c *ContactDB) handleQuery(stm string) []*pb.Contact {
 	return list
 }
 
-func (c *ContactDB) handleRow(id string, address string, name string, avatar string, inboxes []byte, createdInt int64, updatedInt int64) *pb.Contact {
+func (c *PeerDB) handleRow(id string, address string, name string, avatar string, inboxes []byte, createdInt int64, updatedInt int64) *pb.Peer {
 	cafes := make([]*pb.Cafe, 0)
 	if err := json.Unmarshal(inboxes, &cafes); err != nil {
 		log.Errorf("error unmarshaling cafes: %s", err)
 		return nil
 	}
 
-	return &pb.Contact{
+	return &pb.Peer{
 		Id:      id,
 		Address: address,
 		Name:    name,

@@ -30,9 +30,9 @@ func (t *Textile) InviteView(invite *pb.Invite) *pb.InviteView {
 		Date: invite.Date,
 	}
 
-	ex := t.datastore.Contacts().Get(invite.Inviter.Id)
+	ex := t.datastore.Peers().Get(invite.Inviter.Id)
 	if ex != nil && (invite.Inviter == nil || util.ProtoTsIsNewer(ex.Updated, invite.Inviter.Updated)) {
-		view.Inviter = t.User(ex.Id)
+		view.Inviter = t.PeerUser(ex.Id)
 	} else if invite.Inviter != nil {
 		view.Inviter = &pb.User{
 			Address: invite.Inviter.Address,
@@ -159,7 +159,7 @@ func (t *Textile) handleThreadAdd(plaintext []byte) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	if err := thrd.addOrUpdateContact(msg.Inviter); err != nil {
+	if err := thrd.addOrUpdatePeer(msg.Inviter); err != nil {
 		return nil, err
 	}
 

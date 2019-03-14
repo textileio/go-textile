@@ -52,7 +52,7 @@ func (tm *TestMessenger) Notify(event *Event) {
 					fmt.Println(err.Error())
 					return
 				}
-				fmt.Println(fmt.Sprintf("+++ FOUND CONTACT (qid=%s): %s", res.Id, val.Id))
+				fmt.Println(fmt.Sprintf("+++ FOUND CONTACT (qid=%s): %s", res.Id, val.Address))
 			}
 		case pb.MobileQueryEvent_DONE:
 			fmt.Println(fmt.Sprintf("+++ DONE (qid=%s)", res.Id))
@@ -90,13 +90,11 @@ var filesBlock *pb.Block
 var files []*pb.Files
 var invite *pb.NewInvite
 
-var card = &pb.ContactCard{
-	User: &pb.User{
-		Address: "address1",
-		Name:    "joe",
-		Avatar:  "Qm123",
-	},
-	Contacts: []*pb.Contact{
+var contact = &pb.Contact{
+	Address: "address1",
+	Name:    "joe",
+	Avatar:  "Qm123",
+	Peers: []*pb.Peer{
 		{
 			Id:      "abcde",
 			Address: "address1",
@@ -687,7 +685,7 @@ func TestMobile_Profile(t *testing.T) {
 }
 
 func TestMobile_AddContact(t *testing.T) {
-	payload, err := proto.Marshal(card)
+	payload, err := proto.Marshal(contact)
 	if err != nil {
 		t.Error(err)
 		return
@@ -698,7 +696,7 @@ func TestMobile_AddContact(t *testing.T) {
 }
 
 func TestMobile_AddContactAgain(t *testing.T) {
-	payload, err := proto.Marshal(card)
+	payload, err := proto.Marshal(contact)
 	if err != nil {
 		t.Error(err)
 		return

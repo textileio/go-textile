@@ -20,7 +20,7 @@ var pbMarshaler = jsonpb.Marshaler{
 
 type SQLiteDatastore struct {
 	config             repo.ConfigStore
-	contacts           repo.ContactStore
+	peers              repo.PeerStore
 	files              repo.FileStore
 	threads            repo.ThreadStore
 	threadPeers        repo.ThreadPeerStore
@@ -54,7 +54,7 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 	mux := new(sync.Mutex)
 	sqliteDB := &SQLiteDatastore{
 		config:             NewConfigStore(conn, mux, dbPath),
-		contacts:           NewContactStore(conn, mux),
+		peers:              NewPeerStore(conn, mux),
 		files:              NewFileStore(conn, mux),
 		threads:            NewThreadStore(conn, mux),
 		threadPeers:        NewThreadPeerStore(conn, mux),
@@ -89,8 +89,8 @@ func (d *SQLiteDatastore) Config() repo.ConfigStore {
 	return d.config
 }
 
-func (d *SQLiteDatastore) Contacts() repo.ContactStore {
-	return d.contacts
+func (d *SQLiteDatastore) Peers() repo.PeerStore {
+	return d.peers
 }
 
 func (d *SQLiteDatastore) Files() repo.FileStore {

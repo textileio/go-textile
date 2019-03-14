@@ -123,7 +123,7 @@ func (a *api) Start() {
 		account := v0.Group("/account")
 		{
 			account.GET("/address", a.accountAddress)
-			account.GET("/card", a.accountCard)
+			account.GET("/contact", a.accountContact)
 			account.POST("/backups", a.accountBackups)
 		}
 

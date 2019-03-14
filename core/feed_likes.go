@@ -38,7 +38,7 @@ func (t *Textile) like(block *pb.Block, opts feedItemOpts) (*pb.Like, error) {
 	item := &pb.Like{
 		Id:   block.Id,
 		Date: block.Date,
-		User: t.User(block.Author),
+		User: t.PeerUser(block.Author),
 	}
 
 	if opts.target != nil {

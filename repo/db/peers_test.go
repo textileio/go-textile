@@ -10,9 +10,9 @@ import (
 	"github.com/textileio/go-textile/util"
 )
 
-var contactStore repo.ContactStore
+var peerStore repo.PeerStore
 
-var testContact *pb.Contact
+var testPeer *pb.Peer
 var testCafe = &pb.Cafe{
 	Peer:     "peer",
 	Address:  "address",
@@ -23,24 +23,24 @@ var testCafe = &pb.Cafe{
 }
 
 func init() {
-	setupContactDB()
+	setupPeerDB()
 }
 
-func setupContactDB() {
+func setupPeerDB() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
 	initDatabaseTables(conn, "")
-	contactStore = NewContactStore(conn, new(sync.Mutex))
+	peerStore = NewPeerStore(conn, new(sync.Mutex))
 }
 
-func TestContactDB_Add(t *testing.T) {
-	if err := contactStore.Add(&pb.Contact{
+func TestPeerDB_Add(t *testing.T) {
+	if err := peerStore.Add(&pb.Peer{
 		Id:      "abcde",
 		Address: "address",
 	}); err != nil {
 		t.Error(err)
 		return
 	}
-	stmt, err := contactStore.PrepareQuery("select id from contacts where id=?")
+	stmt, err := peerStore.PrepareQuery("select id from contacts where id=?")
 	if err != nil {
 		t.Error(err)
 		return
@@ -56,29 +56,29 @@ func TestContactDB_Add(t *testing.T) {
 	}
 }
 
-func TestContactDB_Get(t *testing.T) {
-	testContact = contactStore.Get("abcde")
-	if testContact == nil {
-		t.Error("could not get contact")
+func TestPeerDB_Get(t *testing.T) {
+	testPeer = peerStore.Get("abcde")
+	if testPeer == nil {
+		t.Error("could not get peer")
 	}
 }
 
-func TestContactDB_GetBest(t *testing.T) {
-	testContact = contactStore.GetBest("abcde")
-	if testContact == nil {
-		t.Error("could not get best contact")
+func TestPeerDB_GetBest(t *testing.T) {
+	testPeer = peerStore.GetBest("abcde")
+	if testPeer == nil {
+		t.Error("could not get best peer")
 	}
 }
 
-func TestContactDB_AddOrUpdate(t *testing.T) {
-	testContact.Name = "joe"
-	testContact.Avatar = "Qm123"
-	testContact.Inboxes = []*pb.Cafe{testCafe}
-	if err := contactStore.AddOrUpdate(testContact); err != nil {
+func TestPeerDB_AddOrUpdate(t *testing.T) {
+	testPeer.Name = "joe"
+	testPeer.Avatar = "Qm123"
+	testPeer.Inboxes = []*pb.Cafe{testCafe}
+	if err := peerStore.AddOrUpdate(testPeer); err != nil {
 		t.Error(err)
 		return
 	}
-	stmt, err := contactStore.PrepareQuery("select username, updated from contacts where id=?")
+	stmt, err := peerStore.PrepareQuery("select username, updated from contacts where id=?")
 	if err != nil {
 		t.Error(err)
 		return
@@ -94,15 +94,15 @@ func TestContactDB_AddOrUpdate(t *testing.T) {
 		t.Errorf(`expected "joe" got %s`, username)
 		return
 	}
-	old := util.ProtoNanos(testContact.Updated)
+	old := util.ProtoNanos(testPeer.Updated)
 	if updated <= old {
 		t.Errorf("updated was not updated (old: %d, new: %d)", old, updated)
 	}
 }
 
-func TestContactDB_List(t *testing.T) {
-	setupContactDB()
-	if err := contactStore.Add(&pb.Contact{
+func TestPeerDB_List(t *testing.T) {
+	setupPeerDB()
+	if err := peerStore.Add(&pb.Peer{
 		Id:      "abcde",
 		Address: "address1",
 		Name:    "joe",
@@ -112,7 +112,7 @@ func TestContactDB_List(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if err := contactStore.Add(&pb.Contact{
+	if err := peerStore.Add(&pb.Peer{
 		Id:      "fghij",
 		Address: "address2",
 		Name:    "joe",
@@ -122,71 +122,71 @@ func TestContactDB_List(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	list := contactStore.List("")
+	list := peerStore.List("")
 	if len(list) != 2 {
 		t.Error("returned incorrect number of contacts")
 	}
 }
 
-func TestContactDB_Count(t *testing.T) {
-	if contactStore.Count("") != 2 {
+func TestPeerDB_Count(t *testing.T) {
+	if peerStore.Count("") != 2 {
 		t.Error("returned incorrect count of contacts")
 	}
 }
 
-func TestContactDB_UpdateName(t *testing.T) {
-	if err := contactStore.UpdateName(testContact.Id, "mike"); err != nil {
+func TestPeerDB_UpdateName(t *testing.T) {
+	if err := peerStore.UpdateName(testPeer.Id, "mike"); err != nil {
 		t.Error(err)
 		return
 	}
-	updated := contactStore.Get(testContact.Id)
+	updated := peerStore.Get(testPeer.Id)
 	if updated.Name != "mike" {
 		t.Error("update username failed")
 		return
 	}
-	if util.ProtoNanos(updated.Updated) <= util.ProtoNanos(testContact.Updated) {
+	if util.ProtoNanos(updated.Updated) <= util.ProtoNanos(testPeer.Updated) {
 		t.Error("update was not updated")
 	}
-	testContact = updated
+	testPeer = updated
 }
 
-func TestContactDB_UpdateAvatar(t *testing.T) {
-	if err := contactStore.UpdateAvatar(testContact.Id, "avatar2"); err != nil {
+func TestPeerDB_UpdateAvatar(t *testing.T) {
+	if err := peerStore.UpdateAvatar(testPeer.Id, "avatar2"); err != nil {
 		t.Error(err)
 		return
 	}
-	updated := contactStore.Get(testContact.Id)
+	updated := peerStore.Get(testPeer.Id)
 	if updated.Avatar != "avatar2" {
 		t.Error("update avatar failed")
 		return
 	}
-	if util.ProtoNanos(updated.Updated) <= util.ProtoNanos(testContact.Updated) {
+	if util.ProtoNanos(updated.Updated) <= util.ProtoNanos(testPeer.Updated) {
 		t.Error("update was not updated")
 	}
-	testContact = updated
+	testPeer = updated
 }
 
-func TestContactDB_UpdateInboxes(t *testing.T) {
+func TestPeerDB_UpdateInboxes(t *testing.T) {
 	testCafe.Peer = "newone"
-	if err := contactStore.UpdateInboxes(testContact.Id, []*pb.Cafe{testCafe}); err != nil {
+	if err := peerStore.UpdateInboxes(testPeer.Id, []*pb.Cafe{testCafe}); err != nil {
 		t.Error(err)
 		return
 	}
-	updated := contactStore.Get(testContact.Id)
+	updated := peerStore.Get(testPeer.Id)
 	if updated.Inboxes[0].Peer != "newone" {
 		t.Error("update inboxes failed")
 		return
 	}
-	if util.ProtoNanos(updated.Updated) <= util.ProtoNanos(testContact.Updated) {
+	if util.ProtoNanos(updated.Updated) <= util.ProtoNanos(testPeer.Updated) {
 		t.Error("update was not updated")
 	}
 }
 
-func TestContactDB_Delete(t *testing.T) {
-	if err := contactStore.Delete("abcde"); err != nil {
+func TestPeerDB_Delete(t *testing.T) {
+	if err := peerStore.Delete("abcde"); err != nil {
 		t.Error(err)
 	}
-	stmt, err := contactStore.PrepareQuery("select id from contacts where id=?")
+	stmt, err := peerStore.PrepareQuery("select id from contacts where id=?")
 	if err != nil {
 		t.Error(err)
 	}

@@ -92,7 +92,7 @@ func (c *InviteDB) handleQuery(stm string) *pb.InviteList {
 			continue
 		}
 
-		inviter := new(pb.Contact)
+		inviter := new(pb.Peer)
 		if err := proto.Unmarshal(inviterb, inviter); err != nil {
 			log.Errorf("error unmarshaling inviter: %s", err)
 			continue

@@ -270,22 +270,22 @@ loop:
 	return threads
 }
 
-// ThreadPeers returns a contact card list of thread peers
-func (t *Textile) ThreadPeers(id string) (*pb.ContactCardList, error) {
+// ThreadPeers returns a list of thread peers
+func (t *Textile) ThreadPeers(id string) (*pb.PeerList, error) {
 	thrd := t.Thread(id)
 	if thrd == nil {
 		return nil, ErrThreadNotFound
 	}
 
-	contacts := &pb.ContactCardList{Items: make([]*pb.ContactCard, 0)}
-	for _, p := range thrd.Peers() {
-		contact := t.Contact(p.Id)
-		if contact != nil {
-			contacts.Items = append(contacts.Items, contact)
+	peers := &pb.PeerList{Items: make([]*pb.Peer, 0)}
+	for _, tp := range thrd.Peers() {
+		p := t.datastore.Peers().Get(tp.Id)
+		if p != nil {
+			peers.Items = append(peers.Items, p)
 		}
 	}
 
-	return contacts, nil
+	return peers, nil
 }
 
 // RemoveThread removes a thread
@@ -355,7 +355,7 @@ func (t *Textile) ThreadView(id string) (*pb.Thread, error) {
 	if mod.Head != "" {
 		mod.HeadBlock = t.datastore.Blocks().Get(mod.Head)
 		if mod.HeadBlock != nil {
-			mod.HeadBlock.User = t.User(mod.HeadBlock.Author)
+			mod.HeadBlock.User = t.PeerUser(mod.HeadBlock.Author)
 		}
 	}
 	mod.BlockCount = int32(t.datastore.Blocks().Count(fmt.Sprintf("threadId='%s'", thrd.Id)))

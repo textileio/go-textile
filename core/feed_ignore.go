@@ -20,7 +20,7 @@ func (t *Textile) ignore(block *pb.Block, opts feedItemOpts) (*pb.Ignore, error)
 	return &pb.Ignore{
 		Block:  block.Id,
 		Date:   block.Date,
-		User:   t.User(block.Author),
+		User:   t.PeerUser(block.Author),
 		Target: target,
 	}, nil
 }

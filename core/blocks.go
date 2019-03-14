@@ -44,6 +44,6 @@ func (t *Textile) BlockView(id string) (*pb.Block, error) {
 		return nil, err
 	}
 
-	block.User = t.User(block.Author)
+	block.User = t.PeerUser(block.Author)
 	return block, nil
 }

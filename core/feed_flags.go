@@ -20,7 +20,7 @@ func (t *Textile) flag(block *pb.Block, opts feedItemOpts) (*pb.Flag, error) {
 	return &pb.Flag{
 		Block:  block.Id,
 		Date:   block.Date,
-		User:   t.User(block.Author),
+		User:   t.PeerUser(block.Author),
 		Target: target,
 	}, nil
 }

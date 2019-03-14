@@ -131,8 +131,8 @@ func (h *CafeService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error
 		return h.handleDeleteMessages(pid, env)
 	case pb.Message_CAFE_YOU_HAVE_MAIL:
 		return h.handleNotifyClient(pid, env)
-	case pb.Message_CAFE_PUBLISH_CONTACT:
-		return h.handlePublishContact(pid, env)
+	case pb.Message_CAFE_PUBLISH_PEER:
+		return h.handlePublishPeer(pid, env)
 	case pb.Message_CAFE_PUBSUB_QUERY:
 		return h.handlePubSubQuery(pid, env)
 	case pb.Message_CAFE_PUBSUB_QUERY_RES:
@@ -385,12 +385,12 @@ func (h *CafeService) DeleteMessages(cafe peer.ID) error {
 	return h.CheckMessages(cafe)
 }
 
-// PublishContact publishes the local peer's contact info
-func (h *CafeService) PublishContact(contact *pb.Contact, cafe peer.ID) error {
+// PublishPeer publishes the local peer's info
+func (h *CafeService) PublishPeer(peer *pb.Peer, cafe peer.ID) error {
 	if _, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
-		return h.service.NewEnvelope(pb.Message_CAFE_PUBLISH_CONTACT, &pb.CafePublishContact{
-			Token:   session.Access,
-			Contact: contact,
+		return h.service.NewEnvelope(pb.Message_CAFE_PUBLISH_PEER, &pb.CafePublishPeer{
+			Token: session.Access,
+			Peer:  peer,
 		}, nil, false)
 	}); err != nil {
 		return err
@@ -633,20 +633,18 @@ func (h *CafeService) searchLocal(qtype pb.Query_Type, options *pb.QueryOptions,
 			return nil, err
 		}
 
-		contacts := h.datastore.Contacts().Find(q.Address, q.Username, options.Exclude)
-		for _, c := range contacts {
-			c.Name = toUserName(c)
-
-			value, err := proto.Marshal(c)
+		peers := h.datastore.Peers().Find(q.Address, q.Username, options.Exclude)
+		for _, p := range peers {
+			value, err := proto.Marshal(p)
 			if err != nil {
 				return nil, err
 			}
 			results.Add(&pb.QueryResult{
-				Id:    c.Id,
-				Date:  c.Updated,
+				Id:    p.Id,
+				Date:  p.Updated,
 				Local: local,
 				Value: &any.Any{
-					TypeUrl: "/Contact",
+					TypeUrl: "/Peer",
 					Value:   value,
 				},
 			})
@@ -1186,9 +1184,9 @@ func (h *CafeService) handleNotifyClient(pid peer.ID, env *pb.Envelope) (*pb.Env
 	return nil, nil
 }
 
-// handlePublishContact indexes a client's contact info for others to search
-func (h *CafeService) handlePublishContact(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
-	pub := new(pb.CafePublishContact)
+// handlePublishPeer indexes a client's peer info for others to search
+func (h *CafeService) handlePublishPeer(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	pub := new(pb.CafePublishPeer)
 	if err := ptypes.UnmarshalAny(env.Message.Payload, pub); err != nil {
 		return nil, err
 	}
@@ -1206,14 +1204,14 @@ func (h *CafeService) handlePublishContact(pid peer.ID, env *pb.Envelope) (*pb.E
 		return h.service.NewError(403, errForbidden, env.Message.RequestId)
 	}
 
-	if err := h.datastore.Contacts().AddOrUpdate(pub.Contact); err != nil {
+	if err := h.datastore.Peers().AddOrUpdate(pub.Peer); err != nil {
 		return nil, err
 	}
 
-	res := &pb.CafePublishContactAck{
-		Id: pub.Contact.Id,
+	res := &pb.CafePublishPeerAck{
+		Id: pub.Peer.Id,
 	}
-	return h.service.NewEnvelope(pb.Message_CAFE_PUBLISH_CONTACT_ACK, res, &env.Message.RequestId, true)
+	return h.service.NewEnvelope(pb.Message_CAFE_PUBLISH_PEER_ACK, res, &env.Message.RequestId, true)
 }
 
 // handleQuery receives a query request

@@ -109,7 +109,7 @@ func (t *Textile) file(block *pb.Block, opts feedItemOpts) (*pb.Files, error) {
 		Block:   block.Id,
 		Target:  block.Target,
 		Date:    block.Date,
-		User:    t.User(block.Author),
+		User:    t.PeerUser(block.Author),
 		Caption: block.Body,
 		Files:   files,
 		Threads: threads,

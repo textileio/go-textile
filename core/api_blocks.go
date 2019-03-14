@@ -56,7 +56,7 @@ func (a *api) lsBlocks(g *gin.Context) {
 	query := fmt.Sprintf("threadId='%s'", thrd.Id)
 	blocks := a.node.datastore.Blocks().List(opts["offset"], limit, query)
 	for _, block := range blocks.Items {
-		block.User = a.node.User(block.Author)
+		block.User = a.node.PeerUser(block.Author)
 	}
 
 	pbJSON(g, http.StatusOK, blocks)
