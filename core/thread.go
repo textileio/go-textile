@@ -476,13 +476,13 @@ func (t *Thread) post(commit *commitResult, peers []pb.ThreadPeer) error {
 		go t.cafeOutbox.Flush()
 		return nil
 	}
-	env, err := t.service().NewEnvelope(t.Id, commit.hash, commit.ciphertext)
+
+	// add account signature
+	sig, err := t.account.Sign(commit.ciphertext)
 	if err != nil {
 		return err
 	}
-
-	// add account signature
-	env.Sig, err = t.account.Sign(commit.ciphertext)
+	env, err := t.service().NewEnvelope(t.Id, commit.hash, commit.ciphertext, sig)
 	if err != nil {
 		return err
 	}

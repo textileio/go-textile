@@ -178,11 +178,12 @@ func (h *ThreadsService) SendMessage(ctx context.Context, pid peer.ID, env *pb.E
 }
 
 // NewEnvelope signs and wraps an encypted block for transport
-func (h *ThreadsService) NewEnvelope(threadId string, hash mh.Multihash, ciphertext []byte) (*pb.Envelope, error) {
+func (h *ThreadsService) NewEnvelope(threadId string, hash mh.Multihash, ciphertext []byte, sig []byte) (*pb.Envelope, error) {
 	tenv := &pb.ThreadEnvelope{
 		Thread:     threadId,
 		Hash:       hash.B58String(),
 		Ciphertext: ciphertext,
+		Sig:        sig,
 	}
 	return h.service.NewEnvelope(pb.Message_THREAD_ENVELOPE, tenv, nil, false)
 }

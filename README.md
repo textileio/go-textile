@@ -269,7 +269,7 @@ go run *.go
 You can also build the architecture-specific versions with:
 
 ```
-astilectron-bundle -v -c bundler.{darwin,linux,windows}.json
+astilectron-bundler -v -c bundler.{darwin,linux,windows}.json
 ```
 
 ##### Linux
