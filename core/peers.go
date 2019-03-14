@@ -14,16 +14,16 @@ import (
 // Note: If no underlying contact is found, this will return an blank object w/ a
 // generic user name for display-only purposes.
 func (t *Textile) PeerUser(id string) *pb.User {
-	contact := t.datastore.Peers().GetBest(id)
-	if contact == nil {
+	p := t.datastore.Peers().GetBest(id)
+	if p == nil {
 		return &pb.User{
 			Name: ipfs.ShortenID(id),
 		}
 	}
 	return &pb.User{
-		Address: contact.Address,
-		Name:    toName(contact),
-		Avatar:  contact.Avatar,
+		Address: p.Address,
+		Name:    toName(p),
+		Avatar:  p.Avatar,
 	}
 }
 
@@ -90,15 +90,15 @@ func (t *Textile) updatePeerInboxes() error {
 }
 
 // toName returns a peer's name or trimmed address
-func toName(contact *pb.Peer) string {
-	if contact == nil || contact.Address == "" {
+func toName(peer *pb.Peer) string {
+	if peer == nil || peer.Address == "" {
 		return ""
 	}
-	if contact.Name != "" {
-		return contact.Name
+	if peer.Name != "" {
+		return peer.Name
 	}
-	if len(contact.Address) >= 7 {
-		return contact.Address[:7]
+	if len(peer.Address) >= 7 {
+		return peer.Address[:7]
 	}
 	return ""
 }

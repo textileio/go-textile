@@ -3,6 +3,8 @@ package core
 import (
 	"fmt"
 
+	"github.com/golang/protobuf/ptypes"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/textileio/go-textile/broadcast"
@@ -26,7 +28,7 @@ func (t *Textile) Contact(address string) *pb.Contact {
 
 // Contacts returns all known contacts, excluding self
 func (t *Textile) Contacts() *pb.ContactList {
-	return t.contacts(t.account.Address(), true)
+	return t.contacts(true)
 }
 
 // RemoveContact removes all contacts that share the given address
@@ -78,7 +80,55 @@ func (t *Textile) SearchContacts(query *pb.ContactQuery, options *pb.QueryOption
 			Value:   payload,
 		},
 	})
-	return resCh, errCh, cancel, nil
+
+	// transform and results into contacts
+	contacts := make(map[string]*pb.Contact)
+	tresCh := make(chan *pb.QueryResult)
+	terrCh := make(chan error)
+	go func() {
+		for {
+			select {
+			case res, ok := <-resCh:
+				if !ok {
+					close(tresCh)
+					return
+				}
+
+				peer := new(pb.Peer)
+				if err := ptypes.UnmarshalAny(res.Value, peer); err != nil {
+					terrCh <- err
+					break
+				}
+
+				if _, ok := contacts[peer.Address]; !ok {
+					contacts[peer.Address] = &pb.Contact{
+						Address: peer.Address,
+						Name:    peer.Name,
+						Avatar:  peer.Avatar,
+					}
+				}
+				contacts[peer.Address].Peers = append(contacts[peer.Address].Peers, peer)
+
+				value, err := proto.Marshal(contacts[peer.Address])
+				if err != nil {
+					terrCh <- err
+					break
+				}
+
+				res.Id = peer.Address
+				res.Value = &any.Any{
+					TypeUrl: "/Contact",
+					Value:   value,
+				}
+				tresCh <- res
+
+			case err := <-errCh:
+				terrCh <- err
+			}
+		}
+	}()
+
+	return tresCh, terrCh, cancel, nil
 }
 
 // contact returns all peers with the given address as a contact
@@ -98,9 +148,9 @@ func (t *Textile) contact(address string, addThreads bool) *pb.Contact {
 }
 
 // contacts returns a list of contacts for the given address
-func (t *Textile) contacts(address string, addThreads bool) *pb.ContactList {
+func (t *Textile) contacts(addThreads bool) *pb.ContactList {
 	groups := make(map[string]*pb.Contact)
-	for _, p := range t.datastore.Peers().List(fmt.Sprintf("address='%s'", address)) {
+	for _, p := range t.datastore.Peers().List(fmt.Sprintf("address!='%s'", t.account.Address())) {
 		if groups[p.Address] == nil {
 			groups[p.Address] = &pb.Contact{
 				Address: p.Address,
@@ -129,7 +179,6 @@ func (t *Textile) contactView(contact *pb.Contact, addThreads bool) *pb.Contact 
 
 	if addThreads {
 		threads := make(map[string]struct{})
-		contact.Threads = make([]string, 0)
 		for _, p := range contact.Peers {
 			for _, tp := range t.datastore.ThreadPeers().ListById(p.Id) {
 				if _, ok := threads[tp.Thread]; ok {

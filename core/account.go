@@ -73,7 +73,7 @@ func (t *Textile) FindThreadBackups(query *pb.ThreadBackupQuery, options *pb.Que
 		},
 	})
 
-	// transform and filter results by decrypting
+	// transform and filter results into plaintext
 	backups := make(map[string]struct{})
 	tresCh := make(chan *pb.QueryResult)
 	terrCh := make(chan error)

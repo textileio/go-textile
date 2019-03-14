@@ -49,7 +49,7 @@ func (m *Mobile) AddExternalInvite(threadId string) ([]byte, error) {
 		return nil, err
 	}
 
-	username, _ := m.Username()
+	username, _ := m.Name()
 	invite := &pb.NewInvite{
 		Id:      hash.B58String(),
 		Key:     base58.FastBase58Encoding(key),

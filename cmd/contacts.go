@@ -73,10 +73,10 @@ func (x *addContactsCmd) Execute(args []string) error {
 		return nil
 	}
 
-	var remote []pb.QueryResult
+	remote := make(map[string]pb.QueryResult)
 	for _, res := range results {
 		if !res.Local {
-			remote = append(remote, res)
+			remote[res.Id] = res // overwrite with newer / more complete result
 		}
 	}
 	if len(remote) == 0 {
