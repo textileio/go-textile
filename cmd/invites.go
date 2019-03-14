@@ -2,6 +2,12 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/golang/protobuf/ptypes"
+	"github.com/textileio/go-textile/pb"
 )
 
 func init() {
@@ -39,6 +45,7 @@ type createInvitesCmd struct {
 	Client  ClientOptions `group:"Client Options"`
 	Thread  string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
 	Address string        `short:"a" long:"address" description:"Account address. Omit to create an external invite."`
+	Wait    int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"2"`
 }
 
 func (x *createInvitesCmd) Usage() string {
@@ -57,13 +64,73 @@ func (x *createInvitesCmd) Execute(args []string) error {
 	}
 
 	if x.Address != "" {
+		contact, _, _ := callGetContacts(x.Address)
+		if contact != nil {
+			return callCreateInvites(x.Thread, x.Address)
+		}
 
+		output("Could not find contact locally, searching network...")
+
+		results := handleSearchStream("contacts/search", params{
+			opts: map[string]string{
+				"address": x.Address,
+				"limit":   strconv.Itoa(10),
+				"wait":    strconv.Itoa(x.Wait),
+			},
+		})
+
+		if len(results) == 0 {
+			output("Could not find contact")
+			return nil
+		}
+
+		remote := make(map[string]pb.QueryResult)
+		for _, res := range results {
+			if !res.Local {
+				remote[res.Id] = res // overwrite with newer / more complete result
+			}
+		}
+		result, ok := remote[x.Address]
+		if !ok {
+			output("Could not find contact")
+			return nil
+		}
+
+		if !confirm(fmt.Sprintf("Add and invite %s?", result.Id)) {
+			return nil
+		}
+
+		contact = new(pb.Contact)
+		if err := ptypes.UnmarshalAny(result.Value, contact); err != nil {
+			return err
+		}
+		data, err := pbMarshaler.MarshalToString(result.Value)
+		if err != nil {
+			return err
+		}
+
+		res, err := executeStringCmd(PUT, "contacts/"+contact.Address, params{
+			payload: strings.NewReader(data),
+			ctype:   "application/json",
+		})
+		if err != nil {
+			return err
+		}
+		if res == "ok" {
+			output("added " + result.Id)
+		} else {
+			return fmt.Errorf("error adding %s: %s", result.Id, res)
+		}
 	}
 
+	return callCreateInvites(x.Thread, x.Address)
+}
+
+func callCreateInvites(thread string, address string) error {
 	res, err := executeJsonCmd(POST, "invites", params{
 		opts: map[string]string{
-			"thread":  x.Thread,
-			"address": x.Address,
+			"thread":  thread,
+			"address": address,
 		},
 	}, nil)
 	if err != nil {

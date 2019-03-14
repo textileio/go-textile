@@ -156,16 +156,21 @@ func (x *getContactsCmd) Execute(args []string) error {
 		return errMissingAddress
 	}
 
-	return callGetContacts(args[0])
-}
-
-func callGetContacts(address string) error {
-	res, err := executeJsonCmd(GET, "contacts/"+address, params{}, nil)
+	_, res, err := callGetContacts(args[0])
 	if err != nil {
 		return err
 	}
 	output(res)
 	return nil
+}
+
+func callGetContacts(address string) (*pb.Contact, string, error) {
+	var contact pb.Contact
+	res, err := executeJsonPbCmd(GET, "contacts/"+address, params{}, &contact)
+	if err != nil {
+		return nil, "", err
+	}
+	return &contact, res, nil
 }
 
 type rmContactsCmd struct {
