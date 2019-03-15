@@ -2,6 +2,7 @@ package mobile_test
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -386,8 +387,38 @@ func TestMobile_Messages(t *testing.T) {
 	}
 }
 
+func TestMobile_PrepareFilesSync(t *testing.T) {
+	data, err := getImageFileData()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	res, err := mobile1.PrepareFilesSync(data, thrdId)
+	if err != nil {
+		t.Errorf("prepare files failed: %s", err)
+		return
+	}
+	pre := new(pb.MobilePreparedFiles)
+	if err := proto.Unmarshal(res, pre); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(pre.Dir.Files) != 3 {
+		t.Error("wrong number of files")
+	}
+}
+
 func TestMobile_PrepareFiles(t *testing.T) {
-	res, err := mobile1.PrepareFiles("../mill/testdata/image.jpeg", thrdId)
+	data, err := getImageFileData()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	mobile1.PrepareFiles(data, thrdId, &TestCallback{})
+}
+
+func TestMobile_PrepareFilesByPathSync(t *testing.T) {
+	res, err := mobile1.PrepareFilesByPathSync("../mill/testdata/image.jpeg", thrdId)
 	if err != nil {
 		t.Errorf("prepare files failed: %s", err)
 		return
@@ -406,7 +437,7 @@ func TestMobile_PrepareFiles(t *testing.T) {
 		return
 	}
 
-	res2, err := mobile1.PrepareFiles(pre.Dir.Files["large"].Hash, thrdId)
+	res2, err := mobile1.PrepareFilesByPathSync(pre.Dir.Files["large"].Hash, thrdId)
 	if err != nil {
 		t.Errorf("prepare files by existing hash failed: %s", err)
 		return
@@ -421,8 +452,8 @@ func TestMobile_PrepareFiles(t *testing.T) {
 	}
 }
 
-func TestMobile_PrepareFilesAsync(t *testing.T) {
-	mobile1.PrepareFilesAsync("../mill/testdata/image.jpeg", thrdId, &TestCallback{})
+func TestMobile_PrepareFilesByPath(t *testing.T) {
+	mobile1.PrepareFilesByPath("../mill/testdata/image.jpeg", thrdId, &TestCallback{})
 }
 
 func TestMobile_AddFiles(t *testing.T) {
@@ -883,4 +914,17 @@ func createAndStartMobile(repoPath string, waitForOnline bool) (*Mobile, error) 
 	}
 
 	return mobile, nil
+}
+
+func getImageFileData() ([]byte, error) {
+	f, err := os.Open("../mill/testdata/image.jpeg")
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }
