@@ -1,6 +1,7 @@
 package mobile
 
 import (
+	"bytes"
 	"encoding/base64"
 	"errors"
 	"io"
@@ -21,8 +22,122 @@ import (
 	"github.com/textileio/go-textile/schema"
 )
 
-// PrepareFiles processes a file by path for a thread, but does NOT share it
-func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
+// PrepareFiles processes a file by data for a thread, but does NOT share it
+func (m *Mobile) PrepareFiles(data []byte, threadId string, cb Callback) {
+	go func() {
+		cb.Call(m.PrepareFilesSync(data, threadId))
+	}()
+}
+
+// PrepareFilesByPath processes a file by path for a thread, but does NOT share it
+func (m *Mobile) PrepareFilesByPath(path string, threadId string, cb Callback) {
+	go func() {
+		cb.Call(m.PrepareFilesByPathSync(path, threadId))
+	}()
+}
+
+// PrepareFiles processes a file by data for a thread, but does NOT share it
+func (m *Mobile) PrepareFilesSync(data []byte, threadId string) ([]byte, error) {
+	if !m.node.Started() {
+		return nil, core.ErrStopped
+	}
+
+	thrd := m.node.Thread(threadId)
+	if thrd == nil {
+		return nil, core.ErrThreadNotFound
+	}
+
+	if thrd.Schema == nil {
+		return nil, core.ErrThreadSchemaRequired
+	}
+
+	mdir := &pb.MobilePreparedFiles{
+		Dir: &pb.Directory{
+			Files: make(map[string]*pb.FileIndex),
+		},
+		Pin: make(map[string]string),
+	}
+
+	writeDir := m.RepoPath + "/tmp/"
+
+	mil, err := getMill(thrd.Schema.Mill, thrd.Schema.Opts)
+	if err != nil {
+		return nil, err
+	}
+	if mil != nil {
+		conf, err := m.getFileConfig(mil, data, "", thrd.Schema.Plaintext)
+		if err != nil {
+			return nil, err
+		}
+
+		added, err := m.node.AddFileIndex(mil, *conf)
+		if err != nil {
+			return nil, err
+		}
+		mdir.Dir.Files[schema.SingleFileTag] = added
+
+		if added.Size >= int64(m.node.Config().Cafe.Client.Mobile.P2PWireLimit) {
+			mdir.Pin[added.Hash] = writeDir + added.Hash
+		}
+
+	} else if len(thrd.Schema.Links) > 0 {
+
+		// determine order
+		steps, err := schema.Steps(thrd.Schema.Links)
+		if err != nil {
+			return nil, err
+		}
+
+		// send each link
+		for _, step := range steps {
+			mil, err := getMill(step.Link.Mill, step.Link.Opts)
+			if err != nil {
+				return nil, err
+			}
+			var conf *core.AddFileConfig
+
+			if step.Link.Use == schema.FileTag {
+				conf, err = m.getFileConfig(mil, data, "", step.Link.Plaintext)
+				if err != nil {
+					return nil, err
+				}
+
+			} else {
+				if mdir.Dir.Files[step.Link.Use] == nil {
+					return nil, errors.New(step.Link.Use + " not found")
+				}
+
+				conf, err = m.getFileConfig(mil, data, mdir.Dir.Files[step.Link.Use].Hash, step.Link.Plaintext)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			added, err := m.node.AddFileIndex(mil, *conf)
+			if err != nil {
+				return nil, err
+			}
+			mdir.Dir.Files[step.Name] = added
+
+			if added.Size >= int64(m.node.Config().Cafe.Client.Mobile.P2PWireLimit) {
+				mdir.Pin[added.Hash] = writeDir + added.Hash
+			}
+		}
+	} else {
+		return nil, schema.ErrEmptySchema
+	}
+
+	for hash, pth := range mdir.Pin {
+		if err := m.writeFileData(hash, pth); err != nil {
+			return nil, err
+		}
+	}
+
+	return proto.Marshal(mdir)
+}
+
+// PrepareFilesByPath processes a file by path for a thread, but does NOT share it
+func (m *Mobile) PrepareFilesByPathSync(path string, threadId string) ([]byte, error) {
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -56,7 +171,7 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 		return nil, err
 	}
 	if mil != nil {
-		conf, err := m.getFileConfig(mil, path, use, thrd.Schema.Plaintext)
+		conf, err := m.getFileConfigByPath(mil, path, use, thrd.Schema.Plaintext)
 		if err != nil {
 			return nil, err
 		}
@@ -88,7 +203,7 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 			var conf *core.AddFileConfig
 
 			if step.Link.Use == schema.FileTag {
-				conf, err = m.getFileConfig(mil, path, use, step.Link.Plaintext)
+				conf, err = m.getFileConfigByPath(mil, path, use, step.Link.Plaintext)
 				if err != nil {
 					return nil, err
 				}
@@ -98,7 +213,7 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 					return nil, errors.New(step.Link.Use + " not found")
 				}
 
-				conf, err = m.getFileConfig(mil, path, mdir.Dir.Files[step.Link.Use].Hash, step.Link.Plaintext)
+				conf, err = m.getFileConfigByPath(mil, path, mdir.Dir.Files[step.Link.Use].Hash, step.Link.Plaintext)
 				if err != nil {
 					return nil, err
 				}
@@ -125,13 +240,6 @@ func (m *Mobile) PrepareFiles(path string, threadId string) ([]byte, error) {
 	}
 
 	return proto.Marshal(mdir)
-}
-
-// PrepareFilesAsync is the async flavor of PrepareFiles
-func (m *Mobile) PrepareFilesAsync(path string, threadId string, cb Callback) {
-	go func() {
-		cb.Call(m.PrepareFiles(path, threadId))
-	}()
 }
 
 // AddFiles adds a prepared file to a thread
@@ -323,7 +431,46 @@ func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) (string, err
 	return m.FileData(hash)
 }
 
-func (m *Mobile) getFileConfig(mil mill.Mill, path string, use string, plaintext bool) (*core.AddFileConfig, error) {
+func (m *Mobile) getFileConfig(mil mill.Mill, data []byte, use string, plaintext bool) (*core.AddFileConfig, error) {
+	var reader io.ReadSeeker
+	conf := &core.AddFileConfig{}
+
+	if use == "" {
+		reader = bytes.NewReader(data)
+	} else {
+		var file *pb.FileIndex
+		var err error
+		reader, file, err = m.node.FileData(use)
+		if err != nil {
+			return nil, err
+		}
+
+		conf.Name = file.Name
+		conf.Use = file.Checksum
+	}
+
+	var err error
+	if mil.ID() == "/json" {
+		conf.Media = "application/json"
+	} else {
+		conf.Media, err = m.node.GetMedia(reader, mil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	reader.Seek(0, 0)
+
+	input, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	conf.Input = input
+	conf.Plaintext = plaintext
+
+	return conf, nil
+}
+
+func (m *Mobile) getFileConfigByPath(mil mill.Mill, path string, use string, plaintext bool) (*core.AddFileConfig, error) {
 	var reader io.ReadSeeker
 	conf := &core.AddFileConfig{}
 
@@ -361,11 +508,11 @@ func (m *Mobile) getFileConfig(mil mill.Mill, path string, use string, plaintext
 	}
 	reader.Seek(0, 0)
 
-	data, err := ioutil.ReadAll(reader)
+	input, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
-	conf.Input = data
+	conf.Input = input
 	conf.Plaintext = plaintext
 
 	return conf, nil
