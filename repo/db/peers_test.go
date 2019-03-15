@@ -40,7 +40,7 @@ func TestPeerDB_Add(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	stmt, err := peerStore.PrepareQuery("select id from contacts where id=?")
+	stmt, err := peerStore.PrepareQuery("select id from peers where id=?")
 	if err != nil {
 		t.Error(err)
 		return
@@ -78,7 +78,7 @@ func TestPeerDB_AddOrUpdate(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	stmt, err := peerStore.PrepareQuery("select username, updated from contacts where id=?")
+	stmt, err := peerStore.PrepareQuery("select username, updated from peers where id=?")
 	if err != nil {
 		t.Error(err)
 		return
@@ -124,13 +124,13 @@ func TestPeerDB_List(t *testing.T) {
 	}
 	list := peerStore.List("")
 	if len(list) != 2 {
-		t.Error("returned incorrect number of contacts")
+		t.Error("returned incorrect number of peers")
 	}
 }
 
 func TestPeerDB_Count(t *testing.T) {
 	if peerStore.Count("") != 2 {
-		t.Error("returned incorrect count of contacts")
+		t.Error("returned incorrect count of peers")
 	}
 }
 
@@ -186,7 +186,7 @@ func TestPeerDB_Delete(t *testing.T) {
 	if err := peerStore.Delete("abcde"); err != nil {
 		t.Error(err)
 	}
-	stmt, err := peerStore.PrepareQuery("select id from contacts where id=?")
+	stmt, err := peerStore.PrepareQuery("select id from peers where id=?")
 	if err != nil {
 		t.Error(err)
 	}

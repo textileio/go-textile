@@ -26,7 +26,7 @@ func (c *PeerDB) Add(peer *pb.Peer) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into contacts(id, address, username, avatar, inboxes, created, updated) values(?,?,?,?,?,?,?)`
+	stm := `insert into peers(id, address, username, avatar, inboxes, created, updated) values(?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -63,7 +63,7 @@ func (c *PeerDB) AddOrUpdate(peer *pb.Peer) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert or replace into contacts(id, address, username, avatar, inboxes, created, updated) values(?,?,?,?,?,coalesce((select created from contacts where id=?),?),?)`
+	stm := `insert or replace into peers(id, address, username, avatar, inboxes, created, updated) values(?,?,?,?,?,coalesce((select created from peers where id=?),?),?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -104,7 +104,7 @@ func (c *PeerDB) AddOrUpdate(peer *pb.Peer) error {
 func (c *PeerDB) Get(id string) *pb.Peer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	res := c.handleQuery("select * from contacts where id='" + id + "';")
+	res := c.handleQuery("select * from peers where id='" + id + "';")
 	if len(res) == 0 {
 		return nil
 	}
@@ -114,7 +114,7 @@ func (c *PeerDB) Get(id string) *pb.Peer {
 func (c *PeerDB) GetBest(id string) *pb.Peer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	stm := "select *, (select address from contacts where id='" + id + "') as addr from contacts where address=addr order by updated desc limit 1;"
+	stm := "select *, (select address from peers where id='" + id + "') as addr from peers where address=addr order by updated desc limit 1;"
 	row := c.db.QueryRow(stm)
 	var _id, address, username, avatar, addr string
 	var inboxes []byte
@@ -128,7 +128,7 @@ func (c *PeerDB) GetBest(id string) *pb.Peer {
 func (c *PeerDB) List(query string) []*pb.Peer {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	q := "select * from contacts"
+	q := "select * from peers"
 	if query != "" {
 		q += " where " + query
 	}
@@ -162,13 +162,13 @@ func (c *PeerDB) Find(address string, name string, exclude []string) []*pb.Peer 
 		}
 		q += ")"
 	}
-	return c.handleQuery("select * from contacts where " + q + " order by updated desc;")
+	return c.handleQuery("select * from peers where " + q + " order by updated desc;")
 }
 
 func (c *PeerDB) Count(query string) int {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	q := "select Count(*) from contacts"
+	q := "select Count(*) from peers"
 	if query != "" {
 		q += " where " + query
 	}
@@ -182,14 +182,14 @@ func (c *PeerDB) Count(query string) int {
 func (c *PeerDB) UpdateName(id string, name string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("update contacts set username=?, updated=? where id=?", name, time.Now().UnixNano(), id)
+	_, err := c.db.Exec("update peers set username=?, updated=? where id=?", name, time.Now().UnixNano(), id)
 	return err
 }
 
 func (c *PeerDB) UpdateAvatar(id string, avatar string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("update contacts set avatar=?, updated=? where id=?", avatar, time.Now().UnixNano(), id)
+	_, err := c.db.Exec("update peers set avatar=?, updated=? where id=?", avatar, time.Now().UnixNano(), id)
 	return err
 }
 
@@ -200,21 +200,21 @@ func (c *PeerDB) UpdateInboxes(id string, inboxes []*pb.Cafe) error {
 	if err != nil {
 		return err
 	}
-	_, err = c.db.Exec("update contacts set inboxes=?, updated=? where id=?", inboxesb, time.Now().UnixNano(), id)
+	_, err = c.db.Exec("update peers set inboxes=?, updated=? where id=?", inboxesb, time.Now().UnixNano(), id)
 	return err
 }
 
 func (c *PeerDB) Delete(id string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from contacts where id=?", id)
+	_, err := c.db.Exec("delete from peers where id=?", id)
 	return err
 }
 
 func (c *PeerDB) DeleteByAddress(address string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from contacts where address=?", address)
+	_, err := c.db.Exec("delete from peers where address=?", address)
 	return err
 }
 

@@ -28,11 +28,11 @@ func (Minor010) Up(repoPath string, pinCode string, testnet bool) error {
 	}
 
 	query := `
-	drop table thread_messages;
+    drop table thread_messages;
     drop table thread_invites;
     create table block_messages (id text primary key not null, peerId text not null, envelope blob not null, date integer not null);
     create index block_message_date on block_messages (date);
-	create table invites (id text primary key not null, block blob not null, name text not null, inviter blob not null, date integer not null);
+    create table invites (id text primary key not null, block blob not null, name text not null, inviter blob not null, date integer not null);
     create index invite_date on invites (date);
     `
 	if _, err := db.Exec(query); err != nil {
