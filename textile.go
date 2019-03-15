@@ -406,7 +406,11 @@ func startNode(serveDocs bool) error {
 						if user.Name != "" {
 							name = user.Name
 						} else {
-							name = user.Address[:7]
+							if len(user.Address) >= 7 {
+								name = user.Address[:7]
+							} else {
+								name = user.Address
+							}
 						}
 						txt += name + " "
 					}
