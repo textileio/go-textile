@@ -119,10 +119,14 @@ func (h *CafeService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error
 		return h.handleRefreshSession(pid, env)
 	case pb.Message_CAFE_STORE:
 		return h.handleStore(pid, env)
+	case pb.Message_CAFE_UNSTORE:
+		return h.handleUnstore(pid, env)
 	case pb.Message_CAFE_OBJECT:
 		return h.handleObject(pid, env)
 	case pb.Message_CAFE_STORE_THREAD:
 		return h.handleStoreThread(pid, env)
+	case pb.Message_CAFE_UNSTORE_THREAD:
+		return h.handleUnstoreThread(pid, env)
 	case pb.Message_CAFE_DELIVER_MESSAGE:
 		return h.handleDeliverMessage(pid, env)
 	case pb.Message_CAFE_CHECK_MESSAGES:
@@ -216,7 +220,7 @@ func (h *CafeService) Register(host string, token string) (*pb.CafeSession, erro
 // Deregister removes this peer from a cafe
 func (h *CafeService) Deregister(cafe peer.ID) error {
 	if _, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
-		return h.service.NewEnvelope(pb.Message_CAFE_STORE_THREAD, &pb.CafeDeregistration{
+		return h.service.NewEnvelope(pb.Message_CAFE_DEREGISTRATION, &pb.CafeDeregistration{
 			Token: session.Access,
 		}, nil, false)
 	}); err != nil {
@@ -290,6 +294,25 @@ loop:
 	return stored, nil
 }
 
+// Unstore unstores (unpins) content on a cafe and returns a list of successful cids
+func (h *CafeService) Unstore(cids []string, cafe peer.ID) ([]string, error) {
+	renv, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
+		return h.service.NewEnvelope(pb.Message_CAFE_UNSTORE, &pb.CafeUnstore{
+			Token: session.Access,
+			Cids:  cids,
+		}, nil, false)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	req := new(pb.CafeUnstoreAck)
+	if err := ptypes.UnmarshalAny(renv.Message.Payload, req); err != nil {
+		return nil, err
+	}
+	return req.Cids, nil
+}
+
 // StoreThread pushes a thread to a cafe backup
 func (h *CafeService) StoreThread(thrd *pb.Thread, cafe peer.ID) error {
 	plaintext, err := proto.Marshal(thrd)
@@ -311,6 +334,22 @@ func (h *CafeService) StoreThread(thrd *pb.Thread, cafe peer.ID) error {
 		return err
 	}
 	return nil
+}
+
+// UnstoreThread removes a cafe's thread backup
+func (h *CafeService) UnstoreThread(id string, cafe peer.ID) error {
+	renv, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
+		return h.service.NewEnvelope(pb.Message_CAFE_UNSTORE_THREAD, &pb.CafeUnstoreThread{
+			Token: session.Access,
+			Id:    id,
+		}, nil, false)
+	})
+	if err != nil {
+		return err
+	}
+
+	req := new(pb.CafeUnstoreThreadAck)
+	return ptypes.UnmarshalAny(renv.Message.Payload, req)
 }
 
 // DeliverMessage delivers a message content id to a peer's cafe inbox
@@ -985,6 +1024,50 @@ func (h *CafeService) handleStore(pid peer.ID, env *pb.Envelope) (*pb.Envelope, 
 	return h.service.NewEnvelope(pb.Message_CAFE_OBJECT_LIST, res, &env.Message.RequestId, true)
 }
 
+// handleUnstore receives an unstore request
+func (h *CafeService) handleUnstore(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	unstore := new(pb.CafeUnstore)
+	if err := ptypes.UnmarshalAny(env.Message.Payload, unstore); err != nil {
+		return nil, err
+	}
+
+	rerr, err := h.authToken(pid, unstore.Token, false, env.Message.RequestId)
+	if err != nil {
+		return nil, err
+	}
+	if rerr != nil {
+		return rerr, nil
+	}
+
+	// ignore cids for data not pinned
+	var decoded []cid.Cid
+	for _, id := range unstore.Cids {
+		dec, err := cid.Decode(id)
+		if err != nil {
+			return nil, err
+		}
+		decoded = append(decoded, dec)
+	}
+
+	pinned, err := h.service.Node().Pinning.CheckIfPinned(decoded...)
+	if err != nil {
+		return nil, err
+	}
+
+	var unstored []string
+	for _, p := range pinned {
+		if p.Mode != pin.NotPinned {
+			if err := ipfs.UnpinCid(h.service.Node(), p.Key, true); err != nil {
+				return nil, err
+			}
+			unstored = append(unstored, p.Key.Hash().B58String())
+		}
+	}
+
+	res := &pb.CafeUnstoreAck{Cids: unstored}
+	return h.service.NewEnvelope(pb.Message_CAFE_UNSTORE_ACK, res, &env.Message.RequestId, true)
+}
+
 // handleObject receives an object request
 func (h *CafeService) handleObject(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
 	obj := new(pb.CafeObject)
@@ -1024,8 +1107,8 @@ func (h *CafeService) handleObject(pid peer.ID, env *pb.Envelope) (*pb.Envelope,
 		log.Warningf("cids do not match (received %s, resolved %s)", obj.Cid, id)
 	}
 
-	res := &pb.CafeStoredAck{Id: obj.Cid}
-	return h.service.NewEnvelope(pb.Message_CAFE_STORED_ACK, res, &env.Message.RequestId, true)
+	res := &pb.CafeStoreAck{Id: obj.Cid}
+	return h.service.NewEnvelope(pb.Message_CAFE_STORE_ACK, res, &env.Message.RequestId, true)
 }
 
 // handleStoreThread receives a thread store request
@@ -1057,8 +1140,36 @@ func (h *CafeService) handleStoreThread(pid peer.ID, env *pb.Envelope) (*pb.Enve
 		return h.service.NewError(500, err.Error(), env.Message.RequestId)
 	}
 
-	res := &pb.CafeStoredAck{Id: store.Id}
-	return h.service.NewEnvelope(pb.Message_CAFE_STORED_ACK, res, &env.Message.RequestId, true)
+	res := &pb.CafeStoreThreadAck{Id: store.Id}
+	return h.service.NewEnvelope(pb.Message_CAFE_STORE_THREAD_ACK, res, &env.Message.RequestId, true)
+}
+
+// handleUnstoreThread receives a thread unstore request
+func (h *CafeService) handleUnstoreThread(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error) {
+	unstore := new(pb.CafeUnstoreThread)
+	if err := ptypes.UnmarshalAny(env.Message.Payload, unstore); err != nil {
+		return nil, err
+	}
+
+	rerr, err := h.authToken(pid, unstore.Token, false, env.Message.RequestId)
+	if err != nil {
+		return nil, err
+	}
+	if rerr != nil {
+		return rerr, nil
+	}
+
+	client := h.datastore.CafeClients().Get(pid.Pretty())
+	if client == nil {
+		return h.service.NewError(403, errForbidden, env.Message.RequestId)
+	}
+
+	if err := h.datastore.CafeClientThreads().Delete(unstore.Id, client.Id); err != nil {
+		return h.service.NewError(500, err.Error(), env.Message.RequestId)
+	}
+
+	res := &pb.CafeUnstoreThreadAck{Id: unstore.Id}
+	return h.service.NewEnvelope(pb.Message_CAFE_UNSTORE_THREAD_ACK, res, &env.Message.RequestId, true)
 }
 
 // handleDeliverMessage receives an inbox message for a client

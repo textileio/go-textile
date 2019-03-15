@@ -29,7 +29,7 @@ func (m *CafeChallenge) Reset()         { *m = CafeChallenge{} }
 func (m *CafeChallenge) String() string { return proto.CompactTextString(m) }
 func (*CafeChallenge) ProtoMessage()    {}
 func (*CafeChallenge) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_abccd561bfb0f4ca, []int{0}
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{0}
 }
 func (m *CafeChallenge) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeChallenge.Unmarshal(m, b)
@@ -67,7 +67,7 @@ func (m *CafeNonce) Reset()         { *m = CafeNonce{} }
 func (m *CafeNonce) String() string { return proto.CompactTextString(m) }
 func (*CafeNonce) ProtoMessage()    {}
 func (*CafeNonce) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_abccd561bfb0f4ca, []int{1}
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{1}
 }
 func (m *CafeNonce) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeNonce.Unmarshal(m, b)
@@ -109,7 +109,7 @@ func (m *CafeRegistration) Reset()         { *m = CafeRegistration{} }
 func (m *CafeRegistration) String() string { return proto.CompactTextString(m) }
 func (*CafeRegistration) ProtoMessage()    {}
 func (*CafeRegistration) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_abccd561bfb0f4ca, []int{2}
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{2}
 }
 func (m *CafeRegistration) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeRegistration.Unmarshal(m, b)
@@ -175,7 +175,7 @@ func (m *CafeDeregistration) Reset()         { *m = CafeDeregistration{} }
 func (m *CafeDeregistration) String() string { return proto.CompactTextString(m) }
 func (*CafeDeregistration) ProtoMessage()    {}
 func (*CafeDeregistration) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_abccd561bfb0f4ca, []int{3}
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{3}
 }
 func (m *CafeDeregistration) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeDeregistration.Unmarshal(m, b)
@@ -213,7 +213,7 @@ func (m *CafeDeregistrationAck) Reset()         { *m = CafeDeregistrationAck{} }
 func (m *CafeDeregistrationAck) String() string { return proto.CompactTextString(m) }
 func (*CafeDeregistrationAck) ProtoMessage()    {}
 func (*CafeDeregistrationAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_abccd561bfb0f4ca, []int{4}
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{4}
 }
 func (m *CafeDeregistrationAck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeDeregistrationAck.Unmarshal(m, b)
@@ -252,7 +252,7 @@ func (m *CafeRefreshSession) Reset()         { *m = CafeRefreshSession{} }
 func (m *CafeRefreshSession) String() string { return proto.CompactTextString(m) }
 func (*CafeRefreshSession) ProtoMessage()    {}
 func (*CafeRefreshSession) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_abccd561bfb0f4ca, []int{5}
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{5}
 }
 func (m *CafeRefreshSession) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeRefreshSession.Unmarshal(m, b)
@@ -298,7 +298,7 @@ func (m *CafePublishPeer) Reset()         { *m = CafePublishPeer{} }
 func (m *CafePublishPeer) String() string { return proto.CompactTextString(m) }
 func (*CafePublishPeer) ProtoMessage()    {}
 func (*CafePublishPeer) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_abccd561bfb0f4ca, []int{6}
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{6}
 }
 func (m *CafePublishPeer) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafePublishPeer.Unmarshal(m, b)
@@ -343,7 +343,7 @@ func (m *CafePublishPeerAck) Reset()         { *m = CafePublishPeerAck{} }
 func (m *CafePublishPeerAck) String() string { return proto.CompactTextString(m) }
 func (*CafePublishPeerAck) ProtoMessage()    {}
 func (*CafePublishPeerAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_abccd561bfb0f4ca, []int{7}
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{7}
 }
 func (m *CafePublishPeerAck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafePublishPeerAck.Unmarshal(m, b)
@@ -382,7 +382,7 @@ func (m *CafeStore) Reset()         { *m = CafeStore{} }
 func (m *CafeStore) String() string { return proto.CompactTextString(m) }
 func (*CafeStore) ProtoMessage()    {}
 func (*CafeStore) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_abccd561bfb0f4ca, []int{8}
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{8}
 }
 func (m *CafeStore) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeStore.Unmarshal(m, b)
@@ -416,6 +416,128 @@ func (m *CafeStore) GetCids() []string {
 	return nil
 }
 
+type CafeStoreAck struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *CafeStoreAck) Reset()         { *m = CafeStoreAck{} }
+func (m *CafeStoreAck) String() string { return proto.CompactTextString(m) }
+func (*CafeStoreAck) ProtoMessage()    {}
+func (*CafeStoreAck) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{9}
+}
+func (m *CafeStoreAck) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CafeStoreAck.Unmarshal(m, b)
+}
+func (m *CafeStoreAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CafeStoreAck.Marshal(b, m, deterministic)
+}
+func (dst *CafeStoreAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeStoreAck.Merge(dst, src)
+}
+func (m *CafeStoreAck) XXX_Size() int {
+	return xxx_messageInfo_CafeStoreAck.Size(m)
+}
+func (m *CafeStoreAck) XXX_DiscardUnknown() {
+	xxx_messageInfo_CafeStoreAck.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CafeStoreAck proto.InternalMessageInfo
+
+func (m *CafeStoreAck) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+type CafeUnstore struct {
+	Token                string   `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	Cids                 []string `protobuf:"bytes,2,rep,name=cids,proto3" json:"cids,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *CafeUnstore) Reset()         { *m = CafeUnstore{} }
+func (m *CafeUnstore) String() string { return proto.CompactTextString(m) }
+func (*CafeUnstore) ProtoMessage()    {}
+func (*CafeUnstore) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{10}
+}
+func (m *CafeUnstore) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CafeUnstore.Unmarshal(m, b)
+}
+func (m *CafeUnstore) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CafeUnstore.Marshal(b, m, deterministic)
+}
+func (dst *CafeUnstore) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeUnstore.Merge(dst, src)
+}
+func (m *CafeUnstore) XXX_Size() int {
+	return xxx_messageInfo_CafeUnstore.Size(m)
+}
+func (m *CafeUnstore) XXX_DiscardUnknown() {
+	xxx_messageInfo_CafeUnstore.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CafeUnstore proto.InternalMessageInfo
+
+func (m *CafeUnstore) GetToken() string {
+	if m != nil {
+		return m.Token
+	}
+	return ""
+}
+
+func (m *CafeUnstore) GetCids() []string {
+	if m != nil {
+		return m.Cids
+	}
+	return nil
+}
+
+type CafeUnstoreAck struct {
+	Cids                 []string `protobuf:"bytes,1,rep,name=cids,proto3" json:"cids,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *CafeUnstoreAck) Reset()         { *m = CafeUnstoreAck{} }
+func (m *CafeUnstoreAck) String() string { return proto.CompactTextString(m) }
+func (*CafeUnstoreAck) ProtoMessage()    {}
+func (*CafeUnstoreAck) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{11}
+}
+func (m *CafeUnstoreAck) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CafeUnstoreAck.Unmarshal(m, b)
+}
+func (m *CafeUnstoreAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CafeUnstoreAck.Marshal(b, m, deterministic)
+}
+func (dst *CafeUnstoreAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeUnstoreAck.Merge(dst, src)
+}
+func (m *CafeUnstoreAck) XXX_Size() int {
+	return xxx_messageInfo_CafeUnstoreAck.Size(m)
+}
+func (m *CafeUnstoreAck) XXX_DiscardUnknown() {
+	xxx_messageInfo_CafeUnstoreAck.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CafeUnstoreAck proto.InternalMessageInfo
+
+func (m *CafeUnstoreAck) GetCids() []string {
+	if m != nil {
+		return m.Cids
+	}
+	return nil
+}
+
 type CafeObjectList struct {
 	Cids                 []string `protobuf:"bytes,1,rep,name=cids,proto3" json:"cids,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -427,7 +549,7 @@ func (m *CafeObjectList) Reset()         { *m = CafeObjectList{} }
 func (m *CafeObjectList) String() string { return proto.CompactTextString(m) }
 func (*CafeObjectList) ProtoMessage()    {}
 func (*CafeObjectList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_abccd561bfb0f4ca, []int{9}
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{12}
 }
 func (m *CafeObjectList) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeObjectList.Unmarshal(m, b)
@@ -468,7 +590,7 @@ func (m *CafeObject) Reset()         { *m = CafeObject{} }
 func (m *CafeObject) String() string { return proto.CompactTextString(m) }
 func (*CafeObject) ProtoMessage()    {}
 func (*CafeObject) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_abccd561bfb0f4ca, []int{10}
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{13}
 }
 func (m *CafeObject) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeObject.Unmarshal(m, b)
@@ -529,7 +651,7 @@ func (m *CafeStoreThread) Reset()         { *m = CafeStoreThread{} }
 func (m *CafeStoreThread) String() string { return proto.CompactTextString(m) }
 func (*CafeStoreThread) ProtoMessage()    {}
 func (*CafeStoreThread) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_abccd561bfb0f4ca, []int{11}
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{14}
 }
 func (m *CafeStoreThread) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeStoreThread.Unmarshal(m, b)
@@ -570,38 +692,122 @@ func (m *CafeStoreThread) GetCiphertext() []byte {
 	return nil
 }
 
-type CafeStoredAck struct {
+type CafeStoreThreadAck struct {
 	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *CafeStoredAck) Reset()         { *m = CafeStoredAck{} }
-func (m *CafeStoredAck) String() string { return proto.CompactTextString(m) }
-func (*CafeStoredAck) ProtoMessage()    {}
-func (*CafeStoredAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_abccd561bfb0f4ca, []int{12}
+func (m *CafeStoreThreadAck) Reset()         { *m = CafeStoreThreadAck{} }
+func (m *CafeStoreThreadAck) String() string { return proto.CompactTextString(m) }
+func (*CafeStoreThreadAck) ProtoMessage()    {}
+func (*CafeStoreThreadAck) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{15}
 }
-func (m *CafeStoredAck) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_CafeStoredAck.Unmarshal(m, b)
+func (m *CafeStoreThreadAck) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CafeStoreThreadAck.Unmarshal(m, b)
 }
-func (m *CafeStoredAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_CafeStoredAck.Marshal(b, m, deterministic)
+func (m *CafeStoreThreadAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CafeStoreThreadAck.Marshal(b, m, deterministic)
 }
-func (dst *CafeStoredAck) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CafeStoredAck.Merge(dst, src)
+func (dst *CafeStoreThreadAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeStoreThreadAck.Merge(dst, src)
 }
-func (m *CafeStoredAck) XXX_Size() int {
-	return xxx_messageInfo_CafeStoredAck.Size(m)
+func (m *CafeStoreThreadAck) XXX_Size() int {
+	return xxx_messageInfo_CafeStoreThreadAck.Size(m)
 }
-func (m *CafeStoredAck) XXX_DiscardUnknown() {
-	xxx_messageInfo_CafeStoredAck.DiscardUnknown(m)
+func (m *CafeStoreThreadAck) XXX_DiscardUnknown() {
+	xxx_messageInfo_CafeStoreThreadAck.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_CafeStoredAck proto.InternalMessageInfo
+var xxx_messageInfo_CafeStoreThreadAck proto.InternalMessageInfo
 
-func (m *CafeStoredAck) GetId() string {
+func (m *CafeStoreThreadAck) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+type CafeUnstoreThread struct {
+	Token                string   `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	Id                   string   `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *CafeUnstoreThread) Reset()         { *m = CafeUnstoreThread{} }
+func (m *CafeUnstoreThread) String() string { return proto.CompactTextString(m) }
+func (*CafeUnstoreThread) ProtoMessage()    {}
+func (*CafeUnstoreThread) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{16}
+}
+func (m *CafeUnstoreThread) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CafeUnstoreThread.Unmarshal(m, b)
+}
+func (m *CafeUnstoreThread) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CafeUnstoreThread.Marshal(b, m, deterministic)
+}
+func (dst *CafeUnstoreThread) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeUnstoreThread.Merge(dst, src)
+}
+func (m *CafeUnstoreThread) XXX_Size() int {
+	return xxx_messageInfo_CafeUnstoreThread.Size(m)
+}
+func (m *CafeUnstoreThread) XXX_DiscardUnknown() {
+	xxx_messageInfo_CafeUnstoreThread.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CafeUnstoreThread proto.InternalMessageInfo
+
+func (m *CafeUnstoreThread) GetToken() string {
+	if m != nil {
+		return m.Token
+	}
+	return ""
+}
+
+func (m *CafeUnstoreThread) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+type CafeUnstoreThreadAck struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *CafeUnstoreThreadAck) Reset()         { *m = CafeUnstoreThreadAck{} }
+func (m *CafeUnstoreThreadAck) String() string { return proto.CompactTextString(m) }
+func (*CafeUnstoreThreadAck) ProtoMessage()    {}
+func (*CafeUnstoreThreadAck) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{17}
+}
+func (m *CafeUnstoreThreadAck) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CafeUnstoreThreadAck.Unmarshal(m, b)
+}
+func (m *CafeUnstoreThreadAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CafeUnstoreThreadAck.Marshal(b, m, deterministic)
+}
+func (dst *CafeUnstoreThreadAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CafeUnstoreThreadAck.Merge(dst, src)
+}
+func (m *CafeUnstoreThreadAck) XXX_Size() int {
+	return xxx_messageInfo_CafeUnstoreThreadAck.Size(m)
+}
+func (m *CafeUnstoreThreadAck) XXX_DiscardUnknown() {
+	xxx_messageInfo_CafeUnstoreThreadAck.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CafeUnstoreThreadAck proto.InternalMessageInfo
+
+func (m *CafeUnstoreThreadAck) GetId() string {
 	if m != nil {
 		return m.Id
 	}
@@ -620,7 +826,7 @@ func (m *CafeDeliverMessage) Reset()         { *m = CafeDeliverMessage{} }
 func (m *CafeDeliverMessage) String() string { return proto.CompactTextString(m) }
 func (*CafeDeliverMessage) ProtoMessage()    {}
 func (*CafeDeliverMessage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_abccd561bfb0f4ca, []int{13}
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{18}
 }
 func (m *CafeDeliverMessage) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeDeliverMessage.Unmarshal(m, b)
@@ -665,7 +871,7 @@ func (m *CafeCheckMessages) Reset()         { *m = CafeCheckMessages{} }
 func (m *CafeCheckMessages) String() string { return proto.CompactTextString(m) }
 func (*CafeCheckMessages) ProtoMessage()    {}
 func (*CafeCheckMessages) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_abccd561bfb0f4ca, []int{14}
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{19}
 }
 func (m *CafeCheckMessages) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeCheckMessages.Unmarshal(m, b)
@@ -703,7 +909,7 @@ func (m *CafeMessages) Reset()         { *m = CafeMessages{} }
 func (m *CafeMessages) String() string { return proto.CompactTextString(m) }
 func (*CafeMessages) ProtoMessage()    {}
 func (*CafeMessages) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_abccd561bfb0f4ca, []int{15}
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{20}
 }
 func (m *CafeMessages) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeMessages.Unmarshal(m, b)
@@ -741,7 +947,7 @@ func (m *CafeDeleteMessages) Reset()         { *m = CafeDeleteMessages{} }
 func (m *CafeDeleteMessages) String() string { return proto.CompactTextString(m) }
 func (*CafeDeleteMessages) ProtoMessage()    {}
 func (*CafeDeleteMessages) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_abccd561bfb0f4ca, []int{16}
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{21}
 }
 func (m *CafeDeleteMessages) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeDeleteMessages.Unmarshal(m, b)
@@ -779,7 +985,7 @@ func (m *CafeDeleteMessagesAck) Reset()         { *m = CafeDeleteMessagesAck{} }
 func (m *CafeDeleteMessagesAck) String() string { return proto.CompactTextString(m) }
 func (*CafeDeleteMessagesAck) ProtoMessage()    {}
 func (*CafeDeleteMessagesAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_abccd561bfb0f4ca, []int{17}
+	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{22}
 }
 func (m *CafeDeleteMessagesAck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeDeleteMessagesAck.Unmarshal(m, b)
@@ -816,10 +1022,15 @@ func init() {
 	proto.RegisterType((*CafePublishPeer)(nil), "CafePublishPeer")
 	proto.RegisterType((*CafePublishPeerAck)(nil), "CafePublishPeerAck")
 	proto.RegisterType((*CafeStore)(nil), "CafeStore")
+	proto.RegisterType((*CafeStoreAck)(nil), "CafeStoreAck")
+	proto.RegisterType((*CafeUnstore)(nil), "CafeUnstore")
+	proto.RegisterType((*CafeUnstoreAck)(nil), "CafeUnstoreAck")
 	proto.RegisterType((*CafeObjectList)(nil), "CafeObjectList")
 	proto.RegisterType((*CafeObject)(nil), "CafeObject")
 	proto.RegisterType((*CafeStoreThread)(nil), "CafeStoreThread")
-	proto.RegisterType((*CafeStoredAck)(nil), "CafeStoredAck")
+	proto.RegisterType((*CafeStoreThreadAck)(nil), "CafeStoreThreadAck")
+	proto.RegisterType((*CafeUnstoreThread)(nil), "CafeUnstoreThread")
+	proto.RegisterType((*CafeUnstoreThreadAck)(nil), "CafeUnstoreThreadAck")
 	proto.RegisterType((*CafeDeliverMessage)(nil), "CafeDeliverMessage")
 	proto.RegisterType((*CafeCheckMessages)(nil), "CafeCheckMessages")
 	proto.RegisterType((*CafeMessages)(nil), "CafeMessages")
@@ -827,40 +1038,42 @@ func init() {
 	proto.RegisterType((*CafeDeleteMessagesAck)(nil), "CafeDeleteMessagesAck")
 }
 
-func init() { proto.RegisterFile("cafe_service.proto", fileDescriptor_cafe_service_abccd561bfb0f4ca) }
+func init() { proto.RegisterFile("cafe_service.proto", fileDescriptor_cafe_service_160fcfef9d31bbf7) }
 
-var fileDescriptor_cafe_service_abccd561bfb0f4ca = []byte{
-	// 502 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x94, 0x5b, 0x6b, 0x13, 0x41,
-	0x14, 0xc7, 0xd9, 0x4d, 0x5a, 0x9b, 0x93, 0xb4, 0xc6, 0xf1, 0xc2, 0xea, 0x83, 0xc6, 0xa1, 0x60,
-	0xaa, 0x90, 0x87, 0x8a, 0xe0, 0x83, 0x2f, 0xb6, 0xe2, 0x93, 0x97, 0xb2, 0x15, 0x04, 0x11, 0x64,
-	0x32, 0x73, 0x92, 0x1d, 0xb3, 0xd9, 0x59, 0x66, 0xa6, 0xc1, 0x47, 0x3f, 0xba, 0xcc, 0x65, 0x93,
-	0x45, 0xb3, 0xf8, 0x76, 0xce, 0xc9, 0x6f, 0xfe, 0xe7, 0xba, 0x01, 0xc2, 0xd9, 0x02, 0x7f, 0x18,
-	0xd4, 0x1b, 0xc9, 0x71, 0x56, 0x6b, 0x65, 0xd5, 0xa3, 0xe1, 0x5a, 0x09, 0x2c, 0x83, 0x43, 0xcf,
-	0xe0, 0xf8, 0x92, 0x2d, 0xf0, 0xb2, 0x60, 0x65, 0x89, 0xd5, 0x12, 0x49, 0x06, 0xb7, 0x98, 0x10,
-	0x1a, 0x8d, 0xc9, 0x92, 0x49, 0x32, 0x1d, 0xe4, 0x8d, 0x4b, 0x9f, 0xc2, 0xc0, 0xa1, 0x9f, 0x54,
-	0xc5, 0x91, 0xdc, 0x83, 0x83, 0x0d, 0x2b, 0x6f, 0x30, 0x42, 0xc1, 0xa1, 0xbf, 0x13, 0x18, 0x3b,
-	0x26, 0xc7, 0xa5, 0x34, 0x56, 0x33, 0x2b, 0x55, 0xd5, 0xad, 0xb8, 0x13, 0x49, 0x5b, 0x22, 0x2e,
-	0x5a, 0xb9, 0x1c, 0x59, 0x2f, 0x44, 0xbd, 0x43, 0xc6, 0xd0, 0x33, 0x72, 0x99, 0xf5, 0x27, 0xc9,
-	0x74, 0x94, 0x3b, 0xd3, 0x71, 0x56, 0xad, 0xb0, 0xca, 0x0e, 0x02, 0xe7, 0x1d, 0xfa, 0x1c, 0x88,
-	0xab, 0xe0, 0x1d, 0xea, 0x76, 0x0d, 0x5b, 0x36, 0x69, 0xb3, 0xcf, 0xe0, 0xfe, 0xbf, 0xec, 0x5b,
-	0xbe, 0x22, 0x27, 0x90, 0x4a, 0x11, 0xd9, 0x54, 0x0a, 0xfa, 0x3e, 0x88, 0xe6, 0xb8, 0xd0, 0x68,
-	0x8a, 0x6b, 0x34, 0xc6, 0x89, 0x3e, 0x80, 0x43, 0xc6, 0xf9, 0xae, 0xaf, 0xe8, 0xb9, 0x86, 0x75,
-	0x20, 0x63, 0x63, 0x8d, 0x4b, 0x2f, 0xe0, 0xb6, 0xd3, 0xb9, 0xba, 0x99, 0x97, 0xd2, 0x14, 0x57,
-	0x88, 0x7a, 0x7f, 0x65, 0xe4, 0x21, 0xf4, 0x6b, 0x44, 0xed, 0xdf, 0x0f, 0xcf, 0x0f, 0x66, 0x0e,
-	0xcd, 0x7d, 0x88, 0x9e, 0x86, 0x5a, 0x5a, 0x1a, 0xfb, 0x2a, 0x7e, 0x15, 0x96, 0x75, 0x6d, 0x95,
-	0xc6, 0x8e, 0x1c, 0x04, 0xfa, 0x5c, 0x0a, 0x93, 0xa5, 0x93, 0xde, 0x74, 0x90, 0x7b, 0x9b, 0x9e,
-	0xc2, 0x89, 0x7b, 0xf6, 0x79, 0xfe, 0x13, 0xb9, 0xfd, 0x20, 0x8d, 0xdd, 0x52, 0x49, 0x8b, 0xfa,
-	0x0e, 0xb0, 0xa3, 0x3a, 0xd4, 0xc7, 0xd0, 0xe3, 0x52, 0xc4, 0x01, 0x38, 0xd3, 0x29, 0x09, 0x66,
-	0x99, 0x5f, 0xeb, 0x28, 0xf7, 0xb6, 0x8b, 0x55, 0x4a, 0x60, 0x5c, 0xab, 0xb7, 0xe9, 0xd7, 0x30,
-	0x24, 0x5f, 0xfa, 0x97, 0x42, 0x23, 0x13, 0x1d, 0x29, 0x42, 0xcf, 0x69, 0xd3, 0x33, 0x79, 0x0c,
-	0xc0, 0x65, 0x5d, 0xa0, 0xb6, 0xf8, 0xcb, 0xc6, 0x34, 0xad, 0x08, 0x7d, 0x12, 0x6e, 0xdd, 0x0b,
-	0x8b, 0x7d, 0x43, 0x7b, 0xd3, 0xdc, 0x4e, 0x29, 0x37, 0xa8, 0x3f, 0xa2, 0x31, 0x6c, 0x89, 0x7f,
-	0x53, 0x6e, 0xed, 0xbc, 0x94, 0x58, 0xd9, 0x98, 0x3a, 0x7a, 0xf4, 0x0c, 0xee, 0x84, 0x4f, 0x09,
-	0xf9, 0x2a, 0xbe, 0x35, 0x1d, 0x87, 0xf7, 0x1a, 0x46, 0x0e, 0xdd, 0x52, 0x53, 0x38, 0x5a, 0x47,
-	0xdb, 0x0f, 0x7a, 0x78, 0x3e, 0x9a, 0xb5, 0x80, 0x7c, 0xfb, 0xeb, 0xee, 0xbc, 0x4b, 0xb4, 0xf8,
-	0x9f, 0x2c, 0x2f, 0x9a, 0xf3, 0x6e, 0xb3, 0xae, 0x6f, 0x02, 0xfd, 0xb5, 0xd2, 0xe1, 0xdb, 0x3d,
-	0xca, 0xbd, 0x7d, 0x71, 0x17, 0x8e, 0xa5, 0x9a, 0xb9, 0x39, 0xc9, 0x12, 0x67, 0xf5, 0xfc, 0x5b,
-	0x5a, 0xcf, 0xe7, 0x87, 0xfe, 0x4f, 0xe2, 0xe5, 0x9f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x69, 0xff,
-	0x7b, 0x67, 0x47, 0x04, 0x00, 0x00,
+var fileDescriptor_cafe_service_160fcfef9d31bbf7 = []byte{
+	// 536 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x94, 0xdf, 0x6b, 0x13, 0x41,
+	0x10, 0xc7, 0xb9, 0x4b, 0x53, 0x9b, 0x49, 0x5a, 0xe3, 0x59, 0xe5, 0xf4, 0xa1, 0xc4, 0xa5, 0x68,
+	0xaa, 0x90, 0x87, 0x8a, 0xa8, 0xe0, 0x8b, 0x8d, 0xf8, 0xe4, 0x8f, 0x72, 0x55, 0x04, 0x11, 0x64,
+	0xb3, 0x37, 0xc9, 0xad, 0xb9, 0xdc, 0x86, 0xdd, 0x6d, 0xf0, 0xd1, 0x3f, 0x5d, 0xf6, 0xc7, 0x25,
+	0x8b, 0xb9, 0x20, 0x7d, 0x9b, 0xd9, 0xfb, 0xcc, 0x77, 0x66, 0x67, 0x66, 0x0f, 0x12, 0x46, 0xa7,
+	0xf8, 0x53, 0xa1, 0x5c, 0x71, 0x86, 0xa3, 0xa5, 0x14, 0x5a, 0x3c, 0xec, 0x2e, 0x44, 0x8e, 0xa5,
+	0x73, 0xc8, 0x19, 0x1c, 0x8e, 0xe9, 0x14, 0xc7, 0x05, 0x2d, 0x4b, 0xac, 0x66, 0x98, 0xa4, 0x70,
+	0x8b, 0xe6, 0xb9, 0x44, 0xa5, 0xd2, 0x68, 0x10, 0x0d, 0x3b, 0x59, 0xed, 0x92, 0x47, 0xd0, 0x31,
+	0xe8, 0x27, 0x51, 0x31, 0x4c, 0x8e, 0xa1, 0xbd, 0xa2, 0xe5, 0x35, 0x7a, 0xc8, 0x39, 0xe4, 0x4f,
+	0x04, 0x7d, 0xc3, 0x64, 0x38, 0xe3, 0x4a, 0x4b, 0xaa, 0xb9, 0xa8, 0x76, 0x2b, 0x6e, 0x44, 0xe2,
+	0x40, 0xc4, 0x9c, 0x56, 0x26, 0x47, 0xda, 0x72, 0xa7, 0xd6, 0x49, 0xfa, 0xd0, 0x52, 0x7c, 0x96,
+	0xee, 0x0d, 0xa2, 0x61, 0x2f, 0x33, 0xa6, 0xe1, 0xb4, 0x98, 0x63, 0x95, 0xb6, 0x1d, 0x67, 0x1d,
+	0xf2, 0x14, 0x12, 0x53, 0xc1, 0x3b, 0x94, 0x61, 0x0d, 0x6b, 0x36, 0x0a, 0xd9, 0x27, 0x70, 0x6f,
+	0x9b, 0x7d, 0xcb, 0xe6, 0xc9, 0x11, 0xc4, 0x3c, 0xf7, 0x6c, 0xcc, 0x73, 0xf2, 0xde, 0x89, 0x66,
+	0x38, 0x95, 0xa8, 0x8a, 0x2b, 0x54, 0xca, 0x88, 0xde, 0x87, 0x7d, 0xca, 0xd8, 0xe6, 0x5e, 0xde,
+	0x33, 0x17, 0x96, 0x8e, 0xf4, 0x17, 0xab, 0x5d, 0x72, 0x01, 0xb7, 0x8d, 0xce, 0xe5, 0xf5, 0xa4,
+	0xe4, 0xaa, 0xb8, 0x44, 0x94, 0xcd, 0x95, 0x25, 0x0f, 0x60, 0x6f, 0x89, 0x28, 0x6d, 0x7c, 0xf7,
+	0xbc, 0x3d, 0x32, 0x68, 0x66, 0x8f, 0xc8, 0xa9, 0xab, 0x25, 0xd0, 0x68, 0xaa, 0xf8, 0x85, 0x1b,
+	0xd6, 0x95, 0x16, 0x12, 0x77, 0xe4, 0x48, 0x60, 0x8f, 0xf1, 0x5c, 0xa5, 0xf1, 0xa0, 0x35, 0xec,
+	0x64, 0xd6, 0x26, 0x27, 0xd0, 0x5b, 0x87, 0x35, 0xc9, 0xbe, 0x84, 0xae, 0xf9, 0xfe, 0xb5, 0x52,
+	0x37, 0x14, 0x3e, 0x85, 0xa3, 0x20, 0xd0, 0x48, 0xd7, 0x54, 0xb4, 0x4d, 0x7d, 0x9e, 0xfc, 0x42,
+	0xa6, 0x3f, 0x70, 0xa5, 0x1b, 0xa9, 0x1f, 0x00, 0x1b, 0x6a, 0x47, 0x0d, 0x7d, 0x68, 0x31, 0x9e,
+	0xfb, 0xfe, 0x1b, 0xd3, 0x28, 0xe5, 0x54, 0x53, 0xbb, 0x55, 0xbd, 0xcc, 0xda, 0xe6, 0xac, 0x12,
+	0x39, 0xfa, 0xad, 0xb2, 0x36, 0xf9, 0xe6, 0x66, 0x64, 0x5b, 0xf0, 0xa5, 0x90, 0x48, 0xf3, 0x1d,
+	0x29, 0x5c, 0x6f, 0xe2, 0xba, 0x37, 0xc9, 0x09, 0x00, 0xe3, 0xcb, 0x02, 0xa5, 0xc6, 0xdf, 0xda,
+	0xa7, 0x09, 0x4e, 0xea, 0xc1, 0x05, 0xc2, 0x4d, 0x1d, 0x7e, 0x0d, 0x77, 0x82, 0x46, 0xdd, 0xa4,
+	0x00, 0xf2, 0x18, 0x8e, 0xb7, 0x42, 0x9b, 0x52, 0xbc, 0xa9, 0x9f, 0x48, 0xc9, 0x57, 0x28, 0x3f,
+	0xa2, 0x52, 0x74, 0x86, 0xff, 0x52, 0x66, 0xbb, 0x59, 0xc9, 0xb1, 0xd2, 0x3e, 0x83, 0xf7, 0xc8,
+	0x99, 0x2b, 0x70, 0x5c, 0x20, 0x9b, 0xfb, 0x58, 0xb5, 0xe3, 0x7d, 0xbd, 0x72, 0xdb, 0xb4, 0xa6,
+	0x86, 0x70, 0xb0, 0xf0, 0xb6, 0x1d, 0x68, 0xf7, 0xbc, 0x37, 0x0a, 0x80, 0x6c, 0xfd, 0x75, 0xf3,
+	0x8a, 0x4b, 0xd4, 0xf8, 0x9f, 0x2c, 0xcf, 0xea, 0x57, 0x1c, 0xb2, 0x7e, 0xc3, 0x16, 0x42, 0xba,
+	0x5f, 0xd4, 0x41, 0x66, 0xed, 0x8b, 0xbb, 0x70, 0xc8, 0xc5, 0xc8, 0xcc, 0x83, 0x97, 0x38, 0x5a,
+	0x4e, 0xbe, 0xc7, 0xcb, 0xc9, 0x64, 0xdf, 0xfe, 0x0b, 0x9f, 0xff, 0x0d, 0x00, 0x00, 0xff, 0xff,
+	0xc4, 0x0f, 0x1d, 0x56, 0x2e, 0x05, 0x00, 0x00,
 }

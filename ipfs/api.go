@@ -312,10 +312,15 @@ func PinNode(node *core.IpfsNode, nd ipld.Node, recursive bool) error {
 
 // UnpinNode unpins an ipld node
 func UnpinNode(node *core.IpfsNode, nd ipld.Node, recursive bool) error {
+	return UnpinCid(node, nd.Cid(), recursive)
+}
+
+// UnpinCid unpins a cid
+func UnpinCid(node *core.IpfsNode, id cid.Cid, recursive bool) error {
 	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
 	defer cancel()
 
-	err := node.Pinning.Unpin(ctx, nd.Cid(), recursive)
+	err := node.Pinning.Unpin(ctx, id, recursive)
 	if err != nil && err != pin.ErrNotPinned {
 		return err
 	}
