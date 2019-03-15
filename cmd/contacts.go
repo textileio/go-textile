@@ -10,8 +10,8 @@ import (
 	"github.com/textileio/go-textile/pb"
 )
 
-var errMissingAddInfo = errors.New("missing peer id or account address")
-var errMissingPeerId = errors.New("missing peer id")
+var errMissingAddInfo = errors.New("missing username or account address")
+var errMissingAddress = errors.New("missing account address")
 
 func init() {
 	register(&contactsCmd{})
@@ -42,7 +42,6 @@ Use this command to add, list, get, and remove local contacts and find other con
 type addContactsCmd struct {
 	Client   ClientOptions `group:"Client Options"`
 	Username string        `short:"u" long:"username" description:"Add by username."`
-	Peer     string        `short:"p" long:"peer" description:"Add by peer ID."`
 	Address  string        `short:"a" long:"address" description:"Add by account address."`
 	Wait     int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"2"`
 }
@@ -50,29 +49,21 @@ type addContactsCmd struct {
 func (x *addContactsCmd) Usage() string {
 	return `
 
-Adds a contact by username, peer ID, or account address to known contacts.
+Adds a contact by username or account address to known contacts.
 `
 }
 
 func (x *addContactsCmd) Execute(args []string) error {
 	setApi(x.Client)
-	if x.Username == "" && x.Peer == "" && x.Address == "" {
+	if x.Username == "" && x.Address == "" {
 		return errMissingAddInfo
-	}
-
-	var limit int
-	if x.Peer != "" {
-		limit = 1
-	} else if x.Username != "" || x.Address != "" {
-		limit = 10
 	}
 
 	results := handleSearchStream("contacts/search", params{
 		opts: map[string]string{
 			"username": x.Username,
-			"peer":     x.Peer,
 			"address":  x.Address,
-			"limit":    strconv.Itoa(limit),
+			"limit":    strconv.Itoa(10),
 			"wait":     strconv.Itoa(x.Wait),
 		},
 	})
@@ -82,10 +73,10 @@ func (x *addContactsCmd) Execute(args []string) error {
 		return nil
 	}
 
-	var remote []pb.QueryResult
+	remote := make(map[string]pb.QueryResult)
 	for _, res := range results {
 		if !res.Local {
-			remote = append(remote, res)
+			remote[res.Id] = res // overwrite with newer / more complete result
 		}
 	}
 	if len(remote) == 0 {
@@ -111,7 +102,7 @@ func (x *addContactsCmd) Execute(args []string) error {
 			return err
 		}
 
-		res, err := executeStringCmd(PUT, "contacts/"+contact.Id, params{
+		res, err := executeStringCmd(PUT, "contacts/"+contact.Address, params{
 			payload: strings.NewReader(data),
 			ctype:   "application/json",
 		})
@@ -130,24 +121,18 @@ func (x *addContactsCmd) Execute(args []string) error {
 
 type lsContactsCmd struct {
 	Client ClientOptions `group:"Client Options"`
-	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for all known contacts."`
 }
 
 func (x *lsContactsCmd) Usage() string {
 	return `
 
-Lists known contacts.
-Include the --thread flag to list contacts for a given thread.`
+Lists known contacts.`
 }
 
 func (x *lsContactsCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	res, err := executeJsonCmd(GET, "contacts", params{
-		opts: map[string]string{
-			"thread": x.Thread,
-		},
-	}, nil)
+	res, err := executeJsonCmd(GET, "contacts", params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -168,15 +153,24 @@ Gets a known contact.`
 func (x *getContactsCmd) Execute(args []string) error {
 	setApi(x.Client)
 	if len(args) == 0 {
-		return errMissingPeerId
+		return errMissingAddress
 	}
 
-	res, err := executeJsonCmd(GET, "contacts/"+args[0], params{}, nil)
+	_, res, err := callGetContacts(args[0])
 	if err != nil {
 		return err
 	}
 	output(res)
 	return nil
+}
+
+func callGetContacts(address string) (*pb.Contact, string, error) {
+	var contact pb.Contact
+	res, err := executeJsonPbCmd(GET, "contacts/"+address, params{}, &contact)
+	if err != nil {
+		return nil, "", err
+	}
+	return &contact, res, nil
 }
 
 type rmContactsCmd struct {
@@ -192,7 +186,7 @@ Removes a known contact.`
 func (x *rmContactsCmd) Execute(args []string) error {
 	setApi(x.Client)
 	if len(args) == 0 {
-		return errMissingPeerId
+		return errMissingAddress
 	}
 
 	res, err := executeStringCmd(DEL, "contacts/"+args[0], params{})
@@ -206,7 +200,6 @@ func (x *rmContactsCmd) Execute(args []string) error {
 type searchContactsCmd struct {
 	Client   ClientOptions `group:"Client Options"`
 	Username string        `short:"u" long:"username" description:"Search by username."`
-	Peer     string        `short:"p" long:"peer" description:"Search by peer ID."`
 	Address  string        `short:"a" long:"address" description:"Search by account address."`
 	Local    bool          `long:"local" description:"Only search local contacts."`
 	Limit    int           `long:"limit" description:"Stops searching after limit results are found." default:"5"`
@@ -222,14 +215,13 @@ Searches locally and on the network for contacts.
 
 func (x *searchContactsCmd) Execute(args []string) error {
 	setApi(x.Client)
-	if x.Username == "" && x.Peer == "" && x.Address == "" {
+	if x.Username == "" && x.Address == "" {
 		return errMissingSearchInfo
 	}
 
 	handleSearchStream("contacts/search", params{
 		opts: map[string]string{
 			"username": x.Username,
-			"peer":     x.Peer,
 			"address":  x.Address,
 			"local":    strconv.FormatBool(x.Local),
 			"limit":    strconv.Itoa(x.Limit),

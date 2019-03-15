@@ -6,29 +6,38 @@ import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
 import "message.proto";
 
-// CONTACTS //
+// PEERS //
 
-message Contact {
+message Peer {
     string id                         = 1;
     string address                    = 2;
-    string username                   = 3;
+    string name                       = 3;
     string avatar                     = 4;
     repeated Cafe inboxes             = 5;
     google.protobuf.Timestamp created = 6;
     google.protobuf.Timestamp updated = 7;
+}
 
-    // view info
-    repeated string threads = 8;
+message PeerList {
+    repeated Peer items = 1;
+}
+
+message User {
+    string address = 1;
+    string name    = 2;
+    string avatar  = 3;
+}
+
+message Contact {
+    string address      = 1;
+    string name         = 2;
+    string avatar       = 3;
+    repeated Peer peers = 4;
+    repeated string threads = 5;
 }
 
 message ContactList {
     repeated Contact items = 1;
-}
-
-message User {
-    string address  = 1;
-    string name     = 2;
-    string avatar   = 3;
 }
 
 // THREADS //
@@ -133,7 +142,7 @@ message Invite {
     string id                      = 1;
     bytes block                    = 2;
     string name                    = 3;
-    Contact inviter                = 4;
+    Peer inviter                   = 4;
     google.protobuf.Timestamp date = 5;
 }
 

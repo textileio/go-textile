@@ -108,6 +108,9 @@ func executeJsonCmd(meth method, pth string, pars params, target interface{}) (s
 	if err != nil {
 		return "", err
 	}
+	if len(data) == 0 {
+		return "", nil
+	}
 
 	if target == nil {
 		target = new(interface{})

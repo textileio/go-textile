@@ -48,7 +48,7 @@ func (t *Textile) message(block *pb.Block, opts feedItemOpts) (*pb.Text, error) 
 	item := &pb.Text{
 		Block: block.Id,
 		Date:  block.Date,
-		User:  t.User(block.Author),
+		User:  t.PeerUser(block.Author),
 		Body:  block.Body,
 	}
 

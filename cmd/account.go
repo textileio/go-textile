@@ -18,7 +18,7 @@ func init() {
 
 type accountCmd struct {
 	Address accountAddressCmd `command:"address" description:"Show wallet account address"`
-	Peers   accountPeersCmd   `command:"peers" description:"List known account peers"`
+	Contact accountContactCmd `command:"contact" description:"Show own contact"`
 	Backups accountBackupsCmd `command:"backups" description:"Manage account thread backups"`
 	Sync    accountSyncCmd    `command:"sync" description:"Sync account with all network backups"`
 }
@@ -57,20 +57,20 @@ func (x *accountAddressCmd) Execute(args []string) error {
 	return nil
 }
 
-type accountPeersCmd struct {
+type accountContactCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *accountPeersCmd) Usage() string {
+func (x *accountContactCmd) Usage() string {
 	return `
 
-Lists all known wallet account peers.`
+Shows own contact.`
 }
 
-func (x *accountPeersCmd) Execute(args []string) error {
+func (x *accountContactCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	res, err := executeJsonCmd(GET, "account/peers", params{}, nil)
+	res, err := executeJsonCmd(GET, "account/contact", params{}, nil)
 	if err != nil {
 		return err
 	}

@@ -3,21 +3,19 @@ package core
 import (
 	"net/http"
 
-	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mr-tron/base58/base58"
-	"github.com/textileio/go-textile/pb"
 )
 
 // createInvites godoc
 // @Summary Create an invite to a thread
-// @Description Creates a direct peer-to-peer or external invite to a thread
+// @Description Creates a direct account-to-account or external invite to a thread
 // @Tags invites
 // @Produce application/json
-// @Param X-Textile-Opts header string false "thread: Thread ID (can also use 'default'), peer: Peer ID (omit to create an external invite)" default(thread=,peer=)
-// @Success 201 {object} pb.NewInvite "invite"
+// @Param X-Textile-Opts header string false "thread: Thread ID (can also use 'default'), address: Account Address (omit to create an external invite)" default(thread=,address=)
+// @Success 201 {object} pb.ExternalInvite "invite"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
@@ -28,44 +26,28 @@ func (a *api) createInvites(g *gin.Context) {
 		a.abort500(g, err)
 		return
 	}
-	var pid peer.ID
-	if opts["peer"] != "" {
-		pid, err = peer.IDB58Decode(opts["peer"])
-		if err != nil {
-			g.String(http.StatusBadRequest, err.Error())
-			return
-		}
-	}
 
 	threadId := opts["thread"]
 	if threadId == "default" {
 		threadId = a.node.config.Threads.Defaults.ID
 	}
-	thrd := a.node.Thread(threadId)
-	if thrd == nil {
-		g.String(http.StatusNotFound, ErrThreadNotFound.Error())
+
+	if opts["address"] != "" {
+		if err := a.node.AddInvite(threadId, opts["address"]); err != nil {
+			g.String(http.StatusBadRequest, err.Error())
+			return
+		}
+		g.Status(http.StatusCreated)
 		return
 	}
 
-	result := &pb.NewInvite{}
-	if pid != "" {
-		hash, err := thrd.AddInvite(pid)
-		if err != nil {
-			g.String(http.StatusBadRequest, err.Error())
-			return
-		}
-		result.Id = hash.B58String()
-	} else {
-		hash, key, err := thrd.AddExternalInvite()
-		if err != nil {
-			g.String(http.StatusBadRequest, err.Error())
-			return
-		}
-		result.Id = hash.B58String()
-		result.Key = base58.FastBase58Encoding(key)
+	invite, err := a.node.AddExternalInvite(threadId)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
 	}
 
-	pbJSON(g, http.StatusCreated, result)
+	pbJSON(g, http.StatusCreated, invite)
 }
 
 // lsInvites godoc

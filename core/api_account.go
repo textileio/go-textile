@@ -19,16 +19,16 @@ func (a *api) accountAddress(g *gin.Context) {
 	g.String(http.StatusOK, a.node.account.Address())
 }
 
-// accountPeers godoc
-// @Summary Show account peers
-// @Description Shows all known account peers
+// accountContact godoc
+// @Summary Show own contact
+// @Description Shows own contact
 // @Tags account
 // @Produce application/json
-// @Success 200 {object} pb.ContactList "peers"
+// @Success 200 {object} pb.Contact "contact"
 // @Failure 400 {string} string "Bad Request"
 // @Router /account/peers [get]
-func (a *api) accountPeers(g *gin.Context) {
-	pbJSON(g, http.StatusOK, a.node.AccountPeers())
+func (a *api) accountContact(g *gin.Context) {
+	pbJSON(g, http.StatusOK, a.node.AccountContact())
 }
 
 // accountPeers godoc

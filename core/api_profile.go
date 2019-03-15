@@ -43,7 +43,7 @@ func (a *api) setUsername(g *gin.Context) {
 		g.String(http.StatusBadRequest, "missing username")
 		return
 	}
-	if err := a.node.SetUsername(args[0]); err != nil {
+	if err := a.node.SetName(args[0]); err != nil {
 		a.abort500(g, err)
 		return
 	}

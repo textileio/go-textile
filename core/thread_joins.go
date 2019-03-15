@@ -92,8 +92,8 @@ func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 		return nil, ErrNotReadable
 	}
 
-	// join's contact _must_ match the sender
-	if msg.Contact.Id != block.Header.Author {
+	// join's peer _must_ match the sender
+	if msg.Peer.Id != block.Header.Author {
 		return nil, ErrInvalidThreadBlock
 	}
 
@@ -105,11 +105,11 @@ func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 	}
 
 	// collect author as an unwelcomed peer
-	if msg.Contact != nil {
-		if cjson, err := pbMarshaler.MarshalToString(msg.Contact); err == nil {
-			log.Debugf("found contact: %s", cjson)
+	if msg.Peer != nil {
+		if cjson, err := pbMarshaler.MarshalToString(msg.Peer); err == nil {
+			log.Debugf("found peer: %s", cjson)
 		}
-		if err := t.addOrUpdateContact(msg.Contact); err != nil {
+		if err := t.addOrUpdatePeer(msg.Peer); err != nil {
 			return nil, err
 		}
 	}
@@ -122,10 +122,10 @@ func (t *Thread) buildJoin(inviterId string) (*pb.ThreadJoin, error) {
 	msg := &pb.ThreadJoin{
 		Inviter: inviterId,
 	}
-	contact := t.datastore.Contacts().Get(t.node().Identity.Pretty())
-	if contact == nil {
-		return nil, fmt.Errorf("unable to join, no contact for self")
+	peer := t.datastore.Peers().Get(t.node().Identity.Pretty())
+	if peer == nil {
+		return nil, fmt.Errorf("unable to join, no peer for self")
 	}
-	msg.Contact = contact
+	msg.Peer = peer
 	return msg, nil
 }

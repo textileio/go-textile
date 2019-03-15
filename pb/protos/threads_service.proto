@@ -28,8 +28,8 @@ message ThreadBlockHeader {
 }
 
 message ThreadAdd { // not kept on-chain
-    Contact inviter = 1;
-    Thread thread   = 2;
+    Peer inviter  = 1;
+    Thread thread = 2;
 }
 
 message ThreadIgnore {
@@ -41,13 +41,13 @@ message ThreadFlag {
 }
 
 message ThreadJoin {
-    string inviter  = 1;
-    Contact contact = 2;
+    string inviter = 1;
+    Peer peer      = 2;
 }
 
 message ThreadAnnounce {
-    Contact contact = 1;
-    string name     = 2; // new thread name
+    Peer peer   = 1;
+    string name = 2; // new thread name
 }
 
 message ThreadMessage {

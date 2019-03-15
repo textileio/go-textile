@@ -12,7 +12,7 @@ func (t *Textile) leave(block *pb.Block, opts feedItemOpts) (*pb.Leave, error) {
 	item := &pb.Leave{
 		Block: block.Id,
 		Date:  block.Date,
-		User:  t.User(block.Author),
+		User:  t.PeerUser(block.Author),
 	}
 
 	if opts.annotations {

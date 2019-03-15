@@ -21,7 +21,6 @@ func (t *Textile) merge(block *pb.Block, opts feedItemOpts) (*pb.Merge, error) {
 	return &pb.Merge{
 		Block:   block.Id,
 		Date:    block.Date,
-		User:    t.User(block.Author),
 		Targets: targets,
 	}, nil
 }

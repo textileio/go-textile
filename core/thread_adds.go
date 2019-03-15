@@ -10,26 +10,25 @@ import (
 
 // AddInvite creates an outgoing add block, which is sent directly to the recipient
 // and does not become part of the hash chain
-func (t *Thread) AddInvite(peerId peer.ID) (mh.Multihash, error) {
+func (t *Thread) AddInvite(p *pb.Peer) (mh.Multihash, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	contact := t.datastore.Contacts().Get(peerId.Pretty())
-	if contact == nil {
-		return nil, ErrContactNotFound
-	}
-
-	if !t.shareable(t.config.Account.Address, contact.Address) {
+	if !t.shareable(t.config.Account.Address, p.Address) {
 		return nil, ErrNotShareable
 	}
 
-	self := t.datastore.Contacts().Get(t.node().Identity.Pretty())
+	self := t.datastore.Peers().Get(t.node().Identity.Pretty())
 	msg := &pb.ThreadAdd{
 		Thread:  t.datastore.Threads().Get(t.Id),
 		Inviter: self,
 	}
 
-	pk, err := peerId.ExtractPublicKey()
+	pid, err := peer.IDB58Decode(p.Id)
+	if err != nil {
+		return nil, err
+	}
+	pk, err := pid.ExtractPublicKey()
 	if err != nil {
 		return nil, err
 	}
@@ -42,13 +41,13 @@ func (t *Thread) AddInvite(peerId peer.ID) (mh.Multihash, error) {
 	}
 
 	// create new peer for posting (it will get added if+when they accept)
-	target := pb.ThreadPeer{Id: contact.Id}
+	target := pb.ThreadPeer{Id: p.Id}
 
 	if err := t.post(res, []pb.ThreadPeer{target}); err != nil {
 		return nil, err
 	}
 
-	log.Debugf("sent ADD to %s for %s", contact.Id, t.Id)
+	log.Debugf("sent ADD to %s for %s", p.Id, t.Id)
 
 	return res.hash, nil
 }
@@ -63,7 +62,7 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 		return nil, nil, ErrNotShareable
 	}
 
-	self := t.datastore.Contacts().Get(t.node().Identity.Pretty())
+	self := t.datastore.Peers().Get(t.node().Identity.Pretty())
 	msg := &pb.ThreadAdd{
 		Thread:  t.datastore.Threads().Get(t.Id),
 		Inviter: self,

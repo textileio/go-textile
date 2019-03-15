@@ -123,7 +123,7 @@ func (a *api) Start() {
 		account := v0.Group("/account")
 		{
 			account.GET("/address", a.accountAddress)
-			account.GET("/peers", a.accountPeers)
+			account.GET("/contact", a.accountContact)
 			account.POST("/backups", a.accountBackups)
 		}
 
@@ -242,10 +242,10 @@ func (a *api) Start() {
 
 		contacts := v0.Group("/contacts")
 		{
-			contacts.PUT(":id", a.addContacts)
+			contacts.PUT(":address", a.addContacts)
 			contacts.GET("", a.lsContacts)
-			contacts.GET("/:id", a.getContacts)
-			contacts.DELETE("/:id", a.rmContacts)
+			contacts.GET("/:address", a.getContacts)
+			contacts.DELETE("/:address", a.rmContacts)
 			contacts.POST("/search", a.searchContacts)
 		}
 

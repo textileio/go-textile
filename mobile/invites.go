@@ -1,36 +1,18 @@
 package mobile
 
 import (
-	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-
 	"github.com/golang/protobuf/proto"
 	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/go-textile/core"
-	"github.com/textileio/go-textile/pb"
 )
 
-// AddInvite adds a new invite to a thread
-func (m *Mobile) AddInvite(threadId string, inviteeId string) (string, error) {
+// AddInvite call core AddInvite
+func (m *Mobile) AddInvite(threadId string, address string) error {
 	if !m.node.Started() {
-		return "", core.ErrStopped
+		return core.ErrStopped
 	}
 
-	thrd := m.node.Thread(threadId)
-	if thrd == nil {
-		return "", core.ErrThreadNotFound
-	}
-
-	pid, err := peer.IDB58Decode(inviteeId)
-	if err != nil {
-		return "", err
-	}
-
-	hash, err := thrd.AddInvite(pid)
-	if err != nil {
-		return "", err
-	}
-
-	return hash.B58String(), nil
+	return m.node.AddInvite(threadId, address)
 }
 
 // AddExternalInvite generates a new external invite link to a thread
@@ -39,21 +21,9 @@ func (m *Mobile) AddExternalInvite(threadId string) ([]byte, error) {
 		return nil, core.ErrStopped
 	}
 
-	thrd := m.node.Thread(threadId)
-	if thrd == nil {
-		return nil, core.ErrThreadNotFound
-	}
-
-	hash, key, err := thrd.AddExternalInvite()
+	invite, err := m.node.AddExternalInvite(threadId)
 	if err != nil {
 		return nil, err
-	}
-
-	username, _ := m.Username()
-	invite := &pb.NewInvite{
-		Id:      hash.B58String(),
-		Key:     base58.FastBase58Encoding(key),
-		Inviter: username,
 	}
 
 	return proto.Marshal(invite)

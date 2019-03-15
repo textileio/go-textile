@@ -62,9 +62,9 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 		return nil, ErrNotReadable
 	}
 
-	// unless this is our account thread, announce's contact _must_ match the sender
-	if msg.Contact != nil {
-		if t.Id != t.config.Account.Thread && msg.Contact.Id != block.Header.Author {
+	// unless this is our account thread, announce's peer _must_ match the sender
+	if msg.Peer != nil {
+		if t.Id != t.config.Account.Thread && msg.Peer.Id != block.Header.Author {
 			return nil, ErrInvalidThreadBlock
 		}
 	}
@@ -84,8 +84,8 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 	}
 
 	// update author info
-	if msg.Contact != nil {
-		if err := t.addOrUpdateContact(msg.Contact); err != nil {
+	if msg.Peer != nil {
+		if err := t.addOrUpdatePeer(msg.Peer); err != nil {
 			return nil, err
 		}
 	}
@@ -104,10 +104,10 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 // buildAnnounce builds up a Announce block
 func (t *Thread) buildAnnounce() (*pb.ThreadAnnounce, error) {
 	msg := &pb.ThreadAnnounce{}
-	contact := t.datastore.Contacts().Get(t.node().Identity.Pretty())
-	if contact == nil {
-		return nil, fmt.Errorf("unable to announce, no contact for self")
+	peer := t.datastore.Peers().Get(t.node().Identity.Pretty())
+	if peer == nil {
+		return nil, fmt.Errorf("unable to announce, no peer for self")
 	}
-	msg.Contact = contact
+	msg.Peer = peer
 	return msg, nil
 }

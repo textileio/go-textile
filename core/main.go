@@ -165,7 +165,7 @@ func InitRepo(conf InitConfig) error {
 	if err != nil {
 		return err
 	}
-	if err := sqliteDb.Contacts().Add(&pb.Contact{
+	if err := sqliteDb.Peers().Add(&pb.Peer{
 		Id:      ipfsConf.Identity.PeerID,
 		Address: conf.Account.Address(),
 	}); err != nil {
@@ -341,9 +341,9 @@ func (t *Textile) Start() error {
 		log.Info("node is online")
 
 		// tmp. publish contact for migrated users.
-		// this normally only happens when contact details are changed,
+		// this normally only happens when peer details are changed,
 		// will be removed at some point in the future.
-		if err := t.PublishContact(); err != nil {
+		if err := t.publishPeer(); err != nil {
 			log.Errorf(err.Error())
 		}
 	}()
@@ -644,7 +644,7 @@ func (t *Textile) loadThread(mod *pb.Thread) (*Thread, error) {
 		Service:     t.threadsService,
 		BlockOutbox: t.blockOutbox,
 		CafeOutbox:  t.cafeOutbox,
-		AddContact:  t.AddContact,
+		AddPeer:     t.addPeer,
 		PushUpdate:  t.sendThreadUpdate,
 	}
 

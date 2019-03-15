@@ -12,7 +12,7 @@ func (t *Textile) join(block *pb.Block, opts feedItemOpts) (*pb.Join, error) {
 	item := &pb.Join{
 		Block: block.Id,
 		Date:  block.Date,
-		User:  t.User(block.Author),
+		User:  t.PeerUser(block.Author),
 	}
 
 	if opts.annotations {

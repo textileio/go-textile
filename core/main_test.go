@@ -19,22 +19,32 @@ import (
 
 var repoPath = "testdata/.textile"
 var otherPath = "testdata/.textile2"
+
 var node *Textile
 var other *Textile
+
 var token string
+
 var contact = &pb.Contact{
-	Id:       "abcde",
-	Address:  "address1",
-	Username: "joe",
-	Avatar:   "Qm123",
-	Inboxes: []*pb.Cafe{{
-		Peer:     "peer",
-		Address:  "address",
-		Api:      "v0",
-		Protocol: "/textile/cafe/1.0.0",
-		Node:     "v1.0.0",
-		Url:      "https://mycafe.com",
-	}},
+	Address: "address1",
+	Name:    "joe",
+	Avatar:  "Qm123",
+	Peers: []*pb.Peer{
+		{
+			Id:      "abcde",
+			Address: "address1",
+			Name:    "joe",
+			Avatar:  "Qm123",
+			Inboxes: []*pb.Cafe{{
+				Peer:     "peer",
+				Address:  "address",
+				Api:      "v0",
+				Protocol: "/textile/cafe/1.0.0",
+				Node:     "v1.0.0",
+				Url:      "https://mycafe.com",
+			}},
+		},
+	},
 }
 
 var schemaHash string

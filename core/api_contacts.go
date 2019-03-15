@@ -10,29 +10,27 @@ import (
 
 // addContacts godoc
 // @Summary Add to known contacts
-// @Description Adds a contact to list of known local contacts. A common workflow is to pipe
-// @Description /contact/search results into this endpoint, just be sure you know what the results
-// @Description of the search are before adding!
+// @Description Adds a contact by username or account address to known contacts.
 // @Tags contacts
 // @Accept application/json
 // @Produce application/json
-// @Param id path string true "contact id"
+// @Param address path string true "address"
 // @Param contact body pb.Contact true "contact"
 // @Success 200 {string} string "ok"
 // @Failure 400 {string} string "Bad Request"
-// @Router /contacts/{id} [put]
+// @Router /contacts/{address} [put]
 func (a *api) addContacts(g *gin.Context) {
 	var contact pb.Contact
 	if err := pbUnmarshaler.Unmarshal(g.Request.Body, &contact); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
-	if contact.Id == "" || contact.Address == "" {
+	if contact.Address == "" || len(contact.Peers) == 0 {
 		g.String(http.StatusBadRequest, "invalid contact")
 		return
 	}
-	if contact.Id != g.Param("id") {
-		g.String(http.StatusBadRequest, "contact id mismatch")
+	if contact.Address != g.Param("address") {
+		g.String(http.StatusBadRequest, "contact address mismatch")
 		return
 	}
 
@@ -46,61 +44,28 @@ func (a *api) addContacts(g *gin.Context) {
 
 // lsContacts godoc
 // @Summary List known contacts
-// @Description Lists all, or thread-based, contacts.
+// @Description Lists known contacts.
 // @Tags contacts
 // @Produce application/json
-// @Param X-Textile-Opts header string false "thread: Thread ID (omit for all known contacts)" default(thread=)
 // @Success 200 {object} pb.ContactList "contacts"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /contacts [get]
 func (a *api) lsContacts(g *gin.Context) {
-	opts, err := a.readOpts(g)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-
-	contacts := &pb.ContactList{Items: make([]*pb.Contact, 0)}
-
-	threadId := opts["thread"]
-	if threadId == "default" {
-		threadId = a.node.config.Threads.Defaults.ID
-	}
-	if threadId != "" {
-		thrd := a.node.Thread(threadId)
-		if thrd == nil {
-			g.String(http.StatusNotFound, ErrThreadNotFound.Error())
-			return
-		}
-
-		for _, p := range thrd.Peers() {
-			contact := a.node.Contact(p.Id)
-			if contact != nil {
-				contacts.Items = append(contacts.Items, contact)
-			}
-		}
-
-	} else {
-		contacts = a.node.Contacts()
-	}
-
-	pbJSON(g, http.StatusOK, contacts)
+	pbJSON(g, http.StatusOK, a.node.Contacts())
 }
 
 // getContacts godoc
 // @Summary Get a known contact
-// @Description Gets information about a known contact
+// @Description Gets a known contact
 // @Tags contacts
 // @Produce application/json
-// @Param id path string true "contact id"
+// @Param address path string true "address"
 // @Success 200 {object} pb.Contact "contact"
 // @Failure 404 {string} string "Not Found"
-// @Router /contacts/{id} [get]
+// @Router /contacts/{address} [get]
 func (a *api) getContacts(g *gin.Context) {
-	id := g.Param("id")
-
-	contact := a.node.Contact(id)
+	contact := a.node.Contact(g.Param("address"))
 	if contact == nil {
 		g.String(http.StatusNotFound, "contact not found")
 		return
@@ -114,21 +79,21 @@ func (a *api) getContacts(g *gin.Context) {
 // @Description Removes a known contact
 // @Tags contacts
 // @Produce text/plain
-// @Param id path string true "contact id"
+// @Param address path string true "address"
 // @Success 200 {string} string "ok"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /contacts/{id} [delete]
+// @Router /contacts/{address} [delete]
 func (a *api) rmContacts(g *gin.Context) {
-	id := g.Param("id")
+	address := g.Param("address")
 
-	contact := a.node.Contact(id)
+	contact := a.node.Contact(address)
 	if contact == nil {
 		g.String(http.StatusNotFound, "contact not found")
 		return
 	}
 
-	if err := a.node.RemoveContact(id); err != nil {
+	if err := a.node.RemoveContact(address); err != nil {
 		a.abort500(g, err)
 		return
 	}
@@ -141,7 +106,7 @@ func (a *api) rmContacts(g *gin.Context) {
 // @Description Search for contacts known locally and on the network
 // @Tags contacts
 // @Produce application/json
-// @Param X-Textile-Opts header string false "local: Whether to only search local contacts, limit: Stops searching after limit results are found, wait: Stops searching after 'wait' seconds have elapsed (max 10s), username: search by username string, peer: search by peer id string, address: search by account address string, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON" default(local="false",limit=5,wait=5,peer=,address=,username=,events="false")
+// @Param X-Textile-Opts header string false "local: Whether to only search local contacts, limit: Stops searching after limit results are found, wait: Stops searching after 'wait' seconds have elapsed (max 10s), username: search by username string, address: search by account address string, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON" default(local="false",limit=5,wait=5,address=,username=,events="false")
 // @Success 200 {object} pb.QueryResult "results stream"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
@@ -167,7 +132,6 @@ func (a *api) searchContacts(g *gin.Context) {
 	}
 
 	query := &pb.ContactQuery{
-		Id:       opts["peer"],
 		Address:  opts["address"],
 		Username: opts["username"],
 	}
