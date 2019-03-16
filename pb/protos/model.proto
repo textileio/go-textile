@@ -257,9 +257,11 @@ message CafeRequest {
     google.protobuf.Timestamp date = 6;
 
     enum Type {
-        STORE        = 0;
-        STORE_THREAD = 1;
-        INBOX        = 2;
+        STORE          = 0;
+        UNSTORE        = 3;
+        STORE_THREAD   = 1;
+        UNSTORE_THREAD = 4;
+        INBOX          = 2;
     }
 }
 

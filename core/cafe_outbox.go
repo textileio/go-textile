@@ -203,6 +203,25 @@ func (q *CafeOutbox) handle(reqs []pb.CafeRequest, rtype pb.CafeRequest_Type, ca
 			herr = err
 		}
 
+	case pb.CafeRequest_UNSTORE:
+		var cids []string
+		for _, req := range reqs {
+			cids = append(cids, req.Target)
+		}
+
+		unstored, err := q.service().Unstore(cids, cafe)
+		for _, u := range unstored {
+			for _, r := range reqs {
+				if r.Target == u {
+					handled = append(handled, r.Id)
+				}
+			}
+		}
+		if err != nil {
+			log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafe.Pretty(), err)
+			herr = err
+		}
+
 	case pb.CafeRequest_STORE_THREAD:
 		for _, req := range reqs {
 			thrd := q.datastore.Threads().Get(req.Target)
@@ -213,6 +232,16 @@ func (q *CafeOutbox) handle(reqs []pb.CafeRequest, rtype pb.CafeRequest_Type, ca
 			}
 
 			if err := q.service().StoreThread(thrd, cafe); err != nil {
+				log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafe.Pretty(), err)
+				herr = err
+				continue
+			}
+			handled = append(handled, req.Id)
+		}
+
+	case pb.CafeRequest_UNSTORE_THREAD:
+		for _, req := range reqs {
+			if err := q.service().UnstoreThread(req.Target, cafe); err != nil {
 				log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafe.Pretty(), err)
 				herr = err
 				continue
