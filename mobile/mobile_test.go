@@ -1,6 +1,7 @@
 package mobile_test
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/segmentio/ksuid"
 	. "github.com/textileio/go-textile/mobile"
 	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/util"
 )
 
 type TestMessenger struct{}
@@ -395,23 +397,90 @@ func TestMobile_Messages(t *testing.T) {
 }
 
 func TestMobile_PrepareFilesSync(t *testing.T) {
-	data, err := getImageFileData()
+	input := "stackabuse.com"
+
+	encoded := base64.StdEncoding.EncodeToString([]byte(input))
+
+	conf := &pb.AddThreadConfig{
+		Key:  ksuid.New().String(),
+		Name: "what",
+		Schema: &pb.AddThreadConfig_Schema{
+			Preset: pb.AddThreadConfig_Schema_BLOB,
+		},
+		Type:    pb.Thread_OPEN,
+		Sharing: pb.Thread_SHARED,
+	}
+	mconf, err := proto.Marshal(conf)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	res, err := mobile1.PrepareFilesSync(data, thrdId)
+	res, err := mobile1.AddThread(mconf)
+	if err != nil {
+		t.Errorf("remove thread failed: %s", err)
+		return
+	}
+	thrd := new(pb.Thread)
+	if err := proto.Unmarshal(res, thrd); err != nil {
+		t.Error(err)
+		return
+	}
+
+	res2, err := mobile1.PrepareFilesSync(encoded, thrd.Id)
 	if err != nil {
 		t.Errorf("prepare files failed: %s", err)
 		return
 	}
 	pre := new(pb.MobilePreparedFiles)
-	if err := proto.Unmarshal(res, pre); err != nil {
+	if err := proto.Unmarshal(res2, pre); err != nil {
 		t.Error(err)
 		return
 	}
-	if len(pre.Dir.Files) != 3 {
-		t.Error("wrong number of files")
+
+	dir, err := proto.Marshal(pre.Dir)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	res3, err := mobile1.AddFiles(dir, thrd.Id, "")
+	if err != nil {
+		t.Errorf("add thread files failed: %s", err)
+		return
+	}
+	block := new(pb.Block)
+	if err := proto.Unmarshal(res3, block); err != nil {
+		t.Error(err)
+		return
+	}
+
+	res4, err := mobile1.Files("", -1, thrd.Id)
+	if err != nil {
+		t.Errorf("get thread files failed: %s", err)
+		return
+	}
+	list := new(pb.FilesList)
+	if err := proto.Unmarshal(res4, list); err != nil {
+		t.Error(err)
+		return
+	}
+
+	res5, err := mobile1.FileData(list.Items[0].Files[0].File.Hash)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	res6 := util.SplitString(res5, ",")
+	res7, err := base64.StdEncoding.DecodeString(res6[1])
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	output := string(res7)
+
+	if output != input {
+		t.Error("file output does not match input")
 	}
 }
 
@@ -907,15 +976,16 @@ func createAndStartMobile(repoPath string, waitForOnline bool) (*Mobile, error) 
 	return mobile, nil
 }
 
-func getImageFileData() ([]byte, error) {
+func getImageFileData() (string, error) {
 	f, err := os.Open("../mill/testdata/image.jpeg")
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	defer f.Close()
 	data, err := ioutil.ReadAll(f)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return data, nil
+
+	return base64.StdEncoding.EncodeToString(data), nil
 }

@@ -60,6 +60,8 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 			sjson = conf.Schema.Json
 		} else {
 			switch conf.Schema.Preset {
+			case pb.AddThreadConfig_Schema_BLOB:
+				sjson = textile.Blob
 			case pb.AddThreadConfig_Schema_CAMERA_ROLL:
 				sjson = textile.CameraRoll
 			case pb.AddThreadConfig_Schema_MEDIA:

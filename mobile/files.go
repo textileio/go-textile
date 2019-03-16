@@ -22,8 +22,8 @@ import (
 	"github.com/textileio/go-textile/schema"
 )
 
-// PrepareFiles processes a file by data for a thread, but does NOT share it
-func (m *Mobile) PrepareFiles(data []byte, threadId string, cb Callback) {
+// PrepareFiles processes base64 encoded data for a thread, but does NOT share it
+func (m *Mobile) PrepareFiles(data string, threadId string, cb Callback) {
 	go func() {
 		cb.Call(m.PrepareFilesSync(data, threadId))
 	}()
@@ -36,10 +36,15 @@ func (m *Mobile) PrepareFilesByPath(path string, threadId string, cb Callback) {
 	}()
 }
 
-// PrepareFiles processes a file by data for a thread, but does NOT share it
-func (m *Mobile) PrepareFilesSync(data []byte, threadId string) ([]byte, error) {
+// PrepareFiles processes base64 encoded data for a thread, but does NOT share it
+func (m *Mobile) PrepareFilesSync(data string, threadId string) ([]byte, error) {
 	if !m.node.Started() {
 		return nil, core.ErrStopped
+	}
+
+	dec, err := base64.StdEncoding.DecodeString(data)
+	if err != nil {
+		return nil, err
 	}
 
 	thrd := m.node.Thread(threadId)
@@ -65,7 +70,7 @@ func (m *Mobile) PrepareFilesSync(data []byte, threadId string) ([]byte, error) 
 		return nil, err
 	}
 	if mil != nil {
-		conf, err := m.getFileConfig(mil, data, "", thrd.Schema.Plaintext)
+		conf, err := m.getFileConfig(mil, dec, "", thrd.Schema.Plaintext)
 		if err != nil {
 			return nil, err
 		}
@@ -97,7 +102,7 @@ func (m *Mobile) PrepareFilesSync(data []byte, threadId string) ([]byte, error) 
 			var conf *core.AddFileConfig
 
 			if step.Link.Use == schema.FileTag {
-				conf, err = m.getFileConfig(mil, data, "", step.Link.Plaintext)
+				conf, err = m.getFileConfig(mil, dec, "", step.Link.Plaintext)
 				if err != nil {
 					return nil, err
 				}
@@ -107,7 +112,7 @@ func (m *Mobile) PrepareFilesSync(data []byte, threadId string) ([]byte, error) 
 					return nil, errors.New(step.Link.Use + " not found")
 				}
 
-				conf, err = m.getFileConfig(mil, data, mdir.Dir.Files[step.Link.Use].Hash, step.Link.Plaintext)
+				conf, err = m.getFileConfig(mil, dec, mdir.Dir.Files[step.Link.Use].Hash, step.Link.Plaintext)
 				if err != nil {
 					return nil, err
 				}
