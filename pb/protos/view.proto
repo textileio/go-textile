@@ -24,8 +24,9 @@ message AddThreadConfig {
 
         enum Preset {
             NONE        = 0;
-            CAMERA_ROLL = 1;
-            MEDIA       = 2;
+            BLOB        = 1;
+            CAMERA_ROLL = 2;
+            MEDIA       = 3;
         }
     }
 }
