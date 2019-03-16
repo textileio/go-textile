@@ -24,10 +24,15 @@ message Message {
         CAFE_SESSION             = 53;
         CAFE_REFRESH_SESSION     = 54;
         CAFE_STORE               = 55;
+        CAFE_STORE_ACK           = 59;
+        CAFE_UNSTORE             = 74;
+        CAFE_UNSTORE_ACK         = 75;
         CAFE_OBJECT              = 56;
         CAFE_OBJECT_LIST         = 57;
         CAFE_STORE_THREAD        = 58;
-        CAFE_STORED_ACK          = 59;
+        CAFE_STORE_THREAD_ACK    = 76;
+        CAFE_UNSTORE_THREAD      = 77;
+        CAFE_UNSTORE_THREAD_ACK  = 78;
         CAFE_DELIVER_MESSAGE     = 60;
         CAFE_CHECK_MESSAGES      = 61;
         CAFE_MESSAGES            = 62;

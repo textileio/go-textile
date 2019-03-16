@@ -26,10 +26,6 @@ func (t *Thread) leave() (mh.Multihash, error) {
 		return nil, err
 	}
 
-	if err := t.updateHead(res.hash); err != nil {
-		return nil, err
-	}
-
 	if err := t.post(res, t.Peers()); err != nil {
 		return nil, err
 	}
