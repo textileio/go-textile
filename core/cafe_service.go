@@ -637,8 +637,8 @@ func (h *CafeService) searchLocal(qtype pb.Query_Type, options *pb.QueryOptions,
 	results := newQueryResultSet(options)
 
 	switch qtype {
-	case pb.Query_THREAD_BACKUPS:
-		q := new(pb.ThreadBackupQuery)
+	case pb.Query_THREAD_SNAPSHOTS:
+		q := new(pb.ThreadSnapshotQuery)
 		if err := ptypes.UnmarshalAny(payload, q); err != nil {
 			return nil, err
 		}

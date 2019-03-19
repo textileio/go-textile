@@ -26,8 +26,8 @@ message Query {
     google.protobuf.Any payload = 5;
 
     enum Type {
-        THREAD_BACKUPS = 0;
-        CONTACTS       = 1;
+        THREAD_SNAPSHOTS = 0;
+        CONTACTS         = 1;
     }
 }
 
@@ -66,6 +66,6 @@ message ContactQuery {
     string username = 2;
 }
 
-message ThreadBackupQuery {
+message ThreadSnapshotQuery {
     string address  = 1;
 }

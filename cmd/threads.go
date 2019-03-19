@@ -5,7 +5,10 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
+
+	"github.com/golang/protobuf/ptypes"
 
 	"github.com/textileio/go-textile/pb"
 
@@ -29,6 +32,7 @@ type threadsCmd struct {
 	Peers      peersThreadsCmd      `command:"peers" description:"List thread peers"`
 	Rename     renameThreadsCmd     `command:"rename" description:"Rename thread"`
 	Remove     rmThreadsCmd         `command:"rm" description:"Remove a thread"`
+	Snapshots  snapshotsThreadsCmd  `command:"snaps" description:"Manage thread snapshots"`
 }
 
 func (x *threadsCmd) Name() string {
@@ -278,5 +282,106 @@ func (x *rmThreadsCmd) Execute(args []string) error {
 		return err
 	}
 	output(res)
+	return nil
+}
+
+type snapshotsThreadsCmd struct {
+	Search searchSnapshotsThreadsCmd `command:"search" description:"Search for thread snapshots"`
+	Apply  applySnapshotsThreadsCmd  `command:"apply" description:"Apply a single thread snapshot"`
+}
+
+func (x *snapshotsThreadsCmd) Usage() string {
+	return `
+
+Use this command to list and apply thread snapshots.`
+}
+
+type searchSnapshotsThreadsCmd struct {
+	Client ClientOptions `group:"Client Options"`
+	Wait   int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"2"`
+}
+
+func (x *searchSnapshotsThreadsCmd) Usage() string {
+	return `
+
+Searches the network for thread snapshots.`
+}
+
+func (x *searchSnapshotsThreadsCmd) Execute(args []string) error {
+	setApi(x.Client)
+
+	handleSearchStream("snapshots", params{
+		opts: map[string]string{
+			"wait": strconv.Itoa(x.Wait),
+		},
+	})
+	return nil
+}
+
+type applySnapshotsThreadsCmd struct {
+	Client ClientOptions `group:"Client Options"`
+	Wait   int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"2"`
+}
+
+func (x *applySnapshotsThreadsCmd) Usage() string {
+	return `
+
+Applies a single thread snapshot.`
+}
+
+func (x *applySnapshotsThreadsCmd) Execute(args []string) error {
+	setApi(x.Client)
+	if len(args) == 0 {
+		return errMissingSnapshotId
+	}
+	id := args[0]
+
+	results := handleSearchStream("snapshots", params{
+		opts: map[string]string{
+			"wait": strconv.Itoa(x.Wait),
+		},
+	})
+
+	var result *pb.QueryResult
+	for _, r := range results {
+		if r.Id == id {
+			result = &r
+		}
+	}
+
+	if result == nil {
+		output("Could not find snapshot with ID: " + id)
+		return nil
+	}
+
+	if err := applySnapshot(result); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func applySnapshot(result *pb.QueryResult) error {
+	backup := new(pb.Thread)
+	if err := ptypes.UnmarshalAny(result.Value, backup); err != nil {
+		return err
+	}
+	data, err := pbMarshaler.MarshalToString(result.Value)
+	if err != nil {
+		return err
+	}
+
+	res, err := executeStringCmd(PUT, "threads/"+backup.Id, params{
+		payload: strings.NewReader(data),
+		ctype:   "application/json",
+	})
+	if err != nil {
+		return err
+	}
+	if res == "ok" {
+		output("applied " + result.Id)
+	} else {
+		output("error applying " + result.Id + ": " + res)
+	}
 	return nil
 }

@@ -10,6 +10,10 @@ import (
 	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
+	"github.com/textileio/go-textile/broadcast"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/mill"
@@ -365,6 +369,76 @@ func (t *Textile) ThreadView(id string) (*pb.Thread, error) {
 	mod.PeerCount = int32(len(thrd.Peers()) + 1)
 
 	return mod, nil
+}
+
+// SearchThreadSnapshots searches the network for snapshots
+func (t *Textile) SearchThreadSnapshots(query *pb.ThreadSnapshotQuery, options *pb.QueryOptions) (<-chan *pb.QueryResult, <-chan error, *broadcast.Broadcaster, error) {
+	payload, err := proto.Marshal(query)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	options.Filter = pb.QueryOptions_NO_FILTER
+
+	resCh, errCh, cancel := t.search(&pb.Query{
+		Type:    pb.Query_THREAD_SNAPSHOTS,
+		Options: options,
+		Payload: &any.Any{
+			TypeUrl: "/ThreadSnapshotQuery",
+			Value:   payload,
+		},
+	})
+
+	// transform and filter results into plaintext
+	backups := make(map[string]struct{})
+	tresCh := make(chan *pb.QueryResult)
+	terrCh := make(chan error)
+	go func() {
+		for {
+			select {
+			case res, ok := <-resCh:
+				if !ok {
+					close(tresCh)
+					return
+				}
+
+				backup := new(pb.CafeClientThread)
+				if err := ptypes.UnmarshalAny(res.Value, backup); err != nil {
+					terrCh <- err
+					break
+				}
+
+				plaintext, err := t.account.Decrypt(backup.Ciphertext)
+				if err != nil {
+					terrCh <- err
+					break
+				}
+
+				thrd := new(pb.Thread)
+				if err := proto.Unmarshal(plaintext, thrd); err != nil {
+					terrCh <- err
+					break
+				}
+
+				res.Id += ":" + thrd.Head
+				if _, ok := backups[res.Id]; ok {
+					continue
+				}
+				backups[res.Id] = struct{}{}
+
+				res.Value = &any.Any{
+					TypeUrl: "/Thread",
+					Value:   plaintext,
+				}
+				tresCh <- res
+
+			case err := <-errCh:
+				terrCh <- err
+			}
+		}
+	}()
+
+	return tresCh, terrCh, cancel, nil
 }
 
 // addAccountThread adds a thread with seed representing the state of the account

@@ -3,10 +3,6 @@ package core
 import (
 	"fmt"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
-	"github.com/textileio/go-textile/broadcast"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
@@ -55,75 +51,10 @@ func (t *Textile) AccountContact() *pb.Contact {
 	return t.contact(t.account.Address(), false)
 }
 
-// FindThreadBackups searches the network for backups
-func (t *Textile) FindThreadBackups(query *pb.ThreadBackupQuery, options *pb.QueryOptions) (<-chan *pb.QueryResult, <-chan error, *broadcast.Broadcaster, error) {
-	payload, err := proto.Marshal(query)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	options.Filter = pb.QueryOptions_NO_FILTER
-
-	resCh, errCh, cancel := t.search(&pb.Query{
-		Type:    pb.Query_THREAD_BACKUPS,
-		Options: options,
-		Payload: &any.Any{
-			TypeUrl: "/ThreadBackupQuery",
-			Value:   payload,
-		},
-	})
-
-	// transform and filter results into plaintext
-	backups := make(map[string]struct{})
-	tresCh := make(chan *pb.QueryResult)
-	terrCh := make(chan error)
-	go func() {
-		for {
-			select {
-			case res, ok := <-resCh:
-				if !ok {
-					close(tresCh)
-					return
-				}
-
-				backup := new(pb.CafeClientThread)
-				if err := ptypes.UnmarshalAny(res.Value, backup); err != nil {
-					terrCh <- err
-					break
-				}
-
-				plaintext, err := t.account.Decrypt(backup.Ciphertext)
-				if err != nil {
-					terrCh <- err
-					break
-				}
-
-				thrd := new(pb.Thread)
-				if err := proto.Unmarshal(plaintext, thrd); err != nil {
-					terrCh <- err
-					break
-				}
-
-				res.Id += ":" + thrd.Head
-				if _, ok := backups[res.Id]; ok {
-					continue
-				}
-				backups[res.Id] = struct{}{}
-
-				res.Value = &any.Any{
-					TypeUrl: "/Thread",
-					Value:   plaintext,
-				}
-				tresCh <- res
-
-			case err := <-errCh:
-				terrCh <- err
-			}
-		}
-	}()
-
-	return tresCh, terrCh, cancel, nil
-}
+// SyncAccount performs a thread backup search and applies the result
+//func (t *Textile) SyncAccount() error {
+//	//t.FindThreadBackups()
+//}
 
 // accountPeers returns all known account peers
 func (t *Textile) accountPeers() []*pb.Peer {

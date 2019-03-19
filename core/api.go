@@ -124,7 +124,6 @@ func (a *api) Start() {
 		{
 			account.GET("/address", a.accountAddress)
 			account.GET("/contact", a.accountContact)
-			account.POST("/backups", a.accountBackups)
 		}
 
 		profile := v0.Group("/profile")
@@ -154,6 +153,11 @@ func (a *api) Start() {
 			threads.DELETE("/:id", a.rmThreads)
 			threads.POST("/:id/messages", a.addThreadMessages)
 			threads.POST("/:id/files", a.addThreadFiles)
+		}
+
+		snapshots := v0.Group("/snapshots")
+		{
+			snapshots.POST("/snapshots", a.searchThreadSnapshots)
 		}
 
 		blocks := v0.Group("/blocks")
