@@ -32,7 +32,7 @@ var ErrThreadLoaded = errors.New("thread is loaded")
 var emptyThreadKey = errors.New("thread key cannot by empty")
 
 // internalThreadKeys lists keys used by internal threads
-var internalThreadKeys = []string{"avatars"}
+var internalThreadKeys = []string{"account", "avatars"}
 
 // AddThread adds a thread with a given name and secret key
 func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiator string, join bool) (*Thread, error) {
@@ -206,7 +206,8 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 		}
 	}
 
-	if err := nthrd.followParents([]string{thrd.Head}); err != nil {
+	parents, err := nthrd.followParents([]string{thrd.Head})
+	if err != nil {
 		return err
 	}
 	hash, err := mh.FromB58String(thrd.Head)
@@ -214,7 +215,19 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 		return err
 	}
 
-	return nthrd.updateHead(hash)
+	if _, err := nthrd.handleHead(hash, parents); err != nil {
+		return err
+	}
+
+	// handle newly discovered peers during back prop
+	if err := nthrd.sendWelcome(); err != nil {
+		return err
+	}
+
+	// flush cafe queue _at the very end_
+	go nthrd.cafeOutbox.Flush()
+
+	return nil
 }
 
 // RenameThread adds an announce block to the thread w/ a new name

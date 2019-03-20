@@ -24,9 +24,6 @@ import (
 	"github.com/textileio/go-textile/repo/config"
 )
 
-// ErrPeerNotFound indicates a local peer was not found
-var ErrPeerNotFound = errors.New("peer not found")
-
 // ErrNotShareable indicates the thread does not allow invites, at least for _you_
 var ErrNotShareable = errors.New("thread is not shareable")
 
@@ -47,6 +44,9 @@ var ErrJsonSchemaRequired = errors.New("thread schema does not allow json files"
 
 // ErrInvalidFileNode indicates files where added via a nil ipld node
 var ErrInvalidFileNode = errors.New("invalid files node")
+
+// ErrBlockExists indicates a block has already been indexed
+var ErrBlockExists = errors.New("block exists")
 
 // ErrBlockWrongType indicates a block was requested as a type other than its own
 var ErrBlockWrongType = errors.New("block type is not the type requested")
@@ -157,42 +157,57 @@ func (t *Thread) Decrypt(data []byte) ([]byte, error) {
 }
 
 // followParents tries to follow a list of chains of block ids, processing along the way
-func (t *Thread) followParents(parents []string) error {
+// Note: Returns a final list of parent hashes that were reached during the tree traversal
+func (t *Thread) followParents(parents []string) ([]string, error) {
+	if len(parents) == 0 {
+		log.Debugf("found genesis block, aborting")
+		return nil, nil
+	}
+	final := make(map[string]struct{})
+
 	for _, parent := range parents {
 		if parent == "" {
-			log.Debugf("found genesis block, aborting")
-			continue
+			continue // some old blocks may contain empty string parents
 		}
 
 		hash, err := mh.FromB58String(parent)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		if err := t.followParent(hash); err != nil {
+		ends, err := t.followParent(hash)
+		if err != nil {
 			log.Warningf("failed to follow parent %s: %s", parent, err)
 			continue
 		}
+		for _, p := range ends {
+			final[p] = struct{}{}
+		}
 	}
 
-	return nil
+	var list []string
+	for p := range final {
+		list = append(list, p)
+	}
+	return list, nil
 }
 
-// followParent tries to follow a chain of block ids, processing along the way
-func (t *Thread) followParent(parent mh.Multihash) error {
+// followParent tries to follow a tree of blocks, processing along the way
+func (t *Thread) followParent(parent mh.Multihash) ([]string, error) {
 	ciphertext, err := ipfs.DataAtPath(t.node(), parent.B58String())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	block, err := t.handleBlock(parent, ciphertext)
 	if err != nil {
-		return err
-	}
-	if block == nil {
-		// exists, abort
-		log.Debugf("%s exists, aborting", parent.B58String())
-		return nil
+		if err == ErrBlockExists {
+			// exists, abort
+			log.Debugf("%s exists, aborting", parent.B58String())
+
+			return []string{parent.B58String()}, nil
+		}
+		return nil, err
 	}
 
 	log.Debugf("handling %s from %s", block.Type.String(), block.Header.Author)
@@ -219,10 +234,10 @@ func (t *Thread) followParent(parent mh.Multihash) error {
 	case pb.Block_LIKE:
 		_, err = t.handleLikeBlock(parent, block)
 	default:
-		return errors.New(fmt.Sprintf("invalid message type: %s", block.Type))
+		return nil, errors.New(fmt.Sprintf("invalid message type: %s", block.Type))
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	return t.followParents(block.Header.Parents)
@@ -340,7 +355,7 @@ func (t *Thread) addBlock(ciphertext []byte) (mh.Multihash, error) {
 func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBlock, error) {
 	index := t.datastore.Blocks().Get(hash.B58String())
 	if index != nil {
-		return nil, nil
+		return nil, ErrBlockExists
 	}
 
 	block := new(pb.ThreadBlock)

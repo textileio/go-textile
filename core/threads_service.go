@@ -105,12 +105,12 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 
 	block, err := thrd.handleBlock(hash, tenv.Ciphertext)
 	if err != nil {
+		if err == ErrBlockExists {
+			// exists, abort
+			log.Debugf("%s exists, aborting", hash.B58String())
+			return nil, nil
+		}
 		return nil, err
-	}
-	if block == nil {
-		// exists, abort
-		log.Debugf("%s exists, aborting", hash.B58String())
-		return nil, nil
 	}
 
 	if accountPeer {
@@ -147,11 +147,12 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 		return nil, err
 	}
 
-	if err := thrd.followParents(block.Header.Parents); err != nil {
+	parents, err := thrd.followParents(block.Header.Parents)
+	if err != nil {
 		return nil, err
 	}
 
-	if _, err := thrd.handleHead(hash, block.Header.Parents); err != nil {
+	if _, err := thrd.handleHead(hash, parents); err != nil {
 		return nil, err
 	}
 
