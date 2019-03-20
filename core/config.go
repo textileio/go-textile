@@ -10,7 +10,6 @@ import (
 
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/repo"
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/repo/fsrepo"
-	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 
 	"github.com/textileio/go-textile/repo/config"
 )
@@ -40,11 +39,7 @@ func applyTextileConfigOptions(init InitConfig) error {
 	}
 
 	// determine the account thread id
-	pk, err := init.Account.LibP2PPubKey()
-	if err != nil {
-		return err
-	}
-	atid, err := peer.IDFromPublicKey(pk)
+	atid, err := init.Account.Id()
 	if err != nil {
 		return err
 	}
