@@ -157,7 +157,7 @@ func (a *api) Start() {
 
 		snapshots := v0.Group("/snapshots")
 		{
-			snapshots.POST("/snapshots", a.searchThreadSnapshots)
+			snapshots.POST("", a.searchThreadSnapshots)
 		}
 
 		blocks := v0.Group("/blocks")

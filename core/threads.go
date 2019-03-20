@@ -219,9 +219,19 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 		return err
 	}
 
-	// handle newly discovered peers during back prop
-	if err := nthrd.sendWelcome(); err != nil {
-		return err
+	// have we joined?
+	query := fmt.Sprintf("threadId=%s and type=%d and authorId=%s",
+		nthrd.Id, pb.Block_JOIN, t.node.Identity.Pretty())
+	if t.datastore.Blocks().Count(query) == 0 {
+		// go ahead, invite yourself
+		if _, err := nthrd.join(t.node.Identity); err != nil {
+			return err
+		}
+	} else {
+		// handle newly discovered peers during back prop
+		if err := nthrd.sendWelcome(); err != nil {
+			return err
+		}
 	}
 
 	// flush cafe queue _at the very end_

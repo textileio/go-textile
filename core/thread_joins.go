@@ -122,10 +122,10 @@ func (t *Thread) buildJoin(inviterId string) (*pb.ThreadJoin, error) {
 	msg := &pb.ThreadJoin{
 		Inviter: inviterId,
 	}
-	peer := t.datastore.Peers().Get(t.node().Identity.Pretty())
-	if peer == nil {
+	p := t.datastore.Peers().Get(t.node().Identity.Pretty())
+	if p == nil {
 		return nil, fmt.Errorf("unable to join, no peer for self")
 	}
-	msg.Peer = peer
+	msg.Peer = p
 	return msg, nil
 }
