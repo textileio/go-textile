@@ -84,9 +84,15 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 	}
 
 	// update author info
-	if msg.Peer != nil {
-		if err := t.addOrUpdatePeer(msg.Peer); err != nil {
-			return nil, err
+	if msg.Peer != nil && msg.Peer.Id != t.node().Identity.Pretty() {
+		if t.Id == t.config.Account.Thread && msg.Peer.Id != block.Header.Author {
+			if err := t.addPeer(msg.Peer); err != nil {
+				return nil, err
+			}
+		} else {
+			if err := t.addOrUpdatePeer(msg.Peer); err != nil {
+				return nil, err
+			}
 		}
 	}
 
