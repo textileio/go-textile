@@ -26,6 +26,9 @@ func getKeyValue(path string, object interface{}) (interface{}, error) {
 		}
 
 		v = v.FieldByName(key)
+		if !v.IsValid() {
+			return nil, fmt.Errorf("empty struct value")
+		}
 	}
 	return v.Interface(), nil
 }
