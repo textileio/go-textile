@@ -96,8 +96,8 @@ func (h *CafeService) Protocol() protocol.ID {
 // Start begins online services
 func (h *CafeService) Start() {
 	h.service.Start()
-	clientTopic := string(cafeServiceProtocol) + "/" + h.service.Node().Identity.Pretty()
-	go h.service.ListenFor(clientTopic, true, h.Handle)
+	//clientTopic := string(cafeServiceProtocol) + "/" + h.service.Node().Identity.Pretty()
+	//go h.service.ListenFor(clientTopic, true, h.Handle)
 }
 
 // Ping pings another peer
@@ -1409,6 +1409,9 @@ func (h *CafeService) handlePubSubQuery(pid peer.ID, env *pb.Envelope) (*pb.Enve
 		return renv, nil
 	case pb.PubSubQuery_PUBSUB:
 		log.Debugf("responding with %s to %s", renv.Message.Type.String(), pid.Pretty())
+		if query.Topic == "" {
+			query.Topic = query.Id
+		}
 
 		payload, err := proto.Marshal(renv)
 		if err != nil {

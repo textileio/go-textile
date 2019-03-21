@@ -82,8 +82,8 @@ func NewService(account *keypair.Full, handler Handler, node func() *core.IpfsNo
 // Start sets the peer host stream handler
 func (srv *Service) Start() {
 	srv.Node().PeerHost.SetStreamHandler(srv.handler.Protocol(), srv.handleNewStream)
-	go srv.listen()
-	log.Debugf("registered service: %s", srv.handler.Protocol())
+	go srv.listen("")
+	go srv.listen(srv.Node().Identity.Pretty())
 }
 
 // Ping pings another peer and returns status
@@ -519,25 +519,32 @@ func (srv *Service) handleNewMessage(s inet.Stream) {
 }
 
 // listen subscribes to the protocol tag for network-wide requests
-func (srv *Service) listen() {
+func (srv *Service) listen(tag string) {
+	topic := string(srv.handler.Protocol())
+	if tag != "" {
+		topic += "/" + tag
+	}
+
 	msgs := make(chan iface.PubSubMessage, 10)
 	ctx := srv.Node().Context()
 	go func() {
-		if err := ipfs.Subscribe(srv.Node(), ctx, string(srv.handler.Protocol()), true, msgs); err != nil {
+		if err := ipfs.Subscribe(srv.Node(), ctx, topic, true, msgs); err != nil {
 			close(msgs)
 			log.Errorf("pubsub service listener stopped with error: %s")
 			return
 		}
 	}()
-	log.Infof("pubsub service listener started for %s", string(srv.handler.Protocol()))
+	log.Infof("pubsub service listener started for %s", topic)
 
 	for {
 		select {
 		// end loop on context close
 		case <-srv.Node().Context().Done():
+			log.Debugf("pubsub listener shutdown for %s", topic)
 			return
 		case msg, ok := <-msgs:
 			if !ok {
+				log.Debugf("pubsub listener shutdown for %s", topic)
 				return
 			}
 
@@ -589,54 +596,54 @@ func (srv *Service) listen() {
 }
 
 // ListenFor opens a tmp subscription to a topic and passes results to handler
-func (srv *Service) ListenFor(topic string, discover bool, handler func(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error)) context.CancelFunc {
-	msgs := make(chan iface.PubSubMessage, 10)
-	ctx, cancel := context.WithCancel(srv.Node().Context())
-	go func() {
-		if err := ipfs.Subscribe(srv.Node(), ctx, topic, discover, msgs); err != nil {
-			close(msgs)
-			log.Errorf("pubsub listener stopped with error: %s", err)
-			return
-		}
-	}()
-	log.Debugf("pubsub listener started for %s", topic)
-
-	go func() {
-		for {
-			select {
-			// end loop on context close
-			case <-ctx.Done():
-				log.Debugf("pubsub listener shutdown for %s", topic)
-				return
-			case msg, ok := <-msgs:
-				if !ok {
-					log.Debugf("pubsub listener shutdown for %s", topic)
-					return
-				}
-
-				mPeer := msg.From()
-				if mPeer.Pretty() == srv.Node().Identity.Pretty() {
-					continue
-				}
-
-				pmes := new(pb.Envelope)
-				if err := proto.Unmarshal(msg.Data(), pmes); err != nil {
-					log.Errorf("error unmarshaling pubsub message data from %s: %s", mPeer.Pretty(), err)
-					continue
-				}
-
-				if err := srv.VerifyEnvelope(pmes, mPeer); err != nil {
-					log.Warningf("error verifying message: %s", err)
-					continue
-				}
-
-				log.Debugf("received pubsub %s from %s", pmes.Message.Type.String(), mPeer.Pretty())
-				if _, err := handler(mPeer, pmes); err != nil {
-					log.Errorf("%s handle message error: %s", pmes.Message.Type.String(), err)
-				}
-			}
-		}
-	}()
-
-	return cancel
-}
+//func (srv *Service) ListenFor(topic string, discover bool, handler func(pid peer.ID, env *pb.Envelope) (*pb.Envelope, error)) context.CancelFunc {
+//	msgs := make(chan iface.PubSubMessage, 10)
+//	ctx, cancel := context.WithCancel(srv.Node().Context())
+//	go func() {
+//		if err := ipfs.Subscribe(srv.Node(), ctx, topic, discover, msgs); err != nil {
+//			close(msgs)
+//			log.Errorf("pubsub listener stopped with error: %s", err)
+//			return
+//		}
+//	}()
+//	log.Debugf("pubsub listener started for %s", topic)
+//
+//	go func() {
+//		for {
+//			select {
+//			// end loop on context close
+//			case <-ctx.Done():
+//				log.Debugf("pubsub listener shutdown for %s", topic)
+//				return
+//			case msg, ok := <-msgs:
+//				if !ok {
+//					log.Debugf("pubsub listener shutdown for %s", topic)
+//					return
+//				}
+//
+//				mPeer := msg.From()
+//				if mPeer.Pretty() == srv.Node().Identity.Pretty() {
+//					continue
+//				}
+//
+//				pmes := new(pb.Envelope)
+//				if err := proto.Unmarshal(msg.Data(), pmes); err != nil {
+//					log.Errorf("error unmarshaling pubsub message data from %s: %s", mPeer.Pretty(), err)
+//					continue
+//				}
+//
+//				if err := srv.VerifyEnvelope(pmes, mPeer); err != nil {
+//					log.Warningf("error verifying message: %s", err)
+//					continue
+//				}
+//
+//				log.Debugf("received pubsub %s from %s", pmes.Message.Type.String(), mPeer.Pretty())
+//				if _, err := handler(mPeer, pmes); err != nil {
+//					log.Errorf("%s handle message error: %s", pmes.Message.Type.String(), err)
+//				}
+//			}
+//		}
+//	}()
+//
+//	return cancel
+//}
