@@ -716,8 +716,9 @@ func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults)
 		Id:           query.Id,
 		Type:         query.Type,
 		Payload:      query.Payload,
-		Exclude:      query.Options.Exclude,
 		ResponseType: rtype,
+		Exclude:      query.Options.Exclude,
+		Topic:        string(cafeServiceProtocol) + "/" + h.service.Node().Identity.Pretty(),
 	}); err != nil {
 		return err
 	}
@@ -1421,7 +1422,7 @@ func (h *CafeService) handlePubSubQuery(pid peer.ID, env *pb.Envelope) (*pb.Enve
 		if err != nil {
 			return nil, err
 		}
-		if err := ipfs.Publish(h.service.Node(), query.Id, payload); err != nil {
+		if err := ipfs.Publish(h.service.Node(), query.Topic, payload); err != nil {
 			return nil, err
 		}
 	}
