@@ -2,7 +2,6 @@ package core
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -98,7 +97,7 @@ func (h *CafeService) Protocol() protocol.ID {
 func (h *CafeService) Start() {
 	h.service.Start()
 	clientTopic := string(cafeServiceProtocol) + "/" + h.service.Node().Identity.Pretty()
-	go h.service.ListenFor(clientTopic, true, h.handleNotifyClient)
+	go h.service.ListenFor(clientTopic, true, h.Handle)
 }
 
 // Ping pings another peer
@@ -700,16 +699,12 @@ func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults)
 		delete(h.inFlightQueries, query.Id)
 	}()
 
-	// if caller needs results over pubsub, start a tmp subscription
+	// caller might need results over pubsub
 	var rtype pb.PubSubQuery_ResponseType
-	var psCancel context.CancelFunc
 	if fromCafe {
 		rtype = pb.PubSubQuery_P2P
 	} else {
 		rtype = pb.PubSubQuery_PUBSUB
-		go func() {
-			psCancel = h.service.ListenFor(query.Id, false, h.handlePubSubQueryResults)
-		}()
 	}
 
 	if err := h.publishQuery(&pb.PubSubQuery{
@@ -729,9 +724,6 @@ func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults)
 
 	done := func() {
 		listener.Close()
-		if psCancel != nil {
-			psCancel()
-		}
 		close(doneCh)
 	}
 
