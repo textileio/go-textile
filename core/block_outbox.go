@@ -44,7 +44,7 @@ func NewBlockOutbox(
 
 // Add adds an outbound message
 func (q *BlockOutbox) Add(pid peer.ID, env *pb.Envelope) error {
-	log.Debugf("adding thread message for %s", pid.Pretty())
+	log.Debugf("adding block message for %s", pid.Pretty())
 	return q.datastore.BlockMessages().Add(&pb.BlockMessage{
 		Id:   ksuid.New().String(),
 		Peer: pid.Pretty(),
@@ -57,21 +57,21 @@ func (q *BlockOutbox) Add(pid peer.ID, env *pb.Envelope) error {
 func (q *BlockOutbox) Flush() {
 	q.mux.Lock()
 	defer q.mux.Unlock()
-	log.Debug("flushing thread messages")
+	log.Debug("flushing block messages")
 
 	if q.service() == nil {
 		return
 	}
 
 	if err := q.batch(q.datastore.BlockMessages().List("", blockFlushGroupSize)); err != nil {
-		log.Errorf("thread outbox batch error: %s", err)
+		log.Errorf("block outbox batch error: %s", err)
 		return
 	}
 }
 
 // batch flushes a batch of messages
 func (q *BlockOutbox) batch(msgs []pb.BlockMessage) error {
-	log.Debugf("handling %d thread messages", len(msgs))
+	log.Debugf("handling %d block messages", len(msgs))
 	if len(msgs) == 0 {
 		return nil
 	}
@@ -114,12 +114,12 @@ func (q *BlockOutbox) batch(msgs []pb.BlockMessage) error {
 	var deleted []string
 	for _, id := range toDelete {
 		if err := q.datastore.BlockMessages().Delete(id); err != nil {
-			log.Errorf("failed to delete thread message %s: %s", id, err)
+			log.Errorf("failed to delete block message %s: %s", id, err)
 			continue
 		}
 		deleted = append(deleted, id)
 	}
-	log.Debugf("handled %d thread messages", len(deleted))
+	log.Debugf("handled %d block messages", len(deleted))
 
 	// keep going unless an error occurred
 	if berr == nil {
@@ -140,13 +140,13 @@ func (q *BlockOutbox) handle(pid peer.ID, msg pb.BlockMessage) error {
 	}
 	if !q.service().online || err != nil {
 		if err != nil {
-			log.Debugf("send thread message direct to %s failed: %s", pid.Pretty(), err)
+			log.Debugf("send block message direct to %s failed: %s", pid.Pretty(), err)
 		}
 
 		// peer is offline, queue an outbound cafe request for the peer's inbox(es)
 		contact := q.datastore.Peers().Get(pid.Pretty())
 		if contact != nil && len(contact.Inboxes) > 0 {
-			log.Debugf("sending thread message for %s to inbox(es)", pid.Pretty())
+			log.Debugf("sending block message for %s to inbox(es)", pid.Pretty())
 
 			// add an inbox request for message delivery
 			if err := q.cafeOutbox.InboxRequest(pid, msg.Env, contact.Inboxes); err != nil {

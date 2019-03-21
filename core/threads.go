@@ -220,7 +220,7 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 	}
 
 	// have we joined?
-	query := fmt.Sprintf("threadId=%s and type=%d and authorId=%s",
+	query := fmt.Sprintf("threadId='%s' and type=%d and authorId='%s'",
 		nthrd.Id, pb.Block_JOIN, t.node.Identity.Pretty())
 	if t.datastore.Blocks().Count(query) == 0 {
 		// go ahead, invite yourself

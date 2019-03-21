@@ -16,14 +16,14 @@ func (t *Textile) RegisterCafe(host string, token string) (*pb.CafeSession, erro
 		return nil, err
 	}
 
+	if err := t.updatePeerInboxes(); err != nil {
+		return nil, err
+	}
+
 	for _, thrd := range t.loadedThreads {
 		if _, err := thrd.annouce(nil); err != nil {
 			return nil, err
 		}
-	}
-
-	if err := t.updatePeerInboxes(); err != nil {
-		return nil, err
 	}
 
 	if err := t.publishPeer(); err != nil {
@@ -62,14 +62,14 @@ func (t *Textile) DeregisterCafe(peerId string) error {
 		return err
 	}
 
+	if err := t.updatePeerInboxes(); err != nil {
+		return err
+	}
+
 	for _, thrd := range t.loadedThreads {
 		if _, err := thrd.annouce(nil); err != nil {
 			return err
 		}
-	}
-
-	if err := t.updatePeerInboxes(); err != nil {
-		return err
 	}
 
 	return t.publishPeer()
