@@ -335,7 +335,7 @@ func (h *ThreadsService) handleFiles(thrd *Thread, hash mh.Multihash, block *pb.
 
 	note := h.newNotification(block.Header, pb.Notification_FILES_ADDED)
 	note.Target = msg.Target
-	note.Body = "added a " + threadSubject(thrd.Schema.Name)
+	note.Body = "added " + threadSubject(thrd.Schema.Name)
 	note.Block = hash.B58String()
 	note.SubjectDesc = thrd.Name
 	note.Subject = thrd.Id
@@ -411,8 +411,9 @@ func (h *ThreadsService) newNotification(header *pb.ThreadBlockHeader, ntype pb.
 
 // threadSubject returns the thread subject
 func threadSubject(name string) string {
-	if name == "" {
-		return "file"
+	var sub string
+	if name != "" {
+		sub = name + " "
 	}
-	return name
+	return sub + "files"
 }
