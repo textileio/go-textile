@@ -1,6 +1,7 @@
 # Tray app build
 tray/output/
 tray/bind_*.go
+tray/resources/
 tray/vendor_astilectron_bundler/*
 **/node_modules/*
 dist/textile
