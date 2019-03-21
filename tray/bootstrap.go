@@ -14,21 +14,29 @@ func bootstrapApp() {
 		AssetDir: AssetDir,
 		AstilectronOptions: astilectron.Options{
 			AppName:            appName,
-			AppIconDarwinPath:  "resources/icon.icns",
-			AppIconDefaultPath: "resources/icon.png",
+			AppIconDarwinPath:  "resources/assets/icon.icns",
+			AppIconDefaultPath: "resources/assets/icon.png",
 		},
 		Debug:         *debug,
 		OnWait:        start,
 		RestoreAssets: RestoreAssets,
 		TrayOptions:   &astilectron.TrayOptions{
-			Image:   astilectron.PtrStr("resources/tray.png"),
+			Image:   astilectron.PtrStr("resources/assets/tray.png"),
 			Tooltip: astilectron.PtrStr("Textile"),
 		},
-		TrayMenuOptions: []*astilectron.MenuItemOptions{
-			{
-				Type: astilectron.MenuItemTypeSeparator,
+		Windows: []*bootstrap.Window{{
+			Homepage:       "../index.html",
+			MessageHandler: handleMessage,
+			Options: &astilectron.WindowOptions{
+				// AlwaysOnTop:   astilectron.PtrBool(true),
+				// Resizable:     astilectron.PtrBool(false),
+				// Closable:      astilectron.PtrBool(false),
+				// Maximizable:   astilectron.PtrBool(false),
+				// Minimizable:   astilectron.PtrBool(false),
+				// SkipTaskbar:   astilectron.PtrBool(false),
+				// TitleBarStyle: astilectron.TitleBarStyleHiddenInset,
 			},
-		},
+		}},
 	}); err != nil {
 		astilog.Fatal(errors.Wrap(err, "bootstrap failed"))
 	}

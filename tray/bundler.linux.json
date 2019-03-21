@@ -1,8 +1,11 @@
 {
   "app_name": "Textile",
   "environments": [
-    {"arch": "amd64", "os": "linux"}
+    {
+      "arch": "amd64",
+      "os": "linux"
+    }
   ],
-  "icon_path_linux": "resources/icon.png",
+  "icon_path_linux": "resources/assets/icon.png",
   "output_path": "output"
 }

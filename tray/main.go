@@ -8,10 +8,6 @@ import (
 	"runtime"
 
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/repo/fsrepo"
-
-	"github.com/atotto/clipboard"
-	"github.com/pkg/browser"
-
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
 	"github.com/asticode/go-astilog"
@@ -26,7 +22,6 @@ var (
 	appName = "Textile"
 	debug   = flag.Bool("d", false, "enables debug mode")
 	app     *astilectron.Astilectron
-	menu    *astilectron.Menu
 )
 
 var node *core.Textile
@@ -118,7 +113,9 @@ func stopNode() error {
 	return nil
 }
 
-func start(app *astilectron.Astilectron, _ []*astilectron.Window, _ *astilectron.Menu, t *astilectron.Tray, m *astilectron.Menu) error {
+func start(app *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.Menu, t *astilectron.Tray, _ *astilectron.Menu) error {
+	// show main window
+	w[0].Show()
 	// remove the dock icon
 	var d = app.Dock()
 	d.Hide()
@@ -170,116 +167,10 @@ func start(app *astilectron.Astilectron, _ []*astilectron.Window, _ *astilectron
 		return err
 	}
 
-	pid, err := node.PeerId()
-	if err != nil {
-		astilog.Fatalf("get peer id failed: %s", err)
-	}
-
-	items := []*astilectron.MenuItemOptions{
-		{
-			Label: astilectron.PtrStr("Online/Offline"),
-			OnClick: func(e astilectron.Event) (deleteListener bool) {
-				if *e.MenuItemOptions.Checked {
-					startNode()
-				} else {
-					stopNode()
-				}
-				return
-			},
-			Type:    astilectron.MenuItemTypeCheckbox,
-			Checked: astilectron.PtrBool(true),
-		},
-		{
-			Label: astilectron.PtrStr("View docs"),
-			OnClick: func(e astilectron.Event) (deleteListener bool) {
-				browser.OpenURL(fmt.Sprintf("http://%s/docs/index.html", node.ApiAddr()))
-				return
-			},
-		},
-		{
-			Label: astilectron.PtrStr("Check Messages"),
-			OnClick: func(e astilectron.Event) (deleteListener bool) {
-				node.CheckCafeMessages()
-				return
-			},
-		},
-		{
-			Type: astilectron.MenuItemTypeSeparator,
-		},
-		{
-			Label: astilectron.PtrStr("Peer"),
-			SubMenu: []*astilectron.MenuItemOptions{
-				{
-					Label: astilectron.PtrStr("Copy Peer ID"),
-					OnClick: func(e astilectron.Event) (deleteListener bool) {
-						clipboard.WriteAll(pid.Pretty())
-						return
-					},
-				},
-				{
-					Label: astilectron.PtrStr("Copy Peer Address"),
-					OnClick: func(e astilectron.Event) (deleteListener bool) {
-						clipboard.WriteAll(node.Account().Address())
-						return
-					},
-				},
-			},
-		},
-		{
-			Label: astilectron.PtrStr("API"),
-			SubMenu: []*astilectron.MenuItemOptions{
-				{
-					Label: astilectron.PtrStr(fmt.Sprintf("Copy URL (%s)", node.ApiAddr())),
-					OnClick: func(e astilectron.Event) (deleteListener bool) {
-						clipboard.WriteAll(fmt.Sprintf("http://%s/api/v0", node.ApiAddr()))
-						return
-					},
-				},
-				{
-					Label: astilectron.PtrStr(fmt.Sprintf("Copy gateway (%s)", gateway.Host.Addr())),
-					OnClick: func(e astilectron.Event) (deleteListener bool) {
-						clipboard.WriteAll(fmt.Sprintf("http://%s", gateway.Host.Addr()))
-						return
-					},
-				},
-			},
-		},
-		{
-			Label: astilectron.PtrStr("Repo"),
-			SubMenu: []*astilectron.MenuItemOptions{
-				{
-					Label: astilectron.PtrStr("View/edit config file"),
-					OnClick: func(e astilectron.Event) (deleteListener bool) {
-						browser.OpenFile(filepath.Join(repoPath, "textile"))
-						return
-					},
-				},
-				{
-					Label: astilectron.PtrStr("Open repo folder"),
-					OnClick: func(e astilectron.Event) (deleteListener bool) {
-						browser.OpenFile(repoPath)
-						return
-					},
-				},
-			},
-		},
-		{
-			Type: astilectron.MenuItemTypeSeparator,
-		},
-		{
-			Label: astilectron.PtrStr("Quit"),
-			OnClick: func(e astilectron.Event) (deleteListener bool) {
-				stopNode()
-				app.Quit()
-				return
-			},
-		},
-	}
-
-	for _, item := range items {
-		var i = m.NewItem(item)
-		m.Append(i)
-	}
+	// pid, err := node.PeerId()
+	// if err != nil {
+	// 	astilog.Fatalf("get peer id failed: %s", err)
+	// }
 
 	return nil
 }

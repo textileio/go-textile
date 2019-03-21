@@ -11,6 +11,6 @@
       }
     }
   ],
-  "icon_path_windows": "resources/icon.ico",
+  "icon_path_windows": "resources/assets/icon.ico",
   "output_path": "output"
 }
