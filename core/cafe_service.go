@@ -96,8 +96,6 @@ func (h *CafeService) Protocol() protocol.ID {
 // Start begins online services
 func (h *CafeService) Start() {
 	h.service.Start()
-	//clientTopic := string(cafeServiceProtocol) + "/" + h.service.Node().Identity.Pretty()
-	//go h.service.ListenFor(clientTopic, true, h.Handle)
 }
 
 // Ping pings another peer
@@ -506,7 +504,7 @@ func (h *CafeService) notifyClient(pid peer.ID) error {
 		return err
 	}
 
-	return ipfs.Publish(h.service.Node(), client, payload)
+	return ipfs.Publish(h.service.Node(), client, payload, true)
 }
 
 // sendCafeRequest sends an authenticated request, retrying once after a session refresh
@@ -769,7 +767,7 @@ func (h *CafeService) publishQuery(req *pb.PubSubQuery) error {
 	if err != nil {
 		return err
 	}
-	return ipfs.Publish(h.service.Node(), topic, payload)
+	return ipfs.Publish(h.service.Node(), topic, payload, false)
 }
 
 // handleChallenge receives a challenge request
@@ -1417,7 +1415,7 @@ func (h *CafeService) handlePubSubQuery(pid peer.ID, env *pb.Envelope) (*pb.Enve
 		if err != nil {
 			return nil, err
 		}
-		if err := ipfs.Publish(h.service.Node(), query.Topic, payload); err != nil {
+		if err := ipfs.Publish(h.service.Node(), query.Topic, payload, true); err != nil {
 			return nil, err
 		}
 	}
