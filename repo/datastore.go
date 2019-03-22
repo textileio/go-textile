@@ -44,6 +44,8 @@ type ConfigStore interface {
 	GetAccount() (*keypair.Full, error)
 	GetCreationDate() (time.Time, error)
 	IsEncrypted() bool
+	GetLastDaily() (time.Time, error)
+	SetLastDaily() error
 }
 
 type PeerStore interface {

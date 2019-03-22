@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/go-textile/broadcast"
@@ -86,6 +87,32 @@ func (t *Textile) SyncAccount() (*broadcast.Broadcaster, error) {
 	}()
 
 	return cancel, err
+}
+
+// maybeSyncAccount runs SyncAccount if it has not been run in the last kSyncAccountFreq
+func (t *Textile) maybeSyncAccount() {
+	if t.cancelSync != nil {
+		t.cancelSync.Close()
+	}
+
+	daily, err := t.datastore.Config().GetLastDaily()
+	if err != nil {
+		log.Errorf("error getting last daily run: %s", err)
+		return
+	}
+
+	if daily.Add(kSyncAccountFreq).After(time.Now()) {
+		var err error
+		t.cancelSync, err = t.SyncAccount()
+		if err != nil {
+			log.Errorf("error running sync account: %s", err)
+			return
+		}
+
+		if err := t.datastore.Config().SetLastDaily(); err != nil {
+			log.Errorf("error setting last daily run: %s", err)
+		}
+	}
 }
 
 // accountPeers returns all known account peers

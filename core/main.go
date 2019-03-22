@@ -36,11 +36,14 @@ import (
 
 var log = logging.Logger("tex-core")
 
-// kQueueFlushFreq how often to flush the message queues
-const kQueueFlushFreq = time.Second * 60
+// kJobFreq how often to flush the message queues
+const kJobFreq = time.Second * 60
 
-// kMobileQueueFlushFreq how often to flush the message queues on mobile
-const kMobileQueueFlush = time.Second * 40
+// kMobileJobFreq how often to flush the message queues on mobile
+const kMobileJobFreq = time.Second * 40
+
+// kSyncAccountFreq how often to run account sync
+const kSyncAccountFreq = time.Hour * 8
 
 // InitConfig is used to setup a textile node
 type InitConfig struct {
@@ -95,6 +98,7 @@ type Textile struct {
 	cafe          *CafeService
 	cafeOutbox    *CafeOutbox
 	cafeInbox     *CafeInbox
+	cancelSync    *broadcast.Broadcaster
 	mux           sync.Mutex
 	writer        io.Writer
 }
@@ -333,7 +337,7 @@ func (t *Textile) Start() error {
 			t.startCafeApi(t.config.Addresses.CafeAPI)
 		}
 
-		go t.runQueues()
+		go t.runJobs()
 
 		if err := ipfs.PrintSwarmAddrs(t.node); err != nil {
 			log.Errorf(err.Error())
@@ -379,6 +383,11 @@ func (t *Textile) Stop() error {
 		close(t.done)
 	}()
 	log.Info("stopping node...")
+
+	// stop sync if in progress
+	if t.cancelSync != nil {
+		t.cancelSync.Close()
+	}
 
 	// close apis
 	if err := t.stopCafeApi(); err != nil {
@@ -570,24 +579,32 @@ func (t *Textile) createIPFS(plugins *loader.PluginLoader, online bool) error {
 	return nil
 }
 
-// runQueues runs each message queue
-func (t *Textile) runQueues() {
+// runJobs runs each message queue
+func (t *Textile) runJobs() {
 	var freq time.Duration
 	if t.Mobile() {
-		freq = kMobileQueueFlush
+		freq = kMobileJobFreq
 	} else {
-		freq = kQueueFlushFreq
+		freq = kJobFreq
 	}
 
 	tick := time.NewTicker(freq)
 	defer tick.Stop()
 
-	t.flushQueues()
+	go t.flushQueues()
+	t.maybeSyncAccount()
 
 	for {
 		select {
 		case <-tick.C:
-			t.flushQueues()
+			if err := t.touchDatastore(); err != nil {
+				log.Error(err)
+				return
+			}
+
+			go t.flushQueues()
+			t.maybeSyncAccount()
+
 		case <-t.done:
 			return
 		}
@@ -596,18 +613,11 @@ func (t *Textile) runQueues() {
 
 // flushQueues flushes each message queue
 func (t *Textile) flushQueues() {
-	if err := t.touchDatastore(); err != nil {
-		log.Error(err)
-		return
+	t.blockOutbox.Flush()
+	if err := t.cafeInbox.CheckMessages(); err != nil {
+		log.Errorf("error checking messages: %s", err)
 	}
-
-	go func() {
-		t.blockOutbox.Flush()
-		if err := t.cafeInbox.CheckMessages(); err != nil {
-			log.Errorf("error checking messages: %s", err)
-		}
-		t.cafeOutbox.Flush()
-	}()
+	t.cafeOutbox.Flush()
 }
 
 // threadByBlock returns the thread owning the given block
