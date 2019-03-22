@@ -89,8 +89,6 @@ func connectToPubSubPeers(node *core.IpfsNode, ctx context.Context, topic string
 		wg.Add(1)
 		go func(pi pstore.PeerInfo) {
 			defer wg.Done()
-			//ctx, cancel := context.WithTimeout(ctx, time.Second*10)
-			//defer cancel()
 			err := node.PeerHost.Connect(ctx, pi)
 			if err != nil {
 				log.Info("pubsub discover: ", err)

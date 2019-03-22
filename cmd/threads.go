@@ -362,8 +362,8 @@ func (x *applySnapshotsThreadsCmd) Execute(args []string) error {
 }
 
 func applySnapshot(result *pb.QueryResult) error {
-	backup := new(pb.Thread)
-	if err := ptypes.UnmarshalAny(result.Value, backup); err != nil {
+	snap := new(pb.Thread)
+	if err := ptypes.UnmarshalAny(result.Value, snap); err != nil {
 		return err
 	}
 	data, err := pbMarshaler.MarshalToString(result.Value)
@@ -371,7 +371,7 @@ func applySnapshot(result *pb.QueryResult) error {
 		return err
 	}
 
-	res, err := executeStringCmd(PUT, "threads/"+backup.Id, params{
+	res, err := executeStringCmd(PUT, "threads/"+snap.Id, params{
 		payload: strings.NewReader(data),
 		ctype:   "application/json",
 	})

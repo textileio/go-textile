@@ -3,6 +3,8 @@ package core
 import (
 	"fmt"
 
+	"github.com/golang/protobuf/ptypes"
+	"github.com/textileio/go-textile/broadcast"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
@@ -52,12 +54,54 @@ func (t *Textile) AccountContact() *pb.Contact {
 }
 
 // SyncAccount performs a thread backup search and applies the result
-//func (t *Textile) SyncAccount() error {
-//	//t.FindThreadBackups()
-//}
+func (t *Textile) SyncAccount() (*broadcast.Broadcaster, error) {
+	query := &pb.ThreadSnapshotQuery{
+		Address: t.account.Address(),
+	}
+	options := &pb.QueryOptions{
+		Limit: -1,
+		Wait:  5,
+	}
+
+	resCh, errCh, cancel, err := t.SearchThreadSnapshots(query, options)
+	if err != nil {
+		return nil, err
+	}
+
+	go func() {
+		for {
+			select {
+			case res, ok := <-resCh:
+				if !ok {
+					return
+				}
+				if err := t.applySnapshot(res); err != nil {
+					log.Errorf("error applying snap %s: %s", res.Id, err)
+				}
+
+			case err := <-errCh:
+				log.Errorf("error during account sync: %s", err)
+			}
+		}
+	}()
+
+	return cancel, err
+}
 
 // accountPeers returns all known account peers
 func (t *Textile) accountPeers() []*pb.Peer {
 	query := fmt.Sprintf("address='%s' and id!='%s'", t.account.Address(), t.node.Identity.Pretty())
 	return t.datastore.Peers().List(query)
+}
+
+// applySnapshot unmarshals and adds an unencrypted thread snapshot from a search result
+func (t *Textile) applySnapshot(result *pb.QueryResult) error {
+	snap := new(pb.Thread)
+	if err := ptypes.UnmarshalAny(result.Value, snap); err != nil {
+		return err
+	}
+
+	log.Debugf("applying snapshot %s", snap.Id)
+
+	return t.AddOrUpdateThread(snap)
 }

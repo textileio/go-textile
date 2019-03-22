@@ -113,3 +113,26 @@ func (m *Mobile) RemoveThread(id string) (string, error) {
 
 	return hash.B58String(), nil
 }
+
+// SearchThreadSnapshots calls core SearchThreadSnapshots
+func (m *Mobile) SearchThreadSnapshots(query []byte, options []byte) (*SearchHandle, error) {
+	if !m.node.Online() {
+		return nil, core.ErrOffline
+	}
+
+	mquery := new(pb.ThreadSnapshotQuery)
+	if err := proto.Unmarshal(query, mquery); err != nil {
+		return nil, err
+	}
+	moptions := new(pb.QueryOptions)
+	if err := proto.Unmarshal(options, moptions); err != nil {
+		return nil, err
+	}
+
+	resCh, errCh, cancel, err := m.node.SearchThreadSnapshots(mquery, moptions)
+	if err != nil {
+		return nil, err
+	}
+
+	return m.handleSearchStream(resCh, errCh, cancel)
+}

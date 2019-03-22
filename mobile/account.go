@@ -2,8 +2,8 @@ package mobile
 
 import (
 	"github.com/golang/protobuf/proto"
+	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/core"
-	"github.com/textileio/go-textile/pb"
 )
 
 // Address returns account address
@@ -47,25 +47,20 @@ func (m *Mobile) AccountContact() ([]byte, error) {
 	return proto.Marshal(m.node.AccountContact())
 }
 
-// FindThreadBackups calls core FindThreadBackups
-func (m *Mobile) FindThreadBackups(query []byte, options []byte) (*SearchHandle, error) {
+// SyncAccount calls core SyncAccount
+func (m *Mobile) SyncAccount() (*SearchHandle, error) {
 	if !m.node.Online() {
 		return nil, core.ErrOffline
 	}
 
-	mquery := new(pb.ThreadBackupQuery)
-	if err := proto.Unmarshal(query, mquery); err != nil {
-		return nil, err
-	}
-	moptions := new(pb.QueryOptions)
-	if err := proto.Unmarshal(options, moptions); err != nil {
-		return nil, err
-	}
-
-	resCh, errCh, cancel, err := m.node.FindThreadBackups(mquery, moptions)
+	cancel, err := m.node.SyncAccount()
 	if err != nil {
 		return nil, err
 	}
 
-	return m.handleSearchStream(resCh, errCh, cancel)
+	return &SearchHandle{
+		Id:     ksuid.New().String(),
+		cancel: cancel,
+		done:   func() {},
+	}, nil
 }

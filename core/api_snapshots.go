@@ -34,7 +34,6 @@ func (a *api) searchThreadSnapshots(g *gin.Context) {
 		Address: a.node.account.Address(),
 	}
 	options := &pb.QueryOptions{
-		Local: false,
 		Limit: -1,
 		Wait:  int32(wait),
 	}
