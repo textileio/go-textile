@@ -504,7 +504,7 @@ func (h *CafeService) notifyClient(pid peer.ID) error {
 		return err
 	}
 
-	return ipfs.Publish(h.service.Node(), client, payload, true)
+	return ipfs.Publish(h.service.Node(), client, payload, ipfs.PublishTimeout)
 }
 
 // sendCafeRequest sends an authenticated request, retrying once after a session refresh
@@ -712,6 +712,7 @@ func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults)
 		ResponseType: rtype,
 		Exclude:      query.Options.Exclude,
 		Topic:        string(cafeServiceProtocol) + "/" + h.service.Node().Identity.Pretty(),
+		Timeout:      query.Options.Wait,
 	}); err != nil {
 		return err
 	}
@@ -767,7 +768,7 @@ func (h *CafeService) publishQuery(req *pb.PubSubQuery) error {
 	if err != nil {
 		return err
 	}
-	return ipfs.Publish(h.service.Node(), topic, payload, false)
+	return ipfs.Publish(h.service.Node(), topic, payload, 0)
 }
 
 // handleChallenge receives a challenge request
@@ -1415,7 +1416,8 @@ func (h *CafeService) handlePubSubQuery(pid peer.ID, env *pb.Envelope) (*pb.Enve
 		if err != nil {
 			return nil, err
 		}
-		if err := ipfs.Publish(h.service.Node(), query.Topic, payload, true); err != nil {
+		timeout := time.Duration(int(query.Timeout))
+		if err := ipfs.Publish(h.service.Node(), query.Topic, payload, timeout); err != nil {
 			return nil, err
 		}
 	}

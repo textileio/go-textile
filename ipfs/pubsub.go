@@ -14,16 +14,25 @@ import (
 	pstore "gx/ipfs/QmaCTz9RkrU13bm9kMB54f7atgqM4qkjDZpRwRoJiWXEqs/go-libp2p-peerstore"
 )
 
-const publishTimeout = time.Second * 5
+const PublishTimeout = time.Second * 5
 
 // Publish publishes data to a topic
-func Publish(node *core.IpfsNode, topic string, data []byte, connect bool) error {
+func Publish(node *core.IpfsNode, topic string, data []byte, timeout time.Duration) error {
 	api, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(node.Context(), publishTimeout)
+	var dur time.Duration
+	var connect bool
+	if timeout <= 0 {
+		dur = PublishTimeout
+		connect = false
+	} else {
+		dur = time.Duration(timeout)
+		connect = true
+	}
+	ctx, cancel := context.WithTimeout(node.Context(), dur)
 	defer cancel()
 
 	if connect {

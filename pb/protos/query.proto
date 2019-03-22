@@ -38,6 +38,7 @@ message PubSubQuery {
     ResponseType responseType   = 4;
     repeated string exclude     = 5;
     string topic                = 6;
+    int32 timeout               = 7; // pubsub response connect timeout
 
     enum ResponseType {
         P2P    = 0;
