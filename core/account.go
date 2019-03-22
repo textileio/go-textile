@@ -93,6 +93,7 @@ func (t *Textile) SyncAccount() (*broadcast.Broadcaster, error) {
 func (t *Textile) maybeSyncAccount() {
 	if t.cancelSync != nil {
 		t.cancelSync.Close()
+		t.cancelSync = nil
 	}
 
 	daily, err := t.datastore.Config().GetLastDaily()
@@ -101,7 +102,7 @@ func (t *Textile) maybeSyncAccount() {
 		return
 	}
 
-	if daily.Add(kSyncAccountFreq).After(time.Now()) {
+	if daily.Add(kSyncAccountFreq).Before(time.Now()) {
 		var err error
 		t.cancelSync, err = t.SyncAccount()
 		if err != nil {

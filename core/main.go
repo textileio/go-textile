@@ -387,6 +387,7 @@ func (t *Textile) Stop() error {
 	// stop sync if in progress
 	if t.cancelSync != nil {
 		t.cancelSync.Close()
+		t.cancelSync = nil
 	}
 
 	// close apis
