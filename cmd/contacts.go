@@ -43,7 +43,7 @@ type addContactsCmd struct {
 	Client   ClientOptions `group:"Client Options"`
 	Username string        `short:"u" long:"username" description:"Add by username."`
 	Address  string        `short:"a" long:"address" description:"Add by account address."`
-	Wait     int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"2"`
+	Wait     int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 30s)." default:"2"`
 }
 
 func (x *addContactsCmd) Usage() string {
@@ -203,7 +203,7 @@ type searchContactsCmd struct {
 	Address  string        `short:"a" long:"address" description:"Search by account address."`
 	Local    bool          `long:"local" description:"Only search local contacts."`
 	Limit    int           `long:"limit" description:"Stops searching after limit results are found." default:"5"`
-	Wait     int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"2"`
+	Wait     int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 30s)." default:"2"`
 }
 
 func (x *searchContactsCmd) Usage() string {

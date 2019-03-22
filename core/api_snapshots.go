@@ -13,7 +13,7 @@ import (
 // @Description Searches the network for thread snapshots
 // @Tags threads
 // @Produce application/json
-// @Param X-Textile-Opts header string false "wait: Stops searching after 'wait' seconds have elapsed (max 10s), events: Whether to emit Server-Sent Events (SSEvent) or plain JSON" default(wait=5,events="false")
+// @Param X-Textile-Opts header string false "wait: Stops searching after 'wait' seconds have elapsed (max 30s), events: Whether to emit Server-Sent Events (SSEvent) or plain JSON" default(wait=5,events="false")
 // @Success 200 {object} pb.QueryResult "results stream"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"

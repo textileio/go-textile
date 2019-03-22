@@ -45,7 +45,7 @@ type createInvitesCmd struct {
 	Client  ClientOptions `group:"Client Options"`
 	Thread  string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
 	Address string        `short:"a" long:"address" description:"Account address. Omit to create an external invite."`
-	Wait    int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"2"`
+	Wait    int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 30s)." default:"2"`
 }
 
 func (x *createInvitesCmd) Usage() string {

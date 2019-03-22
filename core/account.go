@@ -55,14 +55,11 @@ func (t *Textile) AccountContact() *pb.Contact {
 }
 
 // SyncAccount performs a thread backup search and applies the result
-func (t *Textile) SyncAccount() (*broadcast.Broadcaster, error) {
+func (t *Textile) SyncAccount(options *pb.QueryOptions) (*broadcast.Broadcaster, error) {
 	query := &pb.ThreadSnapshotQuery{
 		Address: t.account.Address(),
 	}
-	options := &pb.QueryOptions{
-		Limit: -1,
-		Wait:  5,
-	}
+	options.Limit = -1
 
 	resCh, errCh, cancel, err := t.SearchThreadSnapshots(query, options)
 	if err != nil {
@@ -98,20 +95,20 @@ func (t *Textile) maybeSyncAccount() {
 
 	daily, err := t.datastore.Config().GetLastDaily()
 	if err != nil {
-		log.Errorf("error getting last daily run: %s", err)
+		log.Errorf("error get last daily: %s", err)
 		return
 	}
 
 	if daily.Add(kSyncAccountFreq).Before(time.Now()) {
 		var err error
-		t.cancelSync, err = t.SyncAccount()
+		t.cancelSync, err = t.SyncAccount(&pb.QueryOptions{Wait: 10})
 		if err != nil {
-			log.Errorf("error running sync account: %s", err)
+			log.Errorf("error sync account: %s", err)
 			return
 		}
 
 		if err := t.datastore.Config().SetLastDaily(); err != nil {
-			log.Errorf("error setting last daily run: %s", err)
+			log.Errorf("error set last daily: %s", err)
 		}
 	}
 }

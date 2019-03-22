@@ -17,6 +17,7 @@ import (
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo"
+	"github.com/textileio/go-textile/repo/db"
 	"github.com/textileio/go-textile/service"
 )
 
@@ -227,7 +228,7 @@ func (h *ThreadsService) handleAdd(hash mh.Multihash, tenv *pb.ThreadEnvelope, a
 		Inviter: msg.Inviter,
 		Date:    block.Header.Date,
 	}); err != nil {
-		if !repo.ConflictError(err) {
+		if !db.ConflictError(err) {
 			return err
 		}
 		// exists, abort

@@ -140,23 +140,16 @@ definitions:
         type: string
       avatar:
         type: string
-      created:
+      name:
         type: string
-      id:
-        type: string
-      inboxes:
+      peers:
         items:
-          $ref: '#/definitions/pb.Cafe'
+          $ref: '#/definitions/pb.Peer'
         type: array
       threads:
-        description: view info
         items:
           type: string
         type: array
-      updated:
-        type: string
-      username:
-        type: string
     type: object
   pb.ContactList:
     properties:
@@ -169,6 +162,15 @@ definitions:
     properties:
       files:
         type: object
+    type: object
+  pb.ExternalInvite:
+    properties:
+      id:
+        type: string
+      inviter:
+        type: string
+      key:
+        type: string
     type: object
   pb.FeedItem:
     properties:
@@ -310,15 +312,6 @@ definitions:
           $ref: '#/definitions/pb.Like'
         type: array
     type: object
-  pb.NewInvite:
-    properties:
-      id:
-        type: string
-      inviter:
-        type: string
-      key:
-        type: string
-    type: object
   pb.Node:
     properties:
       json_schema:
@@ -369,6 +362,25 @@ definitions:
         items:
           $ref: '#/definitions/pb.Notification'
         type: array
+    type: object
+  pb.Peer:
+    properties:
+      address:
+        type: string
+      avatar:
+        type: string
+      created:
+        type: string
+      id:
+        type: string
+      inboxes:
+        items:
+          $ref: '#/definitions/pb.Cafe'
+        type: array
+      name:
+        type: string
+      updated:
+        type: string
     type: object
   pb.QueryResult:
     properties:
@@ -502,51 +514,22 @@ paths:
       summary: Show account address
       tags:
       - account
-  /account/backups:
-    post:
-      description: Shows all known account peers
-      parameters:
-      - default: wait=5,events="false"
-        description: 'wait: Stops searching after ''wait'' seconds have elapsed (max
-          10s), events: Whether to emit Server-Sent Events (SSEvent) or plain JSON'
-        in: header
-        name: X-Textile-Opts
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: results stream
-          schema:
-            $ref: '#/definitions/pb.QueryResult'
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Show account peers
-      tags:
-      - account
   /account/peers:
     get:
-      description: Shows all known account peers
+      description: Shows own contact
       produces:
       - application/json
       responses:
         "200":
-          description: peers
+          description: contact
           schema:
-            $ref: '#/definitions/pb.ContactList'
+            $ref: '#/definitions/pb.Contact'
             type: object
         "400":
           description: Bad Request
           schema:
             type: string
-      summary: Show account peers
+      summary: Show own contact
       tags:
       - account
   /blocks:
@@ -1016,13 +999,7 @@ paths:
       - config
   /contacts:
     get:
-      description: Lists all, or thread-based, contacts.
-      parameters:
-      - default: thread=
-        description: 'thread: Thread ID (omit for all known contacts)'
-        in: header
-        name: X-Textile-Opts
-        type: string
+      description: Lists known contacts.
       produces:
       - application/json
       responses:
@@ -1042,13 +1019,13 @@ paths:
       summary: List known contacts
       tags:
       - contacts
-  /contacts/{id}:
+  /contacts/{address}:
     delete:
       description: Removes a known contact
       parameters:
-      - description: contact id
+      - description: address
         in: path
-        name: id
+        name: address
         required: true
         type: string
       produces:
@@ -1070,11 +1047,11 @@ paths:
       tags:
       - contacts
     get:
-      description: Gets information about a known contact
+      description: Gets a known contact
       parameters:
-      - description: contact id
+      - description: address
         in: path
-        name: id
+        name: address
         required: true
         type: string
       produces:
@@ -1095,14 +1072,11 @@ paths:
     put:
       consumes:
       - application/json
-      description: |-
-        Adds a contact to list of known local contacts. A common workflow is to pipe
-        /contact/search results into this endpoint, just be sure you know what the results
-        of the search are before adding!
+      description: Adds a contact by username or account address to known contacts.
       parameters:
-      - description: contact id
+      - description: address
         in: path
-        name: id
+        name: address
         required: true
         type: string
       - description: contact
@@ -1130,12 +1104,12 @@ paths:
     post:
       description: Search for contacts known locally and on the network
       parameters:
-      - default: local="false",limit=5,wait=5,peer=,address=,username=,events="false"
+      - default: local="false",limit=5,wait=5,address=,username=,events="false"
         description: 'local: Whether to only search local contacts, limit: Stops searching
           after limit results are found, wait: Stops searching after ''wait'' seconds
-          have elapsed (max 10s), username: search by username string, peer: search
-          by peer id string, address: search by account address string, events: Whether
-          to emit Server-Sent Events (SSEvent) or plain JSON'
+          have elapsed (max 30s), username: search by username string, address: search
+          by account address string, events: Whether to emit Server-Sent Events (SSEvent)
+          or plain JSON'
         in: header
         name: X-Textile-Opts
         type: string
@@ -1280,11 +1254,12 @@ paths:
       tags:
       - invites
     post:
-      description: Creates a direct peer-to-peer or external invite to a thread
+      description: Creates a direct account-to-account or external invite to a thread
       parameters:
-      - default: thread=,peer=
-        description: 'thread: Thread ID (can also use ''default''), peer: Peer ID
-          (omit to create an external invite)'
+      - default: thread=,address=
+        description: 'thread: Thread ID (can also use ''default''), address: Account
+          Address (omit to create an external invite), wait: Stops searching after
+          ''wait'' seconds have elapsed (max 30s)'
         in: header
         name: X-Textile-Opts
         type: string
@@ -1294,7 +1269,7 @@ paths:
         "201":
           description: invite
           schema:
-            $ref: '#/definitions/pb.NewInvite'
+            $ref: '#/definitions/pb.ExternalInvite'
             type: object
         "400":
           description: Bad Request
@@ -1928,6 +1903,35 @@ paths:
       summary: Set username
       tags:
       - profile
+  /snapshots:
+    post:
+      description: Searches the network for thread snapshots
+      parameters:
+      - default: wait=5,events="false"
+        description: 'wait: Stops searching after ''wait'' seconds have elapsed (max
+          30s), events: Whether to emit Server-Sent Events (SSEvent) or plain JSON'
+        in: header
+        name: X-Textile-Opts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: results stream
+          schema:
+            $ref: '#/definitions/pb.QueryResult'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Search for thread snapshots
+      tags:
+      - threads
   /sub/{id}:
     get:
       description: |-

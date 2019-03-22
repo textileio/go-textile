@@ -22,6 +22,7 @@ import (
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo"
 	"github.com/textileio/go-textile/repo/config"
+	"github.com/textileio/go-textile/repo/db"
 )
 
 // ErrNotShareable indicates the thread does not allow invites, at least for _you_
@@ -157,7 +158,7 @@ func (t *Thread) Decrypt(data []byte) ([]byte, error) {
 }
 
 // followParents tries to follow a list of chains of block ids, processing along the way
-// Note: Returns a final list of parent hashes that were reached during the tree traversal
+// Note: Returns a final list of existing parent hashes that were reached during the tree traversal
 func (t *Thread) followParents(parents []string) ([]string, error) {
 	if len(parents) == 0 {
 		log.Debugf("found genesis block, aborting")
@@ -254,7 +255,7 @@ func (t *Thread) addOrUpdatePeer(peer *pb.Peer) error {
 		Thread:   t.Id,
 		Welcomed: false,
 	}); err != nil {
-		if !repo.ConflictError(err) {
+		if !db.ConflictError(err) {
 			return err
 		}
 	}

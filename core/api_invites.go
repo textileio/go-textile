@@ -14,7 +14,7 @@ import (
 // @Description Creates a direct account-to-account or external invite to a thread
 // @Tags invites
 // @Produce application/json
-// @Param X-Textile-Opts header string false "thread: Thread ID (can also use 'default'), address: Account Address (omit to create an external invite)" default(thread=,address=)
+// @Param X-Textile-Opts header string false "thread: Thread ID (can also use 'default'), address: Account Address (omit to create an external invite), wait: Stops searching after 'wait' seconds have elapsed (max 30s)" default(thread=,address=)
 // @Success 201 {object} pb.ExternalInvite "invite"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"

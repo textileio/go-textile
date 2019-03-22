@@ -298,7 +298,7 @@ Use this command to list and apply thread snapshots.`
 
 type searchSnapshotsThreadsCmd struct {
 	Client ClientOptions `group:"Client Options"`
-	Wait   int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"2"`
+	Wait   int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 30s)." default:"2"`
 }
 
 func (x *searchSnapshotsThreadsCmd) Usage() string {
@@ -320,7 +320,7 @@ func (x *searchSnapshotsThreadsCmd) Execute(args []string) error {
 
 type applySnapshotsThreadsCmd struct {
 	Client ClientOptions `group:"Client Options"`
-	Wait   int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"2"`
+	Wait   int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 30s)." default:"2"`
 }
 
 func (x *applySnapshotsThreadsCmd) Usage() string {

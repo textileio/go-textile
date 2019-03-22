@@ -77,7 +77,7 @@ func (x *accountContactCmd) Execute(args []string) error {
 
 type accountSyncCmd struct {
 	Client ClientOptions `group:"Client Options"`
-	Wait   int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"2"`
+	Wait   int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 30s)." default:"2"`
 }
 
 func (x *accountSyncCmd) Usage() string {

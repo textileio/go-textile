@@ -4,6 +4,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/core"
+	"github.com/textileio/go-textile/pb"
 )
 
 // Address returns account address
@@ -48,12 +49,17 @@ func (m *Mobile) AccountContact() ([]byte, error) {
 }
 
 // SyncAccount calls core SyncAccount
-func (m *Mobile) SyncAccount() (*SearchHandle, error) {
+func (m *Mobile) SyncAccount(options []byte) (*SearchHandle, error) {
 	if !m.node.Online() {
 		return nil, core.ErrOffline
 	}
 
-	cancel, err := m.node.SyncAccount()
+	moptions := new(pb.QueryOptions)
+	if err := proto.Unmarshal(options, moptions); err != nil {
+		return nil, err
+	}
+
+	cancel, err := m.node.SyncAccount(moptions)
 	if err != nil {
 		return nil, err
 	}

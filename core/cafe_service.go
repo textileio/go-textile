@@ -30,6 +30,7 @@ import (
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo"
 	"github.com/textileio/go-textile/repo/config"
+	"github.com/textileio/go-textile/repo/db"
 	"github.com/textileio/go-textile/service"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -41,7 +42,7 @@ const defaultSessionDuration = time.Hour * 24 * 7 * 4
 const inboxMessagePageSize = 10
 
 // maxQueryWaitSeconds is used to limit a query request's max wait time
-const maxQueryWaitSeconds = 10
+const maxQueryWaitSeconds = 30
 
 // defaultQueryWaitSeconds is a query request's default wait time
 const defaultQueryWaitSeconds = 5
@@ -383,7 +384,7 @@ func (h *CafeService) CheckMessages(cafe peer.ID) error {
 	// save messages to inbox
 	for _, msg := range res.Messages {
 		if err := h.inbox.Add(msg); err != nil {
-			if !repo.ConflictError(err) {
+			if !db.ConflictError(err) {
 				return err
 			}
 		}
@@ -504,7 +505,7 @@ func (h *CafeService) notifyClient(pid peer.ID) error {
 		return err
 	}
 
-	return ipfs.Publish(h.service.Node(), client, payload, ipfs.PublishTimeout)
+	return ipfs.Publish(h.service.Node(), client, payload, ipfs.PublishTimeout, true)
 }
 
 // sendCafeRequest sends an authenticated request, retrying once after a session refresh
@@ -768,7 +769,7 @@ func (h *CafeService) publishQuery(req *pb.PubSubQuery) error {
 	if err != nil {
 		return err
 	}
-	return ipfs.Publish(h.service.Node(), topic, payload, 0)
+	return ipfs.Publish(h.service.Node(), topic, payload, ipfs.PublishTimeout, false)
 }
 
 // handleChallenge receives a challenge request
@@ -1416,8 +1417,8 @@ func (h *CafeService) handlePubSubQuery(pid peer.ID, env *pb.Envelope) (*pb.Enve
 		if err != nil {
 			return nil, err
 		}
-		timeout := time.Duration(int(query.Timeout))
-		if err := ipfs.Publish(h.service.Node(), query.Topic, payload, timeout); err != nil {
+		timeout := time.Duration(int(time.Second) * int(query.Timeout))
+		if err := ipfs.Publish(h.service.Node(), query.Topic, payload, timeout, true); err != nil {
 			return nil, err
 		}
 	}

@@ -43,7 +43,7 @@ const kJobFreq = time.Second * 60
 const kMobileJobFreq = time.Second * 40
 
 // kSyncAccountFreq how often to run account sync
-const kSyncAccountFreq = time.Hour * 8
+const kSyncAccountFreq = time.Hour
 
 // InitConfig is used to setup a textile node
 type InitConfig struct {

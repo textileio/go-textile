@@ -17,30 +17,22 @@ import (
 const PublishTimeout = time.Second * 5
 
 // Publish publishes data to a topic
-func Publish(node *core.IpfsNode, topic string, data []byte, timeout time.Duration) error {
+func Publish(node *core.IpfsNode, topic string, data []byte, timeout time.Duration, connect bool) error {
 	api, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		return err
 	}
 
-	var dur time.Duration
-	var connect bool
-	if timeout <= 0 {
-		dur = PublishTimeout
-		connect = false
-	} else {
-		dur = time.Duration(timeout)
-		connect = true
-	}
-	ctx, cancel := context.WithTimeout(node.Context(), dur)
+	ctx, cancel := context.WithTimeout(node.Context(), timeout)
 	defer cancel()
 
 	if connect {
-		if err := connectToPubSubPeers(node, ctx, topic); err != nil {
+		if err := connectToTopicReceiver(node, ctx, topic); err != nil {
 			return err
 		}
 	}
 
+	log.Debugf("publishing to topic %s (timeout=%ds)", topic, int(timeout)/1e9)
 	return api.PubSub().Publish(ctx, topic, data)
 }
 
@@ -68,8 +60,8 @@ func Subscribe(node *core.IpfsNode, ctx context.Context, topic string, discover 
 	}
 }
 
-// connectToPubSubPeers attempts to connect with a pubsub topic's peers
-func connectToPubSubPeers(node *core.IpfsNode, ctx context.Context, topic string) error {
+// connectToTopicReceiver attempts to connect with a pubsub topic's receiver
+func connectToTopicReceiver(node *core.IpfsNode, ctx context.Context, topic string) error {
 	api, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		return err
@@ -80,9 +72,14 @@ func connectToPubSubPeers(node *core.IpfsNode, ctx context.Context, topic string
 		return err
 	}
 
-	provs := node.Routing.FindProvidersAsync(ctx, blk.Path().Cid(), 10)
+	ctx2, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	log.Debugf("looking for peers for topic %s", topic)
+	provs := node.Routing.FindProvidersAsync(ctx2, blk.Path().Cid(), 10)
 	var wg sync.WaitGroup
 	for p := range provs {
+		log.Debugf("found topic provider %s", p.ID.Pretty())
 		if !strings.Contains(topic, p.ID.Pretty()) {
 			continue
 		}
@@ -95,6 +92,7 @@ func connectToPubSubPeers(node *core.IpfsNode, ctx context.Context, topic string
 				return
 			}
 			log.Info("connected to pubsub peer:", pi.ID)
+			cancel()
 		}(p)
 	}
 

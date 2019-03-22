@@ -151,6 +151,7 @@ func applySwarmPortConfigOption(rep repo.Repo, ports string) error {
 		ws = parts[1]
 	default:
 		tcp = GetRandomPort()
+		ws = GetRandomPort()
 	}
 
 	list := []string{

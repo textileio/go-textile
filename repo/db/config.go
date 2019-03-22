@@ -132,7 +132,7 @@ func (c *ConfigDB) SetLastDaily() error {
 	if err != nil {
 		return err
 	}
-	stmt, err := tx.Prepare("insert into config(key, value) values(?,?)")
+	stmt, err := tx.Prepare("insert or replace into config(key, value) values(?,?)")
 	if err != nil {
 		return err
 	}

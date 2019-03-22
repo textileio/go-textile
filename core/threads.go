@@ -18,7 +18,7 @@ import (
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/mill"
 	"github.com/textileio/go-textile/pb"
-	"github.com/textileio/go-textile/repo"
+	"github.com/textileio/go-textile/repo/db"
 	"github.com/textileio/go-textile/schema/textile"
 )
 
@@ -122,7 +122,7 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 		State:     pb.Thread_LOADED,
 	}
 	if err := t.datastore.Threads().Add(model); err != nil {
-		if conf.Force && repo.ConflictError(err) && strings.Contains(err.Error(), ".key") {
+		if conf.Force && db.ConflictError(err) && strings.Contains(err.Error(), ".key") {
 			conf.Key = incrementKey(conf.Key)
 			return t.AddThread(conf, sk, initiator, join)
 		}
@@ -204,6 +204,13 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	index := t.datastore.Blocks().Get(thrd.Head)
+	if index != nil {
+		// exists, abort
+		log.Debugf("%s exists, aborting", thrd.Head)
+		return nil
 	}
 
 	parents, err := nthrd.followParents([]string{thrd.Head})
