@@ -28,6 +28,7 @@ func bootstrapApp() {
 			Homepage:       "../index.html",
 			MessageHandler: handleMessage,
 			Options: &astilectron.WindowOptions{
+				Show: astilectron.PtrBool(true),
 				// AlwaysOnTop:   astilectron.PtrBool(true),
 				// Resizable:     astilectron.PtrBool(false),
 				// Closable:      astilectron.PtrBool(false),

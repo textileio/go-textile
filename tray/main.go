@@ -16,12 +16,14 @@ import (
 	"github.com/textileio/go-textile/gateway"
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/wallet"
 )
 
 var (
 	appName = "Textile"
 	debug   = flag.Bool("d", false, "enables debug mode")
 	app     *astilectron.Astilectron
+	// window  *astilectron.Window
 )
 
 var node *core.Textile
@@ -114,11 +116,9 @@ func stopNode() error {
 }
 
 func start(app *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.Menu, t *astilectron.Tray, _ *astilectron.Menu) error {
-	// show main window
-	w[0].Show()
 	// remove the dock icon
-	var d = app.Dock()
-	d.Hide()
+	dock := app.Dock()
+	dock.Hide()
 
 	// get homedir
 	home, err := homedir.Dir()
@@ -136,7 +136,27 @@ func start(app *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron
 	if err := os.MkdirAll(appDir, 0755); err != nil {
 		astilog.Fatal(fmt.Errorf("create app dir failed: %s", err))
 	}
-	repoPath := filepath.Join(appDir, "repo")
+
+	// temp create new wallet each time
+	wcount, err := wallet.NewWordCount(12)
+	if err != nil {
+		return err
+	}
+
+	wallet, err := wallet.NewWallet(wcount.EntropySize())
+	if err != nil {
+		return err
+	}
+	fmt.Println(wallet.RecoveryPhrase)
+	// show first account
+	kp, err := wallet.AccountAt(0, "password")
+	if err != nil {
+		return err
+	}
+	fmt.Println(kp.Address())
+	fmt.Println(kp.Seed())
+
+	repoPath := filepath.Join(appDir, kp.Address())
 
 	// run init if needed
 	if !fsrepo.IsInitialized(repoPath) {

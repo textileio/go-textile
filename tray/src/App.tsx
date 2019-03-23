@@ -1,29 +1,36 @@
 import React, { Component } from 'react'
-import { observer, inject } from 'mobx-react'
+import { observer } from 'mobx-react'
 import 'react-semantic-toasts/styles/react-semantic-alert.css'
 import Main from './Main'
+import Splash from './Splash'
 import { Dimmer, Loader } from 'semantic-ui-react'
 import { SemanticToastContainer } from 'react-semantic-toasts'
+import { Stores } from './Store'
+import { ConnectedComponent, connect } from './ConnectedComponent'
 
-@inject('store') @observer
-class App extends Component {
+interface AppProps { }
+
+@connect('store') @observer
+class App extends ConnectedComponent<AppProps, Stores> {
   componentDidMount() {
-    const { store } = this.props
-    store.checkStatus()
+    const { store } = this.stores
+     setTimeout(() => { store.checkStatus() }, 3000)
   }
   render() {
-    const { store } = this.props
-    const view = (screen => {
+    const { store } = this.stores
+    const view = ((screen: string) => {
       switch (screen) {
+        case 'loading':
+          return (
+            <Splash />
+          )
         case 'online':
           return (
-            <div style={{ width: '80%', maxWidth: '500px', margin: '1em auto' }}>
-              <Main />
-            </div>
+            <Main />
           )
         default:
           return (
-            <Dimmer active={store.status !== 'online'}>
+            <Dimmer inverted active>
               <Loader size='massive' />
             </Dimmer>
           )

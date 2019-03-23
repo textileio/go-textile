@@ -1,0 +1,125 @@
+{
+  "defaultSeverity": "error",
+  "extends": [
+    "tslint:recommended"
+  ],
+  "linterOptions": {
+    "exclude": [
+      "**/*.json",
+      "**/*.js",
+      "node_modules"
+    ]
+  },
+  "jsRules": {
+    "quotemark": [
+      true,
+      "single",
+      "jsx-single",
+      "avoid-escape"
+    ],
+    "semicolon": [
+      true,
+      "never"
+    ],
+    "jsx-no-multiline-js": false,
+    "no-shadowed-variable": false,
+    "no-null-keyword": true,
+    "no-string-literal": false,
+    "no-this-assignment": false,
+    "no-submodule-imports": false,
+    "variable-name": false,
+    "no-console": [
+      true,
+      "log"
+    ],
+    "no-implicit-dependencies": [
+      true,
+      "dev"
+    ],
+    "max-classes-per-file": false,
+    "object-literal-sort-keys": false,
+    "ordered-imports": false,
+    "space-before-function-paren": false,
+    "trailing-comma": [
+      true,
+      {
+        "multiline": "never",
+        "singleline": "never"
+      }
+    ],
+    "max-line-length": [
+      true,
+      200
+    ]
+  },
+  "rules": {
+    "quotemark": [
+      true,
+      "single",
+      "jsx-single",
+      "avoid-escape"
+    ],
+    "semicolon": [
+      true,
+      "never"
+    ],
+    "jsx-no-multiline-js": false,
+    "no-shadowed-variable": false,
+    "no-null-keyword": true,
+    "no-var-requires": false,
+    "no-string-literal": false,
+    "no-this-assignment": false,
+    "no-submodule-imports": false,
+    "variable-name": false,
+    "no-console": [
+      true,
+      "log"
+    ],
+    "interface-name": false,
+    "no-namespace": [
+      false
+    ],
+    "no-implicit-dependencies": [
+      true,
+      "dev"
+    ],
+    "max-classes-per-file": false,
+    "object-literal-sort-keys": false,
+    "ordered-imports": false,
+    "completed-docs": [
+      true,
+      {
+        "functions": {
+          "visibilities": [
+            "exported"
+          ]
+        },
+        "methods": {
+          "visibilities": [
+            "exported"
+          ],
+          "locations": "instance",
+          "privacies": [
+            "public"
+          ]
+        }
+      }
+    ],
+    // begin bandaids
+    "no-empty": false,
+    "space-before-function-paren": true,
+    "member-access": false,
+    "trailing-comma": [
+      true,
+      {
+        "multiline": "never",
+        "singleline": "never"
+      }
+    ],
+    "max-line-length": [
+      true,
+      200
+    ]
+  },
+  "rulesDirectory": []
+}

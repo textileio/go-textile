@@ -2,7 +2,7 @@
   "name": "tray",
   "version": "0.1.0",
   "description": "Textile Tray App",
-  "main": "public/electron.js",
+  "main": "public/electron.ts",
   "homepage": "./",
   "author": "Textile",
   "license": "MIT",
@@ -15,13 +15,14 @@
     "react": "^16.8.3",
     "react-dom": "^16.8.3",
     "react-moment": "^0.8.4",
+    "react-reveal": "^1.2.2",
     "react-semantic-toasts": "^0.5.0",
     "semantic-ui-css": "^2.4.1",
     "semantic-ui-react": "^0.85.0"
   },
   "scripts": {
     "start": "craco start",
-    "dev": "concurrently \"cross-env BROWSER=none yarn craco start\" \"wait-on http://localhost:3000 && electron ./public/electron.js\"",
+    "dev": "concurrently \"cross-env BROWSER=none yarn craco start\" \"wait-on http://localhost:3000 && electron ./public/electron.ts\"",
     "predist": "yarn build",
     "dist": "./scripts/bundle.sh",
     "build": "craco build",
@@ -44,6 +45,10 @@
   "devDependencies": {
     "@babel/core": "^7.3.4",
     "@craco/craco": "^3.5.0",
+    "@types/jest": "^24.0.11",
+    "@types/node": "^11.11.6",
+    "@types/react": "^16.8.8",
+    "@types/react-dom": "^16.8.3",
     "babel-preset-mobx": "^2.0.0",
     "concurrently": "^4.1.0",
     "cross-env": "^5.2.0",
@@ -52,7 +57,7 @@
     "move-cli": "^1.2.1",
     "react-scripts": "2.1.5",
     "rimraf": "^2.6.3",
-    "typescript": "^3.3.3333",
+    "typescript": "^3.3.4000",
     "wait-on": "^3.2.0"
   }
 }

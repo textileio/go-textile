@@ -1,0 +1,17 @@
+{
+  "main.css": "./static/css/main.cbf1eb81.chunk.css",
+  "main.js": "./static/js/main.db5fe192.chunk.js",
+  "main.js.map": "./static/js/main.db5fe192.chunk.js.map",
+  "runtime~main.js": "./static/js/runtime~main.9eb600ee.js",
+  "runtime~main.js.map": "./static/js/runtime~main.9eb600ee.js.map",
+  "static/css/2.bf5ccbc3.chunk.css": "./static/css/2.bf5ccbc3.chunk.css",
+  "static/js/2.c0cf425d.chunk.js": "./static/js/2.c0cf425d.chunk.js",
+  "static/js/2.c0cf425d.chunk.js.map": "./static/js/2.c0cf425d.chunk.js.map",
+  "index.html": "./index.html",
+  "precache-manifest.05b07f01e96dbaf306fa15c6863074ca.js": "./precache-manifest.05b07f01e96dbaf306fa15c6863074ca.js",
+  "service-worker.js": "./service-worker.js",
+  "static/css/2.bf5ccbc3.chunk.css.map": "./static/css/2.bf5ccbc3.chunk.css.map",
+  "static/css/main.cbf1eb81.chunk.css.map": "./static/css/main.cbf1eb81.chunk.css.map",
+  "static/media/LaunchLogo@3x.png": "./static/media/LaunchLogo@3x.2ce49d6a.png",
+  "static/media/semantic.min.css": "./static/media/outline-icons.ef60a4f6.woff"
+}
