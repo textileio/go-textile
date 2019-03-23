@@ -634,6 +634,10 @@ func (h *CafeService) sendObject(id cid.Cid, addr string, token string) error {
 func (h *CafeService) searchLocal(qtype pb.Query_Type, options *pb.QueryOptions, payload *any.Any, local bool) (*queryResultSet, error) {
 	results := newQueryResultSet(options)
 
+	if options.RemoteOnly {
+		return results, nil
+	}
+
 	switch qtype {
 	case pb.Query_THREAD_SNAPSHOTS:
 		q := new(pb.ThreadSnapshotQuery)
@@ -662,6 +666,39 @@ func (h *CafeService) searchLocal(qtype pb.Query_Type, options *pb.QueryOptions,
 					},
 				})
 			}
+		}
+
+		// return own threads (encrypted) if query is from an account peer
+		if q.Address == h.service.Account.Address() {
+			self := h.service.Node().Identity.Pretty()
+			for _, t := range h.datastore.Threads().List().Items {
+				plaintext, err := proto.Marshal(t)
+				if err != nil {
+					return nil, err
+				}
+				ciphertext, err := h.service.Account.Encrypt(plaintext)
+				if err != nil {
+					return nil, err
+				}
+
+				value, err := proto.Marshal(&pb.CafeClientThread{
+					Id:         t.Id,
+					Client:     self,
+					Ciphertext: ciphertext,
+				})
+				if err != nil {
+					return nil, err
+				}
+				results.Add(&pb.QueryResult{
+					Id:    t.Id,
+					Local: local,
+					Value: &any.Any{
+						TypeUrl: "/CafeClientThread",
+						Value:   value,
+					},
+				})
+			}
+
 		}
 
 	case pb.Query_CONTACTS:
@@ -1495,10 +1532,11 @@ func (h *CafeService) setAddrs(conf *config.Config, swarmPorts config.SwarmPorts
 func queryDefaults(query *pb.Query) *pb.Query {
 	if query.Options == nil {
 		query.Options = &pb.QueryOptions{
-			Local:  false,
-			Limit:  defaultQueryResultsLimit,
-			Wait:   defaultQueryWaitSeconds,
-			Filter: pb.QueryOptions_NO_FILTER,
+			LocalOnly:  false,
+			RemoteOnly: false,
+			Limit:      defaultQueryResultsLimit,
+			Wait:       defaultQueryWaitSeconds,
+			Filter:     pb.QueryOptions_NO_FILTER,
 		}
 	}
 

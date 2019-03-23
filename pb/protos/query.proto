@@ -6,7 +6,8 @@ import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 
 message QueryOptions {
-    bool local              = 1;
+    bool localOnly          = 1; // local only
+    bool remoteOnly         = 6; // remote only
     int32 limit             = 2;
     int32 wait              = 3;
     FilterType filter       = 4;

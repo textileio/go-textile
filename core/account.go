@@ -59,7 +59,6 @@ func (t *Textile) SyncAccount(options *pb.QueryOptions) (*broadcast.Broadcaster,
 	query := &pb.ThreadSnapshotQuery{
 		Address: t.account.Address(),
 	}
-	options.Limit = -1
 
 	resCh, errCh, cancel, err := t.SearchThreadSnapshots(query, options)
 	if err != nil {
@@ -101,7 +100,9 @@ func (t *Textile) maybeSyncAccount() {
 
 	if daily.Add(kSyncAccountFreq).Before(time.Now()) {
 		var err error
-		t.cancelSync, err = t.SyncAccount(&pb.QueryOptions{Wait: 10})
+		t.cancelSync, err = t.SyncAccount(&pb.QueryOptions{
+			Wait: 10,
+		})
 		if err != nil {
 			log.Errorf("error sync account: %s", err)
 			return

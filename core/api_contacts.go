@@ -106,7 +106,7 @@ func (a *api) rmContacts(g *gin.Context) {
 // @Description Search for contacts known locally and on the network
 // @Tags contacts
 // @Produce application/json
-// @Param X-Textile-Opts header string false "local: Whether to only search local contacts, limit: Stops searching after limit results are found, wait: Stops searching after 'wait' seconds have elapsed (max 30s), username: search by username string, address: search by account address string, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON" default(local="false",limit=5,wait=5,address=,username=,events="false")
+// @Param X-Textile-Opts header string false "local: Whether to only search local contacts, remote: Whether to only search remote contacts, limit: Stops searching after limit results are found, wait: Stops searching after 'wait' seconds have elapsed (max 30s), username: search by username string, address: search by account address string, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON" default(local="false",limit=5,wait=5,address=,username=,events="false")
 // @Success 200 {object} pb.QueryResult "results stream"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
@@ -118,9 +118,13 @@ func (a *api) searchContacts(g *gin.Context) {
 		return
 	}
 
-	local, err := strconv.ParseBool(opts["local"])
+	localOnly, err := strconv.ParseBool(opts["local"])
 	if err != nil {
-		local = false
+		localOnly = false
+	}
+	remoteOnly, err := strconv.ParseBool(opts["remote"])
+	if err != nil {
+		remoteOnly = false
 	}
 	limit, err := strconv.Atoi(opts["limit"])
 	if err != nil {
@@ -136,9 +140,10 @@ func (a *api) searchContacts(g *gin.Context) {
 		Username: opts["username"],
 	}
 	options := &pb.QueryOptions{
-		Local: local,
-		Limit: int32(limit),
-		Wait:  int32(wait),
+		LocalOnly:  localOnly,
+		RemoteOnly: remoteOnly,
+		Limit:      int32(limit),
+		Wait:       int32(wait),
 	}
 
 	resCh, errCh, cancel, err := a.node.SearchContacts(query, options)

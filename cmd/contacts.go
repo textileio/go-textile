@@ -198,12 +198,13 @@ func (x *rmContactsCmd) Execute(args []string) error {
 }
 
 type searchContactsCmd struct {
-	Client   ClientOptions `group:"Client Options"`
-	Username string        `short:"u" long:"username" description:"Search by username."`
-	Address  string        `short:"a" long:"address" description:"Search by account address."`
-	Local    bool          `long:"local" description:"Only search local contacts."`
-	Limit    int           `long:"limit" description:"Stops searching after limit results are found." default:"5"`
-	Wait     int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 30s)." default:"2"`
+	Client     ClientOptions `group:"Client Options"`
+	Username   string        `short:"u" long:"username" description:"Search by username."`
+	Address    string        `short:"a" long:"address" description:"Search by account address."`
+	LocalOnly  bool          `long:"only-local" description:"Only search local contacts."`
+	RemoteOnly bool          `long:"only-remote" description:"Only search remote contacts."`
+	Limit      int           `long:"limit" description:"Stops searching after limit results are found." default:"5"`
+	Wait       int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 30s)." default:"2"`
 }
 
 func (x *searchContactsCmd) Usage() string {
@@ -223,7 +224,8 @@ func (x *searchContactsCmd) Execute(args []string) error {
 		opts: map[string]string{
 			"username": x.Username,
 			"address":  x.Address,
-			"local":    strconv.FormatBool(x.Local),
+			"local":    strconv.FormatBool(x.LocalOnly),
+			"remote":   strconv.FormatBool(x.RemoteOnly),
 			"limit":    strconv.Itoa(x.Limit),
 			"wait":     strconv.Itoa(x.Wait),
 		},

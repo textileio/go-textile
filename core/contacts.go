@@ -65,6 +65,7 @@ func (t *Textile) SearchContacts(query *pb.ContactQuery, options *pb.QueryOption
 		return nil, nil, nil, err
 	}
 
+	// settings required for contacts
 	options.Filter = pb.QueryOptions_HIDE_OLDER
 
 	self := t.Profile()

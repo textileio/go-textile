@@ -1105,11 +1105,11 @@ paths:
       description: Search for contacts known locally and on the network
       parameters:
       - default: local="false",limit=5,wait=5,address=,username=,events="false"
-        description: 'local: Whether to only search local contacts, limit: Stops searching
-          after limit results are found, wait: Stops searching after ''wait'' seconds
-          have elapsed (max 30s), username: search by username string, address: search
-          by account address string, events: Whether to emit Server-Sent Events (SSEvent)
-          or plain JSON'
+        description: 'local: Whether to only search local contacts, remote: Whether
+          to only search remote contacts, limit: Stops searching after limit results
+          are found, wait: Stops searching after ''wait'' seconds have elapsed (max
+          30s), username: search by username string, address: search by account address
+          string, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON'
         in: header
         name: X-Textile-Opts
         type: string

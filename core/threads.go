@@ -408,6 +408,9 @@ func (t *Textile) SearchThreadSnapshots(query *pb.ThreadSnapshotQuery, options *
 		return nil, nil, nil, err
 	}
 
+	// settings required for sync
+	options.RemoteOnly = true
+	options.Limit = -1
 	options.Filter = pb.QueryOptions_NO_FILTER
 
 	resCh, errCh, cancel := t.search(&pb.Query{
