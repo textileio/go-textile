@@ -474,6 +474,16 @@ func (t *Textile) SearchThreadSnapshots(query *pb.ThreadSnapshotQuery, options *
 	return tresCh, terrCh, cancel, nil
 }
 
+// SnapshotThreads creates a store thread request for all threads
+func (t *Textile) SnapshotThreads() error {
+	for _, thrd := range t.loadedThreads {
+		if err := thrd.store(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // addAccountThread adds a thread with seed representing the state of the account
 func (t *Textile) addAccountThread() error {
 	if t.AccountThread() != nil {

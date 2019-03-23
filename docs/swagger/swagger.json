@@ -598,7 +598,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "204": {
                         "description": "ok",
                         "schema": {
                             "type": "string"
@@ -864,7 +864,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "204": {
                         "description": "ok",
                         "schema": {
                             "type": "string"
@@ -897,7 +897,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "204": {
                         "description": "ok",
                         "schema": {
                             "type": "string"
@@ -2005,6 +2005,38 @@
         },
         "/snapshots": {
             "post": {
+                "description": "Snapshots all threads and pushes to registered cafes",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "threads"
+                ],
+                "summary": "Create thread snapshots",
+                "responses": {
+                    "201": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/snapshots/search": {
+            "post": {
                 "description": "Searches the network for thread snapshots",
                 "produces": [
                     "application/json"
@@ -2257,7 +2289,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "204": {
                         "description": "ok",
                         "schema": {
                             "type": "string"
@@ -2290,7 +2322,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "204": {
                         "description": "ok",
                         "schema": {
                             "type": "string"
@@ -2447,7 +2479,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "204": {
                         "description": "ok",
                         "schema": {
                             "type": "string"
@@ -2619,7 +2651,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "204": {
                         "description": "ok",
                         "schema": {
                             "type": "string"

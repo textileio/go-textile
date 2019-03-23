@@ -90,7 +90,7 @@ Syncs the local wallet account with all thread snapshots found on the network.
 func (x *accountSyncCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	results := handleSearchStream("snapshots", params{
+	results := handleSearchStream("snapshots/search", params{
 		opts: map[string]string{
 			"wait": strconv.Itoa(x.Wait),
 		},
@@ -119,6 +119,10 @@ func (x *accountSyncCmd) Execute(args []string) error {
 		if err := applySnapshot(&result); err != nil {
 			return err
 		}
+	}
+
+	if _, err := callCreateSnapshotsThreads(); err != nil {
+		return err
 	}
 
 	return nil

@@ -856,7 +856,7 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
+        "204":
           description: ok
           schema:
             type: string
@@ -1031,7 +1031,7 @@ paths:
       produces:
       - text/plain
       responses:
-        "200":
+        "204":
           description: ok
           schema:
             type: string
@@ -1089,7 +1089,7 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
+        "204":
           description: ok
           schema:
             type: string
@@ -1905,6 +1905,27 @@ paths:
       - profile
   /snapshots:
     post:
+      description: Snapshots all threads and pushes to registered cafes
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Create thread snapshots
+      tags:
+      - threads
+  /snapshots/search:
+    post:
       description: Searches the network for thread snapshots
       parameters:
       - default: wait=5,events="false"
@@ -2052,7 +2073,7 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
+        "204":
           description: ok
           schema:
             type: string
@@ -2112,7 +2133,7 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
+        "204":
           description: ok
           schema:
             type: string
@@ -2216,7 +2237,7 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
+        "204":
           description: ok
           schema:
             type: string
@@ -2316,7 +2337,7 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
+        "204":
           description: ok
           schema:
             type: string

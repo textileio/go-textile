@@ -32,7 +32,7 @@ type threadsCmd struct {
 	Peers      peersThreadsCmd      `command:"peers" description:"List thread peers"`
 	Rename     renameThreadsCmd     `command:"rename" description:"Rename thread"`
 	Remove     rmThreadsCmd         `command:"rm" description:"Remove a thread"`
-	Snapshots  snapshotsThreadsCmd  `command:"snaps" description:"Manage thread snapshots"`
+	Snapshots  snapshotsThreadsCmd  `command:"snapshots" description:"Manage thread snapshots"`
 }
 
 func (x *threadsCmd) Name() string {
@@ -286,6 +286,7 @@ func (x *rmThreadsCmd) Execute(args []string) error {
 }
 
 type snapshotsThreadsCmd struct {
+	Create createSnapshotsThreadsCmd `command:"create" description:"Create thread snapshots"`
 	Search searchSnapshotsThreadsCmd `command:"search" description:"Search for thread snapshots"`
 	Apply  applySnapshotsThreadsCmd  `command:"apply" description:"Apply a single thread snapshot"`
 }
@@ -293,7 +294,32 @@ type snapshotsThreadsCmd struct {
 func (x *snapshotsThreadsCmd) Usage() string {
 	return `
 
-Use this command to list and apply thread snapshots.`
+Use this command to create, search, and apply thread snapshots.`
+}
+
+type createSnapshotsThreadsCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
+
+func (x *createSnapshotsThreadsCmd) Usage() string {
+	return `
+
+Snapshots all threads and pushes to registered cafes.`
+}
+
+func (x *createSnapshotsThreadsCmd) Execute(args []string) error {
+	setApi(x.Client)
+
+	res, err := callCreateSnapshotsThreads()
+	if err != nil {
+		return err
+	}
+	output(res)
+	return nil
+}
+
+func callCreateSnapshotsThreads() (string, error) {
+	return executeStringCmd(POST, "snapshots", params{})
 }
 
 type searchSnapshotsThreadsCmd struct {
@@ -310,7 +336,7 @@ Searches the network for thread snapshots.`
 func (x *searchSnapshotsThreadsCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	handleSearchStream("snapshots", params{
+	handleSearchStream("snapshots/search", params{
 		opts: map[string]string{
 			"wait": strconv.Itoa(x.Wait),
 		},
@@ -336,7 +362,7 @@ func (x *applySnapshotsThreadsCmd) Execute(args []string) error {
 	}
 	id := args[0]
 
-	results := handleSearchStream("snapshots", params{
+	results := handleSearchStream("snapshots/search", params{
 		opts: map[string]string{
 			"wait": strconv.Itoa(x.Wait),
 		},
@@ -378,7 +404,7 @@ func applySnapshot(result *pb.QueryResult) error {
 	if err != nil {
 		return err
 	}
-	if res == "ok" {
+	if res == "" {
 		output("applied " + result.Id)
 	} else {
 		output("error applying " + result.Id + ": " + res)

@@ -16,7 +16,7 @@ import (
 // @Produce application/json
 // @Param address path string true "address"
 // @Param contact body pb.Contact true "contact"
-// @Success 200 {string} string "ok"
+// @Success 204 {string} string "ok"
 // @Failure 400 {string} string "Bad Request"
 // @Router /contacts/{address} [put]
 func (a *api) addContacts(g *gin.Context) {
@@ -39,7 +39,7 @@ func (a *api) addContacts(g *gin.Context) {
 		return
 	}
 
-	g.String(http.StatusOK, "ok")
+	g.String(http.StatusNoContent, "ok")
 }
 
 // lsContacts godoc
@@ -80,7 +80,7 @@ func (a *api) getContacts(g *gin.Context) {
 // @Tags contacts
 // @Produce text/plain
 // @Param address path string true "address"
-// @Success 200 {string} string "ok"
+// @Success 204 {string} string "ok"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /contacts/{address} [delete]
@@ -98,7 +98,7 @@ func (a *api) rmContacts(g *gin.Context) {
 		return
 	}
 
-	g.String(http.StatusOK, "ok")
+	g.String(http.StatusNoContent, "ok")
 }
 
 // searchContacts godoc

@@ -114,6 +114,11 @@ func (m *Mobile) RemoveThread(id string) (string, error) {
 	return hash.B58String(), nil
 }
 
+// SnapshotThreads calls core SnapshotThreads
+func (m *Mobile) SnapshotThreads() error {
+	return m.node.SnapshotThreads()
+}
+
 // SearchThreadSnapshots calls core SearchThreadSnapshots
 func (m *Mobile) SearchThreadSnapshots(query []byte, options []byte) (*SearchHandle, error) {
 	if !m.node.Online() {

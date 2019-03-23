@@ -442,7 +442,7 @@ func (t *Thread) updateHead(head mh.Multihash) error {
 		return err
 	}
 
-	return t.cafeOutbox.Add(t.Id, pb.CafeRequest_STORE_THREAD)
+	return t.store()
 }
 
 // sendWelcome sends the latest HEAD block to a set of peers
@@ -517,6 +517,11 @@ func (t *Thread) post(commit *commitResult, peers []pb.ThreadPeer) error {
 	go t.blockOutbox.Flush()
 
 	return nil
+}
+
+// store adds a store thread request
+func (t *Thread) store() error {
+	return t.cafeOutbox.Add(t.Id, pb.CafeRequest_STORE_THREAD)
 }
 
 // readable returns whether or not this thread is readable from the

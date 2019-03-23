@@ -116,7 +116,7 @@ func (x *createInvitesCmd) Execute(args []string) error {
 		if err != nil {
 			return err
 		}
-		if res == "ok" {
+		if res == "" {
 			output("added " + result.Id)
 		} else {
 			return fmt.Errorf("error adding %s: %s", result.Id, res)

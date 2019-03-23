@@ -109,7 +109,7 @@ func (x *addContactsCmd) Execute(args []string) error {
 		if err != nil {
 			return err
 		}
-		if res == "ok" {
+		if res == "" {
 			output("added " + result.Id)
 		} else {
 			output("error adding " + result.Id + ": " + res)

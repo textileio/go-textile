@@ -88,7 +88,7 @@ func (a *api) addThreads(g *gin.Context) {
 // @Produce application/json
 // @Param id path string true "id"
 // @Param thread body pb.Thread true "thread"
-// @Success 200 {string} string "ok"
+// @Success 204 {string} string "ok"
 // @Failure 400 {string} string "Bad Request"
 // @Router /threads/{id} [put]
 func (a *api) addOrUpdateThreads(g *gin.Context) {
@@ -112,7 +112,7 @@ func (a *api) addOrUpdateThreads(g *gin.Context) {
 		return
 	}
 
-	g.String(http.StatusOK, "ok")
+	g.String(http.StatusNoContent, "ok")
 }
 
 // renameThreads godoc
@@ -122,7 +122,7 @@ func (a *api) addOrUpdateThreads(g *gin.Context) {
 // @Produce application/json
 // @Param id path string true "id"
 // @Param X-Textile-Args header string true "name"
-// @Success 200 {string} string "ok"
+// @Success 204 {string} string "ok"
 // @Failure 400 {string} string "Bad Request"
 // @Router /threads/{id}/name [put]
 func (a *api) renameThreads(g *gin.Context) {
@@ -141,7 +141,7 @@ func (a *api) renameThreads(g *gin.Context) {
 		return
 	}
 
-	g.String(http.StatusOK, "ok")
+	g.String(http.StatusNoContent, "ok")
 }
 
 // lsThreads godoc
@@ -224,7 +224,7 @@ func (a *api) peersThreads(g *gin.Context) {
 // @Tags threads
 // @Produce application/json
 // @Param id path string true "thread id"
-// @Success 200 {string} string "ok"
+// @Success 204 {string} string "ok"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /threads/{id} [delete]
@@ -242,5 +242,5 @@ func (a *api) rmThreads(g *gin.Context) {
 		return
 	}
 
-	g.String(http.StatusOK, "ok")
+	g.String(http.StatusNoContent, "ok")
 }

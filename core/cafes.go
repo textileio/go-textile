@@ -30,6 +30,10 @@ func (t *Textile) RegisterCafe(host string, token string) (*pb.CafeSession, erro
 		return nil, err
 	}
 
+	if err := t.SnapshotThreads(); err != nil {
+		return nil, err
+	}
+
 	return session, nil
 }
 
