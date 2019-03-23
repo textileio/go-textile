@@ -17,6 +17,17 @@ func (a *api) accountAddress(g *gin.Context) {
 	g.String(http.StatusOK, a.node.account.Address())
 }
 
+// accountSeed godoc
+// @Summary Show account seed
+// @Description Shows the local node's account seed
+// @Tags account
+// @Produce text/plain
+// @Success 200 {string} string "seed"
+// @Router /account/seed [get]
+func (a *api) accountSeed(g *gin.Context) {
+	g.String(http.StatusOK, a.node.account.Seed())
+}
+
 // accountContact godoc
 // @Summary Show own contact
 // @Description Shows own contact

@@ -532,6 +532,19 @@ paths:
       summary: Show own contact
       tags:
       - account
+  /account/seed:
+    get:
+      description: Shows the local node's account seed
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: seed
+          schema:
+            type: string
+      summary: Show account seed
+      tags:
+      - account
   /blocks:
     get:
       description: |-

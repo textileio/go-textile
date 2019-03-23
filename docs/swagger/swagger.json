@@ -65,6 +65,26 @@
                 }
             }
         },
+        "/account/seed": {
+            "get": {
+                "description": "Shows the local node's account seed",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "account"
+                ],
+                "summary": "Show account seed",
+                "responses": {
+                    "200": {
+                        "description": "seed",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/blocks": {
             "get": {
                 "description": "Paginates blocks in a thread. Blocks are the raw components in a thread.\nThink of them as an append-only log of thread updates where each update is\nhash-linked to its parent(s). New / recovering peers can sync history by simply\ntraversing the hash tree.",

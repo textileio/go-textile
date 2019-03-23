@@ -16,6 +16,7 @@ func init() {
 
 type accountCmd struct {
 	Address accountAddressCmd `command:"address" description:"Show wallet account address"`
+	Seed    accountSeedCmd    `command:"seed" description:"Show wallet account seed"`
 	Contact accountContactCmd `command:"contact" description:"Show own contact"`
 	Sync    accountSyncCmd    `command:"sync" description:"Sync account with all network snapshots"`
 }
@@ -47,6 +48,26 @@ Shows the local wallet account address.`
 func (x *accountAddressCmd) Execute(args []string) error {
 	setApi(x.Client)
 	res, err := executeStringCmd(GET, "account/address", params{})
+	if err != nil {
+		return err
+	}
+	output(res)
+	return nil
+}
+
+type accountSeedCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
+
+func (x *accountSeedCmd) Usage() string {
+	return `
+
+Shows the local wallet account seed.`
+}
+
+func (x *accountSeedCmd) Execute(args []string) error {
+	setApi(x.Client)
+	res, err := executeStringCmd(GET, "account/seed", params{})
 	if err != nil {
 		return err
 	}

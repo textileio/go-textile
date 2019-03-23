@@ -401,6 +401,16 @@ func (t *Textile) ThreadView(id string) (*pb.Thread, error) {
 	return mod, nil
 }
 
+// SnapshotThreads creates a store thread request for all threads
+func (t *Textile) SnapshotThreads() error {
+	for _, thrd := range t.loadedThreads {
+		if err := thrd.store(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // SearchThreadSnapshots searches the network for snapshots
 func (t *Textile) SearchThreadSnapshots(query *pb.ThreadSnapshotQuery, options *pb.QueryOptions) (<-chan *pb.QueryResult, <-chan error, *broadcast.Broadcaster, error) {
 	payload, err := proto.Marshal(query)
@@ -472,16 +482,6 @@ func (t *Textile) SearchThreadSnapshots(query *pb.ThreadSnapshotQuery, options *
 	}()
 
 	return tresCh, terrCh, cancel, nil
-}
-
-// SnapshotThreads creates a store thread request for all threads
-func (t *Textile) SnapshotThreads() error {
-	for _, thrd := range t.loadedThreads {
-		if err := thrd.store(); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // addAccountThread adds a thread with seed representing the state of the account
