@@ -486,8 +486,19 @@ func (t *Textile) SearchThreadSnapshots(query *pb.ThreadSnapshotQuery, options *
 
 // addAccountThread adds a thread with seed representing the state of the account
 func (t *Textile) addAccountThread() error {
-	if t.AccountThread() != nil {
-		return nil
+	x := t.AccountThread()
+	if x != nil {
+		aid, err := t.account.Id()
+		if err != nil {
+			return err
+		}
+		// catch malformed account threads from 0.1.10
+		if x.Id == aid.Pretty() {
+			return nil
+		}
+		if _, err := t.RemoveThread(x.Id); err != nil {
+			return err
+		}
 	}
 	sk, err := t.account.LibP2PPrivKey()
 	if err != nil {
@@ -500,9 +511,18 @@ func (t *Textile) addAccountThread() error {
 		Type:    pb.Thread_PRIVATE,
 		Sharing: pb.Thread_NOT_SHARED,
 	}
-	if _, err := t.AddThread(config, sk, t.account.Address(), true); err != nil {
+	thrd, err := t.AddThread(config, sk, t.account.Address(), true)
+	if err != nil {
 		return err
 	}
+
+	// add existing contacts
+	for _, p := range t.datastore.Peers().List(fmt.Sprintf("address!='%s'", t.account.Address())) {
+		if _, err := thrd.annouce(&pb.ThreadAnnounce{Peer: p}); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
