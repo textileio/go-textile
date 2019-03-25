@@ -7,7 +7,7 @@ setup:
 	gx install
 
 test:
-	./test.sh
+	./test_compile.sh
 
 fmt:
 	goimports -w -l `find . -type f -name '*.go' -not -path './vendor/*'`

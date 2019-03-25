@@ -26,6 +26,11 @@ func (t *Thread) annouce(msg *pb.ThreadAnnounce) (mh.Multihash, error) {
 		}
 	}
 
+	// do not annouce for other account peers
+	if msg.Peer.Address == t.account.Address() && msg.Peer.Id != t.node().Identity.Pretty() {
+		return nil, nil
+	}
+
 	res, err := t.commitBlock(msg, pb.Block_ANNOUNCE, nil)
 	if err != nil {
 		return nil, err

@@ -37,8 +37,16 @@ var (
 var apiAddr, apiVersion string
 
 func setApi(opts ClientOptions) {
-	apiAddr = opts.ApiAddr
-	apiVersion = opts.ApiVersion
+	if os.Getenv("API") != "" {
+		apiAddr = os.Getenv("API")
+	} else {
+		apiAddr = opts.ApiAddr
+	}
+	if os.Getenv("API_VERSION") != "" {
+		apiVersion = os.Getenv("API_VERSION")
+	} else {
+		apiVersion = opts.ApiVersion
+	}
 }
 
 var cmds []Cmd

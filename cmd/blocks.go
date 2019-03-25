@@ -38,16 +38,16 @@ traversing the hash tree.
 
 There are several block types:
 
+-  MERGE:    3-way merge added.
+-  IGNORE:   A block was ignored.
+-  FLAG:     A block was flagged.
 -  JOIN:     Peer joined.
--  ANNOUNCE: Peer set username / inbox address
+-  ANNOUNCE: Peer set username / avatar / inbox addresses
 -  LEAVE:    Peer left.
+-  TEXT:     Text message added.
 -  FILES:    File(s) added.
--  MESSAGE:  Text message added.
 -  COMMENT:  Comment added to another block.
 -  LIKE:     Like added to another block.
--  MERGE:    3-way merge added.
--  IGNORE:   Another block was ignored.
--  FLAG:     A flag was added to another block.
   
 Use this command to get and list blocks in a thread.
 `
@@ -58,12 +58,14 @@ type lsBlocksCmd struct {
 	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
 	Offset string        `short:"o" long:"offset" description:"Offset ID to start listing from."`
 	Limit  int           `short:"l" long:"limit" description:"List page size." default:"5"`
+	Dots   bool          `short:"d" long:"dots" description:"Return GraphViz dots instead of JSON."`
 }
 
 func (x *lsBlocksCmd) Usage() string {
 	return `
 
 Paginates blocks in a thread.
+Use the --dots option to return GraphViz dots instead of JSON.
 `
 }
 
@@ -73,6 +75,11 @@ func (x *lsBlocksCmd) Execute(args []string) error {
 		"thread": x.Thread,
 		"offset": x.Offset,
 		"limit":  strconv.Itoa(x.Limit),
+		"dots":   strconv.FormatBool(x.Dots),
+	}
+
+	if x.Dots {
+		return callLsDots(opts)
 	}
 	return callLsBlocks(opts)
 }
@@ -109,6 +116,39 @@ func callLsBlocks(opts map[string]string) error {
 		"thread": opts["thread"],
 		"offset": list.Items[len(list.Items)-1].Id,
 		"limit":  opts["limit"],
+		"dots":   opts["dots"],
+	})
+}
+
+func callLsDots(opts map[string]string) error {
+	if opts["thread"] == "" {
+		opts["thread"] = "default"
+	}
+
+	var viz pb.BlockViz
+	_, err := executeJsonPbCmd(GET, "blocks", params{opts: opts}, &viz)
+	if err != nil {
+		return err
+	}
+	if viz.Count > 0 {
+		output(viz.Dots)
+	}
+
+	if viz.Next == "" {
+		return nil
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("next page...")
+	if _, err := reader.ReadString('\n'); err != nil {
+		return err
+	}
+
+	return callLsDots(map[string]string{
+		"thread": opts["thread"],
+		"offset": viz.Next,
+		"limit":  opts["limit"],
+		"dots":   opts["dots"],
 	})
 }
 
@@ -129,12 +169,21 @@ func (x *getBlocksCmd) Execute(args []string) error {
 		return errMissingBlockId
 	}
 
-	res, err := executeJsonCmd(GET, "blocks/"+args[0], params{}, nil)
+	_, res, err := callGetBlocks(args[0])
 	if err != nil {
 		return err
 	}
 	output(res)
 	return nil
+}
+
+func callGetBlocks(id string) (*pb.Block, string, error) {
+	var block pb.Block
+	res, err := executeJsonPbCmd(GET, "blocks/"+id, params{}, &block)
+	if err != nil {
+		return nil, "", err
+	}
+	return &block, res, nil
 }
 
 func callRmBlocks(args []string) error {

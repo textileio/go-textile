@@ -17,22 +17,24 @@ import (
 const PublishTimeout = time.Second * 5
 
 // Publish publishes data to a topic
-func Publish(node *core.IpfsNode, topic string, data []byte, timeout time.Duration, connect bool) error {
+func Publish(node *core.IpfsNode, topic string, data []byte, connectTimeout time.Duration) error {
 	api, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(node.Context(), timeout)
-	defer cancel()
-
-	if connect {
-		if err := connectToTopicReceiver(node, ctx, topic); err != nil {
+	if connectTimeout > 0 {
+		cctx, cancel := context.WithTimeout(node.Context(), connectTimeout)
+		defer cancel()
+		if err := connectToTopicReceiver(node, cctx, topic); err != nil {
 			return err
 		}
 	}
 
-	log.Debugf("publishing to topic %s (timeout=%ds)", topic, int(timeout)/1e9)
+	ctx, pcancel := context.WithTimeout(node.Context(), PublishTimeout)
+	defer pcancel()
+
+	log.Debugf("publishing to topic %s", topic)
 	return api.PubSub().Publish(ctx, topic, data)
 }
 
@@ -72,11 +74,11 @@ func connectToTopicReceiver(node *core.IpfsNode, ctx context.Context, topic stri
 		return err
 	}
 
-	ctx2, cancel := context.WithCancel(ctx)
+	fctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	log.Debugf("looking for peers for topic %s", topic)
-	provs := node.Routing.FindProvidersAsync(ctx2, blk.Path().Cid(), 10)
+	provs := node.Routing.FindProvidersAsync(fctx, blk.Path().Cid(), 10)
 	var wg sync.WaitGroup
 	for p := range provs {
 		log.Debugf("found topic provider %s", p.ID.Pretty())

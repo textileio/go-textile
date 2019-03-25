@@ -505,7 +505,7 @@ func (h *CafeService) notifyClient(pid peer.ID) error {
 		return err
 	}
 
-	return ipfs.Publish(h.service.Node(), client, payload, ipfs.PublishTimeout, true)
+	return ipfs.Publish(h.service.Node(), client, payload, time.Second*5)
 }
 
 // sendCafeRequest sends an authenticated request, retrying once after a session refresh
@@ -806,7 +806,7 @@ func (h *CafeService) publishQuery(req *pb.PubSubQuery) error {
 	if err != nil {
 		return err
 	}
-	return ipfs.Publish(h.service.Node(), topic, payload, ipfs.PublishTimeout, false)
+	return ipfs.Publish(h.service.Node(), topic, payload, 0)
 }
 
 // handleChallenge receives a challenge request
@@ -1454,8 +1454,9 @@ func (h *CafeService) handlePubSubQuery(pid peer.ID, env *pb.Envelope) (*pb.Enve
 		if err != nil {
 			return nil, err
 		}
-		timeout := time.Duration(int(time.Second) * int(query.Timeout))
-		if err := ipfs.Publish(h.service.Node(), query.Topic, payload, timeout, true); err != nil {
+		// allow some time for the receiver to collect the response after a connect
+		timeout := time.Duration(int(query.Timeout*2/3) * 1e9)
+		if err := ipfs.Publish(h.service.Node(), query.Topic, payload, timeout); err != nil {
 			return nil, err
 		}
 	}
