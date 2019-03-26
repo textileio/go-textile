@@ -19,6 +19,7 @@ import (
 	"github.com/textileio/go-textile/ipfs"
 	m "github.com/textileio/go-textile/mill"
 	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/repo/db"
 	"github.com/textileio/go-textile/schema"
 )
 
@@ -101,6 +102,10 @@ func (t *Textile) AddFileIndex(mill m.Mill, conf AddFileConfig) (*pb.FileIndex, 
 	model.Hash = hash.Hash().B58String()
 
 	if err := t.datastore.Files().Add(model); err != nil {
+		if db.ConflictError(err) {
+			// we may have lost the race
+			return t.datastore.Files().Get(model.Hash), nil
+		}
 		return nil, err
 	}
 
