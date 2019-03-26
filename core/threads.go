@@ -35,7 +35,7 @@ var emptyThreadKey = errors.New("thread key cannot by empty")
 var internalThreadKeys = []string{"account", "avatars"}
 
 // AddThread adds a thread with a given name and secret key
-func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiator string, join bool) (*Thread, error) {
+func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiator string, join bool, inviteAccount bool) (*Thread, error) {
 	conf.Key = strings.TrimSpace(conf.Key)
 	if conf.Key == "" {
 		return nil, emptyThreadKey
@@ -124,7 +124,7 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 	if err := t.datastore.Threads().Add(model); err != nil {
 		if conf.Force && db.ConflictError(err) && strings.Contains(err.Error(), ".key") {
 			conf.Key = incrementKey(conf.Key)
-			return t.AddThread(conf, sk, initiator, join)
+			return t.AddThread(conf, sk, initiator, join, inviteAccount)
 		}
 		return nil, err
 	}
@@ -149,10 +149,12 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 		Type: pb.WalletUpdate_THREAD_ADDED,
 	})
 
-	// invite account peers
-	for _, p := range t.accountPeers() {
-		if _, err := thrd.AddInvite(p); err != nil {
-			return nil, err
+	// invite account peers if inviter is not an account peer
+	if inviteAccount {
+		for _, p := range t.accountPeers() {
+			if _, err := thrd.AddInvite(p); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -200,7 +202,7 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 		}
 
 		var err error
-		nthrd, err = t.AddThread(config, sk, thrd.Initiator, false)
+		nthrd, err = t.AddThread(config, sk, thrd.Initiator, false, false)
 		if err != nil {
 			return err
 		}
@@ -511,7 +513,7 @@ func (t *Textile) addAccountThread() error {
 		Type:    pb.Thread_PRIVATE,
 		Sharing: pb.Thread_NOT_SHARED,
 	}
-	thrd, err := t.AddThread(config, sk, t.account.Address(), true)
+	thrd, err := t.AddThread(config, sk, t.account.Address(), true, false)
 	if err != nil {
 		return err
 	}

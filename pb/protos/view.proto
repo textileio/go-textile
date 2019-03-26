@@ -219,10 +219,12 @@ message WalletUpdate {
 // SUMMARY //
 
 message Summary {
-    int32 account_peer_count = 1;
-    int32 thread_count = 2;
-    int32 file_count = 3;
-    int32 contact_count = 4;
+    string id                = 1;
+    string address           = 2;
+    int32 account_peer_count = 3;
+    int32 thread_count       = 4;
+    int32 files_count        = 5;
+    int32 contact_count      = 6;
 }
 
 // LOGS //

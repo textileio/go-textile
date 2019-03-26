@@ -9,12 +9,11 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/ptypes"
-
-	"github.com/textileio/go-textile/pb"
-
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
+	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/schema/textile"
+	"github.com/textileio/go-textile/util"
 )
 
 var errMissingThreadId = errors.New("missing thread id")
@@ -175,7 +174,7 @@ func (x *getThreadsCmd) Execute(args []string) error {
 		return errMissingThreadId
 	}
 
-	res, err := executeJsonCmd(GET, "threads/"+args[0], params{}, nil)
+	res, err := executeJsonCmd(GET, "threads/"+util.TrimQuotes(args[0]), params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -277,7 +276,7 @@ func (x *rmThreadsCmd) Execute(args []string) error {
 		return errMissingThreadId
 	}
 
-	res, err := executeStringCmd(DEL, "threads/"+args[0], params{})
+	res, err := executeStringCmd(DEL, "threads/"+util.TrimQuotes(args[0]), params{})
 	if err != nil {
 		return err
 	}

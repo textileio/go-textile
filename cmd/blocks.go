@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/util"
 )
 
 var errMissingBlockId = errors.New("missing block ID")
@@ -49,7 +50,7 @@ There are several block types:
 -  COMMENT:  Comment added to another block.
 -  LIKE:     Like added to another block.
   
-Use this command to get and list blocks in a thread.
+Use this command to list and get blocks in a thread.
 `
 }
 
@@ -191,7 +192,7 @@ func callRmBlocks(args []string) error {
 		return errMissingBlockId
 	}
 
-	res, err := executeJsonCmd(DEL, "blocks/"+args[0], params{}, nil)
+	res, err := executeJsonCmd(DEL, "blocks/"+util.TrimQuotes(args[0]), params{}, nil)
 	if err != nil {
 		return err
 	}

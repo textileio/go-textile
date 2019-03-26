@@ -20,6 +20,7 @@ import (
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/schema"
+	"github.com/textileio/go-textile/util"
 )
 
 var errMissingFilePath = errors.New("missing file path")
@@ -553,7 +554,7 @@ func (x *getFilesCmd) Execute(args []string) error {
 		return errMissingFileId
 	}
 
-	res, err := executeJsonCmd(GET, "files/"+args[0], params{}, nil)
+	res, err := executeJsonCmd(GET, "files/"+util.TrimQuotes(args[0]), params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -597,7 +598,7 @@ func (x *keysCmd) Execute(args []string) error {
 		return errMissingTarget
 	}
 
-	res, err := executeJsonCmd(GET, "keys/"+args[0], params{}, nil)
+	res, err := executeJsonCmd(GET, "keys/"+util.TrimQuotes(args[0]), params{}, nil)
 	if err != nil {
 		return err
 	}

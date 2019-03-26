@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"errors"
+
+	"github.com/textileio/go-textile/util"
 )
 
 var errMissingLikeId = errors.New("missing like block ID")
@@ -93,7 +95,7 @@ func (x *getLikesCmd) Execute(args []string) error {
 		return errMissingLikeId
 	}
 
-	res, err := executeJsonCmd(GET, "blocks/"+args[0]+"/like", params{}, nil)
+	res, err := executeJsonCmd(GET, "blocks/"+util.TrimQuotes(args[0])+"/like", params{}, nil)
 	if err != nil {
 		return err
 	}

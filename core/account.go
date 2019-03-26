@@ -120,6 +120,12 @@ func (t *Textile) accountPeers() []*pb.Peer {
 	return t.datastore.Peers().List(query)
 }
 
+// isAccountPeer returns whether or not the given id is an account peer
+func (t *Textile) isAccountPeer(id string) bool {
+	query := fmt.Sprintf("address='%s' and id='%s'", t.account.Address(), id)
+	return len(t.datastore.Peers().List(query)) > 0
+}
+
 // applySnapshot unmarshals and adds an unencrypted thread snapshot from a search result
 func (t *Textile) applySnapshot(result *pb.QueryResult) error {
 	snap := new(pb.Thread)

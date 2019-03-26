@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/util"
 )
 
 func init() {
@@ -184,7 +185,7 @@ func (x *acceptInvitesCmd) Execute(args []string) error {
 		return errMissingInviteId
 	}
 
-	res, err := executeJsonCmd(POST, "invites/"+args[0]+"/accept", params{
+	res, err := executeJsonCmd(POST, "invites/"+util.TrimQuotes(args[0])+"/accept", params{
 		args: args,
 		opts: map[string]string{
 			"key": x.Key,
@@ -214,7 +215,7 @@ func (x *ignoreInvitesCmd) Execute(args []string) error {
 		return errMissingInviteId
 	}
 
-	res, err := executeStringCmd(POST, "invites/"+args[0]+"/ignore", params{
+	res, err := executeStringCmd(POST, "invites/"+util.TrimQuotes(args[0])+"/ignore", params{
 		args: args,
 	})
 	if err != nil {

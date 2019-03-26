@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/util"
 )
 
 var errMissingAddInfo = errors.New("missing username or account address")
@@ -189,7 +190,7 @@ func (x *rmContactsCmd) Execute(args []string) error {
 		return errMissingAddress
 	}
 
-	res, err := executeStringCmd(DEL, "contacts/"+args[0], params{})
+	res, err := executeStringCmd(DEL, "contacts/"+util.TrimQuotes(args[0]), params{})
 	if err != nil {
 		return err
 	}

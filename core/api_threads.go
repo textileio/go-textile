@@ -67,7 +67,7 @@ func (a *api) addThreads(g *gin.Context) {
 		return
 	}
 
-	thrd, err := a.node.AddThread(config, sk, a.node.account.Address(), true)
+	thrd, err := a.node.AddThread(config, sk, a.node.account.Address(), true, true)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return

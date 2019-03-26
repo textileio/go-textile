@@ -229,7 +229,7 @@ func TestTextile_AddThread(t *testing.T) {
 		Sharing: pb.Thread_SHARED,
 		Members: []string{},
 	}
-	thrd, err := node.AddThread(config, sk, node.Account().Address(), true)
+	thrd, err := node.AddThread(config, sk, node.Account().Address(), true, true)
 	if err != nil {
 		t.Errorf("add thread failed: %s", err)
 		return
@@ -249,7 +249,7 @@ func TestTextile_AddThread(t *testing.T) {
 		Type:    pb.Thread_PUBLIC,
 		Sharing: pb.Thread_NOT_SHARED,
 		Members: []string{},
-	}, sk2, node.Account().Address(), true); err == nil {
+	}, sk2, node.Account().Address(), true, true); err == nil {
 		t.Error("add thread with same key should fail")
 		return
 	}
@@ -266,7 +266,7 @@ func TestTextile_AddThread(t *testing.T) {
 		Type:    pb.Thread_PUBLIC,
 		Sharing: pb.Thread_NOT_SHARED,
 		Members: []string{},
-	}, sk3, node.Account().Address(), true)
+	}, sk3, node.Account().Address(), true, true)
 	if err != nil {
 		t.Errorf("add thread with same key and force should not fail: %s", err)
 		return
