@@ -25,7 +25,7 @@ func (m *Mobile) AddThread(config []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	thrd, err := m.node.AddThread(*conf, sk, m.node.Account().Address(), m.node.Profile(), true)
+	thrd, err := m.node.AddThread(*conf, sk, m.node.Account().Address(), true, true)
 	if err != nil {
 		return nil, err
 	}
