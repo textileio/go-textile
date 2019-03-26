@@ -61,16 +61,16 @@ func (t *Textile) fileAtTarget(target string) ([]*pb.File, error) {
 			return nil, err
 		}
 
-		info := &pb.File{Index: int32(i)}
+		f := &pb.File{Index: int32(i)}
 		if looksLikeFileNode(node) {
 			file, err := t.fileIndexForPair(node)
 			if err != nil {
 				return nil, err
 			}
-			info.File = file
+			f.File = file
 
 		} else {
-			info.Links = make(map[string]*pb.FileIndex)
+			f.Links = make(map[string]*pb.FileIndex)
 			for _, link := range node.Links() {
 				pair, err := ipfs.NodeAtLink(t.node, link)
 				if err != nil {
@@ -81,12 +81,12 @@ func (t *Textile) fileAtTarget(target string) ([]*pb.File, error) {
 					return nil, err
 				}
 				if file != nil {
-					info.Links[link.Name] = file
+					f.Links[link.Name] = file
 				}
 			}
 		}
 
-		files[i] = info
+		files[i] = f
 	}
 
 	return files, nil

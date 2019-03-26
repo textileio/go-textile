@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"path"
+	"strings"
 	"sync"
 
 	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
@@ -191,6 +192,10 @@ func (d *SQLiteDatastore) Copy(dbPath string, pin string) error {
 
 func (d *SQLiteDatastore) InitTables(pin string) error {
 	return initDatabaseTables(d.db, pin)
+}
+
+func ConflictError(err error) bool {
+	return strings.Contains(err.Error(), "UNIQUE constraint failed")
 }
 
 func initDatabaseTables(db *sql.DB, pin string) error {

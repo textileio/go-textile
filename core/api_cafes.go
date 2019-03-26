@@ -97,7 +97,7 @@ func (a *api) getCafes(g *gin.Context) {
 // @Tags cafes
 // @Produce application/json
 // @Param id path string true "cafe id"
-// @Success 200 {string} string "ok"
+// @Success 204 {string} string "ok"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /cafes/{id} [delete]
 func (a *api) rmCafes(g *gin.Context) {
@@ -108,7 +108,7 @@ func (a *api) rmCafes(g *gin.Context) {
 		return
 	}
 
-	g.String(http.StatusOK, "ok")
+	g.String(http.StatusNoContent, "ok")
 }
 
 // checkCafeMessages godoc

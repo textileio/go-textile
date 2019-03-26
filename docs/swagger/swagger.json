@@ -38,41 +38,26 @@
                 }
             }
         },
-        "/account/backups": {
-            "post": {
-                "description": "Shows all known account peers",
+        "/account/peers": {
+            "get": {
+                "description": "Shows own contact",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "account"
                 ],
-                "summary": "Show account peers",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "default": "wait=5,events=\"false\"",
-                        "description": "wait: Stops searching after 'wait' seconds have elapsed (max 10s), events: Whether to emit Server-Sent Events (SSEvent) or plain JSON",
-                        "name": "X-Textile-Opts",
-                        "in": "header"
-                    }
-                ],
+                "summary": "Show own contact",
                 "responses": {
                     "200": {
-                        "description": "results stream",
+                        "description": "contact",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/pb.QueryResult"
+                            "$ref": "#/definitions/pb.Contact"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
                         "schema": {
                             "type": "string"
                         }
@@ -80,26 +65,19 @@
                 }
             }
         },
-        "/account/peers": {
+        "/account/seed": {
             "get": {
-                "description": "Shows all known account peers",
+                "description": "Shows the local node's account seed",
                 "produces": [
-                    "application/json"
+                    "text/plain"
                 ],
                 "tags": [
                     "account"
                 ],
-                "summary": "Show account peers",
+                "summary": "Show account seed",
                 "responses": {
                     "200": {
-                        "description": "peers",
-                        "schema": {
-                            "type": "object",
-                            "$ref": "#/definitions/pb.ContactList"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
+                        "description": "seed",
                         "schema": {
                             "type": "string"
                         }
@@ -640,7 +618,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "204": {
                         "description": "ok",
                         "schema": {
                             "type": "string"
@@ -766,7 +744,7 @@
         },
         "/contacts": {
             "get": {
-                "description": "Lists all, or thread-based, contacts.",
+                "description": "Lists known contacts.",
                 "produces": [
                     "application/json"
                 ],
@@ -774,15 +752,6 @@
                     "contacts"
                 ],
                 "summary": "List known contacts",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "default": "thread=",
-                        "description": "thread: Thread ID (omit for all known contacts)",
-                        "name": "X-Textile-Opts",
-                        "in": "header"
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "contacts",
@@ -819,8 +788,8 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "default": "local=\"false\",limit=5,wait=5,peer=,address=,username=,events=\"false\"",
-                        "description": "local: Whether to only search local contacts, limit: Stops searching after limit results are found, wait: Stops searching after 'wait' seconds have elapsed (max 10s), username: search by username string, peer: search by peer id string, address: search by account address string, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON",
+                        "default": "local=\"false\",limit=5,wait=5,address=,username=,events=\"false\"",
+                        "description": "local: Whether to only search local contacts, remote: Whether to only search remote contacts, limit: Stops searching after limit results are found, wait: Stops searching after 'wait' seconds have elapsed (max 30s), username: search by username string, address: search by account address string, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON",
                         "name": "X-Textile-Opts",
                         "in": "header"
                     }
@@ -848,9 +817,9 @@
                 }
             }
         },
-        "/contacts/{id}": {
+        "/contacts/{address}": {
             "get": {
-                "description": "Gets information about a known contact",
+                "description": "Gets a known contact",
                 "produces": [
                     "application/json"
                 ],
@@ -861,8 +830,8 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "contact id",
-                        "name": "id",
+                        "description": "address",
+                        "name": "address",
                         "in": "path",
                         "required": true
                     }
@@ -884,7 +853,7 @@
                 }
             },
             "put": {
-                "description": "Adds a contact to list of known local contacts. A common workflow is to pipe\n/contact/search results into this endpoint, just be sure you know what the results\nof the search are before adding!",
+                "description": "Adds a contact by username or account address to known contacts.",
                 "consumes": [
                     "application/json"
                 ],
@@ -898,8 +867,8 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "contact id",
-                        "name": "id",
+                        "description": "address",
+                        "name": "address",
                         "in": "path",
                         "required": true
                     },
@@ -915,7 +884,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "204": {
                         "description": "ok",
                         "schema": {
                             "type": "string"
@@ -941,14 +910,14 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "contact id",
-                        "name": "id",
+                        "description": "address",
+                        "name": "address",
                         "in": "path",
                         "required": true
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "204": {
                         "description": "ok",
                         "schema": {
                             "type": "string"
@@ -1122,7 +1091,7 @@
                 }
             },
             "post": {
-                "description": "Creates a direct peer-to-peer or external invite to a thread",
+                "description": "Creates a direct account-to-account or external invite to a thread",
                 "produces": [
                     "application/json"
                 ],
@@ -1133,8 +1102,8 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "default": "thread=,peer=",
-                        "description": "thread: Thread ID (can also use 'default'), peer: Peer ID (omit to create an external invite)",
+                        "default": "thread=,address=",
+                        "description": "thread: Thread ID (can also use 'default'), address: Account Address (omit to create an external invite), wait: Stops searching after 'wait' seconds have elapsed (max 30s)",
                         "name": "X-Textile-Opts",
                         "in": "header"
                     }
@@ -1144,7 +1113,7 @@
                         "description": "invite",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/pb.NewInvite"
+                            "$ref": "#/definitions/pb.ExternalInvite"
                         }
                     },
                     "400": {
@@ -2054,6 +2023,80 @@
                 }
             }
         },
+        "/snapshots": {
+            "post": {
+                "description": "Snapshots all threads and pushes to registered cafes",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "threads"
+                ],
+                "summary": "Create thread snapshots",
+                "responses": {
+                    "201": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/snapshots/search": {
+            "post": {
+                "description": "Searches the network for thread snapshots",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "threads"
+                ],
+                "summary": "Search for thread snapshots",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "wait=5,events=\"false\"",
+                        "description": "wait: Stops searching after 'wait' seconds have elapsed (max 30s), events: Whether to emit Server-Sent Events (SSEvent) or plain JSON",
+                        "name": "X-Textile-Opts",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "results stream",
+                        "schema": {
+                            "type": "object",
+                            "$ref": "#/definitions/pb.QueryResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/sub/{id}": {
             "get": {
                 "description": "Subscribes to updates in a thread or all threads. An update is generated\nwhen a new block is added to a thread. There are several update types:\nMERGE, IGNORE, FLAG, JOIN, ANNOUNCE, LEAVE, TEXT, FILES, COMMENT, LIKE",
@@ -2266,7 +2309,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "204": {
                         "description": "ok",
                         "schema": {
                             "type": "string"
@@ -2299,7 +2342,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "204": {
                         "description": "ok",
                         "schema": {
                             "type": "string"
@@ -2456,7 +2499,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "204": {
                         "description": "ok",
                         "schema": {
                             "type": "string"
@@ -2628,7 +2671,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "204": {
                         "description": "ok",
                         "schema": {
                             "type": "string"
@@ -2857,30 +2900,20 @@
                 "avatar": {
                     "type": "string"
                 },
-                "created": {
+                "name": {
                     "type": "string"
                 },
-                "id": {
-                    "type": "string"
-                },
-                "inboxes": {
+                "peers": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/pb.Cafe"
+                        "$ref": "#/definitions/pb.Peer"
                     }
                 },
                 "threads": {
-                    "description": "view info",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
-                },
-                "updated": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
                 }
             }
         },
@@ -2900,6 +2933,20 @@
             "properties": {
                 "files": {
                     "type": "object"
+                }
+            }
+        },
+        "pb.ExternalInvite": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "inviter": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
                 }
             }
         },
@@ -3116,20 +3163,6 @@
                 }
             }
         },
-        "pb.NewInvite": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "inviter": {
-                    "type": "string"
-                },
-                "key": {
-                    "type": "string"
-                }
-            }
-        },
         "pb.Node": {
             "type": "object",
             "properties": {
@@ -3204,6 +3237,35 @@
                     "items": {
                         "$ref": "#/definitions/pb.Notification"
                     }
+                }
+            }
+        },
+        "pb.Peer": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "avatar": {
+                    "type": "string"
+                },
+                "created": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "inboxes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pb.Cafe"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated": {
+                    "type": "string"
                 }
             }
         },

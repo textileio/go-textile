@@ -8,18 +8,17 @@ import (
 
 // Summary returns a summary of node data
 func (t *Textile) Summary() *pb.Summary {
-	selfId := t.node.Identity.Pretty()
-	selfAddress := t.account.Address()
-
-	peers := t.datastore.Peers().Count(fmt.Sprintf("address!='%s'", selfAddress))
+	peers := t.datastore.Peers().Count(fmt.Sprintf("address='%s'", t.account.Address()))
 	threads := t.datastore.Threads().Count()
 	files := t.datastore.Blocks().Count(fmt.Sprintf("type=%d", pb.Block_FILES))
-	contacts := t.datastore.Peers().Count(fmt.Sprintf("id!='%s'", selfId))
+	contacts := len(t.Contacts().Items)
 
 	return &pb.Summary{
-		AccountPeerCount: int32(peers),
+		Id:               t.node.Identity.Pretty(),
+		Address:          t.account.Address(),
+		AccountPeerCount: int32(peers) - 1,
 		ThreadCount:      int32(threads),
-		FileCount:        int32(files),
+		FilesCount:       int32(files),
 		ContactCount:     int32(contacts),
 	}
 }

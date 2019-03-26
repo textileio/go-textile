@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	"gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
 	ipld "gx/ipfs/QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy/go-ipld-format"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 
@@ -17,7 +17,7 @@ import (
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
-	"github.com/textileio/go-textile/repo"
+	"github.com/textileio/go-textile/repo/db"
 	"github.com/textileio/go-textile/schema"
 	"github.com/textileio/go-textile/util"
 	"github.com/xeipuuv/gojsonschema"
@@ -180,7 +180,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 			log.Debugf("received file: %s", file.Hash)
 
 			if err := t.datastore.Files().Add(&file); err != nil {
-				if !repo.ConflictError(err) {
+				if !db.ConflictError(err) {
 					return nil, err
 				}
 				log.Debugf("file exists: %s", file.Hash)

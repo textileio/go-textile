@@ -115,7 +115,7 @@ func (t *Textile) search(query *pb.Query) (<-chan *pb.QueryResult, <-chan error,
 		for _, res := range results.items {
 			localCh <- res
 		}
-		if query.Options.Local || results.Full() {
+		if query.Options.LocalOnly || results.Full() {
 			return
 		}
 

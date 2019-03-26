@@ -5,13 +5,15 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 
-	"github.com/textileio/go-textile/pb"
-
+	"github.com/golang/protobuf/ptypes"
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
+	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/schema/textile"
+	"github.com/textileio/go-textile/util"
 )
 
 var errMissingThreadId = errors.New("missing thread id")
@@ -29,6 +31,7 @@ type threadsCmd struct {
 	Peers      peersThreadsCmd      `command:"peers" description:"List thread peers"`
 	Rename     renameThreadsCmd     `command:"rename" description:"Rename thread"`
 	Remove     rmThreadsCmd         `command:"rm" description:"Remove a thread"`
+	Snapshots  snapshotsThreadsCmd  `command:"snapshots" description:"Manage thread snapshots"`
 }
 
 func (x *threadsCmd) Name() string {
@@ -171,7 +174,7 @@ func (x *getThreadsCmd) Execute(args []string) error {
 		return errMissingThreadId
 	}
 
-	res, err := executeJsonCmd(GET, "threads/"+args[0], params{}, nil)
+	res, err := executeJsonCmd(GET, "threads/"+util.TrimQuotes(args[0]), params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -273,10 +276,137 @@ func (x *rmThreadsCmd) Execute(args []string) error {
 		return errMissingThreadId
 	}
 
-	res, err := executeStringCmd(DEL, "threads/"+args[0], params{})
+	res, err := executeStringCmd(DEL, "threads/"+util.TrimQuotes(args[0]), params{})
 	if err != nil {
 		return err
 	}
 	output(res)
+	return nil
+}
+
+type snapshotsThreadsCmd struct {
+	Create createSnapshotsThreadsCmd `command:"create" description:"Create thread snapshots"`
+	Search searchSnapshotsThreadsCmd `command:"search" description:"Search for thread snapshots"`
+	Apply  applySnapshotsThreadsCmd  `command:"apply" description:"Apply a single thread snapshot"`
+}
+
+func (x *snapshotsThreadsCmd) Usage() string {
+	return `
+
+Use this command to create, search, and apply thread snapshots.`
+}
+
+type createSnapshotsThreadsCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
+
+func (x *createSnapshotsThreadsCmd) Usage() string {
+	return `
+
+Snapshots all threads and pushes to registered cafes.`
+}
+
+func (x *createSnapshotsThreadsCmd) Execute(args []string) error {
+	setApi(x.Client)
+
+	res, err := callCreateSnapshotsThreads()
+	if err != nil {
+		return err
+	}
+	output(res)
+	return nil
+}
+
+func callCreateSnapshotsThreads() (string, error) {
+	return executeStringCmd(POST, "snapshots", params{})
+}
+
+type searchSnapshotsThreadsCmd struct {
+	Client ClientOptions `group:"Client Options"`
+	Wait   int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 30s)." default:"2"`
+}
+
+func (x *searchSnapshotsThreadsCmd) Usage() string {
+	return `
+
+Searches the network for thread snapshots.`
+}
+
+func (x *searchSnapshotsThreadsCmd) Execute(args []string) error {
+	setApi(x.Client)
+
+	handleSearchStream("snapshots/search", params{
+		opts: map[string]string{
+			"wait": strconv.Itoa(x.Wait),
+		},
+	})
+	return nil
+}
+
+type applySnapshotsThreadsCmd struct {
+	Client ClientOptions `group:"Client Options"`
+	Wait   int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 30s)." default:"2"`
+}
+
+func (x *applySnapshotsThreadsCmd) Usage() string {
+	return `
+
+Applies a single thread snapshot.`
+}
+
+func (x *applySnapshotsThreadsCmd) Execute(args []string) error {
+	setApi(x.Client)
+	if len(args) == 0 {
+		return errMissingSnapshotId
+	}
+	id := args[0]
+
+	results := handleSearchStream("snapshots/search", params{
+		opts: map[string]string{
+			"wait": strconv.Itoa(x.Wait),
+		},
+	})
+
+	var result *pb.QueryResult
+	for _, r := range results {
+		if r.Id == id {
+			result = &r
+		}
+	}
+
+	if result == nil {
+		output("Could not find snapshot with ID: " + id)
+		return nil
+	}
+
+	if err := applySnapshot(result); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func applySnapshot(result *pb.QueryResult) error {
+	snap := new(pb.Thread)
+	if err := ptypes.UnmarshalAny(result.Value, snap); err != nil {
+		return err
+	}
+	data, err := pbMarshaler.MarshalToString(result.Value)
+	if err != nil {
+		return err
+	}
+
+	res, err := executeStringCmd(PUT, "threads/"+snap.Id, params{
+		payload: strings.NewReader(data),
+		ctype:   "application/json",
+	})
+	if err != nil {
+		return err
+	}
+	if res == "" {
+		output("applied " + result.Id)
+	} else {
+		output("error applying " + result.Id + ": " + res)
+	}
 	return nil
 }

@@ -107,7 +107,7 @@ func LoadPlugins(repoPath string) (*loader.PluginLoader, error) {
 	}
 
 	if err := plugins.Inject(); err != nil {
-		log.Error("error running plugins: ", err)
+		log.Warningf("inject plugins: ", err)
 	}
 	return plugins, nil
 }

@@ -4,13 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/go-textile/pb"
 )
 
-var errMissingBackupId = errors.New("missing backup ID")
+var errMissingSnapshotId = errors.New("missing snapshot ID")
 
 func init() {
 	register(&accountCmd{})
@@ -18,9 +16,9 @@ func init() {
 
 type accountCmd struct {
 	Address accountAddressCmd `command:"address" description:"Show wallet account address"`
+	Seed    accountSeedCmd    `command:"seed" description:"Show wallet account seed"`
 	Contact accountContactCmd `command:"contact" description:"Show own contact"`
-	Backups accountBackupsCmd `command:"backups" description:"Manage account thread backups"`
-	Sync    accountSyncCmd    `command:"sync" description:"Sync account with all network backups"`
+	Sync    accountSyncCmd    `command:"sync" description:"Sync account with all network snapshots"`
 }
 
 func (x *accountCmd) Name() string {
@@ -57,6 +55,26 @@ func (x *accountAddressCmd) Execute(args []string) error {
 	return nil
 }
 
+type accountSeedCmd struct {
+	Client ClientOptions `group:"Client Options"`
+}
+
+func (x *accountSeedCmd) Usage() string {
+	return `
+
+Shows the local wallet account seed.`
+}
+
+func (x *accountSeedCmd) Execute(args []string) error {
+	setApi(x.Client)
+	res, err := executeStringCmd(GET, "account/seed", params{})
+	if err != nil {
+		return err
+	}
+	output(res)
+	return nil
+}
+
 type accountContactCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
@@ -78,100 +96,22 @@ func (x *accountContactCmd) Execute(args []string) error {
 	return nil
 }
 
-type accountBackupsCmd struct {
-	List  lsAccountBackupsCmd    `command:"ls" description:"Search for wallet account thread backups"`
-	Apply applyAccountBackupsCmd `command:"apply" description:"Apply a single thread backup"`
-}
-
-func (x *accountBackupsCmd) Usage() string {
-	return `
-
-Use this command to List and apply wallet account backups.`
-}
-
-type lsAccountBackupsCmd struct {
-	Client ClientOptions `group:"Client Options"`
-	Wait   int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"2"`
-}
-
-func (x *lsAccountBackupsCmd) Usage() string {
-	return `
-
-Searches the network for wallet account thread backups.
-`
-}
-
-func (x *lsAccountBackupsCmd) Execute(args []string) error {
-	setApi(x.Client)
-
-	handleSearchStream("account/backups", params{
-		opts: map[string]string{
-			"wait": strconv.Itoa(x.Wait),
-		},
-	})
-	return nil
-}
-
-type applyAccountBackupsCmd struct {
-	Client ClientOptions `group:"Client Options"`
-	Wait   int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"2"`
-}
-
-func (x *applyAccountBackupsCmd) Usage() string {
-	return `
-
-Applies a single wallet account thread backup.
-`
-}
-
-func (x *applyAccountBackupsCmd) Execute(args []string) error {
-	setApi(x.Client)
-	if len(args) == 0 {
-		return errMissingBackupId
-	}
-	id := args[0]
-
-	results := handleSearchStream("account/backups", params{
-		opts: map[string]string{
-			"wait": strconv.Itoa(x.Wait),
-		},
-	})
-
-	var result *pb.QueryResult
-	for _, r := range results {
-		if r.Id == id {
-			result = &r
-		}
-	}
-
-	if result == nil {
-		output("Could not find backup with ID: " + id)
-		return nil
-	}
-
-	if err := applyBackup(result); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 type accountSyncCmd struct {
 	Client ClientOptions `group:"Client Options"`
-	Wait   int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"2"`
+	Wait   int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 30s)." default:"2"`
 }
 
 func (x *accountSyncCmd) Usage() string {
 	return `
 
-Syncs the local wallet account with all thread backups found on the network.
+Syncs the local wallet account with all thread snapshots found on the network.
 `
 }
 
 func (x *accountSyncCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	results := handleSearchStream("account/backups", params{
+	results := handleSearchStream("snapshots/search", params{
 		opts: map[string]string{
 			"wait": strconv.Itoa(x.Wait),
 		},
@@ -184,7 +124,7 @@ func (x *accountSyncCmd) Execute(args []string) error {
 		}
 	}
 	if len(remote) == 0 {
-		output("No backups were found")
+		output("No snapshots were found")
 		return nil
 	}
 
@@ -192,40 +132,19 @@ func (x *accountSyncCmd) Execute(args []string) error {
 	if len(remote) > 1 {
 		postfix = "s"
 	}
-	if !confirm(fmt.Sprintf("Apply %d backup%s?", len(remote), postfix)) {
+	if !confirm(fmt.Sprintf("Apply %d snapshot%s?", len(remote), postfix)) {
 		return nil
 	}
 
 	for _, result := range remote {
-		if err := applyBackup(&result); err != nil {
+		if err := applySnapshot(&result); err != nil {
 			return err
 		}
 	}
 
-	return nil
-}
-
-func applyBackup(result *pb.QueryResult) error {
-	backup := new(pb.Thread)
-	if err := ptypes.UnmarshalAny(result.Value, backup); err != nil {
-		return err
-	}
-	data, err := pbMarshaler.MarshalToString(result.Value)
-	if err != nil {
+	if _, err := callCreateSnapshotsThreads(); err != nil {
 		return err
 	}
 
-	res, err := executeStringCmd(PUT, "threads/"+backup.Id, params{
-		payload: strings.NewReader(data),
-		ctype:   "application/json",
-	})
-	if err != nil {
-		return err
-	}
-	if res == "ok" {
-		output("applied " + result.Id)
-	} else {
-		output("error applying " + result.Id + ": " + res)
-	}
 	return nil
 }

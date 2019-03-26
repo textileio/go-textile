@@ -20,7 +20,7 @@ import (
 
 // cafeOutFlushGroupSize is the size of concurrently processed requests
 // note: reqs from this group are batched to each cafe
-const cafeOutFlushGroupSize = 16
+const cafeOutFlushGroupSize = 32
 
 // CafeOutbox queues and processes outbound cafe requests
 type CafeOutbox struct {

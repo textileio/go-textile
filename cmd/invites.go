@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/util"
 )
 
 func init() {
@@ -45,7 +46,7 @@ type createInvitesCmd struct {
 	Client  ClientOptions `group:"Client Options"`
 	Thread  string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
 	Address string        `short:"a" long:"address" description:"Account address. Omit to create an external invite."`
-	Wait    int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 10s)." default:"2"`
+	Wait    int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 30s)." default:"2"`
 }
 
 func (x *createInvitesCmd) Usage() string {
@@ -116,7 +117,7 @@ func (x *createInvitesCmd) Execute(args []string) error {
 		if err != nil {
 			return err
 		}
-		if res == "ok" {
+		if res == "" {
 			output("added " + result.Id)
 		} else {
 			return fmt.Errorf("error adding %s: %s", result.Id, res)
@@ -184,7 +185,7 @@ func (x *acceptInvitesCmd) Execute(args []string) error {
 		return errMissingInviteId
 	}
 
-	res, err := executeJsonCmd(POST, "invites/"+args[0]+"/accept", params{
+	res, err := executeJsonCmd(POST, "invites/"+util.TrimQuotes(args[0])+"/accept", params{
 		args: args,
 		opts: map[string]string{
 			"key": x.Key,
@@ -214,7 +215,7 @@ func (x *ignoreInvitesCmd) Execute(args []string) error {
 		return errMissingInviteId
 	}
 
-	res, err := executeStringCmd(POST, "invites/"+args[0]+"/ignore", params{
+	res, err := executeStringCmd(POST, "invites/"+util.TrimQuotes(args[0])+"/ignore", params{
 		args: args,
 	})
 	if err != nil {

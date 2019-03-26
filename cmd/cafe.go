@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"errors"
+
+	"github.com/textileio/go-textile/util"
 )
 
 var errMissingCafeId = errors.New("missing cafe id")
@@ -98,7 +100,7 @@ func (x *getCafesCmd) Execute(args []string) error {
 		return errMissingCafeId
 	}
 
-	res, err := executeJsonCmd(GET, "cafes/"+args[0], params{}, nil)
+	res, err := executeJsonCmd(GET, "cafes/"+util.TrimQuotes(args[0]), params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -120,7 +122,7 @@ func (x *rmCafesCmd) Execute(args []string) error {
 		return errMissingCafeId
 	}
 
-	res, err := executeStringCmd(DEL, "cafes/"+args[0], params{})
+	res, err := executeStringCmd(DEL, "cafes/"+util.TrimQuotes(args[0]), params{})
 	if err != nil {
 		return err
 	}

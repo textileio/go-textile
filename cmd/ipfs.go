@@ -146,7 +146,7 @@ func (x *ipfsCatCmd) Execute(args []string) error {
 		return errMissingCID
 	}
 
-	res, _, err := request(GET, "ipfs/cat/"+args[0], params{
+	res, _, err := request(GET, "ipfs/cat/"+util.TrimQuotes(args[0]), params{
 		opts: map[string]string{"key": x.Key},
 	})
 	if err != nil {

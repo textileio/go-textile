@@ -5,7 +5,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/textileio/go-textile/ipfs"
+
 	"github.com/gin-gonic/gin"
+	"github.com/textileio/go-textile/pb"
 )
 
 // lsBlocks godoc
@@ -59,7 +62,43 @@ func (a *api) lsBlocks(g *gin.Context) {
 		block.User = a.node.PeerUser(block.Author)
 	}
 
-	pbJSON(g, http.StatusOK, blocks)
+	var dots bool
+	if opts["dots"] != "" {
+		dots, err = strconv.ParseBool(opts["dots"])
+		if err != nil {
+			g.String(http.StatusBadRequest, err.Error())
+			return
+		}
+	}
+
+	if !dots {
+		pbJSON(g, http.StatusOK, blocks)
+		return
+	}
+
+	var nextOffset string
+	if len(blocks.Items) > 0 {
+		nextOffset = blocks.Items[len(blocks.Items)-1].Id
+
+		// see if there's actually more
+		if len(a.node.datastore.Blocks().List(nextOffset, 1, query).Items) == 0 {
+			nextOffset = ""
+		}
+	}
+
+	dotsf, err := a.toDots(blocks)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	viz := &pb.BlockViz{
+		Dots:  dotsf,
+		Count: int32(len(blocks.Items)),
+		Next:  nextOffset,
+	}
+
+	pbJSON(g, http.StatusOK, viz)
 }
 
 // getBlocks godoc
@@ -129,4 +168,40 @@ func (a *api) getBlockThread(g *gin.Context, id string) *Thread {
 		return nil
 	}
 	return thrd
+}
+
+func (a *api) toDots(blocks *pb.BlockList) (string, error) {
+	dots := `digraph {
+    rankdir="BT";`
+
+	for _, b := range blocks.Items {
+		dot := toDot(b)
+
+		for _, p := range b.Parents {
+			pp, err := a.node.Block(p)
+			if err != nil {
+				return "", err
+			}
+
+			dots += "\n    " + dot + " -> " + toDot(pp) + ";"
+		}
+	}
+
+	return dots + "\n}", nil
+}
+
+func toDot(block *pb.Block) string {
+	t := block.Type.String()
+	var a string
+	if block.Type != pb.Block_MERGE {
+		a = "_" + ipfs.ShortenID(block.Author)
+	}
+	return t + a + "_" + pre(block.Id)
+}
+
+func pre(hash string) string {
+	if len(hash) < 7 {
+		return hash
+	}
+	return hash[:7]
 }

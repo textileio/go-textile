@@ -2,7 +2,6 @@ package core
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -31,6 +30,7 @@ import (
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo"
 	"github.com/textileio/go-textile/repo/config"
+	"github.com/textileio/go-textile/repo/db"
 	"github.com/textileio/go-textile/service"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -42,7 +42,7 @@ const defaultSessionDuration = time.Hour * 24 * 7 * 4
 const inboxMessagePageSize = 10
 
 // maxQueryWaitSeconds is used to limit a query request's max wait time
-const maxQueryWaitSeconds = 10
+const maxQueryWaitSeconds = 30
 
 // defaultQueryWaitSeconds is a query request's default wait time
 const defaultQueryWaitSeconds = 5
@@ -97,8 +97,6 @@ func (h *CafeService) Protocol() protocol.ID {
 // Start begins online services
 func (h *CafeService) Start() {
 	h.service.Start()
-	clientTopic := string(cafeServiceProtocol) + "/" + h.service.Node().Identity.Pretty()
-	go h.service.ListenFor(clientTopic, true, h.handleNotifyClient)
 }
 
 // Ping pings another peer
@@ -386,7 +384,7 @@ func (h *CafeService) CheckMessages(cafe peer.ID) error {
 	// save messages to inbox
 	for _, msg := range res.Messages {
 		if err := h.inbox.Add(msg); err != nil {
-			if !repo.ConflictError(err) {
+			if !db.ConflictError(err) {
 				return err
 			}
 		}
@@ -507,7 +505,7 @@ func (h *CafeService) notifyClient(pid peer.ID) error {
 		return err
 	}
 
-	return ipfs.Publish(h.service.Node(), client, payload)
+	return ipfs.Publish(h.service.Node(), client, payload, time.Second*5)
 }
 
 // sendCafeRequest sends an authenticated request, retrying once after a session refresh
@@ -636,9 +634,13 @@ func (h *CafeService) sendObject(id cid.Cid, addr string, token string) error {
 func (h *CafeService) searchLocal(qtype pb.Query_Type, options *pb.QueryOptions, payload *any.Any, local bool) (*queryResultSet, error) {
 	results := newQueryResultSet(options)
 
+	if options.RemoteOnly {
+		return results, nil
+	}
+
 	switch qtype {
-	case pb.Query_THREAD_BACKUPS:
-		q := new(pb.ThreadBackupQuery)
+	case pb.Query_THREAD_SNAPSHOTS:
+		q := new(pb.ThreadSnapshotQuery)
 		if err := ptypes.UnmarshalAny(payload, q); err != nil {
 			return nil, err
 		}
@@ -664,6 +666,39 @@ func (h *CafeService) searchLocal(qtype pb.Query_Type, options *pb.QueryOptions,
 					},
 				})
 			}
+		}
+
+		// return own threads (encrypted) if query is from an account peer
+		if q.Address == h.service.Account.Address() {
+			self := h.service.Node().Identity.Pretty()
+			for _, t := range h.datastore.Threads().List().Items {
+				plaintext, err := proto.Marshal(t)
+				if err != nil {
+					return nil, err
+				}
+				ciphertext, err := h.service.Account.Encrypt(plaintext)
+				if err != nil {
+					return nil, err
+				}
+
+				value, err := proto.Marshal(&pb.CafeClientThread{
+					Id:         t.Id,
+					Client:     self,
+					Ciphertext: ciphertext,
+				})
+				if err != nil {
+					return nil, err
+				}
+				results.Add(&pb.QueryResult{
+					Id:    t.Id,
+					Local: local,
+					Value: &any.Any{
+						TypeUrl: "/CafeClientThread",
+						Value:   value,
+					},
+				})
+			}
+
 		}
 
 	case pb.Query_CONTACTS:
@@ -700,24 +735,22 @@ func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults)
 		delete(h.inFlightQueries, query.Id)
 	}()
 
-	// if caller needs results over pubsub, start a tmp subscription
+	// caller might need results over pubsub
 	var rtype pb.PubSubQuery_ResponseType
-	var psCancel context.CancelFunc
 	if fromCafe {
 		rtype = pb.PubSubQuery_P2P
 	} else {
 		rtype = pb.PubSubQuery_PUBSUB
-		go func() {
-			psCancel = h.service.ListenFor(query.Id, false, h.handlePubSubQueryResults)
-		}()
 	}
 
 	if err := h.publishQuery(&pb.PubSubQuery{
 		Id:           query.Id,
 		Type:         query.Type,
 		Payload:      query.Payload,
-		Exclude:      query.Options.Exclude,
 		ResponseType: rtype,
+		Exclude:      query.Options.Exclude,
+		Topic:        string(cafeServiceProtocol) + "/" + h.service.Node().Identity.Pretty(),
+		Timeout:      query.Options.Wait,
 	}); err != nil {
 		return err
 	}
@@ -728,9 +761,6 @@ func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults)
 
 	done := func() {
 		listener.Close()
-		if psCancel != nil {
-			psCancel()
-		}
 		close(doneCh)
 	}
 
@@ -776,7 +806,7 @@ func (h *CafeService) publishQuery(req *pb.PubSubQuery) error {
 	if err != nil {
 		return err
 	}
-	return ipfs.Publish(h.service.Node(), topic, payload)
+	return ipfs.Publish(h.service.Node(), topic, payload, 0)
 }
 
 // handleChallenge receives a challenge request
@@ -1416,12 +1446,17 @@ func (h *CafeService) handlePubSubQuery(pid peer.ID, env *pb.Envelope) (*pb.Enve
 		return renv, nil
 	case pb.PubSubQuery_PUBSUB:
 		log.Debugf("responding with %s to %s", renv.Message.Type.String(), pid.Pretty())
+		if query.Topic == "" {
+			query.Topic = query.Id
+		}
 
 		payload, err := proto.Marshal(renv)
 		if err != nil {
 			return nil, err
 		}
-		if err := ipfs.Publish(h.service.Node(), query.Id, payload); err != nil {
+		// allow some time for the receiver to collect the response after a connect
+		timeout := time.Duration(int(query.Timeout*2/3) * 1e9)
+		if err := ipfs.Publish(h.service.Node(), query.Topic, payload, timeout); err != nil {
 			return nil, err
 		}
 	}
@@ -1498,10 +1533,11 @@ func (h *CafeService) setAddrs(conf *config.Config, swarmPorts config.SwarmPorts
 func queryDefaults(query *pb.Query) *pb.Query {
 	if query.Options == nil {
 		query.Options = &pb.QueryOptions{
-			Local:  false,
-			Limit:  defaultQueryResultsLimit,
-			Wait:   defaultQueryWaitSeconds,
-			Filter: pb.QueryOptions_NO_FILTER,
+			LocalOnly:  false,
+			RemoteOnly: false,
+			Limit:      defaultQueryResultsLimit,
+			Wait:       defaultQueryWaitSeconds,
+			Filter:     pb.QueryOptions_NO_FILTER,
 		}
 	}
 

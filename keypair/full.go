@@ -40,7 +40,7 @@ func (kp *Full) Id() (peer.ID, error) {
 func (kp *Full) LibP2PPrivKey() (*libp2pc.Ed25519PrivateKey, error) {
 	buf := make([]byte, ed25519.PrivateKeySize)
 	copy(buf, kp.rawSeed()[:])
-	copy(buf[ed25519.PrivateKeySize:], kp.publicKey()[:])
+	copy(buf[ed25519.PrivateKeySize-ed25519.PublicKeySize:], kp.publicKey()[:])
 	pmes := new(pb.PrivateKey)
 	pmes.Data = buf
 	sk, err := libp2pc.UnmarshalEd25519PrivateKey(pmes.GetData())
