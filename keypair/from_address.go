@@ -56,12 +56,12 @@ func (kp *FromAddress) LibP2PPubKey() (*libp2pc.Ed25519PublicKey, error) {
 }
 
 func (kp *FromAddress) Verify(input []byte, sig []byte) error {
-	if len(sig) != 64 {
+	if len(sig) != ed25519.PrivateKeySize {
 		return ErrInvalidSignature
 	}
-
-	var asig [64]byte
+	var asig [ed25519.PrivateKeySize]byte
 	copy(asig[:], sig[:])
+
 	if !ed25519.Verify(kp.publicKey(), input, asig[:]) {
 		return ErrInvalidSignature
 	}

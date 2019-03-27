@@ -106,9 +106,6 @@ func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 
 	// collect author as an unwelcomed peer
 	if msg.Peer != nil {
-		if cjson, err := pbMarshaler.MarshalToString(msg.Peer); err == nil {
-			log.Debugf("found peer: %s", cjson)
-		}
 		if err := t.addOrUpdatePeer(msg.Peer); err != nil {
 			return nil, err
 		}
@@ -122,10 +119,10 @@ func (t *Thread) buildJoin(inviterId string) (*pb.ThreadJoin, error) {
 	msg := &pb.ThreadJoin{
 		Inviter: inviterId,
 	}
-	peer := t.datastore.Peers().Get(t.node().Identity.Pretty())
-	if peer == nil {
+	p := t.datastore.Peers().Get(t.node().Identity.Pretty())
+	if p == nil {
 		return nil, fmt.Errorf("unable to join, no peer for self")
 	}
-	msg.Peer = peer
+	msg.Peer = p
 	return msg, nil
 }

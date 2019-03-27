@@ -2,10 +2,9 @@ package core
 
 import (
 	"fmt"
+	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
 	"github.com/textileio/go-textile/broadcast"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/keypair"
@@ -55,78 +54,86 @@ func (t *Textile) AccountContact() *pb.Contact {
 	return t.contact(t.account.Address(), false)
 }
 
-// FindThreadBackups searches the network for backups
-func (t *Textile) FindThreadBackups(query *pb.ThreadBackupQuery, options *pb.QueryOptions) (<-chan *pb.QueryResult, <-chan error, *broadcast.Broadcaster, error) {
-	payload, err := proto.Marshal(query)
-	if err != nil {
-		return nil, nil, nil, err
+// SyncAccount performs a thread backup search and applies the result
+func (t *Textile) SyncAccount(options *pb.QueryOptions) (*broadcast.Broadcaster, error) {
+	query := &pb.ThreadSnapshotQuery{
+		Address: t.account.Address(),
 	}
 
-	options.Filter = pb.QueryOptions_NO_FILTER
+	resCh, errCh, cancel, err := t.SearchThreadSnapshots(query, options)
+	if err != nil {
+		return nil, err
+	}
 
-	resCh, errCh, cancel := t.search(&pb.Query{
-		Type:    pb.Query_THREAD_BACKUPS,
-		Options: options,
-		Payload: &any.Any{
-			TypeUrl: "/ThreadBackupQuery",
-			Value:   payload,
-		},
-	})
-
-	// transform and filter results into plaintext
-	backups := make(map[string]struct{})
-	tresCh := make(chan *pb.QueryResult)
-	terrCh := make(chan error)
 	go func() {
 		for {
 			select {
 			case res, ok := <-resCh:
 				if !ok {
-					close(tresCh)
 					return
 				}
-
-				backup := new(pb.CafeClientThread)
-				if err := ptypes.UnmarshalAny(res.Value, backup); err != nil {
-					terrCh <- err
-					break
+				if err := t.applySnapshot(res); err != nil {
+					log.Errorf("error applying snap %s: %s", res.Id, err)
 				}
-
-				plaintext, err := t.account.Decrypt(backup.Ciphertext)
-				if err != nil {
-					terrCh <- err
-					break
-				}
-
-				thrd := new(pb.Thread)
-				if err := proto.Unmarshal(plaintext, thrd); err != nil {
-					terrCh <- err
-					break
-				}
-
-				res.Id += ":" + thrd.Head
-				if _, ok := backups[res.Id]; ok {
-					continue
-				}
-				backups[res.Id] = struct{}{}
-
-				res.Value = &any.Any{
-					TypeUrl: "/Thread",
-					Value:   plaintext,
-				}
-				tresCh <- res
 
 			case err := <-errCh:
-				terrCh <- err
+				log.Errorf("error during account sync: %s", err)
 			}
 		}
 	}()
 
-	return tresCh, terrCh, cancel, nil
+	return cancel, err
+}
+
+// maybeSyncAccount runs SyncAccount if it has not been run in the last kSyncAccountFreq
+func (t *Textile) maybeSyncAccount() {
+	if t.cancelSync != nil {
+		t.cancelSync.Close()
+		t.cancelSync = nil
+	}
+
+	daily, err := t.datastore.Config().GetLastDaily()
+	if err != nil {
+		log.Errorf("error get last daily: %s", err)
+		return
+	}
+
+	if daily.Add(kSyncAccountFreq).Before(time.Now()) {
+		var err error
+		t.cancelSync, err = t.SyncAccount(&pb.QueryOptions{
+			Wait: 10,
+		})
+		if err != nil {
+			log.Errorf("error sync account: %s", err)
+			return
+		}
+
+		if err := t.datastore.Config().SetLastDaily(); err != nil {
+			log.Errorf("error set last daily: %s", err)
+		}
+	}
 }
 
 // accountPeers returns all known account peers
 func (t *Textile) accountPeers() []*pb.Peer {
 	query := fmt.Sprintf("address='%s' and id!='%s'", t.account.Address(), t.node.Identity.Pretty())
 	return t.datastore.Peers().List(query)
+}
+
+// isAccountPeer returns whether or not the given id is an account peer
+func (t *Textile) isAccountPeer(id string) bool {
+	query := fmt.Sprintf("address='%s' and id='%s'", t.account.Address(), id)
+	return len(t.datastore.Peers().List(query)) > 0
+}
+
+// applySnapshot unmarshals and adds an unencrypted thread snapshot from a search result
+func (t *Textile) applySnapshot(result *pb.QueryResult) error {
+	snap := new(pb.Thread)
+	if err := ptypes.UnmarshalAny(result.Value, snap); err != nil {
+		return err
+	}
+
+	log.Debugf("applying snapshot %s", snap.Id)
+
+	return t.AddOrUpdateThread(snap)
 }

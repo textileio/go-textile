@@ -91,7 +91,7 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 // This happens right before a join. The invite is not kept on-chain,
 // so we only need to follow parents and update HEAD.
 func (t *Thread) handleAddBlock(block *pb.ThreadBlock) error {
-	if err := t.followParents(block.Header.Parents); err != nil {
+	if _, err := t.followParents(block.Header.Parents); err != nil {
 		return err
 	}
 

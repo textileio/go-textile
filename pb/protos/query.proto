@@ -6,7 +6,8 @@ import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 
 message QueryOptions {
-    bool local              = 1;
+    bool localOnly          = 1; // local only
+    bool remoteOnly         = 6; // remote only
     int32 limit             = 2;
     int32 wait              = 3;
     FilterType filter       = 4;
@@ -26,8 +27,8 @@ message Query {
     google.protobuf.Any payload = 5;
 
     enum Type {
-        THREAD_BACKUPS = 0;
-        CONTACTS       = 1;
+        THREAD_SNAPSHOTS = 0;
+        CONTACTS         = 1;
     }
 }
 
@@ -37,6 +38,8 @@ message PubSubQuery {
     google.protobuf.Any payload = 3;
     ResponseType responseType   = 4;
     repeated string exclude     = 5;
+    string topic                = 6;
+    int32 timeout               = 7; // pubsub response connect timeout
 
     enum ResponseType {
         P2P    = 0;
@@ -66,6 +69,6 @@ message ContactQuery {
     string username = 2;
 }
 
-message ThreadBackupQuery {
+message ThreadSnapshotQuery {
     string address  = 1;
 }

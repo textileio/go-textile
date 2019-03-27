@@ -88,7 +88,7 @@ func (t *Textile) SetAvatar(hash string) error {
 			},
 			Type:    pb.Thread_PRIVATE,
 			Sharing: pb.Thread_NOT_SHARED,
-		}, sk, t.account.Address(), true)
+		}, sk, t.account.Address(), true, false)
 		if err != nil {
 			return err
 		}

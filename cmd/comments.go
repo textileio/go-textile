@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"errors"
+
+	"github.com/textileio/go-textile/util"
 )
 
 var errMissingCommentBody = errors.New("missing comment body")
@@ -97,7 +99,7 @@ func (x *getCommentsCmd) Execute(args []string) error {
 		return errMissingCommentId
 	}
 
-	res, err := executeJsonCmd(GET, "blocks/"+args[0]+"/comment", params{}, nil)
+	res, err := executeJsonCmd(GET, "blocks/"+util.TrimQuotes(args[0])+"/comment", params{}, nil)
 	if err != nil {
 		return err
 	}

@@ -57,7 +57,7 @@ jobs:
     - run:
         name: run tests
         command: |
-          ./test.sh
+          ./test_compile.sh
 
   build-cli-linux:
     docker:

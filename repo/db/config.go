@@ -105,3 +105,42 @@ func (c *ConfigDB) IsEncrypted() bool {
 	}
 	return false
 }
+
+func (c *ConfigDB) GetLastDaily() (time.Time, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	var t time.Time
+	stmt, err := c.db.Prepare("select value from config where key=?")
+	if err != nil {
+		return t, err
+	}
+	defer stmt.Close()
+	var last []byte
+	if err := stmt.QueryRow("daily").Scan(&last); err != nil {
+		if err == sql.ErrNoRows {
+			return t, nil
+		}
+		return t, err
+	}
+	return time.Parse(time.RFC3339, string(last))
+}
+
+func (c *ConfigDB) SetLastDaily() error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	tx, err := c.db.Begin()
+	if err != nil {
+		return err
+	}
+	stmt, err := tx.Prepare("insert or replace into config(key, value) values(?,?)")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	if _, err = stmt.Exec("daily", time.Now().Format(time.RFC3339)); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+	return nil
+}

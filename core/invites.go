@@ -197,7 +197,7 @@ func (t *Textile) handleThreadAdd(plaintext []byte) (mh.Multihash, error) {
 		Members: msg.Thread.Members,
 		Force:   true,
 	}
-	thrd, err := t.AddThread(config, sk, msg.Thread.Initiator, false)
+	thrd, err := t.AddThread(config, sk, msg.Thread.Initiator, false, !t.isAccountPeer(msg.Inviter.Id))
 	if err != nil {
 		return nil, err
 	}

@@ -15,7 +15,9 @@ func (t *Textile) merge(block *pb.Block, opts feedItemOpts) (*pb.Merge, error) {
 		if err != nil {
 			return nil, err
 		}
-		targets = append(targets, parent)
+		if parent != nil {
+			targets = append(targets, parent)
+		}
 	}
 
 	return &pb.Merge{

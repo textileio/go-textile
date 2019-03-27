@@ -205,7 +205,13 @@ You can ignore the `gx` package errors. You'll need two package managers to get 
 
 #### Install the golang package manager, `dep`
 
+MacOS:
+
     $ brew install dep
+    
+Debian:
+
+    $ sudo apt-get install go-dep
 
 #### Install the IPFS package manager, `gx`
 

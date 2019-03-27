@@ -77,3 +77,28 @@ func TestConfigDB_IsEncrypted(t *testing.T) {
 		t.Error("IsEncrypted returned incorrectly")
 	}
 }
+
+func TestConfigDB_GetLastDaily(t *testing.T) {
+	date, err := testDB.config.GetLastDaily()
+	if err != nil {
+		t.Error(err)
+	}
+	if date.Unix() > 0 {
+		t.Error("last daily date should initially be less than 0")
+	}
+}
+
+func TestConfigDB_SetLastDaily(t *testing.T) {
+	if err := testDB.config.SetLastDaily(); err != nil {
+		t.Error(err)
+	}
+}
+func TestConfigDB_GetLastDailyAgain(t *testing.T) {
+	date, err := testDB.config.GetLastDaily()
+	if err != nil {
+		t.Error(err)
+	}
+	if date.Unix() <= 0 {
+		t.Error("last daily date should now be greater than 0")
+	}
+}

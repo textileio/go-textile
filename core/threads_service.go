@@ -17,6 +17,7 @@ import (
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo"
+	"github.com/textileio/go-textile/repo/db"
 	"github.com/textileio/go-textile/service"
 )
 
@@ -105,12 +106,12 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 
 	block, err := thrd.handleBlock(hash, tenv.Ciphertext)
 	if err != nil {
+		if err == ErrBlockExists {
+			// exists, abort
+			log.Debugf("%s exists, aborting", hash.B58String())
+			return nil, nil
+		}
 		return nil, err
-	}
-	if block == nil {
-		// exists, abort
-		log.Debugf("%s exists, aborting", hash.B58String())
-		return nil, nil
 	}
 
 	if accountPeer {
@@ -147,11 +148,12 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 		return nil, err
 	}
 
-	if err := thrd.followParents(block.Header.Parents); err != nil {
+	parents, err := thrd.followParents(block.Header.Parents)
+	if err != nil {
 		return nil, err
 	}
 
-	if _, err := thrd.handleHead(hash, block.Header.Parents); err != nil {
+	if _, err := thrd.handleHead(hash, parents); err != nil {
 		return nil, err
 	}
 
@@ -226,7 +228,7 @@ func (h *ThreadsService) handleAdd(hash mh.Multihash, tenv *pb.ThreadEnvelope, a
 		Inviter: msg.Inviter,
 		Date:    block.Header.Date,
 	}); err != nil {
-		if !repo.ConflictError(err) {
+		if !db.ConflictError(err) {
 			return err
 		}
 		// exists, abort
@@ -334,7 +336,7 @@ func (h *ThreadsService) handleFiles(thrd *Thread, hash mh.Multihash, block *pb.
 
 	note := h.newNotification(block.Header, pb.Notification_FILES_ADDED)
 	note.Target = msg.Target
-	note.Body = "added a " + threadSubject(thrd.Schema.Name)
+	note.Body = "added " + threadSubject(thrd.Schema.Name)
 	note.Block = hash.B58String()
 	note.SubjectDesc = thrd.Name
 	note.Subject = thrd.Id
@@ -410,8 +412,9 @@ func (h *ThreadsService) newNotification(header *pb.ThreadBlockHeader, ntype pb.
 
 // threadSubject returns the thread subject
 func threadSubject(name string) string {
-	if name == "" {
-		return "file"
+	var sub string
+	if name != "" {
+		sub = name + " "
 	}
-	return name
+	return sub + "files"
 }

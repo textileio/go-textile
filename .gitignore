@@ -2,6 +2,7 @@
 tray/output/
 tray/resources/
 tray/bind_*.go
+tray/resources/
 tray/vendor_astilectron_bundler/*
 **/node_modules/*
 dist/textile

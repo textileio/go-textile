@@ -123,8 +123,8 @@ func (a *api) Start() {
 		account := v0.Group("/account")
 		{
 			account.GET("/address", a.accountAddress)
+			account.GET("/seed", a.accountSeed)
 			account.GET("/contact", a.accountContact)
-			account.POST("/backups", a.accountBackups)
 		}
 
 		profile := v0.Group("/profile")
@@ -132,6 +132,15 @@ func (a *api) Start() {
 			profile.GET("", a.getProfile)
 			profile.POST("/username", a.setUsername)
 			profile.POST("/avatar", a.setAvatar)
+		}
+
+		contacts := v0.Group("/contacts")
+		{
+			contacts.PUT(":address", a.addContacts)
+			contacts.GET("", a.lsContacts)
+			contacts.GET("/:address", a.getContacts)
+			contacts.DELETE("/:address", a.rmContacts)
+			contacts.POST("/search", a.searchContacts)
 		}
 
 		mills := v0.Group("/mills")
@@ -154,6 +163,12 @@ func (a *api) Start() {
 			threads.DELETE("/:id", a.rmThreads)
 			threads.POST("/:id/messages", a.addThreadMessages)
 			threads.POST("/:id/files", a.addThreadFiles)
+		}
+
+		snapshots := v0.Group("/snapshots")
+		{
+			snapshots.POST("", a.createThreadSnapshots)
+			snapshots.POST("/search", a.searchThreadSnapshots)
 		}
 
 		blocks := v0.Group("/blocks")
@@ -181,11 +196,6 @@ func (a *api) Start() {
 			}
 		}
 
-		feed := v0.Group("/feed")
-		{
-			feed.GET("", a.lsThreadFeed)
-		}
-
 		messages := v0.Group("/messages")
 		{
 			messages.GET("", a.lsThreadMessages)
@@ -196,6 +206,11 @@ func (a *api) Start() {
 		{
 			files.GET("", a.lsThreadFiles)
 			files.GET("/:block", a.getThreadFiles)
+		}
+
+		feed := v0.Group("/feed")
+		{
+			feed.GET("", a.lsThreadFeed)
 		}
 
 		keys := v0.Group("/keys")
@@ -238,15 +253,6 @@ func (a *api) Start() {
 			tokens.GET("", a.lsTokens)
 			tokens.GET("/:token", a.validateTokens)
 			tokens.DELETE("/:token", a.rmTokens)
-		}
-
-		contacts := v0.Group("/contacts")
-		{
-			contacts.PUT(":address", a.addContacts)
-			contacts.GET("", a.lsContacts)
-			contacts.GET("/:address", a.getContacts)
-			contacts.DELETE("/:address", a.rmContacts)
-			contacts.POST("/search", a.searchContacts)
 		}
 
 		ipfs := v0.Group("/ipfs")

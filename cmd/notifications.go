@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"errors"
+
+	"github.com/textileio/go-textile/util"
 )
 
 var errMissingNoteId = errors.New("missing notification ID")
@@ -69,7 +71,7 @@ func (x *readNotificationsCmd) Execute(args []string) error {
 	}
 	setApi(x.Client)
 
-	res, err := executeStringCmd(POST, "notifications/"+args[0]+"/read", params{})
+	res, err := executeStringCmd(POST, "notifications/"+util.TrimQuotes(args[0])+"/read", params{})
 	if err != nil {
 		return err
 	}

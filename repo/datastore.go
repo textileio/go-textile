@@ -2,7 +2,6 @@ package repo
 
 import (
 	"database/sql"
-	"strings"
 	"time"
 
 	"github.com/textileio/go-textile/keypair"
@@ -44,6 +43,8 @@ type ConfigStore interface {
 	GetAccount() (*keypair.Full, error)
 	GetCreationDate() (time.Time, error)
 	IsEncrypted() bool
+	GetLastDaily() (time.Time, error)
+	SetLastDaily() error
 }
 
 type PeerStore interface {
@@ -202,8 +203,4 @@ type CafeTokenStore interface {
 	Get(id string) *pb.CafeToken
 	List() []pb.CafeToken
 	Delete(id string) error
-}
-
-func ConflictError(err error) bool {
-	return strings.Contains(err.Error(), "UNIQUE constraint failed")
 }

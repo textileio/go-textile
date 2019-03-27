@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/util"
 )
 
 var errMissingMessageBody = errors.New("missing message body")
@@ -152,7 +153,7 @@ func (x *getMessagesCmd) Execute(args []string) error {
 		return errMissingMessageId
 	}
 
-	res, err := executeJsonCmd(GET, "messages/"+args[0], params{}, nil)
+	res, err := executeJsonCmd(GET, "messages/"+util.TrimQuotes(args[0]), params{}, nil)
 	if err != nil {
 		return err
 	}

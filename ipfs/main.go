@@ -3,10 +3,8 @@ package ipfs
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
-	"sort"
 	"strings"
 	"time"
 
@@ -17,9 +15,6 @@ import (
 	"gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
 	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
 	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options"
-	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options/namesys"
-	inet "gx/ipfs/QmY3ArotKMKaL7YGfbQfyDrib6RVraLqZYWXZvVgZktBxp/go-libp2p-net"
-	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 	ipld "gx/ipfs/QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy/go-ipld-format"
 	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
 	uio "gx/ipfs/QmcYUTQ7tBZeH1CLsZM2S3xhMEZdvUgXvbjhpMsLDpk3oJ/go-unixfs/io"
@@ -29,9 +24,7 @@ var log = logging.Logger("tex-ipfs")
 
 const pinTimeout = time.Minute
 const catTimeout = time.Minute
-const ipnsTimeout = time.Second * 30
 const connectTimeout = time.Second * 10
-const publishTimeout = time.Second * 5
 
 // DataAtPath return bytes under an ipfs path
 func DataAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
@@ -326,213 +319,4 @@ func UnpinCid(node *core.IpfsNode, id cid.Cid, recursive bool) error {
 	}
 
 	return node.Pinning.Flush()
-}
-
-// Publish publishes data to a topic
-func Publish(node *core.IpfsNode, topic string, data []byte) error {
-	api, err := coreapi.NewCoreAPI(node)
-	if err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithTimeout(node.Context(), publishTimeout)
-	defer cancel()
-
-	return api.PubSub().Publish(ctx, topic, data)
-}
-
-// Subscribe subscribes to a topic
-func Subscribe(node *core.IpfsNode, ctx context.Context, topic string, discover bool, msgs chan iface.PubSubMessage) error {
-	api, err := coreapi.NewCoreAPI(node)
-	if err != nil {
-		return err
-	}
-
-	sub, err := api.PubSub().Subscribe(ctx, topic, options.PubSub.Discover(discover))
-	if err != nil {
-		return err
-	}
-	defer sub.Close()
-
-	for {
-		msg, err := sub.Next(node.Context())
-		if err == io.EOF || err == context.Canceled {
-			return nil
-		} else if err != nil {
-			return err
-		}
-		msgs <- msg
-	}
-}
-
-// PublishIPNS publishes a content id to ipns
-func PublishIPNS(node *core.IpfsNode, id string) (iface.IpnsEntry, error) {
-	api, err := coreapi.NewCoreAPI(node)
-	if err != nil {
-		return nil, err
-	}
-
-	opts := []options.NamePublishOption{
-		options.Name.AllowOffline(true),
-		options.Name.ValidTime(time.Hour * 24),
-		options.Name.TTL(time.Hour),
-	}
-
-	pth, err := iface.ParsePath(id)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx, cancel := context.WithTimeout(node.Context(), ipnsTimeout)
-	defer cancel()
-
-	return api.Name().Publish(ctx, pth, opts...)
-}
-
-// ResolveIPNS resolves an ipns path to an ipfs path
-func ResolveIPNS(node *core.IpfsNode, name peer.ID) (iface.Path, error) {
-	api, err := coreapi.NewCoreAPI(node)
-	if err != nil {
-		return nil, err
-	}
-
-	key := fmt.Sprintf("/ipns/%s", name.Pretty())
-
-	opts := []options.NameResolveOption{
-		options.Name.ResolveOption(nsopts.Depth(1)),
-		options.Name.ResolveOption(nsopts.DhtRecordCount(4)),
-		options.Name.ResolveOption(nsopts.DhtTimeout(ipnsTimeout)),
-	}
-
-	ctx, cancel := context.WithTimeout(node.Context(), ipnsTimeout)
-	defer cancel()
-
-	return api.Name().Resolve(ctx, key, opts...)
-}
-
-// SwarmConnect opens a direct connection to a list of peer multi addresses
-func SwarmConnect(node *core.IpfsNode, addrs []string) ([]string, error) {
-	api, err := coreapi.NewCoreAPI(node)
-	if err != nil {
-		return nil, err
-	}
-
-	pis, err := peersWithAddresses(addrs)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx, cancel := context.WithTimeout(node.Context(), connectTimeout)
-	defer cancel()
-
-	output := make([]string, len(pis))
-	for i, pi := range pis {
-		output[i] = "connect " + pi.ID.Pretty()
-
-		err := api.Swarm().Connect(ctx, pi)
-		if err != nil {
-			return nil, fmt.Errorf("%s failure: %s", output[i], err)
-		}
-		output[i] += " success"
-	}
-
-	return output, nil
-}
-
-type streamInfo struct {
-	Protocol string
-}
-
-type connInfo struct {
-	Addr      string         `json:"addr"`
-	Peer      string         `json:"peer"`
-	Latency   string         `json:"latency,omitempty"`
-	Muxer     string         `json:"muxer,omitempty"`
-	Direction inet.Direction `json:"direction,omitempty"`
-	Streams   []streamInfo   `json:"streams,omitempty"`
-}
-
-func (ci *connInfo) Less(i, j int) bool {
-	return ci.Streams[i].Protocol < ci.Streams[j].Protocol
-}
-
-func (ci *connInfo) Len() int {
-	return len(ci.Streams)
-}
-
-func (ci *connInfo) Swap(i, j int) {
-	ci.Streams[i], ci.Streams[j] = ci.Streams[j], ci.Streams[i]
-}
-
-type ConnInfos struct {
-	Peers []connInfo
-}
-
-func (ci ConnInfos) Less(i, j int) bool {
-	return ci.Peers[i].Addr < ci.Peers[j].Addr
-}
-
-func (ci ConnInfos) Len() int {
-	return len(ci.Peers)
-}
-
-func (ci ConnInfos) Swap(i, j int) {
-	ci.Peers[i], ci.Peers[j] = ci.Peers[j], ci.Peers[i]
-}
-
-// SwarmPeers lists the set of peers this node is connected to
-func SwarmPeers(node *core.IpfsNode, verbose bool, latency bool, streams bool, direction bool) (*ConnInfos, error) {
-	api, err := coreapi.NewCoreAPI(node)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx, cancel := context.WithTimeout(node.Context(), connectTimeout)
-	defer cancel()
-
-	conns, err := api.Swarm().Peers(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var out ConnInfos
-	for _, c := range conns {
-		ci := connInfo{
-			Addr: c.Address().String(),
-			Peer: c.ID().Pretty(),
-		}
-
-		if verbose || direction {
-			// set direction
-			ci.Direction = c.Direction()
-		}
-
-		if verbose || latency {
-			lat, err := c.Latency()
-			if err != nil {
-				return nil, err
-			}
-
-			if lat == 0 {
-				ci.Latency = "n/a"
-			} else {
-				ci.Latency = lat.String()
-			}
-		}
-		if verbose || streams {
-			strs, err := c.Streams()
-			if err != nil {
-				return nil, err
-			}
-
-			for _, s := range strs {
-				ci.Streams = append(ci.Streams, streamInfo{Protocol: string(s)})
-			}
-		}
-		sort.Sort(&ci)
-		out.Peers = append(out.Peers, ci)
-	}
-
-	sort.Sort(&out)
-	return &out, nil
 }

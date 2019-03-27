@@ -3,6 +3,8 @@ package cmd
 import (
 	"errors"
 	"strconv"
+
+	"github.com/textileio/go-textile/util"
 )
 
 var errMissingToken = errors.New("missing token")
@@ -102,7 +104,7 @@ func (x *validateTokensCmd) Execute(args []string) error {
 		return errMissingToken
 	}
 
-	res, err := executeStringCmd(GET, "tokens/"+args[0], params{})
+	res, err := executeStringCmd(GET, "tokens/"+util.TrimQuotes(args[0]), params{})
 	if err != nil {
 		return err
 	}
@@ -126,7 +128,7 @@ func (x *rmTokensCmd) Execute(args []string) error {
 		return errMissingToken
 	}
 
-	res, err := executeStringCmd(DEL, "tokens/"+args[0], params{})
+	res, err := executeStringCmd(DEL, "tokens/"+util.TrimQuotes(args[0]), params{})
 	if err != nil {
 		return err
 	}

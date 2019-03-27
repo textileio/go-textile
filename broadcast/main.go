@@ -49,6 +49,9 @@ func (b *Broadcaster) Send(v interface{}) {
 func (b *Broadcaster) Close() {
 	b.m.Lock()
 	defer b.m.Unlock()
+	if b.closed {
+		return
+	}
 	b.closed = true
 	for _, l := range b.listeners {
 		close(l)
