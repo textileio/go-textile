@@ -7,18 +7,24 @@
   "author": "Textile",
   "license": "MIT",
   "dependencies": {
+    "@reach/router": "^1.2.1",
     "@textileio/js-http-client": "^0.1.8",
+    "@types/react-qr-reader": "^2.1.2",
+    "@types/zxcvbn": "^4.4.0",
     "electron-is-dev": "^1.0.1",
     "mobx": "^5.9.0",
     "mobx-react": "^5.4.3",
     "moment": "^2.24.0",
     "react": "^16.8.3",
+    "react-addons-css-transition-group": "^15.6.2",
     "react-dom": "^16.8.3",
     "react-moment": "^0.8.4",
+    "react-qr-reader": "^2.2.1",
     "react-reveal": "^1.2.2",
     "react-semantic-toasts": "^0.5.0",
     "semantic-ui-css": "^2.4.1",
-    "semantic-ui-react": "^0.85.0"
+    "semantic-ui-react": "^0.85.0",
+    "zxcvbn": "^4.4.2"
   },
   "scripts": {
     "start": "craco start",
@@ -47,6 +53,7 @@
     "@craco/craco": "^3.5.0",
     "@types/jest": "^24.0.11",
     "@types/node": "^11.11.6",
+    "@types/reach__router": "^1.2.3",
     "@types/react": "^16.8.8",
     "@types/react-dom": "^16.8.3",
     "babel-preset-mobx": "^2.0.0",

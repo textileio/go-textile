@@ -24,18 +24,22 @@ func bootstrapApp() {
 			Image:   astilectron.PtrStr("resources/assets/tray.png"),
 			Tooltip: astilectron.PtrStr("Textile"),
 		},
+		TrayMenuOptions: []*astilectron.MenuItemOptions{
+			{
+				Type: astilectron.MenuItemTypeSeparator,
+			},
+		},
 		Windows: []*bootstrap.Window{{
-			Homepage:       "../index.html",
+			Homepage: "../index.html",
 			MessageHandler: handleMessage,
 			Options: &astilectron.WindowOptions{
 				Show: astilectron.PtrBool(true),
-				// AlwaysOnTop:   astilectron.PtrBool(true),
-				// Resizable:     astilectron.PtrBool(false),
-				// Closable:      astilectron.PtrBool(false),
-				// Maximizable:   astilectron.PtrBool(false),
-				// Minimizable:   astilectron.PtrBool(false),
-				// SkipTaskbar:   astilectron.PtrBool(false),
-				// TitleBarStyle: astilectron.TitleBarStyleHiddenInset,
+				Movable: astilectron.PtrBool(true),
+				Width: astilectron.PtrInt(500),
+				Height: astilectron.PtrInt(500),
+				Focusable: astilectron.PtrBool(true),
+				SkipTaskbar:   astilectron.PtrBool(true),
+				TitleBarStyle: astilectron.TitleBarStyleHidden,
 			},
 		}},
 	}); err != nil {

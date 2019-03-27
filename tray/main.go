@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -8,6 +9,8 @@ import (
 	"runtime"
 
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/repo/fsrepo"
+	// "github.com/atotto/clipboard"
+	"github.com/pkg/browser"
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
 	"github.com/asticode/go-astilog"
@@ -23,7 +26,7 @@ var (
 	appName = "Textile"
 	debug   = flag.Bool("d", false, "enables debug mode")
 	app     *astilectron.Astilectron
-	// window  *astilectron.Window
+	window  *astilectron.Window
 )
 
 var node *core.Textile
@@ -115,11 +118,7 @@ func stopNode() error {
 	return nil
 }
 
-func start(app *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron.Menu, t *astilectron.Tray, _ *astilectron.Menu) error {
-	// remove the dock icon
-	dock := app.Dock()
-	dock.Hide()
-
+func initAndStartTextile(mnemonic string, password string) error {
 	// get homedir
 	home, err := homedir.Dir()
 	if err != nil {
@@ -137,24 +136,13 @@ func start(app *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron
 		astilog.Fatal(fmt.Errorf("create app dir failed: %s", err))
 	}
 
-	// temp create new wallet each time
-	wcount, err := wallet.NewWordCount(12)
-	if err != nil {
-		return err
-	}
-
-	wallet, err := wallet.NewWallet(wcount.EntropySize())
-	if err != nil {
-		return err
-	}
-	fmt.Println(wallet.RecoveryPhrase)
+	wallet := wallet.NewWalletFromRecoveryPhrase(mnemonic)
 	// show first account
-	kp, err := wallet.AccountAt(0, "password")
+	// TODO: Ask the user for a new password on new account init
+	kp, err := wallet.AccountAt(0, "")
 	if err != nil {
 		return err
 	}
-	fmt.Println(kp.Address())
-	fmt.Println(kp.Seed())
 
 	repoPath := filepath.Join(appDir, kp.Address())
 
@@ -163,6 +151,7 @@ func start(app *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron
 		accnt := keypair.Random()
 		initc := core.InitConfig{
 			Account:     accnt,
+			PinCode:     password,
 			RepoPath:    repoPath,
 			LogToDisk:   true,
 			GatewayAddr: fmt.Sprintf("127.0.0.1:5052"),
@@ -174,7 +163,10 @@ func start(app *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron
 	}
 
 	// build textile node
-	node, err = core.NewTextile(core.RunConfig{RepoPath: repoPath})
+	node, err = core.NewTextile(core.RunConfig{
+		PinCode:  password,
+		RepoPath: repoPath,
+	})
 	if err != nil {
 		astilog.Error(err)
 		return err
@@ -186,18 +178,74 @@ func start(app *astilectron.Astilectron, w []*astilectron.Window, _ *astilectron
 		astilog.Error(err)
 		return err
 	}
-
-	// pid, err := node.PeerId()
-	// if err != nil {
-	// 	astilog.Fatalf("get peer id failed: %s", err)
-	// }
-
 	return nil
 }
 
+func start(
+	app *astilectron.Astilectron,
+	windows []*astilectron.Window,
+	_ *astilectron.Menu,
+	t *astilectron.Tray,
+	m *astilectron.Menu) error {
+	// remove the dock icon
+	dock := app.Dock()
+	dock.Hide()
+
+	window = windows[0]
+
+	var i = m.NewItem(&astilectron.MenuItemOptions{
+		Label: astilectron.PtrStr("Quit"),
+		OnClick: func(e astilectron.Event) (deleteListener bool) {
+			stopNode()
+			app.Quit()
+			return
+		},
+	})
+	m.Append(i)
+	return nil
+}
+
+func sendData(name string, data map[string]interface{}) {
+	data["name"] = name
+	window.SendMessage(data)
+}
+
 // handleMessage handles incoming messages from Javascript/Electron
-func handleMessage(_ *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
+func handleMessage(w *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
+	case "init":
+		type init struct {
+			Mnemonic string `json:"mnemonic"`
+			Password string `json:"password,omitempty"`
+		}
+		var payload init
+		if err := json.Unmarshal(m.Payload, &payload); err != nil {
+			return nil, err
+		}
+		err := initAndStartTextile(payload.Mnemonic, payload.Password)
+		if err != nil {
+			return nil, err
+		}
+		return true, nil
+	case "hide":
+		w.Hide()
+		return true, nil
+	case "open":
+		type open struct {
+			File string `json:"file,omitempty"`
+			URL string `json:"url,omitempty"`
+		}
+		var payload open
+		if err := json.Unmarshal(m.Payload, &payload); err != nil {
+			return nil, err
+		}
+		if payload.URL != "" {
+			browser.OpenURL(payload.URL)
+		}
+		if payload.File != "" {
+			browser.OpenFile(payload.File)
+		}
+		return true, nil
 	default:
 		return nil, nil
 	}

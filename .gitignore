@@ -1,5 +1,6 @@
 # Tray app build
 tray/output/
+tray/resources/
 tray/bind_*.go
 tray/vendor_astilectron_bundler/*
 **/node_modules/*
