@@ -29,7 +29,7 @@ func (m *CafeChallenge) Reset()         { *m = CafeChallenge{} }
 func (m *CafeChallenge) String() string { return proto.CompactTextString(m) }
 func (*CafeChallenge) ProtoMessage()    {}
 func (*CafeChallenge) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{0}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{0}
 }
 func (m *CafeChallenge) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeChallenge.Unmarshal(m, b)
@@ -67,7 +67,7 @@ func (m *CafeNonce) Reset()         { *m = CafeNonce{} }
 func (m *CafeNonce) String() string { return proto.CompactTextString(m) }
 func (*CafeNonce) ProtoMessage()    {}
 func (*CafeNonce) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{1}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{1}
 }
 func (m *CafeNonce) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeNonce.Unmarshal(m, b)
@@ -109,7 +109,7 @@ func (m *CafeRegistration) Reset()         { *m = CafeRegistration{} }
 func (m *CafeRegistration) String() string { return proto.CompactTextString(m) }
 func (*CafeRegistration) ProtoMessage()    {}
 func (*CafeRegistration) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{2}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{2}
 }
 func (m *CafeRegistration) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeRegistration.Unmarshal(m, b)
@@ -175,7 +175,7 @@ func (m *CafeDeregistration) Reset()         { *m = CafeDeregistration{} }
 func (m *CafeDeregistration) String() string { return proto.CompactTextString(m) }
 func (*CafeDeregistration) ProtoMessage()    {}
 func (*CafeDeregistration) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{3}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{3}
 }
 func (m *CafeDeregistration) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeDeregistration.Unmarshal(m, b)
@@ -213,7 +213,7 @@ func (m *CafeDeregistrationAck) Reset()         { *m = CafeDeregistrationAck{} }
 func (m *CafeDeregistrationAck) String() string { return proto.CompactTextString(m) }
 func (*CafeDeregistrationAck) ProtoMessage()    {}
 func (*CafeDeregistrationAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{4}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{4}
 }
 func (m *CafeDeregistrationAck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeDeregistrationAck.Unmarshal(m, b)
@@ -252,7 +252,7 @@ func (m *CafeRefreshSession) Reset()         { *m = CafeRefreshSession{} }
 func (m *CafeRefreshSession) String() string { return proto.CompactTextString(m) }
 func (*CafeRefreshSession) ProtoMessage()    {}
 func (*CafeRefreshSession) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{5}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{5}
 }
 func (m *CafeRefreshSession) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeRefreshSession.Unmarshal(m, b)
@@ -298,7 +298,7 @@ func (m *CafePublishPeer) Reset()         { *m = CafePublishPeer{} }
 func (m *CafePublishPeer) String() string { return proto.CompactTextString(m) }
 func (*CafePublishPeer) ProtoMessage()    {}
 func (*CafePublishPeer) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{6}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{6}
 }
 func (m *CafePublishPeer) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafePublishPeer.Unmarshal(m, b)
@@ -343,7 +343,7 @@ func (m *CafePublishPeerAck) Reset()         { *m = CafePublishPeerAck{} }
 func (m *CafePublishPeerAck) String() string { return proto.CompactTextString(m) }
 func (*CafePublishPeerAck) ProtoMessage()    {}
 func (*CafePublishPeerAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{7}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{7}
 }
 func (m *CafePublishPeerAck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafePublishPeerAck.Unmarshal(m, b)
@@ -382,7 +382,7 @@ func (m *CafeStore) Reset()         { *m = CafeStore{} }
 func (m *CafeStore) String() string { return proto.CompactTextString(m) }
 func (*CafeStore) ProtoMessage()    {}
 func (*CafeStore) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{8}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{8}
 }
 func (m *CafeStore) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeStore.Unmarshal(m, b)
@@ -427,7 +427,7 @@ func (m *CafeStoreAck) Reset()         { *m = CafeStoreAck{} }
 func (m *CafeStoreAck) String() string { return proto.CompactTextString(m) }
 func (*CafeStoreAck) ProtoMessage()    {}
 func (*CafeStoreAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{9}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{9}
 }
 func (m *CafeStoreAck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeStoreAck.Unmarshal(m, b)
@@ -466,7 +466,7 @@ func (m *CafeUnstore) Reset()         { *m = CafeUnstore{} }
 func (m *CafeUnstore) String() string { return proto.CompactTextString(m) }
 func (*CafeUnstore) ProtoMessage()    {}
 func (*CafeUnstore) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{10}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{10}
 }
 func (m *CafeUnstore) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeUnstore.Unmarshal(m, b)
@@ -511,7 +511,7 @@ func (m *CafeUnstoreAck) Reset()         { *m = CafeUnstoreAck{} }
 func (m *CafeUnstoreAck) String() string { return proto.CompactTextString(m) }
 func (*CafeUnstoreAck) ProtoMessage()    {}
 func (*CafeUnstoreAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{11}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{11}
 }
 func (m *CafeUnstoreAck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeUnstoreAck.Unmarshal(m, b)
@@ -549,7 +549,7 @@ func (m *CafeObjectList) Reset()         { *m = CafeObjectList{} }
 func (m *CafeObjectList) String() string { return proto.CompactTextString(m) }
 func (*CafeObjectList) ProtoMessage()    {}
 func (*CafeObjectList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{12}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{12}
 }
 func (m *CafeObjectList) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeObjectList.Unmarshal(m, b)
@@ -590,7 +590,7 @@ func (m *CafeObject) Reset()         { *m = CafeObject{} }
 func (m *CafeObject) String() string { return proto.CompactTextString(m) }
 func (*CafeObject) ProtoMessage()    {}
 func (*CafeObject) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{13}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{13}
 }
 func (m *CafeObject) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeObject.Unmarshal(m, b)
@@ -651,7 +651,7 @@ func (m *CafeStoreThread) Reset()         { *m = CafeStoreThread{} }
 func (m *CafeStoreThread) String() string { return proto.CompactTextString(m) }
 func (*CafeStoreThread) ProtoMessage()    {}
 func (*CafeStoreThread) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{14}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{14}
 }
 func (m *CafeStoreThread) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeStoreThread.Unmarshal(m, b)
@@ -703,7 +703,7 @@ func (m *CafeStoreThreadAck) Reset()         { *m = CafeStoreThreadAck{} }
 func (m *CafeStoreThreadAck) String() string { return proto.CompactTextString(m) }
 func (*CafeStoreThreadAck) ProtoMessage()    {}
 func (*CafeStoreThreadAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{15}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{15}
 }
 func (m *CafeStoreThreadAck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeStoreThreadAck.Unmarshal(m, b)
@@ -742,7 +742,7 @@ func (m *CafeUnstoreThread) Reset()         { *m = CafeUnstoreThread{} }
 func (m *CafeUnstoreThread) String() string { return proto.CompactTextString(m) }
 func (*CafeUnstoreThread) ProtoMessage()    {}
 func (*CafeUnstoreThread) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{16}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{16}
 }
 func (m *CafeUnstoreThread) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeUnstoreThread.Unmarshal(m, b)
@@ -787,7 +787,7 @@ func (m *CafeUnstoreThreadAck) Reset()         { *m = CafeUnstoreThreadAck{} }
 func (m *CafeUnstoreThreadAck) String() string { return proto.CompactTextString(m) }
 func (*CafeUnstoreThreadAck) ProtoMessage()    {}
 func (*CafeUnstoreThreadAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{17}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{17}
 }
 func (m *CafeUnstoreThreadAck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeUnstoreThreadAck.Unmarshal(m, b)
@@ -826,7 +826,7 @@ func (m *CafeDeliverMessage) Reset()         { *m = CafeDeliverMessage{} }
 func (m *CafeDeliverMessage) String() string { return proto.CompactTextString(m) }
 func (*CafeDeliverMessage) ProtoMessage()    {}
 func (*CafeDeliverMessage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{18}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{18}
 }
 func (m *CafeDeliverMessage) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeDeliverMessage.Unmarshal(m, b)
@@ -871,7 +871,7 @@ func (m *CafeCheckMessages) Reset()         { *m = CafeCheckMessages{} }
 func (m *CafeCheckMessages) String() string { return proto.CompactTextString(m) }
 func (*CafeCheckMessages) ProtoMessage()    {}
 func (*CafeCheckMessages) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{19}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{19}
 }
 func (m *CafeCheckMessages) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeCheckMessages.Unmarshal(m, b)
@@ -909,7 +909,7 @@ func (m *CafeMessages) Reset()         { *m = CafeMessages{} }
 func (m *CafeMessages) String() string { return proto.CompactTextString(m) }
 func (*CafeMessages) ProtoMessage()    {}
 func (*CafeMessages) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{20}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{20}
 }
 func (m *CafeMessages) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeMessages.Unmarshal(m, b)
@@ -947,7 +947,7 @@ func (m *CafeDeleteMessages) Reset()         { *m = CafeDeleteMessages{} }
 func (m *CafeDeleteMessages) String() string { return proto.CompactTextString(m) }
 func (*CafeDeleteMessages) ProtoMessage()    {}
 func (*CafeDeleteMessages) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{21}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{21}
 }
 func (m *CafeDeleteMessages) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeDeleteMessages.Unmarshal(m, b)
@@ -985,7 +985,7 @@ func (m *CafeDeleteMessagesAck) Reset()         { *m = CafeDeleteMessagesAck{} }
 func (m *CafeDeleteMessagesAck) String() string { return proto.CompactTextString(m) }
 func (*CafeDeleteMessagesAck) ProtoMessage()    {}
 func (*CafeDeleteMessagesAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cafe_service_160fcfef9d31bbf7, []int{22}
+	return fileDescriptor_cafe_service_d48ef92619d0cc32, []int{22}
 }
 func (m *CafeDeleteMessagesAck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CafeDeleteMessagesAck.Unmarshal(m, b)
@@ -1038,9 +1038,9 @@ func init() {
 	proto.RegisterType((*CafeDeleteMessagesAck)(nil), "CafeDeleteMessagesAck")
 }
 
-func init() { proto.RegisterFile("cafe_service.proto", fileDescriptor_cafe_service_160fcfef9d31bbf7) }
+func init() { proto.RegisterFile("cafe_service.proto", fileDescriptor_cafe_service_d48ef92619d0cc32) }
 
-var fileDescriptor_cafe_service_160fcfef9d31bbf7 = []byte{
+var fileDescriptor_cafe_service_d48ef92619d0cc32 = []byte{
 	// 536 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x94, 0xdf, 0x6b, 0x13, 0x41,
 	0x10, 0xc7, 0xb9, 0x4b, 0x53, 0x9b, 0x49, 0x5a, 0xe3, 0x59, 0xe5, 0xf4, 0xa1, 0xc4, 0xa5, 0x68,
