@@ -397,7 +397,7 @@ func TestMobile_Messages(t *testing.T) {
 }
 
 func TestMobile_PrepareFilesSync(t *testing.T) {
-	input := "stackabuse.com"
+	input := "howdy"
 
 	encoded := base64.StdEncoding.EncodeToString([]byte(input))
 
@@ -485,12 +485,7 @@ func TestMobile_PrepareFilesSync(t *testing.T) {
 }
 
 func TestMobile_PrepareFiles(t *testing.T) {
-	data, err := getImageFileData()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	mobile1.PrepareFiles(data, thrdId, &TestCallback{})
+	mobile1.PrepareFiles("hello", thrdId, &TestCallback{})
 }
 
 func TestMobile_PrepareFilesByPathSync(t *testing.T) {
@@ -529,7 +524,7 @@ func TestMobile_PrepareFilesByPathSync(t *testing.T) {
 }
 
 func TestMobile_PrepareFilesByPath(t *testing.T) {
-	mobile1.PrepareFilesByPath("../mill/testdata/image.jpeg", thrdId, &TestCallback{})
+	mobile1.PrepareFilesByPath("../mill/testdata/image.png", thrdId, &TestCallback{})
 }
 
 func TestMobile_AddFiles(t *testing.T) {
