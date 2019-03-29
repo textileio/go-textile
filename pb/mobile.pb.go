@@ -53,7 +53,7 @@ func (x MobileEventType) String() string {
 	return proto.EnumName(MobileEventType_name, int32(x))
 }
 func (MobileEventType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_mobile_2854ed21dfbf950c, []int{0}
+	return fileDescriptor_mobile_cdf14c1d70f85f60, []int{0}
 }
 
 type MobileQueryEvent_Type int32
@@ -79,7 +79,7 @@ func (x MobileQueryEvent_Type) String() string {
 	return proto.EnumName(MobileQueryEvent_Type_name, int32(x))
 }
 func (MobileQueryEvent_Type) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_mobile_2854ed21dfbf950c, []int{2, 0}
+	return fileDescriptor_mobile_cdf14c1d70f85f60, []int{2, 0}
 }
 
 type MobileWalletAccount struct {
@@ -94,7 +94,7 @@ func (m *MobileWalletAccount) Reset()         { *m = MobileWalletAccount{} }
 func (m *MobileWalletAccount) String() string { return proto.CompactTextString(m) }
 func (*MobileWalletAccount) ProtoMessage()    {}
 func (*MobileWalletAccount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_mobile_2854ed21dfbf950c, []int{0}
+	return fileDescriptor_mobile_cdf14c1d70f85f60, []int{0}
 }
 func (m *MobileWalletAccount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MobileWalletAccount.Unmarshal(m, b)
@@ -140,7 +140,7 @@ func (m *MobilePreparedFiles) Reset()         { *m = MobilePreparedFiles{} }
 func (m *MobilePreparedFiles) String() string { return proto.CompactTextString(m) }
 func (*MobilePreparedFiles) ProtoMessage()    {}
 func (*MobilePreparedFiles) Descriptor() ([]byte, []int) {
-	return fileDescriptor_mobile_2854ed21dfbf950c, []int{1}
+	return fileDescriptor_mobile_cdf14c1d70f85f60, []int{1}
 }
 func (m *MobilePreparedFiles) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MobilePreparedFiles.Unmarshal(m, b)
@@ -188,7 +188,7 @@ func (m *MobileQueryEvent) Reset()         { *m = MobileQueryEvent{} }
 func (m *MobileQueryEvent) String() string { return proto.CompactTextString(m) }
 func (*MobileQueryEvent) ProtoMessage()    {}
 func (*MobileQueryEvent) Descriptor() ([]byte, []int) {
-	return fileDescriptor_mobile_2854ed21dfbf950c, []int{2}
+	return fileDescriptor_mobile_cdf14c1d70f85f60, []int{2}
 }
 func (m *MobileQueryEvent) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MobileQueryEvent.Unmarshal(m, b)
@@ -245,9 +245,9 @@ func init() {
 	proto.RegisterEnum("MobileQueryEvent_Type", MobileQueryEvent_Type_name, MobileQueryEvent_Type_value)
 }
 
-func init() { proto.RegisterFile("mobile.proto", fileDescriptor_mobile_2854ed21dfbf950c) }
+func init() { proto.RegisterFile("mobile.proto", fileDescriptor_mobile_cdf14c1d70f85f60) }
 
-var fileDescriptor_mobile_2854ed21dfbf950c = []byte{
+var fileDescriptor_mobile_cdf14c1d70f85f60 = []byte{
 	// 448 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x52, 0xcd, 0x6a, 0xdb, 0x40,
 	0x18, 0x8c, 0x7e, 0x92, 0xc6, 0x9f, 0x6c, 0x67, 0xbb, 0x09, 0x45, 0x84, 0x14, 0x8c, 0xa1, 0x10,
