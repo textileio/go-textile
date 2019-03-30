@@ -120,6 +120,7 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 		log.Debugf("handling %s from %s", block.Type.String(), block.Header.Author)
 	}
 
+	var leave bool
 	switch block.Type {
 	case pb.Block_MERGE:
 		err = h.handleMerge(thrd, hash, block)
@@ -133,6 +134,9 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 		err = h.handleAnnounce(thrd, hash, block)
 	case pb.Block_LEAVE:
 		err = h.handleLeave(thrd, hash, block, accountPeer)
+		if accountPeer {
+			leave = true // we will leave as well
+		}
 	case pb.Block_TEXT:
 		err = h.handleMessage(thrd, hash, block)
 	case pb.Block_FILES:
@@ -160,6 +164,13 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 	// handle newly discovered peers during back prop
 	if err := thrd.sendWelcome(); err != nil {
 		return nil, err
+	}
+
+	// we may be auto-leaving
+	if leave {
+		if _, err := h.removeThread(thrd.Id); err != nil {
+			return nil, err
+		}
 	}
 
 	// flush cafe queue _at the very end_
@@ -292,14 +303,6 @@ func (h *ThreadsService) handleAnnounce(thrd *Thread, hash mh.Multihash, block *
 func (h *ThreadsService) handleLeave(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock, accountPeer bool) error {
 	if err := thrd.handleLeaveBlock(hash, block); err != nil {
 		return err
-	}
-
-	if accountPeer {
-		// can auto-leave
-		if _, err := h.removeThread(thrd.Id); err != nil {
-			return err
-		}
-		return nil
 	}
 
 	note := h.newNotification(block.Header, pb.Notification_PEER_LEFT)

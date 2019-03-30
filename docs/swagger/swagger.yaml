@@ -397,10 +397,14 @@ definitions:
     properties:
       account_peer_count:
         type: integer
+      address:
+        type: string
       contact_count:
         type: integer
-      file_count:
+      files_count:
         type: integer
+      id:
+        type: string
       thread_count:
         type: integer
     type: object
@@ -866,8 +870,6 @@ paths:
         name: id
         required: true
         type: string
-      produces:
-      - application/json
       responses:
         "204":
           description: ok
@@ -915,7 +917,7 @@ paths:
         Check for messages at all cafes. New messages are downloaded and processed
         opportunistically.
       produces:
-      - application/json
+      - text/plain
       responses:
         "200":
           description: ok
@@ -1041,8 +1043,6 @@ paths:
         name: address
         required: true
         type: string
-      produces:
-      - text/plain
       responses:
         "204":
           description: ok
@@ -1099,8 +1099,6 @@ paths:
         schema:
           $ref: '#/definitions/pb.Contact'
           type: object
-      produces:
-      - application/json
       responses:
         "204":
           description: ok
@@ -2083,8 +2081,6 @@ paths:
         name: id
         required: true
         type: string
-      produces:
-      - application/json
       responses:
         "204":
           description: ok
@@ -2143,8 +2139,6 @@ paths:
         schema:
           $ref: '#/definitions/pb.Thread'
           type: object
-      produces:
-      - application/json
       responses:
         "204":
           description: ok
@@ -2247,8 +2241,6 @@ paths:
         name: X-Textile-Args
         required: true
         type: string
-      produces:
-      - application/json
       responses:
         "204":
           description: ok
@@ -2347,8 +2339,6 @@ paths:
         name: token
         required: true
         type: string
-      produces:
-      - application/json
       responses:
         "204":
           description: ok
@@ -2370,7 +2360,7 @@ paths:
         required: true
         type: string
       produces:
-      - application/json
+      - text/plain
       responses:
         "200":
           description: ok

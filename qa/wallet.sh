@@ -2,15 +2,23 @@
 
 set -e
 
-while getopts n: option
+for i in "$@"
 do
-case "${option}"
-in
-n) num=${OPTARG};;
+case ${i} in
+    -n=*|--num=*)
+    num="${i#*=}"
+    shift
+    ;;
+    --wait)
+    wait=yes
+    shift
+    ;;
+    *)
+    ;;
 esac
 done
 
-[[ -z "$num" ]] && { echo "Please specify the number of account peers, e.g., -n 3" ; exit 1; }
+[[ -z "$num" ]] && { echo "Please specify the number of account peers, e.g., -n=3" ; exit 1; }
 
 declare -a ports
 
@@ -54,7 +62,11 @@ thread=""
 
 for i in `seq 0 $((num - 1))`;
 do
-    ports[i]=$(getPort)
+    if [[ "$i" -eq "0" ]]; then
+        ports[i]=40600
+    else
+        ports[i]=$(getPort)
+    fi
     createPeer ${i} ${seed} ${ports[i]} &
     sleep 5
 
@@ -226,4 +238,9 @@ do
 done
 
 echo "Success."
-exit 0
+
+if [[ "$wait" = "yes" ]]; then
+    wait
+else
+    exit 0
+fi

@@ -13,7 +13,6 @@ import (
 // @Description Adds a contact by username or account address to known contacts.
 // @Tags contacts
 // @Accept application/json
-// @Produce application/json
 // @Param address path string true "address"
 // @Param contact body pb.Contact true "contact"
 // @Success 204 {string} string "ok"
@@ -39,7 +38,7 @@ func (a *api) addContacts(g *gin.Context) {
 		return
 	}
 
-	g.String(http.StatusNoContent, "ok")
+	g.Status(http.StatusNoContent)
 }
 
 // lsContacts godoc
@@ -78,7 +77,6 @@ func (a *api) getContacts(g *gin.Context) {
 // @Summary Remove a contact
 // @Description Removes a known contact
 // @Tags contacts
-// @Produce text/plain
 // @Param address path string true "address"
 // @Success 204 {string} string "ok"
 // @Failure 404 {string} string "Not Found"
@@ -98,7 +96,7 @@ func (a *api) rmContacts(g *gin.Context) {
 		return
 	}
 
-	g.String(http.StatusNoContent, "ok")
+	g.Status(http.StatusNoContent)
 }
 
 // searchContacts godoc

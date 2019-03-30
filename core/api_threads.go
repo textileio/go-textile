@@ -85,7 +85,6 @@ func (a *api) addThreads(g *gin.Context) {
 // @Summary Add or update a thread directly
 // @Description Adds or updates a thread directly, usually from a backup
 // @Tags threads
-// @Produce application/json
 // @Param id path string true "id"
 // @Param thread body pb.Thread true "thread"
 // @Success 204 {string} string "ok"
@@ -112,14 +111,13 @@ func (a *api) addOrUpdateThreads(g *gin.Context) {
 		return
 	}
 
-	g.String(http.StatusNoContent, "ok")
+	g.Status(http.StatusNoContent)
 }
 
 // renameThreads godoc
 // @Summary Rename a thread
 // @Description Renames a thread. Only initiators can rename a thread.
 // @Tags threads
-// @Produce application/json
 // @Param id path string true "id"
 // @Param X-Textile-Args header string true "name"
 // @Success 204 {string} string "ok"
@@ -141,7 +139,7 @@ func (a *api) renameThreads(g *gin.Context) {
 		return
 	}
 
-	g.String(http.StatusNoContent, "ok")
+	g.Status(http.StatusNoContent)
 }
 
 // lsThreads godoc
@@ -222,7 +220,6 @@ func (a *api) peersThreads(g *gin.Context) {
 // @Summary Leave and remove a thread
 // @Description Leaves and removes a thread
 // @Tags threads
-// @Produce application/json
 // @Param id path string true "thread id"
 // @Success 204 {string} string "ok"
 // @Failure 404 {string} string "Not Found"
@@ -242,5 +239,5 @@ func (a *api) rmThreads(g *gin.Context) {
 		return
 	}
 
-	g.String(http.StatusNoContent, "ok")
+	g.Status(http.StatusNoContent)
 }

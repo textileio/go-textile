@@ -137,11 +137,7 @@ func callCreateInvites(thread string, address string) error {
 	if err != nil {
 		return err
 	}
-	if res != "" {
-		output(res)
-	} else {
-		output("ok")
-	}
+	output(res)
 	return nil
 }
 
