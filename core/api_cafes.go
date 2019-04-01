@@ -95,7 +95,6 @@ func (a *api) getCafes(g *gin.Context) {
 // @Summary Deregisters a cafe
 // @Description Deregisters with a cafe (content will expire based on the cafe's service rules)
 // @Tags cafes
-// @Produce application/json
 // @Param id path string true "cafe id"
 // @Success 204 {string} string "ok"
 // @Failure 500 {string} string "Internal Server Error"
@@ -108,7 +107,7 @@ func (a *api) rmCafes(g *gin.Context) {
 		return
 	}
 
-	g.String(http.StatusNoContent, "ok")
+	g.Status(http.StatusNoContent)
 }
 
 // checkCafeMessages godoc
@@ -116,7 +115,7 @@ func (a *api) rmCafes(g *gin.Context) {
 // @Description Check for messages at all cafes. New messages are downloaded and processed
 // @Description opportunistically.
 // @Tags cafes
-// @Produce application/json
+// @Produce text/plain
 // @Success 200 {string} string "ok"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /cafes/messages [post]

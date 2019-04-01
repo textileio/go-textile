@@ -40,7 +40,7 @@ message BlockViz {
 // FILES //
 
 message Step {
-    string Name = 1;
+    string name = 1;
     Link link   = 2;
 }
 

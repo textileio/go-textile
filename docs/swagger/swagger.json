@@ -536,7 +536,7 @@
             "post": {
                 "description": "Check for messages at all cafes. New messages are downloaded and processed\nopportunistically.",
                 "produces": [
-                    "application/json"
+                    "text/plain"
                 ],
                 "tags": [
                     "cafes"
@@ -601,9 +601,6 @@
             },
             "delete": {
                 "description": "Deregisters with a cafe (content will expire based on the cafe's service rules)",
-                "produces": [
-                    "application/json"
-                ],
                 "tags": [
                     "cafes"
                 ],
@@ -857,9 +854,6 @@
                 "consumes": [
                     "application/json"
                 ],
-                "produces": [
-                    "application/json"
-                ],
                 "tags": [
                     "contacts"
                 ],
@@ -900,9 +894,6 @@
             },
             "delete": {
                 "description": "Removes a known contact",
-                "produces": [
-                    "text/plain"
-                ],
                 "tags": [
                     "contacts"
                 ],
@@ -2282,9 +2273,6 @@
             },
             "put": {
                 "description": "Adds or updates a thread directly, usually from a backup",
-                "produces": [
-                    "application/json"
-                ],
                 "tags": [
                     "threads"
                 ],
@@ -2325,9 +2313,6 @@
             },
             "delete": {
                 "description": "Leaves and removes a thread",
-                "produces": [
-                    "application/json"
-                ],
                 "tags": [
                     "threads"
                 ],
@@ -2475,9 +2460,6 @@
         "/threads/{id}/name": {
             "put": {
                 "description": "Renames a thread. Only initiators can rename a thread.",
-                "produces": [
-                    "application/json"
-                ],
                 "tags": [
                     "threads"
                 ],
@@ -2622,7 +2604,7 @@
             "get": {
                 "description": "Check validity of existing cafe access token",
                 "produces": [
-                    "application/json"
+                    "text/plain"
                 ],
                 "tags": [
                     "tokens"
@@ -2654,9 +2636,6 @@
             },
             "delete": {
                 "description": "Removes an existing cafe token",
-                "produces": [
-                    "application/json"
-                ],
                 "tags": [
                     "tokens"
                 ],
@@ -3292,11 +3271,17 @@
                 "account_peer_count": {
                     "type": "integer"
                 },
+                "address": {
+                    "type": "string"
+                },
                 "contact_count": {
                     "type": "integer"
                 },
-                "file_count": {
+                "files_count": {
                     "type": "integer"
+                },
+                "id": {
+                    "type": "string"
                 },
                 "thread_count": {
                     "type": "integer"
