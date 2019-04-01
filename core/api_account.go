@@ -35,7 +35,7 @@ func (a *api) accountSeed(g *gin.Context) {
 // @Produce application/json
 // @Success 200 {object} pb.Contact "contact"
 // @Failure 400 {string} string "Bad Request"
-// @Router /account/peers [get]
+// @Router /account/contact [get]
 func (a *api) accountContact(g *gin.Context) {
 	pbJSON(g, http.StatusOK, a.node.AccountContact())
 }
