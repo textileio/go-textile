@@ -307,6 +307,9 @@ func confirm(q string) bool {
 	}
 }
 
-func output(value interface{}) {
-	fmt.Println(value)
+func output(val interface{}) {
+	if val.(string) == "" {
+		val = "ok"
+	}
+	fmt.Println(val)
 }

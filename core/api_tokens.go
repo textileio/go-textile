@@ -59,7 +59,7 @@ func (a *api) lsTokens(g *gin.Context) {
 // @Summary Check token validity
 // @Description Check validity of existing cafe access token
 // @Tags tokens
-// @Produce application/json
+// @Produce text/plain
 // @Param token path string true "invite id"
 // @Success 200 {string} string "ok"
 // @Failure 401 {string} string "Unauthorized"
@@ -78,7 +78,6 @@ func (a *api) validateTokens(g *gin.Context) {
 // @Summary Removes a cafe token
 // @Description Removes an existing cafe token
 // @Tags tokens
-// @Produce application/json
 // @Param token path string true "token"
 // @Success 204 {string} string "ok"
 // @Failure 500 {string} string "Internal Server Error"
@@ -89,5 +88,5 @@ func (a *api) rmTokens(g *gin.Context) {
 		a.abort500(g, err)
 		return
 	}
-	g.String(http.StatusNoContent, "ok")
+	g.Status(http.StatusNoContent)
 }
