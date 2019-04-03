@@ -58,12 +58,12 @@ func (m *Mobile) RenameThread(id string, name string) error {
 }
 
 // Thread calls core Thread
-func (m *Mobile) Thread(threadId string) ([]byte, error) {
+func (m *Mobile) Thread(id string) ([]byte, error) {
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
 
-	view, err := m.node.ThreadView(threadId)
+	view, err := m.node.ThreadView(id)
 	if err != nil {
 		return nil, err
 	}

@@ -296,11 +296,7 @@ type commitResult struct {
 }
 
 // commitBlock encrypts a block with thread key (or custom method if provided) and adds it to ipfs
-func (t *Thread) commitBlock(
-	msg proto.Message,
-	mtype pb.Block_BlockType,
-	encrypt func(plaintext []byte) ([]byte, error)) (*commitResult, error) {
-
+func (t *Thread) commitBlock(msg proto.Message, mtype pb.Block_BlockType, encrypt func(plaintext []byte) ([]byte, error)) (*commitResult, error) {
 	header, err := t.newBlockHeader()
 	if err != nil {
 		return nil, err
@@ -344,8 +340,9 @@ func (t *Thread) addBlock(ciphertext []byte) (mh.Multihash, error) {
 	if err != nil {
 		return nil, err
 	}
+	hash := id.Hash().B58String()
 
-	if err := t.cafeOutbox.Add(id.Hash().B58String(), pb.CafeRequest_STORE); err != nil {
+	if err := t.cafeOutbox.Add(hash, pb.CafeRequest_STORE, cafeReqOpt.Group(t.Id)); err != nil {
 		return nil, err
 	}
 
@@ -521,7 +518,7 @@ func (t *Thread) post(commit *commitResult, peers []pb.ThreadPeer) error {
 
 // store adds a store thread request
 func (t *Thread) store() error {
-	return t.cafeOutbox.Add(t.Id, pb.CafeRequest_STORE_THREAD)
+	return t.cafeOutbox.Add(t.Id, pb.CafeRequest_STORE_THREAD, cafeReqOpt.Group(t.Id))
 }
 
 // readable returns whether or not this thread is readable from the

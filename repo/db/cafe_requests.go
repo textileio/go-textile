@@ -27,7 +27,7 @@ func (c *CafeRequestDB) Add(req *pb.CafeRequest) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into cafe_requests(id, peerId, targetId, cafeId, cafe, type, date) values(?,?,?,?,?,?,?)`
+	stm := `insert into cafe_requests(id, peerId, targetId, cafeId, cafe, type, date, size, groupId) values(?,?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -48,6 +48,8 @@ func (c *CafeRequestDB) Add(req *pb.CafeRequest) error {
 		[]byte(cafe),
 		int32(req.Type),
 		util.ProtoNanos(req.Date),
+		req.Size,
+		req.Group,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -91,11 +93,11 @@ func (c *CafeRequestDB) handleQuery(stm string) []pb.CafeRequest {
 		return nil
 	}
 	for rows.Next() {
-		var id, peerId, targetId, cafeId string
+		var id, peerId, targetId, cafeId, groupId string
 		var typeInt int
-		var dateInt int64
+		var dateInt, size int64
 		var cafe []byte
-		if err := rows.Scan(&id, &peerId, &targetId, &cafeId, &cafe, &typeInt, &dateInt); err != nil {
+		if err := rows.Scan(&id, &peerId, &targetId, &cafeId, &cafe, &typeInt, &dateInt, &size, &groupId); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -113,6 +115,8 @@ func (c *CafeRequestDB) handleQuery(stm string) []pb.CafeRequest {
 			Cafe:   mod,
 			Type:   pb.CafeRequest_Type(typeInt),
 			Date:   util.ProtoTs(dateInt),
+			Size:   size,
+			Group:  groupId,
 		})
 	}
 	return list

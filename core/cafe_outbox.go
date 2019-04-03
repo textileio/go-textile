@@ -2,7 +2,7 @@ package core
 
 import (
 	"bytes"
-	"errors"
+	"fmt"
 	"sync"
 
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core"
@@ -21,6 +21,38 @@ import (
 // cafeOutFlushGroupSize is the size of concurrently processed requests
 // note: reqs from this group are batched to each cafe
 const cafeOutFlushGroupSize = 32
+
+type CafeRequestSettings struct {
+	Size  int
+	Group string
+}
+
+type CafeRequestOption func(*CafeRequestSettings)
+
+func (CafeRequestOption) Group(val string) CafeRequestOption {
+	return func(settings *CafeRequestSettings) {
+		settings.Group = val
+	}
+}
+
+func (CafeRequestOption) Size(val int) CafeRequestOption {
+	return func(settings *CafeRequestSettings) {
+		settings.Size = val
+	}
+}
+
+func CafeRequestOptions(opts ...CafeRequestOption) *CafeRequestSettings {
+	options := &CafeRequestSettings{
+		Group: "",
+	}
+
+	for _, opt := range opts {
+		opt(options)
+	}
+	return options
+}
+
+var cafeReqOpt CafeRequestOption
 
 // CafeOutbox queues and processes outbound cafe requests
 type CafeOutbox struct {
@@ -44,20 +76,28 @@ func NewCafeOutbox(
 }
 
 // Add adds a request for each active cafe session
-func (q *CafeOutbox) Add(target string, rtype pb.CafeRequest_Type) error {
-	if rtype == pb.CafeRequest_INBOX {
-		return errors.New("inbox request to own inbox, aborting")
+func (q *CafeOutbox) Add(target string, rtype pb.CafeRequest_Type, opts ...CafeRequestOption) error {
+	pid := q.node().Identity
+	settings := CafeRequestOptions(opts...)
+
+	switch rtype {
+	case pb.CafeRequest_INBOX:
+		return fmt.Errorf("inbox request to own inbox, aborting")
+	case pb.CafeRequest_STORE, pb.CafeRequest_UNSTORE:
+		if settings.Size == 0 {
+			stat, err := ipfs.StatObjectAtPath(q.node(), target)
+			if err != nil {
+				return err
+			}
+			settings.Size = stat.BlockSize
+		}
 	}
 
+	// add a request for each session
 	sessions := q.datastore.CafeSessions().List().Items
-	if len(sessions) == 0 {
-		return nil
-	}
-
-	// for each session, add a req
 	for _, session := range sessions {
 		// all possible request types are for our own peer
-		if err := q.add(q.node().Identity, target, session.Cafe, rtype); err != nil {
+		if err := q.add(pid, target, session.Cafe, rtype, settings); err != nil {
 			return err
 		}
 	}
@@ -75,8 +115,12 @@ func (q *CafeOutbox) InboxRequest(pid peer.ID, env *pb.Envelope, inboxes []*pb.C
 		return err
 	}
 
+	target := hash.B58String()
+	settings := &CafeRequestSettings{
+		Group: target,
+	}
 	for _, inbox := range inboxes {
-		if err := q.add(pid, hash.B58String(), inbox, pb.CafeRequest_INBOX); err != nil {
+		if err := q.add(pid, target, inbox, pb.CafeRequest_INBOX, settings); err != nil {
 			return err
 		}
 	}
@@ -100,15 +144,18 @@ func (q *CafeOutbox) Flush() {
 }
 
 // add queues a single request
-func (q *CafeOutbox) add(pid peer.ID, target string, cafe *pb.Cafe, rtype pb.CafeRequest_Type) error {
+func (q *CafeOutbox) add(pid peer.ID, target string, cafe *pb.Cafe, rtype pb.CafeRequest_Type, settings *CafeRequestSettings) error {
 	log.Debugf("adding cafe %s request for %s to %s: %s",
 		rtype.String(), ipfs.ShortenID(pid.Pretty()), ipfs.ShortenID(cafe.Peer), target)
+
 	return q.datastore.CafeRequests().Add(&pb.CafeRequest{
 		Id:     ksuid.New().String(),
 		Peer:   pid.Pretty(),
 		Target: target,
 		Cafe:   cafe,
 		Type:   rtype,
+		Size:   int64(settings.Size),
+		Group:  settings.Group,
 		Date:   ptypes.TimestampNow(),
 	})
 }
@@ -290,8 +337,9 @@ func (q *CafeOutbox) prepForInbox(pid peer.ID, env *pb.Envelope) (mh.Multihash, 
 	if err != nil {
 		return nil, err
 	}
+	hash := id.Hash().B58String()
 
-	if err := q.Add(id.Hash().B58String(), pb.CafeRequest_STORE); err != nil {
+	if err := q.Add(hash, pb.CafeRequest_STORE, cafeReqOpt.Group(hash)); err != nil {
 		return nil, err
 	}
 

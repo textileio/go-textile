@@ -37,8 +37,10 @@ func TestCafeRequestDB_Add(t *testing.T) {
 			Node:     "v1.0.0",
 			Url:      "https://mycafe.com",
 		},
-		Type: pb.CafeRequest_STORE,
-		Date: ptypes.TimestampNow(),
+		Type:  pb.CafeRequest_STORE,
+		Date:  ptypes.TimestampNow(),
+		Size:  1024,
+		Group: "group",
 	})
 	if err != nil {
 		t.Error(err)
@@ -72,6 +74,7 @@ func TestCafeRequestDB_List(t *testing.T) {
 		Cafe:   cafe,
 		Type:   pb.CafeRequest_STORE_THREAD,
 		Date:   ptypes.TimestampNow(),
+		Group:  "group",
 	})
 	if err != nil {
 		t.Error(err)
@@ -83,6 +86,8 @@ func TestCafeRequestDB_List(t *testing.T) {
 		Cafe:   cafe,
 		Type:   pb.CafeRequest_STORE,
 		Date:   util.ProtoTs(time.Now().Add(time.Minute).UnixNano()),
+		Size:   1024,
+		Group:  "group",
 	})
 	if err != nil {
 		t.Error(err)
@@ -131,8 +136,10 @@ func TestCafeRequestDB_DeleteByCafe(t *testing.T) {
 			Node:     "v1.0.0",
 			Url:      "https://mycafe.com",
 		},
-		Type: pb.CafeRequest_STORE,
-		Date: ptypes.TimestampNow(),
+		Type:  pb.CafeRequest_STORE,
+		Date:  ptypes.TimestampNow(),
+		Size:  1024,
+		Group: "group",
 	})
 	if err != nil {
 		t.Error(err)

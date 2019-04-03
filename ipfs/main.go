@@ -286,6 +286,23 @@ func GetObjectAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
 	return json.Marshal(out)
 }
 
+// StatObjectAtPath returns info about an object
+func StatObjectAtPath(node *core.IpfsNode, pth string) (*iface.ObjectStat, error) {
+	api, err := coreapi.NewCoreAPI(node)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
+	defer cancel()
+
+	ipth, err := iface.ParsePath(pth)
+	if err != nil {
+		return nil, err
+	}
+	return api.Object().Stat(ctx, ipth)
+}
+
 // PinNode pins an ipld node
 func PinNode(node *core.IpfsNode, nd ipld.Node, recursive bool) error {
 	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)

@@ -254,6 +254,8 @@ message CafeRequest {
     string target                  = 3;
     Cafe cafe                      = 4;
     Type type                      = 5;
+    int64 size                     = 7;
+    string group                   = 8;
     google.protobuf.Timestamp date = 6;
 
     enum Type {
