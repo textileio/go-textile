@@ -20,7 +20,7 @@ import (
 // @Tags threads
 // @Accept application/json
 // @Produce application/json
-// @Param dir body pb.Directory true "milled dir (output from mill endpoint)"
+// @Param dir body pb.DirectoryList true "list of milled dirs (output from mill endpoint)"
 // @Param X-Textile-Opts header string false "caption: Caption to add to file(s)" default(caption=)
 // @Success 201 {object} pb.Files "file"
 // @Failure 400 {string} string "Bad Request"
