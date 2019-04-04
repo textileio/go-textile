@@ -22,25 +22,30 @@ import (
 // note: reqs from this group are batched to each cafe
 const cafeOutFlushGroupSize = 32
 
+// CafeRequestSettings for a request
 type CafeRequestSettings struct {
 	Size  int
 	Group string
 }
 
+// CafeRequestOption returns a request setting from an option
 type CafeRequestOption func(*CafeRequestSettings)
 
+// Group sets the request's group field
 func (CafeRequestOption) Group(val string) CafeRequestOption {
 	return func(settings *CafeRequestSettings) {
 		settings.Group = val
 	}
 }
 
+// Size sets the request's size in bytes
 func (CafeRequestOption) Size(val int) CafeRequestOption {
 	return func(settings *CafeRequestSettings) {
 		settings.Size = val
 	}
 }
 
+// CafeRequestOptions returns request settings from options
 func CafeRequestOptions(opts ...CafeRequestOption) *CafeRequestSettings {
 	options := &CafeRequestSettings{
 		Group: "",
@@ -52,7 +57,16 @@ func CafeRequestOptions(opts ...CafeRequestOption) *CafeRequestSettings {
 	return options
 }
 
+// cafeReqOpt is an instance helper for creating request options
 var cafeReqOpt CafeRequestOption
+
+// CafeRequestGroupStat reports the status of a request group
+type CafeRequestGroupStat struct {
+	NumTotal    int
+	NumComplete int
+	SizeTotal   int
+	SizComplete int
+}
 
 // CafeOutbox queues and processes outbound cafe requests
 type CafeOutbox struct {
@@ -104,8 +118,8 @@ func (q *CafeOutbox) Add(target string, rtype pb.CafeRequest_Type, opts ...CafeR
 	return nil
 }
 
-// InboxRequest adds a request for a peer's inbox(es)
-func (q *CafeOutbox) InboxRequest(pid peer.ID, env *pb.Envelope, inboxes []*pb.Cafe) error {
+// AddForInbox adds a request for a peer's inbox(es)
+func (q *CafeOutbox) AddForInbox(pid peer.ID, env *pb.Envelope, inboxes []*pb.Cafe) error {
 	if len(inboxes) == 0 {
 		return nil
 	}
@@ -127,6 +141,33 @@ func (q *CafeOutbox) InboxRequest(pid peer.ID, env *pb.Envelope, inboxes []*pb.C
 	return nil
 }
 
+// List returns a batch of not complete requests
+func (q *CafeOutbox) List(offset string, limit int) *pb.CafeRequestList {
+	return q.datastore.CafeRequests().List(offset, limit)
+}
+
+// Complete marks a single request as complete, deleting the group if all from its group are complete
+func (q *CafeOutbox) Complete(requestId string) error {
+	req := q.datastore.CafeRequests().Get(requestId)
+	if req == nil {
+		return nil
+	}
+	if err := q.datastore.CafeRequests().Complete(requestId); err != nil {
+		return err
+	}
+
+	// see if the group can be removed yet
+	if q.datastore.CafeRequests().CountByGroup(req.Group) == 0 {
+		return q.datastore.CafeRequests().DeleteByGroup(req.Group)
+	}
+	return nil
+}
+
+// StatRequestGroup returns the status of a request group
+func (q *CafeOutbox) StatRequestGroup(group string) *pb.CafeRequestGroupStats {
+	return q.datastore.CafeRequests().StatGroup(group)
+}
+
 // Flush processes pending requests
 func (q *CafeOutbox) Flush() {
 	q.mux.Lock()
@@ -137,7 +178,7 @@ func (q *CafeOutbox) Flush() {
 		return
 	}
 
-	if err := q.batch(q.datastore.CafeRequests().List("", cafeOutFlushGroupSize)); err != nil {
+	if err := q.batch(q.List("", cafeOutFlushGroupSize)); err != nil {
 		log.Errorf("cafe outbox batch error: %s", err)
 		return
 	}
@@ -161,15 +202,15 @@ func (q *CafeOutbox) add(pid peer.ID, target string, cafe *pb.Cafe, rtype pb.Caf
 }
 
 // batch flushes a batch of requests
-func (q *CafeOutbox) batch(reqs []pb.CafeRequest) error {
-	log.Debugf("handling %d cafe requests", len(reqs))
-	if len(reqs) == 0 {
+func (q *CafeOutbox) batch(reqs *pb.CafeRequestList) error {
+	log.Debugf("handling %d cafe requests", len(reqs.Items))
+	if len(reqs.Items) == 0 {
 		return nil
 	}
 
 	// group reqs by cafe
-	groups := make(map[string][]pb.CafeRequest)
-	for _, req := range reqs {
+	groups := make(map[string][]*pb.CafeRequest)
+	for _, req := range reqs.Items {
 		groups[req.Cafe.Peer] = append(groups[req.Cafe.Peer], req)
 	}
 
@@ -183,9 +224,9 @@ func (q *CafeOutbox) batch(reqs []pb.CafeRequest) error {
 			return err
 		}
 		wg.Add(1)
-		go func(cafe peer.ID, reqs []pb.CafeRequest) {
+		go func(cafe peer.ID, reqs []*pb.CafeRequest) {
 			// group by type
-			types := make(map[pb.CafeRequest_Type][]pb.CafeRequest)
+			types := make(map[pb.CafeRequest_Type][]*pb.CafeRequest)
 			for _, req := range reqs {
 				types[req.Type] = append(types[req.Type], req)
 			}
@@ -204,8 +245,8 @@ func (q *CafeOutbox) batch(reqs []pb.CafeRequest) error {
 	wg.Wait()
 
 	// next batch
-	offset := reqs[len(reqs)-1].Id
-	next := q.datastore.CafeRequests().List(offset, cafeOutFlushGroupSize)
+	offset := reqs.Items[len(reqs.Items)-1].Id
+	next := q.List(offset, cafeOutFlushGroupSize)
 
 	var deleted []string
 	for _, id := range toDelete {
@@ -225,7 +266,7 @@ func (q *CafeOutbox) batch(reqs []pb.CafeRequest) error {
 }
 
 // handle handles a group of requests for a single cafe
-func (q *CafeOutbox) handle(reqs []pb.CafeRequest, rtype pb.CafeRequest_Type, cafe peer.ID) ([]string, error) {
+func (q *CafeOutbox) handle(reqs []*pb.CafeRequest, rtype pb.CafeRequest_Type, cafe peer.ID) ([]string, error) {
 	var handled []string
 	var herr error
 	switch rtype {
@@ -288,7 +329,7 @@ func (q *CafeOutbox) handle(reqs []pb.CafeRequest, rtype pb.CafeRequest_Type, ca
 
 	case pb.CafeRequest_UNSTORE_THREAD:
 		for _, req := range reqs {
-			if err := q.service().UnstoreThread(req.Target, cafe); err != nil {
+			if err := q.service().UnstoreThread(req.Target, cafe.Pretty()); err != nil {
 				log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafe.Pretty(), err)
 				herr = err
 				continue
@@ -298,13 +339,7 @@ func (q *CafeOutbox) handle(reqs []pb.CafeRequest, rtype pb.CafeRequest_Type, ca
 
 	case pb.CafeRequest_INBOX:
 		for _, req := range reqs {
-			pid, err := peer.IDB58Decode(req.Peer)
-			if err != nil {
-				herr = err
-				continue
-			}
-
-			if err := q.service().DeliverMessage(req.Target, pid, req.Cafe); err != nil {
+			if err := q.service().DeliverMessage(req.Target, req.Peer, req.Cafe); err != nil {
 				log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafe.Pretty(), err)
 				herr = err
 				continue

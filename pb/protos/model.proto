@@ -257,6 +257,7 @@ message CafeRequest {
     int64 size                     = 7;
     string group                   = 8;
     google.protobuf.Timestamp date = 6;
+    bool complete                  = 9;
 
     enum Type {
         STORE          = 0;
@@ -265,6 +266,21 @@ message CafeRequest {
         UNSTORE_THREAD = 4;
         INBOX          = 2;
     }
+}
+
+message CafeRequestList {
+    repeated CafeRequest items = 1;
+}
+
+message CafeRequestGroupStat {
+    int32 num_total     = 1;
+    int32 num_complete  = 2;
+    int64 size_total    = 3;
+    int64 size_complete = 4;
+}
+
+message CafeRequestGroupStats {
+    map<string, CafeRequestGroupStat> stats = 1;
 }
 
 message CafeMessage {

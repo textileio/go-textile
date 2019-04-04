@@ -149,7 +149,7 @@ func (q *BlockOutbox) handle(pid peer.ID, msg pb.BlockMessage) error {
 			log.Debugf("sending block message for %s to inbox(es)", pid.Pretty())
 
 			// add an inbox request for message delivery
-			if err := q.cafeOutbox.InboxRequest(pid, msg.Env, contact.Inboxes); err != nil {
+			if err := q.cafeOutbox.AddForInbox(pid, msg.Env, contact.Inboxes); err != nil {
 				return err
 			}
 		}

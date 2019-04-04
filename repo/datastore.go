@@ -152,9 +152,14 @@ type CafeSessionStore interface {
 type CafeRequestStore interface {
 	Queryable
 	Add(req *pb.CafeRequest) error
-	List(offset string, limit int) []pb.CafeRequest
+	Get(id string) *pb.CafeRequest
+	List(offset string, limit int) *pb.CafeRequestList
+	CountByGroup(groupId string) int
+	StatGroup(groupId string) *pb.CafeRequestGroupStats
+	Complete(id string) error
 	Delete(id string) error
 	DeleteByCafe(cafeId string) error
+	DeleteByGroup(groupId string) error
 }
 
 type CafeMessageStore interface {
