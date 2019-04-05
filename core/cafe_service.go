@@ -257,11 +257,7 @@ func (h *CafeService) Flush() {
 }
 
 // Store stores (pins) content on a cafe and returns a list of successful cids
-func (h *CafeService) Store(cids *pb.StringList, cafeId string) (*pb.StringList, error) {
-	cafe, err := peer.IDB58Decode(cafeId)
-	if err != nil {
-		return nil, err
-	}
+func (h *CafeService) Store(cids []string, cafe peer.ID) ([]string, error) {
 	var stored []string
 
 	var accessToken string
@@ -317,11 +313,7 @@ loop:
 }
 
 // Unstore unstores (unpins) content on a cafe and returns a list of successful cids
-func (h *CafeService) Unstore(cids *pb.StringList, cafeId string) (*pb.StringList, error) {
-	cafe, err := peer.IDB58Decode(cafeId)
-	if err != nil {
-		return nil, err
-	}
+func (h *CafeService) Unstore(cids []string, cafe peer.ID) ([]string, error) {
 	renv, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_UNSTORE, &pb.CafeUnstore{
 			Token: session.Access,
@@ -340,12 +332,7 @@ func (h *CafeService) Unstore(cids *pb.StringList, cafeId string) (*pb.StringLis
 }
 
 // StoreThread pushes a thread to a cafe backup
-func (h *CafeService) StoreThread(thrd *pb.Thread, cafeId string) error {
-	cafe, err := peer.IDB58Decode(cafeId)
-	if err != nil {
-		return err
-	}
-
+func (h *CafeService) StoreThread(thrd *pb.Thread, cafe peer.ID) error {
 	plaintext, err := proto.Marshal(thrd)
 	if err != nil {
 		return err
@@ -368,11 +355,7 @@ func (h *CafeService) StoreThread(thrd *pb.Thread, cafeId string) error {
 }
 
 // UnstoreThread removes a cafe's thread backup
-func (h *CafeService) UnstoreThread(id string, cafeId string) error {
-	cafe, err := peer.IDB58Decode(cafeId)
-	if err != nil {
-		return err
-	}
+func (h *CafeService) UnstoreThread(id string, cafe peer.ID) error {
 	renv, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_UNSTORE_THREAD, &pb.CafeUnstoreThread{
 			Token: session.Access,
@@ -389,10 +372,10 @@ func (h *CafeService) UnstoreThread(id string, cafeId string) error {
 
 // DeliverMessage delivers a message content id to a peer's cafe inbox
 // TODO: unpin message locally after it's delivered
-func (h *CafeService) DeliverMessage(msgId string, peerId string, cafe *pb.Cafe) error {
+func (h *CafeService) DeliverMessage(mid string, pid peer.ID, cafe *pb.Cafe) error {
 	env, err := h.service.NewEnvelope(pb.Message_CAFE_DELIVER_MESSAGE, &pb.CafeDeliverMessage{
-		Id:     msgId,
-		Client: peerId,
+		Id:     mid,
+		Client: pid.Pretty(),
 	}, nil, false)
 	if err != nil {
 		return err

@@ -241,9 +241,3 @@ message LogLevel {
         DEBUG    = 5;
     }
 }
-
-// PRIMITIVES //
-
-message StringList {
-    repeated string items = 1;
-}
