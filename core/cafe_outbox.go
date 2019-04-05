@@ -22,6 +22,16 @@ import (
 // note: reqs from this group are batched to each cafe
 const cafeOutFlushGroupSize = 32
 
+// cafeReqOpt is an instance helper for creating request options
+var cafeReqOpt CafeRequestOption
+
+// RequestHandler is fullfilled by the layer responsible for cafe network requests
+//   Desktop and Server => CafeService over libp2p
+//   Mobile => Objc and Java SDKs
+type RequestHandler interface {
+	Flush()
+}
+
 // CafeRequestSettings for a request
 type CafeRequestSettings struct {
 	Size  int
@@ -56,9 +66,6 @@ func CafeRequestOptions(opts ...CafeRequestOption) *CafeRequestSettings {
 	}
 	return options
 }
-
-// cafeReqOpt is an instance helper for creating request options
-var cafeReqOpt CafeRequestOption
 
 // CafeRequestGroupStat reports the status of a request group
 type CafeRequestGroupStat struct {
@@ -329,7 +336,7 @@ func (q *CafeOutbox) handle(reqs []*pb.CafeRequest, rtype pb.CafeRequest_Type, c
 
 	case pb.CafeRequest_UNSTORE_THREAD:
 		for _, req := range reqs {
-			if err := q.service().UnstoreThread(req.Target, cafe.Pretty()); err != nil {
+			if err := q.service().UnstoreThread(req.Target, cafe); err != nil {
 				log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafe.Pretty(), err)
 				herr = err
 				continue
@@ -339,7 +346,13 @@ func (q *CafeOutbox) handle(reqs []*pb.CafeRequest, rtype pb.CafeRequest_Type, c
 
 	case pb.CafeRequest_INBOX:
 		for _, req := range reqs {
-			if err := q.service().DeliverMessage(req.Target, req.Peer, req.Cafe); err != nil {
+			pid, err := peer.IDB58Decode(req.Peer)
+			if err != nil {
+				herr = err
+				continue
+			}
+
+			if err := q.service().DeliverMessage(req.Target, pid, req.Cafe); err != nil {
 				log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafe.Pretty(), err)
 				herr = err
 				continue

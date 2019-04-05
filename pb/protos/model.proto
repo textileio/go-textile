@@ -257,7 +257,7 @@ message CafeRequest {
     int64 size                     = 7;
     string group                   = 8;
     google.protobuf.Timestamp date = 6;
-    bool complete                  = 9;
+    Status status                  = 9;
 
     enum Type {
         STORE          = 0;
@@ -265,6 +265,12 @@ message CafeRequest {
         STORE_THREAD   = 1;
         UNSTORE_THREAD = 4;
         INBOX          = 2;
+    }
+
+    enum Status {
+        NEW      = 0;
+        PENDING  = 1;
+        COMPLETE = 2;
     }
 }
 
