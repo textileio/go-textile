@@ -9,13 +9,8 @@ module.exports = {
   webpack: {
     configure: {
       externals: {
-        ed25519: 'ed25519'
+        electron: 'electron'
       }
-      // output: {
-      //   // eslint-disable-next-line no-path-concat
-      //   path: __dirname + '/build',
-      //   publicPath: 'app'
-      // }
     }
   }
 }

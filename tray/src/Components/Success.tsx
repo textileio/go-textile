@@ -1,6 +1,6 @@
 import React from 'react'
 import { Button, Header, Segment, Image } from 'semantic-ui-react'
-import { Fade } from 'react-reveal'
+// import { Fade } from 'react-reveal'
 import { ConnectedComponent, connect } from './ConnectedComponent'
 import { observer } from "mobx-react"
 import { Stores } from '../Stores'
@@ -14,8 +14,8 @@ export default class Onboarding extends ConnectedComponent<RouteComponentProps, 
   render() {
     const { store } = this.stores
     return (
-      <Fade>
-        <Segment raised>
+      // <Fade>
+        <div>
           <Segment basic attached>
             <Image centered size='small' src={AccountsImage} />
             <Header as='h3'>
@@ -33,8 +33,8 @@ export default class Onboarding extends ConnectedComponent<RouteComponentProps, 
           <Button.Group attached='bottom'>
             <Button content='Close' icon='window close' type='button' onClick={this.handleClose} />
           </Button.Group>
-        </Segment>
-      </Fade>
+        </div>
+      // </Fade>
     )
   }
 }

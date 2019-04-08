@@ -7,13 +7,14 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"errors"
 
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/repo/fsrepo"
 	// "github.com/atotto/clipboard"
 	"github.com/pkg/browser"
-	"github.com/asticode/go-astilectron"
+	asti "github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
-	"github.com/asticode/go-astilog"
+	astilog "github.com/asticode/go-astilog"
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/gateway"
@@ -25,8 +26,10 @@ import (
 var (
 	appName = "Textile"
 	debug   = flag.Bool("d", false, "enables debug mode")
-	app     *astilectron.Astilectron
-	window  *astilectron.Window
+	app     *asti.Astilectron
+	window  *asti.Window
+	tray    *asti.Tray
+	isShown = false // TODO: Remove this when we update asticode
 )
 
 var node *core.Textile
@@ -55,7 +58,7 @@ func startNode() error {
 					return
 				}
 				user := node.PeerUser(note.Actor)
-				var uinote = app.NewNotification(&astilectron.NotificationOptions{
+				var uinote = app.NewNotification(&asti.NotificationOptions{
 					Title: note.Subject,
 					Body:  fmt.Sprintf("%s: %s.", user.Name, note.Body),
 					Icon:  fmt.Sprintf("%s/ipfs/%s/0/small/d", gateway.Host.Addr(), user.Avatar),
@@ -73,7 +76,7 @@ func startNode() error {
 				fmt.Println(fmt.Sprintf("%s: %s.", user.Name, note.Body))
 
 				// show notification
-				go func(n *astilectron.Notification) {
+				go func(n *asti.Notification) {
 					if err := n.Create(); err != nil {
 						astilog.Error(err)
 						return
@@ -137,8 +140,7 @@ func initAndStartTextile(mnemonic string, password string) error {
 	}
 
 	wallet := wallet.NewWalletFromRecoveryPhrase(mnemonic)
-	// show first account
-	// TODO: Ask the user for a new password on new account init
+	// start with first account (default is not to use a password)
 	kp, err := wallet.AccountAt(0, "")
 	if err != nil {
 		return err
@@ -181,28 +183,48 @@ func initAndStartTextile(mnemonic string, password string) error {
 	return nil
 }
 
-func start(
-	app *astilectron.Astilectron,
-	windows []*astilectron.Window,
-	_ *astilectron.Menu,
-	t *astilectron.Tray,
-	m *astilectron.Menu) error {
+func computePosition(bounds *asti.RectangleOptions) (int, int, error) {
+	if (bounds != nil) {
+		x := *(bounds.X)
+		y := *(bounds.Y)
+		// Center window horizontally below the tray icon
+  	x = x - (WindowWidth / 2) + 16
+		// Position window 32 pixels vertically below the tray icon
+		y =  y + 32
+		return x, y, nil
+	}
+	return 0, 0, errors.New("invalid bounds object")
+}
+
+func start(a *asti.Astilectron, w []*asti.Window, _ *asti.Menu, t *asti.Tray, _ *asti.Menu) error {
+	tray = t
+	app = a
+	window = w[0]
+	window.Create()
 	// remove the dock icon
 	dock := app.Dock()
 	dock.Hide()
 
-	window = windows[0]
-
-	var i = m.NewItem(&astilectron.MenuItemOptions{
-		Label: astilectron.PtrStr("Quit"),
-		OnClick: func(e astilectron.Event) (deleteListener bool) {
-			stopNode()
-			app.Quit()
-			return
-		},
+	tray.On(asti.EventNameTrayEventClicked, toggleWindow)
+	tray.On(asti.EventNameTrayEventDoubleClicked, toggleWindow)
+	window.On(asti.EventNameWindowEventBlur, func(e asti.Event) (bool) {
+		window.Hide()
+		return false
 	})
-	m.Append(i)
 	return nil
+}
+
+func toggleWindow(e asti.Event) (bool) {
+	if window.IsShown() {
+		window.Hide()
+	} else {
+		window.Show()
+		x, y, err := computePosition(e.Bounds)
+		if (err == nil) {
+			window.Move(x, y)
+		}
+	}
+	return false
 }
 
 func sendData(name string, data map[string]interface{}) {
@@ -211,7 +233,7 @@ func sendData(name string, data map[string]interface{}) {
 }
 
 // handleMessage handles incoming messages from Javascript/Electron
-func handleMessage(w *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
+func handleMessage(w *asti.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
 	case "init":
 		type init struct {
@@ -245,6 +267,11 @@ func handleMessage(w *astilectron.Window, m bootstrap.MessageIn) (interface{}, e
 		if payload.File != "" {
 			browser.OpenFile(payload.File)
 		}
+		return true, nil
+	case "quit":
+		window.Destroy()
+		tray.Destroy()
+		app.Quit()
 		return true, nil
 	default:
 		return nil, nil

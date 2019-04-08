@@ -6,13 +6,9 @@ body, html {
   overflow: hidden;
 }
 
-.titlebar {
-  -webkit-user-select: none;
-  -webkit-app-region: drag;
-}
-
-.titlebar-button {
-  -webkit-app-region: no-drag;
+#root {
+  width: 100vw;
+  height: 100vh;
 }
 
 @font-face {

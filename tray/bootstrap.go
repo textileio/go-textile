@@ -7,6 +7,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+var (
+	WindowWidth int = 300
+)
+
 // bootstrapApp runs bootstrap. Moved to own file so we don't have to see Asset and RestoreAsset highlighed as errors :)
 func bootstrapApp() {
 	if err := bootstrap.Run(bootstrap.Options{
@@ -24,22 +28,21 @@ func bootstrapApp() {
 			Image:   astilectron.PtrStr("resources/assets/tray.png"),
 			Tooltip: astilectron.PtrStr("Textile"),
 		},
-		TrayMenuOptions: []*astilectron.MenuItemOptions{
-			{
-				Type: astilectron.MenuItemTypeSeparator,
-			},
-		},
 		Windows: []*bootstrap.Window{{
 			Homepage: "../index.html",
 			MessageHandler: handleMessage,
 			Options: &astilectron.WindowOptions{
-				Show: astilectron.PtrBool(true),
-				Movable: astilectron.PtrBool(true),
-				Width: astilectron.PtrInt(500),
-				Height: astilectron.PtrInt(500),
-				Focusable: astilectron.PtrBool(true),
-				SkipTaskbar:   astilectron.PtrBool(true),
-				TitleBarStyle: astilectron.TitleBarStyleHidden,
+				Width: astilectron.PtrInt(300),
+				Height: astilectron.PtrInt(450),
+				Show: astilectron.PtrBool(false),
+				Frame: astilectron.PtrBool(false),
+				Fullscreenable: astilectron.PtrBool(false),
+				Transparent: astilectron.PtrBool(true),
+				Movable: astilectron.PtrBool(false),
+				Resizable: astilectron.PtrBool(false),
+				Minimizable: astilectron.PtrBool(false),
+				Maximizable: astilectron.PtrBool(false),
+				SkipTaskbar: astilectron.PtrBool(true),
 			},
 		}},
 	}); err != nil {

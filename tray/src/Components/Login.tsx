@@ -3,7 +3,7 @@ import {
   Button, Header, Segment, Form, TextAreaProps, Message, Icon, Modal, Popup,InputOnChangeData,
   Progress, Input, PopupProps
 } from 'semantic-ui-react'
-import { Slide } from 'react-reveal'
+import { Fade } from 'react-reveal'
 import zxcvbn from 'zxcvbn'
 import { RouteComponentProps } from '@reach/router'
 import QrReader from 'react-qr-reader'
@@ -81,61 +81,68 @@ export default class Login extends ConnectedComponent<RouteComponentProps, Store
     
     const inValid = mnemonic.split(/\b[^\s]+\b/).length < 13
     return (
-      <Slide right opposite>
-        <Segment raised>
-          <Form onSubmit={this.handleSubmit}>
-            <Segment basic attached>
+      <Fade duration={500}>
+      <div>
+          <Icon
+            style={{
+              position: 'absolute', right: '5px', top: '5px', zIndex: '1001'
+            }}
+            link
+            name='arrow left'
+            onClick={() => { this.props.navigate && this.props.navigate('..') }} />
+          <Form onSubmit={this.handleSubmit}
+            style={{ height: '100vh' }}
+          >
+            <Segment basic>
               <Header as='h3'>
                 Enter an existing <BIP39Popup trigger={<span style={{ textDecoration: 'underline' }}>mnemonic passphrase</span>} />
               </Header>
               <Form.TextArea
-                style={{ fontSize: '1.6em' }}
+                style={{ fontSize: '1.2em', padding: '0.2em' }}
                 name='mnemonic'
                 value={mnemonic}
                 onChange={this.handleMnemonicChange}
-                />
+              />
               <Message
                 warning
                 visible={inValid && mnemonic !== ''}
                 header='Must be >12 words long'
                 content={'Your mnemonic must be at least 12 words long.'}
               />
-                <Form.Field>
+              <Form.Field>
                 <label>Use an <PasswordPopup trigger={<span style={{ textDecoration: 'underline' }}>additional password</span>} /> for added security</label>
-                  <Input
-                    name='password'
-                    type={passType}
-                    placeholder='Password...'
-                    value={password}
-                    onChange={this.handlePassChange}
-                    icon={<Icon
-                      name={passType === 'password' ? 'eye' : 'eye slash'}
-                      link
-                      onClick={this.togglePassType}
-                    />}
-                    />
-                  <Progress attached='bottom' indicating value={score || 0} total={4} />
-                </Form.Field>
+                <Input
+                  name='password'
+                  type={passType}
+                  placeholder='Password...'
+                  value={password}
+                  onChange={this.handlePassChange}
+                  icon={<Icon
+                    name={passType === 'password' ? 'eye' : 'eye slash'}
+                    link
+                    onClick={this.togglePassType}
+                  />}
+                />
+                <Progress attached='bottom' indicating value={score || 0} total={4} />
+              </Form.Field>
             </Segment>
-            <Button.Group attached='bottom'>
-              <Button content='Sign-in' icon='sign-in' type='submit' positive disabled={inValid} />
+            <Button.Group fluid style={{ position: 'absolute', bottom: 0 }}>
+              <Button style={{ borderRadius: 0 }} content='Sign-in' icon='sign-in' type='submit' positive disabled={inValid} />
               <Modal
-                trigger={<Button content='Scan' icon='qrcode' type='button' onClick={this.handleQrOpen} />}
+                trigger={
+                  <Button style={{ borderRadius: 0 }} content='Scan' icon='qrcode' type='button' onClick={this.handleQrOpen} />
+                }
                 open={this.state.modalOpen}
                 onClose={this.handleQrClose}
                 size='small'
                 basic
               >
-                <QrReader
-                  onError={this.handleError}
-                  onScan={this.handleScan}
-                  style={{ width: '80%', maxWidth: '500px', margin: '0 auto' }}
-                />
+                <QrReader onError={this.handleError} onScan={this.handleScan} />
               </Modal>
             </Button.Group>
           </Form>
-        </Segment>
-      </Slide>
+      </div>
+      </Fade>
     )
   }
 }

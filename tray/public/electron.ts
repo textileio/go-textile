@@ -1,11 +1,10 @@
-const { app, BrowserWindow, shell, ipcMain, Menu } = require('electron')
-const path = require('path')
+const { app, BrowserWindow, shell, ipcMain, Tray } = require('electron')
+const path  = require('path')
 const isDev = require('electron-is-dev')
 const url = require('url')
 
-// TODO: Add 'deeplink' option to cookiecutter template
-
 let mainWindow
+let tray
 
 const gotTheLock = app.requestSingleInstanceLock()
 if (!gotTheLock) {
@@ -30,18 +29,55 @@ if (!gotTheLock) {
   })
 }
 
+const getWindowPosition = () => {
+  const windowBounds = mainWindow.getBounds()
+  const trayBounds = tray.getBounds()
+
+  // Center window horizontally below the tray icon
+  const x = Math.round(trayBounds.x + (trayBounds.width / 2) - (windowBounds.width / 2))
+
+  // Position window 4 pixels vertically below the tray icon
+  const y = Math.round(trayBounds.y + trayBounds.height + 4)
+
+  return { x: x, y: y }
+}
+
+const createTray = () => {
+  const pathname = path.join(__dirname, 'assets', 'tray.png')
+  tray = new Tray(pathname)
+  tray.on('right-click', toggleWindow)
+  tray.on('double-click', toggleWindow)
+  tray.on('click', toggleWindow)
+}
+
+const showWindow = () => {
+  const position = getWindowPosition()
+  mainWindow.setPosition(position.x, position.y, false)
+  mainWindow.show()
+  mainWindow.focus()
+}
+
+const toggleWindow = () => {
+  if (mainWindow.isVisible()) {
+    mainWindow.hide()
+  } else {
+    showWindow()
+  }
+}
+
 const createWindow = () => {
   mainWindow = new BrowserWindow({
-    backgroundColor: '#F7F7F7',
-    minWidth: 500,
+    width: 300,
+    height: 450,
     show: false,
-    // titleBarStyle: 'hidden',
-    webPreferences: {
-      nodeIntegration: false
-      // preload: path.join(__dirname, '/preload.js')
-    },
-    height: 500,
-    width: 800
+    frame: false,
+    fullscreenable: false,
+    transparent: true,
+    movable: false,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    skipTaskbar: true,
   })
 
   mainWindow.loadURL(isDev ? 'http://localhost:3000' : url.format({
@@ -65,102 +101,35 @@ const createWindow = () => {
       })
   }
 
-  // Protocol handler for windows
-  if (process.platform === 'win32') {
-    // Keep only command line / deep linked arguments
-    console.log(process.argv.slice(1))
-  }
-
   // Emitted when the window is closed.
   mainWindow.on('closed', function () {
     // Dereference the window object, usually you would store windows
     // in an array if your app supports multi windows, this is the time
     // when you should delete the corresponding element.
     mainWindow = null
+    tray = null
   })
 
   mainWindow.once('ready-to-show', () => {
-    mainWindow.show()
-
     ipcMain.on('open-external-window', (event, arg) => {
       shell.openExternal(arg)
     })
   })
 }
 
-const generateMenu = () => {
-  const template = [
-    {
-      label: 'File',
-      submenu: [{ role: 'about' }, { role: 'quit' }]
-    },
-    {
-      label: 'View',
-      submenu: [
-        { role: 'reload' },
-        { role: 'forcereload' },
-        { role: 'toggledevtools' },
-        { type: 'separator' }
-      ]
-    },
-    {
-      role: 'window',
-      submenu: [{ role: 'minimize' }, { role: 'close' }]
-    },
-    {
-      role: 'help',
-      submenu: [
-        {
-          click () {
-            require('electron').shell.openExternal(
-              'https://textile.photos'
-            )
-          },
-          label: 'Learn More'
-        },
-        {
-          click () {
-            require('electron').shell.openExternal(
-              'https://github.com/textileio/photos-desktop/issues'
-            )
-          },
-          label: 'File Issue on GitHub'
-        }
-      ]
-    }
-  ]
-
-  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
-}
-
 app.on('ready', () => {
+  createTray()
   createWindow()
-  generateMenu()
 })
 
 app.on('window-all-closed', () => {
-  // On OS X it is common for applications and their menu bar
-  // to stay active until the user quits explicitly with Cmd + Q
-  if (process.platform !== 'darwin') {
-    app.quit()
-  }
+  app.quit()
 })
 
 app.on('activate', () => {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
   if (mainWindow === null) {
     createWindow()
   }
-})
-
-// Define custom protocol handler. Deep linking works on packaged versions of the application!
-app.setAsDefaultProtocolClient('textile')
-
-// Protocol handler for osx
-app.on('open-url', function (event, url) {
-  event.preventDefault()
-  console.log(url)
 })
 
 ipcMain.on('load-page', (event, arg) => {

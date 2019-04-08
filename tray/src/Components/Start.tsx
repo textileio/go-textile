@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-import { Button, Header, Segment, Image } from 'semantic-ui-react'
+import { Button, Header, Image, Segment } from 'semantic-ui-react'
 import { Fade } from 'react-reveal'
 import { RouteComponentProps } from '@reach/router'
 import SecurityImage from '../Assets/permissions@3x.png'
@@ -9,23 +9,23 @@ export default class Onboarding extends Component<RouteComponentProps> {
   handleLogin = () => this.props.navigate && this.props.navigate('./login')
   render() {
     return (
-      <Fade>
-        <Segment raised>
-          <Segment basic attached>
+      <Fade duration={500}>
+        <div style={{ height: '100vh' }}>
+          <Segment basic>
             <Image centered size='medium' src={SecurityImage} />
             <Header as='h3'>
               Textile is a digital wallet for your personal data.
-            </Header>
+          </Header>
             <p>
               Textile helps you safely and securly store your files, chats, photos, and more.
               Putting control of your data back where it belongs... with you.
-            </p>
+          </p>
           </Segment>
-          <Button.Group attached='bottom'>
-            <Button positive content='Create' icon='key' type='button' onClick={this.handleCreate} />
-            <Button content='Sign-in' icon='sign-in' type='button' onClick={this.handleLogin} />
+          <Button.Group fluid style={{ position: 'absolute', bottom: 0 }}>
+            <Button style={{ borderRadius: 0 }} positive content='Create' icon='key' type='button' onClick={this.handleCreate} />
+            <Button style={{ borderRadius: 0 }} content='Sign-in' icon='sign-in' type='button' onClick={this.handleLogin} />
           </Button.Group>
-        </Segment>
+        </div>
       </Fade>
     )
   }
