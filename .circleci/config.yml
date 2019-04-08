@@ -241,18 +241,19 @@ jobs:
     - restore_cache:
         key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
     - run:
-        name: install deps
+        name: install go deps
         command: |
           dep ensure
           gx install
     - run:
-        name: install astilectron-bundler
+        name: install js deps
         command: |
-          go install ./vendor/github.com/asticode/go-astilectron-bundler/astilectron-bundler
+          cd tray
+          yarn install
     - run:
         name: compile
         command: |
-          cd tray && astilectron-bundler -v -c bundler.linux.json
+          yarn dist -o linux
     - run:
         name: collect artifacts
         command: |
@@ -273,7 +274,7 @@ jobs:
     - store_artifacts:
         path: ~/dist/tray
 
-  build-tray-darwin-windows:
+  build-tray-mac-windows:
     macos:
       xcode: "10.1.0"
     environment:
@@ -306,7 +307,7 @@ jobs:
     - restore_cache:
         key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
     - run:
-        name: install deps
+        name: install go deps
         command: |
           export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
           dep ensure
@@ -324,17 +325,16 @@ jobs:
         command: |
           brew install mingw-w64
     - run:
-        name: install astilectron-bundler
+        name: install js deps
         command: |
-          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
-          go install ./vendor/github.com/asticode/go-astilectron-bundler/astilectron-bundler
+          cd tray
+          yarn install
     - run:
         name: compile
         command: |
           export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
-          cd tray
-          astilectron-bundler -v -c bundler.darwin.json
-          astilectron-bundler -v -c bundler.windows.json
+          yarn dist -o darwin
+          yarn dist -o windows
     - run:
         name: collect artifacts
         command: |
@@ -346,8 +346,8 @@ jobs:
           mkdir -p ${OUT}
           WD=~/go/src/github.com/textileio/go-textile
           cd ${WD}/tray/output/darwin-amd64
-          tar -czvf Textile_${VERSION}_darwin-amd64.tar.gz Textile.app
-          mv Textile_${VERSION}_darwin-amd64.tar.gz ${OUT}/
+          tar -czvf Textile_${VERSION}_mac-amd64.tar.gz Textile.app
+          mv Textile_${VERSION}_mac-amd64.tar.gz ${OUT}/
           cd ${WD}/tray/output/windows-amd64
           zip Textile_${VERSION}_windows-amd64.zip Textile.exe
           mv Textile_${VERSION}_windows-amd64.zip ${OUT}/
@@ -659,7 +659,7 @@ workflows:
             only: master
           tags:
             only: /.*/
-    - build-tray-darwin-windows:
+    - build-tray-mac-windows:
         requires:
         - unit-test
         filters:
@@ -675,7 +675,7 @@ workflows:
         - build-android-aar
         - build-js-types
         - build-tray-linux
-        - build-tray-darwin-windows
+        - build-tray-mac-windows
         filters:
           branches:
             ignore: /.*/
