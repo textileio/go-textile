@@ -331,7 +331,7 @@ func (h *CafeService) Unstore(cids []string, cafe peer.ID) ([]string, error) {
 	return req.Cids, nil
 }
 
-// StoreThread pushes a thread to a cafe backup
+// StoreThread pushes a thread to a cafe snapshot
 func (h *CafeService) StoreThread(thrd *pb.Thread, cafe peer.ID) error {
 	plaintext, err := proto.Marshal(thrd)
 	if err != nil {
@@ -354,7 +354,7 @@ func (h *CafeService) StoreThread(thrd *pb.Thread, cafe peer.ID) error {
 	return nil
 }
 
-// UnstoreThread removes a cafe's thread backup
+// UnstoreThread removes a cafe's thread snapshot
 func (h *CafeService) UnstoreThread(id string, cafe peer.ID) error {
 	renv, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_UNSTORE_THREAD, &pb.CafeUnstoreThread{
@@ -654,10 +654,6 @@ func (h *CafeService) sendObject(id cid.Cid, addr string, token string) error {
 func (h *CafeService) searchLocal(qtype pb.Query_Type, options *pb.QueryOptions, payload *any.Any, local bool) (*queryResultSet, error) {
 	results := newQueryResultSet(options)
 
-	if options.RemoteOnly {
-		return results, nil
-	}
-
 	switch qtype {
 	case pb.Query_THREAD_SNAPSHOTS:
 		q := new(pb.ThreadSnapshotQuery)
@@ -667,18 +663,18 @@ func (h *CafeService) searchLocal(qtype pb.Query_Type, options *pb.QueryOptions,
 
 		clients := h.datastore.CafeClients().ListByAddress(q.Address)
 		for _, client := range clients {
-			backups := h.datastore.CafeClientThreads().ListByClient(client.Id)
-			for _, b := range backups {
+			snapshots := h.datastore.CafeClientThreads().ListByClient(client.Id)
+			for _, s := range snapshots {
 				value, err := proto.Marshal(&pb.CafeClientThread{
-					Id:         b.Id,
-					Client:     b.Client,
-					Ciphertext: b.Ciphertext,
+					Id:         s.Id,
+					Client:     s.Client,
+					Ciphertext: s.Ciphertext,
 				})
 				if err != nil {
 					return nil, err
 				}
 				results.Add(&pb.QueryResult{
-					Id:    b.Id,
+					Id:    s.Id,
 					Local: local,
 					Value: &any.Any{
 						TypeUrl: "/CafeClientThread",
