@@ -16,6 +16,11 @@ type CafeRequestDB struct {
 	modelStore
 }
 
+type groupCount struct {
+	total    int
+	complete int
+}
+
 func NewCafeRequestStore(db *sql.DB, lock *sync.Mutex) repo.CafeRequestStore {
 	return &CafeRequestDB{modelStore{db, lock}}
 }
@@ -80,6 +85,57 @@ func (c *CafeRequestDB) List(offset string, limit int) *pb.CafeRequestList {
 		stm = "select * from cafe_requests order by date asc limit " + strconv.Itoa(limit) + ";"
 	}
 	return c.handleQuery(stm)
+}
+
+func (c *CafeRequestDB) ListCompletedGroups() []string {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	groups := make(map[string]*groupCount)
+
+	total, err := c.db.Query("select Count(*), groupId from cafe_requests group by groupId;")
+	if err != nil {
+		log.Errorf("error in db query: %s", err)
+		return nil
+	}
+	for total.Next() {
+		var count int
+		var groupId string
+		if err := total.Scan(&count, &groupId); err != nil {
+			log.Errorf("error in db scan: %s", err)
+			continue
+		}
+		if groups[groupId] == nil {
+			groups[groupId] = &groupCount{}
+		}
+		groups[groupId].total = count
+	}
+
+	complete, err := c.db.Query("select Count(*), groupId from cafe_requests where status=2 group by groupId;")
+	if err != nil {
+		log.Errorf("error in db query: %s", err)
+		return nil
+	}
+	for complete.Next() {
+		var count int
+		var groupId string
+		if err := total.Scan(&count, &groupId); err != nil {
+			log.Errorf("error in db scan: %s", err)
+			continue
+		}
+		if groups[groupId] == nil {
+			groups[groupId] = &groupCount{}
+		}
+		groups[groupId].complete = count
+	}
+
+	var list []string
+	for g, counts := range groups {
+		if counts.complete == counts.total {
+			list = append(list, g)
+		}
+	}
+
+	return list
 }
 
 func (c *CafeRequestDB) CountByGroup(groupId string) int {

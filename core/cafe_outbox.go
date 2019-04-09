@@ -130,38 +130,6 @@ func (q *CafeOutbox) AddForInbox(pid peer.ID, env *pb.Envelope, inboxes []*pb.Ca
 	return nil
 }
 
-// List returns a batch of requests
-func (q *CafeOutbox) List(offset string, limit int) *pb.CafeRequestList {
-	return q.datastore.CafeRequests().List(offset, limit)
-}
-
-// MarkPending marks a single request as pending
-func (q *CafeOutbox) MarkPending(requestId string) error {
-	return q.datastore.CafeRequests().UpdateStatus(requestId, pb.CafeRequest_PENDING)
-}
-
-// MarkComplete marks a single request as complete, deleting the group if all from its group are complete
-func (q *CafeOutbox) MarkComplete(requestId string) error {
-	req := q.datastore.CafeRequests().Get(requestId)
-	if req == nil {
-		return nil
-	}
-	if err := q.datastore.CafeRequests().UpdateStatus(requestId, pb.CafeRequest_COMPLETE); err != nil {
-		return err
-	}
-
-	// see if the group can be removed yet
-	if q.datastore.CafeRequests().CountByGroup(req.Group) == 0 {
-		return q.datastore.CafeRequests().DeleteByGroup(req.Group)
-	}
-	return nil
-}
-
-// StatRequestGroup returns the status of a request group
-func (q *CafeOutbox) RequestGroupStatus(group string) *pb.CafeRequestGroupStatus {
-	return q.datastore.CafeRequests().GroupStatus(group)
-}
-
 // Flush processes pending requests
 func (q *CafeOutbox) Flush() {
 	if q.handler == nil {

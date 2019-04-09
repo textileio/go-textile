@@ -84,24 +84,29 @@ func (t *Textile) CheckCafeMessages() error {
 	return t.cafeInbox.CheckMessages()
 }
 
-// ListCafeRequests calls CafeOutbox's List
+// ListCafeRequests returns a batch of requests
 func (t *Textile) ListCafeRequests(offset string, limit int) *pb.CafeRequestList {
-	return t.cafeOutbox.List(offset, limit)
+	return t.datastore.CafeRequests().List(offset, limit)
 }
 
-// MarkCafeRequestPending calls CafeOutbox's MarkPending
-func (t *Textile) MarkCafeRequestPending(requestId string) error {
-	return t.cafeOutbox.MarkPending(requestId)
+// UpdateCafeRequestStatus updates a request status
+func (t *Textile) UpdateCafeRequestStatus(requestId string, status pb.CafeRequest_Status) error {
+	return t.datastore.CafeRequests().UpdateStatus(requestId, status)
 }
 
-// MarkCafeRequestComplete calls CafeOutbox's MarkComplete
-func (t *Textile) MarkCafeRequestComplete(requestId string) error {
-	return t.cafeOutbox.MarkComplete(requestId)
-}
-
-// CafeRequestGroupStatus calls CafeOutbox's RequestGroupStatus
+// CafeRequestGroupStatus returns the status of a request group
 func (t *Textile) CafeRequestGroupStatus(group string) *pb.CafeRequestGroupStatus {
-	return t.cafeOutbox.RequestGroupStatus(group)
+	return t.datastore.CafeRequests().GroupStatus(group)
+}
+
+// CleanupCafeRequests deletes request groups that are completely completed
+func (t *Textile) CleanupCafeRequests() error {
+	for _, group := range t.datastore.CafeRequests().ListCompletedGroups() {
+		if err := t.datastore.CafeRequests().DeleteByGroup(group); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // cafesEqual returns whether or not the two cafes are identical

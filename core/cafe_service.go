@@ -70,7 +70,6 @@ type CafeService struct {
 	service         *service.Service
 	datastore       repo.Datastore
 	inbox           *CafeInbox
-	outbox          *CafeOutbox
 	info            *pb.Cafe
 	online          bool
 	open            bool
@@ -85,12 +84,10 @@ func NewCafeService(
 	node func() *core.IpfsNode,
 	datastore repo.Datastore,
 	inbox *CafeInbox,
-	outbox *CafeOutbox,
 ) *CafeService {
 	handler := &CafeService{
 		datastore:       datastore,
 		inbox:           inbox,
-		outbox:          outbox,
 		queryResults:    broadcast.NewBroadcaster(10),
 		inFlightQueries: make(map[string]struct{}),
 	}
@@ -251,7 +248,7 @@ func (h *CafeService) Flush() {
 	defer h.mux.Unlock()
 	log.Debug("flushing cafe outbox")
 
-	if err := h.batchRequests(h.outbox.List("", cafeOutFlushGroupSize)); err != nil {
+	if err := h.batchRequests(h.datastore.CafeRequests().List("", cafeOutFlushGroupSize)); err != nil {
 		log.Errorf("cafe outbox batch error: %s", err)
 		return
 	}
@@ -1432,7 +1429,7 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) error {
 
 	// process each cafe group concurrently
 	var berr error
-	var toDelete []string
+	var toComplete []string
 	wg := sync.WaitGroup{}
 	for cafeId, group := range groups {
 		cafe, err := peer.IDB58Decode(cafeId)
@@ -1452,7 +1449,7 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) error {
 					berr = err
 				}
 				for _, id := range handled {
-					toDelete = append(toDelete, id)
+					toComplete = append(toComplete, id)
 				}
 			}
 			wg.Done()
@@ -1462,17 +1459,23 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) error {
 
 	// next batch
 	offset := reqs.Items[len(reqs.Items)-1].Id
-	next := h.outbox.List(offset, cafeOutFlushGroupSize)
+	next := h.datastore.CafeRequests().List(offset, cafeOutFlushGroupSize)
 
-	var deleted []string
-	for _, id := range toDelete {
-		if err := h.datastore.CafeRequests().Delete(id); err != nil {
-			log.Errorf("failed to delete cafe request %s: %s", id, err)
-			continue
+	var completed []string
+	for _, id := range toComplete {
+		if err := h.datastore.CafeRequests().UpdateStatus(id, pb.CafeRequest_COMPLETE); err != nil {
+			return err
 		}
-		deleted = append(deleted, id)
+		completed = append(completed, id)
 	}
-	log.Debugf("handled %d cafe requests", len(deleted))
+	if len(completed) > 0 {
+		for _, gid := range h.datastore.CafeRequests().ListCompletedGroups() {
+			if err := h.datastore.CafeRequests().DeleteByGroup(gid); err != nil {
+				return err
+			}
+		}
+	}
+	log.Debugf("handled %d cafe requests", len(completed))
 
 	// keep going unless an error occurred
 	if berr == nil {

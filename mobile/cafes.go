@@ -3,6 +3,7 @@ package mobile
 import (
 	"github.com/golang/protobuf/proto"
 	"github.com/textileio/go-textile/core"
+	"github.com/textileio/go-textile/pb"
 )
 
 // RegisterCafe calls core RegisterCafe
@@ -92,17 +93,22 @@ func (m *Mobile) ListCafeRequests(offset string, limit int) ([]byte, error) {
 	return proto.Marshal(m.node.ListCafeRequests(offset, limit))
 }
 
-// MarkCafeRequestPending calls core MarkCafeRequestPending
-func (m *Mobile) MarkCafeRequestPending(requestId string) error {
-	return m.node.MarkCafeRequestPending(requestId)
+// SetCafeRequestPending marks a request as pending
+func (m *Mobile) SetCafeRequestPending(requestId string) error {
+	return m.node.UpdateCafeRequestStatus(requestId, pb.CafeRequest_PENDING)
 }
 
-// MarkCafeRequestComplete calls core MarkCafeRequestComplete
-func (m *Mobile) MarkCafeRequestComplete(requestId string) error {
-	return m.node.MarkCafeRequestComplete(requestId)
+// SetCafeRequestComplete marks a request as complete
+func (m *Mobile) SetCafeRequestComplete(requestId string) error {
+	return m.node.UpdateCafeRequestStatus(requestId, pb.CafeRequest_COMPLETE)
 }
 
 // CafeRequestGroupStatus calls core CafeRequestGroupStatus
 func (m *Mobile) CafeRequestGroupStatus(group string) ([]byte, error) {
 	return proto.Marshal(m.node.CafeRequestGroupStatus(group))
+}
+
+// CleanupCafeRequests calls core CleanupCafeRequests
+func (m *Mobile) CleanupCafeRequests() error {
+	return m.node.CleanupCafeRequests()
 }

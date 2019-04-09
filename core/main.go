@@ -306,8 +306,7 @@ func (t *Textile) Start() error {
 		t.account,
 		t.Ipfs,
 		t.datastore,
-		t.cafeInbox,
-		t.cafeOutbox)
+		t.cafeInbox)
 
 	if t.cafeOutbox.handler == nil {
 		t.cafeOutbox.handler = t.cafe
