@@ -234,6 +234,24 @@ func TestCafeRequestDB_Delete(t *testing.T) {
 	}
 }
 
+func TestCafeRequestDB_DeleteByGroup(t *testing.T) {
+	if err := cafeRequestStore.DeleteByGroup("group2"); err != nil {
+		t.Error(err)
+	}
+	stmt, err := cafeRequestStore.PrepareQuery("select id from cafe_requests where id=?")
+	if err != nil {
+		t.Error(err)
+	}
+	defer stmt.Close()
+	var id string
+	if err := stmt.QueryRow("abcdef").Scan(&id); err == nil {
+		t.Error("delete failed")
+	}
+	if err := stmt.QueryRow("abcdefg").Scan(&id); err == nil {
+		t.Error("delete failed")
+	}
+}
+
 func TestCafeRequestDB_DeleteByCafe(t *testing.T) {
 	setupCafeRequestDB()
 	if err := cafeRequestStore.Add(&pb.CafeRequest{

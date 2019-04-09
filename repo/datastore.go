@@ -159,8 +159,8 @@ type CafeRequestStore interface {
 	GroupStatus(groupId string) *pb.CafeRequestGroupStatus
 	UpdateStatus(id string, status pb.CafeRequest_Status) error
 	Delete(id string) error
-	DeleteByCafe(cafeId string) error
 	DeleteByGroup(groupId string) error
+	DeleteByCafe(cafeId string) error
 }
 
 type CafeMessageStore interface {

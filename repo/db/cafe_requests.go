@@ -164,17 +164,17 @@ func (c *CafeRequestDB) Delete(id string) error {
 	return err
 }
 
-func (c *CafeRequestDB) DeleteByCafe(cafeId string) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	_, err := c.db.Exec("delete from cafe_requests where cafeId=?", cafeId)
-	return err
-}
-
 func (c *CafeRequestDB) DeleteByGroup(groupId string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	_, err := c.db.Exec("delete from cafe_requests where groupId=?", groupId)
+	return err
+}
+
+func (c *CafeRequestDB) DeleteByCafe(cafeId string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("delete from cafe_requests where cafeId=?", cafeId)
 	return err
 }
 
