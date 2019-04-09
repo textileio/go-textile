@@ -118,12 +118,9 @@ func (c *CafeRequestDB) ListCompletedGroups() []string {
 	for complete.Next() {
 		var count int
 		var groupId string
-		if err := total.Scan(&count, &groupId); err != nil {
+		if err := complete.Scan(&count, &groupId); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
-		}
-		if groups[groupId] == nil {
-			groups[groupId] = &groupCount{}
 		}
 		groups[groupId].complete = count
 	}
