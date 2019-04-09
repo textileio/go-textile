@@ -278,15 +278,13 @@ message CafeRequestList {
     repeated CafeRequest items = 1;
 }
 
-message CafeRequestGroupStat {
+message CafeRequestGroupStatus {
     int32 num_total     = 1;
-    int32 num_complete  = 2;
-    int64 size_total    = 3;
-    int64 size_complete = 4;
-}
-
-message CafeRequestGroupStats {
-    map<string, CafeRequestGroupStat> stats = 1;
+    int32 num_pending   = 2;
+    int32 num_complete  = 3;
+    int64 size_total    = 4;
+    int64 size_pending  = 5;
+    int64 size_complete = 6;
 }
 
 message CafeMessage {

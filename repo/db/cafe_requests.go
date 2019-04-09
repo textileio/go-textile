@@ -27,7 +27,7 @@ func (c *CafeRequestDB) Add(req *pb.CafeRequest) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into cafe_requests(id, peerId, targetId, cafeId, cafe, type, date, size, groupId, complete) values(?,?,?,?,?,?,?,?,?,?)`
+	stm := `insert into cafe_requests(id, peerId, targetId, cafeId, cafe, type, date, size, groupId, status) values(?,?,?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -50,7 +50,7 @@ func (c *CafeRequestDB) Add(req *pb.CafeRequest) error {
 		util.ProtoNanos(req.Date),
 		req.Size,
 		req.Group,
-		0,
+		int32(req.Status),
 	)
 	if err != nil {
 		tx.Rollback()
@@ -75,9 +75,9 @@ func (c *CafeRequestDB) List(offset string, limit int) *pb.CafeRequestList {
 	defer c.lock.Unlock()
 	var stm string
 	if offset != "" {
-		stm = "select * from cafe_requests where complete=0 and date>(select date from cafe_requests where id='" + offset + "') order by date asc limit " + strconv.Itoa(limit) + ";"
+		stm = "select * from cafe_requests where date>(select date from cafe_requests where id='" + offset + "') order by date asc limit " + strconv.Itoa(limit) + ";"
 	} else {
-		stm = "select * from cafe_requests where complete=0 order by date asc limit " + strconv.Itoa(limit) + ";"
+		stm = "select * from cafe_requests order by date asc limit " + strconv.Itoa(limit) + ";"
 	}
 	return c.handleQuery(stm)
 }
@@ -91,16 +91,16 @@ func (c *CafeRequestDB) CountByGroup(groupId string) int {
 	return count
 }
 
-func (c *CafeRequestDB) StatGroup(groupId string) *pb.CafeRequestGroupStats {
+func (c *CafeRequestDB) GroupStatus(groupId string) *pb.CafeRequestGroupStatus {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	return c.handleStatQuery("select cafeId,size,complete from cafe_requests where groupId='" + groupId + "' order by date asc;")
+	return c.handleStatQuery("select cafeId, size, status from cafe_requests where groupId='" + groupId + "' order by date asc;")
 }
 
-func (c *CafeRequestDB) Complete(id string) error {
+func (c *CafeRequestDB) UpdateStatus(id string, status pb.CafeRequest_Status) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	_, err := c.db.Exec("update cafe_requests set complete=1 where id=?", id)
+	_, err := c.db.Exec("update cafe_requests set status=? where id=?", int32(status), id)
 	return err
 }
 
@@ -134,10 +134,10 @@ func (c *CafeRequestDB) handleQuery(stm string) *pb.CafeRequestList {
 	}
 	for rows.Next() {
 		var id, peerId, targetId, cafeId, groupId string
-		var typeInt, completeInt int
+		var typeInt, statusInt int
 		var dateInt, size int64
 		var cafe []byte
-		if err := rows.Scan(&id, &peerId, &targetId, &cafeId, &cafe, &typeInt, &dateInt, &size, &groupId, &completeInt); err != nil {
+		if err := rows.Scan(&id, &peerId, &targetId, &cafeId, &cafe, &typeInt, &dateInt, &size, &groupId, &statusInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -148,30 +148,23 @@ func (c *CafeRequestDB) handleQuery(stm string) *pb.CafeRequestList {
 			continue
 		}
 
-		var complete bool
-		if completeInt == 1 {
-			complete = true
-		}
-
 		list.Items = append(list.Items, &pb.CafeRequest{
-			Id:       id,
-			Peer:     peerId,
-			Target:   targetId,
-			Cafe:     mod,
-			Type:     pb.CafeRequest_Type(typeInt),
-			Date:     util.ProtoTs(dateInt),
-			Size:     size,
-			Group:    groupId,
-			Complete: complete,
+			Id:     id,
+			Peer:   peerId,
+			Target: targetId,
+			Cafe:   mod,
+			Type:   pb.CafeRequest_Type(typeInt),
+			Date:   util.ProtoTs(dateInt),
+			Size:   size,
+			Group:  groupId,
+			Status: pb.CafeRequest_Status(statusInt),
 		})
 	}
 	return list
 }
 
-func (c *CafeRequestDB) handleStatQuery(stm string) *pb.CafeRequestGroupStats {
-	stats := &pb.CafeRequestGroupStats{
-		Stats: make(map[string]*pb.CafeRequestGroupStat),
-	}
+func (c *CafeRequestDB) handleStatQuery(stm string) *pb.CafeRequestGroupStatus {
+	group := &pb.CafeRequestGroupStatus{}
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
@@ -180,22 +173,22 @@ func (c *CafeRequestDB) handleStatQuery(stm string) *pb.CafeRequestGroupStats {
 	for rows.Next() {
 		var cafeId string
 		var size int64
-		var complete int
-		if err := rows.Scan(&cafeId, &size, &complete); err != nil {
+		var status int
+		if err := rows.Scan(&cafeId, &size, &status); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
 
-		if _, ok := stats.Stats[cafeId]; !ok {
-			stats.Stats[cafeId] = &pb.CafeRequestGroupStat{}
-		}
-
-		stats.Stats[cafeId].NumTotal += 1
-		stats.Stats[cafeId].SizeTotal += size
-		if complete == 1 {
-			stats.Stats[cafeId].NumComplete += 1
-			stats.Stats[cafeId].SizeComplete += size
+		group.NumTotal += 1
+		group.SizeTotal += size
+		switch status {
+		case 1:
+			group.NumPending += 1
+			group.SizePending += size
+		case 2:
+			group.NumComplete += 1
+			group.SizeComplete += size
 		}
 	}
-	return stats
+	return group
 }

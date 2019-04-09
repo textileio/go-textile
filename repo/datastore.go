@@ -155,8 +155,8 @@ type CafeRequestStore interface {
 	Get(id string) *pb.CafeRequest
 	List(offset string, limit int) *pb.CafeRequestList
 	CountByGroup(groupId string) int
-	StatGroup(groupId string) *pb.CafeRequestGroupStats
-	Complete(id string) error
+	GroupStatus(groupId string) *pb.CafeRequestGroupStatus
+	UpdateStatus(id string, status pb.CafeRequest_Status) error
 	Delete(id string) error
 	DeleteByCafe(cafeId string) error
 	DeleteByGroup(groupId string) error

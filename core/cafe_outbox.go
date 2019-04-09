@@ -153,13 +153,18 @@ func (q *CafeOutbox) List(offset string, limit int) *pb.CafeRequestList {
 	return q.datastore.CafeRequests().List(offset, limit)
 }
 
+// Pending marks a single request as pending
+func (q *CafeOutbox) Pending(requestId string) error {
+	return q.datastore.CafeRequests().UpdateStatus(requestId, pb.CafeRequest_PENDING)
+}
+
 // Complete marks a single request as complete, deleting the group if all from its group are complete
 func (q *CafeOutbox) Complete(requestId string) error {
 	req := q.datastore.CafeRequests().Get(requestId)
 	if req == nil {
 		return nil
 	}
-	if err := q.datastore.CafeRequests().Complete(requestId); err != nil {
+	if err := q.datastore.CafeRequests().UpdateStatus(requestId, pb.CafeRequest_COMPLETE); err != nil {
 		return err
 	}
 
@@ -171,8 +176,8 @@ func (q *CafeOutbox) Complete(requestId string) error {
 }
 
 // StatRequestGroup returns the status of a request group
-func (q *CafeOutbox) StatRequestGroup(group string) *pb.CafeRequestGroupStats {
-	return q.datastore.CafeRequests().StatGroup(group)
+func (q *CafeOutbox) RequestGroupStatus(group string) *pb.CafeRequestGroupStatus {
+	return q.datastore.CafeRequests().GroupStatus(group)
 }
 
 // Flush processes pending requests
