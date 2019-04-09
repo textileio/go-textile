@@ -105,16 +105,21 @@ func (t *Textile) search(query *pb.Query) (<-chan *pb.QueryResult, <-chan error,
 				close(ch)
 			}
 		}()
+		results := newQueryResultSet(query.Options)
 
 		// search local
-		results, err := t.cafe.searchLocal(query.Type, query.Options, query.Payload, true)
-		if err != nil {
-			errCh <- err
-			return
+		if !query.Options.RemoteOnly {
+			var err error
+			results, err = t.cafe.searchLocal(query.Type, query.Options, query.Payload, true)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			for _, res := range results.items {
+				localCh <- res
+			}
 		}
-		for _, res := range results.items {
-			localCh <- res
-		}
+
 		if query.Options.LocalOnly || results.Full() {
 			return
 		}
