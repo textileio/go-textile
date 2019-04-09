@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"sync"
 	"time"
 
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core"
@@ -50,6 +51,10 @@ const defaultQueryWaitSeconds = 5
 // defaultQueryResultsLimit is a query request's default results limit
 const defaultQueryResultsLimit = 5
 
+// cafeOutFlushGroupSize is the size of concurrently processed requests
+// note: reqs from this group are batched to each cafe
+const cafeOutFlushGroupSize = 32
+
 // validation errors
 const (
 	errInvalidAddress = "invalid address"
@@ -65,11 +70,13 @@ type CafeService struct {
 	service         *service.Service
 	datastore       repo.Datastore
 	inbox           *CafeInbox
+	outbox          *CafeOutbox
 	info            *pb.Cafe
 	online          bool
 	open            bool
 	queryResults    *broadcast.Broadcaster
 	inFlightQueries map[string]struct{}
+	mux             sync.Mutex
 }
 
 // NewCafeService returns a new threads service
@@ -78,10 +85,12 @@ func NewCafeService(
 	node func() *core.IpfsNode,
 	datastore repo.Datastore,
 	inbox *CafeInbox,
+	outbox *CafeOutbox,
 ) *CafeService {
 	handler := &CafeService{
 		datastore:       datastore,
 		inbox:           inbox,
+		outbox:          outbox,
 		queryResults:    broadcast.NewBroadcaster(10),
 		inFlightQueries: make(map[string]struct{}),
 	}
@@ -238,151 +247,14 @@ func (h *CafeService) Deregister(cafe peer.ID) error {
 
 // Flush begins handling requests recursively
 func (h *CafeService) Flush() {
-	// need access to the outbox here
+	h.mux.Lock()
+	defer h.mux.Unlock()
+	log.Debug("flushing cafe outbox")
 
-	/*
-		q.mux.Lock()
-		defer q.mux.Unlock()
-		log.Debug("flushing cafe outbox")
-
-		if q.service() == nil {
-			return
-		}
-
-		if err := q.batch(q.List("", cafeOutFlushGroupSize)); err != nil {
-			log.Errorf("cafe outbox batch error: %s", err)
-			return
-		}
-	*/
-}
-
-// Store stores (pins) content on a cafe and returns a list of successful cids
-func (h *CafeService) Store(cids []string, cafe peer.ID) ([]string, error) {
-	var stored []string
-
-	var accessToken string
-	var addr string
-	renv, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
-		store := &pb.CafeStore{
-			Token: session.Access,
-			Cids:  cids,
-		}
-		accessToken = session.Access
-		addr = getCafeHTTPAddr(session)
-		return h.service.NewEnvelope(pb.Message_CAFE_STORE, store, nil, false)
-	})
-	if err != nil {
-		return stored, err
+	if err := h.batchRequests(h.outbox.List("", cafeOutFlushGroupSize)); err != nil {
+		log.Errorf("cafe outbox batch error: %s", err)
+		return
 	}
-
-	// unpack response as a request list of cids the cafe is able/willing to store
-	req := new(pb.CafeObjectList)
-	if err := ptypes.UnmarshalAny(renv.Message.Payload, req); err != nil {
-		return stored, err
-	}
-	if len(req.Cids) == 0 {
-		log.Debugf("peer %s requested zero objects", cafe.Pretty())
-		return cids, nil
-	}
-
-	// include not-requested (already stored) cids in result
-loop:
-	for _, i := range cids {
-		for _, j := range req.Cids {
-			if j == i {
-				continue loop
-			}
-		}
-		stored = append(stored, i)
-	}
-
-	log.Debugf("sending %d objects to %s", len(req.Cids), cafe.Pretty())
-
-	// send each object
-	for _, id := range req.Cids {
-		decoded, err := cid.Decode(id)
-		if err != nil {
-			return stored, err
-		}
-		if err := h.sendObject(decoded, addr, accessToken); err != nil {
-			return stored, err
-		}
-		stored = append(stored, id)
-	}
-	return stored, nil
-}
-
-// Unstore unstores (unpins) content on a cafe and returns a list of successful cids
-func (h *CafeService) Unstore(cids []string, cafe peer.ID) ([]string, error) {
-	renv, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
-		return h.service.NewEnvelope(pb.Message_CAFE_UNSTORE, &pb.CafeUnstore{
-			Token: session.Access,
-			Cids:  cids,
-		}, nil, false)
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	req := new(pb.CafeUnstoreAck)
-	if err := ptypes.UnmarshalAny(renv.Message.Payload, req); err != nil {
-		return nil, err
-	}
-	return req.Cids, nil
-}
-
-// StoreThread pushes a thread to a cafe snapshot
-func (h *CafeService) StoreThread(thrd *pb.Thread, cafe peer.ID) error {
-	plaintext, err := proto.Marshal(thrd)
-	if err != nil {
-		return err
-	}
-	ciphertext, err := h.service.Account.Encrypt(plaintext)
-	if err != nil {
-		return err
-	}
-
-	if _, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
-		return h.service.NewEnvelope(pb.Message_CAFE_STORE_THREAD, &pb.CafeStoreThread{
-			Token:      session.Access,
-			Id:         thrd.Id,
-			Ciphertext: ciphertext,
-		}, nil, false)
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
-// UnstoreThread removes a cafe's thread snapshot
-func (h *CafeService) UnstoreThread(id string, cafe peer.ID) error {
-	renv, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
-		return h.service.NewEnvelope(pb.Message_CAFE_UNSTORE_THREAD, &pb.CafeUnstoreThread{
-			Token: session.Access,
-			Id:    id,
-		}, nil, false)
-	})
-	if err != nil {
-		return err
-	}
-
-	req := new(pb.CafeUnstoreThreadAck)
-	return ptypes.UnmarshalAny(renv.Message.Payload, req)
-}
-
-// DeliverMessage delivers a message content id to a peer's cafe inbox
-// TODO: unpin message locally after it's delivered
-func (h *CafeService) DeliverMessage(mid string, pid peer.ID, cafe *pb.Cafe) error {
-	env, err := h.service.NewEnvelope(pb.Message_CAFE_DELIVER_MESSAGE, &pb.CafeDeliverMessage{
-		Id:     mid,
-		Client: pid.Pretty(),
-	}, nil, false)
-	if err != nil {
-		return err
-	}
-
-	addr := fmt.Sprintf("%s/cafe/%s/service", cafe.Url, cafe.Api)
-	return h.service.SendHTTPMessage(addr, env)
 }
 
 // CheckMessages asks each session's inbox for new messages
@@ -1568,4 +1440,289 @@ func queryDefaults(query *pb.Query) *pb.Query {
 	}
 
 	return query
+}
+
+// batchRequests flushes a batch of requests
+func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) error {
+	log.Debugf("handling %d cafe requests", len(reqs.Items))
+	if len(reqs.Items) == 0 {
+		return nil
+	}
+
+	// group reqs by cafe
+	groups := make(map[string][]*pb.CafeRequest)
+	for _, req := range reqs.Items {
+		groups[req.Cafe.Peer] = append(groups[req.Cafe.Peer], req)
+	}
+
+	// process each cafe group concurrently
+	var berr error
+	var toDelete []string
+	wg := sync.WaitGroup{}
+	for cafeId, group := range groups {
+		cafe, err := peer.IDB58Decode(cafeId)
+		if err != nil {
+			return err
+		}
+		wg.Add(1)
+		go func(cafe peer.ID, reqs []*pb.CafeRequest) {
+			// group by type
+			types := make(map[pb.CafeRequest_Type][]*pb.CafeRequest)
+			for _, req := range reqs {
+				types[req.Type] = append(types[req.Type], req)
+			}
+			for t, group := range types {
+				handled, err := h.handleRequest(group, t, cafe)
+				if err != nil {
+					berr = err
+				}
+				for _, id := range handled {
+					toDelete = append(toDelete, id)
+				}
+			}
+			wg.Done()
+		}(cafe, group)
+	}
+	wg.Wait()
+
+	// next batch
+	offset := reqs.Items[len(reqs.Items)-1].Id
+	next := h.outbox.List(offset, cafeOutFlushGroupSize)
+
+	var deleted []string
+	for _, id := range toDelete {
+		if err := h.datastore.CafeRequests().Delete(id); err != nil {
+			log.Errorf("failed to delete cafe request %s: %s", id, err)
+			continue
+		}
+		deleted = append(deleted, id)
+	}
+	log.Debugf("handled %d cafe requests", len(deleted))
+
+	// keep going unless an error occurred
+	if berr == nil {
+		return h.batchRequests(next)
+	}
+	return berr
+}
+
+// handleRequest handles a group of requests for a single cafe
+func (h *CafeService) handleRequest(reqs []*pb.CafeRequest, rtype pb.CafeRequest_Type, cafe peer.ID) ([]string, error) {
+	var handled []string
+	var herr error
+	switch rtype {
+
+	// store requests are handled in bulk
+	case pb.CafeRequest_STORE:
+		var cids []string
+		for _, req := range reqs {
+			cids = append(cids, req.Target)
+		}
+
+		stored, err := h.store(cids, cafe)
+		for _, s := range stored {
+			for _, r := range reqs {
+				if r.Target == s {
+					handled = append(handled, r.Id)
+				}
+			}
+		}
+		if err != nil {
+			log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafe.Pretty(), err)
+			herr = err
+		}
+
+	case pb.CafeRequest_UNSTORE:
+		var cids []string
+		for _, req := range reqs {
+			cids = append(cids, req.Target)
+		}
+
+		unstored, err := h.unstore(cids, cafe)
+		for _, u := range unstored {
+			for _, r := range reqs {
+				if r.Target == u {
+					handled = append(handled, r.Id)
+				}
+			}
+		}
+		if err != nil {
+			log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafe.Pretty(), err)
+			herr = err
+		}
+
+	case pb.CafeRequest_STORE_THREAD:
+		for _, req := range reqs {
+			thrd := h.datastore.Threads().Get(req.Target)
+			if thrd == nil {
+				log.Warningf("could not find thread: %s", req.Target)
+				handled = append(handled, req.Id)
+				continue
+			}
+
+			if err := h.storeThread(thrd, cafe); err != nil {
+				log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafe.Pretty(), err)
+				herr = err
+				continue
+			}
+			handled = append(handled, req.Id)
+		}
+
+	case pb.CafeRequest_UNSTORE_THREAD:
+		for _, req := range reqs {
+			if err := h.unstoreThread(req.Target, cafe); err != nil {
+				log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafe.Pretty(), err)
+				herr = err
+				continue
+			}
+			handled = append(handled, req.Id)
+		}
+
+	case pb.CafeRequest_INBOX:
+		for _, req := range reqs {
+			pid, err := peer.IDB58Decode(req.Peer)
+			if err != nil {
+				herr = err
+				continue
+			}
+
+			if err := h.deliverMessage(req.Target, pid, req.Cafe); err != nil {
+				log.Errorf("cafe %s request to %s failed: %s", rtype.String(), cafe.Pretty(), err)
+				herr = err
+				continue
+			}
+			handled = append(handled, req.Id)
+		}
+
+	}
+	return handled, herr
+}
+
+// store stores (pins) content on a cafe and returns a list of successful cids
+func (h *CafeService) store(cids []string, cafe peer.ID) ([]string, error) {
+	var stored []string
+
+	var accessToken string
+	var addr string
+	renv, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
+		store := &pb.CafeStore{
+			Token: session.Access,
+			Cids:  cids,
+		}
+		accessToken = session.Access
+		addr = getCafeHTTPAddr(session)
+		return h.service.NewEnvelope(pb.Message_CAFE_STORE, store, nil, false)
+	})
+	if err != nil {
+		return stored, err
+	}
+
+	// unpack response as a request list of cids the cafe is able/willing to store
+	req := new(pb.CafeObjectList)
+	if err := ptypes.UnmarshalAny(renv.Message.Payload, req); err != nil {
+		return stored, err
+	}
+	if len(req.Cids) == 0 {
+		log.Debugf("peer %s requested zero objects", cafe.Pretty())
+		return cids, nil
+	}
+
+	// include not-requested (already stored) cids in result
+loop:
+	for _, i := range cids {
+		for _, j := range req.Cids {
+			if j == i {
+				continue loop
+			}
+		}
+		stored = append(stored, i)
+	}
+
+	log.Debugf("sending %d objects to %s", len(req.Cids), cafe.Pretty())
+
+	// send each object
+	for _, id := range req.Cids {
+		decoded, err := cid.Decode(id)
+		if err != nil {
+			return stored, err
+		}
+		if err := h.sendObject(decoded, addr, accessToken); err != nil {
+			return stored, err
+		}
+		stored = append(stored, id)
+	}
+	return stored, nil
+}
+
+// unstore unstores (unpins) content on a cafe and returns a list of successful cids
+func (h *CafeService) unstore(cids []string, cafe peer.ID) ([]string, error) {
+	renv, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
+		return h.service.NewEnvelope(pb.Message_CAFE_UNSTORE, &pb.CafeUnstore{
+			Token: session.Access,
+			Cids:  cids,
+		}, nil, false)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	req := new(pb.CafeUnstoreAck)
+	if err := ptypes.UnmarshalAny(renv.Message.Payload, req); err != nil {
+		return nil, err
+	}
+	return req.Cids, nil
+}
+
+// storeThread pushes a thread to a cafe snapshot
+func (h *CafeService) storeThread(thrd *pb.Thread, cafe peer.ID) error {
+	plaintext, err := proto.Marshal(thrd)
+	if err != nil {
+		return err
+	}
+	ciphertext, err := h.service.Account.Encrypt(plaintext)
+	if err != nil {
+		return err
+	}
+
+	if _, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
+		return h.service.NewEnvelope(pb.Message_CAFE_STORE_THREAD, &pb.CafeStoreThread{
+			Token:      session.Access,
+			Id:         thrd.Id,
+			Ciphertext: ciphertext,
+		}, nil, false)
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+// unstoreThread removes a cafe's thread snapshot
+func (h *CafeService) unstoreThread(id string, cafe peer.ID) error {
+	renv, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
+		return h.service.NewEnvelope(pb.Message_CAFE_UNSTORE_THREAD, &pb.CafeUnstoreThread{
+			Token: session.Access,
+			Id:    id,
+		}, nil, false)
+	})
+	if err != nil {
+		return err
+	}
+
+	req := new(pb.CafeUnstoreThreadAck)
+	return ptypes.UnmarshalAny(renv.Message.Payload, req)
+}
+
+// deliverMessage delivers a message content id to a peer's cafe inbox
+// TODO: unpin message locally after it's delivered
+func (h *CafeService) deliverMessage(mid string, pid peer.ID, cafe *pb.Cafe) error {
+	env, err := h.service.NewEnvelope(pb.Message_CAFE_DELIVER_MESSAGE, &pb.CafeDeliverMessage{
+		Id:     mid,
+		Client: pid.Pretty(),
+	}, nil, false)
+	if err != nil {
+		return err
+	}
+
+	addr := fmt.Sprintf("%s/cafe/%s/service", cafe.Url, cafe.Api)
+	return h.service.SendHTTPMessage(addr, env)
 }

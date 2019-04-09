@@ -72,35 +72,37 @@ type MigrateConfig struct {
 
 // RunConfig is used to define run options for a textile node
 type RunConfig struct {
-	PinCode  string
-	RepoPath string
-	Debug    bool
+	PinCode           string
+	RepoPath          string
+	CafeOutboxHandler CafeOutboxHandler
+	Debug             bool
 }
 
 // Textile is the main Textile node structure
 type Textile struct {
-	context       oldcmds.Context
-	repoPath      string
-	config        *config.Config
-	account       *keypair.Full
-	cancel        context.CancelFunc
-	node          *core.IpfsNode
-	datastore     repo.Datastore
-	started       bool
-	loadedThreads []*Thread
-	online        chan struct{}
-	done          chan struct{}
-	updates       chan *pb.WalletUpdate
-	threadUpdates *broadcast.Broadcaster
-	notifications chan *pb.Notification
-	threads       *ThreadsService
-	blockOutbox   *BlockOutbox
-	cafe          *CafeService
-	cafeOutbox    *CafeOutbox
-	cafeInbox     *CafeInbox
-	cancelSync    *broadcast.Broadcaster
-	mux           sync.Mutex
-	writer        io.Writer
+	context           oldcmds.Context
+	repoPath          string
+	config            *config.Config
+	account           *keypair.Full
+	cancel            context.CancelFunc
+	node              *core.IpfsNode
+	datastore         repo.Datastore
+	started           bool
+	loadedThreads     []*Thread
+	online            chan struct{}
+	done              chan struct{}
+	updates           chan *pb.WalletUpdate
+	threadUpdates     *broadcast.Broadcaster
+	notifications     chan *pb.Notification
+	threads           *ThreadsService
+	blockOutbox       *BlockOutbox
+	cafe              *CafeService
+	cafeOutbox        *CafeOutbox
+	cafeOutboxHandler CafeOutboxHandler
+	cafeInbox         *CafeInbox
+	cancelSync        *broadcast.Broadcaster
+	mux               sync.Mutex
+	writer            io.Writer
 }
 
 // common errors
@@ -207,10 +209,11 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 	removeLocks(conf.RepoPath)
 
 	node := &Textile{
-		repoPath:      conf.RepoPath,
-		updates:       make(chan *pb.WalletUpdate, 10),
-		threadUpdates: broadcast.NewBroadcaster(10),
-		notifications: make(chan *pb.Notification, 10),
+		repoPath:          conf.RepoPath,
+		updates:           make(chan *pb.WalletUpdate, 10),
+		threadUpdates:     broadcast.NewBroadcaster(10),
+		notifications:     make(chan *pb.Notification, 10),
+		cafeOutboxHandler: conf.CafeOutboxHandler,
 	}
 
 	var err error
@@ -280,7 +283,10 @@ func (t *Textile) Start() error {
 		t.threadsService,
 		t.Ipfs,
 		t.datastore)
-	t.cafeOutbox = NewCafeOutbox(t.cafeService, t.Ipfs, t.datastore)
+	t.cafeOutbox = NewCafeOutbox(
+		t.Ipfs,
+		t.datastore,
+		t.cafeOutboxHandler)
 	t.blockOutbox = NewBlockOutbox(
 		t.threadsService,
 		t.Ipfs,
@@ -300,7 +306,12 @@ func (t *Textile) Start() error {
 		t.account,
 		t.Ipfs,
 		t.datastore,
-		t.cafeInbox)
+		t.cafeInbox,
+		t.cafeOutbox)
+
+	if t.cafeOutbox.handler == nil {
+		t.cafeOutbox.handler = t.cafe
+	}
 
 	// start the ipfs node
 	log.Debug("creating an ipfs node...")
