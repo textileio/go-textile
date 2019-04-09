@@ -130,7 +130,7 @@ func (c *CafeRequestDB) handleQuery(stm string) *pb.CafeRequestList {
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
-		return nil
+		return list
 	}
 	for rows.Next() {
 		var id, peerId, targetId, cafeId, groupId string
@@ -168,7 +168,7 @@ func (c *CafeRequestDB) handleStatQuery(stm string) *pb.CafeRequestGroupStatus {
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
-		return nil
+		return group
 	}
 	for rows.Next() {
 		var cafeId string

@@ -86,3 +86,23 @@ func (m *Mobile) CheckCafeMessages() error {
 
 	return m.node.CheckCafeMessages()
 }
+
+// ListCafeRequests calls core ListCafeRequests
+func (m *Mobile) ListCafeRequests(offset string, limit int) ([]byte, error) {
+	return proto.Marshal(m.node.ListCafeRequests(offset, limit))
+}
+
+// MarkCafeRequestPending calls core MarkCafeRequestPending
+func (m *Mobile) MarkCafeRequestPending(requestId string) error {
+	return m.node.MarkCafeRequestPending(requestId)
+}
+
+// MarkCafeRequestComplete calls core MarkCafeRequestComplete
+func (m *Mobile) MarkCafeRequestComplete(requestId string) error {
+	return m.node.MarkCafeRequestComplete(requestId)
+}
+
+// CafeRequestGroupStatus calls core CafeRequestGroupStatus
+func (m *Mobile) CafeRequestGroupStatus(group string) ([]byte, error) {
+	return proto.Marshal(m.node.CafeRequestGroupStatus(group))
+}

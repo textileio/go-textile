@@ -1417,31 +1417,6 @@ func (h *CafeService) setAddrs(conf *config.Config, swarmPorts config.SwarmPorts
 	}
 }
 
-// queryDefaults ensures the query is within the expected bounds
-func queryDefaults(query *pb.Query) *pb.Query {
-	if query.Options == nil {
-		query.Options = &pb.QueryOptions{
-			LocalOnly:  false,
-			RemoteOnly: false,
-			Limit:      defaultQueryResultsLimit,
-			Wait:       defaultQueryWaitSeconds,
-			Filter:     pb.QueryOptions_NO_FILTER,
-		}
-	}
-
-	if query.Options.Limit <= 0 {
-		query.Options.Limit = math.MaxInt32
-	}
-
-	if query.Options.Wait <= 0 {
-		query.Options.Wait = defaultQueryWaitSeconds
-	} else if query.Options.Wait > maxQueryWaitSeconds {
-		query.Options.Wait = maxQueryWaitSeconds
-	}
-
-	return query
-}
-
 // batchRequests flushes a batch of requests
 func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) error {
 	log.Debugf("handling %d cafe requests", len(reqs.Items))
@@ -1725,4 +1700,29 @@ func (h *CafeService) deliverMessage(mid string, pid peer.ID, cafe *pb.Cafe) err
 
 	addr := fmt.Sprintf("%s/cafe/%s/service", cafe.Url, cafe.Api)
 	return h.service.SendHTTPMessage(addr, env)
+}
+
+// queryDefaults ensures the query is within the expected bounds
+func queryDefaults(query *pb.Query) *pb.Query {
+	if query.Options == nil {
+		query.Options = &pb.QueryOptions{
+			LocalOnly:  false,
+			RemoteOnly: false,
+			Limit:      defaultQueryResultsLimit,
+			Wait:       defaultQueryWaitSeconds,
+			Filter:     pb.QueryOptions_NO_FILTER,
+		}
+	}
+
+	if query.Options.Limit <= 0 {
+		query.Options.Limit = math.MaxInt32
+	}
+
+	if query.Options.Wait <= 0 {
+		query.Options.Wait = defaultQueryWaitSeconds
+	} else if query.Options.Wait > maxQueryWaitSeconds {
+		query.Options.Wait = maxQueryWaitSeconds
+	}
+
+	return query
 }

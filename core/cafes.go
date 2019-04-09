@@ -84,6 +84,26 @@ func (t *Textile) CheckCafeMessages() error {
 	return t.cafeInbox.CheckMessages()
 }
 
+// ListCafeRequests calls CafeOutbox's List
+func (t *Textile) ListCafeRequests(offset string, limit int) *pb.CafeRequestList {
+	return t.cafeOutbox.List(offset, limit)
+}
+
+// MarkCafeRequestPending calls CafeOutbox's MarkPending
+func (t *Textile) MarkCafeRequestPending(requestId string) error {
+	return t.cafeOutbox.MarkPending(requestId)
+}
+
+// MarkCafeRequestComplete calls CafeOutbox's MarkComplete
+func (t *Textile) MarkCafeRequestComplete(requestId string) error {
+	return t.cafeOutbox.MarkComplete(requestId)
+}
+
+// CafeRequestGroupStatus calls CafeOutbox's RequestGroupStatus
+func (t *Textile) CafeRequestGroupStatus(group string) *pb.CafeRequestGroupStatus {
+	return t.cafeOutbox.RequestGroupStatus(group)
+}
+
 // cafesEqual returns whether or not the two cafes are identical
 // Note: swarms are allowed to be in different order and still be "equal"
 func cafesEqual(a *pb.Cafe, b *pb.Cafe) bool {

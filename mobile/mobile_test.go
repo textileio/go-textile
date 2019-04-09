@@ -3,7 +3,6 @@ package mobile_test
 import (
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -15,6 +14,12 @@ import (
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/util"
 )
+
+type TestHandler struct{}
+
+func (th *TestHandler) Flush() {
+	fmt.Println("=== MOBILE FLUSH CALLED")
+}
 
 type TestMessenger struct{}
 
@@ -200,7 +205,8 @@ func TestMigrateRepo(t *testing.T) {
 
 func TestNewTextile(t *testing.T) {
 	config := &RunConfig{
-		RepoPath: repoPath1,
+		RepoPath:          repoPath1,
+		CafeOutboxHandler: &TestHandler{},
 	}
 	var err error
 	mobile1, err = NewTextile(config, &TestMessenger{})
@@ -211,7 +217,8 @@ func TestNewTextile(t *testing.T) {
 
 func TestNewTextileAgain(t *testing.T) {
 	config := &RunConfig{
-		RepoPath: repoPath1,
+		RepoPath:          repoPath1,
+		CafeOutboxHandler: &TestHandler{},
 	}
 	if _, err := NewTextile(config, &TestMessenger{}); err != nil {
 		t.Errorf("create mobile node failed: %s", err)
@@ -955,7 +962,10 @@ func createAndStartMobile(repoPath string, waitForOnline bool) (*Mobile, error) 
 		return nil, err
 	}
 
-	mobile, err := NewTextile(&RunConfig{RepoPath: repoPath}, &TestMessenger{})
+	mobile, err := NewTextile(&RunConfig{
+		RepoPath:          repoPath,
+		CafeOutboxHandler: &TestHandler{},
+	}, &TestMessenger{})
 	if err != nil {
 		return nil, err
 	}
@@ -969,18 +979,4 @@ func createAndStartMobile(repoPath string, waitForOnline bool) (*Mobile, error) 
 	}
 
 	return mobile, nil
-}
-
-func getImageFileData() (string, error) {
-	f, err := os.Open("../mill/testdata/image.jpeg")
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-	data, err := ioutil.ReadAll(f)
-	if err != nil {
-		return "", err
-	}
-
-	return base64.StdEncoding.EncodeToString(data), nil
 }

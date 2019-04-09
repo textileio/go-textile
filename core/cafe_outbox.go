@@ -130,18 +130,18 @@ func (q *CafeOutbox) AddForInbox(pid peer.ID, env *pb.Envelope, inboxes []*pb.Ca
 	return nil
 }
 
-// List returns a batch of not complete requests
+// List returns a batch of requests
 func (q *CafeOutbox) List(offset string, limit int) *pb.CafeRequestList {
 	return q.datastore.CafeRequests().List(offset, limit)
 }
 
-// Pending marks a single request as pending
-func (q *CafeOutbox) Pending(requestId string) error {
+// MarkPending marks a single request as pending
+func (q *CafeOutbox) MarkPending(requestId string) error {
 	return q.datastore.CafeRequests().UpdateStatus(requestId, pb.CafeRequest_PENDING)
 }
 
-// Complete marks a single request as complete, deleting the group if all from its group are complete
-func (q *CafeOutbox) Complete(requestId string) error {
+// MarkComplete marks a single request as complete, deleting the group if all from its group are complete
+func (q *CafeOutbox) MarkComplete(requestId string) error {
 	req := q.datastore.CafeRequests().Get(requestId)
 	if req == nil {
 		return nil
