@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"fmt"
+	"sync"
 
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core"
 	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
@@ -67,6 +68,7 @@ type CafeOutbox struct {
 	node      func() *core.IpfsNode
 	datastore repo.Datastore
 	handler   CafeOutboxHandler
+	mux       sync.Mutex
 }
 
 // NewCafeOutbox creates a new outbox queue
@@ -132,6 +134,10 @@ func (q *CafeOutbox) AddForInbox(pid peer.ID, env *pb.Envelope, inboxes []*pb.Ca
 
 // Flush processes pending requests
 func (q *CafeOutbox) Flush() {
+	q.mux.Lock()
+	defer q.mux.Unlock()
+	log.Debug("flushing cafe outbox")
+
 	if q.handler == nil {
 		return
 	}

@@ -22,7 +22,7 @@ build:
 	mv textile dist/
 
 install:
-	mv dist/textile /usr/local/bin
+	mv dist/textile $$GOPATH/bin
 
 linux:
 	$(eval FLAGS := $$(shell govvv -flags -pkg github.com/textileio/go-textile/common))

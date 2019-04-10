@@ -75,7 +75,6 @@ type CafeService struct {
 	open            bool
 	queryResults    *broadcast.Broadcaster
 	inFlightQueries map[string]struct{}
-	mux             sync.Mutex
 }
 
 // NewCafeService returns a new threads service
@@ -244,10 +243,6 @@ func (h *CafeService) Deregister(cafe peer.ID) error {
 
 // Flush begins handling requests recursively
 func (h *CafeService) Flush() {
-	h.mux.Lock()
-	defer h.mux.Unlock()
-	log.Debug("flushing cafe outbox")
-
 	if err := h.batchRequests(h.datastore.CafeRequests().List("", cafeOutFlushGroupSize)); err != nil {
 		log.Errorf("cafe outbox batch error: %s", err)
 		return
