@@ -46,6 +46,9 @@ export default class Profile extends ConnectedComponent<RouteComponentProps, Sto
     // Show spinner to indicate work is being done
     setTimeout(() => this.setState({ isLoading: false }), 3000)
   }
+  handleLogout = () => {
+    this.props.navigate && this.props.navigate('/landing')
+  }
   render() {
     const { profile } = this.stores.store
     return (
@@ -109,8 +112,16 @@ export default class Profile extends ConnectedComponent<RouteComponentProps, Sto
           </Button.Group>
         </Segment>
         <Button.Group fluid widths='2' style={{ position: 'absolute', bottom: 0 }}>
-          <Button style={{ borderRadius: 0 }} loading={this.state.isLoading} content='Sync' icon='refresh' positive type='button' onClick={this.handleAccountSync}/>
-          <Button style={{ borderRadius: 0 }} content='Log-out' icon='log out' disabled type='button' />
+          <Button
+            style={{ borderRadius: 0 }}
+            loading={this.state.isLoading}
+            content='Sync' icon='refresh' positive type='button'
+            onClick={this.handleAccountSync}/>
+          <Button
+            disabled
+            style={{ borderRadius: 0 }}
+            content='Log-out' icon='log out' type='button'
+            onClick={this.handleLogout} />
         </Button.Group>
         <BackArrow onClick={() => { this.props.navigate && this.props.navigate('..') }} />
       </div>

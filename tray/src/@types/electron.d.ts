@@ -1,10 +1,11 @@
-import { Clipboard, Shell } from 'electron'
+import { Clipboard, Shell, Remote } from 'electron'
 
 declare global {
   interface Window {
     require: (module: 'electron') => {
       clipboard: Clipboard,
-      shell: Shell
+      shell: Shell,
+      remote: Remote
     }
   }
 }

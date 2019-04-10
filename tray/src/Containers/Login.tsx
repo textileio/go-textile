@@ -6,6 +6,7 @@ import {
 import zxcvbn from 'zxcvbn'
 import { RouteComponentProps } from '@reach/router'
 import QrReader from 'react-qr-reader'
+import BackArrow from '../Components/BackArrow'
 import { ConnectedComponent, connect } from '../Components/ConnectedComponent'
 import { observer } from "mobx-react"
 import { Stores } from '../Stores'
@@ -61,7 +62,7 @@ export default class Login extends ConnectedComponent<RouteComponentProps, Store
   }
   handleSubmit = (event: SyntheticEvent) => {
     this.stores.store.screen = 'loading'
-    this.stores.store.initAndStartTextile(this.state.mnemonic, this.state.password)
+    this.stores.store.initAndStartTextile(this.state.mnemonic, undefined, this.state.password)
   }
   handleScan = (data: string | null) => {
     if (data !== null) {
@@ -81,64 +82,56 @@ export default class Login extends ConnectedComponent<RouteComponentProps, Store
     const inValid = mnemonic.split(/\b[^\s]+\b/).length < 13
     return (
       <div>
-          <Icon
-            style={{
-              position: 'absolute', right: '5px', top: '5px', zIndex: '1001'
-            }}
-            link
-            name='arrow left'
-            onClick={() => { this.props.navigate && this.props.navigate('..') }} />
-          <Form onSubmit={this.handleSubmit}
-            style={{ height: '100vh' }}
-          >
-            <Segment basic>
-              <Header as='h3'>
-                Enter an existing <BIP39Popup trigger={<span style={{ textDecoration: 'underline' }}>mnemonic passphrase</span>} />
-              </Header>
-              <Form.TextArea
-                style={{ fontSize: '1.2em', padding: '0.2em' }}
-                name='mnemonic'
-                value={mnemonic}
-                onChange={this.handleMnemonicChange}
+        <Form onSubmit={this.handleSubmit} style={{ height: '100vh' }}>
+          <Segment basic>
+            <Header as='h3'>
+              Enter an existing <BIP39Popup trigger={<span style={{ textDecoration: 'underline' }}>mnemonic passphrase</span>} />
+            </Header>
+            <Form.TextArea
+              style={{ fontSize: '1.2em', padding: '0.2em' }}
+              name='mnemonic'
+              value={mnemonic}
+              onChange={this.handleMnemonicChange}
+            />
+            <Message
+              warning
+              visible={inValid && mnemonic !== ''}
+              header='Must be >12 words long'
+              content={'Your mnemonic must be at least 12 words long.'}
+            />
+            <Form.Field>
+              <label>Use an <PasswordPopup trigger={<span style={{ textDecoration: 'underline' }}>additional password</span>} /> for added security</label>
+              <Input
+                name='password'
+                type={passType}
+                placeholder='Password...'
+                value={password}
+                onChange={this.handlePassChange}
+                icon={<Icon
+                  name={passType === 'password' ? 'eye' : 'eye slash'}
+                  link
+                  onClick={this.togglePassType}
+                />}
               />
-              <Message
-                warning
-                visible={inValid && mnemonic !== ''}
-                header='Must be >12 words long'
-                content={'Your mnemonic must be at least 12 words long.'}
-              />
-              <Form.Field>
-                <label>Use an <PasswordPopup trigger={<span style={{ textDecoration: 'underline' }}>additional password</span>} /> for added security</label>
-                <Input
-                  name='password'
-                  type={passType}
-                  placeholder='Password...'
-                  value={password}
-                  onChange={this.handlePassChange}
-                  icon={<Icon
-                    name={passType === 'password' ? 'eye' : 'eye slash'}
-                    link
-                    onClick={this.togglePassType}
-                  />}
-                />
-                <Progress attached='bottom' indicating value={score || 0} total={4} />
-              </Form.Field>
-            </Segment>
-            <Button.Group fluid widths='2' style={{ position: 'absolute', bottom: 0 }}>
-              <Button style={{ borderRadius: 0 }} content='Sign-in' icon='sign-in' type='submit' positive disabled={inValid} />
-              <Modal
-                trigger={
-                  <Button style={{ borderRadius: 0 }} content='Scan' icon='qrcode' type='button' onClick={this.handleQrOpen} />
-                }
-                open={this.state.modalOpen}
-                onClose={this.handleQrClose}
-                size='small'
-                basic
-              >
-                <QrReader onError={this.handleError} onScan={this.handleScan} />
-              </Modal>
-            </Button.Group>
-          </Form>
+              <Progress attached='bottom' indicating value={score || 0} total={4} />
+            </Form.Field>
+          </Segment>
+          <Button.Group fluid widths='2' style={{ position: 'absolute', bottom: 0 }}>
+            <Button style={{ borderRadius: 0 }} content='Sign-in' icon='sign-in' type='submit' positive disabled={inValid} />
+            <Modal
+              trigger={
+                <Button style={{ borderRadius: 0 }} content='Scan' icon='qrcode' type='button' onClick={this.handleQrOpen} />
+              }
+              open={this.state.modalOpen}
+              onClose={this.handleQrClose}
+              size='small'
+              basic
+            >
+              <QrReader onError={this.handleError} onScan={this.handleScan} />
+            </Modal>
+          </Button.Group>
+        </Form>
+        <BackArrow onClick={() => { this.props.navigate && this.props.navigate('..') }} />
       </div>
     )
   }

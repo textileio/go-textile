@@ -16,6 +16,8 @@ export interface Message {
   payload?: any
 }
 
+export type Screen = 'starting' | 'loading' | 'online' | 'error' | 'onboard' | 'landing'
+
 const source = createMemorySource("/")
 const history = createHistory(source)
 
@@ -45,6 +47,17 @@ export class AppStore implements Store {
     if ('astilectron' in window) {
       astilectron.onMessage((message: Message) => {
         switch (message.name) {
+          case 'addresses':
+            const addresses = message.payload
+            runInAction('addresses', () => {
+              this.addresses = addresses
+            })
+            if (addresses.length > 0) {
+              this.screen = 'landing'
+            } else {
+              this.screen = 'onboard'
+            }
+            break
           default:
             console.log(message)
         }
@@ -66,19 +79,21 @@ export class AppStore implements Store {
   }
   // Observables
   @observable history = history
+  // TODO: Maybe this should just be strings and do the conversion in components?
+  @observable addresses: string[] = []
   @observable gateway = 'http://127.0.0.1:5050'
-  @observable screen = 'starting'
+  @observable screen: Screen = 'starting'
   @observable cafes: any[] = []
   @observable notifications: any[] = []
   @observable profile?: ProfileInfo = undefined
   // Actions
-  @action async initAndStartTextile(mnemonic: string, password: string) {
-    let screen = 'starting'
+  @action async initAndStartTextile(mnemonic?: string, address?: string, password?: string) {
+    let screen: Screen = 'loading'
     if ('astilectron' in window) {
       try {
         const response = await this.sendMessage({
           name: 'init',
-          payload: { mnemonic, password }
+          payload: { mnemonic, address, password }
         })
         if (response) {
           screen = 'online'
@@ -199,7 +214,7 @@ export class AppStore implements Store {
       if (online) {
         this.screen = 'online'
       } else {
-        this.screen = 'offline'
+        this.screen = 'error'
       }
     } catch(err) {
       console.log(err)

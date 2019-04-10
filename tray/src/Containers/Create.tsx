@@ -7,6 +7,7 @@ import zxcvbn from 'zxcvbn'
 import { RouteComponentProps } from '@reach/router'
 import { ConnectedComponent, connect } from '../Components/ConnectedComponent'
 import { observer } from "mobx-react"
+import BackArrow from '../Components/BackArrow'
 import { Stores } from '../Stores'
 const { clipboard } = window.require('electron')
 
@@ -66,7 +67,7 @@ export default class Create extends ConnectedComponent<RouteComponentProps, Stor
   }
   handleSubmit = (event: SyntheticEvent) => {
     this.stores.store.screen = 'loading'
-    this.stores.store.initAndStartTextile(this.state.mnemonic, this.state.password)
+    this.stores.store.initAndStartTextile(this.state.mnemonic, undefined, this.state.password)
   }
   handleError = () => console.log("error")
   togglePassType = () => this.setState({
@@ -76,16 +77,7 @@ export default class Create extends ConnectedComponent<RouteComponentProps, Stor
     const { mnemonic, password, passType, score } = this.state
     return (
       <div>
-        <Icon
-          style={{
-            position: 'absolute', right: '5px', top: '5px', zIndex: '1001'
-          }}
-          link
-          name='arrow left'
-          onClick={() => {this.props.navigate && this.props.navigate('..')}} />
-        <Form onSubmit={this.handleSubmit}
-          style={{ height: '100vh' }}
-        >
+        <Form onSubmit={this.handleSubmit} style={{ height: '100vh' }}>
           <Segment basic>
             <Header as='h3'>
               Here's your secret <BIP39Popup trigger={<span style={{ textDecoration: 'underline' }}>mnemonic passphrase</span>} />
@@ -125,7 +117,8 @@ export default class Create extends ConnectedComponent<RouteComponentProps, Stor
             <Button style={{ borderRadius: 0 }} content='Refresh' icon='refresh' type='button' onClick={this.handleRefresh} />
           </Button.Group>
         </Form>
-        </div>
+        <BackArrow onClick={() => { this.props.navigate && this.props.navigate('..') }} />
+      </div>
     )
   }
 }

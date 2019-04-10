@@ -2,16 +2,16 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
-	"errors"
 
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/repo/fsrepo"
-	// "github.com/atotto/clipboard"
-	"github.com/pkg/browser"
+
 	asti "github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
 	astilog "github.com/asticode/go-astilog"
@@ -25,11 +25,12 @@ import (
 
 var (
 	appName = "Textile"
+	appDir  string
 	debug   = flag.Bool("d", false, "enables debug mode")
 	app     *asti.Astilectron
 	window  *asti.Window
 	tray    *asti.Tray
-	isShown = false // TODO: Remove this when we update asticode
+	move    = true
 )
 
 var node *core.Textile
@@ -121,24 +122,33 @@ func stopNode() error {
 	return nil
 }
 
-func initAndStartTextile(mnemonic string, password string) error {
-	// get homedir
-	home, err := homedir.Dir()
+func startTextile(repoPath string, password string) error {
+	// build textile node
+	var err error
+	node, err = core.NewTextile(core.RunConfig{
+		PinCode:  password,
+		RepoPath: repoPath,
+	})
 	if err != nil {
-		astilog.Fatal(fmt.Errorf("get homedir failed: %s", err))
+		astilog.Error(err)
+		return err
 	}
 
-	// ensure app support folder is created
-	var appDir string
-	if runtime.GOOS == "darwin" {
-		appDir = filepath.Join(home, "Library", "Application Support", "Textile")
-	} else {
-		appDir = filepath.Join(home, ".textile")
+	// bring the node online
+	err = startNode()
+	if err != nil {
+		astilog.Error(err)
+		return err
 	}
-	if err := os.MkdirAll(appDir, 0755); err != nil {
-		astilog.Fatal(fmt.Errorf("create app dir failed: %s", err))
-	}
+	return nil
+}
 
+func openAndStartTextile(address string, password string) error {
+	repoPath := filepath.Join(appDir, address)
+	return startTextile(repoPath, password)
+}
+
+func initAndStartTextile(mnemonic string, password string) error {
 	wallet := wallet.NewWalletFromRecoveryPhrase(mnemonic)
 	// start with first account (default is not to use a password)
 	kp, err := wallet.AccountAt(0, "")
@@ -164,33 +174,17 @@ func initAndStartTextile(mnemonic string, password string) error {
 		}
 	}
 
-	// build textile node
-	node, err = core.NewTextile(core.RunConfig{
-		PinCode:  password,
-		RepoPath: repoPath,
-	})
-	if err != nil {
-		astilog.Error(err)
-		return err
-	}
-
-	// bring the node online
-	err = startNode()
-	if err != nil {
-		astilog.Error(err)
-		return err
-	}
-	return nil
+	return startTextile(repoPath, password)
 }
 
 func computePosition(bounds *asti.RectangleOptions) (int, int, error) {
-	if (bounds != nil) {
+	if bounds != nil {
 		x := *(bounds.X)
 		y := *(bounds.Y)
 		// Center window horizontally below the tray icon
-  	x = x - (WindowWidth / 2) + 16
-		// Position window 32 pixels vertically below the tray icon
-		y =  y + 32
+		x = x - (WindowWidth / 2) + 16
+		// Position window 16 pixels vertically below the tray icon
+		y = y + 16
 		return x, y, nil
 	}
 	return 0, 0, errors.New("invalid bounds object")
@@ -205,31 +199,78 @@ func start(a *asti.Astilectron, w []*asti.Window, _ *asti.Menu, t *asti.Tray, _ 
 	dock := app.Dock()
 	dock.Hide()
 
+	// get homedir
+	home, err := homedir.Dir()
+	if err != nil {
+		astilog.Fatal(fmt.Errorf("get homedir failed: %s", err))
+	}
+
+	// ensure app support folder is created
+	if runtime.GOOS == "darwin" {
+		appDir = filepath.Join(home, "Library", "Application Support", "Textile")
+	} else {
+		appDir = filepath.Join(home, ".textile")
+	}
+
+	if err := os.MkdirAll(appDir, 0755); err != nil {
+		astilog.Fatal(fmt.Errorf("create app dir failed: %s", err))
+	}
+
+	// Look for existing accounts
+	files, err := ioutil.ReadDir(appDir)
+	if err != nil {
+		astilog.Fatal(fmt.Errorf("read app dir failed: %s", err))
+	}
+
+	var addresses []string
+	for _, f := range files {
+		if f.IsDir() {
+			kp, err := keypair.Parse(f.Name())
+			if err != nil {
+				astilog.Errorf("invalid account address encountered (%s), skipping", err)
+			} else {
+				addresses = append(addresses, kp.Address())
+			}
+		}
+	}
+	// Tell Javascript about them
+	// TODO: This should probably be pulled from JS, rather than pushed like this?
+	sendData("addresses", addresses)
+
 	tray.On(asti.EventNameTrayEventClicked, toggleWindow)
 	tray.On(asti.EventNameTrayEventDoubleClicked, toggleWindow)
-	window.On(asti.EventNameWindowEventBlur, func(e asti.Event) (bool) {
+	window.On(asti.EventNameWindowEventBlur, func(e asti.Event) bool {
 		window.Hide()
 		return false
 	})
 	return nil
 }
 
-func toggleWindow(e asti.Event) (bool) {
+func toggleWindow(e asti.Event) bool {
 	if window.IsShown() {
 		window.Hide()
 	} else {
-		window.Show()
+		if !move {
+			window.Show()
+		}
 		x, y, err := computePosition(e.Bounds)
-		if (err == nil) {
-			window.Move(x, y)
+		if err == nil {
+			err = window.Move(x, y)
+			if err != nil {
+				astilog.Errorf("error positioning window: %s", err)
+			}
+		}
+		if move {
+			window.Show()
+			move = false
 		}
 	}
 	return false
 }
 
-func sendData(name string, data map[string]interface{}) {
-	data["name"] = name
-	window.SendMessage(data)
+func sendData(name string, data interface{}) {
+	payload := map[string]interface{}{"name": name, "payload": data}
+	window.SendMessage(payload)
 }
 
 // handleMessage handles incoming messages from Javascript/Electron
@@ -237,43 +278,33 @@ func handleMessage(w *asti.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
 	case "init":
 		type init struct {
-			Mnemonic string `json:"mnemonic"`
+			Address  string `json:"address,omitempty"`
+			Mnemonic string `json:"mnemonic,omitempty"`
 			Password string `json:"password,omitempty"`
 		}
 		var payload init
 		if err := json.Unmarshal(m.Payload, &payload); err != nil {
 			return nil, err
 		}
-		err := initAndStartTextile(payload.Mnemonic, payload.Password)
+		var err error
+		if payload.Mnemonic != "" {
+			err = initAndStartTextile(payload.Mnemonic, payload.Password)
+		} else if payload.Address != "" {
+			err = openAndStartTextile(payload.Address, payload.Password)
+		} else {
+			err = errors.New("error provisioning Textile account")
+		}
 		if err != nil {
 			return nil, err
 		}
 		return true, nil
 	case "hide":
 		w.Hide()
-		return true, nil
-	case "open":
-		type open struct {
-			File string `json:"file,omitempty"`
-			URL string `json:"url,omitempty"`
-		}
-		var payload open
-		if err := json.Unmarshal(m.Payload, &payload); err != nil {
-			return nil, err
-		}
-		if payload.URL != "" {
-			browser.OpenURL(payload.URL)
-		}
-		if payload.File != "" {
-			browser.OpenFile(payload.File)
-		}
-		return true, nil
 	case "quit":
-		window.Destroy()
-		tray.Destroy()
+		app.Close()
 		app.Quit()
-		return true, nil
 	default:
 		return nil, nil
 	}
+	return true, nil
 }

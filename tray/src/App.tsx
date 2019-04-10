@@ -4,6 +4,7 @@ import { Router, LocationProvider } from '@reach/router'
 import Login from './Containers/Login'
 import Profile from './Containers/Profile'
 import Create from './Containers/Create'
+import Landing from './Containers/Landing'
 import Main from './Containers/Main'
 import Cafes from './Containers/Cafes'
 import Basic from './Components/Basic'
@@ -16,23 +17,18 @@ interface AppProps { }
 
 @connect('store') @observer
 class App extends ConnectedComponent<AppProps, Stores> {
-  componentDidMount() {
-    const { store } = this.stores
-  //   setTimeout(() => { store.status = 'onboard' }, 3000)
-    store.screen = 'online'
-  }
   render() {
     const { store } = this.stores
     return (
       <LocationProvider history={store.history}>
         <Router>
           <Splash default />
+          <Landing path='/landing' />
           <Basic path='/onboard'>
             <Start path='/'/>
             <Login path='/login' />
             <Create path='/create' />
           </Basic>
-          <Splash path='/loading' />
           <Basic path='/online'>
             <Main path='/' />
             <Basic path='/profile'>
