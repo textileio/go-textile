@@ -3,10 +3,9 @@ import {
   Button, Header, Segment, Form, Icon, Popup, InputOnChangeData,
   Progress, Input, PopupProps, TextArea, Ref
 } from 'semantic-ui-react'
-import { Fade } from 'react-reveal'
 import zxcvbn from 'zxcvbn'
 import { RouteComponentProps } from '@reach/router'
-import { ConnectedComponent, connect } from './ConnectedComponent'
+import { ConnectedComponent, connect } from '../Components/ConnectedComponent'
 import { observer } from "mobx-react"
 import { Stores } from '../Stores'
 const { clipboard } = window.require('electron')
@@ -66,7 +65,7 @@ export default class Create extends ConnectedComponent<RouteComponentProps, Stor
     }
   }
   handleSubmit = (event: SyntheticEvent) => {
-    this.stores.store.status = 'loading'
+    this.stores.store.screen = 'loading'
     this.stores.store.initAndStartTextile(this.state.mnemonic, this.state.password)
   }
   handleError = () => console.log("error")
@@ -76,7 +75,6 @@ export default class Create extends ConnectedComponent<RouteComponentProps, Stor
   render() {
     const { mnemonic, password, passType, score } = this.state
     return (
-      <Fade duration={500}>
       <div>
         <Icon
           style={{
@@ -122,13 +120,12 @@ export default class Create extends ConnectedComponent<RouteComponentProps, Stor
               <Progress attached='bottom' indicating value={score || 0} total={4} />
             </Form.Field>
           </Segment>
-          <Button.Group fluid style={{ position: 'absolute', bottom: 0 }}>
+          <Button.Group fluid widths='2' style={{ position: 'absolute', bottom: 0 }}>
             <Button style={{ borderRadius: 0 }} content='Create' icon='user secret' type='submit' positive />
             <Button style={{ borderRadius: 0 }} content='Refresh' icon='refresh' type='button' onClick={this.handleRefresh} />
           </Button.Group>
         </Form>
         </div>
-      </Fade>
     )
   }
 }

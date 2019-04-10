@@ -1,6 +1,7 @@
 import React from 'react'
-import { ConnectedComponent, connect } from './ConnectedComponent'
-import { Image, Segment, Menu, Icon, Dropdown } from 'semantic-ui-react'
+import { ConnectedComponent, connect } from '../Components/ConnectedComponent'
+import Notifications from '../Components/Notifications'
+import { Image, Segment, Menu, Dropdown, Icon } from 'semantic-ui-react'
 import { RouteComponentProps } from '@reach/router'
 import { observer } from "mobx-react"
 import { Stores } from '../Stores'
@@ -15,22 +16,25 @@ export default class Summary extends ConnectedComponent<RouteComponentProps, Sto
   onAccountClick = () => {
     this.props.navigate && this.props.navigate('./profile')
   }
+  onNotificationsClick = () => {
+    this.stores.store.fetchNotifications()
+  }
   render() {
     const { store } = this.stores
     return (
       <div>
         <Menu attached='top' borderless>
-          <Menu.Item header>
-            <Image avatar src={store.profile.avatar}/>
-            {store.profile.name}
+          <Menu.Item header as='h3' style={{ padding: '10px' }}>
+            {store.profile && <Image avatar src={store.profile.avatar}/>}
+            {store.profile && store.profile.name }
           </Menu.Item>
           <Menu.Menu position='right'>
-            <Dropdown item icon='setting'>
+            <Dropdown item icon={{size: 'large', name: 'setting'}}>
               <Dropdown.Menu>
                 <Dropdown.Item icon='user' text='Account' onClick={this.onAccountClick} />
-                <Dropdown.Item icon='wrench' text='Settings' />
+                <Dropdown.Item icon='wrench' text='Settings' disabled/>
+                <Dropdown.Item icon='refresh' text='Notifications' onClick={this.onNotificationsClick} />
                 <Dropdown.Divider />
-                {/* <Dropdown.Header icon='code' content='Develop' /> */}
                 <Dropdown.Item icon='external' text='API Docs' onClick={this.onAPIClick}/>
                 <Dropdown.Divider />
                 <Dropdown.Item icon='close' text='Quit' onClick={this.onQuitClick}/>
@@ -38,8 +42,8 @@ export default class Summary extends ConnectedComponent<RouteComponentProps, Sto
             </Dropdown>
           </Menu.Menu>
         </Menu>
-        <Segment basic attached='bottom'>
-          Content here
+        <Segment basic style={{ height: '88vh', overflowY: 'auto', marginTop: 0 }} >
+          <Notifications />
         </Segment>
       </div>
     )

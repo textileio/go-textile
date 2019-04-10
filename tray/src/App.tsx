@@ -1,14 +1,14 @@
 import React from 'react'
 import { observer } from 'mobx-react'
-import 'react-semantic-toasts/styles/react-semantic-alert.css'
 import { Router, LocationProvider } from '@reach/router'
-import Login from './Components/Login'
-import Profile from './Components/Profile'
-import Create from './Components/Create'
-import Summary from './Components/Summary'
+import Login from './Containers/Login'
+import Profile from './Containers/Profile'
+import Create from './Containers/Create'
+import Main from './Containers/Main'
+import Cafes from './Containers/Cafes'
 import Basic from './Components/Basic'
 import Splash from './Components/Splash'
-import Start from './Components/Start'
+import Start from './Containers/Start'
 import { Stores } from './Stores'
 import { ConnectedComponent, connect } from './Components/ConnectedComponent'
 
@@ -19,7 +19,7 @@ class App extends ConnectedComponent<AppProps, Stores> {
   componentDidMount() {
     const { store } = this.stores
   //   setTimeout(() => { store.status = 'onboard' }, 3000)
-    store.status = 'online'
+    store.screen = 'online'
   }
   render() {
     const { store } = this.stores
@@ -34,8 +34,11 @@ class App extends ConnectedComponent<AppProps, Stores> {
           </Basic>
           <Splash path='/loading' />
           <Basic path='/online'>
-            <Summary path='/' />
-            <Profile path='/profile' />
+            <Main path='/' />
+            <Basic path='/profile'>
+              <Profile path='/' />
+              <Cafes path='/cafes' />
+            </Basic>
           </Basic>
         </Router >
       </LocationProvider>

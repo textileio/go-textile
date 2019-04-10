@@ -3,11 +3,10 @@ import {
   Button, Header, Segment, Form, TextAreaProps, Message, Icon, Modal, Popup,InputOnChangeData,
   Progress, Input, PopupProps
 } from 'semantic-ui-react'
-import { Fade } from 'react-reveal'
 import zxcvbn from 'zxcvbn'
 import { RouteComponentProps } from '@reach/router'
 import QrReader from 'react-qr-reader'
-import { ConnectedComponent, connect } from './ConnectedComponent'
+import { ConnectedComponent, connect } from '../Components/ConnectedComponent'
 import { observer } from "mobx-react"
 import { Stores } from '../Stores'
 
@@ -61,7 +60,7 @@ export default class Login extends ConnectedComponent<RouteComponentProps, Store
     }
   }
   handleSubmit = (event: SyntheticEvent) => {
-    this.stores.store.status = 'loading'
+    this.stores.store.screen = 'loading'
     this.stores.store.initAndStartTextile(this.state.mnemonic, this.state.password)
   }
   handleScan = (data: string | null) => {
@@ -81,7 +80,6 @@ export default class Login extends ConnectedComponent<RouteComponentProps, Store
     
     const inValid = mnemonic.split(/\b[^\s]+\b/).length < 13
     return (
-      <Fade duration={500}>
       <div>
           <Icon
             style={{
@@ -126,7 +124,7 @@ export default class Login extends ConnectedComponent<RouteComponentProps, Store
                 <Progress attached='bottom' indicating value={score || 0} total={4} />
               </Form.Field>
             </Segment>
-            <Button.Group fluid style={{ position: 'absolute', bottom: 0 }}>
+            <Button.Group fluid widths='2' style={{ position: 'absolute', bottom: 0 }}>
               <Button style={{ borderRadius: 0 }} content='Sign-in' icon='sign-in' type='submit' positive disabled={inValid} />
               <Modal
                 trigger={
@@ -142,7 +140,6 @@ export default class Login extends ConnectedComponent<RouteComponentProps, Store
             </Button.Group>
           </Form>
       </div>
-      </Fade>
     )
   }
 }
