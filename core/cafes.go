@@ -117,7 +117,7 @@ func (t *Textile) CafeHTTPRequest(id string) (*pb.CafeHTTPRequest, error) {
 	}
 
 	hreq := &pb.CafeHTTPRequest{
-		Path: "/api/v1",
+		Url: session.Cafe.Url + "/api/v1",
 		Headers: map[string]string{
 			"Authorization":  "Basic " + session.Access,
 			"X-Textile-Peer": t.node.Identity.Pretty(),
@@ -127,7 +127,7 @@ func (t *Textile) CafeHTTPRequest(id string) (*pb.CafeHTTPRequest, error) {
 	switch req.Type {
 	case pb.CafeRequest_STORE:
 		hreq.Type = pb.CafeHTTPRequest_PUT
-		hreq.Path += "/store/" + req.Target
+		hreq.Url += "/store/" + req.Target
 
 		data, err := ipfs.DataAtPath(t.node, req.Target)
 		if err != nil {
@@ -148,11 +148,11 @@ func (t *Textile) CafeHTTPRequest(id string) (*pb.CafeHTTPRequest, error) {
 
 	case pb.CafeRequest_UNSTORE:
 		hreq.Type = pb.CafeHTTPRequest_DELETE
-		hreq.Path += "/store/" + req.Target
+		hreq.Url += "/store/" + req.Target
 
 	case pb.CafeRequest_STORE_THREAD:
 		hreq.Type = pb.CafeHTTPRequest_PUT
-		hreq.Path += "/threads/" + req.Target
+		hreq.Url += "/threads/" + req.Target
 
 		thrd := t.datastore.Threads().Get(req.Target)
 		if thrd == nil {
@@ -170,11 +170,11 @@ func (t *Textile) CafeHTTPRequest(id string) (*pb.CafeHTTPRequest, error) {
 
 	case pb.CafeRequest_UNSTORE_THREAD:
 		hreq.Type = pb.CafeHTTPRequest_DELETE
-		hreq.Path += "/threads/" + req.Target
+		hreq.Url += "/threads/" + req.Target
 
 	case pb.CafeRequest_INBOX:
 		hreq.Type = pb.CafeHTTPRequest_POST
-		hreq.Path += "/inbox/" + req.Peer
+		hreq.Url += "/inbox/" + req.Peer
 		hreq.Body = []byte(req.Target)
 	}
 

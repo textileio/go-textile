@@ -289,7 +289,7 @@ message CafeRequestGroupStatus {
 
 message CafeHTTPRequest {
     Type type                   = 1;
-    string path                 = 2;
+    string url                  = 2;
     map<string, string> headers = 3;
     bytes body                  = 4;
 
