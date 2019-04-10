@@ -287,6 +287,19 @@ message CafeRequestGroupStatus {
     int64 size_complete = 6;
 }
 
+message CafeHTTPRequest {
+    Type type                   = 1;
+    string path                 = 2;
+    map<string, string> headers = 3;
+    bytes body                  = 4;
+
+    enum Type {
+        PUT    = 0;
+        POST   = 1;
+        DELETE = 2;
+    }
+}
+
 message CafeMessage {
     string id                      = 1;
     string peer                    = 2;

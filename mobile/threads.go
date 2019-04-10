@@ -54,6 +54,10 @@ func (m *Mobile) AddOrUpdateThread(thrd []byte) error {
 
 // RenameThread call core RenameThread
 func (m *Mobile) RenameThread(id string, name string) error {
+	if !m.node.Started() {
+		return core.ErrStopped
+	}
+
 	return m.node.RenameThread(id, name)
 }
 
@@ -92,6 +96,10 @@ func (m *Mobile) Threads() ([]byte, error) {
 
 // ThreadPeers calls core ThreadPeers
 func (m *Mobile) ThreadPeers(id string) ([]byte, error) {
+	if !m.node.Started() {
+		return nil, core.ErrStopped
+	}
+
 	peers, err := m.node.ThreadPeers(id)
 	if err != nil {
 		return nil, err
@@ -116,6 +124,10 @@ func (m *Mobile) RemoveThread(id string) (string, error) {
 
 // SnapshotThreads calls core SnapshotThreads
 func (m *Mobile) SnapshotThreads() error {
+	if !m.node.Started() {
+		return core.ErrStopped
+	}
+
 	return m.node.SnapshotThreads()
 }
 

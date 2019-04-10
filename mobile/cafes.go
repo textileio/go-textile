@@ -19,12 +19,12 @@ func (m *Mobile) RegisterCafe(host string, token string) error {
 }
 
 // CafeSession calls core CafeSession
-func (m *Mobile) CafeSession(peerId string) ([]byte, error) {
+func (m *Mobile) CafeSession(id string) ([]byte, error) {
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
 
-	session, err := m.node.CafeSession(peerId)
+	session, err := m.node.CafeSession(id)
 	if err != nil {
 		return nil, err
 	}
@@ -53,12 +53,12 @@ func (m *Mobile) CafeSessions() ([]byte, error) {
 }
 
 // RefreshCafeSession calls core RefreshCafeSession
-func (m *Mobile) RefreshCafeSession(peerId string) ([]byte, error) {
+func (m *Mobile) RefreshCafeSession(id string) ([]byte, error) {
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
 
-	session, err := m.node.RefreshCafeSession(peerId)
+	session, err := m.node.RefreshCafeSession(id)
 	if err != nil {
 		return nil, err
 	}
@@ -71,12 +71,12 @@ func (m *Mobile) RefreshCafeSession(peerId string) ([]byte, error) {
 }
 
 // DeegisterCafe calls core DeregisterCafe
-func (m *Mobile) DeregisterCafe(peerId string) error {
+func (m *Mobile) DeregisterCafe(id string) error {
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
 
-	return m.node.DeregisterCafe(peerId)
+	return m.node.DeregisterCafe(id)
 }
 
 // CheckCafeMessages calls core CheckCafeMessages
@@ -88,27 +88,61 @@ func (m *Mobile) CheckCafeMessages() error {
 	return m.node.CheckCafeMessages()
 }
 
-// ListCafeRequests calls core ListCafeRequests
-func (m *Mobile) ListCafeRequests(offset string, limit int) ([]byte, error) {
-	return proto.Marshal(m.node.ListCafeRequests(offset, limit))
+// CafeRequests calls core ListCafeRequests
+func (m *Mobile) CafeRequests(offset string, limit int) ([]byte, error) {
+	if !m.node.Started() {
+		return nil, core.ErrStopped
+	}
+
+	return proto.Marshal(m.node.CafeRequests(offset, limit))
 }
 
 // SetCafeRequestPending marks a request as pending
-func (m *Mobile) SetCafeRequestPending(requestId string) error {
-	return m.node.UpdateCafeRequestStatus(requestId, pb.CafeRequest_PENDING)
+func (m *Mobile) SetCafeRequestPending(id string) error {
+	if !m.node.Started() {
+		return core.ErrStopped
+	}
+
+	return m.node.UpdateCafeRequestStatus(id, pb.CafeRequest_PENDING)
 }
 
 // SetCafeRequestComplete marks a request as complete
-func (m *Mobile) SetCafeRequestComplete(requestId string) error {
-	return m.node.UpdateCafeRequestStatus(requestId, pb.CafeRequest_COMPLETE)
+func (m *Mobile) SetCafeRequestComplete(id string) error {
+	if !m.node.Started() {
+		return core.ErrStopped
+	}
+
+	return m.node.UpdateCafeRequestStatus(id, pb.CafeRequest_COMPLETE)
+}
+
+// CafeHTTPRequest calls core CafeHTTPRequest
+func (m *Mobile) CafeHTTPRequest(id string) ([]byte, error) {
+	if !m.node.Started() {
+		return nil, core.ErrStopped
+	}
+
+	req, err := m.node.CafeHTTPRequest(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return proto.Marshal(req)
 }
 
 // CafeRequestGroupStatus calls core CafeRequestGroupStatus
 func (m *Mobile) CafeRequestGroupStatus(group string) ([]byte, error) {
+	if !m.node.Started() {
+		return nil, core.ErrStopped
+	}
+
 	return proto.Marshal(m.node.CafeRequestGroupStatus(group))
 }
 
 // CleanupCafeRequests calls core CleanupCafeRequests
 func (m *Mobile) CleanupCafeRequests() error {
+	if !m.node.Started() {
+		return core.ErrStopped
+	}
+
 	return m.node.CleanupCafeRequests()
 }

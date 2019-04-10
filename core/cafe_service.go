@@ -483,15 +483,16 @@ func (h *CafeService) refresh(session *pb.CafeSession) (*pb.CafeSession, error) 
 
 // sendObject sends data or an object by cid to a peer
 func (h *CafeService) sendObject(id cid.Cid, addr string, token string) error {
+	hash := id.Hash().B58String()
 	obj := &pb.CafeObject{
 		Token: token,
-		Cid:   id.Hash().B58String(),
+		Cid:   hash,
 	}
 
-	data, err := ipfs.DataAtPath(h.service.Node(), id.Hash().B58String())
+	data, err := ipfs.DataAtPath(h.service.Node(), hash)
 	if err != nil {
 		if err == iface.ErrIsDir {
-			data, err := ipfs.GetObjectAtPath(h.service.Node(), id.Hash().B58String())
+			data, err := ipfs.GetObjectAtPath(h.service.Node(), hash)
 			if err != nil {
 				return err
 			}
