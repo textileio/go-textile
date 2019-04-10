@@ -482,11 +482,9 @@ func (t *Thread) sendWelcome() error {
 
 // post publishes an encrypted message to thread peers
 func (t *Thread) post(commit *commitResult, peers []pb.ThreadPeer) error {
+	go t.cafeOutbox.Flush()
+
 	if len(peers) == 0 {
-		// flush the storage queue—this is normally done in a thread
-		// via thread message queue handling, but that won't run if there's
-		// no peers to send the message to.
-		go t.cafeOutbox.Flush()
 		return nil
 	}
 

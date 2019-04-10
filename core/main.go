@@ -624,11 +624,11 @@ func (t *Textile) runJobs() {
 
 // flushQueues flushes each message queue
 func (t *Textile) flushQueues() {
+	t.cafeOutbox.Flush()
 	t.blockOutbox.Flush()
 	if err := t.cafeInbox.CheckMessages(); err != nil {
 		log.Errorf("error checking messages: %s", err)
 	}
-	t.cafeOutbox.Flush()
 }
 
 // threadByBlock returns the thread owning the given block
