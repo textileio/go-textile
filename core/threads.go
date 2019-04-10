@@ -85,7 +85,7 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 		}
 
 		if schema != "" {
-			if err := t.cafeOutbox.Add(schema, pb.CafeRequest_STORE); err != nil {
+			if err := t.cafeOutbox.Add(schema, pb.CafeRequest_STORE, cafeReqOpt.Group(id.Pretty())); err != nil {
 				return nil, err
 			}
 		}
@@ -344,7 +344,7 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	}
 
 	// delete backups
-	if err := t.cafeOutbox.Add(thrd.Id, pb.CafeRequest_UNSTORE_THREAD); err != nil {
+	if err := t.cafeOutbox.Add(thrd.Id, pb.CafeRequest_UNSTORE_THREAD, cafeReqOpt.Group(thrd.Id)); err != nil {
 		return nil, err
 	}
 

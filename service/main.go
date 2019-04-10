@@ -49,9 +49,6 @@ type Service struct {
 // defaultTimeout is the context timeout for sending / requesting messages
 const defaultTimeout = time.Second * 30
 
-// DirectTimeout is the context timeout used when we want to first try a direct p2p send but fail fast
-const DirectTimeout = time.Second * 1
-
 // PeerStatus is the possible results from pinging another peer
 type PeerStatus string
 
@@ -176,7 +173,7 @@ func (srv *Service) SendHTTPRequest(addr string, pmes *pb.Envelope) (*pb.Envelop
 		return nil, err
 	}
 
-	if rpmes == nil {
+	if rpmes.Message == nil {
 		err := fmt.Errorf("no response from %s", addr)
 		log.Debug(err)
 		return nil, err
@@ -343,10 +340,6 @@ func (srv *Service) NewEnvelope(mtype pb.Message_Type, msg proto.Message, id *in
 	ser, err := proto.Marshal(message)
 	if err != nil {
 		return nil, err
-	}
-
-	if srv.Node().PrivateKey == nil {
-		return nil, fmt.Errorf("peer private key not available")
 	}
 
 	sig, err := srv.Node().PrivateKey.Sign(ser)

@@ -40,7 +40,7 @@ func (x QueryOptions_FilterType) String() string {
 	return proto.EnumName(QueryOptions_FilterType_name, int32(x))
 }
 func (QueryOptions_FilterType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_query_d4cf9bf321560d99, []int{0, 0}
+	return fileDescriptor_query_a83f5858b51a0ce5, []int{0, 0}
 }
 
 type Query_Type int32
@@ -63,7 +63,7 @@ func (x Query_Type) String() string {
 	return proto.EnumName(Query_Type_name, int32(x))
 }
 func (Query_Type) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_query_d4cf9bf321560d99, []int{1, 0}
+	return fileDescriptor_query_a83f5858b51a0ce5, []int{1, 0}
 }
 
 type PubSubQuery_ResponseType int32
@@ -86,7 +86,7 @@ func (x PubSubQuery_ResponseType) String() string {
 	return proto.EnumName(PubSubQuery_ResponseType_name, int32(x))
 }
 func (PubSubQuery_ResponseType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_query_d4cf9bf321560d99, []int{2, 0}
+	return fileDescriptor_query_a83f5858b51a0ce5, []int{2, 0}
 }
 
 type QueryOptions struct {
@@ -105,7 +105,7 @@ func (m *QueryOptions) Reset()         { *m = QueryOptions{} }
 func (m *QueryOptions) String() string { return proto.CompactTextString(m) }
 func (*QueryOptions) ProtoMessage()    {}
 func (*QueryOptions) Descriptor() ([]byte, []int) {
-	return fileDescriptor_query_d4cf9bf321560d99, []int{0}
+	return fileDescriptor_query_a83f5858b51a0ce5, []int{0}
 }
 func (m *QueryOptions) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_QueryOptions.Unmarshal(m, b)
@@ -182,7 +182,7 @@ func (m *Query) Reset()         { *m = Query{} }
 func (m *Query) String() string { return proto.CompactTextString(m) }
 func (*Query) ProtoMessage()    {}
 func (*Query) Descriptor() ([]byte, []int) {
-	return fileDescriptor_query_d4cf9bf321560d99, []int{1}
+	return fileDescriptor_query_a83f5858b51a0ce5, []int{1}
 }
 func (m *Query) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Query.Unmarshal(m, b)
@@ -254,7 +254,7 @@ func (m *PubSubQuery) Reset()         { *m = PubSubQuery{} }
 func (m *PubSubQuery) String() string { return proto.CompactTextString(m) }
 func (*PubSubQuery) ProtoMessage()    {}
 func (*PubSubQuery) Descriptor() ([]byte, []int) {
-	return fileDescriptor_query_d4cf9bf321560d99, []int{2}
+	return fileDescriptor_query_a83f5858b51a0ce5, []int{2}
 }
 func (m *PubSubQuery) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PubSubQuery.Unmarshal(m, b)
@@ -337,7 +337,7 @@ func (m *QueryResult) Reset()         { *m = QueryResult{} }
 func (m *QueryResult) String() string { return proto.CompactTextString(m) }
 func (*QueryResult) ProtoMessage()    {}
 func (*QueryResult) Descriptor() ([]byte, []int) {
-	return fileDescriptor_query_d4cf9bf321560d99, []int{3}
+	return fileDescriptor_query_a83f5858b51a0ce5, []int{3}
 }
 func (m *QueryResult) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_QueryResult.Unmarshal(m, b)
@@ -397,7 +397,7 @@ func (m *QueryResults) Reset()         { *m = QueryResults{} }
 func (m *QueryResults) String() string { return proto.CompactTextString(m) }
 func (*QueryResults) ProtoMessage()    {}
 func (*QueryResults) Descriptor() ([]byte, []int) {
-	return fileDescriptor_query_d4cf9bf321560d99, []int{4}
+	return fileDescriptor_query_a83f5858b51a0ce5, []int{4}
 }
 func (m *QueryResults) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_QueryResults.Unmarshal(m, b)
@@ -443,7 +443,7 @@ func (m *PubSubQueryResults) Reset()         { *m = PubSubQueryResults{} }
 func (m *PubSubQueryResults) String() string { return proto.CompactTextString(m) }
 func (*PubSubQueryResults) ProtoMessage()    {}
 func (*PubSubQueryResults) Descriptor() ([]byte, []int) {
-	return fileDescriptor_query_d4cf9bf321560d99, []int{5}
+	return fileDescriptor_query_a83f5858b51a0ce5, []int{5}
 }
 func (m *PubSubQueryResults) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PubSubQueryResults.Unmarshal(m, b)
@@ -489,7 +489,7 @@ func (m *ContactQuery) Reset()         { *m = ContactQuery{} }
 func (m *ContactQuery) String() string { return proto.CompactTextString(m) }
 func (*ContactQuery) ProtoMessage()    {}
 func (*ContactQuery) Descriptor() ([]byte, []int) {
-	return fileDescriptor_query_d4cf9bf321560d99, []int{6}
+	return fileDescriptor_query_a83f5858b51a0ce5, []int{6}
 }
 func (m *ContactQuery) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ContactQuery.Unmarshal(m, b)
@@ -534,7 +534,7 @@ func (m *ThreadSnapshotQuery) Reset()         { *m = ThreadSnapshotQuery{} }
 func (m *ThreadSnapshotQuery) String() string { return proto.CompactTextString(m) }
 func (*ThreadSnapshotQuery) ProtoMessage()    {}
 func (*ThreadSnapshotQuery) Descriptor() ([]byte, []int) {
-	return fileDescriptor_query_d4cf9bf321560d99, []int{7}
+	return fileDescriptor_query_a83f5858b51a0ce5, []int{7}
 }
 func (m *ThreadSnapshotQuery) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ThreadSnapshotQuery.Unmarshal(m, b)
@@ -575,9 +575,9 @@ func init() {
 	proto.RegisterEnum("PubSubQuery_ResponseType", PubSubQuery_ResponseType_name, PubSubQuery_ResponseType_value)
 }
 
-func init() { proto.RegisterFile("query.proto", fileDescriptor_query_d4cf9bf321560d99) }
+func init() { proto.RegisterFile("query.proto", fileDescriptor_query_a83f5858b51a0ce5) }
 
-var fileDescriptor_query_d4cf9bf321560d99 = []byte{
+var fileDescriptor_query_a83f5858b51a0ce5 = []byte{
 	// 640 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x53, 0xcd, 0x4e, 0xdb, 0x4c,
 	0x14, 0xc5, 0x4e, 0x1c, 0x27, 0xd7, 0x49, 0x64, 0x0d, 0x2c, 0x0c, 0xfa, 0xf4, 0x11, 0xb9, 0x0b,

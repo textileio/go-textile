@@ -6,7 +6,6 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/go-textile/broadcast"
-	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
 )
@@ -28,20 +27,12 @@ func (t *Textile) Verify(input []byte, sig []byte) error {
 
 // Encrypt encrypts input with account address
 func (t *Textile) Encrypt(input []byte) ([]byte, error) {
-	pk, err := t.account.LibP2PPubKey()
-	if err != nil {
-		return nil, err
-	}
-	return crypto.Encrypt(pk, input)
+	return t.account.Encrypt(input)
 }
 
 // Decrypt decrypts input with account address
 func (t *Textile) Decrypt(input []byte) ([]byte, error) {
-	sk, err := t.account.LibP2PPrivKey()
-	if err != nil {
-		return nil, err
-	}
-	return crypto.Decrypt(sk, input)
+	return t.account.Decrypt(input)
 }
 
 // AccountThread returns the account private thread
