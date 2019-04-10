@@ -3,6 +3,7 @@ package core
 import (
 	"archive/tar"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -18,37 +19,9 @@ import (
 	"github.com/textileio/go-textile/pb"
 )
 
-// PinResponse is the json response from a pin request
-type PinResponse struct {
-	Id    string `json:"id,omitempty"`
-	Error string `json:"error,omitempty"`
-}
-
-// forbiddenResponse is used for bad tokens
-var forbiddenResponse = PinResponse{
-	Error: errForbidden,
-}
-
-// unauthorizedResponse is used when a token is expired or not present
-var unauthorizedResponse = PinResponse{
-	Error: errUnauthorized,
-}
-
 // pin take raw data or a tarball and pins it to the local ipfs node.
 // request must be authenticated with a token
 func (c *cafeApi) pin(g *gin.Context) {
-	if !c.node.Started() {
-		g.AbortWithStatusJSON(http.StatusInternalServerError, PinResponse{
-			Error: "node is stopped",
-		})
-		return
-	}
-
-	// validate request token
-	if !c.tokenValid(g) {
-		return
-	}
-
 	// handle based on content type
 	var id cid.Cid
 	cType := g.Request.Header.Get("Content-Type")
@@ -59,7 +32,7 @@ func (c *cafeApi) pin(g *gin.Context) {
 		gr, err := gzip.NewReader(g.Request.Body)
 		if err != nil {
 			log.Errorf("error creating gzip reader %s", err)
-			g.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.abort(g, http.StatusBadRequest, err)
 			return
 		}
 		tr := tar.NewReader(gr)
@@ -71,19 +44,19 @@ func (c *cafeApi) pin(g *gin.Context) {
 			}
 			if err != nil {
 				log.Errorf("error getting tar next %s", err)
-				g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				c.abort(g, http.StatusInternalServerError, err)
 				return
 			}
 
 			switch header.Typeflag {
 			case tar.TypeDir:
 				log.Error("got nested directory, aborting")
-				g.JSON(http.StatusBadRequest, gin.H{"error": "directories are not supported"})
+				c.abort(g, http.StatusBadRequest, fmt.Errorf("directories are not supported"))
 				return
 			case tar.TypeReg:
 				if _, err := ipfs.AddDataToDirectory(c.node.Ipfs(), dirb, header.Name, tr); err != nil {
 					log.Errorf("error adding file to dir %s", err)
-					g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					c.abort(g, http.StatusInternalServerError, err)
 					return
 				}
 			default:
@@ -95,12 +68,12 @@ func (c *cafeApi) pin(g *gin.Context) {
 		dir, err := dirb.GetNode()
 		if err != nil {
 			log.Errorf("error creating dir node %s", err)
-			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.abort(g, http.StatusInternalServerError, err)
 			return
 		}
 		if err := ipfs.PinNode(c.node.Ipfs(), dir, true); err != nil {
 			log.Errorf("error pinning dir node %s", err)
-			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.abort(g, http.StatusInternalServerError, err)
 			return
 		}
 		id = dir.Cid()
@@ -109,31 +82,24 @@ func (c *cafeApi) pin(g *gin.Context) {
 		idp, err := ipfs.AddData(c.node.Ipfs(), g.Request.Body, true)
 		if err != nil {
 			log.Errorf("error pinning raw body %s", err)
-			g.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.abort(g, http.StatusInternalServerError, err)
 			return
 		}
 		id = *idp
 	default:
 		log.Errorf("got bad content type %s", cType)
-		g.JSON(http.StatusBadRequest, gin.H{"error": "invalid content-type"})
+		c.abort(g, http.StatusBadRequest, fmt.Errorf("invalid content-type"))
 		return
 	}
 	hash := id.Hash().B58String()
 
 	log.Debugf("pinned request with content type %s: %s", cType, hash)
 
-	g.JSON(http.StatusCreated, PinResponse{
-		Id: hash,
-	})
+	g.JSON(http.StatusCreated, gin.H{"id": hash})
 }
 
 // service is an HTTP entry point for the cafe service
 func (c *cafeApi) service(g *gin.Context) {
-	if !c.node.Online() {
-		g.String(http.StatusInternalServerError, "node is offline")
-		return
-	}
-
 	body, err := ioutil.ReadAll(g.Request.Body)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())

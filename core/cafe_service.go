@@ -60,6 +60,7 @@ const (
 	errInvalidAddress = "invalid address"
 	errUnauthorized   = "unauthorized"
 	errForbidden      = "forbidden"
+	errBadRequest     = "bad request"
 )
 
 // cafeServiceProtocol is the current protocol tag
@@ -994,28 +995,23 @@ func (h *CafeService) handleObject(pid peer.ID, env *pb.Envelope) (*pb.Envelope,
 		return rerr, nil
 	}
 
-	var id string
+	var aid *cid.Cid
 	if obj.Data != nil {
-		aid, err := ipfs.AddData(h.service.Node(), bytes.NewReader(obj.Data), true)
-		if err != nil {
-			return nil, err
-		}
-		id = aid.Hash().B58String()
-
-		log.Debugf("pinned object %s", id)
-
+		aid, err = ipfs.AddData(h.service.Node(), bytes.NewReader(obj.Data), true)
 	} else if obj.Node != nil {
-		aid, err := ipfs.AddObject(h.service.Node(), bytes.NewReader(obj.Node), true)
-		if err != nil {
-			return nil, err
-		}
-		id = aid.Hash().B58String()
-
-		log.Debugf("pinned node %s", id)
+		aid, err = ipfs.AddObject(h.service.Node(), bytes.NewReader(obj.Node), true)
+	} else {
+		return h.service.NewError(400, errBadRequest, env.Message.RequestId)
 	}
+	if err != nil {
+		return nil, err
+	}
+	rhash := aid.Hash().B58String()
 
-	if id != obj.Cid {
-		log.Warningf("cids do not match (received %s, resolved %s)", obj.Cid, id)
+	log.Debugf("stored %s", rhash)
+
+	if rhash != obj.Cid {
+		log.Warningf("cids do not match (received %s, resolved %s)", obj.Cid, rhash)
 	}
 
 	res := &pb.CafeStoreAck{Id: obj.Cid}

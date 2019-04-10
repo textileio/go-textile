@@ -73,20 +73,20 @@ func (c *cafeApi) start() {
 	// v0 routes
 	v0 := router.Group("/cafe/v0")
 	{
-		v0.POST("/pin", c.pin)
+		v0.POST("/pin", c.validateToken, c.pin)
 		v0.POST("/service", c.service)
 	}
 
 	// v1 routes
 	v1 := router.Group("/api/v1")
 
-	store := v1.Group("/store", c.validate)
+	store := v1.Group("/store", c.validateToken)
 	{
 		store.PUT("/:cid", c.store)
 		store.DELETE("/:cid", c.unstore)
 	}
 
-	threads := v1.Group("/threads", c.validate)
+	threads := v1.Group("/threads", c.validateToken)
 	{
 		threads.PUT("/:id", c.storeThread)
 		threads.DELETE("/:id", c.unstoreThread)
@@ -136,27 +136,12 @@ func (c *cafeApi) stop() error {
 	return nil
 }
 
-// validate checks if the node is running and validates auth token
-func (c *cafeApi) validate(g *gin.Context) {
-	if !c.node.Started() {
-		g.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
-			"error": "node is stopped",
-		})
-		return
-	}
-
-	// validate request token
-	if !c.tokenValid(g) {
-		return
-	}
-}
-
-// validToken aborts the request if the token is invalid
-func (c *cafeApi) tokenValid(g *gin.Context) bool {
+// validateToken aborts the request if the token is invalid
+func (c *cafeApi) validateToken(g *gin.Context) {
 	auth := strings.Split(g.Request.Header.Get("Authorization"), " ")
 	if len(auth) < 2 {
-		g.AbortWithStatusJSON(http.StatusUnauthorized, unauthorizedResponse)
-		return false
+		c.abort(g, http.StatusUnauthorized, nil)
+		return
 	}
 	token := auth[1]
 
@@ -164,16 +149,25 @@ func (c *cafeApi) tokenValid(g *gin.Context) bool {
 	if err := jwt.Validate(token, c.verifyKeyFunc, false, protocol, nil); err != nil {
 		switch err {
 		case jwt.ErrNoToken, jwt.ErrExpired:
-			g.AbortWithStatusJSON(http.StatusUnauthorized, unauthorizedResponse)
+			c.abort(g, http.StatusUnauthorized, nil)
 		case jwt.ErrInvalid:
-			g.AbortWithStatusJSON(http.StatusForbidden, forbiddenResponse)
+			c.abort(g, http.StatusForbidden, nil)
 		}
-		return false
 	}
-	return true
 }
 
 // verifyKeyFunc returns the correct key for token verification
 func (c *cafeApi) verifyKeyFunc(token *njwt.Token) (interface{}, error) {
 	return c.node.Ipfs().PrivateKey.GetPublic(), nil
+}
+
+// abort aborts the request with the given status code and error
+func (c *cafeApi) abort(g *gin.Context, status int, err error) {
+	if err != nil {
+		g.AbortWithStatusJSON(status, gin.H{
+			"error": err.Error(),
+		})
+	} else {
+		g.AbortWithStatus(status)
+	}
 }
