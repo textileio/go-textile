@@ -1,5 +1,5 @@
-import React, { Component } from 'react'
-import { Feed, Icon } from 'semantic-ui-react'
+import React from 'react'
+import { Feed, Image } from 'semantic-ui-react'
 import { observer } from 'mobx-react'
 import { ConnectedComponent, connect } from './ConnectedComponent'
 import { Stores } from '../Stores'
@@ -25,29 +25,21 @@ export default class Notification extends ConnectedComponent<Props, Stores> {
     const isMessage = item.type === 'MESSAGE_ADDED'
     return (
       <Feed.Event
-        onMouseEnter={() => this.toggleCloseVisible()}
-        onMouseLeave={() => this.toggleCloseVisible()}
-        style={{ marginBottom: '0.5em' }}>
-        {/* <Feed.Label>
-            <img src={item.user.avatar} />
-          </Feed.Label> */}
+        onClick={this.handleClose}
+        style={{ cursor: 'pointer', opacity: item.read ? 0.5 : 1 }}>
+        <Feed.Label>
+          <Image style={{ width: '2em', height: '2em' }} src={item.user.avatar} />
+        </Feed.Label>
         <Feed.Content>
-          <Feed.Date style={{ height: '1.5em' }}>
-            {this.state.showClose &&
-            <div>
-              <Moment fromNow>{item.date}</Moment>
-              {!item.read &&
-                <Icon title='mark as read' link hidden={true} name='check' onClick={this.handleClose}
-                  style={{ float: 'right' }}
-                />
-              }
-            </div>
-            }
-          </Feed.Date>
-          <Feed.Summary style={{ fontWeight: 'normal', color: item.read ? 'lightgrey' : 'black' }}>
-            {item.user.name} {isMessage ? 'posted' : item.body} in <span style={{ fontWeight: 'bold' }}>{item.subject_desc}</span>
+          <Feed.Summary>
+            {item.subject_desc}
           </Feed.Summary>
-          {isMessage && <Feed.Meta style={{ marginTop: 0, color: item.read ? 'lightgrey' : 'black' }}>{item.body}</Feed.Meta>}
+          <Feed.Extra text style={{ margin: 0 }}>
+            {`${item.user.name} ${isMessage ? 'said:' : ''} ${item.body} `}
+            <Feed.Date as='span'>
+              <Moment fromNow ago>{item.date}</Moment>
+            </Feed.Date>
+          </Feed.Extra>
         </Feed.Content>
       </Feed.Event>
     )

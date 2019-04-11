@@ -15,6 +15,7 @@ import (
 	asti "github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
 	astilog "github.com/asticode/go-astilog"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/gateway"
@@ -33,6 +34,11 @@ var (
 	move    = true
 )
 
+// pbMarshaler is used to marshal protobufs to JSON
+var pbMarshaler = jsonpb.Marshaler{
+	OrigName: true,
+}
+
 var node *core.Textile
 
 func main() {
@@ -50,7 +56,7 @@ func startNode() error {
 		return err
 	}
 
-	// subscribe to notifications
+	// Subscribe to notifications
 	go func() {
 		for {
 			select {
@@ -58,14 +64,19 @@ func startNode() error {
 				if !ok {
 					return
 				}
-				user := node.PeerUser(note.Actor)
-				var uinote = app.NewNotification(&asti.NotificationOptions{
-					Title: note.Subject,
-					Body:  fmt.Sprintf("%s: %s.", user.Name, note.Body),
-					Icon:  fmt.Sprintf("%s/ipfs/%s/0/small/d", gateway.Host.Addr(), user.Avatar),
-				})
+				// Send notification to JS land
+				str, err := pbMarshaler.MarshalToString(note)
+				if err != nil {
+					astilog.Error(err)
+				}
+				var objmap map[string]interface{}
+				err = json.Unmarshal([]byte(str), &objmap)
+				if err != nil {
+					astilog.Error(err)
+				}
+				sendData("notification", objmap)
 
-				// tmp auto-accept thread invites
+				// Temporarily auto-accept thread invites
 				if note.Type == pb.Notification_INVITE_RECEIVED {
 					go func(tid string) {
 						if _, err := node.AcceptInvite(tid); err != nil {
@@ -73,25 +84,11 @@ func startNode() error {
 						}
 					}(note.Block)
 				}
-
-				fmt.Println(fmt.Sprintf("%s: %s.", user.Name, note.Body))
-
-				// show notification
-				go func(n *asti.Notification) {
-					if err := n.Create(); err != nil {
-						astilog.Error(err)
-						return
-					}
-					if err := n.Show(); err != nil {
-						astilog.Error(err)
-						return
-					}
-				}(uinote)
 			}
 		}
 	}()
 
-	// setup and start the apis
+	// Setup and start the apis
 	gateway.Host = &gateway.Gateway{
 		Node: node,
 	}

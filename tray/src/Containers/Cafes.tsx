@@ -82,7 +82,7 @@ export default class Cafes extends ConnectedComponent<RouteComponentProps, Store
           Token expires <Moment fromNow>{item.exp}</Moment>
         </Card.Content>
         <Icon
-          style={{ position: 'absolute', right: '5px', top: '5px', zIndex: '1001' }}
+          style={{ position: 'absolute', right: '5px', top: '5px' }}
           link name='close'
           onClick={() => { this.handleRemoveCafe(item.id) }}
         />

@@ -1,5 +1,5 @@
 import React, { SyntheticEvent } from 'react'
-import { Button, Header, Image, Segment, Form } from 'semantic-ui-react'
+import { Button, Header, Image, Segment, Form, Icon } from 'semantic-ui-react'
 import { RouteComponentProps } from '@reach/router'
 import { DropdownItemProps } from 'semantic-ui-react'
 import { ConnectedComponent, connect } from '../Components/ConnectedComponent'
@@ -11,19 +11,24 @@ import NotificationsImage from '../Assets/notifications@3x.png'
 interface State {
   address: string
   password: string
+  passType: string
 }
 
 @connect('store') @observer
 export default class Landing extends ConnectedComponent<RouteComponentProps, Stores, State> {
   state = {
     address: '',
-    password: ''
+    password: '',
+    passType: 'password'
   }
   handleCreate = () => this.props.navigate && this.props.navigate('/onboard')
   handleLogin = () => {
     this.stores.store.screen = 'loading'
     this.stores.store.initAndStartTextile(undefined, this.state.address, this.state.password)
   }
+  togglePassType = () => this.setState({
+    passType: this.state.passType === 'password' ? 'input' : 'password'
+  })
   render() {
     const { addresses } = this.stores.store
     const options = addresses.map((item: string) => {
@@ -57,8 +62,14 @@ export default class Landing extends ConnectedComponent<RouteComponentProps, Sto
               <label>PASSWORD</label>
               <Form.Input
                 name='password'
+                type={this.state.passType}
                 value={this.state.password}
                 placeholder='Password...'
+                icon={<Icon
+                  name={this.state.passType === 'password' ? 'eye' : 'eye slash'}
+                  link
+                  onClick={this.togglePassType}
+                />}
                 onChange={(e: SyntheticEvent, data: any) => this.setState({ password: data.value })}
               />
             </Form.Field>

@@ -6,6 +6,25 @@ import App from './App'
 import * as serviceWorker from './serviceWorker'
 import 'semantic-ui-css/semantic.min.css'
 import { Stores, AppStore } from './Stores'
+import moment from 'moment'
+moment.locale('en', {
+  relativeTime: {
+    future: 'in %s',
+    past: '%s ago',
+    s: 'seconds',
+    ss: '%ss',
+    m: '1m',
+    mm: '%dm',
+    h: '1hr',
+    hh: '%dhr',
+    d: '1d',
+    dd: '%dd',
+    M: '1M',
+    MM: '%dM',
+    y: '1Y',
+    yy: '%dY'
+  }
+})
 
 document.addEventListener('astilectron-ready', () => {
   const stores: Stores = {

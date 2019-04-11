@@ -1,14 +1,16 @@
 import React, { Component } from 'react'
-import { Icon, IconProps } from 'semantic-ui-react'
+import { Label, Icon, LabelProps } from 'semantic-ui-react'
 
-export default class BackArrow extends Component<IconProps> {
+export default class BackArrow extends Component<LabelProps> {
   render() {
     const { name, ...props } = this.props
     return (
-      <Icon {...props}
-        style={{ position: 'absolute', right: '5px', top: '5px', zIndex: '1001' }}
-        link name={name ? name : 'arrow left'}
-      />
+      <Label {...props}
+        as='a' style={{ position: 'absolute', right: '0', top: '0', zIndex: '10' }}
+        basic size='large'
+      >
+        <Icon style={{ margin: 0 }} name={name ? name : 'arrow left'} />
+      </Label>
     )
   }
 }

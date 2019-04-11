@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React from 'react'
 import { Button, Header, Image, Segment } from 'semantic-ui-react'
 import { RouteComponentProps } from '@reach/router'
 import SecurityImage from '../Assets/permissions@3x.png'

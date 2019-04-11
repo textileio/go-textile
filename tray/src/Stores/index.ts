@@ -5,7 +5,7 @@ import moment, { utc } from 'moment'
 
 const textile = new Textile({
   url: 'http://127.0.0.1',
-  port: 40600
+  port: 40602
 })
 
 const AVATAR_KEY = 'profile'
@@ -46,17 +46,35 @@ export class AppStore implements Store {
     })
     if ('astilectron' in window) {
       astilectron.onMessage((message: Message) => {
+        const item = message.payload
         switch (message.name) {
           case 'addresses':
-            const addresses = message.payload
             runInAction('addresses', () => {
-              this.addresses = addresses
+              this.addresses = item
             })
-            if (addresses.length > 0) {
+            if (item.length > 0) {
               this.screen = 'landing'
             } else {
               this.screen = 'onboard'
             }
+            break
+          case 'notification':
+            console.log(message)
+            if (item.user.avatar) {
+              item.user.avatar = `${this.gateway}/ipfs/${item.user.avatar}/0/small/d`
+            } else {
+              item.user.avatar = DEFAULT_AVATAR
+            }
+            runInAction('notification', () => {
+              this.notifications.unshift(item)
+            })
+            const isMessage = item.type === 'MESSAGE_ADDED'
+            const opts: NotificationOptions = {
+              icon: item.user.avatar,
+              body: `${item.user.name} ${isMessage ? 'said:' : ''} ${item.body} `,
+              timestamp: moment(item.date).unix(),
+            }
+            const note = new Notification(item.subject_desc, opts)
             break
           default:
             console.log(message)
@@ -81,7 +99,7 @@ export class AppStore implements Store {
   @observable history = history
   // TODO: Maybe this should just be strings and do the conversion in components?
   @observable addresses: string[] = []
-  @observable gateway = 'http://127.0.0.1:5050'
+  @observable gateway = 'http://127.0.0.1:5052'
   @observable screen: Screen = 'starting'
   @observable cafes: any[] = []
   @observable notifications: any[] = []
