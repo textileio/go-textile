@@ -1,7 +1,6 @@
 package core
 
 import (
-	"context"
 	"sync"
 
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core"
@@ -9,9 +8,9 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
+	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo"
-	"github.com/textileio/go-textile/service"
 )
 
 // blockFlushGroupSize is the size of concurrently processed messages
@@ -131,14 +130,21 @@ func (q *BlockOutbox) batch(msgs []pb.BlockMessage) error {
 // handle handles a single message
 func (q *BlockOutbox) handle(pid peer.ID, msg pb.BlockMessage) error {
 	// first, attempt to send the message directly to the recipient
-	ctx, cancel := context.WithTimeout(context.Background(), service.DirectTimeout)
-	defer cancel()
-
-	var err error
-	if q.service().online {
-		err = q.service().SendMessage(ctx, pid, msg.Env)
+	sendable := q.service().online
+	if sendable {
+		connected, err := ipfs.SwarmConnected(q.node(), pid)
+		if err != nil {
+			return err
+		}
+		if !connected {
+			sendable = false
+		}
 	}
-	if !q.service().online || err != nil {
+	var err error
+	if sendable {
+		err = q.service().SendMessage(nil, pid, msg.Env)
+	}
+	if !sendable || err != nil {
 		if err != nil {
 			log.Debugf("send block message direct to %s failed: %s", pid.Pretty(), err)
 		}
@@ -149,7 +155,7 @@ func (q *BlockOutbox) handle(pid peer.ID, msg pb.BlockMessage) error {
 			log.Debugf("sending block message for %s to inbox(es)", pid.Pretty())
 
 			// add an inbox request for message delivery
-			if err := q.cafeOutbox.InboxRequest(pid, msg.Env, contact.Inboxes); err != nil {
+			if err := q.cafeOutbox.AddForInbox(pid, msg.Env, contact.Inboxes); err != nil {
 				return err
 			}
 		}

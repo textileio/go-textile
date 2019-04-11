@@ -38,8 +38,8 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 	if node == nil {
 		return nil, ErrInvalidFileNode
 	}
-
 	target := node.Cid().Hash().B58String()
+	group := cafeReqOpt.Group(target)
 
 	// each link should point to a dag described by the thread schema
 	for i, link := range node.Links() {
@@ -47,18 +47,18 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 		if err != nil {
 			return nil, err
 		}
-		if err := t.processFileNode(t.Schema, nd, i, keys, false); err != nil {
+		if err := t.processFileNode(t.Schema, nd, i, keys, group, false); err != nil {
 			return nil, err
 		}
 	}
 
-	if err := t.cafeOutbox.Add(target, pb.CafeRequest_STORE); err != nil {
+	if err := t.cafeOutbox.Add(target, pb.CafeRequest_STORE, group); err != nil {
 		return nil, err
 	}
 
 	caption = strings.TrimSpace(caption)
 	msg := &pb.ThreadFiles{
-		Target: node.Cid().Hash().B58String(),
+		Target: target,
 		Body:   caption,
 		Keys:   keys,
 	}
@@ -135,6 +135,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 		if err := ipfs.PinNode(t.node(), node, false); err != nil {
 			return nil, err
 		}
+		group := cafeReqOpt.Group(msg.Target)
 
 		// each link should point to a dag described by the thread schema
 		for i, link := range node.Links() {
@@ -142,12 +143,12 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 			if err != nil {
 				return nil, err
 			}
-			if err := t.processFileNode(t.Schema, nd, i, msg.Keys, true); err != nil {
+			if err := t.processFileNode(t.Schema, nd, i, msg.Keys, group, true); err != nil {
 				return nil, err
 			}
 		}
 
-		if err := t.cafeOutbox.Add(msg.Target, pb.CafeRequest_STORE); err != nil {
+		if err := t.cafeOutbox.Add(msg.Target, pb.CafeRequest_STORE, group); err != nil {
 			return nil, err
 		}
 
@@ -244,15 +245,15 @@ func (t *Thread) removeFiles(node ipld.Node) error {
 }
 
 // processFileNode walks a file node, validating and applying a dag schema
-func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys map[string]string, inbound bool) error {
+func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys map[string]string, group CafeRequestOption, inbound bool) error {
 	hash := inode.Cid().Hash().B58String()
-	if err := t.cafeOutbox.Add(hash, pb.CafeRequest_STORE); err != nil {
+	if err := t.cafeOutbox.Add(hash, pb.CafeRequest_STORE, group); err != nil {
 		return err
 	}
 
 	if len(node.Links) == 0 {
 		key := keys["/"+strconv.Itoa(index)+"/"]
-		return t.processFileLink(inode, node.Pin, node.Mill, key, inbound)
+		return t.processFileLink(inode, node.Pin, node.Mill, key, group, inbound)
 	}
 
 	for name, l := range node.Links {
@@ -268,7 +269,7 @@ func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys
 		}
 
 		key := keys["/"+strconv.Itoa(index)+"/"+name+"/"]
-		if err := t.processFileLink(n, l.Pin, l.Mill, key, inbound); err != nil {
+		if err := t.processFileLink(n, l.Pin, l.Mill, key, group, inbound); err != nil {
 			return err
 		}
 	}
@@ -284,9 +285,9 @@ func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys
 }
 
 // processFileLink validates and pins file nodes
-func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key string, inbound bool) error {
+func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key string, group CafeRequestOption, inbound bool) error {
 	hash := inode.Cid().Hash().B58String()
-	if err := t.cafeOutbox.Add(hash, pb.CafeRequest_STORE); err != nil {
+	if err := t.cafeOutbox.Add(hash, pb.CafeRequest_STORE, group); err != nil {
 		return err
 	}
 
@@ -315,12 +316,12 @@ func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key stri
 
 	// remote pin leaf nodes if files originate locally
 	if !inbound {
-		if err := t.cafeOutbox.Add(flink.Cid.Hash().B58String(), pb.CafeRequest_STORE); err != nil {
+		if err := t.cafeOutbox.Add(flink.Cid.Hash().B58String(), pb.CafeRequest_STORE, group); err != nil {
 			return err
 		}
 
 		if !t.config.IsMobile || dlink.Size <= uint64(t.config.Cafe.Client.Mobile.P2PWireLimit) {
-			if err := t.cafeOutbox.Add(dlink.Cid.Hash().B58String(), pb.CafeRequest_STORE); err != nil {
+			if err := t.cafeOutbox.Add(dlink.Cid.Hash().B58String(), pb.CafeRequest_STORE, group); err != nil {
 				return err
 			}
 		}

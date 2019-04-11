@@ -8,6 +8,7 @@ import (
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core"
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core/coreapi"
 	inet "gx/ipfs/QmY3ArotKMKaL7YGfbQfyDrib6RVraLqZYWXZvVgZktBxp/go-libp2p-net"
+	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 )
 
 // SwarmConnect opens a direct connection to a list of peer multi addresses
@@ -135,4 +136,28 @@ func SwarmPeers(node *core.IpfsNode, verbose bool, latency bool, streams bool, d
 
 	sort.Sort(&out)
 	return &out, nil
+}
+
+// SwarmConnected returns whether or not the node has the peer in its current swarm
+func SwarmConnected(node *core.IpfsNode, pid peer.ID) (bool, error) {
+	api, err := coreapi.NewCoreAPI(node)
+	if err != nil {
+		return false, err
+	}
+
+	ctx, cancel := context.WithTimeout(node.Context(), connectTimeout)
+	defer cancel()
+
+	conns, err := api.Swarm().Peers(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	for _, c := range conns {
+		if c.ID().Pretty() == pid.Pretty() {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

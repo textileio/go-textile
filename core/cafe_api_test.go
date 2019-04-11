@@ -23,6 +23,11 @@ var session *pb.CafeSession
 var blockHash = "QmbQ4K3vXNJ3DjCNdG2urCXs7BuHqWQG1iSjZ8fbnF8NMs"
 var photoHash = "QmSUnsZi9rGvPZLWy2v5N7fNxUWVNnA5nmppoM96FbLqLp"
 
+type pinResponse struct {
+	Id    string `json:"id"`
+	Error string `json:"error"`
+}
+
 func TestCafeApi_Setup(t *testing.T) {
 	// start one node
 	os.RemoveAll(repoPath1)
@@ -113,7 +118,7 @@ func TestCafeApi_Pin(t *testing.T) {
 		t.Errorf("got bad status: %d", res.StatusCode)
 		return
 	}
-	resp := &PinResponse{}
+	resp := &pinResponse{}
 	if err := unmarshalJSON(res.Body, resp); err != nil {
 		t.Error(err)
 		return
@@ -144,7 +149,7 @@ func TestCafeApi_PinArchive(t *testing.T) {
 		t.Errorf("got bad status: %d", res.StatusCode)
 		return
 	}
-	resp := &PinResponse{}
+	resp := &pinResponse{}
 	if err := unmarshalJSON(res.Body, resp); err != nil {
 		t.Error(err)
 		return
