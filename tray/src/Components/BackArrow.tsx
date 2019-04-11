@@ -6,8 +6,8 @@ export default class BackArrow extends Component<LabelProps> {
     const { name, ...props } = this.props
     return (
       <Label {...props}
-        as='a' style={{ position: 'absolute', right: '0', top: '0', zIndex: '10' }}
-        basic size='large'
+        as='a' basic size='large'
+        style={{ position: 'absolute', right: '0', top: '0', zIndex: '10', border: 'none' }}
       >
         <Icon style={{ margin: 0 }} name={name ? name : 'arrow left'} />
       </Label>
