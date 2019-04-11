@@ -163,6 +163,13 @@ definitions:
       files:
         type: object
     type: object
+  pb.DirectoryList:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/pb.Directory'
+        type: array
+    type: object
   pb.ExternalInvite:
     properties:
       id:
@@ -491,7 +498,7 @@ definitions:
       name:
         type: string
     type: object
-host: 127.0.0.1:40600
+host: '{{.Host}}'
 info:
   contact:
     email: contact@textile.io
@@ -518,7 +525,7 @@ paths:
       summary: Show account address
       tags:
       - account
-  /account/peers:
+  /account/contact:
     get:
       description: Shows own contact
       produces:
@@ -1269,8 +1276,7 @@ paths:
       parameters:
       - default: thread=,address=
         description: 'thread: Thread ID (can also use ''default''), address: Account
-          Address (omit to create an external invite), wait: Stops searching after
-          ''wait'' seconds have elapsed (max 30s)'
+          Address (omit to create an external invite)'
         in: header
         name: X-Textile-Opts
         type: string
@@ -2160,12 +2166,12 @@ paths:
         schema are ignored. Nested directories are included. An existing file hash may
         also be used as input.
       parameters:
-      - description: milled dir (output from mill endpoint)
+      - description: list of milled dirs (output from mill endpoint)
         in: body
         name: dir
         required: true
         schema:
-          $ref: '#/definitions/pb.Directory'
+          $ref: '#/definitions/pb.DirectoryList'
           type: object
       - default: caption=
         description: 'caption: Caption to add to file(s)'

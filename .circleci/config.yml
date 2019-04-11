@@ -253,6 +253,7 @@ jobs:
     - run:
         name: compile
         command: |
+          cd tray
           yarn dist -o linux
     - run:
         name: collect artifacts
@@ -333,6 +334,7 @@ jobs:
         name: compile
         command: |
           export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
+          cd tray
           yarn dist -o darwin
           yarn dist -o windows
     - run:
