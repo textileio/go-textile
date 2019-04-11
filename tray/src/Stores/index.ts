@@ -207,7 +207,14 @@ export class AppStore implements Store {
     }
   }
   @action async syncAccount() {
-    textile.account.sync()
+    const { emitter } = textile.account.sync(true)
+    emitter.on('textile.snapshots.found', (item: any) => {
+      const opts: NotificationOptions = {
+        body: item.id,
+        timestamp: moment().unix(),
+      }
+      const note = new Notification('Found and applying snapshot', opts)
+    })
   }
   @action async setProfile(userString?: string, avatarFile?: FormData) {
     if (userString) {
