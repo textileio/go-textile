@@ -1,33 +1,43 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
 
 	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/repo/fsrepo"
 
-	"github.com/atotto/clipboard"
-	"github.com/pkg/browser"
-
-	"github.com/asticode/go-astilectron"
+	asti "github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
-	"github.com/asticode/go-astilog"
+	astilog "github.com/asticode/go-astilog"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/gateway"
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/wallet"
 )
 
 var (
 	appName = "Textile"
+	appDir  string
 	debug   = flag.Bool("d", false, "enables debug mode")
-	app     *astilectron.Astilectron
-	menu    *astilectron.Menu
+	app     *asti.Astilectron
+	window  *asti.Window
+	tray    *asti.Tray
+	move    = true
 )
+
+// pbMarshaler is used to marshal protobufs to JSON
+var pbMarshaler = jsonpb.Marshaler{
+	OrigName: true,
+}
 
 var node *core.Textile
 
@@ -46,7 +56,7 @@ func startNode() error {
 		return err
 	}
 
-	// subscribe to notifications
+	// Subscribe to notifications
 	go func() {
 		for {
 			select {
@@ -54,14 +64,19 @@ func startNode() error {
 				if !ok {
 					return
 				}
-				user := node.PeerUser(note.Actor)
-				var uinote = app.NewNotification(&astilectron.NotificationOptions{
-					Title: note.Subject,
-					Body:  fmt.Sprintf("%s: %s.", user.Name, note.Body),
-					Icon:  fmt.Sprintf("%s/ipfs/%s/0/small/d", gateway.Host.Addr(), user.Avatar),
-				})
+				// Send notification to JS land
+				str, err := pbMarshaler.MarshalToString(note)
+				if err != nil {
+					astilog.Error(err)
+				}
+				var objmap map[string]interface{}
+				err = json.Unmarshal([]byte(str), &objmap)
+				if err != nil {
+					astilog.Error(err)
+				}
+				sendData("notification", objmap)
 
-				// tmp auto-accept thread invites
+				// Temporarily auto-accept thread invites
 				if note.Type == pb.Notification_INVITE_RECEIVED {
 					go func(tid string) {
 						if _, err := node.AcceptInvite(tid); err != nil {
@@ -69,25 +84,11 @@ func startNode() error {
 						}
 					}(note.Block)
 				}
-
-				fmt.Println(fmt.Sprintf("%s: %s.", user.Name, note.Body))
-
-				// show notification
-				go func(n *astilectron.Notification) {
-					if err := n.Create(); err != nil {
-						astilog.Error(err)
-						return
-					}
-					if err := n.Show(); err != nil {
-						astilog.Error(err)
-						return
-					}
-				}(uinote)
 			}
 		}
 	}()
 
-	// setup and start the apis
+	// Setup and start the apis
 	gateway.Host = &gateway.Gateway{
 		Node: node,
 	}
@@ -118,46 +119,13 @@ func stopNode() error {
 	return nil
 }
 
-func start(app *astilectron.Astilectron, _ []*astilectron.Window, _ *astilectron.Menu, t *astilectron.Tray, m *astilectron.Menu) error {
-	// remove the dock icon
-	var d = app.Dock()
-	d.Hide()
-
-	// get homedir
-	home, err := homedir.Dir()
-	if err != nil {
-		astilog.Fatal(fmt.Errorf("get homedir failed: %s", err))
-	}
-
-	// ensure app support folder is created
-	var appDir string
-	if runtime.GOOS == "darwin" {
-		appDir = filepath.Join(home, "Library", "Application Support", "Textile")
-	} else {
-		appDir = filepath.Join(home, ".textile")
-	}
-	if err := os.MkdirAll(appDir, 0755); err != nil {
-		astilog.Fatal(fmt.Errorf("create app dir failed: %s", err))
-	}
-	repoPath := filepath.Join(appDir, "repo")
-
-	// run init if needed
-	if !fsrepo.IsInitialized(repoPath) {
-		accnt := keypair.Random()
-		initc := core.InitConfig{
-			Account:     accnt,
-			RepoPath:    repoPath,
-			LogToDisk:   true,
-			GatewayAddr: fmt.Sprintf("127.0.0.1:5052"),
-			ApiAddr:     fmt.Sprintf("127.0.0.1:40602"),
-		}
-		if err := core.InitRepo(initc); err != nil {
-			astilog.Fatal(fmt.Errorf("create repo failed: %s", err))
-		}
-	}
-
+func startTextile(repoPath string, password string) error {
 	// build textile node
-	node, err = core.NewTextile(core.RunConfig{RepoPath: repoPath})
+	var err error
+	node, err = core.NewTextile(core.RunConfig{
+		PinCode:  password,
+		RepoPath: repoPath,
+	})
 	if err != nil {
 		astilog.Error(err)
 		return err
@@ -169,125 +137,170 @@ func start(app *astilectron.Astilectron, _ []*astilectron.Window, _ *astilectron
 		astilog.Error(err)
 		return err
 	}
-
-	pid, err := node.PeerId()
-	if err != nil {
-		astilog.Fatalf("get peer id failed: %s", err)
-	}
-
-	items := []*astilectron.MenuItemOptions{
-		{
-			Label: astilectron.PtrStr("Online/Offline"),
-			OnClick: func(e astilectron.Event) (deleteListener bool) {
-				if *e.MenuItemOptions.Checked {
-					startNode()
-				} else {
-					stopNode()
-				}
-				return
-			},
-			Type:    astilectron.MenuItemTypeCheckbox,
-			Checked: astilectron.PtrBool(true),
-		},
-		{
-			Label: astilectron.PtrStr("View docs"),
-			OnClick: func(e astilectron.Event) (deleteListener bool) {
-				browser.OpenURL(fmt.Sprintf("http://%s/docs/index.html", node.ApiAddr()))
-				return
-			},
-		},
-		{
-			Label: astilectron.PtrStr("Check Messages"),
-			OnClick: func(e astilectron.Event) (deleteListener bool) {
-				node.CheckCafeMessages()
-				return
-			},
-		},
-		{
-			Type: astilectron.MenuItemTypeSeparator,
-		},
-		{
-			Label: astilectron.PtrStr("Peer"),
-			SubMenu: []*astilectron.MenuItemOptions{
-				{
-					Label: astilectron.PtrStr("Copy Peer ID"),
-					OnClick: func(e astilectron.Event) (deleteListener bool) {
-						clipboard.WriteAll(pid.Pretty())
-						return
-					},
-				},
-				{
-					Label: astilectron.PtrStr("Copy Peer Address"),
-					OnClick: func(e astilectron.Event) (deleteListener bool) {
-						clipboard.WriteAll(node.Account().Address())
-						return
-					},
-				},
-			},
-		},
-		{
-			Label: astilectron.PtrStr("API"),
-			SubMenu: []*astilectron.MenuItemOptions{
-				{
-					Label: astilectron.PtrStr(fmt.Sprintf("Copy URL (%s)", node.ApiAddr())),
-					OnClick: func(e astilectron.Event) (deleteListener bool) {
-						clipboard.WriteAll(fmt.Sprintf("http://%s/api/v0", node.ApiAddr()))
-						return
-					},
-				},
-				{
-					Label: astilectron.PtrStr(fmt.Sprintf("Copy gateway (%s)", gateway.Host.Addr())),
-					OnClick: func(e astilectron.Event) (deleteListener bool) {
-						clipboard.WriteAll(fmt.Sprintf("http://%s", gateway.Host.Addr()))
-						return
-					},
-				},
-			},
-		},
-		{
-			Label: astilectron.PtrStr("Repo"),
-			SubMenu: []*astilectron.MenuItemOptions{
-				{
-					Label: astilectron.PtrStr("View/edit config file"),
-					OnClick: func(e astilectron.Event) (deleteListener bool) {
-						browser.OpenFile(filepath.Join(repoPath, "textile"))
-						return
-					},
-				},
-				{
-					Label: astilectron.PtrStr("Open repo folder"),
-					OnClick: func(e astilectron.Event) (deleteListener bool) {
-						browser.OpenFile(repoPath)
-						return
-					},
-				},
-			},
-		},
-		{
-			Type: astilectron.MenuItemTypeSeparator,
-		},
-		{
-			Label: astilectron.PtrStr("Quit"),
-			OnClick: func(e astilectron.Event) (deleteListener bool) {
-				stopNode()
-				app.Quit()
-				return
-			},
-		},
-	}
-
-	for _, item := range items {
-		var i = m.NewItem(item)
-		m.Append(i)
-	}
-
 	return nil
 }
 
+func openAndStartTextile(address string, password string) error {
+	repoPath := filepath.Join(appDir, address)
+	return startTextile(repoPath, password)
+}
+
+func initAndStartTextile(mnemonic string, password string) error {
+	wallet := wallet.NewWalletFromRecoveryPhrase(mnemonic)
+	// start with first account (default is not to use a password)
+	accnt, err := wallet.AccountAt(0, "")
+	if err != nil {
+		return err
+	}
+
+	repoPath := filepath.Join(appDir, accnt.Address())
+
+	// run init if needed
+	if !fsrepo.IsInitialized(repoPath) {
+		initc := core.InitConfig{
+			Account:     accnt,
+			PinCode:     password,
+			RepoPath:    repoPath,
+			LogToDisk:   true,
+			GatewayAddr: fmt.Sprintf("127.0.0.1:5052"),
+			ApiAddr:     fmt.Sprintf("127.0.0.1:40602"),
+		}
+		if err := core.InitRepo(initc); err != nil {
+			astilog.Fatal(fmt.Errorf("create repo failed: %s", err))
+		}
+	}
+
+	return startTextile(repoPath, password)
+}
+
+func computePosition(bounds *asti.RectangleOptions) (int, int, error) {
+	if bounds != nil {
+		x := *(bounds.X)
+		y := *(bounds.Y)
+		// Center window horizontally below the tray icon
+		x = x - (WindowWidth / 2) + 16
+		// Position window 16 pixels vertically below the tray icon
+		y = y + 16
+		return x, y, nil
+	}
+	return 0, 0, errors.New("invalid bounds object")
+}
+
+func start(a *asti.Astilectron, w []*asti.Window, _ *asti.Menu, t *asti.Tray, _ *asti.Menu) error {
+	tray = t
+	app = a
+	window = w[0]
+	window.Create()
+	// remove the dock icon
+	dock := app.Dock()
+	dock.Hide()
+
+	// get homedir
+	home, err := homedir.Dir()
+	if err != nil {
+		astilog.Fatal(fmt.Errorf("get homedir failed: %s", err))
+	}
+
+	// ensure app support folder is created
+	if runtime.GOOS == "darwin" {
+		appDir = filepath.Join(home, "Library", "Application Support", "Textile")
+	} else {
+		appDir = filepath.Join(home, ".textile")
+	}
+
+	if err := os.MkdirAll(appDir, 0755); err != nil {
+		astilog.Fatal(fmt.Errorf("create app dir failed: %s", err))
+	}
+
+	// Look for existing accounts
+	files, err := ioutil.ReadDir(appDir)
+	if err != nil {
+		astilog.Fatal(fmt.Errorf("read app dir failed: %s", err))
+	}
+
+	var addresses []string
+	for _, f := range files {
+		if f.IsDir() {
+			kp, err := keypair.Parse(f.Name())
+			if err != nil {
+				astilog.Errorf("invalid account address encountered (%s), skipping", err)
+			} else {
+				addresses = append(addresses, kp.Address())
+			}
+		}
+	}
+	// Tell Javascript about them
+	// TODO: This should probably be pulled from JS, rather than pushed like this?
+	sendData("addresses", addresses)
+
+	tray.On(asti.EventNameTrayEventClicked, toggleWindow)
+	tray.On(asti.EventNameTrayEventDoubleClicked, toggleWindow)
+	window.On(asti.EventNameWindowEventBlur, func(e asti.Event) bool {
+		window.Hide()
+		return false
+	})
+	return nil
+}
+
+func toggleWindow(e asti.Event) bool {
+	if window.IsShown() {
+		window.Hide()
+	} else {
+		if !move {
+			window.Show()
+		}
+		x, y, err := computePosition(e.Bounds)
+		if err == nil {
+			err = window.Move(x, y)
+			if err != nil {
+				astilog.Errorf("error positioning window: %s", err)
+			}
+		}
+		if move {
+			window.Show()
+			move = false
+		}
+	}
+	return false
+}
+
+func sendData(name string, data interface{}) {
+	payload := map[string]interface{}{"name": name, "payload": data}
+	window.SendMessage(payload)
+}
+
 // handleMessage handles incoming messages from Javascript/Electron
-func handleMessage(_ *astilectron.Window, m bootstrap.MessageIn) (interface{}, error) {
+func handleMessage(w *asti.Window, m bootstrap.MessageIn) (interface{}, error) {
 	switch m.Name {
+	case "init":
+		type init struct {
+			Address  string `json:"address,omitempty"`
+			Mnemonic string `json:"mnemonic,omitempty"`
+			Password string `json:"password,omitempty"`
+		}
+		var payload init
+		if err := json.Unmarshal(m.Payload, &payload); err != nil {
+			return nil, err
+		}
+		var err error
+		if payload.Mnemonic != "" {
+			err = initAndStartTextile(payload.Mnemonic, payload.Password)
+		} else if payload.Address != "" {
+			err = openAndStartTextile(payload.Address, payload.Password)
+		} else {
+			err = errors.New("error provisioning Textile account")
+		}
+		if err != nil {
+			return nil, err
+		}
+		return true, nil
+	case "hide":
+		w.Hide()
+	case "quit":
+		app.Close()
+		app.Quit()
 	default:
 		return nil, nil
 	}
+	return true, nil
 }

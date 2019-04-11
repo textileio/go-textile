@@ -1,0 +1,25 @@
+{
+  "app_name": "Textile",
+  "environments": [
+    {
+      "arch": "amd64",
+      "os": "darwin"
+    }
+  ],
+  "icon_path_darwin": "resources/assets/icon.icns",
+  "output_path": "output",
+  "info_plist": {
+    "CFBundlePackageType": "APPL",
+    "CFBundleInfoDictionaryVersion": "6.0",
+    "CFBundleIconFile": "icon.icns",
+    "CFBundleDisplayName": "Textile",
+    "CFBundleExecutable": "Textile",
+    "CFBundleIdentifier": "io.textile.tray",
+    "LSUIElement": "NO",
+    "LSMinimumSystemVersion": "10.11",
+    "NSHighResolutionCapable": true,
+    "NSAppTransportSecurity": {
+      "NSAllowsArbitraryLoads": true
+    }
+  }
+}

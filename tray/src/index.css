@@ -1,0 +1,36 @@
+body, html {
+  font-family: "Biotif", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+}
+
+@font-face {
+  font-family: 'Biotif';
+  font-weight: normal;
+  src:
+    local('Biotif-Regular'),
+    url(./Assets/Fonts/Biotif-Regular.ttf) format('truetype');
+}
+
+@font-face {
+  font-family: 'Biotif';
+  font-weight: 500;
+  src:
+    local('Biotif-Medium'),
+    url(./Assets/Fonts/Biotif-Medium.ttf) format('truetype');
+}
+
+@font-face {
+  font-family: 'Biotif';
+  font-weight: bold;
+  src:
+    local('Biotif-Bold'),
+    url(./Assets/Fonts/Biotif-Bold.ttf) format('truetype');
+}
