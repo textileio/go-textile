@@ -6,6 +6,7 @@ import { RouteComponentProps } from '@reach/router'
 import { observer } from "mobx-react"
 import { Stores } from '../Stores'
 const { shell } = window.require('electron')
+import path from 'path'
 
 @connect('store') @observer
 export default class Summary extends ConnectedComponent<RouteComponentProps, Stores> {
@@ -16,8 +17,9 @@ export default class Summary extends ConnectedComponent<RouteComponentProps, Sto
   onAccountClick = () => {
     this.props.navigate && this.props.navigate('./profile')
   }
-  onNotificationsClick = () => {
-    this.stores.store.fetchNotifications()
+  onConfigClick = () => {
+    console.log(path.join(this.stores.store.dataFolder, 'textile'))
+    shell.showItemInFolder(path.join(this.stores.store.dataFolder, 'textile'))
   }
   render() {
     const { store } = this.stores
@@ -33,8 +35,8 @@ export default class Summary extends ConnectedComponent<RouteComponentProps, Sto
               <Dropdown.Menu>
                 <Dropdown.Item icon='user' text='Account' onClick={this.onAccountClick} />
                 <Dropdown.Item icon='wrench' text='Settings' disabled/>
-                <Dropdown.Item icon='refresh' text='Notifications' onClick={this.onNotificationsClick} />
                 <Dropdown.Divider />
+                <Dropdown.Item icon='wrench' text='Config File' onClick={this.onConfigClick} />
                 <Dropdown.Item icon='external' text='API Docs' onClick={this.onAPIClick}/>
                 <Dropdown.Divider />
                 <Dropdown.Item icon='close' text='Quit' onClick={this.onQuitClick}/>

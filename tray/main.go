@@ -148,16 +148,15 @@ func openAndStartTextile(address string, password string) error {
 func initAndStartTextile(mnemonic string, password string) error {
 	wallet := wallet.NewWalletFromRecoveryPhrase(mnemonic)
 	// start with first account (default is not to use a password)
-	kp, err := wallet.AccountAt(0, "")
+	accnt, err := wallet.AccountAt(0, "")
 	if err != nil {
 		return err
 	}
 
-	repoPath := filepath.Join(appDir, kp.Address())
+	repoPath := filepath.Join(appDir, accnt.Address())
 
 	// run init if needed
 	if !fsrepo.IsInitialized(repoPath) {
-		accnt := keypair.Random()
 		initc := core.InitConfig{
 			Account:     accnt,
 			PinCode:     password,

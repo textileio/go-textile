@@ -1,7 +1,9 @@
-import { observe, action, observable, runInAction } from 'mobx'
+import { observe, action, observable, runInAction, computed } from 'mobx'
 import { Textile, Wallet } from '@textile/js-http-client'
 import { createMemorySource, createHistory } from "@reach/router"
 import moment, { utc } from 'moment'
+const { remote } = window.require('electron')
+import path from 'path'
 
 const textile = new Textile({
   url: 'http://127.0.0.1',
@@ -59,7 +61,6 @@ export class AppStore implements Store {
             }
             break
           case 'notification':
-            console.log(message)
             if (item.user.avatar) {
               item.user.avatar = `${this.gateway}/ipfs/${item.user.avatar}/0/small/d`
             } else {
@@ -71,7 +72,7 @@ export class AppStore implements Store {
             const isMessage = item.type === 'MESSAGE_ADDED'
             const opts: NotificationOptions = {
               icon: item.user.avatar,
-              body: `${item.user.name} ${isMessage ? 'said:' : ''} ${item.body} `,
+              body: `${item.user.name} ${isMessage ? 'said: ' : ''}${item.body} `,
               timestamp: moment(item.date).unix(),
             }
             const note = new Notification(item.subject_desc, opts)
@@ -95,10 +96,17 @@ export class AppStore implements Store {
       })
     })
   }
+  @computed get dataFolder() {
+    return path
+      .join(remote.app.getPath('userData'), this.currentAddress)
+      // Replace Electron in dev envs
+      .replace('Electron', 'Textile')
+  }
   // Observables
   @observable history = history
   // TODO: Maybe this should just be strings and do the conversion in components?
   @observable addresses: string[] = []
+  @observable currentAddress: string = ''
   @observable gateway = 'http://127.0.0.1:5052'
   @observable screen: Screen = 'starting'
   @observable cafes: any[] = []
@@ -125,8 +133,10 @@ export class AppStore implements Store {
       // Do nothing (we're probably in dev mode?)
       screen = 'online'
     }
+    const newAddress = await textile.account.address()
     runInAction('initAndStartTextile', () => {
       this.screen = screen
+      this.currentAddress = newAddress
     })
   }
   @action async fetchMessages() {
