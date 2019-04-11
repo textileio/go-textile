@@ -54,7 +54,7 @@ export class AppStore implements Store {
             runInAction('addresses', () => {
               this.addresses = item
             })
-            if (item.length > 0) {
+            if (item && item.length > 0) {
               this.screen = 'landing'
             } else {
               this.screen = 'onboard'

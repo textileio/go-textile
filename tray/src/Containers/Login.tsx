@@ -120,7 +120,7 @@ export default class Login extends ConnectedComponent<RouteComponentProps, Store
             <Button style={{ borderRadius: 0 }} content='Sign-in' icon='sign-in' type='submit' positive disabled={inValid} />
             <Modal
               trigger={
-                <Button style={{ borderRadius: 0 }} content='Scan' icon='qrcode' type='button' onClick={this.handleQrOpen} />
+                <Button disabled style={{ borderRadius: 0 }} content='Scan' icon='qrcode' type='button' onClick={this.handleQrOpen} />
               }
               open={this.state.modalOpen}
               onClose={this.handleQrClose}
