@@ -15,7 +15,7 @@
         },
         "version": "0"
     },
-    "host": "127.0.0.1:40600",
+    "host": "{{.Host}}",
     "basePath": "/api/v0",
     "paths": {
         "/account/address": {
@@ -38,7 +38,7 @@
                 }
             }
         },
-        "/account/peers": {
+        "/account/contact": {
             "get": {
                 "description": "Shows own contact",
                 "produces": [
@@ -1094,7 +1094,7 @@
                     {
                         "type": "string",
                         "default": "thread=,address=",
-                        "description": "thread: Thread ID (can also use 'default'), address: Account Address (omit to create an external invite), wait: Stops searching after 'wait' seconds have elapsed (max 30s)",
+                        "description": "thread: Thread ID (can also use 'default'), address: Account Address (omit to create an external invite)",
                         "name": "X-Textile-Opts",
                         "in": "header"
                     }
@@ -2363,13 +2363,13 @@
                 "summary": "Adds a file or directory of files to a thread",
                 "parameters": [
                     {
-                        "description": "milled dir (output from mill endpoint)",
+                        "description": "list of milled dirs (output from mill endpoint)",
                         "name": "dir",
                         "in": "body",
                         "required": true,
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/pb.Directory"
+                            "$ref": "#/definitions/pb.DirectoryList"
                         }
                     },
                     {
@@ -2912,6 +2912,17 @@
             "properties": {
                 "files": {
                     "type": "object"
+                }
+            }
+        },
+        "pb.DirectoryList": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pb.Directory"
+                    }
                 }
             }
         },

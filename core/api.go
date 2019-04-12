@@ -24,7 +24,7 @@ import (
 	"github.com/textileio/go-textile/repo/config"
 
 	// blank import for server api docs
-	_ "github.com/textileio/go-textile/docs"
+	docs "github.com/textileio/go-textile/docs"
 )
 
 // apiVersion is the api version
@@ -84,9 +84,11 @@ func (t *Textile) ApiAddr() string {
 // @license.name MIT License
 // @license.url https://github.com/textileio/go-textile/blob/master/LICENSE
 
-// @host 127.0.0.1:40600
 // @BasePath /api/v0
 func (a *api) Start() {
+	// Dynamically set the swagger 'host' value
+	docs.SwaggerInfo.Host = a.addr
+
 	router := gin.Default()
 
 	conf := a.node.Config()
