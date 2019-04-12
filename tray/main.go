@@ -125,6 +125,7 @@ func startTextile(repoPath string, password string) error {
 	node, err = core.NewTextile(core.RunConfig{
 		PinCode:  password,
 		RepoPath: repoPath,
+		Debug:    true,
 	})
 	if err != nil {
 		astilog.Error(err)
@@ -162,6 +163,7 @@ func initAndStartTextile(mnemonic string, password string) error {
 			PinCode:     password,
 			RepoPath:    repoPath,
 			LogToDisk:   true,
+			Debug:       true,
 			GatewayAddr: fmt.Sprintf("127.0.0.1:5052"),
 			ApiAddr:     fmt.Sprintf("127.0.0.1:40602"),
 		}

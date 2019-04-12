@@ -21,6 +21,10 @@ export default class Landing extends ConnectedComponent<RouteComponentProps, Sto
     password: '',
     passType: 'password'
   }
+  componentDidMount() {
+    const { addresses } = this.stores.store
+    this.setState({ address: addresses.length > 0 ? addresses[0] : '' })
+  }
   handleCreate = () => this.props.navigate && this.props.navigate('/onboard')
   handleLogin = () => {
     this.stores.store.screen = 'loading'

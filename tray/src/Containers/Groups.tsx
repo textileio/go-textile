@@ -10,84 +10,90 @@ import Moment from 'react-moment'
 const { shell } = window.require('electron')
 
 @connect('store') @observer
-export default class Cafes extends ConnectedComponent<RouteComponentProps, Stores> {
+export default class Groups extends ConnectedComponent<RouteComponentProps, Stores> {
   state = {
     isLoading: false,
-    isAdding: false
+    isAdding: false,
+    isRemoving: false,
+    currentGroup: ''
   }
   componentDidMount() {
-    this.stores.store.fetchCafes()
+    this.stores.store.fetchGroups()
   }
-  handleMessagesClick = () => {
-    this.stores.store.fetchMessages()
+  handleRefreshClick = () => {
+    this.stores.store.fetchGroups()
     this.setState({ isLoading: true })
     // Show spinner to indicate work is being done
     setTimeout(() => this.setState({ isLoading: false}), 3000)
   }
-  handleAddCafe = (data: any) => {
-    const { url, token } = data
-    this.stores.store.addCafe(url, token)
-    this.setState({isAdding: false})
+  handleAddGroup = (data: any) => {
   }
-  handleRemoveCafe = (id: string) => {
-    this.stores.store.removeCafe(id)
+  handleShowRemove = (id: string) => {
+    this.setState({ isRemoving: true, currentGroup: id })
+  }
+  handleDone = () => this.setState({ currentGroup: '', isRemoving: false })
+  handleConfirm = () => {
+    // this.stores.store.removeGroup(this.state.currentGroup).then(this.handleDone)
   }
   render() {
-    const { cafes } = this.stores.store
+    const { groups } = this.stores.store
+    console.log(groups.map((item: any) => { return {...item} }))
     return (
       <div style={{ height: '100vh' }}>
-        <Segment basic style={{ height: 'calc(100vh-50px)'}}>
+        <Segment basic>
           <Header as='h3'>
-            CAFES
+            GROUPS
           <Header.Subheader>
-              Add and remove Cafes
+              View and edit Groups
             </Header.Subheader>
           </Header>
-          <Card.Group>
-            {cafes && cafes.map((item: any) => this.renderItem(item))}
+          <Card.Group style={{ height: '85vh', overflowY: 'auto' }}>
+            {groups && groups.map((item: any) => this.renderItem(item))}
           </Card.Group>
         </Segment>
-        <Button.Group fluid widths='2' style={{ position: 'absolute', bottom: 0 }}>
+        {/* <Button.Group fluid widths='2' style={{ position: 'absolute', bottom: 0 }}>
           <Button
-            disabled={cafes.length < 1}
+            // disabled={groups.length < 1}
             style={{ borderRadius: 0 }}
             loading={this.state.isLoading}
-            onClick={this.handleMessagesClick}
-            content='Messages' icon='refresh'
-            positive type='button' />
-          <AddCafeModal
+            onClick={this.handleRefreshClick}
+            content='Refresh' icon='refresh'
+            positive type='button' /> */}
+          {/* <AddGroupModal
             open={this.state.isAdding}
             onClose={() => { this.setState({isAdding: false}) }}
-            handleCafeAdd={this.handleAddCafe} trigger={
+            handleCafeAdd={this.handleAddGroup} trigger={
             <Button
               onClick={() => { this.setState({ isAdding: true }) }}
               style={{ borderRadius: 0 }}
               content='Add' icon='plus' type='button'/>
-          }/>
-        </Button.Group>
+          }/> */}
+        {/* </Button.Group> */}
         <BackArrow onClick={() => { this.props.navigate && this.props.navigate('..') }} />
       </div>
     )
   }
   renderItem(item: any) {
-    const { cafe } = item
+    console.log(item)
     return (
       <Card key={item.id}>
         <Card.Content>
-          <Card.Header>{cafe.address.slice(0, 8)}</Card.Header>
-          <Card.Meta>API {cafe.api}, Node v{cafe.node}</Card.Meta>
-          <Card.Description
-            as='a'
-            onClick={() => { shell.openExternal(cafe.url) }}
-            >{cafe.url}</Card.Description>
+          <Card.Header>{item.name}</Card.Header>
+          <Card.Meta>
+            {item.type && item.type.toLowerCase().replace('_', ' ')}
+            {item.sharing && ' and ' + item.sharing.toLowerCase().replace('_', ' ')}
+          </Card.Meta>
+          <Card.Description>
+            {item.peer_count} Peers sharing {item.block_count} items
+          </Card.Description>
         </Card.Content>
         <Card.Content extra>
-          Token expires <Moment fromNow>{item.exp}</Moment>
+          Updated <Moment fromNow>{item.head_block.date}</Moment>
         </Card.Content>
         <Icon
           style={{ position: 'absolute', right: '5px', top: '5px' }}
           link name='close'
-          onClick={() => { this.handleRemoveCafe(item.id) }}
+          onClick={() => { this.handleShowRemove(item.id) }}
         />
       </Card>
     )

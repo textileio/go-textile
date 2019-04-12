@@ -13,6 +13,9 @@ export default class Profile extends ConnectedComponent<RouteComponentProps, Sto
   state = {
     isLoading: false
   }
+  componentDidMount() {
+    this.stores.store.fetchProfile()
+  }
   handleUsername = (e: SyntheticEvent) => {
     e.preventDefault()
     const current = this.inputRef.current
@@ -38,10 +41,18 @@ export default class Profile extends ConnectedComponent<RouteComponentProps, Sto
     }
   }
   onCafesClick = () => {
-    this.props.navigate && this.props.navigate('./cafes')
+    this.stores.store.fetchCafes().then(() => {
+      this.props.navigate && this.props.navigate('./cafes')
+    })
+  }
+  onGroupsClick = () => {
+    this.stores.store.fetchGroups().then(() => {
+      this.props.navigate && this.props.navigate('./groups')
+    })
   }
   handleAccountSync = () => {
     this.stores.store.syncAccount()
+    this.stores.store.fetchProfile()
     this.setState({ isLoading: true })
     // Show spinner to indicate work is being done
     setTimeout(() => this.setState({ isLoading: false }), 3000)
@@ -54,7 +65,7 @@ export default class Profile extends ConnectedComponent<RouteComponentProps, Sto
     return (
       <div style={{ height: '100vh' }}>
         <Segment basic style={{ height: '100vh' }}>
-          <Header as='h3'>
+          <Header as='h3' onClick={this.onAddressClick}>
             ACCOUNT
             <Header.Subheader>
               Updated {profile ? <Moment fromNow>{profile.date}</Moment> : 'never'}
@@ -95,12 +106,11 @@ export default class Profile extends ConnectedComponent<RouteComponentProps, Sto
           <Form onSubmit={this.handleUsername}>
             <Form.Field>
               <Input
-                iconPosition='left'
-                labelPosition='right'
                 placeholder='username'
+                iconPosition='left'
                 defaultValue={profile ? profile.name : ''}
               >
-                <Icon name='pencil' />
+                <Icon link onClick={this.handleUsername} name='save outline' />
                 <input ref={this.inputRef} />
               </Input>
             </Form.Field>
@@ -108,7 +118,7 @@ export default class Profile extends ConnectedComponent<RouteComponentProps, Sto
           <Header as='h4' style={{ margin: '1em 0 0.2em 0' }}>INFO</Header>
           <Button.Group basic fluid compact>
             <Button content='Cafes' icon='coffee' type='button' onClick={this.onCafesClick} />
-            <Button content='Address' icon='copy outline' type='button' onClick={this.onAddressClick}/>
+            <Button content='Groups' icon='users' type='button' onClick={this.onGroupsClick}/>
           </Button.Group>
         </Segment>
         <Button.Group fluid widths='2' style={{ position: 'absolute', bottom: 0 }}>
