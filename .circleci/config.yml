@@ -232,6 +232,9 @@ jobs:
   build-tray-linux:
     docker:
     - image: textile/builder:1.11.5
+    environment:
+      TERM: linux
+      TERMINFO: /etc/terminfo
     working_directory: /go/src/github.com/textileio/go-textile
     steps:
     - *checkout-linux
@@ -335,7 +338,7 @@ jobs:
         command: |
           export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
           cd tray
-          yarn dist -o darwin
+          yarn dist -o mac
           yarn dist -o windows
     - run:
         name: collect artifacts

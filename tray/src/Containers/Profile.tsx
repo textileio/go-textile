@@ -38,7 +38,14 @@ export default class Profile extends ConnectedComponent<RouteComponentProps, Sto
     }
   }
   onCafesClick = () => {
-    this.props.navigate && this.props.navigate('./cafes')
+    this.stores.store.fetchCafes().then(() => {
+      this.props.navigate && this.props.navigate('./cafes')
+    })
+  }
+  onGroupsClick = () => {
+    this.stores.store.fetchGroups().then(() => {
+      this.props.navigate && this.props.navigate('./groups')
+    })
   }
   handleAccountSync = () => {
     this.stores.store.syncAccount()
@@ -54,7 +61,7 @@ export default class Profile extends ConnectedComponent<RouteComponentProps, Sto
     return (
       <div style={{ height: '100vh' }}>
         <Segment basic style={{ height: '100vh' }}>
-          <Header as='h3'>
+          <Header as='h3' onClick={this.onAddressClick}>
             ACCOUNT
             <Header.Subheader>
               Updated {profile ? <Moment fromNow>{profile.date}</Moment> : 'never'}
@@ -102,13 +109,14 @@ export default class Profile extends ConnectedComponent<RouteComponentProps, Sto
               >
                 <Icon name='pencil' />
                 <input ref={this.inputRef} />
+                <Label icon='save' onClick={this.handleUsername}/>
               </Input>
             </Form.Field>
           </Form>
           <Header as='h4' style={{ margin: '1em 0 0.2em 0' }}>INFO</Header>
           <Button.Group basic fluid compact>
             <Button content='Cafes' icon='coffee' type='button' onClick={this.onCafesClick} />
-            <Button content='Address' icon='copy outline' type='button' onClick={this.onAddressClick}/>
+            <Button content='Groups' icon='users' type='button' onClick={this.onGroupsClick}/>
           </Button.Group>
         </Segment>
         <Button.Group fluid widths='2' style={{ position: 'absolute', bottom: 0 }}>
