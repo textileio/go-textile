@@ -15,6 +15,9 @@ export default class Cafes extends ConnectedComponent<RouteComponentProps, Store
     isLoading: false,
     isAdding: false
   }
+  componentDidMount() {
+    this.stores.store.fetchCafes()
+  }
   handleMessagesClick = () => {
     this.stores.store.fetchMessages()
     this.setState({ isLoading: true })

@@ -13,6 +13,9 @@ export default class Profile extends ConnectedComponent<RouteComponentProps, Sto
   state = {
     isLoading: false
   }
+  componentDidMount() {
+    this.stores.store.fetchProfile()
+  }
   handleUsername = (e: SyntheticEvent) => {
     e.preventDefault()
     const current = this.inputRef.current
@@ -49,6 +52,7 @@ export default class Profile extends ConnectedComponent<RouteComponentProps, Sto
   }
   handleAccountSync = () => {
     this.stores.store.syncAccount()
+    this.stores.store.fetchProfile()
     this.setState({ isLoading: true })
     // Show spinner to indicate work is being done
     setTimeout(() => this.setState({ isLoading: false }), 3000)

@@ -17,6 +17,9 @@ export default class Groups extends ConnectedComponent<RouteComponentProps, Stor
     isRemoving: false,
     currentGroup: ''
   }
+  componentDidMount() {
+    this.stores.store.fetchGroups()
+  }
   handleRefreshClick = () => {
     this.stores.store.fetchGroups()
     this.setState({ isLoading: true })
