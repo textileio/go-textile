@@ -211,7 +211,11 @@ func (t *Thread) followParent(parent mh.Multihash) ([]string, error) {
 		return nil, err
 	}
 
-	log.Debugf("handling %s from %s", block.Type.String(), block.Header.Author)
+	if block.Header.Author != "" {
+		log.Debugf("handling %s from %s", block.Type.String(), block.Header.Author)
+	} else {
+		log.Debugf("handling %s", block.Type.String())
+	}
 
 	switch block.Type {
 	case pb.Block_MERGE:

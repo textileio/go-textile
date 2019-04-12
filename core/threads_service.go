@@ -117,7 +117,11 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 	if accountPeer {
 		log.Debugf("handling %s from account peer %s", block.Type.String(), block.Header.Author)
 	} else {
-		log.Debugf("handling %s from %s", block.Type.String(), block.Header.Author)
+		if block.Header.Author != "" {
+			log.Debugf("handling %s from %s", block.Type.String(), block.Header.Author)
+		} else {
+			log.Debugf("handling %s", block.Type.String())
+		}
 	}
 
 	var leave bool
@@ -229,7 +233,11 @@ func (h *ThreadsService) handleAdd(hash mh.Multihash, tenv *pb.ThreadEnvelope, a
 		}
 		return nil
 	} else {
-		log.Debugf("handling %s from %s", block.Type.String(), block.Header.Author)
+		if block.Header.Author != "" {
+			log.Debugf("handling %s from %s", block.Type.String(), block.Header.Author)
+		} else {
+			log.Debugf("handling %s", block.Type.String())
+		}
 	}
 
 	if err := h.datastore.Invites().Add(&pb.Invite{

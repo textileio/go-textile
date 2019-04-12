@@ -55,8 +55,8 @@ func (x *getProfileCmd) Execute(args []string) error {
 	return nil
 }
 
-func callGetProfile() (string, *pb.Contact, error) {
-	var profile pb.Contact
+func callGetProfile() (string, *pb.Peer, error) {
+	var profile pb.Peer
 	res, err := executeJsonPbCmd(GET, "profile", params{}, &profile)
 	if err != nil {
 		return "", nil, err

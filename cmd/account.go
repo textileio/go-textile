@@ -88,12 +88,21 @@ Shows own contact.`
 func (x *accountContactCmd) Execute(args []string) error {
 	setApi(x.Client)
 
-	res, err := executeJsonCmd(GET, "account/contact", params{}, nil)
+	res, _, err := callGetAccountContact()
 	if err != nil {
 		return err
 	}
 	output(res)
 	return nil
+}
+
+func callGetAccountContact() (string, *pb.Contact, error) {
+	var contact pb.Contact
+	res, err := executeJsonPbCmd(GET, "account/contact", params{}, &contact)
+	if err != nil {
+		return "", nil, err
+	}
+	return res, &contact, err
 }
 
 type accountSyncCmd struct {
