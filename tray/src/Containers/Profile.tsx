@@ -102,14 +102,12 @@ export default class Profile extends ConnectedComponent<RouteComponentProps, Sto
           <Form onSubmit={this.handleUsername}>
             <Form.Field>
               <Input
-                iconPosition='left'
-                labelPosition='right'
                 placeholder='username'
+                iconPosition='left'
                 defaultValue={profile ? profile.name : ''}
               >
-                <Icon name='pencil' />
+                <Icon link onClick={this.handleUsername} name='save outline' />
                 <input ref={this.inputRef} />
-                <Label icon='save' onClick={this.handleUsername}/>
               </Input>
             </Form.Field>
           </Form>

@@ -37,25 +37,25 @@ export default class Groups extends ConnectedComponent<RouteComponentProps, Stor
     console.log(groups.map((item: any) => { return {...item} }))
     return (
       <div style={{ height: '100vh' }}>
-        <Segment basic style={{ height: 'calc(100vh-50px)'}}>
+        <Segment basic>
           <Header as='h3'>
             GROUPS
           <Header.Subheader>
               View and edit Groups
             </Header.Subheader>
           </Header>
-          <Card.Group>
+          <Card.Group style={{ height: '85vh', overflowY: 'auto' }}>
             {groups && groups.map((item: any) => this.renderItem(item))}
           </Card.Group>
         </Segment>
-        <Button.Group fluid widths='2' style={{ position: 'absolute', bottom: 0 }}>
+        {/* <Button.Group fluid widths='2' style={{ position: 'absolute', bottom: 0 }}>
           <Button
             // disabled={groups.length < 1}
             style={{ borderRadius: 0 }}
             loading={this.state.isLoading}
             onClick={this.handleRefreshClick}
             content='Refresh' icon='refresh'
-            positive type='button' />
+            positive type='button' /> */}
           {/* <AddGroupModal
             open={this.state.isAdding}
             onClose={() => { this.setState({isAdding: false}) }}
@@ -65,7 +65,7 @@ export default class Groups extends ConnectedComponent<RouteComponentProps, Stor
               style={{ borderRadius: 0 }}
               content='Add' icon='plus' type='button'/>
           }/> */}
-        </Button.Group>
+        {/* </Button.Group> */}
         <BackArrow onClick={() => { this.props.navigate && this.props.navigate('..') }} />
       </div>
     )
@@ -77,8 +77,8 @@ export default class Groups extends ConnectedComponent<RouteComponentProps, Stor
         <Card.Content>
           <Card.Header>{item.name}</Card.Header>
           <Card.Meta>
-            {item.type.toLowerCase().replace('_', ' ')},
-            {item.sharing.toLowerCase().replace('_', ' ')}
+            {item.type && item.type.toLowerCase().replace('_', ' ')}
+            {item.sharing && ' and ' + item.sharing.toLowerCase().replace('_', ' ')}
           </Card.Meta>
           <Card.Description>
             {item.peer_count} Peers sharing {item.block_count} items
