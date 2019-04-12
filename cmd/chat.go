@@ -42,12 +42,12 @@ func (x *chatCmd) Execute(args []string) error {
 		x.Thread = "default"
 	}
 
-	profile, err := getProfile()
+	contact, err := getContact()
 	if err != nil {
 		return err
 	}
 
-	rl, err := readline.New(Green(profile.Name + "  "))
+	rl, err := readline.New(Green(contact.Name + "  "))
 	if err != nil {
 		panic(err)
 	}
@@ -83,7 +83,7 @@ func (x *chatCmd) Execute(args []string) error {
 					continue
 				}
 
-				if payload.User.Address != profile.Address {
+				if payload.User.Address != contact.Address {
 					if last {
 						println()
 					}
@@ -117,19 +117,19 @@ func handleLine(line string, threadId string) error {
 	return nil
 }
 
-func getProfile() (*pb.Contact, error) {
-	_, prof, err := callGetProfile()
+func getContact() (*pb.Contact, error) {
+	_, c, err := callGetAccountContact()
 	if err != nil {
 		return nil, err
 	}
 
-	if prof.Name == "" {
-		if len(prof.Address) >= 7 {
-			prof.Name = prof.Address[:7]
+	if c.Name == "" {
+		if len(c.Address) >= 7 {
+			c.Name = c.Address[:7]
 		} else {
-			prof.Name = prof.Address
+			c.Name = c.Address
 		}
 	}
 
-	return prof, nil
+	return c, nil
 }

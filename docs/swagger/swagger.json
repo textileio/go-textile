@@ -1917,10 +1917,10 @@
                 "summary": "Get public profile",
                 "responses": {
                     "200": {
-                        "description": "contact",
+                        "description": "peer",
                         "schema": {
                             "type": "object",
-                            "$ref": "#/definitions/pb.Contact"
+                            "$ref": "#/definitions/pb.Peer"
                         }
                     },
                     "400": {
