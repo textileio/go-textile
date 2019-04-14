@@ -196,8 +196,9 @@ jobs:
       - restore_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}-{{ arch }}
       - run:
-          name: install js deps
+          name: install deps
           command: |
+            go get github.com/asticode/go-astilectron-bundler/...
             cd tray
             yarn install
       - run:
@@ -255,8 +256,10 @@ jobs:
           command: |
             brew install mingw-w64
       - run:
-          name: install js deps
+          name: install deps
           command: |
+            export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
+            go get github.com/asticode/go-astilectron-bundler/...
             cd tray
             yarn install
       - run:
@@ -328,7 +331,8 @@ jobs:
           command: |
             export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
             go mod vendor
-            cd .. && mv project ~/go/src/github.com/textileio/go-textile
+            mkdir -p ~/go/src/github.com/textileio
+            cd ~ && mv project go/src/github.com/textileio/go-textile
             cd ~/go/src/github.com/textileio/go-textile
             COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
             SUMMARY=$CIRCLE_SHA1
@@ -411,7 +415,8 @@ jobs:
           command: |
             export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
             go mod vendor
-            cd .. && mv project ~/go/src/github.com/textileio/go-textile
+            mkdir -p ~/go/src/github.com/textileio
+            cd ~ && mv project go/src/github.com/textileio/go-textile
             cd ~/go/src/github.com/textileio/go-textile
             COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
             SUMMARY=$CIRCLE_SHA1

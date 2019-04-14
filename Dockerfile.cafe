@@ -16,7 +16,6 @@ COPY . $SRC_DIR
 
 # build source
 RUN cd $SRC_DIR \
-  && mkdir .git/objects \
   && make setup \
   && make build
 

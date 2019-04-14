@@ -2,7 +2,6 @@ module github.com/textileio/go-textile
 
 require (
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412
-	github.com/ahmetb/govvv v0.2.0 // indirect
 	github.com/akavel/rsrc v0.8.0 // indirect
 	github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc
 	github.com/asticode/go-astiamqp v1.0.0 // indirect
@@ -68,9 +67,7 @@ require (
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.1.0
 	golang.org/x/crypto v0.0.0-20190411191339-88737f569e3a
-	golang.org/x/exp v0.0.0-20190413192849-7f338f571082 // indirect
 	golang.org/x/image v0.0.0-20190321063152-3fc05d484e9f // indirect
-	golang.org/x/mobile v0.0.0-20190412202009-28c689b77b5f // indirect
 	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3 // indirect
 	golang.org/x/sys v0.0.0-20190412213103-97732733099d // indirect
 	golang.org/x/tools v0.0.0-20190411180116-681f9ce8ac52 // indirect
