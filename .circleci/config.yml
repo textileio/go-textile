@@ -121,6 +121,7 @@ jobs:
       - run:
           name: cache mods
           command: |
+            export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
             go mod download
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}-{{ arch }}
@@ -231,7 +232,6 @@ jobs:
       GOPATH: /Users/distiller/go
       GOROOT: /usr/local/go
       BREWBIN: /usr/local/opt/go/bin
-      GOCACHE: /tmp/.cache
     steps:
       - checkout
       - run:
@@ -244,6 +244,7 @@ jobs:
       - run:
           name: cache mods
           command: |
+            export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
             go mod download
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}-{{ arch }}
@@ -307,6 +308,7 @@ jobs:
       - run:
           name: cache mods
           command: |
+            export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
             go mod download
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}-{{ arch }}
@@ -325,11 +327,9 @@ jobs:
           name: build ios framework
           command: |
             export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
-
             go mod vendor
             cd .. && mv project ~/go/src/github.com/textileio/go-textile
             cd ~/go/src/github.com/textileio/go-textile
-
             COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
             SUMMARY=$CIRCLE_SHA1
             if [ "${CIRCLE_TAG}" != "" ]; then
@@ -388,6 +388,7 @@ jobs:
       - run:
           name: cache mods
           command: |
+            export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
             go mod download
       - save_cache:
           key: go-mod-v1-android-{{ checksum "go.sum" }}-{{ arch }}
@@ -409,11 +410,9 @@ jobs:
           name: build android framework
           command: |
             export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
-
             go mod vendor
             cd .. && mv project ~/go/src/github.com/textileio/go-textile
             cd ~/go/src/github.com/textileio/go-textile
-
             COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
             SUMMARY=$CIRCLE_SHA1
             if [ "${CIRCLE_TAG}" != "" ]; then
