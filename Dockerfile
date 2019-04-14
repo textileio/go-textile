@@ -1,15 +1,22 @@
-FROM golang:1.11-stretch
+FROM golang:1.12-stretch
 MAINTAINER Sander Pick <sander@textile.io>
 
 # This is (in large part) copied (with love) from
 # https://hub.docker.com/r/ipfs/go-ipfs/dockerfile
 
 # Get source
-ENV SRC_DIR /go/src/github.com/textileio/go-textile
+ENV SRC_DIR /go-textile
+
+# Download packages first so they can be cached.
+COPY go.mod go.sum $SRC_DIR/
+RUN cd $SRC_DIR \
+&& go mod download
+
 COPY . $SRC_DIR
 
 # build source
 RUN cd $SRC_DIR \
+  && mkdir .git/objects \
   && make setup \
   && make build
 
@@ -35,7 +42,7 @@ FROM busybox:1-glibc
 MAINTAINER Sander Pick <sander@textile.io>
 
 # Get the ipfs binary, entrypoint script, and TLS CAs from the build container.
-ENV SRC_DIR /go/src/github.com/textileio/go-textile
+ENV SRC_DIR /go-textile
 COPY --from=0 $SRC_DIR/dist/textile /usr/local/bin/textile
 COPY --from=0 $SRC_DIR/bin/container_daemon /usr/local/bin/start_textile
 COPY --from=0 /tmp/su-exec/su-exec /sbin/su-exec
