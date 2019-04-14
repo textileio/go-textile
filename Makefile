@@ -14,7 +14,6 @@ lint:
 	golint `go list ./... | grep -v /vendor/`
 
 build:
-	go get github.com/ahmetb/govvv
 	$(eval FLAGS := $$(shell govvv -flags -pkg github.com/textileio/go-textile/common))
 	go build -ldflags "-w $(FLAGS)" -i -o textile textile.go
 	mkdir -p dist
