@@ -1,10 +1,9 @@
 package mobile
 
 import (
-	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
-	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
-
 	"github.com/golang/protobuf/proto"
+	logging "github.com/ipfs/go-log"
+	mh "github.com/multiformats/go-multihash"
 	"github.com/textileio/go-textile/broadcast"
 	"github.com/textileio/go-textile/common"
 	"github.com/textileio/go-textile/core"

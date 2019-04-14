@@ -12,17 +12,15 @@ import (
 	"sync"
 	"time"
 
-	utilmain "gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/cmd/ipfs/util"
-	oldcmds "gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/commands"
-	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/core"
-	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/plugin/loader"
-	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/repo/fsrepo"
-	ipfsconfig "gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
-	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-	ipld "gx/ipfs/QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy/go-ipld-format"
-	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
-	logger "gx/ipfs/QmcaSwFc5RBg8yCq54QURwEU4nwjfCpjbpmaAm4VbdGLKv/go-logging"
-
+	ipfsconfig "github.com/ipfs/go-ipfs-config"
+	utilmain "github.com/ipfs/go-ipfs/cmd/ipfs/util"
+	oldcmds "github.com/ipfs/go-ipfs/commands"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/plugin/loader"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	ipld "github.com/ipfs/go-ipld-format"
+	logging "github.com/ipfs/go-log"
+	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/textileio/go-textile/broadcast"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/keypair"
@@ -31,6 +29,7 @@ import (
 	"github.com/textileio/go-textile/repo/config"
 	"github.com/textileio/go-textile/repo/db"
 	"github.com/textileio/go-textile/service"
+	logger "github.com/whyrusleeping/go-logging"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -444,7 +443,7 @@ func (t *Textile) Online() bool {
 	if t.node == nil {
 		return false
 	}
-	return t.started && t.node.OnlineMode()
+	return t.started && t.node.IsOnline
 }
 
 // Mobile returns whether or not node is configured for a mobile device
@@ -560,10 +559,9 @@ func (t *Textile) createIPFS(plugins *loader.PluginLoader, online bool) error {
 	if err != nil {
 		return err
 	}
-	nd.SetLocal(!online)
+	nd.IsDaemon = true
 
 	ctx := oldcmds.Context{}
-	ctx.Online = online
 	ctx.ConfigRoot = t.repoPath
 	ctx.LoadConfig = func(path string) (*ipfsconfig.Config, error) {
 		return fsrepo.ConfigAt(t.repoPath)

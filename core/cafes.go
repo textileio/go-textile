@@ -4,10 +4,9 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
-	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-
 	"github.com/golang/protobuf/proto"
+	iface "github.com/ipfs/interface-go-ipfs-core"
+	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 )

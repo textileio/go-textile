@@ -4,127 +4,103 @@ checkout-linux: &checkout-linux
   attach_workspace:
     at: /root
 
-move-linux-src: &move-linux-src
-  run:
-    name: move source to go path
-    command: |
-      mv ~/project/* /go/src/github.com/textileio/go-textile/
-
 jobs:
 
   persist-checkout:
     docker:
-    - image: python
+      - image: python
     steps:
-    - checkout
-    - run:
-        name: clean up git
-        command: |
-          rm -rf .git
-    - persist_to_workspace:
-        root: /root
-        paths:
-        - project
+      - checkout
+      - run:
+          name: clean up git
+          command: |
+            rm -rf .git
+      - persist_to_workspace:
+          root: /root
+          paths:
+            - project
 
   unit-test:
     docker:
-    - image: textile/builder:1.11.5
-    working_directory: /go/src/github.com/textileio/go-textile
+      - image: textile/builder:1.12.3
     steps:
-    - *checkout-linux
-    - *move-linux-src
-    - restore_cache:
-        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
-    - restore_cache:
-        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
-    - run:
-        name: install deps
-        command: |
-          dep ensure
-          gx install
-    - save_cache:
-        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
-        paths:
-        - /go/src/github.com/textileio/go-textile/vendor
-    - save_cache:
-        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
-        paths:
-        - /go/src/gx
-    - run:
-        name: build the binary
-        command: |
-          go build -i -o textile textile.go
-    - run:
-        name: run tests
-        command: |
-          ./test_compile.sh
+      - *checkout-linux
+      - restore_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}-{{ arch }}
+      - run:
+          name: cache mods
+          command: |
+            go mod download
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}-{{ arch }}
+          paths:
+            - /go/pkg/mod
+      - run:
+          name: build the binary
+          command: |
+            go build -i -o textile textile.go
+      - run:
+          name: run tests
+          command: |
+            ./test_compile.sh
 
   build-cli-linux:
     docker:
-    - image: textile/builder:1.11.5
-    working_directory: /go/src/github.com/textileio/go-textile
+      - image: textile/builder:1.12.3
     steps:
-    - *checkout-linux
-    - *move-linux-src
-    - restore_cache:
-        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
-    - restore_cache:
-        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
-    - run:
-        name: install deps
-        command: |
-          dep ensure
-          gx install
-    - run:
-        name: install gox
-        command: |
-          go get github.com/mitchellh/gox
-    - run:
-        name: compile
-        command: |
-          COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
-          SUMMARY=$CIRCLE_SHA1
-          if [ "${CIRCLE_TAG}" != "" ]; then
-              SUMMARY=${CIRCLE_TAG}
-          fi
-          DATE=$(date --iso-8601=seconds)
-          FLAGS="-X github.com/textileio/go-textile/common.GitSummary=${SUMMARY} -X github.com/textileio/go-textile/common.BuildDate=${DATE} -X github.com/textileio/go-textile/common.GitCommit=${COMMIT} -X github.com/textileio/go-textile/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/go-textile/common.GitState=clean"
-          gox -ldflags="-w $FLAGS" -osarch="linux/amd64 linux/386 linux/arm" -output="{{.OS}}-{{.Arch}}"
-    - run:
-        name: collect artifacts
-        command: |
-          VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
-          if [ "${CIRCLE_TAG}" != "" ]; then
-              VERSION=${CIRCLE_TAG}
-          fi
-          OUT=~/dist/cli
-          mkdir -p ${OUT}
-          mkdir -p tmp
-          cp LICENSE tmp/
-          cp dist/README.md tmp/
-          cp dist/install.sh tmp/
-          cd tmp
-          declare -a arr=("linux-amd64" "linux-386" "linux-arm")
-          for i in "${arr[@]}"
-          do
-              OSARCH=${i%.*}
-              EXT=$([[ "$i" = *.* ]] && echo ".${i##*.}" || echo '')
-              cp ../${i} textile${EXT}
-              if [ "${EXT}" == ".exe" ]; then
-                  zip go-textile_${VERSION}_${OSARCH}.zip LICENSE README.md install.sh textile${EXT}
-                  mv go-textile_${VERSION}_${OSARCH}.zip ${OUT}/
-              else
-                  tar -czvf go-textile_${VERSION}_${OSARCH}.tar.gz LICENSE README.md install.sh textile${EXT}
-                  mv go-textile_${VERSION}_${OSARCH}.tar.gz ${OUT}/
-              fi
-          done
-          cd .. && rm -rf tmp
-    - persist_to_workspace:
-        root: ~/dist
-        paths:
-        - cli
-    - store_artifacts:
-        path: ~/dist/cli
+      - *checkout-linux
+      - restore_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}-{{ arch }}
+      - run:
+          name: install gox
+          command: |
+            go get github.com/mitchellh/gox
+      - run:
+          name: compile
+          command: |
+            COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
+            SUMMARY=$CIRCLE_SHA1
+            if [ "${CIRCLE_TAG}" != "" ]; then
+                SUMMARY=${CIRCLE_TAG}
+            fi
+            DATE=$(date --iso-8601=seconds)
+            FLAGS="-X github.com/textileio/go-textile/common.GitSummary=${SUMMARY} -X github.com/textileio/go-textile/common.BuildDate=${DATE} -X github.com/textileio/go-textile/common.GitCommit=${COMMIT} -X github.com/textileio/go-textile/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/go-textile/common.GitState=clean"
+            gox -ldflags="-w $FLAGS" -osarch="linux/amd64 linux/386 linux/arm" -output="{{.OS}}-{{.Arch}}"
+      - run:
+          name: collect artifacts
+          command: |
+            VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
+            if [ "${CIRCLE_TAG}" != "" ]; then
+                VERSION=${CIRCLE_TAG}
+            fi
+            OUT=~/dist/cli
+            mkdir -p ${OUT}
+            mkdir -p tmp
+            cp LICENSE tmp/
+            cp dist/README.md tmp/
+            cp dist/install.sh tmp/
+            cd tmp
+            declare -a arr=("linux-amd64" "linux-386" "linux-arm")
+            for i in "${arr[@]}"
+            do
+                OSARCH=${i%.*}
+                EXT=$([[ "$i" = *.* ]] && echo ".${i##*.}" || echo '')
+                cp ../${i} textile${EXT}
+                if [ "${EXT}" == ".exe" ]; then
+                    zip go-textile_${VERSION}_${OSARCH}.zip LICENSE README.md install.sh textile${EXT}
+                    mv go-textile_${VERSION}_${OSARCH}.zip ${OUT}/
+                else
+                    tar -czvf go-textile_${VERSION}_${OSARCH}.tar.gz LICENSE README.md install.sh textile${EXT}
+                    mv go-textile_${VERSION}_${OSARCH}.tar.gz ${OUT}/
+                fi
+            done
+            cd .. && rm -rf tmp
+      - persist_to_workspace:
+          root: ~/dist
+          paths:
+            - cli
+      - store_artifacts:
+          path: ~/dist/cli
 
   build-cli-darwin-windows:
     macos:
@@ -133,150 +109,120 @@ jobs:
       GOPATH: /Users/distiller/go
       GOROOT: /usr/local/go
       BREWBIN: /usr/local/opt/go/bin
-    working_directory: ~/go/src/github.com/textileio/go-textile
     steps:
-    - checkout
-    - run:
-        name: install golang
-        command: |
-          curl -L -o go1.11.5.darwin-amd64.tar.gz https://dl.google.com/go/go1.11.5.darwin-amd64.tar.gz
-          sudo tar -C /usr/local -xzf go1.11.5.darwin-amd64.tar.gz
-    - run:
-        name: install dep
-        command: |
-          curl -L -o dep https://github.com/golang/dep/releases/download/v0.5.0/dep-darwin-amd64
-          chmod +x dep
-          mv dep /usr/local/bin/
-    - run:
-        name: install gx
-        command: |
-          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
-          go get -u github.com/whyrusleeping/gx
-          go get -u github.com/whyrusleeping/gx-go
-    - restore_cache:
-        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
-    - restore_cache:
-        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
-    - run:
-        name: install deps
-        command: |
-          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
-          dep ensure
-          gx install
-    - save_cache:
-        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
-        paths:
-        - ~/go/src/github.com/textileio/go-textile/vendor
-    - save_cache:
-        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
-        paths:
-        - ~/go/src/gx
-    - run:
-        name: install gox
-        command: |
-          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
-          go get github.com/mitchellh/gox
-    - run:
-        name: install mingw-w64
-        command: |
-          brew install mingw-w64
-    - run:
-        name: cross-compile
-        command: |
-          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
-          COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
-          SUMMARY=$CIRCLE_SHA1
-          if [ "${CIRCLE_TAG}" != "" ]; then
-              SUMMARY=${CIRCLE_TAG}
-          fi
-          DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          FLAGS="-X github.com/textileio/go-textile/common.GitSummary=${SUMMARY} -X github.com/textileio/go-textile/common.BuildDate=${DATE} -X github.com/textileio/go-textile/common.GitCommit=${COMMIT} -X github.com/textileio/go-textile/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/go-textile/common.GitState=clean"
-          gox -ldflags="-w $FLAGS" -osarch="darwin/amd64" -output="{{.OS}}-{{.Arch}}"
-          CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -ldflags="-w $FLAGS" -cgo -osarch="windows/amd64" -output="{{.OS}}-{{.Arch}}"
-    - run:
-        name: collect artifacts
-        command: |
-          VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
-          if [ "${CIRCLE_TAG}" != "" ]; then
-              VERSION=${CIRCLE_TAG}
-          fi
-          OUT=~/dist/cli
-          mkdir -p ${OUT}
-          mkdir -p tmp
-          cp LICENSE tmp/
-          cp dist/README.md tmp/
-          cp dist/install.sh tmp/
-          cd tmp
-          declare -a arr=("darwin-amd64" "windows-amd64.exe")
-          for i in "${arr[@]}"
-          do
-              OSARCH=${i%.*}
-              EXT=$([[ "$i" = *.* ]] && echo ".${i##*.}" || echo '')
-              cp ../${i} textile${EXT}
-              if [ "${EXT}" == ".exe" ]; then
-                  zip go-textile_${VERSION}_${OSARCH}.zip LICENSE README.md install.sh textile${EXT}
-                  mv go-textile_${VERSION}_${OSARCH}.zip ${OUT}/
-              else
-                  tar -czvf go-textile_${VERSION}_${OSARCH}.tar.gz LICENSE README.md install.sh textile${EXT}
-                  mv go-textile_${VERSION}_${OSARCH}.tar.gz ${OUT}/
-              fi
-          done
-          cd .. && rm -rf tmp
-    - persist_to_workspace:
-        root: ~/dist
-        paths:
-        - cli
-    - store_artifacts:
-        path: ~/dist/cli
+      - checkout
+      - run:
+          name: install golang
+          command: |
+            curl -L -o go1.12.3.darwin-amd64.tar.gz https://dl.google.com/go/go1.12.3.darwin-amd64.tar.gz
+            sudo tar -C /usr/local -xzf go1.12.3.darwin-amd64.tar.gz
+      - restore_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}-{{ arch }}
+      - run:
+          name: cache mods
+          command: |
+            go mod download
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}-{{ arch }}
+          paths:
+            - ~/go/pkg/mod
+      - run:
+          name: install gox
+          command: |
+            export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
+            go get github.com/mitchellh/gox
+      - run:
+          name: install mingw-w64
+          command: |
+            brew install mingw-w64
+      - run:
+          name: cross-compile
+          command: |
+            export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
+            COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
+            SUMMARY=$CIRCLE_SHA1
+            if [ "${CIRCLE_TAG}" != "" ]; then
+                SUMMARY=${CIRCLE_TAG}
+            fi
+            DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            FLAGS="-X github.com/textileio/go-textile/common.GitSummary=${SUMMARY} -X github.com/textileio/go-textile/common.BuildDate=${DATE} -X github.com/textileio/go-textile/common.GitCommit=${COMMIT} -X github.com/textileio/go-textile/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/go-textile/common.GitState=clean"
+            gox -ldflags="-w $FLAGS" -osarch="darwin/amd64" -output="{{.OS}}-{{.Arch}}"
+            CC="x86_64-w64-mingw32-gcc" CXX="x86_64-w64-mingw32-g++" gox -ldflags="-w $FLAGS" -cgo -osarch="windows/amd64" -output="{{.OS}}-{{.Arch}}"
+      - run:
+          name: collect artifacts
+          command: |
+            VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
+            if [ "${CIRCLE_TAG}" != "" ]; then
+                VERSION=${CIRCLE_TAG}
+            fi
+            OUT=~/dist/cli
+            mkdir -p ${OUT}
+            mkdir -p tmp
+            cp LICENSE tmp/
+            cp dist/README.md tmp/
+            cp dist/install.sh tmp/
+            cd tmp
+            declare -a arr=("darwin-amd64" "windows-amd64.exe")
+            for i in "${arr[@]}"
+            do
+                OSARCH=${i%.*}
+                EXT=$([[ "$i" = *.* ]] && echo ".${i##*.}" || echo '')
+                cp ../${i} textile${EXT}
+                if [ "${EXT}" == ".exe" ]; then
+                    zip go-textile_${VERSION}_${OSARCH}.zip LICENSE README.md install.sh textile${EXT}
+                    mv go-textile_${VERSION}_${OSARCH}.zip ${OUT}/
+                else
+                    tar -czvf go-textile_${VERSION}_${OSARCH}.tar.gz LICENSE README.md install.sh textile${EXT}
+                    mv go-textile_${VERSION}_${OSARCH}.tar.gz ${OUT}/
+                fi
+            done
+            cd .. && rm -rf tmp
+      - persist_to_workspace:
+          root: ~/dist
+          paths:
+            - cli
+      - store_artifacts:
+          path: ~/dist/cli
 
   build-tray-linux:
     docker:
-    - image: textile/builder:1.11.5
+      - image: textile/builder:1.12.3
     environment:
       TERM: linux
       TERMINFO: /etc/terminfo
-    working_directory: /go/src/github.com/textileio/go-textile
     steps:
-    - *checkout-linux
-    - *move-linux-src
-    - restore_cache:
-        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
-    - restore_cache:
-        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
-    - run:
-        name: install go deps
-        command: |
-          dep ensure
-          gx install
-    - run:
-        name: install js deps
-        command: |
-          cd tray
-          yarn install
-    - run:
-        name: compile
-        command: |
-          cd tray
-          yarn dist -o linux
-    - run:
-        name: collect artifacts
-        command: |
-          VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
-          if [ "${CIRCLE_TAG}" != "" ]; then
-              VERSION=${CIRCLE_TAG}
-          fi
-          OUT=~/dist/tray
-          mkdir -p ${OUT}
-          WD=/go/src/github.com/textileio/go-textile
-          cd ${WD}/tray/output/linux-amd64
-          tar -czvf Textile_${VERSION}_linux-amd64.tar.gz Textile
-          mv Textile_${VERSION}_linux-amd64.tar.gz ${OUT}/
-    - persist_to_workspace:
-        root: ~/dist
-        paths:
-        - tray
-    - store_artifacts:
-        path: ~/dist/tray
+      - *checkout-linux
+      - restore_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}-{{ arch }}
+      - run:
+          name: install js deps
+          command: |
+            cd tray
+            yarn install
+      - run:
+          name: compile
+          command: |
+            cd tray
+            yarn dist -o linux
+      - run:
+          name: collect artifacts
+          command: |
+            VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
+            if [ "${CIRCLE_TAG}" != "" ]; then
+                VERSION=${CIRCLE_TAG}
+            fi
+            OUT=~/dist/tray
+            mkdir -p ${OUT}
+            WD=/go/src/github.com/textileio/go-textile
+            cd ${WD}/tray/output/linux-amd64
+            tar -czvf Textile_${VERSION}_linux-amd64.tar.gz Textile
+            mv Textile_${VERSION}_linux-amd64.tar.gz ${OUT}/
+      - persist_to_workspace:
+          root: ~/dist
+          paths:
+            - tray
+      - store_artifacts:
+          path: ~/dist/tray
 
   build-tray-mac-windows:
     macos:
@@ -286,82 +232,61 @@ jobs:
       GOROOT: /usr/local/go
       BREWBIN: /usr/local/opt/go/bin
       GOCACHE: /tmp/.cache
-    working_directory: ~/go/src/github.com/textileio/go-textile
     steps:
-    - checkout
-    - run:
-        name: install golang
-        command: |
-          curl -L -o go1.11.5.darwin-amd64.tar.gz https://dl.google.com/go/go1.11.5.darwin-amd64.tar.gz
-          sudo tar -C /usr/local -xzf go1.11.5.darwin-amd64.tar.gz
-    - run:
-        name: install dep
-        command: |
-          curl -L -o dep https://github.com/golang/dep/releases/download/v0.5.0/dep-darwin-amd64
-          chmod +x dep
-          mv dep /usr/local/bin/
-    - run:
-        name: install gx
-        command: |
-          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
-          go get -u github.com/whyrusleeping/gx
-          go get -u github.com/whyrusleeping/gx-go
-    - restore_cache:
-        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
-    - restore_cache:
-        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
-    - run:
-        name: install go deps
-        command: |
-          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
-          dep ensure
-          gx install
-    - save_cache:
-        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
-        paths:
-        - ~/go/src/github.com/textileio/go-textile/vendor
-    - save_cache:
-        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
-        paths:
-        - ~/go/src/gx
-    - run:
-        name: install mingw-w64
-        command: |
-          brew install mingw-w64
-    - run:
-        name: install js deps
-        command: |
-          cd tray
-          yarn install
-    - run:
-        name: compile
-        command: |
-          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
-          cd tray
-          yarn dist -o mac
-          yarn dist -o windows
-    - run:
-        name: collect artifacts
-        command: |
-          VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
-          if [ "${CIRCLE_TAG}" != "" ]; then
-              VERSION=${CIRCLE_TAG}
-          fi
-          OUT=~/dist/tray
-          mkdir -p ${OUT}
-          WD=~/go/src/github.com/textileio/go-textile
-          cd ${WD}/tray/output/darwin-amd64
-          tar -czvf Textile_${VERSION}_mac-amd64.tar.gz Textile.app
-          mv Textile_${VERSION}_mac-amd64.tar.gz ${OUT}/
-          cd ${WD}/tray/output/windows-amd64
-          zip Textile_${VERSION}_windows-amd64.zip Textile.exe
-          mv Textile_${VERSION}_windows-amd64.zip ${OUT}/
-    - persist_to_workspace:
-        root: ~/dist
-        paths:
-        - tray
-    - store_artifacts:
-        path: ~/dist/tray
+      - checkout
+      - run:
+          name: install golang
+          command: |
+            curl -L -o go1.12.3.darwin-amd64.tar.gz https://dl.google.com/go/go1.12.3.darwin-amd64.tar.gz
+            sudo tar -C /usr/local -xzf go1.12.3.darwin-amd64.tar.gz
+      - restore_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}-{{ arch }}
+      - run:
+          name: cache mods
+          command: |
+            go mod download
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}-{{ arch }}
+          paths:
+            - ~/go/pkg/mod
+      - run:
+          name: install mingw-w64
+          command: |
+            brew install mingw-w64
+      - run:
+          name: install js deps
+          command: |
+            cd tray
+            yarn install
+      - run:
+          name: compile
+          command: |
+            export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
+            cd tray
+            yarn dist -o mac
+            yarn dist -o windows
+      - run:
+          name: collect artifacts
+          command: |
+            VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
+            if [ "${CIRCLE_TAG}" != "" ]; then
+                VERSION=${CIRCLE_TAG}
+            fi
+            OUT=~/dist/tray
+            mkdir -p ${OUT}
+            WD=~/go/src/github.com/textileio/go-textile
+            cd ${WD}/tray/output/darwin-amd64
+            tar -czvf Textile_${VERSION}_mac-amd64.tar.gz Textile.app
+            mv Textile_${VERSION}_mac-amd64.tar.gz ${OUT}/
+            cd ${WD}/tray/output/windows-amd64
+            zip Textile_${VERSION}_windows-amd64.zip Textile.exe
+            mv Textile_${VERSION}_windows-amd64.zip ${OUT}/
+      - persist_to_workspace:
+          root: ~/dist
+          paths:
+            - tray
+      - store_artifacts:
+          path: ~/dist/tray
 
   build-ios-framework:
     macos:
@@ -370,319 +295,287 @@ jobs:
       GOPATH: /Users/distiller/go
       GOROOT: /usr/local/go
       BREWBIN: /usr/local/opt/go/bin
-    working_directory: ~/go/src/github.com/textileio/go-textile
     steps:
-    - checkout
-    - run:
-        name: install golang
-        command: |
-          curl -L -o go1.11.5.darwin-amd64.tar.gz https://dl.google.com/go/go1.11.5.darwin-amd64.tar.gz
-          sudo tar -C /usr/local -xzf go1.11.5.darwin-amd64.tar.gz
-    - run:
-        name: install dep
-        command: |
-          curl -L -o dep https://github.com/golang/dep/releases/download/v0.5.0/dep-darwin-amd64
-          chmod +x dep
-          mv dep /usr/local/bin/
-    - run:
-        name: install gx
-        command: |
-          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
-          go get -u github.com/whyrusleeping/gx
-          go get -u github.com/whyrusleeping/gx-go
-    - run:
-        name: install protobuf
-        command: |
-          brew install protobuf
-    - restore_cache:
-        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
-    - restore_cache:
-        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
-    - run:
-        name: install deps
-        command: |
-          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
-          dep ensure
-          gx install
-    - save_cache:
-        key: dep-v1-{{ checksum "Gopkg.lock" }}-{{ arch }}
-        paths:
-        - ~/go/src/github.com/textileio/go-textile/vendor
-    - save_cache:
-        key: gx-v1-{{ checksum "package.json" }}-{{ arch }}
-        paths:
-        - ~/go/src/gx
-    - run:
-        name: install gomobile
-        command: |
-          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
-          go get -u golang.org/x/mobile/cmd/gomobile
-    - run:
-        name: build ios framework
-        command: |
-          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
-          COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
-          SUMMARY=$CIRCLE_SHA1
-          if [ "${CIRCLE_TAG}" != "" ]; then
-              SUMMARY=${CIRCLE_TAG}
-          fi
-          DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          FLAGS="-X github.com/textileio/go-textile/common.GitSummary=${SUMMARY} -X github.com/textileio/go-textile/common.BuildDate=${DATE} -X github.com/textileio/go-textile/common.GitCommit=${COMMIT} -X github.com/textileio/go-textile/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/go-textile/common.GitState=clean"
-          gomobile init
-          gomobile bind -v -ldflags="-w $FLAGS" -target=ios github.com/textileio/go-textile/mobile github.com/textileio/go-textile/core
-    - run:
-        name: build obj c protobuf bindings
-        command: |
-          mkdir protos
-          protoc --proto_path=./pb/protos --objc_out=./protos ./pb/protos/*
-    - run:
-        name: collect artifacts
-        command: |
-          VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
-          if [ "${CIRCLE_TAG}" != "" ]; then
-              VERSION=${CIRCLE_TAG}
-          fi
-          OUT=~/dist/ios_framework
-          mkdir -p ${OUT}
-          tar -czvf go-textile_${VERSION}_ios-framework.tar.gz Mobile.framework protos
-          mv go-textile_${VERSION}_ios-framework.tar.gz ${OUT}/
-    - persist_to_workspace:
-        root: ~/dist
-        paths:
-        - ios_framework
-    - store_artifacts:
-        path: ~/dist/ios_framework
+      - checkout
+      - run:
+          name: install golang
+          command: |
+            curl -L -o go1.12.3.darwin-amd64.tar.gz https://dl.google.com/go/go1.12.3.darwin-amd64.tar.gz
+            sudo tar -C /usr/local -xzf go1.12.3.darwin-amd64.tar.gz
+      - restore_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}-{{ arch }}
+      - run:
+          name: cache mods
+          command: |
+            go mod download
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}-{{ arch }}
+          paths:
+            - ~/go/pkg/mod
+      - run:
+          name: install protobuf
+          command: |
+            brew install protobuf
+      - run:
+          name: install gomobile
+          command: |
+            export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
+            go get -u golang.org/x/mobile/cmd/gomobile
+      - run:
+          name: build ios framework
+          command: |
+            export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
+
+            go mod vendor
+            cd .. && mv project ~/go/src/github.com/textileio/go-textile
+            cd ~/go/src/github.com/textileio/go-textile
+
+            COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
+            SUMMARY=$CIRCLE_SHA1
+            if [ "${CIRCLE_TAG}" != "" ]; then
+                SUMMARY=${CIRCLE_TAG}
+            fi
+            DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            FLAGS="-X github.com/textileio/go-textile/common.GitSummary=${SUMMARY} -X github.com/textileio/go-textile/common.BuildDate=${DATE} -X github.com/textileio/go-textile/common.GitCommit=${COMMIT} -X github.com/textileio/go-textile/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/go-textile/common.GitState=clean"
+            gomobile init
+            env go111module=off gomobile bind -v -ldflags="-w $FLAGS" -target=ios github.com/textileio/go-textile/mobile github.com/textileio/go-textile/core
+      - run:
+          name: build obj c protobuf bindings
+          command: |
+            mkdir protos
+            protoc --proto_path=./pb/protos --objc_out=./protos ./pb/protos/*
+      - run:
+          name: collect artifacts
+          command: |
+            VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
+            if [ "${CIRCLE_TAG}" != "" ]; then
+                VERSION=${CIRCLE_TAG}
+            fi
+            OUT=~/dist/ios_framework
+            mkdir -p ${OUT}
+            tar -czvf go-textile_${VERSION}_ios-framework.tar.gz Mobile.framework protos
+            mv go-textile_${VERSION}_ios-framework.tar.gz ${OUT}/
+      - persist_to_workspace:
+          root: ~/dist
+          paths:
+            - ios_framework
+      - store_artifacts:
+          path: ~/dist/ios_framework
 
   build-android-aar:
     docker:
-    - image: circleci/android:api-28-ndk
+      - image: circleci/android:api-28-ndk
     environment:
       GOROOT: /usr/local/go
       GOPATH: /home/circleci/go
-    working_directory: ~/go/src/github.com/textileio/go-textile
     steps:
-    - checkout
-    - run:
-        name: install golang
-        command: |
-          wget https://dl.google.com/go/go1.11.5.linux-amd64.tar.gz
-          sudo tar -C /usr/local -xzf go1.11.5.linux-amd64.tar.gz
-          mkdir -p $GOPATH/bin
-    - run:
-        name: install dep
-        command: |
-          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
-          curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-    - run:
-        name: install gx
-        command: |
-          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
-          go get -u github.com/whyrusleeping/gx
-          go get -u github.com/whyrusleeping/gx-go
-    - run:
-        name: install protobuf
-        command: |
-          curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.6.1/protoc-3.6.1-linux-x86_64.zip
-          unzip protoc-3.6.1-linux-x86_64.zip -d protoc3
-          sudo mv protoc3/bin/* /usr/local/bin/
-          sudo mv protoc3/include/* /usr/local/include/
-    - restore_cache:
-        key: dep-v1-android-{{ checksum "Gopkg.lock" }}-{{ arch }}
-    - restore_cache:
-        key: gx-v1-android-{{ checksum "package.json" }}-{{ arch }}
-    - run:
-        name: install deps
-        command: |
-          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
-          dep ensure
-          gx install
-    - save_cache:
-        key: dep-v1-android-{{ checksum "Gopkg.lock" }}-{{ arch }}
-        paths:
-        - ~/go/src/github.com/textileio/go-textile/vendor
-    - save_cache:
-        key: gx-v1-android-{{ checksum "package.json" }}-{{ arch }}
-        paths:
-        - ~/go/src/gx
-    - run:
-        name: install tools
-        command: |
-          sdkmanager --licenses
-          echo y | sdkmanager "build-tools;28.0.3"
-          echo y | sdkmanager "platforms;android-28"
-          sdkmanager 'ndk-bundle'
-    - run:
-        name: install gomobile
-        command: |
-          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
-          go get -u golang.org/x/mobile/cmd/gomobile
-    - run:
-        name: build android framework
-        command: |
-          export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
-          COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
-          SUMMARY=$CIRCLE_SHA1
-          if [ "${CIRCLE_TAG}" != "" ]; then
-              SUMMARY=${CIRCLE_TAG}
-          fi
-          DATE=$(date --iso-8601=seconds)
-          FLAGS="-X github.com/textileio/go-textile/common.GitSummary=${SUMMARY} -X github.com/textileio/go-textile/common.BuildDate=${DATE} -X github.com/textileio/go-textile/common.GitCommit=${COMMIT} -X github.com/textileio/go-textile/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/go-textile/common.GitState=clean"
-          gomobile init
-          gomobile bind -v -ldflags="-w $FLAGS" -target=android -o=mobile.aar github.com/textileio/go-textile/mobile github.com/textileio/go-textile/core
-    - run:
-        name: build java protobuf bindings
-        command: |
-          mkdir protos
-          protoc --proto_path=./pb/protos --java_out=./protos ./pb/protos/*
-    - run:
-        name: collect artifacts
-        command: |
-          VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
-          if [ "${CIRCLE_TAG}" != "" ]; then
-              VERSION=${CIRCLE_TAG}
-          fi
-          OUT=~/dist/android_aar
-          mkdir -p ${OUT}
-          tar -czvf go-textile_${VERSION}_android-aar.tar.gz mobile.aar protos
-          mv go-textile_${VERSION}_android-aar.tar.gz ${OUT}/
-    - persist_to_workspace:
-        root: ~/dist
-        paths:
-        - android_aar
-    - store_artifacts:
-        path: ~/dist/android_aar
+      - checkout
+      - run:
+          name: install golang
+          command: |
+            wget https://dl.google.com/go/go1.12.3.linux-amd64.tar.gz
+            sudo tar -C /usr/local -xzf go1.12.3.linux-amd64.tar.gz
+            mkdir -p $GOPATH/bin
+      - run:
+          name: install protobuf
+          command: |
+            curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.6.1/protoc-3.6.1-linux-x86_64.zip
+            unzip protoc-3.6.1-linux-x86_64.zip -d protoc3
+            sudo mv protoc3/bin/* /usr/local/bin/
+            sudo mv protoc3/include/* /usr/local/include/
+      - restore_cache:
+          key: go-mod-v1-android-{{ checksum "go.sum" }}-{{ arch }}
+      - run:
+          name: cache mods
+          command: |
+            go mod download
+      - save_cache:
+          key: go-mod-v1-android-{{ checksum "go.sum" }}-{{ arch }}
+          paths:
+            - /go/pkg/mod
+      - run:
+          name: install tools
+          command: |
+            sdkmanager --licenses
+            echo y | sdkmanager "build-tools;28.0.3"
+            echo y | sdkmanager "platforms;android-28"
+            sdkmanager 'ndk-bundle'
+      - run:
+          name: install gomobile
+          command: |
+            export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+            go get -u golang.org/x/mobile/cmd/gomobile
+      - run:
+          name: build android framework
+          command: |
+            export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+
+            go mod vendor
+            cd .. && mv project ~/go/src/github.com/textileio/go-textile
+            cd ~/go/src/github.com/textileio/go-textile
+
+            COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
+            SUMMARY=$CIRCLE_SHA1
+            if [ "${CIRCLE_TAG}" != "" ]; then
+                SUMMARY=${CIRCLE_TAG}
+            fi
+            DATE=$(date --iso-8601=seconds)
+            FLAGS="-X github.com/textileio/go-textile/common.GitSummary=${SUMMARY} -X github.com/textileio/go-textile/common.BuildDate=${DATE} -X github.com/textileio/go-textile/common.GitCommit=${COMMIT} -X github.com/textileio/go-textile/common.GitBranch=${CIRCLE_BRANCH} -X github.com/textileio/go-textile/common.GitState=clean"
+            gomobile init
+            env go111module=off gomobile bind -v -ldflags="-w $FLAGS" -target=android -o=mobile.aar github.com/textileio/go-textile/mobile github.com/textileio/go-textile/core
+      - run:
+          name: build java protobuf bindings
+          command: |
+            mkdir protos
+            protoc --proto_path=./pb/protos --java_out=./protos ./pb/protos/*
+      - run:
+          name: collect artifacts
+          command: |
+            VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
+            if [ "${CIRCLE_TAG}" != "" ]; then
+                VERSION=${CIRCLE_TAG}
+            fi
+            OUT=~/dist/android_aar
+            mkdir -p ${OUT}
+            tar -czvf go-textile_${VERSION}_android-aar.tar.gz mobile.aar protos
+            mv go-textile_${VERSION}_android-aar.tar.gz ${OUT}/
+      - persist_to_workspace:
+          root: ~/dist
+          paths:
+            - android_aar
+      - store_artifacts:
+          path: ~/dist/android_aar
 
   build-js-types:
     docker:
-    - image: circleci/node
-    working_directory: ~/go/src/github.com/textileio/go-textile
+      - image: circleci/node
     steps:
-    - checkout
-    - run:
-        name: install @textile/protobufjs
-        command: |
-          npm install @textile/protobufjs
-    - run:
-        name: build js types
-        command: |
-          mkdir protos
-          ./node_modules/@textile/protobufjs/bin/pbjs -t static-module -w es6 -o protos/index.js ./pb/protos/*
-          ./node_modules/@textile/protobufjs/bin/pbts -o protos/index.d.ts protos/index.js
-    - run:
-        name: collect artifacts
-        command: |
-          VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
-          if [ "${CIRCLE_TAG}" != "" ]; then
-              VERSION=${CIRCLE_TAG}
-          fi
-          OUT=~/dist/js_types
-          mkdir -p ${OUT}
-          tar -czvf go-textile_${VERSION}_js-types.tar.gz protos
-          mv go-textile_${VERSION}_js-types.tar.gz ${OUT}/
-    - persist_to_workspace:
-        root: ~/dist
-        paths:
-        - js_types
-    - store_artifacts:
-        path: ~/dist/js_types
+      - checkout
+      - run:
+          name: install @textile/protobufjs
+          command: |
+            npm install @textile/protobufjs
+      - run:
+          name: build js types
+          command: |
+            mkdir protos
+            ./node_modules/@textile/protobufjs/bin/pbjs -t static-module -w es6 -o protos/index.js ./pb/protos/*
+            ./node_modules/@textile/protobufjs/bin/pbts -o protos/index.d.ts protos/index.js
+      - run:
+          name: collect artifacts
+          command: |
+            VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
+            if [ "${CIRCLE_TAG}" != "" ]; then
+                VERSION=${CIRCLE_TAG}
+            fi
+            OUT=~/dist/js_types
+            mkdir -p ${OUT}
+            tar -czvf go-textile_${VERSION}_js-types.tar.gz protos
+            mv go-textile_${VERSION}_js-types.tar.gz ${OUT}/
+      - persist_to_workspace:
+          root: ~/dist
+          paths:
+            - js_types
+      - store_artifacts:
+          path: ~/dist/js_types
 
   release:
     docker:
-    - image: cibuilds/github:0.10
+      - image: cibuilds/github:0.10
     steps:
-    - *checkout-linux
-    - deploy:
-        name: release all
-        command: |
-          mkdir -p ~/dist
-          mv ~/cli/* ~/dist/
-          mv ~/tray/* ~/dist/
-          mv ~/ios_framework/* ~/dist/
-          mv ~/android_aar/* ~/dist/
-          mv ~/js_types/* ~/dist/
-          ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ~/dist/
+      - *checkout-linux
+      - deploy:
+          name: release all
+          command: |
+            mkdir -p ~/dist
+            mv ~/cli/* ~/dist/
+            mv ~/tray/* ~/dist/
+            mv ~/ios_framework/* ~/dist/
+            mv ~/android_aar/* ~/dist/
+            mv ~/js_types/* ~/dist/
+            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ~/dist/
 
 workflows:
   version: 2
   go-textile:
     jobs:
-    - persist-checkout:
-        filters:
-          tags:
-            only: /.*/
-    - unit-test:
-        requires:
-        - persist-checkout
-        filters:
-          tags:
-            only: /.*/
-    - build-cli-darwin-windows:
-        requires:
-        - unit-test
-        filters:
-          branches:
-            only: master
-          tags:
-            only: /.*/
-    - build-cli-linux:
-        requires:
-        - unit-test
-        filters:
-          branches:
-            only: master
-          tags:
-            only: /.*/
-    - build-ios-framework:
-        requires:
-        - unit-test
-        filters:
-          branches:
-            only: master
-          tags:
-            only: /.*/
-    - build-android-aar:
-        requires:
-        - unit-test
-        filters:
-          branches:
-            only: master
-          tags:
-            only: /.*/
-    - build-js-types:
-        requires:
-        - unit-test
-        filters:
-          branches:
-            only: master
-          tags:
-            only: /.*/
-    - build-tray-linux:
-        requires:
-        - unit-test
-        filters:
-          branches:
-            only: master
-          tags:
-            only: /.*/
-    - build-tray-mac-windows:
-        requires:
-        - unit-test
-        filters:
-          branches:
-            only: master
-          tags:
-            only: /.*/
-    - release:
-        requires:
-        - build-cli-darwin-windows
-        - build-cli-linux
-        - build-ios-framework
-        - build-android-aar
-        - build-js-types
-        - build-tray-linux
-        - build-tray-mac-windows
-        filters:
-          branches:
-            ignore: /.*/
-          tags:
-            only: /^v.*/
+      - persist-checkout:
+          filters:
+            tags:
+              only: /.*/
+      - unit-test:
+          requires:
+            - persist-checkout
+          filters:
+            tags:
+              only: /.*/
+      - build-cli-darwin-windows:
+          requires:
+            - unit-test
+          filters:
+            branches:
+              only: master
+            tags:
+              only: /.*/
+      - build-cli-linux:
+          requires:
+            - unit-test
+          filters:
+            branches:
+              only: master
+            tags:
+              only: /.*/
+      - build-ios-framework:
+          requires:
+            - unit-test
+          filters:
+            branches:
+              only: master
+            tags:
+              only: /.*/
+      - build-android-aar:
+          requires:
+            - unit-test
+          filters:
+            branches:
+              only: master
+            tags:
+              only: /.*/
+      - build-js-types:
+          requires:
+            - unit-test
+          filters:
+            branches:
+              only: master
+            tags:
+              only: /.*/
+      - build-tray-linux:
+          requires:
+            - unit-test
+          filters:
+            branches:
+              only: master
+            tags:
+              only: /.*/
+      - build-tray-mac-windows:
+          requires:
+            - unit-test
+          filters:
+            branches:
+              only: master
+            tags:
+              only: /.*/
+      - release:
+          requires:
+            - build-cli-darwin-windows
+            - build-cli-linux
+            - build-ios-framework
+            - build-android-aar
+            - build-js-types
+            - build-tray-linux
+            - build-tray-mac-windows
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/

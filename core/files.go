@@ -9,11 +9,10 @@ import (
 	"strconv"
 	"strings"
 
-	ipld "gx/ipfs/QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy/go-ipld-format"
-	uio "gx/ipfs/QmcYUTQ7tBZeH1CLsZM2S3xhMEZdvUgXvbjhpMsLDpk3oJ/go-unixfs/io"
-
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes"
+	ipld "github.com/ipfs/go-ipld-format"
+	uio "github.com/ipfs/go-unixfs/io"
 	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/ipfs"

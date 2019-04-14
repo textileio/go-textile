@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
+	logging "github.com/ipfs/go-log"
 )
 
 var (

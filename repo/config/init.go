@@ -6,8 +6,7 @@ import (
 	"os"
 	"path"
 
-	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
-
+	logging "github.com/ipfs/go-log"
 	"github.com/textileio/go-textile/common"
 )
 

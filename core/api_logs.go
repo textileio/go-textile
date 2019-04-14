@@ -4,10 +4,9 @@ import (
 	"net/http"
 	"strings"
 
-	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
-	logger "gx/ipfs/QmcaSwFc5RBg8yCq54QURwEU4nwjfCpjbpmaAm4VbdGLKv/go-logging"
-
 	"github.com/gin-gonic/gin"
+	logging "github.com/ipfs/go-log"
+	logger "github.com/whyrusleeping/go-logging"
 )
 
 type SubsystemInfo map[string]string

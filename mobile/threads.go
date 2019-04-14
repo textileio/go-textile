@@ -2,9 +2,9 @@ package mobile
 
 import (
 	"crypto/rand"
-	libp2pc "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
 
 	"github.com/golang/protobuf/proto"
+	libp2pc "github.com/libp2p/go-libp2p-crypto"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/pb"
 )

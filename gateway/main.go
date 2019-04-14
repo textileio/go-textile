@@ -10,14 +10,13 @@ import (
 	"strings"
 	"time"
 
-	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
-	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-	ipld "gx/ipfs/QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy/go-ipld-format"
-	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
-
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
 	"github.com/golang/protobuf/jsonpb"
+	ipld "github.com/ipfs/go-ipld-format"
+	logging "github.com/ipfs/go-log"
+	iface "github.com/ipfs/interface-go-ipfs-core"
+	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/mr-tron/base58/base58"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/crypto"

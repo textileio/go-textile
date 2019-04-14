@@ -3,10 +3,9 @@ package core
 import (
 	"net/http"
 
-	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
-
 	"github.com/gin-gonic/gin"
 	"github.com/mr-tron/base58/base58"
+	mh "github.com/multiformats/go-multihash"
 )
 
 // createInvites godoc

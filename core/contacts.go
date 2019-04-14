@@ -3,9 +3,8 @@ package core
 import (
 	"fmt"
 
-	"github.com/golang/protobuf/ptypes"
-
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/textileio/go-textile/broadcast"
 	"github.com/textileio/go-textile/pb"

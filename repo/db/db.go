@@ -6,9 +6,8 @@ import (
 	"strings"
 	"sync"
 
-	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
-
 	"github.com/golang/protobuf/jsonpb"
+	logging "github.com/ipfs/go-log"
 	_ "github.com/mutecomm/go-sqlcipher"
 	"github.com/textileio/go-textile/repo"
 )

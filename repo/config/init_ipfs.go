@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	ipfs "gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs"
-	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/repo"
-	native "gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
+	ipfs "github.com/ipfs/go-ipfs"
+	native "github.com/ipfs/go-ipfs-config"
+	"github.com/ipfs/go-ipfs/repo"
 )
 
 // DefaultServerFilters has a list of non-routable IPv4 prefixes
@@ -120,6 +120,7 @@ func InitIpfs(identity native.Identity) (*native.Config, error) {
 				GracePeriod: DefaultConnMgrGracePeriod.String(),
 				Type:        "basic",
 			},
+			DisableBandwidthMetrics: true,
 		},
 		Experimental: native.Experiments{
 			FilestoreEnabled:     false,

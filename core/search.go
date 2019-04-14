@@ -3,8 +3,7 @@ package core
 import (
 	"sync"
 
-	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-
+	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/broadcast"
 	"github.com/textileio/go-textile/pb"

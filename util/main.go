@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
-
 	"github.com/golang/protobuf/ptypes/timestamp"
 )
 

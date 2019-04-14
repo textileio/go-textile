@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
-
 	"github.com/golang/protobuf/ptypes"
+	mh "github.com/multiformats/go-multihash"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 )

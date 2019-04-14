@@ -1,4 +1,4 @@
-FROM golang:1.11.5
+FROM golang:1.12.3
 
 # replace shell with bash so we can source files
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
@@ -18,10 +18,3 @@ ENV PATH="/usr/lib/node_modules/yarn/bin:${PATH}"
 
 # install yarn
 RUN npm install -g yarn
-
-# install dep
-RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-
-# install gx
-RUN go get -u github.com/whyrusleeping/gx \
-    && go get -u github.com/whyrusleeping/gx-go

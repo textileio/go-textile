@@ -5,9 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	libp2pc "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
-
 	extra "github.com/agl/ed25519/extra25519"
+	libp2pc "github.com/libp2p/go-libp2p-crypto"
 	"golang.org/x/crypto/nacl/box"
 )
 

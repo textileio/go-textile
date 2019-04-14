@@ -8,8 +8,7 @@ import (
 	"os"
 	"path"
 
-	native "gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
-
+	native "github.com/ipfs/go-ipfs-config"
 	_ "github.com/mutecomm/go-sqlcipher"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/ipfs"

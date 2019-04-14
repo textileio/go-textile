@@ -10,12 +10,11 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/repo/fsrepo"
-
 	asti "github.com/asticode/go-astilectron"
-	"github.com/asticode/go-astilectron-bootstrap"
+	bootstrap "github.com/asticode/go-astilectron-bootstrap"
 	astilog "github.com/asticode/go-astilog"
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/gateway"

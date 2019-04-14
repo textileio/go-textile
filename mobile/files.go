@@ -11,10 +11,9 @@ import (
 	"sort"
 	"strings"
 
-	iface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
-	ipld "gx/ipfs/QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy/go-ipld-format"
-
 	"github.com/golang/protobuf/proto"
+	ipld "github.com/ipfs/go-ipld-format"
+	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/mill"
