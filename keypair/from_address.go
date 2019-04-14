@@ -1,13 +1,12 @@
 package keypair
 
 import (
-	libp2pc "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
-	pb "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto/pb"
-	"gx/ipfs/QmW7VUmSvhvSGbYbdsh7uRjhGmsYkc9fL8aJ5CorxxrU5N/go-crypto/ed25519"
-	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-
+	libp2pc "github.com/libp2p/go-libp2p-crypto"
+	pb "github.com/libp2p/go-libp2p-crypto/pb"
+	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/strkey"
+	"golang.org/x/crypto/ed25519"
 )
 
 // FromAddress represents a keypair to which only the address is know.  This KeyPair

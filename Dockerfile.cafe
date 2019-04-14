@@ -4,18 +4,6 @@ MAINTAINER Sander Pick <sander@textile.io>
 # This is (in large part) copied (with love) from
 # https://hub.docker.com/r/ipfs/go-ipfs/dockerfile
 
-# install dependencies
-RUN apt-get update \
-  && apt-get install -y curl \
-  && apt-get -y autoclean
-
-# Install dep
-RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-
-# Install gx
-RUN go get -u github.com/whyrusleeping/gx \
-  && go get -u github.com/whyrusleeping/gx-go
-
 # Get source
 ENV SRC_DIR /go/src/github.com/textileio/go-textile
 COPY . $SRC_DIR

@@ -5,12 +5,11 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"gx/ipfs/QmPDEJTb3WBHmvubsLXCaqRPC8dRgvFz7A4p96dxZbJuWL/go-ipfs/pin"
-	"gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
-	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-
 	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/ptypes"
+	cid "github.com/ipfs/go-cid"
+	"github.com/ipfs/go-ipfs/pin"
+	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 )

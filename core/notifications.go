@@ -4,8 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
-
+	mh "github.com/multiformats/go-multihash"
 	"github.com/textileio/go-textile/pb"
 )
 

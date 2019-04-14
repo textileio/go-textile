@@ -6,10 +6,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/textileio/go-textile/util"
-
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo"
+	"github.com/textileio/go-textile/util"
 )
 
 type BlockDB struct {

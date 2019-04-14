@@ -14,8 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
-
+	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/pb"

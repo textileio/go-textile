@@ -5,9 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/textileio/go-textile/ipfs"
-
 	"github.com/gin-gonic/gin"
+	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 )
 

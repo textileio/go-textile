@@ -3,9 +3,8 @@ package core
 import (
 	"net/http"
 
-	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-
 	"github.com/gin-gonic/gin"
+	peer "github.com/libp2p/go-libp2p-peer"
 )
 
 // ping godoc

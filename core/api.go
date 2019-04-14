@@ -19,12 +19,10 @@ import (
 	swagger "github.com/swaggo/gin-swagger"
 	sfiles "github.com/swaggo/gin-swagger/swaggerFiles"
 	"github.com/textileio/go-textile/common"
+	docs "github.com/textileio/go-textile/docs"
 	m "github.com/textileio/go-textile/mill"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo/config"
-
-	// blank import for server api docs
-	docs "github.com/textileio/go-textile/docs"
 )
 
 // apiVersion is the api version

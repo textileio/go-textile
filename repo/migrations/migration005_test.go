@@ -11,8 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	libp2pc "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
-
+	libp2pc "github.com/libp2p/go-libp2p-crypto"
 	"github.com/textileio/go-textile/crypto"
 )
 

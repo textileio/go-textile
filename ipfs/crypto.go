@@ -4,12 +4,12 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 
-	libp2pc "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
-	pb "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto/pb"
-	"gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
-	"gx/ipfs/QmW7VUmSvhvSGbYbdsh7uRjhGmsYkc9fL8aJ5CorxxrU5N/go-crypto/ed25519"
-	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-	"gx/ipfs/QmddjPSGZb3ieihSseFeCfVRpZzcqczPNsD2DvarSwnjJB/gogo-protobuf/proto"
+	"github.com/golang/protobuf/proto"
+	config "github.com/ipfs/go-ipfs-config"
+	libp2pc "github.com/libp2p/go-libp2p-crypto"
+	pb "github.com/libp2p/go-libp2p-crypto/pb"
+	peer "github.com/libp2p/go-libp2p-peer"
+	"golang.org/x/crypto/ed25519"
 )
 
 // IdentityConfig initializes a new identity.

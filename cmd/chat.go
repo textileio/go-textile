@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/chzyer/readline"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/go-textile/core"
-
-	"github.com/chzyer/readline"
 	"github.com/textileio/go-textile/pb"
 )
 

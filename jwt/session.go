@@ -5,12 +5,11 @@ import (
 	"errors"
 	"time"
 
-	libp2pc "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
-	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-
 	"github.com/dgrijalva/jwt-go"
 	"github.com/golang/protobuf/ptypes"
+	libp2pc "github.com/libp2p/go-libp2p-crypto"
+	peer "github.com/libp2p/go-libp2p-peer"
+	protocol "github.com/libp2p/go-libp2p-protocol"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/pb"
 )

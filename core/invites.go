@@ -4,12 +4,11 @@ import (
 	"errors"
 	"fmt"
 
-	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
-
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/mr-tron/base58/base58"
+	mh "github.com/multiformats/go-multihash"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"

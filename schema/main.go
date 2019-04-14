@@ -3,8 +3,7 @@ package schema
 import (
 	"errors"
 
-	ipld "gx/ipfs/QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy/go-ipld-format"
-
+	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/textileio/go-textile/pb"
 )
 

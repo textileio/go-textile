@@ -3,8 +3,6 @@ clean:
 
 setup:
 	go get github.com/ahmetb/govvv
-	dep ensure
-	gx install
 
 test:
 	./test_compile.sh
@@ -16,6 +14,7 @@ lint:
 	golint `go list ./... | grep -v /vendor/`
 
 build:
+	go get github.com/ahmetb/govvv
 	$(eval FLAGS := $$(shell govvv -flags -pkg github.com/textileio/go-textile/common))
 	go build -ldflags "-w $(FLAGS)" -i -o textile textile.go
 	mkdir -p dist
@@ -23,16 +22,6 @@ build:
 
 install:
 	mv dist/textile $$GOPATH/bin
-
-linux:
-	$(eval FLAGS := $$(shell govvv -flags -pkg github.com/textileio/go-textile/common))
-	export CGO_ENABLED=1
-	docker pull karalabe/xgo-latest
-	go get github.com/karalabe/xgo
-	xgo -go 1.11.1 -ldflags "-w $(FLAGS)" --targets=linux/amd64 .
-	chmod +x go-textile-linux-amd64
-	mkdir -p dist
-	mv go-textile-linux-amd64 dist/
 
 ios:
 	$(eval FLAGS := $$(shell govvv -flags -pkg github.com/textileio/go-textile/common))
@@ -52,7 +41,8 @@ protos:
 	cd pb/protos; protoc --go_out=$(PKGMAP):.. *.proto
 
 protos_js:
-	mkdir -p mobile/dist
+	rm -rf mobile/dist
+	mkdir mobile/dist
 	cd mobile; rm -rf node_modules && npm i @textile/protobufjs --no-save
 	cd mobile; ./node_modules/.bin/pbjs -t static-module -o dist/index.js ../pb/protos/*
 	cd mobile; ./node_modules/.bin/pbts -o dist/index.d.ts dist/index.js
