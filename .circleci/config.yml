@@ -338,6 +338,7 @@ jobs:
       - run:
           name: build obj c protobuf bindings
           command: |
+            cd ~/go/src/github.com/textileio/go-textile
             mkdir protos
             protoc --proto_path=./pb/protos --objc_out=./protos ./pb/protos/*
       - run:
@@ -419,6 +420,7 @@ jobs:
       - run:
           name: build java protobuf bindings
           command: |
+            cd ~/go/src/github.com/textileio/go-textile
             mkdir protos
             protoc --proto_path=./pb/protos --java_out=./protos ./pb/protos/*
       - run:
