@@ -30,7 +30,7 @@ ios:
 
 android:
 	$(eval FLAGS := $$(shell govvv -flags -pkg github.com/textileio/go-textile/common))
-	gomobile bind -ldflags "-w $(FLAGS)" -v -target=android -o mobile.aar github.com/textileio/go-textile/mobile github.com/textileio/go-textile/core
+	env go111module=off gomobile bind -ldflags "-w $(FLAGS)" -v -target=android -o mobile.aar github.com/textileio/go-textile/mobile github.com/textileio/go-textile/core
 	mkdir -p mobile/dist/android/ && mv mobile.aar mobile/dist/android/
 
 protos:
