@@ -214,8 +214,7 @@ jobs:
             fi
             OUT=~/dist/tray
             mkdir -p ${OUT}
-            WD=/go/src/github.com/textileio/go-textile
-            cd ${WD}/tray/output/linux-amd64
+            cd tray/output/linux-amd64
             tar -czvf Textile_${VERSION}_linux-amd64.tar.gz Textile
             mv Textile_${VERSION}_linux-amd64.tar.gz ${OUT}/
       - persist_to_workspace:
@@ -275,7 +274,7 @@ jobs:
             fi
             OUT=~/dist/tray
             mkdir -p ${OUT}
-            WD=~/go/src/github.com/textileio/go-textile
+            WD=~/project
             cd ${WD}/tray/output/darwin-amd64
             tar -czvf Textile_${VERSION}_mac-amd64.tar.gz Textile.app
             mv Textile_${VERSION}_mac-amd64.tar.gz ${OUT}/
@@ -319,12 +318,6 @@ jobs:
           command: |
             brew install protobuf
       - run:
-          name: install gomobile
-          command: |
-            export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
-            go get golang.org/x/mobile/cmd/gomobile
-            go get golang.org/x/mobile/cmd/gobind
-      - run:
           name: build ios framework
           command: |
             export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
@@ -332,6 +325,7 @@ jobs:
             mkdir -p ~/go/src/github.com/textileio
             cd ~ && mv project go/src/github.com/textileio/go-textile
             cd ~/go/src/github.com/textileio/go-textile
+            go get golang.org/x/mobile/cmd/gomobile
             COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
             SUMMARY=$CIRCLE_SHA1
             if [ "${CIRCLE_TAG}" != "" ]; then
@@ -355,6 +349,7 @@ jobs:
             fi
             OUT=~/dist/ios_framework
             mkdir -p ${OUT}
+            cd ~/go/src/github.com/textileio/go-textile
             tar -czvf go-textile_${VERSION}_ios-framework.tar.gz Mobile.framework protos
             mv go-textile_${VERSION}_ios-framework.tar.gz ${OUT}/
       - persist_to_workspace:
@@ -404,12 +399,6 @@ jobs:
             echo y | sdkmanager "platforms;android-28"
             sdkmanager 'ndk-bundle'
       - run:
-          name: install gomobile
-          command: |
-            export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
-            go get golang.org/x/mobile/cmd/gomobile
-            go get golang.org/x/mobile/cmd/gobind
-      - run:
           name: build android framework
           command: |
             export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
@@ -417,6 +406,7 @@ jobs:
             mkdir -p ~/go/src/github.com/textileio
             cd ~ && mv project go/src/github.com/textileio/go-textile
             cd ~/go/src/github.com/textileio/go-textile
+            go get golang.org/x/mobile/cmd/gomobile
             COMMIT=$(echo $CIRCLE_SHA1 | cut -c -7)
             SUMMARY=$CIRCLE_SHA1
             if [ "${CIRCLE_TAG}" != "" ]; then
@@ -440,6 +430,7 @@ jobs:
             fi
             OUT=~/dist/android_aar
             mkdir -p ${OUT}
+            cd ~/go/src/github.com/textileio/go-textile
             tar -czvf go-textile_${VERSION}_android-aar.tar.gz mobile.aar protos
             mv go-textile_${VERSION}_android-aar.tar.gz ${OUT}/
       - persist_to_workspace:
