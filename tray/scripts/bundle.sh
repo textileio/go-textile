@@ -12,5 +12,5 @@ o) OS=${OPTARG};;
 esac
 done
 
-go install ../vendor/github.com/asticode/go-astilectron-bundler/astilectron-bundler
+go get github.com/asticode/go-astilectron-bundler/...
 astilectron-bundler -v -c bundler.$OS.json

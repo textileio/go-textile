@@ -196,9 +196,8 @@ jobs:
       - restore_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}-{{ arch }}
       - run:
-          name: install deps
+          name: install js deps
           command: |
-            go get github.com/asticode/go-astilectron-bundler/...
             cd tray
             yarn install
       - run:
@@ -256,10 +255,8 @@ jobs:
           command: |
             brew install mingw-w64
       - run:
-          name: install deps
+          name: install js deps
           command: |
-            export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
-            go get github.com/asticode/go-astilectron-bundler/...
             cd tray
             yarn install
       - run:
@@ -325,7 +322,8 @@ jobs:
           name: install gomobile
           command: |
             export PATH=$PATH:$GOROOT/bin:$GOPATH/bin:$BREWBIN
-            go get -u golang.org/x/mobile/cmd/gomobile
+            go get golang.org/x/mobile/cmd/gomobile
+            go get golang.org/x/mobile/cmd/gobind
       - run:
           name: build ios framework
           command: |
@@ -409,7 +407,8 @@ jobs:
           name: install gomobile
           command: |
             export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
-            go get -u golang.org/x/mobile/cmd/gomobile
+            go get golang.org/x/mobile/cmd/gomobile
+            go get golang.org/x/mobile/cmd/gobind
       - run:
           name: build android framework
           command: |
