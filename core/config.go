@@ -174,7 +174,8 @@ func applyServerConfigOption(rep repo.Repo, isServer bool) error {
 		if err := config.UpdateIpfs(rep, "Swarm.AddrFilters", config.DefaultServerFilters); err != nil {
 			return err
 		}
-		if err := config.UpdateIpfs(rep, "Swarm.EnableRelayHop", true); err != nil {
+		// tmp disable relay
+		if err := config.UpdateIpfs(rep, "Swarm.EnableRelayHop", false); err != nil {
 			return err
 		}
 		if err := config.UpdateIpfs(rep, "Discovery.MDNS.Enabled", false); err != nil {
