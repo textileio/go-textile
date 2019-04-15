@@ -29,7 +29,26 @@ func (m *Mobile) AddExternalInvite(threadId string) ([]byte, error) {
 	return proto.Marshal(invite)
 }
 
-// AcceptExternalInvite notifies the thread of a join
+// Invites calls core Invites
+func (m *Mobile) Invites() ([]byte, error) {
+	return proto.Marshal(m.node.Invites())
+}
+
+// AcceptInvite calls core AcceptInvite
+func (m *Mobile) AcceptInvite(id string) (string, error) {
+	if !m.node.Online() {
+		return "", core.ErrOffline
+	}
+
+	hash, err := m.node.AcceptInvite(id)
+	if err != nil {
+		return "", err
+	}
+
+	return hash.B58String(), nil
+}
+
+// AcceptExternalInvite calls core AcceptExternalInvite
 func (m *Mobile) AcceptExternalInvite(id string, key string) (string, error) {
 	if !m.node.Online() {
 		return "", core.ErrOffline
@@ -46,4 +65,13 @@ func (m *Mobile) AcceptExternalInvite(id string, key string) (string, error) {
 	}
 
 	return hash.B58String(), nil
+}
+
+// IgnoreInvite calls core IgnoreInvite
+func (m *Mobile) IgnoreInvite(id string) error {
+	if !m.node.Online() {
+		return core.ErrOffline
+	}
+
+	return m.node.IgnoreInvite(id)
 }

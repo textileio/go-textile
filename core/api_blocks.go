@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/textileio/go-textile/ipfs"
@@ -177,12 +178,15 @@ func (a *api) toDots(blocks *pb.BlockList) (string, error) {
 		dot := toDot(b)
 
 		for _, p := range b.Parents {
-			pp, err := a.node.Block(p)
-			if err != nil {
-				log.Errorf("error getting block %s: %s", p, err)
+			if strings.TrimSpace(p) == "" {
 				continue
 			}
-
+			pp, err := a.node.Block(p)
+			if err != nil {
+				log.Warningf("block %s: %s", p, err)
+				dots += "\n    " + dot + " -> MISSING_" + pre(p) + ";"
+				continue
+			}
 			dots += "\n    " + dot + " -> " + toDot(pp) + ";"
 		}
 	}
