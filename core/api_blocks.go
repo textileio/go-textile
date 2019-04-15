@@ -179,7 +179,8 @@ func (a *api) toDots(blocks *pb.BlockList) (string, error) {
 		for _, p := range b.Parents {
 			pp, err := a.node.Block(p)
 			if err != nil {
-				return "", err
+				log.Errorf("error getting block %s: %s", p, err)
+				continue
 			}
 
 			dots += "\n    " + dot + " -> " + toDot(pp) + ";"

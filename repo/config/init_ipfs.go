@@ -52,7 +52,7 @@ This is a problem with the Textile codebase. Please report it to the dev team.`,
 }
 
 // InitIpfs create the IPFS config file
-func InitIpfs(identity native.Identity) (*native.Config, error) {
+func InitIpfs(identity native.Identity, mobile bool) (*native.Config, error) {
 	ipfsPeers, err := native.DefaultBootstrapPeers()
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ func InitIpfs(identity native.Identity) (*native.Config, error) {
 				GracePeriod: DefaultConnMgrGracePeriod.String(),
 				Type:        "basic",
 			},
-			DisableBandwidthMetrics: true,
+			DisableBandwidthMetrics: mobile,
 		},
 		Experimental: native.Experiments{
 			FilestoreEnabled:     false,
