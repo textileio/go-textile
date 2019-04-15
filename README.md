@@ -75,11 +75,11 @@ Check out the [docs site](https://docs.textile.io/) for more detailed usage inst
 
 ## Building
 
-There are various things to build… first off run setup:
+There are various things to build… first off, run setup:
 
     make setup
 
-If you plan on building the bindings fro iOS or Android, install and init the `gomobile` tools:
+If you plan on building the bindings for iOS or Android, install and init the `gomobile` tools:
 
     go get golang.org/x/mobile/cmd/gomobile
     gomobile init
@@ -100,11 +100,11 @@ If you plan on building the bindings fro iOS or Android, install and init the `g
 
     make docs
 
-#### Tray app
+#### Desktop
 
-The build is made by a vendored version of `go-astilectron-bundler`. Due to Go's painful package management, you'll want to delete any `go-astilectron`-related binaries and source code you have installed from `github.com/asticode` in your `$GOPATH`. Then you can install the vendored `go-astilectron-bundler`:
+Install `go-astilectron-bundler`:
 
-    go install ./vendor/github.com/asticode/go-astilectron-bundler/astilectron-bundler
+    go get github.com/asticode/go-astilectron-bundler/...
 
 Change into the `tray` folder and build the app:
 
@@ -112,7 +112,6 @@ Change into the `tray` folder and build the app:
     astilectron-bundler -v
 
 Double-click the built app in `tray/output/{darwin,linux,windows}-amd64`, or run it directly:
-
 
     go run *.go
 

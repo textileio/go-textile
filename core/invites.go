@@ -99,8 +99,8 @@ func (t *Textile) Invites() *pb.InviteViewList {
 }
 
 // AcceptInvite adds a new thread, and notifies the inviter of the join
-func (t *Textile) AcceptInvite(inviteId string) (mh.Multihash, error) {
-	invite := t.datastore.Invites().Get(inviteId)
+func (t *Textile) AcceptInvite(id string) (mh.Multihash, error) {
+	invite := t.datastore.Invites().Get(id)
 	if invite == nil {
 		return nil, ErrThreadInviteNotFound
 	}
@@ -110,7 +110,7 @@ func (t *Textile) AcceptInvite(inviteId string) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	if err := t.IgnoreInvite(inviteId); err != nil {
+	if err := t.IgnoreInvite(id); err != nil {
 		return nil, err
 	}
 
@@ -119,8 +119,8 @@ func (t *Textile) AcceptInvite(inviteId string) (mh.Multihash, error) {
 
 // AcceptExternalInvite attemps to download an encrypted thread key from an external invite,
 // adds a new thread, and notifies the inviter of the join
-func (t *Textile) AcceptExternalInvite(inviteId string, key []byte) (mh.Multihash, error) {
-	ciphertext, err := ipfs.DataAtPath(t.node, fmt.Sprintf("%s", inviteId))
+func (t *Textile) AcceptExternalInvite(id string, key []byte) (mh.Multihash, error) {
+	ciphertext, err := ipfs.DataAtPath(t.node, fmt.Sprintf("%s", id))
 	if err != nil {
 		return nil, err
 	}
@@ -134,11 +134,11 @@ func (t *Textile) AcceptExternalInvite(inviteId string, key []byte) (mh.Multihas
 }
 
 // IgnoreInvite deletes the invite and removes the associated notification.
-func (t *Textile) IgnoreInvite(inviteId string) error {
-	if err := t.datastore.Invites().Delete(inviteId); err != nil {
+func (t *Textile) IgnoreInvite(id string) error {
+	if err := t.datastore.Invites().Delete(id); err != nil {
 		return err
 	}
-	return t.datastore.Notifications().DeleteByBlock(inviteId)
+	return t.datastore.Notifications().DeleteByBlock(id)
 }
 
 // handleThreadAdd uses an add block to join a thread
