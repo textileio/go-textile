@@ -22,7 +22,7 @@ See [textile-mobile](https://github.com/textileio/textile-mobile/) for the [Text
 
 ## Install
 
-Download the [latest release](https://github.com/textileio/go-textile/releases/latest) for your OS or jump to [Docker](https://github.com/textileio/go-textile#docker). You can also install the Textile [desktop tray app](https://github.com/textileio/go-textile/releases/latest) to run local web/desktop apps that leverage Textile tools.
+Download the [latest release](https://github.com/textileio/go-textile/releases/latest) for your OS or jump to [Docker](https://github.com/textileio/go-textile#docker). You can also install the Textile [desktop tray app](https://github.com/textileio/desktop/releases/latest), which runs a streamlined version of `go-textile` via an easy-to-install Electron app!
 
 ## Usage
 
@@ -99,29 +99,6 @@ If you plan on building the bindings for iOS or Android, install and init the `g
 #### Docs
 
     make docs
-
-#### Desktop
-
-Install `go-astilectron-bundler`:
-
-    go get github.com/asticode/go-astilectron-bundler/...
-
-Change into the `tray` folder and build the app:
-
-    cd tray
-    astilectron-bundler -v
-
-Double-click the built app in `tray/output/{darwin,linux,windows}-amd64`, or run it directly:
-
-    go run *.go
-
-You can also build the architecture-specific versions with:
-
-    astilectron-bundler -v -c bundler.{darwin,linux,windows}.json
-
-##### Linux
-
-On Linux, you also have to `apt-get install libappindicator1 xclip libgconf-2-4` due to an issue with building Electron-based apps.
 
 ## Acknowledgments
 

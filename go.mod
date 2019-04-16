@@ -1,15 +1,9 @@
 module github.com/textileio/go-textile
 
 require (
+	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412
-	github.com/akavel/rsrc v0.8.0 // indirect
 	github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc
-	github.com/asticode/go-astiamqp v1.0.0 // indirect
-	github.com/asticode/go-astilectron v0.0.0-20190411111508-8e68f812e8a2
-	github.com/asticode/go-astilectron-bootstrap v0.0.0-20180616141213-b3211646d205
-	github.com/asticode/go-astilectron-bundler v0.0.0-20190406155441-5fc4c9f0c990 // indirect
-	github.com/asticode/go-astilog v1.0.0
-	github.com/asticode/go-bindata v0.0.0-20151023091102-a0ff2567cfb7 // indirect
 	github.com/chzyer/logex v1.1.10 // indirect
 	github.com/chzyer/readline v0.0.0-20160726135117-62c6fe619375
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
@@ -37,7 +31,6 @@ require (
 	github.com/ipfs/interface-go-ipfs-core v0.0.6
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99
 	github.com/jessevdk/go-flags v1.4.0
-	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/libp2p/go-libp2p-crypto v0.0.1
 	github.com/libp2p/go-libp2p-net v0.0.2
 	github.com/libp2p/go-libp2p-peer v0.1.0
@@ -52,12 +45,9 @@ require (
 	github.com/mutecomm/go-sqlcipher v0.0.0-20190227152316-55dbde17881f
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
-	github.com/pkg/errors v0.8.1
 	github.com/rs/cors v1.6.0
 	github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd
-	github.com/sam-kamerer/go-plister v1.1.2 // indirect
 	github.com/segmentio/ksuid v1.0.2
-	github.com/sirupsen/logrus v1.4.1 // indirect
 	github.com/stretchr/testify v1.3.0
 	github.com/swaggo/gin-swagger v1.1.0
 	github.com/swaggo/swag v1.5.0
