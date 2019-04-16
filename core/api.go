@@ -258,7 +258,7 @@ func (a *api) Start() {
 		ipfs := v0.Group("/ipfs")
 		{
 			ipfs.GET("/id", a.ipfsId)
-			ipfs.GET("/cat/:cid", a.ipfsCat)
+			ipfs.GET("/cat/*path", a.ipfsCat)
 
 			swarm := ipfs.Group("/swarm")
 			{
