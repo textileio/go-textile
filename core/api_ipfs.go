@@ -88,20 +88,20 @@ func (a *api) ipfsSwarmPeers(g *gin.Context) {
 
 // ipfsCat godoc
 // @Summary Cat IPFS data
-// @Description Displays the data behind an IPFS CID (hash)
+// @Description Displays the data behind an IPFS CID (hash) or Path
 // @Tags ipfs
 // @Produce application/octet-stream
-// @Param cid path string true "ipfs/ipns cid"
+// @Param path path string true "ipfs/ipns cid"
 // @Param X-Textile-Opts header string false "key: Key to decrypt data on-the-fly" default(key=)
 // @Success 200 {array} byte "data"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 401 {string} string "Unauthorized"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /ipfs/cat/{cid} [get]
+// @Router /ipfs/cat/{path} [get]
 func (a *api) ipfsCat(g *gin.Context) {
-	cid := g.Param("cid")
-	if cid == "" {
+	pth := g.Param("path")
+	if pth == "" {
 		g.String(http.StatusBadRequest, "Missing IPFS CID")
 	}
 
@@ -111,7 +111,7 @@ func (a *api) ipfsCat(g *gin.Context) {
 		return
 	}
 
-	data, err := ipfs.DataAtPath(a.node.node, cid)
+	data, err := ipfs.DataAtPath(a.node.node, pth[1:])
 	if err != nil {
 		g.String(http.StatusNotFound, err.Error())
 		return
