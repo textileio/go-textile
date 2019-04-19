@@ -14,19 +14,19 @@ import (
 	record "github.com/libp2p/go-libp2p-record"
 )
 
-const ipnsTimeout = time.Second * 30
-
 // PublishIPNS publishes a content id to ipns
-func PublishIPNS(node *core.IpfsNode, id string) (iface.IpnsEntry, error) {
+func PublishIPNS(node *core.IpfsNode, id string, key string, timeout time.Duration) (iface.IpnsEntry, error) {
 	api, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		return nil, err
 	}
 
+	if key == "" {
+		key = "self" // default value in ipns module
+	}
+
 	opts := []options.NamePublishOption{
-		options.Name.AllowOffline(true),
-		options.Name.ValidTime(time.Hour * 24),
-		options.Name.TTL(time.Hour),
+		options.Name.Key(key),
 	}
 
 	pth, err := iface.ParsePath(id)
@@ -34,14 +34,14 @@ func PublishIPNS(node *core.IpfsNode, id string) (iface.IpnsEntry, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(node.Context(), ipnsTimeout)
+	ctx, cancel := context.WithTimeout(node.Context(), timeout)
 	defer cancel()
 
 	return api.Name().Publish(ctx, pth, opts...)
 }
 
 // ResolveIPNS resolves an ipns path to an ipfs path
-func ResolveIPNS(node *core.IpfsNode, name peer.ID) (iface.Path, error) {
+func ResolveIPNS(node *core.IpfsNode, name peer.ID, timeout time.Duration) (iface.Path, error) {
 	api, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		return nil, err
@@ -52,10 +52,10 @@ func ResolveIPNS(node *core.IpfsNode, name peer.ID) (iface.Path, error) {
 	opts := []options.NameResolveOption{
 		options.Name.ResolveOption(nsopts.Depth(1)),
 		options.Name.ResolveOption(nsopts.DhtRecordCount(4)),
-		options.Name.ResolveOption(nsopts.DhtTimeout(ipnsTimeout)),
+		options.Name.ResolveOption(nsopts.DhtTimeout(timeout)),
 	}
 
-	ctx, cancel := context.WithTimeout(node.Context(), ipnsTimeout)
+	ctx, cancel := context.WithTimeout(node.Context(), timeout)
 	defer cancel()
 
 	return api.Name().Resolve(ctx, key, opts...)

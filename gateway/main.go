@@ -181,7 +181,7 @@ func (g *Gateway) profileHandler(c *gin.Context) {
 		return
 	}
 
-	pth, err := ipfs.ResolveIPNS(g.Node.Ipfs(), rootId)
+	pth, err := ipfs.ResolveIPNS(g.Node.Ipfs(), rootId, time.Second * 30)
 	if err != nil {
 		log.Errorf("error resolving profile %s: %s", c.Param("root"), err)
 		render404(c)
