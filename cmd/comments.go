@@ -32,8 +32,7 @@ func (x *commentsCmd) Long() string {
 	return `
 Comments are added as blocks in a thread, which target
 another block, usually a file(s).
-Use this command to add, list, get, and ignore comments.
-`
+Use this command to add, list, get, and ignore comments.`
 }
 
 type addCommentsCmd struct {
@@ -116,8 +115,7 @@ func (x *rmCommentsCmd) Usage() string {
 
 Ignores a thread comment by its block ID.
 This adds an "ignore" thread block targeted at the comment.
-Ignored blocks are by default not returned when listing. 
-`
+Ignored blocks are by default not returned when listing.`
 }
 
 func (x *rmCommentsCmd) Execute(args []string) error {

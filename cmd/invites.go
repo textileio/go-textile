@@ -38,8 +38,7 @@ Invites allow other users to join threads. There are two types of
 invites, direct account-to-account and external:
 
 - Account-to-account invites are encrypted with the invitee's account address (public key).
-- External invites are encrypted with a single-use key and are useful for onboarding new users.
-`
+- External invites are encrypted with a single-use key and are useful for onboarding new users.`
 }
 
 type createInvitesCmd struct {
@@ -54,8 +53,7 @@ func (x *createInvitesCmd) Usage() string {
 
 Creates a direct account-to-account or external invite to a thread.
 Omit the --address option to create an external invite.
-Omit the --thread option to use the default thread (if selected).
-`
+Omit the --thread option to use the default thread (if selected).`
 }
 
 func (x *createInvitesCmd) Execute(args []string) error {
@@ -171,8 +169,7 @@ func (x *acceptInvitesCmd) Usage() string {
 	return `
 
 Accepts a direct account-to-account or external invite to a thread.
-Use the --key option with an external invite.
-`
+Use the --key option with an external invite.`
 }
 
 func (x *acceptInvitesCmd) Execute(args []string) error {
@@ -201,8 +198,7 @@ type ignoreInvitesCmd struct {
 func (x *ignoreInvitesCmd) Usage() string {
 	return `
 
-Ignores a direct account-to-account invite to a thread.
-`
+Ignores a direct account-to-account invite to a thread.`
 }
 
 func (x *ignoreInvitesCmd) Execute(args []string) error {

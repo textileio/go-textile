@@ -31,8 +31,7 @@ func (x *tokensCmd) Short() string {
 func (x *tokensCmd) Long() string {
 	return `
 Tokens allow other peers to register with a Cafe peer.
-Use this command to create, list, validate, and remove tokens required for access to this peer's Cafe.
-`
+Use this command to create, list, validate, and remove tokens required for access to this peer's Cafe.`
 }
 
 type createTokensCmd struct {
@@ -47,8 +46,7 @@ func (x *createTokensCmd) Usage() string {
 Generates an access token (44 random bytes) and saves a bcrypt hashed version for future lookup.
 The response contains a base58 encoded version of the random bytes token. If '--no-store' is used,
 the token is generated, but not stored in the local Cafe db. Alternatively, an existing token
-can be added using the '--token' flag.
-`
+can be added using the '--token' flag.`
 }
 
 func (x *createTokensCmd) Execute(args []string) error {
@@ -94,8 +92,7 @@ type validateTokensCmd struct {
 func (x *validateTokensCmd) Usage() string {
 	return `
 
-Check validity of existing cafe access token.
-`
+Check validity of existing cafe access token.`
 }
 
 func (x *validateTokensCmd) Execute(args []string) error {

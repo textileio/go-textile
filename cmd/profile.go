@@ -28,9 +28,9 @@ func (x *profileCmd) Short() string {
 
 func (x *profileCmd) Long() string {
 	return `
-Every node has a public profile. 
+Every peer has a public profile. 
 Use this command to get and set profile username and avatar.
-A Textile Account will have different profiles for each of its nodes,
+A Textile Account will have different profiles for each of its peers,
 i.e., mobile, desktop, etc.
 `
 }
@@ -42,7 +42,7 @@ type getProfileCmd struct {
 func (x *getProfileCmd) Usage() string {
 	return `
 
-Gets the local node's public profile.`
+Gets the local peer's public profile.`
 }
 
 func (x *getProfileCmd) Execute(args []string) error {

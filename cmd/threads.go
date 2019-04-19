@@ -50,17 +50,16 @@ Use this command to add, list, get, join, invite, and remove threads.
 
 Thread type controls read (R), annotate (A), and write (W) access:
 
-private  --> initiator: RAW, members:
-readonly --> initiator: RAW, members: R
-public   --> initiator: RAW, members: RA
-open     --> initiator: RAW, members: RAW
+private   --> initiator: RAW, members:
+read_only --> initiator: RAW, members: R
+public    --> initiator: RAW, members: RA
+open      --> initiator: RAW, members: RAW
 
 Thread sharing style controls if (Y/N) a thread can be shared:
 
-notshared  --> initiator: N, members: N
-inviteonly --> initiator: Y, members: N
-shared     --> initiator: Y, members: Y
-`
+not_shared  --> initiator: N, members: N
+invite_only --> initiator: Y, members: N
+shared      --> initiator: Y, members: Y`
 }
 
 type addThreadsCmd struct {
@@ -212,8 +211,7 @@ func (x *peersThreadsCmd) Usage() string {
 	return `
 
 Lists all peers in a thread.
-Omit the --thread option to use the default thread (if selected).
-`
+Omit the --thread option to use the default thread (if selected).`
 }
 
 func (x *peersThreadsCmd) Execute(args []string) error {
@@ -239,8 +237,7 @@ func (x *renameThreadsCmd) Usage() string {
 	return `
 
 Renames a thread. Only the initiator can rename a thread.
-Omit the --thread option to use the default thread (if selected).
-`
+Omit the --thread option to use the default thread (if selected).`
 }
 
 func (x *renameThreadsCmd) Execute(args []string) error {

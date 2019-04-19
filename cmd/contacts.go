@@ -36,8 +36,7 @@ func (x *contactsCmd) Short() string {
 
 func (x *contactsCmd) Long() string {
 	return `
-Use this command to add, list, get, and remove local contacts and find other contacts on the network.
-`
+Use this command to add, list, get, and remove local contacts and find other contacts on the network.`
 }
 
 type addContactsCmd struct {
@@ -50,8 +49,7 @@ type addContactsCmd struct {
 func (x *addContactsCmd) Usage() string {
 	return `
 
-Adds a contact by username or account address to known contacts.
-`
+Adds a contact by username or account address to known contacts.`
 }
 
 func (x *addContactsCmd) Execute(args []string) error {
@@ -211,8 +209,7 @@ type searchContactsCmd struct {
 func (x *searchContactsCmd) Usage() string {
 	return `
 
-Searches locally and on the network for contacts.
-`
+Searches locally and on the network for contacts.`
 }
 
 func (x *searchContactsCmd) Execute(args []string) error {

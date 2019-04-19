@@ -18,14 +18,13 @@ func (x *logsCmd) Name() string {
 }
 
 func (x *logsCmd) Short() string {
-	return "List and control Textile subsystem logs."
+	return "List and control subsystem logs"
 }
 
 func (x *logsCmd) Long() string {
 	return `
 List or change the verbosity of one or all subsystems log output.
-Textile logs piggyback on the IPFS event logs.
-`
+Textile logs piggyback on the IPFS event logs.`
 }
 
 func (x *logsCmd) Execute(args []string) error {

@@ -15,11 +15,11 @@ func (x *summaryCmd) Name() string {
 }
 
 func (x *summaryCmd) Short() string {
-	return "Get a summary of node data"
+	return "Get a summary of local data"
 }
 
 func (x *summaryCmd) Long() string {
-	return "Get a summary of all local node data."
+	return "Get a summary of the local node's data."
 }
 
 func (x *summaryCmd) Execute(args []string) error {

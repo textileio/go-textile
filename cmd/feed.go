@@ -10,10 +10,10 @@ import (
 )
 
 func init() {
-	register(&lsCmd{})
+	register(&feedCmd{})
 }
 
-type lsCmd struct {
+type feedCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for all."`
 	Offset string        `short:"o" long:"offset" description:"Offset ID to start listing from."`
@@ -21,17 +21,17 @@ type lsCmd struct {
 	Mode   string        `short:"m" long:"mode" description:"Feed mode. One of: chrono, annotated, stacks." default:"chrono"`
 }
 
-func (x *lsCmd) Name() string {
-	return "ls"
+func (x *feedCmd) Name() string {
+	return "feed"
 }
 
-func (x *lsCmd) Short() string {
-	return "Paginate thread content"
+func (x *feedCmd) Short() string {
+	return "Paginate thread content as a consumable feed"
 }
 
-func (x *lsCmd) Long() string {
+func (x *feedCmd) Long() string {
 	return `
-Paginates post (join|leave|files|message) and annotation (comment|like) block types.
+Paginates post (join|leave|files|message) and annotation (comment|like) block types as a consumable feed.
 The --mode option dictates how the feed is displayed:
 
 -  "chrono": All feed block types are shown. Annotations always nest their target post, i.e., the post a comment is about.
@@ -44,11 +44,10 @@ The --mode option dictates how the feed is displayed:
      annotations are nested under the target. Newer annotations may have already been listed in the case as well.
 
 Omit the --thread option to paginate all files.
-Specify "default" to use the default thread (if selected).
-`
+Specify "default" to use the default thread (if selected).`
 }
 
-func (x *lsCmd) Execute(args []string) error {
+func (x *feedCmd) Execute(args []string) error {
 	setApi(x.Client)
 	opts := map[string]string{
 		"thread": x.Thread,

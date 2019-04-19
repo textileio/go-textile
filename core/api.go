@@ -283,6 +283,21 @@ func (a *api) Start() {
 			conf.PATCH("", a.patchConfig)
 		}
 	}
+
+	debug := router.Group("/debug/pprof/")
+	{
+		debug.GET("", a.pprofIndex)
+		debug.GET("/cmdline", a.pprofCmdline)
+		debug.GET("/profile", a.pprofProfile)
+		debug.GET("/symbol", a.pprofSymbol)
+		debug.GET("/trace", a.pprofTrace)
+		debug.GET("/goroutine", a.pprofGoroutine)
+		debug.GET("/heap", a.pprofHeap)
+		debug.GET("/threadcreate", a.pprofThreadCreate)
+		debug.GET("/block", a.pprofBlock)
+		debug.GET("/pprof-mutex", a.mutexFractionOption)
+	}
+
 	a.server = &http.Server{
 		Addr:    a.addr,
 		Handler: router,

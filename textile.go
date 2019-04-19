@@ -44,8 +44,8 @@ type addressOptions struct {
 type cafeOptions struct {
 	Open        bool   `long:"cafe-open" description:"Open the p2p Cafe Service for other peers."`
 	PublicIP    string `long:"cafe-public-ip" description:"Required with --cafe-open on a server with a public IP address."`
-	URL         string `long:"cafe-url" description:"Specify the URL of this cafe, e.g., https://mycafe.com'"`
-	NeighborURL string `long:"cafe-neighbor-url" description:"Specify the URL of a secondary cafe. Must return cafe info, e.g., via a Gateway: https://my-gateway.yolo.com/cafe, or a Cafe API: https://my-cafe.yolo.com'"`
+	URL         string `long:"cafe-url" description:"Specify the URL of this cafe, e.g., https://mycafe.com"`
+	NeighborURL string `long:"cafe-neighbor-url" description:"Specify the URL of a secondary cafe. Must return cafe info, e.g., via a Gateway: https://my-gateway.yolo.com/cafe, or a Cafe API: https://my-cafe.yolo.com"`
 }
 
 type options struct{}

@@ -51,8 +51,7 @@ func (x *filesCmd) Long() string {
 	return `
 Files are added as blocks in a thread.
 Use this command to add, list, get, and ignore files.
-The 'key' command provides access to file encryption keys. 
-`
+The 'key' command provides access to file encryption keys.`
 }
 
 const batchSize = 10
@@ -92,8 +91,7 @@ Adds a file or directory of files to a thread. Files not supported
 by the thread schema are ignored. Nested directories are included.
 An existing file hash may also be used as input.
 Use the --group option to add directory files as a single object.  
-Omit the --thread option to use the default thread (if selected).
-`
+Omit the --thread option to use the default thread (if selected).`
 }
 
 func (x *addFilesCmd) Execute(args []string) error {
@@ -491,8 +489,7 @@ func (x *lsFilesCmd) Usage() string {
 
 Paginates thread files.
 Omit the --thread option to paginate all files.
-Specify "default" to use the default thread (if selected).
-`
+Specify "default" to use the default thread (if selected).`
 }
 
 func (x *lsFilesCmd) Execute(args []string) error {
@@ -543,8 +540,7 @@ type getFilesCmd struct {
 func (x *getFilesCmd) Usage() string {
 	return `
 
-Gets a thread file by block ID.
-`
+Gets a thread file by block ID.`
 }
 
 func (x *getFilesCmd) Execute(args []string) error {
@@ -571,8 +567,7 @@ func (x *rmFilesCmd) Usage() string {
 
 Ignores a thread file by its block ID.
 This adds an "ignore" thread block targeted at the file.
-Ignored blocks are by default not returned when listing. 
-`
+Ignored blocks are by default not returned when listing.`
 }
 
 func (x *rmFilesCmd) Execute(args []string) error {
@@ -587,8 +582,7 @@ type keysCmd struct {
 func (x *keysCmd) Usage() string {
 	return `
 
-Shows file keys under the given target from an add.
-`
+Shows file keys under the given target from an add.`
 }
 
 func (x *keysCmd) Execute(args []string) error {

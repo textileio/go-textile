@@ -45,9 +45,8 @@ There are several update types:
 -  COMMENT
 -  LIKE
 
-Use the --thread option to subscribe to events emmited from a specific thread.
-The --type option can be used multiple times, e.g., --type files --type comment.
-`
+Use the --thread option to subscribe to events emmitted from a specific thread.
+The --type option can be used multiple times, e.g., --type files --type comment.`
 }
 
 func (x *subCmd) Execute(args []string) error {

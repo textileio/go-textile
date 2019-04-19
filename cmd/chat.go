@@ -30,8 +30,7 @@ func (x *chatCmd) Short() string {
 func (x *chatCmd) Long() string {
 	return `
 Starts an interactive chat session in a thread.
-Omit the --thread option to use the default thread (if selected).
-`
+Omit the --thread option to use the default thread (if selected).`
 }
 
 func (x *chatCmd) Execute(args []string) error {

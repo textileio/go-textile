@@ -31,8 +31,7 @@ func (x *accountCmd) Short() string {
 
 func (x *accountCmd) Long() string {
 	return `
-Use this command to manage a wallet account.
-`
+Use this command to manage a wallet account.`
 }
 
 type accountAddressCmd struct {
@@ -113,8 +112,7 @@ type accountSyncCmd struct {
 func (x *accountSyncCmd) Usage() string {
 	return `
 
-Syncs the local wallet account with all thread snapshots found on the network.
-`
+Syncs the local wallet account with all thread snapshots found on the network.`
 }
 
 func (x *accountSyncCmd) Execute(args []string) error {

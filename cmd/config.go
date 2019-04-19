@@ -33,7 +33,7 @@ values are stored in a config file inside your Textile
 repository.
 
 Getting config values will report the currently active
-config settings. This may differ from the values specifed
+config settings. This may differ from the values specified
 when setting values.
 
 When changing values, valid JSON types must be used.
@@ -56,8 +56,7 @@ Print the entire Textile config file to console:
 
 Set the value of the 'Addresses.API' key:
 
-  $ textile config Addresses.API \"127.0.0.1:40600\"
-`
+  $ textile config Addresses.API \"127.0.0.1:40600\"`
 }
 
 func (x *configCmd) Execute(args []string) error {

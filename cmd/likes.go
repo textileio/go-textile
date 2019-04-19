@@ -31,8 +31,7 @@ func (x *likesCmd) Long() string {
 	return `
 Likes are added as blocks in a thread, which target
 another block, usually a file(s).
-Use this command to add, list, get, and ignore likes.
-`
+Use this command to add, list, get, and ignore likes.`
 }
 
 type addLikesCmd struct {
@@ -112,8 +111,7 @@ func (x *rmLikesCmd) Usage() string {
 
 Ignores a thread like by its block ID.
 This adds an "ignore" thread block targeted at the like.
-Ignored blocks are by default not returned when listing. 
-`
+Ignored blocks are by default not returned when listing.`
 }
 
 func (x *rmLikesCmd) Execute(args []string) error {
