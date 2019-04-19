@@ -73,13 +73,13 @@ type Thread struct {
 	Id          string
 	Key         string // app key, usually UUID
 	Name        string
+	PrivKey     libp2pc.PrivKey
 	Schema      *pb.Node
 	schemaId    string
 	initiator   string
 	ttype       pb.Thread_Type
 	sharing     pb.Thread_Sharing
 	members     []string
-	privKey     libp2pc.PrivKey
 	repoPath    string
 	config      *config.Config
 	account     *keypair.Full
@@ -118,7 +118,7 @@ func NewThread(model *pb.Thread, conf *ThreadConfig) (*Thread, error) {
 		ttype:       model.Type,
 		sharing:     model.Sharing,
 		members:     model.Members,
-		privKey:     sk,
+		PrivKey:     sk,
 		repoPath:    conf.RepoPath,
 		config:      conf.Config,
 		account:     conf.Account,
@@ -148,12 +148,12 @@ func (t *Thread) Peers() []pb.ThreadPeer {
 
 // Encrypt data with thread public key
 func (t *Thread) Encrypt(data []byte) ([]byte, error) {
-	return crypto.Encrypt(t.privKey.GetPublic(), data)
+	return crypto.Encrypt(t.PrivKey.GetPublic(), data)
 }
 
 // Decrypt data with thread secret key
 func (t *Thread) Decrypt(data []byte) ([]byte, error) {
-	return crypto.Decrypt(t.privKey, data)
+	return crypto.Decrypt(t.PrivKey, data)
 }
 
 // followParents tries to follow a list of chains of block ids, processing along the way
