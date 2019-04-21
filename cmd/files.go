@@ -25,7 +25,7 @@ import (
 var errMissingFilePath = errors.New("missing file path")
 var errMissingFileId = errors.New("missing file block ID")
 var errNothingToAdd = errors.New("nothing to add")
-var errMissingTarget = errors.New("missing file(s) target")
+var errMissingTarget = errors.New("missing target")
 
 func init() {
 	register(&filesCmd{})

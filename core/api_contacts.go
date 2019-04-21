@@ -134,8 +134,8 @@ func (a *api) searchContacts(g *gin.Context) {
 	}
 
 	query := &pb.ContactQuery{
-		Address:  opts["address"],
-		Username: opts["username"],
+		Address: opts["address"],
+		Name:    opts["name"],
 	}
 	options := &pb.QueryOptions{
 		LocalOnly:  localOnly,

@@ -70,8 +70,9 @@ type addThreadsCmd struct {
 	Member     []string       `short:"m" long:"member" description:"A contact address. When supplied, the thread will not allow additional peers, useful for 1-1 chat/file sharing. Can be used multiple times to include multiple contacts.'"`
 	Schema     string         `long:"schema" description:"Thread schema ID. Supersedes schema filename."`
 	SchemaFile flags.Filename `long:"schema-file" description:"Thread schema filename. Supersedes the built-in schema flags."`
-	CameraRoll bool           `long:"camera-roll" description:"Use the built-in camera roll Schema."`
-	Media      bool           `long:"media" description:"Use the built-in media Schema."`
+	Blob       bool           `long:"blob" description:"Use the built-in blob schema for generic data."`
+	CameraRoll bool           `long:"camera-roll" description:"Use the built-in camera roll schema."`
+	Media      bool           `long:"media" description:"Use the built-in media schema."`
 }
 
 func (x *addThreadsCmd) Usage() string {
@@ -101,6 +102,8 @@ func (x *addThreadsCmd) Execute(args []string) error {
 			if err != nil {
 				return err
 			}
+		} else if x.Blob {
+			body = []byte(textile.Blob)
 		} else if x.CameraRoll {
 			body = []byte(textile.CameraRoll)
 		} else if x.Media {

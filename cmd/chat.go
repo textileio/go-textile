@@ -116,7 +116,7 @@ func handleLine(line string, threadId string) error {
 }
 
 func getContact() (*pb.Contact, error) {
-	_, c, err := callGetAccountContact()
+	_, c, err := callGetAccount()
 	if err != nil {
 		return nil, err
 	}

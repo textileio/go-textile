@@ -54,7 +54,7 @@ type PeerStore interface {
 	Get(id string) *pb.Peer
 	GetBest(id string) *pb.Peer
 	List(query string) []*pb.Peer
-	Find(address string, username string, exclude []string) []*pb.Peer
+	Find(address string, name string, exclude []string) []*pb.Peer
 	Count(query string) int
 	UpdateName(id string, name string) error
 	UpdateAvatar(id string, avatar string) error

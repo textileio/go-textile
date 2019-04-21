@@ -6,7 +6,7 @@ import (
 	"github.com/textileio/go-textile/pb"
 )
 
-var errMissingUsername = errors.New("missing username")
+var errMissingName = errors.New("missing name")
 var errMissingAvatar = errors.New("missing avatar file image hash")
 
 func init() {
@@ -15,7 +15,7 @@ func init() {
 
 type profileCmd struct {
 	Get getProfileCmd `command:"get" description:"Get profile"`
-	Set setProfileCmd `command:"set" description:"Set profile fields"`
+	Set setProfileCmd `command:"set" description:"Set profile name and avatar"`
 }
 
 func (x *profileCmd) Name() string {
@@ -27,11 +27,9 @@ func (x *profileCmd) Short() string {
 }
 
 func (x *profileCmd) Long() string {
-	return `
-Every peer has a public profile. 
-Use this command to get and set profile username and avatar.
-A Textile Account will have different profiles for each of its peers,
-i.e., mobile, desktop, etc.
+	return ` 
+Use this command to view and update the peer profile. A Textile account will
+show a profile for each of its peers, e.g., mobile, desktop, etc.
 `
 }
 
@@ -42,7 +40,7 @@ type getProfileCmd struct {
 func (x *getProfileCmd) Usage() string {
 	return `
 
-Gets the local peer's public profile.`
+Gets the local peer profile.`
 }
 
 func (x *getProfileCmd) Execute(args []string) error {
@@ -65,32 +63,32 @@ func callGetProfile() (string, *pb.Peer, error) {
 }
 
 type setProfileCmd struct {
-	Username setUsernameCmd `command:"username" description:"Set username"`
-	Avatar   setAvatarCmd   `command:"avatar" description:"Set avatar"`
+	Name   setNameCmd   `command:"name" description:"Set display name"`
+	Avatar setAvatarCmd `command:"avatar" description:"Set avatar"`
 }
 
 func (x *setProfileCmd) Usage() string {
 	return `
 
-Sets public profile username and avatar.`
+Sets the peer display name and avatar.`
 }
 
-type setUsernameCmd struct {
+type setNameCmd struct {
 	Client ClientOptions `group:"Client Options"`
 }
 
-func (x *setUsernameCmd) Usage() string {
+func (x *setNameCmd) Usage() string {
 	return `
 
-Sets public profile username.`
+Sets the peer display name.`
 }
 
-func (x *setUsernameCmd) Execute(args []string) error {
+func (x *setNameCmd) Execute(args []string) error {
 	setApi(x.Client)
 	if len(args) == 0 {
-		return errMissingUsername
+		return errMissingName
 	}
-	res, err := executeStringCmd(POST, "profile/username", params{args: args})
+	res, err := executeStringCmd(POST, "profile/name", params{args: args})
 	if err != nil {
 		return err
 	}
@@ -105,7 +103,7 @@ type setAvatarCmd struct {
 func (x *setAvatarCmd) Usage() string {
 	return `
 
-Sets public profile avatar by specifying an existing image file hash.`
+Sets the peer avatar from an image path (JPEG, PNG, or GIF).`
 }
 
 func (x *setAvatarCmd) Execute(args []string) error {

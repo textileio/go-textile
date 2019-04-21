@@ -122,15 +122,15 @@ func (a *api) Start() {
 
 		account := v0.Group("/account")
 		{
-			account.GET("/address", a.accountAddress)
+			account.GET("", a.accountGet)
 			account.GET("/seed", a.accountSeed)
-			account.GET("/contact", a.accountContact)
+			account.GET("/address", a.accountAddress)
 		}
 
 		profile := v0.Group("/profile")
 		{
 			profile.GET("", a.getProfile)
-			profile.POST("/username", a.setUsername)
+			profile.POST("/name", a.setName)
 			profile.POST("/avatar", a.setAvatar)
 		}
 

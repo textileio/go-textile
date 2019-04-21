@@ -662,7 +662,7 @@ func (h *CafeService) searchLocal(qtype pb.Query_Type, options *pb.QueryOptions,
 			return nil, err
 		}
 
-		peers := h.datastore.Peers().Find(q.Address, q.Username, options.Exclude)
+		peers := h.datastore.Peers().Find(q.Address, q.Name, options.Exclude)
 		for _, p := range peers {
 			value, err := proto.Marshal(p)
 			if err != nil {

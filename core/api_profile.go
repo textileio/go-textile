@@ -23,24 +23,24 @@ func (a *api) getProfile(g *gin.Context) {
 	pbJSON(g, http.StatusOK, profile)
 }
 
-// setUsername godoc
-// @Summary Set username
-// @Description Sets public profile username to given string
+// setName godoc
+// @Summary Set display name
+// @Description Sets public profile display name to given string
 // @Tags profile
 // @Produce text/plain
-// @Param X-Textile-Args header string true "username"
+// @Param X-Textile-Args header string true "name"
 // @Success 201 {string} string "ok"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /profile/username [post]
-func (a *api) setUsername(g *gin.Context) {
+// @Router /profile/name [post]
+func (a *api) setName(g *gin.Context) {
 	args, err := a.readArgs(g)
 	if err != nil {
 		a.abort500(g, err)
 		return
 	}
 	if len(args) == 0 {
-		g.String(http.StatusBadRequest, "missing username")
+		g.String(http.StatusBadRequest, "missing name")
 		return
 	}
 	if err := a.node.SetName(args[0]); err != nil {

@@ -11,7 +11,7 @@ import (
 	"github.com/textileio/go-textile/util"
 )
 
-var errMissingAddInfo = errors.New("missing username or account address")
+var errMissingAddInfo = errors.New("missing name or account address")
 var errMissingAddress = errors.New("missing account address")
 
 func init() {
@@ -40,30 +40,30 @@ Use this command to add, list, get, and remove local contacts and find other con
 }
 
 type addContactsCmd struct {
-	Client   ClientOptions `group:"Client Options"`
-	Username string        `short:"u" long:"username" description:"Add by username."`
-	Address  string        `short:"a" long:"address" description:"Add by account address."`
-	Wait     int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 30s)." default:"2"`
+	Client  ClientOptions `group:"Client Options"`
+	Name    string        `short:"n" long:"name" description:"Add by display name."`
+	Address string        `short:"a" long:"address" description:"Add by account address."`
+	Wait    int           `long:"wait" description:"Stops searching after 'wait' seconds have elapsed (max 30s)." default:"2"`
 }
 
 func (x *addContactsCmd) Usage() string {
 	return `
 
-Adds a contact by username or account address to known contacts.`
+Adds a contact by display name or account address to known contacts.`
 }
 
 func (x *addContactsCmd) Execute(args []string) error {
 	setApi(x.Client)
-	if x.Username == "" && x.Address == "" {
+	if x.Name == "" && x.Address == "" {
 		return errMissingAddInfo
 	}
 
 	results := handleSearchStream("contacts/search", params{
 		opts: map[string]string{
-			"username": x.Username,
-			"address":  x.Address,
-			"limit":    strconv.Itoa(10),
-			"wait":     strconv.Itoa(x.Wait),
+			"name":    x.Name,
+			"address": x.Address,
+			"limit":   strconv.Itoa(10),
+			"wait":    strconv.Itoa(x.Wait),
 		},
 	})
 
@@ -198,7 +198,7 @@ func (x *rmContactsCmd) Execute(args []string) error {
 
 type searchContactsCmd struct {
 	Client     ClientOptions `group:"Client Options"`
-	Username   string        `short:"u" long:"username" description:"Search by username."`
+	Name       string        `short:"n" long:"name" description:"Search by display name."`
 	Address    string        `short:"a" long:"address" description:"Search by account address."`
 	LocalOnly  bool          `long:"only-local" description:"Only search local contacts."`
 	RemoteOnly bool          `long:"only-remote" description:"Only search remote contacts."`
@@ -214,18 +214,18 @@ Searches locally and on the network for contacts.`
 
 func (x *searchContactsCmd) Execute(args []string) error {
 	setApi(x.Client)
-	if x.Username == "" && x.Address == "" {
+	if x.Name == "" && x.Address == "" {
 		return errMissingSearchInfo
 	}
 
 	handleSearchStream("contacts/search", params{
 		opts: map[string]string{
-			"username": x.Username,
-			"address":  x.Address,
-			"local":    strconv.FormatBool(x.LocalOnly),
-			"remote":   strconv.FormatBool(x.RemoteOnly),
-			"limit":    strconv.Itoa(x.Limit),
-			"wait":     strconv.Itoa(x.Wait),
+			"name":    x.Name,
+			"address": x.Address,
+			"local":   strconv.FormatBool(x.LocalOnly),
+			"remote":  strconv.FormatBool(x.RemoteOnly),
+			"limit":   strconv.Itoa(x.Limit),
+			"wait":    strconv.Itoa(x.Wait),
 		},
 	})
 	return nil
