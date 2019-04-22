@@ -44,9 +44,10 @@ func (x *threadsCmd) Short() string {
 
 func (x *threadsCmd) Long() string {
 	return `
-Threads are distributed sets of encrypted files between peers,
-governed by build-in or custom Schemas.
-Use this command to add, list, get, join, invite, and remove threads.
+Threads are distributed sets of encrypted files, often shared between peers,
+governed by schemas.
+Use this command to add, list, get, and remove threads. See below for
+additional commands.
 
 Thread type controls read (R), annotate (A), and write (W) access:
 
