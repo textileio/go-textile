@@ -66,8 +66,7 @@ type walletInitCmd struct {
 func (x *walletInitCmd) Usage() string {
 	return `
 
-Initializes a new account wallet backed by a mnemonic recovery phrase.
-`
+Initializes a new account wallet backed by a mnemonic recovery phrase.`
 }
 
 type walletAccountsCmd struct {
@@ -79,8 +78,7 @@ type walletAccountsCmd struct {
 func (x *walletAccountsCmd) Usage() string {
 	return `
 
-Shows the derived accounts (address/seed pairs) in a wallet.
-`
+Shows the derived accounts (address/seed pairs) in a wallet.`
 }
 
 type versionCmd struct {

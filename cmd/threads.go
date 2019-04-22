@@ -47,7 +47,10 @@ func (x *threadsCmd) Long() string {
 Threads are distributed sets of encrypted files, often shared between peers, governed by schemas.
 Use this command to add, list, get, and remove threads. See below for additional commands.
 
-An empty member whitelist is taken to be "everyone", which is the default.
+Control over thread access and sharing is handled by a combination of the --type and --sharing flags.
+An immutable member address "whitelist" gives the initiator fine-grained control.
+The table below outlines access patterns for the thread initiator and the whitelist members.
+An empty whitelist is taken to be "everyone", which is the default.
 
 Thread type controls read (R), annotate (A), and write (W) access:
 

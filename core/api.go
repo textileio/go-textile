@@ -218,10 +218,10 @@ func (a *api) Start() {
 			keys.GET("/:target", a.lsThreadFileTargetKeys)
 		}
 
-		sub := v0.Group("/sub")
+		subscribe := v0.Group("/subscribe")
 		{
-			sub.GET("", a.getThreadsSub)
-			sub.GET("/:id", a.getThreadsSub)
+			subscribe.GET("", a.getThreadsSubscribe)
+			subscribe.GET("/:id", a.getThreadsSubscribe)
 		}
 
 		invites := v0.Group("/invites")

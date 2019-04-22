@@ -2088,14 +2088,14 @@
                 }
             }
         },
-        "/sub/{id}": {
+        "/subscribe/{id}": {
             "get": {
                 "description": "Subscribes to updates in a thread or all threads. An update is generated\nwhen a new block is added to a thread. There are several update types:\nMERGE, IGNORE, FLAG, JOIN, ANNOUNCE, LEAVE, TEXT, FILES, COMMENT, LIKE",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "sub"
+                    "subscribe"
                 ],
                 "summary": "Subscribe to thread updates",
                 "parameters": [
@@ -2183,7 +2183,7 @@
                 }
             },
             "post": {
-                "description": "Adds a new Thread with given name, type, and sharing and members options, returning\na Thread object",
+                "description": "Adds a new Thread with given name, type, and sharing and whitelist options, returning\na Thread object",
                 "produces": [
                     "application/json"
                 ],
@@ -2201,8 +2201,8 @@
                     },
                     {
                         "type": "string",
-                        "default": "type=private,sharing=not_shared,members=",
-                        "description": "key: A locally unique key used by an app to identify this thread on recovery, schema: Existing Thread Schema IPFS CID, type: Set the thread type to one of 'private', 'read_only', 'public', or 'open', sharing: Set the thread sharing style to one of 'not_shared','invite_only', or 'shared', members: An array of contact addresses. When supplied, the thread will not allow additional peers beyond those in array, useful for 1-1 chat/file sharing",
+                        "default": "type=private,sharing=not_shared,whitelist=",
+                        "description": "key: A locally unique key used by an app to identify this thread on recovery, schema: Existing Thread Schema IPFS CID, type: Set the thread type to one of 'private', 'read_only', 'public', or 'open', sharing: Set the thread sharing style to one of 'not_shared','invite_only', or 'shared', whitelist: An array of contact addresses. When supplied, the thread will not allow additional peers beyond those in array, useful for 1-1 chat/file sharing",
                         "name": "X-Textile-Opts",
                         "in": "header"
                     }
@@ -3363,12 +3363,6 @@
                 "key": {
                     "type": "string"
                 },
-                "members": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
                 "name": {
                     "type": "string"
                 },
@@ -3396,6 +3390,12 @@
                 },
                 "type": {
                     "type": "integer"
+                },
+                "whitelist": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

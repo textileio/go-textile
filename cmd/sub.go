@@ -10,24 +10,24 @@ import (
 )
 
 func init() {
-	register(&subCmd{})
+	register(&subscribeCmd{})
 }
 
-type subCmd struct {
+type subscribeCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for all."`
 	Type   []string      `short:"k" long:"type" description:"An update type to filter for. Omit for all."`
 }
 
-func (x *subCmd) Name() string {
-	return "sub"
+func (x *subscribeCmd) Name() string {
+	return "subscribe"
 }
 
-func (x *subCmd) Short() string {
+func (x *subscribeCmd) Short() string {
 	return "Subscribe to thread updates"
 }
 
-func (x *subCmd) Long() string {
+func (x *subscribeCmd) Long() string {
 	return `
 Subscribes to updates in a thread or all threads. An update is generated
 when a new block is added to a thread.
@@ -49,7 +49,7 @@ Use the --thread option to subscribe to events emmitted from a specific thread.
 The --type option can be used multiple times, e.g., --type files --type comment.`
 }
 
-func (x *subCmd) Execute(args []string) error {
+func (x *subscribeCmd) Execute(args []string) error {
 	setApi(x.Client)
 
 	updates, err := callSub(x.Thread, x.Type)
@@ -84,7 +84,7 @@ func callSub(threadId string, types []string) (<-chan *pb.FeedItem, error) {
 	go func() {
 		defer close(updates)
 
-		res, cancel, err := request(GET, "sub"+threadId, params{
+		res, cancel, err := request(GET, "subscribe"+threadId, params{
 			opts: map[string]string{"type": strings.Join(types, "|")},
 		})
 		if err != nil {
