@@ -31,7 +31,7 @@ func TestThreadDB_Add(t *testing.T) {
 		Schema:    "Qm...",
 		Initiator: "123",
 		Type:      pb.Thread_OPEN,
-		Members:   []string{"P1,P2"},
+		Whitelist: []string{"P1,P2"},
 		Sharing:   pb.Thread_SHARED,
 		State:     pb.Thread_LOADED,
 	}); err != nil {
@@ -61,7 +61,7 @@ func TestThreadDB_Get(t *testing.T) {
 		Schema:    "Qm...",
 		Initiator: "123",
 		Type:      pb.Thread_OPEN,
-		Members:   []string{},
+		Whitelist: []string{},
 		Sharing:   pb.Thread_SHARED,
 		State:     pb.Thread_LOADED,
 	}); err != nil {
@@ -83,22 +83,22 @@ func TestThreadDB_List(t *testing.T) {
 		Schema:    "Qm...",
 		Initiator: "123",
 		Type:      pb.Thread_PRIVATE,
-		Members:   []string{},
+		Whitelist: []string{},
 		Sharing:   pb.Thread_NOT_SHARED,
 		State:     pb.Thread_LOADED,
 	}); err != nil {
 		t.Error(err)
 	}
 	if err := threadStore.Add(&pb.Thread{
-		Id:      "Qm456",
-		Key:     ksuid.New().String(),
-		Sk:      make([]byte, 8),
-		Name:    "boom",
-		Schema:  "Qm...",
-		Type:    pb.Thread_PRIVATE,
-		Members: []string{},
-		Sharing: pb.Thread_NOT_SHARED,
-		State:   pb.Thread_LOADED,
+		Id:        "Qm456",
+		Key:       ksuid.New().String(),
+		Sk:        make([]byte, 8),
+		Name:      "boom",
+		Schema:    "Qm...",
+		Type:      pb.Thread_PRIVATE,
+		Whitelist: []string{},
+		Sharing:   pb.Thread_NOT_SHARED,
+		State:     pb.Thread_LOADED,
 	}); err != nil {
 		t.Error(err)
 	}
@@ -119,7 +119,7 @@ func TestThreadDB_Count(t *testing.T) {
 		Schema:    "Qm...",
 		Initiator: "123",
 		Type:      pb.Thread_PRIVATE,
-		Members:   []string{},
+		Whitelist: []string{},
 		Sharing:   pb.Thread_NOT_SHARED,
 		State:     pb.Thread_LOADED,
 	})
@@ -143,7 +143,7 @@ func TestThreadDB_UpdateHead(t *testing.T) {
 		Schema:    "Qm...",
 		Initiator: "123",
 		Type:      pb.Thread_PRIVATE,
-		Members:   []string{},
+		Whitelist: []string{},
 		Sharing:   pb.Thread_NOT_SHARED,
 		State:     pb.Thread_LOADED,
 	})
@@ -185,7 +185,7 @@ func TestThreadDB_Delete(t *testing.T) {
 		Schema:    "Qm...",
 		Initiator: "123",
 		Type:      pb.Thread_PRIVATE,
-		Members:   []string{},
+		Whitelist: []string{},
 		Sharing:   pb.Thread_NOT_SHARED,
 		State:     pb.Thread_LOADED,
 	}); err != nil {

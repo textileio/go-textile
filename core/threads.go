@@ -90,18 +90,18 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 		}
 	}
 
-	// ensure members is unique
+	// ensure whitelist is unique
 	set := make(map[string]struct{})
 	var members []string
-	for _, m := range conf.Members {
+	for _, m := range conf.Whitelist {
 		if _, ok := set[m]; !ok {
 			kp, err := keypair.Parse(m)
 			if err != nil {
-				return nil, fmt.Errorf("error parsing member: %s", err)
+				return nil, fmt.Errorf("error parsing address: %s", err)
 			}
 			if _, err := kp.Sign([]byte{0x00}); err == nil {
 				// we don't want to handle account seeds, just addresses
-				return nil, fmt.Errorf("member is an account seed, not address")
+				return nil, fmt.Errorf("entry is an account seed, not address")
 			}
 			members = append(members, m)
 		}
@@ -117,7 +117,7 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 		Initiator: initiator,
 		Type:      conf.Type,
 		Sharing:   conf.Sharing,
-		Members:   members,
+		Whitelist: members,
 		State:     pb.Thread_LOADED,
 	}
 	if err := t.datastore.Threads().Add(model); err != nil {
@@ -171,7 +171,7 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 		initiator: thrd.Initiator,
 		ttype:     thrd.Type,
 		sharing:   thrd.Sharing,
-		members:   thrd.Members,
+		whitelist: thrd.Whitelist,
 	}
 	if !dummy.shareable(t.config.Account.Address, t.config.Account.Address) {
 		return ErrNotShareable
@@ -195,10 +195,10 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 			Schema: &pb.AddThreadConfig_Schema{
 				Id: thrd.Schema,
 			},
-			Type:    thrd.Type,
-			Sharing: thrd.Sharing,
-			Members: thrd.Members,
-			Force:   true,
+			Type:      thrd.Type,
+			Sharing:   thrd.Sharing,
+			Whitelist: thrd.Whitelist,
+			Force:     true,
 		}
 
 		var err error

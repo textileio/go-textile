@@ -79,7 +79,7 @@ type Thread struct {
 	initiator   string
 	ttype       pb.Thread_Type
 	sharing     pb.Thread_Sharing
-	members     []string
+	whitelist   []string
 	repoPath    string
 	config      *config.Config
 	account     *keypair.Full
@@ -117,7 +117,7 @@ func NewThread(model *pb.Thread, conf *ThreadConfig) (*Thread, error) {
 		initiator:   model.Initiator,
 		ttype:       model.Type,
 		sharing:     model.Sharing,
-		members:     model.Members,
+		whitelist:   model.Whitelist,
 		PrivKey:     sk,
 		repoPath:    conf.RepoPath,
 		config:      conf.Config,
@@ -600,13 +600,13 @@ func (t *Thread) shareable(from string, to string) bool {
 }
 
 // member returns whether or not the given address is a thread member
-// NOTE: Thread members are a fixed set of textile addresses specified
+// NOTE: Thread whitelist are a fixed set of textile addresses specified
 // when a thread is created. If empty, _everyone_ is a member.
 func (t *Thread) member(addr string) bool {
-	if len(t.members) == 0 || addr == t.initiator {
+	if len(t.whitelist) == 0 || addr == t.initiator {
 		return true
 	}
-	for _, m := range t.members {
+	for _, m := range t.whitelist {
 		if m == addr {
 			return true
 		}

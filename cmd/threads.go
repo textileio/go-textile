@@ -44,23 +44,23 @@ func (x *threadsCmd) Short() string {
 
 func (x *threadsCmd) Long() string {
 	return `
-Threads are distributed sets of encrypted files, often shared between peers,
-governed by schemas.
-Use this command to add, list, get, and remove threads. See below for
-additional commands.
+Threads are distributed sets of encrypted files, often shared between peers, governed by schemas.
+Use this command to add, list, get, and remove threads. See below for additional commands.
+
+An empty member whitelist is taken to be "everyone", which is the default.
 
 Thread type controls read (R), annotate (A), and write (W) access:
 
-private   --> initiator: RAW, members:
-read_only --> initiator: RAW, members: R
-public    --> initiator: RAW, members: RA
-open      --> initiator: RAW, members: RAW
+private   --> initiator: RAW, whitelist:
+read_only --> initiator: RAW, whitelist: R
+public    --> initiator: RAW, whitelist: RA
+open      --> initiator: RAW, whitelist: RAW
 
 Thread sharing style controls if (Y/N) a thread can be shared:
 
-not_shared  --> initiator: N, members: N
-invite_only --> initiator: Y, members: N
-shared      --> initiator: Y, members: Y`
+not_shared  --> initiator: N, whitelist: N
+invite_only --> initiator: Y, whitelist: N
+shared      --> initiator: Y, whitelist: Y`
 }
 
 type addThreadsCmd struct {
@@ -68,7 +68,7 @@ type addThreadsCmd struct {
 	Key        string         `short:"k" long:"key" description:"A locally unique key used by an app to identify this thread on recovery."`
 	Type       string         `short:"t" long:"type" description:"Set the thread type to one of 'private', 'read_only', 'public', or 'open'." default:"private"`
 	Sharing    string         `short:"s" long:"sharing" description:"Set the thread sharing style to one of 'not_shared', 'invite_only', or 'shared'." default:"not_shared"`
-	Member     []string       `short:"m" long:"member" description:"A contact address. When supplied, the thread will not allow additional peers, useful for 1-1 chat/file sharing. Can be used multiple times to include multiple contacts.'"`
+	Whitelist  []string       `short:"w" long:"whitelist" description:"A contact address. When supplied, the thread will not allow additional peers, useful for 1-1 chat/file sharing. Can be used multiple times to include multiple contacts.'"`
 	Schema     string         `long:"schema" description:"Thread schema ID. Supersedes schema filename."`
 	SchemaFile flags.Filename `long:"schema-file" description:"Thread schema filename. Supersedes the built-in schema flags."`
 	Blob       bool           `long:"blob" description:"Use the built-in blob schema for generic data."`
@@ -126,11 +126,11 @@ func (x *addThreadsCmd) Execute(args []string) error {
 	res, err := executeJsonCmd(POST, "threads", params{
 		args: args,
 		opts: map[string]string{
-			"key":     x.Key,
-			"type":    x.Type,
-			"sharing": x.Sharing,
-			"members": strings.Join(x.Member, ","),
-			"schema":  x.Schema,
+			"key":       x.Key,
+			"type":      x.Type,
+			"sharing":   x.Sharing,
+			"whitelist": strings.Join(x.Whitelist, ","),
+			"schema":    x.Schema,
 		},
 	}, nil)
 	if err != nil {
