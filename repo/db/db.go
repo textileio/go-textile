@@ -5,6 +5,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/golang/protobuf/jsonpb"
 	logging "github.com/ipfs/go-log"
@@ -41,18 +42,22 @@ type SQLiteDatastore struct {
 }
 
 func Create(repoPath, pin string) (*SQLiteDatastore, error) {
-	var dbPath string
-	dbPath = path.Join(repoPath, "datastore", "mainnet.db")
+	dbPath := path.Join(repoPath, "datastore", "mainnet.db")
 	conn, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, err
 	}
+	conn.SetConnMaxLifetime(time.Minute * 30)
+	conn.SetMaxIdleConns(2)
+	conn.SetMaxOpenConns(4)
 	if pin != "" {
 		p := "pragma key='" + pin + "';"
-		conn.Exec(p)
+		if _, err := conn.Exec(p); err != nil {
+			return nil, err
+		}
 	}
 	mux := new(sync.Mutex)
-	sqliteDB := &SQLiteDatastore{
+	return &SQLiteDatastore{
 		config:             NewConfigStore(conn, mux, dbPath),
 		peers:              NewPeerStore(conn, mux),
 		files:              NewFileStore(conn, mux),
@@ -72,9 +77,7 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 		cafeClientMessages: NewCafeClientMessageStore(conn, mux),
 		db:                 conn,
 		lock:               mux,
-	}
-
-	return sqliteDB, nil
+	}, nil
 }
 
 func (d *SQLiteDatastore) Ping() error {

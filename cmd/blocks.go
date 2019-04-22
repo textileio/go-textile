@@ -50,8 +50,7 @@ There are several block types:
 -  COMMENT:  Comment added to another block.
 -  LIKE:     Like added to another block.
   
-Use this command to list and get blocks in a thread.
-`
+Use this command to list and get blocks in a thread.`
 }
 
 type lsBlocksCmd struct {
@@ -66,8 +65,7 @@ func (x *lsBlocksCmd) Usage() string {
 	return `
 
 Paginates blocks in a thread.
-Use the --dots option to return GraphViz dots instead of JSON.
-`
+Use the --dots option to return GraphViz dots instead of JSON.`
 }
 
 func (x *lsBlocksCmd) Execute(args []string) error {
@@ -160,8 +158,7 @@ type getBlocksCmd struct {
 func (x *getBlocksCmd) Usage() string {
 	return `
 
-Gets a thread block by ID.
-`
+Gets a thread block by ID.`
 }
 
 func (x *getBlocksCmd) Execute(args []string) error {

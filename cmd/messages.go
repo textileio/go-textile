@@ -49,8 +49,7 @@ func (x *addMessagesCmd) Usage() string {
 	return `
 
 Adds a message to a thread.
-Omit the --thread option to use the default thread (if selected).
-`
+Omit the --thread option to use the default thread (if selected).`
 }
 
 func (x *addMessagesCmd) Execute(args []string) error {
@@ -93,8 +92,7 @@ func (x *lsMessagesCmd) Usage() string {
 
 Paginates thread messages.
 Omit the --thread option to paginate all messages.
-Specify "default" to use the default thread (if selected).
-`
+Specify "default" to use the default thread (if selected).`
 }
 
 func (x *lsMessagesCmd) Execute(args []string) error {
@@ -170,8 +168,7 @@ func (x *rmMessagesCmd) Usage() string {
 
 Ignores a thread message by its block ID.
 This adds an "ignore" thread block targeted at the message.
-Ignored blocks are by default not returned when listing. 
-`
+Ignored blocks are by default not returned when listing.`
 }
 
 func (x *rmMessagesCmd) Execute(args []string) error {

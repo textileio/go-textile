@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"time"
 
@@ -44,8 +47,8 @@ type addressOptions struct {
 type cafeOptions struct {
 	Open        bool   `long:"cafe-open" description:"Open the p2p Cafe Service for other peers."`
 	PublicIP    string `long:"cafe-public-ip" description:"Required with --cafe-open on a server with a public IP address."`
-	URL         string `long:"cafe-url" description:"Specify the URL of this cafe, e.g., https://mycafe.com'"`
-	NeighborURL string `long:"cafe-neighbor-url" description:"Specify the URL of a secondary cafe. Must return cafe info, e.g., via a Gateway: https://my-gateway.yolo.com/cafe, or a Cafe API: https://my-cafe.yolo.com'"`
+	URL         string `long:"cafe-url" description:"Specify the URL of this cafe, e.g., https://mycafe.com"`
+	NeighborURL string `long:"cafe-neighbor-url" description:"Specify the URL of a secondary cafe. Must return cafe info, e.g., via a Gateway: https://my-gateway.yolo.com/cafe, or a Cafe API: https://my-cafe.yolo.com"`
 }
 
 type options struct{}
@@ -109,45 +112,52 @@ type daemonCmd struct {
 type commandsCmd struct {
 }
 
+type docsCmd struct {
+}
+
 var node *core.Textile
 var log = logging.Logger("tex-main")
 var parser = flags.NewParser(&options{}, flags.Default)
 
 func init() {
 	// add main commands
-	parser.AddCommand("version",
+	_, _ = parser.AddCommand("version",
 		"Print version and exit",
 		"Print the current version and exit.",
 		&versionCmd{})
-	parser.AddCommand("wallet",
+	_, _ = parser.AddCommand("wallet",
 		"Manage or create an account wallet",
 		"Initialize a new wallet, or view accounts from an existing wallet.",
 		&walletCmd{})
-	parser.AddCommand("init",
+	_, _ = parser.AddCommand("init",
 		"Init the node repo and exit",
 		"Initialize the node repository and exit.",
 		&initCmd{})
-	parser.AddCommand("migrate",
+	_, _ = parser.AddCommand("migrate",
 		"Migrate the node repo and exit",
 		"Migrate the node repository and exit.",
 		&migrateCmd{})
-	parser.AddCommand("daemon",
+	_, _ = parser.AddCommand("daemon",
 		"Start the daemon",
 		"Start a node daemon session.",
 		&daemonCmd{})
-	parser.AddCommand("commands",
+	_, _ = parser.AddCommand("commands",
 		"List available commands",
 		"List all available textile commands.",
 		&commandsCmd{})
+	_, _ = parser.AddCommand("docs",
+		"Print docs",
+		"Prints markdown docs for the command-line client.",
+		&docsCmd{})
 
 	// add cmd commands
 	for _, c := range cmd.Cmds() {
-		parser.AddCommand(c.Name(), c.Short(), c.Long(), c)
+		_, _ = parser.AddCommand(c.Name(), c.Short(), c.Long(), c)
 	}
 }
 
 func main() {
-	parser.Parse()
+	_, _ = parser.Parse()
 }
 
 func (x *commandsCmd) Execute(args []string) error {
@@ -160,6 +170,58 @@ func (x *commandsCmd) Execute(args []string) error {
 		}
 	}
 	return nil
+}
+
+func (x *docsCmd) Execute(args []string) error {
+	doc, err := getCommandDoc("textile")
+	if err != nil {
+		return err
+	}
+	fmt.Println(doc)
+
+	var list []string
+	set := make(map[string]*flags.Command)
+	for _, c := range parser.Commands() {
+		list = append(list, c.Name)
+		set[c.Name] = c
+	}
+
+	sort.Strings(list)
+	for _, n := range list {
+		c := set[n]
+		doc, err := getCommandDoc(c.Name, c.Name)
+		if err != nil {
+			return err
+		}
+		fmt.Println(doc)
+		for _, sub := range c.Commands() {
+			doc, err := getCommandDoc(sub.Name, c.Name, sub.Name)
+			if err != nil {
+				return err
+			}
+			fmt.Println(doc)
+		}
+	}
+	return nil
+}
+
+func getCommandDoc(name string, args ...string) (string, error) {
+	args = append(args, "--help")
+	e := exec.Command("textile", args...)
+	buf := new(bytes.Buffer)
+	e.Stdout = buf
+	if err := e.Run(); err != nil {
+		return "", err
+	}
+
+	pre := strings.Repeat("#", len(args)+1)
+
+	doc := pre + " `" + name + "`\n\n"
+	doc += "```\n"
+	doc += buf.String()
+	doc += "```\n"
+
+	return doc, nil
 }
 
 func (x *walletInitCmd) Execute(args []string) error {

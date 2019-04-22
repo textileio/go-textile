@@ -62,8 +62,7 @@ type ipfsSwarmCmd struct {
 func (x *ipfsSwarmCmd) Usage() string {
 	return `
 
-Provides access to a limited set of IPFS swarm commands.
-`
+Provides access to a limited set of IPFS swarm commands.`
 }
 
 type ipfsSwarmConnectCmd struct {
@@ -74,11 +73,9 @@ func (x *ipfsSwarmConnectCmd) Usage() string {
 	return `
 
 Opens a new direct connection to a peer address.
-
 The address format is an IPFS multiaddr:
 
-textile ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
-`
+textile ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ`
 }
 
 func (x *ipfsSwarmConnectCmd) Execute(args []string) error {

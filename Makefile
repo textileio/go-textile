@@ -1,6 +1,3 @@
-clean:
-	rm -rf vendor
-
 setup:
 	go get github.com/ahmetb/govvv
 

@@ -3,12 +3,16 @@ package util
 import (
 	"io"
 	"io/ioutil"
+	"runtime"
 	"strings"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
+	logging "github.com/ipfs/go-log"
 )
+
+var log = logging.Logger("tex-util")
 
 func UnmarshalString(body io.ReadCloser) (string, error) {
 	data, err := ioutil.ReadAll(body)
@@ -76,4 +80,18 @@ func TrimQuotes(s string) string {
 		s = s[:len(s)-1]
 	}
 	return s
+}
+
+func LogMemUsage() {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+
+	log.Infof("Alloc = %v MiB", bToMb(m.Alloc))
+	log.Infof("TotalAlloc = %v MiB", bToMb(m.TotalAlloc))
+	log.Infof("Sys = %v MiB", bToMb(m.Sys))
+	log.Infof("NumGC = %v", m.NumGC)
+}
+
+func bToMb(b uint64) uint64 {
+	return b / 1024 / 1024
 }

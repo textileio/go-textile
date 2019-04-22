@@ -198,6 +198,7 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 			Type:    thrd.Type,
 			Sharing: thrd.Sharing,
 			Members: thrd.Members,
+			Force:   true,
 		}
 
 		var err error

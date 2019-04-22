@@ -122,15 +122,15 @@ func (a *api) Start() {
 
 		account := v0.Group("/account")
 		{
-			account.GET("/address", a.accountAddress)
+			account.GET("", a.accountGet)
 			account.GET("/seed", a.accountSeed)
-			account.GET("/contact", a.accountContact)
+			account.GET("/address", a.accountAddress)
 		}
 
 		profile := v0.Group("/profile")
 		{
 			profile.GET("", a.getProfile)
-			profile.POST("/username", a.setUsername)
+			profile.POST("/name", a.setName)
 			profile.POST("/avatar", a.setAvatar)
 		}
 
@@ -283,6 +283,21 @@ func (a *api) Start() {
 			conf.PATCH("", a.patchConfig)
 		}
 	}
+
+	debug := router.Group("/debug/pprof/")
+	{
+		debug.GET("", a.pprofIndex)
+		debug.GET("/cmdline", a.pprofCmdline)
+		debug.GET("/profile", a.pprofProfile)
+		debug.GET("/symbol", a.pprofSymbol)
+		debug.GET("/trace", a.pprofTrace)
+		debug.GET("/goroutine", a.pprofGoroutine)
+		debug.GET("/heap", a.pprofHeap)
+		debug.GET("/threadcreate", a.pprofThreadCreate)
+		debug.GET("/block", a.pprofBlock)
+		debug.GET("/pprof-mutex", a.mutexFractionOption)
+	}
+
 	a.server = &http.Server{
 		Addr:    a.addr,
 		Handler: router,

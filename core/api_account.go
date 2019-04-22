@@ -6,20 +6,21 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// accountAddress godoc
-// @Summary Show account address
-// @Description Shows the local node's account address
+// accountGet godoc
+// @Summary Show account contact
+// @Description Shows the local peer's account info as a contact
 // @Tags account
-// @Produce text/plain
-// @Success 200 {string} string "address"
-// @Router /account/address [get]
-func (a *api) accountAddress(g *gin.Context) {
-	g.String(http.StatusOK, a.node.account.Address())
+// @Produce application/json
+// @Success 200 {object} pb.Contact "contact"
+// @Failure 400 {string} string "Bad Request"
+// @Router /account [get]
+func (a *api) accountGet(g *gin.Context) {
+	pbJSON(g, http.StatusOK, a.node.AccountContact())
 }
 
 // accountSeed godoc
 // @Summary Show account seed
-// @Description Shows the local node's account seed
+// @Description Shows the local peer's account seed
 // @Tags account
 // @Produce text/plain
 // @Success 200 {string} string "seed"
@@ -28,14 +29,13 @@ func (a *api) accountSeed(g *gin.Context) {
 	g.String(http.StatusOK, a.node.account.Seed())
 }
 
-// accountContact godoc
-// @Summary Show own contact
-// @Description Shows own contact
+// accountAddress godoc
+// @Summary Show account address
+// @Description Shows the local peer's account address
 // @Tags account
-// @Produce application/json
-// @Success 200 {object} pb.Contact "contact"
-// @Failure 400 {string} string "Bad Request"
-// @Router /account/contact [get]
-func (a *api) accountContact(g *gin.Context) {
-	pbJSON(g, http.StatusOK, a.node.AccountContact())
+// @Produce text/plain
+// @Success 200 {string} string "address"
+// @Router /account/address [get]
+func (a *api) accountAddress(g *gin.Context) {
+	g.String(http.StatusOK, a.node.account.Address())
 }

@@ -31,8 +31,7 @@ func (x *cafesCmd) Short() string {
 func (x *cafesCmd) Long() string {
 	return `
 Cafes are other peers on the network who offer pinning, backup, and inbox services.
-Use this command to add, list, get, and remove cafes and check messages.
-`
+Use this command to add, list, get, and remove cafes and check messages.`
 }
 
 type addCafesCmd struct {
@@ -44,8 +43,7 @@ func (x *addCafesCmd) Usage() string {
 	return `
 
 Registers with a cafe and saves an expiring service session token.
-An access token is required to register, and should be obtained separately from the target Cafe.
-`
+An access token is required to register, and should be obtained separately from the target Cafe.`
 }
 
 func (x *addCafesCmd) Execute(args []string) error {
@@ -90,8 +88,7 @@ type getCafesCmd struct {
 func (x *getCafesCmd) Usage() string {
 	return `
 
-Gets and displays info about a cafe session.
-`
+Gets and displays info about a cafe session.`
 }
 
 func (x *getCafesCmd) Execute(args []string) error {
@@ -113,7 +110,9 @@ type rmCafesCmd struct {
 }
 
 func (x *rmCafesCmd) Usage() string {
-	return "Deregisters a cafe (content will expire based on the cafe's service rules)."
+	return `
+
+Deregisters a cafe (content will expire based on the cafe's service rules).`
 }
 
 func (x *rmCafesCmd) Execute(args []string) error {
@@ -137,8 +136,7 @@ type checkCafeMessagesCmd struct {
 func (x *checkCafeMessagesCmd) Usage() string {
 	return `
 
-Check for messages at all cafes. New messages are downloaded and processed opportunistically.
-`
+Check for messages at all cafes. New messages are downloaded and processed opportunistically.`
 }
 
 func (x *checkCafeMessagesCmd) Execute(args []string) error {
