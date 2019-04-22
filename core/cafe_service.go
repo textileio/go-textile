@@ -251,7 +251,7 @@ func (h *CafeService) Flush() {
 
 // CheckMessages asks each session's inbox for new messages
 func (h *CafeService) CheckMessages(cafe peer.ID) error {
-	renv, err := h.sendCafeRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
+	renv, err := h.sendCafeHTTPRequest(cafe, func(session *pb.CafeSession) (*pb.Envelope, error) {
 		return h.service.NewEnvelope(pb.Message_CAFE_CHECK_MESSAGES, &pb.CafeCheckMessages{
 			Token: session.Access,
 		}, nil, false)
