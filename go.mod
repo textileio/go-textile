@@ -20,7 +20,7 @@ require (
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.1
 	github.com/ipfs/go-cid v0.0.1
-	github.com/ipfs/go-ipfs v0.4.20-rc2
+	github.com/ipfs/go-ipfs v0.4.20
 	github.com/ipfs/go-ipfs-addr v0.0.1
 	github.com/ipfs/go-ipfs-cmds v0.0.5
 	github.com/ipfs/go-ipfs-config v0.0.1

@@ -180,6 +180,8 @@ github.com/ipfs/go-fs-lock v0.0.1 h1:XHX8uW4jQBYWHj59XXcjg7BHlHxV9ZOYs6Y43yb7/l0
 github.com/ipfs/go-fs-lock v0.0.1/go.mod h1:DNBekbboPKcxs1aukPSaOtFA3QfSdi5C855v0i9XJ8Y=
 github.com/ipfs/go-ipfs v0.4.20-rc2 h1:AIYn9tu6T1GRLWEfMlV0Hj/vtgdfcAzRIXJykHVXu08=
 github.com/ipfs/go-ipfs v0.4.20-rc2/go.mod h1:W8aP61Gt96DDfp7aaIyp1bz/Bqgx4z90uDjUoOhFGp4=
+github.com/ipfs/go-ipfs v0.4.20 h1:SauNkEicH3oEnlr9hE8s1Sbgvt9EWl63D2UE9E+zoHg=
+github.com/ipfs/go-ipfs v0.4.20/go.mod h1:W8aP61Gt96DDfp7aaIyp1bz/Bqgx4z90uDjUoOhFGp4=
 github.com/ipfs/go-ipfs-addr v0.0.1 h1:DpDFybnho9v3/a1dzJ5KnWdThWD1HrFLpQ+tWIyBaFI=
 github.com/ipfs/go-ipfs-addr v0.0.1/go.mod h1:uKTDljHT3Q3SUWzDLp3aYUi8MrY32fgNgogsIa0npjg=
 github.com/ipfs/go-ipfs-blockstore v0.0.1 h1:O9n3PbmTYZoNhkgkEyrXTznbmktIXif62xLX+8dPHzc=
