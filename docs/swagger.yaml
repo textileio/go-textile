@@ -504,12 +504,12 @@ info:
     email: contact@textile.io
     name: Textile
     url: https://textile.io/
-  description: Textile Node Local REST API Documentation
+  description: Textile's HTTP REST API Documentation
   license:
     name: MIT License
     url: https://github.com/textileio/go-textile/blob/master/LICENSE
   termsOfService: https://github.com/textileio/go-textile/blob/master/TERMS
-  title: Textile Node API
+  title: Textile REST API
   version: "0"
 paths:
   /account:

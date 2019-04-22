@@ -70,9 +70,9 @@ func (t *Textile) ApiAddr() string {
 	return apiHost.addr
 }
 
-// @title Textile Node API
+// @title Textile REST API
 // @version 0
-// @description Textile Node Local REST API Documentation
+// @description Textile's HTTP REST API Documentation
 // @termsOfService https://github.com/textileio/go-textile/blob/master/TERMS
 
 // @contact.name Textile

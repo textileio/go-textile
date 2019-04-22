@@ -1,8 +1,8 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "Textile Node Local REST API Documentation",
-        "title": "Textile Node API",
+        "description": "Textile's HTTP REST API Documentation",
+        "title": "Textile REST API",
         "termsOfService": "https://github.com/textileio/go-textile/blob/master/TERMS",
         "contact": {
             "name": "Textile",
