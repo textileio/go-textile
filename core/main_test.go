@@ -94,6 +94,7 @@ func TestTextile_CafeSetup(t *testing.T) {
 		Account:     accnt,
 		RepoPath:    otherPath,
 		CafeApiAddr: "127.0.0.1:5000",
+		CafeURL:     "http://127.0.0.1:5000",
 		CafeOpen:    true,
 	}); err != nil {
 		t.Errorf("init other failed: %s", err)

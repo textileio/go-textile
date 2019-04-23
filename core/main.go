@@ -334,19 +334,14 @@ func (t *Textile) Start() error {
 		t.cafe.online = true
 
 		if t.config.Cafe.Host.Open {
-			swarmPorts, err := loadSwarmPorts(t.repoPath)
-			if err != nil {
-				log.Errorf("error loading swarm ports: %s", err)
-			} else {
-				go func() {
-					if err := t.cafe.setAddrs(t.config, *swarmPorts); err != nil {
-						log.Errorf("no public ip4 address found, unable to open cafe")
-						return
-					}
-					t.cafe.open = true
-					t.startCafeApi(t.config.Addresses.CafeAPI)
-				}()
-			}
+			go func() {
+				if err := t.cafe.setAddrs(t.config); err != nil {
+					log.Errorf("Unable to open cafe. An external ip4 address was not found. Please specify Cafe.Host.URL.")
+					return
+				}
+				t.cafe.open = true
+				t.startCafeApi(t.config.Addresses.CafeAPI)
+			}()
 		}
 
 		go t.runJobs()

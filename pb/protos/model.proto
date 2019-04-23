@@ -222,13 +222,12 @@ message NotificationList {
 // CAFE CLIENT //
 
 message Cafe {
-    string peer           = 1;
-    string address        = 2;
-    string api            = 3;
-    string protocol       = 4;
-    string node           = 5;
-    string url            = 6;
-    repeated string swarm = 7;
+    string peer     = 1;
+    string address  = 2;
+    string api      = 3;
+    string protocol = 4;
+    string node     = 5;
+    string url      = 6;
 }
 
 message CafeSession {

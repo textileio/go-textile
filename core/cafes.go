@@ -223,17 +223,5 @@ func cafesEqual(a *pb.Cafe, b *pb.Cafe) bool {
 	if a.Url != b.Url {
 		return false
 	}
-	if len(a.Swarm) != len(b.Swarm) {
-		return false
-	}
-	as := make(map[string]struct{})
-	for _, s := range a.Swarm {
-		as[s] = struct{}{}
-	}
-	for _, s := range b.Swarm {
-		if _, ok := as[s]; !ok {
-			return false
-		}
-	}
 	return true
 }
