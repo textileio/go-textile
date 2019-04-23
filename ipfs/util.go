@@ -63,7 +63,7 @@ func GetPublicIPv4Addr(node *core.IpfsNode) (string, error) {
 		}
 	}
 	if ip == "" {
-		return ip, fmt.Errorf("no public ipv4 address found")
+		return ip, fmt.Errorf("no public ipv4 address was found")
 	}
 	return ip, nil
 }
@@ -71,9 +71,10 @@ func GetPublicIPv4Addr(node *core.IpfsNode) (string, error) {
 // GetIPv6Addr returns the ipv6 address of the host machine, if available
 func GetIPv6Addr(node *core.IpfsNode) (string, error) {
 	var ip string
+	node.PeerHost.Addrs()
 	for _, addr := range node.PeerHost.Addrs() {
 		parts := strings.Split(addr.String(), "/")
-		if len(parts) < 3 {
+		if len(parts) < 3 || parts[2] == "::1" {
 			continue
 		}
 		parsed := net.ParseIP(parts[2])
@@ -83,7 +84,7 @@ func GetIPv6Addr(node *core.IpfsNode) (string, error) {
 		}
 	}
 	if ip == "" {
-		return ip, fmt.Errorf("no ipv6 address found")
+		return ip, fmt.Errorf("no ipv6 address was found")
 	}
 	return ip, nil
 }

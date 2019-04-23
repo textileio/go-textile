@@ -58,7 +58,6 @@ type InitConfig struct {
 	LogToDisk       bool
 	Debug           bool
 	CafeOpen        bool
-	CafePublicIP    string
 	CafeURL         string
 	CafeNeighborURL string
 }
@@ -339,11 +338,15 @@ func (t *Textile) Start() error {
 			if err != nil {
 				log.Errorf("error loading swarm ports: %s", err)
 			} else {
-				t.cafe.setAddrs(t.config, *swarmPorts)
+				go func() {
+					if err := t.cafe.setAddrs(t.config, *swarmPorts); err != nil {
+						log.Errorf("no public ip4 address found, unable to open cafe")
+						return
+					}
+					t.cafe.open = true
+					t.startCafeApi(t.config.Addresses.CafeAPI)
+				}()
 			}
-
-			t.cafe.open = true
-			t.startCafeApi(t.config.Addresses.CafeAPI)
 		}
 
 		go t.runJobs()
