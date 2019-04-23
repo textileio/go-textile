@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo"
 	"github.com/textileio/go-textile/util"
@@ -196,7 +195,7 @@ func (c *CafeRequestDB) handleQuery(stm string) *pb.CafeRequestList {
 		}
 
 		mod := new(pb.Cafe)
-		if err := jsonpb.Unmarshal(bytes.NewReader(cafe), mod); err != nil {
+		if err := pbUnmarshaler.Unmarshal(bytes.NewReader(cafe), mod); err != nil {
 			log.Errorf("error unmarshaling cafe: %s", err)
 			continue
 		}

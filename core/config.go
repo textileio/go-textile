@@ -61,7 +61,6 @@ func applyTextileConfigOptions(init InitConfig) error {
 
 	// cafe settings
 	conf.Cafe.Host.Open = init.CafeOpen
-	conf.Cafe.Host.PublicIP = init.CafePublicIP
 	conf.Cafe.Host.URL = init.CafeURL
 	conf.Cafe.Host.NeighborURL = init.CafeNeighborURL
 
@@ -150,7 +149,6 @@ func applySwarmPortConfigOption(rep repo.Repo, ports string) error {
 		ws = parts[1]
 	default:
 		tcp = GetRandomPort()
-		ws = GetRandomPort()
 	}
 
 	list := []string{

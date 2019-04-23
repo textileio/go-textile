@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"sync"
 
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo"
 	"github.com/textileio/go-textile/util"
@@ -95,7 +94,7 @@ func (c *CafeSessionDB) handleQuery(stm string) *pb.CafeSessionList {
 		}
 
 		rcafe := new(pb.Cafe)
-		if err := jsonpb.Unmarshal(bytes.NewReader(cafe), rcafe); err != nil {
+		if err := pbUnmarshaler.Unmarshal(bytes.NewReader(cafe), rcafe); err != nil {
 			log.Errorf("error unmarshaling cafe: %s", err)
 			continue
 		}

@@ -47,6 +47,8 @@ protos_js:
 docs:
 	go get github.com/swaggo/swag/cmd/swag
 	swag init -g core/api.go
+	npm i -g swagger-markdown
+	swagger-markdown -i docs/swagger.yaml -o docs/swagger.md
 
 # Additional dependencies needed below:
 # $ brew install jq

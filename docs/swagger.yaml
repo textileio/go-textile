@@ -458,10 +458,6 @@ definitions:
         type: string
       key:
         type: string
-      members:
-        items:
-          type: string
-        type: array
       name:
         type: string
       peer_count:
@@ -481,6 +477,10 @@ definitions:
         type: integer
       type:
         type: integer
+      whitelist:
+        items:
+          type: string
+        type: array
     type: object
   pb.ThreadList:
     properties:
@@ -504,12 +504,12 @@ info:
     email: contact@textile.io
     name: Textile
     url: https://textile.io/
-  description: Textile Node Local REST API Documentation
+  description: Textile's HTTP REST API Documentation
   license:
     name: MIT License
     url: https://github.com/textileio/go-textile/blob/master/LICENSE
   termsOfService: https://github.com/textileio/go-textile/blob/master/TERMS
-  title: Textile Node API
+  title: Textile REST API
   version: "0"
 paths:
   /account:
@@ -1970,7 +1970,7 @@ paths:
       summary: Search for thread snapshots
       tags:
       - threads
-  /sub/{id}:
+  /subscribe/{id}:
     get:
       description: |-
         Subscribes to updates in a thread or all threads. An update is generated
@@ -2002,7 +2002,7 @@ paths:
             type: string
       summary: Subscribe to thread updates
       tags:
-      - sub
+      - subscribe
   /summary:
     get:
       produces:
@@ -2040,7 +2040,7 @@ paths:
       - threads
     post:
       description: |-
-        Adds a new Thread with given name, type, and sharing and members options, returning
+        Adds a new Thread with given name, type, and sharing and whitelist options, returning
         a Thread object
       parameters:
       - description: name
@@ -2048,14 +2048,14 @@ paths:
         name: X-Textile-Args
         required: true
         type: string
-      - default: type=private,sharing=not_shared,members=
+      - default: type=private,sharing=not_shared,whitelist=
         description: 'key: A locally unique key used by an app to identify this thread
           on recovery, schema: Existing Thread Schema IPFS CID, type: Set the thread
           type to one of ''private'', ''read_only'', ''public'', or ''open'', sharing:
           Set the thread sharing style to one of ''not_shared'',''invite_only'', or
-          ''shared'', members: An array of contact addresses. When supplied, the thread
-          will not allow additional peers beyond those in array, useful for 1-1 chat/file
-          sharing'
+          ''shared'', whitelist: An array of contact addresses. When supplied, the
+          thread will not allow additional peers beyond those in array, useful for
+          1-1 chat/file sharing'
         in: header
         name: X-Textile-Opts
         type: string

@@ -19,6 +19,10 @@ var pbMarshaler = jsonpb.Marshaler{
 	OrigName: true,
 }
 
+var pbUnmarshaler = jsonpb.Unmarshaler{
+	AllowUnknownFields: true,
+}
+
 type SQLiteDatastore struct {
 	config             repo.ConfigStore
 	peers              repo.PeerStore

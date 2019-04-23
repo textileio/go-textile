@@ -1,5 +1,7 @@
 module github.com/textileio/go-textile
 
+go 1.12
+
 require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412

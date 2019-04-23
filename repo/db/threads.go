@@ -42,7 +42,7 @@ func (c *ThreadDB) Add(thread *pb.Thread) error {
 		int(thread.Type),
 		int(thread.State),
 		thread.Head,
-		strings.Join(thread.Members, ","),
+		strings.Join(thread.Whitelist, ","),
 		int(thread.Sharing),
 	)
 	if err != nil {
@@ -117,10 +117,10 @@ func (c *ThreadDB) handleQuery(stm string) *pb.ThreadList {
 		return list
 	}
 	for rows.Next() {
-		var id, key, name, schema, initiator, head, members string
+		var id, key, name, schema, initiator, head, whitelist string
 		var skb []byte
 		var typeInt, stateInt, sharingInt int
-		if err := rows.Scan(&id, &key, &skb, &name, &schema, &initiator, &typeInt, &stateInt, &head, &members, &sharingInt); err != nil {
+		if err := rows.Scan(&id, &key, &skb, &name, &schema, &initiator, &typeInt, &stateInt, &head, &whitelist, &sharingInt); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -133,7 +133,7 @@ func (c *ThreadDB) handleQuery(stm string) *pb.ThreadList {
 			Initiator: initiator,
 			Type:      pb.Thread_Type(typeInt),
 			Sharing:   pb.Thread_Sharing(sharingInt),
-			Members:   util.SplitString(members, ","),
+			Whitelist: util.SplitString(whitelist, ","),
 			State:     pb.Thread_State(stateInt),
 			Head:      head,
 		})

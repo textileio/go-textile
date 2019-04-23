@@ -13,12 +13,12 @@ import (
 
 // addThreads godoc
 // @Summary Adds and joins a new thread
-// @Description Adds a new Thread with given name, type, and sharing and members options, returning
+// @Description Adds a new Thread with given name, type, and sharing and whitelist options, returning
 // @Description a Thread object
 // @Tags threads
 // @Produce application/json
 // @Param X-Textile-Args header string true "name"
-// @Param X-Textile-Opts header string false "key: A locally unique key used by an app to identify this thread on recovery, schema: Existing Thread Schema IPFS CID, type: Set the thread type to one of 'private', 'read_only', 'public', or 'open', sharing: Set the thread sharing style to one of 'not_shared','invite_only', or 'shared', members: An array of contact addresses. When supplied, the thread will not allow additional peers beyond those in array, useful for 1-1 chat/file sharing" default(type=private,sharing=not_shared,members=)
+// @Param X-Textile-Opts header string false "key: A locally unique key used by an app to identify this thread on recovery, schema: Existing Thread Schema IPFS CID, type: Set the thread type to one of 'private', 'read_only', 'public', or 'open', sharing: Set the thread sharing style to one of 'not_shared','invite_only', or 'shared', whitelist: An array of contact addresses. When supplied, the thread will not allow additional peers beyond those in array, useful for 1-1 chat/file sharing" default(type=private,sharing=not_shared,whitelist=)
 // @Success 201 {object} pb.Thread "thread"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
@@ -57,7 +57,7 @@ func (a *api) addThreads(g *gin.Context) {
 
 	config.Type = pb.Thread_Type(pbValForEnumString(pb.Thread_Type_value, opts["type"]))
 	config.Sharing = pb.Thread_Sharing(pbValForEnumString(pb.Thread_Sharing_value, opts["sharing"]))
-	config.Members = util.SplitString(opts["members"], ",")
+	config.Whitelist = util.SplitString(opts["whitelist"], ",")
 
 	// make a new secret
 	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)

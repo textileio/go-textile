@@ -94,6 +94,7 @@ func TestTextile_CafeSetup(t *testing.T) {
 		Account:     accnt,
 		RepoPath:    otherPath,
 		CafeApiAddr: "127.0.0.1:5000",
+		CafeURL:     "http://127.0.0.1:5000",
 		CafeOpen:    true,
 	}); err != nil {
 		t.Errorf("init other failed: %s", err)
@@ -221,12 +222,12 @@ func TestTextile_AddThread(t *testing.T) {
 		t.Error(err)
 	}
 	config := pb.AddThreadConfig{
-		Key:     ksuid.New().String(),
-		Name:    "test",
-		Schema:  &pb.AddThreadConfig_Schema{Id: schemaHash},
-		Type:    pb.Thread_OPEN,
-		Sharing: pb.Thread_SHARED,
-		Members: []string{},
+		Key:       ksuid.New().String(),
+		Name:      "test",
+		Schema:    &pb.AddThreadConfig_Schema{Id: schemaHash},
+		Type:      pb.Thread_OPEN,
+		Sharing:   pb.Thread_SHARED,
+		Whitelist: []string{},
 	}
 	thrd, err := node.AddThread(config, sk, node.Account().Address(), true, true)
 	if err != nil {
@@ -243,11 +244,11 @@ func TestTextile_AddThread(t *testing.T) {
 		t.Error(err)
 	}
 	if _, err := node.AddThread(pb.AddThreadConfig{
-		Key:     config.Key,
-		Name:    "test2",
-		Type:    pb.Thread_PUBLIC,
-		Sharing: pb.Thread_NOT_SHARED,
-		Members: []string{},
+		Key:       config.Key,
+		Name:      "test2",
+		Type:      pb.Thread_PUBLIC,
+		Sharing:   pb.Thread_NOT_SHARED,
+		Whitelist: []string{},
 	}, sk2, node.Account().Address(), true, true); err == nil {
 		t.Error("add thread with same key should fail")
 		return
@@ -259,12 +260,12 @@ func TestTextile_AddThread(t *testing.T) {
 		t.Error(err)
 	}
 	forced, err := node.AddThread(pb.AddThreadConfig{
-		Key:     config.Key,
-		Force:   true,
-		Name:    "test3",
-		Type:    pb.Thread_PUBLIC,
-		Sharing: pb.Thread_NOT_SHARED,
-		Members: []string{},
+		Key:       config.Key,
+		Force:     true,
+		Name:      "test3",
+		Type:      pb.Thread_PUBLIC,
+		Sharing:   pb.Thread_NOT_SHARED,
+		Whitelist: []string{},
 	}, sk3, node.Account().Address(), true, true)
 	if err != nil {
 		t.Errorf("add thread with same key and force should not fail: %s", err)

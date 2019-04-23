@@ -28,7 +28,7 @@ var ErrRepoCorrupted = errors.New("repo is corrupted")
 
 const Repover = "13"
 
-func Init(repoPath string, mobile bool) error {
+func Init(repoPath string, mobile bool, server bool) error {
 	if err := checkWriteable(repoPath); err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func Init(repoPath string, mobile bool) error {
 	}
 
 	// initialize ipfs config
-	conf, err := config.InitIpfs(peerIdentity, mobile)
+	conf, err := config.InitIpfs(peerIdentity, mobile, server)
 	if err != nil {
 		return err
 	}

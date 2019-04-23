@@ -43,31 +43,31 @@ message ContactList {
 // THREADS //
 
 message Thread {
-    string id               = 1;
-    string key              = 2;
-    bytes sk                = 3;
-    string name             = 4;
-    string schema           = 5;
-    string initiator        = 6;
-    Type type               = 7;
-    Sharing sharing         = 8;
-    repeated string members = 9;
-    State state             = 10;
-    string head             = 11;
+    string id                 = 1;
+    string key                = 2;
+    bytes sk                  = 3;
+    string name               = 4;
+    string schema             = 5;
+    string initiator          = 6;
+    Type type                 = 7;
+    Sharing sharing           = 8;
+    repeated string whitelist = 9;
+    State state               = 10;
+    string head               = 11;
 
     // Type controls read (R), annotate (A), and write (W) access
     enum Type {
-        PRIVATE   = 0; // initiator: RAW, members:
-        READ_ONLY = 1; // initiator: RAW, members: R
-        PUBLIC    = 2; // initiator: RAW, members: RA
-        OPEN      = 3; // initiator: RAW, members: RAW
+        PRIVATE   = 0; // initiator: RAW, whitelist:
+        READ_ONLY = 1; // initiator: RAW, whitelist: R
+        PUBLIC    = 2; // initiator: RAW, whitelist: RA
+        OPEN      = 3; // initiator: RAW, whitelist: RAW
     }
 
     // Sharing controls if (Y/N) a thread can be shared
     enum Sharing {
-        NOT_SHARED  = 0; // initiator: N, members: N
-        INVITE_ONLY = 1; // initiator: Y, members: N
-        SHARED      = 2; // initiator: Y, members: Y
+        NOT_SHARED  = 0; // initiator: N, whitelist: N
+        INVITE_ONLY = 1; // initiator: Y, whitelist: N
+        SHARED      = 2; // initiator: Y, whitelist: Y
     }
 
     // State indicates the loading state
@@ -222,13 +222,12 @@ message NotificationList {
 // CAFE CLIENT //
 
 message Cafe {
-    string peer           = 1;
-    string address        = 2;
-    string api            = 3;
-    string protocol       = 4;
-    string node           = 5;
-    string url            = 6;
-    repeated string swarm = 7;
+    string peer     = 1;
+    string address  = 2;
+    string api      = 3;
+    string protocol = 4;
+    string node     = 5;
+    string url      = 6;
 }
 
 message CafeSession {

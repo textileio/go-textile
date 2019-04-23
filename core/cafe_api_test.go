@@ -56,6 +56,7 @@ func TestCafeApi_Setup(t *testing.T) {
 		Account:     accnt2,
 		RepoPath:    repoPath2,
 		CafeApiAddr: "127.0.0.1:5000",
+		CafeURL:     "http://127.0.0.1:5000",
 		CafeOpen:    true,
 	}); err != nil {
 		t.Errorf("init node2 failed: %s", err)
