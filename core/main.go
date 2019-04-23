@@ -131,7 +131,7 @@ func InitRepo(conf InitConfig) error {
 	}
 
 	// init repo
-	if err := repo.Init(conf.RepoPath, conf.IsMobile); err != nil {
+	if err := repo.Init(conf.RepoPath, conf.IsMobile, conf.IsServer); err != nil {
 		return err
 	}
 

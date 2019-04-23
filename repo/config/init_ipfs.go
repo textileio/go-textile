@@ -52,7 +52,7 @@ This is a problem with the Textile codebase. Please report it to the dev team.`,
 }
 
 // InitIpfs create the IPFS config file
-func InitIpfs(identity native.Identity, mobile bool) (*native.Config, error) {
+func InitIpfs(identity native.Identity, mobile bool, server bool) (*native.Config, error) {
 	ipfsPeers, err := native.DefaultBootstrapPeers()
 	if err != nil {
 		return nil, err
@@ -121,11 +121,14 @@ func InitIpfs(identity native.Identity, mobile bool) (*native.Config, error) {
 				Type:        "basic",
 			},
 			DisableBandwidthMetrics: mobile,
+			EnableRelayHop:          server,
+			EnableAutoRelay:         mobile,
+			EnableAutoNATService:    server,
 		},
 		Experimental: native.Experiments{
 			FilestoreEnabled:     false,
 			ShardingEnabled:      false,
-			Libp2pStreamMounting: true,
+			Libp2pStreamMounting: false,
 		},
 		Pubsub: native.PubsubConfig{
 			Router: "gossipsub",
