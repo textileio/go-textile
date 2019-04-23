@@ -30,7 +30,7 @@ import (
 
 type ipfsOptions struct {
 	ServerMode bool   `long:"server" description:"Apply IPFS server profile."`
-	SwarmPorts string `long:"swarm-ports" description:"Set the swarm ports (TCP,WS). Random ports are chosen by default."`
+	SwarmPorts string `long:"swarm-ports" description:"Set the swarm ports (TCP,WS). A random TCP port is chosen by default."`
 }
 
 type logOptions struct {
