@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/ptypes/struct"
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo"
 	"github.com/textileio/go-textile/util"
