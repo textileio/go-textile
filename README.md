@@ -1,110 +1,149 @@
 # go-textile
 
-![banner](https://s3.amazonaws.com/textile.public/Textile_Logo_Horizontal.png)
+[![Made by Textile](https://img.shields.io/badge/made%20by-Textile-informational.svg?style=popout-square)](https://textile.io)
+[![Chat on Slack](https://img.shields.io/badge/slack-slack.textile.io-informational.svg?style=popout-square)](https://slack.textile.io)
+[![GitHub license](https://img.shields.io/github/license/textileio/photos-desktop.svg?style=popout-square)](./LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/textileio/go-textile?style=flat-square)](https://goreportcard.com/report/github.com/textileio/go-textile?style=flat-square)
+[![CircleCI branch](https://img.shields.io/circleci/project/github/textileio/go-textile/master.svg?style=popout-square)](https://circleci.com/gh/textileio/photos-desktop)
+[![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=popout-square)](https://github.com/RichardLitt/standard-readme)
 
----
+> Textile implementation in Go
 
-[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/textileio/go-textile)](https://goreportcard.com/report/github.com/textileio/go-textile) [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/) [![CircleCI](https://circleci.com/gh/textileio/go-textile/tree/master.svg?style=shield)](https://circleci.com/gh/textileio/go-textile/tree/master)
-
-## Status
-
-[![Throughput Graph](https://graphs.waffle.io/textileio/go-textile/throughput.svg)](https://waffle.io/textileio/go-textile/metrics/throughput)
-
-This repository contains a the core Textile daemon + command-line client, as well as bindings for mobile (iOS/Android) applications.
-
-See [textile-mobile](https://github.com/textileio/textile-mobile/) for the [Textile Photos](https://www.textile.photos) iOS/Android app.
-
-## What is Textile?
+This repository contains a core API, daemon, and command-line client, as well as bindings for mobile (iOS/Android) applications.
 
 [Textile](https://www.textile.io) provides encrypted, recoverable, schema-based, and cross-application data storage built on [IPFS](https://github.com/ipfs) and [libp2p](https://github.com/libp2p). We like to think of it as a decentralized data wallet with built-in protocols for sharing and recovery, or more simply, **an open and programmable iCloud**.
 
-**Please see the [docs](https://docs.textile.io/) for more**.
+**Please see [Textile Docs](https://docs.textile.io/) for more**.
+
+Join us on our [public Slack channel](https://slack.textile.io/) for news, discussions, and status updates. [Check out our blog](https://medium.com/textileio) for the latest posts and announcements.
+
+## Table of Contents
+
+- [Security](#security)
+- [Background](#background)
+- [Install](#install)
+- [Usage](#usage)
+- [Develop](#develop)
+- [Contribute](#contribute)
+- [License](#license)
+
+## Security
+
+Textile is still under heavy development and _should not_ be considered production ready. There may be coding mistakes and the underlying protocols may change and/or contain design flaws. Please [let us know](mailto:contact@textile.io) immediately if you have discovered a security vulnerability.
+
+Please also read the [security note](https://github.com/ipfs/go-ipfs#security-issues) for [go-ipfs](https://github.com/ipfs/go-ipfs).
+
+## Background
+
+Textile is a set of tools and trust-less infrastructure for building _censorship resistant_ and _privacy preserving_ applications.
+
+While data is interoperable with the whole [IPFS](https://ipfs.io/) peer-to-peer network network, Textile-flavored peers represent an additional layer or sub-network of **users, applications, and services**.
+
+With protocols like content-addressed data, public-key cryptography, and AES encryption, Textile aims to bring the inherent benefits of decentralization to real products that people can love.
+
+[Continue reading](https://docs.textile.io/concepts/) about Textile...
 
 ## Install
 
-Download the [latest release](https://github.com/textileio/go-textile/releases/latest) for your OS or jump to [Docker](https://github.com/textileio/go-textile#docker). You can also install the Textile [desktop tray app](https://github.com/textileio/desktop/releases/latest), which runs a streamlined version of `go-textile` via an easy-to-install Electron app!
+[Installation instructions](https://docs.textile.io/install/the-daemon/) for the command-line tool and daemon are in [the docs](https://docs.textile.io).
 
 ## Usage
 
-Check out the [docs site](https://docs.textile.io/) for more detailed usage instructions and tutorials.
+The [Tour of Textile](https://docs.textile.io/a-tour-of-textile/) goes through many examples and use cases. `textile --help` provides a quick look at the available APIs:
 
-    ~ $ textile --help
-    Usage:
-      textile [OPTIONS] <command>
+```
+Usage:
+  textile [OPTIONS] <command>
 
-    Help Options:
-      -h, --help  Show this help message
+Help Options:
+  -h, --help  Show this help message
 
-    Available commands:
-      account        Manage a wallet account
-      blocks         View thread blocks
-      cafes          Manage cafes
-      chat           Start a thread chat
-      commands       List available commands
-      comments       Manage thread comments
-      config         Get and set config values
-      contacts       Manage contacts
-      daemon         Start the daemon
-      files          Manage thread files
-      init           Init the node repo and exit
-      invites        Manage thread invites
-      ipfs           Access IPFS commands
-      likes          Manage thread likes
-      logs           List and control Textile subsystem logs.
-      ls             Paginate thread content
-      messages       Manage thread messages
-      migrate        Migrate the node repo and exit
-      notifications  Manage notifications
-      ping           Ping another peer
-      profile        Manage public profile
-      sub            Subscribe to thread updates
-      threads        Manage threads
-      tokens         Manage Cafe access tokens
-      version        Print version and exit
-      wallet         Manage or create an account wallet
+Available commands:
+  account        Manage a wallet account
+  blocks         View thread blocks
+  cafes          Manage cafes
+  chat           Start a thread chat
+  commands       List available commands
+  comments       Manage thread comments
+  config         Get and set config values
+  contacts       Manage contacts
+  daemon         Start the daemon
+  docs           Print docs
+  feed           Paginate thread content as a consumable feed
+  files          Manage thread files
+  init           Init the node repo and exit
+  invites        Manage thread invites
+  ipfs           Access IPFS commands
+  likes          Manage thread likes
+  logs           List and control subsystem logs
+  messages       Manage thread messages
+  migrate        Migrate the node repo and exit
+  notifications  Manage notifications
+  ping           Ping another peer
+  profile        Manage public profile
+  subscribe      Subscribe to thread updates
+  summary        Get a summary of local data
+  threads        Manage threads
+  tokens         Manage Cafe access tokens
+  version        Print version and exit
+  wallet         Manage or create an account wallet
+```
 
-## Contributing
-
-**Go >= 1.12 is required.**
+## Develop
 
     git clone git@github.com:textileio/go-textile.git
 
-#### Run the tests
+### Requirements
 
-    make test
+- go >= 1.12
+- node >= 10.0
 
-## Building
-
-There are various things to build… first off, run setup:
-
-    make setup
-
-If you plan on building the bindings for iOS or Android, install and init the `gomobile` tools:
+Extra setup steps are needed to build the bindings for iOS or Android, as `gomobile` does not yet support [go modules](https://github.com/golang/go/wiki/Modules). You'll need to **move the go-textile source** into your `GOPATH` (like pre-go1.11 development), before installing and initializing the `gomobile` tools:
 
     go get golang.org/x/mobile/cmd/gomobile
     gomobile init
 
-#### CLI/daemon
+Now you can execute the iOS and Android build tasks below. For the other build tasks, the source must _not_ be under `GOPATH`. Go 1.13 is supposed to bring module support to `gomobile`, at which point we can remove this madness!
+
+### Install dependencies:
+
+    make setup
+
+### Build the command-line tool and daemon
 
     make build
 
-#### iOS Framework
+### Run unit tests
+
+    make test
+
+### Build the iOS framework
 
     make ios
 
-#### Android Framework
+#### Build the Android Archive Library (aar)
 
     make android
 
-#### Docs
+### Build the swagger docs
 
     make docs
 
-## Acknowledgments
+## Contributing
 
-While now almost entirely different, this project was jump-started from [OpenBazaar](https://openbazaar.org/). Thanks to @cpacia, @drwasho and the rest of the contributors for their work on [openbazaar-go](https://github.com/OpenBazaar/openbazaar-go).
-And of course, thank you, [Protocal Labs](https://protocol.ai/), for the incredible FOSS effort and constant inspiration.
+**[go-textile](https://github.com/textileio/go-textile)** is a work in progress. As such, there's a few things you can do right now to help out:
+
+* **Ask questions**! We'll try to help. Be sure to drop a note (on the above issue) if there is anything you'd like to work on and we'll update the issue to let others know. Also [get in touch](https://slack.textile.io) on Slack.
+* **Open issues**, [file issues](https://github.com/textileio/go-textile/issues), submit pull requests!
+* **Perform code reviews**. More eyes will help a) speed the project along b) ensure quality and c) reduce possible future bugs.
+* **Take a look at the code**. Contributions here that would be most helpful are **top-level comments** about how it should look based on your understanding. Again, the more eyes the better.
+* **Add tests**. There can never be enough tests.
+
+Before you get started, be sure to read our [contributors guide](./CONTRIBUTING.md) and our [contributor covenant code of conduct](./CODE_OF_CONDUCT.md).
+
+Before you get started, be sure to read our [contributors guide](CONTRIBUTING.md) and our [contributor covenant code of conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
-MIT
+[MIT](LICENSE)
+
