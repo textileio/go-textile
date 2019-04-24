@@ -87,10 +87,10 @@ type addFilesCmd struct {
 func (x *addFilesCmd) Usage() string {
 	return `
 
-Adds a file or directory of files to a thread. Files not supported 
+Adds a file or directory of files to a thread. Files not supported
 by the thread schema are ignored. Nested directories are included.
 An existing file hash may also be used as input.
-Use the --group option to add directory files as a single object.  
+Use the --group option to add directory files as a single object.
 Omit the --thread option to use the default thread (if selected).`
 }
 

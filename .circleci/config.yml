@@ -5,7 +5,6 @@ checkout-linux: &checkout-linux
     at: /root
 
 jobs:
-
   persist-checkout:
     docker:
       - image: python
@@ -104,7 +103,7 @@ jobs:
 
   build-cli-darwin-windows:
     macos:
-      xcode: "10.1.0"
+      xcode: '10.1.0'
     environment:
       GOPATH: /Users/distiller/go
       GOROOT: /usr/local/go
@@ -187,7 +186,7 @@ jobs:
 
   build-ios-framework:
     macos:
-      xcode: "10.1.0"
+      xcode: '10.1.0'
     environment:
       GOPATH: /Users/distiller/go
       GOROOT: /usr/local/go

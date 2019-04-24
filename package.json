@@ -1,0 +1,12 @@
+{
+  "name": "go-textile",
+  "private": true,
+  "version": "0.0.0",
+  "devDependencies": {
+    "prettier": "^1.17.0"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true
+  }
+}

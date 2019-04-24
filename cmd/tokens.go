@@ -115,7 +115,7 @@ type rmTokensCmd struct {
 
 func (x *rmTokensCmd) Usage() string {
 	return `
-	
+
 	Removes an existing cafe token.`
 }
 
