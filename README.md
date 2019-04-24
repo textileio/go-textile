@@ -37,7 +37,7 @@ Please also read the [security note](https://github.com/ipfs/go-ipfs#security-is
 
 Textile is a set of tools and trust-less infrastructure for building _censorship resistant_ and _privacy preserving_ applications.
 
-While data is interoperable with the whole [IPFS](https://ipfs.io/) peer-to-peer network network, Textile-flavored peers represent an additional layer or sub-network of **users, applications, and services**.
+While data is interoperable with the whole [IPFS](https://ipfs.io/) peer-to-peer network, Textile-flavored peers represent an additional layer or sub-network of **users, applications, and services**.
 
 With protocols like content-addressed data, public-key cryptography, and AES encryption, Textile aims to bring the inherent benefits of decentralization to real products that people can love.
 
@@ -109,29 +109,29 @@ Now you can execute the iOS and Android build tasks below. For the other build t
 
     make setup
 
-### Build the command-line tool and daemon
+### Build `textile`:
 
     make build
 
-### Run unit tests
+### Run unit tests:
 
     make test
 
-### Build the iOS framework
+### Build the iOS framework:
 
     make ios
 
-#### Build the Android Archive Library (aar)
+### Build the Android Archive Library (aar):
 
     make android
 
-### Build the swagger docs
+### Build the swagger docs:
 
     make docs
 
 ## Contributing
 
-**[go-textile](https://github.com/textileio/go-textile)** is a work in progress. As such, there's a few things you can do right now to help out:
+This project is a work in progress. As such, there's a few things you can do right now to help out:
 
 * **Ask questions**! We'll try to help. Be sure to drop a note (on the above issue) if there is anything you'd like to work on and we'll update the issue to let others know. Also [get in touch](https://slack.textile.io) on Slack.
 * **Open issues**, [file issues](https://github.com/textileio/go-textile/issues), submit pull requests!
@@ -140,8 +140,6 @@ Now you can execute the iOS and Android build tasks below. For the other build t
 * **Add tests**. There can never be enough tests.
 
 Before you get started, be sure to read our [contributors guide](./CONTRIBUTING.md) and our [contributor covenant code of conduct](./CODE_OF_CONDUCT.md).
-
-Before you get started, be sure to read our [contributors guide](CONTRIBUTING.md) and our [contributor covenant code of conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
