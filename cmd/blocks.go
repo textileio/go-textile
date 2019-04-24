@@ -49,7 +49,7 @@ There are several block types:
 -  FILES:    File(s) added.
 -  COMMENT:  Comment added to another block.
 -  LIKE:     Like added to another block.
-  
+
 Use this command to list and get blocks in a thread.`
 }
 

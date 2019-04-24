@@ -39,7 +39,7 @@ The --mode option dictates how the feed is displayed:
 -  "stacks": Related blocks are chronologically grouped into "stacks". A new stack is started if an unrelated block
    breaks continuity. This mode is used by Textile Photos. Stacks may include:
 
-*  The initial post with some nested annotations. Newer annotations may have already been listed. 
+*  The initial post with some nested annotations. Newer annotations may have already been listed.
 *  One or more annotations about a post. The newest annotation assumes the "top" position in the stack. Additional
      annotations are nested under the target. Newer annotations may have already been listed in the case as well.
 

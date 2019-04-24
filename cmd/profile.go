@@ -27,7 +27,7 @@ func (x *profileCmd) Short() string {
 }
 
 func (x *profileCmd) Long() string {
-	return ` 
+	return `
 Use this command to view and update the peer profile. A Textile account will
 show a profile for each of its peers, e.g., mobile, desktop, etc.
 `
