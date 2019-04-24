@@ -51,7 +51,7 @@ func (x *chatCmd) Execute(args []string) error {
 	}
 	defer rl.Close()
 
-	updates, err := callSub(x.Thread, []string{"message"})
+	updates, err := callSub(x.Thread, []string{"text"})
 	if err != nil {
 		return err
 	}
