@@ -1,4 +1,5 @@
 setup:
+	go mod download
 	go get github.com/ahmetb/govvv
 	npm install
 
