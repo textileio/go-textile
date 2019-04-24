@@ -29,7 +29,7 @@ Join us on our [public Slack channel](https://slack.textile.io/) for news, discu
 
 ## Security
 
-Textile is still under heavy development and _should not_ be considered production ready. There may be coding mistakes and the underlying protocols may change and/or contain design flaws. Please [let us know](mailto:contact@textile.io) immediately if you have discovered a security vulnerability.
+Textile is still under heavy development and no part of it should be used before a thorough review of the underlying code and an understanding that APIs and protocols may change rapidly. There may be coding mistakes and the underlying protocols may contain design flaws. Please [let us know](mailto:contact@textile.io) immediately if you have discovered a security vulnerability.
 
 Please also read the [security note](https://github.com/ipfs/go-ipfs#security-issues) for [go-ipfs](https://github.com/ipfs/go-ipfs).
 
@@ -37,9 +37,9 @@ Please also read the [security note](https://github.com/ipfs/go-ipfs#security-is
 
 Textile is a set of tools and trust-less infrastructure for building _censorship resistant_ and _privacy preserving_ applications.
 
-While data is interoperable with the whole [IPFS](https://ipfs.io/) peer-to-peer network, Textile-flavored peers represent an additional layer or sub-network of **users, applications, and services**.
+While interoperable with the whole [IPFS](https://ipfs.io/) peer-to-peer network, Textile-flavored peers represent an additional layer or sub-network of **users, applications, and services**.
 
-With protocols like content-addressed data, public-key cryptography, and AES encryption, Textile aims to bring the inherent benefits of decentralization to real products that people can love.
+With good encryption defaults and anonymous, disposable application services like [cafes](https://docs.textile.io/concepts/cafes/), Textile aims to bring the decentralized internet to real products that people love.
 
 [Continue reading](https://docs.textile.io/concepts/) about Textile...
 
