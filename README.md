@@ -9,7 +9,7 @@
 
 > Textile implementation in Go
 
-This repository contains a core API, daemon, and command-line client, as well as bindings for mobile (iOS/Android) applications.
+This repository contains the core API, daemon, and command-line client, as well as bindings for mobile (iOS/Android) applications.
 
 [Textile](https://www.textile.io) provides encrypted, recoverable, schema-based, and cross-application data storage built on [IPFS](https://github.com/ipfs) and [libp2p](https://github.com/libp2p). We like to think of it as a decentralized data wallet with built-in protocols for sharing and recovery, or more simply, **an open and programmable iCloud**.
 
