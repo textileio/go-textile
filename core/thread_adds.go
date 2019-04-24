@@ -57,10 +57,6 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	if !t.shareable(t.config.Account.Address, "") {
-		return nil, nil, ErrNotShareable
-	}
-
 	self := t.datastore.Peers().Get(t.node().Identity.Pretty())
 	msg := &pb.ThreadAdd{
 		Thread:  t.datastore.Threads().Get(t.Id),

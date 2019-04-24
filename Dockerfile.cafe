@@ -10,13 +10,13 @@ ENV SRC_DIR /go-textile
 # Download packages first so they can be cached.
 COPY go.mod go.sum $SRC_DIR/
 RUN cd $SRC_DIR \
-&& go mod download
+  && go mod download
 
 COPY . $SRC_DIR
 
 # build source
 RUN cd $SRC_DIR \
-  && make setup \
+  && go get github.com/ahmetb/govvv \
   && make build
 
 # Get su-exec, a very minimal tool for dropping privileges,
