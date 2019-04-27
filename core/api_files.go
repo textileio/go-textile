@@ -1,14 +1,14 @@
 package core
 
 import (
-	"net/http"
-	"strconv"
-
 	"github.com/gin-gonic/gin"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/schema"
+	"io/ioutil"
+	"net/http"
+	"strconv"
 )
 
 // addThreadFiles godoc
@@ -189,4 +189,34 @@ func (a *api) lsThreadFileTargetKeys(g *gin.Context) {
 	}
 
 	pbJSON(g, http.StatusOK, keys)
+}
+
+// lsThreadFileTargetKeys godoc
+// @Summary File data at hash
+// @Description Returns raw data for file
+// @Tags files
+// @Produce application/octet-stream
+// @Param file hash string true "file hash"
+// @Success 200 {object} pb.Keys "keys"
+// @Failure 400 {string} string "Bad Request"
+// @Router /keys/{target} [get]
+func (a *api) getFileData(g *gin.Context) {
+	hash := g.Param("hash")
+
+	var err error
+	reader, _, err := a.node.FileData(hash)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+	}
+
+	reader.Seek(0, 0)
+
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+	}
+
+	contentType := http.DetectContentType(data)
+
+	g.Data(http.StatusOK, contentType, data)
 }

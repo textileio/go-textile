@@ -208,6 +208,11 @@ func (a *api) Start() {
 			files.GET("/:block", a.getThreadFiles)
 		}
 
+		file := v0.Group("/file")
+		{
+			file.GET("/:hash", a.getFileData)
+		}
+
 		feed := v0.Group("/feed")
 		{
 			feed.GET("", a.lsThreadFeed)
