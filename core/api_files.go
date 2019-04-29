@@ -1,14 +1,14 @@
 package core
 
 import (
+	"net/http"
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/schema"
-	"io/ioutil"
-	"net/http"
-	"strconv"
 )
 
 // addThreadFiles godoc
@@ -191,19 +191,28 @@ func (a *api) lsThreadFileTargetKeys(g *gin.Context) {
 	pbJSON(g, http.StatusOK, keys)
 }
 
-// lsThreadFileTargetKeys godoc
+// getFileData godoc
 // @Summary File data at hash
 // @Description Returns raw data for file
 // @Tags files
 // @Produce application/octet-stream
-// @Param file hash string true "file hash"
-// @Success 200 {object} pb.Keys "keys"
+// @Param hash path string true "file hash"
+// @Success 200 {string} byte
 // @Failure 400 {string} string "Bad Request"
-// @Router /keys/{target} [get]
+// @Router /files/{hash} [get]
 func (a *api) getFileData(g *gin.Context) {
 	hash := g.Param("hash")
 
 	var err error
+
+	file, err := a.node.FileIndex(hash)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+	}
+
+	contentLength := file.GetSize()
+	contentType := file.GetMedia()
+
 	reader, _, err := a.node.FileData(hash)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
@@ -211,12 +220,5 @@ func (a *api) getFileData(g *gin.Context) {
 
 	reader.Seek(0, 0)
 
-	data, err := ioutil.ReadAll(reader)
-	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
-	}
-
-	contentType := http.DetectContentType(data)
-
-	g.Data(http.StatusOK, contentType, data)
+	g.DataFromReader(http.StatusOK, contentLength, contentType, reader, map[string]string{})
 }
