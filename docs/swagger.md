@@ -629,6 +629,30 @@ Newer annotations may have already been listed in the case as well.
 | 404 | Not Found | string |
 | 500 | Internal Server Error | string |
 
+### /file/{hash}/data
+
+#### GET
+##### Summary:
+
+File data at hash
+
+##### Description:
+
+Returns raw data for file
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ---- |
+| hash | path | file hash | Yes | string |
+
+##### Responses
+
+| Code | Description | Schema |
+| ---- | ----------- | ------ |
+| 200 | OK | string |
+| 400 | Bad Request | string |
+
 ### /files
 
 #### GET
@@ -678,30 +702,6 @@ Gets a thread file by block ID
 | Code | Description | Schema |
 | ---- | ----------- | ------ |
 | 200 | file | [pb.Files](#pb.files) |
-| 400 | Bad Request | string |
-
-### /files/{hash}
-
-#### GET
-##### Summary:
-
-File data at hash
-
-##### Description:
-
-Returns raw data for file
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| hash | path | file hash | Yes | string |
-
-##### Responses
-
-| Code | Description | Schema |
-| ---- | ----------- | ------ |
-| 200 | OK | string |
 | 400 | Bad Request | string |
 
 ### /invites

@@ -977,6 +977,41 @@
                 }
             }
         },
+        "/file/{hash}/data": {
+            "get": {
+                "description": "Returns raw data for file",
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "files"
+                ],
+                "summary": "File data at hash",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "file hash",
+                        "name": "hash",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/files": {
             "get": {
                 "description": "Paginates thread files. If thread id not provided, paginate all files. Specify\n\"default\" to use the default thread (if set).",
@@ -1050,41 +1085,6 @@
                         "schema": {
                             "type": "object",
                             "$ref": "#/definitions/pb.Files"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/files/{hash}": {
-            "get": {
-                "description": "Returns raw data for file",
-                "produces": [
-                    "application/octet-stream"
-                ],
-                "tags": [
-                    "files"
-                ],
-                "summary": "File data at hash",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "file hash",
-                        "name": "hash",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "string"
                         }
                     },
                     "400": {

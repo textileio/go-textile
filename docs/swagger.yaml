@@ -1194,6 +1194,29 @@ paths:
       summary: Paginates post and annotation block types
       tags:
       - feed
+  /file/{hash}/data:
+    get:
+      description: Returns raw data for file
+      parameters:
+      - description: file hash
+        in: path
+        name: hash
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: File data at hash
+      tags:
+      - files
   /files:
     get:
       description: |-
@@ -1251,29 +1274,6 @@ paths:
           schema:
             type: string
       summary: Get thread file
-      tags:
-      - files
-  /files/{hash}:
-    get:
-      description: Returns raw data for file
-      parameters:
-      - description: file hash
-        in: path
-        name: hash
-        required: true
-        type: string
-      produces:
-      - application/octet-stream
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-      summary: File data at hash
       tags:
       - files
   /invites:
