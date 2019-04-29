@@ -203,20 +203,13 @@ func (a *api) lsThreadFileTargetKeys(g *gin.Context) {
 func (a *api) getFileData(g *gin.Context) {
 	hash := g.Param("hash")
 
-	file, err := a.node.FileIndex(hash)
-	if err != nil {
-		g.String(http.StatusNotFound, err.Error())
-		return
-	}
-
-	contentLength := file.GetSize()
-	contentType := file.GetMedia()
-
-	reader, _, err := a.node.FileData(hash)
+	reader, fileIndex, err := a.node.FileData(hash)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
+	contentLength := fileIndex.GetSize()
+	contentType := fileIndex.GetMedia()
 
 	g.DataFromReader(http.StatusOK, contentLength, contentType, reader, map[string]string{})
 }
