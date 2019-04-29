@@ -210,7 +210,7 @@ func (a *api) Start() {
 
 		file := v0.Group("/file")
 		{
-			file.GET("/:hash", a.getFileData)
+			file.GET("/:hash/data", a.getFileData)
 		}
 
 		feed := v0.Group("/feed")

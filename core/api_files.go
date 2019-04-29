@@ -199,7 +199,7 @@ func (a *api) lsThreadFileTargetKeys(g *gin.Context) {
 // @Param hash path string true "file hash"
 // @Success 200 {string} byte
 // @Failure 400 {string} string "Bad Request"
-// @Router /files/{hash} [get]
+// @Router /file/{hash}/data [get]
 func (a *api) getFileData(g *gin.Context) {
 	hash := g.Param("hash")
 
@@ -207,7 +207,8 @@ func (a *api) getFileData(g *gin.Context) {
 
 	file, err := a.node.FileIndex(hash)
 	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
+		g.String(http.StatusNotFound, err.Error())
+		return
 	}
 
 	contentLength := file.GetSize()
@@ -216,9 +217,8 @@ func (a *api) getFileData(g *gin.Context) {
 	reader, _, err := a.node.FileData(hash)
 	if err != nil {
 		g.String(http.StatusBadRequest, err.Error())
+		return
 	}
-
-	reader.Seek(0, 0)
 
 	g.DataFromReader(http.StatusOK, contentLength, contentType, reader, map[string]string{})
 }
