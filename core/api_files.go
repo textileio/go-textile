@@ -190,3 +190,26 @@ func (a *api) lsThreadFileTargetKeys(g *gin.Context) {
 
 	pbJSON(g, http.StatusOK, keys)
 }
+
+// getFileData godoc
+// @Summary File data at hash
+// @Description Returns raw data for file
+// @Tags files
+// @Produce application/octet-stream
+// @Param hash path string true "file hash"
+// @Success 200 {string} byte
+// @Failure 400 {string} string "Bad Request"
+// @Router /file/{hash}/data [get]
+func (a *api) getFileData(g *gin.Context) {
+	hash := g.Param("hash")
+
+	reader, fileIndex, err := a.node.FileData(hash)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	contentLength := fileIndex.GetSize()
+	contentType := fileIndex.GetMedia()
+
+	g.DataFromReader(http.StatusOK, contentLength, contentType, reader, map[string]string{})
+}
