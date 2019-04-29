@@ -78,10 +78,6 @@ definitions:
         type: string
       protocol:
         type: string
-      swarm:
-        items:
-          type: string
-        type: array
       url:
         type: string
     type: object
@@ -510,52 +506,52 @@ info:
     url: https://github.com/textileio/go-textile/blob/master/LICENSE
   termsOfService: https://github.com/textileio/go-textile/blob/master/TERMS
   title: Textile REST API
-  version: '0'
+  version: "0"
 paths:
   /account:
     get:
       description: Shows the local peer's account info as a contact
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: contact
           schema:
             $ref: '#/definitions/pb.Contact'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
       summary: Show account contact
       tags:
-        - account
+      - account
   /account/address:
     get:
       description: Shows the local peer's account address
       produces:
-        - text/plain
+      - text/plain
       responses:
-        '200':
+        "200":
           description: address
           schema:
             type: string
       summary: Show account address
       tags:
-        - account
+      - account
   /account/seed:
     get:
       description: Shows the local peer's account seed
       produces:
-        - text/plain
+      - text/plain
       responses:
-        '200':
+        "200":
           description: seed
           schema:
             type: string
       summary: Show account seed
       tags:
-        - account
+      - account
   /blocks:
     get:
       description: |-
@@ -564,385 +560,383 @@ paths:
         hash-linked to its parent(s). New / recovering peers can sync history by simply
         traversing the hash tree.
       parameters:
-        - default: thread=,offset=,limit=5
-          description:
-            "thread: Thread ID (can also use 'default'), offset: Offset
-            ID to start listing from (omit for latest), limit: List page size (default:
-            5)"
-          in: header
-          name: X-Textile-Opts
-          type: string
+      - default: thread=,offset=,limit=5
+        description: 'thread: Thread ID (can also use ''default''), offset: Offset
+          ID to start listing from (omit for latest), limit: List page size (default:
+          5)'
+        in: header
+        name: X-Textile-Opts
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: blocks
           schema:
             $ref: '#/definitions/pb.BlockList'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '404':
+        "404":
           description: Not Found
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Paginates blocks in a thread
       tags:
-        - blocks
+      - blocks
   /blocks/{id}:
     delete:
       description: Removes a thread block by ID
       parameters:
-        - description: block id
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: block id
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '201':
+        "201":
           description: block
           schema:
             $ref: '#/definitions/pb.Block'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '404':
+        "404":
           description: Not Found
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Remove thread block
       tags:
-        - blocks
+      - blocks
     get:
       description: Gets a thread block by ID
       parameters:
-        - description: block id
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: block id
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: block
           schema:
             $ref: '#/definitions/pb.Block'
             type: object
-        '404':
+        "404":
           description: Not Found
           schema:
             type: string
       summary: Gets thread block
       tags:
-        - blocks
+      - blocks
   /blocks/{id}/comment:
     get:
       description: Gets a thread comment by block ID
       parameters:
-        - description: block id
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: block id
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: comment
           schema:
             $ref: '#/definitions/pb.Comment'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
       summary: Get thread comment
       tags:
-        - blocks
+      - blocks
   /blocks/{id}/comments:
     get:
       description: Lists comments on a thread block
       parameters:
-        - description: block id
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: block id
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: comments
           schema:
             $ref: '#/definitions/pb.CommentList'
             type: object
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: List comments
       tags:
-        - blocks
+      - blocks
     post:
       description: Adds a comment to a thread block
       parameters:
-        - description: block id
-          in: path
-          name: id
-          required: true
-          type: string
-        - description: urlescaped comment body
-          in: header
-          name: X-Textile-Args
-          required: true
-          type: string
+      - description: block id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: urlescaped comment body
+        in: header
+        name: X-Textile-Args
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '201':
+        "201":
           description: comment
           schema:
             $ref: '#/definitions/pb.Comment'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '404':
+        "404":
           description: Not Found
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Add a comment
       tags:
-        - blocks
+      - blocks
   /blocks/{id}/like:
     get:
       description: Gets a thread like by block ID
       parameters:
-        - description: block id
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: block id
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: like
           schema:
             $ref: '#/definitions/pb.Like'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
       summary: Get thread like
       tags:
-        - blocks
+      - blocks
   /blocks/{id}/likes:
     get:
       description: Lists likes on a thread block
       parameters:
-        - description: block id
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: block id
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: likes
           schema:
             $ref: '#/definitions/pb.LikeList'
             type: object
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: List likes
       tags:
-        - blocks
+      - blocks
     post:
       description: Adds a like to a thread block
       parameters:
-        - description: block id
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: block id
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '201':
+        "201":
           description: like
           schema:
             $ref: '#/definitions/pb.Like'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '404':
+        "404":
           description: Not Found
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Add a like
       tags:
-        - blocks
+      - blocks
   /cafes:
     get:
       description: |-
         List info about all active cafe sessions. Cafes are other peers on the network
         who offer pinning, backup, and inbox services
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: cafe sessions
           schema:
             $ref: '#/definitions/pb.CafeSessionList'
             type: object
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: List info about all active cafe sessions
       tags:
-        - cafes
+      - cafes
     post:
       description: |-
         Registers with a cafe and saves an expiring service session token. An access
         token is required to register, and should be obtained separately from the target
         Cafe
       parameters:
-        - description: cafe host
-          in: header
-          name: X-Textile-Args
-          required: true
-          type: string
-        - default: token=
-          description: 'token: An access token supplied by the Cafe'
-          in: header
-          name: X-Textile-Opts
-          type: string
+      - description: cafe host
+        in: header
+        name: X-Textile-Args
+        required: true
+        type: string
+      - default: token=
+        description: 'token: An access token supplied by the Cafe'
+        in: header
+        name: X-Textile-Opts
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '201':
+        "201":
           description: cafe session
           schema:
             $ref: '#/definitions/pb.CafeSession'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Register with a Cafe
       tags:
-        - cafes
+      - cafes
   /cafes/{id}:
     delete:
-      description:
-        Deregisters with a cafe (content will expire based on the cafe's
+      description: Deregisters with a cafe (content will expire based on the cafe's
         service rules)
       parameters:
-        - description: cafe id
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: cafe id
+        in: path
+        name: id
+        required: true
+        type: string
       responses:
-        '204':
+        "204":
           description: ok
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Deregisters a cafe
       tags:
-        - cafes
+      - cafes
     get:
       description: |-
         Gets and displays info about a cafe session. Cafes are other peers on the network
         who offer pinning, backup, and inbox services
       parameters:
-        - description: cafe id
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: cafe id
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: cafe session
           schema:
             $ref: '#/definitions/pb.CafeSession'
             type: object
-        '404':
+        "404":
           description: Not Found
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Gets and displays info about a cafe session
       tags:
-        - cafes
+      - cafes
   /cafes/messages:
     post:
       description: |-
         Check for messages at all cafes. New messages are downloaded and processed
         opportunistically.
       produces:
-        - text/plain
+      - text/plain
       responses:
-        '200':
+        "200":
           description: ok
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Check for messages at all cafes
       tags:
-        - cafes
+      - cafes
   /config:
     patch:
       consumes:
-        - application/json
+      - application/json
       description: |-
         When patching config values, valid JSON types must be used. For example, a string
         should be escaped or wrapped in single quotes (e.g., \"127.0.0.1:40600\") and
@@ -950,209 +944,208 @@ paths:
         wrapped in single quotes. Be sure to restart the daemon for changes to take effect.
         See https://tools.ietf.org/html/rfc6902 for details on RFC6902 JSON patch format.
       parameters:
-        - description: An RFC6902 JSON patch (array of ops)
-          in: body
-          name: patch
-          required: true
-          schema:
-            $ref: '#/definitions/mill.Json'
-            type: object
+      - description: An RFC6902 JSON patch (array of ops)
+        in: body
+        name: patch
+        required: true
+        schema:
+          $ref: '#/definitions/mill.Json'
+          type: object
       responses:
-        '204':
+        "204":
           description: No Content
           schema:
             type: string
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
       summary: Set/update config settings
       tags:
-        - config
+      - config
     put:
       consumes:
-        - application/json
+      - application/json
       description: |-
         Replace entire config file contents. The config command controls configuration
         variables. It works much like 'git config'. The configuration values are stored
         in a config file inside the Textile repository.
       parameters:
-        - description: JSON document
-          in: body
-          name: config
-          required: true
-          schema:
-            $ref: '#/definitions/mill.Json'
-            type: object
+      - description: JSON document
+        in: body
+        name: config
+        required: true
+        schema:
+          $ref: '#/definitions/mill.Json'
+          type: object
       responses:
-        '204':
+        "204":
           description: No Content
           schema:
             type: string
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
       summary: Replace config settings.
       tags:
-        - config
+      - config
   /config/{path}:
     get:
       description: |-
         Report the currently active config settings, which may differ from the values
         specifed when setting/patching values.
       parameters:
-        - description: config path (e.g., Addresses/API)
-          in: path
-          name: path
-          type: string
+      - description: config path (e.g., Addresses/API)
+        in: path
+        name: path
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: new config value
           schema:
             $ref: '#/definitions/mill.Json'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
       summary: Get active config settings
       tags:
-        - config
+      - config
   /contacts:
     get:
       description: Lists known contacts.
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: contacts
           schema:
             $ref: '#/definitions/pb.ContactList'
             type: object
-        '404':
+        "404":
           description: Not Found
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: List known contacts
       tags:
-        - contacts
+      - contacts
   /contacts/{address}:
     delete:
       description: Removes a known contact
       parameters:
-        - description: address
-          in: path
-          name: address
-          required: true
-          type: string
+      - description: address
+        in: path
+        name: address
+        required: true
+        type: string
       responses:
-        '204':
+        "204":
           description: ok
           schema:
             type: string
-        '404':
+        "404":
           description: Not Found
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Remove a contact
       tags:
-        - contacts
+      - contacts
     get:
       description: Gets a known contact
       parameters:
-        - description: address
-          in: path
-          name: address
-          required: true
-          type: string
+      - description: address
+        in: path
+        name: address
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: contact
           schema:
             $ref: '#/definitions/pb.Contact'
             type: object
-        '404':
+        "404":
           description: Not Found
           schema:
             type: string
       summary: Get a known contact
       tags:
-        - contacts
+      - contacts
     put:
       consumes:
-        - application/json
+      - application/json
       description: Adds a contact by username or account address to known contacts.
       parameters:
-        - description: address
-          in: path
-          name: address
-          required: true
-          type: string
-        - description: contact
-          in: body
-          name: contact
-          required: true
-          schema:
-            $ref: '#/definitions/pb.Contact'
-            type: object
+      - description: address
+        in: path
+        name: address
+        required: true
+        type: string
+      - description: contact
+        in: body
+        name: contact
+        required: true
+        schema:
+          $ref: '#/definitions/pb.Contact'
+          type: object
       responses:
-        '204':
+        "204":
           description: ok
           schema:
             type: string
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
       summary: Add to known contacts
       tags:
-        - contacts
+      - contacts
   /contacts/search:
     post:
       description: Search for contacts known locally and on the network
       parameters:
-        - default: local="false",limit=5,wait=5,address=,username=,events="false"
-          description:
-            "local: Whether to only search local contacts, remote: Whether
-            to only search remote contacts, limit: Stops searching after limit results
-            are found, wait: Stops searching after 'wait' seconds have elapsed (max
-            30s), username: search by username string, address: search by account address
-            string, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON"
-          in: header
-          name: X-Textile-Opts
-          type: string
+      - default: local="false",limit=5,wait=5,address=,username=,events="false"
+        description: 'local: Whether to only search local contacts, remote: Whether
+          to only search remote contacts, limit: Stops searching after limit results
+          are found, wait: Stops searching after ''wait'' seconds have elapsed (max
+          30s), username: search by username string, address: search by account address
+          string, events: Whether to emit Server-Sent Events (SSEvent) or plain JSON'
+        in: header
+        name: X-Textile-Opts
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: results stream
           schema:
             $ref: '#/definitions/pb.QueryResult'
             type: object
-        '404':
+        "404":
           description: Not Found
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Search for contacts
       tags:
-        - contacts
+      - contacts
   /feed:
     get:
       description: |-
@@ -1171,821 +1164,831 @@ paths:
         position in the stack. Additional annotations are nested under the target.
         Newer annotations may have already been listed in the case as well.
       parameters:
-        - default: thread=,offset=,limit=5,mode="chrono"
-          description:
-            "thread: Thread ID (can also use 'default'), offset: Offset
-            ID to start listing from (omit for latest), limit: List page size (default:
-            5), mode: Feed mode (one of 'chrono', 'annotated', or 'stacks')"
-          in: header
-          name: X-Textile-Opts
-          type: string
+      - default: thread=,offset=,limit=5,mode="chrono"
+        description: 'thread: Thread ID (can also use ''default''), offset: Offset
+          ID to start listing from (omit for latest), limit: List page size (default:
+          5), mode: Feed mode (one of ''chrono'', ''annotated'', or ''stacks'')'
+        in: header
+        name: X-Textile-Opts
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: feed
           schema:
             $ref: '#/definitions/pb.FeedItemList'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '404':
+        "404":
           description: Not Found
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Paginates post and annotation block types
       tags:
-        - feed
+      - feed
   /files:
     get:
       description: |-
         Paginates thread files. If thread id not provided, paginate all files. Specify
         "default" to use the default thread (if set).
       parameters:
-        - default: thread=,offset=,limit=5
-          description:
-            'thread: Thread ID. Omit for all, offset: Offset ID to start
-            listing from. Omit for latest, limit: List page size. (default: 5)'
-          in: header
-          name: X-Textile-Opts
-          type: string
+      - default: thread=,offset=,limit=5
+        description: 'thread: Thread ID. Omit for all, offset: Offset ID to start
+          listing from. Omit for latest, limit: List page size. (default: 5)'
+        in: header
+        name: X-Textile-Opts
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: files
           schema:
             $ref: '#/definitions/pb.FilesList'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '404':
+        "404":
           description: Not Found
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Paginates thread files
       tags:
-        - files
+      - files
   /files/{block}:
     get:
       description: Gets a thread file by block ID
       parameters:
-        - description: block id
-          in: path
-          name: block
-          required: true
-          type: string
+      - description: block id
+        in: path
+        name: block
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: file
           schema:
             $ref: '#/definitions/pb.Files'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
       summary: Get thread file
       tags:
-        - files
+      - files
+  /files/{hash}:
+    get:
+      description: Returns raw data for file
+      parameters:
+      - description: file hash
+        in: path
+        name: hash
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: File data at hash
+      tags:
+      - files
   /invites:
     get:
       description: Lists all pending thread invites
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: invites
           schema:
             $ref: '#/definitions/pb.InviteViewList'
             type: object
       summary: List invites
       tags:
-        - invites
+      - invites
     post:
       description: Creates a direct account-to-account or external invite to a thread
       parameters:
-        - default: thread=,address=
-          description:
-            "thread: Thread ID (can also use 'default'), address: Account
-            Address (omit to create an external invite)"
-          in: header
-          name: X-Textile-Opts
-          type: string
+      - default: thread=,address=
+        description: 'thread: Thread ID (can also use ''default''), address: Account
+          Address (omit to create an external invite)'
+        in: header
+        name: X-Textile-Opts
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '201':
+        "201":
           description: invite
           schema:
             $ref: '#/definitions/pb.ExternalInvite'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '404':
+        "404":
           description: Not Found
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Create an invite to a thread
       tags:
-        - invites
+      - invites
   /invites/{id}/accept:
     post:
       description: |-
         Accepts a direct peer-to-peer or external invite to a thread. Use the key option
         with an external invite
       parameters:
-        - description: invite id
-          in: path
-          name: id
-          required: true
-          type: string
-        - default: key=
-          description: 'key: key for an external invite'
-          in: header
-          name: X-Textile-Opts
-          type: string
+      - description: invite id
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: key=
+        description: 'key: key for an external invite'
+        in: header
+        name: X-Textile-Opts
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '201':
+        "201":
           description: join block
           schema:
             $ref: '#/definitions/pb.Block'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '409':
+        "409":
           description: Conflict
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Accept a thread invite
       tags:
-        - invites
+      - invites
   /invites/{id}/ignore:
     post:
       description: Ignores a direct peer-to-peer invite to a thread
       parameters:
-        - description: invite id
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: invite id
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: ok
           schema:
             type: string
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
       summary: Ignore a thread invite
       tags:
-        - invites
+      - invites
   /ipfs/cat/{path}:
     get:
       description: Displays the data behind an IPFS CID (hash) or Path
       parameters:
-        - description: ipfs/ipns cid
-          in: path
-          name: path
-          required: true
-          type: string
-        - default: key=
-          description: 'key: Key to decrypt data on-the-fly'
-          in: header
-          name: X-Textile-Opts
-          type: string
+      - description: ipfs/ipns cid
+        in: path
+        name: path
+        required: true
+        type: string
+      - default: key=
+        description: 'key: Key to decrypt data on-the-fly'
+        in: header
+        name: X-Textile-Opts
+        type: string
       produces:
-        - application/octet-stream
+      - application/octet-stream
       responses:
-        '200':
+        "200":
           description: data
           schema:
             items:
               type: integer
             type: array
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '401':
+        "401":
           description: Unauthorized
           schema:
             type: string
-        '404':
+        "404":
           description: Not Found
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Cat IPFS data
       tags:
-        - ipfs
+      - ipfs
   /ipfs/id:
     get:
       description: Displays underlying IPFS peer ID
       produces:
-        - text/plain
+      - text/plain
       responses:
-        '200':
+        "200":
           description: peer id
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Get IPFS peer ID
       tags:
-        - ipfs
+      - ipfs
   /ipfs/swarm/connect:
     post:
       description: Opens a new direct connection to a peer using an IPFS multiaddr
       parameters:
-        - description: peer address
-          in: header
-          name: X-Textile-Args
-          required: true
-          type: string
+      - description: peer address
+        in: header
+        name: X-Textile-Args
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: ok
           schema:
             items:
               type: string
             type: array
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Opens a new direct connection to a peer address
       tags:
-        - ipfs
+      - ipfs
   /ipfs/swarm/peers:
     get:
       description: Lists the set of peers this node is connected to
       parameters:
-        - default: verbose="false",latency="false",streams="false",direction="false"
-          description:
-            'verbose: Display all extra information, latency: Also list information
-            about latency to each peer, streams: Also list information about open streams
-            for each peer, direction: Also list information about the direction of connection'
-          in: header
-          name: X-Textile-Opts
-          type: string
+      - default: verbose="false",latency="false",streams="false",direction="false"
+        description: 'verbose: Display all extra information, latency: Also list information
+          about latency to each peer, streams: Also list information about open streams
+          for each peer, direction: Also list information about the direction of connection'
+        in: header
+        name: X-Textile-Opts
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: connection
           schema:
             $ref: '#/definitions/ipfs.ConnInfos'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: List swarm peers
       tags:
-        - ipfs
+      - ipfs
   /keys/{target}:
     get:
       description: Shows file keys under the given target from an add
       parameters:
-        - description: target id
-          in: path
-          name: target
-          required: true
-          type: string
+      - description: target id
+        in: path
+        name: target
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: keys
           schema:
             $ref: '#/definitions/pb.Keys'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
       summary: Show file keys
       tags:
-        - files
+      - files
   /logs/{subsystem}:
     post:
       description: |-
         List or change the verbosity of one or all subsystems log output. Textile logs
         piggyback on the IPFS event logs
       parameters:
-        - description: subsystem logging identifier (omit for all)
-          in: path
-          name: subsystem
-          type: string
-        - default: level=,tex-only="false"
-          description:
-            'level: Log-level (one of: debug, info, warning, error, critical,
-            or '
-          in: header
-          name: X-Textile-Opts
-          type: string
+      - description: subsystem logging identifier (omit for all)
+        in: path
+        name: subsystem
+        type: string
+      - default: level=,tex-only="false"
+        description: 'level: Log-level (one of: debug, info, warning, error, critical,
+          or '
+        in: header
+        name: X-Textile-Opts
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: subsystems
           schema:
             $ref: '#/definitions/core.SubsystemInfo'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Access subsystem logs
       tags:
-        - utils
+      - utils
   /messages:
     get:
       description: Paginates thread messages
       parameters:
-        - default: thread=,offset=,limit=10
-          description:
-            "thread: Thread ID (can also use 'default', omit for all),
-            offset: Offset ID to start listing from (omit for latest), limit: List page
-            size (default: 5)"
-          in: header
-          name: X-Textile-Opts
-          type: string
+      - default: thread=,offset=,limit=10
+        description: 'thread: Thread ID (can also use ''default'', omit for all),
+          offset: Offset ID to start listing from (omit for latest), limit: List page
+          size (default: 5)'
+        in: header
+        name: X-Textile-Opts
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: messages
           schema:
             $ref: '#/definitions/pb.TextList'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '404':
+        "404":
           description: Not Found
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Paginates thread messages
       tags:
-        - messages
+      - messages
   /messages/{block}:
     get:
       description: Gets a thread message by block ID
       parameters:
-        - description: block id
-          in: path
-          name: block
-          required: true
-          type: string
+      - description: block id
+        in: path
+        name: block
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: message
           schema:
             $ref: '#/definitions/pb.Text'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
       summary: Get thread message
       tags:
-        - messages
+      - messages
   /mills/blob:
     post:
       consumes:
-        - multipart/form-data
+      - multipart/form-data
       description: |-
         Takes a binary data blob, and optionally encrypts it, before adding to IPFS,
         and returns a file object
       parameters:
-        - description: multipart/form-data file
-          in: formData
-          name: file
-          type: file
-        - default: plaintext=false,use=""
-          description:
-            'plaintext: whether to leave unencrypted), use: if empty, assumes
-            body contains multipart form file data, otherwise, will attempt to fetch
-            given CID from IPFS'
-          in: header
-          name: X-Textile-Opts
-          type: string
+      - description: multipart/form-data file
+        in: formData
+        name: file
+        type: file
+      - default: plaintext=false,use=""
+        description: 'plaintext: whether to leave unencrypted), use: if empty, assumes
+          body contains multipart form file data, otherwise, will attempt to fetch
+          given CID from IPFS'
+        in: header
+        name: X-Textile-Opts
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '201':
+        "201":
           description: file
           schema:
             $ref: '#/definitions/pb.FileIndex'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Process raw data blobs
       tags:
-        - mills
+      - mills
   /mills/image/exif:
     post:
       consumes:
-        - multipart/form-data
+      - multipart/form-data
       description: |-
         Takes an input image, and extracts its EXIF data (optionally encrypting output),
         before adding to IPFS, and returns a file object
       parameters:
-        - description: multipart/form-data file
-          in: formData
-          name: file
-          type: file
-        - default: plaintext=false,use=""
-          description:
-            'plaintext: whether to leave unencrypted, use: if empty, assumes
-            body contains multipart form file data, otherwise, will attempt to fetch
-            given CID from IPFS'
-          in: header
-          name: X-Textile-Opts
-          type: string
+      - description: multipart/form-data file
+        in: formData
+        name: file
+        type: file
+      - default: plaintext=false,use=""
+        description: 'plaintext: whether to leave unencrypted, use: if empty, assumes
+          body contains multipart form file data, otherwise, will attempt to fetch
+          given CID from IPFS'
+        in: header
+        name: X-Textile-Opts
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '201':
+        "201":
           description: file
           schema:
             $ref: '#/definitions/pb.FileIndex'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Extract EXIF data from image
       tags:
-        - mills
+      - mills
   /mills/image/resize:
     post:
       consumes:
-        - multipart/form-data
+      - multipart/form-data
       description: |-
         Takes an input image, and resizes/resamples it (optionally encrypting output),
         before adding to IPFS, and returns a file object
       parameters:
-        - description: multipart/form-data file
-          in: formData
-          name: file
-          type: file
-        - default: plaintext=false,use="",quality=75,width=100
-          description:
-            'plaintext: whether to leave unencrypted, use: if empty, assumes
-            body contains multipart form file data, otherwise, will attempt to fetch
-            given CID from IPFS, width: the requested image width (required), quality:
-            the requested JPEG image quality'
-          in: header
-          name: X-Textile-Opts
-          required: true
-          type: string
+      - description: multipart/form-data file
+        in: formData
+        name: file
+        type: file
+      - default: plaintext=false,use="",quality=75,width=100
+        description: 'plaintext: whether to leave unencrypted, use: if empty, assumes
+          body contains multipart form file data, otherwise, will attempt to fetch
+          given CID from IPFS, width: the requested image width (required), quality:
+          the requested JPEG image quality'
+        in: header
+        name: X-Textile-Opts
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '201':
+        "201":
           description: file
           schema:
             $ref: '#/definitions/pb.FileIndex'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Resize an image
       tags:
-        - mills
+      - mills
   /mills/json:
     post:
       consumes:
-        - multipart/form-data
+      - multipart/form-data
       description: |-
         Takes an input JSON document, validates it according to its schema.org definition,
         optionally encrypts the output before adding to IPFS, and returns a file object
       parameters:
-        - description: multipart/form-data file
-          in: formData
-          name: file
-          type: file
-        - default: plaintext="false",use=""
-          description:
-            'plaintext: whether to leave unencrypted, use: if empty, assumes
-            body contains multipart form file data, otherwise, will attempt to fetch
-            given CID from IPFS'
-          in: header
-          name: X-Textile-Opts
-          type: string
+      - description: multipart/form-data file
+        in: formData
+        name: file
+        type: file
+      - default: plaintext="false",use=""
+        description: 'plaintext: whether to leave unencrypted, use: if empty, assumes
+          body contains multipart form file data, otherwise, will attempt to fetch
+          given CID from IPFS'
+        in: header
+        name: X-Textile-Opts
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '201':
+        "201":
           description: file
           schema:
             $ref: '#/definitions/pb.FileIndex'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Process input JSON data
       tags:
-        - mills
+      - mills
   /mills/schema:
     post:
       consumes:
-        - application/json
-      description:
-        Takes a JSON-based Schema, validates it, adds it to IPFS, and returns
+      - application/json
+      description: Takes a JSON-based Schema, validates it, adds it to IPFS, and returns
         a file object
       parameters:
-        - description: schema
-          in: body
-          name: schema
-          required: true
-          schema:
-            $ref: '#/definitions/pb.Node'
-            type: object
+      - description: schema
+        in: body
+        name: schema
+        required: true
+        schema:
+          $ref: '#/definitions/pb.Node'
+          type: object
       produces:
-        - application/json
+      - application/json
       responses:
-        '201':
+        "201":
           description: file
           schema:
             $ref: '#/definitions/pb.FileIndex'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
       summary: Validate, add, and pin a new Schema
       tags:
-        - mills
+      - mills
   /notifications:
     get:
       description: Lists all notifications generated by thread and account activity.
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: notifications
           schema:
             $ref: '#/definitions/pb.NotificationList'
             type: object
       summary: List notifications
       tags:
-        - notifications
+      - notifications
   /notifications/{id}/read:
     post:
       description: Marks a notifiction as read by ID. Use 'all' to mark all as read.
       parameters:
-        - description: notification id
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: notification id
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: ok
           schema:
             type: string
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
       summary: Mark notifiction as read
       tags:
-        - notifications
+      - notifications
   /ping:
     get:
       description: Pings another peer on the network, returning online|offline.
       parameters:
-        - description: peerid
-          in: header
-          name: X-Textile-Args
-          required: true
-          type: string
+      - description: peerid
+        in: header
+        name: X-Textile-Args
+        required: true
+        type: string
       produces:
-        - text/plain
+      - text/plain
       responses:
-        '200':
+        "200":
           description: One of online|offline
           schema:
             type: string
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Ping a network peer
       tags:
-        - utils
+      - utils
   /profile:
     get:
       description: Gets the local node's public profile
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: peer
           schema:
             $ref: '#/definitions/pb.Peer'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
       summary: Get public profile
       tags:
-        - profile
+      - profile
   /profile/avatar:
     post:
-      description:
-        Sets public profile avatar by specifying an existing image file
+      description: Sets public profile avatar by specifying an existing image file
         hash
       parameters:
-        - description: hash
-          in: header
-          name: X-Textile-Args
-          required: true
-          type: string
+      - description: hash
+        in: header
+        name: X-Textile-Args
+        required: true
+        type: string
       produces:
-        - text/plain
+      - text/plain
       responses:
-        '201':
+        "201":
           description: ok
           schema:
             type: string
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Set avatar
       tags:
-        - profile
+      - profile
   /profile/name:
     post:
       description: Sets public profile display name to given string
       parameters:
-        - description: name
-          in: header
-          name: X-Textile-Args
-          required: true
-          type: string
+      - description: name
+        in: header
+        name: X-Textile-Args
+        required: true
+        type: string
       produces:
-        - text/plain
+      - text/plain
       responses:
-        '201':
+        "201":
           description: ok
           schema:
             type: string
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Set display name
       tags:
-        - profile
+      - profile
   /snapshots:
     post:
       description: Snapshots all threads and pushes to registered cafes
       produces:
-        - application/json
+      - application/json
       responses:
-        '201':
+        "201":
           description: ok
           schema:
             type: string
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Create thread snapshots
       tags:
-        - threads
+      - threads
   /snapshots/search:
     post:
       description: Searches the network for thread snapshots
       parameters:
-        - default: wait=5,events="false"
-          description:
-            "wait: Stops searching after 'wait' seconds have elapsed (max
-            30s), events: Whether to emit Server-Sent Events (SSEvent) or plain JSON"
-          in: header
-          name: X-Textile-Opts
-          type: string
+      - default: wait=5,events="false"
+        description: 'wait: Stops searching after ''wait'' seconds have elapsed (max
+          30s), events: Whether to emit Server-Sent Events (SSEvent) or plain JSON'
+        in: header
+        name: X-Textile-Opts
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: results stream
           schema:
             $ref: '#/definitions/pb.QueryResult'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Search for thread snapshots
       tags:
-        - threads
+      - threads
   /subscribe/{id}:
     get:
       description: |-
@@ -1993,335 +1996,332 @@ paths:
         when a new block is added to a thread. There are several update types:
         MERGE, IGNORE, FLAG, JOIN, ANNOUNCE, LEAVE, TEXT, FILES, COMMENT, LIKE
       parameters:
-        - description: thread id, omit to stream all events
-          in: path
-          name: id
-          type: string
-        - default: type=,events="false"
-          description:
-            "type: Or'd list of event types (e.g., FILES|COMMENTS|LIKES)
-            or empty to include all types, events: Whether to emit Server-Sent Events
-            (SSEvent) or plain JSON"
-          in: header
-          name: X-Textile-Opts
-          type: string
+      - description: thread id, omit to stream all events
+        in: path
+        name: id
+        type: string
+      - default: type=,events="false"
+        description: 'type: Or''d list of event types (e.g., FILES|COMMENTS|LIKES)
+          or empty to include all types, events: Whether to emit Server-Sent Events
+          (SSEvent) or plain JSON'
+        in: header
+        name: X-Textile-Opts
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: stream of updates
           schema:
             $ref: '#/definitions/pb.FeedItem'
             type: object
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Subscribe to thread updates
       tags:
-        - subscribe
+      - subscribe
   /summary:
     get:
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: summary
           schema:
             $ref: '#/definitions/pb.Summary'
             type: object
       summary: Get a summary of node data
       tags:
-        - utils
+      - utils
   /threads:
     get:
       description: Lists all local threads, returning a ThreadList object
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: threads
           schema:
             $ref: '#/definitions/pb.ThreadList'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Lists info on all threads
       tags:
-        - threads
+      - threads
     post:
       description: |-
         Adds a new Thread with given name, type, and sharing and whitelist options, returning
         a Thread object
       parameters:
-        - description: name
-          in: header
-          name: X-Textile-Args
-          required: true
-          type: string
-        - default: type=private,sharing=not_shared,whitelist=
-          description:
-            "key: A locally unique key used by an app to identify this thread
-            on recovery, schema: Existing Thread Schema IPFS CID, type: Set the thread
-            type to one of 'private', 'read_only', 'public', or 'open', sharing:
-            Set the thread sharing style to one of 'not_shared','invite_only', or
-            'shared', whitelist: An array of contact addresses. When supplied, the
-            thread will not allow additional peers beyond those in array, useful for
-            1-1 chat/file sharing"
-          in: header
-          name: X-Textile-Opts
-          type: string
+      - description: name
+        in: header
+        name: X-Textile-Args
+        required: true
+        type: string
+      - default: type=private,sharing=not_shared,whitelist=
+        description: 'key: A locally unique key used by an app to identify this thread
+          on recovery, schema: Existing Thread Schema IPFS CID, type: Set the thread
+          type to one of ''private'', ''read_only'', ''public'', or ''open'', sharing:
+          Set the thread sharing style to one of ''not_shared'',''invite_only'', or
+          ''shared'', whitelist: An array of contact addresses. When supplied, the
+          thread will not allow additional peers beyond those in array, useful for
+          1-1 chat/file sharing'
+        in: header
+        name: X-Textile-Opts
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '201':
+        "201":
           description: thread
           schema:
             $ref: '#/definitions/pb.Thread'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Adds and joins a new thread
       tags:
-        - threads
+      - threads
   /threads/{id}:
     delete:
       description: Leaves and removes a thread
       parameters:
-        - description: thread id
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: thread id
+        in: path
+        name: id
+        required: true
+        type: string
       responses:
-        '204':
+        "204":
           description: ok
           schema:
             type: string
-        '404':
+        "404":
           description: Not Found
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Leave and remove a thread
       tags:
-        - threads
+      - threads
     get:
       description: Gets and displays info about a thread
       parameters:
-        - description: thread id
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: thread id
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: thread
           schema:
             $ref: '#/definitions/pb.Thread'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Gets a thread
       tags:
-        - threads
+      - threads
     put:
       description: Adds or updates a thread directly, usually from a backup
       parameters:
-        - description: id
-          in: path
-          name: id
-          required: true
-          type: string
-        - description: thread
-          in: body
-          name: thread
-          required: true
-          schema:
-            $ref: '#/definitions/pb.Thread'
-            type: object
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: thread
+        in: body
+        name: thread
+        required: true
+        schema:
+          $ref: '#/definitions/pb.Thread'
+          type: object
       responses:
-        '204':
+        "204":
           description: ok
           schema:
             type: string
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
       summary: Add or update a thread directly
       tags:
-        - threads
+      - threads
   /threads/{id}/files:
     post:
       consumes:
-        - application/json
+      - application/json
       description: |-
         Adds a file or directory of files to a thread. Files not supported by the thread
         schema are ignored. Nested directories are included. An existing file hash may
         also be used as input.
       parameters:
-        - description: list of milled dirs (output from mill endpoint)
-          in: body
-          name: dir
-          required: true
-          schema:
-            $ref: '#/definitions/pb.DirectoryList'
-            type: object
-        - default: caption=
-          description: 'caption: Caption to add to file(s)'
-          in: header
-          name: X-Textile-Opts
-          type: string
+      - description: list of milled dirs (output from mill endpoint)
+        in: body
+        name: dir
+        required: true
+        schema:
+          $ref: '#/definitions/pb.DirectoryList'
+          type: object
+      - default: caption=
+        description: 'caption: Caption to add to file(s)'
+        in: header
+        name: X-Textile-Opts
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '201':
+        "201":
           description: file
           schema:
             $ref: '#/definitions/pb.Files'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '404':
+        "404":
           description: Not Found
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Adds a file or directory of files to a thread
       tags:
-        - threads
+      - threads
   /threads/{id}/messages:
     post:
       description: Adds a message to a thread
       parameters:
-        - description: urlescaped message body
-          in: header
-          name: X-Textile-Args
-          required: true
-          type: string
+      - description: urlescaped message body
+        in: header
+        name: X-Textile-Args
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: message
           schema:
             $ref: '#/definitions/pb.Text'
             type: object
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '404':
+        "404":
           description: Not Found
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Add a message
       tags:
-        - threads
+      - threads
   /threads/{id}/name:
     put:
       description: Renames a thread. Only initiators can rename a thread.
       parameters:
-        - description: id
-          in: path
-          name: id
-          required: true
-          type: string
-        - description: name
-          in: header
-          name: X-Textile-Args
-          required: true
-          type: string
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: name
+        in: header
+        name: X-Textile-Args
+        required: true
+        type: string
       responses:
-        '204':
+        "204":
           description: ok
           schema:
             type: string
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
       summary: Rename a thread
       tags:
-        - threads
+      - threads
   /threads/{id}/peers:
     get:
-      description:
-        Lists all peers in a thread, optionally listing peers in the default
+      description: Lists all peers in a thread, optionally listing peers in the default
         thread
       parameters:
-        - description: thread id
-          in: path
-          name: id
-          required: true
-          type: string
+      - description: thread id
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: contacts
           schema:
             $ref: '#/definitions/pb.ContactList'
             type: object
-        '404':
+        "404":
           description: Not Found
           schema:
             type: string
       summary: List all thread peers
       tags:
-        - threads
+      - threads
   /tokens:
     get:
       description: List info about all stored cafe tokens
       produces:
-        - application/json
+      - application/json
       responses:
-        '200':
+        "200":
           description: tokens
           schema:
             items:
               type: string
             type: array
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: List local tokens
       tags:
-        - tokens
+      - tokens
     post:
       description: |-
         Generates an access token (44 random bytes) and saves a bcrypt hashed version for
@@ -2331,72 +2331,71 @@ paths:
         by specifying the 'token' option.
         Tokens allow other peers to register with a Cafe peer.
       parameters:
-        - default: token=,store="true"
-          description:
-            'token: Use existing token, rather than creating a new one, store:
-            Whether to store the added/generated token to the local db'
-          in: header
-          name: X-Textile-Opts
-          type: string
+      - default: token=,store="true"
+        description: 'token: Use existing token, rather than creating a new one, store:
+          Whether to store the added/generated token to the local db'
+        in: header
+        name: X-Textile-Opts
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
-        '201':
+        "201":
           description: token
           schema:
             type: string
-        '400':
+        "400":
           description: Bad Request
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Create an access token
       tags:
-        - tokens
+      - tokens
   /tokens/{id}:
     delete:
       description: Removes an existing cafe token
       parameters:
-        - description: token
-          in: path
-          name: token
-          required: true
-          type: string
+      - description: token
+        in: path
+        name: token
+        required: true
+        type: string
       responses:
-        '204':
+        "204":
           description: ok
           schema:
             type: string
-        '500':
+        "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Removes a cafe token
       tags:
-        - tokens
+      - tokens
     get:
       description: Check validity of existing cafe access token
       parameters:
-        - description: invite id
-          in: path
-          name: token
-          required: true
-          type: string
+      - description: invite id
+        in: path
+        name: token
+        required: true
+        type: string
       produces:
-        - text/plain
+      - text/plain
       responses:
-        '200':
+        "200":
           description: ok
           schema:
             type: string
-        '401':
+        "401":
           description: Unauthorized
           schema:
             type: string
       summary: Check token validity
       tags:
-        - tokens
-swagger: '2.0'
+      - tokens
+swagger: "2.0"
