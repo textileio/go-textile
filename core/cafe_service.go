@@ -1447,11 +1447,15 @@ func (h *CafeService) verifyKeyFunc(token *njwt.Token) (interface{}, error) {
 func (h *CafeService) setAddrs(conf *config.Config) error {
 	url := strings.TrimRight(conf.Cafe.Host.URL, "/")
 	if url == "" {
-		ip4, err := h.getPublicIPv4Addr(time.Now().Add(5 * time.Second))
-		if err != nil {
-			return err
+		if conf.Cafe.Host.Local {
+			url = "http://127.0.0.1"
+		} else {
+			ip4, err := h.getPublicIPv4Addr(time.Now().Add(5 * time.Second))
+			if err != nil {
+				return err
+			}
+			url = "http://" + ip4
 		}
-		url = "http://" + ip4
 		parts := strings.Split(conf.Addresses.CafeAPI, ":")
 		if len(parts) == 2 {
 			url += ":" + parts[1]

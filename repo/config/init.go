@@ -72,7 +72,8 @@ type Cafe struct {
 // TODO: add some more knobs: max num. clients, max client msg age, inbox size, etc.
 type CafeHost struct {
 	Open        bool   // When true, other peers can register with this node for cafe services.
-	URL         string // Specifies the URL of this cafe.
+	Local       bool   // when true, http://localhost is used as the API host
+	URL         string // Override the resolved URL of this cafe, useful for load HTTPS and/or load balancers
 	NeighborURL string // Specifies the URL of a secondary cafe. Must return cafe info.
 	SizeLimit   int64  // Maximum file size limit to accept for POST requests in bytes.
 }
