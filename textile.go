@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	_ "expvar"
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
@@ -12,11 +13,11 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	logging "github.com/ipfs/go-log"
-
 	"github.com/jessevdk/go-flags"
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/go-textile/cmd"
@@ -513,7 +514,8 @@ func startNode(serveDocs bool) error {
 
 	// start profiling api
 	go func() {
-		if err := http.ListenAndServe(node.Config().Addresses.Profiling, nil); err != nil {
+		mutexFractionOption("/debug/pprof-mutex/")
+		if err := http.ListenAndServe(node.Config().Addresses.Profiling, http.DefaultServeMux); err != nil {
 			log.Errorf("error staring profile listener: %s", err)
 		}
 	}()
@@ -562,4 +564,35 @@ func envOrFlag(env string, flag string) string {
 		return os.Getenv(env)
 	}
 	return flag
+}
+
+// MutexFractionOption allows to set runtime.SetMutexProfileFraction via HTTP
+// using POST request with parameter 'fraction'.
+func mutexFractionOption(path string) {
+	http.DefaultServeMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		if err := r.ParseForm(); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(err.Error()))
+			return
+		}
+
+		asfr := r.Form.Get("fraction")
+		if len(asfr) == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		fr, err := strconv.Atoi(asfr)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(err.Error()))
+			return
+		}
+		log.Infof("Setting MutexProfileFraction to %d", fr)
+		runtime.SetMutexProfileFraction(fr)
+	})
 }
