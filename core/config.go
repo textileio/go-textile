@@ -51,6 +51,7 @@ func applyTextileConfigOptions(init InitConfig) error {
 	conf.Addresses.API = init.ApiAddr
 	conf.Addresses.CafeAPI = init.CafeApiAddr
 	conf.Addresses.Gateway = init.GatewayAddr
+	conf.Addresses.Profiling = init.ProfilingAddr
 
 	// log settings
 	conf.Logs.LogToDisk = init.LogToDisk

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -39,9 +41,10 @@ type logOptions struct {
 }
 
 type addressOptions struct {
-	ApiBindAddr     string `short:"a" long:"api-bind-addr" description:"Set the local API address." default:"127.0.0.1:40600"`
-	CafeApiBindAddr string `short:"c" long:"cafe-bind-addr" description:"Set the cafe REST API address." default:"127.0.0.1:40601"`
-	GatewayBindAddr string `short:"g" long:"gateway-bind-addr" description:"Set the IPFS gateway address." default:"127.0.0.1:5050"`
+	ApiBindAddr       string `short:"a" long:"api-bind-addr" description:"Set the local API address." default:"127.0.0.1:40600"`
+	CafeApiBindAddr   string `short:"c" long:"cafe-bind-addr" description:"Set the cafe REST API address." default:"127.0.0.1:40601"`
+	GatewayBindAddr   string `short:"g" long:"gateway-bind-addr" description:"Set the IPFS gateway address." default:"127.0.0.1:5050"`
+	ProfilingBindAddr string `long:"profile-bind-addr" description:"Set the profiling address." default:"127.0.0.1:6060"`
 }
 
 type cafeOptions struct {
@@ -312,6 +315,7 @@ func (x *initCmd) Execute(args []string) error {
 		ApiAddr:         x.Addresses.ApiBindAddr,
 		CafeApiAddr:     x.Addresses.CafeApiBindAddr,
 		GatewayAddr:     x.Addresses.GatewayBindAddr,
+		ProfilingAddr:   x.Addresses.ProfilingBindAddr,
 		IsMobile:        false,
 		IsServer:        x.IPFS.ServerMode,
 		LogToDisk:       !x.Logs.NoFiles,
@@ -506,6 +510,13 @@ func startNode(serveDocs bool) error {
 	// start apis
 	node.StartApi(node.Config().Addresses.API, serveDocs)
 	gateway.Host.Start(node.Config().Addresses.Gateway)
+
+	// start profiling api
+	go func() {
+		if err := http.ListenAndServe(node.Config().Addresses.Profiling, nil); err != nil {
+			log.Errorf("error staring profile listener: %s", err)
+		}
+	}()
 
 	<-node.OnlineCh()
 

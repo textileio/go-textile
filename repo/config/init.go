@@ -32,9 +32,10 @@ type Account struct {
 
 // Addresses stores the (string) bind addresses for the node.
 type Addresses struct {
-	API     string // address of the local API (RPC)
-	CafeAPI string // address of the cafe REST API
-	Gateway string // address to listen on for IPFS HTTP object gateway
+	API       string // address of the local API (RPC)
+	CafeAPI   string // address of the cafe REST API
+	Gateway   string // address to listen on for IPFS HTTP object gateway
+	Profiling string // address to listen on for profiling
 }
 
 type SwarmPorts struct {
@@ -99,9 +100,10 @@ func Init() (*Config, error) {
 			Thread:  "",
 		},
 		Addresses: Addresses{
-			API:     "127.0.0.1:40600",
-			CafeAPI: "127.0.0.1:40601",
-			Gateway: "127.0.0.1:5050",
+			API:       "127.0.0.1:40600",
+			CafeAPI:   "127.0.0.1:40601",
+			Gateway:   "127.0.0.1:5050",
+			Profiling: "127.0.0.1:6060",
 		},
 		API: API{
 			HTTPHeaders: map[string][]string{
