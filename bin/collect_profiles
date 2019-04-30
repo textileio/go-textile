@@ -32,5 +32,5 @@ echo "Disabling mutex profiling"
 curl -X POST -v "http://$HTTP_API"'/debug/pprof-mutex/?fraction=0'
 
 popd
-tar cvzf "./textile-profile-$(date +%s).tar.gz" -C "$tmpdir" .
+tar cvzf "./textile-profile-$(uname -n)-$(date -Iseconds).tar.gz" -C "$tmpdir" .
 rm -rf "$tmpdir"
