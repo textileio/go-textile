@@ -4,7 +4,7 @@ setup:
 	npm install
 
 test:
-	./test_compile.sh
+	./test_compile
 
 fmt:
 	echo 'Formatting with prettier...'

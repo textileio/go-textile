@@ -8,11 +8,13 @@ Note that Textile is an evolving project, so expect things to change over time a
 #### Table Of Contents
 
 [What should I know before I get started?](#what-should-i-know-before-i-get-started)
-  * [Code of Conduct](#code-of-conduct)
+
+-   [Code of Conduct](#code-of-conduct)
 
 [How Can I Contribute?](#how-can-i-contribute)
-  * [Reporting Bugs](#reporting-bugs)
-  * [Suggesting Enhancements](#suggesting-enhancements)
+
+-   [Reporting Bugs](#reporting-bugs)
+-   [Suggesting Enhancements](#suggesting-enhancements)
 
 [Additional Notes](#additional-notes)
 
@@ -59,10 +61,10 @@ Simply create an issue on the [Textile issue tracker](../../issues).
 
 The information we are interested in includes:
 
- - details about your environment - which build, which operating system
- - details about reproducing the issue - what steps to take, what happens, how
-   often it happens
- - other relevant information - log files, screenshots, etc.
+-   details about your environment - which build, which operating system
+-   details about reproducing the issue - what steps to take, what happens, how
+    often it happens
+-   other relevant information - log files, screenshots, etc.
 
 ### Suggesting Enhancements
 
@@ -87,16 +89,16 @@ Enhancement suggestions are tracked as [GitHub issues](https://guides.github.com
 Simply create an issue on the [Textile issue tracker](../..//issues)
 and provide the following information:
 
-* **Use a clear and descriptive title** for the issue to identify the
-  suggestion.
-* **Provide a step-by-step description of the suggested enhancement** in as
-  much detail as possible. This additional context helps the maintainers to
-  understand the enhancement from your perspective
-* **Explain why this enhancement would be useful** to Textile users.
-* **Include screenshots and animated GIFs** if relevant to help you demonstrate
-  the steps or point out the part of Textile which the suggestion is
-  related to.
-* **List some other applications where this enhancement exists, if applicable.**
+-   **Use a clear and descriptive title** for the issue to identify the
+    suggestion.
+-   **Provide a step-by-step description of the suggested enhancement** in as
+    much detail as possible. This additional context helps the maintainers to
+    understand the enhancement from your perspective
+-   **Explain why this enhancement would be useful** to Textile users.
+-   **Include screenshots and animated GIFs** if relevant to help you demonstrate
+    the steps or point out the part of Textile which the suggestion is
+    related to.
+-   **List some other applications where this enhancement exists, if applicable.**
 
 ## Additional Notes
 

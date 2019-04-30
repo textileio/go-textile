@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -x
 set -euo pipefail
+
 IFS=$'\n\t'
 
 HTTP_API="${1:-127.0.0.1:40600}"
