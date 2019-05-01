@@ -299,6 +299,12 @@ func (m *Mobile) AddFiles(dir []byte, threadId string, caption string) ([]byte, 
 		return nil, err
 	}
 
+	if thrd.Key == "account" {
+		if err := m.node.SetAvatar(); err != nil {
+			return nil, err
+		}
+	}
+
 	return m.blockView(hash)
 }
 
@@ -326,6 +332,12 @@ func (m *Mobile) AddFilesByTarget(target string, threadId string, caption string
 	hash, err := thrd.AddFiles(node, caption, keys.Files)
 	if err != nil {
 		return nil, err
+	}
+
+	if thrd.Key == "account" {
+		if err := m.node.SetAvatar(); err != nil {
+			return nil, err
+		}
 	}
 
 	return m.blockView(hash)
