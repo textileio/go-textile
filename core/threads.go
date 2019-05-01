@@ -496,22 +496,40 @@ func (t *Textile) addAccountThread() error {
 		}
 		// catch malformed account threads from 0.1.10
 		if x.Id == aid.Pretty() {
+
+			// catch schema-less account threads from 0.1.11
+			if x.Schema == nil {
+				sf, err := t.AddSchema(textile.Avatars, "avatars")
+				if err != nil {
+					return err
+				}
+				return t.datastore.Threads().UpdateSchema(x.Id, sf.Hash)
+			}
+
 			return nil
 		}
 		if _, err := t.RemoveThread(x.Id); err != nil {
 			return err
 		}
 	}
-	sk, err := t.account.LibP2PPrivKey()
+
+	sf, err := t.AddSchema(textile.Avatars, "avatars")
 	if err != nil {
 		return err
 	}
 
 	config := pb.AddThreadConfig{
-		Key:     t.account.Address(),
-		Name:    "account",
+		Key:  t.account.Address(),
+		Name: "account",
+		Schema: &pb.AddThreadConfig_Schema{
+			Id: sf.Hash,
+		},
 		Type:    pb.Thread_PRIVATE,
 		Sharing: pb.Thread_NOT_SHARED,
+	}
+	sk, err := t.account.LibP2PPrivKey()
+	if err != nil {
+		return err
 	}
 	thrd, err := t.AddThread(config, sk, t.account.Address(), true, false)
 	if err != nil {

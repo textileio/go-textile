@@ -61,16 +61,7 @@ func (a *api) setName(g *gin.Context) {
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /profile/avatar [post]
 func (a *api) setAvatar(g *gin.Context) {
-	args, err := a.readArgs(g)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-	if len(args) == 0 {
-		g.String(http.StatusBadRequest, "missing avatar")
-		return
-	}
-	if err := a.node.SetAvatar(args[0]); err != nil {
+	if err := a.node.SetAvatar(); err != nil {
 		a.abort500(g, err)
 		return
 	}

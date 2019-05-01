@@ -102,6 +102,13 @@ func (c *ThreadDB) UpdateName(id string, name string) error {
 	return err
 }
 
+func (c *ThreadDB) UpdateSchema(id string, hash string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("update threads set schema=? where id=?", hash, id)
+	return err
+}
+
 func (c *ThreadDB) Delete(id string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()

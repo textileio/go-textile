@@ -84,6 +84,7 @@ type ThreadStore interface {
 	Count() int
 	UpdateHead(id string, head string) error
 	UpdateName(id string, name string) error
+	UpdateSchema(id string, hash string) error
 	Delete(id string) error
 }
 

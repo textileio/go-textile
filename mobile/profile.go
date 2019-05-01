@@ -52,5 +52,5 @@ func (m *Mobile) SetAvatar(hash string) error {
 		return core.ErrOffline
 	}
 
-	return m.node.SetAvatar(hash)
+	return m.node.SetAvatar()
 }

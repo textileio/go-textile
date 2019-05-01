@@ -141,6 +141,14 @@ func (t *Thread) Head() (string, error) {
 	return mod.Head, nil
 }
 
+//func (t *Thread) LatestFiles() (string, error) {
+//	mod := t.datastore.Blocks().List("", 1, "threadId='" + t.Id + "' and type=")
+//	if mod == nil {
+//		return "", errThreadReload
+//	}
+//	//return mod.Head, nil
+//}
+
 // Peers returns locally known peers in this thread
 func (t *Thread) Peers() []pb.ThreadPeer {
 	return t.datastore.ThreadPeers().ListByThread(t.Id)
