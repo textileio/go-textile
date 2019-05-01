@@ -1,7 +1,6 @@
-#!/bin/bash
-
-set -e
-pwd
+#!/usr/bin/env bash
+set -x
+set -euo pipefail
 
 # crypto
 go test -coverprofile=crypto.cover.out ./crypto

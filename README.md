@@ -19,13 +19,13 @@ Join us on our [public Slack channel](https://slack.textile.io/) for news, discu
 
 ## Table of Contents
 
-- [Security](#security)
-- [Background](#background)
-- [Install](#install)
-- [Usage](#usage)
-- [Develop](#develop)
-- [Contribute](#contribute)
-- [License](#license)
+-   [Security](#security)
+-   [Background](#background)
+-   [Install](#install)
+-   [Usage](#usage)
+-   [Develop](#develop)
+-   [Contribute](#contribute)
+-   [License](#license)
 
 ## Security
 
@@ -95,8 +95,8 @@ Available commands:
 
 ### Requirements
 
-- go >= 1.12
-- node >= 10.0
+-   go >= 1.12
+-   node >= 10.0
 
 Extra setup steps are needed to build the bindings for iOS or Android, as `gomobile` does not yet support [go modules](https://github.com/golang/go/wiki/Modules). You'll need to **move the go-textile source** into your `GOPATH` (like pre-go1.11 development), before installing and initializing the `gomobile` tools:
 
@@ -133,15 +133,14 @@ Now you can execute the iOS and Android build tasks below. For the other build t
 
 This project is a work in progress. As such, there's a few things you can do right now to help out:
 
-* **Ask questions**! We'll try to help. Be sure to drop a note (on the above issue) if there is anything you'd like to work on and we'll update the issue to let others know. Also [get in touch](https://slack.textile.io) on Slack.
-* **Open issues**, [file issues](https://github.com/textileio/go-textile/issues), submit pull requests!
-* **Perform code reviews**. More eyes will help a) speed the project along b) ensure quality and c) reduce possible future bugs.
-* **Take a look at the code**. Contributions here that would be most helpful are **top-level comments** about how it should look based on your understanding. Again, the more eyes the better.
-* **Add tests**. There can never be enough tests.
+-   **Ask questions**! We'll try to help. Be sure to drop a note (on the above issue) if there is anything you'd like to work on and we'll update the issue to let others know. Also [get in touch](https://slack.textile.io) on Slack.
+-   **Open issues**, [file issues](https://github.com/textileio/go-textile/issues), submit pull requests!
+-   **Perform code reviews**. More eyes will help a) speed the project along b) ensure quality and c) reduce possible future bugs.
+-   **Take a look at the code**. Contributions here that would be most helpful are **top-level comments** about how it should look based on your understanding. Again, the more eyes the better.
+-   **Add tests**. There can never be enough tests.
 
 Before you get started, be sure to read our [contributors guide](./CONTRIBUTING.md) and our [contributor covenant code of conduct](./CODE_OF_CONDUCT.md).
 
 ## License
 
 [MIT](LICENSE)
-

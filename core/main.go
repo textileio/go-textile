@@ -53,6 +53,7 @@ type InitConfig struct {
 	ApiAddr         string
 	CafeApiAddr     string
 	GatewayAddr     string
+	ProfilingAddr   string
 	IsMobile        bool
 	IsServer        bool
 	LogToDisk       bool

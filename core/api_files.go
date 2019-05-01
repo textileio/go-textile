@@ -198,18 +198,14 @@ func (a *api) lsThreadFileTargetKeys(g *gin.Context) {
 // @Produce application/octet-stream
 // @Param hash path string true "file hash"
 // @Success 200 {string} byte
-// @Failure 400 {string} string "Bad Request"
+// @Failure 404 {string} string "Not Found"
 // @Router /file/{hash}/data [get]
 func (a *api) getFileData(g *gin.Context) {
-	hash := g.Param("hash")
-
-	reader, fileIndex, err := a.node.FileData(hash)
+	reader, file, err := a.node.FileData(g.Param("hash"))
 	if err != nil {
-		g.String(http.StatusBadRequest, err.Error())
+		g.String(http.StatusNotFound, err.Error())
 		return
 	}
-	contentLength := fileIndex.GetSize()
-	contentType := fileIndex.GetMedia()
 
-	g.DataFromReader(http.StatusOK, contentLength, contentType, reader, map[string]string{})
+	g.DataFromReader(http.StatusOK, file.Size, file.Media, reader, map[string]string{})
 }

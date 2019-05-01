@@ -1,6 +1,6 @@
-#!/bin/bash
-
-set -e
+#!/usr/bin/env bash
+set -x
+set -euo pipefail
 
 for i in "$@"; do
 	case ${i} in
@@ -238,7 +238,7 @@ done
 
 echo "Success."
 
-if [[ "$wait" == "yes" ]]; then
+if [[ "$wait" = "yes" ]]; then
 	wait
 else
 	exit 0

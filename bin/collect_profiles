@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -x
 set -euo pipefail
+
 IFS=$'\n\t'
 
-HTTP_API="${1:-127.0.0.1:40600}"
+HTTP_API="${1:-127.0.0.1:6060}"
 tmpdir=$(mktemp -d)
 export PPROF_TMPDIR="$tmpdir"
 pushd "$tmpdir"
@@ -24,9 +25,9 @@ echo "Enabling mutex profiling"
 curl -X POST -v "http://$HTTP_API"'/debug/pprof-mutex/?fraction=4'
 
 echo "Waiting for mutex data to be updated (30s)"
-#sleep 30
-#curl -o mutex.txt "http://$HTTP_API"'/debug/pprof/mutex?debug=2'
-#go tool pprof -symbolize=remote -svg -output mutex.svg "http://$HTTP_API/debug/pprof/mutex"
+sleep 30
+curl -o mutex.txt "http://$HTTP_API"'/debug/pprof/mutex?debug=2'
+go tool pprof -symbolize=remote -svg -output mutex.svg "http://$HTTP_API/debug/pprof/mutex"
 echo "Disabling mutex profiling"
 curl -X POST -v "http://$HTTP_API"'/debug/pprof-mutex/?fraction=0'
 

@@ -32,9 +32,10 @@ type Account struct {
 
 // Addresses stores the (string) bind addresses for the node.
 type Addresses struct {
-	API     string // address of the local API (RPC)
-	CafeAPI string // address of the cafe REST API
-	Gateway string // address to listen on for IPFS HTTP object gateway
+	API       string // address of the local API (RPC)
+	CafeAPI   string // address of the cafe REST API
+	Gateway   string // address to listen on for IPFS HTTP object gateway
+	Profiling string // address to listen on for profiling
 }
 
 type SwarmPorts struct {
@@ -72,7 +73,8 @@ type Cafe struct {
 // TODO: add some more knobs: max num. clients, max client msg age, inbox size, etc.
 type CafeHost struct {
 	Open        bool   // When true, other peers can register with this node for cafe services.
-	URL         string // Specifies the URL of this cafe.
+	Local       bool   // when true, http://localhost is used as the API host
+	URL         string // Override the resolved URL of this cafe, useful for load HTTPS and/or load balancers
 	NeighborURL string // Specifies the URL of a secondary cafe. Must return cafe info.
 	SizeLimit   int64  // Maximum file size limit to accept for POST requests in bytes.
 }
@@ -98,9 +100,10 @@ func Init() (*Config, error) {
 			Thread:  "",
 		},
 		Addresses: Addresses{
-			API:     "127.0.0.1:40600",
-			CafeAPI: "127.0.0.1:40601",
-			Gateway: "127.0.0.1:5050",
+			API:       "127.0.0.1:40600",
+			CafeAPI:   "127.0.0.1:40601",
+			Gateway:   "127.0.0.1:5050",
+			Profiling: "127.0.0.1:6060",
 		},
 		API: API{
 			HTTPHeaders: map[string][]string{
