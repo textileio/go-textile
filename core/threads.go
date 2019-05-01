@@ -503,7 +503,7 @@ func (t *Textile) addAccountThread() error {
 				if err != nil {
 					return err
 				}
-				return t.datastore.Threads().UpdateSchema(x.Id, sf.Hash)
+				return x.UpdateSchema(sf.Hash)
 			}
 
 			return nil

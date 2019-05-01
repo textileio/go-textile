@@ -1,6 +1,8 @@
 package core
 
 import (
+	"fmt"
+
 	"github.com/textileio/go-textile/pb"
 )
 
@@ -47,17 +49,18 @@ func (t *Textile) Avatar() string {
 
 // SetAvatar updates profile with a new avatar at the given file hash.
 func (t *Textile) SetAvatar() error {
+	latest := t.AccountThread().LatestFiles()
+	if latest == nil {
+		return fmt.Errorf("account thread contains no files")
+	}
 
-	t.AccountThread().Head()
-
-	if hash == t.Avatar() {
+	if latest.Target == t.Avatar() {
 		return nil
 	}
 
-	//avatar := node.Cid().Hash().B58String()
-	//if err := t.datastore.Peers().UpdateAvatar(t.node.Identity.Pretty(), avatar); err != nil {
-	//	return err
-	//}
+	if err := t.datastore.Peers().UpdateAvatar(t.node.Identity.Pretty(), latest.Target); err != nil {
+		return err
+	}
 
 	for _, thrd := range t.loadedThreads {
 		if _, err := thrd.annouce(nil); err != nil {
