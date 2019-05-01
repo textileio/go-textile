@@ -45,12 +45,3 @@ func (m *Mobile) Avatar() (string, error) {
 
 	return m.node.Avatar(), nil
 }
-
-// SetAvatar calls core SetAvatar
-func (m *Mobile) SetAvatar(hash string) error {
-	if !m.node.Online() {
-		return core.ErrOffline
-	}
-
-	return m.node.SetAvatar(hash)
-}

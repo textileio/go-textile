@@ -109,7 +109,7 @@ func (t *Textile) SearchContacts(query *pb.ContactQuery, options *pb.QueryOption
 				}
 				contacts[peer.Address].Peers = append(contacts[peer.Address].Peers, peer)
 
-				value, err := proto.Marshal(contacts[peer.Address])
+				value, err := proto.Marshal(ensureContactUser(contacts[peer.Address]))
 				if err != nil {
 					terrCh <- err
 					break
@@ -190,5 +190,24 @@ func (t *Textile) contactView(contact *pb.Contact, addThreads bool) *pb.Contact 
 		}
 	}
 
+	return ensureContactUser(contact)
+}
+
+// ensureContactUser chooses the "best" user info (name, avatar) from peers to display
+func ensureContactUser(contact *pb.Contact) *pb.Contact {
+	if contact.Name != "" && contact.Avatar != "" {
+		return contact
+	}
+	for _, p := range contact.Peers {
+		if p.Name != "" && contact.Name != "" {
+			contact.Name = p.Name
+		}
+		if p.Avatar != "" && contact.Avatar != "" {
+			contact.Avatar = p.Avatar
+		}
+		if contact.Name != "" && contact.Avatar != "" {
+			return contact
+		}
+	}
 	return contact
 }

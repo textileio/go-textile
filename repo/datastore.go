@@ -52,7 +52,7 @@ type PeerStore interface {
 	Add(peer *pb.Peer) error
 	AddOrUpdate(peer *pb.Peer) error
 	Get(id string) *pb.Peer
-	GetBest(id string) *pb.Peer
+	GetBestUser(id string) *pb.User
 	List(query string) []*pb.Peer
 	Find(address string, name string, exclude []string) []*pb.Peer
 	Count(query string) int
@@ -84,6 +84,7 @@ type ThreadStore interface {
 	Count() int
 	UpdateHead(id string, head string) error
 	UpdateName(id string, name string) error
+	UpdateSchema(id string, hash string) error
 	Delete(id string) error
 }
 

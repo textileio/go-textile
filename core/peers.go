@@ -10,19 +10,15 @@ import (
 )
 
 // PeerUser returns a user object with the most recently updated contact for the given id
-// Note: If no underlying contact is found, this will return an blank object w/ a
+// Note: If no underlying contact is found, this will return a blank object w/ a
 // generic user name for display-only purposes.
 func (t *Textile) PeerUser(id string) *pb.User {
-	p := t.datastore.Peers().GetBest(id)
-	if p == nil {
-		return &pb.User{
-			Name: ipfs.ShortenID(id),
-		}
+	user := t.datastore.Peers().GetBestUser(id)
+	if user != nil {
+		return user
 	}
 	return &pb.User{
-		Address: p.Address,
-		Name:    toName(p),
-		Avatar:  p.Avatar,
+		Name: ipfs.ShortenID(id),
 	}
 }
 
@@ -86,20 +82,6 @@ func (t *Textile) updatePeerInboxes() error {
 		inboxes = append(inboxes, session.Cafe)
 	}
 	return t.datastore.Peers().UpdateInboxes(t.node.Identity.Pretty(), inboxes)
-}
-
-// toName returns a peer's name or trimmed address
-func toName(peer *pb.Peer) string {
-	if peer == nil || peer.Address == "" {
-		return ""
-	}
-	if peer.Name != "" {
-		return peer.Name
-	}
-	if len(peer.Address) >= 7 {
-		return peer.Address[:7]
-	}
-	return ""
 }
 
 // peersEqual returns whether or not the two peers are identical
