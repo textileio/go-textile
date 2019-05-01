@@ -111,18 +111,40 @@ func (c *PeerDB) Get(id string) *pb.Peer {
 	return res[0]
 }
 
-func (c *PeerDB) GetBest(id string) *pb.Peer {
+func (c *PeerDB) GetBestUser(id string) *pb.User {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	stm := "select *, (select address from peers where id='" + id + "') as addr from peers where address=addr order by updated desc limit 1;"
-	row := c.db.QueryRow(stm)
-	var _id, address, username, avatar, addr string
-	var inboxes []byte
-	var createdInt, updatedInt int64
-	if err := row.Scan(&_id, &address, &username, &avatar, &inboxes, &createdInt, &updatedInt, &addr); err != nil {
+	stm := "select username, avatar, (select address from peers where id='" + id + "') as addr from peers where address=addr order by updated desc;"
+	rows, err := c.db.Query(stm)
+	if err != nil {
+		log.Errorf("error in db query: %s", err)
 		return nil
 	}
-	return c.handleRow(id, address, username, avatar, inboxes, createdInt, updatedInt)
+	var latest *pb.User
+	var i int
+	for rows.Next() {
+		var name, avatar, addr string
+		if err := rows.Scan(&name, &avatar, &addr); err != nil {
+			log.Errorf("error in db scan: %s", err)
+			continue
+		}
+
+		if i == 0 {
+			latest = &pb.User{Address: addr, Name: name, Avatar: avatar}
+		} else if latest != nil {
+			if name != "" {
+				latest.Name = name
+			}
+			if avatar != "" {
+				latest.Avatar = avatar
+			}
+			if latest.Name != "" && latest.Avatar != "" {
+				return ensureName(latest)
+			}
+		}
+		i++
+	}
+	return ensureName(latest)
 }
 
 func (c *PeerDB) List(query string) []*pb.Peer {
@@ -257,4 +279,14 @@ func (c *PeerDB) handleRow(id string, address string, name string, avatar string
 		Created: util.ProtoTs(createdInt),
 		Updated: util.ProtoTs(updatedInt),
 	}
+}
+
+func ensureName(user *pb.User) *pb.User {
+	if user == nil || user.Address == "" || user.Name != "" {
+		return user
+	}
+	if len(user.Address) >= 7 {
+		user.Name = user.Address[:7]
+	}
+	return user
 }
