@@ -132,10 +132,10 @@ func (c *PeerDB) GetBestUser(id string) *pb.User {
 		if i == 0 {
 			latest = &pb.User{Address: addr, Name: name, Avatar: avatar}
 		} else if latest != nil {
-			if name != "" {
+			if name != "" && latest.Name != "" {
 				latest.Name = name
 			}
-			if avatar != "" {
+			if avatar != "" && latest.Avatar != "" {
 				latest.Avatar = avatar
 			}
 			if latest.Name != "" && latest.Avatar != "" {
