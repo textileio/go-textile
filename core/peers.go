@@ -10,12 +10,12 @@ import (
 )
 
 // PeerUser returns a user object with the most recently updated contact for the given id
-// Note: If no underlying contact is found, this will return an blank object w/ a
+// Note: If no underlying contact is found, this will return a blank object w/ a
 // generic user name for display-only purposes.
 func (t *Textile) PeerUser(id string) *pb.User {
-	p := t.datastore.Peers().GetBestUser(id)
-	if p != nil {
-		return p
+	user := t.datastore.Peers().GetBestUser(id)
+	if user != nil {
+		return user
 	}
 	return &pb.User{
 		Name: ipfs.ShortenID(id),

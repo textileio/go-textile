@@ -139,6 +139,7 @@ func (c *PeerDB) GetBestUser(id string) *pb.User {
 				latest.Avatar = avatar
 			}
 			if latest.Name != "" && latest.Avatar != "" {
+				rows.Close()
 				return ensureName(latest)
 			}
 		}
