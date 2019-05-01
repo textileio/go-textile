@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ipfs/go-ipfs/core/node/libp2p"
+
 	ipfsconfig "github.com/ipfs/go-ipfs-config"
 	utilmain "github.com/ipfs/go-ipfs/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
@@ -536,9 +538,9 @@ func (t *Textile) createIPFS(plugins *loader.PluginLoader, online bool) error {
 		return err
 	}
 
-	routing := core.DHTOption
+	routing := libp2p.DHTOption
 	if t.Mobile() {
-		routing = core.DHTClientOption
+		routing = libp2p.DHTClientOption
 	}
 
 	cfg := &core.BuildCfg{
