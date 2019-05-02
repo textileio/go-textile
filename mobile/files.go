@@ -3,7 +3,7 @@ package mobile
 import (
 	"bytes"
 	"encoding/base64"
-	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -13,7 +13,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	ipld "github.com/ipfs/go-ipld-format"
-	iface "github.com/ipfs/interface-go-ipfs-core"
+	ipfspath "github.com/ipfs/go-path"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/mill"
@@ -108,7 +108,7 @@ func (m *Mobile) PrepareFilesSync(data string, threadId string) ([]byte, error) 
 
 			} else {
 				if mdir.Dir.Files[step.Link.Use] == nil {
-					return nil, errors.New(step.Link.Use + " not found")
+					return nil, fmt.Errorf(step.Link.Use + " not found")
 				}
 
 				conf, err = m.getFileConfig(mil, dec, mdir.Dir.Files[step.Link.Use].Hash, step.Link.Plaintext)
@@ -156,7 +156,7 @@ func (m *Mobile) PrepareFilesByPathSync(path string, threadId string) ([]byte, e
 	}
 
 	var use string
-	if ref, err := iface.ParsePath(path); err == nil {
+	if ref, err := ipfspath.ParsePath(path); err == nil {
 		parts := strings.Split(ref.String(), "/")
 		use = parts[len(parts)-1]
 	}
@@ -214,7 +214,7 @@ func (m *Mobile) PrepareFilesByPathSync(path string, threadId string) ([]byte, e
 
 			} else {
 				if mdir.Dir.Files[step.Link.Use] == nil {
-					return nil, errors.New(step.Link.Use + " not found")
+					return nil, fmt.Errorf(step.Link.Use + " not found")
 				}
 
 				conf, err = m.getFileConfigByPath(mil, path, mdir.Dir.Files[step.Link.Use].Hash, step.Link.Plaintext)
@@ -265,7 +265,7 @@ func (m *Mobile) AddFiles(dir []byte, threadId string, caption string) ([]byte, 
 		return nil, err
 	}
 	if len(mdir.Files) == 0 {
-		return nil, errors.New("no files found")
+		return nil, fmt.Errorf("no files found")
 	}
 
 	var err error
@@ -291,7 +291,7 @@ func (m *Mobile) AddFiles(dir []byte, threadId string, caption string) ([]byte, 
 	}
 
 	if node == nil {
-		return nil, errors.New("no files found")
+		return nil, fmt.Errorf("no files found")
 	}
 
 	hash, err := thrd.AddFiles(node, caption, keys.Files)
@@ -365,6 +365,9 @@ func (m *Mobile) FileData(hash string) (string, error) {
 
 	reader, file, err := m.node.FileData(hash)
 	if err != nil {
+		if err == core.ErrFileNotFound || err == ipld.ErrNotFound {
+			return "", nil
+		}
 		return "", err
 	}
 
@@ -394,6 +397,9 @@ func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) (string, err
 
 	node, err := ipfs.NodeAtPath(m.node.Ipfs(), pth)
 	if err != nil {
+		if err == ipld.ErrNotFound {
+			return "", nil
+		}
 		return "", err
 	}
 
@@ -401,6 +407,9 @@ func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) (string, err
 	for _, link := range node.Links() {
 		nd, err := ipfs.NodeAtLink(m.node.Ipfs(), link)
 		if err != nil {
+			if err == ipld.ErrNotFound {
+				return "", nil
+			}
 			return "", err
 		}
 
@@ -411,6 +420,9 @@ func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) (string, err
 
 		file, err := m.node.FileIndex(dlink.Cid.Hash().B58String())
 		if err != nil {
+			if err == core.ErrFileNotFound {
+				return "", nil
+			}
 			return "", err
 		}
 
@@ -426,7 +438,7 @@ func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) (string, err
 	}
 
 	if len(imgs) == 0 {
-		return "", errors.New("no image files found")
+		return "", nil
 	}
 
 	sort.SliceStable(imgs, func(i, j int) bool {
@@ -554,7 +566,7 @@ func getMill(id string, opts map[string]string) (mill.Mill, error) {
 	case "/image/resize":
 		width := opts["width"]
 		if width == "" {
-			return nil, errors.New("missing width")
+			return nil, fmt.Errorf("missing width")
 		}
 		quality := opts["quality"]
 		if quality == "" {

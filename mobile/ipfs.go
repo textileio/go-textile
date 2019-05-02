@@ -1,6 +1,9 @@
 package mobile
 
-import "github.com/textileio/go-textile/core"
+import (
+	ipld "github.com/ipfs/go-ipld-format"
+	"github.com/textileio/go-textile/core"
+)
 
 // PeerId returns the ipfs peer id
 func (m *Mobile) PeerId() (string, error) {
@@ -21,5 +24,12 @@ func (m *Mobile) DataAtPath(pth string) ([]byte, error) {
 		return nil, core.ErrOffline
 	}
 
-	return m.node.DataAtPath(pth)
+	data, err := m.node.DataAtPath(pth)
+	if err != nil {
+		if err == ipld.ErrNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return data, nil
 }

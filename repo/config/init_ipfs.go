@@ -9,8 +9,9 @@ import (
 	"github.com/ipfs/go-ipfs/repo"
 )
 
-// DefaultServerFilters has a list of non-routable IPv4 prefixes
-// according to http://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+// defaultServerFilters has is a list of IPv4 and IPv6 prefixes that are private, local only, or unrouteable.
+// according to https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+// and https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
 var DefaultServerFilters = []string{
 	"/ip4/10.0.0.0/ipcidr/8",
 	"/ip4/100.64.0.0/ipcidr/10",
@@ -27,6 +28,11 @@ var DefaultServerFilters = []string{
 	"/ip4/198.51.100.0/ipcidr/24",
 	"/ip4/203.0.113.0/ipcidr/24",
 	"/ip4/240.0.0.0/ipcidr/4",
+	"/ip6/100::/ipcidr/64",
+	"/ip6/2001:2::/ipcidr/48",
+	"/ip6/2001:db8::/ipcidr/32",
+	"/ip6/fc00::/ipcidr/7",
+	"/ip6/fe80::/ipcidr/10",
 }
 
 // TextileBootstrapAddresses are the addresses of cafe nodes run by the Textile team.

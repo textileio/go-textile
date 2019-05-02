@@ -69,6 +69,9 @@ func (m *Mobile) Thread(id string) ([]byte, error) {
 
 	view, err := m.node.ThreadView(id)
 	if err != nil {
+		if err == core.ErrThreadNotFound {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return proto.Marshal(view)

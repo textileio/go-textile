@@ -16,6 +16,7 @@ import (
 	utilmain "github.com/ipfs/go-ipfs/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/go-ipfs/plugin/loader"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -536,9 +537,9 @@ func (t *Textile) createIPFS(plugins *loader.PluginLoader, online bool) error {
 		return err
 	}
 
-	routing := core.DHTOption
+	routing := libp2p.DHTOption
 	if t.Mobile() {
-		routing = core.DHTClientOption
+		routing = libp2p.DHTClientOption
 	}
 
 	cfg := &core.BuildCfg{

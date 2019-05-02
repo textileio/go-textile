@@ -18,6 +18,7 @@ import (
 	uio "github.com/ipfs/go-unixfs/io"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 var log = logging.Logger("tex-ipfs")
@@ -33,17 +34,11 @@ func DataAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
 		return nil, err
 	}
 
-	ip, err := iface.ParsePath(pth)
-	if err != nil {
-		return nil, err
-	}
-
 	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
 
-	f, err := api.Unixfs().Get(ctx, ip)
+	f, err := api.Unixfs().Get(ctx, path.New(pth))
 	if err != nil {
-		log.Errorf("failed to get data: %s", pth)
 		return nil, err
 	}
 	defer f.Close()
@@ -68,15 +63,10 @@ func LinksAtPath(node *core.IpfsNode, pth string) ([]*ipld.Link, error) {
 		return nil, err
 	}
 
-	ip, err := iface.ParsePath(pth)
-	if err != nil {
-		return nil, err
-	}
-
 	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
 
-	res, err := api.Unixfs().Ls(ctx, ip)
+	res, err := api.Unixfs().Ls(ctx, path.New(pth))
 	if err != nil {
 		return nil, err
 	}
@@ -224,15 +214,10 @@ func NodeAtPath(node *core.IpfsNode, pth string) (ipld.Node, error) {
 		return nil, err
 	}
 
-	p, err := iface.ParsePath(pth)
-	if err != nil {
-		return nil, err
-	}
-
 	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
 
-	return api.ResolveNode(ctx, p)
+	return api.ResolveNode(ctx, path.New(pth))
 }
 
 type Node struct {
@@ -255,10 +240,7 @@ func GetObjectAtPath(node *core.IpfsNode, pth string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
 
-	ipth, err := iface.ParsePath(pth)
-	if err != nil {
-		return nil, err
-	}
+	ipth := path.New(pth)
 	nd, err := api.Object().Get(ctx, ipth)
 	if err != nil {
 		return nil, err
@@ -300,11 +282,7 @@ func StatObjectAtPath(node *core.IpfsNode, pth string) (*iface.ObjectStat, error
 	ctx, cancel := context.WithTimeout(node.Context(), catTimeout)
 	defer cancel()
 
-	ipth, err := iface.ParsePath(pth)
-	if err != nil {
-		return nil, err
-	}
-	return api.Object().Stat(ctx, ipth)
+	return api.Object().Stat(ctx, path.New(pth))
 }
 
 // PinNode pins an ipld node
