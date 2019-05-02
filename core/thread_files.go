@@ -153,7 +153,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 
 		// use msg keys to decrypt each file
 		for pth, key := range msg.Keys {
-			fd, err := ipfs.DataAtPath(t.node(), msg.Target+pth+FileLinkName)
+			fd, err := ipfs.DataAtPath(t.node(), msg.Target+pth+MetaLinkName)
 			if err != nil {
 				return nil, err
 			}
@@ -290,14 +290,14 @@ func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key stri
 		return err
 	}
 
-	flink := schema.LinkByName(inode.Links(), FileLinkName)
+	flink := schema.LinkByName(inode.Links(), MetaLinkName)
 	if flink == nil {
-		return ErrMissingFileLink
+		return ErrMissingMetaLink
 	}
 
-	dlink := schema.LinkByName(inode.Links(), DataLinkName)
+	dlink := schema.LinkByName(inode.Links(), ContentLinkName)
 	if dlink == nil {
-		return ErrMissingDataLink
+		return ErrMissingContentLink
 	}
 
 	if mil == "/json" {
@@ -337,7 +337,7 @@ func (t *Thread) validateJsonNode(inode ipld.Node, key string) error {
 
 	hash := inode.Cid().Hash().B58String()
 
-	data, err := ipfs.DataAtPath(t.node(), hash+"/"+DataLinkName)
+	data, err := ipfs.DataAtPath(t.node(), hash+"/"+ContentLinkName)
 	if err != nil {
 		return err
 	}
@@ -404,9 +404,9 @@ func (t *Thread) indexFileNode(inode ipld.Node, target string) error {
 
 // indexFileLink indexes a file link
 func (t *Thread) indexFileLink(inode ipld.Node, target string) error {
-	dlink := schema.LinkByName(inode.Links(), DataLinkName)
+	dlink := schema.LinkByName(inode.Links(), ContentLinkName)
 	if dlink == nil {
-		return ErrMissingDataLink
+		return ErrMissingContentLink
 	}
 
 	return t.datastore.Files().AddTarget(dlink.Cid.Hash().B58String(), target)
@@ -436,9 +436,9 @@ func (t *Thread) deIndexFileNode(inode ipld.Node, target string) error {
 
 // deIndexFileLink de-indexes a file link
 func (t *Thread) deIndexFileLink(inode ipld.Node, target string) error {
-	dlink := schema.LinkByName(inode.Links(), DataLinkName)
+	dlink := schema.LinkByName(inode.Links(), ContentLinkName)
 	if dlink == nil {
-		return ErrMissingDataLink
+		return ErrMissingContentLink
 	}
 
 	hash := dlink.Cid.Hash().B58String()

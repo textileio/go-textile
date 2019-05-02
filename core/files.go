@@ -23,11 +23,16 @@ import (
 )
 
 var ErrFileNotFound = errors.New("file not found")
-var ErrMissingFileLink = errors.New("file link not in node")
-var ErrMissingDataLink = errors.New("data link not in node")
+var ErrMissingMetaLink = errors.New("meta link not in node")
+var ErrMissingContentLink = errors.New("content link not in node")
 
-const FileLinkName = "f"
-const DataLinkName = "d"
+const MetaLinkName = "meta"
+
+var ValidMetaLinkNames = []string{"f", "meta"}
+
+const ContentLinkName = "content"
+
+var ValidContentLinkNames = []string{"d", "content"}
 
 type AddFileConfig struct {
 	Input     []byte `json:"input"`
@@ -286,11 +291,11 @@ func (t *Textile) fileNode(file *pb.FileIndex, dir uio.Directory, link string) e
 	}
 
 	pair := uio.NewDirectory(t.node.DAG)
-	if _, err := ipfs.AddDataToDirectory(t.node, pair, FileLinkName, reader); err != nil {
+	if _, err := ipfs.AddDataToDirectory(t.node, pair, MetaLinkName, reader); err != nil {
 		return err
 	}
 
-	if err := ipfs.AddLinkToDirectory(t.node, pair, DataLinkName, file.Hash); err != nil {
+	if err := ipfs.AddLinkToDirectory(t.node, pair, ContentLinkName, file.Hash); err != nil {
 		return err
 	}
 
@@ -306,14 +311,14 @@ func (t *Textile) fileNode(file *pb.FileIndex, dir uio.Directory, link string) e
 }
 
 func (t *Textile) fileIndexForPair(pair ipld.Node) (*pb.FileIndex, error) {
-	d, _, err := pair.ResolveLink([]string{DataLinkName})
+	c, err := ipfs.ResolveLinkByNames(pair, ValidContentLinkNames)
 	if err != nil {
 		return nil, err
 	}
-	if d == nil {
+	if c == nil {
 		return nil, nil
 	}
-	return t.datastore.Files().Get(d.Cid.Hash().B58String()), nil
+	return t.datastore.Files().Get(c.Cid.Hash().B58String()), nil
 }
 
 func (t *Textile) checksum(plaintext []byte, willEncrypt bool) string {
@@ -357,9 +362,9 @@ func (t *Textile) fileNodeKeys(node ipld.Node, index int, keys *map[string]strin
 }
 
 func (t *Textile) fileLinkKey(inode ipld.Node) (string, error) {
-	dlink := schema.LinkByName(inode.Links(), DataLinkName)
+	dlink := schema.LinkByName(inode.Links(), ContentLinkName)
 	if dlink == nil {
-		return "", ErrMissingDataLink
+		return "", ErrMissingContentLink
 	}
 
 	file := t.datastore.Files().Get(dlink.Cid.Hash().B58String())
@@ -376,8 +381,8 @@ func looksLikeFileNode(node ipld.Node) bool {
 	if len(links) != 2 {
 		return false
 	}
-	if schema.LinkByName(links, FileLinkName) == nil ||
-		schema.LinkByName(links, DataLinkName) == nil {
+	if schema.LinkByName(links, MetaLinkName) == nil ||
+		schema.LinkByName(links, ContentLinkName) == nil {
 		return false
 	}
 	return true

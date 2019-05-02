@@ -10,6 +10,7 @@ import (
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 	peer "github.com/libp2p/go-libp2p-peer"
 	record "github.com/libp2p/go-libp2p-record"
 )
@@ -29,19 +30,14 @@ func PublishIPNS(node *core.IpfsNode, id string, key string, timeout time.Durati
 		options.Name.Key(key),
 	}
 
-	pth, err := iface.ParsePath(id)
-	if err != nil {
-		return nil, err
-	}
-
 	ctx, cancel := context.WithTimeout(node.Context(), timeout)
 	defer cancel()
 
-	return api.Name().Publish(ctx, pth, opts...)
+	return api.Name().Publish(ctx, path.New(id), opts...)
 }
 
 // ResolveIPNS resolves an ipns path to an ipfs path
-func ResolveIPNS(node *core.IpfsNode, name peer.ID, timeout time.Duration) (iface.Path, error) {
+func ResolveIPNS(node *core.IpfsNode, name peer.ID, timeout time.Duration) (path.Path, error) {
 	api, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		return nil, err

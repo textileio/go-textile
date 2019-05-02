@@ -15,6 +15,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
+	ipfspath "github.com/ipfs/go-path"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/mr-tron/base58/base58"
@@ -131,13 +132,13 @@ func (g *Gateway) gatewayHandler(c *gin.Context) {
 	if exists {
 		keyb, err := base58.Decode(key)
 		if err != nil {
-			log.Errorf("error decoding key %s: %s", key, err)
+			log.Debugf("error decoding key %s: %s", key, err)
 			render404(c)
 			return
 		}
 		plain, err := crypto.DecryptAES(data, keyb)
 		if err != nil {
-			log.Errorf("error decrypting %s: %s", contentPath, err)
+			log.Debugf("error decrypting %s: %s", contentPath, err)
 			render404(c)
 			return
 		}
@@ -176,14 +177,14 @@ func (g *Gateway) profileHandler(c *gin.Context) {
 
 	rootId, err := peer.IDB58Decode(c.Param("root"))
 	if err != nil {
-		log.Errorf("error decoding root %s: %s", c.Param("root"), err)
+		log.Debugf("error decoding root %s: %s", c.Param("root"), err)
 		render404(c)
 		return
 	}
 
 	pth, err := ipfs.ResolveIPNS(g.Node.Ipfs(), rootId, time.Second*30)
 	if err != nil {
-		log.Errorf("error resolving profile %s: %s", c.Param("root"), err)
+		log.Debugf("error resolving profile %s: %s", c.Param("root"), err)
 		render404(c)
 		return
 	}
@@ -211,7 +212,7 @@ func (g *Gateway) profileHandler(c *gin.Context) {
 		if len(parsed) == 2 {
 			keyb, err := base58.Decode(parsed[1])
 			if err != nil {
-				log.Errorf("error decoding key %s: %s", parsed[1], err)
+				log.Debugf("error decoding key %s: %s", parsed[1], err)
 				render404(c)
 				return
 			}
@@ -224,7 +225,7 @@ func (g *Gateway) profileHandler(c *gin.Context) {
 
 			data, err = crypto.DecryptAES(ciphertext, keyb)
 			if err != nil {
-				log.Errorf("error decrypting %s: %s", parsed[0], err)
+				log.Debugf("error decrypting %s: %s", parsed[0], err)
 				render404(c)
 				return
 			}
@@ -295,7 +296,7 @@ func (g *Gateway) cafesHandler(c *gin.Context) {
 }
 
 type link struct {
-	Path iface.Path
+	Path ipfspath.Path
 	Link *ipld.Link
 	Size string
 }
@@ -305,9 +306,9 @@ func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 	data, err := g.Node.DataAtPath(pth)
 	if err != nil {
 		if err == iface.ErrIsDir {
-			root, err := iface.ParsePath(pth)
+			root, err := ipfspath.ParsePath(pth)
 			if err != nil {
-				log.Errorf("error parsing path %s: %s", pth, err)
+				log.Debugf("error parsing path %s: %s", pth, err)
 				render404(c)
 				return nil
 			}
@@ -324,16 +325,16 @@ func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 
 			ilinks, err := g.Node.LinksAtPath(pth)
 			if err != nil {
-				log.Errorf("error getting links %s: %s", pth, err)
+				log.Debugf("error getting links %s: %s", pth, err)
 				render404(c)
 				return nil
 			}
 
 			var links []link
 			for _, l := range ilinks {
-				ipath, err := iface.ParsePath(pth + "/" + l.Name)
+				ipath, err := ipfspath.ParsePath(pth + "/" + l.Name)
 				if err != nil {
-					log.Errorf("error parsing path %s: %s", pth, err)
+					log.Debugf("error parsing path %s: %s", pth, err)
 					render404(c)
 					return nil
 				}
@@ -352,7 +353,7 @@ func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 			return nil
 		}
 
-		log.Errorf("error getting path %s: %s", pth, err)
+		log.Debugf("error getting path %s: %s", pth, err)
 		render404(c)
 		return nil
 	}

@@ -43,7 +43,7 @@ type logOptions struct {
 
 type addressOptions struct {
 	ApiBindAddr       string `short:"a" long:"api-bind-addr" description:"Set the local API address." default:"127.0.0.1:40600"`
-	CafeApiBindAddr   string `short:"c" long:"cafe-bind-addr" description:"Set the cafe REST API address." default:"127.0.0.1:40601"`
+	CafeApiBindAddr   string `short:"c" long:"cafe-bind-addr" description:"Set the cafe REST API address." default:"0.0.0.0:40601"`
 	GatewayBindAddr   string `short:"g" long:"gateway-bind-addr" description:"Set the IPFS gateway address." default:"127.0.0.1:5050"`
 	ProfilingBindAddr string `long:"profile-bind-addr" description:"Set the profiling address." default:"127.0.0.1:6060"`
 }

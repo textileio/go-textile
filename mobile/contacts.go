@@ -1,8 +1,6 @@
 package mobile
 
 import (
-	"errors"
-
 	"github.com/golang/protobuf/proto"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/pb"
@@ -30,7 +28,7 @@ func (m *Mobile) Contact(address string) ([]byte, error) {
 
 	contact := m.node.Contact(address)
 	if contact == nil {
-		return nil, errors.New("contact not found")
+		return nil, nil
 	}
 
 	return proto.Marshal(contact)

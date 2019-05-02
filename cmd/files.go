@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	iface "github.com/ipfs/interface-go-ipfs-core"
+	ipfspath "github.com/ipfs/go-path"
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/pb"
@@ -120,7 +120,7 @@ func callAddFiles(args []string, opts map[string]string) error {
 		}
 
 		// check if path references a cid
-		ipth, err := iface.ParsePath(args[0])
+		ipth, err := ipfspath.ParsePath(args[0])
 		if err == nil {
 			pth = ipth.String()
 		} else {
@@ -275,14 +275,14 @@ func add(dirs []*pb.Directory, threadId string, caption string, verbose bool) (*
 }
 
 func mill(pth string, node *pb.Node, verbose bool) (*pb.Directory, error) {
-	ref, err := iface.ParsePath(pth)
+	ref, err := ipfspath.ParsePath(pth)
 	if err == nil {
 		parts := strings.Split(ref.String(), "/")
 		pth = parts[len(parts)-1]
 	}
 
 	var f *os.File
-	if ref == nil {
+	if ref == "" {
 		if pth == "" {
 			f = os.Stdin
 		} else {
@@ -320,7 +320,7 @@ func mill(pth string, node *pb.Node, verbose bool) (*pb.Directory, error) {
 		if node.Mill == "/json" {
 			reader = f
 			ctype = "application/json"
-		} else if ref != nil {
+		} else if ref != "" {
 			mopts.setUse(pth)
 		} else {
 			r, ct, err := multipartReader(f)
@@ -366,7 +366,7 @@ func mill(pth string, node *pb.Node, verbose bool) (*pb.Directory, error) {
 					if step.Link.Mill == "/json" {
 						reader = f
 						ctype = "application/json"
-					} else if ref != nil {
+					} else if ref != "" {
 						mopts.setUse(pth)
 					} else {
 						r, ct, err := multipartReader(f)
