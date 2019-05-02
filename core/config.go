@@ -48,10 +48,18 @@ func applyTextileConfigOptions(init InitConfig) error {
 	conf.Account.Thread = atid.Pretty()
 
 	// address settings
-	conf.Addresses.API = init.ApiAddr
-	conf.Addresses.CafeAPI = init.CafeApiAddr
-	conf.Addresses.Gateway = init.GatewayAddr
-	conf.Addresses.Profiling = init.ProfilingAddr
+	if init.ApiAddr != "" {
+		conf.Addresses.API = init.ApiAddr
+	}
+	if init.CafeApiAddr != "" {
+		conf.Addresses.CafeAPI = init.CafeApiAddr
+	}
+	if init.GatewayAddr != "" {
+		conf.Addresses.Gateway = init.GatewayAddr
+	}
+	if init.ProfilingAddr != "" {
+		conf.Addresses.Profiling = init.ProfilingAddr
+	}
 
 	// log settings
 	conf.Logs.LogToDisk = init.LogToDisk
