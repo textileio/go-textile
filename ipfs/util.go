@@ -63,7 +63,27 @@ func GetPublicIPv4Addr(node *core.IpfsNode) (string, error) {
 		}
 	}
 	if ip == "" {
-		return ip, fmt.Errorf("no public ipv4 address was found")
+		return ip, fmt.Errorf("no address was found")
+	}
+	return ip, nil
+}
+
+// GetLANIPv4Addr looks for a LAN IP in the host addresses (192.168.x.x)
+func GetLANIPv4Addr(node *core.IpfsNode) (string, error) {
+	var ip string
+	for _, addr := range node.PeerHost.Addrs() {
+		parts := strings.Split(addr.String(), "/")
+		if len(parts) < 3 {
+			continue
+		}
+		parsed := net.ParseIP(parts[2])
+		if parsed != nil && lanIPv4(parsed) {
+			ip = parts[2]
+			break
+		}
+	}
+	if ip == "" {
+		return ip, fmt.Errorf("no address was found")
 	}
 	return ip, nil
 }
@@ -84,7 +104,7 @@ func GetIPv6Addr(node *core.IpfsNode) (string, error) {
 		}
 	}
 	if ip == "" {
-		return ip, fmt.Errorf("no ipv6 address was found")
+		return ip, fmt.Errorf("no address was found")
 	}
 	return ip, nil
 }
@@ -148,6 +168,17 @@ func publicIPv4(ip net.IP) bool {
 		default:
 			return true
 		}
+	}
+	return false
+}
+
+// lanIPv4 returns true if the given ip is a LAN IP (192.168.x.x)
+func lanIPv4(ip net.IP) bool {
+	if ip.IsLoopback() || ip.IsLinkLocalMulticast() || ip.IsLinkLocalUnicast() {
+		return false
+	}
+	if ip4 := ip.To4(); ip4 != nil {
+		return ip4[0] == 192 && ip4[1] == 168
 	}
 	return false
 }
