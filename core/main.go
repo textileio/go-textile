@@ -12,12 +12,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ipfs/go-ipfs/core/node/libp2p"
-
 	ipfsconfig "github.com/ipfs/go-ipfs-config"
 	utilmain "github.com/ipfs/go-ipfs/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/go-ipfs/plugin/loader"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	ipld "github.com/ipfs/go-ipld-format"
