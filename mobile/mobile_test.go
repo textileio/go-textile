@@ -373,9 +373,6 @@ func TestMobile_RemoveThread(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if err != nil {
-		t.Errorf("remove thread failed: %s", err)
-	}
 	if res2 == "" {
 		t.Errorf("remove thread bad result: %s", err)
 	}
@@ -850,14 +847,10 @@ func TestMobile_AddExternalInvite(t *testing.T) {
 }
 
 func TestMobile_AcceptExternalInvite(t *testing.T) {
-	hash, err := mobile2.AcceptExternalInvite(invite.Id, invite.Key)
+	_, err := mobile1.AcceptExternalInvite(invite.Id, invite.Key)
 	if err != nil {
 		t.Error(err)
 		return
-	}
-
-	if hash == "" {
-		t.Errorf("bad accept external invite result: %s", hash)
 	}
 }
 

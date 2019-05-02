@@ -1,6 +1,8 @@
 package mobile
 
 import (
+	"fmt"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/textileio/go-textile/core"
 )
@@ -13,7 +15,7 @@ func (m *Mobile) Profile() ([]byte, error) {
 
 	self := m.node.Profile()
 	if self == nil {
-		return nil, nil
+		return nil, fmt.Errorf("profile not found")
 	}
 
 	return proto.Marshal(self)
