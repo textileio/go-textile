@@ -205,6 +205,8 @@ github.com/ipfs/go-ipfs v0.4.21-0.20190501030311-0f53ad0971e6 h1:oawfj2rmpDS6Qqj
 github.com/ipfs/go-ipfs v0.4.21-0.20190501030311-0f53ad0971e6/go.mod h1:ULLS2VgQMHiz/2nhQqcqsp9SfSzTEMNfqenl7fEjpq8=
 github.com/ipfs/go-ipfs v0.4.21-0.20190501222129-b57956c5fb53 h1:3hdTHfl7XAAzG6y/JRJRMCX8gqbc1KzP1ML7pbtTwIk=
 github.com/ipfs/go-ipfs v0.4.21-0.20190501222129-b57956c5fb53/go.mod h1:5hZpuj/0weLC3/lTw0uv4Th7ZMN+Q+l3gstNyxJ3IQw=
+github.com/ipfs/go-ipfs v0.4.21-0.20190502163502-5fd5d444796d h1:5G4kHkHFyKMxnglpbyyzrK5R3v0y23/KL1z5/9FqERo=
+github.com/ipfs/go-ipfs v0.4.21-0.20190502163502-5fd5d444796d/go.mod h1:5hZpuj/0weLC3/lTw0uv4Th7ZMN+Q+l3gstNyxJ3IQw=
 github.com/ipfs/go-ipfs-addr v0.0.1 h1:DpDFybnho9v3/a1dzJ5KnWdThWD1HrFLpQ+tWIyBaFI=
 github.com/ipfs/go-ipfs-addr v0.0.1/go.mod h1:uKTDljHT3Q3SUWzDLp3aYUi8MrY32fgNgogsIa0npjg=
 github.com/ipfs/go-ipfs-blockstore v0.0.1 h1:O9n3PbmTYZoNhkgkEyrXTznbmktIXif62xLX+8dPHzc=

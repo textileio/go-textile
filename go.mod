@@ -21,7 +21,7 @@ require (
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.1
 	github.com/ipfs/go-cid v0.0.1
-	github.com/ipfs/go-ipfs v0.4.21-0.20190501222129-b57956c5fb53
+	github.com/ipfs/go-ipfs v0.4.21-0.20190502163502-5fd5d444796d
 	github.com/ipfs/go-ipfs-addr v0.0.1
 	github.com/ipfs/go-ipfs-cmds v0.0.5
 	github.com/ipfs/go-ipfs-config v0.0.3
