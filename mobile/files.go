@@ -13,7 +13,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	ipld "github.com/ipfs/go-ipld-format"
-	iface "github.com/ipfs/interface-go-ipfs-core"
+	ipfspath "github.com/ipfs/go-path"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/mill"
@@ -156,7 +156,7 @@ func (m *Mobile) PrepareFilesByPathSync(path string, threadId string) ([]byte, e
 	}
 
 	var use string
-	if ref, err := iface.ParsePath(path); err == nil {
+	if ref, err := ipfspath.ParsePath(path); err == nil {
 		parts := strings.Split(ref.String(), "/")
 		use = parts[len(parts)-1]
 	}
