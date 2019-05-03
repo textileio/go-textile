@@ -1,7 +1,7 @@
 package core
 
 import (
-	"errors"
+	"fmt"
 	"sort"
 
 	"github.com/golang/protobuf/proto"
@@ -34,11 +34,11 @@ func (t *Thread) merge(head mh.Multihash) (mh.Multihash, error) {
 	// choose newest to use for date
 	p1b := t.datastore.Blocks().Get(header.Parents[0])
 	if p1b == nil {
-		return nil, errors.New("first merge parent not found")
+		return nil, fmt.Errorf("first merge parent not found")
 	}
 	p2b := t.datastore.Blocks().Get(header.Parents[1])
 	if p2b == nil {
-		return nil, errors.New("second merge parent not found")
+		return nil, fmt.Errorf("second merge parent not found")
 	}
 	var date *timestamp.Timestamp
 	if util.ProtoTsIsNewer(p2b.Date, p1b.Date) {

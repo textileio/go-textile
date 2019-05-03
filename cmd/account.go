@@ -1,14 +1,13 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 
 	"github.com/textileio/go-textile/pb"
 )
 
-var errMissingSnapshotId = errors.New("missing snapshot ID")
+var errMissingSnapshotId = fmt.Errorf("missing snapshot ID")
 
 func init() {
 	register(&accountCmd{})

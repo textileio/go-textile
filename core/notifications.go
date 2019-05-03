@@ -1,7 +1,6 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 
 	mh "github.com/multiformats/go-multihash"
@@ -50,10 +49,10 @@ func (t *Textile) ReadAllNotifications() error {
 func (t *Textile) AcceptInviteViaNotification(id string) (mh.Multihash, error) {
 	notification := t.datastore.Notifications().Get(id)
 	if notification == nil {
-		return nil, errors.New(fmt.Sprintf("could not find notification: %s", id))
+		return nil, fmt.Errorf("could not find notification: %s", id)
 	}
 	if notification.Type != pb.Notification_INVITE_RECEIVED {
-		return nil, errors.New(fmt.Sprintf("notification type is not invite"))
+		return nil, fmt.Errorf(fmt.Sprintf("notification type is not invite"))
 	}
 
 	hash, err := t.AcceptInvite(notification.Block)
@@ -68,10 +67,10 @@ func (t *Textile) AcceptInviteViaNotification(id string) (mh.Multihash, error) {
 func (t *Textile) IgnoreInviteViaNotification(id string) error {
 	notification := t.datastore.Notifications().Get(id)
 	if notification == nil {
-		return errors.New(fmt.Sprintf("could not find notification: %s", id))
+		return fmt.Errorf(fmt.Sprintf("could not find notification: %s", id))
 	}
 	if notification.Type != pb.Notification_INVITE_RECEIVED {
-		return errors.New(fmt.Sprintf("notification type is not invite"))
+		return fmt.Errorf(fmt.Sprintf("notification type is not invite"))
 	}
 
 	if err := t.IgnoreInvite(notification.Block); err != nil {

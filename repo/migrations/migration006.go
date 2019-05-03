@@ -3,7 +3,6 @@ package migrations
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -92,7 +91,7 @@ func (Minor006) Up(repoPath string, pinCode string, testnet bool) error {
 	}
 	full, ok := kp.(*keypair.Full)
 	if !ok {
-		return errors.New("invalid seed")
+		return fmt.Errorf("invalid seed")
 	}
 
 	// get username

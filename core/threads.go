@@ -1,7 +1,6 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -22,13 +21,13 @@ import (
 )
 
 // ErrThreadNotFound indicates thread is not found in the loaded list
-var ErrThreadNotFound = errors.New("thread not found")
+var ErrThreadNotFound = fmt.Errorf("thread not found")
 
 // ErrThreadLoaded indicates the thread is already loaded from the datastore
-var ErrThreadLoaded = errors.New("thread is loaded")
+var ErrThreadLoaded = fmt.Errorf("thread is loaded")
 
 // emptyThreadKey indicates "" was used for a thread key
-var emptyThreadKey = errors.New("thread key cannot by empty")
+var emptyThreadKey = fmt.Errorf("thread key cannot by empty")
 
 // internalThreadKeys lists keys used by internal threads
 var internalThreadKeys = []string{"account", "avatars"}

@@ -3,7 +3,6 @@ package repo
 import (
 	"context"
 	"crypto/rand"
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -21,10 +20,10 @@ import (
 
 var log = logging.Logger("tex-repo")
 
-var ErrRepoExists = errors.New("repo not empty, reinitializing would overwrite your account")
-var ErrRepoDoesNotExist = errors.New("repo does not exist, initialization is required")
-var ErrMigrationRequired = errors.New("repo needs migration")
-var ErrRepoCorrupted = errors.New("repo is corrupted")
+var ErrRepoExists = fmt.Errorf("repo not empty, reinitializing would overwrite your account")
+var ErrRepoDoesNotExist = fmt.Errorf("repo does not exist, initialization is required")
+var ErrMigrationRequired = fmt.Errorf("repo needs migration")
+var ErrRepoCorrupted = fmt.Errorf("repo is corrupted")
 
 const Repover = "13"
 

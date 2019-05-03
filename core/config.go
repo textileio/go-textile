@@ -85,7 +85,7 @@ func updateBootstrapConfig(repoPath string, add []string, rm []string) error {
 	}
 	defer func() {
 		if err := rep.Close(); err != nil {
-			log.Error(err)
+			log.Error(err.Error())
 		}
 	}()
 	conf, err := rep.Config()
@@ -119,7 +119,7 @@ func loadSwarmPorts(repoPath string) (*config.SwarmPorts, error) {
 	}
 	defer func() {
 		if err := rep.Close(); err != nil {
-			log.Error(err)
+			log.Error(err.Error())
 		}
 	}()
 

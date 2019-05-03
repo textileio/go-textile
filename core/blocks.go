@@ -1,13 +1,13 @@
 package core
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/textileio/go-textile/pb"
 )
 
 // ErrBlockNotFound indicates a block was not found in the index
-var ErrBlockNotFound = errors.New("block not found")
+var ErrBlockNotFound = fmt.Errorf("block not found")
 
 // GetBlocks paginates blocks
 func (t *Textile) Blocks(offset string, limit int, query string) *pb.BlockList {

@@ -1,12 +1,12 @@
 package cmd
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/textileio/go-textile/util"
 )
 
-var errMissingLikeId = errors.New("missing like block ID")
+var errMissingLikeId = fmt.Errorf("missing like block ID")
 
 func init() {
 	register(&likesCmd{})

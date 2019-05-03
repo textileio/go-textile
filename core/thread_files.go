@@ -2,7 +2,6 @@ package core
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -374,7 +373,7 @@ func (t *Thread) validateJsonNode(inode ipld.Node, key string) error {
 		for _, err := range result.Errors() {
 			errs += fmt.Sprintf("- %s\n", err)
 		}
-		return errors.New(errs)
+		return fmt.Errorf(errs)
 	}
 
 	return nil

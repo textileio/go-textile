@@ -1,12 +1,12 @@
 package cmd
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/textileio/go-textile/util"
 )
 
-var errMissingCafeId = errors.New("missing cafe id")
+var errMissingCafeId = fmt.Errorf("missing cafe id")
 
 func init() {
 	register(&cafesCmd{})

@@ -52,7 +52,7 @@ func (a *api) getThreadsSubscribe(g *gin.Context) {
 
 				btype, err := FeedItemType(update)
 				if err != nil {
-					log.Error(err)
+					log.Error(err.Error())
 					break
 				}
 

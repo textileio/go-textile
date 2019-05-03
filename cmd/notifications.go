@@ -1,12 +1,12 @@
 package cmd
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/textileio/go-textile/util"
 )
 
-var errMissingNoteId = errors.New("missing notification ID")
+var errMissingNoteId = fmt.Errorf("missing notification ID")
 
 func init() {
 	register(&notificationsCmd{})

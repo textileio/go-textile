@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/golang/protobuf/proto"
@@ -21,7 +20,7 @@ import (
 )
 
 // ErrInvalidThreadBlock is a catch all error for malformed / invalid blocks
-var ErrInvalidThreadBlock = errors.New("invalid thread block")
+var ErrInvalidThreadBlock = fmt.Errorf("invalid thread block")
 
 // ThreadService is a libp2p service for orchestrating a collection of files
 // with annotations amongst a group of peers

@@ -2,7 +2,7 @@ package jwt
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -14,10 +14,10 @@ import (
 	"github.com/textileio/go-textile/pb"
 )
 
-var ErrClaimsInvalid = errors.New("claims invalid")
-var ErrNoToken = errors.New("no token found")
-var ErrExpired = errors.New("token expired")
-var ErrInvalid = errors.New("token invalid")
+var ErrClaimsInvalid = fmt.Errorf("claims invalid")
+var ErrNoToken = fmt.Errorf("no token found")
+var ErrExpired = fmt.Errorf("token expired")
+var ErrInvalid = fmt.Errorf("token invalid")
 
 type TextileClaims struct {
 	Scope Scope `json:"scopes"`

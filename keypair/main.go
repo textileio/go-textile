@@ -2,7 +2,7 @@ package keypair
 
 import (
 	"crypto/rand"
-	"errors"
+	"fmt"
 	"io"
 
 	libp2pc "github.com/libp2p/go-libp2p-crypto"
@@ -13,20 +13,20 @@ import (
 var (
 	// ErrInvalidKey will be returned by operations when the keypair being used
 	// could not be decoded.
-	ErrInvalidKey = errors.New("invalid key")
+	ErrInvalidKey = fmt.Errorf("invalid key")
 
 	// ErrInvalidSignature is returned when the signature is invalid, either
 	// through malformation or if it does not verify the message against the
 	// provided public key
-	ErrInvalidSignature = errors.New("signature verification failed")
+	ErrInvalidSignature = fmt.Errorf("signature verification failed")
 
 	// ErrCannotSign is returned when attempting to sign a message when
 	// the keypair does not have the secret key available
-	ErrCannotSign = errors.New("cannot sign")
+	ErrCannotSign = fmt.Errorf("cannot sign")
 
 	// ErrCannotDecrypt is returned when attempting to decrypt a message when
 	// the keypair does not have the secret key available
-	ErrCannotDecrypt = errors.New("cannot decrypt")
+	ErrCannotDecrypt = fmt.Errorf("cannot decrypt")
 )
 
 // KeyPair is the main interface for this package

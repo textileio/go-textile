@@ -3,7 +3,7 @@ package core
 import (
 	"bytes"
 	"crypto/sha256"
-	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -22,9 +22,9 @@ import (
 	"github.com/textileio/go-textile/schema"
 )
 
-var ErrFileNotFound = errors.New("file not found")
-var ErrMissingFileLink = errors.New("file link not in node")
-var ErrMissingDataLink = errors.New("data link not in node")
+var ErrFileNotFound = fmt.Errorf("file not found")
+var ErrMissingMetaLink = fmt.Errorf("meta link not in node")
+var ErrMissingContentLink = fmt.Errorf("content link not in node")
 
 const FileLinkName = "f"
 const DataLinkName = "d"

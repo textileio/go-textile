@@ -1,29 +1,29 @@
 package schema
 
 import (
-	"errors"
+	"fmt"
 
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/textileio/go-textile/pb"
 )
 
 // ErrFileValidationFailed indicates dag schema validation failed
-var ErrFileValidationFailed = errors.New("file failed schema validation")
+var ErrFileValidationFailed = fmt.Errorf("file failed schema validation")
 
 // ErrEmptySchema indicates a schema is empty
-var ErrEmptySchema = errors.New("schema does not create any files")
+var ErrEmptySchema = fmt.Errorf("schema does not create any files")
 
 // ErrLinkOrderNotSolvable
-var ErrLinkOrderNotSolvable = errors.New("link order is not solvable")
+var ErrLinkOrderNotSolvable = fmt.Errorf("link order is not solvable")
 
 // ErrSchemaInvalidMill indicates a schema has an invalid mill entry
-var ErrSchemaInvalidMill = errors.New("schema contains an invalid mill")
+var ErrSchemaInvalidMill = fmt.Errorf("schema contains an invalid mill")
 
 // ErrMissingJsonSchema indicates json schema is missing
-var ErrMissingJsonSchema = errors.New("json mill requires a json schema")
+var ErrMissingJsonSchema = fmt.Errorf("json mill requires a json schema")
 
 // ErrBadJsonSchema indicates json schema is invalid
-var ErrBadJsonSchema = errors.New("json schema is not valid")
+var ErrBadJsonSchema = fmt.Errorf("json schema is not valid")
 
 // FileTag indicates the link should "use" the input file as source
 const FileTag = ":file"

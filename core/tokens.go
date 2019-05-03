@@ -2,7 +2,7 @@ package core
 
 import (
 	"encoding/hex"
-	"errors"
+	"fmt"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/mr-tron/base58/base58"
@@ -38,7 +38,7 @@ func (t *Textile) CreateCafeToken(token string, store bool) (string, error) {
 			return "", err
 		}
 		if len(key) != 44 {
-			return "", errors.New("invalid token format")
+			return "", fmt.Errorf("invalid token format")
 		}
 	} else {
 		key, err = crypto.GenerateAESKey()
@@ -75,7 +75,7 @@ func (t *Textile) ValidateCafeToken(token string) (bool, error) {
 		return false, err
 	}
 	if len(plainBytes) < 44 {
-		return false, errors.New("invalid token format")
+		return false, fmt.Errorf("invalid token format")
 	}
 
 	encodedToken := t.datastore.CafeTokens().Get(hex.EncodeToString(plainBytes[:12]))
@@ -96,7 +96,7 @@ func (t *Textile) RemoveCafeToken(token string) error {
 		return err
 	}
 	if len(plainBytes) < 44 {
-		return errors.New("invalid token format")
+		return fmt.Errorf("invalid token format")
 	}
 	return t.datastore.CafeTokens().Delete(hex.EncodeToString(plainBytes[:12]))
 }
