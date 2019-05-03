@@ -5,7 +5,6 @@ import (
 	"path"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/golang/protobuf/jsonpb"
 	logging "github.com/ipfs/go-log"
@@ -51,7 +50,6 @@ func Create(repoPath, pin string) (*SQLiteDatastore, error) {
 	if err != nil {
 		return nil, err
 	}
-	conn.SetConnMaxLifetime(time.Minute * 30)
 	conn.SetMaxIdleConns(2)
 	conn.SetMaxOpenConns(4)
 	if pin != "" {
