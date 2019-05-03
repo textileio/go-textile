@@ -354,8 +354,6 @@ func (t *Textile) Start() error {
 		}
 	}()
 
-	//timer := time.NewTimer(time.Second)
-	//<-timer.C
 	for _, mod := range t.datastore.Threads().List().Items {
 		if _, err := t.loadThread(mod); err != nil {
 			if err == ErrThreadLoaded {
@@ -365,6 +363,8 @@ func (t *Textile) Start() error {
 			}
 		}
 	}
+
+	go t.loadThreadSchemas()
 
 	t.started = true
 
@@ -629,9 +629,9 @@ func (t *Textile) threadByBlock(block *pb.Block) (*Thread, error) {
 	}
 
 	var thrd *Thread
-	for _, t := range t.loadedThreads {
-		if t.Id == block.Thread {
-			thrd = t
+	for _, l := range t.loadedThreads {
+		if l.Id == block.Thread {
+			thrd = l
 			break
 		}
 	}
@@ -667,6 +667,16 @@ func (t *Textile) loadThread(mod *pb.Thread) (*Thread, error) {
 	t.loadedThreads = append(t.loadedThreads, thrd)
 
 	return thrd, nil
+}
+
+// loadThreadSchemas loads thread schemas that were not found locally during startup
+func (t *Textile) loadThreadSchemas() {
+	<-t.online
+	for _, l := range t.loadedThreads {
+		if err := l.loadSchema(); err != nil {
+			log.Errorf("unable to load schema %s: %s", l.schemaId, err)
+		}
+	}
 }
 
 // sendUpdate sends an update to the update channel
@@ -738,7 +748,9 @@ func (t *Textile) runGC() {
 				if !ok {
 					return
 				}
-				log.Error(err.Error())
+				if err != nil {
+					log.Error(err.Error())
+				}
 			}
 		}
 	}()

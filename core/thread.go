@@ -11,6 +11,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/ipfs/go-ipfs/core"
+	ipld "github.com/ipfs/go-ipld-format"
 	libp2pc "github.com/libp2p/go-libp2p-crypto"
 	peer "github.com/libp2p/go-libp2p-peer"
 	mh "github.com/multiformats/go-multihash"
@@ -99,19 +100,10 @@ func NewThread(model *pb.Thread, conf *ThreadConfig) (*Thread, error) {
 		return nil, err
 	}
 
-	var sch *pb.Node
-	if model.Schema != "" {
-		sch, err = loadSchema(conf.Node(), model.Schema)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return &Thread{
+	thrd := &Thread{
 		Id:          model.Id,
 		Key:         model.Key,
 		Name:        model.Name,
-		Schema:      sch,
 		schemaId:    model.Schema,
 		initiator:   model.Initiator,
 		ttype:       model.Type,
@@ -128,7 +120,12 @@ func NewThread(model *pb.Thread, conf *ThreadConfig) (*Thread, error) {
 		cafeOutbox:  conf.CafeOutbox,
 		addPeer:     conf.AddPeer,
 		pushUpdate:  conf.PushUpdate,
-	}, nil
+	}
+
+	if err := thrd.loadSchema(); err != nil {
+		return nil, err
+	}
+	return thrd, nil
 }
 
 // Head returns content id of the latest update
@@ -171,8 +168,8 @@ func (t *Thread) UpdateSchema(hash string) error {
 	if err != nil {
 		return err
 	}
-	t.Schema, err = loadSchema(t.node(), hash)
-	return err
+	t.Schema = nil
+	return t.loadSchema()
 }
 
 // followParents tries to follow a list of chains of block ids, processing along the way
@@ -633,18 +630,30 @@ func (t *Thread) member(addr string) bool {
 	return false
 }
 
-// loadSchema loads a schema from a local file
-func loadSchema(node *core.IpfsNode, id string) (*pb.Node, error) {
-	data, err := ipfs.DataAtPath(node, id)
+// loadSchema loads and attaches a schema from the network
+func (t *Thread) loadSchema() error {
+	if t.schemaId == "" || t.Schema != nil {
+		return nil
+	}
+
+	data, err := ipfs.DataAtPath(t.node(), t.schemaId)
 	if err != nil {
-		log.Warning(id)
-		return nil, err
+		if err == ipld.ErrNotFound {
+			return nil
+		}
+		return err
 	}
 
 	var sch pb.Node
 	if err := jsonpb.UnmarshalString(string(data), &sch); err != nil {
-		log.Errorf("failed to unmarshal thread schema %s: %s", id, err)
-		return nil, err
+		return err
 	}
-	return &sch, nil
+	t.Schema = &sch
+
+	// pin/repin to ensure remotely added schemas are readily accessible
+	if _, err := ipfs.AddData(t.node(), bytes.NewReader(data), true); err != nil {
+		return err
+	}
+
+	return nil
 }
