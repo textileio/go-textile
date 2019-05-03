@@ -121,7 +121,7 @@ var log = logging.Logger("tex-main")
 var parser = flags.NewParser(&options{}, flags.Default)
 
 func init() {
-	// add main commands
+	// Add the commands that are located in this file
 	_, _ = parser.AddCommand("version",
 		"Print version and exit",
 		"Print the current version and exit.",
@@ -151,7 +151,7 @@ func init() {
 		"Prints markdown docs for the command-line client.",
 		&docsCmd{})
 
-	// add cmd commands
+	// Add the commands that are located in the cmd directory/package
 	for _, c := range cmd.Cmds() {
 		_, _ = parser.AddCommand(c.Name(), c.Short(), c.Long(), c)
 	}
@@ -161,6 +161,7 @@ func main() {
 	_, _ = parser.Parse()
 }
 
+// Output the available commands to the user
 func (x *commandsCmd) Execute(args []string) error {
 	for _, c := range parser.Commands() {
 		if len(c.Commands()) == 0 {
@@ -236,6 +237,7 @@ func (x *walletInitCmd) Execute(args []string) error {
 		return err
 	}
 
+	// Print the recovery phrase surrounded by a box of dashes
 	fmt.Println(strings.Repeat("-", len(w.RecoveryPhrase)+4))
 	fmt.Println("| " + w.RecoveryPhrase + " |")
 	fmt.Println(strings.Repeat("-", len(w.RecoveryPhrase)+4))
@@ -293,6 +295,7 @@ func (x *versionCmd) Execute(args []string) error {
 	return nil
 }
 
+// Initialise the textile user data store at the repo path
 func (x *initCmd) Execute(args []string) error {
 	kp, err := keypair.Parse(x.AccountSeed)
 	if err != nil {
@@ -324,6 +327,7 @@ func (x *initCmd) Execute(args []string) error {
 		CafeOpen:        x.CafeOptions.Open,
 		CafeURL:         envOrFlag("CAFE_HOST_URL", x.CafeOptions.URL),
 		CafeNeighborURL: envOrFlag("CAFE_HOST_NEIGHBOR_URL", x.CafeOptions.NeighborURL),
+        // ^ @todo why do we prefer env over flag for these? shouldn't flag override the env?
 	}
 
 	if err := core.InitRepo(config); err != nil {
@@ -333,6 +337,7 @@ func (x *initCmd) Execute(args []string) error {
 	return nil
 }
 
+// Grab the repo path and migrate it to the latest version, passing the decryption pincode
 func (x *migrateCmd) Execute(args []string) error {
 	repoPath, err := getRepoPath(x.RepoPath)
 	if err != nil {
@@ -349,6 +354,7 @@ func (x *migrateCmd) Execute(args []string) error {
 	return nil
 }
 
+// Start the daemon against the user repository
 func (x *daemonCmd) Execute(args []string) error {
 	repoPathf, err := getRepoPath(x.RepoPath)
 	if err != nil {
@@ -373,7 +379,7 @@ func (x *daemonCmd) Execute(args []string) error {
 	}
 	printSplash()
 
-	// handle interrupt
+	// Shutdown gracefully if an SIGINT was received
 	quit := make(chan os.Signal)
 	signal.Notify(quit, os.Interrupt)
 	<-quit
@@ -388,6 +394,8 @@ func (x *daemonCmd) Execute(args []string) error {
 	return nil
 }
 
+// Get the repo path for the user, will create it if missing
+// Unless provided, it defaults to ~/.textile/repo
 func getRepoPath(repoPath string) (string, error) {
 	if len(repoPath) == 0 {
 		// get homedir
@@ -406,6 +414,8 @@ func getRepoPath(repoPath string) (string, error) {
 	return repoPath, nil
 }
 
+// Start the node, the API, and the Gateway
+// And subsribe to updates of the wallet, thread, and notifications
 func startNode(serveDocs bool) error {
 	listener := node.ThreadUpdateListener()
 
@@ -520,11 +530,16 @@ func startNode(serveDocs bool) error {
 		}
 	}()
 
+	// Wait concurrently here until the node comes online
+	// that is to say, until the online channel opens
 	<-node.OnlineCh()
 
+	// Textile is now online, continue
 	return nil
 }
 
+// Stop the api, then the gateway, then the node, then if possible, the channels
+// If a former fails, do not continue with the latter
 func stopNode() error {
 	if err := node.StopApi(); err != nil {
 		return err
@@ -540,6 +555,7 @@ func stopNode() error {
 	return nil
 }
 
+// Output the instance environment for the daemon command
 func printSplash() {
 	pid, err := node.PeerId()
 	if err != nil {
@@ -559,6 +575,7 @@ func printSplash() {
 	fmt.Println(cmd.Grey("Account: ") + cmd.Cyan(node.Account().Address()))
 }
 
+// If the env var value exists and is not empty, then use that, otherwise use the passed flag
 func envOrFlag(env string, flag string) string {
 	if os.Getenv(env) != "" {
 		return os.Getenv(env)
