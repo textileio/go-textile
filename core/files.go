@@ -29,8 +29,8 @@ var ErrMissingContentLink = fmt.Errorf("content link not in node")
 const MetaLinkName = "meta"
 const ContentLinkName = "content"
 
-var validMetaLinkNames = []string{"f", "meta"}
-var validContentLinkNames = []string{"d", "content"}
+var ValidMetaLinkNames = []string{"f", "meta"}
+var ValidContentLinkNames = []string{"d", "content"}
 
 type AddFileConfig struct {
 	Input     []byte `json:"input"`
@@ -309,7 +309,7 @@ func (t *Textile) fileNode(file *pb.FileIndex, dir uio.Directory, link string) e
 }
 
 func (t *Textile) fileIndexForPair(pair ipld.Node) (*pb.FileIndex, error) {
-	c, err := ipfs.ResolveLinkByNames(pair, validContentLinkNames)
+	c, err := ipfs.ResolveLinkByNames(pair, ValidContentLinkNames)
 	if err != nil {
 		return nil, err
 	}
@@ -360,7 +360,7 @@ func (t *Textile) fileNodeKeys(node ipld.Node, index int, keys *map[string]strin
 }
 
 func (t *Textile) fileLinkKey(inode ipld.Node) (string, error) {
-	dlink := schema.LinkByName(inode.Links(), validContentLinkNames)
+	dlink := schema.LinkByName(inode.Links(), ValidContentLinkNames)
 	if dlink == nil {
 		return "", ErrMissingDataLink
 	}
@@ -379,8 +379,8 @@ func looksLikeFileNode(node ipld.Node) bool {
 	if len(links) != 2 {
 		return false
 	}
-	if schema.LinkByName(links, validMetaLinkNames) == nil ||
-		schema.LinkByName(links, validContentLinkNames) == nil {
+	if schema.LinkByName(links, ValidMetaLinkNames) == nil ||
+		schema.LinkByName(links, ValidContentLinkNames) == nil {
 		return false
 	}
 	return true
