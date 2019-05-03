@@ -413,7 +413,7 @@ func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) (string, err
 			return "", err
 		}
 
-		dlink := schema.LinkByName(nd.Links(), core.ContentLinkName)
+		dlink := schema.LinkByName(nd.Links(), core.ValidContentLinkNames)
 		if dlink == nil {
 			continue
 		}
