@@ -45,11 +45,13 @@ func ValidateMill(mill string) bool {
 	return false
 }
 
-// LinkByName find a link w/ the given name in the provided list
-func LinkByName(links []*ipld.Link, name string) *ipld.Link {
+// LinkByName finds a link w/ one of the given names in the provided list
+func LinkByName(links []*ipld.Link, names []string) *ipld.Link {
 	for _, l := range links {
-		if l.Name == name {
-			return l
+		for _, n := range names {
+			if l.Name == n {
+				return l
+			}
 		}
 	}
 	return nil

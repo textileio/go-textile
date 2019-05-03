@@ -256,7 +256,7 @@ func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys
 
 	for name, l := range node.Links {
 		// ensure link is present
-		link := schema.LinkByName(inode.Links(), name)
+		link := schema.LinkByName(inode.Links(), []string{name})
 		if link == nil {
 			return schema.ErrFileValidationFailed
 		}
@@ -289,12 +289,12 @@ func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key stri
 		return err
 	}
 
-	flink := schema.LinkByName(inode.Links(), MetaLinkName)
+	flink := schema.LinkByName(inode.Links(), validMetaLinkNames)
 	if flink == nil {
 		return ErrMissingMetaLink
 	}
 
-	dlink := schema.LinkByName(inode.Links(), ContentLinkName)
+	dlink := schema.LinkByName(inode.Links(), validContentLinkNames)
 	if dlink == nil {
 		return ErrMissingContentLink
 	}
@@ -403,7 +403,7 @@ func (t *Thread) indexFileNode(inode ipld.Node, target string) error {
 
 // indexFileLink indexes a file link
 func (t *Thread) indexFileLink(inode ipld.Node, target string) error {
-	dlink := schema.LinkByName(inode.Links(), ContentLinkName)
+	dlink := schema.LinkByName(inode.Links(), validContentLinkNames)
 	if dlink == nil {
 		return ErrMissingContentLink
 	}
@@ -435,7 +435,7 @@ func (t *Thread) deIndexFileNode(inode ipld.Node, target string) error {
 
 // deIndexFileLink de-indexes a file link
 func (t *Thread) deIndexFileLink(inode ipld.Node, target string) error {
-	dlink := schema.LinkByName(inode.Links(), ContentLinkName)
+	dlink := schema.LinkByName(inode.Links(), validContentLinkNames)
 	if dlink == nil {
 		return ErrMissingContentLink
 	}

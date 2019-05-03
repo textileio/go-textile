@@ -15,6 +15,7 @@ import (
 	"github.com/ipfs/go-ipfs/pin"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
+	dag "github.com/ipfs/go-merkledag"
 	uio "github.com/ipfs/go-unixfs/io"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
@@ -326,6 +327,9 @@ func ResolveLinkByNames(nd ipld.Node, names []string) (*ipld.Link, error) {
 	for _, n := range names {
 		link, _, err := nd.ResolveLink([]string{n})
 		if err != nil {
+			if err == dag.ErrLinkNotFound {
+				continue
+			}
 			return nil, err
 		}
 		if link != nil {
