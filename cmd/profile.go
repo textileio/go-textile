@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 
+	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
 )
 
@@ -108,10 +109,28 @@ Sets the peer avatar from an image path (JPEG, PNG, or GIF).`
 
 func (x *setAvatarCmd) Execute(args []string) error {
 	setApi(x.Client)
-	if len(args) == 0 {
-		return errMissingAvatar
+
+	_, contact, err := callGetAccount()
+	if err != nil {
+		return err
 	}
-	res, err := executeStringCmd(POST, "profile/avatar", params{args: args})
+	kp, err := keypair.Parse(contact.Address)
+	if err != nil {
+		return err
+	}
+	id, err := kp.Id()
+	if err != nil {
+		return err
+	}
+
+	opts := map[string]string{
+		"thread": id.Pretty(),
+	}
+	if err := callAddFiles(args, opts); err != nil {
+		return err
+	}
+
+	res, err := executeStringCmd(POST, "profile/avatar", params{})
 	if err != nil {
 		return err
 	}

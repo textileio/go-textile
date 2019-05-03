@@ -141,6 +141,16 @@ func (t *Thread) Head() (string, error) {
 	return mod.Head, nil
 }
 
+// LatestFiles returns the most recent files block
+func (t *Thread) LatestFiles() *pb.Block {
+	query := fmt.Sprintf("threadId='%s' and type=%d", t.Id, pb.Block_FILES)
+	list := t.datastore.Blocks().List("", 1, query)
+	if len(list.Items) == 0 {
+		return nil
+	}
+	return list.Items[0]
+}
+
 // Peers returns locally known peers in this thread
 func (t *Thread) Peers() []pb.ThreadPeer {
 	return t.datastore.ThreadPeers().ListByThread(t.Id)
@@ -154,6 +164,16 @@ func (t *Thread) Encrypt(data []byte) ([]byte, error) {
 // Decrypt data with thread secret key
 func (t *Thread) Decrypt(data []byte) ([]byte, error) {
 	return crypto.Decrypt(t.PrivKey, data)
+}
+
+// UpdateSchema sets a new schema hash on the model and loads its node
+func (t *Thread) UpdateSchema(hash string) error {
+	err := t.datastore.Threads().UpdateSchema(t.Id, hash)
+	if err != nil {
+		return err
+	}
+	t.Schema, err = loadSchema(t.node(), hash)
+	return err
 }
 
 // followParents tries to follow a list of chains of block ids, processing along the way

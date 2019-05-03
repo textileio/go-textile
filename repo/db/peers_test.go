@@ -63,10 +63,10 @@ func TestPeerDB_Get(t *testing.T) {
 	}
 }
 
-func TestPeerDB_GetBest(t *testing.T) {
-	testPeer = peerStore.GetBest("abcde")
-	if testPeer == nil {
-		t.Error("could not get best peer")
+func TestPeerDB_GetBestUser(t *testing.T) {
+	best := peerStore.GetBestUser("abcde")
+	if best == nil {
+		t.Error("could not get best user")
 	}
 }
 
@@ -84,19 +84,49 @@ func TestPeerDB_AddOrUpdate(t *testing.T) {
 		return
 	}
 	defer stmt.Close()
-	var username string
+	var name string
 	var updated int64
-	if err := stmt.QueryRow("abcde").Scan(&username, &updated); err != nil {
+	if err := stmt.QueryRow("abcde").Scan(&name, &updated); err != nil {
 		t.Error(err)
 		return
 	}
-	if username != "joe" {
-		t.Errorf(`expected "joe" got %s`, username)
+	if name != "joe" {
+		t.Errorf(`expected "joe" got %s`, name)
 		return
 	}
 	old := util.ProtoNanos(testPeer.Updated)
 	if updated <= old {
 		t.Errorf("updated was not updated (old: %d, new: %d)", old, updated)
+	}
+}
+
+func TestPeerDB_GetBestUserAgain(t *testing.T) {
+	setupPeerDB()
+	if err := peerStore.Add(&pb.Peer{
+		Id:      "abcde",
+		Address: "address",
+	}); err != nil {
+		t.Error(err)
+		return
+	}
+	if err := peerStore.Add(&pb.Peer{
+		Id:      "abcdef",
+		Address: "address",
+		Name:    "name",
+		Avatar:  "avatar",
+	}); err != nil {
+		t.Error(err)
+		return
+	}
+	best := peerStore.GetBestUser("abcde")
+	if best.Address != "address" {
+		t.Error("best peer should have older name")
+	}
+	if best.Name != "name" {
+		t.Error("best peer should have older name")
+	}
+	if best.Avatar != "avatar" {
+		t.Error("best peer should have older avatar")
 	}
 }
 
@@ -141,7 +171,7 @@ func TestPeerDB_UpdateName(t *testing.T) {
 	}
 	updated := peerStore.Get(testPeer.Id)
 	if updated.Name != "mike" {
-		t.Error("update username failed")
+		t.Error("update name failed")
 		return
 	}
 	if util.ProtoNanos(updated.Updated) <= util.ProtoNanos(testPeer.Updated) {

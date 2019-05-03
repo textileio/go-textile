@@ -1,6 +1,8 @@
 package mobile
 
 import (
+	"fmt"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/core"
@@ -45,7 +47,12 @@ func (m *Mobile) AccountContact() ([]byte, error) {
 		return nil, core.ErrStopped
 	}
 
-	return proto.Marshal(m.node.AccountContact())
+	contact := m.node.AccountContact()
+	if contact == nil {
+		return nil, fmt.Errorf("self contact not found")
+	}
+
+	return proto.Marshal(contact)
 }
 
 // SyncAccount calls core SyncAccount

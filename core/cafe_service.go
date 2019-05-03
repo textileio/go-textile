@@ -321,11 +321,6 @@ func (h *CafeService) PublishPeer(peer *pb.Peer, cafe peer.ID) error {
 
 // Search performs a query via a cafe
 func (h *CafeService) Search(query *pb.Query, cafe peer.ID, reply func(*pb.QueryResult), cancelCh <-chan interface{}) error {
-	h.inFlightQueries[query.Id] = struct{}{}
-	defer func() {
-		delete(h.inFlightQueries, query.Id)
-	}()
-
 	envFactory := func(session *pb.CafeSession) (*pb.Envelope, error) {
 		query.Token = session.Access
 		return h.service.NewEnvelope(pb.Message_CAFE_QUERY, query, nil, false)
@@ -1447,15 +1442,14 @@ func (h *CafeService) verifyKeyFunc(token *njwt.Token) (interface{}, error) {
 func (h *CafeService) setAddrs(conf *config.Config) error {
 	url := strings.TrimRight(conf.Cafe.Host.URL, "/")
 	if url == "" {
-		if conf.Cafe.Host.Local {
-			url = "http://127.0.0.1"
-		} else {
-			ip4, err := h.getPublicIPv4Addr(time.Now().Add(5 * time.Second))
+		ip4, err := ipfs.GetLANIPv4Addr(h.service.Node())
+		if err != nil {
+			ip4, err = h.getPublicIPv4Addr(time.Now().Add(10 * time.Second))
 			if err != nil {
-				return err
+				ip4 = "127.0.0.1"
 			}
-			url = "http://" + ip4
 		}
+		url = "http://" + ip4
 		parts := strings.Split(conf.Addresses.CafeAPI, ":")
 		if len(parts) == 2 {
 			url += ":" + parts[1]

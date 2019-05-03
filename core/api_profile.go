@@ -52,25 +52,15 @@ func (a *api) setName(g *gin.Context) {
 
 // setAvatar godoc
 // @Summary Set avatar
-// @Description Sets public profile avatar by specifying an existing image file hash
+// @Description Forces local node to update avatar image to latest image added to 'account' thread
 // @Tags profile
 // @Produce text/plain
-// @Param X-Textile-Args header string true "hash"
 // @Success 201 {string} string "ok"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /profile/avatar [post]
 func (a *api) setAvatar(g *gin.Context) {
-	args, err := a.readArgs(g)
-	if err != nil {
-		a.abort500(g, err)
-		return
-	}
-	if len(args) == 0 {
-		g.String(http.StatusBadRequest, "missing avatar")
-		return
-	}
-	if err := a.node.SetAvatar(args[0]); err != nil {
+	if err := a.node.SetAvatar(); err != nil {
 		a.abort500(g, err)
 		return
 	}

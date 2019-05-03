@@ -373,9 +373,6 @@ func TestMobile_RemoveThread(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if err != nil {
-		t.Errorf("remove thread failed: %s", err)
-	}
 	if res2 == "" {
 		t.Errorf("remove thread bad result: %s", err)
 	}
@@ -737,12 +734,6 @@ func TestMobile_SetUsername(t *testing.T) {
 	}
 }
 
-func TestMobile_SetAvatar(t *testing.T) {
-	if err := mobile1.SetAvatar(files[0].Files[0].Links["large"].Hash); err != nil {
-		t.Errorf("set avatar failed: %s", err)
-	}
-}
-
 func TestMobile_Profile(t *testing.T) {
 	profs, err := mobile1.Profile()
 	if err != nil {
@@ -856,14 +847,10 @@ func TestMobile_AddExternalInvite(t *testing.T) {
 }
 
 func TestMobile_AcceptExternalInvite(t *testing.T) {
-	hash, err := mobile2.AcceptExternalInvite(invite.Id, invite.Key)
+	_, err := mobile1.AcceptExternalInvite(invite.Id, invite.Key)
 	if err != nil {
 		t.Error(err)
 		return
-	}
-
-	if hash == "" {
-		t.Errorf("bad accept external invite result: %s", hash)
 	}
 }
 

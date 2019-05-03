@@ -1,6 +1,8 @@
 package mobile
 
 import (
+	"fmt"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/textileio/go-textile/core"
 )
@@ -13,7 +15,7 @@ func (m *Mobile) Profile() ([]byte, error) {
 
 	self := m.node.Profile()
 	if self == nil {
-		return nil, nil
+		return nil, fmt.Errorf("profile not found")
 	}
 
 	return proto.Marshal(self)
@@ -44,13 +46,4 @@ func (m *Mobile) Avatar() (string, error) {
 	}
 
 	return m.node.Avatar(), nil
-}
-
-// SetAvatar calls core SetAvatar
-func (m *Mobile) SetAvatar(hash string) error {
-	if !m.node.Online() {
-		return core.ErrOffline
-	}
-
-	return m.node.SetAvatar(hash)
 }

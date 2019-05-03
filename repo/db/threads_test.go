@@ -36,15 +36,18 @@ func TestThreadDB_Add(t *testing.T) {
 		State:     pb.Thread_LOADED,
 	}); err != nil {
 		t.Error(err)
+		return
 	}
 	stmt, err := threadStore.PrepareQuery("select id from threads where id=?")
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	defer stmt.Close()
 	var id string
 	if err := stmt.QueryRow("Qmabc123").Scan(&id); err != nil {
 		t.Error(err)
+		return
 	}
 	if id != "Qmabc123" {
 		t.Errorf(`expected "Qmabc123" got %s`, id)
@@ -66,6 +69,7 @@ func TestThreadDB_Get(t *testing.T) {
 		State:     pb.Thread_LOADED,
 	}); err != nil {
 		t.Error(err)
+		return
 	}
 	th := threadStore.Get("Qmabc")
 	if th == nil {
@@ -88,6 +92,7 @@ func TestThreadDB_List(t *testing.T) {
 		State:     pb.Thread_LOADED,
 	}); err != nil {
 		t.Error(err)
+		return
 	}
 	if err := threadStore.Add(&pb.Thread{
 		Id:        "Qm456",
@@ -101,11 +106,11 @@ func TestThreadDB_List(t *testing.T) {
 		State:     pb.Thread_LOADED,
 	}); err != nil {
 		t.Error(err)
+		return
 	}
 	all := threadStore.List()
 	if len(all.Items) != 2 {
 		t.Error("returned incorrect number of threads")
-		return
 	}
 }
 
@@ -125,6 +130,7 @@ func TestThreadDB_Count(t *testing.T) {
 	})
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	cnt := threadStore.Count()
 	if cnt != 1 {
@@ -149,13 +155,16 @@ func TestThreadDB_UpdateHead(t *testing.T) {
 	})
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	if err := threadStore.UpdateHead("Qmabc", "12345"); err != nil {
 		t.Error(err)
+		return
 	}
 	th := threadStore.Get("Qmabc")
 	if th == nil {
 		t.Error("could not get thread")
+		return
 	}
 	if th.Head != "12345" {
 		t.Error("update head failed")
@@ -165,13 +174,30 @@ func TestThreadDB_UpdateHead(t *testing.T) {
 func TestThreadDB_UpdateName(t *testing.T) {
 	if err := threadStore.UpdateName("Qmabc", "boom2"); err != nil {
 		t.Error(err)
+		return
 	}
 	th := threadStore.Get("Qmabc")
 	if th == nil {
 		t.Error("could not get thread")
+		return
 	}
 	if th.Name != "boom2" {
 		t.Error("update name failed")
+	}
+}
+
+func TestThreadDB_UpdateSchema(t *testing.T) {
+	if err := threadStore.UpdateSchema("Qmabc", "schema"); err != nil {
+		t.Error(err)
+		return
+	}
+	th := threadStore.Get("Qmabc")
+	if th == nil {
+		t.Error("could not get thread")
+		return
+	}
+	if th.Schema != "schema" {
+		t.Error("update schema failed")
 	}
 }
 
@@ -190,6 +216,7 @@ func TestThreadDB_Delete(t *testing.T) {
 		State:     pb.Thread_LOADED,
 	}); err != nil {
 		t.Error(err)
+		return
 	}
 	all := threadStore.List()
 	if len(all.Items) == 0 {
@@ -198,10 +225,12 @@ func TestThreadDB_Delete(t *testing.T) {
 	}
 	if err := threadStore.Delete(all.Items[0].Id); err != nil {
 		t.Error(err)
+		return
 	}
 	stmt, err := threadStore.PrepareQuery("select id from threads where id=?")
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	defer stmt.Close()
 	var id string
