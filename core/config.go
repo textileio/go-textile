@@ -171,39 +171,3 @@ func applySwarmPortConfigOption(rep repo.Repo, ports string) error {
 
 	return config.UpdateIpfs(rep, "Addresses.Swarm", list)
 }
-
-// applyServerConfigOption adds the IPFS server profile to the repo config
-func applyServerConfigOption(rep repo.Repo, isServer bool) error {
-	if isServer {
-		if err := config.UpdateIpfs(rep, "Addresses.NoAnnounce", config.DefaultServerFilters); err != nil {
-			return err
-		}
-		if err := config.UpdateIpfs(rep, "Swarm.AddrFilters", config.DefaultServerFilters); err != nil {
-			return err
-		}
-		// tmp disable relay
-		if err := config.UpdateIpfs(rep, "Swarm.EnableRelayHop", false); err != nil {
-			return err
-		}
-		if err := config.UpdateIpfs(rep, "Discovery.MDNS.Enabled", false); err != nil {
-			return err
-		}
-		log.Info("applied server profile")
-
-	} else {
-		if err := config.UpdateIpfs(rep, "Addresses.NoAnnounce", []string{}); err != nil {
-			return err
-		}
-		if err := config.UpdateIpfs(rep, "Swarm.AddrFilters", []string{}); err != nil {
-			return err
-		}
-		if err := config.UpdateIpfs(rep, "Swarm.EnableRelayHop", false); err != nil {
-			return err
-		}
-		if err := config.UpdateIpfs(rep, "Discovery.MDNS.Enabled", true); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}

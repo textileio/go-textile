@@ -9,32 +9,6 @@ import (
 	"github.com/ipfs/go-ipfs/repo"
 )
 
-// defaultServerFilters has is a list of IPv4 and IPv6 prefixes that are private, local only, or unrouteable.
-// according to https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
-// and https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
-var DefaultServerFilters = []string{
-	"/ip4/10.0.0.0/ipcidr/8",
-	"/ip4/100.64.0.0/ipcidr/10",
-	"/ip4/169.254.0.0/ipcidr/16",
-	"/ip4/172.16.0.0/ipcidr/12",
-	"/ip4/192.0.0.0/ipcidr/24",
-	"/ip4/192.0.0.0/ipcidr/29",
-	"/ip4/192.0.0.8/ipcidr/32",
-	"/ip4/192.0.0.170/ipcidr/32",
-	"/ip4/192.0.0.171/ipcidr/32",
-	"/ip4/192.0.2.0/ipcidr/24",
-	"/ip4/192.168.0.0/ipcidr/16",
-	"/ip4/198.18.0.0/ipcidr/15",
-	"/ip4/198.51.100.0/ipcidr/24",
-	"/ip4/203.0.113.0/ipcidr/24",
-	"/ip4/240.0.0.0/ipcidr/4",
-	"/ip6/100::/ipcidr/64",
-	"/ip6/2001:2::/ipcidr/48",
-	"/ip6/2001:db8::/ipcidr/32",
-	"/ip6/fc00::/ipcidr/7",
-	"/ip6/fe80::/ipcidr/10",
-}
-
 // TextileBootstrapAddresses are the addresses of cafe nodes run by the Textile team.
 var TextileBootstrapAddresses = []string{
 	"/ip4/18.144.12.135/tcp/4001/ipfs/12D3KooWGBW3LfzypK3zgV4QxdPyUm3aEuwBDMKRRpCPm9FrJvar",  // us-west-1a
@@ -69,6 +43,24 @@ func InitIpfs(identity native.Identity, mobile bool, server bool) (*native.Confi
 	}
 	peers := append(textilePeers, ipfsPeers...)
 
+	var addrFilters []string
+	if server {
+		addrFilters = defaultServerFilters
+	}
+
+	routing := "dht"
+	reprovider := "12h"
+	connMgrHighWater := 900
+	connMgrLowWater := 600
+	connMgrGracePeriod := time.Second * 20
+	if mobile {
+		routing = "dhtclient"
+		reprovider = "0"
+		connMgrHighWater = 40
+		connMgrLowWater = 20
+		connMgrGracePeriod = time.Minute
+	}
+
 	conf := &native.Config{
 		API: native.API{
 			HTTPHeaders: map[string][]string{
@@ -78,20 +70,20 @@ func InitIpfs(identity native.Identity, mobile bool, server bool) (*native.Confi
 
 		// setup the node's default addresses.
 		// NOTE: two swarm listen addrs, one tcp, one utp.
-		Addresses: addressesConfig(),
+		Addresses: addressesConfig(server),
 
 		Datastore: defaultDatastoreConfig(),
 		Bootstrap: native.BootstrapPeerStrings(peers),
 		Identity:  identity,
 		Discovery: native.Discovery{
 			MDNS: native.MDNS{
-				Enabled:  true,
+				Enabled:  !server,
 				Interval: 10,
 			},
 		},
 
 		Routing: native.Routing{
-			Type: "dht",
+			Type: routing,
 		},
 
 		// setup the node mount points.
@@ -116,17 +108,19 @@ func InitIpfs(identity native.Identity, mobile bool, server bool) (*native.Confi
 			APICommands: []string{},
 		},
 		Reprovider: native.Reprovider{
-			Interval: "12h",
+			Interval: reprovider,
 			Strategy: "all",
 		},
 		Swarm: native.SwarmConfig{
+			AddrFilters: addrFilters,
 			ConnMgr: native.ConnMgr{
-				LowWater:    DefaultConnMgrLowWater,
-				HighWater:   DefaultConnMgrHighWater,
-				GracePeriod: DefaultConnMgrGracePeriod.String(),
+				LowWater:    connMgrLowWater,
+				HighWater:   connMgrHighWater,
+				GracePeriod: connMgrGracePeriod.String(),
 				Type:        "basic",
 			},
 			DisableBandwidthMetrics: mobile,
+			DisableNatPortMap:       server,
 			EnableRelayHop:          server,
 			EnableAutoRelay:         mobile,
 			EnableAutoNATService:    server,
@@ -153,23 +147,17 @@ func UpdateIpfs(rep repo.Repo, key string, value interface{}) error {
 	return nil
 }
 
-// DefaultConnMgrHighWater is the default value for the connection managers
-// 'high water' mark
-const DefaultConnMgrHighWater = 900
-
-// DefaultConnMgrLowWater is the default value for the connection managers 'low
-// water' mark
-const DefaultConnMgrLowWater = 600
-
-// DefaultConnMgrGracePeriod is the default value for the connection managers
-// grace period
-const DefaultConnMgrGracePeriod = time.Second * 20
-
-func addressesConfig() native.Addresses {
+func addressesConfig(server bool) native.Addresses {
+	var noAnnounce []string
+	if server {
+		noAnnounce = defaultServerFilters
+	}
 	return native.Addresses{
 		Swarm:      []string{},
 		Announce:   []string{},
-		NoAnnounce: []string{},
+		NoAnnounce: noAnnounce,
+		API:        []string{"/ip4/127.0.0.1/tcp/5001"},
+		Gateway:    []string{"/ip4/127.0.0.1/tcp/8080"},
 	}
 }
 
@@ -207,4 +195,30 @@ func defaultDatastoreConfig() native.Datastore {
 			},
 		},
 	}
+}
+
+// defaultServerFilters has is a list of IPv4 and IPv6 prefixes that are private, local only, or unrouteable.
+// according to https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+// and https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+var defaultServerFilters = []string{
+	"/ip4/10.0.0.0/ipcidr/8",
+	"/ip4/100.64.0.0/ipcidr/10",
+	"/ip4/169.254.0.0/ipcidr/16",
+	"/ip4/172.16.0.0/ipcidr/12",
+	"/ip4/192.0.0.0/ipcidr/24",
+	"/ip4/192.0.0.0/ipcidr/29",
+	"/ip4/192.0.0.8/ipcidr/32",
+	"/ip4/192.0.0.170/ipcidr/32",
+	"/ip4/192.0.0.171/ipcidr/32",
+	"/ip4/192.0.2.0/ipcidr/24",
+	"/ip4/192.168.0.0/ipcidr/16",
+	"/ip4/198.18.0.0/ipcidr/15",
+	"/ip4/198.51.100.0/ipcidr/24",
+	"/ip4/203.0.113.0/ipcidr/24",
+	"/ip4/240.0.0.0/ipcidr/4",
+	"/ip6/100::/ipcidr/64",
+	"/ip6/2001:2::/ipcidr/48",
+	"/ip6/2001:db8::/ipcidr/32",
+	"/ip6/fc00::/ipcidr/7",
+	"/ip6/fe80::/ipcidr/10",
 }

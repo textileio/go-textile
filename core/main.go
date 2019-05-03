@@ -151,9 +151,6 @@ func InitRepo(conf InitConfig) error {
 	if err := applySwarmPortConfigOption(rep, conf.SwarmPorts); err != nil {
 		return err
 	}
-	if err := applyServerConfigOption(rep, conf.IsServer); err != nil {
-		return err
-	}
 
 	sqliteDb, err := db.Create(conf.RepoPath, conf.PinCode)
 	if err != nil {
