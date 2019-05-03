@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/textileio/go-textile/util"
 )
 
-var errMissingCommentBody = errors.New("missing comment body")
-var errMissingCommentId = errors.New("missing comment block ID")
+var errMissingCommentBody = fmt.Errorf("missing comment body")
+var errMissingCommentId = fmt.Errorf("missing comment block ID")
 
 func init() {
 	register(&commentsCmd{})

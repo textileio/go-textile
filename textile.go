@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	_ "expvar"
 	"fmt"
 	"net/http"
@@ -262,14 +261,14 @@ func (x *walletInitCmd) Execute(args []string) error {
 
 func (x *walletAccountsCmd) Execute(args []string) error {
 	if len(args) == 0 {
-		return errors.New("missing recovery phrase")
+		return fmt.Errorf("missing recovery phrase")
 	}
 
 	if x.Depth < 1 || x.Depth > 100 {
-		return errors.New("depth must be greater than 0 and less than 100")
+		return fmt.Errorf("depth must be greater than 0 and less than 100")
 	}
 	if x.Offset < 0 || x.Offset > x.Depth {
-		return errors.New("offset must be greater than 0 and less than depth")
+		return fmt.Errorf("offset must be greater than 0 and less than depth")
 	}
 
 	wall := wallet.NewWalletFromRecoveryPhrase(args[0])
@@ -299,7 +298,7 @@ func (x *versionCmd) Execute(args []string) error {
 func (x *initCmd) Execute(args []string) error {
 	kp, err := keypair.Parse(x.AccountSeed)
 	if err != nil {
-		return errors.New(fmt.Sprintf("parse account seed failed: %s", err))
+		return fmt.Errorf(fmt.Sprintf("parse account seed failed: %s", err))
 	}
 	accnt, ok := kp.(*keypair.Full)
 	if !ok {
@@ -331,7 +330,7 @@ func (x *initCmd) Execute(args []string) error {
 	}
 
 	if err := core.InitRepo(config); err != nil {
-		return errors.New(fmt.Sprintf("initialize failed: %s", err))
+		return fmt.Errorf(fmt.Sprintf("initialize failed: %s", err))
 	}
 	fmt.Printf("Initialized account with address %s\n", accnt.Address())
 	return nil
@@ -348,7 +347,7 @@ func (x *migrateCmd) Execute(args []string) error {
 		PinCode:  x.PinCode,
 		RepoPath: repoPath,
 	}); err != nil {
-		return errors.New(fmt.Sprintf("migrate repo: %s", err))
+		return fmt.Errorf(fmt.Sprintf("migrate repo: %s", err))
 	}
 	fmt.Println("Repo was successfully migrated")
 	return nil
@@ -367,7 +366,7 @@ func (x *daemonCmd) Execute(args []string) error {
 		Debug:    x.Debug,
 	})
 	if err != nil {
-		return errors.New(fmt.Sprintf("create node failed: %s", err))
+		return fmt.Errorf(fmt.Sprintf("create node failed: %s", err))
 	}
 
 	gateway.Host = &gateway.Gateway{
@@ -375,7 +374,7 @@ func (x *daemonCmd) Execute(args []string) error {
 	}
 
 	if err := startNode(x.Docs); err != nil {
-		return errors.New(fmt.Sprintf("start node failed: %s", err))
+		return fmt.Errorf(fmt.Sprintf("start node failed: %s", err))
 	}
 	printSplash()
 
@@ -401,13 +400,13 @@ func getRepoPath(repoPath string) (string, error) {
 		// get homedir
 		home, err := homedir.Dir()
 		if err != nil {
-			return "", errors.New(fmt.Sprintf("get homedir failed: %s", err))
+			return "", fmt.Errorf(fmt.Sprintf("get homedir failed: %s", err))
 		}
 
 		// ensure app folder is created
 		appDir := filepath.Join(home, ".textile")
 		if err := os.MkdirAll(appDir, 0755); err != nil {
-			return "", errors.New(fmt.Sprintf("create repo directory failed: %s", err))
+			return "", fmt.Errorf(fmt.Sprintf("create repo directory failed: %s", err))
 		}
 		repoPath = filepath.Join(appDir, "repo")
 	}
@@ -458,13 +457,13 @@ func startNode(serveDocs bool) error {
 
 					btype, err := core.FeedItemType(update)
 					if err != nil {
-						log.Error(err)
+						log.Error(err.Error())
 						continue
 					}
 
 					payload, err := core.GetFeedItemPayload(update)
 					if err != nil {
-						log.Error(err)
+						log.Error(err.Error())
 						continue
 					}
 					user := payload.GetUser()

@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -116,7 +115,7 @@ func (srv *Service) SendRequest(p peer.ID, pmes *pb.Envelope) (*pb.Envelope, err
 
 	if rpmes == nil {
 		err := fmt.Errorf("no response from %s", p.Pretty())
-		log.Debug(err)
+		log.Debug(err.Error())
 		return nil, err
 	}
 
@@ -155,7 +154,7 @@ func (srv *Service) SendHTTPRequest(addr string, pmes *pb.Envelope) (*pb.Envelop
 		if err != nil {
 			return nil, err
 		}
-		return nil, errors.New(res)
+		return nil, fmt.Errorf(res)
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
@@ -174,7 +173,7 @@ func (srv *Service) SendHTTPRequest(addr string, pmes *pb.Envelope) (*pb.Envelop
 
 	if rpmes.Message == nil {
 		err := fmt.Errorf("no response from %s", addr)
-		log.Debug(err)
+		log.Debug(err.Error())
 		return nil, err
 	}
 
@@ -228,7 +227,7 @@ func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan 
 			if err != nil {
 				errCh <- err
 			} else {
-				errCh <- errors.New(res)
+				errCh <- fmt.Errorf(res)
 			}
 			return
 		}
@@ -245,7 +244,7 @@ func (srv *Service) SendHTTPStreamRequest(addr string, pmes *pb.Envelope) (chan 
 
 			if rpmes == nil || rpmes.Message == nil {
 				err := fmt.Errorf("no response from %s", addr)
-				log.Debug(err)
+				log.Debug(err.Error())
 				errCh <- err
 				return
 			}
@@ -311,7 +310,7 @@ func (srv *Service) SendHTTPMessage(addr string, pmes *pb.Envelope) error {
 		if err != nil {
 			return err
 		}
-		return errors.New(res)
+		return fmt.Errorf(res)
 	}
 
 	return nil
@@ -375,9 +374,9 @@ func (srv *Service) VerifyEnvelope(env *pb.Envelope, pid peer.ID) error {
 // handleError receives an error response
 func (srv *Service) handleError(env *pb.Envelope) error {
 	if env.Message.Payload == nil && env.Message.Type != pb.Message_PONG {
-		err := fmt.Sprintf("message payload with type %s is nil", env.Message.Type.String())
-		log.Error(err)
-		return errors.New(err)
+		err := fmt.Errorf("message payload with type %s is nil", env.Message.Type.String())
+		log.Error(err.Error())
+		return err
 	}
 
 	if env.Message.Type != pb.Message_ERROR {
@@ -387,7 +386,7 @@ func (srv *Service) handleError(env *pb.Envelope) error {
 		if err := ptypes.UnmarshalAny(env.Message.Payload, errMsg); err != nil {
 			return err
 		}
-		return errors.New(errMsg.Message)
+		return fmt.Errorf(errMsg.Message)
 	}
 }
 

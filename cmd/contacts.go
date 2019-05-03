@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -11,8 +10,8 @@ import (
 	"github.com/textileio/go-textile/util"
 )
 
-var errMissingAddInfo = errors.New("missing name or account address")
-var errMissingAddress = errors.New("missing account address")
+var errMissingAddInfo = fmt.Errorf("missing name or account address")
+var errMissingAddress = fmt.Errorf("missing account address")
 
 func init() {
 	register(&contactsCmd{})

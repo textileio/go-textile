@@ -2,7 +2,7 @@ package db
 
 import (
 	"database/sql"
-	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -75,7 +75,7 @@ func (c *ConfigDB) GetAccount() (*keypair.Full, error) {
 	}
 	full, ok := kp.(*keypair.Full)
 	if !ok {
-		return nil, errors.New("invalid seed")
+		return nil, fmt.Errorf("invalid seed")
 	}
 	return full, nil
 }

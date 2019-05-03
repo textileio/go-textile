@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -86,7 +85,7 @@ func (x *configCmd) Execute(args []string) error {
 			if err != nil {
 				return err
 			}
-			return errors.New(body)
+			return fmt.Errorf(body)
 		}
 
 		output("Updated! Restart daemon for changes to take effect.")

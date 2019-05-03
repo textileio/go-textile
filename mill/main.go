@@ -3,7 +3,7 @@ package mill
 import (
 	"crypto/sha256"
 	"encoding/json"
-	"errors"
+	"fmt"
 
 	logging "github.com/ipfs/go-log"
 	"github.com/mr-tron/base58/base58"
@@ -11,7 +11,7 @@ import (
 
 var log = logging.Logger("tex-mill")
 
-var ErrMediaTypeNotSupported = errors.New("media type not supported")
+var ErrMediaTypeNotSupported = fmt.Errorf("media type not supported")
 
 type Result struct {
 	File []byte

@@ -4,7 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"errors"
+	"fmt"
 )
 
 // GenerateAESKey returns 44 random bytes, 32 for the key and 12 for a nonce.
@@ -19,7 +19,7 @@ func GenerateAESKey() ([]byte, error) {
 // EncryptAES performs AES-256 GCM encryption on the provided bytes with key
 func EncryptAES(bytes []byte, key []byte) ([]byte, error) {
 	if len(key) != 44 {
-		return nil, errors.New("invalid key")
+		return nil, fmt.Errorf("invalid key")
 	}
 	block, err := aes.NewCipher(key[:32])
 	if err != nil {
@@ -36,7 +36,7 @@ func EncryptAES(bytes []byte, key []byte) ([]byte, error) {
 // DecryptAES uses key (:32 key, 32:12 nonce) to perform AES-256 GCM decryption on bytes.
 func DecryptAES(bytes []byte, key []byte) ([]byte, error) {
 	if len(key) != 44 {
-		return nil, errors.New("invalid key")
+		return nil, fmt.Errorf("invalid key")
 	}
 	block, err := aes.NewCipher(key[:32])
 	if err != nil {

@@ -245,7 +245,7 @@ func (m *Mobile) notify(etype pb.MobileEventType, msg proto.Message) {
 		var err error
 		data, err = proto.Marshal(msg)
 		if err != nil {
-			log.Error(err)
+			log.Error(err.Error())
 			return
 		}
 	}

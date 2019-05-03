@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -11,8 +10,8 @@ import (
 	"github.com/textileio/go-textile/util"
 )
 
-var errMissingMessageBody = errors.New("missing message body")
-var errMissingMessageId = errors.New("missing message block ID")
+var errMissingMessageBody = fmt.Errorf("missing message body")
+var errMissingMessageId = fmt.Errorf("missing message block ID")
 
 func init() {
 	register(&messagesCmd{})

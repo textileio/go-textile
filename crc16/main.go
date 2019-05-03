@@ -49,12 +49,12 @@ package crc16
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
+	"fmt"
 )
 
 // ErrInvalidChecksum is returned when Validate determines either the checksum
 // or the payload has been corrupted
-var ErrInvalidChecksum = errors.New("invalid checksum")
+var ErrInvalidChecksum = fmt.Errorf("invalid checksum")
 
 var crc16tab = [256]uint16{
 	0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,

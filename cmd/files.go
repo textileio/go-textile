@@ -3,7 +3,6 @@ package cmd
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -22,10 +21,10 @@ import (
 	"github.com/textileio/go-textile/util"
 )
 
-var errMissingFilePath = errors.New("missing file path")
-var errMissingFileId = errors.New("missing file block ID")
-var errNothingToAdd = errors.New("nothing to add")
-var errMissingTarget = errors.New("missing target")
+var errMissingFilePath = fmt.Errorf("missing file path")
+var errMissingFileId = fmt.Errorf("missing file block ID")
+var errNothingToAdd = fmt.Errorf("nothing to add")
+var errMissingTarget = fmt.Errorf("missing target")
 
 func init() {
 	register(&filesCmd{})
@@ -385,7 +384,7 @@ func mill(pth string, node *pb.Node, verbose bool) (*pb.Directory, error) {
 
 			} else {
 				if dir.Files[step.Link.Use].Hash == "" {
-					return nil, errors.New(step.Link.Use + " not found")
+					return nil, fmt.Errorf(step.Link.Use + " not found")
 				}
 				mopts.setUse(dir.Files[step.Link.Use].Hash)
 

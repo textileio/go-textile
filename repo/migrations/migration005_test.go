@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -119,11 +119,11 @@ func Test005(t *testing.T) {
 		return
 	}
 	if !strings.HasPrefix(profileInfo["peerid"], "Qm") {
-		t.Error(errors.New("invalid/no peer id saved"))
+		t.Error(fmt.Errorf("invalid/no peer id saved"))
 		return
 	}
 	if profileInfo["username"] != "username" {
-		t.Error(errors.New("no username saved"))
+		t.Error(fmt.Errorf("no username saved"))
 		return
 	}
 
@@ -147,11 +147,11 @@ func Test005(t *testing.T) {
 		threads = append(threads, thrd)
 	}
 	if len(threads) != 1 {
-		t.Error(errors.New("saved wrong number of threads"))
+		t.Error(fmt.Errorf("saved wrong number of threads"))
 		return
 	}
 	if len(threads[0].Peers) != 2 {
-		t.Error(errors.New("saved wrong number of thread peers"))
+		t.Error(fmt.Errorf("saved wrong number of thread peers"))
 		return
 	}
 
@@ -175,7 +175,7 @@ func Test005(t *testing.T) {
 		photos = append(photos, photo)
 	}
 	if len(photos) != 2 {
-		t.Error(errors.New("saved wrong number of photos"))
+		t.Error(fmt.Errorf("saved wrong number of photos"))
 		return
 	}
 

@@ -2,7 +2,6 @@ package core
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -25,34 +24,34 @@ import (
 )
 
 // ErrNotShareable indicates the thread does not allow invites, at least for _you_
-var ErrNotShareable = errors.New("thread is not shareable")
+var ErrNotShareable = fmt.Errorf("thread is not shareable")
 
 // ErrNotReadable indicates the thread is not readable
-var ErrNotReadable = errors.New("thread is not readable")
+var ErrNotReadable = fmt.Errorf("thread is not readable")
 
 // ErrNotAnnotatable indicates the thread is not annotatable (comments/likes)
-var ErrNotAnnotatable = errors.New("thread is not annotatable")
+var ErrNotAnnotatable = fmt.Errorf("thread is not annotatable")
 
 // ErrNotWritable indicates the thread is not writable (files/messages)
-var ErrNotWritable = errors.New("thread is not writable")
+var ErrNotWritable = fmt.Errorf("thread is not writable")
 
 // ErrThreadSchemaRequired indicates files where added without a thread schema
-var ErrThreadSchemaRequired = errors.New("thread schema required to add files")
+var ErrThreadSchemaRequired = fmt.Errorf("thread schema required to add files")
 
 // ErrJsonSchemaRequired indicates json files where added without a json schema
-var ErrJsonSchemaRequired = errors.New("thread schema does not allow json files")
+var ErrJsonSchemaRequired = fmt.Errorf("thread schema does not allow json files")
 
 // ErrInvalidFileNode indicates files where added via a nil ipld node
-var ErrInvalidFileNode = errors.New("invalid files node")
+var ErrInvalidFileNode = fmt.Errorf("invalid files node")
 
 // ErrBlockExists indicates a block has already been indexed
-var ErrBlockExists = errors.New("block exists")
+var ErrBlockExists = fmt.Errorf("block exists")
 
 // ErrBlockWrongType indicates a block was requested as a type other than its own
-var ErrBlockWrongType = errors.New("block type is not the type requested")
+var ErrBlockWrongType = fmt.Errorf("block type is not the type requested")
 
 // errReloadFailed indicates an error occurred during thread reload
-var errThreadReload = errors.New("could not re-load thread")
+var errThreadReload = fmt.Errorf("could not re-load thread")
 
 // ThreadConfig is used to construct a Thread
 type ThreadConfig struct {
@@ -258,7 +257,7 @@ func (t *Thread) followParent(parent mh.Multihash) ([]string, error) {
 	case pb.Block_LIKE:
 		_, err = t.handleLikeBlock(parent, block)
 	default:
-		return nil, errors.New(fmt.Sprintf("invalid message type: %s", block.Type))
+		return nil, fmt.Errorf(fmt.Sprintf("invalid message type: %s", block.Type))
 	}
 	if err != nil {
 		return nil, err
@@ -395,7 +394,7 @@ func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBl
 
 	// nil payload only allowed for some types
 	if block.Payload == nil && block.Type != pb.Block_MERGE && block.Type != pb.Block_LEAVE {
-		return nil, errors.New("nil message payload")
+		return nil, fmt.Errorf("nil message payload")
 	}
 
 	if _, err := t.addBlock(ciphertext); err != nil {
@@ -638,6 +637,7 @@ func (t *Thread) member(addr string) bool {
 func loadSchema(node *core.IpfsNode, id string) (*pb.Node, error) {
 	data, err := ipfs.DataAtPath(node, id)
 	if err != nil {
+		log.Warning(id)
 		return nil, err
 	}
 

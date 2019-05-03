@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -109,7 +108,7 @@ func executeJsonCmd(meth method, pth string, pars params, target interface{}) (s
 		if err != nil {
 			return "", err
 		}
-		return "", errors.New(body)
+		return "", fmt.Errorf(body)
 	}
 
 	data, err := ioutil.ReadAll(res.Body)
@@ -146,7 +145,7 @@ func executeJsonPbCmd(meth method, pth string, pars params, target proto.Message
 		if err != nil {
 			return "", err
 		}
-		return "", errors.New(body)
+		return "", fmt.Errorf(body)
 	}
 
 	data, err := ioutil.ReadAll(res.Body)
@@ -201,7 +200,7 @@ func request(meth method, pth string, pars params) (*http.Response, func(), erro
 	return res, cancel, err
 }
 
-var errMissingSearchInfo = errors.New("missing search info")
+var errMissingSearchInfo = fmt.Errorf("missing search info")
 
 var pbMarshaler = jsonpb.Marshaler{
 	OrigName: true,

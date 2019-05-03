@@ -1,14 +1,14 @@
 package cmd
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/textileio/go-textile/keypair"
 	"github.com/textileio/go-textile/pb"
 )
 
-var errMissingName = errors.New("missing name")
-var errMissingAvatar = errors.New("missing avatar file image hash")
+var errMissingName = fmt.Errorf("missing name")
+var errMissingAvatar = fmt.Errorf("missing avatar file image hash")
 
 func init() {
 	register(&profileCmd{})
