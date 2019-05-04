@@ -108,7 +108,7 @@ outer:
 	for _, p := range add {
 		final = append(final, p)
 	}
-	return config.UpdateIpfs(rep, "Bootstrap", final)
+	return rep.SetConfigKey("Bootstrap", final)
 }
 
 // loadSwarmPorts returns the swarm ports in the ipfs config
@@ -169,5 +169,27 @@ func applySwarmPortConfigOption(rep repo.Repo, ports string) error {
 		list = append(list, fmt.Sprintf("/ip6/::/tcp/%s/ws", ws))
 	}
 
-	return config.UpdateIpfs(rep, "Addresses.Swarm", list)
+	return rep.SetConfigKey("Addresses.Swarm", list)
+}
+
+// applyServerConfigOption ensures the low-power IPFS profile has been applied to the repo config
+func ensureMobileConfig(repoPath string) error {
+	rep, err := fsrepo.Open(repoPath)
+	if err != nil {
+		return err
+	}
+	conf, err := rep.Config()
+	if err != nil {
+		return err
+	}
+
+	conf.Routing.Type = "dhtclient"
+	conf.Reprovider.Interval = "0"
+	conf.Swarm.ConnMgr.LowWater = 20
+	conf.Swarm.ConnMgr.HighWater = 40
+	conf.Swarm.ConnMgr.GracePeriod = time.Minute.String()
+	conf.Swarm.DisableBandwidthMetrics = true
+	conf.Swarm.EnableAutoRelay = true
+
+	return rep.SetConfig(conf)
 }

@@ -6,7 +6,6 @@ import (
 
 	ipfs "github.com/ipfs/go-ipfs"
 	native "github.com/ipfs/go-ipfs-config"
-	"github.com/ipfs/go-ipfs/repo"
 )
 
 // TextileBootstrapAddresses are the addresses of cafe nodes run by the Textile team.
@@ -50,14 +49,14 @@ func InitIpfs(identity native.Identity, mobile bool, server bool) (*native.Confi
 
 	routing := "dht"
 	reprovider := "12h"
-	connMgrHighWater := 900
 	connMgrLowWater := 600
+	connMgrHighWater := 900
 	connMgrGracePeriod := time.Second * 20
 	if mobile {
 		routing = "dhtclient"
 		reprovider = "0"
-		connMgrHighWater = 40
 		connMgrLowWater = 20
+		connMgrHighWater = 40
 		connMgrGracePeriod = time.Minute
 	}
 
@@ -136,15 +135,6 @@ func InitIpfs(identity native.Identity, mobile bool, server bool) (*native.Confi
 	}
 
 	return conf, nil
-}
-
-// UpdateIpfs updates the IPFS config file
-func UpdateIpfs(rep repo.Repo, key string, value interface{}) error {
-	if err := rep.SetConfigKey(key, value); err != nil {
-		log.Errorf("error setting %s: %s", key, err)
-		return err
-	}
-	return nil
 }
 
 func addressesConfig(server bool) native.Addresses {
