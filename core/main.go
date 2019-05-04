@@ -162,11 +162,12 @@ func InitRepo(conf InitConfig) error {
 		return err
 	}
 
-	// add self as a contact
 	ipfsConf, err := rep.Config()
 	if err != nil {
 		return err
 	}
+
+	// add self as a contact
 	if err := sqliteDb.Peers().Add(&pb.Peer{
 		Id:      ipfsConf.Identity.PeerID,
 		Address: conf.Account.Address(),
@@ -261,6 +262,18 @@ func (t *Textile) Start() error {
 	t.online = make(chan struct{})
 	t.done = make(chan struct{})
 
+	plugins, err := repo.LoadPlugins(t.repoPath)
+	if err != nil {
+		return err
+	}
+
+	// ensure older peers get latest mobile profile
+	if t.Mobile() {
+		if err := ensureMobileConfig(t.repoPath); err != nil {
+			return err
+		}
+	}
+
 	// raise file descriptor limit
 	changed, limit, err := utilmain.ManageFdLimit()
 	if err != nil {
@@ -310,18 +323,13 @@ func (t *Textile) Start() error {
 
 	// start the ipfs node
 	log.Debug("creating an ipfs node...")
-	plugins, err := repo.LoadPlugins(t.repoPath)
-	if err != nil {
-		return err
-	}
 	if err := t.createIPFS(plugins, false); err != nil {
-		log.Errorf("error creating offline ipfs node: %s", err)
 		return err
 	}
 	go func() {
 		defer close(t.online)
 		if err := t.createIPFS(plugins, true); err != nil {
-			log.Errorf("error creating online ipfs node: %s", err)
+			log.Errorf("error creating ipfs node: %s", err)
 			return
 		}
 
