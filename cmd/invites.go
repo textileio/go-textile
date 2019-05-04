@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -15,7 +14,7 @@ func init() {
 	register(&invitesCmd{})
 }
 
-var errMissingInviteId = errors.New("missing invite id")
+var errMissingInviteId = fmt.Errorf("missing invite id")
 
 type invitesCmd struct {
 	Create createInvitesCmd `command:"create" description:"Create account-to-account or external invites to a thread"`

@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -16,6 +15,7 @@ import (
 	utilmain "github.com/ipfs/go-ipfs/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/corerepo"
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/go-ipfs/plugin/loader"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
@@ -106,10 +106,10 @@ type Textile struct {
 }
 
 // common errors
-var ErrAccountRequired = errors.New("account required")
-var ErrStarted = errors.New("node is started")
-var ErrStopped = errors.New("node is stopped")
-var ErrOffline = errors.New("node is offline")
+var ErrAccountRequired = fmt.Errorf("account required")
+var ErrStarted = fmt.Errorf("node is started")
+var ErrStopped = fmt.Errorf("node is stopped")
+var ErrOffline = fmt.Errorf("node is offline")
 
 // InitRepo initializes a new node repo
 func InitRepo(conf InitConfig) error {
@@ -138,20 +138,16 @@ func InitRepo(conf InitConfig) error {
 
 	rep, err := fsrepo.Open(conf.RepoPath)
 	if err != nil {
-		log.Errorf("error opening repo: %s", err)
 		return err
 	}
 	defer func() {
 		if err := rep.Close(); err != nil {
-			log.Error(err)
+			log.Error(err.Error())
 		}
 	}()
 
 	// apply ipfs config opts
 	if err := applySwarmPortConfigOption(rep, conf.SwarmPorts); err != nil {
-		return err
-	}
-	if err := applyServerConfigOption(rep, conf.IsServer); err != nil {
 		return err
 	}
 
@@ -166,11 +162,12 @@ func InitRepo(conf InitConfig) error {
 		return err
 	}
 
-	// add self as a contact
 	ipfsConf, err := rep.Config()
 	if err != nil {
 		return err
 	}
+
+	// add self as a contact
 	if err := sqliteDb.Peers().Add(&pb.Peer{
 		Id:      ipfsConf.Identity.PeerID,
 		Address: conf.Account.Address(),
@@ -265,6 +262,18 @@ func (t *Textile) Start() error {
 	t.online = make(chan struct{})
 	t.done = make(chan struct{})
 
+	plugins, err := repo.LoadPlugins(t.repoPath)
+	if err != nil {
+		return err
+	}
+
+	// ensure older peers get latest mobile profile
+	if t.Mobile() {
+		if err := ensureMobileConfig(t.repoPath); err != nil {
+			return err
+		}
+	}
+
 	// raise file descriptor limit
 	changed, limit, err := utilmain.ManageFdLimit()
 	if err != nil {
@@ -314,18 +323,13 @@ func (t *Textile) Start() error {
 
 	// start the ipfs node
 	log.Debug("creating an ipfs node...")
-	plugins, err := repo.LoadPlugins(t.repoPath)
-	if err != nil {
-		return err
-	}
 	if err := t.createIPFS(plugins, false); err != nil {
-		log.Errorf("error creating offline ipfs node: %s", err)
 		return err
 	}
 	go func() {
 		defer close(t.online)
 		if err := t.createIPFS(plugins, true); err != nil {
-			log.Errorf("error creating online ipfs node: %s", err)
+			log.Errorf("error creating ipfs node: %s", err)
 			return
 		}
 
@@ -337,10 +341,7 @@ func (t *Textile) Start() error {
 
 		if t.config.Cafe.Host.Open {
 			go func() {
-				if err := t.cafe.setAddrs(t.config); err != nil {
-					log.Errorf("Unable to open cafe. An external ip4 address was not found. Please specify Cafe.Host.URL.")
-					return
-				}
+				t.cafe.setAddrs(t.config)
 				t.cafe.open = true
 				t.startCafeApi(t.config.Addresses.CafeAPI)
 			}()
@@ -370,6 +371,8 @@ func (t *Textile) Start() error {
 			}
 		}
 	}
+
+	go t.loadThreadSchemas()
 
 	t.started = true
 
@@ -406,7 +409,6 @@ func (t *Textile) Stop() error {
 
 	// close ipfs node
 	if err := t.node.Close(); err != nil {
-		log.Errorf("error closing ipfs node: %s", err)
 		return err
 	}
 	t.context.Close()
@@ -533,7 +535,6 @@ func (t *Textile) cafeService() *CafeService {
 func (t *Textile) createIPFS(plugins *loader.PluginLoader, online bool) error {
 	rep, err := fsrepo.Open(t.repoPath)
 	if err != nil {
-		log.Errorf("error opening repo: %s", err)
 		return err
 	}
 
@@ -573,7 +574,6 @@ func (t *Textile) createIPFS(plugins *loader.PluginLoader, online bool) error {
 
 	if t.node != nil {
 		if err := t.node.Close(); err != nil {
-			log.Errorf("error closing prev ipfs node: %s", err)
 			return err
 		}
 	}
@@ -602,12 +602,13 @@ func (t *Textile) runJobs() {
 
 	go t.flushQueues()
 	t.maybeSyncAccount()
+	t.runGC()
 
 	for {
 		select {
 		case <-tick.C:
 			if err := t.touchDatastore(); err != nil {
-				log.Error(err)
+				log.Error(err.Error())
 				return
 			}
 
@@ -632,18 +633,18 @@ func (t *Textile) flushQueues() {
 // threadByBlock returns the thread owning the given block
 func (t *Textile) threadByBlock(block *pb.Block) (*Thread, error) {
 	if block == nil {
-		return nil, errors.New("block is empty")
+		return nil, fmt.Errorf("block is empty")
 	}
 
 	var thrd *Thread
-	for _, t := range t.loadedThreads {
-		if t.Id == block.Thread {
-			thrd = t
+	for _, l := range t.loadedThreads {
+		if l.Id == block.Thread {
+			thrd = l
 			break
 		}
 	}
 	if thrd == nil {
-		return nil, errors.New(fmt.Sprintf("could not find thread: %s", block.Thread))
+		return nil, fmt.Errorf("could not find thread: %s", block.Thread)
 	}
 	return thrd, nil
 }
@@ -674,6 +675,16 @@ func (t *Textile) loadThread(mod *pb.Thread) (*Thread, error) {
 	t.loadedThreads = append(t.loadedThreads, thrd)
 
 	return thrd, nil
+}
+
+// loadThreadSchemas loads thread schemas that were not found locally during startup
+func (t *Textile) loadThreadSchemas() {
+	<-t.online
+	for _, l := range t.loadedThreads {
+		if err := l.loadSchema(); err != nil {
+			log.Errorf("unable to load schema %s: %s", l.schemaId, err)
+		}
+	}
 }
 
 // sendUpdate sends an update to the update channel
@@ -720,13 +731,37 @@ func (t *Textile) touchDatastore() error {
 
 		sqliteDB, err := db.Create(t.repoPath, "")
 		if err != nil {
-			log.Errorf("error re-opening datastore: %s", err)
 			return err
 		}
 		t.datastore = sqliteDB
 	}
 
 	return nil
+}
+
+// runGC periodically runs repo blockstore GC
+func (t *Textile) runGC() {
+	errc := make(chan error)
+	go func() {
+		errc <- corerepo.PeriodicGC(t.node.Context(), t.node)
+		close(errc)
+	}()
+	go func() {
+		for {
+			select {
+			case <-t.node.Context().Done():
+				log.Debug("blockstore GC shutdown")
+				return
+			case err, ok := <-errc:
+				if !ok {
+					return
+				}
+				if err != nil {
+					log.Error(err.Error())
+				}
+			}
+		}
+	}()
 }
 
 // setLogLevels hijacks the ipfs logging system, putting output to files

@@ -3,7 +3,7 @@ package db
 import (
 	"bytes"
 	"database/sql"
-	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -119,7 +119,7 @@ func (c *FileDB) AddTarget(hash string, target string) error {
 
 	res := c.handleTargetsQuery("select targets from files where hash='" + hash + "';")
 	if len(res) == 0 {
-		return errors.New("file not found")
+		return fmt.Errorf("file not found")
 	}
 	etargets := res[0]
 
@@ -140,7 +140,7 @@ func (c *FileDB) RemoveTarget(hash string, target string) error {
 
 	res := c.handleTargetsQuery("select targets from files where hash='" + hash + "';")
 	if len(res) == 0 {
-		return errors.New("file not found")
+		return fmt.Errorf("file not found")
 	}
 	etargets := res[0]
 

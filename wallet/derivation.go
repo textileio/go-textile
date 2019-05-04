@@ -5,7 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha512"
 	"encoding/binary"
-	"errors"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -28,8 +28,8 @@ const (
 )
 
 var (
-	ErrInvalidPath        = errors.New("invalid derivation path")
-	ErrNoPublicDerivation = errors.New("no public derivation for ed25519")
+	ErrInvalidPath        = fmt.Errorf("invalid derivation path")
+	ErrNoPublicDerivation = fmt.Errorf("no public derivation for ed25519")
 
 	pathRegex = regexp.MustCompile("^m(/[0-9]+')+$")
 )

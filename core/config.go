@@ -85,7 +85,7 @@ func updateBootstrapConfig(repoPath string, add []string, rm []string) error {
 	}
 	defer func() {
 		if err := rep.Close(); err != nil {
-			log.Error(err)
+			log.Error(err.Error())
 		}
 	}()
 	conf, err := rep.Config()
@@ -108,7 +108,7 @@ outer:
 	for _, p := range add {
 		final = append(final, p)
 	}
-	return config.UpdateIpfs(rep, "Bootstrap", final)
+	return rep.SetConfigKey("Bootstrap", final)
 }
 
 // loadSwarmPorts returns the swarm ports in the ipfs config
@@ -119,7 +119,7 @@ func loadSwarmPorts(repoPath string) (*config.SwarmPorts, error) {
 	}
 	defer func() {
 		if err := rep.Close(); err != nil {
-			log.Error(err)
+			log.Error(err.Error())
 		}
 	}()
 
@@ -169,41 +169,27 @@ func applySwarmPortConfigOption(rep repo.Repo, ports string) error {
 		list = append(list, fmt.Sprintf("/ip6/::/tcp/%s/ws", ws))
 	}
 
-	return config.UpdateIpfs(rep, "Addresses.Swarm", list)
+	return rep.SetConfigKey("Addresses.Swarm", list)
 }
 
-// applyServerConfigOption adds the IPFS server profile to the repo config
-func applyServerConfigOption(rep repo.Repo, isServer bool) error {
-	if isServer {
-		if err := config.UpdateIpfs(rep, "Addresses.NoAnnounce", config.DefaultServerFilters); err != nil {
-			return err
-		}
-		if err := config.UpdateIpfs(rep, "Swarm.AddrFilters", config.DefaultServerFilters); err != nil {
-			return err
-		}
-		// tmp disable relay
-		if err := config.UpdateIpfs(rep, "Swarm.EnableRelayHop", false); err != nil {
-			return err
-		}
-		if err := config.UpdateIpfs(rep, "Discovery.MDNS.Enabled", false); err != nil {
-			return err
-		}
-		log.Info("applied server profile")
-
-	} else {
-		if err := config.UpdateIpfs(rep, "Addresses.NoAnnounce", []string{}); err != nil {
-			return err
-		}
-		if err := config.UpdateIpfs(rep, "Swarm.AddrFilters", []string{}); err != nil {
-			return err
-		}
-		if err := config.UpdateIpfs(rep, "Swarm.EnableRelayHop", false); err != nil {
-			return err
-		}
-		if err := config.UpdateIpfs(rep, "Discovery.MDNS.Enabled", true); err != nil {
-			return err
-		}
+// applyServerConfigOption ensures the low-power IPFS profile has been applied to the repo config
+func ensureMobileConfig(repoPath string) error {
+	rep, err := fsrepo.Open(repoPath)
+	if err != nil {
+		return err
+	}
+	conf, err := rep.Config()
+	if err != nil {
+		return err
 	}
 
-	return nil
+	conf.Routing.Type = "dhtclient"
+	conf.Reprovider.Interval = "0"
+	conf.Swarm.ConnMgr.LowWater = 20
+	conf.Swarm.ConnMgr.HighWater = 40
+	conf.Swarm.ConnMgr.GracePeriod = time.Minute.String()
+	conf.Swarm.DisableBandwidthMetrics = true
+	conf.Swarm.EnableAutoRelay = true
+
+	return rep.SetConfig(conf)
 }

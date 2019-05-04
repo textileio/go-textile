@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"errors"
+	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -9,8 +9,8 @@ import (
 	"github.com/textileio/go-textile/util"
 )
 
-var errMissingMultiAddress = errors.New("missing peer multi address")
-var errMissingCID = errors.New("missing IPFS CID")
+var errMissingMultiAddress = fmt.Errorf("missing peer multi address")
+var errMissingCID = fmt.Errorf("missing IPFS CID")
 
 func init() {
 	register(&ipfsCmd{})
@@ -156,7 +156,7 @@ func (x *ipfsCatCmd) Execute(args []string) error {
 		if err != nil {
 			return err
 		}
-		return errors.New(body)
+		return fmt.Errorf(body)
 	}
 
 	if _, err := io.Copy(os.Stdout, res.Body); err != nil {

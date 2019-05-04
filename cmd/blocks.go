@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -11,7 +10,7 @@ import (
 	"github.com/textileio/go-textile/util"
 )
 
-var errMissingBlockId = errors.New("missing block ID")
+var errMissingBlockId = fmt.Errorf("missing block ID")
 
 func init() {
 	register(&blocksCmd{})

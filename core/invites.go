@@ -1,7 +1,6 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/golang/protobuf/proto"
@@ -16,10 +15,10 @@ import (
 )
 
 // ErrContactNotFound indicates a local contact was not found
-var ErrContactNotFound = errors.New("contact not found")
+var ErrContactNotFound = fmt.Errorf("contact not found")
 
 // ErrThreadInviteNotFound indicates thread invite is not found
-var ErrThreadInviteNotFound = errors.New("thread invite not found")
+var ErrThreadInviteNotFound = fmt.Errorf("thread invite not found")
 
 // AddInvite creates an invite for each of the target address's peers
 func (t *Textile) AddInvite(threadId string, address string) error {

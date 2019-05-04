@@ -2,7 +2,6 @@ package core
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -153,7 +152,7 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 
 		// use msg keys to decrypt each file
 		for pth, key := range msg.Keys {
-			fd, err := ipfs.DataAtPath(t.node(), msg.Target+pth+FileLinkName)
+			fd, err := ipfs.DataAtPath(t.node(), msg.Target+pth+MetaLinkName)
 			if err != nil {
 				return nil, err
 			}
@@ -257,7 +256,7 @@ func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys
 
 	for name, l := range node.Links {
 		// ensure link is present
-		link := schema.LinkByName(inode.Links(), name)
+		link := schema.LinkByName(inode.Links(), []string{name})
 		if link == nil {
 			return schema.ErrFileValidationFailed
 		}
@@ -290,14 +289,14 @@ func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key stri
 		return err
 	}
 
-	flink := schema.LinkByName(inode.Links(), FileLinkName)
+	flink := schema.LinkByName(inode.Links(), ValidMetaLinkNames)
 	if flink == nil {
-		return ErrMissingFileLink
+		return ErrMissingMetaLink
 	}
 
-	dlink := schema.LinkByName(inode.Links(), DataLinkName)
+	dlink := schema.LinkByName(inode.Links(), ValidContentLinkNames)
 	if dlink == nil {
-		return ErrMissingDataLink
+		return ErrMissingContentLink
 	}
 
 	if mil == "/json" {
@@ -337,7 +336,7 @@ func (t *Thread) validateJsonNode(inode ipld.Node, key string) error {
 
 	hash := inode.Cid().Hash().B58String()
 
-	data, err := ipfs.DataAtPath(t.node(), hash+"/"+DataLinkName)
+	data, err := ipfs.DataAtPath(t.node(), hash+"/"+ContentLinkName)
 	if err != nil {
 		return err
 	}
@@ -374,7 +373,7 @@ func (t *Thread) validateJsonNode(inode ipld.Node, key string) error {
 		for _, err := range result.Errors() {
 			errs += fmt.Sprintf("- %s\n", err)
 		}
-		return errors.New(errs)
+		return fmt.Errorf(errs)
 	}
 
 	return nil
@@ -404,9 +403,9 @@ func (t *Thread) indexFileNode(inode ipld.Node, target string) error {
 
 // indexFileLink indexes a file link
 func (t *Thread) indexFileLink(inode ipld.Node, target string) error {
-	dlink := schema.LinkByName(inode.Links(), DataLinkName)
+	dlink := schema.LinkByName(inode.Links(), ValidContentLinkNames)
 	if dlink == nil {
-		return ErrMissingDataLink
+		return ErrMissingContentLink
 	}
 
 	return t.datastore.Files().AddTarget(dlink.Cid.Hash().B58String(), target)
@@ -436,9 +435,9 @@ func (t *Thread) deIndexFileNode(inode ipld.Node, target string) error {
 
 // deIndexFileLink de-indexes a file link
 func (t *Thread) deIndexFileLink(inode ipld.Node, target string) error {
-	dlink := schema.LinkByName(inode.Links(), DataLinkName)
+	dlink := schema.LinkByName(inode.Links(), ValidContentLinkNames)
 	if dlink == nil {
-		return ErrMissingDataLink
+		return ErrMissingContentLink
 	}
 
 	hash := dlink.Cid.Hash().B58String()

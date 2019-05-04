@@ -1,13 +1,13 @@
 package wallet
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/textileio/go-textile/keypair"
 	"github.com/tyler-smith/go-bip39"
 )
 
-var ErrInvalidWordCount = errors.New("invalid word count (must be 12, 15, 18, 21, or 24)")
+var ErrInvalidWordCount = fmt.Errorf("invalid word count (must be 12, 15, 18, 21, or 24)")
 
 type WordCount int
 
@@ -83,7 +83,7 @@ func (w *Wallet) AccountAt(index int, password string) (*keypair.Full, error) {
 	seed, err := bip39.NewSeedWithErrorChecking(w.RecoveryPhrase, password)
 	if err != nil {
 		if err == bip39.ErrInvalidMnemonic {
-			return nil, errors.New("invalid mnemonic phrase")
+			return nil, fmt.Errorf("invalid mnemonic phrase")
 		}
 		return nil, err
 	}

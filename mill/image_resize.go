@@ -2,7 +2,7 @@ package mill
 
 import (
 	"bytes"
-	"errors"
+	"fmt"
 	"image"
 	"image/color/palette"
 	"image/draw"
@@ -77,11 +77,11 @@ func (m *ImageResize) Mill(input []byte, name string) (*Result, error) {
 
 	width, err := strconv.Atoi(m.Opts.Width)
 	if err != nil {
-		return nil, errors.New("invalid width: " + m.Opts.Width)
+		return nil, fmt.Errorf("invalid width: " + m.Opts.Width)
 	}
 	quality, err := strconv.Atoi(m.Opts.Quality)
 	if err != nil {
-		return nil, errors.New("invalid quality: " + m.Opts.Quality)
+		return nil, fmt.Errorf("invalid quality: " + m.Opts.Quality)
 	}
 
 	buff, rect, err := encodeImage(clean, format, width, quality)
@@ -152,7 +152,7 @@ func encodeImage(reader io.Reader, format Format, width int, quality int) (*byte
 			return nil, nil, err
 		}
 		if len(img.Image) == 0 {
-			return nil, nil, errors.New("gif does not have any frames")
+			return nil, nil, fmt.Errorf("gif does not have any frames")
 		}
 
 		firstFrame := img.Image[0].Bounds()
@@ -212,7 +212,7 @@ func encodeSingleImage(img image.Image, format Format) (*bytes.Reader, error) {
 		// they can contain meta data with sensitive info
 		err = png.Encode(writer, img)
 	default:
-		err = errors.New("unrecognized image format")
+		err = fmt.Errorf("unrecognized image format")
 	}
 	if err != nil {
 		return nil, err

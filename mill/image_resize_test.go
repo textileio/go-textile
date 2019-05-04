@@ -2,7 +2,7 @@ package mill
 
 import (
 	"bytes"
-	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -12,7 +12,7 @@ import (
 	"github.com/textileio/go-textile/mill/testdata"
 )
 
-var errFailedToFindExifMarker = errors.New("exif: failed to find exif intro marker")
+var errFailedToFindExifMarker = fmt.Errorf("exif: failed to find exif intro marker")
 
 func TestImageResize_Mill(t *testing.T) {
 	m := &ImageResize{

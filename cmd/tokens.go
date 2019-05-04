@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"errors"
+	"fmt"
 	"strconv"
 
 	"github.com/textileio/go-textile/util"
 )
 
-var errMissingToken = errors.New("missing token")
+var errMissingToken = fmt.Errorf("missing token")
 
 func init() {
 	register(&tokensCmd{})

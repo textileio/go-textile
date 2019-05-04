@@ -15,6 +15,7 @@ import (
 	"github.com/ipfs/go-ipfs/pin"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
+	dag "github.com/ipfs/go-merkledag"
 	uio "github.com/ipfs/go-unixfs/io"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
@@ -318,4 +319,22 @@ func UnpinCid(node *core.IpfsNode, id cid.Cid, recursive bool) error {
 	}
 
 	return node.Pinning.Flush()
+}
+
+// ResolveLinkByNames resolves a link in a node from a list of valid names
+// Note: This exists for b/c w/ the "f" -> "meta" and "d" -> content migration
+func ResolveLinkByNames(nd ipld.Node, names []string) (*ipld.Link, error) {
+	for _, n := range names {
+		link, _, err := nd.ResolveLink([]string{n})
+		if err != nil {
+			if err == dag.ErrLinkNotFound {
+				continue
+			}
+			return nil, err
+		}
+		if link != nil {
+			return link, nil
+		}
+	}
+	return nil, nil
 }

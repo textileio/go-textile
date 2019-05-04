@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"bytes"
-	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -16,8 +16,8 @@ import (
 	"github.com/textileio/go-textile/util"
 )
 
-var errMissingThreadId = errors.New("missing thread id")
-var errMissingThreadName = errors.New("missing thread name")
+var errMissingThreadId = fmt.Errorf("missing thread id")
+var errMissingThreadName = fmt.Errorf("missing thread name")
 
 func init() {
 	register(&threadsCmd{})

@@ -3,7 +3,6 @@ package strkey
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 
 	"github.com/mr-tron/base58/base58"
@@ -12,7 +11,7 @@ import (
 
 // ErrInvalidVersionByte is returned when the version byte from a provided
 // strkey-encoded string is not one of the valid values.
-var ErrInvalidVersionByte = errors.New("invalid version byte")
+var ErrInvalidVersionByte = fmt.Errorf("invalid version byte")
 
 // VersionByte represents one of the possible prefix values for a StrKey base
 // string--the string the when encoded using base58 yields a final StrKey.
@@ -136,11 +135,11 @@ func checkValidVersionByte(version VersionByte) error {
 func decodeString(src string) ([]byte, error) {
 	raw, err := base58.FastBase58Decoding(src)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("base58 decode failed: %s", err))
+		return nil, fmt.Errorf(fmt.Sprintf("base58 decode failed: %s", err))
 	}
 
 	if len(raw) < 3 {
-		return nil, errors.New(fmt.Sprintf("encoded value is %d bytes; minimum valid length is 3", len(raw)))
+		return nil, fmt.Errorf(fmt.Sprintf("encoded value is %d bytes; minimum valid length is 3", len(raw)))
 	}
 
 	return raw, nil

@@ -1,14 +1,13 @@
 package migrations
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
 )
 
 // ErrorCannotMigrateDown is thrown if migrate down is called on a major migration
-var ErrorCannotMigrateDown = errors.New("cannot migrate down major")
+var ErrorCannotMigrateDown = fmt.Errorf("cannot migrate down major")
 
 // blastRepo repo sans logs
 func blastRepo(repoPath string) error {

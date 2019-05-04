@@ -2,7 +2,6 @@ package core
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -12,6 +11,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/ipfs/go-ipfs/core"
+	ipld "github.com/ipfs/go-ipld-format"
 	libp2pc "github.com/libp2p/go-libp2p-crypto"
 	peer "github.com/libp2p/go-libp2p-peer"
 	mh "github.com/multiformats/go-multihash"
@@ -25,34 +25,34 @@ import (
 )
 
 // ErrNotShareable indicates the thread does not allow invites, at least for _you_
-var ErrNotShareable = errors.New("thread is not shareable")
+var ErrNotShareable = fmt.Errorf("thread is not shareable")
 
 // ErrNotReadable indicates the thread is not readable
-var ErrNotReadable = errors.New("thread is not readable")
+var ErrNotReadable = fmt.Errorf("thread is not readable")
 
 // ErrNotAnnotatable indicates the thread is not annotatable (comments/likes)
-var ErrNotAnnotatable = errors.New("thread is not annotatable")
+var ErrNotAnnotatable = fmt.Errorf("thread is not annotatable")
 
 // ErrNotWritable indicates the thread is not writable (files/messages)
-var ErrNotWritable = errors.New("thread is not writable")
+var ErrNotWritable = fmt.Errorf("thread is not writable")
 
 // ErrThreadSchemaRequired indicates files where added without a thread schema
-var ErrThreadSchemaRequired = errors.New("thread schema required to add files")
+var ErrThreadSchemaRequired = fmt.Errorf("thread schema required to add files")
 
 // ErrJsonSchemaRequired indicates json files where added without a json schema
-var ErrJsonSchemaRequired = errors.New("thread schema does not allow json files")
+var ErrJsonSchemaRequired = fmt.Errorf("thread schema does not allow json files")
 
 // ErrInvalidFileNode indicates files where added via a nil ipld node
-var ErrInvalidFileNode = errors.New("invalid files node")
+var ErrInvalidFileNode = fmt.Errorf("invalid files node")
 
 // ErrBlockExists indicates a block has already been indexed
-var ErrBlockExists = errors.New("block exists")
+var ErrBlockExists = fmt.Errorf("block exists")
 
 // ErrBlockWrongType indicates a block was requested as a type other than its own
-var ErrBlockWrongType = errors.New("block type is not the type requested")
+var ErrBlockWrongType = fmt.Errorf("block type is not the type requested")
 
 // errReloadFailed indicates an error occurred during thread reload
-var errThreadReload = errors.New("could not re-load thread")
+var errThreadReload = fmt.Errorf("could not re-load thread")
 
 // ThreadConfig is used to construct a Thread
 type ThreadConfig struct {
@@ -100,19 +100,10 @@ func NewThread(model *pb.Thread, conf *ThreadConfig) (*Thread, error) {
 		return nil, err
 	}
 
-	var sch *pb.Node
-	if model.Schema != "" {
-		sch, err = loadSchema(conf.Node(), model.Schema)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return &Thread{
+	thrd := &Thread{
 		Id:          model.Id,
 		Key:         model.Key,
 		Name:        model.Name,
-		Schema:      sch,
 		schemaId:    model.Schema,
 		initiator:   model.Initiator,
 		ttype:       model.Type,
@@ -129,7 +120,12 @@ func NewThread(model *pb.Thread, conf *ThreadConfig) (*Thread, error) {
 		cafeOutbox:  conf.CafeOutbox,
 		addPeer:     conf.AddPeer,
 		pushUpdate:  conf.PushUpdate,
-	}, nil
+	}
+
+	if err := thrd.loadSchema(); err != nil {
+		return nil, err
+	}
+	return thrd, nil
 }
 
 // Head returns content id of the latest update
@@ -172,8 +168,8 @@ func (t *Thread) UpdateSchema(hash string) error {
 	if err != nil {
 		return err
 	}
-	t.Schema, err = loadSchema(t.node(), hash)
-	return err
+	t.Schema = nil
+	return t.loadSchema()
 }
 
 // followParents tries to follow a list of chains of block ids, processing along the way
@@ -258,7 +254,7 @@ func (t *Thread) followParent(parent mh.Multihash) ([]string, error) {
 	case pb.Block_LIKE:
 		_, err = t.handleLikeBlock(parent, block)
 	default:
-		return nil, errors.New(fmt.Sprintf("invalid message type: %s", block.Type))
+		return nil, fmt.Errorf(fmt.Sprintf("invalid message type: %s", block.Type))
 	}
 	if err != nil {
 		return nil, err
@@ -395,7 +391,7 @@ func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBl
 
 	// nil payload only allowed for some types
 	if block.Payload == nil && block.Type != pb.Block_MERGE && block.Type != pb.Block_LEAVE {
-		return nil, errors.New("nil message payload")
+		return nil, fmt.Errorf("nil message payload")
 	}
 
 	if _, err := t.addBlock(ciphertext); err != nil {
@@ -634,17 +630,30 @@ func (t *Thread) member(addr string) bool {
 	return false
 }
 
-// loadSchema loads a schema from a local file
-func loadSchema(node *core.IpfsNode, id string) (*pb.Node, error) {
-	data, err := ipfs.DataAtPath(node, id)
+// loadSchema loads and attaches a schema from the network
+func (t *Thread) loadSchema() error {
+	if t.schemaId == "" || t.Schema != nil {
+		return nil
+	}
+
+	data, err := ipfs.DataAtPath(t.node(), t.schemaId)
 	if err != nil {
-		return nil, err
+		if err == ipld.ErrNotFound {
+			return nil
+		}
+		return err
 	}
 
 	var sch pb.Node
 	if err := jsonpb.UnmarshalString(string(data), &sch); err != nil {
-		log.Errorf("failed to unmarshal thread schema %s: %s", id, err)
-		return nil, err
+		return err
 	}
-	return &sch, nil
+	t.Schema = &sch
+
+	// pin/repin to ensure remotely added schemas are readily accessible
+	if _, err := ipfs.AddData(t.node(), bytes.NewReader(data), true); err != nil {
+		return err
+	}
+
+	return nil
 }

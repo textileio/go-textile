@@ -101,6 +101,7 @@ func (c *cafeApi) pin(g *gin.Context) {
 func (c *cafeApi) service(g *gin.Context) {
 	body, err := ioutil.ReadAll(g.Request.Body)
 	if err != nil {
+		log.Errorf("(1) %s", err)
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
@@ -108,22 +109,26 @@ func (c *cafeApi) service(g *gin.Context) {
 	// parse body as a service envelope
 	pmes := new(pb.Envelope)
 	if err := proto.Unmarshal(body, pmes); err != nil {
+		log.Errorf("(2) %s", err)
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	peerId := g.Request.Header.Get("X-Textile-Peer")
 	if peerId == "" {
+		log.Errorf("(3) %s", err)
 		g.String(http.StatusBadRequest, "missing peer ID")
 		return
 	}
 	mPeer, err := peer.IDB58Decode(peerId)
 	if err != nil {
+		log.Errorf("(4) %s", err)
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if err := c.node.cafe.service.VerifyEnvelope(pmes, mPeer); err != nil {
+		log.Errorf("(5) %s", err)
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
@@ -132,12 +137,14 @@ func (c *cafeApi) service(g *gin.Context) {
 	log.Debugf("received %s from %s", pmes.Message.Type.String(), mPeer.Pretty())
 	rpmes, err := c.node.cafe.Handle(mPeer, pmes)
 	if err != nil {
+		log.Errorf("(6) %s", err)
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 	if rpmes != nil {
 		res, err := proto.Marshal(rpmes)
 		if err != nil {
+			log.Errorf("(7) %s", err)
 			g.String(http.StatusBadRequest, err.Error())
 			return
 		}
@@ -151,9 +158,11 @@ func (c *cafeApi) service(g *gin.Context) {
 	g.Stream(func(w io.Writer) bool {
 		select {
 		case <-g.Request.Context().Done():
+			log.Debug("closing request stream")
 			close(cancel)
 
 		case err := <-errCh:
+			log.Errorf("(8) %s", err)
 			g.String(http.StatusBadRequest, err.Error())
 			return false
 

@@ -2,7 +2,7 @@ package core
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -378,7 +378,7 @@ func (a *api) openFile(g *gin.Context) (multipart.File, string, error) {
 		return nil, "", err
 	}
 	if len(form.File["file"]) == 0 {
-		return nil, "", errors.New("no file attached")
+		return nil, "", fmt.Errorf("no file attached")
 	}
 	header := form.File["file"][0]
 	file, err := header.Open()
