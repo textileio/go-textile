@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"regexp"
 	"strings"
 	"time"
 
@@ -66,10 +65,10 @@ func (g *Gateway) Start(addr string) {
 		c.String(http.StatusOK, css.Style)
 	})
 
-	router.GET("/ipfs/:root", g.gatewayHandler)
-	router.GET("/ipfs/:root/*path", g.gatewayHandler)
-	router.GET("/ipns/:root", g.profileHandler)
-	router.GET("/ipns/:root/*path", g.profileHandler)
+	router.GET("/ipfs/:root", g.ipfsHandler)
+	router.GET("/ipfs/:root/*path", g.ipfsHandler)
+	router.GET("/ipns/:root", g.ipnsHandler)
+	router.GET("/ipns/:root/*path", g.ipnsHandler)
 
 	router.GET("/cafe", g.cafeHandler)
 	router.GET("/cafes", g.cafesHandler)
@@ -121,11 +120,14 @@ func (g *Gateway) Addr() string {
 	return g.server.Addr
 }
 
-// gatewayHandler handles gateway http requests
-func (g *Gateway) gatewayHandler(c *gin.Context) {
+// ipfsHandler renders and optionally decrypts data behind an IPFS address
+func (g *Gateway) ipfsHandler(c *gin.Context) {
 	contentPath := c.Param("root") + c.Param("path")
 
 	data := g.getDataAtPath(c, contentPath)
+	if data == nil {
+		return
+	}
 
 	// attempt decrypt if key present
 	key, exists := c.GetQuery("key")
@@ -149,30 +151,11 @@ func (g *Gateway) gatewayHandler(c *gin.Context) {
 	c.Render(200, render.Data{Data: data})
 }
 
-var avatarRx = regexp.MustCompile(`/avatar($|/small$|/large$)`)
-
-// profileHandler handles requests for profile info hosted on ipns
-// NOTE: avatar is a magic path, will return data behind link at avatar_uri
-// NOTICE: This method has been deprecated and is only here temporarily for backward compatibility
-func (g *Gateway) profileHandler(c *gin.Context) {
+// ipnsHandler renders data behind an IPNS address
+func (g *Gateway) ipnsHandler(c *gin.Context) {
 	pathp := c.Param("path")
 	if len(pathp) > 0 && pathp[len(pathp)-1] == '/' {
 		pathp = pathp[:len(pathp)-1]
-	}
-	var isAvatar bool
-	var avatarSize string
-
-	matches := avatarRx.FindStringSubmatch(pathp)
-	if len(matches) == 2 {
-		pathp = "/avatar_uri"
-		isAvatar = true
-
-		switch matches[1] {
-		case "/large":
-			avatarSize = "large"
-		default:
-			avatarSize = "small"
-		}
 	}
 
 	rootId, err := peer.IDB58Decode(c.Param("root"))
@@ -189,70 +172,9 @@ func (g *Gateway) profileHandler(c *gin.Context) {
 		return
 	}
 
-	contentPath := pth.String() + pathp
-	data := g.getDataAtPath(c, contentPath)
-
-	// if this is an avatar request, fetch and return the linked image
-	if isAvatar {
-		location := string(data)
-		if location == "" {
-			fallback, _ := c.GetQuery("fallback")
-			if fallback == "true" {
-				location = fmt.Sprintf("https://avatars.dicebear.com/v2/identicon/%s.svg", c.Param("root"))
-				c.Redirect(307, location)
-				return
-			} else {
-				render404(c)
-				return
-			}
-		}
-
-		// old style w/ key
-		parsed := strings.Split(location, "?key=")
-		if len(parsed) == 2 {
-			keyb, err := base58.Decode(parsed[1])
-			if err != nil {
-				log.Debugf("error decoding key %s: %s", parsed[1], err)
-				render404(c)
-				return
-			}
-
-			ciphertext, err := g.Node.DataAtPath(parsed[0])
-			if err != nil {
-				render404(c)
-				return
-			}
-
-			data, err = crypto.DecryptAES(ciphertext, keyb)
-			if err != nil {
-				log.Debugf("error decrypting %s: %s", parsed[0], err)
-				render404(c)
-				return
-			}
-
-			c.Header("Content-Type", "image/jpeg")
-
-		} else {
-			pth := fmt.Sprintf("%s/0/%s/d", location, avatarSize)
-			data, err = g.Node.DataAtPath(pth)
-			if err != nil {
-				render404(c)
-				return
-			}
-
-			var stop int
-			if len(data) < 512 {
-				stop = len(data)
-			} else {
-				stop = 512
-			}
-			media := http.DetectContentType(data[:stop])
-			if media != "" {
-				c.Header("Content-Type", media)
-			}
-		}
-
-		c.Header("Cache-Control", "public, max-age=172800") // 2 days
+	data := g.getDataAtPath(c, pth.String()+pathp)
+	if data == nil {
+		return
 	}
 
 	c.Render(200, render.Data{Data: data})
@@ -295,6 +217,7 @@ func (g *Gateway) cafesHandler(c *gin.Context) {
 	})
 }
 
+// link represents a node link for HTML rendering
 type link struct {
 	Path ipfspath.Path
 	Link *ipld.Link
@@ -360,10 +283,12 @@ func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 	return data
 }
 
+// render404 renders the 404 template
 func render404(c *gin.Context) {
 	c.HTML(http.StatusNotFound, "404", nil)
 }
 
+// parseTemplates loads HTML templates
 func parseTemplates() *template.Template {
 	temp, err := template.New("index").Parse(templates.Index)
 	if err != nil {
@@ -376,6 +301,7 @@ func parseTemplates() *template.Template {
 	return temp
 }
 
+// byteCountDecimal formats bytes
 func byteCountDecimal(b int64) string {
 	const unit = 1000
 	if b < unit {

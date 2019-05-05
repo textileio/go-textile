@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
@@ -326,7 +327,7 @@ func (x *initCmd) Execute(args []string) error {
 		CafeOpen:        x.CafeOptions.Open,
 		CafeURL:         envOrFlag("CAFE_HOST_URL", x.CafeOptions.URL),
 		CafeNeighborURL: envOrFlag("CAFE_HOST_NEIGHBOR_URL", x.CafeOptions.NeighborURL),
-        // ^ @todo why do we prefer env over flag for these? shouldn't flag override the env?
+		// ^ @todo why do we prefer env over flag for these? shouldn't flag override the env?
 	}
 
 	if err := core.InitRepo(config); err != nil {
@@ -523,6 +524,8 @@ func startNode(serveDocs bool) error {
 
 	// start profiling api
 	go func() {
+		writeHeapDump("/debug/write-heap-dump/")
+		freeOSMemory("/debug/free-os-memory/")
 		mutexFractionOption("/debug/pprof-mutex/")
 		if err := http.ListenAndServe(node.Config().Addresses.Profiling, http.DefaultServeMux); err != nil {
 			log.Errorf("error staring profile listener: %s", err)
@@ -582,7 +585,7 @@ func envOrFlag(env string, flag string) string {
 	return flag
 }
 
-// MutexFractionOption allows to set runtime.SetMutexProfileFraction via HTTP
+// mutexFractionOption allows to set runtime.SetMutexProfileFraction via HTTP
 // using POST request with parameter 'fraction'.
 func mutexFractionOption(path string) {
 	http.DefaultServeMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
@@ -610,5 +613,38 @@ func mutexFractionOption(path string) {
 		}
 		log.Infof("Setting MutexProfileFraction to %d", fr)
 		runtime.SetMutexProfileFraction(fr)
+	})
+}
+
+// writeHeapDump writes a description of the heap and the objects in
+// it to the given file descriptor. (used here for debugging)
+func writeHeapDump(path string) {
+	http.DefaultServeMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		log.Infof("Writing heap dump")
+		f, err := os.Create("heapdump")
+		if err != nil {
+			return
+		}
+		debug.WriteHeapDump(f.Fd())
+	})
+}
+
+// freeOSMemory forces a garbage collection followed by an
+// attempt to return as much memory to the operating system
+// as possible. (used here for debugging)
+func freeOSMemory(path string) {
+	http.DefaultServeMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		log.Infof("Freeing OS memory")
+		debug.FreeOSMemory()
 	})
 }
