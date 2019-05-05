@@ -19,7 +19,7 @@ import (
 	swagger "github.com/swaggo/gin-swagger"
 	sfiles "github.com/swaggo/gin-swagger/swaggerFiles"
 	"github.com/textileio/go-textile/common"
-	docs "github.com/textileio/go-textile/docs"
+	"github.com/textileio/go-textile/docs"
 	m "github.com/textileio/go-textile/mill"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/repo/config"
@@ -328,6 +328,20 @@ func (a *api) Stop() error {
 	return nil
 }
 
+// summary godoc
+// @Summary Get a summary of node data
+// @Tags utils
+// @Produce application/json
+// @Success 200 {object} pb.Summary "summary"
+// @Router /summary [get]
+func (a *api) nodeSummary(g *gin.Context) {
+	pbJSON(g, http.StatusOK, a.node.Summary())
+}
+
+func (a *api) abort500(g *gin.Context, err error) {
+	g.String(http.StatusInternalServerError, err.Error())
+}
+
 func (a *api) readArgs(g *gin.Context) ([]string, error) {
 	header := g.Request.Header.Get("X-Textile-Args")
 	var args []string
@@ -341,16 +355,6 @@ func (a *api) readArgs(g *gin.Context) ([]string, error) {
 		}
 	}
 	return args, nil
-}
-
-// summary godoc
-// @Summary Get a summary of node data
-// @Tags utils
-// @Produce application/json
-// @Success 200 {object} pb.Summary "summary"
-// @Router /summary [get]
-func (a *api) nodeSummary(g *gin.Context) {
-	pbJSON(g, http.StatusOK, a.node.Summary())
 }
 
 func (a *api) readOpts(g *gin.Context) (map[string]string, error) {
@@ -427,10 +431,6 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string, plaintext b
 	conf.Plaintext = plaintext
 
 	return conf, nil
-}
-
-func (a *api) abort500(g *gin.Context, err error) {
-	g.String(http.StatusInternalServerError, err.Error())
 }
 
 // getCORSSettings returns custom CORS settings given HTTPHeaders config options
