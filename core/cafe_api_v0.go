@@ -2,6 +2,7 @@ package core
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -89,34 +90,31 @@ func (c *cafeApi) pin(g *gin.Context) {
 	g.JSON(http.StatusCreated, gin.H{"id": hash})
 }
 
-var pool = sync.Pool{
+// servicePool handles service payloads
+var servicePool = sync.Pool{
 	New: func() interface{} {
-		b := make([]byte, 1024)
-		return &b
+		return &bytes.Buffer{}
 	},
 }
 
 // service is an HTTP entry point for the cafe service
 func (c *cafeApi) service(g *gin.Context) {
-	bufp := pool.Get().(*[]byte)
-	defer pool.Put(bufp)
-	//readSize := 0
-	var err error
-	for {
-		_, err = g.Request.Body.Read(*bufp)
-		//n += int64(readSize)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			g.String(http.StatusBadRequest, err.Error())
-			return
-		}
+	buf := servicePool.Get().(*bytes.Buffer)
+	defer func() {
+		buf.Reset()
+		servicePool.Put(buf)
+	}()
+
+	buf.Grow(bytes.MinRead)
+	_, err := buf.ReadFrom(g.Request.Body)
+	if err != nil && err != io.EOF {
+		g.String(http.StatusBadRequest, err.Error())
+		return
 	}
 
 	// parse body as a service envelope
 	pmes := new(pb.Envelope)
-	if err := proto.Unmarshal(*bufp, pmes); err != nil {
+	if err := proto.Unmarshal(buf.Bytes(), pmes); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
