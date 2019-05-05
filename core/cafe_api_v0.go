@@ -5,8 +5,8 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
@@ -30,7 +30,6 @@ func (c *cafeApi) pin(g *gin.Context) {
 
 		gr, err := gzip.NewReader(g.Request.Body)
 		if err != nil {
-			log.Errorf("error creating gzip reader %s", err)
 			c.abort(g, http.StatusBadRequest, err)
 			return
 		}
@@ -42,19 +41,16 @@ func (c *cafeApi) pin(g *gin.Context) {
 				break
 			}
 			if err != nil {
-				log.Errorf("error getting tar next %s", err)
 				c.abort(g, http.StatusInternalServerError, err)
 				return
 			}
 
 			switch header.Typeflag {
 			case tar.TypeDir:
-				log.Error("got nested directory, aborting")
 				c.abort(g, http.StatusBadRequest, fmt.Errorf("directories are not supported"))
 				return
 			case tar.TypeReg:
 				if _, err := ipfs.AddDataToDirectory(c.node.Ipfs(), dirb, header.Name, tr); err != nil {
-					log.Errorf("error adding file to dir %s", err)
 					c.abort(g, http.StatusInternalServerError, err)
 					return
 				}
@@ -66,12 +62,10 @@ func (c *cafeApi) pin(g *gin.Context) {
 		// pin the directory
 		dir, err := dirb.GetNode()
 		if err != nil {
-			log.Errorf("error creating dir node %s", err)
 			c.abort(g, http.StatusInternalServerError, err)
 			return
 		}
 		if err := ipfs.PinNode(c.node.Ipfs(), dir, true); err != nil {
-			log.Errorf("error pinning dir node %s", err)
 			c.abort(g, http.StatusInternalServerError, err)
 			return
 		}
@@ -80,13 +74,11 @@ func (c *cafeApi) pin(g *gin.Context) {
 	case "application/octet-stream":
 		idp, err := ipfs.AddData(c.node.Ipfs(), g.Request.Body, true)
 		if err != nil {
-			log.Errorf("error pinning raw body %s", err)
 			c.abort(g, http.StatusInternalServerError, err)
 			return
 		}
 		id = *idp
 	default:
-		log.Errorf("got bad content type %s", cType)
 		c.abort(g, http.StatusBadRequest, fmt.Errorf("invalid content-type"))
 		return
 	}
@@ -97,38 +89,50 @@ func (c *cafeApi) pin(g *gin.Context) {
 	g.JSON(http.StatusCreated, gin.H{"id": hash})
 }
 
+var pool = sync.Pool{
+	New: func() interface{} {
+		b := make([]byte, 1024)
+		return &b
+	},
+}
+
 // service is an HTTP entry point for the cafe service
 func (c *cafeApi) service(g *gin.Context) {
-	body, err := ioutil.ReadAll(g.Request.Body)
-	if err != nil {
-		log.Errorf("(1) %s", err)
-		g.String(http.StatusBadRequest, err.Error())
-		return
+	bufp := pool.Get().(*[]byte)
+	defer pool.Put(bufp)
+	//readSize := 0
+	var err error
+	for {
+		_, err = g.Request.Body.Read(*bufp)
+		//n += int64(readSize)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			g.String(http.StatusBadRequest, err.Error())
+			return
+		}
 	}
 
 	// parse body as a service envelope
 	pmes := new(pb.Envelope)
-	if err := proto.Unmarshal(body, pmes); err != nil {
-		log.Errorf("(2) %s", err)
+	if err := proto.Unmarshal(*bufp, pmes); err != nil {
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	peerId := g.Request.Header.Get("X-Textile-Peer")
 	if peerId == "" {
-		log.Errorf("(3) %s", err)
 		g.String(http.StatusBadRequest, "missing peer ID")
 		return
 	}
 	mPeer, err := peer.IDB58Decode(peerId)
 	if err != nil {
-		log.Errorf("(4) %s", err)
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if err := c.node.cafe.service.VerifyEnvelope(pmes, mPeer); err != nil {
-		log.Errorf("(5) %s", err)
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
@@ -137,14 +141,12 @@ func (c *cafeApi) service(g *gin.Context) {
 	log.Debugf("received %s from %s", pmes.Message.Type.String(), mPeer.Pretty())
 	rpmes, err := c.node.cafe.Handle(mPeer, pmes)
 	if err != nil {
-		log.Errorf("(6) %s", err)
 		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 	if rpmes != nil {
 		res, err := proto.Marshal(rpmes)
 		if err != nil {
-			log.Errorf("(7) %s", err)
 			g.String(http.StatusBadRequest, err.Error())
 			return
 		}
@@ -162,7 +164,6 @@ func (c *cafeApi) service(g *gin.Context) {
 			close(cancel)
 
 		case err := <-errCh:
-			log.Errorf("(8) %s", err)
 			g.String(http.StatusBadRequest, err.Error())
 			return false
 
