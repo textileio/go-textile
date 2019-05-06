@@ -3,7 +3,6 @@ package core
 import (
 	"fmt"
 	"math/rand"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -15,9 +14,6 @@ import (
 
 const minPort = 1024
 const maxPort = 49151
-
-var tcpPortRx = regexp.MustCompile("/tcp/([0-9]+)$")
-var wsPortRx = regexp.MustCompile("/tcp/([0-9]+)/ws$")
 
 // Config returns the textile configuration file
 func (t *Textile) Config() *config.Config {
@@ -77,71 +73,6 @@ func applyTextileConfigOptions(init InitConfig) error {
 	return config.Write(init.RepoPath, conf)
 }
 
-// updateBootstrapConfig adds additional peers to the bootstrap config
-func updateBootstrapConfig(repoPath string, add []string, rm []string) error {
-	rep, err := fsrepo.Open(repoPath)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := rep.Close(); err != nil {
-			log.Error(err.Error())
-		}
-	}()
-	conf, err := rep.Config()
-	if err != nil {
-		return err
-	}
-	var final []string
-
-	// get a list that does not include items in rm
-outer:
-	for _, bp := range conf.Bootstrap {
-		for _, r := range rm {
-			if bp == r {
-				continue outer
-			}
-		}
-		final = append(final, bp)
-	}
-
-	for _, p := range add {
-		final = append(final, p)
-	}
-	return rep.SetConfigKey("Bootstrap", final)
-}
-
-// loadSwarmPorts returns the swarm ports in the ipfs config
-func loadSwarmPorts(repoPath string) (*config.SwarmPorts, error) {
-	rep, err := fsrepo.Open(repoPath)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if err := rep.Close(); err != nil {
-			log.Error(err.Error())
-		}
-	}()
-
-	conf, err := rep.Config()
-	if err != nil {
-		return nil, err
-	}
-	ports := &config.SwarmPorts{}
-
-	for _, p := range conf.Addresses.Swarm {
-		tcp := tcpPortRx.FindStringSubmatch(p)
-		if len(tcp) == 2 {
-			ports.TCP = tcp[1]
-		}
-		ws := wsPortRx.FindStringSubmatch(p)
-		if len(ws) == 2 {
-			ports.WS = ws[1]
-		}
-	}
-	return ports, nil
-}
-
 // applySwarmPortConfigOption sets custom swarm ports (tcp and ws)
 func applySwarmPortConfigOption(rep repo.Repo, ports string) error {
 	var parts []string
@@ -172,7 +103,7 @@ func applySwarmPortConfigOption(rep repo.Repo, ports string) error {
 	return rep.SetConfigKey("Addresses.Swarm", list)
 }
 
-// applyServerConfigOption ensures the low-power IPFS profile has been applied to the repo config
+// ensureMobileConfig ensures the low-power IPFS profile has been applied to the repo config
 func ensureMobileConfig(repoPath string) error {
 	rep, err := fsrepo.Open(repoPath)
 	if err != nil {
@@ -190,6 +121,32 @@ func ensureMobileConfig(repoPath string) error {
 	conf.Swarm.ConnMgr.GracePeriod = time.Minute.String()
 	conf.Swarm.DisableBandwidthMetrics = true
 	conf.Swarm.EnableAutoRelay = true
+
+	return rep.SetConfig(conf)
+}
+
+// ensureServerConfig ensures the server IPFS profile has been applied to the repo config
+func ensureServerConfig(repoPath string) error {
+	rep, err := fsrepo.Open(repoPath)
+	if err != nil {
+		return err
+	}
+	conf, err := rep.Config()
+	if err != nil {
+		return err
+	}
+
+	conf.Discovery.MDNS.Enabled = false
+	conf.Addresses.NoAnnounce = config.DefaultServerFilters
+	conf.Swarm.AddrFilters = config.DefaultServerFilters
+	conf.Swarm.DisableNatPortMap = true
+	conf.Swarm.EnableRelayHop = false
+	conf.Swarm.EnableAutoNATService = true
+
+	// tmp. ensure IPFS addresses are available in case we need to
+	// point a vanilla daemon at the repo.
+	conf.Addresses.API = []string{"/ip4/127.0.0.1/tcp/5001"}
+	conf.Addresses.Gateway = []string{"/ip4/127.0.0.1/tcp/8080"}
 
 	return rep.SetConfig(conf)
 }

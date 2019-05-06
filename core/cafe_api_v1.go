@@ -1,8 +1,9 @@
 package core
 
 import (
+	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -83,16 +84,23 @@ func (c *cafeApi) storeThread(g *gin.Context) {
 		return
 	}
 
-	body, err := ioutil.ReadAll(g.Request.Body)
-	if err != nil {
-		c.abort(g, http.StatusBadRequest, err)
+	buf := bodyPool.Get().(*bytes.Buffer)
+	defer func() {
+		buf.Reset()
+		bodyPool.Put(buf)
+	}()
+
+	buf.Grow(bytes.MinRead)
+	_, err := buf.ReadFrom(g.Request.Body)
+	if err != nil && err != io.EOF {
+		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	thrd := &pb.CafeClientThread{
 		Id:         id,
 		Client:     client.Id,
-		Ciphertext: body,
+		Ciphertext: buf.Bytes(),
 	}
 	if err := c.node.datastore.CafeClientThreads().AddOrUpdate(thrd); err != nil {
 		c.abort(g, http.StatusInternalServerError, err)
@@ -132,12 +140,20 @@ func (c *cafeApi) deliverMessage(g *gin.Context) {
 	}
 
 	// message id is the request body
-	body, err := ioutil.ReadAll(g.Request.Body)
-	if err != nil {
-		c.abort(g, http.StatusBadRequest, err)
+	buf := bodyPool.Get().(*bytes.Buffer)
+	defer func() {
+		buf.Reset()
+		bodyPool.Put(buf)
+	}()
+
+	buf.Grow(bytes.MinRead)
+	_, err := buf.ReadFrom(g.Request.Body)
+	if err != nil && err != io.EOF {
+		g.String(http.StatusBadRequest, err.Error())
 		return
 	}
-	mid, err := cid.Decode(string(body))
+
+	mid, err := cid.Decode(string(buf.Bytes()))
 	if err != nil {
 		c.abort(g, http.StatusBadRequest, err)
 		return
