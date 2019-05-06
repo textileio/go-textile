@@ -41,6 +41,24 @@ func (m *Mobile) Decrypt(input []byte) ([]byte, error) {
 	return m.node.Decrypt(input)
 }
 
+// AccountThread calls core AccountThread
+func (m *Mobile) AccountThread() ([]byte, error) {
+	if !m.node.Started() {
+		return nil, core.ErrStopped
+	}
+
+	thrd := m.node.AccountThread()
+	if thrd == nil {
+		return nil, fmt.Errorf("account thread not found")
+	}
+	view, err := m.node.ThreadView(thrd.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	return proto.Marshal(view)
+}
+
 // AccountContact calls core AccountContact
 func (m *Mobile) AccountContact() ([]byte, error) {
 	if !m.node.Started() {

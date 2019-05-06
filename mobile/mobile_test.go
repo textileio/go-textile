@@ -265,6 +265,20 @@ func TestMobile_Seed(t *testing.T) {
 	}
 }
 
+func TestMobile_AccountThread(t *testing.T) {
+	res, err := mobile1.AccountThread()
+	if err != nil {
+		t.Errorf("error getting account thread: %s", err)
+	}
+	thrd := new(pb.Thread)
+	if err := proto.Unmarshal(res, thrd); err != nil {
+		t.Error(err)
+	}
+	if thrd.Id == "" {
+		t.Error("missing account thread")
+	}
+}
+
 func TestMobile_AddThread(t *testing.T) {
 	conf := &pb.AddThreadConfig{
 		Key:  ksuid.New().String(),
