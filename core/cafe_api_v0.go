@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
@@ -90,19 +89,12 @@ func (c *cafeApi) pin(g *gin.Context) {
 	g.JSON(http.StatusCreated, gin.H{"id": hash})
 }
 
-// servicePool handles service payloads
-var servicePool = sync.Pool{
-	New: func() interface{} {
-		return &bytes.Buffer{}
-	},
-}
-
 // service is an HTTP entry point for the cafe service
 func (c *cafeApi) service(g *gin.Context) {
-	buf := servicePool.Get().(*bytes.Buffer)
+	buf := bodyPool.Get().(*bytes.Buffer)
 	defer func() {
 		buf.Reset()
-		servicePool.Put(buf)
+		bodyPool.Put(buf)
 	}()
 
 	buf.Grow(bytes.MinRead)

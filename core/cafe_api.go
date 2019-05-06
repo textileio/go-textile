@@ -1,9 +1,11 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	njwt "github.com/dgrijalva/jwt-go"
@@ -18,6 +20,13 @@ const cafeApiVersion = "v0"
 
 // cafeApiHost is the instance used by the core instance
 var cafeApiHost *cafeApi
+
+// bodyPool handles service payloads
+var bodyPool = sync.Pool{
+	New: func() interface{} {
+		return &bytes.Buffer{}
+	},
+}
 
 // cafeApi is a limited HTTP API to the cafe service
 type cafeApi struct {

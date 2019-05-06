@@ -41,7 +41,7 @@ func SwarmConnect(node *core.IpfsNode, addrs []string) ([]string, error) {
 }
 
 type streamInfo struct {
-	Protocol string
+	Protocol string `json:"protocol"`
 }
 
 type connInfo struct {
@@ -66,7 +66,7 @@ func (ci *connInfo) Swap(i, j int) {
 }
 
 type ConnInfos struct {
-	Peers []connInfo
+	Peers []connInfo `json:"peers"`
 }
 
 func (ci ConnInfos) Less(i, j int) bool {

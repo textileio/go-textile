@@ -267,9 +267,14 @@ func (t *Textile) Start() error {
 		return err
 	}
 
-	// ensure older peers get latest mobile profile
+	// ensure older peers get latest profiles
 	if t.Mobile() {
 		if err := ensureMobileConfig(t.repoPath); err != nil {
+			return err
+		}
+	}
+	if t.Server() {
+		if err := ensureServerConfig(t.repoPath); err != nil {
 			return err
 		}
 	}
@@ -451,6 +456,11 @@ func (t *Textile) Online() bool {
 // Mobile returns whether or not node is configured for a mobile device
 func (t *Textile) Mobile() bool {
 	return t.config.IsMobile
+}
+
+// Server returns whether or not node is configured for a server
+func (t *Textile) Server() bool {
+	return t.config.IsServer
 }
 
 // Writer returns the output writer (logger / stdout)
