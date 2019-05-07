@@ -346,7 +346,7 @@ jobs:
       - run:
           name: install @textile/protobufjs
           command: |
-            npm install @textile/protobufjs
+            npm install @textile/protobufjs@6.8.8
       - run:
           name: build js types
           command: |

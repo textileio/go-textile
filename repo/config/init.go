@@ -32,10 +32,10 @@ type Account struct {
 
 // Addresses stores the (string) bind addresses for the node.
 type Addresses struct {
-	API       string // address of the local API (RPC)
-	CafeAPI   string // address of the cafe REST API
-	Gateway   string // address to listen on for IPFS HTTP object gateway
-	Profiling string // address to listen on for profiling
+	API       string // bind address of the local REST API
+	CafeAPI   string // bind address of the cafe REST API
+	Gateway   string // bind address of the IPFS object gateway
+	Profiling string // bind address of the profiling API
 }
 
 type SwarmPorts struct {
