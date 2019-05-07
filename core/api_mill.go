@@ -176,7 +176,7 @@ func (a *api) imageExifMill(g *gin.Context) {
 
 // jsonMill godoc
 // @Summary Process input JSON data
-// @Description Takes an input JSON document, validates it according to its schema.org definition,
+// @Description Takes an input JSON document, validates it according to its json-schema.org definition,
 // @Description optionally encrypts the output before adding to IPFS, and returns a file object
 // @Tags mills
 // @Accept multipart/form-data

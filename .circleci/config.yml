@@ -340,7 +340,7 @@ jobs:
 
   build-js-types:
     docker:
-      - image: circleci/node
+      - image: circleci/node:10.15.3
     steps:
       - checkout
       - run:
