@@ -472,7 +472,7 @@ func TestMobile_PrepareFilesSync(t *testing.T) {
 		return
 	}
 
-	res4, err := mobile1.Files("", -1, thrd.Id)
+	res4, err := mobile1.Files(thrd.Id, "", -1)
 	if err != nil {
 		t.Errorf("get thread files failed: %s", err)
 		return
@@ -585,7 +585,7 @@ func TestMobile_AddLike(t *testing.T) {
 }
 
 func TestMobile_Files(t *testing.T) {
-	res, err := mobile1.Files("", -1, thrdId)
+	res, err := mobile1.Files(thrdId, "", -1)
 	if err != nil {
 		t.Errorf("get thread files failed: %s", err)
 		return
@@ -608,7 +608,7 @@ func TestMobile_Files(t *testing.T) {
 }
 
 func TestMobile_FilesBadThread(t *testing.T) {
-	if _, err := mobile1.Files("", -1, "empty"); err == nil {
+	if _, err := mobile1.Files("empty", "", -1); err == nil {
 		t.Error("get thread files from bad thread should fail")
 	}
 }
@@ -629,7 +629,7 @@ func TestMobile_AddIgnore(t *testing.T) {
 		t.Errorf("add thread ignore failed: %s", err)
 		return
 	}
-	res, err := mobile1.Files("", -1, thrdId)
+	res, err := mobile1.Files(thrdId, "", -1)
 	if err != nil {
 		t.Errorf("get thread files failed: %s", err)
 		return
