@@ -344,7 +344,7 @@ func (m *Mobile) AddFilesByTarget(target string, threadId string, caption string
 }
 
 // Files calls core Files
-func (m *Mobile) Files(offset string, limit int, threadId string) ([]byte, error) {
+func (m *Mobile) Files(threadId string, offset string, limit int) ([]byte, error) {
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
