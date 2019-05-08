@@ -177,7 +177,21 @@ func (a *api) Start() {
 
 			block := blocks.Group("/:id")
 			{
-				block.GET("", a.getBlocks)
+				block.GET("/meta", a.getBlockMeta)
+				files := block.Group("/files")
+				{
+					files.GET("", a.getBlockFiles)
+					file := files.Group("/:index/:path")
+					{
+						file.GET("/meta", a.getBlockFileMeta)
+						file.GET("/content", a.getBlockFileContent)
+					}
+				}
+
+				block.GET("", func (g *gin.Context) {
+					id := g.Param("id")
+					g.Redirect(http.StatusPermanentRedirect, "/api/v0/blocks/" + id + "/meta")
+				})
 				block.DELETE("", a.rmBlocks)
 
 				block.GET("/comment", a.getBlockComment)
@@ -205,7 +219,9 @@ func (a *api) Start() {
 		files := v0.Group("/files")
 		{
 			files.GET("", a.lsThreadFiles)
-			files.GET("/:block", a.getThreadFiles)
+			files.GET("/:block", func (g *gin.Context) {
+				g.Redirect(http.StatusPermanentRedirect, "/api/v0/blocks/" + g.Param("block") + "/files")
+			})
 		}
 
 		file := v0.Group("/file")
@@ -408,7 +424,7 @@ func (a *api) getFileConfig(g *gin.Context, mill m.Mill, use string, plaintext b
 	} else {
 		var file *pb.FileIndex
 		var err error
-		reader, file, err = a.node.FileData(use)
+		reader, file, err = a.node.FileContent(use)
 		if err != nil {
 			return nil, err
 		}
