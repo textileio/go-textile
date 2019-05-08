@@ -1,0 +1,35 @@
+{
+  "name": "@textile/js-types",
+  "description": "Protobuf generated Javascript types for Textile",
+  "version": "<version>",
+  "author": "textile.io",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/textileio/go-textile"
+  },
+  "bugs": {
+    "url": "https://github.com/textileio/go-textile"
+  },
+  "homepage": "https://www.textile.io/",
+  "keywords": [
+    "encrypted",
+    "decentralized",
+    "ipfs",
+    "libp2p",
+    "golang",
+    "macos",
+    "linux",
+    "windows",
+    "ios",
+    "android"
+  ],
+  "files": [
+    "dist"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "protobufjs": "^6.8.8"
+  }
+}
