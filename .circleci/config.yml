@@ -544,12 +544,32 @@ workflows:
       - publish-cocoapod:
           requires:
             - release
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/
       - publish-aar:
           requires:
             - release
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/
       - publish-pb:
           requires:
             - release
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/
       - publish-js-types:
           requires:
             - release
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/
