@@ -325,9 +325,8 @@ func (x *initCmd) Execute(args []string) error {
 		LogToDisk:       !x.Logs.NoFiles,
 		Debug:           x.Logs.Debug,
 		CafeOpen:        x.CafeOptions.Open,
-		CafeURL:         envOrFlag("CAFE_HOST_URL", x.CafeOptions.URL),
-		CafeNeighborURL: envOrFlag("CAFE_HOST_NEIGHBOR_URL", x.CafeOptions.NeighborURL),
-		// ^ @todo why do we prefer env over flag for these? shouldn't flag override the env?
+		CafeURL:         flagOtherwiseEnv("CAFE_HOST_URL", x.CafeOptions.URL),
+		CafeNeighborURL: flagOtherwiseEnv("CAFE_HOST_NEIGHBOR_URL", x.CafeOptions.NeighborURL),
 	}
 
 	if err := core.InitRepo(config); err != nil {
@@ -577,12 +576,16 @@ func printSplash() {
 	fmt.Println(cmd.Grey("Account: ") + cmd.Cyan(node.Account().Address()))
 }
 
-// If the env var value exists and is not empty, then use that, otherwise use the passed flag
-func envOrFlag(env string, flag string) string {
-	if os.Getenv(env) != "" {
-		return os.Getenv(env)
+// Fallback to the env value, if the flag value is empty
+func flagOtherwiseEnv(envName string, flagValue string) string {
+	if flagValue != "" {
+		return flagValue
 	}
-	return flag
+	envValue := os.Getenv(envName)
+	if envValue != "" {
+		return envValue
+	}
+	return ""
 }
 
 // mutexFractionOption allows to set runtime.SetMutexProfileFraction via HTTP
