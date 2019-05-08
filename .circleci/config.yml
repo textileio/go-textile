@@ -408,8 +408,9 @@ jobs:
                 VERSION=${CIRCLE_TAG}
                 VERSION=$(echo $VERSION | cut -c 2-)
             fi
-            sed -i.bak 's/<version>/${VERSION}/g' TextileCore.podspec
-            pod trunk push TextileCore.podspec --allow-warnings
+            pwd
+            sed -i.bak "s/<version>/${VERSION}/g" ./TextileCore.podspec
+            pod trunk push ./TextileCore.podspec --allow-warnings
 
   publish-aar:
     docker:
@@ -426,11 +427,11 @@ jobs:
                 VERSION=${CIRCLE_TAG}
                 VERSION=$(echo $VERSION | cut -c 2-)
             fi
-            sed 's/<VERSION>/${VERSION}/g' mobile-template.pom > mobile-${VERSION}.pom
+            sed "s/<VERSION>/${VERSION}/g" mobile-template.pom > mobile-${VERSION}.pom
             cp ~/mobile.aar mobile-${VERSION}.aar
-            curl -i -X PUT -u '${BINTRAY_USERNAME}:${BINTRAY_API_KEY}' -T mobile-${VERSION}.pom https://api.bintray.com/maven/textile/maven/mobile/io/textile/mobile/${VERSION}/mobile-${VERSION}.pom;publish=1
-            curl -i -X PUT -u '${BINTRAY_USERNAME}:${BINTRAY_API_KEY}' -T mobile-${VERSION}.aar https://api.bintray.com/maven/textile/maven/mobile/io/textile/mobile/${VERSION}/mobile-${VERSION}.aar;publish=1
-            curl -i -X POST -u '${BINTRAY_USERNAME}:${BINTRAY_API_KEY}' https://api.bintray.com/content/textile/maven/mobile/${VERSION}/publish
+            curl -i -X PUT -u ${BINTRAY_USERNAME}:${BINTRAY_API_KEY} -T mobile-${VERSION}.pom https://api.bintray.com/maven/textile/maven/mobile/io/textile/mobile/${VERSION}/mobile-${VERSION}.pom;publish=1
+            curl -i -X PUT -u ${BINTRAY_USERNAME}:${BINTRAY_API_KEY} -T mobile-${VERSION}.aar https://api.bintray.com/maven/textile/maven/mobile/io/textile/mobile/${VERSION}/mobile-${VERSION}.aar;publish=1
+            curl -i -X POST -u ${BINTRAY_USERNAME}:${BINTRAY_API_KEY} https://api.bintray.com/content/textile/maven/mobile/${VERSION}/publish
 
   publish-pb:
     docker:
@@ -447,8 +448,8 @@ jobs:
                 VERSION=${CIRCLE_TAG}
                 VERSION=$(echo $VERSION | cut -c 2-)
             fi
-            cp ~/protos/* pb/src/main/java/io/textile/pb/
-            sed -i.bak 's/<version>/${VERSION}/g' pb/build.gradle
+            cp -r ~/protos/* pb/src/main/java/
+            sed -i.bak "s/<version>/${VERSION}/g" pb/build.gradle
             ./gradlew pb:install
             ./gradlew pb:bintrayUpload
 
@@ -472,7 +473,7 @@ jobs:
                 VERSION=$(echo $VERSION | cut -c 2-)
             fi
             cp ~/js-types/* dist/
-            sed -i.bak 's/<version>/${VERSION}/g' package.json
+            sed -i.bak "s/<version>/${VERSION}/g" package.json
             npm publish --access=public
 
 workflows:
