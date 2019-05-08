@@ -3,7 +3,9 @@ package core_test
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/textileio/go-textile/util"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"testing"
 
@@ -54,6 +56,7 @@ func TestInitRepo(t *testing.T) {
 	if err := InitRepo(InitConfig{
 		Account:  accnt,
 		RepoPath: repoPath,
+		ApiAddr: fmt.Sprintf("127.0.0.1:%s", GetRandomPort()),
 	}); err != nil {
 		t.Errorf("init node failed: %s", err)
 	}
@@ -84,6 +87,32 @@ func TestTextile_Start(t *testing.T) {
 		t.Errorf("start node failed: %s", err)
 	}
 	<-node.OnlineCh()
+}
+
+func TestTextile_API_Start(t *testing.T) {
+	node.StartApi(node.Config().Addresses.API, false)
+}
+
+func TestTextile_API_Addr(t *testing.T) {
+	if len(node.ApiAddr()) == 0 {
+		t.Error("get api address failed")
+		return
+	}
+}
+
+func TestTextile_API_Health(t *testing.T) {
+	// prepare the URL
+	addr := "http://" + node.ApiAddr() + "/health"
+
+	// test the request
+	util.TestURL(t, addr, http.MethodGet, http.StatusNoContent)
+}
+
+func TestTextile_API_Stop(t *testing.T) {
+	if err := node.StopApi(); err != nil {
+		t.Errorf("stop api failed: %s", err)
+		return
+	}
 }
 
 func TestTextile_CafeSetup(t *testing.T) {
