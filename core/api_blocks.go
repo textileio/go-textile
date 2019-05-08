@@ -102,6 +102,14 @@ func (a *api) lsBlocks(g *gin.Context) {
 }
 
 // getBlocks godoc
+// @Summary Backwards compatible redirect to /blocks/{id}/meta
+// @Router /blocks/{id} [get]
+func (a *api) getBlocks(g *gin.Context) {
+	id := g.Param("id")
+	g.Redirect(http.StatusPermanentRedirect, "/blocks/" + id + "/meta")
+}
+
+// getBLockMeta godoc
 // @Summary Gets thread block
 // @Description Gets a thread block by ID
 // @Tags blocks
@@ -109,8 +117,8 @@ func (a *api) lsBlocks(g *gin.Context) {
 // @Param id path string true "block id"
 // @Success 200 {object} pb.Block "block"
 // @Failure 404 {string} string "Not Found"
-// @Router /blocks/{id} [get]
-func (a *api) getBlocks(g *gin.Context) {
+// @Router /blocks/{id}/meta [get]
+func (a *api) getBlockMeta(g *gin.Context) {
 	id := g.Param("id")
 
 	block, err := a.node.BlockView(id)
@@ -120,6 +128,77 @@ func (a *api) getBlocks(g *gin.Context) {
 	}
 
 	pbJSON(g, http.StatusOK, block)
+}
+
+// getBlockFiles godoc
+// @Summary Get thread file
+// @Description Gets a thread file by block ID
+// @Tags files
+// @Produce application/json
+// @Param block path string true "block id"
+// @Success 200 {object} pb.Files "file"
+// @Failure 400 {string} string "Bad Request"
+// @Router /files/{block} [get]
+func (a *api) getBlockFiles(g *gin.Context) {
+	files, err := a.node.File(g.Param("id"))
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	pbJSON(g, http.StatusOK, files)
+}
+
+// Helper method
+func (a *api) getBlockFile(id string, indexStr string, path string) (*pb.FileIndex, error) {
+	var file *pb.FileIndex
+
+	files, err := a.node.File(id)
+	if err != nil {
+		return file, err
+	}
+
+	index, err := strconv.Atoi(indexStr)
+	if err != nil {
+		return file, err
+	}
+
+	file = files.Files[index].Links[path]
+	return file, nil
+}
+
+// getBlockFileMeta godoc
+// @todo
+func (a *api) getBlockFileMeta(g *gin.Context) {
+	id := g.Param("id")
+	index := g.Param("index")
+	path := g.Param("path")
+	file, err := a.getBlockFile(id, index, path)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	pbJSON(g, http.StatusOK, file)
+}
+
+
+// getBlockFileContent godoc
+// @todo
+func (a *api) getBlockFileContent(g *gin.Context) {
+	id := g.Param("id")
+	index := g.Param("index")
+	path := g.Param("path")
+	file, err := a.getBlockFile(id, index, path)
+	if err != nil {
+		g.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	reader, err := a.node.FileIndexContent(file)
+	if err != nil {
+		g.String(http.StatusNotFound, err.Error())
+		return
+	}
+	g.DataFromReader(http.StatusOK, file.Size, file.Media, reader, map[string]string{})
 }
 
 // rmBlocks godoc

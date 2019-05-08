@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	m "github.com/textileio/go-textile/mill"
-	"github.com/textileio/go-textile/pb"
 )
 
 // schemaMill godoc
@@ -216,8 +215,7 @@ func (a *api) jsonMill(g *gin.Context) {
 		conf.Input = body
 
 	} else {
-		var file *pb.FileIndex
-		reader, file, err := a.node.FileData(opts["use"])
+		reader, file, err := a.node.FileContent(opts["use"])
 		if err != nil {
 			g.String(http.StatusBadRequest, err.Error())
 			return
