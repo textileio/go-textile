@@ -35,6 +35,20 @@ func (t *Textile) Decrypt(input []byte) ([]byte, error) {
 	return t.account.Decrypt(input)
 }
 
+// DeleteAccount removes the local account data by wiping the repo
+func (t *Textile) DeleteAccount(repoPath string) error {
+	if t.Started() {
+		// Node shouldn't be running when delete requested
+		return fmt.Errorf("node is started")
+	}
+	if 0 < len(t.CafeSessions().Items) {
+		// Accounts must deregister before deleting
+		return fmt.Errorf("node is registered with cafes")
+	}
+
+	return DeleteRepo(repoPath)
+}
+
 // AccountThread returns the account private thread
 func (t *Textile) AccountThread() *Thread {
 	return t.ThreadByKey(t.config.Account.Address)

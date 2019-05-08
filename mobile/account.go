@@ -95,3 +95,12 @@ func (m *Mobile) SyncAccount(options []byte) (*SearchHandle, error) {
 		done:   func() {},
 	}, nil
 }
+
+// DeleteAccount deletes the local account by repoPath
+func (m *Mobile) DeleteAccount(repoPath string) error {
+	if m.node.Started() {
+		// Node shouldn't be running when delete requested
+		return core.ErrStarted
+	}
+	return m.node.DeleteAccount(repoPath)
+}

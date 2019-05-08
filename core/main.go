@@ -191,6 +191,16 @@ func MigrateRepo(conf MigrateConfig) error {
 	return repo.MigrateUp(conf.RepoPath, conf.PinCode, false)
 }
 
+func DeleteRepo(repoPath string) error {
+	if !fsrepo.IsInitialized(repoPath) {
+		return repo.ErrRepoDoesNotExist
+	}
+	if err := os.RemoveAll(repoPath); err != nil {
+		return err
+	}
+	return nil
+}
+
 // NewTextile runs a node out of an initialized repo
 func NewTextile(conf RunConfig) (*Textile, error) {
 	if !fsrepo.IsInitialized(conf.RepoPath) {

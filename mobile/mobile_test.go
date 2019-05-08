@@ -932,11 +932,16 @@ func TestMobile_StopAgain(t *testing.T) {
 }
 
 func TestMobile_Teardown(t *testing.T) {
-	mobile1 = nil
+	mobile1.Stop()
 	mobile2.Stop()
+	if err := mobile1.DeleteAccount(repoPath1); err != nil {
+		t.Errorf("failed to delete first account: %s", err)
+	}
+	if err := mobile1.DeleteAccount(repoPath2); err != nil {
+		t.Errorf("failed to delete second account: %s", err)
+	}
 	mobile2 = nil
-	os.RemoveAll(repoPath1)
-	os.RemoveAll(repoPath2)
+	mobile1 = nil
 }
 
 func createAndStartMobile(repoPath string, waitForOnline bool) (*Mobile, error) {
