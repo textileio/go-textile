@@ -401,6 +401,10 @@ jobs:
     steps:
       - checkout
       - run:
+        name: Fetch CocoaPods Specs
+        command: |
+          curl https://cocoapods-specs.circleci.com/fetch-cocoapods-repo-from-s3.sh | bash -s cf
+      - run:
           name: update podspec
           working_directory: release
           command: |
@@ -409,8 +413,8 @@ jobs:
                 VERSION=${CIRCLE_TAG}
                 VERSION=$(echo $VERSION | cut -c 2-)
             fi
-            sed -i.bak "s/<version>/${VERSION}/g" ./TextileCore.podspec
-            pod trunk push ./TextileCore.podspec --allow-warnings
+            sed -i.bak "s/<version>/${VERSION}/g" TextileCore.podspec
+            pod trunk push TextileCore.podspec --allow-warnings
 
   publish-aar:
     docker:
@@ -450,6 +454,7 @@ jobs:
                 VERSION=${CIRCLE_TAG}
                 VERSION=$(echo $VERSION | cut -c 2-)
             fi
+            mkdir -p pb/src/main/java
             cp -r ~/protos/* pb/src/main/java/
             sed -i.bak "s/<version>/${VERSION}/g" pb/build.gradle
             ./gradlew pb:install
