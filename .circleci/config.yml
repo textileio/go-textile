@@ -401,9 +401,9 @@ jobs:
     steps:
       - checkout
       - run:
-        name: Fetch CocoaPods Specs
-        command: |
-          curl https://cocoapods-specs.circleci.com/fetch-cocoapods-repo-from-s3.sh | bash -s cf
+          name: Fetch CocoaPods Specs
+          command: |
+            curl https://cocoapods-specs.circleci.com/fetch-cocoapods-repo-from-s3.sh | bash -s cf
       - run:
           name: update podspec
           working_directory: release
