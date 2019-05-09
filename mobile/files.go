@@ -24,19 +24,19 @@ import (
 // PrepareFiles processes base64 encoded data for a thread, but does NOT share it
 func (m *Mobile) PrepareFiles(data string, threadId string, cb Callback) {
 	go func() {
-		cb.Call(m.PrepareFilesSync(data, threadId))
+		cb.Call(m.prepareFilesSync(data, threadId))
 	}()
 }
 
 // PrepareFilesByPath processes a file by path for a thread, but does NOT share it
 func (m *Mobile) PrepareFilesByPath(path string, threadId string, cb Callback) {
 	go func() {
-		cb.Call(m.PrepareFilesByPathSync(path, threadId))
+		cb.Call(m.prepareFilesByPathSync(path, threadId))
 	}()
 }
 
 // PrepareFiles processes base64 encoded data for a thread, but does NOT share it
-func (m *Mobile) PrepareFilesSync(data string, threadId string) ([]byte, error) {
+func (m *Mobile) prepareFilesSync(data string, threadId string) ([]byte, error) {
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
@@ -140,8 +140,8 @@ func (m *Mobile) PrepareFilesSync(data string, threadId string) ([]byte, error) 
 	return proto.Marshal(mdir)
 }
 
-// PrepareFilesByPath processes a file by path for a thread, but does NOT share it
-func (m *Mobile) PrepareFilesByPathSync(path string, threadId string) ([]byte, error) {
+// prepareFilesByPath processes a file by path for a thread, but does NOT share it
+func (m *Mobile) prepareFilesByPathSync(path string, threadId string) ([]byte, error) {
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}

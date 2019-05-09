@@ -8,7 +8,6 @@ import (
 )
 
 var errMissingName = fmt.Errorf("missing name")
-var errMissingAvatar = fmt.Errorf("missing avatar file image hash")
 
 func init() {
 	register(&profileCmd{})

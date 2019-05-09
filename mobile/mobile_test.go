@@ -1,4 +1,4 @@
-package mobile_test
+package mobile
 
 import (
 	"encoding/base64"
@@ -10,20 +10,19 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/segmentio/ksuid"
-	. "github.com/textileio/go-textile/mobile"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/util"
 )
 
-type TestHandler struct{}
+type testHandler struct{}
 
-func (th *TestHandler) Flush() {
+func (th *testHandler) Flush() {
 	fmt.Println("=== MOBILE FLUSH CALLED")
 }
 
-type TestMessenger struct{}
+type testMessenger struct{}
 
-func (tm *TestMessenger) Notify(event *Event) {
+func (tm *testMessenger) Notify(event *Event) {
 	etype := pb.MobileEventType(event.Type)
 	fmt.Println(fmt.Sprintf("+++ MOBILE EVENT: %s", event.Name))
 
@@ -69,9 +68,9 @@ func (tm *TestMessenger) Notify(event *Event) {
 	}
 }
 
-type TestCallback struct{}
+type testCallback struct{}
 
-func (tc *TestCallback) Call(payload []byte, err error) {
+func (tc *testCallback) Call(payload []byte, err error) {
 	if err != nil {
 		fmt.Println(fmt.Errorf("callback error: %s", err))
 		return
@@ -119,7 +118,7 @@ var contact = &pb.Contact{
 	},
 }
 
-var schema = `
+var testSchema = `
 {
   "pin": true,
   "mill": "/json",
@@ -206,10 +205,10 @@ func TestMigrateRepo(t *testing.T) {
 func TestNewTextile(t *testing.T) {
 	config := &RunConfig{
 		RepoPath:          repoPath1,
-		CafeOutboxHandler: &TestHandler{},
+		CafeOutboxHandler: &testHandler{},
 	}
 	var err error
-	mobile1, err = NewTextile(config, &TestMessenger{})
+	mobile1, err = NewTextile(config, &testMessenger{})
 	if err != nil {
 		t.Errorf("create mobile node failed: %s", err)
 	}
@@ -218,9 +217,9 @@ func TestNewTextile(t *testing.T) {
 func TestNewTextileAgain(t *testing.T) {
 	config := &RunConfig{
 		RepoPath:          repoPath1,
-		CafeOutboxHandler: &TestHandler{},
+		CafeOutboxHandler: &testHandler{},
 	}
-	if _, err := NewTextile(config, &TestMessenger{}); err != nil {
+	if _, err := NewTextile(config, &testMessenger{}); err != nil {
 		t.Errorf("create mobile node failed: %s", err)
 	}
 }
@@ -311,7 +310,7 @@ func TestMobile_AddThreadWithSchemaJson(t *testing.T) {
 		Key:  ksuid.New().String(),
 		Name: "test",
 		Schema: &pb.AddThreadConfig_Schema{
-			Json: schema,
+			Json: testSchema,
 		},
 		Type:    pb.Thread_READ_ONLY,
 		Sharing: pb.Thread_INVITE_ONLY,
@@ -414,7 +413,7 @@ func TestMobile_Messages(t *testing.T) {
 	}
 }
 
-func TestMobile_PrepareFilesSync(t *testing.T) {
+func TestMobile_prepareFilesSync(t *testing.T) {
 	input := "howdy"
 
 	encoded := base64.StdEncoding.EncodeToString([]byte(input))
@@ -444,7 +443,7 @@ func TestMobile_PrepareFilesSync(t *testing.T) {
 		return
 	}
 
-	res2, err := mobile1.PrepareFilesSync(encoded, thrd.Id)
+	res2, err := mobile1.prepareFilesSync(encoded, thrd.Id)
 	if err != nil {
 		t.Errorf("prepare files failed: %s", err)
 		return
@@ -503,11 +502,11 @@ func TestMobile_PrepareFilesSync(t *testing.T) {
 }
 
 func TestMobile_PrepareFiles(t *testing.T) {
-	mobile1.PrepareFiles("hello", thrdId, &TestCallback{})
+	mobile1.PrepareFiles("hello", thrdId, &testCallback{})
 }
 
-func TestMobile_PrepareFilesByPathSync(t *testing.T) {
-	res, err := mobile1.PrepareFilesByPathSync("../mill/testdata/image.jpeg", thrdId)
+func TestMobile_prepareFilesByPathSync(t *testing.T) {
+	res, err := mobile1.prepareFilesByPathSync("../mill/testdata/image.jpeg", thrdId)
 	if err != nil {
 		t.Errorf("prepare files failed: %s", err)
 		return
@@ -526,7 +525,7 @@ func TestMobile_PrepareFilesByPathSync(t *testing.T) {
 		return
 	}
 
-	res2, err := mobile1.PrepareFilesByPathSync(pre.Dir.Files["large"].Hash, thrdId)
+	res2, err := mobile1.prepareFilesByPathSync(pre.Dir.Files["large"].Hash, thrdId)
 	if err != nil {
 		t.Errorf("prepare files by existing hash failed: %s", err)
 		return
@@ -542,7 +541,7 @@ func TestMobile_PrepareFilesByPathSync(t *testing.T) {
 }
 
 func TestMobile_PrepareFilesByPath(t *testing.T) {
-	mobile1.PrepareFilesByPath("../mill/testdata/image.png", thrdId, &TestCallback{})
+	mobile1.PrepareFilesByPath("../mill/testdata/image.png", thrdId, &testCallback{})
 }
 
 func TestMobile_AddFiles(t *testing.T) {
@@ -745,6 +744,14 @@ func TestMobile_SetUsername(t *testing.T) {
 	<-mobile1.OnlineCh()
 	if err := mobile1.SetName("boomer"); err != nil {
 		t.Errorf("set username failed: %s", err)
+	}
+}
+
+func TestMobile_SetAvatar(t *testing.T) {
+	err := mobile1.SetAvatar("../mill/testdata/image.jpeg")
+	if err != nil {
+		t.Errorf("set avatar failed: %s", err)
+		return
 	}
 }
 
@@ -965,8 +972,8 @@ func createAndStartMobile(repoPath string, waitForOnline bool) (*Mobile, error) 
 
 	mobile, err := NewTextile(&RunConfig{
 		RepoPath:          repoPath,
-		CafeOutboxHandler: &TestHandler{},
-	}, &TestMessenger{})
+		CafeOutboxHandler: &testHandler{},
+	}, &testMessenger{})
 	if err != nil {
 		return nil, err
 	}
