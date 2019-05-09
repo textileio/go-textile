@@ -399,6 +399,7 @@ jobs:
     macos:
       xcode: '10.1.0'
     steps:
+      - checkout
       - run:
           name: update podspec
           working_directory: release
@@ -408,7 +409,6 @@ jobs:
                 VERSION=${CIRCLE_TAG}
                 VERSION=$(echo $VERSION | cut -c 2-)
             fi
-            pwd
             sed -i.bak "s/<version>/${VERSION}/g" ./TextileCore.podspec
             pod trunk push ./TextileCore.podspec --allow-warnings
 
@@ -416,6 +416,7 @@ jobs:
     docker:
       - image: circleci/android:api-28-ndk
     steps:
+      - checkout
       - attach_workspace:
           at: ~/
       - run:
@@ -437,6 +438,7 @@ jobs:
     docker:
       - image: circleci/android:api-28-ndk
     steps:
+      - checkout
       - attach_workspace:
           at: ~/
       - run:
@@ -457,6 +459,7 @@ jobs:
     docker:
       - image: circleci/node:8
     steps:
+      - checkout
       - attach_workspace:
           at: ~/
       - run:
