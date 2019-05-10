@@ -681,12 +681,12 @@ func (h *CafeService) searchPubSub(query *pb.Query, reply func(*pb.QueryResults)
 		delete(h.inFlightQueries, query.Id)
 	}()
 
-	// caller might need results over pubsub
+	// respond pubsub if this is a cafe and the request is not from a cafe
 	var rtype pb.PubSubQuery_ResponseType
-	if fromCafe {
-		rtype = pb.PubSubQuery_P2P
-	} else {
+	if h.open && !fromCafe {
 		rtype = pb.PubSubQuery_PUBSUB
+	} else {
+		rtype = pb.PubSubQuery_P2P
 	}
 
 	if err := h.publishQuery(&pb.PubSubQuery{
