@@ -29,9 +29,6 @@ var ErrThreadLoaded = fmt.Errorf("thread is loaded")
 // emptyThreadKey indicates "" was used for a thread key
 var emptyThreadKey = fmt.Errorf("thread key cannot by empty")
 
-// internalThreadKeys lists keys used by internal threads
-var internalThreadKeys = []string{"account", "avatars"}
-
 // AddThread adds a thread with a given name and secret key
 func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiator string, join bool, inviteAccount bool) (*Thread, error) {
 	conf.Key = strings.TrimSpace(conf.Key)
@@ -288,15 +285,9 @@ func (t *Textile) Thread(id string) *Thread {
 // Threads lists loaded threads
 func (t *Textile) Threads() []*Thread {
 	var threads []*Thread
-loop:
 	for _, i := range t.loadedThreads {
 		if i == nil || i.Key == t.account.Address() {
 			continue
-		}
-		for _, k := range internalThreadKeys {
-			if i.Key == k {
-				continue loop
-			}
 		}
 		threads = append(threads, i)
 	}
