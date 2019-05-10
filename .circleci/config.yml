@@ -332,6 +332,11 @@ jobs:
             tar -czvf go-textile_${VERSION}_android-aar.tar.gz mobile.aar protos
             mv go-textile_${VERSION}_android-aar.tar.gz ${OUT}/
       - persist_to_workspace:
+          root: ~/go/src/github.com/textileio/go-textile
+          paths:
+            - mobile.aar
+            - protos
+      - persist_to_workspace:
           root: ~/dist
           paths:
             - android_aar
@@ -350,9 +355,9 @@ jobs:
       - run:
           name: build js types
           command: |
-            mkdir protos
-            ./node_modules/@textile/protobufjs/bin/pbjs -t static-module -w es6 -o protos/index.js ./pb/protos/*
-            ./node_modules/@textile/protobufjs/bin/pbts -o protos/index.d.ts protos/index.js
+            mkdir js-types
+            ./node_modules/@textile/protobufjs/bin/pbjs -t static-module -w es6 -o js-types/index.js ./pb/protos/*
+            ./node_modules/@textile/protobufjs/bin/pbts -o js-types/index.d.ts js-types/index.js
       - run:
           name: collect artifacts
           command: |
@@ -362,8 +367,12 @@ jobs:
             fi
             OUT=~/dist/js_types
             mkdir -p ${OUT}
-            tar -czvf go-textile_${VERSION}_js-types.tar.gz protos
+            tar -czvf go-textile_${VERSION}_js-types.tar.gz js-types
             mv go-textile_${VERSION}_js-types.tar.gz ${OUT}/
+      - persist_to_workspace:
+          root: ./
+          paths:
+            - js-types
       - persist_to_workspace:
           root: ~/dist
           paths:
@@ -385,6 +394,95 @@ jobs:
             mv ~/android_aar/* ~/dist/
             mv ~/js_types/* ~/dist/
             ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ~/dist/
+
+  publish-cocoapod:
+    macos:
+      xcode: '10.1.0'
+    steps:
+      - checkout
+      - run:
+          name: Fetch CocoaPods Specs
+          command: |
+            curl https://cocoapods-specs.circleci.com/fetch-cocoapods-repo-from-s3.sh | bash -s cf
+      - run:
+          name: update podspec
+          working_directory: release
+          command: |
+            VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
+            if [ "${CIRCLE_TAG}" != "" ]; then
+                VERSION=${CIRCLE_TAG}
+                VERSION=$(echo $VERSION | cut -c 2-)
+            fi
+            sed -i.bak "s/<version>/${VERSION}/g" TextileCore.podspec
+            pod trunk push TextileCore.podspec --allow-warnings
+
+  publish-aar:
+    docker:
+      - image: circleci/android:api-28-ndk
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: publish artifacts
+          working_directory: release
+          command: |
+            VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
+            if [ "${CIRCLE_TAG}" != "" ]; then
+                VERSION=${CIRCLE_TAG}
+                VERSION=$(echo $VERSION | cut -c 2-)
+            fi
+            sed "s/<VERSION>/${VERSION}/g" mobile-template.pom > mobile-${VERSION}.pom
+            cp ~/mobile.aar mobile-${VERSION}.aar
+            curl -i -X PUT -u ${BINTRAY_USERNAME}:${BINTRAY_API_KEY} -T mobile-${VERSION}.pom https://api.bintray.com/maven/textile/maven/mobile/io/textile/mobile/${VERSION}/mobile-${VERSION}.pom;publish=1
+            curl -i -X PUT -u ${BINTRAY_USERNAME}:${BINTRAY_API_KEY} -T mobile-${VERSION}.aar https://api.bintray.com/maven/textile/maven/mobile/io/textile/mobile/${VERSION}/mobile-${VERSION}.aar;publish=1
+            curl -i -X POST -u ${BINTRAY_USERNAME}:${BINTRAY_API_KEY} https://api.bintray.com/content/textile/maven/mobile/${VERSION}/publish
+
+  publish-pb:
+    docker:
+      - image: circleci/android:api-28-ndk
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: publish artifacts
+          working_directory: release/PBProject
+          command: |
+            VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
+            if [ "${CIRCLE_TAG}" != "" ]; then
+                VERSION=${CIRCLE_TAG}
+                VERSION=$(echo $VERSION | cut -c 2-)
+            fi
+            mkdir -p pb/src/main/java
+            cp -r ~/protos/* pb/src/main/java/
+            sed -i.bak "s/<version>/${VERSION}/g" pb/build.gradle
+            ./gradlew pb:install
+            ./gradlew pb:bintrayUpload
+
+  publish-js-types:
+    docker:
+      - image: circleci/node:8
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: authenticate with registry
+          working_directory: release/@textile/js-types
+          command: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ./.npmrc
+      - run:
+          name: publish artifacts
+          working_directory: release/@textile/js-types
+          command: |
+            VERSION=$(echo $CIRCLE_SHA1 | cut -c -7)
+            if [ "${CIRCLE_TAG}" != "" ]; then
+                VERSION=${CIRCLE_TAG}
+                VERSION=$(echo $VERSION | cut -c 2-)
+            fi
+            cp ~/js-types/* dist/
+            sed -i.bak "s/<version>/${VERSION}/g" package.json
+            npm publish --access=public
 
 workflows:
   version: 2
@@ -447,6 +545,38 @@ workflows:
             - build-ios-framework
             - build-android-aar
             - build-js-types
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/
+      - publish-cocoapod:
+          requires:
+            - release
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/
+      - publish-aar:
+          requires:
+            - release
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/
+      - publish-pb:
+          requires:
+            - release
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/
+      - publish-js-types:
+          requires:
+            - release
           filters:
             branches:
               ignore: /.*/
