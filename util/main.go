@@ -3,16 +3,14 @@ package util
 import (
 	"io"
 	"io/ioutil"
-	"runtime"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	logging "github.com/ipfs/go-log"
 )
-
-var log = logging.Logger("tex-util")
 
 func UnmarshalString(body io.ReadCloser) (string, error) {
 	data, err := ioutil.ReadAll(body)
@@ -31,15 +29,6 @@ func SplitString(in string, sep string) []string {
 		}
 	}
 	return list
-}
-
-func ListContainsString(list []string, i string) bool {
-	for _, v := range list {
-		if v == i {
-			return true
-		}
-	}
-	return false
 }
 
 func ProtoTime(ts *timestamp.Timestamp) time.Time {
@@ -82,16 +71,13 @@ func TrimQuotes(s string) string {
 	return s
 }
 
-func LogMemUsage() {
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
-
-	log.Infof("Alloc = %v MiB", bToMb(m.Alloc))
-	log.Infof("TotalAlloc = %v MiB", bToMb(m.TotalAlloc))
-	log.Infof("Sys = %v MiB", bToMb(m.Sys))
-	log.Infof("NumGC = %v", m.NumGC)
-}
-
-func bToMb(b uint64) uint64 {
-	return b / 1024 / 1024
+func WriteFileByPath(name string, data []byte) error {
+	dir := filepath.Dir(name)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		err = os.MkdirAll(dir, os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
+	return ioutil.WriteFile(name, data, 0644)
 }

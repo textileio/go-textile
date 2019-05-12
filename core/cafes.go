@@ -3,12 +3,14 @@ package core
 import (
 	"encoding/hex"
 	"fmt"
+	"path/filepath"
 
 	"github.com/golang/protobuf/proto"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
+	"github.com/textileio/go-textile/util"
 )
 
 // RegisterCafe registers this account with another peer (the "cafe"),
@@ -97,13 +99,13 @@ func (t *Textile) UpdateCafeRequestStatus(id string, status pb.CafeRequest_Statu
 	return t.datastore.CafeRequests().UpdateStatus(id, status)
 }
 
-// CafeHTTPRequest returns the type, path, headers, body and token for an HTTP cafe request
+// WriteCafeHTTPRequest returns the type, url, headers, and body path for an HTTP cafe request
 // - store: PUT /store/:cid, body => raw object data
 // - unstore: DELETE /store/:cid, body => none
 // - store thread: PUT /threads/:id, body => encrypted thread object (snapshot)
 // - unstore thread: DELETE /threads/:id, body => none
 // - deliver message: POST /inbox/:pid, body => encrypted message
-func (t *Textile) CafeHTTPRequest(id string) (*pb.CafeHTTPRequest, error) {
+func (t *Textile) WriteCafeHTTPRequest(id string) (*pb.CafeHTTPRequest, error) {
 	req := t.datastore.CafeRequests().Get(id)
 	if req == nil {
 		return nil, fmt.Errorf("request not found")
@@ -122,6 +124,7 @@ func (t *Textile) CafeHTTPRequest(id string) (*pb.CafeHTTPRequest, error) {
 		},
 	}
 
+	var body []byte
 	switch req.Type {
 	case pb.CafeRequest_STORE:
 		hreq.Type = pb.CafeHTTPRequest_PUT
@@ -135,13 +138,13 @@ func (t *Textile) CafeHTTPRequest(id string) (*pb.CafeHTTPRequest, error) {
 					return nil, err
 				}
 				hreq.Headers["X-Textile-Store-Type"] = "object"
-				hreq.Body = data
+				body = data
 			} else {
 				return nil, err
 			}
 		} else {
 			hreq.Headers["X-Textile-Store-Type"] = "data"
-			hreq.Body = data
+			body = data
 		}
 
 	case pb.CafeRequest_UNSTORE:
@@ -164,7 +167,7 @@ func (t *Textile) CafeHTTPRequest(id string) (*pb.CafeHTTPRequest, error) {
 		if err != nil {
 			return nil, err
 		}
-		hreq.Body = ciphertext
+		body = ciphertext
 
 	case pb.CafeRequest_UNSTORE_THREAD:
 		hreq.Type = pb.CafeHTTPRequest_DELETE
@@ -173,15 +176,21 @@ func (t *Textile) CafeHTTPRequest(id string) (*pb.CafeHTTPRequest, error) {
 	case pb.CafeRequest_INBOX:
 		hreq.Type = pb.CafeHTTPRequest_POST
 		hreq.Url += "/inbox/" + req.Peer
-		hreq.Body = []byte(req.Target)
+		body = []byte(req.Target)
 	}
 
-	if hreq.Body != nil {
-		sig, err := t.node.PrivateKey.Sign(hreq.Body)
+	if body != nil {
+		sig, err := t.node.PrivateKey.Sign(body)
 		if err != nil {
 			return nil, err
 		}
 		hreq.Headers["X-Textile-Peer-Sig"] = hex.EncodeToString(sig)
+
+		hreq.Path = filepath.Join(t.repoPath, "tmp", id)
+		err = util.WriteFileByPath(hreq.Path, body)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return hreq, nil
