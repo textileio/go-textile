@@ -115,13 +115,13 @@ func (m *Mobile) SetCafeRequestComplete(id string) error {
 	return m.node.UpdateCafeRequestStatus(id, pb.CafeRequest_COMPLETE)
 }
 
-// CafeHTTPRequest calls core CafeHTTPRequest
-func (m *Mobile) CafeHTTPRequest(id string) ([]byte, error) {
+// WriteCafeHTTPRequest calls core WriteCafeHTTPRequest
+func (m *Mobile) WriteCafeHTTPRequest(id string) ([]byte, error) {
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
 
-	req, err := m.node.CafeHTTPRequest(id)
+	req, err := m.node.WriteCafeHTTPRequest(id)
 	if err != nil {
 		return nil, err
 	}
