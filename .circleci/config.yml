@@ -393,11 +393,10 @@ jobs:
             mv ~/ios_framework/* ~/dist/
             mv ~/android_aar/* ~/dist/
             mv ~/js_types/* ~/dist/
-            PRE=$(echo "${CIRCLE_TAG}" | grep "rc")
+            PRE=$(echo "${CIRCLE_TAG}" | grep "rc" || true)
             if [ "${PRE}" != "" ]; then
                 ghr -prerelease -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ~/dist/
-            fi
-            if [ "${PRE}" == "" ]; then
+            else
                 ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ~/dist/
             fi
 
