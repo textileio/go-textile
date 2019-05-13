@@ -7,12 +7,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/segmentio/ksuid"
+	"github.com/textileio/go-textile/util"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/segmentio/ksuid"
 	. "github.com/textileio/go-textile/mobile"
 	"github.com/textileio/go-textile/pb"
-	"github.com/textileio/go-textile/util"
 )
 
 type TestHandler struct{}
@@ -230,7 +231,7 @@ func TestSetLogLevels(t *testing.T) {
 	logLevel, err := proto.Marshal(&pb.LogLevel{
 		Systems: map[string]pb.LogLevel_Level{
 			"tex-core":      pb.LogLevel_DEBUG,
-			"tex-datastore": pb.LogLevel_INFO,
+			"tex-datastore": pb.LogLevel_DEBUG,
 		},
 	})
 	if err != nil {
@@ -381,7 +382,7 @@ func TestMobile_RemoveThread(t *testing.T) {
 	}
 	res, err := mobile1.AddThread(mconf)
 	if err != nil {
-		t.Errorf("remove thread failed: %s", err)
+		t.Errorf("add thread failed: %s", err)
 		return
 	}
 	thrd := new(pb.Thread)
@@ -988,6 +989,38 @@ func TestMobile_SearchContacts(t *testing.T) {
 	<-timer.C
 
 	handle.Cancel()
+}
+
+func TestMobile_CafeRequests(t *testing.T) {
+	res, err := mobile1.CafeRequests("", 10)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	reqs := new(pb.CafeRequestList)
+	if err := proto.Unmarshal(res, reqs); err != nil {
+		t.Error(err)
+		return
+	}
+
+	for _, r := range reqs.Items {
+		res, err := mobile1.WriteCafeHTTPRequest(r.Id)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		hreq := new(pb.CafeHTTPRequest)
+		err = proto.Unmarshal(res, hreq)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		err = mobile1.SetCafeRequestPending(r.Id)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+	}
 }
 
 func TestMobile_Stop(t *testing.T) {
