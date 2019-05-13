@@ -396,7 +396,8 @@ jobs:
             PRE=$(echo "${CIRCLE_TAG}" | grep "rc")
             if [ "${PRE}" != "" ]; then
                 ghr -prerelease -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ~/dist/
-            else
+            fi
+            if [ "${PRE}" == "" ]; then
                 ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ~/dist/
             fi
 
