@@ -582,11 +582,6 @@ func (t *Textile) createIPFS(plugins *loader.PluginLoader, online bool) error {
 	}
 	ctx.Plugins = plugins
 
-	if t.node != nil {
-		if err := t.node.Close(); err != nil {
-			return err
-		}
-	}
 	if t.cancel != nil {
 		t.cancel()
 	}

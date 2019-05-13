@@ -248,9 +248,15 @@ func TestMobile_Start(t *testing.T) {
 	}
 }
 
-func TestMobile_StartAgain(t *testing.T) {
+func TestMobile_StopAndStart(t *testing.T) {
 	if err := mobile1.Start(); err != nil {
 		t.Errorf("attempt to start a running node failed: %s", err)
+	}
+	if err := mobile1.Stop(); err != nil {
+		t.Errorf("stop mobile node failed: %s", err)
+	}
+	if err := mobile1.Start(); err != nil {
+		t.Errorf("start mobile node again failed: %s", err)
 	}
 }
 
