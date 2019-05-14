@@ -252,11 +252,13 @@ message CafeRequest {
     string peer                    = 2;
     string target                  = 3;
     Cafe cafe                      = 4;
+	string group                   = 8;
+	string sync_group              = 10;
     Type type                      = 5;
-    int64 size                     = 7;
-    string group                   = 8;
     google.protobuf.Timestamp date = 6;
+	int64 size                     = 7;
     Status status                  = 9;
+	int32 attempts                 = 11;
 
     enum Type {
         STORE          = 0;
@@ -277,7 +279,7 @@ message CafeRequestList {
     repeated CafeRequest items = 1;
 }
 
-message CafeRequestGroupStatus {
+message CafeRequestSyncGroupStatus {
     int32 num_total     = 1;
     int32 num_pending   = 2;
     int32 num_complete  = 3;

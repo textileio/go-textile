@@ -26,21 +26,17 @@ func setupCafeRequestDB() {
 
 func TestCafeRequestDB_Add(t *testing.T) {
 	if err := cafeRequestStore.Add(&pb.CafeRequest{
-		Id:     "abcde",
-		Peer:   "peer",
-		Target: "zxy",
-		Cafe: &pb.Cafe{
-			Peer:     "peer",
-			Address:  "address",
-			Api:      "v0",
-			Protocol: "/textile/cafe/1.0.0",
-			Node:     "v1.0.0",
-			Url:      "https://mycafe.com",
-		},
-		Type:  pb.CafeRequest_STORE,
-		Date:  ptypes.TimestampNow(),
-		Size:  1024,
-		Group: "group",
+		Id:        "abcde",
+		Peer:      "peer",
+		Target:    "zxy",
+		Cafe:      testCafe,
+		Group:     "group",
+		SyncGroup: "sync_group",
+		Type:      pb.CafeRequest_STORE,
+		Date:      ptypes.TimestampNow(),
+		Size:      1024,
+		Status:    pb.CafeRequest_NEW,
+		Attempts:  0,
 	}); err != nil {
 		t.Error(err)
 	}
@@ -61,21 +57,15 @@ func TestCafeRequestDB_Add(t *testing.T) {
 func TestCafeRequestDB_Get(t *testing.T) {
 	setupCafeRequestDB()
 	if err := cafeRequestStore.Add(&pb.CafeRequest{
-		Id:     "abcde",
-		Peer:   "peer",
-		Target: "zxy",
-		Cafe: &pb.Cafe{
-			Peer:     "peer",
-			Address:  "address",
-			Api:      "v0",
-			Protocol: "/textile/cafe/1.0.0",
-			Node:     "v1.0.0",
-			Url:      "https://mycafe.com",
-		},
-		Type:   pb.CafeRequest_STORE_THREAD,
-		Date:   ptypes.TimestampNow(),
-		Group:  "group",
-		Status: pb.CafeRequest_NEW,
+		Id:        "abcde",
+		Peer:      "peer",
+		Target:    "zxy",
+		Cafe:      testCafe,
+		Group:     "group",
+		SyncGroup: "sync_group",
+		Type:      pb.CafeRequest_STORE_THREAD,
+		Date:      ptypes.TimestampNow(),
+		Status:    pb.CafeRequest_NEW,
 	}); err != nil {
 		t.Error(err)
 	}
@@ -88,49 +78,44 @@ func TestCafeRequestDB_Get(t *testing.T) {
 
 func TestCafeRequestDB_List(t *testing.T) {
 	setupCafeRequestDB()
-	cafe := &pb.Cafe{
-		Peer:     "peer",
-		Address:  "address",
-		Api:      "v0",
-		Protocol: "/textile/cafe/1.0.0",
-		Node:     "v1.0.0",
-		Url:      "https://mycafe.com",
-	}
 	if err := cafeRequestStore.Add(&pb.CafeRequest{
-		Id:     "abcde",
-		Peer:   "peer",
-		Target: "zxy",
-		Cafe:   cafe,
-		Type:   pb.CafeRequest_STORE_THREAD,
-		Date:   ptypes.TimestampNow(),
-		Group:  "group1",
-		Status: pb.CafeRequest_NEW,
+		Id:        "abcde",
+		Peer:      "peer",
+		Target:    "zxy",
+		Cafe:      testCafe,
+		Group:     "group1",
+		SyncGroup: "sync_group",
+		Type:      pb.CafeRequest_STORE_THREAD,
+		Date:      ptypes.TimestampNow(),
+		Status:    pb.CafeRequest_NEW,
 	}); err != nil {
 		t.Error(err)
 	}
 	if err := cafeRequestStore.Add(&pb.CafeRequest{
-		Id:     "abcdef",
-		Peer:   "peer",
-		Target: "zxy",
-		Cafe:   cafe,
-		Type:   pb.CafeRequest_STORE,
-		Date:   util.ProtoTs(time.Now().Add(time.Minute).UnixNano()),
-		Size:   1024,
-		Group:  "group2",
-		Status: pb.CafeRequest_NEW,
+		Id:        "abcdef",
+		Peer:      "peer",
+		Target:    "zxy",
+		Cafe:      testCafe,
+		Group:     "group2",
+		SyncGroup: "sync_group2",
+		Type:      pb.CafeRequest_STORE,
+		Date:      util.ProtoTs(time.Now().Add(time.Minute).UnixNano()),
+		Size:      1024,
+		Status:    pb.CafeRequest_NEW,
 	}); err != nil {
 		t.Error(err)
 	}
 	if err := cafeRequestStore.Add(&pb.CafeRequest{
-		Id:     "abcdefg",
-		Peer:   "peer",
-		Target: "zxy",
-		Cafe:   cafe,
-		Type:   pb.CafeRequest_STORE,
-		Date:   util.ProtoTs(time.Now().Add(time.Minute * 2).UnixNano()),
-		Size:   1024,
-		Group:  "group2",
-		Status: pb.CafeRequest_PENDING,
+		Id:        "abcdefg",
+		Peer:      "peer",
+		Target:    "zxy",
+		Cafe:      testCafe,
+		Group:     "group3",
+		SyncGroup: "sync_group2",
+		Type:      pb.CafeRequest_STORE,
+		Date:      util.ProtoTs(time.Now().Add(time.Minute * 2).UnixNano()),
+		Size:      1024,
+		Status:    pb.CafeRequest_NEW,
 	}); err != nil {
 		t.Error(err)
 	}
@@ -151,22 +136,48 @@ func TestCafeRequestDB_List(t *testing.T) {
 	}
 }
 
-func TestCafeRequestDB_ListCompletedGroups(t *testing.T) {
-	list := cafeRequestStore.ListCompletedGroups()
+func TestCafeRequestDB_ListGroups(t *testing.T) {
+	all := cafeRequestStore.ListGroups("", -1)
+	if len(all) != 3 {
+		t.Errorf("returned incorrect number of groups")
+	}
+	limited := cafeRequestStore.ListGroups("", 1)
+	if len(limited) != 1 {
+		t.Errorf("returned incorrect number of groups")
+	}
+	offset := cafeRequestStore.ListGroups(limited[0], -1)
+	if len(offset) != 2 {
+		t.Errorf("returned incorrect number of groups")
+	}
+}
+
+func TestCafeRequestDB_ListCompletedSyncGroups(t *testing.T) {
+	list := cafeRequestStore.ListCompletedSyncGroups()
 	if len(list) != 0 {
 		t.Error("list completed groups failed")
 	}
 }
 
-func TestCafeRequestDB_CountByGroup(t *testing.T) {
-	cnt := cafeRequestStore.CountByGroup("group1")
-	if cnt != 1 {
-		t.Error("count by group failed")
+func TestCafeRequestDB_UpdateStatus(t *testing.T) {
+	if err := cafeRequestStore.UpdateStatus("abcdef", pb.CafeRequest_PENDING); err != nil {
+		t.Error(err)
+	}
+	stmt, err := cafeRequestStore.PrepareQuery("select status from cafe_requests where id=?")
+	if err != nil {
+		t.Error(err)
+	}
+	defer stmt.Close()
+	var status int
+	if err := stmt.QueryRow("abcdef").Scan(&status); err != nil {
+		t.Error(err)
+	}
+	if status != 1 {
+		t.Error("wrong status")
 	}
 }
 
-func TestCafeRequestDB_GroupStatus(t *testing.T) {
-	status := cafeRequestStore.GroupStatus("group2")
+func TestCafeRequestDB_SyncGroupStatus(t *testing.T) {
+	status := cafeRequestStore.SyncGroupStatus("sync_group2")
 	if status.NumTotal != 2 {
 		t.Errorf("wrong num total %d", status.NumTotal)
 	}
@@ -187,8 +198,8 @@ func TestCafeRequestDB_GroupStatus(t *testing.T) {
 	}
 }
 
-func TestCafeRequestDB_UpdateStatus(t *testing.T) {
-	if err := cafeRequestStore.UpdateStatus("abcdef", pb.CafeRequest_COMPLETE); err != nil {
+func TestCafeRequestDB_UpdateGroupStatus(t *testing.T) {
+	if err := cafeRequestStore.UpdateGroupStatus("group2", pb.CafeRequest_COMPLETE); err != nil {
 		t.Error(err)
 	}
 	stmt, err := cafeRequestStore.PrepareQuery("select status from cafe_requests where id=?")
@@ -205,15 +216,15 @@ func TestCafeRequestDB_UpdateStatus(t *testing.T) {
 	}
 }
 
-func TestCafeRequestDB_ListCompletedGroupsAgain(t *testing.T) {
-	list := cafeRequestStore.ListCompletedGroups()
+func TestCafeRequestDB_ListCompletedSyncGroupsAgain(t *testing.T) {
+	list := cafeRequestStore.ListCompletedSyncGroups()
 	if len(list) != 0 {
 		t.Error("list completed groups failed")
 	}
 	if err := cafeRequestStore.UpdateStatus("abcdefg", pb.CafeRequest_COMPLETE); err != nil {
 		t.Error(err)
 	}
-	list = cafeRequestStore.ListCompletedGroups()
+	list = cafeRequestStore.ListCompletedSyncGroups()
 	if len(list) != 1 {
 		t.Error("list completed groups failed")
 	}
@@ -247,6 +258,18 @@ func TestCafeRequestDB_DeleteByGroup(t *testing.T) {
 	if err := stmt.QueryRow("abcdef").Scan(&id); err == nil {
 		t.Error("delete failed")
 	}
+}
+
+func TestCafeRequestDB_DeleteBySyncGroup(t *testing.T) {
+	if err := cafeRequestStore.DeleteBySyncGroup("sync_group2"); err != nil {
+		t.Error(err)
+	}
+	stmt, err := cafeRequestStore.PrepareQuery("select id from cafe_requests where id=?")
+	if err != nil {
+		t.Error(err)
+	}
+	defer stmt.Close()
+	var id string
 	if err := stmt.QueryRow("abcdefg").Scan(&id); err == nil {
 		t.Error("delete failed")
 	}
@@ -255,26 +278,20 @@ func TestCafeRequestDB_DeleteByGroup(t *testing.T) {
 func TestCafeRequestDB_DeleteByCafe(t *testing.T) {
 	setupCafeRequestDB()
 	if err := cafeRequestStore.Add(&pb.CafeRequest{
-		Id:     "xyz",
-		Peer:   "peer",
-		Target: "zxy",
-		Cafe: &pb.Cafe{
-			Peer:     "peer",
-			Address:  "address",
-			Api:      "v0",
-			Protocol: "/textile/cafe/1.0.0",
-			Node:     "v1.0.0",
-			Url:      "https://mycafe.com",
-		},
-		Type:   pb.CafeRequest_STORE,
-		Date:   ptypes.TimestampNow(),
-		Size:   1024,
-		Group:  "group",
-		Status: pb.CafeRequest_NEW,
+		Id:        "xyz",
+		Peer:      "peer",
+		Target:    "zxy",
+		Cafe:      testCafe,
+		Group:     "group",
+		SyncGroup: "sync_group",
+		Type:      pb.CafeRequest_STORE,
+		Date:      ptypes.TimestampNow(),
+		Size:      1024,
+		Status:    pb.CafeRequest_NEW,
 	}); err != nil {
 		t.Error(err)
 	}
-	if err := cafeRequestStore.DeleteByCafe("boom"); err != nil {
+	if err := cafeRequestStore.DeleteByCafe("peer"); err != nil {
 		t.Error(err)
 	}
 	stmt, err := cafeRequestStore.PrepareQuery("select id from cafe_requests where id=?")

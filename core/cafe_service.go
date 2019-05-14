@@ -1534,7 +1534,7 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) {
 		completed = append(completed, id)
 	}
 	if len(completed) > 0 {
-		for _, gid := range h.datastore.CafeRequests().ListCompletedGroups() {
+		for _, gid := range h.datastore.CafeRequests().ListCompletedSyncGroups() {
 			if err := h.datastore.CafeRequests().DeleteByGroup(gid); err != nil {
 				log.Error(err.Error())
 				return

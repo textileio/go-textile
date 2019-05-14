@@ -177,6 +177,7 @@ func (q *CafeOutbox) prepForInbox(pid peer.ID, env *pb.Envelope) (mh.Multihash, 
 		return nil, err
 	}
 
+	// TODO: remove pin after req is handled
 	id, err := ipfs.AddData(q.node(), bytes.NewReader(ciphertext), true)
 	if err != nil {
 		return nil, err

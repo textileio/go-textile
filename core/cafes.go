@@ -196,14 +196,14 @@ func (t *Textile) WriteCafeHTTPRequest(id string) (*pb.CafeHTTPRequest, error) {
 	return hreq, nil
 }
 
-// CafeRequestGroupStatus returns the status of a request group
-func (t *Textile) CafeRequestGroupStatus(group string) *pb.CafeRequestGroupStatus {
-	return t.datastore.CafeRequests().GroupStatus(group)
+// CafeRequestSyncGroupStatus returns the status of a request group
+func (t *Textile) CafeRequestSyncGroupStatus(group string) *pb.CafeRequestSyncGroupStatus {
+	return t.datastore.CafeRequests().SyncGroupStatus(group)
 }
 
 // CleanupCafeRequests deletes request groups that are completely completed
 func (t *Textile) CleanupCafeRequests() error {
-	for _, group := range t.datastore.CafeRequests().ListCompletedGroups() {
+	for _, group := range t.datastore.CafeRequests().ListCompletedSyncGroups() {
 		if err := t.datastore.CafeRequests().DeleteByGroup(group); err != nil {
 			return err
 		}

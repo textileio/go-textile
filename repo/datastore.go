@@ -155,12 +155,14 @@ type CafeRequestStore interface {
 	Add(req *pb.CafeRequest) error
 	Get(id string) *pb.CafeRequest
 	List(offset string, limit int) *pb.CafeRequestList
-	ListCompletedGroups() []string
-	CountByGroup(groupId string) int
-	GroupStatus(groupId string) *pb.CafeRequestGroupStatus
+	ListGroups(offset string, limit int) []string
+	ListCompletedSyncGroups() []string
+	SyncGroupStatus(syncGroupId string) *pb.CafeRequestSyncGroupStatus
 	UpdateStatus(id string, status pb.CafeRequest_Status) error
+	UpdateGroupStatus(group string, status pb.CafeRequest_Status) error
 	Delete(id string) error
 	DeleteByGroup(groupId string) error
+	DeleteBySyncGroup(syncGroupId string) error
 	DeleteByCafe(cafeId string) error
 }
 
