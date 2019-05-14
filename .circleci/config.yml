@@ -393,7 +393,12 @@ jobs:
             mv ~/ios_framework/* ~/dist/
             mv ~/android_aar/* ~/dist/
             mv ~/js_types/* ~/dist/
-            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ~/dist/
+            PRE=$(echo "${CIRCLE_TAG}" | grep "rc" || true)
+            if [ "${PRE}" != "" ]; then
+                ghr -prerelease -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ~/dist/
+            else
+                ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ~/dist/
+            fi
 
   publish-cocoapod:
     macos:

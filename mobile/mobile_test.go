@@ -96,6 +96,7 @@ var dir []byte
 var filesBlock *pb.Block
 var files []*pb.Files
 var invite *pb.ExternalInvite
+var avatar string
 
 var contact = &pb.Contact{
 	Address: "address1",
@@ -247,9 +248,15 @@ func TestMobile_Start(t *testing.T) {
 	}
 }
 
-func TestMobile_StartAgain(t *testing.T) {
+func TestMobile_StopAndStart(t *testing.T) {
 	if err := mobile1.Start(); err != nil {
 		t.Errorf("attempt to start a running node failed: %s", err)
+	}
+	if err := mobile1.Stop(); err != nil {
+		t.Errorf("stop mobile node failed: %s", err)
+	}
+	if err := mobile1.Start(); err != nil {
+		t.Errorf("start mobile node again failed: %s", err)
 	}
 }
 
@@ -416,7 +423,6 @@ func TestMobile_Messages(t *testing.T) {
 
 func TestMobile_PrepareFilesSync(t *testing.T) {
 	input := "howdy"
-
 	encoded := base64.StdEncoding.EncodeToString([]byte(input))
 
 	conf := &pb.AddThreadConfig{
@@ -435,7 +441,7 @@ func TestMobile_PrepareFilesSync(t *testing.T) {
 	}
 	res, err := mobile1.AddThread(mconf)
 	if err != nil {
-		t.Errorf("remove thread failed: %s", err)
+		t.Errorf("add thread failed: %s", err)
 		return
 	}
 	thrd := new(pb.Thread)
@@ -748,6 +754,63 @@ func TestMobile_SetUsername(t *testing.T) {
 	}
 }
 
+func TestMobile_SetAvatar(t *testing.T) {
+	hash1, err := mobile1.Avatar()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	res, err := mobile1.AccountThread()
+	if err != nil {
+		t.Error(err)
+	}
+	thrd := new(pb.Thread)
+	if err := proto.Unmarshal(res, thrd); err != nil {
+		t.Error(err)
+	}
+
+	res2, err := mobile1.PrepareFilesByPathSync("../mill/testdata/image.jpeg", thrd.Id)
+	if err != nil {
+		t.Errorf("prepare files failed: %s", err)
+		return
+	}
+	pre := new(pb.MobilePreparedFiles)
+	if err := proto.Unmarshal(res2, pre); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(pre.Dir.Files) != 2 {
+		t.Error("wrong number of files")
+	}
+	dir, err = proto.Marshal(pre.Dir)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	res3, err := mobile1.AddFiles(dir, thrd.Id, "")
+	if err != nil {
+		t.Errorf("add thread files failed: %s", err)
+		return
+	}
+	block := new(pb.Block)
+	if err := proto.Unmarshal(res3, block); err != nil {
+		t.Error(err)
+		return
+	}
+
+	avatar, err = mobile1.Avatar()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if avatar == hash1 {
+		t.Error("avatar was not updated")
+	}
+}
+
 func TestMobile_Profile(t *testing.T) {
 	profs, err := mobile1.Profile()
 	if err != nil {
@@ -757,6 +820,10 @@ func TestMobile_Profile(t *testing.T) {
 	prof := new(pb.Peer)
 	if err := proto.Unmarshal(profs, prof); err != nil {
 		t.Error(err)
+	}
+
+	if prof.Avatar != avatar {
+		t.Error("incorrect profile avatar")
 	}
 }
 
@@ -791,6 +858,10 @@ func TestMobile_Contact(t *testing.T) {
 	contact := new(pb.Contact)
 	if err := proto.Unmarshal(self, contact); err != nil {
 		t.Error(err)
+	}
+
+	if contact.Avatar != avatar {
+		t.Error("incorrect self contact avatar")
 	}
 }
 

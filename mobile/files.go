@@ -299,7 +299,7 @@ func (m *Mobile) AddFiles(dir []byte, threadId string, caption string) ([]byte, 
 		return nil, err
 	}
 
-	if thrd.Key == "account" {
+	if thrd.Key == m.node.Account().Address() {
 		if err := m.node.SetAvatar(); err != nil {
 			return nil, err
 		}
@@ -334,7 +334,7 @@ func (m *Mobile) AddFilesByTarget(target string, threadId string, caption string
 		return nil, err
 	}
 
-	if thrd.Key == "account" {
+	if thrd.Key == m.node.Account().Address() {
 		if err := m.node.SetAvatar(); err != nil {
 			return nil, err
 		}
