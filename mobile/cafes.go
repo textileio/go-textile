@@ -129,13 +129,13 @@ func (m *Mobile) WriteCafeHTTPRequest(id string) ([]byte, error) {
 	return proto.Marshal(req)
 }
 
-// CafeRequestGroupStatus calls core CafeRequestGroupStatus
-func (m *Mobile) CafeRequestGroupStatus(group string) ([]byte, error) {
+// CafeRequestSyncGroupStatus calls core CafeRequestSyncGroupStatus
+func (m *Mobile) CafeRequestSyncGroupStatus(group string) ([]byte, error) {
 	if !m.node.Started() {
 		return nil, core.ErrStopped
 	}
 
-	return proto.Marshal(m.node.CafeRequestGroupStatus(group))
+	return proto.Marshal(m.node.CafeRequestSyncGroupStatus(group))
 }
 
 // CleanupCafeRequests calls core CleanupCafeRequests

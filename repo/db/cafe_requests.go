@@ -15,7 +15,7 @@ type CafeRequestDB struct {
 	modelStore
 }
 
-type groupCount struct {
+type syncGroupCount struct {
 	total    int
 	complete int
 }
@@ -31,7 +31,7 @@ func (c *CafeRequestDB) Add(req *pb.CafeRequest) error {
 	if err != nil {
 		return err
 	}
-	stm := `insert into cafe_requests(id, peerId, targetId, cafeId, cafe, type, date, size, groupId, status) values(?,?,?,?,?,?,?,?,?,?)`
+	stm := `insert into cafe_requests(id, peerId, targetId, cafeId, cafe, groupId, syncGroupId, type, date, size, status, attempts) values(?,?,?,?,?,?,?,?,?,?,?,?)`
 	stmt, err := tx.Prepare(stm)
 	if err != nil {
 		log.Errorf("error in tx prepare: %s", err)
@@ -50,11 +50,13 @@ func (c *CafeRequestDB) Add(req *pb.CafeRequest) error {
 		req.Target,
 		req.Cafe.Peer,
 		[]byte(cafe),
+		req.Group,
+		req.SyncGroup,
 		int32(req.Type),
 		util.ProtoNanos(req.Date),
 		req.Size,
-		req.Group,
 		int32(req.Status),
+		req.Attempts,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -77,55 +79,86 @@ func (c *CafeRequestDB) Get(id string) *pb.CafeRequest {
 func (c *CafeRequestDB) List(offset string, limit int) *pb.CafeRequestList {
 	c.lock.Lock()
 	defer c.lock.Unlock()
+	limits := strconv.Itoa(limit)
 	var stm string
 	if offset != "" {
-		stm = "select * from cafe_requests where date>(select date from cafe_requests where id='" + offset + "') order by date asc limit " + strconv.Itoa(limit) + ";"
+		stm = "select * from cafe_requests where date>(select date from cafe_requests where id='" + offset + "') order by date asc limit " + limits + ";"
 	} else {
-		stm = "select * from cafe_requests order by date asc limit " + strconv.Itoa(limit) + ";"
+		stm = "select * from cafe_requests order by date asc limit " + limits + ";"
 	}
 	return c.handleQuery(stm)
 }
 
-func (c *CafeRequestDB) ListCompletedGroups() []string {
+func (c *CafeRequestDB) ListGroups(offset string, limit int) []string {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	groups := make(map[string]*groupCount)
 
-	total, err := c.db.Query("select Count(*), groupId from cafe_requests group by groupId;")
+	limits := strconv.Itoa(limit)
+	var stm string
+	if offset != "" {
+		stm = "select distinct groupId from cafe_requests where date>(select date from cafe_requests where groupId='" + offset + "') order by date asc limit " + limits + ";"
+	} else {
+		stm = "select distinct groupId from cafe_requests order by date asc limit " + limits + ";"
+	}
+
+	var groups []string
+	total, err := c.db.Query(stm)
+	if err != nil {
+		log.Errorf("error in db query: %s", err)
+		return nil
+	}
+	for total.Next() {
+		var groupId string
+		if err := total.Scan(&groupId); err != nil {
+			log.Errorf("error in db scan: %s", err)
+			continue
+		}
+		groups = append(groups, groupId)
+	}
+
+	return groups
+}
+
+func (c *CafeRequestDB) ListCompletedSyncGroups() []string {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	syncGroups := make(map[string]*syncGroupCount)
+
+	total, err := c.db.Query("select Count(*), syncGroupId from cafe_requests group by syncGroupId;")
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
 		return nil
 	}
 	for total.Next() {
 		var count int
-		var groupId string
-		if err := total.Scan(&count, &groupId); err != nil {
+		var syncGroupId string
+		if err := total.Scan(&count, &syncGroupId); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		if groups[groupId] == nil {
-			groups[groupId] = &groupCount{}
+		if syncGroups[syncGroupId] == nil {
+			syncGroups[syncGroupId] = &syncGroupCount{}
 		}
-		groups[groupId].total = count
+		syncGroups[syncGroupId].total = count
 	}
 
-	complete, err := c.db.Query("select Count(*), groupId from cafe_requests where status=2 group by groupId;")
+	complete, err := c.db.Query("select Count(*), syncGroupId from cafe_requests where status=2 group by syncGroupId;")
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
 		return nil
 	}
 	for complete.Next() {
 		var count int
-		var groupId string
-		if err := complete.Scan(&count, &groupId); err != nil {
+		var syncGroupId string
+		if err := complete.Scan(&count, &syncGroupId); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
-		groups[groupId].complete = count
+		syncGroups[syncGroupId].complete = count
 	}
 
 	var list []string
-	for g, counts := range groups {
+	for g, counts := range syncGroups {
 		if counts.complete == counts.total {
 			list = append(list, g)
 		}
@@ -134,25 +167,23 @@ func (c *CafeRequestDB) ListCompletedGroups() []string {
 	return list
 }
 
-func (c *CafeRequestDB) CountByGroup(groupId string) int {
+func (c *CafeRequestDB) SyncGroupStatus(syncGroupId string) *pb.CafeRequestSyncGroupStatus {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	row := c.db.QueryRow("select Count(*) from cafe_requests where groupId='" + groupId + "';")
-	var count int
-	row.Scan(&count)
-	return count
-}
-
-func (c *CafeRequestDB) GroupStatus(groupId string) *pb.CafeRequestGroupStatus {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	return c.handleStatQuery("select cafeId, size, status from cafe_requests where groupId='" + groupId + "' order by date asc;")
+	return c.handleStatQuery("select cafeId, size, status from cafe_requests where syncGroupId='" + syncGroupId + "' order by date asc;")
 }
 
 func (c *CafeRequestDB) UpdateStatus(id string, status pb.CafeRequest_Status) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	_, err := c.db.Exec("update cafe_requests set status=? where id=?", int32(status), id)
+	return err
+}
+
+func (c *CafeRequestDB) UpdateGroupStatus(groupId string, status pb.CafeRequest_Status) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("update cafe_requests set status=? where groupId=?", int32(status), groupId)
 	return err
 }
 
@@ -167,6 +198,13 @@ func (c *CafeRequestDB) DeleteByGroup(groupId string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	_, err := c.db.Exec("delete from cafe_requests where groupId=?", groupId)
+	return err
+}
+
+func (c *CafeRequestDB) DeleteBySyncGroup(syncGroupId string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	_, err := c.db.Exec("delete from cafe_requests where syncGroupId=?", syncGroupId)
 	return err
 }
 
@@ -185,11 +223,11 @@ func (c *CafeRequestDB) handleQuery(stm string) *pb.CafeRequestList {
 		return list
 	}
 	for rows.Next() {
-		var id, peerId, targetId, cafeId, groupId string
-		var typeInt, statusInt int
+		var id, peerId, targetId, cafeId, groupId, syncGroupId string
+		var typeInt, statusInt, attempts int
 		var dateInt, size int64
 		var cafe []byte
-		if err := rows.Scan(&id, &peerId, &targetId, &cafeId, &cafe, &typeInt, &dateInt, &size, &groupId, &statusInt); err != nil {
+		if err := rows.Scan(&id, &peerId, &targetId, &cafeId, &cafe, &groupId, &syncGroupId, &typeInt, &dateInt, &size, &statusInt, &attempts); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
@@ -201,22 +239,24 @@ func (c *CafeRequestDB) handleQuery(stm string) *pb.CafeRequestList {
 		}
 
 		list.Items = append(list.Items, &pb.CafeRequest{
-			Id:     id,
-			Peer:   peerId,
-			Target: targetId,
-			Cafe:   mod,
-			Type:   pb.CafeRequest_Type(typeInt),
-			Date:   util.ProtoTs(dateInt),
-			Size:   size,
-			Group:  groupId,
-			Status: pb.CafeRequest_Status(statusInt),
+			Id:        id,
+			Peer:      peerId,
+			Target:    targetId,
+			Cafe:      mod,
+			Group:     groupId,
+			SyncGroup: syncGroupId,
+			Type:      pb.CafeRequest_Type(typeInt),
+			Date:      util.ProtoTs(dateInt),
+			Size:      size,
+			Status:    pb.CafeRequest_Status(statusInt),
+			Attempts:  int32(attempts),
 		})
 	}
 	return list
 }
 
-func (c *CafeRequestDB) handleStatQuery(stm string) *pb.CafeRequestGroupStatus {
-	group := &pb.CafeRequestGroupStatus{}
+func (c *CafeRequestDB) handleStatQuery(stm string) *pb.CafeRequestSyncGroupStatus {
+	group := &pb.CafeRequestSyncGroupStatus{}
 	rows, err := c.db.Query(stm)
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
