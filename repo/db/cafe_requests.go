@@ -82,9 +82,9 @@ func (c *CafeRequestDB) List(offset string, limit int) *pb.CafeRequestList {
 	limits := strconv.Itoa(limit)
 	var stm string
 	if offset != "" {
-		stm = "select * from cafe_requests where date>(select date from cafe_requests where id='" + offset + "') order by date asc limit " + limits + ";"
+		stm = "select * from cafe_requests where status=0 and date>(select date from cafe_requests where id='" + offset + "') order by date asc limit " + limits + ";"
 	} else {
-		stm = "select * from cafe_requests order by date asc limit " + limits + ";"
+		stm = "select * from cafe_requests where status=0 order by date asc limit " + limits + ";"
 	}
 	return c.handleQuery(stm)
 }
@@ -96,9 +96,9 @@ func (c *CafeRequestDB) ListGroups(offset string, limit int) []string {
 	limits := strconv.Itoa(limit)
 	var stm string
 	if offset != "" {
-		stm = "select distinct groupId from cafe_requests where date>(select date from cafe_requests where groupId='" + offset + "') order by date asc limit " + limits + ";"
+		stm = "select distinct groupId from cafe_requests where status=0 and date>(select date from cafe_requests where groupId='" + offset + "') order by date asc limit " + limits + ";"
 	} else {
-		stm = "select distinct groupId from cafe_requests order by date asc limit " + limits + ";"
+		stm = "select distinct groupId from cafe_requests where status=0 order by date asc limit " + limits + ";"
 	}
 
 	var groups []string
