@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
 
@@ -17,6 +18,7 @@ type Config struct {
 	Account   Account   // local node's account (public info only)
 	Addresses Addresses // local node's addresses
 	API       API       // local node's API settings
+	Gateway   Gateway   // local node's Gateway settings
 	Logs      Logs      // local node's log settings
 	Threads   Threads   // local node's thread settings
 	IsMobile  bool      // local node is setup for mobile
@@ -43,10 +45,18 @@ type SwarmPorts struct {
 	WS  string // WS address port
 }
 
+// HTTPHeaders to customise things like COR
+type HTTPHeaders = map[string][]string
+
 // API settings
 type API struct {
-	HTTPHeaders map[string][]string // HTTP headers to return with the API.
-	SizeLimit   int64               // Maximum file size limit to accept for POST requests in bytes
+	HTTPHeaders HTTPHeaders
+	SizeLimit   int64 // Maximum file size limit to accept for POST requests in bytes
+}
+
+// Gateway settings
+type Gateway struct {
+	HTTPHeaders HTTPHeaders
 }
 
 // Logs settings
@@ -105,20 +115,31 @@ func Init() (*Config, error) {
 			Profiling: "127.0.0.1:6060",
 		},
 		API: API{
-			HTTPHeaders: map[string][]string{
+			HTTPHeaders: HTTPHeaders{
 				"Server": {"go-textile/" + common.Version},
+				// Explicitly allow all methods
 				"Access-Control-Allow-Methods": {
-					"GET",
-					"POST",
-					"DELETE",
-					"OPTIONS",
+					http.MethodConnect,
+					http.MethodDelete,
+					http.MethodGet,
+					http.MethodHead,
+					http.MethodOptions,
+					http.MethodPatch,
+					http.MethodPost,
+					http.MethodPut,
+					http.MethodTrace,
 				},
 				"Access-Control-Allow-Headers": {
+					// rs/cors default headers
+					"Origin",
+					"Accept",
 					"Content-Type",
+					"X-Requested-With",
+					// reason why this is here is unknown
 					"Method",
+					// textile custom headers
 					"X-Textile-Args",
 					"X-Textile-Opts",
-					"X-Requested-With",
 				},
 				"Access-Control-Allow-Origin": {
 					"http://localhost:*",
@@ -126,6 +147,30 @@ func Init() (*Config, error) {
 				},
 			},
 			SizeLimit: 0,
+		},
+		Gateway: Gateway{
+			HTTPHeaders: HTTPHeaders{
+				// Explicitly allow all methods
+				"Access-Control-Allow-Methods": {
+					http.MethodConnect,
+					http.MethodDelete,
+					http.MethodGet,
+					http.MethodHead,
+					http.MethodOptions,
+					http.MethodPatch,
+					http.MethodPost,
+					http.MethodPut,
+					http.MethodTrace,
+				},
+				// Explicitly allow all headers
+				"Access-Control-Allow-Headers": {
+					"*",
+				},
+				// Explicitly allow all origins
+				"Access-Control-Allow-Origin": {
+					"*",
+				},
+			},
 		},
 		Logs: Logs{
 			LogToDisk: true,

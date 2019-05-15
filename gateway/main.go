@@ -18,6 +18,7 @@ import (
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/mr-tron/base58/base58"
+	gincors "github.com/rs/cors/wrapper/gin"
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/gateway/static/css"
@@ -45,6 +46,13 @@ func (g *Gateway) Start(addr string) {
 	}
 
 	router := gin.Default()
+
+	conf := g.Node.Config()
+
+	// Add the CORS middleware
+	// Merges the API HTTPHeaders (from config/init) into blank/default CORS configuration
+	router.Use(gincors.New(core.ConvertHeadersToCorsOptions(conf.API.HTTPHeaders)))
+
 	router.SetHTMLTemplate(parseTemplates())
 
 	router.GET("/health", func(c *gin.Context) {
