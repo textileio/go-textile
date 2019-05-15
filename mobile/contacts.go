@@ -11,13 +11,20 @@ func (m *Mobile) AddContact(contact []byte) error {
 	if !m.node.Started() {
 		return core.ErrStopped
 	}
-
 	model := new(pb.Contact)
 	if err := proto.Unmarshal(contact, model); err != nil {
 		return err
 	}
 
 	return m.node.AddContact(model)
+}
+
+// AddContactByAddress calls core AddContactByAddress
+func (m *Mobile) AddContactByAddress(address string) error {
+	if !m.node.Started() {
+		return core.ErrStopped
+	}
+	return m.node.AddContactByAddress(address)
 }
 
 // Contact calls core Contact

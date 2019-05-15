@@ -20,6 +20,29 @@ func (t *Textile) AddContact(card *pb.Contact) error {
 	return nil
 }
 
+// AddContactByAddress adds or updates a card by address
+func (t *Textile) AddContactByAddress(address string) error {
+	resultCh, errCh, _, _ := t.SearchContactsByAddress(address, 10)
+
+	for {
+		select {
+		case err := <-errCh:
+			return err
+
+		case res, ok := <-resultCh:
+			if !ok {
+				return fmt.Errorf("contact not found")
+			}
+			contact := new(pb.Contact)
+			if err := ptypes.UnmarshalAny(res.Value, contact); err != nil {
+				return err
+			}
+			err := t.AddContact(contact)
+			return err
+		}
+	}
+}
+
 // Contact looks up a contact by address
 func (t *Textile) Contact(address string) *pb.Contact {
 	return t.contact(address, true)
@@ -55,6 +78,17 @@ func (t *Textile) ContactThreads(address string) (*pb.ThreadList, error) {
 	}
 
 	return list, nil
+}
+
+// SearchContacts searches the network for peers by address
+func (t *Textile) SearchContactsByAddress(address string, wait int32) (<-chan *pb.QueryResult, <-chan error, *broadcast.Broadcaster, error) {
+	return t.SearchContacts(
+		&pb.ContactQuery{Address: address},
+		&pb.QueryOptions{
+			Wait:  wait,
+			Limit: 1,
+		},
+	)
 }
 
 // SearchContacts searches the network for peers and returns contacts
