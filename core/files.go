@@ -29,8 +29,8 @@ var ErrMissingContentLink = fmt.Errorf("content link not in node")
 const MetaLinkName = "meta"
 const ContentLinkName = "content"
 
-var ValidMetaLinkNames = []string{"f", "meta"}
-var ValidContentLinkNames = []string{"d", "content"}
+var ValidMetaLinkNames = []string{"meta", "f"}
+var ValidContentLinkNames = []string{"content", "d"}
 
 type AddFileConfig struct {
 	Input     []byte `json:"input"`

@@ -94,9 +94,6 @@ func (q *BlockOutbox) batch(msgs []pb.BlockMessage) {
 	}
 	wg.Wait()
 
-	// flush the outbox before starting a new batch
-	go q.cafeOutbox.Flush()
-
 	// next batch
 	offset := msgs[len(msgs)-1].Id
 	syncing := q.datastore.CafeRequests().ListIncompleteSyncGroups()

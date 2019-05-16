@@ -511,7 +511,9 @@ func (t *Thread) sendWelcome() error {
 
 // post publishes an encrypted message to thread peers
 func (t *Thread) post(commit *commitResult, peers []pb.ThreadPeer) error {
-	go t.cafeOutbox.Flush()
+	defer func() {
+		go t.cafeOutbox.Flush()
+	}()
 
 	if len(peers) == 0 {
 		return nil
