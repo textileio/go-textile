@@ -250,9 +250,10 @@ func initDatabaseTables(db *sql.DB, pin string) error {
 
     create table cafe_requests (id text primary key not null, peerId text not null, targetId text not null, cafeId text not null, cafe blob not null, groupId text not null, syncGroupId text not null, type integer not null, date integer not null, size integer not null, status integer not null, attempts integer not null);
     create index cafe_request_cafeId on cafe_requests (cafeId);
-    create index cafe_request_date on cafe_requests (date);
     create index cafe_request_groupId on cafe_requests (groupId);
     create index cafe_request_syncGroupId on cafe_requests (syncGroupId);
+    create index cafe_request_date on cafe_requests (date);
+    create index cafe_request_status on cafe_requests (status);
 
     create table cafe_messages (id text primary key not null, peerId text not null, date integer not null, attempts integer not null);
     create index cafe_message_date on cafe_messages (date);

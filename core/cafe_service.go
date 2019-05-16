@@ -1061,7 +1061,7 @@ func (h *CafeService) handleObject(pid peer.ID, env *pb.Envelope) (*pb.Envelope,
 
 	var aid *cid.Cid
 	if obj.Data != nil {
-		aid, err = ipfs.AddData(h.service.Node(), bytes.NewReader(obj.Data), true)
+		aid, err = ipfs.AddData(h.service.Node(), bytes.NewReader(obj.Data), true, false)
 	} else if obj.Node != nil {
 		aid, err = ipfs.AddObject(h.service.Node(), bytes.NewReader(obj.Node), true)
 	} else {
@@ -1534,7 +1534,7 @@ func (h *CafeService) batchRequests(reqs *pb.CafeRequestList) {
 		completed = append(completed, id)
 	}
 	if len(completed) > 0 {
-		for _, gid := range h.datastore.CafeRequests().ListCompletedSyncGroups() {
+		for _, gid := range h.datastore.CafeRequests().ListCompleteSyncGroups() {
 			if err := h.datastore.CafeRequests().DeleteByGroup(gid); err != nil {
 				log.Error(err.Error())
 				return

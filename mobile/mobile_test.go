@@ -188,7 +188,7 @@ func TestWalletAccountAt(t *testing.T) {
 }
 
 func TestInitRepo(t *testing.T) {
-	os.RemoveAll(repoPath1)
+	_ = os.RemoveAll(repoPath1)
 	if err := InitRepo(&InitConfig{
 		Seed:     seed,
 		RepoPath: repoPath1,
@@ -1037,14 +1037,14 @@ func TestMobile_StopAgain(t *testing.T) {
 
 func TestMobile_Teardown(t *testing.T) {
 	mobile1 = nil
-	mobile2.Stop()
+	_ = mobile2.Stop()
 	mobile2 = nil
-	os.RemoveAll(repoPath1)
-	os.RemoveAll(repoPath2)
+	_ = os.RemoveAll(repoPath1)
+	_ = os.RemoveAll(repoPath2)
 }
 
 func createAndStartMobile(repoPath string, waitForOnline bool) (*Mobile, error) {
-	os.RemoveAll(repoPath)
+	_ = os.RemoveAll(repoPath)
 
 	recovery, err := NewWallet(12)
 	if err != nil {

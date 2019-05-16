@@ -72,7 +72,7 @@ func (c *cafeApi) pin(g *gin.Context) {
 		id = dir.Cid()
 
 	case "application/octet-stream":
-		idp, err := ipfs.AddData(c.node.Ipfs(), g.Request.Body, true)
+		idp, err := ipfs.AddData(c.node.Ipfs(), g.Request.Body, true, false)
 		if err != nil {
 			c.abort(g, http.StatusInternalServerError, err)
 			return

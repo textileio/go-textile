@@ -19,20 +19,23 @@ func (t *Thread) AddLike(target string) (mh.Multihash, error) {
 		Target: target,
 	}
 
-	res, err := t.commitBlock(msg, pb.Block_LIKE, nil)
+	res, err := t.commitBlock(msg, pb.Block_LIKE, true, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := t.indexBlock(res, pb.Block_LIKE, target, ""); err != nil {
+	err = t.indexBlock(res, pb.Block_LIKE, target, "")
+	if err != nil {
 		return nil, err
 	}
 
-	if err := t.updateHead(res.hash); err != nil {
+	err = t.updateHead(res.hash)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := t.post(res, t.Peers()); err != nil {
+	err = t.post(res, t.Peers())
+	if err != nil {
 		return nil, err
 	}
 
@@ -44,7 +47,8 @@ func (t *Thread) AddLike(target string) (mh.Multihash, error) {
 // handleLikeBlock handles an incoming like block
 func (t *Thread) handleLikeBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.ThreadLike, error) {
 	msg := new(pb.ThreadLike)
-	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
+	err := ptypes.UnmarshalAny(block.Payload, msg)
+	if err != nil {
 		return nil, err
 	}
 
@@ -55,10 +59,11 @@ func (t *Thread) handleLikeBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 		return nil, ErrNotAnnotatable
 	}
 
-	if err := t.indexBlock(&commitResult{
+	err = t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,
-	}, pb.Block_LIKE, msg.Target, ""); err != nil {
+	}, pb.Block_LIKE, msg.Target, "")
+	if err != nil {
 		return nil, err
 	}
 	return msg, nil

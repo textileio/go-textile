@@ -24,20 +24,23 @@ func (t *Thread) AddFlag(block string) (mh.Multihash, error) {
 		Target: target,
 	}
 
-	res, err := t.commitBlock(msg, pb.Block_FLAG, nil)
+	res, err := t.commitBlock(msg, pb.Block_FLAG, true, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := t.indexBlock(res, pb.Block_FLAG, target, ""); err != nil {
+	err = t.indexBlock(res, pb.Block_FLAG, target, "")
+	if err != nil {
 		return nil, err
 	}
 
-	if err := t.updateHead(res.hash); err != nil {
+	err = t.updateHead(res.hash)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := t.post(res, t.Peers()); err != nil {
+	err = t.post(res, t.Peers())
+	if err != nil {
 		return nil, err
 	}
 
@@ -49,7 +52,8 @@ func (t *Thread) AddFlag(block string) (mh.Multihash, error) {
 // handleFlagBlock handles an incoming flag block
 func (t *Thread) handleFlagBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.ThreadFlag, error) {
 	msg := new(pb.ThreadFlag)
-	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
+	err := ptypes.UnmarshalAny(block.Payload, msg)
+	if err != nil {
 		return nil, err
 	}
 
@@ -62,10 +66,11 @@ func (t *Thread) handleFlagBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 
 	// TODO: how do we want to handle flags? making visible to UIs would be a good start
 
-	if err := t.indexBlock(&commitResult{
+	err = t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,
-	}, pb.Block_FLAG, msg.Target, ""); err != nil {
+	}, pb.Block_FLAG, msg.Target, "")
+	if err != nil {
 		return nil, err
 	}
 

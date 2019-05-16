@@ -33,20 +33,23 @@ func (t *Thread) annouce(msg *pb.ThreadAnnounce) (mh.Multihash, error) {
 		return nil, nil
 	}
 
-	res, err := t.commitBlock(msg, pb.Block_ANNOUNCE, nil)
+	res, err := t.commitBlock(msg, pb.Block_ANNOUNCE, true, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := t.indexBlock(res, pb.Block_ANNOUNCE, "", ""); err != nil {
+	err = t.indexBlock(res, pb.Block_ANNOUNCE, "", "")
+	if err != nil {
 		return nil, err
 	}
 
-	if err := t.updateHead(res.hash); err != nil {
+	err = t.updateHead(res.hash)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := t.post(res, t.Peers()); err != nil {
+	err = t.post(res, t.Peers())
+	if err != nil {
 		return nil, err
 	}
 
@@ -58,7 +61,8 @@ func (t *Thread) annouce(msg *pb.ThreadAnnounce) (mh.Multihash, error) {
 // handleAnnounceBlock handles an incoming announce block
 func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.ThreadAnnounce, error) {
 	msg := new(pb.ThreadAnnounce)
-	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
+	err := ptypes.UnmarshalAny(block.Payload, msg)
+	if err != nil {
 		return nil, err
 	}
 
@@ -83,21 +87,24 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 		}
 	}
 
-	if err := t.indexBlock(&commitResult{
+	err = t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,
-	}, pb.Block_ANNOUNCE, "", ""); err != nil {
+	}, pb.Block_ANNOUNCE, "", "")
+	if err != nil {
 		return nil, err
 	}
 
 	// update author info
 	if msg.Peer != nil && msg.Peer.Id != t.node().Identity.Pretty() {
 		if t.Id == t.config.Account.Thread && msg.Peer.Id != block.Header.Author {
-			if err := t.addPeer(msg.Peer); err != nil {
+			err = t.addPeer(msg.Peer)
+			if err != nil {
 				return nil, err
 			}
 		} else {
-			if err := t.addOrUpdatePeer(msg.Peer); err != nil {
+			err = t.addOrUpdatePeer(msg.Peer)
+			if err != nil {
 				return nil, err
 			}
 		}
@@ -106,7 +113,8 @@ func (t *Thread) handleAnnounceBlock(hash mh.Multihash, block *pb.ThreadBlock) (
 	// update thread name
 	if msg.Name != "" {
 		t.Name = msg.Name
-		if err := t.datastore.Threads().UpdateName(t.Id, msg.Name); err != nil {
+		err = t.datastore.Threads().UpdateName(t.Id, msg.Name)
+		if err != nil {
 			return nil, err
 		}
 	}

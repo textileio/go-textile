@@ -26,30 +26,35 @@ func (t *Thread) AddIgnore(block string) (mh.Multihash, error) {
 		Target: target,
 	}
 
-	res, err := t.commitBlock(msg, pb.Block_IGNORE, nil)
+	res, err := t.commitBlock(msg, pb.Block_IGNORE, true, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := t.indexBlock(res, pb.Block_IGNORE, target, ""); err != nil {
+	err = t.indexBlock(res, pb.Block_IGNORE, target, "")
+	if err != nil {
 		return nil, err
 	}
 
 	rblock := t.datastore.Blocks().Get(block)
-	if err := t.ignoreBlockTarget(rblock); err != nil {
+	err = t.ignoreBlockTarget(rblock)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := t.updateHead(res.hash); err != nil {
+	err = t.updateHead(res.hash)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := t.post(res, t.Peers()); err != nil {
+	err = t.post(res, t.Peers())
+	if err != nil {
 		return nil, err
 	}
 
 	// cleanup
-	if err := t.datastore.Notifications().DeleteByBlock(block); err != nil {
+	err = t.datastore.Notifications().DeleteByBlock(block)
+	if err != nil {
 		return nil, err
 	}
 
@@ -61,7 +66,8 @@ func (t *Thread) AddIgnore(block string) (mh.Multihash, error) {
 // handleIgnoreBlock handles an incoming ignore block
 func (t *Thread) handleIgnoreBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.ThreadIgnore, error) {
 	msg := new(pb.ThreadIgnore)
-	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
+	err := ptypes.UnmarshalAny(block.Payload, msg)
+	if err != nil {
 		return nil, err
 	}
 
@@ -74,19 +80,22 @@ func (t *Thread) handleIgnoreBlock(hash mh.Multihash, block *pb.ThreadBlock) (*p
 
 	// cleanup
 	blockId := strings.Replace(msg.Target, "ignore-", "", 1)
-	if err := t.datastore.Notifications().DeleteByBlock(blockId); err != nil {
+	err = t.datastore.Notifications().DeleteByBlock(blockId)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := t.indexBlock(&commitResult{
+	err = t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,
-	}, pb.Block_IGNORE, msg.Target, ""); err != nil {
+	}, pb.Block_IGNORE, msg.Target, "")
+	if err != nil {
 		return nil, err
 	}
 
 	rblock := t.datastore.Blocks().Get(blockId)
-	if err := t.ignoreBlockTarget(rblock); err != nil {
+	err = t.ignoreBlockTarget(rblock)
+	if err != nil {
 		return nil, err
 	}
 

@@ -26,12 +26,7 @@ type BlockOutbox struct {
 }
 
 // NewBlockOutbox creates a new outbox queue
-func NewBlockOutbox(
-	service func() *ThreadsService,
-	node func() *core.IpfsNode,
-	datastore repo.Datastore,
-	cafeOutbox *CafeOutbox,
-) *BlockOutbox {
+func NewBlockOutbox(service func() *ThreadsService, node func() *core.IpfsNode, datastore repo.Datastore, cafeOutbox *CafeOutbox) *BlockOutbox {
 	return &BlockOutbox{
 		service:    service,
 		node:       node,
@@ -61,7 +56,11 @@ func (q *BlockOutbox) Flush() {
 		return
 	}
 
-	if err := q.batch(q.datastore.BlockMessages().List("", blockFlushGroupSize)); err != nil {
+	// exclude blocks that have an incomplete sync group
+	syncing := q.datastore.CafeRequests().ListIncompleteSyncGroups()
+
+	err := q.batch(q.datastore.BlockMessages().List("", blockFlushGroupSize, syncing))
+	if err != nil {
 		log.Errorf("block outbox batch error: %s", err)
 		return
 	}
@@ -107,7 +106,8 @@ func (q *BlockOutbox) batch(msgs []pb.BlockMessage) error {
 
 	// next batch
 	offset := msgs[len(msgs)-1].Id
-	next := q.datastore.BlockMessages().List(offset, blockFlushGroupSize)
+	syncing := q.datastore.CafeRequests().ListIncompleteSyncGroups()
+	next := q.datastore.BlockMessages().List(offset, blockFlushGroupSize, syncing)
 
 	var deleted []string
 	for _, id := range toDelete {
@@ -154,7 +154,8 @@ func (q *BlockOutbox) handle(pid peer.ID, msg pb.BlockMessage) error {
 			log.Debugf("sending block message for %s to inbox(es)", pid.Pretty())
 
 			// add an inbox request for message delivery
-			if err := q.cafeOutbox.AddForInbox(pid, msg.Env, contact.Inboxes); err != nil {
+			err = q.cafeOutbox.AddForInbox(pid, msg.Env, contact.Inboxes)
+			if err != nil {
 				return err
 			}
 		}

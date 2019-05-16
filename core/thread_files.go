@@ -12,6 +12,7 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/mr-tron/base58/base58"
 	mh "github.com/multiformats/go-multihash"
+	"github.com/segmentio/ksuid"
 	"github.com/textileio/go-textile/crypto"
 	"github.com/textileio/go-textile/ipfs"
 	"github.com/textileio/go-textile/pb"
@@ -37,22 +38,6 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 		return nil, ErrInvalidFileNode
 	}
 	target := node.Cid().Hash().B58String()
-	group := cafeReqOpt.Group(target)
-
-	// each link should point to a dag described by the thread schema
-	for i, link := range node.Links() {
-		nd, err := ipfs.NodeAtLink(t.node(), link)
-		if err != nil {
-			return nil, err
-		}
-		if err := t.processFileNode(t.Schema, nd, i, keys, group, false); err != nil {
-			return nil, err
-		}
-	}
-
-	if err := t.cafeOutbox.Add(target, pb.CafeRequest_STORE, group); err != nil {
-		return nil, err
-	}
 
 	caption = strings.TrimSpace(caption)
 	msg := &pb.ThreadFiles{
@@ -61,12 +46,41 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 		Keys:   keys,
 	}
 
-	res, err := t.commitBlock(msg, pb.Block_FILES, nil)
+	// pre-hash the block, we only want to add it if validation passes,
+	// but we need the hash for the sync group
+	res, err := t.commitBlock(msg, pb.Block_FILES, false, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := t.indexBlock(res, pb.Block_FILES, msg.Target, msg.Body); err != nil {
+	syncGroup := cafeReqOpt.SyncGroup(res.hash.B58String())
+	nodeGroup := cafeReqOpt.Group(ksuid.New().String())
+
+	// each link should point to a dag described by the thread schema
+	for i, link := range node.Links() {
+		nd, err := ipfs.NodeAtLink(t.node(), link)
+		if err != nil {
+			return nil, err
+		}
+		err = t.processFileNode(t.Schema, nd, i, keys, nodeGroup, syncGroup, false)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = t.cafeOutbox.Add(target, pb.CafeRequest_STORE, nodeGroup, syncGroup)
+	if err != nil {
+		return nil, err
+	}
+
+	// finish adding the block
+	_, err = t.addBlock(res.ciphertext, false)
+	if err != nil {
+		return nil, err
+	}
+
+	err = t.indexBlock(res, pb.Block_FILES, msg.Target, msg.Body)
+	if err != nil {
 		return nil, err
 	}
 
@@ -75,16 +89,19 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 		if err != nil {
 			return nil, err
 		}
-		if err := t.indexFileNode(nd, msg.Target); err != nil {
+		err = t.indexFileNode(nd, msg.Target)
+		if err != nil {
 			return nil, err
 		}
 	}
 
-	if err := t.updateHead(res.hash); err != nil {
+	err = t.updateHead(res.hash)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := t.post(res, t.Peers()); err != nil {
+	err = t.post(res, t.Peers())
+	if err != nil {
 		return nil, err
 	}
 
@@ -96,7 +113,8 @@ func (t *Thread) AddFiles(node ipld.Node, caption string, keys map[string]string
 // handleFilesBlock handles an incoming files block
 func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.ThreadFiles, error) {
 	msg := new(pb.ThreadFiles)
-	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
+	err := ptypes.UnmarshalAny(block.Payload, msg)
+	if err != nil {
 		return nil, err
 	}
 
@@ -130,10 +148,12 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 		if err != nil {
 			return nil, err
 		}
-		if err := ipfs.PinNode(t.node(), node, false); err != nil {
+		err = ipfs.PinNode(t.node(), node, false)
+		if err != nil {
 			return nil, err
 		}
-		group := cafeReqOpt.Group(msg.Target)
+		syncGroup := cafeReqOpt.SyncGroup(hash.B58String())
+		nodeGroup := cafeReqOpt.Group(ksuid.New().String())
 
 		// each link should point to a dag described by the thread schema
 		for i, link := range node.Links() {
@@ -141,12 +161,14 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 			if err != nil {
 				return nil, err
 			}
-			if err := t.processFileNode(t.Schema, nd, i, msg.Keys, group, true); err != nil {
+			err = t.processFileNode(t.Schema, nd, i, msg.Keys, nodeGroup, syncGroup, true)
+			if err != nil {
 				return nil, err
 			}
 		}
 
-		if err := t.cafeOutbox.Add(msg.Target, pb.CafeRequest_STORE, group); err != nil {
+		err = t.cafeOutbox.Add(msg.Target, pb.CafeRequest_STORE, nodeGroup, syncGroup)
+		if err != nil {
 			return nil, err
 		}
 
@@ -172,13 +194,15 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 			}
 
 			var file pb.FileIndex
-			if err := jsonpb.Unmarshal(bytes.NewReader(plaintext), &file); err != nil {
+			err = jsonpb.Unmarshal(bytes.NewReader(plaintext), &file)
+			if err != nil {
 				return nil, err
 			}
 
 			log.Debugf("received file: %s", file.Hash)
 
-			if err := t.datastore.Files().Add(&file); err != nil {
+			err = t.datastore.Files().Add(&file)
+			if err != nil {
 				if !db.ConflictError(err) {
 					return nil, err
 				}
@@ -187,10 +211,11 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 		}
 	}
 
-	if err := t.indexBlock(&commitResult{
+	err = t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,
-	}, pb.Block_FILES, msg.Target, msg.Body); err != nil {
+	}, pb.Block_FILES, msg.Target, msg.Body)
+	if err != nil {
 		return nil, err
 	}
 
@@ -200,7 +225,8 @@ func (t *Thread) handleFilesBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb
 			if err != nil {
 				return nil, err
 			}
-			if err := t.indexFileNode(nd, msg.Target); err != nil {
+			err = t.indexFileNode(nd, msg.Target)
+			if err != nil {
 				return nil, err
 			}
 		}
@@ -223,7 +249,8 @@ func (t *Thread) removeFiles(node ipld.Node) error {
 	if len(blocks) == 1 {
 		// safe to unpin target node
 
-		if err := ipfs.UnpinNode(t.node(), node, false); err != nil {
+		err := ipfs.UnpinNode(t.node(), node, false)
+		if err != nil {
 			return err
 		}
 
@@ -233,7 +260,8 @@ func (t *Thread) removeFiles(node ipld.Node) error {
 			if err != nil {
 				return err
 			}
-			if err := t.deIndexFileNode(nd, target); err != nil {
+			err = t.deIndexFileNode(nd, target)
+			if err != nil {
 				return err
 			}
 		}
@@ -243,15 +271,16 @@ func (t *Thread) removeFiles(node ipld.Node) error {
 }
 
 // processFileNode walks a file node, validating and applying a dag schema
-func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys map[string]string, group CafeRequestOption, inbound bool) error {
+func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys map[string]string, nodeGroup CafeRequestOption, syncGroup CafeRequestOption, inbound bool) error {
 	hash := inode.Cid().Hash().B58String()
-	if err := t.cafeOutbox.Add(hash, pb.CafeRequest_STORE, group); err != nil {
+	err := t.cafeOutbox.Add(hash, pb.CafeRequest_STORE, nodeGroup, syncGroup)
+	if err != nil {
 		return err
 	}
 
 	if len(node.Links) == 0 {
 		key := keys["/"+strconv.Itoa(index)+"/"]
-		return t.processFileLink(inode, node.Pin, node.Mill, key, group, inbound)
+		return t.processFileLink(inode, node.Pin, node.Mill, key, nodeGroup, syncGroup, inbound)
 	}
 
 	for name, l := range node.Links {
@@ -267,14 +296,16 @@ func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys
 		}
 
 		key := keys["/"+strconv.Itoa(index)+"/"+name+"/"]
-		if err := t.processFileLink(n, l.Pin, l.Mill, key, group, inbound); err != nil {
+		err = t.processFileLink(n, l.Pin, l.Mill, key, nodeGroup, syncGroup, inbound)
+		if err != nil {
 			return err
 		}
 	}
 
 	// pin link directory
 	if node.Pin && inbound {
-		if err := ipfs.PinNode(t.node(), inode, false); err != nil {
+		err = ipfs.PinNode(t.node(), inode, false)
+		if err != nil {
 			return err
 		}
 	}
@@ -283,9 +314,10 @@ func (t *Thread) processFileNode(node *pb.Node, inode ipld.Node, index int, keys
 }
 
 // processFileLink validates and pins file nodes
-func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key string, group CafeRequestOption, inbound bool) error {
+func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key string, nodeGroup CafeRequestOption, syncGroup CafeRequestOption, inbound bool) error {
 	hash := inode.Cid().Hash().B58String()
-	if err := t.cafeOutbox.Add(hash, pb.CafeRequest_STORE, group); err != nil {
+	err := t.cafeOutbox.Add(hash, pb.CafeRequest_STORE, nodeGroup, syncGroup)
+	if err != nil {
 		return err
 	}
 
@@ -300,28 +332,30 @@ func (t *Thread) processFileLink(inode ipld.Node, pin bool, mil string, key stri
 	}
 
 	if mil == "/json" {
-		if err := t.validateJsonNode(inode, key); err != nil {
+		err = t.validateJsonNode(inode, key)
+		if err != nil {
 			return err
 		}
 	}
 
 	// pin leaf nodes if schema dictates
 	if pin {
-		if err := ipfs.PinNode(t.node(), inode, true); err != nil {
+		err = ipfs.PinNode(t.node(), inode, true)
+		if err != nil {
 			return err
 		}
 	}
 
 	// remote pin leaf nodes if files originate locally
 	if !inbound {
-		if err := t.cafeOutbox.Add(flink.Cid.Hash().B58String(), pb.CafeRequest_STORE, group); err != nil {
+		group := cafeReqOpt.Group(ksuid.New().String())
+		err = t.cafeOutbox.Add(flink.Cid.Hash().B58String(), pb.CafeRequest_STORE, group, syncGroup)
+		if err != nil {
 			return err
 		}
-
-		if !t.config.IsMobile || dlink.Size <= uint64(t.config.Cafe.Client.Mobile.P2PWireLimit) {
-			if err := t.cafeOutbox.Add(dlink.Cid.Hash().B58String(), pb.CafeRequest_STORE, group); err != nil {
-				return err
-			}
+		err = t.cafeOutbox.Add(dlink.Cid.Hash().B58String(), pb.CafeRequest_STORE, group, syncGroup)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -393,7 +427,8 @@ func (t *Thread) indexFileNode(inode ipld.Node, target string) error {
 			return err
 		}
 
-		if err := t.indexFileLink(n, target); err != nil {
+		err = t.indexFileLink(n, target)
+		if err != nil {
 			return err
 		}
 	}
@@ -425,7 +460,8 @@ func (t *Thread) deIndexFileNode(inode ipld.Node, target string) error {
 			return err
 		}
 
-		if err := t.deIndexFileLink(n, target); err != nil {
+		err = t.deIndexFileLink(n, target)
+		if err != nil {
 			return err
 		}
 	}
@@ -442,7 +478,8 @@ func (t *Thread) deIndexFileLink(inode ipld.Node, target string) error {
 
 	hash := dlink.Cid.Hash().B58String()
 
-	if err := t.datastore.Files().RemoveTarget(hash, target); err != nil {
+	err := t.datastore.Files().RemoveTarget(hash, target)
+	if err != nil {
 		return err
 	}
 
@@ -451,10 +488,12 @@ func (t *Thread) deIndexFileLink(inode ipld.Node, target string) error {
 		if len(file.Targets) == 0 {
 			// safe to unpin and de-index
 
-			if err := ipfs.UnpinNode(t.node(), inode, true); err != nil {
+			err = ipfs.UnpinNode(t.node(), inode, true)
+			if err != nil {
 				return err
 			}
-			if err := t.datastore.Files().Delete(hash); err != nil {
+			err = t.datastore.Files().Delete(hash)
+			if err != nil {
 				return err
 			}
 		}
