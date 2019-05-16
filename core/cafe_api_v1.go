@@ -26,7 +26,7 @@ func (c *cafeApi) store(g *gin.Context) {
 	var aid *cid.Cid
 	switch g.Request.Header.Get("X-Textile-Store-Type") {
 	case "data":
-		aid, err = ipfs.AddData(c.node.Ipfs(), g.Request.Body, true)
+		aid, err = ipfs.AddData(c.node.Ipfs(), g.Request.Body, true, false)
 	case "object":
 		aid, err = ipfs.AddObject(c.node.Ipfs(), g.Request.Body, true)
 	default:

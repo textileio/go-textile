@@ -61,7 +61,7 @@ func (t *Thread) merge(head mh.Multihash) (mh.Multihash, error) {
 	}
 
 	// add plaintext to ipfs
-	hash, err := t.addBlock(plaintext)
+	hash, err := t.addBlock(plaintext, false)
 	if err != nil {
 		return nil, err
 	}

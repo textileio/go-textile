@@ -27,8 +27,9 @@ type CafeOutboxHandler interface {
 
 // CafeRequestSettings for a request
 type CafeRequestSettings struct {
-	Size  int
-	Group string
+	Size      int
+	Group     string
+	SyncGroup string
 }
 
 // CafeRequestOption returns a request setting from an option
@@ -38,6 +39,13 @@ type CafeRequestOption func(*CafeRequestSettings)
 func (CafeRequestOption) Group(val string) CafeRequestOption {
 	return func(settings *CafeRequestSettings) {
 		settings.Group = val
+	}
+}
+
+// SyncGroup sets the request's sync group field
+func (CafeRequestOption) SyncGroup(val string) CafeRequestOption {
+	return func(settings *CafeRequestSettings) {
+		settings.SyncGroup = val
 	}
 }
 
@@ -51,7 +59,9 @@ func (CafeRequestOption) Size(val int) CafeRequestOption {
 // CafeRequestOptions returns request settings from options
 func CafeRequestOptions(opts ...CafeRequestOption) *CafeRequestSettings {
 	options := &CafeRequestSettings{
-		Group: "",
+		Size:      0,
+		Group:     ksuid.New().String(),
+		SyncGroup: ksuid.New().String(),
 	}
 
 	for _, opt := range opts {
@@ -116,15 +126,13 @@ func (q *CafeOutbox) AddForInbox(pid peer.ID, env *pb.Envelope, inboxes []*pb.Ca
 	if err != nil {
 		return err
 	}
-	id, err := ipfs.AddData(q.node(), bytes.NewReader(envb), true)
+	id, err := ipfs.AddData(q.node(), bytes.NewReader(envb), true, false)
 	if err != nil {
 		return err
 	}
 
 	target := id.Hash().B58String()
-	settings := &CafeRequestSettings{
-		Group: target,
-	}
+	settings := CafeRequestOptions(cafeReqOpt.SyncGroup(target))
 	for _, inbox := range inboxes {
 		err = q.add(pid, target, inbox, pb.CafeRequest_INBOX, settings)
 		if err != nil {
@@ -152,13 +160,15 @@ func (q *CafeOutbox) add(pid peer.ID, target string, cafe *pb.Cafe, rtype pb.Caf
 		rtype.String(), ipfs.ShortenID(pid.Pretty()), ipfs.ShortenID(cafe.Peer), target)
 
 	return q.datastore.CafeRequests().Add(&pb.CafeRequest{
-		Id:     ksuid.New().String(),
-		Peer:   pid.Pretty(),
-		Target: target,
-		Cafe:   cafe,
-		Type:   rtype,
-		Size:   int64(settings.Size),
-		Group:  settings.Group,
-		Date:   ptypes.TimestampNow(),
+		Id:        ksuid.New().String(),
+		Peer:      pid.Pretty(),
+		Target:    target,
+		Cafe:      cafe,
+		Group:     settings.Group,
+		SyncGroup: settings.SyncGroup,
+		Type:      rtype,
+		Date:      ptypes.TimestampNow(),
+		Size:      int64(settings.Size),
+		Status:    pb.CafeRequest_NEW,
 	})
 }

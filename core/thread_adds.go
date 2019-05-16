@@ -32,7 +32,7 @@ func (t *Thread) AddInvite(p *pb.Peer) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	res, err := t.commitBlock(msg, pb.Block_ADD, func(plaintext []byte) ([]byte, error) {
+	res, err := t.commitBlock(msg, pb.Block_ADD, true, func(plaintext []byte) ([]byte, error) {
 		return crypto.Encrypt(pk, plaintext)
 	})
 	if err != nil {
@@ -42,7 +42,8 @@ func (t *Thread) AddInvite(p *pb.Peer) (mh.Multihash, error) {
 	// create new peer for posting (it will get added if+when they accept)
 	target := pb.ThreadPeer{Id: p.Id}
 
-	if err := t.post(res, []pb.ThreadPeer{target}); err != nil {
+	err = t.post(res, []pb.ThreadPeer{target})
+	if err != nil {
 		return nil, err
 	}
 
@@ -68,7 +69,7 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 		return nil, nil, err
 	}
 
-	res, err := t.commitBlock(msg, pb.Block_ADD, func(plaintext []byte) ([]byte, error) {
+	res, err := t.commitBlock(msg, pb.Block_ADD, true, func(plaintext []byte) ([]byte, error) {
 		return crypto.EncryptAES(plaintext, key)
 	})
 	if err != nil {
@@ -86,7 +87,8 @@ func (t *Thread) AddExternalInvite() (mh.Multihash, []byte, error) {
 // This happens right before a join. The invite is not kept on-chain,
 // so we only need to follow parents and update HEAD.
 func (t *Thread) handleAddBlock(block *pb.ThreadBlock) error {
-	if _, err := t.followParents(block.Header.Parents); err != nil {
+	_, err := t.followParents(block.Header.Parents)
+	if err != nil {
 		return err
 	}
 
@@ -96,7 +98,8 @@ func (t *Thread) handleAddBlock(block *pb.ThreadBlock) error {
 		if err != nil {
 			return err
 		}
-		if err := t.updateHead(hash); err != nil {
+		err = t.updateHead(hash)
+		if err != nil {
 			return err
 		}
 	}

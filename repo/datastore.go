@@ -115,7 +115,7 @@ type BlockStore interface {
 type BlockMessageStore interface {
 	Queryable
 	Add(msg *pb.BlockMessage) error
-	List(offset string, limit int) []pb.BlockMessage
+	List(offset string, limit int, exclude []string) []pb.BlockMessage
 	Delete(id string) error
 }
 
@@ -156,10 +156,12 @@ type CafeRequestStore interface {
 	Get(id string) *pb.CafeRequest
 	List(offset string, limit int) *pb.CafeRequestList
 	ListGroups(offset string, limit int) []string
-	ListCompletedSyncGroups() []string
+	ListIncompleteSyncGroups() []string
+	ListCompleteSyncGroups() []string
 	SyncGroupStatus(syncGroupId string) *pb.CafeRequestSyncGroupStatus
 	UpdateStatus(id string, status pb.CafeRequest_Status) error
 	UpdateGroupStatus(group string, status pb.CafeRequest_Status) error
+	AddAttempt(id string) error
 	Delete(id string) error
 	DeleteByGroup(groupId string) error
 	DeleteBySyncGroup(syncGroupId string) error

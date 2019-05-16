@@ -122,7 +122,8 @@ func NewThread(model *pb.Thread, conf *ThreadConfig) (*Thread, error) {
 		pushUpdate:  conf.PushUpdate,
 	}
 
-	if err := thrd.loadSchema(); err != nil {
+	err = thrd.loadSchema()
+	if err != nil {
 		return nil, err
 	}
 	return thrd, nil
@@ -269,11 +270,12 @@ func (t *Thread) addOrUpdatePeer(peer *pb.Peer) error {
 		return nil
 	}
 
-	if err := t.datastore.ThreadPeers().Add(&pb.ThreadPeer{
+	err := t.datastore.ThreadPeers().Add(&pb.ThreadPeer{
 		Id:       peer.Id,
 		Thread:   t.Id,
 		Welcomed: false,
-	}); err != nil {
+	})
+	if err != nil {
 		if !db.ConflictError(err) {
 			return err
 		}
@@ -315,7 +317,7 @@ type commitResult struct {
 }
 
 // commitBlock encrypts a block with thread key (or custom method if provided) and adds it to ipfs
-func (t *Thread) commitBlock(msg proto.Message, mtype pb.Block_BlockType, encrypt func(plaintext []byte) ([]byte, error)) (*commitResult, error) {
+func (t *Thread) commitBlock(msg proto.Message, mtype pb.Block_BlockType, add bool, encrypt func(plaintext []byte) ([]byte, error)) (*commitResult, error) {
 	header, err := t.newBlockHeader()
 	if err != nil {
 		return nil, err
@@ -345,7 +347,7 @@ func (t *Thread) commitBlock(msg proto.Message, mtype pb.Block_BlockType, encryp
 		return nil, err
 	}
 
-	hash, err := t.addBlock(ciphertext)
+	hash, err := t.addBlock(ciphertext, !add)
 	if err != nil {
 		return nil, err
 	}
@@ -354,15 +356,18 @@ func (t *Thread) commitBlock(msg proto.Message, mtype pb.Block_BlockType, encryp
 }
 
 // addBlock adds to ipfs
-func (t *Thread) addBlock(ciphertext []byte) (mh.Multihash, error) {
-	id, err := ipfs.AddData(t.node(), bytes.NewReader(ciphertext), true)
+func (t *Thread) addBlock(ciphertext []byte, hashOnly bool) (mh.Multihash, error) {
+	id, err := ipfs.AddData(t.node(), bytes.NewReader(ciphertext), true, hashOnly)
 	if err != nil {
 		return nil, err
 	}
 	hash := id.Hash().B58String()
 
-	if err := t.cafeOutbox.Add(hash, pb.CafeRequest_STORE, cafeReqOpt.Group(t.Id)); err != nil {
-		return nil, err
+	if !hashOnly {
+		err = t.cafeOutbox.Add(hash, pb.CafeRequest_STORE, cafeReqOpt.SyncGroup(hash))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return id.Hash(), nil
@@ -384,7 +389,8 @@ func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBl
 			return nil, err
 		}
 	} else {
-		if err := proto.Unmarshal(plaintext, block); err != nil {
+		err = proto.Unmarshal(plaintext, block)
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -394,7 +400,8 @@ func (t *Thread) handleBlock(hash mh.Multihash, ciphertext []byte) (*pb.ThreadBl
 		return nil, fmt.Errorf("nil message payload")
 	}
 
-	if _, err := t.addBlock(ciphertext); err != nil {
+	_, err = t.addBlock(ciphertext, false)
+	if err != nil {
 		return nil, err
 	}
 	return block, nil
@@ -442,7 +449,8 @@ func (t *Thread) handleHead(inbound mh.Multihash, parents []string) (mh.Multihas
 	if fastForwardable {
 		// no need for a merge
 		log.Debugf("fast-forwarded to %s", inbound.B58String())
-		if err := t.updateHead(inbound); err != nil {
+		err = t.updateHead(inbound)
+		if err != nil {
 			return nil, err
 		}
 		return nil, nil
@@ -486,11 +494,13 @@ func (t *Thread) sendWelcome() error {
 		return err
 	}
 	res := &commitResult{hash: hash, ciphertext: ciphertext}
-	if err := t.post(res, peers); err != nil {
+	err = t.post(res, peers)
+	if err != nil {
 		return err
 	}
 
-	if err := t.datastore.ThreadPeers().WelcomeByThread(t.Id); err != nil {
+	err = t.datastore.ThreadPeers().WelcomeByThread(t.Id)
+	if err != nil {
 		return err
 	}
 	for _, p := range peers {
@@ -523,7 +533,8 @@ func (t *Thread) post(commit *commitResult, peers []pb.ThreadPeer) error {
 			return err
 		}
 
-		if err := t.blockOutbox.Add(pid, env); err != nil {
+		err = t.blockOutbox.Add(pid, env)
+		if err != nil {
 			return err
 		}
 	}
@@ -535,7 +546,7 @@ func (t *Thread) post(commit *commitResult, peers []pb.ThreadPeer) error {
 
 // store adds a store thread request
 func (t *Thread) store() error {
-	return t.cafeOutbox.Add(t.Id, pb.CafeRequest_STORE_THREAD, cafeReqOpt.Group(t.Id))
+	return t.cafeOutbox.Add(t.Id, pb.CafeRequest_STORE_THREAD)
 }
 
 // readable returns whether or not this thread is readable from the
@@ -645,13 +656,15 @@ func (t *Thread) loadSchema() error {
 	}
 
 	var sch pb.Node
-	if err := jsonpb.UnmarshalString(string(data), &sch); err != nil {
+	err = jsonpb.UnmarshalString(string(data), &sch)
+	if err != nil {
 		return err
 	}
 	t.Schema = &sch
 
 	// pin/repin to ensure remotely added schemas are readily accessible
-	if _, err := ipfs.AddData(t.node(), bytes.NewReader(data), true); err != nil {
+	_, err = ipfs.AddData(t.node(), bytes.NewReader(data), true, false)
+	if err != nil {
 		return err
 	}
 

@@ -21,21 +21,25 @@ func (t *Textile) RegisterCafe(host string, token string) (*pb.CafeSession, erro
 		return nil, err
 	}
 
-	if err := t.updatePeerInboxes(); err != nil {
+	err = t.updatePeerInboxes()
+	if err != nil {
 		return nil, err
 	}
 
 	for _, thrd := range t.loadedThreads {
-		if _, err := thrd.annouce(nil); err != nil {
+		_, err = thrd.annouce(nil)
+		if err != nil {
 			return nil, err
 		}
 	}
 
-	if err := t.publishPeer(); err != nil {
+	err = t.publishPeer()
+	if err != nil {
 		return nil, err
 	}
 
-	if err := t.SnapshotThreads(); err != nil {
+	err = t.SnapshotThreads()
+	if err != nil {
 		return nil, err
 	}
 
@@ -67,16 +71,19 @@ func (t *Textile) DeregisterCafe(id string) error {
 	if err != nil {
 		return err
 	}
-	if err := t.cafe.Deregister(cafe); err != nil {
+	err = t.cafe.Deregister(cafe)
+	if err != nil {
 		return err
 	}
 
-	if err := t.updatePeerInboxes(); err != nil {
+	err = t.updatePeerInboxes()
+	if err != nil {
 		return err
 	}
 
 	for _, thrd := range t.loadedThreads {
-		if _, err := thrd.annouce(nil); err != nil {
+		_, err := thrd.annouce(nil)
+		if err != nil {
 			return err
 		}
 	}
@@ -203,8 +210,10 @@ func (t *Textile) CafeRequestSyncGroupStatus(group string) *pb.CafeRequestSyncGr
 
 // CleanupCafeRequests deletes request groups that are completely completed
 func (t *Textile) CleanupCafeRequests() error {
-	for _, group := range t.datastore.CafeRequests().ListCompletedSyncGroups() {
-		if err := t.datastore.CafeRequests().DeleteByGroup(group); err != nil {
+	var err error
+	for _, group := range t.datastore.CafeRequests().ListCompleteSyncGroups() {
+		err = t.datastore.CafeRequests().DeleteByGroup(group)
+		if err != nil {
 			return err
 		}
 	}

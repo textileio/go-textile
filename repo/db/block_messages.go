@@ -53,16 +53,31 @@ func (c *BlockMessageDB) Add(msg *pb.BlockMessage) error {
 	return nil
 }
 
-func (c *BlockMessageDB) List(offset string, limit int) []pb.BlockMessage {
+func (c *BlockMessageDB) List(offset string, limit int, exclude []string) []pb.BlockMessage {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	var stm string
-	if offset != "" {
-		stm = "select * from block_messages where date>(select date from block_messages where id='" + offset + "') order by date asc limit " + strconv.Itoa(limit) + ";"
-	} else {
-		stm = "select * from block_messages order by date asc limit " + strconv.Itoa(limit) + ";"
+	var q string
+	if len(exclude) > 0 {
+		q = " id not in ("
+		for i, e := range exclude {
+			q += "'" + e + "'"
+			if i != len(exclude)-1 {
+				q += ","
+			}
+		}
+		q += ") "
 	}
-	return c.handleQuery(stm)
+	if offset != "" {
+		if q != "" {
+			q += "and "
+		}
+		q += "date>(select date from block_messages where id='" + offset + "') "
+	}
+	if q != "" {
+		q = "where " + q
+	}
+	limits := strconv.Itoa(limit)
+	return c.handleQuery("select * from block_messages " + q + "order by date asc limit " + limits + ";")
 }
 
 func (c *BlockMessageDB) Delete(id string) error {

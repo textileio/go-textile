@@ -16,33 +16,39 @@ func (t *Thread) leave() (mh.Multihash, error) {
 		return nil, ErrNotReadable
 	}
 
-	res, err := t.commitBlock(nil, pb.Block_LEAVE, nil)
+	res, err := t.commitBlock(nil, pb.Block_LEAVE, true, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := t.indexBlock(res, pb.Block_LEAVE, "", ""); err != nil {
+	err = t.indexBlock(res, pb.Block_LEAVE, "", "")
+	if err != nil {
 		return nil, err
 	}
 
-	if err := t.post(res, t.Peers()); err != nil {
+	err = t.post(res, t.Peers())
+	if err != nil {
 		return nil, err
 	}
 
 	// cleanup
 	query := fmt.Sprintf("threadId='%s'", t.Id)
 	for _, block := range t.datastore.Blocks().List("", -1, query).Items {
-		if err := t.ignoreBlockTarget(block); err != nil {
+		err = t.ignoreBlockTarget(block)
+		if err != nil {
 			return nil, err
 		}
 	}
-	if err := t.datastore.Blocks().DeleteByThread(t.Id); err != nil {
+	err = t.datastore.Blocks().DeleteByThread(t.Id)
+	if err != nil {
 		return nil, err
 	}
-	if err := t.datastore.ThreadPeers().DeleteByThread(t.Id); err != nil {
+	err = t.datastore.ThreadPeers().DeleteByThread(t.Id)
+	if err != nil {
 		return nil, err
 	}
-	if err := t.datastore.Notifications().DeleteBySubject(t.Id); err != nil {
+	err = t.datastore.Notifications().DeleteBySubject(t.Id)
+	if err != nil {
 		return nil, err
 	}
 
@@ -60,10 +66,12 @@ func (t *Thread) handleLeaveBlock(hash mh.Multihash, block *pb.ThreadBlock) erro
 		return ErrNotReadable
 	}
 
-	if err := t.datastore.ThreadPeers().Delete(block.Header.Author, t.Id); err != nil {
+	err := t.datastore.ThreadPeers().Delete(block.Header.Author, t.Id)
+	if err != nil {
 		return err
 	}
-	if err := t.datastore.Notifications().DeleteByActor(block.Header.Author); err != nil {
+	err = t.datastore.Notifications().DeleteByActor(block.Header.Author)
+	if err != nil {
 		return err
 	}
 

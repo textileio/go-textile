@@ -23,16 +23,18 @@ func (t *Thread) joinInitial() (mh.Multihash, error) {
 		return nil, err
 	}
 
-	res, err := t.commitBlock(msg, pb.Block_JOIN, nil)
+	res, err := t.commitBlock(msg, pb.Block_JOIN, true, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := t.indexBlock(res, pb.Block_JOIN, "", ""); err != nil {
+	err = t.indexBlock(res, pb.Block_JOIN, "", "")
+	if err != nil {
 		return nil, err
 	}
 
-	if err := t.updateHead(res.hash); err != nil {
+	err = t.updateHead(res.hash)
+	if err != nil {
 		return nil, err
 	}
 
@@ -55,20 +57,23 @@ func (t *Thread) join(inviterId peer.ID) (mh.Multihash, error) {
 		return nil, err
 	}
 
-	res, err := t.commitBlock(msg, pb.Block_JOIN, nil)
+	res, err := t.commitBlock(msg, pb.Block_JOIN, true, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := t.indexBlock(res, pb.Block_JOIN, "", ""); err != nil {
+	err = t.indexBlock(res, pb.Block_JOIN, "", "")
+	if err != nil {
 		return nil, err
 	}
 
-	if err := t.updateHead(res.hash); err != nil {
+	err = t.updateHead(res.hash)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := t.post(res, t.Peers()); err != nil {
+	err = t.post(res, t.Peers())
+	if err != nil {
 		return nil, err
 	}
 
@@ -80,7 +85,8 @@ func (t *Thread) join(inviterId peer.ID) (mh.Multihash, error) {
 // handleJoinBlock handles an incoming join block
 func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.ThreadJoin, error) {
 	msg := new(pb.ThreadJoin)
-	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
+	err := ptypes.UnmarshalAny(block.Payload, msg)
+	if err != nil {
 		return nil, err
 	}
 
@@ -96,16 +102,18 @@ func (t *Thread) handleJoinBlock(hash mh.Multihash, block *pb.ThreadBlock) (*pb.
 		return nil, ErrInvalidThreadBlock
 	}
 
-	if err := t.indexBlock(&commitResult{
+	err = t.indexBlock(&commitResult{
 		hash:   hash,
 		header: block.Header,
-	}, pb.Block_JOIN, "", ""); err != nil {
+	}, pb.Block_JOIN, "", "")
+	if err != nil {
 		return nil, err
 	}
 
 	// collect author as an unwelcomed peer
 	if msg.Peer != nil {
-		if err := t.addOrUpdatePeer(msg.Peer); err != nil {
+		err = t.addOrUpdatePeer(msg.Peer)
+		if err != nil {
 			return nil, err
 		}
 	}

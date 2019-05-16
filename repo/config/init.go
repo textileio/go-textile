@@ -95,7 +95,7 @@ type MobileCafeClient struct {
 	// messages w/ size less than limit will be handled by the p2p cafe service,
 	// messages w/ size greater than limit will be handled by the mobile OS's background
 	// upload service and the cafe HTTP API
-	P2PWireLimit int
+	P2PWireLimit int // deprecated
 }
 
 // Init returns the default textile config

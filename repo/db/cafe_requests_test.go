@@ -20,7 +20,7 @@ func init() {
 
 func setupCafeRequestDB() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
-	initDatabaseTables(conn, "")
+	_ = initDatabaseTables(conn, "")
 	cafeRequestStore = NewCafeRequestStore(conn, new(sync.Mutex))
 }
 
@@ -151,10 +151,17 @@ func TestCafeRequestDB_ListGroups(t *testing.T) {
 	}
 }
 
-func TestCafeRequestDB_ListCompletedSyncGroups(t *testing.T) {
-	list := cafeRequestStore.ListCompletedSyncGroups()
+func TestCafeRequestDB_ListIncompleteSyncGroups(t *testing.T) {
+	list := cafeRequestStore.ListIncompleteSyncGroups()
+	if len(list) != 2 {
+		t.Error("list incomplete groups failed")
+	}
+}
+
+func TestCafeRequestDB_ListCompleteSyncGroups(t *testing.T) {
+	list := cafeRequestStore.ListCompleteSyncGroups()
 	if len(list) != 0 {
-		t.Error("list completed groups failed")
+		t.Error("list complete groups failed")
 	}
 }
 
@@ -216,17 +223,24 @@ func TestCafeRequestDB_UpdateGroupStatus(t *testing.T) {
 	}
 }
 
-func TestCafeRequestDB_ListCompletedSyncGroupsAgain(t *testing.T) {
-	list := cafeRequestStore.ListCompletedSyncGroups()
+func TestCafeRequestDB_ListCompleteSyncGroupsAgain(t *testing.T) {
+	list := cafeRequestStore.ListCompleteSyncGroups()
 	if len(list) != 0 {
-		t.Error("list completed groups failed")
+		t.Error("list complete groups failed")
 	}
 	if err := cafeRequestStore.UpdateStatus("abcdefg", pb.CafeRequest_COMPLETE); err != nil {
 		t.Error(err)
 	}
-	list = cafeRequestStore.ListCompletedSyncGroups()
+	list = cafeRequestStore.ListCompleteSyncGroups()
 	if len(list) != 1 {
-		t.Error("list completed groups failed")
+		t.Error("list complete groups failed")
+	}
+}
+
+func TestCafeRequestDB_ListIncompleteSyncGroupsAgain(t *testing.T) {
+	list := cafeRequestStore.ListIncompleteSyncGroups()
+	if len(list) != 1 {
+		t.Error("list incomplete groups failed")
 	}
 }
 

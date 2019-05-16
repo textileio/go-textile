@@ -91,7 +91,7 @@ func AddDataToDirectory(node *core.IpfsNode, dir uio.Directory, fname string, re
 		return nil, err
 	}
 
-	id, err := AddData(node, reader, false)
+	id, err := AddData(node, reader, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,8 @@ func AddDataToDirectory(node *core.IpfsNode, dir uio.Directory, fname string, re
 		return nil, err
 	}
 
-	if err := dir.AddChild(node.Context(), fname, n); err != nil {
+	err = dir.AddChild(node.Context(), fname, n)
+	if err != nil {
 		return nil, err
 	}
 
@@ -134,8 +135,8 @@ func AddLinkToDirectory(node *core.IpfsNode, dir uio.Directory, fname string, pt
 	return dir.AddChild(ctx2, fname, nd)
 }
 
-// AddData takes a reader and adds it, optionally pins it
-func AddData(node *core.IpfsNode, reader io.Reader, pin bool) (*cid.Cid, error) {
+// AddData takes a reader and adds it, optionally pins it, optionally only hashes it
+func AddData(node *core.IpfsNode, reader io.Reader, pin bool, hashOnly bool) (*cid.Cid, error) {
 	api, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		return nil, err
@@ -144,13 +145,14 @@ func AddData(node *core.IpfsNode, reader io.Reader, pin bool) (*cid.Cid, error) 
 	ctx, cancel := context.WithTimeout(node.Context(), pinTimeout)
 	defer cancel()
 
-	pth, err := api.Unixfs().Add(ctx, files.NewReaderFile(reader))
+	pth, err := api.Unixfs().Add(ctx, files.NewReaderFile(reader), options.Unixfs.HashOnly(hashOnly))
 	if err != nil {
 		return nil, err
 	}
 
-	if pin {
-		if err := api.Pin().Add(ctx, pth, options.Pin.Recursive(false)); err != nil {
+	if pin && !hashOnly {
+		err = api.Pin().Add(ctx, pth, options.Pin.Recursive(false))
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -175,7 +177,8 @@ func AddObject(node *core.IpfsNode, reader io.Reader, pin bool) (*cid.Cid, error
 	}
 
 	if pin {
-		if err := api.Pin().Add(ctx, pth, options.Pin.Recursive(false)); err != nil {
+		err = api.Pin().Add(ctx, pth, options.Pin.Recursive(false))
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -293,7 +296,8 @@ func PinNode(node *core.IpfsNode, nd ipld.Node, recursive bool) error {
 
 	defer node.Blockstore.PinLock().Unlock()
 
-	if err := node.Pinning.Pin(ctx, nd, recursive); err != nil {
+	err := node.Pinning.Pin(ctx, nd, recursive)
+	if err != nil {
 		if strings.Contains(err.Error(), "already pinned recursively") {
 			return nil
 		}
