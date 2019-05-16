@@ -159,18 +159,21 @@ func (h *ThreadsService) Handle(pid peer.ID, env *pb.Envelope) (*pb.Envelope, er
 		return nil, err
 	}
 
-	if _, err := thrd.handleHead(hash, parents); err != nil {
+	_, err = thrd.handleHead(hash, parents)
+	if err != nil {
 		return nil, err
 	}
 
 	// handle newly discovered peers during back prop
-	if err := thrd.sendWelcome(); err != nil {
+	err = thrd.sendWelcome()
+	if err != nil {
 		return nil, err
 	}
 
 	// we may be auto-leaving
 	if leave {
-		if _, err := h.removeThread(thrd.Id); err != nil {
+		_, err = h.removeThread(thrd.Id)
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -211,14 +214,16 @@ func (h *ThreadsService) handleAdd(hash mh.Multihash, tenv *pb.ThreadEnvelope, a
 		return nil
 	}
 	block := new(pb.ThreadBlock)
-	if err := proto.Unmarshal(plaintext, block); err != nil {
+	err = proto.Unmarshal(plaintext, block)
+	if err != nil {
 		return err
 	}
 	if block.Type != pb.Block_ADD {
 		return ErrInvalidThreadBlock
 	}
 	msg := new(pb.ThreadAdd)
-	if err := ptypes.UnmarshalAny(block.Payload, msg); err != nil {
+	err = ptypes.UnmarshalAny(block.Payload, msg)
+	if err != nil {
 		return err
 	}
 
@@ -226,7 +231,8 @@ func (h *ThreadsService) handleAdd(hash mh.Multihash, tenv *pb.ThreadEnvelope, a
 		log.Debugf("handling %s from account peer %s", block.Type.String(), block.Header.Author)
 
 		// can auto-join
-		if _, err := h.addThread(plaintext); err != nil {
+		_, err = h.addThread(plaintext)
+		if err != nil {
 			return err
 		}
 		return nil
@@ -238,13 +244,14 @@ func (h *ThreadsService) handleAdd(hash mh.Multihash, tenv *pb.ThreadEnvelope, a
 		}
 	}
 
-	if err := h.datastore.Invites().Add(&pb.Invite{
+	err = h.datastore.Invites().Add(&pb.Invite{
 		Id:      hash.B58String(),
 		Block:   plaintext,
 		Name:    msg.Thread.Name,
 		Inviter: msg.Inviter,
 		Date:    block.Header.Date,
-	}); err != nil {
+	})
+	if err != nil {
 		if !db.ConflictError(err) {
 			return err
 		}
@@ -276,10 +283,8 @@ func (h *ThreadsService) handleIgnore(thrd *Thread, hash mh.Multihash, block *pb
 
 // handleFlag receives a flag message
 func (h *ThreadsService) handleFlag(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	if _, err := thrd.handleFlagBlock(hash, block); err != nil {
-		return err
-	}
-	return nil
+	_, err := thrd.handleFlagBlock(hash, block)
+	return err
 }
 
 // handleJoin receives a join message
@@ -299,10 +304,8 @@ func (h *ThreadsService) handleJoin(thrd *Thread, hash mh.Multihash, block *pb.T
 
 // handleAnnounce receives an announce message
 func (h *ThreadsService) handleAnnounce(thrd *Thread, hash mh.Multihash, block *pb.ThreadBlock) error {
-	if _, err := thrd.handleAnnounceBlock(hash, block); err != nil {
-		return err
-	}
-	return nil
+	_, err := thrd.handleAnnounceBlock(hash, block)
+	return err
 }
 
 // handleLeave receives a leave message
