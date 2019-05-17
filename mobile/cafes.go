@@ -1,8 +1,9 @@
 package mobile
 
 import (
-	"encoding/hex"
 	"fmt"
+	"mime/multipart"
+	"os"
 	"path/filepath"
 
 	"github.com/segmentio/ksuid"
@@ -137,6 +138,12 @@ func (m *Mobile) WriteCafeHTTPRequests(group string) ([]byte, error) {
 		return nil, core.ErrStopped
 	}
 
+	// ensure tmp exists
+	err := util.Mkdirp(filepath.Join(m.RepoPath, "tmp"))
+	if err != nil {
+		return nil, err
+	}
+
 	reqs := m.node.Datastore().CafeRequests().GetGroup(group)
 	if len(reqs.Items) == 0 {
 		return nil, fmt.Errorf("request group not found")
@@ -166,7 +173,6 @@ func (m *Mobile) WriteCafeHTTPRequests(group string) ([]byte, error) {
 
 			// store reqs can be handled by multipart form data
 			if rtype == pb.CafeRequest_STORE {
-				var body []byte
 				hreq := &pb.CafeHTTPRequest{
 					Type: pb.CafeHTTPRequest_PUT,
 					Url:  session.Cafe.Url + "/api/v1/store",
@@ -174,57 +180,63 @@ func (m *Mobile) WriteCafeHTTPRequests(group string) ([]byte, error) {
 						"Authorization":  "Basic " + session.Access,
 						"X-Textile-Peer": m.node.Ipfs().Identity.Pretty(),
 					},
+					Path: filepath.Join(m.RepoPath, "tmp", ksuid.New().String()),
 				}
 
-				// loop of reqs adding to form
-				for _, req := range reqs {
-
-				}
-
-				data, err := ipfs.DataAtPath(m.node.Ipfs(), req.Target)
+				// write each req with a multipart writer
+				file, err := os.Create(hreq.Path)
 				if err != nil {
-					if err == iface.ErrIsDir {
-						data, err := ipfs.GetObjectAtPath(m.node.Ipfs(), req.Target)
+					return nil, err
+				}
+				writer := multipart.NewWriter(file)
+				for _, req := range reqs {
+					part, err := writer.CreateFormFile("file", req.Target)
+					if err != nil {
+						return nil, err
+					}
+
+					data, err := ipfs.DataAtPath(m.node.Ipfs(), req.Target)
+					if err != nil {
+						if err == iface.ErrIsDir {
+							data, err := ipfs.GetObjectAtPath(m.node.Ipfs(), req.Target)
+							if err != nil {
+								return nil, err
+							}
+							hreq.Headers["X-Textile-Store-Type"] = "object"
+							_, err = part.Write(data)
+							if err != nil {
+								return nil, err
+							}
+						} else {
+							return nil, err
+						}
+					} else {
+						hreq.Headers["X-Textile-Store-Type"] = "data"
+						_, err = part.Write(data)
 						if err != nil {
 							return nil, err
 						}
-						hreq.Headers["X-Textile-Store-Type"] = "object"
-						body = data
-					} else {
-						return nil, err
-					}
-				} else {
-					hreq.Headers["X-Textile-Store-Type"] = "data"
-					body = data
-				}
-
-				if body != nil {
-					sig, err := m.node.Ipfs().PrivateKey.Sign(body)
-					if err != nil {
-						return nil, err
-					}
-					hreq.Headers["X-Textile-Peer-Sig"] = hex.EncodeToString(sig)
-
-					hreq.Path = filepath.Join(m.RepoPath, "tmp", ksuid.New().String())
-					err = util.WriteFileByPath(hreq.Path, body)
-					if err != nil {
-						return nil, err
 					}
 				}
+				_ = writer.Close()
+				_ = file.Close()
+
+				hreq.Headers["Content-Type"] = writer.FormDataContentType()
 
 				hreqs.Items = append(hreqs.Items, hreq)
 
 			} else {
 				for _, req := range reqs {
-					var body []byte
 					hreq := &pb.CafeHTTPRequest{
 						Url: session.Cafe.Url + "/api/v1",
 						Headers: map[string]string{
 							"Authorization":  "Basic " + session.Access,
 							"X-Textile-Peer": m.node.Ipfs().Identity.Pretty(),
+							"Content-Type":   "application/octet-stream",
 						},
 					}
 
+					var body []byte
 					switch req.Type {
 					case pb.CafeRequest_UNSTORE:
 						hreq.Type = pb.CafeHTTPRequest_DELETE
@@ -259,14 +271,9 @@ func (m *Mobile) WriteCafeHTTPRequests(group string) ([]byte, error) {
 					}
 
 					if body != nil {
-						sig, err := m.node.Ipfs().PrivateKey.Sign(body)
-						if err != nil {
-							return nil, err
-						}
-						hreq.Headers["X-Textile-Peer-Sig"] = hex.EncodeToString(sig)
-
+						hreq.Headers["Content-Type"] = "application/octet-stream"
 						hreq.Path = filepath.Join(m.RepoPath, "tmp", req.Id)
-						err = util.WriteFileByPath(hreq.Path, body)
+						err := util.WriteFileByPath(hreq.Path, body)
 						if err != nil {
 							return nil, err
 						}
