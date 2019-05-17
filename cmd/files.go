@@ -30,12 +30,22 @@ func init() {
 	register(&filesCmd{})
 }
 
+// ------------------------------------
+// > files
+
 type filesCmd struct {
 	Add    addFilesCmd `command:"add" description:"Add file(s) to a thread"`
 	List   lsFilesCmd  `command:"ls" description:"Paginate thread files"`
-	Get    getFilesCmd `command:"get" description:"Get a thread file by ID"`
+	Get    getFilesCmd `command:"get" description:"Get a file's metadata or content by its ID" positional-args:"yes" subcommands-optional:"yes"`
 	Ignore rmFilesCmd  `command:"ignore" description:"Ignore thread files"`
 	Keys   keysCmd     `command:"keys" description:"Show file keys"`
+}
+
+type getFilesCmd struct {
+	FileId         string        `positional-arg-name:"id" required:"yes" description:"the file ID you wish to fetch data for"`
+	Client         ClientOptions `group:"Client Options"`
+	MetaCommand    struct{}      `command:"meta"`
+	ContentCommand struct{}      `command:"content"`
 }
 
 func (x *filesCmd) Name() string {
@@ -74,6 +84,9 @@ func (m millOpts) setPlaintext(v bool) {
 func (m millOpts) setUse(v string) {
 	m.val["use"] = v
 }
+
+// ------------------------------------
+// > files add
 
 type addFilesCmd struct {
 	Client  ClientOptions `group:"Client Options"`
@@ -476,6 +489,9 @@ func multipartReader(f *os.File) (io.ReadSeeker, string, error) {
 	return bytes.NewReader(body.Bytes()), writer.FormDataContentType(), nil
 }
 
+// ------------------------------------
+// > files ls
+
 type lsFilesCmd struct {
 	Client ClientOptions `group:"Client Options"`
 	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for all."`
@@ -532,18 +548,12 @@ func callLsFiles(opts map[string]string) error {
 	})
 }
 
-type getFilesCmd struct {
-	Client ClientOptions `group:"Client Options"`
-}
-
-func (x *getFilesCmd) Usage() string {
-	return `
-
-Gets a thread file by block ID.`
-}
+// ------------------------------------
+// > files get
 
 func (x *getFilesCmd) Execute(args []string) error {
 	setApi(x.Client)
+
 	if len(args) == 0 {
 		return errMissingFileId
 	}
@@ -556,6 +566,9 @@ func (x *getFilesCmd) Execute(args []string) error {
 	output(res)
 	return nil
 }
+
+// ------------------------------------
+// > files rm
 
 type rmFilesCmd struct {
 	Client ClientOptions `group:"Client Options"`
