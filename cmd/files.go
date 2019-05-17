@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -21,47 +22,10 @@ import (
 	"github.com/textileio/go-textile/util"
 )
 
-var errMissingFilePath = fmt.Errorf("missing file path")
-var errMissingFileId = fmt.Errorf("missing file block ID")
 var errNothingToAdd = fmt.Errorf("nothing to add")
-var errMissingTarget = fmt.Errorf("missing target")
-
-func init() {
-	register(&filesCmd{})
-}
 
 // ------------------------------------
 // > files
-
-type filesCmd struct {
-	Add    addFilesCmd `command:"add" description:"Add file(s) to a thread"`
-	List   lsFilesCmd  `command:"ls" description:"Paginate thread files"`
-	Get    getFilesCmd `command:"get" description:"Get a file's metadata or content by its ID" positional-args:"yes" subcommands-optional:"yes"`
-	Ignore rmFilesCmd  `command:"ignore" description:"Ignore thread files"`
-	Keys   keysCmd     `command:"keys" description:"Show file keys"`
-}
-
-type getFilesCmd struct {
-	FileId         string        `positional-arg-name:"id" required:"yes" description:"the file ID you wish to fetch data for"`
-	Client         ClientOptions `group:"Client Options"`
-	MetaCommand    struct{}      `command:"meta"`
-	ContentCommand struct{}      `command:"content"`
-}
-
-func (x *filesCmd) Name() string {
-	return "files"
-}
-
-func (x *filesCmd) Short() string {
-	return "Manage thread files"
-}
-
-func (x *filesCmd) Long() string {
-	return `
-Files are added as blocks in a thread.
-Use this command to add, list, get, and ignore files.
-The 'key' command provides access to file encryption keys.`
-}
 
 const batchSize = 10
 
@@ -86,78 +50,37 @@ func (m millOpts) setUse(v string) {
 }
 
 // ------------------------------------
-// > files add
+// > file add
 
-type addFilesCmd struct {
-	Client  ClientOptions `group:"Client Options"`
-	Thread  string        `short:"t" long:"thread" description:"Thread ID. Omit for default."`
-	Caption string        `short:"c" long:"caption" description:"File(s) caption."`
-	Group   bool          `short:"g" long:"group" description:"Group directory files."`
-	Verbose bool          `short:"v" long:"verbose" description:"Prints files as they are milled."`
-}
-
-func (x *addFilesCmd) Usage() string {
-	return `
-
-Adds a file or directory of files to a thread. Files not supported
-by the thread schema are ignored. Nested directories are included.
-An existing file hash may also be used as input.
-Use the --group option to add directory files as a single object.
-Omit the --thread option to use the default thread (if selected).`
-}
-
-func (x *addFilesCmd) Execute(args []string) error {
-	setApi(x.Client)
-	opts := map[string]string{
-		"thread":  x.Thread,
-		"caption": x.Caption,
-		"group":   strconv.FormatBool(x.Group),
-		"verbose": strconv.FormatBool(x.Verbose),
-	}
-	return callAddFiles(args, opts)
-}
-
-func callAddFiles(args []string, opts map[string]string) error {
+func FileAdd(path string, threadID string, caption string, group bool, verbose bool) error {
 	var pth string
 	var fi os.FileInfo
-
 	var err error
 	fi, err = os.Stdin.Stat()
 	if err != nil {
 		return err
 	}
 	if (fi.Mode() & os.ModeCharDevice) != 0 {
-		if len(args) == 0 {
-			return errMissingFilePath
-		}
-
 		// check if path references a cid
-		ipth, err := ipfspath.ParsePath(args[0])
+		ipth, err := ipfspath.ParsePath(path)
 		if err == nil {
 			pth = ipth.String()
 		} else {
-			pth, err = homedir.Expand(args[0])
+			pth, err = homedir.Expand(path)
 			if err != nil {
-				pth = args[0]
+				pth = path
 			}
 
-			fi, err = os.Stat(pth)
+			fi, err = os.Stat(path)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	group := opts["group"] == "true"
-	verbose := opts["verbose"] == "true"
-
 	// fetch schema
-	threadId := opts["thread"]
-	if threadId == "" {
-		threadId = "default"
-	}
 	var thrd pb.Thread
-	if _, err := executeJsonPbCmd(GET, "threads/"+threadId, params{}, &thrd); err != nil {
+	if _, err := executeJsonPbCmd(http.MethodGet, "threads/"+threadID, params{}, &thrd); err != nil {
 		return err
 	}
 
@@ -171,6 +94,7 @@ func callAddFiles(args []string, opts map[string]string) error {
 
 	start := time.Now()
 
+	// if a  directory,  add each file inside it
 	if fi != nil && fi.IsDir() {
 		err := filepath.Walk(pth, func(pth string, fi os.FileInfo, err error) error {
 			if fi.IsDir() || fi.Name() == ".DS_Store" {
@@ -203,9 +127,12 @@ func callAddFiles(args []string, opts map[string]string) error {
 						break loop
 					}
 
-					if !group {
-						caption := strings.TrimSpace(fmt.Sprintf("%s (%d)", opts["caption"], count+1))
-						files, err := add([]*pb.Directory{dir}, threadId, caption, verbose)
+					if group == false {
+						files, err := add(
+							[]*pb.Directory{dir},
+							threadID,
+							strings.TrimSpace(fmt.Sprintf("%s (%d)", caption, count+1)),
+							verbose)
 						if err != nil {
 							cerr = err
 							break loop
@@ -232,7 +159,7 @@ func callAddFiles(args []string, opts map[string]string) error {
 			return err
 		}
 
-		files, err := add([]*pb.Directory{dir}, threadId, opts["caption"], verbose)
+		files, err := add([]*pb.Directory{dir}, threadID, caption, verbose)
 		if err != nil {
 			return err
 		}
@@ -242,7 +169,7 @@ func callAddFiles(args []string, opts map[string]string) error {
 	}
 
 	if group && len(dirs) > 0 {
-		files, err := add(dirs, threadId, opts["caption"], verbose)
+		files, err := add(dirs, threadID, caption, verbose)
 		if err != nil {
 			return err
 		}
@@ -264,14 +191,14 @@ func callAddFiles(args []string, opts map[string]string) error {
 	return nil
 }
 
-func add(dirs []*pb.Directory, threadId string, caption string, verbose bool) (*pb.Files, error) {
+func add(dirs []*pb.Directory, threadID string, caption string, verbose bool) (*pb.Files, error) {
 	data, err := pbMarshaler.MarshalToString(&pb.DirectoryList{Items: dirs})
 	if err != nil {
 		return nil, err
 	}
 
 	files := new(pb.Files)
-	res, err := executeJsonPbCmd(POST, "threads/"+threadId+"/files", params{
+	res, err := executeJsonPbCmd(http.MethodPost, "threads/"+threadID+"/files", params{
 		opts:    map[string]string{"caption": caption},
 		payload: strings.NewReader(data),
 		ctype:   "application/json",
@@ -401,7 +328,7 @@ func mill(pth string, node *pb.Node, verbose bool) (*pb.Directory, error) {
 				}
 				mopts.setUse(dir.Files[step.Link.Use].Hash)
 
-				res, err = executeJsonPbCmd(POST, "mills"+step.Link.Mill, params{
+				res, err = executeJsonPbCmd(http.MethodPost, "mills"+step.Link.Mill, params{
 					opts: mopts.val,
 				}, file)
 				if err != nil {
@@ -463,7 +390,7 @@ func batchPaths(pths []string, size int) [][]string {
 func handleStep(mil string, reader io.Reader, opts millOpts, ctype string) (string, *pb.FileIndex, error) {
 	var file pb.FileIndex
 
-	res, err := executeJsonPbCmd(POST, "mills"+mil, params{
+	res, err := executeJsonPbCmd(http.MethodPost, "mills"+mil, params{
 		opts:    opts.val,
 		payload: reader,
 		ctype:   ctype,
@@ -490,36 +417,15 @@ func multipartReader(f *os.File) (io.ReadSeeker, string, error) {
 }
 
 // ------------------------------------
-// > files ls
+// > file ls
 
-type lsFilesCmd struct {
-	Client ClientOptions `group:"Client Options"`
-	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for all."`
-	Offset string        `short:"o" long:"offset" description:"Offset ID to start listing from."`
-	Limit  int           `short:"l" long:"limit" description:"List page size." default:"5"`
-}
-
-func (x *lsFilesCmd) Usage() string {
-	return `
-
-Paginates thread files.
-Omit the --thread option to paginate all files.
-Specify "default" to use the default thread (if selected).`
-}
-
-func (x *lsFilesCmd) Execute(args []string) error {
-	setApi(x.Client)
-	opts := map[string]string{
-		"thread": x.Thread,
-		"offset": x.Offset,
-		"limit":  strconv.Itoa(x.Limit),
-	}
-	return callLsFiles(opts)
-}
-
-func callLsFiles(opts map[string]string) error {
+func FileList(threadID string, offset string, limit int) error {
 	var list pb.FilesList
-	res, err := executeJsonPbCmd(GET, "files", params{opts: opts}, &list)
+	res, err := executeJsonPbCmd(http.MethodGet, "files", params{opts: map[string]string{
+		"thread": threadID,
+		"offset": offset,
+		"limit":  strconv.Itoa(limit),
+	}}, &list)
 	if err != nil {
 		return err
 	}
@@ -527,10 +433,6 @@ func callLsFiles(opts map[string]string) error {
 		output(res)
 	}
 
-	limit, err := strconv.Atoi(opts["limit"])
-	if err != nil {
-		return err
-	}
 	if len(list.Items) < limit {
 		return nil
 	}
@@ -541,24 +443,14 @@ func callLsFiles(opts map[string]string) error {
 		return err
 	}
 
-	return callLsFiles(map[string]string{
-		"thread": opts["thread"],
-		"offset": list.Items[len(list.Items)-1].Block,
-		"limit":  opts["limit"],
-	})
+	return FileList(threadID, list.Items[len(list.Items)-1].Block, limit)
 }
 
 // ------------------------------------
-// > files get
+// > file meta
 
-func (x *getFilesCmd) Execute(args []string) error {
-	setApi(x.Client)
-
-	if len(args) == 0 {
-		return errMissingFileId
-	}
-
-	res, err := executeJsonCmd(GET, "files/"+util.TrimQuotes(args[0]), params{}, nil)
+func FileMeta(fileId string) error {
+	res, err := executeJsonCmd(http.MethodGet, "files/"+util.TrimQuotes(fileId)+"/meta", params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -568,42 +460,30 @@ func (x *getFilesCmd) Execute(args []string) error {
 }
 
 // ------------------------------------
-// > files rm
+// > file content
 
-type rmFilesCmd struct {
-	Client ClientOptions `group:"Client Options"`
-}
-
-func (x *rmFilesCmd) Usage() string {
-	return `
-
-Ignores a thread file by its block ID.
-This adds an "ignore" thread block targeted at the file.
-Ignored blocks are by default not returned when listing.`
-}
-
-func (x *rmFilesCmd) Execute(args []string) error {
-	setApi(x.Client)
-	return callRmBlocks(args)
-}
-
-type keysCmd struct {
-	Client ClientOptions `group:"Client Options"`
-}
-
-func (x *keysCmd) Usage() string {
-	return `
-
-Shows file keys under the given target from an add.`
-}
-
-func (x *keysCmd) Execute(args []string) error {
-	setApi(x.Client)
-	if len(args) == 0 {
-		return errMissingTarget
+func FileContent(fileId string) error {
+	res, err := executeJsonCmd(http.MethodGet, "files/"+util.TrimQuotes(fileId)+"/content", params{}, nil)
+	if err != nil {
+		return err
 	}
 
-	res, err := executeJsonCmd(GET, "keys/"+util.TrimQuotes(args[0]), params{}, nil)
+	output(res)
+	return nil
+}
+
+// ------------------------------------
+// > file rm
+
+func FileIgnore(fileId string) error {
+	return BlockRemove(fileId)
+}
+
+// ------------------------------------
+// > files key
+
+func FileKeys(fileId string) error {
+	res, err := executeJsonCmd(http.MethodGet, "keys/"+util.TrimQuotes(fileId), params{}, nil)
 	if err != nil {
 		return err
 	}

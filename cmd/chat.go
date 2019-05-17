@@ -10,36 +10,7 @@ import (
 	"github.com/textileio/go-textile/pb"
 )
 
-func init() {
-	register(&chatCmd{})
-}
-
-type chatCmd struct {
-	Client ClientOptions `group:"Client Options"`
-	Thread string        `short:"t" long:"thread" description:"Thread ID. Omit for all."`
-}
-
-func (x *chatCmd) Name() string {
-	return "chat"
-}
-
-func (x *chatCmd) Short() string {
-	return "Start a thread chat"
-}
-
-func (x *chatCmd) Long() string {
-	return `
-Starts an interactive chat session in a thread.
-Omit the --thread option to use the default thread (if selected).`
-}
-
-func (x *chatCmd) Execute(args []string) error {
-	setApi(x.Client)
-
-	if x.Thread == "" {
-		x.Thread = "default"
-	}
-
+func Chat(threadID string) error {
 	contact, err := getContact()
 	if err != nil {
 		return err
@@ -51,7 +22,7 @@ func (x *chatCmd) Execute(args []string) error {
 	}
 	defer rl.Close()
 
-	updates, err := callSub(x.Thread, []string{"text"})
+	updates, err := Subscribe(threadID, []string{"text"})
 	if err != nil {
 		return err
 	}
@@ -98,7 +69,7 @@ func (x *chatCmd) Execute(args []string) error {
 			break
 		}
 
-		if err := handleLine(line, x.Thread); err != nil {
+		if err := handleLine(line, threadID); err != nil {
 			return err
 		}
 		last = true
@@ -106,9 +77,9 @@ func (x *chatCmd) Execute(args []string) error {
 	return nil
 }
 
-func handleLine(line string, threadId string) error {
+func handleLine(line string, threadID string) error {
 	if strings.TrimSpace(line) != "" {
-		if _, err := callAddMessages(threadId, line); err != nil {
+		if _, err := AddMessage(threadID, line); err != nil {
 			return err
 		}
 	}
@@ -116,7 +87,7 @@ func handleLine(line string, threadId string) error {
 }
 
 func getContact() (*pb.Contact, error) {
-	_, c, err := callGetAccount()
+	_, c, err := getAccount()
 	if err != nil {
 		return nil, err
 	}

@@ -3,50 +3,15 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strconv"
 
 	"github.com/textileio/go-textile/util"
 )
 
-var errMissingMultiAddress = fmt.Errorf("missing peer multi address")
-var errMissingCID = fmt.Errorf("missing IPFS CID")
-
-func init() {
-	register(&ipfsCmd{})
-}
-
-type ipfsCmd struct {
-	Id    ipfsIdCmd    `command:"id" description:"Show IPFS peer ID"`
-	Swarm ipfsSwarmCmd `command:"swarm" description:"Access some IPFS swarm commands"`
-	Cat   ipfsCatCmd   `command:"cat" description:"Show IPFS object data"`
-}
-
-func (x *ipfsCmd) Name() string {
-	return "ipfs"
-}
-
-func (x *ipfsCmd) Short() string {
-	return "Access IPFS commands"
-}
-
-func (x *ipfsCmd) Long() string {
-	return "Provides access to some IPFS commands."
-}
-
-type ipfsIdCmd struct {
-	Client ClientOptions `group:"Client Options"`
-}
-
-func (x *ipfsIdCmd) Usage() string {
-	return `
-
-Shows the local node's IPFS peer ID.`
-}
-
-func (x *ipfsIdCmd) Execute(args []string) error {
-	setApi(x.Client)
-	res, err := executeStringCmd(GET, "ipfs/id", params{})
+func IPFSId() error {
+	res, err := executeStringCmd(http.MethodGet, "ipfs/id", params{})
 	if err != nil {
 		return err
 	}
@@ -54,38 +19,9 @@ func (x *ipfsIdCmd) Execute(args []string) error {
 	return nil
 }
 
-type ipfsSwarmCmd struct {
-	Connect ipfsSwarmConnectCmd `command:"connect" description:"Open connection to a given address"`
-	Peers   ipfsSwarmPeersCmd   `command:"peers" description:"List peers with open connections"`
-}
-
-func (x *ipfsSwarmCmd) Usage() string {
-	return `
-
-Provides access to a limited set of IPFS swarm commands.`
-}
-
-type ipfsSwarmConnectCmd struct {
-	Client ClientOptions `group:"Client Options"`
-}
-
-func (x *ipfsSwarmConnectCmd) Usage() string {
-	return `
-
-Opens a new direct connection to a peer address.
-The address format is an IPFS multiaddr:
-
-textile ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ`
-}
-
-func (x *ipfsSwarmConnectCmd) Execute(args []string) error {
-	setApi(x.Client)
-	if len(args) == 0 {
-		return errMissingMultiAddress
-	}
-
-	res, err := executeJsonCmd(POST, "ipfs/swarm/connect", params{
-		args: args,
+func IPFSSwarmConnect(address string) error {
+	res, err := executeJsonCmd(http.MethodPost, "ipfs/swarm/connect", params{
+		args: []string{address},
 	}, nil)
 	if err != nil {
 		return err
@@ -94,29 +30,13 @@ func (x *ipfsSwarmConnectCmd) Execute(args []string) error {
 	return nil
 }
 
-type ipfsSwarmPeersCmd struct {
-	Client    ClientOptions `group:"Client Options"`
-	Verbose   bool          `short:"v" long:"verbose" description:"Display all extra information."`
-	Streams   bool          `short:"s" long:"streams" description:"Also list information about open streams for each peer."`
-	Latency   bool          `short:"l" long:"latency" description:"Also list information about latency to each peer."`
-	Direction bool          `short:"d" long:"direction" description:"Also list information about the direction of connection."`
-}
-
-func (x *ipfsSwarmPeersCmd) Usage() string {
-	return `
-
-Lists the set of peers this node is connected to.`
-}
-
-func (x *ipfsSwarmPeersCmd) Execute(args []string) error {
-	setApi(x.Client)
-
-	res, err := executeJsonCmd(GET, "ipfs/swarm/peers", params{
+func IPFSSwarmPeers(verbose bool, streams bool, latency bool, direction bool) error {
+	res, err := executeJsonCmd(http.MethodGet, "ipfs/swarm/peers", params{
 		opts: map[string]string{
-			"verbose":   strconv.FormatBool(x.Verbose),
-			"streams":   strconv.FormatBool(x.Streams),
-			"latency":   strconv.FormatBool(x.Latency),
-			"direction": strconv.FormatBool(x.Direction),
+			"verbose":   strconv.FormatBool(verbose),
+			"streams":   strconv.FormatBool(streams),
+			"latency":   strconv.FormatBool(latency),
+			"direction": strconv.FormatBool(direction),
 		},
 	}, nil)
 	if err != nil {
@@ -126,25 +46,10 @@ func (x *ipfsSwarmPeersCmd) Execute(args []string) error {
 	return nil
 }
 
-type ipfsCatCmd struct {
-	Client ClientOptions `group:"Client Options"`
-	Key    string        `short:"k" long:"key" description:"Encyrption key."`
-}
 
-func (x *ipfsCatCmd) Usage() string {
-	return `
-
-Displays the data behind an IPFS CID (hash).`
-}
-
-func (x *ipfsCatCmd) Execute(args []string) error {
-	setApi(x.Client)
-	if len(args) == 0 {
-		return errMissingCID
-	}
-
-	res, _, err := request(GET, "ipfs/cat/"+util.TrimQuotes(args[0]), params{
-		opts: map[string]string{"key": x.Key},
+func IPFSCat(hash string, key string) error {
+	res, _, err := request(http.MethodGet, "ipfs/cat/"+util.TrimQuotes(hash), params{
+		opts: map[string]string{"key": key},
 	})
 	if err != nil {
 		return err
