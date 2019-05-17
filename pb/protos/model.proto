@@ -301,6 +301,10 @@ message CafeHTTPRequest {
     }
 }
 
+message CafeHTTPRequestList {
+	repeated CafeHTTPRequest items = 1;
+}
+
 message CafeMessage {
     string id                      = 1;
     string peer                    = 2;

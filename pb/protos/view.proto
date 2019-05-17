@@ -241,3 +241,9 @@ message LogLevel {
         DEBUG    = 5;
     }
 }
+
+// PRIMITIVES
+
+message Strings {
+	repeated string items = 1;
+}
