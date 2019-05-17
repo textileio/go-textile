@@ -158,7 +158,6 @@ type CafeRequestStore interface {
 	List(offset string, limit int) *pb.CafeRequestList
 	ListGroups(offset string, limit int) []string
 	ListIncompleteSyncGroups() []string
-	ListCompleteSyncGroups() []string
 	SyncGroupStatus(syncGroupId string) *pb.CafeRequestSyncGroupStatus
 	UpdateStatus(id string, status pb.CafeRequest_Status) error
 	UpdateGroupStatus(group string, status pb.CafeRequest_Status) error
@@ -166,6 +165,7 @@ type CafeRequestStore interface {
 	Delete(id string) error
 	DeleteByGroup(groupId string) error
 	DeleteBySyncGroup(syncGroupId string) error
+	DeleteCompleteSyncGroups() error
 	DeleteByCafe(cafeId string) error
 }
 

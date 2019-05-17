@@ -114,7 +114,11 @@ func (m *Mobile) SetCafeRequestComplete(group string) error {
 		return core.ErrStopped
 	}
 
-	return m.node.Datastore().CafeRequests().UpdateGroupStatus(group, pb.CafeRequest_COMPLETE)
+	err := m.node.Datastore().CafeRequests().UpdateGroupStatus(group, pb.CafeRequest_COMPLETE)
+	if err != nil {
+		return err
+	}
+	return m.node.Datastore().CafeRequests().DeleteCompleteSyncGroups()
 }
 
 // SetCafeRequestFailed deletes a cafe request group
@@ -123,11 +127,15 @@ func (m *Mobile) SetCafeRequestFailed(group string) error {
 		return core.ErrStopped
 	}
 
-	return m.node.Datastore().CafeRequests().DeleteByGroup(group)
+	err := m.node.Datastore().CafeRequests().DeleteByGroup(group)
+	if err != nil {
+		return err
+	}
+	return m.node.Datastore().CafeRequests().DeleteCompleteSyncGroups()
 }
 
 // WriteCafeHTTPRequests a list of request objects for the given group, writing bodies to disk
-// Note: This also marks the group as pending
+// Note: This also marks the group as pending (TODO)
 // - store: PUT /store/:cid, body => raw object data
 // - unstore: DELETE /store/:cid, body => none
 // - store thread: PUT /threads/:id, body => encrypted thread object (snapshot)
