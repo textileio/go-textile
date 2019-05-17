@@ -126,12 +126,14 @@ func InitRepo(conf InitConfig) error {
 	if conf.Debug {
 		logLevel = getTextileDebugLevels()
 	}
-	if _, err := setLogLevels(conf.RepoPath, logLevel, conf.LogToDisk); err != nil {
+	_, err := setLogLevels(conf.RepoPath, logLevel, conf.LogToDisk)
+	if err != nil {
 		return err
 	}
 
 	// init repo
-	if err := repo.Init(conf.RepoPath, conf.IsMobile, conf.IsServer); err != nil {
+	err = repo.Init(conf.RepoPath, conf.IsMobile, conf.IsServer)
+	if err != nil {
 		return err
 	}
 
@@ -146,7 +148,8 @@ func InitRepo(conf InitConfig) error {
 	}()
 
 	// apply ipfs config opts
-	if err := applySwarmPortConfigOption(rep, conf.SwarmPorts); err != nil {
+	err = applySwarmPortConfigOption(rep, conf.SwarmPorts)
+	if err != nil {
 		return err
 	}
 
@@ -154,10 +157,12 @@ func InitRepo(conf InitConfig) error {
 	if err != nil {
 		return err
 	}
-	if err := sqliteDb.Config().Init(conf.PinCode); err != nil {
+	err = sqliteDb.Config().Init(conf.PinCode)
+	if err != nil {
 		return err
 	}
-	if err := sqliteDb.Config().Configure(conf.Account, time.Now()); err != nil {
+	err = sqliteDb.Config().Configure(conf.Account, time.Now())
+	if err != nil {
 		return err
 	}
 
@@ -167,10 +172,11 @@ func InitRepo(conf InitConfig) error {
 	}
 
 	// add self as a contact
-	if err := sqliteDb.Peers().Add(&pb.Peer{
+	err = sqliteDb.Peers().Add(&pb.Peer{
 		Id:      ipfsConf.Identity.PeerID,
 		Address: conf.Account.Address(),
-	}); err != nil {
+	})
+	if err != nil {
 		return err
 	}
 
@@ -197,7 +203,8 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 	}
 
 	// check if repo needs a major migration
-	if err := repo.Stat(conf.RepoPath); err != nil {
+	err := repo.Stat(conf.RepoPath)
+	if err != nil {
 		return nil, err
 	}
 
@@ -212,7 +219,6 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 		cafeOutboxHandler: conf.CafeOutboxHandler,
 	}
 
-	var err error
 	node.config, err = config.Read(conf.RepoPath)
 	if err != nil {
 		return nil, err
@@ -230,7 +236,8 @@ func NewTextile(conf RunConfig) (*Textile, error) {
 	}
 
 	// run all minor repo migrations if needed
-	if err := repo.MigrateUp(conf.RepoPath, conf.PinCode, false); err != nil {
+	err = repo.MigrateUp(conf.RepoPath, conf.PinCode, false)
+	if err != nil {
 		return nil, err
 	}
 
@@ -268,12 +275,14 @@ func (t *Textile) Start() error {
 
 	// ensure older peers get latest profiles
 	if t.Mobile() {
-		if err := ensureMobileConfig(t.repoPath); err != nil {
+		err = ensureMobileConfig(t.repoPath)
+		if err != nil {
 			return err
 		}
 	}
 	if t.Server() {
-		if err := ensureServerConfig(t.repoPath); err != nil {
+		err = ensureServerConfig(t.repoPath)
+		if err != nil {
 			return err
 		}
 	}
@@ -286,7 +295,8 @@ func (t *Textile) Start() error {
 	log.Debugf("fd limit: %d (changed %t)", limit, changed)
 
 	// open db
-	if err := t.touchDatastore(); err != nil {
+	err = t.touchDatastore()
+	if err != nil {
 		return err
 	}
 
@@ -327,12 +337,14 @@ func (t *Textile) Start() error {
 
 	// start the ipfs node
 	log.Debug("creating an ipfs node...")
-	if err := t.createIPFS(plugins, false); err != nil {
+	err = t.createIPFS(plugins, false)
+	if err != nil {
 		return err
 	}
 	go func() {
 		defer close(t.online)
-		if err := t.createIPFS(plugins, true); err != nil {
+		err := t.createIPFS(plugins, true)
+		if err != nil {
 			log.Errorf("error creating ipfs node: %s", err)
 			return
 		}
@@ -353,7 +365,8 @@ func (t *Textile) Start() error {
 
 		go t.runJobs()
 
-		if err := ipfs.PrintSwarmAddrs(t.node); err != nil {
+		err = ipfs.PrintSwarmAddrs(t.node)
+		if err != nil {
 			log.Errorf(err.Error())
 		}
 		log.Info("node is online")
@@ -361,13 +374,15 @@ func (t *Textile) Start() error {
 		// tmp. publish contact for migrated users.
 		// this normally only happens when peer details are changed,
 		// will be removed at some point in the future.
-		if err := t.publishPeer(); err != nil {
+		err = t.publishPeer()
+		if err != nil {
 			log.Errorf(err.Error())
 		}
 	}()
 
 	for _, mod := range t.datastore.Threads().List().Items {
-		if _, err := t.loadThread(mod); err != nil {
+		_, err = t.loadThread(mod)
+		if err != nil {
 			if err == ErrThreadLoaded {
 				continue
 			} else {
@@ -407,20 +422,21 @@ func (t *Textile) Stop() error {
 	}
 
 	// close apis
-	if err := t.stopCafeApi(); err != nil {
+	err := t.stopCafeApi()
+	if err != nil {
 		return err
 	}
 
 	// close ipfs node
-	if err := t.node.Close(); err != nil {
+	err = t.node.Close()
+	if err != nil {
 		return err
 	}
 
 	// close db connection
 	t.datastore.Close()
 	dsLockFile := filepath.Join(t.repoPath, "datastore", "LOCK")
-	if err := os.Remove(dsLockFile); err != nil {
-	}
+	_ = os.Remove(dsLockFile)
 
 	// wipe threads
 	t.loadedThreads = nil
@@ -458,6 +474,11 @@ func (t *Textile) Mobile() bool {
 // Server returns whether or not node is configured for a server
 func (t *Textile) Server() bool {
 	return t.config.IsServer
+}
+
+// Datastore returns the underlying sqlite datastore interface
+func (t *Textile) Datastore() repo.Datastore {
+	return t.datastore
 }
 
 // Writer returns the output writer (logger / stdout)
@@ -522,10 +543,8 @@ func (t *Textile) LinksAtPath(path string) ([]*ipld.Link, error) {
 
 // SetLogLevel provides node scoped access to the logging system
 func (t *Textile) SetLogLevel(level *pb.LogLevel) error {
-	if _, err := setLogLevels(t.repoPath, level, t.config.Logs.LogToDisk); err != nil {
-		return err
-	}
-	return nil
+	_, err := setLogLevels(t.repoPath, level, t.config.Logs.LogToDisk)
+	return err
 }
 
 // threadsService returns the threads service
@@ -670,8 +689,10 @@ func (t *Textile) loadThread(mod *pb.Thread) (*Thread, error) {
 // loadThreadSchemas loads thread schemas that were not found locally during startup
 func (t *Textile) loadThreadSchemas() {
 	<-t.online
+	var err error
 	for _, l := range t.loadedThreads {
-		if err := l.loadSchema(); err != nil {
+		err = l.loadSchema()
+		if err != nil {
 			log.Errorf("unable to load schema %s: %s", l.schemaId, err)
 		}
 	}
@@ -767,8 +788,10 @@ func setLogLevels(repoPath string, level *pb.LogLevel, disk bool) (io.Writer, er
 	logger.SetBackend(backendFile)
 	logging.SetAllLoggers(logger.ERROR)
 
+	var err error
 	for key, value := range level.Systems {
-		if err := logging.SetLogLevel(key, value.String()); err != nil {
+		err = logging.SetLogLevel(key, value.String())
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -789,9 +812,7 @@ func getTextileDebugLevels() *pb.LogLevel {
 // removeLocks force deletes the IPFS repo and SQLite DB lock files
 func removeLocks(repoPath string) {
 	repoLockFile := filepath.Join(repoPath, fsrepo.LockFile)
-	if err := os.Remove(repoLockFile); err != nil {
-	}
+	_ = os.Remove(repoLockFile)
 	dsLockFile := filepath.Join(repoPath, "datastore", "LOCK")
-	if err := os.Remove(dsLockFile); err != nil {
-	}
+	_ = os.Remove(dsLockFile)
 }

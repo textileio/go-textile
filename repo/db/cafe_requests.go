@@ -80,6 +80,13 @@ func (c *CafeRequestDB) Get(id string) *pb.CafeRequest {
 	return res.Items[0]
 }
 
+func (c *CafeRequestDB) GetGroup(group string) *pb.CafeRequestList {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	return c.handleQuery("select * from cafe_requests where groupId='" + group + "';")
+}
+
 func (c *CafeRequestDB) List(offset string, limit int) *pb.CafeRequestList {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -143,56 +150,30 @@ func (c *CafeRequestDB) ListIncompleteSyncGroups() []string {
 	return syncGroups
 }
 
-// a new
-// a pending
-// a complete
-
-// b complete
-// b complete
-// b complete
-
-// c new
-// c new
-// c new
-
-// -> b
-
 func (c *CafeRequestDB) ListCompleteSyncGroups() []string {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
 	syncGroups := make(map[string]*syncGroupCount)
-	total, err := c.db.Query("select Count(*), syncGroupId from cafe_requests group by syncGroupId;")
+	rows, err := c.db.Query("select Count(*), syncGroupId, status from cafe_requests group by syncGroupId;")
 	if err != nil {
 		log.Errorf("error in db query: %s", err)
 		return nil
 	}
-	for total.Next() {
-		var count int
+	for rows.Next() {
+		var count, status int
 		var syncGroupId string
-		if err := total.Scan(&count, &syncGroupId); err != nil {
+		if err := rows.Scan(&count, &syncGroupId, &status); err != nil {
 			log.Errorf("error in db scan: %s", err)
 			continue
 		}
 		if syncGroups[syncGroupId] == nil {
 			syncGroups[syncGroupId] = &syncGroupCount{}
 		}
-		syncGroups[syncGroupId].total = count
-	}
-
-	complete, err := c.db.Query("select Count(*), syncGroupId from cafe_requests where status=2 group by syncGroupId;")
-	if err != nil {
-		log.Errorf("error in db query: %s", err)
-		return nil
-	}
-	for complete.Next() {
-		var count int
-		var syncGroupId string
-		if err := complete.Scan(&count, &syncGroupId); err != nil {
-			log.Errorf("error in db scan: %s", err)
-			continue
+		syncGroups[syncGroupId].total += count
+		if status == 2 {
+			syncGroups[syncGroupId].complete += count
 		}
-		syncGroups[syncGroupId].complete = count
 	}
 
 	var list []string

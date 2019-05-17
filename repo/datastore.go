@@ -154,6 +154,7 @@ type CafeRequestStore interface {
 	Queryable
 	Add(req *pb.CafeRequest) error
 	Get(id string) *pb.CafeRequest
+	GetGroup(group string) *pb.CafeRequestList
 	List(offset string, limit int) *pb.CafeRequestList
 	ListGroups(offset string, limit int) []string
 	ListIncompleteSyncGroups() []string
