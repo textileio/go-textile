@@ -143,7 +143,7 @@ var (
 	blockFileBlockID = blockFileCmd.Arg("id", "Block ID").Required().String()
 	blockFileIndex = blockFileCmd.Flag("index", "If provided, the index of a specific file to retrieve").Default("0").Int()
 	blockFilePath = blockFileCmd.Flag("path", "If provided, the path of a specific file to retrieve").String()
-	blockFileContent = blockFileCmd.Flag("content", "If provided with a path, the content of the specific file is retrieved").Bool()
+	blockFileContent = blockFileCmd.Flag("content", "If provided alongside a path, the content of the specific file is retrieved").Bool()
 
 	// ================================
 
@@ -332,19 +332,16 @@ Nested directories are included.`)
 	fileAddVerbose = fileAddCmd.Flag("verbose", "Prints files as they are milled").Short('v').Bool()
 
 	// ignore
+	// @todo is this a block id or a file id?
 	fileIgnoreCmd = fileCmd.Command("ignore", `Ignores a thread file by its block ID.
 This adds an "ignore" thread block targeted at the file.
 Ignored blocks are by default not returned when listing.`).Alias("remove").Alias("rm")
 	fileIgnoreFileID = fileIgnoreCmd.Arg("id", "File ID").Required().String()
 
-	// meta
-	fileMetaCmd    = fileCmd.Command("meta", "Get the meta content of the file with <id>").Alias("get")
-	fileMetaFileID = fileMetaCmd.Arg("id", "File ID").Required().String()
-
-	// content
-	fileContentCmd    = fileCmd.Command("content", "Get the decrypted content of the file with <id>").Alias("data")
-	fileContentFileID = fileContentCmd.Arg("id", "File ID").Required().String()
-
+	// get
+	fileGetCmd = fileCmd.Command("get", "Get the metadata or content of a specific file")
+	fileGetFileID = fileGetCmd.Arg("id", "File ID").Required().String()
+	fileGetContent = fileGetCmd.Flag("content", "If provided, the decrypted content of the file is retrieved").Bool()
 
 	// ================================
 
@@ -763,11 +760,8 @@ func Run() error {
 	case fileIgnoreCmd.FullCommand():
 		return FileIgnore(*fileIgnoreFileID)
 
-	case fileMetaCmd.FullCommand():
-		return FileMeta(*fileMetaFileID)
-
-	case fileContentCmd.FullCommand():
-		return FileContent(*fileContentFileID)
+	case fileGetCmd.FullCommand():
+		return FileGet(*fileGetFileID, *fileGetContent)
 
 	case fileAddCmd.FullCommand():
 		return FileAdd(*fileAddPath, *fileAddThreadID, *fileAddCaption, *fileAddGroup, *fileAddVerbose)

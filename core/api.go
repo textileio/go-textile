@@ -219,6 +219,9 @@ func (a *api) Start() {
 		files := v0.Group("/files")
 		{
 			files.GET("", a.lsThreadFiles)
+
+			// @todo mark as deprecated somehow
+			// they should use what it redirects to
 			files.GET("/:block", func (g *gin.Context) {
 				g.Redirect(http.StatusPermanentRedirect, "/api/v0/blocks/" + g.Param("block") + "/files")
 			})
@@ -226,7 +229,17 @@ func (a *api) Start() {
 
 		file := v0.Group("/file")
 		{
-			file.GET("/:hash/data", a.getFileData)
+			hash := file.Group("/:hash")
+			{
+				hash.GET("", func (g *gin.Context) {
+					g.Redirect(http.StatusPermanentRedirect, "/api/v0/file/" + g.Param("hash") + "/meta")
+				})
+				hash.GET("/data", func (g *gin.Context) {
+					g.Redirect(http.StatusPermanentRedirect, "/api/v0/file/" + g.Param("hash") + "/content")
+				})
+				hash.GET("/meta", a.getFileMeta)
+				hash.GET("/content", a.getFileContent)
+			}
 		}
 
 		feed := v0.Group("/feed")

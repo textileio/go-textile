@@ -446,28 +446,19 @@ func FileList(threadID string, offset string, limit int) error {
 }
 
 // ------------------------------------
-// > file meta
+// > file get
 
-func FileMeta(fileID string) error {
-	res, err := executeJsonCmd(http.MethodGet, "files/"+fileID+"/meta", params{}, nil)
-	if err != nil {
+func FileGet(fileID string, content bool) error {
+	if content {
+		err := executeBlobCmd(http.MethodGet, "file/"+fileID+"/content", params{})
 		return err
+	} else {
+		res, err := executeJsonCmd(http.MethodGet, "file/"+fileID+"/meta", params{}, nil)
+		if err != nil {
+			return err
+		}
+		output(res)
 	}
-
-	output(res)
-	return nil
-}
-
-// ------------------------------------
-// > file content
-
-func FileContent(fileID string) error {
-	res, err := executeJsonCmd(http.MethodGet, "files/"+fileID+"/content", params{}, nil)
-	if err != nil {
-		return err
-	}
-
-	output(res)
 	return nil
 }
 

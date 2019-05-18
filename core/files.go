@@ -215,12 +215,23 @@ func (t *Textile) FileIndex(hash string) (*pb.FileIndex, error) {
 	return file, nil
 }
 
-func (t *Textile) FileContent(hash string) (io.ReadSeeker, *pb.FileIndex, error) {
+func (t *Textile) FileMeta(hash string) (*pb.FileIndex, error) {
 	file := t.datastore.Files().Get(hash)
 	if file == nil {
-		return nil, nil, ErrFileNotFound
+		return nil, ErrFileNotFound
 	}
-	reader, err := t.FileIndexContent(file)
+	return file, nil
+}
+
+func (t *Textile) FileContent(hash string) (io.ReadSeeker, *pb.FileIndex, error) {
+	var err error
+	var file *pb.FileIndex
+	var reader io.ReadSeeker
+	file, err = t.FileMeta(hash)
+	if err != nil {
+		return nil, nil, err
+	}
+	reader, err = t.FileIndexContent(file)
 	return reader, file, err
 }
 

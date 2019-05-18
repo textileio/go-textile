@@ -172,6 +172,18 @@ func (a *api) lsThreadFileTargetKeys(g *gin.Context) {
 	pbJSON(g, http.StatusOK, keys)
 }
 
+// @todo
+func (a *api) getFileMeta(g *gin.Context) {
+	file, err := a.node.FileMeta(g.Param("hash"))
+	if err != nil {
+		g.String(http.StatusNotFound, err.Error())
+		return
+	}
+
+	pbJSON(g, http.StatusOK, file)
+}
+
+
 // getFileData godoc
 // @Summary File data at hash
 // @Description Returns raw data for file
@@ -181,7 +193,7 @@ func (a *api) lsThreadFileTargetKeys(g *gin.Context) {
 // @Success 200 {string} byte
 // @Failure 404 {string} string "Not Found"
 // @Router /file/{hash}/data [get]
-func (a *api) getFileData(g *gin.Context) {
+func (a *api) getFileContent(g *gin.Context) {
 	reader, file, err := a.node.FileContent(g.Param("hash"))
 	if err != nil {
 		g.String(http.StatusNotFound, err.Error())
