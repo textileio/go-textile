@@ -8,7 +8,6 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/go-textile/pb"
-	"github.com/textileio/go-textile/util"
 )
 
 var errMissingAddInfo = fmt.Errorf("missing name or account address")
@@ -107,7 +106,7 @@ func GetContact(address string) (*pb.Contact, string, error) {
 }
 
 func ContactRemove(address string) error {
-	res, err := executeStringCmd(http.MethodDelete, "contacts/"+util.TrimQuotes(address), params{})
+	res, err := executeStringCmd(http.MethodDelete, "contacts/"+address, params{})
 	if err != nil {
 		return err
 	}

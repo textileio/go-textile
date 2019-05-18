@@ -48,7 +48,7 @@ func IPFSSwarmPeers(verbose bool, streams bool, latency bool, direction bool) er
 
 
 func IPFSCat(hash string, key string) error {
-	res, _, err := request(http.MethodGet, "ipfs/cat/"+util.TrimQuotes(hash), params{
+	res, _, err := request(http.MethodGet, "ipfs/cat/"+hash, params{
 		opts: map[string]string{"key": key},
 	})
 	if err != nil {

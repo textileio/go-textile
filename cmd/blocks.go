@@ -8,17 +8,12 @@ import (
 	"strconv"
 
 	"github.com/textileio/go-textile/pb"
-	"github.com/textileio/go-textile/util"
 )
 
-func BlockList(threadId string, offset string, limit int, dots bool) error {
-	if threadId == "" {
-		threadId = "default"
-	}
-
+func BlockList(threadID string, offset string, limit int, dots bool) error {
 	var nextOffset string
 	opts := map[string]string{
-		"thread": threadId,
+		"thread": threadID,
 		"offset": offset,
 		"limit":  strconv.Itoa(limit),
 		"dots":   strconv.FormatBool(dots),
@@ -61,11 +56,11 @@ func BlockList(threadId string, offset string, limit int, dots bool) error {
 		return err
 	}
 
-	return BlockList(threadId, nextOffset, limit, dots)
+	return BlockList(threadID, nextOffset, limit, dots)
 }
 
-func BlockMeta(id string) error {
-	_, res, err := getBlockMeta(id)
+func BlockMeta(blockID string) error {
+	_, res, err := getBlockMeta(blockID)
 	if err != nil {
 		return err
 	}
@@ -73,17 +68,17 @@ func BlockMeta(id string) error {
 	return nil
 }
 
-func getBlockMeta(id string) (*pb.Block, string, error) {
+func getBlockMeta(blockID string) (*pb.Block, string, error) {
 	var block pb.Block
-	res, err := executeJsonPbCmd(http.MethodGet, "blocks/"+id, params{}, &block)
+	res, err := executeJsonPbCmd(http.MethodGet, "blocks/"+blockID, params{}, &block)
 	if err != nil {
 		return nil, "", err
 	}
 	return &block, res, nil
 }
 
-func BlockRemove(id string) error {
-	res, err := executeJsonCmd(http.MethodDelete, "blocks/"+util.TrimQuotes(id), params{}, nil)
+func BlockRemove(blockID string) error {
+	res, err := executeJsonCmd(http.MethodDelete, "blocks/"+blockID, params{}, nil)
 	if err != nil {
 		return err
 	}

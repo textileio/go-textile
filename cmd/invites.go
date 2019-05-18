@@ -8,14 +8,9 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/textileio/go-textile/pb"
-	"github.com/textileio/go-textile/util"
 )
 
 func InviteCreate(threadID string, address string, wait int) error {
-	if threadID == "" {
-		threadID = "default"
-	}
-
 	if address != "" {
 		contact, _, _ := GetContact(address)
 		if contact != nil {
@@ -103,7 +98,7 @@ func InviteList() error {
 }
 
 func InviteAccept(inviteID string, key string) error {
-	res, err := executeJsonCmd(http.MethodPost, "invites/"+util.TrimQuotes(inviteID)+"/accept", params{
+	res, err := executeJsonCmd(http.MethodPost, "invites/"+inviteID+"/accept", params{
 		args: []string{inviteID},
 		opts: map[string]string{
 			"key": key,
@@ -118,7 +113,7 @@ func InviteAccept(inviteID string, key string) error {
 
 
 func InviteIgnore(inviteID string) error {
-	res, err := executeStringCmd(http.MethodPost, "invites/"+util.TrimQuotes(inviteID)+"/ignore", params{
+	res, err := executeStringCmd(http.MethodPost, "invites/"+inviteID+"/ignore", params{
 		args: []string{inviteID},
 	})
 	if err != nil {

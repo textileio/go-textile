@@ -3,8 +3,6 @@ package cmd
 import (
 	"net/http"
 	"strconv"
-
-	"github.com/textileio/go-textile/util"
 )
 
 func TokenCreate(token string, noStore bool) error {
@@ -31,7 +29,7 @@ func TokenList() error {
 }
 
 func TokenValidate(token string) error {
-	res, err := executeStringCmd(http.MethodGet, "tokens/"+util.TrimQuotes(token), params{})
+	res, err := executeStringCmd(http.MethodGet, "tokens/"+token, params{})
 	if err != nil {
 		return err
 	}
@@ -40,7 +38,7 @@ func TokenValidate(token string) error {
 }
 
 func TokenRemove(token string) error {
-	res, err := executeStringCmd(http.MethodDelete, "tokens/"+util.TrimQuotes(token), params{})
+	res, err := executeStringCmd(http.MethodDelete, "tokens/"+token, params{})
 	if err != nil {
 		return err
 	}

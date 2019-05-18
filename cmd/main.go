@@ -104,7 +104,7 @@ var (
 
 	// list
 	blockListCmd = blockCmd.Command("list", "Paginates blocks in a thread").Alias("ls")
-	blockListThread = blockListCmd.Flag("thread", "Thread ID. Omit for default").Short('t').String()
+	blockListThreadID = blockListCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
 	blockListOffset = blockListCmd.Flag("offset", "Offset ID to start listing from").Short('o').String()
 	blockListLimit  = blockListCmd.Flag("limit", "List page size").Short('l').Default("5").Int()
 	blockListDots = blockListCmd.Flag("dots", "Return GraphViz dots instead of JSON").Short('d').Bool()
@@ -144,11 +144,10 @@ var (
 	cafeMessagesCmd = cafeCmd.Command("messages", "Check for messages at all cafes. New messages are downloaded and processed opportunistically.")
 
 	// ================================
-	// @todo does omitted the thread id, do all, or do default? conflicting docs on this
 
 	// chat
 	chatCmd = appCmd.Command("chat", `Starts an interactive chat session in a thread`)
-	chatThreadID = chatCmd.Flag("thread", "Thread ID, omit for default").Default("default").Short('t').String()
+	chatThreadID = chatCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
 
 	// ================================
 
@@ -250,7 +249,7 @@ Set the value of the 'Addresses.API' key:
 	// daemon
 	daemonCmd      = appCmd.Command("daemon", "Start a node daemon session")
 	daemonRepoPath = daemonCmd.Flag("repo-dir", "Specify a custom repository path").Short('r').String()
-	daemonPinCode  = daemonCmd.Flag("pin-code", "Specify the pin code for datastore encryption (omit of none was used during init)").Short('p').String()
+	daemonPinCode  = daemonCmd.Flag("pin-code", "Specify the pin code for datastore encryption (omit no pin code was used during init)").Short('p').String()
 	daemonDocs     = daemonCmd.Flag("serve-docs", "Whether to serve the local REST API docs").Short('s').Bool()
 	// @note use global debug flag, as otherwise conflict arises
 
@@ -274,10 +273,7 @@ The --mode option dictates how the feed is displayed:
 
 *  The initial post with some nested annotations. Newer annotations may have already been listed.
 *  One or more annotations about a post. The newest annotation assumes the "top" position in the stack. Additional
-     annotations are nested under the target. Newer annotations may have already been listed in the case as well.
-
-Omit the --thread option to paginate all files.
-Specify "default" to use the default thread (if selected).`)
+     annotations are nested under the target. Newer annotations may have already been listed in the case as well.`)
 	feedThreadID = feedCmd.Flag("thread", "Thread ID, omit for all").Short('t').String()
 	feedOffset = feedCmd.Flag("offset", "Offset ID to start listening from").Short('o').String()
 	feedLimit = feedCmd.Flag("limit", "List page size").Short('l').Default("3").Int()
@@ -289,12 +285,10 @@ Specify "default" to use the default thread (if selected).`)
 	fileCmd = appCmd.Command("file", "Interact with Textile Files").Alias("files")
 
 	// list
-	fileListCmd = fileCmd.Command("list", `Paginates thread files.
-Omit the --thread option to paginate all files.
-Specify "default" to use the default thread (if selected).`).Alias("ls")
-	fileListThreadID = fileListCmd.Flag("thread", "Thread ID, omit for the default").Short('t').String()
+	fileListCmd = fileCmd.Command("list", `Paginates thread files.`).Alias("ls")
+	fileListThreadID = fileListCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
 	fileListOffset = fileListCmd.Flag("offset", "Offset ID to start listing from").Short('o').String()
-	fileListLimit  = fileListCmd.Flag("limit", "List page size.").Short('l').Default("5").Int()
+	fileListLimit  = fileListCmd.Flag("limit", "List page size").Short('l').Default("5").Int()
 
 	// keys
 	fileKeysCmd    = fileCmd.Command("keys", "Shows file keys under the given target from an add.").Alias("key")
@@ -305,7 +299,7 @@ Specify "default" to use the default thread (if selected).`).Alias("ls")
 Files not supported by the thread schema are ignored.
 Nested directories are included.`)
 	fileAddPath    = fileAddCmd.Arg("path", "The path to the file or directory to add, can also be an existing hash").Required().String()
-	fileAddThreadID  = fileAddCmd.Flag("thread", "Thread ID, omit for the default").Default("default").Short('t').String()
+	fileAddThreadID  = fileAddCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
 	fileAddCaption = fileAddCmd.Flag("caption", "File(s) caption.").Short('c').String()
 	fileAddGroup   = fileAddCmd.Flag("group", "If provided, group a directory's files together into a single object.").Short('g').Bool()
 	fileAddVerbose = fileAddCmd.Flag("verbose", "Prints files as they are milled").Short('v').Bool()
@@ -346,10 +340,8 @@ invites, direct account-to-account and external:
 - External invites are encrypted with a single-use key and are useful for onboarding new users.`).Alias("invites")
 
 	// create
-	inviteCreateCmd = inviteCmd.Command("create", `Creates a direct account-to-account or external invite to a thread.
-Omit the --address option to create an external invite.
-Omit the --thread option to use the default thread (if selected).`)
-	inviteCreateThreadID = inviteCreateCmd.Flag("thread", "Thread ID, omit for default").Short('t').String()
+	inviteCreateCmd = inviteCmd.Command("create", `Creates a direct account-to-account or external invite to a thread.`)
+	inviteCreateThreadID = inviteCreateCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
 	inviteCreateAddress = inviteCreateCmd.Flag("address", "Account Address, omit to create an external invite").Short('a').String()
 	inviteCreateWait = inviteCreateCmd.Flag("wait", "Stops searching after [wait] seconds have elapsed (max 30s)").Default("2").Int()
 
@@ -384,7 +376,7 @@ Omit the --thread option to use the default thread (if selected).`)
 	// swarm peers
 	ipfsSwarmPeersCmd = ipfsSwarmCmd.Command("peers", "Lists the set of peers this node is connected to")
 	ipfsSwarmPeersVerbose = ipfsSwarmPeersCmd.Flag("verbose", "Display all extra information").Short('v').Bool()
-	ipfsSwarmPeersStreams  = ipfsSwarmPeersCmd.Flag("streams", "Also list information about open streams for seach peer").Short('s').Bool()
+	ipfsSwarmPeersStreams  = ipfsSwarmPeersCmd.Flag("streams", "Also list information about open streams for search peer").Short('s').Bool()
 	ipfsSwarmPeersLatency = ipfsSwarmPeersCmd.Flag("latency", "Also list information about the latency to each peer").Short('l').Bool()
 	ipfsSwarmPeersDirection = ipfsSwarmPeersCmd.Flag("direction", "Also list information about the direction of connection").Short('d').Bool()
 
@@ -440,13 +432,13 @@ Use this command to add, list, get, and ignore likes.`).Alias("likes")
 
 	// add
 	messageAddCmd = messageCmd.Command("add", "Adds a message to a thread")
-	messageAddThreadID = messageAddCmd.Flag("thread", "Thread ID, omit for default").String()
+	messageAddThreadID = messageAddCmd.Flag("thread", "Thread ID").Default("default").String()
 	messageAddBody = messageAddCmd.Arg("body", "The message to add the thread").String()
 
 
 	// list
 	messageListCmd = messageCmd.Command("list", "Paginates thread messages").Alias("ls")
-	messageListThreadID = messageListCmd.Flag("thread", "Thread ID, omit to paginate all messages, specify default to use the default thread (if selected)").Short('t').String()
+	messageListThreadID = messageListCmd.Flag("thread", "Thread ID, omit to paginate all messages").Short('t').String()
 	messageListOffset = messageListCmd.Flag("offset", "Offset ID to start the listing from").Short('o').String()
 	messageListLimit = messageListCmd.Flag("limit", "List page size").Default("10").Short('l').Int()
 
@@ -470,7 +462,7 @@ Use this command to add, list, get, and ignore likes.`).Alias("likes")
 	// ================================
 
 	// notification
-	notificationCmd = appCmd.Command("notification", "Manage notifications that have been genrated by thread and account activity").Alias("notifications")
+	notificationCmd = appCmd.Command("notification", "Manage notifications that have been generated by thread and account activity").Alias("notifications")
 
 	// list
 	notificationListCmd = notificationCmd.Command("list", "Lists notifications").Alias("ls")
@@ -547,9 +539,9 @@ shared      --> initiator: Y, whitelist: Y`).Alias("threads")
 	threadAddKey = threadAddCmd.Flag("key", "A locally unique key used by an app to identify this thread on recovery").Short('k').String()
 	threadAddType = threadAddCmd.Flag("type", "Set the thread type to one of: private, read_only, public, open").Short('t').Default("private").String()
 	threadAddSharing = threadAddCmd.Flag("sharing", "Set the thread sharing style to one of: not_shared, invite_only, shared").Short('s').Default("not_shared").String()
-	threadAddWhitelist = threadAddCmd.Flag("whitelist", "A contact address. When supplied, the thread will not allow additional peers, useful for 1-1 chat/file sharing. Can be used multiple times to include multiple contacts.").Short('w').Strings()
-	threadAddSchema = threadAddCmd.Flag("schema", "Thread schema ID. Supersedes schema filename.").String()
-	threadAddSchemaFile = threadAddCmd.Flag("schema-file", "Thread schema filename. Supersedes the built-in schema flags.").String() // @todo could swap this to file perhaps
+	threadAddWhitelist = threadAddCmd.Flag("whitelist", "A contact address. When supplied, the thread will not allow additional peers, useful for 1-1 chat/file sharing. Can be used multiple times to include multiple contacts").Short('w').Strings()
+	threadAddSchema = threadAddCmd.Flag("schema", "Thread schema ID. Supersedes schema filename").String()
+	threadAddSchemaFile = threadAddCmd.Flag("schema-file", "Thread schema filename, supersedes the built-in schema flags").String() // @todo could swap this to file perhaps
 	threadAddBlob = threadAddCmd.Flag("blob", "Use the built-in blob schema for generic data").Bool()
 	threadAddCameraRoll = threadAddCmd.Flag("camera-roll", "Use the built-in camera roll schema").Bool()
 	threadAddMedia = threadAddCmd.Flag("media", "Use the built-in media schema").Bool()
@@ -567,11 +559,11 @@ shared      --> initiator: Y, whitelist: Y`).Alias("threads")
 
 	// peer
 	threadPeerCmd = threadCmd.Command("peer", "Lists all peers in a thread").Alias("peers")
-	threadPeerThreadID = threadPeerCmd.Flag("thread", "Thread ID, omit to use the default thread").Short('t').Default("default").String()
+	threadPeerThreadID = threadPeerCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
 
 	// rename
 	threadRenameCmd = threadCmd.Command("rename", "Renames a thread. Only the initiator can rename the thread.").Alias("mv")
-	threadRenameThreadID = threadRenameCmd.Flag("thread", "Thread ID, omit to use the default thread").Default("default").Short('t').String()
+	threadRenameThreadID = threadRenameCmd.Flag("thread", "Thread ID").Default("default").Short('t').String()
 	threadRenameName = threadRenameCmd.Arg("name", "The name to rename the thread to").Required().String()
 
 	// remove
@@ -658,7 +650,7 @@ func Run() error {
 
 	// block
 	case blockListCmd.FullCommand():
-		return BlockList(*blockListThread, *blockListOffset, *blockListLimit, *blockListDots)
+		return BlockList(*blockListThreadID, *blockListOffset, *blockListLimit, *blockListDots)
 
 	case blockMetaCmd.FullCommand():
 		return BlockMeta(*blockMetaBlockID)
@@ -1084,8 +1076,11 @@ func executeJsonPbCmd(meth method, pth string, pars params, target proto.Message
 }
 
 func request(meth method, pth string, pars params) (*http.Response, func(), error) {
-	apiUrl := fmt.Sprintf("%s/api/%s/%s", *apiAddr, *apiVersion, pth)
-	req, err := http.NewRequest(string(meth), apiUrl, pars.payload)
+	apiURL := fmt.Sprintf("%s/api/%s/%s", *apiAddr, *apiVersion, pth)
+	if *logDebug {
+		fmt.Println(apiURL)
+	}
+	req, err := http.NewRequest(string(meth), apiURL, pars.payload)
 	if err != nil {
 		return nil, nil, err
 	}

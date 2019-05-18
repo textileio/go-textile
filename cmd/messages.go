@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/textileio/go-textile/pb"
-	"github.com/textileio/go-textile/util"
 )
 
 func MessageAdd(threadID string, body string) error {
@@ -21,10 +20,6 @@ func MessageAdd(threadID string, body string) error {
 }
 
 func AddMessage(threadID string, body string) (string, error) {
-	if threadID == "" {
-		threadID = "default"
-	}
-
 	res, err := executeJsonCmd(http.MethodPost, "threads/"+threadID+"/messages", params{
 		args: []string{body},
 	}, nil)
@@ -64,7 +59,7 @@ func MessageList(threadID string, offset string, limit int) error {
 }
 
 func MessageGet(messageID string) error {
-	res, err := executeJsonCmd(http.MethodGet, "messages/"+util.TrimQuotes(messageID), params{}, nil)
+	res, err := executeJsonCmd(http.MethodGet, "messages/"+messageID, params{}, nil)
 	if err != nil {
 		return err
 	}

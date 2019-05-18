@@ -12,7 +12,6 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/schema/textile"
-	"github.com/textileio/go-textile/util"
 )
 
 func ThreadAdd(key string, tipe string, sharing string, whitelist []string, schema string, schemaFile string, blob bool, cameraRoll bool, media bool) error {
@@ -82,7 +81,7 @@ func ThreadList() error {
 }
 
 func ThreadGet(threadID string) error {
-	res, err := executeJsonCmd(http.MethodGet, "threads/"+util.TrimQuotes(threadID), params{}, nil)
+	res, err := executeJsonCmd(http.MethodGet, "threads/"+threadID, params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -119,7 +118,7 @@ func ThreadRename(name string, threadID string) error {
 }
 
 func ThreadRemove(threadID string) error {
-	res, err := executeStringCmd(http.MethodDelete, "threads/"+util.TrimQuotes(threadID), params{})
+	res, err := executeStringCmd(http.MethodDelete, "threads/"+threadID, params{})
 	if err != nil {
 		return err
 	}

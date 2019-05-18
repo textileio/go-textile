@@ -19,7 +19,6 @@ import (
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/pb"
 	"github.com/textileio/go-textile/schema"
-	"github.com/textileio/go-textile/util"
 )
 
 var errNothingToAdd = fmt.Errorf("nothing to add")
@@ -417,7 +416,7 @@ func multipartReader(f *os.File) (io.ReadSeeker, string, error) {
 }
 
 // ------------------------------------
-// > file ls
+// > file list
 
 func FileList(threadID string, offset string, limit int) error {
 	var list pb.FilesList
@@ -449,8 +448,8 @@ func FileList(threadID string, offset string, limit int) error {
 // ------------------------------------
 // > file meta
 
-func FileMeta(fileId string) error {
-	res, err := executeJsonCmd(http.MethodGet, "files/"+util.TrimQuotes(fileId)+"/meta", params{}, nil)
+func FileMeta(fileID string) error {
+	res, err := executeJsonCmd(http.MethodGet, "files/"+fileID+"/meta", params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -462,8 +461,8 @@ func FileMeta(fileId string) error {
 // ------------------------------------
 // > file content
 
-func FileContent(fileId string) error {
-	res, err := executeJsonCmd(http.MethodGet, "files/"+util.TrimQuotes(fileId)+"/content", params{}, nil)
+func FileContent(fileID string) error {
+	res, err := executeJsonCmd(http.MethodGet, "files/"+fileID+"/content", params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -473,17 +472,17 @@ func FileContent(fileId string) error {
 }
 
 // ------------------------------------
-// > file rm
+// > file ignore
 
-func FileIgnore(fileId string) error {
-	return BlockRemove(fileId)
+func FileIgnore(fileID string) error {
+	return BlockRemove(fileID)
 }
 
 // ------------------------------------
 // > files key
 
-func FileKeys(fileId string) error {
-	res, err := executeJsonCmd(http.MethodGet, "keys/"+util.TrimQuotes(fileId), params{}, nil)
+func FileKeys(fileID string) error {
+	res, err := executeJsonCmd(http.MethodGet, "keys/"+fileID, params{}, nil)
 	if err != nil {
 		return err
 	}

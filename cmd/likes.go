@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"net/http"
-
-	"github.com/textileio/go-textile/util"
 )
 
 func LikeAdd(blockID string) error {
@@ -25,7 +23,7 @@ func LikeList(blockID string) error {
 }
 
 func LikeGet(likeID string) error {
-	res, err := executeJsonCmd(http.MethodGet, "blocks/"+util.TrimQuotes(likeID)+"/like", params{}, nil)
+	res, err := executeJsonCmd(http.MethodGet, "blocks/"+likeID+"/like", params{}, nil)
 	if err != nil {
 		return err
 	}

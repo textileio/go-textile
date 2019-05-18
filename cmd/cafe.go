@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"net/http"
-
-	"github.com/textileio/go-textile/util"
 )
 
 func CafeAdd(token string) error {
@@ -27,7 +25,7 @@ func CafeList() error {
 }
 
 func CafeGet(cafeID string) error {
-	res, err := executeJsonCmd(http.MethodGet, "cafes/"+util.TrimQuotes(cafeID), params{}, nil)
+	res, err := executeJsonCmd(http.MethodGet, "cafes/"+cafeID, params{}, nil)
 	if err != nil {
 		return err
 	}
@@ -36,7 +34,7 @@ func CafeGet(cafeID string) error {
 }
 
 func CafeRemove(cafeID string) error {
-	res, err := executeStringCmd(http.MethodDelete, "cafes/"+util.TrimQuotes(cafeID), params{})
+	res, err := executeStringCmd(http.MethodDelete, "cafes/"+cafeID, params{})
 	if err != nil {
 		return err
 	}
