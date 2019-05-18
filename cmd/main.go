@@ -138,6 +138,13 @@ var (
 	blockRemoveCmd = blockCmd.Command("remove", "Remove a block").Alias("rm")
 	blockRemoveBlockID = blockRemoveCmd.Arg("id", "Block ID").Required().String()
 
+	// files
+	blockFileCmd = blockCmd.Command("file", "Get the files or a file of a block").Alias("files")
+	blockFileBlockID = blockFileCmd.Arg("id", "Block ID").Required().String()
+	blockFileIndex = blockFileCmd.Flag("index", "If provided, the index of a specific file to retrieve").Default("0").Int()
+	blockFilePath = blockFileCmd.Flag("path", "If provided, the path of a specific file to retrieve").String()
+	blockFileContent = blockFileCmd.Flag("content", "If provided with a path, the content of the specific file is retrieved").Bool()
+
 	// ================================
 
 	// cafe
@@ -678,6 +685,9 @@ func Run() error {
 	case blockRemoveCmd.FullCommand():
 		return BlockRemove(*blockRemoveBlockID)
 
+	case blockFileCmd.FullCommand():
+		return BlockFile(*blockFileBlockID, *blockFileIndex, *blockFilePath,  *blockFileContent)
+
 	// cafe
 	case cafeAddCmd.FullCommand():
 		return CafeAdd(*cafeAddToken)
@@ -1029,6 +1039,28 @@ func executeJsonPbCmd(meth method, pth string, pars params, target proto.Message
 	}
 
 	return jsn, nil
+}
+
+func executeBlobCmd(meth method, pth string, pars params) error {
+	res, _, err := request(meth, pth, pars)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode >= 400 {
+		body, err := util.UnmarshalString(res.Body)
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf(body)
+	}
+
+	if _, err := io.Copy(os.Stdout, res.Body); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func request(meth method, pth string, pars params) (*http.Response, func(), error) {

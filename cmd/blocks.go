@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/textileio/go-textile/pb"
 )
@@ -83,5 +84,30 @@ func BlockRemove(blockID string) error {
 		return err
 	}
 	output(res)
+	return nil
+}
+
+func BlockFile(blockID string, index int, path string, content bool) error {
+	urlPath := "blocks/"+blockID+"/files"
+	if path != "" {
+		urlPath += "/" + strconv.Itoa(index) + "/" + strings.Trim(path, "/")
+		if content {
+			urlPath += "/content"
+		} else {
+			urlPath += "/meta"
+		}
+	}
+	if content {
+		err := executeBlobCmd(http.MethodGet, urlPath, params{})
+		if err != nil {
+			return err
+		}
+	} else {
+		res, err := executeJsonCmd(http.MethodGet, urlPath, params{}, nil)
+		if err != nil {
+			return err
+		}
+		output(res)
+	}
 	return nil
 }

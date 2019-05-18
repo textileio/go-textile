@@ -1,13 +1,8 @@
 package cmd
 
 import (
-	"fmt"
-	"io"
 	"net/http"
-	"os"
 	"strconv"
-
-	"github.com/textileio/go-textile/util"
 )
 
 func IPFSId() error {
@@ -48,25 +43,7 @@ func IPFSSwarmPeers(verbose bool, streams bool, latency bool, direction bool) er
 
 
 func IPFSCat(hash string, key string) error {
-	res, _, err := request(http.MethodGet, "ipfs/cat/"+hash, params{
+	return executeBlobCmd(http.MethodGet, "ipfs/cat/"+hash, params{
 		opts: map[string]string{"key": key},
 	})
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode >= 400 {
-		body, err := util.UnmarshalString(res.Body)
-		if err != nil {
-			return err
-		}
-		return fmt.Errorf(body)
-	}
-
-	if _, err := io.Copy(os.Stdout, res.Body); err != nil {
-		return err
-	}
-
-	return nil
 }
