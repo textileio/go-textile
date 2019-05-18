@@ -132,7 +132,7 @@ func (m *Mobile) PrepareFilesSync(data string, threadId string) ([]byte, error) 
 	}
 
 	for hash, pth := range mdir.Pin {
-		if err := m.writeFileData(hash, pth); err != nil {
+		if err := m.writeFileContent(hash, pth); err != nil {
 			return nil, err
 		}
 	}
@@ -238,7 +238,7 @@ func (m *Mobile) PrepareFilesByPathSync(path string, threadId string) ([]byte, e
 	}
 
 	for hash, pth := range mdir.Pin {
-		if err := m.writeFileData(hash, pth); err != nil {
+		if err := m.writeFileContent(hash, pth); err != nil {
 			return nil, err
 		}
 	}
@@ -357,13 +357,13 @@ func (m *Mobile) Files(threadId string, offset string, limit int) ([]byte, error
 	return proto.Marshal(files)
 }
 
-// FileData returns a data url of a raw file under a path
-func (m *Mobile) FileData(hash string) (string, error) {
+// FileContent returns a data url of a raw file under a path
+func (m *Mobile) FileContent(hash string) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
 
-	reader, file, err := m.node.FileData(hash)
+	reader, file, err := m.node.FileContent(hash)
 	if err != nil {
 		if err == core.ErrFileNotFound || err == ipld.ErrNotFound {
 			return "", nil
@@ -385,12 +385,12 @@ type img struct {
 	width int
 }
 
-// ImageFileDataForMinWidth returns a data url of an image at or above requested size,
+// ImageFileContentForMinWidth returns a data url of an image at or above requested size,
 // or the next best option.
 // Note: Now that consumers are in control of image sizes via schemas,
 // handling this here doesn't feel right. We can eventually push this up to RN, Obj-C, Java.
 // Note: pth is <target>/<index>, e.g., "Qm.../0"
-func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) (string, error) {
+func (m *Mobile) ImageFileContentForMinWidth(pth string, minWidth int) (string, error) {
 	if !m.node.Started() {
 		return "", core.ErrStopped
 	}
@@ -456,7 +456,7 @@ func (m *Mobile) ImageFileDataForMinWidth(pth string, minWidth int) (string, err
 		hash = imgs[len(imgs)-1].hash
 	}
 
-	return m.FileData(hash)
+	return m.FileContent(hash)
 }
 
 func (m *Mobile) getFileConfig(mil mill.Mill, data []byte, use string, plaintext bool) (*core.AddFileConfig, error) {
@@ -468,7 +468,7 @@ func (m *Mobile) getFileConfig(mil mill.Mill, data []byte, use string, plaintext
 	} else {
 		var file *pb.FileIndex
 		var err error
-		reader, file, err = m.node.FileData(use)
+		reader, file, err = m.node.FileContent(use)
 		if err != nil {
 			return nil, err
 		}
@@ -516,7 +516,7 @@ func (m *Mobile) getFileConfigByPath(mil mill.Mill, path string, use string, pla
 	} else {
 		var file *pb.FileIndex
 		var err error
-		reader, file, err = m.node.FileData(use)
+		reader, file, err = m.node.FileContent(use)
 		if err != nil {
 			return nil, err
 		}
@@ -546,7 +546,7 @@ func (m *Mobile) getFileConfigByPath(mil mill.Mill, path string, use string, pla
 	return conf, nil
 }
 
-func (m *Mobile) writeFileData(hash string, pth string) error {
+func (m *Mobile) writeFileContent(hash string, pth string) error {
 	if err := os.MkdirAll(filepath.Dir(pth), os.ModePerm); err != nil {
 		return err
 	}
