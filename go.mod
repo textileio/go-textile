@@ -12,6 +12,7 @@ require (
 	github.com/disintegration/imaging v1.6.0
 	github.com/evanphx/json-patch v4.1.0+incompatible
 	github.com/fatih/color v1.7.0
+	github.com/gin-contrib/location v0.0.0-20190301062650-0462caccbb9c
 	github.com/gin-contrib/size v0.0.0-20190301062339-6fb8220baadb
 	github.com/gin-gonic/gin v1.3.0
 	github.com/go-openapi/jsonpointer v0.19.0 // indirect

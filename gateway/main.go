@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-contrib/location"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
 	"github.com/golang/protobuf/jsonpb"
@@ -44,10 +46,10 @@ func (g *Gateway) Start(addr string) {
 	if g.Node != nil {
 		gin.DefaultWriter = g.Node.Writer()
 	}
+	conf := g.Node.Config()
 
 	router := gin.Default()
-
-	conf := g.Node.Config()
+	router.Use(location.Default())
 
 	// Add the CORS middleware
 	// Merges the API HTTPHeaders (from config/init) into blank/default CORS configuration
@@ -295,8 +297,9 @@ func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 func render404(c *gin.Context) {
 	if strings.Contains(c.Request.URL.String(), "small/content") ||
 		strings.Contains(c.Request.URL.String(), "large/content") {
+		url := location.Get(c)
 		pth := strings.Replace(c.Request.URL.String(), "/content", "/d", 1)
-		c.Redirect(http.StatusMovedPermanently, "http://127.0.0.1:5050"+pth)
+		c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s://%s%s", url.Scheme, url.Host, pth))
 		return
 	}
 

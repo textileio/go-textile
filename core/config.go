@@ -117,9 +117,9 @@ func ensureMobileConfig(repoPath string) error {
 
 	conf.Routing.Type = "dhtclient"
 	conf.Reprovider.Interval = "0"
-	conf.Swarm.ConnMgr.LowWater = 20
-	conf.Swarm.ConnMgr.HighWater = 40
-	conf.Swarm.ConnMgr.GracePeriod = time.Minute.String()
+	conf.Swarm.ConnMgr.LowWater = 200
+	conf.Swarm.ConnMgr.HighWater = 500
+	conf.Swarm.ConnMgr.GracePeriod = (time.Second * 20).String()
 	conf.Swarm.DisableBandwidthMetrics = true
 	conf.Swarm.EnableAutoRelay = false
 
