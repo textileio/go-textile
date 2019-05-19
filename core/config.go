@@ -121,7 +121,7 @@ func ensureMobileConfig(repoPath string) error {
 	conf.Swarm.ConnMgr.HighWater = 40
 	conf.Swarm.ConnMgr.GracePeriod = time.Minute.String()
 	conf.Swarm.DisableBandwidthMetrics = true
-	conf.Swarm.EnableAutoRelay = true
+	conf.Swarm.EnableAutoRelay = false
 
 	return rep.SetConfig(conf)
 }
