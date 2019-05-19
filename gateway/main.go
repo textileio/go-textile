@@ -293,6 +293,13 @@ func (g *Gateway) getDataAtPath(c *gin.Context, pth string) []byte {
 
 // render404 renders the 404 template
 func render404(c *gin.Context) {
+	if strings.Contains(c.Request.URL.String(), "small/content") ||
+		strings.Contains(c.Request.URL.String(), "large/content") {
+		pth := strings.Replace(c.Request.URL.String(), "/content", "/d", 1)
+		c.Redirect(http.StatusMovedPermanently, "http://127.0.0.1:5050"+pth)
+		return
+	}
+
 	c.HTML(http.StatusNotFound, "404", nil)
 }
 
