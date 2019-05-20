@@ -30,7 +30,7 @@ type pinResponse struct {
 
 func TestCafeApi_Setup(t *testing.T) {
 	// start one node
-	os.RemoveAll(repoPath1)
+	_ = os.RemoveAll(repoPath1)
 	accnt1 := keypair.Random()
 	if err := InitRepo(InitConfig{
 		Account:  accnt1,
@@ -47,10 +47,13 @@ func TestCafeApi_Setup(t *testing.T) {
 		t.Errorf("create node1 failed: %s", err)
 		return
 	}
-	node1.Start()
+	err = node1.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// start another
-	os.RemoveAll(repoPath2)
+	_ = os.RemoveAll(repoPath2)
 	accnt2 := keypair.Random()
 	if err := InitRepo(InitConfig{
 		Account:     accnt2,
@@ -69,7 +72,10 @@ func TestCafeApi_Setup(t *testing.T) {
 		t.Errorf("create node2 failed: %s", err)
 		return
 	}
-	node2.Start()
+	err = node2.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// wait for cafe to be online
 	<-node2.OnlineCh()
@@ -88,7 +94,8 @@ func TestCafeApi_Setup(t *testing.T) {
 	}
 
 	// register with cafe
-	if _, err := node1.RegisterCafe("http://127.0.0.1:5000", token); err != nil {
+	_, err = node1.RegisterCafe("http://127.0.0.1:5000", token)
+	if err != nil {
 		t.Errorf("register node1 w/ node2 failed: %s", err)
 		return
 	}
@@ -165,12 +172,12 @@ func TestCafeApi_PinArchive(t *testing.T) {
 }
 
 func TestCafeApi_Teardown(t *testing.T) {
-	node1.Stop()
-	node2.Stop()
+	_ = node1.Stop()
+	_ = node2.Stop()
 	node1 = nil
 	node2 = nil
-	os.RemoveAll(repoPath1)
-	os.RemoveAll(repoPath2)
+	_ = os.RemoveAll(repoPath1)
+	_ = os.RemoveAll(repoPath2)
 }
 
 func pin(reader io.Reader, cType string, token string, addr string) (*http.Response, error) {

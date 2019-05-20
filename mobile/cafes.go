@@ -135,7 +135,7 @@ func (m *Mobile) SetCafeRequestFailed(group string) error {
 }
 
 // WriteCafeHTTPRequests a list of request objects for the given group, writing bodies to disk
-// Note: This also marks the group as pending (TODO)
+// Note: This also marks the group as pending
 // - store: PUT /store/:cid, body => raw object data
 // - unstore: DELETE /store/:cid, body => none
 // - store thread: PUT /threads/:id, body => encrypted thread object (snapshot)
@@ -156,6 +156,7 @@ func (m *Mobile) WriteCafeHTTPRequests(group string) ([]byte, error) {
 	if len(reqs.Items) == 0 {
 		return nil, fmt.Errorf("request group not found")
 	}
+	var pending []string
 
 	// group by cafe
 	creqs := make(map[string][]*pb.CafeRequest)
@@ -225,6 +226,8 @@ func (m *Mobile) WriteCafeHTTPRequests(group string) ([]byte, error) {
 							return nil, err
 						}
 					}
+
+					pending = append(pending, req.Id)
 				}
 				_ = writer.Close()
 				_ = file.Close()
@@ -288,8 +291,17 @@ func (m *Mobile) WriteCafeHTTPRequests(group string) ([]byte, error) {
 					}
 
 					hreqs.Items = append(hreqs.Items, hreq)
+					pending = append(pending, req.Id)
 				}
 			}
+		}
+	}
+
+	// mark as pending
+	for _, id := range pending {
+		err = m.node.Datastore().CafeRequests().UpdateStatus(id, pb.CafeRequest_PENDING)
+		if err != nil {
+			return nil, err
 		}
 	}
 
