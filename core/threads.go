@@ -51,7 +51,8 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 
 		if conf.Schema.Id != "" {
 			// ensure schema id is a multi hash
-			if _, err := mh.FromB58String(conf.Schema.Id); err != nil {
+			_, err = mh.FromB58String(conf.Schema.Id)
+			if err != nil {
 				return nil, err
 			}
 			schema = conf.Schema.Id
@@ -80,7 +81,8 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 		}
 
 		if schema != "" {
-			if err := t.cafeOutbox.Add(schema, pb.CafeRequest_STORE, cafeReqOpt.Group(id.Pretty())); err != nil {
+			err := t.cafeOutbox.Add(schema, pb.CafeRequest_STORE, cafeReqOpt.Group(id.Pretty()))
+			if err != nil {
 				return nil, err
 			}
 		}
@@ -95,7 +97,8 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 			if err != nil {
 				return nil, fmt.Errorf("error parsing address: %s", err)
 			}
-			if _, err := kp.Sign([]byte{0x00}); err == nil {
+			_, err = kp.Sign([]byte{0x00})
+			if err == nil {
 				// we don't want to handle account seeds, just addresses
 				return nil, fmt.Errorf("entry is an account seed, not address")
 			}
@@ -116,7 +119,8 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 		Whitelist: members,
 		State:     pb.Thread_LOADED,
 	}
-	if err := t.datastore.Threads().Add(model); err != nil {
+	err = t.datastore.Threads().Add(model)
+	if err != nil {
 		if conf.Force && db.ConflictError(err) && strings.Contains(err.Error(), ".key") {
 			conf.Key = incrementKey(conf.Key)
 			return t.AddThread(conf, sk, initiator, join, inviteAccount)
@@ -131,7 +135,8 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 
 	// we join here if we're the creator
 	if join {
-		if _, err := thrd.joinInitial(); err != nil {
+		_, err = thrd.joinInitial()
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -147,7 +152,8 @@ func (t *Textile) AddThread(conf pb.AddThreadConfig, sk libp2pc.PrivKey, initiat
 	// invite account peers if inviter is not an account peer
 	if inviteAccount {
 		for _, p := range t.accountPeers() {
-			if _, err := thrd.AddInvite(p); err != nil {
+			_, err = thrd.AddInvite(p)
+			if err != nil {
 				return nil, err
 			}
 		}
@@ -220,7 +226,8 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 		return err
 	}
 
-	if _, err := nthrd.handleHead(hash, parents); err != nil {
+	_, err = nthrd.handleHead(hash, parents)
+	if err != nil {
 		return err
 	}
 
@@ -229,12 +236,14 @@ func (t *Textile) AddOrUpdateThread(thrd *pb.Thread) error {
 		nthrd.Id, pb.Block_JOIN, t.node.Identity.Pretty())
 	if t.datastore.Blocks().Count(query) == 0 {
 		// go ahead, invite yourself
-		if _, err := nthrd.join(t.node.Identity); err != nil {
+		_, err = nthrd.join(t.node.Identity)
+		if err != nil {
 			return err
 		}
 	} else {
 		// handle newly discovered peers during back prop
-		if err := nthrd.sendWelcome(); err != nil {
+		err = nthrd.sendWelcome()
+		if err != nil {
 			return err
 		}
 	}
@@ -262,14 +271,13 @@ func (t *Textile) RenameThread(id string, name string) error {
 	}
 
 	thrd.Name = trimmed
-	if err := t.datastore.Threads().UpdateName(thrd.Id, trimmed); err != nil {
+	err := t.datastore.Threads().UpdateName(thrd.Id, trimmed)
+	if err != nil {
 		return err
 	}
 
-	if _, err := thrd.annouce(&pb.ThreadAnnounce{Name: trimmed}); err != nil {
-		return err
-	}
-	return nil
+	_, err = thrd.annouce(&pb.ThreadAnnounce{Name: trimmed})
+	return err
 }
 
 // Thread get a thread by id from loaded threads
@@ -334,11 +342,13 @@ func (t *Textile) RemoveThread(id string) (mh.Multihash, error) {
 	}
 
 	// delete backups
-	if err := t.cafeOutbox.Add(thrd.Id, pb.CafeRequest_UNSTORE_THREAD, cafeReqOpt.Group(thrd.Id)); err != nil {
+	err = t.cafeOutbox.Add(thrd.Id, pb.CafeRequest_UNSTORE_THREAD, cafeReqOpt.Group(thrd.Id))
+	if err != nil {
 		return nil, err
 	}
 
-	if err := t.datastore.Threads().Delete(thrd.Id); err != nil {
+	err = t.datastore.Threads().Delete(thrd.Id)
+	if err != nil {
 		return nil, err
 	}
 
@@ -395,8 +405,10 @@ func (t *Textile) ThreadView(id string) (*pb.Thread, error) {
 
 // SnapshotThreads creates a store thread request for all threads
 func (t *Textile) SnapshotThreads() error {
+	var err error
 	for _, thrd := range t.loadedThreads {
-		if err := thrd.store(); err != nil {
+		err = thrd.store()
+		if err != nil {
 			return err
 		}
 	}
@@ -450,7 +462,8 @@ func (t *Textile) SearchThreadSnapshots(query *pb.ThreadSnapshotQuery, options *
 				}
 
 				thrd := new(pb.Thread)
-				if err := proto.Unmarshal(plaintext, thrd); err != nil {
+				err = proto.Unmarshal(plaintext, thrd)
+				if err != nil {
 					terrCh <- err
 					break
 				}
@@ -498,7 +511,8 @@ func (t *Textile) addAccountThread() error {
 
 			return nil
 		}
-		if _, err := t.RemoveThread(x.Id); err != nil {
+		_, err = t.RemoveThread(x.Id)
+		if err != nil {
 			return err
 		}
 	}
@@ -528,7 +542,8 @@ func (t *Textile) addAccountThread() error {
 
 	// add existing contacts
 	for _, p := range t.datastore.Peers().List(fmt.Sprintf("address!='%s'", t.account.Address())) {
-		if _, err := thrd.annouce(&pb.ThreadAnnounce{Peer: p}); err != nil {
+		_, err = thrd.annouce(&pb.ThreadAnnounce{Peer: p})
+		if err != nil {
 			return err
 		}
 	}
@@ -538,7 +553,8 @@ func (t *Textile) addAccountThread() error {
 
 // incrementKey add "_xxx" to the end of a key
 func incrementKey(key string) string {
-	if _, err := strconv.Atoi(key); err == nil {
+	_, err := strconv.Atoi(key)
+	if err == nil {
 		return key + "_1"
 	}
 	a := strings.Split(key, "_")
