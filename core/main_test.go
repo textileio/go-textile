@@ -2,7 +2,6 @@ package core_test
 
 import (
 	"crypto/rand"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
