@@ -7,11 +7,8 @@ import (
 	"os"
 	"path"
 
-	logging "github.com/ipfs/go-log"
 	"github.com/textileio/go-textile/common"
 )
-
-var log = logging.Logger("tex-repo-config")
 
 // Config is used to load textile config files.
 type Config struct {

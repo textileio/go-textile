@@ -3,11 +3,12 @@ package core_test
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/textileio/go-textile/util"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
+
+	"github.com/textileio/go-textile/util"
 
 	libp2pc "github.com/libp2p/go-libp2p-crypto"
 	"github.com/segmentio/ksuid"
@@ -23,6 +24,8 @@ var otherPath = "testdata/.textile2"
 
 var node *Textile
 var other *Textile
+
+var testThread *Thread
 
 var token string
 
@@ -51,14 +54,14 @@ var contact = &pb.Contact{
 var schemaHash string
 
 func TestInitRepo(t *testing.T) {
-	os.RemoveAll(repoPath)
+	_ = os.RemoveAll(repoPath)
 	accnt := keypair.Random()
 	if err := InitRepo(InitConfig{
 		Account:  accnt,
 		RepoPath: repoPath,
-		ApiAddr: fmt.Sprintf("127.0.0.1:%s", GetRandomPort()),
+		ApiAddr:  fmt.Sprintf("127.0.0.1:%s", GetRandomPort()),
 	}); err != nil {
-		t.Errorf("init node failed: %s", err)
+		t.Fatalf("init node failed: %s", err)
 	}
 }
 
@@ -68,7 +71,7 @@ func TestNewTextile(t *testing.T) {
 		RepoPath: repoPath,
 	})
 	if err != nil {
-		t.Errorf("create node failed: %s", err)
+		t.Fatalf("create node failed: %s", err)
 	}
 }
 
@@ -78,13 +81,13 @@ func TestSetLogLevel(t *testing.T) {
 		"tex-datastore": pb.LogLevel_INFO,
 	}}
 	if err := node.SetLogLevel(logLevel); err != nil {
-		t.Errorf("set log levels failed: %s", err)
+		t.Fatalf("set log levels failed: %s", err)
 	}
 }
 
 func TestTextile_Start(t *testing.T) {
 	if err := node.Start(); err != nil {
-		t.Errorf("start node failed: %s", err)
+		t.Fatalf("start node failed: %s", err)
 	}
 	<-node.OnlineCh()
 }
@@ -117,27 +120,28 @@ func TestTextile_API_Stop(t *testing.T) {
 
 func TestTextile_CafeSetup(t *testing.T) {
 	// start another
-	os.RemoveAll(otherPath)
+	_ = os.RemoveAll(otherPath)
 	accnt := keypair.Random()
-	if err := InitRepo(InitConfig{
+	err := InitRepo(InitConfig{
 		Account:     accnt,
 		RepoPath:    otherPath,
 		CafeApiAddr: "127.0.0.1:5000",
 		CafeURL:     "http://127.0.0.1:5000",
 		CafeOpen:    true,
-	}); err != nil {
-		t.Errorf("init other failed: %s", err)
-		return
+	})
+	if err != nil {
+		t.Fatalf("init other failed: %s", err)
 	}
-	var err error
 	other, err = NewTextile(RunConfig{
 		RepoPath: otherPath,
 	})
 	if err != nil {
-		t.Errorf("create other failed: %s", err)
-		return
+		t.Fatalf("create other failed: %s", err)
 	}
-	other.Start()
+	err = other.Start()
+	if err != nil {
+		t.Fatalf("start other failed: %s", err)
+	}
 
 	// wait for cafe to be online
 	<-other.OnlineCh()
@@ -145,19 +149,19 @@ func TestTextile_CafeSetup(t *testing.T) {
 
 func TestTextile_Started(t *testing.T) {
 	if !node.Started() {
-		t.Errorf("should report node started")
+		t.Fatal("should report node started")
 	}
 	if !other.Started() {
-		t.Errorf("should report other started")
+		t.Fatal("should report other started")
 	}
 }
 
 func TestTextile_Online(t *testing.T) {
 	if !node.Online() {
-		t.Errorf("should report node online")
+		t.Fatal("should report node online")
 	}
 	if !other.Online() {
-		t.Errorf("should report other online")
+		t.Fatal("should report other online")
 	}
 }
 
@@ -165,39 +169,39 @@ func TestTextile_CafeTokens(t *testing.T) {
 	var err error
 	token, err = other.CreateCafeToken("", true)
 	if err != nil {
-		t.Error(fmt.Errorf("error creating cafe token: %s", err))
-		return
+		t.Fatalf("error creating cafe token: %s", err)
 	}
 	if len(token) == 0 {
-		t.Error("invalid token created")
-		return
+		t.Fatal("invalid token created")
 	}
 
 	tokens, _ := other.CafeTokens()
 	if len(tokens) < 1 {
-		t.Error("token database not updated (should be length 1)")
+		t.Fatal("token database not updated (should be length 1)")
 	}
 
-	if ok, err := other.ValidateCafeToken("blah"); err == nil || ok {
-		t.Error("expected token comparison with 'blah' to be invalid")
+	ok, err := other.ValidateCafeToken("blah")
+	if err == nil || ok {
+		t.Fatal("expected token comparison with 'blah' to be invalid")
 	}
 
-	if ok, err := other.ValidateCafeToken(token); err != nil || !ok {
-		t.Error("expected token comparison to be valid")
+	ok, err = other.ValidateCafeToken(token)
+	if err != nil || !ok {
+		t.Fatal("expected token comparison to be valid")
 	}
 }
 
 func TestTextile_CafeRegistration(t *testing.T) {
 	// register w/ wrong credentials
-	if _, err := node.RegisterCafe("http://127.0.0.1:5000", "blah"); err == nil {
-		t.Error("register node w/ other should have failed")
-		return
+	_, err := node.RegisterCafe("http://127.0.0.1:5000", "blah")
+	if err == nil {
+		t.Fatal("register node w/ other should have failed")
 	}
 
 	// register cafe
-	if _, err := node.RegisterCafe("http://127.0.0.1:5000", token); err != nil {
-		t.Errorf("register node w/ other failed: %s", err)
-		return
+	_, err = node.RegisterCafe("http://127.0.0.1:5000", token)
+	if err != nil {
+		t.Fatalf("register node w/ other failed: %s", err)
 	}
 
 	// get sessions
@@ -205,19 +209,19 @@ func TestTextile_CafeRegistration(t *testing.T) {
 	if len(sessions.Items) > 0 {
 		session = sessions.Items[0]
 	} else {
-		t.Errorf("no active sessions")
+		t.Fatal("no active sessions")
 	}
 }
 
 func TestTextile_AddContact(t *testing.T) {
 	if err := node.AddContact(contact); err != nil {
-		t.Errorf("add contact failed: %s", err)
+		t.Fatalf("add contact failed: %s", err)
 	}
 }
 
 func TestTextile_AddContactAgain(t *testing.T) {
 	if err := node.AddContact(contact); err != nil {
-		t.Errorf("adding duplicate contact should not throw error")
+		t.Fatal("adding duplicate contact should not throw error")
 	}
 }
 
@@ -233,7 +237,7 @@ func TestTextile_GetMedia(t *testing.T) {
 		t.Fatal(err)
 	}
 	if media != "image/jpeg" {
-		t.Errorf("wrong media type: %s", media)
+		t.Fatalf("wrong media type: %s", media)
 	}
 }
 
@@ -248,7 +252,7 @@ func TestTextile_AddSchema(t *testing.T) {
 func TestTextile_AddThread(t *testing.T) {
 	sk, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	config := pb.AddThreadConfig{
 		Key:       ksuid.New().String(),
@@ -260,33 +264,33 @@ func TestTextile_AddThread(t *testing.T) {
 	}
 	thrd, err := node.AddThread(config, sk, node.Account().Address(), true, true)
 	if err != nil {
-		t.Errorf("add thread failed: %s", err)
-		return
+		t.Fatalf("add thread failed: %s", err)
 	}
 	if thrd == nil {
-		t.Error("add thread didn't return thread")
+		t.Fatal("add thread didn't return thread")
 	}
+	testThread = thrd
 
 	// add again w/ same key
 	sk2, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
-	if _, err := node.AddThread(pb.AddThreadConfig{
+	_, err = node.AddThread(pb.AddThreadConfig{
 		Key:       config.Key,
 		Name:      "test2",
 		Type:      pb.Thread_PUBLIC,
 		Sharing:   pb.Thread_NOT_SHARED,
 		Whitelist: []string{},
-	}, sk2, node.Account().Address(), true, true); err == nil {
-		t.Error("add thread with same key should fail")
-		return
+	}, sk2, node.Account().Address(), true, true)
+	if err == nil {
+		t.Fatal("add thread with same key should fail")
 	}
 
 	// add again w/ same key but force true
 	sk3, _, err := libp2pc.GenerateEd25519Key(rand.Reader)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	forced, err := node.AddThread(pb.AddThreadConfig{
 		Key:       config.Key,
@@ -297,11 +301,10 @@ func TestTextile_AddThread(t *testing.T) {
 		Whitelist: []string{},
 	}, sk3, node.Account().Address(), true, true)
 	if err != nil {
-		t.Errorf("add thread with same key and force should not fail: %s", err)
-		return
+		t.Fatalf("add thread with same key and force should not fail: %s", err)
 	}
 	if forced.Key != config.Key+"_1" {
-		t.Errorf("add thread with same key and force resulted in bad key")
+		t.Fatal("add thread with same key and force resulted in bad key")
 	}
 }
 
@@ -331,59 +334,73 @@ func TestTextile_AddFile(t *testing.T) {
 
 	file, err := node.AddFileIndex(m, conf)
 	if err != nil {
-		t.Errorf("add file failed: %s", err)
-		return
+		t.Fatalf("add file failed: %s", err)
 	}
 
 	if file.Mill != "/image/resize" {
-		t.Error("wrong mill")
+		t.Fatal("wrong mill")
 	}
 	if file.Checksum != "EWiMoePQAUrY9GWHBYu71upb9Z5dj1q9D3bS9Xtfp5fe" {
-		t.Error("wrong checksum")
+		t.Fatal("wrong checksum")
+	}
+}
+
+func TestTextile_RenameThread(t *testing.T) {
+	err := node.RenameThread(testThread.Id, "new name")
+	if err != nil {
+		t.Fatalf("error renaming thread: %s", err)
+	}
+
+	thrd := node.Thread(testThread.Id)
+	if thrd.Name != "new name" {
+		t.Fatal("error renaming thread")
 	}
 }
 
 func TestTextile_RemoveCafeToken(t *testing.T) {
-	if err := other.RemoveCafeToken(token); err != nil {
-		t.Error("expected be remove token cleanly")
+	err := other.RemoveCafeToken(token)
+	if err != nil {
+		t.Fatal("expected be remove token cleanly")
 	}
 
 	tokens, _ := other.CafeTokens()
 	if len(tokens) > 0 {
-		t.Error("token database not updated (should be zero length)")
+		t.Fatal("token database not updated (should be zero length)")
 	}
 }
 
 func TestTextile_Stop(t *testing.T) {
-	if err := node.Stop(); err != nil {
-		t.Errorf("stop node failed: %s", err)
+	err := node.Stop()
+	if err != nil {
+		t.Fatalf("stop node failed: %s", err)
 	}
-	if err := other.Stop(); err != nil {
-		t.Errorf("stop other failed: %s", err)
+	err = other.Stop()
+	if err != nil {
+		t.Fatalf("stop other failed: %s", err)
 	}
 }
 
 func TestTextile_StartedAgain(t *testing.T) {
 	if node.Started() {
-		t.Errorf("node should report stopped")
+		t.Fatal("node should report stopped")
 	}
 	if other.Started() {
-		t.Errorf("other should report stopped")
+		t.Fatal("other should report stopped")
 	}
 }
 
 func TestTextile_OnlineAgain(t *testing.T) {
 	if node.Online() {
-		t.Errorf("node should report offline")
+		t.Fatal("node should report offline")
 	}
 	if other.Online() {
-		t.Errorf("other should report offline")
+		t.Fatal("other should report offline")
 	}
 }
 
 func TestTextile_Teardown(t *testing.T) {
 	node = nil
-	os.RemoveAll(repoPath)
+	_ = os.RemoveAll(repoPath)
 	other = nil
-	os.RemoveAll(otherPath)
+	_ = os.RemoveAll(otherPath)
 }
