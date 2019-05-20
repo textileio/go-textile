@@ -991,38 +991,6 @@ func TestMobile_SearchContacts(t *testing.T) {
 	handle.Cancel()
 }
 
-func TestMobile_CafeRequests(t *testing.T) {
-	res, err := mobile1.CafeRequests("", 10)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	reqs := new(pb.CafeRequestList)
-	if err := proto.Unmarshal(res, reqs); err != nil {
-		t.Error(err)
-		return
-	}
-
-	for _, r := range reqs.Items {
-		res, err := mobile1.WriteCafeHTTPRequest(r.Id)
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		hreq := new(pb.CafeHTTPRequest)
-		err = proto.Unmarshal(res, hreq)
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		err = mobile1.SetCafeRequestPending(r.Id)
-		if err != nil {
-			t.Error(err)
-			return
-		}
-	}
-}
-
 func TestMobile_Stop(t *testing.T) {
 	if err := mobile1.Stop(); err != nil {
 		t.Errorf("stop mobile node failed: %s", err)
@@ -1056,14 +1024,16 @@ func createAndStartMobile(repoPath string, waitForOnline bool) (*Mobile, error) 
 		return nil, err
 	}
 	accnt := new(pb.MobileWalletAccount)
-	if err := proto.Unmarshal(res, accnt); err != nil {
+	err = proto.Unmarshal(res, accnt)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := InitRepo(&InitConfig{
+	err = InitRepo(&InitConfig{
 		Seed:     accnt.Seed,
 		RepoPath: repoPath,
-	}); err != nil {
+	})
+	if err != nil {
 		return nil, err
 	}
 
@@ -1075,7 +1045,8 @@ func createAndStartMobile(repoPath string, waitForOnline bool) (*Mobile, error) 
 		return nil, err
 	}
 
-	if err := mobile.Start(); err != nil {
+	err = mobile.Start()
+	if err != nil {
 		return nil, err
 	}
 
