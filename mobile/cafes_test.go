@@ -1,4 +1,4 @@
-package mobile_test
+package mobile
 
 import (
 	"os"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/textileio/go-textile/core"
 	"github.com/textileio/go-textile/keypair"
-	. "github.com/textileio/go-textile/mobile"
 )
 
 var cafePath = "testdata/.textile3"
