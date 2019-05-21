@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/golang/protobuf/proto"
+	mh "github.com/multiformats/go-multihash"
 	"github.com/textileio/go-textile/core"
 )
 
@@ -46,4 +47,36 @@ func (m *Mobile) Avatar() (string, error) {
 	}
 
 	return m.node.Avatar(), nil
+}
+
+// SetAvatar adds the image at pth to the account thread and calls core SetAvatar
+func (m *Mobile) SetAvatar(pth string, cb Callback) {
+	go func() {
+		hash, err := m.setAvatar(pth)
+		if err != nil {
+			cb.Call(nil, err)
+			return
+		}
+
+		cb.Call(m.blockView(hash))
+	}()
+}
+
+func (m *Mobile) setAvatar(pth string) (mh.Multihash, error) {
+	thrd := m.node.AccountThread()
+	if thrd == nil {
+		return nil, fmt.Errorf("account thread not found")
+	}
+
+	hash, err := m.addFiles([]string{pth}, thrd.Id, "")
+	if err != nil {
+		return nil, err
+	}
+
+	err = m.node.SetAvatar()
+	if err != nil {
+		return nil, err
+	}
+
+	return hash, nil
 }

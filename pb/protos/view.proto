@@ -245,5 +245,5 @@ message LogLevel {
 // PRIMITIVES
 
 message Strings {
-	repeated string items = 1;
+	repeated string values = 1;
 }

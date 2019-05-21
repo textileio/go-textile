@@ -105,7 +105,7 @@ func (m *Mobile) CafeRequests(offset string, limit int) ([]byte, error) {
 	}
 
 	groups := m.node.Datastore().CafeRequests().ListGroups(offset, limit)
-	return proto.Marshal(&pb.Strings{Items: groups})
+	return proto.Marshal(&pb.Strings{Values: groups})
 }
 
 // SetCafeRequestComplete marks a request group as complete
