@@ -219,9 +219,6 @@ func (a *api) Start() {
 		files := v0.Group("/files")
 		{
 			files.GET("", a.lsThreadFiles)
-
-			// @todo mark as deprecated somehow
-			// they should use what it redirects to
 			files.GET("/:block", func (g *gin.Context) {
 				g.Redirect(http.StatusPermanentRedirect, "/api/v0/blocks/" + g.Param("block") + "/files")
 			})

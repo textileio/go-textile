@@ -11,7 +11,9 @@ import (
 	"github.com/textileio/go-textile/util"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"net/url"
+	"os"
 
 	"os/signal"
 	"path/filepath"
@@ -26,9 +28,7 @@ import (
 
 	_ "expvar"
 	"gopkg.in/alecthomas/kingpin.v2"
-	"net/http"
 	_ "net/http/pprof"
-	"os"
 
 	logging "github.com/ipfs/go-log"
 )
@@ -201,41 +201,11 @@ Ignored blocks are by default not returned when listing.`).Alias("remove").Alias
 	commentIgnoreCommentID = commentIgnoreCmd.Arg("id", "Comment Block ID").Required().String()
 
 	// ================================
-	// @todo this documentation is better suited for docs.textile.io
 
 	// config
-	configCmd = appCmd.Command("config", `The config command controls configuration variables.
-It works much like 'git config'. The configuration
-values are stored in a config file inside your Textile
-repository.
-
-Getting config values will report the currently active
-config settings. This may differ from the values specified
-when setting values.
-
-When changing values, valid JSON types must be used.
-For example, a string should be escaped or wrapped in
-single quotes (e.g., \"127.0.0.1:40600\") and arrays and
-objects work fine (e.g. '{"API": "127.0.0.1:40600"}')
-but should be wrapped in single quotes. Be sure to restart
-the daemon for changes to take effect.
-
-Examples:
-
-Get the value of the 'Addresses.API' key:
-
-  $ textile config Addresses.API
-  $ textile config Addresses/API # Alternative syntax
-
-Print the entire Textile config file to console:
-
-  $ textile config
-
-Set the value of the 'Addresses.API' key:
-
-  $ textile config Addresses.API \"127.0.0.1:40600\"`)
-	configName = configCmd.Arg("name", "The name of the configuration variable you wish to retrieve").Required().String()
-	configValue = configCmd.Arg("value", "If provided, the value to set the configuration variable to").String()
+	configCmd = appCmd.Command("config", "Get or set configuration variables").Alias("conf")
+	configName = configCmd.Arg("name", "If provided, will restrict the operation to this specific configuration variable, e.g. 'Addresses.API'").String()
+	configValue = configCmd.Arg("value", `If provided, will set the specific configuration variable to this JSON escaped value, e.g. '"127.0.0.1:40600"'`).String()
 
 
 	// ================================
@@ -283,8 +253,7 @@ Set the value of the 'Addresses.API' key:
 	// ================================
 
 	// docs
-	// docsCmd = appCmd.Command("docs", "Prints markdown docs for the command-line client")
-	// @todo add commands as alias for --help
+	docsCmd = appCmd.Command("docs", "Prints the CLI help as HTML")
 
 	// ================================
 	// @todo this documentation is better suited for docs.textile.io
@@ -657,6 +626,7 @@ The response contains a base58 encoded version of the random bytes token.`)
 )
 
 func Run() error {
+	// commands
 	switch kingpin.MustParse(appCmd.Parse(os.Args[1:])) {
 
 	// account
@@ -746,7 +716,11 @@ func Run() error {
 		}
 		return Daemon(repoPath, *daemonPinCode, *daemonDocs, *logDebug)
 
-		// feed
+	// docs
+	case docsCmd.FullCommand():
+		return Docs()
+
+	// feed
 	case feedCmd.FullCommand():
 		return Feed(*feedThreadID, *feedOffset, *feedLimit, *feedMode)
 
